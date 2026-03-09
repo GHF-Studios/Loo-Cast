@@ -86,7 +86,6 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
     } else {
         configured_surface_cube_count
     };
-    let top_level_only = CONFIG().get::<bool>("chunk/top_level_only");
     let dev_cube_mesh = if use_chunk_cube_proxies {
         Some(meshes.add(Mesh::from(Cuboid::from_size(Vec3::splat(CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS)))))
     } else {
@@ -106,17 +105,10 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         let scale = input.grid_coord.scale;
         let grid_coord = input.grid_coord;
         let scale_diff = scale as i8 - chunk_loader.coord.scale as i8;
-        if top_level_only && scale != Scale::MAX {
-            continue;
-        }
         if !(0_i8..=Scale::MAX_DIFF_SCALE_EXP).contains(&scale_diff) {
-            if top_level_only && scale == Scale::MAX {
-                // In top-level-only mode we intentionally keep top chunks alive regardless of player-local scale delta.
-            } else {
-                skipped_outside_window += 1;
-                skipped_example.get_or_insert((scale, chunk_loader.coord.scale, scale_diff));
-                continue;
-            }
+            skipped_outside_window += 1;
+            skipped_example.get_or_insert((scale, chunk_loader.coord.scale, scale_diff));
+            continue;
         }
         let origin = chunk_loader.origin_offset.clone();
         let (visual_world_coord, visual_world_scale) = grid_coord.clone().to_native_visual(origin);

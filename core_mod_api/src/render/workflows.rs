@@ -58,10 +58,10 @@ define_workflow_mod_OLD! {
                             let mut egui_global_settings = main_access.egui_global_settings;
                             egui_global_settings.auto_create_primary_context = false;
                             let default_zoom = CONFIG().get::<f32>("camera/default_zoom").max(f32::EPSILON);
-                            let camera_follow_z_offset = Scale::CANONICAL_Z_SPACING * (Scale::MAX_DIFF_SCALE_EXP as f32 + 0.5);
                             let initial_player_anchor_z =
                                 Scale::MAX.continuous_z_from_local_zoom(default_zoom) + CONFIG().get::<f32>("player/z_offset");
-                            let initial_camera_z = initial_player_anchor_z + camera_follow_z_offset;
+                            let initial_camera_z =
+                                initial_player_anchor_z + Scale::CANONICAL_Z_SPACING * (Scale::MAX_DIFF_SCALE_EXP as f32 + 0.5);
 
                             let (
                                 egui_camera_entity,
@@ -127,8 +127,7 @@ define_workflow_mod_OLD! {
                                     "main_camera".to_string(),
                                     Vec2::ZERO,
                                     CONFIG().get::<f32>("camera/follow_smoothness"),
-                                )
-                                .with_z_offset(camera_follow_z_offset),
+                                ),
                                 FollowerTarget {
                                     id: "main_camera_proxy".to_string(),
                                 },

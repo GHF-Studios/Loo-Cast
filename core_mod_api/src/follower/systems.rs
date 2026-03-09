@@ -69,7 +69,7 @@ fn update_followers(
 ) {
     // Track jump discontinuities in followed targets (e.g. USF border fold) so followers
     // preserve their current lag offset instead of gliding back toward a wrapped position.
-    const TARGET_JUMP_SNAP_DISTANCE_XY: f32 = 400.0;
+    const TARGET_JUMP_SNAP_DISTANCE: f32 = 400.0;
 
     for (_, mut follower_transform, mut follower) in followers_query.iter_mut() {
         if let Some(target_position) = follower.get_followed_entity().and_then(|_| targets.get(&follower.follow_id)) {
@@ -78,16 +78,17 @@ fn update_followers(
             match previous_target_pos {
                 Some(previous_target_pos) => {
                     let target_jump_delta = *target_position - previous_target_pos;
-                    if target_jump_delta.truncate().length_squared() >= TARGET_JUMP_SNAP_DISTANCE_XY * TARGET_JUMP_SNAP_DISTANCE_XY {
-                        // Apply XY jump discontinuities immediately (USF wrap), but keep Z smooth.
+                    if target_jump_delta.length_squared() >= TARGET_JUMP_SNAP_DISTANCE * TARGET_JUMP_SNAP_DISTANCE {
+                        // Apply the same target jump to the camera to keep relative lag intact.
                         follower_transform.translation.x += target_jump_delta.x;
                         follower_transform.translation.y += target_jump_delta.y;
+                        follower_transform.translation.z += target_jump_delta.z;
                         continue;
                     }
                 }
                 None => {
                     // First frame after assignment should align with current target.
-                    let aligned_target = *target_position + follower.offset.extend(follower.z_offset);
+                    let aligned_target = *target_position + follower.offset.extend(0.0);
                     follower_transform.translation = aligned_target;
                     continue;
                 }
@@ -104,7 +105,7 @@ fn update_follower_position(follower: &mut Follower, follower_transform: &mut Tr
         follower.smoothness = 0.0;
     }
 
-    let target_position_3d = target_position + follower.offset.extend(follower.z_offset);
+    let target_position_3d = target_position + follower.offset.extend(0.0);
     // Clamp smoothing delta so post-load frame hitches don't collapse the intended follow lag.
     const MAX_SMOOTHING_DT_SECS: f32 = 1.0 / 30.0;
     let smoothing_dt_secs = time.delta_secs().min(MAX_SMOOTHING_DT_SECS);
