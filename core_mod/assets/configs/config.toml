@@ -1,5 +1,5 @@
 [camera]
-default_zoom = 0.15
+default_zoom = 1.0
 min_zoom = 0.001
 max_zoom = 1000.0
 default_fov_degrees = 55.0

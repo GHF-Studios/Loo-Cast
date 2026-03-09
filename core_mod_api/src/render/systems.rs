@@ -11,7 +11,8 @@ use crate::input::states::InputMode;
 use crate::player::components::Player;
 use crate::render::{
     components::{
-        EntityProxyLink, LogicProxy, MainCamera, PhenomenonModelCamera, PhenomenonModelSurface, ProxySyncRevision, RenderProxy, RenderProxyWindowMode, UiCamera,
+        EntityProxyLink, GlobalPhenomenonRoot, LogicProxy, MainCamera, PhenomenonModelCamera, PhenomenonModelSurface, ProxySyncRevision, RenderProxy,
+        RenderProxyWindowMode, UiCamera,
     },
     functions::{PHENOMENON_MODEL_LOCAL_SPAN_UNITS, draw_primary_window_ui},
     materials::PhenomenonSurfaceMaterial,
@@ -191,6 +192,61 @@ pub(super) fn update_render_proxies(
                 proxy_revision.0 = incoming_revision.0;
             }
         }
+    }
+}
+
+#[tracing::instrument(skip_all)]
+pub(super) fn update_global_phenomenon_proxy_system(
+    zoom_factor: Res<ZoomFactor>,
+    dev_zoom_factor: Res<DevZoomFactor>,
+    mut params: ParamSet<(
+        Single<(&ChunkLoader, &Transform), With<Player>>,
+        Query<(&mut Transform, &mut RenderProxy), With<GlobalPhenomenonRoot>>,
+    )>,
+) {
+    let (world_rotation, world_rotation_origin, coord_scale, scale_diff, pos, scale, view_pos_native, camera_zoom) = {
+        let (chunk_loader, chunk_loader_transform) = *params.p0();
+        let world_rotation = chunk_loader.world_rotation_quat();
+        let world_rotation_origin = chunk_loader_transform.translation;
+        let origin_offset = chunk_loader.origin_offset.clone();
+        let view_pos_native = chunk_loader_transform.translation.truncate();
+        let camera_zoom = (zoom_factor.0 * dev_zoom_factor.0).max(f32::EPSILON);
+
+        // Keep one global phenomenon root anchored one scale level above the player when possible.
+        // This preserves USF windowed subsection behavior while avoiding per-chunk duplication.
+        let mut phenomenon_coord = chunk_loader.coord.clone();
+        if phenomenon_coord.scale < Scale::MAX {
+            phenomenon_coord.zoom_out();
+        }
+        let coord_scale = phenomenon_coord.scale;
+        let scale_diff = coord_scale as i8 - origin_offset.scale as i8;
+        let (pos, scale) = phenomenon_coord.to_native_visual(origin_offset);
+
+        (
+            world_rotation,
+            world_rotation_origin,
+            coord_scale,
+            scale_diff,
+            pos,
+            scale,
+            view_pos_native,
+            camera_zoom,
+        )
+    };
+
+    let mut global_proxy_query = params.p1();
+    for (mut proxy_transform, mut proxy_state) in global_proxy_query.iter_mut() {
+        let z = coord_scale.compute_z() + proxy_state.depth_bias;
+        let world_pos = pos.extend(z);
+        proxy_transform.translation = world_rotation_origin + world_rotation * (world_pos - world_rotation_origin);
+        proxy_transform.scale = Vec3::splat(scale);
+        proxy_transform.rotation = world_rotation;
+        proxy_state.layer_index = coord_scale.render_layer_index();
+        let (window_mode, window_center_local, window_size_local) = compute_render_proxy_windowing(scale_diff, camera_zoom, pos, view_pos_native);
+        proxy_state.window_mode = window_mode;
+        proxy_state.window_center_local = window_center_local;
+        proxy_state.window_size_local = window_size_local;
+        proxy_state.coarse_context_persistent = true;
     }
 }
 
@@ -823,12 +879,18 @@ mod tests {
 }
 
 #[tracing::instrument(skip_all)]
-pub(super) fn enforce_main_camera_depth_contract_system(mut main_camera_query: Query<(&mut Transform, &mut Projection), With<MainCamera>>) {
+pub(super) fn enforce_main_camera_depth_contract_system(
+    mut main_camera_query: Query<(&mut Transform, &mut Projection), With<MainCamera>>,
+    player_loader_query: Query<&ChunkLoader, With<Player>>,
+) {
     let Ok((mut camera_transform, mut projection)) = main_camera_query.single_mut() else {
         return;
     };
 
-    camera_transform.translation.z = Scale::CANONICAL_CAMERA_Z;
+    camera_transform.translation.z = player_loader_query
+        .single()
+        .map(|loader| loader.scale.compute_z() + Scale::CANONICAL_Z_SPACING)
+        .unwrap_or(Scale::CANONICAL_CAMERA_Z);
 
     match projection.as_mut() {
         Projection::Orthographic(ortho) => {
@@ -1120,8 +1182,8 @@ pub(super) fn apply_usf_player_pivots_system(
     let display_zoom = zoom_factor.0.clamp(local_min, local_max);
     let camera_zoom = (display_zoom * dev_zoom_factor.0).max(f32::EPSILON);
 
-    // Player is a fine-scale phenomena: local mousewheel zoom also scales the player.
-    player_transform.scale = Vec3::splat(display_zoom.max(f32::EPSILON));
+    // Keep player visual scale stable; zoom should control camera framing, not player mesh size.
+    player_transform.scale = Vec3::ONE;
 
     for mut projection in projection_query.iter_mut() {
         apply_camera_zoom_to_projection(

@@ -7,7 +7,7 @@ use crate::chunk::{
 };
 use crate::config::statics::CONFIG;
 use crate::render::{
-    components::{EntityProxyLink, LogicProxy, MainCamera, PhenomenonModelSurface, ProxySyncRevision},
+    components::{EntityProxyLink, GlobalPhenomenonRoot, LogicProxy, PhenomenonModelSurface, ProxySyncRevision},
     functions::{PHENOMENON_MODEL_LOCAL_SPAN_UNITS, new_phenomenon_model_proxy_bundle, new_sprite_proxy_bundle},
     materials::PhenomenonSurfaceMaterial,
 };
@@ -17,7 +17,6 @@ use crate::usf::{
     scale::Scale,
 };
 use crate::workflow::types::Outcome;
-use std::hash::{Hash, Hasher};
 
 // Items
 pub struct SpawnChunkInput {
@@ -36,9 +35,9 @@ pub struct SpawnChunkState {
 pub struct MainAccess<'w, 's> {
     pub commands: Commands<'w, 's>,
     pub chunk_query: Query<'w, 's, &'static Chunk>,
+    pub global_phenomenon_root_query: Query<'w, 's, Entity, With<GlobalPhenomenonRoot>>,
     pub chunk_loader_query: Single<'w, 's, &'static ChunkLoader>,
     pub chunk_manager: ResMut<'w, ChunkManager>,
-    pub camera_transform: Single<'w, 's, &'static Transform, With<MainCamera>>,
     pub meshes: ResMut<'w, Assets<Mesh>>,
     pub phenomenon_surface_materials: ResMut<'w, Assets<PhenomenonSurfaceMaterial>>,
 }
@@ -64,13 +63,68 @@ pub enum Error {
 pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, Error> {
     let mut commands = main_access.commands;
     let chunk_query = main_access.chunk_query;
+    let global_phenomenon_root_query = main_access.global_phenomenon_root_query;
     let chunk_loader = main_access.chunk_loader_query;
     let mut chunk_manager = main_access.chunk_manager;
-    let _camera_transform = main_access.camera_transform;
     let mut meshes = main_access.meshes;
     let mut phenomenon_surface_materials = main_access.phenomenon_surface_materials;
 
     let use_phenomenon_model_proxies = CONFIG().get::<bool>("render/use_phenomenon_model_proxies");
+    let chunk_depth_bias = CONFIG().get::<i8>("chunk/z_offset") as f32;
+
+    if use_phenomenon_model_proxies && global_phenomenon_root_query.is_empty() {
+        if let Some(metric_texture) = input.inputs.first().map(|entry| entry.metric_texture.clone()) {
+            let mut phenomenon_coord = chunk_loader.coord.clone();
+            if phenomenon_coord.scale < Scale::MAX {
+                phenomenon_coord.zoom_out();
+            }
+            let phenomenon_scale = phenomenon_coord.scale;
+            let (phenomenon_pos, phenomenon_visual_scale) = phenomenon_coord.clone().to_native_visual(chunk_loader.origin_offset.clone());
+
+            let phenomenon_entity = commands
+                .spawn((
+                    Name::new("global_phenomenon"),
+                    Phenomenon {
+                        id: PhenomenonId(0),
+                        kind: PhenomenonKind::Mandelbulb,
+                    },
+                ))
+                .id();
+
+            let phenomenon_render_proxy_entity = commands
+                .spawn((
+                    Name::new("global_phenomenon_render_proxy"),
+                    GlobalPhenomenonRoot,
+                    new_phenomenon_model_proxy_bundle(
+                        phenomenon_pos,
+                        phenomenon_visual_scale,
+                        phenomenon_entity,
+                        phenomenon_scale,
+                        chunk_depth_bias,
+                    ),
+                ))
+                .id();
+
+            let surface_mesh = meshes.add(Mesh::from(Cuboid::from_size(Vec3::splat(PHENOMENON_MODEL_LOCAL_SPAN_UNITS))));
+            let surface_material = phenomenon_surface_materials.add(PhenomenonSurfaceMaterial::for_metric_texture(metric_texture));
+
+            commands.entity(phenomenon_render_proxy_entity).with_children(|parent| {
+                parent.spawn((
+                    Name::new("global_phenomenon_surface"),
+                    Mesh3d(surface_mesh),
+                    MeshMaterial3d(surface_material),
+                    Transform::default(),
+                    Visibility::Visible,
+                    PhenomenonModelSurface::default(),
+                ));
+            });
+
+            commands.entity(phenomenon_render_proxy_entity).insert(PhenomenonModel {
+                phenomenon_entity,
+                scale: phenomenon_scale,
+            });
+        }
+    }
 
     let mut spawn_chunk_states = Vec::new();
     let mut skipped_outside_window = 0usize;
@@ -92,8 +146,6 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         if chunk_query.iter().any(|chunk| chunk.coord == grid_coord) {
             return Err(Error::ChunkAlreadyLoaded { grid_coord });
         }
-
-        let chunk_depth_bias = CONFIG().get::<i8>("chunk/z_offset") as f32;
 
         // let camera_pos = camera_transform.translation.truncate();
         // let camera_grid_extent = camera_pos.to_grid_coord(origin_offset.0);
@@ -117,7 +169,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
             .id();
 
         let chunk_render_proxy_entity = if use_phenomenon_model_proxies {
-            let chunk_render_proxy_entity = commands
+            commands
                 .spawn(new_phenomenon_model_proxy_bundle(
                     visual_world_coord,
                     visual_world_scale,
@@ -125,23 +177,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
                     scale,
                     chunk_depth_bias,
                 ))
-                .id();
-
-            let surface_mesh = meshes.add(Mesh::from(Cuboid::from_size(Vec3::splat(PHENOMENON_MODEL_LOCAL_SPAN_UNITS * 0.02))));
-            let surface_material = phenomenon_surface_materials.add(PhenomenonSurfaceMaterial::for_metric_texture(metric_texture));
-
-            commands.entity(chunk_render_proxy_entity).with_children(|parent| {
-                parent.spawn((
-                    Name::new(format!("phenomenon_model_surface({grid_coord:?})")),
-                    Mesh3d(surface_mesh),
-                    MeshMaterial3d(surface_material),
-                    Transform::default(),
-                    Visibility::Visible,
-                    PhenomenonModelSurface::default(),
-                ));
-            });
-
-            chunk_render_proxy_entity
+                .id()
         } else {
             commands
                 .spawn(new_sprite_proxy_bundle(
@@ -158,10 +194,6 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         commands.entity(chunk_entity).insert((
             chunk_transform,
             Chunk { coord: grid_coord.clone() },
-            Phenomenon {
-                id: phenomenon_id_for_coord(&grid_coord),
-                kind: PhenomenonKind::Mandelbulb,
-            },
             EntityProxyLink {
                 logic_entity: chunk_logic_proxy_entity,
                 render_entity: chunk_render_proxy_entity,
@@ -170,10 +202,6 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
             },
             chunk_name,
         ));
-        commands.entity(chunk_render_proxy_entity).insert(PhenomenonModel {
-            phenomenon_entity: chunk_entity,
-            scale,
-        });
 
         chunk_manager.chunks.insert(grid_coord.clone());
 
@@ -196,13 +224,6 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
     }
 
     Ok(State { spawn_chunk_states })
-}
-
-#[inline]
-fn phenomenon_id_for_coord(grid_coord: &GridVec) -> PhenomenonId {
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
-    grid_coord.hash(&mut hasher);
-    PhenomenonId(hasher.finish())
 }
 
 pub fn run_ecs_while(state: State, main_access: MainAccess) -> Result<Outcome<State, Output>, Error> {

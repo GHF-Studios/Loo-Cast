@@ -8,7 +8,7 @@ struct PhenomenonSurfaceParams {
     secondary: vec4<f32>,
     glow: vec4<f32>,
     // x=layer_norm, y=window_scale, z=time_seconds, w=emissive_strength
-    meta: vec4<f32>,
+    controls: vec4<f32>,
 }
 
 @group(#{MATERIAL_BIND_GROUP}) @binding(0) var<uniform> material: PhenomenonSurfaceParams;
@@ -28,10 +28,10 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
 
     let metric_rgb = textureSample(metric_texture, metric_sampler, uv).rgb;
     let metric = dot(metric_rgb, vec3<f32>(0.299, 0.587, 0.114));
-    let layer_norm = saturate(material.meta.x);
-    let window_scale = saturate(material.meta.y);
-    let time_seconds = material.meta.z;
-    let emissive_strength = material.meta.w;
+    let layer_norm = saturate(material.controls.x);
+    let window_scale = saturate(material.controls.y);
+    let time_seconds = material.controls.z;
+    let emissive_strength = material.controls.w;
 
     let normal = normalize(in.world_normal);
     let light_dir = normalize(vec3<f32>(0.42, 0.83, 0.37));

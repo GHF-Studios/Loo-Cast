@@ -92,7 +92,7 @@ pub(super) fn update_player_system(
         return;
     };
 
-    // Player scaling is driven by local zoom in render::apply_usf_player_pivots_system.
+    // Local zoom now drives camera framing only; player visual scale remains stable.
     chunk_loader.configure_scale_pivot_window(*local_zoom_min as f64, *local_zoom_max as f64, *local_zoom_buffer_ratio as f64);
     chunk_loader.configure_translation_pivot_window(
         *local_translation_min as f64,

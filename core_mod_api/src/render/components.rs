@@ -41,6 +41,10 @@ pub struct PhenomenonModelSurface {
     pub last_signature: u64,
 }
 
+#[derive(Component, Reflect, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[reflect(Component)]
+pub struct GlobalPhenomenonRoot;
+
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum RenderProxyWindowMode {
     FullEntity,
