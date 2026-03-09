@@ -1,6 +1,7 @@
+use crate::bevy::asset::RenderAssetUsages;
 use crate::bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use crate::bevy::prelude::*;
-use crate::bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
+use crate::bevy::render::render_resource::{Extent3d, PrimitiveTopology, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
 
 use crate::chunk::components::{Chunk, ChunkActor, ChunkLoader};
 use crate::chunk::resources::{ChunkActionWorkflowState, ChunkLoadGate};
@@ -9,20 +10,26 @@ use crate::core::protocol::PlayerMotionIntent;
 use crate::input::states::InputMode;
 use crate::player::components::Player;
 use crate::render::{
-    components::{ChunkCubeCamera, EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision, RenderProxy, RenderProxyWindowMode, UiCamera},
-    functions::draw_primary_window_ui,
+    components::{
+        EntityProxyLink, LogicProxy, MainCamera, PhenomenonModelCamera, PhenomenonModelSurface, ProxySyncRevision, RenderProxy, RenderProxyWindowMode, UiCamera,
+    },
+    functions::{PHENOMENON_MODEL_LOCAL_SPAN_UNITS, draw_primary_window_ui},
+    materials::PhenomenonSurfaceMaterial,
     resources::{DevZoomFactor, GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, ViewScale, ZoomFactor},
 };
 use crate::time::resources::VirtualPaused;
 use crate::usf::scale::Scale;
+use std::hash::{Hash, Hasher};
+
+const MIN_WINDOW_SIZE_LOCAL: f32 = 0.0001;
 
 pub(super) fn pre_setup_phase_0(mut commands: Commands, mut images: ResMut<Assets<Image>>, windows: Query<&Window>) {
     // Reserve camera entities
     let egui_camera = commands.spawn(()).id();
     let ui_camera = commands.spawn(UiCamera).id();
     let main_camera = commands.spawn(MainCamera).id();
-    let chunk_cube_camera = commands.spawn(ChunkCubeCamera).id();
-    super::functions::reserve_camera_entities(egui_camera, ui_camera, main_camera, chunk_cube_camera);
+    let phenomenon_model_camera = commands.spawn(PhenomenonModelCamera).id();
+    super::functions::reserve_camera_entities(egui_camera, ui_camera, main_camera, phenomenon_model_camera);
 
     // Reserve game view render target handle
     let window = windows.single().unwrap();
@@ -187,6 +194,402 @@ pub(super) fn update_render_proxies(
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct PhenomenonModelWindowBounds {
+    min: Vec2,
+    max: Vec2,
+    span: Vec2,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct MandelbulbTuning {
+    power: f32,
+    iterations: u32,
+    bailout: f32,
+    z_span: f32,
+    visibility_threshold: f32,
+    scale_boost: f32,
+    z_displacement: f32,
+    mesh_resolution: u32,
+    iso_level: f32,
+}
+
+#[tracing::instrument(skip_all)]
+pub(super) fn update_phenomenon_model_surfaces_system(
+    time: Res<Time>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut surface_materials: ResMut<Assets<PhenomenonSurfaceMaterial>>,
+    proxy_query: Query<(&Children, &RenderProxy)>,
+    mut surface_query: Query<(
+        &mut Mesh3d,
+        &MeshMaterial3d<PhenomenonSurfaceMaterial>,
+        &mut Transform,
+        &mut Visibility,
+        &mut PhenomenonModelSurface,
+    )>,
+) {
+    let mandelbulb_enabled = CONFIG().get::<bool>("render/phenomenon_mandelbulb/enabled");
+    let mandelbulb_tuning = if mandelbulb_enabled {
+        Some(MandelbulbTuning {
+            power: CONFIG().get::<f32>("render/phenomenon_mandelbulb/power").max(1.1),
+            iterations: CONFIG().get::<u32>("render/phenomenon_mandelbulb/iterations").max(1),
+            bailout: CONFIG().get::<f32>("render/phenomenon_mandelbulb/bailout").max(1.1),
+            z_span: CONFIG().get::<f32>("render/phenomenon_mandelbulb/z_span").abs().max(0.01),
+            visibility_threshold: CONFIG().get::<f32>("render/phenomenon_mandelbulb/visibility_threshold").clamp(0.0, 1.0),
+            scale_boost: CONFIG().get::<f32>("render/phenomenon_mandelbulb/scale_boost").max(0.0),
+            z_displacement: CONFIG().get::<f32>("render/phenomenon_mandelbulb/z_displacement"),
+            mesh_resolution: CONFIG().get::<u32>("render/phenomenon_mandelbulb/mesh_resolution").clamp(6, 64),
+            iso_level: CONFIG().get::<f32>("render/phenomenon_mandelbulb/iso_level").clamp(0.01, 0.99),
+        })
+    } else {
+        None
+    };
+
+    for (children, proxy) in proxy_query.iter() {
+        for child in children.iter() {
+            let Ok((mut mesh3d, material3d, mut transform, mut visibility, mut surface_state)) = surface_query.get_mut(child) else {
+                continue;
+            };
+
+            let Some(tuning) = mandelbulb_tuning else {
+                *visibility = Visibility::Hidden;
+                continue;
+            };
+
+            *transform = phenomenon_surface_transform(proxy, tuning);
+            if let Some(surface_material) = surface_materials.get_mut(&material3d.0) {
+                update_surface_material_params(surface_material, proxy, tuning, time.elapsed_secs());
+            }
+
+            let signature = compute_surface_signature(proxy, tuning);
+            if signature != surface_state.last_signature {
+                surface_state.last_signature = signature;
+                if let Some(mesh) = build_windowed_mandelbulb_mesh(proxy, tuning) {
+                    if let Some(existing) = meshes.get_mut(&mesh3d.0) {
+                        *existing = mesh;
+                    } else {
+                        mesh3d.0 = meshes.add(mesh);
+                    }
+                    *visibility = Visibility::Visible;
+                } else {
+                    *visibility = Visibility::Hidden;
+                }
+            }
+        }
+    }
+}
+
+#[inline]
+fn layer_norm(layer_index: u8) -> f32 {
+    let max_layer = (Scale::SCALE_LEVEL_COUNT.saturating_sub(1)) as f32;
+    if max_layer <= f32::EPSILON {
+        0.5
+    } else {
+        (layer_index as f32 / max_layer).clamp(0.0, 1.0)
+    }
+}
+
+#[inline]
+fn proxy_window_scale(proxy: &RenderProxy) -> f32 {
+    proxy.window_size_local.abs().max_element().clamp(MIN_WINDOW_SIZE_LOCAL, 1.0)
+}
+
+#[inline]
+fn compute_effective_mesh_resolution(proxy: &RenderProxy, tuning: MandelbulbTuning) -> usize {
+    let base_resolution = tuning.mesh_resolution as f32;
+    let window_scale = proxy_window_scale(proxy);
+    let layer_t = layer_norm(proxy.layer_index);
+    let window_boost = 1.0 + (1.0 - window_scale) * 2.0;
+    let layer_boost = 0.8 + layer_t * 0.8;
+    (base_resolution * window_boost * layer_boost).round().clamp(6.0, 64.0) as usize
+}
+
+#[inline]
+fn phenomenon_surface_transform(proxy: &RenderProxy, tuning: MandelbulbTuning) -> Transform {
+    let window_scale = proxy_window_scale(proxy);
+    let layer_t = layer_norm(proxy.layer_index);
+    let local_scale = 1.0 + (1.0 - window_scale) * tuning.scale_boost;
+    let z_offset = (layer_t - 0.5) * tuning.z_displacement;
+
+    Transform {
+        translation: Vec3::new(0.0, 0.0, z_offset),
+        scale: Vec3::splat(local_scale),
+        ..Default::default()
+    }
+}
+
+#[inline]
+fn update_surface_material_params(surface_material: &mut PhenomenonSurfaceMaterial, proxy: &RenderProxy, tuning: MandelbulbTuning, time_seconds: f32) {
+    let layer_t = layer_norm(proxy.layer_index);
+    let window_scale = proxy_window_scale(proxy);
+    let shimmer = (time_seconds * 0.22 + layer_t * std::f32::consts::TAU).sin() * 0.5 + 0.5;
+
+    let primary = Vec3::new(0.14, 0.48, 0.95).lerp(Vec3::new(0.22, 0.74, 0.98), layer_t);
+    let secondary = Vec3::new(0.98, 0.58, 0.28).lerp(Vec3::new(0.96, 0.84, 0.52), 1.0 - layer_t);
+    let glow = Vec3::new(0.26, 0.86, 1.0).lerp(Vec3::new(0.58, 1.0, 0.78), shimmer);
+    let emissive_strength = (0.25 + tuning.visibility_threshold * 1.2).clamp(0.0, 2.0);
+
+    surface_material.params.primary = primary.extend(1.0);
+    surface_material.params.secondary = secondary.extend(1.0);
+    surface_material.params.glow = glow.extend(1.0);
+    surface_material.params.meta = Vec4::new(layer_t, window_scale, time_seconds, emissive_strength);
+}
+
+#[inline]
+fn compute_phenomenon_window_bounds(window_mode: RenderProxyWindowMode, window_center_local: Vec2, window_size_local: Vec2) -> PhenomenonModelWindowBounds {
+    if matches!(window_mode, RenderProxyWindowMode::FullEntity) {
+        return PhenomenonModelWindowBounds {
+            min: Vec2::ZERO,
+            max: Vec2::ONE,
+            span: Vec2::ONE,
+        };
+    }
+
+    let center01 = window_center_local.clamp(Vec2::splat(-0.5), Vec2::splat(0.5)) + Vec2::splat(0.5);
+    let size01 = window_size_local.abs().clamp(Vec2::splat(MIN_WINDOW_SIZE_LOCAL), Vec2::ONE);
+    let mut window_min = (center01 - size01 * 0.5).clamp(Vec2::ZERO, Vec2::ONE);
+    let mut window_max = (center01 + size01 * 0.5).clamp(Vec2::ZERO, Vec2::ONE);
+    if window_max.x < window_min.x {
+        std::mem::swap(&mut window_max.x, &mut window_min.x);
+    }
+    if window_max.y < window_min.y {
+        std::mem::swap(&mut window_max.y, &mut window_min.y);
+    }
+    let span = (window_max - window_min).max(Vec2::splat(MIN_WINDOW_SIZE_LOCAL));
+
+    PhenomenonModelWindowBounds {
+        min: window_min,
+        max: window_max,
+        span,
+    }
+}
+
+#[inline]
+fn mandelbulb_density_from_model_space(local_uv: Vec2, local_w: f32, layer_index: u8, tuning: MandelbulbTuning) -> f32 {
+    let point = map_model_space_to_mandelbulb_point(local_uv, local_w, layer_index, tuning.z_span);
+    sample_mandelbulb_density(point, tuning.power, tuning.iterations, tuning.bailout)
+}
+
+#[inline]
+fn map_model_space_to_mandelbulb_point(local_uv: Vec2, local_w: f32, layer_index: u8, z_span: f32) -> Vec3 {
+    let uv = local_uv.clamp(Vec2::ZERO, Vec2::ONE);
+    let w = local_w.clamp(0.0, 1.0);
+    let x = (uv.x - 0.5) * 3.0;
+    let y = (uv.y - 0.5) * 3.0;
+    let local_z = (w - 0.5) * 2.0 * z_span;
+
+    let layer_t = layer_norm(layer_index);
+    let layer_bias = (layer_t * 2.0 - 1.0) * z_span * 0.15;
+
+    Vec3::new(x, y, local_z + layer_bias)
+}
+
+#[inline]
+fn sample_mandelbulb_density(c: Vec3, power: f32, iterations: u32, bailout: f32) -> f32 {
+    let mut z = c;
+    let mut escaped_at = iterations;
+
+    for i in 0..iterations {
+        let r = z.length();
+        if r > bailout {
+            escaped_at = i;
+            break;
+        }
+
+        let theta = if r > 1e-6 { (z.z / r).clamp(-1.0, 1.0).acos() } else { 0.0 };
+        let phi = z.y.atan2(z.x);
+        let zr = r.powf(power);
+        let theta_p = theta * power;
+        let phi_p = phi * power;
+
+        z = Vec3::new(theta_p.sin() * phi_p.cos(), theta_p.sin() * phi_p.sin(), theta_p.cos()) * zr + c;
+    }
+
+    if escaped_at >= iterations {
+        1.0
+    } else {
+        (1.0 - (escaped_at as f32 / iterations as f32)).clamp(0.0, 1.0)
+    }
+}
+
+#[inline]
+fn compute_surface_signature(proxy: &RenderProxy, tuning: MandelbulbTuning) -> u64 {
+    #[inline]
+    fn q(v: f32) -> i32 {
+        (v * 10_000.0).round() as i32
+    }
+
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    proxy.layer_index.hash(&mut hasher);
+    proxy.window_mode.hash(&mut hasher);
+    q(proxy.window_center_local.x).hash(&mut hasher);
+    q(proxy.window_center_local.y).hash(&mut hasher);
+    q(proxy.window_size_local.x).hash(&mut hasher);
+    q(proxy.window_size_local.y).hash(&mut hasher);
+    compute_effective_mesh_resolution(proxy, tuning).hash(&mut hasher);
+    q(tuning.iso_level).hash(&mut hasher);
+    q(tuning.power).hash(&mut hasher);
+    tuning.iterations.hash(&mut hasher);
+    q(tuning.bailout).hash(&mut hasher);
+    q(tuning.z_span).hash(&mut hasher);
+    q(tuning.visibility_threshold).hash(&mut hasher);
+    q(tuning.scale_boost).hash(&mut hasher);
+    q(tuning.z_displacement).hash(&mut hasher);
+    hasher.finish()
+}
+
+#[inline]
+fn grid_index(ix: usize, iy: usize, iz: usize, axis_points: usize) -> usize {
+    ix + iy * axis_points + iz * axis_points * axis_points
+}
+
+fn build_windowed_mandelbulb_mesh(proxy: &RenderProxy, tuning: MandelbulbTuning) -> Option<Mesh> {
+    let cells = compute_effective_mesh_resolution(proxy, tuning);
+    let axis_points = cells + 1;
+    let bounds = compute_phenomenon_window_bounds(proxy.window_mode, proxy.window_center_local, proxy.window_size_local);
+
+    let mut points = vec![Vec3::ZERO; axis_points * axis_points * axis_points];
+    let mut field = vec![0.0f32; axis_points * axis_points * axis_points];
+
+    for iz in 0..axis_points {
+        let w = iz as f32 / cells as f32;
+        for iy in 0..axis_points {
+            let v = iy as f32 / cells as f32;
+            for ix in 0..axis_points {
+                let u = ix as f32 / cells as f32;
+                let idx = grid_index(ix, iy, iz, axis_points);
+                let sample_uv = bounds.min + Vec2::new(u, v) * bounds.span;
+                let density = mandelbulb_density_from_model_space(sample_uv, w, proxy.layer_index, tuning);
+                field[idx] = density - tuning.iso_level;
+                points[idx] = Vec3::new(
+                    (u - 0.5) * PHENOMENON_MODEL_LOCAL_SPAN_UNITS,
+                    (v - 0.5) * PHENOMENON_MODEL_LOCAL_SPAN_UNITS,
+                    (w - 0.5) * PHENOMENON_MODEL_LOCAL_SPAN_UNITS,
+                );
+            }
+        }
+    }
+
+    let cube_corners: [[usize; 3]; 8] = [[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0], [0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]];
+    let tets: [[usize; 4]; 6] = [[0, 5, 1, 6], [0, 1, 2, 6], [0, 2, 3, 6], [0, 3, 7, 6], [0, 7, 4, 6], [0, 4, 5, 6]];
+
+    let mut out_positions = Vec::<[f32; 3]>::new();
+    let mut out_normals = Vec::<[f32; 3]>::new();
+    let mut out_uvs = Vec::<[f32; 2]>::new();
+
+    for iz in 0..cells {
+        for iy in 0..cells {
+            for ix in 0..cells {
+                let mut cube_points = [Vec3::ZERO; 8];
+                let mut cube_values = [0.0f32; 8];
+                for (corner_i, [ox, oy, oz]) in cube_corners.iter().copied().enumerate() {
+                    let gx = ix + ox;
+                    let gy = iy + oy;
+                    let gz = iz + oz;
+                    let idx = grid_index(gx, gy, gz, axis_points);
+                    cube_points[corner_i] = points[idx];
+                    cube_values[corner_i] = field[idx];
+                }
+
+                for tet in tets {
+                    let p = [cube_points[tet[0]], cube_points[tet[1]], cube_points[tet[2]], cube_points[tet[3]]];
+                    let s = [cube_values[tet[0]], cube_values[tet[1]], cube_values[tet[2]], cube_values[tet[3]]];
+                    emit_tetra_surface(p, s, &mut out_positions, &mut out_normals, &mut out_uvs);
+                }
+            }
+        }
+    }
+
+    if out_positions.is_empty() {
+        return None;
+    }
+
+    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default());
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, out_positions);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, out_normals);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, out_uvs);
+    Some(mesh)
+}
+
+fn emit_tetra_surface(points: [Vec3; 4], values: [f32; 4], out_positions: &mut Vec<[f32; 3]>, out_normals: &mut Vec<[f32; 3]>, out_uvs: &mut Vec<[f32; 2]>) {
+    let mut inside = [0usize; 4];
+    let mut outside = [0usize; 4];
+    let mut inside_count = 0usize;
+    let mut outside_count = 0usize;
+
+    for i in 0..4 {
+        if values[i] >= 0.0 {
+            inside[inside_count] = i;
+            inside_count += 1;
+        } else {
+            outside[outside_count] = i;
+            outside_count += 1;
+        }
+    }
+
+    if inside_count == 0 || inside_count == 4 {
+        return;
+    }
+
+    let mut push_triangle = |a: Vec3, b: Vec3, c: Vec3| {
+        let normal = (b - a).cross(c - a);
+        let len_sq = normal.length_squared();
+        if len_sq <= 1e-10 {
+            return;
+        }
+        let n = normal / len_sq.sqrt();
+
+        for p in [a, b, c] {
+            out_positions.push([p.x, p.y, p.z]);
+            out_normals.push([n.x, n.y, n.z]);
+            out_uvs.push([
+                (p.x / PHENOMENON_MODEL_LOCAL_SPAN_UNITS + 0.5).clamp(0.0, 1.0),
+                (p.y / PHENOMENON_MODEL_LOCAL_SPAN_UNITS + 0.5).clamp(0.0, 1.0),
+            ]);
+        }
+    };
+
+    let edge_point = |a_i: usize, b_i: usize| interpolate_iso(points[a_i], values[a_i], points[b_i], values[b_i]);
+
+    match inside_count {
+        1 => {
+            let i = inside[0];
+            let a = outside[0];
+            let b = outside[1];
+            let c = outside[2];
+            push_triangle(edge_point(i, a), edge_point(i, b), edge_point(i, c));
+        }
+        3 => {
+            let o = outside[0];
+            let a = inside[0];
+            let b = inside[1];
+            let c = inside[2];
+            push_triangle(edge_point(o, a), edge_point(o, c), edge_point(o, b));
+        }
+        2 => {
+            let a = inside[0];
+            let b = inside[1];
+            let c = outside[0];
+            let d = outside[1];
+
+            let p0 = edge_point(a, c);
+            let p1 = edge_point(b, c);
+            let p2 = edge_point(b, d);
+            let p3 = edge_point(a, d);
+            push_triangle(p0, p1, p2);
+            push_triangle(p0, p2, p3);
+        }
+        _ => {}
+    }
+}
+
+#[inline]
+fn interpolate_iso(a_pos: Vec3, a_val: f32, b_pos: Vec3, b_val: f32) -> Vec3 {
+    let denom = a_val - b_val;
+    let t = if denom.abs() <= 1e-6 { 0.5 } else { (a_val / denom).clamp(0.0, 1.0) };
+    a_pos + (b_pos - a_pos) * t
+}
+
 #[inline]
 fn compute_render_proxy_windowing(scale_diff: i8, camera_zoom: f32, chunk_center_native: Vec2, view_pos_native: Vec2) -> (RenderProxyWindowMode, Vec2, Vec2) {
     if scale_diff <= 0 {
@@ -239,6 +642,184 @@ mod tests {
         assert!((size.x - 0.05).abs() < 1e-6);
         assert!((size.y - 0.05).abs() < 1e-6);
     }
+
+    #[test]
+    fn effective_mesh_resolution_increases_for_smaller_window() {
+        let tuning = MandelbulbTuning {
+            power: 8.0,
+            iterations: 10,
+            bailout: 4.0,
+            z_span: 1.2,
+            visibility_threshold: 0.45,
+            scale_boost: 0.8,
+            z_displacement: 200.0,
+            mesh_resolution: 12,
+            iso_level: 0.45,
+        };
+        let broad = RenderProxy {
+            source: Entity::PLACEHOLDER,
+            layer_index: 20,
+            depth_bias: 0.0,
+            window_mode: RenderProxyWindowMode::WindowedSubsection,
+            window_center_local: Vec2::ZERO,
+            window_size_local: Vec2::splat(0.9),
+            coarse_context_persistent: true,
+        };
+        let narrow = RenderProxy {
+            window_size_local: Vec2::splat(0.1),
+            ..broad
+        };
+        assert!(compute_effective_mesh_resolution(&narrow, tuning) > compute_effective_mesh_resolution(&broad, tuning));
+    }
+
+    #[test]
+    fn phenomenon_window_full_entity_uses_unit_bounds() {
+        let bounds = compute_phenomenon_window_bounds(RenderProxyWindowMode::FullEntity, Vec2::ZERO, Vec2::ONE);
+        assert_eq!(bounds.min, Vec2::ZERO);
+        assert_eq!(bounds.max, Vec2::ONE);
+        assert_eq!(bounds.span, Vec2::ONE);
+    }
+
+    #[test]
+    fn phenomenon_windowed_subsection_bounds_clamp_and_span() {
+        let bounds = compute_phenomenon_window_bounds(RenderProxyWindowMode::WindowedSubsection, Vec2::ZERO, Vec2::splat(0.5));
+        assert!((bounds.min.x - 0.25).abs() < 1e-6);
+        assert!((bounds.min.y - 0.25).abs() < 1e-6);
+        assert!((bounds.max.x - 0.75).abs() < 1e-6);
+        assert!((bounds.max.y - 0.75).abs() < 1e-6);
+        assert!((bounds.span.x - 0.5).abs() < 1e-6);
+        assert!((bounds.span.y - 0.5).abs() < 1e-6);
+    }
+
+    #[test]
+    fn phenomenon_mesh_builds_triangles_for_full_window() {
+        let tuning = MandelbulbTuning {
+            power: 8.0,
+            iterations: 10,
+            bailout: 4.0,
+            z_span: 1.2,
+            visibility_threshold: 0.45,
+            scale_boost: 0.8,
+            z_displacement: 200.0,
+            mesh_resolution: 8,
+            iso_level: 0.45,
+        };
+        let proxy = RenderProxy {
+            source: Entity::PLACEHOLDER,
+            layer_index: 35,
+            depth_bias: 0.0,
+            window_mode: RenderProxyWindowMode::FullEntity,
+            window_center_local: Vec2::ZERO,
+            window_size_local: Vec2::ONE,
+            coarse_context_persistent: true,
+        };
+
+        let mesh = build_windowed_mandelbulb_mesh(&proxy, tuning).expect("expected non-empty mesh");
+        let Some(positions) = mesh.attribute(Mesh::ATTRIBUTE_POSITION) else {
+            panic!("mesh missing positions");
+        };
+        assert!(positions.len() > 0);
+    }
+
+    #[test]
+    fn phenomenon_mesh_changes_with_window_signature() {
+        let tuning = MandelbulbTuning {
+            power: 8.0,
+            iterations: 10,
+            bailout: 4.0,
+            z_span: 1.2,
+            visibility_threshold: 0.45,
+            scale_boost: 0.8,
+            z_displacement: 200.0,
+            mesh_resolution: 8,
+            iso_level: 0.45,
+        };
+        let mut a = RenderProxy {
+            source: Entity::PLACEHOLDER,
+            layer_index: 35,
+            depth_bias: 0.0,
+            window_mode: RenderProxyWindowMode::WindowedSubsection,
+            window_center_local: Vec2::ZERO,
+            window_size_local: Vec2::splat(0.5),
+            coarse_context_persistent: true,
+        };
+        let sig_a = compute_surface_signature(&a, tuning);
+        a.window_center_local = Vec2::new(0.1, 0.0);
+        let sig_b = compute_surface_signature(&a, tuning);
+        assert_ne!(sig_a, sig_b);
+    }
+
+    #[test]
+    fn surface_signature_tracks_window_mode() {
+        let tuning = MandelbulbTuning {
+            power: 8.0,
+            iterations: 10,
+            bailout: 4.0,
+            z_span: 1.2,
+            visibility_threshold: 0.45,
+            scale_boost: 0.8,
+            z_displacement: 200.0,
+            mesh_resolution: 8,
+            iso_level: 0.45,
+        };
+        let a = RenderProxy {
+            source: Entity::PLACEHOLDER,
+            layer_index: 35,
+            depth_bias: 0.0,
+            window_mode: RenderProxyWindowMode::FullEntity,
+            window_center_local: Vec2::ZERO,
+            window_size_local: Vec2::ONE,
+            coarse_context_persistent: true,
+        };
+        let b = RenderProxy {
+            window_mode: RenderProxyWindowMode::WindowedSubsection,
+            ..a
+        };
+        let sig_a = compute_surface_signature(&a, tuning);
+        let sig_b = compute_surface_signature(&b, tuning);
+        assert_ne!(sig_a, sig_b);
+    }
+
+    #[test]
+    fn interpolate_iso_midpoint_for_symmetric_values() {
+        let p = interpolate_iso(Vec3::ZERO, 1.0, Vec3::splat(2.0), -1.0);
+        assert!((p.x - 1.0).abs() < 1e-6);
+        assert!((p.y - 1.0).abs() < 1e-6);
+        assert!((p.z - 1.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn mandelbulb_point_maps_mid_layer_center_sample_to_zero_z() {
+        let p = map_model_space_to_mandelbulb_point(Vec2::new(0.5, 0.5), 0.5, 35, 1.25);
+        assert!(p.z.abs() < 1e-6);
+    }
+
+    #[test]
+    fn mandelbulb_density_is_normalized() {
+        let tuning = MandelbulbTuning {
+            power: 8.0,
+            iterations: 12,
+            bailout: 4.0,
+            z_span: 1.2,
+            visibility_threshold: 0.2,
+            scale_boost: 0.4,
+            z_displacement: 120.0,
+            mesh_resolution: 8,
+            iso_level: 0.45,
+        };
+        let d = mandelbulb_density_from_model_space(Vec2::new(0.5, 0.5), 0.5, 35, tuning);
+        assert!((0.0..=1.0).contains(&d));
+    }
+
+    #[test]
+    fn mandelbulb_density_prefers_origin_over_far_point() {
+        let power = 8.0;
+        let iterations = 12;
+        let bailout = 4.0;
+        let center = sample_mandelbulb_density(Vec3::ZERO, power, iterations, bailout);
+        let far = sample_mandelbulb_density(Vec3::new(2.5, 2.5, 2.5), power, iterations, bailout);
+        assert!(center >= far);
+    }
 }
 
 #[tracing::instrument(skip_all)]
@@ -263,8 +844,10 @@ pub(super) fn enforce_main_camera_depth_contract_system(mut main_camera_query: Q
 }
 
 #[tracing::instrument(skip_all)]
-pub(super) fn enforce_chunk_cube_camera_depth_contract_system(mut chunk_cube_camera_query: Query<(&mut Transform, &mut Projection), With<ChunkCubeCamera>>) {
-    let Ok((mut camera_transform, mut projection)) = chunk_cube_camera_query.single_mut() else {
+pub(super) fn enforce_phenomenon_model_camera_depth_contract_system(
+    mut phenomenon_model_camera_query: Query<(&mut Transform, &mut Projection), With<PhenomenonModelCamera>>,
+) {
+    let Ok((mut camera_transform, mut projection)) = phenomenon_model_camera_query.single_mut() else {
         return;
     };
 

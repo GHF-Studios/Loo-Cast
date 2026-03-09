@@ -7,14 +7,17 @@ use crate::chunk::{
 };
 use crate::config::statics::CONFIG;
 use crate::render::{
-    components::{EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision},
-    functions::{
-        CHUNK_DEV_CUBE_DEFAULT_COUNT, CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS, compute_chunk_dev_cube_local_offsets, new_chunk_cube_proxy_bundle,
-        new_sprite_proxy_bundle,
-    },
+    components::{EntityProxyLink, LogicProxy, MainCamera, PhenomenonModelSurface, ProxySyncRevision},
+    functions::{PHENOMENON_MODEL_LOCAL_SPAN_UNITS, new_phenomenon_model_proxy_bundle, new_sprite_proxy_bundle},
+    materials::PhenomenonSurfaceMaterial,
 };
-use crate::usf::{pos::grid::types::GridVec, scale::Scale};
+use crate::usf::{
+    phenomenon::{Phenomenon, PhenomenonId, PhenomenonKind, PhenomenonModel},
+    pos::grid::types::GridVec,
+    scale::Scale,
+};
 use crate::workflow::types::Outcome;
+use std::hash::{Hash, Hasher};
 
 // Items
 pub struct SpawnChunkInput {
@@ -37,7 +40,7 @@ pub struct MainAccess<'w, 's> {
     pub chunk_manager: ResMut<'w, ChunkManager>,
     pub camera_transform: Single<'w, 's, &'static Transform, With<MainCamera>>,
     pub meshes: ResMut<'w, Assets<Mesh>>,
-    pub standard_materials: ResMut<'w, Assets<StandardMaterial>>,
+    pub phenomenon_surface_materials: ResMut<'w, Assets<PhenomenonSurfaceMaterial>>,
 }
 
 pub struct Input {
@@ -65,20 +68,9 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
     let mut chunk_manager = main_access.chunk_manager;
     let _camera_transform = main_access.camera_transform;
     let mut meshes = main_access.meshes;
-    let mut standard_materials = main_access.standard_materials;
+    let mut phenomenon_surface_materials = main_access.phenomenon_surface_materials;
 
-    let use_chunk_cube_proxies = CONFIG().get::<bool>("render/use_chunk_cube_proxies");
-    let configured_dev_cube_count = CONFIG().get::<usize>("chunk/dev_cube_count");
-    let dev_cube_count = if configured_dev_cube_count == 0 {
-        CHUNK_DEV_CUBE_DEFAULT_COUNT
-    } else {
-        configured_dev_cube_count
-    };
-    let dev_cube_mesh = if use_chunk_cube_proxies {
-        Some(meshes.add(Mesh::from(Cuboid::from_size(Vec3::splat(CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS)))))
-    } else {
-        None
-    };
+    let use_phenomenon_model_proxies = CONFIG().get::<bool>("render/use_phenomenon_model_proxies");
 
     let mut spawn_chunk_states = Vec::new();
     let mut skipped_outside_window = 0usize;
@@ -124,9 +116,9 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
             ))
             .id();
 
-        let chunk_render_proxy_entity = if use_chunk_cube_proxies {
+        let chunk_render_proxy_entity = if use_phenomenon_model_proxies {
             let chunk_render_proxy_entity = commands
-                .spawn(new_chunk_cube_proxy_bundle(
+                .spawn(new_phenomenon_model_proxy_bundle(
                     visual_world_coord,
                     visual_world_scale,
                     chunk_entity,
@@ -135,24 +127,18 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
                 ))
                 .id();
 
-            let dev_cube_material = standard_materials.add(StandardMaterial {
-                base_color_texture: Some(metric_texture),
-                perceptual_roughness: 0.85,
-                metallic: 0.05,
-                ..Default::default()
-            });
+            let surface_mesh = meshes.add(Mesh::from(Cuboid::from_size(Vec3::splat(PHENOMENON_MODEL_LOCAL_SPAN_UNITS * 0.02))));
+            let surface_material = phenomenon_surface_materials.add(PhenomenonSurfaceMaterial::for_metric_texture(metric_texture));
 
-            let dev_cube_offsets = compute_chunk_dev_cube_local_offsets(&grid_coord, dev_cube_count);
-            let chunk_debug_label = format!("{grid_coord:?}");
             commands.entity(chunk_render_proxy_entity).with_children(|parent| {
-                for (index, local_offset) in dev_cube_offsets.iter().copied().enumerate() {
-                    parent.spawn((
-                        Name::new(format!("chunk_cube({chunk_debug_label})#{index}")),
-                        Mesh3d(dev_cube_mesh.clone().expect("dev cube mesh must exist when cube proxies are enabled")),
-                        MeshMaterial3d(dev_cube_material.clone()),
-                        Transform::from_translation(local_offset),
-                    ));
-                }
+                parent.spawn((
+                    Name::new(format!("phenomenon_model_surface({grid_coord:?})")),
+                    Mesh3d(surface_mesh),
+                    MeshMaterial3d(surface_material),
+                    Transform::default(),
+                    Visibility::Visible,
+                    PhenomenonModelSurface::default(),
+                ));
             });
 
             chunk_render_proxy_entity
@@ -172,6 +158,10 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         commands.entity(chunk_entity).insert((
             chunk_transform,
             Chunk { coord: grid_coord.clone() },
+            Phenomenon {
+                id: phenomenon_id_for_coord(&grid_coord),
+                kind: PhenomenonKind::Mandelbulb,
+            },
             EntityProxyLink {
                 logic_entity: chunk_logic_proxy_entity,
                 render_entity: chunk_render_proxy_entity,
@@ -180,6 +170,10 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
             },
             chunk_name,
         ));
+        commands.entity(chunk_render_proxy_entity).insert(PhenomenonModel {
+            phenomenon_entity: chunk_entity,
+            scale,
+        });
 
         chunk_manager.chunks.insert(grid_coord.clone());
 
@@ -202,6 +196,13 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
     }
 
     Ok(State { spawn_chunk_states })
+}
+
+#[inline]
+fn phenomenon_id_for_coord(grid_coord: &GridVec) -> PhenomenonId {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    grid_coord.hash(&mut hasher);
+    PhenomenonId(hasher.finish())
 }
 
 pub fn run_ecs_while(state: State, main_access: MainAccess) -> Result<Outcome<State, Output>, Error> {

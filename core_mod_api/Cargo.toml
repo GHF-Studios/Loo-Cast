@@ -112,7 +112,10 @@ paste = { workspace = true }
 rhai = { workspace = true }
 
 bevy_ecs = "0.18.0"
+bevy_asset = "0.18.0"
+bevy_image = "0.18.0"
 bevy_reflect = "0.18.0"
+bevy_render = "0.18.0"
 bevy_state = "0.18.0"
 bevy_egui = { version = "0.39.0" }
 bevy-inspector-egui = "0.36.0"
@@ -143,6 +146,7 @@ toml = "0.8.19"
 crossbeam = "0.8"
 crossbeam-channel = "0.5.14"
 bytemuck = "1.21.0"
+encase = "0.12.0"
 thiserror = "2.0.12"
 dyn-clone = "1.0.19"
 anymap = "0.12.1"

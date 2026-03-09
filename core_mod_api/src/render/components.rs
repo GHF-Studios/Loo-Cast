@@ -6,7 +6,7 @@ pub struct MainCamera;
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
-pub struct ChunkCubeCamera;
+pub struct PhenomenonModelCamera;
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
@@ -34,7 +34,14 @@ pub struct RenderProxy {
     pub coarse_context_persistent: bool,
 }
 
-#[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Component, Reflect, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[reflect(Component)]
+pub struct PhenomenonModelSurface {
+    /// Hash of the last window/layer/meshing settings used to build this mesh.
+    pub last_signature: u64,
+}
+
+#[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum RenderProxyWindowMode {
     FullEntity,
     #[default]
