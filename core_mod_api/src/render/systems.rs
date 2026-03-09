@@ -649,35 +649,35 @@ fn sample_mandelbulb_signed_distance(c: Vec3, power: f32, iterations: u32, bailo
 
 #[inline]
 fn sample_sierpinski_sponge_signed_distance(point: Vec3, iterations: u32, hole_bias: f32) -> f32 {
-    let mut p = point;
-    let mut scale = 1.0f32;
-    let mut inside_margin = f32::INFINITY;
-    let center_threshold = (1.0 / 3.0 + hole_bias).clamp(0.05, 0.95);
-
-    for _ in 0..iterations {
-        let abs_p = p.abs();
-        let outer_margin = 1.0 - abs_p.max_element();
-        inside_margin = inside_margin.min(outer_margin / scale);
-        if outer_margin <= 0.0 {
-            return (-outer_margin) / scale;
-        }
-
-        let center_distance = Vec3::splat(center_threshold) - abs_p;
-        let hole_penetration = center_distance
-            .x
-            .min(center_distance.y)
-            .max(center_distance.x.min(center_distance.z))
-            .max(center_distance.y.min(center_distance.z));
-        if hole_penetration > 0.0 {
-            return hole_penetration / scale;
-        }
-
-        let scaled = p * 3.0;
-        p = (scaled - scaled.floor() - Vec3::splat(0.5)) * 2.0;
-        scale *= 3.0;
+    #[inline]
+    fn sd_box(p: Vec3, half_extents: Vec3) -> f32 {
+        let q = p.abs() - half_extents;
+        q.max(Vec3::ZERO).length() + q.max_element().min(0.0)
     }
 
-    -inside_margin.max(0.0005)
+    let mut distance = sd_box(point, Vec3::ONE);
+    let mut scale = 1.0f32;
+    let hole_adjust = hole_bias.clamp(-0.2, 0.2) * 0.75;
+
+    // Menger-style recursive cross cutouts; stable SDF-ish estimator for marching isosurface.
+    for _ in 0..iterations {
+        let p = point * scale;
+        let cell = Vec3::new(
+            p.x.rem_euclid(2.0) - 1.0,
+            p.y.rem_euclid(2.0) - 1.0,
+            p.z.rem_euclid(2.0) - 1.0,
+        );
+        scale *= 3.0;
+
+        let r = (Vec3::ONE - cell.abs() * 3.0).abs();
+        let da = r.x.max(r.y);
+        let db = r.y.max(r.z);
+        let dc = r.z.max(r.x);
+        let cross_cut = (da.min(db).min(dc) - (1.0 + hole_adjust)) / scale;
+        distance = distance.max(cross_cut);
+    }
+
+    distance
 }
 
 #[inline]
@@ -745,9 +745,23 @@ fn build_windowed_mandelbulb_mesh(proxy: &RenderProxy, tuning: MandelbulbTuning)
 }
 
 fn build_windowed_sierpinski_sponge_mesh(proxy: &RenderProxy, tuning: SierpinskiSpongeTuning) -> Option<Mesh> {
+    let effective_iterations = compute_effective_sierpinski_iterations(proxy, tuning);
+    let tuned = SierpinskiSpongeTuning {
+        iterations: effective_iterations,
+        ..tuning
+    };
     build_windowed_field_mesh(proxy, tuning.lod, |sample_uv, sample_w, layer_index| {
-        sierpinski_sponge_density_from_model_space(sample_uv, sample_w, layer_index, tuning)
+        sierpinski_sponge_density_from_model_space(sample_uv, sample_w, layer_index, tuned)
     })
+}
+
+#[inline]
+fn compute_effective_sierpinski_iterations(proxy: &RenderProxy, tuning: SierpinskiSpongeTuning) -> u32 {
+    let cells = compute_effective_mesh_resolution(proxy, tuning.lod.mesh_resolution).max(1) as f32;
+    // A sponge subdivision factor is 3, so detail depth should track log3(grid cells)
+    // to avoid unresolved micro-structure aliasing into triangle jitter.
+    let max_resolvable_depth = cells.log(3.0).floor().max(1.0) as u32;
+    tuning.iterations.clamp(1, max_resolvable_depth)
 }
 
 fn build_windowed_field_mesh<F>(proxy: &RenderProxy, lod: SurfaceLodTuning, mut density_from_model_space: F) -> Option<Mesh>
@@ -1137,6 +1151,27 @@ mod tests {
     }
 
     #[test]
+    fn sierpinski_effective_iterations_track_mesh_resolution() {
+        let proxy = sample_proxy(RenderProxyWindowMode::FullEntity, Vec2::ZERO, Vec2::ONE);
+        let low_res = SierpinskiSpongeTuning {
+            iterations: 6,
+            domain_span: 1.0,
+            hole_bias: 0.0,
+            lod: default_lod(18),
+        };
+        let high_res = SierpinskiSpongeTuning {
+            lod: default_lod(40),
+            ..low_res
+        };
+
+        let low = compute_effective_sierpinski_iterations(&proxy, low_res);
+        let high = compute_effective_sierpinski_iterations(&proxy, high_res);
+        assert!(low >= 1);
+        assert!(high >= low);
+        assert!(high <= high_res.iterations);
+    }
+
+    #[test]
     fn interpolate_iso_midpoint_for_symmetric_values() {
         let p = interpolate_iso(Vec3::ZERO, 1.0, Vec3::splat(2.0), -1.0);
         assert!((p.x - 1.0).abs() < 1e-6);
@@ -1173,6 +1208,24 @@ mod tests {
     fn sierpinski_field_is_finite() {
         let field = sample_sierpinski_sponge_signed_distance(Vec3::new(0.1, -0.2, 0.15), 5, 0.0);
         assert!(field.is_finite());
+    }
+
+    #[test]
+    fn sierpinski_center_is_removed() {
+        let field = sample_sierpinski_sponge_signed_distance(Vec3::ZERO, 5, 0.0);
+        assert!(field > 0.0);
+    }
+
+    #[test]
+    fn sierpinski_corner_remains_solid() {
+        let field = sample_sierpinski_sponge_signed_distance(Vec3::new(0.9, 0.9, 0.9), 1, 0.0);
+        assert!(field < 0.0);
+    }
+
+    #[test]
+    fn sierpinski_outside_cube_is_positive() {
+        let field = sample_sierpinski_sponge_signed_distance(Vec3::new(1.4, 0.0, 0.0), 5, 0.0);
+        assert!(field > 0.0);
     }
 
     #[test]
