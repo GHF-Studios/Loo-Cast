@@ -15,12 +15,26 @@ follow_smoothness = 0.15
 [chunk]
 z_offset = -10
 
+[render.phenomenon]
+default_kind = "mandelbulb"
+
 [render.phenomenon_mandelbulb]
 enabled = true
 power = 8.0
 iterations = 12
 bailout = 4.0
 z_span = 1.2
+visibility_threshold = 0.45
+scale_boost = 0.8
+z_displacement = 200.0
+mesh_resolution = 18
+iso_level = 0.0
+
+[render.phenomenon_sierpinski_sponge]
+enabled = false
+iterations = 5
+domain_span = 1.15
+hole_bias = 0.0
 visibility_threshold = 0.45
 scale_boost = 0.8
 z_displacement = 200.0

@@ -19,12 +19,18 @@ use crate::render::{
     resources::{DevZoomFactor, GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, ViewScale, ZoomFactor},
 };
 use crate::time::resources::VirtualPaused;
-use crate::usf::pos::grid::types::GridVec;
 use crate::usf::phenomenon::{Phenomenon, PhenomenonId, PhenomenonKind, PhenomenonModel};
+use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
 use std::hash::{Hash, Hasher};
 
 const MIN_WINDOW_SIZE_LOCAL: f32 = 0.0001;
+
+#[inline]
+fn configured_default_phenomenon_kind() -> PhenomenonKind {
+    let configured = CONFIG().get::<String>("render/phenomenon/default_kind");
+    PhenomenonKind::from_config_value(&configured)
+}
 
 pub(super) fn pre_setup_phase_0(mut commands: Commands, mut images: ResMut<Assets<Image>>, windows: Query<&Window>) {
     // Reserve camera entities
@@ -83,18 +89,16 @@ pub(super) fn ensure_global_phenomenon_root_system(
         return;
     }
 
-    let source_scale = player_loader_query
-        .single()
-        .map(|loader| loader.coord.scale)
-        .unwrap_or(Scale::MAX);
+    let source_scale = player_loader_query.single().map(|loader| loader.coord.scale).unwrap_or(Scale::MAX);
     let depth_bias = CONFIG().get::<i8>("chunk/z_offset") as f32;
+    let phenomenon_kind = configured_default_phenomenon_kind();
 
     let phenomenon_entity = commands
         .spawn((
             Name::new("global_phenomenon"),
             Phenomenon {
                 id: PhenomenonId(0),
-                kind: PhenomenonKind::Mandelbulb,
+                kind: phenomenon_kind,
             },
         ))
         .id();
@@ -108,7 +112,7 @@ pub(super) fn ensure_global_phenomenon_root_system(
         .id();
 
     let surface_mesh = meshes.add(Mesh::from(Cuboid::from_size(Vec3::splat(PHENOMENON_MODEL_LOCAL_SPAN_UNITS))));
-    let surface_material = phenomenon_surface_materials.add(PhenomenonSurfaceMaterial::for_mandelbulb_surface());
+    let surface_material = phenomenon_surface_materials.add(PhenomenonSurfaceMaterial::for_phenomenon_kind(phenomenon_kind));
 
     commands.entity(phenomenon_render_proxy_entity).with_children(|parent| {
         parent.spawn((
@@ -210,7 +214,6 @@ pub(super) fn update_render_proxies(
             }
         }
     }
-
 }
 
 #[tracing::instrument(skip_all)]
@@ -240,14 +243,7 @@ pub(super) fn update_global_phenomenon_proxy_system(
         let coord_scale = chunk_loader.coord.scale;
         let scale_diff = coord_scale.index_from_top() as i8;
 
-        (
-            world_rotation,
-            world_rotation_origin,
-            coord_scale,
-            scale_diff,
-            view_pos_native,
-            camera_zoom,
-        )
+        (world_rotation, world_rotation_origin, coord_scale, scale_diff, view_pos_native, camera_zoom)
     };
 
     let mut global_proxy_query = params.p1();
@@ -258,8 +254,7 @@ pub(super) fn update_global_phenomenon_proxy_system(
         proxy_transform.scale = Vec3::ONE;
         proxy_transform.rotation = world_rotation;
         proxy_state.layer_index = coord_scale.render_layer_index();
-        let (window_mode, window_center_local, window_size_local) =
-            compute_render_proxy_windowing(scale_diff, camera_zoom, Vec2::ZERO, view_pos_native);
+        let (window_mode, window_center_local, window_size_local) = compute_render_proxy_windowing(scale_diff, camera_zoom, Vec2::ZERO, view_pos_native);
         proxy_state.window_mode = window_mode;
         proxy_state.window_center_local = window_center_local;
         proxy_state.window_size_local = window_size_local;
@@ -275,11 +270,7 @@ struct PhenomenonModelWindowBounds {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-struct MandelbulbTuning {
-    power: f32,
-    iterations: u32,
-    bailout: f32,
-    z_span: f32,
+struct SurfaceLodTuning {
     visibility_threshold: f32,
     scale_boost: f32,
     z_displacement: f32,
@@ -287,12 +278,147 @@ struct MandelbulbTuning {
     iso_level: f32,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct MandelbulbTuning {
+    power: f32,
+    iterations: u32,
+    bailout: f32,
+    z_span: f32,
+    lod: SurfaceLodTuning,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct SierpinskiSpongeTuning {
+    iterations: u32,
+    domain_span: f32,
+    hole_bias: f32,
+    lod: SurfaceLodTuning,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum PhenomenonGeometryModel {
+    Mandelbulb(MandelbulbTuning),
+    SierpinskiSponge(SierpinskiSpongeTuning),
+}
+
+impl PhenomenonGeometryModel {
+    fn from_kind(kind: PhenomenonKind) -> Option<Self> {
+        match kind {
+            PhenomenonKind::Mandelbulb => load_mandelbulb_tuning().map(Self::Mandelbulb),
+            PhenomenonKind::SierpinskiSponge => load_sierpinski_sponge_tuning().map(Self::SierpinskiSponge),
+        }
+    }
+
+    fn lod_tuning(self) -> SurfaceLodTuning {
+        match self {
+            Self::Mandelbulb(tuning) => tuning.lod,
+            Self::SierpinskiSponge(tuning) => tuning.lod,
+        }
+    }
+
+    fn surface_transform(self, proxy: &RenderProxy) -> Transform {
+        phenomenon_surface_transform(proxy, self.lod_tuning())
+    }
+
+    fn update_surface_material(self, surface_material: &mut PhenomenonSurfaceMaterial, proxy: &RenderProxy, time_seconds: f32) {
+        let lod = self.lod_tuning();
+        let layer_t = layer_norm(proxy.layer_index);
+        let window_scale = proxy_window_scale(proxy);
+        let shimmer_speed = match self {
+            Self::Mandelbulb(_) => 0.22,
+            Self::SierpinskiSponge(_) => 0.35,
+        };
+        let shimmer = (time_seconds * shimmer_speed + layer_t * std::f32::consts::TAU).sin() * 0.5 + 0.5;
+
+        let (primary_a, primary_b, secondary_a, secondary_b, glow_a, glow_b) = match self {
+            Self::Mandelbulb(_) => (
+                Vec3::new(0.14, 0.48, 0.95),
+                Vec3::new(0.22, 0.74, 0.98),
+                Vec3::new(0.98, 0.58, 0.28),
+                Vec3::new(0.96, 0.84, 0.52),
+                Vec3::new(0.26, 0.86, 1.0),
+                Vec3::new(0.58, 1.0, 0.78),
+            ),
+            Self::SierpinskiSponge(_) => (
+                Vec3::new(0.75, 0.86, 0.97),
+                Vec3::new(0.62, 0.82, 0.96),
+                Vec3::new(0.34, 0.48, 0.7),
+                Vec3::new(0.42, 0.64, 0.82),
+                Vec3::new(0.84, 0.98, 1.0),
+                Vec3::new(0.66, 0.88, 0.96),
+            ),
+        };
+
+        let primary = primary_a.lerp(primary_b, layer_t);
+        let secondary = secondary_a.lerp(secondary_b, 1.0 - layer_t);
+        let glow = glow_a.lerp(glow_b, shimmer);
+        let emissive_strength = (0.25 + lod.visibility_threshold * 1.2).clamp(0.0, 2.0);
+
+        surface_material.params.primary = primary.extend(1.0);
+        surface_material.params.secondary = secondary.extend(1.0);
+        surface_material.params.glow = glow.extend(1.0);
+        surface_material.params.meta = Vec4::new(layer_t, window_scale, time_seconds, emissive_strength);
+    }
+
+    fn surface_signature(self, proxy: &RenderProxy) -> u64 {
+        match self {
+            Self::Mandelbulb(tuning) => compute_mandelbulb_surface_signature(proxy, tuning),
+            Self::SierpinskiSponge(tuning) => compute_sierpinski_sponge_surface_signature(proxy, tuning),
+        }
+    }
+
+    fn build_mesh(self, proxy: &RenderProxy) -> Option<Mesh> {
+        match self {
+            Self::Mandelbulb(tuning) => build_windowed_mandelbulb_mesh(proxy, tuning),
+            Self::SierpinskiSponge(tuning) => build_windowed_sierpinski_sponge_mesh(proxy, tuning),
+        }
+    }
+}
+
+fn load_surface_lod_tuning(root_key: &str) -> SurfaceLodTuning {
+    SurfaceLodTuning {
+        visibility_threshold: CONFIG().get::<f32>(&format!("{root_key}/visibility_threshold")).clamp(0.0, 1.0),
+        scale_boost: CONFIG().get::<f32>(&format!("{root_key}/scale_boost")).max(0.0),
+        z_displacement: CONFIG().get::<f32>(&format!("{root_key}/z_displacement")),
+        mesh_resolution: CONFIG().get::<u32>(&format!("{root_key}/mesh_resolution")).clamp(6, 64),
+        iso_level: CONFIG().get::<f32>(&format!("{root_key}/iso_level")).clamp(-1.0, 1.0),
+    }
+}
+
+fn load_mandelbulb_tuning() -> Option<MandelbulbTuning> {
+    if !CONFIG().get::<bool>("render/phenomenon_mandelbulb/enabled") {
+        return None;
+    }
+
+    Some(MandelbulbTuning {
+        power: CONFIG().get::<f32>("render/phenomenon_mandelbulb/power").max(1.1),
+        iterations: CONFIG().get::<u32>("render/phenomenon_mandelbulb/iterations").max(1),
+        bailout: CONFIG().get::<f32>("render/phenomenon_mandelbulb/bailout").max(1.1),
+        z_span: CONFIG().get::<f32>("render/phenomenon_mandelbulb/z_span").abs().max(0.01),
+        lod: load_surface_lod_tuning("render/phenomenon_mandelbulb"),
+    })
+}
+
+fn load_sierpinski_sponge_tuning() -> Option<SierpinskiSpongeTuning> {
+    if !CONFIG().get::<bool>("render/phenomenon_sierpinski_sponge/enabled") {
+        return None;
+    }
+
+    Some(SierpinskiSpongeTuning {
+        iterations: CONFIG().get::<u32>("render/phenomenon_sierpinski_sponge/iterations").clamp(1, 7),
+        domain_span: CONFIG().get::<f32>("render/phenomenon_sierpinski_sponge/domain_span").abs().max(0.1),
+        hole_bias: CONFIG().get::<f32>("render/phenomenon_sierpinski_sponge/hole_bias").clamp(-0.2, 0.2),
+        lod: load_surface_lod_tuning("render/phenomenon_sierpinski_sponge"),
+    })
+}
+
 #[tracing::instrument(skip_all)]
 pub(super) fn update_phenomenon_model_surfaces_system(
     time: Res<Time>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut surface_materials: ResMut<Assets<PhenomenonSurfaceMaterial>>,
-    proxy_query: Query<(&Children, &RenderProxy)>,
+    proxy_query: Query<(&Children, &RenderProxy, &PhenomenonModel)>,
+    phenomenon_query: Query<&Phenomenon>,
     mut surface_query: Query<(
         &mut Mesh3d,
         &MeshMaterial3d<PhenomenonSurfaceMaterial>,
@@ -301,43 +427,32 @@ pub(super) fn update_phenomenon_model_surfaces_system(
         &mut PhenomenonModelSurface,
     )>,
 ) {
-    let mandelbulb_enabled = CONFIG().get::<bool>("render/phenomenon_mandelbulb/enabled");
-    let mandelbulb_tuning = if mandelbulb_enabled {
-        Some(MandelbulbTuning {
-            power: CONFIG().get::<f32>("render/phenomenon_mandelbulb/power").max(1.1),
-            iterations: CONFIG().get::<u32>("render/phenomenon_mandelbulb/iterations").max(1),
-            bailout: CONFIG().get::<f32>("render/phenomenon_mandelbulb/bailout").max(1.1),
-            z_span: CONFIG().get::<f32>("render/phenomenon_mandelbulb/z_span").abs().max(0.01),
-            visibility_threshold: CONFIG().get::<f32>("render/phenomenon_mandelbulb/visibility_threshold").clamp(0.0, 1.0),
-            scale_boost: CONFIG().get::<f32>("render/phenomenon_mandelbulb/scale_boost").max(0.0),
-            z_displacement: CONFIG().get::<f32>("render/phenomenon_mandelbulb/z_displacement"),
-            mesh_resolution: CONFIG().get::<u32>("render/phenomenon_mandelbulb/mesh_resolution").clamp(6, 64),
-            iso_level: CONFIG().get::<f32>("render/phenomenon_mandelbulb/iso_level").clamp(-1.0, 1.0),
-        })
-    } else {
-        None
-    };
+    for (children, proxy, phenomenon_model) in proxy_query.iter() {
+        let model = phenomenon_query
+            .get(phenomenon_model.phenomenon_entity)
+            .ok()
+            .and_then(|phenomenon| PhenomenonGeometryModel::from_kind(phenomenon.kind));
 
-    for (children, proxy) in proxy_query.iter() {
         for child in children.iter() {
             let Ok((mut mesh3d, material3d, mut transform, mut visibility, mut surface_state)) = surface_query.get_mut(child) else {
                 continue;
             };
 
-            let Some(tuning) = mandelbulb_tuning else {
+            let Some(model) = model else {
+                surface_state.last_signature = 0;
                 *visibility = Visibility::Hidden;
                 continue;
             };
 
-            *transform = phenomenon_surface_transform(proxy, tuning);
+            *transform = model.surface_transform(proxy);
             if let Some(surface_material) = surface_materials.get_mut(&material3d.0) {
-                update_surface_material_params(surface_material, proxy, tuning, time.elapsed_secs());
+                model.update_surface_material(surface_material, proxy, time.elapsed_secs());
             }
 
-            let signature = compute_surface_signature(proxy, tuning);
+            let signature = model.surface_signature(proxy);
             if signature != surface_state.last_signature {
                 surface_state.last_signature = signature;
-                if let Some(mesh) = build_windowed_mandelbulb_mesh(proxy, tuning) {
+                if let Some(mesh) = model.build_mesh(proxy) {
                     if let Some(existing) = meshes.get_mut(&mesh3d.0) {
                         *existing = mesh;
                     } else {
@@ -368,8 +483,8 @@ fn proxy_window_scale(proxy: &RenderProxy) -> f32 {
 }
 
 #[inline]
-fn compute_effective_mesh_resolution(proxy: &RenderProxy, tuning: MandelbulbTuning) -> usize {
-    let base_resolution = tuning.mesh_resolution as f32;
+fn compute_effective_mesh_resolution(proxy: &RenderProxy, base_mesh_resolution: u32) -> usize {
+    let base_resolution = base_mesh_resolution as f32;
     let window_scale = proxy_window_scale(proxy);
     // Keep detail stable across scale layers; only window size should drive dynamic tessellation.
     let window_boost = 1.0 + (1.0 - window_scale) * 1.5;
@@ -377,7 +492,7 @@ fn compute_effective_mesh_resolution(proxy: &RenderProxy, tuning: MandelbulbTuni
 }
 
 #[inline]
-fn phenomenon_surface_transform(proxy: &RenderProxy, tuning: MandelbulbTuning) -> Transform {
+fn phenomenon_surface_transform(proxy: &RenderProxy, tuning: SurfaceLodTuning) -> Transform {
     let window_scale = proxy_window_scale(proxy);
     let layer_t = layer_norm(proxy.layer_index);
     let local_scale = 1.0 + (1.0 - window_scale) * tuning.scale_boost;
@@ -388,23 +503,6 @@ fn phenomenon_surface_transform(proxy: &RenderProxy, tuning: MandelbulbTuning) -
         scale: Vec3::splat(local_scale),
         ..Default::default()
     }
-}
-
-#[inline]
-fn update_surface_material_params(surface_material: &mut PhenomenonSurfaceMaterial, proxy: &RenderProxy, tuning: MandelbulbTuning, time_seconds: f32) {
-    let layer_t = layer_norm(proxy.layer_index);
-    let window_scale = proxy_window_scale(proxy);
-    let shimmer = (time_seconds * 0.22 + layer_t * std::f32::consts::TAU).sin() * 0.5 + 0.5;
-
-    let primary = Vec3::new(0.14, 0.48, 0.95).lerp(Vec3::new(0.22, 0.74, 0.98), layer_t);
-    let secondary = Vec3::new(0.98, 0.58, 0.28).lerp(Vec3::new(0.96, 0.84, 0.52), 1.0 - layer_t);
-    let glow = Vec3::new(0.26, 0.86, 1.0).lerp(Vec3::new(0.58, 1.0, 0.78), shimmer);
-    let emissive_strength = (0.25 + tuning.visibility_threshold * 1.2).clamp(0.0, 2.0);
-
-    surface_material.params.primary = primary.extend(1.0);
-    surface_material.params.secondary = secondary.extend(1.0);
-    surface_material.params.glow = glow.extend(1.0);
-    surface_material.params.meta = Vec4::new(layer_t, window_scale, time_seconds, emissive_strength);
 }
 
 #[inline]
@@ -457,6 +555,27 @@ fn map_model_space_to_mandelbulb_point(local_uv: Vec2, local_w: f32, layer_index
     Vec3::new(x, y, local_z + layer_bias)
 }
 
+#[inline]
+fn sierpinski_sponge_density_from_model_space(local_uv: Vec2, local_w: f32, layer_index: u8, tuning: SierpinskiSpongeTuning) -> f32 {
+    let point = map_model_space_to_sierpinski_point(local_uv, local_w, layer_index, tuning.domain_span);
+    sample_sierpinski_sponge_signed_distance(point, tuning.iterations, tuning.hole_bias)
+}
+
+#[inline]
+fn map_model_space_to_sierpinski_point(local_uv: Vec2, local_w: f32, layer_index: u8, domain_span: f32) -> Vec3 {
+    let uv = local_uv.clamp(Vec2::ZERO, Vec2::ONE);
+    let w = local_w.clamp(0.0, 1.0);
+    let x = (uv.x - 0.5) * 2.0 * domain_span;
+    let y = (uv.y - 0.5) * 2.0 * domain_span;
+    let z = (w - 0.5) * 2.0 * domain_span;
+
+    // Keep one coherent global fractal across all scales; do not offset the sampled slice per layer.
+    let _ = layer_index;
+    let layer_bias = 0.0;
+
+    Vec3::new(x, y, z + layer_bias)
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct MeshingWindow {
     center_local: Vec2,
@@ -465,8 +584,8 @@ struct MeshingWindow {
 }
 
 #[inline]
-fn compute_meshing_window(proxy: &RenderProxy, tuning: MandelbulbTuning) -> MeshingWindow {
-    let resolution = compute_effective_mesh_resolution(proxy, tuning);
+fn compute_meshing_window(proxy: &RenderProxy, base_mesh_resolution: u32) -> MeshingWindow {
+    let resolution = compute_effective_mesh_resolution(proxy, base_mesh_resolution);
 
     if matches!(proxy.window_mode, RenderProxyWindowMode::FullEntity) {
         return MeshingWindow {
@@ -529,29 +648,88 @@ fn sample_mandelbulb_signed_distance(c: Vec3, power: f32, iterations: u32, bailo
 }
 
 #[inline]
-fn compute_surface_signature(proxy: &RenderProxy, tuning: MandelbulbTuning) -> u64 {
+fn sample_sierpinski_sponge_signed_distance(point: Vec3, iterations: u32, hole_bias: f32) -> f32 {
+    let mut p = point;
+    let mut scale = 1.0f32;
+    let mut inside_margin = f32::INFINITY;
+    let center_threshold = (1.0 / 3.0 + hole_bias).clamp(0.05, 0.95);
+
+    for _ in 0..iterations {
+        let abs_p = p.abs();
+        let outer_margin = 1.0 - abs_p.max_element();
+        inside_margin = inside_margin.min(outer_margin / scale);
+        if outer_margin <= 0.0 {
+            return (-outer_margin) / scale;
+        }
+
+        let center_distance = Vec3::splat(center_threshold) - abs_p;
+        let hole_penetration = center_distance
+            .x
+            .min(center_distance.y)
+            .max(center_distance.x.min(center_distance.z))
+            .max(center_distance.y.min(center_distance.z));
+        if hole_penetration > 0.0 {
+            return hole_penetration / scale;
+        }
+
+        let scaled = p * 3.0;
+        p = (scaled - scaled.floor() - Vec3::splat(0.5)) * 2.0;
+        scale *= 3.0;
+    }
+
+    -inside_margin.max(0.0005)
+}
+
+#[inline]
+fn quantized_signature_value(value: f32) -> i32 {
+    (value * 10_000.0).round() as i32
+}
+
+#[inline]
+fn compute_mandelbulb_surface_signature(proxy: &RenderProxy, tuning: MandelbulbTuning) -> u64 {
+    compute_model_surface_signature(proxy, PhenomenonKind::Mandelbulb, tuning.lod, |hasher| {
+        quantized_signature_value(tuning.power).hash(hasher);
+        tuning.iterations.hash(hasher);
+        quantized_signature_value(tuning.bailout).hash(hasher);
+        quantized_signature_value(tuning.z_span).hash(hasher);
+    })
+}
+
+#[inline]
+fn compute_sierpinski_sponge_surface_signature(proxy: &RenderProxy, tuning: SierpinskiSpongeTuning) -> u64 {
+    compute_model_surface_signature(proxy, PhenomenonKind::SierpinskiSponge, tuning.lod, |hasher| {
+        tuning.iterations.hash(hasher);
+        quantized_signature_value(tuning.domain_span).hash(hasher);
+        quantized_signature_value(tuning.hole_bias).hash(hasher);
+    })
+}
+
+#[inline]
+fn compute_model_surface_signature<F>(proxy: &RenderProxy, kind: PhenomenonKind, lod: SurfaceLodTuning, mut hash_model: F) -> u64
+where
+    F: FnMut(&mut std::collections::hash_map::DefaultHasher),
+{
+    let meshing_window = compute_meshing_window(proxy, lod.mesh_resolution);
     #[inline]
-    fn q(v: f32) -> i32 {
-        (v * 10_000.0).round() as i32
+    fn hash_lod_fields(hasher: &mut std::collections::hash_map::DefaultHasher, lod: SurfaceLodTuning) {
+        quantized_signature_value(lod.iso_level).hash(hasher);
+        quantized_signature_value(lod.visibility_threshold).hash(hasher);
+        quantized_signature_value(lod.scale_boost).hash(hasher);
+        quantized_signature_value(lod.z_displacement).hash(hasher);
+        lod.mesh_resolution.hash(hasher);
     }
 
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
-    let meshing_window = compute_meshing_window(proxy, tuning);
+    kind.hash(&mut hasher);
     proxy.layer_index.hash(&mut hasher);
     proxy.window_mode.hash(&mut hasher);
-    q(meshing_window.center_local.x).hash(&mut hasher);
-    q(meshing_window.center_local.y).hash(&mut hasher);
-    q(meshing_window.size_local.x).hash(&mut hasher);
-    q(meshing_window.size_local.y).hash(&mut hasher);
+    quantized_signature_value(meshing_window.center_local.x).hash(&mut hasher);
+    quantized_signature_value(meshing_window.center_local.y).hash(&mut hasher);
+    quantized_signature_value(meshing_window.size_local.x).hash(&mut hasher);
+    quantized_signature_value(meshing_window.size_local.y).hash(&mut hasher);
     meshing_window.resolution.hash(&mut hasher);
-    q(tuning.iso_level).hash(&mut hasher);
-    q(tuning.power).hash(&mut hasher);
-    tuning.iterations.hash(&mut hasher);
-    q(tuning.bailout).hash(&mut hasher);
-    q(tuning.z_span).hash(&mut hasher);
-    q(tuning.visibility_threshold).hash(&mut hasher);
-    q(tuning.scale_boost).hash(&mut hasher);
-    q(tuning.z_displacement).hash(&mut hasher);
+    hash_lod_fields(&mut hasher, lod);
+    hash_model(&mut hasher);
     hasher.finish()
 }
 
@@ -561,7 +739,22 @@ fn grid_index(ix: usize, iy: usize, iz: usize, axis_points: usize) -> usize {
 }
 
 fn build_windowed_mandelbulb_mesh(proxy: &RenderProxy, tuning: MandelbulbTuning) -> Option<Mesh> {
-    let meshing_window = compute_meshing_window(proxy, tuning);
+    build_windowed_field_mesh(proxy, tuning.lod, |sample_uv, sample_w, layer_index| {
+        mandelbulb_density_from_model_space(sample_uv, sample_w, layer_index, tuning)
+    })
+}
+
+fn build_windowed_sierpinski_sponge_mesh(proxy: &RenderProxy, tuning: SierpinskiSpongeTuning) -> Option<Mesh> {
+    build_windowed_field_mesh(proxy, tuning.lod, |sample_uv, sample_w, layer_index| {
+        sierpinski_sponge_density_from_model_space(sample_uv, sample_w, layer_index, tuning)
+    })
+}
+
+fn build_windowed_field_mesh<F>(proxy: &RenderProxy, lod: SurfaceLodTuning, mut density_from_model_space: F) -> Option<Mesh>
+where
+    F: FnMut(Vec2, f32, u8) -> f32,
+{
+    let meshing_window = compute_meshing_window(proxy, lod.mesh_resolution);
     let cells = meshing_window.resolution;
     let axis_points = cells + 1;
     let bounds = compute_phenomenon_window_bounds(proxy.window_mode, meshing_window.center_local, meshing_window.size_local);
@@ -577,8 +770,8 @@ fn build_windowed_mandelbulb_mesh(proxy: &RenderProxy, tuning: MandelbulbTuning)
                 let u = ix as f32 / cells as f32;
                 let idx = grid_index(ix, iy, iz, axis_points);
                 let sample_uv = bounds.min + Vec2::new(u, v) * bounds.span;
-                let signed_distance = mandelbulb_density_from_model_space(sample_uv, w, proxy.layer_index, tuning);
-                field[idx] = signed_distance - tuning.iso_level;
+                let signed_distance = density_from_model_space(sample_uv, w, proxy.layer_index);
+                field[idx] = signed_distance - lod.iso_level;
                 points[idx] = Vec3::new(
                     (u - 0.5) * PHENOMENON_MODEL_LOCAL_SPAN_UNITS,
                     (v - 0.5) * PHENOMENON_MODEL_LOCAL_SPAN_UNITS,
@@ -780,6 +973,47 @@ fn compute_render_proxy_windowing(scale_diff: i8, camera_zoom: f32, chunk_center
 mod tests {
     use super::*;
 
+    fn default_lod(mesh_resolution: u32) -> SurfaceLodTuning {
+        SurfaceLodTuning {
+            visibility_threshold: 0.45,
+            scale_boost: 0.8,
+            z_displacement: 200.0,
+            mesh_resolution,
+            iso_level: 0.0,
+        }
+    }
+
+    fn default_mandelbulb_tuning(mesh_resolution: u32) -> MandelbulbTuning {
+        MandelbulbTuning {
+            power: 8.0,
+            iterations: 10,
+            bailout: 4.0,
+            z_span: 1.2,
+            lod: default_lod(mesh_resolution),
+        }
+    }
+
+    fn default_sierpinski_tuning(mesh_resolution: u32) -> SierpinskiSpongeTuning {
+        SierpinskiSpongeTuning {
+            iterations: 5,
+            domain_span: 1.1,
+            hole_bias: 0.0,
+            lod: default_lod(mesh_resolution),
+        }
+    }
+
+    fn sample_proxy(window_mode: RenderProxyWindowMode, window_center_local: Vec2, window_size_local: Vec2) -> RenderProxy {
+        RenderProxy {
+            source: Entity::PLACEHOLDER,
+            layer_index: 35,
+            depth_bias: 0.0,
+            window_mode,
+            window_center_local,
+            window_size_local,
+            coarse_context_persistent: true,
+        }
+    }
+
     #[test]
     fn full_entity_mode_for_same_or_finer_scale() {
         let (mode, center, size) = compute_render_proxy_windowing(0, 0.25, Vec2::ZERO, Vec2::new(123.0, -45.0));
@@ -809,31 +1043,12 @@ mod tests {
 
     #[test]
     fn effective_mesh_resolution_increases_for_smaller_window() {
-        let tuning = MandelbulbTuning {
-            power: 8.0,
-            iterations: 10,
-            bailout: 4.0,
-            z_span: 1.2,
-            visibility_threshold: 0.45,
-            scale_boost: 0.8,
-            z_displacement: 200.0,
-            mesh_resolution: 12,
-            iso_level: 0.0,
-        };
-        let broad = RenderProxy {
-            source: Entity::PLACEHOLDER,
-            layer_index: 20,
-            depth_bias: 0.0,
-            window_mode: RenderProxyWindowMode::WindowedSubsection,
-            window_center_local: Vec2::ZERO,
-            window_size_local: Vec2::splat(0.9),
-            coarse_context_persistent: true,
-        };
+        let broad = sample_proxy(RenderProxyWindowMode::WindowedSubsection, Vec2::ZERO, Vec2::splat(0.9));
         let narrow = RenderProxy {
             window_size_local: Vec2::splat(0.1),
             ..broad
         };
-        assert!(compute_effective_mesh_resolution(&narrow, tuning) > compute_effective_mesh_resolution(&broad, tuning));
+        assert!(compute_effective_mesh_resolution(&narrow, 12) > compute_effective_mesh_resolution(&broad, 12));
     }
 
     #[test]
@@ -857,26 +1072,8 @@ mod tests {
 
     #[test]
     fn phenomenon_mesh_builds_triangles_for_full_window() {
-        let tuning = MandelbulbTuning {
-            power: 8.0,
-            iterations: 10,
-            bailout: 4.0,
-            z_span: 1.2,
-            visibility_threshold: 0.45,
-            scale_boost: 0.8,
-            z_displacement: 200.0,
-            mesh_resolution: 8,
-            iso_level: 0.0,
-        };
-        let proxy = RenderProxy {
-            source: Entity::PLACEHOLDER,
-            layer_index: 35,
-            depth_bias: 0.0,
-            window_mode: RenderProxyWindowMode::FullEntity,
-            window_center_local: Vec2::ZERO,
-            window_size_local: Vec2::ONE,
-            coarse_context_persistent: true,
-        };
+        let tuning = default_mandelbulb_tuning(8);
+        let proxy = sample_proxy(RenderProxyWindowMode::FullEntity, Vec2::ZERO, Vec2::ONE);
 
         let mesh = build_windowed_mandelbulb_mesh(&proxy, tuning).expect("expected non-empty mesh");
         let Some(positions) = mesh.attribute(Mesh::ATTRIBUTE_POSITION) else {
@@ -887,60 +1084,55 @@ mod tests {
 
     #[test]
     fn phenomenon_mesh_changes_with_window_signature() {
-        let tuning = MandelbulbTuning {
-            power: 8.0,
-            iterations: 10,
-            bailout: 4.0,
-            z_span: 1.2,
-            visibility_threshold: 0.45,
-            scale_boost: 0.8,
-            z_displacement: 200.0,
-            mesh_resolution: 8,
-            iso_level: 0.0,
-        };
-        let mut a = RenderProxy {
-            source: Entity::PLACEHOLDER,
-            layer_index: 35,
-            depth_bias: 0.0,
-            window_mode: RenderProxyWindowMode::WindowedSubsection,
-            window_center_local: Vec2::ZERO,
-            window_size_local: Vec2::splat(0.5),
-            coarse_context_persistent: true,
-        };
-        let sig_a = compute_surface_signature(&a, tuning);
+        let tuning = default_mandelbulb_tuning(8);
+        let mut a = sample_proxy(RenderProxyWindowMode::WindowedSubsection, Vec2::ZERO, Vec2::splat(0.5));
+        let sig_a = compute_mandelbulb_surface_signature(&a, tuning);
         a.window_center_local = Vec2::new(0.1, 0.0);
-        let sig_b = compute_surface_signature(&a, tuning);
+        let sig_b = compute_mandelbulb_surface_signature(&a, tuning);
         assert_ne!(sig_a, sig_b);
     }
 
     #[test]
     fn surface_signature_tracks_window_mode() {
-        let tuning = MandelbulbTuning {
-            power: 8.0,
-            iterations: 10,
-            bailout: 4.0,
-            z_span: 1.2,
-            visibility_threshold: 0.45,
-            scale_boost: 0.8,
-            z_displacement: 200.0,
-            mesh_resolution: 8,
-            iso_level: 0.0,
-        };
-        let a = RenderProxy {
-            source: Entity::PLACEHOLDER,
-            layer_index: 35,
-            depth_bias: 0.0,
-            window_mode: RenderProxyWindowMode::FullEntity,
-            window_center_local: Vec2::ZERO,
-            window_size_local: Vec2::ONE,
-            coarse_context_persistent: true,
-        };
+        let tuning = default_mandelbulb_tuning(8);
+        let a = sample_proxy(RenderProxyWindowMode::FullEntity, Vec2::ZERO, Vec2::ONE);
         let b = RenderProxy {
             window_mode: RenderProxyWindowMode::WindowedSubsection,
             ..a
         };
-        let sig_a = compute_surface_signature(&a, tuning);
-        let sig_b = compute_surface_signature(&b, tuning);
+        let sig_a = compute_mandelbulb_surface_signature(&a, tuning);
+        let sig_b = compute_mandelbulb_surface_signature(&b, tuning);
+        assert_ne!(sig_a, sig_b);
+    }
+
+    #[test]
+    fn surface_signature_tracks_phenomenon_kind() {
+        let lod = default_lod(8);
+        let proxy = sample_proxy(RenderProxyWindowMode::FullEntity, Vec2::ZERO, Vec2::ONE);
+        let mandelbulb_sig = compute_model_surface_signature(&proxy, PhenomenonKind::Mandelbulb, lod, |_| {});
+        let sierpinski_sig = compute_model_surface_signature(&proxy, PhenomenonKind::SierpinskiSponge, lod, |_| {});
+        assert_ne!(mandelbulb_sig, sierpinski_sig);
+    }
+
+    #[test]
+    fn phenomenon_sierpinski_mesh_builds_triangles_for_full_window() {
+        let tuning = default_sierpinski_tuning(8);
+        let proxy = sample_proxy(RenderProxyWindowMode::FullEntity, Vec2::ZERO, Vec2::ONE);
+
+        let mesh = build_windowed_sierpinski_sponge_mesh(&proxy, tuning).expect("expected non-empty mesh");
+        let Some(positions) = mesh.attribute(Mesh::ATTRIBUTE_POSITION) else {
+            panic!("mesh missing positions");
+        };
+        assert!(positions.len() > 0);
+    }
+
+    #[test]
+    fn phenomenon_sierpinski_signature_changes_with_window() {
+        let tuning = default_sierpinski_tuning(8);
+        let mut a = sample_proxy(RenderProxyWindowMode::WindowedSubsection, Vec2::ZERO, Vec2::splat(0.5));
+        let sig_a = compute_sierpinski_sponge_surface_signature(&a, tuning);
+        a.window_center_local = Vec2::new(-0.1, 0.1);
+        let sig_b = compute_sierpinski_sponge_surface_signature(&a, tuning);
         assert_ne!(sig_a, sig_b);
     }
 
@@ -965,13 +1157,21 @@ mod tests {
             iterations: 12,
             bailout: 4.0,
             z_span: 1.2,
-            visibility_threshold: 0.2,
-            scale_boost: 0.4,
-            z_displacement: 120.0,
-            mesh_resolution: 8,
-            iso_level: 0.0,
+            lod: SurfaceLodTuning {
+                visibility_threshold: 0.2,
+                scale_boost: 0.4,
+                z_displacement: 120.0,
+                mesh_resolution: 8,
+                iso_level: 0.0,
+            },
         };
         let field = mandelbulb_density_from_model_space(Vec2::new(0.5, 0.5), 0.5, 35, tuning);
+        assert!(field.is_finite());
+    }
+
+    #[test]
+    fn sierpinski_field_is_finite() {
+        let field = sample_sierpinski_sponge_signed_distance(Vec3::new(0.1, -0.2, 0.15), 5, 0.0);
         assert!(field.is_finite());
     }
 
