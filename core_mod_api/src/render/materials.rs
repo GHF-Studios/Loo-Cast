@@ -19,14 +19,11 @@ pub struct PhenomenonSurfaceParams {
 pub struct PhenomenonSurfaceMaterial {
     #[uniform(0)]
     pub params: PhenomenonSurfaceParams,
-    #[texture(1)]
-    #[sampler(2)]
-    pub metric_texture: Option<Handle<Image>>,
     pub alpha_mode: AlphaMode,
 }
 
 impl PhenomenonSurfaceMaterial {
-    pub fn for_metric_texture(metric_texture: Handle<Image>) -> Self {
+    pub fn for_mandelbulb_surface() -> Self {
         Self {
             params: PhenomenonSurfaceParams {
                 primary: Vec4::new(0.25, 0.62, 0.92, 1.0),
@@ -34,7 +31,6 @@ impl PhenomenonSurfaceMaterial {
                 glow: Vec4::new(0.36, 0.82, 1.0, 1.0),
                 meta: Vec4::new(0.5, 1.0, 0.0, 0.6),
             },
-            metric_texture: Some(metric_texture),
             alpha_mode: AlphaMode::Opaque,
         }
     }

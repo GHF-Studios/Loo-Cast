@@ -19,8 +19,9 @@ use materials::PhenomenonSurfaceMaterial;
 use resources::{DevZoomFactor, PrimaryWindowUiDockState, PrimaryWindowUiState, ViewScale, ZoomFactor};
 use systems::{
     apply_usf_player_pivots_system, despawn_orphaned_render_proxies, enforce_main_camera_depth_contract_system,
-    enforce_phenomenon_model_camera_depth_contract_system, main_camera_zoom_system, pre_setup_phase_0, pre_setup_phase_1, primary_window_ui_system,
-    resize_render_texture, update_global_phenomenon_proxy_system, update_phenomenon_model_surfaces_system, update_render_proxies, update_view_scale_from_zoom,
+    enforce_phenomenon_model_camera_depth_contract_system, ensure_global_phenomenon_root_system, main_camera_zoom_system, pre_setup_phase_0, pre_setup_phase_1,
+    primary_window_ui_system, resize_render_texture, update_global_phenomenon_proxy_system, update_phenomenon_model_surfaces_system, update_render_proxies,
+    update_view_scale_from_zoom,
 };
 
 use crate::core::{components::Meta, orchestration::AppSet, run_conditions::run_after_startup_finished};
@@ -48,10 +49,13 @@ impl Plugin for RenderPlugin {
                     enforce_phenomenon_model_camera_depth_contract_system.in_set(AppSet::Camera),
                     update_view_scale_from_zoom.in_set(AppSet::Camera),
                     despawn_orphaned_render_proxies.in_set(AppSet::Presentation),
+                    ensure_global_phenomenon_root_system
+                        .in_set(AppSet::Presentation)
+                        .after(despawn_orphaned_render_proxies),
                     update_render_proxies.in_set(AppSet::Presentation).after(despawn_orphaned_render_proxies),
                     update_global_phenomenon_proxy_system
                         .in_set(AppSet::Presentation)
-                        .after(update_render_proxies),
+                        .after(ensure_global_phenomenon_root_system),
                     update_phenomenon_model_surfaces_system
                         .in_set(AppSet::Presentation)
                         .after(update_global_phenomenon_proxy_system),

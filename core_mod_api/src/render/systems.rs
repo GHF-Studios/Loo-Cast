@@ -3,7 +3,7 @@ use crate::bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use crate::bevy::prelude::*;
 use crate::bevy::render::render_resource::{Extent3d, PrimitiveTopology, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
 
-use crate::chunk::components::{Chunk, ChunkActor, ChunkLoader};
+use crate::chunk::components::{ChunkActor, ChunkLoader};
 use crate::chunk::resources::{ChunkActionWorkflowState, ChunkLoadGate};
 use crate::config::statics::CONFIG;
 use crate::core::protocol::PlayerMotionIntent;
@@ -14,11 +14,13 @@ use crate::render::{
         EntityProxyLink, GlobalPhenomenonRoot, LogicProxy, MainCamera, PhenomenonModelCamera, PhenomenonModelSurface, ProxySyncRevision, RenderProxy,
         RenderProxyWindowMode, UiCamera,
     },
-    functions::{PHENOMENON_MODEL_LOCAL_SPAN_UNITS, draw_primary_window_ui},
+    functions::{PHENOMENON_MODEL_LOCAL_SPAN_UNITS, draw_primary_window_ui, new_phenomenon_model_proxy_bundle},
     materials::PhenomenonSurfaceMaterial,
     resources::{DevZoomFactor, GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, ViewScale, ZoomFactor},
 };
 use crate::time::resources::VirtualPaused;
+use crate::usf::pos::grid::types::GridVec;
+use crate::usf::phenomenon::{Phenomenon, PhenomenonId, PhenomenonKind, PhenomenonModel};
 use crate::usf::scale::Scale;
 use std::hash::{Hash, Hasher};
 
@@ -69,6 +71,62 @@ pub(super) fn pre_setup_phase_1(mut commands: Commands, mut egui_textures: ResMu
     });
 }
 
+#[tracing::instrument(skip_all)]
+pub(super) fn ensure_global_phenomenon_root_system(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut phenomenon_surface_materials: ResMut<Assets<PhenomenonSurfaceMaterial>>,
+    global_phenomenon_root_query: Query<Entity, With<GlobalPhenomenonRoot>>,
+    player_loader_query: Query<&ChunkLoader, With<Player>>,
+) {
+    if !global_phenomenon_root_query.is_empty() {
+        return;
+    }
+
+    let source_scale = player_loader_query
+        .single()
+        .map(|loader| loader.coord.scale)
+        .unwrap_or(Scale::MAX);
+    let depth_bias = CONFIG().get::<i8>("chunk/z_offset") as f32;
+
+    let phenomenon_entity = commands
+        .spawn((
+            Name::new("global_phenomenon"),
+            Phenomenon {
+                id: PhenomenonId(0),
+                kind: PhenomenonKind::Mandelbulb,
+            },
+        ))
+        .id();
+
+    let phenomenon_render_proxy_entity = commands
+        .spawn((
+            Name::new("global_phenomenon_render_proxy"),
+            GlobalPhenomenonRoot,
+            new_phenomenon_model_proxy_bundle(Vec2::ZERO, 1.0, phenomenon_entity, source_scale, depth_bias),
+        ))
+        .id();
+
+    let surface_mesh = meshes.add(Mesh::from(Cuboid::from_size(Vec3::splat(PHENOMENON_MODEL_LOCAL_SPAN_UNITS))));
+    let surface_material = phenomenon_surface_materials.add(PhenomenonSurfaceMaterial::for_mandelbulb_surface());
+
+    commands.entity(phenomenon_render_proxy_entity).with_children(|parent| {
+        parent.spawn((
+            Name::new("global_phenomenon_surface"),
+            Mesh3d(surface_mesh),
+            MeshMaterial3d(surface_material),
+            Transform::default(),
+            Visibility::Visible,
+            PhenomenonModelSurface::default(),
+        ));
+    });
+
+    commands.entity(phenomenon_render_proxy_entity).insert(PhenomenonModel {
+        phenomenon_entity,
+        scale: source_scale,
+    });
+}
+
 pub(super) fn resize_render_texture(
     mut previous_window_size_uvec2: Local<UVec2>,
     mut images: ResMut<Assets<Image>>,
@@ -102,7 +160,6 @@ pub(super) fn update_render_proxies(
     mut params: ParamSet<(
         Single<(&ChunkLoader, &Transform), With<Player>>,
         Query<(&EntityProxyLink, &ChunkActor), Without<RenderProxy>>,
-        Query<(&EntityProxyLink, &Chunk), Without<RenderProxy>>,
         Query<(&mut Transform, &mut ProxySyncRevision, &mut RenderProxy), With<RenderProxy>>,
     )>,
 ) {
@@ -129,7 +186,7 @@ pub(super) fn update_render_proxies(
     };
 
     {
-        let mut proxy_transforms = params.p3();
+        let mut proxy_transforms = params.p2();
         for (proxy_entity, incoming_revision, coord) in actor_updates {
             if let Ok((mut proxy_transform, mut proxy_revision, mut proxy_state)) = proxy_transforms.get_mut(proxy_entity) {
                 if incoming_revision.0 < proxy_revision.0 {
@@ -154,45 +211,6 @@ pub(super) fn update_render_proxies(
         }
     }
 
-    let chunk_updates = {
-        let chunk_query = params.p2();
-        chunk_query
-            .iter()
-            .filter_map(|(link, chunk)| {
-                let scale_diff = chunk.coord.scale as i8 - origin_offset.scale as i8;
-                if scale_diff < 0 || scale_diff > max_scale_diff {
-                    return None;
-                }
-                Some((link.render_entity, link.revision, chunk.coord.clone()))
-            })
-            .collect::<Vec<_>>()
-    };
-
-    {
-        let mut proxy_transforms = params.p3();
-        for (proxy_entity, incoming_revision, coord) in chunk_updates {
-            if let Ok((mut proxy_transform, mut proxy_revision, mut proxy_state)) = proxy_transforms.get_mut(proxy_entity) {
-                if incoming_revision.0 < proxy_revision.0 {
-                    continue;
-                }
-                let coord_scale = coord.scale;
-                let scale_diff = coord_scale as i8 - origin_offset.scale as i8;
-                let z = coord_scale.compute_z() + proxy_state.depth_bias;
-                let (pos, scale) = coord.to_native_visual(origin_offset.clone());
-                let world_pos = pos.extend(z);
-                proxy_transform.translation = world_rotation_origin + world_rotation * (world_pos - world_rotation_origin);
-                proxy_transform.scale = Vec3::splat(scale);
-                proxy_transform.rotation = world_rotation;
-                proxy_state.layer_index = coord_scale.render_layer_index();
-                let (window_mode, window_center_local, window_size_local) = compute_render_proxy_windowing(scale_diff, camera_zoom, pos, view_pos_native);
-                proxy_state.window_mode = window_mode;
-                proxy_state.window_center_local = window_center_local;
-                proxy_state.window_size_local = window_size_local;
-                proxy_state.coarse_context_persistent = true;
-                proxy_revision.0 = incoming_revision.0;
-            }
-        }
-    }
 }
 
 #[tracing::instrument(skip_all)]
@@ -204,31 +222,29 @@ pub(super) fn update_global_phenomenon_proxy_system(
         Query<(&mut Transform, &mut RenderProxy), With<GlobalPhenomenonRoot>>,
     )>,
 ) {
-    let (world_rotation, world_rotation_origin, coord_scale, scale_diff, pos, scale, view_pos_native, camera_zoom) = {
+    let (world_rotation, world_rotation_origin, coord_scale, scale_diff, view_pos_native, camera_zoom) = {
         let (chunk_loader, chunk_loader_transform) = *params.p0();
         let world_rotation = chunk_loader.world_rotation_quat();
         let world_rotation_origin = chunk_loader_transform.translation;
-        let origin_offset = chunk_loader.origin_offset.clone();
-        let view_pos_native = chunk_loader_transform.translation.truncate();
+        let local_view_pos = Vec2::new(
+            chunk_loader.usf_transform.translation.x.local as f32,
+            chunk_loader.usf_transform.translation.y.local as f32,
+        );
+        let grid_origin_at_current_scale = GridVec::new_at_scale(chunk_loader.origin_offset.scale, IVec2::ZERO);
+        let coarse_view_pos = chunk_loader.origin_offset.clone().to_native_logical(grid_origin_at_current_scale);
+        let view_pos_native = coarse_view_pos + local_view_pos;
         let camera_zoom = (zoom_factor.0 * dev_zoom_factor.0).max(f32::EPSILON);
 
-        // Keep one global phenomenon root anchored one scale level above the player when possible.
-        // This preserves USF windowed subsection behavior while avoiding per-chunk duplication.
-        let mut phenomenon_coord = chunk_loader.coord.clone();
-        if phenomenon_coord.scale < Scale::MAX {
-            phenomenon_coord.zoom_out();
-        }
-        let coord_scale = phenomenon_coord.scale;
-        let scale_diff = coord_scale as i8 - origin_offset.scale as i8;
-        let (pos, scale) = phenomenon_coord.to_native_visual(origin_offset);
+        // One global phenomenon in 3D: scale progression selects a deeper subsection window,
+        // but does not spawn/scale independent world objects.
+        let coord_scale = chunk_loader.coord.scale;
+        let scale_diff = coord_scale.index_from_top() as i8;
 
         (
             world_rotation,
             world_rotation_origin,
             coord_scale,
             scale_diff,
-            pos,
-            scale,
             view_pos_native,
             camera_zoom,
         )
@@ -236,13 +252,14 @@ pub(super) fn update_global_phenomenon_proxy_system(
 
     let mut global_proxy_query = params.p1();
     for (mut proxy_transform, mut proxy_state) in global_proxy_query.iter_mut() {
-        let z = coord_scale.compute_z() + proxy_state.depth_bias;
-        let world_pos = pos.extend(z);
-        proxy_transform.translation = world_rotation_origin + world_rotation * (world_pos - world_rotation_origin);
-        proxy_transform.scale = Vec3::splat(scale);
+        // Keep the global phenomenon anchored to the player frame in XYZ;
+        // only the subsection window changes across USF boundaries.
+        proxy_transform.translation = world_rotation_origin + world_rotation * Vec3::new(0.0, 0.0, proxy_state.depth_bias);
+        proxy_transform.scale = Vec3::ONE;
         proxy_transform.rotation = world_rotation;
         proxy_state.layer_index = coord_scale.render_layer_index();
-        let (window_mode, window_center_local, window_size_local) = compute_render_proxy_windowing(scale_diff, camera_zoom, pos, view_pos_native);
+        let (window_mode, window_center_local, window_size_local) =
+            compute_render_proxy_windowing(scale_diff, camera_zoom, Vec2::ZERO, view_pos_native);
         proxy_state.window_mode = window_mode;
         proxy_state.window_center_local = window_center_local;
         proxy_state.window_size_local = window_size_local;
@@ -743,18 +760,18 @@ fn compute_render_proxy_windowing(scale_diff: i8, camera_zoom: f32, chunk_center
         return (RenderProxyWindowMode::FullEntity, Vec2::ZERO, Vec2::ONE);
     }
 
-    let coarse_factor = 10.0_f32.powi(scale_diff as i32);
+    let coarse_factor = 10.0_f64.powi(scale_diff as i32);
     if !coarse_factor.is_finite() || coarse_factor <= 0.0 {
         return (RenderProxyWindowMode::WindowedSubsection, Vec2::ZERO, Vec2::splat(0.001));
     }
 
-    let chunk_span = 1000.0 * coarse_factor;
-    let chunk_min = chunk_center_native - Vec2::splat(chunk_span * 0.5);
-    let center01 = ((view_pos_native - chunk_min) / chunk_span).clamp(Vec2::ZERO, Vec2::ONE);
-    let center_local = center01 - Vec2::splat(0.5);
+    let chunk_span = 1000.0_f64 * coarse_factor;
+    let center01_x = ((view_pos_native.x as f64 - (chunk_center_native.x as f64 - chunk_span * 0.5)) / chunk_span).clamp(0.0, 1.0) as f32;
+    let center01_y = ((view_pos_native.y as f64 - (chunk_center_native.y as f64 - chunk_span * 0.5)) / chunk_span).clamp(0.0, 1.0) as f32;
+    let center_local = Vec2::new(center01_x, center01_y) - Vec2::splat(0.5);
 
-    let zoom_term = camera_zoom.clamp(0.0001, 1.0);
-    let window_size = (zoom_term / coarse_factor).clamp(0.0001, 1.0);
+    let zoom_term = camera_zoom.max(0.0001) as f64;
+    let window_size = (zoom_term / coarse_factor).clamp(MIN_WINDOW_SIZE_LOCAL as f64, 1.0) as f32;
 
     (RenderProxyWindowMode::WindowedSubsection, center_local, Vec2::splat(window_size))
 }
@@ -973,16 +990,16 @@ mod tests {
 
 #[tracing::instrument(skip_all)]
 pub(super) fn enforce_main_camera_depth_contract_system(
-    mut main_camera_query: Query<(&mut Transform, &mut Projection), With<MainCamera>>,
-    player_loader_query: Query<&ChunkLoader, With<Player>>,
+    mut main_camera_query: Query<(&mut Transform, &mut Projection), (With<MainCamera>, Without<Player>)>,
+    player_transform_query: Query<&Transform, (With<Player>, Without<MainCamera>)>,
 ) {
     let Ok((mut camera_transform, mut projection)) = main_camera_query.single_mut() else {
         return;
     };
 
-    camera_transform.translation.z = player_loader_query
+    camera_transform.translation.z = player_transform_query
         .single()
-        .map(|loader| loader.scale.compute_z() + Scale::CANONICAL_Z_SPACING)
+        .map(|transform| transform.translation.z + Scale::CANONICAL_Z_SPACING)
         .unwrap_or(Scale::CANONICAL_CAMERA_Z);
 
     match projection.as_mut() {
@@ -1266,7 +1283,6 @@ pub(super) fn apply_usf_player_pivots_system(
                     translation_grid_delta,
                     player_transform.translation
                 );
-                player_transform.translation.z = chunk_loader.scale.compute_z() + CONFIG().get::<f32>("player/z_offset");
             }
         }
     }

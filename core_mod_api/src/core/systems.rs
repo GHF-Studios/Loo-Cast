@@ -2,7 +2,7 @@ use crate::bevy::prelude::*;
 use core_mod_macros::{composite_workflow, composite_workflow_return};
 use std::collections::HashMap;
 
-use crate::chunk::components::{Chunk, ChunkActor, ChunkLoader};
+use crate::chunk::components::{ChunkActor, ChunkLoader};
 use crate::core::resources::EntityProxyRuntimeState;
 use crate::player::components::Player;
 use crate::render::components::{EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision, RenderProxy, RenderProxyWindowMode};
@@ -15,50 +15,6 @@ pub(super) fn startup_system() {
         warn!("Running composite workflow 'Startup'");
 
         workflow!(Render::SpawnCameras);
-
-        let example_dev_texture_generator_shader_name = "texture_generators/example_dev";
-        let example_dev_texture_generator_shader_path = "core_mod/shaders/texture_generators/example_dev.wgsl".to_string();
-        workflow!(
-            IE,
-            Gpu::SetupTextureGenerator,
-            Input {
-                shader_name: example_dev_texture_generator_shader_name,
-                shader_path: example_dev_texture_generator_shader_path,
-            }
-        );
-
-        let example_dev_v2_texture_generator_shader_name = "texture_generators/example_dev_v2";
-        let example_dev_v2_texture_generator_shader_path = "core_mod/shaders/texture_generators/example_dev_v2.wgsl".to_string();
-        workflow!(
-            IE,
-            Gpu::SetupTextureGenerator,
-            Input {
-                shader_name: example_dev_v2_texture_generator_shader_name,
-                shader_path: example_dev_v2_texture_generator_shader_path,
-            }
-        );
-
-        let example_uv_texture_generator_shader_name = "texture_generators/example_uv";
-        let example_uv_texture_generator_shader_path = "core_mod/shaders/texture_generators/example_uv.wgsl".to_string();
-        workflow!(
-            IE,
-            Gpu::SetupTextureGenerator,
-            Input {
-                shader_name: example_uv_texture_generator_shader_name,
-                shader_path: example_uv_texture_generator_shader_path,
-            }
-        );
-
-        let example_world_texture_generator_shader_name = "texture_generators/example_world";
-        let example_world_texture_generator_shader_path = "core_mod/shaders/texture_generators/example_world.wgsl".to_string();
-        workflow!(
-            IE,
-            Gpu::SetupTextureGenerator,
-            Input {
-                shader_name: example_world_texture_generator_shader_name,
-                shader_path: example_world_texture_generator_shader_path,
-            }
-        );
 
         workflow!(Core::FinishStartup);
     });
@@ -83,7 +39,7 @@ pub(super) fn advance_entity_proxy_revision_system(mut state: ResMut<EntityProxy
 #[tracing::instrument(skip_all)]
 pub(super) fn ensure_entity_proxy_links_system(
     mut commands: Commands,
-    roots_without_link: Query<(Entity, Option<&Name>), (Or<(With<Chunk>, With<ChunkActor>)>, Without<EntityProxyLink>)>,
+    roots_without_link: Query<(Entity, Option<&Name>), (With<ChunkActor>, Without<EntityProxyLink>)>,
 ) {
     for (root_entity, root_name) in roots_without_link.iter() {
         let root_label = root_name
@@ -128,7 +84,7 @@ pub(super) fn ensure_entity_proxy_links_system(
 #[tracing::instrument(skip_all)]
 pub(super) fn validate_entity_proxy_links_system(
     mut state: ResMut<EntityProxyRuntimeState>,
-    roots: Query<(Entity, &EntityProxyLink), Or<(With<Chunk>, With<ChunkActor>)>>,
+    roots: Query<(Entity, &EntityProxyLink), With<ChunkActor>>,
     logic_proxies: Query<&LogicProxy>,
     render_proxies: Query<&RenderProxy>,
 ) {
@@ -178,7 +134,7 @@ pub(super) fn validate_entity_proxy_links_system(
 #[tracing::instrument(skip_all)]
 pub(super) fn sync_logic_proxies_from_main_entities_system(
     mut state: ResMut<EntityProxyRuntimeState>,
-    mut roots: Query<(Entity, Option<&Chunk>, Option<&ChunkActor>, Option<&ChunkLoader>, &mut EntityProxyLink), Or<(With<Chunk>, With<ChunkActor>)>>,
+    mut roots: Query<(Entity, &ChunkActor, Option<&ChunkLoader>, &mut EntityProxyLink), With<ChunkActor>>,
     player_loader_query: Query<&ChunkLoader, With<crate::player::components::Player>>,
     mut logic_proxies: Query<(&LogicProxy, &mut Transform, &mut ProxySyncRevision)>,
 ) {
@@ -187,11 +143,11 @@ pub(super) fn sync_logic_proxies_from_main_entities_system(
         .map(|loader| loader.origin_offset.clone())
         .unwrap_or_else(|_| GridVec::default());
 
-    let mut ordered_roots = roots.iter().map(|(entity, _, _, _, _)| entity).collect::<Vec<_>>();
+    let mut ordered_roots = roots.iter().map(|(entity, _, _, _)| entity).collect::<Vec<_>>();
     ordered_roots.sort_by_key(|entity| entity.to_bits());
 
     for root_entity in ordered_roots {
-        let Ok((entity, chunk, chunk_actor, _chunk_loader, mut link)) = roots.get_mut(root_entity) else {
+        let Ok((entity, chunk_actor, _chunk_loader, mut link)) = roots.get_mut(root_entity) else {
             continue;
         };
 
@@ -211,20 +167,12 @@ pub(super) fn sync_logic_proxies_from_main_entities_system(
         }
 
         if link.root_transform_contract_is_ub {
-            let main_coord = chunk
-                .map(|chunk| chunk.coord.clone())
-                .or_else(|| chunk_actor.map(|chunk_actor| chunk_actor.coord.clone()));
-            if let Some(main_coord) = main_coord {
-                let z = main_coord.scale.compute_z();
-                let (pos, scale) = main_coord.to_native_visual(origin_offset.clone());
-                logic_transform.translation = pos.extend(z);
-                logic_transform.rotation = Quat::IDENTITY;
-                logic_transform.scale = Vec3::splat(scale);
-            } else {
-                logic_transform.translation = Vec3::ZERO;
-                logic_transform.rotation = Quat::IDENTITY;
-                logic_transform.scale = Vec3::ONE;
-            }
+            let main_coord = chunk_actor.coord.clone();
+            let z = main_coord.scale.compute_z();
+            let (pos, scale) = main_coord.to_native_visual(origin_offset.clone());
+            logic_transform.translation = pos.extend(z);
+            logic_transform.rotation = Quat::IDENTITY;
+            logic_transform.scale = Vec3::splat(scale);
         } else {
             logic_transform.translation = Vec3::ZERO;
             logic_transform.rotation = Quat::IDENTITY;
@@ -243,7 +191,7 @@ pub(super) fn enforce_root_transform_contract_system(
     mut roots: Query<
         (&EntityProxyLink, &mut Transform),
         (
-            Or<(With<Chunk>, With<ChunkActor>)>,
+            With<ChunkActor>,
             Without<Player>,
             Without<MainCamera>,
             Without<LogicProxy>,

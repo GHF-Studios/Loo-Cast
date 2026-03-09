@@ -16,12 +16,10 @@ use enums::ZoomState;
 use errors::{DespawnError, SpawnError};
 use messages::ChunkBatchLifecycleMessage;
 use resources::{
-    ChunkActionWorkflowState, ChunkBatchTracker, ChunkLoadGate, ChunkLoadGateLockInfo, ChunkLoadGateState, ChunkManager, ChunkRenderExecutorRegistry,
-    ChunkRenderHandles,
+    ChunkActionWorkflowState, ChunkBatchTracker, ChunkLoadGate, ChunkLoadGateLockInfo, ChunkLoadGateState, ChunkManager,
 };
 use systems::{
-    chunk_detection_system, chunk_management_system, chunk_startup_system, chunk_timeout_signal_system, chunk_zoom_cooldown_system,
-    sync_chunk_orchestration_state_system,
+    chunk_detection_system, chunk_management_system, chunk_timeout_signal_system, chunk_zoom_cooldown_system, sync_chunk_orchestration_state_system,
 };
 
 use crate::{
@@ -33,12 +31,10 @@ pub(crate) struct ChunkPlugin;
 impl Plugin for ChunkPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ChunkManager::default())
-            .insert_resource(ChunkRenderExecutorRegistry::default())
             .insert_resource(ChunkLoadGate::default())
             .insert_resource(ChunkBatchTracker::default())
             .insert_resource(ChunkActionWorkflowState::default())
             .add_message::<ChunkBatchLifecycleMessage>()
-            .add_systems(Startup, chunk_startup_system)
             .add_systems(PreUpdate, chunk_timeout_signal_system.run_if(run_after_startup_finished))
             .add_systems(
                 Update,
@@ -66,7 +62,6 @@ impl Plugin for ChunkPlugin {
             .register_type::<ChunkLoadGate>()
             .register_type::<ChunkLoadGateState>()
             .register_type::<ChunkLoadGateLockInfo>()
-            .register_type::<ChunkRenderHandles>()
             .register_type::<SpawnError>()
             .register_type::<DespawnError>()
             .register_type::<ZoomState>();

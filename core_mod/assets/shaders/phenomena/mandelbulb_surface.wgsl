@@ -12,8 +12,6 @@ struct PhenomenonSurfaceParams {
 }
 
 @group(#{MATERIAL_BIND_GROUP}) @binding(0) var<uniform> material: PhenomenonSurfaceParams;
-@group(#{MATERIAL_BIND_GROUP}) @binding(1) var metric_texture: texture_2d<f32>;
-@group(#{MATERIAL_BIND_GROUP}) @binding(2) var metric_sampler: sampler;
 
 fn saturate(value: f32) -> f32 {
     return clamp(value, 0.0, 1.0);
@@ -26,12 +24,11 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     uv = in.uv;
 #endif
 
-    let metric_rgb = textureSample(metric_texture, metric_sampler, uv).rgb;
-    let metric = dot(metric_rgb, vec3<f32>(0.299, 0.587, 0.114));
     let layer_norm = saturate(material.controls.x);
     let window_scale = saturate(material.controls.y);
     let time_seconds = material.controls.z;
     let emissive_strength = material.controls.w;
+    let metric = 0.5 + 0.5 * sin(dot(in.world_position.xyz, vec3<f32>(0.013, 0.017, 0.019)) + time_seconds * 0.4);
 
     let normal = normalize(in.world_normal);
     let light_dir = normalize(vec3<f32>(0.42, 0.83, 0.37));

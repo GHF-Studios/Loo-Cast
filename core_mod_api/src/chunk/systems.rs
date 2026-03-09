@@ -14,25 +14,10 @@ use crate::core::protocol::{AppOrchestrationSignal, AppOrchestrationState, Orche
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
 use crate::workflow::functions::{
-    WorkflowTimeoutControlDecision, handle_composite_workflow_return_now, run_workflow_io_with_timeout_control, run_workflow_ioe_with_timeout_control,
+    WorkflowTimeoutControlDecision, handle_composite_workflow_return_now, run_workflow_ioe_with_timeout_control,
 };
 use crate::workflow::resources::WorkflowTimeoutSignalReceiver;
 use crate::workflow::types::WorkflowTimeoutMode;
-
-use super::resources::ChunkRenderHandles;
-
-#[tracing::instrument(skip_all)]
-pub(crate) fn chunk_startup_system(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<ColorMaterial>>) {
-    let quad = meshes.add(Mesh::from(Rectangle::new(1.0, 1.0)));
-    let light_material: Handle<ColorMaterial> = materials.add(ColorMaterial::from_color(Color::srgb(0.75, 0.75, 0.75)));
-    let dark_material = materials.add(ColorMaterial::from_color(Color::srgb(0.25, 0.25, 0.25)));
-
-    commands.insert_resource(ChunkRenderHandles {
-        quad,
-        light_material,
-        dark_material,
-    });
-}
 
 #[tracing::instrument(skip_all)]
 pub(crate) fn chunk_zoom_cooldown_system(time: Res<Time<Virtual>>, mut timer: Local<f32>, mut query: Query<&mut ChunkLoader>) {
@@ -72,7 +57,7 @@ pub(crate) fn chunk_timeout_signal_system(mut chunk_load_gate: ResMut<ChunkLoadG
 pub(crate) fn sync_chunk_orchestration_state_system(
     chunk_load_gate: Option<Res<ChunkLoadGate>>,
     chunk_batch_tracker: Option<Res<ChunkBatchTracker>>,
-    mut app_orchestration_state: Option<ResMut<AppOrchestrationState>>,
+    app_orchestration_state: Option<ResMut<AppOrchestrationState>>,
     mut app_orchestration_signal_writer: MessageWriter<AppOrchestrationSignal>,
 ) {
     let Some(mut app_orchestration_state) = app_orchestration_state else {
@@ -192,10 +177,7 @@ pub(crate) fn chunk_detection_system(
     let chunks_to_unload = current_chunks.difference(&final_target_chunks).cloned();
 
     for chunk in chunks_to_load {
-        spawn_chunk_inputs.push(SpawnChunkInput {
-            grid_coord: chunk,
-            metric_texture: Handle::default(),
-        });
+        spawn_chunk_inputs.push(SpawnChunkInput { grid_coord: chunk });
     }
 
     for chunk in chunks_to_unload {
@@ -217,17 +199,12 @@ pub(crate) fn chunk_detection_system(
 #[tracing::instrument(skip_all)]
 pub(crate) fn chunk_management_system(
     In(inputs): In<(Vec<SpawnChunkInput>, Vec<DespawnChunkInput>)>,
-    chunk_loader_query: Query<&ChunkLoader>,
     mut workflow_state: ResMut<ChunkActionWorkflowState>,
     mut chunk_load_gate: ResMut<ChunkLoadGate>,
     mut chunk_batch_tracker: ResMut<ChunkBatchTracker>,
     mut chunk_batch_lifecycle_writer: MessageWriter<ChunkBatchLifecycleMessage>,
 ) {
     let (spawn_chunk_inputs, despawn_chunk_inputs) = inputs;
-    let current_view_scale = chunk_loader_query
-        .single()
-        .map(|chunk_loader| chunk_loader.coord.scale as i32)
-        .unwrap_or_default();
     let incoming_spawn_targets: HashSet<GridVec> = spawn_chunk_inputs.iter().map(|input| input.grid_coord.clone()).collect();
     let incoming_despawn_targets: HashSet<GridVec> = despawn_chunk_inputs.iter().map(|input| input.grid_coord.clone()).collect();
     let has_boundary_request = !incoming_spawn_targets.is_empty() || !incoming_despawn_targets.is_empty();
@@ -385,65 +362,18 @@ pub(crate) fn chunk_management_system(
 
     // Step 2: Build & launch composite workflows
     let spawn_handle = if !spawn_chunk_inputs.is_empty() {
-        let param_data = spawn_chunk_inputs
-            .iter()
-            .map(|input| {
-                let coord = input.grid_coord.clone();
-
-                crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams {
-                    chunk_pos: [coord.xy.x, coord.xy.y],
-                    chunk_size: 1000,
-                    chunk_scale: coord.scale as i32,
-                    current_view_scale,
-                    _padding0: 0,
-                    _padding1: [0, 0, 0, 0],
-                }
-            })
-            .collect::<Vec<_>>();
-
         Some(composite_workflow!(
             SpawnChunks,
             move in spawn_chunk_inputs: Vec<SpawnChunkInput>,
-            move in param_data: Vec<crate::gpu::workflows::gpu::generate_textures::user_items::ShaderParams>,
         {
             warn!("Running composite workflow 'SpawnChunks'");
-
-            let shader_name = CONFIG().get::<&'static str>("chunk/texture_generator_shader");
-
-            let generate_output = run_workflow_io_with_timeout_control::<crate::gpu::workflows::gpu::generate_chunk_textures::TypeIO, _>(
-                Duration::from_secs_f64(1.0),
-                WorkflowTimeoutMode::VirtualTime,
-                crate::gpu::workflows::gpu::generate_chunk_textures::stages::prepare_render_executor::core_types::Input {
-                    shader_name,
-                    param_data,
-                },
-                |ctx| chunk_workflow_timeout_decision(ctx.module_name, ctx.workflow_name, ctx.timeout_count),
-            )
-            .await
-            .unwrap_or_else(|control_error| {
-                panic!(
-                    "Chunk workflow control error while running Gpu::GenerateChunkTextures: {:?}",
-                    control_error
-                )
-            });
-
-            let spawn_inputs_with_textures = spawn_chunk_inputs
-                .into_iter()
-                .zip(generate_output.render_executor.texture_handles.clone().into_iter())
-                .map(|(mut input, tex)| {
-                    input.metric_texture = tex; // Placeholder handle replaced
-                    input
-                })
-                .collect::<Vec<_>>();
-
-            warn!("Finished GenerateChunkTextures workflow execution");
 
             let _ = run_workflow_ioe_with_timeout_control::<crate::chunk::workflows::chunk::spawn_chunks::TypeIOE, _>(
                 Duration::from_secs_f64(1.0),
                 WorkflowTimeoutMode::VirtualTime,
                 crate::chunk::workflows::chunk::spawn_chunks::stages::validate_and_spawn_and_wait::core_types::Input {
                     inner: crate::chunk::workflows::external::spawn_chunks::Input {
-                        inputs: spawn_inputs_with_textures,
+                        inputs: spawn_chunk_inputs,
                     },
                 },
                 |ctx| chunk_workflow_timeout_decision(ctx.module_name, ctx.workflow_name, ctx.timeout_count),

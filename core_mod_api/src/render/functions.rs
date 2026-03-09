@@ -68,28 +68,6 @@ pub(super) fn get_reserved_game_view_render_target() -> (Handle<Image>, UVec2) {
     )
 }
 
-pub fn new_sprite_proxy_bundle(image: Handle<Image>, pos: Vec2, visual_scale: f32, source_entity: Entity, coord_scale: Scale, depth_bias: f32) -> impl Bundle {
-    (
-        Transform {
-            translation: pos.extend(coord_scale.compute_z() + depth_bias),
-            scale: Vec3::splat(visual_scale),
-            ..Default::default()
-        },
-        Sprite { image, ..Default::default() },
-        Pickable::default(),
-        RenderProxy {
-            source: source_entity,
-            layer_index: coord_scale.render_layer_index(),
-            depth_bias,
-            window_mode: RenderProxyWindowMode::WindowedSubsection,
-            window_center_local: Vec2::ZERO,
-            window_size_local: Vec2::ONE,
-            coarse_context_persistent: true,
-        },
-        ProxySyncRevision::default(),
-    )
-}
-
 pub const PHENOMENON_MODEL_LOCAL_SPAN_UNITS: f32 = 1000.0;
 
 pub fn new_phenomenon_model_proxy_bundle(pos: Vec2, visual_scale: f32, source_entity: Entity, coord_scale: Scale, depth_bias: f32) -> impl Bundle {
