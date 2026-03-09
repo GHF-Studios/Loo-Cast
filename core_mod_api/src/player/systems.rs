@@ -34,12 +34,7 @@ pub(super) fn ensure_player_visual_3d_system(
         });
 
         let visual_entity = commands
-            .spawn((
-                Name::new("player_visual_3d"),
-                Mesh3d(mesh),
-                MeshMaterial3d(material),
-                Transform::default(),
-            ))
+            .spawn((Name::new("player_visual_3d"), Mesh3d(mesh), MeshMaterial3d(material), Transform::default()))
             .id();
 
         commands.entity(player_entity).add_child(visual_entity);

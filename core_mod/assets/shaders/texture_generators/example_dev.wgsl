@@ -68,5 +68,6 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     }
 
     final_color = clamp(final_color, vec4(0.0), vec4(1.0));
-    textureStore(output_texture, global_id.xy, final_color);
+    let write_coord = vec2<u32>(global_id.x, 1000u - 1u - global_id.y);
+    textureStore(output_texture, write_coord, final_color);
 }

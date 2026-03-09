@@ -20,9 +20,7 @@ impl Plugin for PlayerPlugin {
                 update_player_system
                     .in_set(AppSet::Intent)
                     .run_if(run_after_startup_finished.and(run_if_not_paused).and(run_if_chunk_load_gate_open)),
-                ensure_player_visual_3d_system
-                    .in_set(AppSet::Presentation)
-                    .run_if(run_after_startup_finished),
+                ensure_player_visual_3d_system.in_set(AppSet::Presentation).run_if(run_after_startup_finished),
             ),
         )
         .register_type::<PlayerBundle>()

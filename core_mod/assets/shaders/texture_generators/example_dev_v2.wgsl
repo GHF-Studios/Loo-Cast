@@ -387,5 +387,8 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         color = vec3<f32>(0.76, 0.90, 0.99);
     }
 
-    textureStore(output_texture, global_id.xy, vec4<f32>(color, 1.0));
+    // Storage-texture write coordinates are flipped relative to how this texture
+    // is sampled on chunk cube materials; flip Y here to keep labels upright.
+    let write_coord = vec2<u32>(global_id.x, chunk_size - 1u - global_id.y);
+    textureStore(output_texture, write_coord, vec4<f32>(color, 1.0));
 }

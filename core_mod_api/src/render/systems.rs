@@ -477,7 +477,16 @@ pub(super) fn apply_usf_player_pivots_system(
                 chunk_loader.rotate_world_local(intent_rotation_delta);
             }
 
-            let (scale_pivot, translation_grid_delta) = chunk_loader.apply_player_anchor_pivots(&mut zoom_factor.0, &mut player_transform.translation);
+            // Zoom should not drag the player in local XY.
+            // Preserve XY across scale folds, then run translation/rotation pivots normally.
+            let local_xy_before_scale = player_transform.translation.truncate();
+            let scale_pivot = chunk_loader.apply_scale_pivot(&mut zoom_factor.0, &mut player_transform.translation);
+            if scale_pivot.lower_crossings > 0 || scale_pivot.upper_crossings > 0 {
+                player_transform.translation.x = local_xy_before_scale.x;
+                player_transform.translation.y = local_xy_before_scale.y;
+            }
+            let translation_grid_delta = chunk_loader.apply_translation_pivot(&mut player_transform.translation);
+            chunk_loader.apply_rotation_pivot();
             chunk_actor.coord = chunk_loader.coord.clone();
             zoom_factor.0 = zoom_factor.0.clamp(scale_commit_min, scale_commit_max);
 
