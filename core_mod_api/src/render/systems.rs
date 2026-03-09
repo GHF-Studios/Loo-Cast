@@ -557,27 +557,6 @@ fn map_model_space_to_mandelbulb_point(local_uv: Vec2, local_w: f32, layer_index
     Vec3::new(x, y, local_z + layer_bias)
 }
 
-#[inline]
-fn sierpinski_sponge_density_from_model_space(local_uv: Vec2, local_w: f32, layer_index: u8, tuning: SierpinskiSpongeTuning) -> f32 {
-    let point = map_model_space_to_sierpinski_point(local_uv, local_w, layer_index, tuning.domain_span);
-    sample_sierpinski_sponge_signed_distance(point, tuning.iterations, tuning.hole_bias)
-}
-
-#[inline]
-fn map_model_space_to_sierpinski_point(local_uv: Vec2, local_w: f32, layer_index: u8, domain_span: f32) -> Vec3 {
-    let uv = local_uv.clamp(Vec2::ZERO, Vec2::ONE);
-    let w = local_w.clamp(0.0, 1.0);
-    let x = (uv.x - 0.5) * 2.0 * domain_span;
-    let y = (uv.y - 0.5) * 2.0 * domain_span;
-    let z = (w - 0.5) * 2.0 * domain_span;
-
-    // Keep one coherent global fractal across all scales; do not offset the sampled slice per layer.
-    let _ = layer_index;
-    let layer_bias = 0.0;
-
-    Vec3::new(x, y, z + layer_bias)
-}
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct MeshingWindow {
     center_local: Vec2,
@@ -649,6 +628,7 @@ fn sample_mandelbulb_signed_distance(c: Vec3, power: f32, iterations: u32, bailo
     }
 }
 
+#[cfg(test)]
 #[inline]
 fn sample_sierpinski_sponge_signed_distance(point: Vec3, iterations: u32, hole_bias: f32) -> f32 {
     #[inline]
@@ -747,23 +727,352 @@ fn build_windowed_mandelbulb_mesh(proxy: &RenderProxy, tuning: MandelbulbTuning)
 }
 
 fn build_windowed_sierpinski_sponge_mesh(proxy: &RenderProxy, tuning: SierpinskiSpongeTuning) -> Option<Mesh> {
-    let effective_iterations = compute_effective_sierpinski_iterations(proxy, tuning);
-    let tuned = SierpinskiSpongeTuning {
-        iterations: effective_iterations,
-        ..tuning
-    };
-    build_windowed_field_mesh(proxy, tuning.lod, |sample_uv, sample_w, layer_index| {
-        sierpinski_sponge_density_from_model_space(sample_uv, sample_w, layer_index, tuned)
-    })
+    let meshing_window = compute_meshing_window(proxy, tuning.lod.mesh_resolution);
+    let bounds = compute_phenomenon_window_bounds(proxy.window_mode, meshing_window.center_local, meshing_window.size_local);
+    let effective_iterations = compute_effective_sierpinski_iterations_for_bounds(proxy, tuning, bounds);
+    build_windowed_sierpinski_topology_mesh(bounds, effective_iterations, tuning.domain_span)
+}
+
+#[cfg(test)]
+#[inline]
+fn compute_effective_sierpinski_iterations(proxy: &RenderProxy, tuning: SierpinskiSpongeTuning) -> u32 {
+    let meshing_window = compute_meshing_window(proxy, tuning.lod.mesh_resolution);
+    let bounds = compute_phenomenon_window_bounds(proxy.window_mode, meshing_window.center_local, meshing_window.size_local);
+    compute_effective_sierpinski_iterations_for_bounds(proxy, tuning, bounds)
 }
 
 #[inline]
-fn compute_effective_sierpinski_iterations(proxy: &RenderProxy, tuning: SierpinskiSpongeTuning) -> u32 {
+fn compute_effective_sierpinski_iterations_for_bounds(
+    proxy: &RenderProxy,
+    tuning: SierpinskiSpongeTuning,
+    bounds: PhenomenonModelWindowBounds,
+) -> u32 {
     let cells = compute_effective_mesh_resolution(proxy, tuning.lod.mesh_resolution).max(1) as f32;
-    // A sponge subdivision factor is 3, so detail depth should track log3(grid cells)
-    // to avoid unresolved micro-structure aliasing into triangle jitter.
-    let max_resolvable_depth = cells.log(3.0).floor().max(1.0) as u32;
-    tuning.iterations.clamp(1, max_resolvable_depth)
+    // Visible XY span shrinks as subsection windowing zooms in. Exploit that to permit
+    // deeper recursion while preserving a topology budget tied to mesh resolution.
+    let window_span_xy = bounds.span.max_element().max(MIN_WINDOW_SIZE_LOCAL);
+    let sampled_span_xy = (2.0 * tuning.domain_span * window_span_xy).max(0.001);
+    let smallest_feature_sample_requirement = 0.35f32;
+    let feature_capacity = cells / (sampled_span_xy * smallest_feature_sample_requirement);
+    let max_resolvable_depth = if feature_capacity > 1.0 {
+        feature_capacity.log(3.0).floor().max(1.0) as u32
+    } else {
+        1
+    };
+    let budget_cap = 6;
+    tuning.iterations.clamp(1, max_resolvable_depth.min(budget_cap))
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct SierpinskiLeafCell {
+    x: u32,
+    y: u32,
+    z: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct SierpinskiWindowRemap {
+    sample_min: Vec3,
+    sample_span: Vec3,
+}
+
+impl SierpinskiWindowRemap {
+    #[inline]
+    fn from_bounds(bounds: PhenomenonModelWindowBounds, domain_span: f32) -> Self {
+        let sample_min = Vec3::new(
+            (bounds.min.x - 0.5) * 2.0 * domain_span,
+            (bounds.min.y - 0.5) * 2.0 * domain_span,
+            -domain_span,
+        );
+        let sample_span = Vec3::new(
+            (bounds.span.x * 2.0 * domain_span).max(1e-6),
+            (bounds.span.y * 2.0 * domain_span).max(1e-6),
+            (2.0 * domain_span).max(1e-6),
+        );
+        Self {
+            sample_min,
+            sample_span,
+        }
+    }
+
+    #[inline]
+    fn sample_max(self) -> Vec3 {
+        self.sample_min + self.sample_span
+    }
+
+    #[inline]
+    fn map_to_local(self, point: Vec3) -> Vec3 {
+        let uvw = ((point - self.sample_min) / self.sample_span).clamp(Vec3::ZERO, Vec3::ONE);
+        Vec3::new(
+            (uvw.x - 0.5) * PHENOMENON_MODEL_LOCAL_SPAN_UNITS,
+            (uvw.y - 0.5) * PHENOMENON_MODEL_LOCAL_SPAN_UNITS,
+            (uvw.z - 0.5) * PHENOMENON_MODEL_LOCAL_SPAN_UNITS,
+        )
+    }
+}
+
+#[inline]
+fn aabb_intersects(min_a: Vec3, max_a: Vec3, min_b: Vec3, max_b: Vec3) -> bool {
+    min_a.x < max_b.x
+        && max_a.x > min_b.x
+        && min_a.y < max_b.y
+        && max_a.y > min_b.y
+        && min_a.z < max_b.z
+        && max_a.z > min_b.z
+}
+
+#[inline]
+fn is_sierpinski_leaf_occupied(mut x: u32, mut y: u32, mut z: u32, iterations: u32) -> bool {
+    for _ in 0..iterations {
+        let cx = x % 3;
+        let cy = y % 3;
+        let cz = z % 3;
+        let centered_axes = (cx == 1) as u32 + (cy == 1) as u32 + (cz == 1) as u32;
+        if centered_axes >= 2 {
+            return false;
+        }
+        x /= 3;
+        y /= 3;
+        z /= 3;
+    }
+    true
+}
+
+#[inline]
+fn sierpinski_leaf_cell_bounds(cell: SierpinskiLeafCell, leaf_size: f32) -> (Vec3, Vec3) {
+    let min = Vec3::new(
+        -1.0 + cell.x as f32 * leaf_size,
+        -1.0 + cell.y as f32 * leaf_size,
+        -1.0 + cell.z as f32 * leaf_size,
+    );
+    let max = min + Vec3::splat(leaf_size);
+    (min, max)
+}
+
+fn collect_visible_sierpinski_leaf_cells(
+    depth: u32,
+    max_depth: u32,
+    x: u32,
+    y: u32,
+    z: u32,
+    cube_min: Vec3,
+    cube_size: f32,
+    clip_min: Vec3,
+    clip_max: Vec3,
+    out: &mut Vec<SierpinskiLeafCell>,
+) {
+    let cube_max = cube_min + Vec3::splat(cube_size);
+    if !aabb_intersects(cube_min, cube_max, clip_min, clip_max) {
+        return;
+    }
+
+    if depth == max_depth {
+        out.push(SierpinskiLeafCell { x, y, z });
+        return;
+    }
+
+    let child_size = cube_size / 3.0;
+    for cz in 0..3u32 {
+        for cy in 0..3u32 {
+            for cx in 0..3u32 {
+                let centered_axes = (cx == 1) as u32 + (cy == 1) as u32 + (cz == 1) as u32;
+                if centered_axes >= 2 {
+                    continue;
+                }
+
+                let child_min = cube_min + Vec3::new(cx as f32 * child_size, cy as f32 * child_size, cz as f32 * child_size);
+                collect_visible_sierpinski_leaf_cells(
+                    depth + 1,
+                    max_depth,
+                    x * 3 + cx,
+                    y * 3 + cy,
+                    z * 3 + cz,
+                    child_min,
+                    child_size,
+                    clip_min,
+                    clip_max,
+                    out,
+                );
+            }
+        }
+    }
+}
+
+#[inline]
+fn neighbor_cell_visible_in_window(
+    neighbor: IVec3,
+    grid_dim: u32,
+    iterations: u32,
+    leaf_size: f32,
+    clip_min: Vec3,
+    clip_max: Vec3,
+) -> bool {
+    if neighbor.x < 0 || neighbor.y < 0 || neighbor.z < 0 {
+        return false;
+    }
+    let nx = neighbor.x as u32;
+    let ny = neighbor.y as u32;
+    let nz = neighbor.z as u32;
+    if nx >= grid_dim || ny >= grid_dim || nz >= grid_dim {
+        return false;
+    }
+    if !is_sierpinski_leaf_occupied(nx, ny, nz, iterations) {
+        return false;
+    }
+    let (neighbor_min, neighbor_max) = sierpinski_leaf_cell_bounds(
+        SierpinskiLeafCell {
+            x: nx,
+            y: ny,
+            z: nz,
+        },
+        leaf_size,
+    );
+    aabb_intersects(neighbor_min, neighbor_max, clip_min, clip_max)
+}
+
+#[inline]
+fn push_triangle(
+    a: Vec3,
+    b: Vec3,
+    c: Vec3,
+    out_positions: &mut Vec<[f32; 3]>,
+    out_normals: &mut Vec<[f32; 3]>,
+    out_uvs: &mut Vec<[f32; 2]>,
+) {
+    let normal = (b - a).cross(c - a);
+    let len_sq = normal.length_squared();
+    if len_sq <= 1e-10 {
+        return;
+    }
+
+    let n = normal / len_sq.sqrt();
+    for p in [a, b, c] {
+        out_positions.push([p.x, p.y, p.z]);
+        out_normals.push([n.x, n.y, n.z]);
+        out_uvs.push([
+            (p.x / PHENOMENON_MODEL_LOCAL_SPAN_UNITS + 0.5).clamp(0.0, 1.0),
+            (p.y / PHENOMENON_MODEL_LOCAL_SPAN_UNITS + 0.5).clamp(0.0, 1.0),
+        ]);
+    }
+}
+
+#[inline]
+fn push_quad(
+    a: Vec3,
+    b: Vec3,
+    c: Vec3,
+    d: Vec3,
+    out_positions: &mut Vec<[f32; 3]>,
+    out_normals: &mut Vec<[f32; 3]>,
+    out_uvs: &mut Vec<[f32; 2]>,
+) {
+    push_triangle(a, b, c, out_positions, out_normals, out_uvs);
+    push_triangle(a, c, d, out_positions, out_normals, out_uvs);
+}
+
+fn build_windowed_sierpinski_topology_mesh(
+    bounds: PhenomenonModelWindowBounds,
+    iterations: u32,
+    domain_span: f32,
+) -> Option<Mesh> {
+    if iterations == 0 {
+        return None;
+    }
+
+    let remap = SierpinskiWindowRemap::from_bounds(bounds, domain_span);
+    let clip_min = remap.sample_min;
+    let clip_max = remap.sample_max();
+    let sponge_min = Vec3::splat(-1.0);
+    let sponge_max = Vec3::splat(1.0);
+    if !aabb_intersects(clip_min, clip_max, sponge_min, sponge_max) {
+        return None;
+    }
+
+    let grid_dim = 3u32.saturating_pow(iterations);
+    if grid_dim == 0 {
+        return None;
+    }
+    let leaf_size = 2.0 / grid_dim as f32;
+
+    let mut leaf_cells = Vec::new();
+    collect_visible_sierpinski_leaf_cells(
+        0,
+        iterations,
+        0,
+        0,
+        0,
+        Vec3::splat(-1.0),
+        2.0,
+        clip_min,
+        clip_max,
+        &mut leaf_cells,
+    );
+
+    if leaf_cells.is_empty() {
+        return None;
+    }
+
+    let mut out_positions = Vec::<[f32; 3]>::new();
+    let mut out_normals = Vec::<[f32; 3]>::new();
+    let mut out_uvs = Vec::<[f32; 2]>::new();
+
+    // Vertex order for a unit cube:
+    // 0:(0,0,0) 1:(1,0,0) 2:(1,1,0) 3:(0,1,0) 4:(0,0,1) 5:(1,0,1) 6:(1,1,1) 7:(0,1,1)
+    const FACE_DEFS: [(IVec3, [usize; 4]); 6] = [
+        (IVec3::new(-1, 0, 0), [0, 4, 7, 3]), // -X
+        (IVec3::new(1, 0, 0), [1, 2, 6, 5]),  // +X
+        (IVec3::new(0, -1, 0), [0, 1, 5, 4]), // -Y
+        (IVec3::new(0, 1, 0), [3, 7, 6, 2]),  // +Y
+        (IVec3::new(0, 0, -1), [0, 3, 2, 1]), // -Z
+        (IVec3::new(0, 0, 1), [4, 5, 6, 7]),  // +Z
+    ];
+
+    for cell in leaf_cells {
+        let (cell_min, cell_max) = sierpinski_leaf_cell_bounds(cell, leaf_size);
+        let clipped_min = cell_min.max(clip_min);
+        let clipped_max = cell_max.min(clip_max);
+        if clipped_max.x <= clipped_min.x || clipped_max.y <= clipped_min.y || clipped_max.z <= clipped_min.z {
+            continue;
+        }
+
+        let local = |p: Vec3| remap.map_to_local(p);
+        let corners = [
+            local(Vec3::new(clipped_min.x, clipped_min.y, clipped_min.z)),
+            local(Vec3::new(clipped_max.x, clipped_min.y, clipped_min.z)),
+            local(Vec3::new(clipped_max.x, clipped_max.y, clipped_min.z)),
+            local(Vec3::new(clipped_min.x, clipped_max.y, clipped_min.z)),
+            local(Vec3::new(clipped_min.x, clipped_min.y, clipped_max.z)),
+            local(Vec3::new(clipped_max.x, clipped_min.y, clipped_max.z)),
+            local(Vec3::new(clipped_max.x, clipped_max.y, clipped_max.z)),
+            local(Vec3::new(clipped_min.x, clipped_max.y, clipped_max.z)),
+        ];
+
+        for (offset, face) in FACE_DEFS {
+            let neighbor = IVec3::new(cell.x as i32, cell.y as i32, cell.z as i32) + offset;
+            if neighbor_cell_visible_in_window(neighbor, grid_dim, iterations, leaf_size, clip_min, clip_max) {
+                continue;
+            }
+            push_quad(
+                corners[face[0]],
+                corners[face[1]],
+                corners[face[2]],
+                corners[face[3]],
+                &mut out_positions,
+                &mut out_normals,
+                &mut out_uvs,
+            );
+        }
+    }
+
+    if out_positions.is_empty() {
+        return None;
+    }
+
+    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default());
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, out_positions);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, out_normals);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, out_uvs);
+    Some(mesh)
 }
 
 fn build_windowed_field_mesh<F>(proxy: &RenderProxy, lod: SurfaceLodTuning, mut density_from_model_space: F) -> Option<Mesh>
@@ -1150,6 +1459,50 @@ mod tests {
         a.window_center_local = Vec2::new(-0.1, 0.1);
         let sig_b = compute_sierpinski_sponge_surface_signature(&a, tuning);
         assert_ne!(sig_a, sig_b);
+    }
+
+    #[test]
+    fn phenomenon_sierpinski_mesh_has_non_degenerate_triangles() {
+        let tuning = default_sierpinski_tuning(30);
+        let proxy = sample_proxy(RenderProxyWindowMode::FullEntity, Vec2::ZERO, Vec2::ONE);
+        let mesh = build_windowed_sierpinski_sponge_mesh(&proxy, tuning).expect("expected non-empty mesh");
+        let positions = mesh
+            .attribute(Mesh::ATTRIBUTE_POSITION)
+            .and_then(|values| values.as_float3())
+            .expect("expected Float32x3 positions");
+        assert!(positions.len() >= 3);
+        assert_eq!(positions.len() % 3, 0);
+
+        for tri in positions.chunks_exact(3) {
+            let a = Vec3::from_array(tri[0]);
+            let b = Vec3::from_array(tri[1]);
+            let c = Vec3::from_array(tri[2]);
+            let area2 = (b - a).cross(c - a).length();
+            assert!(area2 > 1e-6, "degenerate triangle detected: {tri:?}");
+        }
+    }
+
+    #[test]
+    fn phenomenon_sierpinski_mesh_attributes_are_finite() {
+        let tuning = default_sierpinski_tuning(30);
+        let proxy = sample_proxy(RenderProxyWindowMode::WindowedSubsection, Vec2::new(0.2, -0.1), Vec2::splat(0.2));
+        let mesh = build_windowed_sierpinski_sponge_mesh(&proxy, tuning).expect("expected non-empty mesh");
+
+        let positions = mesh
+            .attribute(Mesh::ATTRIBUTE_POSITION)
+            .and_then(|values| values.as_float3())
+            .expect("expected Float32x3 positions");
+        for p in positions {
+            assert!(p.iter().all(|v| v.is_finite()));
+        }
+
+        let normals = mesh
+            .attribute(Mesh::ATTRIBUTE_NORMAL)
+            .and_then(|values| values.as_float3())
+            .expect("expected Float32x3 normals");
+        for n in normals {
+            assert!(n.iter().all(|v| v.is_finite()));
+        }
     }
 
     #[test]
