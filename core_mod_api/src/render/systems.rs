@@ -533,8 +533,8 @@ pub(super) fn apply_usf_player_pivots_system(
         }
     }
 
-    // Keep commit-buffer accumulation internal. Rendering should never show values outside strict local bounds.
-    let display_zoom = zoom_factor.0.clamp(local_min, local_max);
+    // Keep rendering aligned to commit bounds (not strict local bounds) so scale folds are visually seamless.
+    let display_zoom = zoom_factor.0.clamp(scale_commit_min, scale_commit_max);
     let camera_zoom = (display_zoom * dev_zoom_factor.0).max(f32::EPSILON);
 
     // Player is a fine-scale phenomena: local mousewheel zoom also scales the player.
@@ -544,8 +544,8 @@ pub(super) fn apply_usf_player_pivots_system(
         apply_camera_zoom_to_projection(
             projection.as_mut(),
             camera_zoom,
-            local_min * min_dev_zoom,
-            local_max * max_dev_zoom,
+            scale_commit_min * min_dev_zoom,
+            scale_commit_max * max_dev_zoom,
             perspective_fov_min_deg,
             perspective_fov_max_deg,
         );
@@ -580,18 +580,24 @@ fn apply_camera_zoom_to_projection(
 
 #[inline]
 fn zoom_to_fov_radians(camera_zoom: f32, zoom_min: f32, zoom_max: f32, fov_min_deg: f32, fov_max_deg: f32) -> f32 {
-    let zoom = camera_zoom.clamp(zoom_min, zoom_max);
-    let min_ln = zoom_min.ln();
-    let max_ln = zoom_max.ln();
-    let t = if (max_ln - min_ln).abs() <= f32::EPSILON {
-        0.0
-    } else {
-        ((zoom.ln() - min_ln) / (max_ln - min_ln)).clamp(0.0, 1.0)
-    };
+    let min_zoom = zoom_min.max(f32::EPSILON);
+    let max_zoom = zoom_max.max(min_zoom * 1.001);
+    let zoom = camera_zoom.clamp(min_zoom, max_zoom);
 
-    let min_fov = fov_min_deg.max(1.0).to_radians();
-    let max_fov = fov_max_deg.max(fov_min_deg + 1.0).to_radians();
-    (min_fov + (max_fov - min_fov) * t).clamp(0.01, std::f32::consts::PI - 0.01)
+    let min_fov = fov_min_deg.max(1.0).to_radians().clamp(0.01, std::f32::consts::PI - 0.01);
+    let max_fov_cfg = fov_max_deg
+        .max(fov_min_deg + 1.0)
+        .to_radians()
+        .clamp(min_fov + 0.001, std::f32::consts::PI - 0.01);
+
+    // Keep perspective magnification proportional to 1/zoom over the active range:
+    // tan(fov/2) = k * zoom  =>  magnification ~ 1 / zoom.
+    let k = (0.5 * min_fov).tan() / min_zoom;
+    let raw_fov = 2.0 * (k * zoom).atan();
+    let natural_max_fov = 2.0 * (k * max_zoom).atan();
+    let max_fov = max_fov_cfg.max(natural_max_fov).clamp(min_fov + 0.001, std::f32::consts::PI - 0.01);
+
+    raw_fov.clamp(min_fov, max_fov)
 }
 
 #[tracing::instrument(skip_all)]
