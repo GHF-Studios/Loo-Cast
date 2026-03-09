@@ -406,7 +406,9 @@ fn load_sierpinski_sponge_tuning() -> Option<SierpinskiSpongeTuning> {
 
     Some(SierpinskiSpongeTuning {
         iterations: CONFIG().get::<u32>("render/phenomenon_sierpinski_sponge/iterations").clamp(1, 7),
-        domain_span: CONFIG().get::<f32>("render/phenomenon_sierpinski_sponge/domain_span").abs().max(0.1),
+        // Keep a minimum outer margin so the enclosing cube shell is sampled with outside context
+        // and does not get clipped by the meshing volume boundary.
+        domain_span: CONFIG().get::<f32>("render/phenomenon_sierpinski_sponge/domain_span").abs().max(1.05),
         hole_bias: CONFIG().get::<f32>("render/phenomenon_sierpinski_sponge/hole_bias").clamp(-0.2, 0.2),
         lod: load_surface_lod_tuning("render/phenomenon_sierpinski_sponge"),
     })

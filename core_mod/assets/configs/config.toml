@@ -33,12 +33,12 @@ iso_level = 0.0
 [render.phenomenon_sierpinski_sponge]
 enabled = true
 iterations = 3
-domain_span = 1.0
+domain_span = 1.25
 hole_bias = 0.0
 visibility_threshold = 0.45
 scale_boost = 0.8
 z_displacement = 200.0
-mesh_resolution = 18
+mesh_resolution = 30
 iso_level = 0.0
 
 [chunk_loader]
