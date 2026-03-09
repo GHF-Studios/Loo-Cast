@@ -22,10 +22,9 @@ The current rendering/simulation setup is tightly coupled to 2D sprite assumptio
 7. Chunk dev cubes:
    - deterministic random placement
    - subgrid aligned
-   - volumetric `10x10xN` occupancy (`N` configurable)
+   - single z-slice
    - cube size `100x100x100` in local unit space
    - default instance count `8` per chunk
-   - recursive surface micro-cubes for hierarchy readability
 8. Subsection rendering must be procedural/analytic ("vector-like"), not bitmap-LOD.
 9. Conservative deletions: keep legacy sprite/picking paths unless explicitly removed later.
 10. Per-scale depth spacing target: at least `1000` z-units between adjacent scales.
@@ -137,9 +136,8 @@ Goal: Replace flat chunk visual proxy with deterministic cube fields.
 Acceptance:
 1. Default `8` cubes per chunk.
 2. Cube size is `100x100x100` local units.
-3. Volumetric `10x10xN` occupancy (with configurable `N`).
+3. Single z-slice occupancy.
 4. Cube placement is deterministic and subgrid aligned.
-5. Recursive surface micro-cubes are supported for hierarchy visualization.
 
 ### M9 - Procedural Subsection Surface
 Status: `pending`
@@ -198,12 +196,6 @@ Acceptance:
 24. Added player 3D visual linkage (`PlayerVisual3dLink`) and automatic 3D mesh visual spawn; legacy sprite kept but hidden for compatibility.
 25. Removed dedicated chunk-cube render-layer dependency in spawned chunk cube visuals to avoid split-camera composition artifacts.
 26. Marked M3 as `in_progress` (camera refactor active, perspective acceptance still pending).
-27. Added continuous scale-depth mapping (`Scale::continuous_index_from_local_zoom`, `continuous_z_from_local_zoom`) so perspective depth remains smooth across USF scale boundary commits.
-28. Upgraded player motion intent to full `Vec3`, added 3-axis movement controls (`WASD`, `Space`, `Ctrl`) and 3-axis world rotation controls (`Q/E`, `R/F`, `T/G`).
-29. Added `PlayerDepthOffset` contract so player z can move freely while preserving smooth USF scale anchor depth.
-30. Upgraded chunk dev cube generation from `10x10x1` to deterministic `10x10xN` volumetric placement (`chunk/dev_cube_depth_layers`).
-31. Added deterministic recursive surface micro-cube generation (`chunk/dev_surface_cube_count`) on each dev cube for hierarchical visual read.
-32. Runtime-validated outside sandbox with `./build.sh dev` and `./run.sh dev`; startup and chunk workflows remain stable after query-conflict fix.
 
 ## Open Questions (Must Resolve During Implementation)
 1. Exact near/far projection values after z remap and camera pose lock.

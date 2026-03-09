@@ -95,8 +95,6 @@ pub fn new_sprite_proxy_bundle(image: Handle<Image>, pos: Vec2, visual_scale: f3
 pub const CHUNK_DEV_CUBE_SUBGRID_SIZE: i32 = 10;
 pub const CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS: f32 = 100.0;
 pub const CHUNK_DEV_CUBE_DEFAULT_COUNT: usize = 8;
-pub const CHUNK_DEV_CUBE_DEFAULT_DEPTH_LAYERS: i32 = 10;
-pub const CHUNK_DEV_SURFACE_CUBE_DEFAULT_COUNT: usize = 24;
 
 pub fn new_chunk_cube_proxy_bundle(pos: Vec2, visual_scale: f32, source_entity: Entity, coord_scale: Scale, depth_bias: f32) -> impl Bundle {
     (
@@ -119,9 +117,8 @@ pub fn new_chunk_cube_proxy_bundle(pos: Vec2, visual_scale: f32, source_entity: 
     )
 }
 
-pub fn compute_chunk_dev_cube_local_offsets(grid_coord: &GridVec, requested_count: usize, depth_layers: i32) -> Vec<Vec3> {
-    let depth_layers = depth_layers.clamp(1, CHUNK_DEV_CUBE_SUBGRID_SIZE);
-    let max_slots = (CHUNK_DEV_CUBE_SUBGRID_SIZE * CHUNK_DEV_CUBE_SUBGRID_SIZE * depth_layers) as usize;
+pub fn compute_chunk_dev_cube_local_offsets(grid_coord: &GridVec, requested_count: usize) -> Vec<Vec3> {
+    let max_slots = (CHUNK_DEV_CUBE_SUBGRID_SIZE * CHUNK_DEV_CUBE_SUBGRID_SIZE) as usize;
     let count = requested_count.min(max_slots);
     if count == 0 {
         return Vec::new();
@@ -131,73 +128,24 @@ pub fn compute_chunk_dev_cube_local_offsets(grid_coord: &GridVec, requested_coun
     grid_coord.hash(&mut hasher);
     let seed = hasher.finish();
 
-    let mut slots = (0..depth_layers)
-        .flat_map(|z| (0..CHUNK_DEV_CUBE_SUBGRID_SIZE).flat_map(move |y| (0..CHUNK_DEV_CUBE_SUBGRID_SIZE).map(move |x| IVec3::new(x, y, z))))
+    let mut slots = (0..CHUNK_DEV_CUBE_SUBGRID_SIZE)
+        .flat_map(|y| (0..CHUNK_DEV_CUBE_SUBGRID_SIZE).map(move |x| IVec2::new(x, y)))
         .map(|cell| {
-            let packed = ((cell.x as u64) << 42) | ((cell.y as u64) << 21) | cell.z as u64;
+            let packed = ((cell.x as u64) << 32) | cell.y as u64;
             let score = splitmix64(seed ^ packed);
             (score, cell)
         })
         .collect::<Vec<_>>();
     slots.sort_by_key(|(score, _)| *score);
 
-    let half_xy = (CHUNK_DEV_CUBE_SUBGRID_SIZE as f32 - 1.0) * 0.5;
-    let half_z = (depth_layers as f32 - 1.0) * 0.5;
+    let half = (CHUNK_DEV_CUBE_SUBGRID_SIZE as f32 - 1.0) * 0.5;
     slots
         .into_iter()
         .take(count)
         .map(|(_, cell)| {
-            let x = (cell.x as f32 - half_xy) * CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS;
-            let y = (cell.y as f32 - half_xy) * CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS;
-            let z = (cell.z as f32 - half_z) * CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS;
-            Vec3::new(x, y, z)
-        })
-        .collect()
-}
-
-pub fn compute_chunk_dev_surface_cube_local_offsets(grid_coord: &GridVec, parent_cube_index: usize, requested_count: usize) -> Vec<Vec3> {
-    let face_subgrid = CHUNK_DEV_CUBE_SUBGRID_SIZE;
-    let max_slots = (6 * face_subgrid * face_subgrid) as usize;
-    let count = requested_count.min(max_slots);
-    if count == 0 {
-        return Vec::new();
-    }
-
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
-    grid_coord.hash(&mut hasher);
-    parent_cube_index.hash(&mut hasher);
-    let seed = hasher.finish();
-
-    let mut slots = (0..6_u8)
-        .flat_map(|face| (0..face_subgrid).flat_map(move |v| (0..face_subgrid).map(move |u| (face, u, v))))
-        .map(|(face, u, v)| {
-            let packed = ((face as u64) << 56) | ((u as u64) << 28) | (v as u64);
-            let score = splitmix64(seed ^ packed);
-            (score, (face, u, v))
-        })
-        .collect::<Vec<_>>();
-    slots.sort_by_key(|(score, _)| *score);
-
-    let micro_size = CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS / CHUNK_DEV_CUBE_SUBGRID_SIZE as f32;
-    let micro_half = micro_size * 0.5;
-    let parent_half = CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS * 0.5;
-    let uv_half = (face_subgrid as f32 - 1.0) * 0.5;
-
-    slots
-        .into_iter()
-        .take(count)
-        .map(|(_, (face, u, v))| {
-            let ux = (u as f32 - uv_half) * micro_size;
-            let vy = (v as f32 - uv_half) * micro_size;
-
-            match face {
-                0 => Vec3::new(parent_half + micro_half, ux, vy),    // +X
-                1 => Vec3::new(-(parent_half + micro_half), ux, vy), // -X
-                2 => Vec3::new(ux, parent_half + micro_half, vy),    // +Y
-                3 => Vec3::new(ux, -(parent_half + micro_half), vy), // -Y
-                4 => Vec3::new(ux, vy, parent_half + micro_half),    // +Z
-                _ => Vec3::new(ux, vy, -(parent_half + micro_half)), // -Z
-            }
+            let x = (cell.x as f32 - half) * CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS;
+            let y = (cell.y as f32 - half) * CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS;
+            Vec3::new(x, y, 0.0)
         })
         .collect()
 }
@@ -217,47 +165,24 @@ mod tests {
     #[test]
     fn chunk_dev_cube_layout_is_deterministic() {
         let coord = GridVec::new_root(IVec2::new(1, -2));
-        let a = compute_chunk_dev_cube_local_offsets(&coord, CHUNK_DEV_CUBE_DEFAULT_COUNT, CHUNK_DEV_CUBE_DEFAULT_DEPTH_LAYERS);
-        let b = compute_chunk_dev_cube_local_offsets(&coord, CHUNK_DEV_CUBE_DEFAULT_COUNT, CHUNK_DEV_CUBE_DEFAULT_DEPTH_LAYERS);
+        let a = compute_chunk_dev_cube_local_offsets(&coord, CHUNK_DEV_CUBE_DEFAULT_COUNT);
+        let b = compute_chunk_dev_cube_local_offsets(&coord, CHUNK_DEV_CUBE_DEFAULT_COUNT);
         assert_eq!(a, b);
     }
 
     #[test]
-    fn chunk_dev_cube_layout_is_subgrid_aligned_and_bounded_3d() {
+    fn chunk_dev_cube_layout_is_subgrid_aligned_and_bounded() {
         let coord = GridVec::new_root(IVec2::new(0, 0));
-        let offsets = compute_chunk_dev_cube_local_offsets(&coord, 100, CHUNK_DEV_CUBE_DEFAULT_DEPTH_LAYERS);
+        let offsets = compute_chunk_dev_cube_local_offsets(&coord, 100);
         assert_eq!(offsets.len(), 100);
 
         for pos in offsets {
+            assert_eq!(pos.z, 0.0);
             assert!(pos.x >= -450.0 && pos.x <= 450.0);
             assert!(pos.y >= -450.0 && pos.y <= 450.0);
-            assert!(pos.z >= -450.0 && pos.z <= 450.0);
             assert!(((pos.x + 450.0) / CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS).fract().abs() < 1e-6);
             assert!(((pos.y + 450.0) / CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS).fract().abs() < 1e-6);
-            assert!(((pos.z + 450.0) / CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS).fract().abs() < 1e-6);
         }
-    }
-
-    #[test]
-    fn chunk_dev_cube_depth_one_stays_single_slice() {
-        let coord = GridVec::new_root(IVec2::new(2, 3));
-        let offsets = compute_chunk_dev_cube_local_offsets(&coord, 32, 1);
-        assert!(!offsets.is_empty());
-        assert!(offsets.iter().all(|p| p.z == 0.0));
-    }
-
-    #[test]
-    fn surface_cube_layout_is_deterministic_and_on_surfaces() {
-        let coord = GridVec::new_root(IVec2::new(-1, 4));
-        let a = compute_chunk_dev_surface_cube_local_offsets(&coord, 2, CHUNK_DEV_SURFACE_CUBE_DEFAULT_COUNT);
-        let b = compute_chunk_dev_surface_cube_local_offsets(&coord, 2, CHUNK_DEV_SURFACE_CUBE_DEFAULT_COUNT);
-        assert_eq!(a, b);
-        assert!(a.iter().all(|p| {
-            let ax = p.x.abs();
-            let ay = p.y.abs();
-            let az = p.z.abs();
-            (ax - 55.0).abs() < 1e-6 || (ay - 55.0).abs() < 1e-6 || (az - 55.0).abs() < 1e-6
-        }));
     }
 }
 

@@ -7,7 +7,7 @@ use crate::chunk::resources::{ChunkActionWorkflowState, ChunkLoadGate};
 use crate::config::statics::CONFIG;
 use crate::core::protocol::PlayerMotionIntent;
 use crate::input::states::InputMode;
-use crate::player::components::{Player, PlayerDepthOffset};
+use crate::player::components::Player;
 use crate::render::{
     components::{ChunkCubeCamera, EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision, RenderProxy, RenderProxyWindowMode, UiCamera},
     functions::draw_primary_window_ui,
@@ -242,19 +242,12 @@ mod tests {
 }
 
 #[tracing::instrument(skip_all)]
-pub(super) fn enforce_main_camera_depth_contract_system(
-    mut main_camera_query: Query<(&mut Transform, &mut Projection), With<MainCamera>>,
-    player_query: Query<&Transform, (With<Player>, Without<MainCamera>)>,
-) {
+pub(super) fn enforce_main_camera_depth_contract_system(mut main_camera_query: Query<(&mut Transform, &mut Projection), With<MainCamera>>) {
     let Ok((mut camera_transform, mut projection)) = main_camera_query.single_mut() else {
         return;
     };
 
-    if let Ok(player_transform) = player_query.single() {
-        camera_transform.translation.z = player_transform.translation.z + main_camera_follow_offset_z();
-    } else {
-        camera_transform.translation.z = Scale::CANONICAL_CAMERA_Z;
-    }
+    camera_transform.translation.z = Scale::CANONICAL_CAMERA_Z;
 
     match projection.as_mut() {
         Projection::Orthographic(ortho) => {
@@ -267,12 +260,6 @@ pub(super) fn enforce_main_camera_depth_contract_system(
         }
         _ => {}
     }
-}
-
-#[inline]
-fn main_camera_follow_offset_z() -> f32 {
-    // Keep at least MAX_DIFF levels plus some headroom in front of the active player scale.
-    Scale::CANONICAL_Z_SPACING * (Scale::MAX_DIFF_SCALE_EXP as f32 + 0.5)
 }
 
 #[tracing::instrument(skip_all)]
@@ -393,12 +380,12 @@ pub(super) fn apply_usf_player_pivots_system(
     mut zoom_factor: ResMut<ZoomFactor>,
     dev_zoom_factor: Res<DevZoomFactor>,
     mut projection_query: Query<&mut Projection, With<MainCamera>>,
-    mut player_loader_query: Query<(&mut ChunkLoader, &mut ChunkActor, &mut Transform, &mut PlayerDepthOffset), With<Player>>,
+    mut player_loader_query: Query<(&mut ChunkLoader, &mut ChunkActor, &mut Transform), With<Player>>,
     mut chunk_load_gate: Option<ResMut<ChunkLoadGate>>,
     workflow_state: Option<Res<ChunkActionWorkflowState>>,
     mut player_motion_intent: ResMut<PlayerMotionIntent>,
 ) {
-    let Ok((mut chunk_loader, mut chunk_actor, mut player_transform, mut player_depth_offset)) = player_loader_query.single_mut() else {
+    let Ok((mut chunk_loader, mut chunk_actor, mut player_transform)) = player_loader_query.single_mut() else {
         player_motion_intent.clear();
         return;
     };
@@ -406,11 +393,11 @@ pub(super) fn apply_usf_player_pivots_system(
     let intent_translation_delta = player_motion_intent.translation_delta;
     let intent_rotation_delta = player_motion_intent.rotation_delta;
     player_motion_intent.clear();
-    let world_space_translation_delta = if intent_translation_delta == Vec3::ZERO {
-        Vec3::ZERO
+    let world_space_translation_delta = if intent_translation_delta == Vec2::ZERO {
+        Vec2::ZERO
     } else {
-        // Input is authored in player-local XYZ; convert to world-space using current heading.
-        chunk_loader.world_rotation_quat().inverse() * intent_translation_delta
+        // Input is authored in player-local XY; convert to world-space using current heading.
+        (chunk_loader.world_rotation_quat().inverse() * intent_translation_delta.extend(0.0)).truncate()
     };
 
     let chunk_load_gate_enabled = CONFIG().get::<bool>("workflow/chunk_load_gate_enabled");
@@ -451,7 +438,7 @@ pub(super) fn apply_usf_player_pivots_system(
         chunk_loader.usf_transform.rotation.y.local = chunk_loader.usf_transform.rotation.y.local.clamp(rotation_local_min, rotation_local_max);
         chunk_loader.usf_transform.rotation.z.local = chunk_loader.usf_transform.rotation.z.local.clamp(rotation_local_min, rotation_local_max);
     } else {
-        let candidate_translation = player_transform.translation + world_space_translation_delta;
+        let candidate_translation = player_transform.translation + world_space_translation_delta.extend(0.0);
 
         let would_cross_scale_boundary = zoom_factor.0 <= scale_commit_min || zoom_factor.0 >= scale_commit_max;
         let would_cross_translation_boundary = candidate_translation.x <= translation_commit_min
@@ -483,10 +470,8 @@ pub(super) fn apply_usf_player_pivots_system(
             chunk_loader.usf_transform.rotation.y.local = chunk_loader.usf_transform.rotation.y.local.clamp(rotation_local_min, rotation_local_max);
             chunk_loader.usf_transform.rotation.z.local = chunk_loader.usf_transform.rotation.z.local.clamp(rotation_local_min, rotation_local_max);
         } else {
-            if world_space_translation_delta != Vec3::ZERO {
-                player_transform.translation.x += world_space_translation_delta.x;
-                player_transform.translation.y += world_space_translation_delta.y;
-                player_depth_offset.local_z += world_space_translation_delta.z;
+            if world_space_translation_delta != Vec2::ZERO {
+                player_transform.translation += world_space_translation_delta.extend(0.0);
             }
             if intent_rotation_delta != Vec3::ZERO {
                 chunk_loader.rotate_world_local(intent_rotation_delta);
@@ -534,6 +519,7 @@ pub(super) fn apply_usf_player_pivots_system(
                     translation_grid_delta,
                     player_transform.translation
                 );
+                player_transform.translation.z = chunk_loader.scale.compute_z() + CONFIG().get::<f32>("player/z_offset");
             }
         }
     }
@@ -544,8 +530,6 @@ pub(super) fn apply_usf_player_pivots_system(
 
     // Player is a fine-scale phenomena: local mousewheel zoom also scales the player.
     player_transform.scale = Vec3::splat(display_zoom.max(f32::EPSILON));
-    let player_anchor_z = chunk_loader.scale.continuous_z_from_local_zoom(zoom_factor.0) + CONFIG().get::<f32>("player/z_offset");
-    player_transform.translation.z = player_anchor_z + player_depth_offset.local_z;
 
     for mut projection in projection_query.iter_mut() {
         apply_camera_zoom_to_projection(

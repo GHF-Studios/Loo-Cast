@@ -9,8 +9,8 @@ use crate::config::statics::CONFIG;
 use crate::render::{
     components::{EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision},
     functions::{
-        CHUNK_DEV_CUBE_DEFAULT_COUNT, CHUNK_DEV_CUBE_DEFAULT_DEPTH_LAYERS, CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS, CHUNK_DEV_SURFACE_CUBE_DEFAULT_COUNT,
-        compute_chunk_dev_cube_local_offsets, compute_chunk_dev_surface_cube_local_offsets, new_chunk_cube_proxy_bundle, new_sprite_proxy_bundle,
+        CHUNK_DEV_CUBE_DEFAULT_COUNT, CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS, compute_chunk_dev_cube_local_offsets, new_chunk_cube_proxy_bundle,
+        new_sprite_proxy_bundle,
     },
 };
 use crate::usf::{pos::grid::types::GridVec, scale::Scale};
@@ -74,25 +74,8 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
     } else {
         configured_dev_cube_count
     };
-    let configured_dev_cube_depth_layers = CONFIG().get::<i32>("chunk/dev_cube_depth_layers");
-    let dev_cube_depth_layers = if configured_dev_cube_depth_layers <= 0 {
-        CHUNK_DEV_CUBE_DEFAULT_DEPTH_LAYERS
-    } else {
-        configured_dev_cube_depth_layers
-    };
-    let configured_surface_cube_count = CONFIG().get::<usize>("chunk/dev_surface_cube_count");
-    let surface_cube_count = if configured_surface_cube_count == 0 {
-        CHUNK_DEV_SURFACE_CUBE_DEFAULT_COUNT
-    } else {
-        configured_surface_cube_count
-    };
     let dev_cube_mesh = if use_chunk_cube_proxies {
         Some(meshes.add(Mesh::from(Cuboid::from_size(Vec3::splat(CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS)))))
-    } else {
-        None
-    };
-    let dev_surface_cube_mesh = if use_chunk_cube_proxies && surface_cube_count > 0 {
-        Some(meshes.add(Mesh::from(Cuboid::from_size(Vec3::splat(CHUNK_DEV_CUBE_SIZE_LOCAL_UNITS / 10.0)))))
     } else {
         None
     };
@@ -159,36 +142,16 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
                 ..Default::default()
             });
 
-            let dev_cube_offsets = compute_chunk_dev_cube_local_offsets(&grid_coord, dev_cube_count, dev_cube_depth_layers);
+            let dev_cube_offsets = compute_chunk_dev_cube_local_offsets(&grid_coord, dev_cube_count);
             let chunk_debug_label = format!("{grid_coord:?}");
             commands.entity(chunk_render_proxy_entity).with_children(|parent| {
                 for (index, local_offset) in dev_cube_offsets.iter().copied().enumerate() {
-                    parent
-                        .spawn((
-                            Name::new(format!("chunk_cube({chunk_debug_label})#{index}")),
-                            Mesh3d(dev_cube_mesh.clone().expect("dev cube mesh must exist when cube proxies are enabled")),
-                            MeshMaterial3d(dev_cube_material.clone()),
-                            Transform::from_translation(local_offset),
-                        ))
-                        .with_children(|cube_parent| {
-                            if surface_cube_count == 0 {
-                                return;
-                            }
-
-                            let surface_offsets = compute_chunk_dev_surface_cube_local_offsets(&grid_coord, index, surface_cube_count);
-                            for (surface_index, surface_offset) in surface_offsets.into_iter().enumerate() {
-                                cube_parent.spawn((
-                                    Name::new(format!("chunk_surface_cube({chunk_debug_label})#{index}:{surface_index}")),
-                                    Mesh3d(
-                                        dev_surface_cube_mesh
-                                            .clone()
-                                            .expect("surface cube mesh must exist when surface cubes are enabled"),
-                                    ),
-                                    MeshMaterial3d(dev_cube_material.clone()),
-                                    Transform::from_translation(surface_offset),
-                                ));
-                            }
-                        });
+                    parent.spawn((
+                        Name::new(format!("chunk_cube({chunk_debug_label})#{index}")),
+                        Mesh3d(dev_cube_mesh.clone().expect("dev cube mesh must exist when cube proxies are enabled")),
+                        MeshMaterial3d(dev_cube_material.clone()),
+                        Transform::from_translation(local_offset),
+                    ));
                 }
             });
 

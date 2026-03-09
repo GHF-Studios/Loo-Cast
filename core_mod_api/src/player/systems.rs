@@ -34,7 +34,12 @@ pub(super) fn ensure_player_visual_3d_system(
         });
 
         let visual_entity = commands
-            .spawn((Name::new("player_visual_3d"), Mesh3d(mesh), MeshMaterial3d(material), Transform::default()))
+            .spawn((
+                Name::new("player_visual_3d"),
+                Mesh3d(mesh),
+                MeshMaterial3d(material),
+                Transform::default(),
+            ))
             .id();
 
         commands.entity(player_entity).add_child(visual_entity);
@@ -115,17 +120,11 @@ pub(super) fn update_player_system(
         if keys.pressed(KeyCode::KeyD) {
             direction.x += 1.0;
         }
-        if keys.pressed(KeyCode::Space) {
-            direction.z += 1.0;
-        }
-        if keys.pressed(KeyCode::ControlLeft) || keys.pressed(KeyCode::ControlRight) {
-            direction.z -= 1.0;
-        }
 
         if direction.length_squared() > 0.0 {
             direction = direction.normalize();
             let sprint_multiplier = if keys.pressed(KeyCode::ShiftLeft) { *sprint_multiplier } else { 1.0 };
-            player_motion_intent.translation_delta = direction * *base_movement_speed * sprint_multiplier * time.delta_secs();
+            player_motion_intent.translation_delta = (direction * *base_movement_speed * sprint_multiplier * time.delta_secs()).truncate();
         }
 
         let mut delta_rotation = Vec3::ZERO;
@@ -134,18 +133,6 @@ pub(super) fn update_player_system(
         }
         if keys.pressed(KeyCode::KeyE) {
             delta_rotation.z += *world_rotation_speed * time.delta_secs();
-        }
-        if keys.pressed(KeyCode::KeyR) {
-            delta_rotation.x += *world_rotation_speed * time.delta_secs();
-        }
-        if keys.pressed(KeyCode::KeyF) {
-            delta_rotation.x -= *world_rotation_speed * time.delta_secs();
-        }
-        if keys.pressed(KeyCode::KeyT) {
-            delta_rotation.y += *world_rotation_speed * time.delta_secs();
-        }
-        if keys.pressed(KeyCode::KeyG) {
-            delta_rotation.y -= *world_rotation_speed * time.delta_secs();
         }
         player_motion_intent.rotation_delta = delta_rotation;
     }
