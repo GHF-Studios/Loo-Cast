@@ -29,7 +29,7 @@ visibility_threshold = 0.45
 scale_boost = 0.8
 z_displacement = 200.0
 mesh_resolution = 18
-iso_level = 0.45
+iso_level = 0.0
 
 [chunk_loader]
 load_radius = 2

@@ -295,7 +295,7 @@ pub(super) fn update_phenomenon_model_surfaces_system(
             scale_boost: CONFIG().get::<f32>("render/phenomenon_mandelbulb/scale_boost").max(0.0),
             z_displacement: CONFIG().get::<f32>("render/phenomenon_mandelbulb/z_displacement"),
             mesh_resolution: CONFIG().get::<u32>("render/phenomenon_mandelbulb/mesh_resolution").clamp(6, 64),
-            iso_level: CONFIG().get::<f32>("render/phenomenon_mandelbulb/iso_level").clamp(0.01, 0.99),
+            iso_level: CONFIG().get::<f32>("render/phenomenon_mandelbulb/iso_level").clamp(-1.0, 1.0),
         })
     } else {
         None
@@ -354,10 +354,9 @@ fn proxy_window_scale(proxy: &RenderProxy) -> f32 {
 fn compute_effective_mesh_resolution(proxy: &RenderProxy, tuning: MandelbulbTuning) -> usize {
     let base_resolution = tuning.mesh_resolution as f32;
     let window_scale = proxy_window_scale(proxy);
-    let layer_t = layer_norm(proxy.layer_index);
-    let window_boost = 1.0 + (1.0 - window_scale) * 2.0;
-    let layer_boost = 0.8 + layer_t * 0.8;
-    (base_resolution * window_boost * layer_boost).round().clamp(6.0, 64.0) as usize
+    // Keep detail stable across scale layers; only window size should drive dynamic tessellation.
+    let window_boost = 1.0 + (1.0 - window_scale) * 1.5;
+    (base_resolution * window_boost).round().clamp(8.0, 40.0) as usize
 }
 
 #[inline]
@@ -423,7 +422,7 @@ fn compute_phenomenon_window_bounds(window_mode: RenderProxyWindowMode, window_c
 #[inline]
 fn mandelbulb_density_from_model_space(local_uv: Vec2, local_w: f32, layer_index: u8, tuning: MandelbulbTuning) -> f32 {
     let point = map_model_space_to_mandelbulb_point(local_uv, local_w, layer_index, tuning.z_span);
-    sample_mandelbulb_density(point, tuning.power, tuning.iterations, tuning.bailout)
+    sample_mandelbulb_signed_distance(point, tuning.power, tuning.iterations, tuning.bailout)
 }
 
 #[inline]
@@ -434,37 +433,81 @@ fn map_model_space_to_mandelbulb_point(local_uv: Vec2, local_w: f32, layer_index
     let y = (uv.y - 0.5) * 3.0;
     let local_z = (w - 0.5) * 2.0 * z_span;
 
-    let layer_t = layer_norm(layer_index);
-    let layer_bias = (layer_t * 2.0 - 1.0) * z_span * 0.15;
+    // Keep one coherent global fractal across all scales; do not offset the sampled slice per layer.
+    let _ = layer_index;
+    let layer_bias = 0.0;
 
     Vec3::new(x, y, local_z + layer_bias)
 }
 
-#[inline]
-fn sample_mandelbulb_density(c: Vec3, power: f32, iterations: u32, bailout: f32) -> f32 {
-    let mut z = c;
-    let mut escaped_at = iterations;
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct MeshingWindow {
+    center_local: Vec2,
+    size_local: Vec2,
+    resolution: usize,
+}
 
-    for i in 0..iterations {
-        let r = z.length();
+#[inline]
+fn compute_meshing_window(proxy: &RenderProxy, tuning: MandelbulbTuning) -> MeshingWindow {
+    let resolution = compute_effective_mesh_resolution(proxy, tuning);
+
+    if matches!(proxy.window_mode, RenderProxyWindowMode::FullEntity) {
+        return MeshingWindow {
+            center_local: Vec2::ZERO,
+            size_local: Vec2::ONE,
+            resolution,
+        };
+    }
+
+    let size_local = proxy.window_size_local.abs().clamp(Vec2::splat(MIN_WINDOW_SIZE_LOCAL), Vec2::ONE);
+    let step_local = (size_local / resolution as f32).max(Vec2::splat(MIN_WINDOW_SIZE_LOCAL));
+
+    // Snap subsection center to marching-grid voxels, so tiny camera deltas don't trigger full remesh every frame.
+    let mut center_local = (proxy.window_center_local / step_local).round() * step_local;
+    let min_center = Vec2::splat(-0.5) + size_local * 0.5;
+    let max_center = Vec2::splat(0.5) - size_local * 0.5;
+    center_local = center_local.clamp(min_center, max_center);
+
+    MeshingWindow {
+        center_local,
+        size_local,
+        resolution,
+    }
+}
+
+#[inline]
+fn sample_mandelbulb_signed_distance(c: Vec3, power: f32, iterations: u32, bailout: f32) -> f32 {
+    let mut z = c;
+    let mut dr = 1.0f32;
+    let mut r = z.length();
+    let mut escaped = false;
+
+    for _ in 0..iterations {
+        r = z.length();
         if r > bailout {
-            escaped_at = i;
+            escaped = true;
             break;
         }
 
-        let theta = if r > 1e-6 { (z.z / r).clamp(-1.0, 1.0).acos() } else { 0.0 };
+        let safe_r = r.max(1e-6);
+        let theta = (z.z / safe_r).clamp(-1.0, 1.0).acos();
         let phi = z.y.atan2(z.x);
-        let zr = r.powf(power);
+        let zr = safe_r.powf(power);
         let theta_p = theta * power;
         let phi_p = phi * power;
+        dr = safe_r.powf(power - 1.0) * power * dr + 1.0;
 
         z = Vec3::new(theta_p.sin() * phi_p.cos(), theta_p.sin() * phi_p.sin(), theta_p.cos()) * zr + c;
     }
 
-    if escaped_at >= iterations {
-        1.0
+    if escaped {
+        let safe_r = r.max(1e-6);
+        let safe_dr = dr.abs().max(1e-6);
+        0.5 * safe_r.ln() * safe_r / safe_dr
     } else {
-        (1.0 - (escaped_at as f32 / iterations as f32)).clamp(0.0, 1.0)
+        // Interior points never escaped within the iteration budget; keep them strictly negative.
+        let interior_depth = ((bailout - r).max(0.0) / bailout.max(1e-6)).clamp(0.0, 1.0);
+        -0.001 - interior_depth * 0.5
     }
 }
 
@@ -476,13 +519,14 @@ fn compute_surface_signature(proxy: &RenderProxy, tuning: MandelbulbTuning) -> u
     }
 
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    let meshing_window = compute_meshing_window(proxy, tuning);
     proxy.layer_index.hash(&mut hasher);
     proxy.window_mode.hash(&mut hasher);
-    q(proxy.window_center_local.x).hash(&mut hasher);
-    q(proxy.window_center_local.y).hash(&mut hasher);
-    q(proxy.window_size_local.x).hash(&mut hasher);
-    q(proxy.window_size_local.y).hash(&mut hasher);
-    compute_effective_mesh_resolution(proxy, tuning).hash(&mut hasher);
+    q(meshing_window.center_local.x).hash(&mut hasher);
+    q(meshing_window.center_local.y).hash(&mut hasher);
+    q(meshing_window.size_local.x).hash(&mut hasher);
+    q(meshing_window.size_local.y).hash(&mut hasher);
+    meshing_window.resolution.hash(&mut hasher);
     q(tuning.iso_level).hash(&mut hasher);
     q(tuning.power).hash(&mut hasher);
     tuning.iterations.hash(&mut hasher);
@@ -500,9 +544,10 @@ fn grid_index(ix: usize, iy: usize, iz: usize, axis_points: usize) -> usize {
 }
 
 fn build_windowed_mandelbulb_mesh(proxy: &RenderProxy, tuning: MandelbulbTuning) -> Option<Mesh> {
-    let cells = compute_effective_mesh_resolution(proxy, tuning);
+    let meshing_window = compute_meshing_window(proxy, tuning);
+    let cells = meshing_window.resolution;
     let axis_points = cells + 1;
-    let bounds = compute_phenomenon_window_bounds(proxy.window_mode, proxy.window_center_local, proxy.window_size_local);
+    let bounds = compute_phenomenon_window_bounds(proxy.window_mode, meshing_window.center_local, meshing_window.size_local);
 
     let mut points = vec![Vec3::ZERO; axis_points * axis_points * axis_points];
     let mut field = vec![0.0f32; axis_points * axis_points * axis_points];
@@ -515,8 +560,8 @@ fn build_windowed_mandelbulb_mesh(proxy: &RenderProxy, tuning: MandelbulbTuning)
                 let u = ix as f32 / cells as f32;
                 let idx = grid_index(ix, iy, iz, axis_points);
                 let sample_uv = bounds.min + Vec2::new(u, v) * bounds.span;
-                let density = mandelbulb_density_from_model_space(sample_uv, w, proxy.layer_index, tuning);
-                field[idx] = density - tuning.iso_level;
+                let signed_distance = mandelbulb_density_from_model_space(sample_uv, w, proxy.layer_index, tuning);
+                field[idx] = signed_distance - tuning.iso_level;
                 points[idx] = Vec3::new(
                     (u - 0.5) * PHENOMENON_MODEL_LOCAL_SPAN_UNITS,
                     (v - 0.5) * PHENOMENON_MODEL_LOCAL_SPAN_UNITS,
@@ -574,7 +619,8 @@ fn emit_tetra_surface(points: [Vec3; 4], values: [f32; 4], out_positions: &mut V
     let mut outside_count = 0usize;
 
     for i in 0..4 {
-        if values[i] >= 0.0 {
+        // Signed-distance convention: negative = inside, positive = outside.
+        if values[i] <= 0.0 {
             inside[inside_count] = i;
             inside_count += 1;
         } else {
@@ -587,24 +633,6 @@ fn emit_tetra_surface(points: [Vec3; 4], values: [f32; 4], out_positions: &mut V
         return;
     }
 
-    let mut push_triangle = |a: Vec3, b: Vec3, c: Vec3| {
-        let normal = (b - a).cross(c - a);
-        let len_sq = normal.length_squared();
-        if len_sq <= 1e-10 {
-            return;
-        }
-        let n = normal / len_sq.sqrt();
-
-        for p in [a, b, c] {
-            out_positions.push([p.x, p.y, p.z]);
-            out_normals.push([n.x, n.y, n.z]);
-            out_uvs.push([
-                (p.x / PHENOMENON_MODEL_LOCAL_SPAN_UNITS + 0.5).clamp(0.0, 1.0),
-                (p.y / PHENOMENON_MODEL_LOCAL_SPAN_UNITS + 0.5).clamp(0.0, 1.0),
-            ]);
-        }
-    };
-
     let edge_point = |a_i: usize, b_i: usize| interpolate_iso(points[a_i], values[a_i], points[b_i], values[b_i]);
 
     match inside_count {
@@ -613,29 +641,92 @@ fn emit_tetra_surface(points: [Vec3; 4], values: [f32; 4], out_positions: &mut V
             let a = outside[0];
             let b = outside[1];
             let c = outside[2];
-            push_triangle(edge_point(i, a), edge_point(i, b), edge_point(i, c));
+            let inside_ref = points[i];
+            let outside_ref = (points[a] + points[b] + points[c]) / 3.0;
+            push_oriented_triangle(
+                edge_point(i, a),
+                edge_point(i, b),
+                edge_point(i, c),
+                inside_ref,
+                outside_ref,
+                out_positions,
+                out_normals,
+                out_uvs,
+            );
         }
         3 => {
             let o = outside[0];
             let a = inside[0];
             let b = inside[1];
             let c = inside[2];
-            push_triangle(edge_point(o, a), edge_point(o, c), edge_point(o, b));
+            let inside_ref = (points[a] + points[b] + points[c]) / 3.0;
+            let outside_ref = points[o];
+            push_oriented_triangle(
+                edge_point(o, a),
+                edge_point(o, c),
+                edge_point(o, b),
+                inside_ref,
+                outside_ref,
+                out_positions,
+                out_normals,
+                out_uvs,
+            );
         }
         2 => {
             let a = inside[0];
             let b = inside[1];
             let c = outside[0];
             let d = outside[1];
+            let inside_ref = (points[a] + points[b]) * 0.5;
+            let outside_ref = (points[c] + points[d]) * 0.5;
 
             let p0 = edge_point(a, c);
             let p1 = edge_point(b, c);
             let p2 = edge_point(b, d);
             let p3 = edge_point(a, d);
-            push_triangle(p0, p1, p2);
-            push_triangle(p0, p2, p3);
+            push_oriented_triangle(p0, p1, p2, inside_ref, outside_ref, out_positions, out_normals, out_uvs);
+            push_oriented_triangle(p0, p2, p3, inside_ref, outside_ref, out_positions, out_normals, out_uvs);
         }
         _ => {}
+    }
+}
+
+#[inline]
+fn push_oriented_triangle(
+    a: Vec3,
+    mut b: Vec3,
+    mut c: Vec3,
+    inside_ref: Vec3,
+    outside_ref: Vec3,
+    out_positions: &mut Vec<[f32; 3]>,
+    out_normals: &mut Vec<[f32; 3]>,
+    out_uvs: &mut Vec<[f32; 2]>,
+) {
+    let mut normal = (b - a).cross(c - a);
+    let mut len_sq = normal.length_squared();
+    if len_sq <= 1e-10 {
+        return;
+    }
+
+    // Force a stable winding: normals should point from inside towards outside.
+    let expected_outward = outside_ref - inside_ref;
+    if expected_outward.length_squared() > 1e-10 && normal.dot(expected_outward) < 0.0 {
+        std::mem::swap(&mut b, &mut c);
+        normal = (b - a).cross(c - a);
+        len_sq = normal.length_squared();
+        if len_sq <= 1e-10 {
+            return;
+        }
+    }
+
+    let n = normal / len_sq.sqrt();
+    for p in [a, b, c] {
+        out_positions.push([p.x, p.y, p.z]);
+        out_normals.push([n.x, n.y, n.z]);
+        out_uvs.push([
+            (p.x / PHENOMENON_MODEL_LOCAL_SPAN_UNITS + 0.5).clamp(0.0, 1.0),
+            (p.y / PHENOMENON_MODEL_LOCAL_SPAN_UNITS + 0.5).clamp(0.0, 1.0),
+        ]);
     }
 }
 
@@ -710,7 +801,7 @@ mod tests {
             scale_boost: 0.8,
             z_displacement: 200.0,
             mesh_resolution: 12,
-            iso_level: 0.45,
+            iso_level: 0.0,
         };
         let broad = RenderProxy {
             source: Entity::PLACEHOLDER,
@@ -758,7 +849,7 @@ mod tests {
             scale_boost: 0.8,
             z_displacement: 200.0,
             mesh_resolution: 8,
-            iso_level: 0.45,
+            iso_level: 0.0,
         };
         let proxy = RenderProxy {
             source: Entity::PLACEHOLDER,
@@ -788,7 +879,7 @@ mod tests {
             scale_boost: 0.8,
             z_displacement: 200.0,
             mesh_resolution: 8,
-            iso_level: 0.45,
+            iso_level: 0.0,
         };
         let mut a = RenderProxy {
             source: Entity::PLACEHOLDER,
@@ -816,7 +907,7 @@ mod tests {
             scale_boost: 0.8,
             z_displacement: 200.0,
             mesh_resolution: 8,
-            iso_level: 0.45,
+            iso_level: 0.0,
         };
         let a = RenderProxy {
             source: Entity::PLACEHOLDER,
@@ -851,7 +942,7 @@ mod tests {
     }
 
     #[test]
-    fn mandelbulb_density_is_normalized() {
+    fn mandelbulb_field_is_finite() {
         let tuning = MandelbulbTuning {
             power: 8.0,
             iterations: 12,
@@ -861,20 +952,22 @@ mod tests {
             scale_boost: 0.4,
             z_displacement: 120.0,
             mesh_resolution: 8,
-            iso_level: 0.45,
+            iso_level: 0.0,
         };
-        let d = mandelbulb_density_from_model_space(Vec2::new(0.5, 0.5), 0.5, 35, tuning);
-        assert!((0.0..=1.0).contains(&d));
+        let field = mandelbulb_density_from_model_space(Vec2::new(0.5, 0.5), 0.5, 35, tuning);
+        assert!(field.is_finite());
     }
 
     #[test]
-    fn mandelbulb_density_prefers_origin_over_far_point() {
+    fn mandelbulb_signed_distance_separates_center_and_far_point() {
         let power = 8.0;
         let iterations = 12;
         let bailout = 4.0;
-        let center = sample_mandelbulb_density(Vec3::ZERO, power, iterations, bailout);
-        let far = sample_mandelbulb_density(Vec3::new(2.5, 2.5, 2.5), power, iterations, bailout);
-        assert!(center >= far);
+        let center = sample_mandelbulb_signed_distance(Vec3::ZERO, power, iterations, bailout);
+        let far = sample_mandelbulb_signed_distance(Vec3::new(2.5, 2.5, 2.5), power, iterations, bailout);
+        assert!(center < 0.0);
+        assert!(far > 0.0);
+        assert!(center < far);
     }
 }
 

@@ -123,11 +123,26 @@ pub(super) fn update_player_system(
         }
 
         let mut delta_rotation = Vec3::ZERO;
+        // Roll around local Z.
         if keys.pressed(KeyCode::KeyQ) {
             delta_rotation.z -= *world_rotation_speed * time.delta_secs();
         }
         if keys.pressed(KeyCode::KeyE) {
             delta_rotation.z += *world_rotation_speed * time.delta_secs();
+        }
+        // Pitch around local X.
+        if keys.pressed(KeyCode::ArrowUp) {
+            delta_rotation.x -= *world_rotation_speed * time.delta_secs();
+        }
+        if keys.pressed(KeyCode::ArrowDown) {
+            delta_rotation.x += *world_rotation_speed * time.delta_secs();
+        }
+        // Yaw around local Y.
+        if keys.pressed(KeyCode::ArrowLeft) {
+            delta_rotation.y += *world_rotation_speed * time.delta_secs();
+        }
+        if keys.pressed(KeyCode::ArrowRight) {
+            delta_rotation.y -= *world_rotation_speed * time.delta_secs();
         }
         player_motion_intent.rotation_delta = delta_rotation;
     }
