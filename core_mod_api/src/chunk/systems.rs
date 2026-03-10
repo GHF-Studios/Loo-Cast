@@ -13,9 +13,7 @@ use crate::config::statics::CONFIG;
 use crate::core::protocol::{AppOrchestrationSignal, AppOrchestrationState, OrchestrationPressure};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
-use crate::workflow::functions::{
-    WorkflowTimeoutControlDecision, handle_composite_workflow_return_now, run_workflow_ioe_with_timeout_control,
-};
+use crate::workflow::functions::{WorkflowTimeoutControlDecision, handle_composite_workflow_return_now, run_workflow_ioe_with_timeout_control};
 use crate::workflow::resources::WorkflowTimeoutSignalReceiver;
 use crate::workflow::types::WorkflowTimeoutMode;
 

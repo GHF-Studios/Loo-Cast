@@ -42,6 +42,36 @@ impl InsertComponentFromDynamic for ChunkLoader {
         entity.insert(ChunkLoader::default());
     }
 }
+
+#[inline]
+fn fold_translation_axis_at_window(
+    axis: &mut crate::usf::transform::types::UsfFloat,
+    policy: crate::usf::transform::types::UsfFloatPolicy,
+) -> UsfFloatPivotResult {
+    let UsfFloatDomain::Linear { wrap_size } = policy.domain else {
+        return axis.fold_with_policy(policy);
+    };
+    assert!(wrap_size > 0.0, "Linear wrap_size must be > 0.0");
+
+    let mut result = UsfFloatPivotResult::default();
+    loop {
+        if axis.local <= policy.local_min {
+            axis.local += wrap_size;
+            axis.canonical_cycles -= 1;
+            result.lower_crossings += 1;
+            continue;
+        }
+        if axis.local >= policy.local_max {
+            axis.local -= wrap_size;
+            axis.canonical_cycles += 1;
+            result.upper_crossings += 1;
+            continue;
+        }
+        break;
+    }
+    result
+}
+
 impl ChunkLoader {
     pub fn zoom_in(&mut self, logical_world_pos: Vec3) -> Vec3 {
         self.scale.zoom_in();
@@ -147,9 +177,9 @@ impl ChunkLoader {
         self.usf_transform.translation.z.set_local(logical_world_pos.z as f64);
 
         let policy = self.usf_transform.translation.policy;
-        let pivot_x = self.usf_transform.translation.x.fold_with_policy(policy);
-        let pivot_y = self.usf_transform.translation.y.fold_with_policy(policy);
-        let pivot_z = self.usf_transform.translation.z.fold_with_policy(policy);
+        let pivot_x = fold_translation_axis_at_window(&mut self.usf_transform.translation.x, policy);
+        let pivot_y = fold_translation_axis_at_window(&mut self.usf_transform.translation.y, policy);
+        let pivot_z = fold_translation_axis_at_window(&mut self.usf_transform.translation.z, policy);
         let grid_delta = IVec3::new(
             pivot_x.upper_crossings - pivot_x.lower_crossings,
             pivot_y.upper_crossings - pivot_y.lower_crossings,

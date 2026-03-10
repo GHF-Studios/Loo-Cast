@@ -59,9 +59,7 @@ impl Plugin for RenderPlugin {
                     update_phenomenon_model_surfaces_system
                         .in_set(AppSet::Presentation)
                         .after(update_global_phenomenon_proxy_system),
-                    draw_chunk_locator_gizmos_system
-                        .in_set(AppSet::Presentation)
-                        .after(update_render_proxies),
+                    draw_chunk_locator_gizmos_system.in_set(AppSet::Presentation).after(update_render_proxies),
                 )
                     .run_if(run_after_startup_finished),
             )

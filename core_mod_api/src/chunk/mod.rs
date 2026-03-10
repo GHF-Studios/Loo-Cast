@@ -15,9 +15,7 @@ use components::{Chunk, ChunkActor, ChunkLoader};
 use enums::ZoomState;
 use errors::{DespawnError, SpawnError};
 use messages::ChunkBatchLifecycleMessage;
-use resources::{
-    ChunkActionWorkflowState, ChunkBatchTracker, ChunkLoadGate, ChunkLoadGateLockInfo, ChunkLoadGateState, ChunkManager,
-};
+use resources::{ChunkActionWorkflowState, ChunkBatchTracker, ChunkLoadGate, ChunkLoadGateLockInfo, ChunkLoadGateState, ChunkManager};
 use systems::{
     chunk_detection_system, chunk_management_system, chunk_timeout_signal_system, chunk_zoom_cooldown_system, sync_chunk_orchestration_state_system,
 };

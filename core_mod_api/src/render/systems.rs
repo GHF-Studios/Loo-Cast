@@ -3,7 +3,7 @@ use crate::bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use crate::bevy::prelude::*;
 use crate::bevy::render::render_resource::{Extent3d, PrimitiveTopology, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
 
-use crate::chunk::components::{ChunkActor, ChunkLoader};
+use crate::chunk::components::{Chunk, ChunkActor, ChunkLoader};
 use crate::chunk::resources::{ChunkActionWorkflowState, ChunkLoadGate};
 use crate::config::statics::CONFIG;
 use crate::core::protocol::PlayerMotionIntent;
@@ -202,8 +202,7 @@ pub(super) fn update_render_proxies(
                 proxy_transform.scale = Vec3::splat(scale);
                 proxy_transform.rotation = world_rotation;
                 proxy_state.layer_index = coord_scale.render_layer_index();
-                let (window_mode, window_center_local, window_size_local) =
-                    compute_render_proxy_windowing(scale_diff, pos.truncate(), view_pos_native);
+                let (window_mode, window_center_local, window_size_local) = compute_render_proxy_windowing(scale_diff, pos.truncate(), view_pos_native);
                 proxy_state.window_mode = window_mode;
                 proxy_state.window_center_local = window_center_local;
                 proxy_state.window_size_local = window_size_local;
@@ -277,6 +276,7 @@ pub(super) fn update_global_phenomenon_proxy_system(
 pub(super) fn draw_chunk_locator_gizmos_system(
     mut gizmos: Gizmos,
     player_query: Query<Entity, With<Player>>,
+    chunk_sources: Query<(), With<Chunk>>,
     chunk_render_proxies: Query<(&Transform, &RenderProxy), Without<GlobalPhenomenonRoot>>,
 ) {
     if !CONFIG().get::<bool>("debug/chunk_locator/enabled") {
@@ -290,6 +290,9 @@ pub(super) fn draw_chunk_locator_gizmos_system(
     let player_entity = player_query.single().ok();
 
     for (transform, proxy) in chunk_render_proxies.iter() {
+        if chunk_sources.get(proxy.source).is_err() {
+            continue;
+        }
         let is_player_chunk = player_entity.is_some_and(|entity| entity == proxy.source);
         let mut marker = *transform;
         marker.scale = Vec3::new(
@@ -689,11 +692,7 @@ fn sample_sierpinski_sponge_signed_distance(point: Vec3, iterations: u32, hole_b
     // Menger-style recursive cross cutouts; stable SDF-ish estimator for marching isosurface.
     for _ in 0..iterations {
         let p = point * scale;
-        let cell = Vec3::new(
-            p.x.rem_euclid(2.0) - 1.0,
-            p.y.rem_euclid(2.0) - 1.0,
-            p.z.rem_euclid(2.0) - 1.0,
-        );
+        let cell = Vec3::new(p.x.rem_euclid(2.0) - 1.0, p.y.rem_euclid(2.0) - 1.0, p.z.rem_euclid(2.0) - 1.0);
         scale *= 3.0;
 
         let r = (Vec3::ONE - cell.abs() * 3.0).abs();
@@ -787,11 +786,7 @@ fn compute_effective_sierpinski_iterations(proxy: &RenderProxy, tuning: Sierpins
 }
 
 #[inline]
-fn compute_effective_sierpinski_iterations_for_bounds(
-    proxy: &RenderProxy,
-    tuning: SierpinskiSpongeTuning,
-    bounds: PhenomenonModelWindowBounds,
-) -> u32 {
+fn compute_effective_sierpinski_iterations_for_bounds(proxy: &RenderProxy, tuning: SierpinskiSpongeTuning, bounds: PhenomenonModelWindowBounds) -> u32 {
     let cells = compute_effective_mesh_resolution(proxy, tuning.lod.mesh_resolution).max(1) as f32;
     // Visible XY span shrinks as subsection windowing zooms in. Exploit that to permit
     // deeper recursion while preserving a topology budget tied to mesh resolution.
@@ -824,20 +819,13 @@ struct SierpinskiWindowRemap {
 impl SierpinskiWindowRemap {
     #[inline]
     fn from_bounds(bounds: PhenomenonModelWindowBounds, domain_span: f32) -> Self {
-        let sample_min = Vec3::new(
-            (bounds.min.x - 0.5) * 2.0 * domain_span,
-            (bounds.min.y - 0.5) * 2.0 * domain_span,
-            -domain_span,
-        );
+        let sample_min = Vec3::new((bounds.min.x - 0.5) * 2.0 * domain_span, (bounds.min.y - 0.5) * 2.0 * domain_span, -domain_span);
         let sample_span = Vec3::new(
             (bounds.span.x * 2.0 * domain_span).max(1e-6),
             (bounds.span.y * 2.0 * domain_span).max(1e-6),
             (2.0 * domain_span).max(1e-6),
         );
-        Self {
-            sample_min,
-            sample_span,
-        }
+        Self { sample_min, sample_span }
     }
 
     #[inline]
@@ -858,12 +846,7 @@ impl SierpinskiWindowRemap {
 
 #[inline]
 fn aabb_intersects(min_a: Vec3, max_a: Vec3, min_b: Vec3, max_b: Vec3) -> bool {
-    min_a.x < max_b.x
-        && max_a.x > min_b.x
-        && min_a.y < max_b.y
-        && max_a.y > min_b.y
-        && min_a.z < max_b.z
-        && max_a.z > min_b.z
+    min_a.x < max_b.x && max_a.x > min_b.x && min_a.y < max_b.y && max_a.y > min_b.y && min_a.z < max_b.z && max_a.z > min_b.z
 }
 
 #[inline]
@@ -944,14 +927,7 @@ fn collect_visible_sierpinski_leaf_cells(
 }
 
 #[inline]
-fn neighbor_cell_visible_in_window(
-    neighbor: IVec3,
-    grid_dim: u32,
-    iterations: u32,
-    leaf_size: f32,
-    clip_min: Vec3,
-    clip_max: Vec3,
-) -> bool {
+fn neighbor_cell_visible_in_window(neighbor: IVec3, grid_dim: u32, iterations: u32, leaf_size: f32, clip_min: Vec3, clip_max: Vec3) -> bool {
     if neighbor.x < 0 || neighbor.y < 0 || neighbor.z < 0 {
         return false;
     }
@@ -964,26 +940,12 @@ fn neighbor_cell_visible_in_window(
     if !is_sierpinski_leaf_occupied(nx, ny, nz, iterations) {
         return false;
     }
-    let (neighbor_min, neighbor_max) = sierpinski_leaf_cell_bounds(
-        SierpinskiLeafCell {
-            x: nx,
-            y: ny,
-            z: nz,
-        },
-        leaf_size,
-    );
+    let (neighbor_min, neighbor_max) = sierpinski_leaf_cell_bounds(SierpinskiLeafCell { x: nx, y: ny, z: nz }, leaf_size);
     aabb_intersects(neighbor_min, neighbor_max, clip_min, clip_max)
 }
 
 #[inline]
-fn push_triangle(
-    a: Vec3,
-    b: Vec3,
-    c: Vec3,
-    out_positions: &mut Vec<[f32; 3]>,
-    out_normals: &mut Vec<[f32; 3]>,
-    out_uvs: &mut Vec<[f32; 2]>,
-) {
+fn push_triangle(a: Vec3, b: Vec3, c: Vec3, out_positions: &mut Vec<[f32; 3]>, out_normals: &mut Vec<[f32; 3]>, out_uvs: &mut Vec<[f32; 2]>) {
     let normal = (b - a).cross(c - a);
     let len_sq = normal.length_squared();
     if len_sq <= 1e-10 {
@@ -1002,24 +964,12 @@ fn push_triangle(
 }
 
 #[inline]
-fn push_quad(
-    a: Vec3,
-    b: Vec3,
-    c: Vec3,
-    d: Vec3,
-    out_positions: &mut Vec<[f32; 3]>,
-    out_normals: &mut Vec<[f32; 3]>,
-    out_uvs: &mut Vec<[f32; 2]>,
-) {
+fn push_quad(a: Vec3, b: Vec3, c: Vec3, d: Vec3, out_positions: &mut Vec<[f32; 3]>, out_normals: &mut Vec<[f32; 3]>, out_uvs: &mut Vec<[f32; 2]>) {
     push_triangle(a, b, c, out_positions, out_normals, out_uvs);
     push_triangle(a, c, d, out_positions, out_normals, out_uvs);
 }
 
-fn build_windowed_sierpinski_topology_mesh(
-    bounds: PhenomenonModelWindowBounds,
-    iterations: u32,
-    domain_span: f32,
-) -> Option<Mesh> {
+fn build_windowed_sierpinski_topology_mesh(bounds: PhenomenonModelWindowBounds, iterations: u32, domain_span: f32) -> Option<Mesh> {
     if iterations == 0 {
         return None;
     }
@@ -1040,18 +990,7 @@ fn build_windowed_sierpinski_topology_mesh(
     let leaf_size = 2.0 / grid_dim as f32;
 
     let mut leaf_cells = Vec::new();
-    collect_visible_sierpinski_leaf_cells(
-        0,
-        iterations,
-        0,
-        0,
-        0,
-        Vec3::splat(-1.0),
-        2.0,
-        clip_min,
-        clip_max,
-        &mut leaf_cells,
-    );
+    collect_visible_sierpinski_leaf_cells(0, iterations, 0, 0, 0, Vec3::splat(-1.0), 2.0, clip_min, clip_max, &mut leaf_cells);
 
     if leaf_cells.is_empty() {
         return None;
@@ -1818,8 +1757,6 @@ pub(super) fn apply_usf_player_pivots_system(
     let translation_policy = chunk_loader.usf_transform.translation.policy;
     let translation_local_min = translation_policy.local_min as f32;
     let translation_local_max = translation_policy.local_max as f32;
-    let translation_commit_min = translation_policy.commit_min() as f32;
-    let translation_commit_max = translation_policy.commit_max() as f32;
     let rotation_policy = chunk_loader.usf_transform.rotation.policy;
     let rotation_local_min = rotation_policy.local_min;
     let rotation_local_max = rotation_policy.local_max;
@@ -1851,12 +1788,12 @@ pub(super) fn apply_usf_player_pivots_system(
         let candidate_translation = player_transform.translation + world_space_translation_delta;
 
         let would_cross_scale_boundary = zoom_factor.0 <= scale_commit_min || zoom_factor.0 >= scale_commit_max;
-        let would_cross_translation_boundary = candidate_translation.x <= translation_commit_min
-            || candidate_translation.x >= translation_commit_max
-            || candidate_translation.y <= translation_commit_min
-            || candidate_translation.y >= translation_commit_max
-            || candidate_translation.z <= translation_commit_min
-            || candidate_translation.z >= translation_commit_max;
+        let would_cross_translation_boundary = candidate_translation.x <= translation_local_min
+            || candidate_translation.x >= translation_local_max
+            || candidate_translation.y <= translation_local_min
+            || candidate_translation.y >= translation_local_max
+            || candidate_translation.z <= translation_local_min
+            || candidate_translation.z >= translation_local_max;
 
         if workflow_in_flight && (would_cross_scale_boundary || would_cross_translation_boundary) {
             if let Some(gate) = chunk_load_gate.as_mut() {
