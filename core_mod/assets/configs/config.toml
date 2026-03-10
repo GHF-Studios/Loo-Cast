@@ -54,6 +54,13 @@ arrow_thickness = 12.0
 drag_speed = 64.0
 z_offset = 20.0 # For good measure, we pretty much always want gizmos on top of everything else.
 
+[debug.chunk_locator]
+enabled = true
+base_extent = 1000.0
+z_scale = 0.06
+alpha = 0.08
+player_alpha = 0.22
+
 [entity]
 reservation_buffer_size = 8
 

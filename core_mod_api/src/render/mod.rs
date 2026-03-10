@@ -18,7 +18,7 @@ use components::{
 use materials::PhenomenonSurfaceMaterial;
 use resources::{DevZoomFactor, PrimaryWindowUiDockState, PrimaryWindowUiState, ViewScale, ZoomFactor};
 use systems::{
-    apply_usf_player_pivots_system, despawn_orphaned_render_proxies, enforce_main_camera_depth_contract_system,
+    apply_usf_player_pivots_system, despawn_orphaned_render_proxies, draw_chunk_locator_gizmos_system, enforce_main_camera_depth_contract_system,
     enforce_phenomenon_model_camera_depth_contract_system, ensure_global_phenomenon_root_system, main_camera_zoom_system, pre_setup_phase_0, pre_setup_phase_1,
     primary_window_ui_system, resize_render_texture, update_global_phenomenon_proxy_system, update_phenomenon_model_surfaces_system, update_render_proxies,
     update_view_scale_from_zoom,
@@ -59,6 +59,9 @@ impl Plugin for RenderPlugin {
                     update_phenomenon_model_surfaces_system
                         .in_set(AppSet::Presentation)
                         .after(update_global_phenomenon_proxy_system),
+                    draw_chunk_locator_gizmos_system
+                        .in_set(AppSet::Presentation)
+                        .after(update_render_proxies),
                 )
                     .run_if(run_after_startup_finished),
             )

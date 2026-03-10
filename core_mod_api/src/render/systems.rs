@@ -160,7 +160,6 @@ pub(super) fn resize_render_texture(
 #[tracing::instrument(skip_all)]
 pub(super) fn update_render_proxies(
     zoom_factor: Res<ZoomFactor>,
-    dev_zoom_factor: Res<DevZoomFactor>,
     mut params: ParamSet<(
         Single<(&ChunkLoader, &Transform), With<Player>>,
         Query<(&EntityProxyLink, &ChunkActor), Without<RenderProxy>>,
@@ -172,7 +171,8 @@ pub(super) fn update_render_proxies(
     let world_rotation_origin = chunk_loader_transform.translation;
     let origin_offset = chunk_loader.origin_offset.clone();
     let view_pos_native = chunk_loader_transform.translation.truncate();
-    let camera_zoom = (zoom_factor.0 * dev_zoom_factor.0).max(f32::EPSILON);
+    // Dev zoom is a camera-only aid and must never mutate USF windowing/submesh selection.
+    let camera_zoom = zoom_factor.0.max(f32::EPSILON);
     let max_scale_diff = Scale::MAX_DIFF_SCALE_EXP;
 
     let actor_updates = {
@@ -219,7 +219,6 @@ pub(super) fn update_render_proxies(
 #[tracing::instrument(skip_all)]
 pub(super) fn update_global_phenomenon_proxy_system(
     zoom_factor: Res<ZoomFactor>,
-    dev_zoom_factor: Res<DevZoomFactor>,
     mut params: ParamSet<(
         Single<(&ChunkLoader, &Transform), With<Player>>,
         Query<(&mut Transform, &mut RenderProxy), With<GlobalPhenomenonRoot>>,
@@ -236,7 +235,8 @@ pub(super) fn update_global_phenomenon_proxy_system(
         let grid_origin_at_current_scale = GridVec::new_at_scale(chunk_loader.origin_offset.scale, IVec2::ZERO);
         let coarse_view_pos = chunk_loader.origin_offset.clone().to_native_logical(grid_origin_at_current_scale);
         let view_pos_native = coarse_view_pos + local_view_pos;
-        let camera_zoom = (zoom_factor.0 * dev_zoom_factor.0).max(f32::EPSILON);
+        // Dev zoom is a camera-only aid and must never mutate USF windowing/submesh selection.
+        let camera_zoom = zoom_factor.0.max(f32::EPSILON);
 
         // One global phenomenon in 3D: scale progression selects a deeper subsection window,
         // but does not spawn/scale independent world objects.
@@ -273,6 +273,40 @@ pub(super) fn update_global_phenomenon_proxy_system(
         proxy_state.window_center_local = window_center_local;
         proxy_state.window_size_local = window_size_local;
         proxy_state.coarse_context_persistent = true;
+    }
+}
+
+#[tracing::instrument(skip_all)]
+pub(super) fn draw_chunk_locator_gizmos_system(
+    mut gizmos: Gizmos,
+    player_query: Query<Entity, With<Player>>,
+    chunk_render_proxies: Query<(&Transform, &RenderProxy), Without<GlobalPhenomenonRoot>>,
+) {
+    if !CONFIG().get::<bool>("debug/chunk_locator/enabled") {
+        return;
+    }
+
+    let base_extent = CONFIG().get::<f32>("debug/chunk_locator/base_extent").max(1.0);
+    let z_scale = CONFIG().get::<f32>("debug/chunk_locator/z_scale").max(0.01);
+    let alpha = CONFIG().get::<f32>("debug/chunk_locator/alpha").clamp(0.01, 1.0);
+    let player_alpha = CONFIG().get::<f32>("debug/chunk_locator/player_alpha").clamp(alpha, 1.0);
+    let player_entity = player_query.single().ok();
+
+    for (transform, proxy) in chunk_render_proxies.iter() {
+        let is_player_chunk = player_entity.is_some_and(|entity| entity == proxy.source);
+        let mut marker = *transform;
+        marker.scale = Vec3::new(
+            transform.scale.x * base_extent,
+            transform.scale.y * base_extent,
+            (transform.scale.z * base_extent * z_scale).max(base_extent * z_scale),
+        );
+
+        let color = if is_player_chunk {
+            Color::linear_rgba(1.0, 0.96, 0.45, player_alpha)
+        } else {
+            Color::linear_rgba(0.35, 0.65, 1.0, alpha)
+        };
+        gizmos.cube(marker, color);
     }
 }
 
