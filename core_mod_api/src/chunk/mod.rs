@@ -11,7 +11,7 @@ pub mod types;
 pub mod workflows;
 
 use crate::bevy::prelude::*;
-use components::{Chunk, ChunkActor, ChunkLoader, PhenomenonFrontierView};
+use components::{Chunk, ChunkActor, ChunkDebugWireframe, ChunkLoader, PhenomenonFrontierView};
 use enums::ZoomState;
 use errors::{DespawnError, SpawnError};
 use messages::ChunkBatchLifecycleMessage;
@@ -54,6 +54,7 @@ impl Plugin for ChunkPlugin {
                     .run_if(run_after_startup_finished),
             )
             .register_type::<Chunk>()
+            .register_type::<ChunkDebugWireframe>()
             .register_type::<ChunkActor>()
             .register_type::<ChunkLoader>()
             .register_type::<PhenomenonFrontierView>()

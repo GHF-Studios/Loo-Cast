@@ -1,7 +1,7 @@
 use crate::bevy::prelude::{IVec3, Reflect, Vec3};
 
 use crate::usf::pos::grid::types::GridVec;
-use crate::usf::pos::types::GridXyz;
+use crate::usf::pos::types::{GridXyz, LocalCell3};
 use crate::usf::scale::{DynScale, Scale};
 
 #[derive(Default)]
@@ -10,20 +10,24 @@ pub struct UnitVecBuilder {
 }
 
 impl UnitVecBuilder {
-    pub fn push(mut self, next: (i32, i32, i32)) -> Self {
-        let next = GridXyz::new_local(next.0, next.1, next.2);
-        self.chain.push(next);
+    pub fn push(mut self, next: impl Into<LocalCell3>) -> Self {
+        self.chain.push(GridXyz::from_local_cell3(next.into()));
         self
     }
 
-    pub fn push_many<I: IntoIterator<Item = (i32, i32, i32)>>(mut self, items: I) -> Self {
+    pub fn push_many<I, C>(mut self, items: I) -> Self
+    where
+        I: IntoIterator<Item = C>,
+        C: Into<LocalCell3>,
+    {
         self.chain
-            .extend(items.into_iter().map(|xyz| GridXyz::new_local(xyz.0, xyz.1, xyz.2)));
+            .extend(items.into_iter().map(|xyz| GridXyz::from_local_cell3(xyz.into())));
         self
     }
 
-    pub fn repeat(mut self, xyz: (i32, i32, i32), count: usize) -> Self {
-        self.chain.extend(std::iter::repeat_n(GridXyz::new_local(xyz.0, xyz.1, xyz.2), count));
+    pub fn repeat(mut self, xyz: impl Into<LocalCell3>, count: usize) -> Self {
+        let xyz = GridXyz::from_local_cell3(xyz.into());
+        self.chain.extend(std::iter::repeat_n(xyz, count));
         self
     }
 
@@ -284,7 +288,7 @@ impl std::ops::Add<UnitVec> for UnitVec {
     type Output = Self;
 
     fn add(self, rhs: UnitVec) -> Self::Output {
-        const MAX_DEPTH_DIFF: u8 = 4;
+        const MAX_DEPTH_DIFF: u8 = Scale::SCALE_LEVEL_COUNT - 1;
 
         fn stack_up(mut cursor: &GridVec) -> Vec<IVec3> {
             let mut stack = Vec::new();
@@ -389,7 +393,7 @@ impl std::ops::Sub<UnitVec> for UnitVec {
     type Output = Self;
 
     fn sub(mut self, mut rhs: UnitVec) -> Self::Output {
-        const MAX_DEPTH_DIFF: u8 = 4;
+        const MAX_DEPTH_DIFF: u8 = Scale::SCALE_LEVEL_COUNT - 1;
 
         match self.grid_offset.scale.cmp(&rhs.grid_offset.scale) {
             std::cmp::Ordering::Equal => {}

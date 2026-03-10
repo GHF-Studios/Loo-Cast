@@ -15,6 +15,10 @@ pub struct Chunk {
     pub(crate) coord: GridVec,
 }
 
+#[derive(Component, Default, Debug, Reflect)]
+#[reflect(Component)]
+pub struct ChunkDebugWireframe;
+
 #[derive(Component, Default, Reflect)]
 #[reflect(Component)]
 #[component_ctor]

@@ -125,6 +125,36 @@ fn grid_to_native_visual_same_scale_neighbor_uses_base_chunk_spacing() {
 }
 
 #[test]
+fn grid_to_native_visual_supports_finer_relative_to_coarser_origin() {
+    use crate::grid_extent;
+
+    let chunk_size = 1_000.0;
+    let origin = grid_extent!([(0, 0, 0)]);
+    let finer_neighbor = grid_extent!([(0, 0, 0), (0, 0, 0)]);
+
+    let (pos, scale) = finer_neighbor.to_native_visual(origin);
+
+    assert!((scale - 0.1).abs() <= 1e-6);
+    assert!((pos.x - chunk_size * 0.5).abs() <= 1e-3);
+    assert!((pos.y - chunk_size * 0.5).abs() <= 1e-3);
+    assert!((pos.z - chunk_size * 0.5).abs() <= 1e-3);
+}
+
+#[test]
+fn grid_to_native_visual_handles_wide_scale_differences_without_panicking() {
+    use super::types::GridVec;
+
+    let root = GridVec::build().push((0, 0, 0)).finish();
+    let deep = GridVec::build().repeat((0, 0, 0), 20).finish();
+
+    let (pos_a, scale_a) = root.clone().to_native_visual(deep.clone());
+    let (pos_b, scale_b) = deep.to_native_visual(root);
+
+    assert!(pos_a.is_finite() && pos_b.is_finite());
+    assert!(scale_a.is_finite() && scale_b.is_finite());
+}
+
+#[test]
 fn grid_to_native_logical_scales_offsets_for_coarser_levels() {
     use crate::bevy::math::Vec3;
     use crate::grid_extent;

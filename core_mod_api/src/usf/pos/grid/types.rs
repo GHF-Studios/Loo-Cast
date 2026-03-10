@@ -6,7 +6,7 @@ use egui::{Id, Ui};
 use std::any::Any;
 use std::sync::Arc;
 
-use crate::usf::pos::types::GridXyz;
+use crate::usf::pos::types::{GridXyz, LocalCell3};
 use crate::usf::pos::unit::types::UnitVec;
 use crate::usf::scale::Scale;
 
@@ -20,20 +20,24 @@ impl GridVecBuilder {
         Self::default()
     }
 
-    pub fn push(mut self, next: (i32, i32, i32)) -> Self {
-        let next = GridXyz::new_local(next.0, next.1, next.2);
-        self.chain.push(next);
+    pub fn push(mut self, next: impl Into<LocalCell3>) -> Self {
+        self.chain.push(GridXyz::from_local_cell3(next.into()));
         self
     }
 
-    pub fn push_many<I: IntoIterator<Item = (i32, i32, i32)>>(mut self, items: I) -> Self {
+    pub fn push_many<I, C>(mut self, items: I) -> Self
+    where
+        I: IntoIterator<Item = C>,
+        C: Into<LocalCell3>,
+    {
         self.chain
-            .extend(items.into_iter().map(|xyz| GridXyz::new_local(xyz.0, xyz.1, xyz.2)));
+            .extend(items.into_iter().map(|xyz| GridXyz::from_local_cell3(xyz.into())));
         self
     }
 
-    pub fn repeat(mut self, xyz: (i32, i32, i32), count: usize) -> Self {
-        self.chain.extend(std::iter::repeat_n(GridXyz::new_local(xyz.0, xyz.1, xyz.2), count));
+    pub fn repeat(mut self, xyz: impl Into<LocalCell3>, count: usize) -> Self {
+        let xyz = GridXyz::from_local_cell3(xyz.into());
+        self.chain.extend(std::iter::repeat_n(xyz, count));
         self
     }
 
@@ -330,6 +334,78 @@ impl GridVec {
         (acc_x, acc_y, acc_z)
     }
 
+    #[inline]
+    fn saturating_f64_to_f32(value: f64) -> f32 {
+        if value.is_nan() {
+            return 0.0;
+        }
+        if value.is_infinite() {
+            return if value.is_sign_negative() { f32::MIN } else { f32::MAX };
+        }
+        if value > f32::MAX as f64 {
+            return f32::MAX;
+        }
+        if value < f32::MIN as f64 {
+            return f32::MIN;
+        }
+        value as f32
+    }
+
+    #[inline]
+    fn saturating_native_component(units: f64) -> f32 {
+        Self::saturating_f64_to_f32(units * 1000.0_f64)
+    }
+
+    #[inline]
+    fn saturating_scale_factor(scale_diff: i8) -> f32 {
+        let scale = 10.0_f64.powi(scale_diff as i32);
+        if !scale.is_finite() {
+            return f32::MAX;
+        }
+        if scale <= 0.0 {
+            return f32::MIN_POSITIVE;
+        }
+        scale.clamp(f32::MIN_POSITIVE as f64, f32::MAX as f64) as f32
+    }
+
+    #[inline]
+    fn invert_scale_factor(scale: f32) -> f32 {
+        if !scale.is_finite() || scale <= 0.0 {
+            return f32::MIN_POSITIVE;
+        }
+        let inv = 1.0_f64 / scale as f64;
+        inv.clamp(f32::MIN_POSITIVE as f64, f32::MAX as f64) as f32
+    }
+
+    #[inline]
+    fn to_native_visual_ordered(self, origin: Self) -> (Vec3, f32) {
+        debug_assert!(self.scale >= origin.scale);
+
+        let scale_diff = self.scale as i8 - origin.scale as i8;
+        let self_unit = UnitVec {
+            grid_offset: self.clone(),
+            unit_offset: Vec3::ZERO,
+        };
+        let origin_unit = UnitVec {
+            grid_offset: origin.clone(),
+            unit_offset: Vec3::ZERO,
+        };
+        let diff_unit = self_unit - origin_unit;
+
+        let scale = Self::saturating_scale_factor(scale_diff);
+        let acc = Self::accumulate_grid_units(&diff_unit.grid_offset);
+        let center_bias_units = if scale_diff > 0 {
+            0.5 * ((10.0_f64.powi(scale_diff as i32) - 1.0) / 9.0)
+        } else {
+            0.0
+        };
+
+        let native_x = Self::saturating_native_component(acc.0 - center_bias_units);
+        let native_y = Self::saturating_native_component(acc.1 - center_bias_units);
+        let native_z = Self::saturating_native_component(acc.2 - center_bias_units);
+        (Vec3::new(native_x, native_y, native_z), scale)
+    }
+
     /// - Assumes that the given `scale` is greater than or equal to that of `self`.
     /// - Assumes that the parent of `grid_diff` is the same as `self`'s parent.
     #[track_caller]
@@ -370,76 +446,26 @@ impl GridVec {
         origin + diff
     }
 
-    /// - Assumes that `self`'s scale is greater than or equal to that of `origin`.
-    /// - Assumes that the parent of `self` is the same as `origin`'s parent.
+    /// - Assumes that the parent lineage of `self` is compatible with `origin` for subtraction.
     #[track_caller]
     pub fn to_native_logical(self, origin: Self) -> Vec3 {
-        assert!(self.scale >= origin.scale);
-        let scale_diff = self.scale as i8 - origin.scale as i8;
-        let self_unit = UnitVec {
-            grid_offset: self.clone(),
-            unit_offset: Vec3::ZERO,
-        };
-        let origin_unit = UnitVec {
-            grid_offset: origin.clone(),
-            unit_offset: Vec3::ZERO,
-        };
-        let diff_unit = self_unit - origin_unit;
-        let native_unit = 1000.0_f64;
-        let acc = Self::accumulate_grid_units(&diff_unit.grid_offset);
-        let center_bias_units = if scale_diff > 0 {
-            0.5 * ((10.0_f64.powi(scale_diff as i32) - 1.0) / 9.0)
-        } else {
-            0.0
-        };
-        let native_x = ((acc.0 - center_bias_units) * native_unit) as f32;
-        let native_y = ((acc.1 - center_bias_units) * native_unit) as f32;
-        let native_z = ((acc.2 - center_bias_units) * native_unit) as f32;
-        if !native_x.is_finite() || !native_y.is_finite() || !native_z.is_finite() {
-            panic!(
-                "USF native logical conversion panic: non-finite viewport coords, native=({native_x}, {native_y}, {native_z}), acc=({:.3e}, {:.3e}, {:.3e}), self_scale={:?}, origin_scale={:?}",
-                acc.0, acc.1, acc.2, self.scale, origin.scale
-            );
+        if self.scale >= origin.scale {
+            return self.to_native_visual_ordered(origin).0;
         }
 
-        Vec3::new(native_x, native_y, native_z)
+        let (origin_relative_to_self, _scale) = origin.to_native_visual_ordered(self);
+        -origin_relative_to_self
     }
 
-    /// - Assumes that `self`'s scale is greater than or equal to that of `origin`.
-    /// - Assumes that the parent of `self` is the same as `origin`'s parent.
+    /// - Assumes that the parent lineage of `self` is compatible with `origin` for subtraction.
     #[track_caller]
     pub fn to_native_visual(self, origin: Self) -> (Vec3, f32) {
-        assert!(self.scale >= origin.scale);
-        let scale_diff = self.scale as i8 - origin.scale as i8;
-        let self_unit = UnitVec {
-            grid_offset: self.clone(),
-            unit_offset: Vec3::ZERO,
-        };
-        let origin_unit = UnitVec {
-            grid_offset: origin.clone(),
-            unit_offset: Vec3::ZERO,
-        };
-        let diff_unit = self_unit - origin_unit;
-
-        let scale = 10.0_f32.powi(scale_diff as i32);
-        let native_unit = 1000.0_f64;
-        let acc = Self::accumulate_grid_units(&diff_unit.grid_offset);
-        let center_bias_units = if scale_diff > 0 {
-            0.5 * ((10.0_f64.powi(scale_diff as i32) - 1.0) / 9.0)
-        } else {
-            0.0
-        };
-        let native_x = ((acc.0 - center_bias_units) * native_unit) as f32;
-        let native_y = ((acc.1 - center_bias_units) * native_unit) as f32;
-        let native_z = ((acc.2 - center_bias_units) * native_unit) as f32;
-        if !native_x.is_finite() || !native_y.is_finite() || !native_z.is_finite() {
-            panic!(
-                "USF native visual conversion panic: non-finite viewport coords, native=({native_x}, {native_y}, {native_z}), acc=({:.3e}, {:.3e}, {:.3e}), self_scale={:?}, origin_scale={:?}",
-                acc.0, acc.1, acc.2, self.scale, origin.scale
-            );
+        if self.scale >= origin.scale {
+            return self.to_native_visual_ordered(origin);
         }
 
-        (Vec3::new(native_x, native_y, native_z), scale)
+        let (origin_relative_to_self, origin_scale_relative_to_self) = origin.to_native_visual_ordered(self);
+        (-origin_relative_to_self, Self::invert_scale_factor(origin_scale_relative_to_self))
     }
 
     // TODO: REFACTOR: PERF: This is much less performant than it could be;

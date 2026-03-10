@@ -134,11 +134,6 @@ pub(crate) fn chunk_detection_system(
 
     loop {
         let current_scale = chunk_loader_grid_coord_cursor.scale;
-        let scale_diff = current_scale as i8 - chunk_loader.coord.scale as i8;
-        if scale_diff > Scale::MAX_DIFF_SCALE_EXP {
-            break;
-        }
-
         // warn!("Chunk Detection at scale: {:?}", current_scale);
         let coords_in_radius = chunk_loader_grid_coord_cursor
             .query_grid_radius(radius)

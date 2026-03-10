@@ -1,4 +1,5 @@
 use crate::bevy::prelude::*;
+use crate::usf::pos::types::LocalCell3;
 use crate::usf::scale::Scale;
 
 use super::types::{PhenomenonNodeKey, PhenomenonNodeSeed};
@@ -20,24 +21,24 @@ pub struct PhenomenonMeshWindow {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PhenomenonChildPlan {
     pub local_index: u32,
-    pub cell3: IVec3,
+    pub local_cell: LocalCell3,
     pub scale: Scale,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct BuildStateInput<'a> {
     pub key: PhenomenonNodeKey,
     pub parent_state: Option<&'a PhenomenonStateSnapshot>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct PlanChildrenInput<'a> {
     pub key: PhenomenonNodeKey,
     pub state: &'a PhenomenonStateSnapshot,
     pub max_children: u32,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct MeshWindowInput<'a> {
     pub key: PhenomenonNodeKey,
     pub state: &'a PhenomenonStateSnapshot,

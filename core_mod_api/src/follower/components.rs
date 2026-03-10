@@ -12,12 +12,12 @@ use super::hooks::{hook_on_add_follower_target, hook_on_remove_follower_target};
 #[reflect(Component)]
 pub struct Follower {
     pub follow_id: String,
-    pub offset: Vec2,
+    pub offset: Vec3,
     pub smoothness: f32,
     followed_entity: Option<Entity>,
 }
 impl Follower {
-    pub fn new(follow_id: String, offset: Vec2, smoothness: f32) -> Self {
+    pub fn new(follow_id: String, offset: Vec3, smoothness: f32) -> Self {
         Self {
             follow_id,
             offset,

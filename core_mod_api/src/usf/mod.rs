@@ -5,7 +5,7 @@ pub mod scale;
 pub mod transform;
 
 use crate::bevy::prelude::*;
-use phenomenon::{PhenomenonId, PhenomenonKind, PhenomenonMeshWindow, PhenomenonNodeKey, PhenomenonNodeSeed, PhenomenonStateSnapshot};
+use phenomenon::{PhenomenonId, PhenomenonKind, PhenomenonLineage, PhenomenonMeshWindow, PhenomenonNodeKey, PhenomenonNodeSeed, PhenomenonStateSnapshot};
 
 pub(crate) struct UsfPlugin;
 impl Plugin for UsfPlugin {
@@ -16,6 +16,7 @@ impl Plugin for UsfPlugin {
             .register_type::<PhenomenonKind>()
             .register_type::<PhenomenonId>()
             .register_type::<PhenomenonNodeSeed>()
+            .register_type::<PhenomenonLineage>()
             .register_type::<PhenomenonNodeKey>()
             .register_type::<PhenomenonStateSnapshot>()
             .register_type::<PhenomenonMeshWindow>();

@@ -63,6 +63,8 @@ pub(super) fn ensure_entity_proxy_links_system(
                     source: root_entity,
                     layer_index: 0,
                     depth_bias: 0.0,
+                    frontier_node_seed: 0,
+                    frontier_lineage_depth: 0,
                     window_mode: RenderProxyWindowMode::WindowedSubsection,
                     window_center_local: Vec3::ZERO,
                     window_size_local: Vec3::ONE,

@@ -6,7 +6,7 @@ define_workflow_mod_OLD! {
         SpawnCameras, timeout_secs: 5.0, timeout_mode: RealTime {
             user_imports: {
                 use crate::bevy::prelude::{
-                    Commands, Res, ResMut, Camera2d, Camera3d, Vec2, Vec3, Name, Camera, Projection, PerspectiveProjection, Quat, Transform, DirectionalLight,
+                    Commands, Res, ResMut, Camera2d, Camera3d, Vec3, Name, Camera, Projection, PerspectiveProjection, Quat, Transform, DirectionalLight,
                     EulerRot
                 };
                 use crate::bevy::camera::visibility::RenderLayers;
@@ -120,7 +120,7 @@ define_workflow_mod_OLD! {
                                 ChunkActor::default(),
                                 Follower::new(
                                     "main_camera".to_string(),
-                                    Vec2::ZERO,
+                                    Vec3::ZERO,
                                     CONFIG().get::<f32>("camera/follow_smoothness"),
                                 ),
                                 FollowerTarget {

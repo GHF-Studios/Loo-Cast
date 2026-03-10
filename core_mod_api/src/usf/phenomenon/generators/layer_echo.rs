@@ -3,8 +3,10 @@ use crate::bevy::prelude::*;
 use crate::usf::phenomenon::generator::{
     BuildStateInput, MeshWindowInput, PhenomenonChildPlan, PhenomenonGenerator, PhenomenonMeshWindow, PhenomenonStateSnapshot, PlanChildrenInput,
 };
-use crate::usf::phenomenon::types::{PhenomenonId, PhenomenonNodeKey, PhenomenonNodeSeed};
+use crate::usf::pos::types::LocalCell3;
 use crate::usf::scale::Scale;
+#[cfg(test)]
+use crate::usf::phenomenon::types::{PhenomenonId, PhenomenonLineage, PhenomenonNodeKey, PhenomenonNodeSeed};
 
 #[derive(Debug, Clone, Copy)]
 pub struct LayerEchoGenerator {
@@ -31,7 +33,7 @@ impl PhenomenonGenerator for LayerEchoGenerator {
 
         let channels = if let Some(parent) = input.parent_state {
             // Child state intentionally depends on parent snapshot to encode lineage.
-            let cell = input.key.cell3.as_vec3();
+            let cell = input.key.local_cell().as_ivec3().as_vec3();
             let lineage_echo = Vec4::new(cell.x, cell.y, cell.z, input.key.local_index as f32) * 0.013;
             parent.channels * self.channel_decay + base * self.echo_gain + lineage_echo
         } else {
@@ -58,25 +60,25 @@ impl PhenomenonGenerator for LayerEchoGenerator {
         }
         let next_scale = input.key.scale.zoomed_in();
 
-        const OFFSETS: [IVec3; 8] = [
-            IVec3::new(-1, -1, -1),
-            IVec3::new(-1, -1, 1),
-            IVec3::new(-1, 1, -1),
-            IVec3::new(-1, 1, 1),
-            IVec3::new(1, -1, -1),
-            IVec3::new(1, -1, 1),
-            IVec3::new(1, 1, -1),
-            IVec3::new(1, 1, 1),
+        let offsets = [
+            LocalCell3::new_local(-1, -1, -1),
+            LocalCell3::new_local(-1, -1, 1),
+            LocalCell3::new_local(-1, 1, -1),
+            LocalCell3::new_local(-1, 1, 1),
+            LocalCell3::new_local(1, -1, -1),
+            LocalCell3::new_local(1, -1, 1),
+            LocalCell3::new_local(1, 1, -1),
+            LocalCell3::new_local(1, 1, 1),
         ];
 
-        let requested = input.max_children.min(self.max_branching).min(OFFSETS.len() as u32) as usize;
-        OFFSETS
+        let requested = input.max_children.min(self.max_branching).min(offsets.len() as u32) as usize;
+        offsets
             .iter()
             .take(requested)
             .enumerate()
             .map(|(i, offset)| PhenomenonChildPlan {
                 local_index: i as u32,
-                cell3: input.key.cell3 + *offset,
+                local_cell: *offset,
                 scale: next_scale,
             })
             .collect()
@@ -123,17 +125,17 @@ mod tests {
         PhenomenonNodeKey {
             phenomenon_id: PhenomenonId(100),
             scale: Scale::MAX,
-            cell3: IVec3::ZERO,
+            lineage: PhenomenonLineage::root(),
             parent: None,
             local_index: 0,
         }
     }
 
-    fn child_key(parent_key: PhenomenonNodeKey, child: PhenomenonChildPlan) -> PhenomenonNodeKey {
+    fn child_key(parent_key: &PhenomenonNodeKey, child: &PhenomenonChildPlan) -> PhenomenonNodeKey {
         PhenomenonNodeKey {
             phenomenon_id: parent_key.phenomenon_id,
             scale: child.scale,
-            cell3: child.cell3,
+            lineage: parent_key.lineage.pushed(child.local_cell),
             parent: Some(parent_key.deterministic_seed()),
             local_index: child.local_index,
         }
@@ -144,18 +146,18 @@ mod tests {
         let generator = LayerEchoGenerator::default();
         let parent_key = root_key();
         let parent = generator.build_state(BuildStateInput {
-            key: parent_key,
+            key: parent_key.clone(),
             parent_state: None,
         });
         let child_plan = generator.plan_children(PlanChildrenInput {
-            key: parent_key,
+            key: parent_key.clone(),
             state: &parent,
             max_children: 1,
         })[0];
-        let child_key = child_key(parent_key, child_plan);
+        let child_key = child_key(&parent_key, &child_plan);
 
         let with_parent = generator.build_state(BuildStateInput {
-            key: child_key,
+            key: child_key.clone(),
             parent_state: Some(&parent),
         });
         let without_parent = generator.build_state(BuildStateInput {
@@ -173,23 +175,23 @@ mod tests {
             let mut out = Vec::new();
             let mut key = root_key();
             let mut state = generator.build_state(BuildStateInput {
-                key,
+                key: key.clone(),
                 parent_state: None,
             });
             out.push((state.seed, state.channels));
 
             for _ in 0..4 {
                 let plan = generator.plan_children(PlanChildrenInput {
-                    key,
+                    key: key.clone(),
                     state: &state,
                     max_children: 1,
                 });
                 let Some(first_child) = plan.first().copied() else {
                     break;
                 };
-                let next_key = child_key(key, first_child);
+                let next_key = child_key(&key, &first_child);
                 let next_state = generator.build_state(BuildStateInput {
-                    key: next_key,
+                    key: next_key.clone(),
                     parent_state: Some(&state),
                 });
                 out.push((next_state.seed, next_state.channels));
@@ -208,22 +210,61 @@ mod tests {
     }
 
     #[test]
+    fn layer_echo_regenerates_deterministically_across_full_71_scale_span() {
+        fn regenerate_full_span(generator: LayerEchoGenerator) -> Vec<(PhenomenonNodeSeed, Vec4)> {
+            let mut out = Vec::new();
+            let mut key = root_key();
+            let mut state = generator.build_state(BuildStateInput {
+                key: key.clone(),
+                parent_state: None,
+            });
+            out.push((state.seed, state.channels));
+
+            for _ in 0..(Scale::SCALE_LEVEL_COUNT as usize - 1) {
+                let plan = generator.plan_children(PlanChildrenInput {
+                    key: key.clone(),
+                    state: &state,
+                    max_children: 1,
+                });
+                let Some(first_child) = plan.first().copied() else {
+                    break;
+                };
+                let next_key = child_key(&key, &first_child);
+                let next_state = generator.build_state(BuildStateInput {
+                    key: next_key.clone(),
+                    parent_state: Some(&state),
+                });
+                out.push((next_state.seed, next_state.channels));
+                key = next_key;
+                state = next_state;
+            }
+
+            out
+        }
+
+        let run_a = regenerate_full_span(LayerEchoGenerator::default());
+        let run_b = regenerate_full_span(LayerEchoGenerator::default());
+        assert_eq!(run_a.len(), Scale::SCALE_LEVEL_COUNT as usize);
+        assert_eq!(run_a, run_b);
+    }
+
+    #[test]
     fn layer_echo_parent_child_reproducibility_from_snapshot() {
         let generator = LayerEchoGenerator::default();
         let parent_key = root_key();
         let parent = generator.build_state(BuildStateInput {
-            key: parent_key,
+            key: parent_key.clone(),
             parent_state: None,
         });
         let child_plan = generator.plan_children(PlanChildrenInput {
-            key: parent_key,
+            key: parent_key.clone(),
             state: &parent,
             max_children: 1,
         })[0];
-        let child_key = child_key(parent_key, child_plan);
+        let child_key = child_key(&parent_key, &child_plan);
 
         let first = generator.build_state(BuildStateInput {
-            key: child_key,
+            key: child_key.clone(),
             parent_state: Some(&parent),
         });
         let second = generator.build_state(BuildStateInput {

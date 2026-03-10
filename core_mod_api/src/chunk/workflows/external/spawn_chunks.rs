@@ -2,10 +2,10 @@
 use crate::bevy::prelude::*;
 
 use crate::chunk::{
-    components::{Chunk, ChunkLoader},
+    components::{Chunk, ChunkDebugWireframe, ChunkLoader},
     resources::ChunkManager,
 };
-use crate::usf::{pos::grid::types::GridVec, scale::Scale};
+use crate::usf::pos::grid::types::GridVec;
 use crate::workflow::types::Outcome;
 
 // Items
@@ -49,22 +49,13 @@ pub enum Error {
 pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, Error> {
     let mut commands = main_access.commands;
     let chunk_query = main_access.chunk_query;
-    let chunk_loader = main_access.chunk_loader_query;
+    let _chunk_loader = main_access.chunk_loader_query;
     let mut chunk_manager = main_access.chunk_manager;
 
     let mut spawn_chunk_states = Vec::new();
-    let mut skipped_outside_window = 0usize;
-    let mut skipped_example = None;
 
     for input in input.inputs {
-        let scale = input.grid_coord.scale;
         let grid_coord = input.grid_coord;
-        let scale_diff = scale as i8 - chunk_loader.coord.scale as i8;
-        if !(0_i8..=Scale::MAX_DIFF_SCALE_EXP).contains(&scale_diff) {
-            skipped_outside_window += 1;
-            skipped_example.get_or_insert((scale, chunk_loader.coord.scale, scale_diff));
-            continue;
-        }
 
         if chunk_query.iter().any(|chunk| chunk.coord == grid_coord) {
             return Err(Error::ChunkAlreadyLoaded { grid_coord });
@@ -80,7 +71,14 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
 
         let chunk_name = Name::new(format!("chunk_entity({grid_coord:?})"));
 
-        let chunk_entity = commands.spawn((chunk_transform, Chunk { coord: grid_coord.clone() }, chunk_name)).id();
+        let chunk_entity = commands
+            .spawn((
+                chunk_transform,
+                Chunk { coord: grid_coord.clone() },
+                ChunkDebugWireframe,
+                chunk_name,
+            ))
+            .id();
 
         chunk_manager.chunks.insert(grid_coord.clone());
 
@@ -88,18 +86,6 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
             chunk_entity,
             is_spawned: false,
         });
-    }
-
-    if skipped_outside_window > 0 {
-        let (coord_scale, loader_scale, scale_diff) = skipped_example.unwrap();
-        warn!(
-            "Skipped {} chunk spawns outside viewport scale window (example: coord_scale={:?}, loader_scale={:?}, scale_diff={}, max_diff={})",
-            skipped_outside_window,
-            coord_scale,
-            loader_scale,
-            scale_diff,
-            Scale::MAX_DIFF_SCALE_EXP
-        );
     }
 
     Ok(State { spawn_chunk_states })

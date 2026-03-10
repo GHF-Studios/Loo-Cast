@@ -8,7 +8,7 @@ pub(crate) fn update_follower_system(
     mut follower_target_lifecycle_message_reader: MessageReader<FollowerTargetLifecycleMessage>,
     mut param_set: ParamSet<(Query<(Entity, &mut Transform, &mut Follower)>, Query<(&FollowerTarget, &Transform)>)>,
     time: Res<Time<Virtual>>,
-    mut previous_target_positions: Local<HashMap<String, Vec2>>,
+    mut previous_target_positions: Local<HashMap<String, Vec3>>,
 ) {
     process_lifecycle_messages(&mut follower_target_lifecycle_message_reader, &mut param_set.p0());
     let targets = collect_target_positions(&mut param_set.p1());
@@ -65,7 +65,7 @@ fn update_followers(
     followers_query: &mut Query<(Entity, &mut Transform, &mut Follower)>,
     targets: &HashMap<String, Vec3>,
     time: &Res<Time<Virtual>>,
-    previous_target_positions: &mut HashMap<String, Vec2>,
+    previous_target_positions: &mut HashMap<String, Vec3>,
 ) {
     // Track jump discontinuities in followed targets (e.g. USF border fold) so followers
     // preserve their current lag offset instead of gliding back toward a wrapped position.
@@ -73,40 +73,36 @@ fn update_followers(
 
     for (_, mut follower_transform, mut follower) in followers_query.iter_mut() {
         if let Some(target_position) = follower.get_followed_entity().and_then(|_| targets.get(&follower.follow_id)) {
-            let target_pos_2d = target_position.truncate();
-            let previous_target_pos = previous_target_positions.insert(follower.follow_id.clone(), target_pos_2d);
+            let previous_target_pos = previous_target_positions.insert(follower.follow_id.clone(), *target_position);
 
             match previous_target_pos {
                 Some(previous_target_pos) => {
-                    let target_jump_delta = target_pos_2d - previous_target_pos;
+                    let target_jump_delta = *target_position - previous_target_pos;
                     if target_jump_delta.length_squared() >= TARGET_JUMP_SNAP_DISTANCE * TARGET_JUMP_SNAP_DISTANCE {
                         // Apply the same target jump to the camera to keep relative lag intact.
-                        follower_transform.translation.x += target_jump_delta.x;
-                        follower_transform.translation.y += target_jump_delta.y;
+                        follower_transform.translation += target_jump_delta;
                         continue;
                     }
                 }
                 None => {
                     // First frame after assignment should align with current target.
-                    let aligned_target = target_pos_2d + follower.offset;
-                    follower_transform.translation.x = aligned_target.x;
-                    follower_transform.translation.y = aligned_target.y;
+                    follower_transform.translation = *target_position + follower.offset;
                     continue;
                 }
             };
 
-            update_follower_position(&mut follower, &mut follower_transform, target_pos_2d, time);
+            update_follower_position(&mut follower, &mut follower_transform, *target_position, time);
         }
     }
 }
 
-fn update_follower_position(follower: &mut Follower, follower_transform: &mut Transform, target_position: Vec2, time: &Res<Time<Virtual>>) {
+fn update_follower_position(follower: &mut Follower, follower_transform: &mut Transform, target_position: Vec3, time: &Res<Time<Virtual>>) {
     if follower.smoothness < 0.0 {
         warn!("Smoothness value for follower '{}' is less than 0. Clamping to 0.", follower.follow_id);
         follower.smoothness = 0.0;
     }
 
-    let target_position_2d = target_position + follower.offset;
+    let target_position_with_offset = target_position + follower.offset;
     // Clamp smoothing delta so post-load frame hitches don't collapse the intended follow lag.
     const MAX_SMOOTHING_DT_SECS: f32 = 1.0 / 30.0;
     let smoothing_dt_secs = time.delta_secs().min(MAX_SMOOTHING_DT_SECS);
@@ -117,7 +113,5 @@ fn update_follower_position(follower: &mut Follower, follower_transform: &mut Tr
         1.0 - (-smoothing_dt_secs / follower.smoothness).exp()
     };
 
-    follower_transform.translation = follower_transform
-        .translation
-        .lerp(target_position_2d.extend(follower_transform.translation.z), interpolation_factor);
+    follower_transform.translation = follower_transform.translation.lerp(target_position_with_offset, interpolation_factor);
 }

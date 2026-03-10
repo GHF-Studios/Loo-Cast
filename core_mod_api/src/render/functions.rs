@@ -83,6 +83,8 @@ pub fn new_phenomenon_model_proxy_bundle(pos: Vec3, visual_scale: f32, source_en
             source: source_entity,
             layer_index: coord_scale.render_layer_index(),
             depth_bias,
+            frontier_node_seed: 0,
+            frontier_lineage_depth: 0,
             window_mode: RenderProxyWindowMode::WindowedSubsection,
             window_center_local: Vec3::ZERO,
             window_size_local: Vec3::ONE,

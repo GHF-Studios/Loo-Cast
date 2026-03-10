@@ -287,8 +287,14 @@ fn sprite_picking_backend_inner<OC: OntologicalContext>(
         })
         .collect();
 
-    // radsort is a stable radix sort that performed better than `slice::sort_by_key` (according to bevy's source code)
-    radsort::sort_by_key(&mut sorted_sprites, |(_, _, transform, _)| -transform.translation().z);
+    let world_to_camera = main_camera_transform.affine().inverse();
+    sorted_sprites.sort_by(|(_, _, transform_a, _), (_, _, transform_b, _)| {
+        let depth_a = world_to_camera.transform_point3(transform_a.translation()).z;
+        let depth_b = world_to_camera.transform_point3(transform_b.translation()).z;
+        depth_b
+            .partial_cmp(&depth_a)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
 
     let mut blocked = false;
     let viewport_size = game_view_render_target.size;
@@ -357,7 +363,7 @@ fn sprite_picking_backend_inner<OC: OntologicalContext>(
             // Find where the cursor segment intersects the plane Z=0 (which is the sprite's
             // plane in sprite-local space). It may not intersect if, for example, we're
             // viewing the sprite side-on
-            if cursor_start_sprite.z == cursor_end_sprite.z {
+            if (cursor_start_sprite.z - cursor_end_sprite.z).abs() <= f32::EPSILON {
                 // Cursor ray is parallel to the sprite and misses it
                 warn!("Cursor ray parallel to sprite plane");
                 return None;
@@ -371,9 +377,9 @@ fn sprite_picking_backend_inner<OC: OntologicalContext>(
                 warn!("Cursor ray does not intersect sprite plane within segment");
                 return None;
             }
-            // Otherwise we can interpolate the xy of the start and end positions by the
-            // lerp factor to get the cursor position in sprite space!
-            let cursor_pos_sprite = cursor_start_sprite.lerp(cursor_end_sprite, lerp_factor).xy();
+            // Otherwise we can interpolate the full local-space hit point and project to XY for sprite sampling.
+            let cursor_pos_sprite_3d = cursor_start_sprite.lerp(cursor_end_sprite, lerp_factor);
+            let cursor_pos_sprite = Vec2::new(cursor_pos_sprite_3d.x, cursor_pos_sprite_3d.y);
 
             let Ok(cursor_pos_sprite_pixel) =
                 sprite.compute_pixel_space_point(cursor_pos_sprite, *anchor, images, texture_atlas_layout)
@@ -414,7 +420,7 @@ fn sprite_picking_backend_inner<OC: OntologicalContext>(
             blocked = cursor_in_valid_pixels_of_sprite;
 
             cursor_in_valid_pixels_of_sprite.then(|| {
-                let hit_pos_world = sprite_transform.transform_point(cursor_pos_sprite.extend(0.0));
+                let hit_pos_world = sprite_transform.transform_point(cursor_pos_sprite_3d);
 
                 // Transform point from world to camera space to get the Z distance
                 let hit_pos_cam = main_camera_transform.affine().inverse().transform_point3(hit_pos_world);

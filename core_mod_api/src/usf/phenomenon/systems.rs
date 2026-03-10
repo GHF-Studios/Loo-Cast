@@ -1,10 +1,13 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::bevy::prelude::*;
+use crate::chunk::components::ChunkLoader;
+use crate::player::components::Player;
 
 use crate::usf::phenomenon::components::{Phenomenon, PhenomenonNode, PhenomenonNodeLifecycle, PhenomenonNodeState, PhenomenonRootNodeRef};
 use crate::usf::phenomenon::generator::{BuildStateInput, PhenomenonGenerator, PlanChildrenInput};
-use crate::usf::phenomenon::types::{PhenomenonId, PhenomenonNodeKey, PhenomenonNodeSeed};
+use crate::usf::phenomenon::types::{PhenomenonId, PhenomenonLineage, PhenomenonNodeKey, PhenomenonNodeSeed};
+use crate::usf::pos::types::LocalCell3;
 use crate::usf::scale::Scale;
 
 use super::generators::layer_echo::LayerEchoGenerator;
@@ -14,13 +17,15 @@ use super::generators::layer_echo::LayerEchoGenerator;
 pub struct PhenomenonLifecyclePolicy {
     pub max_depth: u32,
     pub max_children_per_node: u32,
+    pub frontier_margin: u32,
 }
 
 impl Default for PhenomenonLifecyclePolicy {
     fn default() -> Self {
         Self {
-            max_depth: 4,
-            max_children_per_node: 4,
+            max_depth: (Scale::SCALE_LEVEL_COUNT - 1) as u32,
+            max_children_per_node: 1,
+            frontier_margin: 2,
         }
     }
 }
@@ -42,7 +47,26 @@ pub struct PhenomenonDebugStats {
 
 #[inline]
 fn is_canonical_root_node(node: &PhenomenonNode) -> bool {
-    node.parent.is_none() && node.scale == Scale::MAX && node.cell3 == IVec3::ZERO && node.local_index == 0
+    node.parent.is_none()
+        && node.scale == Scale::MAX
+        && node.local_cell == LocalCell3::ZERO
+        && node.local_index == 0
+        && node.lineage.cells.len() == 1
+        && node.lineage.leaf() == Some(LocalCell3::ZERO)
+}
+
+pub(super) fn sync_policy_depth_to_frontier_scale_system(
+    player_loader_query: Query<&ChunkLoader, With<Player>>,
+    mut policy: ResMut<PhenomenonLifecyclePolicy>,
+) {
+    let Ok(chunk_loader) = player_loader_query.single() else {
+        return;
+    };
+    let frontier_depth = chunk_loader.phenomenon_frontier_view().scale.index_from_top() as u32;
+    let max_allowed_depth = (Scale::SCALE_LEVEL_COUNT - 1) as u32;
+    policy.max_depth = frontier_depth
+        .saturating_add(policy.frontier_margin)
+        .min(max_allowed_depth);
 }
 
 pub(super) fn ensure_root_nodes_system(
@@ -69,12 +93,12 @@ pub(super) fn ensure_root_nodes_system(
         let key = PhenomenonNodeKey {
             phenomenon_id: phenomenon.id,
             scale: Scale::MAX,
-            cell3: IVec3::ZERO,
+            lineage: PhenomenonLineage::root(),
             parent: None,
             local_index: 0,
         };
         let snapshot = generator_state.layer_echo.build_state(BuildStateInput {
-            key,
+            key: key.clone(),
             parent_state: None,
         });
         let root_entity = commands
@@ -113,17 +137,17 @@ pub(super) fn expand_phenomenon_frontier_system(
             let child_key = PhenomenonNodeKey {
                 phenomenon_id: node.phenomenon_id,
                 scale: child.scale,
-                cell3: child.cell3,
+                lineage: node.lineage.pushed(child.local_cell),
                 parent: Some(node.seed),
                 local_index: child.local_index,
             };
-            let child_seed = child_key.deterministic_seed();
+            let child_seed = child_key.clone().deterministic_seed();
             if existing_seeds.contains(&child_seed) {
                 continue;
             }
 
             let child_snapshot = generator_state.layer_echo.build_state(BuildStateInput {
-                key: child_key,
+                key: child_key.clone(),
                 parent_state: Some(&node_state.snapshot),
             });
             let child_node = PhenomenonNode::from_key(child_key);
@@ -278,12 +302,15 @@ mod tests {
         let bad_root_key = PhenomenonNodeKey {
             phenomenon_id: PhenomenonId(77),
             scale: Scale::MAX.zoomed_in(),
-            cell3: IVec3::new(1, 0, 0),
+            lineage: PhenomenonLineage::from_cells(vec![
+                LocalCell3::new_local(0, 0, 0),
+                LocalCell3::new_local(1, 0, 0),
+            ]),
             parent: None,
             local_index: 5,
         };
         app.world_mut().spawn((
-            PhenomenonNode::from_key(bad_root_key),
+            PhenomenonNode::from_key(bad_root_key.clone()),
             PhenomenonNodeState {
                 snapshot: PhenomenonStateSnapshot {
                     seed: bad_root_key.deterministic_seed(),

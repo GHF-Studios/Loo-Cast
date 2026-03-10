@@ -15,9 +15,12 @@ pub use generator::{
 pub use generators::layer_echo::LayerEchoGenerator;
 pub use meshing::{PHENOMENON_SEAM_LATTICE_DENOM, PhenomenonLatticeWindow, seam_safe_lattice_window};
 pub use systems::{PhenomenonDebugStats, PhenomenonGeneratorState, PhenomenonLifecyclePolicy};
-pub use types::{PhenomenonId, PhenomenonKind, PhenomenonNodeKey, PhenomenonNodeSeed};
+pub use types::{PhenomenonId, PhenomenonKind, PhenomenonLineage, PhenomenonNodeKey, PhenomenonNodeSeed};
 
-use systems::{despawn_invalid_nodes_system, ensure_root_nodes_system, expand_phenomenon_frontier_system, refresh_active_node_stats_system};
+use systems::{
+    despawn_invalid_nodes_system, ensure_root_nodes_system, expand_phenomenon_frontier_system, refresh_active_node_stats_system,
+    sync_policy_depth_to_frontier_scale_system,
+};
 
 pub(crate) struct PhenomenonPlugin;
 impl Plugin for PhenomenonPlugin {
@@ -28,6 +31,7 @@ impl Plugin for PhenomenonPlugin {
             .add_systems(
                 Update,
                 (
+                    sync_policy_depth_to_frontier_scale_system,
                     ensure_root_nodes_system,
                     expand_phenomenon_frontier_system.after(ensure_root_nodes_system),
                     despawn_invalid_nodes_system.after(expand_phenomenon_frontier_system),
