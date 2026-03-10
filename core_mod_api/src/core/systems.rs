@@ -64,8 +64,8 @@ pub(super) fn ensure_entity_proxy_links_system(
                     layer_index: 0,
                     depth_bias: 0.0,
                     window_mode: RenderProxyWindowMode::WindowedSubsection,
-                    window_center_local: Vec2::ZERO,
-                    window_size_local: Vec2::ONE,
+                    window_center_local: Vec3::ZERO,
+                    window_size_local: Vec3::ONE,
                     coarse_context_persistent: true,
                 },
                 ProxySyncRevision::default(),
@@ -169,7 +169,7 @@ pub(super) fn sync_logic_proxies_from_main_entities_system(
         if link.root_transform_contract_is_ub {
             let main_coord = chunk_actor.coord.clone();
             let z = main_coord.scale.compute_z();
-            let (pos, scale) = main_coord.to_native_visual_3d(origin_offset.clone());
+            let (pos, scale) = main_coord.to_native_visual(origin_offset.clone());
             logic_transform.translation = Vec3::new(pos.x, pos.y, pos.z + z);
             logic_transform.rotation = Quat::IDENTITY;
             logic_transform.scale = Vec3::splat(scale);

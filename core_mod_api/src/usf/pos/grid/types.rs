@@ -78,7 +78,7 @@ impl GridVec {
         GridVecBuilder::new()
     }
 
-    /// Create a GridVec with all ancestors up to the root at Scale::MAX, pre-filled with IVec2::ZERO.
+    /// Create a GridVec with all ancestors up to the root at Scale::MAX, pre-filled with IVec3::ZERO.
     pub fn default_n(count: usize) -> Self {
         Self::build().repeat_n(count, |b| b.default_xyz()).finish()
     }
@@ -152,13 +152,14 @@ impl GridVec {
 
     /// Create a GridVec at the absolute root (Scale::MAX) with no parent.
     #[track_caller]
-    pub fn new_root(xy: IVec2) -> Self {
-        Self::validate_xy(&xy);
+    pub fn new_root(xyz: IVec3) -> Self {
+        Self::validate_xy(&xyz.xy());
+        Self::validate_z(xyz.z);
         let mut my_self = Self {
             parent: None,
             scale: Scale::MAX,
-            xy,
-            z: 0,
+            xy: xyz.xy(),
+            z: xyz.z,
         };
         my_self.normalize();
         my_self
@@ -166,12 +167,12 @@ impl GridVec {
 
     /// Create a GridVec at the absolute root (Scale::MAX) with no parent.
     #[track_caller]
-    pub fn new_root_unchecked(xy: IVec2) -> Self {
+    pub fn new_root_unchecked(xyz: IVec3) -> Self {
         let mut my_self = Self {
             parent: None,
             scale: Scale::MAX,
-            xy,
-            z: 0,
+            xy: xyz.xy(),
+            z: xyz.z,
         };
         my_self.normalize();
         my_self
@@ -179,77 +180,90 @@ impl GridVec {
 
     /// Create a GridVec with the specified parent and xy. The parent can be thought of as a stack onto which we push another level.
     #[track_caller]
-    pub fn new(parent: GridVec, xy: IVec2) -> Self {
-        Self::validate_xy(&xy);
+    pub fn new(parent: GridVec, xyz: IVec3) -> Self {
+        Self::validate_xy(&xyz.xy());
+        Self::validate_z(xyz.z);
         if parent.scale == Scale::MIN {
             panic!("Cannot create a child GridVec from a parent at Scale::MIN, as there is no smaller scale.");
         }
         let scale = parent.scale.zoomed_in();
         let parent = Some(Arc::new(parent));
 
-        let mut my_self = Self { parent, scale, xy, z: 0 };
+        let mut my_self = Self {
+            parent,
+            scale,
+            xy: xyz.xy(),
+            z: xyz.z,
+        };
         my_self.normalize();
         my_self
     }
 
     /// Create a GridVec with the specified parent and xy. The parent can be thought of as a stack onto which we push another level.
     #[track_caller]
-    pub fn new_unchecked(parent: GridVec, xy: IVec2) -> Self {
+    pub fn new_unchecked(parent: GridVec, xyz: IVec3) -> Self {
         let scale = parent.scale.zoomed_in();
         let parent = Some(Arc::new(parent));
 
-        let mut my_self = Self { parent, scale, xy, z: 0 };
-        my_self.normalize();
-        my_self
-    }
-
-    /// Create a GridVec with all ancestors up, from the specified scale to the root at Scale::MAX, pre-filled with IVec2::ZERO, except for the leaf at the specified scale, which is set to the specified xy.
-    #[track_caller]
-    pub fn new_at_scale(scale: Scale, xy: IVec2) -> Self {
-        Self::validate_xy(&xy);
-        if scale == Scale::MAX {
-            return Self::new_root(xy);
-        }
-
-        let mut current = Self::new_root(IVec2::ZERO);
-        let mut current_scale = Scale::MAX;
-
-        while current_scale > scale {
-            current_scale = current_scale.zoomed_in();
-            current = Self::new(current, IVec2::ZERO);
-        }
-
         let mut my_self = Self {
-            parent: current.parent,
+            parent,
             scale,
-            xy,
-            z: 0,
+            xy: xyz.xy(),
+            z: xyz.z,
         };
         my_self.normalize();
         my_self
     }
 
-    /// Create a GridVec with all ancestors, from the specified scale up to the root at Scale::MAX, pre-filled with the specified xy.
+    /// Create a GridVec with all ancestors up, from the specified scale to the root at Scale::MAX, pre-filled with IVec3::ZERO, except for the leaf at the specified scale, which is set to the specified xyz.
     #[track_caller]
-    pub fn new_splat(scale: Scale, xy: IVec2) -> Self {
-        Self::validate_xy(&xy);
+    pub fn new_at_scale(scale: Scale, xyz: IVec3) -> Self {
+        Self::validate_xy(&xyz.xy());
+        Self::validate_z(xyz.z);
         if scale == Scale::MAX {
-            return Self::new_root(xy);
+            return Self::new_root(xyz);
         }
 
-        let mut current = Self::new_root(xy);
+        let mut current = Self::new_root(IVec3::ZERO);
         let mut current_scale = Scale::MAX;
 
         while current_scale > scale {
             current_scale = current_scale.zoomed_in();
-            current = Self::new(current, xy);
+            current = Self::new(current, IVec3::ZERO);
         }
 
         let mut my_self = Self {
             parent: current.parent,
             scale,
-            xy,
-            z: 0,
+            xy: xyz.xy(),
+            z: xyz.z,
+        };
+        my_self.normalize();
+        my_self
+    }
+
+    /// Create a GridVec with all ancestors, from the specified scale up to the root at Scale::MAX, pre-filled with the specified xyz.
+    #[track_caller]
+    pub fn new_splat(scale: Scale, xyz: IVec3) -> Self {
+        Self::validate_xy(&xyz.xy());
+        Self::validate_z(xyz.z);
+        if scale == Scale::MAX {
+            return Self::new_root(xyz);
+        }
+
+        let mut current = Self::new_root(xyz);
+        let mut current_scale = Scale::MAX;
+
+        while current_scale > scale {
+            current_scale = current_scale.zoomed_in();
+            current = Self::new(current, xyz);
+        }
+
+        let mut my_self = Self {
+            parent: current.parent,
+            scale,
+            xy: xyz.xy(),
+            z: xyz.z,
         };
         my_self.normalize();
         my_self
@@ -283,13 +297,9 @@ impl GridVec {
             return Err("Too many levels in GridVec::from_raw");
         }
 
-        let mut current = GridVec::new_root(raw[0].xy());
-        current.z = raw[0].z;
-        current.normalize();
+        let mut current = GridVec::new_root(raw[0]);
         for &xyz in &raw[1..] {
-            let mut next = GridVec::new(current, xyz.xy());
-            next.z = xyz.z;
-            next.normalize();
+            let next = GridVec::new(current, xyz);
             current = next;
         }
 
@@ -384,27 +394,7 @@ impl GridVec {
     /// - Assumes that the given `scale` is greater than or equal to that of `self`.
     /// - Assumes that the parent of `grid_diff` is the same as `self`'s parent.
     #[track_caller]
-    pub fn from_native_logical(origin: Self, (native_logical_pos, scale): (Vec2, Scale)) -> Self {
-        assert!(scale == origin.scale);
-        let unit_offset_x = native_logical_pos.x / 1000.0;
-        let unit_offset_y = native_logical_pos.y / 1000.0;
-
-        let diff_x = unit_offset_x.round() as i32;
-        let diff_y = unit_offset_y.round() as i32;
-
-        let diff = GridVec {
-            parent: origin.parent.clone(),
-            scale,
-            xy: IVec2::new(diff_x, diff_y),
-            z: 0,
-        };
-
-        origin + diff
-    }
-
-    /// 3D variant of native logical conversion.
-    #[track_caller]
-    pub fn from_native_logical_3d(origin: Self, (native_logical_pos, scale): (Vec3, Scale)) -> Self {
+    pub fn from_native_logical(origin: Self, (native_logical_pos, scale): (Vec3, Scale)) -> Self {
         assert!(scale == origin.scale);
         let unit_offset_x = native_logical_pos.x / 1000.0;
         let unit_offset_y = native_logical_pos.y / 1000.0;
@@ -423,31 +413,7 @@ impl GridVec {
     /// - Assumes that the given `scale` is greater than or equal to that of `self`.
     /// - Assumes that the parent of `grid_diff` is the same as `self`'s parent.
     #[track_caller]
-    pub fn from_native_visual(origin: Self, native_visual_pos: Vec2, scale: Scale) -> Self {
-        assert!(scale == origin.scale);
-        let scale_diff = scale as i8 - origin.scale as i8;
-        let scale_factor = 10.0_f32.powi(scale_diff as i32);
-        let native_unit = 1000.0 * scale_factor;
-
-        let unit_offset_x = native_visual_pos.x / native_unit;
-        let unit_offset_y = native_visual_pos.y / native_unit;
-
-        let diff_x = unit_offset_x.round() as i32;
-        let diff_y = unit_offset_y.round() as i32;
-
-        let diff = GridVec {
-            parent: origin.parent.clone(),
-            scale,
-            xy: IVec2::new(diff_x, diff_y),
-            z: 0,
-        };
-
-        origin + diff
-    }
-
-    /// 3D variant of native visual conversion.
-    #[track_caller]
-    pub fn from_native_visual_3d(origin: Self, native_visual_pos: Vec3, scale: Scale) -> Self {
+    pub fn from_native_visual(origin: Self, native_visual_pos: Vec3, scale: Scale) -> Self {
         assert!(scale == origin.scale);
         let scale_diff = scale as i8 - origin.scale as i8;
         let scale_factor = 10.0_f32.powi(scale_diff as i32);
@@ -469,45 +435,7 @@ impl GridVec {
     /// - Assumes that `self`'s scale is greater than or equal to that of `origin`.
     /// - Assumes that the parent of `self` is the same as `origin`'s parent.
     #[track_caller]
-    pub fn to_native_logical(self, origin: Self) -> Vec2 {
-        assert!(self.scale >= origin.scale);
-        let scale_diff = self.scale as i8 - origin.scale as i8;
-        let self_unit = UnitVec {
-            grid_offset: self.clone(),
-            unit_offset: Vec3::ZERO,
-        };
-        let origin_unit = UnitVec {
-            grid_offset: origin.clone(),
-            unit_offset: Vec3::ZERO,
-        };
-        let diff_unit = self_unit - origin_unit;
-        // Keep native spacing invariant (1000.0) and derive cross-scale distance from the
-        // grid stack significance itself (leaf=10^0, parent=10^1, ...).
-        let native_unit = 1000.0_f64;
-        let acc = Self::accumulate_grid_units(&diff_unit.grid_offset);
-        // Grid digits are centered in a [-5, 4] domain; when comparing a coarser
-        // chunk against a finer origin, missing lower digits imply a half-cell bias.
-        // Sum_{k=0..d-1}(10^k) * 0.5 converts that bias into origin-scale units.
-        let center_bias_units = if scale_diff > 0 {
-            0.5 * ((10.0_f64.powi(scale_diff as i32) - 1.0) / 9.0)
-        } else {
-            0.0
-        };
-        let native_x = ((acc.0 - center_bias_units) * native_unit) as f32;
-        let native_y = ((acc.1 - center_bias_units) * native_unit) as f32;
-        if !native_x.is_finite() || !native_y.is_finite() {
-            panic!(
-                "USF native logical conversion panic: non-finite viewport coords, native=({native_x}, {native_y}), acc=({:.3e}, {:.3e}), self_scale={:?}, origin_scale={:?}",
-                acc.0, acc.1, self.scale, origin.scale
-            );
-        }
-
-        Vec2::new(native_x, native_y)
-    }
-
-    /// 3D variant of native logical conversion.
-    #[track_caller]
-    pub fn to_native_logical_3d(self, origin: Self) -> Vec3 {
+    pub fn to_native_logical(self, origin: Self) -> Vec3 {
         assert!(self.scale >= origin.scale);
         let scale_diff = self.scale as i8 - origin.scale as i8;
         let self_unit = UnitVec {
@@ -542,47 +470,7 @@ impl GridVec {
     /// - Assumes that `self`'s scale is greater than or equal to that of `origin`.
     /// - Assumes that the parent of `self` is the same as `origin`'s parent.
     #[track_caller]
-    pub fn to_native_visual(self, origin: Self) -> (Vec2, f32) {
-        assert!(self.scale >= origin.scale);
-        let scale_diff = self.scale as i8 - origin.scale as i8;
-        let self_unit = UnitVec {
-            grid_offset: self.clone(),
-            unit_offset: Vec3::ZERO,
-        };
-        let origin_unit = UnitVec {
-            grid_offset: origin.clone(),
-            unit_offset: Vec3::ZERO,
-        };
-        let diff_unit = self_unit - origin_unit;
-
-        let scale = 10.0_f32.powi(scale_diff as i32);
-        // Translation spacing remains in native 1000.0 units; visual size scaling is returned
-        // separately via `scale`.
-        let native_unit = 1000.0_f64;
-        let acc = Self::accumulate_grid_units(&diff_unit.grid_offset);
-        // Grid digits are centered in a [-5, 4] domain; when comparing a coarser
-        // chunk against a finer origin, missing lower digits imply a half-cell bias.
-        // Sum_{k=0..d-1}(10^k) * 0.5 converts that bias into origin-scale units.
-        let center_bias_units = if scale_diff > 0 {
-            0.5 * ((10.0_f64.powi(scale_diff as i32) - 1.0) / 9.0)
-        } else {
-            0.0
-        };
-        let native_x = ((acc.0 - center_bias_units) * native_unit) as f32;
-        let native_y = ((acc.1 - center_bias_units) * native_unit) as f32;
-        if !native_x.is_finite() || !native_y.is_finite() {
-            panic!(
-                "USF native visual conversion panic: non-finite viewport coords, native=({native_x}, {native_y}), acc=({:.3e}, {:.3e}), self_scale={:?}, origin_scale={:?}",
-                acc.0, acc.1, self.scale, origin.scale
-            );
-        }
-
-        (Vec2::new(native_x, native_y), scale)
-    }
-
-    /// 3D variant of native visual conversion.
-    #[track_caller]
-    pub fn to_native_visual_3d(self, origin: Self) -> (Vec3, f32) {
+    pub fn to_native_visual(self, origin: Self) -> (Vec3, f32) {
         assert!(self.scale >= origin.scale);
         let scale_diff = self.scale as i8 - origin.scale as i8;
         let self_unit = UnitVec {
@@ -725,18 +613,6 @@ impl std::hash::Hash for GridVec {
         self.clone().normalized().to_raw_vec_3d().hash(state);
     }
 }
-impl std::ops::Add<IVec2> for GridVec {
-    type Output = Self;
-
-    #[track_caller]
-    fn add(mut self, rhs: IVec2) -> Self::Output {
-        self.xy += rhs;
-        if Self::try_validate_xy(&self.xy).is_err() {
-            self.normalize();
-        }
-        self
-    }
-}
 impl std::ops::Add<IVec3> for GridVec {
     type Output = Self;
 
@@ -750,15 +626,6 @@ impl std::ops::Add<IVec3> for GridVec {
         self
     }
 }
-impl std::ops::AddAssign<IVec2> for GridVec {
-    #[track_caller]
-    fn add_assign(&mut self, rhs: IVec2) {
-        self.xy += rhs;
-        if Self::try_validate_xy(&self.xy).is_err() {
-            self.normalize();
-        }
-    }
-}
 impl std::ops::AddAssign<IVec3> for GridVec {
     #[track_caller]
     fn add_assign(&mut self, rhs: IVec3) {
@@ -767,18 +634,6 @@ impl std::ops::AddAssign<IVec3> for GridVec {
         if Self::try_validate_xy(&self.xy).is_err() || Self::try_validate_z(self.z).is_err() {
             self.normalize();
         }
-    }
-}
-impl std::ops::Sub<IVec2> for GridVec {
-    type Output = Self;
-
-    #[track_caller]
-    fn sub(mut self, rhs: IVec2) -> Self::Output {
-        self.xy -= rhs;
-        if Self::try_validate_xy(&self.xy).is_err() {
-            self.normalize();
-        }
-        self
     }
 }
 impl std::ops::Sub<IVec3> for GridVec {
@@ -792,15 +647,6 @@ impl std::ops::Sub<IVec3> for GridVec {
             self.normalize();
         }
         self
-    }
-}
-impl std::ops::SubAssign<IVec2> for GridVec {
-    #[track_caller]
-    fn sub_assign(&mut self, rhs: IVec2) {
-        self.xy -= rhs;
-        if Self::try_validate_xy(&self.xy).is_err() {
-            self.normalize();
-        }
     }
 }
 impl std::ops::SubAssign<IVec3> for GridVec {
@@ -969,24 +815,6 @@ impl std::ops::SubAssign<GridVec> for GridVec {
         *self = self.clone() - rhs;
     }
 }
-impl std::convert::TryFrom<Vec<IVec2>> for GridVec {
-    type Error = &'static str;
-
-    fn try_from(stack: Vec<IVec2>) -> Result<Self, Self::Error> {
-        if stack.is_empty() {
-            return Err("GridVec stack must contain at least one element");
-        }
-
-        let mut iter = stack.into_iter();
-        let mut current = GridVec::new_root(iter.next().unwrap());
-
-        for xy in iter {
-            current = GridVec::new(current, xy);
-        }
-
-        Ok(current)
-    }
-}
 impl std::convert::TryFrom<Vec<IVec3>> for GridVec {
     type Error = &'static str;
 
@@ -997,14 +825,10 @@ impl std::convert::TryFrom<Vec<IVec3>> for GridVec {
 
         let mut iter = stack.into_iter();
         let first = iter.next().unwrap();
-        let mut current = GridVec::new_root(first.xy());
-        current.z = first.z;
-        current.normalize();
+        let mut current = GridVec::new_root(first);
 
         for xyz in iter {
-            let mut next = GridVec::new(current, xyz.xy());
-            next.z = xyz.z;
-            next.normalize();
+            let next = GridVec::new(current, xyz);
             current = next;
         }
 

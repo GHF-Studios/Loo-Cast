@@ -29,8 +29,8 @@ pub struct RenderProxy {
     pub layer_index: u8,
     pub depth_bias: f32,
     pub window_mode: RenderProxyWindowMode,
-    pub window_center_local: Vec2,
-    pub window_size_local: Vec2,
+    pub window_center_local: Vec3,
+    pub window_size_local: Vec3,
     pub coarse_context_persistent: bool,
 }
 

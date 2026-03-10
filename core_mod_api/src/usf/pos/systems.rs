@@ -20,7 +20,7 @@ pub(crate) fn update_managed_positions(
 
     let grid_origin = GridVec::from_native_logical(
         GridVec::default_n((chunk_loader.scale.index_from_top() + 1) as usize),
-        (loader_transform.translation.truncate(), chunk_loader.scale),
+        (loader_transform.translation, chunk_loader.scale),
     );
 
     // DEPRECATED (I think?)
@@ -46,7 +46,7 @@ pub(crate) fn update_managed_positions(
     chunk_actor.coord = grid_origin;
 
     for (transform, mut actor) in chunk_actor_query.iter_mut() {
-        let new_coord = GridVec::from_native_logical(GridVec::default(), (transform.translation.truncate(), actor.coord.scale));
+        let new_coord = GridVec::from_native_logical(GridVec::default(), (transform.translation, actor.coord.scale));
         actor.coord = new_coord;
     }
 }
@@ -58,10 +58,14 @@ pub(crate) fn realign_origin_offset_system(mut chunk_loader: Single<(&mut Transf
     // Re-align origin_offset
     let (ref mut transform, ref mut chunk_loader) = *chunk_loader;
     let unit_pos = crate::usf::pos::unit::types::UnitVec::new(chunk_loader.origin_offset.clone(), transform.translation); // `UnitVec::new` internally normalizes the position based on the current origin_offset; does the heavy lifting for us
-    let grid_diff = unit_pos.grid_offset.xy - chunk_loader.origin_offset.xy;
+    let grid_diff = IVec3::new(
+        unit_pos.grid_offset.xy.x - chunk_loader.origin_offset.xy.x,
+        unit_pos.grid_offset.xy.y - chunk_loader.origin_offset.xy.y,
+        unit_pos.grid_offset.z - chunk_loader.origin_offset.z,
+    );
     let threshold = CONFIG().get::<u8>("usf/pos/origin_offset_threshold") as i32;
 
-    if grid_diff.x.abs() >= threshold || grid_diff.y.abs() >= threshold {
+    if grid_diff.x.abs() >= threshold || grid_diff.y.abs() >= threshold || grid_diff.z.abs() >= threshold {
         chunk_loader.origin_offset = unit_pos.grid_offset;
     }
     transform.translation = unit_pos.unit_offset;
@@ -86,9 +90,13 @@ pub(crate) fn apply_new_origin_offset_system(
         let unit_pos = UnitVec::new(chunk_loader.origin_offset.clone(), transform.translation);
 
         if unit_pos.grid_offset != chunk_loader.origin_offset {
-            let grid_diff = unit_pos.grid_offset.xy - chunk_loader.origin_offset.clone().xy;
+            let grid_diff = IVec3::new(
+                unit_pos.grid_offset.xy.x - chunk_loader.origin_offset.xy.x,
+                unit_pos.grid_offset.xy.y - chunk_loader.origin_offset.xy.y,
+                unit_pos.grid_offset.z - chunk_loader.origin_offset.z,
+            );
 
-            let mut unit_diff = Vec2::ZERO;
+            let mut unit_diff = Vec3::ZERO;
 
             if grid_diff.x.abs() >= origin_offset_threshold as i32 {
                 unit_diff.x = grid_diff.x as f32 * 1000.0;
@@ -96,9 +104,13 @@ pub(crate) fn apply_new_origin_offset_system(
             if grid_diff.y.abs() >= origin_offset_threshold as i32 {
                 unit_diff.y = grid_diff.y as f32 * 1000.0;
             }
+            if grid_diff.z.abs() >= origin_offset_threshold as i32 {
+                unit_diff.z = grid_diff.z as f32 * 1000.0;
+            }
 
             transform.translation.x -= unit_diff.x;
             transform.translation.y -= unit_diff.y;
+            transform.translation.z -= unit_diff.z;
             chunk.coord -= grid_diff;
         }
     }
@@ -106,9 +118,13 @@ pub(crate) fn apply_new_origin_offset_system(
         let unit_pos = UnitVec::new(chunk_loader.origin_offset.clone(), transform.translation);
 
         if unit_pos.grid_offset != chunk_loader.origin_offset {
-            let grid_diff = unit_pos.grid_offset.xy - chunk_loader.origin_offset.clone().xy;
+            let grid_diff = IVec3::new(
+                unit_pos.grid_offset.xy.x - chunk_loader.origin_offset.xy.x,
+                unit_pos.grid_offset.xy.y - chunk_loader.origin_offset.xy.y,
+                unit_pos.grid_offset.z - chunk_loader.origin_offset.z,
+            );
 
-            let mut unit_diff = Vec2::ZERO;
+            let mut unit_diff = Vec3::ZERO;
 
             if grid_diff.x.abs() >= origin_offset_threshold as i32 {
                 unit_diff.x = grid_diff.x as f32 * 1000.0;
@@ -116,9 +132,13 @@ pub(crate) fn apply_new_origin_offset_system(
             if grid_diff.y.abs() >= origin_offset_threshold as i32 {
                 unit_diff.y = grid_diff.y as f32 * 1000.0;
             }
+            if grid_diff.z.abs() >= origin_offset_threshold as i32 {
+                unit_diff.z = grid_diff.z as f32 * 1000.0;
+            }
 
             transform.translation.x -= unit_diff.x;
             transform.translation.y -= unit_diff.y;
+            transform.translation.z -= unit_diff.z;
             chunk_actor.coord -= grid_diff;
         }
     }
@@ -132,7 +152,7 @@ pub(crate) fn sync_logical_from_transform_system(chunk_loader_query: Query<&Chun
     };
 
     for (transform, mut actor) in &mut query {
-        let new_coord = GridVec::from_native_logical(loader.origin_offset.clone(), (transform.translation.truncate(), actor.coord.scale));
+        let new_coord = GridVec::from_native_logical(loader.origin_offset.clone(), (transform.translation, actor.coord.scale));
         actor.coord = new_coord;
     }
 }

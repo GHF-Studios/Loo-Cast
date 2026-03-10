@@ -2,9 +2,9 @@
 fn grid_extent_zoom_out_test_1() {
     use crate::grid_extent;
 
-    let mut a = grid_extent!([(0, 0), (4, 4)]);
+    let mut a = grid_extent!([(0, 0, 0), (4, 4, 0)]);
     a.zoom_out();
-    let expected = grid_extent!([(0, 0)]);
+    let expected = grid_extent!([(0, 0, 0)]);
     assert_eq!(a, expected);
 }
 
@@ -12,9 +12,9 @@ fn grid_extent_zoom_out_test_1() {
 fn grid_extent_zoom_out_test_2() {
     use crate::grid_extent;
 
-    let mut a = grid_extent!([(0, 0), (4, 4), (3, 3)]);
+    let mut a = grid_extent!([(0, 0, 0), (4, 4, 0), (3, 3, 0)]);
     a.zoom_out();
-    let expected = grid_extent!([(0, 0), (4, 4)]);
+    let expected = grid_extent!([(0, 0, 0), (4, 4, 0)]);
     assert_eq!(a, expected);
 }
 
@@ -22,9 +22,9 @@ fn grid_extent_zoom_out_test_2() {
 fn grid_extent_zoom_out_test_3() {
     use crate::grid_extent;
 
-    let mut a = grid_extent!([(0, 0), (4, 4), (3, 3), (2, 2)]);
+    let mut a = grid_extent!([(0, 0, 0), (4, 4, 0), (3, 3, 0), (2, 2, 0)]);
     a.zoom_out();
-    let expected = grid_extent!([(0, 0), (4, 4), (3, 3)]);
+    let expected = grid_extent!([(0, 0, 0), (4, 4, 0), (3, 3, 0)]);
     assert_eq!(a, expected);
 }
 
@@ -32,10 +32,10 @@ fn grid_extent_zoom_out_test_3() {
 fn grid_extent_add_test_1() {
     use crate::grid_extent;
 
-    let a = grid_extent!([(4, 4)]);
-    let b = grid_extent!([(3, 3)]);
+    let a = grid_extent!([(4, 4, 0)]);
+    let b = grid_extent!([(3, 3, 0)]);
     let c = a + b;
-    let expected = grid_extent!([(-3, -3)]);
+    let expected = grid_extent!([(-3, -3, 0)]);
     assert_eq!(c, expected);
 }
 
@@ -43,10 +43,10 @@ fn grid_extent_add_test_1() {
 fn grid_extent_add_test_2() {
     use crate::grid_extent;
 
-    let a = grid_extent!([(0, 0), (4, 4)]);
-    let b = grid_extent!([(0, 0), (3, 3)]);
+    let a = grid_extent!([(0, 0, 0), (4, 4, 0)]);
+    let b = grid_extent!([(0, 0, 0), (3, 3, 0)]);
     let c = a + b;
-    let expected = grid_extent!([(1, 1), (-3, -3)]);
+    let expected = grid_extent!([(1, 1, 0), (-3, -3, 0)]);
     assert_eq!(c, expected);
 }
 
@@ -65,10 +65,10 @@ fn grid_extent_add_test_3() {
 fn grid_extent_sub_test_1() {
     use crate::grid_extent;
 
-    let a = grid_extent!([(3, 3)]);
-    let b = grid_extent!([(4, 4)]);
+    let a = grid_extent!([(3, 3, 0)]);
+    let b = grid_extent!([(4, 4, 0)]);
     let c = a - b;
-    let expected = grid_extent!([(-1, -1)]);
+    let expected = grid_extent!([(-1, -1, 0)]);
     assert_eq!(c, expected);
 }
 
@@ -76,10 +76,10 @@ fn grid_extent_sub_test_1() {
 fn grid_extent_sub_test_2() {
     use crate::grid_extent;
 
-    let a = grid_extent!([(0, 0), (-5, -5)]);
-    let b = grid_extent!([(0, 0), (3, 3)]);
+    let a = grid_extent!([(0, 0, 0), (-5, -5, 0)]);
+    let b = grid_extent!([(0, 0, 0), (3, 3, 0)]);
     let c = a - b;
-    let expected = grid_extent!([(-1, -1), (2, 2)]);
+    let expected = grid_extent!([(-1, -1, 0), (2, 2, 0)]);
     assert_eq!(c, expected);
 }
 
@@ -96,58 +96,72 @@ fn grid_extent_sub_test_3() {
 
 #[test]
 fn grid_to_native_visual_scales_offsets_for_coarser_levels() {
-    use crate::bevy::math::Vec2;
+    use crate::bevy::math::Vec3;
     use crate::grid_extent;
 
     let chunk_size = 1_000.0;
-    let origin = grid_extent!([(0, 0), (0, 0)]);
-    let coarser_neighbor = grid_extent!([(1, 0)]);
+    let origin = grid_extent!([(0, 0, 0), (0, 0, 0)]);
+    let coarser_neighbor = grid_extent!([(1, 0, 0)]);
 
     let (pos, scale) = coarser_neighbor.to_native_visual(origin);
 
     assert_eq!(scale, 10.0);
-    assert_eq!(pos, Vec2::new(chunk_size * 9.5, chunk_size * -0.5));
+    assert_eq!(pos, Vec3::new(chunk_size * 9.5, chunk_size * -0.5, chunk_size * -0.5));
 }
 
 #[test]
 fn grid_to_native_visual_same_scale_neighbor_uses_base_chunk_spacing() {
-    use crate::bevy::math::Vec2;
+    use crate::bevy::math::Vec3;
     use crate::grid_extent;
 
     let chunk_size = 1_000.0;
-    let origin = grid_extent!([(0, 0), (0, 0)]);
-    let same_scale_neighbor = grid_extent!([(0, 0), (1, 0)]);
+    let origin = grid_extent!([(0, 0, 0), (0, 0, 0)]);
+    let same_scale_neighbor = grid_extent!([(0, 0, 0), (1, 0, 0)]);
 
     let (pos, scale) = same_scale_neighbor.to_native_visual(origin);
 
     assert_eq!(scale, 1.0);
-    assert_eq!(pos, Vec2::new(chunk_size, 0.0));
+    assert_eq!(pos, Vec3::new(chunk_size, 0.0, 0.0));
 }
 
 #[test]
 fn grid_to_native_logical_scales_offsets_for_coarser_levels() {
-    use crate::bevy::math::Vec2;
+    use crate::bevy::math::Vec3;
     use crate::grid_extent;
 
     let chunk_size = 1_000.0;
-    let origin = grid_extent!([(0, 0), (0, 0)]);
-    let coarser_neighbor = grid_extent!([(1, 0)]);
+    let origin = grid_extent!([(0, 0, 0), (0, 0, 0)]);
+    let coarser_neighbor = grid_extent!([(1, 0, 0)]);
 
     let pos = coarser_neighbor.to_native_logical(origin);
 
-    assert_eq!(pos, Vec2::new(chunk_size * 9.5, chunk_size * -0.5));
+    assert_eq!(pos, Vec3::new(chunk_size * 9.5, chunk_size * -0.5, chunk_size * -0.5));
 }
 
 #[test]
 fn grid_to_native_logical_same_scale_neighbor_uses_base_chunk_spacing() {
-    use crate::bevy::math::Vec2;
+    use crate::bevy::math::Vec3;
     use crate::grid_extent;
 
     let chunk_size = 1_000.0;
-    let origin = grid_extent!([(0, 0), (0, 0)]);
-    let same_scale_neighbor = grid_extent!([(0, 0), (1, 0)]);
+    let origin = grid_extent!([(0, 0, 0), (0, 0, 0)]);
+    let same_scale_neighbor = grid_extent!([(0, 0, 0), (1, 0, 0)]);
 
     let pos = same_scale_neighbor.to_native_logical(origin);
 
-    assert_eq!(pos, Vec2::new(chunk_size, 0.0));
+    assert_eq!(pos, Vec3::new(chunk_size, 0.0, 0.0));
+}
+
+#[test]
+fn grid_to_native_logical_z_axis_neighbor_uses_base_chunk_spacing() {
+    use crate::bevy::math::Vec3;
+    use crate::grid_extent;
+
+    let chunk_size = 1_000.0;
+    let origin = grid_extent!([(0, 0, 0), (0, 0, 0)]);
+    let same_scale_neighbor = grid_extent!([(0, 0, 0), (0, 0, 1)]);
+
+    let pos = same_scale_neighbor.to_native_logical(origin);
+
+    assert_eq!(pos, Vec3::new(0.0, 0.0, chunk_size));
 }

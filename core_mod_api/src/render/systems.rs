@@ -108,7 +108,7 @@ pub(super) fn ensure_global_phenomenon_root_system(
         .spawn((
             Name::new("global_phenomenon_render_proxy"),
             GlobalPhenomenonRoot,
-            new_phenomenon_model_proxy_bundle(Vec2::ZERO, 1.0, phenomenon_entity, source_scale, depth_bias),
+            new_phenomenon_model_proxy_bundle(Vec3::ZERO, 1.0, phenomenon_entity, source_scale, depth_bias),
         ))
         .id();
 
@@ -166,12 +166,16 @@ pub(super) fn update_render_proxies(
         Query<(&mut Transform, &mut ProxySyncRevision, &mut RenderProxy), With<RenderProxy>>,
     )>,
 ) {
-    let (chunk_loader, chunk_loader_transform) = *params.p0();
-    let world_rotation = chunk_loader.world_rotation_quat();
-    let world_rotation_origin = chunk_loader_transform.translation;
-    let origin_offset = chunk_loader.origin_offset.clone();
-    let view_pos_native = chunk_loader_transform.translation.truncate();
-    let max_scale_diff = Scale::MAX_DIFF_SCALE_EXP;
+    let (world_rotation, world_rotation_origin, origin_offset, view_pos_native, max_scale_diff) = {
+        let (chunk_loader, chunk_loader_transform) = *params.p0();
+        (
+            chunk_loader.world_rotation_quat(),
+            chunk_loader_transform.translation,
+            chunk_loader.origin_offset.clone(),
+            chunk_loader_transform.translation,
+            Scale::MAX_DIFF_SCALE_EXP,
+        )
+    };
 
     let actor_updates = {
         let chunk_actor_query = params.p1();
@@ -197,13 +201,14 @@ pub(super) fn update_render_proxies(
                 let coord_scale = coord.scale;
                 let scale_diff = coord_scale as i8 - origin_offset.scale as i8;
                 let layer_z = coord_scale.compute_z() + proxy_state.depth_bias;
-                let (pos, scale) = coord.to_native_visual_3d(origin_offset.clone());
+                let (pos, scale) = coord.to_native_visual(origin_offset.clone());
                 let world_pos = Vec3::new(pos.x, pos.y, pos.z + layer_z);
                 proxy_transform.translation = world_rotation_origin + world_rotation * (world_pos - world_rotation_origin);
                 proxy_transform.scale = Vec3::splat(scale);
                 proxy_transform.rotation = world_rotation;
                 proxy_state.layer_index = coord_scale.render_layer_index();
-                let (window_mode, window_center_local, window_size_local) = compute_render_proxy_windowing(scale_diff, pos.truncate(), view_pos_native);
+                let (window_mode, window_center_local, window_size_local) =
+                    compute_render_proxy_windowing(scale_diff, pos, view_pos_native);
                 proxy_state.window_mode = window_mode;
                 proxy_state.window_center_local = window_center_local;
                 proxy_state.window_size_local = window_size_local;
@@ -217,7 +222,7 @@ pub(super) fn update_render_proxies(
 #[tracing::instrument(skip_all)]
 pub(super) fn update_global_phenomenon_proxy_system(
     player_loader_query: Single<(&ChunkLoader, &Transform), With<Player>>,
-    mut global_proxy_query: Query<(&mut Transform, &mut RenderProxy), With<GlobalPhenomenonRoot>>,
+    mut global_proxy_query: Query<(&mut Transform, &mut RenderProxy), (With<GlobalPhenomenonRoot>, Without<Player>)>,
     phenomenon_node_query: Query<&PhenomenonNode>,
 ) {
     let (chunk_loader, chunk_loader_transform) = *player_loader_query;
@@ -242,7 +247,7 @@ pub(super) fn update_global_phenomenon_proxy_system(
         proxy_transform.rotation = world_rotation;
         proxy_state.layer_index = frontier_scale.render_layer_index();
         let (window_mode, window_center_local, window_size_local) =
-            compute_render_proxy_windowing(scale_diff, frontier_center_native.truncate(), view_pos_native.truncate());
+            compute_render_proxy_windowing(scale_diff, frontier_center_native, view_pos_native);
         proxy_state.window_mode = window_mode;
         proxy_state.window_center_local = window_center_local;
         proxy_state.window_size_local = window_size_local;
@@ -290,9 +295,9 @@ pub(super) fn draw_chunk_locator_gizmos_system(
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct PhenomenonModelWindowBounds {
-    min: Vec2,
-    max: Vec2,
-    span: Vec2,
+    min: Vec3,
+    max: Vec3,
+    span: Vec3,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -547,26 +552,29 @@ fn phenomenon_surface_transform(proxy: &RenderProxy, tuning: SurfaceLodTuning) -
 }
 
 #[inline]
-fn compute_phenomenon_window_bounds(window_mode: RenderProxyWindowMode, window_center_local: Vec2, window_size_local: Vec2) -> PhenomenonModelWindowBounds {
+fn compute_phenomenon_window_bounds(window_mode: RenderProxyWindowMode, window_center_local: Vec3, window_size_local: Vec3) -> PhenomenonModelWindowBounds {
     if matches!(window_mode, RenderProxyWindowMode::FullEntity) {
         return PhenomenonModelWindowBounds {
-            min: Vec2::ZERO,
-            max: Vec2::ONE,
-            span: Vec2::ONE,
+            min: Vec3::ZERO,
+            max: Vec3::ONE,
+            span: Vec3::ONE,
         };
     }
 
-    let center01 = window_center_local.clamp(Vec2::splat(-0.5), Vec2::splat(0.5)) + Vec2::splat(0.5);
-    let size01 = window_size_local.abs().clamp(Vec2::splat(MIN_WINDOW_SIZE_LOCAL), Vec2::ONE);
-    let mut window_min = (center01 - size01 * 0.5).clamp(Vec2::ZERO, Vec2::ONE);
-    let mut window_max = (center01 + size01 * 0.5).clamp(Vec2::ZERO, Vec2::ONE);
+    let center01 = window_center_local.clamp(Vec3::splat(-0.5), Vec3::splat(0.5)) + Vec3::splat(0.5);
+    let size01 = window_size_local.abs().clamp(Vec3::splat(MIN_WINDOW_SIZE_LOCAL), Vec3::ONE);
+    let mut window_min = (center01 - size01 * 0.5).clamp(Vec3::ZERO, Vec3::ONE);
+    let mut window_max = (center01 + size01 * 0.5).clamp(Vec3::ZERO, Vec3::ONE);
     if window_max.x < window_min.x {
         std::mem::swap(&mut window_max.x, &mut window_min.x);
     }
     if window_max.y < window_min.y {
         std::mem::swap(&mut window_max.y, &mut window_min.y);
     }
-    let span = (window_max - window_min).max(Vec2::splat(MIN_WINDOW_SIZE_LOCAL));
+    if window_max.z < window_min.z {
+        std::mem::swap(&mut window_max.z, &mut window_min.z);
+    }
+    let span = (window_max - window_min).max(Vec3::splat(MIN_WINDOW_SIZE_LOCAL));
 
     PhenomenonModelWindowBounds {
         min: window_min,
@@ -576,18 +584,17 @@ fn compute_phenomenon_window_bounds(window_mode: RenderProxyWindowMode, window_c
 }
 
 #[inline]
-fn mandelbulb_density_from_model_space(local_uv: Vec2, local_w: f32, layer_index: u8, tuning: MandelbulbTuning) -> f32 {
-    let point = map_model_space_to_mandelbulb_point(local_uv, local_w, layer_index, tuning.z_span);
+fn mandelbulb_density_from_model_space(local_uvw: Vec3, layer_index: u8, tuning: MandelbulbTuning) -> f32 {
+    let point = map_model_space_to_mandelbulb_point(local_uvw, layer_index, tuning.z_span);
     sample_mandelbulb_signed_distance(point, tuning.power, tuning.iterations, tuning.bailout)
 }
 
 #[inline]
-fn map_model_space_to_mandelbulb_point(local_uv: Vec2, local_w: f32, layer_index: u8, z_span: f32) -> Vec3 {
-    let uv = local_uv.clamp(Vec2::ZERO, Vec2::ONE);
-    let w = local_w.clamp(0.0, 1.0);
-    let x = (uv.x - 0.5) * 3.0;
-    let y = (uv.y - 0.5) * 3.0;
-    let local_z = (w - 0.5) * 2.0 * z_span;
+fn map_model_space_to_mandelbulb_point(local_uvw: Vec3, layer_index: u8, z_span: f32) -> Vec3 {
+    let uvw = local_uvw.clamp(Vec3::ZERO, Vec3::ONE);
+    let x = (uvw.x - 0.5) * 3.0;
+    let y = (uvw.y - 0.5) * 3.0;
+    let local_z = (uvw.z - 0.5) * 2.0 * z_span;
 
     // Keep one coherent global fractal across all scales; do not offset the sampled slice per layer.
     let _ = layer_index;
@@ -598,8 +605,8 @@ fn map_model_space_to_mandelbulb_point(local_uv: Vec2, local_w: f32, layer_index
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct MeshingWindow {
-    center_local: Vec2,
-    size_local: Vec2,
+    center_local: Vec3,
+    size_local: Vec3,
     resolution: usize,
 }
 
@@ -609,19 +616,19 @@ fn compute_meshing_window(proxy: &RenderProxy, base_mesh_resolution: u32) -> Mes
 
     if matches!(proxy.window_mode, RenderProxyWindowMode::FullEntity) {
         return MeshingWindow {
-            center_local: Vec2::ZERO,
-            size_local: Vec2::ONE,
+            center_local: Vec3::ZERO,
+            size_local: Vec3::ONE,
             resolution,
         };
     }
 
-    let size_local = proxy.window_size_local.abs().clamp(Vec2::splat(MIN_WINDOW_SIZE_LOCAL), Vec2::ONE);
-    let step_local = (size_local / resolution as f32).max(Vec2::splat(MIN_WINDOW_SIZE_LOCAL));
+    let size_local = proxy.window_size_local.abs().clamp(Vec3::splat(MIN_WINDOW_SIZE_LOCAL), Vec3::ONE);
+    let step_local = (size_local / resolution as f32).max(Vec3::splat(MIN_WINDOW_SIZE_LOCAL));
 
     // Snap subsection center to marching-grid voxels, so tiny camera deltas don't trigger full remesh every frame.
     let mut center_local = (proxy.window_center_local / step_local).round() * step_local;
-    let min_center = Vec2::splat(-0.5) + size_local * 0.5;
-    let max_center = Vec2::splat(0.5) - size_local * 0.5;
+    let min_center = Vec3::splat(-0.5) + size_local * 0.5;
+    let max_center = Vec3::splat(0.5) - size_local * 0.5;
     center_local = center_local.clamp(min_center, max_center);
 
     MeshingWindow {
@@ -744,8 +751,10 @@ where
     proxy.window_mode.hash(&mut hasher);
     quantized_signature_value(meshing_window.center_local.x).hash(&mut hasher);
     quantized_signature_value(meshing_window.center_local.y).hash(&mut hasher);
+    quantized_signature_value(meshing_window.center_local.z).hash(&mut hasher);
     quantized_signature_value(meshing_window.size_local.x).hash(&mut hasher);
     quantized_signature_value(meshing_window.size_local.y).hash(&mut hasher);
+    quantized_signature_value(meshing_window.size_local.z).hash(&mut hasher);
     meshing_window.resolution.hash(&mut hasher);
     lattice_window.min.hash(&mut hasher);
     lattice_window.max.hash(&mut hasher);
@@ -761,8 +770,8 @@ fn grid_index(ix: usize, iy: usize, iz: usize, axis_points: usize) -> usize {
 }
 
 fn build_windowed_mandelbulb_mesh(proxy: &RenderProxy, tuning: MandelbulbTuning) -> Option<Mesh> {
-    build_windowed_field_mesh(proxy, tuning.lod, |sample_uv, sample_w, layer_index| {
-        mandelbulb_density_from_model_space(sample_uv, sample_w, layer_index, tuning)
+    build_windowed_field_mesh(proxy, tuning.lod, |sample_uvw, layer_index| {
+        mandelbulb_density_from_model_space(sample_uvw, layer_index, tuning)
     })
 }
 
@@ -784,12 +793,12 @@ fn compute_effective_sierpinski_iterations(proxy: &RenderProxy, tuning: Sierpins
 #[inline]
 fn compute_effective_sierpinski_iterations_for_bounds(proxy: &RenderProxy, tuning: SierpinskiSpongeTuning, bounds: PhenomenonModelWindowBounds) -> u32 {
     let cells = compute_effective_mesh_resolution(proxy, tuning.lod.mesh_resolution).max(1) as f32;
-    // Visible XY span shrinks as subsection windowing zooms in. Exploit that to permit
+    // Visible span shrinks as subsection windowing zooms in. Exploit that to permit
     // deeper recursion while preserving a topology budget tied to mesh resolution.
-    let window_span_xy = bounds.span.max_element().max(MIN_WINDOW_SIZE_LOCAL);
-    let sampled_span_xy = (2.0 * tuning.domain_span * window_span_xy).max(0.001);
+    let window_span = bounds.span.max_element().max(MIN_WINDOW_SIZE_LOCAL);
+    let sampled_span = (2.0 * tuning.domain_span * window_span).max(0.001);
     let smallest_feature_sample_requirement = 0.35f32;
-    let feature_capacity = cells / (sampled_span_xy * smallest_feature_sample_requirement);
+    let feature_capacity = cells / (sampled_span * smallest_feature_sample_requirement);
     let max_resolvable_depth = if feature_capacity > 1.0 {
         feature_capacity.log(3.0).floor().max(1.0) as u32
     } else {
@@ -817,16 +826,20 @@ impl SierpinskiWindowRemap {
     fn from_bounds(bounds: PhenomenonModelWindowBounds, domain_span: f32) -> Self {
         let seam_bounds = seam_safe_lattice_window(bounds.min, bounds.span, 1);
         let seam_denom = PHENOMENON_SEAM_LATTICE_DENOM as f32;
-        let seam_min_uv = Vec2::new(seam_bounds.min.x as f32 / seam_denom, seam_bounds.min.y as f32 / seam_denom);
-        let seam_max_uv = Vec2::new(seam_bounds.max.x as f32 / seam_denom, seam_bounds.max.y as f32 / seam_denom);
-        let seam_span_uv = (seam_max_uv - seam_min_uv).max(Vec2::splat(MIN_WINDOW_SIZE_LOCAL));
-
-        let sample_min = Vec3::new((seam_min_uv.x - 0.5) * 2.0 * domain_span, (seam_min_uv.y - 0.5) * 2.0 * domain_span, -domain_span);
-        let sample_span = Vec3::new(
-            (seam_span_uv.x * 2.0 * domain_span).max(1e-6),
-            (seam_span_uv.y * 2.0 * domain_span).max(1e-6),
-            (2.0 * domain_span).max(1e-6),
+        let seam_min = Vec3::new(
+            seam_bounds.min.x as f32 / seam_denom,
+            seam_bounds.min.y as f32 / seam_denom,
+            seam_bounds.min.z as f32 / seam_denom,
         );
+        let seam_max = Vec3::new(
+            seam_bounds.max.x as f32 / seam_denom,
+            seam_bounds.max.y as f32 / seam_denom,
+            seam_bounds.max.z as f32 / seam_denom,
+        );
+        let seam_span = (seam_max - seam_min).max(Vec3::splat(MIN_WINDOW_SIZE_LOCAL));
+
+        let sample_min = (seam_min - Vec3::splat(0.5)) * (2.0 * domain_span);
+        let sample_span = (seam_span * (2.0 * domain_span)).max(Vec3::splat(1e-6));
         Self { sample_min, sample_span }
     }
 
@@ -1063,7 +1076,7 @@ fn build_windowed_sierpinski_topology_mesh(bounds: PhenomenonModelWindowBounds, 
 
 fn build_windowed_field_mesh<F>(proxy: &RenderProxy, lod: SurfaceLodTuning, mut density_from_model_space: F) -> Option<Mesh>
 where
-    F: FnMut(Vec2, f32, u8) -> f32,
+    F: FnMut(Vec3, u8) -> f32,
 {
     let meshing_window = compute_meshing_window(proxy, lod.mesh_resolution);
     let cells = meshing_window.resolution;
@@ -1080,9 +1093,12 @@ where
             for ix in 0..axis_points {
                 let idx = grid_index(ix, iy, iz, axis_points);
                 let lattice_coord = lattice_window.lattice_coord(ix, iy, iz);
-                let sample_uv = Vec2::new(lattice_coord.x as f32 / seam_denom, lattice_coord.y as f32 / seam_denom);
-                let sample_w = lattice_coord.z as f32 / seam_denom;
-                let signed_distance = density_from_model_space(sample_uv, sample_w, proxy.layer_index);
+                let sample_uvw = Vec3::new(
+                    lattice_coord.x as f32 / seam_denom,
+                    lattice_coord.y as f32 / seam_denom,
+                    lattice_coord.z as f32 / seam_denom,
+                );
+                let signed_distance = density_from_model_space(sample_uvw, proxy.layer_index);
                 field[idx] = signed_distance - lod.iso_level;
                 points[idx] = lattice_window.local_position(lattice_coord, PHENOMENON_MODEL_LOCAL_SPAN_UNITS);
             }
@@ -1271,21 +1287,20 @@ where
     for node in nodes {
         let center_native = phenomenon_node_center_native(*node, view_scale);
         let scale_distance = (node.scale.index_from_top() as i16 - view_scale.index_from_top() as i16).abs() as u8;
-        let planar_distance_sq = center_native.truncate().distance_squared(view_pos_native.truncate());
+        let distance_sq = center_native.distance_squared(view_pos_native);
 
         let is_better = match best {
             None => true,
             Some((best_scale_distance, best_distance_sq, best_seed, _, _)) => {
-                scale_distance < best_scale_distance
-                    || (scale_distance == best_scale_distance && planar_distance_sq < best_distance_sq)
+                scale_distance < best_scale_distance || (scale_distance == best_scale_distance && distance_sq < best_distance_sq)
                     || (scale_distance == best_scale_distance
-                        && (planar_distance_sq - best_distance_sq).abs() <= 0.01
+                        && (distance_sq - best_distance_sq).abs() <= 0.01
                         && node.seed.0 < best_seed)
             }
         };
 
         if is_better {
-            best = Some((scale_distance, planar_distance_sq, node.seed.0, node.scale, center_native));
+            best = Some((scale_distance, distance_sq, node.seed.0, node.scale, center_native));
         }
     }
 
@@ -1293,25 +1308,26 @@ where
 }
 
 #[inline]
-fn compute_render_proxy_windowing(scale_diff: i8, chunk_center_native: Vec2, view_pos_native: Vec2) -> (RenderProxyWindowMode, Vec2, Vec2) {
+fn compute_render_proxy_windowing(scale_diff: i8, chunk_center_native: Vec3, view_pos_native: Vec3) -> (RenderProxyWindowMode, Vec3, Vec3) {
     if scale_diff <= 0 {
-        return (RenderProxyWindowMode::FullEntity, Vec2::ZERO, Vec2::ONE);
+        return (RenderProxyWindowMode::FullEntity, Vec3::ZERO, Vec3::ONE);
     }
 
     let coarse_factor = 10.0_f64.powi(scale_diff as i32);
     if !coarse_factor.is_finite() || coarse_factor <= 0.0 {
-        return (RenderProxyWindowMode::WindowedSubsection, Vec2::ZERO, Vec2::splat(0.001));
+        return (RenderProxyWindowMode::WindowedSubsection, Vec3::ZERO, Vec3::splat(0.001));
     }
 
     let chunk_span = 1000.0_f64 * coarse_factor;
     let center01_x = ((view_pos_native.x as f64 - (chunk_center_native.x as f64 - chunk_span * 0.5)) / chunk_span).clamp(0.0, 1.0) as f32;
     let center01_y = ((view_pos_native.y as f64 - (chunk_center_native.y as f64 - chunk_span * 0.5)) / chunk_span).clamp(0.0, 1.0) as f32;
-    let center_local = Vec2::new(center01_x, center01_y) - Vec2::splat(0.5);
+    let center01_z = ((view_pos_native.z as f64 - (chunk_center_native.z as f64 - chunk_span * 0.5)) / chunk_span).clamp(0.0, 1.0) as f32;
+    let center_local = Vec3::new(center01_x, center01_y, center01_z) - Vec3::splat(0.5);
 
     // Windowing is determined by scale hierarchy only; camera zoom must not morph topology.
     let window_size = (1.0 / coarse_factor).clamp(MIN_WINDOW_SIZE_LOCAL as f64, 1.0) as f32;
 
-    (RenderProxyWindowMode::WindowedSubsection, center_local, Vec2::splat(window_size))
+    (RenderProxyWindowMode::WindowedSubsection, center_local, Vec3::splat(window_size))
 }
 
 #[cfg(test)]
@@ -1347,7 +1363,7 @@ mod tests {
         }
     }
 
-    fn sample_proxy(window_mode: RenderProxyWindowMode, window_center_local: Vec2, window_size_local: Vec2) -> RenderProxy {
+    fn sample_proxy(window_mode: RenderProxyWindowMode, window_center_local: Vec3, window_size_local: Vec3) -> RenderProxy {
         RenderProxy {
             source: Entity::PLACEHOLDER,
             layer_index: 35,
@@ -1372,10 +1388,10 @@ mod tests {
 
     #[test]
     fn full_entity_mode_for_same_or_finer_scale() {
-        let (mode, center, size) = compute_render_proxy_windowing(0, Vec2::ZERO, Vec2::new(123.0, -45.0));
+        let (mode, center, size) = compute_render_proxy_windowing(0, Vec3::ZERO, Vec3::new(123.0, -45.0, 12.0));
         assert_eq!(mode, RenderProxyWindowMode::FullEntity);
-        assert_eq!(center, Vec2::ZERO);
-        assert_eq!(size, Vec2::ONE);
+        assert_eq!(center, Vec3::ZERO);
+        assert_eq!(size, Vec3::ONE);
     }
 
     #[test]
@@ -1401,28 +1417,30 @@ mod tests {
 
     #[test]
     fn windowed_mode_scales_down_with_coarser_level() {
-        let (mode, center, size) = compute_render_proxy_windowing(1, Vec2::ZERO, Vec2::ZERO);
+        let (mode, center, size) = compute_render_proxy_windowing(1, Vec3::ZERO, Vec3::ZERO);
         assert_eq!(mode, RenderProxyWindowMode::WindowedSubsection);
-        assert_eq!(center, Vec2::ZERO);
+        assert_eq!(center, Vec3::ZERO);
         assert!((size.x - 0.1).abs() < 1e-6);
         assert!((size.y - 0.1).abs() < 1e-6);
+        assert!((size.z - 0.1).abs() < 1e-6);
     }
 
     #[test]
     fn window_center_tracks_viewpoint_inside_chunk() {
         // scale_diff=1 => chunk span is 10,000 native units.
-        let (mode, center, size) = compute_render_proxy_windowing(1, Vec2::ZERO, Vec2::new(2_500.0, 2_500.0));
+        let (mode, center, size) = compute_render_proxy_windowing(1, Vec3::ZERO, Vec3::new(2_500.0, 2_500.0, 2_500.0));
         assert_eq!(mode, RenderProxyWindowMode::WindowedSubsection);
-        assert!(center.x > 0.0 && center.y > 0.0);
+        assert!(center.x > 0.0 && center.y > 0.0 && center.z > 0.0);
         assert!((size.x - 0.1).abs() < 1e-6);
         assert!((size.y - 0.1).abs() < 1e-6);
+        assert!((size.z - 0.1).abs() < 1e-6);
     }
 
     #[test]
     fn effective_mesh_resolution_increases_for_smaller_window() {
-        let broad = sample_proxy(RenderProxyWindowMode::WindowedSubsection, Vec2::ZERO, Vec2::splat(0.9));
+        let broad = sample_proxy(RenderProxyWindowMode::WindowedSubsection, Vec3::ZERO, Vec3::splat(0.9));
         let narrow = RenderProxy {
-            window_size_local: Vec2::splat(0.1),
+            window_size_local: Vec3::splat(0.1),
             ..broad
         };
         assert!(compute_effective_mesh_resolution(&narrow, 12) > compute_effective_mesh_resolution(&broad, 12));
@@ -1430,27 +1448,30 @@ mod tests {
 
     #[test]
     fn phenomenon_window_full_entity_uses_unit_bounds() {
-        let bounds = compute_phenomenon_window_bounds(RenderProxyWindowMode::FullEntity, Vec2::ZERO, Vec2::ONE);
-        assert_eq!(bounds.min, Vec2::ZERO);
-        assert_eq!(bounds.max, Vec2::ONE);
-        assert_eq!(bounds.span, Vec2::ONE);
+        let bounds = compute_phenomenon_window_bounds(RenderProxyWindowMode::FullEntity, Vec3::ZERO, Vec3::ONE);
+        assert_eq!(bounds.min, Vec3::ZERO);
+        assert_eq!(bounds.max, Vec3::ONE);
+        assert_eq!(bounds.span, Vec3::ONE);
     }
 
     #[test]
     fn phenomenon_windowed_subsection_bounds_clamp_and_span() {
-        let bounds = compute_phenomenon_window_bounds(RenderProxyWindowMode::WindowedSubsection, Vec2::ZERO, Vec2::splat(0.5));
+        let bounds = compute_phenomenon_window_bounds(RenderProxyWindowMode::WindowedSubsection, Vec3::ZERO, Vec3::splat(0.5));
         assert!((bounds.min.x - 0.25).abs() < 1e-6);
         assert!((bounds.min.y - 0.25).abs() < 1e-6);
+        assert!((bounds.min.z - 0.25).abs() < 1e-6);
         assert!((bounds.max.x - 0.75).abs() < 1e-6);
         assert!((bounds.max.y - 0.75).abs() < 1e-6);
+        assert!((bounds.max.z - 0.75).abs() < 1e-6);
         assert!((bounds.span.x - 0.5).abs() < 1e-6);
         assert!((bounds.span.y - 0.5).abs() < 1e-6);
+        assert!((bounds.span.z - 0.5).abs() < 1e-6);
     }
 
     #[test]
     fn meshing_seam_contract_uses_identical_boundary_lattice_samples() {
-        let left = seam_safe_lattice_window(Vec2::new(0.0, 0.0), Vec2::new(0.5, 1.0), 16);
-        let right = seam_safe_lattice_window(Vec2::new(0.5, 0.0), Vec2::new(0.5, 1.0), 16);
+        let left = seam_safe_lattice_window(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.5, 1.0, 1.0), 16);
+        let right = seam_safe_lattice_window(Vec3::new(0.5, 0.0, 0.0), Vec3::new(0.5, 1.0, 1.0), 16);
 
         for y in 0..=16 {
             for z in 0..=16 {
@@ -1464,7 +1485,7 @@ mod tests {
     #[test]
     fn phenomenon_mesh_builds_triangles_for_full_window() {
         let tuning = default_mandelbulb_tuning(8);
-        let proxy = sample_proxy(RenderProxyWindowMode::FullEntity, Vec2::ZERO, Vec2::ONE);
+        let proxy = sample_proxy(RenderProxyWindowMode::FullEntity, Vec3::ZERO, Vec3::ONE);
 
         let mesh = build_windowed_mandelbulb_mesh(&proxy, tuning).expect("expected non-empty mesh");
         let Some(positions) = mesh.attribute(Mesh::ATTRIBUTE_POSITION) else {
@@ -1476,9 +1497,9 @@ mod tests {
     #[test]
     fn phenomenon_mesh_changes_with_window_signature() {
         let tuning = default_mandelbulb_tuning(8);
-        let mut a = sample_proxy(RenderProxyWindowMode::WindowedSubsection, Vec2::ZERO, Vec2::splat(0.5));
+        let mut a = sample_proxy(RenderProxyWindowMode::WindowedSubsection, Vec3::ZERO, Vec3::splat(0.5));
         let sig_a = compute_mandelbulb_surface_signature(&a, tuning);
-        a.window_center_local = Vec2::new(0.1, 0.0);
+        a.window_center_local = Vec3::new(0.1, 0.0, 0.0);
         let sig_b = compute_mandelbulb_surface_signature(&a, tuning);
         assert_ne!(sig_a, sig_b);
     }
@@ -1486,7 +1507,7 @@ mod tests {
     #[test]
     fn surface_signature_tracks_window_mode() {
         let tuning = default_mandelbulb_tuning(8);
-        let a = sample_proxy(RenderProxyWindowMode::FullEntity, Vec2::ZERO, Vec2::ONE);
+        let a = sample_proxy(RenderProxyWindowMode::FullEntity, Vec3::ZERO, Vec3::ONE);
         let b = RenderProxy {
             window_mode: RenderProxyWindowMode::WindowedSubsection,
             ..a
@@ -1499,7 +1520,7 @@ mod tests {
     #[test]
     fn surface_signature_tracks_phenomenon_kind() {
         let lod = default_lod(8);
-        let proxy = sample_proxy(RenderProxyWindowMode::FullEntity, Vec2::ZERO, Vec2::ONE);
+        let proxy = sample_proxy(RenderProxyWindowMode::FullEntity, Vec3::ZERO, Vec3::ONE);
         let mandelbulb_sig = compute_model_surface_signature(&proxy, PhenomenonKind::Mandelbulb, lod, |_| {});
         let sierpinski_sig = compute_model_surface_signature(&proxy, PhenomenonKind::SierpinskiSponge, lod, |_| {});
         assert_ne!(mandelbulb_sig, sierpinski_sig);
@@ -1508,7 +1529,7 @@ mod tests {
     #[test]
     fn phenomenon_sierpinski_mesh_builds_triangles_for_full_window() {
         let tuning = default_sierpinski_tuning(8);
-        let proxy = sample_proxy(RenderProxyWindowMode::FullEntity, Vec2::ZERO, Vec2::ONE);
+        let proxy = sample_proxy(RenderProxyWindowMode::FullEntity, Vec3::ZERO, Vec3::ONE);
 
         let mesh = build_windowed_sierpinski_sponge_mesh(&proxy, tuning).expect("expected non-empty mesh");
         let Some(positions) = mesh.attribute(Mesh::ATTRIBUTE_POSITION) else {
@@ -1520,9 +1541,9 @@ mod tests {
     #[test]
     fn phenomenon_sierpinski_signature_changes_with_window() {
         let tuning = default_sierpinski_tuning(8);
-        let mut a = sample_proxy(RenderProxyWindowMode::WindowedSubsection, Vec2::ZERO, Vec2::splat(0.5));
+        let mut a = sample_proxy(RenderProxyWindowMode::WindowedSubsection, Vec3::ZERO, Vec3::splat(0.5));
         let sig_a = compute_sierpinski_sponge_surface_signature(&a, tuning);
-        a.window_center_local = Vec2::new(-0.1, 0.1);
+        a.window_center_local = Vec3::new(-0.1, 0.1, 0.0);
         let sig_b = compute_sierpinski_sponge_surface_signature(&a, tuning);
         assert_ne!(sig_a, sig_b);
     }
@@ -1530,7 +1551,7 @@ mod tests {
     #[test]
     fn phenomenon_sierpinski_mesh_has_non_degenerate_triangles() {
         let tuning = default_sierpinski_tuning(30);
-        let proxy = sample_proxy(RenderProxyWindowMode::FullEntity, Vec2::ZERO, Vec2::ONE);
+        let proxy = sample_proxy(RenderProxyWindowMode::FullEntity, Vec3::ZERO, Vec3::ONE);
         let mesh = build_windowed_sierpinski_sponge_mesh(&proxy, tuning).expect("expected non-empty mesh");
         let positions = mesh
             .attribute(Mesh::ATTRIBUTE_POSITION)
@@ -1551,7 +1572,7 @@ mod tests {
     #[test]
     fn phenomenon_sierpinski_mesh_attributes_are_finite() {
         let tuning = default_sierpinski_tuning(30);
-        let proxy = sample_proxy(RenderProxyWindowMode::WindowedSubsection, Vec2::new(0.2, -0.1), Vec2::splat(0.2));
+        let proxy = sample_proxy(RenderProxyWindowMode::WindowedSubsection, Vec3::new(0.2, -0.1, 0.05), Vec3::splat(0.2));
         let mesh = build_windowed_sierpinski_sponge_mesh(&proxy, tuning).expect("expected non-empty mesh");
 
         let positions = mesh
@@ -1573,7 +1594,7 @@ mod tests {
 
     #[test]
     fn sierpinski_effective_iterations_track_mesh_resolution() {
-        let proxy = sample_proxy(RenderProxyWindowMode::FullEntity, Vec2::ZERO, Vec2::ONE);
+        let proxy = sample_proxy(RenderProxyWindowMode::FullEntity, Vec3::ZERO, Vec3::ONE);
         let low_res = SierpinskiSpongeTuning {
             iterations: 6,
             domain_span: 1.0,
@@ -1602,7 +1623,7 @@ mod tests {
 
     #[test]
     fn mandelbulb_point_maps_mid_layer_center_sample_to_zero_z() {
-        let p = map_model_space_to_mandelbulb_point(Vec2::new(0.5, 0.5), 0.5, 35, 1.25);
+        let p = map_model_space_to_mandelbulb_point(Vec3::new(0.5, 0.5, 0.5), 35, 1.25);
         assert!(p.z.abs() < 1e-6);
     }
 
@@ -1621,7 +1642,7 @@ mod tests {
                 iso_level: 0.0,
             },
         };
-        let field = mandelbulb_density_from_model_space(Vec2::new(0.5, 0.5), 0.5, 35, tuning);
+        let field = mandelbulb_density_from_model_space(Vec3::new(0.5, 0.5, 0.5), 35, tuning);
         assert!(field.is_finite());
     }
 

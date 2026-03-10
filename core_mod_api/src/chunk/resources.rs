@@ -299,7 +299,7 @@ impl ChunkActionWorkflowState {
 #[cfg(test)]
 mod tests {
     use super::{ChunkBatchPlanResult, ChunkBatchTracker};
-    use crate::bevy::prelude::IVec2;
+    use crate::bevy::prelude::IVec3;
     use crate::usf::pos::grid::types::GridVec;
     use std::collections::HashSet;
 
@@ -310,8 +310,8 @@ mod tests {
     #[test]
     fn chunk_batch_tracker_plan_start_finish_and_query_flow() {
         let mut tracker = ChunkBatchTracker::default();
-        let coord_a = GridVec::new_root(IVec2::new(0, 0));
-        let coord_b = GridVec::new_root(IVec2::new(1, 0));
+        let coord_a = GridVec::new_root(IVec3::new(0, 0, 0));
+        let coord_b = GridVec::new_root(IVec3::new(1, 0, 0));
 
         let planned = match tracker.sync_plan(&set(&[coord_a.clone()]), &set(&[coord_b.clone()])) {
             ChunkBatchPlanResult::Planned(batch) => batch,
@@ -337,8 +337,8 @@ mod tests {
     #[test]
     fn chunk_batch_tracker_replans_and_clears_when_targets_change() {
         let mut tracker = ChunkBatchTracker::default();
-        let coord_a = GridVec::new_root(IVec2::new(0, 0));
-        let coord_b = GridVec::new_root(IVec2::new(1, 0));
+        let coord_a = GridVec::new_root(IVec3::new(0, 0, 0));
+        let coord_b = GridVec::new_root(IVec3::new(1, 0, 0));
 
         let first_plan = match tracker.sync_plan(&set(&[coord_a.clone()]), &HashSet::new()) {
             ChunkBatchPlanResult::Planned(batch) => batch,
@@ -366,7 +366,7 @@ mod tests {
     #[test]
     fn chunk_batch_tracker_does_not_plan_duplicate_running_targets() {
         let mut tracker = ChunkBatchTracker::default();
-        let coord = GridVec::new_root(IVec2::new(0, 0));
+        let coord = GridVec::new_root(IVec3::new(0, 0, 0));
         let spawn = set(&[coord.clone()]);
         let despawn = HashSet::new();
 

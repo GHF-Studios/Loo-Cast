@@ -1,4 +1,4 @@
-use crate::bevy::prelude::{IVec2, Reflect, Vec3};
+use crate::bevy::prelude::{IVec3, Reflect, Vec3};
 
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::unit::types::UnitVec;
@@ -6,7 +6,7 @@ use crate::usf::scale::{DynScale, Scale};
 
 #[derive(Default)]
 pub struct SubgridVecBuilder {
-    chain: Vec<IVec2>,
+    chain: Vec<IVec3>,
 }
 
 impl SubgridVecBuilder {
@@ -14,19 +14,21 @@ impl SubgridVecBuilder {
         Self::default()
     }
 
-    pub fn push(mut self, next: (i32, i32)) -> Self {
-        let next = IVec2::new(next.0, next.1);
+    pub fn push(mut self, next: (i32, i32, i32)) -> Self {
+        let next = IVec3::new(next.0, next.1, next.2);
         self.chain.push(next);
         self
     }
 
-    pub fn push_many<I: IntoIterator<Item = (i32, i32)>>(mut self, items: I) -> Self {
-        self.chain.extend(items.into_iter().map(|xy| IVec2::new(xy.0, xy.1)));
+    pub fn push_many<I: IntoIterator<Item = (i32, i32, i32)>>(mut self, items: I) -> Self {
+        self.chain
+            .extend(items.into_iter().map(|xyz| IVec3::new(xyz.0, xyz.1, xyz.2)));
         self
     }
 
-    pub fn repeat(mut self, xy: (i32, i32), count: usize) -> Self {
-        self.chain.extend(std::iter::repeat_n(IVec2::new(xy.0, xy.1), count));
+    pub fn repeat(mut self, xyz: (i32, i32, i32), count: usize) -> Self {
+        self.chain
+            .extend(std::iter::repeat_n(IVec3::new(xyz.0, xyz.1, xyz.2), count));
         self
     }
 
@@ -35,15 +37,15 @@ impl SubgridVecBuilder {
         self
     }
 
-    pub fn finish(self, subgrid_xy: (i32, i32)) -> SubgridVec {
-        SubgridVec::try_from((self.chain, IVec2::new(subgrid_xy.0, subgrid_xy.1))).unwrap()
+    pub fn finish(self, subgrid_xyz: (i32, i32, i32)) -> SubgridVec {
+        SubgridVec::try_from((self.chain, IVec3::new(subgrid_xyz.0, subgrid_xyz.1, subgrid_xyz.2))).unwrap()
     }
 }
 
 #[derive(Default, Clone, PartialEq, Reflect)]
 pub struct SubgridVec {
     pub(in super::super) grid_offset: GridVec,
-    pub(in super::super) subgrid_offset: IVec2,
+    pub(in super::super) subgrid_offset: IVec3,
 }
 impl SubgridVec {
     pub fn build() -> SubgridVecBuilder {
@@ -56,7 +58,7 @@ impl SubgridVec {
         }
     }
 
-    fn validate_subgrid_offset(subgrid_offset: &IVec2) {
+    fn validate_subgrid_offset(subgrid_offset: &IVec3) {
         if subgrid_offset.x < -5 {
             panic!("X coordinate {} is too small. Range is (-5..5)", subgrid_offset.x);
         }
@@ -69,9 +71,15 @@ impl SubgridVec {
         if subgrid_offset.y >= 5 {
             panic!("Y coordinate {} is too large. Range is (-5..5)", subgrid_offset.y);
         }
+        if subgrid_offset.z < -5 {
+            panic!("Z coordinate {} is too small. Range is (-5..5)", subgrid_offset.z);
+        }
+        if subgrid_offset.z >= 5 {
+            panic!("Z coordinate {} is too large. Range is (-5..5)", subgrid_offset.z);
+        }
     }
 
-    pub fn new(grid_offset: GridVec, subgrid_offset: IVec2) -> Self {
+    pub fn new(grid_offset: GridVec, subgrid_offset: IVec3) -> Self {
         Self::validate_grid_offset(&grid_offset);
         Self::validate_subgrid_offset(&subgrid_offset);
         Self { grid_offset, subgrid_offset }
@@ -92,7 +100,11 @@ impl SubgridVec {
         unit_extent.zoom_out();
 
         self.grid_offset = (*unit_extent.grid_offset.parent.unwrap()).clone();
-        self.subgrid_offset = unit_extent.grid_offset.xy;
+        self.subgrid_offset = IVec3::new(
+            unit_extent.grid_offset.xy.x,
+            unit_extent.grid_offset.xy.y,
+            unit_extent.grid_offset.z,
+        );
     }
 }
 impl std::fmt::Debug for SubgridVec {
@@ -100,32 +112,32 @@ impl std::fmt::Debug for SubgridVec {
         write!(f, "({:?}: {})", self.grid_offset, self.subgrid_offset)
     }
 }
-impl std::ops::Add<IVec2> for SubgridVec {
+impl std::ops::Add<IVec3> for SubgridVec {
     type Output = Self;
 
-    fn add(mut self, rhs: IVec2) -> Self::Output {
+    fn add(mut self, rhs: IVec3) -> Self::Output {
         self.subgrid_offset += rhs;
         Self::validate_subgrid_offset(&self.subgrid_offset);
         self
     }
 }
-impl std::ops::AddAssign<IVec2> for SubgridVec {
-    fn add_assign(&mut self, rhs: IVec2) {
+impl std::ops::AddAssign<IVec3> for SubgridVec {
+    fn add_assign(&mut self, rhs: IVec3) {
         self.subgrid_offset += rhs;
         Self::validate_subgrid_offset(&self.subgrid_offset);
     }
 }
-impl std::ops::Sub<IVec2> for SubgridVec {
+impl std::ops::Sub<IVec3> for SubgridVec {
     type Output = Self;
 
-    fn sub(mut self, rhs: IVec2) -> Self::Output {
+    fn sub(mut self, rhs: IVec3) -> Self::Output {
         self.subgrid_offset -= rhs;
         Self::validate_subgrid_offset(&self.subgrid_offset);
         self
     }
 }
-impl std::ops::SubAssign<IVec2> for SubgridVec {
-    fn sub_assign(&mut self, rhs: IVec2) {
+impl std::ops::SubAssign<IVec3> for SubgridVec {
+    fn sub_assign(&mut self, rhs: IVec3) {
         self.subgrid_offset -= rhs;
         Self::validate_subgrid_offset(&self.subgrid_offset);
     }
@@ -134,12 +146,11 @@ impl std::ops::Add<SubgridVec> for SubgridVec {
     type Output = Self;
 
     fn add(self, rhs: SubgridVec) -> Self::Output {
-        // === Phase 1: Build extended GridVec stacks from root to leaf ===
-        fn build_stack(subgrid: &SubgridVec) -> Vec<(Scale, IVec2)> {
+        fn build_stack(subgrid: &SubgridVec) -> Vec<(Scale, IVec3)> {
             let mut stack = Vec::new();
             let mut cursor = &subgrid.grid_offset;
             loop {
-                stack.push((cursor.scale, cursor.xy));
+                stack.push((cursor.scale, IVec3::new(cursor.xy.x, cursor.xy.y, cursor.z)));
                 if let Some(p) = &cursor.parent {
                     cursor = p;
                 } else {
@@ -148,7 +159,6 @@ impl std::ops::Add<SubgridVec> for SubgridVec {
             }
             stack.reverse();
 
-            // Append the phantom subgrid level (one scale down)
             let subgrid_scale = subgrid.grid_offset.scale.down().expect("No lower scale for subgrid");
             stack.push((subgrid_scale, subgrid.subgrid_offset));
 
@@ -159,17 +169,15 @@ impl std::ops::Add<SubgridVec> for SubgridVec {
         let mut b_stack = build_stack(&rhs);
         let max_depth = a_stack.len().max(b_stack.len());
 
-        // Pad shorter stack with (scale, ZERO)
         while a_stack.len() < max_depth {
             let (s, _) = b_stack[a_stack.len()];
-            a_stack.push((s, IVec2::ZERO));
+            a_stack.push((s, IVec3::ZERO));
         }
         while b_stack.len() < max_depth {
             let (s, _) = a_stack[b_stack.len()];
-            b_stack.push((s, IVec2::ZERO));
+            b_stack.push((s, IVec3::ZERO));
         }
 
-        // === Phase 2: Raw sum top-down ===
         let mut raw_stack = Vec::with_capacity(max_depth);
         for i in 0..max_depth {
             let scale = a_stack[i].0;
@@ -177,30 +185,30 @@ impl std::ops::Add<SubgridVec> for SubgridVec {
             raw_stack.push((scale, sum));
         }
 
-        // === Phase 3: Normalize with wrapping + carry ===
-        let mut carry = IVec2::ZERO;
+        let mut carry = IVec3::ZERO;
         for i in (0..raw_stack.len()).rev() {
             let (_scale, sum) = raw_stack[i];
             let wrapped_x = ((sum.x + carry.x + 5).rem_euclid(10)) - 5;
             let wrapped_y = ((sum.y + carry.y + 5).rem_euclid(10)) - 5;
+            let wrapped_z = ((sum.z + carry.z + 5).rem_euclid(10)) - 5;
             let carry_x = (sum.x + carry.x - wrapped_x).div_euclid(10);
             let carry_y = (sum.y + carry.y - wrapped_y).div_euclid(10);
+            let carry_z = (sum.z + carry.z - wrapped_z).div_euclid(10);
 
-            raw_stack[i].1 = IVec2::new(wrapped_x, wrapped_y);
-            carry = IVec2::new(carry_x, carry_y);
+            raw_stack[i].1 = IVec3::new(wrapped_x, wrapped_y, wrapped_z);
+            carry = IVec3::new(carry_x, carry_y, carry_z);
         }
 
-        // === Phase 4: Build GridVec tree and extract SubgridVec ===
         let mut result: Option<GridVec> = None;
-        for (_scale, xy) in raw_stack {
+        for (_scale, xyz) in raw_stack {
             result = Some(match result {
-                Some(parent) => GridVec::new(parent, xy),
-                None => GridVec::new_root(xy),
+                Some(parent) => GridVec::new(parent, xyz),
+                None => GridVec::new_root(xyz),
             });
         }
 
         let final_leaf = result.unwrap();
-        let subgrid_offset = final_leaf.xy;
+        let subgrid_offset = IVec3::new(final_leaf.xy.x, final_leaf.xy.y, final_leaf.z);
         let grid_offset = (*final_leaf.parent.unwrap()).clone();
 
         SubgridVec { grid_offset, subgrid_offset }
@@ -215,12 +223,11 @@ impl std::ops::Sub<SubgridVec> for SubgridVec {
     type Output = Self;
 
     fn sub(self, rhs: SubgridVec) -> Self::Output {
-        // === Phase 1: Build extended GridVec stacks from root to leaf ===
-        fn build_stack(subgrid: &SubgridVec) -> Vec<(Scale, IVec2)> {
+        fn build_stack(subgrid: &SubgridVec) -> Vec<(Scale, IVec3)> {
             let mut stack = Vec::new();
             let mut cursor = &subgrid.grid_offset;
             loop {
-                stack.push((cursor.scale, cursor.xy));
+                stack.push((cursor.scale, IVec3::new(cursor.xy.x, cursor.xy.y, cursor.z)));
                 if let Some(p) = &cursor.parent {
                     cursor = p;
                 } else {
@@ -229,7 +236,6 @@ impl std::ops::Sub<SubgridVec> for SubgridVec {
             }
             stack.reverse();
 
-            // Append the phantom subgrid level (one scale down)
             let subgrid_scale = subgrid.grid_offset.scale.down().expect("No lower scale for subgrid");
             stack.push((subgrid_scale, subgrid.subgrid_offset));
 
@@ -240,17 +246,15 @@ impl std::ops::Sub<SubgridVec> for SubgridVec {
         let mut b_stack = build_stack(&rhs);
         let max_depth = a_stack.len().max(b_stack.len());
 
-        // Pad shorter stack with (scale, ZERO)
         while a_stack.len() < max_depth {
             let (s, _) = b_stack[a_stack.len()];
-            a_stack.push((s, IVec2::ZERO));
+            a_stack.push((s, IVec3::ZERO));
         }
         while b_stack.len() < max_depth {
             let (s, _) = a_stack[b_stack.len()];
-            b_stack.push((s, IVec2::ZERO));
+            b_stack.push((s, IVec3::ZERO));
         }
 
-        // === Phase 2: Raw diff top-down ===
         let mut raw_stack = Vec::with_capacity(max_depth);
         for i in 0..max_depth {
             let scale = a_stack[i].0;
@@ -258,30 +262,30 @@ impl std::ops::Sub<SubgridVec> for SubgridVec {
             raw_stack.push((scale, diff));
         }
 
-        // === Phase 3: Normalize with wrapping + carry ===
-        let mut carry = IVec2::ZERO;
+        let mut carry = IVec3::ZERO;
         for i in (0..raw_stack.len()).rev() {
             let (_scale, diff) = raw_stack[i];
             let wrapped_x = ((diff.x + carry.x + 5).rem_euclid(10)) - 5;
             let wrapped_y = ((diff.y + carry.y + 5).rem_euclid(10)) - 5;
+            let wrapped_z = ((diff.z + carry.z + 5).rem_euclid(10)) - 5;
             let carry_x = (diff.x + carry.x - wrapped_x).div_euclid(10);
             let carry_y = (diff.y + carry.y - wrapped_y).div_euclid(10);
+            let carry_z = (diff.z + carry.z - wrapped_z).div_euclid(10);
 
-            raw_stack[i].1 = IVec2::new(wrapped_x, wrapped_y);
-            carry = IVec2::new(carry_x, carry_y);
+            raw_stack[i].1 = IVec3::new(wrapped_x, wrapped_y, wrapped_z);
+            carry = IVec3::new(carry_x, carry_y, carry_z);
         }
 
-        // === Phase 4: Build GridVec tree and extract SubgridVec ===
         let mut result: Option<GridVec> = None;
-        for (_scale, xy) in raw_stack {
+        for (_scale, xyz) in raw_stack {
             result = Some(match result {
-                Some(parent) => GridVec::new(parent, xy),
-                None => GridVec::new_root(xy),
+                Some(parent) => GridVec::new(parent, xyz),
+                None => GridVec::new_root(xyz),
             });
         }
 
         let final_leaf = result.unwrap();
-        let subgrid_offset = final_leaf.xy;
+        let subgrid_offset = IVec3::new(final_leaf.xy.x, final_leaf.xy.y, final_leaf.z);
         let grid_offset = (*final_leaf.parent.unwrap()).clone();
 
         SubgridVec { grid_offset, subgrid_offset }
@@ -292,10 +296,10 @@ impl std::ops::SubAssign<SubgridVec> for SubgridVec {
         *self = self.clone() - rhs;
     }
 }
-impl std::convert::TryFrom<(Vec<IVec2>, IVec2)> for SubgridVec {
+impl std::convert::TryFrom<(Vec<IVec3>, IVec3)> for SubgridVec {
     type Error = &'static str;
 
-    fn try_from((stack, subgrid_offset): (Vec<IVec2>, IVec2)) -> Result<Self, Self::Error> {
+    fn try_from((stack, subgrid_offset): (Vec<IVec3>, IVec3)) -> Result<Self, Self::Error> {
         let grid_offset = GridVec::try_from(stack)?;
         Ok(SubgridVec::new(grid_offset, subgrid_offset))
     }

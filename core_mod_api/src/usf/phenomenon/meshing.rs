@@ -49,14 +49,14 @@ impl PhenomenonLatticeWindow {
 }
 
 #[inline]
-pub fn seam_safe_lattice_window(bounds_min: Vec2, bounds_span: Vec2, cells: usize) -> PhenomenonLatticeWindow {
-    let min = bounds_min.clamp(Vec2::ZERO, Vec2::ONE);
-    let max = (bounds_min + bounds_span).clamp(Vec2::ZERO, Vec2::ONE);
+pub fn seam_safe_lattice_window(bounds_min: Vec3, bounds_span: Vec3, cells: usize) -> PhenomenonLatticeWindow {
+    let min = bounds_min.clamp(Vec3::ZERO, Vec3::ONE);
+    let max = (bounds_min + bounds_span).clamp(Vec3::ZERO, Vec3::ONE);
     let cells = cells.max(1) as u32;
 
     PhenomenonLatticeWindow {
-        min: IVec3::new(quantize_unit(min.x), quantize_unit(min.y), 0),
-        max: IVec3::new(quantize_unit(max.x), quantize_unit(max.y), PHENOMENON_SEAM_LATTICE_DENOM),
+        min: IVec3::new(quantize_unit(min.x), quantize_unit(min.y), quantize_unit(min.z)),
+        max: IVec3::new(quantize_unit(max.x), quantize_unit(max.y), quantize_unit(max.z)),
         cells,
     }
 }
@@ -85,8 +85,8 @@ mod tests {
 
     #[test]
     fn seam_contract_keeps_shared_face_on_same_lattice_coordinates() {
-        let a = seam_safe_lattice_window(Vec2::new(0.0, 0.0), Vec2::new(0.5, 1.0), 12);
-        let b = seam_safe_lattice_window(Vec2::new(0.5, 0.0), Vec2::new(0.5, 1.0), 12);
+        let a = seam_safe_lattice_window(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.5, 1.0, 1.0), 12);
+        let b = seam_safe_lattice_window(Vec3::new(0.5, 0.0, 0.0), Vec3::new(0.5, 1.0, 1.0), 12);
 
         for y in 0..=12 {
             for z in 0..=12 {

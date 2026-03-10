@@ -1,27 +1,29 @@
-use crate::bevy::prelude::{IVec2, IVec3, Reflect, Vec2, Vec3};
+use crate::bevy::prelude::{IVec3, Reflect, Vec3};
 
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::{DynScale, Scale};
 
 #[derive(Default)]
 pub struct UnitVecBuilder {
-    chain: Vec<IVec2>,
+    chain: Vec<IVec3>,
 }
 
 impl UnitVecBuilder {
-    pub fn push(mut self, next: (i32, i32)) -> Self {
-        let next = IVec2::new(next.0, next.1);
+    pub fn push(mut self, next: (i32, i32, i32)) -> Self {
+        let next = IVec3::new(next.0, next.1, next.2);
         self.chain.push(next);
         self
     }
 
-    pub fn push_many<I: IntoIterator<Item = (i32, i32)>>(mut self, items: I) -> Self {
-        self.chain.extend(items.into_iter().map(|xy| IVec2::new(xy.0, xy.1)));
+    pub fn push_many<I: IntoIterator<Item = (i32, i32, i32)>>(mut self, items: I) -> Self {
+        self.chain
+            .extend(items.into_iter().map(|xyz| IVec3::new(xyz.0, xyz.1, xyz.2)));
         self
     }
 
-    pub fn repeat(mut self, xy: (i32, i32), count: usize) -> Self {
-        self.chain.extend(std::iter::repeat_n(IVec2::new(xy.0, xy.1), count));
+    pub fn repeat(mut self, xyz: (i32, i32, i32), count: usize) -> Self {
+        self.chain
+            .extend(std::iter::repeat_n(IVec3::new(xyz.0, xyz.1, xyz.2), count));
         self
     }
 
@@ -30,8 +32,8 @@ impl UnitVecBuilder {
         self
     }
 
-    pub fn finish(self, unit_xy: (f32, f32)) -> UnitVec {
-        UnitVec::try_from((self.chain, Vec2::new(unit_xy.0, unit_xy.1))).unwrap()
+    pub fn finish(self, unit_xyz: (f32, f32, f32)) -> UnitVec {
+        UnitVec::try_from((self.chain, Vec3::new(unit_xyz.0, unit_xyz.1, unit_xyz.2))).unwrap()
     }
 }
 
@@ -71,11 +73,6 @@ impl UnitVec {
         let mut my_self = Self { grid_offset, unit_offset };
         my_self.normalize();
         my_self
-    }
-
-    /// Backwards-compatible XY constructor.
-    pub fn new_xy(grid_offset: GridVec, unit_offset: Vec2) -> Self {
-        Self::new(grid_offset, unit_offset.extend(0.0))
     }
 
     /// Create a new UnitVec from a grid offset only, with unit offset (0.0, 0.0).
@@ -118,33 +115,6 @@ impl UnitVec {
         // Normalize GridVec
         self.grid_offset.normalize();
     }
-
-    // /// Returns the total Bevy-space offset between two same-layer siblings.
-    // /// It's like std::ops::Sub<UnitVec>, but can be used to return a Vec2 representing the native logical offset in Bevy space
-    // /// This assumes that we store and update an `origin: GridVec` somewhere so that we can convert between Bevy space and UnitVec space (which is just a translation, no fancy transformation needed)
-    // /// - Fails if `grid_offset.parent` differs, or if scale differs.
-    // pub fn native_logical_offset(from: &UnitVec, to: &UnitVec) -> Option<Vec2> {
-    //     // Scale must match
-    //     if from.grid_offset.scale != to.grid_offset.scale {
-    //         return None;
-    //     }
-    //
-    //     // Parents must be equal (value-wise)
-    //     let same_parent = match (&from.grid_offset.parent, &to.grid_offset.parent) {
-    //         (Some(a), Some(b)) => **a == **b,
-    //         (None, None) => true,
-    //         _ => false,
-    //     };
-    //     if !same_parent {
-    //         return None;
-    //     }
-    //
-    //     // Compute offset
-    //     let chunk_delta = (to.grid_offset.xy - from.grid_offset.xy).as_vec2() * 1000.0;
-    //     let unit_delta = to.unit_offset.truncate() - from.unit_offset.truncate();
-    //
-    //     Some(chunk_delta + unit_delta)
-    // }
 
     pub fn zoom_in_multi(&mut self, target_scale: Scale) -> Result<(), &'static str> {
         if target_scale >= self.grid_offset.scale {
@@ -203,9 +173,7 @@ impl UnitVec {
 
         // === Phase 4: Build new GridVec tree ===
         for (_scale, xyz) in stack {
-            let mut next = GridVec::new(new_grid, IVec2::new(xyz.x, xyz.y));
-            next.z = xyz.z;
-            next.normalize();
+            let next = GridVec::new(new_grid, xyz);
             new_grid = next;
         }
 
@@ -256,19 +224,6 @@ impl std::fmt::Debug for UnitVec {
         write!(f, "({:?}: {})", self.grid_offset, self.unit_offset)
     }
 }
-impl std::ops::Add<IVec2> for UnitVec {
-    type Output = Self;
-
-    fn add(mut self, rhs: IVec2) -> Self::Output {
-        self.grid_offset += rhs;
-        self
-    }
-}
-impl std::ops::AddAssign<IVec2> for UnitVec {
-    fn add_assign(&mut self, rhs: IVec2) {
-        self.grid_offset += rhs;
-    }
-}
 impl std::ops::Add<IVec3> for UnitVec {
     type Output = Self;
 
@@ -280,19 +235,6 @@ impl std::ops::Add<IVec3> for UnitVec {
 impl std::ops::AddAssign<IVec3> for UnitVec {
     fn add_assign(&mut self, rhs: IVec3) {
         self.grid_offset += rhs;
-    }
-}
-impl std::ops::Sub<IVec2> for UnitVec {
-    type Output = Self;
-
-    fn sub(mut self, rhs: IVec2) -> Self::Output {
-        self.grid_offset -= rhs;
-        self
-    }
-}
-impl std::ops::SubAssign<IVec2> for UnitVec {
-    fn sub_assign(&mut self, rhs: IVec2) {
-        self.grid_offset -= rhs;
     }
 }
 impl std::ops::Sub<IVec3> for UnitVec {
@@ -427,16 +369,10 @@ impl std::ops::Add<UnitVec> for UnitVec {
         for xyz in raw_stack {
             result = Some(match result {
                 Some(parent) => {
-                    let mut child = GridVec::new(parent, IVec2::new(xyz.x, xyz.y));
-                    child.z = xyz.z;
-                    child.normalize();
-                    child
+                    GridVec::new(parent, xyz)
                 }
                 None => {
-                    let mut root = GridVec::new_root(IVec2::new(xyz.x, xyz.y));
-                    root.z = xyz.z;
-                    root.normalize();
-                    root
+                    GridVec::new_root(xyz)
                 }
             });
         }
@@ -547,16 +483,10 @@ impl std::ops::Sub<UnitVec> for UnitVec {
         for xyz in raw_stack {
             result = Some(match result {
                 Some(parent) => {
-                    let mut child = GridVec::new(parent, IVec2::new(xyz.x, xyz.y));
-                    child.z = xyz.z;
-                    child.normalize();
-                    child
+                    GridVec::new(parent, xyz)
                 }
                 None => {
-                    let mut root = GridVec::new_root(IVec2::new(xyz.x, xyz.y));
-                    root.z = xyz.z;
-                    root.normalize();
-                    root
+                    GridVec::new_root(xyz)
                 }
             });
         }
@@ -567,14 +497,6 @@ impl std::ops::Sub<UnitVec> for UnitVec {
 impl std::ops::SubAssign<UnitVec> for UnitVec {
     fn sub_assign(&mut self, rhs: UnitVec) {
         *self = self.clone() - rhs;
-    }
-}
-impl std::convert::TryFrom<(Vec<IVec2>, Vec2)> for UnitVec {
-    type Error = &'static str;
-
-    fn try_from((stack, unit_offset): (Vec<IVec2>, Vec2)) -> Result<Self, Self::Error> {
-        let grid_offset = GridVec::try_from(stack)?;
-        Ok(UnitVec::new_xy(grid_offset, unit_offset))
     }
 }
 impl std::convert::TryFrom<(Vec<IVec3>, Vec3)> for UnitVec {
