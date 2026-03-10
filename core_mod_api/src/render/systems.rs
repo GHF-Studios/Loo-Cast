@@ -19,8 +19,10 @@ use crate::render::{
     resources::{DevZoomFactor, GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, ViewScale, ZoomFactor},
 };
 use crate::time::resources::VirtualPaused;
-use crate::usf::phenomenon::{Phenomenon, PhenomenonId, PhenomenonKind, PhenomenonModel};
-use crate::usf::pos::grid::types::GridVec;
+use crate::usf::phenomenon::{
+    PHENOMENON_SEAM_LATTICE_DENOM, Phenomenon, PhenomenonDebugStats, PhenomenonId, PhenomenonKind, PhenomenonModel, PhenomenonNode,
+    seam_safe_lattice_window,
+};
 use crate::usf::scale::Scale;
 use std::hash::{Hash, Hasher};
 
@@ -83,14 +85,13 @@ pub(super) fn ensure_global_phenomenon_root_system(
     mut meshes: ResMut<Assets<Mesh>>,
     mut phenomenon_surface_materials: ResMut<Assets<PhenomenonSurfaceMaterial>>,
     global_phenomenon_root_query: Query<Entity, With<GlobalPhenomenonRoot>>,
-    player_loader_query: Query<&ChunkLoader, With<Player>>,
 ) {
     if !global_phenomenon_root_query.is_empty() {
         return;
     }
 
-    let source_scale = player_loader_query.single().map(|loader| loader.coord.scale).unwrap_or(Scale::MAX);
-    let depth_bias = CONFIG().get::<i8>("chunk/z_offset") as f32;
+    let source_scale = Scale::MAX;
+    let depth_bias = 0.0;
     let phenomenon_kind = configured_default_phenomenon_kind();
 
     let phenomenon_entity = commands
@@ -215,56 +216,33 @@ pub(super) fn update_render_proxies(
 
 #[tracing::instrument(skip_all)]
 pub(super) fn update_global_phenomenon_proxy_system(
-    mut params: ParamSet<(
-        Single<(&ChunkLoader, &Transform), With<Player>>,
-        Query<(&mut Transform, &mut RenderProxy), With<GlobalPhenomenonRoot>>,
-    )>,
+    player_loader_query: Single<(&ChunkLoader, &Transform), With<Player>>,
+    mut global_proxy_query: Query<(&mut Transform, &mut RenderProxy), With<GlobalPhenomenonRoot>>,
+    phenomenon_node_query: Query<&PhenomenonNode>,
 ) {
-    let (world_rotation, world_rotation_origin, coord_scale, scale_diff, view_pos_native, phenomenon_center_native) = {
-        let (chunk_loader, chunk_loader_transform) = *params.p0();
-        let world_rotation = chunk_loader.world_rotation_quat();
-        let world_rotation_origin = chunk_loader_transform.translation;
-        let local_view_pos = Vec2::new(
-            chunk_loader.usf_transform.translation.x.local as f32,
-            chunk_loader.usf_transform.translation.y.local as f32,
-        );
-        let grid_origin_at_current_scale = GridVec::new_at_scale(chunk_loader.origin_offset.scale, IVec2::ZERO);
-        let coarse_view_pos = chunk_loader.origin_offset.clone().to_native_logical(grid_origin_at_current_scale);
-        let view_pos_native = coarse_view_pos + local_view_pos;
-        // One global phenomenon in 3D: scale progression selects a deeper subsection window,
-        // but does not spawn/scale independent world objects.
-        let coord_scale = chunk_loader.coord.scale;
-        let scale_diff = coord_scale.index_from_top() as i8;
+    let (chunk_loader, chunk_loader_transform) = *player_loader_query;
+    let world_rotation = chunk_loader.world_rotation_quat();
+    let world_rotation_origin = chunk_loader_transform.translation;
+    let frontier_view = chunk_loader.phenomenon_frontier_view();
+    let view_scale = frontier_view.scale;
+    let view_pos_native = frontier_view.native_position;
 
-        // Anchor the phenomenon at absolute USF world origin (0,0) at Scale::MAX.
-        let phenomenon_origin_coord = GridVec::new_at_scale(Scale::MAX, IVec2::ZERO);
-        let (phenomenon_center_native, _scale) = phenomenon_origin_coord.to_native_visual_3d(chunk_loader.origin_offset.clone());
+    let (frontier_scale, frontier_center_native) =
+        select_frontier_node_for_view(phenomenon_node_query.iter(), view_scale, view_pos_native).unwrap_or((Scale::MAX, Vec3::ZERO));
+    let scale_diff = frontier_scale as i8 - view_scale as i8;
 
-        (
-            world_rotation,
-            world_rotation_origin,
-            coord_scale,
-            scale_diff,
-            view_pos_native,
-            phenomenon_center_native,
-        )
-    };
-
-    let mut global_proxy_query = params.p1();
     for (mut proxy_transform, mut proxy_state) in global_proxy_query.iter_mut() {
-        // Keep the global phenomenon anchored at absolute world origin; only windowing
-        // should track player focus across USF boundaries.
         let world_pos = Vec3::new(
-            phenomenon_center_native.x,
-            phenomenon_center_native.y,
-            phenomenon_center_native.z + proxy_state.depth_bias,
+            frontier_center_native.x,
+            frontier_center_native.y,
+            frontier_center_native.z + proxy_state.depth_bias,
         );
         proxy_transform.translation = world_rotation_origin + world_rotation * (world_pos - world_rotation_origin);
         proxy_transform.scale = Vec3::ONE;
         proxy_transform.rotation = world_rotation;
-        proxy_state.layer_index = coord_scale.render_layer_index();
+        proxy_state.layer_index = frontier_scale.render_layer_index();
         let (window_mode, window_center_local, window_size_local) =
-            compute_render_proxy_windowing(scale_diff, phenomenon_center_native.truncate(), view_pos_native);
+            compute_render_proxy_windowing(scale_diff, frontier_center_native.truncate(), view_pos_native.truncate());
         proxy_state.window_mode = window_mode;
         proxy_state.window_center_local = window_center_local;
         proxy_state.window_size_local = window_size_local;
@@ -467,6 +445,7 @@ pub(super) fn update_phenomenon_model_surfaces_system(
     time: Res<Time>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut surface_materials: ResMut<Assets<PhenomenonSurfaceMaterial>>,
+    mut phenomenon_stats: Option<ResMut<PhenomenonDebugStats>>,
     proxy_query: Query<(&Children, &RenderProxy, &PhenomenonModel)>,
     phenomenon_query: Query<&Phenomenon>,
     mut surface_query: Query<(
@@ -477,6 +456,11 @@ pub(super) fn update_phenomenon_model_surfaces_system(
         &mut PhenomenonModelSurface,
     )>,
 ) {
+    if let Some(stats) = phenomenon_stats.as_mut() {
+        stats.generated_meshes_frame = 0;
+        stats.mesh_cache_hits_frame = 0;
+    }
+
     for (children, proxy, phenomenon_model) in proxy_query.iter() {
         let model = phenomenon_query
             .get(phenomenon_model.phenomenon_entity)
@@ -503,6 +487,10 @@ pub(super) fn update_phenomenon_model_surfaces_system(
             if signature != surface_state.last_signature {
                 surface_state.last_signature = signature;
                 if let Some(mesh) = model.build_mesh(proxy) {
+                    if let Some(stats) = phenomenon_stats.as_mut() {
+                        stats.generated_meshes_total = stats.generated_meshes_total.saturating_add(1);
+                        stats.generated_meshes_frame = stats.generated_meshes_frame.saturating_add(1);
+                    }
                     if let Some(existing) = meshes.get_mut(&mesh3d.0) {
                         *existing = mesh;
                     } else {
@@ -512,6 +500,9 @@ pub(super) fn update_phenomenon_model_surfaces_system(
                 } else {
                     *visibility = Visibility::Hidden;
                 }
+            } else if let Some(stats) = phenomenon_stats.as_mut() {
+                stats.mesh_cache_hits_total = stats.mesh_cache_hits_total.saturating_add(1);
+                stats.mesh_cache_hits_frame = stats.mesh_cache_hits_frame.saturating_add(1);
             }
         }
     }
@@ -736,6 +727,8 @@ where
     F: FnMut(&mut std::collections::hash_map::DefaultHasher),
 {
     let meshing_window = compute_meshing_window(proxy, lod.mesh_resolution);
+    let bounds = compute_phenomenon_window_bounds(proxy.window_mode, meshing_window.center_local, meshing_window.size_local);
+    let lattice_window = seam_safe_lattice_window(bounds.min, bounds.span, meshing_window.resolution);
     #[inline]
     fn hash_lod_fields(hasher: &mut std::collections::hash_map::DefaultHasher, lod: SurfaceLodTuning) {
         quantized_signature_value(lod.iso_level).hash(hasher);
@@ -754,6 +747,9 @@ where
     quantized_signature_value(meshing_window.size_local.x).hash(&mut hasher);
     quantized_signature_value(meshing_window.size_local.y).hash(&mut hasher);
     meshing_window.resolution.hash(&mut hasher);
+    lattice_window.min.hash(&mut hasher);
+    lattice_window.max.hash(&mut hasher);
+    lattice_window.cells.hash(&mut hasher);
     hash_lod_fields(&mut hasher, lod);
     hash_model(&mut hasher);
     hasher.finish()
@@ -819,10 +815,16 @@ struct SierpinskiWindowRemap {
 impl SierpinskiWindowRemap {
     #[inline]
     fn from_bounds(bounds: PhenomenonModelWindowBounds, domain_span: f32) -> Self {
-        let sample_min = Vec3::new((bounds.min.x - 0.5) * 2.0 * domain_span, (bounds.min.y - 0.5) * 2.0 * domain_span, -domain_span);
+        let seam_bounds = seam_safe_lattice_window(bounds.min, bounds.span, 1);
+        let seam_denom = PHENOMENON_SEAM_LATTICE_DENOM as f32;
+        let seam_min_uv = Vec2::new(seam_bounds.min.x as f32 / seam_denom, seam_bounds.min.y as f32 / seam_denom);
+        let seam_max_uv = Vec2::new(seam_bounds.max.x as f32 / seam_denom, seam_bounds.max.y as f32 / seam_denom);
+        let seam_span_uv = (seam_max_uv - seam_min_uv).max(Vec2::splat(MIN_WINDOW_SIZE_LOCAL));
+
+        let sample_min = Vec3::new((seam_min_uv.x - 0.5) * 2.0 * domain_span, (seam_min_uv.y - 0.5) * 2.0 * domain_span, -domain_span);
         let sample_span = Vec3::new(
-            (bounds.span.x * 2.0 * domain_span).max(1e-6),
-            (bounds.span.y * 2.0 * domain_span).max(1e-6),
+            (seam_span_uv.x * 2.0 * domain_span).max(1e-6),
+            (seam_span_uv.y * 2.0 * domain_span).max(1e-6),
             (2.0 * domain_span).max(1e-6),
         );
         Self { sample_min, sample_span }
@@ -1065,27 +1067,24 @@ where
 {
     let meshing_window = compute_meshing_window(proxy, lod.mesh_resolution);
     let cells = meshing_window.resolution;
-    let axis_points = cells + 1;
     let bounds = compute_phenomenon_window_bounds(proxy.window_mode, meshing_window.center_local, meshing_window.size_local);
+    let lattice_window = seam_safe_lattice_window(bounds.min, bounds.span, cells);
+    let axis_points = lattice_window.axis_points();
+    let seam_denom = PHENOMENON_SEAM_LATTICE_DENOM as f32;
 
     let mut points = vec![Vec3::ZERO; axis_points * axis_points * axis_points];
     let mut field = vec![0.0f32; axis_points * axis_points * axis_points];
 
     for iz in 0..axis_points {
-        let w = iz as f32 / cells as f32;
         for iy in 0..axis_points {
-            let v = iy as f32 / cells as f32;
             for ix in 0..axis_points {
-                let u = ix as f32 / cells as f32;
                 let idx = grid_index(ix, iy, iz, axis_points);
-                let sample_uv = bounds.min + Vec2::new(u, v) * bounds.span;
-                let signed_distance = density_from_model_space(sample_uv, w, proxy.layer_index);
+                let lattice_coord = lattice_window.lattice_coord(ix, iy, iz);
+                let sample_uv = Vec2::new(lattice_coord.x as f32 / seam_denom, lattice_coord.y as f32 / seam_denom);
+                let sample_w = lattice_coord.z as f32 / seam_denom;
+                let signed_distance = density_from_model_space(sample_uv, sample_w, proxy.layer_index);
                 field[idx] = signed_distance - lod.iso_level;
-                points[idx] = Vec3::new(
-                    (u - 0.5) * PHENOMENON_MODEL_LOCAL_SPAN_UNITS,
-                    (v - 0.5) * PHENOMENON_MODEL_LOCAL_SPAN_UNITS,
-                    (w - 0.5) * PHENOMENON_MODEL_LOCAL_SPAN_UNITS,
-                );
+                points[idx] = lattice_window.local_position(lattice_coord, PHENOMENON_MODEL_LOCAL_SPAN_UNITS);
             }
         }
     }
@@ -1257,6 +1256,43 @@ fn interpolate_iso(a_pos: Vec3, a_val: f32, b_pos: Vec3, b_val: f32) -> Vec3 {
 }
 
 #[inline]
+fn phenomenon_node_center_native(node: PhenomenonNode, view_scale: Scale) -> Vec3 {
+    let scale_diff = node.scale as i8 - view_scale as i8;
+    let scale_factor = 10.0_f32.powi(scale_diff as i32);
+    node.cell3.as_vec3() * PHENOMENON_MODEL_LOCAL_SPAN_UNITS * scale_factor
+}
+
+fn select_frontier_node_for_view<'a, I>(nodes: I, view_scale: Scale, view_pos_native: Vec3) -> Option<(Scale, Vec3)>
+where
+    I: IntoIterator<Item = &'a PhenomenonNode>,
+{
+    let mut best: Option<(u8, f32, u64, Scale, Vec3)> = None;
+
+    for node in nodes {
+        let center_native = phenomenon_node_center_native(*node, view_scale);
+        let scale_distance = (node.scale.index_from_top() as i16 - view_scale.index_from_top() as i16).abs() as u8;
+        let planar_distance_sq = center_native.truncate().distance_squared(view_pos_native.truncate());
+
+        let is_better = match best {
+            None => true,
+            Some((best_scale_distance, best_distance_sq, best_seed, _, _)) => {
+                scale_distance < best_scale_distance
+                    || (scale_distance == best_scale_distance && planar_distance_sq < best_distance_sq)
+                    || (scale_distance == best_scale_distance
+                        && (planar_distance_sq - best_distance_sq).abs() <= 0.01
+                        && node.seed.0 < best_seed)
+            }
+        };
+
+        if is_better {
+            best = Some((scale_distance, planar_distance_sq, node.seed.0, node.scale, center_native));
+        }
+    }
+
+    best.map(|(_, _, _, scale, center_native)| (scale, center_native))
+}
+
+#[inline]
 fn compute_render_proxy_windowing(scale_diff: i8, chunk_center_native: Vec2, view_pos_native: Vec2) -> (RenderProxyWindowMode, Vec2, Vec2) {
     if scale_diff <= 0 {
         return (RenderProxyWindowMode::FullEntity, Vec2::ZERO, Vec2::ONE);
@@ -1323,12 +1359,44 @@ mod tests {
         }
     }
 
+    fn sample_node(scale: Scale, cell3: IVec3, seed: u64) -> PhenomenonNode {
+        PhenomenonNode {
+            phenomenon_id: PhenomenonId(0),
+            scale,
+            cell3,
+            parent: None,
+            local_index: 0,
+            seed: crate::usf::phenomenon::PhenomenonNodeSeed(seed),
+        }
+    }
+
     #[test]
     fn full_entity_mode_for_same_or_finer_scale() {
         let (mode, center, size) = compute_render_proxy_windowing(0, Vec2::ZERO, Vec2::new(123.0, -45.0));
         assert_eq!(mode, RenderProxyWindowMode::FullEntity);
         assert_eq!(center, Vec2::ZERO);
         assert_eq!(size, Vec2::ONE);
+    }
+
+    #[test]
+    fn frontier_selection_tracks_scale_transition() {
+        let coarse = sample_node(Scale::MAX, IVec3::new(0, 0, 0), 11);
+        let fine = sample_node(Scale::MAX.zoomed_in(), IVec3::new(1, 0, 0), 22);
+
+        let selected_at_coarse = select_frontier_node_for_view([&coarse, &fine], Scale::MAX, Vec3::ZERO).unwrap();
+        assert_eq!(selected_at_coarse.0, coarse.scale);
+
+        let selected_at_fine = select_frontier_node_for_view([&coarse, &fine], Scale::MAX.zoomed_in(), Vec3::ZERO).unwrap();
+        assert_eq!(selected_at_fine.0, fine.scale);
+    }
+
+    #[test]
+    fn frontier_selection_uses_nearest_node_within_scale() {
+        let a = sample_node(Scale::MAX.zoomed_in(), IVec3::new(-2, 0, 0), 101);
+        let b = sample_node(Scale::MAX.zoomed_in(), IVec3::new(3, 0, 0), 102);
+
+        let selected = select_frontier_node_for_view([&a, &b], Scale::MAX.zoomed_in(), Vec3::new(2_900.0, 0.0, 0.0)).unwrap();
+        assert_eq!(selected.0, b.scale);
     }
 
     #[test]
@@ -1377,6 +1445,20 @@ mod tests {
         assert!((bounds.max.y - 0.75).abs() < 1e-6);
         assert!((bounds.span.x - 0.5).abs() < 1e-6);
         assert!((bounds.span.y - 0.5).abs() < 1e-6);
+    }
+
+    #[test]
+    fn meshing_seam_contract_uses_identical_boundary_lattice_samples() {
+        let left = seam_safe_lattice_window(Vec2::new(0.0, 0.0), Vec2::new(0.5, 1.0), 16);
+        let right = seam_safe_lattice_window(Vec2::new(0.5, 0.0), Vec2::new(0.5, 1.0), 16);
+
+        for y in 0..=16 {
+            for z in 0..=16 {
+                let left_boundary = left.lattice_coord(16, y, z);
+                let right_boundary = right.lattice_coord(0, y, z);
+                assert_eq!(left_boundary, right_boundary);
+            }
+        }
     }
 
     #[test]

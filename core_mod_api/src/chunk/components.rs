@@ -43,6 +43,12 @@ impl InsertComponentFromDynamic for ChunkLoader {
     }
 }
 
+#[derive(Debug, Clone, Copy, Reflect, PartialEq)]
+pub struct PhenomenonFrontierView {
+    pub scale: Scale,
+    pub native_position: Vec3,
+}
+
 #[inline]
 fn fold_translation_axis_at_window(
     axis: &mut crate::usf::transform::types::UsfFloat,
@@ -73,6 +79,17 @@ fn fold_translation_axis_at_window(
 }
 
 impl ChunkLoader {
+    pub fn phenomenon_frontier_view(&self) -> PhenomenonFrontierView {
+        PhenomenonFrontierView {
+            scale: self.origin_offset.scale,
+            native_position: Vec3::new(
+                self.usf_transform.translation.x.local as f32,
+                self.usf_transform.translation.y.local as f32,
+                self.usf_transform.translation.z.local as f32,
+            ),
+        }
+    }
+
     pub fn zoom_in(&mut self, logical_world_pos: Vec3) -> Vec3 {
         self.scale.zoom_in();
         self.zoom_state = ZoomState::ZoomIn;

@@ -54,10 +54,10 @@ fn grid_extent_add_test_2() {
 fn grid_extent_add_test_3() {
     use super::types::GridVec;
 
-    let a = GridVec::build().repeat((4, 4), 71).finish();
-    let b = GridVec::build().repeat((0, 0), 70).push((1, 1)).finish();
+    let a = GridVec::build().repeat((4, 4, 0), 71).finish();
+    let b = GridVec::build().repeat((0, 0, 0), 70).push((1, 1, 0)).finish();
     let c = a + b;
-    let expected = GridVec::build().repeat((-5, -5), 71).finish();
+    let expected = GridVec::build().repeat((-5, -5, 0), 71).finish();
     assert_eq!(c, expected);
 }
 
@@ -87,10 +87,10 @@ fn grid_extent_sub_test_2() {
 fn grid_extent_sub_test_3() {
     use super::types::GridVec;
 
-    let a = GridVec::build().repeat((-5, -5), 71).finish();
-    let b = GridVec::build().repeat((0, 0), 70).push((1, 1)).finish();
+    let a = GridVec::build().repeat((-5, -5, 0), 71).finish();
+    let b = GridVec::build().repeat((0, 0, 0), 70).push((1, 1, 0)).finish();
     let c = a - b;
-    let expected = GridVec::build().repeat((4, 4), 71).finish();
+    let expected = GridVec::build().repeat((4, 4, 0), 71).finish();
     assert_eq!(c, expected);
 }
 

@@ -11,7 +11,7 @@ use crate::usf::scale::Scale;
 
 #[derive(Default)]
 pub struct GridVecBuilder {
-    chain: Vec<IVec2>,
+    chain: Vec<IVec3>,
 }
 
 impl GridVecBuilder {
@@ -19,19 +19,21 @@ impl GridVecBuilder {
         Self::default()
     }
 
-    pub fn push(mut self, next: (i32, i32)) -> Self {
-        let next = IVec2::new(next.0, next.1);
+    pub fn push(mut self, next: (i32, i32, i32)) -> Self {
+        let next = IVec3::new(next.0, next.1, next.2);
         self.chain.push(next);
         self
     }
 
-    pub fn push_many<I: IntoIterator<Item = (i32, i32)>>(mut self, items: I) -> Self {
-        self.chain.extend(items.into_iter().map(|xy| IVec2::new(xy.0, xy.1)));
+    pub fn push_many<I: IntoIterator<Item = (i32, i32, i32)>>(mut self, items: I) -> Self {
+        self.chain
+            .extend(items.into_iter().map(|xyz| IVec3::new(xyz.0, xyz.1, xyz.2)));
         self
     }
 
-    pub fn repeat(mut self, xy: (i32, i32), count: usize) -> Self {
-        self.chain.extend(std::iter::repeat_n(IVec2::new(xy.0, xy.1), count));
+    pub fn repeat(mut self, xyz: (i32, i32, i32), count: usize) -> Self {
+        self.chain
+            .extend(std::iter::repeat_n(IVec3::new(xyz.0, xyz.1, xyz.2), count));
         self
     }
 
@@ -51,8 +53,8 @@ impl GridVecBuilder {
         self
     }
 
-    pub fn default_xy(mut self) -> Self {
-        self.chain.push(IVec2::ZERO);
+    pub fn default_xyz(mut self) -> Self {
+        self.chain.push(IVec3::ZERO);
         self
     }
 
@@ -78,7 +80,7 @@ impl GridVec {
 
     /// Create a GridVec with all ancestors up to the root at Scale::MAX, pre-filled with IVec2::ZERO.
     pub fn default_n(count: usize) -> Self {
-        Self::build().repeat_n(count, |b| b.default_xy()).finish()
+        Self::build().repeat_n(count, |b| b.default_xyz()).finish()
     }
 
     #[track_caller]
@@ -272,8 +274,8 @@ impl GridVec {
         true
     }
 
-    /// Converts an `[IVec2; N]` from root to leaf into a GridVec
-    pub fn from_raw<const N: usize>(raw: [IVec2; N]) -> Result<Self, &'static str> {
+    /// Converts an `[IVec3; N]` from root to leaf into a GridVec
+    pub fn from_raw<const N: usize>(raw: [IVec3; N]) -> Result<Self, &'static str> {
         if N == 0 {
             return Err("Cannot build a GridVec from an empty array");
         }
@@ -281,22 +283,27 @@ impl GridVec {
             return Err("Too many levels in GridVec::from_raw");
         }
 
-        let mut current = GridVec::new_root(raw[0]);
-        for &xy in &raw[1..] {
-            current = GridVec::new(current, xy);
+        let mut current = GridVec::new_root(raw[0].xy());
+        current.z = raw[0].z;
+        current.normalize();
+        for &xyz in &raw[1..] {
+            let mut next = GridVec::new(current, xyz.xy());
+            next.z = xyz.z;
+            next.normalize();
+            current = next;
         }
 
         Ok(current)
     }
 
-    /// Converts a GridVec into an `[IVec2; N]` array
+    /// Converts a GridVec into an `[IVec3; N]` array
     /// If the GridVec's actual depth does not match N, this will return `None`
-    pub fn to_raw<const N: usize>(&self) -> Option<[IVec2; N]> {
+    pub fn to_raw<const N: usize>(&self) -> Option<[IVec3; N]> {
         if N > Self::MAX_DEPTH {
             return None;
         }
 
-        let mut stack = [IVec2::ZERO; N];
+        let mut stack = [IVec3::ZERO; N];
         let mut cursor = self;
         let mut len = 0;
 
@@ -304,7 +311,7 @@ impl GridVec {
             if len >= N {
                 return None; // Mismatch: too deep
             }
-            stack[N - 1 - len] = cursor.xy;
+            stack[N - 1 - len] = IVec3::new(cursor.xy.x, cursor.xy.y, cursor.z);
             len += 1;
             match &cursor.parent {
                 Some(parent) => cursor = parent,
@@ -319,13 +326,13 @@ impl GridVec {
         Some(stack)
     }
 
-    /// Converts a GridVec into a `Vec<IVec2>`
-    pub fn to_raw_vec(&self) -> Option<Vec<IVec2>> {
+    /// Converts a GridVec into a `Vec<IVec3>`
+    pub fn to_raw_vec(&self) -> Option<Vec<IVec3>> {
         let mut stack = Vec::new();
         let mut cursor = self;
 
         loop {
-            stack.push(cursor.xy);
+            stack.push(IVec3::new(cursor.xy.x, cursor.xy.y, cursor.z));
             match &cursor.parent {
                 Some(parent) => cursor = parent,
                 None => break,

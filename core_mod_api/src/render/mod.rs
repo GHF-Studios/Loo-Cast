@@ -49,9 +49,7 @@ impl Plugin for RenderPlugin {
                     enforce_phenomenon_model_camera_depth_contract_system.in_set(AppSet::Camera),
                     update_view_scale_from_zoom.in_set(AppSet::Camera),
                     despawn_orphaned_render_proxies.in_set(AppSet::Presentation),
-                    ensure_global_phenomenon_root_system
-                        .in_set(AppSet::Presentation)
-                        .after(despawn_orphaned_render_proxies),
+                    ensure_global_phenomenon_root_system.in_set(AppSet::Presentation),
                     update_render_proxies.in_set(AppSet::Presentation).after(despawn_orphaned_render_proxies),
                     update_global_phenomenon_proxy_system
                         .in_set(AppSet::Presentation)
