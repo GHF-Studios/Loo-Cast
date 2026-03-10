@@ -843,6 +843,8 @@ where
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     kind.hash(&mut hasher);
     proxy.layer_index.hash(&mut hasher);
+    proxy.frontier_node_seed.hash(&mut hasher);
+    proxy.frontier_lineage_depth.hash(&mut hasher);
     proxy.window_mode.hash(&mut hasher);
     quantized_signature_value(meshing_window.center_local.x).hash(&mut hasher);
     quantized_signature_value(meshing_window.center_local.y).hash(&mut hasher);
@@ -1755,6 +1757,18 @@ mod tests {
             window_mode: RenderProxyWindowMode::WindowedSubsection,
             ..a
         };
+        let sig_a = compute_mandelbulb_surface_signature(&a, tuning);
+        let sig_b = compute_mandelbulb_surface_signature(&b, tuning);
+        assert_ne!(sig_a, sig_b);
+    }
+
+    #[test]
+    fn surface_signature_tracks_frontier_seed() {
+        let tuning = default_mandelbulb_tuning(8);
+        let mut a = sample_proxy(RenderProxyWindowMode::FullEntity, Vec3::ZERO, Vec3::ONE);
+        let mut b = sample_proxy(RenderProxyWindowMode::FullEntity, Vec3::ZERO, Vec3::ONE);
+        a.frontier_node_seed = 11;
+        b.frontier_node_seed = 22;
         let sig_a = compute_mandelbulb_surface_signature(&a, tuning);
         let sig_b = compute_mandelbulb_surface_signature(&b, tuning);
         assert_ne!(sig_a, sig_b);
