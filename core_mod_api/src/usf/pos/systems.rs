@@ -57,7 +57,7 @@ pub(crate) fn update_managed_positions(
 pub(crate) fn realign_origin_offset_system(mut chunk_loader: Single<(&mut Transform, &mut ChunkLoader), Changed<Transform>>) {
     // Re-align origin_offset
     let (ref mut transform, ref mut chunk_loader) = *chunk_loader;
-    let unit_pos = crate::usf::pos::unit::types::UnitVec::new(chunk_loader.origin_offset.clone(), transform.translation.truncate()); // `UnitVec::new` internally normalizes the position based on the current origin_offset; does the heavy lifting for us
+    let unit_pos = crate::usf::pos::unit::types::UnitVec::new(chunk_loader.origin_offset.clone(), transform.translation); // `UnitVec::new` internally normalizes the position based on the current origin_offset; does the heavy lifting for us
     let grid_diff = unit_pos.grid_offset.xy - chunk_loader.origin_offset.xy;
     let threshold = CONFIG().get::<u8>("usf/pos/origin_offset_threshold") as i32;
 
@@ -65,7 +65,6 @@ pub(crate) fn realign_origin_offset_system(mut chunk_loader: Single<(&mut Transf
         chunk_loader.origin_offset = unit_pos.grid_offset;
     }
     transform.translation = unit_pos.unit_offset;
-    transform.translation.z = CONFIG().get::<f32>("player/z");
 }
 
 #[tracing::instrument(skip_all)]
@@ -84,7 +83,7 @@ pub(crate) fn apply_new_origin_offset_system(
     let origin_offset_threshold = CONFIG().get::<u8>("usf/pos/origin_offset_threshold");
 
     for (mut chunk, mut transform) in chunk_transform_query.iter_mut() {
-        let unit_pos = UnitVec::new(chunk_loader.origin_offset.clone(), transform.translation.truncate());
+        let unit_pos = UnitVec::new(chunk_loader.origin_offset.clone(), transform.translation);
 
         if unit_pos.grid_offset != chunk_loader.origin_offset {
             let grid_diff = unit_pos.grid_offset.xy - chunk_loader.origin_offset.clone().xy;
@@ -104,7 +103,7 @@ pub(crate) fn apply_new_origin_offset_system(
         }
     }
     for (mut chunk_actor, mut transform) in chunk_actor_transform_query.iter_mut().chain(chunk_loader_transform_query.iter_mut()) {
-        let unit_pos = UnitVec::new(chunk_loader.origin_offset.clone(), transform.translation.truncate());
+        let unit_pos = UnitVec::new(chunk_loader.origin_offset.clone(), transform.translation);
 
         if unit_pos.grid_offset != chunk_loader.origin_offset {
             let grid_diff = unit_pos.grid_offset.xy - chunk_loader.origin_offset.clone().xy;

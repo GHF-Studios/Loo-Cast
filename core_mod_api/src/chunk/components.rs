@@ -43,11 +43,11 @@ impl InsertComponentFromDynamic for ChunkLoader {
     }
 }
 impl ChunkLoader {
-    pub fn zoom_in(&mut self, logical_world_pos: Vec2) -> Vec3 {
+    pub fn zoom_in(&mut self, logical_world_pos: Vec3) -> Vec3 {
         self.scale.zoom_in();
         self.zoom_state = ZoomState::ZoomIn;
         let new_logical_world_pos = self.coord.zoom_in(logical_world_pos);
-        self.origin_offset.zoom_in(Vec2::ZERO);
+        self.origin_offset.zoom_in(Vec3::ZERO);
         new_logical_world_pos
     }
 
@@ -83,7 +83,7 @@ impl ChunkLoader {
             if self.scale == Scale::MIN {
                 break;
             }
-            *logical_world_pos = self.zoom_in(logical_world_pos.truncate());
+            *logical_world_pos = self.zoom_in(*logical_world_pos);
             consumed_lower += 1;
         }
         let dropped_lower = pivot.lower_crossings - consumed_lower;
@@ -138,7 +138,7 @@ impl ChunkLoader {
         pivot
     }
 
-    pub fn apply_translation_pivot(&mut self, logical_world_pos: &mut Vec3) -> IVec2 {
+    pub fn apply_translation_pivot(&mut self, logical_world_pos: &mut Vec3) -> IVec3 {
         let local_before = *logical_world_pos;
         let coord_before = self.coord.clone();
         let origin_before = self.origin_offset.clone();
@@ -149,12 +149,14 @@ impl ChunkLoader {
         let policy = self.usf_transform.translation.policy;
         let pivot_x = self.usf_transform.translation.x.fold_with_policy(policy);
         let pivot_y = self.usf_transform.translation.y.fold_with_policy(policy);
-        let grid_delta = IVec2::new(
+        let pivot_z = self.usf_transform.translation.z.fold_with_policy(policy);
+        let grid_delta = IVec3::new(
             pivot_x.upper_crossings - pivot_x.lower_crossings,
             pivot_y.upper_crossings - pivot_y.lower_crossings,
+            pivot_z.upper_crossings - pivot_z.lower_crossings,
         );
 
-        if grid_delta != IVec2::ZERO {
+        if grid_delta != IVec3::ZERO {
             self.coord += grid_delta;
             self.origin_offset += grid_delta;
         }
@@ -163,13 +165,21 @@ impl ChunkLoader {
         logical_world_pos.y = self.usf_transform.translation.y.local as f32;
         logical_world_pos.z = self.usf_transform.translation.z.local as f32;
 
-        if pivot_x.lower_crossings > 0 || pivot_x.upper_crossings > 0 || pivot_y.lower_crossings > 0 || pivot_y.upper_crossings > 0 {
+        if pivot_x.lower_crossings > 0
+            || pivot_x.upper_crossings > 0
+            || pivot_y.lower_crossings > 0
+            || pivot_y.upper_crossings > 0
+            || pivot_z.lower_crossings > 0
+            || pivot_z.upper_crossings > 0
+        {
             warn!(
-                "USF translation fold: x(l={},u={}) y(l={},u={}) grid_delta={:?}, local_pos {:?}->{:?}, coord {:?}->{:?}, origin {:?}->{:?}, cycles=({}, {}, {})",
+                "USF translation fold: x(l={},u={}) y(l={},u={}) z(l={},u={}) grid_delta={:?}, local_pos {:?}->{:?}, coord {:?}->{:?}, origin {:?}->{:?}, cycles=({}, {}, {})",
                 pivot_x.lower_crossings,
                 pivot_x.upper_crossings,
                 pivot_y.lower_crossings,
                 pivot_y.upper_crossings,
+                pivot_z.lower_crossings,
+                pivot_z.upper_crossings,
                 grid_delta,
                 local_before,
                 *logical_world_pos,
@@ -186,7 +196,7 @@ impl ChunkLoader {
         grid_delta
     }
 
-    pub fn apply_player_anchor_pivots(&mut self, local_zoom: &mut f32, logical_world_pos: &mut Vec3) -> (UsfFloatPivotResult, IVec2) {
+    pub fn apply_player_anchor_pivots(&mut self, local_zoom: &mut f32, logical_world_pos: &mut Vec3) -> (UsfFloatPivotResult, IVec3) {
         let scale_pivot = self.apply_scale_pivot(local_zoom, logical_world_pos);
         let translation_grid_delta = self.apply_translation_pivot(logical_world_pos);
         self.apply_rotation_pivot();

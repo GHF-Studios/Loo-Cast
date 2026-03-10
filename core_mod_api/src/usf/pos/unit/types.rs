@@ -1,4 +1,4 @@
-use crate::bevy::prelude::{IVec2, Reflect, Vec2, Vec3};
+use crate::bevy::prelude::{IVec2, IVec3, Reflect, Vec2, Vec3};
 
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::{DynScale, Scale};
@@ -58,19 +58,29 @@ impl UnitVec {
         if unit_offset.y > 500.0 {
             panic!("Y = {} is too large. Range is (-500.0..500.0)", unit_offset.y);
         }
+        if unit_offset.z < -500.0 {
+            panic!("Z = {} is too small. Range is (-500.0..500.0)", unit_offset.z);
+        }
+        if unit_offset.z > 500.0 {
+            panic!("Z = {} is too large. Range is (-500.0..500.0)", unit_offset.z);
+        }
     }
 
     /// Create a new UnitVec from grid and unit offsets.
-    pub fn new(grid_offset: GridVec, unit_offset: Vec2) -> Self {
-        let unit_offset = unit_offset.extend(grid_offset.scale.compute_z());
+    pub fn new(grid_offset: GridVec, unit_offset: Vec3) -> Self {
         let mut my_self = Self { grid_offset, unit_offset };
         my_self.normalize();
         my_self
     }
 
+    /// Backwards-compatible XY constructor.
+    pub fn new_xy(grid_offset: GridVec, unit_offset: Vec2) -> Self {
+        Self::new(grid_offset, unit_offset.extend(0.0))
+    }
+
     /// Create a new UnitVec from a grid offset only, with unit offset (0.0, 0.0).
     pub fn new_grid(grid_offset: GridVec) -> Self {
-        let unit_offset = Vec2::ZERO.extend(grid_offset.scale.compute_z());
+        let unit_offset = Vec3::ZERO;
         Self { grid_offset, unit_offset }
     }
 
@@ -93,6 +103,16 @@ impl UnitVec {
         while self.unit_offset.y >= 500.0 {
             self.unit_offset.y -= 1000.0;
             self.grid_offset.xy.y += 1;
+        }
+
+        // Normalize Z
+        while self.unit_offset.z < -500.0 {
+            self.unit_offset.z += 1000.0;
+            self.grid_offset.z -= 1;
+        }
+        while self.unit_offset.z >= 500.0 {
+            self.unit_offset.z -= 1000.0;
+            self.grid_offset.z += 1;
         }
 
         // Normalize GridVec
@@ -132,8 +152,8 @@ impl UnitVec {
         }
 
         // === Phase 1: Build stack of deltas ===
-        let mut unit_offset = self.unit_offset.truncate();
-        let mut stack: Vec<(Scale, IVec2)> = Vec::new();
+        let mut unit_offset = self.unit_offset;
+        let mut stack: Vec<(Scale, IVec3)> = Vec::new();
         let mut scale = self.grid_offset.scale;
 
         while scale > target_scale {
@@ -144,13 +164,14 @@ impl UnitVec {
             let unit_size = 1000.0 / unit_factor;
 
             // Compute delta for this scale step
-            let grid_delta = IVec2::new(
+            let grid_delta = IVec3::new(
                 ((unit_offset.x + unit_center) / unit_size).floor() as i32,
                 ((unit_offset.y + unit_center) / unit_size).floor() as i32,
+                ((unit_offset.z + unit_center) / unit_size).floor() as i32,
             );
 
             // Update unit_offset for next iteration
-            unit_offset = (unit_offset - Vec2::new(grid_delta.x as f32 * unit_size, grid_delta.y as f32 * unit_size)) * 10.0;
+            unit_offset = (unit_offset - grid_delta.as_vec3() * unit_size) * 10.0;
 
             // Push the computed delta into our stack
             stack.push((next_scale, grid_delta));
@@ -159,37 +180,43 @@ impl UnitVec {
         }
 
         // === Phase 2: Normalize the grid deltas (bottom-up) ===
-        let mut carry = IVec2::ZERO;
+        let mut carry = IVec3::ZERO;
         for i in (0..stack.len()).rev() {
-            let (_scale, xy) = stack[i];
+            let (_scale, xyz) = stack[i];
 
-            let new_xy = xy + carry;
-            let wrapped_x = ((new_xy.x + 5).rem_euclid(10)) - 5;
-            let wrapped_y = ((new_xy.y + 5).rem_euclid(10)) - 5;
+            let new_xyz = xyz + carry;
+            let wrapped_x = ((new_xyz.x + 5).rem_euclid(10)) - 5;
+            let wrapped_y = ((new_xyz.y + 5).rem_euclid(10)) - 5;
+            let wrapped_z = ((new_xyz.z + 5).rem_euclid(10)) - 5;
 
-            let carry_x = (new_xy.x - wrapped_x).div_euclid(10);
-            let carry_y = (new_xy.y - wrapped_y).div_euclid(10);
+            let carry_x = (new_xyz.x - wrapped_x).div_euclid(10);
+            let carry_y = (new_xyz.y - wrapped_y).div_euclid(10);
+            let carry_z = (new_xyz.z - wrapped_z).div_euclid(10);
 
-            stack[i].1 = IVec2::new(wrapped_x, wrapped_y);
-            carry = IVec2::new(carry_x, carry_y);
+            stack[i].1 = IVec3::new(wrapped_x, wrapped_y, wrapped_z);
+            carry = IVec3::new(carry_x, carry_y, carry_z);
         }
 
         // === Phase 3: Apply final carry to current grid_offset ===
         let mut new_grid = self.grid_offset.clone();
-        new_grid.xy += carry;
+        new_grid += carry;
 
         // === Phase 4: Build new GridVec tree ===
-        for (_scale, xy) in stack {
-            new_grid = GridVec::new(new_grid, xy);
+        for (_scale, xyz) in stack {
+            let mut next = GridVec::new(new_grid, IVec2::new(xyz.x, xyz.y));
+            next.z = xyz.z;
+            next.normalize();
+            new_grid = next;
         }
 
         // === Phase 5: Normalize final unit_offset ===
         let wrapped_x = ((unit_offset.x + 500.0).rem_euclid(1000.0)) - 500.0;
         let wrapped_y = ((unit_offset.y + 500.0).rem_euclid(1000.0)) - 500.0;
+        let wrapped_z = ((unit_offset.z + 500.0).rem_euclid(1000.0)) - 500.0;
 
         // === Phase 6: Final assignment ===
         self.grid_offset = new_grid;
-        self.unit_offset = Vec2::new(wrapped_x, wrapped_y).extend(self.grid_offset.scale.compute_z());
+        self.unit_offset = Vec3::new(wrapped_x, wrapped_y, wrapped_z);
         Self::validate_unit_offset(&self.unit_offset);
 
         Ok(())
@@ -213,14 +240,14 @@ impl UnitVec {
         let child_size = chunk_size / child_factor;
 
         // Step 1: Get child's origin in parent space
-        let child_origin = child.xy.as_vec2() * child_size;
+        let child_origin = Vec3::new(child.xy.x as f32 * child_size, child.xy.y as f32 * child_size, child.z as f32 * child_size);
 
         // Step 2: Shift up into parent space, then rescale
-        let offset_in_parent = child_origin + (self.unit_offset.truncate() / child_factor);
+        let offset_in_parent = child_origin + (self.unit_offset / child_factor);
 
         // Step 3: Update context
         self.grid_offset = (*parent).clone();
-        self.unit_offset = Vec3::new(offset_in_parent.x, offset_in_parent.y, parent.scale.compute_z());
+        self.unit_offset = offset_in_parent;
         Self::validate_unit_offset(&self.unit_offset);
     }
 }
@@ -242,6 +269,19 @@ impl std::ops::AddAssign<IVec2> for UnitVec {
         self.grid_offset += rhs;
     }
 }
+impl std::ops::Add<IVec3> for UnitVec {
+    type Output = Self;
+
+    fn add(mut self, rhs: IVec3) -> Self::Output {
+        self.grid_offset += rhs;
+        self
+    }
+}
+impl std::ops::AddAssign<IVec3> for UnitVec {
+    fn add_assign(&mut self, rhs: IVec3) {
+        self.grid_offset += rhs;
+    }
+}
 impl std::ops::Sub<IVec2> for UnitVec {
     type Output = Self;
 
@@ -252,6 +292,19 @@ impl std::ops::Sub<IVec2> for UnitVec {
 }
 impl std::ops::SubAssign<IVec2> for UnitVec {
     fn sub_assign(&mut self, rhs: IVec2) {
+        self.grid_offset -= rhs;
+    }
+}
+impl std::ops::Sub<IVec3> for UnitVec {
+    type Output = Self;
+
+    fn sub(mut self, rhs: IVec3) -> Self::Output {
+        self.grid_offset -= rhs;
+        self
+    }
+}
+impl std::ops::SubAssign<IVec3> for UnitVec {
+    fn sub_assign(&mut self, rhs: IVec3) {
         self.grid_offset -= rhs;
     }
 }
@@ -291,10 +344,10 @@ impl std::ops::Add<UnitVec> for UnitVec {
     fn add(self, rhs: UnitVec) -> Self::Output {
         const MAX_DEPTH_DIFF: u8 = 4;
 
-        fn stack_up(mut cursor: &GridVec) -> Vec<IVec2> {
+        fn stack_up(mut cursor: &GridVec) -> Vec<IVec3> {
             let mut stack = Vec::new();
             loop {
-                stack.push(cursor.xy);
+                stack.push(IVec3::new(cursor.xy.x, cursor.xy.y, cursor.z));
                 if let Some(p) = &cursor.parent {
                     cursor = p;
                 } else {
@@ -316,10 +369,10 @@ impl std::ops::Add<UnitVec> for UnitVec {
 
         // Pad shorter stack with (scale, ZERO)
         while a_stack.len() < max_depth {
-            a_stack.push(IVec2::ZERO);
+            a_stack.push(IVec3::ZERO);
         }
         while b_stack.len() < max_depth {
-            b_stack.push(IVec2::ZERO);
+            b_stack.push(IVec3::ZERO);
         }
 
         // === Phase 1: Accumulate raw sums top-down ===
@@ -331,46 +384,60 @@ impl std::ops::Add<UnitVec> for UnitVec {
 
         // === Phase 2: Rescale and add unit offsets ===
         let unit_offset_sum = match self.grid_offset.scale.cmp(&rhs.grid_offset.scale) {
-            std::cmp::Ordering::Equal => self.unit_offset.truncate() + rhs.unit_offset.truncate(),
+            std::cmp::Ordering::Equal => self.unit_offset + rhs.unit_offset,
             std::cmp::Ordering::Greater => {
                 // self is deeper → scale *up* self
                 let factor = 10.0_f32.powi((self.grid_offset.scale as i8 - rhs.grid_offset.scale as i8) as i32);
-                rhs.unit_offset.truncate() + (self.unit_offset.truncate() * factor)
+                rhs.unit_offset + (self.unit_offset * factor)
             }
             std::cmp::Ordering::Less => {
                 // rhs is deeper → scale *up* rhs
                 let factor = 10.0_f32.powi((rhs.grid_offset.scale as i8 - self.grid_offset.scale as i8) as i32);
-                self.unit_offset.truncate() + (rhs.unit_offset.truncate() * factor)
+                self.unit_offset + (rhs.unit_offset * factor)
             }
         };
 
         // === Phase 3: Extract unit_carry from summed unit_offset ===
         let wrapped_x = ((unit_offset_sum.x + 500.0).rem_euclid(1000.0)) - 500.0;
         let wrapped_y = ((unit_offset_sum.y + 500.0).rem_euclid(1000.0)) - 500.0;
+        let wrapped_z = ((unit_offset_sum.z + 500.0).rem_euclid(1000.0)) - 500.0;
         let carry_x = ((unit_offset_sum.x - wrapped_x) / 1000.0).floor() as i32;
         let carry_y = ((unit_offset_sum.y - wrapped_y) / 1000.0).floor() as i32;
+        let carry_z = ((unit_offset_sum.z - wrapped_z) / 1000.0).floor() as i32;
 
-        let unit_offset = Vec2::new(wrapped_x, wrapped_y);
-        let mut carry = IVec2::new(carry_x, carry_y);
+        let unit_offset = Vec3::new(wrapped_x, wrapped_y, wrapped_z);
+        let mut carry = IVec3::new(carry_x, carry_y, carry_z);
 
         // === Phase 4: Normalize bottom-up with wrapping + carry + unit_carry ===
         for i in (0..raw_stack.len()).rev() {
             let sum = raw_stack[i];
             let wrapped_x = ((sum.x + carry.x + 5).rem_euclid(10)) - 5;
             let wrapped_y = ((sum.y + carry.y + 5).rem_euclid(10)) - 5;
+            let wrapped_z = ((sum.z + carry.z + 5).rem_euclid(10)) - 5;
             let carry_x = (sum.x + carry.x - wrapped_x).div_euclid(10);
             let carry_y = (sum.y + carry.y - wrapped_y).div_euclid(10);
+            let carry_z = (sum.z + carry.z - wrapped_z).div_euclid(10);
 
-            raw_stack[i] = IVec2::new(wrapped_x, wrapped_y);
-            carry = IVec2::new(carry_x, carry_y);
+            raw_stack[i] = IVec3::new(wrapped_x, wrapped_y, wrapped_z);
+            carry = IVec3::new(carry_x, carry_y, carry_z);
         }
 
         // === Phase 5: Build final GridVec tree ===
         let mut result: Option<GridVec> = None;
-        for xy in raw_stack {
+        for xyz in raw_stack {
             result = Some(match result {
-                Some(parent) => GridVec::new(parent, xy),
-                None => GridVec::new_root(xy),
+                Some(parent) => {
+                    let mut child = GridVec::new(parent, IVec2::new(xyz.x, xyz.y));
+                    child.z = xyz.z;
+                    child.normalize();
+                    child
+                }
+                None => {
+                    let mut root = GridVec::new_root(IVec2::new(xyz.x, xyz.y));
+                    root.z = xyz.z;
+                    root.normalize();
+                    root
+                }
             });
         }
 
@@ -394,10 +461,10 @@ impl std::ops::Sub<UnitVec> for UnitVec {
             std::cmp::Ordering::Less => rhs.zoom_in_multi(self.grid_offset.scale).unwrap(),
         }
 
-        fn stack_up(mut cursor: &GridVec) -> Vec<IVec2> {
+        fn stack_up(mut cursor: &GridVec) -> Vec<IVec3> {
             let mut stack = Vec::new();
             loop {
-                stack.push(cursor.xy);
+                stack.push(IVec3::new(cursor.xy.x, cursor.xy.y, cursor.z));
                 if let Some(p) = &cursor.parent {
                     cursor = p;
                 } else {
@@ -422,10 +489,10 @@ impl std::ops::Sub<UnitVec> for UnitVec {
 
         // Pad shorter stack with (scale, ZERO)
         while a_stack.len() < max_depth {
-            a_stack.push(IVec2::ZERO);
+            a_stack.push(IVec3::ZERO);
         }
         while b_stack.len() < max_depth {
-            b_stack.push(IVec2::ZERO);
+            b_stack.push(IVec3::ZERO);
         }
 
         // === Phase 1: Accumulate raw diffs top-down ===
@@ -437,46 +504,60 @@ impl std::ops::Sub<UnitVec> for UnitVec {
 
         // === Phase 2: Rescale and add unit offsets ===
         let unit_offset_diff = match self.grid_offset.scale.cmp(&rhs.grid_offset.scale) {
-            std::cmp::Ordering::Equal => self.unit_offset.truncate() - rhs.unit_offset.truncate(),
+            std::cmp::Ordering::Equal => self.unit_offset - rhs.unit_offset,
             std::cmp::Ordering::Greater => {
                 // self is deeper → scale *up* self
                 let factor = 10.0_f32.powi((self.grid_offset.scale as i8 - rhs.grid_offset.scale as i8) as i32);
-                (self.unit_offset.truncate() * factor) - rhs.unit_offset.truncate()
+                (self.unit_offset * factor) - rhs.unit_offset
             }
             std::cmp::Ordering::Less => {
                 // rhs is deeper → scale *up* rhs
                 let factor = 10.0_f32.powi((rhs.grid_offset.scale as i8 - self.grid_offset.scale as i8) as i32);
-                self.unit_offset.truncate() - (rhs.unit_offset.truncate() * factor)
+                self.unit_offset - (rhs.unit_offset * factor)
             }
         };
 
         // === Phase 3: Extract unit_carry from summed unit_offset ===
         let wrapped_x = ((unit_offset_diff.x + 500.0).rem_euclid(1000.0)) - 500.0;
         let wrapped_y = ((unit_offset_diff.y + 500.0).rem_euclid(1000.0)) - 500.0;
+        let wrapped_z = ((unit_offset_diff.z + 500.0).rem_euclid(1000.0)) - 500.0;
         let carry_x = ((unit_offset_diff.x - wrapped_x) / 1000.0).floor() as i32;
         let carry_y = ((unit_offset_diff.y - wrapped_y) / 1000.0).floor() as i32;
+        let carry_z = ((unit_offset_diff.z - wrapped_z) / 1000.0).floor() as i32;
 
-        let unit_offset = Vec2::new(wrapped_x, wrapped_y);
-        let mut carry = IVec2::new(carry_x, carry_y);
+        let unit_offset = Vec3::new(wrapped_x, wrapped_y, wrapped_z);
+        let mut carry = IVec3::new(carry_x, carry_y, carry_z);
 
         // === Phase 4: Normalize bottom-up with wrapping + carry + unit_carry ===
         for i in (0..raw_stack.len()).rev() {
             let diff = raw_stack[i];
             let wrapped_x = ((diff.x + carry.x + 5).rem_euclid(10)) - 5;
             let wrapped_y = ((diff.y + carry.y + 5).rem_euclid(10)) - 5;
+            let wrapped_z = ((diff.z + carry.z + 5).rem_euclid(10)) - 5;
             let carry_x = (diff.x + carry.x - wrapped_x).div_euclid(10);
             let carry_y = (diff.y + carry.y - wrapped_y).div_euclid(10);
+            let carry_z = (diff.z + carry.z - wrapped_z).div_euclid(10);
 
-            raw_stack[i] = IVec2::new(wrapped_x, wrapped_y);
-            carry = IVec2::new(carry_x, carry_y);
+            raw_stack[i] = IVec3::new(wrapped_x, wrapped_y, wrapped_z);
+            carry = IVec3::new(carry_x, carry_y, carry_z);
         }
 
         // === Phase 5: Build final GridVec tree ===
         let mut result: Option<GridVec> = None;
-        for xy in raw_stack {
+        for xyz in raw_stack {
             result = Some(match result {
-                Some(parent) => GridVec::new(parent, xy),
-                None => GridVec::new_root(xy),
+                Some(parent) => {
+                    let mut child = GridVec::new(parent, IVec2::new(xyz.x, xyz.y));
+                    child.z = xyz.z;
+                    child.normalize();
+                    child
+                }
+                None => {
+                    let mut root = GridVec::new_root(IVec2::new(xyz.x, xyz.y));
+                    root.z = xyz.z;
+                    root.normalize();
+                    root
+                }
             });
         }
 
@@ -492,6 +573,14 @@ impl std::convert::TryFrom<(Vec<IVec2>, Vec2)> for UnitVec {
     type Error = &'static str;
 
     fn try_from((stack, unit_offset): (Vec<IVec2>, Vec2)) -> Result<Self, Self::Error> {
+        let grid_offset = GridVec::try_from(stack)?;
+        Ok(UnitVec::new_xy(grid_offset, unit_offset))
+    }
+}
+impl std::convert::TryFrom<(Vec<IVec3>, Vec3)> for UnitVec {
+    type Error = &'static str;
+
+    fn try_from((stack, unit_offset): (Vec<IVec3>, Vec3)) -> Result<Self, Self::Error> {
         let grid_offset = GridVec::try_from(stack)?;
         Ok(UnitVec::new(grid_offset, unit_offset))
     }

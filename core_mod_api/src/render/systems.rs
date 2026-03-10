@@ -195,14 +195,15 @@ pub(super) fn update_render_proxies(
                 }
                 let coord_scale = coord.scale;
                 let scale_diff = coord_scale as i8 - origin_offset.scale as i8;
-                let z = coord_scale.compute_z() + proxy_state.depth_bias;
-                let (pos, scale) = coord.to_native_visual(origin_offset.clone());
-                let world_pos = pos.extend(z);
+                let layer_z = coord_scale.compute_z() + proxy_state.depth_bias;
+                let (pos, scale) = coord.to_native_visual_3d(origin_offset.clone());
+                let world_pos = Vec3::new(pos.x, pos.y, pos.z + layer_z);
                 proxy_transform.translation = world_rotation_origin + world_rotation * (world_pos - world_rotation_origin);
                 proxy_transform.scale = Vec3::splat(scale);
                 proxy_transform.rotation = world_rotation;
                 proxy_state.layer_index = coord_scale.render_layer_index();
-                let (window_mode, window_center_local, window_size_local) = compute_render_proxy_windowing(scale_diff, pos, view_pos_native);
+                let (window_mode, window_center_local, window_size_local) =
+                    compute_render_proxy_windowing(scale_diff, pos.truncate(), view_pos_native);
                 proxy_state.window_mode = window_mode;
                 proxy_state.window_center_local = window_center_local;
                 proxy_state.window_size_local = window_size_local;
@@ -238,7 +239,7 @@ pub(super) fn update_global_phenomenon_proxy_system(
 
         // Anchor the phenomenon at absolute USF world origin (0,0) at Scale::MAX.
         let phenomenon_origin_coord = GridVec::new_at_scale(Scale::MAX, IVec2::ZERO);
-        let (phenomenon_center_native, _scale) = phenomenon_origin_coord.to_native_visual(chunk_loader.origin_offset.clone());
+        let (phenomenon_center_native, _scale) = phenomenon_origin_coord.to_native_visual_3d(chunk_loader.origin_offset.clone());
 
         (
             world_rotation,
@@ -254,13 +255,17 @@ pub(super) fn update_global_phenomenon_proxy_system(
     for (mut proxy_transform, mut proxy_state) in global_proxy_query.iter_mut() {
         // Keep the global phenomenon anchored at absolute world origin; only windowing
         // should track player focus across USF boundaries.
-        let world_pos = phenomenon_center_native.extend(proxy_state.depth_bias);
+        let world_pos = Vec3::new(
+            phenomenon_center_native.x,
+            phenomenon_center_native.y,
+            phenomenon_center_native.z + proxy_state.depth_bias,
+        );
         proxy_transform.translation = world_rotation_origin + world_rotation * (world_pos - world_rotation_origin);
         proxy_transform.scale = Vec3::ONE;
         proxy_transform.rotation = world_rotation;
         proxy_state.layer_index = coord_scale.render_layer_index();
         let (window_mode, window_center_local, window_size_local) =
-            compute_render_proxy_windowing(scale_diff, phenomenon_center_native, view_pos_native);
+            compute_render_proxy_windowing(scale_diff, phenomenon_center_native.truncate(), view_pos_native);
         proxy_state.window_mode = window_mode;
         proxy_state.window_center_local = window_center_local;
         proxy_state.window_size_local = window_size_local;
@@ -1849,7 +1854,9 @@ pub(super) fn apply_usf_player_pivots_system(
         let would_cross_translation_boundary = candidate_translation.x <= translation_commit_min
             || candidate_translation.x >= translation_commit_max
             || candidate_translation.y <= translation_commit_min
-            || candidate_translation.y >= translation_commit_max;
+            || candidate_translation.y >= translation_commit_max
+            || candidate_translation.z <= translation_commit_min
+            || candidate_translation.z >= translation_commit_max;
 
         if workflow_in_flight && (would_cross_scale_boundary || would_cross_translation_boundary) {
             if let Some(gate) = chunk_load_gate.as_mut() {
@@ -1896,7 +1903,7 @@ pub(super) fn apply_usf_player_pivots_system(
             chunk_actor.coord = chunk_loader.coord.clone();
             zoom_factor.0 = zoom_factor.0.clamp(scale_commit_min, scale_commit_max);
 
-            let boundary_crossed = scale_pivot.lower_crossings > 0 || scale_pivot.upper_crossings > 0 || translation_grid_delta != IVec2::ZERO;
+            let boundary_crossed = scale_pivot.lower_crossings > 0 || scale_pivot.upper_crossings > 0 || translation_grid_delta != IVec3::ZERO;
             if boundary_crossed && workflow_in_flight {
                 if let Some(gate) = chunk_load_gate.as_mut() {
                     let changed = gate.lock_by_in_flight_boundary();

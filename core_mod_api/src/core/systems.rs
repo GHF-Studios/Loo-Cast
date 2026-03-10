@@ -169,8 +169,8 @@ pub(super) fn sync_logic_proxies_from_main_entities_system(
         if link.root_transform_contract_is_ub {
             let main_coord = chunk_actor.coord.clone();
             let z = main_coord.scale.compute_z();
-            let (pos, scale) = main_coord.to_native_visual(origin_offset.clone());
-            logic_transform.translation = pos.extend(z);
+            let (pos, scale) = main_coord.to_native_visual_3d(origin_offset.clone());
+            logic_transform.translation = Vec3::new(pos.x, pos.y, pos.z + z);
             logic_transform.rotation = Quat::IDENTITY;
             logic_transform.scale = Vec3::splat(scale);
         } else {
