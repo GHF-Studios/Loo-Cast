@@ -59,9 +59,9 @@ pub(crate) fn realign_origin_offset_system(mut chunk_loader: Single<(&mut Transf
     let (ref mut transform, ref mut chunk_loader) = *chunk_loader;
     let unit_pos = crate::usf::pos::unit::types::UnitVec::new(chunk_loader.origin_offset.clone(), transform.translation); // `UnitVec::new` internally normalizes the position based on the current origin_offset; does the heavy lifting for us
     let grid_diff = IVec3::new(
-        unit_pos.grid_offset.xy.x - chunk_loader.origin_offset.xy.x,
-        unit_pos.grid_offset.xy.y - chunk_loader.origin_offset.xy.y,
-        unit_pos.grid_offset.z - chunk_loader.origin_offset.z,
+        unit_pos.grid_offset.xyz.x - chunk_loader.origin_offset.xyz.x,
+        unit_pos.grid_offset.xyz.y - chunk_loader.origin_offset.xyz.y,
+        unit_pos.grid_offset.xyz.z - chunk_loader.origin_offset.xyz.z,
     );
     let threshold = CONFIG().get::<u8>("usf/pos/origin_offset_threshold") as i32;
 
@@ -91,9 +91,9 @@ pub(crate) fn apply_new_origin_offset_system(
 
         if unit_pos.grid_offset != chunk_loader.origin_offset {
             let grid_diff = IVec3::new(
-                unit_pos.grid_offset.xy.x - chunk_loader.origin_offset.xy.x,
-                unit_pos.grid_offset.xy.y - chunk_loader.origin_offset.xy.y,
-                unit_pos.grid_offset.z - chunk_loader.origin_offset.z,
+                unit_pos.grid_offset.xyz.x - chunk_loader.origin_offset.xyz.x,
+                unit_pos.grid_offset.xyz.y - chunk_loader.origin_offset.xyz.y,
+                unit_pos.grid_offset.xyz.z - chunk_loader.origin_offset.xyz.z,
             );
 
             let mut unit_diff = Vec3::ZERO;
@@ -119,9 +119,9 @@ pub(crate) fn apply_new_origin_offset_system(
 
         if unit_pos.grid_offset != chunk_loader.origin_offset {
             let grid_diff = IVec3::new(
-                unit_pos.grid_offset.xy.x - chunk_loader.origin_offset.xy.x,
-                unit_pos.grid_offset.xy.y - chunk_loader.origin_offset.xy.y,
-                unit_pos.grid_offset.z - chunk_loader.origin_offset.z,
+                unit_pos.grid_offset.xyz.x - chunk_loader.origin_offset.xyz.x,
+                unit_pos.grid_offset.xyz.y - chunk_loader.origin_offset.xyz.y,
+                unit_pos.grid_offset.xyz.z - chunk_loader.origin_offset.xyz.z,
             );
 
             let mut unit_diff = Vec3::ZERO;

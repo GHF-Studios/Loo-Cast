@@ -2,6 +2,7 @@
 
 pub mod grid;
 pub mod subgrid;
+pub mod types;
 pub mod unit;
 
 pub mod systems;
@@ -37,10 +38,10 @@ impl Plugin for PosPlugin {
 macro_rules! grid_extent {
     ([$first:expr $(, $rest:expr)*]) => {
         {
-            use crate::bevy::math::IVec3;
             use crate::usf::pos::grid::types::GridVec;
+            use crate::usf::pos::types::GridXyz;
 
-            let stack = vec![IVec3::from($first) $(, IVec3::from($rest))*];
+            let stack = vec![GridXyz::from($first) $(, GridXyz::from($rest))*];
             GridVec::try_from(stack).unwrap()
         }
     };
@@ -50,11 +51,11 @@ macro_rules! grid_extent {
 macro_rules! subgrid_extent {
     ([$first:expr $(, $rest:expr)*]: $sub:expr) => {
         {
-            use crate::bevy::math::IVec3;
             use crate::usf::pos::subgrid::types::SubgridVec;
+            use crate::usf::pos::types::{GridXyz, SubgridXyz};
 
-            let stack = vec![IVec3::from($first) $(, IVec3::from($rest))*];
-            SubgridVec::try_from((stack, IVec3::from($sub))).unwrap()
+            let stack = vec![GridXyz::from($first) $(, GridXyz::from($rest))*];
+            SubgridVec::try_from((stack, SubgridXyz::from($sub))).unwrap()
         }
     };
 }
@@ -63,10 +64,11 @@ macro_rules! subgrid_extent {
 macro_rules! unit_extent {
     ([$first:expr $(, $rest:expr)*]: $unit:expr) => {{
         {
-            use crate::bevy::math::{IVec3, Vec3};
+            use crate::bevy::math::Vec3;
             use crate::usf::pos::unit::types::UnitVec;
+            use crate::usf::pos::types::GridXyz;
 
-            let stack = vec![IVec3::from($first) $(, IVec3::from($rest))*];
+            let stack = vec![GridXyz::from($first) $(, GridXyz::from($rest))*];
             UnitVec::try_from((stack, Vec3::from($unit))).unwrap()
         }
     }};

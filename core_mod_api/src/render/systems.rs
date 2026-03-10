@@ -9,6 +9,7 @@ use crate::config::statics::CONFIG;
 use crate::core::protocol::PlayerMotionIntent;
 use crate::input::states::InputMode;
 use crate::player::components::Player;
+use crate::usf::pos::grid::types::GridVec;
 use crate::render::{
     components::{
         EntityProxyLink, GlobalPhenomenonRoot, LogicProxy, MainCamera, PhenomenonModelCamera, PhenomenonModelSurface, ProxySyncRevision, RenderProxy,
@@ -24,6 +25,7 @@ use crate::usf::phenomenon::{
     seam_safe_lattice_window,
 };
 use crate::usf::scale::Scale;
+use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 
 const MIN_WINDOW_SIZE_LOCAL: f32 = 0.0001;
@@ -258,9 +260,8 @@ pub(super) fn update_global_phenomenon_proxy_system(
 #[tracing::instrument(skip_all)]
 pub(super) fn draw_chunk_locator_gizmos_system(
     mut gizmos: Gizmos,
-    player_query: Query<Entity, With<Player>>,
-    chunk_sources: Query<(), With<Chunk>>,
-    chunk_render_proxies: Query<(&Transform, &RenderProxy), Without<GlobalPhenomenonRoot>>,
+    player_loader_query: Single<(&ChunkLoader, &Transform), With<Player>>,
+    loaded_chunks: Query<&Chunk>,
 ) {
     if !CONFIG().get::<bool>("debug/chunk_locator/enabled") {
         return;
@@ -270,26 +271,91 @@ pub(super) fn draw_chunk_locator_gizmos_system(
     let z_scale = CONFIG().get::<f32>("debug/chunk_locator/z_scale").max(0.01);
     let alpha = CONFIG().get::<f32>("debug/chunk_locator/alpha").clamp(0.01, 1.0);
     let player_alpha = CONFIG().get::<f32>("debug/chunk_locator/player_alpha").clamp(alpha, 1.0);
-    let player_entity = player_query.single().ok();
+    let load_radius = CONFIG().get::<u32>("chunk_loader/load_radius");
 
-    for (transform, proxy) in chunk_render_proxies.iter() {
-        if chunk_sources.get(proxy.source).is_err() {
+    let (chunk_loader, player_transform) = *player_loader_query;
+    let world_rotation = chunk_loader.world_rotation_quat();
+    let world_rotation_origin = player_transform.translation;
+    let origin_offset = chunk_loader.origin_offset.clone();
+    let player_coord = chunk_loader.coord.clone();
+
+    let loaded_coords: HashSet<GridVec> = loaded_chunks.iter().map(|chunk| chunk.coord.clone()).collect();
+    let target_coords = collect_target_chunk_frontier(chunk_loader, load_radius);
+
+    let loaded_color = Color::linear_rgba(0.35, 0.65, 1.0, alpha);
+    let unloaded_color = Color::linear_rgba(0.96, 0.35, 0.24, alpha);
+    let player_color = Color::linear_rgba(1.0, 0.96, 0.45, player_alpha);
+
+    for coord in target_coords.difference(&loaded_coords) {
+        if *coord == player_coord {
             continue;
         }
-        let is_player_chunk = player_entity.is_some_and(|entity| entity == proxy.source);
-        let mut marker = *transform;
-        marker.scale = Vec3::new(
-            transform.scale.x * base_extent,
-            transform.scale.y * base_extent,
-            (transform.scale.z * base_extent * z_scale).max(base_extent * z_scale),
-        );
+        let marker = chunk_wire_transform(coord, &origin_offset, world_rotation, world_rotation_origin, base_extent, z_scale);
+        gizmos.cube(marker, unloaded_color);
+    }
 
-        let color = if is_player_chunk {
-            Color::linear_rgba(1.0, 0.96, 0.45, player_alpha)
-        } else {
-            Color::linear_rgba(0.35, 0.65, 1.0, alpha)
+    for coord in &loaded_coords {
+        if *coord == player_coord {
+            continue;
+        }
+        let marker = chunk_wire_transform(coord, &origin_offset, world_rotation, world_rotation_origin, base_extent, z_scale);
+        gizmos.cube(marker, loaded_color);
+    }
+
+    let player_marker = chunk_wire_transform(
+        &player_coord,
+        &origin_offset,
+        world_rotation,
+        world_rotation_origin,
+        base_extent,
+        z_scale,
+    );
+    gizmos.cube(player_marker, player_color);
+}
+
+fn collect_target_chunk_frontier(chunk_loader: &ChunkLoader, load_radius: u32) -> HashSet<GridVec> {
+    let mut target_coords = HashSet::new();
+    let mut cursor = chunk_loader.coord.clone();
+
+    loop {
+        let scale_diff = cursor.scale as i8 - chunk_loader.coord.scale as i8;
+        if scale_diff > Scale::MAX_DIFF_SCALE_EXP {
+            break;
+        }
+
+        target_coords.extend(cursor.query_grid_radius(load_radius));
+
+        if cursor.scale == Scale::MAX {
+            break;
+        }
+
+        let Some(parent) = cursor.parent.as_ref() else {
+            break;
         };
-        gizmos.cube(marker, color);
+        cursor = parent.as_ref().clone();
+    }
+
+    target_coords
+}
+
+fn chunk_wire_transform(
+    coord: &GridVec,
+    origin_offset: &GridVec,
+    world_rotation: Quat,
+    world_rotation_origin: Vec3,
+    base_extent: f32,
+    z_scale: f32,
+) -> Transform {
+    let (pos, scale) = coord.clone().to_native_visual(origin_offset.clone());
+    let layer_z = coord.scale.compute_z();
+    let world_pos = Vec3::new(pos.x, pos.y, pos.z + layer_z);
+    let marker_scale_xy = (scale * base_extent).max(1.0);
+    let marker_scale_z = (marker_scale_xy * z_scale).max(1.0);
+
+    Transform {
+        translation: world_rotation_origin + world_rotation * (world_pos - world_rotation_origin),
+        rotation: world_rotation,
+        scale: Vec3::new(marker_scale_xy, marker_scale_xy, marker_scale_z),
     }
 }
 

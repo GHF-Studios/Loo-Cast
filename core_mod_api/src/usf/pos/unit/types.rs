@@ -1,29 +1,29 @@
 use crate::bevy::prelude::{IVec3, Reflect, Vec3};
 
 use crate::usf::pos::grid::types::GridVec;
+use crate::usf::pos::types::GridXyz;
 use crate::usf::scale::{DynScale, Scale};
 
 #[derive(Default)]
 pub struct UnitVecBuilder {
-    chain: Vec<IVec3>,
+    chain: Vec<GridXyz>,
 }
 
 impl UnitVecBuilder {
     pub fn push(mut self, next: (i32, i32, i32)) -> Self {
-        let next = IVec3::new(next.0, next.1, next.2);
+        let next = GridXyz::new_local(next.0, next.1, next.2);
         self.chain.push(next);
         self
     }
 
     pub fn push_many<I: IntoIterator<Item = (i32, i32, i32)>>(mut self, items: I) -> Self {
         self.chain
-            .extend(items.into_iter().map(|xyz| IVec3::new(xyz.0, xyz.1, xyz.2)));
+            .extend(items.into_iter().map(|xyz| GridXyz::new_local(xyz.0, xyz.1, xyz.2)));
         self
     }
 
     pub fn repeat(mut self, xyz: (i32, i32, i32), count: usize) -> Self {
-        self.chain
-            .extend(std::iter::repeat_n(IVec3::new(xyz.0, xyz.1, xyz.2), count));
+        self.chain.extend(std::iter::repeat_n(GridXyz::new_local(xyz.0, xyz.1, xyz.2), count));
         self
     }
 
@@ -85,31 +85,31 @@ impl UnitVec {
         // Normalize X
         while self.unit_offset.x < -500.0 {
             self.unit_offset.x += 1000.0;
-            self.grid_offset.xy.x -= 1;
+            self.grid_offset.xyz.x -= 1;
         }
         while self.unit_offset.x >= 500.0 {
             self.unit_offset.x -= 1000.0;
-            self.grid_offset.xy.x += 1;
+            self.grid_offset.xyz.x += 1;
         }
 
         // Normalize Y
         while self.unit_offset.y < -500.0 {
             self.unit_offset.y += 1000.0;
-            self.grid_offset.xy.y -= 1;
+            self.grid_offset.xyz.y -= 1;
         }
         while self.unit_offset.y >= 500.0 {
             self.unit_offset.y -= 1000.0;
-            self.grid_offset.xy.y += 1;
+            self.grid_offset.xyz.y += 1;
         }
 
         // Normalize Z
         while self.unit_offset.z < -500.0 {
             self.unit_offset.z += 1000.0;
-            self.grid_offset.z -= 1;
+            self.grid_offset.xyz.z -= 1;
         }
         while self.unit_offset.z >= 500.0 {
             self.unit_offset.z -= 1000.0;
-            self.grid_offset.z += 1;
+            self.grid_offset.xyz.z += 1;
         }
 
         // Normalize GridVec
@@ -173,7 +173,7 @@ impl UnitVec {
 
         // === Phase 4: Build new GridVec tree ===
         for (_scale, xyz) in stack {
-            let next = GridVec::new(new_grid, xyz);
+            let next = GridVec::new(new_grid, GridXyz::new_local(xyz.x, xyz.y, xyz.z));
             new_grid = next;
         }
 
@@ -208,7 +208,7 @@ impl UnitVec {
         let child_size = chunk_size / child_factor;
 
         // Step 1: Get child's origin in parent space
-        let child_origin = Vec3::new(child.xy.x as f32 * child_size, child.xy.y as f32 * child_size, child.z as f32 * child_size);
+        let child_origin = Vec3::new(child.xyz.x as f32 * child_size, child.xyz.y as f32 * child_size, child.xyz.z as f32 * child_size);
 
         // Step 2: Shift up into parent space, then rescale
         let offset_in_parent = child_origin + (self.unit_offset / child_factor);
@@ -289,7 +289,7 @@ impl std::ops::Add<UnitVec> for UnitVec {
         fn stack_up(mut cursor: &GridVec) -> Vec<IVec3> {
             let mut stack = Vec::new();
             loop {
-                stack.push(IVec3::new(cursor.xy.x, cursor.xy.y, cursor.z));
+                stack.push(cursor.xyz.as_ivec3());
                 if let Some(p) = &cursor.parent {
                     cursor = p;
                 } else {
@@ -369,10 +369,10 @@ impl std::ops::Add<UnitVec> for UnitVec {
         for xyz in raw_stack {
             result = Some(match result {
                 Some(parent) => {
-                    GridVec::new(parent, xyz)
+                    GridVec::new(parent, GridXyz::new_local(xyz.x, xyz.y, xyz.z))
                 }
                 None => {
-                    GridVec::new_root(xyz)
+                    GridVec::new_root(GridXyz::new_local(xyz.x, xyz.y, xyz.z))
                 }
             });
         }
@@ -400,7 +400,7 @@ impl std::ops::Sub<UnitVec> for UnitVec {
         fn stack_up(mut cursor: &GridVec) -> Vec<IVec3> {
             let mut stack = Vec::new();
             loop {
-                stack.push(IVec3::new(cursor.xy.x, cursor.xy.y, cursor.z));
+                stack.push(cursor.xyz.as_ivec3());
                 if let Some(p) = &cursor.parent {
                     cursor = p;
                 } else {
@@ -483,10 +483,10 @@ impl std::ops::Sub<UnitVec> for UnitVec {
         for xyz in raw_stack {
             result = Some(match result {
                 Some(parent) => {
-                    GridVec::new(parent, xyz)
+                    GridVec::new(parent, GridXyz::new_local(xyz.x, xyz.y, xyz.z))
                 }
                 None => {
-                    GridVec::new_root(xyz)
+                    GridVec::new_root(GridXyz::new_local(xyz.x, xyz.y, xyz.z))
                 }
             });
         }
@@ -497,6 +497,14 @@ impl std::ops::Sub<UnitVec> for UnitVec {
 impl std::ops::SubAssign<UnitVec> for UnitVec {
     fn sub_assign(&mut self, rhs: UnitVec) {
         *self = self.clone() - rhs;
+    }
+}
+impl std::convert::TryFrom<(Vec<GridXyz>, Vec3)> for UnitVec {
+    type Error = &'static str;
+
+    fn try_from((stack, unit_offset): (Vec<GridXyz>, Vec3)) -> Result<Self, Self::Error> {
+        let grid_offset = GridVec::try_from(stack)?;
+        Ok(UnitVec::new(grid_offset, unit_offset))
     }
 }
 impl std::convert::TryFrom<(Vec<IVec3>, Vec3)> for UnitVec {
