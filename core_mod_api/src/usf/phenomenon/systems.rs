@@ -40,6 +40,11 @@ pub struct PhenomenonDebugStats {
     pub mesh_cache_hits_frame: u32,
 }
 
+#[inline]
+fn is_canonical_root_node(node: &PhenomenonNode) -> bool {
+    node.parent.is_none() && node.scale == Scale::MAX && node.cell3 == IVec3::ZERO && node.local_index == 0
+}
+
 pub(super) fn ensure_root_nodes_system(
     mut commands: Commands,
     phenomenon_query: Query<(Entity, &Phenomenon, Option<&PhenomenonRootNodeRef>)>,
@@ -48,7 +53,7 @@ pub(super) fn ensure_root_nodes_system(
 ) {
     let mut roots_by_phenomenon: HashMap<PhenomenonId, Entity> = HashMap::new();
     for (entity, node) in node_query.iter() {
-        if node.parent.is_none() {
+        if is_canonical_root_node(node) {
             roots_by_phenomenon.entry(node.phenomenon_id).or_insert(entity);
         }
     }
@@ -150,9 +155,10 @@ pub(super) fn despawn_invalid_nodes_system(
 
     for (entity, node, lifecycle) in node_query.iter() {
         let detached_root = node.parent.is_none() && !live_phenomena.contains(&node.phenomenon_id);
+        let invalid_root_contract = node.parent.is_none() && !is_canonical_root_node(node);
         let missing_parent = node.parent.is_some_and(|parent_seed| !live_seeds.contains(&parent_seed));
         let out_of_policy_depth = lifecycle.depth > policy.max_depth;
-        if detached_root || missing_parent || out_of_policy_depth {
+        if detached_root || invalid_root_contract || missing_parent || out_of_policy_depth {
             commands.entity(entity).despawn();
         }
     }
@@ -165,6 +171,7 @@ pub(super) fn refresh_active_node_stats_system(node_query: Query<&PhenomenonNode
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::usf::phenomenon::generator::PhenomenonStateSnapshot;
     use crate::usf::phenomenon::types::PhenomenonKind;
 
     fn setup_lifecycle_test_app(max_depth: u32, max_children_per_node: u32) -> App {
@@ -258,5 +265,55 @@ mod tests {
 
         let stats = app.world().resource::<PhenomenonDebugStats>();
         assert!(stats.active_nodes > 0);
+    }
+
+    #[test]
+    fn lifecycle_replaces_noncanonical_root_with_pinned_root_contract() {
+        let mut app = setup_lifecycle_test_app(2, 2);
+        let phenomenon_entity = app.world_mut().spawn(Phenomenon {
+            id: PhenomenonId(77),
+            kind: PhenomenonKind::SierpinskiSponge,
+        }).id();
+
+        let bad_root_key = PhenomenonNodeKey {
+            phenomenon_id: PhenomenonId(77),
+            scale: Scale::MAX.zoomed_in(),
+            cell3: IVec3::new(1, 0, 0),
+            parent: None,
+            local_index: 5,
+        };
+        app.world_mut().spawn((
+            PhenomenonNode::from_key(bad_root_key),
+            PhenomenonNodeState {
+                snapshot: PhenomenonStateSnapshot {
+                    seed: bad_root_key.deterministic_seed(),
+                    lineage_depth: 0,
+                    channels: Vec4::ZERO,
+                },
+            },
+            PhenomenonNodeLifecycle { depth: 0 },
+        ));
+
+        app.update();
+
+        let root_ref = app
+            .world()
+            .get::<PhenomenonRootNodeRef>(phenomenon_entity)
+            .expect("phenomenon should have a root ref");
+        let root_node = app
+            .world()
+            .get::<PhenomenonNode>(root_ref.node)
+            .expect("canonical root node should exist");
+
+        assert!(is_canonical_root_node(root_node));
+
+        let mut root_count = 0usize;
+        let mut query = app.world_mut().query::<&PhenomenonNode>();
+        for node in query.iter(app.world()) {
+            if node.phenomenon_id == PhenomenonId(77) && node.parent.is_none() {
+                root_count += 1;
+            }
+        }
+        assert_eq!(root_count, 1, "expected exactly one canonical root for phenomenon 77");
     }
 }

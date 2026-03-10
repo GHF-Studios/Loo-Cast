@@ -232,24 +232,34 @@ pub(super) fn update_global_phenomenon_proxy_system(
     let world_rotation_origin = chunk_loader_transform.translation;
     let frontier_view = chunk_loader.phenomenon_frontier_view();
     let view_scale = frontier_view.scale;
-    let view_pos_native = frontier_view.native_position;
+    let view_pos_native_local = frontier_view.native_position;
+    let origin_offset_native_absolute = grid_coord_native_absolute(&chunk_loader.origin_offset);
+    let view_pos_native_absolute = origin_offset_native_absolute + view_pos_native_local;
 
-    let (frontier_scale, frontier_center_native) =
-        select_frontier_node_for_view(phenomenon_node_query.iter(), view_scale, view_pos_native).unwrap_or((Scale::MAX, Vec3::ZERO));
+    let (frontier_scale, frontier_center_native_absolute) = select_frontier_node_for_view(
+        phenomenon_node_query.iter(),
+        view_scale,
+        view_pos_native_absolute,
+    )
+    .unwrap_or((Scale::MAX, Vec3::ZERO));
     let scale_diff = frontier_scale as i8 - view_scale as i8;
+    let frontier_center_native_local = frontier_center_native_absolute - origin_offset_native_absolute;
 
     for (mut proxy_transform, mut proxy_state) in global_proxy_query.iter_mut() {
         let world_pos = Vec3::new(
-            frontier_center_native.x,
-            frontier_center_native.y,
-            frontier_center_native.z + proxy_state.depth_bias,
+            frontier_center_native_local.x,
+            frontier_center_native_local.y,
+            frontier_center_native_local.z + proxy_state.depth_bias,
         );
         proxy_transform.translation = world_rotation_origin + world_rotation * (world_pos - world_rotation_origin);
         proxy_transform.scale = Vec3::ONE;
         proxy_transform.rotation = world_rotation;
         proxy_state.layer_index = frontier_scale.render_layer_index();
-        let (window_mode, window_center_local, window_size_local) =
-            compute_render_proxy_windowing(scale_diff, frontier_center_native, view_pos_native);
+        let (window_mode, window_center_local, window_size_local) = compute_render_proxy_windowing(
+            scale_diff,
+            frontier_center_native_local,
+            view_pos_native_local,
+        );
         proxy_state.window_mode = window_mode;
         proxy_state.window_center_local = window_center_local;
         proxy_state.window_size_local = window_size_local;
@@ -1338,7 +1348,35 @@ fn interpolate_iso(a_pos: Vec3, a_val: f32, b_pos: Vec3, b_val: f32) -> Vec3 {
 }
 
 #[inline]
-fn phenomenon_node_center_native(node: PhenomenonNode, view_scale: Scale) -> Vec3 {
+fn grid_coord_native_absolute(coord: &GridVec) -> Vec3 {
+    let mut acc_x = 0.0_f64;
+    let mut acc_y = 0.0_f64;
+    let mut acc_z = 0.0_f64;
+    let mut factor = 1.0_f64;
+    let mut cursor = coord;
+
+    loop {
+        acc_x += cursor.xyz.x as f64 * factor;
+        acc_y += cursor.xyz.y as f64 * factor;
+        acc_z += cursor.xyz.z as f64 * factor;
+
+        let Some(parent) = cursor.parent.as_ref() else {
+            break;
+        };
+        factor *= 10.0;
+        cursor = parent.as_ref();
+    }
+
+    let native_unit = PHENOMENON_MODEL_LOCAL_SPAN_UNITS as f64;
+    Vec3::new(
+        (acc_x * native_unit) as f32,
+        (acc_y * native_unit) as f32,
+        (acc_z * native_unit) as f32,
+    )
+}
+
+#[inline]
+fn phenomenon_node_center_native_absolute(node: PhenomenonNode, view_scale: Scale) -> Vec3 {
     let scale_diff = node.scale as i8 - view_scale as i8;
     let scale_factor = 10.0_f32.powi(scale_diff as i32);
     node.cell3.as_vec3() * PHENOMENON_MODEL_LOCAL_SPAN_UNITS * scale_factor
@@ -1351,7 +1389,7 @@ where
     let mut best: Option<(u8, f32, u64, Scale, Vec3)> = None;
 
     for node in nodes {
-        let center_native = phenomenon_node_center_native(*node, view_scale);
+        let center_native = phenomenon_node_center_native_absolute(*node, view_scale);
         let scale_distance = (node.scale.index_from_top() as i16 - view_scale.index_from_top() as i16).abs() as u8;
         let distance_sq = center_native.distance_squared(view_pos_native);
 
@@ -1399,6 +1437,8 @@ fn compute_render_proxy_windowing(scale_diff: i8, chunk_center_native: Vec3, vie
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::usf::pos::grid::types::GridVec;
+    use crate::usf::pos::types::GridXyz;
 
     fn default_lod(mesh_resolution: u32) -> SurfaceLodTuning {
         SurfaceLodTuning {
@@ -1450,6 +1490,60 @@ mod tests {
             local_index: 0,
             seed: crate::usf::phenomenon::PhenomenonNodeSeed(seed),
         }
+    }
+
+    #[test]
+    fn grid_coord_native_absolute_accumulates_parent_lineage() {
+        let root = GridVec::new_root(GridXyz::new_local(1, 0, 0));
+        let child = GridVec::new(root, GridXyz::new_local(2, 0, 0));
+
+        let absolute = grid_coord_native_absolute(&child);
+        assert_eq!(absolute, Vec3::new(12_000.0, 0.0, 0.0));
+    }
+
+    #[test]
+    fn pinned_origin_node_moves_opposite_to_origin_offset_in_local_frame() {
+        let origin_offset = GridVec::new_root(GridXyz::new_local(2, 0, 0));
+        let origin_absolute = grid_coord_native_absolute(&origin_offset);
+        let root_node = sample_node(Scale::MAX, IVec3::ZERO, 1);
+        let root_absolute = phenomenon_node_center_native_absolute(root_node, Scale::MAX);
+
+        let root_local = root_absolute - origin_absolute;
+        assert_eq!(root_local, Vec3::new(-2_000.0, 0.0, 0.0));
+    }
+
+    #[test]
+    fn global_phenomenon_proxy_stays_world_pinned_when_origin_offset_moves() {
+        let mut app = App::new();
+        app.add_systems(Update, update_global_phenomenon_proxy_system);
+
+        let mut chunk_loader = ChunkLoader::default();
+        chunk_loader.origin_offset = GridVec::new_root(GridXyz::new_local(2, 0, 0));
+
+        app.world_mut().spawn((Player, chunk_loader, Transform::default()));
+        app.world_mut().spawn((
+            GlobalPhenomenonRoot,
+            Transform::default(),
+            RenderProxy {
+                source: Entity::PLACEHOLDER,
+                layer_index: 0,
+                depth_bias: 0.0,
+                window_mode: RenderProxyWindowMode::WindowedSubsection,
+                window_center_local: Vec3::ZERO,
+                window_size_local: Vec3::ONE,
+                coarse_context_persistent: true,
+            },
+        ));
+        app.world_mut().spawn(sample_node(Scale::MAX, IVec3::ZERO, 7));
+
+        app.update();
+
+        let mut query = app
+            .world_mut()
+            .query_filtered::<(&Transform, &RenderProxy), With<GlobalPhenomenonRoot>>();
+        let (transform, proxy) = query.single(app.world()).expect("global phenomenon proxy should exist");
+        assert_eq!(transform.translation, Vec3::new(-2_000.0, 0.0, 0.0));
+        assert_eq!(proxy.window_mode, RenderProxyWindowMode::FullEntity);
     }
 
     #[test]
