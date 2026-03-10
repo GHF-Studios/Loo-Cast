@@ -225,7 +225,7 @@ pub(super) fn update_global_phenomenon_proxy_system(
         Query<(&mut Transform, &mut RenderProxy), With<GlobalPhenomenonRoot>>,
     )>,
 ) {
-    let (world_rotation, world_rotation_origin, coord_scale, scale_diff, view_pos_native, camera_zoom) = {
+    let (world_rotation, world_rotation_origin, coord_scale, scale_diff, view_pos_native, camera_zoom, phenomenon_center_native) = {
         let (chunk_loader, chunk_loader_transform) = *params.p0();
         let world_rotation = chunk_loader.world_rotation_quat();
         let world_rotation_origin = chunk_loader_transform.translation;
@@ -243,18 +243,32 @@ pub(super) fn update_global_phenomenon_proxy_system(
         let coord_scale = chunk_loader.coord.scale;
         let scale_diff = coord_scale.index_from_top() as i8;
 
-        (world_rotation, world_rotation_origin, coord_scale, scale_diff, view_pos_native, camera_zoom)
+        // Anchor the phenomenon at absolute USF world origin (0,0) at Scale::MAX.
+        let phenomenon_origin_coord = GridVec::new_at_scale(Scale::MAX, IVec2::ZERO);
+        let (phenomenon_center_native, _scale) = phenomenon_origin_coord.to_native_visual(chunk_loader.origin_offset.clone());
+
+        (
+            world_rotation,
+            world_rotation_origin,
+            coord_scale,
+            scale_diff,
+            view_pos_native,
+            camera_zoom,
+            phenomenon_center_native,
+        )
     };
 
     let mut global_proxy_query = params.p1();
     for (mut proxy_transform, mut proxy_state) in global_proxy_query.iter_mut() {
-        // Keep the global phenomenon anchored to the player frame in XYZ;
-        // only the subsection window changes across USF boundaries.
-        proxy_transform.translation = world_rotation_origin + world_rotation * Vec3::new(0.0, 0.0, proxy_state.depth_bias);
+        // Keep the global phenomenon anchored at absolute world origin; only windowing
+        // should track player focus across USF boundaries.
+        let world_pos = phenomenon_center_native.extend(proxy_state.depth_bias);
+        proxy_transform.translation = world_rotation_origin + world_rotation * (world_pos - world_rotation_origin);
         proxy_transform.scale = Vec3::ONE;
         proxy_transform.rotation = world_rotation;
         proxy_state.layer_index = coord_scale.render_layer_index();
-        let (window_mode, window_center_local, window_size_local) = compute_render_proxy_windowing(scale_diff, camera_zoom, Vec2::ZERO, view_pos_native);
+        let (window_mode, window_center_local, window_size_local) =
+            compute_render_proxy_windowing(scale_diff, camera_zoom, phenomenon_center_native, view_pos_native);
         proxy_state.window_mode = window_mode;
         proxy_state.window_center_local = window_center_local;
         proxy_state.window_size_local = window_size_local;
