@@ -51,24 +51,24 @@ pub enum AppOrchestrationSignal {
 #[derive(Resource, Clone, Debug, Reflect)]
 #[reflect(Resource)]
 pub struct PlayerMotionIntent {
-    pub translation_delta: Vec2,
+    pub translation_delta: Vec3,
     pub rotation_delta: Vec3,
 }
 impl Default for PlayerMotionIntent {
     fn default() -> Self {
         Self {
-            translation_delta: Vec2::ZERO,
+            translation_delta: Vec3::ZERO,
             rotation_delta: Vec3::ZERO,
         }
     }
 }
 impl PlayerMotionIntent {
     pub fn clear(&mut self) {
-        self.translation_delta = Vec2::ZERO;
+        self.translation_delta = Vec3::ZERO;
         self.rotation_delta = Vec3::ZERO;
     }
 
     pub fn has_motion(&self) -> bool {
-        self.translation_delta != Vec2::ZERO || self.rotation_delta != Vec3::ZERO
+        self.translation_delta != Vec3::ZERO || self.rotation_delta != Vec3::ZERO
     }
 }

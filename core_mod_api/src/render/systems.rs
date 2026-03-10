@@ -159,7 +159,6 @@ pub(super) fn resize_render_texture(
 
 #[tracing::instrument(skip_all)]
 pub(super) fn update_render_proxies(
-    zoom_factor: Res<ZoomFactor>,
     mut params: ParamSet<(
         Single<(&ChunkLoader, &Transform), With<Player>>,
         Query<(&EntityProxyLink, &ChunkActor), Without<RenderProxy>>,
@@ -171,8 +170,6 @@ pub(super) fn update_render_proxies(
     let world_rotation_origin = chunk_loader_transform.translation;
     let origin_offset = chunk_loader.origin_offset.clone();
     let view_pos_native = chunk_loader_transform.translation.truncate();
-    // Dev zoom is a camera-only aid and must never mutate USF windowing/submesh selection.
-    let camera_zoom = zoom_factor.0.max(f32::EPSILON);
     let max_scale_diff = Scale::MAX_DIFF_SCALE_EXP;
 
     let actor_updates = {
@@ -205,7 +202,7 @@ pub(super) fn update_render_proxies(
                 proxy_transform.scale = Vec3::splat(scale);
                 proxy_transform.rotation = world_rotation;
                 proxy_state.layer_index = coord_scale.render_layer_index();
-                let (window_mode, window_center_local, window_size_local) = compute_render_proxy_windowing(scale_diff, camera_zoom, pos, view_pos_native);
+                let (window_mode, window_center_local, window_size_local) = compute_render_proxy_windowing(scale_diff, pos, view_pos_native);
                 proxy_state.window_mode = window_mode;
                 proxy_state.window_center_local = window_center_local;
                 proxy_state.window_size_local = window_size_local;
@@ -218,13 +215,12 @@ pub(super) fn update_render_proxies(
 
 #[tracing::instrument(skip_all)]
 pub(super) fn update_global_phenomenon_proxy_system(
-    zoom_factor: Res<ZoomFactor>,
     mut params: ParamSet<(
         Single<(&ChunkLoader, &Transform), With<Player>>,
         Query<(&mut Transform, &mut RenderProxy), With<GlobalPhenomenonRoot>>,
     )>,
 ) {
-    let (world_rotation, world_rotation_origin, coord_scale, scale_diff, view_pos_native, camera_zoom, phenomenon_center_native) = {
+    let (world_rotation, world_rotation_origin, coord_scale, scale_diff, view_pos_native, phenomenon_center_native) = {
         let (chunk_loader, chunk_loader_transform) = *params.p0();
         let world_rotation = chunk_loader.world_rotation_quat();
         let world_rotation_origin = chunk_loader_transform.translation;
@@ -235,9 +231,6 @@ pub(super) fn update_global_phenomenon_proxy_system(
         let grid_origin_at_current_scale = GridVec::new_at_scale(chunk_loader.origin_offset.scale, IVec2::ZERO);
         let coarse_view_pos = chunk_loader.origin_offset.clone().to_native_logical(grid_origin_at_current_scale);
         let view_pos_native = coarse_view_pos + local_view_pos;
-        // Dev zoom is a camera-only aid and must never mutate USF windowing/submesh selection.
-        let camera_zoom = zoom_factor.0.max(f32::EPSILON);
-
         // One global phenomenon in 3D: scale progression selects a deeper subsection window,
         // but does not spawn/scale independent world objects.
         let coord_scale = chunk_loader.coord.scale;
@@ -253,7 +246,6 @@ pub(super) fn update_global_phenomenon_proxy_system(
             coord_scale,
             scale_diff,
             view_pos_native,
-            camera_zoom,
             phenomenon_center_native,
         )
     };
@@ -268,7 +260,7 @@ pub(super) fn update_global_phenomenon_proxy_system(
         proxy_transform.rotation = world_rotation;
         proxy_state.layer_index = coord_scale.render_layer_index();
         let (window_mode, window_center_local, window_size_local) =
-            compute_render_proxy_windowing(scale_diff, camera_zoom, phenomenon_center_native, view_pos_native);
+            compute_render_proxy_windowing(scale_diff, phenomenon_center_native, view_pos_native);
         proxy_state.window_mode = window_mode;
         proxy_state.window_center_local = window_center_local;
         proxy_state.window_size_local = window_size_local;
@@ -1321,7 +1313,7 @@ fn interpolate_iso(a_pos: Vec3, a_val: f32, b_pos: Vec3, b_val: f32) -> Vec3 {
 }
 
 #[inline]
-fn compute_render_proxy_windowing(scale_diff: i8, camera_zoom: f32, chunk_center_native: Vec2, view_pos_native: Vec2) -> (RenderProxyWindowMode, Vec2, Vec2) {
+fn compute_render_proxy_windowing(scale_diff: i8, chunk_center_native: Vec2, view_pos_native: Vec2) -> (RenderProxyWindowMode, Vec2, Vec2) {
     if scale_diff <= 0 {
         return (RenderProxyWindowMode::FullEntity, Vec2::ZERO, Vec2::ONE);
     }
@@ -1336,8 +1328,8 @@ fn compute_render_proxy_windowing(scale_diff: i8, camera_zoom: f32, chunk_center
     let center01_y = ((view_pos_native.y as f64 - (chunk_center_native.y as f64 - chunk_span * 0.5)) / chunk_span).clamp(0.0, 1.0) as f32;
     let center_local = Vec2::new(center01_x, center01_y) - Vec2::splat(0.5);
 
-    let zoom_term = camera_zoom.max(0.0001) as f64;
-    let window_size = (zoom_term / coarse_factor).clamp(MIN_WINDOW_SIZE_LOCAL as f64, 1.0) as f32;
+    // Windowing is determined by scale hierarchy only; camera zoom must not morph topology.
+    let window_size = (1.0 / coarse_factor).clamp(MIN_WINDOW_SIZE_LOCAL as f64, 1.0) as f32;
 
     (RenderProxyWindowMode::WindowedSubsection, center_local, Vec2::splat(window_size))
 }
@@ -1389,7 +1381,7 @@ mod tests {
 
     #[test]
     fn full_entity_mode_for_same_or_finer_scale() {
-        let (mode, center, size) = compute_render_proxy_windowing(0, 0.25, Vec2::ZERO, Vec2::new(123.0, -45.0));
+        let (mode, center, size) = compute_render_proxy_windowing(0, Vec2::ZERO, Vec2::new(123.0, -45.0));
         assert_eq!(mode, RenderProxyWindowMode::FullEntity);
         assert_eq!(center, Vec2::ZERO);
         assert_eq!(size, Vec2::ONE);
@@ -1397,7 +1389,7 @@ mod tests {
 
     #[test]
     fn windowed_mode_scales_down_with_coarser_level() {
-        let (mode, center, size) = compute_render_proxy_windowing(1, 1.0, Vec2::ZERO, Vec2::ZERO);
+        let (mode, center, size) = compute_render_proxy_windowing(1, Vec2::ZERO, Vec2::ZERO);
         assert_eq!(mode, RenderProxyWindowMode::WindowedSubsection);
         assert_eq!(center, Vec2::ZERO);
         assert!((size.x - 0.1).abs() < 1e-6);
@@ -1407,11 +1399,11 @@ mod tests {
     #[test]
     fn window_center_tracks_viewpoint_inside_chunk() {
         // scale_diff=1 => chunk span is 10,000 native units.
-        let (mode, center, size) = compute_render_proxy_windowing(1, 0.5, Vec2::ZERO, Vec2::new(2_500.0, 2_500.0));
+        let (mode, center, size) = compute_render_proxy_windowing(1, Vec2::ZERO, Vec2::new(2_500.0, 2_500.0));
         assert_eq!(mode, RenderProxyWindowMode::WindowedSubsection);
         assert!(center.x > 0.0 && center.y > 0.0);
-        assert!((size.x - 0.05).abs() < 1e-6);
-        assert!((size.y - 0.05).abs() < 1e-6);
+        assert!((size.x - 0.1).abs() < 1e-6);
+        assert!((size.y - 0.1).abs() < 1e-6);
     }
 
     #[test]
@@ -1804,11 +1796,11 @@ pub(super) fn apply_usf_player_pivots_system(
     let intent_translation_delta = player_motion_intent.translation_delta;
     let intent_rotation_delta = player_motion_intent.rotation_delta;
     player_motion_intent.clear();
-    let world_space_translation_delta = if intent_translation_delta == Vec2::ZERO {
-        Vec2::ZERO
+    let world_space_translation_delta = if intent_translation_delta == Vec3::ZERO {
+        Vec3::ZERO
     } else {
-        // Input is authored in player-local XY; convert to world-space using current heading.
-        (chunk_loader.world_rotation_quat().inverse() * intent_translation_delta.extend(0.0)).truncate()
+        // Input is authored in player-local XYZ; convert to world-space using current heading.
+        chunk_loader.world_rotation_quat().inverse() * intent_translation_delta
     };
 
     let chunk_load_gate_enabled = CONFIG().get::<bool>("workflow/chunk_load_gate_enabled");
@@ -1843,13 +1835,15 @@ pub(super) fn apply_usf_player_pivots_system(
             .clamp(scale_policy.local_min, scale_policy.local_max);
         player_transform.translation.x = player_transform.translation.x.clamp(translation_local_min, translation_local_max);
         player_transform.translation.y = player_transform.translation.y.clamp(translation_local_min, translation_local_max);
+        player_transform.translation.z = player_transform.translation.z.clamp(translation_local_min, translation_local_max);
         chunk_loader.usf_transform.translation.x.set_local(player_transform.translation.x as f64);
         chunk_loader.usf_transform.translation.y.set_local(player_transform.translation.y as f64);
+        chunk_loader.usf_transform.translation.z.set_local(player_transform.translation.z as f64);
         chunk_loader.usf_transform.rotation.x.local = chunk_loader.usf_transform.rotation.x.local.clamp(rotation_local_min, rotation_local_max);
         chunk_loader.usf_transform.rotation.y.local = chunk_loader.usf_transform.rotation.y.local.clamp(rotation_local_min, rotation_local_max);
         chunk_loader.usf_transform.rotation.z.local = chunk_loader.usf_transform.rotation.z.local.clamp(rotation_local_min, rotation_local_max);
     } else {
-        let candidate_translation = player_transform.translation + world_space_translation_delta.extend(0.0);
+        let candidate_translation = player_transform.translation + world_space_translation_delta;
 
         let would_cross_scale_boundary = zoom_factor.0 <= scale_commit_min || zoom_factor.0 >= scale_commit_max;
         let would_cross_translation_boundary = candidate_translation.x <= translation_commit_min
@@ -1875,26 +1869,27 @@ pub(super) fn apply_usf_player_pivots_system(
                 .clamp(scale_policy.local_min, scale_policy.local_max);
             player_transform.translation.x = player_transform.translation.x.clamp(translation_local_min, translation_local_max);
             player_transform.translation.y = player_transform.translation.y.clamp(translation_local_min, translation_local_max);
+            player_transform.translation.z = player_transform.translation.z.clamp(translation_local_min, translation_local_max);
             chunk_loader.usf_transform.translation.x.set_local(player_transform.translation.x as f64);
             chunk_loader.usf_transform.translation.y.set_local(player_transform.translation.y as f64);
+            chunk_loader.usf_transform.translation.z.set_local(player_transform.translation.z as f64);
             chunk_loader.usf_transform.rotation.x.local = chunk_loader.usf_transform.rotation.x.local.clamp(rotation_local_min, rotation_local_max);
             chunk_loader.usf_transform.rotation.y.local = chunk_loader.usf_transform.rotation.y.local.clamp(rotation_local_min, rotation_local_max);
             chunk_loader.usf_transform.rotation.z.local = chunk_loader.usf_transform.rotation.z.local.clamp(rotation_local_min, rotation_local_max);
         } else {
-            if world_space_translation_delta != Vec2::ZERO {
-                player_transform.translation += world_space_translation_delta.extend(0.0);
+            if world_space_translation_delta != Vec3::ZERO {
+                player_transform.translation += world_space_translation_delta;
             }
             if intent_rotation_delta != Vec3::ZERO {
                 chunk_loader.rotate_world_local(intent_rotation_delta);
             }
 
-            // Zoom should not drag the player in local XY.
-            // Preserve XY across scale folds, then run translation/rotation pivots normally.
-            let local_xy_before_scale = player_transform.translation.truncate();
+            // Zoom should not drag the player in local space.
+            // Preserve XYZ across scale folds, then run translation/rotation pivots normally.
+            let local_translation_before_scale = player_transform.translation;
             let scale_pivot = chunk_loader.apply_scale_pivot(&mut zoom_factor.0, &mut player_transform.translation);
             if scale_pivot.lower_crossings > 0 || scale_pivot.upper_crossings > 0 {
-                player_transform.translation.x = local_xy_before_scale.x;
-                player_transform.translation.y = local_xy_before_scale.y;
+                player_transform.translation = local_translation_before_scale;
             }
             let translation_grid_delta = chunk_loader.apply_translation_pivot(&mut player_transform.translation);
             chunk_loader.apply_rotation_pivot();
@@ -1922,8 +1917,10 @@ pub(super) fn apply_usf_player_pivots_system(
                     .clamp(scale_policy.local_min, scale_policy.local_max);
                 player_transform.translation.x = player_transform.translation.x.clamp(translation_local_min, translation_local_max);
                 player_transform.translation.y = player_transform.translation.y.clamp(translation_local_min, translation_local_max);
+                player_transform.translation.z = player_transform.translation.z.clamp(translation_local_min, translation_local_max);
                 chunk_loader.usf_transform.translation.x.set_local(player_transform.translation.x as f64);
                 chunk_loader.usf_transform.translation.y.set_local(player_transform.translation.y as f64);
+                chunk_loader.usf_transform.translation.z.set_local(player_transform.translation.z as f64);
                 chunk_loader.usf_transform.rotation.x.local = chunk_loader.usf_transform.rotation.x.local.clamp(rotation_local_min, rotation_local_max);
                 chunk_loader.usf_transform.rotation.y.local = chunk_loader.usf_transform.rotation.y.local.clamp(rotation_local_min, rotation_local_max);
                 chunk_loader.usf_transform.rotation.z.local = chunk_loader.usf_transform.rotation.z.local.clamp(rotation_local_min, rotation_local_max);

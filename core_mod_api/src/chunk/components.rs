@@ -139,11 +139,12 @@ impl ChunkLoader {
     }
 
     pub fn apply_translation_pivot(&mut self, logical_world_pos: &mut Vec3) -> IVec2 {
-        let local_before = logical_world_pos.truncate();
+        let local_before = *logical_world_pos;
         let coord_before = self.coord.clone();
         let origin_before = self.origin_offset.clone();
         self.usf_transform.translation.x.set_local(logical_world_pos.x as f64);
         self.usf_transform.translation.y.set_local(logical_world_pos.y as f64);
+        self.usf_transform.translation.z.set_local(logical_world_pos.z as f64);
 
         let policy = self.usf_transform.translation.policy;
         let pivot_x = self.usf_transform.translation.x.fold_with_policy(policy);
@@ -160,23 +161,25 @@ impl ChunkLoader {
 
         logical_world_pos.x = self.usf_transform.translation.x.local as f32;
         logical_world_pos.y = self.usf_transform.translation.y.local as f32;
+        logical_world_pos.z = self.usf_transform.translation.z.local as f32;
 
         if pivot_x.lower_crossings > 0 || pivot_x.upper_crossings > 0 || pivot_y.lower_crossings > 0 || pivot_y.upper_crossings > 0 {
             warn!(
-                "USF translation fold: x(l={},u={}) y(l={},u={}) grid_delta={:?}, local_pos {:?}->{:?}, coord {:?}->{:?}, origin {:?}->{:?}, cycles=({}, {})",
+                "USF translation fold: x(l={},u={}) y(l={},u={}) grid_delta={:?}, local_pos {:?}->{:?}, coord {:?}->{:?}, origin {:?}->{:?}, cycles=({}, {}, {})",
                 pivot_x.lower_crossings,
                 pivot_x.upper_crossings,
                 pivot_y.lower_crossings,
                 pivot_y.upper_crossings,
                 grid_delta,
                 local_before,
-                logical_world_pos.truncate(),
+                *logical_world_pos,
                 coord_before,
                 self.coord,
                 origin_before,
                 self.origin_offset,
                 self.usf_transform.translation.x.canonical_cycles,
-                self.usf_transform.translation.y.canonical_cycles
+                self.usf_transform.translation.y.canonical_cycles,
+                self.usf_transform.translation.z.canonical_cycles
             );
         }
 

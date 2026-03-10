@@ -115,11 +115,17 @@ pub(super) fn update_player_system(
         if keys.pressed(KeyCode::KeyD) {
             direction.x += 1.0;
         }
+        if keys.pressed(KeyCode::Space) {
+            direction.z += 1.0;
+        }
+        if keys.pressed(KeyCode::ControlLeft) || keys.pressed(KeyCode::ControlRight) {
+            direction.z -= 1.0;
+        }
 
         if direction.length_squared() > 0.0 {
             direction = direction.normalize();
             let sprint_multiplier = if keys.pressed(KeyCode::ShiftLeft) { *sprint_multiplier } else { 1.0 };
-            player_motion_intent.translation_delta = (direction * *base_movement_speed * sprint_multiplier * time.delta_secs()).truncate();
+            player_motion_intent.translation_delta = direction * *base_movement_speed * sprint_multiplier * time.delta_secs();
         }
 
         let mut delta_rotation = Vec3::ZERO;
