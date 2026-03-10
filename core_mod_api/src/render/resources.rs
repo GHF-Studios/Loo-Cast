@@ -2,6 +2,7 @@ use crate::bevy::prelude::*;
 use bevy_inspector_egui::bevy_inspector::hierarchy::SelectedEntities;
 use egui::TextureId;
 use egui_dock::{DockState, NodeIndex};
+use std::collections::{HashMap, VecDeque};
 
 use crate::config::statics::CONFIG;
 use crate::debug::types::{DebugSuiteTab, InspectorSelection, StepConfig, StepMode};
@@ -83,4 +84,55 @@ pub struct PrimaryWindowUiState {
     #[reflect(ignore)]
     pub selected_entities: SelectedEntities,
     pub selection: InspectorSelection,
+}
+
+#[derive(Resource, Debug, Clone, Reflect)]
+#[reflect(Resource)]
+pub struct PhenomenonSurfaceMeshingBudget {
+    pub max_builds_per_frame: usize,
+}
+impl Default for PhenomenonSurfaceMeshingBudget {
+    fn default() -> Self {
+        Self { max_builds_per_frame: 3 }
+    }
+}
+
+#[derive(Resource, Debug, Default)]
+pub struct PhenomenonSurfaceMeshCache {
+    pub entries: HashMap<u64, Handle<Mesh>>,
+    pub lru: VecDeque<u64>,
+    pub max_entries: usize,
+}
+impl PhenomenonSurfaceMeshCache {
+    pub fn with_max_entries(max_entries: usize) -> Self {
+        Self {
+            entries: HashMap::new(),
+            lru: VecDeque::new(),
+            max_entries: max_entries.max(1),
+        }
+    }
+
+    pub fn get(&mut self, signature: u64) -> Option<Handle<Mesh>> {
+        let handle = self.entries.get(&signature).cloned()?;
+        self.touch(signature);
+        Some(handle)
+    }
+
+    pub fn insert(&mut self, signature: u64, handle: Handle<Mesh>) {
+        self.entries.insert(signature, handle);
+        self.touch(signature);
+        while self.entries.len() > self.max_entries {
+            let Some(evict_key) = self.lru.pop_front() else {
+                break;
+            };
+            self.entries.remove(&evict_key);
+        }
+    }
+
+    fn touch(&mut self, signature: u64) {
+        if let Some(idx) = self.lru.iter().position(|key| *key == signature) {
+            self.lru.remove(idx);
+        }
+        self.lru.push_back(signature);
+    }
 }

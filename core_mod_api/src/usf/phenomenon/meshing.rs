@@ -40,11 +40,7 @@ impl PhenomenonLatticeWindow {
     #[inline]
     pub fn local_position(self, coord: IVec3, span_units: f32) -> Vec3 {
         let uvw = self.normalized_coord(coord);
-        Vec3::new(
-            (uvw.x - 0.5) * span_units,
-            (uvw.y - 0.5) * span_units,
-            (uvw.z - 0.5) * span_units,
-        )
+        Vec3::new((uvw.x - 0.5) * span_units, (uvw.y - 0.5) * span_units, (uvw.z - 0.5) * span_units)
     }
 }
 
@@ -54,9 +50,28 @@ pub fn seam_safe_lattice_window(bounds_min: Vec3, bounds_span: Vec3, cells: usiz
     let max = (bounds_min + bounds_span).clamp(Vec3::ZERO, Vec3::ONE);
     let cells = cells.max(1) as u32;
 
+    #[inline]
+    fn quantize_axis(min: f32, max: f32) -> (i32, i32) {
+        let mut qmin = quantize_unit(min);
+        let mut qmax = quantize_unit(max);
+        if qmax <= qmin {
+            let upper = PHENOMENON_SEAM_LATTICE_DENOM;
+            if qmin >= upper {
+                qmin = upper.saturating_sub(1);
+                qmax = upper;
+            } else {
+                qmax = (qmin + 1).min(upper);
+            }
+        }
+        (qmin, qmax)
+    }
+    let (min_x, max_x) = quantize_axis(min.x, max.x);
+    let (min_y, max_y) = quantize_axis(min.y, max.y);
+    let (min_z, max_z) = quantize_axis(min.z, max.z);
+
     PhenomenonLatticeWindow {
-        min: IVec3::new(quantize_unit(min.x), quantize_unit(min.y), quantize_unit(min.z)),
-        max: IVec3::new(quantize_unit(max.x), quantize_unit(max.y), quantize_unit(max.z)),
+        min: IVec3::new(min_x, min_y, min_z),
+        max: IVec3::new(max_x, max_y, max_z),
         cells,
     }
 }

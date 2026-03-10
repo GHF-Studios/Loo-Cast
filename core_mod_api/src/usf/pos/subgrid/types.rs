@@ -25,8 +25,7 @@ impl SubgridVecBuilder {
         I: IntoIterator<Item = C>,
         C: Into<LocalCell3>,
     {
-        self.chain
-            .extend(items.into_iter().map(|xyz| GridXyz::from_local_cell3(xyz.into())));
+        self.chain.extend(items.into_iter().map(|xyz| GridXyz::from_local_cell3(xyz.into())));
         self
     }
 
@@ -86,11 +85,7 @@ impl SubgridVec {
         unit_extent.zoom_out();
 
         self.grid_offset = (*unit_extent.grid_offset.parent.unwrap()).clone();
-        self.subgrid_offset = SubgridXyz::new_local(
-            unit_extent.grid_offset.xyz.x,
-            unit_extent.grid_offset.xyz.y,
-            unit_extent.grid_offset.xyz.z,
-        );
+        self.subgrid_offset = SubgridXyz::new_local(unit_extent.grid_offset.xyz.x, unit_extent.grid_offset.xyz.y, unit_extent.grid_offset.xyz.z);
     }
 }
 impl std::fmt::Debug for SubgridVec {

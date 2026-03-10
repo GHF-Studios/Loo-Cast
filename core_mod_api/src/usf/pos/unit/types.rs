@@ -20,8 +20,7 @@ impl UnitVecBuilder {
         I: IntoIterator<Item = C>,
         C: Into<LocalCell3>,
     {
-        self.chain
-            .extend(items.into_iter().map(|xyz| GridXyz::from_local_cell3(xyz.into())));
+        self.chain.extend(items.into_iter().map(|xyz| GridXyz::from_local_cell3(xyz.into())));
         self
     }
 
@@ -212,7 +211,11 @@ impl UnitVec {
         let child_size = chunk_size / child_factor;
 
         // Step 1: Get child's origin in parent space
-        let child_origin = Vec3::new(child.xyz.x as f32 * child_size, child.xyz.y as f32 * child_size, child.xyz.z as f32 * child_size);
+        let child_origin = Vec3::new(
+            child.xyz.x as f32 * child_size,
+            child.xyz.y as f32 * child_size,
+            child.xyz.z as f32 * child_size,
+        );
 
         // Step 2: Shift up into parent space, then rescale
         let offset_in_parent = child_origin + (self.unit_offset / child_factor);
@@ -372,12 +375,8 @@ impl std::ops::Add<UnitVec> for UnitVec {
         let mut result: Option<GridVec> = None;
         for xyz in raw_stack {
             result = Some(match result {
-                Some(parent) => {
-                    GridVec::new(parent, GridXyz::new_local(xyz.x, xyz.y, xyz.z))
-                }
-                None => {
-                    GridVec::new_root(GridXyz::new_local(xyz.x, xyz.y, xyz.z))
-                }
+                Some(parent) => GridVec::new(parent, GridXyz::new_local(xyz.x, xyz.y, xyz.z)),
+                None => GridVec::new_root(GridXyz::new_local(xyz.x, xyz.y, xyz.z)),
             });
         }
 
@@ -486,12 +485,8 @@ impl std::ops::Sub<UnitVec> for UnitVec {
         let mut result: Option<GridVec> = None;
         for xyz in raw_stack {
             result = Some(match result {
-                Some(parent) => {
-                    GridVec::new(parent, GridXyz::new_local(xyz.x, xyz.y, xyz.z))
-                }
-                None => {
-                    GridVec::new_root(GridXyz::new_local(xyz.x, xyz.y, xyz.z))
-                }
+                Some(parent) => GridVec::new(parent, GridXyz::new_local(xyz.x, xyz.y, xyz.z)),
+                None => GridVec::new_root(GridXyz::new_local(xyz.x, xyz.y, xyz.z)),
             });
         }
 

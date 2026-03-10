@@ -12,11 +12,11 @@ use crate::bevy::pbr::MaterialPlugin;
 use crate::bevy::prelude::*;
 use bevy_egui::EguiPrimaryContextPass;
 use components::{
-    EntityProxyLink, GlobalPhenomenonRoot, LogicProxy, MainCamera, PhenomenonModelCamera, PhenomenonModelSurface, ProxySyncRevision, RenderProxy,
+    EntityProxyLink, GlobalPhenomenonRoot, LogicProxy, MainCamera, PhenomenonFrontierProxy, PhenomenonModelCamera, PhenomenonModelSurface, ProxySyncRevision, RenderProxy,
     RenderProxyWindowMode, UiCamera,
 };
 use materials::PhenomenonSurfaceMaterial;
-use resources::{DevZoomFactor, PrimaryWindowUiDockState, PrimaryWindowUiState, ViewScale, ZoomFactor};
+use resources::{DevZoomFactor, PhenomenonSurfaceMeshCache, PhenomenonSurfaceMeshingBudget, PrimaryWindowUiDockState, PrimaryWindowUiState, ViewScale, ZoomFactor};
 use systems::{
     apply_usf_player_pivots_system, despawn_orphaned_render_proxies, draw_chunk_locator_gizmos_system, enforce_main_camera_depth_contract_system,
     enforce_phenomenon_model_camera_depth_contract_system, ensure_global_phenomenon_root_system, main_camera_zoom_system, pre_setup_phase_0, pre_setup_phase_1,
@@ -38,6 +38,8 @@ impl Plugin for RenderPlugin {
             .insert_resource(ZoomFactor::default())
             .insert_resource(DevZoomFactor::default())
             .insert_resource(ViewScale::default())
+            .insert_resource(PhenomenonSurfaceMeshCache::with_max_entries(512))
+            .init_resource::<PhenomenonSurfaceMeshingBudget>()
             .add_systems(PreStartup, (pre_setup_phase_0.before(pre_setup_phase_1), pre_setup_phase_1))
             .add_systems(
                 Update,
@@ -72,10 +74,12 @@ impl Plugin for RenderPlugin {
             .register_type::<RenderProxyWindowMode>()
             .register_type::<PhenomenonModelSurface>()
             .register_type::<GlobalPhenomenonRoot>()
+            .register_type::<PhenomenonFrontierProxy>()
             .register_type::<ProxySyncRevision>()
             .register_type::<Meta<Sprite>>()
             .register_type::<PrimaryWindowUiState>()
             .register_type::<ZoomFactor>()
-            .register_type::<DevZoomFactor>();
+            .register_type::<DevZoomFactor>()
+            .register_type::<PhenomenonSurfaceMeshingBudget>();
     }
 }

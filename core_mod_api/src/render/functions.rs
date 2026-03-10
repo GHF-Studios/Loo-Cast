@@ -224,6 +224,7 @@ pub(crate) fn draw_primary_window_ui(
                 if let Some(stats) = world.get_resource::<PhenomenonDebugStats>() {
                     ui.separator();
                     ui.label(format!("Nodes {}", stats.active_nodes));
+                    ui.label(format!("Proxies {}", stats.active_frontier_proxies));
                     ui.label(format!("Meshes {} (+{})", stats.generated_meshes_total, stats.generated_meshes_frame));
                     ui.label(format!("Cache {} (+{})", stats.mesh_cache_hits_total, stats.mesh_cache_hits_frame));
                 }

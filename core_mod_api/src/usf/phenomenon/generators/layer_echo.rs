@@ -3,10 +3,10 @@ use crate::bevy::prelude::*;
 use crate::usf::phenomenon::generator::{
     BuildStateInput, MeshWindowInput, PhenomenonChildPlan, PhenomenonGenerator, PhenomenonMeshWindow, PhenomenonStateSnapshot, PlanChildrenInput,
 };
-use crate::usf::pos::types::LocalCell3;
-use crate::usf::scale::Scale;
 #[cfg(test)]
 use crate::usf::phenomenon::types::{PhenomenonId, PhenomenonLineage, PhenomenonNodeKey, PhenomenonNodeSeed};
+use crate::usf::pos::types::LocalCell3;
+use crate::usf::scale::Scale;
 
 #[derive(Debug, Clone, Copy)]
 pub struct LayerEchoGenerator {
@@ -14,6 +14,8 @@ pub struct LayerEchoGenerator {
     pub echo_gain: f32,
     pub max_branching: u32,
 }
+
+const METRIC_PHASE_WRAP: f32 = 64.0;
 
 impl Default for LayerEchoGenerator {
     fn default() -> Self {
@@ -28,7 +30,15 @@ impl Default for LayerEchoGenerator {
 impl PhenomenonGenerator for LayerEchoGenerator {
     fn build_state(&self, input: BuildStateInput<'_>) -> PhenomenonStateSnapshot {
         let seed = input.key.deterministic_seed();
+        let root_seed = input.parent_state.map_or(seed, |parent| parent.root_seed);
         let lineage_depth = input.parent_state.map_or(0, |parent| parent.lineage_depth.saturating_add(1));
+        let metric_phase = if let Some(parent) = input.parent_state {
+            let cell = input.key.local_cell().as_ivec3().as_vec3();
+            // Keep a bounded, lineage-derived phase so every node samples one shared metric field.
+            wrap_metric_phase(parent.metric_phase * 10.0 + cell * 2.0)
+        } else {
+            Vec3::ZERO
+        };
         let base = seeded_channels(seed.0);
 
         let channels = if let Some(parent) = input.parent_state {
@@ -42,54 +52,45 @@ impl PhenomenonGenerator for LayerEchoGenerator {
 
         PhenomenonStateSnapshot {
             seed,
+            root_seed,
             lineage_depth,
+            metric_phase,
             channels,
         }
     }
 
     fn sample_density(&self, state: &PhenomenonStateSnapshot, point_local: Vec3) -> f32 {
         let point = point_local.clamp(Vec3::splat(-1.0), Vec3::splat(1.0));
-        let max_depth = (Scale::SCALE_LEVEL_COUNT.saturating_sub(1)) as f32;
-        let depth_t = if max_depth <= f32::EPSILON {
-            0.0
-        } else {
-            (state.lineage_depth as f32 / max_depth).clamp(0.0, 1.0)
-        };
+        let metric_point = point + state.metric_phase;
 
-        // Stable base volume: always keep a bounded interior so meshing has a robust surface.
-        let base_radius = (0.62 + state.channels.w * 0.08).clamp(0.50, 0.74);
+        // One shared metric field across all scales: the root seed defines the global field,
+        // while lineage depth selects which detail decades are currently resolved.
+        let base_radius = (0.62 + seed_to_unit(state.root_seed.0 ^ 0x4d59_5df4_d0f3_3173) * 0.06).clamp(0.52, 0.74);
         let base_sdf = point.length() - base_radius;
 
-        // Multi-octave deterministic detail that increases with lineage depth.
-        let phase = state.channels.truncate() * 0.67;
-        let base_frequency = 1.35 + depth_t * 3.15;
-        let warp_frequency = base_frequency * 0.70;
-        let warp = Vec3::new(
-            perlin_noise(
-                state.seed.0 ^ 0x243f_6a88_85a3_08d3,
-                point * warp_frequency + phase + Vec3::new(3.1, -1.7, 2.3),
-            ),
-            perlin_noise(
-                state.seed.0 ^ 0x1319_8a2e_0370_7344,
-                point * warp_frequency + phase + Vec3::new(-4.6, 2.2, 1.1),
-            ),
-            perlin_noise(
-                state.seed.0 ^ 0xa409_3822_299f_31d0,
-                point * warp_frequency + phase + Vec3::new(0.9, -3.8, -2.7),
-            ),
-        ) * 0.22;
+        let depth = state.lineage_depth as i32;
+        let max_depth = (Scale::SCALE_LEVEL_COUNT.saturating_sub(1)) as i32;
+        let mut detail_sum = 0.0_f32;
+        let mut detail_norm = 0.0_f32;
 
-        let octaves = if depth_t > 0.66 { 5 } else { 4 };
-        let detail = fbm_perlin_noise(
-            state.seed.0 ^ 0x082e_fa98_ec4e_6c89,
-            point * base_frequency + warp + phase,
-            octaves,
-            2.0,
-            0.52,
-        );
-        let detail_amplitude = 0.16 + depth_t * 0.14;
+        // Nine contiguous absolute bands centered on the current depth.
+        for rel_band in -4..=4 {
+            let abs_band = (depth + rel_band).clamp(0, max_depth) as u64;
+            let band_seed = splitmix64(state.root_seed.0 ^ abs_band.wrapping_mul(0x9e37_79b9_7f4a_7c15));
+            let phase = Vec3::new(
+                seed_to_unit(band_seed ^ 0x243f_6a88_85a3_08d3),
+                seed_to_unit(band_seed ^ 0x1319_8a2e_0370_7344),
+                seed_to_unit(band_seed ^ 0xa409_3822_299f_31d0),
+            ) * 0.55;
+            let frequency = 10.0_f32.powi(rel_band);
+            let band_noise = perlin_noise(band_seed ^ 0x082e_fa98_ec4e_6c89, metric_point * frequency + phase);
+            let amplitude = 1.0 / (1.0 + rel_band.abs() as f32);
+            detail_sum += band_noise * amplitude;
+            detail_norm += amplitude;
+        }
 
-        base_sdf + detail * detail_amplitude
+        let detail = if detail_norm <= f32::EPSILON { 0.0 } else { detail_sum / detail_norm };
+        base_sdf + detail * 0.30
     }
 
     fn plan_children(&self, input: PlanChildrenInput<'_>) -> Vec<PhenomenonChildPlan> {
@@ -99,13 +100,14 @@ impl PhenomenonGenerator for LayerEchoGenerator {
         let next_scale = input.key.scale.zoomed_in();
 
         let offsets = [
-            LocalCell3::new_local(-1, -1, -1),
-            LocalCell3::new_local(-1, -1, 1),
-            LocalCell3::new_local(-1, 1, -1),
-            LocalCell3::new_local(-1, 1, 1),
-            LocalCell3::new_local(1, -1, -1),
-            LocalCell3::new_local(1, -1, 1),
-            LocalCell3::new_local(1, 1, -1),
+            // Keep the primary expansion branch centered to avoid apparent translation drift while scaling.
+            LocalCell3::ZERO,
+            LocalCell3::new_local(1, 0, 0),
+            LocalCell3::new_local(-1, 0, 0),
+            LocalCell3::new_local(0, 1, 0),
+            LocalCell3::new_local(0, -1, 0),
+            LocalCell3::new_local(0, 0, 1),
+            LocalCell3::new_local(0, 0, -1),
             LocalCell3::new_local(1, 1, 1),
         ];
 
@@ -153,6 +155,15 @@ fn splitmix64(mut state: u64) -> u64 {
     z = (z ^ (z >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
     z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
     z ^ (z >> 31)
+}
+
+#[inline]
+fn wrap_metric_phase(value: Vec3) -> Vec3 {
+    Vec3::new(
+        value.x.rem_euclid(METRIC_PHASE_WRAP),
+        value.y.rem_euclid(METRIC_PHASE_WRAP),
+        value.z.rem_euclid(METRIC_PHASE_WRAP),
+    )
 }
 
 #[inline]
@@ -242,24 +253,6 @@ fn perlin_noise(seed: u64, point: Vec3) -> f32 {
     let nxy0 = perlin_lerp(nx00, nx10, v);
     let nxy1 = perlin_lerp(nx01, nx11, v);
     perlin_lerp(nxy0, nxy1, w)
-}
-
-fn fbm_perlin_noise(seed: u64, point: Vec3, octaves: u32, lacunarity: f32, gain: f32) -> f32 {
-    let octave_count = octaves.max(1);
-    let mut sum = 0.0_f32;
-    let mut norm = 0.0_f32;
-    let mut amplitude = 1.0_f32;
-    let mut frequency = 1.0_f32;
-
-    for octave in 0..octave_count {
-        let octave_seed = splitmix64(seed ^ ((octave as u64).wrapping_mul(0x9e37_79b9_7f4a_7c15)));
-        sum += perlin_noise(octave_seed, point * frequency) * amplitude;
-        norm += amplitude;
-        amplitude *= gain.clamp(0.01, 0.99);
-        frequency *= lacunarity.max(1.01);
-    }
-
-    if norm <= f32::EPSILON { 0.0 } else { sum / norm }
 }
 
 #[cfg(test)]
@@ -431,5 +424,44 @@ mod tests {
         let corner = generator.sample_density(&root, Vec3::splat(1.0));
         assert!(center < 0.0, "center should stay inside the generated volume, got {center}");
         assert!(corner > 0.0, "far corner should stay outside the generated volume, got {corner}");
+    }
+
+    #[test]
+    fn layer_echo_primary_child_branch_is_centered_for_scale_stability() {
+        let generator = LayerEchoGenerator::default();
+        let root_state = generator.build_state(BuildStateInput {
+            key: root_key(),
+            parent_state: None,
+        });
+        let plans = generator.plan_children(PlanChildrenInput {
+            key: root_key(),
+            state: &root_state,
+            max_children: 1,
+        });
+        assert_eq!(plans.len(), 1);
+        assert_eq!(plans[0].local_cell, LocalCell3::ZERO);
+    }
+
+    #[test]
+    fn layer_echo_child_keeps_root_seed_for_shared_metric_sampling() {
+        let generator = LayerEchoGenerator::default();
+        let parent_key = root_key();
+        let parent = generator.build_state(BuildStateInput {
+            key: parent_key.clone(),
+            parent_state: None,
+        });
+        let child_plan = generator.plan_children(PlanChildrenInput {
+            key: parent_key.clone(),
+            state: &parent,
+            max_children: 1,
+        })[0];
+        let child_key = child_key(&parent_key, &child_plan);
+        let child = generator.build_state(BuildStateInput {
+            key: child_key,
+            parent_state: Some(&parent),
+        });
+
+        assert_eq!(child.root_seed, parent.root_seed);
+        assert!(child.lineage_depth > parent.lineage_depth);
     }
 }

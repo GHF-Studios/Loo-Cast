@@ -72,12 +72,7 @@ pub fn setup_ecs_while(input: Input, main_access: MainAccess) -> Result<State, E
         let chunk_name = Name::new(format!("chunk_entity({grid_coord:?})"));
 
         let chunk_entity = commands
-            .spawn((
-                chunk_transform,
-                Chunk { coord: grid_coord.clone() },
-                ChunkDebugWireframe,
-                chunk_name,
-            ))
+            .spawn((chunk_transform, Chunk { coord: grid_coord.clone() }, ChunkDebugWireframe, chunk_name))
             .id();
 
         chunk_manager.chunks.insert(grid_coord.clone());

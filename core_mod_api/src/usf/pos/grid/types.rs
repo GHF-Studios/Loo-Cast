@@ -30,8 +30,7 @@ impl GridVecBuilder {
         I: IntoIterator<Item = C>,
         C: Into<LocalCell3>,
     {
-        self.chain
-            .extend(items.into_iter().map(|xyz| GridXyz::from_local_cell3(xyz.into())));
+        self.chain.extend(items.into_iter().map(|xyz| GridXyz::from_local_cell3(xyz.into())));
         self
     }
 
@@ -138,11 +137,7 @@ impl GridVec {
         let scale = parent.scale.zoomed_in();
         let parent = Some(Arc::new(parent));
 
-        let mut my_self = Self {
-            parent,
-            scale,
-            xyz,
-        };
+        let mut my_self = Self { parent, scale, xyz };
         my_self.normalize();
         my_self
     }
@@ -153,11 +148,7 @@ impl GridVec {
         let scale = parent.scale.zoomed_in();
         let parent = Some(Arc::new(parent));
 
-        let mut my_self = Self {
-            parent,
-            scale,
-            xyz,
-        };
+        let mut my_self = Self { parent, scale, xyz };
         my_self.normalize();
         my_self
     }
@@ -379,7 +370,10 @@ impl GridVec {
 
     #[inline]
     fn to_native_visual_ordered(self, origin: Self) -> (Vec3, f32) {
-        debug_assert!(self.scale >= origin.scale);
+        if self.scale < origin.scale {
+            let (origin_relative_to_self, origin_scale_relative_to_self) = origin.to_native_visual_ordered(self);
+            return (-origin_relative_to_self, Self::invert_scale_factor(origin_scale_relative_to_self));
+        }
 
         let scale_diff = self.scale as i8 - origin.scale as i8;
         let self_unit = UnitVec {

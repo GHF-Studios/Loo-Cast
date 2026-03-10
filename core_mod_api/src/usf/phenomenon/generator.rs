@@ -7,7 +7,9 @@ use super::types::{PhenomenonNodeKey, PhenomenonNodeSeed};
 #[derive(Reflect, Debug, Clone, PartialEq)]
 pub struct PhenomenonStateSnapshot {
     pub seed: PhenomenonNodeSeed,
+    pub root_seed: PhenomenonNodeSeed,
     pub lineage_depth: u32,
+    pub metric_phase: Vec3,
     pub channels: Vec4,
 }
 

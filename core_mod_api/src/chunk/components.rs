@@ -85,7 +85,7 @@ fn fold_translation_axis_at_window(
 impl ChunkLoader {
     pub fn phenomenon_frontier_view(&self) -> PhenomenonFrontierView {
         PhenomenonFrontierView {
-            scale: self.origin_offset.scale,
+            scale: self.scale,
             native_position: Vec3::new(
                 self.usf_transform.translation.x.local as f32,
                 self.usf_transform.translation.y.local as f32,

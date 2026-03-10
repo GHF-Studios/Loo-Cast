@@ -27,10 +27,7 @@ impl LocalCellCoord {
 
     pub fn try_assert_local(self) -> Result<(), String> {
         if !in_local_range(self.0 as i32) {
-            return Err(format!(
-                "Coordinate {} is outside [{LOCAL_CELL_MIN}..{LOCAL_CELL_MAX_EXCLUSIVE})",
-                self.0
-            ));
+            return Err(format!("Coordinate {} is outside [{LOCAL_CELL_MIN}..{LOCAL_CELL_MAX_EXCLUSIVE})", self.0));
         }
         Ok(())
     }
@@ -192,22 +189,13 @@ impl GridXyz {
 
     pub fn try_assert_local(self) -> Result<(), String> {
         if !in_local_range(self.x) {
-            return Err(format!(
-                "X coordinate {} is outside [{LOCAL_CELL_MIN}..{LOCAL_CELL_MAX_EXCLUSIVE})",
-                self.x
-            ));
+            return Err(format!("X coordinate {} is outside [{LOCAL_CELL_MIN}..{LOCAL_CELL_MAX_EXCLUSIVE})", self.x));
         }
         if !in_local_range(self.y) {
-            return Err(format!(
-                "Y coordinate {} is outside [{LOCAL_CELL_MIN}..{LOCAL_CELL_MAX_EXCLUSIVE})",
-                self.y
-            ));
+            return Err(format!("Y coordinate {} is outside [{LOCAL_CELL_MIN}..{LOCAL_CELL_MAX_EXCLUSIVE})", self.y));
         }
         if !in_local_range(self.z) {
-            return Err(format!(
-                "Z coordinate {} is outside [{LOCAL_CELL_MIN}..{LOCAL_CELL_MAX_EXCLUSIVE})",
-                self.z
-            ));
+            return Err(format!("Z coordinate {} is outside [{LOCAL_CELL_MIN}..{LOCAL_CELL_MAX_EXCLUSIVE})", self.z));
         }
         Ok(())
     }
@@ -338,22 +326,13 @@ impl SubgridXyz {
 
     pub fn try_assert_local(self) -> Result<(), String> {
         if !in_local_range(self.x) {
-            return Err(format!(
-                "X coordinate {} is outside [{LOCAL_CELL_MIN}..{LOCAL_CELL_MAX_EXCLUSIVE})",
-                self.x
-            ));
+            return Err(format!("X coordinate {} is outside [{LOCAL_CELL_MIN}..{LOCAL_CELL_MAX_EXCLUSIVE})", self.x));
         }
         if !in_local_range(self.y) {
-            return Err(format!(
-                "Y coordinate {} is outside [{LOCAL_CELL_MIN}..{LOCAL_CELL_MAX_EXCLUSIVE})",
-                self.y
-            ));
+            return Err(format!("Y coordinate {} is outside [{LOCAL_CELL_MIN}..{LOCAL_CELL_MAX_EXCLUSIVE})", self.y));
         }
         if !in_local_range(self.z) {
-            return Err(format!(
-                "Z coordinate {} is outside [{LOCAL_CELL_MIN}..{LOCAL_CELL_MAX_EXCLUSIVE})",
-                self.z
-            ));
+            return Err(format!("Z coordinate {} is outside [{LOCAL_CELL_MIN}..{LOCAL_CELL_MAX_EXCLUSIVE})", self.z));
         }
         Ok(())
     }

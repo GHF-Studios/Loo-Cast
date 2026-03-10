@@ -30,9 +30,7 @@ pub struct PhenomenonLineage {
 }
 impl PhenomenonLineage {
     pub fn root() -> Self {
-        Self {
-            cells: vec![LocalCell3::ZERO],
-        }
+        Self { cells: vec![LocalCell3::ZERO] }
     }
 
     pub fn from_cells(cells: Vec<LocalCell3>) -> Self {
@@ -113,10 +111,7 @@ mod tests {
         let key = PhenomenonNodeKey {
             phenomenon_id: PhenomenonId(7),
             scale: Scale::ScaleMeter1,
-            lineage: PhenomenonLineage::from_cells(vec![
-                LocalCell3::new_local(0, 0, 0),
-                LocalCell3::new_local(-2, 1, 4),
-            ]),
+            lineage: PhenomenonLineage::from_cells(vec![LocalCell3::new_local(0, 0, 0), LocalCell3::new_local(-2, 1, 4)]),
             parent: Some(PhenomenonNodeSeed(42)),
             local_index: 9,
         };
@@ -130,10 +125,7 @@ mod tests {
         let base = PhenomenonNodeKey {
             phenomenon_id: PhenomenonId(7),
             scale: Scale::ScaleMeter1,
-            lineage: PhenomenonLineage::from_cells(vec![
-                LocalCell3::new_local(0, 0, 0),
-                LocalCell3::new_local(1, 2, 3),
-            ]),
+            lineage: PhenomenonLineage::from_cells(vec![LocalCell3::new_local(0, 0, 0), LocalCell3::new_local(1, 2, 3)]),
             parent: Some(PhenomenonNodeSeed(5)),
             local_index: 0,
         };
@@ -149,18 +141,12 @@ mod tests {
         let a = PhenomenonNodeKey {
             phenomenon_id: PhenomenonId(11),
             scale: Scale::ScaleMeter1,
-            lineage: PhenomenonLineage::from_cells(vec![
-                LocalCell3::new_local(0, 0, 0),
-                LocalCell3::new_local(1, 0, 0),
-            ]),
+            lineage: PhenomenonLineage::from_cells(vec![LocalCell3::new_local(0, 0, 0), LocalCell3::new_local(1, 0, 0)]),
             parent: Some(PhenomenonNodeSeed(999)),
             local_index: 0,
         };
         let b = PhenomenonNodeKey {
-            lineage: PhenomenonLineage::from_cells(vec![
-                LocalCell3::new_local(0, 0, 0),
-                LocalCell3::new_local(2, 0, 0),
-            ]),
+            lineage: PhenomenonLineage::from_cells(vec![LocalCell3::new_local(0, 0, 0), LocalCell3::new_local(2, 0, 0)]),
             ..a.clone()
         };
         assert_ne!(a.deterministic_seed(), b.deterministic_seed());

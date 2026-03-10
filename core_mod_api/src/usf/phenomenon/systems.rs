@@ -39,6 +39,7 @@ pub struct PhenomenonGeneratorState {
 #[reflect(Resource)]
 pub struct PhenomenonDebugStats {
     pub active_nodes: u32,
+    pub active_frontier_proxies: u32,
     pub generated_meshes_total: u64,
     pub generated_meshes_frame: u32,
     pub mesh_cache_hits_total: u64,
@@ -64,9 +65,7 @@ pub(super) fn sync_policy_depth_to_frontier_scale_system(
     };
     let frontier_depth = chunk_loader.phenomenon_frontier_view().scale.index_from_top() as u32;
     let max_allowed_depth = (Scale::SCALE_LEVEL_COUNT - 1) as u32;
-    policy.max_depth = frontier_depth
-        .saturating_add(policy.frontier_margin)
-        .min(max_allowed_depth);
+    policy.max_depth = frontier_depth.saturating_add(policy.frontier_margin).min(max_allowed_depth);
 }
 
 pub(super) fn ensure_root_nodes_system(
@@ -152,11 +151,7 @@ pub(super) fn expand_phenomenon_frontier_system(
             });
             let child_node = PhenomenonNode::from_key(child_key);
             commands.spawn((
-                Name::new(format!(
-                    "phenomenon_node_{}_{}",
-                    child_node.scale.index_from_top(),
-                    child_node.local_index
-                )),
+                Name::new(format!("phenomenon_node_{}_{}", child_node.scale.index_from_top(), child_node.local_index)),
                 child_node,
                 PhenomenonNodeState { snapshot: child_snapshot },
                 PhenomenonNodeLifecycle {
@@ -294,18 +289,18 @@ mod tests {
     #[test]
     fn lifecycle_replaces_noncanonical_root_with_pinned_root_contract() {
         let mut app = setup_lifecycle_test_app(2, 2);
-        let phenomenon_entity = app.world_mut().spawn(Phenomenon {
-            id: PhenomenonId(77),
-            kind: PhenomenonKind::SierpinskiSponge,
-        }).id();
+        let phenomenon_entity = app
+            .world_mut()
+            .spawn(Phenomenon {
+                id: PhenomenonId(77),
+                kind: PhenomenonKind::SierpinskiSponge,
+            })
+            .id();
 
         let bad_root_key = PhenomenonNodeKey {
             phenomenon_id: PhenomenonId(77),
             scale: Scale::MAX.zoomed_in(),
-            lineage: PhenomenonLineage::from_cells(vec![
-                LocalCell3::new_local(0, 0, 0),
-                LocalCell3::new_local(1, 0, 0),
-            ]),
+            lineage: PhenomenonLineage::from_cells(vec![LocalCell3::new_local(0, 0, 0), LocalCell3::new_local(1, 0, 0)]),
             parent: None,
             local_index: 5,
         };
@@ -314,7 +309,9 @@ mod tests {
             PhenomenonNodeState {
                 snapshot: PhenomenonStateSnapshot {
                     seed: bad_root_key.deterministic_seed(),
+                    root_seed: bad_root_key.deterministic_seed(),
                     lineage_depth: 0,
+                    metric_phase: Vec3::ZERO,
                     channels: Vec4::ZERO,
                 },
             },
@@ -327,10 +324,7 @@ mod tests {
             .world()
             .get::<PhenomenonRootNodeRef>(phenomenon_entity)
             .expect("phenomenon should have a root ref");
-        let root_node = app
-            .world()
-            .get::<PhenomenonNode>(root_ref.node)
-            .expect("canonical root node should exist");
+        let root_node = app.world().get::<PhenomenonNode>(root_ref.node).expect("canonical root node should exist");
 
         assert!(is_canonical_root_node(root_node));
 

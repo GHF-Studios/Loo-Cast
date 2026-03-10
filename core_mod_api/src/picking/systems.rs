@@ -88,8 +88,7 @@ pub(super) fn mouse_pick_messages(
         handle: game_view_render_target.handle.clone(),
         scale_factor: 1.0,
     })
-    .normalize(Some(primary_window_entity))
-    else {
+    .normalize(Some(primary_window_entity)) else {
         return;
     };
 
@@ -291,9 +290,7 @@ fn sprite_picking_backend_inner<OC: OntologicalContext>(
     sorted_sprites.sort_by(|(_, _, transform_a, _), (_, _, transform_b, _)| {
         let depth_a = world_to_camera.transform_point3(transform_a.translation()).z;
         let depth_b = world_to_camera.transform_point3(transform_b.translation()).z;
-        depth_b
-            .partial_cmp(&depth_a)
-            .unwrap_or(std::cmp::Ordering::Equal)
+        depth_b.partial_cmp(&depth_a).unwrap_or(std::cmp::Ordering::Equal)
     });
 
     let mut blocked = false;
@@ -381,9 +378,7 @@ fn sprite_picking_backend_inner<OC: OntologicalContext>(
             let cursor_pos_sprite_3d = cursor_start_sprite.lerp(cursor_end_sprite, lerp_factor);
             let cursor_pos_sprite = Vec2::new(cursor_pos_sprite_3d.x, cursor_pos_sprite_3d.y);
 
-            let Ok(cursor_pos_sprite_pixel) =
-                sprite.compute_pixel_space_point(cursor_pos_sprite, *anchor, images, texture_atlas_layout)
-            else {
+            let Ok(cursor_pos_sprite_pixel) = sprite.compute_pixel_space_point(cursor_pos_sprite, *anchor, images, texture_atlas_layout) else {
                 return None;
             };
 

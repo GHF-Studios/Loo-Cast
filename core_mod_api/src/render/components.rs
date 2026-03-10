@@ -47,6 +47,12 @@ pub struct PhenomenonModelSurface {
 #[reflect(Component)]
 pub struct GlobalPhenomenonRoot;
 
+#[derive(Component, Reflect, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[reflect(Component)]
+pub struct PhenomenonFrontierProxy {
+    pub frontier_node_seed: u64,
+}
+
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum RenderProxyWindowMode {
     FullEntity,

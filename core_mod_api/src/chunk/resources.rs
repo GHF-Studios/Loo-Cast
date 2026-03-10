@@ -299,8 +299,8 @@ impl ChunkActionWorkflowState {
 #[cfg(test)]
 mod tests {
     use super::{ChunkBatchPlanResult, ChunkBatchTracker};
-    use crate::usf::pos::types::GridXyz;
     use crate::usf::pos::grid::types::GridVec;
+    use crate::usf::pos::types::GridXyz;
     use std::collections::HashSet;
 
     fn set(coords: &[GridVec]) -> HashSet<GridVec> {
