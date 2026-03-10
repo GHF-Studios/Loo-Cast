@@ -229,6 +229,7 @@ pub(super) fn update_global_phenomenon_proxy_system(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut phenomenon_surface_materials: ResMut<Assets<PhenomenonSurfaceMaterial>>,
+    mut phenomenon_stats: Option<ResMut<PhenomenonDebugStats>>,
     mut params: ParamSet<(
         Single<(&ChunkLoader, &Transform), With<Player>>,
         Query<(Entity, &mut Transform, &mut RenderProxy, &mut PhenomenonModel), (With<GlobalPhenomenonRoot>, Without<Player>)>,
@@ -277,22 +278,32 @@ pub(super) fn update_global_phenomenon_proxy_system(
             lineage_depth: 0,
         });
 
-    let mut global_proxy_query = params.p1();
-    let Ok((global_root_entity, mut root_transform, mut root_proxy, mut root_model)) = global_proxy_query.single_mut() else {
-        return;
-    };
-    apply_frontier_selection_to_proxy(
-        &mut root_transform,
-        &mut root_proxy,
-        &mut root_model,
-        primary,
-        view_scale,
-        view_pos_native_local,
-        world_rotation,
-        world_rotation_origin,
-    );
+    if let Some(stats) = phenomenon_stats.as_mut() {
+        stats.frontier_proxy_spawns_frame = 0;
+        stats.frontier_proxy_despawns_frame = 0;
+    }
 
-    let phenomenon_entity = root_model.phenomenon_entity;
+    let (global_root_entity, phenomenon_entity, primary_window_size_milli) = {
+        let mut global_proxy_query = params.p1();
+        let Ok((global_root_entity, mut root_transform, mut root_proxy, mut root_model)) = global_proxy_query.single_mut() else {
+            return;
+        };
+        apply_frontier_selection_to_proxy(
+            &mut root_transform,
+            &mut root_proxy,
+            &mut root_model,
+            primary,
+            view_scale,
+            view_pos_native_local,
+            world_rotation,
+            world_rotation_origin,
+        );
+        (
+            global_root_entity,
+            root_model.phenomenon_entity,
+            (root_proxy.window_size_local.max_element().clamp(0.0, 1.0) * 1000.0) as u32,
+        )
+    };
     let phenomenon_kind = phenomenon_query
         .get(phenomenon_entity)
         .map(|phenomenon| phenomenon.kind)
@@ -315,6 +326,9 @@ pub(super) fn update_global_phenomenon_proxy_system(
             continue;
         }
         commands.entity(*entity).despawn();
+        if let Some(stats) = phenomenon_stats.as_mut() {
+            stats.frontier_proxy_despawns_frame = stats.frontier_proxy_despawns_frame.saturating_add(1);
+        }
     }
 
     for (seed, selection) in &desired_by_seed {
@@ -334,6 +348,9 @@ pub(super) fn update_global_phenomenon_proxy_system(
             world_rotation,
             world_rotation_origin,
         );
+        if let Some(stats) = phenomenon_stats.as_mut() {
+            stats.frontier_proxy_spawns_frame = stats.frontier_proxy_spawns_frame.saturating_add(1);
+        }
     }
 
     for (_entity, mut transform, mut proxy, mut model, marker) in params.p3().iter_mut() {
@@ -350,6 +367,12 @@ pub(super) fn update_global_phenomenon_proxy_system(
             world_rotation,
             world_rotation_origin,
         );
+    }
+
+    if let Some(stats) = phenomenon_stats.as_mut() {
+        stats.frontier_primary_seed = primary.seed;
+        stats.frontier_primary_scale_index = primary.scale.index_from_top() as u32;
+        stats.frontier_primary_window_size_milli = primary_window_size_milli;
     }
 }
 

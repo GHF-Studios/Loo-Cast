@@ -5,12 +5,15 @@ use egui_dock::{DockArea, Style};
 use once_cell::sync::OnceCell;
 
 use crate::{
+    chunk::components::ChunkLoader,
     chunk::resources::{ChunkLoadGate, ChunkLoadGateState},
     config::statics::CONFIG,
     debug::types::DebugSuiteTabViewer,
+    input::states::InputMode,
+    player::components::Player,
     render::{
         components::{ProxySyncRevision, RenderProxy, RenderProxyWindowMode},
-        resources::{GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState},
+        resources::{DevZoomFactor, GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, ViewScale, ZoomFactor},
     },
     time::{
         resources::TimeInfo,
@@ -225,6 +228,14 @@ pub(crate) fn draw_primary_window_ui(
                     ui.separator();
                     ui.label(format!("Nodes {}", stats.active_nodes));
                     ui.label(format!("Proxies {}", stats.active_frontier_proxies));
+                    ui.label(format!(
+                        "Frontier s={} seed={} w={}‰ (+{} / -{})",
+                        stats.frontier_primary_scale_index,
+                        stats.frontier_primary_seed,
+                        stats.frontier_primary_window_size_milli,
+                        stats.frontier_proxy_spawns_frame,
+                        stats.frontier_proxy_despawns_frame
+                    ));
                     ui.label(format!("Meshes {} (+{})", stats.generated_meshes_total, stats.generated_meshes_frame));
                     ui.label(format!("Cache {} (+{})", stats.mesh_cache_hits_total, stats.mesh_cache_hits_frame));
                 }
@@ -244,6 +255,78 @@ pub(crate) fn draw_primary_window_ui(
             );
         });
     }
+
+    draw_runtime_debug_overlay(state, world, ctx);
+}
+
+fn draw_runtime_debug_overlay(state: &PrimaryWindowUiState, world: &mut World, ctx: &egui::Context) {
+    if !state.show_runtime_debug_overlay {
+        return;
+    }
+
+    let input_mode_label = world
+        .get_resource::<State<InputMode>>()
+        .map(|mode| if mode.is_game() { "release" } else { "debug" })
+        .unwrap_or("n/a");
+    let zoom = world.get_resource::<ZoomFactor>().map(|value| value.0).unwrap_or(0.0);
+    let dev_zoom = world.get_resource::<DevZoomFactor>().map(|value| value.0).unwrap_or(0.0);
+    let (view_scale_discrete, view_scale_offset) = world
+        .get_resource::<ViewScale>()
+        .map(|value| (value.discrete, value.offset))
+        .unwrap_or((0, 0.0));
+    let loader_scale_index = {
+        let mut query = world.query_filtered::<&ChunkLoader, With<Player>>();
+        query
+            .single(world)
+            .ok()
+            .map(|loader| loader.scale.index_from_top() as i32)
+            .unwrap_or(-1)
+    };
+
+    let mut lines = Vec::with_capacity(12);
+    lines.push("USF Runtime Debug  (F2 toggle)".to_string());
+    lines.push(format!("input_mode={input_mode_label}"));
+    lines.push(format!(
+        "camera_zoom={:.6} dev_zoom={:.6} effective_zoom={:.6}",
+        zoom,
+        dev_zoom,
+        zoom * dev_zoom
+    ));
+    lines.push(format!(
+        "view_scale_discrete={} view_scale_offset={:.4} loader_scale_index={}",
+        view_scale_discrete, view_scale_offset, loader_scale_index
+    ));
+
+    if let Some(stats) = world.get_resource::<PhenomenonDebugStats>() {
+        lines.push(format!(
+            "nodes={} proxies={} frontier_scale={} frontier_seed={}",
+            stats.active_nodes, stats.active_frontier_proxies, stats.frontier_primary_scale_index, stats.frontier_primary_seed
+        ));
+        lines.push(format!(
+            "frontier_window={}‰ proxy_spawns(+{}) proxy_despawns(-{})",
+            stats.frontier_primary_window_size_milli, stats.frontier_proxy_spawns_frame, stats.frontier_proxy_despawns_frame
+        ));
+        lines.push(format!(
+            "meshes_total={} meshes_frame={} cache_total={} cache_frame={}",
+            stats.generated_meshes_total, stats.generated_meshes_frame, stats.mesh_cache_hits_total, stats.mesh_cache_hits_frame
+        ));
+    }
+
+    egui::Area::new(egui::Id::new("runtime_debug_overlay"))
+        .anchor(egui::Align2::LEFT_TOP, egui::vec2(10.0, 10.0))
+        .interactable(false)
+        .show(ctx, |ui| {
+            egui::Frame::new()
+                .fill(egui::Color32::from_black_alpha(185))
+                .stroke(egui::Stroke::new(1.0, egui::Color32::from_white_alpha(80)))
+                .corner_radius(egui::CornerRadius::same(4))
+                .inner_margin(egui::Margin::same(8))
+                .show(ui, |ui| {
+                    for line in lines {
+                        ui.monospace(line);
+                    }
+                });
+        });
 }
 
 #[tracing::instrument(skip_all)]

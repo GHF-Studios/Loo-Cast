@@ -40,6 +40,11 @@ pub struct PhenomenonGeneratorState {
 pub struct PhenomenonDebugStats {
     pub active_nodes: u32,
     pub active_frontier_proxies: u32,
+    pub frontier_primary_seed: u64,
+    pub frontier_primary_scale_index: u32,
+    pub frontier_primary_window_size_milli: u32,
+    pub frontier_proxy_spawns_frame: u32,
+    pub frontier_proxy_despawns_frame: u32,
     pub generated_meshes_total: u64,
     pub generated_meshes_frame: u32,
     pub mesh_cache_hits_total: u64,

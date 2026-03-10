@@ -15,6 +15,7 @@ use systems::{
     log_registry_debug_ui,
     // perf_ui_startup, // TODO: Disabled cause iyes_perf_ui is stuck on bevy 0.16.0
     toggle_debug_suite_ui_system,
+    toggle_runtime_debug_overlay_system,
 };
 use types::{DebugObjectMovement, DebugSuiteTab, InspectorSelection, StepConfig, StepMode};
 
@@ -30,6 +31,7 @@ impl Plugin for DebugPlugin {
             .add_systems(
                 Update,
                 (
+                    toggle_runtime_debug_overlay_system,
                     toggle_debug_suite_ui_system,
                     debug_object_movement_system.run_if(run_after_startup_finished.and(run_if_not_paused)),
                     log_registry_debug_ui,
