@@ -12,16 +12,18 @@ use crate::bevy::pbr::MaterialPlugin;
 use crate::bevy::prelude::*;
 use bevy_egui::EguiPrimaryContextPass;
 use components::{
-    EntityProxyLink, GlobalPhenomenonRoot, LogicProxy, MainCamera, PhenomenonFrontierProxy, PhenomenonModelCamera, PhenomenonModelSurface, ProxySyncRevision, RenderProxy,
-    RenderProxyWindowMode, UiCamera,
+    EntityProxyLink, GlobalPhenomenonRoot, LogicProxy, MainCamera, PhenomenonChunkProxy, PhenomenonFrontierProxy, PhenomenonModelCamera, PhenomenonModelSurface,
+    ProxySyncRevision, RenderProxy, RenderProxyWindowMode, UiCamera,
 };
 use materials::PhenomenonSurfaceMaterial;
-use resources::{DevZoomFactor, PhenomenonSurfaceMeshCache, PhenomenonSurfaceMeshingBudget, PrimaryWindowUiDockState, PrimaryWindowUiState, ViewScale, ZoomFactor};
+use resources::{
+    DevZoomFactor, PhenomenonSurfaceMeshCache, PhenomenonSurfaceMeshingBudget, PrimaryWindowUiDockState, PrimaryWindowUiState, RuntimeDebugToggles, ViewScale, ZoomFactor,
+};
 use systems::{
     apply_usf_player_pivots_system, despawn_orphaned_render_proxies, draw_chunk_locator_gizmos_system, enforce_main_camera_depth_contract_system,
     enforce_phenomenon_model_camera_depth_contract_system, ensure_global_phenomenon_root_system, main_camera_zoom_system, pre_setup_phase_0, pre_setup_phase_1,
-    primary_window_ui_system, resize_render_texture, update_global_phenomenon_proxy_system, update_phenomenon_model_surfaces_system, update_render_proxies,
-    update_view_scale_from_zoom,
+    primary_window_ui_system, resize_render_texture, sync_phenomenon_chunk_proxy_system, update_global_phenomenon_proxy_system,
+    update_phenomenon_model_surfaces_system, update_render_proxies, update_view_scale_from_zoom,
 };
 
 use crate::core::{components::Meta, orchestration::AppSet, run_conditions::run_after_startup_finished};
@@ -38,6 +40,7 @@ impl Plugin for RenderPlugin {
             .insert_resource(ZoomFactor::default())
             .insert_resource(DevZoomFactor::default())
             .insert_resource(ViewScale::default())
+            .init_resource::<RuntimeDebugToggles>()
             .insert_resource(PhenomenonSurfaceMeshCache::with_max_entries(512))
             .init_resource::<PhenomenonSurfaceMeshingBudget>()
             .add_systems(PreStartup, (pre_setup_phase_0.before(pre_setup_phase_1), pre_setup_phase_1))
@@ -56,9 +59,12 @@ impl Plugin for RenderPlugin {
                     update_global_phenomenon_proxy_system
                         .in_set(AppSet::Presentation)
                         .after(ensure_global_phenomenon_root_system),
-                    update_phenomenon_model_surfaces_system
+                    sync_phenomenon_chunk_proxy_system
                         .in_set(AppSet::Presentation)
                         .after(update_global_phenomenon_proxy_system),
+                    update_phenomenon_model_surfaces_system
+                        .in_set(AppSet::Presentation)
+                        .after(sync_phenomenon_chunk_proxy_system),
                     draw_chunk_locator_gizmos_system.in_set(AppSet::Presentation).after(update_render_proxies),
                 )
                     .run_if(run_after_startup_finished),
@@ -75,9 +81,11 @@ impl Plugin for RenderPlugin {
             .register_type::<PhenomenonModelSurface>()
             .register_type::<GlobalPhenomenonRoot>()
             .register_type::<PhenomenonFrontierProxy>()
+            .register_type::<PhenomenonChunkProxy>()
             .register_type::<ProxySyncRevision>()
             .register_type::<Meta<Sprite>>()
             .register_type::<PrimaryWindowUiState>()
+            .register_type::<RuntimeDebugToggles>()
             .register_type::<ZoomFactor>()
             .register_type::<DevZoomFactor>()
             .register_type::<PhenomenonSurfaceMeshingBudget>();

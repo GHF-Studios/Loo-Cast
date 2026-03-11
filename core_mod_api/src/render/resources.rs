@@ -87,6 +87,21 @@ pub struct PrimaryWindowUiState {
     pub selection: InspectorSelection,
 }
 
+#[derive(Resource, Reflect, Debug, Clone, Copy, PartialEq, Eq)]
+#[reflect(Resource)]
+pub struct RuntimeDebugToggles {
+    pub chunk_locator_enabled: bool,
+    pub show_hotkey_help: bool,
+}
+impl Default for RuntimeDebugToggles {
+    fn default() -> Self {
+        Self {
+            chunk_locator_enabled: true,
+            show_hotkey_help: false,
+        }
+    }
+}
+
 #[derive(Resource, Debug, Clone, Reflect)]
 #[reflect(Resource)]
 pub struct PhenomenonSurfaceMeshingBudget {

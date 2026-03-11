@@ -20,7 +20,7 @@ use crate::{
     render::{
         components::UiCamera,
         // custom_perf_ui_entries::{cursor_position::PerfUiCursorPosEntries, player_position::PerfUiPlayerPosEntries},
-        resources::PrimaryWindowUiState,
+        resources::{PrimaryWindowUiState, RuntimeDebugToggles},
     },
 };
 
@@ -108,7 +108,7 @@ pub(super) fn toggle_debug_suite_ui_system(
     input_mode: Res<State<InputMode>>,
     mut next_input_mode: ResMut<NextState<InputMode>>,
 ) {
-    if keys.just_pressed(KeyCode::F3) {
+    if keys.just_pressed(KeyCode::F4) {
         ui_state.enabled = !ui_state.enabled;
         if ui_state.enabled {
             if input_mode.is_game() {
@@ -128,11 +128,33 @@ pub(super) fn toggle_debug_suite_ui_system(
 
 #[tracing::instrument(skip_all)]
 pub(super) fn toggle_runtime_debug_overlay_system(mut ui_state: ResMut<PrimaryWindowUiState>, keys: Res<ButtonInput<KeyCode>>) {
-    if keys.just_pressed(KeyCode::F2) {
+    if keys.just_pressed(KeyCode::F5) {
         ui_state.show_runtime_debug_overlay = !ui_state.show_runtime_debug_overlay;
         info!(
-            "Runtime debug overlay {} (toggle key: F2).",
+            "Runtime debug overlay {} (toggle key: F5).",
             if ui_state.show_runtime_debug_overlay { "enabled" } else { "disabled" }
+        );
+    }
+}
+
+#[tracing::instrument(skip_all)]
+pub(super) fn toggle_chunk_locator_debug_chord_system(mut toggles: ResMut<RuntimeDebugToggles>, keys: Res<ButtonInput<KeyCode>>) {
+    if keys.pressed(KeyCode::F3) && keys.just_pressed(KeyCode::KeyC) {
+        toggles.chunk_locator_enabled = !toggles.chunk_locator_enabled;
+        info!(
+            "Chunk locator debug visuals {} (toggle chord: F3+C).",
+            if toggles.chunk_locator_enabled { "enabled" } else { "disabled" }
+        );
+    }
+}
+
+#[tracing::instrument(skip_all)]
+pub(super) fn toggle_runtime_hotkey_help_chord_system(mut toggles: ResMut<RuntimeDebugToggles>, keys: Res<ButtonInput<KeyCode>>) {
+    if keys.pressed(KeyCode::F2) && keys.just_pressed(KeyCode::KeyH) {
+        toggles.show_hotkey_help = !toggles.show_hotkey_help;
+        info!(
+            "Runtime hotkey help {} (toggle chord: F2+H).",
+            if toggles.show_hotkey_help { "enabled" } else { "disabled" }
         );
     }
 }

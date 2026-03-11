@@ -37,7 +37,9 @@ impl PhenomenonGenerator for LayerEchoGenerator {
             // Keep a bounded, lineage-derived phase so every node samples one shared metric field.
             wrap_metric_phase(parent.metric_phase * 10.0 + cell * 2.0)
         } else {
-            Vec3::ZERO
+            // Root-level chunks must still encode their local cell so scale-MAX neighbors do not collapse to the same sampled phase.
+            let root_cell = input.key.local_cell().as_ivec3().as_vec3();
+            wrap_metric_phase(root_cell * 2.0)
         };
         let base = seeded_channels(seed.0);
 

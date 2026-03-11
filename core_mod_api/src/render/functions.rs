@@ -13,7 +13,7 @@ use crate::{
     player::components::Player,
     render::{
         components::{ProxySyncRevision, RenderProxy, RenderProxyWindowMode},
-        resources::{DevZoomFactor, GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, ViewScale, ZoomFactor},
+        resources::{DevZoomFactor, GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, RuntimeDebugToggles, ViewScale, ZoomFactor},
     },
     time::{
         resources::TimeInfo,
@@ -283,8 +283,10 @@ fn draw_runtime_debug_overlay(state: &PrimaryWindowUiState, world: &mut World, c
             .unwrap_or(-1)
     };
 
+    let runtime_toggles = world.get_resource::<RuntimeDebugToggles>().copied().unwrap_or_default();
+
     let mut lines = Vec::with_capacity(12);
-    lines.push("USF Runtime Debug  (F2 toggle)".to_string());
+    lines.push("USF Runtime Debug  (F5 toggle)".to_string());
     lines.push(format!("input_mode={input_mode_label}"));
     lines.push(format!(
         "camera_zoom={:.6} dev_zoom={:.6} effective_zoom={:.6}",
@@ -295,6 +297,10 @@ fn draw_runtime_debug_overlay(state: &PrimaryWindowUiState, world: &mut World, c
     lines.push(format!(
         "view_scale_discrete={} view_scale_offset={:.4} loader_scale_index={}",
         view_scale_discrete, view_scale_offset, loader_scale_index
+    ));
+    lines.push(format!(
+        "chunk_locator_debug={} hotkey_help={}",
+        runtime_toggles.chunk_locator_enabled, runtime_toggles.show_hotkey_help
     ));
 
     if let Some(stats) = world.get_resource::<PhenomenonDebugStats>() {
@@ -310,6 +316,12 @@ fn draw_runtime_debug_overlay(state: &PrimaryWindowUiState, world: &mut World, c
             "meshes_total={} meshes_frame={} cache_total={} cache_frame={}",
             stats.generated_meshes_total, stats.generated_meshes_frame, stats.mesh_cache_hits_total, stats.mesh_cache_hits_frame
         ));
+    }
+
+    if runtime_toggles.show_hotkey_help {
+        lines.push("Hotkeys: F2=input mode, F4=debug suite, F5=runtime overlay".to_string());
+        lines.push("F3 menu: F3+C toggles chunk wiregrid/wiremesh debug visuals".to_string());
+        lines.push("Help toggle: F2+H".to_string());
     }
 
     egui::Area::new(egui::Id::new("runtime_debug_overlay"))

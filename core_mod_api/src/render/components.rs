@@ -1,4 +1,5 @@
 use crate::bevy::prelude::*;
+use crate::usf::pos::grid::types::GridVec;
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
@@ -51,6 +52,12 @@ pub struct GlobalPhenomenonRoot;
 #[reflect(Component)]
 pub struct PhenomenonFrontierProxy {
     pub frontier_node_seed: u64,
+}
+
+#[derive(Component, Reflect, Debug, Clone, PartialEq, Eq)]
+#[reflect(Component)]
+pub struct PhenomenonChunkProxy {
+    pub coord: GridVec,
 }
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
