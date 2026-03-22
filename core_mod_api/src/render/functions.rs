@@ -276,11 +276,7 @@ fn draw_runtime_debug_overlay(state: &PrimaryWindowUiState, world: &mut World, c
         .unwrap_or((0, 0.0));
     let loader_scale_index = {
         let mut query = world.query_filtered::<&ChunkLoader, With<Player>>();
-        query
-            .single(world)
-            .ok()
-            .map(|loader| loader.scale.index_from_top() as i32)
-            .unwrap_or(-1)
+        query.single(world).ok().map(|loader| loader.scale.index_from_top() as i32).unwrap_or(-1)
     };
 
     let runtime_toggles = world.get_resource::<RuntimeDebugToggles>().copied().unwrap_or_default();

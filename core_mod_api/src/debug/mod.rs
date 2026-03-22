@@ -16,8 +16,8 @@ use systems::{
     // perf_ui_startup, // TODO: Disabled cause iyes_perf_ui is stuck on bevy 0.16.0
     toggle_chunk_locator_debug_chord_system,
     toggle_debug_suite_ui_system,
-    toggle_runtime_hotkey_help_chord_system,
     toggle_runtime_debug_overlay_system,
+    toggle_runtime_hotkey_help_chord_system,
 };
 use types::{DebugObjectMovement, DebugSuiteTab, InspectorSelection, StepConfig, StepMode};
 

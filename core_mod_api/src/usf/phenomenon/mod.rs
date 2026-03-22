@@ -1,5 +1,6 @@
 use crate::bevy::prelude::*;
 use crate::core::orchestration::AppSet;
+use crate::usf::schedule::{UsfPhenomenonSet, UsfSimulationSet};
 
 pub mod components;
 pub mod generator;
@@ -36,7 +37,8 @@ impl Plugin for PhenomenonPlugin {
                     expand_phenomenon_frontier_system.after(ensure_root_nodes_system),
                     despawn_invalid_nodes_system.after(expand_phenomenon_frontier_system),
                 )
-                    .in_set(AppSet::Simulation),
+                    .in_set(UsfPhenomenonSet::Runtime)
+                    .in_set(UsfSimulationSet::Phenomenon),
             )
             .add_systems(Update, refresh_active_node_stats_system.in_set(AppSet::Diagnostics))
             .register_type::<Phenomenon>()

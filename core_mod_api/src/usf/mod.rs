@@ -1,18 +1,50 @@
 pub mod aspects;
+pub mod definition;
+pub mod dpt;
 pub mod phenomenon;
 pub mod pos;
 pub mod scale;
+pub mod schedule;
 pub mod transform;
+pub mod zlm;
+pub mod zone;
 
 use crate::bevy::prelude::*;
+use definition::{DptMetricDefinition, DptMetricId, DptSchema, ZoneTypeId};
+use dpt::{DptChunkKey, DptChunkRecord};
 use phenomenon::{PhenomenonId, PhenomenonKind, PhenomenonLineage, PhenomenonMeshWindow, PhenomenonNodeKey, PhenomenonNodeSeed, PhenomenonStateSnapshot};
+use zlm::{ZlmMetricBand, ZlmScaleDefinition, ZlmZoneRule};
+use zone::{StableRegionId, ZoneAnchor, ZoneBehaviorRegistry, ZoneExtent, ZoneId, ZonePhenomenon, ZoneRealizationEvent, ZoneTimeFactor};
 
 pub(crate) struct UsfPlugin;
 impl Plugin for UsfPlugin {
     fn build(&self, app: &mut App) {
+        schedule::configure_usf_simulation_sets(app);
+
         app.add_plugins(pos::PosPlugin)
             .add_plugins(transform::TransformPlugin)
+            .add_plugins(definition::DefinitionPlugin)
+            .add_plugins(dpt::DptPlugin)
+            .add_plugins(zlm::ZlmPlugin)
+            .add_plugins(zone::ZonePlugin)
             .add_plugins(phenomenon::PhenomenonPlugin)
+            .register_type::<DptMetricId>()
+            .register_type::<ZoneTypeId>()
+            .register_type::<DptMetricDefinition>()
+            .register_type::<DptSchema>()
+            .register_type::<DptChunkKey>()
+            .register_type::<DptChunkRecord>()
+            .register_type::<ZlmMetricBand>()
+            .register_type::<ZlmZoneRule>()
+            .register_type::<ZlmScaleDefinition>()
+            .register_type::<StableRegionId>()
+            .register_type::<ZoneId>()
+            .register_type::<ZoneExtent>()
+            .register_type::<ZoneAnchor>()
+            .register_type::<ZonePhenomenon>()
+            .register_type::<ZoneTimeFactor>()
+            .register_type::<ZoneBehaviorRegistry>()
+            .register_type::<ZoneRealizationEvent>()
             .register_type::<PhenomenonKind>()
             .register_type::<PhenomenonId>()
             .register_type::<PhenomenonNodeSeed>()

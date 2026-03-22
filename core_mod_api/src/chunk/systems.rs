@@ -12,7 +12,6 @@ use crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput;
 use crate::config::statics::CONFIG;
 use crate::core::protocol::{AppOrchestrationSignal, AppOrchestrationState, OrchestrationPressure};
 use crate::usf::pos::grid::types::GridVec;
-use crate::usf::scale::Scale;
 use crate::workflow::functions::{WorkflowTimeoutControlDecision, handle_composite_workflow_return_now, run_workflow_ioe_with_timeout_control};
 use crate::workflow::resources::WorkflowTimeoutSignalReceiver;
 use crate::workflow::types::WorkflowTimeoutMode;
@@ -126,43 +125,7 @@ pub(crate) fn chunk_detection_system(
     let mut despawn_chunk_inputs = Vec::new();
     let radius = chunk_manager.load_radius;
     let current_chunks = chunk_manager.chunks.clone();
-    // Chunk streaming is driven by authoritative simulation coordinate, not render-space pivots.
-    let mut chunk_loader_grid_coord_cursor = &chunk_loader.coord;
-    let mut target_chunk_cone = Vec::new();
-
-    // warn!("Starting Chunk Detection with current Chunks: {:?}", current_chunks);
-
-    loop {
-        let current_scale = chunk_loader_grid_coord_cursor.scale;
-        // warn!("Chunk Detection at scale: {:?}", current_scale);
-        let coords_in_radius = chunk_loader_grid_coord_cursor
-            .query_grid_radius(radius)
-            .into_iter()
-            .collect::<HashSet<GridVec>>();
-        // warn!("Detected Chunks: {:?}", coords_in_radius);
-        target_chunk_cone.push((chunk_loader_grid_coord_cursor.clone(), coords_in_radius));
-
-        if current_scale == Scale::MAX {
-            break;
-        }
-
-        let Some(parent) = chunk_loader_grid_coord_cursor.parent.as_ref() else {
-            break;
-        };
-        chunk_loader_grid_coord_cursor = parent;
-    }
-
-    target_chunk_cone.reverse();
-
-    // for (chunk_loader_grid_coord, target_chunks) in &target_chunk_cone {
-    //     warn!("Target Chunks at scale: {:?} => {{{}}} {:?}", chunk_loader_grid_coord.scale, target_chunks.len(), target_chunks);
-    // }
-
-    let mut final_target_chunks: HashSet<GridVec> = HashSet::new();
-
-    for (_coord, target_chunks) in &target_chunk_cone {
-        final_target_chunks.extend(target_chunks.iter().cloned());
-    }
+    let final_target_chunks = collect_hierarchical_target_chunks(&chunk_loader.coord, radius);
 
     let chunks_to_load = final_target_chunks.difference(&current_chunks).cloned();
 
@@ -186,6 +149,29 @@ pub(crate) fn chunk_detection_system(
     // We now have `spawn_chunk_inputs` and `despawn_chunk_inputs` populated and ready to be used by the chunk management system
 
     (spawn_chunk_inputs, despawn_chunk_inputs)
+}
+
+fn collect_hierarchical_target_chunks(active_coord: &GridVec, radius: u32) -> HashSet<GridVec> {
+    // Rule: load radius around active scale only; coarser scales are the transitive parent closure.
+    let mut targets: HashSet<GridVec> = active_coord.query_grid_radius(radius).into_iter().collect();
+    let mut frontier = targets.clone();
+
+    loop {
+        let parents = frontier
+            .iter()
+            .filter_map(|coord| coord.parent.as_ref().map(|parent| parent.as_ref().clone()))
+            .collect::<HashSet<_>>();
+        if parents.is_empty() {
+            break;
+        }
+        frontier = parents.difference(&targets).cloned().collect::<HashSet<_>>();
+        if frontier.is_empty() {
+            break;
+        }
+        targets.extend(frontier.iter().cloned());
+    }
+
+    targets
 }
 
 #[tracing::instrument(skip_all)]
@@ -404,4 +390,39 @@ pub(crate) fn chunk_management_system(
         spawn: spawn_handle,
         despawn: despawn_handle,
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::usf::pos::types::GridXyz;
+    use crate::usf::scale::Scale;
+
+    #[test]
+    fn hierarchical_targets_load_active_radius_then_parent_closure() {
+        let root = GridVec::new_root(GridXyz::new_local(0, 0, 0));
+        let active = GridVec::new(root.clone(), GridXyz::new_local(0, 0, 0));
+        let targets = collect_hierarchical_target_chunks(&active, 1);
+
+        assert_eq!(targets.iter().filter(|coord| coord.scale == active.scale).count(), 27);
+        assert!(targets.contains(&root));
+        assert_eq!(targets.len(), 28);
+    }
+
+    #[test]
+    fn hierarchical_targets_do_not_expand_parent_scales_by_radius() {
+        let root = GridVec::new_root(GridXyz::new_local(0, 0, 0));
+        let child = GridVec::new(root, GridXyz::new_local(0, 0, 0));
+        let active = GridVec::new(child.clone(), GridXyz::new_local(0, 0, 0));
+        let targets = collect_hierarchical_target_chunks(&active, 2);
+
+        let active_count = targets.iter().filter(|coord| coord.scale == active.scale).count();
+        let parent_count = targets.iter().filter(|coord| coord.scale == child.scale).count();
+        let root_count = targets.iter().filter(|coord| coord.scale == Scale::MAX).count();
+
+        assert_eq!(active_count, 125);
+        assert!(parent_count > 0);
+        assert!(parent_count < active_count);
+        assert_eq!(root_count, 1);
+    }
 }
