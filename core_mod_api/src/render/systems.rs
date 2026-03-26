@@ -36,11 +36,38 @@ use std::hash::{Hash, Hasher};
 const MIN_WINDOW_SIZE_LOCAL: f32 = f32::MIN_POSITIVE;
 const FRONTIER_COARSER_LEVELS: u8 = 2;
 const FRONTIER_FINER_LEVELS: u8 = 2;
+const CAMERA_EFFECTIVE_ZOOM_MIN: f32 = 0.1;
+const CAMERA_EFFECTIVE_ZOOM_MAX: f32 = 10.0;
+const CAMERA_DISTANCE_AT_MIN_ZOOM: f32 = 4_200.0;
+const CAMERA_DISTANCE_AT_MAX_ZOOM: f32 = 420.0;
 
 #[inline]
 fn configured_default_phenomenon_kind() -> PhenomenonKind {
     let configured = CONFIG().get::<String>("render/phenomenon/default_kind");
     PhenomenonKind::from_config_value(&configured)
+}
+
+#[inline]
+fn effective_camera_zoom(local_zoom: f32, dev_zoom: f32) -> f32 {
+    (local_zoom * dev_zoom).clamp(CAMERA_EFFECTIVE_ZOOM_MIN, CAMERA_EFFECTIVE_ZOOM_MAX)
+}
+
+#[inline]
+fn zoom_log_t(zoom: f32) -> f32 {
+    let zoom = zoom.clamp(CAMERA_EFFECTIVE_ZOOM_MIN, CAMERA_EFFECTIVE_ZOOM_MAX);
+    let min_ln = CAMERA_EFFECTIVE_ZOOM_MIN.ln();
+    let max_ln = CAMERA_EFFECTIVE_ZOOM_MAX.ln();
+    if (max_ln - min_ln).abs() <= f32::EPSILON {
+        0.0
+    } else {
+        ((zoom.ln() - min_ln) / (max_ln - min_ln)).clamp(0.0, 1.0)
+    }
+}
+
+#[inline]
+fn camera_distance_from_zoom(zoom: f32) -> f32 {
+    let t = zoom_log_t(zoom);
+    CAMERA_DISTANCE_AT_MIN_ZOOM + (CAMERA_DISTANCE_AT_MAX_ZOOM - CAMERA_DISTANCE_AT_MIN_ZOOM) * t
 }
 
 pub(super) fn pre_setup_phase_0(mut commands: Commands, mut images: ResMut<Assets<Image>>, windows: Query<&Window>) {
@@ -2415,14 +2442,18 @@ mod tests {
 pub(super) fn enforce_main_camera_depth_contract_system(
     mut main_camera_query: Query<(&mut Transform, &mut Projection), (With<MainCamera>, Without<Player>)>,
     player_transform_query: Query<&Transform, (With<Player>, Without<MainCamera>)>,
+    zoom_factor: Res<ZoomFactor>,
+    dev_zoom_factor: Res<DevZoomFactor>,
 ) {
     let Ok((mut camera_transform, mut projection)) = main_camera_query.single_mut() else {
         return;
     };
 
+    let camera_zoom = effective_camera_zoom(zoom_factor.0, dev_zoom_factor.0);
+    let camera_distance = camera_distance_from_zoom(camera_zoom);
     camera_transform.translation.z = player_transform_query
         .single()
-        .map(|transform| transform.translation.z + Scale::CANONICAL_Z_SPACING)
+        .map(|transform| transform.translation.z + camera_distance)
         .unwrap_or(Scale::CANONICAL_CAMERA_Z);
 
     match projection.as_mut() {
@@ -2514,8 +2545,6 @@ pub(super) fn main_camera_zoom_system(
     let min_dev_zoom = CONFIG().get::<f32>("camera/min_dev_zoom").max(f32::EPSILON);
     let max_dev_zoom = CONFIG().get::<f32>("camera/max_dev_zoom").max(min_dev_zoom * 1.001);
     let dev_zoom_speed = CONFIG().get::<f32>("camera/dev_zoom_speed");
-    let local_zoom_min = CONFIG().get::<f32>("usf/scale/local_min").max(f32::EPSILON);
-    let local_zoom_max = CONFIG().get::<f32>("usf/scale/local_max").max(local_zoom_min * 1.001);
     let perspective_fov_min_deg = CONFIG().get::<f32>("camera/min_fov_degrees");
     let perspective_fov_max_deg = CONFIG().get::<f32>("camera/max_fov_degrees");
     let chunk_load_gate_enabled = CONFIG().get::<bool>("workflow/chunk_load_gate_enabled");
@@ -2543,15 +2572,13 @@ pub(super) fn main_camera_zoom_system(
             zoom_factor.0 = (zoom_factor.0 + scroll_delta * zoom_speed * time.delta_secs()).clamp(min_zoom, max_zoom);
         }
     }
-    let camera_zoom = (zoom_factor.0 * dev_zoom_factor.0).max(f32::EPSILON);
-    let effective_zoom_min = local_zoom_min * min_dev_zoom;
-    let effective_zoom_max = local_zoom_max * max_dev_zoom;
+    let camera_zoom = effective_camera_zoom(zoom_factor.0, dev_zoom_factor.0);
     for mut projection in projection_query.iter_mut() {
         apply_camera_zoom_to_projection(
             projection.as_mut(),
             camera_zoom,
-            effective_zoom_min,
-            effective_zoom_max,
+            CAMERA_EFFECTIVE_ZOOM_MIN,
+            CAMERA_EFFECTIVE_ZOOM_MAX,
             perspective_fov_min_deg,
             perspective_fov_max_deg,
         );
@@ -2607,8 +2634,6 @@ pub(super) fn apply_usf_player_pivots_system(
     let rotation_policy = chunk_loader.usf_transform.rotation.policy;
     let rotation_local_min = rotation_policy.local_min;
     let rotation_local_max = rotation_policy.local_max;
-    let min_dev_zoom = CONFIG().get::<f32>("camera/min_dev_zoom").max(f32::EPSILON);
-    let max_dev_zoom = CONFIG().get::<f32>("camera/max_dev_zoom").max(min_dev_zoom * 1.001);
     let perspective_fov_min_deg = CONFIG().get::<f32>("camera/min_fov_degrees");
     let perspective_fov_max_deg = CONFIG().get::<f32>("camera/max_fov_degrees");
     let workflow_in_flight = chunk_load_gate_enabled && workflow_state.as_ref().is_some_and(|state| !state.is_idle());
@@ -2749,7 +2774,7 @@ pub(super) fn apply_usf_player_pivots_system(
 
     // Keep commit-buffer accumulation internal. Rendering should never show values outside strict local bounds.
     let display_zoom = zoom_factor.0.clamp(local_min, local_max);
-    let camera_zoom = (display_zoom * dev_zoom_factor.0).max(f32::EPSILON);
+    let camera_zoom = effective_camera_zoom(display_zoom, dev_zoom_factor.0);
 
     // Keep player visual scale stable; zoom should control camera framing, not player mesh size.
     player_transform.scale = Vec3::ONE;
@@ -2758,8 +2783,8 @@ pub(super) fn apply_usf_player_pivots_system(
         apply_camera_zoom_to_projection(
             projection.as_mut(),
             camera_zoom,
-            local_min * min_dev_zoom,
-            local_max * max_dev_zoom,
+            CAMERA_EFFECTIVE_ZOOM_MIN,
+            CAMERA_EFFECTIVE_ZOOM_MAX,
             perspective_fov_min_deg,
             perspective_fov_max_deg,
         );

@@ -290,7 +290,8 @@ fn build_chunk_mesh(record: &PersistedChunkRecord) -> Option<Mesh> {
                 let y = record.axis_samples[iy] as f32 - HALF_CHUNK_SPAN_F32;
                 let z = record.axis_samples[iz] as f32 - HALF_CHUNK_SPAN_F32;
                 points[idx] = Vec3::new(x, y, z);
-                signed_field[idx] = rho_values[idx] as f32 - record.iso_level as f32;
+                // Treat high rho as solid so we get "blobs in empty space" instead of caves in a filled volume.
+                signed_field[idx] = record.iso_level as f32 - rho_values[idx] as f32;
             }
         }
     }
