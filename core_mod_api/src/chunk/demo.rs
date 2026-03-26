@@ -16,6 +16,8 @@ use std::path::{Path, PathBuf};
 
 const CHUNK_SPAN_UNITS_I64: i64 = 1_000;
 const HALF_CHUNK_SPAN_F32: f32 = 500.0;
+const ROOT_AXIS_CELL_COUNT: i64 = 10;
+const ROOT_AXIS_PERIOD_UNITS: i64 = CHUNK_SPAN_UNITS_I64 * ROOT_AXIS_CELL_COUNT;
 
 #[derive(Resource, Reflect, Debug, Clone)]
 #[reflect(Resource)]
@@ -545,6 +547,8 @@ fn color_from_seed(seed: u64) -> Color {
 }
 
 fn hash_density_u8(world_seed: u64, active_scale: Scale, gx: i64, gy: i64, gz: i64) -> u8 {
+    let (gx, gy, gz) = wrap_top_level_units(active_scale, gx, gy, gz);
+
     // Low-frequency value-noise blend with strong bias towards empty space.
     // This keeps surfaces coherent and avoids "solid clutter" from per-voxel white noise.
     let seed = mix64(world_seed ^ 0xa5a5_35f4_9be3_c211_u64);
@@ -558,6 +562,8 @@ fn hash_density_u8(world_seed: u64, active_scale: Scale, gx: i64, gy: i64, gz: i
 }
 
 fn hash_zone_id_u32(world_seed: u64, active_scale: Scale, gx: i64, gy: i64, gz: i64) -> u32 {
+    let (gx, gy, gz) = wrap_top_level_units(active_scale, gx, gy, gz);
+
     let mut state = mix64(world_seed ^ 0x13d7_4b29_11f2_7a67_u64);
     state = mix64(state ^ (active_scale.index_from_top() as u64).wrapping_mul(0x9e37_79b9_7f4a_7c15));
     state = mix64(state ^ fold_signed(gx));
@@ -578,6 +584,19 @@ fn mix64(mut value: u64) -> u64 {
     value ^= value >> 27;
     value = value.wrapping_mul(0x94d0_49bb_1331_11eb);
     value ^ (value >> 31)
+}
+
+#[inline]
+fn wrap_top_level_units(active_scale: Scale, gx: i64, gy: i64, gz: i64) -> (i64, i64, i64) {
+    if active_scale == Scale::MAX {
+        (
+            gx.rem_euclid(ROOT_AXIS_PERIOD_UNITS),
+            gy.rem_euclid(ROOT_AXIS_PERIOD_UNITS),
+            gz.rem_euclid(ROOT_AXIS_PERIOD_UNITS),
+        )
+    } else {
+        (gx, gy, gz)
+    }
 }
 
 fn value_noise_3d(seed: u64, active_scale: Scale, gx: i64, gy: i64, gz: i64, cell_size: i64) -> f32 {
@@ -675,6 +694,36 @@ mod tests {
                 let left_idx = grid_index(lx, iy, iz, axis_points);
                 let right_idx = grid_index(rx, iy, iz, axis_points);
                 assert_eq!(left_values[left_idx], right_values[right_idx], "border seam mismatch at (y={}, z={})", iy, iz);
+            }
+        }
+    }
+
+    #[test]
+    fn rho_sampling_loops_across_top_level_wrap_boundary() {
+        let settings = test_settings();
+        let left = GridVec::new_root(GridXyz::new_local(4, 0, 0));
+        let right = GridVec::new_root(GridXyz::new_local(-5, 0, 0));
+
+        let left_record = generate_chunk_record(&settings, Scale::MAX, &left);
+        let right_record = generate_chunk_record(&settings, Scale::MAX, &right);
+
+        let axis_points = left_record.axis_samples.len();
+        assert_eq!(axis_points, right_record.axis_samples.len());
+
+        let left_values = rho_values(&left_record);
+        let right_values = rho_values(&right_record);
+        let lx = axis_points - 1;
+        let rx = 0;
+
+        for iz in 0..axis_points {
+            for iy in 0..axis_points {
+                let left_idx = grid_index(lx, iy, iz, axis_points);
+                let right_idx = grid_index(rx, iy, iz, axis_points);
+                assert_eq!(
+                    left_values[left_idx], right_values[right_idx],
+                    "top-level wrap seam mismatch at (y={}, z={})",
+                    iy, iz
+                );
             }
         }
     }
