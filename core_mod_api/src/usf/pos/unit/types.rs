@@ -1,8 +1,63 @@
 use crate::bevy::prelude::{IVec3, Reflect, Vec3};
 
+use crate::usf::math::digit_stack::{DigitStackOverflow, normalize_balanced_digits_checked, normalize_balanced_digits_strict, normalize_balanced_digits_wrap};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::types::{GridXyz, LocalCell3};
 use crate::usf::scale::{DynScale, Scale};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UnitVecMathError {
+    OverflowX(DigitStackOverflow),
+    OverflowY(DigitStackOverflow),
+    OverflowZ(DigitStackOverflow),
+    NonFiniteUnitOffset,
+}
+
+#[derive(Clone, Copy)]
+enum OverflowMode {
+    Wrap,
+    Checked,
+    Strict,
+}
+
+fn normalize_component(mode: OverflowMode, digits: &mut [i32], map_error: fn(DigitStackOverflow) -> UnitVecMathError) -> Result<(), UnitVecMathError> {
+    match mode {
+        OverflowMode::Wrap => {
+            let _ = normalize_balanced_digits_wrap(digits);
+            Ok(())
+        }
+        OverflowMode::Checked => normalize_balanced_digits_checked(digits).map_err(map_error),
+        OverflowMode::Strict => {
+            normalize_balanced_digits_strict(digits);
+            Ok(())
+        }
+    }
+}
+
+fn normalize_ivec3_digit_stack(mode: OverflowMode, stack: &mut [IVec3], initial_carry: IVec3) -> Result<(), UnitVecMathError> {
+    if stack.is_empty() {
+        return Ok(());
+    }
+
+    let mut x_digits: Vec<i32> = stack.iter().map(|value| value.x).collect();
+    let mut y_digits: Vec<i32> = stack.iter().map(|value| value.y).collect();
+    let mut z_digits: Vec<i32> = stack.iter().map(|value| value.z).collect();
+
+    let leaf = stack.len() - 1;
+    x_digits[leaf] += initial_carry.x;
+    y_digits[leaf] += initial_carry.y;
+    z_digits[leaf] += initial_carry.z;
+
+    normalize_component(mode, &mut x_digits, UnitVecMathError::OverflowX)?;
+    normalize_component(mode, &mut y_digits, UnitVecMathError::OverflowY)?;
+    normalize_component(mode, &mut z_digits, UnitVecMathError::OverflowZ)?;
+
+    for (idx, value) in stack.iter_mut().enumerate() {
+        *value = IVec3::new(x_digits[idx], y_digits[idx], z_digits[idx]);
+    }
+
+    Ok(())
+}
 
 #[derive(Default)]
 pub struct UnitVecBuilder {
@@ -82,6 +137,65 @@ impl UnitVec {
     pub fn new_grid(grid_offset: GridVec) -> Self {
         let unit_offset = Vec3::ZERO;
         Self { grid_offset, unit_offset }
+    }
+
+    fn apply_grid_leaf_delta_mode(grid_offset: GridVec, delta: IVec3, mode: OverflowMode) -> Result<GridVec, UnitVecMathError> {
+        let mut stack: Vec<IVec3> = grid_offset.to_raw_vec_3d().iter().map(|xyz| xyz.as_ivec3()).collect();
+        let leaf = stack.len() - 1;
+        stack[leaf] += delta;
+        normalize_ivec3_digit_stack(mode, &mut stack, IVec3::ZERO)?;
+
+        let normalized: Vec<GridXyz> = stack.iter().map(|xyz| GridXyz::new_local(xyz.x, xyz.y, xyz.z)).collect();
+        Ok(GridVec::try_from(normalized).expect("Normalized grid digits must always be valid"))
+    }
+
+    #[inline]
+    fn wrap_unit_component(value: f32) -> (f32, i32) {
+        let wrapped = ((value + 500.0).rem_euclid(1000.0)) - 500.0;
+        let carry = ((value - wrapped) / 1000.0).round() as i32;
+        (wrapped, carry)
+    }
+
+    fn add_mode(self, rhs: Vec3, mode: OverflowMode) -> Result<Self, UnitVecMathError> {
+        let raw = self.unit_offset + rhs;
+        if !raw.x.is_finite() || !raw.y.is_finite() || !raw.z.is_finite() {
+            return Err(UnitVecMathError::NonFiniteUnitOffset);
+        }
+
+        let (wrapped_x, carry_x) = Self::wrap_unit_component(raw.x);
+        let (wrapped_y, carry_y) = Self::wrap_unit_component(raw.y);
+        let (wrapped_z, carry_z) = Self::wrap_unit_component(raw.z);
+
+        let grid_offset = Self::apply_grid_leaf_delta_mode(self.grid_offset, IVec3::new(carry_x, carry_y, carry_z), mode)?;
+        Ok(Self {
+            grid_offset,
+            unit_offset: Vec3::new(wrapped_x, wrapped_y, wrapped_z),
+        })
+    }
+
+    pub fn add_wrap(self, rhs: Vec3) -> Self {
+        self.add_mode(rhs, OverflowMode::Wrap).expect("Wrap mode cannot fail")
+    }
+
+    pub fn add_checked(self, rhs: Vec3) -> Result<Self, UnitVecMathError> {
+        self.add_mode(rhs, OverflowMode::Checked)
+    }
+
+    pub fn add_strict(self, rhs: Vec3) -> Self {
+        self.add_mode(rhs, OverflowMode::Strict)
+            .expect("Strict mode should panic before returning error")
+    }
+
+    pub fn sub_wrap(self, rhs: Vec3) -> Self {
+        self.add_wrap(-rhs)
+    }
+
+    pub fn sub_checked(self, rhs: Vec3) -> Result<Self, UnitVecMathError> {
+        self.add_checked(-rhs)
+    }
+
+    pub fn sub_strict(self, rhs: Vec3) -> Self {
+        self.add_strict(-rhs)
     }
 
     pub fn normalize(&mut self) {
@@ -260,31 +374,25 @@ impl std::ops::SubAssign<IVec3> for UnitVec {
 impl std::ops::Add<Vec3> for UnitVec {
     type Output = Self;
 
-    fn add(mut self, rhs: Vec3) -> Self::Output {
-        self.unit_offset += rhs;
-        Self::validate_unit_offset(&self.unit_offset);
-        self
+    fn add(self, rhs: Vec3) -> Self::Output {
+        self.add_wrap(rhs)
     }
 }
 impl std::ops::AddAssign<Vec3> for UnitVec {
     fn add_assign(&mut self, rhs: Vec3) {
-        self.unit_offset += rhs;
-        Self::validate_unit_offset(&self.unit_offset);
+        *self = self.clone().add_wrap(rhs);
     }
 }
 impl std::ops::Sub<Vec3> for UnitVec {
     type Output = Self;
 
-    fn sub(mut self, rhs: Vec3) -> Self::Output {
-        self.unit_offset -= rhs;
-        Self::validate_unit_offset(&self.unit_offset);
-        self
+    fn sub(self, rhs: Vec3) -> Self::Output {
+        self.sub_wrap(rhs)
     }
 }
 impl std::ops::SubAssign<Vec3> for UnitVec {
     fn sub_assign(&mut self, rhs: Vec3) {
-        self.unit_offset -= rhs;
-        Self::validate_unit_offset(&self.unit_offset);
+        *self = self.clone().sub_wrap(rhs);
     }
 }
 impl std::ops::Add<UnitVec> for UnitVec {
@@ -355,21 +463,7 @@ impl std::ops::Add<UnitVec> for UnitVec {
         let carry_z = ((unit_offset_sum.z - wrapped_z) / 1000.0).floor() as i32;
 
         let unit_offset = Vec3::new(wrapped_x, wrapped_y, wrapped_z);
-        let mut carry = IVec3::new(carry_x, carry_y, carry_z);
-
-        // === Phase 4: Normalize bottom-up with wrapping + carry + unit_carry ===
-        for i in (0..raw_stack.len()).rev() {
-            let sum = raw_stack[i];
-            let wrapped_x = ((sum.x + carry.x + 5).rem_euclid(10)) - 5;
-            let wrapped_y = ((sum.y + carry.y + 5).rem_euclid(10)) - 5;
-            let wrapped_z = ((sum.z + carry.z + 5).rem_euclid(10)) - 5;
-            let carry_x = (sum.x + carry.x - wrapped_x).div_euclid(10);
-            let carry_y = (sum.y + carry.y - wrapped_y).div_euclid(10);
-            let carry_z = (sum.z + carry.z - wrapped_z).div_euclid(10);
-
-            raw_stack[i] = IVec3::new(wrapped_x, wrapped_y, wrapped_z);
-            carry = IVec3::new(carry_x, carry_y, carry_z);
-        }
+        normalize_ivec3_digit_stack(OverflowMode::Wrap, &mut raw_stack, IVec3::new(carry_x, carry_y, carry_z)).expect("Wrap mode cannot fail");
 
         // === Phase 5: Build final GridVec tree ===
         let mut result: Option<GridVec> = None;
@@ -465,21 +559,7 @@ impl std::ops::Sub<UnitVec> for UnitVec {
         let carry_z = ((unit_offset_diff.z - wrapped_z) / 1000.0).floor() as i32;
 
         let unit_offset = Vec3::new(wrapped_x, wrapped_y, wrapped_z);
-        let mut carry = IVec3::new(carry_x, carry_y, carry_z);
-
-        // === Phase 4: Normalize bottom-up with wrapping + carry + unit_carry ===
-        for i in (0..raw_stack.len()).rev() {
-            let diff = raw_stack[i];
-            let wrapped_x = ((diff.x + carry.x + 5).rem_euclid(10)) - 5;
-            let wrapped_y = ((diff.y + carry.y + 5).rem_euclid(10)) - 5;
-            let wrapped_z = ((diff.z + carry.z + 5).rem_euclid(10)) - 5;
-            let carry_x = (diff.x + carry.x - wrapped_x).div_euclid(10);
-            let carry_y = (diff.y + carry.y - wrapped_y).div_euclid(10);
-            let carry_z = (diff.z + carry.z - wrapped_z).div_euclid(10);
-
-            raw_stack[i] = IVec3::new(wrapped_x, wrapped_y, wrapped_z);
-            carry = IVec3::new(carry_x, carry_y, carry_z);
-        }
+        normalize_ivec3_digit_stack(OverflowMode::Wrap, &mut raw_stack, IVec3::new(carry_x, carry_y, carry_z)).expect("Wrap mode cannot fail");
 
         // === Phase 5: Build final GridVec tree ===
         let mut result: Option<GridVec> = None;

@@ -189,3 +189,47 @@ fn unit_extent_add_test_z_axis_carry() {
     let expected = unit_extent!([(0, 0, 1)]: (0.0, 0.0, -490.0));
     assert_eq!(c, expected);
 }
+
+#[test]
+fn unit_add_vec3_crossing_500_carries_into_grid() {
+    use crate::bevy::math::Vec3;
+    use crate::unit_extent;
+
+    let a = unit_extent!([(0, 0, 0)]: (490.0, 0.0, 0.0));
+    let c = a + Vec3::new(20.0, 0.0, 0.0);
+    let expected = unit_extent!([(1, 0, 0)]: (-490.0, 0.0, 0.0));
+    assert_eq!(c, expected);
+}
+
+#[test]
+fn unit_add_vec3_crossing_negative_500_carries_into_grid() {
+    use crate::bevy::math::Vec3;
+    use crate::unit_extent;
+
+    let a = unit_extent!([(0, 0, 0)]: (-490.0, 0.0, 0.0));
+    let c = a + Vec3::new(-20.0, 0.0, 0.0);
+    let expected = unit_extent!([(-1, 0, 0)]: (490.0, 0.0, 0.0));
+    assert_eq!(c, expected);
+}
+
+#[test]
+fn unit_add_vec3_crossing_1500_carries_multiple_steps() {
+    use crate::bevy::math::Vec3;
+    use crate::unit_extent;
+
+    let a = unit_extent!([(0, 0, 0)]: (100.0, 0.0, 0.0));
+    let c = a + Vec3::new(1500.0, 0.0, 0.0);
+    let expected = unit_extent!([(2, 0, 0)]: (-400.0, 0.0, 0.0));
+    assert_eq!(c, expected);
+}
+
+#[test]
+fn unit_sub_vec3_crossing_1500_carries_multiple_steps() {
+    use crate::bevy::math::Vec3;
+    use crate::unit_extent;
+
+    let a = unit_extent!([(0, 0, 0)]: (-100.0, 0.0, 0.0));
+    let c = a - Vec3::new(1500.0, 0.0, 0.0);
+    let expected = unit_extent!([(-2, 0, 0)]: (400.0, 0.0, 0.0));
+    assert_eq!(c, expected);
+}

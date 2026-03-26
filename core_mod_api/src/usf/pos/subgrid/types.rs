@@ -1,9 +1,64 @@
 use crate::bevy::prelude::{IVec3, Reflect, Vec3};
 
+use crate::usf::math::digit_stack::{DigitStackOverflow, normalize_balanced_digits_checked, normalize_balanced_digits_strict, normalize_balanced_digits_wrap};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::types::{GridXyz, LocalCell3, SubgridXyz};
 use crate::usf::pos::unit::types::UnitVec;
 use crate::usf::scale::{DynScale, Scale};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SubgridVecMathError {
+    OverflowX(DigitStackOverflow),
+    OverflowY(DigitStackOverflow),
+    OverflowZ(DigitStackOverflow),
+    CannotZoomOutBeyondRoot,
+}
+
+#[derive(Clone, Copy)]
+enum OverflowMode {
+    Wrap,
+    Checked,
+    Strict,
+}
+
+fn normalize_component(mode: OverflowMode, digits: &mut [i32], map_error: fn(DigitStackOverflow) -> SubgridVecMathError) -> Result<(), SubgridVecMathError> {
+    match mode {
+        OverflowMode::Wrap => {
+            let _ = normalize_balanced_digits_wrap(digits);
+            Ok(())
+        }
+        OverflowMode::Checked => normalize_balanced_digits_checked(digits).map_err(map_error),
+        OverflowMode::Strict => {
+            normalize_balanced_digits_strict(digits);
+            Ok(())
+        }
+    }
+}
+
+fn normalize_ivec3_digit_stack(mode: OverflowMode, stack: &mut [IVec3], initial_carry: IVec3) -> Result<(), SubgridVecMathError> {
+    if stack.is_empty() {
+        return Ok(());
+    }
+
+    let mut x_digits: Vec<i32> = stack.iter().map(|value| value.x).collect();
+    let mut y_digits: Vec<i32> = stack.iter().map(|value| value.y).collect();
+    let mut z_digits: Vec<i32> = stack.iter().map(|value| value.z).collect();
+
+    let leaf = stack.len() - 1;
+    x_digits[leaf] += initial_carry.x;
+    y_digits[leaf] += initial_carry.y;
+    z_digits[leaf] += initial_carry.z;
+
+    normalize_component(mode, &mut x_digits, SubgridVecMathError::OverflowX)?;
+    normalize_component(mode, &mut y_digits, SubgridVecMathError::OverflowY)?;
+    normalize_component(mode, &mut z_digits, SubgridVecMathError::OverflowZ)?;
+
+    for (idx, value) in stack.iter_mut().enumerate() {
+        *value = IVec3::new(x_digits[idx], y_digits[idx], z_digits[idx]);
+    }
+
+    Ok(())
+}
 
 #[derive(Default)]
 pub struct SubgridVecBuilder {
@@ -67,9 +122,53 @@ impl SubgridVec {
         Self { grid_offset, subgrid_offset }
     }
 
-    pub fn zoom_out(&mut self) {
-        if self.grid_offset.parent.as_ref().unwrap().parent.is_none() {
-            panic!("Cannot zoom out SubgridVec beyond the root GridVec");
+    fn add_mode(self, rhs: IVec3, mode: OverflowMode) -> Result<Self, SubgridVecMathError> {
+        let mut stack: Vec<IVec3> = self.grid_offset.to_raw_vec_3d().iter().map(|xyz| xyz.as_ivec3()).collect();
+        stack.push(self.subgrid_offset.as_ivec3());
+
+        let leaf = stack.len() - 1;
+        stack[leaf] += rhs;
+        normalize_ivec3_digit_stack(mode, &mut stack, IVec3::ZERO)?;
+
+        let normalized_subgrid = stack.pop().expect("Subgrid stack must have a leaf");
+        let normalized_grid: Vec<GridXyz> = stack.iter().map(|xyz| GridXyz::new_local(xyz.x, xyz.y, xyz.z)).collect();
+
+        let grid_offset = GridVec::try_from(normalized_grid).expect("Normalized grid digits must always be valid");
+        let subgrid_offset = SubgridXyz::new_local(normalized_subgrid.x, normalized_subgrid.y, normalized_subgrid.z);
+        Ok(SubgridVec::new(grid_offset, subgrid_offset))
+    }
+
+    pub fn add_wrap(self, rhs: IVec3) -> Self {
+        self.add_mode(rhs, OverflowMode::Wrap).expect("Wrap mode cannot fail")
+    }
+
+    pub fn add_checked(self, rhs: IVec3) -> Result<Self, SubgridVecMathError> {
+        self.add_mode(rhs, OverflowMode::Checked)
+    }
+
+    pub fn add_strict(self, rhs: IVec3) -> Self {
+        self.add_mode(rhs, OverflowMode::Strict)
+            .expect("Strict mode should panic before returning error")
+    }
+
+    pub fn sub_wrap(self, rhs: IVec3) -> Self {
+        self.add_wrap(-rhs)
+    }
+
+    pub fn sub_checked(self, rhs: IVec3) -> Result<Self, SubgridVecMathError> {
+        self.add_checked(-rhs)
+    }
+
+    pub fn sub_strict(self, rhs: IVec3) -> Self {
+        self.add_strict(-rhs)
+    }
+
+    pub fn try_zoom_out(&mut self) -> Result<(), SubgridVecMathError> {
+        let Some(parent) = self.grid_offset.parent.as_ref() else {
+            return Err(SubgridVecMathError::CannotZoomOutBeyondRoot);
+        };
+        if parent.parent.is_none() {
+            return Err(SubgridVecMathError::CannotZoomOutBeyondRoot);
         }
 
         let grid_extent = GridVec::new(
@@ -84,8 +183,16 @@ impl SubgridVec {
 
         unit_extent.zoom_out();
 
-        self.grid_offset = (*unit_extent.grid_offset.parent.unwrap()).clone();
+        let Some(new_parent) = unit_extent.grid_offset.parent else {
+            return Err(SubgridVecMathError::CannotZoomOutBeyondRoot);
+        };
+        self.grid_offset = (*new_parent).clone();
         self.subgrid_offset = SubgridXyz::new_local(unit_extent.grid_offset.xyz.x, unit_extent.grid_offset.xyz.y, unit_extent.grid_offset.xyz.z);
+        Ok(())
+    }
+
+    pub fn zoom_out(&mut self) {
+        let _ = self.try_zoom_out();
     }
 }
 impl std::fmt::Debug for SubgridVec {
@@ -96,31 +203,25 @@ impl std::fmt::Debug for SubgridVec {
 impl std::ops::Add<IVec3> for SubgridVec {
     type Output = Self;
 
-    fn add(mut self, rhs: IVec3) -> Self::Output {
-        self.subgrid_offset += rhs;
-        self.subgrid_offset.assert_local();
-        self
+    fn add(self, rhs: IVec3) -> Self::Output {
+        self.add_wrap(rhs)
     }
 }
 impl std::ops::AddAssign<IVec3> for SubgridVec {
     fn add_assign(&mut self, rhs: IVec3) {
-        self.subgrid_offset += rhs;
-        self.subgrid_offset.assert_local();
+        *self = self.clone().add_wrap(rhs);
     }
 }
 impl std::ops::Sub<IVec3> for SubgridVec {
     type Output = Self;
 
-    fn sub(mut self, rhs: IVec3) -> Self::Output {
-        self.subgrid_offset -= rhs;
-        self.subgrid_offset.assert_local();
-        self
+    fn sub(self, rhs: IVec3) -> Self::Output {
+        self.sub_wrap(rhs)
     }
 }
 impl std::ops::SubAssign<IVec3> for SubgridVec {
     fn sub_assign(&mut self, rhs: IVec3) {
-        self.subgrid_offset -= rhs;
-        self.subgrid_offset.assert_local();
+        *self = self.clone().sub_wrap(rhs);
     }
 }
 impl std::ops::Add<SubgridVec> for SubgridVec {
@@ -166,18 +267,10 @@ impl std::ops::Add<SubgridVec> for SubgridVec {
             raw_stack.push((scale, sum));
         }
 
-        let mut carry = IVec3::ZERO;
-        for i in (0..raw_stack.len()).rev() {
-            let (_scale, sum) = raw_stack[i];
-            let wrapped_x = ((sum.x + carry.x + 5).rem_euclid(10)) - 5;
-            let wrapped_y = ((sum.y + carry.y + 5).rem_euclid(10)) - 5;
-            let wrapped_z = ((sum.z + carry.z + 5).rem_euclid(10)) - 5;
-            let carry_x = (sum.x + carry.x - wrapped_x).div_euclid(10);
-            let carry_y = (sum.y + carry.y - wrapped_y).div_euclid(10);
-            let carry_z = (sum.z + carry.z - wrapped_z).div_euclid(10);
-
-            raw_stack[i].1 = IVec3::new(wrapped_x, wrapped_y, wrapped_z);
-            carry = IVec3::new(carry_x, carry_y, carry_z);
+        let mut normalized: Vec<IVec3> = raw_stack.iter().map(|(_, xyz)| *xyz).collect();
+        normalize_ivec3_digit_stack(OverflowMode::Wrap, &mut normalized, IVec3::ZERO).expect("Wrap mode cannot fail");
+        for (idx, xyz) in normalized.into_iter().enumerate() {
+            raw_stack[idx].1 = xyz;
         }
 
         let mut result: Option<GridVec> = None;
@@ -243,18 +336,10 @@ impl std::ops::Sub<SubgridVec> for SubgridVec {
             raw_stack.push((scale, diff));
         }
 
-        let mut carry = IVec3::ZERO;
-        for i in (0..raw_stack.len()).rev() {
-            let (_scale, diff) = raw_stack[i];
-            let wrapped_x = ((diff.x + carry.x + 5).rem_euclid(10)) - 5;
-            let wrapped_y = ((diff.y + carry.y + 5).rem_euclid(10)) - 5;
-            let wrapped_z = ((diff.z + carry.z + 5).rem_euclid(10)) - 5;
-            let carry_x = (diff.x + carry.x - wrapped_x).div_euclid(10);
-            let carry_y = (diff.y + carry.y - wrapped_y).div_euclid(10);
-            let carry_z = (diff.z + carry.z - wrapped_z).div_euclid(10);
-
-            raw_stack[i].1 = IVec3::new(wrapped_x, wrapped_y, wrapped_z);
-            carry = IVec3::new(carry_x, carry_y, carry_z);
+        let mut normalized: Vec<IVec3> = raw_stack.iter().map(|(_, xyz)| *xyz).collect();
+        normalize_ivec3_digit_stack(OverflowMode::Wrap, &mut normalized, IVec3::ZERO).expect("Wrap mode cannot fail");
+        for (idx, xyz) in normalized.into_iter().enumerate() {
+            raw_stack[idx].1 = xyz;
         }
 
         let mut result: Option<GridVec> = None;
