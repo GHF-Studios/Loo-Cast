@@ -45,6 +45,13 @@ iso_level = 0.0
 load_radius = 2
 zoom_cooldown_secs = 1.0
 
+[usf_demo]
+enabled = true
+world_seed = 1337
+sample_step = 64
+iso_level = 128
+persistence_dir = "target/usf_demo/chunks"
+
 [core]
 cli_log_filter = "warn"
 

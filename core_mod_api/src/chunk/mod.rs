@@ -1,4 +1,5 @@
 pub mod components;
+pub mod demo;
 pub mod enums;
 pub mod errors;
 pub mod functions;
@@ -12,6 +13,7 @@ pub mod workflows;
 
 use crate::bevy::prelude::*;
 use components::{Chunk, ChunkActor, ChunkDebugWireframe, ChunkLoader, PhenomenonFrontierView};
+use demo::{UsfDemoChunkStore, UsfDemoChunkVisual, UsfDemoSettings};
 use enums::ZoomState;
 use errors::{DespawnError, SpawnError};
 use messages::ChunkBatchLifecycleMessage;
@@ -32,12 +34,16 @@ impl Plugin for ChunkPlugin {
             .insert_resource(ChunkLoadGate::default())
             .insert_resource(ChunkBatchTracker::default())
             .insert_resource(ChunkActionWorkflowState::default())
+            .init_resource::<UsfDemoSettings>()
+            .init_resource::<UsfDemoChunkStore>()
             .add_message::<ChunkBatchLifecycleMessage>()
             .add_systems(PreUpdate, chunk_timeout_signal_system.run_if(run_after_startup_finished))
             .add_systems(
                 Update,
-                chunk_zoom_cooldown_system
-                    .in_set(AppSet::Simulation)
+                (
+                    chunk_zoom_cooldown_system.in_set(AppSet::Simulation),
+                    demo::sync_chunk_manager_loader_state_system.in_set(AppSet::Simulation),
+                )
                     .run_if(run_after_startup_finished.and(run_if_not_paused)),
             )
             .add_systems(
@@ -53,11 +59,24 @@ impl Plugin for ChunkPlugin {
                     .in_set(AppSet::Diagnostics)
                     .run_if(run_after_startup_finished),
             )
+            .add_systems(
+                PostUpdate,
+                (
+                    demo::hydrate_chunk_demo_data_system.in_set(AppSet::Presentation),
+                    demo::sync_chunk_demo_visual_transforms_system
+                        .in_set(AppSet::Presentation)
+                        .after(demo::hydrate_chunk_demo_data_system),
+                    demo::prune_chunk_demo_store_system.in_set(AppSet::Diagnostics),
+                )
+                    .run_if(run_after_startup_finished.and(run_if_not_paused)),
+            )
             .register_type::<Chunk>()
             .register_type::<ChunkDebugWireframe>()
             .register_type::<ChunkActor>()
             .register_type::<ChunkLoader>()
             .register_type::<PhenomenonFrontierView>()
+            .register_type::<UsfDemoChunkVisual>()
+            .register_type::<UsfDemoSettings>()
             .register_type::<ChunkManager>()
             .register_type::<ChunkLoadGate>()
             .register_type::<ChunkLoadGateState>()

@@ -4,18 +4,26 @@ use std::collections::HashSet;
 use crate::chunk::types::ChunkActionWorkflowHandles;
 use crate::config::statics::CONFIG;
 use crate::usf::pos::grid::types::GridVec;
+use crate::usf::pos::unit::types::UnitVec;
+use crate::usf::scale::Scale;
 
 #[derive(Resource, Reflect, Debug)]
 #[reflect(Resource)]
 pub struct ChunkManager {
     pub chunks: HashSet<GridVec>,
     pub load_radius: u32,
+    pub active_scale: Scale,
+    pub loader_origin_grid: GridVec,
+    pub loader_origin_unit: UnitVec,
 }
 impl Default for ChunkManager {
     fn default() -> Self {
         ChunkManager {
             chunks: HashSet::new(),
             load_radius: CONFIG().get::<u32>("chunk_loader/load_radius"),
+            active_scale: Scale::MAX,
+            loader_origin_grid: GridVec::default(),
+            loader_origin_unit: UnitVec::default(),
         }
     }
 }
