@@ -200,11 +200,10 @@ impl ChunkLoader {
         let policy = self.usf_transform.translation.policy;
         let pivot_x = fold_translation_axis_at_window(&mut self.usf_transform.translation.x, policy);
         let pivot_y = fold_translation_axis_at_window(&mut self.usf_transform.translation.y, policy);
-        let pivot_z = fold_translation_axis_at_window(&mut self.usf_transform.translation.z, policy);
         let grid_delta = IVec3::new(
             pivot_x.upper_crossings - pivot_x.lower_crossings,
             pivot_y.upper_crossings - pivot_y.lower_crossings,
-            pivot_z.upper_crossings - pivot_z.lower_crossings,
+            0,
         );
 
         if grid_delta != IVec3::ZERO {
@@ -220,17 +219,13 @@ impl ChunkLoader {
             || pivot_x.upper_crossings > 0
             || pivot_y.lower_crossings > 0
             || pivot_y.upper_crossings > 0
-            || pivot_z.lower_crossings > 0
-            || pivot_z.upper_crossings > 0
         {
             warn!(
-                "USF translation fold: x(l={},u={}) y(l={},u={}) z(l={},u={}) grid_delta={:?}, local_pos {:?}->{:?}, coord {:?}->{:?}, origin {:?}->{:?}, cycles=({}, {}, {})",
+                "USF translation fold: x(l={},u={}) y(l={},u={}) z(l=0,u=0) grid_delta={:?}, local_pos {:?}->{:?}, coord {:?}->{:?}, origin {:?}->{:?}, cycles=({}, {}, {})",
                 pivot_x.lower_crossings,
                 pivot_x.upper_crossings,
                 pivot_y.lower_crossings,
                 pivot_y.upper_crossings,
-                pivot_z.lower_crossings,
-                pivot_z.upper_crossings,
                 grid_delta,
                 local_before,
                 *logical_world_pos,

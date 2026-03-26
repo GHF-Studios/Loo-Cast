@@ -23,11 +23,11 @@ use resources::{
 use systems::{
     apply_usf_player_pivots_system, despawn_orphaned_render_proxies, draw_chunk_locator_gizmos_system, enforce_main_camera_depth_contract_system,
     enforce_phenomenon_model_camera_depth_contract_system, main_camera_zoom_system, pre_setup_phase_0, pre_setup_phase_1, primary_window_ui_system,
-    resize_render_texture, sync_phenomenon_zone_proxy_system, update_frontier_debug_stats_system, update_phenomenon_model_surfaces_system,
-    update_render_proxies, update_view_scale_from_zoom,
+    resize_render_texture, update_render_proxies, update_view_scale_from_zoom,
 };
 
 use crate::core::{components::Meta, orchestration::AppSet, run_conditions::run_after_startup_finished};
+use crate::follower::systems::update_follower_system;
 
 pub(crate) struct RenderPlugin;
 impl Plugin for RenderPlugin {
@@ -51,18 +51,13 @@ impl Plugin for RenderPlugin {
                     resize_render_texture.in_set(AppSet::Presentation),
                     main_camera_zoom_system.in_set(AppSet::InputGather),
                     apply_usf_player_pivots_system.in_set(AppSet::BoundaryResolve),
-                    enforce_main_camera_depth_contract_system.in_set(AppSet::Camera),
+                    enforce_main_camera_depth_contract_system
+                        .in_set(AppSet::Camera)
+                        .after(update_follower_system),
                     enforce_phenomenon_model_camera_depth_contract_system.in_set(AppSet::Camera),
                     update_view_scale_from_zoom.in_set(AppSet::Camera),
                     despawn_orphaned_render_proxies.in_set(AppSet::Presentation),
                     update_render_proxies.in_set(AppSet::Presentation).after(despawn_orphaned_render_proxies),
-                    update_frontier_debug_stats_system.in_set(AppSet::Presentation),
-                    sync_phenomenon_zone_proxy_system
-                        .in_set(AppSet::Presentation)
-                        .after(update_frontier_debug_stats_system),
-                    update_phenomenon_model_surfaces_system
-                        .in_set(AppSet::Presentation)
-                        .after(sync_phenomenon_zone_proxy_system),
                     draw_chunk_locator_gizmos_system.in_set(AppSet::Presentation).after(update_render_proxies),
                 )
                     .run_if(run_after_startup_finished),

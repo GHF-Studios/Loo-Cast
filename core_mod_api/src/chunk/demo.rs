@@ -544,12 +544,16 @@ fn color_from_seed(seed: u64) -> Color {
 }
 
 fn hash_density_u8(world_seed: u64, active_scale: Scale, gx: i64, gy: i64, gz: i64) -> u8 {
-    let mut state = mix64(world_seed ^ 0xa5a5_35f4_9be3_c211_u64);
-    state = mix64(state ^ active_scale.index_from_top() as u64);
-    state = mix64(state ^ fold_signed(gx));
-    state = mix64(state ^ fold_signed(gy));
-    state = mix64(state ^ fold_signed(gz));
-    (state & 0xff) as u8
+    // Low-frequency value-noise blend with strong bias towards empty space.
+    // This keeps surfaces coherent and avoids "solid clutter" from per-voxel white noise.
+    let seed = mix64(world_seed ^ 0xa5a5_35f4_9be3_c211_u64);
+    let base = value_noise_3d(seed, active_scale, gx, gy, gz, 320);
+    let detail = value_noise_3d(seed ^ 0x8b8b_4fb7_0a7f_6611_u64, active_scale, gx, gy, gz, 128);
+    let combined = (base * 0.82) + (detail * 0.18);
+
+    // Bias and shape to "mostly empty with occasional coherent surfaces".
+    let shaped = ((combined - 0.66) * 3.0 + 0.5).clamp(0.0, 1.0);
+    (shaped * 255.0).round() as u8
 }
 
 fn hash_zone_id_u32(world_seed: u64, active_scale: Scale, gx: i64, gy: i64, gz: i64) -> u32 {
@@ -573,6 +577,58 @@ fn mix64(mut value: u64) -> u64 {
     value ^= value >> 27;
     value = value.wrapping_mul(0x94d0_49bb_1331_11eb);
     value ^ (value >> 31)
+}
+
+fn value_noise_3d(seed: u64, active_scale: Scale, gx: i64, gy: i64, gz: i64, cell_size: i64) -> f32 {
+    let cell_size = cell_size.max(1);
+    let cx0 = gx.div_euclid(cell_size);
+    let cy0 = gy.div_euclid(cell_size);
+    let cz0 = gz.div_euclid(cell_size);
+    let cx1 = cx0 + 1;
+    let cy1 = cy0 + 1;
+    let cz1 = cz0 + 1;
+
+    let tx = smoothstep01(gx.rem_euclid(cell_size) as f32 / cell_size as f32);
+    let ty = smoothstep01(gy.rem_euclid(cell_size) as f32 / cell_size as f32);
+    let tz = smoothstep01(gz.rem_euclid(cell_size) as f32 / cell_size as f32);
+
+    let c000 = lattice_noise01(seed, active_scale, cx0, cy0, cz0);
+    let c100 = lattice_noise01(seed, active_scale, cx1, cy0, cz0);
+    let c010 = lattice_noise01(seed, active_scale, cx0, cy1, cz0);
+    let c110 = lattice_noise01(seed, active_scale, cx1, cy1, cz0);
+    let c001 = lattice_noise01(seed, active_scale, cx0, cy0, cz1);
+    let c101 = lattice_noise01(seed, active_scale, cx1, cy0, cz1);
+    let c011 = lattice_noise01(seed, active_scale, cx0, cy1, cz1);
+    let c111 = lattice_noise01(seed, active_scale, cx1, cy1, cz1);
+
+    let x00 = lerp(c000, c100, tx);
+    let x10 = lerp(c010, c110, tx);
+    let x01 = lerp(c001, c101, tx);
+    let x11 = lerp(c011, c111, tx);
+    let y0 = lerp(x00, x10, ty);
+    let y1 = lerp(x01, x11, ty);
+    lerp(y0, y1, tz)
+}
+
+#[inline]
+fn lattice_noise01(seed: u64, active_scale: Scale, x: i64, y: i64, z: i64) -> f32 {
+    let mut state = mix64(seed ^ 0x5f35_d3a1_c9b4_e227_u64);
+    state = mix64(state ^ active_scale.index_from_top() as u64);
+    state = mix64(state ^ fold_signed(x));
+    state = mix64(state ^ fold_signed(y));
+    state = mix64(state ^ fold_signed(z));
+    ((state >> 40) as u32) as f32 / ((1_u32 << 24) - 1) as f32
+}
+
+#[inline]
+fn smoothstep01(t: f32) -> f32 {
+    let t = t.clamp(0.0, 1.0);
+    t * t * (3.0 - 2.0 * t)
+}
+
+#[inline]
+fn lerp(a: f32, b: f32, t: f32) -> f32 {
+    a + (b - a) * t
 }
 
 #[cfg(test)]

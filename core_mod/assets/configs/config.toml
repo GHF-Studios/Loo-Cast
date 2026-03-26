@@ -42,14 +42,14 @@ mesh_resolution = 30
 iso_level = 0.0
 
 [chunk_loader]
-load_radius = 2
+load_radius = 1
 zoom_cooldown_secs = 1.0
 
 [usf_demo]
 enabled = true
 world_seed = 1337
 sample_step = 64
-iso_level = 128
+iso_level = 170
 persistence_dir = "target/usf_demo/chunks"
 
 [core]
