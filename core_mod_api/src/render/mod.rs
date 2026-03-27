@@ -51,9 +51,7 @@ impl Plugin for RenderPlugin {
                     resize_render_texture.in_set(AppSet::Presentation),
                     main_camera_zoom_system.in_set(AppSet::InputGather),
                     apply_usf_player_pivots_system.in_set(AppSet::BoundaryResolve),
-                    enforce_main_camera_depth_contract_system
-                        .in_set(AppSet::Camera)
-                        .after(update_follower_system),
+                    enforce_main_camera_depth_contract_system.in_set(AppSet::Camera).after(update_follower_system),
                     enforce_phenomenon_model_camera_depth_contract_system.in_set(AppSet::Camera),
                     update_view_scale_from_zoom.in_set(AppSet::Camera),
                     despawn_orphaned_render_proxies.in_set(AppSet::Presentation),

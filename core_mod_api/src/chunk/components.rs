@@ -215,11 +215,7 @@ impl ChunkLoader {
         logical_world_pos.y = self.usf_transform.translation.y.local as f32;
         logical_world_pos.z = self.usf_transform.translation.z.local as f32;
 
-        if pivot_x.lower_crossings > 0
-            || pivot_x.upper_crossings > 0
-            || pivot_y.lower_crossings > 0
-            || pivot_y.upper_crossings > 0
-        {
+        if pivot_x.lower_crossings > 0 || pivot_x.upper_crossings > 0 || pivot_y.lower_crossings > 0 || pivot_y.upper_crossings > 0 {
             warn!(
                 "USF translation fold: x(l={},u={}) y(l={},u={}) z(l=0,u=0) grid_delta={:?}, local_pos {:?}->{:?}, coord {:?}->{:?}, origin {:?}->{:?}, cycles=({}, {}, {})",
                 pivot_x.lower_crossings,

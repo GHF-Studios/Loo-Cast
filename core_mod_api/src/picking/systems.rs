@@ -199,10 +199,7 @@ pub(super) fn sprite_picking_backend(
         (Entity, &Sprite, &GlobalTransform, &Anchor, &ViewVisibility, Option<&RenderLayers>),
         Without<crate::core::components::Meta<Sprite>>,
     >,
-    meta_sprite_query: Query<
-        (Entity, &Sprite, &GlobalTransform, &Anchor, &ViewVisibility, Option<&RenderLayers>),
-        With<crate::core::components::Meta<Sprite>>,
-    >,
+    meta_sprite_query: Query<(Entity, &Sprite, &GlobalTransform, &Anchor, &ViewVisibility, Option<&RenderLayers>), With<crate::core::components::Meta<Sprite>>>,
     diegetic_mesh_query: Query<
         (Entity, &Mesh3d, &GlobalTransform, &ViewVisibility, Option<&Aabb>, Option<&RenderLayers>),
         Without<crate::core::components::Meta<Mesh3d>>,
@@ -534,12 +531,7 @@ fn collect_mesh_hits<OF: QueryFilter>(
         let depth = compute_hit_depth(main_camera_transform, camera_near_for_depth, intersection.point_world);
         picks.push((
             entity,
-            HitData::new(
-                main_camera_entity,
-                depth,
-                Some(intersection.point_world),
-                Some(intersection.normal_world),
-            ),
+            HitData::new(main_camera_entity, depth, Some(intersection.point_world), Some(intersection.normal_world)),
         ));
     }
 
@@ -567,9 +559,7 @@ fn ray_intersection_over_mesh(mesh: &Mesh, mesh_transform: &Affine3A, ray_world:
         return None;
     }
 
-    let positions = mesh
-        .attribute(Mesh::ATTRIBUTE_POSITION)
-        .and_then(|attribute| attribute.as_float3())?;
+    let positions = mesh.attribute(Mesh::ATTRIBUTE_POSITION).and_then(|attribute| attribute.as_float3())?;
 
     let world_to_mesh = mesh_transform.inverse();
     let ray_local = Ray3d::new(
@@ -589,11 +579,7 @@ fn ray_intersection_over_mesh(mesh: &Mesh, mesh_transform: &Affine3A, ray_world:
         }
         None => {
             for tri in positions.chunks_exact(3) {
-                let tri_vertices = [
-                    Vec3::from_array(tri[0]),
-                    Vec3::from_array(tri[1]),
-                    Vec3::from_array(tri[2]),
-                ];
+                let tri_vertices = [Vec3::from_array(tri[0]), Vec3::from_array(tri[1]), Vec3::from_array(tri[2])];
                 if let Some(distance) = ray_triangle_intersection(&ray_local, &tri_vertices)
                     && distance >= 0.0
                     && distance < closest_distance
@@ -618,10 +604,7 @@ fn ray_intersection_over_mesh(mesh: &Mesh, mesh_transform: &Affine3A, ray_world:
         return None;
     }
 
-    Some(MeshIntersectionHit {
-        point_world,
-        normal_world,
-    })
+    Some(MeshIntersectionHit { point_world, normal_world })
 }
 
 fn ray_intersection_over_indexed_tris<I: Copy + TryInto<usize>>(
@@ -639,11 +622,7 @@ fn ray_intersection_over_indexed_tris<I: Copy + TryInto<usize>>(
             continue;
         };
 
-        let tri_vertices = [
-            Vec3::from_array(*a),
-            Vec3::from_array(*b),
-            Vec3::from_array(*c),
-        ];
+        let tri_vertices = [Vec3::from_array(*a), Vec3::from_array(*b), Vec3::from_array(*c)];
         if let Some(distance) = ray_triangle_intersection(ray_local, &tri_vertices)
             && distance >= 0.0
             && distance < *closest_distance
@@ -696,9 +675,5 @@ fn ray_aabb_intersection_3d(ray: Ray3d, aabb: &Aabb3d, model_to_world: &Affine3A
     let tmin = tmin.max_element().max(0.0);
     let tmax = tmax.min_element();
 
-    if tmin <= tmax {
-        Some(tmin)
-    } else {
-        None
-    }
+    if tmin <= tmax { Some(tmin) } else { None }
 }

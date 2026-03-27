@@ -1,7 +1,8 @@
 use crate::bevy::prelude::*;
 
 #[derive(Reflect)]
-pub enum Axis2D {
+pub enum Axis3D {
     X,
     Y,
+    Z,
 }

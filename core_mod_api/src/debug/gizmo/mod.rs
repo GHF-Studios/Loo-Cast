@@ -5,7 +5,7 @@ pub mod types;
 use crate::bevy::prelude::*;
 use components::{GizmoArrow, GizmoRoot};
 use systems::{move_selected_with_gizmo, setup, update_gizmo_visibility_and_position};
-use types::Axis2D;
+use types::Axis3D;
 
 use crate::core::run_conditions::run_after_startup_finished;
 
@@ -17,7 +17,7 @@ impl Plugin for GizmoPlugin {
                 Update,
                 (update_gizmo_visibility_and_position, move_selected_with_gizmo).run_if(run_after_startup_finished),
             )
-            .register_type::<Axis2D>()
+            .register_type::<Axis3D>()
             .register_type::<GizmoRoot>()
             .register_type::<GizmoArrow>();
     }

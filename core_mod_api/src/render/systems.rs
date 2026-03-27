@@ -2604,11 +2604,7 @@ pub(super) fn apply_usf_player_pivots_system(
 
     // Keep player motion on a stable local XY plane for the demo.
     player_transform.translation.z = PLAYER_LOCAL_Z_ANCHOR;
-    chunk_loader
-        .usf_transform
-        .translation
-        .z
-        .set_local(PLAYER_LOCAL_Z_ANCHOR as f64);
+    chunk_loader.usf_transform.translation.z.set_local(PLAYER_LOCAL_Z_ANCHOR as f64);
 
     let intent_translation_delta = player_motion_intent.translation_delta;
     let intent_rotation_delta = player_motion_intent.rotation_delta;
@@ -2652,11 +2648,7 @@ pub(super) fn apply_usf_player_pivots_system(
         player_transform.translation.z = PLAYER_LOCAL_Z_ANCHOR;
         chunk_loader.usf_transform.translation.x.set_local(player_transform.translation.x as f64);
         chunk_loader.usf_transform.translation.y.set_local(player_transform.translation.y as f64);
-        chunk_loader
-            .usf_transform
-            .translation
-            .z
-            .set_local(PLAYER_LOCAL_Z_ANCHOR as f64);
+        chunk_loader.usf_transform.translation.z.set_local(PLAYER_LOCAL_Z_ANCHOR as f64);
         chunk_loader.usf_transform.rotation.x.local = chunk_loader.usf_transform.rotation.x.local.clamp(rotation_local_min, rotation_local_max);
         chunk_loader.usf_transform.rotation.y.local = chunk_loader.usf_transform.rotation.y.local.clamp(rotation_local_min, rotation_local_max);
         chunk_loader.usf_transform.rotation.z.local = chunk_loader.usf_transform.rotation.z.local.clamp(rotation_local_min, rotation_local_max);
@@ -2690,11 +2682,7 @@ pub(super) fn apply_usf_player_pivots_system(
             player_transform.translation.z = PLAYER_LOCAL_Z_ANCHOR;
             chunk_loader.usf_transform.translation.x.set_local(player_transform.translation.x as f64);
             chunk_loader.usf_transform.translation.y.set_local(player_transform.translation.y as f64);
-            chunk_loader
-                .usf_transform
-                .translation
-                .z
-                .set_local(PLAYER_LOCAL_Z_ANCHOR as f64);
+            chunk_loader.usf_transform.translation.z.set_local(PLAYER_LOCAL_Z_ANCHOR as f64);
             chunk_loader.usf_transform.rotation.x.local = chunk_loader.usf_transform.rotation.x.local.clamp(rotation_local_min, rotation_local_max);
             chunk_loader.usf_transform.rotation.y.local = chunk_loader.usf_transform.rotation.y.local.clamp(rotation_local_min, rotation_local_max);
             chunk_loader.usf_transform.rotation.z.local = chunk_loader.usf_transform.rotation.z.local.clamp(rotation_local_min, rotation_local_max);
@@ -2715,11 +2703,7 @@ pub(super) fn apply_usf_player_pivots_system(
             }
             let translation_grid_delta = chunk_loader.apply_translation_pivot(&mut player_transform.translation);
             player_transform.translation.z = PLAYER_LOCAL_Z_ANCHOR;
-            chunk_loader
-                .usf_transform
-                .translation
-                .z
-                .set_local(PLAYER_LOCAL_Z_ANCHOR as f64);
+            chunk_loader.usf_transform.translation.z.set_local(PLAYER_LOCAL_Z_ANCHOR as f64);
             chunk_loader.apply_rotation_pivot();
             chunk_actor.coord = chunk_loader.coord.clone();
             zoom_factor.0 = zoom_factor.0.clamp(scale_commit_min, scale_commit_max);
@@ -2748,11 +2732,7 @@ pub(super) fn apply_usf_player_pivots_system(
                 player_transform.translation.z = PLAYER_LOCAL_Z_ANCHOR;
                 chunk_loader.usf_transform.translation.x.set_local(player_transform.translation.x as f64);
                 chunk_loader.usf_transform.translation.y.set_local(player_transform.translation.y as f64);
-                chunk_loader
-                    .usf_transform
-                    .translation
-                    .z
-                    .set_local(PLAYER_LOCAL_Z_ANCHOR as f64);
+                chunk_loader.usf_transform.translation.z.set_local(PLAYER_LOCAL_Z_ANCHOR as f64);
                 chunk_loader.usf_transform.rotation.x.local = chunk_loader.usf_transform.rotation.x.local.clamp(rotation_local_min, rotation_local_max);
                 chunk_loader.usf_transform.rotation.y.local = chunk_loader.usf_transform.rotation.y.local.clamp(rotation_local_min, rotation_local_max);
                 chunk_loader.usf_transform.rotation.z.local = chunk_loader.usf_transform.rotation.z.local.clamp(rotation_local_min, rotation_local_max);
