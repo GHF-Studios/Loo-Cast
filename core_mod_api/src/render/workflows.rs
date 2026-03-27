@@ -9,21 +9,19 @@ define_workflow_mod_OLD! {
                     Commands, Res, ResMut, Camera2d, Camera3d, Vec3, Name, Camera, Projection, PerspectiveProjection, Quat, Transform, DirectionalLight,
                     EulerRot
                 };
-                use crate::bevy::camera::visibility::RenderLayers;
                 use bevy_egui::{EguiGlobalSettings, EguiRenderOutput};
                 use crate::bevy::render::render_resource::{
                     Buffer, TextureView, TextureDescriptor, Extent3d,
                     TextureDimension, TextureFormat, TextureUsages,
                 };
-                use crate::bevy::camera::{RenderTarget, ImageRenderTarget};
-                use crate::bevy::window::WindowRef;
                 use bevy_inspector_egui::bevy_egui::PrimaryEguiContext;
 
                 use crate::chunk::components::ChunkActor;
                 use crate::config::statics::CONFIG;
                 use crate::follower::components::{Follower, FollowerTarget};
                 use crate::render::{
-                    components::MainCamera,
+                    camera_contract,
+                    components::{EguiCamera, MainCamera},
                     functions::get_reserved_camera_entities,
                     resources::GameViewRenderTarget
                 };
@@ -68,13 +66,11 @@ define_workflow_mod_OLD! {
                             commands.entity(egui_camera_entity).insert((
                                 Name::new("egui_camera"),
                                 Camera2d,
-                                Camera {
-                                    order: 2,
-                                    ..Default::default()
-                                },
-                                RenderTarget::Window(WindowRef::Primary),
+                                camera_contract::egui_camera_component(),
+                                camera_contract::primary_window_render_target(),
                                 PrimaryEguiContext,
                                 EguiRenderOutput::default(),
+                                EguiCamera,
                             ));
                             commands.entity(phenomenon_model_camera_entity).insert((
                                 Name::new("phenomenon_model_camera_reserved"),
@@ -82,24 +78,14 @@ define_workflow_mod_OLD! {
                             commands.entity(ui_camera_entity).insert((
                                 Name::new("ui_camera"),
                                 Camera2d,
-                                Camera {
-                                    order: 1,
-                                    clear_color: crate::bevy::camera::ClearColorConfig::None,
-                                    ..Default::default()
-                                },
-                                RenderTarget::Image(ImageRenderTarget {
-                                    handle: game_view_render_target.handle.clone(),
-                                    scale_factor: 1.0,
-                                }),
-                                RenderLayers::layer(1),
+                                camera_contract::ui_camera_component(),
+                                camera_contract::game_view_render_target(&game_view_render_target.handle),
+                                camera_contract::ui_camera_render_layers(),
                             ));
                             commands.entity(main_camera_entity).insert((
                                 Name::new("main_camera"),
                                 Camera3d::default(),
-                                Camera {
-                                    order: 0,
-                                    ..Default::default()
-                                },
+                                camera_contract::main_camera_component(),
                                 Projection::Perspective(PerspectiveProjection {
                                     fov: CONFIG().get::<f32>("camera/default_fov_degrees").to_radians(),
                                     near: 0.1,
@@ -111,12 +97,9 @@ define_workflow_mod_OLD! {
                                     rotation: Quat::IDENTITY,
                                     ..Default::default()
                                 },
-                                RenderTarget::Image(ImageRenderTarget {
-                                    handle: game_view_render_target.handle.clone(),
-                                    scale_factor: 1.0,
-                                }),
+                                camera_contract::game_view_render_target(&game_view_render_target.handle),
                                 MainCamera,
-                                RenderLayers::default(),
+                                camera_contract::main_camera_render_layers(),
                                 ChunkActor::default(),
                                 Follower::new(
                                     "main_camera".to_string(),

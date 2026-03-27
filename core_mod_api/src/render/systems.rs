@@ -1,4 +1,5 @@
 use crate::bevy::asset::RenderAssetUsages;
+use crate::bevy::camera::RenderTarget;
 use crate::bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use crate::bevy::prelude::*;
 use crate::bevy::render::render_resource::{Extent3d, PrimitiveTopology, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
@@ -10,9 +11,10 @@ use crate::core::protocol::PlayerMotionIntent;
 use crate::input::states::InputMode;
 use crate::player::components::Player;
 use crate::render::{
+    camera_contract,
     components::{
-        EntityProxyLink, LogicProxy, MainCamera, PhenomenonModelCamera, PhenomenonModelSurface, PhenomenonZoneProxy, ProxySyncRevision, RenderProxy,
-        RenderProxyWindowMode, UiCamera,
+        EguiCamera, EntityProxyLink, LogicProxy, MainCamera, PhenomenonModelCamera, PhenomenonModelSurface, PhenomenonZoneProxy, ProxySyncRevision,
+        RenderProxy, RenderProxyWindowMode, UiCamera,
     },
     functions::{PHENOMENON_MODEL_LOCAL_SPAN_UNITS, draw_primary_window_ui},
     materials::PhenomenonSurfaceMaterial,
@@ -22,6 +24,7 @@ use crate::render::{
     },
 };
 use crate::time::resources::VirtualPaused;
+use crate::tracing::{error, info};
 use crate::usf::phenomenon::{
     LayerEchoGenerator, PHENOMENON_SEAM_LATTICE_DENOM, Phenomenon, PhenomenonDebugStats, PhenomenonGenerator, PhenomenonGeneratorState, PhenomenonId,
     PhenomenonKind, PhenomenonModel, PhenomenonNode, PhenomenonNodeState, PhenomenonStateSnapshot, seam_safe_lattice_window,
@@ -72,7 +75,7 @@ fn camera_distance_from_zoom(zoom: f32) -> f32 {
 
 pub(super) fn pre_setup_phase_0(mut commands: Commands, mut images: ResMut<Assets<Image>>, windows: Query<&Window>) {
     // Reserve camera entities
-    let egui_camera = commands.spawn(()).id();
+    let egui_camera = commands.spawn(EguiCamera).id();
     let ui_camera = commands.spawn(UiCamera).id();
     let main_camera = commands.spawn(MainCamera).id();
     let phenomenon_model_camera = commands.spawn(PhenomenonModelCamera).id();
@@ -139,6 +142,70 @@ pub(super) fn resize_render_texture(
         height: size_uvec2.y,
         depth_or_array_layers: 1,
     });
+}
+
+pub(super) fn validate_camera_contract_system(
+    active_cameras: Query<(Entity, &Camera, &RenderTarget, Option<&Name>)>,
+    main_cameras: Query<Entity, With<MainCamera>>,
+    ui_cameras: Query<Entity, With<UiCamera>>,
+    egui_cameras: Query<Entity, With<EguiCamera>>,
+    mut previous_report: Local<Option<String>>,
+) {
+    let mut violations = Vec::new();
+
+    let main_count = main_cameras.iter().count();
+    let ui_count = ui_cameras.iter().count();
+    let egui_count = egui_cameras.iter().count();
+    if main_count != 1 {
+        violations.push(format!("expected exactly 1 MainCamera marker, found {}", main_count));
+    }
+    if ui_count != 1 {
+        violations.push(format!("expected exactly 1 UiCamera marker, found {}", ui_count));
+    }
+    if egui_count != 1 {
+        violations.push(format!("expected exactly 1 EguiCamera marker, found {}", egui_count));
+    }
+
+    let mut active_by_order_target: HashMap<(isize, String), Vec<String>> = HashMap::new();
+    for (entity, camera, render_target, name) in active_cameras.iter() {
+        if !camera.is_active {
+            continue;
+        }
+        let key = (camera.order, format!("{:?}", render_target));
+        let label = name.map(|n| n.as_str().to_string()).unwrap_or_else(|| format!("{:?}", entity));
+        active_by_order_target.entry(key).or_default().push(label);
+    }
+    for ((order, target), names) in active_by_order_target {
+        if names.len() > 1 {
+            violations.push(format!("active camera order collision for order={} target={}: {:?}", order, target, names));
+        }
+    }
+
+    let mut report_key = format!("main={main_count};ui={ui_count};egui={egui_count}");
+    if !violations.is_empty() {
+        report_key.push('|');
+        report_key.push_str(&violations.join("|"));
+    }
+    if previous_report.as_deref() == Some(report_key.as_str()) {
+        return;
+    }
+    *previous_report = Some(report_key);
+
+    if violations.is_empty() {
+        info!(
+            "Camera contract validated: orders main={} ui={} egui={}, layers main={} ui={}",
+            camera_contract::MAIN_CAMERA_ORDER,
+            camera_contract::UI_CAMERA_ORDER,
+            camera_contract::EGUI_CAMERA_ORDER,
+            camera_contract::MAIN_CAMERA_RENDER_LAYER,
+            camera_contract::UI_CAMERA_RENDER_LAYER
+        );
+    } else {
+        error!("Camera contract violation detected:");
+        for violation in violations {
+            error!("  {violation}");
+        }
+    }
 }
 
 #[tracing::instrument(skip_all)]

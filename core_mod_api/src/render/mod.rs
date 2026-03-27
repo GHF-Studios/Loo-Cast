@@ -1,3 +1,4 @@
+pub mod camera_contract;
 pub mod components;
 pub mod functions;
 pub mod materials;
@@ -12,7 +13,7 @@ use crate::bevy::pbr::MaterialPlugin;
 use crate::bevy::prelude::*;
 use bevy_egui::EguiPrimaryContextPass;
 use components::{
-    EntityProxyLink, LogicProxy, MainCamera, PhenomenonModelCamera, PhenomenonModelSurface, PhenomenonZoneProxy, ProxySyncRevision, RenderProxy,
+    EguiCamera, EntityProxyLink, LogicProxy, MainCamera, PhenomenonModelCamera, PhenomenonModelSurface, PhenomenonZoneProxy, ProxySyncRevision, RenderProxy,
     RenderProxyWindowMode, UiCamera,
 };
 use materials::PhenomenonSurfaceMaterial;
@@ -23,7 +24,7 @@ use resources::{
 use systems::{
     apply_usf_player_pivots_system, despawn_orphaned_render_proxies, draw_chunk_locator_gizmos_system, enforce_main_camera_depth_contract_system,
     enforce_phenomenon_model_camera_depth_contract_system, main_camera_zoom_system, pre_setup_phase_0, pre_setup_phase_1, primary_window_ui_system,
-    resize_render_texture, update_render_proxies, update_view_scale_from_zoom,
+    resize_render_texture, update_render_proxies, update_view_scale_from_zoom, validate_camera_contract_system,
 };
 
 use crate::core::{components::Meta, orchestration::AppSet, run_conditions::run_after_startup_finished};
@@ -54,6 +55,7 @@ impl Plugin for RenderPlugin {
                     enforce_main_camera_depth_contract_system.in_set(AppSet::Camera).after(update_follower_system),
                     enforce_phenomenon_model_camera_depth_contract_system.in_set(AppSet::Camera),
                     update_view_scale_from_zoom.in_set(AppSet::Camera),
+                    validate_camera_contract_system.in_set(AppSet::Diagnostics).after(update_view_scale_from_zoom),
                     despawn_orphaned_render_proxies.in_set(AppSet::Presentation),
                     update_render_proxies.in_set(AppSet::Presentation).after(despawn_orphaned_render_proxies),
                     draw_chunk_locator_gizmos_system.in_set(AppSet::Presentation).after(update_render_proxies),
@@ -64,6 +66,7 @@ impl Plugin for RenderPlugin {
             .register_type::<MainCamera>()
             .register_type::<PhenomenonModelCamera>()
             .register_type::<UiCamera>()
+            .register_type::<EguiCamera>()
             .register_type::<ViewScale>()
             .register_type::<EntityProxyLink>()
             .register_type::<LogicProxy>()
