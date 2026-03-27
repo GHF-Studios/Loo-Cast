@@ -102,11 +102,19 @@ impl ChunkLoader {
         new_logical_world_pos
     }
 
-    pub fn zoom_out(&mut self) {
+    pub fn zoom_out(&mut self, logical_world_pos: Vec3) -> Vec3 {
         self.scale.zoom_out();
         self.zoom_state = ZoomState::ZoomOut;
-        self.coord.zoom_out();
-        self.origin_offset.zoom_out();
+
+        let mut unit_pos = crate::usf::pos::unit::types::UnitVec::new(self.coord.clone(), logical_world_pos);
+        unit_pos.zoom_out();
+        self.coord = unit_pos.grid_offset;
+
+        let mut origin_unit = crate::usf::pos::unit::types::UnitVec::new(self.origin_offset.clone(), Vec3::ZERO);
+        origin_unit.zoom_out();
+        self.origin_offset = origin_unit.grid_offset;
+
+        unit_pos.unit_offset
     }
 
     pub fn configure_scale_pivot_window(&mut self, local_min: f64, local_max: f64, commit_buffer_ratio: f64) {
@@ -154,7 +162,7 @@ impl ChunkLoader {
             if self.scale == Scale::MAX {
                 break;
             }
-            self.zoom_out();
+            *logical_world_pos = self.zoom_out(*logical_world_pos);
             consumed_upper += 1;
         }
         let dropped_upper = pivot.upper_crossings - consumed_upper;
@@ -282,5 +290,60 @@ impl ChunkLoader {
 
     pub fn world_rotation_quat(&self) -> Quat {
         self.usf_transform.rotation.local_quat()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn approx_eq_vec3(a: Vec3, b: Vec3, epsilon: f32) -> bool {
+        (a.x - b.x).abs() <= epsilon && (a.y - b.y).abs() <= epsilon && (a.z - b.z).abs() <= epsilon
+    }
+
+    #[test]
+    fn zoom_out_then_zoom_in_roundtrip_preserves_local_and_grid_state() {
+        let coord = GridVec::build().push((1, -2, 0)).push((3, 1, -4)).finish();
+        let origin = GridVec::build().push((0, 0, 0)).push((0, 0, 0)).finish();
+        let original_scale = coord.scale;
+
+        let mut loader = ChunkLoader {
+            scale: original_scale,
+            coord: coord.clone(),
+            origin_offset: origin.clone(),
+            ..Default::default()
+        };
+
+        let local_before = Vec3::new(321.25, -187.75, 0.0);
+        let local_after_zoom_out = loader.zoom_out(local_before);
+        let local_after_zoom_in = loader.zoom_in(local_after_zoom_out);
+
+        assert_eq!(loader.scale, original_scale);
+        assert_eq!(loader.coord, coord);
+        assert_eq!(loader.origin_offset, origin);
+        assert!(approx_eq_vec3(local_after_zoom_in, local_before, 1e-3));
+    }
+
+    #[test]
+    fn apply_scale_pivot_zoom_out_updates_local_position_consistently() {
+        let coord = GridVec::build().push((0, 0, 0)).push((2, -1, 1)).finish();
+        let origin = GridVec::build().push((0, 0, 0)).push((0, 0, 0)).finish();
+
+        let mut loader = ChunkLoader {
+            scale: coord.scale,
+            coord,
+            origin_offset: origin,
+            ..Default::default()
+        };
+
+        let mut local_zoom = 11.0_f32;
+        let mut local_pos = Vec3::new(480.0, -320.0, 0.0);
+        let pivot = loader.apply_scale_pivot(&mut local_zoom, &mut local_pos);
+
+        assert!(pivot.upper_crossings >= 1);
+        assert_eq!(loader.scale, Scale::MAX);
+        assert!(local_pos.x >= -500.0 && local_pos.x <= 500.0);
+        assert!(local_pos.y >= -500.0 && local_pos.y <= 500.0);
+        assert!(local_pos.z >= -500.0 && local_pos.z <= 500.0);
     }
 }

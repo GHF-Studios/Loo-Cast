@@ -144,7 +144,7 @@ pub(crate) fn sync_chunk_manager_loader_state_system(player_loader_query: Query<
 pub(crate) fn hydrate_chunk_demo_data_system(
     mut commands: Commands,
     settings: Res<UsfDemoSettings>,
-    chunk_manager: Res<ChunkManager>,
+    player_loader_query: Query<&ChunkLoader, With<Player>>,
     mut chunk_store: ResMut<UsfDemoChunkStore>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -154,21 +154,26 @@ pub(crate) fn hydrate_chunk_demo_data_system(
         return;
     }
 
+    let Ok(chunk_loader) = player_loader_query.single() else {
+        return;
+    };
+    let active_scale = chunk_loader.scale;
+
     for (entity, chunk) in added_chunks.iter() {
         let canonical_coord = canonical_grid_coord(&chunk.coord);
-        let chunk_file = chunk_file_path(&settings, chunk_manager.active_scale, &canonical_coord);
+        let chunk_file = chunk_file_path(&settings, active_scale, &canonical_coord);
         let expected_coord = SerializableGridCoord::from_grid(&canonical_coord);
 
         let mut record = load_chunk_record(&chunk_file).filter(|loaded| {
             loaded.world_seed == settings.world_seed
-                && loaded.active_scale_index == chunk_manager.active_scale.index_from_top()
+                && loaded.active_scale_index == active_scale.index_from_top()
                 && loaded.chunk_coord == expected_coord
                 && loaded.sample_step == settings.sample_step
                 && loaded.iso_level == settings.iso_level
         });
 
         if record.is_none() {
-            let generated = generate_chunk_record(&settings, chunk_manager.active_scale, &canonical_coord);
+            let generated = generate_chunk_record(&settings, active_scale, &canonical_coord);
             if let Err(error) = save_chunk_record(&chunk_file, &generated) {
                 warn!("USF demo persistence write failed for {:?}: {}", chunk_file, error);
             }

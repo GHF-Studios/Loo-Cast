@@ -40,16 +40,17 @@ impl Plugin for ChunkPlugin {
             .add_systems(PreUpdate, chunk_timeout_signal_system.run_if(run_after_startup_finished))
             .add_systems(
                 Update,
-                (
-                    chunk_zoom_cooldown_system.in_set(AppSet::Simulation),
-                    demo::sync_chunk_manager_loader_state_system.in_set(AppSet::Simulation),
-                )
+                chunk_zoom_cooldown_system
+                    .in_set(AppSet::Simulation)
                     .run_if(run_after_startup_finished.and(run_if_not_paused)),
             )
             .add_systems(
                 PostUpdate,
-                chunk_detection_system
-                    .pipe(chunk_management_system)
+                (
+                    demo::sync_chunk_manager_loader_state_system,
+                    chunk_detection_system.pipe(chunk_management_system),
+                )
+                    .chain()
                     .in_set(AppSet::ChunkOrchestration)
                     .run_if(run_after_startup_finished.and(run_if_not_paused)),
             )
