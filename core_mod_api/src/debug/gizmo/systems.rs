@@ -12,6 +12,13 @@ use crate::render::resources::{PrimaryWindowUiState, ZoomFactor};
 use super::components::{GizmoArrow, GizmoRoot};
 use super::types::Axis3D;
 
+#[derive(Resource)]
+pub(super) struct GizmoMaterialHandles {
+    x: Handle<StandardMaterial>,
+    y: Handle<StandardMaterial>,
+    z: Handle<StandardMaterial>,
+}
+
 pub(super) fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>) {
     let arrow_length = CONFIG().get::<f32>("debug/gizmo/arrow_length");
     let arrow_thickness = CONFIG().get::<f32>("debug/gizmo/arrow_thickness");
@@ -44,6 +51,12 @@ pub(super) fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mu
 
     let shaft_center = shaft_length * 0.5;
     let head_center = shaft_length + head_length * 0.5;
+
+    commands.insert_resource(GizmoMaterialHandles {
+        x: x_material.clone(),
+        y: y_material.clone(),
+        z: z_material.clone(),
+    });
 
     commands
         .spawn((
@@ -150,8 +163,15 @@ pub(super) fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mu
 
 pub(super) fn update_gizmo_visibility_and_position(
     mut gizmo_root: Query<(&mut Transform, &mut Visibility), With<GizmoRoot>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    gizmo_materials: Res<GizmoMaterialHandles>,
     transforms: Query<&GlobalTransform>,
+    chunks: Query<(), With<Chunk>>,
+    chunk_actors: Query<(), With<ChunkActor>>,
+    players: Query<(), With<Player>>,
     entity_proxy_links: Query<&EntityProxyLink>,
+    render_proxies: Query<&RenderProxy>,
+    logic_proxies: Query<&LogicProxy>,
     player_visual_links: Query<&PlayerVisual3dLink>,
     debug_suite_ui_state: Res<PrimaryWindowUiState>,
     zoom_factor: Res<ZoomFactor>,
@@ -165,6 +185,17 @@ pub(super) fn update_gizmo_visibility_and_position(
         *vis = Visibility::Hidden;
         return;
     }
+
+    let selection_movable = selection_has_movable_targets(
+        selected.iter(),
+        &chunks,
+        &chunk_actors,
+        &players,
+        &entity_proxy_links,
+        &render_proxies,
+        &logic_proxies,
+    );
+    apply_gizmo_material_state(selection_movable, &gizmo_materials, &mut materials);
 
     let mut position_sum = Vec3::ZERO;
     let mut count = 0;
@@ -193,8 +224,8 @@ pub(super) fn update_gizmo_visibility_and_position(
 pub(super) fn move_selected_with_gizmo(
     mut drag_messages: MessageReader<Pointer<Drag>>,
     mut transforms: Query<&mut Transform>,
-    mut chunks: Query<&mut Chunk>,
-    mut chunk_actors: Query<&mut ChunkActor>,
+    chunks: Query<(), With<Chunk>>,
+    chunk_actors: Query<(), With<ChunkActor>>,
     players: Query<(), With<Player>>,
     entity_proxy_links: Query<&EntityProxyLink>,
     render_proxies: Query<&RenderProxy>,
@@ -206,6 +237,15 @@ pub(super) fn move_selected_with_gizmo(
     zoom_factor: Res<ZoomFactor>,
 ) {
     let selected = &debug_suite_ui_state.selected_entities;
+    let selection_movable = selection_has_movable_targets(
+        selected.iter(),
+        &chunks,
+        &chunk_actors,
+        &players,
+        &entity_proxy_links,
+        &render_proxies,
+        &logic_proxies,
+    );
 
     for message in drag_messages.read() {
         if message.pointer_id != META_MOUSE_POINTER_ID && message.pointer_id != DIEGETIC_MOUSE_POINTER_ID {
@@ -272,19 +312,9 @@ pub(super) fn move_selected_with_gizmo(
                 world_delta
             );
 
-            let axis_steps = axis_delta.round() as i32;
-            let grid_steps = if axis_steps != 0 {
-                axis_steps
-            } else if axis_delta.abs() >= 0.5 {
-                axis_delta.signum() as i32
-            } else {
-                0
-            };
-            let grid_delta = match gizmo_arrow.axis {
-                Axis3D::X => IVec3::X * grid_steps,
-                Axis3D::Y => IVec3::Y * grid_steps,
-                Axis3D::Z => IVec3::Z * grid_steps,
-            };
+            if !selection_movable {
+                continue;
+            }
 
             for entity in selected.iter() {
                 let source_entity = resolve_motion_source_entity(entity, &render_proxies, &logic_proxies);
@@ -293,29 +323,11 @@ pub(super) fn move_selected_with_gizmo(
                 // USF authoritative entities must move via their logical coordinate component,
                 // not by writing Transform directly. Player is the explicit exception.
                 if !is_player {
-                    if let Ok(mut chunk) = chunks.get_mut(source_entity) {
-                        if grid_delta != IVec3::ZERO {
-                            chunk.coord += grid_delta;
-                            warn!(
-                                "gizmo_drag_apply_chunk source={:?} axis={} grid_delta={:?}",
-                                source_entity,
-                                axis_label(&gizmo_arrow.axis),
-                                grid_delta
-                            );
-                        }
+                    if chunks.get(source_entity).is_ok() {
                         continue;
                     }
 
-                    if let Ok(mut chunk_actor) = chunk_actors.get_mut(source_entity) {
-                        if grid_delta != IVec3::ZERO {
-                            chunk_actor.coord += grid_delta;
-                            warn!(
-                                "gizmo_drag_apply_chunk source={:?} axis={} grid_delta={:?}",
-                                source_entity,
-                                axis_label(&gizmo_arrow.axis),
-                                grid_delta
-                            );
-                        }
+                    if chunk_actors.get(source_entity).is_ok() {
                         continue;
                     }
 
@@ -369,6 +381,65 @@ fn resolve_motion_source_entity(entity: Entity, render_proxies: &Query<&RenderPr
         return logic_proxy.source;
     }
     entity
+}
+
+fn selection_has_movable_targets<'a, I>(
+    selected: I,
+    chunks: &Query<(), With<Chunk>>,
+    chunk_actors: &Query<(), With<ChunkActor>>,
+    players: &Query<(), With<Player>>,
+    entity_proxy_links: &Query<&EntityProxyLink>,
+    render_proxies: &Query<&RenderProxy>,
+    logic_proxies: &Query<&LogicProxy>,
+) -> bool
+where
+    I: IntoIterator<Item = Entity>,
+{
+    for entity in selected {
+        let source_entity = resolve_motion_source_entity(entity, render_proxies, logic_proxies);
+        if players.get(source_entity).is_ok() {
+            return true;
+        }
+        if chunks.get(source_entity).is_ok() || chunk_actors.get(source_entity).is_ok() {
+            continue;
+        }
+        if let Ok(link) = entity_proxy_links.get(source_entity)
+            && link.root_transform_contract_is_ub
+        {
+            continue;
+        }
+        return true;
+    }
+
+    false
+}
+
+fn apply_gizmo_material_state(enabled: bool, gizmo_materials: &GizmoMaterialHandles, materials: &mut Assets<StandardMaterial>) {
+    if let Some(material) = materials.get_mut(&gizmo_materials.x) {
+        material.base_color = gizmo_axis_color(Axis3D::X, enabled);
+    }
+    if let Some(material) = materials.get_mut(&gizmo_materials.y) {
+        material.base_color = gizmo_axis_color(Axis3D::Y, enabled);
+    }
+    if let Some(material) = materials.get_mut(&gizmo_materials.z) {
+        material.base_color = gizmo_axis_color(Axis3D::Z, enabled);
+    }
+}
+
+fn gizmo_axis_color(axis: Axis3D, enabled: bool) -> Color {
+    if enabled {
+        match axis {
+            Axis3D::X => Color::linear_rgba(1.0, 0.2, 0.2, 0.95),
+            Axis3D::Y => Color::linear_rgba(0.2, 1.0, 0.2, 0.95),
+            Axis3D::Z => Color::linear_rgba(0.25, 0.55, 1.0, 0.95),
+        }
+    } else {
+        match axis {
+            Axis3D::X => Color::linear_rgba(0.62, 0.42, 0.42, 0.45),
+            Axis3D::Y => Color::linear_rgba(0.42, 0.62, 0.42, 0.45),
+            Axis3D::Z => Color::linear_rgba(0.43, 0.5, 0.62, 0.45),
+        }
+    }
 }
 
 #[inline]
