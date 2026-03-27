@@ -12,6 +12,8 @@ use crate::render::resources::{PrimaryWindowUiState, ZoomFactor};
 use super::components::{GizmoArrow, GizmoRoot};
 use super::types::Axis3D;
 
+const GIZMO_DEPTH_BIAS: f32 = 100_000.0;
+
 #[derive(Resource)]
 pub(super) struct GizmoMaterialHandles {
     x: Handle<StandardMaterial>,
@@ -32,20 +34,22 @@ pub(super) fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mu
         radius: head_radius,
         height: head_length,
     }));
-
     let x_material = materials.add(StandardMaterial {
         base_color: Color::linear_rgba(1.0, 0.2, 0.2, 0.95),
         unlit: true,
+        depth_bias: GIZMO_DEPTH_BIAS,
         ..Default::default()
     });
     let y_material = materials.add(StandardMaterial {
         base_color: Color::linear_rgba(0.2, 1.0, 0.2, 0.95),
         unlit: true,
+        depth_bias: GIZMO_DEPTH_BIAS,
         ..Default::default()
     });
     let z_material = materials.add(StandardMaterial {
         base_color: Color::linear_rgba(0.25, 0.55, 1.0, 0.95),
         unlit: true,
+        depth_bias: GIZMO_DEPTH_BIAS,
         ..Default::default()
     });
 
