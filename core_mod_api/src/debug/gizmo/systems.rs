@@ -1,10 +1,12 @@
+use crate::bevy::picking::prelude::Pickable;
 use crate::bevy::prelude::*;
 
+use crate::chunk::components::{Chunk, ChunkActor};
 use crate::config::statics::CONFIG;
 use crate::core::components::Meta;
-use crate::picking::constants::META_MOUSE_POINTER_ID;
-use crate::player::components::PlayerVisual3dLink;
-use crate::render::components::{EntityProxyLink, MainCamera};
+use crate::picking::constants::{DIEGETIC_MOUSE_POINTER_ID, META_MOUSE_POINTER_ID, NO_HIT_SENTINEL};
+use crate::player::components::{Player, PlayerVisual3dLink};
+use crate::render::components::{EntityProxyLink, LogicProxy, MainCamera, RenderProxy};
 use crate::render::resources::{PrimaryWindowUiState, ZoomFactor};
 
 use super::components::{GizmoArrow, GizmoRoot};
@@ -56,6 +58,10 @@ pub(super) fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mu
                 Name::new("gizmo_axis_x_shaft"),
                 Mesh3d(shaft_mesh.clone()),
                 MeshMaterial3d(x_material.clone()),
+                Pickable {
+                    should_block_lower: true,
+                    ..Default::default()
+                },
                 Meta::<Mesh3d>::default(),
                 GizmoArrow { axis: Axis3D::X },
                 Transform {
@@ -68,6 +74,10 @@ pub(super) fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mu
                 Name::new("gizmo_axis_x_head"),
                 Mesh3d(head_mesh.clone()),
                 MeshMaterial3d(x_material),
+                Pickable {
+                    should_block_lower: true,
+                    ..Default::default()
+                },
                 Meta::<Mesh3d>::default(),
                 GizmoArrow { axis: Axis3D::X },
                 Transform {
@@ -81,6 +91,10 @@ pub(super) fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mu
                 Name::new("gizmo_axis_y_shaft"),
                 Mesh3d(shaft_mesh.clone()),
                 MeshMaterial3d(y_material.clone()),
+                Pickable {
+                    should_block_lower: true,
+                    ..Default::default()
+                },
                 Meta::<Mesh3d>::default(),
                 GizmoArrow { axis: Axis3D::Y },
                 Transform::from_translation(Vec3::Y * shaft_center),
@@ -89,6 +103,10 @@ pub(super) fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mu
                 Name::new("gizmo_axis_y_head"),
                 Mesh3d(head_mesh.clone()),
                 MeshMaterial3d(y_material),
+                Pickable {
+                    should_block_lower: true,
+                    ..Default::default()
+                },
                 Meta::<Mesh3d>::default(),
                 GizmoArrow { axis: Axis3D::Y },
                 Transform::from_translation(Vec3::Y * head_center),
@@ -99,6 +117,10 @@ pub(super) fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mu
                 Name::new("gizmo_axis_z_shaft"),
                 Mesh3d(shaft_mesh),
                 MeshMaterial3d(z_material.clone()),
+                Pickable {
+                    should_block_lower: true,
+                    ..Default::default()
+                },
                 Meta::<Mesh3d>::default(),
                 GizmoArrow { axis: Axis3D::Z },
                 Transform {
@@ -111,6 +133,10 @@ pub(super) fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mu
                 Name::new("gizmo_axis_z_head"),
                 Mesh3d(head_mesh),
                 MeshMaterial3d(z_material),
+                Pickable {
+                    should_block_lower: true,
+                    ..Default::default()
+                },
                 Meta::<Mesh3d>::default(),
                 GizmoArrow { axis: Axis3D::Z },
                 Transform {
@@ -159,12 +185,20 @@ pub(super) fn update_gizmo_visibility_and_position(
     let mut avg = position_sum / count as f32;
     avg.z += CONFIG().get::<f32>("debug/gizmo/z_offset");
     gizmo_transform.translation = avg;
-    gizmo_transform.scale = Vec3::splat(zoom_factor.0.max(f32::EPSILON));
+    let zoom = zoom_factor.0.max(0.001);
+    let gizmo_scale = (1.0 / zoom).clamp(0.25, 100.0);
+    gizmo_transform.scale = Vec3::splat(gizmo_scale);
 }
 
 pub(super) fn move_selected_with_gizmo(
     mut drag_messages: MessageReader<Pointer<Drag>>,
     mut transforms: Query<&mut Transform>,
+    mut chunks: Query<&mut Chunk>,
+    mut chunk_actors: Query<&mut ChunkActor>,
+    players: Query<(), With<Player>>,
+    entity_proxy_links: Query<&EntityProxyLink>,
+    render_proxies: Query<&RenderProxy>,
+    logic_proxies: Query<&LogicProxy>,
     gizmo_parts: Query<(&GizmoArrow, &GlobalTransform)>,
     main_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     debug_suite_ui_state: Res<PrimaryWindowUiState>,
@@ -174,11 +208,16 @@ pub(super) fn move_selected_with_gizmo(
     let selected = &debug_suite_ui_state.selected_entities;
 
     for message in drag_messages.read() {
-        if message.pointer_id != META_MOUSE_POINTER_ID {
+        if message.pointer_id != META_MOUSE_POINTER_ID && message.pointer_id != DIEGETIC_MOUSE_POINTER_ID {
             continue;
         }
 
-        if let Ok((gizmo_arrow, gizmo_transform)) = gizmo_parts.get(message.event_target()) {
+        let drag_target = message.event_target();
+        if drag_target != NO_HIT_SENTINEL {
+            warn!("gizmo_drag pointer={:?} target={:?} delta={:?}", message.pointer_id, drag_target, message.delta);
+        }
+
+        if let Ok((gizmo_arrow, gizmo_transform)) = gizmo_parts.get(drag_target) {
             let axis = match gizmo_arrow.axis {
                 Axis3D::X => Vec3::X,
                 Axis3D::Y => Vec3::Y,
@@ -222,13 +261,78 @@ pub(super) fn move_selected_with_gizmo(
             }
 
             let axis_delta = message.delta.dot(axis_screen_dir);
-            let delta = axis * axis_delta * fixed_time.delta_secs() * CONFIG().get::<f32>("debug/gizmo/drag_speed") * zoom_factor.0;
+            let zoom = zoom_factor.0.max(0.001);
+            let motion_scale = (1.0 / zoom).clamp(0.1, 100.0);
+            let world_delta = axis * axis_delta * fixed_time.delta_secs() * CONFIG().get::<f32>("debug/gizmo/drag_speed") * motion_scale;
+            warn!(
+                "gizmo_drag_apply axis={} pointer={:?} axis_delta={} world_delta={:?}",
+                axis_label(&gizmo_arrow.axis),
+                message.pointer_id,
+                axis_delta,
+                world_delta
+            );
+
+            let axis_steps = axis_delta.round() as i32;
+            let grid_steps = if axis_steps != 0 {
+                axis_steps
+            } else if axis_delta.abs() >= 0.5 {
+                axis_delta.signum() as i32
+            } else {
+                0
+            };
+            let grid_delta = match gizmo_arrow.axis {
+                Axis3D::X => IVec3::X * grid_steps,
+                Axis3D::Y => IVec3::Y * grid_steps,
+                Axis3D::Z => IVec3::Z * grid_steps,
+            };
 
             for entity in selected.iter() {
-                if let Ok(mut transform) = transforms.get_mut(entity) {
-                    transform.translation += delta;
+                let source_entity = resolve_motion_source_entity(entity, &render_proxies, &logic_proxies);
+                let is_player = players.get(source_entity).is_ok();
+
+                // USF authoritative entities must move via their logical coordinate component,
+                // not by writing Transform directly. Player is the explicit exception.
+                if !is_player {
+                    if let Ok(mut chunk) = chunks.get_mut(source_entity) {
+                        if grid_delta != IVec3::ZERO {
+                            chunk.coord += grid_delta;
+                            warn!(
+                                "gizmo_drag_apply_chunk source={:?} axis={} grid_delta={:?}",
+                                source_entity,
+                                axis_label(&gizmo_arrow.axis),
+                                grid_delta
+                            );
+                        }
+                        continue;
+                    }
+
+                    if let Ok(mut chunk_actor) = chunk_actors.get_mut(source_entity) {
+                        if grid_delta != IVec3::ZERO {
+                            chunk_actor.coord += grid_delta;
+                            warn!(
+                                "gizmo_drag_apply_chunk source={:?} axis={} grid_delta={:?}",
+                                source_entity,
+                                axis_label(&gizmo_arrow.axis),
+                                grid_delta
+                            );
+                        }
+                        continue;
+                    }
+
+                    if let Ok(link) = entity_proxy_links.get(source_entity)
+                        && link.root_transform_contract_is_ub
+                    {
+                        warn!("gizmo_drag_skip_transform source={:?} reason=root_transform_contract_is_ub", source_entity);
+                        continue;
+                    }
+                }
+
+                if let Ok(mut transform) = transforms.get_mut(source_entity) {
+                    transform.translation += world_delta;
                 }
             }
+        } else if drag_target != NO_HIT_SENTINEL {
+            warn!("gizmo_drag target {:?} is not a GizmoArrow", drag_target);
         }
     }
 }
@@ -255,4 +359,23 @@ fn resolve_gizmo_anchor_position(
     }
 
     transforms.get(entity).ok().map(|transform| transform.translation())
+}
+
+fn resolve_motion_source_entity(entity: Entity, render_proxies: &Query<&RenderProxy>, logic_proxies: &Query<&LogicProxy>) -> Entity {
+    if let Ok(render_proxy) = render_proxies.get(entity) {
+        return render_proxy.source;
+    }
+    if let Ok(logic_proxy) = logic_proxies.get(entity) {
+        return logic_proxy.source;
+    }
+    entity
+}
+
+#[inline]
+fn axis_label(axis: &Axis3D) -> &'static str {
+    match axis {
+        Axis3D::X => "X",
+        Axis3D::Y => "Y",
+        Axis3D::Z => "Z",
+    }
 }
