@@ -169,6 +169,7 @@ pub(crate) fn draw_primary_window_ui(
                 ui.checkbox(&mut state.show_intent_buffer, "Intent Buffer");
                 ui.checkbox(&mut state.show_intent_commit, "Intent Commit");
                 ui.checkbox(&mut state.show_chunk_inspector, "Chunk Inspector");
+                ui.checkbox(&mut state.remap_pick_targets_to_source_entities, "Remap Picks");
 
                 ui.separator();
 

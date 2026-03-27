@@ -75,6 +75,7 @@ impl Plugin for RenderPlugin {
             .register_type::<PhenomenonZoneProxy>()
             .register_type::<ProxySyncRevision>()
             .register_type::<Meta<Sprite>>()
+            .register_type::<Meta<Mesh3d>>()
             .register_type::<PrimaryWindowUiState>()
             .register_type::<RuntimeDebugToggles>()
             .register_type::<ZoomFactor>()

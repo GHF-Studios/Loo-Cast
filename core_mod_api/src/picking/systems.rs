@@ -1,7 +1,11 @@
+use crate::bevy::camera::primitives::Aabb;
+use crate::bevy::camera::visibility::RenderLayers;
 use crate::bevy::camera::{ImageRenderTarget, RenderTarget};
-use crate::bevy::ecs::query::QuerySingleError;
+use crate::bevy::ecs::query::{QueryFilter, QuerySingleError};
 use crate::bevy::input::ButtonState;
 use crate::bevy::input::mouse::MouseWheel;
+use crate::bevy::math::{Affine3A, Dir3, Ray3d, Vec3A, bounding::Aabb3d};
+use crate::bevy::mesh::{Indices, PrimitiveTopology};
 use crate::bevy::picking::PickingSettings;
 use crate::bevy::picking::backend::prelude::*;
 use crate::bevy::picking::input::PointerInputSettings;
@@ -190,25 +194,46 @@ pub(super) fn mouse_pick_messages(
 #[tracing::instrument(skip_all)]
 pub(super) fn sprite_picking_backend(
     pointers: Query<(&PointerId, &PointerLocation)>,
-    main_camera_query: Query<(Entity, &Camera, &GlobalTransform, &Projection), With<MainCamera>>,
-    diegetic_sprite_query: Query<(Entity, &Sprite, &GlobalTransform, &Anchor, &ViewVisibility), Without<crate::core::components::Meta<Sprite>>>,
-    meta_sprite_query: Query<(Entity, &Sprite, &GlobalTransform, &Anchor, &ViewVisibility), With<crate::core::components::Meta<Sprite>>>,
+    main_camera_query: Query<(Entity, &Camera, &GlobalTransform, &Projection, Option<&RenderLayers>), With<MainCamera>>,
+    diegetic_sprite_query: Query<
+        (Entity, &Sprite, &GlobalTransform, &Anchor, &ViewVisibility, Option<&RenderLayers>),
+        Without<crate::core::components::Meta<Sprite>>,
+    >,
+    meta_sprite_query: Query<
+        (Entity, &Sprite, &GlobalTransform, &Anchor, &ViewVisibility, Option<&RenderLayers>),
+        With<crate::core::components::Meta<Sprite>>,
+    >,
+    diegetic_mesh_query: Query<
+        (Entity, &Mesh3d, &GlobalTransform, &ViewVisibility, Option<&Aabb>, Option<&RenderLayers>),
+        Without<crate::core::components::Meta<Mesh3d>>,
+    >,
+    meta_mesh_query: Query<
+        (Entity, &Mesh3d, &GlobalTransform, &ViewVisibility, Option<&Aabb>, Option<&RenderLayers>),
+        With<crate::core::components::Meta<Mesh3d>>,
+    >,
     images: Res<Assets<Image>>,
+    meshes: Res<Assets<Mesh>>,
     texture_atlas_layout: Res<Assets<TextureAtlasLayout>>,
+    pickables: Query<&Pickable>,
     settings: Res<SpritePickingSettings>,
     game_view_render_target: Res<GameViewRenderTarget>,
     primary_window_ui_state: Res<PrimaryWindowUiState>,
     mut output: MessageWriter<PointerHits>,
 ) {
-    let any_meta_hits = sprite_picking_backend_inner::<Meta>(
-        &pointers,
-        &main_camera_query,
-        &meta_sprite_query,
-        &images,
-        &texture_atlas_layout,
-        &settings,
-        &game_view_render_target,
-        &primary_window_ui_state,
+    let any_meta_hits = emit_context_hits(
+        collect_context_hits::<Meta>(
+            &pointers,
+            &main_camera_query,
+            &meta_sprite_query,
+            &meta_mesh_query,
+            &images,
+            &meshes,
+            &texture_atlas_layout,
+            &pickables,
+            &settings,
+            &game_view_render_target,
+            &primary_window_ui_state,
+        ),
         &mut output,
     );
 
@@ -216,90 +241,102 @@ pub(super) fn sprite_picking_backend(
         return;
     }
 
-    let _any_diegetic_hits = sprite_picking_backend_inner::<Diegetic>(
-        &pointers,
-        &main_camera_query,
-        &diegetic_sprite_query,
-        &images,
-        &texture_atlas_layout,
-        &settings,
-        &game_view_render_target,
-        &primary_window_ui_state,
+    let _any_diegetic_hits = emit_context_hits(
+        collect_context_hits::<Diegetic>(
+            &pointers,
+            &main_camera_query,
+            &diegetic_sprite_query,
+            &diegetic_mesh_query,
+            &images,
+            &meshes,
+            &texture_atlas_layout,
+            &pickables,
+            &settings,
+            &game_view_render_target,
+            &primary_window_ui_state,
+        ),
         &mut output,
     );
 }
 
-fn sprite_picking_backend_inner<OC: OntologicalContext>(
+#[derive(Debug)]
+struct ContextPickResult {
+    pointer_id: PointerId,
+    camera_entity: Entity,
+    order: f32,
+    picks: Vec<(Entity, HitData)>,
+}
+
+fn emit_context_hits(result: Option<ContextPickResult>, output: &mut MessageWriter<PointerHits>) -> bool {
+    let Some(mut result) = result else {
+        return false;
+    };
+
+    if result.picks.is_empty() {
+        result.picks.push((NO_HIT_SENTINEL, HitData::new(result.camera_entity, 0.0, None, None)));
+        output.write(PointerHits::new(result.pointer_id, result.picks, result.order));
+        return false;
+    }
+
+    output.write(PointerHits::new(result.pointer_id, result.picks, result.order));
+    true
+}
+
+fn collect_context_hits<OC: OntologicalContext>(
     pointers: &Query<(&PointerId, &PointerLocation)>,
-    main_camera_query: &Query<(Entity, &Camera, &GlobalTransform, &Projection), With<MainCamera>>,
-    sprite_query: &Query<(Entity, &Sprite, &GlobalTransform, &Anchor, &ViewVisibility), OC::SpriteOntologyFilter>,
+    main_camera_query: &Query<(Entity, &Camera, &GlobalTransform, &Projection, Option<&RenderLayers>), With<MainCamera>>,
+    sprite_query: &Query<(Entity, &Sprite, &GlobalTransform, &Anchor, &ViewVisibility, Option<&RenderLayers>), OC::SpriteOntologyFilter>,
+    mesh_query: &Query<(Entity, &Mesh3d, &GlobalTransform, &ViewVisibility, Option<&Aabb>, Option<&RenderLayers>), OC::MeshOntologyFilter>,
     images: &Res<Assets<Image>>,
+    meshes: &Res<Assets<Mesh>>,
     texture_atlas_layout: &Res<Assets<TextureAtlasLayout>>,
+    pickables: &Query<&Pickable>,
     settings: &Res<SpritePickingSettings>,
     game_view_render_target: &Res<GameViewRenderTarget>,
     primary_window_ui_state: &Res<PrimaryWindowUiState>,
-    output: &mut MessageWriter<PointerHits>,
-) -> bool {
+) -> Option<ContextPickResult> {
     let (pointer_id, location) = match pointers.iter().find(|(p_id, _)| **p_id == OC::pointer_id()) {
-        Some((pointer, pointer_location)) => match pointer_location.location().map(|loc| (pointer, loc)) {
+        Some((pointer, pointer_location)) => match pointer_location.location().map(|loc| (*pointer, loc)) {
             Some(v) => v,
             None => {
                 warn!("Mouse pointer is inactive");
-                return false;
+                return None;
             }
         },
         None => {
             warn!("Mouse pointer not found");
-            return false;
+            return None;
         }
     };
 
-    let (main_camera_entity, main_camera, main_camera_transform, cursor_ray_len, camera_near_for_depth) = match main_camera_query.single() {
-        Ok((ent, cam, cam_transform, cam_projection)) => {
+    let (main_camera_entity, main_camera, main_camera_transform, cursor_ray_len, camera_near_for_depth, camera_layers) = match main_camera_query.single() {
+        Ok((ent, cam, cam_transform, cam_projection, cam_layers)) => {
             let (ray_len, near_for_depth) = match cam_projection {
                 Projection::Orthographic(ortho) => ((ortho.far - ortho.near).abs(), ortho.near),
                 Projection::Perspective(perspective) => (perspective.far.max(1.0), perspective.near),
                 _ => {
                     warn!("Main camera projection is unsupported for picking");
-                    return false;
+                    return None;
                 }
             };
-            (ent, cam, cam_transform, ray_len, near_for_depth)
+
+            (ent, cam, cam_transform, ray_len, near_for_depth, cam_layers.cloned().unwrap_or_default())
         }
         Err(err) => match err {
             QuerySingleError::NoEntities(_) => {
                 warn!("No main camera found");
-                return false;
+                return None;
             }
             QuerySingleError::MultipleEntities(_) => panic!("Multiple MainCameras not supported!"),
         },
     };
 
-    let mut sorted_sprites: Vec<_> = sprite_query
-        .iter()
-        .filter_map(|(entity, sprite, transform, anchor, vis)| {
-            if !transform.affine().is_nan() && vis.get() {
-                Some((entity, sprite, transform, anchor))
-            } else {
-                None
-            }
-        })
-        .collect();
-
-    let world_to_camera = main_camera_transform.affine().inverse();
-    sorted_sprites.sort_by(|(_, _, transform_a, _), (_, _, transform_b, _)| {
-        let depth_a = world_to_camera.transform_point3(transform_a.translation()).z;
-        let depth_b = world_to_camera.transform_point3(transform_b.translation()).z;
-        depth_b.partial_cmp(&depth_a).unwrap_or(std::cmp::Ordering::Equal)
-    });
-
-    let mut blocked = false;
     let viewport_size = game_view_render_target.size;
     let viewport_size_vec2 = Vec2::new(viewport_size.x as f32, viewport_size.y as f32);
     let current_window_position = location.position;
     let Some(viewport_rect) = primary_window_ui_state.viewport_rect_precision_proxy else {
         warn!("Viewport rect not found");
-        return false;
+        return None;
     };
 
     if !viewport_rect.contains(egui::Pos2 {
@@ -307,7 +344,7 @@ fn sprite_picking_backend_inner<OC: OntologicalContext>(
         y: current_window_position.y,
     }) {
         warn!("Cursor outside viewport");
-        return false;
+        return None;
     }
 
     let current_viewport_position = {
@@ -320,132 +357,348 @@ fn sprite_picking_backend_inner<OC: OntologicalContext>(
         Vec2::new(x, y)
     };
 
-    // let viewport_pos = main_camera
-    //     .logical_viewport_rect()
-    //     .map(|v| v.min)
-    //     .unwrap_or_default();
-    // let pos_in_viewport = current_position - viewport_pos;
-
     let Ok(cursor_ray_world) = main_camera.viewport_to_world(main_camera_transform, current_viewport_position) else {
         warn!("Failed to compute cursor ray world position");
-        return false;
+        return None;
     };
 
     let cursor_ray_end = cursor_ray_world.origin + cursor_ray_world.direction * cursor_ray_len;
-    let mut picks: Vec<(Entity, HitData)> = sorted_sprites
-        .iter()
-        .copied()
-        .filter_map(|(entity, sprite, sprite_transform, anchor)| {
-            if blocked {
-                // warn!("Picking for Entity {:?} blocked by previous sprite", entity);
-                return None;
+
+    let mut candidates = collect_sprite_hits(
+        sprite_query,
+        images,
+        texture_atlas_layout,
+        settings,
+        cursor_ray_world,
+        cursor_ray_end,
+        main_camera_entity,
+        main_camera_transform,
+        camera_near_for_depth,
+        &camera_layers,
+    );
+    candidates.extend(collect_mesh_hits(
+        mesh_query,
+        meshes,
+        cursor_ray_world,
+        main_camera_entity,
+        main_camera_transform,
+        camera_near_for_depth,
+        &camera_layers,
+    ));
+
+    candidates.sort_by(|(_, hit_a), (_, hit_b)| hit_a.depth.partial_cmp(&hit_b.depth).unwrap_or(std::cmp::Ordering::Equal));
+    let picks = filter_pickable_hits(candidates, pickables);
+
+    Some(ContextPickResult {
+        pointer_id,
+        camera_entity: main_camera_entity,
+        order: main_camera.order as f32,
+        picks,
+    })
+}
+
+fn filter_pickable_hits(mut hits: Vec<(Entity, HitData)>, pickables: &Query<&Pickable>) -> Vec<(Entity, HitData)> {
+    if hits.is_empty() {
+        return hits;
+    }
+
+    let mut filtered_hits = Vec::with_capacity(hits.len());
+    for (entity, hit) in hits.drain(..) {
+        if let Ok(pickable) = pickables.get(entity) {
+            if pickable.is_hoverable {
+                filtered_hits.push((entity, hit));
             }
-
-            // Transform cursor line segment to sprite coordinate system
-            let world_to_sprite = sprite_transform.affine().inverse();
-            let cursor_start_sprite = world_to_sprite.transform_point3(cursor_ray_world.origin);
-            let cursor_end_sprite = world_to_sprite.transform_point3(cursor_ray_end);
-
-            // warn!(
-            //     "Evaluating Entity {:?} — sprite Z: {:?}, world_to_sprite Z: {:?}",
-            //     entity,
-            //     sprite_transform.translation().z,
-            //     sprite_transform
-            //         .affine()
-            //         .inverse()
-            //         .transform_point3(cursor_ray_world.origin)
-            //         .z,
-            // );
-
-            // Find where the cursor segment intersects the plane Z=0 (which is the sprite's
-            // plane in sprite-local space). It may not intersect if, for example, we're
-            // viewing the sprite side-on
-            if (cursor_start_sprite.z - cursor_end_sprite.z).abs() <= f32::EPSILON {
-                // Cursor ray is parallel to the sprite and misses it
-                warn!("Cursor ray parallel to sprite plane");
-                return None;
+            if pickable.should_block_lower {
+                break;
             }
-            let lerp_factor = f32::inverse_lerp(cursor_start_sprite.z, cursor_end_sprite.z, 0.0);
-            if !(0.0..=1.0).contains(&lerp_factor) {
-                // Lerp factor is out of range, meaning that while an infinite line cast by
-                // the cursor would intersect the sprite, the sprite is not between the
-                // camera's near and far planes
+        } else {
+            filtered_hits.push((entity, hit));
+            break;
+        }
+    }
 
-                warn!("Cursor ray does not intersect sprite plane within segment");
-                return None;
-            }
-            // Otherwise we can interpolate the full local-space hit point and project to XY for sprite sampling.
-            let cursor_pos_sprite_3d = cursor_start_sprite.lerp(cursor_end_sprite, lerp_factor);
-            let cursor_pos_sprite = Vec2::new(cursor_pos_sprite_3d.x, cursor_pos_sprite_3d.y);
+    filtered_hits
+}
 
-            let Ok(cursor_pos_sprite_pixel) = sprite.compute_pixel_space_point(cursor_pos_sprite, *anchor, images, texture_atlas_layout) else {
-                return None;
-            };
+fn collect_sprite_hits<OF: QueryFilter>(
+    sprite_query: &Query<(Entity, &Sprite, &GlobalTransform, &Anchor, &ViewVisibility, Option<&RenderLayers>), OF>,
+    images: &Res<Assets<Image>>,
+    texture_atlas_layout: &Res<Assets<TextureAtlasLayout>>,
+    settings: &Res<SpritePickingSettings>,
+    cursor_ray_world: Ray3d,
+    cursor_ray_end: Vec3,
+    main_camera_entity: Entity,
+    main_camera_transform: &GlobalTransform,
+    camera_near_for_depth: f32,
+    camera_layers: &RenderLayers,
+) -> Vec<(Entity, HitData)> {
+    let mut picks = Vec::new();
 
-            // Since the pixel space coordinate is `Ok`, we know the cursor is in the bounds of
-            // the sprite.
+    for (entity, sprite, sprite_transform, anchor, vis, sprite_layers) in sprite_query.iter() {
+        if !vis.get() || sprite_transform.affine().is_nan() {
+            continue;
+        }
+        if !render_layers_intersect(camera_layers, sprite_layers) {
+            continue;
+        }
 
-            let cursor_in_valid_pixels_of_sprite = 'valid_pixel: {
-                match settings.picking_mode {
-                    SpritePickingMode::AlphaThreshold(cutoff) => {
-                        let Some(image) = images.get(&sprite.image) else {
-                            // [`Sprite::from_color`] returns a defaulted handle.
-                            // This handle doesn't return a valid image, so returning false here would make picking "color sprites" impossible
-                            warn!("Sprite image not found");
-                            break 'valid_pixel true;
-                        };
+        // Transform cursor line segment to sprite coordinate system.
+        let world_to_sprite = sprite_transform.affine().inverse();
+        let cursor_start_sprite = world_to_sprite.transform_point3(cursor_ray_world.origin);
+        let cursor_end_sprite = world_to_sprite.transform_point3(cursor_ray_end);
 
-                        let Ok(color) = image.get_color_at(cursor_pos_sprite_pixel.x as u32, cursor_pos_sprite_pixel.y as u32) else {
-                            // We don't know how to interpret the pixel.
-                            warn!("Failed to get color at cursor pixel space: {}", cursor_pos_sprite_pixel);
-                            break 'valid_pixel false;
-                        };
+        // Find where the cursor segment intersects the plane Z=0 (the sprite plane in local space).
+        if (cursor_start_sprite.z - cursor_end_sprite.z).abs() <= f32::EPSILON {
+            continue;
+        }
+        let lerp_factor = f32::inverse_lerp(cursor_start_sprite.z, cursor_end_sprite.z, 0.0);
+        if !(0.0..=1.0).contains(&lerp_factor) {
+            continue;
+        }
 
-                        if color.alpha() > cutoff {
-                            true
-                        } else {
-                            warn!("Alpha threshold '{}' was not met: {:?}", cutoff, color);
-                            false
-                        }
-                    }
-                    SpritePickingMode::BoundingBox => true,
+        let cursor_pos_sprite_3d = cursor_start_sprite.lerp(cursor_end_sprite, lerp_factor);
+        let cursor_pos_sprite = Vec2::new(cursor_pos_sprite_3d.x, cursor_pos_sprite_3d.y);
+        let Ok(cursor_pos_sprite_pixel) = sprite.compute_pixel_space_point(cursor_pos_sprite, *anchor, images, texture_atlas_layout) else {
+            continue;
+        };
+
+        let cursor_in_valid_pixels_of_sprite = 'valid_pixel: {
+            match settings.picking_mode {
+                SpritePickingMode::AlphaThreshold(cutoff) => {
+                    let Some(image) = images.get(&sprite.image) else {
+                        // [`Sprite::from_color`] returns a defaulted handle. If the image is unavailable,
+                        // we still allow this to count so color sprites remain pickable.
+                        break 'valid_pixel true;
+                    };
+
+                    let Ok(color) = image.get_color_at(cursor_pos_sprite_pixel.x as u32, cursor_pos_sprite_pixel.y as u32) else {
+                        break 'valid_pixel false;
+                    };
+
+                    color.alpha() > cutoff
                 }
-            };
+                SpritePickingMode::BoundingBox => true,
+            }
+        };
 
-            blocked = cursor_in_valid_pixels_of_sprite;
+        if !cursor_in_valid_pixels_of_sprite {
+            continue;
+        }
 
-            cursor_in_valid_pixels_of_sprite.then(|| {
-                let hit_pos_world = sprite_transform.transform_point(cursor_pos_sprite_3d);
+        let hit_pos_world = sprite_transform.transform_point(cursor_pos_sprite_3d);
+        let depth = compute_hit_depth(main_camera_transform, camera_near_for_depth, hit_pos_world);
+        picks.push((
+            entity,
+            HitData::new(main_camera_entity, depth, Some(hit_pos_world), Some(*sprite_transform.back())),
+        ));
+    }
 
-                // Transform point from world to camera space to get the Z distance
-                let hit_pos_cam = main_camera_transform.affine().inverse().transform_point3(hit_pos_world);
+    picks
+}
 
-                // HitData requires a depth as calculated from the camera's near clipping plane
-                let depth = -camera_near_for_depth - hit_pos_cam.z;
+fn collect_mesh_hits<OF: QueryFilter>(
+    mesh_query: &Query<(Entity, &Mesh3d, &GlobalTransform, &ViewVisibility, Option<&Aabb>, Option<&RenderLayers>), OF>,
+    meshes: &Res<Assets<Mesh>>,
+    cursor_ray_world: Ray3d,
+    main_camera_entity: Entity,
+    main_camera_transform: &GlobalTransform,
+    camera_near_for_depth: f32,
+    camera_layers: &RenderLayers,
+) -> Vec<(Entity, HitData)> {
+    let mut picks = Vec::new();
 
-                // warn!("✅ Picked entity {:?} at world Z: {:?}", entity, sprite_transform.translation().z);
+    for (entity, mesh_3d, mesh_transform, visibility, mesh_aabb, mesh_layers) in mesh_query.iter() {
+        if !visibility.get() || mesh_transform.affine().is_nan() {
+            continue;
+        }
+        if !render_layers_intersect(camera_layers, mesh_layers) {
+            continue;
+        }
 
-                (
-                    entity,
-                    HitData::new(main_camera_entity, depth, Some(hit_pos_world), Some(*sprite_transform.back())),
-                )
-            })
-        })
-        .collect();
+        let mesh_affine = mesh_transform.affine();
+        if let Some(aabb) = mesh_aabb {
+            let mesh_aabb = Aabb3d::new(aabb.center, aabb.half_extents);
+            if ray_aabb_intersection_3d(cursor_ray_world, &mesh_aabb, &mesh_affine).is_none() {
+                continue;
+            }
+        }
 
-    if !picks.is_empty() {
-        // warn!("Pick(s) detected for mouse pointer");
+        let Some(mesh) = meshes.get(&mesh_3d.0) else {
+            continue;
+        };
 
-        let order = main_camera.order as f32;
-        output.write(PointerHits::new(*pointer_id, picks, order));
+        let Some(intersection) = ray_intersection_over_mesh(mesh, &mesh_affine, cursor_ray_world) else {
+            continue;
+        };
 
-        true
+        let depth = compute_hit_depth(main_camera_transform, camera_near_for_depth, intersection.point_world);
+        picks.push((
+            entity,
+            HitData::new(
+                main_camera_entity,
+                depth,
+                Some(intersection.point_world),
+                Some(intersection.normal_world),
+            ),
+        ));
+    }
+
+    picks
+}
+
+fn render_layers_intersect(camera_layers: &RenderLayers, entity_layers: Option<&RenderLayers>) -> bool {
+    let entity_layers = entity_layers.cloned().unwrap_or_default();
+    camera_layers.intersects(&entity_layers)
+}
+
+fn compute_hit_depth(main_camera_transform: &GlobalTransform, camera_near_for_depth: f32, hit_pos_world: Vec3) -> f32 {
+    let hit_pos_cam = main_camera_transform.affine().inverse().transform_point3(hit_pos_world);
+    -camera_near_for_depth - hit_pos_cam.z
+}
+
+#[derive(Debug, Clone, Copy)]
+struct MeshIntersectionHit {
+    point_world: Vec3,
+    normal_world: Vec3,
+}
+
+fn ray_intersection_over_mesh(mesh: &Mesh, mesh_transform: &Affine3A, ray_world: Ray3d) -> Option<MeshIntersectionHit> {
+    if mesh.primitive_topology() != PrimitiveTopology::TriangleList {
+        return None;
+    }
+
+    let positions = mesh
+        .attribute(Mesh::ATTRIBUTE_POSITION)
+        .and_then(|attribute| attribute.as_float3())?;
+
+    let world_to_mesh = mesh_transform.inverse();
+    let ray_local = Ray3d::new(
+        world_to_mesh.transform_point3(ray_world.origin),
+        Dir3::new(world_to_mesh.transform_vector3(*ray_world.direction)).ok()?,
+    );
+
+    let mut closest_distance = f32::MAX;
+    let mut closest_triangle: Option<[Vec3; 3]> = None;
+
+    match mesh.indices() {
+        Some(Indices::U16(indices)) => {
+            ray_intersection_over_indexed_tris(&ray_local, positions, indices, &mut closest_distance, &mut closest_triangle);
+        }
+        Some(Indices::U32(indices)) => {
+            ray_intersection_over_indexed_tris(&ray_local, positions, indices, &mut closest_distance, &mut closest_triangle);
+        }
+        None => {
+            for tri in positions.chunks_exact(3) {
+                let tri_vertices = [
+                    Vec3::from_array(tri[0]),
+                    Vec3::from_array(tri[1]),
+                    Vec3::from_array(tri[2]),
+                ];
+                if let Some(distance) = ray_triangle_intersection(&ray_local, &tri_vertices)
+                    && distance >= 0.0
+                    && distance < closest_distance
+                {
+                    closest_distance = distance;
+                    closest_triangle = Some(tri_vertices);
+                }
+            }
+        }
+    }
+
+    let closest_triangle = closest_triangle?;
+    let point_local = ray_local.get_point(closest_distance);
+    let normal_local = (closest_triangle[1] - closest_triangle[0]).cross(closest_triangle[2] - closest_triangle[0]);
+    if normal_local.length_squared() <= f32::EPSILON {
+        return None;
+    }
+
+    let point_world = mesh_transform.transform_point3(point_local);
+    let normal_world = mesh_transform.transform_vector3(normal_local).normalize_or_zero();
+    if normal_world.length_squared() <= f32::EPSILON {
+        return None;
+    }
+
+    Some(MeshIntersectionHit {
+        point_world,
+        normal_world,
+    })
+}
+
+fn ray_intersection_over_indexed_tris<I: Copy + TryInto<usize>>(
+    ray_local: &Ray3d,
+    positions: &[[f32; 3]],
+    indices: &[I],
+    closest_distance: &mut f32,
+    closest_triangle: &mut Option<[Vec3; 3]>,
+) {
+    for tri in indices.chunks_exact(3) {
+        let [Ok(a), Ok(b), Ok(c)] = [tri[0].try_into(), tri[1].try_into(), tri[2].try_into()] else {
+            continue;
+        };
+        let [Some(a), Some(b), Some(c)] = [positions.get(a), positions.get(b), positions.get(c)] else {
+            continue;
+        };
+
+        let tri_vertices = [
+            Vec3::from_array(*a),
+            Vec3::from_array(*b),
+            Vec3::from_array(*c),
+        ];
+        if let Some(distance) = ray_triangle_intersection(ray_local, &tri_vertices)
+            && distance >= 0.0
+            && distance < *closest_distance
+        {
+            *closest_distance = distance;
+            *closest_triangle = Some(tri_vertices);
+        }
+    }
+}
+
+fn ray_triangle_intersection(ray: &Ray3d, triangle: &[Vec3; 3]) -> Option<f32> {
+    // Moller-Trumbore with backface culling.
+    let edge_01 = triangle[1] - triangle[0];
+    let edge_02 = triangle[2] - triangle[0];
+    let p_vec = ray.direction.cross(edge_02);
+    let determinant = edge_01.dot(p_vec);
+    if determinant <= f32::EPSILON {
+        return None;
+    }
+
+    let determinant_inverse = 1.0 / determinant;
+    let t_vec = ray.origin - triangle[0];
+    let u = t_vec.dot(p_vec) * determinant_inverse;
+    if !(0.0..=1.0).contains(&u) {
+        return None;
+    }
+
+    let q_vec = t_vec.cross(edge_01);
+    let v = (*ray.direction).dot(q_vec) * determinant_inverse;
+    if v < 0.0 || u + v > 1.0 {
+        return None;
+    }
+
+    Some(edge_02.dot(q_vec) * determinant_inverse)
+}
+
+fn ray_aabb_intersection_3d(ray: Ray3d, aabb: &Aabb3d, model_to_world: &Affine3A) -> Option<f32> {
+    // Transform the ray to model space so we can intersect against the mesh-local AABB.
+    let world_to_model = model_to_world.inverse();
+    let ray_direction: Vec3A = world_to_model.transform_vector3a((*ray.direction).into());
+    let ray_direction_recip = ray_direction.recip();
+    let ray_origin: Vec3A = world_to_model.transform_point3a(ray.origin.into());
+
+    let positive = ray_direction.signum().cmpgt(Vec3A::ZERO);
+    let min = Vec3A::select(positive, aabb.min, aabb.max);
+    let max = Vec3A::select(positive, aabb.max, aabb.min);
+    let tmin = (min - ray_origin) * ray_direction_recip;
+    let tmax = (max - ray_origin) * ray_direction_recip;
+
+    let tmin = tmin.max_element().max(0.0);
+    let tmax = tmax.min_element();
+
+    if tmin <= tmax {
+        Some(tmin)
     } else {
-        picks.push((NO_HIT_SENTINEL, HitData::new(main_camera_entity, 0.0, None, None)));
-
-        let order = main_camera.order as f32;
-        output.write(PointerHits::new(*pointer_id, picks, order));
-
-        false
+        None
     }
 }

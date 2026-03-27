@@ -32,6 +32,8 @@ impl FormatTime for ShortTime {
 pub trait OntologicalContext {
     /// Filter used to distinguish which entities belong to this context.
     type SpriteOntologyFilter: QueryFilter;
+    /// Filter used to distinguish which mesh entities belong to this context.
+    type MeshOntologyFilter: QueryFilter;
 
     fn name() -> &'static str;
 
@@ -49,6 +51,7 @@ pub struct Meta;
 
 impl OntologicalContext for Diegetic {
     type SpriteOntologyFilter = Without<super::components::Meta<Sprite>>;
+    type MeshOntologyFilter = Without<super::components::Meta<Mesh3d>>;
 
     fn name() -> &'static str {
         "Diegetic"
@@ -61,6 +64,7 @@ impl OntologicalContext for Diegetic {
 
 impl OntologicalContext for Meta {
     type SpriteOntologyFilter = With<super::components::Meta<Sprite>>;
+    type MeshOntologyFilter = With<super::components::Meta<Mesh3d>>;
 
     fn name() -> &'static str {
         "Meta"
