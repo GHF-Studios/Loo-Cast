@@ -41,8 +41,9 @@ const FRONTIER_COARSER_LEVELS: u8 = 2;
 const FRONTIER_FINER_LEVELS: u8 = 2;
 const CAMERA_EFFECTIVE_ZOOM_MIN: f32 = 0.1;
 const CAMERA_EFFECTIVE_ZOOM_MAX: f32 = 10.0;
-const CAMERA_DISTANCE_AT_MIN_ZOOM: f32 = 4_200.0;
-const CAMERA_DISTANCE_AT_MAX_ZOOM: f32 = 420.0;
+const CAMERA_REFERENCE_HALF_VIEW_SPAN: f32 = 1_200.0;
+const CAMERA_DISTANCE_MIN: f32 = 80.0;
+const CAMERA_DISTANCE_MAX: f32 = 25_000.0;
 
 #[inline]
 fn configured_default_phenomenon_kind() -> PhenomenonKind {
@@ -56,21 +57,11 @@ fn effective_camera_zoom(local_zoom: f32, dev_zoom: f32) -> f32 {
 }
 
 #[inline]
-fn zoom_log_t(zoom: f32) -> f32 {
+fn camera_distance_from_zoom_and_fov(zoom: f32, fov_radians: f32) -> f32 {
     let zoom = zoom.clamp(CAMERA_EFFECTIVE_ZOOM_MIN, CAMERA_EFFECTIVE_ZOOM_MAX);
-    let min_ln = CAMERA_EFFECTIVE_ZOOM_MIN.ln();
-    let max_ln = CAMERA_EFFECTIVE_ZOOM_MAX.ln();
-    if (max_ln - min_ln).abs() <= f32::EPSILON {
-        0.0
-    } else {
-        ((zoom.ln() - min_ln) / (max_ln - min_ln)).clamp(0.0, 1.0)
-    }
-}
-
-#[inline]
-fn camera_distance_from_zoom(zoom: f32) -> f32 {
-    let t = zoom_log_t(zoom);
-    CAMERA_DISTANCE_AT_MIN_ZOOM + (CAMERA_DISTANCE_AT_MAX_ZOOM - CAMERA_DISTANCE_AT_MIN_ZOOM) * t
+    let tan_half = (fov_radians * 0.5).tan().abs().max(1e-4);
+    let half_view_span = CAMERA_REFERENCE_HALF_VIEW_SPAN / zoom;
+    (half_view_span / tan_half).clamp(CAMERA_DISTANCE_MIN, CAMERA_DISTANCE_MAX)
 }
 
 pub(super) fn pre_setup_phase_0(mut commands: Commands, mut images: ResMut<Assets<Image>>, windows: Query<&Window>) {
@@ -2043,6 +2034,47 @@ mod tests {
     }
 
     #[test]
+    fn camera_distance_decreases_monotonically_with_zoom() {
+        let fov_min = 8.0;
+        let fov_max = 100.0;
+
+        let zoom_a = 0.1;
+        let zoom_b = 1.0;
+        let zoom_c = 10.0;
+
+        let fov_a = zoom_to_fov_radians(zoom_a, CAMERA_EFFECTIVE_ZOOM_MIN, CAMERA_EFFECTIVE_ZOOM_MAX, fov_min, fov_max);
+        let fov_b = zoom_to_fov_radians(zoom_b, CAMERA_EFFECTIVE_ZOOM_MIN, CAMERA_EFFECTIVE_ZOOM_MAX, fov_min, fov_max);
+        let fov_c = zoom_to_fov_radians(zoom_c, CAMERA_EFFECTIVE_ZOOM_MIN, CAMERA_EFFECTIVE_ZOOM_MAX, fov_min, fov_max);
+
+        let d_a = camera_distance_from_zoom_and_fov(zoom_a, fov_a);
+        let d_b = camera_distance_from_zoom_and_fov(zoom_b, fov_b);
+        let d_c = camera_distance_from_zoom_and_fov(zoom_c, fov_c);
+
+        assert!(d_a > d_b && d_b > d_c, "expected distance ordering d(0.1) > d(1.0) > d(10.0), got {d_a} >? {d_b} >? {d_c}");
+    }
+
+    #[test]
+    fn camera_distance_and_fov_pair_produces_inverse_zoom_view_span() {
+        let fov_min = 8.0;
+        let fov_max = 100.0;
+
+        let z1 = 1.0;
+        let z10 = 10.0;
+
+        let fov1 = zoom_to_fov_radians(z1, CAMERA_EFFECTIVE_ZOOM_MIN, CAMERA_EFFECTIVE_ZOOM_MAX, fov_min, fov_max);
+        let fov10 = zoom_to_fov_radians(z10, CAMERA_EFFECTIVE_ZOOM_MIN, CAMERA_EFFECTIVE_ZOOM_MAX, fov_min, fov_max);
+
+        let d1 = camera_distance_from_zoom_and_fov(z1, fov1);
+        let d10 = camera_distance_from_zoom_and_fov(z10, fov10);
+
+        let span1 = d1 * (fov1 * 0.5).tan();
+        let span10 = d10 * (fov10 * 0.5).tan();
+        let ratio = span1 / span10;
+
+        assert!((ratio - 10.0).abs() < 0.01, "expected ~10x span ratio, got {ratio}");
+    }
+
+    #[test]
     fn grid_coord_native_absolute_accumulates_parent_lineage() {
         let root = GridVec::new_root(GridXyz::new_local(1, 0, 0));
         let child = GridVec::new(root, GridXyz::new_local(2, 0, 0));
@@ -2508,7 +2540,7 @@ mod tests {
 #[tracing::instrument(skip_all)]
 pub(super) fn enforce_main_camera_depth_contract_system(
     mut main_camera_query: Query<(&mut Transform, &mut Projection), (With<MainCamera>, Without<Player>)>,
-    player_transform_query: Query<&Transform, (With<Player>, Without<MainCamera>)>,
+    player_query: Query<(&Transform, &ChunkLoader), (With<Player>, Without<MainCamera>)>,
     zoom_factor: Res<ZoomFactor>,
     dev_zoom_factor: Res<DevZoomFactor>,
 ) {
@@ -2516,11 +2548,26 @@ pub(super) fn enforce_main_camera_depth_contract_system(
         return;
     };
 
-    let camera_zoom = effective_camera_zoom(zoom_factor.0, dev_zoom_factor.0);
-    let camera_distance = camera_distance_from_zoom(camera_zoom);
-    camera_transform.translation.z = player_transform_query
+    let perspective_fov_min_deg = CONFIG().get::<f32>("camera/min_fov_degrees");
+    let perspective_fov_max_deg = CONFIG().get::<f32>("camera/max_fov_degrees");
+
+    camera_transform.translation.z = player_query
         .single()
-        .map(|transform| transform.translation.z + camera_distance)
+        .map(|(player_transform, chunk_loader)| {
+            let local_min = chunk_loader.usf_transform.scale.policy.local_min as f32;
+            let local_max = chunk_loader.usf_transform.scale.policy.local_max as f32;
+            let display_zoom = zoom_factor.0.clamp(local_min.max(f32::EPSILON), local_max.max(local_min + f32::EPSILON));
+            let camera_zoom = effective_camera_zoom(display_zoom, dev_zoom_factor.0);
+            let fov = zoom_to_fov_radians(
+                camera_zoom,
+                CAMERA_EFFECTIVE_ZOOM_MIN,
+                CAMERA_EFFECTIVE_ZOOM_MAX,
+                perspective_fov_min_deg,
+                perspective_fov_max_deg,
+            );
+            let camera_distance = camera_distance_from_zoom_and_fov(camera_zoom, fov);
+            player_transform.translation.z + camera_distance
+        })
         .unwrap_or(Scale::CANONICAL_CAMERA_Z);
 
     match projection.as_mut() {
