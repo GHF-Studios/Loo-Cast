@@ -58,12 +58,14 @@ impl Default for PlayerControlSettings {
 #[derive(Resource, Reflect, Debug, Clone, Copy)]
 #[reflect(Resource)]
 pub struct PlayerLookState {
+    pub yaw_radians: f32,
     pub pitch_radians: f32,
     pub roll_radians: f32,
 }
 impl Default for PlayerLookState {
     fn default() -> Self {
         Self {
+            yaw_radians: 0.0,
             pitch_radians: 0.0,
             roll_radians: 0.0,
         }

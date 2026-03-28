@@ -2443,7 +2443,7 @@ fn world_space_planar_delta_from_intent(intent_translation_delta: Vec3, yaw_radi
     }
 
     let yaw_rotation = Quat::from_rotation_z(yaw_radians);
-    let mut world_planar = yaw_rotation.inverse() * local_planar;
+    let mut world_planar = yaw_rotation * local_planar;
     world_planar.z = intent_translation_delta.z;
     world_planar
 }
@@ -2460,16 +2460,10 @@ pub(super) fn apply_usf_player_pivots_system(
     player_camera_mode: Res<PlayerCameraMode>,
     player_control_settings: Res<PlayerControlSettings>,
 ) {
-    const PLAYER_LOCAL_Z_ANCHOR: f32 = 0.0;
-
     let Ok((mut chunk_loader, mut chunk_actor, mut player_transform)) = player_loader_query.single_mut() else {
         player_motion_intent.clear();
         return;
     };
-
-    // Keep player motion on a stable local XY plane for the demo.
-    player_transform.translation.z = PLAYER_LOCAL_Z_ANCHOR;
-    chunk_loader.usf_transform.translation.z.set_local(PLAYER_LOCAL_Z_ANCHOR as f64);
 
     let intent_translation_delta = player_motion_intent.translation_delta;
     let intent_rotation_delta = player_motion_intent.rotation_delta;
@@ -2505,10 +2499,8 @@ pub(super) fn apply_usf_player_pivots_system(
             .clamp(scale_policy.local_min, scale_policy.local_max);
         player_transform.translation.x = player_transform.translation.x.clamp(translation_local_min, translation_local_max);
         player_transform.translation.y = player_transform.translation.y.clamp(translation_local_min, translation_local_max);
-        player_transform.translation.z = PLAYER_LOCAL_Z_ANCHOR;
         chunk_loader.usf_transform.translation.x.set_local(player_transform.translation.x as f64);
         chunk_loader.usf_transform.translation.y.set_local(player_transform.translation.y as f64);
-        chunk_loader.usf_transform.translation.z.set_local(PLAYER_LOCAL_Z_ANCHOR as f64);
         chunk_loader.usf_transform.rotation.x.local = chunk_loader.usf_transform.rotation.x.local.clamp(rotation_local_min, rotation_local_max);
         chunk_loader.usf_transform.rotation.y.local = chunk_loader.usf_transform.rotation.y.local.clamp(rotation_local_min, rotation_local_max);
         chunk_loader.usf_transform.rotation.z.local = chunk_loader.usf_transform.rotation.z.local.clamp(rotation_local_min, rotation_local_max);
@@ -2539,10 +2531,8 @@ pub(super) fn apply_usf_player_pivots_system(
                 .clamp(scale_policy.local_min, scale_policy.local_max);
             player_transform.translation.x = player_transform.translation.x.clamp(translation_local_min, translation_local_max);
             player_transform.translation.y = player_transform.translation.y.clamp(translation_local_min, translation_local_max);
-            player_transform.translation.z = PLAYER_LOCAL_Z_ANCHOR;
             chunk_loader.usf_transform.translation.x.set_local(player_transform.translation.x as f64);
             chunk_loader.usf_transform.translation.y.set_local(player_transform.translation.y as f64);
-            chunk_loader.usf_transform.translation.z.set_local(PLAYER_LOCAL_Z_ANCHOR as f64);
             chunk_loader.usf_transform.rotation.x.local = chunk_loader.usf_transform.rotation.x.local.clamp(rotation_local_min, rotation_local_max);
             chunk_loader.usf_transform.rotation.y.local = chunk_loader.usf_transform.rotation.y.local.clamp(rotation_local_min, rotation_local_max);
             chunk_loader.usf_transform.rotation.z.local = chunk_loader.usf_transform.rotation.z.local.clamp(rotation_local_min, rotation_local_max);
@@ -2556,8 +2546,6 @@ pub(super) fn apply_usf_player_pivots_system(
 
             let scale_pivot = chunk_loader.apply_scale_pivot(&mut zoom_factor.0, &mut player_transform.translation);
             let translation_grid_delta = chunk_loader.apply_translation_pivot(&mut player_transform.translation);
-            player_transform.translation.z = PLAYER_LOCAL_Z_ANCHOR;
-            chunk_loader.usf_transform.translation.z.set_local(PLAYER_LOCAL_Z_ANCHOR as f64);
             chunk_loader.apply_rotation_pivot();
             chunk_actor.coord = chunk_loader.coord.clone();
             zoom_factor.0 = zoom_factor.0.clamp(scale_commit_min, scale_commit_max);
@@ -2583,10 +2571,8 @@ pub(super) fn apply_usf_player_pivots_system(
                     .clamp(scale_policy.local_min, scale_policy.local_max);
                 player_transform.translation.x = player_transform.translation.x.clamp(translation_local_min, translation_local_max);
                 player_transform.translation.y = player_transform.translation.y.clamp(translation_local_min, translation_local_max);
-                player_transform.translation.z = PLAYER_LOCAL_Z_ANCHOR;
                 chunk_loader.usf_transform.translation.x.set_local(player_transform.translation.x as f64);
                 chunk_loader.usf_transform.translation.y.set_local(player_transform.translation.y as f64);
-                chunk_loader.usf_transform.translation.z.set_local(PLAYER_LOCAL_Z_ANCHOR as f64);
                 chunk_loader.usf_transform.rotation.x.local = chunk_loader.usf_transform.rotation.x.local.clamp(rotation_local_min, rotation_local_max);
                 chunk_loader.usf_transform.rotation.y.local = chunk_loader.usf_transform.rotation.y.local.clamp(rotation_local_min, rotation_local_max);
                 chunk_loader.usf_transform.rotation.z.local = chunk_loader.usf_transform.rotation.z.local.clamp(rotation_local_min, rotation_local_max);
@@ -2605,6 +2591,8 @@ pub(super) fn apply_usf_player_pivots_system(
             }
         }
     }
+
+    chunk_loader.usf_transform.translation.z.set_local(player_transform.translation.z as f64);
 
     // Keep commit-buffer accumulation internal. Rendering should never show values outside strict local bounds.
     let display_zoom = zoom_factor.0.clamp(local_min, local_max);
