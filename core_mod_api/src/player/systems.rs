@@ -64,10 +64,16 @@ fn wrap_angle_radians(angle: f32) -> f32 {
 #[inline]
 fn view_rotation_from_look(look_state: &PlayerLookState) -> Quat {
     let yaw_rotation = Quat::from_rotation_z(look_state.yaw_radians);
-    let pitch_rotation = Quat::from_rotation_x(look_state.pitch_radians);
-    let base_rotation = yaw_rotation * pitch_rotation;
-    let forward = base_rotation * Vec3::Y;
-    let roll_rotation = Quat::from_axis_angle(forward.normalize_or_zero(), look_state.roll_radians);
+    let forward_planar = (yaw_rotation * Vec3::Y).normalize_or_zero();
+    let right = (yaw_rotation * Vec3::X).normalize_or_zero();
+    let pitch_rotation = Quat::from_axis_angle(right, look_state.pitch_radians);
+    let mut forward = (pitch_rotation * forward_planar).normalize_or_zero();
+    if forward.length_squared() <= f32::EPSILON {
+        forward = Vec3::Y;
+    }
+
+    let base_rotation = Transform::from_translation(Vec3::ZERO).looking_to(forward, Vec3::Z).rotation;
+    let roll_rotation = Quat::from_axis_angle(forward, look_state.roll_radians);
     roll_rotation * base_rotation
 }
 
