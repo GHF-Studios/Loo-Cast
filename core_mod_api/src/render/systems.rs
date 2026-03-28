@@ -2693,6 +2693,51 @@ fn world_space_planar_delta_from_intent(intent_translation_delta: Vec3, yaw_radi
     world_planar
 }
 
+#[inline]
+fn clamp_local_zoom_accumulator(local_zoom: f32, local_min: f32, local_max: f32) -> f32 {
+    let min = local_min.max(f32::MIN_POSITIVE);
+    let max = local_max.max(min * 1.001);
+    let max_exclusive = (max - max.abs().max(1.0) * 1e-6).max(min * 1.001);
+    local_zoom.clamp(min, max_exclusive)
+}
+
+#[inline]
+fn apply_discrete_scale_rebase_events(
+    chunk_loader: &mut ChunkLoader,
+    local_zoom: &mut f32,
+    logical_world_pos: &mut Vec3,
+    local_min: f32,
+    local_max: f32,
+) -> (u32, u32) {
+    let mut zoom_in_events = 0_u32;
+    let mut zoom_out_events = 0_u32;
+    let min = local_min.max(f32::MIN_POSITIVE);
+    let max = local_max.max(min * 1.001);
+    let pivot_factor = (max / min).max(1.001);
+
+    while *local_zoom < min {
+        if chunk_loader.scale == Scale::MIN {
+            *local_zoom = min;
+            break;
+        }
+        *logical_world_pos = chunk_loader.zoom_in(*logical_world_pos);
+        *local_zoom *= pivot_factor;
+        zoom_in_events = zoom_in_events.saturating_add(1);
+    }
+
+    while *local_zoom >= max {
+        if chunk_loader.scale == Scale::MAX {
+            break;
+        }
+        *logical_world_pos = chunk_loader.zoom_out(*logical_world_pos);
+        *local_zoom /= pivot_factor;
+        zoom_out_events = zoom_out_events.saturating_add(1);
+    }
+
+    *local_zoom = clamp_local_zoom_accumulator(*local_zoom, min, max);
+    (zoom_in_events, zoom_out_events)
+}
+
 #[tracing::instrument(skip_all)]
 pub(super) fn apply_usf_player_pivots_system(
     mut zoom_factor: ResMut<ZoomFactor>,
@@ -2720,8 +2765,6 @@ pub(super) fn apply_usf_player_pivots_system(
     let scale_policy = chunk_loader.usf_transform.scale.policy;
     let local_min = scale_policy.local_min as f32;
     let local_max = scale_policy.local_max as f32;
-    let scale_commit_min = scale_policy.commit_min() as f32;
-    let scale_commit_max = scale_policy.commit_max() as f32;
     let translation_policy = chunk_loader.usf_transform.translation.policy;
     let translation_local_min = translation_policy.local_min as f32;
     let translation_local_max = translation_policy.local_max as f32;
@@ -2732,13 +2775,8 @@ pub(super) fn apply_usf_player_pivots_system(
 
     if gate_locked {
         // Hard freeze mode: do not process additional pivot transitions while input is locked.
-        zoom_factor.0 = zoom_factor.0.clamp(local_min, local_max);
-        chunk_loader.usf_transform.scale.uniform.local = chunk_loader
-            .usf_transform
-            .scale
-            .uniform
-            .local
-            .clamp(scale_policy.local_min, scale_policy.local_max);
+        zoom_factor.0 = clamp_local_zoom_accumulator(zoom_factor.0, local_min, local_max);
+        chunk_loader.usf_transform.scale.set_local(zoom_factor.0 as f64);
         player_transform.translation.x = player_transform.translation.x.clamp(translation_local_min, translation_local_max);
         player_transform.translation.y = player_transform.translation.y.clamp(translation_local_min, translation_local_max);
         player_transform.translation.z = player_transform.translation.z.clamp(translation_local_min, translation_local_max);
@@ -2751,7 +2789,7 @@ pub(super) fn apply_usf_player_pivots_system(
     } else {
         let candidate_translation = player_transform.translation + world_space_translation_delta;
 
-        let would_cross_scale_boundary = zoom_factor.0 <= scale_commit_min || zoom_factor.0 >= scale_commit_max;
+        let would_cross_scale_boundary = zoom_factor.0 < local_min || zoom_factor.0 >= local_max;
         let would_cross_translation_boundary = candidate_translation.x < translation_local_min
             || candidate_translation.x >= translation_local_max
             || candidate_translation.y < translation_local_min
@@ -2768,13 +2806,8 @@ pub(super) fn apply_usf_player_pivots_system(
             }
 
             // Reject boundary commit while a previous boundary batch is still in flight.
-            zoom_factor.0 = zoom_factor.0.clamp(local_min, local_max);
-            chunk_loader.usf_transform.scale.uniform.local = chunk_loader
-                .usf_transform
-                .scale
-                .uniform
-                .local
-                .clamp(scale_policy.local_min, scale_policy.local_max);
+            zoom_factor.0 = clamp_local_zoom_accumulator(zoom_factor.0, local_min, local_max);
+            chunk_loader.usf_transform.scale.set_local(zoom_factor.0 as f64);
             player_transform.translation.x = player_transform.translation.x.clamp(translation_local_min, translation_local_max);
             player_transform.translation.y = player_transform.translation.y.clamp(translation_local_min, translation_local_max);
             player_transform.translation.z = player_transform.translation.z.clamp(translation_local_min, translation_local_max);
@@ -2792,13 +2825,14 @@ pub(super) fn apply_usf_player_pivots_system(
                 chunk_loader.rotate_world_local(intent_rotation_delta);
             }
 
-            let scale_pivot = chunk_loader.apply_scale_pivot(&mut zoom_factor.0, &mut player_transform.translation);
+            let (zoom_in_events, zoom_out_events) =
+                apply_discrete_scale_rebase_events(&mut chunk_loader, &mut zoom_factor.0, &mut player_transform.translation, local_min, local_max);
+            chunk_loader.usf_transform.scale.set_local(zoom_factor.0 as f64);
             let translation_grid_delta = chunk_loader.apply_translation_pivot(&mut player_transform.translation);
             chunk_loader.apply_rotation_pivot();
             chunk_actor.coord = chunk_loader.coord.clone();
-            zoom_factor.0 = zoom_factor.0.clamp(scale_commit_min, scale_commit_max);
 
-            let boundary_crossed = scale_pivot.lower_crossings > 0 || scale_pivot.upper_crossings > 0 || translation_grid_delta != IVec3::ZERO;
+            let boundary_crossed = zoom_in_events > 0 || zoom_out_events > 0 || translation_grid_delta != IVec3::ZERO;
             if boundary_crossed && workflow_in_flight {
                 if let Some(gate) = chunk_load_gate.as_mut() {
                     let changed = gate.lock_by_in_flight_boundary();
@@ -2810,13 +2844,8 @@ pub(super) fn apply_usf_player_pivots_system(
             }
 
             if gate_locked {
-                zoom_factor.0 = zoom_factor.0.clamp(local_min, local_max);
-                chunk_loader.usf_transform.scale.uniform.local = chunk_loader
-                    .usf_transform
-                    .scale
-                    .uniform
-                    .local
-                    .clamp(scale_policy.local_min, scale_policy.local_max);
+                zoom_factor.0 = clamp_local_zoom_accumulator(zoom_factor.0, local_min, local_max);
+                chunk_loader.usf_transform.scale.set_local(zoom_factor.0 as f64);
                 player_transform.translation.x = player_transform.translation.x.clamp(translation_local_min, translation_local_max);
                 player_transform.translation.y = player_transform.translation.y.clamp(translation_local_min, translation_local_max);
                 player_transform.translation.z = player_transform.translation.z.clamp(translation_local_min, translation_local_max);
@@ -2830,11 +2859,11 @@ pub(super) fn apply_usf_player_pivots_system(
 
             if boundary_crossed {
                 warn!(
-                    "USF player pivot event: scale={:?}, zoom={:.6}, scale_crossings(l={},u={}), translation_grid_delta={:?}, player_pos={:?}",
+                    "USF player pivot event: scale={:?}, zoom={:.6}, scale_rebase_events(in={},out={}), translation_grid_delta={:?}, player_pos={:?}",
                     chunk_loader.scale,
                     zoom_factor.0,
-                    scale_pivot.lower_crossings,
-                    scale_pivot.upper_crossings,
+                    zoom_in_events,
+                    zoom_out_events,
                     translation_grid_delta,
                     player_transform.translation
                 );

@@ -653,7 +653,7 @@ fn color_from_seed(seed: u64) -> Color {
     Color::srgb(0.2 + 0.6 * r, 0.2 + 0.6 * g, 0.2 + 0.6 * b)
 }
 
-fn hash_density_u8(world_seed: u64, chunk_scale: Scale, gx: i64, gy: i64, gz: i64, zone_density_profile: ZoneDensityProfile) -> u8 {
+fn hash_density_u8(world_seed: u64, chunk_scale: Scale, gx: i64, gy: i64, gz: i64, _zone_density_profile: ZoneDensityProfile) -> u8 {
     let (gx, gy, gz) = wrap_top_level_units(chunk_scale, gx, gy, gz);
     let scale_to_root_factor = 10.0_f64.powi(chunk_scale.index_from_top() as i32);
     let wx = gx as f64 / scale_to_root_factor;
@@ -669,8 +669,9 @@ fn hash_density_u8(world_seed: u64, chunk_scale: Scale, gx: i64, gy: i64, gz: i6
 
     // Bias and shape to "mostly empty with occasional coherent surfaces".
     let shaped = ((combined - 0.66) * 3.0 + 0.5).clamp(0.0, 1.0);
-    let zoned_density = zone_density_profile.normalized_density(shaped);
-    (zoned_density * 255.0).round() as u8
+    // v2 contract: one shared field function across all scales.
+    // Zone behavior remains metadata for later phenomena/interaction logic, not geometry warping.
+    (shaped * 255.0).round() as u8
 }
 
 fn zone_numeric_id(zone_type: &ZoneTypeId) -> u32 {
@@ -876,5 +877,32 @@ mod tests {
         assert_eq!(record, loaded);
 
         let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn density_sampling_is_scale_invariant_for_shared_root_space_points() {
+        let settings = test_settings();
+        let parent = GridVec::new_root(GridXyz::new_local(0, 0, 0));
+        let child = GridVec::new(parent.clone(), GridXyz::new_local(3, 4, 4));
+        let (_zone_type, zone_density_profile) = test_zone();
+
+        let (parent_x, parent_y, parent_z) = chunk_index_at_scale(&parent);
+        let (child_x, child_y, child_z) = chunk_index_at_scale(&child);
+
+        // Child samples must map to the same root-space point as parent samples.
+        // Choose offsets divisible by 10 so the root-space mapping is exact in integer units.
+        for local in [0_i64, 100, 500, 900, 1_000] {
+            let child_gx = child_x * CHUNK_SPAN_UNITS_I64 + local;
+            let child_gy = child_y * CHUNK_SPAN_UNITS_I64 + local;
+            let child_gz = child_z * CHUNK_SPAN_UNITS_I64 + local;
+            let parent_gx = parent_x * CHUNK_SPAN_UNITS_I64 + 300 + (local / 10);
+            let parent_gy = parent_y * CHUNK_SPAN_UNITS_I64 + 400 + (local / 10);
+            let parent_gz = parent_z * CHUNK_SPAN_UNITS_I64 + 400 + (local / 10);
+
+            let child_density = hash_density_u8(settings.world_seed, child.scale, child_gx, child_gy, child_gz, zone_density_profile);
+            let parent_density = hash_density_u8(settings.world_seed, parent.scale, parent_gx, parent_gy, parent_gz, zone_density_profile);
+
+            assert_eq!(child_density, parent_density, "scale mismatch for local={local}");
+        }
     }
 }
