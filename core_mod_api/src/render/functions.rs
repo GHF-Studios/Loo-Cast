@@ -11,43 +11,31 @@ use crate::{
     debug::types::DebugSuiteTabViewer,
     input::states::InputMode,
     player::components::Player,
-    render::{
-        components::{ProxySyncRevision, RenderProxy, RenderProxyWindowMode},
-        resources::{DevZoomFactor, GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, RuntimeDebugToggles, ViewScale, ZoomFactor},
-    },
+    render::resources::{DevZoomFactor, GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, RuntimeDebugToggles, ViewScale, ZoomFactor},
     time::{
         resources::TimeInfo,
         types::{PauseState, StepConfig},
     },
     usf::phenomenon::PhenomenonDebugStats,
-    usf::scale::Scale,
 };
 
 static RESERVED_EGUI_CAMERA_ENTITY: OnceCell<Entity> = OnceCell::new();
 static RESERVED_UI_CAMERA_ENTITY: OnceCell<Entity> = OnceCell::new();
 static RESERVED_MAIN_CAMERA_ENTITY: OnceCell<Entity> = OnceCell::new();
-static RESERVED_PHENOMENON_MODEL_CAMERA_ENTITY: OnceCell<Entity> = OnceCell::new();
 
 static RESERVED_GAME_VIEW_RENDER_TARGET_HANDLE: OnceCell<Handle<Image>> = OnceCell::new();
 static RESERVED_GAME_VIEW_RENDER_TARGET_SIZE_UVEC2: OnceCell<UVec2> = OnceCell::new();
 
-pub(super) fn reserve_camera_entities(egui_camera: Entity, ui_camera: Entity, main_camera: Entity, phenomenon_model_camera: Entity) {
+pub(super) fn reserve_camera_entities(egui_camera: Entity, ui_camera: Entity, main_camera: Entity) {
     RESERVED_EGUI_CAMERA_ENTITY.set(egui_camera).expect("RESERVED_EGUI_CAMERA_ENTITY already set");
     RESERVED_UI_CAMERA_ENTITY.set(ui_camera).expect("RESERVED_UI_CAMERA_ENTITY already set");
     RESERVED_MAIN_CAMERA_ENTITY.set(main_camera).expect("RESERVED_MAIN_CAMERA_ENTITY already set");
-    RESERVED_PHENOMENON_MODEL_CAMERA_ENTITY
-        .set(phenomenon_model_camera)
-        .expect("RESERVED_PHENOMENON_MODEL_CAMERA_ENTITY already set");
 }
-pub(super) fn get_reserved_camera_entities() -> (Entity, Entity, Entity, Entity) {
+pub(super) fn get_reserved_camera_entities() -> (Entity, Entity, Entity) {
     (
         RESERVED_EGUI_CAMERA_ENTITY.clone().into_inner().expect("RESERVED_EGUI_CAMERA_ENTITY not set"),
         RESERVED_UI_CAMERA_ENTITY.clone().into_inner().expect("RESERVED_UI_CAMERA_ENTITY not set"),
         RESERVED_MAIN_CAMERA_ENTITY.clone().into_inner().expect("RESERVED_MAIN_CAMERA_ENTITY not set"),
-        RESERVED_PHENOMENON_MODEL_CAMERA_ENTITY
-            .clone()
-            .into_inner()
-            .expect("RESERVED_PHENOMENON_MODEL_CAMERA_ENTITY not set"),
     )
 }
 
@@ -69,31 +57,6 @@ pub(super) fn get_reserved_game_view_render_target() -> (Handle<Image>, UVec2) {
             .clone()
             .into_inner()
             .expect("RESERVED_GAME_VIEW_RENDER_TARGET_SIZE not set"),
-    )
-}
-
-pub const PHENOMENON_MODEL_LOCAL_SPAN_UNITS: f32 = 1000.0;
-
-pub fn new_phenomenon_model_proxy_bundle(pos: Vec3, visual_scale: f32, source_entity: Entity, coord_scale: Scale, depth_bias: f32) -> impl Bundle {
-    (
-        Transform {
-            translation: Vec3::new(pos.x, pos.y, pos.z + coord_scale.compute_z() + depth_bias),
-            scale: Vec3::splat(visual_scale),
-            ..Default::default()
-        },
-        Visibility::Visible,
-        RenderProxy {
-            source: source_entity,
-            layer_index: coord_scale.render_layer_index(),
-            depth_bias,
-            frontier_node_seed: 0,
-            frontier_lineage_depth: 0,
-            window_mode: RenderProxyWindowMode::WindowedSubsection,
-            window_center_local: Vec3::ZERO,
-            window_size_local: Vec3::ONE,
-            coarse_context_persistent: true,
-        },
-        ProxySyncRevision::default(),
     )
 }
 

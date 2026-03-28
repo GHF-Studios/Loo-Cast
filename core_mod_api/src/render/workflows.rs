@@ -10,10 +10,6 @@ define_workflow_mod_OLD! {
                     EulerRot
                 };
                 use bevy_egui::{EguiGlobalSettings, EguiRenderOutput};
-                use crate::bevy::render::render_resource::{
-                    Buffer, TextureView, TextureDescriptor, Extent3d,
-                    TextureDimension, TextureFormat, TextureUsages,
-                };
                 use bevy_inspector_egui::bevy_egui::PrimaryEguiContext;
 
                 use crate::chunk::components::ChunkActor;
@@ -40,13 +36,11 @@ define_workflow_mod_OLD! {
                             main_camera_entity: Entity,
                             ui_camera_entity: Entity,
                             egui_camera_entity: Entity,
-                            phenomenon_model_camera_entity: Entity,
                         }
                         struct Output {
                             spawned_main_camera_entity: Entity,
                             spawned_ui_camera_entity: Entity,
                             spawned_egui_camera_entity: Entity,
-                            spawned_phenomenon_model_camera_entity: Entity,
                         }
                     ],
                     core_functions: [
@@ -60,7 +54,6 @@ define_workflow_mod_OLD! {
                                 egui_camera_entity,
                                 ui_camera_entity,
                                 main_camera_entity,
-                                phenomenon_model_camera_entity,
                             ) = get_reserved_camera_entities();
 
                             commands.entity(egui_camera_entity).insert((
@@ -71,9 +64,6 @@ define_workflow_mod_OLD! {
                                 PrimaryEguiContext,
                                 EguiRenderOutput::default(),
                                 EguiCamera,
-                            ));
-                            commands.entity(phenomenon_model_camera_entity).insert((
-                                Name::new("phenomenon_model_camera_reserved"),
                             ));
                             commands.entity(ui_camera_entity).insert((
                                 Name::new("ui_camera"),
@@ -124,7 +114,6 @@ define_workflow_mod_OLD! {
                                 main_camera_entity,
                                 ui_camera_entity,
                                 egui_camera_entity,
-                                phenomenon_model_camera_entity,
                             }
                         }
 
@@ -134,13 +123,11 @@ define_workflow_mod_OLD! {
                             if commands.get_entity(state.main_camera_entity).is_ok()
                                 && commands.get_entity(state.ui_camera_entity).is_ok()
                                 && commands.get_entity(state.egui_camera_entity).is_ok()
-                                && commands.get_entity(state.phenomenon_model_camera_entity).is_ok()
                             {
                                 Outcome::Done(Output {
                                     spawned_main_camera_entity: state.main_camera_entity,
                                     spawned_ui_camera_entity: state.ui_camera_entity,
                                     spawned_egui_camera_entity: state.egui_camera_entity,
-                                    spawned_phenomenon_model_camera_entity: state.phenomenon_model_camera_entity,
                                 })
                             } else {
                                 Outcome::Wait(state)

@@ -1,7 +1,6 @@
 pub mod camera_contract;
 pub mod components;
 pub mod functions;
-pub mod materials;
 pub mod resources;
 pub mod systems;
 
@@ -9,22 +8,14 @@ pub mod custom_egui_widgets;
 // pub mod custom_perf_ui_entries;
 pub mod workflows;
 
-use crate::bevy::pbr::MaterialPlugin;
 use crate::bevy::prelude::*;
 use bevy_egui::EguiPrimaryContextPass;
-use components::{
-    EguiCamera, EntityProxyLink, LogicProxy, MainCamera, PhenomenonModelCamera, PhenomenonModelSurface, PhenomenonZoneProxy, ProxySyncRevision, RenderProxy,
-    RenderProxyWindowMode, UiCamera,
-};
-use materials::PhenomenonSurfaceMaterial;
-use resources::{
-    DevZoomFactor, PhenomenonSurfaceMeshCache, PhenomenonSurfaceMeshingBudget, PrimaryWindowUiDockState, PrimaryWindowUiState, RuntimeDebugToggles, ViewScale,
-    ZoomFactor,
-};
+use components::{EguiCamera, EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision, RenderProxy, RenderProxyWindowMode, UiCamera};
+use resources::{DevZoomFactor, PrimaryWindowUiDockState, PrimaryWindowUiState, RuntimeDebugToggles, ViewScale, ZoomFactor};
 use systems::{
     apply_usf_player_pivots_system, despawn_orphaned_render_proxies, draw_chunk_locator_gizmos_system, enforce_main_camera_depth_contract_system,
-    enforce_phenomenon_model_camera_depth_contract_system, main_camera_zoom_system, pre_setup_phase_0, pre_setup_phase_1, primary_window_ui_system,
-    resize_render_texture, update_render_proxies, update_view_scale_from_zoom, validate_camera_contract_system,
+    main_camera_zoom_system, pre_setup_phase_0, pre_setup_phase_1, primary_window_ui_system, resize_render_texture, update_render_proxies,
+    update_view_scale_from_zoom, validate_camera_contract_system,
 };
 
 use crate::core::{components::Meta, orchestration::AppSet, run_conditions::run_after_startup_finished};
@@ -34,7 +25,6 @@ pub(crate) struct RenderPlugin;
 impl Plugin for RenderPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(custom_egui_widgets::CustomEguiWidgetsPlugin)
-            .add_plugins(MaterialPlugin::<PhenomenonSurfaceMaterial>::default())
             // .add_plugins(custom_perf_ui_entries::CustomPerfUiEntriesPlugin)
             .init_resource::<PrimaryWindowUiState>()
             .init_resource::<PrimaryWindowUiDockState>()
@@ -43,8 +33,6 @@ impl Plugin for RenderPlugin {
             .insert_resource(DevZoomFactor::default())
             .insert_resource(ViewScale::default())
             .init_resource::<RuntimeDebugToggles>()
-            .insert_resource(PhenomenonSurfaceMeshCache::with_max_entries(512))
-            .init_resource::<PhenomenonSurfaceMeshingBudget>()
             .add_systems(PreStartup, (pre_setup_phase_0.before(pre_setup_phase_1), pre_setup_phase_1))
             .add_systems(
                 Update,
@@ -53,7 +41,6 @@ impl Plugin for RenderPlugin {
                     main_camera_zoom_system.in_set(AppSet::InputGather),
                     apply_usf_player_pivots_system.in_set(AppSet::BoundaryResolve),
                     enforce_main_camera_depth_contract_system.in_set(AppSet::Camera).after(update_follower_system),
-                    enforce_phenomenon_model_camera_depth_contract_system.in_set(AppSet::Camera),
                     update_view_scale_from_zoom.in_set(AppSet::Camera),
                     validate_camera_contract_system.in_set(AppSet::Diagnostics).after(update_view_scale_from_zoom),
                     despawn_orphaned_render_proxies.in_set(AppSet::Presentation),
@@ -64,7 +51,6 @@ impl Plugin for RenderPlugin {
             )
             .add_systems(EguiPrimaryContextPass, primary_window_ui_system)
             .register_type::<MainCamera>()
-            .register_type::<PhenomenonModelCamera>()
             .register_type::<UiCamera>()
             .register_type::<EguiCamera>()
             .register_type::<ViewScale>()
@@ -72,15 +58,12 @@ impl Plugin for RenderPlugin {
             .register_type::<LogicProxy>()
             .register_type::<RenderProxy>()
             .register_type::<RenderProxyWindowMode>()
-            .register_type::<PhenomenonModelSurface>()
-            .register_type::<PhenomenonZoneProxy>()
             .register_type::<ProxySyncRevision>()
             .register_type::<Meta<Sprite>>()
             .register_type::<Meta<Mesh3d>>()
             .register_type::<PrimaryWindowUiState>()
             .register_type::<RuntimeDebugToggles>()
             .register_type::<ZoomFactor>()
-            .register_type::<DevZoomFactor>()
-            .register_type::<PhenomenonSurfaceMeshingBudget>();
+            .register_type::<DevZoomFactor>();
     }
 }

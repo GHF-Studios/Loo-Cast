@@ -296,12 +296,12 @@ fn collect_context_hits<OC: OntologicalContext>(
         Some((pointer, pointer_location)) => match pointer_location.location().map(|loc| (*pointer, loc)) {
             Some(v) => v,
             None => {
-                warn!("Mouse pointer is inactive");
+                trace!("Mouse pointer is inactive");
                 return None;
             }
         },
         None => {
-            warn!("Mouse pointer not found");
+            trace!("Mouse pointer not found");
             return None;
         }
     };
@@ -312,7 +312,7 @@ fn collect_context_hits<OC: OntologicalContext>(
                 Projection::Orthographic(ortho) => ((ortho.far - ortho.near).abs(), ortho.near),
                 Projection::Perspective(perspective) => (perspective.far.max(1.0), perspective.near),
                 _ => {
-                    warn!("Main camera projection is unsupported for picking");
+                    debug!("Main camera projection is unsupported for picking");
                     return None;
                 }
             };
@@ -321,7 +321,7 @@ fn collect_context_hits<OC: OntologicalContext>(
         }
         Err(err) => match err {
             QuerySingleError::NoEntities(_) => {
-                warn!("No main camera found");
+                debug!("No main camera found");
                 return None;
             }
             QuerySingleError::MultipleEntities(_) => panic!("Multiple MainCameras not supported!"),
@@ -332,7 +332,7 @@ fn collect_context_hits<OC: OntologicalContext>(
     let viewport_size_vec2 = Vec2::new(viewport_size.x as f32, viewport_size.y as f32);
     let current_window_position = location.position;
     let Some(viewport_rect) = primary_window_ui_state.viewport_rect_precision_proxy else {
-        warn!("Viewport rect not found");
+        trace!("Viewport rect not found");
         return None;
     };
 
@@ -340,7 +340,7 @@ fn collect_context_hits<OC: OntologicalContext>(
         x: current_window_position.x,
         y: current_window_position.y,
     }) {
-        warn!("Cursor outside viewport");
+        trace!("Cursor outside viewport");
         return None;
     }
 
@@ -355,7 +355,7 @@ fn collect_context_hits<OC: OntologicalContext>(
     };
 
     let Ok(cursor_ray_world) = main_camera.viewport_to_world(main_camera_transform, current_viewport_position) else {
-        warn!("Failed to compute cursor ray world position");
+        debug!("Failed to compute cursor ray world position");
         return None;
     };
 

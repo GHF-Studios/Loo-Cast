@@ -1,14 +1,8 @@
 use crate::bevy::prelude::*;
-use crate::usf::pos::grid::types::GridVec;
-use crate::usf::zone::ZoneId;
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
 pub struct MainCamera;
-
-#[derive(Component, Reflect)]
-#[reflect(Component)]
-pub struct PhenomenonModelCamera;
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
@@ -40,20 +34,6 @@ pub struct RenderProxy {
     pub window_center_local: Vec3,
     pub window_size_local: Vec3,
     pub coarse_context_persistent: bool,
-}
-
-#[derive(Component, Reflect, Debug, Clone, Copy, PartialEq, Eq, Default)]
-#[reflect(Component)]
-pub struct PhenomenonModelSurface {
-    /// Hash of the last window/layer/meshing settings used to build this mesh.
-    pub last_signature: u64,
-}
-
-#[derive(Component, Reflect, Debug, Clone, PartialEq, Eq)]
-#[reflect(Component)]
-pub struct PhenomenonZoneProxy {
-    pub zone_id: ZoneId,
-    pub representative_coord: GridVec,
 }
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
