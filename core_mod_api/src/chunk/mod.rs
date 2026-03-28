@@ -64,9 +64,12 @@ impl Plugin for ChunkPlugin {
                 PostUpdate,
                 (
                     demo::hydrate_chunk_demo_data_system.in_set(AppSet::Presentation),
-                    demo::sync_chunk_demo_visual_transforms_system
+                    demo::bind_chunk_demo_visuals_to_world_presentation_root_system
                         .in_set(AppSet::Presentation)
                         .after(demo::hydrate_chunk_demo_data_system),
+                    demo::sync_chunk_demo_visual_transforms_system
+                        .in_set(AppSet::Presentation)
+                        .after(demo::bind_chunk_demo_visuals_to_world_presentation_root_system),
                     demo::prune_chunk_demo_store_system.in_set(AppSet::Diagnostics),
                 )
                     .run_if(run_after_startup_finished.and(run_if_not_paused)),

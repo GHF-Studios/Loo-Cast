@@ -14,6 +14,10 @@ pub struct EguiCamera;
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
+pub struct WorldPresentationRoot;
+
+#[derive(Component, Reflect)]
+#[reflect(Component)]
 pub struct EntityProxyLink {
     pub logic_entity: Entity,
     pub render_entity: Entity,
