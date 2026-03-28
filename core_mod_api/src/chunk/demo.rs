@@ -168,36 +168,38 @@ pub(crate) fn hydrate_chunk_demo_data_system(
         return;
     }
 
-    let Ok(chunk_loader) = player_loader_query.single() else {
-        return;
-    };
-    let active_scale = chunk_loader.scale;
-    let Some(schema) = definitions.schema_for_scale(active_scale) else {
-        warn!(
-            "USF demo chunk hydration skipped: missing DPT schema for active scale index {}",
-            active_scale.index_from_top()
-        );
+    let Ok(_chunk_loader) = player_loader_query.single() else {
         return;
     };
 
     for (entity, chunk) in added_chunks.iter() {
+        let chunk_scale = chunk.coord.scale;
+        let Some(schema) = definitions.schema_for_scale(chunk_scale) else {
+            warn!(
+                "USF demo chunk hydration skipped: missing DPT schema for chunk {:?} at scale index {}",
+                chunk.coord,
+                chunk_scale.index_from_top()
+            );
+            continue;
+        };
+
         let canonical_coord = canonical_grid_coord(&chunk.coord);
         let chunk_key = DptChunkKey {
-            scale: active_scale,
+            scale: chunk_scale,
             coord: canonical_coord.clone(),
         };
         let zone_type = {
             let chunk_record = dpt_store.ensure_chunk(chunk_key, schema);
-            zlm_registry.classify(active_scale, schema, &chunk_record.metrics)
+            zlm_registry.classify(chunk_scale, schema, &chunk_record.metrics)
         };
         let zone_density_profile = zone_behavior_registry.density_profile_for_zone(&zone_type).unwrap_or_default();
         let zone_density_signature = zone_density_profile.signature();
-        let chunk_file = chunk_file_path(&settings, active_scale, &canonical_coord);
+        let chunk_file = chunk_file_path(&settings, chunk_scale, &canonical_coord);
         let expected_coord = SerializableGridCoord::from_grid(&canonical_coord);
 
         let mut record = load_chunk_record(&chunk_file).filter(|loaded| {
             loaded.world_seed == settings.world_seed
-                && loaded.active_scale_index == active_scale.index_from_top()
+                && loaded.active_scale_index == chunk_scale.index_from_top()
                 && loaded.chunk_coord == expected_coord
                 && loaded.zone_type.eq_ignore_ascii_case(&zone_type.0)
                 && loaded.zone_density_signature == zone_density_signature
@@ -208,7 +210,7 @@ pub(crate) fn hydrate_chunk_demo_data_system(
         if record.is_none() {
             let generated = generate_chunk_record(
                 &settings,
-                active_scale,
+                chunk_scale,
                 &canonical_coord,
                 &zone_type,
                 zone_density_profile,
@@ -294,7 +296,7 @@ pub(crate) fn prune_chunk_demo_store_system(settings: Res<UsfDemoSettings>, load
 
 fn generate_chunk_record(
     settings: &UsfDemoSettings,
-    active_scale: Scale,
+    chunk_scale: Scale,
     canonical_coord: &GridVec,
     zone_type: &ZoneTypeId,
     zone_density_profile: ZoneDensityProfile,
@@ -304,7 +306,7 @@ fn generate_chunk_record(
     let axis_points = axis_samples.len();
     let total_points = axis_points * axis_points * axis_points;
 
-    let chunk_seed = derive_chunk_seed(settings.world_seed, active_scale, canonical_coord);
+    let chunk_seed = derive_chunk_seed(settings.world_seed, canonical_coord);
     let (chunk_x, chunk_y, chunk_z) = chunk_index_at_scale(canonical_coord);
 
     let mut rho_values = Vec::with_capacity(total_points);
@@ -317,7 +319,7 @@ fn generate_chunk_record(
                 let gx = chunk_x * CHUNK_SPAN_UNITS_I64 + axis_samples[ix] as i64;
                 let gy = chunk_y * CHUNK_SPAN_UNITS_I64 + axis_samples[iy] as i64;
                 let gz = chunk_z * CHUNK_SPAN_UNITS_I64 + axis_samples[iz] as i64;
-                rho_values.push(hash_density_u8(settings.world_seed, active_scale, gx, gy, gz, zone_density_profile));
+                rho_values.push(hash_density_u8(settings.world_seed, chunk_scale, gx, gy, gz, zone_density_profile));
                 zone_values.push(zone_id);
             }
         }
@@ -325,7 +327,7 @@ fn generate_chunk_record(
 
     PersistedChunkRecord {
         world_seed: settings.world_seed,
-        active_scale_index: active_scale.index_from_top(),
+        active_scale_index: chunk_scale.index_from_top(),
         chunk_coord: SerializableGridCoord::from_grid(canonical_coord),
         zone_type: zone_type.0.clone(),
         zone_density_signature,
@@ -572,23 +574,22 @@ fn build_axis_samples(step: u16) -> Vec<u16> {
     samples
 }
 
-fn derive_chunk_seed(world_seed: u64, active_scale: Scale, canonical_coord: &GridVec) -> u64 {
+fn derive_chunk_seed(world_seed: u64, canonical_coord: &GridVec) -> u64 {
     let mut hasher = DefaultHasher::new();
     world_seed.hash(&mut hasher);
-    active_scale.hash(&mut hasher);
     canonical_coord.hash(&mut hasher);
     let raw = hasher.finish();
     if raw == 0 { 0x9e37_79b9_7f4a_7c15 } else { raw }
 }
 
-fn chunk_file_path(settings: &UsfDemoSettings, active_scale: Scale, canonical_coord: &GridVec) -> PathBuf {
+fn chunk_file_path(settings: &UsfDemoSettings, chunk_scale: Scale, canonical_coord: &GridVec) -> PathBuf {
     let mut hasher = DefaultHasher::new();
     canonical_coord.hash(&mut hasher);
     let coord_hash = hasher.finish();
     Path::new(&settings.persistence_dir).join(format!(
         "ws_{:016x}_as_{:02}_coord_{:016x}.json",
         settings.world_seed,
-        active_scale.index_from_top(),
+        chunk_scale.index_from_top(),
         coord_hash
     ))
 }
@@ -614,14 +615,18 @@ fn color_from_seed(seed: u64) -> Color {
     Color::srgb(0.2 + 0.6 * r, 0.2 + 0.6 * g, 0.2 + 0.6 * b)
 }
 
-fn hash_density_u8(world_seed: u64, active_scale: Scale, gx: i64, gy: i64, gz: i64, zone_density_profile: ZoneDensityProfile) -> u8 {
-    let (gx, gy, gz) = wrap_top_level_units(active_scale, gx, gy, gz);
+fn hash_density_u8(world_seed: u64, chunk_scale: Scale, gx: i64, gy: i64, gz: i64, zone_density_profile: ZoneDensityProfile) -> u8 {
+    let (gx, gy, gz) = wrap_top_level_units(chunk_scale, gx, gy, gz);
+    let scale_to_root_factor = 10.0_f64.powi(chunk_scale.index_from_top() as i32);
+    let wx = gx as f64 / scale_to_root_factor;
+    let wy = gy as f64 / scale_to_root_factor;
+    let wz = gz as f64 / scale_to_root_factor;
 
     // Low-frequency value-noise blend with strong bias towards empty space.
     // This keeps surfaces coherent and avoids "solid clutter" from per-voxel white noise.
     let seed = mix64(world_seed ^ 0xa5a5_35f4_9be3_c211_u64);
-    let base = value_noise_3d(seed, active_scale, gx, gy, gz, 320);
-    let detail = value_noise_3d(seed ^ 0x8b8b_4fb7_0a7f_6611_u64, active_scale, gx, gy, gz, 128);
+    let base = value_noise_3d(seed, wx, wy, wz, 320.0);
+    let detail = value_noise_3d(seed ^ 0x8b8b_4fb7_0a7f_6611_u64, wx, wy, wz, 128.0);
     let combined = (base * 0.82) + (detail * 0.18);
 
     // Bias and shape to "mostly empty with occasional coherent surfaces".
@@ -665,27 +670,31 @@ fn wrap_top_level_units(active_scale: Scale, gx: i64, gy: i64, gz: i64) -> (i64,
     }
 }
 
-fn value_noise_3d(seed: u64, active_scale: Scale, gx: i64, gy: i64, gz: i64, cell_size: i64) -> f32 {
-    let cell_size = cell_size.max(1);
-    let cx0 = gx.div_euclid(cell_size);
-    let cy0 = gy.div_euclid(cell_size);
-    let cz0 = gz.div_euclid(cell_size);
+fn value_noise_3d(seed: u64, gx: f64, gy: f64, gz: f64, cell_size: f64) -> f32 {
+    let cell_size = cell_size.max(f64::EPSILON);
+    let sx = gx / cell_size;
+    let sy = gy / cell_size;
+    let sz = gz / cell_size;
+
+    let cx0 = sx.floor() as i64;
+    let cy0 = sy.floor() as i64;
+    let cz0 = sz.floor() as i64;
     let cx1 = cx0 + 1;
     let cy1 = cy0 + 1;
     let cz1 = cz0 + 1;
 
-    let tx = smoothstep01(gx.rem_euclid(cell_size) as f32 / cell_size as f32);
-    let ty = smoothstep01(gy.rem_euclid(cell_size) as f32 / cell_size as f32);
-    let tz = smoothstep01(gz.rem_euclid(cell_size) as f32 / cell_size as f32);
+    let tx = smoothstep01((sx - cx0 as f64) as f32);
+    let ty = smoothstep01((sy - cy0 as f64) as f32);
+    let tz = smoothstep01((sz - cz0 as f64) as f32);
 
-    let c000 = lattice_noise01(seed, active_scale, cx0, cy0, cz0);
-    let c100 = lattice_noise01(seed, active_scale, cx1, cy0, cz0);
-    let c010 = lattice_noise01(seed, active_scale, cx0, cy1, cz0);
-    let c110 = lattice_noise01(seed, active_scale, cx1, cy1, cz0);
-    let c001 = lattice_noise01(seed, active_scale, cx0, cy0, cz1);
-    let c101 = lattice_noise01(seed, active_scale, cx1, cy0, cz1);
-    let c011 = lattice_noise01(seed, active_scale, cx0, cy1, cz1);
-    let c111 = lattice_noise01(seed, active_scale, cx1, cy1, cz1);
+    let c000 = lattice_noise01(seed, cx0, cy0, cz0);
+    let c100 = lattice_noise01(seed, cx1, cy0, cz0);
+    let c010 = lattice_noise01(seed, cx0, cy1, cz0);
+    let c110 = lattice_noise01(seed, cx1, cy1, cz0);
+    let c001 = lattice_noise01(seed, cx0, cy0, cz1);
+    let c101 = lattice_noise01(seed, cx1, cy0, cz1);
+    let c011 = lattice_noise01(seed, cx0, cy1, cz1);
+    let c111 = lattice_noise01(seed, cx1, cy1, cz1);
 
     let x00 = lerp(c000, c100, tx);
     let x10 = lerp(c010, c110, tx);
@@ -697,9 +706,8 @@ fn value_noise_3d(seed: u64, active_scale: Scale, gx: i64, gy: i64, gz: i64, cel
 }
 
 #[inline]
-fn lattice_noise01(seed: u64, active_scale: Scale, x: i64, y: i64, z: i64) -> f32 {
+fn lattice_noise01(seed: u64, x: i64, y: i64, z: i64) -> f32 {
     let mut state = mix64(seed ^ 0x5f35_d3a1_c9b4_e227_u64);
-    state = mix64(state ^ active_scale.index_from_top() as u64);
     state = mix64(state ^ fold_signed(x));
     state = mix64(state ^ fold_signed(y));
     state = mix64(state ^ fold_signed(z));

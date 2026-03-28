@@ -19,6 +19,7 @@ Quick links
 - `Modding.md` — how to structure a mod and where to put assets
 - `Assets.md` — canonical asset paths and conventions
 - `USF.md` — uhhhhhhhh, see for yourself
+- `UsfContentScriptingCheatSheet.md` — one-page contract for scalable USF content scripting (script types, IDs, entrypoints)
 - `UsfTransformPolicy.md` — canonical transform/pivot policy and phased 3D+rotation migration plan
 
 Notes
