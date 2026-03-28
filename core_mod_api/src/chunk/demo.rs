@@ -1,6 +1,8 @@
 use crate::bevy::asset::RenderAssetUsages;
+use crate::bevy::mesh::Indices;
 use crate::bevy::prelude::*;
 use crate::bevy::render::render_resource::PrimitiveTopology;
+use crate::bevy_rapier3d::prelude::{Collider, ComputedColliderShape};
 use crate::chunk::components::{Chunk, ChunkLoader};
 use crate::chunk::resources::ChunkManager;
 use crate::config::statics::CONFIG;
@@ -183,6 +185,7 @@ pub(crate) fn hydrate_chunk_demo_data_system(
         let record = record.expect("USF demo record should exist after generate/load");
         let mesh = build_chunk_mesh(&record);
         if let Some(mesh) = mesh {
+            let collider = Collider::from_bevy_mesh(&mesh, &ComputedColliderShape::default());
             let mesh_handle = meshes.add(mesh);
             let material_handle = materials.add(StandardMaterial {
                 base_color: color_from_seed(record.chunk_seed),
@@ -190,9 +193,19 @@ pub(crate) fn hydrate_chunk_demo_data_system(
                 metallic: 0.0,
                 ..Default::default()
             });
-            commands
-                .entity(entity)
-                .insert((Mesh3d(mesh_handle), MeshMaterial3d(material_handle), Visibility::Visible));
+            let mut entity_commands = commands.entity(entity);
+            entity_commands.insert((Mesh3d(mesh_handle), MeshMaterial3d(material_handle), Visibility::Visible));
+            if let Some(collider) = collider {
+                entity_commands.insert(collider);
+            } else {
+                warn!(
+                    "USF demo collider build failed for chunk {:?}; mesh will render without collision.",
+                    chunk.coord
+                );
+                entity_commands.remove::<Collider>();
+            }
+        } else {
+            commands.entity(entity).remove::<Collider>();
         }
 
         commands.entity(entity).insert(UsfDemoChunkVisual {
@@ -338,9 +351,11 @@ fn build_chunk_mesh(record: &PersistedChunkRecord) -> Option<Mesh> {
     }
 
     let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default());
+    let triangle_indices = (0..out_positions.len() as u32).collect::<Vec<_>>();
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, out_positions);
     mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, out_normals);
     mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, out_uvs);
+    mesh.insert_indices(Indices::U32(triangle_indices));
     Some(mesh)
 }
 
