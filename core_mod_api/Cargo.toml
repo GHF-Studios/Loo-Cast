@@ -119,7 +119,7 @@ bevy_render = "0.18.0"
 bevy_state = "0.18.0"
 bevy_egui = { version = "0.39.0" }
 bevy-inspector-egui = "0.36.0"
-# bevy_rapier2d = { version = "0.32.0", features = ["debug-render-2d", "serde-serialize"] } # Stuck on bevy 0.17.3
+bevy_rapier3d = { version = "0.33.0", features = ["serde-serialize"] }
 bevy_consumable_message = { path = "../bevy_consumable_message" }
 egui = "0.33.3"
 egui_dock = "0.18.0"

@@ -9,6 +9,7 @@ use crate::config::statics::CONFIG;
 use crate::core::protocol::PlayerMotionIntent;
 use crate::input::states::InputMode;
 use crate::player::components::Player;
+use crate::player::resources::{PlayerCameraMode, PlayerCameraRigSettings};
 use crate::render::{
     camera_contract,
     components::{EguiCamera, EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision, RenderProxy, RenderProxyWindowMode, UiCamera},
@@ -2283,6 +2284,8 @@ mod tests {
 pub(super) fn enforce_main_camera_depth_contract_system(
     mut main_camera_query: Query<(&mut Transform, &mut Projection), (With<MainCamera>, Without<Player>)>,
     player_query: Query<(&Transform, &ChunkLoader), (With<Player>, Without<MainCamera>)>,
+    player_camera_mode: Res<PlayerCameraMode>,
+    player_camera_rig_settings: Res<PlayerCameraRigSettings>,
     zoom_factor: Res<ZoomFactor>,
     dev_zoom_factor: Res<DevZoomFactor>,
 ) {
@@ -2292,6 +2295,9 @@ pub(super) fn enforce_main_camera_depth_contract_system(
 
     let perspective_fov_min_deg = CONFIG().get::<f32>("camera/min_fov_degrees");
     let perspective_fov_max_deg = CONFIG().get::<f32>("camera/max_fov_degrees");
+    let first_person_camera_height = player_camera_rig_settings.first_person_camera_height.max(1.0);
+    let third_person_camera_height = player_camera_rig_settings.third_person_camera_height.max(1.0);
+    let player_camera_mode = *player_camera_mode;
 
     camera_transform.translation.z = player_query
         .single()
@@ -2308,7 +2314,11 @@ pub(super) fn enforce_main_camera_depth_contract_system(
                 perspective_fov_max_deg,
             );
             let camera_distance = camera_distance_from_zoom_and_fov(camera_zoom, fov);
-            player_transform.translation.z + camera_distance
+            let camera_height = match player_camera_mode {
+                PlayerCameraMode::FirstPerson => first_person_camera_height,
+                PlayerCameraMode::ThirdPerson => camera_distance.max(third_person_camera_height),
+            };
+            player_transform.translation.z + camera_height
         })
         .unwrap_or(Scale::CANONICAL_CAMERA_Z);
 

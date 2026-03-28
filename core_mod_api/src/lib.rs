@@ -53,7 +53,7 @@ pub use bevy;
 pub use bevy_dylib;
 pub use bevy_egui;
 pub use bevy_inspector_egui;
-// pub use bevy_rapier2d; // Stuck on bevy 0.17.3
+pub use bevy_rapier3d;
 pub use bytemuck;
 pub use console_subscriber;
 pub use crossbeam;

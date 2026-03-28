@@ -128,10 +128,10 @@ pub(super) fn toggle_debug_suite_ui_system(
 
 #[tracing::instrument(skip_all)]
 pub(super) fn toggle_runtime_debug_overlay_system(mut ui_state: ResMut<PrimaryWindowUiState>, keys: Res<ButtonInput<KeyCode>>) {
-    if keys.just_pressed(KeyCode::F5) {
+    if keys.just_pressed(KeyCode::F6) {
         ui_state.show_runtime_debug_overlay = !ui_state.show_runtime_debug_overlay;
         info!(
-            "Runtime debug overlay {} (toggle key: F5).",
+            "Runtime debug overlay {} (toggle key: F6).",
             if ui_state.show_runtime_debug_overlay { "enabled" } else { "disabled" }
         );
     }

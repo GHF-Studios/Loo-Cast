@@ -15,7 +15,7 @@ use core_mod_api::*;
 
 use bevy::app::PluginGroupBuilder;
 use bevy::diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, SystemInformationDiagnosticsPlugin};
-use bevy::log::{LogPlugin, error, info, info_span};
+use bevy::log::{LogPlugin, error, info, info_span, warn};
 use bevy::prelude::*;
 use bevy::window::PresentMode;
 
@@ -29,7 +29,7 @@ use bevy::render::view::ColorGradingGlobal;
 use bevy::render::view::ColorGradingSection;
 
 use bevy_egui::EguiPlugin;
-// use bevy_rapier2d::prelude::*;
+use core_mod_api::bevy_rapier3d::prelude::*;
 // use iyes_perf_ui::prelude::*;
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
@@ -95,7 +95,7 @@ fn configure_third_party_plugins() -> PluginGroupBuilder {
         .add(EguiPlugin::default())
         // .add(PerfUiPlugin) // TODO: Disabled cause iyes_perf_ui is stuck on bevy 0.16.0
         // Physics Plugins
-        // .add(RapierPhysicsPlugin::<NoUserData>::default()) // TODO: Disabled cause bevy_rapier2d is stuck on bevy 0.17.0
+        .add(RapierPhysicsPlugin::<NoUserData>::default())
         // Picking Plugins
         .add_group(
             DefaultPickingPlugins
@@ -118,11 +118,22 @@ fn configure_app(third_party_plugins: PluginGroupBuilder) -> App {
         .register_type::<ClusterConfig>()
         .register_type::<Camera3dDepthLoadOp>();
 
-    app.add_plugins(third_party_plugins).add_plugins(CoreApiPluginGroup);
+    app.add_plugins(third_party_plugins)
+        .add_plugins(CoreApiPluginGroup)
+        .add_systems(Startup, configure_physics_defaults_system);
 
     global_init(&mut app);
 
     app
+}
+
+fn configure_physics_defaults_system(mut rapier_configuration: Query<&mut RapierConfiguration, With<DefaultRapierContext>>) {
+    // Current USF runtime uses manual planar movement; keep gravity neutral until terrain physics is integrated.
+    if let Ok(mut rapier_configuration) = rapier_configuration.single_mut() {
+        rapier_configuration.gravity = Vec3::ZERO;
+    } else {
+        warn!("Skipping Rapier gravity override because default Rapier context is not ready");
+    }
 }
 
 fn global_init(_app: &mut App) {

@@ -246,7 +246,7 @@ fn draw_runtime_debug_overlay(state: &PrimaryWindowUiState, world: &mut World, c
     let runtime_toggles = world.get_resource::<RuntimeDebugToggles>().copied().unwrap_or_default();
 
     let mut lines = Vec::with_capacity(12);
-    lines.push("USF Runtime Debug  (F5 toggle)".to_string());
+    lines.push("USF Runtime Debug  (F6 toggle)".to_string());
     lines.push(format!("input_mode={input_mode_label}"));
     lines.push(format!(
         "camera_zoom={:.6} dev_zoom={:.6} effective_zoom={:.6}",
@@ -279,7 +279,7 @@ fn draw_runtime_debug_overlay(state: &PrimaryWindowUiState, world: &mut World, c
     }
 
     if runtime_toggles.show_hotkey_help {
-        lines.push("Hotkeys: F2=input mode, F4=debug suite, F5=runtime overlay".to_string());
+        lines.push("Hotkeys: F2=input mode, F4=debug suite, F5=camera mode, F6=runtime overlay".to_string());
         lines.push("F3 menu: F3+C toggles chunk wiregrid/wiremesh debug visuals".to_string());
         lines.push("Help toggle: F2+H".to_string());
     }
