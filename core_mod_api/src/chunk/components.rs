@@ -65,7 +65,9 @@ fn fold_translation_axis_at_window(
 
     let mut result = UsfFloatPivotResult::default();
     loop {
-        if axis.local <= policy.local_min {
+        // Keep a half-open local interval [local_min, local_max): exact lower bound is stable,
+        // exact upper bound wraps to the next chunk.
+        if axis.local < policy.local_min {
             axis.local += wrap_size;
             axis.canonical_cycles -= 1;
             result.lower_crossings += 1;
@@ -98,7 +100,7 @@ impl ChunkLoader {
         self.scale.zoom_in();
         self.zoom_state = ZoomState::ZoomIn;
         let new_logical_world_pos = self.coord.zoom_in(logical_world_pos);
-        self.origin_offset.zoom_in(Vec3::ZERO);
+        let _ = self.origin_offset.zoom_in(logical_world_pos);
         new_logical_world_pos
     }
 
@@ -110,7 +112,7 @@ impl ChunkLoader {
         unit_pos.zoom_out();
         self.coord = unit_pos.grid_offset;
 
-        let mut origin_unit = crate::usf::pos::unit::types::UnitVec::new(self.origin_offset.clone(), Vec3::ZERO);
+        let mut origin_unit = crate::usf::pos::unit::types::UnitVec::new(self.origin_offset.clone(), logical_world_pos);
         origin_unit.zoom_out();
         self.origin_offset = origin_unit.grid_offset;
 
@@ -208,10 +210,11 @@ impl ChunkLoader {
         let policy = self.usf_transform.translation.policy;
         let pivot_x = fold_translation_axis_at_window(&mut self.usf_transform.translation.x, policy);
         let pivot_y = fold_translation_axis_at_window(&mut self.usf_transform.translation.y, policy);
+        let pivot_z = fold_translation_axis_at_window(&mut self.usf_transform.translation.z, policy);
         let grid_delta = IVec3::new(
             pivot_x.upper_crossings - pivot_x.lower_crossings,
             pivot_y.upper_crossings - pivot_y.lower_crossings,
-            0,
+            pivot_z.upper_crossings - pivot_z.lower_crossings,
         );
 
         if grid_delta != IVec3::ZERO {
@@ -223,13 +226,21 @@ impl ChunkLoader {
         logical_world_pos.y = self.usf_transform.translation.y.local as f32;
         logical_world_pos.z = self.usf_transform.translation.z.local as f32;
 
-        if pivot_x.lower_crossings > 0 || pivot_x.upper_crossings > 0 || pivot_y.lower_crossings > 0 || pivot_y.upper_crossings > 0 {
+        if pivot_x.lower_crossings > 0
+            || pivot_x.upper_crossings > 0
+            || pivot_y.lower_crossings > 0
+            || pivot_y.upper_crossings > 0
+            || pivot_z.lower_crossings > 0
+            || pivot_z.upper_crossings > 0
+        {
             warn!(
-                "USF translation fold: x(l={},u={}) y(l={},u={}) z(l=0,u=0) grid_delta={:?}, local_pos {:?}->{:?}, coord {:?}->{:?}, origin {:?}->{:?}, cycles=({}, {}, {})",
+                "USF translation fold: x(l={},u={}) y(l={},u={}) z(l={},u={}) grid_delta={:?}, local_pos {:?}->{:?}, coord {:?}->{:?}, origin {:?}->{:?}, cycles=({}, {}, {})",
                 pivot_x.lower_crossings,
                 pivot_x.upper_crossings,
                 pivot_y.lower_crossings,
                 pivot_y.upper_crossings,
+                pivot_z.lower_crossings,
+                pivot_z.upper_crossings,
                 grid_delta,
                 local_before,
                 *logical_world_pos,
@@ -304,7 +315,7 @@ mod tests {
     #[test]
     fn zoom_out_then_zoom_in_roundtrip_preserves_local_and_grid_state() {
         let coord = GridVec::build().push((1, -2, 0)).push((3, 1, -4)).finish();
-        let origin = GridVec::build().push((0, 0, 0)).push((0, 0, 0)).finish();
+        let origin = coord.clone();
         let original_scale = coord.scale;
 
         let mut loader = ChunkLoader {
@@ -320,7 +331,7 @@ mod tests {
 
         assert_eq!(loader.scale, original_scale);
         assert_eq!(loader.coord, coord);
-        assert_eq!(loader.origin_offset, origin);
+        assert_eq!(loader.origin_offset, coord);
         assert!(approx_eq_vec3(local_after_zoom_in, local_before, 1e-3));
     }
 
@@ -345,5 +356,78 @@ mod tests {
         assert!(local_pos.x >= -500.0 && local_pos.x <= 500.0);
         assert!(local_pos.y >= -500.0 && local_pos.y <= 500.0);
         assert!(local_pos.z >= -500.0 && local_pos.z <= 500.0);
+    }
+
+    #[test]
+    fn zoom_in_remaps_origin_offset_with_same_anchor_as_coord() {
+        let coord = GridVec::build().push((0, 0, 0)).push((1, -2, 0)).finish();
+        let mut loader = ChunkLoader {
+            scale: coord.scale,
+            coord: coord.clone(),
+            origin_offset: coord,
+            ..Default::default()
+        };
+
+        let local_before = Vec3::new(325.0, -210.0, 140.0);
+        let _ = loader.zoom_in(local_before);
+
+        assert_eq!(loader.coord, loader.origin_offset);
+    }
+
+    #[test]
+    fn translation_pivot_folds_z_axis_and_updates_grid_delta() {
+        let coord = GridVec::build().push((0, 0, 0)).push((0, 0, 0)).finish();
+        let mut loader = ChunkLoader {
+            scale: coord.scale,
+            coord: coord.clone(),
+            origin_offset: coord,
+            ..Default::default()
+        };
+
+        let mut local = Vec3::new(0.0, 0.0, 600.0);
+        let delta = loader.apply_translation_pivot(&mut local);
+
+        assert_eq!(delta, IVec3::new(0, 0, 1));
+        assert!(local.z >= -500.0 && local.z < 500.0);
+        assert_eq!(loader.coord.xyz.z, 1);
+        assert_eq!(loader.origin_offset.xyz.z, 1);
+    }
+
+    #[test]
+    fn translation_pivot_keeps_exact_lower_boundary_stable() {
+        let coord = GridVec::build().push((0, 0, 0)).push((0, 0, 0)).finish();
+        let mut loader = ChunkLoader {
+            scale: coord.scale,
+            coord: coord.clone(),
+            origin_offset: coord,
+            ..Default::default()
+        };
+
+        let mut local = Vec3::new(-500.0, 0.0, 0.0);
+        let delta = loader.apply_translation_pivot(&mut local);
+
+        assert_eq!(delta, IVec3::ZERO);
+        assert_eq!(local.x, -500.0);
+        assert_eq!(loader.coord.xyz.x, 0);
+        assert_eq!(loader.origin_offset.xyz.x, 0);
+    }
+
+    #[test]
+    fn translation_pivot_wraps_exact_upper_boundary() {
+        let coord = GridVec::build().push((0, 0, 0)).push((0, 0, 0)).finish();
+        let mut loader = ChunkLoader {
+            scale: coord.scale,
+            coord: coord.clone(),
+            origin_offset: coord,
+            ..Default::default()
+        };
+
+        let mut local = Vec3::new(500.0, 0.0, 0.0);
+        let delta = loader.apply_translation_pivot(&mut local);
+
+        assert_eq!(delta, IVec3::new(1, 0, 0));
+        assert!(local.x >= -500.0 && local.x < 500.0);
+        assert_eq!(loader.coord.xyz.x, 1);
+        assert_eq!(loader.origin_offset.xyz.x, 1);
     }
 }

@@ -1779,7 +1779,7 @@ fn compute_render_proxy_windowing(
         )
     };
 
-    if scale_diff >= 0 {
+    if scale_diff > 0 {
         let presentation_window_scale = player_local_zoom.clamp(MIN_WINDOW_SIZE_LOCAL, 1.0);
         if presentation_window_scale < 0.999_999 {
             let (composed_center, composed_size) = compose_local_windows(center_local, size_local, center_local, Vec3::splat(presentation_window_scale));
@@ -2460,13 +2460,21 @@ mod tests {
     }
 
     #[test]
-    fn same_scale_windowing_composes_player_local_zoom() {
+    fn same_scale_windowing_preserves_full_entity_with_local_zoom() {
         let (mode, center, size) = compute_render_proxy_windowing(0, Vec3::ZERO, Vec3::ZERO, 0.5);
-        assert_eq!(mode, RenderProxyWindowMode::WindowedSubsection);
+        assert_eq!(mode, RenderProxyWindowMode::FullEntity);
         assert!(center.length() < 1e-6);
-        assert!((size.x - 0.5).abs() < 1e-6);
-        assert!((size.y - 0.5).abs() < 1e-6);
-        assert!((size.z - 0.5).abs() < 1e-6);
+        assert_eq!(size, Vec3::ONE);
+    }
+
+    #[test]
+    fn finer_scale_windowing_composes_player_local_zoom() {
+        let (mode, center, size) = compute_render_proxy_windowing(1, Vec3::ZERO, Vec3::ZERO, 0.5);
+        assert_eq!(mode, RenderProxyWindowMode::WindowedSubsection);
+        assert!(center.x.abs() <= 0.5 && center.y.abs() <= 0.5 && center.z.abs() <= 0.5);
+        assert!((size.x - 0.05).abs() < 1e-6);
+        assert!((size.y - 0.05).abs() < 1e-6);
+        assert!((size.z - 0.05).abs() < 1e-6);
     }
 
     #[test]
@@ -2685,8 +2693,10 @@ pub(super) fn apply_usf_player_pivots_system(
             .clamp(scale_policy.local_min, scale_policy.local_max);
         player_transform.translation.x = player_transform.translation.x.clamp(translation_local_min, translation_local_max);
         player_transform.translation.y = player_transform.translation.y.clamp(translation_local_min, translation_local_max);
+        player_transform.translation.z = player_transform.translation.z.clamp(translation_local_min, translation_local_max);
         chunk_loader.usf_transform.translation.x.set_local(player_transform.translation.x as f64);
         chunk_loader.usf_transform.translation.y.set_local(player_transform.translation.y as f64);
+        chunk_loader.usf_transform.translation.z.set_local(player_transform.translation.z as f64);
         chunk_loader.usf_transform.rotation.x.local = chunk_loader.usf_transform.rotation.x.local.clamp(rotation_local_min, rotation_local_max);
         chunk_loader.usf_transform.rotation.y.local = chunk_loader.usf_transform.rotation.y.local.clamp(rotation_local_min, rotation_local_max);
         chunk_loader.usf_transform.rotation.z.local = chunk_loader.usf_transform.rotation.z.local.clamp(rotation_local_min, rotation_local_max);
@@ -2694,10 +2704,12 @@ pub(super) fn apply_usf_player_pivots_system(
         let candidate_translation = player_transform.translation + world_space_translation_delta;
 
         let would_cross_scale_boundary = zoom_factor.0 <= scale_commit_min || zoom_factor.0 >= scale_commit_max;
-        let would_cross_translation_boundary = candidate_translation.x <= translation_local_min
+        let would_cross_translation_boundary = candidate_translation.x < translation_local_min
             || candidate_translation.x >= translation_local_max
-            || candidate_translation.y <= translation_local_min
-            || candidate_translation.y >= translation_local_max;
+            || candidate_translation.y < translation_local_min
+            || candidate_translation.y >= translation_local_max
+            || candidate_translation.z < translation_local_min
+            || candidate_translation.z >= translation_local_max;
 
         if workflow_in_flight && (would_cross_scale_boundary || would_cross_translation_boundary) {
             if let Some(gate) = chunk_load_gate.as_mut() {
@@ -2717,8 +2729,10 @@ pub(super) fn apply_usf_player_pivots_system(
                 .clamp(scale_policy.local_min, scale_policy.local_max);
             player_transform.translation.x = player_transform.translation.x.clamp(translation_local_min, translation_local_max);
             player_transform.translation.y = player_transform.translation.y.clamp(translation_local_min, translation_local_max);
+            player_transform.translation.z = player_transform.translation.z.clamp(translation_local_min, translation_local_max);
             chunk_loader.usf_transform.translation.x.set_local(player_transform.translation.x as f64);
             chunk_loader.usf_transform.translation.y.set_local(player_transform.translation.y as f64);
+            chunk_loader.usf_transform.translation.z.set_local(player_transform.translation.z as f64);
             chunk_loader.usf_transform.rotation.x.local = chunk_loader.usf_transform.rotation.x.local.clamp(rotation_local_min, rotation_local_max);
             chunk_loader.usf_transform.rotation.y.local = chunk_loader.usf_transform.rotation.y.local.clamp(rotation_local_min, rotation_local_max);
             chunk_loader.usf_transform.rotation.z.local = chunk_loader.usf_transform.rotation.z.local.clamp(rotation_local_min, rotation_local_max);
@@ -2757,8 +2771,10 @@ pub(super) fn apply_usf_player_pivots_system(
                     .clamp(scale_policy.local_min, scale_policy.local_max);
                 player_transform.translation.x = player_transform.translation.x.clamp(translation_local_min, translation_local_max);
                 player_transform.translation.y = player_transform.translation.y.clamp(translation_local_min, translation_local_max);
+                player_transform.translation.z = player_transform.translation.z.clamp(translation_local_min, translation_local_max);
                 chunk_loader.usf_transform.translation.x.set_local(player_transform.translation.x as f64);
                 chunk_loader.usf_transform.translation.y.set_local(player_transform.translation.y as f64);
+                chunk_loader.usf_transform.translation.z.set_local(player_transform.translation.z as f64);
                 chunk_loader.usf_transform.rotation.x.local = chunk_loader.usf_transform.rotation.x.local.clamp(rotation_local_min, rotation_local_max);
                 chunk_loader.usf_transform.rotation.y.local = chunk_loader.usf_transform.rotation.y.local.clamp(rotation_local_min, rotation_local_max);
                 chunk_loader.usf_transform.rotation.z.local = chunk_loader.usf_transform.rotation.z.local.clamp(rotation_local_min, rotation_local_max);
