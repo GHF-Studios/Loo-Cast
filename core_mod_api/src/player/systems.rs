@@ -17,6 +17,7 @@ use crate::render::components::MainCamera;
 use crate::render::resources::PrimaryWindowUiState;
 use crate::time::resources::TimeInfo;
 use crate::time::types::PauseState;
+use std::f32::consts::{PI, TAU};
 
 #[derive(Default)]
 pub(super) struct PlayerRuntimeConfigCache {
@@ -44,6 +45,11 @@ fn world_space_planar_delta_from_local(local_planar_direction: Vec2, yaw_radians
     let mut world_planar = Quat::from_rotation_z(yaw_radians).inverse() * local_planar;
     world_planar.z = 0.0;
     world_planar
+}
+
+#[inline]
+fn wrap_angle_radians(angle: f32) -> f32 {
+    (angle + PI).rem_euclid(TAU) - PI
 }
 
 #[tracing::instrument(skip_all)]
@@ -188,7 +194,8 @@ pub(super) fn sync_pause_menu_state_system(
 pub(super) fn sync_mouse_capture_system(
     ui_state: Res<PrimaryWindowUiState>,
     input_mode: Res<State<InputMode>>,
-    mut cursor_options: Single<&mut CursorOptions, With<PrimaryWindow>>,
+    window_query: Single<(&mut Window, &mut CursorOptions), With<PrimaryWindow>>,
+    mut was_capturing: Local<bool>,
 ) {
     let should_capture_mouse = input_mode.is_game() && !ui_state.pause_menu_open;
     let desired_grab_mode = if should_capture_mouse {
@@ -197,6 +204,12 @@ pub(super) fn sync_mouse_capture_system(
         CursorGrabMode::None
     };
     let desired_cursor_visibility = !should_capture_mouse;
+    let (mut window, mut cursor_options) = window_query.into_inner();
+
+    if should_capture_mouse && !*was_capturing {
+        let center = Vec2::new(window.width() * 0.5, window.height() * 0.5);
+        window.set_cursor_position(Some(center));
+    }
 
     if cursor_options.grab_mode != desired_grab_mode {
         cursor_options.grab_mode = desired_grab_mode;
@@ -204,6 +217,8 @@ pub(super) fn sync_mouse_capture_system(
     if cursor_options.visible != desired_cursor_visibility {
         cursor_options.visible = desired_cursor_visibility;
     }
+
+    *was_capturing = should_capture_mouse;
 }
 
 #[tracing::instrument(skip_all)]
@@ -270,16 +285,39 @@ pub(super) fn apply_player_camera_orientation_system(
             if forward.length_squared() <= f32::EPSILON {
                 forward = Vec3::Y;
             }
-            camera_transform.rotation = Transform::from_translation(Vec3::ZERO).looking_to(forward.normalize(), Vec3::Z).rotation;
+            let forward = forward.normalize();
+            let base_rotation = Transform::from_translation(Vec3::ZERO).looking_to(forward, Vec3::Z).rotation;
+            let roll_rotation = Quat::from_axis_angle(forward, look_state.roll_radians);
+            camera_transform.rotation = roll_rotation * base_rotation;
         }
         PlayerCameraMode::ThirdPerson => {
             let mut to_player = player_transform.translation - camera_transform.translation;
             if to_player.length_squared() <= f32::EPSILON {
                 to_player = Vec3::Y;
             }
-            camera_transform.rotation = Transform::from_translation(Vec3::ZERO).looking_to(to_player.normalize(), Vec3::Z).rotation;
+            let forward = to_player.normalize();
+            let base_rotation = Transform::from_translation(Vec3::ZERO).looking_to(forward, Vec3::Z).rotation;
+            let roll_rotation = Quat::from_axis_angle(forward, look_state.roll_radians);
+            camera_transform.rotation = roll_rotation * base_rotation;
         }
     }
+}
+
+#[tracing::instrument(skip_all)]
+pub(super) fn apply_player_visual_orientation_system(
+    look_state: Res<PlayerLookState>,
+    player_query: Query<&PlayerVisual3dLink, With<Player>>,
+    mut transform_query: Query<&mut Transform>,
+) {
+    let Ok(visual_link) = player_query.single() else {
+        return;
+    };
+    let Ok(mut visual_transform) = transform_query.get_mut(visual_link.entity) else {
+        return;
+    };
+
+    visual_transform.rotation =
+        Quat::from_euler(EulerRot::XYZ, look_state.pitch_radians, look_state.roll_radians, 0.0);
 }
 
 #[tracing::instrument(skip_all)]
@@ -288,12 +326,14 @@ pub(super) fn update_player_system(
     mut player_query: Query<(Entity, &mut ChunkLoader, Option<&mut KinematicCharacterController>), With<Player>>,
     keys: Res<ButtonInput<KeyCode>>,
     mut mouse_motion_reader: MessageReader<MouseMotion>,
+    ui_state: Res<PrimaryWindowUiState>,
     input_mode: Res<State<InputMode>>,
     time: Res<Time<Virtual>>,
     mut player_motion_intent: ResMut<PlayerMotionIntent>,
     mut player_look_state: ResMut<PlayerLookState>,
     control_settings: Res<PlayerControlSettings>,
     mut runtime_config: Local<PlayerRuntimeConfigCache>,
+    mut had_mouse_control_last_frame: Local<bool>,
 ) {
     // Intent is per-frame; if this system runs, start from a clean slate.
     player_motion_intent.clear();
@@ -346,7 +386,17 @@ pub(super) fn update_player_system(
         runtime_config.local_translation_buffer_ratio as f64,
     );
 
-    if input_mode.is_game() {
+    let has_mouse_control = input_mode.is_game() && !ui_state.pause_menu_open;
+    if has_mouse_control {
+        if !*had_mouse_control_last_frame {
+            mouse_motion_reader.clear();
+            *had_mouse_control_last_frame = true;
+            if let Some(character_controller) = character_controller.as_deref_mut() {
+                character_controller.translation = None;
+            }
+            return;
+        }
+
         let mut local_planar_direction = Vec2::ZERO;
         if keys.pressed(control_settings.move_forward) {
             local_planar_direction.y += 1.0;
@@ -363,30 +413,24 @@ pub(super) fn update_player_system(
 
         let mut delta_rotation = Vec3::ZERO;
         let mut pitch_delta = 0.0_f32;
+        let mut roll_delta = 0.0_f32;
 
-        // Keyboard look input fallback.
-        if keys.pressed(control_settings.look_up) {
-            pitch_delta += runtime_config.world_rotation_speed * time.delta_secs();
+        if keys.pressed(control_settings.roll_left) {
+            roll_delta += runtime_config.world_rotation_speed * time.delta_secs();
         }
-        if keys.pressed(control_settings.look_down) {
-            pitch_delta -= runtime_config.world_rotation_speed * time.delta_secs();
-        }
-        // Yaw around local Z (FPS-style horizontal turning).
-        if keys.pressed(control_settings.look_left) {
-            delta_rotation.z += runtime_config.world_rotation_speed * time.delta_secs();
-        }
-        if keys.pressed(control_settings.look_right) {
-            delta_rotation.z -= runtime_config.world_rotation_speed * time.delta_secs();
+        if keys.pressed(control_settings.roll_right) {
+            roll_delta -= runtime_config.world_rotation_speed * time.delta_secs();
         }
 
         // Mouse look for FPS controls.
         for mouse_motion in mouse_motion_reader.read() {
-            delta_rotation.z -= mouse_motion.delta.x * control_settings.mouse_look_sensitivity;
+            delta_rotation.z += mouse_motion.delta.x * control_settings.mouse_look_sensitivity;
             pitch_delta -= mouse_motion.delta.y * control_settings.mouse_look_sensitivity;
         }
 
         player_look_state.pitch_radians = (player_look_state.pitch_radians + pitch_delta)
             .clamp(runtime_config.pitch_min_radians, runtime_config.pitch_max_radians);
+        player_look_state.roll_radians = wrap_angle_radians(player_look_state.roll_radians + roll_delta);
         player_motion_intent.rotation_delta = delta_rotation;
 
         if local_planar_direction.length_squared() > 0.0 {
@@ -410,6 +454,7 @@ pub(super) fn update_player_system(
             character_controller.translation = None;
         }
     } else {
+        *had_mouse_control_last_frame = false;
         mouse_motion_reader.clear();
         if let Some(character_controller) = character_controller.as_deref_mut() {
             character_controller.translation = None;

@@ -2625,7 +2625,7 @@ pub(super) fn apply_usf_player_pivots_system(
 
         if matches!(*player_camera_mode, PlayerCameraMode::FirstPerson) {
             if let Projection::Perspective(perspective) = projection.as_mut() {
-                perspective.fov = player_control_settings.first_person_fov_degrees.to_radians().clamp(0.35, 2.26);
+                perspective.fov = player_control_settings.first_person_fov_degrees.to_radians().clamp(0.35, 3.12);
             }
         }
     }

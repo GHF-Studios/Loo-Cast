@@ -20,10 +20,8 @@ pub struct PlayerControlSettings {
     pub move_left: KeyCode,
     pub move_right: KeyCode,
     pub sprint: KeyCode,
-    pub look_left: KeyCode,
-    pub look_right: KeyCode,
-    pub look_up: KeyCode,
-    pub look_down: KeyCode,
+    pub roll_left: KeyCode,
+    pub roll_right: KeyCode,
 }
 impl Default for PlayerControlSettings {
     fn default() -> Self {
@@ -35,10 +33,8 @@ impl Default for PlayerControlSettings {
             move_left: KeyCode::KeyA,
             move_right: KeyCode::KeyD,
             sprint: KeyCode::ShiftLeft,
-            look_left: KeyCode::ArrowLeft,
-            look_right: KeyCode::ArrowRight,
-            look_up: KeyCode::ArrowUp,
-            look_down: KeyCode::ArrowDown,
+            roll_left: KeyCode::KeyQ,
+            roll_right: KeyCode::KeyE,
         }
     }
 }
@@ -47,10 +43,14 @@ impl Default for PlayerControlSettings {
 #[reflect(Resource)]
 pub struct PlayerLookState {
     pub pitch_radians: f32,
+    pub roll_radians: f32,
 }
 impl Default for PlayerLookState {
     fn default() -> Self {
-        Self { pitch_radians: 0.0 }
+        Self {
+            pitch_radians: 0.0,
+            roll_radians: 0.0,
+        }
     }
 }
 

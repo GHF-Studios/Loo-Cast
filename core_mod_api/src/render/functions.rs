@@ -234,10 +234,6 @@ fn keybind_options() -> &'static [(KeyCode, &'static str)] {
         (KeyCode::KeyE, "E"),
         (KeyCode::KeyR, "R"),
         (KeyCode::KeyF, "F"),
-        (KeyCode::ArrowUp, "Arrow Up"),
-        (KeyCode::ArrowDown, "Arrow Down"),
-        (KeyCode::ArrowLeft, "Arrow Left"),
-        (KeyCode::ArrowRight, "Arrow Right"),
         (KeyCode::Space, "Space"),
         (KeyCode::ShiftLeft, "Shift Left"),
         (KeyCode::ShiftRight, "Shift Right"),
@@ -272,11 +268,19 @@ fn draw_pause_menu_ui(state: &mut PrimaryWindowUiState, world: &mut World, ctx: 
         .show(ctx, |ui| {
             ui.heading("Paused");
             ui.label("Esc or Resume to continue.");
+            ui.add_space(6.0);
+
+            let resume_button = egui::Button::new(egui::RichText::new("RESUME").strong().size(18.0))
+                .min_size(egui::vec2(ui.available_width(), 42.0));
+            if ui.add(resume_button).clicked() {
+                close_requested = true;
+            }
+
             ui.separator();
 
             ui.label("Camera");
             ui.add(
-                egui::Slider::new(&mut control_settings.first_person_fov_degrees, 45.0..=130.0)
+                egui::Slider::new(&mut control_settings.first_person_fov_degrees, 45.0..=179.0)
                     .text("First-person FOV")
                     .suffix(" deg"),
             );
@@ -293,23 +297,16 @@ fn draw_pause_menu_ui(state: &mut PrimaryWindowUiState, world: &mut World, ctx: 
             keybind_combo(ui, "Left", &mut control_settings.move_left);
             keybind_combo(ui, "Right", &mut control_settings.move_right);
             keybind_combo(ui, "Sprint", &mut control_settings.sprint);
-            keybind_combo(ui, "Look Left", &mut control_settings.look_left);
-            keybind_combo(ui, "Look Right", &mut control_settings.look_right);
-            keybind_combo(ui, "Look Up", &mut control_settings.look_up);
-            keybind_combo(ui, "Look Down", &mut control_settings.look_down);
+            keybind_combo(ui, "Roll Left", &mut control_settings.roll_left);
+            keybind_combo(ui, "Roll Right", &mut control_settings.roll_right);
 
             ui.separator();
-            ui.horizontal(|ui| {
-                if ui.button("Reset Defaults").clicked() {
-                    *control_settings = PlayerControlSettings::default();
-                }
-                if ui.button("Resume").clicked() {
-                    close_requested = true;
-                }
-            });
+            if ui.button("Reset Defaults").clicked() {
+                *control_settings = PlayerControlSettings::default();
+            }
         });
 
-    control_settings.first_person_fov_degrees = control_settings.first_person_fov_degrees.clamp(45.0, 130.0);
+    control_settings.first_person_fov_degrees = control_settings.first_person_fov_degrees.clamp(45.0, 179.0);
     control_settings.mouse_look_sensitivity = control_settings.mouse_look_sensitivity.clamp(0.0005, 0.03);
     if close_requested {
         state.pause_menu_open = false;
