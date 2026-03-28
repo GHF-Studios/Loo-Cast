@@ -1,4 +1,7 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use crate::bevy::ecs::schedule::IntoScheduleConfigs;
 use crate::bevy::prelude::{App, First, Last, PostStartup, PostUpdate, PreStartup, PreUpdate, Startup, Update};
@@ -8,16 +11,74 @@ use crate::rhai_binding::bind::engine_ext::EngineExt;
 use crate::rhai_binding::engine::hook::{new_hook_runner_system, register_hook_param_types};
 use crate::rhai_binding::engine::preprocess::preprocess_script_source;
 use crate::rhai_binding::engine::resources::MainScriptEngineHandle;
-use crate::rhai_binding::engine::statics::SCHEDULE_HOOKS;
+use crate::rhai_binding::engine::statics::{
+    SCHEDULE_HOOKS, USF_DPT_CATEGORIZER_IDS, USF_DPT_SAMPLER_IDS, USF_DPT_SCHEMAS_BY_SCALE, USF_SCALE_BINDINGS_BY_SCALE, USF_ZLM_SCALES_BY_SCALE,
+    USF_ZONE_TYPES,
+};
 use crate::rhai_binding::runtime::ecs::message::bindings::types::ScriptProbeMessage;
 use crate::usf::schedule::{UsfPhenomenonSet, UsfSubstrateSet, UsfZoneSet};
 use rhai::Engine;
+
+#[derive(Clone, Copy)]
+struct UsfScriptTypeSpec {
+    relative_dir: &'static str,
+    suffix: &'static str,
+    entrypoint: &'static str,
+}
+
+const USF_SCRIPT_TYPE_SPECS: [UsfScriptTypeSpec; 9] = [
+    UsfScriptTypeSpec {
+        relative_dir: "metrics",
+        suffix: ".metric.rhai",
+        entrypoint: "register_metric",
+    },
+    UsfScriptTypeSpec {
+        relative_dir: "zones",
+        suffix: ".zone.rhai",
+        entrypoint: "register_zone",
+    },
+    UsfScriptTypeSpec {
+        relative_dir: "metric_sets",
+        suffix: ".metric_set.rhai",
+        entrypoint: "register_metric_set",
+    },
+    UsfScriptTypeSpec {
+        relative_dir: "dpt_samplers",
+        suffix: ".dpt_sampler.rhai",
+        entrypoint: "register_dpt_sampler",
+    },
+    UsfScriptTypeSpec {
+        relative_dir: "dpt_categorizers",
+        suffix: ".dpt_categorizer.rhai",
+        entrypoint: "register_dpt_categorizer",
+    },
+    UsfScriptTypeSpec {
+        relative_dir: "zlms",
+        suffix: ".zlm.rhai",
+        entrypoint: "register_zlm",
+    },
+    UsfScriptTypeSpec {
+        relative_dir: "scales",
+        suffix: ".scale.rhai",
+        entrypoint: "register_scale",
+    },
+    UsfScriptTypeSpec {
+        relative_dir: "phenomena",
+        suffix: ".phenomenon.rhai",
+        entrypoint: "register_phenomenon",
+    },
+    UsfScriptTypeSpec {
+        relative_dir: "phenomenon_models",
+        suffix: ".phenomenon_model.rhai",
+        entrypoint: "register_phenomenon_model",
+    },
+];
 
 pub fn build(app: &mut App) {
     app.init_resource::<MainScriptEngineHandle>();
     app.add_message::<ScriptProbeMessage>();
 
-    let path = "core_mod/scripts/core/schedule_hooks/";
+    let path = "core_mod/scripts/ecs/schedule_hooks/";
     let mut abs_path = PathBuf::from(path);
     if abs_path.is_relative() {
         abs_path = asset_root().join(path);
@@ -103,6 +164,70 @@ pub fn build(app: &mut App) {
     }
 }
 
+fn clear_usf_bootstrap_statics() {
+    USF_ZONE_TYPES().lock().unwrap().clear();
+    USF_DPT_SCHEMAS_BY_SCALE().lock().unwrap().clear();
+    USF_ZLM_SCALES_BY_SCALE().lock().unwrap().clear();
+    USF_DPT_SAMPLER_IDS().lock().unwrap().clear();
+    USF_DPT_CATEGORIZER_IDS().lock().unwrap().clear();
+    USF_SCALE_BINDINGS_BY_SCALE().lock().unwrap().clear();
+}
+
+fn collect_usf_registration_scripts(dir: &Path, suffix: &str, out: &mut Vec<PathBuf>) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            collect_usf_registration_scripts(&path, suffix, out);
+            continue;
+        }
+        let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
+            continue;
+        };
+        if file_name.ends_with(suffix) {
+            out.push(path);
+        }
+    }
+}
+
+fn run_usf_script_type_bootstrap(engine: &Engine, usf_root: &Path, spec: UsfScriptTypeSpec) {
+    let script_dir = usf_root.join(spec.relative_dir);
+    if !script_dir.is_dir() {
+        return;
+    }
+
+    let mut files = Vec::new();
+    collect_usf_registration_scripts(&script_dir, spec.suffix, &mut files);
+    files.sort_by(|a, b| a.to_string_lossy().cmp(&b.to_string_lossy()));
+
+    for file in files {
+        let file_path = file.display().to_string();
+        let source = std::fs::read_to_string(&file).unwrap_or_else(|error| panic!("Failed to read USF script '{}': {error}", file.display()));
+        let source = preprocess_script_source(&source, &file_path);
+        let ast = engine
+            .compile(source)
+            .unwrap_or_else(|error| panic!("Failed to compile USF script '{}': {error}", file.display()));
+        let mut scope = rhai::Scope::new();
+        if let Err(error) = engine.call_fn::<()>(&mut scope, &ast, spec.entrypoint, ()) {
+            panic!("USF script '{}' failed calling entrypoint '{}': {}", file.display(), spec.entrypoint, error);
+        }
+    }
+}
+
+fn run_usf_content_bootstrap(engine: &Engine) {
+    let usf_root = asset_root().join("core_mod/scripts/usf");
+    if !usf_root.is_dir() {
+        return;
+    }
+
+    clear_usf_bootstrap_statics();
+    for spec in USF_SCRIPT_TYPE_SPECS {
+        run_usf_script_type_bootstrap(engine, &usf_root, spec);
+    }
+}
+
 pub(super) fn new_main_script_engine() -> Engine {
     let mut engine = Engine::new();
     let testing_enabled = CONFIG().get::<bool>("rhai_binding/testing_enabled");
@@ -121,6 +246,7 @@ pub(super) fn new_main_script_engine() -> Engine {
     let boot_script = preprocess_script_source(&boot_script, &boot_script_path);
     let boot_script = engine.compile(boot_script).unwrap();
     engine.eval_ast::<()>(&boot_script).unwrap();
+    run_usf_content_bootstrap(&engine);
 
     engine
 }

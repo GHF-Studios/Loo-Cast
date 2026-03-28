@@ -25,7 +25,7 @@ Short, concrete rules for where assets live and how we name, load, and test them
 
 - `core_mod/assets/configs/config.toml`
 - `core_mod/assets/scripts/core/boot.rhai`
-- `core_mod/assets/scripts/core/schedule_hooks/*.rhai`
+- `core_mod/assets/scripts/ecs/schedule_hooks/*.rhai`
 - `core_mod/assets/shaders/texture_generators/*.wgsl`
 
 ## Packaging & build

@@ -24,7 +24,7 @@ task status or temporary migration notes.
 
 - `core_mod/assets/scripts/core/boot.rhai` is responsible for registering schedule hooks.
 - Runtime utility modules exposed to scripts remain explicit and minimal.
-- Startup harness code under `core_mod/assets/scripts/core/schedule_hooks/startup/` is tests/examples, not gameplay logic.
+- Startup harness code under `core_mod/assets/scripts/ecs/schedule_hooks/startup/` is tests/examples, not gameplay logic.
 - `core` is a reserved script module name for core functionality.
 - Non-core scripting logic should live under dedicated module paths (for example `scripts/<module_name>/...`).
 

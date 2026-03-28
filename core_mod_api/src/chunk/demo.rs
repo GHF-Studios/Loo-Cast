@@ -7,7 +7,7 @@ use crate::chunk::components::{Chunk, ChunkLoader};
 use crate::chunk::resources::ChunkManager;
 use crate::config::statics::CONFIG;
 use crate::player::components::Player;
-use crate::usf::definition::{DefinitionRegistry, ZoneTypeId};
+use crate::usf::definition::{DefinitionRegistry, ScaleContentRegistry, ZoneTypeId};
 use crate::usf::dpt::{DptChunkKey, DptStore};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::unit::types::UnitVec;
@@ -157,6 +157,7 @@ pub(crate) fn hydrate_chunk_demo_data_system(
     definitions: Res<DefinitionRegistry>,
     mut dpt_store: ResMut<DptStore>,
     zlm_registry: Res<ZlmRegistry>,
+    scale_content_registry: Res<ScaleContentRegistry>,
     zone_behavior_registry: Res<ZoneBehaviorRegistry>,
     player_loader_query: Query<&ChunkLoader, With<Player>>,
     mut chunk_store: ResMut<UsfDemoChunkStore>,
@@ -189,12 +190,16 @@ pub(crate) fn hydrate_chunk_demo_data_system(
             coord: canonical_coord.clone(),
         };
         let zone_type = {
-            let chunk_record = dpt_store.ensure_chunk(chunk_key, schema);
-            zlm_registry.classify(chunk_scale, schema, &chunk_record.metrics)
+            let chunk_record = dpt_store.ensure_chunk_with_scale_binding(chunk_key, schema, &scale_content_registry);
+            zlm_registry.classify_with_scale_binding(chunk_scale, schema, &chunk_record.metrics, &scale_content_registry)
         };
         let zone_density_profile = zone_behavior_registry.density_profile_for_zone(&zone_type).unwrap_or_default();
         let zone_density_signature = zone_density_profile.signature();
-        let chunk_file = chunk_file_path(&settings, chunk_scale, &canonical_coord);
+        let chunk_store_key = scale_content_registry
+            .binding_for_scale(chunk_scale)
+            .map(|binding| binding.chunk_store_key.as_str())
+            .unwrap_or("chunk_store.default");
+        let chunk_file = chunk_file_path(&settings, chunk_scale, &canonical_coord, chunk_store_key);
         let expected_coord = SerializableGridCoord::from_grid(&canonical_coord);
 
         let mut record = load_chunk_record(&chunk_file).filter(|loaded| {
@@ -582,11 +587,26 @@ fn derive_chunk_seed(world_seed: u64, canonical_coord: &GridVec) -> u64 {
     if raw == 0 { 0x9e37_79b9_7f4a_7c15 } else { raw }
 }
 
-fn chunk_file_path(settings: &UsfDemoSettings, chunk_scale: Scale, canonical_coord: &GridVec) -> PathBuf {
+fn chunk_file_path(settings: &UsfDemoSettings, chunk_scale: Scale, canonical_coord: &GridVec, chunk_store_key: &str) -> PathBuf {
     let mut hasher = DefaultHasher::new();
     canonical_coord.hash(&mut hasher);
     let coord_hash = hasher.finish();
-    Path::new(&settings.persistence_dir).join(format!(
+    let normalized_store_key = chunk_store_key.trim().to_ascii_lowercase();
+    let sanitized_store_key = if normalized_store_key.is_empty() {
+        "chunk_store.default".to_string()
+    } else {
+        normalized_store_key
+            .chars()
+            .map(|char| {
+                if char.is_ascii_alphanumeric() || char == '_' || char == '-' || char == '.' {
+                    char
+                } else {
+                    '_'
+                }
+            })
+            .collect::<String>()
+    };
+    Path::new(&settings.persistence_dir).join(sanitized_store_key).join(format!(
         "ws_{:016x}_as_{:02}_coord_{:016x}.json",
         settings.world_seed,
         chunk_scale.index_from_top(),

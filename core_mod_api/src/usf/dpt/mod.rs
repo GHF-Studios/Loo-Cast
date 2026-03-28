@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::bevy::prelude::*;
-use crate::usf::definition::DptSchema;
+use crate::usf::definition::{DptSchema, ScaleContentRegistry};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
 
@@ -22,6 +22,8 @@ pub struct DptStore {
     pub chunks: HashMap<DptChunkKey, DptChunkRecord>,
 }
 impl DptStore {
+    pub const DEFAULT_DPT_SAMPLER_ID: &'static str = "dpt_sampler.debug.default.v1";
+
     pub fn get_chunk(&self, key: &DptChunkKey) -> Option<&DptChunkRecord> {
         self.chunks.get(key)
     }
@@ -32,6 +34,23 @@ impl DptStore {
             metrics: deterministic_metric_vector(&key, schema.metrics.len()),
         })
     }
+
+    pub fn ensure_chunk_with_scale_binding(&mut self, key: DptChunkKey, schema: &DptSchema, scale_content_registry: &ScaleContentRegistry) -> &DptChunkRecord {
+        let sampler_id = scale_content_registry
+            .binding_for_scale(key.scale)
+            .map(|binding| binding.dpt_sampler_id.as_str())
+            .unwrap_or(Self::DEFAULT_DPT_SAMPLER_ID);
+
+        self.chunks.entry(key.clone()).or_insert_with(|| DptChunkRecord {
+            schema_revision: schema.revision,
+            metrics: metric_vector_for_sampler_id(sampler_id, &key, schema.metrics.len()),
+        })
+    }
+}
+
+fn metric_vector_for_sampler_id(sampler_id: &str, key: &DptChunkKey, metric_count: usize) -> Vec<f32> {
+    let _ = sampler_id;
+    deterministic_metric_vector(key, metric_count)
 }
 
 fn deterministic_metric_vector(key: &DptChunkKey, metric_count: usize) -> Vec<f32> {
@@ -142,7 +161,9 @@ fn mix64(mut state: u64) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::usf::definition::ScaleContentBinding;
     use crate::usf::pos::types::GridXyz;
+    use std::collections::HashMap;
 
     fn key(coord: GridVec) -> DptChunkKey {
         DptChunkKey { scale: coord.scale, coord }
@@ -201,6 +222,45 @@ mod tests {
         let delta = mean_abs_diff(&parent_metrics, &child_metrics);
 
         assert!(delta < 0.22);
+    }
+
+    #[test]
+    fn ensure_chunk_with_scale_binding_populates_metrics() {
+        let coord = GridVec::new_root(GridXyz::new_local(0, 0, 0));
+        let key = key(coord.clone());
+        let schema = DptSchema {
+            revision: 1,
+            metrics: vec![
+                crate::usf::definition::DptMetricDefinition {
+                    id: crate::usf::definition::DptMetricId(0),
+                    name: "density".to_string(),
+                    primitive: true,
+                },
+                crate::usf::definition::DptMetricDefinition {
+                    id: crate::usf::definition::DptMetricId(1),
+                    name: "support".to_string(),
+                    primitive: false,
+                },
+            ],
+            fallback_zone: crate::usf::definition::ZoneTypeId::new("void"),
+        };
+        let scale_content_registry = ScaleContentRegistry {
+            bindings_by_scale: HashMap::from([(
+                coord.scale,
+                ScaleContentBinding {
+                    dpt_sampler_id: DptStore::DEFAULT_DPT_SAMPLER_ID.to_string(),
+                    dpt_categorizer_id: "dpt_categorizer.debug.zlm_lookup.v1".to_string(),
+                    chunk_store_key: "chunk_store.default".to_string(),
+                },
+            )]),
+            known_dpt_samplers: std::collections::HashSet::from([DptStore::DEFAULT_DPT_SAMPLER_ID.to_string()]),
+            known_dpt_categorizers: std::collections::HashSet::from(["dpt_categorizer.debug.zlm_lookup.v1".to_string()]),
+        };
+
+        let mut store = DptStore::default();
+        let stored = store.ensure_chunk_with_scale_binding(key.clone(), &schema, &scale_content_registry);
+        let expected = deterministic_metric_vector(&key, schema.metrics.len());
+        assert_eq!(stored.metrics, expected);
     }
 }
 

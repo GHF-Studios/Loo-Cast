@@ -2433,7 +2433,6 @@ fn world_space_planar_delta_from_intent(intent_translation_delta: Vec3, yaw_radi
 #[tracing::instrument(skip_all)]
 pub(super) fn apply_usf_player_pivots_system(
     mut zoom_factor: ResMut<ZoomFactor>,
-    dev_zoom_factor: Res<DevZoomFactor>,
     mut projection_query: Query<&mut Projection, With<MainCamera>>,
     mut player_loader_query: Query<(&mut ChunkLoader, &mut ChunkActor, &mut Transform), With<Player>>,
     mut chunk_load_gate: Option<ResMut<ChunkLoadGate>>,
@@ -2466,8 +2465,6 @@ pub(super) fn apply_usf_player_pivots_system(
     let rotation_policy = chunk_loader.usf_transform.rotation.policy;
     let rotation_local_min = rotation_policy.local_min;
     let rotation_local_max = rotation_policy.local_max;
-    let perspective_fov_min_deg = CONFIG().get::<f32>("camera/min_fov_degrees");
-    let perspective_fov_max_deg = CONFIG().get::<f32>("camera/max_fov_degrees");
     let workflow_in_flight = chunk_load_gate_enabled && workflow_state.as_ref().is_some_and(|state| !state.is_idle());
 
     if gate_locked {
@@ -2576,27 +2573,17 @@ pub(super) fn apply_usf_player_pivots_system(
 
     chunk_loader.usf_transform.translation.z.set_local(player_transform.translation.z as f64);
 
-    // Keep commit-buffer accumulation internal. Rendering should never show values outside strict local bounds.
-    let display_zoom = zoom_factor.0.clamp(local_min, local_max);
-    let camera_zoom = effective_camera_zoom(display_zoom, dev_zoom_factor.0);
-
-    // Keep player visual scale stable; zoom should control camera framing, not player mesh size.
+    // Keep player visual scale stable; zoom authority comes from world/scale transitions.
     player_transform.scale = Vec3::ONE;
+    let first_person_fov = player_control_settings.first_person_fov_degrees.to_radians().clamp(0.35, 3.12);
+    let third_person_fov = CONFIG().get::<f32>("camera/default_fov_degrees").to_radians().clamp(0.35, 3.12);
 
     for mut projection in projection_query.iter_mut() {
-        apply_camera_zoom_to_projection(
-            projection.as_mut(),
-            camera_zoom,
-            CAMERA_EFFECTIVE_ZOOM_MIN,
-            CAMERA_EFFECTIVE_ZOOM_MAX,
-            perspective_fov_min_deg,
-            perspective_fov_max_deg,
-        );
-
-        if matches!(*player_camera_mode, PlayerCameraMode::FirstPerson) {
-            if let Projection::Perspective(perspective) = projection.as_mut() {
-                perspective.fov = player_control_settings.first_person_fov_degrees.to_radians().clamp(0.35, 3.12);
-            }
+        if let Projection::Perspective(perspective) = projection.as_mut() {
+            perspective.fov = match *player_camera_mode {
+                PlayerCameraMode::FirstPerson => first_person_fov,
+                PlayerCameraMode::ThirdPerson => third_person_fov,
+            };
         }
     }
 }

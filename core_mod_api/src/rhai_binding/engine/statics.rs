@@ -46,9 +46,19 @@ pub struct ScriptZoneDensityProfileDefinition {
     pub density_ceil: f32,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct ScriptScaleBindingDefinition {
+    pub dpt_sampler_id: String,
+    pub dpt_categorizer_id: String,
+    pub chunk_store_key: String,
+}
+
 export_static!(self, crate::rhai_binding::engine::statics::SCHEDULE_HOOKS: Lazy<Mutex<Vec<String>>> = Lazy::new(Default::default));
 export_static!(self, crate::rhai_binding::engine::statics::USF_ZONE_KIND_BY_TYPE: Lazy<Mutex<HashMap<String, String>>> = Lazy::new(Default::default));
 export_static!(self, crate::rhai_binding::engine::statics::USF_ZONE_TYPES: Lazy<Mutex<HashSet<String>>> = Lazy::new(Default::default));
 export_static!(self, crate::rhai_binding::engine::statics::USF_DPT_SCHEMAS_BY_SCALE: Lazy<Mutex<HashMap<u8, ScriptDptSchemaDefinition>>> = Lazy::new(Default::default));
 export_static!(self, crate::rhai_binding::engine::statics::USF_ZLM_SCALES_BY_SCALE: Lazy<Mutex<HashMap<u8, ScriptZlmScaleDefinition>>> = Lazy::new(Default::default));
 export_static!(self, crate::rhai_binding::engine::statics::USF_ZONE_DENSITY_PROFILE_BY_TYPE: Lazy<Mutex<HashMap<String, ScriptZoneDensityProfileDefinition>>> = Lazy::new(Default::default));
+export_static!(self, crate::rhai_binding::engine::statics::USF_DPT_SAMPLER_IDS: Lazy<Mutex<HashSet<String>>> = Lazy::new(Default::default));
+export_static!(self, crate::rhai_binding::engine::statics::USF_DPT_CATEGORIZER_IDS: Lazy<Mutex<HashSet<String>>> = Lazy::new(Default::default));
+export_static!(self, crate::rhai_binding::engine::statics::USF_SCALE_BINDINGS_BY_SCALE: Lazy<Mutex<HashMap<u8, ScriptScaleBindingDefinition>>> = Lazy::new(Default::default));

@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use crate::bevy::prelude::*;
 use crate::chunk::components::{Chunk, ChunkLoader};
 use crate::player::components::Player;
-use crate::usf::definition::{DefinitionRegistry, ZoneTypeId};
+use crate::usf::definition::{DefinitionRegistry, ScaleContentRegistry, ZoneTypeId};
 use crate::usf::dpt::{DptChunkKey, DptStore};
 use crate::usf::phenomenon::{Phenomenon, PhenomenonId, PhenomenonKind, PhenomenonModel};
 use crate::usf::pos::grid::types::GridVec;
@@ -25,6 +25,7 @@ pub(super) fn reconcile_zone_runtime_system(
     definitions: Res<DefinitionRegistry>,
     mut dpt_store: ResMut<DptStore>,
     zlm_registry: Res<ZlmRegistry>,
+    scale_content_registry: Res<ScaleContentRegistry>,
     temporal_context: Res<ZoneTemporalContext>,
     loaded_chunks: Query<&Chunk>,
     mut runtime_state: ResMut<ZoneRuntimeState>,
@@ -39,8 +40,8 @@ pub(super) fn reconcile_zone_runtime_system(
             scale: chunk.coord.scale,
             coord: chunk.coord.clone(),
         };
-        let chunk_record = dpt_store.ensure_chunk(chunk_key, schema);
-        let zone_type = zlm_registry.classify(chunk.coord.scale, schema, &chunk_record.metrics);
+        let chunk_record = dpt_store.ensure_chunk_with_scale_binding(chunk_key, schema, &scale_content_registry);
+        let zone_type = zlm_registry.classify_with_scale_binding(chunk.coord.scale, schema, &chunk_record.metrics, &scale_content_registry);
         classified_chunks.entry((chunk.coord.scale, zone_type)).or_default().push(chunk.coord.clone());
     }
 

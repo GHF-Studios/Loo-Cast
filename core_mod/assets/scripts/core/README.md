@@ -6,7 +6,7 @@ This directory is the canonical Rhai asset root for core runtime scripting.
 
 - `boot.rhai`
   - Registers schedule hooks via `rhai_binding::schedule_hooks::add`.
-- `schedule_hooks/`
+- `../ecs/schedule_hooks/`
   - Hook entrypoint scripts (`pre_startup.rhai`, `startup.rhai`, etc.).
   - Companion folders (same name as hook file) contain categorized test files loaded before the root hook file.
 

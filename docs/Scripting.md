@@ -7,17 +7,8 @@
   - authoring path: `core_mod/assets/scripts/core/boot.rhai`
   - runtime asset path: `core_mod/scripts/core/boot.rhai` (resolved by `asset_root()`).
 - `boot.rhai` registers schedule hooks through `rhai_binding::schedule_hooks::add("<schedule_name>")`.
-- `boot.rhai` can also register USF substrate contracts through `rhai_binding::usf_substrate`:
-  - `scale_level_count()`
-  - `clear_zone_types()`
-  - `add_zone_type("<zone_type>")`
-  - `clear_dpt_schemas()`
-  - `set_dpt_schema(<scale_index>, <revision>, "<fallback_zone>")`
-  - `add_dpt_metric(<scale_index>, <metric_id>, "<metric_name>", <primitive>)`
-  - `clear_zlm_maps()`
-  - `set_zlm_scale(<scale_index>, <revision>, "<fallback_zone>")`
-  - `add_zlm_rule(<scale_index>, "<zone_type>") -> <rule_index>`
-  - `add_zlm_metric_band(<scale_index>, <rule_index>, <metric_id>, <min>, <max>)`
+- USF substrate contracts are loaded from typed scripts under `core_mod/assets/scripts/usf/*`
+  by the engine bootstrap loader (entrypoint-per-script-type).
 - `boot.rhai` can also register USF zone behavior through `rhai_binding::usf_zone`:
   - `clear_phenomenon_kinds()`
   - `set_phenomenon_kind("<zone_type>", "<phenomenon_kind>")`
@@ -66,9 +57,9 @@ This makes `startup.rhai` a stable startup-test entrypoint while companion files
 ## Script layout
 
 - Core scripts root: `core_mod/assets/scripts/core/`
-- Schedule hooks: `core_mod/assets/scripts/core/schedule_hooks/`
+- ECS schedule hooks: `core_mod/assets/scripts/ecs/schedule_hooks/`
   - includes dedicated `substrate_*`, `zone_*`, and `phenomenon_*` phase files for USF simulation staging.
-- Startup test harness: `core_mod/assets/scripts/core/schedule_hooks/startup/`
+- Startup test harness: `core_mod/assets/scripts/ecs/schedule_hooks/startup/`
   - `tests/reflection/` for reflection graph smoke checks.
   - `tests/ecs/` for ECS integration tests (World, Commands, Query, Messages, iterators).
   - `tests/examples/` for runnable example-tests, currently including `shop::divisions::sex`.

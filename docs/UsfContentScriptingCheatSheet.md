@@ -49,7 +49,7 @@ Each file type has one entrypoint:
 - `*.phenomenon.rhai`: `fn register_phenomenon(ctx) { ... }`
 - `*.phenomenon_model.rhai`: `fn register_phenomenon_model(ctx) { ... }`
 - `*.dpt_sampler.rhai`: `fn register_dpt_sampler(ctx) { ... }`
-- `*.dpt_categorizers.rhai`: `fn register_dpt_categorizers(ctx) { ... }`
+- `*.dpt_categorizer.rhai`: `fn register_dpt_categorizer(ctx) { ... }`
 - `*.schedule_hook.rhai`: `fn run(world, params) { ... }`
 
 Rule: domain APIs are isolated. A script type get's any functions or types or methods or anything it needs via the context.

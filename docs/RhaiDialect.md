@@ -108,8 +108,8 @@ Architectural role note:
 - `bridges/testing/*`: explicit testing-only bridge space.
 - `bridges/domains/bevy/ecs/catalog/*`: compile-time registries for signatures and providers.
 - `runtime/ecs/dispatch_policy.rs`: canonical generic-dispatch policy, invariant checks, and submission macros.
-- `core_mod/assets/scripts/core/schedule_hooks/startup/*`: startup test harness scripts.
-- `core_mod/assets/scripts/core/schedule_hooks/startup/tests/*`: integration tests and example-tests.
+- `core_mod/assets/scripts/ecs/schedule_hooks/startup/*`: startup test harness scripts.
+- `core_mod/assets/scripts/ecs/schedule_hooks/startup/tests/*`: integration tests and example-tests.
 - `*/assets/scripts/<module_name>/*`: module-owned script trees outside core hooks.
 
 Macro surface assessment and unification plan: `docs/RhaiMacroSurface.md`.

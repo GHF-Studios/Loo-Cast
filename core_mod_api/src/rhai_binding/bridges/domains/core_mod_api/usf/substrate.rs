@@ -1,8 +1,9 @@
 use rhai::FuncRegistration;
 
 use crate::rhai_binding::engine::statics::{
-    ScriptDptMetricDefinition, ScriptDptSchemaDefinition, ScriptZlmMetricBandDefinition, ScriptZlmRuleDefinition, ScriptZlmScaleDefinition,
-    USF_DPT_SCHEMAS_BY_SCALE, USF_ZLM_SCALES_BY_SCALE, USF_ZONE_TYPES,
+    ScriptDptMetricDefinition, ScriptDptSchemaDefinition, ScriptScaleBindingDefinition, ScriptZlmMetricBandDefinition, ScriptZlmRuleDefinition,
+    ScriptZlmScaleDefinition, USF_DPT_CATEGORIZER_IDS, USF_DPT_SAMPLER_IDS, USF_DPT_SCHEMAS_BY_SCALE, USF_SCALE_BINDINGS_BY_SCALE, USF_ZLM_SCALES_BY_SCALE,
+    USF_ZONE_TYPES,
 };
 use crate::usf::scale::Scale;
 
@@ -18,10 +19,16 @@ core_mod_macros::reflect_extern_sub_module!(
         clear_dpt_schemas,
         set_dpt_schema,
         add_dpt_metric,
+        clear_dpt_samplers,
+        add_dpt_sampler,
+        clear_dpt_categorizers,
+        add_dpt_categorizer,
         clear_zlm_maps,
         set_zlm_scale,
         add_zlm_rule,
-        add_zlm_metric_band
+        add_zlm_metric_band,
+        clear_scale_bindings,
+        set_scale_binding
     ],
 );
 
@@ -111,6 +118,48 @@ core_mod_macros::reflect_extern_module_associated_function!(
                 Ok(())
             },
         );
+    },
+);
+
+core_mod_macros::reflect_extern_module_associated_function!(
+    id = core_mod_api::usf::substrate::clear_dpt_samplers,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(parent_module, || -> Result<(), Box<rhai::EvalAltResult>> {
+            USF_DPT_SAMPLER_IDS().lock().unwrap().clear();
+            Ok(())
+        });
+    },
+);
+
+core_mod_macros::reflect_extern_module_associated_function!(
+    id = core_mod_api::usf::substrate::add_dpt_sampler,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(parent_module, |sampler_id: &str| -> Result<(), Box<rhai::EvalAltResult>> {
+            let sampler_id = normalize_identifier("dpt_sampler_id", sampler_id)?;
+            USF_DPT_SAMPLER_IDS().lock().unwrap().insert(sampler_id);
+            Ok(())
+        });
+    },
+);
+
+core_mod_macros::reflect_extern_module_associated_function!(
+    id = core_mod_api::usf::substrate::clear_dpt_categorizers,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(parent_module, || -> Result<(), Box<rhai::EvalAltResult>> {
+            USF_DPT_CATEGORIZER_IDS().lock().unwrap().clear();
+            Ok(())
+        });
+    },
+);
+
+core_mod_macros::reflect_extern_module_associated_function!(
+    id = core_mod_api::usf::substrate::add_dpt_categorizer,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(parent_module, |categorizer_id: &str| -> Result<(), Box<rhai::EvalAltResult>> {
+            let categorizer_id = normalize_identifier("dpt_categorizer_id", categorizer_id)?;
+            USF_DPT_CATEGORIZER_IDS().lock().unwrap().insert(categorizer_id);
+            Ok(())
+        });
     },
 );
 
@@ -209,6 +258,40 @@ core_mod_macros::reflect_extern_module_associated_function!(
     },
 );
 
+core_mod_macros::reflect_extern_module_associated_function!(
+    id = core_mod_api::usf::substrate::clear_scale_bindings,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(parent_module, || -> Result<(), Box<rhai::EvalAltResult>> {
+            USF_SCALE_BINDINGS_BY_SCALE().lock().unwrap().clear();
+            Ok(())
+        });
+    },
+);
+
+core_mod_macros::reflect_extern_module_associated_function!(
+    id = core_mod_api::usf::substrate::set_scale_binding,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(
+            parent_module,
+            |scale_index: i64, dpt_sampler_id: &str, dpt_categorizer_id: &str, chunk_store_key: &str| -> Result<(), Box<rhai::EvalAltResult>> {
+                let scale_index = parse_scale_index(scale_index)?;
+                let dpt_sampler_id = normalize_identifier("dpt_sampler_id", dpt_sampler_id)?;
+                let dpt_categorizer_id = normalize_identifier("dpt_categorizer_id", dpt_categorizer_id)?;
+                let chunk_store_key = normalize_identifier("chunk_store_key", chunk_store_key)?;
+                USF_SCALE_BINDINGS_BY_SCALE().lock().unwrap().insert(
+                    scale_index,
+                    ScriptScaleBindingDefinition {
+                        dpt_sampler_id,
+                        dpt_categorizer_id,
+                        chunk_store_key,
+                    },
+                );
+                Ok(())
+            },
+        );
+    },
+);
+
 #[inline]
 fn normalize_zone_type(zone_type: &str) -> Result<String, Box<rhai::EvalAltResult>> {
     let normalized_zone_type = zone_type.trim().to_ascii_lowercase();
@@ -244,4 +327,13 @@ fn parse_u16_value(value_name: &str, value: i64) -> Result<u16, Box<rhai::EvalAl
         return Err(format!("{value_name} must be in 0..={}, got {value}", u16::MAX).into());
     }
     Ok(value as u16)
+}
+
+#[inline]
+fn normalize_identifier(value_name: &str, value: &str) -> Result<String, Box<rhai::EvalAltResult>> {
+    let normalized = value.trim().to_ascii_lowercase();
+    if normalized.is_empty() {
+        return Err(format!("{value_name} must not be empty").into());
+    }
+    Ok(normalized)
 }

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::bevy::prelude::*;
 use crate::core::orchestration::AppSet;
 use crate::rhai_binding::engine::statics::USF_ZLM_SCALES_BY_SCALE;
-use crate::usf::definition::{DefinitionRegistry, DptMetricId, DptSchema, ZoneTypeId};
+use crate::usf::definition::{DefinitionRegistry, DptMetricId, DptSchema, ScaleContentRegistry, ZoneTypeId};
 use crate::usf::scale::Scale;
 
 #[derive(Reflect, Debug, Clone, PartialEq)]
@@ -56,6 +56,8 @@ impl Default for ZlmRegistry {
     }
 }
 impl ZlmRegistry {
+    pub const DEFAULT_DPT_CATEGORIZER_ID: &'static str = "dpt_categorizer.debug.zlm_lookup.v1";
+
     pub fn classify(&self, scale: Scale, schema: &DptSchema, metric_values: &[f32]) -> ZoneTypeId {
         let Some(scale_map) = self.maps_by_scale.get(&scale) else {
             return schema.fallback_zone.clone();
@@ -84,6 +86,20 @@ impl ZlmRegistry {
         }
 
         scale_map.fallback_zone.clone()
+    }
+
+    pub fn classify_with_scale_binding(
+        &self,
+        scale: Scale,
+        schema: &DptSchema,
+        metric_values: &[f32],
+        scale_content_registry: &ScaleContentRegistry,
+    ) -> ZoneTypeId {
+        let _categorizer_id = scale_content_registry
+            .binding_for_scale(scale)
+            .map(|binding| binding.dpt_categorizer_id.as_str())
+            .unwrap_or(Self::DEFAULT_DPT_CATEGORIZER_ID);
+        self.classify(scale, schema, metric_values)
     }
 
     pub fn validate_against(&self, definitions: &DefinitionRegistry) -> Result<(), String> {
@@ -274,6 +290,7 @@ impl Plugin for ZlmPlugin {
 mod tests {
     use super::*;
     use crate::usf::definition::{DptMetricDefinition, DptMetricId};
+    use std::collections::HashMap;
 
     #[test]
     fn classify_uses_scale_map_fallback_zone_when_no_rule_matches() {
