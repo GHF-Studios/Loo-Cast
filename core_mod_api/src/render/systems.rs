@@ -25,8 +25,11 @@ use std::collections::{HashMap, HashSet};
 const MIN_WINDOW_SIZE_LOCAL: f32 = f32::MIN_POSITIVE;
 const CAMERA_EFFECTIVE_ZOOM_MIN: f32 = 0.1;
 const CAMERA_EFFECTIVE_ZOOM_MAX: f32 = 10.0;
+#[cfg(test)]
 const CAMERA_REFERENCE_HALF_VIEW_SPAN: f32 = 1_200.0;
+#[cfg(test)]
 const CAMERA_DISTANCE_MIN: f32 = 80.0;
+#[cfg(test)]
 const CAMERA_DISTANCE_MAX: f32 = 25_000.0;
 
 #[inline]
@@ -35,6 +38,7 @@ fn effective_camera_zoom(local_zoom: f32, dev_zoom: f32) -> f32 {
 }
 
 #[inline]
+#[cfg(test)]
 fn camera_distance_from_zoom_and_fov(zoom: f32, fov_radians: f32) -> f32 {
     let zoom = zoom.clamp(CAMERA_EFFECTIVE_ZOOM_MIN, CAMERA_EFFECTIVE_ZOOM_MAX);
     let tan_half = (fov_radians * 0.5).tan().abs().max(1e-4);
@@ -2283,44 +2287,22 @@ mod tests {
 #[tracing::instrument(skip_all)]
 pub(super) fn enforce_main_camera_depth_contract_system(
     mut main_camera_query: Query<(&mut Transform, &mut Projection), (With<MainCamera>, Without<Player>)>,
-    player_query: Query<(&Transform, &ChunkLoader), (With<Player>, Without<MainCamera>)>,
+    player_query: Query<&Transform, (With<Player>, Without<MainCamera>)>,
     player_camera_mode: Res<PlayerCameraMode>,
     player_camera_rig_settings: Res<PlayerCameraRigSettings>,
-    zoom_factor: Res<ZoomFactor>,
-    dev_zoom_factor: Res<DevZoomFactor>,
 ) {
     let Ok((mut camera_transform, mut projection)) = main_camera_query.single_mut() else {
         return;
     };
 
-    let perspective_fov_min_deg = CONFIG().get::<f32>("camera/min_fov_degrees");
-    let perspective_fov_max_deg = CONFIG().get::<f32>("camera/max_fov_degrees");
     let first_person_camera_height = player_camera_rig_settings.first_person_camera_height.max(1.0);
-    let third_person_camera_height = player_camera_rig_settings.third_person_camera_height.max(1.0);
-    let player_camera_mode = *player_camera_mode;
 
-    camera_transform.translation.z = player_query
-        .single()
-        .map(|(player_transform, chunk_loader)| {
-            let local_min = chunk_loader.usf_transform.scale.policy.local_min as f32;
-            let local_max = chunk_loader.usf_transform.scale.policy.local_max as f32;
-            let display_zoom = zoom_factor.0.clamp(local_min.max(f32::EPSILON), local_max.max(local_min + f32::EPSILON));
-            let camera_zoom = effective_camera_zoom(display_zoom, dev_zoom_factor.0);
-            let fov = zoom_to_fov_radians(
-                camera_zoom,
-                CAMERA_EFFECTIVE_ZOOM_MIN,
-                CAMERA_EFFECTIVE_ZOOM_MAX,
-                perspective_fov_min_deg,
-                perspective_fov_max_deg,
-            );
-            let camera_distance = camera_distance_from_zoom_and_fov(camera_zoom, fov);
-            let camera_height = match player_camera_mode {
-                PlayerCameraMode::FirstPerson => first_person_camera_height,
-                PlayerCameraMode::ThirdPerson => camera_distance.max(third_person_camera_height),
-            };
-            player_transform.translation.z + camera_height
-        })
-        .unwrap_or(Scale::CANONICAL_CAMERA_Z);
+    if matches!(*player_camera_mode, PlayerCameraMode::FirstPerson) {
+        camera_transform.translation.z = player_query
+            .single()
+            .map(|player_transform| player_transform.translation.z + first_person_camera_height)
+            .unwrap_or(Scale::CANONICAL_CAMERA_Z);
+    }
 
     match projection.as_mut() {
         Projection::Orthographic(ortho) => {

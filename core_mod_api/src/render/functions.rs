@@ -325,7 +325,7 @@ fn draw_pause_settings_window(state: &mut PrimaryWindowUiState, world: &mut Worl
 
             ui.separator();
 
-            ui.label("Camera");
+            ui.label("First-Person Camera");
             ui.add(
                 egui::Slider::new(&mut control_settings.first_person_fov_degrees, 45.0..=179.0)
                     .text("First-person FOV")
@@ -334,8 +334,20 @@ fn draw_pause_settings_window(state: &mut PrimaryWindowUiState, world: &mut Worl
             ui.add(
                 egui::Slider::new(&mut control_settings.mouse_look_sensitivity, 0.0005..=0.03)
                     .logarithmic(true)
-                    .text("Mouse sensitivity"),
+                    .text("Look sensitivity"),
             );
+            ui.checkbox(&mut control_settings.invert_look_x_axis, "Invert look X (horizontal)");
+            ui.checkbox(&mut control_settings.invert_look_y_axis, "Invert look Y (vertical)");
+
+            ui.separator();
+            ui.label("Third-Person Camera");
+            ui.add(
+                egui::Slider::new(&mut control_settings.third_person_mouse_look_sensitivity, 0.0005..=0.03)
+                    .logarithmic(true)
+                    .text("Orbit sensitivity"),
+            );
+            ui.checkbox(&mut control_settings.invert_third_person_look_x_axis, "Invert orbit X (horizontal)");
+            ui.checkbox(&mut control_settings.invert_third_person_look_y_axis, "Invert orbit Y (vertical)");
 
             ui.separator();
             ui.label("Keybinds");
@@ -354,8 +366,6 @@ fn draw_pause_settings_window(state: &mut PrimaryWindowUiState, world: &mut Worl
             ui.checkbox(&mut control_settings.invert_move_x_axis, "Invert movement X (left/right)");
             ui.checkbox(&mut control_settings.invert_move_y_axis, "Invert movement Y (forward/back)");
             ui.checkbox(&mut control_settings.invert_move_z_axis, "Invert movement Z (up/down)");
-            ui.checkbox(&mut control_settings.invert_look_x_axis, "Invert look X (horizontal)");
-            ui.checkbox(&mut control_settings.invert_look_y_axis, "Invert look Y (vertical)");
             ui.checkbox(&mut control_settings.invert_roll_axis, "Invert roll");
 
             ui.separator();
@@ -366,6 +376,7 @@ fn draw_pause_settings_window(state: &mut PrimaryWindowUiState, world: &mut Worl
 
     control_settings.first_person_fov_degrees = control_settings.first_person_fov_degrees.clamp(45.0, 179.0);
     control_settings.mouse_look_sensitivity = control_settings.mouse_look_sensitivity.clamp(0.0005, 0.03);
+    control_settings.third_person_mouse_look_sensitivity = control_settings.third_person_mouse_look_sensitivity.clamp(0.0005, 0.03);
     if close_requested {
         state.close_pause_menu();
     } else if back_requested {

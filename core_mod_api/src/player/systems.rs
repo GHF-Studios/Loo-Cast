@@ -62,16 +62,22 @@ fn wrap_angle_radians(angle: f32) -> f32 {
 }
 
 #[inline]
-fn view_rotation_from_look(look_state: &PlayerLookState) -> Quat {
-    let yaw_rotation = Quat::from_rotation_z(look_state.yaw_radians);
+fn forward_direction_from_yaw_pitch(yaw_radians: f32, pitch_radians: f32) -> Vec3 {
+    let yaw_rotation = Quat::from_rotation_z(yaw_radians);
     let forward_planar = (yaw_rotation * Vec3::Y).normalize_or_zero();
     let right = (yaw_rotation * Vec3::X).normalize_or_zero();
-    let pitch_rotation = Quat::from_axis_angle(right, look_state.pitch_radians);
-    let mut forward = (pitch_rotation * forward_planar).normalize_or_zero();
+    let pitch_rotation = Quat::from_axis_angle(right, pitch_radians);
+    let forward = (pitch_rotation * forward_planar).normalize_or_zero();
     if forward.length_squared() <= f32::EPSILON {
-        forward = Vec3::Y;
+        return Vec3::Y;
     }
 
+    forward
+}
+
+#[inline]
+fn view_rotation_from_look(look_state: &PlayerLookState) -> Quat {
+    let forward = forward_direction_from_yaw_pitch(look_state.yaw_radians, look_state.pitch_radians);
     let base_rotation = Transform::from_translation(Vec3::ZERO).looking_to(forward, Vec3::Z).rotation;
     let roll_rotation = Quat::from_axis_angle(forward, look_state.roll_radians);
     roll_rotation * base_rotation
@@ -287,12 +293,11 @@ pub(super) fn apply_player_camera_mode_system(
             }
         }
         PlayerCameraMode::ThirdPerson => {
-            let yaw_radians = look_state.yaw_radians;
-            let back_local = Vec3::new(0.0, -camera_rig.third_person_follow_distance.max(0.0), 0.0);
-            let mut back_world = Quat::from_rotation_z(yaw_radians) * back_local;
-            back_world.z = 0.0;
+            let follow_distance = camera_rig.third_person_follow_distance.max(0.0);
+            let target_height = camera_rig.first_person_camera_height.max(0.0);
+            let forward = forward_direction_from_yaw_pitch(look_state.yaw_radians, look_state.pitch_radians);
 
-            main_camera_follower.offset = back_world;
+            main_camera_follower.offset = (-forward * follow_distance) + Vec3::new(0.0, 0.0, target_height);
             main_camera_follower.smoothness = camera_rig.third_person_camera_smoothness.max(0.0);
 
             if let Some(link) = visual_link {
@@ -306,14 +311,38 @@ pub(super) fn apply_player_camera_mode_system(
 
 #[tracing::instrument(skip_all)]
 pub(super) fn apply_player_camera_orientation_system(
+    camera_mode: Res<PlayerCameraMode>,
     look_state: Res<PlayerLookState>,
+    camera_rig: Res<PlayerCameraRigSettings>,
+    player_query: Query<&Transform, With<Player>>,
     mut main_camera_query: Query<&mut Transform, (With<MainCamera>, Without<Player>)>,
 ) {
     let Ok(mut camera_transform) = main_camera_query.single_mut() else {
         return;
     };
 
-    camera_transform.rotation = view_rotation_from_look(&look_state);
+    match *camera_mode {
+        PlayerCameraMode::FirstPerson => {
+            camera_transform.rotation = view_rotation_from_look(&look_state);
+        }
+        PlayerCameraMode::ThirdPerson => {
+            let Ok(player_transform) = player_query.single() else {
+                camera_transform.rotation = view_rotation_from_look(&look_state);
+                return;
+            };
+
+            let look_target = player_transform.translation + Vec3::new(0.0, 0.0, camera_rig.first_person_camera_height.max(0.0));
+            let to_target = look_target - camera_transform.translation;
+            if to_target.length_squared() <= f32::EPSILON {
+                camera_transform.rotation = view_rotation_from_look(&look_state);
+                return;
+            }
+
+            camera_transform.rotation = Transform::from_translation(camera_transform.translation)
+                .looking_at(look_target, Vec3::Z)
+                .rotation;
+        }
+    }
 }
 
 #[tracing::instrument(skip_all)]
@@ -343,6 +372,7 @@ pub(super) fn update_player_system(
     time: Res<Time<Virtual>>,
     mut player_motion_intent: ResMut<PlayerMotionIntent>,
     mut player_look_state: ResMut<PlayerLookState>,
+    camera_mode: Res<PlayerCameraMode>,
     control_settings: Res<PlayerControlSettings>,
     mut runtime_config: Local<PlayerRuntimeConfigCache>,
     mut had_mouse_control_last_frame: Local<bool>,
@@ -452,12 +482,24 @@ pub(super) fn update_player_system(
         }
 
         // Mouse look for FPS controls.
-        let look_x_sign = if control_settings.invert_look_x_axis { -1.0 } else { 1.0 };
-        let look_y_sign = if control_settings.invert_look_y_axis { -1.0 } else { 1.0 };
+        let (look_sensitivity, invert_look_x_axis, invert_look_y_axis) = match *camera_mode {
+            PlayerCameraMode::FirstPerson => (
+                control_settings.mouse_look_sensitivity,
+                control_settings.invert_look_x_axis,
+                control_settings.invert_look_y_axis,
+            ),
+            PlayerCameraMode::ThirdPerson => (
+                control_settings.third_person_mouse_look_sensitivity,
+                control_settings.invert_third_person_look_x_axis,
+                control_settings.invert_third_person_look_y_axis,
+            ),
+        };
+        let look_x_sign = if invert_look_x_axis { -1.0 } else { 1.0 };
+        let look_y_sign = if invert_look_y_axis { -1.0 } else { 1.0 };
         let (roll_sin, roll_cos) = player_look_state.roll_radians.sin_cos();
         for mouse_motion in mouse_motion_reader.read() {
-            let mouse_x = mouse_motion.delta.x * control_settings.mouse_look_sensitivity * look_x_sign;
-            let mouse_y = mouse_motion.delta.y * control_settings.mouse_look_sensitivity * look_y_sign;
+            let mouse_x = mouse_motion.delta.x * look_sensitivity * look_x_sign;
+            let mouse_y = mouse_motion.delta.y * look_sensitivity * look_y_sign;
 
             // Keep mouse controls stable in screen space even when the view is rolled.
             let yaw_input = -(mouse_x * roll_cos - mouse_y * roll_sin);

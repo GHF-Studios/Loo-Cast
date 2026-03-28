@@ -83,6 +83,7 @@ base_size = 128.0
 base_movement_speed = 500.0
 sprint_multiplier = 2.5
 mouse_look_sensitivity = 0.0006
+third_person_mouse_look_sensitivity = 0.0006
 first_person_fov_degrees = 110.0
 look_pitch_min_degrees = -85.0
 look_pitch_max_degrees = 85.0
