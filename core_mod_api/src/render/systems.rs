@@ -54,6 +54,14 @@ fn world_presentation_scale_from_local_zoom(local_zoom: f32) -> f32 {
 }
 
 #[inline]
+fn world_presentation_origin_from_camera(
+    main_camera_query: &Query<&Transform, (With<MainCamera>, Without<Player>, Without<WorldPresentationRoot>, Without<RenderProxy>)>,
+    fallback: Vec3,
+) -> Vec3 {
+    main_camera_query.single().map(|transform| transform.translation).unwrap_or(fallback)
+}
+
+#[inline]
 #[cfg(test)]
 fn camera_distance_from_zoom_and_fov(zoom: f32, fov_radians: f32) -> f32 {
     let zoom = zoom.clamp(CAMERA_EFFECTIVE_ZOOM_MIN, CAMERA_EFFECTIVE_ZOOM_MAX);
@@ -231,15 +239,17 @@ pub(super) fn validate_camera_contract_system(
 
 #[tracing::instrument(skip_all)]
 pub(super) fn update_world_presentation_root_transform_system(
-    player_loader_query: Single<(&ChunkLoader, &Transform), (With<Player>, Without<WorldPresentationRoot>)>,
+    player_loader_query: Single<(&ChunkLoader, &Transform), (With<Player>, Without<WorldPresentationRoot>, Without<MainCamera>)>,
+    main_camera_query: Query<&Transform, (With<MainCamera>, Without<Player>, Without<WorldPresentationRoot>, Without<RenderProxy>)>,
     root_query: Single<&mut Transform, (With<WorldPresentationRoot>, Without<Player>)>,
 ) {
     let (chunk_loader, player_transform) = *player_loader_query;
     let local_zoom = player_local_zoom_for_presentation(chunk_loader);
     let world_presentation_scale = world_presentation_scale_from_local_zoom(local_zoom);
+    let world_presentation_origin = world_presentation_origin_from_camera(&main_camera_query, player_transform.translation);
 
     let mut root_transform = root_query.into_inner();
-    root_transform.translation = player_transform.translation;
+    root_transform.translation = world_presentation_origin;
     root_transform.rotation = chunk_loader.world_rotation_quat();
     root_transform.scale = Vec3::splat(world_presentation_scale);
 }
@@ -262,19 +272,21 @@ pub(super) fn bind_render_proxies_to_world_presentation_root_system(
 #[tracing::instrument(skip_all)]
 pub(super) fn update_render_proxies(
     mut params: ParamSet<(
-        Single<(&ChunkLoader, &Transform), With<Player>>,
+        Single<(&ChunkLoader, &Transform), (With<Player>, Without<MainCamera>)>,
         Query<(&EntityProxyLink, &ChunkActor), Without<RenderProxy>>,
         Query<(&mut Transform, &mut ProxySyncRevision, &mut RenderProxy), With<RenderProxy>>,
     )>,
+    main_camera_query: Query<&Transform, (With<MainCamera>, Without<Player>, Without<WorldPresentationRoot>, Without<RenderProxy>)>,
 ) {
     let (world_rotation_origin, origin_offset, view_pos_native, player_local_zoom, world_presentation_scale) = {
         let (chunk_loader, chunk_loader_transform) = *params.p0();
         let local_zoom = player_local_zoom_for_presentation(chunk_loader);
         let presentation_scale = world_presentation_scale_from_local_zoom(local_zoom);
+        let world_presentation_origin = world_presentation_origin_from_camera(&main_camera_query, chunk_loader_transform.translation);
         (
-            chunk_loader_transform.translation,
+            world_presentation_origin,
             chunk_loader.origin_offset.clone(),
-            chunk_loader_transform.translation,
+            world_presentation_origin,
             local_zoom,
             presentation_scale,
         )
@@ -322,7 +334,8 @@ pub(super) fn update_render_proxies(
 #[tracing::instrument(skip_all)]
 pub(super) fn draw_chunk_locator_gizmos_system(
     mut gizmos: Gizmos,
-    player_loader_query: Single<(&ChunkLoader, &Transform), With<Player>>,
+    player_loader_query: Single<(&ChunkLoader, &Transform), (With<Player>, Without<MainCamera>)>,
+    main_camera_query: Query<&Transform, (With<MainCamera>, Without<Player>, Without<WorldPresentationRoot>, Without<RenderProxy>)>,
     loaded_chunks: Query<&Chunk, With<ChunkDebugWireframe>>,
     runtime_debug_toggles: Option<Res<RuntimeDebugToggles>>,
 ) {
@@ -339,7 +352,7 @@ pub(super) fn draw_chunk_locator_gizmos_system(
 
     let (chunk_loader, player_transform) = *player_loader_query;
     let world_rotation = chunk_loader.world_rotation_quat();
-    let world_rotation_origin = player_transform.translation;
+    let world_rotation_origin = world_presentation_origin_from_camera(&main_camera_query, player_transform.translation);
     let local_zoom = player_local_zoom_for_presentation(chunk_loader);
     let world_presentation_scale = world_presentation_scale_from_local_zoom(local_zoom);
     let origin_offset = chunk_loader.origin_offset.clone();

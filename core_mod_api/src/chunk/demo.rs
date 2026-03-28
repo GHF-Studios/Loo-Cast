@@ -7,7 +7,7 @@ use crate::chunk::components::{Chunk, ChunkLoader};
 use crate::chunk::resources::ChunkManager;
 use crate::config::statics::CONFIG;
 use crate::player::components::Player;
-use crate::render::components::WorldPresentationRoot;
+use crate::render::components::{MainCamera, WorldPresentationRoot};
 use crate::usf::definition::{DefinitionRegistry, ScaleContentRegistry, ZoneTypeId};
 use crate::usf::dpt::{DptChunkKey, DptStore};
 use crate::usf::pos::grid::types::GridVec;
@@ -266,6 +266,7 @@ pub(crate) fn hydrate_chunk_demo_data_system(
 pub(crate) fn sync_chunk_demo_visual_transforms_system(
     settings: Res<UsfDemoSettings>,
     player_loader_query: Query<(&ChunkLoader, &Transform), With<Player>>,
+    main_camera_query: Query<&Transform, (With<MainCamera>, Without<Player>, Without<UsfDemoChunkVisual>)>,
     mut chunk_query: Query<(&Chunk, &mut Transform), (With<UsfDemoChunkVisual>, Without<Player>)>,
 ) {
     if !settings.enabled {
@@ -276,7 +277,10 @@ pub(crate) fn sync_chunk_demo_visual_transforms_system(
         return;
     };
 
-    let world_rotation_origin = player_transform.translation;
+    let world_rotation_origin = main_camera_query
+        .single()
+        .map(|transform| transform.translation)
+        .unwrap_or(player_transform.translation);
     let origin_offset = chunk_loader.origin_offset.clone();
 
     for (chunk, mut transform) in chunk_query.iter_mut() {
