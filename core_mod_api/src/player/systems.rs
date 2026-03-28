@@ -115,27 +115,20 @@ pub(super) fn update_player_system(
         if keys.pressed(KeyCode::KeyD) {
             direction.x += 1.0;
         }
-        if keys.pressed(KeyCode::Space) {
-            direction.z += 1.0;
-        }
-        if keys.pressed(KeyCode::ControlLeft) || keys.pressed(KeyCode::ControlRight) {
-            direction.z -= 1.0;
-        }
+        // Jump/crouch are intentionally not translated into world-space movement here.
+        // They will be handled by the upcoming physics-backed controller.
 
         if direction.length_squared() > 0.0 {
             direction = direction.normalize();
-            let sprint_multiplier = if keys.pressed(KeyCode::ShiftLeft) { *sprint_multiplier } else { 1.0 };
+            let sprint_multiplier = if keys.pressed(KeyCode::ShiftLeft) || keys.pressed(KeyCode::ShiftRight) {
+                *sprint_multiplier
+            } else {
+                1.0
+            };
             player_motion_intent.translation_delta = direction * *base_movement_speed * sprint_multiplier * time.delta_secs();
         }
 
         let mut delta_rotation = Vec3::ZERO;
-        // Roll around local Z.
-        if keys.pressed(KeyCode::KeyQ) {
-            delta_rotation.z -= *world_rotation_speed * time.delta_secs();
-        }
-        if keys.pressed(KeyCode::KeyE) {
-            delta_rotation.z += *world_rotation_speed * time.delta_secs();
-        }
         // Pitch around local X.
         if keys.pressed(KeyCode::ArrowUp) {
             delta_rotation.x -= *world_rotation_speed * time.delta_secs();
@@ -143,12 +136,12 @@ pub(super) fn update_player_system(
         if keys.pressed(KeyCode::ArrowDown) {
             delta_rotation.x += *world_rotation_speed * time.delta_secs();
         }
-        // Yaw around local Y.
-        if keys.pressed(KeyCode::ArrowLeft) {
-            delta_rotation.y += *world_rotation_speed * time.delta_secs();
+        // Yaw around local Z (FPS-style horizontal turning).
+        if keys.pressed(KeyCode::ArrowLeft) || keys.pressed(KeyCode::KeyQ) {
+            delta_rotation.z += *world_rotation_speed * time.delta_secs();
         }
-        if keys.pressed(KeyCode::ArrowRight) {
-            delta_rotation.y -= *world_rotation_speed * time.delta_secs();
+        if keys.pressed(KeyCode::ArrowRight) || keys.pressed(KeyCode::KeyE) {
+            delta_rotation.z -= *world_rotation_speed * time.delta_secs();
         }
         player_motion_intent.rotation_delta = delta_rotation;
     }

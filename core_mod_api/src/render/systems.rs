@@ -2263,6 +2263,20 @@ mod tests {
         assert!((size.y - 0.1).abs() < 1e-6);
         assert!((size.z - 0.1).abs() < 1e-6);
     }
+
+    #[test]
+    fn planar_world_delta_preserves_magnitude_when_yawed() {
+        let intent = Vec3::new(3.0, 4.0, 99.0);
+        let delta = world_space_planar_delta_from_intent(intent, std::f32::consts::FRAC_PI_2);
+        assert!((delta.length() - 5.0).abs() < 1e-5);
+        assert!(delta.z.abs() < 1e-6);
+    }
+
+    #[test]
+    fn planar_world_delta_ignores_vertical_only_intent() {
+        let delta = world_space_planar_delta_from_intent(Vec3::new(0.0, 0.0, 42.0), 1.0);
+        assert_eq!(delta, Vec3::ZERO);
+    }
 }
 
 #[tracing::instrument(skip_all)]
@@ -2411,6 +2425,19 @@ pub(super) fn main_camera_zoom_system(
     }
 }
 
+#[inline]
+fn world_space_planar_delta_from_intent(intent_translation_delta: Vec3, yaw_radians: f32) -> Vec3 {
+    let local_planar = Vec3::new(intent_translation_delta.x, intent_translation_delta.y, 0.0);
+    if local_planar.length_squared() <= f32::EPSILON {
+        return Vec3::ZERO;
+    }
+
+    let yaw_rotation = Quat::from_rotation_z(yaw_radians);
+    let mut world_planar = yaw_rotation.inverse() * local_planar;
+    world_planar.z = 0.0;
+    world_planar
+}
+
 #[tracing::instrument(skip_all)]
 pub(super) fn apply_usf_player_pivots_system(
     mut zoom_factor: ResMut<ZoomFactor>,
@@ -2435,13 +2462,8 @@ pub(super) fn apply_usf_player_pivots_system(
     let intent_translation_delta = player_motion_intent.translation_delta;
     let intent_rotation_delta = player_motion_intent.rotation_delta;
     player_motion_intent.clear();
-    let mut world_space_translation_delta = if intent_translation_delta == Vec3::ZERO {
-        Vec3::ZERO
-    } else {
-        // Input is authored in player-local XYZ; convert to world-space using current heading.
-        chunk_loader.world_rotation_quat().inverse() * intent_translation_delta
-    };
-    world_space_translation_delta.z = 0.0;
+    let yaw_radians = chunk_loader.usf_transform.rotation.z.local as f32;
+    let world_space_translation_delta = world_space_planar_delta_from_intent(intent_translation_delta, yaw_radians);
 
     let chunk_load_gate_enabled = CONFIG().get::<bool>("workflow/chunk_load_gate_enabled");
     let mut gate_locked = chunk_load_gate_enabled && chunk_load_gate.as_ref().is_some_and(|gate| gate.is_locked());
