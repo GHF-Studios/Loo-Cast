@@ -37,8 +37,15 @@ fn player_local_zoom_for_presentation(chunk_loader: &ChunkLoader) -> f32 {
 }
 
 #[inline]
-fn world_presentation_scale_from_local_zoom(local_zoom: f32) -> f32 {
-    (1.0 / local_zoom.max(f32::MIN_POSITIVE)).clamp(1e-4, 1e4)
+fn world_presentation_distance_scale_from_local_zoom(local_zoom: f32) -> f32 {
+    let log_zoom = local_zoom.max(f32::MIN_POSITIVE).log10().clamp(-1.0, 1.0);
+    10.0_f32.powf(log_zoom * 0.08).clamp(0.8, 1.25)
+}
+
+#[inline]
+fn world_presentation_size_scale_from_local_zoom(local_zoom: f32) -> f32 {
+    let log_zoom = local_zoom.max(f32::MIN_POSITIVE).log10().clamp(-1.0, 1.0);
+    10.0_f32.powf(-log_zoom * 0.45).clamp(0.3, 3.2)
 }
 
 #[derive(Resource, Reflect, Debug, Clone)]
@@ -294,16 +301,18 @@ pub(crate) fn sync_chunk_demo_visual_transforms_system(
     let world_rotation = chunk_loader.world_rotation_quat();
     let world_rotation_origin = player_transform.translation;
     let origin_offset = chunk_loader.origin_offset.clone();
-    let world_presentation_scale = world_presentation_scale_from_local_zoom(player_local_zoom_for_presentation(chunk_loader));
+    let local_zoom = player_local_zoom_for_presentation(chunk_loader);
+    let world_presentation_distance_scale = world_presentation_distance_scale_from_local_zoom(local_zoom);
+    let world_presentation_size_scale = world_presentation_size_scale_from_local_zoom(local_zoom);
 
     for (chunk, mut transform) in chunk_query.iter_mut() {
         let layer_z = chunk.coord.scale.compute_z();
         let (native_pos, visual_scale) = chunk.coord.clone().to_native_visual(origin_offset.clone());
         let world_pos = Vec3::new(native_pos.x, native_pos.y, native_pos.z + layer_z);
-        let world_delta = (world_pos - world_rotation_origin) * world_presentation_scale;
+        let world_delta = (world_pos - world_rotation_origin) * world_presentation_distance_scale;
         transform.translation = world_rotation_origin + world_rotation * world_delta;
         transform.rotation = world_rotation;
-        transform.scale = Vec3::splat(visual_scale * world_presentation_scale);
+        transform.scale = Vec3::splat(visual_scale * world_presentation_size_scale);
     }
 }
 

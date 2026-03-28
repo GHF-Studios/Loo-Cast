@@ -49,8 +49,15 @@ fn player_local_zoom_for_presentation(chunk_loader: &ChunkLoader) -> f32 {
 }
 
 #[inline]
-fn world_presentation_scale_from_local_zoom(local_zoom: f32) -> f32 {
-    (1.0 / local_zoom.max(f32::MIN_POSITIVE)).clamp(1e-4, 1e4)
+fn world_presentation_distance_scale_from_local_zoom(local_zoom: f32) -> f32 {
+    let log_zoom = local_zoom.max(f32::MIN_POSITIVE).log10().clamp(-1.0, 1.0);
+    10.0_f32.powf(log_zoom * 0.08).clamp(0.8, 1.25)
+}
+
+#[inline]
+fn world_presentation_size_scale_from_local_zoom(local_zoom: f32) -> f32 {
+    let log_zoom = local_zoom.max(f32::MIN_POSITIVE).log10().clamp(-1.0, 1.0);
+    10.0_f32.powf(-log_zoom * 0.45).clamp(0.3, 3.2)
 }
 
 #[inline]
@@ -231,17 +238,27 @@ pub(super) fn update_render_proxies(
         Query<(&mut Transform, &mut ProxySyncRevision, &mut RenderProxy), With<RenderProxy>>,
     )>,
 ) {
-    let (world_rotation, world_rotation_origin, origin_offset, view_pos_native, player_local_zoom, world_presentation_scale) = {
+    let (
+        world_rotation,
+        world_rotation_origin,
+        origin_offset,
+        view_pos_native,
+        player_local_zoom,
+        world_presentation_distance_scale,
+        world_presentation_size_scale,
+    ) = {
         let (chunk_loader, chunk_loader_transform) = *params.p0();
         let local_zoom = player_local_zoom_for_presentation(chunk_loader);
-        let presentation_scale = world_presentation_scale_from_local_zoom(local_zoom);
+        let distance_scale = world_presentation_distance_scale_from_local_zoom(local_zoom);
+        let size_scale = world_presentation_size_scale_from_local_zoom(local_zoom);
         (
             chunk_loader.world_rotation_quat(),
             chunk_loader_transform.translation,
             chunk_loader.origin_offset.clone(),
             chunk_loader_transform.translation,
             local_zoom,
-            presentation_scale,
+            distance_scale,
+            size_scale,
         )
     };
 
@@ -266,9 +283,9 @@ pub(super) fn update_render_proxies(
                 let layer_z = coord_scale.compute_z() + proxy_state.depth_bias;
                 let (pos, scale) = coord.to_native_visual(origin_offset.clone());
                 let world_pos = Vec3::new(pos.x, pos.y, pos.z + layer_z);
-                let world_delta = (world_pos - world_rotation_origin) * world_presentation_scale;
+                let world_delta = (world_pos - world_rotation_origin) * world_presentation_distance_scale;
                 proxy_transform.translation = world_rotation_origin + world_rotation * world_delta;
-                proxy_transform.scale = Vec3::splat(scale * world_presentation_scale);
+                proxy_transform.scale = Vec3::splat(scale * world_presentation_size_scale);
                 proxy_transform.rotation = world_rotation;
                 proxy_state.layer_index = coord_scale.render_layer_index();
                 let (window_mode, window_center_local, window_size_local) = compute_render_proxy_windowing(scale_diff, pos, view_pos_native, player_local_zoom);
@@ -277,7 +294,7 @@ pub(super) fn update_render_proxies(
                 proxy_state.window_size_local = window_size_local;
                 proxy_state.relative_scale_to_player = relative_scale_to_player;
                 proxy_state.player_local_zoom = player_local_zoom;
-                proxy_state.player_world_presentation_scale = world_presentation_scale;
+                proxy_state.player_world_presentation_scale = world_presentation_distance_scale;
                 proxy_state.coarse_context_persistent = true;
                 proxy_revision.0 = incoming_revision.0;
             }
@@ -306,7 +323,9 @@ pub(super) fn draw_chunk_locator_gizmos_system(
     let (chunk_loader, player_transform) = *player_loader_query;
     let world_rotation = chunk_loader.world_rotation_quat();
     let world_rotation_origin = player_transform.translation;
-    let world_presentation_scale = world_presentation_scale_from_local_zoom(player_local_zoom_for_presentation(chunk_loader));
+    let local_zoom = player_local_zoom_for_presentation(chunk_loader);
+    let world_presentation_distance_scale = world_presentation_distance_scale_from_local_zoom(local_zoom);
+    let world_presentation_size_scale = world_presentation_size_scale_from_local_zoom(local_zoom);
     let origin_offset = chunk_loader.origin_offset.clone();
     let player_coord = chunk_loader.coord.clone();
 
@@ -326,7 +345,8 @@ pub(super) fn draw_chunk_locator_gizmos_system(
             &origin_offset,
             world_rotation,
             world_rotation_origin,
-            world_presentation_scale,
+            world_presentation_distance_scale,
+            world_presentation_size_scale,
             base_extent,
             z_scale,
         );
@@ -342,7 +362,8 @@ pub(super) fn draw_chunk_locator_gizmos_system(
             &origin_offset,
             world_rotation,
             world_rotation_origin,
-            world_presentation_scale,
+            world_presentation_distance_scale,
+            world_presentation_size_scale,
             base_extent,
             z_scale,
         );
@@ -354,7 +375,8 @@ pub(super) fn draw_chunk_locator_gizmos_system(
         &origin_offset,
         world_rotation,
         world_rotation_origin,
-        world_presentation_scale,
+        world_presentation_distance_scale,
+        world_presentation_size_scale,
         base_extent,
         z_scale,
     );
@@ -388,7 +410,8 @@ fn chunk_wire_transform(
     origin_offset: &GridVec,
     world_rotation: Quat,
     world_rotation_origin: Vec3,
-    world_presentation_scale: f32,
+    world_presentation_distance_scale: f32,
+    world_presentation_size_scale: f32,
     base_extent: f32,
     z_scale: f32,
 ) -> Transform {
@@ -398,11 +421,11 @@ fn chunk_wire_transform(
     let marker_scale_xy = (scale * base_extent).max(1.0);
     let marker_scale_z = (marker_scale_xy * z_scale).max(1.0);
 
-    let world_delta = (world_pos - world_rotation_origin) * world_presentation_scale;
+    let world_delta = (world_pos - world_rotation_origin) * world_presentation_distance_scale;
     Transform {
         translation: world_rotation_origin + world_rotation * world_delta,
         rotation: world_rotation,
-        scale: Vec3::new(marker_scale_xy, marker_scale_xy, marker_scale_z) * world_presentation_scale,
+        scale: Vec3::new(marker_scale_xy, marker_scale_xy, marker_scale_z) * world_presentation_size_scale,
     }
 }
 
@@ -1969,7 +1992,7 @@ mod legacy_tests {
         let origin_offset = GridVec::build().push((0, 0, 0)).finish();
         let finer_coord = GridVec::build().push((0, 0, 0)).push((0, 0, 0)).finish();
 
-        let transform = chunk_wire_transform(&finer_coord, &origin_offset, Quat::IDENTITY, Vec3::ZERO, 1000.0, 0.1);
+        let transform = chunk_wire_transform(&finer_coord, &origin_offset, Quat::IDENTITY, Vec3::ZERO, 1.0, 1.0, 1000.0, 0.1);
 
         assert!(transform.translation.is_finite());
         assert!(transform.scale.is_finite());
@@ -2421,7 +2444,7 @@ mod tests {
         let origin_offset = GridVec::build().push((0, 0, 0)).finish();
         let finer_coord = GridVec::build().push((0, 0, 0)).push((0, 0, 0)).finish();
 
-        let transform = chunk_wire_transform(&finer_coord, &origin_offset, Quat::IDENTITY, Vec3::ZERO, 1.0, 1000.0, 0.1);
+        let transform = chunk_wire_transform(&finer_coord, &origin_offset, Quat::IDENTITY, Vec3::ZERO, 1.0, 1.0, 1000.0, 0.1);
 
         assert!(transform.translation.is_finite());
         assert!(transform.scale.is_finite());
