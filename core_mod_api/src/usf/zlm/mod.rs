@@ -38,15 +38,18 @@ pub struct ZlmRegistry {
 impl Default for ZlmRegistry {
     fn default() -> Self {
         let mut maps_by_scale = HashMap::new();
-        for index in 0..Scale::SCALE_LEVEL_COUNT {
-            let Some(scale) = Scale::from_index_from_top(index) else {
-                continue;
-            };
-            maps_by_scale.insert(scale, baseline_zlm_for_scale(scale));
-        }
-
-        for (scale, definition) in script_zlm_overrides() {
-            maps_by_scale.insert(scale, definition);
+        let script_maps = script_zlm_overrides();
+        if script_maps.is_empty() {
+            for index in 0..Scale::SCALE_LEVEL_COUNT {
+                let Some(scale) = Scale::from_index_from_top(index) else {
+                    continue;
+                };
+                maps_by_scale.insert(scale, baseline_zlm_for_scale(scale));
+            }
+        } else {
+            for (scale, definition) in script_maps {
+                maps_by_scale.insert(scale, definition);
+            }
         }
 
         Self { maps_by_scale }

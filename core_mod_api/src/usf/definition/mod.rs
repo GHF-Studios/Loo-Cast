@@ -71,28 +71,32 @@ pub struct DefinitionRegistry {
 }
 impl Default for DefinitionRegistry {
     fn default() -> Self {
+        let script_zone_types = script_zone_types();
+        let script_schemas = script_schema_overrides();
+        let script_authored = !script_zone_types.is_empty() || !script_schemas.is_empty();
+
         let mut registry = Self {
             schemas_by_scale: HashMap::new(),
             known_zone_types: HashSet::new(),
         };
 
-        for zone in default_zone_types() {
-            registry.known_zone_types.insert(zone);
-        }
-
-        for index in 0..Scale::SCALE_LEVEL_COUNT {
-            let Some(scale) = Scale::from_index_from_top(index) else {
-                continue;
-            };
-            registry.register_scale_schema(scale, baseline_schema_for_scale(scale));
-        }
-
-        for zone in script_zone_types() {
-            registry.known_zone_types.insert(zone);
-        }
-
-        for (scale, schema) in script_schema_overrides() {
-            registry.register_scale_schema(scale, schema);
+        if script_authored {
+            for zone in script_zone_types {
+                registry.known_zone_types.insert(zone);
+            }
+            for (scale, schema) in script_schemas {
+                registry.register_scale_schema(scale, schema);
+            }
+        } else {
+            for zone in default_zone_types() {
+                registry.known_zone_types.insert(zone);
+            }
+            for index in 0..Scale::SCALE_LEVEL_COUNT {
+                let Some(scale) = Scale::from_index_from_top(index) else {
+                    continue;
+                };
+                registry.register_scale_schema(scale, baseline_schema_for_scale(scale));
+            }
         }
 
         if let Err(reason) = registry.validate() {

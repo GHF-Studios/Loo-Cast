@@ -38,8 +38,17 @@ pub struct ScriptZlmScaleDefinition {
     pub rules: Vec<ScriptZlmRuleDefinition>,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct ScriptZoneDensityProfileDefinition {
+    pub density_multiplier: f32,
+    pub density_offset: f32,
+    pub density_floor: f32,
+    pub density_ceil: f32,
+}
+
 export_static!(self, crate::rhai_binding::engine::statics::SCHEDULE_HOOKS: Lazy<Mutex<Vec<String>>> = Lazy::new(Default::default));
 export_static!(self, crate::rhai_binding::engine::statics::USF_ZONE_KIND_BY_TYPE: Lazy<Mutex<HashMap<String, String>>> = Lazy::new(Default::default));
 export_static!(self, crate::rhai_binding::engine::statics::USF_ZONE_TYPES: Lazy<Mutex<HashSet<String>>> = Lazy::new(Default::default));
 export_static!(self, crate::rhai_binding::engine::statics::USF_DPT_SCHEMAS_BY_SCALE: Lazy<Mutex<HashMap<u8, ScriptDptSchemaDefinition>>> = Lazy::new(Default::default));
 export_static!(self, crate::rhai_binding::engine::statics::USF_ZLM_SCALES_BY_SCALE: Lazy<Mutex<HashMap<u8, ScriptZlmScaleDefinition>>> = Lazy::new(Default::default));
+export_static!(self, crate::rhai_binding::engine::statics::USF_ZONE_DENSITY_PROFILE_BY_TYPE: Lazy<Mutex<HashMap<String, ScriptZoneDensityProfileDefinition>>> = Lazy::new(Default::default));

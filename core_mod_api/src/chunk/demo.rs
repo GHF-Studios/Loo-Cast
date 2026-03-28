@@ -7,9 +7,13 @@ use crate::chunk::components::{Chunk, ChunkLoader};
 use crate::chunk::resources::ChunkManager;
 use crate::config::statics::CONFIG;
 use crate::player::components::Player;
+use crate::usf::definition::{DefinitionRegistry, ZoneTypeId};
+use crate::usf::dpt::{DptChunkKey, DptStore};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::unit::types::UnitVec;
 use crate::usf::scale::Scale;
+use crate::usf::zlm::ZlmRegistry;
+use crate::usf::zone::{ZoneBehaviorRegistry, ZoneDensityProfile};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -125,6 +129,10 @@ pub struct PersistedChunkRecord {
     pub world_seed: u64,
     pub active_scale_index: u8,
     pub chunk_coord: SerializableGridCoord,
+    #[serde(default)]
+    pub zone_type: String,
+    #[serde(default)]
+    pub zone_density_signature: u64,
     pub chunk_seed: u64,
     pub sample_step: u16,
     pub iso_level: u8,
@@ -146,6 +154,10 @@ pub(crate) fn sync_chunk_manager_loader_state_system(player_loader_query: Query<
 pub(crate) fn hydrate_chunk_demo_data_system(
     mut commands: Commands,
     settings: Res<UsfDemoSettings>,
+    definitions: Res<DefinitionRegistry>,
+    mut dpt_store: ResMut<DptStore>,
+    zlm_registry: Res<ZlmRegistry>,
+    zone_behavior_registry: Res<ZoneBehaviorRegistry>,
     player_loader_query: Query<&ChunkLoader, With<Player>>,
     mut chunk_store: ResMut<UsfDemoChunkStore>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -160,9 +172,26 @@ pub(crate) fn hydrate_chunk_demo_data_system(
         return;
     };
     let active_scale = chunk_loader.scale;
+    let Some(schema) = definitions.schema_for_scale(active_scale) else {
+        warn!(
+            "USF demo chunk hydration skipped: missing DPT schema for active scale index {}",
+            active_scale.index_from_top()
+        );
+        return;
+    };
 
     for (entity, chunk) in added_chunks.iter() {
         let canonical_coord = canonical_grid_coord(&chunk.coord);
+        let chunk_key = DptChunkKey {
+            scale: active_scale,
+            coord: canonical_coord.clone(),
+        };
+        let zone_type = {
+            let chunk_record = dpt_store.ensure_chunk(chunk_key, schema);
+            zlm_registry.classify(active_scale, schema, &chunk_record.metrics)
+        };
+        let zone_density_profile = zone_behavior_registry.density_profile_for_zone(&zone_type).unwrap_or_default();
+        let zone_density_signature = zone_density_profile.signature();
         let chunk_file = chunk_file_path(&settings, active_scale, &canonical_coord);
         let expected_coord = SerializableGridCoord::from_grid(&canonical_coord);
 
@@ -170,12 +199,21 @@ pub(crate) fn hydrate_chunk_demo_data_system(
             loaded.world_seed == settings.world_seed
                 && loaded.active_scale_index == active_scale.index_from_top()
                 && loaded.chunk_coord == expected_coord
+                && loaded.zone_type.eq_ignore_ascii_case(&zone_type.0)
+                && loaded.zone_density_signature == zone_density_signature
                 && loaded.sample_step == settings.sample_step
                 && loaded.iso_level == settings.iso_level
         });
 
         if record.is_none() {
-            let generated = generate_chunk_record(&settings, active_scale, &canonical_coord);
+            let generated = generate_chunk_record(
+                &settings,
+                active_scale,
+                &canonical_coord,
+                &zone_type,
+                zone_density_profile,
+                zone_density_signature,
+            );
             if let Err(error) = save_chunk_record(&chunk_file, &generated) {
                 warn!("USF demo persistence write failed for {:?}: {}", chunk_file, error);
             }
@@ -254,7 +292,14 @@ pub(crate) fn prune_chunk_demo_store_system(settings: Res<UsfDemoSettings>, load
     chunk_store.records.retain(|coord, _| loaded.contains(coord));
 }
 
-fn generate_chunk_record(settings: &UsfDemoSettings, active_scale: Scale, canonical_coord: &GridVec) -> PersistedChunkRecord {
+fn generate_chunk_record(
+    settings: &UsfDemoSettings,
+    active_scale: Scale,
+    canonical_coord: &GridVec,
+    zone_type: &ZoneTypeId,
+    zone_density_profile: ZoneDensityProfile,
+    zone_density_signature: u64,
+) -> PersistedChunkRecord {
     let axis_samples = build_axis_samples(settings.sample_step);
     let axis_points = axis_samples.len();
     let total_points = axis_points * axis_points * axis_points;
@@ -264,6 +309,7 @@ fn generate_chunk_record(settings: &UsfDemoSettings, active_scale: Scale, canoni
 
     let mut rho_values = Vec::with_capacity(total_points);
     let mut zone_values = Vec::with_capacity(total_points);
+    let zone_id = zone_numeric_id(zone_type);
 
     for iz in 0..axis_points {
         for iy in 0..axis_points {
@@ -271,8 +317,8 @@ fn generate_chunk_record(settings: &UsfDemoSettings, active_scale: Scale, canoni
                 let gx = chunk_x * CHUNK_SPAN_UNITS_I64 + axis_samples[ix] as i64;
                 let gy = chunk_y * CHUNK_SPAN_UNITS_I64 + axis_samples[iy] as i64;
                 let gz = chunk_z * CHUNK_SPAN_UNITS_I64 + axis_samples[iz] as i64;
-                rho_values.push(hash_density_u8(settings.world_seed, active_scale, gx, gy, gz));
-                zone_values.push(hash_zone_id_u32(settings.world_seed, active_scale, gx, gy, gz));
+                rho_values.push(hash_density_u8(settings.world_seed, active_scale, gx, gy, gz, zone_density_profile));
+                zone_values.push(zone_id);
             }
         }
     }
@@ -281,6 +327,8 @@ fn generate_chunk_record(settings: &UsfDemoSettings, active_scale: Scale, canoni
         world_seed: settings.world_seed,
         active_scale_index: active_scale.index_from_top(),
         chunk_coord: SerializableGridCoord::from_grid(canonical_coord),
+        zone_type: zone_type.0.clone(),
+        zone_density_signature,
         chunk_seed,
         sample_step: settings.sample_step,
         iso_level: settings.iso_level,
@@ -566,7 +614,7 @@ fn color_from_seed(seed: u64) -> Color {
     Color::srgb(0.2 + 0.6 * r, 0.2 + 0.6 * g, 0.2 + 0.6 * b)
 }
 
-fn hash_density_u8(world_seed: u64, active_scale: Scale, gx: i64, gy: i64, gz: i64) -> u8 {
+fn hash_density_u8(world_seed: u64, active_scale: Scale, gx: i64, gy: i64, gz: i64, zone_density_profile: ZoneDensityProfile) -> u8 {
     let (gx, gy, gz) = wrap_top_level_units(active_scale, gx, gy, gz);
 
     // Low-frequency value-noise blend with strong bias towards empty space.
@@ -578,17 +626,15 @@ fn hash_density_u8(world_seed: u64, active_scale: Scale, gx: i64, gy: i64, gz: i
 
     // Bias and shape to "mostly empty with occasional coherent surfaces".
     let shaped = ((combined - 0.66) * 3.0 + 0.5).clamp(0.0, 1.0);
-    (shaped * 255.0).round() as u8
+    let zoned_density = zone_density_profile.normalized_density(shaped);
+    (zoned_density * 255.0).round() as u8
 }
 
-fn hash_zone_id_u32(world_seed: u64, active_scale: Scale, gx: i64, gy: i64, gz: i64) -> u32 {
-    let (gx, gy, gz) = wrap_top_level_units(active_scale, gx, gy, gz);
-
-    let mut state = mix64(world_seed ^ 0x13d7_4b29_11f2_7a67_u64);
-    state = mix64(state ^ (active_scale.index_from_top() as u64).wrapping_mul(0x9e37_79b9_7f4a_7c15));
-    state = mix64(state ^ fold_signed(gx));
-    state = mix64(state ^ fold_signed(gy));
-    state = mix64(state ^ fold_signed(gz));
+fn zone_numeric_id(zone_type: &ZoneTypeId) -> u32 {
+    let mut state = 0x13d7_4b29_11f2_7a67_u64;
+    for byte in zone_type.0.as_bytes() {
+        state = mix64(state ^ (*byte as u64));
+    }
     (state & 0x0000_ffff) as u32
 }
 
@@ -692,14 +738,28 @@ mod tests {
         record.rho_field.expand(total).expect("rho field should expand")
     }
 
+    fn test_zone() -> (ZoneTypeId, ZoneDensityProfile) {
+        (
+            ZoneTypeId::new("forest"),
+            ZoneDensityProfile {
+                density_multiplier: 0.72,
+                density_offset: 0.14,
+                density_floor: 0.05,
+                density_ceil: 0.88,
+            },
+        )
+    }
+
     #[test]
     fn rho_sampling_matches_across_adjacent_chunk_borders() {
         let settings = test_settings();
         let left = GridVec::new_root(GridXyz::new_local(0, 0, 0));
         let right = left.clone() + IVec3::new(1, 0, 0);
+        let (zone_type, zone_density_profile) = test_zone();
+        let zone_density_signature = zone_density_profile.signature();
 
-        let left_record = generate_chunk_record(&settings, Scale::MAX, &left);
-        let right_record = generate_chunk_record(&settings, Scale::MAX, &right);
+        let left_record = generate_chunk_record(&settings, Scale::MAX, &left, &zone_type, zone_density_profile, zone_density_signature);
+        let right_record = generate_chunk_record(&settings, Scale::MAX, &right, &zone_type, zone_density_profile, zone_density_signature);
 
         let axis_points = left_record.axis_samples.len();
         assert_eq!(axis_points, right_record.axis_samples.len());
@@ -723,9 +783,11 @@ mod tests {
         let settings = test_settings();
         let left = GridVec::new_root(GridXyz::new_local(4, 0, 0));
         let right = GridVec::new_root(GridXyz::new_local(-5, 0, 0));
+        let (zone_type, zone_density_profile) = test_zone();
+        let zone_density_signature = zone_density_profile.signature();
 
-        let left_record = generate_chunk_record(&settings, Scale::MAX, &left);
-        let right_record = generate_chunk_record(&settings, Scale::MAX, &right);
+        let left_record = generate_chunk_record(&settings, Scale::MAX, &left, &zone_type, zone_density_profile, zone_density_signature);
+        let right_record = generate_chunk_record(&settings, Scale::MAX, &right, &zone_type, zone_density_profile, zone_density_signature);
 
         let axis_points = left_record.axis_samples.len();
         assert_eq!(axis_points, right_record.axis_samples.len());
@@ -752,7 +814,15 @@ mod tests {
     fn persistence_roundtrip_is_stable() {
         let settings = test_settings();
         let coord = GridVec::new_root(GridXyz::new_local(0, 0, 0));
-        let record = generate_chunk_record(&settings, Scale::MAX, &coord);
+        let (zone_type, zone_density_profile) = test_zone();
+        let record = generate_chunk_record(
+            &settings,
+            Scale::MAX,
+            &coord,
+            &zone_type,
+            zone_density_profile,
+            zone_density_profile.signature(),
+        );
 
         let path = Path::new(&settings.persistence_dir).join("roundtrip_chunk.json");
         save_chunk_record(&path, &record).expect("save should succeed");

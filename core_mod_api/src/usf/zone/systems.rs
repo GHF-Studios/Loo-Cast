@@ -5,12 +5,12 @@ use crate::chunk::components::{Chunk, ChunkLoader};
 use crate::player::components::Player;
 use crate::usf::definition::{DefinitionRegistry, ZoneTypeId};
 use crate::usf::dpt::{DptChunkKey, DptStore};
-use crate::usf::phenomenon::{Phenomenon, PhenomenonId, PhenomenonKind};
+use crate::usf::phenomenon::{Phenomenon, PhenomenonId, PhenomenonKind, PhenomenonModel};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
 use crate::usf::zlm::ZlmRegistry;
 
-use super::resources::{ZoneBehaviorRegistry, ZoneRealizationState, ZoneRuntimeState, ZoneTemporalContext};
+use super::resources::{ZoneBehaviorRegistry, ZoneRealizationState, ZoneRealizedPhenomenon, ZoneRuntimeState, ZoneTemporalContext};
 use super::types::{StableRegionId, ZoneAnchor, ZoneExtent, ZoneId, ZonePhenomenon, ZoneRealizationEvent, ZoneTimeFactor};
 
 pub(super) fn sync_zone_temporal_context_system(player_loader_query: Query<&ChunkLoader, With<Player>>, mut temporal_context: ResMut<ZoneTemporalContext>) {
@@ -102,13 +102,21 @@ pub(super) fn reconcile_zone_realization_system(
     runtime_state: Res<ZoneRuntimeState>,
     zone_behavior_registry: Res<ZoneBehaviorRegistry>,
     mut realization_state: ResMut<ZoneRealizationState>,
-    zone_phenomenon_query: Query<(Entity, &ZonePhenomenon)>,
+    zone_model_query: Query<(Entity, &ZonePhenomenon, &PhenomenonModel)>,
     mut zone_realization_event_writer: MessageWriter<ZoneRealizationEvent>,
 ) {
     let desired_zone_ids = runtime_state.records.keys().cloned().collect::<HashSet<_>>();
-    let live_zone_entities = zone_phenomenon_query
+    let live_zone_realizations = zone_model_query
         .iter()
-        .map(|(entity, marker)| (marker.zone_id.clone(), entity))
+        .map(|(model_entity, marker, model)| {
+            (
+                marker.zone_id.clone(),
+                ZoneRealizedPhenomenon {
+                    phenomenon_entity: model.phenomenon_entity,
+                    primary_model_entity: model_entity,
+                },
+            )
+        })
         .collect::<HashMap<_, _>>();
 
     let stale_zone_ids = realization_state
@@ -117,40 +125,43 @@ pub(super) fn reconcile_zone_realization_system(
         .filter(|zone_id| !desired_zone_ids.contains(*zone_id))
         .cloned()
         .collect::<Vec<_>>();
+    let stale_zone_id_set = stale_zone_ids.iter().cloned().collect::<HashSet<_>>();
     for zone_id in stale_zone_ids {
-        if let Some(entity) = realization_state.zone_to_phenomenon.remove(&zone_id) {
+        if let Some(realization) = realization_state.zone_to_phenomenon.remove(&zone_id) {
             zone_realization_event_writer.write(ZoneRealizationEvent::Despawned {
                 zone_id: zone_id.clone(),
-                phenomenon_entity: entity,
+                phenomenon_entity: realization.phenomenon_entity,
             });
-            commands.entity(entity).despawn();
+            commands.entity(realization.primary_model_entity).despawn();
+            commands.entity(realization.phenomenon_entity).despawn();
         }
     }
 
-    for (zone_id, entity) in &live_zone_entities {
-        if desired_zone_ids.contains(zone_id) {
+    for (zone_id, realization) in &live_zone_realizations {
+        if desired_zone_ids.contains(zone_id) || stale_zone_id_set.contains(zone_id) {
             continue;
         }
         zone_realization_event_writer.write(ZoneRealizationEvent::Despawned {
             zone_id: zone_id.clone(),
-            phenomenon_entity: *entity,
+            phenomenon_entity: realization.phenomenon_entity,
         });
-        commands.entity(*entity).despawn();
+        commands.entity(realization.primary_model_entity).despawn();
+        commands.entity(realization.phenomenon_entity).despawn();
         realization_state.zone_to_phenomenon.remove(zone_id);
     }
 
     for zone_id in desired_zone_ids {
-        let Some(entity) = realization_state
+        let Some(realization) = realization_state
             .zone_to_phenomenon
             .get(&zone_id)
             .copied()
-            .or_else(|| live_zone_entities.get(&zone_id).copied())
+            .or_else(|| live_zone_realizations.get(&zone_id).copied())
         else {
             let phenomenon_id = deterministic_phenomenon_id_for_zone(&zone_id);
             let phenomenon_entity = commands
                 .spawn((
                     Name::new(format!(
-                        "zone_phenomenon_scale{}_{}_{}",
+                        "zone_phenomenon_container_scale{}_{}_{}",
                         zone_id.scale.index_from_top(),
                         zone_id.zone_type.0,
                         zone_id.stable_region_id.0
@@ -159,19 +170,37 @@ pub(super) fn reconcile_zone_realization_system(
                         id: phenomenon_id,
                         kind: phenomenon_kind_for_zone(&zone_id.zone_type, &zone_behavior_registry),
                     },
+                ))
+                .id();
+            let model_entity = commands
+                .spawn((
+                    Name::new(format!(
+                        "zone_phenomenon_model_scale{}_{}_{}",
+                        zone_id.scale.index_from_top(),
+                        zone_id.zone_type.0,
+                        zone_id.stable_region_id.0
+                    )),
+                    PhenomenonModel {
+                        phenomenon_entity,
+                        scale: zone_id.scale,
+                    },
                     ZonePhenomenon { zone_id: zone_id.clone() },
                 ))
                 .id();
+            let realization = ZoneRealizedPhenomenon {
+                phenomenon_entity,
+                primary_model_entity: model_entity,
+            };
             zone_realization_event_writer.write(ZoneRealizationEvent::Spawned {
                 zone_id: zone_id.clone(),
                 phenomenon_entity,
                 phenomenon_id,
             });
-            realization_state.zone_to_phenomenon.insert(zone_id, phenomenon_entity);
+            realization_state.zone_to_phenomenon.insert(zone_id, realization);
             continue;
         };
 
-        realization_state.zone_to_phenomenon.insert(zone_id, entity);
+        realization_state.zone_to_phenomenon.insert(zone_id, realization);
     }
 }
 
