@@ -27,6 +27,13 @@ pub struct EntityProxyLink {
 pub struct RenderProxy {
     pub source: Entity,
     pub layer_index: u8,
+    /// Scale delta relative to the player's active USF scale.
+    /// > 0: finer than player; 0: same scale; < 0: coarser than player.
+    pub relative_scale_to_player: i8,
+    /// Player-local zoom inside the active scale window.
+    pub player_local_zoom: f32,
+    /// Presentation factor applied to world render transforms around the player anchor.
+    pub player_world_presentation_scale: f32,
     pub depth_bias: f32,
     pub frontier_node_seed: u64,
     pub frontier_lineage_depth: u32,

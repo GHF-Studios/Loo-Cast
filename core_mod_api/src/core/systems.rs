@@ -62,6 +62,9 @@ pub(super) fn ensure_entity_proxy_links_system(
                 RenderProxy {
                     source: root_entity,
                     layer_index: 0,
+                    relative_scale_to_player: 0,
+                    player_local_zoom: 1.0,
+                    player_world_presentation_scale: 1.0,
                     depth_bias: 0.0,
                     frontier_node_seed: 0,
                     frontier_lineage_depth: 0,

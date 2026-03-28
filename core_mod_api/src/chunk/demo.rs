@@ -25,6 +25,22 @@ const HALF_CHUNK_SPAN_F32: f32 = 500.0;
 const ROOT_AXIS_CELL_COUNT: i64 = 10;
 const ROOT_AXIS_PERIOD_UNITS: i64 = CHUNK_SPAN_UNITS_I64 * ROOT_AXIS_CELL_COUNT;
 
+#[inline]
+fn player_local_zoom_for_presentation(chunk_loader: &ChunkLoader) -> f32 {
+    let local_min = chunk_loader.usf_transform.scale.policy.local_min as f32;
+    let local_max = chunk_loader.usf_transform.scale.policy.local_max as f32;
+    chunk_loader
+        .usf_transform
+        .scale
+        .local_f32()
+        .clamp(local_min.max(f32::MIN_POSITIVE), local_max.max(local_min * 1.001))
+}
+
+#[inline]
+fn world_presentation_scale_from_local_zoom(local_zoom: f32) -> f32 {
+    (1.0 / local_zoom.max(f32::MIN_POSITIVE)).clamp(1e-4, 1e4)
+}
+
 #[derive(Resource, Reflect, Debug, Clone)]
 #[reflect(Resource)]
 pub struct UsfDemoSettings {
@@ -278,14 +294,16 @@ pub(crate) fn sync_chunk_demo_visual_transforms_system(
     let world_rotation = chunk_loader.world_rotation_quat();
     let world_rotation_origin = player_transform.translation;
     let origin_offset = chunk_loader.origin_offset.clone();
+    let world_presentation_scale = world_presentation_scale_from_local_zoom(player_local_zoom_for_presentation(chunk_loader));
 
     for (chunk, mut transform) in chunk_query.iter_mut() {
         let layer_z = chunk.coord.scale.compute_z();
         let (native_pos, visual_scale) = chunk.coord.clone().to_native_visual(origin_offset.clone());
         let world_pos = Vec3::new(native_pos.x, native_pos.y, native_pos.z + layer_z);
-        transform.translation = world_rotation_origin + world_rotation * (world_pos - world_rotation_origin);
+        let world_delta = (world_pos - world_rotation_origin) * world_presentation_scale;
+        transform.translation = world_rotation_origin + world_rotation * world_delta;
         transform.rotation = world_rotation;
-        transform.scale = Vec3::splat(visual_scale);
+        transform.scale = Vec3::splat(visual_scale * world_presentation_scale);
     }
 }
 
