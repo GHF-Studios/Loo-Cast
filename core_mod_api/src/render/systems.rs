@@ -64,17 +64,7 @@ fn camera_distance_from_zoom_and_fov(zoom: f32, fov_radians: f32) -> f32 {
     (half_view_span / tan_half).clamp(CAMERA_DISTANCE_MIN, CAMERA_DISTANCE_MAX)
 }
 
-pub(super) fn pre_setup_phase_0(mut commands: Commands, mut images: ResMut<Assets<Image>>, windows: Query<&Window>) {
-    // Reserve camera entities
-    let egui_camera = commands.spawn(EguiCamera).id();
-    let ui_camera = commands.spawn(UiCamera).id();
-    let main_camera = commands.spawn(MainCamera).id();
-    let phenomenon_model_camera = commands.spawn(PhenomenonModelCamera).id();
-    super::functions::reserve_camera_entities(egui_camera, ui_camera, main_camera, phenomenon_model_camera);
-
-    // Reserve game view render target handle
-    let window = windows.single().unwrap();
-    let size_uvec2 = window.physical_size();
+fn create_game_view_render_image(size_uvec2: UVec2) -> Image {
     let size_extent3d = Extent3d {
         width: size_uvec2.x,
         height: size_uvec2.y,
@@ -94,7 +84,21 @@ pub(super) fn pre_setup_phase_0(mut commands: Commands, mut images: ResMut<Asset
         ..default()
     };
     image.resize(size_extent3d);
-    let image_handle = images.add(image);
+    image
+}
+
+pub(super) fn pre_setup_phase_0(mut commands: Commands, mut images: ResMut<Assets<Image>>, windows: Query<&Window>) {
+    // Reserve camera entities
+    let egui_camera = commands.spawn(EguiCamera).id();
+    let ui_camera = commands.spawn(UiCamera).id();
+    let main_camera = commands.spawn(MainCamera).id();
+    let phenomenon_model_camera = commands.spawn(PhenomenonModelCamera).id();
+    super::functions::reserve_camera_entities(egui_camera, ui_camera, main_camera, phenomenon_model_camera);
+
+    // Reserve game view render target handle
+    let window = windows.single().unwrap();
+    let size_uvec2 = window.physical_size();
+    let image_handle = images.add(create_game_view_render_image(size_uvec2));
     super::functions::reserve_game_view_render_target(image_handle, size_uvec2);
 }
 
@@ -110,29 +114,50 @@ pub(super) fn pre_setup_phase_1(mut commands: Commands, mut egui_textures: ResMu
 }
 
 pub(super) fn resize_render_texture(
+    mut resize_cooldown_frames: Local<u8>,
     mut previous_window_size_uvec2: Local<UVec2>,
     mut images: ResMut<Assets<Image>>,
+    mut egui_textures: ResMut<bevy_egui::EguiUserTextures>,
     mut game_view_render_target: ResMut<GameViewRenderTarget>,
+    mut game_view_cameras: Query<&mut Camera, Or<(With<MainCamera>, With<UiCamera>)>>,
+    mut game_view_camera_targets: Query<&mut RenderTarget, Or<(With<MainCamera>, With<UiCamera>)>>,
     windows: Query<&Window>,
 ) {
-    let Ok(window) = windows.single() else {
-        return;
-    };
+    let Ok(window) = windows.single() else { return; };
     let size_uvec2 = window.physical_size();
+
+    if *resize_cooldown_frames > 0 {
+        *resize_cooldown_frames -= 1;
+        if *resize_cooldown_frames == 0 {
+            for mut camera in game_view_cameras.iter_mut() {
+                camera.is_active = true;
+            }
+        }
+    }
 
     if size_uvec2 == *previous_window_size_uvec2 {
         return;
     }
 
     *previous_window_size_uvec2 = size_uvec2;
-    game_view_render_target.size = size_uvec2;
+    let old_handle = game_view_render_target.handle.clone();
+    let new_handle = images.add(create_game_view_render_image(size_uvec2));
 
-    let image = images.get_mut(&game_view_render_target.handle).unwrap();
-    image.resize(Extent3d {
-        width: size_uvec2.x,
-        height: size_uvec2.y,
-        depth_or_array_layers: 1,
-    });
+    for mut camera in game_view_cameras.iter_mut() {
+        camera.is_active = false;
+    }
+
+    for mut camera_target in game_view_camera_targets.iter_mut() {
+        *camera_target = camera_contract::game_view_render_target(&new_handle);
+    }
+
+    let _ = egui_textures.remove_image(old_handle.id());
+    let new_texture_id = egui_textures.add_image(bevy_egui::EguiTextureHandle::Weak(new_handle.id()));
+
+    game_view_render_target.handle = new_handle;
+    game_view_render_target.size = size_uvec2;
+    game_view_render_target.id = new_texture_id;
+    *resize_cooldown_frames = 2;
 }
 
 pub(super) fn validate_camera_contract_system(

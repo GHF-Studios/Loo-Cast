@@ -8,6 +8,11 @@ use crate::core::run_conditions::run_after_startup_finished;
 pub(crate) struct WindowPlugin;
 impl Plugin for WindowPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, toggle_window_mode.run_if(run_after_startup_finished));
+        app.add_systems(
+            Update,
+            (queue_window_mode_toggle, process_window_mode_transition)
+                .chain()
+                .run_if(run_after_startup_finished),
+        );
     }
 }
