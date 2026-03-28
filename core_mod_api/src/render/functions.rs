@@ -10,7 +10,7 @@ use crate::{
     config::statics::CONFIG,
     debug::types::DebugSuiteTabViewer,
     input::states::InputMode,
-    player::components::Player,
+    player::{components::Player, resources::PlayerControlSettings},
     render::resources::{DevZoomFactor, GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, RuntimeDebugToggles, ViewScale, ZoomFactor},
     time::{
         resources::TimeInfo,
@@ -220,7 +220,100 @@ pub(crate) fn draw_primary_window_ui(
         });
     }
 
+    draw_pause_menu_ui(state, world, ctx);
     draw_runtime_debug_overlay(state, world, ctx);
+}
+
+fn keybind_options() -> &'static [(KeyCode, &'static str)] {
+    &[
+        (KeyCode::KeyW, "W"),
+        (KeyCode::KeyA, "A"),
+        (KeyCode::KeyS, "S"),
+        (KeyCode::KeyD, "D"),
+        (KeyCode::KeyQ, "Q"),
+        (KeyCode::KeyE, "E"),
+        (KeyCode::KeyR, "R"),
+        (KeyCode::KeyF, "F"),
+        (KeyCode::ArrowUp, "Arrow Up"),
+        (KeyCode::ArrowDown, "Arrow Down"),
+        (KeyCode::ArrowLeft, "Arrow Left"),
+        (KeyCode::ArrowRight, "Arrow Right"),
+        (KeyCode::Space, "Space"),
+        (KeyCode::ShiftLeft, "Shift Left"),
+        (KeyCode::ShiftRight, "Shift Right"),
+        (KeyCode::ControlLeft, "Ctrl Left"),
+        (KeyCode::ControlRight, "Ctrl Right"),
+    ]
+}
+
+fn keybind_combo(ui: &mut egui::Ui, label: &str, keybind: &mut KeyCode) {
+    egui::ComboBox::from_label(label)
+        .selected_text(format!("{keybind:?}"))
+        .show_ui(ui, |ui| {
+            for (candidate, candidate_label) in keybind_options() {
+                ui.selectable_value(keybind, *candidate, *candidate_label);
+            }
+        });
+}
+
+fn draw_pause_menu_ui(state: &mut PrimaryWindowUiState, world: &mut World, ctx: &egui::Context) {
+    if !state.pause_menu_open {
+        return;
+    }
+
+    let mut system_state = SystemState::<ResMut<PlayerControlSettings>>::new(world);
+    let mut control_settings = system_state.get_mut(world);
+    let mut close_requested = false;
+
+    egui::Window::new("Pause Menu")
+        .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
+        .collapsible(false)
+        .resizable(false)
+        .show(ctx, |ui| {
+            ui.heading("Paused");
+            ui.label("Esc or Resume to continue.");
+            ui.separator();
+
+            ui.label("Camera");
+            ui.add(
+                egui::Slider::new(&mut control_settings.first_person_fov_degrees, 45.0..=130.0)
+                    .text("First-person FOV")
+                    .suffix(" deg"),
+            );
+            ui.add(
+                egui::Slider::new(&mut control_settings.mouse_look_sensitivity, 0.0005..=0.03)
+                    .logarithmic(true)
+                    .text("Mouse sensitivity"),
+            );
+
+            ui.separator();
+            ui.label("Keybinds");
+            keybind_combo(ui, "Forward", &mut control_settings.move_forward);
+            keybind_combo(ui, "Backward", &mut control_settings.move_backward);
+            keybind_combo(ui, "Left", &mut control_settings.move_left);
+            keybind_combo(ui, "Right", &mut control_settings.move_right);
+            keybind_combo(ui, "Sprint", &mut control_settings.sprint);
+            keybind_combo(ui, "Look Left", &mut control_settings.look_left);
+            keybind_combo(ui, "Look Right", &mut control_settings.look_right);
+            keybind_combo(ui, "Look Up", &mut control_settings.look_up);
+            keybind_combo(ui, "Look Down", &mut control_settings.look_down);
+
+            ui.separator();
+            ui.horizontal(|ui| {
+                if ui.button("Reset Defaults").clicked() {
+                    *control_settings = PlayerControlSettings::default();
+                }
+                if ui.button("Resume").clicked() {
+                    close_requested = true;
+                }
+            });
+        });
+
+    control_settings.first_person_fov_degrees = control_settings.first_person_fov_degrees.clamp(45.0, 130.0);
+    control_settings.mouse_look_sensitivity = control_settings.mouse_look_sensitivity.clamp(0.0005, 0.03);
+    if close_requested {
+        state.pause_menu_open = false;
+    }
 }
 
 fn draw_runtime_debug_overlay(state: &PrimaryWindowUiState, world: &mut World, ctx: &egui::Context) {
@@ -279,7 +372,7 @@ fn draw_runtime_debug_overlay(state: &PrimaryWindowUiState, world: &mut World, c
     }
 
     if runtime_toggles.show_hotkey_help {
-        lines.push("Hotkeys: F2=input mode, F4=debug suite, F5=camera mode, F6=runtime overlay".to_string());
+        lines.push("Hotkeys: Esc=pause menu, F2=input mode, F4=debug suite, F5=camera mode, F6=runtime overlay".to_string());
         lines.push("F3 menu: F3+C toggles chunk wiregrid/wiremesh debug visuals".to_string());
         lines.push("Help toggle: F2+H".to_string());
     }

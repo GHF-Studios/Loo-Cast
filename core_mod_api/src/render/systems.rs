@@ -9,7 +9,7 @@ use crate::config::statics::CONFIG;
 use crate::core::protocol::PlayerMotionIntent;
 use crate::input::states::InputMode;
 use crate::player::components::Player;
-use crate::player::resources::{PlayerCameraMode, PlayerCameraRigSettings};
+use crate::player::resources::{PlayerCameraMode, PlayerCameraRigSettings, PlayerControlSettings};
 use crate::render::{
     camera_contract,
     components::{EguiCamera, EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision, RenderProxy, RenderProxyWindowMode, UiCamera},
@@ -2457,6 +2457,8 @@ pub(super) fn apply_usf_player_pivots_system(
     mut chunk_load_gate: Option<ResMut<ChunkLoadGate>>,
     workflow_state: Option<Res<ChunkActionWorkflowState>>,
     mut player_motion_intent: ResMut<PlayerMotionIntent>,
+    player_camera_mode: Res<PlayerCameraMode>,
+    player_control_settings: Res<PlayerControlSettings>,
 ) {
     const PLAYER_LOCAL_Z_ANCHOR: f32 = 0.0;
 
@@ -2620,6 +2622,12 @@ pub(super) fn apply_usf_player_pivots_system(
             perspective_fov_min_deg,
             perspective_fov_max_deg,
         );
+
+        if matches!(*player_camera_mode, PlayerCameraMode::FirstPerson) {
+            if let Projection::Perspective(perspective) = projection.as_mut() {
+                perspective.fov = player_control_settings.first_person_fov_degrees.to_radians().clamp(0.35, 2.26);
+            }
+        }
     }
 }
 

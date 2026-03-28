@@ -70,6 +70,8 @@ impl Default for PrimaryWindowUiDockState {
 #[reflect(Resource)]
 pub struct PrimaryWindowUiState {
     pub enabled: bool,
+    pub pause_menu_open: bool,
+    pub pause_menu_forced_pause: bool,
     pub show_runtime_debug_overlay: bool,
     pub show_chunk_manager: bool,
     pub show_intent_buffer: bool,

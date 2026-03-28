@@ -12,6 +12,39 @@ pub enum PlayerCameraMode {
 
 #[derive(Resource, Reflect, Debug, Clone, Copy)]
 #[reflect(Resource)]
+pub struct PlayerControlSettings {
+    pub first_person_fov_degrees: f32,
+    pub mouse_look_sensitivity: f32,
+    pub move_forward: KeyCode,
+    pub move_backward: KeyCode,
+    pub move_left: KeyCode,
+    pub move_right: KeyCode,
+    pub sprint: KeyCode,
+    pub look_left: KeyCode,
+    pub look_right: KeyCode,
+    pub look_up: KeyCode,
+    pub look_down: KeyCode,
+}
+impl Default for PlayerControlSettings {
+    fn default() -> Self {
+        Self {
+            first_person_fov_degrees: CONFIG().get::<f32>("player/first_person_fov_degrees"),
+            mouse_look_sensitivity: CONFIG().get::<f32>("player/mouse_look_sensitivity"),
+            move_forward: KeyCode::KeyW,
+            move_backward: KeyCode::KeyS,
+            move_left: KeyCode::KeyA,
+            move_right: KeyCode::KeyD,
+            sprint: KeyCode::ShiftLeft,
+            look_left: KeyCode::ArrowLeft,
+            look_right: KeyCode::ArrowRight,
+            look_up: KeyCode::ArrowUp,
+            look_down: KeyCode::ArrowDown,
+        }
+    }
+}
+
+#[derive(Resource, Reflect, Debug, Clone, Copy)]
+#[reflect(Resource)]
 pub struct PlayerLookState {
     pub pitch_radians: f32,
 }

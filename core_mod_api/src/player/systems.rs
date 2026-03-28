@@ -1,5 +1,6 @@
 use crate::bevy::prelude::*;
 use crate::bevy::input::mouse::MouseMotion;
+use crate::bevy::window::{CursorGrabMode, CursorOptions, PrimaryWindow};
 use crate::bevy_rapier3d::prelude::{
     CharacterAutostep, CharacterLength, Collider, KinematicCharacterController, LockedAxes, RigidBody,
 };
@@ -11,8 +12,11 @@ use crate::follower::components::Follower;
 use crate::input::states::InputMode;
 use crate::player::bundles::PlayerBundle;
 use crate::player::components::{Player, PlayerVisual3dLink};
-use crate::player::resources::{PlayerCameraMode, PlayerCameraRigSettings, PlayerLookState};
+use crate::player::resources::{PlayerCameraMode, PlayerCameraRigSettings, PlayerControlSettings, PlayerLookState};
 use crate::render::components::MainCamera;
+use crate::render::resources::PrimaryWindowUiState;
+use crate::time::resources::TimeInfo;
+use crate::time::types::PauseState;
 
 #[derive(Default)]
 pub(super) struct PlayerRuntimeConfigCache {
@@ -20,7 +24,6 @@ pub(super) struct PlayerRuntimeConfigCache {
     base_movement_speed: f32,
     sprint_multiplier: f32,
     world_rotation_speed: f32,
-    mouse_look_sensitivity: f32,
     pitch_min_radians: f32,
     pitch_max_radians: f32,
     local_zoom_min: f32,
@@ -135,6 +138,75 @@ pub(super) fn toggle_player_camera_mode_system(keys: Res<ButtonInput<KeyCode>>, 
 }
 
 #[tracing::instrument(skip_all)]
+pub(super) fn toggle_pause_menu_system(keys: Res<ButtonInput<KeyCode>>, mut ui_state: ResMut<PrimaryWindowUiState>) {
+    if keys.just_pressed(KeyCode::Escape) && !ui_state.enabled {
+        ui_state.pause_menu_open = !ui_state.pause_menu_open;
+    }
+}
+
+#[tracing::instrument(skip_all)]
+pub(super) fn sync_pause_menu_state_system(
+    mut ui_state: ResMut<PrimaryWindowUiState>,
+    mut previous_menu_open: Local<bool>,
+    mut next_input_mode: ResMut<NextState<InputMode>>,
+    input_mode: Res<State<InputMode>>,
+    mut time_info: ResMut<TimeInfo>,
+    mut virtual_time: ResMut<Time<Virtual>>,
+) {
+    if *previous_menu_open == ui_state.pause_menu_open {
+        return;
+    }
+
+    if ui_state.pause_menu_open {
+        if !time_info.pause_state.is_paused() {
+            time_info.pause_state = PauseState::Paused;
+            virtual_time.pause();
+            ui_state.pause_menu_forced_pause = true;
+        } else {
+            ui_state.pause_menu_forced_pause = false;
+        }
+
+        if input_mode.is_game() {
+            next_input_mode.set(InputMode::Debug);
+        }
+    } else {
+        if ui_state.pause_menu_forced_pause {
+            virtual_time.unpause();
+            time_info.pause_state = PauseState::Running;
+            ui_state.pause_menu_forced_pause = false;
+        }
+
+        if !ui_state.enabled && input_mode.is_debug_suite() {
+            next_input_mode.set(InputMode::Release);
+        }
+    }
+
+    *previous_menu_open = ui_state.pause_menu_open;
+}
+
+#[tracing::instrument(skip_all)]
+pub(super) fn sync_mouse_capture_system(
+    ui_state: Res<PrimaryWindowUiState>,
+    input_mode: Res<State<InputMode>>,
+    mut cursor_options: Single<&mut CursorOptions, With<PrimaryWindow>>,
+) {
+    let should_capture_mouse = input_mode.is_game() && !ui_state.pause_menu_open;
+    let desired_grab_mode = if should_capture_mouse {
+        CursorGrabMode::Locked
+    } else {
+        CursorGrabMode::None
+    };
+    let desired_cursor_visibility = !should_capture_mouse;
+
+    if cursor_options.grab_mode != desired_grab_mode {
+        cursor_options.grab_mode = desired_grab_mode;
+    }
+    if cursor_options.visible != desired_cursor_visibility {
+        cursor_options.visible = desired_cursor_visibility;
+    }
+}
+
+#[tracing::instrument(skip_all)]
 pub(super) fn apply_player_camera_mode_system(
     camera_mode: Res<PlayerCameraMode>,
     camera_rig: Res<PlayerCameraRigSettings>,
@@ -220,6 +292,7 @@ pub(super) fn update_player_system(
     time: Res<Time<Virtual>>,
     mut player_motion_intent: ResMut<PlayerMotionIntent>,
     mut player_look_state: ResMut<PlayerLookState>,
+    control_settings: Res<PlayerControlSettings>,
     mut runtime_config: Local<PlayerRuntimeConfigCache>,
 ) {
     // Intent is per-frame; if this system runs, start from a clean slate.
@@ -230,7 +303,6 @@ pub(super) fn update_player_system(
         runtime_config.base_movement_speed = CONFIG().get::<f32>("player/base_movement_speed");
         runtime_config.sprint_multiplier = CONFIG().get::<f32>("player/sprint_multiplier");
         runtime_config.world_rotation_speed = CONFIG().get::<f32>("usf/rotation/local_angular_speed");
-        runtime_config.mouse_look_sensitivity = CONFIG().get::<f32>("player/mouse_look_sensitivity");
         runtime_config.pitch_min_radians = CONFIG().get::<f32>("player/look_pitch_min_degrees").to_radians();
         runtime_config.pitch_max_radians = CONFIG().get::<f32>("player/look_pitch_max_degrees").to_radians();
         runtime_config.local_zoom_min = CONFIG().get::<f32>("usf/scale/local_min");
@@ -276,16 +348,16 @@ pub(super) fn update_player_system(
 
     if input_mode.is_game() {
         let mut local_planar_direction = Vec2::ZERO;
-        if keys.pressed(KeyCode::KeyW) {
+        if keys.pressed(control_settings.move_forward) {
             local_planar_direction.y += 1.0;
         }
-        if keys.pressed(KeyCode::KeyS) {
+        if keys.pressed(control_settings.move_backward) {
             local_planar_direction.y -= 1.0;
         }
-        if keys.pressed(KeyCode::KeyA) {
+        if keys.pressed(control_settings.move_left) {
             local_planar_direction.x -= 1.0;
         }
-        if keys.pressed(KeyCode::KeyD) {
+        if keys.pressed(control_settings.move_right) {
             local_planar_direction.x += 1.0;
         }
 
@@ -293,24 +365,24 @@ pub(super) fn update_player_system(
         let mut pitch_delta = 0.0_f32;
 
         // Keyboard look input fallback.
-        if keys.pressed(KeyCode::ArrowUp) {
+        if keys.pressed(control_settings.look_up) {
             pitch_delta += runtime_config.world_rotation_speed * time.delta_secs();
         }
-        if keys.pressed(KeyCode::ArrowDown) {
+        if keys.pressed(control_settings.look_down) {
             pitch_delta -= runtime_config.world_rotation_speed * time.delta_secs();
         }
         // Yaw around local Z (FPS-style horizontal turning).
-        if keys.pressed(KeyCode::ArrowLeft) || keys.pressed(KeyCode::KeyQ) {
+        if keys.pressed(control_settings.look_left) {
             delta_rotation.z += runtime_config.world_rotation_speed * time.delta_secs();
         }
-        if keys.pressed(KeyCode::ArrowRight) || keys.pressed(KeyCode::KeyE) {
+        if keys.pressed(control_settings.look_right) {
             delta_rotation.z -= runtime_config.world_rotation_speed * time.delta_secs();
         }
 
         // Mouse look for FPS controls.
         for mouse_motion in mouse_motion_reader.read() {
-            delta_rotation.z -= mouse_motion.delta.x * runtime_config.mouse_look_sensitivity;
-            pitch_delta -= mouse_motion.delta.y * runtime_config.mouse_look_sensitivity;
+            delta_rotation.z -= mouse_motion.delta.x * control_settings.mouse_look_sensitivity;
+            pitch_delta -= mouse_motion.delta.y * control_settings.mouse_look_sensitivity;
         }
 
         player_look_state.pitch_radians = (player_look_state.pitch_radians + pitch_delta)
@@ -318,7 +390,7 @@ pub(super) fn update_player_system(
         player_motion_intent.rotation_delta = delta_rotation;
 
         if local_planar_direction.length_squared() > 0.0 {
-            let sprint_multiplier = if keys.pressed(KeyCode::ShiftLeft) || keys.pressed(KeyCode::ShiftRight) {
+            let sprint_multiplier = if keys.pressed(control_settings.sprint) {
                 runtime_config.sprint_multiplier
             } else {
                 1.0
