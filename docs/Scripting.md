@@ -9,9 +9,8 @@
 - `boot.rhai` registers schedule hooks through `rhai_binding::schedule_hooks::add("<schedule_name>")`.
 - USF substrate contracts are loaded from typed scripts under `core_mod/assets/scripts/usf/*`
   by the engine bootstrap loader (entrypoint-per-script-type).
-- `boot.rhai` can also register USF zone behavior through `rhai_binding::usf_zone`:
-  - `clear_phenomenon_kinds()`
-  - `set_phenomenon_kind("<zone_type>", "<phenomenon_kind>")`
+- zone behavior (density + supported phenomena + selection policy + per-support `max_active` caps) is also authored in typed USF scripts,
+  not via `boot.rhai`.
 - Hook registration order is preserved (first `add(...)` call runs first for the same Bevy schedule phase).
 - USF phase hooks are wired into deterministic simulation subsets:
   - `substrate_pre_update` / `substrate_update` -> `UsfSubstrateSet::{Pre, Post}`

@@ -1,9 +1,9 @@
 use rhai::FuncRegistration;
 
 use crate::rhai_binding::engine::statics::{
-    ScriptDptMetricDefinition, ScriptDptSchemaDefinition, ScriptScaleBindingDefinition, ScriptZlmMetricBandDefinition, ScriptZlmRuleDefinition,
-    ScriptZlmScaleDefinition, USF_DPT_CATEGORIZER_IDS, USF_DPT_SAMPLER_IDS, USF_DPT_SCHEMAS_BY_SCALE, USF_SCALE_BINDINGS_BY_SCALE, USF_ZLM_SCALES_BY_SCALE,
-    USF_ZONE_TYPES,
+    ScriptDptMetricDefinition, ScriptDptSchemaDefinition, ScriptMetricDefinition, ScriptScaleBindingDefinition, ScriptZlmMetricBandDefinition,
+    ScriptZlmRuleDefinition, ScriptZlmScaleDefinition, USF_DPT_CATEGORIZER_IDS, USF_DPT_SAMPLER_IDS, USF_DPT_SCHEMAS_BY_SCALE, USF_METRIC_SETS_BY_ID,
+    USF_METRICS_BY_NAME, USF_SCALE_BINDINGS_BY_SCALE, USF_ZLM_SCALES_BY_SCALE, USF_ZONE_TYPES,
 };
 use crate::usf::scale::Scale;
 
@@ -19,6 +19,13 @@ core_mod_macros::reflect_extern_sub_module!(
         clear_dpt_schemas,
         set_dpt_schema,
         add_dpt_metric,
+        clear_metrics,
+        add_metric,
+        clear_metric_sets,
+        set_metric_set,
+        add_metric_set_metric,
+        build_metric_set_from_all_metrics,
+        set_dpt_schema_from_metric_set,
         clear_dpt_samplers,
         add_dpt_sampler,
         clear_dpt_categorizers,
@@ -115,6 +122,175 @@ core_mod_macros::reflect_extern_module_associated_function!(
                     name: metric_name.to_string(),
                     primitive,
                 });
+                Ok(())
+            },
+        );
+    },
+);
+
+core_mod_macros::reflect_extern_module_associated_function!(
+    id = core_mod_api::usf::substrate::clear_metrics,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(parent_module, || -> Result<(), Box<rhai::EvalAltResult>> {
+            USF_METRICS_BY_NAME().lock().unwrap().clear();
+            Ok(())
+        });
+    },
+);
+
+core_mod_macros::reflect_extern_module_associated_function!(
+    id = core_mod_api::usf::substrate::add_metric,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(
+            parent_module,
+            |metric_id: i64, metric_name: &str, primitive: bool| -> Result<(), Box<rhai::EvalAltResult>> {
+                let metric_id = parse_u16_value("metric_id", metric_id)?;
+                let metric_name = normalize_identifier("metric_name", metric_name)?;
+                let mut metrics = USF_METRICS_BY_NAME().lock().unwrap();
+
+                if let Some(existing) = metrics.get(&metric_name) {
+                    if existing.id != metric_id || existing.primitive != primitive {
+                        return Err(format!(
+                            "metric '{}' already exists with a different definition (id={}, primitive={})",
+                            metric_name, existing.id, existing.primitive
+                        )
+                        .into());
+                    }
+                    return Ok(());
+                }
+
+                if let Some(conflict) = metrics.values().find(|def| def.id == metric_id) {
+                    return Err(format!("metric_id {} is already assigned to metric '{}'", metric_id, conflict.name).into());
+                }
+
+                metrics.insert(
+                    metric_name.clone(),
+                    ScriptMetricDefinition {
+                        id: metric_id,
+                        name: metric_name,
+                        primitive,
+                    },
+                );
+                Ok(())
+            },
+        );
+    },
+);
+
+core_mod_macros::reflect_extern_module_associated_function!(
+    id = core_mod_api::usf::substrate::clear_metric_sets,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(parent_module, || -> Result<(), Box<rhai::EvalAltResult>> {
+            USF_METRIC_SETS_BY_ID().lock().unwrap().clear();
+            Ok(())
+        });
+    },
+);
+
+core_mod_macros::reflect_extern_module_associated_function!(
+    id = core_mod_api::usf::substrate::set_metric_set,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(parent_module, |metric_set_id: &str| -> Result<(), Box<rhai::EvalAltResult>> {
+            let metric_set_id = normalize_identifier("metric_set_id", metric_set_id)?;
+            USF_METRIC_SETS_BY_ID().lock().unwrap().insert(metric_set_id, Vec::new());
+            Ok(())
+        });
+    },
+);
+
+core_mod_macros::reflect_extern_module_associated_function!(
+    id = core_mod_api::usf::substrate::add_metric_set_metric,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(
+            parent_module,
+            |metric_set_id: &str, metric_name: &str| -> Result<(), Box<rhai::EvalAltResult>> {
+                let metric_set_id = normalize_identifier("metric_set_id", metric_set_id)?;
+                let metric_name = normalize_identifier("metric_name", metric_name)?;
+                let metrics = USF_METRICS_BY_NAME().lock().unwrap();
+                if !metrics.contains_key(&metric_name) {
+                    return Err(format!("metric '{}' is not registered", metric_name).into());
+                }
+                drop(metrics);
+
+                let mut metric_sets = USF_METRIC_SETS_BY_ID().lock().unwrap();
+                let Some(metric_set) = metric_sets.get_mut(&metric_set_id) else {
+                    return Err(format!("metric_set '{}' is not registered; call set_metric_set first", metric_set_id).into());
+                };
+                if !metric_set.iter().any(|entry| entry == &metric_name) {
+                    metric_set.push(metric_name);
+                }
+                Ok(())
+            },
+        );
+    },
+);
+
+core_mod_macros::reflect_extern_module_associated_function!(
+    id = core_mod_api::usf::substrate::build_metric_set_from_all_metrics,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(parent_module, |metric_set_id: &str| -> Result<(), Box<rhai::EvalAltResult>> {
+            let metric_set_id = normalize_identifier("metric_set_id", metric_set_id)?;
+            let metrics = USF_METRICS_BY_NAME().lock().unwrap();
+            if metrics.is_empty() {
+                return Err("cannot build metric set: no metrics are registered".into());
+            }
+
+            let mut ordered = metrics.values().cloned().collect::<Vec<_>>();
+            ordered.sort_by(|lhs, rhs| lhs.id.cmp(&rhs.id).then_with(|| lhs.name.cmp(&rhs.name)));
+            let ordered_metric_names = ordered.into_iter().map(|metric| metric.name).collect::<Vec<_>>();
+            drop(metrics);
+
+            USF_METRIC_SETS_BY_ID().lock().unwrap().insert(metric_set_id, ordered_metric_names);
+            Ok(())
+        });
+    },
+);
+
+core_mod_macros::reflect_extern_module_associated_function!(
+    id = core_mod_api::usf::substrate::set_dpt_schema_from_metric_set,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(
+            parent_module,
+            |scale_index: i64, revision: i64, fallback_zone: &str, metric_set_id: &str| -> Result<(), Box<rhai::EvalAltResult>> {
+                let scale_index = parse_scale_index(scale_index)?;
+                let revision = parse_positive_revision(revision)?;
+                let fallback_zone = normalize_zone_type(fallback_zone)?;
+                let metric_set_id = normalize_identifier("metric_set_id", metric_set_id)?;
+
+                let metric_set = {
+                    let metric_sets = USF_METRIC_SETS_BY_ID().lock().unwrap();
+                    let Some(metric_set) = metric_sets.get(&metric_set_id) else {
+                        return Err(format!("metric_set '{}' is not registered", metric_set_id).into());
+                    };
+                    if metric_set.is_empty() {
+                        return Err(format!("metric_set '{}' must contain at least one metric", metric_set_id).into());
+                    }
+                    metric_set.clone()
+                };
+
+                let metrics = USF_METRICS_BY_NAME().lock().unwrap();
+                let mut compiled_metrics = Vec::<ScriptDptMetricDefinition>::with_capacity(metric_set.len());
+                for metric_name in metric_set {
+                    let Some(metric) = metrics.get(&metric_name) else {
+                        return Err(format!("metric_set '{}' references unknown metric '{}'", metric_set_id, metric_name).into());
+                    };
+                    compiled_metrics.push(ScriptDptMetricDefinition {
+                        id: metric.id,
+                        name: metric.name.clone(),
+                        primitive: metric.primitive,
+                    });
+                }
+                drop(metrics);
+
+                let mut schemas = USF_DPT_SCHEMAS_BY_SCALE().lock().unwrap();
+                schemas.insert(
+                    scale_index,
+                    ScriptDptSchemaDefinition {
+                        revision,
+                        fallback_zone,
+                        metrics: compiled_metrics,
+                    },
+                );
                 Ok(())
             },
         );

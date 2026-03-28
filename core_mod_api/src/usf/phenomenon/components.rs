@@ -18,6 +18,20 @@ pub struct PhenomenonModel {
     pub scale: Scale,
 }
 
+#[derive(Component, Reflect, Debug, Clone, PartialEq, Eq)]
+#[reflect(Component)]
+pub struct PhenomenonScriptDefinitionRef {
+    pub phenomenon_id: String,
+}
+
+#[derive(Component, Reflect, Debug, Clone, PartialEq, Eq)]
+#[reflect(Component)]
+pub struct PhenomenonModelScriptDefinitionRef {
+    pub model_id: String,
+    pub phenomenon_id: String,
+    pub primary: bool,
+}
+
 #[derive(Component, Reflect, Debug, Clone, Copy, PartialEq, Eq)]
 #[reflect(Component)]
 pub struct PhenomenonRootNodeRef {

@@ -4,8 +4,12 @@ use crate::bevy::prelude::*;
 use crate::chunk::components::ChunkLoader;
 use crate::player::components::Player;
 
-use crate::usf::phenomenon::components::{Phenomenon, PhenomenonNode, PhenomenonNodeLifecycle, PhenomenonNodeState, PhenomenonRootNodeRef};
+use crate::usf::phenomenon::components::{
+    Phenomenon, PhenomenonModel, PhenomenonModelScriptDefinitionRef, PhenomenonNode, PhenomenonNodeLifecycle, PhenomenonNodeState, PhenomenonRootNodeRef,
+    PhenomenonScriptDefinitionRef,
+};
 use crate::usf::phenomenon::generator::{BuildStateInput, PhenomenonGenerator, PlanChildrenInput};
+use crate::usf::phenomenon::resources::PhenomenonDefinitionRegistry;
 use crate::usf::phenomenon::types::{PhenomenonId, PhenomenonLineage, PhenomenonNodeKey, PhenomenonNodeSeed};
 use crate::usf::pos::types::LocalCell3;
 use crate::usf::scale::Scale;
@@ -59,6 +63,109 @@ fn is_canonical_root_node(node: &PhenomenonNode) -> bool {
         && node.local_index == 0
         && node.lineage.cells.len() == 1
         && node.lineage.leaf() == Some(LocalCell3::ZERO)
+}
+
+pub(super) fn ensure_primary_models_system(
+    mut commands: Commands,
+    definitions: Res<PhenomenonDefinitionRegistry>,
+    phenomenon_query: Query<(Entity, &Phenomenon, Option<&PhenomenonScriptDefinitionRef>)>,
+    model_query: Query<(Entity, &PhenomenonModel, Option<&PhenomenonModelScriptDefinitionRef>)>,
+) {
+    let mut typed_models_by_phenomenon = HashMap::<Entity, Vec<(Entity, PhenomenonModelScriptDefinitionRef)>>::new();
+    for (model_entity, model, model_definition_ref) in model_query.iter() {
+        let Some(model_definition_ref) = model_definition_ref else {
+            continue;
+        };
+        typed_models_by_phenomenon
+            .entry(model.phenomenon_entity)
+            .or_default()
+            .push((model_entity, model_definition_ref.clone()));
+    }
+
+    for (phenomenon_entity, phenomenon, definition_ref) in phenomenon_query.iter() {
+        let Some(definition_ref) = definition_ref else {
+            continue;
+        };
+        let Some(expected_kind) = definitions.kind_for(&definition_ref.phenomenon_id) else {
+            panic!(
+                "USF phenomenon runtime failed: phenomenon entity {} references unknown definition '{}'.",
+                phenomenon_entity.index(),
+                definition_ref.phenomenon_id
+            );
+        };
+        if expected_kind != phenomenon.kind {
+            panic!(
+                "USF phenomenon runtime failed: phenomenon entity {} has kind '{:?}' but definition '{}' requires '{:?}'.",
+                phenomenon_entity.index(),
+                phenomenon.kind,
+                definition_ref.phenomenon_id,
+                expected_kind
+            );
+        }
+        let Some(primary_model_id) = definitions.primary_model_for(&definition_ref.phenomenon_id) else {
+            panic!(
+                "USF phenomenon runtime failed: no primary model configured for '{}'.",
+                definition_ref.phenomenon_id
+            );
+        };
+
+        let has_primary_model = typed_models_by_phenomenon.get(&phenomenon_entity).is_some_and(|models| {
+            models.iter().any(|(_, model_definition)| {
+                model_definition.primary && model_definition.phenomenon_id == definition_ref.phenomenon_id && model_definition.model_id == primary_model_id
+            })
+        });
+        if has_primary_model {
+            continue;
+        }
+
+        commands.spawn((
+            Name::new(format!("phenomenon_model_primary_{}_{}", definition_ref.phenomenon_id, phenomenon.id.0)),
+            PhenomenonModel {
+                phenomenon_entity,
+                scale: Scale::MAX,
+            },
+            PhenomenonModelScriptDefinitionRef {
+                model_id: primary_model_id.to_string(),
+                phenomenon_id: definition_ref.phenomenon_id.clone(),
+                primary: true,
+            },
+        ));
+    }
+}
+
+pub(super) fn prune_orphan_models_system(
+    mut commands: Commands,
+    definitions: Res<PhenomenonDefinitionRegistry>,
+    phenomenon_query: Query<(Entity, Option<&PhenomenonScriptDefinitionRef>), With<Phenomenon>>,
+    model_query: Query<(Entity, &PhenomenonModel, Option<&PhenomenonModelScriptDefinitionRef>)>,
+) {
+    let mut live_phenomenon_entities = HashSet::<Entity>::new();
+    let mut script_id_by_entity = HashMap::<Entity, String>::new();
+    for (phenomenon_entity, definition_ref) in phenomenon_query.iter() {
+        live_phenomenon_entities.insert(phenomenon_entity);
+        if let Some(definition_ref) = definition_ref {
+            script_id_by_entity.insert(phenomenon_entity, definition_ref.phenomenon_id.clone());
+        }
+    }
+
+    for (model_entity, model, model_definition_ref) in model_query.iter() {
+        if !live_phenomenon_entities.contains(&model.phenomenon_entity) {
+            commands.entity(model_entity).despawn();
+            continue;
+        }
+        let Some(model_definition_ref) = model_definition_ref else {
+            continue;
+        };
+        let Some(phenomenon_definition_id) = script_id_by_entity.get(&model.phenomenon_entity) else {
+            commands.entity(model_entity).despawn();
+            continue;
+        };
+        if &model_definition_ref.phenomenon_id != phenomenon_definition_id
+            || !definitions.model_belongs_to_phenomenon(&model_definition_ref.model_id, &model_definition_ref.phenomenon_id)
+        {
+            commands.entity(model_entity).despawn();
+        }
+    }
 }
 
 pub(super) fn sync_policy_depth_to_frontier_scale_system(

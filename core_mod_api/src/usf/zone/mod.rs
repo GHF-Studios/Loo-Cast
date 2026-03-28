@@ -6,8 +6,9 @@ use crate::bevy::prelude::*;
 use crate::usf::schedule::{UsfSimulationSet, UsfZoneSet};
 
 pub use resources::{
-    ZoneBehaviorRegistry, ZoneDensityProfile, ZoneRealizationState, ZoneRealizedPhenomenon, ZoneRuntimeState, ZoneTemporalContext, time_scale_for_levels_above,
-    time_scale_for_scale, time_scale_for_scale_indices,
+    ZoneBehaviorRegistry, ZoneDensityProfile, ZonePhenomenonSelectionStrategy, ZonePhenomenonSpawnPolicy, ZonePhenomenonSupport, ZoneRealizationState,
+    ZoneRealizedPhenomenon, ZoneRuntimeState, ZoneSelectionPolicy, ZoneTemporalContext, time_scale_for_levels_above, time_scale_for_scale,
+    time_scale_for_scale_indices,
 };
 pub use types::{StableRegionId, ZoneAnchor, ZoneExtent, ZoneId, ZonePhenomenon, ZoneRealizationEvent, ZoneTimeFactor};
 
@@ -33,6 +34,10 @@ impl Plugin for ZonePlugin {
                     .in_set(UsfSimulationSet::Zone),
             )
             .register_type::<ZoneRealizationEvent>()
-            .register_type::<ZoneDensityProfile>();
+            .register_type::<ZoneDensityProfile>()
+            .register_type::<ZonePhenomenonSelectionStrategy>()
+            .register_type::<ZonePhenomenonSpawnPolicy>()
+            .register_type::<ZoneSelectionPolicy>()
+            .register_type::<ZonePhenomenonSupport>();
     }
 }

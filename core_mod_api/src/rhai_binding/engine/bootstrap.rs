@@ -12,8 +12,9 @@ use crate::rhai_binding::engine::hook::{new_hook_runner_system, register_hook_pa
 use crate::rhai_binding::engine::preprocess::preprocess_script_source;
 use crate::rhai_binding::engine::resources::MainScriptEngineHandle;
 use crate::rhai_binding::engine::statics::{
-    SCHEDULE_HOOKS, USF_DPT_CATEGORIZER_IDS, USF_DPT_SAMPLER_IDS, USF_DPT_SCHEMAS_BY_SCALE, USF_SCALE_BINDINGS_BY_SCALE, USF_ZLM_SCALES_BY_SCALE,
-    USF_ZONE_TYPES,
+    SCHEDULE_HOOKS, USF_DPT_CATEGORIZER_IDS, USF_DPT_SAMPLER_IDS, USF_DPT_SCHEMAS_BY_SCALE, USF_METRIC_SETS_BY_ID, USF_METRICS_BY_NAME, USF_PHENOMENA_BY_ID,
+    USF_PHENOMENON_MODELS_BY_ID, USF_PRIMARY_PHENOMENON_MODEL_BY_PHENOMENON_ID, USF_SCALE_BINDINGS_BY_SCALE, USF_ZLM_SCALES_BY_SCALE,
+    USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE, USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE, USF_ZONE_TYPES,
 };
 use crate::rhai_binding::runtime::ecs::message::bindings::types::ScriptProbeMessage;
 use crate::usf::schedule::{UsfPhenomenonSet, UsfSubstrateSet, UsfZoneSet};
@@ -166,11 +167,19 @@ pub fn build(app: &mut App) {
 
 fn clear_usf_bootstrap_statics() {
     USF_ZONE_TYPES().lock().unwrap().clear();
+    USF_ZONE_DENSITY_PROFILE_BY_TYPE().lock().unwrap().clear();
     USF_DPT_SCHEMAS_BY_SCALE().lock().unwrap().clear();
     USF_ZLM_SCALES_BY_SCALE().lock().unwrap().clear();
     USF_DPT_SAMPLER_IDS().lock().unwrap().clear();
     USF_DPT_CATEGORIZER_IDS().lock().unwrap().clear();
     USF_SCALE_BINDINGS_BY_SCALE().lock().unwrap().clear();
+    USF_METRICS_BY_NAME().lock().unwrap().clear();
+    USF_METRIC_SETS_BY_ID().lock().unwrap().clear();
+    USF_PHENOMENA_BY_ID().lock().unwrap().clear();
+    USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE().lock().unwrap().clear();
+    USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE().lock().unwrap().clear();
+    USF_PHENOMENON_MODELS_BY_ID().lock().unwrap().clear();
+    USF_PRIMARY_PHENOMENON_MODEL_BY_PHENOMENON_ID().lock().unwrap().clear();
 }
 
 fn collect_usf_registration_scripts(dir: &Path, suffix: &str, out: &mut Vec<PathBuf>) {

@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 use crate::bevy::prelude::*;
-use crate::rhai_binding::engine::statics::{USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_KIND_BY_TYPE};
+use crate::rhai_binding::engine::statics::{
+    USF_PHENOMENA_BY_ID, USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE, USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE, USF_ZONE_TYPES,
+};
 use crate::usf::definition::ZoneTypeId;
 use crate::usf::phenomenon::PhenomenonKind;
 use crate::usf::pos::grid::types::GridVec;
@@ -22,10 +24,10 @@ pub struct ZoneRealizationState {
     pub zone_to_phenomenon: HashMap<ZoneId, ZoneRealizedPhenomenon>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ZoneRealizedPhenomenon {
     pub phenomenon_entity: Entity,
-    pub primary_model_entity: Entity,
+    pub phenomenon_script_id: String,
 }
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq)]
@@ -68,30 +70,131 @@ impl Default for ZoneDensityProfile {
     }
 }
 
+#[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ZonePhenomenonSpawnPolicy {
+    SinglePrimary,
+}
+impl ZonePhenomenonSpawnPolicy {
+    pub fn from_config_value(raw: &str) -> Self {
+        match raw.trim().to_ascii_lowercase().as_str() {
+            "single_primary" | "single-primary" | "single" => Self::SinglePrimary,
+            _ => Self::SinglePrimary,
+        }
+    }
+}
+
+#[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ZonePhenomenonSelectionStrategy {
+    WeightedTopPriority,
+    HighestWeightTopPriority,
+    RoundRobinTopPriority,
+}
+impl ZonePhenomenonSelectionStrategy {
+    pub fn from_config_value(raw: &str) -> Self {
+        match raw.trim().to_ascii_lowercase().as_str() {
+            "weighted_top_priority" | "weighted-top-priority" | "weighted" => Self::WeightedTopPriority,
+            "highest_weight_top_priority" | "highest-weight-top-priority" | "highest_weight" => Self::HighestWeightTopPriority,
+            "round_robin_top_priority" | "round-robin-top-priority" | "round_robin" => Self::RoundRobinTopPriority,
+            _ => Self::WeightedTopPriority,
+        }
+    }
+}
+
+#[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ZoneSelectionPolicy {
+    pub strategy: ZonePhenomenonSelectionStrategy,
+}
+
+#[derive(Reflect, Debug, Clone, PartialEq)]
+pub struct ZonePhenomenonSupport {
+    pub phenomenon_id: String,
+    pub kind: PhenomenonKind,
+    pub priority: i32,
+    pub weight: f32,
+    pub spawn_policy: ZonePhenomenonSpawnPolicy,
+    pub max_active: u32,
+}
+
 #[derive(Resource, Reflect, Debug, Clone)]
 #[reflect(Resource)]
 pub struct ZoneBehaviorRegistry {
-    pub phenomenon_kind_by_zone: HashMap<ZoneTypeId, PhenomenonKind>,
+    pub phenomenon_support_by_zone: HashMap<ZoneTypeId, Vec<ZonePhenomenonSupport>>,
+    pub selection_policy_by_zone: HashMap<ZoneTypeId, ZoneSelectionPolicy>,
     pub density_profile_by_zone: HashMap<ZoneTypeId, ZoneDensityProfile>,
 }
 impl Default for ZoneBehaviorRegistry {
     fn default() -> Self {
-        let mut phenomenon_kind_by_zone = HashMap::new();
+        let mut phenomenon_support_by_zone = HashMap::new();
+        let mut selection_policy_by_zone = HashMap::new();
         let mut density_profile_by_zone = HashMap::new();
-        let script_kind_entries = USF_ZONE_KIND_BY_TYPE().lock().unwrap().clone();
+        let script_zone_types = USF_ZONE_TYPES().lock().unwrap().clone();
+        let script_phenomena_by_id = USF_PHENOMENA_BY_ID().lock().unwrap().clone();
+        let script_zone_supports = USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE().lock().unwrap().clone();
+        let script_selection_policies = USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE().lock().unwrap().clone();
         let script_density_entries = USF_ZONE_DENSITY_PROFILE_BY_TYPE().lock().unwrap().clone();
 
-        // Script-authored entries are authoritative when present.
-        if script_kind_entries.is_empty() {
-            phenomenon_kind_by_zone.insert(ZoneTypeId::new("void"), PhenomenonKind::Mandelbulb);
-            phenomenon_kind_by_zone.insert(ZoneTypeId::new("arid"), PhenomenonKind::Mandelbulb);
-            phenomenon_kind_by_zone.insert(ZoneTypeId::new("alpine"), PhenomenonKind::Mandelbulb);
-            phenomenon_kind_by_zone.insert(ZoneTypeId::new("forest"), PhenomenonKind::SierpinskiSponge);
-            phenomenon_kind_by_zone.insert(ZoneTypeId::new("wetland"), PhenomenonKind::SierpinskiSponge);
-        } else {
-            for (zone_type, kind) in script_kind_entries {
-                phenomenon_kind_by_zone.insert(ZoneTypeId::new(zone_type), PhenomenonKind::from_config_value(&kind));
+        if script_phenomena_by_id.is_empty() {
+            panic!("USF zone behavior bootstrap failed: no phenomena registered. Define at least one '*.phenomenon.rhai' file.");
+        }
+        if script_zone_supports.is_empty() {
+            panic!("USF zone behavior bootstrap failed: no zone phenomenon supports registered. Define them in '*.zone.rhai'.");
+        }
+
+        for zone_type in &script_zone_types {
+            if !script_zone_supports.contains_key(zone_type) {
+                panic!("USF zone behavior bootstrap failed: missing supported phenomena for zone '{}'.", zone_type);
             }
+        }
+        for (zone_type, supports) in script_zone_supports {
+            if supports.is_empty() {
+                panic!("USF zone behavior bootstrap failed: zone '{}' has no supported phenomena entries.", zone_type);
+            }
+
+            let mut compiled_supports = Vec::<ZonePhenomenonSupport>::new();
+            for support in supports {
+                let Some(phenomenon_definition) = script_phenomena_by_id.get(&support.phenomenon_id) else {
+                    panic!(
+                        "USF zone behavior bootstrap failed: zone '{}' references unknown phenomenon '{}'.",
+                        zone_type, support.phenomenon_id
+                    );
+                };
+                if support.weight <= 0.0 {
+                    panic!(
+                        "USF zone behavior bootstrap failed: zone '{}' has non-positive weight {} for phenomenon '{}'.",
+                        zone_type, support.weight, support.phenomenon_id
+                    );
+                }
+                if support.max_active == 0 {
+                    panic!(
+                        "USF zone behavior bootstrap failed: zone '{}' has max_active=0 for phenomenon '{}'.",
+                        zone_type, support.phenomenon_id
+                    );
+                }
+
+                compiled_supports.push(ZonePhenomenonSupport {
+                    phenomenon_id: support.phenomenon_id,
+                    kind: PhenomenonKind::from_config_value(&phenomenon_definition.kind),
+                    priority: support.priority,
+                    weight: support.weight,
+                    spawn_policy: ZonePhenomenonSpawnPolicy::from_config_value(&support.spawn_policy),
+                    max_active: support.max_active,
+                });
+            }
+
+            compiled_supports.sort_by(|a, b| b.priority.cmp(&a.priority).then_with(|| a.phenomenon_id.cmp(&b.phenomenon_id)));
+            phenomenon_support_by_zone.insert(ZoneTypeId::new(zone_type), compiled_supports);
+        }
+
+        for zone_type in &script_zone_types {
+            let policy = script_selection_policies
+                .get(zone_type)
+                .map(|policy| ZoneSelectionPolicy {
+                    strategy: ZonePhenomenonSelectionStrategy::from_config_value(&policy.strategy),
+                })
+                .unwrap_or(ZoneSelectionPolicy {
+                    strategy: ZonePhenomenonSelectionStrategy::WeightedTopPriority,
+                });
+            selection_policy_by_zone.insert(ZoneTypeId::new(zone_type.clone()), policy);
         }
 
         if script_density_entries.is_empty() {
@@ -155,16 +258,24 @@ impl Default for ZoneBehaviorRegistry {
         }
 
         Self {
-            phenomenon_kind_by_zone,
+            phenomenon_support_by_zone,
+            selection_policy_by_zone,
             density_profile_by_zone,
         }
     }
 }
 impl ZoneBehaviorRegistry {
-    pub fn phenomenon_kind_for_zone(&self, zone_type: &ZoneTypeId) -> Option<PhenomenonKind> {
-        self.phenomenon_kind_by_zone.get(zone_type).copied().or_else(|| {
+    pub fn supports_for_zone(&self, zone_type: &ZoneTypeId) -> Option<&[ZonePhenomenonSupport]> {
+        self.phenomenon_support_by_zone.get(zone_type).map(Vec::as_slice).or_else(|| {
             let normalized = ZoneTypeId::new(zone_type.0.trim().to_ascii_lowercase());
-            self.phenomenon_kind_by_zone.get(&normalized).copied()
+            self.phenomenon_support_by_zone.get(&normalized).map(Vec::as_slice)
+        })
+    }
+
+    pub fn selection_policy_for_zone(&self, zone_type: &ZoneTypeId) -> Option<ZoneSelectionPolicy> {
+        self.selection_policy_by_zone.get(zone_type).copied().or_else(|| {
+            let normalized = ZoneTypeId::new(zone_type.0.trim().to_ascii_lowercase());
+            self.selection_policy_by_zone.get(&normalized).copied()
         })
     }
 

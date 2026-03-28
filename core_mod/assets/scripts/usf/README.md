@@ -14,4 +14,18 @@ Each file must expose the matching entrypoint:
 - `*.phenomenon.rhai` -> `register_phenomenon()`
 - `*.phenomenon_model.rhai` -> `register_phenomenon_model()`
 
-Current backend support is implemented for zone, DPT sampler/categorizer, ZLM, and scale substrate registration.
+Current backend support is implemented for:
+
+- metric registry
+- metric-set registry
+- zone registration
+- zone density profiles
+- DPT sampler/categorizer registration
+- ZLM registration
+- scale binding + DPT schema derivation from metric sets
+- phenomenon registry
+- zone-supported phenomena (priority/weight/spawn policy/max_active) + selection policy
+- phenomenon-model registry (including primary-model assignment)
+
+`max_active` currently applies per `(zone_type, phenomenon_id)` support entry for top-scale
+zone realization. When the cap is reached, additional zones skip spawning for that support.

@@ -5,12 +5,14 @@ use crate::chunk::components::{Chunk, ChunkLoader};
 use crate::player::components::Player;
 use crate::usf::definition::{DefinitionRegistry, ScaleContentRegistry, ZoneTypeId};
 use crate::usf::dpt::{DptChunkKey, DptStore};
-use crate::usf::phenomenon::{Phenomenon, PhenomenonId, PhenomenonKind, PhenomenonModel};
+use crate::usf::phenomenon::{Phenomenon, PhenomenonId, PhenomenonModel, PhenomenonScriptDefinitionRef};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
 use crate::usf::zlm::ZlmRegistry;
 
-use super::resources::{ZoneBehaviorRegistry, ZoneRealizationState, ZoneRealizedPhenomenon, ZoneRuntimeState, ZoneTemporalContext};
+use super::resources::{
+    ZoneBehaviorRegistry, ZonePhenomenonSpawnPolicy, ZonePhenomenonSupport, ZoneRealizationState, ZoneRealizedPhenomenon, ZoneRuntimeState, ZoneTemporalContext,
+};
 use super::types::{StableRegionId, ZoneAnchor, ZoneExtent, ZoneId, ZonePhenomenon, ZoneRealizationEvent, ZoneTimeFactor};
 
 pub(super) fn sync_zone_temporal_context_system(player_loader_query: Query<&ChunkLoader, With<Player>>, mut temporal_context: ResMut<ZoneTemporalContext>) {
@@ -102,23 +104,35 @@ pub(super) fn reconcile_zone_realization_system(
     mut commands: Commands,
     runtime_state: Res<ZoneRuntimeState>,
     zone_behavior_registry: Res<ZoneBehaviorRegistry>,
+    temporal_context: Res<ZoneTemporalContext>,
     mut realization_state: ResMut<ZoneRealizationState>,
-    zone_model_query: Query<(Entity, &ZonePhenomenon, &PhenomenonModel)>,
+    zone_phenomenon_query: Query<(Entity, &ZonePhenomenon, &PhenomenonScriptDefinitionRef), With<Phenomenon>>,
+    phenomenon_model_query: Query<(Entity, &PhenomenonModel)>,
     mut zone_realization_event_writer: MessageWriter<ZoneRealizationEvent>,
 ) {
-    let desired_zone_ids = runtime_state.records.keys().cloned().collect::<HashSet<_>>();
-    let live_zone_realizations = zone_model_query
+    // Temporary contract: only top-scale zones manifest new phenomena.
+    let desired_zone_ids = runtime_state
+        .records
+        .keys()
+        .filter(|zone_id| zone_id.scale == Scale::MAX)
+        .cloned()
+        .collect::<HashSet<_>>();
+    let live_zone_realizations = zone_phenomenon_query
         .iter()
-        .map(|(model_entity, marker, model)| {
+        .map(|(phenomenon_entity, marker, script_ref)| {
             (
                 marker.zone_id.clone(),
                 ZoneRealizedPhenomenon {
-                    phenomenon_entity: model.phenomenon_entity,
-                    primary_model_entity: model_entity,
+                    phenomenon_entity,
+                    phenomenon_script_id: script_ref.phenomenon_id.clone(),
                 },
             )
         })
         .collect::<HashMap<_, _>>();
+    let mut model_entities_by_phenomenon = HashMap::<Entity, Vec<Entity>>::new();
+    for (model_entity, model) in phenomenon_model_query.iter() {
+        model_entities_by_phenomenon.entry(model.phenomenon_entity).or_default().push(model_entity);
+    }
 
     let stale_zone_ids = realization_state
         .zone_to_phenomenon
@@ -133,7 +147,11 @@ pub(super) fn reconcile_zone_realization_system(
                 zone_id: zone_id.clone(),
                 phenomenon_entity: realization.phenomenon_entity,
             });
-            commands.entity(realization.primary_model_entity).despawn();
+            if let Some(model_entities) = model_entities_by_phenomenon.get(&realization.phenomenon_entity) {
+                for model_entity in model_entities {
+                    commands.entity(*model_entity).despawn();
+                }
+            }
             commands.entity(realization.phenomenon_entity).despawn();
         }
     }
@@ -146,19 +164,52 @@ pub(super) fn reconcile_zone_realization_system(
             zone_id: zone_id.clone(),
             phenomenon_entity: realization.phenomenon_entity,
         });
-        commands.entity(realization.primary_model_entity).despawn();
+        if let Some(model_entities) = model_entities_by_phenomenon.get(&realization.phenomenon_entity) {
+            for model_entity in model_entities {
+                commands.entity(*model_entity).despawn();
+            }
+        }
         commands.entity(realization.phenomenon_entity).despawn();
         realization_state.zone_to_phenomenon.remove(zone_id);
     }
 
-    for zone_id in desired_zone_ids {
+    let mut support_active_counts = HashMap::<(ZoneTypeId, String), u32>::new();
+    for zone_id in &desired_zone_ids {
+        let Some(realization) = realization_state
+            .zone_to_phenomenon
+            .get(zone_id)
+            .cloned()
+            .or_else(|| live_zone_realizations.get(zone_id).cloned())
+        else {
+            continue;
+        };
+        *support_active_counts
+            .entry(support_count_key(&zone_id.zone_type, &realization.phenomenon_script_id))
+            .or_default() += 1;
+    }
+
+    let mut desired_zone_ids_sorted = desired_zone_ids.into_iter().collect::<Vec<_>>();
+    desired_zone_ids_sorted.sort_by_key(zone_id_sort_key);
+    for zone_id in desired_zone_ids_sorted {
         let Some(realization) = realization_state
             .zone_to_phenomenon
             .get(&zone_id)
-            .copied()
-            .or_else(|| live_zone_realizations.get(&zone_id).copied())
+            .cloned()
+            .or_else(|| live_zone_realizations.get(&zone_id).cloned())
         else {
+            let Some(selected_support) =
+                select_supported_phenomenon_for_zone(&zone_id, &zone_behavior_registry, &support_active_counts, temporal_context.active_scale)
+            else {
+                continue;
+            };
             let phenomenon_id = deterministic_phenomenon_id_for_zone(&zone_id);
+            if selected_support.spawn_policy != ZonePhenomenonSpawnPolicy::SinglePrimary {
+                panic!(
+                    "USF zone realization failed: unsupported spawn policy '{:?}' for zone '{}'.",
+                    selected_support.spawn_policy, zone_id.zone_type.0
+                );
+            }
+            let selected_phenomenon_script_id = selected_support.phenomenon_id.clone();
             let phenomenon_entity = commands
                 .spawn((
                     Name::new(format!(
@@ -169,34 +220,26 @@ pub(super) fn reconcile_zone_realization_system(
                     )),
                     Phenomenon {
                         id: phenomenon_id,
-                        kind: phenomenon_kind_for_zone(&zone_id.zone_type, &zone_behavior_registry),
+                        kind: selected_support.kind,
                     },
-                ))
-                .id();
-            let model_entity = commands
-                .spawn((
-                    Name::new(format!(
-                        "zone_phenomenon_model_scale{}_{}_{}",
-                        zone_id.scale.index_from_top(),
-                        zone_id.zone_type.0,
-                        zone_id.stable_region_id.0
-                    )),
-                    PhenomenonModel {
-                        phenomenon_entity,
-                        scale: zone_id.scale,
+                    PhenomenonScriptDefinitionRef {
+                        phenomenon_id: selected_phenomenon_script_id.clone(),
                     },
                     ZonePhenomenon { zone_id: zone_id.clone() },
                 ))
                 .id();
             let realization = ZoneRealizedPhenomenon {
                 phenomenon_entity,
-                primary_model_entity: model_entity,
+                phenomenon_script_id: selected_phenomenon_script_id.clone(),
             };
             zone_realization_event_writer.write(ZoneRealizationEvent::Spawned {
                 zone_id: zone_id.clone(),
                 phenomenon_entity,
                 phenomenon_id,
             });
+            *support_active_counts
+                .entry(support_count_key(&zone_id.zone_type, &selected_phenomenon_script_id))
+                .or_default() += 1;
             realization_state.zone_to_phenomenon.insert(zone_id, realization);
             continue;
         };
@@ -423,21 +466,96 @@ fn deterministic_phenomenon_id_for_zone(zone_id: &ZoneId) -> PhenomenonId {
     PhenomenonId(state)
 }
 
-fn phenomenon_kind_for_zone(zone_type: &ZoneTypeId, registry: &ZoneBehaviorRegistry) -> PhenomenonKind {
-    if let Some(kind) = registry.phenomenon_kind_for_zone(zone_type) {
-        return kind;
+fn select_supported_phenomenon_for_zone(
+    zone_id: &ZoneId,
+    registry: &ZoneBehaviorRegistry,
+    active_counts: &HashMap<(ZoneTypeId, String), u32>,
+    active_scale: Scale,
+) -> Option<ZonePhenomenonSupport> {
+    let supports = registry.supports_for_zone(&zone_id.zone_type).unwrap_or_else(|| {
+        panic!(
+            "USF zone realization failed: no supported phenomena for zone '{}'. Add support entries in '*.zone.rhai'.",
+            zone_id.zone_type.0
+        )
+    });
+    let selection_policy = registry.selection_policy_for_zone(&zone_id.zone_type).unwrap_or_else(|| {
+        panic!(
+            "USF zone realization failed: no selection policy for zone '{}'. Define one in '*.zone.rhai'.",
+            zone_id.zone_type.0
+        )
+    });
+
+    let eligible_supports = supports
+        .iter()
+        .filter(|support| {
+            let active_count = active_counts
+                .get(&support_count_key(&zone_id.zone_type, &support.phenomenon_id))
+                .copied()
+                .unwrap_or(0);
+            active_count < support.max_active
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    if eligible_supports.is_empty() {
+        return None;
     }
 
-    let normalized = zone_type.0.trim().to_ascii_lowercase();
-    let mut state = 0x94d0_49bb_1331_11eb_u64;
-    for byte in normalized.as_bytes() {
-        state = mix64(state ^ *byte as u64);
+    let highest_priority = eligible_supports
+        .iter()
+        .map(|support| support.priority)
+        .max()
+        .expect("eligible_supports contains at least one entry");
+    let top_supports = eligible_supports
+        .iter()
+        .filter(|support| support.priority == highest_priority)
+        .cloned()
+        .collect::<Vec<_>>();
+    if top_supports.len() == 1 {
+        return Some(top_supports[0].clone());
     }
-    if state & 1 == 0 {
-        PhenomenonKind::Mandelbulb
-    } else {
-        PhenomenonKind::SierpinskiSponge
+
+    match selection_policy.strategy {
+        super::resources::ZonePhenomenonSelectionStrategy::WeightedTopPriority => {
+            let total_weight = top_supports.iter().map(|support| support.weight.max(0.0)).sum::<f32>();
+            if total_weight <= f32::EPSILON {
+                let seed = mix64(deterministic_phenomenon_id_for_zone(zone_id).0 ^ 0x5f37_59df_5a8e_8b4c);
+                let index = (seed % top_supports.len() as u64) as usize;
+                return Some(top_supports[index].clone());
+            }
+
+            let seed = mix64(deterministic_phenomenon_id_for_zone(zone_id).0 ^ (active_scale.index_from_top() as u64) ^ 0x2d1b_2fa1_d4b4_12cf);
+            let normalized = (seed as f64) / (u64::MAX as f64);
+            let mut target = (normalized * (total_weight as f64)) as f32;
+            for support in &top_supports {
+                target -= support.weight.max(0.0);
+                if target <= 0.0 {
+                    return Some(support.clone());
+                }
+            }
+            Some(top_supports.last().expect("top_supports contains at least one entry").clone())
+        }
+        super::resources::ZonePhenomenonSelectionStrategy::HighestWeightTopPriority => {
+            let highest_weight = top_supports.iter().map(|support| support.weight).fold(f32::NEG_INFINITY, f32::max);
+            let mut candidates = top_supports
+                .iter()
+                .filter(|support| (support.weight - highest_weight).abs() <= f32::EPSILON)
+                .cloned()
+                .collect::<Vec<_>>();
+            candidates.sort_by(|a, b| a.phenomenon_id.cmp(&b.phenomenon_id));
+            Some(candidates.first().expect("candidates contains at least one entry").clone())
+        }
+        super::resources::ZonePhenomenonSelectionStrategy::RoundRobinTopPriority => {
+            let seed =
+                mix64(zone_id.stable_region_id.0 ^ (active_scale.index_from_top() as u64) ^ (zone_id.scale.index_from_top() as u64) ^ 0x8a3f_e51d_2d93_46b7);
+            let index = (seed % top_supports.len() as u64) as usize;
+            Some(top_supports[index].clone())
+        }
     }
+}
+
+#[inline]
+fn support_count_key(zone_type: &ZoneTypeId, phenomenon_id: &str) -> (ZoneTypeId, String) {
+    (zone_type.clone(), phenomenon_id.to_ascii_lowercase())
 }
 
 fn compute_stable_region_id(scale: Scale, zone_type: &ZoneTypeId, coords: &[GridVec]) -> StableRegionId {
@@ -536,11 +654,109 @@ mod tests {
 
     #[test]
     fn phenomenon_kind_uses_registry_mapping_when_present() {
-        let mut registry = ZoneBehaviorRegistry::default();
-        registry.phenomenon_kind_by_zone.insert(ZoneTypeId::new("mystic"), PhenomenonKind::Mandelbulb);
+        let mut registry = ZoneBehaviorRegistry {
+            phenomenon_support_by_zone: HashMap::new(),
+            selection_policy_by_zone: HashMap::new(),
+            density_profile_by_zone: HashMap::new(),
+        };
+        registry.phenomenon_support_by_zone.insert(
+            ZoneTypeId::new("mystic"),
+            vec![ZonePhenomenonSupport {
+                phenomenon_id: "phenomenon.debug.mandelbulb".to_string(),
+                kind: crate::usf::phenomenon::PhenomenonKind::Mandelbulb,
+                priority: 100,
+                weight: 1.0,
+                spawn_policy: ZonePhenomenonSpawnPolicy::SinglePrimary,
+                max_active: 1,
+            }],
+        );
+        registry.selection_policy_by_zone.insert(
+            ZoneTypeId::new("mystic"),
+            crate::usf::zone::ZoneSelectionPolicy {
+                strategy: crate::usf::zone::ZonePhenomenonSelectionStrategy::WeightedTopPriority,
+            },
+        );
 
-        let kind = phenomenon_kind_for_zone(&ZoneTypeId::new("mystic"), &registry);
-        assert_eq!(kind, PhenomenonKind::Mandelbulb);
+        let kind = select_supported_phenomenon_for_zone(&zone_id(Scale::MAX, "mystic", 1234), &registry, &HashMap::new(), Scale::MAX)
+            .expect("expected support selection")
+            .kind;
+        assert_eq!(kind, crate::usf::phenomenon::PhenomenonKind::Mandelbulb);
+    }
+
+    #[test]
+    fn support_selection_respects_max_active_limit() {
+        let mut registry = ZoneBehaviorRegistry {
+            phenomenon_support_by_zone: HashMap::new(),
+            selection_policy_by_zone: HashMap::new(),
+            density_profile_by_zone: HashMap::new(),
+        };
+        registry.phenomenon_support_by_zone.insert(
+            ZoneTypeId::new("mystic"),
+            vec![
+                ZonePhenomenonSupport {
+                    phenomenon_id: "phenomenon.debug.alpha".to_string(),
+                    kind: crate::usf::phenomenon::PhenomenonKind::Mandelbulb,
+                    priority: 100,
+                    weight: 1.0,
+                    spawn_policy: ZonePhenomenonSpawnPolicy::SinglePrimary,
+                    max_active: 1,
+                },
+                ZonePhenomenonSupport {
+                    phenomenon_id: "phenomenon.debug.beta".to_string(),
+                    kind: crate::usf::phenomenon::PhenomenonKind::SierpinskiSponge,
+                    priority: 100,
+                    weight: 1.0,
+                    spawn_policy: ZonePhenomenonSpawnPolicy::SinglePrimary,
+                    max_active: 1,
+                },
+            ],
+        );
+        registry.selection_policy_by_zone.insert(
+            ZoneTypeId::new("mystic"),
+            crate::usf::zone::ZoneSelectionPolicy {
+                strategy: crate::usf::zone::ZonePhenomenonSelectionStrategy::HighestWeightTopPriority,
+            },
+        );
+
+        let mut active_counts = HashMap::new();
+        active_counts.insert((ZoneTypeId::new("mystic"), "phenomenon.debug.alpha".to_string()), 1);
+        let selected = select_supported_phenomenon_for_zone(&zone_id(Scale::MAX, "mystic", 7), &registry, &active_counts, Scale::MAX)
+            .expect("expected fallback support when highest-priority support is saturated");
+
+        assert_eq!(selected.phenomenon_id, "phenomenon.debug.beta");
+    }
+
+    #[test]
+    fn support_selection_returns_none_when_all_supports_saturated() {
+        let mut registry = ZoneBehaviorRegistry {
+            phenomenon_support_by_zone: HashMap::new(),
+            selection_policy_by_zone: HashMap::new(),
+            density_profile_by_zone: HashMap::new(),
+        };
+        registry.phenomenon_support_by_zone.insert(
+            ZoneTypeId::new("mystic"),
+            vec![ZonePhenomenonSupport {
+                phenomenon_id: "phenomenon.debug.alpha".to_string(),
+                kind: crate::usf::phenomenon::PhenomenonKind::Mandelbulb,
+                priority: 100,
+                weight: 1.0,
+                spawn_policy: ZonePhenomenonSpawnPolicy::SinglePrimary,
+                max_active: 1,
+            }],
+        );
+        registry.selection_policy_by_zone.insert(
+            ZoneTypeId::new("mystic"),
+            crate::usf::zone::ZoneSelectionPolicy {
+                strategy: crate::usf::zone::ZonePhenomenonSelectionStrategy::WeightedTopPriority,
+            },
+        );
+
+        let mut active_counts = HashMap::new();
+        active_counts.insert((ZoneTypeId::new("mystic"), "phenomenon.debug.alpha".to_string()), 1);
+
+        let selected = select_supported_phenomenon_for_zone(&zone_id(Scale::MAX, "mystic", 8), &registry, &active_counts, Scale::MAX);
+
+        assert!(selected.is_none());
     }
 
     #[test]

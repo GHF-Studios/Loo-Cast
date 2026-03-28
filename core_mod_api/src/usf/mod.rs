@@ -15,7 +15,10 @@ use definition::{DptMetricDefinition, DptMetricId, DptSchema, ScaleContentBindin
 use dpt::{DptChunkKey, DptChunkRecord};
 use phenomenon::{PhenomenonId, PhenomenonKind, PhenomenonLineage, PhenomenonMeshWindow, PhenomenonNodeKey, PhenomenonNodeSeed, PhenomenonStateSnapshot};
 use zlm::{ZlmMetricBand, ZlmScaleDefinition, ZlmZoneRule};
-use zone::{StableRegionId, ZoneAnchor, ZoneBehaviorRegistry, ZoneDensityProfile, ZoneExtent, ZoneId, ZonePhenomenon, ZoneRealizationEvent, ZoneTimeFactor};
+use zone::{
+    StableRegionId, ZoneAnchor, ZoneBehaviorRegistry, ZoneDensityProfile, ZoneExtent, ZoneId, ZonePhenomenon, ZonePhenomenonSelectionStrategy,
+    ZonePhenomenonSpawnPolicy, ZonePhenomenonSupport, ZoneRealizationEvent, ZoneSelectionPolicy, ZoneTimeFactor,
+};
 
 pub(crate) struct UsfPlugin;
 impl Plugin for UsfPlugin {
@@ -47,6 +50,10 @@ impl Plugin for UsfPlugin {
             .register_type::<ZoneTimeFactor>()
             .register_type::<ZoneBehaviorRegistry>()
             .register_type::<ZoneDensityProfile>()
+            .register_type::<ZonePhenomenonSelectionStrategy>()
+            .register_type::<ZonePhenomenonSpawnPolicy>()
+            .register_type::<ZoneSelectionPolicy>()
+            .register_type::<ZonePhenomenonSupport>()
             .register_type::<ZoneRealizationEvent>()
             .register_type::<PhenomenonKind>()
             .register_type::<PhenomenonId>()
