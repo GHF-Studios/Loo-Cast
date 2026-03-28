@@ -11,7 +11,7 @@ pub mod workflows;
 use crate::bevy::prelude::*;
 use bevy_egui::EguiPrimaryContextPass;
 use components::{EguiCamera, EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision, RenderProxy, RenderProxyWindowMode, UiCamera};
-use resources::{DevZoomFactor, PrimaryWindowUiDockState, PrimaryWindowUiState, RuntimeDebugToggles, ViewScale, ZoomFactor};
+use resources::{DevZoomFactor, PauseMenuWindow, PrimaryWindowUiDockState, PrimaryWindowUiState, RuntimeDebugToggles, ViewScale, ZoomFactor};
 use systems::{
     apply_usf_player_pivots_system, despawn_orphaned_render_proxies, draw_chunk_locator_gizmos_system, enforce_main_camera_depth_contract_system,
     main_camera_zoom_system, pre_setup_phase_0, pre_setup_phase_1, primary_window_ui_system, resize_render_texture, update_render_proxies,
@@ -62,6 +62,7 @@ impl Plugin for RenderPlugin {
             .register_type::<Meta<Sprite>>()
             .register_type::<Meta<Mesh3d>>()
             .register_type::<PrimaryWindowUiState>()
+            .register_type::<PauseMenuWindow>()
             .register_type::<RuntimeDebugToggles>()
             .register_type::<ZoomFactor>()
             .register_type::<DevZoomFactor>();

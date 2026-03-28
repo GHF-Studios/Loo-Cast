@@ -2438,13 +2438,13 @@ pub(super) fn main_camera_zoom_system(
 #[inline]
 fn world_space_planar_delta_from_intent(intent_translation_delta: Vec3, yaw_radians: f32) -> Vec3 {
     let local_planar = Vec3::new(intent_translation_delta.x, intent_translation_delta.y, 0.0);
-    if local_planar.length_squared() <= f32::EPSILON {
+    if local_planar.length_squared() <= f32::EPSILON && intent_translation_delta.z.abs() <= f32::EPSILON {
         return Vec3::ZERO;
     }
 
     let yaw_rotation = Quat::from_rotation_z(yaw_radians);
     let mut world_planar = yaw_rotation.inverse() * local_planar;
-    world_planar.z = 0.0;
+    world_planar.z = intent_translation_delta.z;
     world_planar
 }
 

@@ -19,9 +19,17 @@ pub struct PlayerControlSettings {
     pub move_backward: KeyCode,
     pub move_left: KeyCode,
     pub move_right: KeyCode,
+    pub move_up: KeyCode,
+    pub move_down: KeyCode,
     pub sprint: KeyCode,
     pub roll_left: KeyCode,
     pub roll_right: KeyCode,
+    pub invert_move_x_axis: bool,
+    pub invert_move_y_axis: bool,
+    pub invert_move_z_axis: bool,
+    pub invert_look_x_axis: bool,
+    pub invert_look_y_axis: bool,
+    pub invert_roll_axis: bool,
 }
 impl Default for PlayerControlSettings {
     fn default() -> Self {
@@ -32,9 +40,17 @@ impl Default for PlayerControlSettings {
             move_backward: KeyCode::KeyS,
             move_left: KeyCode::KeyA,
             move_right: KeyCode::KeyD,
+            move_up: KeyCode::Space,
+            move_down: KeyCode::ControlLeft,
             sprint: KeyCode::ShiftLeft,
             roll_left: KeyCode::KeyQ,
             roll_right: KeyCode::KeyE,
+            invert_move_x_axis: false,
+            invert_move_y_axis: false,
+            invert_move_z_axis: false,
+            invert_look_x_axis: false,
+            invert_look_y_axis: false,
+            invert_roll_axis: false,
         }
     }
 }

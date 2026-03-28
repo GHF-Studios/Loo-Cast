@@ -24,13 +24,9 @@ impl Plugin for PlayerPlugin {
         app.add_systems(
             Update,
             (
-                toggle_player_camera_mode_system
-                    .in_set(AppSet::InputGather)
-                    .run_if(run_after_startup_finished),
+                toggle_player_camera_mode_system.in_set(AppSet::InputGather).run_if(run_after_startup_finished),
                 toggle_pause_menu_system.in_set(AppSet::InputGather).run_if(run_after_startup_finished),
-                sync_pause_menu_state_system
-                    .in_set(AppSet::Intent)
-                    .run_if(run_after_startup_finished),
+                sync_pause_menu_state_system.in_set(AppSet::Intent).run_if(run_after_startup_finished),
                 update_player_system
                     .in_set(AppSet::Intent)
                     .after(sync_pause_menu_state_system)

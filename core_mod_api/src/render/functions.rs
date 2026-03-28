@@ -11,7 +11,9 @@ use crate::{
     debug::types::DebugSuiteTabViewer,
     input::states::InputMode,
     player::{components::Player, resources::PlayerControlSettings},
-    render::resources::{DevZoomFactor, GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, RuntimeDebugToggles, ViewScale, ZoomFactor},
+    render::resources::{
+        DevZoomFactor, GameViewRenderTarget, PauseMenuWindow, PrimaryWindowUiDockState, PrimaryWindowUiState, RuntimeDebugToggles, ViewScale, ZoomFactor,
+    },
     time::{
         resources::TimeInfo,
         types::{PauseState, StepConfig},
@@ -243,13 +245,11 @@ fn keybind_options() -> &'static [(KeyCode, &'static str)] {
 }
 
 fn keybind_combo(ui: &mut egui::Ui, label: &str, keybind: &mut KeyCode) {
-    egui::ComboBox::from_label(label)
-        .selected_text(format!("{keybind:?}"))
-        .show_ui(ui, |ui| {
-            for (candidate, candidate_label) in keybind_options() {
-                ui.selectable_value(keybind, *candidate, *candidate_label);
-            }
-        });
+    egui::ComboBox::from_label(label).selected_text(format!("{keybind:?}")).show_ui(ui, |ui| {
+        for (candidate, candidate_label) in keybind_options() {
+            ui.selectable_value(keybind, *candidate, *candidate_label);
+        }
+    });
 }
 
 fn draw_pause_menu_ui(state: &mut PrimaryWindowUiState, world: &mut World, ctx: &egui::Context) {
@@ -257,9 +257,17 @@ fn draw_pause_menu_ui(state: &mut PrimaryWindowUiState, world: &mut World, ctx: 
         return;
     }
 
-    let mut system_state = SystemState::<ResMut<PlayerControlSettings>>::new(world);
-    let mut control_settings = system_state.get_mut(world);
+    state.ensure_pause_menu_stack();
+
+    match state.active_pause_menu_window() {
+        PauseMenuWindow::Root => draw_pause_root_window(state, ctx),
+        PauseMenuWindow::Settings => draw_pause_settings_window(state, world, ctx),
+    }
+}
+
+fn draw_pause_root_window(state: &mut PrimaryWindowUiState, ctx: &egui::Context) {
     let mut close_requested = false;
+    let mut open_settings_requested = false;
 
     egui::Window::new("Pause Menu")
         .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
@@ -267,14 +275,53 @@ fn draw_pause_menu_ui(state: &mut PrimaryWindowUiState, world: &mut World, ctx: 
         .resizable(false)
         .show(ctx, |ui| {
             ui.heading("Paused");
-            ui.label("Esc or Resume to continue.");
-            ui.add_space(6.0);
+            ui.label("Esc to continue.");
+            ui.add_space(8.0);
 
-            let resume_button = egui::Button::new(egui::RichText::new("RESUME").strong().size(18.0))
-                .min_size(egui::vec2(ui.available_width(), 42.0));
+            let resume_button = egui::Button::new(egui::RichText::new("RESUME").strong().size(18.0)).min_size(egui::vec2(ui.available_width(), 44.0));
             if ui.add(resume_button).clicked() {
                 close_requested = true;
             }
+
+            ui.add_space(4.0);
+            if ui
+                .add_sized(
+                    egui::vec2(ui.available_width(), 34.0),
+                    egui::Button::new(egui::RichText::new("Settings").size(16.0)),
+                )
+                .clicked()
+            {
+                open_settings_requested = true;
+            }
+        });
+
+    if close_requested {
+        state.close_pause_menu();
+    } else if open_settings_requested {
+        state.push_pause_menu_window(PauseMenuWindow::Settings);
+    }
+}
+
+fn draw_pause_settings_window(state: &mut PrimaryWindowUiState, world: &mut World, ctx: &egui::Context) {
+    let mut system_state = SystemState::<ResMut<PlayerControlSettings>>::new(world);
+    let mut control_settings = system_state.get_mut(world);
+    let mut close_requested = false;
+    let mut back_requested = false;
+
+    egui::Window::new("Settings")
+        .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
+        .collapsible(false)
+        .resizable(false)
+        .show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                if ui.button("Back").clicked() {
+                    back_requested = true;
+                }
+                ui.separator();
+                if ui.button("Resume").clicked() {
+                    close_requested = true;
+                }
+            });
 
             ui.separator();
 
@@ -296,9 +343,20 @@ fn draw_pause_menu_ui(state: &mut PrimaryWindowUiState, world: &mut World, ctx: 
             keybind_combo(ui, "Backward", &mut control_settings.move_backward);
             keybind_combo(ui, "Left", &mut control_settings.move_left);
             keybind_combo(ui, "Right", &mut control_settings.move_right);
+            keybind_combo(ui, "Up", &mut control_settings.move_up);
+            keybind_combo(ui, "Down", &mut control_settings.move_down);
             keybind_combo(ui, "Sprint", &mut control_settings.sprint);
             keybind_combo(ui, "Roll Left", &mut control_settings.roll_left);
             keybind_combo(ui, "Roll Right", &mut control_settings.roll_right);
+
+            ui.separator();
+            ui.label("Axis Inversion");
+            ui.checkbox(&mut control_settings.invert_move_x_axis, "Invert movement X (left/right)");
+            ui.checkbox(&mut control_settings.invert_move_y_axis, "Invert movement Y (forward/back)");
+            ui.checkbox(&mut control_settings.invert_move_z_axis, "Invert movement Z (up/down)");
+            ui.checkbox(&mut control_settings.invert_look_x_axis, "Invert look X (horizontal)");
+            ui.checkbox(&mut control_settings.invert_look_y_axis, "Invert look Y (vertical)");
+            ui.checkbox(&mut control_settings.invert_roll_axis, "Invert roll");
 
             ui.separator();
             if ui.button("Reset Defaults").clicked() {
@@ -309,7 +367,9 @@ fn draw_pause_menu_ui(state: &mut PrimaryWindowUiState, world: &mut World, ctx: 
     control_settings.first_person_fov_degrees = control_settings.first_person_fov_degrees.clamp(45.0, 179.0);
     control_settings.mouse_look_sensitivity = control_settings.mouse_look_sensitivity.clamp(0.0005, 0.03);
     if close_requested {
-        state.pause_menu_open = false;
+        state.close_pause_menu();
+    } else if back_requested {
+        state.pop_pause_menu_window_or_close();
     }
 }
 

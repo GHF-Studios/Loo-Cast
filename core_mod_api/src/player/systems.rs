@@ -1,9 +1,7 @@
-use crate::bevy::prelude::*;
 use crate::bevy::input::mouse::MouseMotion;
+use crate::bevy::prelude::*;
 use crate::bevy::window::{CursorGrabMode, CursorOptions, PrimaryWindow};
-use crate::bevy_rapier3d::prelude::{
-    CharacterAutostep, CharacterLength, Collider, KinematicCharacterController, LockedAxes, RigidBody,
-};
+use crate::bevy_rapier3d::prelude::{CharacterAutostep, CharacterLength, Collider, KinematicCharacterController, LockedAxes, RigidBody};
 
 use crate::chunk::components::ChunkLoader;
 use crate::config::statics::CONFIG;
@@ -45,6 +43,17 @@ fn world_space_planar_delta_from_local(local_planar_direction: Vec2, yaw_radians
     let mut world_planar = Quat::from_rotation_z(yaw_radians).inverse() * local_planar;
     world_planar.z = 0.0;
     world_planar
+}
+
+#[inline]
+fn world_space_translation_delta_from_local(local_direction: Vec3, yaw_radians: f32, move_distance: f32) -> Vec3 {
+    if local_direction.length_squared() <= f32::EPSILON || move_distance <= 0.0 {
+        return Vec3::ZERO;
+    }
+
+    let local_direction = local_direction.normalize();
+    let planar_delta = world_space_planar_delta_from_local(Vec2::new(local_direction.x, local_direction.y), yaw_radians, move_distance);
+    planar_delta + Vec3::new(0.0, 0.0, local_direction.z * move_distance)
 }
 
 #[inline]
@@ -90,7 +99,16 @@ pub(super) fn ensure_player_visual_3d_system(
 #[tracing::instrument(skip_all)]
 pub(super) fn ensure_player_physics_controller_system(
     mut commands: Commands,
-    player_query: Query<(Entity, Option<&RigidBody>, Option<&Collider>, Option<&LockedAxes>, Option<&KinematicCharacterController>), With<Player>>,
+    player_query: Query<
+        (
+            Entity,
+            Option<&RigidBody>,
+            Option<&Collider>,
+            Option<&LockedAxes>,
+            Option<&KinematicCharacterController>,
+        ),
+        With<Player>,
+    >,
 ) {
     let capsule_radius = CONFIG().get::<f32>("player/capsule_radius").max(1.0);
     let capsule_half_height = CONFIG().get::<f32>("player/capsule_half_height").max(capsule_radius);
@@ -146,7 +164,11 @@ pub(super) fn toggle_player_camera_mode_system(keys: Res<ButtonInput<KeyCode>>, 
 #[tracing::instrument(skip_all)]
 pub(super) fn toggle_pause_menu_system(keys: Res<ButtonInput<KeyCode>>, mut ui_state: ResMut<PrimaryWindowUiState>) {
     if keys.just_pressed(KeyCode::Escape) && !ui_state.enabled {
-        ui_state.pause_menu_open = !ui_state.pause_menu_open;
+        if ui_state.pause_menu_open {
+            ui_state.pop_pause_menu_window_or_close();
+        } else {
+            ui_state.open_pause_menu();
+        }
     }
 }
 
@@ -198,16 +220,17 @@ pub(super) fn sync_mouse_capture_system(
     mut was_capturing: Local<bool>,
 ) {
     let should_capture_mouse = input_mode.is_game() && !ui_state.pause_menu_open;
-    let desired_grab_mode = if should_capture_mouse {
-        CursorGrabMode::Locked
-    } else {
-        CursorGrabMode::None
-    };
+    let desired_grab_mode = if should_capture_mouse { CursorGrabMode::Locked } else { CursorGrabMode::None };
     let desired_cursor_visibility = !should_capture_mouse;
     let (mut window, mut cursor_options) = window_query.into_inner();
+    let center = Vec2::new(window.width() * 0.5, window.height() * 0.5);
 
-    if should_capture_mouse && !*was_capturing {
-        let center = Vec2::new(window.width() * 0.5, window.height() * 0.5);
+    if should_capture_mouse {
+        // Keep the cursor centered while in FPS control mode.
+        // This protects against platform/backend behavior where lock may not fully constrain.
+        window.set_cursor_position(Some(center));
+    } else if *was_capturing {
+        // Snap to center once when leaving FPS capture.
         window.set_cursor_position(Some(center));
     }
 
@@ -316,8 +339,7 @@ pub(super) fn apply_player_visual_orientation_system(
         return;
     };
 
-    visual_transform.rotation =
-        Quat::from_euler(EulerRot::XYZ, look_state.pitch_radians, look_state.roll_radians, 0.0);
+    visual_transform.rotation = Quat::from_euler(EulerRot::XYZ, look_state.pitch_radians, look_state.roll_radians, 0.0);
 }
 
 #[tracing::instrument(skip_all)]
@@ -397,18 +419,33 @@ pub(super) fn update_player_system(
             return;
         }
 
-        let mut local_planar_direction = Vec2::ZERO;
+        let mut local_direction = Vec3::ZERO;
         if keys.pressed(control_settings.move_forward) {
-            local_planar_direction.y += 1.0;
+            local_direction.y += 1.0;
         }
         if keys.pressed(control_settings.move_backward) {
-            local_planar_direction.y -= 1.0;
+            local_direction.y -= 1.0;
         }
         if keys.pressed(control_settings.move_left) {
-            local_planar_direction.x -= 1.0;
+            local_direction.x -= 1.0;
         }
         if keys.pressed(control_settings.move_right) {
-            local_planar_direction.x += 1.0;
+            local_direction.x += 1.0;
+        }
+        if keys.pressed(control_settings.move_up) {
+            local_direction.z += 1.0;
+        }
+        if keys.pressed(control_settings.move_down) {
+            local_direction.z -= 1.0;
+        }
+        if control_settings.invert_move_x_axis {
+            local_direction.x = -local_direction.x;
+        }
+        if control_settings.invert_move_y_axis {
+            local_direction.y = -local_direction.y;
+        }
+        if control_settings.invert_move_z_axis {
+            local_direction.z = -local_direction.z;
         }
 
         let mut delta_rotation = Vec3::ZERO;
@@ -416,24 +453,37 @@ pub(super) fn update_player_system(
         let mut roll_delta = 0.0_f32;
 
         if keys.pressed(control_settings.roll_left) {
-            roll_delta += runtime_config.world_rotation_speed * time.delta_secs();
+            roll_delta -= runtime_config.world_rotation_speed * time.delta_secs();
         }
         if keys.pressed(control_settings.roll_right) {
-            roll_delta -= runtime_config.world_rotation_speed * time.delta_secs();
+            roll_delta += runtime_config.world_rotation_speed * time.delta_secs();
+        }
+        if control_settings.invert_roll_axis {
+            roll_delta = -roll_delta;
         }
 
         // Mouse look for FPS controls.
+        let look_x_sign = if control_settings.invert_look_x_axis { -1.0 } else { 1.0 };
+        let look_y_sign = if control_settings.invert_look_y_axis { -1.0 } else { 1.0 };
+        let (roll_sin, roll_cos) = player_look_state.roll_radians.sin_cos();
         for mouse_motion in mouse_motion_reader.read() {
-            delta_rotation.z += mouse_motion.delta.x * control_settings.mouse_look_sensitivity;
-            pitch_delta -= mouse_motion.delta.y * control_settings.mouse_look_sensitivity;
+            let mouse_x = mouse_motion.delta.x * control_settings.mouse_look_sensitivity * look_x_sign;
+            let mouse_y = mouse_motion.delta.y * control_settings.mouse_look_sensitivity * look_y_sign;
+
+            // Keep mouse controls stable in screen space even when the view is rolled.
+            let yaw_input = mouse_x * roll_cos - mouse_y * roll_sin;
+            let pitch_input = mouse_x * roll_sin + mouse_y * roll_cos;
+
+            delta_rotation.z += yaw_input;
+            pitch_delta -= pitch_input;
         }
 
-        player_look_state.pitch_radians = (player_look_state.pitch_radians + pitch_delta)
-            .clamp(runtime_config.pitch_min_radians, runtime_config.pitch_max_radians);
+        player_look_state.pitch_radians =
+            (player_look_state.pitch_radians + pitch_delta).clamp(runtime_config.pitch_min_radians, runtime_config.pitch_max_radians);
         player_look_state.roll_radians = wrap_angle_radians(player_look_state.roll_radians + roll_delta);
         player_motion_intent.rotation_delta = delta_rotation;
 
-        if local_planar_direction.length_squared() > 0.0 {
+        if local_direction.length_squared() > 0.0 {
             let sprint_multiplier = if keys.pressed(control_settings.sprint) {
                 runtime_config.sprint_multiplier
             } else {
@@ -441,14 +491,12 @@ pub(super) fn update_player_system(
             };
             let move_distance = runtime_config.base_movement_speed * sprint_multiplier * time.delta_secs();
             let yaw_radians = chunk_loader.usf_transform.rotation.z.local as f32 + delta_rotation.z;
-            let world_space_translation_delta =
-                world_space_planar_delta_from_local(local_planar_direction.normalize(), yaw_radians, move_distance);
+            let world_space_translation_delta = world_space_translation_delta_from_local(local_direction, yaw_radians, move_distance);
 
             if let Some(character_controller) = character_controller.as_deref_mut() {
                 character_controller.translation = Some(world_space_translation_delta);
             } else {
-                player_motion_intent.translation_delta =
-                    Vec3::new(local_planar_direction.x, local_planar_direction.y, 0.0).normalize() * move_distance;
+                player_motion_intent.translation_delta = local_direction.normalize() * move_distance;
             }
         } else if let Some(character_controller) = character_controller.as_deref_mut() {
             character_controller.translation = None;
@@ -464,7 +512,7 @@ pub(super) fn update_player_system(
 
 #[cfg(test)]
 mod tests {
-    use super::world_space_planar_delta_from_local;
+    use super::{world_space_planar_delta_from_local, world_space_translation_delta_from_local};
     use crate::bevy::prelude::{Vec2, Vec3};
     use std::f32::consts::FRAC_PI_2;
 
@@ -479,5 +527,12 @@ mod tests {
     fn world_space_delta_returns_zero_for_zero_direction() {
         let delta = world_space_planar_delta_from_local(Vec2::ZERO, 1.3, 9.0);
         assert_eq!(delta, Vec3::ZERO);
+    }
+
+    #[test]
+    fn world_space_translation_preserves_vertical_component() {
+        let delta = world_space_translation_delta_from_local(Vec3::new(0.0, 1.0, 1.0), FRAC_PI_2, 10.0);
+        let expected_vertical = 10.0 / 2.0_f32.sqrt();
+        assert!((delta.z - expected_vertical).abs() < 1e-5);
     }
 }
