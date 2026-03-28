@@ -177,7 +177,7 @@ impl Default for UsfScale {
         Self {
             uniform: UsfFloat::new(1.0),
             policy: UsfFloatPolicy {
-                local_min: 0.1,
+                local_min: 1.0,
                 local_max: 10.0,
                 commit_buffer_ratio: 0.1,
                 domain: UsfFloatDomain::Multiplicative { pivot_factor: 10.0 },

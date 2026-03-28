@@ -29,6 +29,19 @@ fn unit_extent_zoom_out_test_3() {
 }
 
 #[test]
+fn unit_extent_zoom_out_edge_child_carries_into_parent_grid_without_panicking() {
+    use crate::unit_extent;
+
+    let mut a = unit_extent!([(0, 0, 0), (-5, 0, 0)]: (-438.2324, 0.0, 0.0));
+    a.zoom_out();
+
+    assert_eq!(a.grid_offset.xyz.x, -1);
+    assert!((a.unit_offset.x - 456.17676).abs() < 1e-3);
+    assert!(a.unit_offset.y.abs() < 1e-6);
+    assert!(a.unit_offset.z.abs() < 1e-6);
+}
+
+#[test]
 fn unit_extent_zoom_in_test_1() {
     use crate::unit_extent;
 

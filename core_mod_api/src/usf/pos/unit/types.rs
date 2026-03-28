@@ -331,12 +331,19 @@ impl UnitVec {
             child.xyz.z as f32 * child_size,
         );
 
-        // Step 2: Shift up into parent space, then rescale
+        // Step 2: Shift up into parent space, then rescale.
+        // This can exceed [-500, 500) for edge child digits (e.g. -5 with negative local offset),
+        // so we must carry overflow back into the parent grid instead of panicking.
         let offset_in_parent = child_origin + (self.unit_offset / child_factor);
+        let (wrapped_x, carry_x) = Self::wrap_unit_component(offset_in_parent.x);
+        let (wrapped_y, carry_y) = Self::wrap_unit_component(offset_in_parent.y);
+        let (wrapped_z, carry_z) = Self::wrap_unit_component(offset_in_parent.z);
+        let parent_with_carry =
+            Self::apply_grid_leaf_delta_mode((*parent).clone(), IVec3::new(carry_x, carry_y, carry_z), OverflowMode::Wrap).expect("Wrap mode cannot fail");
 
         // Step 3: Update context
-        self.grid_offset = (*parent).clone();
-        self.unit_offset = offset_in_parent;
+        self.grid_offset = parent_with_carry;
+        self.unit_offset = Vec3::new(wrapped_x, wrapped_y, wrapped_z);
         Self::validate_unit_offset(&self.unit_offset);
     }
 }
