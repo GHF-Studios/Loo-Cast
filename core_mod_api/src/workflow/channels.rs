@@ -32,21 +32,21 @@ pub(super) struct WorkflowRequestIOEReceiver(pub UnboundedReceiver<TypedWorkflow
 
 // --- Workflow Response Senders ---
 #[derive(Resource)]
-pub(super) struct WorkflowResponseSender(pub UnboundedSender<TypedWorkflowResponse>);
+pub(super) struct WorkflowResponseSender(pub UnboundedSender<TypedWorkflowResponseEnvelope>);
 #[derive(Resource)]
-pub(super) struct WorkflowResponseESender(pub UnboundedSender<TypedWorkflowResponseE>);
+pub(super) struct WorkflowResponseESender(pub UnboundedSender<TypedWorkflowResponseEEnvelope>);
 #[derive(Resource)]
-pub(super) struct WorkflowResponseOSender(pub UnboundedSender<TypedWorkflowResponseO>);
+pub(super) struct WorkflowResponseOSender(pub UnboundedSender<TypedWorkflowResponseOEnvelope>);
 #[derive(Resource)]
-pub(super) struct WorkflowResponseOESender(pub UnboundedSender<TypedWorkflowResponseOE>);
+pub(super) struct WorkflowResponseOESender(pub UnboundedSender<TypedWorkflowResponseOEEnvelope>);
 #[derive(Resource)]
-pub(super) struct WorkflowResponseISender(pub UnboundedSender<TypedWorkflowResponse>);
+pub(super) struct WorkflowResponseISender(pub UnboundedSender<TypedWorkflowResponseEnvelope>);
 #[derive(Resource)]
-pub(super) struct WorkflowResponseIESender(pub UnboundedSender<TypedWorkflowResponseE>);
+pub(super) struct WorkflowResponseIESender(pub UnboundedSender<TypedWorkflowResponseEEnvelope>);
 #[derive(Resource)]
-pub(super) struct WorkflowResponseIOSender(pub UnboundedSender<TypedWorkflowResponseO>);
+pub(super) struct WorkflowResponseIOSender(pub UnboundedSender<TypedWorkflowResponseOEnvelope>);
 #[derive(Resource)]
-pub(super) struct WorkflowResponseIOESender(pub UnboundedSender<TypedWorkflowResponseOE>);
+pub(super) struct WorkflowResponseIOESender(pub UnboundedSender<TypedWorkflowResponseOEEnvelope>);
 
 // --- Stage Channels ---
 static STAGE_SETUP_SENDER: OnceLock<Sender<StageSetupMessage>> = OnceLock::new();
@@ -99,21 +99,21 @@ macro_rules! init_tokio_channel_pair {
 }
 
 static REQUEST_SENDER: OnceLock<UnboundedSender<TypedWorkflowRequest>> = OnceLock::new();
-static RESPONSE_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponse>>> = OnceLock::new();
+static RESPONSE_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponseEnvelope>>> = OnceLock::new();
 static REQUEST_E_SENDER: OnceLock<UnboundedSender<TypedWorkflowRequestE>> = OnceLock::new();
-static RESPONSE_E_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponseE>>> = OnceLock::new();
+static RESPONSE_E_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponseEEnvelope>>> = OnceLock::new();
 static REQUEST_O_SENDER: OnceLock<UnboundedSender<TypedWorkflowRequestO>> = OnceLock::new();
-static RESPONSE_O_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponseO>>> = OnceLock::new();
+static RESPONSE_O_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponseOEnvelope>>> = OnceLock::new();
 static REQUEST_OE_SENDER: OnceLock<UnboundedSender<TypedWorkflowRequestOE>> = OnceLock::new();
-static RESPONSE_OE_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponseOE>>> = OnceLock::new();
+static RESPONSE_OE_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponseOEEnvelope>>> = OnceLock::new();
 static REQUEST_I_SENDER: OnceLock<UnboundedSender<TypedWorkflowRequestI>> = OnceLock::new();
-static RESPONSE_I_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponse>>> = OnceLock::new();
+static RESPONSE_I_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponseEnvelope>>> = OnceLock::new();
 static REQUEST_IE_SENDER: OnceLock<UnboundedSender<TypedWorkflowRequestIE>> = OnceLock::new();
-static RESPONSE_IE_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponseE>>> = OnceLock::new();
+static RESPONSE_IE_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponseEEnvelope>>> = OnceLock::new();
 static REQUEST_IO_SENDER: OnceLock<UnboundedSender<TypedWorkflowRequestIO>> = OnceLock::new();
-static RESPONSE_IO_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponseO>>> = OnceLock::new();
+static RESPONSE_IO_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponseOEnvelope>>> = OnceLock::new();
 static REQUEST_IOE_SENDER: OnceLock<UnboundedSender<TypedWorkflowRequestIOE>> = OnceLock::new();
-static RESPONSE_IOE_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponseOE>>> = OnceLock::new();
+static RESPONSE_IOE_RECEIVER: OnceLock<Mutex<UnboundedReceiver<TypedWorkflowResponseOEEnvelope>>> = OnceLock::new();
 
 macro_rules! define_tokio_init_fn {
     ($fn_name:ident, $req_sender:ident, $resp_receiver:ident, $Req:ty, $Resp:ty) => {
@@ -131,56 +131,56 @@ define_tokio_init_fn!(
     REQUEST_SENDER,
     RESPONSE_RECEIVER,
     TypedWorkflowRequest,
-    TypedWorkflowResponse
+    TypedWorkflowResponseEnvelope
 );
 define_tokio_init_fn!(
     initialize_e_channels,
     REQUEST_E_SENDER,
     RESPONSE_E_RECEIVER,
     TypedWorkflowRequestE,
-    TypedWorkflowResponseE
+    TypedWorkflowResponseEEnvelope
 );
 define_tokio_init_fn!(
     initialize_o_channels,
     REQUEST_O_SENDER,
     RESPONSE_O_RECEIVER,
     TypedWorkflowRequestO,
-    TypedWorkflowResponseO
+    TypedWorkflowResponseOEnvelope
 );
 define_tokio_init_fn!(
     initialize_oe_channels,
     REQUEST_OE_SENDER,
     RESPONSE_OE_RECEIVER,
     TypedWorkflowRequestOE,
-    TypedWorkflowResponseOE
+    TypedWorkflowResponseOEEnvelope
 );
 define_tokio_init_fn!(
     initialize_i_channels,
     REQUEST_I_SENDER,
     RESPONSE_I_RECEIVER,
     TypedWorkflowRequestI,
-    TypedWorkflowResponse
+    TypedWorkflowResponseEnvelope
 );
 define_tokio_init_fn!(
     initialize_ie_channels,
     REQUEST_IE_SENDER,
     RESPONSE_IE_RECEIVER,
     TypedWorkflowRequestIE,
-    TypedWorkflowResponseE
+    TypedWorkflowResponseEEnvelope
 );
 define_tokio_init_fn!(
     initialize_io_channels,
     REQUEST_IO_SENDER,
     RESPONSE_IO_RECEIVER,
     TypedWorkflowRequestIO,
-    TypedWorkflowResponseO
+    TypedWorkflowResponseOEnvelope
 );
 define_tokio_init_fn!(
     initialize_ioe_channels,
     REQUEST_IOE_SENDER,
     RESPONSE_IOE_RECEIVER,
     TypedWorkflowRequestIOE,
-    TypedWorkflowResponseOE
+    TypedWorkflowResponseOEEnvelope
 );
 
 // --- Getters ---
@@ -218,11 +218,11 @@ define_sender_getter!(get_request_io_sender, REQUEST_IO_SENDER, UnboundedSender<
 define_sender_getter!(get_request_ioe_sender, REQUEST_IOE_SENDER, UnboundedSender<TypedWorkflowRequestIOE>);
 
 // Receiver Getters
-define_receiver_getter!(get_response_receiver, RESPONSE_RECEIVER, UnboundedReceiver<TypedWorkflowResponse>);
-define_receiver_getter!(get_response_e_receiver, RESPONSE_E_RECEIVER, UnboundedReceiver<TypedWorkflowResponseE>);
-define_receiver_getter!(get_response_o_receiver, RESPONSE_O_RECEIVER, UnboundedReceiver<TypedWorkflowResponseO>);
-define_receiver_getter!(get_response_oe_receiver, RESPONSE_OE_RECEIVER, UnboundedReceiver<TypedWorkflowResponseOE>);
-define_receiver_getter!(get_response_i_receiver, RESPONSE_I_RECEIVER, UnboundedReceiver<TypedWorkflowResponse>);
-define_receiver_getter!(get_response_ie_receiver, RESPONSE_IE_RECEIVER, UnboundedReceiver<TypedWorkflowResponseE>);
-define_receiver_getter!(get_response_io_receiver, RESPONSE_IO_RECEIVER, UnboundedReceiver<TypedWorkflowResponseO>);
-define_receiver_getter!(get_response_ioe_receiver, RESPONSE_IOE_RECEIVER, UnboundedReceiver<TypedWorkflowResponseOE>);
+define_receiver_getter!(get_response_receiver, RESPONSE_RECEIVER, UnboundedReceiver<TypedWorkflowResponseEnvelope>);
+define_receiver_getter!(get_response_e_receiver, RESPONSE_E_RECEIVER, UnboundedReceiver<TypedWorkflowResponseEEnvelope>);
+define_receiver_getter!(get_response_o_receiver, RESPONSE_O_RECEIVER, UnboundedReceiver<TypedWorkflowResponseOEnvelope>);
+define_receiver_getter!(get_response_oe_receiver, RESPONSE_OE_RECEIVER, UnboundedReceiver<TypedWorkflowResponseOEEnvelope>);
+define_receiver_getter!(get_response_i_receiver, RESPONSE_I_RECEIVER, UnboundedReceiver<TypedWorkflowResponseEnvelope>);
+define_receiver_getter!(get_response_ie_receiver, RESPONSE_IE_RECEIVER, UnboundedReceiver<TypedWorkflowResponseEEnvelope>);
+define_receiver_getter!(get_response_io_receiver, RESPONSE_IO_RECEIVER, UnboundedReceiver<TypedWorkflowResponseOEnvelope>);
+define_receiver_getter!(get_response_ioe_receiver, RESPONSE_IOE_RECEIVER, UnboundedReceiver<TypedWorkflowResponseOEEnvelope>);

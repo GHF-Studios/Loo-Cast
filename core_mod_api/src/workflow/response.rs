@@ -1,14 +1,15 @@
 use crate::bevy::prelude::Reflect;
 use std::any::Any;
+use uuid::Uuid;
 
 use crate::{utils::premium_box::AnySendSyncPremiumBox, workflow::types::WorkflowID};
 
 #[derive(Debug, Reflect)]
 pub enum WorkflowResponse {
-    None(TypedWorkflowResponse),
-    E(TypedWorkflowResponseE),
-    O(TypedWorkflowResponseO),
-    OE(TypedWorkflowResponseOE),
+    None(TypedWorkflowResponseEnvelope),
+    E(TypedWorkflowResponseEEnvelope),
+    O(TypedWorkflowResponseOEnvelope),
+    OE(TypedWorkflowResponseOEEnvelope),
 }
 
 #[derive(Debug, Reflect)]
@@ -17,10 +18,20 @@ pub struct TypedWorkflowResponse {
     pub workflow_name: &'static str,
 }
 #[derive(Debug, Reflect)]
+pub struct TypedWorkflowResponseEnvelope {
+    pub request_id: Uuid,
+    pub response: TypedWorkflowResponse,
+}
+#[derive(Debug, Reflect)]
 pub struct TypedWorkflowResponseE {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub result: Result<(), AnySendSyncPremiumBox>,
+}
+#[derive(Debug, Reflect)]
+pub struct TypedWorkflowResponseEEnvelope {
+    pub request_id: Uuid,
+    pub response: TypedWorkflowResponseE,
 }
 #[derive(Debug, Reflect)]
 pub struct TypedWorkflowResponseO {
@@ -29,22 +40,32 @@ pub struct TypedWorkflowResponseO {
     pub output: AnySendSyncPremiumBox,
 }
 #[derive(Debug, Reflect)]
+pub struct TypedWorkflowResponseOEnvelope {
+    pub request_id: Uuid,
+    pub response: TypedWorkflowResponseO,
+}
+#[derive(Debug, Reflect)]
 pub struct TypedWorkflowResponseOE {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub result: Result<AnySendSyncPremiumBox, AnySendSyncPremiumBox>,
 }
+#[derive(Debug, Reflect)]
+pub struct TypedWorkflowResponseOEEnvelope {
+    pub request_id: Uuid,
+    pub response: TypedWorkflowResponseOE,
+}
 
 impl WorkflowResponse {
     pub fn get_worfklow_id(&self) -> WorkflowID {
-        let (module, workflow) = match self {
-            Self::None(r) => (r.module_name, r.workflow_name),
-            Self::E(r) => (r.module_name, r.workflow_name),
-            Self::O(r) => (r.module_name, r.workflow_name),
-            Self::OE(r) => (r.module_name, r.workflow_name),
+        let (module, workflow, request_id) = match self {
+            Self::None(r) => (r.response.module_name, r.response.workflow_name, r.request_id),
+            Self::E(r) => (r.response.module_name, r.response.workflow_name, r.request_id),
+            Self::O(r) => (r.response.module_name, r.response.workflow_name, r.request_id),
+            Self::OE(r) => (r.response.module_name, r.response.workflow_name, r.request_id),
         };
 
-        WorkflowID { module, workflow }
+        WorkflowID { module, workflow, request_id }
     }
 }
 

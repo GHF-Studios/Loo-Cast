@@ -141,6 +141,19 @@ pub(super) struct RenderWhileStageBuffer(#[reflect(ignore)] pub Vec<(&'static st
 #[reflect(Resource)]
 pub(super) struct AsyncStageBuffer(#[reflect(ignore)] pub Vec<(&'static str, &'static str, usize, StageAsync, Option<AnySendSyncPremiumBox>)>);
 
+type WorkflowStageCacheKey = (&'static str, &'static str, &'static str);
+
+#[derive(Resource, Default)]
+pub(super) struct EcsStageSenderCache(pub HashMap<WorkflowStageCacheKey, Box<dyn crate::DynFillWorkflowStageEcsBufferMessageSender>>);
+#[derive(Resource, Default)]
+pub(super) struct RenderStageSenderCache(pub HashMap<WorkflowStageCacheKey, Box<dyn crate::DynFillWorkflowStageRenderBufferMessageSender>>);
+#[derive(Resource, Default)]
+pub(super) struct AsyncStageSenderCache(pub HashMap<WorkflowStageCacheKey, Box<dyn crate::DynFillWorkflowStageAsyncBufferMessageSender>>);
+#[derive(Resource, Default)]
+pub(super) struct EcsWhileStageSenderCache(pub HashMap<WorkflowStageCacheKey, Box<dyn crate::DynFillWorkflowStageEcsWhileBufferMessageSender>>);
+#[derive(Resource, Default)]
+pub(super) struct RenderWhileStageSenderCache(pub HashMap<WorkflowStageCacheKey, Box<dyn crate::DynFillWorkflowStageRenderWhileBufferMessageSender>>);
+
 // --- Stage Message Receivers ---
 #[derive(Resource)]
 pub(super) struct StageSetupMessageReceiver(pub Receiver<StageSetupMessage>);

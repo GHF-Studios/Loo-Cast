@@ -1,4 +1,5 @@
 use crate::bevy::prelude::Reflect;
+use uuid::Uuid;
 
 use crate::config::statics::CONFIG;
 use crate::utils::premium_box::AnySendSyncPremiumBox;
@@ -38,70 +39,78 @@ impl WorkflowInstance {
     pub fn new_request(
         module_name: &'static str,
         workflow_name: &'static str,
+        request_id: Uuid,
         num_stages: usize,
         callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
     ) -> Self {
-        WorkflowInstance::None(TypedWorkflowInstance::new_request(module_name, workflow_name, callback, num_stages))
+        WorkflowInstance::None(TypedWorkflowInstance::new_request(module_name, workflow_name, request_id, callback, num_stages))
     }
     pub fn new_request_e(
         module_name: &'static str,
         workflow_name: &'static str,
+        request_id: Uuid,
         num_stages: usize,
         callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
     ) -> Self {
-        WorkflowInstance::E(TypedWorkflowInstanceE::new_request(module_name, workflow_name, callback, num_stages))
+        WorkflowInstance::E(TypedWorkflowInstanceE::new_request(module_name, workflow_name, request_id, callback, num_stages))
     }
     pub fn new_request_o(
         module_name: &'static str,
         workflow_name: &'static str,
+        request_id: Uuid,
         num_stages: usize,
         callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
     ) -> Self {
-        WorkflowInstance::O(TypedWorkflowInstanceO::new_request(module_name, workflow_name, callback, num_stages))
+        WorkflowInstance::O(TypedWorkflowInstanceO::new_request(module_name, workflow_name, request_id, callback, num_stages))
     }
     pub fn new_request_oe(
         module_name: &'static str,
         workflow_name: &'static str,
+        request_id: Uuid,
         num_stages: usize,
         callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
     ) -> Self {
-        WorkflowInstance::OE(TypedWorkflowInstanceOE::new_request(module_name, workflow_name, callback, num_stages))
+        WorkflowInstance::OE(TypedWorkflowInstanceOE::new_request(module_name, workflow_name, request_id, callback, num_stages))
     }
     pub fn new_request_i(
         module_name: &'static str,
         workflow_name: &'static str,
+        request_id: Uuid,
         input: AnySendSyncPremiumBox,
         num_stages: usize,
         callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
     ) -> Self {
-        WorkflowInstance::I(TypedWorkflowInstanceI::new_request(module_name, workflow_name, input, callback, num_stages))
+        WorkflowInstance::I(TypedWorkflowInstanceI::new_request(module_name, workflow_name, request_id, input, callback, num_stages))
     }
     pub fn new_request_ie(
         module_name: &'static str,
         workflow_name: &'static str,
+        request_id: Uuid,
         input: AnySendSyncPremiumBox,
         num_stages: usize,
         callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
     ) -> Self {
-        WorkflowInstance::IE(TypedWorkflowInstanceIE::new_request(module_name, workflow_name, input, callback, num_stages))
+        WorkflowInstance::IE(TypedWorkflowInstanceIE::new_request(module_name, workflow_name, request_id, input, callback, num_stages))
     }
     pub fn new_request_io(
         module_name: &'static str,
         workflow_name: &'static str,
+        request_id: Uuid,
         input: AnySendSyncPremiumBox,
         num_stages: usize,
         callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
     ) -> Self {
-        WorkflowInstance::IO(TypedWorkflowInstanceIO::new_request(module_name, workflow_name, input, callback, num_stages))
+        WorkflowInstance::IO(TypedWorkflowInstanceIO::new_request(module_name, workflow_name, request_id, input, callback, num_stages))
     }
     pub fn new_request_ioe(
         module_name: &'static str,
         workflow_name: &'static str,
+        request_id: Uuid,
         input: AnySendSyncPremiumBox,
         num_stages: usize,
         callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
     ) -> Self {
-        WorkflowInstance::IOE(TypedWorkflowInstanceIOE::new_request(module_name, workflow_name, input, callback, num_stages))
+        WorkflowInstance::IOE(TypedWorkflowInstanceIOE::new_request(module_name, workflow_name, request_id, input, callback, num_stages))
     }
 
     pub fn has_input(&self) -> bool {
@@ -166,6 +175,19 @@ impl WorkflowInstance {
             WorkflowInstance::IE(instance) => instance.workflow_name,
             WorkflowInstance::IO(instance) => instance.workflow_name,
             WorkflowInstance::IOE(instance) => instance.workflow_name,
+        }
+    }
+
+    pub fn request_id(&self) -> Uuid {
+        match self {
+            WorkflowInstance::None(instance) => instance.request_id,
+            WorkflowInstance::E(instance) => instance.request_id,
+            WorkflowInstance::O(instance) => instance.request_id,
+            WorkflowInstance::OE(instance) => instance.request_id,
+            WorkflowInstance::I(instance) => instance.request_id,
+            WorkflowInstance::IE(instance) => instance.request_id,
+            WorkflowInstance::IO(instance) => instance.request_id,
+            WorkflowInstance::IOE(instance) => instance.request_id,
         }
     }
 
@@ -356,6 +378,7 @@ impl WorkflowInstance {
 pub struct TypedWorkflowInstance {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
+    pub request_id: Uuid,
     pub state: WorkflowState,
     #[reflect(ignore, default = "placeholder_callback")]
     pub callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
@@ -366,6 +389,7 @@ pub struct TypedWorkflowInstance {
 pub struct TypedWorkflowInstanceE {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
+    pub request_id: Uuid,
     pub state: WorkflowState,
     #[reflect(ignore, default = "placeholder_callback")]
     pub callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
@@ -376,6 +400,7 @@ pub struct TypedWorkflowInstanceE {
 pub struct TypedWorkflowInstanceO {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
+    pub request_id: Uuid,
     pub state: WorkflowState,
     #[reflect(ignore, default = "placeholder_data_buffer")]
     pub data_buffer: AnySendSyncPremiumBox,
@@ -388,6 +413,7 @@ pub struct TypedWorkflowInstanceO {
 pub struct TypedWorkflowInstanceOE {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
+    pub request_id: Uuid,
     pub state: WorkflowState,
     #[reflect(ignore, default = "placeholder_data_buffer")]
     pub data_buffer: AnySendSyncPremiumBox,
@@ -400,6 +426,7 @@ pub struct TypedWorkflowInstanceOE {
 pub struct TypedWorkflowInstanceI {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
+    pub request_id: Uuid,
     pub state: WorkflowState,
     #[reflect(ignore, default = "placeholder_data_buffer")]
     pub data_buffer: AnySendSyncPremiumBox,
@@ -412,6 +439,7 @@ pub struct TypedWorkflowInstanceI {
 pub struct TypedWorkflowInstanceIE {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
+    pub request_id: Uuid,
     pub state: WorkflowState,
     #[reflect(ignore, default = "placeholder_data_buffer")]
     pub data_buffer: AnySendSyncPremiumBox,
@@ -424,6 +452,7 @@ pub struct TypedWorkflowInstanceIE {
 pub struct TypedWorkflowInstanceIO {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
+    pub request_id: Uuid,
     pub state: WorkflowState,
     #[reflect(ignore, default = "placeholder_data_buffer")]
     pub data_buffer: AnySendSyncPremiumBox,
@@ -436,6 +465,7 @@ pub struct TypedWorkflowInstanceIO {
 pub struct TypedWorkflowInstanceIOE {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
+    pub request_id: Uuid,
     pub state: WorkflowState,
     #[reflect(ignore, default = "placeholder_data_buffer")]
     pub data_buffer: AnySendSyncPremiumBox,
@@ -522,6 +552,7 @@ impl TypedWorkflowInstance {
     pub(super) fn new_request(
         module_name: &'static str,
         workflow_name: &'static str,
+        request_id: Uuid,
         callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
@@ -530,6 +561,7 @@ impl TypedWorkflowInstance {
         Self {
             module_name,
             workflow_name,
+            request_id,
             state: WorkflowState::Requested,
             callback,
             num_stages,
@@ -541,6 +573,7 @@ impl TypedWorkflowInstanceE {
     pub(super) fn new_request(
         module_name: &'static str,
         workflow_name: &'static str,
+        request_id: Uuid,
         callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
@@ -549,6 +582,7 @@ impl TypedWorkflowInstanceE {
         Self {
             module_name,
             workflow_name,
+            request_id,
             state: WorkflowState::Requested,
             callback,
             num_stages,
@@ -560,6 +594,7 @@ impl TypedWorkflowInstanceO {
     pub(super) fn new_request(
         module_name: &'static str,
         workflow_name: &'static str,
+        request_id: Uuid,
         callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
@@ -568,6 +603,7 @@ impl TypedWorkflowInstanceO {
         Self {
             module_name,
             workflow_name,
+            request_id,
             state: WorkflowState::Requested,
             data_buffer: AnySendSyncPremiumBox::new((), "()".to_string()),
             callback,
@@ -580,6 +616,7 @@ impl TypedWorkflowInstanceOE {
     pub(super) fn new_request(
         module_name: &'static str,
         workflow_name: &'static str,
+        request_id: Uuid,
         callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
         num_stages: usize,
     ) -> Self {
@@ -588,6 +625,7 @@ impl TypedWorkflowInstanceOE {
         Self {
             module_name,
             workflow_name,
+            request_id,
             state: WorkflowState::Requested,
             data_buffer: AnySendSyncPremiumBox::new((), "()".to_string()),
             callback,
@@ -600,6 +638,7 @@ impl TypedWorkflowInstanceI {
     pub(super) fn new_request(
         module_name: &'static str,
         workflow_name: &'static str,
+        request_id: Uuid,
         input: AnySendSyncPremiumBox,
         callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
         num_stages: usize,
@@ -609,6 +648,7 @@ impl TypedWorkflowInstanceI {
         Self {
             module_name,
             workflow_name,
+            request_id,
             state: WorkflowState::Requested,
             data_buffer: input,
             callback,
@@ -621,6 +661,7 @@ impl TypedWorkflowInstanceIE {
     pub(super) fn new_request(
         module_name: &'static str,
         workflow_name: &'static str,
+        request_id: Uuid,
         input: AnySendSyncPremiumBox,
         callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
         num_stages: usize,
@@ -630,6 +671,7 @@ impl TypedWorkflowInstanceIE {
         Self {
             module_name,
             workflow_name,
+            request_id,
             state: WorkflowState::Requested,
             data_buffer: input,
             callback,
@@ -642,6 +684,7 @@ impl TypedWorkflowInstanceIO {
     pub(super) fn new_request(
         module_name: &'static str,
         workflow_name: &'static str,
+        request_id: Uuid,
         input: AnySendSyncPremiumBox,
         callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
         num_stages: usize,
@@ -651,6 +694,7 @@ impl TypedWorkflowInstanceIO {
         Self {
             module_name,
             workflow_name,
+            request_id,
             state: WorkflowState::Requested,
             data_buffer: input,
             callback,
@@ -663,6 +707,7 @@ impl TypedWorkflowInstanceIOE {
     pub(super) fn new_request(
         module_name: &'static str,
         workflow_name: &'static str,
+        request_id: Uuid,
         input: AnySendSyncPremiumBox,
         callback: Box<dyn FnOnce(AnySendSyncPremiumBox) + Send + Sync>,
         num_stages: usize,
@@ -672,6 +717,7 @@ impl TypedWorkflowInstanceIOE {
         Self {
             module_name,
             workflow_name,
+            request_id,
             state: WorkflowState::Requested,
             data_buffer: input,
             callback,

@@ -1,6 +1,7 @@
 use crate::bevy::prelude::Reflect;
 use futures::future::BoxFuture;
 use tokio::task::JoinHandle;
+use uuid::Uuid;
 
 use crate::utils::progress::Progress;
 
@@ -162,6 +163,7 @@ impl<S, O> Outcome<S, O> {
 pub struct WorkflowID {
     pub module: &'static str,
     pub workflow: &'static str,
+    pub request_id: Uuid,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Reflect)]

@@ -5,11 +5,12 @@ use std::collections::{HashMap, HashSet};
 use std::time::Duration;
 use tokio::sync::Mutex;
 use tokio::time::timeout;
+use uuid::Uuid;
 
 use crate::config::statics::CONFIG;
 use crate::time::functions::virtual_timeout;
 use crate::utils::premium_box::AnySendSyncPremiumBox;
-use crate::workflow::composite_workflow_context::{CURRENT_COMPOSITE_WORKFLOW_ID, ScopedCompositeWorkflowContext};
+use crate::workflow::composite_workflow_context::{CURRENT_COMPOSITE_WORKFLOW_ID, ScopedCompositeWorkflowContext, clear_all_context};
 use crate::workflow::resources::{WorkflowTimeoutSignal, emit_workflow_timeout_signal};
 use crate::workflow::response::WorkflowResponse;
 use crate::workflow::types::{WorkflowID, WorkflowTimeoutMode};
@@ -156,9 +157,11 @@ pub async fn run_workflow<W: WorkflowType>(timeout_duration: Duration, timeout_m
         warn!("Running run_workflow for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     }
     let composite_workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
+    let request_id = Uuid::new_v4();
     let workflow_id = WorkflowID {
         module: W::MODULE_NAME,
         workflow: W::WORKFLOW_NAME,
+        request_id,
     };
 
     get_request_sender()
@@ -166,6 +169,7 @@ pub async fn run_workflow<W: WorkflowType>(timeout_duration: Duration, timeout_m
             module_name: workflow_id.module,
             workflow_name: workflow_id.workflow,
             composite_workflow_id,
+            request_id,
         })
         .unwrap();
 
@@ -180,8 +184,9 @@ pub async fn run_workflow<W: WorkflowType>(timeout_duration: Duration, timeout_m
         match result {
             Ok(Some(response)) => {
                 let key = WorkflowID {
-                    module: response.module_name,
-                    workflow: response.workflow_name,
+                    module: response.response.module_name,
+                    workflow: response.response.workflow_name,
+                    request_id: response.request_id,
                 };
 
                 if key == workflow_id {
@@ -218,9 +223,11 @@ pub async fn run_workflow_e<W: WorkflowTypeE>(timeout_duration: Duration, timeou
         warn!("Running run_workflow_e for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     }
     let composite_workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
+    let request_id = Uuid::new_v4();
     let workflow_id = WorkflowID {
         module: W::MODULE_NAME,
         workflow: W::WORKFLOW_NAME,
+        request_id,
     };
 
     get_request_e_sender()
@@ -228,6 +235,7 @@ pub async fn run_workflow_e<W: WorkflowTypeE>(timeout_duration: Duration, timeou
             module_name: workflow_id.module,
             workflow_name: workflow_id.workflow,
             composite_workflow_id,
+            request_id,
         })
         .unwrap();
 
@@ -242,15 +250,16 @@ pub async fn run_workflow_e<W: WorkflowTypeE>(timeout_duration: Duration, timeou
         match result {
             Ok(Some(response)) => {
                 let key = WorkflowID {
-                    module: response.module_name,
-                    workflow: response.workflow_name,
+                    module: response.response.module_name,
+                    workflow: response.response.workflow_name,
+                    request_id: response.request_id,
                 };
 
                 if key == workflow_id {
                     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                         warn!("Finished run_workflow_e for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                     }
-                    return <Result<(), W::Error>>::from_response(response);
+                    return <Result<(), W::Error>>::from_response(response.response);
                 }
 
                 RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::E(response));
@@ -268,7 +277,7 @@ pub async fn run_workflow_e<W: WorkflowTypeE>(timeout_duration: Duration, timeou
             if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                 warn!("Finished run_workflow_e for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
-            return <Result<(), W::Error>>::from_response(response);
+            return <Result<(), W::Error>>::from_response(response.response);
         }
 
         tokio::task::yield_now().await;
@@ -280,9 +289,11 @@ pub async fn run_workflow_o<W: WorkflowTypeO>(timeout_duration: Duration, timeou
         warn!("Running run_workflow_o for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     }
     let composite_workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
+    let request_id = Uuid::new_v4();
     let workflow_id = WorkflowID {
         module: W::MODULE_NAME,
         workflow: W::WORKFLOW_NAME,
+        request_id,
     };
 
     get_request_o_sender()
@@ -290,6 +301,7 @@ pub async fn run_workflow_o<W: WorkflowTypeO>(timeout_duration: Duration, timeou
             module_name: workflow_id.module,
             workflow_name: workflow_id.workflow,
             composite_workflow_id,
+            request_id,
         })
         .unwrap();
 
@@ -304,15 +316,16 @@ pub async fn run_workflow_o<W: WorkflowTypeO>(timeout_duration: Duration, timeou
         match result {
             Ok(Some(response)) => {
                 let key = WorkflowID {
-                    module: response.module_name,
-                    workflow: response.workflow_name,
+                    module: response.response.module_name,
+                    workflow: response.response.workflow_name,
+                    request_id: response.request_id,
                 };
 
                 if key == workflow_id {
                     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                         warn!("Finished run_workflow_o for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                     }
-                    return W::Output::from_boxed(response.output);
+                    return W::Output::from_boxed(response.response.output);
                 }
 
                 RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::O(response));
@@ -330,7 +343,7 @@ pub async fn run_workflow_o<W: WorkflowTypeO>(timeout_duration: Duration, timeou
             if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                 warn!("Finished run_workflow_o for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
-            return W::Output::from_boxed(response.output);
+            return W::Output::from_boxed(response.response.output);
         }
 
         tokio::task::yield_now().await;
@@ -342,9 +355,11 @@ pub async fn run_workflow_oe<W: WorkflowTypeOE>(timeout_duration: Duration, time
         warn!("Running run_workflow_oe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     }
     let composite_workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
+    let request_id = Uuid::new_v4();
     let workflow_id = WorkflowID {
         module: W::MODULE_NAME,
         workflow: W::WORKFLOW_NAME,
+        request_id,
     };
 
     get_request_oe_sender()
@@ -352,6 +367,7 @@ pub async fn run_workflow_oe<W: WorkflowTypeOE>(timeout_duration: Duration, time
             module_name: workflow_id.module,
             workflow_name: workflow_id.workflow,
             composite_workflow_id,
+            request_id,
         })
         .unwrap();
 
@@ -366,15 +382,16 @@ pub async fn run_workflow_oe<W: WorkflowTypeOE>(timeout_duration: Duration, time
         match result {
             Ok(Some(response)) => {
                 let key = WorkflowID {
-                    module: response.module_name,
-                    workflow: response.workflow_name,
+                    module: response.response.module_name,
+                    workflow: response.response.workflow_name,
+                    request_id: response.request_id,
                 };
 
                 if key == workflow_id {
                     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                         warn!("Finished run_workflow_oe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                     }
-                    return <Result<W::Output, W::Error>>::from_response(response);
+                    return <Result<W::Output, W::Error>>::from_response(response.response);
                 }
 
                 RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::OE(response));
@@ -392,7 +409,7 @@ pub async fn run_workflow_oe<W: WorkflowTypeOE>(timeout_duration: Duration, time
             if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                 warn!("Finished run_workflow_oe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
-            return <Result<W::Output, W::Error>>::from_response(response);
+            return <Result<W::Output, W::Error>>::from_response(response.response);
         }
 
         tokio::task::yield_now().await;
@@ -404,9 +421,11 @@ pub async fn run_workflow_i<W: WorkflowTypeI>(timeout_duration: Duration, timeou
         warn!("Running run_workflow_i for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     }
     let composite_workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
+    let request_id = Uuid::new_v4();
     let workflow_id = WorkflowID {
         module: W::MODULE_NAME,
         workflow: W::WORKFLOW_NAME,
+        request_id,
     };
 
     get_request_i_sender()
@@ -415,6 +434,7 @@ pub async fn run_workflow_i<W: WorkflowTypeI>(timeout_duration: Duration, timeou
             module_name: workflow_id.module,
             workflow_name: workflow_id.workflow,
             composite_workflow_id,
+            request_id,
         })
         .unwrap();
 
@@ -429,8 +449,9 @@ pub async fn run_workflow_i<W: WorkflowTypeI>(timeout_duration: Duration, timeou
         match result {
             Ok(Some(response)) => {
                 let key = WorkflowID {
-                    module: response.module_name,
-                    workflow: response.workflow_name,
+                    module: response.response.module_name,
+                    workflow: response.response.workflow_name,
+                    request_id: response.request_id,
                 };
 
                 if key == workflow_id {
@@ -467,9 +488,11 @@ pub async fn run_workflow_ie<W: WorkflowTypeIE>(timeout_duration: Duration, time
         warn!("Running run_workflow_ie for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     }
     let composite_workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
+    let request_id = Uuid::new_v4();
     let workflow_id = WorkflowID {
         module: W::MODULE_NAME,
         workflow: W::WORKFLOW_NAME,
+        request_id,
     };
 
     get_request_ie_sender()
@@ -478,6 +501,7 @@ pub async fn run_workflow_ie<W: WorkflowTypeIE>(timeout_duration: Duration, time
             module_name: workflow_id.module,
             workflow_name: workflow_id.workflow,
             composite_workflow_id,
+            request_id,
         })
         .unwrap();
 
@@ -492,15 +516,16 @@ pub async fn run_workflow_ie<W: WorkflowTypeIE>(timeout_duration: Duration, time
         match result {
             Ok(Some(response)) => {
                 let key = WorkflowID {
-                    module: response.module_name,
-                    workflow: response.workflow_name,
+                    module: response.response.module_name,
+                    workflow: response.response.workflow_name,
+                    request_id: response.request_id,
                 };
 
                 if key == workflow_id {
                     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                         warn!("Finished run_workflow_ie for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                     }
-                    return <Result<(), W::Error>>::from_response(response);
+                    return <Result<(), W::Error>>::from_response(response.response);
                 }
 
                 RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::E(response));
@@ -518,7 +543,7 @@ pub async fn run_workflow_ie<W: WorkflowTypeIE>(timeout_duration: Duration, time
             if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                 warn!("Finished run_workflow_ie for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
-            return <Result<(), W::Error>>::from_response(response);
+            return <Result<(), W::Error>>::from_response(response.response);
         }
 
         tokio::task::yield_now().await;
@@ -530,9 +555,11 @@ pub async fn run_workflow_io<W: WorkflowTypeIO>(timeout_duration: Duration, time
         warn!("Running run_workflow_io for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     }
     let composite_workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
+    let request_id = Uuid::new_v4();
     let workflow_id = WorkflowID {
         module: W::MODULE_NAME,
         workflow: W::WORKFLOW_NAME,
+        request_id,
     };
 
     get_request_io_sender()
@@ -541,6 +568,7 @@ pub async fn run_workflow_io<W: WorkflowTypeIO>(timeout_duration: Duration, time
             module_name: workflow_id.module,
             workflow_name: workflow_id.workflow,
             composite_workflow_id,
+            request_id,
         })
         .unwrap();
 
@@ -555,15 +583,16 @@ pub async fn run_workflow_io<W: WorkflowTypeIO>(timeout_duration: Duration, time
         match result {
             Ok(Some(response)) => {
                 let key = WorkflowID {
-                    module: response.module_name,
-                    workflow: response.workflow_name,
+                    module: response.response.module_name,
+                    workflow: response.response.workflow_name,
+                    request_id: response.request_id,
                 };
 
                 if key == workflow_id {
                     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                         warn!("Finished run_workflow_io for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                     }
-                    return W::Output::from_boxed(response.output);
+                    return W::Output::from_boxed(response.response.output);
                 }
 
                 RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::O(response));
@@ -581,7 +610,7 @@ pub async fn run_workflow_io<W: WorkflowTypeIO>(timeout_duration: Duration, time
             if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                 warn!("Finished run_workflow_io for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
-            return W::Output::from_boxed(response.output);
+            return W::Output::from_boxed(response.response.output);
         }
 
         tokio::task::yield_now().await;
@@ -602,9 +631,11 @@ where
         warn!("Running run_workflow_io_with_timeout_control for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     }
     let composite_workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
+    let request_id = Uuid::new_v4();
     let workflow_id = WorkflowID {
         module: W::MODULE_NAME,
         workflow: W::WORKFLOW_NAME,
+        request_id,
     };
     let mut timeout_count = 0usize;
 
@@ -614,6 +645,7 @@ where
             module_name: workflow_id.module,
             workflow_name: workflow_id.workflow,
             composite_workflow_id,
+            request_id,
         })
         .unwrap();
 
@@ -628,15 +660,16 @@ where
         match result {
             Ok(Some(response)) => {
                 let key = WorkflowID {
-                    module: response.module_name,
-                    workflow: response.workflow_name,
+                    module: response.response.module_name,
+                    workflow: response.response.workflow_name,
+                    request_id: response.request_id,
                 };
 
                 if key == workflow_id {
                     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                         warn!("Finished run_workflow_io_with_timeout_control for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                     }
-                    return Ok(W::Output::from_boxed(response.output));
+                    return Ok(W::Output::from_boxed(response.response.output));
                 }
 
                 RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::O(response));
@@ -681,7 +714,7 @@ where
             if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                 warn!("Finished run_workflow_io_with_timeout_control for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
-            return Ok(W::Output::from_boxed(response.output));
+            return Ok(W::Output::from_boxed(response.response.output));
         }
 
         tokio::task::yield_now().await;
@@ -697,9 +730,11 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(
         warn!("Running run_workflow_ioe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     }
     let composite_workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
+    let request_id = Uuid::new_v4();
     let workflow_id = WorkflowID {
         module: W::MODULE_NAME,
         workflow: W::WORKFLOW_NAME,
+        request_id,
     };
 
     get_request_ioe_sender()
@@ -708,6 +743,7 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(
             module_name: workflow_id.module,
             workflow_name: workflow_id.workflow,
             composite_workflow_id,
+            request_id,
         })
         .unwrap();
 
@@ -722,15 +758,16 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(
         match result {
             Ok(Some(response)) => {
                 let key = WorkflowID {
-                    module: response.module_name,
-                    workflow: response.workflow_name,
+                    module: response.response.module_name,
+                    workflow: response.response.workflow_name,
+                    request_id: response.request_id,
                 };
 
                 if key == workflow_id {
                     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                         warn!("Finished run_workflow_ioe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                     }
-                    return <Result<W::Output, W::Error>>::from_response(response);
+                    return <Result<W::Output, W::Error>>::from_response(response.response);
                 }
 
                 RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::OE(response));
@@ -748,7 +785,7 @@ pub async fn run_workflow_ioe<W: WorkflowTypeIOE>(
             if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                 warn!("Finished run_workflow_ioe for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
-            return <Result<W::Output, W::Error>>::from_response(response);
+            return <Result<W::Output, W::Error>>::from_response(response.response);
         }
 
         tokio::task::yield_now().await;
@@ -769,9 +806,11 @@ where
         warn!("Running run_workflow_ioe_with_timeout_control for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
     }
     let composite_workflow_id = CURRENT_COMPOSITE_WORKFLOW_ID.with(|id| *id);
+    let request_id = Uuid::new_v4();
     let workflow_id = WorkflowID {
         module: W::MODULE_NAME,
         workflow: W::WORKFLOW_NAME,
+        request_id,
     };
     let mut timeout_count = 0usize;
 
@@ -781,6 +820,7 @@ where
             module_name: workflow_id.module,
             workflow_name: workflow_id.workflow,
             composite_workflow_id,
+            request_id,
         })
         .unwrap();
 
@@ -795,15 +835,16 @@ where
         match result {
             Ok(Some(response)) => {
                 let key = WorkflowID {
-                    module: response.module_name,
-                    workflow: response.workflow_name,
+                    module: response.response.module_name,
+                    workflow: response.response.workflow_name,
+                    request_id: response.request_id,
                 };
 
                 if key == workflow_id {
                     if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                         warn!("Finished run_workflow_ioe_with_timeout_control for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
                     }
-                    return <Result<W::Output, W::Error>>::from_response(response).map_err(WorkflowControlledRunError::Workflow);
+                    return <Result<W::Output, W::Error>>::from_response(response.response).map_err(WorkflowControlledRunError::Workflow);
                 }
 
                 RESPONSE_INBOX.lock().await.insert(key, WorkflowResponse::OE(response));
@@ -848,7 +889,7 @@ where
             if !is_ignored_workflow(W::MODULE_NAME, W::WORKFLOW_NAME) {
                 warn!("Finished run_workflow_ioe_with_timeout_control for {}::{}", W::MODULE_NAME, W::WORKFLOW_NAME);
             }
-            return <Result<W::Output, W::Error>>::from_response(response).map_err(WorkflowControlledRunError::Workflow);
+            return <Result<W::Output, W::Error>>::from_response(response.response).map_err(WorkflowControlledRunError::Workflow);
         }
 
         tokio::task::yield_now().await;
@@ -861,7 +902,10 @@ where
     F: FnOnce(&ScopedCompositeWorkflowContext),
 {
     match handle.now_or_never() {
-        Some(Ok(ctx)) => f(&ctx),
+        Some(Ok(ctx)) => {
+            f(&ctx);
+            clear_all_context(ctx.id);
+        }
         Some(Err(_join_error)) => error!("Composite workflow return handling failed because the composite workflow failed"),
         None => unreachable!("Expected workflow to be finished but it was not."),
     }
@@ -874,7 +918,10 @@ where
 {
     crate::workflow::statics::WORKFLOW_TOKIO_RUNTIME().handle().spawn(async move {
         match handle.await {
-            Ok(ctx) => f(&ctx),
+            Ok(ctx) => {
+                f(&ctx);
+                clear_all_context(ctx.id);
+            }
             Err(_join_error) => {
                 error!("Composite workflow return handling failed because the composite workflow failed");
             }

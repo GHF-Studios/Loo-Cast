@@ -5,9 +5,56 @@ use crate::bevy::prelude::*;
 use crate::bevy::render::MainWorld;
 use bevy_consumable_message::{ConsumableMessageReader, ConsumableMessageWriter};
 
-use crate::{config::statics::CONFIG, utils::premium_box::AnySendSyncPremiumBox, workflow::response::*};
+use crate::{utils::premium_box::AnySendSyncPremiumBox, workflow::response::*};
 
 use super::{channels::*, instance::*, messages::*, resources::*, stage::Stage, types::*};
+
+pub(super) fn build_stage_sender_caches() -> (
+    EcsStageSenderCache,
+    RenderStageSenderCache,
+    AsyncStageSenderCache,
+    EcsWhileStageSenderCache,
+    RenderWhileStageSenderCache,
+) {
+    let modules_metadata = crate::get_workflow_modules_metadata();
+    let mut ecs = EcsStageSenderCache::default();
+    let mut render = RenderStageSenderCache::default();
+    let mut async_stage = AsyncStageSenderCache::default();
+    let mut ecs_while = EcsWhileStageSenderCache::default();
+    let mut render_while = RenderWhileStageSenderCache::default();
+
+    for module_metadata in modules_metadata.iter() {
+        for workflow_metadata in module_metadata.workflows.iter() {
+            for stage_metadata in workflow_metadata.stages.iter() {
+                match stage_metadata {
+                    crate::WorkflowStageMetadata::Ecs { name, sender } => {
+                        ecs.0.insert((module_metadata.name, workflow_metadata.name, *name), sender.clone());
+                    }
+                    crate::WorkflowStageMetadata::Render { name, sender } => {
+                        render.0.insert((module_metadata.name, workflow_metadata.name, *name), sender.clone());
+                    }
+                    crate::WorkflowStageMetadata::Async { name, sender } => {
+                        async_stage
+                            .0
+                            .insert((module_metadata.name, workflow_metadata.name, *name), sender.clone());
+                    }
+                    crate::WorkflowStageMetadata::EcsWhile { name, sender } => {
+                        ecs_while
+                            .0
+                            .insert((module_metadata.name, workflow_metadata.name, *name), sender.clone());
+                    }
+                    crate::WorkflowStageMetadata::RenderWhile { name, sender } => {
+                        render_while
+                            .0
+                            .insert((module_metadata.name, workflow_metadata.name, *name), sender.clone());
+                    }
+                }
+            }
+        }
+    }
+
+    (ecs, render, async_stage, ecs_while, render_while)
+}
 
 pub(super) fn extract_render_stage_buffer_system(world: &mut World) {
     let mut main_world = SystemState::<ResMut<MainWorld>>::new(world).get_mut(world);
@@ -55,177 +102,68 @@ pub(super) fn extract_render_while_stage_buffer_system(world: &mut World) {
     }
 }
 
-pub(super) fn send_ecs_stages_to_ecs_buffers_system(mut buffer: ResMut<EcsStageBuffer>) {
+pub(super) fn send_ecs_stages_to_ecs_buffers_system(mut buffer: ResMut<EcsStageBuffer>, sender_cache: Res<EcsStageSenderCache>) {
     let drained_buffer = { std::mem::take(&mut buffer.0) };
 
     for (module_name, workflow_name, current_stage, stage, data_buffer) in drained_buffer {
-        let modules_metadata = crate::get_workflow_modules_metadata();
-        let module_metadata = modules_metadata
-            .iter()
-            .find(|module_metadata| module_metadata.name == module_name)
-            .expect("Module metadata not found");
-        let workflow_metadata = module_metadata
-            .workflows
-            .iter()
-            .find(|workflow_metadata| workflow_metadata.name == workflow_name)
-            .expect("Workflow metadata not found");
-        let sender = workflow_metadata
-            .stages
-            .iter()
-            .find_map(|stage_metadata| match stage_metadata {
-                crate::WorkflowStageMetadata::Ecs { name, sender } => {
-                    if *name == stage.name {
-                        Some(sender)
-                    } else {
-                        None
-                    }
-                }
-                crate::WorkflowStageMetadata::Render { .. } => None,
-                crate::WorkflowStageMetadata::Async { .. } => None,
-                crate::WorkflowStageMetadata::EcsWhile { .. } => None,
-                crate::WorkflowStageMetadata::RenderWhile { .. } => None,
-            })
-            .expect("Stage sender not found");
+        let sender = sender_cache
+            .0
+            .get(&(module_name, workflow_name, stage.name))
+            .unwrap_or_else(|| unreachable!("Ecs stage sender not found for {module_name}::{workflow_name}::{}", stage.name));
 
         sender.send(module_name, workflow_name, current_stage, stage, data_buffer);
     }
 }
-pub(super) fn send_render_stages_to_render_buffers_system(mut buffer: ResMut<RenderStageBuffer>) {
+pub(super) fn send_render_stages_to_render_buffers_system(mut buffer: ResMut<RenderStageBuffer>, sender_cache: Res<RenderStageSenderCache>) {
     let drained_buffer = { std::mem::take(&mut buffer.0) };
 
     for (module_name, workflow_name, current_stage, stage, data_buffer) in drained_buffer {
-        let modules_metadata = crate::get_workflow_modules_metadata();
-        let module_metadata = modules_metadata
-            .iter()
-            .find(|module_metadata| module_metadata.name == module_name)
-            .expect("Module metadata not found");
-        let workflow_metadata = module_metadata
-            .workflows
-            .iter()
-            .find(|workflow_metadata| workflow_metadata.name == workflow_name)
-            .expect("Workflow metadata not found");
-        let sender = workflow_metadata
-            .stages
-            .iter()
-            .find_map(|stage_metadata| match stage_metadata {
-                crate::WorkflowStageMetadata::Ecs { .. } => None,
-                crate::WorkflowStageMetadata::Render { name, sender } => {
-                    if *name == stage.name {
-                        Some(sender)
-                    } else {
-                        None
-                    }
-                }
-                crate::WorkflowStageMetadata::Async { .. } => None,
-                crate::WorkflowStageMetadata::EcsWhile { .. } => None,
-                crate::WorkflowStageMetadata::RenderWhile { .. } => None,
-            })
-            .expect("Stage sender not found");
+        let sender = sender_cache
+            .0
+            .get(&(module_name, workflow_name, stage.name))
+            .unwrap_or_else(|| unreachable!("Render stage sender not found for {module_name}::{workflow_name}::{}", stage.name));
 
         sender.send(module_name, workflow_name, current_stage, stage, data_buffer);
     }
 }
-pub(super) fn send_async_stages_to_async_buffers_system(mut buffer: ResMut<AsyncStageBuffer>) {
+pub(super) fn send_async_stages_to_async_buffers_system(mut buffer: ResMut<AsyncStageBuffer>, sender_cache: Res<AsyncStageSenderCache>) {
     let drained_buffer = { std::mem::take(&mut buffer.0) };
 
     for (module_name, workflow_name, current_stage, stage, data_buffer) in drained_buffer {
-        let modules_metadata = crate::get_workflow_modules_metadata();
-        let module_metadata = modules_metadata
-            .iter()
-            .find(|module_metadata| module_metadata.name == module_name)
-            .expect("Module metadata not found");
-        let workflow_metadata = module_metadata
-            .workflows
-            .iter()
-            .find(|workflow_metadata| workflow_metadata.name == workflow_name)
-            .expect("Workflow metadata not found");
-        let sender = workflow_metadata
-            .stages
-            .iter()
-            .find_map(|stage_metadata| match stage_metadata {
-                crate::WorkflowStageMetadata::Ecs { .. } => None,
-                crate::WorkflowStageMetadata::Render { .. } => None,
-                crate::WorkflowStageMetadata::Async { name, sender } => {
-                    if *name == stage.name {
-                        Some(sender)
-                    } else {
-                        None
-                    }
-                }
-                crate::WorkflowStageMetadata::EcsWhile { .. } => None,
-                crate::WorkflowStageMetadata::RenderWhile { .. } => None,
-            })
-            .expect("Stage sender not found");
+        let sender = sender_cache
+            .0
+            .get(&(module_name, workflow_name, stage.name))
+            .unwrap_or_else(|| unreachable!("Async stage sender not found for {module_name}::{workflow_name}::{}", stage.name));
 
         sender.send(module_name, workflow_name, current_stage, stage, data_buffer);
     }
 }
-pub(super) fn send_ecs_while_stages_to_ecs_while_buffers_system(mut buffer: ResMut<EcsWhileStageBuffer>) {
+pub(super) fn send_ecs_while_stages_to_ecs_while_buffers_system(
+    mut buffer: ResMut<EcsWhileStageBuffer>,
+    sender_cache: Res<EcsWhileStageSenderCache>,
+) {
     let drained_buffer = { std::mem::take(&mut buffer.0) };
 
     for (module_name, workflow_name, current_stage, stage, data_buffer) in drained_buffer {
-        let modules_metadata = crate::get_workflow_modules_metadata();
-        let module_metadata = modules_metadata
-            .iter()
-            .find(|module_metadata| module_metadata.name == module_name)
-            .expect("Module metadata not found");
-        let workflow_metadata = module_metadata
-            .workflows
-            .iter()
-            .find(|workflow_metadata| workflow_metadata.name == workflow_name)
-            .expect("Workflow metadata not found");
-        let sender = workflow_metadata
-            .stages
-            .iter()
-            .find_map(|stage_metadata| match stage_metadata {
-                crate::WorkflowStageMetadata::Ecs { .. } => None,
-                crate::WorkflowStageMetadata::Render { .. } => None,
-                crate::WorkflowStageMetadata::Async { .. } => None,
-                crate::WorkflowStageMetadata::EcsWhile { name, sender } => {
-                    if *name == stage.name {
-                        Some(sender)
-                    } else {
-                        None
-                    }
-                }
-                crate::WorkflowStageMetadata::RenderWhile { .. } => None,
-            })
-            .expect("Stage sender not found");
+        let sender = sender_cache
+            .0
+            .get(&(module_name, workflow_name, stage.name))
+            .unwrap_or_else(|| unreachable!("EcsWhile stage sender not found for {module_name}::{workflow_name}::{}", stage.name));
 
         sender.send(module_name, workflow_name, current_stage, stage, data_buffer);
     }
 }
-pub(super) fn send_render_while_stages_to_render_while_buffers_system(mut buffer: ResMut<RenderWhileStageBuffer>) {
+pub(super) fn send_render_while_stages_to_render_while_buffers_system(
+    mut buffer: ResMut<RenderWhileStageBuffer>,
+    sender_cache: Res<RenderWhileStageSenderCache>,
+) {
     let drained_buffer = { std::mem::take(&mut buffer.0) };
 
     for (module_name, workflow_name, current_stage, stage, data_buffer) in drained_buffer {
-        let modules_metadata = crate::get_workflow_modules_metadata();
-        let module_metadata = modules_metadata
-            .iter()
-            .find(|module_metadata| module_metadata.name == module_name)
-            .expect("Module metadata not found");
-        let workflow_metadata = module_metadata
-            .workflows
-            .iter()
-            .find(|workflow_metadata| workflow_metadata.name == workflow_name)
-            .expect("Workflow metadata not found");
-        let sender = workflow_metadata
-            .stages
-            .iter()
-            .find_map(|stage_metadata| match stage_metadata {
-                crate::WorkflowStageMetadata::Ecs { .. } => None,
-                crate::WorkflowStageMetadata::Render { .. } => None,
-                crate::WorkflowStageMetadata::Async { .. } => None,
-                crate::WorkflowStageMetadata::EcsWhile { .. } => None,
-                crate::WorkflowStageMetadata::RenderWhile { name, sender } => {
-                    if *name == stage.name {
-                        Some(sender)
-                    } else {
-                        None
-                    }
-                }
-            })
-            .expect("Stage sender not found");
+        let sender = sender_cache
+            .0
+            .get(&(module_name, workflow_name, stage.name))
+            .unwrap_or_else(|| unreachable!("RenderWhile stage sender not found for {module_name}::{workflow_name}::{}", stage.name));
 
         sender.send(module_name, workflow_name, current_stage, stage, data_buffer);
     }
@@ -328,7 +266,6 @@ pub(super) fn stage_failure_relay_system(
 pub(super) struct RetryRequest {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
-    pub retry_count: usize,
     pub action: Box<dyn FnOnce(&mut WorkflowMap) + Send + Sync>,
 }
 
@@ -348,6 +285,7 @@ pub(super) fn workflow_request_relay_system(world: &mut World) {
     while let Ok(request) = workflow_request_receiver.0.try_recv() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
+        let request_id = request.request_id;
         let num_stages = workflow_registry.get_workflow_type(module_name, workflow_name).unwrap().stages.len();
 
         let response_sender = workflow_response_sender.0.clone();
@@ -356,9 +294,11 @@ pub(super) fn workflow_request_relay_system(world: &mut World) {
             workflow_map.insert_workflow(WorkflowInstance::new_request(
                 module_name,
                 workflow_name,
+                request_id,
                 num_stages,
                 Box::new(move |response| {
-                    response_sender.send(response.into_inner()).unwrap();
+                    let response: TypedWorkflowResponse = response.into_inner();
+                    response_sender.send(TypedWorkflowResponseEnvelope { request_id, response }).unwrap();
                 }),
             ));
         });
@@ -366,24 +306,15 @@ pub(super) fn workflow_request_relay_system(world: &mut World) {
         try_now.push_back(RetryRequest {
             module_name,
             workflow_name,
-            retry_count: 0,
             action,
         });
     }
 
-    let max_retries = CONFIG().get::<usize>("workflow/max_retries");
-
-    while let Some(mut retry) = try_now.pop_front() {
+    while let Some(retry) = try_now.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
             (retry.action)(&mut workflow_map);
-        } else if retry.retry_count < max_retries {
-            retry.retry_count += 1;
-            retry_next_frame.push_back(retry);
         } else {
-            error!(
-                "Workflow request error: '{}' in module '{}' is already active and max retries have been reached.",
-                retry.workflow_name, retry.module_name
-            );
+            retry_next_frame.push_back(retry);
         }
     }
 
@@ -406,6 +337,7 @@ pub(super) fn workflow_request_e_relay_system(world: &mut World) {
     while let Ok(request) = workflow_request_receiver.0.try_recv() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
+        let request_id = request.request_id;
         let num_stages = workflow_registry.get_workflow_type(module_name, workflow_name).unwrap().stages.len();
 
         let response_sender = workflow_response_sender.0.clone();
@@ -414,9 +346,11 @@ pub(super) fn workflow_request_e_relay_system(world: &mut World) {
             workflow_map.insert_workflow(WorkflowInstance::new_request_e(
                 module_name,
                 workflow_name,
+                request_id,
                 num_stages,
                 Box::new(move |response| {
-                    response_sender.send(response.into_inner()).unwrap();
+                    let response: TypedWorkflowResponseE = response.into_inner();
+                    response_sender.send(TypedWorkflowResponseEEnvelope { request_id, response }).unwrap();
                 }),
             ));
         });
@@ -424,24 +358,15 @@ pub(super) fn workflow_request_e_relay_system(world: &mut World) {
         try_now.push_back(RetryRequest {
             module_name,
             workflow_name,
-            retry_count: 0,
             action,
         });
     }
 
-    let max_retries = CONFIG().get::<usize>("workflow/max_retries");
-
-    while let Some(mut retry) = try_now.pop_front() {
+    while let Some(retry) = try_now.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
             (retry.action)(&mut workflow_map);
-        } else if retry.retry_count < max_retries {
-            retry.retry_count += 1;
-            retry_next_frame.push_back(retry);
         } else {
-            error!(
-                "Workflow request error: '{}' in module '{}' is already active and max retries have been reached.",
-                retry.workflow_name, retry.module_name
-            );
+            retry_next_frame.push_back(retry);
         }
     }
 
@@ -464,6 +389,7 @@ pub(super) fn workflow_request_o_relay_system(world: &mut World) {
     while let Ok(request) = workflow_request_receiver.0.try_recv() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
+        let request_id = request.request_id;
         let num_stages = workflow_registry.get_workflow_type(module_name, workflow_name).unwrap().stages.len();
 
         // warn!("Received workflow_request_o for '{}::{}'", module_name, workflow_name);
@@ -474,9 +400,11 @@ pub(super) fn workflow_request_o_relay_system(world: &mut World) {
             workflow_map.insert_workflow(WorkflowInstance::new_request_o(
                 module_name,
                 workflow_name,
+                request_id,
                 num_stages,
                 Box::new(move |response| {
-                    response_sender.send(response.into_inner()).unwrap();
+                    let response: TypedWorkflowResponseO = response.into_inner();
+                    response_sender.send(TypedWorkflowResponseOEnvelope { request_id, response }).unwrap();
                 }),
             ));
         });
@@ -484,24 +412,15 @@ pub(super) fn workflow_request_o_relay_system(world: &mut World) {
         try_now.push_back(RetryRequest {
             module_name,
             workflow_name,
-            retry_count: 0,
             action,
         });
     }
 
-    let max_retries = CONFIG().get::<usize>("workflow/max_retries");
-
-    while let Some(mut retry) = try_now.pop_front() {
+    while let Some(retry) = try_now.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
             (retry.action)(&mut workflow_map);
-        } else if retry.retry_count < max_retries {
-            retry.retry_count += 1;
-            retry_next_frame.push_back(retry);
         } else {
-            error!(
-                "Workflow request error: '{}' in module '{}' is already active and max retries have been reached.",
-                retry.workflow_name, retry.module_name
-            );
+            retry_next_frame.push_back(retry);
         }
     }
 
@@ -524,6 +443,7 @@ pub(super) fn workflow_request_oe_relay_system(world: &mut World) {
     while let Ok(request) = workflow_request_receiver.0.try_recv() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
+        let request_id = request.request_id;
         let num_stages = workflow_registry.get_workflow_type(module_name, workflow_name).unwrap().stages.len();
 
         let response_sender = workflow_response_sender.0.clone();
@@ -532,9 +452,11 @@ pub(super) fn workflow_request_oe_relay_system(world: &mut World) {
             workflow_map.insert_workflow(WorkflowInstance::new_request_oe(
                 module_name,
                 workflow_name,
+                request_id,
                 num_stages,
                 Box::new(move |response| {
-                    response_sender.send(response.into_inner()).unwrap();
+                    let response: TypedWorkflowResponseOE = response.into_inner();
+                    response_sender.send(TypedWorkflowResponseOEEnvelope { request_id, response }).unwrap();
                 }),
             ));
         });
@@ -542,24 +464,15 @@ pub(super) fn workflow_request_oe_relay_system(world: &mut World) {
         try_now.push_back(RetryRequest {
             module_name,
             workflow_name,
-            retry_count: 0,
             action,
         });
     }
 
-    let max_retries = CONFIG().get::<usize>("workflow/max_retries");
-
-    while let Some(mut retry) = try_now.pop_front() {
+    while let Some(retry) = try_now.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
             (retry.action)(&mut workflow_map);
-        } else if retry.retry_count < max_retries {
-            retry.retry_count += 1;
-            retry_next_frame.push_back(retry);
         } else {
-            error!(
-                "Workflow request error: '{}' in module '{}' is already active and max retries have been reached.",
-                retry.workflow_name, retry.module_name
-            );
+            retry_next_frame.push_back(retry);
         }
     }
 
@@ -582,6 +495,7 @@ pub(super) fn workflow_request_i_relay_system(world: &mut World) {
     while let Ok(request) = workflow_request_receiver.0.try_recv() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
+        let request_id = request.request_id;
         let input = request.input;
         let num_stages = workflow_registry.get_workflow_type(module_name, workflow_name).unwrap().stages.len();
 
@@ -591,10 +505,12 @@ pub(super) fn workflow_request_i_relay_system(world: &mut World) {
             workflow_map.insert_workflow(WorkflowInstance::new_request_i(
                 module_name,
                 workflow_name,
+                request_id,
                 input,
                 num_stages,
                 Box::new(move |response| {
-                    response_sender.send(response.into_inner()).unwrap();
+                    let response: TypedWorkflowResponse = response.into_inner();
+                    response_sender.send(TypedWorkflowResponseEnvelope { request_id, response }).unwrap();
                 }),
             ));
         });
@@ -602,24 +518,15 @@ pub(super) fn workflow_request_i_relay_system(world: &mut World) {
         try_now.push_back(RetryRequest {
             module_name,
             workflow_name,
-            retry_count: 0,
             action,
         });
     }
 
-    let max_retries = CONFIG().get::<usize>("workflow/max_retries");
-
-    while let Some(mut retry) = try_now.pop_front() {
+    while let Some(retry) = try_now.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
             (retry.action)(&mut workflow_map);
-        } else if retry.retry_count < max_retries {
-            retry.retry_count += 1;
-            retry_next_frame.push_back(retry);
         } else {
-            error!(
-                "Workflow request error: '{}' in module '{}' is already active and max retries have been reached.",
-                retry.workflow_name, retry.module_name
-            );
+            retry_next_frame.push_back(retry);
         }
     }
 
@@ -642,6 +549,7 @@ pub(super) fn workflow_request_ie_relay_system(world: &mut World) {
     while let Ok(request) = workflow_request_receiver.0.try_recv() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
+        let request_id = request.request_id;
         let input = request.input;
         let num_stages = workflow_registry.get_workflow_type(module_name, workflow_name).unwrap().stages.len();
 
@@ -651,10 +559,12 @@ pub(super) fn workflow_request_ie_relay_system(world: &mut World) {
             workflow_map.insert_workflow(WorkflowInstance::new_request_ie(
                 module_name,
                 workflow_name,
+                request_id,
                 input,
                 num_stages,
                 Box::new(move |response| {
-                    response_sender.send(response.into_inner()).unwrap();
+                    let response: TypedWorkflowResponseE = response.into_inner();
+                    response_sender.send(TypedWorkflowResponseEEnvelope { request_id, response }).unwrap();
                 }),
             ));
         });
@@ -662,24 +572,15 @@ pub(super) fn workflow_request_ie_relay_system(world: &mut World) {
         try_now.push_back(RetryRequest {
             module_name,
             workflow_name,
-            retry_count: 0,
             action,
         });
     }
 
-    let max_retries = CONFIG().get::<usize>("workflow/max_retries");
-
-    while let Some(mut retry) = try_now.pop_front() {
+    while let Some(retry) = try_now.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
             (retry.action)(&mut workflow_map);
-        } else if retry.retry_count < max_retries {
-            retry.retry_count += 1;
-            retry_next_frame.push_back(retry);
         } else {
-            error!(
-                "Workflow request error: '{}' in module '{}' is already active and max retries have been reached.",
-                retry.workflow_name, retry.module_name
-            );
+            retry_next_frame.push_back(retry);
         }
     }
 
@@ -702,6 +603,7 @@ pub(super) fn workflow_request_io_relay_system(world: &mut World) {
     while let Ok(request) = workflow_request_receiver.0.try_recv() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
+        let request_id = request.request_id;
         let input = request.input;
         let num_stages = workflow_registry.get_workflow_type(module_name, workflow_name).unwrap().stages.len();
 
@@ -711,10 +613,12 @@ pub(super) fn workflow_request_io_relay_system(world: &mut World) {
             workflow_map.insert_workflow(WorkflowInstance::new_request_io(
                 module_name,
                 workflow_name,
+                request_id,
                 input,
                 num_stages,
                 Box::new(move |response| {
-                    response_sender.send(response.into_inner()).unwrap();
+                    let response: TypedWorkflowResponseO = response.into_inner();
+                    response_sender.send(TypedWorkflowResponseOEnvelope { request_id, response }).unwrap();
                 }),
             ));
         });
@@ -722,24 +626,15 @@ pub(super) fn workflow_request_io_relay_system(world: &mut World) {
         try_now.push_back(RetryRequest {
             module_name,
             workflow_name,
-            retry_count: 0,
             action,
         });
     }
 
-    let max_retries = CONFIG().get::<usize>("workflow/max_retries");
-
-    while let Some(mut retry) = try_now.pop_front() {
+    while let Some(retry) = try_now.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
             (retry.action)(&mut workflow_map);
-        } else if retry.retry_count < max_retries {
-            retry.retry_count += 1;
-            retry_next_frame.push_back(retry);
         } else {
-            error!(
-                "Workflow request error: '{}' in module '{}' is already active and max retries have been reached.",
-                retry.workflow_name, retry.module_name
-            );
+            retry_next_frame.push_back(retry);
         }
     }
 
@@ -762,6 +657,7 @@ pub(super) fn workflow_request_ioe_relay_system(world: &mut World) {
     while let Ok(request) = workflow_request_receiver.0.try_recv() {
         let module_name = request.module_name;
         let workflow_name = request.workflow_name;
+        let request_id = request.request_id;
         let input = request.input;
         let num_stages = workflow_registry.get_workflow_type(module_name, workflow_name).unwrap().stages.len();
 
@@ -771,10 +667,12 @@ pub(super) fn workflow_request_ioe_relay_system(world: &mut World) {
             workflow_map.insert_workflow(WorkflowInstance::new_request_ioe(
                 module_name,
                 workflow_name,
+                request_id,
                 input,
                 num_stages,
                 Box::new(move |response| {
-                    response_sender.send(response.into_inner()).unwrap();
+                    let response: TypedWorkflowResponseOE = response.into_inner();
+                    response_sender.send(TypedWorkflowResponseOEEnvelope { request_id, response }).unwrap();
                 }),
             ));
         });
@@ -782,24 +680,15 @@ pub(super) fn workflow_request_ioe_relay_system(world: &mut World) {
         try_now.push_back(RetryRequest {
             module_name,
             workflow_name,
-            retry_count: 0,
             action,
         });
     }
 
-    let max_retries = CONFIG().get::<usize>("workflow/max_retries");
-
-    while let Some(mut retry) = try_now.pop_front() {
+    while let Some(retry) = try_now.pop_front() {
         if !workflow_map.has_workflow(retry.module_name, retry.workflow_name) {
             (retry.action)(&mut workflow_map);
-        } else if retry.retry_count < max_retries {
-            retry.retry_count += 1;
-            retry_next_frame.push_back(retry);
         } else {
-            error!(
-                "Workflow request error: '{}' in module '{}' is already active and max retries have been reached.",
-                retry.workflow_name, retry.module_name
-            );
+            retry_next_frame.push_back(retry);
         }
     }
 

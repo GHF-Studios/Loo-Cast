@@ -92,6 +92,14 @@ impl Plugin for WorkflowPlugin {
         let (workflow_request_io_receiver, workflow_response_io_sender) = initialize_io_channels();
         let (workflow_request_ioe_receiver, workflow_response_ioe_sender) = initialize_ioe_channels();
         let workflow_timeout_signal_receiver = WorkflowTimeoutSignalReceiver(initialize_workflow_timeout_signal_channel());
+        let (
+            ecs_stage_sender_cache,
+            render_stage_sender_cache,
+            async_stage_sender_cache,
+            ecs_while_stage_sender_cache,
+            render_while_stage_sender_cache,
+        ) = build_stage_sender_caches();
+        let (_, render_stage_sender_cache_render_app, _, _, render_while_stage_sender_cache_render_app) = build_stage_sender_caches();
 
         app.add_message::<StageInitializationMessage>()
             .add_message::<StageSetupMessage>()
@@ -132,6 +140,11 @@ impl Plugin for WorkflowPlugin {
             .insert_resource(WorkflowResponseIOSender(workflow_response_io_sender))
             .insert_resource(WorkflowResponseIOESender(workflow_response_ioe_sender))
             .insert_resource(workflow_timeout_signal_receiver)
+            .insert_resource(ecs_stage_sender_cache)
+            .insert_resource(render_stage_sender_cache)
+            .insert_resource(async_stage_sender_cache)
+            .insert_resource(ecs_while_stage_sender_cache)
+            .insert_resource(render_while_stage_sender_cache)
             .add_systems(
                 PreUpdate,
                 (
@@ -206,9 +219,13 @@ impl Plugin for WorkflowPlugin {
             .register_type::<WorkflowMap>()
             .register_type::<WorkflowResponse>()
             .register_type::<TypedWorkflowResponse>()
+            .register_type::<TypedWorkflowResponseEnvelope>()
             .register_type::<TypedWorkflowResponseE>()
+            .register_type::<TypedWorkflowResponseEEnvelope>()
             .register_type::<TypedWorkflowResponseO>()
+            .register_type::<TypedWorkflowResponseOEnvelope>()
             .register_type::<TypedWorkflowResponseOE>()
+            .register_type::<TypedWorkflowResponseOEEnvelope>()
             .register_type::<StageSignature>()
             .register_type::<StageType>()
             .register_type::<CompositeWorkflowRuntime>()
@@ -220,6 +237,8 @@ impl Plugin for WorkflowPlugin {
 
         let render_app = app.sub_app_mut(RenderApp);
         render_app
+            .insert_resource(render_stage_sender_cache_render_app)
+            .insert_resource(render_while_stage_sender_cache_render_app)
             .add_systems(
                 ExtractSchedule,
                 (

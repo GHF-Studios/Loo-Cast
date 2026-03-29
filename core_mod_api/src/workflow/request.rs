@@ -8,24 +8,28 @@ pub struct TypedWorkflowRequest {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub composite_workflow_id: Uuid,
+    pub request_id: Uuid,
 }
 #[derive(Reflect)]
 pub struct TypedWorkflowRequestE {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub composite_workflow_id: Uuid,
+    pub request_id: Uuid,
 }
 #[derive(Reflect)]
 pub struct TypedWorkflowRequestO {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub composite_workflow_id: Uuid,
+    pub request_id: Uuid,
 }
 #[derive(Reflect)]
 pub struct TypedWorkflowRequestOE {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub composite_workflow_id: Uuid,
+    pub request_id: Uuid,
 }
 #[derive(Reflect)]
 pub struct TypedWorkflowRequestI {
@@ -33,6 +37,7 @@ pub struct TypedWorkflowRequestI {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub composite_workflow_id: Uuid,
+    pub request_id: Uuid,
 }
 #[derive(Reflect)]
 pub struct TypedWorkflowRequestIE {
@@ -40,6 +45,7 @@ pub struct TypedWorkflowRequestIE {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub composite_workflow_id: Uuid,
+    pub request_id: Uuid,
 }
 #[derive(Reflect)]
 pub struct TypedWorkflowRequestIO {
@@ -47,6 +53,7 @@ pub struct TypedWorkflowRequestIO {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub composite_workflow_id: Uuid,
+    pub request_id: Uuid,
 }
 #[derive(Reflect)]
 pub struct TypedWorkflowRequestIOE {
@@ -54,4 +61,5 @@ pub struct TypedWorkflowRequestIOE {
     pub module_name: &'static str,
     pub workflow_name: &'static str,
     pub composite_workflow_id: Uuid,
+    pub request_id: Uuid,
 }
