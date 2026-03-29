@@ -9,6 +9,7 @@ pub mod custom_egui_widgets;
 pub mod workflows;
 
 use crate::bevy::prelude::*;
+use crate::bevy_rapier3d::prelude::PhysicsSet;
 use bevy_egui::EguiPrimaryContextPass;
 use components::{EguiCamera, EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision, RenderProxy, RenderProxyWindowMode, UiCamera, WorldPresentationRoot};
 use resources::{DevZoomFactor, PauseMenuWindow, PrimaryWindowUiDockState, PrimaryWindowUiState, RuntimeDebugToggles, ViewScale};
@@ -34,18 +35,18 @@ impl Plugin for RenderPlugin {
             .init_resource::<RuntimeDebugToggles>()
             .add_systems(PreStartup, (pre_setup_phase_0.before(pre_setup_phase_1), pre_setup_phase_1))
             .add_systems(
-                Update,
+                PostUpdate,
                 (
                     resize_render_texture.in_set(AppSet::Presentation),
                     main_camera_zoom_system.in_set(AppSet::InputGather),
-                    apply_usf_player_pivots_system.in_set(AppSet::BoundaryResolve),
+                    apply_usf_player_pivots_system.in_set(AppSet::BoundaryResolve).after(PhysicsSet::Writeback),
                     enforce_main_camera_depth_contract_system.in_set(AppSet::Camera).after(update_follower_system),
                     update_view_scale_from_zoom.in_set(AppSet::Camera),
+                    update_world_presentation_root_transform_system
+                        .in_set(AppSet::Camera)
+                        .after(apply_usf_player_pivots_system),
                     validate_camera_contract_system.in_set(AppSet::Diagnostics).after(update_view_scale_from_zoom),
                     despawn_orphaned_render_proxies.in_set(AppSet::Presentation),
-                    update_world_presentation_root_transform_system
-                        .in_set(AppSet::Presentation)
-                        .after(apply_usf_player_pivots_system),
                     bind_render_proxies_to_world_presentation_root_system
                         .in_set(AppSet::Presentation)
                         .after(despawn_orphaned_render_proxies),

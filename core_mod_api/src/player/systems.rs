@@ -1,7 +1,7 @@
 use crate::bevy::input::mouse::MouseMotion;
 use crate::bevy::prelude::*;
 use crate::bevy::window::{CursorGrabMode, CursorOptions, PrimaryWindow};
-use crate::bevy_rapier3d::prelude::{CharacterAutostep, CharacterLength, Collider, KinematicCharacterController, LockedAxes, RigidBody};
+use crate::bevy_rapier3d::prelude::{CharacterLength, Collider, KinematicCharacterController, LockedAxes, RigidBody};
 
 use crate::chunk::components::ChunkLoader;
 use crate::config::statics::CONFIG;
@@ -149,12 +149,9 @@ pub(super) fn ensure_player_physics_controller_system(
             entity_commands.insert(KinematicCharacterController {
                 up: Vec3::Z,
                 offset: CharacterLength::Absolute(0.01),
-                autostep: Some(CharacterAutostep {
-                    max_height: CharacterLength::Absolute(capsule_half_height * 0.5),
-                    min_width: CharacterLength::Absolute(capsule_radius),
-                    include_dynamic_bodies: false,
-                }),
-                snap_to_ground: Some(CharacterLength::Absolute(capsule_half_height * 0.25)),
+                // Spaceflight controller: ground-biased helpers introduce jitter on highly detailed triangle terrain.
+                autostep: None,
+                snap_to_ground: None,
                 ..Default::default()
             });
         }
@@ -283,7 +280,8 @@ pub(super) fn apply_player_camera_mode_system(
     match *camera_mode {
         PlayerCameraMode::FirstPerson => {
             main_camera_follower.offset = Vec3::ZERO;
-            main_camera_follower.smoothness = camera_rig.first_person_camera_smoothness.max(0.0);
+            // FPS camera should be hard-locked to the player to avoid visible follow jitter.
+            main_camera_follower.smoothness = 0.0;
             if let Some(link) = visual_link {
                 if let Ok(mut visibility) = visibility_query.get_mut(link.entity) {
                     *visibility = Visibility::Hidden;
@@ -489,7 +487,11 @@ pub(super) fn update_player_system(
             } else {
                 1.0
             };
-            let move_distance = runtime_config.base_movement_speed * sprint_multiplier * time.delta_secs();
+            let local_zoom = chunk_loader.usf_transform.scale.local_f32().max(f32::MIN_POSITIVE);
+            let world_presentation_scale = local_zoom.recip();
+            // Keep movement numerically coherent with world presentation scaling.
+            // Without this, high local zoom makes collision resolution feel jittery/snappy.
+            let move_distance = runtime_config.base_movement_speed * sprint_multiplier * world_presentation_scale * time.delta_secs();
             let body_rotation = normalized_look_rotation(&player_look_state);
             let world_space_translation_delta = world_space_translation_delta_from_local(local_direction, body_rotation, move_distance);
 

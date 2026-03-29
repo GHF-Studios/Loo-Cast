@@ -31,13 +31,19 @@ impl Plugin for PlayerPlugin {
                     .in_set(AppSet::Intent)
                     .after(sync_pause_menu_state_system)
                     .run_if(run_after_startup_finished.and(run_if_not_paused).and(run_if_chunk_load_gate_open)),
-                apply_player_camera_mode_system
-                    .in_set(AppSet::Camera)
-                    .before(update_follower_system)
-                    .run_if(run_after_startup_finished),
                 ensure_player_visual_3d_system.in_set(AppSet::Presentation).run_if(run_after_startup_finished),
                 ensure_player_physics_controller_system
                     .in_set(AppSet::Presentation)
+                    .run_if(run_after_startup_finished),
+                sync_mouse_capture_system.in_set(AppSet::Presentation).run_if(run_after_startup_finished),
+            ),
+        )
+        .add_systems(
+            PostUpdate,
+            (
+                apply_player_camera_mode_system
+                    .in_set(AppSet::Camera)
+                    .before(update_follower_system)
                     .run_if(run_after_startup_finished),
                 apply_player_camera_orientation_system
                     .in_set(AppSet::Presentation)
@@ -45,7 +51,6 @@ impl Plugin for PlayerPlugin {
                 apply_player_visual_orientation_system
                     .in_set(AppSet::Presentation)
                     .run_if(run_after_startup_finished),
-                sync_mouse_capture_system.in_set(AppSet::Presentation).run_if(run_after_startup_finished),
             ),
         )
         .init_resource::<PlayerCameraMode>()

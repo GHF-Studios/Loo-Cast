@@ -21,7 +21,7 @@ impl Plugin for FollowerPlugin {
         app.add_message::<FollowerTargetLifecycleMessage>()
             .add_observer(observe_on_add_follower)
             .add_systems(
-                Update,
+                PostUpdate,
                 update_follower_system
                     .in_set(AppSet::Camera)
                     .run_if(run_after_startup_finished.and(run_if_not_paused)),
