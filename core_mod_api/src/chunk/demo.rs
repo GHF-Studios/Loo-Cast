@@ -134,6 +134,8 @@ pub struct PersistedChunkRecord {
     pub zone_type: String,
     #[serde(default)]
     pub zone_density_signature: u64,
+    #[serde(default)]
+    pub density_field_signature: u64,
     pub chunk_seed: u64,
     pub sample_step: u16,
     pub iso_level: u8,
@@ -209,6 +211,7 @@ pub(crate) fn hydrate_chunk_demo_data_system(
                 && loaded.chunk_coord == expected_coord
                 && loaded.zone_type.eq_ignore_ascii_case(&zone_type.0)
                 && loaded.zone_density_signature == zone_density_signature
+                && loaded.density_field_signature == density_field_signature()
                 && loaded.sample_step == settings.sample_step
                 && loaded.iso_level == settings.iso_level
         });
@@ -330,7 +333,6 @@ fn generate_chunk_record(
     let total_points = axis_points * axis_points * axis_points;
 
     let chunk_seed = derive_chunk_seed(settings.world_seed, canonical_coord);
-    let (chunk_x, chunk_y, chunk_z) = chunk_index_at_scale(canonical_coord);
 
     let mut rho_values = Vec::with_capacity(total_points);
     let mut zone_values = Vec::with_capacity(total_points);
@@ -339,10 +341,13 @@ fn generate_chunk_record(
     for iz in 0..axis_points {
         for iy in 0..axis_points {
             for ix in 0..axis_points {
-                let gx = chunk_x * CHUNK_SPAN_UNITS_I64 + axis_samples[ix] as i64;
-                let gy = chunk_y * CHUNK_SPAN_UNITS_I64 + axis_samples[iy] as i64;
-                let gz = chunk_z * CHUNK_SPAN_UNITS_I64 + axis_samples[iz] as i64;
-                rho_values.push(hash_density_u8(settings.world_seed, chunk_scale, gx, gy, gz, zone_density_profile));
+                let local_offset = Vec3::new(
+                    axis_samples[ix] as f32 - HALF_CHUNK_SPAN_F32,
+                    axis_samples[iy] as f32 - HALF_CHUNK_SPAN_F32,
+                    axis_samples[iz] as f32 - HALF_CHUNK_SPAN_F32,
+                );
+                let root_native = sample_root_native_position(canonical_coord, local_offset);
+                rho_values.push(hash_density_u8(settings.world_seed, root_native, zone_density_profile));
                 zone_values.push(zone_id);
             }
         }
@@ -354,6 +359,7 @@ fn generate_chunk_record(
         chunk_coord: SerializableGridCoord::from_grid(canonical_coord),
         zone_type: zone_type.0.clone(),
         zone_density_signature,
+        density_field_signature: density_field_signature(),
         chunk_seed,
         sample_step: settings.sample_step,
         iso_level: settings.iso_level,
@@ -565,20 +571,6 @@ fn canonical_grid_coord(coord: &GridVec) -> GridVec {
     canonical
 }
 
-fn chunk_index_at_scale(coord: &GridVec) -> (i64, i64, i64) {
-    let mut canonical = coord.clone();
-    canonical.normalize();
-    let mut x = 0_i64;
-    let mut y = 0_i64;
-    let mut z = 0_i64;
-    for digit in canonical.to_raw_vec_3d() {
-        x = x * 10 + digit.x as i64;
-        y = y * 10 + digit.y as i64;
-        z = z * 10 + digit.z as i64;
-    }
-    (x, y, z)
-}
-
 fn build_axis_samples(step: u16) -> Vec<u16> {
     let step = step.clamp(1, 1_000);
     let mut samples = Vec::new();
@@ -653,12 +645,8 @@ fn color_from_seed(seed: u64) -> Color {
     Color::srgb(0.2 + 0.6 * r, 0.2 + 0.6 * g, 0.2 + 0.6 * b)
 }
 
-fn hash_density_u8(world_seed: u64, chunk_scale: Scale, gx: i64, gy: i64, gz: i64, _zone_density_profile: ZoneDensityProfile) -> u8 {
-    let (gx, gy, gz) = wrap_top_level_units(chunk_scale, gx, gy, gz);
-    let scale_to_root_factor = 10.0_f64.powi(chunk_scale.index_from_top() as i32);
-    let wx = gx as f64 / scale_to_root_factor;
-    let wy = gy as f64 / scale_to_root_factor;
-    let wz = gz as f64 / scale_to_root_factor;
+fn hash_density_u8(world_seed: u64, root_native: (f64, f64, f64), _zone_density_profile: ZoneDensityProfile) -> u8 {
+    let (wx, wy, wz) = wrap_root_native_position(root_native);
 
     // Low-frequency value-noise blend with strong bias towards empty space.
     // This keeps surfaces coherent and avoids "solid clutter" from per-voxel white noise.
@@ -683,6 +671,11 @@ fn zone_numeric_id(zone_type: &ZoneTypeId) -> u32 {
 }
 
 #[inline]
+fn density_field_signature() -> u64 {
+    mix64(0xa3f1_1a89_5d4c_2be7_u64)
+}
+
+#[inline]
 fn fold_signed(value: i64) -> u64 {
     value as u64
 }
@@ -697,16 +690,35 @@ fn mix64(mut value: u64) -> u64 {
 }
 
 #[inline]
-fn wrap_top_level_units(active_scale: Scale, gx: i64, gy: i64, gz: i64) -> (i64, i64, i64) {
-    if active_scale == Scale::MAX {
-        (
-            gx.rem_euclid(ROOT_AXIS_PERIOD_UNITS),
-            gy.rem_euclid(ROOT_AXIS_PERIOD_UNITS),
-            gz.rem_euclid(ROOT_AXIS_PERIOD_UNITS),
-        )
-    } else {
-        (gx, gy, gz)
+fn sample_root_native_position(canonical_coord: &GridVec, local_offset: Vec3) -> (f64, f64, f64) {
+    let mut sample = UnitVec::new(canonical_coord.clone(), local_offset);
+    while sample.grid_offset.scale != Scale::MAX {
+        sample.zoom_out();
     }
+    let root = sample.grid_offset.xyz;
+    (
+        root.x as f64 * CHUNK_SPAN_UNITS_I64 as f64 + sample.unit_offset.x as f64,
+        root.y as f64 * CHUNK_SPAN_UNITS_I64 as f64 + sample.unit_offset.y as f64,
+        root.z as f64 * CHUNK_SPAN_UNITS_I64 as f64 + sample.unit_offset.z as f64,
+    )
+}
+
+#[inline]
+fn wrap_root_native_axis(value: f64) -> f64 {
+    let period = ROOT_AXIS_PERIOD_UNITS as f64;
+    if !value.is_finite() || period <= 0.0 {
+        return 0.0;
+    }
+    value.rem_euclid(period)
+}
+
+#[inline]
+fn wrap_root_native_position((x, y, z): (f64, f64, f64)) -> (f64, f64, f64) {
+    (
+        wrap_root_native_axis(x),
+        wrap_root_native_axis(y),
+        wrap_root_native_axis(z),
+    )
 }
 
 fn value_noise_3d(seed: u64, gx: f64, gy: f64, gz: f64, cell_size: f64) -> f32 {
@@ -885,24 +897,39 @@ mod tests {
         let parent = GridVec::new_root(GridXyz::new_local(0, 0, 0));
         let child = GridVec::new(parent.clone(), GridXyz::new_local(3, 4, 4));
         let (_zone_type, zone_density_profile) = test_zone();
+        let child_digit = child.xyz;
 
-        let (parent_x, parent_y, parent_z) = chunk_index_at_scale(&parent);
-        let (child_x, child_y, child_z) = chunk_index_at_scale(&child);
+        // Parent/child samples are equivalent when parent local offset = child_origin + child_offset/10.
+        // Choose offsets divisible by 10 so the parent offset remains integral in local units.
+        for child_local in [-500_i32, -300, 0, 300, 500] {
+            let child_offset = Vec3::splat(child_local as f32);
+            let parent_offset = Vec3::new(
+                child_digit.x as f32 * 100.0 + child_offset.x / 10.0,
+                child_digit.y as f32 * 100.0 + child_offset.y / 10.0,
+                child_digit.z as f32 * 100.0 + child_offset.z / 10.0,
+            );
 
-        // Child samples must map to the same root-space point as parent samples.
-        // Choose offsets divisible by 10 so the root-space mapping is exact in integer units.
-        for local in [0_i64, 100, 500, 900, 1_000] {
-            let child_gx = child_x * CHUNK_SPAN_UNITS_I64 + local;
-            let child_gy = child_y * CHUNK_SPAN_UNITS_I64 + local;
-            let child_gz = child_z * CHUNK_SPAN_UNITS_I64 + local;
-            let parent_gx = parent_x * CHUNK_SPAN_UNITS_I64 + 300 + (local / 10);
-            let parent_gy = parent_y * CHUNK_SPAN_UNITS_I64 + 400 + (local / 10);
-            let parent_gz = parent_z * CHUNK_SPAN_UNITS_I64 + 400 + (local / 10);
+            let child_root_native = sample_root_native_position(&child, child_offset);
+            let parent_root_native = sample_root_native_position(&parent, parent_offset);
+            let wrapped_child = wrap_root_native_position(child_root_native);
+            let wrapped_parent = wrap_root_native_position(parent_root_native);
+            let abs_diff = (
+                (wrapped_child.0 - wrapped_parent.0).abs(),
+                (wrapped_child.1 - wrapped_parent.1).abs(),
+                (wrapped_child.2 - wrapped_parent.2).abs(),
+            );
 
-            let child_density = hash_density_u8(settings.world_seed, child.scale, child_gx, child_gy, child_gz, zone_density_profile);
-            let parent_density = hash_density_u8(settings.world_seed, parent.scale, parent_gx, parent_gy, parent_gz, zone_density_profile);
+            assert!(
+                abs_diff.0 <= 1e-6 && abs_diff.1 <= 1e-6 && abs_diff.2 <= 1e-6,
+                "root-native mismatch for child_local={child_local}: child={wrapped_child:?}, parent={wrapped_parent:?}"
+            );
 
-            assert_eq!(child_density, parent_density, "scale mismatch for local={local}");
+            let child_density = hash_density_u8(settings.world_seed, child_root_native, zone_density_profile);
+            let parent_density = hash_density_u8(settings.world_seed, parent_root_native, zone_density_profile);
+            assert_eq!(
+                child_density, parent_density,
+                "density mismatch for child_local={child_local}: child={child_density}, parent={parent_density}"
+            );
         }
     }
 }

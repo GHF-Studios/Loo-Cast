@@ -283,10 +283,11 @@ pub(super) fn update_render_proxies(
         let local_zoom = player_local_zoom_for_presentation(chunk_loader);
         let presentation_scale = world_presentation_scale_from_local_zoom(local_zoom);
         let world_presentation_origin = world_presentation_origin_from_camera(&main_camera_query, chunk_loader_transform.translation);
+        let view_anchor_native = chunk_loader_transform.translation;
         (
             world_presentation_origin,
             chunk_loader.origin_offset.clone(),
-            world_presentation_origin,
+            view_anchor_native,
             local_zoom,
             presentation_scale,
         )
