@@ -11,9 +11,7 @@ use crate::{
     debug::types::DebugSuiteTabViewer,
     input::states::InputMode,
     player::{components::Player, resources::PlayerControlSettings},
-    render::resources::{
-        DevZoomFactor, GameViewRenderTarget, PauseMenuWindow, PrimaryWindowUiDockState, PrimaryWindowUiState, RuntimeDebugToggles, ViewScale, ZoomFactor,
-    },
+    render::resources::{DevZoomFactor, GameViewRenderTarget, PauseMenuWindow, PrimaryWindowUiDockState, PrimaryWindowUiState, RuntimeDebugToggles, ViewScale},
     time::{
         resources::TimeInfo,
         types::{PauseState, StepConfig},
@@ -223,7 +221,44 @@ pub(crate) fn draw_primary_window_ui(
     }
 
     draw_pause_menu_ui(state, world, ctx);
+    draw_local_zoom_indicator(state, world, ctx);
     draw_runtime_debug_overlay(state, world, ctx);
+}
+
+fn draw_local_zoom_indicator(state: &PrimaryWindowUiState, world: &mut World, ctx: &egui::Context) {
+    if state.enabled {
+        return;
+    }
+
+    let mut query = world.query_filtered::<&ChunkLoader, With<Player>>();
+    let Some((scale_index, local_zoom, local_min, local_max, commit_min, commit_max)) = query.single(world).ok().map(|loader| {
+        let policy = loader.usf_transform.scale.policy;
+        (
+            loader.scale.index_from_top(),
+            loader.usf_transform.scale.local_f32(),
+            policy.local_min as f32,
+            policy.local_max as f32,
+            policy.commit_min() as f32,
+            policy.commit_max() as f32,
+        )
+    }) else {
+        return;
+    };
+
+    egui::Area::new(egui::Id::new("local_zoom_indicator"))
+        .anchor(egui::Align2::RIGHT_TOP, egui::vec2(-12.0, 12.0))
+        .interactable(false)
+        .show(ctx, |ui| {
+            egui::Frame::new()
+                .fill(egui::Color32::from_black_alpha(185))
+                .stroke(egui::Stroke::new(1.0, egui::Color32::from_white_alpha(80)))
+                .corner_radius(egui::CornerRadius::same(4))
+                .inner_margin(egui::Margin::same(8))
+                .show(ui, |ui| {
+                    ui.monospace(format!("local zoom: {:.6}x   scale: {}", local_zoom, scale_index));
+                    ui.monospace(format!("window [{:.6}, {:.6}]  commit [{:.6}, {:.6}]", local_min, local_max, commit_min, commit_max));
+                });
+        });
 }
 
 fn keybind_options() -> &'static [(KeyCode, &'static str)] {
@@ -393,15 +428,18 @@ fn draw_runtime_debug_overlay(state: &PrimaryWindowUiState, world: &mut World, c
         .get_resource::<State<InputMode>>()
         .map(|mode| if mode.is_game() { "release" } else { "debug" })
         .unwrap_or("n/a");
-    let zoom = world.get_resource::<ZoomFactor>().map(|value| value.0).unwrap_or(0.0);
     let dev_zoom = world.get_resource::<DevZoomFactor>().map(|value| value.0).unwrap_or(0.0);
     let (view_scale_discrete, view_scale_offset) = world
         .get_resource::<ViewScale>()
         .map(|value| (value.discrete, value.offset))
         .unwrap_or((0, 0.0));
-    let loader_scale_index = {
+    let (loader_scale_index, loader_local_zoom) = {
         let mut query = world.query_filtered::<&ChunkLoader, With<Player>>();
-        query.single(world).ok().map(|loader| loader.scale.index_from_top() as i32).unwrap_or(-1)
+        query
+            .single(world)
+            .ok()
+            .map(|loader| (loader.scale.index_from_top() as i32, loader.usf_transform.scale.local_f32()))
+            .unwrap_or((-1, 0.0))
     };
 
     let runtime_toggles = world.get_resource::<RuntimeDebugToggles>().copied().unwrap_or_default();
@@ -411,9 +449,9 @@ fn draw_runtime_debug_overlay(state: &PrimaryWindowUiState, world: &mut World, c
     lines.push(format!("input_mode={input_mode_label}"));
     lines.push(format!(
         "camera_zoom={:.6} dev_zoom={:.6} effective_zoom={:.6}",
-        zoom,
+        loader_local_zoom,
         dev_zoom,
-        zoom * dev_zoom
+        loader_local_zoom * dev_zoom
     ));
     lines.push(format!(
         "view_scale_discrete={} view_scale_offset={:.4} loader_scale_index={}",

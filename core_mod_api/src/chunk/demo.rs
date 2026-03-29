@@ -7,7 +7,7 @@ use crate::chunk::components::{Chunk, ChunkLoader};
 use crate::chunk::resources::ChunkManager;
 use crate::config::statics::CONFIG;
 use crate::player::components::Player;
-use crate::render::components::{MainCamera, WorldPresentationRoot};
+use crate::render::components::WorldPresentationRoot;
 use crate::usf::definition::{DefinitionRegistry, ScaleContentRegistry, ZoneTypeId};
 use crate::usf::dpt::{DptChunkKey, DptStore};
 use crate::usf::pos::grid::types::GridVec;
@@ -269,7 +269,6 @@ pub(crate) fn hydrate_chunk_demo_data_system(
 pub(crate) fn sync_chunk_demo_visual_transforms_system(
     settings: Res<UsfDemoSettings>,
     player_loader_query: Query<(&ChunkLoader, &Transform), With<Player>>,
-    main_camera_query: Query<&Transform, (With<MainCamera>, Without<Player>, Without<UsfDemoChunkVisual>)>,
     mut chunk_query: Query<(&Chunk, &mut Transform), (With<UsfDemoChunkVisual>, Without<Player>)>,
 ) {
     if !settings.enabled {
@@ -280,16 +279,12 @@ pub(crate) fn sync_chunk_demo_visual_transforms_system(
         return;
     };
 
-    let world_rotation_origin = main_camera_query
-        .single()
-        .map(|transform| transform.translation)
-        .unwrap_or(player_transform.translation);
+    let world_rotation_origin = player_transform.translation;
     let origin_offset = chunk_loader.origin_offset.clone();
 
     for (chunk, mut transform) in chunk_query.iter_mut() {
-        let layer_z = chunk.coord.scale.compute_z();
         let (native_pos, visual_scale) = chunk.coord.clone().to_native_visual(origin_offset.clone());
-        let world_pos = Vec3::new(native_pos.x, native_pos.y, native_pos.z + layer_z);
+        let world_pos = Vec3::new(native_pos.x, native_pos.y, native_pos.z);
         transform.translation = world_pos - world_rotation_origin;
         transform.rotation = Quat::IDENTITY;
         transform.scale = Vec3::splat(visual_scale);
@@ -672,7 +667,12 @@ fn zone_numeric_id(zone_type: &ZoneTypeId) -> u32 {
 
 #[inline]
 fn density_field_signature() -> u64 {
-    mix64(0xa3f1_1a89_5d4c_2be7_u64)
+    const DENSITY_ALGO_REVISION: u64 = 2;
+    let mut signature_seed = 0xa3f1_1a89_5d4c_2be7_u64 ^ DENSITY_ALGO_REVISION;
+    signature_seed ^= CHUNK_SPAN_UNITS_I64 as u64;
+    signature_seed ^= (ROOT_AXIS_CELL_COUNT as u64) << 8;
+    signature_seed ^= (ROOT_AXIS_PERIOD_UNITS as u64) << 16;
+    mix64(signature_seed)
 }
 
 #[inline]
@@ -714,11 +714,7 @@ fn wrap_root_native_axis(value: f64) -> f64 {
 
 #[inline]
 fn wrap_root_native_position((x, y, z): (f64, f64, f64)) -> (f64, f64, f64) {
-    (
-        wrap_root_native_axis(x),
-        wrap_root_native_axis(y),
-        wrap_root_native_axis(z),
-    )
+    (wrap_root_native_axis(x), wrap_root_native_axis(y), wrap_root_native_axis(z))
 }
 
 fn value_noise_3d(seed: u64, gx: f64, gy: f64, gz: f64, cell_size: f64) -> f32 {
@@ -929,6 +925,52 @@ mod tests {
             assert_eq!(
                 child_density, parent_density,
                 "density mismatch for child_local={child_local}: child={child_density}, parent={parent_density}"
+            );
+        }
+    }
+
+    #[test]
+    fn density_sampling_is_scale_invariant_for_fractional_shared_points() {
+        let settings = test_settings();
+        let parent = GridVec::new_root(GridXyz::new_local(0, 0, 0));
+        let child = GridVec::new(parent.clone(), GridXyz::new_local(-2, 1, 3));
+        let (_zone_type, zone_density_profile) = test_zone();
+        let child_digit = child.xyz;
+
+        let child_offsets = [
+            Vec3::new(-437.25, 118.125, -42.5),
+            Vec3::new(-221.75, -339.875, 271.625),
+            Vec3::new(19.375, -75.625, 413.5),
+            Vec3::new(348.5, 244.25, -196.125),
+        ];
+
+        for child_offset in child_offsets {
+            let parent_offset = Vec3::new(
+                child_digit.x as f32 * 100.0 + child_offset.x / 10.0,
+                child_digit.y as f32 * 100.0 + child_offset.y / 10.0,
+                child_digit.z as f32 * 100.0 + child_offset.z / 10.0,
+            );
+
+            let child_root_native = sample_root_native_position(&child, child_offset);
+            let parent_root_native = sample_root_native_position(&parent, parent_offset);
+            let wrapped_child = wrap_root_native_position(child_root_native);
+            let wrapped_parent = wrap_root_native_position(parent_root_native);
+            let abs_diff = (
+                (wrapped_child.0 - wrapped_parent.0).abs(),
+                (wrapped_child.1 - wrapped_parent.1).abs(),
+                (wrapped_child.2 - wrapped_parent.2).abs(),
+            );
+
+            assert!(
+                abs_diff.0 <= 1e-3 && abs_diff.1 <= 1e-3 && abs_diff.2 <= 1e-3,
+                "root-native mismatch for child_offset={child_offset:?}: child={wrapped_child:?}, parent={wrapped_parent:?}"
+            );
+
+            let child_density = hash_density_u8(settings.world_seed, child_root_native, zone_density_profile);
+            let parent_density = hash_density_u8(settings.world_seed, parent_root_native, zone_density_profile);
+            assert_eq!(
+                child_density, parent_density,
+                "fractional density mismatch for child_offset={child_offset:?}: child={child_density}, parent={parent_density}"
             );
         }
     }

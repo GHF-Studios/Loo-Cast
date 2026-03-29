@@ -1,13 +1,13 @@
 use crate::bevy::picking::prelude::Pickable;
 use crate::bevy::prelude::*;
 
-use crate::chunk::components::{Chunk, ChunkActor};
+use crate::chunk::components::{Chunk, ChunkActor, ChunkLoader};
 use crate::config::statics::CONFIG;
 use crate::core::components::Meta;
 use crate::picking::constants::{DIEGETIC_MOUSE_POINTER_ID, META_MOUSE_POINTER_ID, NO_HIT_SENTINEL};
 use crate::player::components::{Player, PlayerVisual3dLink};
 use crate::render::components::{EntityProxyLink, LogicProxy, MainCamera, RenderProxy};
-use crate::render::resources::{PrimaryWindowUiState, ZoomFactor};
+use crate::render::resources::PrimaryWindowUiState;
 
 use super::components::{GizmoArrow, GizmoRoot};
 use super::types::Axis3D;
@@ -177,8 +177,8 @@ pub(super) fn update_gizmo_visibility_and_position(
     render_proxies: Query<&RenderProxy>,
     logic_proxies: Query<&LogicProxy>,
     player_visual_links: Query<&PlayerVisual3dLink>,
+    player_loader_query: Query<&ChunkLoader, With<Player>>,
     debug_suite_ui_state: Res<PrimaryWindowUiState>,
-    zoom_factor: Res<ZoomFactor>,
 ) {
     let Ok((mut gizmo_transform, mut vis)) = gizmo_root.single_mut() else {
         return;
@@ -220,7 +220,12 @@ pub(super) fn update_gizmo_visibility_and_position(
     let mut avg = position_sum / count as f32;
     avg.z += CONFIG().get::<f32>("debug/gizmo/z_offset");
     gizmo_transform.translation = avg;
-    let zoom = zoom_factor.0.max(0.001);
+    let zoom = player_loader_query
+        .single()
+        .ok()
+        .map(|loader| loader.usf_transform.scale.local_f32())
+        .unwrap_or(1.0)
+        .max(0.001);
     let gizmo_scale = (1.0 / zoom).clamp(0.25, 100.0);
     gizmo_transform.scale = Vec3::splat(gizmo_scale);
 }
@@ -237,8 +242,8 @@ pub(super) fn move_selected_with_gizmo(
     gizmo_parts: Query<(&GizmoArrow, &GlobalTransform)>,
     main_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     debug_suite_ui_state: Res<PrimaryWindowUiState>,
+    player_loader_query: Query<&ChunkLoader, With<Player>>,
     fixed_time: Res<Time<Fixed>>,
-    zoom_factor: Res<ZoomFactor>,
 ) {
     let selected = &debug_suite_ui_state.selected_entities;
     let selection_movable = selection_has_movable_targets(
@@ -305,7 +310,12 @@ pub(super) fn move_selected_with_gizmo(
             }
 
             let axis_delta = message.delta.dot(axis_screen_dir);
-            let zoom = zoom_factor.0.max(0.001);
+            let zoom = player_loader_query
+                .single()
+                .ok()
+                .map(|loader| loader.usf_transform.scale.local_f32())
+                .unwrap_or(1.0)
+                .max(0.001);
             let motion_scale = (1.0 / zoom).clamp(0.1, 100.0);
             let world_delta = axis * axis_delta * fixed_time.delta_secs() * CONFIG().get::<f32>("debug/gizmo/drag_speed") * motion_scale;
             warn!(

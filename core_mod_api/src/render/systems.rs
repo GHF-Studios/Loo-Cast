@@ -14,7 +14,7 @@ use crate::render::{
     camera_contract,
     components::{EguiCamera, EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision, RenderProxy, RenderProxyWindowMode, UiCamera, WorldPresentationRoot},
     functions::draw_primary_window_ui,
-    resources::{DevZoomFactor, GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, RuntimeDebugToggles, ViewScale, ZoomFactor},
+    resources::{DevZoomFactor, GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, RuntimeDebugToggles, ViewScale},
 };
 use crate::time::resources::VirtualPaused;
 use crate::tracing::{error, info};
@@ -48,14 +48,6 @@ fn player_local_zoom_for_presentation(chunk_loader: &ChunkLoader) -> f32 {
 #[inline]
 fn world_presentation_scale_from_local_zoom(local_zoom: f32) -> f32 {
     local_zoom.max(f32::MIN_POSITIVE).recip()
-}
-
-#[inline]
-fn world_presentation_origin_from_camera(
-    main_camera_query: &Query<&Transform, (With<MainCamera>, Without<Player>, Without<WorldPresentationRoot>, Without<RenderProxy>)>,
-    fallback: Vec3,
-) -> Vec3 {
-    main_camera_query.single().map(|transform| transform.translation).unwrap_or(fallback)
 }
 
 #[inline]
@@ -237,16 +229,14 @@ pub(super) fn validate_camera_contract_system(
 #[tracing::instrument(skip_all)]
 pub(super) fn update_world_presentation_root_transform_system(
     player_loader_query: Single<(&ChunkLoader, &Transform), (With<Player>, Without<WorldPresentationRoot>, Without<MainCamera>)>,
-    main_camera_query: Query<&Transform, (With<MainCamera>, Without<Player>, Without<WorldPresentationRoot>, Without<RenderProxy>)>,
     root_query: Single<&mut Transform, (With<WorldPresentationRoot>, Without<Player>)>,
 ) {
     let (chunk_loader, player_transform) = *player_loader_query;
     let local_zoom = player_local_zoom_for_presentation(chunk_loader);
     let world_presentation_scale = world_presentation_scale_from_local_zoom(local_zoom);
-    let world_presentation_origin = world_presentation_origin_from_camera(&main_camera_query, player_transform.translation);
 
     let mut root_transform = root_query.into_inner();
-    root_transform.translation = world_presentation_origin;
+    root_transform.translation = player_transform.translation;
     root_transform.rotation = chunk_loader.world_rotation_quat();
     root_transform.scale = Vec3::splat(world_presentation_scale);
 }
@@ -273,13 +263,12 @@ pub(super) fn update_render_proxies(
         Query<(&EntityProxyLink, &ChunkActor), Without<RenderProxy>>,
         Query<(&mut Transform, &mut ProxySyncRevision, &mut RenderProxy), With<RenderProxy>>,
     )>,
-    main_camera_query: Query<&Transform, (With<MainCamera>, Without<Player>, Without<WorldPresentationRoot>, Without<RenderProxy>)>,
 ) {
     let (world_rotation_origin, origin_offset, view_pos_native, player_local_zoom, world_presentation_scale) = {
         let (chunk_loader, chunk_loader_transform) = *params.p0();
         let local_zoom = player_local_zoom_for_presentation(chunk_loader);
         let presentation_scale = world_presentation_scale_from_local_zoom(local_zoom);
-        let world_presentation_origin = world_presentation_origin_from_camera(&main_camera_query, chunk_loader_transform.translation);
+        let world_presentation_origin = chunk_loader_transform.translation;
         let view_anchor_native = chunk_loader_transform.translation;
         (
             world_presentation_origin,
@@ -308,14 +297,14 @@ pub(super) fn update_render_proxies(
                 let coord_scale = coord.scale;
                 let scale_diff = coord_scale as i8 - origin_offset.scale as i8;
                 let relative_scale_to_player = scale_diff;
-                let layer_z = coord_scale.compute_z() + proxy_state.depth_bias;
+                let z_bias = proxy_state.depth_bias;
                 let (pos, scale) = coord.to_native_visual(origin_offset.clone());
-                let world_pos = Vec3::new(pos.x, pos.y, pos.z + layer_z);
+                let world_pos = Vec3::new(pos.x, pos.y, pos.z + z_bias);
                 proxy_transform.translation = world_pos - world_rotation_origin;
                 proxy_transform.scale = Vec3::splat(scale);
                 proxy_transform.rotation = Quat::IDENTITY;
                 proxy_state.layer_index = coord_scale.render_layer_index();
-                let (window_mode, window_center_local, window_size_local) = compute_render_proxy_windowing(scale_diff, pos, view_pos_native, player_local_zoom);
+                let (window_mode, window_center_local, window_size_local) = compute_render_proxy_windowing(scale_diff, pos, view_pos_native);
                 proxy_state.window_mode = window_mode;
                 proxy_state.window_center_local = window_center_local;
                 proxy_state.window_size_local = window_size_local;
@@ -333,7 +322,6 @@ pub(super) fn update_render_proxies(
 pub(super) fn draw_chunk_locator_gizmos_system(
     mut gizmos: Gizmos,
     player_loader_query: Single<(&ChunkLoader, &Transform), (With<Player>, Without<MainCamera>)>,
-    main_camera_query: Query<&Transform, (With<MainCamera>, Without<Player>, Without<WorldPresentationRoot>, Without<RenderProxy>)>,
     loaded_chunks: Query<&Chunk, With<ChunkDebugWireframe>>,
     runtime_debug_toggles: Option<Res<RuntimeDebugToggles>>,
 ) {
@@ -350,7 +338,7 @@ pub(super) fn draw_chunk_locator_gizmos_system(
 
     let (chunk_loader, player_transform) = *player_loader_query;
     let world_rotation = chunk_loader.world_rotation_quat();
-    let world_rotation_origin = world_presentation_origin_from_camera(&main_camera_query, player_transform.translation);
+    let world_rotation_origin = player_transform.translation;
     let local_zoom = player_local_zoom_for_presentation(chunk_loader);
     let world_presentation_scale = world_presentation_scale_from_local_zoom(local_zoom);
     let origin_offset = chunk_loader.origin_offset.clone();
@@ -439,8 +427,7 @@ fn chunk_wire_transform(
     z_scale: f32,
 ) -> Transform {
     let (pos, scale) = coord.clone().to_native_visual(origin_offset.clone());
-    let layer_z = coord.scale.compute_z();
-    let world_pos = Vec3::new(pos.x, pos.y, pos.z + layer_z);
+    let world_pos = Vec3::new(pos.x, pos.y, pos.z);
     let marker_scale_xy = (scale * base_extent).max(1.0);
     let marker_scale_z = (marker_scale_xy * z_scale).max(1.0);
 
@@ -1718,53 +1705,7 @@ mod legacy_phenomenon_surface {
 }
 
 #[inline]
-fn compute_render_proxy_windowing(
-    scale_diff: i8,
-    chunk_center_native: Vec3,
-    view_pos_native: Vec3,
-    player_local_zoom: f32,
-) -> (RenderProxyWindowMode, Vec3, Vec3) {
-    #[inline]
-    fn local_window_bounds(center_local: Vec3, size_local: Vec3) -> (Vec3, Vec3) {
-        let center01 = center_local.clamp(Vec3::splat(-0.5), Vec3::splat(0.5)) + Vec3::splat(0.5);
-        let size01 = size_local.abs().clamp(Vec3::splat(MIN_WINDOW_SIZE_LOCAL), Vec3::ONE);
-        let mut min = (center01 - size01 * 0.5).clamp(Vec3::ZERO, Vec3::ONE);
-        let mut max = (center01 + size01 * 0.5).clamp(Vec3::ZERO, Vec3::ONE);
-        if max.x < min.x {
-            std::mem::swap(&mut max.x, &mut min.x);
-        }
-        if max.y < min.y {
-            std::mem::swap(&mut max.y, &mut min.y);
-        }
-        if max.z < min.z {
-            std::mem::swap(&mut max.z, &mut min.z);
-        }
-        (min, max)
-    }
-
-    #[inline]
-    fn compose_local_windows(base_center_local: Vec3, base_size_local: Vec3, nested_center_local: Vec3, nested_size_local: Vec3) -> (Vec3, Vec3) {
-        let (base_min, base_max) = local_window_bounds(base_center_local, base_size_local);
-        let (nested_min, nested_max) = local_window_bounds(nested_center_local, nested_size_local);
-        let base_span = (base_max - base_min).max(Vec3::splat(MIN_WINDOW_SIZE_LOCAL));
-        let mut composed_min = base_min + nested_min * base_span;
-        let mut composed_max = base_min + nested_max * base_span;
-        composed_min = composed_min.clamp(Vec3::ZERO, Vec3::ONE);
-        composed_max = composed_max.clamp(Vec3::ZERO, Vec3::ONE);
-        if composed_max.x < composed_min.x {
-            std::mem::swap(&mut composed_max.x, &mut composed_min.x);
-        }
-        if composed_max.y < composed_min.y {
-            std::mem::swap(&mut composed_max.y, &mut composed_min.y);
-        }
-        if composed_max.z < composed_min.z {
-            std::mem::swap(&mut composed_max.z, &mut composed_min.z);
-        }
-        let size_local = (composed_max - composed_min).max(Vec3::splat(MIN_WINDOW_SIZE_LOCAL));
-        let center_local = ((composed_min + composed_max) * 0.5) - Vec3::splat(0.5);
-        (center_local, size_local)
-    }
-
+fn compute_render_proxy_windowing(scale_diff: i8, chunk_center_native: Vec3, view_pos_native: Vec3) -> (RenderProxyWindowMode, Vec3, Vec3) {
     #[inline]
     fn continuous_axis_center(center_native: f64, view_native: f64, scale_diff: i8) -> f64 {
         let coarse_factor = 10.0_f64.powi(scale_diff as i32);
@@ -1780,62 +1721,50 @@ fn compute_render_proxy_windowing(
         ((view_native - chunk_min) / chunk_span).clamp(0.0, 1.0) - 0.5
     }
 
-    let (mut mode, mut center_local, mut size_local) = if scale_diff <= 0 {
+    if scale_diff <= 0 {
         // Even full-entity mode tracks local center for future nested windowing composition.
         let center = Vec3::new(
             continuous_axis_center(chunk_center_native.x as f64, view_pos_native.x as f64, scale_diff) as f32,
             continuous_axis_center(chunk_center_native.y as f64, view_pos_native.y as f64, scale_diff) as f32,
             continuous_axis_center(chunk_center_native.z as f64, view_pos_native.z as f64, scale_diff) as f32,
         );
-        (RenderProxyWindowMode::FullEntity, center, Vec3::ONE)
-    } else {
-        #[inline]
-        fn quantized_axis_center_and_size(center_native: f64, view_native: f64, scale_diff: i8) -> (f64, f64) {
-            let coarse_factor = 10.0_f64.powi(scale_diff as i32);
-            if !coarse_factor.is_finite() || coarse_factor <= 0.0 {
-                return (0.5, MIN_WINDOW_SIZE_LOCAL as f64);
-            }
-            let chunk_span = 1000.0_f64 * coarse_factor;
-            if !chunk_span.is_finite() || chunk_span <= 0.0 {
-                return (0.5, MIN_WINDOW_SIZE_LOCAL as f64);
-            }
-
-            let chunk_min = center_native - chunk_span * 0.5;
-            let mut normalized = ((view_native - chunk_min) / chunk_span).clamp(0.0, 1.0 - f64::EPSILON);
-            let mut min = 0.0_f64;
-            let mut size = 1.0_f64;
-            for _ in 0..scale_diff {
-                let scaled = normalized * 10.0;
-                let digit = scaled.floor().clamp(0.0, 9.0);
-                size *= 0.1;
-                min += digit * size;
-                normalized = (scaled - digit).clamp(0.0, 1.0 - f64::EPSILON);
-            }
-            let center = (min + size * 0.5).clamp(0.0, 1.0);
-            (center, size.max(MIN_WINDOW_SIZE_LOCAL as f64))
-        }
-
-        let (center_x, size_x) = quantized_axis_center_and_size(chunk_center_native.x as f64, view_pos_native.x as f64, scale_diff);
-        let (center_y, size_y) = quantized_axis_center_and_size(chunk_center_native.y as f64, view_pos_native.y as f64, scale_diff);
-        let (center_z, size_z) = quantized_axis_center_and_size(chunk_center_native.z as f64, view_pos_native.z as f64, scale_diff);
-        (
-            RenderProxyWindowMode::WindowedSubsection,
-            Vec3::new(center_x as f32, center_y as f32, center_z as f32) - Vec3::splat(0.5),
-            Vec3::new(size_x as f32, size_y as f32, size_z as f32),
-        )
-    };
-
-    if scale_diff > 0 {
-        let presentation_window_scale = player_local_zoom.clamp(MIN_WINDOW_SIZE_LOCAL, 1.0);
-        if presentation_window_scale < 0.999_999 {
-            let (composed_center, composed_size) = compose_local_windows(center_local, size_local, center_local, Vec3::splat(presentation_window_scale));
-            center_local = composed_center;
-            size_local = composed_size;
-            mode = RenderProxyWindowMode::WindowedSubsection;
-        }
+        return (RenderProxyWindowMode::FullEntity, center, Vec3::ONE);
     }
 
-    (mode, center_local, size_local)
+    #[inline]
+    fn quantized_axis_center_and_size(center_native: f64, view_native: f64, scale_diff: i8) -> (f64, f64) {
+        let coarse_factor = 10.0_f64.powi(scale_diff as i32);
+        if !coarse_factor.is_finite() || coarse_factor <= 0.0 {
+            return (0.5, MIN_WINDOW_SIZE_LOCAL as f64);
+        }
+        let chunk_span = 1000.0_f64 * coarse_factor;
+        if !chunk_span.is_finite() || chunk_span <= 0.0 {
+            return (0.5, MIN_WINDOW_SIZE_LOCAL as f64);
+        }
+
+        let chunk_min = center_native - chunk_span * 0.5;
+        let mut normalized = ((view_native - chunk_min) / chunk_span).clamp(0.0, 1.0 - f64::EPSILON);
+        let mut min = 0.0_f64;
+        let mut size = 1.0_f64;
+        for _ in 0..scale_diff {
+            let scaled = normalized * 10.0;
+            let digit = scaled.floor().clamp(0.0, 9.0);
+            size *= 0.1;
+            min += digit * size;
+            normalized = (scaled - digit).clamp(0.0, 1.0 - f64::EPSILON);
+        }
+        let center = (min + size * 0.5).clamp(0.0, 1.0);
+        (center, size.max(MIN_WINDOW_SIZE_LOCAL as f64))
+    }
+
+    let (center_x, size_x) = quantized_axis_center_and_size(chunk_center_native.x as f64, view_pos_native.x as f64, scale_diff);
+    let (center_y, size_y) = quantized_axis_center_and_size(chunk_center_native.y as f64, view_pos_native.y as f64, scale_diff);
+    let (center_z, size_z) = quantized_axis_center_and_size(chunk_center_native.z as f64, view_pos_native.z as f64, scale_diff);
+    (
+        RenderProxyWindowMode::WindowedSubsection,
+        Vec3::new(center_x as f32, center_y as f32, center_z as f32) - Vec3::splat(0.5),
+        Vec3::new(size_x as f32, size_y as f32, size_z as f32),
+    )
 }
 
 #[cfg(any())]
@@ -2023,7 +1952,7 @@ mod legacy_tests {
 
     #[test]
     fn full_entity_mode_for_same_or_finer_scale() {
-        let (mode, center, size) = compute_render_proxy_windowing(0, Vec3::ZERO, Vec3::new(123.0, -45.0, 12.0), 1.0);
+        let (mode, center, size) = compute_render_proxy_windowing(0, Vec3::ZERO, Vec3::new(123.0, -45.0, 12.0));
         assert_eq!(mode, RenderProxyWindowMode::FullEntity);
         assert_eq!(center, Vec3::ZERO);
         assert_eq!(size, Vec3::ONE);
@@ -2073,7 +2002,7 @@ mod legacy_tests {
 
     #[test]
     fn windowed_mode_scales_down_with_coarser_level() {
-        let (mode, center, size) = compute_render_proxy_windowing(1, Vec3::ZERO, Vec3::ZERO, 1.0);
+        let (mode, center, size) = compute_render_proxy_windowing(1, Vec3::ZERO, Vec3::ZERO);
         assert_eq!(mode, RenderProxyWindowMode::WindowedSubsection);
         assert!((center.x - 0.05).abs() < 1e-6);
         assert!((center.y - 0.05).abs() < 1e-6);
@@ -2086,7 +2015,7 @@ mod legacy_tests {
     #[test]
     fn window_center_tracks_viewpoint_inside_chunk() {
         // scale_diff=1 => chunk span is 10,000 native units.
-        let (mode, center, size) = compute_render_proxy_windowing(1, Vec3::ZERO, Vec3::new(2_500.0, 2_500.0, 2_500.0), 1.0);
+        let (mode, center, size) = compute_render_proxy_windowing(1, Vec3::ZERO, Vec3::new(2_500.0, 2_500.0, 2_500.0));
         assert_eq!(mode, RenderProxyWindowMode::WindowedSubsection);
         assert!(center.x > 0.0 && center.y > 0.0 && center.z > 0.0);
         assert!((size.x - 0.1).abs() < 1e-6);
@@ -2475,7 +2404,7 @@ mod tests {
 
     #[test]
     fn full_entity_mode_for_same_or_finer_scale() {
-        let (mode, center, size) = compute_render_proxy_windowing(0, Vec3::ZERO, Vec3::new(123.0, -45.0, 12.0), 1.0);
+        let (mode, center, size) = compute_render_proxy_windowing(0, Vec3::ZERO, Vec3::new(123.0, -45.0, 12.0));
         assert_eq!(mode, RenderProxyWindowMode::FullEntity);
         assert!(center.x >= -0.5 && center.x <= 0.5);
         assert!(center.y >= -0.5 && center.y <= 0.5);
@@ -2485,7 +2414,7 @@ mod tests {
 
     #[test]
     fn windowed_mode_scales_down_with_coarser_level() {
-        let (mode, center, size) = compute_render_proxy_windowing(1, Vec3::ZERO, Vec3::ZERO, 1.0);
+        let (mode, center, size) = compute_render_proxy_windowing(1, Vec3::ZERO, Vec3::ZERO);
         assert_eq!(mode, RenderProxyWindowMode::WindowedSubsection);
         assert!((center.x - 0.05).abs() < 1e-6);
         assert!((center.y - 0.05).abs() < 1e-6);
@@ -2497,7 +2426,7 @@ mod tests {
 
     #[test]
     fn window_center_tracks_viewpoint_inside_chunk() {
-        let (mode, center, size) = compute_render_proxy_windowing(1, Vec3::ZERO, Vec3::new(2_500.0, 2_500.0, 2_500.0), 1.0);
+        let (mode, center, size) = compute_render_proxy_windowing(1, Vec3::ZERO, Vec3::new(2_500.0, 2_500.0, 2_500.0));
         assert_eq!(mode, RenderProxyWindowMode::WindowedSubsection);
         assert!(center.x > 0.0 && center.y > 0.0 && center.z > 0.0);
         assert!((size.x - 0.1).abs() < 1e-6);
@@ -2506,42 +2435,51 @@ mod tests {
     }
 
     #[test]
-    fn same_scale_windowing_preserves_full_entity_with_local_zoom() {
-        let (mode, center, size) = compute_render_proxy_windowing(0, Vec3::ZERO, Vec3::ZERO, 0.5);
+    fn same_scale_windowing_preserves_full_entity() {
+        let (mode, center, size) = compute_render_proxy_windowing(0, Vec3::ZERO, Vec3::ZERO);
         assert_eq!(mode, RenderProxyWindowMode::FullEntity);
         assert!(center.length() < 1e-6);
         assert_eq!(size, Vec3::ONE);
     }
 
     #[test]
-    fn finer_scale_windowing_composes_player_local_zoom() {
-        let (mode, center, size) = compute_render_proxy_windowing(1, Vec3::ZERO, Vec3::ZERO, 0.5);
+    fn finer_scale_windowing_selects_base_subsection() {
+        let (mode, center, size) = compute_render_proxy_windowing(1, Vec3::ZERO, Vec3::ZERO);
         assert_eq!(mode, RenderProxyWindowMode::WindowedSubsection);
         assert!(center.x.abs() <= 0.5 && center.y.abs() <= 0.5 && center.z.abs() <= 0.5);
-        assert!((size.x - 0.05).abs() < 1e-6);
-        assert!((size.y - 0.05).abs() < 1e-6);
-        assert!((size.z - 0.05).abs() < 1e-6);
+        assert!((size.x - 0.1).abs() < 1e-6);
+        assert!((size.y - 0.1).abs() < 1e-6);
+        assert!((size.z - 0.1).abs() < 1e-6);
     }
 
     #[test]
-    fn coarser_scale_windowing_ignores_player_local_zoom() {
-        let (mode, _center, size) = compute_render_proxy_windowing(-1, Vec3::ZERO, Vec3::ZERO, 0.25);
+    fn coarser_scale_windowing_preserves_full_entity() {
+        let (mode, _center, size) = compute_render_proxy_windowing(-1, Vec3::ZERO, Vec3::ZERO);
         assert_eq!(mode, RenderProxyWindowMode::FullEntity);
         assert_eq!(size, Vec3::ONE);
     }
 
     #[test]
-    fn planar_world_delta_preserves_magnitude_when_yawed() {
+    fn planar_world_delta_preserves_planar_magnitude_when_yawed() {
         let intent = Vec3::new(3.0, 4.0, 99.0);
         let delta = world_space_planar_delta_from_intent(intent, std::f32::consts::FRAC_PI_2);
-        assert!((delta.length() - 5.0).abs() < 1e-5);
-        assert!(delta.z.abs() < 1e-6);
+        assert!((delta.truncate().length() - 5.0).abs() < 1e-5);
+        assert!((delta.z - intent.z).abs() < 1e-6);
     }
 
     #[test]
-    fn planar_world_delta_ignores_vertical_only_intent() {
+    fn planar_world_delta_preserves_vertical_only_intent() {
         let delta = world_space_planar_delta_from_intent(Vec3::new(0.0, 0.0, 42.0), 1.0);
-        assert_eq!(delta, Vec3::ZERO);
+        assert_eq!(delta, Vec3::new(0.0, 0.0, 42.0));
+    }
+
+    #[test]
+    fn zoom_input_bounds_straddle_commit_window_after_f32_rounding() {
+        let commit_min = 0.899_999_976_f32;
+        let commit_max = 11.000_000_015_f32;
+        let (input_min, input_max) = zoom_input_bounds_from_commit_bounds(commit_min, commit_max);
+        assert!(input_min < commit_min, "input_min={input_min} commit_min={commit_min}");
+        assert!(input_max > commit_max, "input_max={input_max} commit_max={commit_max}");
     }
 }
 
@@ -2625,23 +2563,31 @@ pub(super) fn main_camera_zoom_system(
     input_mode: Res<State<InputMode>>,
     virtual_paused: Res<VirtualPaused>,
     chunk_load_gate: Option<Res<ChunkLoadGate>>,
-    mut zoom_factor: ResMut<ZoomFactor>,
+    mut player_loader_query: Query<&mut ChunkLoader, With<Player>>,
     mut dev_zoom_factor: ResMut<DevZoomFactor>,
     mut zoom_initialized: Local<bool>,
 ) {
     const ZOOM_SCROLL_DEADZONE: f32 = 0.05;
 
-    let local_min_zoom = CONFIG().get::<f32>("usf/scale/local_min").max(f32::EPSILON);
-    let local_max_zoom = CONFIG().get::<f32>("usf/scale/local_max").max(local_min_zoom * 1.001);
-    let local_zoom_center = (local_min_zoom * local_max_zoom).sqrt();
     let base_zoom_speed = CONFIG().get::<f32>("camera/base_zoom_speed").abs();
     let min_dev_zoom = CONFIG().get::<f32>("camera/min_dev_zoom").max(f32::EPSILON);
     let max_dev_zoom = CONFIG().get::<f32>("camera/max_dev_zoom").max(min_dev_zoom * 1.001);
     let dev_zoom_speed = CONFIG().get::<f32>("camera/dev_zoom_speed").abs();
     let chunk_load_gate_enabled = CONFIG().get::<bool>("workflow/chunk_load_gate_enabled");
 
+    let Ok(mut chunk_loader) = player_loader_query.single_mut() else {
+        scroll_message_reader.clear();
+        return;
+    };
+    let scale_policy = chunk_loader.usf_transform.scale.policy;
+    let local_min_zoom = (scale_policy.local_min as f32).max(f32::EPSILON);
+    let local_max_zoom = (scale_policy.local_max as f32).max(local_min_zoom * 1.001);
+    let commit_min_zoom = (scale_policy.commit_min() as f32).max(f32::EPSILON);
+    let commit_max_zoom = (scale_policy.commit_max() as f32).max(commit_min_zoom * 1.001);
+    let local_zoom_center = (local_min_zoom * local_max_zoom).sqrt();
+
     if !*zoom_initialized {
-        zoom_factor.0 = local_zoom_center;
+        chunk_loader.usf_transform.scale.set_local(local_zoom_center as f64);
         *zoom_initialized = true;
     }
 
@@ -2653,8 +2599,9 @@ pub(super) fn main_camera_zoom_system(
     let shift_pressed = keys.pressed(KeyCode::ShiftLeft) || keys.pressed(KeyCode::ShiftRight);
     let base_zoom_step = (1.0 + base_zoom_speed * 0.01).max(1.001);
     let dev_zoom_step = (1.0 + dev_zoom_speed * 0.01).max(1.001);
-    let input_local_zoom_min = local_min_zoom / base_zoom_step;
-    let input_local_zoom_max = local_max_zoom * base_zoom_step;
+    // Input bounds intentionally straddle commit bounds to avoid f32/f64 boundary misses.
+    let (input_local_zoom_min, input_local_zoom_max) = zoom_input_bounds_from_commit_bounds(commit_min_zoom, commit_max_zoom);
+    let mut local_zoom = chunk_loader.usf_transform.scale.local_f32();
 
     for message in scroll_message_reader.read() {
         let scroll_delta = match message.unit {
@@ -2669,9 +2616,10 @@ pub(super) fn main_camera_zoom_system(
             dev_zoom_factor.0 = (dev_zoom_factor.0 * zoom_multiplier).clamp(min_dev_zoom, max_dev_zoom);
         } else {
             let zoom_multiplier = base_zoom_step.powf(scroll_delta.clamp(-6.0, 6.0));
-            zoom_factor.0 = (zoom_factor.0 * zoom_multiplier).clamp(input_local_zoom_min, input_local_zoom_max);
+            local_zoom = (local_zoom * zoom_multiplier).clamp(input_local_zoom_min, input_local_zoom_max);
         }
     }
+    chunk_loader.usf_transform.scale.set_local(local_zoom as f64);
 }
 
 #[inline]
@@ -2688,6 +2636,15 @@ fn world_space_planar_delta_from_intent(intent_translation_delta: Vec3, yaw_radi
 }
 
 #[inline]
+fn zoom_input_bounds_from_commit_bounds(commit_min_zoom: f32, commit_max_zoom: f32) -> (f32, f32) {
+    let lower_epsilon = commit_min_zoom.abs().max(1.0) * 1e-4;
+    let upper_epsilon = commit_max_zoom.abs().max(1.0) * 1e-4;
+    let input_min = (commit_min_zoom - lower_epsilon).max(f32::MIN_POSITIVE);
+    let input_max = (commit_max_zoom + upper_epsilon).max(input_min * 1.001);
+    (input_min, input_max)
+}
+
+#[inline]
 fn clamp_local_zoom_accumulator(local_zoom: f32, local_min: f32, local_max: f32) -> f32 {
     let min = local_min.max(f32::MIN_POSITIVE);
     let max = local_max.max(min * 1.001);
@@ -2695,44 +2652,8 @@ fn clamp_local_zoom_accumulator(local_zoom: f32, local_min: f32, local_max: f32)
     local_zoom.clamp(min, max_exclusive)
 }
 
-#[inline]
-fn apply_discrete_scale_rebase_events(
-    chunk_loader: &mut ChunkLoader,
-    local_zoom: &mut f32,
-    logical_world_pos: &mut Vec3,
-    local_min: f32,
-    local_max: f32,
-) -> (u32, u32) {
-    let mut zoom_in_events = 0_u32;
-    let mut zoom_out_events = 0_u32;
-    let min = local_min.max(f32::MIN_POSITIVE);
-    let max = local_max.max(min * 1.001);
-    let pivot_factor = (max / min).max(1.001);
-
-    // Perform at most one discrete rebase per frame to keep transitions continuous and debuggable.
-    if *local_zoom < min {
-        if chunk_loader.scale == Scale::MIN {
-            *local_zoom = min;
-        } else {
-            *logical_world_pos = chunk_loader.zoom_in(*logical_world_pos);
-            *local_zoom *= pivot_factor;
-            zoom_in_events = 1;
-        }
-    } else if *local_zoom >= max {
-        if chunk_loader.scale != Scale::MAX {
-            *logical_world_pos = chunk_loader.zoom_out(*logical_world_pos);
-            *local_zoom /= pivot_factor;
-            zoom_out_events = 1;
-        }
-    }
-
-    *local_zoom = clamp_local_zoom_accumulator(*local_zoom, min, max);
-    (zoom_in_events, zoom_out_events)
-}
-
 #[tracing::instrument(skip_all)]
 pub(super) fn apply_usf_player_pivots_system(
-    mut zoom_factor: ResMut<ZoomFactor>,
     mut projection_query: Query<&mut Projection, With<MainCamera>>,
     mut player_loader_query: Query<(&mut ChunkLoader, &mut ChunkActor, &mut Transform), With<Player>>,
     mut chunk_load_gate: Option<ResMut<ChunkLoadGate>>,
@@ -2757,18 +2678,21 @@ pub(super) fn apply_usf_player_pivots_system(
     let scale_policy = chunk_loader.usf_transform.scale.policy;
     let local_min = scale_policy.local_min as f32;
     let local_max = scale_policy.local_max as f32;
+    let scale_commit_min = scale_policy.commit_min() as f32;
+    let scale_commit_max = scale_policy.commit_max() as f32;
     let translation_policy = chunk_loader.usf_transform.translation.policy;
     let translation_local_min = translation_policy.local_min as f32;
     let translation_local_max = translation_policy.local_max as f32;
     let rotation_policy = chunk_loader.usf_transform.rotation.policy;
     let rotation_local_min = rotation_policy.local_min;
     let rotation_local_max = rotation_policy.local_max;
+    let mut local_zoom = chunk_loader.usf_transform.scale.local_f32();
     let workflow_in_flight = chunk_load_gate_enabled && workflow_state.as_ref().is_some_and(|state| !state.is_idle());
 
     if gate_locked {
         // Hard freeze mode: do not process additional pivot transitions while input is locked.
-        zoom_factor.0 = clamp_local_zoom_accumulator(zoom_factor.0, local_min, local_max);
-        chunk_loader.usf_transform.scale.set_local(zoom_factor.0 as f64);
+        local_zoom = clamp_local_zoom_accumulator(local_zoom, local_min, local_max);
+        chunk_loader.usf_transform.scale.set_local(local_zoom as f64);
         player_transform.translation.x = player_transform.translation.x.clamp(translation_local_min, translation_local_max);
         player_transform.translation.y = player_transform.translation.y.clamp(translation_local_min, translation_local_max);
         player_transform.translation.z = player_transform.translation.z.clamp(translation_local_min, translation_local_max);
@@ -2781,7 +2705,10 @@ pub(super) fn apply_usf_player_pivots_system(
     } else {
         let candidate_translation = player_transform.translation + world_space_translation_delta;
 
-        let would_cross_scale_boundary = zoom_factor.0 < local_min || zoom_factor.0 >= local_max;
+        let can_cross_lower_scale_boundary = chunk_loader.scale != Scale::MIN;
+        let can_cross_upper_scale_boundary = chunk_loader.scale != Scale::MAX;
+        let would_cross_scale_boundary = (can_cross_lower_scale_boundary && local_zoom <= scale_commit_min)
+            || (can_cross_upper_scale_boundary && local_zoom >= scale_commit_max);
         let would_cross_translation_boundary = candidate_translation.x < translation_local_min
             || candidate_translation.x >= translation_local_max
             || candidate_translation.y < translation_local_min
@@ -2798,8 +2725,8 @@ pub(super) fn apply_usf_player_pivots_system(
             }
 
             // Reject boundary commit while a previous boundary batch is still in flight.
-            zoom_factor.0 = clamp_local_zoom_accumulator(zoom_factor.0, local_min, local_max);
-            chunk_loader.usf_transform.scale.set_local(zoom_factor.0 as f64);
+            local_zoom = clamp_local_zoom_accumulator(local_zoom, local_min, local_max);
+            chunk_loader.usf_transform.scale.set_local(local_zoom as f64);
             player_transform.translation.x = player_transform.translation.x.clamp(translation_local_min, translation_local_max);
             player_transform.translation.y = player_transform.translation.y.clamp(translation_local_min, translation_local_max);
             player_transform.translation.z = player_transform.translation.z.clamp(translation_local_min, translation_local_max);
@@ -2817,13 +2744,12 @@ pub(super) fn apply_usf_player_pivots_system(
                 chunk_loader.rotate_world_local(intent_rotation_delta);
             }
 
-            let (zoom_in_events, zoom_out_events) =
-                apply_discrete_scale_rebase_events(&mut chunk_loader, &mut zoom_factor.0, &mut player_transform.translation, local_min, local_max);
-            chunk_loader.usf_transform.scale.set_local(zoom_factor.0 as f64);
-            let translation_grid_delta = chunk_loader.apply_translation_pivot(&mut player_transform.translation);
-            chunk_loader.apply_rotation_pivot();
+            let (scale_pivot, translation_grid_delta) = chunk_loader.apply_player_anchor_pivots(&mut local_zoom, &mut player_transform.translation);
+            chunk_loader.usf_transform.scale.set_local(local_zoom as f64);
             chunk_actor.coord = chunk_loader.coord.clone();
 
+            let zoom_in_events = scale_pivot.lower_crossings.max(0) as u32;
+            let zoom_out_events = scale_pivot.upper_crossings.max(0) as u32;
             let boundary_crossed = zoom_in_events > 0 || zoom_out_events > 0 || translation_grid_delta != IVec3::ZERO;
             if boundary_crossed && workflow_in_flight {
                 if let Some(gate) = chunk_load_gate.as_mut() {
@@ -2836,8 +2762,8 @@ pub(super) fn apply_usf_player_pivots_system(
             }
 
             if gate_locked {
-                zoom_factor.0 = clamp_local_zoom_accumulator(zoom_factor.0, local_min, local_max);
-                chunk_loader.usf_transform.scale.set_local(zoom_factor.0 as f64);
+                local_zoom = clamp_local_zoom_accumulator(local_zoom, local_min, local_max);
+                chunk_loader.usf_transform.scale.set_local(local_zoom as f64);
                 player_transform.translation.x = player_transform.translation.x.clamp(translation_local_min, translation_local_max);
                 player_transform.translation.y = player_transform.translation.y.clamp(translation_local_min, translation_local_max);
                 player_transform.translation.z = player_transform.translation.z.clamp(translation_local_min, translation_local_max);
@@ -2852,17 +2778,14 @@ pub(super) fn apply_usf_player_pivots_system(
             if boundary_crossed {
                 warn!(
                     "USF player pivot event: scale={:?}, zoom={:.6}, scale_rebase_events(in={},out={}), translation_grid_delta={:?}, player_pos={:?}",
-                    chunk_loader.scale,
-                    zoom_factor.0,
-                    zoom_in_events,
-                    zoom_out_events,
-                    translation_grid_delta,
-                    player_transform.translation
+                    chunk_loader.scale, local_zoom, zoom_in_events, zoom_out_events, translation_grid_delta, player_transform.translation
                 );
             }
         }
     }
 
+    chunk_loader.usf_transform.translation.x.set_local(player_transform.translation.x as f64);
+    chunk_loader.usf_transform.translation.y.set_local(player_transform.translation.y as f64);
     chunk_loader.usf_transform.translation.z.set_local(player_transform.translation.z as f64);
 
     // Keep player visual scale stable; zoom authority comes from world/scale transitions.

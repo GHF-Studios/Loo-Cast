@@ -11,7 +11,7 @@ pub mod workflows;
 use crate::bevy::prelude::*;
 use bevy_egui::EguiPrimaryContextPass;
 use components::{EguiCamera, EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision, RenderProxy, RenderProxyWindowMode, UiCamera, WorldPresentationRoot};
-use resources::{DevZoomFactor, PauseMenuWindow, PrimaryWindowUiDockState, PrimaryWindowUiState, RuntimeDebugToggles, ViewScale, ZoomFactor};
+use resources::{DevZoomFactor, PauseMenuWindow, PrimaryWindowUiDockState, PrimaryWindowUiState, RuntimeDebugToggles, ViewScale};
 use systems::{
     apply_usf_player_pivots_system, bind_render_proxies_to_world_presentation_root_system, despawn_orphaned_render_proxies, draw_chunk_locator_gizmos_system,
     enforce_main_camera_depth_contract_system, main_camera_zoom_system, pre_setup_phase_0, pre_setup_phase_1, primary_window_ui_system, resize_render_texture,
@@ -29,7 +29,6 @@ impl Plugin for RenderPlugin {
             .init_resource::<PrimaryWindowUiState>()
             .init_resource::<PrimaryWindowUiDockState>()
             .insert_resource(ClearColor(Color::srgb(0.0, 0.0, 0.0)))
-            .insert_resource(ZoomFactor::default())
             .insert_resource(DevZoomFactor::default())
             .insert_resource(ViewScale::default())
             .init_resource::<RuntimeDebugToggles>()
@@ -73,7 +72,6 @@ impl Plugin for RenderPlugin {
             .register_type::<PrimaryWindowUiState>()
             .register_type::<PauseMenuWindow>()
             .register_type::<RuntimeDebugToggles>()
-            .register_type::<ZoomFactor>()
             .register_type::<DevZoomFactor>();
     }
 }

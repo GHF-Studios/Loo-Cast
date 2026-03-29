@@ -16,15 +16,6 @@ pub struct ViewScale {
 
 #[derive(Resource, Reflect)]
 #[reflect(Resource)]
-pub(crate) struct ZoomFactor(pub f32);
-impl Default for ZoomFactor {
-    fn default() -> Self {
-        Self(CONFIG().get::<f32>("camera/default_zoom"))
-    }
-}
-
-#[derive(Resource, Reflect)]
-#[reflect(Resource)]
 pub(crate) struct DevZoomFactor(pub f32);
 impl Default for DevZoomFactor {
     fn default() -> Self {
