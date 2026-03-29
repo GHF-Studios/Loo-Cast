@@ -140,5 +140,74 @@ define_workflow_mod_OLD! {
                 }
             ]
         }
+
+        HydrateChunkVisuals, timeout_secs: 1.0, timeout_mode: VirtualTime {
+            user_imports: {
+                use crate::bevy::prelude::{Commands, ResMut};
+                use crate::chunk::workflows::external::hydrate_chunk_visuals::{
+                    ArtifactsOutput as BuildArtifactsOutput,
+                    CommitOutput as CommitArtifactsOutput,
+                    Error as HydrateChunkVisualsError,
+                    Input as BuildArtifactsInput,
+                    MainAccess as CommitArtifactsMainAccess,
+                    run_async as run_build_artifacts_async,
+                    run_ecs as run_commit_artifacts_ecs,
+                };
+            },
+            user_items: {
+            },
+            stages: [
+                BuildArtifacts: Ecs, run_if_paused: false, run_after_startup_finished: true {
+                    core_types: [
+                        struct MainAccess<'w, 's> {
+                            _commands: Commands<'w, 's>,
+                        }
+                        struct Input {
+                            inner: BuildArtifactsInput,
+                        }
+                        struct Output {
+                            inner: BuildArtifactsOutput,
+                        }
+                        enum Error {
+                            Inner(HydrateChunkVisualsError),
+                        }
+                    ],
+                    core_functions: [
+                        fn RunEcs |input, main_access| -> Result<Output, Error> {
+                            let _ = main_access;
+                            let output = run_build_artifacts_async(input.inner).map_err(Error::Inner)?;
+                            Ok(Output {
+                                inner: output,
+                            })
+                        }
+                    ]
+                },
+
+                CommitArtifacts: Ecs, run_if_paused: false, run_after_startup_finished: true {
+                    core_types: [
+                        struct MainAccess<'w, 's> {
+                            inner: CommitArtifactsMainAccess<'w, 's>,
+                        }
+                        struct Input {
+                            inner: BuildArtifactsOutput,
+                        }
+                        struct Output {
+                            inner: CommitArtifactsOutput,
+                        }
+                        enum Error {
+                            Inner(HydrateChunkVisualsError),
+                        }
+                    ],
+                    core_functions: [
+                        fn RunEcs |input, main_access| -> Result<Output, Error> {
+                            let output = run_commit_artifacts_ecs(input.inner, main_access.inner).map_err(Error::Inner)?;
+                            Ok(Output {
+                                inner: output,
+                            })
+                        }
+                    ]
+                }
+            ]
+        }
     ]
 }

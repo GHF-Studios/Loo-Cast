@@ -15,11 +15,17 @@ use crate::usf::pos::unit::types::UnitVec;
 use crate::usf::scale::Scale;
 use crate::usf::zlm::ZlmRegistry;
 use crate::usf::zone::{ZoneBehaviorRegistry, ZoneDensityProfile};
+use crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext;
+use crate::workflow::functions::{WorkflowTimeoutControlDecision, handle_composite_workflow_return_now, run_workflow_ioe_with_timeout_control};
+use crate::workflow::types::WorkflowTimeoutMode;
+use core_mod_macros::{composite_workflow, composite_workflow_return};
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::fs;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::{Path, PathBuf};
+use std::time::Duration;
+use tokio::task::JoinHandle;
 
 const CHUNK_SPAN_UNITS_I64: i64 = 1_000;
 const HALF_CHUNK_SPAN_F32: f32 = 500.0;
@@ -154,29 +160,149 @@ pub(crate) fn sync_chunk_manager_loader_state_system(player_loader_query: Query<
     chunk_manager.loader_origin_unit = UnitVec::new(chunk_loader.origin_offset.clone(), Vec3::ZERO);
 }
 
-pub(crate) fn hydrate_chunk_demo_data_system(
-    mut commands: Commands,
+#[derive(Resource)]
+pub struct UsfDemoHydrationWorkflowState {
+    pub handle: Option<JoinHandle<ScopedCompositeWorkflowContext>>,
+    queued_entities: VecDeque<Entity>,
+    queued_lookup: HashSet<Entity>,
+    in_flight_entities: HashSet<Entity>,
+}
+impl Default for UsfDemoHydrationWorkflowState {
+    fn default() -> Self {
+        Self {
+            handle: None,
+            queued_entities: VecDeque::new(),
+            queued_lookup: HashSet::new(),
+            in_flight_entities: HashSet::new(),
+        }
+    }
+}
+impl UsfDemoHydrationWorkflowState {
+    fn queue(&mut self, entity: Entity) {
+        if self.in_flight_entities.contains(&entity) || self.queued_lookup.contains(&entity) {
+            return;
+        }
+        self.queued_entities.push_back(entity);
+        self.queued_lookup.insert(entity);
+    }
+
+    fn clear(&mut self) {
+        if let Some(handle) = self.handle.take() {
+            handle.abort();
+        }
+        self.queued_entities.clear();
+        self.queued_lookup.clear();
+        self.in_flight_entities.clear();
+    }
+
+    fn clear_in_flight(&mut self) {
+        self.in_flight_entities.clear();
+    }
+
+    fn drain_batch(&mut self, batch_size: usize) -> Vec<Entity> {
+        let mut batch = Vec::with_capacity(batch_size);
+        while batch.len() < batch_size {
+            let Some(entity) = self.queued_entities.pop_front() else {
+                break;
+            };
+            self.queued_lookup.remove(&entity);
+            batch.push(entity);
+        }
+        batch
+    }
+
+    fn mark_in_flight(&mut self, entities: &[Entity]) {
+        self.in_flight_entities.extend(entities.iter().copied());
+    }
+
+    fn prune_stale(&mut self, chunk_visual_query: &Query<Option<&UsfDemoChunkVisual>, With<Chunk>>) {
+        self.queued_entities.retain(|entity| matches!(chunk_visual_query.get(*entity), Ok(None)));
+        self.queued_lookup = self.queued_entities.iter().copied().collect::<HashSet<_>>();
+        self.in_flight_entities.retain(|entity| matches!(chunk_visual_query.get(*entity), Ok(None)));
+    }
+}
+
+const CHUNK_DEMO_HYDRATION_BATCH_SIZE: usize = 64;
+
+#[derive(Debug, Clone)]
+pub struct ChunkDemoHydrationTask {
+    pub chunk_entity: Entity,
+    pub chunk_coord: GridVec,
+    pub chunk_scale: Scale,
+    pub canonical_coord: GridVec,
+    pub zone_type: ZoneTypeId,
+    pub zone_density_profile: ZoneDensityProfile,
+    pub zone_density_signature: u64,
+    pub chunk_store_key: String,
+}
+
+#[derive(Debug)]
+pub struct ChunkDemoHydrationArtifact {
+    pub chunk_entity: Entity,
+    pub chunk_coord: GridVec,
+    pub canonical_coord: GridVec,
+    pub record: PersistedChunkRecord,
+    pub mesh: Option<Mesh>,
+}
+
+pub(crate) fn queue_chunk_demo_hydration_requests_system(
+    settings: Res<UsfDemoSettings>,
+    added_chunks: Query<Entity, (Added<Chunk>, Without<UsfDemoChunkVisual>)>,
+    mut hydration_state: ResMut<UsfDemoHydrationWorkflowState>,
+) {
+    if !settings.enabled {
+        return;
+    }
+
+    for entity in added_chunks.iter() {
+        hydration_state.queue(entity);
+    }
+}
+
+pub(crate) fn run_chunk_demo_hydration_workflow_system(
     settings: Res<UsfDemoSettings>,
     definitions: Res<DefinitionRegistry>,
     mut dpt_store: ResMut<DptStore>,
     zlm_registry: Res<ZlmRegistry>,
     scale_content_registry: Res<ScaleContentRegistry>,
     zone_behavior_registry: Res<ZoneBehaviorRegistry>,
-    player_loader_query: Query<&ChunkLoader, With<Player>>,
-    mut chunk_store: ResMut<UsfDemoChunkStore>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    added_chunks: Query<(Entity, &Chunk), (Added<Chunk>, Without<UsfDemoChunkVisual>)>,
+    chunk_visual_query: Query<Option<&UsfDemoChunkVisual>, With<Chunk>>,
+    chunk_query: Query<(&Chunk, Option<&UsfDemoChunkVisual>)>,
+    mut hydration_state: ResMut<UsfDemoHydrationWorkflowState>,
 ) {
     if !settings.enabled {
+        hydration_state.clear();
         return;
     }
 
-    let Ok(_chunk_loader) = player_loader_query.single() else {
+    if hydration_state.handle.as_ref().is_some_and(|handle| !handle.is_finished()) {
         return;
-    };
+    }
 
-    for (entity, chunk) in added_chunks.iter() {
+    if let Some(handle) = hydration_state.handle.take() {
+        handle_composite_workflow_return_now(handle, |_ctx| {
+            composite_workflow_return!();
+        });
+        hydration_state.clear_in_flight();
+    }
+
+    hydration_state.prune_stale(&chunk_visual_query);
+    let batch_entities = hydration_state.drain_batch(CHUNK_DEMO_HYDRATION_BATCH_SIZE);
+    if batch_entities.is_empty() {
+        return;
+    }
+
+    let mut in_flight_entities = Vec::<Entity>::new();
+    let mut tasks = Vec::<ChunkDemoHydrationTask>::new();
+
+    for entity in batch_entities {
+        let Ok((chunk, maybe_visual)) = chunk_query.get(entity) else {
+            continue;
+        };
+        if maybe_visual.is_some() {
+            continue;
+        }
+
         let chunk_scale = chunk.coord.scale;
         let Some(schema) = definitions.schema_for_scale(chunk_scale) else {
             warn!(
@@ -202,68 +328,165 @@ pub(crate) fn hydrate_chunk_demo_data_system(
             .binding_for_scale(chunk_scale)
             .map(|binding| binding.chunk_store_key.as_str())
             .unwrap_or("chunk_store.default");
-        let chunk_file = chunk_file_path(&settings, chunk_scale, &canonical_coord, chunk_store_key);
-        let expected_coord = SerializableGridCoord::from_grid(&canonical_coord);
 
-        let mut record = load_chunk_record(&chunk_file).filter(|loaded| {
-            loaded.world_seed == settings.world_seed
-                && loaded.active_scale_index == chunk_scale.index_from_top()
-                && loaded.chunk_coord == expected_coord
-                && loaded.zone_type.eq_ignore_ascii_case(&zone_type.0)
-                && loaded.zone_density_signature == zone_density_signature
-                && loaded.density_field_signature == density_field_signature()
-                && loaded.sample_step == settings.sample_step
-                && loaded.iso_level == settings.iso_level
+        in_flight_entities.push(entity);
+        tasks.push(ChunkDemoHydrationTask {
+            chunk_entity: entity,
+            chunk_coord: chunk.coord.clone(),
+            chunk_scale,
+            canonical_coord,
+            zone_type,
+            zone_density_profile,
+            zone_density_signature,
+            chunk_store_key: chunk_store_key.to_string(),
         });
-
-        if record.is_none() {
-            let generated = generate_chunk_record(
-                &settings,
-                chunk_scale,
-                &canonical_coord,
-                &zone_type,
-                zone_density_profile,
-                zone_density_signature,
-            );
-            if let Err(error) = save_chunk_record(&chunk_file, &generated) {
-                warn!("USF demo persistence write failed for {:?}: {}", chunk_file, error);
-            }
-            record = Some(generated);
-        }
-
-        let record = record.expect("USF demo record should exist after generate/load");
-        let mesh = build_chunk_mesh(&record);
-        if let Some(mesh) = mesh {
-            let collider = Collider::from_bevy_mesh(&mesh, &ComputedColliderShape::default());
-            let mesh_handle = meshes.add(mesh);
-            let material_handle = materials.add(StandardMaterial {
-                base_color: color_from_seed(record.chunk_seed),
-                perceptual_roughness: 0.9,
-                metallic: 0.0,
-                ..Default::default()
-            });
-            let mut entity_commands = commands.entity(entity);
-            entity_commands.insert((Mesh3d(mesh_handle), MeshMaterial3d(material_handle), Visibility::Visible));
-            if let Some(collider) = collider {
-                entity_commands.insert(collider);
-            } else {
-                warn!(
-                    "USF demo collider build failed for chunk {:?}; mesh will render without collision.",
-                    chunk.coord
-                );
-                entity_commands.remove::<Collider>();
-            }
-        } else {
-            commands.entity(entity).remove::<Collider>();
-        }
-
-        commands.entity(entity).insert(UsfDemoChunkVisual {
-            chunk_seed: record.chunk_seed,
-            sample_step: record.sample_step,
-        });
-
-        chunk_store.records.insert(canonical_coord, record);
     }
+
+    if tasks.is_empty() {
+        return;
+    }
+
+    hydration_state.mark_in_flight(&in_flight_entities);
+
+    let hydrate_async_input = crate::chunk::workflows::external::hydrate_chunk_visuals::AsyncInput {
+        settings: settings.clone(),
+        tasks,
+    };
+
+    let handle = composite_workflow!(
+        HydrateChunkVisualsBatch,
+        move in hydrate_async_input: crate::chunk::workflows::external::hydrate_chunk_visuals::AsyncInput,
+    {
+        let _ = run_workflow_ioe_with_timeout_control::<crate::chunk::workflows::chunk::hydrate_chunk_visuals::TypeIOE, _>(
+            Duration::from_secs_f64(1.0),
+            WorkflowTimeoutMode::VirtualTime,
+            crate::chunk::workflows::chunk::hydrate_chunk_visuals::stages::build_artifacts::core_types::Input {
+                inner: crate::chunk::workflows::external::hydrate_chunk_visuals::Input {
+                    inner: hydrate_async_input,
+                },
+            },
+            |ctx| chunk_demo_hydration_timeout_decision(ctx.module_name, ctx.workflow_name, ctx.timeout_count),
+        )
+        .await;
+    });
+    hydration_state.handle = Some(handle);
+}
+
+fn chunk_demo_hydration_timeout_decision(
+    module_name: &'static str,
+    workflow_name: &'static str,
+    timeout_count: usize,
+) -> WorkflowTimeoutControlDecision {
+    if timeout_count == 1 {
+        warn!(
+            "Chunk demo hydration timeout request: {}::{}, timeout_count={}, decision=Retry",
+            module_name, workflow_name, timeout_count
+        );
+        return WorkflowTimeoutControlDecision::Retry;
+    }
+
+    warn!(
+        "Chunk demo hydration timeout escalation: {}::{}, timeout_count={}, decision=Panic",
+        module_name, workflow_name, timeout_count
+    );
+    WorkflowTimeoutControlDecision::Panic
+}
+
+pub(crate) fn prepare_chunk_demo_hydration_artifact(
+    settings: &UsfDemoSettings,
+    task: ChunkDemoHydrationTask,
+) -> ChunkDemoHydrationArtifact {
+    let chunk_file = chunk_file_path(
+        settings,
+        task.chunk_scale,
+        &task.canonical_coord,
+        task.chunk_store_key.as_str(),
+    );
+    let expected_coord = SerializableGridCoord::from_grid(&task.canonical_coord);
+
+    let mut record = load_chunk_record(&chunk_file).filter(|loaded| {
+        loaded.world_seed == settings.world_seed
+            && loaded.active_scale_index == task.chunk_scale.index_from_top()
+            && loaded.chunk_coord == expected_coord
+            && loaded.zone_type.eq_ignore_ascii_case(&task.zone_type.0)
+            && loaded.zone_density_signature == task.zone_density_signature
+            && loaded.density_field_signature == density_field_signature()
+            && loaded.sample_step == settings.sample_step
+            && loaded.iso_level == settings.iso_level
+    });
+
+    if record.is_none() {
+        let generated = generate_chunk_record(
+            settings,
+            task.chunk_scale,
+            &task.canonical_coord,
+            &task.zone_type,
+            task.zone_density_profile,
+            task.zone_density_signature,
+        );
+        if let Err(error) = save_chunk_record(&chunk_file, &generated) {
+            warn!("USF demo persistence write failed for {:?}: {}", chunk_file, error);
+        }
+        record = Some(generated);
+    }
+
+    let record = record.expect("USF demo record should exist after generate/load");
+    let mesh = build_chunk_mesh(&record);
+
+    ChunkDemoHydrationArtifact {
+        chunk_entity: task.chunk_entity,
+        chunk_coord: task.chunk_coord,
+        canonical_coord: task.canonical_coord,
+        record,
+        mesh,
+    }
+}
+
+pub(crate) fn apply_chunk_demo_hydration_artifact(
+    artifact: ChunkDemoHydrationArtifact,
+    commands: &mut Commands,
+    chunk_store: &mut UsfDemoChunkStore,
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Assets<StandardMaterial>,
+) {
+    let ChunkDemoHydrationArtifact {
+        chunk_entity,
+        chunk_coord,
+        canonical_coord,
+        record,
+        mesh,
+    } = artifact;
+
+    if let Some(mesh) = mesh {
+        let collider = Collider::from_bevy_mesh(&mesh, &ComputedColliderShape::default());
+        let mesh_handle = meshes.add(mesh);
+        let material_handle = materials.add(StandardMaterial {
+            base_color: color_from_seed(record.chunk_seed),
+            perceptual_roughness: 0.9,
+            metallic: 0.0,
+            ..Default::default()
+        });
+        let mut entity_commands = commands.entity(chunk_entity);
+        entity_commands.insert((Mesh3d(mesh_handle), MeshMaterial3d(material_handle), Visibility::Visible));
+        if let Some(collider) = collider {
+            entity_commands.insert(collider);
+        } else {
+            warn!(
+                "USF demo collider build failed for chunk {:?}; mesh will render without collision.",
+                chunk_coord
+            );
+            entity_commands.remove::<Collider>();
+        }
+    } else {
+        commands.entity(chunk_entity).remove::<Collider>();
+    }
+
+    commands.entity(chunk_entity).insert(UsfDemoChunkVisual {
+        chunk_seed: record.chunk_seed,
+        sample_step: record.sample_step,
+    });
+
+    chunk_store.records.insert(canonical_coord, record);
 }
 
 pub(crate) fn sync_chunk_demo_visual_transforms_system(

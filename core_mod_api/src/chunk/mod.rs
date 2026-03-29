@@ -13,7 +13,7 @@ pub mod workflows;
 
 use crate::bevy::prelude::*;
 use components::{Chunk, ChunkActor, ChunkDebugWireframe, ChunkLoader, PhenomenonFrontierView};
-use demo::{UsfDemoChunkStore, UsfDemoChunkVisual, UsfDemoSettings};
+use demo::{UsfDemoChunkStore, UsfDemoChunkVisual, UsfDemoHydrationWorkflowState, UsfDemoSettings};
 use enums::ZoomState;
 use errors::{DespawnError, SpawnError};
 use messages::ChunkBatchLifecycleMessage;
@@ -36,6 +36,7 @@ impl Plugin for ChunkPlugin {
             .insert_resource(ChunkActionWorkflowState::default())
             .init_resource::<UsfDemoSettings>()
             .init_resource::<UsfDemoChunkStore>()
+            .init_resource::<UsfDemoHydrationWorkflowState>()
             .add_message::<ChunkBatchLifecycleMessage>()
             .add_systems(PreUpdate, chunk_timeout_signal_system.run_if(run_after_startup_finished))
             .add_systems(
@@ -63,10 +64,13 @@ impl Plugin for ChunkPlugin {
             .add_systems(
                 PostUpdate,
                 (
-                    demo::hydrate_chunk_demo_data_system.in_set(AppSet::Presentation),
+                    demo::queue_chunk_demo_hydration_requests_system.in_set(AppSet::Presentation),
+                    demo::run_chunk_demo_hydration_workflow_system
+                        .in_set(AppSet::Presentation)
+                        .after(demo::queue_chunk_demo_hydration_requests_system),
                     demo::bind_chunk_demo_visuals_to_world_presentation_root_system
                         .in_set(AppSet::Presentation)
-                        .after(demo::hydrate_chunk_demo_data_system),
+                        .after(demo::run_chunk_demo_hydration_workflow_system),
                     demo::sync_chunk_demo_visual_transforms_system
                         .in_set(AppSet::Presentation)
                         .after(demo::bind_chunk_demo_visuals_to_world_presentation_root_system),

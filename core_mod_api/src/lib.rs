@@ -180,6 +180,10 @@ register_workflow_mods!(
         DespawnChunks {
             FindAndDespawnAndWait: EcsWhile,
         },
+        HydrateChunkVisuals {
+            BuildArtifacts: Ecs,
+            CommitArtifacts: Ecs,
+        },
     },
     Core {
         FinishStartup {
