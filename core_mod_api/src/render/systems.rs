@@ -22,7 +22,7 @@ use crate::time::resources::VirtualPaused;
 use crate::tracing::{error, info};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 const MIN_WINDOW_SIZE_LOCAL: f32 = f32::MIN_POSITIVE;
 #[cfg(test)]
@@ -263,7 +263,7 @@ pub(super) fn update_render_proxies(
     mut params: ParamSet<(
         Single<(&ChunkLoader, &Transform), (With<Player>, Without<MainCamera>)>,
         Query<(&EntityProxyLink, &ChunkActor), Without<RenderProxy>>,
-        Query<(&mut Transform, &mut ProxySyncRevision, &mut RenderProxy), With<RenderProxy>>,
+        Query<(Entity, &mut Transform, &mut ProxySyncRevision, &mut RenderProxy, &mut Visibility), With<RenderProxy>>,
     )>,
 ) {
     let (world_rotation_origin, origin_offset, view_pos_native, player_local_zoom, world_presentation_scale) = {
@@ -280,6 +280,8 @@ pub(super) fn update_render_proxies(
             presentation_scale,
         )
     };
+    let load_radius = CONFIG().get::<u32>("chunk_loader/load_radius") as usize;
+    let active_budget = (load_radius.saturating_mul(12)).clamp(16, 128);
 
     let actor_updates = {
         let chunk_actor_query = params.p1();
@@ -292,7 +294,7 @@ pub(super) fn update_render_proxies(
     {
         let mut proxy_transforms = params.p2();
         for (proxy_entity, incoming_revision, coord) in actor_updates {
-            if let Ok((mut proxy_transform, mut proxy_revision, mut proxy_state)) = proxy_transforms.get_mut(proxy_entity) {
+            if let Ok((_entity, mut proxy_transform, mut proxy_revision, mut proxy_state, _visibility)) = proxy_transforms.get_mut(proxy_entity) {
                 if incoming_revision.0 < proxy_revision.0 {
                     continue;
                 }
@@ -317,7 +319,73 @@ pub(super) fn update_render_proxies(
                 proxy_revision.0 = incoming_revision.0;
             }
         }
+
+        let mut cull_candidates = Vec::new();
+        for (entity, proxy_transform, _proxy_revision, proxy_state, _visibility) in proxy_transforms.iter_mut() {
+            if proxy_state.relative_scale_to_player > 0 {
+                continue;
+            }
+
+            let world_pos = world_rotation_origin + proxy_transform.translation;
+            cull_candidates.push(RenderProxyCullCandidate {
+                entity,
+                relative_scale_to_player: proxy_state.relative_scale_to_player,
+                distance_sq: world_pos.distance_squared(view_pos_native),
+            });
+        }
+
+        let visible_entities = select_visible_render_proxy_entities(&cull_candidates, active_budget);
+        for (entity, _proxy_transform, _proxy_revision, _proxy_state, mut visibility) in proxy_transforms.iter_mut() {
+            *visibility = if visible_entities.contains(&entity) {
+                Visibility::Visible
+            } else {
+                Visibility::Hidden
+            };
+        }
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct RenderProxyCullCandidate {
+    entity: Entity,
+    relative_scale_to_player: i8,
+    distance_sq: f32,
+}
+
+#[inline]
+fn render_proxy_band_budget(relative_scale_to_player: i8, active_budget: usize) -> usize {
+    if relative_scale_to_player >= 0 {
+        return active_budget.max(1);
+    }
+
+    match (-relative_scale_to_player) as u8 {
+        1 => (active_budget / 3).max(6),
+        2 => (active_budget / 6).max(3),
+        3 => (active_budget / 12).max(1),
+        _ => 1,
+    }
+}
+
+fn select_visible_render_proxy_entities(candidates: &[RenderProxyCullCandidate], active_budget: usize) -> HashSet<Entity> {
+    let mut grouped = BTreeMap::<i8, Vec<RenderProxyCullCandidate>>::new();
+    for candidate in candidates.iter().copied() {
+        grouped.entry(candidate.relative_scale_to_player).or_default().push(candidate);
+    }
+
+    let mut selected = HashSet::<Entity>::new();
+    for (band, mut entries) in grouped {
+        entries.sort_by(|a, b| {
+            a.distance_sq
+                .total_cmp(&b.distance_sq)
+                .then_with(|| a.entity.to_bits().cmp(&b.entity.to_bits()))
+        });
+        let budget = render_proxy_band_budget(band, active_budget).min(entries.len());
+        for candidate in entries.into_iter().take(budget) {
+            selected.insert(candidate.entity);
+        }
+    }
+
+    selected
 }
 
 #[tracing::instrument(skip_all)]
@@ -2486,15 +2554,7 @@ mod tests {
 
     #[test]
     fn zoom_candidate_allows_when_rapier_context_unavailable() {
-        let allowed = zoom_candidate_respects_physics(
-            None,
-            Vec3::ZERO,
-            Entity::PLACEHOLDER,
-            42.0,
-            24.0,
-            1.0,
-            2.0,
-        );
+        let allowed = zoom_candidate_respects_physics(None, Vec3::ZERO, Entity::PLACEHOLDER, 42.0, 24.0, 1.0, 2.0);
         assert!(allowed);
     }
 }
@@ -2780,8 +2840,8 @@ pub(super) fn apply_usf_player_pivots_system(
 
         let can_cross_lower_scale_boundary = chunk_loader.scale != Scale::MIN;
         let can_cross_upper_scale_boundary = chunk_loader.scale != Scale::MAX;
-        let would_cross_scale_boundary = (can_cross_lower_scale_boundary && local_zoom <= scale_commit_min)
-            || (can_cross_upper_scale_boundary && local_zoom >= scale_commit_max);
+        let would_cross_scale_boundary =
+            (can_cross_lower_scale_boundary && local_zoom <= scale_commit_min) || (can_cross_upper_scale_boundary && local_zoom >= scale_commit_max);
         let would_cross_translation_boundary = candidate_translation.x < translation_local_min
             || candidate_translation.x >= translation_local_max
             || candidate_translation.y < translation_local_min

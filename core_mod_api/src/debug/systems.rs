@@ -1,4 +1,5 @@
 use crate::bevy::{camera::visibility::RenderLayers, prelude::*};
+use crate::bevy_rapier3d::render::DebugRenderContext;
 use bevy_egui::{
     EguiContexts,
     egui::{self, ScrollArea},
@@ -146,6 +147,24 @@ pub(super) fn toggle_chunk_locator_debug_chord_system(mut toggles: ResMut<Runtim
             if toggles.chunk_locator_enabled { "enabled" } else { "disabled" }
         );
     }
+}
+
+#[tracing::instrument(skip_all)]
+pub(super) fn toggle_mesh_wire_highlight_chord_system(mut debug_render_context: Option<ResMut<DebugRenderContext>>, keys: Res<ButtonInput<KeyCode>>) {
+    if !(keys.pressed(KeyCode::F3) && keys.just_pressed(KeyCode::KeyM)) {
+        return;
+    }
+
+    let Some(debug_render_context) = debug_render_context.as_mut() else {
+        warn!("F3+M pressed, but Rapier debug render context is unavailable.");
+        return;
+    };
+
+    debug_render_context.enabled = !debug_render_context.enabled;
+    info!(
+        "Physics mesh wire-highlight {} (toggle chord: F3+M).",
+        if debug_render_context.enabled { "enabled" } else { "disabled" }
+    );
 }
 
 #[tracing::instrument(skip_all)]

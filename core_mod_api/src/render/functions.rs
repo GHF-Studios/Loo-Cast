@@ -256,7 +256,10 @@ fn draw_local_zoom_indicator(state: &PrimaryWindowUiState, world: &mut World, ct
                 .inner_margin(egui::Margin::same(8))
                 .show(ui, |ui| {
                     ui.monospace(format!("local zoom: {:.6}x   scale: {}", local_zoom, scale_index));
-                    ui.monospace(format!("window [{:.6}, {:.6}]  commit [{:.6}, {:.6}]", local_min, local_max, commit_min, commit_max));
+                    ui.monospace(format!(
+                        "window [{:.6}, {:.6}]  commit [{:.6}, {:.6}]",
+                        local_min, local_max, commit_min, commit_max
+                    ));
                 });
         });
 }
@@ -443,6 +446,10 @@ fn draw_runtime_debug_overlay(state: &PrimaryWindowUiState, world: &mut World, c
     };
 
     let runtime_toggles = world.get_resource::<RuntimeDebugToggles>().copied().unwrap_or_default();
+    let mesh_wire_highlight_enabled = world
+        .get_resource::<crate::bevy_rapier3d::render::DebugRenderContext>()
+        .map(|context| context.enabled)
+        .unwrap_or(false);
 
     let mut lines = Vec::with_capacity(12);
     lines.push("USF Runtime Debug  (F6 toggle)".to_string());
@@ -458,8 +465,8 @@ fn draw_runtime_debug_overlay(state: &PrimaryWindowUiState, world: &mut World, c
         view_scale_discrete, view_scale_offset, loader_scale_index
     ));
     lines.push(format!(
-        "chunk_locator_debug={} hotkey_help={}",
-        runtime_toggles.chunk_locator_enabled, runtime_toggles.show_hotkey_help
+        "chunk_locator_debug={} mesh_wire_highlight={} hotkey_help={}",
+        runtime_toggles.chunk_locator_enabled, mesh_wire_highlight_enabled, runtime_toggles.show_hotkey_help
     ));
 
     if let Some(stats) = world.get_resource::<PhenomenonDebugStats>() {
@@ -479,7 +486,7 @@ fn draw_runtime_debug_overlay(state: &PrimaryWindowUiState, world: &mut World, c
 
     if runtime_toggles.show_hotkey_help {
         lines.push("Hotkeys: Esc=pause menu, F2=input mode, F4=debug suite, F5=camera mode, F6=runtime overlay".to_string());
-        lines.push("F3 menu: F3+C toggles chunk wiregrid/wiremesh debug visuals".to_string());
+        lines.push("F3 menu: F3+C toggles chunk wiregrid, F3+M toggles physics wiremesh highlight".to_string());
         lines.push("Help toggle: F2+H".to_string());
     }
 

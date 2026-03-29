@@ -59,6 +59,7 @@ pub(super) fn ensure_entity_proxy_links_system(
             .spawn((
                 Name::new(format!("render_proxy({root_label})")),
                 Transform::default(),
+                Visibility::Visible,
                 RenderProxy {
                     source: root_entity,
                     layer_index: 0,

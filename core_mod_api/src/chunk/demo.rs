@@ -7,7 +7,7 @@ use crate::chunk::components::{Chunk, ChunkLoader};
 use crate::chunk::resources::ChunkManager;
 use crate::config::statics::CONFIG;
 use crate::player::components::Player;
-use crate::render::components::WorldPresentationRoot;
+use crate::render::components::{MainCamera, WorldPresentationRoot};
 use crate::usf::definition::{DefinitionRegistry, ScaleContentRegistry, ZoneTypeId};
 use crate::usf::dpt::{DptChunkKey, DptStore};
 use crate::usf::pos::grid::types::GridVec;
@@ -16,7 +16,7 @@ use crate::usf::scale::Scale;
 use crate::usf::zlm::ZlmRegistry;
 use crate::usf::zone::{ZoneBehaviorRegistry, ZoneDensityProfile};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::{Path, PathBuf};
@@ -269,7 +269,9 @@ pub(crate) fn hydrate_chunk_demo_data_system(
 pub(crate) fn sync_chunk_demo_visual_transforms_system(
     settings: Res<UsfDemoSettings>,
     player_loader_query: Query<(&ChunkLoader, &Transform), With<Player>>,
-    mut chunk_query: Query<(&Chunk, &mut Transform), (With<UsfDemoChunkVisual>, Without<Player>)>,
+    main_camera_query: Query<&Transform, (With<MainCamera>, Without<Player>, Without<UsfDemoChunkVisual>)>,
+    root_query: Single<&Transform, (With<WorldPresentationRoot>, Without<Player>, Without<UsfDemoChunkVisual>)>,
+    mut chunk_query: Query<(Entity, &Chunk, &mut Transform, &mut Visibility), (With<UsfDemoChunkVisual>, Without<Player>)>,
 ) {
     if !settings.enabled {
         return;
@@ -281,14 +283,110 @@ pub(crate) fn sync_chunk_demo_visual_transforms_system(
 
     let world_rotation_origin = player_transform.translation;
     let origin_offset = chunk_loader.origin_offset.clone();
+    let active_scale_index = chunk_loader.scale.index_from_top() as i16;
 
-    for (chunk, mut transform) in chunk_query.iter_mut() {
+    let Ok(camera_transform) = main_camera_query.single() else {
+        for (_entity, chunk, mut transform, mut visibility) in chunk_query.iter_mut() {
+            let (native_pos, visual_scale) = chunk.coord.clone().to_native_visual(origin_offset.clone());
+            let world_pos = Vec3::new(native_pos.x, native_pos.y, native_pos.z);
+            transform.translation = world_pos - world_rotation_origin;
+            transform.rotation = Quat::IDENTITY;
+            transform.scale = Vec3::splat(visual_scale);
+            *visibility = Visibility::Visible;
+        }
+        return;
+    };
+
+    let root_transform = *root_query;
+    let camera_pos = camera_transform.translation;
+    let camera_forward = (-(camera_transform.rotation * Vec3::Z)).normalize_or_zero();
+    let root_scale = root_transform.scale.x;
+    let root_rotation = root_transform.rotation;
+    let root_translation = root_transform.translation;
+    let load_radius = CONFIG().get::<u32>("chunk_loader/load_radius") as usize;
+    let side = load_radius.saturating_mul(2).saturating_add(1);
+    let active_budget = side.saturating_mul(side).clamp(16, 144);
+    let mut cull_candidates = Vec::new();
+
+    for (entity, chunk, mut transform, mut visibility) in chunk_query.iter_mut() {
         let (native_pos, visual_scale) = chunk.coord.clone().to_native_visual(origin_offset.clone());
         let world_pos = Vec3::new(native_pos.x, native_pos.y, native_pos.z);
         transform.translation = world_pos - world_rotation_origin;
         transform.rotation = Quat::IDENTITY;
         transform.scale = Vec3::splat(visual_scale);
+        *visibility = Visibility::Hidden;
+
+        let relative_scale = chunk.coord.scale.index_from_top() as i16 - active_scale_index;
+        if relative_scale > 0 {
+            continue;
+        }
+
+        let chunk_world_pos = root_translation + (root_rotation * (transform.translation * root_scale));
+        let to_chunk = chunk_world_pos - camera_pos;
+        let distance_sq = to_chunk.length_squared();
+        let front_dot = if distance_sq <= f32::EPSILON {
+            1.0
+        } else {
+            to_chunk.normalize_or_zero().dot(camera_forward)
+        };
+        cull_candidates.push(ChunkVisualCullCandidate {
+            entity,
+            coarse_depth: (-relative_scale).max(0) as u8,
+            distance_sq,
+            front_dot,
+        });
     }
+
+    let visible_entities = select_visible_chunk_visual_entities(&cull_candidates, active_budget);
+    for (entity, _chunk, _transform, mut visibility) in chunk_query.iter_mut() {
+        *visibility = if visible_entities.contains(&entity) {
+            Visibility::Visible
+        } else {
+            Visibility::Hidden
+        };
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct ChunkVisualCullCandidate {
+    entity: Entity,
+    coarse_depth: u8,
+    distance_sq: f32,
+    front_dot: f32,
+}
+
+#[inline]
+fn chunk_visual_band_budget(coarse_depth: u8, active_budget: usize) -> usize {
+    match coarse_depth {
+        0 => active_budget.max(1),
+        1 => (active_budget / 3).max(6),
+        2 => (active_budget / 6).max(2),
+        3 => (active_budget / 12).max(1),
+        _ => 1,
+    }
+}
+
+fn select_visible_chunk_visual_entities(candidates: &[ChunkVisualCullCandidate], active_budget: usize) -> HashSet<Entity> {
+    let mut grouped = BTreeMap::<u8, Vec<ChunkVisualCullCandidate>>::new();
+    for candidate in candidates.iter().copied() {
+        grouped.entry(candidate.coarse_depth).or_default().push(candidate);
+    }
+
+    let mut selected = HashSet::<Entity>::new();
+    for (depth, mut entries) in grouped {
+        entries.sort_by(|a, b| {
+            b.front_dot
+                .total_cmp(&a.front_dot)
+                .then_with(|| a.distance_sq.total_cmp(&b.distance_sq))
+                .then_with(|| a.entity.to_bits().cmp(&b.entity.to_bits()))
+        });
+        let budget = chunk_visual_band_budget(depth, active_budget).min(entries.len());
+        for candidate in entries.into_iter().take(budget) {
+            selected.insert(candidate.entity);
+        }
+    }
+
+    selected
 }
 
 pub(crate) fn bind_chunk_demo_visuals_to_world_presentation_root_system(
