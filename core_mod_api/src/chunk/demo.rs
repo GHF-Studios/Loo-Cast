@@ -268,52 +268,58 @@ pub(crate) fn hydrate_chunk_demo_data_system(
 
 pub(crate) fn sync_chunk_demo_visual_transforms_system(
     settings: Res<UsfDemoSettings>,
-    player_loader_query: Query<(&ChunkLoader, &Transform), With<Player>>,
-    main_camera_query: Query<&Transform, (With<MainCamera>, Without<Player>, Without<UsfDemoChunkVisual>)>,
-    root_query: Single<&Transform, (With<WorldPresentationRoot>, Without<Player>, Without<UsfDemoChunkVisual>)>,
-    mut chunk_query: Query<(Entity, &Chunk, &mut Transform, &mut Visibility), (With<UsfDemoChunkVisual>, Without<Player>)>,
+    mut params: ParamSet<(
+        Query<(&ChunkLoader, &Transform), With<Player>>,
+        Query<&Transform, (With<MainCamera>, Without<Player>, Without<UsfDemoChunkVisual>)>,
+        Single<&Transform, (With<WorldPresentationRoot>, Without<Player>, Without<UsfDemoChunkVisual>)>,
+        Query<
+            (Entity, &Chunk, &mut Transform, &mut Visibility),
+            (With<UsfDemoChunkVisual>, Without<Player>, Without<MainCamera>, Without<WorldPresentationRoot>),
+        >,
+    )>,
 ) {
     if !settings.enabled {
         return;
     }
 
-    let Ok((chunk_loader, player_transform)) = player_loader_query.single() else {
-        return;
+    let (active_scale_index, player_root_native) = {
+        let player_loader_query = params.p0();
+        let Ok((chunk_loader, player_transform)) = player_loader_query.single() else {
+            return;
+        };
+        let player_coord = canonical_grid_coord(&chunk_loader.coord);
+        let player_root_native = sample_root_native_position(&player_coord, player_transform.translation);
+        (chunk_loader.scale.index_from_top() as i16, player_root_native)
     };
 
-    let world_rotation_origin = player_transform.translation;
-    let origin_offset = chunk_loader.origin_offset.clone();
-    let active_scale_index = chunk_loader.scale.index_from_top() as i16;
+    let camera_transform = params.p1().single().ok().copied();
+    let (root_scale, root_rotation, root_translation) = {
+        let root_transform = *params.p2();
+        (root_transform.scale.x, root_transform.rotation, root_transform.translation)
+    };
+    let mut chunk_query = params.p3();
 
-    let Ok(camera_transform) = main_camera_query.single() else {
+    let Some(camera_transform) = camera_transform else {
         for (_entity, chunk, mut transform, mut visibility) in chunk_query.iter_mut() {
-            let (native_pos, visual_scale) = chunk.coord.clone().to_native_visual(origin_offset.clone());
-            let world_pos = Vec3::new(native_pos.x, native_pos.y, native_pos.z);
-            transform.translation = world_pos - world_rotation_origin;
+            transform.translation = chunk_center_in_active_native_space(&chunk.coord, player_root_native, active_scale_index);
             transform.rotation = Quat::IDENTITY;
-            transform.scale = Vec3::splat(visual_scale);
+            transform.scale = Vec3::splat(chunk_visual_scale_in_active_native_space(chunk.coord.scale, active_scale_index));
             *visibility = Visibility::Visible;
         }
         return;
     };
 
-    let root_transform = *root_query;
     let camera_pos = camera_transform.translation;
     let camera_forward = (-(camera_transform.rotation * Vec3::Z)).normalize_or_zero();
-    let root_scale = root_transform.scale.x;
-    let root_rotation = root_transform.rotation;
-    let root_translation = root_transform.translation;
     let load_radius = CONFIG().get::<u32>("chunk_loader/load_radius") as usize;
     let side = load_radius.saturating_mul(2).saturating_add(1);
     let active_budget = side.saturating_mul(side).clamp(16, 144);
     let mut cull_candidates = Vec::new();
 
     for (entity, chunk, mut transform, mut visibility) in chunk_query.iter_mut() {
-        let (native_pos, visual_scale) = chunk.coord.clone().to_native_visual(origin_offset.clone());
-        let world_pos = Vec3::new(native_pos.x, native_pos.y, native_pos.z);
-        transform.translation = world_pos - world_rotation_origin;
+        transform.translation = chunk_center_in_active_native_space(&chunk.coord, player_root_native, active_scale_index);
         transform.rotation = Quat::IDENTITY;
-        transform.scale = Vec3::splat(visual_scale);
+        transform.scale = Vec3::splat(chunk_visual_scale_in_active_native_space(chunk.coord.scale, active_scale_index));
         *visibility = Visibility::Hidden;
 
         let relative_scale = chunk.coord.scale.index_from_top() as i16 - active_scale_index;
@@ -387,6 +393,38 @@ fn select_visible_chunk_visual_entities(candidates: &[ChunkVisualCullCandidate],
     }
 
     selected
+}
+
+#[inline]
+fn wrap_root_native_delta_axis(delta: f64) -> f64 {
+    let period = ROOT_AXIS_PERIOD_UNITS as f64;
+    if !delta.is_finite() || period <= f64::EPSILON {
+        return 0.0;
+    }
+    let half = period * 0.5;
+    ((delta + half).rem_euclid(period)) - half
+}
+
+#[inline]
+fn chunk_center_in_active_native_space(chunk_coord: &GridVec, player_root_native: (f64, f64, f64), active_scale_index: i16) -> Vec3 {
+    let chunk_canonical = canonical_grid_coord(chunk_coord);
+    let chunk_root_native = sample_root_native_position(&chunk_canonical, Vec3::ZERO);
+    let root_to_active = 10.0_f64.powi(active_scale_index as i32);
+
+    let dx = wrap_root_native_delta_axis(chunk_root_native.0 - player_root_native.0) * root_to_active;
+    let dy = wrap_root_native_delta_axis(chunk_root_native.1 - player_root_native.1) * root_to_active;
+    let dz = wrap_root_native_delta_axis(chunk_root_native.2 - player_root_native.2) * root_to_active;
+    Vec3::new(dx as f32, dy as f32, dz as f32)
+}
+
+#[inline]
+fn chunk_visual_scale_in_active_native_space(chunk_scale: Scale, active_scale_index: i16) -> f32 {
+    let exponent = active_scale_index - chunk_scale.index_from_top() as i16;
+    let scale = 10.0_f64.powi(exponent as i32);
+    if !scale.is_finite() || scale <= 0.0 {
+        return f32::MIN_POSITIVE;
+    }
+    scale.clamp(f32::MIN_POSITIVE as f64, f32::MAX as f64) as f32
 }
 
 pub(crate) fn bind_chunk_demo_visuals_to_world_presentation_root_system(
