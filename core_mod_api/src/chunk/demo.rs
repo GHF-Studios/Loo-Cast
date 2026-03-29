@@ -10,7 +10,8 @@ use crate::chunk::resources::ChunkManager;
 use crate::config::statics::CONFIG;
 use crate::player::components::Player;
 use crate::render::components::{MainCamera, WorldPresentationRoot};
-use crate::usf::definition::{DefinitionRegistry, ScaleContentRegistry, ZoneTypeId};
+use crate::usf::content::{PLACEHOLDER_GAMEPLAY_CONTENT_PACKAGE_ID, ScaleContentRegistry, UsfContentPackageActivation, UsfExecutionPlan};
+use crate::usf::definition::{DefinitionRegistry, ZoneTypeId};
 use crate::usf::dpt::{DptChunkKey, DptStore};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::unit::types::UnitVec;
@@ -251,6 +252,19 @@ pub struct ChunkDemoHydrationArtifact {
     pub mesh: Option<Mesh>,
 }
 
+pub(crate) fn run_if_placeholder_gameplay_content_enabled(
+    settings: Option<Res<UsfDemoSettings>>,
+    content_activation: Option<Res<UsfContentPackageActivation>>,
+) -> bool {
+    let Some(settings) = settings else {
+        return false;
+    };
+    let Some(content_activation) = content_activation else {
+        return false;
+    };
+    settings.enabled && content_activation.is_enabled(PLACEHOLDER_GAMEPLAY_CONTENT_PACKAGE_ID)
+}
+
 pub(crate) fn queue_chunk_demo_hydration_requests_system(
     settings: Res<UsfDemoSettings>,
     added_chunks: Query<Entity, (Added<Chunk>, Without<UsfDemoChunkVisual>)>,
@@ -268,6 +282,7 @@ pub(crate) fn queue_chunk_demo_hydration_requests_system(
 pub(crate) fn run_chunk_demo_hydration_workflow_system(
     settings: Res<UsfDemoSettings>,
     definitions: Res<DefinitionRegistry>,
+    execution_plan: Res<UsfExecutionPlan>,
     mut dpt_store: ResMut<DptStore>,
     zlm_registry: Res<ZlmRegistry>,
     scale_content_registry: Res<ScaleContentRegistry>,
@@ -311,6 +326,21 @@ pub(crate) fn run_chunk_demo_hydration_workflow_system(
         }
 
         let chunk_scale = chunk.coord.scale;
+        let Some(route) = execution_plan.route_for_scale(chunk_scale) else {
+            warn!(
+                "USF placeholder gameplay skipped: missing execution route for scale index {}",
+                chunk_scale.index_from_top()
+            );
+            continue;
+        };
+        if !route
+            .content_package_ids
+            .iter()
+            .any(|content_package_id| content_package_id == PLACEHOLDER_GAMEPLAY_CONTENT_PACKAGE_ID)
+        {
+            continue;
+        }
+
         let Some(schema) = definitions.schema_for_scale(chunk_scale) else {
             warn!(
                 "USF demo chunk hydration skipped: missing DPT schema for chunk {:?} at scale index {}",
@@ -331,10 +361,7 @@ pub(crate) fn run_chunk_demo_hydration_workflow_system(
         };
         let zone_density_profile = zone_behavior_registry.density_profile_for_zone(&zone_type).unwrap_or_default();
         let zone_density_signature = zone_density_profile.signature();
-        let chunk_store_key = scale_content_registry
-            .binding_for_scale(chunk_scale)
-            .map(|binding| binding.chunk_store_key.as_str())
-            .unwrap_or("chunk_store.default");
+        let chunk_store_key = route.chunk_store_key.as_str();
 
         in_flight_entities.push(entity);
         tasks.push(ChunkDemoHydrationTask {

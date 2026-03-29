@@ -55,6 +55,12 @@ hydration_commit_budget = 4
 hydration_build_workers = 4
 persistence_dir = "target/usf_demo/chunks"
 
+[usf_content]
+active_profile_id = "content_profile.placeholder_gameplay.v1"
+
+[usf_content.content_packages.placeholder_gameplay]
+enabled = true
+
 [core]
 cli_log_filter = "warn"
 

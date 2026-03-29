@@ -92,13 +92,8 @@ impl Plugin for WorkflowPlugin {
         let (workflow_request_io_receiver, workflow_response_io_sender) = initialize_io_channels();
         let (workflow_request_ioe_receiver, workflow_response_ioe_sender) = initialize_ioe_channels();
         let workflow_timeout_signal_receiver = WorkflowTimeoutSignalReceiver(initialize_workflow_timeout_signal_channel());
-        let (
-            ecs_stage_sender_cache,
-            render_stage_sender_cache,
-            async_stage_sender_cache,
-            ecs_while_stage_sender_cache,
-            render_while_stage_sender_cache,
-        ) = build_stage_sender_caches();
+        let (ecs_stage_sender_cache, render_stage_sender_cache, async_stage_sender_cache, ecs_while_stage_sender_cache, render_while_stage_sender_cache) =
+            build_stage_sender_caches();
         let (_, render_stage_sender_cache_render_app, _, _, render_while_stage_sender_cache_render_app) = build_stage_sender_caches();
 
         app.add_message::<StageInitializationMessage>()

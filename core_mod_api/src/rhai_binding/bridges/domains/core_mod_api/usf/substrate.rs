@@ -1,10 +1,12 @@
 use rhai::FuncRegistration;
 
 use crate::rhai_binding::engine::statics::{
-    ScriptDptMetricDefinition, ScriptDptSchemaDefinition, ScriptMetricDefinition, ScriptScaleBindingDefinition, ScriptZlmMetricBandDefinition,
-    ScriptZlmRuleDefinition, ScriptZlmScaleDefinition, USF_DPT_CATEGORIZER_IDS, USF_DPT_SAMPLER_IDS, USF_DPT_SCHEMAS_BY_SCALE, USF_METRICS_BY_NAME,
-    USF_METRIC_SETS_BY_ID, USF_SCALE_BINDINGS_BY_SCALE, USF_ZLM_SCALES_BY_SCALE, USF_ZONE_TYPES,
+    ScriptDptMetricDefinition, ScriptDptSchemaDefinition, ScriptMetricDefinition, ScriptScaleBindingDefinition, ScriptUsfContentPackageDefinition,
+    ScriptUsfContentProfileDefinition, ScriptZlmMetricBandDefinition, ScriptZlmRuleDefinition, ScriptZlmScaleDefinition, USF_CONTENT_PACKAGES_BY_ID,
+    USF_CONTENT_PROFILES_BY_ID, USF_DPT_CATEGORIZER_IDS, USF_DPT_SAMPLER_IDS, USF_DPT_SCHEMAS_BY_SCALE, USF_METRIC_SETS_BY_ID, USF_METRICS_BY_NAME,
+    USF_SCALE_BINDINGS_BY_SCALE, USF_ZLM_SCALES_BY_SCALE, USF_ZONE_TYPES,
 };
+use crate::usf::content::DEFAULT_USF_CONTENT_PROFILE_ID;
 use crate::usf::scale::Scale;
 
 core_mod_macros::reflect_extern_sub_module!(
@@ -32,12 +34,18 @@ core_mod_macros::reflect_extern_sub_module!(
         add_dpt_sampler,
         clear_dpt_categorizers,
         add_dpt_categorizer,
+        clear_usf_content_packages,
+        set_usf_content_package,
+        clear_usf_content_profiles,
+        set_usf_content_profile,
+        add_usf_content_profile_package,
         clear_zlm_maps,
         set_zlm_scale,
         add_zlm_rule,
         add_zlm_metric_band,
         clear_scale_bindings,
-        set_scale_binding
+        set_scale_binding,
+        set_scale_binding_with_usf_content_profile
     ],
 );
 
@@ -440,6 +448,92 @@ core_mod_macros::reflect_extern_module_associated_function!(
 );
 
 core_mod_macros::reflect_extern_module_associated_function!(
+    id = core_mod_api::usf::substrate::clear_usf_content_packages,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(parent_module, || -> Result<(), Box<rhai::EvalAltResult>> {
+            USF_CONTENT_PACKAGES_BY_ID().lock().unwrap().clear();
+            Ok(())
+        });
+    },
+);
+
+core_mod_macros::reflect_extern_module_associated_function!(
+    id = core_mod_api::usf::substrate::set_usf_content_package,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(
+            parent_module,
+            |content_package_id: &str, default_enabled: bool, config_enabled_key: &str| -> Result<(), Box<rhai::EvalAltResult>> {
+                let content_package_id = normalize_identifier("content_package_id", content_package_id)?;
+                let config_enabled_key = normalize_config_key("config_enabled_key", config_enabled_key)?;
+                USF_CONTENT_PACKAGES_BY_ID().lock().unwrap().insert(
+                    content_package_id,
+                    ScriptUsfContentPackageDefinition {
+                        default_enabled,
+                        config_enabled_key,
+                    },
+                );
+                Ok(())
+            },
+        );
+    },
+);
+
+core_mod_macros::reflect_extern_module_associated_function!(
+    id = core_mod_api::usf::substrate::clear_usf_content_profiles,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(parent_module, || -> Result<(), Box<rhai::EvalAltResult>> {
+            USF_CONTENT_PROFILES_BY_ID().lock().unwrap().clear();
+            Ok(())
+        });
+    },
+);
+
+core_mod_macros::reflect_extern_module_associated_function!(
+    id = core_mod_api::usf::substrate::set_usf_content_profile,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(
+            parent_module,
+            |usf_content_profile_id: &str, content_package_id: &str| -> Result<(), Box<rhai::EvalAltResult>> {
+                let usf_content_profile_id = normalize_identifier("usf_content_profile_id", usf_content_profile_id)?;
+                let content_package_id = normalize_identifier("content_package_id", content_package_id)?;
+                USF_CONTENT_PROFILES_BY_ID().lock().unwrap().insert(
+                    usf_content_profile_id,
+                    ScriptUsfContentProfileDefinition {
+                        content_package_ids: vec![content_package_id],
+                    },
+                );
+                Ok(())
+            },
+        );
+    },
+);
+
+core_mod_macros::reflect_extern_module_associated_function!(
+    id = core_mod_api::usf::substrate::add_usf_content_profile_package,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(
+            parent_module,
+            |usf_content_profile_id: &str, content_package_id: &str| -> Result<(), Box<rhai::EvalAltResult>> {
+                let usf_content_profile_id = normalize_identifier("usf_content_profile_id", usf_content_profile_id)?;
+                let content_package_id = normalize_identifier("content_package_id", content_package_id)?;
+                let mut profiles = USF_CONTENT_PROFILES_BY_ID().lock().unwrap();
+                let Some(profile) = profiles.get_mut(&usf_content_profile_id) else {
+                    return Err(format!(
+                        "content profile '{}' is not registered; call set_usf_content_profile first",
+                        usf_content_profile_id
+                    )
+                    .into());
+                };
+                if !profile.content_package_ids.iter().any(|existing| existing == &content_package_id) {
+                    profile.content_package_ids.push(content_package_id);
+                }
+                Ok(())
+            },
+        );
+    },
+);
+
+core_mod_macros::reflect_extern_module_associated_function!(
     id = core_mod_api::usf::substrate::clear_zlm_maps,
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
         FuncRegistration::new(name).set_into_module(parent_module, || -> Result<(), Box<rhai::EvalAltResult>> {
@@ -560,6 +654,38 @@ core_mod_macros::reflect_extern_module_associated_function!(
                         dpt_sampler_id,
                         dpt_categorizer_id,
                         chunk_store_key,
+                        usf_content_profile_id: DEFAULT_USF_CONTENT_PROFILE_ID.to_string(),
+                    },
+                );
+                Ok(())
+            },
+        );
+    },
+);
+
+core_mod_macros::reflect_extern_module_associated_function!(
+    id = core_mod_api::usf::substrate::set_scale_binding_with_usf_content_profile,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(
+            parent_module,
+            |scale_index: i64,
+             dpt_sampler_id: &str,
+             dpt_categorizer_id: &str,
+             chunk_store_key: &str,
+             usf_content_profile_id: &str|
+             -> Result<(), Box<rhai::EvalAltResult>> {
+                let scale_index = parse_scale_index(scale_index)?;
+                let dpt_sampler_id = normalize_identifier("dpt_sampler_id", dpt_sampler_id)?;
+                let dpt_categorizer_id = normalize_identifier("dpt_categorizer_id", dpt_categorizer_id)?;
+                let chunk_store_key = normalize_identifier("chunk_store_key", chunk_store_key)?;
+                let usf_content_profile_id = normalize_identifier("usf_content_profile_id", usf_content_profile_id)?;
+                USF_SCALE_BINDINGS_BY_SCALE().lock().unwrap().insert(
+                    scale_index,
+                    ScriptScaleBindingDefinition {
+                        dpt_sampler_id,
+                        dpt_categorizer_id,
+                        chunk_store_key,
+                        usf_content_profile_id,
                     },
                 );
                 Ok(())
@@ -648,6 +774,18 @@ fn build_legacy_metric_definition(metric_id: u16, metric_name: &str, primitive: 
         min_scale_index: 0,
         max_scale_index: max_scale,
     })
+}
+
+#[inline]
+fn normalize_config_key(value_name: &str, value: &str) -> Result<String, Box<rhai::EvalAltResult>> {
+    let normalized = value.trim().to_ascii_lowercase();
+    if normalized.is_empty() {
+        return Err(format!("{value_name} must not be empty").into());
+    }
+    if normalized.chars().any(char::is_whitespace) {
+        return Err(format!("{value_name} must not contain whitespace").into());
+    }
+    Ok(normalized)
 }
 
 #[inline]

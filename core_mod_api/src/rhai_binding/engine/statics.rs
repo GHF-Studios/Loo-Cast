@@ -56,6 +56,36 @@ pub struct ScriptScaleBindingDefinition {
     pub dpt_sampler_id: String,
     pub dpt_categorizer_id: String,
     pub chunk_store_key: String,
+    pub usf_content_profile_id: String,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ScriptUsfContentProfileDefinition {
+    pub content_package_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ScriptUsfContentPackageDefinition {
+    pub default_enabled: bool,
+    pub config_enabled_key: String,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ScriptUsfPackageContribution {
+    pub zone_types: HashSet<String>,
+    pub dpt_schemas_by_scale: HashMap<u8, ScriptDptSchemaDefinition>,
+    pub zlm_scales_by_scale: HashMap<u8, ScriptZlmScaleDefinition>,
+    pub zone_density_profile_by_type: HashMap<String, ScriptZoneDensityProfileDefinition>,
+    pub dpt_sampler_ids: HashSet<String>,
+    pub dpt_categorizer_ids: HashSet<String>,
+    pub scale_bindings_by_scale: HashMap<u8, ScriptScaleBindingDefinition>,
+    pub metrics_by_name: HashMap<String, ScriptMetricDefinition>,
+    pub metric_sets_by_id: HashMap<String, Vec<String>>,
+    pub phenomena_by_id: HashMap<String, ScriptPhenomenonDefinition>,
+    pub zone_phenomenon_support_by_zone_type: HashMap<String, Vec<ScriptZonePhenomenonSupportDefinition>>,
+    pub zone_selection_policy_by_zone_type: HashMap<String, ScriptZoneSelectionPolicyDefinition>,
+    pub phenomenon_models_by_id: HashMap<String, ScriptPhenomenonModelDefinition>,
+    pub primary_phenomenon_model_by_phenomenon_id: HashMap<String, String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -103,6 +133,21 @@ export_static!(self, crate::rhai_binding::engine::statics::USF_ZLM_SCALES_BY_SCA
 export_static!(self, crate::rhai_binding::engine::statics::USF_ZONE_DENSITY_PROFILE_BY_TYPE: Lazy<Mutex<HashMap<String, ScriptZoneDensityProfileDefinition>>> = Lazy::new(Default::default));
 export_static!(self, crate::rhai_binding::engine::statics::USF_DPT_SAMPLER_IDS: Lazy<Mutex<HashSet<String>>> = Lazy::new(Default::default));
 export_static!(self, crate::rhai_binding::engine::statics::USF_DPT_CATEGORIZER_IDS: Lazy<Mutex<HashSet<String>>> = Lazy::new(Default::default));
+export_static!(
+    self,
+    crate::rhai_binding::engine::statics::USF_CONTENT_PACKAGES_BY_ID: Lazy<Mutex<HashMap<String, ScriptUsfContentPackageDefinition>>> =
+        Lazy::new(Default::default)
+);
+export_static!(
+    self,
+    crate::rhai_binding::engine::statics::USF_CONTENT_PROFILES_BY_ID: Lazy<Mutex<HashMap<String, ScriptUsfContentProfileDefinition>>> =
+        Lazy::new(Default::default)
+);
+export_static!(
+    self,
+    crate::rhai_binding::engine::statics::USF_PACKAGE_CONTRIBUTIONS_BY_ID: Lazy<Mutex<HashMap<String, ScriptUsfPackageContribution>>> =
+        Lazy::new(Default::default)
+);
 export_static!(self, crate::rhai_binding::engine::statics::USF_SCALE_BINDINGS_BY_SCALE: Lazy<Mutex<HashMap<u8, ScriptScaleBindingDefinition>>> = Lazy::new(Default::default));
 export_static!(self, crate::rhai_binding::engine::statics::USF_METRICS_BY_NAME: Lazy<Mutex<HashMap<String, ScriptMetricDefinition>>> = Lazy::new(Default::default));
 export_static!(self, crate::rhai_binding::engine::statics::USF_METRIC_SETS_BY_ID: Lazy<Mutex<HashMap<String, Vec<String>>>> = Lazy::new(Default::default));

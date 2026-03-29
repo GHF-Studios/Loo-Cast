@@ -31,13 +31,18 @@ use crate::{
 pub(crate) struct ChunkPlugin;
 impl Plugin for ChunkPlugin {
     fn build(&self, app: &mut App) {
+        app.add_plugins(ChunkCorePlugin);
+        app.add_plugins(ChunkPlaceholderContentPlugin);
+    }
+}
+
+pub(crate) struct ChunkCorePlugin;
+impl Plugin for ChunkCorePlugin {
+    fn build(&self, app: &mut App) {
         app.insert_resource(ChunkManager::default())
             .insert_resource(ChunkLoadGate::default())
             .insert_resource(ChunkBatchTracker::default())
             .insert_resource(ChunkActionWorkflowState::default())
-            .init_resource::<UsfDemoSettings>()
-            .init_resource::<UsfDemoChunkStore>()
-            .init_resource::<UsfDemoHydrationWorkflowState>()
             .add_message::<ChunkBatchLifecycleMessage>()
             .add_systems(PreUpdate, chunk_timeout_signal_system.run_if(run_after_startup_finished))
             .add_systems(
@@ -62,6 +67,27 @@ impl Plugin for ChunkPlugin {
                     .in_set(AppSet::Diagnostics)
                     .run_if(run_after_startup_finished),
             )
+            .register_type::<Chunk>()
+            .register_type::<ChunkDebugWireframe>()
+            .register_type::<ChunkActor>()
+            .register_type::<ChunkLoader>()
+            .register_type::<PhenomenonFrontierView>()
+            .register_type::<ChunkManager>()
+            .register_type::<ChunkLoadGate>()
+            .register_type::<ChunkLoadGateState>()
+            .register_type::<ChunkLoadGateLockInfo>()
+            .register_type::<SpawnError>()
+            .register_type::<DespawnError>()
+            .register_type::<ZoomState>();
+    }
+}
+
+pub(crate) struct ChunkPlaceholderContentPlugin;
+impl Plugin for ChunkPlaceholderContentPlugin {
+    fn build(&self, app: &mut App) {
+        app.init_resource::<UsfDemoSettings>()
+            .init_resource::<UsfDemoChunkStore>()
+            .init_resource::<UsfDemoHydrationWorkflowState>()
             .add_systems(
                 PostUpdate,
                 (
@@ -77,21 +103,13 @@ impl Plugin for ChunkPlugin {
                         .after(demo::bind_chunk_demo_visuals_to_world_presentation_root_system),
                     demo::prune_chunk_demo_store_system.in_set(AppSet::Diagnostics),
                 )
-                    .run_if(run_after_startup_finished.and(run_if_not_paused)),
+                    .run_if(
+                        run_after_startup_finished
+                            .and(run_if_not_paused)
+                            .and(demo::run_if_placeholder_gameplay_content_enabled),
+                    ),
             )
-            .register_type::<Chunk>()
-            .register_type::<ChunkDebugWireframe>()
-            .register_type::<ChunkActor>()
-            .register_type::<ChunkLoader>()
-            .register_type::<PhenomenonFrontierView>()
             .register_type::<UsfDemoChunkVisual>()
-            .register_type::<UsfDemoSettings>()
-            .register_type::<ChunkManager>()
-            .register_type::<ChunkLoadGate>()
-            .register_type::<ChunkLoadGateState>()
-            .register_type::<ChunkLoadGateLockInfo>()
-            .register_type::<SpawnError>()
-            .register_type::<DespawnError>()
-            .register_type::<ZoomState>();
+            .register_type::<UsfDemoSettings>();
     }
 }

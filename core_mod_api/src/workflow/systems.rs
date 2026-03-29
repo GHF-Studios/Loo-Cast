@@ -34,19 +34,13 @@ pub(super) fn build_stage_sender_caches() -> (
                         render.0.insert((module_metadata.name, workflow_metadata.name, *name), sender.clone());
                     }
                     crate::WorkflowStageMetadata::Async { name, sender } => {
-                        async_stage
-                            .0
-                            .insert((module_metadata.name, workflow_metadata.name, *name), sender.clone());
+                        async_stage.0.insert((module_metadata.name, workflow_metadata.name, *name), sender.clone());
                     }
                     crate::WorkflowStageMetadata::EcsWhile { name, sender } => {
-                        ecs_while
-                            .0
-                            .insert((module_metadata.name, workflow_metadata.name, *name), sender.clone());
+                        ecs_while.0.insert((module_metadata.name, workflow_metadata.name, *name), sender.clone());
                     }
                     crate::WorkflowStageMetadata::RenderWhile { name, sender } => {
-                        render_while
-                            .0
-                            .insert((module_metadata.name, workflow_metadata.name, *name), sender.clone());
+                        render_while.0.insert((module_metadata.name, workflow_metadata.name, *name), sender.clone());
                     }
                 }
             }
@@ -138,10 +132,7 @@ pub(super) fn send_async_stages_to_async_buffers_system(mut buffer: ResMut<Async
         sender.send(module_name, workflow_name, current_stage, stage, data_buffer);
     }
 }
-pub(super) fn send_ecs_while_stages_to_ecs_while_buffers_system(
-    mut buffer: ResMut<EcsWhileStageBuffer>,
-    sender_cache: Res<EcsWhileStageSenderCache>,
-) {
+pub(super) fn send_ecs_while_stages_to_ecs_while_buffers_system(mut buffer: ResMut<EcsWhileStageBuffer>, sender_cache: Res<EcsWhileStageSenderCache>) {
     let drained_buffer = { std::mem::take(&mut buffer.0) };
 
     for (module_name, workflow_name, current_stage, stage, data_buffer) in drained_buffer {

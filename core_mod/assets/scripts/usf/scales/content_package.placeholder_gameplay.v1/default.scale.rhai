@@ -10,11 +10,12 @@ fn register_scale() {
             "metric_set.debug.default",
         );
 
-        UsfSubstrate::set_scale_binding(
+        UsfSubstrate::set_scale_binding_with_usf_content_profile(
             scale_index,
             "dpt_sampler.debug.default.v1",
             "dpt_categorizer.debug.zlm_lookup.v1",
             "chunk_store.default",
+            "content_profile.placeholder_gameplay.v1",
         );
     }
 }

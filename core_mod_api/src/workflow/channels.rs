@@ -221,8 +221,24 @@ define_sender_getter!(get_request_ioe_sender, REQUEST_IOE_SENDER, UnboundedSende
 define_receiver_getter!(get_response_receiver, RESPONSE_RECEIVER, UnboundedReceiver<TypedWorkflowResponseEnvelope>);
 define_receiver_getter!(get_response_e_receiver, RESPONSE_E_RECEIVER, UnboundedReceiver<TypedWorkflowResponseEEnvelope>);
 define_receiver_getter!(get_response_o_receiver, RESPONSE_O_RECEIVER, UnboundedReceiver<TypedWorkflowResponseOEnvelope>);
-define_receiver_getter!(get_response_oe_receiver, RESPONSE_OE_RECEIVER, UnboundedReceiver<TypedWorkflowResponseOEEnvelope>);
+define_receiver_getter!(
+    get_response_oe_receiver,
+    RESPONSE_OE_RECEIVER,
+    UnboundedReceiver<TypedWorkflowResponseOEEnvelope>
+);
 define_receiver_getter!(get_response_i_receiver, RESPONSE_I_RECEIVER, UnboundedReceiver<TypedWorkflowResponseEnvelope>);
-define_receiver_getter!(get_response_ie_receiver, RESPONSE_IE_RECEIVER, UnboundedReceiver<TypedWorkflowResponseEEnvelope>);
-define_receiver_getter!(get_response_io_receiver, RESPONSE_IO_RECEIVER, UnboundedReceiver<TypedWorkflowResponseOEnvelope>);
-define_receiver_getter!(get_response_ioe_receiver, RESPONSE_IOE_RECEIVER, UnboundedReceiver<TypedWorkflowResponseOEEnvelope>);
+define_receiver_getter!(
+    get_response_ie_receiver,
+    RESPONSE_IE_RECEIVER,
+    UnboundedReceiver<TypedWorkflowResponseEEnvelope>
+);
+define_receiver_getter!(
+    get_response_io_receiver,
+    RESPONSE_IO_RECEIVER,
+    UnboundedReceiver<TypedWorkflowResponseOEnvelope>
+);
+define_receiver_getter!(
+    get_response_ioe_receiver,
+    RESPONSE_IOE_RECEIVER,
+    UnboundedReceiver<TypedWorkflowResponseOEEnvelope>
+);

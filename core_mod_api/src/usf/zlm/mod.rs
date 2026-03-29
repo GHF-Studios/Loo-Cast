@@ -3,7 +3,8 @@ use std::collections::HashMap;
 use crate::bevy::prelude::*;
 use crate::core::orchestration::AppSet;
 use crate::rhai_binding::engine::statics::USF_ZLM_SCALES_BY_SCALE;
-use crate::usf::definition::{DefinitionRegistry, DptMetricId, DptSchema, ScaleContentRegistry, ZoneTypeId};
+use crate::usf::content::ScaleContentRegistry;
+use crate::usf::definition::{DefinitionRegistry, DptMetricId, DptSchema, ZoneTypeId};
 use crate::usf::scale::Scale;
 
 #[derive(Reflect, Debug, Clone, PartialEq)]

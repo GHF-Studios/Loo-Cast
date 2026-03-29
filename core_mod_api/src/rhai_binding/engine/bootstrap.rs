@@ -1,22 +1,27 @@
 use std::{
+    collections::{HashMap, HashSet},
+    hash::Hash,
     path::{Path, PathBuf},
     sync::Arc,
 };
 
 use crate::bevy::ecs::schedule::IntoScheduleConfigs;
 use crate::bevy::prelude::{App, First, Last, PostStartup, PostUpdate, PreStartup, PreUpdate, Startup, Update};
-use crate::config::statics::CONFIG;
+use crate::config::{statics::CONFIG, types::ConfigValue};
 use crate::core::functions::asset_root;
 use crate::rhai_binding::bind::engine_ext::EngineExt;
 use crate::rhai_binding::engine::hook::{new_hook_runner_system, register_hook_param_types};
 use crate::rhai_binding::engine::preprocess::preprocess_script_source;
 use crate::rhai_binding::engine::resources::MainScriptEngineHandle;
 use crate::rhai_binding::engine::statics::{
-    SCHEDULE_HOOKS, USF_DPT_CATEGORIZER_IDS, USF_DPT_SAMPLER_IDS, USF_DPT_SCHEMAS_BY_SCALE, USF_METRIC_SETS_BY_ID, USF_METRICS_BY_NAME, USF_PHENOMENA_BY_ID,
-    USF_PHENOMENON_MODELS_BY_ID, USF_PRIMARY_PHENOMENON_MODEL_BY_PHENOMENON_ID, USF_SCALE_BINDINGS_BY_SCALE, USF_ZLM_SCALES_BY_SCALE,
-    USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE, USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE, USF_ZONE_TYPES,
+    SCHEDULE_HOOKS, ScriptUsfContentPackageDefinition, ScriptUsfContentProfileDefinition, ScriptUsfPackageContribution, USF_CONTENT_PACKAGES_BY_ID,
+    USF_CONTENT_PROFILES_BY_ID, USF_DPT_CATEGORIZER_IDS, USF_DPT_SAMPLER_IDS, USF_DPT_SCHEMAS_BY_SCALE, USF_METRIC_SETS_BY_ID, USF_METRICS_BY_NAME,
+    USF_PACKAGE_CONTRIBUTIONS_BY_ID, USF_PHENOMENA_BY_ID, USF_PHENOMENON_MODELS_BY_ID, USF_PRIMARY_PHENOMENON_MODEL_BY_PHENOMENON_ID,
+    USF_SCALE_BINDINGS_BY_SCALE, USF_ZLM_SCALES_BY_SCALE, USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE,
+    USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE, USF_ZONE_TYPES,
 };
 use crate::rhai_binding::runtime::ecs::message::bindings::types::ScriptProbeMessage;
+use crate::usf::content::{DEFAULT_USF_CONTENT_PROFILE_ID, PLACEHOLDER_GAMEPLAY_CONTENT_PACKAGE_ID};
 use crate::usf::schedule::{UsfPhenomenonSet, UsfSubstrateSet, UsfZoneSet};
 use rhai::Engine;
 
@@ -27,7 +32,22 @@ struct UsfScriptTypeSpec {
     entrypoint: &'static str,
 }
 
-const USF_SCRIPT_TYPE_SPECS: [UsfScriptTypeSpec; 9] = [
+const ACTIVE_CONTENT_PROFILE_CONFIG_KEY: &str = "usf_content/active_profile_id";
+
+const USF_GLOBAL_SCRIPT_TYPE_SPECS: [UsfScriptTypeSpec; 2] = [
+    UsfScriptTypeSpec {
+        relative_dir: "content_packages",
+        suffix: ".content_package.rhai",
+        entrypoint: "register_content_package",
+    },
+    UsfScriptTypeSpec {
+        relative_dir: "content_profiles",
+        suffix: ".content_profile.rhai",
+        entrypoint: "register_usf_content_profile",
+    },
+];
+
+const USF_PACKAGE_SCOPED_SCRIPT_TYPE_SPECS: [UsfScriptTypeSpec; 9] = [
     UsfScriptTypeSpec {
         relative_dir: "metrics",
         suffix: ".metric.rhai",
@@ -166,6 +186,13 @@ pub fn build(app: &mut App) {
 }
 
 fn clear_usf_bootstrap_statics() {
+    clear_usf_domain_bootstrap_statics();
+    USF_CONTENT_PACKAGES_BY_ID().lock().unwrap().clear();
+    USF_CONTENT_PROFILES_BY_ID().lock().unwrap().clear();
+    USF_PACKAGE_CONTRIBUTIONS_BY_ID().lock().unwrap().clear();
+}
+
+fn clear_usf_domain_bootstrap_statics() {
     USF_ZONE_TYPES().lock().unwrap().clear();
     USF_ZONE_DENSITY_PROFILE_BY_TYPE().lock().unwrap().clear();
     USF_DPT_SCHEMAS_BY_SCALE().lock().unwrap().clear();
@@ -201,7 +228,31 @@ fn collect_usf_registration_scripts(dir: &Path, suffix: &str, out: &mut Vec<Path
     }
 }
 
-fn run_usf_script_type_bootstrap(engine: &Engine, usf_root: &Path, spec: UsfScriptTypeSpec) {
+fn run_usf_script_file(engine: &Engine, file: &Path, entrypoint: &str) {
+    let file_path = file.display().to_string();
+    let source = std::fs::read_to_string(file).unwrap_or_else(|error| panic!("Failed to read USF script '{}': {error}", file.display()));
+    let source = preprocess_script_source(&source, &file_path);
+    let ast = engine
+        .compile(source)
+        .unwrap_or_else(|error| panic!("Failed to compile USF script '{}': {error}", file.display()));
+    let mut scope = rhai::Scope::new();
+    if let Err(error) = engine.call_fn::<()>(&mut scope, &ast, entrypoint, ()) {
+        panic!("USF script '{}' failed calling entrypoint '{}': {}", file.display(), entrypoint, error);
+    }
+}
+
+fn script_owner_package_id(script_relative_path: &Path) -> Option<String> {
+    let mut components = script_relative_path.components();
+    let Some(first) = components.next() else {
+        return None;
+    };
+    if components.next().is_none() {
+        return Some(PLACEHOLDER_GAMEPLAY_CONTENT_PACKAGE_ID.to_string());
+    }
+    Some(first.as_os_str().to_string_lossy().to_string())
+}
+
+fn run_usf_script_type_bootstrap_global(engine: &Engine, usf_root: &Path, spec: UsfScriptTypeSpec) {
     let script_dir = usf_root.join(spec.relative_dir);
     if !script_dir.is_dir() {
         return;
@@ -212,17 +263,227 @@ fn run_usf_script_type_bootstrap(engine: &Engine, usf_root: &Path, spec: UsfScri
     files.sort_by(|a, b| a.to_string_lossy().cmp(&b.to_string_lossy()));
 
     for file in files {
-        let file_path = file.display().to_string();
-        let source = std::fs::read_to_string(&file).unwrap_or_else(|error| panic!("Failed to read USF script '{}': {error}", file.display()));
-        let source = preprocess_script_source(&source, &file_path);
-        let ast = engine
-            .compile(source)
-            .unwrap_or_else(|error| panic!("Failed to compile USF script '{}': {error}", file.display()));
-        let mut scope = rhai::Scope::new();
-        if let Err(error) = engine.call_fn::<()>(&mut scope, &ast, spec.entrypoint, ()) {
-            panic!("USF script '{}' failed calling entrypoint '{}': {}", file.display(), spec.entrypoint, error);
+        run_usf_script_file(engine, &file, spec.entrypoint);
+    }
+}
+
+fn run_usf_script_type_bootstrap_for_package(engine: &Engine, usf_root: &Path, spec: UsfScriptTypeSpec, content_package_id: &str) {
+    let script_dir = usf_root.join(spec.relative_dir);
+    if !script_dir.is_dir() {
+        return;
+    }
+
+    let mut files = Vec::new();
+    collect_usf_registration_scripts(&script_dir, spec.suffix, &mut files);
+    files.sort_by(|a, b| a.to_string_lossy().cmp(&b.to_string_lossy()));
+
+    for file in files {
+        let Ok(relative_path) = file.strip_prefix(&script_dir) else {
+            continue;
+        };
+        let Some(owner_package_id) = script_owner_package_id(relative_path) else {
+            continue;
+        };
+        if owner_package_id != content_package_id {
+            continue;
+        }
+        run_usf_script_file(engine, &file, spec.entrypoint);
+    }
+}
+
+fn snapshot_usf_domain_statics() -> ScriptUsfPackageContribution {
+    ScriptUsfPackageContribution {
+        zone_types: USF_ZONE_TYPES().lock().unwrap().clone(),
+        dpt_schemas_by_scale: USF_DPT_SCHEMAS_BY_SCALE().lock().unwrap().clone(),
+        zlm_scales_by_scale: USF_ZLM_SCALES_BY_SCALE().lock().unwrap().clone(),
+        zone_density_profile_by_type: USF_ZONE_DENSITY_PROFILE_BY_TYPE().lock().unwrap().clone(),
+        dpt_sampler_ids: USF_DPT_SAMPLER_IDS().lock().unwrap().clone(),
+        dpt_categorizer_ids: USF_DPT_CATEGORIZER_IDS().lock().unwrap().clone(),
+        scale_bindings_by_scale: USF_SCALE_BINDINGS_BY_SCALE().lock().unwrap().clone(),
+        metrics_by_name: USF_METRICS_BY_NAME().lock().unwrap().clone(),
+        metric_sets_by_id: USF_METRIC_SETS_BY_ID().lock().unwrap().clone(),
+        phenomena_by_id: USF_PHENOMENA_BY_ID().lock().unwrap().clone(),
+        zone_phenomenon_support_by_zone_type: USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE().lock().unwrap().clone(),
+        zone_selection_policy_by_zone_type: USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE().lock().unwrap().clone(),
+        phenomenon_models_by_id: USF_PHENOMENON_MODELS_BY_ID().lock().unwrap().clone(),
+        primary_phenomenon_model_by_phenomenon_id: USF_PRIMARY_PHENOMENON_MODEL_BY_PHENOMENON_ID().lock().unwrap().clone(),
+    }
+}
+
+fn apply_usf_domain_snapshot(snapshot: ScriptUsfPackageContribution) {
+    *USF_ZONE_TYPES().lock().unwrap() = snapshot.zone_types;
+    *USF_DPT_SCHEMAS_BY_SCALE().lock().unwrap() = snapshot.dpt_schemas_by_scale;
+    *USF_ZLM_SCALES_BY_SCALE().lock().unwrap() = snapshot.zlm_scales_by_scale;
+    *USF_ZONE_DENSITY_PROFILE_BY_TYPE().lock().unwrap() = snapshot.zone_density_profile_by_type;
+    *USF_DPT_SAMPLER_IDS().lock().unwrap() = snapshot.dpt_sampler_ids;
+    *USF_DPT_CATEGORIZER_IDS().lock().unwrap() = snapshot.dpt_categorizer_ids;
+    *USF_SCALE_BINDINGS_BY_SCALE().lock().unwrap() = snapshot.scale_bindings_by_scale;
+    *USF_METRICS_BY_NAME().lock().unwrap() = snapshot.metrics_by_name;
+    *USF_METRIC_SETS_BY_ID().lock().unwrap() = snapshot.metric_sets_by_id;
+    *USF_PHENOMENA_BY_ID().lock().unwrap() = snapshot.phenomena_by_id;
+    *USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE().lock().unwrap() = snapshot.zone_phenomenon_support_by_zone_type;
+    *USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE().lock().unwrap() = snapshot.zone_selection_policy_by_zone_type;
+    *USF_PHENOMENON_MODELS_BY_ID().lock().unwrap() = snapshot.phenomenon_models_by_id;
+    *USF_PRIMARY_PHENOMENON_MODEL_BY_PHENOMENON_ID().lock().unwrap() = snapshot.primary_phenomenon_model_by_phenomenon_id;
+}
+
+fn merge_set_unique<T: Eq + Hash + Clone + std::fmt::Debug>(target: &mut HashSet<T>, source: HashSet<T>, domain: &str, package_id: &str) {
+    for value in source {
+        if !target.insert(value.clone()) {
+            panic!(
+                "USF content composition hard error: duplicate {} entry {:?} while merging package '{}'",
+                domain, value, package_id
+            );
         }
     }
+}
+
+fn merge_map_unique<K: Eq + Hash + Clone + std::fmt::Debug, V>(target: &mut HashMap<K, V>, source: HashMap<K, V>, domain: &str, package_id: &str) {
+    for (key, value) in source {
+        if target.contains_key(&key) {
+            panic!(
+                "USF content composition hard error: duplicate {} entry {:?} while merging package '{}'",
+                domain, key, package_id
+            );
+        }
+        target.insert(key, value);
+    }
+}
+
+fn merge_package_contribution_into_composed(package_id: &str, contribution: ScriptUsfPackageContribution, composed: &mut ScriptUsfPackageContribution) {
+    merge_set_unique(&mut composed.zone_types, contribution.zone_types, "zone_type", package_id);
+    merge_set_unique(&mut composed.dpt_sampler_ids, contribution.dpt_sampler_ids, "dpt_sampler_id", package_id);
+    merge_set_unique(
+        &mut composed.dpt_categorizer_ids,
+        contribution.dpt_categorizer_ids,
+        "dpt_categorizer_id",
+        package_id,
+    );
+
+    merge_map_unique(
+        &mut composed.dpt_schemas_by_scale,
+        contribution.dpt_schemas_by_scale,
+        "dpt_schema_scale_index",
+        package_id,
+    );
+    merge_map_unique(
+        &mut composed.zlm_scales_by_scale,
+        contribution.zlm_scales_by_scale,
+        "zlm_scale_index",
+        package_id,
+    );
+    merge_map_unique(
+        &mut composed.zone_density_profile_by_type,
+        contribution.zone_density_profile_by_type,
+        "zone_density_profile",
+        package_id,
+    );
+    merge_map_unique(
+        &mut composed.scale_bindings_by_scale,
+        contribution.scale_bindings_by_scale,
+        "scale_binding_scale_index",
+        package_id,
+    );
+    merge_map_unique(&mut composed.metrics_by_name, contribution.metrics_by_name, "metric_name", package_id);
+    merge_map_unique(&mut composed.metric_sets_by_id, contribution.metric_sets_by_id, "metric_set_id", package_id);
+    merge_map_unique(&mut composed.phenomena_by_id, contribution.phenomena_by_id, "phenomenon_id", package_id);
+    merge_map_unique(
+        &mut composed.zone_phenomenon_support_by_zone_type,
+        contribution.zone_phenomenon_support_by_zone_type,
+        "zone_support_zone_type",
+        package_id,
+    );
+    merge_map_unique(
+        &mut composed.zone_selection_policy_by_zone_type,
+        contribution.zone_selection_policy_by_zone_type,
+        "zone_selection_policy_zone_type",
+        package_id,
+    );
+    merge_map_unique(
+        &mut composed.phenomenon_models_by_id,
+        contribution.phenomenon_models_by_id,
+        "phenomenon_model_id",
+        package_id,
+    );
+    merge_map_unique(
+        &mut composed.primary_phenomenon_model_by_phenomenon_id,
+        contribution.primary_phenomenon_model_by_phenomenon_id,
+        "primary_model_phenomenon_id",
+        package_id,
+    );
+}
+
+fn ensure_bootstrap_defaults_for_packages_and_profiles() {
+    let mut packages = USF_CONTENT_PACKAGES_BY_ID().lock().unwrap();
+    if packages.is_empty() {
+        packages.insert(
+            PLACEHOLDER_GAMEPLAY_CONTENT_PACKAGE_ID.to_string(),
+            ScriptUsfContentPackageDefinition {
+                default_enabled: true,
+                config_enabled_key: "usf_content/content_packages/placeholder_gameplay/enabled".to_string(),
+            },
+        );
+    }
+    drop(packages);
+
+    let mut profiles = USF_CONTENT_PROFILES_BY_ID().lock().unwrap();
+    if profiles.is_empty() {
+        profiles.insert(
+            DEFAULT_USF_CONTENT_PROFILE_ID.to_string(),
+            ScriptUsfContentProfileDefinition {
+                content_package_ids: vec![PLACEHOLDER_GAMEPLAY_CONTENT_PACKAGE_ID.to_string()],
+            },
+        );
+    }
+}
+
+fn active_usf_content_profile_id_from_config() -> String {
+    match CONFIG().data.get(ACTIVE_CONTENT_PROFILE_CONFIG_KEY) {
+        Some(ConfigValue::String(value)) => {
+            let normalized = value.trim().to_ascii_lowercase();
+            if normalized.is_empty() {
+                panic!("USF bootstrap failed: '{}' must not be empty", ACTIVE_CONTENT_PROFILE_CONFIG_KEY);
+            }
+            normalized
+        }
+        Some(other) => panic!(
+            "USF bootstrap failed: '{}' must be a string, got {:?}",
+            ACTIVE_CONTENT_PROFILE_CONFIG_KEY, other
+        ),
+        None => DEFAULT_USF_CONTENT_PROFILE_ID.to_string(),
+    }
+}
+
+fn selected_package_ids_for_active_profile() -> Vec<String> {
+    let active_profile_id = active_usf_content_profile_id_from_config();
+    let profiles = USF_CONTENT_PROFILES_BY_ID().lock().unwrap().clone();
+    let Some(profile_definition) = profiles.get(&active_profile_id) else {
+        panic!("USF bootstrap failed: active profile '{}' is not registered", active_profile_id);
+    };
+    if profile_definition.content_package_ids.is_empty() {
+        panic!("USF bootstrap failed: active profile '{}' contains no content packages", active_profile_id);
+    }
+
+    let known_packages = USF_CONTENT_PACKAGES_BY_ID().lock().unwrap().clone();
+    let mut selected = Vec::<String>::new();
+    let mut seen = HashSet::<String>::new();
+    for content_package_id in &profile_definition.content_package_ids {
+        if !seen.insert(content_package_id.clone()) {
+            panic!(
+                "USF bootstrap failed: active profile '{}' contains duplicate package '{}'",
+                active_profile_id, content_package_id
+            );
+        }
+        if !known_packages.contains_key(content_package_id) {
+            panic!(
+                "USF bootstrap failed: active profile '{}' references unknown package '{}'",
+                active_profile_id, content_package_id
+            );
+        }
+        selected.push(content_package_id.clone());
+    }
+
+    selected
 }
 
 fn run_usf_content_bootstrap(engine: &Engine) {
@@ -232,9 +493,27 @@ fn run_usf_content_bootstrap(engine: &Engine) {
     }
 
     clear_usf_bootstrap_statics();
-    for spec in USF_SCRIPT_TYPE_SPECS {
-        run_usf_script_type_bootstrap(engine, &usf_root, spec);
+    for spec in USF_GLOBAL_SCRIPT_TYPE_SPECS {
+        run_usf_script_type_bootstrap_global(engine, &usf_root, spec);
     }
+    ensure_bootstrap_defaults_for_packages_and_profiles();
+
+    let selected_package_ids = selected_package_ids_for_active_profile();
+    let mut composed = ScriptUsfPackageContribution::default();
+    let mut package_contributions = HashMap::<String, ScriptUsfPackageContribution>::new();
+
+    for content_package_id in selected_package_ids {
+        clear_usf_domain_bootstrap_statics();
+        for spec in USF_PACKAGE_SCOPED_SCRIPT_TYPE_SPECS {
+            run_usf_script_type_bootstrap_for_package(engine, &usf_root, spec, content_package_id.as_str());
+        }
+        let contribution = snapshot_usf_domain_statics();
+        merge_package_contribution_into_composed(content_package_id.as_str(), contribution.clone(), &mut composed);
+        package_contributions.insert(content_package_id, contribution);
+    }
+
+    *USF_PACKAGE_CONTRIBUTIONS_BY_ID().lock().unwrap() = package_contributions;
+    apply_usf_domain_snapshot(composed);
 }
 
 pub(super) fn new_main_script_engine() -> Engine {

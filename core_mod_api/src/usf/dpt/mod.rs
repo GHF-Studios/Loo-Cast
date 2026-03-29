@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
 use crate::bevy::prelude::*;
-use crate::usf::definition::{DptSchema, ScaleContentRegistry};
+use crate::usf::content::ScaleContentRegistry;
+use crate::usf::definition::DptSchema;
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
 
@@ -161,7 +162,7 @@ fn mix64(mut state: u64) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::usf::definition::ScaleContentBinding;
+    use crate::usf::content::ScaleContentBinding;
     use crate::usf::pos::types::GridXyz;
     use std::collections::HashMap;
 
@@ -261,6 +262,7 @@ mod tests {
                     dpt_sampler_id: DptStore::DEFAULT_DPT_SAMPLER_ID.to_string(),
                     dpt_categorizer_id: "dpt_categorizer.debug.zlm_lookup.v1".to_string(),
                     chunk_store_key: "chunk_store.default".to_string(),
+                    usf_content_profile_id: "content_profile.placeholder_gameplay.v1".to_string(),
                 },
             )]),
             known_dpt_samplers: std::collections::HashSet::from([DptStore::DEFAULT_DPT_SAMPLER_ID.to_string()]),
