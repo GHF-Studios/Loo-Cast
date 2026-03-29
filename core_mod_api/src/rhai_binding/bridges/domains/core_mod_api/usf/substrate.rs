@@ -2,8 +2,8 @@ use rhai::FuncRegistration;
 
 use crate::rhai_binding::engine::statics::{
     ScriptDptMetricDefinition, ScriptDptSchemaDefinition, ScriptMetricDefinition, ScriptScaleBindingDefinition, ScriptZlmMetricBandDefinition,
-    ScriptZlmRuleDefinition, ScriptZlmScaleDefinition, USF_DPT_CATEGORIZER_IDS, USF_DPT_SAMPLER_IDS, USF_DPT_SCHEMAS_BY_SCALE, USF_METRIC_SETS_BY_ID,
-    USF_METRICS_BY_NAME, USF_SCALE_BINDINGS_BY_SCALE, USF_ZLM_SCALES_BY_SCALE, USF_ZONE_TYPES,
+    ScriptZlmRuleDefinition, ScriptZlmScaleDefinition, USF_DPT_CATEGORIZER_IDS, USF_DPT_SAMPLER_IDS, USF_DPT_SCHEMAS_BY_SCALE, USF_METRICS_BY_NAME,
+    USF_METRIC_SETS_BY_ID, USF_SCALE_BINDINGS_BY_SCALE, USF_ZLM_SCALES_BY_SCALE, USF_ZONE_TYPES,
 };
 use crate::usf::scale::Scale;
 
@@ -19,8 +19,10 @@ core_mod_macros::reflect_extern_sub_module!(
         clear_dpt_schemas,
         set_dpt_schema,
         add_dpt_metric,
+        add_dpt_metric_typed,
         clear_metrics,
         add_metric,
+        add_metric_typed,
         clear_metric_sets,
         set_metric_set,
         add_metric_set_metric,
@@ -109,9 +111,52 @@ core_mod_macros::reflect_extern_module_associated_function!(
             |scale_index: i64, metric_id: i64, metric_name: &str, primitive: bool| -> Result<(), Box<rhai::EvalAltResult>> {
                 let scale_index = parse_scale_index(scale_index)?;
                 let metric_id = parse_u16_value("metric_id", metric_id)?;
-                let metric_name = metric_name.trim();
-                if metric_name.is_empty() {
-                    return Err("metric name must not be empty".into());
+                let mut schemas = USF_DPT_SCHEMAS_BY_SCALE().lock().unwrap();
+                let Some(schema) = schemas.get_mut(&scale_index) else {
+                    return Err(format!("no DPT schema defined for scale_index={scale_index}; call set_dpt_schema first").into());
+                };
+                let definition = build_legacy_metric_definition(metric_id, metric_name, primitive)?;
+                schema.metrics.push(ScriptDptMetricDefinition {
+                    id: definition.id,
+                    name: definition.name,
+                    value_type: definition.value_type,
+                    semantics_tag: definition.semantics_tag,
+                    storage_class: definition.storage_class,
+                    derived: definition.derived,
+                    min_scale_index: definition.min_scale_index,
+                    max_scale_index: definition.max_scale_index,
+                });
+                Ok(())
+            },
+        );
+    },
+);
+
+core_mod_macros::reflect_extern_module_associated_function!(
+    id = core_mod_api::usf::substrate::add_dpt_metric_typed,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(
+            parent_module,
+            |scale_index: i64,
+             metric_id: i64,
+             metric_name: &str,
+             value_type: &str,
+             semantics_tag: &str,
+             storage_class: &str,
+             derived: bool,
+             min_scale_index: i64,
+             max_scale_index: i64|
+             -> Result<(), Box<rhai::EvalAltResult>> {
+                let scale_index = parse_scale_index(scale_index)?;
+                let metric_id = parse_u16_value("metric_id", metric_id)?;
+                let metric_name = normalize_identifier("metric_name", metric_name)?;
+                let value_type = parse_metric_value_type(value_type)?;
+                let semantics_tag = normalize_identifier("semantics_tag", semantics_tag)?;
+                let storage_class = parse_metric_storage_class(storage_class)?;
+                let min_scale_index = parse_scale_index_with_name("min_scale_index", min_scale_index)?;
+                let max_scale_index = parse_scale_index_with_name("max_scale_index", max_scale_index)?;
+                if min_scale_index > max_scale_index {
+                    return Err(format!("invalid metric scale range [{min_scale_index}..{max_scale_index}] for metric '{}'", metric_name).into());
                 }
                 let mut schemas = USF_DPT_SCHEMAS_BY_SCALE().lock().unwrap();
                 let Some(schema) = schemas.get_mut(&scale_index) else {
@@ -119,8 +164,13 @@ core_mod_macros::reflect_extern_module_associated_function!(
                 };
                 schema.metrics.push(ScriptDptMetricDefinition {
                     id: metric_id,
-                    name: metric_name.to_string(),
-                    primitive,
+                    name: metric_name,
+                    value_type,
+                    semantics_tag,
+                    storage_class,
+                    derived,
+                    min_scale_index,
+                    max_scale_index,
                 });
                 Ok(())
             },
@@ -145,16 +195,13 @@ core_mod_macros::reflect_extern_module_associated_function!(
             parent_module,
             |metric_id: i64, metric_name: &str, primitive: bool| -> Result<(), Box<rhai::EvalAltResult>> {
                 let metric_id = parse_u16_value("metric_id", metric_id)?;
-                let metric_name = normalize_identifier("metric_name", metric_name)?;
                 let mut metrics = USF_METRICS_BY_NAME().lock().unwrap();
+                let definition = build_legacy_metric_definition(metric_id, metric_name, primitive)?;
+                let metric_name = definition.name.clone();
 
                 if let Some(existing) = metrics.get(&metric_name) {
-                    if existing.id != metric_id || existing.primitive != primitive {
-                        return Err(format!(
-                            "metric '{}' already exists with a different definition (id={}, primitive={})",
-                            metric_name, existing.id, existing.primitive
-                        )
-                        .into());
+                    if existing != &definition {
+                        return Err(format!("metric '{}' already exists with a different definition", metric_name).into());
                     }
                     return Ok(());
                 }
@@ -163,14 +210,62 @@ core_mod_macros::reflect_extern_module_associated_function!(
                     return Err(format!("metric_id {} is already assigned to metric '{}'", metric_id, conflict.name).into());
                 }
 
-                metrics.insert(
-                    metric_name.clone(),
-                    ScriptMetricDefinition {
-                        id: metric_id,
-                        name: metric_name,
-                        primitive,
-                    },
-                );
+                metrics.insert(metric_name, definition);
+                Ok(())
+            },
+        );
+    },
+);
+
+core_mod_macros::reflect_extern_module_associated_function!(
+    id = core_mod_api::usf::substrate::add_metric_typed,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(
+            parent_module,
+            |metric_id: i64,
+             metric_name: &str,
+             value_type: &str,
+             semantics_tag: &str,
+             storage_class: &str,
+             derived: bool,
+             min_scale_index: i64,
+             max_scale_index: i64|
+             -> Result<(), Box<rhai::EvalAltResult>> {
+                let metric_id = parse_u16_value("metric_id", metric_id)?;
+                let metric_name = normalize_identifier("metric_name", metric_name)?;
+                let value_type = parse_metric_value_type(value_type)?;
+                let semantics_tag = normalize_identifier("semantics_tag", semantics_tag)?;
+                let storage_class = parse_metric_storage_class(storage_class)?;
+                let min_scale_index = parse_scale_index_with_name("min_scale_index", min_scale_index)?;
+                let max_scale_index = parse_scale_index_with_name("max_scale_index", max_scale_index)?;
+                if min_scale_index > max_scale_index {
+                    return Err(format!("invalid metric scale range [{min_scale_index}..{max_scale_index}] for metric '{}'", metric_name).into());
+                }
+                let mut metrics = USF_METRICS_BY_NAME().lock().unwrap();
+
+                let definition = ScriptMetricDefinition {
+                    id: metric_id,
+                    name: metric_name.clone(),
+                    value_type,
+                    semantics_tag,
+                    storage_class,
+                    derived,
+                    min_scale_index,
+                    max_scale_index,
+                };
+
+                if let Some(existing) = metrics.get(&metric_name) {
+                    if existing != &definition {
+                        return Err(format!("metric '{}' already exists with a different definition", metric_name).into());
+                    }
+                    return Ok(());
+                }
+
+                if let Some(conflict) = metrics.values().find(|def| def.id == metric_id) {
+                    return Err(format!("metric_id {} is already assigned to metric '{}'", metric_id, conflict.name).into());
+                }
+
+                metrics.insert(metric_name, definition);
                 Ok(())
             },
         );
@@ -277,7 +372,12 @@ core_mod_macros::reflect_extern_module_associated_function!(
                     compiled_metrics.push(ScriptDptMetricDefinition {
                         id: metric.id,
                         name: metric.name.clone(),
-                        primitive: metric.primitive,
+                        value_type: metric.value_type.clone(),
+                        semantics_tag: metric.semantics_tag.clone(),
+                        storage_class: metric.storage_class.clone(),
+                        derived: metric.derived,
+                        min_scale_index: metric.min_scale_index,
+                        max_scale_index: metric.max_scale_index,
                     });
                 }
                 drop(metrics);
@@ -479,12 +579,17 @@ fn normalize_zone_type(zone_type: &str) -> Result<String, Box<rhai::EvalAltResul
 
 #[inline]
 fn parse_scale_index(scale_index: i64) -> Result<u8, Box<rhai::EvalAltResult>> {
+    parse_scale_index_with_name("scale_index", scale_index)
+}
+
+#[inline]
+fn parse_scale_index_with_name(name: &str, scale_index: i64) -> Result<u8, Box<rhai::EvalAltResult>> {
     if scale_index < 0 {
-        return Err(format!("scale_index must be >= 0, got {scale_index}").into());
+        return Err(format!("{name} must be >= 0, got {scale_index}").into());
     }
     let max_index = (Scale::SCALE_LEVEL_COUNT.saturating_sub(1)) as i64;
     if scale_index > max_index {
-        return Err(format!("scale_index must be <= {max_index}, got {scale_index}").into());
+        return Err(format!("{name} must be <= {max_index}, got {scale_index}").into());
     }
     Ok(scale_index as u8)
 }
@@ -503,6 +608,46 @@ fn parse_u16_value(value_name: &str, value: i64) -> Result<u16, Box<rhai::EvalAl
         return Err(format!("{value_name} must be in 0..={}, got {value}", u16::MAX).into());
     }
     Ok(value as u16)
+}
+
+#[inline]
+fn parse_metric_value_type(value: &str) -> Result<String, Box<rhai::EvalAltResult>> {
+    let normalized = value.trim().to_ascii_lowercase();
+    if normalized.is_empty() {
+        return Err("metric value_type must not be empty".into());
+    }
+    match normalized.as_str() {
+        "u8" | "u16" | "i32" | "f32" | "f64" => Ok(normalized),
+        _ => Err(format!("unsupported metric value_type '{normalized}'").into()),
+    }
+}
+
+#[inline]
+fn parse_metric_storage_class(value: &str) -> Result<String, Box<rhai::EvalAltResult>> {
+    let normalized = value.trim().to_ascii_lowercase();
+    if normalized.is_empty() {
+        return Err("metric storage_class must not be empty".into());
+    }
+    match normalized.as_str() {
+        "uniform" | "brick" => Ok(normalized),
+        _ => Err(format!("unsupported metric storage_class '{normalized}'").into()),
+    }
+}
+
+#[inline]
+fn build_legacy_metric_definition(metric_id: u16, metric_name: &str, primitive: bool) -> Result<ScriptMetricDefinition, Box<rhai::EvalAltResult>> {
+    let metric_name = normalize_identifier("metric_name", metric_name)?;
+    let max_scale = Scale::SCALE_LEVEL_COUNT.saturating_sub(1);
+    Ok(ScriptMetricDefinition {
+        id: metric_id,
+        name: metric_name.clone(),
+        value_type: "f32".to_string(),
+        semantics_tag: format!("legacy.{metric_name}"),
+        storage_class: "brick".to_string(),
+        derived: !primitive,
+        min_scale_index: 0,
+        max_scale_index: max_scale,
+    })
 }
 
 #[inline]

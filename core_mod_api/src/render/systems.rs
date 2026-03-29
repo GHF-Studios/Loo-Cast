@@ -16,15 +16,19 @@ use crate::render::{
     camera_contract,
     components::{EguiCamera, EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision, RenderProxy, RenderProxyWindowMode, UiCamera, WorldPresentationRoot},
     functions::draw_primary_window_ui,
-    resources::{DevZoomFactor, GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, RuntimeDebugToggles, ViewScale},
+    resources::{DevZoomFactor, GameViewRenderTarget, PrimaryWindowUiDockState, PrimaryWindowUiState, RenderPrecisionAnchor, RuntimeDebugToggles, ViewScale},
 };
 use crate::time::resources::VirtualPaused;
 use crate::tracing::{error, info};
 use crate::usf::pos::grid::types::GridVec;
+use crate::usf::pos::unit::types::UnitVec;
 use crate::usf::scale::Scale;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 const MIN_WINDOW_SIZE_LOCAL: f32 = f32::MIN_POSITIVE;
+const CHUNK_SPAN_UNITS_F64: f64 = 1_000.0;
+const ROOT_AXIS_CELL_COUNT_F64: f64 = 10.0;
+const ROOT_AXIS_PERIOD_UNITS_F64: f64 = CHUNK_SPAN_UNITS_F64 * ROOT_AXIS_CELL_COUNT_F64;
 #[cfg(test)]
 const CAMERA_EFFECTIVE_ZOOM_MIN: f32 = 0.1;
 #[cfg(test)]
@@ -50,6 +54,86 @@ fn player_local_zoom_for_presentation(chunk_loader: &ChunkLoader) -> f32 {
 #[inline]
 fn world_presentation_scale_from_local_zoom(local_zoom: f32) -> f32 {
     local_zoom.max(f32::MIN_POSITIVE).recip()
+}
+
+#[inline]
+fn canonical_grid_coord(coord: &GridVec) -> GridVec {
+    let mut canonical = coord.clone();
+    canonical.normalize();
+    canonical
+}
+
+#[inline]
+fn sample_root_native_position(canonical_coord: &GridVec, local_offset: Vec3) -> [f64; 3] {
+    let mut sample = UnitVec::new(canonical_coord.clone(), local_offset);
+    while sample.grid_offset.scale != Scale::MAX {
+        sample.zoom_out();
+    }
+    let root = sample.grid_offset.xyz;
+    [
+        root.x as f64 * CHUNK_SPAN_UNITS_F64 + sample.unit_offset.x as f64,
+        root.y as f64 * CHUNK_SPAN_UNITS_F64 + sample.unit_offset.y as f64,
+        root.z as f64 * CHUNK_SPAN_UNITS_F64 + sample.unit_offset.z as f64,
+    ]
+}
+
+#[inline]
+fn wrap_root_native_delta_axis(delta: f64) -> f64 {
+    if !delta.is_finite() || ROOT_AXIS_PERIOD_UNITS_F64 <= f64::EPSILON {
+        return 0.0;
+    }
+    let half_period = ROOT_AXIS_PERIOD_UNITS_F64 * 0.5;
+    ((delta + half_period).rem_euclid(ROOT_AXIS_PERIOD_UNITS_F64)) - half_period
+}
+
+#[inline]
+fn saturating_f64_to_f32(value: f64) -> f32 {
+    if value.is_nan() {
+        return 0.0;
+    }
+    if value.is_infinite() {
+        return if value.is_sign_negative() { f32::MIN } else { f32::MAX };
+    }
+    if value > f32::MAX as f64 {
+        return f32::MAX;
+    }
+    if value < f32::MIN as f64 {
+        return f32::MIN;
+    }
+    value as f32
+}
+
+#[inline]
+fn saturating_scale_factor_from_scale_diff(scale_diff: i16) -> f32 {
+    let scale = 10.0_f64.powi(scale_diff as i32);
+    if !scale.is_finite() {
+        return f32::MAX;
+    }
+    if scale <= 0.0 {
+        return f32::MIN_POSITIVE;
+    }
+    scale.clamp(f32::MIN_POSITIVE as f64, f32::MAX as f64) as f32
+}
+
+#[inline]
+fn player_relative_chunk_center_native_from_anchor(coord: &GridVec, anchor: &RenderPrecisionAnchor) -> (Vec3, f32, i8) {
+    let canonical_coord = canonical_grid_coord(coord);
+    let chunk_root_native = sample_root_native_position(&canonical_coord, Vec3::ZERO);
+    let root_to_active = 10.0_f64.powi(anchor.active_scale_index as i32);
+
+    let dx = wrap_root_native_delta_axis(chunk_root_native[0] - anchor.player_root_native[0]) * root_to_active;
+    let dy = wrap_root_native_delta_axis(chunk_root_native[1] - anchor.player_root_native[1]) * root_to_active;
+    let dz = wrap_root_native_delta_axis(chunk_root_native[2] - anchor.player_root_native[2]) * root_to_active;
+
+    let scale_diff = coord.scale.index_from_top() as i16 - anchor.active_scale_index;
+    let relative_scale_to_player = scale_diff.clamp(i8::MIN as i16, i8::MAX as i16) as i8;
+    let scale = saturating_scale_factor_from_scale_diff(scale_diff);
+
+    (
+        Vec3::new(saturating_f64_to_f32(dx), saturating_f64_to_f32(dy), saturating_f64_to_f32(dz)),
+        scale,
+        relative_scale_to_player,
+    )
 }
 
 #[inline]
@@ -229,6 +313,19 @@ pub(super) fn validate_camera_contract_system(
 }
 
 #[tracing::instrument(skip_all)]
+pub(super) fn update_render_precision_anchor_system(
+    player_loader_query: Single<(&ChunkLoader, &Transform), (With<Player>, Without<WorldPresentationRoot>)>,
+    mut render_precision_anchor: ResMut<RenderPrecisionAnchor>,
+) {
+    let (chunk_loader, player_transform) = *player_loader_query;
+    let canonical_coord = canonical_grid_coord(&chunk_loader.coord);
+
+    render_precision_anchor.active_scale = chunk_loader.scale;
+    render_precision_anchor.active_scale_index = chunk_loader.scale.index_from_top() as i16;
+    render_precision_anchor.player_root_native = sample_root_native_position(&canonical_coord, player_transform.translation);
+}
+
+#[tracing::instrument(skip_all)]
 pub(super) fn update_world_presentation_root_transform_system(
     player_loader_query: Single<(&ChunkLoader, &Transform), (With<Player>, Without<WorldPresentationRoot>, Without<MainCamera>)>,
     root_query: Single<&mut Transform, (With<WorldPresentationRoot>, Without<Player>)>,
@@ -260,13 +357,14 @@ pub(super) fn bind_render_proxies_to_world_presentation_root_system(
 
 #[tracing::instrument(skip_all)]
 pub(super) fn update_render_proxies(
+    render_precision_anchor: Res<RenderPrecisionAnchor>,
     mut params: ParamSet<(
         Single<(&ChunkLoader, &Transform), (With<Player>, Without<MainCamera>)>,
         Query<(&EntityProxyLink, &ChunkActor), Without<RenderProxy>>,
         Query<(Entity, &mut Transform, &mut ProxySyncRevision, &mut RenderProxy, &mut Visibility), With<RenderProxy>>,
     )>,
 ) {
-    let (world_rotation_origin, origin_offset, view_pos_native, player_local_zoom, world_presentation_scale) = {
+    let (world_rotation_origin, view_pos_native, player_local_zoom, world_presentation_scale, precision_anchor) = {
         let (chunk_loader, chunk_loader_transform) = *params.p0();
         let local_zoom = player_local_zoom_for_presentation(chunk_loader);
         let presentation_scale = world_presentation_scale_from_local_zoom(local_zoom);
@@ -274,10 +372,10 @@ pub(super) fn update_render_proxies(
         let view_anchor_native = chunk_loader_transform.translation;
         (
             world_presentation_origin,
-            chunk_loader.origin_offset.clone(),
             view_anchor_native,
             local_zoom,
             presentation_scale,
+            *render_precision_anchor,
         )
     };
     let load_radius = CONFIG().get::<u32>("chunk_loader/load_radius") as usize;
@@ -298,17 +396,16 @@ pub(super) fn update_render_proxies(
                 if incoming_revision.0 < proxy_revision.0 {
                     continue;
                 }
-                let coord_scale = coord.scale;
-                let scale_diff = coord_scale as i8 - origin_offset.scale as i8;
-                let relative_scale_to_player = scale_diff;
+                let (player_relative_center, scale, relative_scale_to_player) = player_relative_chunk_center_native_from_anchor(&coord, &precision_anchor);
                 let z_bias = proxy_state.depth_bias;
-                let (pos, scale) = coord.to_native_visual(origin_offset.clone());
-                let world_pos = Vec3::new(pos.x, pos.y, pos.z + z_bias);
+                let world_center = view_pos_native + player_relative_center;
+                let world_pos = Vec3::new(world_center.x, world_center.y, world_center.z + z_bias);
                 proxy_transform.translation = world_pos - world_rotation_origin;
                 proxy_transform.scale = Vec3::splat(scale);
                 proxy_transform.rotation = Quat::IDENTITY;
-                proxy_state.layer_index = coord_scale.render_layer_index();
-                let (window_mode, window_center_local, window_size_local) = compute_render_proxy_windowing(scale_diff, pos, view_pos_native);
+                proxy_state.layer_index = coord.scale.render_layer_index();
+                let (window_mode, window_center_local, window_size_local) =
+                    compute_render_proxy_windowing(relative_scale_to_player, world_center, view_pos_native);
                 proxy_state.window_mode = window_mode;
                 proxy_state.window_center_local = window_center_local;
                 proxy_state.window_size_local = window_size_local;

@@ -19,10 +19,67 @@ impl ZoneTypeId {
 }
 
 #[derive(Reflect, Debug, Clone, PartialEq, Eq)]
+pub enum DptMetricValueType {
+    U8,
+    U16,
+    I32,
+    F32,
+    F64,
+}
+impl DptMetricValueType {
+    pub fn from_tag(value: &str) -> Option<Self> {
+        match value.trim().to_ascii_lowercase().as_str() {
+            "u8" => Some(Self::U8),
+            "u16" => Some(Self::U16),
+            "i32" => Some(Self::I32),
+            "f32" => Some(Self::F32),
+            "f64" => Some(Self::F64),
+            _ => None,
+        }
+    }
+}
+impl Default for DptMetricValueType {
+    fn default() -> Self {
+        Self::F32
+    }
+}
+
+#[derive(Reflect, Debug, Clone, PartialEq, Eq)]
+pub enum DptMetricStorageClass {
+    Uniform,
+    Brick,
+}
+impl DptMetricStorageClass {
+    pub fn from_tag(value: &str) -> Option<Self> {
+        match value.trim().to_ascii_lowercase().as_str() {
+            "uniform" => Some(Self::Uniform),
+            "brick" => Some(Self::Brick),
+            _ => None,
+        }
+    }
+}
+impl Default for DptMetricStorageClass {
+    fn default() -> Self {
+        Self::Brick
+    }
+}
+
+#[derive(Reflect, Debug, Clone, PartialEq, Eq)]
 pub struct DptMetricDefinition {
     pub id: DptMetricId,
     pub name: String,
-    pub primitive: bool,
+    pub value_type: DptMetricValueType,
+    pub semantics_tag: String,
+    pub storage_class: DptMetricStorageClass,
+    pub derived: bool,
+    pub min_scale_index: u8,
+    pub max_scale_index: u8,
+}
+impl DptMetricDefinition {
+    pub fn applies_to_scale(&self, scale: Scale) -> bool {
+        let index = scale.index_from_top();
+        (self.min_scale_index..=self.max_scale_index).contains(&index)
+    }
 }
 
 #[derive(Reflect, Debug, Clone, PartialEq, Eq)]
@@ -66,6 +123,32 @@ impl DptSchema {
             }
             if !seen_metric_names.insert(normalized_name.clone()) {
                 return Err(format!("duplicate DPT metric name '{normalized_name}'"));
+            }
+            let normalized_semantics = metric.semantics_tag.trim().to_ascii_lowercase();
+            if normalized_semantics.is_empty() {
+                return Err(format!("metric {} has an empty semantics_tag", metric.id.0));
+            }
+            if metric.min_scale_index >= Scale::SCALE_LEVEL_COUNT {
+                return Err(format!(
+                    "metric {} has min_scale_index={} outside [0..{}]",
+                    metric.id.0,
+                    metric.min_scale_index,
+                    Scale::SCALE_LEVEL_COUNT.saturating_sub(1)
+                ));
+            }
+            if metric.max_scale_index >= Scale::SCALE_LEVEL_COUNT {
+                return Err(format!(
+                    "metric {} has max_scale_index={} outside [0..{}]",
+                    metric.id.0,
+                    metric.max_scale_index,
+                    Scale::SCALE_LEVEL_COUNT.saturating_sub(1)
+                ));
+            }
+            if metric.min_scale_index > metric.max_scale_index {
+                return Err(format!(
+                    "metric {} has invalid scale range [{}..{}]",
+                    metric.id.0, metric.min_scale_index, metric.max_scale_index
+                ));
             }
         }
 
@@ -173,28 +256,50 @@ fn default_zone_types() -> Vec<ZoneTypeId> {
 }
 
 fn baseline_schema_for_scale(_scale: Scale) -> DptSchema {
+    let min_scale_index = 0;
+    let max_scale_index = Scale::SCALE_LEVEL_COUNT.saturating_sub(1);
     DptSchema {
         revision: 1,
         metrics: vec![
             DptMetricDefinition {
                 id: DptMetricId(0),
                 name: "temperature".to_string(),
-                primitive: true,
+                value_type: DptMetricValueType::F32,
+                semantics_tag: "climate.temperature.normalized".to_string(),
+                storage_class: DptMetricStorageClass::Brick,
+                derived: false,
+                min_scale_index,
+                max_scale_index,
             },
             DptMetricDefinition {
                 id: DptMetricId(1),
                 name: "humidity".to_string(),
-                primitive: true,
+                value_type: DptMetricValueType::F32,
+                semantics_tag: "climate.humidity.normalized".to_string(),
+                storage_class: DptMetricStorageClass::Brick,
+                derived: false,
+                min_scale_index,
+                max_scale_index,
             },
             DptMetricDefinition {
                 id: DptMetricId(2),
                 name: "elevation".to_string(),
-                primitive: true,
+                value_type: DptMetricValueType::F32,
+                semantics_tag: "terrain.elevation.normalized".to_string(),
+                storage_class: DptMetricStorageClass::Brick,
+                derived: false,
+                min_scale_index,
+                max_scale_index,
             },
             DptMetricDefinition {
                 id: DptMetricId(3),
                 name: "vegetation_density".to_string(),
-                primitive: false,
+                value_type: DptMetricValueType::F32,
+                semantics_tag: "biosphere.vegetation_density.normalized".to_string(),
+                storage_class: DptMetricStorageClass::Brick,
+                derived: true,
+                min_scale_index,
+                max_scale_index,
             },
         ],
         fallback_zone: normalize_zone_type("void"),
@@ -238,10 +343,30 @@ fn script_schema_overrides() -> Vec<(Scale, DptSchema)> {
             let metrics = script_schema
                 .metrics
                 .into_iter()
-                .map(|metric| DptMetricDefinition {
-                    id: DptMetricId(metric.id),
-                    name: metric.name.trim().to_string(),
-                    primitive: metric.primitive,
+                .map(|metric| {
+                    let value_type = DptMetricValueType::from_tag(&metric.value_type).unwrap_or_else(|| {
+                        panic!(
+                            "USF script metric '{}' has invalid value_type '{}'; expected one of: u8, u16, i32, f32, f64",
+                            metric.name, metric.value_type
+                        )
+                    });
+                    let storage_class = DptMetricStorageClass::from_tag(&metric.storage_class).unwrap_or_else(|| {
+                        panic!(
+                            "USF script metric '{}' has invalid storage_class '{}'; expected one of: uniform, brick",
+                            metric.name, metric.storage_class
+                        )
+                    });
+
+                    DptMetricDefinition {
+                        id: DptMetricId(metric.id),
+                        name: metric.name.trim().to_string(),
+                        value_type,
+                        semantics_tag: metric.semantics_tag.trim().to_string(),
+                        storage_class,
+                        derived: metric.derived,
+                        min_scale_index: metric.min_scale_index,
+                        max_scale_index: metric.max_scale_index,
+                    }
                 })
                 .collect::<Vec<_>>();
             Some((
@@ -308,6 +433,18 @@ impl DefinitionRegistry {
                 return Err(format!("missing DPT schema for scale index {}", scale.index_from_top()));
             };
             schema.validate()?;
+            for metric in &schema.metrics {
+                if !metric.applies_to_scale(scale) {
+                    return Err(format!(
+                        "metric '{}' (id={}) is not valid for scale index {} (range=[{}..{}])",
+                        metric.name,
+                        metric.id.0,
+                        scale.index_from_top(),
+                        metric.min_scale_index,
+                        metric.max_scale_index
+                    ));
+                }
+            }
             if !self.known_zone_types.contains(&schema.fallback_zone) {
                 return Err(format!(
                     "fallback zone '{}' for scale {} is not declared in known_zone_types",

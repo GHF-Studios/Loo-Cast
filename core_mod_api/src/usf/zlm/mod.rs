@@ -300,7 +300,12 @@ mod tests {
             metrics: vec![DptMetricDefinition {
                 id: DptMetricId(0),
                 name: "temperature".to_string(),
-                primitive: true,
+                value_type: crate::usf::definition::DptMetricValueType::F32,
+                semantics_tag: "climate.temperature.normalized".to_string(),
+                storage_class: crate::usf::definition::DptMetricStorageClass::Brick,
+                derived: false,
+                min_scale_index: 0,
+                max_scale_index: Scale::SCALE_LEVEL_COUNT.saturating_sub(1),
             }],
             fallback_zone: ZoneTypeId::new("void"),
         };

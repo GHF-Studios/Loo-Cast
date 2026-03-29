@@ -110,11 +110,13 @@ pub(super) fn reconcile_zone_realization_system(
     phenomenon_model_query: Query<(Entity, &PhenomenonModel)>,
     mut zone_realization_event_writer: MessageWriter<ZoneRealizationEvent>,
 ) {
-    // Temporary contract: only top-scale zones manifest new phenomena.
+    // Active-scale authority: zone realizations follow the player's currently active scale.
+    // This keeps spawned phenomena coherent through USF zoom transitions.
+    let active_scale = temporal_context.active_scale;
     let desired_zone_ids = runtime_state
         .records
         .keys()
-        .filter(|zone_id| zone_id.scale == Scale::MAX)
+        .filter(|zone_id| zone_id.scale == active_scale)
         .cloned()
         .collect::<HashSet<_>>();
     let live_zone_realizations = zone_phenomenon_query

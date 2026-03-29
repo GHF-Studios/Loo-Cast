@@ -12,11 +12,12 @@ use crate::bevy::prelude::*;
 use crate::bevy_rapier3d::prelude::PhysicsSet;
 use bevy_egui::EguiPrimaryContextPass;
 use components::{EguiCamera, EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision, RenderProxy, RenderProxyWindowMode, UiCamera, WorldPresentationRoot};
-use resources::{DevZoomFactor, PauseMenuWindow, PrimaryWindowUiDockState, PrimaryWindowUiState, RuntimeDebugToggles, ViewScale};
+use resources::{DevZoomFactor, PauseMenuWindow, PrimaryWindowUiDockState, PrimaryWindowUiState, RenderPrecisionAnchor, RuntimeDebugToggles, ViewScale};
 use systems::{
     apply_usf_player_pivots_system, bind_render_proxies_to_world_presentation_root_system, despawn_orphaned_render_proxies, draw_chunk_locator_gizmos_system,
     enforce_main_camera_depth_contract_system, main_camera_zoom_system, pre_setup_phase_0, pre_setup_phase_1, primary_window_ui_system, resize_render_texture,
-    update_render_proxies, update_view_scale_from_zoom, update_world_presentation_root_transform_system, validate_camera_contract_system,
+    update_render_precision_anchor_system, update_render_proxies, update_view_scale_from_zoom, update_world_presentation_root_transform_system,
+    validate_camera_contract_system,
 };
 
 use crate::core::{components::Meta, orchestration::AppSet, run_conditions::run_after_startup_finished};
@@ -32,6 +33,7 @@ impl Plugin for RenderPlugin {
             .insert_resource(ClearColor(Color::srgb(0.0, 0.0, 0.0)))
             .insert_resource(DevZoomFactor::default())
             .insert_resource(ViewScale::default())
+            .insert_resource(RenderPrecisionAnchor::default())
             .init_resource::<RuntimeDebugToggles>()
             .add_systems(PreStartup, (pre_setup_phase_0.before(pre_setup_phase_1), pre_setup_phase_1))
             .add_systems(
@@ -42,9 +44,12 @@ impl Plugin for RenderPlugin {
                     apply_usf_player_pivots_system.in_set(AppSet::BoundaryResolve).after(PhysicsSet::Writeback),
                     enforce_main_camera_depth_contract_system.in_set(AppSet::Camera).after(update_follower_system),
                     update_view_scale_from_zoom.in_set(AppSet::Camera),
-                    update_world_presentation_root_transform_system
+                    update_render_precision_anchor_system
                         .in_set(AppSet::Camera)
                         .after(apply_usf_player_pivots_system),
+                    update_world_presentation_root_transform_system
+                        .in_set(AppSet::Camera)
+                        .after(update_render_precision_anchor_system),
                     validate_camera_contract_system.in_set(AppSet::Diagnostics).after(update_view_scale_from_zoom),
                     despawn_orphaned_render_proxies.in_set(AppSet::Presentation),
                     bind_render_proxies_to_world_presentation_root_system

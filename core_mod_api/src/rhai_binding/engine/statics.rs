@@ -4,11 +4,16 @@ use std::sync::Mutex;
 use core_mod_macros::export_static;
 use once_cell::sync::Lazy;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ScriptDptMetricDefinition {
     pub id: u16,
     pub name: String,
-    pub primitive: bool,
+    pub value_type: String,
+    pub semantics_tag: String,
+    pub storage_class: String,
+    pub derived: bool,
+    pub min_scale_index: u8,
+    pub max_scale_index: u8,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -53,11 +58,16 @@ pub struct ScriptScaleBindingDefinition {
     pub chunk_store_key: String,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ScriptMetricDefinition {
     pub id: u16,
     pub name: String,
-    pub primitive: bool,
+    pub value_type: String,
+    pub semantics_tag: String,
+    pub storage_class: String,
+    pub derived: bool,
+    pub min_scale_index: u8,
+    pub max_scale_index: u8,
 }
 
 #[derive(Debug, Clone, Default)]
