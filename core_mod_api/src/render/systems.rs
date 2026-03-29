@@ -23,7 +23,9 @@ use crate::usf::scale::Scale;
 use std::collections::{HashMap, HashSet};
 
 const MIN_WINDOW_SIZE_LOCAL: f32 = f32::MIN_POSITIVE;
+#[cfg(test)]
 const CAMERA_EFFECTIVE_ZOOM_MIN: f32 = 0.1;
+#[cfg(test)]
 const CAMERA_EFFECTIVE_ZOOM_MAX: f32 = 10.0;
 #[cfg(test)]
 const CAMERA_REFERENCE_HALF_VIEW_SPAN: f32 = 1_200.0;
@@ -31,11 +33,6 @@ const CAMERA_REFERENCE_HALF_VIEW_SPAN: f32 = 1_200.0;
 const CAMERA_DISTANCE_MIN: f32 = 80.0;
 #[cfg(test)]
 const CAMERA_DISTANCE_MAX: f32 = 25_000.0;
-
-#[inline]
-fn effective_camera_zoom(local_zoom: f32, dev_zoom: f32) -> f32 {
-    (local_zoom * dev_zoom).clamp(CAMERA_EFFECTIVE_ZOOM_MIN, CAMERA_EFFECTIVE_ZOOM_MAX)
-}
 
 #[inline]
 fn player_local_zoom_for_presentation(chunk_loader: &ChunkLoader) -> f32 {
@@ -2623,27 +2620,30 @@ pub(super) fn primary_window_ui_system(world: &mut World) {
 
 #[tracing::instrument(skip_all)]
 pub(super) fn main_camera_zoom_system(
-    mut projection_query: Query<&mut Projection, With<MainCamera>>,
     mut scroll_message_reader: MessageReader<MouseWheel>,
     keys: Res<ButtonInput<KeyCode>>,
     input_mode: Res<State<InputMode>>,
-    time: Res<Time<Real>>,
     virtual_paused: Res<VirtualPaused>,
     chunk_load_gate: Option<Res<ChunkLoadGate>>,
     mut zoom_factor: ResMut<ZoomFactor>,
     mut dev_zoom_factor: ResMut<DevZoomFactor>,
+    mut zoom_initialized: Local<bool>,
 ) {
     const ZOOM_SCROLL_DEADZONE: f32 = 0.05;
 
-    let min_zoom = CONFIG().get::<f32>("camera/min_zoom").max(f32::EPSILON);
-    let max_zoom = CONFIG().get::<f32>("camera/max_zoom").max(min_zoom * 1.001);
-    let base_zoom_speed = CONFIG().get::<f32>("camera/base_zoom_speed");
+    let local_min_zoom = CONFIG().get::<f32>("usf/scale/local_min").max(f32::EPSILON);
+    let local_max_zoom = CONFIG().get::<f32>("usf/scale/local_max").max(local_min_zoom * 1.001);
+    let local_zoom_center = (local_min_zoom * local_max_zoom).sqrt();
+    let base_zoom_speed = CONFIG().get::<f32>("camera/base_zoom_speed").abs();
     let min_dev_zoom = CONFIG().get::<f32>("camera/min_dev_zoom").max(f32::EPSILON);
     let max_dev_zoom = CONFIG().get::<f32>("camera/max_dev_zoom").max(min_dev_zoom * 1.001);
-    let dev_zoom_speed = CONFIG().get::<f32>("camera/dev_zoom_speed");
-    let perspective_fov_min_deg = CONFIG().get::<f32>("camera/min_fov_degrees");
-    let perspective_fov_max_deg = CONFIG().get::<f32>("camera/max_fov_degrees");
+    let dev_zoom_speed = CONFIG().get::<f32>("camera/dev_zoom_speed").abs();
     let chunk_load_gate_enabled = CONFIG().get::<bool>("workflow/chunk_load_gate_enabled");
+
+    if !*zoom_initialized {
+        zoom_factor.0 = local_zoom_center;
+        *zoom_initialized = true;
+    }
 
     if !input_mode.is_game() || virtual_paused.0 || (chunk_load_gate_enabled && chunk_load_gate.as_ref().is_some_and(|gate| gate.is_locked())) {
         scroll_message_reader.clear();
@@ -2651,6 +2651,10 @@ pub(super) fn main_camera_zoom_system(
     }
 
     let shift_pressed = keys.pressed(KeyCode::ShiftLeft) || keys.pressed(KeyCode::ShiftRight);
+    let base_zoom_step = (1.0 + base_zoom_speed * 0.01).max(1.001);
+    let dev_zoom_step = (1.0 + dev_zoom_speed * 0.01).max(1.001);
+    let input_local_zoom_min = local_min_zoom / base_zoom_step;
+    let input_local_zoom_max = local_max_zoom * base_zoom_step;
 
     for message in scroll_message_reader.read() {
         let scroll_delta = match message.unit {
@@ -2661,23 +2665,12 @@ pub(super) fn main_camera_zoom_system(
             continue;
         }
         if shift_pressed {
-            let zoom_speed = dev_zoom_speed * dev_zoom_factor.0;
-            dev_zoom_factor.0 = (dev_zoom_factor.0 + scroll_delta * zoom_speed * time.delta_secs()).clamp(min_dev_zoom, max_dev_zoom);
+            let zoom_multiplier = dev_zoom_step.powf(scroll_delta.clamp(-6.0, 6.0));
+            dev_zoom_factor.0 = (dev_zoom_factor.0 * zoom_multiplier).clamp(min_dev_zoom, max_dev_zoom);
         } else {
-            let zoom_speed = base_zoom_speed * zoom_factor.0;
-            zoom_factor.0 = (zoom_factor.0 + scroll_delta * zoom_speed * time.delta_secs()).clamp(min_zoom, max_zoom);
+            let zoom_multiplier = base_zoom_step.powf(scroll_delta.clamp(-6.0, 6.0));
+            zoom_factor.0 = (zoom_factor.0 * zoom_multiplier).clamp(input_local_zoom_min, input_local_zoom_max);
         }
-    }
-    let camera_zoom = effective_camera_zoom(zoom_factor.0, dev_zoom_factor.0);
-    for mut projection in projection_query.iter_mut() {
-        apply_camera_zoom_to_projection(
-            projection.as_mut(),
-            camera_zoom,
-            CAMERA_EFFECTIVE_ZOOM_MIN,
-            CAMERA_EFFECTIVE_ZOOM_MAX,
-            perspective_fov_min_deg,
-            perspective_fov_max_deg,
-        );
     }
 }
 
@@ -2716,23 +2709,21 @@ fn apply_discrete_scale_rebase_events(
     let max = local_max.max(min * 1.001);
     let pivot_factor = (max / min).max(1.001);
 
-    while *local_zoom < min {
+    // Perform at most one discrete rebase per frame to keep transitions continuous and debuggable.
+    if *local_zoom < min {
         if chunk_loader.scale == Scale::MIN {
             *local_zoom = min;
-            break;
+        } else {
+            *logical_world_pos = chunk_loader.zoom_in(*logical_world_pos);
+            *local_zoom *= pivot_factor;
+            zoom_in_events = 1;
         }
-        *logical_world_pos = chunk_loader.zoom_in(*logical_world_pos);
-        *local_zoom *= pivot_factor;
-        zoom_in_events = zoom_in_events.saturating_add(1);
-    }
-
-    while *local_zoom >= max {
-        if chunk_loader.scale == Scale::MAX {
-            break;
+    } else if *local_zoom >= max {
+        if chunk_loader.scale != Scale::MAX {
+            *logical_world_pos = chunk_loader.zoom_out(*logical_world_pos);
+            *local_zoom /= pivot_factor;
+            zoom_out_events = 1;
         }
-        *logical_world_pos = chunk_loader.zoom_out(*logical_world_pos);
-        *local_zoom /= pivot_factor;
-        zoom_out_events = zoom_out_events.saturating_add(1);
     }
 
     *local_zoom = clamp_local_zoom_accumulator(*local_zoom, min, max);
@@ -2890,32 +2881,7 @@ pub(super) fn apply_usf_player_pivots_system(
 }
 
 #[inline]
-fn apply_camera_zoom_to_projection(
-    projection: &mut Projection,
-    camera_zoom: f32,
-    effective_zoom_min: f32,
-    effective_zoom_max: f32,
-    perspective_fov_min_deg: f32,
-    perspective_fov_max_deg: f32,
-) {
-    match projection {
-        Projection::Orthographic(ortho) => {
-            ortho.scale = camera_zoom.max(f32::EPSILON);
-        }
-        Projection::Perspective(perspective) => {
-            perspective.fov = zoom_to_fov_radians(
-                camera_zoom,
-                effective_zoom_min.max(f32::EPSILON),
-                effective_zoom_max.max(effective_zoom_min * 1.001),
-                perspective_fov_min_deg,
-                perspective_fov_max_deg,
-            );
-        }
-        _ => {}
-    }
-}
-
-#[inline]
+#[cfg(test)]
 fn zoom_to_fov_radians(camera_zoom: f32, zoom_min: f32, zoom_max: f32, fov_min_deg: f32, fov_max_deg: f32) -> f32 {
     let zoom = camera_zoom.clamp(zoom_min, zoom_max);
     let min_ln = zoom_min.ln();
