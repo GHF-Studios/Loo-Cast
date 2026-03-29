@@ -1,7 +1,10 @@
 use crate::bevy::input::mouse::MouseMotion;
 use crate::bevy::prelude::*;
 use crate::bevy::window::{CursorGrabMode, CursorOptions, PrimaryWindow};
-use crate::bevy_rapier3d::prelude::{CharacterLength, Collider, KinematicCharacterController, LockedAxes, RigidBody};
+use crate::bevy_rapier3d::parry::shape::Capsule as RapierCapsule;
+use crate::bevy_rapier3d::prelude::{
+    CharacterLength, Collider, KinematicCharacterController, LockedAxes, QueryFilter as RapierQueryFilter, ReadRapierContext, RigidBody,
+};
 
 use crate::chunk::components::ChunkLoader;
 use crate::config::statics::CONFIG;
@@ -9,7 +12,7 @@ use crate::core::protocol::PlayerMotionIntent;
 use crate::follower::components::Follower;
 use crate::input::states::InputMode;
 use crate::player::bundles::PlayerBundle;
-use crate::player::components::{Player, PlayerVisual3dLink};
+use crate::player::components::{Player, PlayerSpawnRecovery, PlayerVisual3dLink};
 use crate::player::resources::{PlayerCameraMode, PlayerCameraRigSettings, PlayerControlSettings, PlayerLookState};
 use crate::render::components::MainCamera;
 use crate::render::resources::PrimaryWindowUiState;
@@ -29,6 +32,12 @@ pub(super) struct PlayerRuntimeConfigCache {
     local_translation_max: f32,
     local_translation_buffer_ratio: f32,
 }
+
+const SPAWN_RECOVERY_MIN_STEP: f32 = 0.5;
+const SPAWN_RECOVERY_MAX_STEP: f32 = 16.0;
+const SPAWN_RECOVERY_MAX_PUSH_SCALE: f32 = 4.0;
+const SPAWN_RECOVERY_MAX_PROBE_STEPS: i32 = 32;
+const SPAWN_RECOVERY_POINT_PROJECTION_MAX_DIST_FACTOR: f32 = 8.0;
 
 #[cfg(test)]
 #[inline]
@@ -79,6 +88,90 @@ fn view_rotation_from_look(look_state: &PlayerLookState) -> Quat {
     }
 
     Transform::from_translation(Vec3::ZERO).looking_to(forward, up).rotation
+}
+
+#[inline]
+fn player_capsule_intersects_world(
+    rapier_context: &crate::bevy_rapier3d::prelude::RapierContext<'_>,
+    probe_capsule: &RapierCapsule,
+    player_translation: Vec3,
+    player_entity: Entity,
+) -> bool {
+    let filter = RapierQueryFilter::new().exclude_sensors().exclude_collider(player_entity);
+    let mut intersects_world = false;
+    rapier_context.intersect_shape(player_translation, Quat::IDENTITY, probe_capsule, filter, |_entity| {
+        intersects_world = true;
+        false
+    });
+    intersects_world
+}
+
+#[inline]
+fn find_spawn_recovery_offset(
+    rapier_context: &crate::bevy_rapier3d::prelude::RapierContext<'_>,
+    probe_capsule: &RapierCapsule,
+    player_entity: Entity,
+    player_translation: Vec3,
+    preferred_push_direction: Vec3,
+    step_size: f32,
+) -> Option<Vec3> {
+    let mut candidate_directions = Vec::with_capacity(20);
+    let preferred = preferred_push_direction.normalize_or_zero();
+    if preferred.length_squared() > f32::EPSILON {
+        candidate_directions.push(preferred);
+    }
+
+    let projection_filter = RapierQueryFilter::new().exclude_sensors().exclude_collider(player_entity);
+    let projection_max_dist = step_size * SPAWN_RECOVERY_POINT_PROJECTION_MAX_DIST_FACTOR;
+    if let Some((_entity, projection)) = rapier_context.project_point(player_translation, projection_max_dist, true, projection_filter) {
+        let away_from_projection = (player_translation - projection.point).normalize_or_zero();
+        if away_from_projection.length_squared() > f32::EPSILON {
+            candidate_directions.push(away_from_projection);
+        }
+    }
+
+    candidate_directions.extend([
+        Vec3::Z,
+        -Vec3::Z,
+        Vec3::X,
+        -Vec3::X,
+        Vec3::Y,
+        -Vec3::Y,
+        Vec3::new(1.0, 1.0, 0.0).normalize(),
+        Vec3::new(1.0, -1.0, 0.0).normalize(),
+        Vec3::new(-1.0, 1.0, 0.0).normalize(),
+        Vec3::new(-1.0, -1.0, 0.0).normalize(),
+        Vec3::new(1.0, 0.0, 1.0).normalize(),
+        Vec3::new(-1.0, 0.0, 1.0).normalize(),
+        Vec3::new(0.0, 1.0, 1.0).normalize(),
+        Vec3::new(0.0, -1.0, 1.0).normalize(),
+        Vec3::new(1.0, 1.0, 1.0).normalize(),
+        Vec3::new(-1.0, 1.0, 1.0).normalize(),
+        Vec3::new(1.0, -1.0, 1.0).normalize(),
+        Vec3::new(-1.0, -1.0, 1.0).normalize(),
+    ]);
+
+    let mut best_offset: Option<Vec3> = None;
+    for direction in candidate_directions {
+        if direction.length_squared() <= f32::EPSILON {
+            continue;
+        }
+
+        for probe_step in 1..=SPAWN_RECOVERY_MAX_PROBE_STEPS {
+            let offset = direction * (step_size * probe_step as f32);
+            let candidate_translation = player_translation + offset;
+            if player_capsule_intersects_world(rapier_context, probe_capsule, candidate_translation, player_entity) {
+                continue;
+            }
+
+            if best_offset.is_none_or(|best| offset.length_squared() < best.length_squared()) {
+                best_offset = Some(offset);
+            }
+            break;
+        }
+    }
+
+    best_offset
 }
 
 #[tracing::instrument(skip_all)]
@@ -155,6 +248,73 @@ pub(super) fn ensure_player_physics_controller_system(
                 ..Default::default()
             });
         }
+    }
+}
+
+#[tracing::instrument(skip_all)]
+pub(super) fn resolve_player_spawn_overlap_system(
+    mut player_query: Query<(Entity, &mut Transform, &mut PlayerSpawnRecovery), With<Player>>,
+    rapier_context: ReadRapierContext,
+) {
+    let Ok((player_entity, mut player_transform, mut spawn_recovery)) = player_query.single_mut() else {
+        return;
+    };
+    let Ok(rapier_context) = rapier_context.single() else {
+        return;
+    };
+
+    let capsule_radius = CONFIG().get::<f32>("player/capsule_radius").max(1.0);
+    let capsule_half_height = CONFIG().get::<f32>("player/capsule_half_height").max(capsule_radius);
+    let probe_capsule = RapierCapsule::new_z(capsule_half_height, capsule_radius);
+    let is_overlapping = player_capsule_intersects_world(&rapier_context, &probe_capsule, player_transform.translation, player_entity);
+
+    if !is_overlapping {
+        if spawn_recovery.active {
+            info!("Player overlap recovery complete after {} frame(s).", spawn_recovery.frames_overlapping);
+        }
+        spawn_recovery.active = false;
+        spawn_recovery.frames_overlapping = 0;
+        spawn_recovery.preferred_push_direction = Vec3::Z;
+        return;
+    }
+
+    spawn_recovery.frames_overlapping = spawn_recovery.frames_overlapping.saturating_add(1);
+    if !spawn_recovery.active {
+        warn!("Player started inside solid geometry; beginning gentle overlap recovery.");
+        spawn_recovery.active = true;
+    }
+
+    let step_size = (capsule_radius * 0.2).clamp(SPAWN_RECOVERY_MIN_STEP, SPAWN_RECOVERY_MAX_STEP);
+    let raw_offset = find_spawn_recovery_offset(
+        &rapier_context,
+        &probe_capsule,
+        player_entity,
+        player_transform.translation,
+        spawn_recovery.preferred_push_direction,
+        step_size,
+    )
+    .unwrap_or_else(|| {
+        let fallback_direction = {
+            let preferred = spawn_recovery.preferred_push_direction.normalize_or_zero();
+            if preferred.length_squared() > f32::EPSILON { preferred } else { Vec3::Z }
+        };
+        fallback_direction * step_size
+    });
+
+    if raw_offset.length_squared() <= f32::EPSILON {
+        return;
+    }
+
+    let push_scale = (1.0 + spawn_recovery.frames_overlapping as f32 * 0.1).min(SPAWN_RECOVERY_MAX_PUSH_SCALE);
+    let applied_offset = raw_offset.clamp_length_max(step_size * push_scale);
+    let applied_direction = applied_offset.normalize_or_zero();
+    if applied_direction.length_squared() > f32::EPSILON {
+        spawn_recovery.preferred_push_direction = applied_direction;
+    }
+    player_transform.translation += applied_offset;
+
+    if spawn_recovery.frames_overlapping % 60 == 0 {
+        warn!("Player overlap recovery still active after {} frames.", spawn_recovery.frames_overlapping);
     }
 }
 

@@ -3,6 +3,7 @@ pub mod demo;
 pub mod enums;
 pub mod errors;
 pub mod functions;
+pub mod gpu_density;
 pub mod messages;
 pub mod resources;
 pub mod run_conditions;

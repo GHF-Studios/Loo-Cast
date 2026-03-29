@@ -141,27 +141,27 @@ define_workflow_mod_OLD! {
             ]
         }
 
-        HydrateChunkVisuals, timeout_secs: 1.0, timeout_mode: VirtualTime {
+        HydrateChunkVisuals, timeout_secs: 5.0, timeout_mode: VirtualTime {
             user_imports: {
-                use crate::bevy::prelude::{Commands, ResMut};
+                use crate::bevy::prelude::ResMut;
                 use crate::chunk::workflows::external::hydrate_chunk_visuals::{
                     ArtifactsOutput as BuildArtifactsOutput,
                     CommitOutput as CommitArtifactsOutput,
                     Error as HydrateChunkVisualsError,
                     Input as BuildArtifactsInput,
                     MainAccess as CommitArtifactsMainAccess,
+                    State as CommitArtifactsState,
                     run_async as run_build_artifacts_async,
-                    run_ecs as run_commit_artifacts_ecs,
+                    run_ecs_while as run_commit_artifacts_ecs_while,
+                    setup_ecs_while as setup_commit_artifacts_ecs_while,
                 };
+                use crate::utils::progress::Progress;
             },
             user_items: {
             },
             stages: [
-                BuildArtifacts: Ecs, run_if_paused: false, run_after_startup_finished: true {
+                BuildArtifacts: Async, run_if_paused: false, run_after_startup_finished: true {
                     core_types: [
-                        struct MainAccess<'w, 's> {
-                            _commands: Commands<'w, 's>,
-                        }
                         struct Input {
                             inner: BuildArtifactsInput,
                         }
@@ -173,8 +173,7 @@ define_workflow_mod_OLD! {
                         }
                     ],
                     core_functions: [
-                        fn RunEcs |input, main_access| -> Result<Output, Error> {
-                            let _ = main_access;
+                        fn RunAsync |input| -> Result<Output, Error> {
                             let output = run_build_artifacts_async(input.inner).map_err(Error::Inner)?;
                             Ok(Output {
                                 inner: output,
@@ -183,13 +182,16 @@ define_workflow_mod_OLD! {
                     ]
                 },
 
-                CommitArtifacts: Ecs, run_if_paused: false, run_after_startup_finished: true {
+                CommitArtifacts: EcsWhile, run_if_paused: false, run_after_startup_finished: true {
                     core_types: [
                         struct MainAccess<'w, 's> {
                             inner: CommitArtifactsMainAccess<'w, 's>,
                         }
                         struct Input {
                             inner: BuildArtifactsOutput,
+                        }
+                        struct State {
+                            inner: Progress<CommitArtifactsState, CommitArtifactsOutput>,
                         }
                         struct Output {
                             inner: CommitArtifactsOutput,
@@ -199,11 +201,31 @@ define_workflow_mod_OLD! {
                         }
                     ],
                     core_functions: [
-                        fn RunEcs |input, main_access| -> Result<Output, Error> {
-                            let output = run_commit_artifacts_ecs(input.inner, main_access.inner).map_err(Error::Inner)?;
-                            Ok(Output {
-                                inner: output,
+                        fn SetupEcsWhile |input, main_access| -> Result<State, Error> {
+                            let state = setup_commit_artifacts_ecs_while(input.inner, main_access.inner).map_err(Error::Inner)?;
+
+                            Ok(State {
+                                inner: Progress::Unfinished(state),
                             })
+                        }
+
+                        fn RunEcsWhile |state, main_access| -> Result<Outcome<State, Output>, Error> {
+                            let progress = match state.inner {
+                                Progress::Unfinished(state) => {
+                                    run_commit_artifacts_ecs_while(state, main_access.inner).map_err(Error::Inner)?.into_progress()
+                                }
+                                Progress::Finished(output) => Progress::Finished(output),
+                            };
+
+                            if progress.is_finished() {
+                                return Ok(Done(Output {
+                                    inner: progress.unwrap_finished(),
+                                }));
+                            }
+
+                            Ok(Wait(State {
+                                inner: progress,
+                            }))
                         }
                     ]
                 }

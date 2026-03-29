@@ -4,6 +4,8 @@ use crate::bevy::prelude::*;
 use crate::bevy::render::render_resource::PrimitiveTopology;
 use crate::bevy_rapier3d::prelude::{Collider, ComputedColliderShape};
 use crate::chunk::components::{Chunk, ChunkLoader};
+#[cfg(not(test))]
+use crate::chunk::gpu_density;
 use crate::chunk::resources::ChunkManager;
 use crate::config::statics::CONFIG;
 use crate::player::components::Player;
@@ -39,6 +41,9 @@ pub struct UsfDemoSettings {
     pub world_seed: u64,
     pub sample_step: u16,
     pub iso_level: u8,
+    pub hydration_batch_size: usize,
+    pub hydration_commit_budget: usize,
+    pub hydration_build_workers: usize,
     pub persistence_dir: String,
 }
 impl Default for UsfDemoSettings {
@@ -48,6 +53,9 @@ impl Default for UsfDemoSettings {
             world_seed: CONFIG().get::<u64>("usf_demo/world_seed"),
             sample_step: CONFIG().get::<u16>("usf_demo/sample_step"),
             iso_level: CONFIG().get::<u8>("usf_demo/iso_level"),
+            hydration_batch_size: CONFIG().get::<usize>("usf_demo/hydration_batch_size"),
+            hydration_commit_budget: CONFIG().get::<usize>("usf_demo/hydration_commit_budget"),
+            hydration_build_workers: CONFIG().get::<usize>("usf_demo/hydration_build_workers"),
             persistence_dir: CONFIG().get::<String>("usf_demo/persistence_dir"),
         }
     }
@@ -222,8 +230,6 @@ impl UsfDemoHydrationWorkflowState {
     }
 }
 
-const CHUNK_DEMO_HYDRATION_BATCH_SIZE: usize = 64;
-
 #[derive(Debug, Clone)]
 pub struct ChunkDemoHydrationTask {
     pub chunk_entity: Entity,
@@ -287,7 +293,8 @@ pub(crate) fn run_chunk_demo_hydration_workflow_system(
     }
 
     hydration_state.prune_stale(&chunk_visual_query);
-    let batch_entities = hydration_state.drain_batch(CHUNK_DEMO_HYDRATION_BATCH_SIZE);
+    let batch_size = settings.hydration_batch_size.max(1);
+    let batch_entities = hydration_state.drain_batch(batch_size);
     if batch_entities.is_empty() {
         return;
     }
@@ -351,6 +358,8 @@ pub(crate) fn run_chunk_demo_hydration_workflow_system(
     let hydrate_async_input = crate::chunk::workflows::external::hydrate_chunk_visuals::AsyncInput {
         settings: settings.clone(),
         tasks,
+        build_workers: settings.hydration_build_workers.max(1),
+        commit_budget: settings.hydration_commit_budget.max(1),
     };
 
     let handle = composite_workflow!(
@@ -358,7 +367,7 @@ pub(crate) fn run_chunk_demo_hydration_workflow_system(
         move in hydrate_async_input: crate::chunk::workflows::external::hydrate_chunk_visuals::AsyncInput,
     {
         let _ = run_workflow_ioe_with_timeout_control::<crate::chunk::workflows::chunk::hydrate_chunk_visuals::TypeIOE, _>(
-            Duration::from_secs_f64(1.0),
+            Duration::from_secs_f64(5.0),
             WorkflowTimeoutMode::VirtualTime,
             crate::chunk::workflows::chunk::hydrate_chunk_visuals::stages::build_artifacts::core_types::Input {
                 inner: crate::chunk::workflows::external::hydrate_chunk_visuals::Input {
@@ -372,11 +381,7 @@ pub(crate) fn run_chunk_demo_hydration_workflow_system(
     hydration_state.handle = Some(handle);
 }
 
-fn chunk_demo_hydration_timeout_decision(
-    module_name: &'static str,
-    workflow_name: &'static str,
-    timeout_count: usize,
-) -> WorkflowTimeoutControlDecision {
+fn chunk_demo_hydration_timeout_decision(module_name: &'static str, workflow_name: &'static str, timeout_count: usize) -> WorkflowTimeoutControlDecision {
     if timeout_count == 1 {
         warn!(
             "Chunk demo hydration timeout request: {}::{}, timeout_count={}, decision=Retry",
@@ -392,16 +397,8 @@ fn chunk_demo_hydration_timeout_decision(
     WorkflowTimeoutControlDecision::Panic
 }
 
-pub(crate) fn prepare_chunk_demo_hydration_artifact(
-    settings: &UsfDemoSettings,
-    task: ChunkDemoHydrationTask,
-) -> ChunkDemoHydrationArtifact {
-    let chunk_file = chunk_file_path(
-        settings,
-        task.chunk_scale,
-        &task.canonical_coord,
-        task.chunk_store_key.as_str(),
-    );
+pub(crate) fn prepare_chunk_demo_hydration_artifact(settings: &UsfDemoSettings, task: ChunkDemoHydrationTask) -> ChunkDemoHydrationArtifact {
+    let chunk_file = chunk_file_path(settings, task.chunk_scale, &task.canonical_coord, task.chunk_store_key.as_str());
     let expected_coord = SerializableGridCoord::from_grid(&task.canonical_coord);
 
     let mut record = load_chunk_record(&chunk_file).filter(|loaded| {
@@ -688,24 +685,9 @@ fn generate_chunk_record(
 
     let chunk_seed = derive_chunk_seed(settings.world_seed, canonical_coord);
 
-    let mut rho_values = Vec::with_capacity(total_points);
-    let mut zone_values = Vec::with_capacity(total_points);
+    let rho_values = sample_density_field_values(settings, chunk_scale, canonical_coord, &axis_samples, zone_density_profile);
     let zone_id = zone_numeric_id(zone_type);
-
-    for iz in 0..axis_points {
-        for iy in 0..axis_points {
-            for ix in 0..axis_points {
-                let local_offset = Vec3::new(
-                    axis_samples[ix] as f32 - HALF_CHUNK_SPAN_F32,
-                    axis_samples[iy] as f32 - HALF_CHUNK_SPAN_F32,
-                    axis_samples[iz] as f32 - HALF_CHUNK_SPAN_F32,
-                );
-                let root_native = sample_root_native_position(canonical_coord, local_offset);
-                rho_values.push(hash_density_u8(settings.world_seed, root_native, zone_density_profile));
-                zone_values.push(zone_id);
-            }
-        }
-    }
+    let zone_values = vec![zone_id; total_points];
 
     PersistedChunkRecord {
         world_seed: settings.world_seed,
@@ -721,6 +703,55 @@ fn generate_chunk_record(
         rho_field: MixedMetricFieldU8::from_values(rho_values),
         zone_field: MixedMetricFieldU32::from_values(zone_values),
     }
+}
+
+fn sample_density_field_values(
+    settings: &UsfDemoSettings,
+    _chunk_scale: Scale,
+    canonical_coord: &GridVec,
+    axis_samples: &[u16],
+    _zone_density_profile: ZoneDensityProfile,
+) -> Vec<u8> {
+    #[cfg(test)]
+    {
+        return sample_density_field_values_cpu(settings.world_seed, canonical_coord, axis_samples, _zone_density_profile);
+    }
+
+    #[cfg(not(test))]
+    {
+        match gpu_density::sample_density_field(settings.world_seed, _chunk_scale, canonical_coord, axis_samples) {
+            Ok(values) => values,
+            Err(error) => panic!(
+                "USF demo GPU density sampling failed (scale_index={}, coord={:?}): {}",
+                _chunk_scale.index_from_top(),
+                canonical_coord,
+                error
+            ),
+        }
+    }
+}
+
+#[cfg(test)]
+fn sample_density_field_values_cpu(world_seed: u64, canonical_coord: &GridVec, axis_samples: &[u16], zone_density_profile: ZoneDensityProfile) -> Vec<u8> {
+    let axis_points = axis_samples.len();
+    let total_points = axis_points * axis_points * axis_points;
+    let mut rho_values = Vec::with_capacity(total_points);
+
+    for iz in 0..axis_points {
+        for iy in 0..axis_points {
+            for ix in 0..axis_points {
+                let local_offset = Vec3::new(
+                    axis_samples[ix] as f32 - HALF_CHUNK_SPAN_F32,
+                    axis_samples[iy] as f32 - HALF_CHUNK_SPAN_F32,
+                    axis_samples[iz] as f32 - HALF_CHUNK_SPAN_F32,
+                );
+                let root_native = sample_root_native_position(canonical_coord, local_offset);
+                rho_values.push(hash_density_u8(world_seed, root_native, zone_density_profile));
+            }
+        }
+    }
+
+    rho_values
 }
 
 fn build_chunk_mesh(record: &PersistedChunkRecord) -> Option<Mesh> {
@@ -1026,11 +1057,12 @@ fn zone_numeric_id(zone_type: &ZoneTypeId) -> u32 {
 
 #[inline]
 fn density_field_signature() -> u64 {
-    const DENSITY_ALGO_REVISION: u64 = 2;
+    const DENSITY_ALGO_REVISION: u64 = 3;
     let mut signature_seed = 0xa3f1_1a89_5d4c_2be7_u64 ^ DENSITY_ALGO_REVISION;
     signature_seed ^= CHUNK_SPAN_UNITS_I64 as u64;
     signature_seed ^= (ROOT_AXIS_CELL_COUNT as u64) << 8;
     signature_seed ^= (ROOT_AXIS_PERIOD_UNITS as u64) << 16;
+    signature_seed ^= 0x4750_555f_4445_4d4f_u64; // "GPU_DEMO"
     mix64(signature_seed)
 }
 
@@ -1142,6 +1174,9 @@ mod tests {
             world_seed: 42,
             sample_step: 64,
             iso_level: 128,
+            hydration_batch_size: 64,
+            hydration_commit_budget: 4,
+            hydration_build_workers: 4,
             persistence_dir: std::env::temp_dir().join("usf_demo_chunk_tests").to_string_lossy().to_string(),
         }
     }

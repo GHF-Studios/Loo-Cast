@@ -9,7 +9,7 @@ use crate::{
     config::statics::CONFIG,
 };
 
-use super::components::Player;
+use super::components::{Player, PlayerSpawnRecovery};
 
 #[derive(Bundle, Reflect)]
 pub struct PlayerBundle {
@@ -21,6 +21,7 @@ pub struct PlayerBundle {
     pub name: Name,
     pub pickable: Pickable,
     pub follower_target: FollowerTarget,
+    pub spawn_recovery: PlayerSpawnRecovery,
 }
 impl Default for PlayerBundle {
     fn default() -> Self {
@@ -43,6 +44,7 @@ impl Default for PlayerBundle {
             name: Name::new("player"),
             pickable: Pickable::default(),
             follower_target: FollowerTarget { id: "main_camera".to_string() },
+            spawn_recovery: PlayerSpawnRecovery::default(),
         }
     }
 }

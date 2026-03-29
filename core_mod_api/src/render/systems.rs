@@ -2660,14 +2660,15 @@ pub(super) fn main_camera_zoom_system(
     let capsule_radius = CONFIG().get::<f32>("player/capsule_radius").max(1.0);
     let capsule_half_height = CONFIG().get::<f32>("player/capsule_half_height").max(capsule_radius);
     let scale_policy = chunk_loader.usf_transform.scale.policy;
-    let local_min_zoom = (scale_policy.local_min as f32).max(f32::EPSILON);
-    let local_max_zoom = (scale_policy.local_max as f32).max(local_min_zoom * 1.001);
     let commit_min_zoom = (scale_policy.commit_min() as f32).max(f32::EPSILON);
     let commit_max_zoom = (scale_policy.commit_max() as f32).max(commit_min_zoom * 1.001);
-    let local_zoom_center = (local_min_zoom * local_max_zoom).sqrt();
+    // Input bounds intentionally straddle commit bounds to avoid f32/f64 boundary misses.
+    let (input_local_zoom_min, input_local_zoom_max) = zoom_input_bounds_from_commit_bounds(commit_min_zoom, commit_max_zoom);
+    let configured_default_zoom = CONFIG().get::<f32>("camera/default_zoom").max(f32::MIN_POSITIVE);
 
     if !*zoom_initialized {
-        chunk_loader.usf_transform.scale.set_local(local_zoom_center as f64);
+        let startup_zoom = configured_default_zoom.clamp(input_local_zoom_min, input_local_zoom_max);
+        chunk_loader.usf_transform.scale.set_local(startup_zoom as f64);
         *zoom_initialized = true;
     }
 
@@ -2679,8 +2680,6 @@ pub(super) fn main_camera_zoom_system(
     let shift_pressed = keys.pressed(KeyCode::ShiftLeft) || keys.pressed(KeyCode::ShiftRight);
     let base_zoom_step = (1.0 + base_zoom_speed * 0.01).max(1.001);
     let dev_zoom_step = (1.0 + dev_zoom_speed * 0.01).max(1.001);
-    // Input bounds intentionally straddle commit bounds to avoid f32/f64 boundary misses.
-    let (input_local_zoom_min, input_local_zoom_max) = zoom_input_bounds_from_commit_bounds(commit_min_zoom, commit_max_zoom);
     let mut local_zoom = chunk_loader.usf_transform.scale.local_f32();
     let mut physics_blocked = false;
 

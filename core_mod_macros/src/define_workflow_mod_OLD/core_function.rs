@@ -1772,23 +1772,18 @@ impl CoreFunctions<Async> {
                                     .handle()
                                     .clone();
 
-                                if let Err(err) = WORKFLOW_TOKIO_RUNTIME().block_on(async move {
-                                    handle.spawn(async move {
-                                        let _response = response_future.await;
+                                let _ = handle.spawn(async move {
+                                    let _response = response_future;
 
-                                        let handler = (stage.handle_async_run_response)(
-                                            module_name,
-                                            workflow_name,
-                                            None,
-                                            completion_sender,
-                                            None,
-                                        );
-                                        handler(stage);
-                                    })
-                                    .await
-                                }) {
-                                    unreachable!("Async stage execution error: Task spawn error: {}", err);
-                                }
+                                    let handler = (stage.handle_async_run_response)(
+                                        module_name,
+                                        workflow_name,
+                                        None,
+                                        completion_sender,
+                                        None,
+                                    );
+                                    handler(stage);
+                                });
                             }
                         }
                     }
@@ -1810,23 +1805,18 @@ impl CoreFunctions<Async> {
                                     .handle()
                                     .clone();
 
-                                if let Err(err) = WORKFLOW_TOKIO_RUNTIME().block_on(async move {
-                                    handle.spawn(async move {
-                                        let response = response_future.await;
+                                let _ = handle.spawn(async move {
+                                    let response = response_future;
 
-                                        let handler = (stage.handle_async_run_response)(
-                                            module_name,
-                                            workflow_name,
-                                            response,
-                                            completion_sender,
-                                            Some(failure_sender),
-                                        );
-                                        handler(stage);
-                                    })
-                                    .await
-                                }) {
-                                    unreachable!("Async stage execution error: Task spawn error: {}", err);
-                                }
+                                    let handler = (stage.handle_async_run_response)(
+                                        module_name,
+                                        workflow_name,
+                                        response,
+                                        completion_sender,
+                                        Some(failure_sender),
+                                    );
+                                    handler(stage);
+                                });
                             }
                         }
                     }
@@ -1847,23 +1837,18 @@ impl CoreFunctions<Async> {
                                     .handle()
                                     .clone();
 
-                                if let Err(err) = WORKFLOW_TOKIO_RUNTIME().block_on(async move {
-                                    handle.spawn(async move {
-                                        let response = response_future.await;
+                                let _ = handle.spawn(async move {
+                                    let response = response_future;
 
-                                        let handler = (stage.handle_async_run_response)(
-                                            module_name,
-                                            workflow_name,
-                                            response,
-                                            completion_sender,
-                                            None,
-                                        );
-                                        handler(stage);
-                                    })
-                                    .await
-                                }) {
-                                    unreachable!("Async stage execution error: Task spawn error: {}", err);
-                                }
+                                    let handler = (stage.handle_async_run_response)(
+                                        module_name,
+                                        workflow_name,
+                                        response,
+                                        completion_sender,
+                                        None,
+                                    );
+                                    handler(stage);
+                                });
                             }
                         }
                     }
@@ -1885,23 +1870,18 @@ impl CoreFunctions<Async> {
                                     .handle()
                                     .clone();
 
-                                if let Err(err) = WORKFLOW_TOKIO_RUNTIME().block_on(async move {
-                                    handle.spawn(async move {
-                                        let response = response_future.await;
+                                let _ = handle.spawn(async move {
+                                    let response = response_future;
 
-                                        let handler = (stage.handle_async_run_response)(
-                                            module_name,
-                                            workflow_name,
-                                            response,
-                                            completion_sender,
-                                            Some(failure_sender),
-                                        );
-                                        handler(stage);
-                                    })
-                                    .await
-                                }) {
-                                    unreachable!("Async stage execution error: Task spawn error: {}", err);
-                                }
+                                    let handler = (stage.handle_async_run_response)(
+                                        module_name,
+                                        workflow_name,
+                                        response,
+                                        completion_sender,
+                                        Some(failure_sender),
+                                    );
+                                    handler(stage);
+                                });
                             }
                         }
                     }
@@ -1923,23 +1903,18 @@ impl CoreFunctions<Async> {
                                     .handle()
                                     .clone();
 
-                                if let Err(err) = WORKFLOW_TOKIO_RUNTIME().block_on(async move {
-                                    handle.spawn(async move {
-                                        let _response = response_future.await;
+                                let _ = handle.spawn(async move {
+                                    let _response = response_future;
 
-                                        let handler = (stage.handle_async_run_response)(
-                                            module_name,
-                                            workflow_name,
-                                            None,
-                                            completion_sender,
-                                            None,
-                                        );
-                                        handler(stage);
-                                    })
-                                    .await
-                                }) {
-                                    unreachable!("Async stage execution error: Task spawn error: {}", err);
-                                }
+                                    let handler = (stage.handle_async_run_response)(
+                                        module_name,
+                                        workflow_name,
+                                        None,
+                                        completion_sender,
+                                        None,
+                                    );
+                                    handler(stage);
+                                });
                             }
                         }
                     }
@@ -1962,23 +1937,18 @@ impl CoreFunctions<Async> {
                                     .handle()
                                     .clone();
 
-                                if let Err(err) = WORKFLOW_TOKIO_RUNTIME().block_on(async move {
-                                    handle.spawn(async move {
-                                        let response = response_future.await;
+                                let _ = handle.spawn(async move {
+                                    let response = response_future;
 
-                                        let handler = (stage.handle_async_run_response)(
-                                            module_name,
-                                            workflow_name,
-                                            response,
-                                            completion_sender,
-                                            Some(failure_sender),
-                                        );
-                                        handler(stage);
-                                    })
-                                    .await
-                                }) {
-                                    unreachable!("Async stage execution error: Task spawn error: {}", err);
-                                }
+                                    let handler = (stage.handle_async_run_response)(
+                                        module_name,
+                                        workflow_name,
+                                        response,
+                                        completion_sender,
+                                        Some(failure_sender),
+                                    );
+                                    handler(stage);
+                                });
                             }
                         }
                     }
@@ -2000,23 +1970,18 @@ impl CoreFunctions<Async> {
                                     .handle()
                                     .clone();
 
-                                if let Err(err) = WORKFLOW_TOKIO_RUNTIME().block_on(async move {
-                                    handle.spawn(async move {
-                                        let response = response_future.await;
+                                let _ = handle.spawn(async move {
+                                    let response = response_future;
 
-                                        let handler = (stage.handle_async_run_response)(
-                                            module_name,
-                                            workflow_name,
-                                            response,
-                                            completion_sender,
-                                            None,
-                                        );
-                                        handler(stage);
-                                    })
-                                    .await
-                                }) {
-                                    unreachable!("Async stage execution error: Task spawn error: {}", err);
-                                }
+                                    let handler = (stage.handle_async_run_response)(
+                                        module_name,
+                                        workflow_name,
+                                        response,
+                                        completion_sender,
+                                        None,
+                                    );
+                                    handler(stage);
+                                });
                             }
                         }
                     }
@@ -2039,23 +2004,18 @@ impl CoreFunctions<Async> {
                                     .handle()
                                     .clone();
 
-                                if let Err(err) = WORKFLOW_TOKIO_RUNTIME().block_on(async move {
-                                    handle.spawn(async move {
-                                        let response = response_future.await;
+                                let _ = handle.spawn(async move {
+                                    let response = response_future;
 
-                                        let handler = (stage.handle_async_run_response)(
-                                            module_name,
-                                            workflow_name,
-                                            response,
-                                            completion_sender,
-                                            Some(failure_sender),
-                                        );
-                                        handler(stage);
-                                    })
-                                    .await
-                                }) {
-                                    unreachable!("Async stage execution error: Task spawn error: {}", err);
-                                }
+                                    let handler = (stage.handle_async_run_response)(
+                                        module_name,
+                                        workflow_name,
+                                        response,
+                                        completion_sender,
+                                        Some(failure_sender),
+                                    );
+                                    handler(stage);
+                                });
                             }
                         }
                     }

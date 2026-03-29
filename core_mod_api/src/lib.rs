@@ -181,8 +181,8 @@ register_workflow_mods!(
             FindAndDespawnAndWait: EcsWhile,
         },
         HydrateChunkVisuals {
-            BuildArtifacts: Ecs,
-            CommitArtifacts: Ecs,
+            BuildArtifacts: Async,
+            CommitArtifacts: EcsWhile,
         },
     },
     Core {

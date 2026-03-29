@@ -1,5 +1,5 @@
 [camera]
-default_zoom = 1.0
+default_zoom = 2.0
 min_zoom = 0.001
 max_zoom = 1000.0
 default_fov_degrees = 55.0
@@ -50,6 +50,9 @@ enabled = true
 world_seed = 1337
 sample_step = 64
 iso_level = 170
+hydration_batch_size = 64
+hydration_commit_budget = 4
+hydration_build_workers = 4
 persistence_dir = "target/usf_demo/chunks"
 
 [core]
