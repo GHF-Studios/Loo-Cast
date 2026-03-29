@@ -96,6 +96,7 @@ fn configure_third_party_plugins() -> PluginGroupBuilder {
         // .add(PerfUiPlugin) // TODO: Disabled cause iyes_perf_ui is stuck on bevy 0.16.0
         // Physics Plugins
         .add(RapierPhysicsPlugin::<NoUserData>::default())
+        .add(RapierDebugRenderPlugin::default())
         // Picking Plugins
         .add_group(
             DefaultPickingPlugins

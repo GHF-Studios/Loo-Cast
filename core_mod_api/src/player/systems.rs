@@ -140,7 +140,7 @@ pub(super) fn ensure_player_physics_controller_system(
             entity_commands.insert(RigidBody::KinematicPositionBased);
         }
         if collider.is_none() {
-            entity_commands.insert(Collider::capsule_y(capsule_half_height, capsule_radius));
+            entity_commands.insert(Collider::capsule_z(capsule_half_height, capsule_radius));
         }
         if locked_axes.is_none() {
             entity_commands.insert(LockedAxes::ROTATION_LOCKED);

@@ -2,6 +2,8 @@ use crate::bevy::camera::RenderTarget;
 use crate::bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use crate::bevy::prelude::*;
 use crate::bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
+use crate::bevy_rapier3d::parry::shape::Capsule as RapierCapsule;
+use crate::bevy_rapier3d::prelude::{QueryFilter as RapierQueryFilter, ReadRapierContext};
 
 use crate::chunk::components::{Chunk, ChunkActor, ChunkDebugWireframe, ChunkLoader};
 use crate::chunk::resources::{ChunkActionWorkflowState, ChunkLoadGate};
@@ -2481,6 +2483,20 @@ mod tests {
         assert!(input_min < commit_min, "input_min={input_min} commit_min={commit_min}");
         assert!(input_max > commit_max, "input_max={input_max} commit_max={commit_max}");
     }
+
+    #[test]
+    fn zoom_candidate_allows_when_rapier_context_unavailable() {
+        let allowed = zoom_candidate_respects_physics(
+            None,
+            Vec3::ZERO,
+            Entity::PLACEHOLDER,
+            42.0,
+            24.0,
+            1.0,
+            2.0,
+        );
+        assert!(allowed);
+    }
 }
 
 #[tracing::instrument(skip_all)]
@@ -2563,7 +2579,8 @@ pub(super) fn main_camera_zoom_system(
     input_mode: Res<State<InputMode>>,
     virtual_paused: Res<VirtualPaused>,
     chunk_load_gate: Option<Res<ChunkLoadGate>>,
-    mut player_loader_query: Query<&mut ChunkLoader, With<Player>>,
+    mut player_loader_query: Query<(Entity, &mut ChunkLoader, &Transform), With<Player>>,
+    rapier_context: ReadRapierContext,
     mut dev_zoom_factor: ResMut<DevZoomFactor>,
     mut zoom_initialized: Local<bool>,
 ) {
@@ -2575,10 +2592,13 @@ pub(super) fn main_camera_zoom_system(
     let dev_zoom_speed = CONFIG().get::<f32>("camera/dev_zoom_speed").abs();
     let chunk_load_gate_enabled = CONFIG().get::<bool>("workflow/chunk_load_gate_enabled");
 
-    let Ok(mut chunk_loader) = player_loader_query.single_mut() else {
+    let Ok((player_entity, mut chunk_loader, player_transform)) = player_loader_query.single_mut() else {
         scroll_message_reader.clear();
         return;
     };
+    let rapier_context = rapier_context.single().ok();
+    let capsule_radius = CONFIG().get::<f32>("player/capsule_radius").max(1.0);
+    let capsule_half_height = CONFIG().get::<f32>("player/capsule_half_height").max(capsule_radius);
     let scale_policy = chunk_loader.usf_transform.scale.policy;
     let local_min_zoom = (scale_policy.local_min as f32).max(f32::EPSILON);
     let local_max_zoom = (scale_policy.local_max as f32).max(local_min_zoom * 1.001);
@@ -2602,6 +2622,7 @@ pub(super) fn main_camera_zoom_system(
     // Input bounds intentionally straddle commit bounds to avoid f32/f64 boundary misses.
     let (input_local_zoom_min, input_local_zoom_max) = zoom_input_bounds_from_commit_bounds(commit_min_zoom, commit_max_zoom);
     let mut local_zoom = chunk_loader.usf_transform.scale.local_f32();
+    let mut physics_blocked = false;
 
     for message in scroll_message_reader.read() {
         let scroll_delta = match message.unit {
@@ -2616,10 +2637,26 @@ pub(super) fn main_camera_zoom_system(
             dev_zoom_factor.0 = (dev_zoom_factor.0 * zoom_multiplier).clamp(min_dev_zoom, max_dev_zoom);
         } else {
             let zoom_multiplier = base_zoom_step.powf(scroll_delta.clamp(-6.0, 6.0));
-            local_zoom = (local_zoom * zoom_multiplier).clamp(input_local_zoom_min, input_local_zoom_max);
+            let candidate_zoom = (local_zoom * zoom_multiplier).clamp(input_local_zoom_min, input_local_zoom_max);
+            if zoom_candidate_respects_physics(
+                rapier_context.as_ref(),
+                player_transform.translation,
+                player_entity,
+                capsule_half_height,
+                capsule_radius,
+                local_zoom,
+                candidate_zoom,
+            ) {
+                local_zoom = candidate_zoom;
+            } else {
+                physics_blocked = true;
+            }
         }
     }
     chunk_loader.usf_transform.scale.set_local(local_zoom as f64);
+    if physics_blocked {
+        info!("Zoom blocked by physics overlap guard.");
+    }
 }
 
 #[inline]
@@ -2642,6 +2679,42 @@ fn zoom_input_bounds_from_commit_bounds(commit_min_zoom: f32, commit_max_zoom: f
     let input_min = (commit_min_zoom - lower_epsilon).max(f32::MIN_POSITIVE);
     let input_max = (commit_max_zoom + upper_epsilon).max(input_min * 1.001);
     (input_min, input_max)
+}
+
+#[inline]
+fn zoom_candidate_respects_physics(
+    rapier_context: Option<&crate::bevy_rapier3d::prelude::RapierContext<'_>>,
+    player_translation: Vec3,
+    player_entity: Entity,
+    capsule_half_height: f32,
+    capsule_radius: f32,
+    current_local_zoom: f32,
+    candidate_local_zoom: f32,
+) -> bool {
+    let current = current_local_zoom.max(f32::MIN_POSITIVE);
+    let candidate = candidate_local_zoom.max(f32::MIN_POSITIVE);
+    if candidate <= current {
+        // Zoom-in shrinks the effective player footprint relative to world presentation.
+        return true;
+    }
+
+    let Some(rapier_context) = rapier_context else {
+        return true;
+    };
+
+    let relative_player_scale = (candidate / current).max(1.0);
+    let probe_half_height = (capsule_half_height * relative_player_scale) as f32;
+    let probe_radius = (capsule_radius * relative_player_scale) as f32;
+    let probe_capsule = RapierCapsule::new_z(probe_half_height, probe_radius);
+
+    let filter = RapierQueryFilter::new().exclude_sensors().exclude_collider(player_entity);
+
+    let mut intersects_world = false;
+    rapier_context.intersect_shape(player_translation, Quat::IDENTITY, &probe_capsule, filter, |_entity| {
+        intersects_world = true;
+        false
+    });
+    !intersects_world
 }
 
 #[inline]
