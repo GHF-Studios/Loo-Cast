@@ -3,8 +3,8 @@ use std::collections::{HashMap, HashSet};
 use crate::bevy::prelude::*;
 use crate::chunk::components::{Chunk, ChunkLoader};
 use crate::player::components::Player;
-use crate::usf::content::ScaleContentRegistry;
-use crate::usf::definition::{DefinitionRegistry, ZoneTypeId};
+use crate::usf::content::{ScaleContentRegistry, UsfActiveContentProfile};
+use crate::usf::definition::ZoneTypeId;
 use crate::usf::dpt::{DptChunkKey, DptStore};
 use crate::usf::phenomenon::{Phenomenon, PhenomenonId, PhenomenonModel, PhenomenonScriptDefinitionRef};
 use crate::usf::pos::grid::types::GridVec;
@@ -25,7 +25,7 @@ pub(super) fn sync_zone_temporal_context_system(player_loader_query: Query<&Chun
 
 pub(super) fn reconcile_zone_runtime_system(
     mut commands: Commands,
-    definitions: Res<DefinitionRegistry>,
+    active_content_profile: Res<UsfActiveContentProfile>,
     mut dpt_store: ResMut<DptStore>,
     zlm_registry: Res<ZlmRegistry>,
     scale_content_registry: Res<ScaleContentRegistry>,
@@ -36,7 +36,7 @@ pub(super) fn reconcile_zone_runtime_system(
 ) {
     let mut classified_chunks = HashMap::<(Scale, ZoneTypeId), Vec<GridVec>>::new();
     for chunk in loaded_chunks.iter() {
-        let Some(schema) = definitions.schema_for_scale(chunk.coord.scale) else {
+        let Some(schema) = active_content_profile.schema_for_scale(chunk.coord.scale) else {
             continue;
         };
         let chunk_key = DptChunkKey {
@@ -665,8 +665,8 @@ mod tests {
         registry.phenomenon_support_by_zone.insert(
             ZoneTypeId::new("mystic"),
             vec![ZonePhenomenonSupport {
-                phenomenon_id: "phenomenon.debug.mandelbulb".to_string(),
-                kind: crate::usf::phenomenon::PhenomenonKind::Mandelbulb,
+                phenomenon_id: "phenomenon.placeholder.metric_surface_debug".to_string(),
+                kind: crate::usf::phenomenon::PhenomenonKind::MetricSurfaceDebug,
                 priority: 100,
                 weight: 1.0,
                 spawn_policy: ZonePhenomenonSpawnPolicy::SinglePrimary,
@@ -683,7 +683,7 @@ mod tests {
         let kind = select_supported_phenomenon_for_zone(&zone_id(Scale::MAX, "mystic", 1234), &registry, &HashMap::new(), Scale::MAX)
             .expect("expected support selection")
             .kind;
-        assert_eq!(kind, crate::usf::phenomenon::PhenomenonKind::Mandelbulb);
+        assert_eq!(kind, crate::usf::phenomenon::PhenomenonKind::MetricSurfaceDebug);
     }
 
     #[test]
@@ -698,7 +698,7 @@ mod tests {
             vec![
                 ZonePhenomenonSupport {
                     phenomenon_id: "phenomenon.debug.alpha".to_string(),
-                    kind: crate::usf::phenomenon::PhenomenonKind::Mandelbulb,
+                    kind: crate::usf::phenomenon::PhenomenonKind::MetricSurfaceDebug,
                     priority: 100,
                     weight: 1.0,
                     spawn_policy: ZonePhenomenonSpawnPolicy::SinglePrimary,
@@ -706,7 +706,7 @@ mod tests {
                 },
                 ZonePhenomenonSupport {
                     phenomenon_id: "phenomenon.debug.beta".to_string(),
-                    kind: crate::usf::phenomenon::PhenomenonKind::SierpinskiSponge,
+                    kind: crate::usf::phenomenon::PhenomenonKind::MetricSurfaceDebug,
                     priority: 100,
                     weight: 1.0,
                     spawn_policy: ZonePhenomenonSpawnPolicy::SinglePrimary,
@@ -740,7 +740,7 @@ mod tests {
             ZoneTypeId::new("mystic"),
             vec![ZonePhenomenonSupport {
                 phenomenon_id: "phenomenon.debug.alpha".to_string(),
-                kind: crate::usf::phenomenon::PhenomenonKind::Mandelbulb,
+                kind: crate::usf::phenomenon::PhenomenonKind::MetricSurfaceDebug,
                 priority: 100,
                 weight: 1.0,
                 spawn_policy: ZonePhenomenonSpawnPolicy::SinglePrimary,

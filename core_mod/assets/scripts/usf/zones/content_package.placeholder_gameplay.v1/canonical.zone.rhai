@@ -6,11 +6,12 @@ fn register_zone() {
         UsfSubstrate::add_zone_type(zone_type);
     }
 
-    UsfZone::add_supported_phenomenon("void", "phenomenon.debug.mandelbulb", 100, 1.0, "single_primary", 1);
-    UsfZone::add_supported_phenomenon("arid", "phenomenon.debug.mandelbulb", 100, 1.0, "single_primary", 1);
-    UsfZone::add_supported_phenomenon("alpine", "phenomenon.debug.mandelbulb", 100, 1.0, "single_primary", 1);
-    UsfZone::add_supported_phenomenon("forest", "phenomenon.debug.sierpinski_sponge", 100, 1.0, "single_primary", 1);
-    UsfZone::add_supported_phenomenon("wetland", "phenomenon.debug.sierpinski_sponge", 100, 1.0, "single_primary", 1);
+    let mesh_debug_phenomenon_id = "phenomenon.placeholder.metric_surface_debug";
+    UsfZone::add_supported_phenomenon("void", mesh_debug_phenomenon_id, 100, 1.0, "single_primary", 1);
+    UsfZone::add_supported_phenomenon("arid", mesh_debug_phenomenon_id, 100, 1.0, "single_primary", 1);
+    UsfZone::add_supported_phenomenon("alpine", mesh_debug_phenomenon_id, 100, 1.0, "single_primary", 1);
+    UsfZone::add_supported_phenomenon("forest", mesh_debug_phenomenon_id, 100, 1.0, "single_primary", 1);
+    UsfZone::add_supported_phenomenon("wetland", mesh_debug_phenomenon_id, 100, 1.0, "single_primary", 1);
     UsfZone::set_selection_policy("void", "weighted_top_priority");
     UsfZone::set_selection_policy("arid", "weighted_top_priority");
     UsfZone::set_selection_policy("alpine", "weighted_top_priority");

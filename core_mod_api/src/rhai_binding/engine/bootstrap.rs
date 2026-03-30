@@ -14,14 +14,13 @@ use crate::rhai_binding::engine::hook::{new_hook_runner_system, register_hook_pa
 use crate::rhai_binding::engine::preprocess::preprocess_script_source;
 use crate::rhai_binding::engine::resources::MainScriptEngineHandle;
 use crate::rhai_binding::engine::statics::{
-    SCHEDULE_HOOKS, ScriptUsfContentPackageDefinition, ScriptUsfContentProfileDefinition, ScriptUsfPackageContribution, USF_CONTENT_PACKAGES_BY_ID,
-    USF_CONTENT_PROFILES_BY_ID, USF_DPT_CATEGORIZER_IDS, USF_DPT_SAMPLER_IDS, USF_DPT_SCHEMAS_BY_SCALE, USF_METRIC_SETS_BY_ID, USF_METRICS_BY_NAME,
-    USF_PACKAGE_CONTRIBUTIONS_BY_ID, USF_PHENOMENA_BY_ID, USF_PHENOMENON_MODELS_BY_ID, USF_PRIMARY_PHENOMENON_MODEL_BY_PHENOMENON_ID,
+    SCHEDULE_HOOKS, ScriptUsfPackageContribution, USF_CONTENT_PACKAGES_BY_ID, USF_CONTENT_PROFILES_BY_ID, USF_DPT_SCHEMAS_BY_SCALE, USF_METRIC_SETS_BY_ID,
+    USF_METRICS_BY_NAME, USF_PACKAGE_CONTRIBUTIONS_BY_ID, USF_PHENOMENA_BY_ID, USF_PHENOMENON_MODELS_BY_ID, USF_PRIMARY_PHENOMENON_MODEL_BY_PHENOMENON_ID,
     USF_SCALE_BINDINGS_BY_SCALE, USF_ZLM_SCALES_BY_SCALE, USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE,
     USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE, USF_ZONE_TYPES,
 };
 use crate::rhai_binding::runtime::ecs::message::bindings::types::ScriptProbeMessage;
-use crate::usf::content::{DEFAULT_USF_CONTENT_PROFILE_ID, PLACEHOLDER_GAMEPLAY_CONTENT_PACKAGE_ID};
+use crate::usf::content::PLACEHOLDER_GAMEPLAY_CONTENT_PACKAGE_ID;
 use crate::usf::schedule::{UsfPhenomenonSet, UsfSubstrateSet, UsfZoneSet};
 use rhai::Engine;
 
@@ -47,7 +46,7 @@ const USF_GLOBAL_SCRIPT_TYPE_SPECS: [UsfScriptTypeSpec; 2] = [
     },
 ];
 
-const USF_PACKAGE_SCOPED_SCRIPT_TYPE_SPECS: [UsfScriptTypeSpec; 9] = [
+const USF_PACKAGE_SCOPED_SCRIPT_TYPE_SPECS: [UsfScriptTypeSpec; 7] = [
     UsfScriptTypeSpec {
         relative_dir: "metrics",
         suffix: ".metric.rhai",
@@ -62,16 +61,6 @@ const USF_PACKAGE_SCOPED_SCRIPT_TYPE_SPECS: [UsfScriptTypeSpec; 9] = [
         relative_dir: "metric_sets",
         suffix: ".metric_set.rhai",
         entrypoint: "register_metric_set",
-    },
-    UsfScriptTypeSpec {
-        relative_dir: "dpt_samplers",
-        suffix: ".dpt_sampler.rhai",
-        entrypoint: "register_dpt_sampler",
-    },
-    UsfScriptTypeSpec {
-        relative_dir: "dpt_categorizers",
-        suffix: ".dpt_categorizer.rhai",
-        entrypoint: "register_dpt_categorizer",
     },
     UsfScriptTypeSpec {
         relative_dir: "zlms",
@@ -197,8 +186,6 @@ fn clear_usf_domain_bootstrap_statics() {
     USF_ZONE_DENSITY_PROFILE_BY_TYPE().lock().unwrap().clear();
     USF_DPT_SCHEMAS_BY_SCALE().lock().unwrap().clear();
     USF_ZLM_SCALES_BY_SCALE().lock().unwrap().clear();
-    USF_DPT_SAMPLER_IDS().lock().unwrap().clear();
-    USF_DPT_CATEGORIZER_IDS().lock().unwrap().clear();
     USF_SCALE_BINDINGS_BY_SCALE().lock().unwrap().clear();
     USF_METRICS_BY_NAME().lock().unwrap().clear();
     USF_METRIC_SETS_BY_ID().lock().unwrap().clear();
@@ -297,8 +284,6 @@ fn snapshot_usf_domain_statics() -> ScriptUsfPackageContribution {
         dpt_schemas_by_scale: USF_DPT_SCHEMAS_BY_SCALE().lock().unwrap().clone(),
         zlm_scales_by_scale: USF_ZLM_SCALES_BY_SCALE().lock().unwrap().clone(),
         zone_density_profile_by_type: USF_ZONE_DENSITY_PROFILE_BY_TYPE().lock().unwrap().clone(),
-        dpt_sampler_ids: USF_DPT_SAMPLER_IDS().lock().unwrap().clone(),
-        dpt_categorizer_ids: USF_DPT_CATEGORIZER_IDS().lock().unwrap().clone(),
         scale_bindings_by_scale: USF_SCALE_BINDINGS_BY_SCALE().lock().unwrap().clone(),
         metrics_by_name: USF_METRICS_BY_NAME().lock().unwrap().clone(),
         metric_sets_by_id: USF_METRIC_SETS_BY_ID().lock().unwrap().clone(),
@@ -315,8 +300,6 @@ fn apply_usf_domain_snapshot(snapshot: ScriptUsfPackageContribution) {
     *USF_DPT_SCHEMAS_BY_SCALE().lock().unwrap() = snapshot.dpt_schemas_by_scale;
     *USF_ZLM_SCALES_BY_SCALE().lock().unwrap() = snapshot.zlm_scales_by_scale;
     *USF_ZONE_DENSITY_PROFILE_BY_TYPE().lock().unwrap() = snapshot.zone_density_profile_by_type;
-    *USF_DPT_SAMPLER_IDS().lock().unwrap() = snapshot.dpt_sampler_ids;
-    *USF_DPT_CATEGORIZER_IDS().lock().unwrap() = snapshot.dpt_categorizer_ids;
     *USF_SCALE_BINDINGS_BY_SCALE().lock().unwrap() = snapshot.scale_bindings_by_scale;
     *USF_METRICS_BY_NAME().lock().unwrap() = snapshot.metrics_by_name;
     *USF_METRIC_SETS_BY_ID().lock().unwrap() = snapshot.metric_sets_by_id;
@@ -352,13 +335,6 @@ fn merge_map_unique<K: Eq + Hash + Clone + std::fmt::Debug, V>(target: &mut Hash
 
 fn merge_package_contribution_into_composed(package_id: &str, contribution: ScriptUsfPackageContribution, composed: &mut ScriptUsfPackageContribution) {
     merge_set_unique(&mut composed.zone_types, contribution.zone_types, "zone_type", package_id);
-    merge_set_unique(&mut composed.dpt_sampler_ids, contribution.dpt_sampler_ids, "dpt_sampler_id", package_id);
-    merge_set_unique(
-        &mut composed.dpt_categorizer_ids,
-        contribution.dpt_categorizer_ids,
-        "dpt_categorizer_id",
-        package_id,
-    );
 
     merge_map_unique(
         &mut composed.dpt_schemas_by_scale,
@@ -413,30 +389,6 @@ fn merge_package_contribution_into_composed(package_id: &str, contribution: Scri
     );
 }
 
-fn ensure_bootstrap_defaults_for_packages_and_profiles() {
-    let mut packages = USF_CONTENT_PACKAGES_BY_ID().lock().unwrap();
-    if packages.is_empty() {
-        packages.insert(
-            PLACEHOLDER_GAMEPLAY_CONTENT_PACKAGE_ID.to_string(),
-            ScriptUsfContentPackageDefinition {
-                default_enabled: true,
-                config_enabled_key: "usf_content/content_packages/placeholder_gameplay/enabled".to_string(),
-            },
-        );
-    }
-    drop(packages);
-
-    let mut profiles = USF_CONTENT_PROFILES_BY_ID().lock().unwrap();
-    if profiles.is_empty() {
-        profiles.insert(
-            DEFAULT_USF_CONTENT_PROFILE_ID.to_string(),
-            ScriptUsfContentProfileDefinition {
-                content_package_ids: vec![PLACEHOLDER_GAMEPLAY_CONTENT_PACKAGE_ID.to_string()],
-            },
-        );
-    }
-}
-
 fn active_usf_content_profile_id_from_config() -> String {
     match CONFIG().data.get(ACTIVE_CONTENT_PROFILE_CONFIG_KEY) {
         Some(ConfigValue::String(value)) => {
@@ -450,7 +402,21 @@ fn active_usf_content_profile_id_from_config() -> String {
             "USF bootstrap failed: '{}' must be a string, got {:?}",
             ACTIVE_CONTENT_PROFILE_CONFIG_KEY, other
         ),
-        None => DEFAULT_USF_CONTENT_PROFILE_ID.to_string(),
+        None => panic!(
+            "USF bootstrap failed: '{}' must be configured explicitly; no default profile fallback exists",
+            ACTIVE_CONTENT_PROFILE_CONFIG_KEY
+        ),
+    }
+}
+
+fn content_package_enabled_from_config(content_package_id: &str, config_enabled_key: &str, default_enabled: bool) -> bool {
+    match CONFIG().data.get(config_enabled_key) {
+        Some(ConfigValue::Boolean(enabled)) => *enabled,
+        Some(other) => panic!(
+            "USF bootstrap failed: package '{}' expected boolean config at '{}', got {:?}",
+            content_package_id, config_enabled_key, other
+        ),
+        None => default_enabled,
     }
 }
 
@@ -480,7 +446,21 @@ fn selected_package_ids_for_active_profile() -> Vec<String> {
                 active_profile_id, content_package_id
             );
         }
-        selected.push(content_package_id.clone());
+        let package = known_packages
+            .get(content_package_id)
+            .unwrap_or_else(|| unreachable!("package existence validated above"));
+        let enabled = content_package_enabled_from_config(content_package_id, package.config_enabled_key.as_str(), package.default_enabled);
+        if enabled {
+            selected.push(content_package_id.clone());
+        }
+    }
+
+    if selected.is_empty() {
+        panic!(
+            "USF bootstrap failed: active profile '{}' resolved to zero enabled packages. \
+             Enable at least one package in config or choose a different profile.",
+            active_profile_id
+        );
     }
 
     selected
@@ -489,14 +469,13 @@ fn selected_package_ids_for_active_profile() -> Vec<String> {
 fn run_usf_content_bootstrap(engine: &Engine) {
     let usf_root = asset_root().join("core_mod/scripts/usf");
     if !usf_root.is_dir() {
-        return;
+        panic!("USF bootstrap failed: script root '{}' does not exist", usf_root.display());
     }
 
     clear_usf_bootstrap_statics();
     for spec in USF_GLOBAL_SCRIPT_TYPE_SPECS {
         run_usf_script_type_bootstrap_global(engine, &usf_root, spec);
     }
-    ensure_bootstrap_defaults_for_packages_and_profiles();
 
     let selected_package_ids = selected_package_ids_for_active_profile();
     let mut composed = ScriptUsfPackageContribution::default();

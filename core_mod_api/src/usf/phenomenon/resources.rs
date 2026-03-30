@@ -3,12 +3,13 @@ use std::collections::HashMap;
 use crate::bevy::prelude::*;
 use crate::rhai_binding::engine::statics::{USF_PHENOMENA_BY_ID, USF_PHENOMENON_MODELS_BY_ID, USF_PRIMARY_PHENOMENON_MODEL_BY_PHENOMENON_ID};
 
-use super::types::PhenomenonKind;
+use super::types::{MetricSurfaceDebugFieldDefinition, PhenomenonKind};
 
 #[derive(Resource, Reflect, Debug, Clone)]
 #[reflect(Resource)]
 pub struct PhenomenonDefinitionRegistry {
     pub kind_by_phenomenon_id: HashMap<String, PhenomenonKind>,
+    pub metric_surface_debug_by_phenomenon_id: HashMap<String, MetricSurfaceDebugFieldDefinition>,
     pub primary_model_by_phenomenon_id: HashMap<String, String>,
     pub phenomenon_by_model_id: HashMap<String, String>,
 }
@@ -30,9 +31,63 @@ impl Default for PhenomenonDefinitionRegistry {
         }
 
         let mut kind_by_phenomenon_id = HashMap::new();
+        let mut metric_surface_debug_by_phenomenon_id = HashMap::new();
         for (phenomenon_id, phenomenon) in script_phenomena {
             let normalized_phenomenon_id = normalize_identifier(&phenomenon_id);
-            kind_by_phenomenon_id.insert(normalized_phenomenon_id, PhenomenonKind::from_config_value(phenomenon.kind.as_str()));
+            let kind = PhenomenonKind::from_config_value(phenomenon.kind.as_str());
+            if kind == PhenomenonKind::MetricSurfaceDebug {
+                let Some(field) = phenomenon.metric_surface_debug else {
+                    panic!(
+                        "USF phenomenon bootstrap failed: '{}' has kind 'metric_surface_debug' but no field definition. \
+                         Call set_metric_surface_debug_field(...) in the phenomenon script.",
+                        normalized_phenomenon_id
+                    );
+                };
+                if !field.coarse_span_units.is_finite() || field.coarse_span_units <= 0.0 {
+                    panic!(
+                        "USF phenomenon bootstrap failed: '{}' has invalid coarse_span_units={}.",
+                        normalized_phenomenon_id, field.coarse_span_units
+                    );
+                }
+                if !field.detail_span_units.is_finite() || field.detail_span_units <= 0.0 {
+                    panic!(
+                        "USF phenomenon bootstrap failed: '{}' has invalid detail_span_units={}.",
+                        normalized_phenomenon_id, field.detail_span_units
+                    );
+                }
+                if !field.coarse_weight.is_finite()
+                    || field.coarse_weight < 0.0
+                    || !field.detail_weight.is_finite()
+                    || field.detail_weight < 0.0
+                    || field.coarse_weight + field.detail_weight <= 0.0
+                {
+                    panic!(
+                        "USF phenomenon bootstrap failed: '{}' has invalid noise weights coarse={} detail={}.",
+                        normalized_phenomenon_id, field.coarse_weight, field.detail_weight
+                    );
+                }
+                if !field.bias.is_finite() || !field.gain.is_finite() || field.gain <= 0.0 || !field.center.is_finite() {
+                    panic!(
+                        "USF phenomenon bootstrap failed: '{}' has invalid shaping params bias={} gain={} center={}.",
+                        normalized_phenomenon_id, field.bias, field.gain, field.center
+                    );
+                }
+                metric_surface_debug_by_phenomenon_id.insert(
+                    normalized_phenomenon_id.clone(),
+                    MetricSurfaceDebugFieldDefinition {
+                        coarse_span_units: field.coarse_span_units,
+                        detail_span_units: field.detail_span_units,
+                        coarse_weight: field.coarse_weight,
+                        detail_weight: field.detail_weight,
+                        bias: field.bias,
+                        gain: field.gain,
+                        center: field.center,
+                        seed_salt_primary: field.seed_salt_primary,
+                        seed_salt_detail: field.seed_salt_detail,
+                    },
+                );
+            }
+            kind_by_phenomenon_id.insert(normalized_phenomenon_id, kind);
         }
 
         let mut phenomenon_by_model_id = HashMap::new();
@@ -84,6 +139,7 @@ impl Default for PhenomenonDefinitionRegistry {
 
         Self {
             kind_by_phenomenon_id,
+            metric_surface_debug_by_phenomenon_id,
             primary_model_by_phenomenon_id,
             phenomenon_by_model_id,
         }
@@ -93,6 +149,10 @@ impl Default for PhenomenonDefinitionRegistry {
 impl PhenomenonDefinitionRegistry {
     pub fn kind_for(&self, phenomenon_id: &str) -> Option<PhenomenonKind> {
         self.kind_by_phenomenon_id.get(&normalize_identifier(phenomenon_id)).copied()
+    }
+
+    pub fn metric_surface_debug_for(&self, phenomenon_id: &str) -> Option<MetricSurfaceDebugFieldDefinition> {
+        self.metric_surface_debug_by_phenomenon_id.get(&normalize_identifier(phenomenon_id)).copied()
     }
 
     pub fn primary_model_for(&self, phenomenon_id: &str) -> Option<&str> {

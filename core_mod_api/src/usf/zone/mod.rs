@@ -3,6 +3,8 @@ mod systems;
 mod types;
 
 use crate::bevy::prelude::*;
+use crate::core::orchestration::AppSet;
+use crate::usf::content::UsfActiveContentProfile;
 use crate::usf::schedule::{UsfSimulationSet, UsfZoneSet};
 
 pub use resources::{
@@ -14,6 +16,38 @@ pub use types::{StableRegionId, ZoneAnchor, ZoneExtent, ZoneId, ZonePhenomenon, 
 
 use systems::{reconcile_zone_realization_system, reconcile_zone_runtime_system, sync_zone_temporal_context_system};
 
+fn validate_zone_behavior_registry_system(active_content_profile: Res<UsfActiveContentProfile>, zone_behavior_registry: Res<ZoneBehaviorRegistry>) {
+    for zone_type in &active_content_profile.known_zone_types {
+        if zone_behavior_registry.supports_for_zone(zone_type).is_none() {
+            panic!(
+                "USF zone behavior validation failed: missing supported phenomena for zone '{}' declared by active content profile",
+                zone_type.0
+            );
+        }
+        if zone_behavior_registry.selection_policy_for_zone(zone_type).is_none() {
+            panic!(
+                "USF zone behavior validation failed: missing selection policy for zone '{}' declared by active content profile",
+                zone_type.0
+            );
+        }
+        if zone_behavior_registry.density_profile_for_zone(zone_type).is_none() {
+            panic!(
+                "USF zone behavior validation failed: missing density profile for zone '{}' declared by active content profile",
+                zone_type.0
+            );
+        }
+    }
+
+    for zone_type in zone_behavior_registry.phenomenon_support_by_zone.keys() {
+        if !active_content_profile.known_zone_types.contains(zone_type) {
+            panic!(
+                "USF zone behavior validation failed: zone '{}' has behavior but is not declared in active content profile zone types",
+                zone_type.0
+            );
+        }
+    }
+}
+
 pub(crate) struct ZonePlugin;
 impl Plugin for ZonePlugin {
     fn build(&self, app: &mut App) {
@@ -22,6 +56,7 @@ impl Plugin for ZonePlugin {
             .init_resource::<ZoneBehaviorRegistry>()
             .init_resource::<ZoneTemporalContext>()
             .add_message::<ZoneRealizationEvent>()
+            .add_systems(Startup, validate_zone_behavior_registry_system.in_set(AppSet::Diagnostics))
             .add_systems(
                 Update,
                 (

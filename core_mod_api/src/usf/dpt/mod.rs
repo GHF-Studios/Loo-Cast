@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use crate::bevy::prelude::*;
-use crate::usf::content::ScaleContentRegistry;
-use crate::usf::definition::DptSchema;
+use crate::usf::content::{DPT_SAMPLER_KERNEL_DEFAULT_ID, ScaleContentRegistry};
+use crate::usf::definition::{DptMetricDefinition, DptSchema};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
 
@@ -23,7 +23,7 @@ pub struct DptStore {
     pub chunks: HashMap<DptChunkKey, DptChunkRecord>,
 }
 impl DptStore {
-    pub const DEFAULT_DPT_SAMPLER_ID: &'static str = "dpt_sampler.debug.default.v1";
+    pub const DEFAULT_DPT_SAMPLER_ID: &'static str = DPT_SAMPLER_KERNEL_DEFAULT_ID;
 
     pub fn get_chunk(&self, key: &DptChunkKey) -> Option<&DptChunkRecord> {
         self.chunks.get(key)
@@ -32,7 +32,7 @@ impl DptStore {
     pub fn ensure_chunk(&mut self, key: DptChunkKey, schema: &DptSchema) -> &DptChunkRecord {
         self.chunks.entry(key.clone()).or_insert_with(|| DptChunkRecord {
             schema_revision: schema.revision,
-            metrics: deterministic_metric_vector(&key, schema.metrics.len()),
+            metrics: deterministic_metric_vector(&key, schema),
         })
     }
 
@@ -40,21 +40,26 @@ impl DptStore {
         let sampler_id = scale_content_registry
             .binding_for_scale(key.scale)
             .map(|binding| binding.dpt_sampler_id.as_str())
-            .unwrap_or(Self::DEFAULT_DPT_SAMPLER_ID);
+            .unwrap_or_else(|| {
+                panic!(
+                    "USF DPT sampling failed: missing scale content binding for scale index {}",
+                    key.scale.index_from_top()
+                )
+            });
 
         self.chunks.entry(key.clone()).or_insert_with(|| DptChunkRecord {
             schema_revision: schema.revision,
-            metrics: metric_vector_for_sampler_id(sampler_id, &key, schema.metrics.len()),
+            metrics: metric_vector_for_sampler_id(sampler_id, &key, schema),
         })
     }
 }
 
-fn metric_vector_for_sampler_id(sampler_id: &str, key: &DptChunkKey, metric_count: usize) -> Vec<f32> {
+fn metric_vector_for_sampler_id(sampler_id: &str, key: &DptChunkKey, schema: &DptSchema) -> Vec<f32> {
     let _ = sampler_id;
-    deterministic_metric_vector(key, metric_count)
+    deterministic_metric_vector(key, schema)
 }
 
-fn deterministic_metric_vector(key: &DptChunkKey, metric_count: usize) -> Vec<f32> {
+fn deterministic_metric_vector(key: &DptChunkKey, schema: &DptSchema) -> Vec<f32> {
     let sample = normalized_chunk_center(&key.coord);
 
     let elevation = clamp01(
@@ -64,23 +69,67 @@ fn deterministic_metric_vector(key: &DptChunkKey, metric_count: usize) -> Vec<f3
     let humidity =
         clamp01(0.50 + 0.34 * coherent_wave(offset_and_scale_point(sample, [13.0, -7.0, 3.0], 0.29), 0xbadc_0ffe_e0dd_f00d) - 0.26 * (temperature - 0.5));
     let vegetation_density = clamp01(0.66 * humidity + 0.18 * (1.0 - elevation) + 0.16 * (1.0 - (temperature - 0.55).abs() * 2.0));
+    let matter_density = clamp01(0.52 * vegetation_density + 0.28 * (1.0 - elevation) + 0.20 * humidity);
+    let matter_support = clamp01(0.45 * humidity + 0.35 * vegetation_density + 0.20 * (1.0 - temperature));
 
-    let mut metrics = Vec::with_capacity(metric_count);
-    for idx in 0..metric_count {
-        let value = match idx {
-            0 => temperature,
-            1 => humidity,
-            2 => elevation,
-            3 => vegetation_density,
-            _ => {
-                let seed = mix64((idx as u64).wrapping_mul(0x94d0_49bb_1331_11eb));
-                clamp01(0.5 + 0.5 * coherent_wave(scale_point(sample, 0.41 + idx as f64 * 0.07), seed))
-            }
-        };
+    let mut metrics = Vec::with_capacity(schema.metrics.len());
+    for metric in &schema.metrics {
+        let value = metric_value_for_definition(
+            metric,
+            sample,
+            temperature,
+            humidity,
+            elevation,
+            vegetation_density,
+            matter_density,
+            matter_support,
+        );
         metrics.push(value);
     }
 
     metrics
+}
+
+fn metric_value_for_definition(
+    metric: &DptMetricDefinition,
+    sample: [f64; 3],
+    temperature: f32,
+    humidity: f32,
+    elevation: f32,
+    vegetation_density: f32,
+    matter_density: f32,
+    matter_support: f32,
+) -> f32 {
+    let semantics = metric.semantics_tag.trim().to_ascii_lowercase();
+    let metric_name = metric.name.trim().to_ascii_lowercase();
+    let canonical = match semantics.as_str() {
+        "climate.temperature.normalized" => Some(temperature),
+        "climate.humidity.normalized" => Some(humidity),
+        "terrain.elevation.normalized" => Some(elevation),
+        "biosphere.vegetation_density.normalized" => Some(vegetation_density),
+        "matter.density.normalized" => Some(matter_density),
+        "matter.support.normalized" => Some(matter_support),
+        _ => None,
+    }
+    .or_else(|| match metric_name.as_str() {
+        "temperature" => Some(temperature),
+        "humidity" => Some(humidity),
+        "elevation" => Some(elevation),
+        "vegetation_density" | "vegetation-density" => Some(vegetation_density),
+        "density" => Some(matter_density),
+        "support" => Some(matter_support),
+        _ => None,
+    });
+
+    if let Some(value) = canonical {
+        return value;
+    }
+
+    let semantic_hash = string_hash64(semantics.as_str());
+    let name_hash = string_hash64(metric_name.as_str());
+    let seed = mix64((metric.id.0 as u64).wrapping_mul(0x94d0_49bb_1331_11eb) ^ semantic_hash ^ name_hash);
+    let span = 0.41 + (metric.id.0 as f64 * 0.07);
+    clamp01(0.5 + 0.5 * coherent_wave(scale_point(sample, span), seed))
 }
 
 fn normalized_chunk_center(coord: &GridVec) -> [f64; 3] {
@@ -146,6 +195,16 @@ fn seed_unit(seed: u64, salt: u64) -> f64 {
 }
 
 #[inline]
+fn string_hash64(value: &str) -> u64 {
+    let mut state = 0xcbf2_9ce4_8422_2325_u64;
+    for byte in value.as_bytes() {
+        state ^= *byte as u64;
+        state = state.wrapping_mul(0x1000_0000_01b3);
+    }
+    state
+}
+
+#[inline]
 fn clamp01(value: f32) -> f32 {
     value.clamp(0.0, 1.0)
 }
@@ -163,6 +222,7 @@ fn mix64(mut state: u64) -> u64 {
 mod tests {
     use super::*;
     use crate::usf::content::ScaleContentBinding;
+    use crate::usf::definition::{DptMetricDefinition, DptMetricId, DptMetricStorageClass, DptMetricValueType, ZoneTypeId};
     use crate::usf::pos::types::GridXyz;
     use std::collections::HashMap;
 
@@ -176,13 +236,44 @@ mod tests {
         sum / len as f32
     }
 
+    fn test_schema(metric_count: usize) -> DptSchema {
+        let max_scale_index = Scale::SCALE_LEVEL_COUNT.saturating_sub(1);
+        let mut metrics = Vec::<DptMetricDefinition>::new();
+        for idx in 0..metric_count {
+            let (name, semantics_tag) = match idx {
+                0 => ("temperature".to_string(), "climate.temperature.normalized".to_string()),
+                1 => ("humidity".to_string(), "climate.humidity.normalized".to_string()),
+                2 => ("elevation".to_string(), "terrain.elevation.normalized".to_string()),
+                3 => ("vegetation_density".to_string(), "biosphere.vegetation_density.normalized".to_string()),
+                _ => (format!("test_metric_{idx}"), format!("test.metric.{idx}.normalized")),
+            };
+            metrics.push(DptMetricDefinition {
+                id: DptMetricId(idx as u16),
+                name,
+                value_type: DptMetricValueType::F32,
+                semantics_tag,
+                storage_class: DptMetricStorageClass::Brick,
+                derived: idx >= 3,
+                min_scale_index: 0,
+                max_scale_index,
+            });
+        }
+
+        DptSchema {
+            revision: 1,
+            metrics,
+            fallback_zone: ZoneTypeId::new("void"),
+        }
+    }
+
     #[test]
     fn dpt_metric_vector_is_deterministic() {
         let coord = GridVec::new(GridVec::new_root(GridXyz::new_local(0, 0, 0)), GridXyz::new_local(1, -2, 3));
         let key = key(coord);
+        let schema = test_schema(6);
 
-        let a = deterministic_metric_vector(&key, 6);
-        let b = deterministic_metric_vector(&key, 6);
+        let a = deterministic_metric_vector(&key, &schema);
+        let b = deterministic_metric_vector(&key, &schema);
         assert_eq!(a, b);
     }
 
@@ -190,7 +281,7 @@ mod tests {
     fn dpt_metric_vector_values_stay_in_unit_interval() {
         let coord = GridVec::new(GridVec::new_root(GridXyz::new_local(2, -1, 1)), GridXyz::new_local(-3, 4, 0));
         let key = key(coord);
-        let metrics = deterministic_metric_vector(&key, 8);
+        let metrics = deterministic_metric_vector(&key, &test_schema(8));
 
         for metric in metrics {
             assert!(metric.is_finite());
@@ -203,10 +294,11 @@ mod tests {
         let base = GridVec::new(GridVec::new_root(GridXyz::new_local(0, 0, 0)), GridXyz::new_local(0, 0, 0));
         let neighbor = base.clone() + IVec3::new(1, 0, 0);
         let far = base.clone() + IVec3::new(4, 4, 4);
+        let schema = test_schema(6);
 
-        let base_metrics = deterministic_metric_vector(&key(base), 6);
-        let neighbor_metrics = deterministic_metric_vector(&key(neighbor), 6);
-        let far_metrics = deterministic_metric_vector(&key(far), 6);
+        let base_metrics = deterministic_metric_vector(&key(base), &schema);
+        let neighbor_metrics = deterministic_metric_vector(&key(neighbor), &schema);
+        let far_metrics = deterministic_metric_vector(&key(far), &schema);
 
         let near_delta = mean_abs_diff(&base_metrics, &neighbor_metrics);
         let far_delta = mean_abs_diff(&base_metrics, &far_metrics);
@@ -217,9 +309,10 @@ mod tests {
     fn dpt_parent_child_metrics_remain_coherent() {
         let parent = GridVec::new_root(GridXyz::new_local(0, 0, 0));
         let child = GridVec::new(parent.clone(), GridXyz::new_local(0, 0, 0));
+        let schema = test_schema(6);
 
-        let parent_metrics = deterministic_metric_vector(&key(parent), 6);
-        let child_metrics = deterministic_metric_vector(&key(child), 6);
+        let parent_metrics = deterministic_metric_vector(&key(parent), &schema);
+        let child_metrics = deterministic_metric_vector(&key(child), &schema);
         let delta = mean_abs_diff(&parent_metrics, &child_metrics);
 
         assert!(delta < 0.22);
@@ -260,18 +353,18 @@ mod tests {
                 coord.scale,
                 ScaleContentBinding {
                     dpt_sampler_id: DptStore::DEFAULT_DPT_SAMPLER_ID.to_string(),
-                    dpt_categorizer_id: "dpt_categorizer.debug.zlm_lookup.v1".to_string(),
+                    dpt_categorizer_id: crate::usf::content::DPT_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID.to_string(),
                     chunk_store_key: "chunk_store.default".to_string(),
                     usf_content_profile_id: "content_profile.placeholder_gameplay.v1".to_string(),
                 },
             )]),
             known_dpt_samplers: std::collections::HashSet::from([DptStore::DEFAULT_DPT_SAMPLER_ID.to_string()]),
-            known_dpt_categorizers: std::collections::HashSet::from(["dpt_categorizer.debug.zlm_lookup.v1".to_string()]),
+            known_dpt_categorizers: std::collections::HashSet::from([crate::usf::content::DPT_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID.to_string()]),
         };
 
         let mut store = DptStore::default();
         let stored = store.ensure_chunk_with_scale_binding(key.clone(), &schema, &scale_content_registry);
-        let expected = deterministic_metric_vector(&key, schema.metrics.len());
+        let expected = deterministic_metric_vector(&key, &schema);
         assert_eq!(stored.metrics, expected);
     }
 }

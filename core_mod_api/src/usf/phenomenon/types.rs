@@ -5,15 +5,43 @@ use crate::usf::scale::Scale;
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum PhenomenonKind {
     #[default]
-    Mandelbulb,
-    SierpinskiSponge,
+    MetricSurfaceDebug,
 }
 
 impl PhenomenonKind {
     pub fn from_config_value(raw: &str) -> Self {
-        match raw.trim().to_ascii_lowercase().as_str() {
-            "sierpinski_sponge" | "sierpinski-sponge" | "sierpinski" | "sponge" | "menger" => Self::SierpinskiSponge,
-            _ => Self::Mandelbulb,
+        let normalized = raw.trim().to_ascii_lowercase();
+        match normalized.as_str() {
+            "metric_surface_debug" | "metric-surface-debug" | "terrain_metric_surface_debug" | "terrain-metric-surface-debug" => Self::MetricSurfaceDebug,
+            _ => panic!("USF phenomenon kind parse failed: unknown kind '{}'", normalized),
+        }
+    }
+}
+
+#[derive(Reflect, Debug, Clone, Copy, PartialEq)]
+pub struct MetricSurfaceDebugFieldDefinition {
+    pub coarse_span_units: f64,
+    pub detail_span_units: f64,
+    pub coarse_weight: f32,
+    pub detail_weight: f32,
+    pub bias: f32,
+    pub gain: f32,
+    pub center: f32,
+    pub seed_salt_primary: u64,
+    pub seed_salt_detail: u64,
+}
+impl Default for MetricSurfaceDebugFieldDefinition {
+    fn default() -> Self {
+        Self {
+            coarse_span_units: 320.0,
+            detail_span_units: 128.0,
+            coarse_weight: 0.82,
+            detail_weight: 0.18,
+            bias: 0.66,
+            gain: 3.0,
+            center: 0.5,
+            seed_salt_primary: 0xa5a5_35f4_9be3_c211_u64,
+            seed_salt_detail: 0x8b8b_4fb7_0a7f_6611_u64,
         }
     }
 }

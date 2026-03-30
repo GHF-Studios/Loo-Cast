@@ -1,8 +1,6 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use crate::bevy::prelude::*;
-use crate::core::orchestration::AppSet;
-use crate::rhai_binding::engine::statics::{USF_DPT_SCHEMAS_BY_SCALE, USF_ZONE_TYPES};
 use crate::usf::scale::Scale;
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -147,241 +145,40 @@ impl DptSchema {
     }
 }
 
-#[derive(Resource, Debug, Clone)]
-pub struct DefinitionRegistry {
-    pub schemas_by_scale: HashMap<Scale, DptSchema>,
-    pub known_zone_types: HashSet<ZoneTypeId>,
-}
-impl Default for DefinitionRegistry {
-    fn default() -> Self {
-        let script_zone_types = script_zone_types();
-        let script_schemas = script_schema_overrides();
-        let script_authored = !script_zone_types.is_empty() || !script_schemas.is_empty();
-
-        let mut registry = Self {
-            schemas_by_scale: HashMap::new(),
-            known_zone_types: HashSet::new(),
-        };
-
-        if script_authored {
-            for zone in script_zone_types {
-                registry.known_zone_types.insert(zone);
-            }
-            for (scale, schema) in script_schemas {
-                registry.register_scale_schema(scale, schema);
-            }
-        } else {
-            for zone in default_zone_types() {
-                registry.known_zone_types.insert(zone);
-            }
-            for index in 0..Scale::SCALE_LEVEL_COUNT {
-                let Some(scale) = Scale::from_index_from_top(index) else {
-                    continue;
-                };
-                registry.register_scale_schema(scale, baseline_schema_for_scale(scale));
-            }
-        }
-
-        if let Err(reason) = registry.validate() {
-            panic!("USF definition registry default validation failed: {reason}");
-        }
-
-        registry
-    }
-}
-
-fn normalize_zone_type(value: &str) -> ZoneTypeId {
-    ZoneTypeId::new(value.trim().to_ascii_lowercase())
-}
-
-fn default_zone_types() -> Vec<ZoneTypeId> {
-    vec![
-        normalize_zone_type("void"),
-        normalize_zone_type("forest"),
-        normalize_zone_type("wetland"),
-        normalize_zone_type("arid"),
-        normalize_zone_type("alpine"),
-    ]
-}
-
-fn baseline_schema_for_scale(_scale: Scale) -> DptSchema {
-    let min_scale_index = 0;
-    let max_scale_index = Scale::SCALE_LEVEL_COUNT.saturating_sub(1);
-    DptSchema {
-        revision: 1,
-        metrics: vec![
-            DptMetricDefinition {
-                id: DptMetricId(0),
-                name: "temperature".to_string(),
-                value_type: DptMetricValueType::F32,
-                semantics_tag: "climate.temperature.normalized".to_string(),
-                storage_class: DptMetricStorageClass::Brick,
-                derived: false,
-                min_scale_index,
-                max_scale_index,
-            },
-            DptMetricDefinition {
-                id: DptMetricId(1),
-                name: "humidity".to_string(),
-                value_type: DptMetricValueType::F32,
-                semantics_tag: "climate.humidity.normalized".to_string(),
-                storage_class: DptMetricStorageClass::Brick,
-                derived: false,
-                min_scale_index,
-                max_scale_index,
-            },
-            DptMetricDefinition {
-                id: DptMetricId(2),
-                name: "elevation".to_string(),
-                value_type: DptMetricValueType::F32,
-                semantics_tag: "terrain.elevation.normalized".to_string(),
-                storage_class: DptMetricStorageClass::Brick,
-                derived: false,
-                min_scale_index,
-                max_scale_index,
-            },
-            DptMetricDefinition {
-                id: DptMetricId(3),
-                name: "vegetation_density".to_string(),
-                value_type: DptMetricValueType::F32,
-                semantics_tag: "biosphere.vegetation_density.normalized".to_string(),
-                storage_class: DptMetricStorageClass::Brick,
-                derived: true,
-                min_scale_index,
-                max_scale_index,
-            },
-        ],
-        fallback_zone: normalize_zone_type("void"),
-    }
-}
-
-fn script_zone_types() -> Vec<ZoneTypeId> {
-    let zone_types = USF_ZONE_TYPES().lock().unwrap().clone();
-    let mut ordered = zone_types.into_iter().collect::<Vec<_>>();
-    ordered.sort();
-    ordered.into_iter().map(|zone_type| normalize_zone_type(&zone_type)).collect()
-}
-
-fn script_schema_overrides() -> Vec<(Scale, DptSchema)> {
-    let schema_map = USF_DPT_SCHEMAS_BY_SCALE().lock().unwrap().clone();
-    let mut ordered = schema_map.into_iter().collect::<Vec<_>>();
-    ordered.sort_by_key(|(scale_index, _)| *scale_index);
-
-    ordered
-        .into_iter()
-        .filter_map(|(scale_index, script_schema)| {
-            let Some(scale) = Scale::from_index_from_top(scale_index) else {
-                return None;
-            };
-            let metrics = script_schema
-                .metrics
-                .into_iter()
-                .map(|metric| {
-                    let value_type = DptMetricValueType::from_tag(&metric.value_type).unwrap_or_else(|| {
-                        panic!(
-                            "USF script metric '{}' has invalid value_type '{}'; expected one of: u8, u16, i32, f32, f64",
-                            metric.name, metric.value_type
-                        )
-                    });
-                    let storage_class = DptMetricStorageClass::from_tag(&metric.storage_class).unwrap_or_else(|| {
-                        panic!(
-                            "USF script metric '{}' has invalid storage_class '{}'; expected one of: uniform, brick",
-                            metric.name, metric.storage_class
-                        )
-                    });
-
-                    DptMetricDefinition {
-                        id: DptMetricId(metric.id),
-                        name: metric.name.trim().to_string(),
-                        value_type,
-                        semantics_tag: metric.semantics_tag.trim().to_string(),
-                        storage_class,
-                        derived: metric.derived,
-                        min_scale_index: metric.min_scale_index,
-                        max_scale_index: metric.max_scale_index,
-                    }
-                })
-                .collect::<Vec<_>>();
-            Some((
-                scale,
-                DptSchema {
-                    revision: script_schema.revision,
-                    metrics,
-                    fallback_zone: normalize_zone_type(&script_schema.fallback_zone),
-                },
-            ))
-        })
-        .collect()
-}
-
-impl DefinitionRegistry {
-    pub fn register_scale_schema(&mut self, scale: Scale, schema: DptSchema) {
-        self.schemas_by_scale.insert(scale, schema);
-    }
-
-    pub fn schema_for_scale(&self, scale: Scale) -> Option<&DptSchema> {
-        self.schemas_by_scale.get(&scale)
-    }
-
-    pub fn validate(&self) -> Result<(), String> {
-        if self.schemas_by_scale.is_empty() {
-            return Err("USF definition registry has no schemas".to_string());
-        }
-
-        for index in 0..Scale::SCALE_LEVEL_COUNT {
-            let Some(scale) = Scale::from_index_from_top(index) else {
-                continue;
-            };
-            let Some(schema) = self.schemas_by_scale.get(&scale) else {
-                return Err(format!("missing DPT schema for scale index {}", scale.index_from_top()));
-            };
-            schema.validate()?;
-            for metric in &schema.metrics {
-                if !metric.applies_to_scale(scale) {
-                    return Err(format!(
-                        "metric '{}' (id={}) is not valid for scale index {} (range=[{}..{}])",
-                        metric.name,
-                        metric.id.0,
-                        scale.index_from_top(),
-                        metric.min_scale_index,
-                        metric.max_scale_index
-                    ));
-                }
-            }
-            if !self.known_zone_types.contains(&schema.fallback_zone) {
-                return Err(format!(
-                    "fallback zone '{}' for scale {} is not declared in known_zone_types",
-                    schema.fallback_zone.0,
-                    scale.index_from_top()
-                ));
-            }
-        }
-
-        Ok(())
-    }
-}
-
-fn validate_definition_registry_system(registry: Res<DefinitionRegistry>) {
-    if let Err(reason) = registry.validate() {
-        panic!("USF definition registry validation failed: {reason}");
-    }
-}
-
-pub(crate) struct DefinitionPlugin;
-impl Plugin for DefinitionPlugin {
-    fn build(&self, app: &mut App) {
-        app.init_resource::<DefinitionRegistry>()
-            .add_systems(Startup, validate_definition_registry_system.in_set(AppSet::Diagnostics));
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn definition_registry_baseline_is_valid() {
-        let registry = DefinitionRegistry::default();
-        assert!(registry.validate().is_ok());
+    fn schema_validate_rejects_duplicate_metric_id() {
+        let schema = DptSchema {
+            revision: 1,
+            metrics: vec![
+                DptMetricDefinition {
+                    id: DptMetricId(0),
+                    name: "temperature".to_string(),
+                    value_type: DptMetricValueType::F32,
+                    semantics_tag: "climate.temperature".to_string(),
+                    storage_class: DptMetricStorageClass::Brick,
+                    derived: false,
+                    min_scale_index: 0,
+                    max_scale_index: 0,
+                },
+                DptMetricDefinition {
+                    id: DptMetricId(0),
+                    name: "humidity".to_string(),
+                    value_type: DptMetricValueType::F32,
+                    semantics_tag: "climate.humidity".to_string(),
+                    storage_class: DptMetricStorageClass::Brick,
+                    derived: false,
+                    min_scale_index: 0,
+                    max_scale_index: 0,
+                },
+            ],
+            fallback_zone: ZoneTypeId::new("void"),
+        };
+
+        let error = schema.validate().unwrap_err();
+        assert!(error.contains("duplicate DPT metric id"));
     }
 }

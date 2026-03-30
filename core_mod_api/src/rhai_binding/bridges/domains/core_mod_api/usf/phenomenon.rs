@@ -1,7 +1,7 @@
 use rhai::FuncRegistration;
 
 use crate::rhai_binding::engine::statics::{
-    ScriptPhenomenonDefinition, ScriptPhenomenonModelDefinition, USF_PHENOMENA_BY_ID, USF_PHENOMENON_MODELS_BY_ID,
+    ScriptMetricSurfaceDebugDefinition, ScriptPhenomenonDefinition, ScriptPhenomenonModelDefinition, USF_PHENOMENA_BY_ID, USF_PHENOMENON_MODELS_BY_ID,
     USF_PRIMARY_PHENOMENON_MODEL_BY_PHENOMENON_ID,
 };
 
@@ -13,6 +13,7 @@ core_mod_macros::reflect_extern_sub_module!(
     module_associated_functions = [
         clear_phenomena,
         add_phenomenon,
+        set_metric_surface_debug_field,
         clear_phenomenon_models,
         add_phenomenon_model,
         set_primary_model
@@ -54,8 +55,82 @@ core_mod_macros::reflect_extern_module_associated_function!(
                     ScriptPhenomenonDefinition {
                         id: phenomenon_id,
                         kind: phenomenon_kind,
+                        metric_surface_debug: None,
                     },
                 );
+                Ok(())
+            },
+        );
+    },
+);
+
+core_mod_macros::reflect_extern_module_associated_function!(
+    id = core_mod_api::usf::phenomenon::set_metric_surface_debug_field,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(
+            parent_module,
+            |phenomenon_id: &str,
+             coarse_span_units: f64,
+             detail_span_units: f64,
+             coarse_weight: f32,
+             detail_weight: f32,
+             bias: f32,
+             gain: f32,
+             center: f32,
+             seed_salt_primary: i64,
+             seed_salt_detail: i64|
+             -> Result<(), Box<rhai::EvalAltResult>> {
+                let phenomenon_id = normalize_identifier("phenomenon_id", phenomenon_id)?;
+                let mut phenomena = USF_PHENOMENA_BY_ID().lock().unwrap();
+                let Some(phenomenon) = phenomena.get_mut(&phenomenon_id) else {
+                    return Err(format!(
+                        "phenomenon '{}' is not registered; define it in a '*.phenomenon.rhai' file first",
+                        phenomenon_id
+                    )
+                    .into());
+                };
+                if phenomenon.kind != "metric_surface_debug" {
+                    return Err(format!(
+                        "phenomenon '{}' has kind '{}'; set_metric_surface_debug_field requires kind 'metric_surface_debug'",
+                        phenomenon_id, phenomenon.kind
+                    )
+                    .into());
+                }
+                if !coarse_span_units.is_finite() || coarse_span_units <= 0.0 {
+                    return Err("coarse_span_units must be finite and > 0".into());
+                }
+                if !detail_span_units.is_finite() || detail_span_units <= 0.0 {
+                    return Err("detail_span_units must be finite and > 0".into());
+                }
+                if !coarse_weight.is_finite() || coarse_weight < 0.0 {
+                    return Err("coarse_weight must be finite and >= 0".into());
+                }
+                if !detail_weight.is_finite() || detail_weight < 0.0 {
+                    return Err("detail_weight must be finite and >= 0".into());
+                }
+                if coarse_weight + detail_weight <= 0.0 {
+                    return Err("coarse_weight + detail_weight must be > 0".into());
+                }
+                if !bias.is_finite() {
+                    return Err("bias must be finite".into());
+                }
+                if !gain.is_finite() || gain <= 0.0 {
+                    return Err("gain must be finite and > 0".into());
+                }
+                if !center.is_finite() {
+                    return Err("center must be finite".into());
+                }
+                phenomenon.metric_surface_debug = Some(ScriptMetricSurfaceDebugDefinition {
+                    coarse_span_units,
+                    detail_span_units,
+                    coarse_weight,
+                    detail_weight,
+                    bias,
+                    gain,
+                    center,
+                    seed_salt_primary: seed_salt_primary as u64,
+                    seed_salt_detail: seed_salt_detail as u64,
+                });
                 Ok(())
             },
         );
@@ -154,8 +229,9 @@ fn normalize_phenomenon_kind(kind: &str) -> Result<String, Box<rhai::EvalAltResu
         return Err("phenomenon_kind must not be empty".into());
     }
     match normalized.as_str() {
-        "mandelbulb" => Ok("mandelbulb".to_string()),
-        "sierpinski_sponge" | "sierpinski-sponge" | "sierpinski" | "sponge" | "menger" => Ok("sierpinski_sponge".to_string()),
-        _ => Err(format!("unknown phenomenon_kind '{}'; expected 'mandelbulb' or 'sierpinski_sponge'", normalized).into()),
+        "metric_surface_debug" | "metric-surface-debug" | "terrain_metric_surface_debug" | "terrain-metric-surface-debug" => {
+            Ok("metric_surface_debug".to_string())
+        }
+        _ => Err(format!("unknown phenomenon_kind '{}'; expected 'metric_surface_debug'", normalized).into()),
     }
 }

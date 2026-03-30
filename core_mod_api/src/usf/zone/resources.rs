@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::bevy::prelude::*;
 use crate::rhai_binding::engine::statics::{
-    USF_PHENOMENA_BY_ID, USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE, USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE, USF_ZONE_TYPES,
+    USF_PHENOMENA_BY_ID, USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE, USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE,
 };
 use crate::usf::definition::ZoneTypeId;
 use crate::usf::phenomenon::PhenomenonKind;
@@ -76,9 +76,10 @@ pub enum ZonePhenomenonSpawnPolicy {
 }
 impl ZonePhenomenonSpawnPolicy {
     pub fn from_config_value(raw: &str) -> Self {
-        match raw.trim().to_ascii_lowercase().as_str() {
+        let normalized = raw.trim().to_ascii_lowercase();
+        match normalized.as_str() {
             "single_primary" | "single-primary" | "single" => Self::SinglePrimary,
-            _ => Self::SinglePrimary,
+            _ => panic!("USF zone spawn policy parse failed: unknown policy '{}'", normalized),
         }
     }
 }
@@ -91,11 +92,12 @@ pub enum ZonePhenomenonSelectionStrategy {
 }
 impl ZonePhenomenonSelectionStrategy {
     pub fn from_config_value(raw: &str) -> Self {
-        match raw.trim().to_ascii_lowercase().as_str() {
+        let normalized = raw.trim().to_ascii_lowercase();
+        match normalized.as_str() {
             "weighted_top_priority" | "weighted-top-priority" | "weighted" => Self::WeightedTopPriority,
             "highest_weight_top_priority" | "highest-weight-top-priority" | "highest_weight" => Self::HighestWeightTopPriority,
             "round_robin_top_priority" | "round-robin-top-priority" | "round_robin" => Self::RoundRobinTopPriority,
-            _ => Self::WeightedTopPriority,
+            _ => panic!("USF zone selection strategy parse failed: unknown strategy '{}'", normalized),
         }
     }
 }
@@ -127,22 +129,40 @@ impl Default for ZoneBehaviorRegistry {
         let mut phenomenon_support_by_zone = HashMap::new();
         let mut selection_policy_by_zone = HashMap::new();
         let mut density_profile_by_zone = HashMap::new();
-        let script_zone_types = USF_ZONE_TYPES().lock().unwrap().clone();
         let script_phenomena_by_id = USF_PHENOMENA_BY_ID().lock().unwrap().clone();
         let script_zone_supports = USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE().lock().unwrap().clone();
         let script_selection_policies = USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE().lock().unwrap().clone();
         let script_density_entries = USF_ZONE_DENSITY_PROFILE_BY_TYPE().lock().unwrap().clone();
+        let mut script_zone_types = std::collections::HashSet::<String>::new();
+        script_zone_types.extend(script_zone_supports.keys().cloned());
+        script_zone_types.extend(script_selection_policies.keys().cloned());
+        script_zone_types.extend(script_density_entries.keys().cloned());
 
         if script_phenomena_by_id.is_empty() {
             panic!("USF zone behavior bootstrap failed: no phenomena registered. Define at least one '*.phenomenon.rhai' file.");
         }
+        if script_zone_types.is_empty() {
+            panic!("USF zone behavior bootstrap failed: no zone behavior entries registered. Define them in '*.zone.rhai'.");
+        }
         if script_zone_supports.is_empty() {
             panic!("USF zone behavior bootstrap failed: no zone phenomenon supports registered. Define them in '*.zone.rhai'.");
+        }
+        if script_selection_policies.is_empty() {
+            panic!("USF zone behavior bootstrap failed: no zone selection policies registered. Define them in '*.zone.rhai'.");
+        }
+        if script_density_entries.is_empty() {
+            panic!("USF zone behavior bootstrap failed: no zone density profiles registered. Define them in '*.zone.rhai'.");
         }
 
         for zone_type in &script_zone_types {
             if !script_zone_supports.contains_key(zone_type) {
                 panic!("USF zone behavior bootstrap failed: missing supported phenomena for zone '{}'.", zone_type);
+            }
+            if !script_selection_policies.contains_key(zone_type) {
+                panic!("USF zone behavior bootstrap failed: missing selection policy for zone '{}'.", zone_type);
+            }
+            if !script_density_entries.contains_key(zone_type) {
+                panic!("USF zone behavior bootstrap failed: missing density profile for zone '{}'.", zone_type);
             }
         }
         for (zone_type, supports) in script_zone_supports {
@@ -191,70 +211,20 @@ impl Default for ZoneBehaviorRegistry {
                 .map(|policy| ZoneSelectionPolicy {
                     strategy: ZonePhenomenonSelectionStrategy::from_config_value(&policy.strategy),
                 })
-                .unwrap_or(ZoneSelectionPolicy {
-                    strategy: ZonePhenomenonSelectionStrategy::WeightedTopPriority,
-                });
+                .unwrap_or_else(|| unreachable!("selection policy is validated above"));
             selection_policy_by_zone.insert(ZoneTypeId::new(zone_type.clone()), policy);
         }
 
-        if script_density_entries.is_empty() {
+        for (zone_type, profile) in script_density_entries {
             density_profile_by_zone.insert(
-                ZoneTypeId::new("void"),
+                ZoneTypeId::new(zone_type),
                 ZoneDensityProfile {
-                    density_multiplier: 0.15,
-                    density_offset: 0.0,
-                    density_floor: 0.0,
-                    density_ceil: 0.25,
+                    density_multiplier: profile.density_multiplier,
+                    density_offset: profile.density_offset,
+                    density_floor: profile.density_floor,
+                    density_ceil: profile.density_ceil,
                 },
             );
-            density_profile_by_zone.insert(
-                ZoneTypeId::new("arid"),
-                ZoneDensityProfile {
-                    density_multiplier: 0.45,
-                    density_offset: 0.05,
-                    density_floor: 0.0,
-                    density_ceil: 0.55,
-                },
-            );
-            density_profile_by_zone.insert(
-                ZoneTypeId::new("alpine"),
-                ZoneDensityProfile {
-                    density_multiplier: 0.55,
-                    density_offset: 0.10,
-                    density_floor: 0.0,
-                    density_ceil: 0.72,
-                },
-            );
-            density_profile_by_zone.insert(
-                ZoneTypeId::new("forest"),
-                ZoneDensityProfile {
-                    density_multiplier: 0.72,
-                    density_offset: 0.14,
-                    density_floor: 0.05,
-                    density_ceil: 0.88,
-                },
-            );
-            density_profile_by_zone.insert(
-                ZoneTypeId::new("wetland"),
-                ZoneDensityProfile {
-                    density_multiplier: 0.78,
-                    density_offset: 0.20,
-                    density_floor: 0.10,
-                    density_ceil: 0.95,
-                },
-            );
-        } else {
-            for (zone_type, profile) in script_density_entries {
-                density_profile_by_zone.insert(
-                    ZoneTypeId::new(zone_type),
-                    ZoneDensityProfile {
-                        density_multiplier: profile.density_multiplier,
-                        density_offset: profile.density_offset,
-                        density_floor: profile.density_floor,
-                        density_ceil: profile.density_ceil,
-                    },
-                );
-            }
         }
 
         Self {

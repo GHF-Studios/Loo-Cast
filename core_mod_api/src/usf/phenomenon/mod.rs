@@ -21,7 +21,7 @@ pub use generators::layer_echo::LayerEchoGenerator;
 pub use meshing::{PHENOMENON_SEAM_LATTICE_DENOM, PhenomenonLatticeWindow, seam_safe_lattice_window};
 pub use resources::PhenomenonDefinitionRegistry;
 pub use systems::{PhenomenonDebugStats, PhenomenonGeneratorState, PhenomenonLifecyclePolicy};
-pub use types::{PhenomenonId, PhenomenonKind, PhenomenonLineage, PhenomenonNodeKey, PhenomenonNodeSeed};
+pub use types::{MetricSurfaceDebugFieldDefinition, PhenomenonId, PhenomenonKind, PhenomenonLineage, PhenomenonNodeKey, PhenomenonNodeSeed};
 
 use systems::{
     despawn_invalid_nodes_system, ensure_primary_models_system, ensure_root_nodes_system, expand_phenomenon_frontier_system, prune_orphan_models_system,
@@ -60,6 +60,7 @@ impl Plugin for PhenomenonPlugin {
             .register_type::<PhenomenonDefinitionRegistry>()
             .register_type::<PhenomenonLifecyclePolicy>()
             .register_type::<PhenomenonDebugStats>()
+            .register_type::<MetricSurfaceDebugFieldDefinition>()
             .register_type::<PhenomenonLatticeWindow>();
     }
 }

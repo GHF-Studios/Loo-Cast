@@ -10,9 +10,10 @@ use crate::chunk::resources::ChunkManager;
 use crate::config::statics::CONFIG;
 use crate::player::components::Player;
 use crate::render::components::{MainCamera, WorldPresentationRoot};
-use crate::usf::content::{PLACEHOLDER_GAMEPLAY_CONTENT_PACKAGE_ID, ScaleContentRegistry, UsfContentPackageActivation, UsfExecutionPlan};
-use crate::usf::definition::{DefinitionRegistry, ZoneTypeId};
+use crate::usf::content::{PLACEHOLDER_GAMEPLAY_CONTENT_PACKAGE_ID, ScaleContentRegistry, UsfActiveContentProfile, UsfExecutionPlan};
+use crate::usf::definition::ZoneTypeId;
 use crate::usf::dpt::{DptChunkKey, DptStore};
+use crate::usf::phenomenon::{MetricSurfaceDebugFieldDefinition, PhenomenonDefinitionRegistry, PhenomenonKind};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::unit::types::UnitVec;
 use crate::usf::scale::Scale;
@@ -151,6 +152,8 @@ pub struct PersistedChunkRecord {
     pub zone_density_signature: u64,
     #[serde(default)]
     pub density_field_signature: u64,
+    #[serde(default)]
+    pub phenomenon_script_id: String,
     pub chunk_seed: u64,
     pub sample_step: u16,
     pub iso_level: u8,
@@ -240,6 +243,8 @@ pub struct ChunkDemoHydrationTask {
     pub zone_type: ZoneTypeId,
     pub zone_density_profile: ZoneDensityProfile,
     pub zone_density_signature: u64,
+    pub phenomenon_script_id: String,
+    pub metric_surface_debug_field: MetricSurfaceDebugFieldDefinition,
     pub chunk_store_key: String,
 }
 
@@ -254,15 +259,15 @@ pub struct ChunkDemoHydrationArtifact {
 
 pub(crate) fn run_if_placeholder_gameplay_content_enabled(
     settings: Option<Res<UsfDemoSettings>>,
-    content_activation: Option<Res<UsfContentPackageActivation>>,
+    active_content_profile: Option<Res<UsfActiveContentProfile>>,
 ) -> bool {
     let Some(settings) = settings else {
         return false;
     };
-    let Some(content_activation) = content_activation else {
+    let Some(active_content_profile) = active_content_profile else {
         return false;
     };
-    settings.enabled && content_activation.is_enabled(PLACEHOLDER_GAMEPLAY_CONTENT_PACKAGE_ID)
+    settings.enabled && active_content_profile.is_package_enabled(PLACEHOLDER_GAMEPLAY_CONTENT_PACKAGE_ID)
 }
 
 pub(crate) fn queue_chunk_demo_hydration_requests_system(
@@ -281,7 +286,8 @@ pub(crate) fn queue_chunk_demo_hydration_requests_system(
 
 pub(crate) fn run_chunk_demo_hydration_workflow_system(
     settings: Res<UsfDemoSettings>,
-    definitions: Res<DefinitionRegistry>,
+    active_content_profile: Res<UsfActiveContentProfile>,
+    phenomenon_definitions: Res<PhenomenonDefinitionRegistry>,
     execution_plan: Res<UsfExecutionPlan>,
     mut dpt_store: ResMut<DptStore>,
     zlm_registry: Res<ZlmRegistry>,
@@ -341,7 +347,7 @@ pub(crate) fn run_chunk_demo_hydration_workflow_system(
             continue;
         }
 
-        let Some(schema) = definitions.schema_for_scale(chunk_scale) else {
+        let Some(schema) = active_content_profile.schema_for_scale(chunk_scale) else {
             warn!(
                 "USF demo chunk hydration skipped: missing DPT schema for chunk {:?} at scale index {}",
                 chunk.coord,
@@ -359,7 +365,38 @@ pub(crate) fn run_chunk_demo_hydration_workflow_system(
             let chunk_record = dpt_store.ensure_chunk_with_scale_binding(chunk_key, schema, &scale_content_registry);
             zlm_registry.classify_with_scale_binding(chunk_scale, schema, &chunk_record.metrics, &scale_content_registry)
         };
-        let zone_density_profile = zone_behavior_registry.density_profile_for_zone(&zone_type).unwrap_or_default();
+        let zone_density_profile = zone_behavior_registry
+            .density_profile_for_zone(&zone_type)
+            .unwrap_or_else(|| panic!("USF demo chunk hydration failed: missing zone density profile for zone '{}'.", zone_type.0));
+        let supports = zone_behavior_registry
+            .supports_for_zone(&zone_type)
+            .unwrap_or_else(|| panic!("USF demo chunk hydration failed: missing supported phenomena for zone '{}'.", zone_type.0));
+        // Placeholder gameplay path currently materializes one phenomenon contract per zone for chunk meshing.
+        // Full zone realization policy selection remains in usf::zone runtime systems.
+        let selected_support = supports
+            .first()
+            .unwrap_or_else(|| panic!("USF demo chunk hydration failed: zone '{}' has an empty supported phenomena list.", zone_type.0));
+        let phenomenon_script_id = selected_support.phenomenon_id.clone();
+        let phenomenon_kind = phenomenon_definitions
+            .kind_for(phenomenon_script_id.as_str())
+            .unwrap_or_else(|| panic!("USF demo chunk hydration failed: unknown phenomenon '{}'.", phenomenon_script_id));
+        if phenomenon_kind != PhenomenonKind::MetricSurfaceDebug {
+            panic!(
+                "USF demo chunk hydration failed: phenomenon '{}' has unsupported kind '{:?}'. \
+                 Expected '{:?}' for metric-surface debug meshing.",
+                phenomenon_script_id,
+                phenomenon_kind,
+                PhenomenonKind::MetricSurfaceDebug
+            );
+        }
+        let metric_surface_debug_field = phenomenon_definitions
+            .metric_surface_debug_for(phenomenon_script_id.as_str())
+            .unwrap_or_else(|| {
+                panic!(
+                    "USF demo chunk hydration failed: phenomenon '{}' is missing metric_surface_debug field definition.",
+                    phenomenon_script_id
+                )
+            });
         let zone_density_signature = zone_density_profile.signature();
         let chunk_store_key = route.chunk_store_key.as_str();
 
@@ -372,6 +409,8 @@ pub(crate) fn run_chunk_demo_hydration_workflow_system(
             zone_type,
             zone_density_profile,
             zone_density_signature,
+            phenomenon_script_id,
+            metric_surface_debug_field,
             chunk_store_key: chunk_store_key.to_string(),
         });
     }
@@ -427,6 +466,7 @@ fn chunk_demo_hydration_timeout_decision(module_name: &'static str, workflow_nam
 pub(crate) fn prepare_chunk_demo_hydration_artifact(settings: &UsfDemoSettings, task: ChunkDemoHydrationTask) -> ChunkDemoHydrationArtifact {
     let chunk_file = chunk_file_path(settings, task.chunk_scale, &task.canonical_coord, task.chunk_store_key.as_str());
     let expected_coord = SerializableGridCoord::from_grid(&task.canonical_coord);
+    let expected_density_field_signature = density_field_signature(task.metric_surface_debug_field);
 
     let mut record = load_chunk_record(&chunk_file).filter(|loaded| {
         loaded.world_seed == settings.world_seed
@@ -434,7 +474,8 @@ pub(crate) fn prepare_chunk_demo_hydration_artifact(settings: &UsfDemoSettings, 
             && loaded.chunk_coord == expected_coord
             && loaded.zone_type.eq_ignore_ascii_case(&task.zone_type.0)
             && loaded.zone_density_signature == task.zone_density_signature
-            && loaded.density_field_signature == density_field_signature()
+            && loaded.density_field_signature == expected_density_field_signature
+            && loaded.phenomenon_script_id.eq_ignore_ascii_case(task.phenomenon_script_id.as_str())
             && loaded.sample_step == settings.sample_step
             && loaded.iso_level == settings.iso_level
     });
@@ -447,6 +488,8 @@ pub(crate) fn prepare_chunk_demo_hydration_artifact(settings: &UsfDemoSettings, 
             &task.zone_type,
             task.zone_density_profile,
             task.zone_density_signature,
+            task.phenomenon_script_id.as_str(),
+            task.metric_surface_debug_field,
         );
         if let Err(error) = save_chunk_record(&chunk_file, &generated) {
             warn!("USF demo persistence write failed for {:?}: {}", chunk_file, error);
@@ -705,6 +748,8 @@ fn generate_chunk_record(
     zone_type: &ZoneTypeId,
     zone_density_profile: ZoneDensityProfile,
     zone_density_signature: u64,
+    phenomenon_script_id: &str,
+    metric_surface_debug_field: MetricSurfaceDebugFieldDefinition,
 ) -> PersistedChunkRecord {
     let axis_samples = build_axis_samples(settings.sample_step);
     let axis_points = axis_samples.len();
@@ -712,7 +757,14 @@ fn generate_chunk_record(
 
     let chunk_seed = derive_chunk_seed(settings.world_seed, canonical_coord);
 
-    let rho_values = sample_density_field_values(settings, chunk_scale, canonical_coord, &axis_samples, zone_density_profile);
+    let rho_values = sample_density_field_values(
+        settings,
+        chunk_scale,
+        canonical_coord,
+        &axis_samples,
+        zone_density_profile,
+        metric_surface_debug_field,
+    );
     let zone_id = zone_numeric_id(zone_type);
     let zone_values = vec![zone_id; total_points];
 
@@ -722,7 +774,8 @@ fn generate_chunk_record(
         chunk_coord: SerializableGridCoord::from_grid(canonical_coord),
         zone_type: zone_type.0.clone(),
         zone_density_signature,
-        density_field_signature: density_field_signature(),
+        density_field_signature: density_field_signature(metric_surface_debug_field),
+        phenomenon_script_id: phenomenon_script_id.to_ascii_lowercase(),
         chunk_seed,
         sample_step: settings.sample_step,
         iso_level: settings.iso_level,
@@ -738,10 +791,17 @@ fn sample_density_field_values(
     canonical_coord: &GridVec,
     axis_samples: &[u16],
     _zone_density_profile: ZoneDensityProfile,
+    metric_surface_debug_field: MetricSurfaceDebugFieldDefinition,
 ) -> Vec<u8> {
     #[cfg(test)]
     {
-        return sample_density_field_values_cpu(settings.world_seed, canonical_coord, axis_samples, _zone_density_profile);
+        return sample_density_field_values_cpu(
+            settings.world_seed,
+            canonical_coord,
+            axis_samples,
+            _zone_density_profile,
+            metric_surface_debug_field,
+        );
     }
 
     #[cfg(not(test))]
@@ -759,7 +819,13 @@ fn sample_density_field_values(
 }
 
 #[cfg(test)]
-fn sample_density_field_values_cpu(world_seed: u64, canonical_coord: &GridVec, axis_samples: &[u16], zone_density_profile: ZoneDensityProfile) -> Vec<u8> {
+fn sample_density_field_values_cpu(
+    world_seed: u64,
+    canonical_coord: &GridVec,
+    axis_samples: &[u16],
+    zone_density_profile: ZoneDensityProfile,
+    metric_surface_debug_field: MetricSurfaceDebugFieldDefinition,
+) -> Vec<u8> {
     let axis_points = axis_samples.len();
     let total_points = axis_points * axis_points * axis_points;
     let mut rho_values = Vec::with_capacity(total_points);
@@ -773,7 +839,7 @@ fn sample_density_field_values_cpu(world_seed: u64, canonical_coord: &GridVec, a
                     axis_samples[iz] as f32 - HALF_CHUNK_SPAN_F32,
                 );
                 let root_native = sample_root_native_position(canonical_coord, local_offset);
-                rho_values.push(hash_density_u8(world_seed, root_native, zone_density_profile));
+                rho_values.push(hash_density_u8(world_seed, root_native, zone_density_profile, metric_surface_debug_field));
             }
         }
     }
@@ -1057,18 +1123,29 @@ fn color_from_seed(seed: u64) -> Color {
     Color::srgb(0.2 + 0.6 * r, 0.2 + 0.6 * g, 0.2 + 0.6 * b)
 }
 
-fn hash_density_u8(world_seed: u64, root_native: (f64, f64, f64), _zone_density_profile: ZoneDensityProfile) -> u8 {
+fn hash_density_u8(
+    world_seed: u64,
+    root_native: (f64, f64, f64),
+    _zone_density_profile: ZoneDensityProfile,
+    metric_surface_debug_field: MetricSurfaceDebugFieldDefinition,
+) -> u8 {
     let (wx, wy, wz) = wrap_root_native_position(root_native);
 
-    // Low-frequency value-noise blend with strong bias towards empty space.
-    // This keeps surfaces coherent and avoids "solid clutter" from per-voxel white noise.
-    let seed = mix64(world_seed ^ 0xa5a5_35f4_9be3_c211_u64);
-    let base = value_noise_3d(seed, wx, wy, wz, 320.0);
-    let detail = value_noise_3d(seed ^ 0x8b8b_4fb7_0a7f_6611_u64, wx, wy, wz, 128.0);
-    let combined = (base * 0.82) + (detail * 0.18);
+    // Phenomenon owns field function parameters; meshing/collider are engine kernels.
+    let seed = mix64(world_seed ^ metric_surface_debug_field.seed_salt_primary);
+    let base = value_noise_3d(seed, wx, wy, wz, metric_surface_debug_field.coarse_span_units);
+    let detail = value_noise_3d(
+        seed ^ metric_surface_debug_field.seed_salt_detail,
+        wx,
+        wy,
+        wz,
+        metric_surface_debug_field.detail_span_units,
+    );
+    let weight_sum = (metric_surface_debug_field.coarse_weight + metric_surface_debug_field.detail_weight).max(f32::MIN_POSITIVE);
+    let combined = ((base * metric_surface_debug_field.coarse_weight) + (detail * metric_surface_debug_field.detail_weight)) / weight_sum;
 
     // Bias and shape to "mostly empty with occasional coherent surfaces".
-    let shaped = ((combined - 0.66) * 3.0 + 0.5).clamp(0.0, 1.0);
+    let shaped = ((combined - metric_surface_debug_field.bias) * metric_surface_debug_field.gain + metric_surface_debug_field.center).clamp(0.0, 1.0);
     // v2 contract: one shared field function across all scales.
     // Zone behavior remains metadata for later phenomena/interaction logic, not geometry warping.
     (shaped * 255.0).round() as u8
@@ -1083,13 +1160,22 @@ fn zone_numeric_id(zone_type: &ZoneTypeId) -> u32 {
 }
 
 #[inline]
-fn density_field_signature() -> u64 {
-    const DENSITY_ALGO_REVISION: u64 = 3;
+fn density_field_signature(metric_surface_debug_field: MetricSurfaceDebugFieldDefinition) -> u64 {
+    const DENSITY_ALGO_REVISION: u64 = 4;
     let mut signature_seed = 0xa3f1_1a89_5d4c_2be7_u64 ^ DENSITY_ALGO_REVISION;
     signature_seed ^= CHUNK_SPAN_UNITS_I64 as u64;
     signature_seed ^= (ROOT_AXIS_CELL_COUNT as u64) << 8;
     signature_seed ^= (ROOT_AXIS_PERIOD_UNITS as u64) << 16;
     signature_seed ^= 0x4750_555f_4445_4d4f_u64; // "GPU_DEMO"
+    signature_seed ^= metric_surface_debug_field.coarse_span_units.to_bits();
+    signature_seed ^= metric_surface_debug_field.detail_span_units.to_bits();
+    signature_seed ^= (metric_surface_debug_field.coarse_weight.to_bits() as u64) << 1;
+    signature_seed ^= (metric_surface_debug_field.detail_weight.to_bits() as u64) << 2;
+    signature_seed ^= (metric_surface_debug_field.bias.to_bits() as u64) << 3;
+    signature_seed ^= (metric_surface_debug_field.gain.to_bits() as u64) << 4;
+    signature_seed ^= (metric_surface_debug_field.center.to_bits() as u64) << 5;
+    signature_seed ^= metric_surface_debug_field.seed_salt_primary;
+    signature_seed ^= metric_surface_debug_field.seed_salt_detail;
     mix64(signature_seed)
 }
 
@@ -1226,6 +1312,14 @@ mod tests {
         )
     }
 
+    fn test_phenomenon_id() -> &'static str {
+        "phenomenon.placeholder.metric_surface_debug"
+    }
+
+    fn test_metric_surface_debug_field() -> MetricSurfaceDebugFieldDefinition {
+        MetricSurfaceDebugFieldDefinition::default()
+    }
+
     #[test]
     fn rho_sampling_matches_across_adjacent_chunk_borders() {
         let settings = test_settings();
@@ -1234,8 +1328,26 @@ mod tests {
         let (zone_type, zone_density_profile) = test_zone();
         let zone_density_signature = zone_density_profile.signature();
 
-        let left_record = generate_chunk_record(&settings, Scale::MAX, &left, &zone_type, zone_density_profile, zone_density_signature);
-        let right_record = generate_chunk_record(&settings, Scale::MAX, &right, &zone_type, zone_density_profile, zone_density_signature);
+        let left_record = generate_chunk_record(
+            &settings,
+            Scale::MAX,
+            &left,
+            &zone_type,
+            zone_density_profile,
+            zone_density_signature,
+            test_phenomenon_id(),
+            test_metric_surface_debug_field(),
+        );
+        let right_record = generate_chunk_record(
+            &settings,
+            Scale::MAX,
+            &right,
+            &zone_type,
+            zone_density_profile,
+            zone_density_signature,
+            test_phenomenon_id(),
+            test_metric_surface_debug_field(),
+        );
 
         let axis_points = left_record.axis_samples.len();
         assert_eq!(axis_points, right_record.axis_samples.len());
@@ -1262,8 +1374,26 @@ mod tests {
         let (zone_type, zone_density_profile) = test_zone();
         let zone_density_signature = zone_density_profile.signature();
 
-        let left_record = generate_chunk_record(&settings, Scale::MAX, &left, &zone_type, zone_density_profile, zone_density_signature);
-        let right_record = generate_chunk_record(&settings, Scale::MAX, &right, &zone_type, zone_density_profile, zone_density_signature);
+        let left_record = generate_chunk_record(
+            &settings,
+            Scale::MAX,
+            &left,
+            &zone_type,
+            zone_density_profile,
+            zone_density_signature,
+            test_phenomenon_id(),
+            test_metric_surface_debug_field(),
+        );
+        let right_record = generate_chunk_record(
+            &settings,
+            Scale::MAX,
+            &right,
+            &zone_type,
+            zone_density_profile,
+            zone_density_signature,
+            test_phenomenon_id(),
+            test_metric_surface_debug_field(),
+        );
 
         let axis_points = left_record.axis_samples.len();
         assert_eq!(axis_points, right_record.axis_samples.len());
@@ -1298,6 +1428,8 @@ mod tests {
             &zone_type,
             zone_density_profile,
             zone_density_profile.signature(),
+            test_phenomenon_id(),
+            test_metric_surface_debug_field(),
         );
 
         let path = Path::new(&settings.persistence_dir).join("roundtrip_chunk.json");
@@ -1341,8 +1473,8 @@ mod tests {
                 "root-native mismatch for child_local={child_local}: child={wrapped_child:?}, parent={wrapped_parent:?}"
             );
 
-            let child_density = hash_density_u8(settings.world_seed, child_root_native, zone_density_profile);
-            let parent_density = hash_density_u8(settings.world_seed, parent_root_native, zone_density_profile);
+            let child_density = hash_density_u8(settings.world_seed, child_root_native, zone_density_profile, test_metric_surface_debug_field());
+            let parent_density = hash_density_u8(settings.world_seed, parent_root_native, zone_density_profile, test_metric_surface_debug_field());
             assert_eq!(
                 child_density, parent_density,
                 "density mismatch for child_local={child_local}: child={child_density}, parent={parent_density}"
@@ -1387,8 +1519,8 @@ mod tests {
                 "root-native mismatch for child_offset={child_offset:?}: child={wrapped_child:?}, parent={wrapped_parent:?}"
             );
 
-            let child_density = hash_density_u8(settings.world_seed, child_root_native, zone_density_profile);
-            let parent_density = hash_density_u8(settings.world_seed, parent_root_native, zone_density_profile);
+            let child_density = hash_density_u8(settings.world_seed, child_root_native, zone_density_profile, test_metric_surface_debug_field());
+            let parent_density = hash_density_u8(settings.world_seed, parent_root_native, zone_density_profile, test_metric_surface_debug_field());
             assert_eq!(
                 child_density, parent_density,
                 "fractional density mismatch for child_offset={child_offset:?}: child={child_density}, parent={parent_density}"

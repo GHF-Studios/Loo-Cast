@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use crate::bevy::prelude::*;
 use crate::core::orchestration::AppSet;
 use crate::rhai_binding::engine::statics::USF_ZLM_SCALES_BY_SCALE;
-use crate::usf::content::ScaleContentRegistry;
-use crate::usf::definition::{DefinitionRegistry, DptMetricId, DptSchema, ZoneTypeId};
+use crate::usf::content::{ScaleContentRegistry, UsfActiveContentProfile};
+use crate::usf::definition::{DptMetricId, DptSchema, ZoneTypeId};
 use crate::usf::scale::Scale;
 
 #[derive(Reflect, Debug, Clone, PartialEq)]
@@ -38,30 +38,19 @@ pub struct ZlmRegistry {
 }
 impl Default for ZlmRegistry {
     fn default() -> Self {
-        let mut maps_by_scale = HashMap::new();
         let script_maps = script_zlm_overrides();
         if script_maps.is_empty() {
-            for index in 0..Scale::SCALE_LEVEL_COUNT {
-                let Some(scale) = Scale::from_index_from_top(index) else {
-                    continue;
-                };
-                maps_by_scale.insert(scale, baseline_zlm_for_scale(scale));
-            }
-        } else {
-            for (scale, definition) in script_maps {
-                maps_by_scale.insert(scale, definition);
-            }
+            panic!("USF ZLM bootstrap failed: no ZLM maps registered. Define at least one '*.zlm.rhai' file.");
         }
+        let maps_by_scale = script_maps.into_iter().collect::<HashMap<_, _>>();
 
         Self { maps_by_scale }
     }
 }
 impl ZlmRegistry {
-    pub const DEFAULT_DPT_CATEGORIZER_ID: &'static str = "dpt_categorizer.debug.zlm_lookup.v1";
-
     pub fn classify(&self, scale: Scale, schema: &DptSchema, metric_values: &[f32]) -> ZoneTypeId {
         let Some(scale_map) = self.maps_by_scale.get(&scale) else {
-            return schema.fallback_zone.clone();
+            panic!("USF ZLM classification failed: missing map for scale index {}", scale.index_from_top());
         };
 
         for rule in &scale_map.rules {
@@ -99,16 +88,21 @@ impl ZlmRegistry {
         let _categorizer_id = scale_content_registry
             .binding_for_scale(scale)
             .map(|binding| binding.dpt_categorizer_id.as_str())
-            .unwrap_or(Self::DEFAULT_DPT_CATEGORIZER_ID);
+            .unwrap_or_else(|| {
+                panic!(
+                    "USF ZLM classification failed: missing scale content binding for scale index {}",
+                    scale.index_from_top()
+                )
+            });
         self.classify(scale, schema, metric_values)
     }
 
-    pub fn validate_against(&self, definitions: &DefinitionRegistry) -> Result<(), String> {
+    pub fn validate_against(&self, active_content_profile: &UsfActiveContentProfile) -> Result<(), String> {
         for index in 0..Scale::SCALE_LEVEL_COUNT {
             let Some(scale) = Scale::from_index_from_top(index) else {
                 continue;
             };
-            let Some(schema) = definitions.schema_for_scale(scale) else {
+            let Some(schema) = active_content_profile.schema_for_scale(scale) else {
                 return Err(format!("missing schema while validating ZLM scale {}", scale.index_from_top()));
             };
             let Some(scale_map) = self.maps_by_scale.get(&scale) else {
@@ -125,7 +119,7 @@ impl ZlmRegistry {
                     scale.index_from_top()
                 ));
             }
-            if !definitions.known_zone_types.contains(&scale_map.fallback_zone) {
+            if !active_content_profile.known_zone_types.contains(&scale_map.fallback_zone) {
                 return Err(format!(
                     "ZLM fallback zone '{}' is not known at scale {}",
                     scale_map.fallback_zone.0,
@@ -133,7 +127,7 @@ impl ZlmRegistry {
                 ));
             }
             for rule in &scale_map.rules {
-                if !definitions.known_zone_types.contains(&rule.zone_type) {
+                if !active_content_profile.known_zone_types.contains(&rule.zone_type) {
                     return Err(format!(
                         "ZLM rule references unknown zone '{}' at scale {}",
                         rule.zone_type.0,
@@ -170,68 +164,6 @@ impl ZlmRegistry {
 
 fn normalize_zone_type(value: &str) -> ZoneTypeId {
     ZoneTypeId::new(value.trim().to_ascii_lowercase())
-}
-
-fn baseline_zlm_for_scale(_scale: Scale) -> ZlmScaleDefinition {
-    ZlmScaleDefinition {
-        revision: 1,
-        fallback_zone: normalize_zone_type("void"),
-        rules: vec![
-            ZlmZoneRule {
-                zone_type: normalize_zone_type("wetland"),
-                metric_bands: vec![
-                    ZlmMetricBand {
-                        metric_id: DptMetricId(1),
-                        min: 0.70,
-                        max: 1.0,
-                    },
-                    ZlmMetricBand {
-                        metric_id: DptMetricId(2),
-                        min: 0.0,
-                        max: 0.35,
-                    },
-                ],
-            },
-            ZlmZoneRule {
-                zone_type: normalize_zone_type("forest"),
-                metric_bands: vec![
-                    ZlmMetricBand {
-                        metric_id: DptMetricId(1),
-                        min: 0.45,
-                        max: 1.0,
-                    },
-                    ZlmMetricBand {
-                        metric_id: DptMetricId(0),
-                        min: 0.20,
-                        max: 0.85,
-                    },
-                ],
-            },
-            ZlmZoneRule {
-                zone_type: normalize_zone_type("alpine"),
-                metric_bands: vec![ZlmMetricBand {
-                    metric_id: DptMetricId(2),
-                    min: 0.75,
-                    max: 1.0,
-                }],
-            },
-            ZlmZoneRule {
-                zone_type: normalize_zone_type("arid"),
-                metric_bands: vec![
-                    ZlmMetricBand {
-                        metric_id: DptMetricId(1),
-                        min: 0.0,
-                        max: 0.30,
-                    },
-                    ZlmMetricBand {
-                        metric_id: DptMetricId(0),
-                        min: 0.45,
-                        max: 1.0,
-                    },
-                ],
-            },
-        ],
-    }
 }
 
 fn script_zlm_overrides() -> Vec<(Scale, ZlmScaleDefinition)> {
@@ -273,8 +205,8 @@ fn script_zlm_overrides() -> Vec<(Scale, ZlmScaleDefinition)> {
         .collect()
 }
 
-fn validate_zlm_registry_system(definitions: Res<DefinitionRegistry>, zlm_registry: Res<ZlmRegistry>) {
-    if let Err(reason) = zlm_registry.validate_against(&definitions) {
+fn validate_zlm_registry_system(active_content_profile: Res<UsfActiveContentProfile>, zlm_registry: Res<ZlmRegistry>) {
+    if let Err(reason) = zlm_registry.validate_against(&active_content_profile) {
         panic!("USF ZLM registry validation failed: {reason}");
     }
 }
@@ -290,8 +222,52 @@ impl Plugin for ZlmPlugin {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::usf::definition::{DptMetricDefinition, DptMetricId};
+    use crate::usf::content::UsfActiveContentProfile;
+    use crate::usf::definition::{DptMetricDefinition, DptMetricId, DptMetricStorageClass, DptMetricValueType};
     use std::collections::HashMap;
+
+    fn active_content_profile_for_tests() -> UsfActiveContentProfile {
+        let mut known_zone_types = std::collections::HashSet::new();
+        known_zone_types.insert(ZoneTypeId::new("void"));
+
+        let mut schemas_by_scale = HashMap::new();
+        for index in 0..Scale::SCALE_LEVEL_COUNT {
+            let Some(scale) = Scale::from_index_from_top(index) else {
+                continue;
+            };
+            let scale_index = scale.index_from_top();
+            schemas_by_scale.insert(
+                scale,
+                DptSchema {
+                    revision: 1,
+                    metrics: vec![DptMetricDefinition {
+                        id: DptMetricId(0),
+                        name: "temperature".to_string(),
+                        value_type: DptMetricValueType::F32,
+                        semantics_tag: "climate.temperature.normalized".to_string(),
+                        storage_class: DptMetricStorageClass::Brick,
+                        derived: false,
+                        min_scale_index: scale_index,
+                        max_scale_index: scale_index,
+                    }],
+                    fallback_zone: ZoneTypeId::new("void"),
+                },
+            );
+        }
+
+        UsfActiveContentProfile {
+            profile_id: "content_profile.test.default".to_string(),
+            configured_content_packages: vec![crate::usf::content::UsfConfiguredContentPackage {
+                content_package_id: "content_package.test.default".to_string(),
+                default_enabled: true,
+                config_enabled_key: "usf_content/content_packages/test_default/enabled".to_string(),
+                enabled: true,
+            }],
+            enabled_content_packages: std::collections::HashSet::from(["content_package.test.default".to_string()]),
+            schemas_by_scale,
+            known_zone_types,
+        }
+    }
 
     #[test]
     fn classify_uses_scale_map_fallback_zone_when_no_rule_matches() {
@@ -328,13 +304,27 @@ mod tests {
     #[test]
     fn validate_rejects_map_revision_that_lags_schema_revision() {
         let scale = Scale::MAX;
-        let mut definitions = DefinitionRegistry::default();
-        definitions.schemas_by_scale.get_mut(&scale).unwrap().revision = 2;
+        let mut active_content_profile = active_content_profile_for_tests();
+        active_content_profile.schemas_by_scale.get_mut(&scale).unwrap().revision = 2;
 
-        let mut zlm_registry = ZlmRegistry::default();
-        zlm_registry.maps_by_scale.get_mut(&scale).unwrap().revision = 1;
+        let mut maps_by_scale = HashMap::new();
+        for index in 0..Scale::SCALE_LEVEL_COUNT {
+            let Some(level) = Scale::from_index_from_top(index) else {
+                continue;
+            };
+            maps_by_scale.insert(
+                level,
+                ZlmScaleDefinition {
+                    revision: 2,
+                    fallback_zone: ZoneTypeId::new("void"),
+                    rules: Vec::new(),
+                },
+            );
+        }
+        maps_by_scale.get_mut(&scale).unwrap().revision = 1;
+        let zlm_registry = ZlmRegistry { maps_by_scale };
 
-        let error = zlm_registry.validate_against(&definitions).unwrap_err();
+        let error = zlm_registry.validate_against(&active_content_profile).unwrap_err();
         assert!(error.contains("must be >= schema revision"));
     }
 }

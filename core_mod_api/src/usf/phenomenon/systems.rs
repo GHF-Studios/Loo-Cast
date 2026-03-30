@@ -330,7 +330,7 @@ mod tests {
         let mut app = setup_lifecycle_test_app(3, 2);
         app.world_mut().spawn(Phenomenon {
             id: PhenomenonId(1),
-            kind: PhenomenonKind::Mandelbulb,
+            kind: PhenomenonKind::MetricSurfaceDebug,
         });
 
         for _ in 0..3 {
@@ -360,7 +360,7 @@ mod tests {
         let mut app = setup_lifecycle_test_app(3, 2);
         app.world_mut().spawn(Phenomenon {
             id: PhenomenonId(2),
-            kind: PhenomenonKind::SierpinskiSponge,
+            kind: PhenomenonKind::MetricSurfaceDebug,
         });
         for _ in 0..3 {
             app.update();
@@ -389,7 +389,7 @@ mod tests {
         app.add_systems(Update, refresh_active_node_stats_system);
         app.world_mut().spawn(Phenomenon {
             id: PhenomenonId(3),
-            kind: PhenomenonKind::Mandelbulb,
+            kind: PhenomenonKind::MetricSurfaceDebug,
         });
         app.update();
         app.update();
@@ -405,7 +405,7 @@ mod tests {
             .world_mut()
             .spawn(Phenomenon {
                 id: PhenomenonId(77),
-                kind: PhenomenonKind::SierpinskiSponge,
+                kind: PhenomenonKind::MetricSurfaceDebug,
             })
             .id();
 
