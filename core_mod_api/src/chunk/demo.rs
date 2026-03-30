@@ -11,11 +11,11 @@ use crate::player::components::Player;
 use crate::render::components::{MainCamera, WorldPresentationRoot};
 use crate::usf::content::{PLACEHOLDER_GAMEPLAY_CONTENT_PACKAGE_ID, UsfActiveContentProfile, UsfExecutionPlan};
 use crate::usf::definition::ZoneTypeId;
-use crate::usf::dpt::{DptChunkKey, DptStore};
 use crate::usf::phenomenon::{MetricSurfaceDebugFieldDefinition, PhenomenonDefinitionRegistry, PhenomenonKind};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::unit::types::UnitVec;
 use crate::usf::scale::Scale;
+use crate::usf::world::UsfWorld;
 use crate::usf::zlm::ZlmRegistry;
 use crate::usf::zone::{ZoneBehaviorRegistry, ZoneDensityProfile};
 use crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext;
@@ -278,7 +278,7 @@ pub(crate) fn run_chunk_demo_hydration_workflow_system(
     active_content_profile: Res<UsfActiveContentProfile>,
     phenomenon_definitions: Res<PhenomenonDefinitionRegistry>,
     execution_plan: Res<UsfExecutionPlan>,
-    mut dpt_store: ResMut<DptStore>,
+    mut usf_world: ResMut<UsfWorld>,
     zlm_registry: Res<ZlmRegistry>,
     zone_behavior_registry: Res<ZoneBehaviorRegistry>,
     chunk_visual_query: Query<Option<&UsfDemoChunkVisual>, With<Chunk>>,
@@ -335,23 +335,17 @@ pub(crate) fn run_chunk_demo_hydration_workflow_system(
             continue;
         }
 
-        let Some(schema) = active_content_profile.schema_for_scale(chunk_scale) else {
-            warn!(
-                "USF demo chunk hydration skipped: missing DPT schema for chunk {:?} at scale index {}",
-                chunk.coord,
-                chunk_scale.index_from_top()
-            );
-            continue;
-        };
-
         let canonical_coord = canonical_grid_coord(&chunk.coord);
-        let chunk_key = DptChunkKey {
-            scale: chunk_scale,
-            coord: canonical_coord.clone(),
-        };
         let zone_type = {
-            let chunk_record = dpt_store.ensure_chunk_with_scale_binding(chunk_key, schema, &active_content_profile);
-            zlm_registry.classify_with_scale_binding(chunk_scale, schema, &chunk_record.metrics, &active_content_profile)
+            let Some(chunk_sample) = usf_world.sample_chunk_with_scale_binding(&canonical_coord, &active_content_profile, &zlm_registry) else {
+                warn!(
+                    "USF demo chunk hydration skipped: missing world sampling contracts for chunk {:?} at scale index {}",
+                    chunk.coord,
+                    chunk_scale.index_from_top()
+                );
+                continue;
+            };
+            chunk_sample.zone_type
         };
         let zone_density_profile = zone_behavior_registry
             .density_profile_for_zone(&zone_type)

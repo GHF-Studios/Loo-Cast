@@ -64,7 +64,7 @@ fn metric_vector_for_sampler_id(sampler_id: &str, key: &DptChunkKey, schema: &Dp
     deterministic_metric_vector(key, schema)
 }
 
-fn deterministic_metric_vector(key: &DptChunkKey, schema: &DptSchema) -> Vec<f32> {
+pub(crate) fn deterministic_metric_vector(key: &DptChunkKey, schema: &DptSchema) -> Vec<f32> {
     let sample = normalized_chunk_center(&key.coord);
 
     let elevation = clamp01(
@@ -139,7 +139,7 @@ fn metric_value_for_definition(
     clamp01(0.5 + 0.5 * coherent_wave(scale_point(sample, span), seed))
 }
 
-fn normalized_chunk_center(coord: &GridVec) -> [f64; 3] {
+pub(crate) fn normalized_chunk_center(coord: &GridVec) -> [f64; 3] {
     let mut x = 0.0_f64;
     let mut y = 0.0_f64;
     let mut z = 0.0_f64;

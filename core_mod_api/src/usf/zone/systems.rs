@@ -5,10 +5,10 @@ use crate::chunk::components::{Chunk, ChunkLoader};
 use crate::player::components::Player;
 use crate::usf::content::UsfActiveContentProfile;
 use crate::usf::definition::ZoneTypeId;
-use crate::usf::dpt::{DptChunkKey, DptStore};
 use crate::usf::phenomenon::{Phenomenon, PhenomenonId, PhenomenonModel, PhenomenonScriptDefinitionRef};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
+use crate::usf::world::UsfWorld;
 use crate::usf::zlm::ZlmRegistry;
 
 use super::resources::{
@@ -26,7 +26,7 @@ pub(super) fn sync_zone_temporal_context_system(player_loader_query: Query<&Chun
 pub(super) fn reconcile_zone_runtime_system(
     mut commands: Commands,
     active_content_profile: Res<UsfActiveContentProfile>,
-    mut dpt_store: ResMut<DptStore>,
+    mut usf_world: ResMut<UsfWorld>,
     zlm_registry: Res<ZlmRegistry>,
     temporal_context: Res<ZoneTemporalContext>,
     loaded_chunks: Query<&Chunk>,
@@ -35,15 +35,10 @@ pub(super) fn reconcile_zone_runtime_system(
 ) {
     let mut classified_chunks = HashMap::<(Scale, ZoneTypeId), Vec<GridVec>>::new();
     for chunk in loaded_chunks.iter() {
-        let Some(schema) = active_content_profile.schema_for_scale(chunk.coord.scale) else {
+        let Some(chunk_sample) = usf_world.sample_chunk_with_scale_binding(&chunk.coord, &active_content_profile, &zlm_registry) else {
             continue;
         };
-        let chunk_key = DptChunkKey {
-            scale: chunk.coord.scale,
-            coord: chunk.coord.clone(),
-        };
-        let chunk_record = dpt_store.ensure_chunk_with_scale_binding(chunk_key, schema, &active_content_profile);
-        let zone_type = zlm_registry.classify_with_scale_binding(chunk.coord.scale, schema, &chunk_record.metrics, &active_content_profile);
+        let zone_type = chunk_sample.zone_type;
         classified_chunks.entry((chunk.coord.scale, zone_type)).or_default().push(chunk.coord.clone());
     }
 

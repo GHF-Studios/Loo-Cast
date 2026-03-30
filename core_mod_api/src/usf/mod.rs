@@ -8,6 +8,7 @@ pub mod pos;
 pub mod scale;
 pub mod schedule;
 pub mod transform;
+pub mod world;
 pub mod zlm;
 pub mod zone;
 
@@ -32,6 +33,7 @@ impl Plugin for UsfPlugin {
             .add_plugins(content::ContentPlugin)
             .add_plugins(dpt::DptPlugin)
             .add_plugins(zlm::ZlmPlugin)
+            .add_plugins(world::WorldPlugin)
             .add_plugins(zone::ZonePlugin)
             .add_plugins(phenomenon::PhenomenonPlugin)
             .add_plugins(crate::chunk::ChunkPlaceholderContentPlugin)
