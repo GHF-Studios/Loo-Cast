@@ -9,7 +9,7 @@ fn register_scale() {
             scale_index,
             1,
             "empty",
-            "solid_fill",
+            "demo_mass_density",
         );
 
         UsfSubstrate::set_scale(

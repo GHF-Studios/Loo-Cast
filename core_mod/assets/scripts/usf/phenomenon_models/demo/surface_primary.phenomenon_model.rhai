@@ -11,5 +11,5 @@ fn register_phenomenon_model(ctx) {
         608139381523021511,
         2748924730191034777,
     );
-    ctx.set_as_primary();
+    ctx.set_as_default_all_scales();
 }

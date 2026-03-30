@@ -1,4 +1,5 @@
 fn register_metric(ctx) {
+    ctx.set_id("demo_mass_density");
     let scale_min = 0;
     let scale_max = ctx.scale_level_count() - 1;
     ctx.register(

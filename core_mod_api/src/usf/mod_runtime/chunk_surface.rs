@@ -274,11 +274,12 @@ pub(crate) fn run_chunk_surface_hydration_workflow_system(
             );
         }
         let metric_surface_debug_field = phenomenon_definitions
-            .metric_surface_debug_for(phenomenon_script_id.as_str())
+            .metric_surface_debug_for_scale(phenomenon_script_id.as_str(), chunk_scale)
             .unwrap_or_else(|| {
                 panic!(
-                    "USF mod runtime chunk-surface hydration failed: phenomenon '{}' is missing metric_surface_debug field definition.",
-                    phenomenon_script_id
+                    "USF mod runtime chunk-surface hydration failed: phenomenon '{}' is missing metric_surface_debug field definition for scale {}.",
+                    phenomenon_script_id,
+                    chunk_scale.index_from_top()
                 )
             });
         let zone_density_signature = zone_density_profile.signature();

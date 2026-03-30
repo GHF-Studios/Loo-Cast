@@ -18,9 +18,9 @@ use crate::rhai_binding::engine::statics::{
     ScriptSingletonConflictPolicy, ScriptUsfModContribution, ScriptUsfModDefinition, ScriptUsfModManifestDefinition, ScriptUsfModpackDefinition,
     ScriptZlmMetricBandDefinition, ScriptZlmRuleDefinition, ScriptZlmScaleDefinition, ScriptZoneDensityProfileDefinition,
     ScriptZonePhenomenonSupportDefinition, ScriptZoneSelectionPolicyDefinition, USF_DPT_SCHEMAS_BY_SCALE, USF_METRIC_SETS_BY_ID, USF_METRICS_BY_NAME,
-    USF_MOD_CONTRIBUTIONS_BY_ID, USF_MOD_MANIFESTS_BY_ID, USF_MODPACKS_BY_ID, USF_MODS_BY_ID, USF_PHENOMENA_BY_ID, USF_PHENOMENON_MODELS_BY_ID,
-    USF_PRIMARY_PHENOMENON_MODEL_BY_PHENOMENON_ID, USF_SCALES_BY_INDEX, USF_ZLM_SCALES_BY_SCALE, USF_ZONE_DENSITY_PROFILE_BY_TYPE,
-    USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE, USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE, USF_ZONE_TYPES,
+    USF_MOD_CONTRIBUTIONS_BY_ID, USF_MOD_MANIFESTS_BY_ID, USF_MODPACKS_BY_ID, USF_MODS_BY_ID, USF_PHENOMENA_BY_ID,
+    USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE, USF_PHENOMENON_MODELS_BY_ID, USF_SCALES_BY_INDEX, USF_ZLM_SCALES_BY_SCALE,
+    USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE, USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE, USF_ZONE_TYPES,
 };
 use crate::rhai_binding::runtime::ecs::message::bindings::types::ScriptProbeMessage;
 use crate::usf::content::DEFAULT_DEMO_MOD_ID;
@@ -302,7 +302,7 @@ fn clear_usf_domain_bootstrap_statics() {
     USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE().lock().unwrap().clear();
     USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE().lock().unwrap().clear();
     USF_PHENOMENON_MODELS_BY_ID().lock().unwrap().clear();
-    USF_PRIMARY_PHENOMENON_MODEL_BY_PHENOMENON_ID().lock().unwrap().clear();
+    USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE().lock().unwrap().clear();
 }
 
 fn collect_usf_registration_scripts(dir: &Path, suffix: &str, out: &mut Vec<PathBuf>) {
@@ -590,7 +590,7 @@ fn snapshot_usf_domain_statics() -> ScriptUsfModContribution {
         zone_phenomenon_support_by_zone_type: USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE().lock().unwrap().clone(),
         zone_selection_policy_by_zone_type: USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE().lock().unwrap().clone(),
         phenomenon_models_by_id: USF_PHENOMENON_MODELS_BY_ID().lock().unwrap().clone(),
-        primary_phenomenon_model_by_phenomenon_id: USF_PRIMARY_PHENOMENON_MODEL_BY_PHENOMENON_ID().lock().unwrap().clone(),
+        phenomenon_model_selection_by_phenomenon_scale: USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE().lock().unwrap().clone(),
     }
 }
 
@@ -606,7 +606,7 @@ fn apply_usf_domain_snapshot(snapshot: ScriptUsfModContribution) {
     *USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE().lock().unwrap() = snapshot.zone_phenomenon_support_by_zone_type;
     *USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE().lock().unwrap() = snapshot.zone_selection_policy_by_zone_type;
     *USF_PHENOMENON_MODELS_BY_ID().lock().unwrap() = snapshot.phenomenon_models_by_id;
-    *USF_PRIMARY_PHENOMENON_MODEL_BY_PHENOMENON_ID().lock().unwrap() = snapshot.primary_phenomenon_model_by_phenomenon_id;
+    *USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE().lock().unwrap() = snapshot.phenomenon_model_selection_by_phenomenon_scale;
 }
 
 fn merge_set_unique<T: Eq + Hash + Clone + std::fmt::Debug>(target: &mut HashSet<T>, source: HashSet<T>, domain: &str, mod_id: &str) {
@@ -769,9 +769,9 @@ fn merge_mod_contribution_into_composed(
         mod_id,
     );
     merge_map_unique(
-        &mut composed.primary_phenomenon_model_by_phenomenon_id,
-        contribution.primary_phenomenon_model_by_phenomenon_id,
-        "primary_model_phenomenon_id",
+        &mut composed.phenomenon_model_selection_by_phenomenon_scale,
+        contribution.phenomenon_model_selection_by_phenomenon_scale,
+        "phenomenon_model_selection",
         mod_id,
     );
 }
@@ -1149,6 +1149,21 @@ fn parse_scale_index(value: i64) -> Result<u8, Box<EvalAltResult>> {
     parse_scale_index_with_name("scale_index", value)
 }
 
+fn parse_scale_index_set(name: &str, values: rhai::Array) -> Result<Vec<u8>, Box<EvalAltResult>> {
+    let mut out = Vec::<u8>::with_capacity(values.len());
+    let mut seen = HashSet::<u8>::new();
+    for (entry_index, value) in values.into_iter().enumerate() {
+        let Some(int_value) = value.clone().try_cast::<i64>() else {
+            return Err(format!("{name}[{}] must be an integer", entry_index).into());
+        };
+        let parsed = parse_scale_index_with_name(name, int_value)?;
+        if seen.insert(parsed) {
+            out.push(parsed);
+        }
+    }
+    Ok(out)
+}
+
 #[inline]
 fn parse_positive_revision(value: i64) -> Result<u64, Box<EvalAltResult>> {
     if value < 1 {
@@ -1221,6 +1236,33 @@ fn normalize_phenomenon_kind(kind: &str) -> Result<String, Box<EvalAltResult>> {
         }
         _ => Err(format!("unknown phenomenon_kind '{}'; expected 'metric_surface_debug'", kind).into()),
     }
+}
+
+#[inline]
+fn phenomenon_model_selection_key(phenomenon_id: &str, scale_index: u8) -> String {
+    format!("{phenomenon_id}@{scale_index}")
+}
+
+fn set_phenomenon_model_selection(phenomenon_id: &str, scale_index: u8, model_id: &str) -> Result<(), Box<EvalAltResult>> {
+    if !USF_PHENOMENA_BY_ID().lock().unwrap().contains_key(phenomenon_id) {
+        return Err(format!("phenomenon '{}' is not registered", phenomenon_id).into());
+    }
+    let Some(model) = USF_PHENOMENON_MODELS_BY_ID().lock().unwrap().get(model_id).cloned() else {
+        return Err(format!("phenomenon model '{}' is not registered", model_id).into());
+    };
+    if model.phenomenon_id != phenomenon_id {
+        return Err(format!(
+            "phenomenon model '{}' belongs to '{}', but was assigned to '{}'",
+            model_id, model.phenomenon_id, phenomenon_id
+        )
+        .into());
+    }
+
+    USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE()
+        .lock()
+        .unwrap()
+        .insert(phenomenon_model_selection_key(phenomenon_id, scale_index), model_id.to_string());
+    Ok(())
 }
 
 fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
@@ -1453,6 +1495,10 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
     engine.register_fn("scale_level_count", |_ctx: &mut UsfMetricScriptCtx| -> rhai::INT {
         Scale::SCALE_LEVEL_COUNT as rhai::INT
     });
+    engine.register_fn("set_id", |ctx: &mut UsfMetricScriptCtx, metric_name: &str| -> Result<(), Box<EvalAltResult>> {
+        ctx.metric_name = normalize_script_identifier("metric_name", metric_name)?;
+        Ok(())
+    });
     engine.register_fn(
         "register",
         |ctx: &mut UsfMetricScriptCtx,
@@ -1511,6 +1557,13 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
     engine.register_get("metric_set_id", |ctx: &mut UsfMetricSetScriptCtx| ctx.metric_set_id.clone());
     engine.register_get("owner_mod_id", |ctx: &mut UsfMetricSetScriptCtx| ctx.owner_mod_id.clone());
     engine.register_get("script_file", |ctx: &mut UsfMetricSetScriptCtx| ctx.script_file.clone());
+    engine.register_fn(
+        "set_id",
+        |ctx: &mut UsfMetricSetScriptCtx, metric_set_id: &str| -> Result<(), Box<EvalAltResult>> {
+            ctx.metric_set_id = normalize_script_identifier("metric_set_id", metric_set_id)?;
+            Ok(())
+        },
+    );
     engine.register_fn("register", |ctx: &mut UsfMetricSetScriptCtx| -> Result<(), Box<EvalAltResult>> {
         let owner_mod_id = ensure_owner_mod_for_ctx(ctx.owner_mod_id.as_str())?;
         let metric_set_id = normalize_script_identifier("metric_set_id", ctx.metric_set_id.as_str())?;
@@ -1546,6 +1599,10 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
     engine.register_get("zone_type", |ctx: &mut UsfZoneScriptCtx| ctx.zone_type.clone());
     engine.register_get("owner_mod_id", |ctx: &mut UsfZoneScriptCtx| ctx.owner_mod_id.clone());
     engine.register_get("script_file", |ctx: &mut UsfZoneScriptCtx| ctx.script_file.clone());
+    engine.register_fn("set_id", |ctx: &mut UsfZoneScriptCtx, zone_type: &str| -> Result<(), Box<EvalAltResult>> {
+        ctx.zone_type = normalize_zone_type(zone_type)?;
+        Ok(())
+    });
     engine.register_fn("register", |ctx: &mut UsfZoneScriptCtx| -> Result<(), Box<EvalAltResult>> {
         let owner_mod_id = ensure_owner_mod_for_ctx(ctx.owner_mod_id.as_str())?;
         let zone_type = normalize_zone_type(ctx.zone_type.as_str())?;
@@ -1651,6 +1708,10 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
     engine.register_get("zlm_id", |ctx: &mut UsfZlmScriptCtx| ctx.zlm_id.clone());
     engine.register_get("owner_mod_id", |ctx: &mut UsfZlmScriptCtx| ctx.owner_mod_id.clone());
     engine.register_get("script_file", |ctx: &mut UsfZlmScriptCtx| ctx.script_file.clone());
+    engine.register_fn("set_id", |ctx: &mut UsfZlmScriptCtx, zlm_id: &str| -> Result<(), Box<EvalAltResult>> {
+        ctx.zlm_id = normalize_script_identifier("zlm_id", zlm_id)?;
+        Ok(())
+    });
     engine.register_fn("scale_level_count", |_ctx: &mut UsfZlmScriptCtx| -> rhai::INT {
         Scale::SCALE_LEVEL_COUNT as rhai::INT
     });
@@ -1725,11 +1786,61 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
             Ok(())
         },
     );
+    engine.register_fn(
+        "add_metric_band_by_name",
+        |_ctx: &mut UsfZlmScriptCtx,
+         scale_index: i64,
+         rule_index: i64,
+         metric_name: &str,
+         min: rhai::FLOAT,
+         max: rhai::FLOAT|
+         -> Result<(), Box<EvalAltResult>> {
+            let metric_name = normalize_script_identifier("metric_name", metric_name)?;
+            let Some(metric_id) = USF_METRICS_BY_NAME().lock().unwrap().get(metric_name.as_str()).map(|metric| metric.id as i64) else {
+                return Err(format!("metric '{}' is not registered", metric_name).into());
+            };
+            let scale_index = parse_scale_index(scale_index)?;
+            if rule_index < 0 {
+                return Err(format!("rule_index must be >= 0, got {rule_index}").into());
+            }
+            let rule_index = rule_index as usize;
+            let metric_id = parse_u16_value("metric_id", metric_id)?;
+            let min = parse_finite_f32("min", min)?;
+            let max = parse_finite_f32("max", max)?;
+            if min > max {
+                return Err(format!("zlm metric band min ({min}) must be <= max ({max})").into());
+            }
+            let mut maps = USF_ZLM_SCALES_BY_SCALE().lock().unwrap();
+            let Some(scale_map) = maps.get_mut(&scale_index) else {
+                return Err(format!("no ZLM map defined for scale_index={scale_index}; call ctx.set_scale first").into());
+            };
+            if rule_index >= scale_map.rules.len() {
+                return Err(format!(
+                    "rule_index {} is out of bounds for scale {} (rule count={})",
+                    rule_index,
+                    scale_index,
+                    scale_map.rules.len()
+                )
+                .into());
+            }
+            scale_map.rules[rule_index]
+                .metric_bands
+                .push(ScriptZlmMetricBandDefinition { metric_id, min, max });
+            Ok(())
+        },
+    );
 
     engine.register_type_with_name::<UsfPhenomenonScriptCtx>("UsfPhenomenonScriptCtx");
     engine.register_get("phenomenon_id", |ctx: &mut UsfPhenomenonScriptCtx| ctx.phenomenon_id.clone());
     engine.register_get("owner_mod_id", |ctx: &mut UsfPhenomenonScriptCtx| ctx.owner_mod_id.clone());
     engine.register_get("script_file", |ctx: &mut UsfPhenomenonScriptCtx| ctx.script_file.clone());
+    engine.register_fn(
+        "set_id",
+        |ctx: &mut UsfPhenomenonScriptCtx, phenomenon_id: &str| -> Result<(), Box<EvalAltResult>> {
+            ctx.phenomenon_id = normalize_script_identifier("phenomenon_id", phenomenon_id)?;
+            Ok(())
+        },
+    );
     engine.register_fn(
         "register",
         |ctx: &mut UsfPhenomenonScriptCtx, phenomenon_kind: &str| -> Result<(), Box<EvalAltResult>> {
@@ -1764,24 +1875,49 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
         },
     );
     engine.register_fn(
-        "set_primary_model",
+        "set_model_for_scale",
+        |ctx: &mut UsfPhenomenonScriptCtx, scale_index: i64, model_id: &str| -> Result<(), Box<EvalAltResult>> {
+            let phenomenon_id = normalize_script_identifier("phenomenon_id", ctx.phenomenon_id.as_str())?;
+            let scale_index = parse_scale_index(scale_index)?;
+            let model_id = normalize_script_identifier("model_id", model_id)?;
+            set_phenomenon_model_selection(phenomenon_id.as_str(), scale_index, model_id.as_str())
+        },
+    );
+    engine.register_fn(
+        "set_model_for_all_scales",
         |ctx: &mut UsfPhenomenonScriptCtx, model_id: &str| -> Result<(), Box<EvalAltResult>> {
             let phenomenon_id = normalize_script_identifier("phenomenon_id", ctx.phenomenon_id.as_str())?;
             let model_id = normalize_script_identifier("model_id", model_id)?;
-            if !USF_PHENOMENA_BY_ID().lock().unwrap().contains_key(&phenomenon_id) {
-                return Err(format!("phenomenon '{}' is not registered; call ctx.register(...) first", phenomenon_id).into());
+            for scale_index in 0..(Scale::SCALE_LEVEL_COUNT as u8) {
+                set_phenomenon_model_selection(phenomenon_id.as_str(), scale_index, model_id.as_str())?;
             }
-            let Some(model) = USF_PHENOMENON_MODELS_BY_ID().lock().unwrap().get(&model_id).cloned() else {
-                return Err(format!("phenomenon model '{}' is not registered", model_id).into());
-            };
-            if model.phenomenon_id != phenomenon_id {
-                return Err(format!(
-                    "phenomenon model '{}' belongs to '{}', but was assigned as primary for '{}'",
-                    model_id, model.phenomenon_id, phenomenon_id
-                )
-                .into());
+            Ok(())
+        },
+    );
+    engine.register_fn(
+        "set_model_for_range",
+        |ctx: &mut UsfPhenomenonScriptCtx, min_scale_index: i64, max_scale_index: i64, model_id: &str| -> Result<(), Box<EvalAltResult>> {
+            let phenomenon_id = normalize_script_identifier("phenomenon_id", ctx.phenomenon_id.as_str())?;
+            let min_scale_index = parse_scale_index_with_name("min_scale_index", min_scale_index)?;
+            let max_scale_index = parse_scale_index_with_name("max_scale_index", max_scale_index)?;
+            if min_scale_index > max_scale_index {
+                return Err(format!("invalid scale range [{min_scale_index}..{max_scale_index}]").into());
             }
-            USF_PRIMARY_PHENOMENON_MODEL_BY_PHENOMENON_ID().lock().unwrap().insert(phenomenon_id, model_id);
+            let model_id = normalize_script_identifier("model_id", model_id)?;
+            for scale_index in min_scale_index..=max_scale_index {
+                set_phenomenon_model_selection(phenomenon_id.as_str(), scale_index, model_id.as_str())?;
+            }
+            Ok(())
+        },
+    );
+    engine.register_fn(
+        "set_model_for_set",
+        |ctx: &mut UsfPhenomenonScriptCtx, scale_indices: rhai::Array, model_id: &str| -> Result<(), Box<EvalAltResult>> {
+            let phenomenon_id = normalize_script_identifier("phenomenon_id", ctx.phenomenon_id.as_str())?;
+            let model_id = normalize_script_identifier("model_id", model_id)?;
+            for scale_index in parse_scale_index_set("scale_indices", scale_indices)? {
+                set_phenomenon_model_selection(phenomenon_id.as_str(), scale_index, model_id.as_str())?;
+            }
             Ok(())
         },
     );
@@ -1790,6 +1926,13 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
     engine.register_get("model_id", |ctx: &mut UsfPhenomenonModelScriptCtx| ctx.model_id.clone());
     engine.register_get("owner_mod_id", |ctx: &mut UsfPhenomenonModelScriptCtx| ctx.owner_mod_id.clone());
     engine.register_get("script_file", |ctx: &mut UsfPhenomenonModelScriptCtx| ctx.script_file.clone());
+    engine.register_fn(
+        "set_id",
+        |ctx: &mut UsfPhenomenonModelScriptCtx, model_id: &str| -> Result<(), Box<EvalAltResult>> {
+            ctx.model_id = normalize_script_identifier("model_id", model_id)?;
+            Ok(())
+        },
+    );
     engine.register_fn(
         "register",
         |ctx: &mut UsfPhenomenonModelScriptCtx, phenomenon_id: &str| -> Result<(), Box<EvalAltResult>> {
@@ -1902,15 +2045,27 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
             Ok(())
         },
     );
+    engine.register_fn(
+        "set_as_default_all_scales",
+        |ctx: &mut UsfPhenomenonModelScriptCtx| -> Result<(), Box<EvalAltResult>> {
+            let model_id = normalize_script_identifier("model_id", ctx.model_id.as_str())?;
+            let Some(model) = USF_PHENOMENON_MODELS_BY_ID().lock().unwrap().get(&model_id).cloned() else {
+                return Err(format!("phenomenon model '{}' is not registered; call ctx.register(...) first", model_id).into());
+            };
+            for scale_index in 0..(Scale::SCALE_LEVEL_COUNT as u8) {
+                set_phenomenon_model_selection(model.phenomenon_id.as_str(), scale_index, model_id.as_str())?;
+            }
+            Ok(())
+        },
+    );
     engine.register_fn("set_as_primary", |ctx: &mut UsfPhenomenonModelScriptCtx| -> Result<(), Box<EvalAltResult>> {
         let model_id = normalize_script_identifier("model_id", ctx.model_id.as_str())?;
         let Some(model) = USF_PHENOMENON_MODELS_BY_ID().lock().unwrap().get(&model_id).cloned() else {
             return Err(format!("phenomenon model '{}' is not registered; call ctx.register(...) first", model_id).into());
         };
-        USF_PRIMARY_PHENOMENON_MODEL_BY_PHENOMENON_ID()
-            .lock()
-            .unwrap()
-            .insert(model.phenomenon_id, model_id);
+        for scale_index in 0..(Scale::SCALE_LEVEL_COUNT as u8) {
+            set_phenomenon_model_selection(model.phenomenon_id.as_str(), scale_index, model_id.as_str())?;
+        }
         Ok(())
     });
 }

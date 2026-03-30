@@ -129,7 +129,7 @@ fn metric_value_for_definition(
         "humidity" => Some(humidity),
         "elevation" => Some(elevation),
         "vegetation_density" | "vegetation-density" => Some(vegetation_density),
-        "solid_fill" | "solid-fill" => Some(matter_density),
+        "solid_fill" | "solid-fill" | "demo_mass_density" | "demo-mass-density" => Some(matter_density),
         "density" => Some(matter_density),
         "support" => Some(matter_support),
         "root_pos_x" | "root-pos-x" | "position_x" | "position-x" => Some(root_pos_x),

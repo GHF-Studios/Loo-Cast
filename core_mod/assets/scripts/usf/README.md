@@ -84,9 +84,9 @@ zone realization. When the cap is reached, additional zones skip spawning for th
 
 Current placeholder gameplay contracts:
 
-- one primary terrain metric drives classification: `solid_fill`
+- one primary terrain metric drives classification: `demo_mass_density`
 - three derived root-position metrics are provided: `root_pos_x`, `root_pos_y`, `root_pos_z`
 - three zones are used: `empty` (no support/no mesh), `spawn_buffer` (near-origin noop), and `solid` (spawns one surface phenomenon)
 - the chunk terrain debug mesh is driven by one phenomenon id: `surface`
-- `*.phenomenon_model.rhai` defines the model field policy via `set_metric_surface_debug_model_field(...)`
+- `*.phenomenon_model.rhai` defines the model field policy via `set_metric_surface_debug_field(...)`
 - meshing/collider generation remains engine-owned; scripts declare phenomenon + model policy contracts

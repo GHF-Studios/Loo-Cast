@@ -107,7 +107,7 @@ pub struct ScriptUsfModContribution {
     pub zone_phenomenon_support_by_zone_type: HashMap<String, Vec<ScriptZonePhenomenonSupportDefinition>>,
     pub zone_selection_policy_by_zone_type: HashMap<String, ScriptZoneSelectionPolicyDefinition>,
     pub phenomenon_models_by_id: HashMap<String, ScriptPhenomenonModelDefinition>,
-    pub primary_phenomenon_model_by_phenomenon_id: HashMap<String, String>,
+    pub phenomenon_model_selection_by_phenomenon_scale: HashMap<String, String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -210,4 +210,4 @@ export_static!(self, crate::rhai_binding::engine::statics::USF_PHENOMENA_BY_ID: 
 export_static!(self, crate::rhai_binding::engine::statics::USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE: Lazy<Mutex<HashMap<String, Vec<ScriptZonePhenomenonSupportDefinition>>>> = Lazy::new(Default::default));
 export_static!(self, crate::rhai_binding::engine::statics::USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE: Lazy<Mutex<HashMap<String, ScriptZoneSelectionPolicyDefinition>>> = Lazy::new(Default::default));
 export_static!(self, crate::rhai_binding::engine::statics::USF_PHENOMENON_MODELS_BY_ID: Lazy<Mutex<HashMap<String, ScriptPhenomenonModelDefinition>>> = Lazy::new(Default::default));
-export_static!(self, crate::rhai_binding::engine::statics::USF_PRIMARY_PHENOMENON_MODEL_BY_PHENOMENON_ID: Lazy<Mutex<HashMap<String, String>>> = Lazy::new(Default::default));
+export_static!(self, crate::rhai_binding::engine::statics::USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE: Lazy<Mutex<HashMap<String, String>>> = Lazy::new(Default::default));

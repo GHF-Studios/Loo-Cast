@@ -1,9 +1,10 @@
 use rhai::FuncRegistration;
 
 use crate::rhai_binding::engine::statics::{
-    ScriptMetricSurfaceDebugDefinition, ScriptPhenomenonDefinition, ScriptPhenomenonModelDefinition, USF_PHENOMENA_BY_ID, USF_PHENOMENON_MODELS_BY_ID,
-    USF_PRIMARY_PHENOMENON_MODEL_BY_PHENOMENON_ID,
+    ScriptMetricSurfaceDebugDefinition, ScriptPhenomenonDefinition, ScriptPhenomenonModelDefinition, USF_PHENOMENA_BY_ID,
+    USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE, USF_PHENOMENON_MODELS_BY_ID,
 };
+use crate::usf::scale::Scale;
 
 core_mod_macros::reflect_extern_sub_module!(
     id = core_mod_api::usf::phenomenon,
@@ -68,7 +69,7 @@ core_mod_macros::reflect_extern_module_associated_function!(
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
         FuncRegistration::new(name).set_into_module(parent_module, || -> Result<(), Box<rhai::EvalAltResult>> {
             USF_PHENOMENON_MODELS_BY_ID().lock().unwrap().clear();
-            USF_PRIMARY_PHENOMENON_MODEL_BY_PHENOMENON_ID().lock().unwrap().clear();
+            USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE().lock().unwrap().clear();
             Ok(())
         });
     },
@@ -221,7 +222,10 @@ core_mod_macros::reflect_extern_module_associated_function!(
                 .into());
             }
 
-            USF_PRIMARY_PHENOMENON_MODEL_BY_PHENOMENON_ID().lock().unwrap().insert(phenomenon_id, model_id);
+            let mut selection = USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE().lock().unwrap();
+            for scale_index in 0..(Scale::SCALE_LEVEL_COUNT as u8) {
+                selection.insert(format!("{phenomenon_id}@{scale_index}"), model_id.clone());
+            }
             Ok(())
         });
     },
