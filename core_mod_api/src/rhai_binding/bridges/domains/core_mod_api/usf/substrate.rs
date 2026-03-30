@@ -568,15 +568,11 @@ core_mod_macros::reflect_extern_module_associated_function!(
                 };
 
                 match singleton_domain.as_str() {
-                    "scale_binding" => package.scale_binding_conflict_policy = policy,
+                    "scale" | "scale_binding" => package.scale_binding_conflict_policy = policy,
                     "dpt_schema" => package.dpt_schema_conflict_policy = policy,
                     "zlm" | "zlm_scale" => package.zlm_conflict_policy = policy,
                     _ => {
-                        return Err(format!(
-                            "singleton_domain '{}' is invalid; expected one of: scale_binding, dpt_schema, zlm",
-                            singleton_domain
-                        )
-                        .into());
+                        return Err(format!("singleton_domain '{}' is invalid; expected one of: scale, dpt_schema, zlm", singleton_domain).into());
                     }
                 }
 

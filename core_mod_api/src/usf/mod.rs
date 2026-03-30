@@ -3,6 +3,7 @@ pub mod content;
 pub mod definition;
 pub mod dpt;
 pub mod math;
+pub mod mod_runtime;
 pub mod phenomenon;
 pub mod pos;
 pub mod scale;
@@ -34,9 +35,9 @@ impl Plugin for UsfPlugin {
             .add_plugins(dpt::DptPlugin)
             .add_plugins(zlm::ZlmPlugin)
             .add_plugins(world::WorldPlugin)
+            .add_plugins(mod_runtime::UsfModRuntimePlugin)
             .add_plugins(zone::ZonePlugin)
             .add_plugins(phenomenon::PhenomenonPlugin)
-            .add_plugins(crate::chunk::ChunkPlaceholderContentPlugin)
             .register_type::<DptMetricId>()
             .register_type::<ZoneTypeId>()
             .register_type::<DptMetricDefinition>()

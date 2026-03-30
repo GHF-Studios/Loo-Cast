@@ -30,9 +30,9 @@ hydration_build_workers = 4
 persistence_dir = "target/usf_demo/chunks"
 
 [usf_content]
-active_modpack_id = "modpack.placeholder_gameplay.v1"
+active_modpack_id = "debug"
 
-[usf_content.mods.placeholder_gameplay]
+[usf_content.mods.demo]
 enabled = true
 
 [core]

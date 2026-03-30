@@ -9,7 +9,7 @@ use crate::rhai_binding::engine::statics::{
 use crate::usf::definition::{DptMetricDefinition, DptMetricId, DptMetricStorageClass, DptMetricValueType, DptSchema, ZoneTypeId};
 use crate::usf::scale::Scale;
 
-pub const PLACEHOLDER_GAMEPLAY_CONTENT_PACKAGE_ID: &str = "mod.placeholder_gameplay.v1";
+pub const DEFAULT_DEMO_MOD_CONTENT_PACKAGE_ID: &str = "demo";
 pub const DPT_SAMPLER_KERNEL_DEFAULT_ID: &str = "dpt_sampler.kernel.default.v1";
 pub const DPT_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID: &str = "dpt_categorizer.kernel.zlm_lookup.v1";
 

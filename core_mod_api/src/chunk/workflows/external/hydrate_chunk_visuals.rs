@@ -1,6 +1,6 @@
 use crate::bevy::prelude::*;
 use crate::chunk::components::Chunk;
-use crate::chunk::demo::{
+use crate::usf::mod_runtime::chunk_surface::{
     ChunkDemoHydrationArtifact, ChunkDemoHydrationTask, UsfDemoChunkStore, UsfDemoChunkVisual, UsfDemoSettings, apply_chunk_demo_hydration_artifact,
     prepare_chunk_demo_hydration_artifact,
 };

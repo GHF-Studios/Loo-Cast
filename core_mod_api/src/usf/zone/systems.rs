@@ -659,7 +659,7 @@ mod tests {
         registry.phenomenon_support_by_zone.insert(
             ZoneTypeId::new("mystic"),
             vec![ZonePhenomenonSupport {
-                phenomenon_id: "phenomenon.placeholder.metric_surface_debug".to_string(),
+                phenomenon_id: "phenomenon.demo.surface".to_string(),
                 kind: crate::usf::phenomenon::PhenomenonKind::MetricSurfaceDebug,
                 priority: 100,
                 weight: 1.0,

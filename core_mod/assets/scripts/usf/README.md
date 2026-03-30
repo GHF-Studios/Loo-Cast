@@ -14,9 +14,17 @@ Each file must expose the matching entrypoint:
 - `*.phenomenon.rhai` -> `register_phenomenon()`
 - `*.phenomenon_model.rhai` -> `register_phenomenon_model()`
 
+Authoring rule:
+
+- each `*.metric.rhai` file defines exactly one metric
+- each `*.zone.rhai` file defines exactly one zone type contract
+- each `*.phenomenon.rhai` file defines exactly one phenomenon
+- each `*.phenomenon_model.rhai` file defines exactly one phenomenon model
+- each `*.mod.rhai` file defines exactly one mod
+
 Mod ownership is path-based for non-global script types:
 
-- `usf/<type>/<file>.rhai` -> belongs to `mod.placeholder_gameplay.v1` (legacy/default mod)
+- `usf/<type>/<file>.rhai` -> belongs to `demo` (legacy/default test mod)
 - `usf/<type>/<mod.id>/.../*.rhai` -> belongs to that mod id
 
 Current backend support is implemented for:
@@ -28,7 +36,7 @@ Current backend support is implemented for:
 - USF mod registration (default + config-key activation policy)
 - USF modpack registration (mod routing)
 - ZLM registration
-- scale binding + DPT schema derivation from metric sets
+- scale contract + DPT schema derivation from metric sets
 - phenomenon registry
 - zone-supported phenomena (priority/weight/spawn policy/max_active) + selection policy
 - phenomenon-model registry (including primary-model assignment)
@@ -42,14 +50,14 @@ Composition policy is strict:
 - dependency/load-after graph is resolved deterministically after activation (`depends_on`, `load_after`, `priority`)
 - mod conflicts (`conflicts_with`) are hard errors when both mods are enabled
 - only mods enabled by their config keys are composed
-- additive-key collisions are hard-error; singleton domains (`scale_binding`, `dpt_schema`, `zlm`) use owner policy (`hard_error`/`replace`/`replace_if_higher_priority`)
+- additive-key collisions are hard-error; singleton domains (`scale`, `dpt_schema`, `zlm`) use owner policy (`hard_error`/`replace`/`replace_if_higher_priority`)
 - no engine-level fallback mod/modpack/schema/binding generation exists
 
 Script authority constraints (current contracts):
 
 - `*.metric_set.rhai` should explicitly list metric members with `add_metric_set_metric(...)`; avoid implicit "all metrics" expansion
 - DPT sampler kernel resolves metric values by script metric semantics (`semantics_tag`/`name`), not by hardcoded metric index position
-- each `*.mod.rhai` must declare a mod manifest (required metrics/sets/zones/phenomena/models plus required per-scale bindings/schemas/ZLMs)
+- each `*.mod.rhai` must declare a mod manifest (required metrics/sets/zones/phenomena/models plus required per-scale contracts/schemas/ZLMs)
 - mod-level metadata is declared in `*.mod.rhai` via:
   - `set_usf_mod_priority(...)`
   - `add_usf_mod_dependency(...)`
@@ -62,8 +70,9 @@ zone realization. When the cap is reached, additional zones skip spawning for th
 
 Current placeholder gameplay contracts:
 
-- one metric drives classification: `solid_fill`
-- two zones are used: `empty` (no support/no mesh) and `solid` (spawns one surface phenomenon)
-- the chunk terrain debug mesh is driven by one phenomenon id: `phenomenon.placeholder.metric_surface_debug`
+- one primary terrain metric drives classification: `solid_fill`
+- three derived root-position metrics are provided: `root_pos_x`, `root_pos_y`, `root_pos_z`
+- three zones are used: `empty` (no support/no mesh), `spawn_buffer` (near-origin noop), and `solid` (spawns one surface phenomenon)
+- the chunk terrain debug mesh is driven by one phenomenon id: `phenomenon.demo.surface`
 - `*.phenomenon_model.rhai` defines the model field policy via `set_metric_surface_debug_model_field(...)`
 - meshing/collider generation remains engine-owned; scripts declare phenomenon + model policy contracts

@@ -9,14 +9,14 @@ fn register_scale() {
             scale_index,
             1,
             "empty",
-            "metric_set.placeholder.solid_fill.v1",
+            "metric_set.demo.solid_fill",
         );
 
         UsfSubstrate::set_scale_binding(
             scale_index,
             dpt_sampler_kernel_id,
             dpt_categorizer_kernel_id,
-            "chunk_store.default",
+            "chunk_store.demo",
         );
     }
 }

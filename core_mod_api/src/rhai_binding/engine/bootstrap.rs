@@ -21,7 +21,7 @@ use crate::rhai_binding::engine::statics::{
     USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE, USF_ZONE_TYPES,
 };
 use crate::rhai_binding::runtime::ecs::message::bindings::types::ScriptProbeMessage;
-use crate::usf::content::PLACEHOLDER_GAMEPLAY_CONTENT_PACKAGE_ID;
+use crate::usf::content::DEFAULT_DEMO_MOD_CONTENT_PACKAGE_ID;
 use crate::usf::schedule::{UsfPhenomenonSet, UsfSubstrateSet, UsfZoneSet};
 use rhai::Engine;
 
@@ -30,6 +30,7 @@ struct UsfScriptTypeSpec {
     relative_dir: &'static str,
     suffix: &'static str,
     entrypoint: &'static str,
+    single_entity_domain: Option<SingleEntityDomain>,
 }
 
 const ACTIVE_MODPACK_CONFIG_KEY: &str = "usf_content/active_modpack_id";
@@ -39,6 +40,17 @@ enum SingletonDomain {
     ScaleBinding,
     DptSchema,
     Zlm,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SingleEntityDomain {
+    Mod,
+    Modpack,
+    Metric,
+    Zone,
+    MetricSet,
+    Phenomenon,
+    PhenomenonModel,
 }
 
 #[derive(Debug, Clone)]
@@ -60,11 +72,13 @@ const USF_GLOBAL_SCRIPT_TYPE_SPECS: [UsfScriptTypeSpec; 2] = [
         relative_dir: "mods",
         suffix: ".mod.rhai",
         entrypoint: "register_mod",
+        single_entity_domain: Some(SingleEntityDomain::Mod),
     },
     UsfScriptTypeSpec {
         relative_dir: "modpacks",
         suffix: ".modpack.rhai",
         entrypoint: "register_modpack",
+        single_entity_domain: Some(SingleEntityDomain::Modpack),
     },
 ];
 
@@ -73,36 +87,43 @@ const USF_PACKAGE_SCOPED_SCRIPT_TYPE_SPECS: [UsfScriptTypeSpec; 7] = [
         relative_dir: "metrics",
         suffix: ".metric.rhai",
         entrypoint: "register_metric",
+        single_entity_domain: Some(SingleEntityDomain::Metric),
     },
     UsfScriptTypeSpec {
         relative_dir: "zones",
         suffix: ".zone.rhai",
         entrypoint: "register_zone",
+        single_entity_domain: Some(SingleEntityDomain::Zone),
     },
     UsfScriptTypeSpec {
         relative_dir: "metric_sets",
         suffix: ".metric_set.rhai",
         entrypoint: "register_metric_set",
+        single_entity_domain: Some(SingleEntityDomain::MetricSet),
     },
     UsfScriptTypeSpec {
         relative_dir: "zlms",
         suffix: ".zlm.rhai",
         entrypoint: "register_zlm",
+        single_entity_domain: None,
     },
     UsfScriptTypeSpec {
         relative_dir: "scales",
         suffix: ".scale.rhai",
         entrypoint: "register_scale",
+        single_entity_domain: None,
     },
     UsfScriptTypeSpec {
         relative_dir: "phenomena",
         suffix: ".phenomenon.rhai",
         entrypoint: "register_phenomenon",
+        single_entity_domain: Some(SingleEntityDomain::Phenomenon),
     },
     UsfScriptTypeSpec {
         relative_dir: "phenomenon_models",
         suffix: ".phenomenon_model.rhai",
         entrypoint: "register_phenomenon_model",
+        single_entity_domain: Some(SingleEntityDomain::PhenomenonModel),
     },
 ];
 
@@ -251,13 +272,73 @@ fn run_usf_script_file(engine: &Engine, file: &Path, entrypoint: &str) {
     }
 }
 
+fn single_entity_count(domain: SingleEntityDomain) -> usize {
+    match domain {
+        SingleEntityDomain::Mod => USF_CONTENT_PACKAGES_BY_ID().lock().unwrap().len(),
+        SingleEntityDomain::Modpack => USF_CONTENT_PROFILES_BY_ID().lock().unwrap().len(),
+        SingleEntityDomain::Metric => USF_METRICS_BY_NAME().lock().unwrap().len(),
+        SingleEntityDomain::Zone => USF_ZONE_TYPES().lock().unwrap().len(),
+        SingleEntityDomain::MetricSet => USF_METRIC_SETS_BY_ID().lock().unwrap().len(),
+        SingleEntityDomain::Phenomenon => USF_PHENOMENA_BY_ID().lock().unwrap().len(),
+        SingleEntityDomain::PhenomenonModel => USF_PHENOMENON_MODELS_BY_ID().lock().unwrap().len(),
+    }
+}
+
+fn single_entity_domain_label(domain: SingleEntityDomain) -> &'static str {
+    match domain {
+        SingleEntityDomain::Mod => "mod",
+        SingleEntityDomain::Modpack => "modpack",
+        SingleEntityDomain::Metric => "metric",
+        SingleEntityDomain::Zone => "zone",
+        SingleEntityDomain::MetricSet => "metric_set",
+        SingleEntityDomain::Phenomenon => "phenomenon",
+        SingleEntityDomain::PhenomenonModel => "phenomenon_model",
+    }
+}
+
+fn run_usf_script_file_for_spec(engine: &Engine, file: &Path, spec: UsfScriptTypeSpec) {
+    let before = spec.single_entity_domain.map(single_entity_count);
+    let before_manifest =
+        matches!(spec.single_entity_domain, Some(SingleEntityDomain::Mod)).then(|| USF_CONTENT_PACKAGE_MANIFESTS_BY_ID().lock().unwrap().len());
+    run_usf_script_file(engine, file, spec.entrypoint);
+
+    let Some(domain) = spec.single_entity_domain else {
+        return;
+    };
+    let after = single_entity_count(domain);
+    let expected_after = before.unwrap_or_default().saturating_add(1);
+    if after != expected_after {
+        panic!(
+            "USF bootstrap failed: script '{}' must declare exactly one {} (expected registry count {} -> {}, got {}).",
+            file.display(),
+            single_entity_domain_label(domain),
+            before.unwrap_or_default(),
+            expected_after,
+            after
+        );
+    }
+    if domain == SingleEntityDomain::Mod {
+        let manifest_after = USF_CONTENT_PACKAGE_MANIFESTS_BY_ID().lock().unwrap().len();
+        let expected_manifest_after = before_manifest.unwrap_or_default().saturating_add(1);
+        if manifest_after != expected_manifest_after {
+            panic!(
+                "USF bootstrap failed: mod script '{}' must declare exactly one mod manifest (expected manifest registry count {} -> {}, got {}).",
+                file.display(),
+                before_manifest.unwrap_or_default(),
+                expected_manifest_after,
+                manifest_after
+            );
+        }
+    }
+}
+
 fn script_owner_package_id(script_relative_path: &Path) -> Option<String> {
     let mut components = script_relative_path.components();
     let Some(first) = components.next() else {
         return None;
     };
     if components.next().is_none() {
-        return Some(PLACEHOLDER_GAMEPLAY_CONTENT_PACKAGE_ID.to_string());
+        return Some(DEFAULT_DEMO_MOD_CONTENT_PACKAGE_ID.to_string());
     }
     Some(first.as_os_str().to_string_lossy().to_string())
 }
@@ -273,7 +354,7 @@ fn run_usf_script_type_bootstrap_global(engine: &Engine, usf_root: &Path, spec: 
     files.sort_by(|a, b| a.to_string_lossy().cmp(&b.to_string_lossy()));
 
     for file in files {
-        run_usf_script_file(engine, &file, spec.entrypoint);
+        run_usf_script_file_for_spec(engine, &file, spec);
     }
 }
 
@@ -297,7 +378,7 @@ fn run_usf_script_type_bootstrap_for_package(engine: &Engine, usf_root: &Path, s
         if owner_package_id != content_package_id {
             continue;
         }
-        run_usf_script_file(engine, &file, spec.entrypoint);
+        run_usf_script_file_for_spec(engine, &file, spec);
     }
 }
 

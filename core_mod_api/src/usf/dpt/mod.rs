@@ -66,6 +66,9 @@ fn metric_vector_for_sampler_id(sampler_id: &str, key: &DptChunkKey, schema: &Dp
 
 pub(crate) fn deterministic_metric_vector(key: &DptChunkKey, schema: &DptSchema) -> Vec<f32> {
     let sample = normalized_chunk_center(&key.coord);
+    let root_pos_x = normalized_root_axis(sample[0]);
+    let root_pos_y = normalized_root_axis(sample[1]);
+    let root_pos_z = normalized_root_axis(sample[2]);
 
     let elevation = clamp01(
         0.50 + 0.38 * coherent_wave(scale_point(sample, 0.42), 0x4f1b_bcdd_91a2_77c3) + 0.16 * coherent_wave(scale_point(sample, 1.37), 0x9e37_79b9_7f4a_7c15),
@@ -88,6 +91,9 @@ pub(crate) fn deterministic_metric_vector(key: &DptChunkKey, schema: &DptSchema)
             vegetation_density,
             matter_density,
             matter_support,
+            root_pos_x,
+            root_pos_y,
+            root_pos_z,
         );
         metrics.push(value);
     }
@@ -104,6 +110,9 @@ fn metric_value_for_definition(
     vegetation_density: f32,
     matter_density: f32,
     matter_support: f32,
+    root_pos_x: f32,
+    root_pos_y: f32,
+    root_pos_z: f32,
 ) -> f32 {
     let semantics = metric.semantics_tag.trim().to_ascii_lowercase();
     let metric_name = metric.name.trim().to_ascii_lowercase();
@@ -115,6 +124,9 @@ fn metric_value_for_definition(
         "terrain.solid_fill.normalized" => Some(matter_density),
         "matter.density.normalized" => Some(matter_density),
         "matter.support.normalized" => Some(matter_support),
+        "position.root.x.normalized" => Some(root_pos_x),
+        "position.root.y.normalized" => Some(root_pos_y),
+        "position.root.z.normalized" => Some(root_pos_z),
         _ => None,
     }
     .or_else(|| match metric_name.as_str() {
@@ -125,6 +137,9 @@ fn metric_value_for_definition(
         "solid_fill" | "solid-fill" => Some(matter_density),
         "density" => Some(matter_density),
         "support" => Some(matter_support),
+        "root_pos_x" | "root-pos-x" | "position_x" | "position-x" => Some(root_pos_x),
+        "root_pos_y" | "root-pos-y" | "position_y" | "position-y" => Some(root_pos_y),
+        "root_pos_z" | "root-pos-z" | "position_z" | "position-z" => Some(root_pos_z),
         _ => None,
     });
 
@@ -214,6 +229,13 @@ fn string_hash64(value: &str) -> u64 {
 #[inline]
 fn clamp01(value: f32) -> f32 {
     value.clamp(0.0, 1.0)
+}
+
+#[inline]
+fn normalized_root_axis(value: f64) -> f32 {
+    // Top-scale periodic axis is [-5..4], so wrap into [-5, 5) and normalize to [0, 1).
+    let wrapped = ((value + 5.0).rem_euclid(10.0)) - 5.0;
+    clamp01(((wrapped + 5.0) / 10.0) as f32)
 }
 
 #[inline]
@@ -356,15 +378,15 @@ mod tests {
             fallback_zone: crate::usf::definition::ZoneTypeId::new("void"),
         };
         let active_content_profile = UsfActiveContentProfile {
-            profile_id: "content_profile.placeholder_gameplay.v1".to_string(),
+            profile_id: "debug".to_string(),
             configured_content_packages: vec![UsfConfiguredContentPackage {
-                content_package_id: "content_package.placeholder_gameplay.v1".to_string(),
+                content_package_id: "demo".to_string(),
                 default_enabled: true,
-                config_enabled_key: "usf_content/content_packages/placeholder_gameplay/enabled".to_string(),
+                config_enabled_key: "usf_content/mods/demo/enabled".to_string(),
                 enabled: true,
             }],
-            enabled_content_packages: std::collections::HashSet::from(["content_package.placeholder_gameplay.v1".to_string()]),
-            resolved_enabled_content_packages: vec!["content_package.placeholder_gameplay.v1".to_string()],
+            enabled_content_packages: std::collections::HashSet::from(["demo".to_string()]),
+            resolved_enabled_content_packages: vec!["demo".to_string()],
             bindings_by_scale: HashMap::from([(
                 coord.scale,
                 ScaleContentBinding {

@@ -1,5 +1,4 @@
 pub mod components;
-pub mod demo;
 pub mod enums;
 pub mod errors;
 pub mod functions;
@@ -14,7 +13,6 @@ pub mod workflows;
 
 use crate::bevy::prelude::*;
 use components::{Chunk, ChunkActor, ChunkDebugWireframe, ChunkLoader, PhenomenonFrontierView};
-use demo::{UsfDemoChunkStore, UsfDemoChunkVisual, UsfDemoHydrationWorkflowState, UsfDemoSettings};
 use enums::ZoomState;
 use errors::{DespawnError, SpawnError};
 use messages::ChunkBatchLifecycleMessage;
@@ -76,37 +74,5 @@ impl Plugin for ChunkCorePlugin {
             .register_type::<SpawnError>()
             .register_type::<DespawnError>()
             .register_type::<ZoomState>();
-    }
-}
-
-pub(crate) struct ChunkPlaceholderContentPlugin;
-impl Plugin for ChunkPlaceholderContentPlugin {
-    fn build(&self, app: &mut App) {
-        app.init_resource::<UsfDemoSettings>()
-            .init_resource::<UsfDemoChunkStore>()
-            .init_resource::<UsfDemoHydrationWorkflowState>()
-            .add_systems(
-                PostUpdate,
-                (
-                    demo::queue_chunk_demo_hydration_requests_system.in_set(AppSet::Presentation),
-                    demo::run_chunk_demo_hydration_workflow_system
-                        .in_set(AppSet::Presentation)
-                        .after(demo::queue_chunk_demo_hydration_requests_system),
-                    demo::bind_chunk_demo_visuals_to_world_presentation_root_system
-                        .in_set(AppSet::Presentation)
-                        .after(demo::run_chunk_demo_hydration_workflow_system),
-                    demo::sync_chunk_demo_visual_transforms_system
-                        .in_set(AppSet::Presentation)
-                        .after(demo::bind_chunk_demo_visuals_to_world_presentation_root_system),
-                    demo::prune_chunk_demo_store_system.in_set(AppSet::Diagnostics),
-                )
-                    .run_if(
-                        run_after_startup_finished
-                            .and(run_if_not_paused)
-                            .and(demo::run_if_placeholder_gameplay_content_enabled),
-                    ),
-            )
-            .register_type::<UsfDemoChunkVisual>()
-            .register_type::<UsfDemoSettings>();
     }
 }
