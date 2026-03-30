@@ -11,7 +11,9 @@ use crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput;
 use crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput;
 use crate::config::statics::CONFIG;
 use crate::core::protocol::{AppOrchestrationSignal, AppOrchestrationState, OrchestrationPressure};
+use crate::player::components::Player;
 use crate::usf::pos::grid::types::GridVec;
+use crate::usf::pos::unit::types::UnitVec;
 use crate::workflow::functions::{WorkflowTimeoutControlDecision, handle_composite_workflow_return_now, run_workflow_ioe_with_timeout_control};
 use crate::workflow::resources::WorkflowTimeoutSignalReceiver;
 use crate::workflow::types::WorkflowTimeoutMode;
@@ -31,6 +33,16 @@ pub(crate) fn chunk_zoom_cooldown_system(time: Res<Time<Virtual>>, mut timer: Lo
             *timer = CONFIG().get::<f32>("chunk_loader/zoom_cooldown_secs");
         }
     }
+}
+
+pub(crate) fn sync_chunk_manager_loader_state_system(player_loader_query: Query<&ChunkLoader, With<Player>>, mut chunk_manager: ResMut<ChunkManager>) {
+    let Ok(chunk_loader) = player_loader_query.single() else {
+        return;
+    };
+
+    chunk_manager.active_scale = chunk_loader.scale;
+    chunk_manager.loader_origin_grid = chunk_loader.origin_offset.clone();
+    chunk_manager.loader_origin_unit = UnitVec::new(chunk_loader.origin_offset.clone(), Vec3::ZERO);
 }
 
 #[tracing::instrument(skip_all)]

@@ -144,9 +144,6 @@ impl Default for ZoneBehaviorRegistry {
         if script_zone_types.is_empty() {
             panic!("USF zone behavior bootstrap failed: no zone behavior entries registered. Define them in '*.zone.rhai'.");
         }
-        if script_zone_supports.is_empty() {
-            panic!("USF zone behavior bootstrap failed: no zone phenomenon supports registered. Define them in '*.zone.rhai'.");
-        }
         if script_selection_policies.is_empty() {
             panic!("USF zone behavior bootstrap failed: no zone selection policies registered. Define them in '*.zone.rhai'.");
         }
@@ -155,9 +152,6 @@ impl Default for ZoneBehaviorRegistry {
         }
 
         for zone_type in &script_zone_types {
-            if !script_zone_supports.contains_key(zone_type) {
-                panic!("USF zone behavior bootstrap failed: missing supported phenomena for zone '{}'.", zone_type);
-            }
             if !script_selection_policies.contains_key(zone_type) {
                 panic!("USF zone behavior bootstrap failed: missing selection policy for zone '{}'.", zone_type);
             }
@@ -166,10 +160,6 @@ impl Default for ZoneBehaviorRegistry {
             }
         }
         for (zone_type, supports) in script_zone_supports {
-            if supports.is_empty() {
-                panic!("USF zone behavior bootstrap failed: zone '{}' has no supported phenomena entries.", zone_type);
-            }
-
             let mut compiled_supports = Vec::<ZonePhenomenonSupport>::new();
             for support in supports {
                 let Some(phenomenon_definition) = script_phenomena_by_id.get(&support.phenomenon_id) else {
@@ -203,6 +193,9 @@ impl Default for ZoneBehaviorRegistry {
 
             compiled_supports.sort_by(|a, b| b.priority.cmp(&a.priority).then_with(|| a.phenomenon_id.cmp(&b.phenomenon_id)));
             phenomenon_support_by_zone.insert(ZoneTypeId::new(zone_type), compiled_supports);
+        }
+        for zone_type in &script_zone_types {
+            phenomenon_support_by_zone.entry(ZoneTypeId::new(zone_type.clone())).or_default();
         }
 
         for zone_type in &script_zone_types {

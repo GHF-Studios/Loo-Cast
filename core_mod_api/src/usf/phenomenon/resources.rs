@@ -9,7 +9,7 @@ use super::types::{MetricSurfaceDebugFieldDefinition, PhenomenonKind};
 #[reflect(Resource)]
 pub struct PhenomenonDefinitionRegistry {
     pub kind_by_phenomenon_id: HashMap<String, PhenomenonKind>,
-    pub metric_surface_debug_by_phenomenon_id: HashMap<String, MetricSurfaceDebugFieldDefinition>,
+    pub metric_surface_debug_by_model_id: HashMap<String, MetricSurfaceDebugFieldDefinition>,
     pub primary_model_by_phenomenon_id: HashMap<String, String>,
     pub phenomenon_by_model_id: HashMap<String, String>,
 }
@@ -31,28 +31,41 @@ impl Default for PhenomenonDefinitionRegistry {
         }
 
         let mut kind_by_phenomenon_id = HashMap::new();
-        let mut metric_surface_debug_by_phenomenon_id = HashMap::new();
         for (phenomenon_id, phenomenon) in script_phenomena {
             let normalized_phenomenon_id = normalize_identifier(&phenomenon_id);
             let kind = PhenomenonKind::from_config_value(phenomenon.kind.as_str());
+            kind_by_phenomenon_id.insert(normalized_phenomenon_id, kind);
+        }
+
+        let mut phenomenon_by_model_id = HashMap::new();
+        let mut metric_surface_debug_by_model_id = HashMap::new();
+        for (model_id, model) in script_models {
+            let normalized_model_id = normalize_identifier(&model_id);
+            let normalized_phenomenon_id = normalize_identifier(&model.phenomenon_id);
+            let Some(kind) = kind_by_phenomenon_id.get(&normalized_phenomenon_id).copied() else {
+                panic!(
+                    "USF phenomenon bootstrap failed: model '{}' references unknown phenomenon '{}'.",
+                    normalized_model_id, normalized_phenomenon_id
+                );
+            };
             if kind == PhenomenonKind::MetricSurfaceDebug {
-                let Some(field) = phenomenon.metric_surface_debug else {
+                let Some(field) = model.metric_surface_debug else {
                     panic!(
-                        "USF phenomenon bootstrap failed: '{}' has kind 'metric_surface_debug' but no field definition. \
-                         Call set_metric_surface_debug_field(...) in the phenomenon script.",
-                        normalized_phenomenon_id
+                        "USF phenomenon bootstrap failed: model '{}' belongs to metric_surface_debug phenomenon '{}' \
+                         but has no field definition. Call set_metric_surface_debug_model_field(...) in the model script.",
+                        normalized_model_id, normalized_phenomenon_id
                     );
                 };
                 if !field.coarse_span_units.is_finite() || field.coarse_span_units <= 0.0 {
                     panic!(
-                        "USF phenomenon bootstrap failed: '{}' has invalid coarse_span_units={}.",
-                        normalized_phenomenon_id, field.coarse_span_units
+                        "USF phenomenon bootstrap failed: model '{}' has invalid coarse_span_units={}.",
+                        normalized_model_id, field.coarse_span_units
                     );
                 }
                 if !field.detail_span_units.is_finite() || field.detail_span_units <= 0.0 {
                     panic!(
-                        "USF phenomenon bootstrap failed: '{}' has invalid detail_span_units={}.",
-                        normalized_phenomenon_id, field.detail_span_units
+                        "USF phenomenon bootstrap failed: model '{}' has invalid detail_span_units={}.",
+                        normalized_model_id, field.detail_span_units
                     );
                 }
                 if !field.coarse_weight.is_finite()
@@ -62,18 +75,18 @@ impl Default for PhenomenonDefinitionRegistry {
                     || field.coarse_weight + field.detail_weight <= 0.0
                 {
                     panic!(
-                        "USF phenomenon bootstrap failed: '{}' has invalid noise weights coarse={} detail={}.",
-                        normalized_phenomenon_id, field.coarse_weight, field.detail_weight
+                        "USF phenomenon bootstrap failed: model '{}' has invalid noise weights coarse={} detail={}.",
+                        normalized_model_id, field.coarse_weight, field.detail_weight
                     );
                 }
                 if !field.bias.is_finite() || !field.gain.is_finite() || field.gain <= 0.0 || !field.center.is_finite() {
                     panic!(
-                        "USF phenomenon bootstrap failed: '{}' has invalid shaping params bias={} gain={} center={}.",
-                        normalized_phenomenon_id, field.bias, field.gain, field.center
+                        "USF phenomenon bootstrap failed: model '{}' has invalid shaping params bias={} gain={} center={}.",
+                        normalized_model_id, field.bias, field.gain, field.center
                     );
                 }
-                metric_surface_debug_by_phenomenon_id.insert(
-                    normalized_phenomenon_id.clone(),
+                metric_surface_debug_by_model_id.insert(
+                    normalized_model_id.clone(),
                     MetricSurfaceDebugFieldDefinition {
                         coarse_span_units: field.coarse_span_units,
                         detail_span_units: field.detail_span_units,
@@ -85,19 +98,6 @@ impl Default for PhenomenonDefinitionRegistry {
                         seed_salt_primary: field.seed_salt_primary,
                         seed_salt_detail: field.seed_salt_detail,
                     },
-                );
-            }
-            kind_by_phenomenon_id.insert(normalized_phenomenon_id, kind);
-        }
-
-        let mut phenomenon_by_model_id = HashMap::new();
-        for (model_id, model) in script_models {
-            let normalized_model_id = normalize_identifier(&model_id);
-            let normalized_phenomenon_id = normalize_identifier(&model.phenomenon_id);
-            if !kind_by_phenomenon_id.contains_key(&normalized_phenomenon_id) {
-                panic!(
-                    "USF phenomenon bootstrap failed: model '{}' references unknown phenomenon '{}'.",
-                    normalized_model_id, normalized_phenomenon_id
                 );
             }
             phenomenon_by_model_id.insert(normalized_model_id, normalized_phenomenon_id);
@@ -136,10 +136,27 @@ impl Default for PhenomenonDefinitionRegistry {
                 );
             }
         }
+        for (phenomenon_id, kind) in &kind_by_phenomenon_id {
+            if *kind != PhenomenonKind::MetricSurfaceDebug {
+                continue;
+            }
+            let Some(primary_model_id) = primary_model_by_phenomenon_id.get(phenomenon_id) else {
+                panic!(
+                    "USF phenomenon bootstrap failed: metric_surface_debug phenomenon '{}' has no primary model assignment.",
+                    phenomenon_id
+                );
+            };
+            if !metric_surface_debug_by_model_id.contains_key(primary_model_id) {
+                panic!(
+                    "USF phenomenon bootstrap failed: primary model '{}' for metric_surface_debug phenomenon '{}' has no model field definition.",
+                    primary_model_id, phenomenon_id
+                );
+            }
+        }
 
         Self {
             kind_by_phenomenon_id,
-            metric_surface_debug_by_phenomenon_id,
+            metric_surface_debug_by_model_id,
             primary_model_by_phenomenon_id,
             phenomenon_by_model_id,
         }
@@ -152,7 +169,12 @@ impl PhenomenonDefinitionRegistry {
     }
 
     pub fn metric_surface_debug_for(&self, phenomenon_id: &str) -> Option<MetricSurfaceDebugFieldDefinition> {
-        self.metric_surface_debug_by_phenomenon_id.get(&normalize_identifier(phenomenon_id)).copied()
+        let primary_model = self.primary_model_for(phenomenon_id)?;
+        self.metric_surface_debug_for_model(primary_model)
+    }
+
+    pub fn metric_surface_debug_for_model(&self, model_id: &str) -> Option<MetricSurfaceDebugFieldDefinition> {
+        self.metric_surface_debug_by_model_id.get(&normalize_identifier(model_id)).copied()
     }
 
     pub fn primary_model_for(&self, phenomenon_id: &str) -> Option<&str> {

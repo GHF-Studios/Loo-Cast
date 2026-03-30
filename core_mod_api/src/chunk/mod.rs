@@ -20,7 +20,8 @@ use errors::{DespawnError, SpawnError};
 use messages::ChunkBatchLifecycleMessage;
 use resources::{ChunkActionWorkflowState, ChunkBatchTracker, ChunkLoadGate, ChunkLoadGateLockInfo, ChunkLoadGateState, ChunkManager};
 use systems::{
-    chunk_detection_system, chunk_management_system, chunk_timeout_signal_system, chunk_zoom_cooldown_system, sync_chunk_orchestration_state_system,
+    chunk_detection_system, chunk_management_system, chunk_timeout_signal_system, chunk_zoom_cooldown_system, sync_chunk_manager_loader_state_system,
+    sync_chunk_orchestration_state_system,
 };
 
 use crate::{
@@ -32,7 +33,6 @@ pub(crate) struct ChunkPlugin;
 impl Plugin for ChunkPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(ChunkCorePlugin);
-        app.add_plugins(ChunkPlaceholderContentPlugin);
     }
 }
 
@@ -53,10 +53,7 @@ impl Plugin for ChunkCorePlugin {
             )
             .add_systems(
                 PostUpdate,
-                (
-                    demo::sync_chunk_manager_loader_state_system,
-                    chunk_detection_system.pipe(chunk_management_system),
-                )
+                (sync_chunk_manager_loader_state_system, chunk_detection_system.pipe(chunk_management_system))
                     .chain()
                     .in_set(AppSet::ChunkOrchestration)
                     .run_if(run_after_startup_finished.and(run_if_not_paused)),

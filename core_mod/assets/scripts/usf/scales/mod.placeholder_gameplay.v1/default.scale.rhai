@@ -8,16 +8,15 @@ fn register_scale() {
         UsfSubstrate::set_dpt_schema_from_metric_set(
             scale_index,
             1,
-            "void",
-            "metric_set.debug.default",
+            "empty",
+            "metric_set.placeholder.solid_fill.v1",
         );
 
-        UsfSubstrate::set_scale_binding_with_usf_content_profile(
+        UsfSubstrate::set_scale_binding(
             scale_index,
             dpt_sampler_kernel_id,
             dpt_categorizer_kernel_id,
             "chunk_store.default",
-            "content_profile.placeholder_gameplay.v1",
         );
     }
 }

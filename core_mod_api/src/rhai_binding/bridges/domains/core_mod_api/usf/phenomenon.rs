@@ -13,9 +13,9 @@ core_mod_macros::reflect_extern_sub_module!(
     module_associated_functions = [
         clear_phenomena,
         add_phenomenon,
-        set_metric_surface_debug_field,
         clear_phenomenon_models,
         add_phenomenon_model,
+        set_metric_surface_debug_model_field,
         set_primary_model
     ],
 );
@@ -55,82 +55,8 @@ core_mod_macros::reflect_extern_module_associated_function!(
                     ScriptPhenomenonDefinition {
                         id: phenomenon_id,
                         kind: phenomenon_kind,
-                        metric_surface_debug: None,
                     },
                 );
-                Ok(())
-            },
-        );
-    },
-);
-
-core_mod_macros::reflect_extern_module_associated_function!(
-    id = core_mod_api::usf::phenomenon::set_metric_surface_debug_field,
-    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
-        FuncRegistration::new(name).set_into_module(
-            parent_module,
-            |phenomenon_id: &str,
-             coarse_span_units: f64,
-             detail_span_units: f64,
-             coarse_weight: f32,
-             detail_weight: f32,
-             bias: f32,
-             gain: f32,
-             center: f32,
-             seed_salt_primary: i64,
-             seed_salt_detail: i64|
-             -> Result<(), Box<rhai::EvalAltResult>> {
-                let phenomenon_id = normalize_identifier("phenomenon_id", phenomenon_id)?;
-                let mut phenomena = USF_PHENOMENA_BY_ID().lock().unwrap();
-                let Some(phenomenon) = phenomena.get_mut(&phenomenon_id) else {
-                    return Err(format!(
-                        "phenomenon '{}' is not registered; define it in a '*.phenomenon.rhai' file first",
-                        phenomenon_id
-                    )
-                    .into());
-                };
-                if phenomenon.kind != "metric_surface_debug" {
-                    return Err(format!(
-                        "phenomenon '{}' has kind '{}'; set_metric_surface_debug_field requires kind 'metric_surface_debug'",
-                        phenomenon_id, phenomenon.kind
-                    )
-                    .into());
-                }
-                if !coarse_span_units.is_finite() || coarse_span_units <= 0.0 {
-                    return Err("coarse_span_units must be finite and > 0".into());
-                }
-                if !detail_span_units.is_finite() || detail_span_units <= 0.0 {
-                    return Err("detail_span_units must be finite and > 0".into());
-                }
-                if !coarse_weight.is_finite() || coarse_weight < 0.0 {
-                    return Err("coarse_weight must be finite and >= 0".into());
-                }
-                if !detail_weight.is_finite() || detail_weight < 0.0 {
-                    return Err("detail_weight must be finite and >= 0".into());
-                }
-                if coarse_weight + detail_weight <= 0.0 {
-                    return Err("coarse_weight + detail_weight must be > 0".into());
-                }
-                if !bias.is_finite() {
-                    return Err("bias must be finite".into());
-                }
-                if !gain.is_finite() || gain <= 0.0 {
-                    return Err("gain must be finite and > 0".into());
-                }
-                if !center.is_finite() {
-                    return Err("center must be finite".into());
-                }
-                phenomenon.metric_surface_debug = Some(ScriptMetricSurfaceDebugDefinition {
-                    coarse_span_units,
-                    detail_span_units,
-                    coarse_weight,
-                    detail_weight,
-                    bias,
-                    gain,
-                    center,
-                    seed_salt_primary: seed_salt_primary as u64,
-                    seed_salt_detail: seed_salt_detail as u64,
-                });
                 Ok(())
             },
         );
@@ -173,9 +99,97 @@ core_mod_macros::reflect_extern_module_associated_function!(
                 }
                 return Ok(());
             }
-            models.insert(model_id.clone(), ScriptPhenomenonModelDefinition { id: model_id, phenomenon_id });
+            models.insert(
+                model_id.clone(),
+                ScriptPhenomenonModelDefinition {
+                    id: model_id,
+                    phenomenon_id,
+                    metric_surface_debug: None,
+                },
+            );
             Ok(())
         });
+    },
+);
+
+core_mod_macros::reflect_extern_module_associated_function!(
+    id = core_mod_api::usf::phenomenon::set_metric_surface_debug_model_field,
+    registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
+        FuncRegistration::new(name).set_into_module(
+            parent_module,
+            |model_id: &str,
+             coarse_span_units: f64,
+             detail_span_units: f64,
+             coarse_weight: f64,
+             detail_weight: f64,
+             bias: f64,
+             gain: f64,
+             center: f64,
+             seed_salt_primary: i64,
+             seed_salt_detail: i64|
+             -> Result<(), Box<rhai::EvalAltResult>> {
+                let model_id = normalize_identifier("model_id", model_id)?;
+                let mut models = USF_PHENOMENON_MODELS_BY_ID().lock().unwrap();
+                let Some(model) = models.get_mut(&model_id) else {
+                    return Err(format!(
+                        "phenomenon model '{}' is not registered; define it in a '*.phenomenon_model.rhai' file first",
+                        model_id
+                    )
+                    .into());
+                };
+
+                let phenomena = USF_PHENOMENA_BY_ID().lock().unwrap();
+                let Some(phenomenon) = phenomena.get(model.phenomenon_id.as_str()) else {
+                    return Err(format!("phenomenon model '{}' references unknown phenomenon '{}'", model_id, model.phenomenon_id).into());
+                };
+                if phenomenon.kind != "metric_surface_debug" {
+                    return Err(format!(
+                        "phenomenon model '{}' belongs to kind '{}'; set_metric_surface_debug_model_field requires kind 'metric_surface_debug'",
+                        model_id, phenomenon.kind
+                    )
+                    .into());
+                }
+                drop(phenomena);
+
+                if !coarse_span_units.is_finite() || coarse_span_units <= 0.0 {
+                    return Err("coarse_span_units must be finite and > 0".into());
+                }
+                if !detail_span_units.is_finite() || detail_span_units <= 0.0 {
+                    return Err("detail_span_units must be finite and > 0".into());
+                }
+                if !coarse_weight.is_finite() || coarse_weight < 0.0 {
+                    return Err("coarse_weight must be finite and >= 0".into());
+                }
+                if !detail_weight.is_finite() || detail_weight < 0.0 {
+                    return Err("detail_weight must be finite and >= 0".into());
+                }
+                if coarse_weight + detail_weight <= 0.0 {
+                    return Err("coarse_weight + detail_weight must be > 0".into());
+                }
+                if !bias.is_finite() {
+                    return Err("bias must be finite".into());
+                }
+                if !gain.is_finite() || gain <= 0.0 {
+                    return Err("gain must be finite and > 0".into());
+                }
+                if !center.is_finite() {
+                    return Err("center must be finite".into());
+                }
+
+                model.metric_surface_debug = Some(ScriptMetricSurfaceDebugDefinition {
+                    coarse_span_units,
+                    detail_span_units,
+                    coarse_weight: coarse_weight as f32,
+                    detail_weight: detail_weight as f32,
+                    bias: bias as f32,
+                    gain: gain as f32,
+                    center: center as f32,
+                    seed_salt_primary: seed_salt_primary as u64,
+                    seed_salt_detail: seed_salt_detail as u64,
+                });
+                Ok(())
+            },
+        );
     },
 );
 

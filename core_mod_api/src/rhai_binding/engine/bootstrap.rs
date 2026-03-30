@@ -14,7 +14,8 @@ use crate::rhai_binding::engine::hook::{new_hook_runner_system, register_hook_pa
 use crate::rhai_binding::engine::preprocess::preprocess_script_source;
 use crate::rhai_binding::engine::resources::MainScriptEngineHandle;
 use crate::rhai_binding::engine::statics::{
-    SCHEDULE_HOOKS, ScriptUsfPackageContribution, USF_CONTENT_PACKAGES_BY_ID, USF_CONTENT_PROFILES_BY_ID, USF_DPT_SCHEMAS_BY_SCALE, USF_METRIC_SETS_BY_ID,
+    SCHEDULE_HOOKS, ScriptSingletonConflictPolicy, ScriptUsfContentPackageDefinition, ScriptUsfContentPackageManifestDefinition, ScriptUsfPackageContribution,
+    USF_CONTENT_PACKAGE_MANIFESTS_BY_ID, USF_CONTENT_PACKAGES_BY_ID, USF_CONTENT_PROFILES_BY_ID, USF_DPT_SCHEMAS_BY_SCALE, USF_METRIC_SETS_BY_ID,
     USF_METRICS_BY_NAME, USF_PACKAGE_CONTRIBUTIONS_BY_ID, USF_PHENOMENA_BY_ID, USF_PHENOMENON_MODELS_BY_ID, USF_PRIMARY_PHENOMENON_MODEL_BY_PHENOMENON_ID,
     USF_SCALE_BINDINGS_BY_SCALE, USF_ZLM_SCALES_BY_SCALE, USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE,
     USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE, USF_ZONE_TYPES,
@@ -31,18 +32,39 @@ struct UsfScriptTypeSpec {
     entrypoint: &'static str,
 }
 
-const ACTIVE_CONTENT_PROFILE_CONFIG_KEY: &str = "usf_content/active_profile_id";
+const ACTIVE_MODPACK_CONFIG_KEY: &str = "usf_content/active_modpack_id";
+
+#[derive(Debug, Clone, Copy)]
+enum SingletonDomain {
+    ScaleBinding,
+    DptSchema,
+    Zlm,
+}
+
+#[derive(Debug, Clone)]
+struct SingletonEntryOrigin {
+    package_id: String,
+    priority: i32,
+    load_order_index: usize,
+}
+
+#[derive(Debug, Clone, Default)]
+struct CompositionSingletonOrigins {
+    scale_binding_by_scale: HashMap<u8, SingletonEntryOrigin>,
+    dpt_schema_by_scale: HashMap<u8, SingletonEntryOrigin>,
+    zlm_by_scale: HashMap<u8, SingletonEntryOrigin>,
+}
 
 const USF_GLOBAL_SCRIPT_TYPE_SPECS: [UsfScriptTypeSpec; 2] = [
     UsfScriptTypeSpec {
-        relative_dir: "content_packages",
-        suffix: ".content_package.rhai",
-        entrypoint: "register_content_package",
+        relative_dir: "mods",
+        suffix: ".mod.rhai",
+        entrypoint: "register_mod",
     },
     UsfScriptTypeSpec {
-        relative_dir: "content_profiles",
-        suffix: ".content_profile.rhai",
-        entrypoint: "register_usf_content_profile",
+        relative_dir: "modpacks",
+        suffix: ".modpack.rhai",
+        entrypoint: "register_modpack",
     },
 ];
 
@@ -177,6 +199,7 @@ pub fn build(app: &mut App) {
 fn clear_usf_bootstrap_statics() {
     clear_usf_domain_bootstrap_statics();
     USF_CONTENT_PACKAGES_BY_ID().lock().unwrap().clear();
+    USF_CONTENT_PACKAGE_MANIFESTS_BY_ID().lock().unwrap().clear();
     USF_CONTENT_PROFILES_BY_ID().lock().unwrap().clear();
     USF_PACKAGE_CONTRIBUTIONS_BY_ID().lock().unwrap().clear();
 }
@@ -333,20 +356,107 @@ fn merge_map_unique<K: Eq + Hash + Clone + std::fmt::Debug, V>(target: &mut Hash
     }
 }
 
-fn merge_package_contribution_into_composed(package_id: &str, contribution: ScriptUsfPackageContribution, composed: &mut ScriptUsfPackageContribution) {
+fn singleton_conflict_policy_for_domain(package: &ScriptUsfContentPackageDefinition, domain: SingletonDomain) -> ScriptSingletonConflictPolicy {
+    match domain {
+        SingletonDomain::ScaleBinding => package.scale_binding_conflict_policy,
+        SingletonDomain::DptSchema => package.dpt_schema_conflict_policy,
+        SingletonDomain::Zlm => package.zlm_conflict_policy,
+    }
+}
+
+fn should_replace_singleton_value(
+    existing: &SingletonEntryOrigin,
+    incoming_priority: i32,
+    incoming_load_order_index: usize,
+    policy: ScriptSingletonConflictPolicy,
+) -> bool {
+    match policy {
+        ScriptSingletonConflictPolicy::HardError => false,
+        ScriptSingletonConflictPolicy::Replace => true,
+        ScriptSingletonConflictPolicy::ReplaceIfHigherPriority => {
+            (incoming_priority, incoming_load_order_index) > (existing.priority, existing.load_order_index)
+        }
+    }
+}
+
+fn merge_singleton_map<K: Eq + Hash + Clone + std::fmt::Debug, V>(
+    target: &mut HashMap<K, V>,
+    source: HashMap<K, V>,
+    origins: &mut HashMap<K, SingletonEntryOrigin>,
+    package_id: &str,
+    package_definitions: &HashMap<String, ScriptUsfContentPackageDefinition>,
+    incoming_load_order_index: usize,
+    domain: SingletonDomain,
+    domain_name: &str,
+) {
+    let incoming_definition = package_definitions.get(package_id).unwrap_or_else(|| {
+        panic!(
+            "USF content composition hard error: selected package '{}' has no package definition",
+            package_id
+        )
+    });
+    let incoming_origin = SingletonEntryOrigin {
+        package_id: package_id.to_string(),
+        priority: incoming_definition.priority,
+        load_order_index: incoming_load_order_index,
+    };
+
+    for (key, value) in source {
+        let Some(existing_origin) = origins.get(&key).cloned() else {
+            target.insert(key.clone(), value);
+            origins.insert(key, incoming_origin.clone());
+            continue;
+        };
+
+        let existing_definition = package_definitions.get(existing_origin.package_id.as_str()).unwrap_or_else(|| {
+            panic!(
+                "USF content composition hard error: source package '{}' for singleton {} key {:?} is missing package definition",
+                existing_origin.package_id, domain_name, key
+            )
+        });
+        let policy = singleton_conflict_policy_for_domain(existing_definition, domain);
+        if policy == ScriptSingletonConflictPolicy::HardError {
+            panic!(
+                "USF content composition hard error: singleton {} key {:?} from package '{}' conflicts with '{}' and policy is hard_error",
+                domain_name, key, package_id, existing_origin.package_id
+            );
+        }
+        if should_replace_singleton_value(&existing_origin, incoming_origin.priority, incoming_origin.load_order_index, policy) {
+            target.insert(key.clone(), value);
+            origins.insert(key, incoming_origin.clone());
+        }
+    }
+}
+
+fn merge_package_contribution_into_composed(
+    package_id: &str,
+    contribution: ScriptUsfPackageContribution,
+    composed: &mut ScriptUsfPackageContribution,
+    singleton_origins: &mut CompositionSingletonOrigins,
+    package_definitions: &HashMap<String, ScriptUsfContentPackageDefinition>,
+    incoming_load_order_index: usize,
+) {
     merge_set_unique(&mut composed.zone_types, contribution.zone_types, "zone_type", package_id);
 
-    merge_map_unique(
+    merge_singleton_map(
         &mut composed.dpt_schemas_by_scale,
         contribution.dpt_schemas_by_scale,
-        "dpt_schema_scale_index",
+        &mut singleton_origins.dpt_schema_by_scale,
         package_id,
+        package_definitions,
+        incoming_load_order_index,
+        SingletonDomain::DptSchema,
+        "dpt_schema_scale_index",
     );
-    merge_map_unique(
+    merge_singleton_map(
         &mut composed.zlm_scales_by_scale,
         contribution.zlm_scales_by_scale,
-        "zlm_scale_index",
+        &mut singleton_origins.zlm_by_scale,
         package_id,
+        package_definitions,
+        incoming_load_order_index,
+        SingletonDomain::Zlm,
+        "zlm_scale_index",
     );
     merge_map_unique(
         &mut composed.zone_density_profile_by_type,
@@ -354,11 +464,15 @@ fn merge_package_contribution_into_composed(package_id: &str, contribution: Scri
         "zone_density_profile",
         package_id,
     );
-    merge_map_unique(
+    merge_singleton_map(
         &mut composed.scale_bindings_by_scale,
         contribution.scale_bindings_by_scale,
-        "scale_binding_scale_index",
+        &mut singleton_origins.scale_binding_by_scale,
         package_id,
+        package_definitions,
+        incoming_load_order_index,
+        SingletonDomain::ScaleBinding,
+        "scale_binding_scale_index",
     );
     merge_map_unique(&mut composed.metrics_by_name, contribution.metrics_by_name, "metric_name", package_id);
     merge_map_unique(&mut composed.metric_sets_by_id, contribution.metric_sets_by_id, "metric_set_id", package_id);
@@ -389,22 +503,90 @@ fn merge_package_contribution_into_composed(package_id: &str, contribution: Scri
     );
 }
 
-fn active_usf_content_profile_id_from_config() -> String {
-    match CONFIG().data.get(ACTIVE_CONTENT_PROFILE_CONFIG_KEY) {
+fn validate_package_contribution_against_manifest(
+    package_id: &str,
+    contribution: &ScriptUsfPackageContribution,
+    manifest: &ScriptUsfContentPackageManifestDefinition,
+) {
+    for metric_name in &manifest.required_metrics {
+        if !contribution.metrics_by_name.contains_key(metric_name) {
+            panic!(
+                "USF content composition hard error: package '{}' manifest requires metric '{}' but contribution did not define it",
+                package_id, metric_name
+            );
+        }
+    }
+    for metric_set_id in &manifest.required_metric_sets {
+        if !contribution.metric_sets_by_id.contains_key(metric_set_id) {
+            panic!(
+                "USF content composition hard error: package '{}' manifest requires metric set '{}' but contribution did not define it",
+                package_id, metric_set_id
+            );
+        }
+    }
+    for zone_type in &manifest.required_zone_types {
+        if !contribution.zone_types.contains(zone_type) {
+            panic!(
+                "USF content composition hard error: package '{}' manifest requires zone '{}' but contribution did not define it",
+                package_id, zone_type
+            );
+        }
+    }
+    for phenomenon_id in &manifest.required_phenomena {
+        if !contribution.phenomena_by_id.contains_key(phenomenon_id) {
+            panic!(
+                "USF content composition hard error: package '{}' manifest requires phenomenon '{}' but contribution did not define it",
+                package_id, phenomenon_id
+            );
+        }
+    }
+    for model_id in &manifest.required_phenomenon_models {
+        if !contribution.phenomenon_models_by_id.contains_key(model_id) {
+            panic!(
+                "USF content composition hard error: package '{}' manifest requires phenomenon model '{}' but contribution did not define it",
+                package_id, model_id
+            );
+        }
+    }
+    for scale_index in &manifest.required_scale_binding_scales {
+        if !contribution.scale_bindings_by_scale.contains_key(scale_index) {
+            panic!(
+                "USF content composition hard error: package '{}' manifest requires scale binding at scale {}, but contribution did not define it",
+                package_id, scale_index
+            );
+        }
+    }
+    for scale_index in &manifest.required_dpt_schema_scales {
+        if !contribution.dpt_schemas_by_scale.contains_key(scale_index) {
+            panic!(
+                "USF content composition hard error: package '{}' manifest requires DPT schema at scale {}, but contribution did not define it",
+                package_id, scale_index
+            );
+        }
+    }
+    for scale_index in &manifest.required_zlm_scales {
+        if !contribution.zlm_scales_by_scale.contains_key(scale_index) {
+            panic!(
+                "USF content composition hard error: package '{}' manifest requires ZLM map at scale {}, but contribution did not define it",
+                package_id, scale_index
+            );
+        }
+    }
+}
+
+fn active_usf_modpack_id_from_config() -> String {
+    match CONFIG().data.get(ACTIVE_MODPACK_CONFIG_KEY) {
         Some(ConfigValue::String(value)) => {
             let normalized = value.trim().to_ascii_lowercase();
             if normalized.is_empty() {
-                panic!("USF bootstrap failed: '{}' must not be empty", ACTIVE_CONTENT_PROFILE_CONFIG_KEY);
+                panic!("USF bootstrap failed: '{}' must not be empty", ACTIVE_MODPACK_CONFIG_KEY);
             }
             normalized
         }
-        Some(other) => panic!(
-            "USF bootstrap failed: '{}' must be a string, got {:?}",
-            ACTIVE_CONTENT_PROFILE_CONFIG_KEY, other
-        ),
+        Some(other) => panic!("USF bootstrap failed: '{}' must be a string, got {:?}", ACTIVE_MODPACK_CONFIG_KEY, other),
         None => panic!(
-            "USF bootstrap failed: '{}' must be configured explicitly; no default profile fallback exists",
-            ACTIVE_CONTENT_PROFILE_CONFIG_KEY
+            "USF bootstrap failed: '{}' must be configured explicitly; no default modpack fallback exists",
+            ACTIVE_MODPACK_CONFIG_KEY
         ),
     }
 }
@@ -420,29 +602,31 @@ fn content_package_enabled_from_config(content_package_id: &str, config_enabled_
     }
 }
 
-fn selected_package_ids_for_active_profile() -> Vec<String> {
-    let active_profile_id = active_usf_content_profile_id_from_config();
+fn selected_mod_ids_for_active_modpack() -> Vec<String> {
+    let active_profile_id = active_usf_modpack_id_from_config();
     let profiles = USF_CONTENT_PROFILES_BY_ID().lock().unwrap().clone();
     let Some(profile_definition) = profiles.get(&active_profile_id) else {
-        panic!("USF bootstrap failed: active profile '{}' is not registered", active_profile_id);
+        panic!("USF bootstrap failed: active modpack '{}' is not registered", active_profile_id);
     };
     if profile_definition.content_package_ids.is_empty() {
-        panic!("USF bootstrap failed: active profile '{}' contains no content packages", active_profile_id);
+        panic!("USF bootstrap failed: active modpack '{}' contains no mods", active_profile_id);
     }
 
     let known_packages = USF_CONTENT_PACKAGES_BY_ID().lock().unwrap().clone();
     let mut selected = Vec::<String>::new();
+    let mut profile_index_by_package = HashMap::<String, usize>::new();
     let mut seen = HashSet::<String>::new();
-    for content_package_id in &profile_definition.content_package_ids {
+    for (index, content_package_id) in profile_definition.content_package_ids.iter().enumerate() {
         if !seen.insert(content_package_id.clone()) {
             panic!(
-                "USF bootstrap failed: active profile '{}' contains duplicate package '{}'",
+                "USF bootstrap failed: active modpack '{}' contains duplicate mod '{}'",
                 active_profile_id, content_package_id
             );
         }
+        profile_index_by_package.insert(content_package_id.clone(), index);
         if !known_packages.contains_key(content_package_id) {
             panic!(
-                "USF bootstrap failed: active profile '{}' references unknown package '{}'",
+                "USF bootstrap failed: active modpack '{}' references unknown mod '{}'",
                 active_profile_id, content_package_id
             );
         }
@@ -457,13 +641,144 @@ fn selected_package_ids_for_active_profile() -> Vec<String> {
 
     if selected.is_empty() {
         panic!(
-            "USF bootstrap failed: active profile '{}' resolved to zero enabled packages. \
-             Enable at least one package in config or choose a different profile.",
+            "USF bootstrap failed: active modpack '{}' resolved to zero enabled mods. \
+             Enable at least one mod in config or choose a different modpack.",
             active_profile_id
         );
     }
 
-    selected
+    let selected_set = selected.iter().cloned().collect::<HashSet<_>>();
+
+    for package_id in &selected {
+        let package = known_packages
+            .get(package_id)
+            .unwrap_or_else(|| panic!("USF bootstrap failed: package '{}' definition missing unexpectedly", package_id));
+
+        for dependency in &package.dependencies {
+            if !known_packages.contains_key(dependency) {
+                panic!("USF bootstrap failed: package '{}' depends_on unknown package '{}'", package_id, dependency);
+            }
+            if !selected_set.contains(dependency) {
+                panic!(
+                    "USF bootstrap failed: mod '{}' depends_on '{}' but dependency is not enabled in active modpack '{}'",
+                    package_id, dependency, active_profile_id
+                );
+            }
+        }
+
+        for conflict in &package.conflicts_with {
+            if selected_set.contains(conflict) {
+                panic!(
+                    "USF bootstrap failed: mod '{}' conflicts_with '{}' and both are enabled in active modpack '{}'",
+                    package_id, conflict, active_profile_id
+                );
+            }
+        }
+    }
+
+    let mut indegree = HashMap::<String, usize>::new();
+    let mut edges = HashMap::<String, HashSet<String>>::new();
+    for package_id in &selected {
+        indegree.insert(package_id.clone(), 0);
+        edges.insert(package_id.clone(), HashSet::new());
+    }
+
+    for package_id in &selected {
+        let package = known_packages
+            .get(package_id)
+            .unwrap_or_else(|| panic!("USF bootstrap failed: package '{}' definition missing unexpectedly", package_id));
+
+        for dependency in &package.dependencies {
+            if !selected_set.contains(dependency) {
+                continue;
+            }
+            let adjacency = edges
+                .get_mut(dependency)
+                .unwrap_or_else(|| panic!("USF bootstrap failed: graph missing dependency node '{}'", dependency));
+            if adjacency.insert(package_id.clone()) {
+                *indegree
+                    .get_mut(package_id)
+                    .unwrap_or_else(|| panic!("USF bootstrap failed: graph missing indegree for '{}'", package_id)) += 1;
+            }
+        }
+
+        for after_package_id in &package.load_after {
+            if !known_packages.contains_key(after_package_id) {
+                panic!(
+                    "USF bootstrap failed: package '{}' load_after unknown package '{}'",
+                    package_id, after_package_id
+                );
+            }
+            if !selected_set.contains(after_package_id) {
+                continue;
+            }
+            let adjacency = edges
+                .get_mut(after_package_id)
+                .unwrap_or_else(|| panic!("USF bootstrap failed: graph missing load_after node '{}'", after_package_id));
+            if adjacency.insert(package_id.clone()) {
+                *indegree
+                    .get_mut(package_id)
+                    .unwrap_or_else(|| panic!("USF bootstrap failed: graph missing indegree for '{}'", package_id)) += 1;
+            }
+        }
+    }
+
+    let mut resolved = Vec::<String>::new();
+    let mut ready = indegree
+        .iter()
+        .filter_map(|(package_id, degree)| if *degree == 0 { Some(package_id.clone()) } else { None })
+        .collect::<Vec<_>>();
+
+    while !ready.is_empty() {
+        ready.sort_by(|left, right| {
+            let left_package = known_packages
+                .get(left)
+                .unwrap_or_else(|| panic!("USF bootstrap failed: package '{}' missing during dependency resolution", left));
+            let right_package = known_packages
+                .get(right)
+                .unwrap_or_else(|| panic!("USF bootstrap failed: package '{}' missing during dependency resolution", right));
+            right_package
+                .priority
+                .cmp(&left_package.priority)
+                .then_with(|| {
+                    profile_index_by_package
+                        .get(left)
+                        .copied()
+                        .unwrap_or(usize::MAX)
+                        .cmp(&profile_index_by_package.get(right).copied().unwrap_or(usize::MAX))
+                })
+                .then_with(|| left.cmp(right))
+        });
+        let current = ready.remove(0);
+        resolved.push(current.clone());
+
+        let outgoing = edges
+            .get(current.as_str())
+            .cloned()
+            .unwrap_or_else(|| panic!("USF bootstrap failed: graph missing adjacency for package '{}'", current));
+        for downstream in outgoing {
+            let degree = indegree
+                .get_mut(downstream.as_str())
+                .unwrap_or_else(|| panic!("USF bootstrap failed: graph missing indegree for package '{}'", downstream));
+            *degree = degree.saturating_sub(1);
+            if *degree == 0 {
+                ready.push(downstream);
+            }
+        }
+    }
+
+    if resolved.len() != selected.len() {
+        let unresolved = indegree
+            .iter()
+            .filter_map(|(package_id, degree)| if *degree > 0 { Some(package_id.clone()) } else { None })
+            .collect::<Vec<_>>();
+        panic!(
+            "USF bootstrap failed: dependency cycle detected in active modpack '{}'; unresolved mods: {:?}",
+            active_profile_id, unresolved
+        );
+    }
+
+    resolved
 }
 
 fn run_usf_content_bootstrap(engine: &Engine) {
@@ -477,17 +792,35 @@ fn run_usf_content_bootstrap(engine: &Engine) {
         run_usf_script_type_bootstrap_global(engine, &usf_root, spec);
     }
 
-    let selected_package_ids = selected_package_ids_for_active_profile();
+    let selected_package_ids = selected_mod_ids_for_active_modpack();
+    let package_manifests = USF_CONTENT_PACKAGE_MANIFESTS_BY_ID().lock().unwrap().clone();
+    let package_definitions = USF_CONTENT_PACKAGES_BY_ID().lock().unwrap().clone();
     let mut composed = ScriptUsfPackageContribution::default();
+    let mut singleton_origins = CompositionSingletonOrigins::default();
     let mut package_contributions = HashMap::<String, ScriptUsfPackageContribution>::new();
 
-    for content_package_id in selected_package_ids {
+    for (load_order_index, content_package_id) in selected_package_ids.into_iter().enumerate() {
         clear_usf_domain_bootstrap_statics();
         for spec in USF_PACKAGE_SCOPED_SCRIPT_TYPE_SPECS {
             run_usf_script_type_bootstrap_for_package(engine, &usf_root, spec, content_package_id.as_str());
         }
         let contribution = snapshot_usf_domain_statics();
-        merge_package_contribution_into_composed(content_package_id.as_str(), contribution.clone(), &mut composed);
+        let Some(manifest) = package_manifests.get(content_package_id.as_str()) else {
+            panic!(
+                "USF content composition hard error: selected mod '{}' has no manifest. \
+                 Declare mod requirements in '*.mod.rhai'.",
+                content_package_id
+            );
+        };
+        validate_package_contribution_against_manifest(content_package_id.as_str(), &contribution, manifest);
+        merge_package_contribution_into_composed(
+            content_package_id.as_str(),
+            contribution.clone(),
+            &mut composed,
+            &mut singleton_origins,
+            &package_definitions,
+            load_order_index,
+        );
         package_contributions.insert(content_package_id, contribution);
     }
 

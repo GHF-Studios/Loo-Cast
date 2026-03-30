@@ -34,6 +34,7 @@ impl Plugin for UsfPlugin {
             .add_plugins(zlm::ZlmPlugin)
             .add_plugins(zone::ZonePlugin)
             .add_plugins(phenomenon::PhenomenonPlugin)
+            .add_plugins(crate::chunk::ChunkPlaceholderContentPlugin)
             .register_type::<DptMetricId>()
             .register_type::<ZoneTypeId>()
             .register_type::<DptMetricDefinition>()

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::bevy::prelude::*;
-use crate::usf::content::{DPT_SAMPLER_KERNEL_DEFAULT_ID, ScaleContentRegistry};
+use crate::usf::content::{DPT_SAMPLER_KERNEL_DEFAULT_ID, UsfActiveContentProfile};
 use crate::usf::definition::{DptMetricDefinition, DptSchema};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
@@ -36,8 +36,13 @@ impl DptStore {
         })
     }
 
-    pub fn ensure_chunk_with_scale_binding(&mut self, key: DptChunkKey, schema: &DptSchema, scale_content_registry: &ScaleContentRegistry) -> &DptChunkRecord {
-        let sampler_id = scale_content_registry
+    pub fn ensure_chunk_with_scale_binding(
+        &mut self,
+        key: DptChunkKey,
+        schema: &DptSchema,
+        active_content_profile: &UsfActiveContentProfile,
+    ) -> &DptChunkRecord {
+        let sampler_id = active_content_profile
             .binding_for_scale(key.scale)
             .map(|binding| binding.dpt_sampler_id.as_str())
             .unwrap_or_else(|| {
@@ -107,6 +112,7 @@ fn metric_value_for_definition(
         "climate.humidity.normalized" => Some(humidity),
         "terrain.elevation.normalized" => Some(elevation),
         "biosphere.vegetation_density.normalized" => Some(vegetation_density),
+        "terrain.solid_fill.normalized" => Some(matter_density),
         "matter.density.normalized" => Some(matter_density),
         "matter.support.normalized" => Some(matter_support),
         _ => None,
@@ -116,6 +122,7 @@ fn metric_value_for_definition(
         "humidity" => Some(humidity),
         "elevation" => Some(elevation),
         "vegetation_density" | "vegetation-density" => Some(vegetation_density),
+        "solid_fill" | "solid-fill" => Some(matter_density),
         "density" => Some(matter_density),
         "support" => Some(matter_support),
         _ => None,
@@ -221,7 +228,7 @@ fn mix64(mut state: u64) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::usf::content::ScaleContentBinding;
+    use crate::usf::content::{ScaleContentBinding, UsfActiveContentProfile, UsfConfiguredContentPackage};
     use crate::usf::definition::{DptMetricDefinition, DptMetricId, DptMetricStorageClass, DptMetricValueType, ZoneTypeId};
     use crate::usf::pos::types::GridXyz;
     use std::collections::HashMap;
@@ -348,22 +355,32 @@ mod tests {
             ],
             fallback_zone: crate::usf::definition::ZoneTypeId::new("void"),
         };
-        let scale_content_registry = ScaleContentRegistry {
+        let active_content_profile = UsfActiveContentProfile {
+            profile_id: "content_profile.placeholder_gameplay.v1".to_string(),
+            configured_content_packages: vec![UsfConfiguredContentPackage {
+                content_package_id: "content_package.placeholder_gameplay.v1".to_string(),
+                default_enabled: true,
+                config_enabled_key: "usf_content/content_packages/placeholder_gameplay/enabled".to_string(),
+                enabled: true,
+            }],
+            enabled_content_packages: std::collections::HashSet::from(["content_package.placeholder_gameplay.v1".to_string()]),
+            resolved_enabled_content_packages: vec!["content_package.placeholder_gameplay.v1".to_string()],
             bindings_by_scale: HashMap::from([(
                 coord.scale,
                 ScaleContentBinding {
                     dpt_sampler_id: DptStore::DEFAULT_DPT_SAMPLER_ID.to_string(),
                     dpt_categorizer_id: crate::usf::content::DPT_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID.to_string(),
                     chunk_store_key: "chunk_store.default".to_string(),
-                    usf_content_profile_id: "content_profile.placeholder_gameplay.v1".to_string(),
                 },
             )]),
             known_dpt_samplers: std::collections::HashSet::from([DptStore::DEFAULT_DPT_SAMPLER_ID.to_string()]),
             known_dpt_categorizers: std::collections::HashSet::from([crate::usf::content::DPT_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID.to_string()]),
+            schemas_by_scale: HashMap::from([(coord.scale, schema.clone())]),
+            known_zone_types: std::collections::HashSet::from([ZoneTypeId::new("void")]),
         };
 
         let mut store = DptStore::default();
-        let stored = store.ensure_chunk_with_scale_binding(key.clone(), &schema, &scale_content_registry);
+        let stored = store.ensure_chunk_with_scale_binding(key.clone(), &schema, &active_content_profile);
         let expected = deterministic_metric_vector(&key, &schema);
         assert_eq!(stored.metrics, expected);
     }

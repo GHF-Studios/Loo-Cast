@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::bevy::prelude::*;
 use crate::core::orchestration::AppSet;
 use crate::rhai_binding::engine::statics::USF_ZLM_SCALES_BY_SCALE;
-use crate::usf::content::{ScaleContentRegistry, UsfActiveContentProfile};
+use crate::usf::content::UsfActiveContentProfile;
 use crate::usf::definition::{DptMetricId, DptSchema, ZoneTypeId};
 use crate::usf::scale::Scale;
 
@@ -83,9 +83,9 @@ impl ZlmRegistry {
         scale: Scale,
         schema: &DptSchema,
         metric_values: &[f32],
-        scale_content_registry: &ScaleContentRegistry,
+        active_content_profile: &UsfActiveContentProfile,
     ) -> ZoneTypeId {
-        let _categorizer_id = scale_content_registry
+        let _categorizer_id = active_content_profile
             .binding_for_scale(scale)
             .map(|binding| binding.dpt_categorizer_id.as_str())
             .unwrap_or_else(|| {
@@ -264,6 +264,22 @@ mod tests {
                 enabled: true,
             }],
             enabled_content_packages: std::collections::HashSet::from(["content_package.test.default".to_string()]),
+            resolved_enabled_content_packages: vec!["content_package.test.default".to_string()],
+            bindings_by_scale: (0..Scale::SCALE_LEVEL_COUNT)
+                .filter_map(Scale::from_index_from_top)
+                .map(|scale| {
+                    (
+                        scale,
+                        crate::usf::content::ScaleContentBinding {
+                            dpt_sampler_id: crate::usf::content::DPT_SAMPLER_KERNEL_DEFAULT_ID.to_string(),
+                            dpt_categorizer_id: crate::usf::content::DPT_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID.to_string(),
+                            chunk_store_key: "chunk_store.test.default".to_string(),
+                        },
+                    )
+                })
+                .collect(),
+            known_dpt_samplers: std::collections::HashSet::from([crate::usf::content::DPT_SAMPLER_KERNEL_DEFAULT_ID.to_string()]),
+            known_dpt_categorizers: std::collections::HashSet::from([crate::usf::content::DPT_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID.to_string()]),
             schemas_by_scale,
             known_zone_types,
         }

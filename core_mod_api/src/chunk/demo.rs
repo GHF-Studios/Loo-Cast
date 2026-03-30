@@ -6,11 +6,10 @@ use crate::bevy_rapier3d::prelude::{Collider, ComputedColliderShape};
 use crate::chunk::components::{Chunk, ChunkLoader};
 #[cfg(not(test))]
 use crate::chunk::gpu_density;
-use crate::chunk::resources::ChunkManager;
 use crate::config::statics::CONFIG;
 use crate::player::components::Player;
 use crate::render::components::{MainCamera, WorldPresentationRoot};
-use crate::usf::content::{PLACEHOLDER_GAMEPLAY_CONTENT_PACKAGE_ID, ScaleContentRegistry, UsfActiveContentProfile, UsfExecutionPlan};
+use crate::usf::content::{PLACEHOLDER_GAMEPLAY_CONTENT_PACKAGE_ID, UsfActiveContentProfile, UsfExecutionPlan};
 use crate::usf::definition::ZoneTypeId;
 use crate::usf::dpt::{DptChunkKey, DptStore};
 use crate::usf::phenomenon::{MetricSurfaceDebugFieldDefinition, PhenomenonDefinitionRegistry, PhenomenonKind};
@@ -162,16 +161,6 @@ pub struct PersistedChunkRecord {
     pub zone_field: MixedMetricFieldU32,
 }
 
-pub(crate) fn sync_chunk_manager_loader_state_system(player_loader_query: Query<&ChunkLoader, With<Player>>, mut chunk_manager: ResMut<ChunkManager>) {
-    let Ok(chunk_loader) = player_loader_query.single() else {
-        return;
-    };
-
-    chunk_manager.active_scale = chunk_loader.scale;
-    chunk_manager.loader_origin_grid = chunk_loader.origin_offset.clone();
-    chunk_manager.loader_origin_unit = UnitVec::new(chunk_loader.origin_offset.clone(), Vec3::ZERO);
-}
-
 #[derive(Resource)]
 pub struct UsfDemoHydrationWorkflowState {
     pub handle: Option<JoinHandle<ScopedCompositeWorkflowContext>>,
@@ -291,7 +280,6 @@ pub(crate) fn run_chunk_demo_hydration_workflow_system(
     execution_plan: Res<UsfExecutionPlan>,
     mut dpt_store: ResMut<DptStore>,
     zlm_registry: Res<ZlmRegistry>,
-    scale_content_registry: Res<ScaleContentRegistry>,
     zone_behavior_registry: Res<ZoneBehaviorRegistry>,
     chunk_visual_query: Query<Option<&UsfDemoChunkVisual>, With<Chunk>>,
     chunk_query: Query<(&Chunk, Option<&UsfDemoChunkVisual>)>,
@@ -362,8 +350,8 @@ pub(crate) fn run_chunk_demo_hydration_workflow_system(
             coord: canonical_coord.clone(),
         };
         let zone_type = {
-            let chunk_record = dpt_store.ensure_chunk_with_scale_binding(chunk_key, schema, &scale_content_registry);
-            zlm_registry.classify_with_scale_binding(chunk_scale, schema, &chunk_record.metrics, &scale_content_registry)
+            let chunk_record = dpt_store.ensure_chunk_with_scale_binding(chunk_key, schema, &active_content_profile);
+            zlm_registry.classify_with_scale_binding(chunk_scale, schema, &chunk_record.metrics, &active_content_profile)
         };
         let zone_density_profile = zone_behavior_registry
             .density_profile_for_zone(&zone_type)
@@ -373,9 +361,9 @@ pub(crate) fn run_chunk_demo_hydration_workflow_system(
             .unwrap_or_else(|| panic!("USF demo chunk hydration failed: missing supported phenomena for zone '{}'.", zone_type.0));
         // Placeholder gameplay path currently materializes one phenomenon contract per zone for chunk meshing.
         // Full zone realization policy selection remains in usf::zone runtime systems.
-        let selected_support = supports
-            .first()
-            .unwrap_or_else(|| panic!("USF demo chunk hydration failed: zone '{}' has an empty supported phenomena list.", zone_type.0));
+        let Some(selected_support) = supports.first() else {
+            continue;
+        };
         let phenomenon_script_id = selected_support.phenomenon_id.clone();
         let phenomenon_kind = phenomenon_definitions
             .kind_for(phenomenon_script_id.as_str())

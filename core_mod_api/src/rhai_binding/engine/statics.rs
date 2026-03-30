@@ -56,7 +56,6 @@ pub struct ScriptScaleBindingDefinition {
     pub dpt_sampler_id: String,
     pub dpt_categorizer_id: String,
     pub chunk_store_key: String,
-    pub usf_content_profile_id: String,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -68,6 +67,33 @@ pub struct ScriptUsfContentProfileDefinition {
 pub struct ScriptUsfContentPackageDefinition {
     pub default_enabled: bool,
     pub config_enabled_key: String,
+    pub priority: i32,
+    pub dependencies: HashSet<String>,
+    pub load_after: HashSet<String>,
+    pub conflicts_with: HashSet<String>,
+    pub scale_binding_conflict_policy: ScriptSingletonConflictPolicy,
+    pub dpt_schema_conflict_policy: ScriptSingletonConflictPolicy,
+    pub zlm_conflict_policy: ScriptSingletonConflictPolicy,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ScriptSingletonConflictPolicy {
+    #[default]
+    HardError,
+    Replace,
+    ReplaceIfHigherPriority,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ScriptUsfContentPackageManifestDefinition {
+    pub required_metrics: HashSet<String>,
+    pub required_metric_sets: HashSet<String>,
+    pub required_zone_types: HashSet<String>,
+    pub required_phenomena: HashSet<String>,
+    pub required_phenomenon_models: HashSet<String>,
+    pub required_scale_binding_scales: HashSet<u8>,
+    pub required_dpt_schema_scales: HashSet<u8>,
+    pub required_zlm_scales: HashSet<u8>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -102,7 +128,6 @@ pub struct ScriptMetricDefinition {
 pub struct ScriptPhenomenonDefinition {
     pub id: String,
     pub kind: String,
-    pub metric_surface_debug: Option<ScriptMetricSurfaceDebugDefinition>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -138,6 +163,7 @@ impl Default for ScriptMetricSurfaceDebugDefinition {
 pub struct ScriptPhenomenonModelDefinition {
     pub id: String,
     pub phenomenon_id: String,
+    pub metric_surface_debug: Option<ScriptMetricSurfaceDebugDefinition>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -163,6 +189,11 @@ export_static!(
     self,
     crate::rhai_binding::engine::statics::USF_CONTENT_PACKAGES_BY_ID: Lazy<Mutex<HashMap<String, ScriptUsfContentPackageDefinition>>> =
         Lazy::new(Default::default)
+);
+export_static!(
+    self,
+    crate::rhai_binding::engine::statics::USF_CONTENT_PACKAGE_MANIFESTS_BY_ID:
+        Lazy<Mutex<HashMap<String, ScriptUsfContentPackageManifestDefinition>>> = Lazy::new(Default::default)
 );
 export_static!(
     self,

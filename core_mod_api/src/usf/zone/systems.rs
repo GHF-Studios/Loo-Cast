@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use crate::bevy::prelude::*;
 use crate::chunk::components::{Chunk, ChunkLoader};
 use crate::player::components::Player;
-use crate::usf::content::{ScaleContentRegistry, UsfActiveContentProfile};
+use crate::usf::content::UsfActiveContentProfile;
 use crate::usf::definition::ZoneTypeId;
 use crate::usf::dpt::{DptChunkKey, DptStore};
 use crate::usf::phenomenon::{Phenomenon, PhenomenonId, PhenomenonModel, PhenomenonScriptDefinitionRef};
@@ -28,7 +28,6 @@ pub(super) fn reconcile_zone_runtime_system(
     active_content_profile: Res<UsfActiveContentProfile>,
     mut dpt_store: ResMut<DptStore>,
     zlm_registry: Res<ZlmRegistry>,
-    scale_content_registry: Res<ScaleContentRegistry>,
     temporal_context: Res<ZoneTemporalContext>,
     loaded_chunks: Query<&Chunk>,
     mut runtime_state: ResMut<ZoneRuntimeState>,
@@ -43,8 +42,8 @@ pub(super) fn reconcile_zone_runtime_system(
             scale: chunk.coord.scale,
             coord: chunk.coord.clone(),
         };
-        let chunk_record = dpt_store.ensure_chunk_with_scale_binding(chunk_key, schema, &scale_content_registry);
-        let zone_type = zlm_registry.classify_with_scale_binding(chunk.coord.scale, schema, &chunk_record.metrics, &scale_content_registry);
+        let chunk_record = dpt_store.ensure_chunk_with_scale_binding(chunk_key, schema, &active_content_profile);
+        let zone_type = zlm_registry.classify_with_scale_binding(chunk.coord.scale, schema, &chunk_record.metrics, &active_content_profile);
         classified_chunks.entry((chunk.coord.scale, zone_type)).or_default().push(chunk.coord.clone());
     }
 
