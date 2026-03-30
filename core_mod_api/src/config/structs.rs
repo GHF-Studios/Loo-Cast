@@ -2,7 +2,7 @@ use crate::bevy::prelude::Reflect;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::RwLock;
 
 use crate::core::functions::asset_root;
@@ -29,6 +29,9 @@ impl Config {
 
         let mut data = HashMap::new();
         Self::flatten("", &raw_data, &mut data)?;
+        if let Some(root_dir) = abs_path.parent() {
+            Self::merge_domain_tree(root_dir.join("domains").as_path(), &mut data)?;
+        }
 
         // println!("Loaded config from {:?}: {:?}", abs_path, data);
 
@@ -36,6 +39,42 @@ impl Config {
             data,
             cache: RwLock::new(HashMap::new()),
         })
+    }
+
+    fn merge_domain_tree(domain_root: &Path, data: &mut HashMap<String, ConfigValue>) -> Result<(), Box<dyn std::error::Error>> {
+        let mut files = Vec::<PathBuf>::new();
+        Self::collect_toml_files_recursive(domain_root, &mut files)?;
+        files.sort_by(|a, b| a.to_string_lossy().cmp(&b.to_string_lossy()));
+
+        for file in files {
+            let toml_str = fs::read_to_string(&file).unwrap_or_else(|_| panic!("Failed to load config domain file at path: {:?}", file));
+            let raw_data: toml::Value = toml::from_str(&toml_str)?;
+            Self::flatten("", &raw_data, data)?;
+        }
+
+        Ok(())
+    }
+
+    fn collect_toml_files_recursive(root: &Path, out: &mut Vec<PathBuf>) -> Result<(), Box<dyn std::error::Error>> {
+        if !root.exists() {
+            return Ok(());
+        }
+        if !root.is_dir() {
+            return Ok(());
+        }
+
+        for entry in fs::read_dir(root)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_dir() {
+                Self::collect_toml_files_recursive(path.as_path(), out)?;
+                continue;
+            }
+            if path.extension().and_then(|ext| ext.to_str()) == Some("toml") {
+                out.push(path);
+            }
+        }
+        Ok(())
     }
 
     /// Flatten nested TOML tables

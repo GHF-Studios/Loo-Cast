@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::bevy::prelude::*;
-use crate::usf::content::{DPT_SAMPLER_KERNEL_DEFAULT_ID, UsfActiveContentProfile};
+use crate::usf::content::{DPT_SAMPLER_KERNEL_DEFAULT_ID, UsfActiveModpack};
 use crate::usf::definition::{DptMetricDefinition, DptSchema};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
@@ -36,18 +36,13 @@ impl DptStore {
         })
     }
 
-    pub fn ensure_chunk_with_scale_binding(
-        &mut self,
-        key: DptChunkKey,
-        schema: &DptSchema,
-        active_content_profile: &UsfActiveContentProfile,
-    ) -> &DptChunkRecord {
-        let sampler_id = active_content_profile
-            .binding_for_scale(key.scale)
-            .map(|binding| binding.dpt_sampler_id.as_str())
+    pub fn ensure_chunk_for_scale(&mut self, key: DptChunkKey, schema: &DptSchema, active_modpack: &UsfActiveModpack) -> &DptChunkRecord {
+        let sampler_id = active_modpack
+            .scale_definition_for_scale(key.scale)
+            .map(|scale_definition| scale_definition.dpt_sampler_id.as_str())
             .unwrap_or_else(|| {
                 panic!(
-                    "USF DPT sampling failed: missing scale content binding for scale index {}",
+                    "USF DPT sampling failed: missing scale definition for scale index {}",
                     key.scale.index_from_top()
                 )
             });
@@ -250,7 +245,7 @@ fn mix64(mut state: u64) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::usf::content::{ScaleContentBinding, UsfActiveContentProfile, UsfConfiguredContentPackage};
+    use crate::usf::content::{UsfActiveModpack, UsfConfiguredMod, UsfScaleDefinition};
     use crate::usf::definition::{DptMetricDefinition, DptMetricId, DptMetricStorageClass, DptMetricValueType, ZoneTypeId};
     use crate::usf::pos::types::GridXyz;
     use std::collections::HashMap;
@@ -348,7 +343,7 @@ mod tests {
     }
 
     #[test]
-    fn ensure_chunk_with_scale_binding_populates_metrics() {
+    fn ensure_chunk_for_scale_populates_metrics() {
         let coord = GridVec::new_root(GridXyz::new_local(0, 0, 0));
         let key = key(coord.clone());
         let schema = DptSchema {
@@ -377,19 +372,14 @@ mod tests {
             ],
             fallback_zone: crate::usf::definition::ZoneTypeId::new("void"),
         };
-        let active_content_profile = UsfActiveContentProfile {
-            profile_id: "debug".to_string(),
-            configured_content_packages: vec![UsfConfiguredContentPackage {
-                content_package_id: "demo".to_string(),
-                default_enabled: true,
-                config_enabled_key: "usf_content/mods/demo/enabled".to_string(),
-                enabled: true,
-            }],
-            enabled_content_packages: std::collections::HashSet::from(["demo".to_string()]),
-            resolved_enabled_content_packages: vec!["demo".to_string()],
-            bindings_by_scale: HashMap::from([(
+        let active_modpack = UsfActiveModpack {
+            modpack_id: "debug".to_string(),
+            configured_mods: vec![UsfConfiguredMod { mod_id: "demo".to_string() }],
+            enabled_mods: std::collections::HashSet::from(["demo".to_string()]),
+            resolved_enabled_mods: vec!["demo".to_string()],
+            scales_by_index: HashMap::from([(
                 coord.scale,
-                ScaleContentBinding {
+                UsfScaleDefinition {
                     dpt_sampler_id: DptStore::DEFAULT_DPT_SAMPLER_ID.to_string(),
                     dpt_categorizer_id: crate::usf::content::DPT_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID.to_string(),
                     chunk_store_key: "chunk_store.default".to_string(),
@@ -402,7 +392,7 @@ mod tests {
         };
 
         let mut store = DptStore::default();
-        let stored = store.ensure_chunk_with_scale_binding(key.clone(), &schema, &active_content_profile);
+        let stored = store.ensure_chunk_for_scale(key.clone(), &schema, &active_modpack);
         let expected = deterministic_metric_vector(&key, &schema);
         assert_eq!(stored.metrics, expected);
     }

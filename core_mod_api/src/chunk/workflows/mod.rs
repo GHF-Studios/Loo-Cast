@@ -141,13 +141,13 @@ define_workflow_mod_OLD! {
             ]
         }
 
-        HydrateChunkVisuals, timeout_secs: 5.0, timeout_mode: VirtualTime {
+        HydrateChunkSurfaceVisuals, timeout_secs: 5.0, timeout_mode: VirtualTime {
             user_imports: {
                 use crate::bevy::prelude::ResMut;
-                use crate::chunk::workflows::external::hydrate_chunk_visuals::{
+                use crate::chunk::workflows::external::hydrate_chunk_surface_visuals::{
                     ArtifactsOutput as BuildArtifactsOutput,
                     CommitOutput as CommitArtifactsOutput,
-                    Error as HydrateChunkVisualsError,
+                    Error as HydrateChunkSurfaceVisualsError,
                     Input as BuildArtifactsInput,
                     MainAccess as CommitArtifactsMainAccess,
                     State as CommitArtifactsState,
@@ -169,7 +169,7 @@ define_workflow_mod_OLD! {
                             inner: BuildArtifactsOutput,
                         }
                         enum Error {
-                            Inner(HydrateChunkVisualsError),
+                            Inner(HydrateChunkSurfaceVisualsError),
                         }
                     ],
                     core_functions: [
@@ -197,7 +197,7 @@ define_workflow_mod_OLD! {
                             inner: CommitArtifactsOutput,
                         }
                         enum Error {
-                            Inner(HydrateChunkVisualsError),
+                            Inner(HydrateChunkSurfaceVisualsError),
                         }
                     ],
                     core_functions: [

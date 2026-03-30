@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::bevy::prelude::*;
 use crate::core::orchestration::AppSet;
 use crate::rhai_binding::engine::statics::USF_ZLM_SCALES_BY_SCALE;
-use crate::usf::content::UsfActiveContentProfile;
+use crate::usf::content::UsfActiveModpack;
 use crate::usf::definition::{DptMetricId, DptSchema, ZoneTypeId};
 use crate::usf::scale::Scale;
 
@@ -78,31 +78,25 @@ impl ZlmRegistry {
         scale_map.fallback_zone.clone()
     }
 
-    pub fn classify_with_scale_binding(
-        &self,
-        scale: Scale,
-        schema: &DptSchema,
-        metric_values: &[f32],
-        active_content_profile: &UsfActiveContentProfile,
-    ) -> ZoneTypeId {
-        let _categorizer_id = active_content_profile
-            .binding_for_scale(scale)
-            .map(|binding| binding.dpt_categorizer_id.as_str())
+    pub fn classify_for_scale(&self, scale: Scale, schema: &DptSchema, metric_values: &[f32], active_modpack: &UsfActiveModpack) -> ZoneTypeId {
+        let _categorizer_id = active_modpack
+            .scale_definition_for_scale(scale)
+            .map(|scale_definition| scale_definition.dpt_categorizer_id.as_str())
             .unwrap_or_else(|| {
                 panic!(
-                    "USF ZLM classification failed: missing scale content binding for scale index {}",
+                    "USF ZLM classification failed: missing scale definition for scale index {}",
                     scale.index_from_top()
                 )
             });
         self.classify(scale, schema, metric_values)
     }
 
-    pub fn validate_against(&self, active_content_profile: &UsfActiveContentProfile) -> Result<(), String> {
+    pub fn validate_against(&self, active_modpack: &UsfActiveModpack) -> Result<(), String> {
         for index in 0..Scale::SCALE_LEVEL_COUNT {
             let Some(scale) = Scale::from_index_from_top(index) else {
                 continue;
             };
-            let Some(schema) = active_content_profile.schema_for_scale(scale) else {
+            let Some(schema) = active_modpack.schema_for_scale(scale) else {
                 return Err(format!("missing schema while validating ZLM scale {}", scale.index_from_top()));
             };
             let Some(scale_map) = self.maps_by_scale.get(&scale) else {
@@ -119,7 +113,7 @@ impl ZlmRegistry {
                     scale.index_from_top()
                 ));
             }
-            if !active_content_profile.known_zone_types.contains(&scale_map.fallback_zone) {
+            if !active_modpack.known_zone_types.contains(&scale_map.fallback_zone) {
                 return Err(format!(
                     "ZLM fallback zone '{}' is not known at scale {}",
                     scale_map.fallback_zone.0,
@@ -127,7 +121,7 @@ impl ZlmRegistry {
                 ));
             }
             for rule in &scale_map.rules {
-                if !active_content_profile.known_zone_types.contains(&rule.zone_type) {
+                if !active_modpack.known_zone_types.contains(&rule.zone_type) {
                     return Err(format!(
                         "ZLM rule references unknown zone '{}' at scale {}",
                         rule.zone_type.0,
@@ -205,8 +199,8 @@ fn script_zlm_overrides() -> Vec<(Scale, ZlmScaleDefinition)> {
         .collect()
 }
 
-fn validate_zlm_registry_system(active_content_profile: Res<UsfActiveContentProfile>, zlm_registry: Res<ZlmRegistry>) {
-    if let Err(reason) = zlm_registry.validate_against(&active_content_profile) {
+fn validate_zlm_registry_system(active_modpack: Res<UsfActiveModpack>, zlm_registry: Res<ZlmRegistry>) {
+    if let Err(reason) = zlm_registry.validate_against(&active_modpack) {
         panic!("USF ZLM registry validation failed: {reason}");
     }
 }
@@ -222,11 +216,11 @@ impl Plugin for ZlmPlugin {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::usf::content::UsfActiveContentProfile;
+    use crate::usf::content::UsfActiveModpack;
     use crate::usf::definition::{DptMetricDefinition, DptMetricId, DptMetricStorageClass, DptMetricValueType};
     use std::collections::HashMap;
 
-    fn active_content_profile_for_tests() -> UsfActiveContentProfile {
+    fn active_modpack_for_tests() -> UsfActiveModpack {
         let mut known_zone_types = std::collections::HashSet::new();
         known_zone_types.insert(ZoneTypeId::new("void"));
 
@@ -255,22 +249,19 @@ mod tests {
             );
         }
 
-        UsfActiveContentProfile {
-            profile_id: "content_profile.test.default".to_string(),
-            configured_content_packages: vec![crate::usf::content::UsfConfiguredContentPackage {
-                content_package_id: "content_package.test.default".to_string(),
-                default_enabled: true,
-                config_enabled_key: "usf_content/content_packages/test_default/enabled".to_string(),
-                enabled: true,
+        UsfActiveModpack {
+            modpack_id: "modpack.test.default".to_string(),
+            configured_mods: vec![crate::usf::content::UsfConfiguredMod {
+                mod_id: "mod.test.default".to_string(),
             }],
-            enabled_content_packages: std::collections::HashSet::from(["content_package.test.default".to_string()]),
-            resolved_enabled_content_packages: vec!["content_package.test.default".to_string()],
-            bindings_by_scale: (0..Scale::SCALE_LEVEL_COUNT)
+            enabled_mods: std::collections::HashSet::from(["mod.test.default".to_string()]),
+            resolved_enabled_mods: vec!["mod.test.default".to_string()],
+            scales_by_index: (0..Scale::SCALE_LEVEL_COUNT)
                 .filter_map(Scale::from_index_from_top)
                 .map(|scale| {
                     (
                         scale,
-                        crate::usf::content::ScaleContentBinding {
+                        crate::usf::content::UsfScaleDefinition {
                             dpt_sampler_id: crate::usf::content::DPT_SAMPLER_KERNEL_DEFAULT_ID.to_string(),
                             dpt_categorizer_id: crate::usf::content::DPT_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID.to_string(),
                             chunk_store_key: "chunk_store.test.default".to_string(),
@@ -320,8 +311,8 @@ mod tests {
     #[test]
     fn validate_rejects_map_revision_that_lags_schema_revision() {
         let scale = Scale::MAX;
-        let mut active_content_profile = active_content_profile_for_tests();
-        active_content_profile.schemas_by_scale.get_mut(&scale).unwrap().revision = 2;
+        let mut active_modpack = active_modpack_for_tests();
+        active_modpack.schemas_by_scale.get_mut(&scale).unwrap().revision = 2;
 
         let mut maps_by_scale = HashMap::new();
         for index in 0..Scale::SCALE_LEVEL_COUNT {
@@ -340,7 +331,7 @@ mod tests {
         maps_by_scale.get_mut(&scale).unwrap().revision = 1;
         let zlm_registry = ZlmRegistry { maps_by_scale };
 
-        let error = zlm_registry.validate_against(&active_content_profile).unwrap_err();
+        let error = zlm_registry.validate_against(&active_modpack).unwrap_err();
         assert!(error.contains("must be >= schema revision"));
     }
 }

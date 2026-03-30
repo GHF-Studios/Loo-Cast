@@ -1,4 +1,5 @@
 pub mod aspects;
+pub mod capability;
 pub mod content;
 pub mod definition;
 pub mod dpt;
@@ -14,7 +15,7 @@ pub mod zlm;
 pub mod zone;
 
 use crate::bevy::prelude::*;
-use content::{ScaleContentBinding, UsfActiveContentProfile, UsfConfiguredContentPackage, UsfExecutionPlan, UsfScaleExecutionRoute};
+use content::{UsfActiveModpack, UsfConfiguredMod, UsfExecutionPlan, UsfScaleDefinition, UsfScaleExecutionRoute};
 use definition::{DptMetricDefinition, DptMetricId, DptSchema, ZoneTypeId};
 use dpt::{DptChunkKey, DptChunkRecord};
 use phenomenon::{PhenomenonId, PhenomenonKind, PhenomenonLineage, PhenomenonMeshWindow, PhenomenonNodeKey, PhenomenonNodeSeed, PhenomenonStateSnapshot};
@@ -31,6 +32,7 @@ impl Plugin for UsfPlugin {
 
         app.add_plugins(pos::PosPlugin)
             .add_plugins(transform::TransformPlugin)
+            .add_plugins(capability::CapabilityPlugin)
             .add_plugins(content::ContentPlugin)
             .add_plugins(dpt::DptPlugin)
             .add_plugins(zlm::ZlmPlugin)
@@ -42,11 +44,11 @@ impl Plugin for UsfPlugin {
             .register_type::<ZoneTypeId>()
             .register_type::<DptMetricDefinition>()
             .register_type::<DptSchema>()
-            .register_type::<ScaleContentBinding>()
-            .register_type::<UsfConfiguredContentPackage>()
+            .register_type::<UsfScaleDefinition>()
+            .register_type::<UsfConfiguredMod>()
             .register_type::<UsfScaleExecutionRoute>()
             .register_type::<UsfExecutionPlan>()
-            .register_type::<UsfActiveContentProfile>()
+            .register_type::<UsfActiveModpack>()
             .register_type::<DptChunkKey>()
             .register_type::<DptChunkRecord>()
             .register_type::<ZlmMetricBand>()

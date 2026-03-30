@@ -1,8 +1,8 @@
 use crate::bevy::prelude::*;
 use crate::chunk::components::Chunk;
 use crate::usf::mod_runtime::chunk_surface::{
-    ChunkDemoHydrationArtifact, ChunkDemoHydrationTask, UsfDemoChunkStore, UsfDemoChunkVisual, UsfDemoSettings, apply_chunk_demo_hydration_artifact,
-    prepare_chunk_demo_hydration_artifact,
+    ChunkSurfaceHydrationArtifact, ChunkSurfaceHydrationTask, UsfChunkSurfaceRuntimeSettings, UsfChunkSurfaceStore, UsfChunkSurfaceVisual,
+    apply_chunk_surface_hydration_artifact, prepare_chunk_surface_hydration_artifact,
 };
 use crate::workflow::types::Outcome;
 use std::collections::VecDeque;
@@ -10,19 +10,19 @@ use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
 pub struct AsyncInput {
-    pub settings: UsfDemoSettings,
-    pub tasks: Vec<ChunkDemoHydrationTask>,
+    pub settings: UsfChunkSurfaceRuntimeSettings,
+    pub tasks: Vec<ChunkSurfaceHydrationTask>,
     pub build_workers: usize,
     pub commit_budget: usize,
 }
 
 pub struct ArtifactsOutput {
-    pub artifacts: VecDeque<ChunkDemoHydrationArtifact>,
+    pub artifacts: VecDeque<ChunkSurfaceHydrationArtifact>,
     pub commit_budget: usize,
 }
 
 pub struct State {
-    pub artifacts: VecDeque<ChunkDemoHydrationArtifact>,
+    pub artifacts: VecDeque<ChunkSurfaceHydrationArtifact>,
     pub commit_budget: usize,
     pub hydrated: usize,
     pub skipped: usize,
@@ -43,8 +43,8 @@ pub enum Error {}
 #[derive(crate::bevy::ecs::system::SystemParam)]
 pub struct MainAccess<'w, 's> {
     pub commands: Commands<'w, 's>,
-    pub chunk_query: Query<'w, 's, Option<&'static UsfDemoChunkVisual>, With<Chunk>>,
-    pub chunk_store: ResMut<'w, UsfDemoChunkStore>,
+    pub chunk_query: Query<'w, 's, Option<&'static UsfChunkSurfaceVisual>, With<Chunk>>,
+    pub chunk_store: ResMut<'w, UsfChunkSurfaceStore>,
     pub meshes: ResMut<'w, Assets<Mesh>>,
     pub materials: ResMut<'w, Assets<StandardMaterial>>,
 }
@@ -98,7 +98,7 @@ pub fn run_ecs_while(state: State, main_access: MainAccess) -> Result<Outcome<St
             continue;
         }
 
-        apply_chunk_demo_hydration_artifact(artifact, &mut commands, &mut chunk_store, &mut meshes, &mut materials);
+        apply_chunk_surface_hydration_artifact(artifact, &mut commands, &mut chunk_store, &mut meshes, &mut materials);
         state.hydrated += 1;
         committed += 1;
     }
@@ -113,7 +113,11 @@ pub fn run_ecs_while(state: State, main_access: MainAccess) -> Result<Outcome<St
     Ok(Outcome::Wait(state))
 }
 
-fn build_artifacts_parallel(settings: UsfDemoSettings, tasks: Vec<ChunkDemoHydrationTask>, requested_workers: usize) -> Vec<ChunkDemoHydrationArtifact> {
+fn build_artifacts_parallel(
+    settings: UsfChunkSurfaceRuntimeSettings,
+    tasks: Vec<ChunkSurfaceHydrationTask>,
+    requested_workers: usize,
+) -> Vec<ChunkSurfaceHydrationArtifact> {
     if tasks.is_empty() {
         return Vec::new();
     }
@@ -123,7 +127,10 @@ fn build_artifacts_parallel(settings: UsfDemoSettings, tasks: Vec<ChunkDemoHydra
     let worker_count = requested_workers.max(1).min(available_workers).min(task_count);
 
     if worker_count <= 1 {
-        return tasks.into_iter().map(|task| prepare_chunk_demo_hydration_artifact(&settings, task)).collect();
+        return tasks
+            .into_iter()
+            .map(|task| prepare_chunk_surface_hydration_artifact(&settings, task))
+            .collect();
     }
 
     let queued_tasks = Arc::new(Mutex::new(tasks.into_iter().enumerate().collect::<VecDeque<_>>()));
@@ -145,7 +152,7 @@ fn build_artifacts_parallel(settings: UsfDemoSettings, tasks: Vec<ChunkDemoHydra
                         break;
                     };
 
-                    let artifact = prepare_chunk_demo_hydration_artifact(&settings, task);
+                    let artifact = prepare_chunk_surface_hydration_artifact(&settings, task);
                     let mut artifacts = artifacts.lock().expect("Hydration artifact mutex poisoned");
                     artifacts[index] = Some(artifact);
                 }

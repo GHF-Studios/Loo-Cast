@@ -19,21 +19,8 @@ z_offset = -10
 load_radius = 1
 zoom_cooldown_secs = 1.0
 
-[usf_demo]
-enabled = true
-world_seed = 1337
-sample_step = 64
-iso_level = 170
-hydration_batch_size = 64
-hydration_commit_budget = 4
-hydration_build_workers = 4
-persistence_dir = "target/usf_demo/chunks"
-
-[usf_content]
+[usf]
 active_modpack_id = "debug"
-
-[usf_content.mods.demo]
-enabled = true
 
 [core]
 cli_log_filter = "warn"

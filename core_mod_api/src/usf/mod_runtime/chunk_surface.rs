@@ -12,7 +12,7 @@ use crate::chunk::components::{Chunk, ChunkLoader};
 use crate::config::statics::CONFIG;
 use crate::player::components::Player;
 use crate::render::components::{MainCamera, WorldPresentationRoot};
-use crate::usf::content::{DEFAULT_DEMO_MOD_CONTENT_PACKAGE_ID, UsfActiveContentProfile, UsfExecutionPlan};
+use crate::usf::content::{UsfActiveModpack, UsfExecutionPlan};
 use crate::usf::definition::ZoneTypeId;
 use crate::usf::phenomenon::{MetricSurfaceDebugFieldDefinition, PhenomenonDefinitionRegistry, PhenomenonKind};
 use crate::usf::pos::grid::types::GridVec;
@@ -30,7 +30,7 @@ use tokio::task::JoinHandle;
 
 #[derive(Resource, Reflect, Debug, Clone)]
 #[reflect(Resource)]
-pub struct UsfDemoSettings {
+pub struct UsfChunkSurfaceRuntimeSettings {
     pub enabled: bool,
     pub world_seed: u64,
     pub sample_step: u16,
@@ -40,41 +40,41 @@ pub struct UsfDemoSettings {
     pub hydration_build_workers: usize,
     pub persistence_dir: String,
 }
-impl Default for UsfDemoSettings {
+impl Default for UsfChunkSurfaceRuntimeSettings {
     fn default() -> Self {
         Self {
-            enabled: CONFIG().get::<bool>("usf_demo/enabled"),
-            world_seed: CONFIG().get::<u64>("usf_demo/world_seed"),
-            sample_step: CONFIG().get::<u16>("usf_demo/sample_step"),
-            iso_level: CONFIG().get::<u8>("usf_demo/iso_level"),
-            hydration_batch_size: CONFIG().get::<usize>("usf_demo/hydration_batch_size"),
-            hydration_commit_budget: CONFIG().get::<usize>("usf_demo/hydration_commit_budget"),
-            hydration_build_workers: CONFIG().get::<usize>("usf_demo/hydration_build_workers"),
-            persistence_dir: CONFIG().get::<String>("usf_demo/persistence_dir"),
+            enabled: CONFIG().get::<bool>("usf/runtime/chunk_surface/enabled"),
+            world_seed: CONFIG().get::<u64>("usf/runtime/chunk_surface/world_seed"),
+            sample_step: CONFIG().get::<u16>("usf/runtime/chunk_surface/sample_step"),
+            iso_level: CONFIG().get::<u8>("usf/runtime/chunk_surface/iso_level"),
+            hydration_batch_size: CONFIG().get::<usize>("usf/runtime/chunk_surface/hydration_batch_size"),
+            hydration_commit_budget: CONFIG().get::<usize>("usf/runtime/chunk_surface/hydration_commit_budget"),
+            hydration_build_workers: CONFIG().get::<usize>("usf/runtime/chunk_surface/hydration_build_workers"),
+            persistence_dir: CONFIG().get::<String>("usf/runtime/chunk_surface/persistence_dir"),
         }
     }
 }
 
 #[derive(Component, Reflect, Debug, Clone, Copy)]
 #[reflect(Component)]
-pub struct UsfDemoChunkVisual {
+pub struct UsfChunkSurfaceVisual {
     pub chunk_seed: u64,
     pub sample_step: u16,
 }
 
 #[derive(Resource, Debug, Default)]
-pub struct UsfDemoChunkStore {
+pub struct UsfChunkSurfaceStore {
     pub records: HashMap<GridVec, PersistedChunkRecord>,
 }
 
 #[derive(Resource)]
-pub struct UsfDemoHydrationWorkflowState {
+pub struct UsfChunkSurfaceHydrationWorkflowState {
     pub handle: Option<JoinHandle<ScopedCompositeWorkflowContext>>,
     queued_entities: VecDeque<Entity>,
     queued_lookup: HashSet<Entity>,
     in_flight_entities: HashSet<Entity>,
 }
-impl Default for UsfDemoHydrationWorkflowState {
+impl Default for UsfChunkSurfaceHydrationWorkflowState {
     fn default() -> Self {
         Self {
             handle: None,
@@ -84,7 +84,7 @@ impl Default for UsfDemoHydrationWorkflowState {
         }
     }
 }
-impl UsfDemoHydrationWorkflowState {
+impl UsfChunkSurfaceHydrationWorkflowState {
     fn queue(&mut self, entity: Entity) {
         if self.in_flight_entities.contains(&entity) || self.queued_lookup.contains(&entity) {
             return;
@@ -122,7 +122,7 @@ impl UsfDemoHydrationWorkflowState {
         self.in_flight_entities.extend(entities.iter().copied());
     }
 
-    fn prune_stale(&mut self, chunk_visual_query: &Query<Option<&UsfDemoChunkVisual>, With<Chunk>>) {
+    fn prune_stale(&mut self, chunk_visual_query: &Query<Option<&UsfChunkSurfaceVisual>, With<Chunk>>) {
         self.queued_entities.retain(|entity| matches!(chunk_visual_query.get(*entity), Ok(None)));
         self.queued_lookup = self.queued_entities.iter().copied().collect::<HashSet<_>>();
         self.in_flight_entities.retain(|entity| matches!(chunk_visual_query.get(*entity), Ok(None)));
@@ -130,7 +130,7 @@ impl UsfDemoHydrationWorkflowState {
 }
 
 #[derive(Debug, Clone)]
-pub struct ChunkDemoHydrationTask {
+pub struct ChunkSurfaceHydrationTask {
     pub chunk_entity: Entity,
     pub chunk_coord: GridVec,
     pub chunk_scale: Scale,
@@ -144,7 +144,7 @@ pub struct ChunkDemoHydrationTask {
 }
 
 #[derive(Debug)]
-pub struct ChunkDemoHydrationArtifact {
+pub struct ChunkSurfaceHydrationArtifact {
     pub chunk_entity: Entity,
     pub chunk_coord: GridVec,
     pub canonical_coord: GridVec,
@@ -152,23 +152,23 @@ pub struct ChunkDemoHydrationArtifact {
     pub mesh: Option<Mesh>,
 }
 
-pub(crate) fn run_if_active_test_mod_content_enabled(
-    settings: Option<Res<UsfDemoSettings>>,
-    active_content_profile: Option<Res<UsfActiveContentProfile>>,
+pub(crate) fn run_if_chunk_surface_runtime_enabled(
+    settings: Option<Res<UsfChunkSurfaceRuntimeSettings>>,
+    active_modpack: Option<Res<UsfActiveModpack>>,
 ) -> bool {
     let Some(settings) = settings else {
         return false;
     };
-    let Some(active_content_profile) = active_content_profile else {
+    let Some(_active_modpack) = active_modpack else {
         return false;
     };
-    settings.enabled && active_content_profile.is_package_enabled(DEFAULT_DEMO_MOD_CONTENT_PACKAGE_ID)
+    settings.enabled
 }
 
-pub(crate) fn queue_chunk_demo_hydration_requests_system(
-    settings: Res<UsfDemoSettings>,
-    added_chunks: Query<Entity, (Added<Chunk>, Without<UsfDemoChunkVisual>)>,
-    mut hydration_state: ResMut<UsfDemoHydrationWorkflowState>,
+pub(crate) fn queue_chunk_surface_hydration_requests_system(
+    settings: Res<UsfChunkSurfaceRuntimeSettings>,
+    added_chunks: Query<Entity, (Added<Chunk>, Without<UsfChunkSurfaceVisual>)>,
+    mut hydration_state: ResMut<UsfChunkSurfaceHydrationWorkflowState>,
 ) {
     if !settings.enabled {
         return;
@@ -179,17 +179,17 @@ pub(crate) fn queue_chunk_demo_hydration_requests_system(
     }
 }
 
-pub(crate) fn run_chunk_demo_hydration_workflow_system(
-    settings: Res<UsfDemoSettings>,
-    active_content_profile: Res<UsfActiveContentProfile>,
+pub(crate) fn run_chunk_surface_hydration_workflow_system(
+    settings: Res<UsfChunkSurfaceRuntimeSettings>,
+    active_modpack: Res<UsfActiveModpack>,
     phenomenon_definitions: Res<PhenomenonDefinitionRegistry>,
     execution_plan: Res<UsfExecutionPlan>,
     mut usf_world: ResMut<UsfWorld>,
     zlm_registry: Res<ZlmRegistry>,
     zone_behavior_registry: Res<ZoneBehaviorRegistry>,
-    chunk_visual_query: Query<Option<&UsfDemoChunkVisual>, With<Chunk>>,
-    chunk_query: Query<(&Chunk, Option<&UsfDemoChunkVisual>)>,
-    mut hydration_state: ResMut<UsfDemoHydrationWorkflowState>,
+    chunk_visual_query: Query<Option<&UsfChunkSurfaceVisual>, With<Chunk>>,
+    chunk_query: Query<(&Chunk, Option<&UsfChunkSurfaceVisual>)>,
+    mut hydration_state: ResMut<UsfChunkSurfaceHydrationWorkflowState>,
 ) {
     if !settings.enabled {
         hydration_state.clear();
@@ -215,7 +215,7 @@ pub(crate) fn run_chunk_demo_hydration_workflow_system(
     }
 
     let mut in_flight_entities = Vec::<Entity>::new();
-    let mut tasks = Vec::<ChunkDemoHydrationTask>::new();
+    let mut tasks = Vec::<ChunkSurfaceHydrationTask>::new();
 
     for entity in batch_entities {
         let Ok((chunk, maybe_visual)) = chunk_query.get(entity) else {
@@ -233,17 +233,9 @@ pub(crate) fn run_chunk_demo_hydration_workflow_system(
             );
             continue;
         };
-        if !route
-            .content_package_ids
-            .iter()
-            .any(|content_package_id| content_package_id == DEFAULT_DEMO_MOD_CONTENT_PACKAGE_ID)
-        {
-            continue;
-        }
-
         let canonical_coord = canonical_grid_coord(&chunk.coord);
         let zone_type = {
-            let Some(chunk_sample) = usf_world.sample_chunk_with_scale_binding(&canonical_coord, &active_content_profile, &zlm_registry) else {
+            let Some(chunk_sample) = usf_world.sample_chunk(&canonical_coord, &active_modpack, &zlm_registry) else {
                 warn!(
                     "USF mod runtime chunk-surface hydration skipped: missing world sampling contracts for chunk {:?} at scale index {}",
                     chunk.coord,
@@ -293,7 +285,7 @@ pub(crate) fn run_chunk_demo_hydration_workflow_system(
         let chunk_store_key = route.chunk_store_key.as_str();
 
         in_flight_entities.push(entity);
-        tasks.push(ChunkDemoHydrationTask {
+        tasks.push(ChunkSurfaceHydrationTask {
             chunk_entity: entity,
             chunk_coord: chunk.coord.clone(),
             chunk_scale,
@@ -313,7 +305,7 @@ pub(crate) fn run_chunk_demo_hydration_workflow_system(
 
     hydration_state.mark_in_flight(&in_flight_entities);
 
-    let hydrate_async_input = crate::chunk::workflows::external::hydrate_chunk_visuals::AsyncInput {
+    let hydrate_async_input = crate::chunk::workflows::external::hydrate_chunk_surface_visuals::AsyncInput {
         settings: settings.clone(),
         tasks,
         build_workers: settings.hydration_build_workers.max(1),
@@ -321,25 +313,25 @@ pub(crate) fn run_chunk_demo_hydration_workflow_system(
     };
 
     let handle = composite_workflow!(
-        HydrateChunkVisualsBatch,
-        move in hydrate_async_input: crate::chunk::workflows::external::hydrate_chunk_visuals::AsyncInput,
+        HydrateChunkSurfaceVisualsBatch,
+        move in hydrate_async_input: crate::chunk::workflows::external::hydrate_chunk_surface_visuals::AsyncInput,
     {
-        let _ = run_workflow_ioe_with_timeout_control::<crate::chunk::workflows::chunk::hydrate_chunk_visuals::TypeIOE, _>(
+        let _ = run_workflow_ioe_with_timeout_control::<crate::chunk::workflows::chunk::hydrate_chunk_surface_visuals::TypeIOE, _>(
             Duration::from_secs_f64(5.0),
             WorkflowTimeoutMode::VirtualTime,
-            crate::chunk::workflows::chunk::hydrate_chunk_visuals::stages::build_artifacts::core_types::Input {
-                inner: crate::chunk::workflows::external::hydrate_chunk_visuals::Input {
+            crate::chunk::workflows::chunk::hydrate_chunk_surface_visuals::stages::build_artifacts::core_types::Input {
+                inner: crate::chunk::workflows::external::hydrate_chunk_surface_visuals::Input {
                     inner: hydrate_async_input,
                 },
             },
-            |ctx| chunk_demo_hydration_timeout_decision(ctx.module_name, ctx.workflow_name, ctx.timeout_count),
+            |ctx| chunk_surface_hydration_timeout_decision(ctx.module_name, ctx.workflow_name, ctx.timeout_count),
         )
         .await;
     });
     hydration_state.handle = Some(handle);
 }
 
-fn chunk_demo_hydration_timeout_decision(module_name: &'static str, workflow_name: &'static str, timeout_count: usize) -> WorkflowTimeoutControlDecision {
+fn chunk_surface_hydration_timeout_decision(module_name: &'static str, workflow_name: &'static str, timeout_count: usize) -> WorkflowTimeoutControlDecision {
     if timeout_count == 1 {
         warn!(
             "Chunk-surface hydration timeout request: {}::{}, timeout_count={}, decision=Retry",
@@ -355,7 +347,10 @@ fn chunk_demo_hydration_timeout_decision(module_name: &'static str, workflow_nam
     WorkflowTimeoutControlDecision::Panic
 }
 
-pub(crate) fn prepare_chunk_demo_hydration_artifact(settings: &UsfDemoSettings, task: ChunkDemoHydrationTask) -> ChunkDemoHydrationArtifact {
+pub(crate) fn prepare_chunk_surface_hydration_artifact(
+    settings: &UsfChunkSurfaceRuntimeSettings,
+    task: ChunkSurfaceHydrationTask,
+) -> ChunkSurfaceHydrationArtifact {
     let chunk_file = chunk_file_path(
         &settings.persistence_dir,
         settings.world_seed,
@@ -400,7 +395,7 @@ pub(crate) fn prepare_chunk_demo_hydration_artifact(settings: &UsfDemoSettings, 
     let record = record.expect("USF mod runtime chunk record should exist after generate/load");
     let mesh = build_chunk_mesh(&record);
 
-    ChunkDemoHydrationArtifact {
+    ChunkSurfaceHydrationArtifact {
         chunk_entity: task.chunk_entity,
         chunk_coord: task.chunk_coord,
         canonical_coord: task.canonical_coord,
@@ -409,14 +404,14 @@ pub(crate) fn prepare_chunk_demo_hydration_artifact(settings: &UsfDemoSettings, 
     }
 }
 
-pub(crate) fn apply_chunk_demo_hydration_artifact(
-    artifact: ChunkDemoHydrationArtifact,
+pub(crate) fn apply_chunk_surface_hydration_artifact(
+    artifact: ChunkSurfaceHydrationArtifact,
     commands: &mut Commands,
-    chunk_store: &mut UsfDemoChunkStore,
+    chunk_store: &mut UsfChunkSurfaceStore,
     meshes: &mut Assets<Mesh>,
     materials: &mut Assets<StandardMaterial>,
 ) {
-    let ChunkDemoHydrationArtifact {
+    let ChunkSurfaceHydrationArtifact {
         chunk_entity,
         chunk_coord,
         canonical_coord,
@@ -448,7 +443,7 @@ pub(crate) fn apply_chunk_demo_hydration_artifact(
         commands.entity(chunk_entity).remove::<Collider>();
     }
 
-    commands.entity(chunk_entity).insert(UsfDemoChunkVisual {
+    commands.entity(chunk_entity).insert(UsfChunkSurfaceVisual {
         chunk_seed: record.chunk_seed,
         sample_step: record.sample_step,
     });
@@ -456,15 +451,20 @@ pub(crate) fn apply_chunk_demo_hydration_artifact(
     chunk_store.records.insert(canonical_coord, record);
 }
 
-pub(crate) fn sync_chunk_demo_visual_transforms_system(
-    settings: Res<UsfDemoSettings>,
+pub(crate) fn sync_chunk_surface_visual_transforms_system(
+    settings: Res<UsfChunkSurfaceRuntimeSettings>,
     mut params: ParamSet<(
         Query<(&ChunkLoader, &Transform), With<Player>>,
-        Query<&Transform, (With<MainCamera>, Without<Player>, Without<UsfDemoChunkVisual>)>,
-        Single<&Transform, (With<WorldPresentationRoot>, Without<Player>, Without<UsfDemoChunkVisual>)>,
+        Query<&Transform, (With<MainCamera>, Without<Player>, Without<UsfChunkSurfaceVisual>)>,
+        Single<&Transform, (With<WorldPresentationRoot>, Without<Player>, Without<UsfChunkSurfaceVisual>)>,
         Query<
             (Entity, &Chunk, &mut Transform, &mut Visibility),
-            (With<UsfDemoChunkVisual>, Without<Player>, Without<MainCamera>, Without<WorldPresentationRoot>),
+            (
+                With<UsfChunkSurfaceVisual>,
+                Without<Player>,
+                Without<MainCamera>,
+                Without<WorldPresentationRoot>,
+            ),
         >,
     )>,
 ) {
@@ -543,10 +543,10 @@ pub(crate) fn sync_chunk_demo_visual_transforms_system(
     }
 }
 
-pub(crate) fn bind_chunk_demo_visuals_to_world_presentation_root_system(
+pub(crate) fn bind_chunk_surface_visuals_to_world_presentation_root_system(
     mut commands: Commands,
     root_query: Single<Entity, With<WorldPresentationRoot>>,
-    chunk_query: Query<(Entity, Option<&ChildOf>), (With<UsfDemoChunkVisual>, Without<Player>)>,
+    chunk_query: Query<(Entity, Option<&ChildOf>), (With<UsfChunkSurfaceVisual>, Without<Player>)>,
 ) {
     let root = *root_query;
     for (entity, child_of) in chunk_query.iter() {
@@ -557,7 +557,11 @@ pub(crate) fn bind_chunk_demo_visuals_to_world_presentation_root_system(
     }
 }
 
-pub(crate) fn prune_chunk_demo_store_system(settings: Res<UsfDemoSettings>, loaded_chunks: Query<&Chunk>, mut chunk_store: ResMut<UsfDemoChunkStore>) {
+pub(crate) fn prune_chunk_surface_store_system(
+    settings: Res<UsfChunkSurfaceRuntimeSettings>,
+    loaded_chunks: Query<&Chunk>,
+    mut chunk_store: ResMut<UsfChunkSurfaceStore>,
+) {
     if !settings.enabled {
         chunk_store.records.clear();
         return;

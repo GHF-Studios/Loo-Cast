@@ -9,10 +9,10 @@ fn register_scale() {
             scale_index,
             1,
             "empty",
-            "metric_set.demo.solid_fill",
+            "solid_fill",
         );
 
-        UsfSubstrate::set_scale_binding(
+        UsfSubstrate::set_scale(
             scale_index,
             dpt_sampler_kernel_id,
             dpt_categorizer_kernel_id,

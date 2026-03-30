@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::bevy::prelude::*;
-use crate::usf::content::UsfActiveContentProfile;
+use crate::usf::content::UsfActiveModpack;
 use crate::usf::definition::{DptSchema, ZoneTypeId};
 use crate::usf::dpt::{DptChunkKey, deterministic_metric_vector, normalized_chunk_center};
 use crate::usf::pos::grid::types::GridVec;
@@ -138,15 +138,10 @@ impl UsfWorld {
         }
     }
 
-    pub fn sample_chunk_with_scale_binding(
-        &mut self,
-        coord: &GridVec,
-        active_content_profile: &UsfActiveContentProfile,
-        zlm_registry: &ZlmRegistry,
-    ) -> Option<UsfChunkSample> {
+    pub fn sample_chunk(&mut self, coord: &GridVec, active_modpack: &UsfActiveModpack, zlm_registry: &ZlmRegistry) -> Option<UsfChunkSample> {
         let canonical_coord = canonical_grid_coord(coord);
         let scale = canonical_coord.scale;
-        let schema = active_content_profile.schema_for_scale(scale)?;
+        let schema = active_modpack.schema_for_scale(scale)?;
         let zlm_revision = zlm_registry.maps_by_scale.get(&scale).map(|definition| definition.revision).unwrap_or_default();
 
         let scale_state = self.scales.entry(scale).or_insert_with(|| UsfWorldScale::new(scale));
@@ -167,7 +162,7 @@ impl UsfWorld {
             schema,
         );
         apply_metric_programs(scale_state, schema, &canonical_coord, &mut metrics);
-        let zone_type = zlm_registry.classify_with_scale_binding(scale, schema, &metrics, active_content_profile);
+        let zone_type = zlm_registry.classify_for_scale(scale, schema, &metrics, active_modpack);
 
         let sample = UsfChunkSample {
             schema_revision: schema.revision,

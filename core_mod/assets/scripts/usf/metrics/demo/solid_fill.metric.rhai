@@ -1,11 +1,8 @@
-use core_mod_api::usf::substrate as UsfSubstrate;
-
-fn register_metric() {
+fn register_metric(ctx) {
     let scale_min = 0;
-    let scale_max = UsfSubstrate::scale_level_count() - 1;
-    UsfSubstrate::add_metric_typed(
+    let scale_max = ctx.scale_level_count() - 1;
+    ctx.register(
         0,
-        "solid_fill",
         "f32",
         "terrain.solid_fill.normalized",
         "brick",

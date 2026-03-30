@@ -1,11 +1,8 @@
-use core_mod_api::usf::substrate as UsfSubstrate;
-
-fn register_metric() {
+fn register_metric(ctx) {
     let scale_min = 0;
-    let scale_max = UsfSubstrate::scale_level_count() - 1;
-    UsfSubstrate::add_metric_typed(
+    let scale_max = ctx.scale_level_count() - 1;
+    ctx.register(
         1,
-        "root_pos_x",
         "f32",
         "position.root.x.normalized",
         "brick",

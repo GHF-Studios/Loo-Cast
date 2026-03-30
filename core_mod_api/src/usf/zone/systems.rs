@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use crate::bevy::prelude::*;
 use crate::chunk::components::{Chunk, ChunkLoader};
 use crate::player::components::Player;
-use crate::usf::content::UsfActiveContentProfile;
+use crate::usf::content::UsfActiveModpack;
 use crate::usf::definition::ZoneTypeId;
 use crate::usf::phenomenon::{Phenomenon, PhenomenonId, PhenomenonModel, PhenomenonScriptDefinitionRef};
 use crate::usf::pos::grid::types::GridVec;
@@ -25,7 +25,7 @@ pub(super) fn sync_zone_temporal_context_system(player_loader_query: Query<&Chun
 
 pub(super) fn reconcile_zone_runtime_system(
     mut commands: Commands,
-    active_content_profile: Res<UsfActiveContentProfile>,
+    active_modpack: Res<UsfActiveModpack>,
     mut usf_world: ResMut<UsfWorld>,
     zlm_registry: Res<ZlmRegistry>,
     temporal_context: Res<ZoneTemporalContext>,
@@ -35,7 +35,7 @@ pub(super) fn reconcile_zone_runtime_system(
 ) {
     let mut classified_chunks = HashMap::<(Scale, ZoneTypeId), Vec<GridVec>>::new();
     for chunk in loaded_chunks.iter() {
-        let Some(chunk_sample) = usf_world.sample_chunk_with_scale_binding(&chunk.coord, &active_content_profile, &zlm_registry) else {
+        let Some(chunk_sample) = usf_world.sample_chunk(&chunk.coord, &active_modpack, &zlm_registry) else {
             continue;
         };
         let zone_type = chunk_sample.zone_type;
