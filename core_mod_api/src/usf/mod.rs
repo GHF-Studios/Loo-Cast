@@ -4,11 +4,12 @@ pub mod content;
 pub mod definition;
 pub mod dpt;
 pub mod math;
-pub mod mod_runtime;
 pub mod phenomenon;
 pub mod pos;
+pub mod runtime;
 pub mod scale;
 pub mod schedule;
+pub mod substrate;
 pub mod transform;
 pub mod world;
 pub mod zlm;
@@ -19,6 +20,10 @@ use content::{UsfActiveModpack, UsfConfiguredMod, UsfExecutionPlan, UsfScaleDefi
 use definition::{DptMetricDefinition, DptMetricId, DptSchema, ZoneTypeId};
 use dpt::{DptChunkKey, DptChunkRecord};
 use phenomenon::{PhenomenonId, PhenomenonKind, PhenomenonLineage, PhenomenonMeshWindow, PhenomenonNodeKey, PhenomenonNodeSeed, PhenomenonStateSnapshot};
+use substrate::{
+    AdaptiveChunkSubstrate, AdaptiveSubstrateOctreeNode, ChunkEdgeInterface, SubstrateChunkEdge, SubstrateChunkSummary, SubstrateLeafContainer,
+    SubstrateTransitionDecision,
+};
 use zlm::{ZlmMetricBand, ZlmScaleDefinition, ZlmZoneRule};
 use zone::{
     StableRegionId, ZoneAnchor, ZoneBehaviorRegistry, ZoneDensityProfile, ZoneExtent, ZoneId, ZonePhenomenon, ZonePhenomenonSelectionStrategy,
@@ -37,7 +42,8 @@ impl Plugin for UsfPlugin {
             .add_plugins(dpt::DptPlugin)
             .add_plugins(zlm::ZlmPlugin)
             .add_plugins(world::WorldPlugin)
-            .add_plugins(mod_runtime::UsfModRuntimePlugin)
+            .add_plugins(substrate::SubstratePlugin)
+            .add_plugins(runtime::UsfRuntimePlugin)
             .add_plugins(zone::ZonePlugin)
             .add_plugins(phenomenon::PhenomenonPlugin)
             .register_type::<DptMetricId>()
@@ -73,6 +79,13 @@ impl Plugin for UsfPlugin {
             .register_type::<PhenomenonLineage>()
             .register_type::<PhenomenonNodeKey>()
             .register_type::<PhenomenonStateSnapshot>()
-            .register_type::<PhenomenonMeshWindow>();
+            .register_type::<PhenomenonMeshWindow>()
+            .register_type::<SubstrateChunkEdge>()
+            .register_type::<ChunkEdgeInterface>()
+            .register_type::<SubstrateLeafContainer>()
+            .register_type::<SubstrateTransitionDecision>()
+            .register_type::<AdaptiveSubstrateOctreeNode>()
+            .register_type::<SubstrateChunkSummary>()
+            .register_type::<AdaptiveChunkSubstrate>();
     }
 }

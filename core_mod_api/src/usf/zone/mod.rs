@@ -1,3 +1,4 @@
+mod policy;
 mod resources;
 mod systems;
 mod types;
@@ -7,6 +8,7 @@ use crate::core::orchestration::AppSet;
 use crate::usf::content::UsfActiveModpack;
 use crate::usf::schedule::{UsfSimulationSet, UsfZoneSet};
 
+pub use policy::{select_supported_phenomenon_for_zone, support_count_key};
 pub use resources::{
     ZoneBehaviorRegistry, ZoneDensityProfile, ZonePhenomenonSelectionStrategy, ZonePhenomenonSpawnPolicy, ZonePhenomenonSupport, ZoneRealizationState,
     ZoneRealizedPhenomenon, ZoneRuntimeState, ZoneSelectionPolicy, ZoneTemporalContext, time_scale_for_levels_above, time_scale_for_scale,

@@ -3,18 +3,15 @@ use std::collections::{HashMap, HashSet};
 use crate::bevy::prelude::*;
 use crate::chunk::components::{Chunk, ChunkLoader};
 use crate::player::components::Player;
-use crate::usf::content::UsfActiveModpack;
 use crate::usf::definition::ZoneTypeId;
 use crate::usf::phenomenon::{Phenomenon, PhenomenonId, PhenomenonModel, PhenomenonScriptDefinitionRef};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
-use crate::usf::world::UsfWorld;
-use crate::usf::zlm::ZlmRegistry;
+use crate::usf::substrate::AdaptiveSubstrateStore;
 
-use super::resources::{
-    ZoneBehaviorRegistry, ZonePhenomenonSpawnPolicy, ZonePhenomenonSupport, ZoneRealizationState, ZoneRealizedPhenomenon, ZoneRuntimeState, ZoneTemporalContext,
-};
+use super::resources::{ZoneBehaviorRegistry, ZonePhenomenonSpawnPolicy, ZoneRealizationState, ZoneRealizedPhenomenon, ZoneRuntimeState, ZoneTemporalContext};
 use super::types::{StableRegionId, ZoneAnchor, ZoneExtent, ZoneId, ZonePhenomenon, ZoneRealizationEvent, ZoneTimeFactor};
+use super::{select_supported_phenomenon_for_zone, support_count_key};
 
 pub(super) fn sync_zone_temporal_context_system(player_loader_query: Query<&ChunkLoader, With<Player>>, mut temporal_context: ResMut<ZoneTemporalContext>) {
     let Ok(chunk_loader) = player_loader_query.single() else {
@@ -25,9 +22,7 @@ pub(super) fn sync_zone_temporal_context_system(player_loader_query: Query<&Chun
 
 pub(super) fn reconcile_zone_runtime_system(
     mut commands: Commands,
-    active_modpack: Res<UsfActiveModpack>,
-    mut usf_world: ResMut<UsfWorld>,
-    zlm_registry: Res<ZlmRegistry>,
+    substrate_store: Res<AdaptiveSubstrateStore>,
     temporal_context: Res<ZoneTemporalContext>,
     loaded_chunks: Query<&Chunk>,
     mut runtime_state: ResMut<ZoneRuntimeState>,
@@ -35,11 +30,13 @@ pub(super) fn reconcile_zone_runtime_system(
 ) {
     let mut classified_chunks = HashMap::<(Scale, ZoneTypeId), Vec<GridVec>>::new();
     for chunk in loaded_chunks.iter() {
-        let Some(chunk_sample) = usf_world.sample_chunk(&chunk.coord, &active_modpack, &zlm_registry) else {
+        let mut canonical_coord = chunk.coord.clone();
+        canonical_coord.normalize();
+        let Some(chunk_summary) = substrate_store.summary_for_chunk(&canonical_coord) else {
             continue;
         };
-        let zone_type = chunk_sample.zone_type;
-        classified_chunks.entry((chunk.coord.scale, zone_type)).or_default().push(chunk.coord.clone());
+        let zone_type = chunk_summary.zone_type.clone();
+        classified_chunks.entry((canonical_coord.scale, zone_type)).or_default().push(canonical_coord);
     }
 
     let mut components = Vec::<ClassifiedZoneComponent>::new();
@@ -463,98 +460,6 @@ fn deterministic_phenomenon_id_for_zone(zone_id: &ZoneId) -> PhenomenonId {
     PhenomenonId(state)
 }
 
-fn select_supported_phenomenon_for_zone(
-    zone_id: &ZoneId,
-    registry: &ZoneBehaviorRegistry,
-    active_counts: &HashMap<(ZoneTypeId, String), u32>,
-    active_scale: Scale,
-) -> Option<ZonePhenomenonSupport> {
-    let supports = registry.supports_for_zone(&zone_id.zone_type).unwrap_or_else(|| {
-        panic!(
-            "USF zone realization failed: no supported phenomena for zone '{}'. Add support entries in '*.zone.rhai'.",
-            zone_id.zone_type.0
-        )
-    });
-    let selection_policy = registry.selection_policy_for_zone(&zone_id.zone_type).unwrap_or_else(|| {
-        panic!(
-            "USF zone realization failed: no selection policy for zone '{}'. Define one in '*.zone.rhai'.",
-            zone_id.zone_type.0
-        )
-    });
-
-    let eligible_supports = supports
-        .iter()
-        .filter(|support| {
-            let active_count = active_counts
-                .get(&support_count_key(&zone_id.zone_type, &support.phenomenon_id))
-                .copied()
-                .unwrap_or(0);
-            active_count < support.max_active
-        })
-        .cloned()
-        .collect::<Vec<_>>();
-    if eligible_supports.is_empty() {
-        return None;
-    }
-
-    let highest_priority = eligible_supports
-        .iter()
-        .map(|support| support.priority)
-        .max()
-        .expect("eligible_supports contains at least one entry");
-    let top_supports = eligible_supports
-        .iter()
-        .filter(|support| support.priority == highest_priority)
-        .cloned()
-        .collect::<Vec<_>>();
-    if top_supports.len() == 1 {
-        return Some(top_supports[0].clone());
-    }
-
-    match selection_policy.strategy {
-        super::resources::ZonePhenomenonSelectionStrategy::WeightedTopPriority => {
-            let total_weight = top_supports.iter().map(|support| support.weight.max(0.0)).sum::<f32>();
-            if total_weight <= f32::EPSILON {
-                let seed = mix64(deterministic_phenomenon_id_for_zone(zone_id).0 ^ 0x5f37_59df_5a8e_8b4c);
-                let index = (seed % top_supports.len() as u64) as usize;
-                return Some(top_supports[index].clone());
-            }
-
-            let seed = mix64(deterministic_phenomenon_id_for_zone(zone_id).0 ^ (active_scale.index_from_top() as u64) ^ 0x2d1b_2fa1_d4b4_12cf);
-            let normalized = (seed as f64) / (u64::MAX as f64);
-            let mut target = (normalized * (total_weight as f64)) as f32;
-            for support in &top_supports {
-                target -= support.weight.max(0.0);
-                if target <= 0.0 {
-                    return Some(support.clone());
-                }
-            }
-            Some(top_supports.last().expect("top_supports contains at least one entry").clone())
-        }
-        super::resources::ZonePhenomenonSelectionStrategy::HighestWeightTopPriority => {
-            let highest_weight = top_supports.iter().map(|support| support.weight).fold(f32::NEG_INFINITY, f32::max);
-            let mut candidates = top_supports
-                .iter()
-                .filter(|support| (support.weight - highest_weight).abs() <= f32::EPSILON)
-                .cloned()
-                .collect::<Vec<_>>();
-            candidates.sort_by(|a, b| a.phenomenon_id.cmp(&b.phenomenon_id));
-            Some(candidates.first().expect("candidates contains at least one entry").clone())
-        }
-        super::resources::ZonePhenomenonSelectionStrategy::RoundRobinTopPriority => {
-            let seed =
-                mix64(zone_id.stable_region_id.0 ^ (active_scale.index_from_top() as u64) ^ (zone_id.scale.index_from_top() as u64) ^ 0x8a3f_e51d_2d93_46b7);
-            let index = (seed % top_supports.len() as u64) as usize;
-            Some(top_supports[index].clone())
-        }
-    }
-}
-
-#[inline]
-fn support_count_key(zone_type: &ZoneTypeId, phenomenon_id: &str) -> (ZoneTypeId, String) {
-    (zone_type.clone(), phenomenon_id.to_ascii_lowercase())
-}
-
 fn compute_stable_region_id(scale: Scale, zone_type: &ZoneTypeId, coords: &[GridVec]) -> StableRegionId {
     let mut state = mix64(0xc6a4_a793_5bd1_e995 ^ scale.index_from_top() as u64);
     for byte in zone_type.0.as_bytes() {
@@ -593,6 +498,7 @@ fn mix64(mut state: u64) -> u64 {
 mod tests {
     use super::*;
     use crate::usf::pos::types::GridXyz;
+    use crate::usf::zone::ZonePhenomenonSupport;
 
     fn zone_id(scale: Scale, zone_type: &str, stable_region_id: u64) -> ZoneId {
         ZoneId {

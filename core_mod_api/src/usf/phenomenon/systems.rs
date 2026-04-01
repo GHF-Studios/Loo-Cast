@@ -1,16 +1,25 @@
 use std::collections::{HashMap, HashSet};
+use std::path::{Path, PathBuf};
 
 use crate::bevy::prelude::*;
 use crate::chunk::components::ChunkLoader;
 use crate::player::components::Player;
 
 use crate::usf::phenomenon::components::{
-    Phenomenon, PhenomenonModel, PhenomenonModelScriptDefinitionRef, PhenomenonNode, PhenomenonNodeLifecycle, PhenomenonNodeState, PhenomenonRootNodeRef,
-    PhenomenonScriptDefinitionRef,
+    MonolithicPhenomenaModel, PartialPhenomenaModel, PhenomenaModelState, PhenomenaModelSupport, PhenomenaModelTopology, PhenomenaProjectionContract,
+    Phenomenon, PhenomenonModel, PhenomenonModelProjectionContract, PhenomenonModelScriptDefinitionRef, PhenomenonModelSupport, PhenomenonNode,
+    PhenomenonNodeLifecycle, PhenomenonNodeState, PhenomenonRootNodeRef, PhenomenonScriptDefinitionRef,
 };
 use crate::usf::phenomenon::generator::{BuildStateInput, PhenomenonGenerator, PlanChildrenInput};
+use crate::usf::phenomenon::persistence::{
+    load_partial_phenomena_model_record, load_phenomena_model_record, load_phenomenon_record, model_record_from_runtime, monolithic_model_record_from_runtime,
+    partial_model_record_from_runtime, phenomenon_record_from_runtime, save_partial_phenomena_model_record, save_phenomena_model_record,
+    save_phenomenon_record, topology_from_tag,
+};
 use crate::usf::phenomenon::resources::PhenomenonDefinitionRegistry;
 use crate::usf::phenomenon::types::{PhenomenonId, PhenomenonLineage, PhenomenonNodeKey, PhenomenonNodeSeed};
+use crate::usf::pos::grid::types::GridVec;
+use crate::usf::pos::types::GridXyz;
 use crate::usf::pos::types::LocalCell3;
 use crate::usf::scale::Scale;
 
@@ -55,6 +64,26 @@ pub struct PhenomenonDebugStats {
     pub mesh_cache_hits_frame: u32,
 }
 
+#[derive(Resource, Reflect, Debug, Clone, PartialEq, Eq)]
+#[reflect(Resource)]
+pub struct PhenomenonPersistenceRuntimeSettings {
+    pub enabled: bool,
+    pub persistence_dir: String,
+}
+impl Default for PhenomenonPersistenceRuntimeSettings {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            persistence_dir: "target/usf_demo/phenomena_authority".to_string(),
+        }
+    }
+}
+
+#[derive(Resource, Debug, Default)]
+pub struct PhenomenonPersistenceHydrationState {
+    pub hydrated: bool,
+}
+
 #[inline]
 fn is_canonical_root_node(node: &PhenomenonNode) -> bool {
     node.parent.is_none()
@@ -65,21 +94,25 @@ fn is_canonical_root_node(node: &PhenomenonNode) -> bool {
         && node.lineage.leaf() == Some(LocalCell3::ZERO)
 }
 
-pub(super) fn ensure_primary_models_system(
+pub(super) fn ensure_scale_models_system(
     mut commands: Commands,
     definitions: Res<PhenomenonDefinitionRegistry>,
     phenomenon_query: Query<(Entity, &Phenomenon, Option<&PhenomenonScriptDefinitionRef>)>,
     model_query: Query<(Entity, &PhenomenonModel, Option<&PhenomenonModelScriptDefinitionRef>)>,
 ) {
-    let mut typed_models_by_phenomenon = HashMap::<Entity, Vec<(Entity, PhenomenonModelScriptDefinitionRef)>>::new();
+    let mut typed_models_by_phenomenon_scale = HashMap::<(Entity, u8, String), Entity>::new();
     for (model_entity, model, model_definition_ref) in model_query.iter() {
         let Some(model_definition_ref) = model_definition_ref else {
             continue;
         };
-        typed_models_by_phenomenon
-            .entry(model.phenomenon_entity)
-            .or_default()
-            .push((model_entity, model_definition_ref.clone()));
+        typed_models_by_phenomenon_scale.insert(
+            (
+                model.phenomenon_entity,
+                model.scale.index_from_top(),
+                model_definition_ref.model_id.to_ascii_lowercase(),
+            ),
+            model_entity,
+        );
     }
 
     for (phenomenon_entity, phenomenon, definition_ref) in phenomenon_query.iter() {
@@ -102,34 +135,73 @@ pub(super) fn ensure_primary_models_system(
                 expected_kind
             );
         }
-        let Some(primary_model_id) = definitions.primary_model_for(&definition_ref.phenomenon_id) else {
-            panic!(
-                "USF phenomenon runtime failed: no primary model configured for '{}'.",
-                definition_ref.phenomenon_id
+
+        for (scale, selected_model_id) in definitions.model_selector_all(&definition_ref.phenomenon_id) {
+            let lookup_key = (phenomenon_entity, scale.index_from_top(), selected_model_id.to_ascii_lowercase());
+            if typed_models_by_phenomenon_scale.contains_key(&lookup_key) {
+                continue;
+            }
+
+            let topology = if scale.index_from_top() <= 8 {
+                PhenomenaModelTopology::PartitionedByChunk
+            } else {
+                PhenomenaModelTopology::MonolithicChunk
+            };
+            let anchor_chunk = GridVec::new_splat(scale, GridXyz::ZERO);
+            let chunk_radius = match topology {
+                PhenomenaModelTopology::MonolithicChunk => 0,
+                PhenomenaModelTopology::PartitionedByChunk => 2,
+            };
+            let support = PhenomenonModelSupport {
+                support: PhenomenaModelSupport {
+                    anchor_chunk: anchor_chunk.clone(),
+                    chunk_radius,
+                },
+            };
+            let projection = PhenomenonModelProjectionContract {
+                contract: PhenomenaProjectionContract::default(),
+            };
+            let model_name = format!(
+                "phenomena_model_scale{}_{}_{}",
+                scale.index_from_top(),
+                definition_ref.phenomenon_id,
+                phenomenon.id.0
             );
-        };
-
-        let has_primary_model = typed_models_by_phenomenon.get(&phenomenon_entity).is_some_and(|models| {
-            models.iter().any(|(_, model_definition)| {
-                model_definition.primary && model_definition.phenomenon_id == definition_ref.phenomenon_id && model_definition.model_id == primary_model_id
-            })
-        });
-        if has_primary_model {
-            continue;
+            let mut entity_commands = commands.spawn((
+                Name::new(model_name),
+                PhenomenonModel {
+                    phenomenon_entity,
+                    phenomenon_id: phenomenon.id,
+                    scale,
+                    topology,
+                },
+                PhenomenonModelScriptDefinitionRef {
+                    model_id: selected_model_id.to_string(),
+                    phenomenon_id: definition_ref.phenomenon_id.clone(),
+                },
+                support.clone(),
+                projection,
+                PhenomenaModelState::default(),
+            ));
+            match topology {
+                PhenomenaModelTopology::MonolithicChunk => {
+                    entity_commands.insert(MonolithicPhenomenaModel {
+                        phenomenon_id: phenomenon.id,
+                        scale,
+                        chunk_coord: anchor_chunk,
+                    });
+                }
+                PhenomenaModelTopology::PartitionedByChunk => {
+                    entity_commands.insert(PartialPhenomenaModel {
+                        phenomenon_id: phenomenon.id,
+                        scale,
+                        partition_key: PartialPhenomenaModel::deterministic_partition_key(phenomenon.id, scale, &anchor_chunk),
+                        chunk_coord: anchor_chunk,
+                    });
+                }
+            }
+            typed_models_by_phenomenon_scale.insert(lookup_key, entity_commands.id());
         }
-
-        commands.spawn((
-            Name::new(format!("phenomenon_model_primary_{}_{}", definition_ref.phenomenon_id, phenomenon.id.0)),
-            PhenomenonModel {
-                phenomenon_entity,
-                scale: Scale::MAX,
-            },
-            PhenomenonModelScriptDefinitionRef {
-                model_id: primary_model_id.to_string(),
-                phenomenon_id: definition_ref.phenomenon_id.clone(),
-                primary: true,
-            },
-        ));
     }
 }
 
@@ -160,10 +232,176 @@ pub(super) fn prune_orphan_models_system(
             commands.entity(model_entity).despawn();
             continue;
         };
+        let Some(expected_model_for_scale) = definitions.model_for_scale(phenomenon_definition_id, model.scale) else {
+            commands.entity(model_entity).despawn();
+            continue;
+        };
         if &model_definition_ref.phenomenon_id != phenomenon_definition_id
             || !definitions.model_belongs_to_phenomenon(&model_definition_ref.model_id, &model_definition_ref.phenomenon_id)
+            || !model_definition_ref.model_id.eq_ignore_ascii_case(expected_model_for_scale)
         {
             commands.entity(model_entity).despawn();
+        }
+    }
+}
+
+pub(super) fn hydrate_persisted_phenomena_state_system(
+    settings: Res<PhenomenonPersistenceRuntimeSettings>,
+    mut hydration_state: ResMut<PhenomenonPersistenceHydrationState>,
+    phenomenon_query: Query<(&Phenomenon, &PhenomenonScriptDefinitionRef)>,
+    mut model_query: Query<(
+        &PhenomenonModel,
+        &PhenomenonModelScriptDefinitionRef,
+        &mut PhenomenonModelSupport,
+        &mut PhenomenonModelProjectionContract,
+        &mut PhenomenaModelState,
+        Option<&PartialPhenomenaModel>,
+    )>,
+) {
+    if !settings.enabled || hydration_state.hydrated {
+        return;
+    }
+
+    for (phenomenon, script_ref) in phenomenon_query.iter() {
+        let record_path = phenomenon_record_path(settings.persistence_dir.as_str(), phenomenon.id);
+        let Some(record) = load_phenomenon_record(&record_path)
+            .unwrap_or_else(|error| panic!("USF phenomenon hydrate failed: could not load phenomenon record '{record_path:?}': {error}"))
+        else {
+            continue;
+        };
+        if record.phenomenon_id != phenomenon.id.0 {
+            panic!(
+                "USF phenomenon hydrate failed: persisted phenomenon id mismatch for '{}': runtime={} persisted={}",
+                script_ref.phenomenon_id, phenomenon.id.0, record.phenomenon_id
+            );
+        }
+    }
+
+    for (model, model_script_ref, mut support, mut projection, mut state, partial) in model_query.iter_mut() {
+        let model_path = model_record_path(
+            settings.persistence_dir.as_str(),
+            model.phenomenon_id,
+            model.scale,
+            model_script_ref.model_id.as_str(),
+        );
+        let Some(record) = load_phenomena_model_record(&model_path)
+            .unwrap_or_else(|error| panic!("USF phenomenon hydrate failed: could not load model record '{model_path:?}': {error}"))
+        else {
+            continue;
+        };
+        if let Ok(topology) = topology_from_tag(record.topology.as_str()) {
+            if topology != model.topology {
+                warn!(
+                    "USF phenomenon hydrate: persisted topology '{}' does not match runtime topology '{:?}' for model '{}'.",
+                    record.topology, model.topology, model_script_ref.model_id
+                );
+            }
+        }
+        if let Ok(anchor_chunk) = record.support_anchor_chunk.to_grid() {
+            support.support.anchor_chunk = anchor_chunk;
+        }
+        support.support.chunk_radius = record.support_chunk_radius;
+        projection.contract.metric_name = record.projection_metric_name;
+        projection.contract.projection_bias = record.projection_bias;
+        projection.contract.projection_gain = record.projection_gain;
+        state.scalar_channels = record.scalar_channels;
+
+        let Some(partial) = partial else {
+            continue;
+        };
+        let partial_path = partial_record_path(
+            settings.persistence_dir.as_str(),
+            partial.phenomenon_id,
+            partial.scale,
+            model_script_ref.model_id.as_str(),
+            partial.partition_key,
+        );
+        let Some(partial_record) = load_partial_phenomena_model_record(&partial_path)
+            .unwrap_or_else(|error| panic!("USF phenomenon hydrate failed: could not load partial record '{partial_path:?}': {error}"))
+        else {
+            continue;
+        };
+        state.scalar_channels = partial_record.scalar_channels;
+    }
+
+    hydration_state.hydrated = true;
+}
+
+pub(super) fn persist_authoritative_phenomena_state_system(
+    settings: Res<PhenomenonPersistenceRuntimeSettings>,
+    phenomenon_query: Query<(Entity, &Phenomenon, &PhenomenonScriptDefinitionRef)>,
+    model_query: Query<(
+        &PhenomenonModel,
+        &PhenomenonModelScriptDefinitionRef,
+        &PhenomenonModelSupport,
+        &PhenomenonModelProjectionContract,
+        &PhenomenaModelState,
+        Option<&MonolithicPhenomenaModel>,
+        Option<&PartialPhenomenaModel>,
+    )>,
+) {
+    if !settings.enabled {
+        return;
+    }
+
+    let mut script_id_by_entity = HashMap::<Entity, String>::new();
+    for (entity, phenomenon, script_ref) in phenomenon_query.iter() {
+        let record = phenomenon_record_from_runtime(phenomenon.id, phenomenon.kind, script_ref.phenomenon_id.as_str());
+        let record_path = phenomenon_record_path(settings.persistence_dir.as_str(), phenomenon.id);
+        if let Err(error) = save_phenomenon_record(&record_path, &record) {
+            panic!(
+                "USF phenomenon persistence failed: could not save phenomenon record '{}' ({:?}): {}",
+                script_ref.phenomenon_id, record_path, error
+            );
+        }
+        script_id_by_entity.insert(entity, script_ref.phenomenon_id.clone());
+    }
+
+    for (model, model_script_ref, support, projection, state, monolithic, partial) in model_query.iter() {
+        let Some(script_id) = script_id_by_entity.get(&model.phenomenon_entity) else {
+            continue;
+        };
+        let model_record = if let Some(monolithic) = monolithic {
+            monolithic_model_record_from_runtime(model_script_ref.model_id.as_str(), monolithic, support, projection, state)
+        } else {
+            model_record_from_runtime(
+                model.phenomenon_id,
+                model_script_ref.model_id.as_str(),
+                model.scale,
+                model.topology,
+                support,
+                projection,
+                state,
+            )
+        };
+        let model_record_path = model_record_path(
+            settings.persistence_dir.as_str(),
+            model.phenomenon_id,
+            model.scale,
+            model_script_ref.model_id.as_str(),
+        );
+        if let Err(error) = save_phenomena_model_record(&model_record_path, &model_record) {
+            panic!(
+                "USF phenomenon persistence failed: could not save model record '{}' for phenomenon '{}' ({:?}): {}",
+                model_script_ref.model_id, script_id, model_record_path, error
+            );
+        }
+
+        if let Some(partial) = partial {
+            let partial_record = partial_model_record_from_runtime(model_script_ref.model_id.as_str(), partial, state);
+            let partial_record_path = partial_record_path(
+                settings.persistence_dir.as_str(),
+                partial.phenomenon_id,
+                partial.scale,
+                model_script_ref.model_id.as_str(),
+                partial.partition_key,
+            );
+            if let Err(error) = save_partial_phenomena_model_record(&partial_record_path, &partial_record) {
+                panic!(
+                    "USF phenomenon persistence failed: could not save partial model record '{}' for phenomenon '{}' ({:?}): {}",
+                    model_script_ref.model_id, script_id, partial_record_path, error
+                );
+            }
         }
     }
 }
@@ -178,6 +416,46 @@ pub(super) fn sync_policy_depth_to_frontier_scale_system(
     let frontier_depth = chunk_loader.phenomenon_frontier_view().scale.index_from_top() as u32;
     let max_allowed_depth = (Scale::SCALE_LEVEL_COUNT - 1) as u32;
     policy.max_depth = frontier_depth.saturating_add(policy.frontier_margin).min(max_allowed_depth);
+}
+
+fn sanitize_id_for_path(id: &str) -> String {
+    let normalized = id.trim().to_ascii_lowercase();
+    if normalized.is_empty() {
+        return "_".to_string();
+    }
+    normalized
+        .chars()
+        .map(|value| {
+            if value.is_ascii_alphanumeric() || value == '_' || value == '-' || value == '.' {
+                value
+            } else {
+                '_'
+            }
+        })
+        .collect::<String>()
+}
+
+fn phenomenon_record_path(root: &str, phenomenon_id: PhenomenonId) -> PathBuf {
+    Path::new(root).join(format!("phenomenon_{:016x}.json", phenomenon_id.0))
+}
+
+fn model_record_path(root: &str, phenomenon_id: PhenomenonId, scale: Scale, model_id: &str) -> PathBuf {
+    Path::new(root).join(format!(
+        "model_{:016x}_scale_{:02}_{}.json",
+        phenomenon_id.0,
+        scale.index_from_top(),
+        sanitize_id_for_path(model_id),
+    ))
+}
+
+fn partial_record_path(root: &str, phenomenon_id: PhenomenonId, scale: Scale, model_id: &str, partition_key: u64) -> PathBuf {
+    Path::new(root).join(format!(
+        "partial_{:016x}_scale_{:02}_{}_part_{:016x}.json",
+        phenomenon_id.0,
+        scale.index_from_top(),
+        sanitize_id_for_path(model_id),
+        partition_key,
+    ))
 }
 
 pub(super) fn ensure_root_nodes_system(

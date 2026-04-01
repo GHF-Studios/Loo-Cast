@@ -35,24 +35,24 @@ pub struct UsfCapabilityGraph {
 }
 impl Default for UsfCapabilityGraph {
     fn default() -> Self {
-        let world_capabilities = vec![CapabilityId::new("world.chunk_surface")];
-        let presentation_capabilities = vec![CapabilityId::new("presentation.render.chunk_surface_mesh")];
+        let world_capabilities = vec![CapabilityId::new("world.chunk_manifestation_cache")];
+        let presentation_capabilities = vec![CapabilityId::new("presentation.render.chunk_manifestation_mesh")];
         let simulation_capabilities = vec![CapabilityId::new("simulation.physics.rapier.local")];
 
         let mut contracts_by_capability = HashMap::new();
         contracts_by_capability.insert(
-            CapabilityId::new("world.chunk_surface"),
+            CapabilityId::new("world.chunk_manifestation_cache"),
             CapabilityExecutionContract {
-                id: CapabilityId::new("world.chunk_surface"),
-                owner_path: "usf.mod_runtime.chunk_surface".to_string(),
-                authority_mode: CapabilityAuthorityMode::AuthoritativeRuntime,
+                id: CapabilityId::new("world.chunk_manifestation_cache"),
+                owner_path: "usf.runtime.chunk_manifestation".to_string(),
+                authority_mode: CapabilityAuthorityMode::ProjectionOnly,
             },
         );
         contracts_by_capability.insert(
-            CapabilityId::new("presentation.render.chunk_surface_mesh"),
+            CapabilityId::new("presentation.render.chunk_manifestation_mesh"),
             CapabilityExecutionContract {
-                id: CapabilityId::new("presentation.render.chunk_surface_mesh"),
-                owner_path: "usf.mod_runtime.chunk_surface".to_string(),
+                id: CapabilityId::new("presentation.render.chunk_manifestation_mesh"),
+                owner_path: "usf.runtime.chunk_manifestation".to_string(),
                 authority_mode: CapabilityAuthorityMode::ProjectionOnly,
             },
         );

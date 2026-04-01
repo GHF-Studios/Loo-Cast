@@ -199,6 +199,56 @@ impl PhenomenonDefinitionRegistry {
         self.metric_surface_debug_by_model_id.get(&normalize_identifier(model_id)).copied()
     }
 
+    pub fn model_selector_single(&self, phenomenon_id: &str, scale: Scale) -> Option<&str> {
+        self.model_for_scale(phenomenon_id, scale)
+    }
+
+    pub fn model_selector_all(&self, phenomenon_id: &str) -> Vec<(Scale, &str)> {
+        let mut selected = Vec::with_capacity(Scale::SCALE_LEVEL_COUNT as usize);
+        for scale_index in 0..Scale::SCALE_LEVEL_COUNT {
+            let Some(scale) = Scale::from_index_from_top(scale_index) else {
+                continue;
+            };
+            let Some(model_id) = self.model_for_scale(phenomenon_id, scale) else {
+                continue;
+            };
+            selected.push((scale, model_id));
+        }
+        selected
+    }
+
+    pub fn model_selector_range(&self, phenomenon_id: &str, min_scale: Scale, max_scale: Scale) -> Vec<(Scale, &str)> {
+        let mut lower = min_scale.index_from_top();
+        let mut upper = max_scale.index_from_top();
+        if lower > upper {
+            std::mem::swap(&mut lower, &mut upper);
+        }
+
+        let mut selected = Vec::new();
+        for scale_index in lower..=upper {
+            let Some(scale) = Scale::from_index_from_top(scale_index) else {
+                continue;
+            };
+            let Some(model_id) = self.model_for_scale(phenomenon_id, scale) else {
+                continue;
+            };
+            selected.push((scale, model_id));
+        }
+        selected
+    }
+
+    pub fn model_selector_set(&self, phenomenon_id: &str, scales: &[Scale]) -> Vec<(Scale, &str)> {
+        let mut selected = Vec::new();
+        for scale in scales {
+            let Some(model_id) = self.model_for_scale(phenomenon_id, *scale) else {
+                continue;
+            };
+            selected.push((*scale, model_id));
+        }
+        selected
+    }
+
+    // Compatibility shim only. Runtime selection must be explicit by (phenomenon_id, scale).
     pub fn primary_model_for(&self, phenomenon_id: &str) -> Option<&str> {
         self.model_for_scale(phenomenon_id, Scale::MAX)
     }
