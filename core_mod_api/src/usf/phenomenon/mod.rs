@@ -12,9 +12,10 @@ pub mod systems;
 pub mod types;
 
 pub use components::{
-    MonolithicPhenomenaModel, PartialPhenomenaModel, PhenomenaModelState, PhenomenaModelSupport, PhenomenaModelTopology, PhenomenaProjectionContract,
-    Phenomenon, PhenomenonModel, PhenomenonModelProjectionContract, PhenomenonModelScriptDefinitionRef, PhenomenonModelSupport, PhenomenonNode,
-    PhenomenonNodeLifecycle, PhenomenonNodeState, PhenomenonRootNodeRef, PhenomenonScriptDefinitionRef,
+    MonolithicPhenomenaModel, PartialPhenomenaModel, PartitionedPhenomenaModelMember, PartitionedPhenomenaModelRoot, PhenomenaModelState,
+    PhenomenaModelSupport, PhenomenaModelTopology, PhenomenaProjectionContract, Phenomenon, PhenomenonModel, PhenomenonModelProjectionContract,
+    PhenomenonModelScriptDefinitionRef, PhenomenonModelSupport, PhenomenonNode, PhenomenonNodeLifecycle, PhenomenonNodeState, PhenomenonRootNodeRef,
+    PhenomenonScriptDefinitionRef,
 };
 pub use generator::{
     BuildStateInput, MeshWindowInput, PhenomenonChildPlan, PhenomenonGenerator, PhenomenonMeshWindow, PhenomenonStateSnapshot, PlanChildrenInput,
@@ -29,12 +30,15 @@ pub use resources::PhenomenonDefinitionRegistry;
 pub use systems::{
     PhenomenonDebugStats, PhenomenonGeneratorState, PhenomenonLifecyclePolicy, PhenomenonPersistenceHydrationState, PhenomenonPersistenceRuntimeSettings,
 };
-pub use types::{MetricSurfaceDebugFieldDefinition, PhenomenonId, PhenomenonKind, PhenomenonLineage, PhenomenonNodeKey, PhenomenonNodeSeed};
+pub use types::{
+    ManifestationDensityFieldDefinition, PhenomenonCapability, PhenomenonId, PhenomenonKind, PhenomenonLineage, PhenomenonManifestationFieldContract,
+    PhenomenonNodeKey, PhenomenonNodeSeed,
+};
 
 use systems::{
-    despawn_invalid_nodes_system, ensure_root_nodes_system, ensure_scale_models_system, expand_phenomenon_frontier_system,
-    hydrate_persisted_phenomena_state_system, persist_authoritative_phenomena_state_system, prune_orphan_models_system, refresh_active_node_stats_system,
-    sync_policy_depth_to_frontier_scale_system,
+    apply_zone_realization_startup_hooks_system, despawn_invalid_nodes_system, enforce_model_topology_component_contracts_system, ensure_root_nodes_system,
+    ensure_scale_models_system, expand_phenomenon_frontier_system, hydrate_persisted_phenomena_state_system, persist_authoritative_phenomena_state_system,
+    prune_orphan_models_system, refresh_active_node_stats_system, sync_partitioned_model_members_system, sync_policy_depth_to_frontier_scale_system,
 };
 
 pub(crate) struct PhenomenonPlugin;
@@ -51,8 +55,11 @@ impl Plugin for PhenomenonPlugin {
                 (
                     sync_policy_depth_to_frontier_scale_system,
                     ensure_scale_models_system,
-                    hydrate_persisted_phenomena_state_system.after(ensure_scale_models_system),
-                    prune_orphan_models_system.after(ensure_scale_models_system),
+                    enforce_model_topology_component_contracts_system.after(ensure_scale_models_system),
+                    apply_zone_realization_startup_hooks_system.after(enforce_model_topology_component_contracts_system),
+                    hydrate_persisted_phenomena_state_system.after(apply_zone_realization_startup_hooks_system),
+                    sync_partitioned_model_members_system.after(hydrate_persisted_phenomena_state_system),
+                    prune_orphan_models_system.after(sync_partitioned_model_members_system),
                     ensure_root_nodes_system,
                     expand_phenomenon_frontier_system.after(ensure_root_nodes_system),
                     despawn_invalid_nodes_system.after(expand_phenomenon_frontier_system),
@@ -70,6 +77,8 @@ impl Plugin for PhenomenonPlugin {
             .register_type::<PhenomenonModelSupport>()
             .register_type::<PhenomenonModelProjectionContract>()
             .register_type::<MonolithicPhenomenaModel>()
+            .register_type::<PartitionedPhenomenaModelRoot>()
+            .register_type::<PartitionedPhenomenaModelMember>()
             .register_type::<PartialPhenomenaModel>()
             .register_type::<PhenomenaModelState>()
             .register_type::<PhenomenonScriptDefinitionRef>()
@@ -82,7 +91,8 @@ impl Plugin for PhenomenonPlugin {
             .register_type::<PhenomenonLifecyclePolicy>()
             .register_type::<PhenomenonDebugStats>()
             .register_type::<PhenomenonPersistenceRuntimeSettings>()
-            .register_type::<MetricSurfaceDebugFieldDefinition>()
+            .register_type::<ManifestationDensityFieldDefinition>()
+            .register_type::<PhenomenonManifestationFieldContract>()
             .register_type::<PhenomenonLatticeWindow>();
     }
 }

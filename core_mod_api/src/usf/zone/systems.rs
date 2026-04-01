@@ -1,5 +1,3 @@
-use std::collections::{HashMap, HashSet};
-
 use crate::bevy::prelude::*;
 use crate::chunk::components::{Chunk, ChunkLoader};
 use crate::player::components::Player;
@@ -8,6 +6,7 @@ use crate::usf::phenomenon::{Phenomenon, PhenomenonId, PhenomenonModel, Phenomen
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
 use crate::usf::substrate::AdaptiveSubstrateStore;
+use std::collections::{HashMap, HashSet};
 
 use super::resources::{ZoneBehaviorRegistry, ZonePhenomenonSpawnPolicy, ZoneRealizationState, ZoneRealizedPhenomenon, ZoneRuntimeState, ZoneTemporalContext};
 use super::types::{StableRegionId, ZoneAnchor, ZoneExtent, ZoneId, ZonePhenomenon, ZoneRealizationEvent, ZoneTimeFactor};
@@ -197,7 +196,7 @@ pub(super) fn reconcile_zone_realization_system(
                 continue;
             };
             let phenomenon_id = deterministic_phenomenon_id_for_zone(&zone_id);
-            if selected_support.spawn_policy != ZonePhenomenonSpawnPolicy::SinglePrimary {
+            if selected_support.spawn_policy != ZonePhenomenonSpawnPolicy::SinglePerZone {
                 panic!(
                     "USF zone realization failed: unsupported spawn policy '{:?}' for zone '{}'.",
                     selected_support.spawn_policy, zone_id.zone_type.0
@@ -565,11 +564,11 @@ mod tests {
         registry.phenomenon_support_by_zone.insert(
             ZoneTypeId::new("mystic"),
             vec![ZonePhenomenonSupport {
-                phenomenon_id: "phenomenon.demo.surface".to_string(),
-                kind: crate::usf::phenomenon::PhenomenonKind::MetricSurfaceDebug,
+                phenomenon_id: "phenomenon.demo.manifestation_density".to_string(),
+                kind: crate::usf::phenomenon::PhenomenonKind::ManifestationDensityDebug,
                 priority: 100,
                 weight: 1.0,
-                spawn_policy: ZonePhenomenonSpawnPolicy::SinglePrimary,
+                spawn_policy: ZonePhenomenonSpawnPolicy::SinglePerZone,
                 max_active: 1,
             }],
         );
@@ -583,7 +582,7 @@ mod tests {
         let kind = select_supported_phenomenon_for_zone(&zone_id(Scale::MAX, "mystic", 1234), &registry, &HashMap::new(), Scale::MAX)
             .expect("expected support selection")
             .kind;
-        assert_eq!(kind, crate::usf::phenomenon::PhenomenonKind::MetricSurfaceDebug);
+        assert_eq!(kind, crate::usf::phenomenon::PhenomenonKind::ManifestationDensityDebug);
     }
 
     #[test]
@@ -598,18 +597,18 @@ mod tests {
             vec![
                 ZonePhenomenonSupport {
                     phenomenon_id: "phenomenon.debug.alpha".to_string(),
-                    kind: crate::usf::phenomenon::PhenomenonKind::MetricSurfaceDebug,
+                    kind: crate::usf::phenomenon::PhenomenonKind::ManifestationDensityDebug,
                     priority: 100,
                     weight: 1.0,
-                    spawn_policy: ZonePhenomenonSpawnPolicy::SinglePrimary,
+                    spawn_policy: ZonePhenomenonSpawnPolicy::SinglePerZone,
                     max_active: 1,
                 },
                 ZonePhenomenonSupport {
                     phenomenon_id: "phenomenon.debug.beta".to_string(),
-                    kind: crate::usf::phenomenon::PhenomenonKind::MetricSurfaceDebug,
+                    kind: crate::usf::phenomenon::PhenomenonKind::ManifestationDensityDebug,
                     priority: 100,
                     weight: 1.0,
-                    spawn_policy: ZonePhenomenonSpawnPolicy::SinglePrimary,
+                    spawn_policy: ZonePhenomenonSpawnPolicy::SinglePerZone,
                     max_active: 1,
                 },
             ],
@@ -640,10 +639,10 @@ mod tests {
             ZoneTypeId::new("mystic"),
             vec![ZonePhenomenonSupport {
                 phenomenon_id: "phenomenon.debug.alpha".to_string(),
-                kind: crate::usf::phenomenon::PhenomenonKind::MetricSurfaceDebug,
+                kind: crate::usf::phenomenon::PhenomenonKind::ManifestationDensityDebug,
                 priority: 100,
                 weight: 1.0,
-                spawn_policy: ZonePhenomenonSpawnPolicy::SinglePrimary,
+                spawn_policy: ZonePhenomenonSpawnPolicy::SinglePerZone,
                 max_active: 1,
             }],
         );

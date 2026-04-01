@@ -4,13 +4,16 @@ use crate::bevy::prelude::*;
 use crate::rhai_binding::engine::statics::{USF_PHENOMENA_BY_ID, USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE, USF_PHENOMENON_MODELS_BY_ID};
 use crate::usf::scale::Scale;
 
-use super::types::{MetricSurfaceDebugFieldDefinition, PhenomenonKind};
+use super::components::PhenomenaModelTopology;
+use super::types::{ManifestationDensityFieldDefinition, PhenomenonCapability, PhenomenonKind, PhenomenonManifestationFieldContract};
 
 #[derive(Resource, Reflect, Debug, Clone)]
 #[reflect(Resource)]
 pub struct PhenomenonDefinitionRegistry {
     pub kind_by_phenomenon_id: HashMap<String, PhenomenonKind>,
-    pub metric_surface_debug_by_model_id: HashMap<String, MetricSurfaceDebugFieldDefinition>,
+    pub manifestation_density_by_model_id: HashMap<String, ManifestationDensityFieldDefinition>,
+    pub topology_by_model_id: HashMap<String, PhenomenaModelTopology>,
+    pub support_chunk_radius_by_model_id: HashMap<String, u16>,
     pub model_selection_by_phenomenon_scale: HashMap<String, String>,
     pub phenomenon_by_model_id: HashMap<String, String>,
 }
@@ -42,7 +45,9 @@ impl Default for PhenomenonDefinitionRegistry {
         }
 
         let mut phenomenon_by_model_id = HashMap::new();
-        let mut metric_surface_debug_by_model_id = HashMap::new();
+        let mut manifestation_density_by_model_id = HashMap::new();
+        let mut topology_by_model_id = HashMap::new();
+        let mut support_chunk_radius_by_model_id = HashMap::new();
         for (model_id, model) in script_models {
             let normalized_model_id = normalize_identifier(&model_id);
             let normalized_phenomenon_id = normalize_identifier(&model.phenomenon_id);
@@ -52,12 +57,15 @@ impl Default for PhenomenonDefinitionRegistry {
                     normalized_model_id, normalized_phenomenon_id
                 );
             };
-            if kind == PhenomenonKind::MetricSurfaceDebug {
-                let Some(field) = model.metric_surface_debug else {
+            if kind.supports_capability(PhenomenonCapability::ManifestationDensityField) {
+                let Some(field) = model.manifestation_density else {
                     panic!(
-                        "USF phenomenon bootstrap failed: model '{}' belongs to metric_surface_debug phenomenon '{}' \
-                         but has no field definition. Call set_metric_surface_debug_model_field(...) in the model script.",
-                        normalized_model_id, normalized_phenomenon_id
+                        "USF phenomenon bootstrap failed: model '{}' belongs to phenomenon '{}' (kind='{}') \
+                         requiring capability 'manifestation_density_field' but has no field definition. \
+                         Call set_manifestation_density_field(...) in the model script.",
+                        normalized_model_id,
+                        normalized_phenomenon_id,
+                        kind.canonical_id()
                     );
                 };
                 if !field.coarse_span_units.is_finite() || field.coarse_span_units <= 0.0 {
@@ -89,9 +97,9 @@ impl Default for PhenomenonDefinitionRegistry {
                         normalized_model_id, field.bias, field.gain, field.center
                     );
                 }
-                metric_surface_debug_by_model_id.insert(
+                manifestation_density_by_model_id.insert(
                     normalized_model_id.clone(),
-                    MetricSurfaceDebugFieldDefinition {
+                    ManifestationDensityFieldDefinition {
                         coarse_span_units: field.coarse_span_units,
                         detail_span_units: field.detail_span_units,
                         coarse_weight: field.coarse_weight,
@@ -99,11 +107,34 @@ impl Default for PhenomenonDefinitionRegistry {
                         bias: field.bias,
                         gain: field.gain,
                         center: field.center,
-                        seed_salt_primary: field.seed_salt_primary,
+                        seed_salt_coarse: field.seed_salt_coarse,
                         seed_salt_detail: field.seed_salt_detail,
                     },
                 );
             }
+            let topology = parse_topology_tag(model.topology.as_str());
+            let support_chunk_radius = match topology {
+                PhenomenaModelTopology::MonolithicChunk => {
+                    if model.support_chunk_radius != 0 {
+                        panic!(
+                            "USF phenomenon bootstrap failed: model '{}' is monolithic_chunk but declares support_chunk_radius={}; expected 0.",
+                            normalized_model_id, model.support_chunk_radius
+                        );
+                    }
+                    0
+                }
+                PhenomenaModelTopology::PartitionedByChunk => {
+                    if model.support_chunk_radius == 0 {
+                        panic!(
+                            "USF phenomenon bootstrap failed: model '{}' is partitioned_by_chunk but declares support_chunk_radius=0; expected >= 1.",
+                            normalized_model_id
+                        );
+                    }
+                    model.support_chunk_radius
+                }
+            };
+            topology_by_model_id.insert(normalized_model_id.clone(), topology);
+            support_chunk_radius_by_model_id.insert(normalized_model_id.clone(), support_chunk_radius);
             phenomenon_by_model_id.insert(normalized_model_id, normalized_phenomenon_id);
         }
 
@@ -152,21 +183,28 @@ impl Default for PhenomenonDefinitionRegistry {
             }
         }
         for (phenomenon_id, kind) in &kind_by_phenomenon_id {
-            if *kind != PhenomenonKind::MetricSurfaceDebug {
+            if !kind.supports_capability(PhenomenonCapability::ManifestationDensityField) {
                 continue;
             }
             for scale_index in 0..(Scale::SCALE_LEVEL_COUNT as u8) {
                 let key = selection_key(phenomenon_id.as_str(), scale_index);
                 let Some(model_id) = model_selection_by_phenomenon_scale.get(&key) else {
                     panic!(
-                        "USF phenomenon bootstrap failed: metric_surface_debug phenomenon '{}' has no model assignment for scale {}.",
-                        phenomenon_id, scale_index
+                        "USF phenomenon bootstrap failed: phenomenon '{}' (kind='{}') requiring capability 'manifestation_density_field' \
+                         has no model assignment for scale {}.",
+                        phenomenon_id,
+                        kind.canonical_id(),
+                        scale_index
                     );
                 };
-                if !metric_surface_debug_by_model_id.contains_key(model_id) {
+                if !manifestation_density_by_model_id.contains_key(model_id) {
                     panic!(
-                        "USF phenomenon bootstrap failed: selected model '{}' for metric_surface_debug phenomenon '{}' at scale {} has no model field definition.",
-                        model_id, phenomenon_id, scale_index
+                        "USF phenomenon bootstrap failed: selected model '{}' for phenomenon '{}' (kind='{}') at scale {} \
+                         has no manifestation density field definition.",
+                        model_id,
+                        phenomenon_id,
+                        kind.canonical_id(),
+                        scale_index
                     );
                 }
             }
@@ -174,7 +212,9 @@ impl Default for PhenomenonDefinitionRegistry {
 
         Self {
             kind_by_phenomenon_id,
-            metric_surface_debug_by_model_id,
+            manifestation_density_by_model_id,
+            topology_by_model_id,
+            support_chunk_radius_by_model_id,
             model_selection_by_phenomenon_scale,
             phenomenon_by_model_id,
         }
@@ -186,17 +226,26 @@ impl PhenomenonDefinitionRegistry {
         self.kind_by_phenomenon_id.get(&normalize_identifier(phenomenon_id)).copied()
     }
 
-    pub fn metric_surface_debug_for(&self, phenomenon_id: &str) -> Option<MetricSurfaceDebugFieldDefinition> {
-        self.metric_surface_debug_for_scale(phenomenon_id, Scale::MAX)
+    pub fn manifestation_density_for(&self, phenomenon_id: &str) -> Option<ManifestationDensityFieldDefinition> {
+        self.manifestation_density_for_scale(phenomenon_id, Scale::MAX)
     }
 
-    pub fn metric_surface_debug_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<MetricSurfaceDebugFieldDefinition> {
+    pub fn manifestation_density_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<ManifestationDensityFieldDefinition> {
         let model_id = self.model_for_scale(phenomenon_id, scale)?;
-        self.metric_surface_debug_for_model(model_id)
+        self.manifestation_density_for_model(model_id)
     }
 
-    pub fn metric_surface_debug_for_model(&self, model_id: &str) -> Option<MetricSurfaceDebugFieldDefinition> {
-        self.metric_surface_debug_by_model_id.get(&normalize_identifier(model_id)).copied()
+    pub fn manifestation_density_for_model(&self, model_id: &str) -> Option<ManifestationDensityFieldDefinition> {
+        self.manifestation_density_by_model_id.get(&normalize_identifier(model_id)).copied()
+    }
+
+    pub fn manifestation_field_contract_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<PhenomenonManifestationFieldContract> {
+        let kind = self.kind_for(phenomenon_id)?;
+        if !kind.supports_capability(PhenomenonCapability::ManifestationDensityField) {
+            return None;
+        }
+        self.manifestation_density_for_scale(phenomenon_id, scale)
+            .map(PhenomenonManifestationFieldContract::DensityField)
     }
 
     pub fn model_selector_single(&self, phenomenon_id: &str, scale: Scale) -> Option<&str> {
@@ -248,11 +297,6 @@ impl PhenomenonDefinitionRegistry {
         selected
     }
 
-    // Compatibility shim only. Runtime selection must be explicit by (phenomenon_id, scale).
-    pub fn primary_model_for(&self, phenomenon_id: &str) -> Option<&str> {
-        self.model_for_scale(phenomenon_id, Scale::MAX)
-    }
-
     pub fn model_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<&str> {
         let selection_key = selection_key(normalize_identifier(phenomenon_id).as_str(), scale.index_from_top());
         self.model_selection_by_phenomenon_scale.get(selection_key.as_str()).map(|value| value.as_str())
@@ -264,6 +308,24 @@ impl PhenomenonDefinitionRegistry {
         self.phenomenon_by_model_id
             .get(&normalized_model_id)
             .is_some_and(|value| value == &normalized_phenomenon_id)
+    }
+
+    pub fn topology_for_model(&self, model_id: &str) -> Option<PhenomenaModelTopology> {
+        self.topology_by_model_id.get(&normalize_identifier(model_id)).copied()
+    }
+
+    pub fn support_chunk_radius_for_model(&self, model_id: &str) -> Option<u16> {
+        self.support_chunk_radius_by_model_id.get(&normalize_identifier(model_id)).copied()
+    }
+
+    pub fn topology_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<PhenomenaModelTopology> {
+        let model_id = self.model_for_scale(phenomenon_id, scale)?;
+        self.topology_for_model(model_id)
+    }
+
+    pub fn support_chunk_radius_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<u16> {
+        let model_id = self.model_for_scale(phenomenon_id, scale)?;
+        self.support_chunk_radius_for_model(model_id)
     }
 }
 
@@ -291,4 +353,17 @@ fn parse_selection_key(selection_key: &str) -> (&str, u8) {
         )
     });
     (phenomenon_id, scale_index)
+}
+
+#[inline]
+fn parse_topology_tag(raw: &str) -> PhenomenaModelTopology {
+    let normalized = raw.trim().to_ascii_lowercase();
+    match normalized.as_str() {
+        "monolithic_chunk" | "monolithic-chunk" | "monolithic" => PhenomenaModelTopology::MonolithicChunk,
+        "partitioned_by_chunk" | "partitioned-by-chunk" | "partitioned" => PhenomenaModelTopology::PartitionedByChunk,
+        _ => panic!(
+            "USF phenomenon bootstrap failed: unsupported model topology '{}'; expected monolithic_chunk or partitioned_by_chunk.",
+            normalized
+        ),
+    }
 }

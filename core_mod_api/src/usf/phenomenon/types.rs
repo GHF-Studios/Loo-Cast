@@ -2,24 +2,45 @@ use crate::bevy::prelude::*;
 use crate::usf::pos::types::LocalCell3;
 use crate::usf::scale::Scale;
 
+#[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum PhenomenonCapability {
+    ManifestationDensityField,
+}
+
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum PhenomenonKind {
     #[default]
-    MetricSurfaceDebug,
+    ManifestationDensityDebug,
 }
 
 impl PhenomenonKind {
-    pub fn from_config_value(raw: &str) -> Self {
+    pub fn canonical_id(self) -> &'static str {
+        match self {
+            Self::ManifestationDensityDebug => "manifestation_density_debug",
+        }
+    }
+
+    pub fn try_from_config_value(raw: &str) -> Result<Self, String> {
         let normalized = raw.trim().to_ascii_lowercase();
         match normalized.as_str() {
-            "metric_surface_debug" | "metric-surface-debug" | "terrain_metric_surface_debug" | "terrain-metric-surface-debug" => Self::MetricSurfaceDebug,
-            _ => panic!("USF phenomenon kind parse failed: unknown kind '{}'", normalized),
+            "manifestation_density_debug" | "manifestation-density-debug" => Ok(Self::ManifestationDensityDebug),
+            _ => Err(format!("unknown kind '{}'", normalized)),
+        }
+    }
+
+    pub fn from_config_value(raw: &str) -> Self {
+        Self::try_from_config_value(raw).unwrap_or_else(|error| panic!("USF phenomenon kind parse failed: {}", error))
+    }
+
+    pub fn supports_capability(self, capability: PhenomenonCapability) -> bool {
+        match (self, capability) {
+            (Self::ManifestationDensityDebug, PhenomenonCapability::ManifestationDensityField) => true,
         }
     }
 }
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq)]
-pub struct MetricSurfaceDebugFieldDefinition {
+pub struct ManifestationDensityFieldDefinition {
     pub coarse_span_units: f64,
     pub detail_span_units: f64,
     pub coarse_weight: f32,
@@ -27,10 +48,10 @@ pub struct MetricSurfaceDebugFieldDefinition {
     pub bias: f32,
     pub gain: f32,
     pub center: f32,
-    pub seed_salt_primary: u64,
+    pub seed_salt_coarse: u64,
     pub seed_salt_detail: u64,
 }
-impl Default for MetricSurfaceDebugFieldDefinition {
+impl Default for ManifestationDensityFieldDefinition {
     fn default() -> Self {
         Self {
             coarse_span_units: 320.0,
@@ -40,10 +61,15 @@ impl Default for MetricSurfaceDebugFieldDefinition {
             bias: 0.66,
             gain: 3.0,
             center: 0.5,
-            seed_salt_primary: 0xa5a5_35f4_9be3_c211_u64,
+            seed_salt_coarse: 0xa5a5_35f4_9be3_c211_u64,
             seed_salt_detail: 0x8b8b_4fb7_0a7f_6611_u64,
         }
     }
+}
+
+#[derive(Reflect, Debug, Clone, Copy, PartialEq)]
+pub enum PhenomenonManifestationFieldContract {
+    DensityField(ManifestationDensityFieldDefinition),
 }
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -178,5 +204,19 @@ mod tests {
             ..a.clone()
         };
         assert_ne!(a.deterministic_seed(), b.deterministic_seed());
+    }
+
+    #[test]
+    fn phenomenon_kind_parsing_normalizes_aliases() {
+        let underscore = PhenomenonKind::try_from_config_value("manifestation_density_debug").expect("underscore kind id should parse");
+        let kebab = PhenomenonKind::try_from_config_value("manifestation-density-debug").expect("kebab kind id should parse");
+        assert_eq!(underscore, kebab);
+        assert_eq!(underscore.canonical_id(), "manifestation_density_debug");
+    }
+
+    #[test]
+    fn phenomenon_kind_capability_contract_is_explicit() {
+        let kind = PhenomenonKind::ManifestationDensityDebug;
+        assert!(kind.supports_capability(PhenomenonCapability::ManifestationDensityField));
     }
 }

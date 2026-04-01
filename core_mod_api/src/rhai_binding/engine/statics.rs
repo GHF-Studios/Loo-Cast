@@ -129,7 +129,7 @@ pub struct ScriptPhenomenonDefinition {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct ScriptMetricSurfaceDebugDefinition {
+pub struct ScriptManifestationDensityDefinition {
     pub coarse_span_units: f64,
     pub detail_span_units: f64,
     pub coarse_weight: f32,
@@ -137,11 +137,11 @@ pub struct ScriptMetricSurfaceDebugDefinition {
     pub bias: f32,
     pub gain: f32,
     pub center: f32,
-    pub seed_salt_primary: u64,
+    pub seed_salt_coarse: u64,
     pub seed_salt_detail: u64,
 }
 
-impl Default for ScriptMetricSurfaceDebugDefinition {
+impl Default for ScriptManifestationDensityDefinition {
     fn default() -> Self {
         Self {
             coarse_span_units: 320.0,
@@ -151,17 +151,30 @@ impl Default for ScriptMetricSurfaceDebugDefinition {
             bias: 0.66,
             gain: 3.0,
             center: 0.5,
-            seed_salt_primary: 0xa5a5_35f4_9be3_c211_u64,
+            seed_salt_coarse: 0xa5a5_35f4_9be3_c211_u64,
             seed_salt_detail: 0x8b8b_4fb7_0a7f_6611_u64,
         }
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct ScriptPhenomenonModelDefinition {
     pub id: String,
     pub phenomenon_id: String,
-    pub metric_surface_debug: Option<ScriptMetricSurfaceDebugDefinition>,
+    pub topology: String,
+    pub support_chunk_radius: u16,
+    pub manifestation_density: Option<ScriptManifestationDensityDefinition>,
+}
+impl Default for ScriptPhenomenonModelDefinition {
+    fn default() -> Self {
+        Self {
+            id: String::new(),
+            phenomenon_id: String::new(),
+            topology: "monolithic_chunk".to_string(),
+            support_chunk_radius: 0,
+            manifestation_density: None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default)]

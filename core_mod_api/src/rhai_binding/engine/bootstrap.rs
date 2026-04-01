@@ -14,16 +14,18 @@ use crate::rhai_binding::engine::hook::{new_hook_runner_system, register_hook_pa
 use crate::rhai_binding::engine::preprocess::preprocess_script_source;
 use crate::rhai_binding::engine::resources::MainScriptEngineHandle;
 use crate::rhai_binding::engine::statics::{
-    SCHEDULE_HOOKS, ScriptMetricDefinition, ScriptMetricSurfaceDebugDefinition, ScriptPhenomenonDefinition, ScriptPhenomenonModelDefinition,
-    ScriptSingletonConflictPolicy, ScriptUsfModContribution, ScriptUsfModDefinition, ScriptUsfModManifestDefinition, ScriptUsfModpackDefinition,
-    ScriptZlmMetricBandDefinition, ScriptZlmRuleDefinition, ScriptZlmScaleDefinition, ScriptZoneDensityProfileDefinition,
-    ScriptZonePhenomenonSupportDefinition, ScriptZoneSelectionPolicyDefinition, USF_DPT_SCHEMAS_BY_SCALE, USF_METRIC_SETS_BY_ID, USF_METRICS_BY_NAME,
-    USF_MOD_CONTRIBUTIONS_BY_ID, USF_MOD_MANIFESTS_BY_ID, USF_MODPACKS_BY_ID, USF_MODS_BY_ID, USF_PHENOMENA_BY_ID,
-    USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE, USF_PHENOMENON_MODELS_BY_ID, USF_SCALES_BY_INDEX, USF_ZLM_SCALES_BY_SCALE,
-    USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE, USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE, USF_ZONE_TYPES,
+    SCHEDULE_HOOKS, ScriptDptMetricDefinition, ScriptDptSchemaDefinition, ScriptManifestationDensityDefinition, ScriptMetricDefinition,
+    ScriptPhenomenonDefinition, ScriptPhenomenonModelDefinition, ScriptScaleDefinition, ScriptSingletonConflictPolicy, ScriptUsfModContribution,
+    ScriptUsfModDefinition, ScriptUsfModManifestDefinition, ScriptUsfModpackDefinition, ScriptZlmMetricBandDefinition, ScriptZlmRuleDefinition,
+    ScriptZlmScaleDefinition, ScriptZoneDensityProfileDefinition, ScriptZonePhenomenonSupportDefinition, ScriptZoneSelectionPolicyDefinition,
+    USF_DPT_SCHEMAS_BY_SCALE, USF_METRIC_SETS_BY_ID, USF_METRICS_BY_NAME, USF_MOD_CONTRIBUTIONS_BY_ID, USF_MOD_MANIFESTS_BY_ID, USF_MODPACKS_BY_ID,
+    USF_MODS_BY_ID, USF_PHENOMENA_BY_ID, USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE, USF_PHENOMENON_MODELS_BY_ID, USF_SCALES_BY_INDEX,
+    USF_ZLM_SCALES_BY_SCALE, USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE, USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE,
+    USF_ZONE_TYPES,
 };
 use crate::rhai_binding::runtime::ecs::message::bindings::types::ScriptProbeMessage;
-use crate::usf::content::DEFAULT_DEMO_MOD_ID;
+use crate::usf::content::{DEFAULT_DEMO_MOD_ID, DPT_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID, DPT_SAMPLER_KERNEL_DEFAULT_ID};
+use crate::usf::phenomenon::{PhenomenonCapability, PhenomenonKind};
 use crate::usf::scale::Scale;
 use crate::usf::schedule::{UsfPhenomenonSet, UsfSubstrateSet, UsfZoneSet};
 use rhai::{Engine, EvalAltResult};
@@ -116,6 +118,13 @@ struct UsfZlmScriptCtx {
     script_file: String,
     owner_mod_id: String,
     zlm_id: String,
+}
+
+#[derive(Clone, Debug)]
+struct UsfScaleScriptCtx {
+    script_file: String,
+    owner_mod_id: String,
+    scale_script_id: String,
 }
 
 #[derive(Clone, Debug)]
@@ -355,25 +364,7 @@ fn parse_singleton_conflict_policy_tag(policy_tag: &str) -> Result<ScriptSinglet
     }
 }
 
-fn script_entrypoint_matches(signature: &str, entrypoint: &str) -> bool {
-    let trimmed = signature.trim();
-    if trimmed == entrypoint {
-        return true;
-    }
-    let function_name = trimmed.split([' ', '(']).next().unwrap_or_default();
-    function_name == entrypoint
-}
-
-fn is_missing_ctx_entrypoint(error: &EvalAltResult, entrypoint: &str) -> bool {
-    match error {
-        EvalAltResult::ErrorFunctionNotFound(signature, _) => script_entrypoint_matches(signature, entrypoint),
-        EvalAltResult::ErrorInFunctionCall(_, _, inner, _) => is_missing_ctx_entrypoint(inner, entrypoint),
-        EvalAltResult::ErrorInModule(_, inner, _) => is_missing_ctx_entrypoint(inner, entrypoint),
-        _ => false,
-    }
-}
-
-fn run_usf_script_file(engine: &Engine, file: &Path, entrypoint: &str, ctx: Option<rhai::Dynamic>) {
+fn run_usf_script_file(engine: &Engine, file: &Path, entrypoint: &str, ctx: rhai::Dynamic) {
     let file_path = file.display().to_string();
     let source = std::fs::read_to_string(file).unwrap_or_else(|error| panic!("Failed to read USF script '{}': {error}", file.display()));
     let source = preprocess_script_source(&source, &file_path);
@@ -381,25 +372,9 @@ fn run_usf_script_file(engine: &Engine, file: &Path, entrypoint: &str, ctx: Opti
         .compile(source)
         .unwrap_or_else(|error| panic!("Failed to compile USF script '{}': {error}", file.display()));
     let mut scope = rhai::Scope::new();
-    if let Some(ctx) = ctx {
-        match engine.call_fn::<()>(&mut scope, &ast, entrypoint, (ctx.clone(),)) {
-            Ok(()) => {
-                return;
-            }
-            Err(error) if is_missing_ctx_entrypoint(error.as_ref(), entrypoint) => {}
-            Err(error) => {
-                panic!(
-                    "USF script '{}' failed calling entrypoint '{}' with typed ctx parameter: {}",
-                    file.display(),
-                    entrypoint,
-                    error
-                );
-            }
-        }
-    }
-    if let Err(error) = engine.call_fn::<()>(&mut scope, &ast, entrypoint, ()) {
+    if let Err(error) = engine.call_fn::<()>(&mut scope, &ast, entrypoint, (ctx,)) {
         panic!(
-            "USF script '{}' failed calling entrypoint '{}' with legacy zero-arg signature: {}",
+            "USF script '{}' failed calling entrypoint '{}' with typed ctx parameter: {}",
             file.display(),
             entrypoint,
             error
@@ -438,56 +413,67 @@ fn script_kind_for_spec(spec: UsfScriptTypeSpec) -> String {
     }
 }
 
-fn script_ctx_for_spec(file: &Path, spec: UsfScriptTypeSpec, owner_mod_id: Option<&str>) -> Option<rhai::Dynamic> {
+fn script_ctx_for_spec(file: &Path, spec: UsfScriptTypeSpec, owner_mod_id: Option<&str>) -> rhai::Dynamic {
     let script_file = file.display().to_string();
-    let script_id = script_id_from_path(file, spec.suffix)?;
+    let script_id = script_id_from_path(file, spec.suffix).unwrap_or_else(|| {
+        panic!(
+            "USF bootstrap failed: script '{}' does not have a valid script id for suffix '{}'.",
+            file.display(),
+            spec.suffix
+        )
+    });
     let owner_mod_id = owner_mod_id.unwrap_or_default().to_string();
 
     match spec.single_entity_domain {
-        Some(SingleEntityDomain::Mod) => Some(rhai::Dynamic::from(UsfModScriptCtx {
+        Some(SingleEntityDomain::Mod) => rhai::Dynamic::from(UsfModScriptCtx {
             script_file,
             mod_id: script_id,
-        })),
-        Some(SingleEntityDomain::Modpack) => Some(rhai::Dynamic::from(UsfModpackScriptCtx {
+        }),
+        Some(SingleEntityDomain::Modpack) => rhai::Dynamic::from(UsfModpackScriptCtx {
             script_file,
             modpack_id: script_id,
-        })),
-        Some(SingleEntityDomain::Metric) => Some(rhai::Dynamic::from(UsfMetricScriptCtx {
+        }),
+        Some(SingleEntityDomain::Metric) => rhai::Dynamic::from(UsfMetricScriptCtx {
             script_file,
             owner_mod_id,
             metric_name: script_id,
-        })),
-        Some(SingleEntityDomain::MetricSet) => Some(rhai::Dynamic::from(UsfMetricSetScriptCtx {
+        }),
+        Some(SingleEntityDomain::MetricSet) => rhai::Dynamic::from(UsfMetricSetScriptCtx {
             script_file,
             owner_mod_id,
             metric_set_id: script_id,
-        })),
-        Some(SingleEntityDomain::Zone) => Some(rhai::Dynamic::from(UsfZoneScriptCtx {
+        }),
+        Some(SingleEntityDomain::Zone) => rhai::Dynamic::from(UsfZoneScriptCtx {
             script_file,
             owner_mod_id,
             zone_type: script_id,
-        })),
-        Some(SingleEntityDomain::Phenomenon) => Some(rhai::Dynamic::from(UsfPhenomenonScriptCtx {
+        }),
+        Some(SingleEntityDomain::Phenomenon) => rhai::Dynamic::from(UsfPhenomenonScriptCtx {
             script_file,
             owner_mod_id,
             phenomenon_id: script_id,
-        })),
-        Some(SingleEntityDomain::PhenomenonModel) => Some(rhai::Dynamic::from(UsfPhenomenonModelScriptCtx {
+        }),
+        Some(SingleEntityDomain::PhenomenonModel) => rhai::Dynamic::from(UsfPhenomenonModelScriptCtx {
             script_file,
             owner_mod_id,
             model_id: script_id,
-        })),
-        None if spec.relative_dir == "zlms" => Some(rhai::Dynamic::from(UsfZlmScriptCtx {
+        }),
+        None if spec.relative_dir == "zlms" => rhai::Dynamic::from(UsfZlmScriptCtx {
             script_file,
             owner_mod_id,
             zlm_id: script_id,
-        })),
-        _ => Some(rhai::Dynamic::from(UsfScriptCtx {
+        }),
+        None if spec.relative_dir == "scales" => rhai::Dynamic::from(UsfScaleScriptCtx {
+            script_file,
+            owner_mod_id,
+            scale_script_id: script_id,
+        }),
+        _ => rhai::Dynamic::from(UsfScriptCtx {
             script_kind: script_kind_for_spec(spec),
             script_file,
             script_id,
             owner_mod_id,
-        })),
+        }),
     }
 }
 
@@ -1165,6 +1151,14 @@ fn parse_scale_index_set(name: &str, values: rhai::Array) -> Result<Vec<u8>, Box
 }
 
 #[inline]
+fn parse_support_chunk_radius(value: i64) -> Result<u16, Box<EvalAltResult>> {
+    if value < 0 {
+        return Err(format!("support_chunk_radius must be >= 0, got {value}").into());
+    }
+    u16::try_from(value).map_err(|_| format!("support_chunk_radius must fit in u16, got {value}").into())
+}
+
+#[inline]
 fn parse_positive_revision(value: i64) -> Result<u64, Box<EvalAltResult>> {
     if value < 1 {
         return Err(format!("revision must be >= 1, got {value}").into());
@@ -1207,8 +1201,8 @@ fn normalize_zone_type(zone_type: &str) -> Result<String, Box<EvalAltResult>> {
 fn normalize_spawn_policy(value: &str) -> Result<String, Box<EvalAltResult>> {
     let value = normalize_script_identifier("spawn_policy", value)?;
     match value.as_str() {
-        "single_primary" | "single-primary" | "single" => Ok("single_primary".to_string()),
-        _ => Err(format!("unsupported spawn_policy '{}'; currently supported: single_primary", value).into()),
+        "single_per_zone" | "single-per-zone" | "single" => Ok("single_per_zone".to_string()),
+        _ => Err(format!("unsupported spawn_policy '{}'; currently supported: single_per_zone", value).into()),
     }
 }
 
@@ -1230,11 +1224,17 @@ fn normalize_selection_strategy(value: &str) -> Result<String, Box<EvalAltResult
 #[inline]
 fn normalize_phenomenon_kind(kind: &str) -> Result<String, Box<EvalAltResult>> {
     let kind = normalize_script_identifier("phenomenon_kind", kind)?;
-    match kind.as_str() {
-        "metric_surface_debug" | "metric-surface-debug" | "terrain_metric_surface_debug" | "terrain-metric-surface-debug" => {
-            Ok("metric_surface_debug".to_string())
-        }
-        _ => Err(format!("unknown phenomenon_kind '{}'; expected 'metric_surface_debug'", kind).into()),
+    let parsed = PhenomenonKind::try_from_config_value(kind.as_str()).map_err(|error| format!("unknown phenomenon_kind '{}': {}", kind, error))?;
+    Ok(parsed.canonical_id().to_string())
+}
+
+#[inline]
+fn normalize_phenomena_model_topology(topology: &str) -> Result<String, Box<EvalAltResult>> {
+    let topology = normalize_script_identifier("topology", topology)?;
+    match topology.as_str() {
+        "monolithic_chunk" | "monolithic-chunk" | "monolithic" => Ok("monolithic_chunk".to_string()),
+        "partitioned_by_chunk" | "partitioned-by-chunk" | "partitioned" => Ok("partitioned_by_chunk".to_string()),
+        _ => Err(format!("unsupported topology '{}'; supported: monolithic_chunk, partitioned_by_chunk", topology).into()),
     }
 }
 
@@ -1830,6 +1830,107 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
         },
     );
 
+    engine.register_type_with_name::<UsfScaleScriptCtx>("UsfScaleScriptCtx");
+    engine.register_get("scale_script_id", |ctx: &mut UsfScaleScriptCtx| ctx.scale_script_id.clone());
+    engine.register_get("owner_mod_id", |ctx: &mut UsfScaleScriptCtx| ctx.owner_mod_id.clone());
+    engine.register_get("script_file", |ctx: &mut UsfScaleScriptCtx| ctx.script_file.clone());
+    engine.register_fn(
+        "set_id",
+        |ctx: &mut UsfScaleScriptCtx, scale_script_id: &str| -> Result<(), Box<EvalAltResult>> {
+            ctx.scale_script_id = normalize_script_identifier("scale_script_id", scale_script_id)?;
+            Ok(())
+        },
+    );
+    engine.register_fn("scale_level_count", |_ctx: &mut UsfScaleScriptCtx| -> rhai::INT {
+        Scale::SCALE_LEVEL_COUNT as rhai::INT
+    });
+    engine.register_fn("default_dpt_sampler_kernel_id", |_ctx: &mut UsfScaleScriptCtx| -> String {
+        DPT_SAMPLER_KERNEL_DEFAULT_ID.to_string()
+    });
+    engine.register_fn("default_dpt_categorizer_kernel_id", |_ctx: &mut UsfScaleScriptCtx| -> String {
+        DPT_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID.to_string()
+    });
+    engine.register_fn(
+        "set_dpt_schema_from_metric_set",
+        |ctx: &mut UsfScaleScriptCtx, scale_index: i64, revision: i64, fallback_zone: &str, metric_set_id: &str| -> Result<(), Box<EvalAltResult>> {
+            let owner_mod_id = ensure_owner_mod_for_ctx(ctx.owner_mod_id.as_str())?;
+            let scale_index = parse_scale_index(scale_index)?;
+            let revision = parse_positive_revision(revision)?;
+            let fallback_zone = normalize_zone_type(fallback_zone)?;
+            let metric_set_id = normalize_script_identifier("metric_set_id", metric_set_id)?;
+
+            let metric_set = {
+                let metric_sets = USF_METRIC_SETS_BY_ID().lock().unwrap();
+                let Some(metric_set) = metric_sets.get(&metric_set_id) else {
+                    return Err(format!("metric_set '{}' is not registered", metric_set_id).into());
+                };
+                if metric_set.is_empty() {
+                    return Err(format!("metric_set '{}' must contain at least one metric", metric_set_id).into());
+                }
+                metric_set.clone()
+            };
+
+            let metrics = USF_METRICS_BY_NAME().lock().unwrap();
+            let mut compiled_metrics = Vec::<ScriptDptMetricDefinition>::with_capacity(metric_set.len());
+            for metric_name in metric_set {
+                let Some(metric) = metrics.get(&metric_name) else {
+                    return Err(format!("metric_set '{}' references unknown metric '{}'", metric_set_id, metric_name).into());
+                };
+                compiled_metrics.push(ScriptDptMetricDefinition {
+                    id: metric.id,
+                    name: metric.name.clone(),
+                    value_type: metric.value_type.clone(),
+                    semantics_tag: metric.semantics_tag.clone(),
+                    storage_class: metric.storage_class.clone(),
+                    derived: metric.derived,
+                    min_scale_index: metric.min_scale_index,
+                    max_scale_index: metric.max_scale_index,
+                });
+            }
+            drop(metrics);
+
+            USF_DPT_SCHEMAS_BY_SCALE().lock().unwrap().insert(
+                scale_index,
+                ScriptDptSchemaDefinition {
+                    revision,
+                    fallback_zone,
+                    metrics: compiled_metrics,
+                },
+            );
+            with_owner_mod_manifest_mut(owner_mod_id.as_str(), |manifest| {
+                manifest.required_dpt_schema_scales.insert(scale_index);
+            })?;
+            Ok(())
+        },
+    );
+    engine.register_fn(
+        "set_scale",
+        |ctx: &mut UsfScaleScriptCtx,
+         scale_index: i64,
+         dpt_sampler_id: &str,
+         dpt_categorizer_id: &str,
+         chunk_store_key: &str|
+         -> Result<(), Box<EvalAltResult>> {
+            let owner_mod_id = ensure_owner_mod_for_ctx(ctx.owner_mod_id.as_str())?;
+            let scale_index = parse_scale_index(scale_index)?;
+            let dpt_sampler_id = normalize_script_identifier("dpt_sampler_id", dpt_sampler_id)?;
+            let dpt_categorizer_id = normalize_script_identifier("dpt_categorizer_id", dpt_categorizer_id)?;
+            let chunk_store_key = normalize_script_identifier("chunk_store_key", chunk_store_key)?;
+            USF_SCALES_BY_INDEX().lock().unwrap().insert(
+                scale_index,
+                ScriptScaleDefinition {
+                    dpt_sampler_id,
+                    dpt_categorizer_id,
+                    chunk_store_key,
+                },
+            );
+            with_owner_mod_manifest_mut(owner_mod_id.as_str(), |manifest| {
+                manifest.required_scales.insert(scale_index);
+            })?;
+            Ok(())
+        },
+    );
+
     engine.register_type_with_name::<UsfPhenomenonScriptCtx>("UsfPhenomenonScriptCtx");
     engine.register_get("phenomenon_id", |ctx: &mut UsfPhenomenonScriptCtx| ctx.phenomenon_id.clone());
     engine.register_get("owner_mod_id", |ctx: &mut UsfPhenomenonScriptCtx| ctx.owner_mod_id.clone());
@@ -1962,7 +2063,9 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                     ScriptPhenomenonModelDefinition {
                         id: model_id.clone(),
                         phenomenon_id,
-                        metric_surface_debug: None,
+                        topology: "monolithic_chunk".to_string(),
+                        support_chunk_radius: 0,
+                        manifestation_density: None,
                     },
                 );
             }
@@ -1975,7 +2078,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
         },
     );
     engine.register_fn(
-        "set_metric_surface_debug_field",
+        "set_manifestation_density_field",
         |ctx: &mut UsfPhenomenonModelScriptCtx,
          coarse_span_units: f64,
          detail_span_units: f64,
@@ -1984,7 +2087,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
          bias: f64,
          gain: f64,
          center: f64,
-         seed_salt_primary: i64,
+         seed_salt_coarse: i64,
          seed_salt_detail: i64|
          -> Result<(), Box<EvalAltResult>> {
             let model_id = normalize_script_identifier("model_id", ctx.model_id.as_str())?;
@@ -1997,10 +2100,13 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
             let Some(phenomenon) = phenomena.get(model.phenomenon_id.as_str()) else {
                 return Err(format!("phenomenon model '{}' references unknown phenomenon '{}'", model_id, model.phenomenon_id).into());
             };
-            if phenomenon.kind != "metric_surface_debug" {
+            let kind = PhenomenonKind::try_from_config_value(phenomenon.kind.as_str())
+                .map_err(|error| format!("phenomenon '{}' has invalid kind '{}': {}", model.phenomenon_id, phenomenon.kind, error))?;
+            if !kind.supports_capability(PhenomenonCapability::ManifestationDensityField) {
                 return Err(format!(
-                    "phenomenon model '{}' belongs to kind '{}'; set_metric_surface_debug_field requires kind 'metric_surface_debug'",
-                    model_id, phenomenon.kind
+                    "phenomenon model '{}' belongs to kind '{}'; set_manifestation_density_field requires capability 'manifestation_density_field'",
+                    model_id,
+                    kind.canonical_id()
                 )
                 .into());
             }
@@ -2031,7 +2137,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                 return Err("center must be finite".into());
             }
 
-            model.metric_surface_debug = Some(ScriptMetricSurfaceDebugDefinition {
+            model.manifestation_density = Some(ScriptManifestationDensityDefinition {
                 coarse_span_units,
                 detail_span_units,
                 coarse_weight: coarse_weight as f32,
@@ -2039,9 +2145,38 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                 bias: bias as f32,
                 gain: gain as f32,
                 center: center as f32,
-                seed_salt_primary: seed_salt_primary as u64,
+                seed_salt_coarse: seed_salt_coarse as u64,
                 seed_salt_detail: seed_salt_detail as u64,
             });
+            Ok(())
+        },
+    );
+    engine.register_fn(
+        "set_topology",
+        |ctx: &mut UsfPhenomenonModelScriptCtx, topology: &str| -> Result<(), Box<EvalAltResult>> {
+            let model_id = normalize_script_identifier("model_id", ctx.model_id.as_str())?;
+            let topology = normalize_phenomena_model_topology(topology)?;
+            let mut models = USF_PHENOMENON_MODELS_BY_ID().lock().unwrap();
+            let Some(model) = models.get_mut(&model_id) else {
+                return Err(format!("phenomenon model '{}' is not registered; call ctx.register(...) first", model_id).into());
+            };
+            model.topology = topology.clone();
+            if topology == "monolithic_chunk" {
+                model.support_chunk_radius = 0;
+            }
+            Ok(())
+        },
+    );
+    engine.register_fn(
+        "set_support_chunk_radius",
+        |ctx: &mut UsfPhenomenonModelScriptCtx, chunk_radius: i64| -> Result<(), Box<EvalAltResult>> {
+            let model_id = normalize_script_identifier("model_id", ctx.model_id.as_str())?;
+            let chunk_radius = parse_support_chunk_radius(chunk_radius)?;
+            let mut models = USF_PHENOMENON_MODELS_BY_ID().lock().unwrap();
+            let Some(model) = models.get_mut(&model_id) else {
+                return Err(format!("phenomenon model '{}' is not registered; call ctx.register(...) first", model_id).into());
+            };
+            model.support_chunk_radius = if model.topology == "monolithic_chunk" { 0 } else { chunk_radius.max(1) };
             Ok(())
         },
     );
@@ -2058,16 +2193,6 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
             Ok(())
         },
     );
-    engine.register_fn("set_as_primary", |ctx: &mut UsfPhenomenonModelScriptCtx| -> Result<(), Box<EvalAltResult>> {
-        let model_id = normalize_script_identifier("model_id", ctx.model_id.as_str())?;
-        let Some(model) = USF_PHENOMENON_MODELS_BY_ID().lock().unwrap().get(&model_id).cloned() else {
-            return Err(format!("phenomenon model '{}' is not registered; call ctx.register(...) first", model_id).into());
-        };
-        for scale_index in 0..(Scale::SCALE_LEVEL_COUNT as u8) {
-            set_phenomenon_model_selection(model.phenomenon_id.as_str(), scale_index, model_id.as_str())?;
-        }
-        Ok(())
-    });
 }
 
 fn register_runtime_bindings(engine: &mut rhai::Engine) {

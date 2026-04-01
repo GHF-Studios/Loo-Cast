@@ -100,6 +100,16 @@ pub struct MonolithicPhenomenaModel {
     pub chunk_coord: GridVec,
 }
 
+#[derive(Component, Reflect, Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[reflect(Component)]
+pub struct PartitionedPhenomenaModelRoot;
+
+#[derive(Component, Reflect, Debug, Clone, Copy, PartialEq, Eq)]
+#[reflect(Component)]
+pub struct PartitionedPhenomenaModelMember {
+    pub root_model_entity: Entity,
+}
+
 #[derive(Component, Reflect, Debug, Clone, PartialEq, Eq)]
 #[reflect(Component)]
 pub struct PartialPhenomenaModel {

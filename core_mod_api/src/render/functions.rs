@@ -194,9 +194,9 @@ pub(crate) fn draw_primary_window_ui(
                     ui.label(format!("Proxies {}", stats.active_frontier_proxies));
                     ui.label(format!(
                         "Frontier s={} seed={} w={}‰ (+{} / -{})",
-                        stats.frontier_primary_scale_index,
-                        stats.frontier_primary_seed,
-                        stats.frontier_primary_window_size_milli,
+                        stats.frontier_focus_scale_index,
+                        stats.frontier_focus_seed,
+                        stats.frontier_focus_window_size_milli,
                         stats.frontier_proxy_spawns_frame,
                         stats.frontier_proxy_despawns_frame
                     ));
@@ -472,11 +472,11 @@ fn draw_runtime_debug_overlay(state: &PrimaryWindowUiState, world: &mut World, c
     if let Some(stats) = world.get_resource::<PhenomenonDebugStats>() {
         lines.push(format!(
             "nodes={} proxies={} frontier_scale={} frontier_seed={}",
-            stats.active_nodes, stats.active_frontier_proxies, stats.frontier_primary_scale_index, stats.frontier_primary_seed
+            stats.active_nodes, stats.active_frontier_proxies, stats.frontier_focus_scale_index, stats.frontier_focus_seed
         ));
         lines.push(format!(
             "frontier_window={}‰ proxy_spawns(+{}) proxy_despawns(-{})",
-            stats.frontier_primary_window_size_milli, stats.frontier_proxy_spawns_frame, stats.frontier_proxy_despawns_frame
+            stats.frontier_focus_window_size_milli, stats.frontier_proxy_spawns_frame, stats.frontier_proxy_despawns_frame
         ));
         lines.push(format!(
             "meshes_total={} meshes_frame={} cache_total={} cache_frame={}",

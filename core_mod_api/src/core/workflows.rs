@@ -3,7 +3,7 @@ use core_mod_macros::define_workflow_mod_OLD;
 define_workflow_mod_OLD! {
     name: "Core",
     workflows: [
-        FinishStartup, timeout_secs: 1.0, timeout_mode: RealTime {
+        FinishStartup, timeout_secs: 5.0, timeout_mode: RealTime {
             user_imports: {
                 use crate::bevy::prelude::Commands;
 

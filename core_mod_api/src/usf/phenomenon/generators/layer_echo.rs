@@ -102,7 +102,7 @@ impl PhenomenonGenerator for LayerEchoGenerator {
         let next_scale = input.key.scale.zoomed_in();
 
         let offsets = [
-            // Keep the primary expansion branch centered to avoid apparent translation drift while scaling.
+            // Keep the focus expansion branch centered to avoid apparent translation drift while scaling.
             LocalCell3::ZERO,
             LocalCell3::new_local(1, 0, 0),
             LocalCell3::new_local(-1, 0, 0),
@@ -415,7 +415,7 @@ mod tests {
     }
 
     #[test]
-    fn layer_echo_density_contains_stable_surface_shell() {
+    fn layer_echo_density_contains_stable_boundary_shell() {
         let generator = LayerEchoGenerator::default();
         let root = generator.build_state(BuildStateInput {
             key: root_key(),
@@ -429,7 +429,7 @@ mod tests {
     }
 
     #[test]
-    fn layer_echo_primary_child_branch_is_centered_for_scale_stability() {
+    fn layer_echo_focus_child_branch_is_centered_for_scale_stability() {
         let generator = LayerEchoGenerator::default();
         let root_state = generator.build_state(BuildStateInput {
             key: root_key(),

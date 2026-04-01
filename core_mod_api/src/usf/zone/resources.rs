@@ -72,13 +72,13 @@ impl Default for ZoneDensityProfile {
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ZonePhenomenonSpawnPolicy {
-    SinglePrimary,
+    SinglePerZone,
 }
 impl ZonePhenomenonSpawnPolicy {
     pub fn from_config_value(raw: &str) -> Self {
         let normalized = raw.trim().to_ascii_lowercase();
         match normalized.as_str() {
-            "single_primary" | "single-primary" | "single" => Self::SinglePrimary,
+            "single_per_zone" | "single-per-zone" | "single" => Self::SinglePerZone,
             _ => panic!("USF zone spawn policy parse failed: unknown policy '{}'", normalized),
         }
     }

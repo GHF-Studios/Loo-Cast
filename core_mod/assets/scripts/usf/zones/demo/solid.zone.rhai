@@ -1,10 +1,10 @@
 fn register_zone(ctx) {
     ctx.register();
     ctx.add_supported_phenomenon(
-        "surface",
+        "demo_manifestation_density",
         100,
         1.0,
-        "single_primary",
+        "single_per_zone",
         1,
     );
     ctx.set_selection_policy("weighted_top_priority");

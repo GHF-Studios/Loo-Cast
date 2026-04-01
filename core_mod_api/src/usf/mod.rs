@@ -11,7 +11,6 @@ pub mod scale;
 pub mod schedule;
 pub mod substrate;
 pub mod transform;
-pub mod world;
 pub mod zlm;
 pub mod zone;
 
@@ -19,7 +18,10 @@ use crate::bevy::prelude::*;
 use content::{UsfActiveModpack, UsfConfiguredMod, UsfExecutionPlan, UsfScaleDefinition, UsfScaleExecutionRoute};
 use definition::{DptMetricDefinition, DptMetricId, DptSchema, ZoneTypeId};
 use dpt::{DptChunkKey, DptChunkRecord};
-use phenomenon::{PhenomenonId, PhenomenonKind, PhenomenonLineage, PhenomenonMeshWindow, PhenomenonNodeKey, PhenomenonNodeSeed, PhenomenonStateSnapshot};
+use phenomenon::{
+    PartitionedPhenomenaModelMember, PartitionedPhenomenaModelRoot, PhenomenonId, PhenomenonKind, PhenomenonLineage, PhenomenonManifestationFieldContract,
+    PhenomenonMeshWindow, PhenomenonNodeKey, PhenomenonNodeSeed, PhenomenonStateSnapshot,
+};
 use substrate::{
     AdaptiveChunkSubstrate, AdaptiveSubstrateOctreeNode, ChunkEdgeInterface, SubstrateChunkEdge, SubstrateChunkSummary, SubstrateLeafContainer,
     SubstrateTransitionDecision,
@@ -41,7 +43,6 @@ impl Plugin for UsfPlugin {
             .add_plugins(content::ContentPlugin)
             .add_plugins(dpt::DptPlugin)
             .add_plugins(zlm::ZlmPlugin)
-            .add_plugins(world::WorldPlugin)
             .add_plugins(substrate::SubstratePlugin)
             .add_plugins(runtime::UsfRuntimePlugin)
             .add_plugins(zone::ZonePlugin)
@@ -80,6 +81,9 @@ impl Plugin for UsfPlugin {
             .register_type::<PhenomenonNodeKey>()
             .register_type::<PhenomenonStateSnapshot>()
             .register_type::<PhenomenonMeshWindow>()
+            .register_type::<PhenomenonManifestationFieldContract>()
+            .register_type::<PartitionedPhenomenaModelRoot>()
+            .register_type::<PartitionedPhenomenaModelMember>()
             .register_type::<SubstrateChunkEdge>()
             .register_type::<ChunkEdgeInterface>()
             .register_type::<SubstrateLeafContainer>()

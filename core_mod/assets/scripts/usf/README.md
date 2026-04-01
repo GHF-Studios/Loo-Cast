@@ -10,7 +10,7 @@ Each file must expose the matching entrypoint (typed ctx-first):
 - `*.mod.rhai` -> `register_mod(ctx)`
 - `*.modpack.rhai` -> `register_modpack(ctx)`
 - `*.zlm.rhai` -> `register_zlm(ctx)`
-- `*.scale.rhai` -> `register_scale()`
+- `*.scale.rhai` -> `register_scale(ctx)`
 - `*.phenomenon.rhai` -> `register_phenomenon(ctx)`
 - `*.phenomenon_model.rhai` -> `register_phenomenon_model(ctx)`
 
@@ -22,10 +22,9 @@ Typed ctx injection (current state):
 - `register_metric_set(ctx)` receives `UsfMetricSetScriptCtx`
 - `register_zone(ctx)` receives `UsfZoneScriptCtx`
 - `register_zlm(ctx)` receives `UsfZlmScriptCtx`
+- `register_scale(ctx)` receives `UsfScaleScriptCtx`
 - `register_phenomenon(ctx)` receives `UsfPhenomenonScriptCtx`
 - `register_phenomenon_model(ctx)` receives `UsfPhenomenonModelScriptCtx`
-- `register_scale()` currently remains legacy substrate-facing
-- typed-ctx signatures are preferred; zero-arg legacy entrypoints are still accepted temporarily
 
 Authoring rule:
 
@@ -52,7 +51,8 @@ Current backend support is implemented for:
 - scale contract + DPT schema derivation from metric sets
 - phenomenon registry
 - zone-supported phenomena (priority/weight/spawn policy/max_active) + selection policy
-- phenomenon-model registry (including primary-model assignment)
+- phenomenon-model registry with explicit scale-index selection
+- explicit model topology/support metadata (`monolithic_chunk` / `partitioned_by_chunk` + support radius)
 - fixed engine kernels for DPT sampling + DPT categorization (scripts select kernel IDs; they do not register new kernels)
 
 Composition policy is strict:
@@ -84,9 +84,12 @@ zone realization. When the cap is reached, additional zones skip spawning for th
 
 Current placeholder gameplay contracts:
 
-- one primary terrain metric drives classification: `demo_mass_density`
+- one terrain metric drives classification: `demo_mass_density`
 - three derived root-position metrics are provided: `root_pos_x`, `root_pos_y`, `root_pos_z`
-- three zones are used: `empty` (no support/no mesh), `spawn_buffer` (near-origin noop), and `solid` (spawns one surface phenomenon)
-- the chunk terrain debug mesh is driven by one phenomenon id: `surface`
-- `*.phenomenon_model.rhai` defines the model field policy via `set_metric_surface_debug_field(...)`
+- three zones are used: `empty` (no support/no mesh), `spawn_buffer` (near-origin noop), and `solid` (spawns one manifestation-density debug phenomenon)
+- the chunk terrain debug mesh is driven by one phenomenon id: `demo_manifestation_density`
+- `*.phenomenon_model.rhai` defines the model field policy via `set_manifestation_density_field(...)`
+- `*.phenomenon_model.rhai` must declare topology/support with:
+  - `ctx.set_topology("monolithic_chunk" | "partitioned_by_chunk")`
+  - `ctx.set_support_chunk_radius(...)` (required `>= 1` for partitioned)
 - meshing/collider generation remains engine-owned; scripts declare phenomenon + model policy contracts

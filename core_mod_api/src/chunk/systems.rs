@@ -18,6 +18,8 @@ use crate::workflow::functions::{WorkflowTimeoutControlDecision, handle_composit
 use crate::workflow::resources::WorkflowTimeoutSignalReceiver;
 use crate::workflow::types::WorkflowTimeoutMode;
 
+const CHUNK_WORKFLOW_TIMEOUT_SECS: f64 = 2.0;
+
 #[tracing::instrument(skip_all)]
 pub(crate) fn chunk_zoom_cooldown_system(time: Res<Time<Virtual>>, mut timer: Local<f32>, mut query: Query<&mut ChunkLoader>) {
     if *timer > 0.0 {
@@ -105,7 +107,7 @@ pub(crate) fn sync_chunk_orchestration_state_system(
 }
 
 fn chunk_workflow_timeout_decision(module_name: &'static str, workflow_name: &'static str, timeout_count: usize) -> WorkflowTimeoutControlDecision {
-    if timeout_count == 1 {
+    if timeout_count <= 3 {
         warn!(
             "Chunk workflow timeout request: {}::{}, timeout_count={}, decision=Retry",
             module_name, workflow_name, timeout_count
@@ -114,10 +116,10 @@ fn chunk_workflow_timeout_decision(module_name: &'static str, workflow_name: &'s
     }
 
     warn!(
-        "Chunk workflow timeout escalation: {}::{}, timeout_count={}, decision=Panic",
+        "Chunk workflow timeout escalation: {}::{}, timeout_count={}, decision=Abort",
         module_name, workflow_name, timeout_count
     );
-    WorkflowTimeoutControlDecision::Panic
+    WorkflowTimeoutControlDecision::Abort
 }
 
 #[tracing::instrument(skip_all)]
@@ -359,7 +361,7 @@ pub(crate) fn chunk_management_system(
             warn!("Running composite workflow 'SpawnChunks'");
 
             let _ = run_workflow_ioe_with_timeout_control::<crate::chunk::workflows::chunk::spawn_chunks::TypeIOE, _>(
-                Duration::from_secs_f64(1.0),
+                Duration::from_secs_f64(CHUNK_WORKFLOW_TIMEOUT_SECS),
                 WorkflowTimeoutMode::VirtualTime,
                 crate::chunk::workflows::chunk::spawn_chunks::stages::validate_and_spawn_and_wait::core_types::Input {
                     inner: crate::chunk::workflows::external::spawn_chunks::Input {
@@ -382,7 +384,7 @@ pub(crate) fn chunk_management_system(
             warn!("Running composite workflow 'DespawnChunks'");
 
             let _ = run_workflow_ioe_with_timeout_control::<crate::chunk::workflows::chunk::despawn_chunks::TypeIOE, _>(
-                Duration::from_secs_f64(1.0),
+                Duration::from_secs_f64(CHUNK_WORKFLOW_TIMEOUT_SECS),
                 WorkflowTimeoutMode::VirtualTime,
                 crate::chunk::workflows::chunk::despawn_chunks::stages::find_and_despawn_and_wait::core_types::Input {
                     inner: crate::chunk::workflows::external::despawn_chunks::Input {

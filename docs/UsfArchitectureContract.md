@@ -124,10 +124,10 @@ All zone/phenomenon/model behavior must use declared capabilities. No hidden ad-
 
 ## 9) USF World/Chunk Relationship
 
-1. `UsfWorld` is the canonical composition root.
-2. `UsfWorldScale` instances compose the world.
-3. `chunk` is substrate infrastructure used by USF world services.
-4. USF math/pos types remain foundational for both chunk and world logic.
+1. Canonical authority is entity-grounded: `Phenomenon` + `PhenomenaModel` + `PartialPhenomenaModel`.
+2. `chunk` is execution substrate infrastructure and manifestation cache locality boundary.
+3. `AdaptiveSubstrateStore` is derived projection state; it is not ontology authority.
+4. USF math/pos types remain foundational for chunk, substrate, zone, and phenomenon coupling logic.
 
 ## 10) Two-Stage Validation Pipeline
 
@@ -179,4 +179,3 @@ Must hard-fail startup/build for:
 5. Validator expansion:
    1. startup validator as strict pre-bootstrap gate
 6. Compile-time binding compiler (next stage) as separate, explicit deliverable
-
