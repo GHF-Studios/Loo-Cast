@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::bevy::prelude::*;
 use crate::chunk::components::{Chunk, ChunkLoader};
+use crate::config::statics::CONFIG;
 use crate::player::components::Player;
 use crate::usf::authority::{
     USF_DOMAIN_PARTIAL_PHENOMENON_MODEL, USF_DOMAIN_PHENOMENON, USF_DOMAIN_PHENOMENON_MODEL, UsfAuthorityDiagnostics, UsfWorldAuthorityContract,
@@ -98,18 +99,32 @@ pub struct PhenomenonPersistenceRuntimeSettings {
 }
 impl Default for PhenomenonPersistenceRuntimeSettings {
     fn default() -> Self {
-        let persistence_dir = "target/usf_demo/phenomena_authority".to_string();
+        let persistence_dir = CONFIG().get::<String>("usf/runtime/phenomenon_persistence/persistence_dir");
+        let durability_tag = CONFIG().get::<String>("usf/runtime/phenomenon_persistence/durability");
         Self {
-            enabled: true,
-            persistence_dir: persistence_dir.clone(),
-            async_write_enabled: true,
-            async_write_batch_size: 256,
-            max_queued_records_soft: 4_096,
-            durability: PhenomenonPersistenceDurability::AtomicReplace,
-            journal_enabled: true,
-            journal_dir: format!("{}/journal", persistence_dir),
-            retain_successful_journal_batches: false,
+            enabled: CONFIG().get::<bool>("usf/runtime/phenomenon_persistence/enabled"),
+            persistence_dir,
+            async_write_enabled: CONFIG().get::<bool>("usf/runtime/phenomenon_persistence/async_write_enabled"),
+            async_write_batch_size: CONFIG().get::<usize>("usf/runtime/phenomenon_persistence/async_write_batch_size"),
+            max_queued_records_soft: CONFIG().get::<usize>("usf/runtime/phenomenon_persistence/max_queued_records_soft"),
+            durability: parse_persistence_durability(durability_tag.as_str()),
+            journal_enabled: CONFIG().get::<bool>("usf/runtime/phenomenon_persistence/journal_enabled"),
+            journal_dir: CONFIG().get::<String>("usf/runtime/phenomenon_persistence/journal_dir"),
+            retain_successful_journal_batches: CONFIG().get::<bool>("usf/runtime/phenomenon_persistence/retain_successful_journal_batches"),
         }
+    }
+}
+
+#[inline]
+fn parse_persistence_durability(raw: &str) -> PhenomenonPersistenceDurability {
+    let normalized = raw.trim().to_ascii_lowercase();
+    match normalized.as_str() {
+        "atomic_replace" | "atomic-replace" | "atomic" => PhenomenonPersistenceDurability::AtomicReplace,
+        "atomic_replace_and_fsync" | "atomic-replace-and-fsync" | "atomic_fsync" | "atomic-fsync" => PhenomenonPersistenceDurability::AtomicReplaceAndFsync,
+        _ => panic!(
+            "USF phenomenon persistence config is invalid: durability='{}'; expected atomic_replace or atomic_replace_and_fsync.",
+            normalized
+        ),
     }
 }
 
@@ -974,5 +989,14 @@ mod tests {
             }
         }
         assert_eq!(root_count, 1, "expected exactly one canonical root for phenomenon 77");
+    }
+
+    #[test]
+    fn persistence_durability_parser_accepts_supported_aliases() {
+        assert_eq!(parse_persistence_durability("atomic_replace"), PhenomenonPersistenceDurability::AtomicReplace);
+        assert_eq!(
+            parse_persistence_durability("atomic-replace-and-fsync"),
+            PhenomenonPersistenceDurability::AtomicReplaceAndFsync
+        );
     }
 }
