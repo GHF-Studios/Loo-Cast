@@ -15,13 +15,13 @@ use crate::rhai_binding::engine::preprocess::preprocess_script_source;
 use crate::rhai_binding::engine::resources::MainScriptEngineHandle;
 use crate::rhai_binding::engine::statics::{
     SCHEDULE_HOOKS, ScriptDptMetricDefinition, ScriptDptSchemaDefinition, ScriptManifestationDensityDefinition, ScriptManifestationMaterialDefinition,
-    ScriptMetricDefinition, ScriptPhenomenonDefinition, ScriptPhenomenonModelDefinition, ScriptScaleDefinition, ScriptSingletonConflictPolicy,
-    ScriptUsfModContribution, ScriptUsfModDefinition, ScriptUsfModManifestDefinition, ScriptUsfModpackDefinition, ScriptZlmMetricBandDefinition,
-    ScriptZlmRuleDefinition, ScriptZlmScaleDefinition, ScriptZoneDensityProfileDefinition, ScriptZonePhenomenonSupportDefinition,
-    ScriptZoneSelectionPolicyDefinition, USF_DPT_SCHEMAS_BY_SCALE, USF_METRIC_SETS_BY_ID, USF_METRICS_BY_NAME, USF_MOD_CONTRIBUTIONS_BY_ID,
-    USF_MOD_MANIFESTS_BY_ID, USF_MODPACKS_BY_ID, USF_MODS_BY_ID, USF_PHENOMENA_BY_ID, USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE,
-    USF_PHENOMENON_MODELS_BY_ID, USF_SCALES_BY_INDEX, USF_ZLM_SCALES_BY_SCALE, USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE,
-    USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE, USF_ZONE_TYPES,
+    ScriptMetricDefinition, ScriptPhenomenonDefinition, ScriptPhenomenonModelDefinition, ScriptScaleDefinition, ScriptSimulationServiceDefinition,
+    ScriptSingletonConflictPolicy, ScriptUsfModContribution, ScriptUsfModDefinition, ScriptUsfModManifestDefinition, ScriptUsfModpackDefinition,
+    ScriptZlmMetricBandDefinition, ScriptZlmRuleDefinition, ScriptZlmScaleDefinition, ScriptZoneDensityProfileDefinition,
+    ScriptZonePhenomenonSupportDefinition, ScriptZoneSelectionPolicyDefinition, USF_DPT_SCHEMAS_BY_SCALE, USF_METRIC_SETS_BY_ID, USF_METRICS_BY_NAME,
+    USF_MOD_CONTRIBUTIONS_BY_ID, USF_MOD_MANIFESTS_BY_ID, USF_MODPACKS_BY_ID, USF_MODS_BY_ID, USF_PHENOMENA_BY_ID,
+    USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE, USF_PHENOMENON_MODELS_BY_ID, USF_SCALES_BY_INDEX, USF_ZLM_SCALES_BY_SCALE,
+    USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE, USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE, USF_ZONE_TYPES,
 };
 use crate::rhai_binding::runtime::ecs::message::bindings::types::ScriptProbeMessage;
 use crate::usf::content::{DEFAULT_DEMO_MOD_ID, DPT_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID, DPT_SAMPLER_KERNEL_DEFAULT_ID};
@@ -2113,6 +2113,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                         manifestation_density: None,
                         manifestation_material: None,
                         manifestation_collider_enabled: false,
+                        simulation_service: None,
                     },
                 );
             }
@@ -2333,6 +2334,52 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
             }
 
             model.manifestation_collider_enabled = enabled;
+            Ok(())
+        },
+    );
+    engine.register_fn(
+        "set_simulation_service",
+        |ctx: &mut UsfPhenomenonModelScriptCtx, target_hz: f64, stability_bias: f64, response_gain: f64| -> Result<(), Box<EvalAltResult>> {
+            let model_id = normalize_script_identifier("model_id", ctx.model_id.as_str())?;
+            let mut models = USF_PHENOMENON_MODELS_BY_ID().lock().unwrap();
+            let Some(model) = models.get_mut(&model_id) else {
+                return Err(format!("phenomenon model '{}' is not registered; call ctx.register(...) first", model_id).into());
+            };
+
+            let phenomena = USF_PHENOMENA_BY_ID().lock().unwrap();
+            let Some(phenomenon) = phenomena.get(model.phenomenon_id.as_str()) else {
+                return Err(format!("phenomenon model '{}' references unknown phenomenon '{}'", model_id, model.phenomenon_id).into());
+            };
+            let required_capability = PhenomenonCapability::SimulationService.canonical_id();
+            if !phenomenon
+                .capabilities
+                .iter()
+                .any(|capability| capability.eq_ignore_ascii_case(required_capability))
+            {
+                return Err(format!(
+                    "phenomenon model '{}' belongs to phenomenon '{}' (kind='{}') without capability '{}'; \
+                     set_simulation_service requires that capability.",
+                    model_id, model.phenomenon_id, phenomenon.kind, required_capability
+                )
+                .into());
+            }
+            drop(phenomena);
+
+            if !target_hz.is_finite() || target_hz <= 0.0 {
+                return Err("target_hz must be finite and > 0".into());
+            }
+            if !stability_bias.is_finite() {
+                return Err("stability_bias must be finite".into());
+            }
+            if !response_gain.is_finite() || response_gain <= 0.0 {
+                return Err("response_gain must be finite and > 0".into());
+            }
+
+            model.simulation_service = Some(ScriptSimulationServiceDefinition {
+                target_hz: target_hz as f32,
+                stability_bias: stability_bias as f32,
+                response_gain: response_gain as f32,
+            });
             Ok(())
         },
     );

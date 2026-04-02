@@ -14,28 +14,29 @@ pub mod systems;
 pub mod types;
 
 pub use components::{
-    MonolithicPhenomenaModel, PartialPhenomenaModel, PartitionedPhenomenaModelMember, PartitionedPhenomenaModelRoot, PhenomenaModelState,
-    PhenomenaModelSupport, PhenomenaModelTopology, PhenomenaProjectionContract, Phenomenon, PhenomenonModel, PhenomenonModelProjectionContract,
-    PhenomenonModelScriptDefinitionRef, PhenomenonModelSupport, PhenomenonNode, PhenomenonNodeLifecycle, PhenomenonNodeState, PhenomenonRootNodeRef,
-    PhenomenonScriptDefinitionRef,
+    MonolithicPhenomenonModel, PartialPhenomenonModel, PartitionedPhenomenonModelMember, PartitionedPhenomenonModelRoot, Phenomenon, PhenomenonModel,
+    PhenomenonModelProjectionContract, PhenomenonModelProjectionSpec, PhenomenonModelScriptDefinitionRef, PhenomenonModelSimulationContract,
+    PhenomenonModelState, PhenomenonModelSupport, PhenomenonModelSupportBounds, PhenomenonModelTopology, PhenomenonNode, PhenomenonNodeLifecycle,
+    PhenomenonNodeState, PhenomenonRootNodeRef, PhenomenonScriptDefinitionRef,
 };
 pub use generator::{
     BuildStateInput, MeshWindowInput, PhenomenonChildPlan, PhenomenonGenerator, PhenomenonMeshWindow, PhenomenonStateSnapshot, PlanChildrenInput,
 };
 pub use generators::layer_echo::LayerEchoGenerator;
 pub use meshing::{PHENOMENON_SEAM_LATTICE_DENOM, PhenomenonLatticeWindow, seam_safe_lattice_window};
-pub use partition_runtime::PartitionRuntimeSettings;
+pub use partition_runtime::{PartitionRuntimeSettings, PartitionSyncRuntimeState};
 pub use persistence::{
-    PARTIAL_PHENOMENA_MODEL_SCHEMA_VERSION, PHENOMENA_MODEL_SCHEMA_VERSION, PHENOMENON_SCHEMA_VERSION, PersistedPartialPhenomenaModelRecord,
-    PersistedPhenomenaModelRecord, PersistedPhenomenonRecord, PhenomenonPersistenceDurability,
+    PARTIAL_PHENOMENON_MODEL_SCHEMA_VERSION, PHENOMENON_MODEL_SCHEMA_VERSION, PHENOMENON_SCHEMA_VERSION, PersistedPartialPhenomenonModelRecord,
+    PersistedPhenomenonModelRecord, PersistedPhenomenonRecord, PhenomenonPersistenceDurability,
 };
 pub use resources::PhenomenonDefinitionRegistry;
 pub use systems::{
-    PhenomenonDebugStats, PhenomenonGeneratorState, PhenomenonLifecyclePolicy, PhenomenonPersistenceHydrationState, PhenomenonPersistenceRuntimeSettings,
+    PhenomenonChildScaleModelRequest, PhenomenonChildScaleRequestSettings, PhenomenonDebugStats, PhenomenonGeneratorState, PhenomenonLifecyclePolicy,
+    PhenomenonPersistenceHydrationState, PhenomenonPersistenceRuntimeSettings,
 };
 pub use types::{
     ManifestationDensityFieldDefinition, ManifestationMaterialProfileDefinition, PhenomenonCapability, PhenomenonId, PhenomenonKind, PhenomenonLineage,
-    PhenomenonManifestationFieldContract, PhenomenonNodeKey, PhenomenonNodeSeed,
+    PhenomenonManifestationFieldContract, PhenomenonNodeKey, PhenomenonNodeSeed, PhenomenonSimulationServiceDefinition,
 };
 
 use partition_runtime::sync_partitioned_model_members_system;
@@ -45,9 +46,9 @@ use persistence_runtime::{
     recover_authoritative_phenomena_persistence_journal_system,
 };
 use systems::{
-    apply_zone_realization_startup_hooks_system, despawn_invalid_nodes_system, enforce_model_topology_component_contracts_system, ensure_root_nodes_system,
-    ensure_scale_models_system, expand_phenomenon_frontier_system, hydrate_persisted_phenomena_state_system, prune_orphan_models_system,
-    refresh_active_node_stats_system, sync_policy_depth_to_frontier_scale_system,
+    apply_child_scale_model_requests_system, apply_zone_realization_startup_hooks_system, despawn_invalid_nodes_system, emit_child_scale_model_requests_system,
+    enforce_model_topology_component_contracts_system, ensure_root_nodes_system, ensure_scale_models_system, expand_phenomenon_frontier_system,
+    hydrate_persisted_phenomena_state_system, prune_orphan_models_system, refresh_active_node_stats_system, sync_policy_depth_to_frontier_scale_system,
 };
 
 pub(crate) struct PhenomenonPlugin;
@@ -63,6 +64,9 @@ impl Plugin for PhenomenonPlugin {
             .init_resource::<PhenomenonPersistenceWriteStats>()
             .init_resource::<PhenomenonPersistenceJournalRecoveryState>()
             .init_resource::<PartitionRuntimeSettings>()
+            .init_resource::<PartitionSyncRuntimeState>()
+            .init_resource::<PhenomenonChildScaleRequestSettings>()
+            .add_message::<PhenomenonChildScaleModelRequest>()
             .add_systems(
                 Update,
                 (
@@ -71,7 +75,9 @@ impl Plugin for PhenomenonPlugin {
                     enforce_model_topology_component_contracts_system.after(ensure_scale_models_system),
                     apply_zone_realization_startup_hooks_system.after(enforce_model_topology_component_contracts_system),
                     hydrate_persisted_phenomena_state_system.after(apply_zone_realization_startup_hooks_system),
-                    sync_partitioned_model_members_system.after(hydrate_persisted_phenomena_state_system),
+                    emit_child_scale_model_requests_system.after(hydrate_persisted_phenomena_state_system),
+                    apply_child_scale_model_requests_system.after(emit_child_scale_model_requests_system),
+                    sync_partitioned_model_members_system.after(apply_child_scale_model_requests_system),
                     prune_orphan_models_system.after(sync_partitioned_model_members_system),
                     ensure_root_nodes_system,
                     expand_phenomenon_frontier_system.after(ensure_root_nodes_system),
@@ -86,16 +92,17 @@ impl Plugin for PhenomenonPlugin {
             .add_systems(Update, refresh_active_node_stats_system.in_set(AppSet::Diagnostics))
             .register_type::<Phenomenon>()
             .register_type::<PhenomenonModel>()
-            .register_type::<PhenomenaModelTopology>()
-            .register_type::<PhenomenaModelSupport>()
-            .register_type::<PhenomenaProjectionContract>()
+            .register_type::<PhenomenonModelTopology>()
+            .register_type::<PhenomenonModelSupportBounds>()
+            .register_type::<PhenomenonModelProjectionSpec>()
             .register_type::<PhenomenonModelSupport>()
             .register_type::<PhenomenonModelProjectionContract>()
-            .register_type::<MonolithicPhenomenaModel>()
-            .register_type::<PartitionedPhenomenaModelRoot>()
-            .register_type::<PartitionedPhenomenaModelMember>()
-            .register_type::<PartialPhenomenaModel>()
-            .register_type::<PhenomenaModelState>()
+            .register_type::<PhenomenonModelSimulationContract>()
+            .register_type::<MonolithicPhenomenonModel>()
+            .register_type::<PartitionedPhenomenonModelRoot>()
+            .register_type::<PartitionedPhenomenonModelMember>()
+            .register_type::<PartialPhenomenonModel>()
+            .register_type::<PhenomenonModelState>()
             .register_type::<PhenomenonScriptDefinitionRef>()
             .register_type::<PhenomenonModelScriptDefinitionRef>()
             .register_type::<PhenomenonRootNodeRef>()
@@ -110,9 +117,12 @@ impl Plugin for PhenomenonPlugin {
             .register_type::<PhenomenonPersistenceWriteStats>()
             .register_type::<PhenomenonPersistenceJournalRecoveryState>()
             .register_type::<PartitionRuntimeSettings>()
+            .register_type::<PhenomenonChildScaleRequestSettings>()
+            .register_type::<PhenomenonChildScaleModelRequest>()
             .register_type::<ManifestationDensityFieldDefinition>()
             .register_type::<ManifestationMaterialProfileDefinition>()
             .register_type::<PhenomenonManifestationFieldContract>()
+            .register_type::<PhenomenonSimulationServiceDefinition>()
             .register_type::<PhenomenonLatticeWindow>();
     }
 }

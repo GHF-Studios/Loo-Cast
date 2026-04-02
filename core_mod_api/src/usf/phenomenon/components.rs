@@ -2,9 +2,9 @@ use crate::bevy::prelude::*;
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
 
-use super::PHENOMENA_MODEL_SCHEMA_VERSION;
+use super::PHENOMENON_MODEL_SCHEMA_VERSION;
 use super::generator::PhenomenonStateSnapshot;
-use super::types::{PhenomenonId, PhenomenonKind, PhenomenonLineage, PhenomenonNodeKey, PhenomenonNodeSeed};
+use super::types::{PhenomenonId, PhenomenonKind, PhenomenonLineage, PhenomenonNodeKey, PhenomenonNodeSeed, PhenomenonSimulationServiceDefinition};
 
 #[derive(Component, Reflect, Debug, Clone, Copy, PartialEq, Eq)]
 #[reflect(Component)]
@@ -14,18 +14,18 @@ pub struct Phenomenon {
 }
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum PhenomenaModelTopology {
+pub enum PhenomenonModelTopology {
     #[default]
     MonolithicChunk,
     PartitionedByChunk,
 }
 
 #[derive(Reflect, Debug, Clone, PartialEq, Eq)]
-pub struct PhenomenaModelSupport {
+pub struct PhenomenonModelSupportBounds {
     pub anchor_chunk: GridVec,
     pub chunk_radius: u16,
 }
-impl PhenomenaModelSupport {
+impl PhenomenonModelSupportBounds {
     pub fn contains_chunk(&self, chunk_coord: &GridVec) -> bool {
         let mut anchor = self.anchor_chunk.clone();
         anchor.normalize();
@@ -57,12 +57,12 @@ impl PhenomenaModelSupport {
 }
 
 #[derive(Reflect, Debug, Clone, PartialEq)]
-pub struct PhenomenaProjectionContract {
+pub struct PhenomenonModelProjectionSpec {
     pub metric_name: String,
     pub projection_bias: f32,
     pub projection_gain: f32,
 }
-impl Default for PhenomenaProjectionContract {
+impl Default for PhenomenonModelProjectionSpec {
     fn default() -> Self {
         Self {
             metric_name: "demo_mass_density".to_string(),
@@ -78,24 +78,30 @@ pub struct PhenomenonModel {
     pub phenomenon_entity: Entity,
     pub phenomenon_id: PhenomenonId,
     pub scale: Scale,
-    pub topology: PhenomenaModelTopology,
+    pub topology: PhenomenonModelTopology,
 }
 
 #[derive(Component, Reflect, Debug, Clone, PartialEq, Eq)]
 #[reflect(Component)]
 pub struct PhenomenonModelSupport {
-    pub support: PhenomenaModelSupport,
+    pub support: PhenomenonModelSupportBounds,
 }
 
 #[derive(Component, Reflect, Debug, Clone, PartialEq)]
 #[reflect(Component)]
 pub struct PhenomenonModelProjectionContract {
-    pub contract: PhenomenaProjectionContract,
+    pub contract: PhenomenonModelProjectionSpec,
+}
+
+#[derive(Component, Reflect, Debug, Clone, PartialEq)]
+#[reflect(Component)]
+pub struct PhenomenonModelSimulationContract {
+    pub contract: PhenomenonSimulationServiceDefinition,
 }
 
 #[derive(Component, Reflect, Debug, Clone, PartialEq, Eq)]
 #[reflect(Component)]
-pub struct MonolithicPhenomenaModel {
+pub struct MonolithicPhenomenonModel {
     pub phenomenon_id: PhenomenonId,
     pub scale: Scale,
     pub chunk_coord: GridVec,
@@ -103,24 +109,24 @@ pub struct MonolithicPhenomenaModel {
 
 #[derive(Component, Reflect, Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[reflect(Component)]
-pub struct PartitionedPhenomenaModelRoot;
+pub struct PartitionedPhenomenonModelRoot;
 
 #[derive(Component, Reflect, Debug, Clone, Copy, PartialEq, Eq)]
 #[reflect(Component)]
-pub struct PartitionedPhenomenaModelMember {
+pub struct PartitionedPhenomenonModelMember {
     pub root_model_entity: Entity,
 }
 
 #[derive(Component, Reflect, Debug, Clone, PartialEq, Eq)]
 #[reflect(Component)]
-pub struct PartialPhenomenaModel {
+pub struct PartialPhenomenonModel {
     pub phenomenon_id: PhenomenonId,
     pub scale: Scale,
     pub chunk_coord: GridVec,
     pub partition_key: u64,
 }
 
-impl PartialPhenomenaModel {
+impl PartialPhenomenonModel {
     pub fn deterministic_partition_key(phenomenon_id: PhenomenonId, scale: Scale, chunk_coord: &GridVec) -> u64 {
         let mut canonical = chunk_coord.clone();
         canonical.normalize();
@@ -141,14 +147,14 @@ impl PartialPhenomenaModel {
 
 #[derive(Component, Reflect, Debug, Clone, PartialEq)]
 #[reflect(Component)]
-pub struct PhenomenaModelState {
+pub struct PhenomenonModelState {
     pub schema_version: u16,
     pub scalar_channels: Vec<(String, f32)>,
 }
-impl Default for PhenomenaModelState {
+impl Default for PhenomenonModelState {
     fn default() -> Self {
         Self {
-            schema_version: PHENOMENA_MODEL_SCHEMA_VERSION,
+            schema_version: PHENOMENON_MODEL_SCHEMA_VERSION,
             scalar_channels: Vec::new(),
         }
     }

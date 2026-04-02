@@ -183,6 +183,23 @@ impl Default for ScriptManifestationMaterialDefinition {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ScriptSimulationServiceDefinition {
+    pub target_hz: f32,
+    pub stability_bias: f32,
+    pub response_gain: f32,
+}
+
+impl Default for ScriptSimulationServiceDefinition {
+    fn default() -> Self {
+        Self {
+            target_hz: 20.0,
+            stability_bias: 0.5,
+            response_gain: 1.0,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ScriptPhenomenonModelDefinition {
     pub id: String,
@@ -195,6 +212,7 @@ pub struct ScriptPhenomenonModelDefinition {
     pub manifestation_density: Option<ScriptManifestationDensityDefinition>,
     pub manifestation_material: Option<ScriptManifestationMaterialDefinition>,
     pub manifestation_collider_enabled: bool,
+    pub simulation_service: Option<ScriptSimulationServiceDefinition>,
 }
 impl Default for ScriptPhenomenonModelDefinition {
     fn default() -> Self {
@@ -209,6 +227,7 @@ impl Default for ScriptPhenomenonModelDefinition {
             manifestation_density: None,
             manifestation_material: None,
             manifestation_collider_enabled: false,
+            simulation_service: None,
         }
     }
 }

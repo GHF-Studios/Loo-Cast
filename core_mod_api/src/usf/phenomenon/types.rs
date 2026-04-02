@@ -7,6 +7,7 @@ pub enum PhenomenonCapability {
     ManifestationDensityField,
     ManifestationMaterialProfile,
     ManifestationCollider,
+    SimulationService,
 }
 impl PhenomenonCapability {
     pub fn canonical_id(self) -> &'static str {
@@ -14,6 +15,7 @@ impl PhenomenonCapability {
             Self::ManifestationDensityField => "manifestation_density_field",
             Self::ManifestationMaterialProfile => "manifestation_material_profile",
             Self::ManifestationCollider => "manifestation_collider",
+            Self::SimulationService => "simulation_service",
         }
     }
 
@@ -24,6 +26,7 @@ impl PhenomenonCapability {
                 Ok(Self::ManifestationMaterialProfile)
             }
             "manifestation_collider" | "manifestation-collider" | "collider" => Ok(Self::ManifestationCollider),
+            "simulation_service" | "simulation-service" | "sim_service" | "sim-service" => Ok(Self::SimulationService),
             unknown => Err(format!("unknown capability '{unknown}'")),
         }
     }
@@ -111,6 +114,22 @@ pub struct ManifestationMaterialProfileDefinition {
     pub perceptual_roughness: f32,
     pub metallic: f32,
     pub emissive_strength: f32,
+}
+
+#[derive(Reflect, Debug, Clone, Copy, PartialEq)]
+pub struct PhenomenonSimulationServiceDefinition {
+    pub target_hz: f32,
+    pub stability_bias: f32,
+    pub response_gain: f32,
+}
+impl Default for PhenomenonSimulationServiceDefinition {
+    fn default() -> Self {
+        Self {
+            target_hz: 20.0,
+            stability_bias: 0.5,
+            response_gain: 1.0,
+        }
+    }
 }
 impl Default for ManifestationMaterialProfileDefinition {
     fn default() -> Self {
@@ -258,6 +277,19 @@ mod tests {
             ..a.clone()
         };
         assert_ne!(a.deterministic_seed(), b.deterministic_seed());
+    }
+
+    #[test]
+    fn phenomenon_capability_parses_simulation_service_aliases() {
+        assert_eq!(
+            PhenomenonCapability::try_from_config_value("simulation_service").expect("capability should parse"),
+            PhenomenonCapability::SimulationService
+        );
+        assert_eq!(
+            PhenomenonCapability::try_from_config_value("sim-service").expect("capability should parse"),
+            PhenomenonCapability::SimulationService
+        );
+        assert_eq!(PhenomenonCapability::SimulationService.canonical_id(), "simulation_service");
     }
 
     #[test]

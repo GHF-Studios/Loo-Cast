@@ -26,7 +26,7 @@ use content::{UsfActiveModpack, UsfConfiguredMod, UsfExecutionPlan, UsfScaleDefi
 use definition::{DptMetricDefinition, DptMetricId, DptSchema, ZoneTypeId};
 use dpt::{DptChunkKey, DptChunkRecord};
 use phenomenon::{
-    ManifestationMaterialProfileDefinition, PartitionedPhenomenaModelMember, PartitionedPhenomenaModelRoot, PhenomenonId, PhenomenonKind, PhenomenonLineage,
+    ManifestationMaterialProfileDefinition, PartitionedPhenomenonModelMember, PartitionedPhenomenonModelRoot, PhenomenonId, PhenomenonKind, PhenomenonLineage,
     PhenomenonManifestationFieldContract, PhenomenonMeshWindow, PhenomenonNodeKey, PhenomenonNodeSeed, PhenomenonStateSnapshot,
 };
 use substrate::{
@@ -109,8 +109,8 @@ impl Plugin for UsfPlugin {
             .register_type::<PhenomenonMeshWindow>()
             .register_type::<PhenomenonManifestationFieldContract>()
             .register_type::<ManifestationMaterialProfileDefinition>()
-            .register_type::<PartitionedPhenomenaModelRoot>()
-            .register_type::<PartitionedPhenomenaModelMember>()
+            .register_type::<PartitionedPhenomenonModelRoot>()
+            .register_type::<PartitionedPhenomenonModelMember>()
             .register_type::<SubstrateChunkEdge>()
             .register_type::<ChunkEdgeInterface>()
             .register_type::<SubstrateLeafContainer>()

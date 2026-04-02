@@ -4,9 +4,10 @@ use crate::bevy::prelude::*;
 use crate::rhai_binding::engine::statics::{USF_PHENOMENA_BY_ID, USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE, USF_PHENOMENON_MODELS_BY_ID};
 use crate::usf::scale::Scale;
 
-use super::components::{PhenomenaModelTopology, PhenomenaProjectionContract};
+use super::components::{PhenomenonModelProjectionSpec, PhenomenonModelTopology};
 use super::types::{
     ManifestationDensityFieldDefinition, ManifestationMaterialProfileDefinition, PhenomenonCapability, PhenomenonKind, PhenomenonManifestationFieldContract,
+    PhenomenonSimulationServiceDefinition,
 };
 
 #[derive(Resource, Reflect, Debug, Clone)]
@@ -17,8 +18,9 @@ pub struct PhenomenonDefinitionRegistry {
     pub manifestation_density_by_model_id: HashMap<String, ManifestationDensityFieldDefinition>,
     pub manifestation_material_by_model_id: HashMap<String, ManifestationMaterialProfileDefinition>,
     pub manifestation_collider_enabled_by_model_id: HashMap<String, bool>,
-    pub projection_contract_by_model_id: HashMap<String, PhenomenaProjectionContract>,
-    pub topology_by_model_id: HashMap<String, PhenomenaModelTopology>,
+    pub simulation_service_by_model_id: HashMap<String, PhenomenonSimulationServiceDefinition>,
+    pub projection_contract_by_model_id: HashMap<String, PhenomenonModelProjectionSpec>,
+    pub topology_by_model_id: HashMap<String, PhenomenonModelTopology>,
     pub support_chunk_radius_by_model_id: HashMap<String, u16>,
     pub model_selection_by_phenomenon_scale: HashMap<String, String>,
     pub phenomenon_by_model_id: HashMap<String, String>,
@@ -57,6 +59,7 @@ impl Default for PhenomenonDefinitionRegistry {
         let mut manifestation_density_by_model_id = HashMap::new();
         let mut manifestation_material_by_model_id = HashMap::new();
         let mut manifestation_collider_enabled_by_model_id = HashMap::new();
+        let mut simulation_service_by_model_id = HashMap::new();
         let mut projection_contract_by_model_id = HashMap::new();
         let mut topology_by_model_id = HashMap::new();
         let mut support_chunk_radius_by_model_id = HashMap::new();
@@ -197,6 +200,47 @@ impl Default for PhenomenonDefinitionRegistry {
                 );
             }
             manifestation_collider_enabled_by_model_id.insert(normalized_model_id.clone(), model.manifestation_collider_enabled);
+            let has_simulation_service_capability = capabilities_by_phenomenon_id
+                .get(&normalized_phenomenon_id)
+                .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::SimulationService));
+            if has_simulation_service_capability {
+                let Some(simulation_service) = model.simulation_service else {
+                    panic!(
+                        "USF phenomenon bootstrap failed: model '{}' belongs to phenomenon '{}' (kind='{}') \
+                         requiring capability 'simulation_service' but has no simulation service definition. \
+                         Call set_simulation_service(...) in the model script.",
+                        normalized_model_id,
+                        normalized_phenomenon_id,
+                        kind.canonical_id()
+                    );
+                };
+                if !simulation_service.target_hz.is_finite() || simulation_service.target_hz <= 0.0 {
+                    panic!(
+                        "USF phenomenon bootstrap failed: model '{}' has invalid simulation target_hz={}; expected finite > 0.",
+                        normalized_model_id, simulation_service.target_hz
+                    );
+                }
+                if !simulation_service.stability_bias.is_finite() {
+                    panic!(
+                        "USF phenomenon bootstrap failed: model '{}' has invalid simulation stability_bias={}; expected finite.",
+                        normalized_model_id, simulation_service.stability_bias
+                    );
+                }
+                if !simulation_service.response_gain.is_finite() || simulation_service.response_gain <= 0.0 {
+                    panic!(
+                        "USF phenomenon bootstrap failed: model '{}' has invalid simulation response_gain={}; expected finite > 0.",
+                        normalized_model_id, simulation_service.response_gain
+                    );
+                }
+                simulation_service_by_model_id.insert(
+                    normalized_model_id.clone(),
+                    PhenomenonSimulationServiceDefinition {
+                        target_hz: simulation_service.target_hz,
+                        stability_bias: simulation_service.stability_bias,
+                        response_gain: simulation_service.response_gain,
+                    },
+                );
+            }
             let projection_metric_name = normalize_identifier(model.projection_metric_name.as_str());
             if projection_metric_name.is_empty() {
                 panic!(
@@ -218,7 +262,7 @@ impl Default for PhenomenonDefinitionRegistry {
             }
             projection_contract_by_model_id.insert(
                 normalized_model_id.clone(),
-                PhenomenaProjectionContract {
+                PhenomenonModelProjectionSpec {
                     metric_name: projection_metric_name,
                     projection_bias: model.projection_bias,
                     projection_gain: model.projection_gain,
@@ -226,7 +270,7 @@ impl Default for PhenomenonDefinitionRegistry {
             );
             let topology = parse_topology_tag(model.topology.as_str());
             let support_chunk_radius = match topology {
-                PhenomenaModelTopology::MonolithicChunk => {
+                PhenomenonModelTopology::MonolithicChunk => {
                     if model.support_chunk_radius != 0 {
                         panic!(
                             "USF phenomenon bootstrap failed: model '{}' is monolithic_chunk but declares support_chunk_radius={}; expected 0.",
@@ -235,7 +279,7 @@ impl Default for PhenomenonDefinitionRegistry {
                     }
                     0
                 }
-                PhenomenaModelTopology::PartitionedByChunk => {
+                PhenomenonModelTopology::PartitionedByChunk => {
                     if model.support_chunk_radius == 0 {
                         panic!(
                             "USF phenomenon bootstrap failed: model '{}' is partitioned_by_chunk but declares support_chunk_radius=0; expected >= 1.",
@@ -335,6 +379,19 @@ impl Default for PhenomenonDefinitionRegistry {
                         scale_index
                     );
                 }
+                let has_simulation_service_capability = capabilities_by_phenomenon_id
+                    .get(phenomenon_id)
+                    .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::SimulationService));
+                if has_simulation_service_capability && !simulation_service_by_model_id.contains_key(model_id) {
+                    panic!(
+                        "USF phenomenon bootstrap failed: selected model '{}' for phenomenon '{}' (kind='{}') at scale {} \
+                         has no simulation service definition.",
+                        model_id,
+                        phenomenon_id,
+                        kind.canonical_id(),
+                        scale_index
+                    );
+                }
             }
         }
 
@@ -344,6 +401,7 @@ impl Default for PhenomenonDefinitionRegistry {
             manifestation_density_by_model_id,
             manifestation_material_by_model_id,
             manifestation_collider_enabled_by_model_id,
+            simulation_service_by_model_id,
             projection_contract_by_model_id,
             topology_by_model_id,
             support_chunk_radius_by_model_id,
@@ -409,12 +467,24 @@ impl PhenomenonDefinitionRegistry {
             .unwrap_or(false)
     }
 
-    pub fn projection_contract_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<PhenomenaProjectionContract> {
+    pub fn simulation_service_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<PhenomenonSimulationServiceDefinition> {
+        if !self.supports_capability_for_phenomenon(phenomenon_id, PhenomenonCapability::SimulationService) {
+            return None;
+        }
+        let model_id = self.model_for_scale(phenomenon_id, scale)?;
+        self.simulation_service_for_model(model_id)
+    }
+
+    pub fn simulation_service_for_model(&self, model_id: &str) -> Option<PhenomenonSimulationServiceDefinition> {
+        self.simulation_service_by_model_id.get(&normalize_identifier(model_id)).copied()
+    }
+
+    pub fn projection_contract_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<PhenomenonModelProjectionSpec> {
         let model_id = self.model_for_scale(phenomenon_id, scale)?;
         self.projection_contract_for_model(model_id)
     }
 
-    pub fn projection_contract_for_model(&self, model_id: &str) -> Option<PhenomenaProjectionContract> {
+    pub fn projection_contract_for_model(&self, model_id: &str) -> Option<PhenomenonModelProjectionSpec> {
         self.projection_contract_by_model_id.get(&normalize_identifier(model_id)).cloned()
     }
 
@@ -492,7 +562,7 @@ impl PhenomenonDefinitionRegistry {
             .is_some_and(|value| value == &normalized_phenomenon_id)
     }
 
-    pub fn topology_for_model(&self, model_id: &str) -> Option<PhenomenaModelTopology> {
+    pub fn topology_for_model(&self, model_id: &str) -> Option<PhenomenonModelTopology> {
         self.topology_by_model_id.get(&normalize_identifier(model_id)).copied()
     }
 
@@ -500,7 +570,7 @@ impl PhenomenonDefinitionRegistry {
         self.support_chunk_radius_by_model_id.get(&normalize_identifier(model_id)).copied()
     }
 
-    pub fn topology_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<PhenomenaModelTopology> {
+    pub fn topology_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<PhenomenonModelTopology> {
         let model_id = self.model_for_scale(phenomenon_id, scale)?;
         self.topology_for_model(model_id)
     }
@@ -538,11 +608,11 @@ fn parse_selection_key(selection_key: &str) -> (&str, u8) {
 }
 
 #[inline]
-fn parse_topology_tag(raw: &str) -> PhenomenaModelTopology {
+fn parse_topology_tag(raw: &str) -> PhenomenonModelTopology {
     let normalized = raw.trim().to_ascii_lowercase();
     match normalized.as_str() {
-        "monolithic_chunk" | "monolithic-chunk" | "monolithic" => PhenomenaModelTopology::MonolithicChunk,
-        "partitioned_by_chunk" | "partitioned-by-chunk" | "partitioned" => PhenomenaModelTopology::PartitionedByChunk,
+        "monolithic_chunk" | "monolithic-chunk" | "monolithic" => PhenomenonModelTopology::MonolithicChunk,
+        "partitioned_by_chunk" | "partitioned-by-chunk" | "partitioned" => PhenomenonModelTopology::PartitionedByChunk,
         _ => panic!(
             "USF phenomenon bootstrap failed: unsupported model topology '{}'; expected monolithic_chunk or partitioned_by_chunk.",
             normalized

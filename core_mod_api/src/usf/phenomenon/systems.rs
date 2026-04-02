@@ -10,13 +10,14 @@ use crate::usf::authority::{
 };
 
 use crate::usf::phenomenon::components::{
-    MonolithicPhenomenaModel, PartialPhenomenaModel, PartitionedPhenomenaModelMember, PartitionedPhenomenaModelRoot, PhenomenaModelState,
-    PhenomenaModelSupport, PhenomenaModelTopology, Phenomenon, PhenomenonModel, PhenomenonModelProjectionContract, PhenomenonModelScriptDefinitionRef,
-    PhenomenonModelSupport, PhenomenonNode, PhenomenonNodeLifecycle, PhenomenonNodeState, PhenomenonRootNodeRef, PhenomenonScriptDefinitionRef,
+    MonolithicPhenomenonModel, PartialPhenomenonModel, PartitionedPhenomenonModelMember, PartitionedPhenomenonModelRoot, Phenomenon, PhenomenonModel,
+    PhenomenonModelProjectionContract, PhenomenonModelScriptDefinitionRef, PhenomenonModelSimulationContract, PhenomenonModelState, PhenomenonModelSupport,
+    PhenomenonModelSupportBounds, PhenomenonModelTopology, PhenomenonNode, PhenomenonNodeLifecycle, PhenomenonNodeState, PhenomenonRootNodeRef,
+    PhenomenonScriptDefinitionRef,
 };
 use crate::usf::phenomenon::generator::{BuildStateInput, PhenomenonGenerator, PlanChildrenInput};
 use crate::usf::phenomenon::persistence::{
-    PhenomenonPersistenceDurability, load_phenomena_model_record, load_phenomenon_record, model_record_path, phenomenon_record_path, topology_from_tag,
+    PhenomenonPersistenceDurability, load_phenomenon_model_record, load_phenomenon_record, model_record_path, phenomenon_record_path, topology_from_tag,
 };
 use crate::usf::phenomenon::resources::PhenomenonDefinitionRegistry;
 use crate::usf::phenomenon::types::{PhenomenonId, PhenomenonLineage, PhenomenonNodeKey, PhenomenonNodeSeed};
@@ -132,6 +133,62 @@ pub struct PhenomenonPersistenceHydrationState {
     pub hydrated: bool,
 }
 
+#[derive(Resource, Reflect, Debug, Clone, PartialEq)]
+#[reflect(Resource)]
+pub struct PhenomenonChildScaleRequestSettings {
+    pub enabled: bool,
+    pub min_support_radius: u16,
+    pub instability_threshold: f32,
+    pub child_support_radius_multiplier: f32,
+    pub max_requests_per_frame: usize,
+}
+impl Default for PhenomenonChildScaleRequestSettings {
+    fn default() -> Self {
+        let min_support_radius = CONFIG().get::<u16>("usf/runtime/phenomenon_child_model/min_support_radius");
+        let instability_threshold = CONFIG().get::<f32>("usf/runtime/phenomenon_child_model/instability_threshold");
+        let child_support_radius_multiplier = CONFIG().get::<f32>("usf/runtime/phenomenon_child_model/child_support_radius_multiplier");
+        let max_requests_per_frame = CONFIG().get::<usize>("usf/runtime/phenomenon_child_model/max_requests_per_frame");
+        if min_support_radius == 0 {
+            panic!("USF child-scale model config is invalid: min_support_radius must be >= 1.");
+        }
+        if !instability_threshold.is_finite() || !(0.0..=1.0).contains(&instability_threshold) {
+            panic!(
+                "USF child-scale model config is invalid: instability_threshold={} (expected finite [0..1]).",
+                instability_threshold
+            );
+        }
+        if !child_support_radius_multiplier.is_finite() || child_support_radius_multiplier <= 0.0 {
+            panic!(
+                "USF child-scale model config is invalid: child_support_radius_multiplier={} (expected finite > 0).",
+                child_support_radius_multiplier
+            );
+        }
+        if max_requests_per_frame == 0 {
+            panic!("USF child-scale model config is invalid: max_requests_per_frame must be >= 1.");
+        }
+        Self {
+            enabled: CONFIG().get::<bool>("usf/runtime/phenomenon_child_model/enabled"),
+            min_support_radius,
+            instability_threshold,
+            child_support_radius_multiplier,
+            max_requests_per_frame,
+        }
+    }
+}
+
+#[derive(Message, Reflect, Debug, Clone, PartialEq)]
+pub struct PhenomenonChildScaleModelRequest {
+    pub phenomenon_entity: Entity,
+    pub phenomenon_id: PhenomenonId,
+    pub phenomenon_script_id: String,
+    pub from_scale: Scale,
+    pub target_scale: Scale,
+    pub anchor_chunk: GridVec,
+    pub requested_chunk_radius: u16,
+    pub selected_model_id: String,
+    pub reason_tag: String,
+}
+
 #[inline]
 fn is_canonical_root_node(node: &PhenomenonNode) -> bool {
     node.parent.is_none()
@@ -171,8 +228,8 @@ pub(super) fn ensure_scale_models_system(
                 Changed<PhenomenonModel>,
                 Added<PhenomenonModelScriptDefinitionRef>,
                 Changed<PhenomenonModelScriptDefinitionRef>,
-                Added<PartitionedPhenomenaModelMember>,
-                Changed<PartitionedPhenomenaModelMember>,
+                Added<PartitionedPhenomenonModelMember>,
+                Changed<PartitionedPhenomenonModelMember>,
             )>,
         ),
     >,
@@ -181,7 +238,7 @@ pub(super) fn ensure_scale_models_system(
         Entity,
         &PhenomenonModel,
         Option<&PhenomenonModelScriptDefinitionRef>,
-        Option<&PartitionedPhenomenaModelMember>,
+        Option<&PartitionedPhenomenonModelMember>,
     )>,
 ) {
     if !guard_phenomenon_authority_contract(authority_contract.as_ref(), authority_diagnostics.as_deref_mut()) {
@@ -262,11 +319,11 @@ pub(super) fn ensure_scale_models_system(
             });
             let anchor_chunk = GridVec::new_splat(scale, GridXyz::ZERO);
             let chunk_radius = match topology {
-                PhenomenaModelTopology::MonolithicChunk => 0,
-                PhenomenaModelTopology::PartitionedByChunk => configured_support_radius.max(1),
+                PhenomenonModelTopology::MonolithicChunk => 0,
+                PhenomenonModelTopology::PartitionedByChunk => configured_support_radius.max(1),
             };
             let support = PhenomenonModelSupport {
-                support: PhenomenaModelSupport {
+                support: PhenomenonModelSupportBounds {
                     anchor_chunk: anchor_chunk.clone(),
                     chunk_radius,
                 },
@@ -277,6 +334,7 @@ pub(super) fn ensure_scale_models_system(
                     selected_model_id
                 )
             });
+            let simulation_service = definitions.simulation_service_for_model(selected_model_id);
             let projection = PhenomenonModelProjectionContract { contract: projection_contract };
             let model_name = format!(
                 "phenomena_model_scale{}_{}_{}",
@@ -298,22 +356,243 @@ pub(super) fn ensure_scale_models_system(
                 },
                 support.clone(),
                 projection,
-                PhenomenaModelState::default(),
+                PhenomenonModelState::default(),
             ));
             match topology {
-                PhenomenaModelTopology::MonolithicChunk => {
-                    entity_commands.insert(MonolithicPhenomenaModel {
+                PhenomenonModelTopology::MonolithicChunk => {
+                    entity_commands.insert(MonolithicPhenomenonModel {
                         phenomenon_id: phenomenon.id,
                         scale,
                         chunk_coord: anchor_chunk,
                     });
                 }
-                PhenomenaModelTopology::PartitionedByChunk => {
-                    entity_commands.insert(PartitionedPhenomenaModelRoot);
+                PhenomenonModelTopology::PartitionedByChunk => {
+                    entity_commands.insert(PartitionedPhenomenonModelRoot);
                 }
+            }
+            if let Some(contract) = simulation_service {
+                entity_commands.insert(PhenomenonModelSimulationContract { contract });
             }
             typed_models_by_phenomenon_scale.insert(lookup_key, entity_commands.id());
         }
+    }
+}
+
+pub(super) fn emit_child_scale_model_requests_system(
+    authority_contract: Res<UsfWorldAuthorityContract>,
+    mut authority_diagnostics: Option<ResMut<UsfAuthorityDiagnostics>>,
+    settings: Res<PhenomenonChildScaleRequestSettings>,
+    definitions: Res<PhenomenonDefinitionRegistry>,
+    dirty_parent_models: Query<
+        (
+            &PhenomenonModel,
+            &PhenomenonModelScriptDefinitionRef,
+            Option<&PhenomenonModelSupport>,
+            Option<&PhenomenonModelState>,
+        ),
+        (
+            Without<PartitionedPhenomenonModelMember>,
+            Or<(
+                Added<PhenomenonModel>,
+                Changed<PhenomenonModel>,
+                Added<PhenomenonModelScriptDefinitionRef>,
+                Changed<PhenomenonModelScriptDefinitionRef>,
+                Added<PhenomenonModelSupport>,
+                Changed<PhenomenonModelSupport>,
+                Added<PhenomenonModelState>,
+                Changed<PhenomenonModelState>,
+            )>,
+        ),
+    >,
+    all_parent_models: Query<
+        (
+            &PhenomenonModel,
+            &PhenomenonModelScriptDefinitionRef,
+            Option<&PhenomenonModelSupport>,
+            Option<&PhenomenonModelState>,
+        ),
+        Without<PartitionedPhenomenonModelMember>,
+    >,
+    existing_models_query: Query<(&PhenomenonModel, &PhenomenonModelScriptDefinitionRef), Without<PartitionedPhenomenonModelMember>>,
+    mut request_writer: MessageWriter<PhenomenonChildScaleModelRequest>,
+) {
+    if !guard_phenomenon_authority_contract(authority_contract.as_ref(), authority_diagnostics.as_deref_mut()) {
+        return;
+    }
+    if !settings.enabled {
+        return;
+    }
+
+    let evaluate_all = definitions.is_changed();
+    if !evaluate_all && dirty_parent_models.is_empty() {
+        return;
+    }
+
+    let mut existing_model_keys = HashSet::<(Entity, u8, String)>::new();
+    for (existing_model, model_ref) in existing_models_query.iter() {
+        existing_model_keys.insert((
+            existing_model.phenomenon_entity,
+            existing_model.scale.index_from_top(),
+            normalize_model_identifier(model_ref.model_id.as_str()),
+        ));
+    }
+
+    let mut requested_targets = HashSet::<(Entity, u8)>::new();
+    let mut emitted = 0usize;
+
+    if evaluate_all {
+        for (model, model_ref, support, state) in all_parent_models.iter() {
+            if try_emit_child_scale_model_request(
+                model,
+                model_ref,
+                support,
+                state,
+                &settings,
+                &definitions,
+                &mut existing_model_keys,
+                &mut requested_targets,
+                &mut request_writer,
+            ) {
+                emitted += 1;
+            }
+            if emitted >= settings.max_requests_per_frame {
+                break;
+            }
+        }
+        return;
+    }
+    for (model, model_ref, support, state) in dirty_parent_models.iter() {
+        if try_emit_child_scale_model_request(
+            model,
+            model_ref,
+            support,
+            state,
+            &settings,
+            &definitions,
+            &mut existing_model_keys,
+            &mut requested_targets,
+            &mut request_writer,
+        ) {
+            emitted += 1;
+        }
+        if emitted >= settings.max_requests_per_frame {
+            break;
+        }
+    }
+}
+
+pub(super) fn apply_child_scale_model_requests_system(
+    authority_contract: Res<UsfWorldAuthorityContract>,
+    mut authority_diagnostics: Option<ResMut<UsfAuthorityDiagnostics>>,
+    mut commands: Commands,
+    definitions: Res<PhenomenonDefinitionRegistry>,
+    mut child_requests: MessageReader<PhenomenonChildScaleModelRequest>,
+    phenomenon_query: Query<(&Phenomenon, &PhenomenonScriptDefinitionRef)>,
+    existing_models_query: Query<(&PhenomenonModel, &PhenomenonModelScriptDefinitionRef), Without<PartitionedPhenomenonModelMember>>,
+) {
+    if !guard_phenomenon_authority_contract(authority_contract.as_ref(), authority_diagnostics.as_deref_mut()) {
+        return;
+    }
+
+    let mut existing_model_keys = HashSet::<(Entity, u8, String)>::new();
+    for (model, model_ref) in existing_models_query.iter() {
+        existing_model_keys.insert((
+            model.phenomenon_entity,
+            model.scale.index_from_top(),
+            normalize_model_identifier(model_ref.model_id.as_str()),
+        ));
+    }
+
+    for request in child_requests.read() {
+        let Ok((phenomenon, script_ref)) = phenomenon_query.get(request.phenomenon_entity) else {
+            continue;
+        };
+        if phenomenon.id != request.phenomenon_id {
+            continue;
+        }
+        if !script_ref.phenomenon_id.eq_ignore_ascii_case(request.phenomenon_script_id.as_str()) {
+            continue;
+        }
+
+        let model_key = (
+            request.phenomenon_entity,
+            request.target_scale.index_from_top(),
+            normalize_model_identifier(request.selected_model_id.as_str()),
+        );
+        if existing_model_keys.contains(&model_key) {
+            continue;
+        }
+
+        let Some(topology) = definitions.topology_for_model(request.selected_model_id.as_str()) else {
+            warn!(
+                "USF child-scale request skipped: model '{}' has no topology metadata.",
+                request.selected_model_id
+            );
+            continue;
+        };
+        let Some(projection_contract) = definitions.projection_contract_for_model(request.selected_model_id.as_str()) else {
+            warn!(
+                "USF child-scale request skipped: model '{}' has no projection contract metadata.",
+                request.selected_model_id
+            );
+            continue;
+        };
+        let simulation_service = definitions.simulation_service_for_model(request.selected_model_id.as_str());
+        let configured_support_radius = definitions
+            .support_chunk_radius_for_model(request.selected_model_id.as_str())
+            .unwrap_or(match topology {
+                PhenomenonModelTopology::MonolithicChunk => 0,
+                PhenomenonModelTopology::PartitionedByChunk => 1,
+            });
+        let chunk_radius = match topology {
+            PhenomenonModelTopology::MonolithicChunk => 0,
+            PhenomenonModelTopology::PartitionedByChunk => request.requested_chunk_radius.max(configured_support_radius).max(1),
+        };
+        let support = PhenomenonModelSupport {
+            support: PhenomenonModelSupportBounds {
+                anchor_chunk: request.anchor_chunk.clone(),
+                chunk_radius,
+            },
+        };
+
+        let model_name = format!(
+            "phenomena_model_scale{}_{}_{}_child",
+            request.target_scale.index_from_top(),
+            request.selected_model_id,
+            request.phenomenon_id.0,
+        );
+        let mut entity_commands = commands.spawn((
+            Name::new(model_name),
+            PhenomenonModel {
+                phenomenon_entity: request.phenomenon_entity,
+                phenomenon_id: request.phenomenon_id,
+                scale: request.target_scale,
+                topology,
+            },
+            PhenomenonModelScriptDefinitionRef {
+                model_id: request.selected_model_id.clone(),
+                phenomenon_id: request.phenomenon_script_id.clone(),
+            },
+            support,
+            PhenomenonModelProjectionContract { contract: projection_contract },
+            PhenomenonModelState::default(),
+        ));
+        match topology {
+            PhenomenonModelTopology::MonolithicChunk => {
+                entity_commands.insert(MonolithicPhenomenonModel {
+                    phenomenon_id: request.phenomenon_id,
+                    scale: request.target_scale,
+                    chunk_coord: request.anchor_chunk.clone(),
+                });
+            }
+            PhenomenonModelTopology::PartitionedByChunk => {
+                entity_commands.insert(PartitionedPhenomenonModelRoot);
+            }
+        }
+        if let Some(contract) = simulation_service {
+            entity_commands.insert(PhenomenonModelSimulationContract { contract });
+        }
+        existing_model_keys.insert(model_key);
     }
 }
 
@@ -328,14 +607,14 @@ pub(super) fn enforce_model_topology_component_contracts_system(
             Or<(
                 Added<PhenomenonModel>,
                 Changed<PhenomenonModel>,
-                Added<MonolithicPhenomenaModel>,
-                Changed<MonolithicPhenomenaModel>,
-                Added<PartialPhenomenaModel>,
-                Changed<PartialPhenomenaModel>,
-                Added<PartitionedPhenomenaModelRoot>,
-                Changed<PartitionedPhenomenaModelRoot>,
-                Added<PartitionedPhenomenaModelMember>,
-                Changed<PartitionedPhenomenaModelMember>,
+                Added<MonolithicPhenomenonModel>,
+                Changed<MonolithicPhenomenonModel>,
+                Added<PartialPhenomenonModel>,
+                Changed<PartialPhenomenonModel>,
+                Added<PartitionedPhenomenonModelRoot>,
+                Changed<PartitionedPhenomenonModelRoot>,
+                Added<PartitionedPhenomenonModelMember>,
+                Changed<PartitionedPhenomenonModelMember>,
             )>,
         ),
     >,
@@ -343,10 +622,10 @@ pub(super) fn enforce_model_topology_component_contracts_system(
         Entity,
         &PhenomenonModel,
         Option<&PhenomenonModelSupport>,
-        Option<&MonolithicPhenomenaModel>,
-        Option<&PartialPhenomenaModel>,
-        Option<&PartitionedPhenomenaModelRoot>,
-        Option<&PartitionedPhenomenaModelMember>,
+        Option<&MonolithicPhenomenonModel>,
+        Option<&PartialPhenomenonModel>,
+        Option<&PartitionedPhenomenonModelRoot>,
+        Option<&PartitionedPhenomenonModelMember>,
     )>,
 ) {
     if !guard_phenomenon_authority_contract(authority_contract.as_ref(), authority_diagnostics.as_deref_mut()) {
@@ -360,7 +639,7 @@ pub(super) fn enforce_model_topology_component_contracts_system(
     for (entity, model, support, monolithic, partial, partition_root, partition_member) in model_query.iter() {
         let mut entity_commands = commands.entity(entity);
         if partition_member.is_some() {
-            if model.topology != PhenomenaModelTopology::PartitionedByChunk {
+            if model.topology != PhenomenonModelTopology::PartitionedByChunk {
                 panic!(
                     "USF phenomenon runtime failed: partition member model entity {} has non-partitioned topology '{:?}'.",
                     entity.index(),
@@ -368,45 +647,45 @@ pub(super) fn enforce_model_topology_component_contracts_system(
                 );
             }
             if monolithic.is_some() {
-                entity_commands.remove::<MonolithicPhenomenaModel>();
+                entity_commands.remove::<MonolithicPhenomenonModel>();
             }
             if partial.is_some() {
-                entity_commands.remove::<PartialPhenomenaModel>();
+                entity_commands.remove::<PartialPhenomenonModel>();
             }
             if partition_root.is_some() {
-                entity_commands.remove::<PartitionedPhenomenaModelRoot>();
+                entity_commands.remove::<PartitionedPhenomenonModelRoot>();
             }
             continue;
         }
 
         match model.topology {
-            PhenomenaModelTopology::MonolithicChunk => {
+            PhenomenonModelTopology::MonolithicChunk => {
                 if monolithic.is_none() {
                     let chunk_coord = support
                         .map(|support| support.support.anchor_chunk.clone())
                         .unwrap_or_else(|| GridVec::new_splat(model.scale, GridXyz::ZERO));
-                    entity_commands.insert(MonolithicPhenomenaModel {
+                    entity_commands.insert(MonolithicPhenomenonModel {
                         phenomenon_id: model.phenomenon_id,
                         scale: model.scale,
                         chunk_coord,
                     });
                 }
                 if partial.is_some() {
-                    entity_commands.remove::<PartialPhenomenaModel>();
+                    entity_commands.remove::<PartialPhenomenonModel>();
                 }
                 if partition_root.is_some() {
-                    entity_commands.remove::<PartitionedPhenomenaModelRoot>();
+                    entity_commands.remove::<PartitionedPhenomenonModelRoot>();
                 }
             }
-            PhenomenaModelTopology::PartitionedByChunk => {
+            PhenomenonModelTopology::PartitionedByChunk => {
                 if partition_root.is_none() {
-                    entity_commands.insert(PartitionedPhenomenaModelRoot);
+                    entity_commands.insert(PartitionedPhenomenonModelRoot);
                 }
                 if monolithic.is_some() {
-                    entity_commands.remove::<MonolithicPhenomenaModel>();
+                    entity_commands.remove::<MonolithicPhenomenonModel>();
                 }
                 if partial.is_some() {
-                    entity_commands.remove::<PartialPhenomenaModel>();
+                    entity_commands.remove::<PartialPhenomenonModel>();
                 }
             }
         }
@@ -419,31 +698,33 @@ pub(super) fn apply_zone_realization_startup_hooks_system(
     mut zone_realization_events: MessageReader<ZoneRealizationEvent>,
     zone_runtime_state: Res<ZoneRuntimeState>,
     zone_phenomenon_query: Query<(Entity, &ZonePhenomenon), With<Phenomenon>>,
-    dirty_models: Query<
-        (),
-        (
-            With<PhenomenonModel>,
-            Or<(
-                Added<PhenomenonModel>,
-                Changed<PhenomenonModel>,
-                Added<PhenomenonModelSupport>,
-                Changed<PhenomenonModelSupport>,
-                Added<PhenomenaModelState>,
-                Changed<PhenomenaModelState>,
-                Added<MonolithicPhenomenaModel>,
-                Changed<MonolithicPhenomenaModel>,
-                Added<PartialPhenomenaModel>,
-                Changed<PartialPhenomenaModel>,
-            )>,
-        ),
-    >,
-    mut model_query: Query<(
-        &PhenomenonModel,
-        &mut PhenomenonModelSupport,
-        &mut PhenomenaModelState,
-        Option<&mut MonolithicPhenomenaModel>,
-        Option<&mut PartialPhenomenaModel>,
-        Option<&PartitionedPhenomenaModelMember>,
+    mut model_queries: ParamSet<(
+        Query<
+            (),
+            (
+                With<PhenomenonModel>,
+                Or<(
+                    Added<PhenomenonModel>,
+                    Changed<PhenomenonModel>,
+                    Added<PhenomenonModelSupport>,
+                    Changed<PhenomenonModelSupport>,
+                    Added<PhenomenonModelState>,
+                    Changed<PhenomenonModelState>,
+                    Added<MonolithicPhenomenonModel>,
+                    Changed<MonolithicPhenomenonModel>,
+                    Added<PartialPhenomenonModel>,
+                    Changed<PartialPhenomenonModel>,
+                )>,
+            ),
+        >,
+        Query<(
+            &PhenomenonModel,
+            &mut PhenomenonModelSupport,
+            &mut PhenomenonModelState,
+            Option<&mut MonolithicPhenomenonModel>,
+            Option<&mut PartialPhenomenonModel>,
+            Option<&PartitionedPhenomenonModelMember>,
+        )>,
     )>,
 ) {
     if !guard_phenomenon_authority_contract(authority_contract.as_ref(), authority_diagnostics.as_deref_mut()) {
@@ -459,7 +740,8 @@ pub(super) fn apply_zone_realization_startup_hooks_system(
             ZoneRealizationEvent::Despawned { .. } => None,
         })
         .collect::<Vec<_>>();
-    let reconcile_all_realized = zone_runtime_state.is_changed() || !dirty_models.is_empty();
+    let has_dirty_models = !model_queries.p0().is_empty();
+    let reconcile_all_realized = zone_runtime_state.is_changed() || has_dirty_models;
     if spawned.is_empty() && !reconcile_all_realized {
         return;
     }
@@ -485,14 +767,14 @@ pub(super) fn apply_zone_realization_startup_hooks_system(
             continue;
         };
         let zone_seed = zone_seed_scalar(&zone_id, &anchor_chunk);
-        for (model, mut support, mut state, monolithic, partial, partition_member) in model_query.iter_mut() {
+        for (model, mut support, mut state, monolithic, partial, partition_member) in model_queries.p1().iter_mut() {
             if model.phenomenon_entity != phenomenon_entity {
                 continue;
             }
 
             let desired_chunk_radius = match model.topology {
-                PhenomenaModelTopology::MonolithicChunk => 0,
-                PhenomenaModelTopology::PartitionedByChunk => chunk_radius.max(1),
+                PhenomenonModelTopology::MonolithicChunk => 0,
+                PhenomenonModelTopology::PartitionedByChunk => chunk_radius.max(1),
             };
             if support.support.anchor_chunk != anchor_chunk {
                 support.support.anchor_chunk = anchor_chunk.clone();
@@ -514,7 +796,7 @@ pub(super) fn apply_zone_realization_startup_hooks_system(
                 if partial.chunk_coord != anchor_chunk {
                     partial.chunk_coord = anchor_chunk.clone();
                 }
-                let desired_partition_key = PartialPhenomenaModel::deterministic_partition_key(partial.phenomenon_id, partial.scale, &anchor_chunk);
+                let desired_partition_key = PartialPhenomenonModel::deterministic_partition_key(partial.phenomenon_id, partial.scale, &anchor_chunk);
                 if partial.partition_key != desired_partition_key {
                     partial.partition_key = desired_partition_key;
                 }
@@ -620,25 +902,252 @@ fn live_chunk_scales(loaded_chunks: &Query<&Chunk>) -> HashSet<Scale> {
     loaded_chunks.iter().map(|chunk| chunk.coord.scale).collect::<HashSet<_>>()
 }
 
+#[allow(clippy::too_many_arguments)]
+fn try_emit_child_scale_model_request(
+    model: &PhenomenonModel,
+    model_ref: &PhenomenonModelScriptDefinitionRef,
+    support: Option<&PhenomenonModelSupport>,
+    state: Option<&PhenomenonModelState>,
+    settings: &PhenomenonChildScaleRequestSettings,
+    definitions: &PhenomenonDefinitionRegistry,
+    existing_model_keys: &mut HashSet<(Entity, u8, String)>,
+    requested_targets: &mut HashSet<(Entity, u8)>,
+    request_writer: &mut MessageWriter<PhenomenonChildScaleModelRequest>,
+) -> bool {
+    if model.scale == Scale::MIN {
+        return false;
+    }
+
+    let target_scale = model.scale.zoomed_in();
+    let Some(selected_model_id) = definitions.model_for_scale(&model_ref.phenomenon_id, target_scale) else {
+        return false;
+    };
+    let model_key = (
+        model.phenomenon_entity,
+        target_scale.index_from_top(),
+        normalize_model_identifier(selected_model_id),
+    );
+    if existing_model_keys.contains(&model_key) {
+        return false;
+    }
+    if !requested_targets.insert((model.phenomenon_entity, target_scale.index_from_top())) {
+        return false;
+    }
+
+    let (anchor_chunk, parent_chunk_radius) = support
+        .map(|support| (support.support.anchor_chunk.clone(), support.support.chunk_radius))
+        .unwrap_or_else(|| (GridVec::new_splat(model.scale, GridXyz::ZERO), 0));
+    let instability = state
+        .and_then(|state| {
+            scalar_channel_value(state, "dynamics.instability")
+                .or_else(|| scalar_channel_value(state, "substrate.instability"))
+                .or_else(|| scalar_channel_value(state, "zone.instability"))
+        })
+        .unwrap_or(0.0);
+    let support_trigger = parent_chunk_radius >= settings.min_support_radius;
+    let topology_trigger = model.topology == PhenomenonModelTopology::PartitionedByChunk;
+    let instability_trigger = instability >= settings.instability_threshold;
+    if !support_trigger && !topology_trigger && !instability_trigger {
+        return false;
+    }
+
+    let reason_tag = if instability_trigger {
+        "instability_threshold"
+    } else if topology_trigger {
+        "partitioned_topology"
+    } else {
+        "support_radius"
+    };
+    let projected_anchor = reproject_chunk_to_scale(&anchor_chunk, target_scale);
+    let requested_chunk_radius = child_support_radius_for_request(
+        selected_model_id,
+        parent_chunk_radius.max(settings.min_support_radius),
+        settings.child_support_radius_multiplier,
+        definitions,
+    );
+    request_writer.write(PhenomenonChildScaleModelRequest {
+        phenomenon_entity: model.phenomenon_entity,
+        phenomenon_id: model.phenomenon_id,
+        phenomenon_script_id: model_ref.phenomenon_id.clone(),
+        from_scale: model.scale,
+        target_scale,
+        anchor_chunk: projected_anchor,
+        requested_chunk_radius,
+        selected_model_id: selected_model_id.to_string(),
+        reason_tag: reason_tag.to_string(),
+    });
+    existing_model_keys.insert(model_key);
+    true
+}
+
+fn normalize_model_identifier(raw: &str) -> String {
+    raw.trim().to_ascii_lowercase()
+}
+
+fn scalar_channel_value(state: &PhenomenonModelState, channel_name: &str) -> Option<f32> {
+    state
+        .scalar_channels
+        .iter()
+        .find(|(name, _)| name.eq_ignore_ascii_case(channel_name))
+        .map(|(_, value)| *value)
+}
+
+fn child_support_radius_for_request(
+    model_id: &str,
+    parent_chunk_radius: u16,
+    child_support_radius_multiplier: f32,
+    definitions: &PhenomenonDefinitionRegistry,
+) -> u16 {
+    let topology = definitions.topology_for_model(model_id).unwrap_or(PhenomenonModelTopology::MonolithicChunk);
+    match topology {
+        PhenomenonModelTopology::MonolithicChunk => 0,
+        PhenomenonModelTopology::PartitionedByChunk => {
+            let configured_support_radius = definitions.support_chunk_radius_for_model(model_id).unwrap_or(1).max(1);
+            let scaled = ((parent_chunk_radius.max(1) as f32) * child_support_radius_multiplier).ceil() as u16;
+            scaled.max(configured_support_radius).max(1)
+        }
+    }
+}
+
+fn reproject_chunk_to_scale(chunk_coord: &GridVec, target_scale: Scale) -> GridVec {
+    let mut canonical = chunk_coord.clone();
+    canonical.normalize();
+    if canonical.scale == target_scale {
+        return canonical;
+    }
+
+    let target_depth = target_scale.index_from_top() as usize + 1;
+    let mut digits = canonical.to_raw_vec_3d();
+    if digits.len() < target_depth {
+        digits.resize(target_depth, GridXyz::ZERO);
+    } else {
+        digits.truncate(target_depth);
+    }
+    build_grid_vec_from_digits(&digits).unwrap_or_else(|| GridVec::new_splat(target_scale, GridXyz::ZERO))
+}
+
+fn build_grid_vec_from_digits(digits: &[GridXyz]) -> Option<GridVec> {
+    let (head, tail) = digits.split_first()?;
+    let mut cursor = GridVec::new_root(*head);
+    for xyz in tail {
+        cursor = GridVec::new(cursor, *xyz);
+    }
+    Some(cursor)
+}
+
 fn zone_support_seed(zone_runtime_state: &ZoneRuntimeState, zone_id: &ZoneId) -> Option<(GridVec, u16)> {
     let extent = zone_runtime_state.records.get(zone_id)?;
     if extent.chunk_coords.is_empty() {
         return None;
     }
 
-    let mut sorted_chunk_coords = extent.chunk_coords.clone();
+    let mut sorted_chunk_coords = extent
+        .chunk_coords
+        .iter()
+        .cloned()
+        .map(|mut coord| {
+            coord.normalize();
+            coord
+        })
+        .collect::<Vec<_>>();
     sorted_chunk_coords.sort_by(|left, right| grid_coord_sort_key(left).cmp(&grid_coord_sort_key(right)));
-    let anchor_chunk = sorted_chunk_coords.first().cloned()?;
-    let chunk_radius = estimate_support_radius_from_chunk_count(sorted_chunk_coords.len());
+    let anchor_chunk = select_extent_anchor_chunk(&sorted_chunk_coords)?;
+    let chunk_radius = support_radius_for_anchor(&anchor_chunk, &sorted_chunk_coords);
     Some((anchor_chunk, chunk_radius))
 }
 
-#[inline]
-fn estimate_support_radius_from_chunk_count(chunk_count: usize) -> u16 {
-    if chunk_count <= 1 {
-        return 0;
+fn select_extent_anchor_chunk(sorted_chunk_coords: &[GridVec]) -> Option<GridVec> {
+    if sorted_chunk_coords.is_empty() {
+        return None;
     }
-    ((chunk_count as f64).cbrt().ceil() as u16).saturating_sub(1).max(1)
+    if sorted_chunk_coords.len() == 1 {
+        return sorted_chunk_coords.first().cloned();
+    }
+
+    let flattened = sorted_chunk_coords.iter().map(flatten_grid_coord_components).collect::<Vec<_>>();
+    let dimensions = flattened.first()?.len();
+    if dimensions == 0 {
+        return sorted_chunk_coords.first().cloned();
+    }
+
+    let mut mins = vec![i32::MAX; dimensions];
+    let mut maxs = vec![i32::MIN; dimensions];
+    for components in &flattened {
+        for (index, value) in components.iter().enumerate() {
+            mins[index] = mins[index].min(*value);
+            maxs[index] = maxs[index].max(*value);
+        }
+    }
+    let centers = mins
+        .iter()
+        .zip(maxs.iter())
+        .map(|(min_value, max_value)| (*min_value as f64 + *max_value as f64) * 0.5)
+        .collect::<Vec<_>>();
+
+    let mut best_index = 0usize;
+    let mut best_score = f64::INFINITY;
+    for (index, components) in flattened.iter().enumerate() {
+        let candidate_score = components
+            .iter()
+            .zip(centers.iter())
+            .map(|(value, center)| (*value as f64 - *center).abs())
+            .fold(0.0_f64, f64::max);
+        if candidate_score < best_score {
+            best_score = candidate_score;
+            best_index = index;
+            continue;
+        }
+        if (candidate_score - best_score).abs() <= f64::EPSILON {
+            let current_key = grid_coord_sort_key(&sorted_chunk_coords[index]);
+            let best_key = grid_coord_sort_key(&sorted_chunk_coords[best_index]);
+            if current_key < best_key {
+                best_index = index;
+            }
+        }
+    }
+    sorted_chunk_coords.get(best_index).cloned()
+}
+
+fn support_radius_for_anchor(anchor_chunk: &GridVec, chunk_coords: &[GridVec]) -> u16 {
+    chunk_coords
+        .iter()
+        .map(|chunk_coord| grid_support_distance(anchor_chunk, chunk_coord) as u32)
+        .max()
+        .unwrap_or_default()
+        .min(u16::MAX as u32) as u16
+}
+
+fn grid_support_distance(anchor_chunk: &GridVec, chunk_coord: &GridVec) -> u16 {
+    let mut anchor = anchor_chunk.clone();
+    anchor.normalize();
+    let mut query = chunk_coord.clone();
+    query.normalize();
+    if anchor.scale != query.scale {
+        return u16::MAX;
+    }
+
+    let anchor_digits = anchor.to_raw_vec_3d();
+    let query_digits = query.to_raw_vec_3d();
+    if anchor_digits.len() != query_digits.len() {
+        return u16::MAX;
+    }
+
+    anchor_digits
+        .iter()
+        .zip(query_digits.iter())
+        .map(|(anchor_xyz, query_xyz)| {
+            (anchor_xyz.x - query_xyz.x)
+                .abs()
+                .max((anchor_xyz.y - query_xyz.y).abs())
+                .max((anchor_xyz.z - query_xyz.z).abs())
+        })
+        .max()
+        .unwrap_or_default()
+        .clamp(0, u16::MAX as i32) as u16
+}
+
+fn flatten_grid_coord_components(coord: &GridVec) -> Vec<i32> {
+    coord.to_raw_vec_3d().into_iter().flat_map(|xyz| [xyz.x, xyz.y, xyz.z]).collect::<Vec<_>>()
 }
 
 fn grid_coord_sort_key(coord: &GridVec) -> (u8, Vec<(i32, i32, i32)>) {
@@ -701,8 +1210,8 @@ pub(super) fn hydrate_persisted_phenomena_state_system(
         &PhenomenonModelScriptDefinitionRef,
         &mut PhenomenonModelSupport,
         &mut PhenomenonModelProjectionContract,
-        &mut PhenomenaModelState,
-        Option<&PartitionedPhenomenaModelMember>,
+        &mut PhenomenonModelState,
+        Option<&PartitionedPhenomenonModelMember>,
     )>,
 ) {
     if !guard_phenomenon_authority_contract(authority_contract.as_ref(), authority_diagnostics.as_deref_mut()) {
@@ -738,7 +1247,7 @@ pub(super) fn hydrate_persisted_phenomena_state_system(
             model.scale,
             model_script_ref.model_id.as_str(),
         );
-        let Some(record) = load_phenomena_model_record(&model_path)
+        let Some(record) = load_phenomenon_model_record(&model_path)
             .unwrap_or_else(|error| panic!("USF phenomenon hydrate failed: could not load model record '{model_path:?}': {error}"))
         else {
             continue;
@@ -898,8 +1407,11 @@ pub(super) fn refresh_active_node_stats_system(node_query: Query<&PhenomenonNode
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::usf::definition::ZoneTypeId;
     use crate::usf::phenomenon::generator::PhenomenonStateSnapshot;
     use crate::usf::phenomenon::types::PhenomenonKind;
+    use crate::usf::pos::types::GridXyz;
+    use crate::usf::zone::{StableRegionId, ZoneExtent};
 
     fn setup_lifecycle_test_app(max_depth: u32, max_children_per_node: u32) -> App {
         let mut app = App::new();
@@ -1053,5 +1565,78 @@ mod tests {
             parse_persistence_durability("atomic-replace-and-fsync"),
             PhenomenonPersistenceDurability::AtomicReplaceAndFsync
         );
+    }
+
+    #[test]
+    fn reproject_chunk_to_scale_extends_lineage_with_zero_cells() {
+        let coarse = GridVec::new_root(GridXyz::new_local(1, -1, 0));
+        let target_scale = coarse.scale.zoomed_in().zoomed_in();
+        let reprojected = reproject_chunk_to_scale(&coarse, target_scale);
+
+        assert_eq!(reprojected.scale, target_scale);
+        let digits = reprojected.to_raw_vec_3d();
+        assert_eq!(digits.len(), target_scale.index_from_top() as usize + 1);
+        assert_eq!(digits.first().copied().unwrap_or(GridXyz::ZERO), GridXyz::new_local(1, -1, 0));
+        assert_eq!(digits[1], GridXyz::ZERO);
+        assert_eq!(digits[2], GridXyz::ZERO);
+    }
+
+    #[test]
+    fn zone_support_seed_uses_extent_geometry_instead_of_chunk_count_heuristic() {
+        let zone_id = ZoneId {
+            scale: Scale::MAX,
+            zone_type: ZoneTypeId::new("solid"),
+            stable_region_id: StableRegionId(1),
+        };
+        let mut runtime_state = ZoneRuntimeState::default();
+        runtime_state.records.insert(
+            zone_id.clone(),
+            ZoneExtent {
+                chunk_coords: vec![
+                    GridVec::new_root(GridXyz::new_local(0, 0, 0)),
+                    GridVec::new_root(GridXyz::new_local(1, 0, 0)),
+                    GridVec::new_root(GridXyz::new_local(2, 0, 0)),
+                    GridVec::new_root(GridXyz::new_local(3, 0, 0)),
+                    GridVec::new_root(GridXyz::new_local(4, 0, 0)),
+                ],
+            },
+        );
+
+        let (anchor_chunk, chunk_radius) = zone_support_seed(&runtime_state, &zone_id).expect("zone support seed should exist");
+        assert_eq!(anchor_chunk, GridVec::new_root(GridXyz::new_local(2, 0, 0)));
+        assert_eq!(chunk_radius, 2);
+        for chunk_coord in &runtime_state.records.get(&zone_id).expect("zone record exists").chunk_coords {
+            assert!(
+                grid_support_distance(&anchor_chunk, chunk_coord) <= chunk_radius,
+                "anchor/radius should cover every zone chunk"
+            );
+        }
+    }
+
+    #[test]
+    fn zone_support_seed_is_deterministic_when_extent_has_tied_anchor_candidates() {
+        let zone_id = ZoneId {
+            scale: Scale::MAX,
+            zone_type: ZoneTypeId::new("checker"),
+            stable_region_id: StableRegionId(2),
+        };
+        let mut runtime_state = ZoneRuntimeState::default();
+        runtime_state.records.insert(
+            zone_id.clone(),
+            ZoneExtent {
+                chunk_coords: vec![
+                    GridVec::new_root(GridXyz::new_local(4, 4, 0)),
+                    GridVec::new_root(GridXyz::new_local(-4, 4, 0)),
+                    GridVec::new_root(GridXyz::new_local(4, -4, 0)),
+                    GridVec::new_root(GridXyz::new_local(-4, -4, 0)),
+                ],
+            },
+        );
+
+        let first = zone_support_seed(&runtime_state, &zone_id).expect("seed should exist");
+        let second = zone_support_seed(&runtime_state, &zone_id).expect("seed should exist");
+        assert_eq!(first, second);
+        assert_eq!(first.0, GridVec::new_root(GridXyz::new_local(-4, -4, 0)));
+        assert_eq!(first.1, 8);
     }
 }
