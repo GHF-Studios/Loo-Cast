@@ -4,7 +4,7 @@ use crate::bevy::prelude::*;
 use crate::rhai_binding::engine::statics::{USF_PHENOMENA_BY_ID, USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE, USF_PHENOMENON_MODELS_BY_ID};
 use crate::usf::scale::Scale;
 
-use super::components::PhenomenaModelTopology;
+use super::components::{PhenomenaModelTopology, PhenomenaProjectionContract};
 use super::types::{
     ManifestationDensityFieldDefinition, ManifestationMaterialProfileDefinition, PhenomenonCapability, PhenomenonKind, PhenomenonManifestationFieldContract,
 };
@@ -16,6 +16,8 @@ pub struct PhenomenonDefinitionRegistry {
     pub capabilities_by_phenomenon_id: HashMap<String, Vec<PhenomenonCapability>>,
     pub manifestation_density_by_model_id: HashMap<String, ManifestationDensityFieldDefinition>,
     pub manifestation_material_by_model_id: HashMap<String, ManifestationMaterialProfileDefinition>,
+    pub manifestation_collider_enabled_by_model_id: HashMap<String, bool>,
+    pub projection_contract_by_model_id: HashMap<String, PhenomenaProjectionContract>,
     pub topology_by_model_id: HashMap<String, PhenomenaModelTopology>,
     pub support_chunk_radius_by_model_id: HashMap<String, u16>,
     pub model_selection_by_phenomenon_scale: HashMap<String, String>,
@@ -54,6 +56,8 @@ impl Default for PhenomenonDefinitionRegistry {
         let mut phenomenon_by_model_id = HashMap::new();
         let mut manifestation_density_by_model_id = HashMap::new();
         let mut manifestation_material_by_model_id = HashMap::new();
+        let mut manifestation_collider_enabled_by_model_id = HashMap::new();
+        let mut projection_contract_by_model_id = HashMap::new();
         let mut topology_by_model_id = HashMap::new();
         let mut support_chunk_radius_by_model_id = HashMap::new();
         for (model_id, model) in script_models {
@@ -180,6 +184,46 @@ impl Default for PhenomenonDefinitionRegistry {
                     },
                 );
             }
+            let has_manifestation_collider_capability = capabilities_by_phenomenon_id
+                .get(&normalized_phenomenon_id)
+                .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::ManifestationCollider));
+            if model.manifestation_collider_enabled && !has_manifestation_collider_capability {
+                panic!(
+                    "USF phenomenon bootstrap failed: model '{}' enables manifestation collider, but phenomenon '{}' (kind='{}') \
+                     does not declare capability 'manifestation_collider'.",
+                    normalized_model_id,
+                    normalized_phenomenon_id,
+                    kind.canonical_id(),
+                );
+            }
+            manifestation_collider_enabled_by_model_id.insert(normalized_model_id.clone(), model.manifestation_collider_enabled);
+            let projection_metric_name = normalize_identifier(model.projection_metric_name.as_str());
+            if projection_metric_name.is_empty() {
+                panic!(
+                    "USF phenomenon bootstrap failed: model '{}' has empty projection metric name.",
+                    normalized_model_id
+                );
+            }
+            if !model.projection_bias.is_finite() {
+                panic!(
+                    "USF phenomenon bootstrap failed: model '{}' has invalid projection_bias={}.",
+                    normalized_model_id, model.projection_bias
+                );
+            }
+            if !model.projection_gain.is_finite() || model.projection_gain <= 0.0 {
+                panic!(
+                    "USF phenomenon bootstrap failed: model '{}' has invalid projection_gain={}; expected finite > 0.",
+                    normalized_model_id, model.projection_gain
+                );
+            }
+            projection_contract_by_model_id.insert(
+                normalized_model_id.clone(),
+                PhenomenaProjectionContract {
+                    metric_name: projection_metric_name,
+                    projection_bias: model.projection_bias,
+                    projection_gain: model.projection_gain,
+                },
+            );
             let topology = parse_topology_tag(model.topology.as_str());
             let support_chunk_radius = match topology {
                 PhenomenaModelTopology::MonolithicChunk => {
@@ -299,6 +343,8 @@ impl Default for PhenomenonDefinitionRegistry {
             capabilities_by_phenomenon_id,
             manifestation_density_by_model_id,
             manifestation_material_by_model_id,
+            manifestation_collider_enabled_by_model_id,
+            projection_contract_by_model_id,
             topology_by_model_id,
             support_chunk_radius_by_model_id,
             model_selection_by_phenomenon_scale,
@@ -344,6 +390,36 @@ impl PhenomenonDefinitionRegistry {
 
     pub fn manifestation_material_for_model(&self, model_id: &str) -> Option<ManifestationMaterialProfileDefinition> {
         self.manifestation_material_by_model_id.get(&normalize_identifier(model_id)).copied()
+    }
+
+    pub fn manifestation_collider_enabled_for_scale(&self, phenomenon_id: &str, scale: Scale) -> bool {
+        if !self.supports_capability_for_phenomenon(phenomenon_id, PhenomenonCapability::ManifestationCollider) {
+            return false;
+        }
+        let Some(model_id) = self.model_for_scale(phenomenon_id, scale) else {
+            return false;
+        };
+        self.manifestation_collider_enabled_for_model(model_id)
+    }
+
+    pub fn manifestation_collider_enabled_for_model(&self, model_id: &str) -> bool {
+        self.manifestation_collider_enabled_by_model_id
+            .get(&normalize_identifier(model_id))
+            .copied()
+            .unwrap_or(false)
+    }
+
+    pub fn projection_contract_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<PhenomenaProjectionContract> {
+        let model_id = self.model_for_scale(phenomenon_id, scale)?;
+        self.projection_contract_for_model(model_id)
+    }
+
+    pub fn projection_contract_for_model(&self, model_id: &str) -> Option<PhenomenaProjectionContract> {
+        self.projection_contract_by_model_id.get(&normalize_identifier(model_id)).cloned()
+    }
+
+    pub fn any_model_uses_manifestation_collider(&self) -> bool {
+        self.manifestation_collider_enabled_by_model_id.values().copied().any(|enabled| enabled)
     }
 
     pub fn manifestation_field_contract_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<PhenomenonManifestationFieldContract> {

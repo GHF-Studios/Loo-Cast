@@ -11,9 +11,8 @@ use crate::usf::authority::{
 
 use crate::usf::phenomenon::components::{
     MonolithicPhenomenaModel, PartialPhenomenaModel, PartitionedPhenomenaModelMember, PartitionedPhenomenaModelRoot, PhenomenaModelState,
-    PhenomenaModelSupport, PhenomenaModelTopology, PhenomenaProjectionContract, Phenomenon, PhenomenonModel, PhenomenonModelProjectionContract,
-    PhenomenonModelScriptDefinitionRef, PhenomenonModelSupport, PhenomenonNode, PhenomenonNodeLifecycle, PhenomenonNodeState, PhenomenonRootNodeRef,
-    PhenomenonScriptDefinitionRef,
+    PhenomenaModelSupport, PhenomenaModelTopology, Phenomenon, PhenomenonModel, PhenomenonModelProjectionContract, PhenomenonModelScriptDefinitionRef,
+    PhenomenonModelSupport, PhenomenonNode, PhenomenonNodeLifecycle, PhenomenonNodeState, PhenomenonRootNodeRef, PhenomenonScriptDefinitionRef,
 };
 use crate::usf::phenomenon::generator::{BuildStateInput, PhenomenonGenerator, PlanChildrenInput};
 use crate::usf::phenomenon::persistence::{
@@ -25,7 +24,7 @@ use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::types::GridXyz;
 use crate::usf::pos::types::LocalCell3;
 use crate::usf::scale::Scale;
-use crate::usf::zone::{ZoneId, ZoneRealizationEvent, ZoneRuntimeState};
+use crate::usf::zone::{ZoneId, ZonePhenomenon, ZoneRealizationEvent, ZoneRuntimeState};
 
 use super::generators::layer_echo::LayerEchoGenerator;
 
@@ -272,9 +271,13 @@ pub(super) fn ensure_scale_models_system(
                     chunk_radius,
                 },
             };
-            let projection = PhenomenonModelProjectionContract {
-                contract: PhenomenaProjectionContract::default(),
-            };
+            let projection_contract = definitions.projection_contract_for_model(selected_model_id).unwrap_or_else(|| {
+                panic!(
+                    "USF phenomenon runtime failed: selected model '{}' is missing projection contract metadata.",
+                    selected_model_id
+                )
+            });
+            let projection = PhenomenonModelProjectionContract { contract: projection_contract };
             let model_name = format!(
                 "phenomena_model_scale{}_{}_{}",
                 scale.index_from_top(),
@@ -415,6 +418,25 @@ pub(super) fn apply_zone_realization_startup_hooks_system(
     mut authority_diagnostics: Option<ResMut<UsfAuthorityDiagnostics>>,
     mut zone_realization_events: MessageReader<ZoneRealizationEvent>,
     zone_runtime_state: Res<ZoneRuntimeState>,
+    zone_phenomenon_query: Query<(Entity, &ZonePhenomenon), With<Phenomenon>>,
+    dirty_models: Query<
+        (),
+        (
+            With<PhenomenonModel>,
+            Or<(
+                Added<PhenomenonModel>,
+                Changed<PhenomenonModel>,
+                Added<PhenomenonModelSupport>,
+                Changed<PhenomenonModelSupport>,
+                Added<PhenomenaModelState>,
+                Changed<PhenomenaModelState>,
+                Added<MonolithicPhenomenaModel>,
+                Changed<MonolithicPhenomenaModel>,
+                Added<PartialPhenomenaModel>,
+                Changed<PartialPhenomenaModel>,
+            )>,
+        ),
+    >,
     mut model_query: Query<(
         &PhenomenonModel,
         &mut PhenomenonModelSupport,
@@ -437,11 +459,28 @@ pub(super) fn apply_zone_realization_startup_hooks_system(
             ZoneRealizationEvent::Despawned { .. } => None,
         })
         .collect::<Vec<_>>();
-    if spawned.is_empty() {
+    let reconcile_all_realized = zone_runtime_state.is_changed() || !dirty_models.is_empty();
+    if spawned.is_empty() && !reconcile_all_realized {
         return;
     }
 
+    let mut zone_by_phenomenon_entity = HashMap::<Entity, ZoneId>::new();
     for (phenomenon_entity, zone_id) in spawned {
+        zone_by_phenomenon_entity.insert(phenomenon_entity, zone_id);
+    }
+    if reconcile_all_realized {
+        for (phenomenon_entity, zone_phenomenon) in zone_phenomenon_query.iter() {
+            zone_by_phenomenon_entity
+                .entry(phenomenon_entity)
+                .or_insert_with(|| zone_phenomenon.zone_id.clone());
+        }
+    }
+
+    if zone_by_phenomenon_entity.is_empty() {
+        return;
+    }
+
+    for (phenomenon_entity, zone_id) in zone_by_phenomenon_entity {
         let Some((anchor_chunk, chunk_radius)) = zone_support_seed(&zone_runtime_state, &zone_id) else {
             continue;
         };
@@ -451,25 +490,37 @@ pub(super) fn apply_zone_realization_startup_hooks_system(
                 continue;
             }
 
-            support.support.anchor_chunk = anchor_chunk.clone();
-            support.support.chunk_radius = match model.topology {
+            let desired_chunk_radius = match model.topology {
                 PhenomenaModelTopology::MonolithicChunk => 0,
                 PhenomenaModelTopology::PartitionedByChunk => chunk_radius.max(1),
             };
+            if support.support.anchor_chunk != anchor_chunk {
+                support.support.anchor_chunk = anchor_chunk.clone();
+            }
+            if support.support.chunk_radius != desired_chunk_radius {
+                support.support.chunk_radius = desired_chunk_radius;
+            }
 
             if let Some(mut monolithic) = monolithic {
-                monolithic.chunk_coord = anchor_chunk.clone();
+                if monolithic.chunk_coord != anchor_chunk {
+                    monolithic.chunk_coord = anchor_chunk.clone();
+                }
             }
             if let Some(mut partial) = partial {
                 if partition_member.is_some() {
-                    upsert_scalar_channel(&mut state.scalar_channels, "zone.seed", zone_seed);
+                    let _ = upsert_scalar_channel(&mut state.scalar_channels, "zone.seed", zone_seed);
                     continue;
                 }
-                partial.chunk_coord = anchor_chunk.clone();
-                partial.partition_key = PartialPhenomenaModel::deterministic_partition_key(partial.phenomenon_id, partial.scale, &anchor_chunk);
+                if partial.chunk_coord != anchor_chunk {
+                    partial.chunk_coord = anchor_chunk.clone();
+                }
+                let desired_partition_key = PartialPhenomenaModel::deterministic_partition_key(partial.phenomenon_id, partial.scale, &anchor_chunk);
+                if partial.partition_key != desired_partition_key {
+                    partial.partition_key = desired_partition_key;
+                }
             }
 
-            upsert_scalar_channel(&mut state.scalar_channels, "zone.seed", zone_seed);
+            let _ = upsert_scalar_channel(&mut state.scalar_channels, "zone.seed", zone_seed);
         }
     }
 }
@@ -611,14 +662,18 @@ fn zone_seed_scalar(zone_id: &ZoneId, anchor_chunk: &GridVec) -> f32 {
     ((state >> 40) as f32) / ((1_u32 << 24) as f32)
 }
 
-fn upsert_scalar_channel(channels: &mut Vec<(String, f32)>, channel_name: &str, value: f32) {
+fn upsert_scalar_channel(channels: &mut Vec<(String, f32)>, channel_name: &str, value: f32) -> bool {
     for (name, channel_value) in channels.iter_mut() {
         if name.eq_ignore_ascii_case(channel_name) {
+            if (*channel_value - value).abs() <= f32::EPSILON {
+                return false;
+            }
             *channel_value = value;
-            return;
+            return true;
         }
     }
     channels.push((channel_name.to_string(), value));
+    true
 }
 
 #[inline]

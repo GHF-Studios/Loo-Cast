@@ -260,15 +260,6 @@ pub(super) fn resolve_player_spawn_overlap_system(
         return;
     };
 
-    // When chunk-manifestation colliders are disabled, overlap recovery has no valid world target.
-    // Keep the state reset so this system cannot induce movement churn from false positives.
-    if !CONFIG().get::<bool>("usf/runtime/chunk_manifestation/attach_colliders") {
-        spawn_recovery.active = false;
-        spawn_recovery.frames_overlapping = 0;
-        spawn_recovery.preferred_push_direction = Vec3::Z;
-        return;
-    }
-
     let Ok(rapier_context) = rapier_context.single() else {
         return;
     };

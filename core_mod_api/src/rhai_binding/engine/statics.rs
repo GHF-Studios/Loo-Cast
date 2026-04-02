@@ -189,8 +189,12 @@ pub struct ScriptPhenomenonModelDefinition {
     pub phenomenon_id: String,
     pub topology: String,
     pub support_chunk_radius: u16,
+    pub projection_metric_name: String,
+    pub projection_bias: f32,
+    pub projection_gain: f32,
     pub manifestation_density: Option<ScriptManifestationDensityDefinition>,
     pub manifestation_material: Option<ScriptManifestationMaterialDefinition>,
+    pub manifestation_collider_enabled: bool,
 }
 impl Default for ScriptPhenomenonModelDefinition {
     fn default() -> Self {
@@ -199,8 +203,12 @@ impl Default for ScriptPhenomenonModelDefinition {
             phenomenon_id: String::new(),
             topology: "monolithic_chunk".to_string(),
             support_chunk_radius: 0,
+            projection_metric_name: "demo_mass_density".to_string(),
+            projection_bias: 0.0,
+            projection_gain: 1.0,
             manifestation_density: None,
             manifestation_material: None,
+            manifestation_collider_enabled: false,
         }
     }
 }

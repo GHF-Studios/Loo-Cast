@@ -50,7 +50,7 @@ This layer is the only authoritative world truth in USF runtime persistence.
 - Chunk manifestation is non-authoritative cache/projection state.
 - Runtime bindings are derived from zone realization + substrate summaries + phenomenon model contracts.
 - Engine-level capability application (mesh/material/collider) is isolated in runtime capability code.
-- Runtime toggles (`attach_meshes`, `attach_colliders`, `enable_instance_culling`) control capability application, not ontology.
+- Runtime toggles (`attach_meshes`, `enable_instance_culling`) control presentation behavior; collider attachment is model-scoped capability intent.
 
 ## Scale Contract
 

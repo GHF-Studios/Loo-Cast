@@ -6,12 +6,14 @@ use crate::usf::scale::Scale;
 pub enum PhenomenonCapability {
     ManifestationDensityField,
     ManifestationMaterialProfile,
+    ManifestationCollider,
 }
 impl PhenomenonCapability {
     pub fn canonical_id(self) -> &'static str {
         match self {
             Self::ManifestationDensityField => "manifestation_density_field",
             Self::ManifestationMaterialProfile => "manifestation_material_profile",
+            Self::ManifestationCollider => "manifestation_collider",
         }
     }
 
@@ -21,6 +23,7 @@ impl PhenomenonCapability {
             "manifestation_material_profile" | "manifestation-material-profile" | "material_profile" | "material-profile" => {
                 Ok(Self::ManifestationMaterialProfile)
             }
+            "manifestation_collider" | "manifestation-collider" | "collider" => Ok(Self::ManifestationCollider),
             unknown => Err(format!("unknown capability '{unknown}'")),
         }
     }
@@ -283,5 +286,10 @@ mod tests {
         let material_alias = PhenomenonCapability::try_from_config_value("material-profile").expect("material alias capability should parse");
         assert_eq!(material_underscore, material_alias);
         assert_eq!(material_underscore.canonical_id(), "manifestation_material_profile");
+
+        let collider_underscore = PhenomenonCapability::try_from_config_value("manifestation_collider").expect("collider underscore capability should parse");
+        let collider_alias = PhenomenonCapability::try_from_config_value("collider").expect("collider alias capability should parse");
+        assert_eq!(collider_underscore, collider_alias);
+        assert_eq!(collider_underscore.canonical_id(), "manifestation_collider");
     }
 }

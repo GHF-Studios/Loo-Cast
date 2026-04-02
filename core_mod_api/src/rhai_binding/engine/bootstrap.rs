@@ -2107,8 +2107,12 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                         phenomenon_id,
                         topology: "monolithic_chunk".to_string(),
                         support_chunk_radius: 0,
+                        projection_metric_name: "demo_mass_density".to_string(),
+                        projection_bias: 0.0,
+                        projection_gain: 1.0,
                         manifestation_density: None,
                         manifestation_material: None,
+                        manifestation_collider_enabled: false,
                     },
                 );
             }
@@ -2214,6 +2218,28 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
         },
     );
     engine.register_fn(
+        "set_projection_contract",
+        |ctx: &mut UsfPhenomenonModelScriptCtx, projection_metric_name: &str, projection_bias: f64, projection_gain: f64| -> Result<(), Box<EvalAltResult>> {
+            let model_id = normalize_script_identifier("model_id", ctx.model_id.as_str())?;
+            let projection_metric_name = normalize_script_identifier("projection_metric_name", projection_metric_name)?;
+            if !projection_bias.is_finite() {
+                return Err("projection_bias must be finite".into());
+            }
+            if !projection_gain.is_finite() || projection_gain <= 0.0 {
+                return Err("projection_gain must be finite and > 0".into());
+            }
+
+            let mut models = USF_PHENOMENON_MODELS_BY_ID().lock().unwrap();
+            let Some(model) = models.get_mut(&model_id) else {
+                return Err(format!("phenomenon model '{}' is not registered; call ctx.register(...) first", model_id).into());
+            };
+            model.projection_metric_name = projection_metric_name;
+            model.projection_bias = projection_bias as f32;
+            model.projection_gain = projection_gain as f32;
+            Ok(())
+        },
+    );
+    engine.register_fn(
         "set_manifestation_material_profile",
         |ctx: &mut UsfPhenomenonModelScriptCtx,
          albedo_r: f64,
@@ -2274,6 +2300,39 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                 metallic: metallic as f32,
                 emissive_strength: emissive_strength as f32,
             });
+            Ok(())
+        },
+    );
+    engine.register_fn(
+        "set_manifestation_collider_enabled",
+        |ctx: &mut UsfPhenomenonModelScriptCtx, enabled: bool| -> Result<(), Box<EvalAltResult>> {
+            let model_id = normalize_script_identifier("model_id", ctx.model_id.as_str())?;
+            let mut models = USF_PHENOMENON_MODELS_BY_ID().lock().unwrap();
+            let Some(model) = models.get_mut(&model_id) else {
+                return Err(format!("phenomenon model '{}' is not registered; call ctx.register(...) first", model_id).into());
+            };
+
+            if enabled {
+                let phenomena = USF_PHENOMENA_BY_ID().lock().unwrap();
+                let Some(phenomenon) = phenomena.get(model.phenomenon_id.as_str()) else {
+                    return Err(format!("phenomenon model '{}' references unknown phenomenon '{}'", model_id, model.phenomenon_id).into());
+                };
+                let required_capability = PhenomenonCapability::ManifestationCollider.canonical_id();
+                if !phenomenon
+                    .capabilities
+                    .iter()
+                    .any(|capability| capability.eq_ignore_ascii_case(required_capability))
+                {
+                    return Err(format!(
+                        "phenomenon model '{}' belongs to phenomenon '{}' (kind='{}') without capability '{}'; \
+                         set_manifestation_collider_enabled(true) requires that capability.",
+                        model_id, model.phenomenon_id, phenomenon.kind, required_capability
+                    )
+                    .into());
+                }
+            }
+
+            model.manifestation_collider_enabled = enabled;
             Ok(())
         },
     );

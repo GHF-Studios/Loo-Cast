@@ -11,7 +11,7 @@ use std::collections::{HashMap, HashSet};
 
 use super::resources::{
     ZoneBehaviorRegistry, ZonePhenomenonSpawnPolicy, ZoneRealizationSettings, ZoneRealizationState, ZoneRealizedPhenomenon, ZoneRuntimeState,
-    ZoneTemporalContext,
+    ZoneSelectionRuntimeState, ZoneTemporalContext,
 };
 use super::types::{StableRegionId, ZoneAnchor, ZoneExtent, ZoneId, ZonePhenomenon, ZoneRealizationEvent, ZoneTimeFactor};
 use super::{select_supported_phenomenon_for_zone, support_count_key};
@@ -123,6 +123,7 @@ pub(super) fn reconcile_zone_realization_system(
     temporal_context: Res<ZoneTemporalContext>,
     realization_settings: Res<ZoneRealizationSettings>,
     realization_state: Res<ZoneRealizationState>,
+    mut selection_runtime_state: ResMut<ZoneSelectionRuntimeState>,
     zone_phenomenon_query: Query<(Entity, &ZonePhenomenon, &PhenomenonScriptDefinitionRef), With<Phenomenon>>,
     phenomenon_model_query: Query<(Entity, &PhenomenonModel)>,
     mut zone_realization_event_writer: MessageWriter<ZoneRealizationEvent>,
@@ -219,9 +220,13 @@ pub(super) fn reconcile_zone_realization_system(
             .cloned()
             .or_else(|| live_zone_realizations.get(&zone_id).cloned())
         else {
-            let Some(selected_support) =
-                select_supported_phenomenon_for_zone(&zone_id, &zone_behavior_registry, &support_active_counts, temporal_context.active_scale)
-            else {
+            let Some(selected_support) = select_supported_phenomenon_for_zone(
+                &zone_id,
+                &zone_behavior_registry,
+                &support_active_counts,
+                temporal_context.active_scale,
+                &mut selection_runtime_state,
+            ) else {
                 continue;
             };
             let phenomenon_id = deterministic_phenomenon_id_for_zone(&zone_id);
@@ -614,9 +619,15 @@ mod tests {
             },
         );
 
-        let kind = select_supported_phenomenon_for_zone(&zone_id(Scale::MAX, "mystic", 1234), &registry, &HashMap::new(), Scale::MAX)
-            .expect("expected support selection")
-            .kind;
+        let kind = select_supported_phenomenon_for_zone(
+            &zone_id(Scale::MAX, "mystic", 1234),
+            &registry,
+            &HashMap::new(),
+            Scale::MAX,
+            &mut ZoneSelectionRuntimeState::default(),
+        )
+        .expect("expected support selection")
+        .kind;
         assert_eq!(kind, crate::usf::phenomenon::PhenomenonKind::ManifestationDensityDebug);
     }
 
@@ -657,8 +668,14 @@ mod tests {
 
         let mut active_counts = HashMap::new();
         active_counts.insert((ZoneTypeId::new("mystic"), "phenomenon.debug.alpha".to_string()), 1);
-        let selected = select_supported_phenomenon_for_zone(&zone_id(Scale::MAX, "mystic", 7), &registry, &active_counts, Scale::MAX)
-            .expect("expected fallback support when highest-priority support is saturated");
+        let selected = select_supported_phenomenon_for_zone(
+            &zone_id(Scale::MAX, "mystic", 7),
+            &registry,
+            &active_counts,
+            Scale::MAX,
+            &mut ZoneSelectionRuntimeState::default(),
+        )
+        .expect("expected fallback support when highest-priority support is saturated");
 
         assert_eq!(selected.phenomenon_id, "phenomenon.debug.beta");
     }
@@ -691,7 +708,13 @@ mod tests {
         let mut active_counts = HashMap::new();
         active_counts.insert((ZoneTypeId::new("mystic"), "phenomenon.debug.alpha".to_string()), 1);
 
-        let selected = select_supported_phenomenon_for_zone(&zone_id(Scale::MAX, "mystic", 8), &registry, &active_counts, Scale::MAX);
+        let selected = select_supported_phenomenon_for_zone(
+            &zone_id(Scale::MAX, "mystic", 8),
+            &registry,
+            &active_counts,
+            Scale::MAX,
+            &mut ZoneSelectionRuntimeState::default(),
+        );
 
         assert!(selected.is_none());
     }

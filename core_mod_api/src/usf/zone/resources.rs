@@ -25,6 +25,12 @@ pub struct ZoneRealizationState {
     pub zone_to_phenomenon: HashMap<ZoneId, ZoneRealizedPhenomenon>,
 }
 
+#[derive(Resource, Reflect, Debug, Clone, Default, PartialEq, Eq)]
+#[reflect(Resource)]
+pub struct ZoneSelectionRuntimeState {
+    pub round_robin_cursor_by_zone_key: HashMap<String, u64>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ZoneRealizedPhenomenon {
     pub phenomenon_entity: Entity,

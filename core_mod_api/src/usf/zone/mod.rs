@@ -11,8 +11,8 @@ use crate::usf::schedule::{UsfSimulationSet, UsfZoneSet};
 pub use policy::{select_supported_phenomenon_for_zone, support_count_key};
 pub use resources::{
     ZoneBehaviorRegistry, ZoneDensityProfile, ZonePhenomenonSelectionStrategy, ZonePhenomenonSpawnPolicy, ZonePhenomenonSupport, ZoneRealizationSettings,
-    ZoneRealizationState, ZoneRealizedPhenomenon, ZoneRuntimeState, ZoneSelectionPolicy, ZoneTemporalContext, time_scale_for_levels_above,
-    time_scale_for_scale, time_scale_for_scale_indices,
+    ZoneRealizationState, ZoneRealizedPhenomenon, ZoneRuntimeState, ZoneSelectionPolicy, ZoneSelectionRuntimeState, ZoneTemporalContext,
+    time_scale_for_levels_above, time_scale_for_scale, time_scale_for_scale_indices,
 };
 pub use types::{StableRegionId, ZoneAnchor, ZoneExtent, ZoneId, ZonePhenomenon, ZoneRealizationEvent, ZoneTimeFactor};
 
@@ -55,6 +55,7 @@ impl Plugin for ZonePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<ZoneRuntimeState>()
             .init_resource::<ZoneRealizationState>()
+            .init_resource::<ZoneSelectionRuntimeState>()
             .init_resource::<ZoneBehaviorRegistry>()
             .init_resource::<ZoneTemporalContext>()
             .init_resource::<ZoneRealizationSettings>()
@@ -77,6 +78,7 @@ impl Plugin for ZonePlugin {
             .register_type::<ZonePhenomenonSpawnPolicy>()
             .register_type::<ZoneSelectionPolicy>()
             .register_type::<ZonePhenomenonSupport>()
+            .register_type::<ZoneSelectionRuntimeState>()
             .register_type::<ZoneRealizationSettings>();
     }
 }

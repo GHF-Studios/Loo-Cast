@@ -24,6 +24,7 @@ pub use generator::{
 };
 pub use generators::layer_echo::LayerEchoGenerator;
 pub use meshing::{PHENOMENON_SEAM_LATTICE_DENOM, PhenomenonLatticeWindow, seam_safe_lattice_window};
+pub use partition_runtime::PartitionRuntimeSettings;
 pub use persistence::{
     PARTIAL_PHENOMENA_MODEL_SCHEMA_VERSION, PHENOMENA_MODEL_SCHEMA_VERSION, PHENOMENON_SCHEMA_VERSION, PersistedPartialPhenomenaModelRecord,
     PersistedPhenomenaModelRecord, PersistedPhenomenonRecord, PhenomenonPersistenceDurability,
@@ -61,6 +62,7 @@ impl Plugin for PhenomenonPlugin {
             .init_resource::<PhenomenonPersistenceWriteRuntimeState>()
             .init_resource::<PhenomenonPersistenceWriteStats>()
             .init_resource::<PhenomenonPersistenceJournalRecoveryState>()
+            .init_resource::<PartitionRuntimeSettings>()
             .add_systems(
                 Update,
                 (
@@ -107,6 +109,7 @@ impl Plugin for PhenomenonPlugin {
             .register_type::<PhenomenonPersistenceDurability>()
             .register_type::<PhenomenonPersistenceWriteStats>()
             .register_type::<PhenomenonPersistenceJournalRecoveryState>()
+            .register_type::<PartitionRuntimeSettings>()
             .register_type::<ManifestationDensityFieldDefinition>()
             .register_type::<ManifestationMaterialProfileDefinition>()
             .register_type::<PhenomenonManifestationFieldContract>()
