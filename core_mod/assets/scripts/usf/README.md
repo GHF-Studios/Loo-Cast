@@ -70,6 +70,7 @@ Script authority constraints (current contracts):
 - `*.metric_set.rhai` should explicitly list metric members with `add_metric_set_metric(...)`; avoid implicit "all metrics" expansion
 - DPT sampler kernel resolves metric values by script metric semantics (`semantics_tag`/`name`), not by hardcoded metric index position
 - per-domain script ctx registration now auto-populates mod manifest ownership requirements
+- phenomenon capabilities are now explicit script metadata (defaulted from kind on `ctx.register(...)`, optionally extended via `ctx.add_capability(...)`)
 - `*.mod.rhai` currently controls mod metadata/policies (priority/dependencies/conflicts/singleton policies)
 - scale declaration helpers support `single`, `range`, `set`, and `all` selection styles for `scale`, `dpt_schema`, and `zlm` requirements
 - mod-level metadata is declared in `*.mod.rhai` via:
@@ -79,17 +80,18 @@ Script authority constraints (current contracts):
   - `ctx.conflicts_with(...)`
   - `ctx.set_singleton_conflict_policy(...)`
 
-`max_active` currently applies per `(zone_type, phenomenon_id)` support entry for top-scale
-zone realization. When the cap is reached, additional zones skip spawning for that support.
+`max_active` currently applies per `(zone_type, phenomenon_id)` support entry in the active
+zone-realization window. When the cap is reached, additional zones skip spawning for that support.
 
 Current placeholder gameplay contracts:
 
 - one terrain metric drives classification: `demo_mass_density`
 - three derived root-position metrics are provided: `root_pos_x`, `root_pos_y`, `root_pos_z`
-- three zones are used: `empty` (no support/no mesh), `spawn_buffer` (near-origin noop), and `solid` (spawns one manifestation-density debug phenomenon)
-- the chunk terrain debug mesh is driven by one phenomenon id: `demo_manifestation_density`
+- three zones are used: `empty` (no support/no manifestation instance), `spawn_buffer` (near-origin noop), and `solid` (spawns one manifestation-density phenomenon)
+- the chunk manifestation instance contract is currently driven by one phenomenon id: `demo_manifestation_density`
 - `*.phenomenon_model.rhai` defines the model field policy via `set_manifestation_density_field(...)`
+- `*.phenomenon_model.rhai` can define model material policy via `set_manifestation_material_profile(...)`
 - `*.phenomenon_model.rhai` must declare topology/support with:
   - `ctx.set_topology("monolithic_chunk" | "partitioned_by_chunk")`
   - `ctx.set_support_chunk_radius(...)` (required `>= 1` for partitioned)
-- meshing/collider generation remains engine-owned; scripts declare phenomenon + model policy contracts
+- meshing/material/collider application is engine-owned capability code; scripts declare phenomenon + model policy contracts only

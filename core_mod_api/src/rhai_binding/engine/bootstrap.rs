@@ -14,14 +14,14 @@ use crate::rhai_binding::engine::hook::{new_hook_runner_system, register_hook_pa
 use crate::rhai_binding::engine::preprocess::preprocess_script_source;
 use crate::rhai_binding::engine::resources::MainScriptEngineHandle;
 use crate::rhai_binding::engine::statics::{
-    SCHEDULE_HOOKS, ScriptDptMetricDefinition, ScriptDptSchemaDefinition, ScriptManifestationDensityDefinition, ScriptMetricDefinition,
-    ScriptPhenomenonDefinition, ScriptPhenomenonModelDefinition, ScriptScaleDefinition, ScriptSingletonConflictPolicy, ScriptUsfModContribution,
-    ScriptUsfModDefinition, ScriptUsfModManifestDefinition, ScriptUsfModpackDefinition, ScriptZlmMetricBandDefinition, ScriptZlmRuleDefinition,
-    ScriptZlmScaleDefinition, ScriptZoneDensityProfileDefinition, ScriptZonePhenomenonSupportDefinition, ScriptZoneSelectionPolicyDefinition,
-    USF_DPT_SCHEMAS_BY_SCALE, USF_METRIC_SETS_BY_ID, USF_METRICS_BY_NAME, USF_MOD_CONTRIBUTIONS_BY_ID, USF_MOD_MANIFESTS_BY_ID, USF_MODPACKS_BY_ID,
-    USF_MODS_BY_ID, USF_PHENOMENA_BY_ID, USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE, USF_PHENOMENON_MODELS_BY_ID, USF_SCALES_BY_INDEX,
-    USF_ZLM_SCALES_BY_SCALE, USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE, USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE,
-    USF_ZONE_TYPES,
+    SCHEDULE_HOOKS, ScriptDptMetricDefinition, ScriptDptSchemaDefinition, ScriptManifestationDensityDefinition, ScriptManifestationMaterialDefinition,
+    ScriptMetricDefinition, ScriptPhenomenonDefinition, ScriptPhenomenonModelDefinition, ScriptScaleDefinition, ScriptSingletonConflictPolicy,
+    ScriptUsfModContribution, ScriptUsfModDefinition, ScriptUsfModManifestDefinition, ScriptUsfModpackDefinition, ScriptZlmMetricBandDefinition,
+    ScriptZlmRuleDefinition, ScriptZlmScaleDefinition, ScriptZoneDensityProfileDefinition, ScriptZonePhenomenonSupportDefinition,
+    ScriptZoneSelectionPolicyDefinition, USF_DPT_SCHEMAS_BY_SCALE, USF_METRIC_SETS_BY_ID, USF_METRICS_BY_NAME, USF_MOD_CONTRIBUTIONS_BY_ID,
+    USF_MOD_MANIFESTS_BY_ID, USF_MODPACKS_BY_ID, USF_MODS_BY_ID, USF_PHENOMENA_BY_ID, USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE,
+    USF_PHENOMENON_MODELS_BY_ID, USF_SCALES_BY_INDEX, USF_ZLM_SCALES_BY_SCALE, USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE,
+    USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE, USF_ZONE_TYPES,
 };
 use crate::rhai_binding::runtime::ecs::message::bindings::types::ScriptProbeMessage;
 use crate::usf::content::{DEFAULT_DEMO_MOD_ID, DPT_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID, DPT_SAMPLER_KERNEL_DEFAULT_ID};
@@ -1229,6 +1229,14 @@ fn normalize_phenomenon_kind(kind: &str) -> Result<String, Box<EvalAltResult>> {
 }
 
 #[inline]
+fn normalize_phenomenon_capability(capability: &str) -> Result<String, Box<EvalAltResult>> {
+    let capability = normalize_script_identifier("capability", capability)?;
+    let parsed = PhenomenonCapability::try_from_config_value(capability.as_str())
+        .map_err(|error| format!("unknown phenomenon capability '{}': {}", capability, error))?;
+    Ok(parsed.canonical_id().to_string())
+}
+
+#[inline]
 fn normalize_phenomena_model_topology(topology: &str) -> Result<String, Box<EvalAltResult>> {
     let topology = normalize_script_identifier("topology", topology)?;
     match topology.as_str() {
@@ -1948,6 +1956,13 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
             let owner_mod_id = ensure_owner_mod_for_ctx(ctx.owner_mod_id.as_str())?;
             let phenomenon_id = normalize_script_identifier("phenomenon_id", ctx.phenomenon_id.as_str())?;
             let phenomenon_kind = normalize_phenomenon_kind(phenomenon_kind)?;
+            let kind = PhenomenonKind::try_from_config_value(phenomenon_kind.as_str())
+                .map_err(|error| format!("unknown phenomenon_kind '{}': {}", phenomenon_kind, error))?;
+            let capabilities = kind
+                .declared_capabilities()
+                .iter()
+                .map(|capability| capability.canonical_id().to_string())
+                .collect::<Vec<_>>();
 
             let mut phenomena = USF_PHENOMENA_BY_ID().lock().unwrap();
             if let Some(existing) = phenomena.get(&phenomenon_id) {
@@ -1958,12 +1973,20 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                     )
                     .into());
                 }
+                if existing.capabilities != capabilities {
+                    return Err(format!(
+                        "phenomenon '{}' already exists with capabilities {:?}; got {:?}",
+                        phenomenon_id, existing.capabilities, capabilities
+                    )
+                    .into());
+                }
             } else {
                 phenomena.insert(
                     phenomenon_id.clone(),
                     ScriptPhenomenonDefinition {
                         id: phenomenon_id.clone(),
                         kind: phenomenon_kind,
+                        capabilities,
                     },
                 );
             }
@@ -1972,6 +1995,25 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
             with_owner_mod_manifest_mut(owner_mod_id.as_str(), |manifest| {
                 manifest.required_phenomena.insert(phenomenon_id);
             })?;
+            Ok(())
+        },
+    );
+    engine.register_fn(
+        "add_capability",
+        |ctx: &mut UsfPhenomenonScriptCtx, capability: &str| -> Result<(), Box<EvalAltResult>> {
+            let phenomenon_id = normalize_script_identifier("phenomenon_id", ctx.phenomenon_id.as_str())?;
+            let capability = normalize_phenomenon_capability(capability)?;
+            let mut phenomena = USF_PHENOMENA_BY_ID().lock().unwrap();
+            let Some(phenomenon) = phenomena.get_mut(&phenomenon_id) else {
+                return Err(format!(
+                    "phenomenon '{}' is not registered; call ctx.register(...) before add_capability(...)",
+                    phenomenon_id
+                )
+                .into());
+            };
+            if !phenomenon.capabilities.iter().any(|value| value == &capability) {
+                phenomenon.capabilities.push(capability);
+            }
             Ok(())
         },
     );
@@ -2066,6 +2108,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                         topology: "monolithic_chunk".to_string(),
                         support_chunk_radius: 0,
                         manifestation_density: None,
+                        manifestation_material: None,
                     },
                 );
             }
@@ -2100,13 +2143,16 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
             let Some(phenomenon) = phenomena.get(model.phenomenon_id.as_str()) else {
                 return Err(format!("phenomenon model '{}' references unknown phenomenon '{}'", model_id, model.phenomenon_id).into());
             };
-            let kind = PhenomenonKind::try_from_config_value(phenomenon.kind.as_str())
-                .map_err(|error| format!("phenomenon '{}' has invalid kind '{}': {}", model.phenomenon_id, phenomenon.kind, error))?;
-            if !kind.supports_capability(PhenomenonCapability::ManifestationDensityField) {
+            let required_capability = PhenomenonCapability::ManifestationDensityField.canonical_id();
+            if !phenomenon
+                .capabilities
+                .iter()
+                .any(|capability| capability.eq_ignore_ascii_case(required_capability))
+            {
                 return Err(format!(
-                    "phenomenon model '{}' belongs to kind '{}'; set_manifestation_density_field requires capability 'manifestation_density_field'",
-                    model_id,
-                    kind.canonical_id()
+                    "phenomenon model '{}' belongs to phenomenon '{}' (kind='{}') without capability '{}'; \
+                     set_manifestation_density_field requires that capability.",
+                    model_id, model.phenomenon_id, phenomenon.kind, required_capability
                 )
                 .into());
             }
@@ -2164,6 +2210,70 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
             if topology == "monolithic_chunk" {
                 model.support_chunk_radius = 0;
             }
+            Ok(())
+        },
+    );
+    engine.register_fn(
+        "set_manifestation_material_profile",
+        |ctx: &mut UsfPhenomenonModelScriptCtx,
+         albedo_r: f64,
+         albedo_g: f64,
+         albedo_b: f64,
+         alpha: f64,
+         perceptual_roughness: f64,
+         metallic: f64,
+         emissive_strength: f64|
+         -> Result<(), Box<EvalAltResult>> {
+            let model_id = normalize_script_identifier("model_id", ctx.model_id.as_str())?;
+            let mut models = USF_PHENOMENON_MODELS_BY_ID().lock().unwrap();
+            let Some(model) = models.get_mut(&model_id) else {
+                return Err(format!("phenomenon model '{}' is not registered; call ctx.register(...) first", model_id).into());
+            };
+
+            let phenomena = USF_PHENOMENA_BY_ID().lock().unwrap();
+            let Some(phenomenon) = phenomena.get(model.phenomenon_id.as_str()) else {
+                return Err(format!("phenomenon model '{}' references unknown phenomenon '{}'", model_id, model.phenomenon_id).into());
+            };
+            let required_capability = PhenomenonCapability::ManifestationMaterialProfile.canonical_id();
+            if !phenomenon
+                .capabilities
+                .iter()
+                .any(|capability| capability.eq_ignore_ascii_case(required_capability))
+            {
+                return Err(format!(
+                    "phenomenon model '{}' belongs to phenomenon '{}' (kind='{}') without capability '{}'; \
+                     set_manifestation_material_profile requires that capability.",
+                    model_id, model.phenomenon_id, phenomenon.kind, required_capability
+                )
+                .into());
+            }
+            drop(phenomena);
+
+            if !albedo_r.is_finite() || !albedo_g.is_finite() || !albedo_b.is_finite() {
+                return Err("albedo channels must be finite".into());
+            }
+            if !alpha.is_finite() {
+                return Err("alpha must be finite".into());
+            }
+            if !perceptual_roughness.is_finite() {
+                return Err("perceptual_roughness must be finite".into());
+            }
+            if !metallic.is_finite() {
+                return Err("metallic must be finite".into());
+            }
+            if !emissive_strength.is_finite() {
+                return Err("emissive_strength must be finite".into());
+            }
+
+            model.manifestation_material = Some(ScriptManifestationMaterialDefinition {
+                albedo_r: albedo_r as f32,
+                albedo_g: albedo_g as f32,
+                albedo_b: albedo_b as f32,
+                alpha: alpha as f32,
+                perceptual_roughness: perceptual_roughness as f32,
+                metallic: metallic as f32,
+                emissive_strength: emissive_strength as f32,
+            });
             Ok(())
         },
     );

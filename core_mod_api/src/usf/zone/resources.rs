@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::bevy::prelude::*;
+use crate::config::statics::CONFIG;
 use crate::rhai_binding::engine::statics::{
     USF_PHENOMENA_BY_ID, USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE, USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE,
 };
@@ -265,6 +266,35 @@ impl ZoneTemporalContext {
     }
 }
 
+#[derive(Resource, Reflect, Debug, Clone, Copy, PartialEq, Eq)]
+#[reflect(Resource)]
+pub struct ZoneRealizationSettings {
+    pub levels_above_active: u8,
+    pub levels_below_active: u8,
+}
+impl Default for ZoneRealizationSettings {
+    fn default() -> Self {
+        Self {
+            levels_above_active: CONFIG().get::<u8>("usf/zone/realization/levels_above_active"),
+            levels_below_active: CONFIG().get::<u8>("usf/zone/realization/levels_below_active"),
+        }
+    }
+}
+impl ZoneRealizationSettings {
+    pub fn includes_scale(&self, active_scale: Scale, candidate_scale: Scale) -> bool {
+        let active = active_scale.index_from_top() as i16;
+        let candidate = candidate_scale.index_from_top() as i16;
+        let delta = candidate - active;
+        if delta == 0 {
+            return true;
+        }
+        if delta < 0 {
+            return (-delta as u8) <= self.levels_above_active;
+        }
+        (delta as u8) <= self.levels_below_active
+    }
+}
+
 #[inline]
 pub fn time_scale_for_levels_above(levels_above: i64) -> f32 {
     if levels_above <= 0 {
@@ -285,4 +315,35 @@ pub fn time_scale_for_scale_indices(active_scale_index: i64, target_scale_index:
 #[inline]
 pub fn time_scale_for_scale(active_scale: Scale, target_scale: Scale) -> f32 {
     time_scale_for_scale_indices(active_scale.index_from_top() as i64, target_scale.index_from_top() as i64)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn realization_settings_include_only_active_scale_by_default_window() {
+        let settings = ZoneRealizationSettings {
+            levels_above_active: 0,
+            levels_below_active: 0,
+        };
+        let active = Scale::ScaleMeter1;
+        assert!(settings.includes_scale(active, active));
+        assert!(!settings.includes_scale(active, active.zoomed_out()));
+        assert!(!settings.includes_scale(active, active.zoomed_in()));
+    }
+
+    #[test]
+    fn realization_settings_include_configured_above_and_below_windows() {
+        let settings = ZoneRealizationSettings {
+            levels_above_active: 1,
+            levels_below_active: 2,
+        };
+        let active = Scale::ScaleMeter1;
+        assert!(settings.includes_scale(active, active));
+        assert!(settings.includes_scale(active, active.zoomed_out()));
+        assert!(settings.includes_scale(active, active.zoomed_in()));
+        assert!(settings.includes_scale(active, active.zoomed_in().zoomed_in()));
+        assert!(!settings.includes_scale(active, active.zoomed_out().zoomed_out()));
+    }
 }

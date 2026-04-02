@@ -346,9 +346,9 @@ pub(super) fn move_selected_with_gizmo(
                     }
 
                     if let Ok(link) = entity_proxy_links.get(source_entity)
-                        && link.root_transform_contract_is_ub
+                        && link.root_transform_is_proxy
                     {
-                        warn!("gizmo_drag_skip_transform source={:?} reason=root_transform_contract_is_ub", source_entity);
+                        warn!("gizmo_drag_skip_transform source={:?} reason=root_transform_is_proxy", source_entity);
                         continue;
                     }
                 }
@@ -418,7 +418,7 @@ where
             continue;
         }
         if let Ok(link) = entity_proxy_links.get(source_entity)
-            && link.root_transform_contract_is_ub
+            && link.root_transform_is_proxy
         {
             continue;
         }

@@ -11,6 +11,23 @@ const MAP_ALIGNMENT_BYTES: usize = wgpu::MAP_ALIGNMENT as usize;
 
 static GPU_DENSITY_CONTEXT: OnceLock<Result<GpuDensityContext, String>> = OnceLock::new();
 
+#[derive(Clone, Copy, Debug)]
+pub struct GpuDensitySemantics {
+    pub coarse_span_units: f32,
+    pub detail_span_units: f32,
+    pub coarse_weight: f32,
+    pub detail_weight: f32,
+    pub bias: f32,
+    pub gain: f32,
+    pub center: f32,
+    pub seed_salt_coarse: u64,
+    pub seed_salt_detail: u64,
+    pub zone_density_multiplier: f32,
+    pub zone_density_offset: f32,
+    pub zone_density_floor: f32,
+    pub zone_density_ceil: f32,
+}
+
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 struct GpuDensityParams {
@@ -22,6 +39,22 @@ struct GpuDensityParams {
     root_origin_y: f32,
     root_origin_z: f32,
     local_unit_scale: f32,
+    coarse_span_units: f32,
+    detail_span_units: f32,
+    coarse_weight: f32,
+    detail_weight: f32,
+    bias: f32,
+    gain: f32,
+    center: f32,
+    _pad1: f32,
+    seed_salt_coarse_lo: u32,
+    seed_salt_coarse_hi: u32,
+    seed_salt_detail_lo: u32,
+    seed_salt_detail_hi: u32,
+    zone_density_multiplier: f32,
+    zone_density_offset: f32,
+    zone_density_floor: f32,
+    zone_density_ceil: f32,
 }
 
 struct GpuDensityContext {
@@ -32,7 +65,13 @@ struct GpuDensityContext {
     dispatch_lock: Mutex<()>,
 }
 
-pub fn sample_density_field(world_seed: u64, chunk_scale: Scale, canonical_coord: &GridVec, axis_samples: &[u16]) -> Result<Vec<u8>, String> {
+pub fn sample_density_field(
+    world_seed: u64,
+    chunk_scale: Scale,
+    canonical_coord: &GridVec,
+    axis_samples: &[u16],
+    semantics: GpuDensitySemantics,
+) -> Result<Vec<u8>, String> {
     if axis_samples.is_empty() {
         return Ok(Vec::new());
     }
@@ -59,6 +98,22 @@ pub fn sample_density_field(world_seed: u64, chunk_scale: Scale, canonical_coord
         root_origin_y,
         root_origin_z,
         local_unit_scale,
+        coarse_span_units: semantics.coarse_span_units.max(1e-6),
+        detail_span_units: semantics.detail_span_units.max(1e-6),
+        coarse_weight: semantics.coarse_weight.max(0.0),
+        detail_weight: semantics.detail_weight.max(0.0),
+        bias: semantics.bias,
+        gain: semantics.gain,
+        center: semantics.center,
+        _pad1: 0.0,
+        seed_salt_coarse_lo: (semantics.seed_salt_coarse & 0xffff_ffff) as u32,
+        seed_salt_coarse_hi: (semantics.seed_salt_coarse >> 32) as u32,
+        seed_salt_detail_lo: (semantics.seed_salt_detail & 0xffff_ffff) as u32,
+        seed_salt_detail_hi: (semantics.seed_salt_detail >> 32) as u32,
+        zone_density_multiplier: semantics.zone_density_multiplier,
+        zone_density_offset: semantics.zone_density_offset,
+        zone_density_floor: semantics.zone_density_floor.min(semantics.zone_density_ceil),
+        zone_density_ceil: semantics.zone_density_ceil.max(semantics.zone_density_floor),
     };
 
     let context = gpu_density_context()?;
@@ -81,7 +136,7 @@ fn init_gpu_density_context() -> Result<GpuDensityContext, String> {
             .map_err(|error| format!("request_adapter failed: {error}"))?;
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
-                label: Some("USF Demo Density GPU Device"),
+                label: Some("USF Manifestation Density GPU Device"),
                 required_features: wgpu::Features::empty(),
                 required_limits: wgpu::Limits::default(),
                 experimental_features: wgpu::ExperimentalFeatures::disabled(),
@@ -92,11 +147,11 @@ fn init_gpu_density_context() -> Result<GpuDensityContext, String> {
             .map_err(|error| format!("request_device failed: {error}"))?;
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("USF Demo Density Shader"),
+            label: Some("USF Manifestation Density Shader"),
             source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(GPU_DENSITY_SHADER)),
         });
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("USF Demo Density Bind Group Layout"),
+            label: Some("USF Manifestation Density Bind Group Layout"),
             entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,
@@ -131,12 +186,12 @@ fn init_gpu_density_context() -> Result<GpuDensityContext, String> {
             ],
         });
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("USF Demo Density Pipeline Layout"),
+            label: Some("USF Manifestation Density Pipeline Layout"),
             bind_group_layouts: &[&bind_group_layout],
             push_constant_ranges: &[],
         });
         let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-            label: Some("USF Demo Density Pipeline"),
+            label: Some("USF Manifestation Density Pipeline"),
             layout: Some(&pipeline_layout),
             module: &shader,
             entry_point: Some("main"),
@@ -166,7 +221,7 @@ impl GpuDensityContext {
         let _dispatch_guard = self.dispatch_lock.lock().map_err(|_| "GPU density dispatch lock poisoned".to_string())?;
 
         let params_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("USF Demo Density Params Buffer"),
+            label: Some("USF Manifestation Density Params Buffer"),
             size: std::mem::size_of::<GpuDensityParams>() as u64,
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
@@ -175,7 +230,7 @@ impl GpuDensityContext {
 
         let axis_buffer_bytes = bytemuck::cast_slice(axis_offsets);
         let axis_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("USF Demo Density Axis Buffer"),
+            label: Some("USF Manifestation Density Axis Buffer"),
             size: axis_buffer_bytes.len() as u64,
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
@@ -183,20 +238,20 @@ impl GpuDensityContext {
         self.queue.write_buffer(&axis_buffer, 0, axis_buffer_bytes);
 
         let output_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("USF Demo Density Output Buffer"),
+            label: Some("USF Manifestation Density Output Buffer"),
             size: output_padded_bytes as u64,
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
         let readback_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("USF Demo Density Readback Buffer"),
+            label: Some("USF Manifestation Density Readback Buffer"),
             size: output_padded_bytes as u64,
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
             mapped_at_creation: false,
         });
 
         let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("USF Demo Density Bind Group"),
+            label: Some("USF Manifestation Density Bind Group"),
             layout: &self.bind_group_layout,
             entries: &[
                 wgpu::BindGroupEntry {
@@ -215,11 +270,11 @@ impl GpuDensityContext {
         });
 
         let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("USF Demo Density Command Encoder"),
+            label: Some("USF Manifestation Density Command Encoder"),
         });
         {
             let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-                label: Some("USF Demo Density Compute Pass"),
+                label: Some("USF Manifestation Density Compute Pass"),
                 timestamp_writes: None,
             });
             compute_pass.set_pipeline(&self.pipeline);
@@ -290,6 +345,22 @@ struct Params {
     root_origin_y: f32,
     root_origin_z: f32,
     local_unit_scale: f32,
+    coarse_span_units: f32,
+    detail_span_units: f32,
+    coarse_weight: f32,
+    detail_weight: f32,
+    bias: f32,
+    gain: f32,
+    center: f32,
+    _pad1: f32,
+    seed_salt_coarse_lo: u32,
+    seed_salt_coarse_hi: u32,
+    seed_salt_detail_lo: u32,
+    seed_salt_detail_hi: u32,
+    zone_density_multiplier: f32,
+    zone_density_offset: f32,
+    zone_density_floor: f32,
+    zone_density_ceil: f32,
 };
 
 @group(0) @binding(0)
@@ -395,12 +466,22 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let wy = wrap_root_native_axis(gy);
     let wz = wrap_root_native_axis(gz);
 
-    let seed = mix32(params.world_seed_lo ^ params.world_seed_hi ^ 0xa5a535f4u);
-    let base = value_noise_3d(seed, wx, wy, wz, 320.0);
-    let detail = value_noise_3d(seed ^ 0x8b8b4fb7u, wx, wy, wz, 128.0);
-    let combined = base * 0.82 + detail * 0.18;
-    let shaped = clamp((combined - 0.66) * 3.0 + 0.5, 0.0, 1.0);
+    let world_seed = mix32(params.world_seed_lo ^ params.world_seed_hi);
+    let coarse_seed = mix32(world_seed ^ params.seed_salt_coarse_lo ^ params.seed_salt_coarse_hi);
+    let detail_seed = mix32(world_seed ^ params.seed_salt_detail_lo ^ params.seed_salt_detail_hi);
 
-    out_density[index] = u32(round(shaped * 255.0));
+    let base = value_noise_3d(coarse_seed, wx, wy, wz, params.coarse_span_units);
+    let detail = value_noise_3d(detail_seed, wx, wy, wz, params.detail_span_units);
+    let weight_sum = max(params.coarse_weight + params.detail_weight, 1e-6);
+    let combined = ((base * params.coarse_weight) + (detail * params.detail_weight)) / weight_sum;
+    let shaped = clamp((combined - params.bias) * params.gain + params.center, 0.0, 1.0);
+    let zoned_raw = shaped * params.zone_density_multiplier + params.zone_density_offset;
+    let zoned = clamp(
+        zoned_raw,
+        min(params.zone_density_floor, params.zone_density_ceil),
+        max(params.zone_density_floor, params.zone_density_ceil),
+    );
+
+    out_density[index] = u32(round(zoned * 255.0));
 }
 "#;

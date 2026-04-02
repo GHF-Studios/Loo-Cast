@@ -5,6 +5,29 @@ use crate::usf::scale::Scale;
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PhenomenonCapability {
     ManifestationDensityField,
+    ManifestationMaterialProfile,
+}
+impl PhenomenonCapability {
+    pub fn canonical_id(self) -> &'static str {
+        match self {
+            Self::ManifestationDensityField => "manifestation_density_field",
+            Self::ManifestationMaterialProfile => "manifestation_material_profile",
+        }
+    }
+
+    pub fn try_from_config_value(raw: &str) -> Result<Self, String> {
+        match raw.trim().to_ascii_lowercase().as_str() {
+            "manifestation_density_field" | "manifestation-density-field" | "density_field" | "density-field" => Ok(Self::ManifestationDensityField),
+            "manifestation_material_profile" | "manifestation-material-profile" | "material_profile" | "material-profile" => {
+                Ok(Self::ManifestationMaterialProfile)
+            }
+            unknown => Err(format!("unknown capability '{unknown}'")),
+        }
+    }
+
+    pub fn from_config_value(raw: &str) -> Self {
+        Self::try_from_config_value(raw).unwrap_or_else(|error| panic!("USF phenomenon capability parse failed: {error}"))
+    }
 }
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -32,10 +55,14 @@ impl PhenomenonKind {
         Self::try_from_config_value(raw).unwrap_or_else(|error| panic!("USF phenomenon kind parse failed: {}", error))
     }
 
-    pub fn supports_capability(self, capability: PhenomenonCapability) -> bool {
-        match (self, capability) {
-            (Self::ManifestationDensityDebug, PhenomenonCapability::ManifestationDensityField) => true,
+    pub fn declared_capabilities(self) -> &'static [PhenomenonCapability] {
+        match self {
+            Self::ManifestationDensityDebug => &[PhenomenonCapability::ManifestationDensityField],
         }
+    }
+
+    pub fn supports_capability(self, capability: PhenomenonCapability) -> bool {
+        self.declared_capabilities().contains(&capability)
     }
 }
 
@@ -70,6 +97,30 @@ impl Default for ManifestationDensityFieldDefinition {
 #[derive(Reflect, Debug, Clone, Copy, PartialEq)]
 pub enum PhenomenonManifestationFieldContract {
     DensityField(ManifestationDensityFieldDefinition),
+}
+
+#[derive(Reflect, Debug, Clone, Copy, PartialEq)]
+pub struct ManifestationMaterialProfileDefinition {
+    pub albedo_r: f32,
+    pub albedo_g: f32,
+    pub albedo_b: f32,
+    pub alpha: f32,
+    pub perceptual_roughness: f32,
+    pub metallic: f32,
+    pub emissive_strength: f32,
+}
+impl Default for ManifestationMaterialProfileDefinition {
+    fn default() -> Self {
+        Self {
+            albedo_r: 0.54,
+            albedo_g: 0.68,
+            albedo_b: 0.93,
+            alpha: 1.0,
+            perceptual_roughness: 0.9,
+            metallic: 0.0,
+            emissive_strength: 0.0,
+        }
+    }
 }
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -218,5 +269,19 @@ mod tests {
     fn phenomenon_kind_capability_contract_is_explicit() {
         let kind = PhenomenonKind::ManifestationDensityDebug;
         assert!(kind.supports_capability(PhenomenonCapability::ManifestationDensityField));
+    }
+
+    #[test]
+    fn phenomenon_capability_parsing_normalizes_aliases() {
+        let underscore = PhenomenonCapability::try_from_config_value("manifestation_density_field").expect("underscore capability should parse");
+        let kebab = PhenomenonCapability::try_from_config_value("manifestation-density-field").expect("kebab capability should parse");
+        assert_eq!(underscore, kebab);
+        assert_eq!(underscore.canonical_id(), "manifestation_density_field");
+
+        let material_underscore =
+            PhenomenonCapability::try_from_config_value("manifestation_material_profile").expect("material underscore capability should parse");
+        let material_alias = PhenomenonCapability::try_from_config_value("material-profile").expect("material alias capability should parse");
+        assert_eq!(material_underscore, material_alias);
+        assert_eq!(material_underscore.canonical_id(), "manifestation_material_profile");
     }
 }

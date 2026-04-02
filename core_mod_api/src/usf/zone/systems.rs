@@ -1,6 +1,7 @@
 use crate::bevy::prelude::*;
 use crate::chunk::components::{Chunk, ChunkLoader};
 use crate::player::components::Player;
+use crate::usf::authority::{USF_DOMAIN_ZONE, UsfAuthorityDiagnostics, UsfWorldAuthorityContract, guard_derived_domain_with_diagnostics};
 use crate::usf::definition::ZoneTypeId;
 use crate::usf::phenomenon::{Phenomenon, PhenomenonId, PhenomenonModel, PhenomenonScriptDefinitionRef};
 use crate::usf::pos::grid::types::GridVec;
@@ -8,7 +9,10 @@ use crate::usf::scale::Scale;
 use crate::usf::substrate::AdaptiveSubstrateStore;
 use std::collections::{HashMap, HashSet};
 
-use super::resources::{ZoneBehaviorRegistry, ZonePhenomenonSpawnPolicy, ZoneRealizationState, ZoneRealizedPhenomenon, ZoneRuntimeState, ZoneTemporalContext};
+use super::resources::{
+    ZoneBehaviorRegistry, ZonePhenomenonSpawnPolicy, ZoneRealizationSettings, ZoneRealizationState, ZoneRealizedPhenomenon, ZoneRuntimeState,
+    ZoneTemporalContext,
+};
 use super::types::{StableRegionId, ZoneAnchor, ZoneExtent, ZoneId, ZonePhenomenon, ZoneRealizationEvent, ZoneTimeFactor};
 use super::{select_supported_phenomenon_for_zone, support_count_key};
 
@@ -20,6 +24,8 @@ pub(super) fn sync_zone_temporal_context_system(player_loader_query: Query<&Chun
 }
 
 pub(super) fn reconcile_zone_runtime_system(
+    authority_contract: Res<UsfWorldAuthorityContract>,
+    mut authority_diagnostics: Option<ResMut<UsfAuthorityDiagnostics>>,
     mut commands: Commands,
     substrate_store: Res<AdaptiveSubstrateStore>,
     temporal_context: Res<ZoneTemporalContext>,
@@ -27,6 +33,10 @@ pub(super) fn reconcile_zone_runtime_system(
     mut runtime_state: ResMut<ZoneRuntimeState>,
     mut zone_anchor_query: Query<(&mut ZoneAnchor, &mut ZoneTimeFactor)>,
 ) {
+    if !guard_derived_domain_with_diagnostics(authority_contract.as_ref(), authority_diagnostics.as_deref_mut(), USF_DOMAIN_ZONE) {
+        return;
+    }
+
     let mut classified_chunks = HashMap::<(Scale, ZoneTypeId), Vec<GridVec>>::new();
     for chunk in loaded_chunks.iter() {
         let mut canonical_coord = chunk.coord.clone();
@@ -53,6 +63,19 @@ pub(super) fn reconcile_zone_runtime_system(
 
     let next_chunk_to_zone = build_chunk_to_zone_index(&next_records);
     let next_parent_by_zone = compute_zone_parent_map(&next_records, &next_chunk_to_zone);
+    let topology_changed =
+        runtime_state.records != next_records || runtime_state.chunk_to_zone != next_chunk_to_zone || runtime_state.parent_by_zone != next_parent_by_zone;
+    if !topology_changed {
+        if !temporal_context.is_changed() {
+            return;
+        }
+        for (zone_id, entity) in &runtime_state.entities {
+            if let Ok((_anchor, mut zone_time_factor)) = zone_anchor_query.get_mut(*entity) {
+                zone_time_factor.value = temporal_context.time_factor_for_scale(zone_id.scale);
+            }
+        }
+        return;
+    }
 
     let stale_ids = runtime_state
         .records
@@ -92,24 +115,32 @@ pub(super) fn reconcile_zone_runtime_system(
 }
 
 pub(super) fn reconcile_zone_realization_system(
+    authority_contract: Res<UsfWorldAuthorityContract>,
+    mut authority_diagnostics: Option<ResMut<UsfAuthorityDiagnostics>>,
     mut commands: Commands,
     runtime_state: Res<ZoneRuntimeState>,
     zone_behavior_registry: Res<ZoneBehaviorRegistry>,
     temporal_context: Res<ZoneTemporalContext>,
-    mut realization_state: ResMut<ZoneRealizationState>,
+    realization_settings: Res<ZoneRealizationSettings>,
+    realization_state: Res<ZoneRealizationState>,
     zone_phenomenon_query: Query<(Entity, &ZonePhenomenon, &PhenomenonScriptDefinitionRef), With<Phenomenon>>,
     phenomenon_model_query: Query<(Entity, &PhenomenonModel)>,
     mut zone_realization_event_writer: MessageWriter<ZoneRealizationEvent>,
 ) {
-    // Active-scale authority: zone realizations follow the player's currently active scale.
-    // This keeps spawned phenomena coherent through USF zoom transitions.
+    if !guard_derived_domain_with_diagnostics(authority_contract.as_ref(), authority_diagnostics.as_deref_mut(), USF_DOMAIN_ZONE) {
+        return;
+    }
+
+    // Zone realization authority is centered on active scale, with explicit configurable
+    // coarser/finer level windows for prewarm and continuity.
     let active_scale = temporal_context.active_scale;
     let desired_zone_ids = runtime_state
         .records
         .keys()
-        .filter(|zone_id| zone_id.scale == active_scale)
+        .filter(|zone_id| realization_settings.includes_scale(active_scale, zone_id.scale))
         .cloned()
         .collect::<HashSet<_>>();
+    let mut next_zone_to_phenomenon = realization_state.zone_to_phenomenon.clone();
     let live_zone_realizations = zone_phenomenon_query
         .iter()
         .map(|(phenomenon_entity, marker, script_ref)| {
@@ -135,7 +166,7 @@ pub(super) fn reconcile_zone_realization_system(
         .collect::<Vec<_>>();
     let stale_zone_id_set = stale_zone_ids.iter().cloned().collect::<HashSet<_>>();
     for zone_id in stale_zone_ids {
-        if let Some(realization) = realization_state.zone_to_phenomenon.remove(&zone_id) {
+        if let Some(realization) = next_zone_to_phenomenon.remove(&zone_id) {
             zone_realization_event_writer.write(ZoneRealizationEvent::Despawned {
                 zone_id: zone_id.clone(),
                 phenomenon_entity: realization.phenomenon_entity,
@@ -163,13 +194,12 @@ pub(super) fn reconcile_zone_realization_system(
             }
         }
         commands.entity(realization.phenomenon_entity).despawn();
-        realization_state.zone_to_phenomenon.remove(zone_id);
+        next_zone_to_phenomenon.remove(zone_id);
     }
 
     let mut support_active_counts = HashMap::<(ZoneTypeId, String), u32>::new();
     for zone_id in &desired_zone_ids {
-        let Some(realization) = realization_state
-            .zone_to_phenomenon
+        let Some(realization) = next_zone_to_phenomenon
             .get(zone_id)
             .cloned()
             .or_else(|| live_zone_realizations.get(zone_id).cloned())
@@ -184,8 +214,7 @@ pub(super) fn reconcile_zone_realization_system(
     let mut desired_zone_ids_sorted = desired_zone_ids.into_iter().collect::<Vec<_>>();
     desired_zone_ids_sorted.sort_by_key(zone_id_sort_key);
     for zone_id in desired_zone_ids_sorted {
-        let Some(realization) = realization_state
-            .zone_to_phenomenon
+        let Some(realization) = next_zone_to_phenomenon
             .get(&zone_id)
             .cloned()
             .or_else(|| live_zone_realizations.get(&zone_id).cloned())
@@ -233,11 +262,17 @@ pub(super) fn reconcile_zone_realization_system(
             *support_active_counts
                 .entry(support_count_key(&zone_id.zone_type, &selected_phenomenon_script_id))
                 .or_default() += 1;
-            realization_state.zone_to_phenomenon.insert(zone_id, realization);
+            next_zone_to_phenomenon.insert(zone_id, realization);
             continue;
         };
 
-        realization_state.zone_to_phenomenon.insert(zone_id, realization);
+        next_zone_to_phenomenon.insert(zone_id, realization);
+    }
+
+    if next_zone_to_phenomenon != realization_state.zone_to_phenomenon {
+        commands.insert_resource(ZoneRealizationState {
+            zone_to_phenomenon: next_zone_to_phenomenon,
+        });
     }
 }
 

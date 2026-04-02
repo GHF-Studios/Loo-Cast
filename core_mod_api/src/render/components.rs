@@ -23,7 +23,7 @@ pub struct EntityProxyLink {
     pub render_entity: Entity,
     pub revision: ProxySyncRevision,
     /// Contract marker: the root Transform is not authoritative simulation data.
-    pub root_transform_contract_is_ub: bool,
+    pub root_transform_is_proxy: bool,
 }
 
 #[derive(Component, Reflect)]

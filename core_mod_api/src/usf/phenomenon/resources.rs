@@ -5,13 +5,17 @@ use crate::rhai_binding::engine::statics::{USF_PHENOMENA_BY_ID, USF_PHENOMENON_M
 use crate::usf::scale::Scale;
 
 use super::components::PhenomenaModelTopology;
-use super::types::{ManifestationDensityFieldDefinition, PhenomenonCapability, PhenomenonKind, PhenomenonManifestationFieldContract};
+use super::types::{
+    ManifestationDensityFieldDefinition, ManifestationMaterialProfileDefinition, PhenomenonCapability, PhenomenonKind, PhenomenonManifestationFieldContract,
+};
 
 #[derive(Resource, Reflect, Debug, Clone)]
 #[reflect(Resource)]
 pub struct PhenomenonDefinitionRegistry {
     pub kind_by_phenomenon_id: HashMap<String, PhenomenonKind>,
+    pub capabilities_by_phenomenon_id: HashMap<String, Vec<PhenomenonCapability>>,
     pub manifestation_density_by_model_id: HashMap<String, ManifestationDensityFieldDefinition>,
+    pub manifestation_material_by_model_id: HashMap<String, ManifestationMaterialProfileDefinition>,
     pub topology_by_model_id: HashMap<String, PhenomenaModelTopology>,
     pub support_chunk_radius_by_model_id: HashMap<String, u16>,
     pub model_selection_by_phenomenon_scale: HashMap<String, String>,
@@ -38,14 +42,18 @@ impl Default for PhenomenonDefinitionRegistry {
         }
 
         let mut kind_by_phenomenon_id = HashMap::new();
+        let mut capabilities_by_phenomenon_id = HashMap::new();
         for (phenomenon_id, phenomenon) in script_phenomena {
             let normalized_phenomenon_id = normalize_identifier(&phenomenon_id);
             let kind = PhenomenonKind::from_config_value(phenomenon.kind.as_str());
-            kind_by_phenomenon_id.insert(normalized_phenomenon_id, kind);
+            let capabilities = parse_capability_list(phenomenon.capabilities.as_slice(), kind);
+            kind_by_phenomenon_id.insert(normalized_phenomenon_id.clone(), kind);
+            capabilities_by_phenomenon_id.insert(normalized_phenomenon_id, capabilities);
         }
 
         let mut phenomenon_by_model_id = HashMap::new();
         let mut manifestation_density_by_model_id = HashMap::new();
+        let mut manifestation_material_by_model_id = HashMap::new();
         let mut topology_by_model_id = HashMap::new();
         let mut support_chunk_radius_by_model_id = HashMap::new();
         for (model_id, model) in script_models {
@@ -57,7 +65,10 @@ impl Default for PhenomenonDefinitionRegistry {
                     normalized_model_id, normalized_phenomenon_id
                 );
             };
-            if kind.supports_capability(PhenomenonCapability::ManifestationDensityField) {
+            let has_manifestation_density_capability = capabilities_by_phenomenon_id
+                .get(&normalized_phenomenon_id)
+                .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::ManifestationDensityField));
+            if has_manifestation_density_capability {
                 let Some(field) = model.manifestation_density else {
                     panic!(
                         "USF phenomenon bootstrap failed: model '{}' belongs to phenomenon '{}' (kind='{}') \
@@ -109,6 +120,63 @@ impl Default for PhenomenonDefinitionRegistry {
                         center: field.center,
                         seed_salt_coarse: field.seed_salt_coarse,
                         seed_salt_detail: field.seed_salt_detail,
+                    },
+                );
+            }
+            let has_manifestation_material_capability = capabilities_by_phenomenon_id
+                .get(&normalized_phenomenon_id)
+                .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::ManifestationMaterialProfile));
+            if has_manifestation_material_capability {
+                let Some(material) = model.manifestation_material else {
+                    panic!(
+                        "USF phenomenon bootstrap failed: model '{}' belongs to phenomenon '{}' (kind='{}') \
+                         requiring capability 'manifestation_material_profile' but has no material profile definition. \
+                         Call set_manifestation_material_profile(...) in the model script.",
+                        normalized_model_id,
+                        normalized_phenomenon_id,
+                        kind.canonical_id()
+                    );
+                };
+                if !material.albedo_r.is_finite() || !material.albedo_g.is_finite() || !material.albedo_b.is_finite() {
+                    panic!(
+                        "USF phenomenon bootstrap failed: model '{}' has invalid albedo components ({}, {}, {}).",
+                        normalized_model_id, material.albedo_r, material.albedo_g, material.albedo_b
+                    );
+                }
+                if !material.alpha.is_finite() || !(0.0..=1.0).contains(&material.alpha) {
+                    panic!(
+                        "USF phenomenon bootstrap failed: model '{}' has invalid alpha={}; expected [0..1].",
+                        normalized_model_id, material.alpha
+                    );
+                }
+                if !material.perceptual_roughness.is_finite() || !(0.0..=1.0).contains(&material.perceptual_roughness) {
+                    panic!(
+                        "USF phenomenon bootstrap failed: model '{}' has invalid perceptual_roughness={}; expected [0..1].",
+                        normalized_model_id, material.perceptual_roughness
+                    );
+                }
+                if !material.metallic.is_finite() || !(0.0..=1.0).contains(&material.metallic) {
+                    panic!(
+                        "USF phenomenon bootstrap failed: model '{}' has invalid metallic={}; expected [0..1].",
+                        normalized_model_id, material.metallic
+                    );
+                }
+                if !material.emissive_strength.is_finite() || material.emissive_strength < 0.0 {
+                    panic!(
+                        "USF phenomenon bootstrap failed: model '{}' has invalid emissive_strength={}; expected >= 0.",
+                        normalized_model_id, material.emissive_strength
+                    );
+                }
+                manifestation_material_by_model_id.insert(
+                    normalized_model_id.clone(),
+                    ManifestationMaterialProfileDefinition {
+                        albedo_r: material.albedo_r,
+                        albedo_g: material.albedo_g,
+                        albedo_b: material.albedo_b,
+                        alpha: material.alpha,
+                        perceptual_roughness: material.perceptual_roughness,
+                        metallic: material.metallic,
+                        emissive_strength: material.emissive_strength,
                     },
                 );
             }
@@ -183,24 +251,40 @@ impl Default for PhenomenonDefinitionRegistry {
             }
         }
         for (phenomenon_id, kind) in &kind_by_phenomenon_id {
-            if !kind.supports_capability(PhenomenonCapability::ManifestationDensityField) {
-                continue;
-            }
+            let has_manifestation_density_capability = capabilities_by_phenomenon_id
+                .get(phenomenon_id)
+                .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::ManifestationDensityField));
             for scale_index in 0..(Scale::SCALE_LEVEL_COUNT as u8) {
                 let key = selection_key(phenomenon_id.as_str(), scale_index);
                 let Some(model_id) = model_selection_by_phenomenon_scale.get(&key) else {
+                    if has_manifestation_density_capability {
+                        panic!(
+                            "USF phenomenon bootstrap failed: phenomenon '{}' (kind='{}') requiring capability 'manifestation_density_field' \
+                             has no model assignment for scale {}.",
+                            phenomenon_id,
+                            kind.canonical_id(),
+                            scale_index
+                        );
+                    }
+                    continue;
+                };
+                if has_manifestation_density_capability && !manifestation_density_by_model_id.contains_key(model_id) {
                     panic!(
-                        "USF phenomenon bootstrap failed: phenomenon '{}' (kind='{}') requiring capability 'manifestation_density_field' \
-                         has no model assignment for scale {}.",
+                        "USF phenomenon bootstrap failed: selected model '{}' for phenomenon '{}' (kind='{}') at scale {} \
+                         has no manifestation density field definition.",
+                        model_id,
                         phenomenon_id,
                         kind.canonical_id(),
                         scale_index
                     );
-                };
-                if !manifestation_density_by_model_id.contains_key(model_id) {
+                }
+                let has_manifestation_material_capability = capabilities_by_phenomenon_id
+                    .get(phenomenon_id)
+                    .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::ManifestationMaterialProfile));
+                if has_manifestation_material_capability && !manifestation_material_by_model_id.contains_key(model_id) {
                     panic!(
                         "USF phenomenon bootstrap failed: selected model '{}' for phenomenon '{}' (kind='{}') at scale {} \
-                         has no manifestation density field definition.",
+                         has no manifestation material profile definition.",
                         model_id,
                         phenomenon_id,
                         kind.canonical_id(),
@@ -212,7 +296,9 @@ impl Default for PhenomenonDefinitionRegistry {
 
         Self {
             kind_by_phenomenon_id,
+            capabilities_by_phenomenon_id,
             manifestation_density_by_model_id,
+            manifestation_material_by_model_id,
             topology_by_model_id,
             support_chunk_radius_by_model_id,
             model_selection_by_phenomenon_scale,
@@ -224,6 +310,15 @@ impl Default for PhenomenonDefinitionRegistry {
 impl PhenomenonDefinitionRegistry {
     pub fn kind_for(&self, phenomenon_id: &str) -> Option<PhenomenonKind> {
         self.kind_by_phenomenon_id.get(&normalize_identifier(phenomenon_id)).copied()
+    }
+
+    pub fn capabilities_for(&self, phenomenon_id: &str) -> Option<&[PhenomenonCapability]> {
+        self.capabilities_by_phenomenon_id.get(&normalize_identifier(phenomenon_id)).map(Vec::as_slice)
+    }
+
+    pub fn supports_capability_for_phenomenon(&self, phenomenon_id: &str, capability: PhenomenonCapability) -> bool {
+        self.capabilities_for(phenomenon_id)
+            .is_some_and(|capabilities| capabilities.contains(&capability))
     }
 
     pub fn manifestation_density_for(&self, phenomenon_id: &str) -> Option<ManifestationDensityFieldDefinition> {
@@ -239,9 +334,20 @@ impl PhenomenonDefinitionRegistry {
         self.manifestation_density_by_model_id.get(&normalize_identifier(model_id)).copied()
     }
 
+    pub fn manifestation_material_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<ManifestationMaterialProfileDefinition> {
+        if !self.supports_capability_for_phenomenon(phenomenon_id, PhenomenonCapability::ManifestationMaterialProfile) {
+            return None;
+        }
+        let model_id = self.model_for_scale(phenomenon_id, scale)?;
+        self.manifestation_material_for_model(model_id)
+    }
+
+    pub fn manifestation_material_for_model(&self, model_id: &str) -> Option<ManifestationMaterialProfileDefinition> {
+        self.manifestation_material_by_model_id.get(&normalize_identifier(model_id)).copied()
+    }
+
     pub fn manifestation_field_contract_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<PhenomenonManifestationFieldContract> {
-        let kind = self.kind_for(phenomenon_id)?;
-        if !kind.supports_capability(PhenomenonCapability::ManifestationDensityField) {
+        if !self.supports_capability_for_phenomenon(phenomenon_id, PhenomenonCapability::ManifestationDensityField) {
             return None;
         }
         self.manifestation_density_for_scale(phenomenon_id, scale)
@@ -366,4 +472,31 @@ fn parse_topology_tag(raw: &str) -> PhenomenaModelTopology {
             normalized
         ),
     }
+}
+
+fn parse_capability_list(raw_capabilities: &[String], kind: PhenomenonKind) -> Vec<PhenomenonCapability> {
+    let source = if raw_capabilities.is_empty() {
+        kind.declared_capabilities()
+            .iter()
+            .map(|capability| capability.canonical_id().to_string())
+            .collect::<Vec<_>>()
+    } else {
+        raw_capabilities.to_vec()
+    };
+
+    let mut parsed = Vec::<PhenomenonCapability>::new();
+    for raw in source {
+        let capability = PhenomenonCapability::try_from_config_value(raw.as_str()).unwrap_or_else(|error| {
+            panic!(
+                "USF phenomenon bootstrap failed: unknown capability '{}' for kind '{}': {}",
+                raw,
+                kind.canonical_id(),
+                error
+            )
+        });
+        if !parsed.contains(&capability) {
+            parsed.push(capability);
+        }
+    }
+    parsed
 }

@@ -1,9 +1,12 @@
 use std::collections::{HashMap, HashSet};
-use std::path::{Path, PathBuf};
 
 use crate::bevy::prelude::*;
 use crate::chunk::components::{Chunk, ChunkLoader};
 use crate::player::components::Player;
+use crate::usf::authority::{
+    USF_DOMAIN_PARTIAL_PHENOMENON_MODEL, USF_DOMAIN_PHENOMENON, USF_DOMAIN_PHENOMENON_MODEL, UsfAuthorityDiagnostics, UsfWorldAuthorityContract,
+    guard_canonical_domain_with_diagnostics,
+};
 
 use crate::usf::phenomenon::components::{
     MonolithicPhenomenaModel, PartialPhenomenaModel, PartitionedPhenomenaModelMember, PartitionedPhenomenaModelRoot, PhenomenaModelState,
@@ -13,9 +16,7 @@ use crate::usf::phenomenon::components::{
 };
 use crate::usf::phenomenon::generator::{BuildStateInput, PhenomenonGenerator, PlanChildrenInput};
 use crate::usf::phenomenon::persistence::{
-    load_partial_phenomena_model_record, load_phenomena_model_record, load_phenomenon_record, model_record_from_runtime, monolithic_model_record_from_runtime,
-    partial_model_record_from_runtime, phenomenon_record_from_runtime, save_partial_phenomena_model_record, save_phenomena_model_record,
-    save_phenomenon_record, topology_from_tag,
+    PhenomenonPersistenceDurability, load_phenomena_model_record, load_phenomenon_record, model_record_path, phenomenon_record_path, topology_from_tag,
 };
 use crate::usf::phenomenon::resources::PhenomenonDefinitionRegistry;
 use crate::usf::phenomenon::types::{PhenomenonId, PhenomenonLineage, PhenomenonNodeKey, PhenomenonNodeSeed};
@@ -26,6 +27,22 @@ use crate::usf::scale::Scale;
 use crate::usf::zone::{ZoneId, ZoneRealizationEvent, ZoneRuntimeState};
 
 use super::generators::layer_echo::LayerEchoGenerator;
+
+#[inline]
+fn guard_phenomenon_authority_contract(authority_contract: &UsfWorldAuthorityContract, diagnostics: Option<&mut UsfAuthorityDiagnostics>) -> bool {
+    if let Some(diagnostics) = diagnostics {
+        if !guard_canonical_domain_with_diagnostics(authority_contract, Some(&mut *diagnostics), USF_DOMAIN_PHENOMENON) {
+            return false;
+        }
+        if !guard_canonical_domain_with_diagnostics(authority_contract, Some(&mut *diagnostics), USF_DOMAIN_PHENOMENON_MODEL) {
+            return false;
+        }
+        return guard_canonical_domain_with_diagnostics(authority_contract, Some(&mut *diagnostics), USF_DOMAIN_PARTIAL_PHENOMENON_MODEL);
+    }
+    authority_contract.guard_canonical_domain(USF_DOMAIN_PHENOMENON)
+        && authority_contract.guard_canonical_domain(USF_DOMAIN_PHENOMENON_MODEL)
+        && authority_contract.guard_canonical_domain(USF_DOMAIN_PARTIAL_PHENOMENON_MODEL)
+}
 
 #[derive(Resource, Reflect, Debug, Clone, Copy, PartialEq, Eq)]
 #[reflect(Resource)]
@@ -71,12 +88,27 @@ pub struct PhenomenonDebugStats {
 pub struct PhenomenonPersistenceRuntimeSettings {
     pub enabled: bool,
     pub persistence_dir: String,
+    pub async_write_enabled: bool,
+    pub async_write_batch_size: usize,
+    pub max_queued_records_soft: usize,
+    pub durability: PhenomenonPersistenceDurability,
+    pub journal_enabled: bool,
+    pub journal_dir: String,
+    pub retain_successful_journal_batches: bool,
 }
 impl Default for PhenomenonPersistenceRuntimeSettings {
     fn default() -> Self {
+        let persistence_dir = "target/usf_demo/phenomena_authority".to_string();
         Self {
             enabled: true,
-            persistence_dir: "target/usf_demo/phenomena_authority".to_string(),
+            persistence_dir: persistence_dir.clone(),
+            async_write_enabled: true,
+            async_write_batch_size: 256,
+            max_queued_records_soft: 4_096,
+            durability: PhenomenonPersistenceDurability::AtomicReplace,
+            journal_enabled: true,
+            journal_dir: format!("{}/journal", persistence_dir),
+            retain_successful_journal_batches: false,
         }
     }
 }
@@ -97,6 +129,8 @@ fn is_canonical_root_node(node: &PhenomenonNode) -> bool {
 }
 
 pub(super) fn ensure_scale_models_system(
+    authority_contract: Res<UsfWorldAuthorityContract>,
+    mut authority_diagnostics: Option<ResMut<UsfAuthorityDiagnostics>>,
     mut commands: Commands,
     definitions: Res<PhenomenonDefinitionRegistry>,
     loaded_chunks: Query<&Chunk>,
@@ -136,6 +170,10 @@ pub(super) fn ensure_scale_models_system(
         Option<&PartitionedPhenomenaModelMember>,
     )>,
 ) {
+    if !guard_phenomenon_authority_contract(authority_contract.as_ref(), authority_diagnostics.as_deref_mut()) {
+        return;
+    }
+
     let chunk_topology_changed = !dirty_chunks.is_empty() || removed_chunks.read().next().is_some();
     let should_sync = definitions.is_changed() || !dirty_phenomena_query.is_empty() || !dirty_model_query.is_empty() || chunk_topology_changed;
     if !should_sync {
@@ -262,6 +300,8 @@ pub(super) fn ensure_scale_models_system(
 }
 
 pub(super) fn enforce_model_topology_component_contracts_system(
+    authority_contract: Res<UsfWorldAuthorityContract>,
+    mut authority_diagnostics: Option<ResMut<UsfAuthorityDiagnostics>>,
     mut commands: Commands,
     dirty_models: Query<
         (),
@@ -291,6 +331,10 @@ pub(super) fn enforce_model_topology_component_contracts_system(
         Option<&PartitionedPhenomenaModelMember>,
     )>,
 ) {
+    if !guard_phenomenon_authority_contract(authority_contract.as_ref(), authority_diagnostics.as_deref_mut()) {
+        return;
+    }
+
     if dirty_models.is_empty() {
         return;
     }
@@ -352,6 +396,8 @@ pub(super) fn enforce_model_topology_component_contracts_system(
 }
 
 pub(super) fn apply_zone_realization_startup_hooks_system(
+    authority_contract: Res<UsfWorldAuthorityContract>,
+    mut authority_diagnostics: Option<ResMut<UsfAuthorityDiagnostics>>,
     mut zone_realization_events: MessageReader<ZoneRealizationEvent>,
     zone_runtime_state: Res<ZoneRuntimeState>,
     mut model_query: Query<(
@@ -363,6 +409,10 @@ pub(super) fn apply_zone_realization_startup_hooks_system(
         Option<&PartitionedPhenomenaModelMember>,
     )>,
 ) {
+    if !guard_phenomenon_authority_contract(authority_contract.as_ref(), authority_diagnostics.as_deref_mut()) {
+        return;
+    }
+
     let spawned = zone_realization_events
         .read()
         .filter_map(|event| match event {
@@ -409,208 +459,9 @@ pub(super) fn apply_zone_realization_startup_hooks_system(
     }
 }
 
-pub(super) fn sync_partitioned_model_members_system(
-    mut commands: Commands,
-    settings: Res<PhenomenonPersistenceRuntimeSettings>,
-    root_dirty_query: Query<
-        (),
-        (
-            With<PartitionedPhenomenaModelRoot>,
-            Or<(
-                Added<PartitionedPhenomenaModelRoot>,
-                Added<PhenomenonModel>,
-                Changed<PhenomenonModel>,
-                Added<PhenomenonModelScriptDefinitionRef>,
-                Changed<PhenomenonModelScriptDefinitionRef>,
-                Added<PhenomenonModelSupport>,
-                Changed<PhenomenonModelSupport>,
-                Added<PhenomenonModelProjectionContract>,
-                Changed<PhenomenonModelProjectionContract>,
-            )>,
-        ),
-    >,
-    member_dirty_query: Query<
-        (),
-        (
-            With<PartitionedPhenomenaModelMember>,
-            Or<(
-                Added<PartitionedPhenomenaModelMember>,
-                Changed<PartitionedPhenomenaModelMember>,
-                Added<PartialPhenomenaModel>,
-                Changed<PartialPhenomenaModel>,
-            )>,
-        ),
-    >,
-    mut removed_partition_members: RemovedComponents<PartitionedPhenomenaModelMember>,
-    mut removed_partition_roots: RemovedComponents<PartitionedPhenomenaModelRoot>,
-    root_query: Query<
-        (
-            Entity,
-            &PhenomenonModel,
-            &PhenomenonModelScriptDefinitionRef,
-            &PhenomenonModelSupport,
-            &PhenomenonModelProjectionContract,
-            &PhenomenaModelState,
-        ),
-        With<PartitionedPhenomenaModelRoot>,
-    >,
-    member_query: Query<
-        (
-            Entity,
-            &PhenomenonModel,
-            &PhenomenonModelScriptDefinitionRef,
-            &PhenomenonModelSupport,
-            &PhenomenonModelProjectionContract,
-            &PartitionedPhenomenaModelMember,
-            &PartialPhenomenaModel,
-        ),
-        With<PartitionedPhenomenaModelMember>,
-    >,
-) {
-    let has_removed_partition_members = removed_partition_members.read().next().is_some();
-    let has_removed_partition_roots = removed_partition_roots.read().next().is_some();
-    if root_dirty_query.is_empty() && member_dirty_query.is_empty() && !has_removed_partition_members && !has_removed_partition_roots {
-        return;
-    }
-
-    #[derive(Clone)]
-    struct ExistingPartitionMemberSnapshot {
-        entity: Entity,
-        root_model_entity: Entity,
-        canonical_chunk: GridVec,
-        model: PhenomenonModel,
-        model_script_ref: PhenomenonModelScriptDefinitionRef,
-        support: PhenomenonModelSupport,
-        projection: PhenomenonModelProjectionContract,
-        partial: PartialPhenomenaModel,
-    }
-
-    let mut existing_by_key = HashMap::<(Entity, GridVec), ExistingPartitionMemberSnapshot>::new();
-    for (member_entity, model, model_script_ref, support, projection, partition_member, partial) in member_query.iter() {
-        let mut canonical_chunk = partial.chunk_coord.clone();
-        canonical_chunk.normalize();
-        let snapshot = ExistingPartitionMemberSnapshot {
-            entity: member_entity,
-            root_model_entity: partition_member.root_model_entity,
-            canonical_chunk: canonical_chunk.clone(),
-            model: *model,
-            model_script_ref: model_script_ref.clone(),
-            support: support.clone(),
-            projection: projection.clone(),
-            partial: partial.clone(),
-        };
-        if let Some(previous_member) = existing_by_key.insert((partition_member.root_model_entity, canonical_chunk.clone()), snapshot) {
-            // Keep exactly one member entity per (root, chunk) key; duplicates are legacy drift.
-            commands.entity(previous_member.entity).despawn();
-        }
-    }
-    let existing_entries = existing_by_key
-        .values()
-        .map(|snapshot| (snapshot.entity, snapshot.root_model_entity, snapshot.canonical_chunk.clone()))
-        .collect::<Vec<_>>();
-
-    let mut live_roots = HashSet::<Entity>::new();
-    let mut desired_member_keys = HashSet::<(Entity, GridVec)>::new();
-
-    for (root_entity, root_model, model_script_ref, support, projection, state) in root_query.iter() {
-        if root_model.topology != PhenomenaModelTopology::PartitionedByChunk {
-            continue;
-        }
-        live_roots.insert(root_entity);
-
-        let desired_chunks = partition_chunks_for_support(&support.support);
-        for chunk_coord in desired_chunks {
-            desired_member_keys.insert((root_entity, chunk_coord.clone()));
-            let partition_key = PartialPhenomenaModel::deterministic_partition_key(root_model.phenomenon_id, root_model.scale, &chunk_coord);
-            let updated_partial = PartialPhenomenaModel {
-                phenomenon_id: root_model.phenomenon_id,
-                scale: root_model.scale,
-                chunk_coord: chunk_coord.clone(),
-                partition_key,
-            };
-
-            if let Some(existing_member) = existing_by_key.remove(&(root_entity, chunk_coord.clone())) {
-                let desired_member = PartitionedPhenomenaModelMember {
-                    root_model_entity: root_entity,
-                };
-                let requires_update = existing_member.model != *root_model
-                    || existing_member.model_script_ref != *model_script_ref
-                    || existing_member.support != *support
-                    || existing_member.projection != *projection
-                    || existing_member.partial != updated_partial
-                    || existing_member.root_model_entity != desired_member.root_model_entity
-                    || existing_member.canonical_chunk != chunk_coord;
-
-                if requires_update {
-                    commands.entity(existing_member.entity).insert((
-                        Name::new(format!(
-                            "phenomena_partition_scale{}_{}_part_{:016x}",
-                            root_model.scale.index_from_top(),
-                            model_script_ref.model_id,
-                            partition_key
-                        )),
-                        *root_model,
-                        model_script_ref.clone(),
-                        support.clone(),
-                        projection.clone(),
-                        updated_partial,
-                        desired_member,
-                    ));
-                }
-                continue;
-            }
-
-            let mut member_state = state.clone();
-            if settings.enabled {
-                let partial_path = partial_record_path(
-                    settings.persistence_dir.as_str(),
-                    root_model.phenomenon_id,
-                    root_model.scale,
-                    model_script_ref.model_id.as_str(),
-                    partition_key,
-                );
-                match load_partial_phenomena_model_record(&partial_path) {
-                    Ok(Some(record)) => {
-                        member_state.scalar_channels = record.scalar_channels;
-                    }
-                    Ok(None) => {}
-                    Err(error) => {
-                        warn!(
-                            "USF phenomenon partition hydrate skipped: could not load partial record '{:?}': {}",
-                            partial_path, error
-                        );
-                    }
-                }
-            }
-
-            commands.spawn((
-                Name::new(format!(
-                    "phenomena_partition_scale{}_{}_part_{:016x}",
-                    root_model.scale.index_from_top(),
-                    model_script_ref.model_id,
-                    partition_key
-                )),
-                *root_model,
-                model_script_ref.clone(),
-                support.clone(),
-                projection.clone(),
-                member_state,
-                updated_partial,
-                PartitionedPhenomenaModelMember {
-                    root_model_entity: root_entity,
-                },
-            ));
-        }
-    }
-
-    for (member_entity, root_model_entity, canonical_chunk) in existing_entries {
-        if !live_roots.contains(&root_model_entity) || !desired_member_keys.contains(&(root_model_entity, canonical_chunk)) {
-            commands.entity(member_entity).despawn();
-        }
-    }
-}
-
 pub(super) fn prune_orphan_models_system(
+    authority_contract: Res<UsfWorldAuthorityContract>,
+    mut authority_diagnostics: Option<ResMut<UsfAuthorityDiagnostics>>,
     mut commands: Commands,
     definitions: Res<PhenomenonDefinitionRegistry>,
     loaded_chunks: Query<&Chunk>,
@@ -645,6 +496,10 @@ pub(super) fn prune_orphan_models_system(
     phenomenon_query: Query<(Entity, Option<&PhenomenonScriptDefinitionRef>), With<Phenomenon>>,
     model_query: Query<(Entity, &PhenomenonModel, Option<&PhenomenonModelScriptDefinitionRef>)>,
 ) {
+    if !guard_phenomenon_authority_contract(authority_contract.as_ref(), authority_diagnostics.as_deref_mut()) {
+        return;
+    }
+
     let chunk_topology_changed = !dirty_chunks.is_empty() || removed_chunks.read().next().is_some();
     let should_prune = definitions.is_changed()
         || !dirty_phenomena_query.is_empty()
@@ -720,26 +575,6 @@ fn estimate_support_radius_from_chunk_count(chunk_count: usize) -> u16 {
     ((chunk_count as f64).cbrt().ceil() as u16).saturating_sub(1).max(1)
 }
 
-fn partition_chunks_for_support(support: &crate::usf::phenomenon::components::PhenomenaModelSupport) -> Vec<GridVec> {
-    let mut anchor = support.anchor_chunk.clone();
-    anchor.normalize();
-
-    let radius = support.chunk_radius.max(1) as i32;
-    let mut chunks = Vec::<GridVec>::new();
-    for dz in -radius..=radius {
-        for dy in -radius..=radius {
-            for dx in -radius..=radius {
-                let mut chunk = anchor.clone() + IVec3::new(dx, dy, dz);
-                chunk.normalize();
-                chunks.push(chunk);
-            }
-        }
-    }
-    chunks.sort_by(|left, right| grid_coord_sort_key(left).cmp(&grid_coord_sort_key(right)));
-    chunks.dedup();
-    chunks
-}
-
 fn grid_coord_sort_key(coord: &GridVec) -> (u8, Vec<(i32, i32, i32)>) {
     let mut canonical = coord.clone();
     canonical.normalize();
@@ -786,6 +621,8 @@ fn mix64(mut state: u64) -> u64 {
 }
 
 pub(super) fn hydrate_persisted_phenomena_state_system(
+    authority_contract: Res<UsfWorldAuthorityContract>,
+    mut authority_diagnostics: Option<ResMut<UsfAuthorityDiagnostics>>,
     settings: Res<PhenomenonPersistenceRuntimeSettings>,
     mut hydration_state: ResMut<PhenomenonPersistenceHydrationState>,
     phenomenon_query: Query<(&Phenomenon, &PhenomenonScriptDefinitionRef)>,
@@ -798,6 +635,10 @@ pub(super) fn hydrate_persisted_phenomena_state_system(
         Option<&PartitionedPhenomenaModelMember>,
     )>,
 ) {
+    if !guard_phenomenon_authority_contract(authority_contract.as_ref(), authority_diagnostics.as_deref_mut()) {
+        return;
+    }
+
     if !settings.enabled || hydration_state.hydrated {
         return;
     }
@@ -853,133 +694,6 @@ pub(super) fn hydrate_persisted_phenomena_state_system(
     hydration_state.hydrated = true;
 }
 
-pub(super) fn persist_authoritative_phenomena_state_system(
-    settings: Res<PhenomenonPersistenceRuntimeSettings>,
-    dirty_phenomena_query: Query<
-        Entity,
-        (
-            With<Phenomenon>,
-            Or<(
-                Added<Phenomenon>,
-                Changed<Phenomenon>,
-                Added<PhenomenonScriptDefinitionRef>,
-                Changed<PhenomenonScriptDefinitionRef>,
-            )>,
-        ),
-    >,
-    dirty_model_query: Query<
-        Entity,
-        (
-            With<PhenomenonModel>,
-            Or<(
-                Added<PhenomenonModel>,
-                Changed<PhenomenonModel>,
-                Added<PhenomenonModelScriptDefinitionRef>,
-                Changed<PhenomenonModelScriptDefinitionRef>,
-                Added<PhenomenonModelSupport>,
-                Changed<PhenomenonModelSupport>,
-                Added<PhenomenonModelProjectionContract>,
-                Changed<PhenomenonModelProjectionContract>,
-                Added<PhenomenaModelState>,
-                Changed<PhenomenaModelState>,
-                Added<PartialPhenomenaModel>,
-                Changed<PartialPhenomenaModel>,
-            )>,
-        ),
-    >,
-    phenomenon_query: Query<(Entity, &Phenomenon, &PhenomenonScriptDefinitionRef)>,
-    model_query: Query<(
-        Entity,
-        &PhenomenonModel,
-        &PhenomenonModelScriptDefinitionRef,
-        &PhenomenonModelSupport,
-        &PhenomenonModelProjectionContract,
-        &PhenomenaModelState,
-        Option<&MonolithicPhenomenaModel>,
-        Option<&PartialPhenomenaModel>,
-        Option<&PartitionedPhenomenaModelRoot>,
-        Option<&PartitionedPhenomenaModelMember>,
-    )>,
-) {
-    if !settings.enabled {
-        return;
-    }
-    let dirty_phenomena = dirty_phenomena_query.iter().collect::<HashSet<_>>();
-    let dirty_models = dirty_model_query.iter().collect::<HashSet<_>>();
-    if dirty_phenomena.is_empty() && dirty_models.is_empty() {
-        return;
-    }
-
-    let mut script_id_by_entity = HashMap::<Entity, String>::new();
-    for (entity, phenomenon, script_ref) in phenomenon_query.iter() {
-        if dirty_phenomena.contains(&entity) {
-            let record = phenomenon_record_from_runtime(phenomenon.id, phenomenon.kind, script_ref.phenomenon_id.as_str());
-            let record_path = phenomenon_record_path(settings.persistence_dir.as_str(), phenomenon.id);
-            if let Err(error) = save_phenomenon_record(&record_path, &record) {
-                panic!(
-                    "USF phenomenon persistence failed: could not save phenomenon record '{}' ({:?}): {}",
-                    script_ref.phenomenon_id, record_path, error
-                );
-            }
-        }
-        script_id_by_entity.insert(entity, script_ref.phenomenon_id.clone());
-    }
-
-    for (model_entity, model, model_script_ref, support, projection, state, monolithic, partial, _partition_root, partition_member) in model_query.iter() {
-        let model_or_parent_dirty = dirty_models.contains(&model_entity) || dirty_phenomena.contains(&model.phenomenon_entity);
-        if !model_or_parent_dirty {
-            continue;
-        }
-        let Some(script_id) = script_id_by_entity.get(&model.phenomenon_entity) else {
-            continue;
-        };
-        if partition_member.is_none() {
-            let model_record = if let Some(monolithic) = monolithic {
-                monolithic_model_record_from_runtime(model_script_ref.model_id.as_str(), monolithic, support, projection, state)
-            } else {
-                model_record_from_runtime(
-                    model.phenomenon_id,
-                    model_script_ref.model_id.as_str(),
-                    model.scale,
-                    model.topology,
-                    support,
-                    projection,
-                    state,
-                )
-            };
-            let model_record_path = model_record_path(
-                settings.persistence_dir.as_str(),
-                model.phenomenon_id,
-                model.scale,
-                model_script_ref.model_id.as_str(),
-            );
-            if let Err(error) = save_phenomena_model_record(&model_record_path, &model_record) {
-                panic!(
-                    "USF phenomenon persistence failed: could not save model record '{}' for phenomenon '{}' ({:?}): {}",
-                    model_script_ref.model_id, script_id, model_record_path, error
-                );
-            }
-        }
-
-        if let Some(partial) = partial {
-            let partial_record = partial_model_record_from_runtime(model_script_ref.model_id.as_str(), partial, state);
-            let partial_record_path = partial_record_path(
-                settings.persistence_dir.as_str(),
-                partial.phenomenon_id,
-                partial.scale,
-                model_script_ref.model_id.as_str(),
-                partial.partition_key,
-            );
-            if let Err(error) = save_partial_phenomena_model_record(&partial_record_path, &partial_record) {
-                panic!(
-                    "USF phenomenon persistence failed: could not save partial model record '{}' for phenomenon '{}' ({:?}): {}",
-                    model_script_ref.model_id, script_id, partial_record_path, error
-                );
-            }
-        }
-    }
-}
-
 pub(super) fn sync_policy_depth_to_frontier_scale_system(
     player_loader_query: Query<&ChunkLoader, With<Player>>,
     mut policy: ResMut<PhenomenonLifecyclePolicy>,
@@ -990,46 +704,6 @@ pub(super) fn sync_policy_depth_to_frontier_scale_system(
     let frontier_depth = chunk_loader.phenomenon_frontier_view().scale.index_from_top() as u32;
     let max_allowed_depth = (Scale::SCALE_LEVEL_COUNT - 1) as u32;
     policy.max_depth = frontier_depth.saturating_add(policy.frontier_margin).min(max_allowed_depth);
-}
-
-fn sanitize_id_for_path(id: &str) -> String {
-    let normalized = id.trim().to_ascii_lowercase();
-    if normalized.is_empty() {
-        return "_".to_string();
-    }
-    normalized
-        .chars()
-        .map(|value| {
-            if value.is_ascii_alphanumeric() || value == '_' || value == '-' || value == '.' {
-                value
-            } else {
-                '_'
-            }
-        })
-        .collect::<String>()
-}
-
-fn phenomenon_record_path(root: &str, phenomenon_id: PhenomenonId) -> PathBuf {
-    Path::new(root).join(format!("phenomenon_{:016x}.json", phenomenon_id.0))
-}
-
-fn model_record_path(root: &str, phenomenon_id: PhenomenonId, scale: Scale, model_id: &str) -> PathBuf {
-    Path::new(root).join(format!(
-        "model_{:016x}_scale_{:02}_{}.json",
-        phenomenon_id.0,
-        scale.index_from_top(),
-        sanitize_id_for_path(model_id),
-    ))
-}
-
-fn partial_record_path(root: &str, phenomenon_id: PhenomenonId, scale: Scale, model_id: &str, partition_key: u64) -> PathBuf {
-    Path::new(root).join(format!(
-        "partial_{:016x}_scale_{:02}_{}_part_{:016x}.json",
-        phenomenon_id.0,
-        scale.index_from_top(),
-        sanitize_id_for_path(model_id),
-        partition_key,
-    ))
 }
 
 pub(super) fn ensure_root_nodes_system(

@@ -6,7 +6,9 @@ pub mod components;
 pub mod generator;
 pub mod generators;
 pub mod meshing;
+pub mod partition_runtime;
 pub mod persistence;
+pub mod persistence_runtime;
 pub mod resources;
 pub mod systems;
 pub mod types;
@@ -24,21 +26,27 @@ pub use generators::layer_echo::LayerEchoGenerator;
 pub use meshing::{PHENOMENON_SEAM_LATTICE_DENOM, PhenomenonLatticeWindow, seam_safe_lattice_window};
 pub use persistence::{
     PARTIAL_PHENOMENA_MODEL_SCHEMA_VERSION, PHENOMENA_MODEL_SCHEMA_VERSION, PHENOMENON_SCHEMA_VERSION, PersistedPartialPhenomenaModelRecord,
-    PersistedPhenomenaModelRecord, PersistedPhenomenonRecord,
+    PersistedPhenomenaModelRecord, PersistedPhenomenonRecord, PhenomenonPersistenceDurability,
 };
 pub use resources::PhenomenonDefinitionRegistry;
 pub use systems::{
     PhenomenonDebugStats, PhenomenonGeneratorState, PhenomenonLifecyclePolicy, PhenomenonPersistenceHydrationState, PhenomenonPersistenceRuntimeSettings,
 };
 pub use types::{
-    ManifestationDensityFieldDefinition, PhenomenonCapability, PhenomenonId, PhenomenonKind, PhenomenonLineage, PhenomenonManifestationFieldContract,
-    PhenomenonNodeKey, PhenomenonNodeSeed,
+    ManifestationDensityFieldDefinition, ManifestationMaterialProfileDefinition, PhenomenonCapability, PhenomenonId, PhenomenonKind, PhenomenonLineage,
+    PhenomenonManifestationFieldContract, PhenomenonNodeKey, PhenomenonNodeSeed,
 };
 
+use partition_runtime::sync_partitioned_model_members_system;
+use persistence_runtime::{
+    PhenomenonPersistenceJournalRecoveryState, PhenomenonPersistenceWriteRuntimeState, PhenomenonPersistenceWriteStats,
+    enqueue_authoritative_phenomena_persistence_writes_system, flush_authoritative_phenomena_persistence_writes_system,
+    recover_authoritative_phenomena_persistence_journal_system,
+};
 use systems::{
     apply_zone_realization_startup_hooks_system, despawn_invalid_nodes_system, enforce_model_topology_component_contracts_system, ensure_root_nodes_system,
-    ensure_scale_models_system, expand_phenomenon_frontier_system, hydrate_persisted_phenomena_state_system, persist_authoritative_phenomena_state_system,
-    prune_orphan_models_system, refresh_active_node_stats_system, sync_partitioned_model_members_system, sync_policy_depth_to_frontier_scale_system,
+    ensure_scale_models_system, expand_phenomenon_frontier_system, hydrate_persisted_phenomena_state_system, prune_orphan_models_system,
+    refresh_active_node_stats_system, sync_policy_depth_to_frontier_scale_system,
 };
 
 pub(crate) struct PhenomenonPlugin;
@@ -50,6 +58,9 @@ impl Plugin for PhenomenonPlugin {
             .init_resource::<PhenomenonDebugStats>()
             .init_resource::<PhenomenonPersistenceRuntimeSettings>()
             .init_resource::<PhenomenonPersistenceHydrationState>()
+            .init_resource::<PhenomenonPersistenceWriteRuntimeState>()
+            .init_resource::<PhenomenonPersistenceWriteStats>()
+            .init_resource::<PhenomenonPersistenceJournalRecoveryState>()
             .add_systems(
                 Update,
                 (
@@ -63,7 +74,9 @@ impl Plugin for PhenomenonPlugin {
                     ensure_root_nodes_system,
                     expand_phenomenon_frontier_system.after(ensure_root_nodes_system),
                     despawn_invalid_nodes_system.after(expand_phenomenon_frontier_system),
-                    persist_authoritative_phenomena_state_system.after(despawn_invalid_nodes_system),
+                    recover_authoritative_phenomena_persistence_journal_system.after(despawn_invalid_nodes_system),
+                    enqueue_authoritative_phenomena_persistence_writes_system.after(recover_authoritative_phenomena_persistence_journal_system),
+                    flush_authoritative_phenomena_persistence_writes_system.after(enqueue_authoritative_phenomena_persistence_writes_system),
                 )
                     .in_set(UsfPhenomenonSet::Runtime)
                     .in_set(UsfSimulationSet::Phenomenon),
@@ -91,7 +104,11 @@ impl Plugin for PhenomenonPlugin {
             .register_type::<PhenomenonLifecyclePolicy>()
             .register_type::<PhenomenonDebugStats>()
             .register_type::<PhenomenonPersistenceRuntimeSettings>()
+            .register_type::<PhenomenonPersistenceDurability>()
+            .register_type::<PhenomenonPersistenceWriteStats>()
+            .register_type::<PhenomenonPersistenceJournalRecoveryState>()
             .register_type::<ManifestationDensityFieldDefinition>()
+            .register_type::<ManifestationMaterialProfileDefinition>()
             .register_type::<PhenomenonManifestationFieldContract>()
             .register_type::<PhenomenonLatticeWindow>();
     }

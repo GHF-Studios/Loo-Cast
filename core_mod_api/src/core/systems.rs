@@ -82,7 +82,7 @@ pub(super) fn ensure_entity_proxy_links_system(
             logic_entity,
             render_entity,
             revision: ProxySyncRevision::default(),
-            root_transform_contract_is_ub: true,
+            root_transform_is_proxy: true,
         });
     }
 }
@@ -172,7 +172,7 @@ pub(super) fn sync_logic_proxies_from_main_entities_system(
             continue;
         }
 
-        if link.root_transform_contract_is_ub {
+        if link.root_transform_is_proxy {
             let main_coord = chunk_actor.coord.clone();
             let z = main_coord.scale.compute_z();
             let (pos, scale) = main_coord.to_native_visual(origin_offset.clone());
@@ -206,7 +206,7 @@ pub(super) fn enforce_root_transform_contract_system(
     >,
 ) {
     for (link, mut transform) in roots.iter_mut() {
-        if !link.root_transform_contract_is_ub {
+        if !link.root_transform_is_proxy {
             continue;
         }
         transform.translation = Vec3::ZERO;

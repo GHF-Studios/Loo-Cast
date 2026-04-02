@@ -1,4 +1,5 @@
 pub mod aspects;
+pub mod authority;
 pub mod capability;
 pub mod content;
 pub mod definition;
@@ -15,12 +16,18 @@ pub mod zlm;
 pub mod zone;
 
 use crate::bevy::prelude::*;
+use crate::core::orchestration::AppSet;
+use authority::{
+    UsfAuthorityDiagnostics, UsfAuthorityDiagnosticsEvent, UsfAuthorityDiagnosticsExportSettings, UsfAuthorityDiagnosticsExportState,
+    UsfAuthorityViolationMode, UsfWorldAuthorityContract, export_usf_authority_diagnostics_events_system, report_usf_authority_diagnostics_system,
+    validate_usf_world_authority_contract_system,
+};
 use content::{UsfActiveModpack, UsfConfiguredMod, UsfExecutionPlan, UsfScaleDefinition, UsfScaleExecutionRoute};
 use definition::{DptMetricDefinition, DptMetricId, DptSchema, ZoneTypeId};
 use dpt::{DptChunkKey, DptChunkRecord};
 use phenomenon::{
-    PartitionedPhenomenaModelMember, PartitionedPhenomenaModelRoot, PhenomenonId, PhenomenonKind, PhenomenonLineage, PhenomenonManifestationFieldContract,
-    PhenomenonMeshWindow, PhenomenonNodeKey, PhenomenonNodeSeed, PhenomenonStateSnapshot,
+    ManifestationMaterialProfileDefinition, PartitionedPhenomenaModelMember, PartitionedPhenomenaModelRoot, PhenomenonId, PhenomenonKind, PhenomenonLineage,
+    PhenomenonManifestationFieldContract, PhenomenonMeshWindow, PhenomenonNodeKey, PhenomenonNodeSeed, PhenomenonStateSnapshot,
 };
 use substrate::{
     AdaptiveChunkSubstrate, AdaptiveSubstrateOctreeNode, ChunkEdgeInterface, SubstrateChunkEdge, SubstrateChunkSummary, SubstrateLeafContainer,
@@ -37,7 +44,20 @@ impl Plugin for UsfPlugin {
     fn build(&self, app: &mut App) {
         schedule::configure_usf_simulation_sets(app);
 
-        app.add_plugins(pos::PosPlugin)
+        app.init_resource::<UsfWorldAuthorityContract>()
+            .init_resource::<UsfAuthorityDiagnostics>()
+            .init_resource::<UsfAuthorityDiagnosticsExportSettings>()
+            .init_resource::<UsfAuthorityDiagnosticsExportState>()
+            .add_message::<UsfAuthorityDiagnosticsEvent>()
+            .add_systems(Startup, validate_usf_world_authority_contract_system.in_set(AppSet::Diagnostics))
+            .add_systems(Update, report_usf_authority_diagnostics_system.in_set(AppSet::Diagnostics))
+            .add_systems(
+                Update,
+                export_usf_authority_diagnostics_events_system
+                    .after(report_usf_authority_diagnostics_system)
+                    .in_set(AppSet::Diagnostics),
+            )
+            .add_plugins(pos::PosPlugin)
             .add_plugins(transform::TransformPlugin)
             .add_plugins(capability::CapabilityPlugin)
             .add_plugins(content::ContentPlugin)
@@ -56,6 +76,12 @@ impl Plugin for UsfPlugin {
             .register_type::<UsfScaleExecutionRoute>()
             .register_type::<UsfExecutionPlan>()
             .register_type::<UsfActiveModpack>()
+            .register_type::<UsfAuthorityDiagnostics>()
+            .register_type::<UsfAuthorityDiagnosticsEvent>()
+            .register_type::<UsfAuthorityDiagnosticsExportSettings>()
+            .register_type::<UsfAuthorityDiagnosticsExportState>()
+            .register_type::<UsfAuthorityViolationMode>()
+            .register_type::<UsfWorldAuthorityContract>()
             .register_type::<DptChunkKey>()
             .register_type::<DptChunkRecord>()
             .register_type::<ZlmMetricBand>()
@@ -82,6 +108,7 @@ impl Plugin for UsfPlugin {
             .register_type::<PhenomenonStateSnapshot>()
             .register_type::<PhenomenonMeshWindow>()
             .register_type::<PhenomenonManifestationFieldContract>()
+            .register_type::<ManifestationMaterialProfileDefinition>()
             .register_type::<PartitionedPhenomenaModelRoot>()
             .register_type::<PartitionedPhenomenaModelMember>()
             .register_type::<SubstrateChunkEdge>()

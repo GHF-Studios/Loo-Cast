@@ -2,6 +2,7 @@ use crate::bevy::prelude::*;
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
 
+use super::PHENOMENA_MODEL_SCHEMA_VERSION;
 use super::generator::PhenomenonStateSnapshot;
 use super::types::{PhenomenonId, PhenomenonKind, PhenomenonLineage, PhenomenonNodeKey, PhenomenonNodeSeed};
 
@@ -147,8 +148,8 @@ pub struct PhenomenaModelState {
 impl Default for PhenomenaModelState {
     fn default() -> Self {
         Self {
-            schema_version: 1,
-            scalar_channels: vec![("demo_mass_density.base".to_string(), 0.5)],
+            schema_version: PHENOMENA_MODEL_SCHEMA_VERSION,
+            scalar_channels: Vec::new(),
         }
     }
 }

@@ -180,7 +180,7 @@ register_workflow_mods!(
         DespawnChunks {
             FindAndDespawnAndWait: EcsWhile,
         },
-        HydrateChunkManifestationVisuals {
+        HydrateChunkManifestationInstances {
             BuildArtifacts: Async,
             CommitArtifacts: EcsWhile,
         },

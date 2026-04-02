@@ -36,8 +36,8 @@ pub struct UsfCapabilityGraph {
 impl Default for UsfCapabilityGraph {
     fn default() -> Self {
         let world_capabilities = vec![CapabilityId::new("world.chunk_manifestation_cache")];
-        let presentation_capabilities = vec![CapabilityId::new("presentation.render.chunk_manifestation_mesh")];
-        let simulation_capabilities = vec![CapabilityId::new("simulation.physics.rapier.local")];
+        let presentation_capabilities = vec![CapabilityId::new("presentation.chunk_manifestation.instance_render")];
+        let simulation_capabilities = vec![CapabilityId::new("simulation.chunk_manifestation.instance_collider")];
 
         let mut contracts_by_capability = HashMap::new();
         contracts_by_capability.insert(
@@ -49,18 +49,18 @@ impl Default for UsfCapabilityGraph {
             },
         );
         contracts_by_capability.insert(
-            CapabilityId::new("presentation.render.chunk_manifestation_mesh"),
+            CapabilityId::new("presentation.chunk_manifestation.instance_render"),
             CapabilityExecutionContract {
-                id: CapabilityId::new("presentation.render.chunk_manifestation_mesh"),
-                owner_path: "usf.runtime.chunk_manifestation".to_string(),
+                id: CapabilityId::new("presentation.chunk_manifestation.instance_render"),
+                owner_path: "usf.runtime.manifestation_capability".to_string(),
                 authority_mode: CapabilityAuthorityMode::ProjectionOnly,
             },
         );
         contracts_by_capability.insert(
-            CapabilityId::new("simulation.physics.rapier.local"),
+            CapabilityId::new("simulation.chunk_manifestation.instance_collider"),
             CapabilityExecutionContract {
-                id: CapabilityId::new("simulation.physics.rapier.local"),
-                owner_path: "simulation.physics.rapier".to_string(),
+                id: CapabilityId::new("simulation.chunk_manifestation.instance_collider"),
+                owner_path: "usf.runtime.manifestation_capability".to_string(),
                 authority_mode: CapabilityAuthorityMode::LeasedLocalAuthority,
             },
         );

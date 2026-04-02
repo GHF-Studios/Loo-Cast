@@ -126,6 +126,7 @@ pub struct ScriptMetricDefinition {
 pub struct ScriptPhenomenonDefinition {
     pub id: String,
     pub kind: String,
+    pub capabilities: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -157,6 +158,31 @@ impl Default for ScriptManifestationDensityDefinition {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ScriptManifestationMaterialDefinition {
+    pub albedo_r: f32,
+    pub albedo_g: f32,
+    pub albedo_b: f32,
+    pub alpha: f32,
+    pub perceptual_roughness: f32,
+    pub metallic: f32,
+    pub emissive_strength: f32,
+}
+
+impl Default for ScriptManifestationMaterialDefinition {
+    fn default() -> Self {
+        Self {
+            albedo_r: 0.54,
+            albedo_g: 0.68,
+            albedo_b: 0.93,
+            alpha: 1.0,
+            perceptual_roughness: 0.9,
+            metallic: 0.0,
+            emissive_strength: 0.0,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ScriptPhenomenonModelDefinition {
     pub id: String,
@@ -164,6 +190,7 @@ pub struct ScriptPhenomenonModelDefinition {
     pub topology: String,
     pub support_chunk_radius: u16,
     pub manifestation_density: Option<ScriptManifestationDensityDefinition>,
+    pub manifestation_material: Option<ScriptManifestationMaterialDefinition>,
 }
 impl Default for ScriptPhenomenonModelDefinition {
     fn default() -> Self {
@@ -173,6 +200,7 @@ impl Default for ScriptPhenomenonModelDefinition {
             topology: "monolithic_chunk".to_string(),
             support_chunk_radius: 0,
             manifestation_density: None,
+            manifestation_material: None,
         }
     }
 }
