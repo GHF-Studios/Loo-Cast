@@ -1,0 +1,16 @@
+[usf.runtime.chunk_manifestation]
+enabled = true
+attach_meshes = true
+enable_instance_culling = true
+binding_grace_frames = 3
+world_seed = 1337
+sample_step = 64
+iso_level = 170
+hydration_batch_size = 64
+hydration_commit_budget = 4
+hydration_build_workers = 4
+persistence_dir = "target/usf_demo/chunks"
+
+[usf.zone.realization]
+levels_above_active = 0
+levels_below_active = 0

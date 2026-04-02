@@ -1,0 +1,29 @@
+fn register_phenomenon_model(ctx) {
+    ctx.set_id("demo_manifestation_density_default");
+    ctx.register("demo_manifestation_density");
+    ctx.set_topology("partitioned_by_chunk");
+    ctx.set_support_chunk_radius(2);
+    ctx.set_projection_contract("demo_mass_density", 0.0, 1.0);
+    ctx.set_manifestation_density_field(
+        320.0,
+        128.0,
+        0.82,
+        0.18,
+        0.66,
+        3.0,
+        0.5,
+        608139381523021511,
+        2748924730191034777,
+    );
+    ctx.set_manifestation_material_profile(
+        0.62,
+        0.71,
+        0.84,
+        1.0,
+        0.86,
+        0.02,
+        0.0,
+    );
+    ctx.set_manifestation_collider_enabled(true);
+    ctx.set_as_default_all_scales();
+}
