@@ -1,8 +1,21 @@
 # TEMP USF Refactor Execution Checklist (Locked)
 
-Date: 2026-04-02  
-Status: active execution checklist  
+Date: 2026-04-03  
+Status: active execution checklist (status model hardened)  
 Authority order: user mental model > explicit USF contract docs > current code shape
+
+## Status Model (Mandatory)
+
+All progress uses one of these states:
+
+1. `implemented`: main code path exists and is wired.
+2. `partially_validated`: implementation exists and has targeted proof, but coverage is incomplete.
+3. `architecturally_complete`: implementation + deterministic validation + naming/tree alignment + no known blocker in that track.
+
+Promotion rule:
+
+1. No track/exit condition is promoted to `architecturally_complete` without evidence entries.
+2. Evidence must include code anchors, automated validation refs, and runtime/demo proof notes.
 
 ## Mission
 
@@ -11,128 +24,199 @@ Deliver a minimal but real USF technical demo where:
 1. Script entrypoints are the content authority surface.
 2. Canonical persistence is only `Phenomenon` + `PhenomenonModel` (+ partition records when required).
 3. Substrate/zone/chunk-realization are explicit derived runtime layers.
-4. Engine Rust code is a reusable capability platform, not gameplay-content ownership.
+4. Engine Rust code is reusable platform/bridge infrastructure, not gameplay-content ownership.
 
 ## Reality Check (2026-04-03)
 
-This checklist is execution-oriented, but current checkmarks can overstate end-state confidence.
-Treat every checked item as "implemented in code path(s) tested so far", not "architecturally complete".
+Strategic gaps still blocking full confidence:
 
-Re-opened strategic gaps that still block full confidence:
-
-- [ ] End-to-end proof that script entrypoints can author complex multi-scale content without Rust-side content glue.
-- [ ] Full ownership/tree alignment across all USF-adjacent modules (not only chunk-realization runtime slices).
-- [ ] Deterministic cross-scale continuity under real runtime load (zone realization, child-model spawning, chunk-realization binding together).
-- [ ] Capability catalog breadth for script-first development (ECS/sysparam/message/resource/query families still incomplete).
-- [ ] Canonical persistence/migration hardening against schema drift in longer-lived save data.
+1. End-to-end proof that script entrypoints can author complex multi-scale content without Rust-side content glue.
+2. Full ownership/tree alignment across all USF-adjacent modules (not only chunk-realization slices).
+3. Deterministic cross-scale continuity under runtime load (zone classification, model selection, child-model spawning, chunk realization).
+4. Capability catalog breadth for script-first development (ECS/sysparam/message/resource/query families still incomplete).
+5. Canonical persistence/migration hardening against schema drift in longer-lived save data.
 
 ## Non-Negotiable Invariants
 
 1. USF remains entity-grounded and scale-explicit (71 scales).
-2. Zone realization and chunk realization are one authority pipeline.
+2. Authority pipeline is unified, but roles stay distinct:
+   zones classify/select, phenomena+models own semantic state, chunk realization reconciles outputs.
 3. No cache (`chunk realization`, zone fields, metric snapshots) is canonical truth.
 4. No primary-model shortcut as runtime authority.
 5. Typed per-domain script ctx APIs remain mandatory.
 6. No monolithic global substrate mutation bridge.
 7. Sampler/categorizer logic is generic and config-bound, not hardcoded per content pack.
+8. Engine output execution is bridge-registered Rust functionality; USF stores intents/state, not bridge execution logic.
 
 ## Execution Tracks
 
 ## Track A: Entrypoint-First Runtime Platform
 
-- [x] Introduce explicit script-entrypoint registry contract by script type and function signature.
-- [x] Make typed ctx injection and lifecycle deterministic and testable per script type.
-- [x] Ensure all USF content declarations are loaded only through typed entrypoints.
-- [x] Hard-fail bootstrap on missing/invalid entrypoint signatures.
-- [x] Add diagnostics that point to exact script file + entrypoint + expected signature.
+Track state: `partially_validated`
+
+- `[implemented]` Explicit script-entrypoint registry contract by script type and function signature.
+- `[implemented]` Typed ctx injection and lifecycle deterministic at bootstrap/runtime path.
+- `[implemented]` USF content declarations loaded through typed entrypoints.
+- `[implemented]` Bootstrap hard-fails on missing/invalid signatures.
+- `[partially_validated]` Diagnostics quality for exact file + entrypoint + expected signature.
 
 Exit condition:
 
-- [x] Bootstrapping a modpack with missing or invalid USF script entrypoints fails deterministically with actionable diagnostics.
+- `[partially_validated]` Invalid entrypoints fail deterministically with actionable diagnostics.
+
+Evidence log (required for `architecturally_complete`):
+
+- Code anchors: `TODO`
+- Automated validation: `TODO`
+- Runtime/demo proof: `TODO`
+- Open gaps: broaden entrypoint stress tests across mod packs and schedules.
 
 ## Track B: Canonical Entity Persistence Boundary
 
-- [x] Keep authoritative persistence restricted to phenomenon/model/partial-model records.
-- [x] Ensure chunk realization and zone caches are tagged and handled as derived cache only.
-- [x] Keep schema versioning + migration explicit for canonical records.
-- [x] Validate deterministic substrate rebuild from canonical model records.
-- [x] Remove stale code paths that can silently treat derived caches as source-of-truth.
+Track state: `partially_validated`
+
+- `[implemented]` Authoritative persistence restricted to phenomenon/model/partial-model records.
+- `[implemented]` Chunk realization and zone caches treated as derived cache only.
+- `[implemented]` Schema versioning + migration hooks explicit for canonical records.
+- `[partially_validated]` Deterministic substrate rebuild from canonical model records.
+- `[implemented]` Stale source-of-truth cache paths removed from primary flow.
 
 Exit condition:
 
-- [x] Deleting all derived USF caches still recreates equivalent runtime state from canonical records alone.
+- `[partially_validated]` Deleting derived caches recreates equivalent runtime state from canonical records.
 
-## Track C: Zone-Orchestrated Chunk Realization Authority
+Evidence log:
 
-- [x] Keep zone realization as the only authority path that drives chunk realization intent binding.
-- [x] Ensure chunk realization does not run any alternate phenomenon selection path.
-- [x] Keep spawn/reconcile/realization policy unified through one policy function path.
-- [x] Ensure parent-level boundary effects for child chunks flow through zone/phenomenon orchestration.
-- [x] Keep runtime grouping/component logic derived and disposable.
+- Code anchors: `TODO`
+- Automated validation: `TODO`
+- Runtime/demo proof: `TODO`
+- Open gaps: migration drift and long-lived save compatibility matrix.
+
+## Track C: Zone Classification + Model-Driven Chunk Realization
+
+Track state: `partially_validated`
+
+- `[implemented]` Zones are the classifier/selector authority for realization candidates.
+- `[implemented]` Chunk realization does not use alternate fallback selectors.
+- `[implemented]` Spawn/reconcile/realization path shares one policy function chain.
+- `[partially_validated]` Parent-level effects into child chunks run through zone/model orchestration.
+- `[implemented]` Runtime grouping/component logic remains derived/disposable.
 
 Exit condition:
 
-- [x] Zone updates deterministically reconcile chunk realization intents without fallback selectors.
+- `[partially_validated]` Zone updates deterministically reconcile chunk realization intents without fallback selectors.
+
+Evidence log:
+
+- Code anchors: `TODO`
+- Automated validation: `TODO`
+- Runtime/demo proof: `TODO`
+- Open gaps: cross-scale continuity under sustained runtime load.
 
 ## Track D: Adaptive Substrate Runtime
 
-- [x] Keep octree + polymorphic leaf substrate as derived adaptive state.
-- [x] Keep refine/coarsen transitions state-driven (energy/instability/gradient), not frame-decay driven.
-- [x] Keep storage policy and simulation transition policy separated.
-- [x] Ensure cross-chunk coupling uses explicit edge interfaces only.
-- [x] Avoid global dense-field assumptions in any hot path.
+Track state: `partially_validated`
+
+- `[implemented]` Octree + polymorphic leaf substrate is treated as derived adaptive runtime state.
+- `[implemented]` Refine/coarsen transitions are state-driven, not frame-decay-driven.
+- `[implemented]` Storage policy and simulation transition policy are separated.
+- `[partially_validated]` Cross-chunk coupling uses explicit edge interfaces only.
+- `[implemented]` No global dense-field assumption in primary hot paths.
 
 Exit condition:
 
-- [x] Broad-support phenomena can project and rebuild substrate incrementally without canonical dense arrays.
+- `[partially_validated]` Broad-support phenomena project/rebuild substrate without canonical dense arrays.
 
-## Track E: Capability Platform Separation
+Evidence log:
 
-- [x] Move engine-level functionality behind explicit capability contracts.
-- [x] Keep phenomena/models minimal policy declarations, not heavy engine logic owners.
-- [x] Keep realization/simulation service contracts script-declarable and runtime-validated.
-- [x] Remove global behavior flags where model/capability-scoped authority is required.
-- [x] Maintain strict separation between content definition and engine execution kernels.
+- Code anchors: `TODO`
+- Automated validation: `TODO`
+- Runtime/demo proof: `TODO`
+- Open gaps: high-load behavior and boundary exchange profiling.
+
+## Track E: Bridge Registration + Realization Intent Schema
+
+Track state: `partially_validated`
+
+- `[implemented]` Engine output application moved behind explicit bridge registrations.
+- `[implemented]` Phenomena/models remain semantic declarations/state, not heavy engine logic owners.
+- `[partially_validated]` Realization intent schema is script-declarable and runtime-validated.
+- `[implemented]` Global behavior flags removed where model-scoped intent authority is required.
+- `[implemented]` Content definitions remain separated from engine execution kernels.
 
 Exit condition:
 
-- [x] New realization outputs (mesh/collider/material/audio/particles) can be added via capability families without changing content ontology.
+- `[partially_validated]` New output channels (mesh/collider/material/audio/particles/trigger) can be added via bridge registrations without ontology changes.
+
+Evidence log:
+
+- Code anchors: `TODO`
+- Automated validation: `TODO`
+- Runtime/demo proof: `TODO`
+- Open gaps: channel-family expansion proof beyond current demo pathways.
 
 ## Track F: Generic Sampler/Categorizer Pipeline
 
-- [x] Make sampler/categorizer runtime fully driven by scale + metric-set + ZLM compatibility contracts.
-- [x] Remove fixed-id assumptions from sampler/categorizer selection.
-- [x] Keep metric layout and zone classification deterministic and schema-validated.
-- [x] Keep generic algorithm core reusable across scales and modpacks.
-- [x] Make script-defined ids bind to validated runtime kernels.
+Track state: `partially_validated`
+
+- `[implemented]` Sampler/categorizer driven by scale + metric-set + ZLM compatibility.
+- `[implemented]` Fixed-id assumptions removed from selection path.
+- `[implemented]` Metric-container layout and zone classification deterministic/schema-validated.
+- `[implemented]` Generic algorithm core reusable across scales/mod packs.
+- `[partially_validated]` Script-defined ids bind to validated runtime kernels end-to-end.
 
 Exit condition:
 
-- [x] A new scale can choose compatible sampler/categorizer ids without Rust-side hardcoded id branches.
+- `[partially_validated]` New scales choose compatible sampler/categorizer ids without Rust hardcoded id branches.
+
+Evidence log:
+
+- Code anchors: `TODO`
+- Automated validation: `TODO`
+- Runtime/demo proof: `TODO`
+- Open gaps: wider script-first coverage and failure-mode diagnostics.
 
 ## Track G: Naming and Module-Tree Reframe
 
-- [x] Remove or rename terms that imply derived caches are ontology authority.
-- [x] Keep module tree aligned with ownership boundaries (content declaration vs engine capability runtime).
-- [ ] Keep singular/plural and concept naming consistent across docs, script surface, and Rust modules.
-- [x] Reframe legacy `mod_runtime` semantics toward explicit runtime capability packaging. (`usf/runtime/*` removed for this pipeline; realization channels live under `rhai_binding/bridges`.)
-- [x] Keep debug/test realization naming explicit and non-canonical.
+Track state: `partially_validated`
+
+- `[implemented]` Terms implying cache-as-authority removed on core realization path.
+- `[partially_validated]` Module tree aligned to ownership boundaries beyond chunk realization slices.
+- `[implemented]` Legacy `mod_runtime` split reframed into bridge/runtime packaging in active path.
+- `[partially_validated]` Singular/plural and concept naming consistency across docs/scripts/Rust modules.
+- `[implemented]` Debug/test realization naming explicit and non-canonical.
 
 Exit condition:
 
-- [ ] A new contributor can locate ownership boundaries by names alone without reverse-engineering runtime behavior.
+- `[partially_validated]` New contributor can locate ownership boundaries by names alone.
+
+Evidence log:
+
+- Code anchors: `TODO`
+- Automated validation: `TODO`
+- Runtime/demo proof: `TODO`
+- Open gaps: remaining naming drift and parallel ownership signals.
 
 ## Track H: Minimal Technical Demo
 
-- [x] Define a narrow but complete multi-scale content slice implemented fully via USF scripting entrypoints.
-- [x] Demonstrate deterministic load/persist/rebuild and zone-driven realization authority.
-- [x] Demonstrate at least one partitioned phenomenon across chunk boundaries under runtime load.
-- [x] Demonstrate at least one non-mesh capability surface (for example audio or particle trigger contract) with observable in-engine effect.
-- [x] Keep Rust changes focused on reusable capability/platform extensions only.
+Track state: `implemented`
+
+- `[implemented]` Narrow multi-scale content slice exists via USF scripting entrypoints.
+- `[partially_validated]` Deterministic load/persist/rebuild and zone-driven realization authority under repeated runs.
+- `[partially_validated]` At least one partitioned phenomenon demonstrated under runtime load.
+- `[partially_validated]` At least one non-mesh output channel has observable runtime effect.
+- `[implemented]` Rust changes focused on reusable platform/bridge extensions.
 
 Exit condition:
 
-- [x] Demo runs as a coherent proof that content can be authored by scripts while Rust remains platform/capability infrastructure.
+- `[partially_validated]` Demo currently demonstrates architecture direction, but still lacks full determinism/load confidence to count as `architecturally_complete`.
+
+Evidence log:
+
+- Code anchors: `TODO`
+- Automated validation: `TODO`
+- Runtime/demo proof: `TODO`
+- Open gaps: determinism runs, long-session stability, and scale-transition continuity.
 
 ## Major Checkpoint Validation
 
@@ -144,8 +228,9 @@ Run heavy validation only at major checkpoints:
 
 ## Completion Criteria
 
-Checklist is complete when:
+Checklist is complete only when:
 
-1. All track exit conditions are met.
-2. The minimal technical demo is stable and deterministic on canonical persistence boundaries.
-3. Remaining TODOs are optional polish, not architectural blockers.
+1. Every track exit condition is `architecturally_complete`.
+2. Every track evidence log is populated with concrete refs (code/tests/runtime proof).
+3. Minimal technical demo is stable and deterministic on canonical persistence boundaries.
+4. Remaining TODOs are optional polish, not architectural blockers.
