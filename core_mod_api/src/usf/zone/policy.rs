@@ -1,14 +1,11 @@
-use std::collections::HashMap;
-
 use crate::usf::scale::Scale;
 
 use super::resources::{ZoneBehaviorRegistry, ZonePhenomenonSelectionStrategy, ZonePhenomenonSupport, ZoneSelectionRuntimeState};
-use super::types::{ZoneId, ZoneTypeId};
+use super::types::ZoneId;
 
 pub fn select_supported_phenomenon_for_zone(
     zone_id: &ZoneId,
     registry: &ZoneBehaviorRegistry,
-    active_counts: &HashMap<(ZoneTypeId, String), u32>,
     parent_selected_phenomenon_id: Option<&str>,
     active_scale: Scale,
     selection_runtime_state: &mut ZoneSelectionRuntimeState,
@@ -26,17 +23,7 @@ pub fn select_supported_phenomenon_for_zone(
         )
     });
 
-    let eligible_supports = supports
-        .iter()
-        .filter(|support| {
-            let active_count = active_counts
-                .get(&support_count_key(&zone_id.zone_type, &support.phenomenon_id))
-                .copied()
-                .unwrap_or(0);
-            active_count < support.max_active
-        })
-        .cloned()
-        .collect::<Vec<_>>();
+    let eligible_supports = supports.to_vec();
     if eligible_supports.is_empty() {
         return None;
     }
@@ -114,10 +101,6 @@ pub fn select_supported_phenomenon_for_zone(
     }
 }
 
-pub fn support_count_key(zone_type: &ZoneTypeId, phenomenon_id: &str) -> (ZoneTypeId, String) {
-    (zone_type.clone(), phenomenon_id.to_ascii_lowercase())
-}
-
 fn deterministic_phenomenon_seed(zone_id: &ZoneId, active_scale: Scale) -> u64 {
     let mut state = mix64(0x9e37_79b9_7f4a_7c15 ^ zone_id.scale.index_from_top() as u64);
     for byte in zone_id.zone_type.0.as_bytes() {
@@ -144,7 +127,8 @@ fn mix64(mut state: u64) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::usf::zone::{ZonePhenomenonSpawnPolicy, ZoneSelectionPolicy};
+    use crate::usf::zone::{ZonePhenomenonSpawnPolicy, ZoneSelectionPolicy, ZoneTypeId};
+    use std::collections::HashMap;
 
     fn round_robin_registry() -> ZoneBehaviorRegistry {
         let zone_type = ZoneTypeId::new("mystic");
@@ -161,14 +145,12 @@ mod tests {
                     priority: 100,
                     weight: 1.0,
                     spawn_policy: ZonePhenomenonSpawnPolicy::SinglePerZone,
-                    max_active: 10,
                 },
                 ZonePhenomenonSupport {
                     phenomenon_id: "phenomenon.b".to_string(),
                     priority: 100,
                     weight: 1.0,
                     spawn_policy: ZonePhenomenonSpawnPolicy::SinglePerZone,
-                    max_active: 10,
                 },
             ],
         );
@@ -191,10 +173,10 @@ mod tests {
         };
         let mut runtime_state = ZoneSelectionRuntimeState::default();
 
-        let first = select_supported_phenomenon_for_zone(&zone_id, &registry, &HashMap::new(), None, Scale::MAX, &mut runtime_state)
-            .expect("first selection should resolve");
-        let second = select_supported_phenomenon_for_zone(&zone_id, &registry, &HashMap::new(), None, Scale::MAX, &mut runtime_state)
-            .expect("second selection should resolve");
+        let first =
+            select_supported_phenomenon_for_zone(&zone_id, &registry, None, Scale::MAX, &mut runtime_state).expect("first selection should resolve");
+        let second =
+            select_supported_phenomenon_for_zone(&zone_id, &registry, None, Scale::MAX, &mut runtime_state).expect("second selection should resolve");
 
         assert_ne!(first.phenomenon_id, second.phenomenon_id);
     }
@@ -209,8 +191,14 @@ mod tests {
         };
         let mut runtime_state = ZoneSelectionRuntimeState::default();
 
-        let selected = select_supported_phenomenon_for_zone(&zone_id, &registry, &HashMap::new(), Some("phenomenon.b"), Scale::MAX, &mut runtime_state)
-            .expect("selection should resolve");
+        let selected = select_supported_phenomenon_for_zone(
+            &zone_id,
+            &registry,
+            Some("phenomenon.b"),
+            Scale::MAX,
+            &mut runtime_state,
+        )
+        .expect("selection should resolve");
 
         assert_eq!(selected.phenomenon_id, "phenomenon.b");
     }

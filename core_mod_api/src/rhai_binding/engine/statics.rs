@@ -307,7 +307,6 @@ pub struct ScriptZonePhenomenonSupportDefinition {
     pub priority: i32,
     pub weight: f32,
     pub spawn_policy: String,
-    pub max_active: u32,
 }
 
 #[derive(Debug, Clone, Default)]

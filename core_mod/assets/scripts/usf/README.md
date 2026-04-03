@@ -50,7 +50,7 @@ Current backend support is implemented for:
 - ZLM registration
 - scale contract + metric-container layout derivation from metric sets
 - phenomenon registry
-- zone-supported phenomena (priority/weight/spawn policy/max_active) + selection policy
+- zone-supported phenomena (priority/weight/spawn policy) + selection policy
 - phenomenon-model registry with explicit scale-index selection
 - explicit model topology/support metadata (`monolithic_chunk` / `partitioned_by_chunk` + support radius)
 - fixed engine kernels for metric sampling + metric categorization (scripts must register kernel IDs they reference via scale ctx; kernel implementations remain engine-owned)
@@ -79,9 +79,6 @@ Script authority constraints (current contracts):
   - `ctx.load_after(...)`
   - `ctx.conflicts_with(...)`
   - `ctx.set_singleton_conflict_policy(...)`
-
-`max_active` currently applies per `(zone_type, phenomenon_id)` support entry in the active
-zone-realization window. When the cap is reached, additional zones skip spawning for that support.
 
 Current placeholder gameplay contracts:
 

@@ -118,7 +118,6 @@ pub struct ZonePhenomenonSupport {
     pub priority: i32,
     pub weight: f32,
     pub spawn_policy: ZonePhenomenonSpawnPolicy,
-    pub max_active: u32,
 }
 
 #[derive(Resource, Reflect, Debug, Clone)]
@@ -178,19 +177,11 @@ impl Default for ZoneBehaviorRegistry {
                         zone_type, support.weight, support.phenomenon_id
                     );
                 }
-                if support.max_active == 0 {
-                    panic!(
-                        "USF zone behavior bootstrap failed: zone '{}' has max_active=0 for phenomenon '{}'.",
-                        zone_type, support.phenomenon_id
-                    );
-                }
-
                 compiled_supports.push(ZonePhenomenonSupport {
                     phenomenon_id: support.phenomenon_id,
                     priority: support.priority,
                     weight: support.weight,
                     spawn_policy: ZonePhenomenonSpawnPolicy::from_config_value(&support.spawn_policy),
-                    max_active: support.max_active,
                 });
             }
 

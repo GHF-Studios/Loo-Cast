@@ -701,6 +701,7 @@ pub(super) fn reconcile_zone_realization_model_state_system(
                 )>,
             ),
         >,
+        Query<(Entity, &PhenomenonModel)>,
         Query<(
             &PhenomenonModel,
             &mut PhenomenonModelSupport,
@@ -746,15 +747,27 @@ pub(super) fn reconcile_zone_realization_model_state_system(
         return;
     }
 
+    let mut model_entities_by_phenomenon = HashMap::<Entity, Vec<Entity>>::new();
+    for (model_entity, model) in model_queries.p1().iter() {
+        model_entities_by_phenomenon
+            .entry(model.phenomenon_entity)
+            .or_default()
+            .push(model_entity);
+    }
+    let mut model_query = model_queries.p2();
+
     for (phenomenon_entity, zone_id) in zone_by_phenomenon_entity {
         let Some((anchor_chunk, chunk_radius)) = zone_support_seed(&zone_runtime_state, &zone_id) else {
             continue;
         };
         let zone_seed = zone_seed_scalar(&zone_id, &anchor_chunk);
-        for (model, mut support, mut state, monolithic, partial, partition_member) in model_queries.p1().iter_mut() {
-            if model.phenomenon_entity != phenomenon_entity {
+        let Some(model_entities) = model_entities_by_phenomenon.get(&phenomenon_entity) else {
+            continue;
+        };
+        for model_entity in model_entities {
+            let Ok((model, mut support, mut state, monolithic, partial, partition_member)) = model_query.get_mut(*model_entity) else {
                 continue;
-            }
+            };
 
             let desired_chunk_radius = match model.topology {
                 PhenomenonModelTopology::MonolithicChunk => 0,

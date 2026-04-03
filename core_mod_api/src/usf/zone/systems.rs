@@ -7,13 +7,150 @@ use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
 use crate::usf::substrate::AdaptiveSubstrateStore;
 use std::collections::{HashMap, HashSet};
+use std::sync::OnceLock;
+use std::time::{Duration, Instant};
 
 use super::resources::{
     ZoneBehaviorRegistry, ZonePhenomenonSpawnPolicy, ZoneRealizationSettings, ZoneRealizationState, ZoneRealizedPhenomenon, ZoneRuntimeState,
     ZoneSelectionRuntimeState, ZoneTemporalContext,
 };
 use super::types::{StableRegionId, ZoneAnchor, ZoneExtent, ZoneId, ZonePhenomenon, ZoneRealizationEvent, ZoneTimeFactor, ZoneTypeId};
-use super::{select_supported_phenomenon_for_zone, support_count_key};
+use super::select_supported_phenomenon_for_zone;
+
+fn usf_hotpath_probe_enabled() -> bool {
+    static ENABLED: OnceLock<bool> = OnceLock::new();
+    *ENABLED.get_or_init(|| {
+        std::env::var("LOOCAST_USF_HOTPATH_PROBE")
+            .map(|raw| matches!(raw.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"))
+            .unwrap_or(false)
+    })
+}
+
+#[derive(Default)]
+pub(super) struct ZoneRuntimeProbe {
+    window_start: Option<Instant>,
+    calls: u32,
+    topology_input_changed_calls: u32,
+    topology_changed_calls: u32,
+    loaded_chunks_scanned: u64,
+    classified_chunks: u64,
+    connected_components: u64,
+    zone_records: u64,
+    elapsed_ms_total: f64,
+}
+impl ZoneRuntimeProbe {
+    fn observe(
+        &mut self,
+        topology_inputs_changed: bool,
+        topology_changed: bool,
+        loaded_chunks_scanned: usize,
+        classified_chunks: usize,
+        connected_components: usize,
+        zone_records: usize,
+        elapsed: Duration,
+    ) {
+        if !usf_hotpath_probe_enabled() {
+            return;
+        }
+
+        let now = Instant::now();
+        let window_start = self.window_start.get_or_insert(now);
+        self.calls += 1;
+        if topology_inputs_changed {
+            self.topology_input_changed_calls += 1;
+        }
+        if topology_changed {
+            self.topology_changed_calls += 1;
+        }
+        self.loaded_chunks_scanned += loaded_chunks_scanned as u64;
+        self.classified_chunks += classified_chunks as u64;
+        self.connected_components += connected_components as u64;
+        self.zone_records += zone_records as u64;
+        self.elapsed_ms_total += elapsed.as_secs_f64() * 1000.0;
+        if now.duration_since(*window_start) < Duration::from_secs(1) {
+            return;
+        }
+
+        let calls = self.calls.max(1) as f64;
+        warn!(
+            "USF hotpath probe [zone_runtime]: calls={}, topology_input_changed_calls={}, topology_changed_calls={}, avg_loaded_chunks={:.1}, avg_classified_chunks={:.1}, avg_components={:.1}, avg_zone_records={:.1}, avg_ms_per_call={:.3}",
+            self.calls,
+            self.topology_input_changed_calls,
+            self.topology_changed_calls,
+            (self.loaded_chunks_scanned as f64) / calls,
+            (self.classified_chunks as f64) / calls,
+            (self.connected_components as f64) / calls,
+            (self.zone_records as f64) / calls,
+            self.elapsed_ms_total / calls,
+        );
+
+        self.window_start = Some(now);
+        self.calls = 0;
+        self.topology_input_changed_calls = 0;
+        self.topology_changed_calls = 0;
+        self.loaded_chunks_scanned = 0;
+        self.classified_chunks = 0;
+        self.connected_components = 0;
+        self.zone_records = 0;
+        self.elapsed_ms_total = 0.0;
+    }
+}
+
+#[derive(Default)]
+pub(super) struct ZoneRealizationProbe {
+    window_start: Option<Instant>,
+    calls: u32,
+    desired_zones: u64,
+    live_realizations: u64,
+    spawned: u64,
+    despawned: u64,
+    elapsed_ms_total: f64,
+}
+impl ZoneRealizationProbe {
+    fn observe(
+        &mut self,
+        desired_zones: usize,
+        live_realizations: usize,
+        spawned: usize,
+        despawned: usize,
+        elapsed: Duration,
+    ) {
+        if !usf_hotpath_probe_enabled() {
+            return;
+        }
+
+        let now = Instant::now();
+        let window_start = self.window_start.get_or_insert(now);
+        self.calls += 1;
+        self.desired_zones += desired_zones as u64;
+        self.live_realizations += live_realizations as u64;
+        self.spawned += spawned as u64;
+        self.despawned += despawned as u64;
+        self.elapsed_ms_total += elapsed.as_secs_f64() * 1000.0;
+        if now.duration_since(*window_start) < Duration::from_secs(1) {
+            return;
+        }
+
+        let calls = self.calls.max(1) as f64;
+        warn!(
+            "USF hotpath probe [zone_realization]: calls={}, avg_desired_zones={:.1}, avg_live_realizations={:.1}, avg_spawned={:.1}, avg_despawned={:.1}, avg_ms_per_call={:.3}",
+            self.calls,
+            (self.desired_zones as f64) / calls,
+            (self.live_realizations as f64) / calls,
+            (self.spawned as f64) / calls,
+            (self.despawned as f64) / calls,
+            self.elapsed_ms_total / calls,
+        );
+
+        self.window_start = Some(now);
+        self.calls = 0;
+        self.desired_zones = 0;
+        self.live_realizations = 0;
+        self.spawned = 0;
+        self.despawned = 0;
+        self.elapsed_ms_total = 0.0;
+    }
+}
 
 pub(super) fn sync_zone_temporal_context_system(player_loader_query: Query<&ChunkLoader, With<Player>>, mut temporal_context: ResMut<ZoneTemporalContext>) {
     let Ok(chunk_loader) = player_loader_query.single() else {
@@ -29,28 +166,55 @@ pub(super) fn reconcile_zone_runtime_system(
     substrate_store: Res<AdaptiveSubstrateStore>,
     temporal_context: Res<ZoneTemporalContext>,
     loaded_chunks: Query<&Chunk>,
+    dirty_chunks: Query<(), (With<Chunk>, Or<(Added<Chunk>, Changed<Chunk>)>)>,
+    mut removed_chunks: RemovedComponents<Chunk>,
     mut runtime_state: ResMut<ZoneRuntimeState>,
     mut zone_anchor_query: Query<(&mut ZoneAnchor, &mut ZoneTimeFactor)>,
+    mut probe: Local<ZoneRuntimeProbe>,
 ) {
     if !guard_runtime_state_domain_with_diagnostics(authority_contract.as_ref(), authority_diagnostics.as_deref_mut(), USF_DOMAIN_ZONE) {
         return;
     }
 
+    let chunk_topology_changed = !dirty_chunks.is_empty() || removed_chunks.read().next().is_some();
+    let topology_inputs_changed = substrate_store.is_changed() || chunk_topology_changed;
+    if !topology_inputs_changed {
+        if !temporal_context.is_changed() {
+            return;
+        }
+        for (zone_id, entity) in &runtime_state.entities {
+            if let Ok((_anchor, mut zone_time_factor)) = zone_anchor_query.get_mut(*entity) {
+                zone_time_factor.value = temporal_context.time_factor_for_scale(zone_id.scale);
+            }
+        }
+        return;
+    }
+    let started_at = Instant::now();
+
     let mut classified_chunks = HashMap::<(Scale, ZoneTypeId), Vec<GridVec>>::new();
+    let mut loaded_chunks_scanned = 0usize;
     for chunk in loaded_chunks.iter() {
+        loaded_chunks_scanned += 1;
         let mut canonical_coord = chunk.coord.clone();
         canonical_coord.normalize();
-        let Some(chunk_summary) = substrate_store.summary_for_chunk(&canonical_coord) else {
+        let zone_type = if let Some(chunk_summary) = substrate_store.summary_for_chunk(&canonical_coord) {
+            chunk_summary.zone_type.clone()
+        } else if let Some(previous_zone_id) = runtime_state.chunk_to_zone.get(&canonical_coord) {
+            previous_zone_id.zone_type.clone()
+        } else {
             continue;
         };
-        let zone_type = chunk_summary.zone_type.clone();
         classified_chunks.entry((canonical_coord.scale, zone_type)).or_default().push(canonical_coord);
     }
 
     let mut components = Vec::<ClassifiedZoneComponent>::new();
+    let mut classified_chunks_count = 0usize;
+    let mut connected_components_count = 0usize;
     for ((scale, zone_type), coords) in classified_chunks {
+        classified_chunks_count += coords.len();
         for mut chunk_coords in connected_chunk_components(coords) {
             sort_grid_coords(&mut chunk_coords);
+            connected_components_count += 1;
             components.push(ClassifiedZoneComponent {
                 scale,
                 zone_type: zone_type.clone(),
@@ -64,6 +228,15 @@ pub(super) fn reconcile_zone_runtime_system(
     let next_parent_by_zone = compute_zone_parent_map(&next_records, &next_chunk_to_zone);
     let topology_changed =
         runtime_state.records != next_records || runtime_state.chunk_to_zone != next_chunk_to_zone || runtime_state.parent_by_zone != next_parent_by_zone;
+    probe.observe(
+        topology_inputs_changed,
+        topology_changed,
+        loaded_chunks_scanned,
+        classified_chunks_count,
+        connected_components_count,
+        next_records.len(),
+        started_at.elapsed(),
+    );
     if !topology_changed {
         if !temporal_context.is_changed() {
             return;
@@ -126,6 +299,7 @@ pub(super) fn reconcile_zone_realization_system(
     zone_phenomenon_query: Query<(Entity, &ZonePhenomenon, &PhenomenonScriptDefinitionRef), With<Phenomenon>>,
     phenomenon_model_query: Query<(Entity, &PhenomenonModel)>,
     mut zone_realization_event_writer: MessageWriter<ZoneRealizationEvent>,
+    mut probe: Local<ZoneRealizationProbe>,
 ) {
     if !guard_runtime_state_domain_with_diagnostics(authority_contract.as_ref(), authority_diagnostics.as_deref_mut(), USF_DOMAIN_ZONE) {
         return;
@@ -133,6 +307,7 @@ pub(super) fn reconcile_zone_realization_system(
 
     // Zone realization authority is centered on active scale, with explicit configurable
     // coarser/finer level windows for prewarm and continuity.
+    let started_at = Instant::now();
     let active_scale = temporal_context.active_scale;
     let desired_zone_ids = runtime_state
         .records
@@ -140,6 +315,7 @@ pub(super) fn reconcile_zone_realization_system(
         .filter(|zone_id| realization_settings.includes_scale(active_scale, zone_id.scale))
         .cloned()
         .collect::<HashSet<_>>();
+    let desired_zone_count = desired_zone_ids.len();
     let mut next_zone_to_phenomenon = realization_state.zone_to_phenomenon.clone();
     let live_zone_realizations = zone_phenomenon_query
         .iter()
@@ -157,6 +333,8 @@ pub(super) fn reconcile_zone_realization_system(
     for (model_entity, model) in phenomenon_model_query.iter() {
         model_entities_by_phenomenon.entry(model.phenomenon_entity).or_default().push(model_entity);
     }
+    let mut spawned_count = 0usize;
+    let mut despawned_count = 0usize;
 
     let stale_zone_ids = realization_state
         .zone_to_phenomenon
@@ -177,6 +355,7 @@ pub(super) fn reconcile_zone_realization_system(
                 }
             }
             commands.entity(realization.phenomenon_entity).despawn();
+            despawned_count += 1;
         }
     }
 
@@ -195,20 +374,7 @@ pub(super) fn reconcile_zone_realization_system(
         }
         commands.entity(realization.phenomenon_entity).despawn();
         next_zone_to_phenomenon.remove(zone_id);
-    }
-
-    let mut support_active_counts = HashMap::<(ZoneTypeId, String), u32>::new();
-    for zone_id in &desired_zone_ids {
-        let Some(realization) = next_zone_to_phenomenon
-            .get(zone_id)
-            .cloned()
-            .or_else(|| live_zone_realizations.get(zone_id).cloned())
-        else {
-            continue;
-        };
-        *support_active_counts
-            .entry(support_count_key(&zone_id.zone_type, &realization.phenomenon_script_id))
-            .or_default() += 1;
+        despawned_count += 1;
     }
 
     let mut desired_zone_ids_sorted = desired_zone_ids.into_iter().collect::<Vec<_>>();
@@ -231,7 +397,6 @@ pub(super) fn reconcile_zone_realization_system(
             let Some(selected_support) = select_supported_phenomenon_for_zone(
                 &zone_id,
                 &zone_behavior_registry,
-                &support_active_counts,
                 parent_selected_phenomenon_id.as_deref(),
                 temporal_context.active_scale,
                 &mut selection_runtime_state,
@@ -270,9 +435,7 @@ pub(super) fn reconcile_zone_realization_system(
                 phenomenon_entity,
                 phenomenon_id,
             });
-            *support_active_counts
-                .entry(support_count_key(&zone_id.zone_type, &selected_phenomenon_script_id))
-                .or_default() += 1;
+            spawned_count += 1;
             next_zone_to_phenomenon.insert(zone_id, realization);
             continue;
         };
@@ -285,6 +448,13 @@ pub(super) fn reconcile_zone_realization_system(
             zone_to_phenomenon: next_zone_to_phenomenon,
         });
     }
+    probe.observe(
+        desired_zone_count,
+        live_zone_realizations.len(),
+        spawned_count,
+        despawned_count,
+        started_at.elapsed(),
+    );
 }
 
 fn spawn_zone_anchor(commands: &mut Commands, zone_id: &ZoneId, extent: &ZoneExtent, parent: Option<ZoneId>, time_factor: f32) -> Entity {
@@ -614,7 +784,6 @@ mod tests {
                 priority: 100,
                 weight: 1.0,
                 spawn_policy: ZonePhenomenonSpawnPolicy::SinglePerZone,
-                max_active: 1,
             }],
         );
         registry.selection_policy_by_zone.insert(
@@ -627,7 +796,6 @@ mod tests {
         let phenomenon_id = select_supported_phenomenon_for_zone(
             &zone_id(Scale::MAX, "mystic", 1234),
             &registry,
-            &HashMap::new(),
             None,
             Scale::MAX,
             &mut ZoneSelectionRuntimeState::default(),
@@ -638,7 +806,7 @@ mod tests {
     }
 
     #[test]
-    fn support_selection_respects_max_active_limit() {
+    fn support_selection_prefers_highest_weight_for_ties() {
         let mut registry = ZoneBehaviorRegistry {
             phenomenon_support_by_zone: HashMap::new(),
             selection_policy_by_zone: HashMap::new(),
@@ -650,16 +818,14 @@ mod tests {
                 ZonePhenomenonSupport {
                     phenomenon_id: "phenomenon.debug.alpha".to_string(),
                     priority: 100,
-                    weight: 1.0,
+                    weight: 0.1,
                     spawn_policy: ZonePhenomenonSpawnPolicy::SinglePerZone,
-                    max_active: 1,
                 },
                 ZonePhenomenonSupport {
                     phenomenon_id: "phenomenon.debug.beta".to_string(),
                     priority: 100,
-                    weight: 1.0,
+                    weight: 0.9,
                     spawn_policy: ZonePhenomenonSpawnPolicy::SinglePerZone,
-                    max_active: 1,
                 },
             ],
         );
@@ -670,38 +836,28 @@ mod tests {
             },
         );
 
-        let mut active_counts = HashMap::new();
-        active_counts.insert((ZoneTypeId::new("mystic"), "phenomenon.debug.alpha".to_string()), 1);
         let selected = select_supported_phenomenon_for_zone(
             &zone_id(Scale::MAX, "mystic", 7),
             &registry,
-            &active_counts,
             None,
             Scale::MAX,
             &mut ZoneSelectionRuntimeState::default(),
         )
-        .expect("expected fallback support when highest-priority support is saturated");
+        .expect("expected support selection");
 
         assert_eq!(selected.phenomenon_id, "phenomenon.debug.beta");
     }
 
     #[test]
-    fn support_selection_returns_none_when_all_supports_saturated() {
+    fn support_selection_returns_none_when_no_supports_registered() {
         let mut registry = ZoneBehaviorRegistry {
             phenomenon_support_by_zone: HashMap::new(),
             selection_policy_by_zone: HashMap::new(),
             density_profile_by_zone: HashMap::new(),
         };
-        registry.phenomenon_support_by_zone.insert(
-            ZoneTypeId::new("mystic"),
-            vec![ZonePhenomenonSupport {
-                phenomenon_id: "phenomenon.debug.alpha".to_string(),
-                priority: 100,
-                weight: 1.0,
-                spawn_policy: ZonePhenomenonSpawnPolicy::SinglePerZone,
-                max_active: 1,
-            }],
-        );
+        registry
+            .phenomenon_support_by_zone
+            .insert(ZoneTypeId::new("mystic"), Vec::new());
         registry.selection_policy_by_zone.insert(
             ZoneTypeId::new("mystic"),
             crate::usf::zone::ZoneSelectionPolicy {
@@ -709,13 +865,9 @@ mod tests {
             },
         );
 
-        let mut active_counts = HashMap::new();
-        active_counts.insert((ZoneTypeId::new("mystic"), "phenomenon.debug.alpha".to_string()), 1);
-
         let selected = select_supported_phenomenon_for_zone(
             &zone_id(Scale::MAX, "mystic", 8),
             &registry,
-            &active_counts,
             None,
             Scale::MAX,
             &mut ZoneSelectionRuntimeState::default(),

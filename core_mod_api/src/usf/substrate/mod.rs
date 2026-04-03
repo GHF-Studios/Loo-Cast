@@ -172,6 +172,33 @@ impl SubstratePlannedUpdateQueue {
     }
 }
 
+#[derive(Resource, Debug, Default, Clone)]
+pub struct SubstrateChunkDeltaState {
+    pub revision: u64,
+    pub changed_chunks: HashSet<GridVec>,
+    pub removed_chunks: HashSet<GridVec>,
+}
+impl SubstrateChunkDeltaState {
+    fn clear_frame(&mut self) {
+        self.changed_chunks.clear();
+        self.removed_chunks.clear();
+    }
+
+    fn mark_changed(&mut self, coord: GridVec) {
+        self.changed_chunks.insert(coord);
+    }
+
+    fn mark_removed(&mut self, coord: GridVec) {
+        self.removed_chunks.insert(coord);
+    }
+
+    fn bump_revision_if_dirty(&mut self) {
+        if !self.changed_chunks.is_empty() || !self.removed_chunks.is_empty() {
+            self.revision = self.revision.wrapping_add(1);
+        }
+    }
+}
+
 #[derive(Resource, Reflect, Debug, Clone, PartialEq, Eq)]
 #[reflect(Resource)]
 pub struct SubstrateRebuildSettings {
@@ -361,6 +388,39 @@ impl PartitionProjectionIndex {
     }
 }
 
+#[derive(Debug, Clone)]
+struct RuntimeModelProjectionSnapshot {
+    phenomenon_id: PhenomenonId,
+    topology: PhenomenonModelTopology,
+    model_id: String,
+    support: Option<crate::usf::phenomenon::PhenomenonModelSupportBounds>,
+    partial_chunk: Option<GridVec>,
+    partition_key: Option<u64>,
+    projection_metric_name: String,
+    projection_bias: f32,
+    projection_gain: f32,
+    scalar_channels: Vec<(String, f32)>,
+}
+
+#[derive(Debug, Clone, Default)]
+struct RuntimeModelProjectionIndex {
+    by_scale: HashMap<u8, Vec<RuntimeModelProjectionSnapshot>>,
+}
+impl RuntimeModelProjectionIndex {
+    fn insert(&mut self, scale: Scale, snapshot: RuntimeModelProjectionSnapshot) {
+        self.by_scale
+            .entry(scale.index_from_top())
+            .or_default()
+            .push(snapshot);
+    }
+
+    fn snapshots_for_scale(&self, scale: Scale) -> Option<&[RuntimeModelProjectionSnapshot]> {
+        self.by_scale
+            .get(&scale.index_from_top())
+            .map(Vec::as_slice)
+    }
+}
+
 pub(super) fn plan_chunk_substrate_rebuilds_system(
     authority_contract: Res<UsfWorldAuthorityContract>,
     mut authority_diagnostics: Option<ResMut<UsfAuthorityDiagnostics>>,
@@ -459,6 +519,7 @@ pub(super) fn plan_chunk_substrate_rebuilds_system(
     let mut planned_summaries = HashMap::<GridVec, SubstrateChunkSummary>::new();
     let mut planned_chunks = Vec::<AdaptiveChunkSubstrate>::with_capacity(rebuild_targets_sorted.len());
     if !rebuild_targets_sorted.is_empty() {
+        let runtime_model_projection_index = build_runtime_model_projection_index(&model_query);
         let partition_projection_index = build_partition_projection_index_runtime(&active_modpack, &model_query);
         for canonical_coord in rebuild_targets_sorted {
             let Some(schema) = active_modpack.schema_for_scale(canonical_coord.scale) else {
@@ -470,7 +531,7 @@ pub(super) fn plan_chunk_substrate_rebuilds_system(
                 &active_modpack,
                 &zlm_registry,
                 *transition_policy,
-                &model_query,
+                &runtime_model_projection_index,
                 &partition_projection_index,
                 *partition_coupling_policy,
                 &substrate_store,
@@ -499,18 +560,47 @@ pub(super) fn plan_chunk_substrate_rebuilds_system(
     );
 }
 
-pub(super) fn apply_planned_chunk_substrates_system(mut substrate_store: ResMut<AdaptiveSubstrateStore>, mut plan_queue: ResMut<SubstratePlannedUpdateQueue>) {
+pub(super) fn apply_planned_chunk_substrates_system(
+    mut substrate_store: ResMut<AdaptiveSubstrateStore>,
+    mut plan_queue: ResMut<SubstratePlannedUpdateQueue>,
+    mut delta_state: ResMut<SubstrateChunkDeltaState>,
+) {
+    delta_state.clear_frame();
     if !plan_queue.prune_to_live && plan_queue.planned_chunks.is_empty() {
         return;
     }
 
     if plan_queue.prune_to_live {
-        substrate_store.chunks.retain(|coord, _| plan_queue.live_chunk_coords.contains(coord));
+        let removed = substrate_store
+            .chunks
+            .keys()
+            .filter(|coord| !plan_queue.live_chunk_coords.contains(*coord))
+            .cloned()
+            .collect::<Vec<_>>();
+        substrate_store
+            .chunks
+            .retain(|coord, _| plan_queue.live_chunk_coords.contains(coord));
+        for coord in removed {
+            delta_state.mark_removed(coord);
+        }
     }
     for planned_chunk in plan_queue.planned_chunks.drain(..) {
+        delta_state.mark_changed(planned_chunk.chunk_coord.clone());
         substrate_store.upsert_chunk(planned_chunk);
     }
-    substrate_store.chunks.retain(|coord, _| plan_queue.live_chunk_coords.contains(coord));
+    let removed_after_apply = substrate_store
+        .chunks
+        .keys()
+        .filter(|coord| !plan_queue.live_chunk_coords.contains(*coord))
+        .cloned()
+        .collect::<Vec<_>>();
+    substrate_store
+        .chunks
+        .retain(|coord, _| plan_queue.live_chunk_coords.contains(coord));
+    for coord in removed_after_apply {
+        delta_state.mark_removed(coord);
+    }
+    delta_state.bump_revision_if_dirty();
     plan_queue.clear();
 }
 
@@ -767,14 +857,7 @@ fn build_chunk_substrate_runtime(
     active_modpack: &UsfActiveModPack,
     zlm_registry: &ZlmRegistry,
     transition_policy: SubstrateTransitionPolicy,
-    model_query: &Query<(
-        &PhenomenonModel,
-        &PhenomenonModelScriptDefinitionRef,
-        &PhenomenonModelProjection,
-        Option<&PhenomenonModelSupport>,
-        Option<&PhenomenonModelState>,
-        Option<&PartialPhenomenonModel>,
-    )>,
+    runtime_model_projection_index: &RuntimeModelProjectionIndex,
     partition_projection_index: &PartitionProjectionIndex,
     partition_coupling_policy: SubstratePartitionCouplingPolicy,
     substrate_store: &AdaptiveSubstrateStore,
@@ -786,37 +869,34 @@ fn build_chunk_substrate_runtime(
     }
 
     let mut contributions = Vec::<ModelProjectionContribution>::new();
-    for (model, model_script_ref, projection, support, model_state, partial) in model_query.iter() {
-        if model.scale != canonical_coord.scale {
-            continue;
-        }
-        if model.topology == PhenomenonModelTopology::PartitionedByChunk {
-            let Some(partial) = partial else {
-                continue;
-            };
-            let mut partition_chunk = partial.chunk_coord.clone();
-            partition_chunk.normalize();
-            if partition_chunk != *canonical_coord {
+    if let Some(snapshots) = runtime_model_projection_index.snapshots_for_scale(canonical_coord.scale) {
+        for snapshot in snapshots {
+            if snapshot.topology == PhenomenonModelTopology::PartitionedByChunk
+                && snapshot.partial_chunk.as_ref().is_none_or(|chunk| chunk != canonical_coord)
+            {
                 continue;
             }
-        }
-        let supports_chunk = support.map(|support| support.support.contains_chunk(canonical_coord)).unwrap_or(true);
-        if !supports_chunk {
-            continue;
-        }
+            if snapshot
+                .support
+                .as_ref()
+                .map(|support| support.contains_chunk(canonical_coord))
+                .is_some_and(|supports| !supports)
+            {
+                continue;
+            }
 
-        let metric_index = metric_index_for_projection_metric(schema, projection.spec.metric_name.as_str()).unwrap_or_default();
-        let fallback_state = PhenomenonModelState::default();
-        let state = model_state.unwrap_or(&fallback_state);
-        let projected_value = projection_value_for_model(canonical_coord, model_script_ref, projection, state);
-        contributions.push(ModelProjectionContribution {
-            phenomenon_id: model.phenomenon_id,
-            model_id: model_script_ref.model_id.clone(),
-            topology: model.topology,
-            partition_key: partial.map(|partial| partial.partition_key),
-            metric_index,
-            value: projected_value,
-        });
+            let metric_index =
+                metric_index_for_projection_metric(schema, snapshot.projection_metric_name.as_str()).unwrap_or_default();
+            let projected_value = projection_value_for_snapshot(canonical_coord, snapshot);
+            contributions.push(ModelProjectionContribution {
+                phenomenon_id: snapshot.phenomenon_id,
+                model_id: snapshot.model_id.clone(),
+                topology: snapshot.topology,
+                partition_key: snapshot.partition_key,
+                metric_index,
+                value: projected_value,
+            });
+        }
     }
 
     if contributions.is_empty() && canonical_coord.scale == Scale::MAX {
@@ -904,6 +984,55 @@ fn summary_for_chunk_with_overlay<'a>(
     planned_summaries.get(chunk_coord).or_else(|| substrate_store.summary_for_chunk(chunk_coord))
 }
 
+fn build_runtime_model_projection_index(
+    model_query: &Query<(
+        &PhenomenonModel,
+        &PhenomenonModelScriptDefinitionRef,
+        &PhenomenonModelProjection,
+        Option<&PhenomenonModelSupport>,
+        Option<&PhenomenonModelState>,
+        Option<&PartialPhenomenonModel>,
+    )>,
+) -> RuntimeModelProjectionIndex {
+    let mut index = RuntimeModelProjectionIndex::default();
+    for (model, model_script_ref, projection, support, model_state, partial) in model_query.iter() {
+        let mut partial_chunk = partial.map(|partial| partial.chunk_coord.clone());
+        if let Some(chunk) = partial_chunk.as_mut() {
+            chunk.normalize();
+        }
+        let scalar_channels = model_state
+            .map(|state| state.scalar_channels.clone())
+            .unwrap_or_default();
+
+        index.insert(
+            model.scale,
+            RuntimeModelProjectionSnapshot {
+                phenomenon_id: model.phenomenon_id,
+                topology: model.topology,
+                model_id: model_script_ref.model_id.clone(),
+                support: support.map(|value| value.support.clone()),
+                partial_chunk,
+                partition_key: partial.map(|value| value.partition_key),
+                projection_metric_name: projection.spec.metric_name.clone(),
+                projection_bias: projection.spec.projection_bias,
+                projection_gain: projection.spec.projection_gain,
+                scalar_channels,
+            },
+        );
+    }
+    for snapshots in index.by_scale.values_mut() {
+        snapshots.sort_by(|a, b| {
+            a.phenomenon_id
+                .0
+                .cmp(&b.phenomenon_id.0)
+                .then_with(|| a.model_id.cmp(&b.model_id))
+                .then_with(|| a.partition_key.unwrap_or(0).cmp(&b.partition_key.unwrap_or(0)))
+                .then_with(|| a.projection_metric_name.cmp(&b.projection_metric_name))
+        });
+    }
+    index
+}
+
 fn projection_value_for_model(
     canonical_coord: &GridVec,
     model_script_ref: &PhenomenonModelScriptDefinitionRef,
@@ -922,6 +1051,21 @@ fn projection_value_for_model(
         mix64(hash_string(model_script_ref.model_id.as_str()) ^ hash_string(projection.spec.metric_name.as_str())),
     );
     (channel_value * projection.spec.projection_gain + projection.spec.projection_bias + jitter).clamp(0.0, 1.0)
+}
+
+fn projection_value_for_snapshot(canonical_coord: &GridVec, snapshot: &RuntimeModelProjectionSnapshot) -> f32 {
+    let channel_value = snapshot
+        .scalar_channels
+        .iter()
+        .find(|(name, _)| name.eq_ignore_ascii_case(snapshot.projection_metric_name.as_str()))
+        .or_else(|| snapshot.scalar_channels.first())
+        .map(|(_, value)| *value)
+        .unwrap_or(0.5);
+    let jitter = deterministic_jitter(
+        canonical_coord,
+        mix64(hash_string(snapshot.model_id.as_str()) ^ hash_string(snapshot.projection_metric_name.as_str())),
+    );
+    (channel_value * snapshot.projection_gain + snapshot.projection_bias + jitter).clamp(0.0, 1.0)
 }
 
 fn metric_index_for_projection_metric(schema: &MetricContainerLayout, metric_name: &str) -> Option<usize> {
@@ -1313,6 +1457,7 @@ impl Plugin for SubstratePlugin {
         app.init_resource::<AdaptiveSubstrateStore>()
             .init_resource::<AdaptiveSubstrateRuntimeState>()
             .init_resource::<SubstratePlannedUpdateQueue>()
+            .init_resource::<SubstrateChunkDeltaState>()
             .init_resource::<SubstrateRebuildSettings>()
             .insert_resource(SubstratePartitionCouplingPolicy::from_config())
             .init_resource::<SubstrateTransitionPolicy>()

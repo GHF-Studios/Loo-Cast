@@ -12,7 +12,7 @@ use crate::usf::authority::{
 use crate::usf::chunk::components::Chunk;
 use crate::usf::mod_packs::UsfExecutionPlan;
 use crate::usf::phenomenon::{PhenomenonDefinitionRegistry, PhenomenonModel, PhenomenonModelScriptDefinitionRef, PhenomenonModelSupport};
-use crate::usf::substrate::AdaptiveSubstrateStore;
+use crate::usf::substrate::{AdaptiveSubstrateStore, SubstrateChunkDeltaState};
 use crate::usf::zone::{ZoneBehaviorRegistry, ZoneId, ZoneRealizationState, ZoneRealizedPhenomenon, ZoneRuntimeState};
 use std::collections::HashMap;
 use std::sync::OnceLock;
@@ -180,6 +180,7 @@ pub(crate) fn sync_chunk_realization_intents_system(
     settings: Res<UsfChunkRealizationRuntimeSettings>,
     execution_plan: Res<UsfExecutionPlan>,
     substrate_store: Res<AdaptiveSubstrateStore>,
+    substrate_delta_state: Res<SubstrateChunkDeltaState>,
     phenomenon_definitions: Res<PhenomenonDefinitionRegistry>,
     phenomenon_model_query: Query<(Entity, &PhenomenonModel, &PhenomenonModelScriptDefinitionRef, Option<&PhenomenonModelSupport>)>,
     zone_runtime_state: Res<ZoneRuntimeState>,
@@ -189,6 +190,7 @@ pub(crate) fn sync_chunk_realization_intents_system(
     chunk_query: Query<(Entity, &Chunk, Option<&ChunkRealizationIntent>, Option<&ChunkRealizationIntentGrace>)>,
     mut commands: Commands,
     mut probe: Local<IntentSyncProbe>,
+    mut last_seen_substrate_delta_revision: Local<u64>,
 ) {
     if !guard_runtime_state_domain_with_diagnostics(
         authority_contract.as_ref(),
@@ -198,19 +200,24 @@ pub(crate) fn sync_chunk_realization_intents_system(
         return;
     }
 
+    let substrate_delta_changed = substrate_delta_state.revision != *last_seen_substrate_delta_revision;
+    if substrate_delta_changed {
+        *last_seen_substrate_delta_revision = substrate_delta_state.revision;
+    }
+    let has_substrate_chunk_deltas = substrate_delta_changed
+        && (!substrate_delta_state.changed_chunks.is_empty() || !substrate_delta_state.removed_chunks.is_empty());
     let reason_flags = IntentSyncReasonFlags {
         settings_changed: settings.is_changed(),
         execution_plan_changed: execution_plan.is_changed(),
-        substrate_changed: substrate_store.is_changed(),
+        substrate_changed: has_substrate_chunk_deltas,
         definitions_changed: phenomenon_definitions.is_changed(),
         zone_runtime_changed: zone_runtime_state.is_changed(),
         zone_realization_changed: zone_realization_state.is_changed(),
         zone_behavior_changed: zone_behavior_registry.is_changed(),
-        has_dirty_chunks: !dirty_chunks.is_empty(),
+        has_dirty_chunks: !dirty_chunks.is_empty() || has_substrate_chunk_deltas,
     };
     let full_sync = reason_flags.settings_changed
         || reason_flags.execution_plan_changed
-        || reason_flags.substrate_changed
         || reason_flags.definitions_changed
         || reason_flags.zone_runtime_changed
         || reason_flags.zone_realization_changed
@@ -262,7 +269,20 @@ pub(crate) fn sync_chunk_realization_intents_system(
         return;
     }
 
+    let mut dirty_entity_set = HashMap::<Entity, ()>::new();
     for entity in dirty_chunks.iter() {
+        dirty_entity_set.insert(entity, ());
+    }
+    if has_substrate_chunk_deltas {
+        for (entity, chunk, _existing_intent, _existing_grace) in chunk_query.iter() {
+            let canonical = canonical_grid_coord(&chunk.coord);
+            if substrate_delta_state.changed_chunks.contains(&canonical) || substrate_delta_state.removed_chunks.contains(&canonical) {
+                dirty_entity_set.insert(entity, ());
+            }
+        }
+    }
+
+    for (entity, _) in dirty_entity_set {
         let Ok((_entity, chunk, existing_intent, existing_grace)) = chunk_query.get(entity) else {
             continue;
         };

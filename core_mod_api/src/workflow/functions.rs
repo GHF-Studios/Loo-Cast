@@ -18,6 +18,11 @@ use crate::workflow::types::{WorkflowID, WorkflowTimeoutMode};
 use super::{channels::*, request::*, traits::*};
 
 static RESPONSE_INBOX: Lazy<Mutex<HashMap<WorkflowID, WorkflowResponse>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+static WORKFLOW_LIFECYCLE_LOGGING_ENABLED: Lazy<bool> = Lazy::new(|| {
+    std::env::var("LOOCAST_WORKFLOW_LIFECYCLE_LOG")
+        .map(|raw| matches!(raw.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"))
+        .unwrap_or(false)
+});
 static IGNORED_WORKFLOW_LOGS: Lazy<HashMap<String, HashSet<String>>> = Lazy::new(|| {
     fn split_top_level_commas(s: &str) -> Vec<String> {
         let mut parts = Vec::new();
@@ -108,6 +113,9 @@ static IGNORED_WORKFLOW_LOGS: Lazy<HashMap<String, HashSet<String>>> = Lazy::new
 });
 
 fn is_ignored_workflow(module: &str, workflow: &str) -> bool {
+    if !*WORKFLOW_LIFECYCLE_LOGGING_ENABLED {
+        return true;
+    }
     IGNORED_WORKFLOW_LOGS
         .get(module)
         .map(|set| set.contains(workflow) || set.contains("*"))

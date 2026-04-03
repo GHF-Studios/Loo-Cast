@@ -1867,8 +1867,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
          phenomenon_id: &str,
          priority: i64,
          weight: rhai::FLOAT,
-         spawn_policy: &str,
-         max_active: i64|
+         spawn_policy: &str|
          -> Result<(), Box<EvalAltResult>> {
             let zone_type = normalize_zone_type(ctx.zone_type.as_str())?;
             if !USF_ZONE_TYPES().lock().unwrap().contains(&zone_type) {
@@ -1881,10 +1880,6 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                 return Err(format!("weight must be > 0, got {weight}").into());
             }
             let spawn_policy = normalize_spawn_policy(spawn_policy)?;
-            if max_active < 1 {
-                return Err(format!("max_active must be >= 1, got {max_active}").into());
-            }
-            let max_active = max_active as u32;
 
             let mut supports_by_zone = USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE().lock().unwrap();
             let supports = supports_by_zone.entry(zone_type).or_default();
@@ -1892,7 +1887,6 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                 existing.priority = priority;
                 existing.weight = weight;
                 existing.spawn_policy = spawn_policy;
-                existing.max_active = max_active;
                 return Ok(());
             }
             supports.push(ScriptZonePhenomenonSupportDefinition {
@@ -1900,7 +1894,6 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                 priority,
                 weight,
                 spawn_policy,
-                max_active,
             });
             Ok(())
         },
