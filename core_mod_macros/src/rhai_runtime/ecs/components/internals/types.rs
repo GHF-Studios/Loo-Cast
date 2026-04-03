@@ -61,7 +61,7 @@ impl ComponentCtorInput {
             }
         };
 
-        let name = ident.to_string();
+        let canonical_name = quote!(concat!(module_path!(), "::", stringify!(#ident)));
 
         quote! {
             #item
@@ -74,10 +74,13 @@ impl ComponentCtorInput {
 
             inventory::submit! {
                 crate::rhai_binding::runtime::ecs::component::internals::types::ComponentCtorEntry {
-                    name: #name,
+                    name: #canonical_name,
                     ctor: |entity, params| {
                         <#ident as crate::rhai_binding::runtime::ecs::component::internals::traits::InsertComponentFromDynamic>::insert_component_from_dynamic(entity, params)
-                    }
+                    },
+                    remove: |entity| {
+                        entity.remove::<#ident>();
+                    },
                 }
             }
         }

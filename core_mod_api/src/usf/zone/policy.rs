@@ -10,6 +10,7 @@ pub fn select_supported_phenomenon_for_zone(
     zone_id: &ZoneId,
     registry: &ZoneBehaviorRegistry,
     active_counts: &HashMap<(ZoneTypeId, String), u32>,
+    parent_selected_phenomenon_id: Option<&str>,
     active_scale: Scale,
     selection_runtime_state: &mut ZoneSelectionRuntimeState,
 ) -> Option<ZonePhenomenonSupport> {
@@ -39,6 +40,18 @@ pub fn select_supported_phenomenon_for_zone(
         .collect::<Vec<_>>();
     if eligible_supports.is_empty() {
         return None;
+    }
+
+    // Cross-scale continuity rule: if parent zone realization already selected a
+    // phenomenon that is supported here, prefer it to avoid abrupt cross-scale
+    // seams at zone boundaries.
+    if let Some(parent_phenomenon_id) = parent_selected_phenomenon_id {
+        if let Some(inherited) = eligible_supports
+            .iter()
+            .find(|support| support.phenomenon_id.eq_ignore_ascii_case(parent_phenomenon_id))
+        {
+            return Some(inherited.clone());
+        }
     }
 
     let highest_priority = eligible_supports
@@ -183,10 +196,34 @@ mod tests {
         let mut runtime_state = ZoneSelectionRuntimeState::default();
 
         let first =
-            select_supported_phenomenon_for_zone(&zone_id, &registry, &HashMap::new(), Scale::MAX, &mut runtime_state).expect("first selection should resolve");
-        let second = select_supported_phenomenon_for_zone(&zone_id, &registry, &HashMap::new(), Scale::MAX, &mut runtime_state)
+            select_supported_phenomenon_for_zone(&zone_id, &registry, &HashMap::new(), None, Scale::MAX, &mut runtime_state)
+                .expect("first selection should resolve");
+        let second = select_supported_phenomenon_for_zone(&zone_id, &registry, &HashMap::new(), None, Scale::MAX, &mut runtime_state)
             .expect("second selection should resolve");
 
         assert_ne!(first.phenomenon_id, second.phenomenon_id);
+    }
+
+    #[test]
+    fn parent_selected_phenomenon_is_preferred_when_supported() {
+        let registry = round_robin_registry();
+        let zone_id = ZoneId {
+            scale: Scale::MAX,
+            zone_type: ZoneTypeId::new("mystic"),
+            stable_region_id: crate::usf::zone::StableRegionId(2),
+        };
+        let mut runtime_state = ZoneSelectionRuntimeState::default();
+
+        let selected = select_supported_phenomenon_for_zone(
+            &zone_id,
+            &registry,
+            &HashMap::new(),
+            Some("phenomenon.b"),
+            Scale::MAX,
+            &mut runtime_state,
+        )
+        .expect("selection should resolve");
+
+        assert_eq!(selected.phenomenon_id, "phenomenon.b");
     }
 }

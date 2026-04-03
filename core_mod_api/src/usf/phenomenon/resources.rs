@@ -6,8 +6,8 @@ use crate::usf::scale::Scale;
 
 use super::components::{PhenomenonModelProjectionSpec, PhenomenonModelTopology};
 use super::types::{
-    ManifestationDensityFieldDefinition, ManifestationMaterialProfileDefinition, PhenomenonCapability, PhenomenonKind, PhenomenonManifestationFieldContract,
-    PhenomenonSimulationServiceDefinition,
+    InteractionTriggerDefinition, ManifestationAudioEmitterDefinition, ManifestationDensityFieldDefinition, ManifestationMaterialProfileDefinition,
+    ManifestationParticleEmitterDefinition, PhenomenonCapability, PhenomenonKind, PhenomenonManifestationFieldContract, PhenomenonSimulationServiceDefinition,
 };
 
 #[derive(Resource, Reflect, Debug, Clone)]
@@ -19,6 +19,9 @@ pub struct PhenomenonDefinitionRegistry {
     pub manifestation_material_by_model_id: HashMap<String, ManifestationMaterialProfileDefinition>,
     pub manifestation_collider_enabled_by_model_id: HashMap<String, bool>,
     pub simulation_service_by_model_id: HashMap<String, PhenomenonSimulationServiceDefinition>,
+    pub manifestation_audio_emitter_by_model_id: HashMap<String, ManifestationAudioEmitterDefinition>,
+    pub manifestation_particle_emitter_by_model_id: HashMap<String, ManifestationParticleEmitterDefinition>,
+    pub interaction_trigger_by_model_id: HashMap<String, InteractionTriggerDefinition>,
     pub projection_contract_by_model_id: HashMap<String, PhenomenonModelProjectionSpec>,
     pub topology_by_model_id: HashMap<String, PhenomenonModelTopology>,
     pub support_chunk_radius_by_model_id: HashMap<String, u16>,
@@ -60,6 +63,9 @@ impl Default for PhenomenonDefinitionRegistry {
         let mut manifestation_material_by_model_id = HashMap::new();
         let mut manifestation_collider_enabled_by_model_id = HashMap::new();
         let mut simulation_service_by_model_id = HashMap::new();
+        let mut manifestation_audio_emitter_by_model_id = HashMap::new();
+        let mut manifestation_particle_emitter_by_model_id = HashMap::new();
+        let mut interaction_trigger_by_model_id = HashMap::new();
         let mut projection_contract_by_model_id = HashMap::new();
         let mut topology_by_model_id = HashMap::new();
         let mut support_chunk_radius_by_model_id = HashMap::new();
@@ -241,6 +247,148 @@ impl Default for PhenomenonDefinitionRegistry {
                     },
                 );
             }
+            let has_manifestation_audio_capability = capabilities_by_phenomenon_id
+                .get(&normalized_phenomenon_id)
+                .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::ManifestationAudioEmitter));
+            if has_manifestation_audio_capability {
+                let Some(audio_emitter) = model.manifestation_audio_emitter.clone() else {
+                    panic!(
+                        "USF phenomenon bootstrap failed: model '{}' belongs to phenomenon '{}' (kind='{}') \
+                         requiring capability 'manifestation_audio_emitter' but has no audio emitter definition. \
+                         Call set_manifestation_audio_emitter(...) in the model script.",
+                        normalized_model_id,
+                        normalized_phenomenon_id,
+                        kind.canonical_id()
+                    );
+                };
+                let event_id = normalize_identifier(audio_emitter.event_id.as_str());
+                if event_id.is_empty() {
+                    panic!("USF phenomenon bootstrap failed: model '{}' has empty audio event_id.", normalized_model_id);
+                }
+                if !audio_emitter.gain.is_finite() || audio_emitter.gain < 0.0 {
+                    panic!(
+                        "USF phenomenon bootstrap failed: model '{}' has invalid audio gain={}; expected finite >= 0.",
+                        normalized_model_id, audio_emitter.gain
+                    );
+                }
+                if !audio_emitter.spatial_range.is_finite() || audio_emitter.spatial_range <= 0.0 {
+                    panic!(
+                        "USF phenomenon bootstrap failed: model '{}' has invalid audio spatial_range={}; expected finite > 0.",
+                        normalized_model_id, audio_emitter.spatial_range
+                    );
+                }
+                if !audio_emitter.start_offset_seconds.is_finite() || audio_emitter.start_offset_seconds < 0.0 {
+                    panic!(
+                        "USF phenomenon bootstrap failed: model '{}' has invalid audio start_offset_seconds={}; expected finite >= 0.",
+                        normalized_model_id, audio_emitter.start_offset_seconds
+                    );
+                }
+                manifestation_audio_emitter_by_model_id.insert(
+                    normalized_model_id.clone(),
+                    ManifestationAudioEmitterDefinition {
+                        event_id,
+                        looped: audio_emitter.looped,
+                        gain: audio_emitter.gain,
+                        spatial_range: audio_emitter.spatial_range,
+                        start_offset_seconds: audio_emitter.start_offset_seconds,
+                    },
+                );
+            }
+            let has_manifestation_particle_capability = capabilities_by_phenomenon_id
+                .get(&normalized_phenomenon_id)
+                .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::ManifestationParticleEmitter));
+            if has_manifestation_particle_capability {
+                let Some(particle_emitter) = model.manifestation_particle_emitter.clone() else {
+                    panic!(
+                        "USF phenomenon bootstrap failed: model '{}' belongs to phenomenon '{}' (kind='{}') \
+                         requiring capability 'manifestation_particle_emitter' but has no particle emitter definition. \
+                         Call set_manifestation_particle_emitter(...) in the model script.",
+                        normalized_model_id,
+                        normalized_phenomenon_id,
+                        kind.canonical_id()
+                    );
+                };
+                let effect_id = normalize_identifier(particle_emitter.effect_id.as_str());
+                if effect_id.is_empty() {
+                    panic!("USF phenomenon bootstrap failed: model '{}' has empty particle effect_id.", normalized_model_id);
+                }
+                if !particle_emitter.emission_rate.is_finite() || particle_emitter.emission_rate < 0.0 {
+                    panic!(
+                        "USF phenomenon bootstrap failed: model '{}' has invalid particle emission_rate={}; expected finite >= 0.",
+                        normalized_model_id, particle_emitter.emission_rate
+                    );
+                }
+                if particle_emitter.burst_count == 0 {
+                    panic!(
+                        "USF phenomenon bootstrap failed: model '{}' has invalid particle burst_count=0; expected >= 1.",
+                        normalized_model_id
+                    );
+                }
+                if !particle_emitter.lifetime_seconds.is_finite() || particle_emitter.lifetime_seconds <= 0.0 {
+                    panic!(
+                        "USF phenomenon bootstrap failed: model '{}' has invalid particle lifetime_seconds={}; expected finite > 0.",
+                        normalized_model_id, particle_emitter.lifetime_seconds
+                    );
+                }
+                if !particle_emitter.radius.is_finite() || particle_emitter.radius <= 0.0 {
+                    panic!(
+                        "USF phenomenon bootstrap failed: model '{}' has invalid particle radius={}; expected finite > 0.",
+                        normalized_model_id, particle_emitter.radius
+                    );
+                }
+                manifestation_particle_emitter_by_model_id.insert(
+                    normalized_model_id.clone(),
+                    ManifestationParticleEmitterDefinition {
+                        effect_id,
+                        emission_rate: particle_emitter.emission_rate,
+                        burst_count: particle_emitter.burst_count,
+                        lifetime_seconds: particle_emitter.lifetime_seconds,
+                        radius: particle_emitter.radius,
+                    },
+                );
+            }
+            let has_interaction_trigger_capability = capabilities_by_phenomenon_id
+                .get(&normalized_phenomenon_id)
+                .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::InteractionTrigger));
+            if has_interaction_trigger_capability {
+                let Some(interaction_trigger) = model.interaction_trigger.clone() else {
+                    panic!(
+                        "USF phenomenon bootstrap failed: model '{}' belongs to phenomenon '{}' (kind='{}') \
+                         requiring capability 'interaction_trigger' but has no trigger definition. \
+                         Call set_interaction_trigger(...) in the model script.",
+                        normalized_model_id,
+                        normalized_phenomenon_id,
+                        kind.canonical_id()
+                    );
+                };
+                let trigger_id = normalize_identifier(interaction_trigger.trigger_id.as_str());
+                if trigger_id.is_empty() {
+                    panic!(
+                        "USF phenomenon bootstrap failed: model '{}' has empty interaction trigger_id.",
+                        normalized_model_id
+                    );
+                }
+                if !interaction_trigger.cooldown_seconds.is_finite() || interaction_trigger.cooldown_seconds < 0.0 {
+                    panic!(
+                        "USF phenomenon bootstrap failed: model '{}' has invalid interaction cooldown_seconds={}; expected finite >= 0.",
+                        normalized_model_id, interaction_trigger.cooldown_seconds
+                    );
+                }
+                if interaction_trigger.max_targets == 0 {
+                    panic!(
+                        "USF phenomenon bootstrap failed: model '{}' has invalid interaction max_targets=0; expected >= 1.",
+                        normalized_model_id
+                    );
+                }
+                interaction_trigger_by_model_id.insert(
+                    normalized_model_id.clone(),
+                    InteractionTriggerDefinition {
+                        trigger_id,
+                        cooldown_seconds: interaction_trigger.cooldown_seconds,
+                        max_targets: interaction_trigger.max_targets,
+                    },
+                );
+            }
             let projection_metric_name = normalize_identifier(model.projection_metric_name.as_str());
             if projection_metric_name.is_empty() {
                 panic!(
@@ -392,6 +540,45 @@ impl Default for PhenomenonDefinitionRegistry {
                         scale_index
                     );
                 }
+                let has_manifestation_audio_capability = capabilities_by_phenomenon_id
+                    .get(phenomenon_id)
+                    .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::ManifestationAudioEmitter));
+                if has_manifestation_audio_capability && !manifestation_audio_emitter_by_model_id.contains_key(model_id) {
+                    panic!(
+                        "USF phenomenon bootstrap failed: selected model '{}' for phenomenon '{}' (kind='{}') at scale {} \
+                         has no manifestation audio emitter definition.",
+                        model_id,
+                        phenomenon_id,
+                        kind.canonical_id(),
+                        scale_index
+                    );
+                }
+                let has_manifestation_particle_capability = capabilities_by_phenomenon_id
+                    .get(phenomenon_id)
+                    .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::ManifestationParticleEmitter));
+                if has_manifestation_particle_capability && !manifestation_particle_emitter_by_model_id.contains_key(model_id) {
+                    panic!(
+                        "USF phenomenon bootstrap failed: selected model '{}' for phenomenon '{}' (kind='{}') at scale {} \
+                         has no manifestation particle emitter definition.",
+                        model_id,
+                        phenomenon_id,
+                        kind.canonical_id(),
+                        scale_index
+                    );
+                }
+                let has_interaction_trigger_capability = capabilities_by_phenomenon_id
+                    .get(phenomenon_id)
+                    .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::InteractionTrigger));
+                if has_interaction_trigger_capability && !interaction_trigger_by_model_id.contains_key(model_id) {
+                    panic!(
+                        "USF phenomenon bootstrap failed: selected model '{}' for phenomenon '{}' (kind='{}') at scale {} \
+                         has no interaction trigger definition.",
+                        model_id,
+                        phenomenon_id,
+                        kind.canonical_id(),
+                        scale_index
+                    );
+                }
             }
         }
 
@@ -402,6 +589,9 @@ impl Default for PhenomenonDefinitionRegistry {
             manifestation_material_by_model_id,
             manifestation_collider_enabled_by_model_id,
             simulation_service_by_model_id,
+            manifestation_audio_emitter_by_model_id,
+            manifestation_particle_emitter_by_model_id,
+            interaction_trigger_by_model_id,
             projection_contract_by_model_id,
             topology_by_model_id,
             support_chunk_radius_by_model_id,
@@ -479,6 +669,42 @@ impl PhenomenonDefinitionRegistry {
         self.simulation_service_by_model_id.get(&normalize_identifier(model_id)).copied()
     }
 
+    pub fn manifestation_audio_emitter_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<ManifestationAudioEmitterDefinition> {
+        if !self.supports_capability_for_phenomenon(phenomenon_id, PhenomenonCapability::ManifestationAudioEmitter) {
+            return None;
+        }
+        let model_id = self.model_for_scale(phenomenon_id, scale)?;
+        self.manifestation_audio_emitter_for_model(model_id)
+    }
+
+    pub fn manifestation_audio_emitter_for_model(&self, model_id: &str) -> Option<ManifestationAudioEmitterDefinition> {
+        self.manifestation_audio_emitter_by_model_id.get(&normalize_identifier(model_id)).cloned()
+    }
+
+    pub fn manifestation_particle_emitter_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<ManifestationParticleEmitterDefinition> {
+        if !self.supports_capability_for_phenomenon(phenomenon_id, PhenomenonCapability::ManifestationParticleEmitter) {
+            return None;
+        }
+        let model_id = self.model_for_scale(phenomenon_id, scale)?;
+        self.manifestation_particle_emitter_for_model(model_id)
+    }
+
+    pub fn manifestation_particle_emitter_for_model(&self, model_id: &str) -> Option<ManifestationParticleEmitterDefinition> {
+        self.manifestation_particle_emitter_by_model_id.get(&normalize_identifier(model_id)).cloned()
+    }
+
+    pub fn interaction_trigger_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<InteractionTriggerDefinition> {
+        if !self.supports_capability_for_phenomenon(phenomenon_id, PhenomenonCapability::InteractionTrigger) {
+            return None;
+        }
+        let model_id = self.model_for_scale(phenomenon_id, scale)?;
+        self.interaction_trigger_for_model(model_id)
+    }
+
+    pub fn interaction_trigger_for_model(&self, model_id: &str) -> Option<InteractionTriggerDefinition> {
+        self.interaction_trigger_by_model_id.get(&normalize_identifier(model_id)).cloned()
+    }
+
     pub fn projection_contract_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<PhenomenonModelProjectionSpec> {
         let model_id = self.model_for_scale(phenomenon_id, scale)?;
         self.projection_contract_for_model(model_id)
@@ -490,6 +716,18 @@ impl PhenomenonDefinitionRegistry {
 
     pub fn any_model_uses_manifestation_collider(&self) -> bool {
         self.manifestation_collider_enabled_by_model_id.values().copied().any(|enabled| enabled)
+    }
+
+    pub fn any_model_uses_manifestation_audio_emitter(&self) -> bool {
+        !self.manifestation_audio_emitter_by_model_id.is_empty()
+    }
+
+    pub fn any_model_uses_manifestation_particle_emitter(&self) -> bool {
+        !self.manifestation_particle_emitter_by_model_id.is_empty()
+    }
+
+    pub fn any_model_uses_interaction_trigger(&self) -> bool {
+        !self.interaction_trigger_by_model_id.is_empty()
     }
 
     pub fn manifestation_field_contract_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<PhenomenonManifestationFieldContract> {

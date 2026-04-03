@@ -1,9 +1,12 @@
-use super::chunk_manifestation::{ChunkManifestationBinding, UsfChunkManifestationInstance, UsfChunkManifestationRuntimeSettings};
-use super::manifestation_field::canonical_grid_coord;
+use super::field::canonical_grid_coord;
+use super::runtime::{ChunkManifestationBinding, UsfChunkManifestationInstance, UsfChunkManifestationRuntimeSettings};
 use crate::bevy::prelude::*;
 use crate::bevy_rapier3d::prelude::Collider;
 use crate::chunk::components::Chunk;
-use crate::usf::authority::{USF_DOMAIN_CHUNK_MANIFESTATION, UsfAuthorityDiagnostics, UsfWorldAuthorityContract, guard_derived_domain_with_diagnostics};
+use crate::usf::runtime::capability::manifestation::{
+    ChunkManifestationInstanceAudioEmitter, ChunkManifestationInstanceInteractionTrigger, ChunkManifestationInstanceParticleEmitter,
+};
+use crate::usf::authority::{USF_DOMAIN_MANIFESTATION_RUNTIME, UsfAuthorityDiagnostics, UsfWorldAuthorityContract, guard_derived_domain_with_diagnostics};
 use crate::usf::content::UsfExecutionPlan;
 use crate::usf::phenomenon::PhenomenonDefinitionRegistry;
 use crate::usf::substrate::AdaptiveSubstrateStore;
@@ -178,7 +181,7 @@ pub(crate) fn sync_chunk_manifestation_bindings_system(
     if !guard_derived_domain_with_diagnostics(
         authority_contract.as_ref(),
         authority_diagnostics.as_deref_mut(),
-        USF_DOMAIN_CHUNK_MANIFESTATION,
+        USF_DOMAIN_MANIFESTATION_RUNTIME,
     ) {
         return;
     }
@@ -275,6 +278,9 @@ fn sync_chunk_manifestation_binding_for_entity(
             commands.entity(entity).remove::<Mesh3d>();
             commands.entity(entity).remove::<MeshMaterial3d<StandardMaterial>>();
             commands.entity(entity).remove::<Collider>();
+            commands.entity(entity).remove::<ChunkManifestationInstanceAudioEmitter>();
+            commands.entity(entity).remove::<ChunkManifestationInstanceParticleEmitter>();
+            commands.entity(entity).remove::<ChunkManifestationInstanceInteractionTrigger>();
             return BindingSyncAction::Removed;
         }
         return BindingSyncAction::NoneToNone;
@@ -309,6 +315,9 @@ fn sync_chunk_manifestation_binding_for_entity(
             commands.entity(entity).remove::<Mesh3d>();
             commands.entity(entity).remove::<MeshMaterial3d<StandardMaterial>>();
             commands.entity(entity).remove::<Collider>();
+            commands.entity(entity).remove::<ChunkManifestationInstanceAudioEmitter>();
+            commands.entity(entity).remove::<ChunkManifestationInstanceParticleEmitter>();
+            commands.entity(entity).remove::<ChunkManifestationInstanceInteractionTrigger>();
             BindingSyncAction::Upserted
         }
         // Keep the previous binding only for a bounded grace window while authority settles.
@@ -328,6 +337,9 @@ fn sync_chunk_manifestation_binding_for_entity(
             commands.entity(entity).remove::<Mesh3d>();
             commands.entity(entity).remove::<MeshMaterial3d<StandardMaterial>>();
             commands.entity(entity).remove::<Collider>();
+            commands.entity(entity).remove::<ChunkManifestationInstanceAudioEmitter>();
+            commands.entity(entity).remove::<ChunkManifestationInstanceParticleEmitter>();
+            commands.entity(entity).remove::<ChunkManifestationInstanceInteractionTrigger>();
             BindingSyncAction::Removed
         }
         (None, None) => {
@@ -380,6 +392,9 @@ fn desired_chunk_manifestation_binding(
     };
     let manifestation_material_profile = phenomenon_definitions.manifestation_material_for_scale(phenomenon_script_id.as_str(), chunk_scale);
     let manifestation_collider_enabled = phenomenon_definitions.manifestation_collider_enabled_for_scale(phenomenon_script_id.as_str(), chunk_scale);
+    let manifestation_audio_emitter = phenomenon_definitions.manifestation_audio_emitter_for_scale(phenomenon_script_id.as_str(), chunk_scale);
+    let manifestation_particle_emitter = phenomenon_definitions.manifestation_particle_emitter_for_scale(phenomenon_script_id.as_str(), chunk_scale);
+    let interaction_trigger = phenomenon_definitions.interaction_trigger_for_scale(phenomenon_script_id.as_str(), chunk_scale);
 
     Some(ChunkManifestationBinding {
         zone_type,
@@ -389,6 +404,9 @@ fn desired_chunk_manifestation_binding(
         manifestation_field_contract,
         manifestation_material_profile,
         manifestation_collider_enabled,
+        manifestation_audio_emitter,
+        manifestation_particle_emitter,
+        interaction_trigger,
         chunk_store_key: route.chunk_store_key.to_string(),
     })
 }

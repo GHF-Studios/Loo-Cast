@@ -2,7 +2,7 @@ use std::any::Any;
 
 use crate::bevy::ecs::system::Commands;
 use crate::bevy::ecs::system::EntityCommands;
-use crate::bevy::ecs::world::EntityWorldMut;
+use crate::bevy::ecs::world::{EntityRef as BevyEntityRef, EntityWorldMut};
 use crate::bevy::prelude::Entity as BevyEntity;
 use crate::bevy::prelude::World;
 use crate::rhai_binding::bridges::domains::bevy::ecs::catalog::message_signatures::TYPE_PATH__SCRIPT_PROBE_MESSAGE;
@@ -10,8 +10,9 @@ use crate::rhai_binding::runtime::ecs::bundle::internals::statics::resolve_bundl
 use crate::rhai_binding::runtime::ecs::message::internals::statics::{resolve_message_drain_dispatch, resolve_message_write_dispatch};
 use crate::rhai_binding::runtime::ecs::system::query::{bindings::types::Query, internals::statics::resolve_query_dispatch};
 use crate::rhai_binding::runtime::ecs::world::internals::access_requests::{
-    WORLD_ACCESS_METHOD_DRAIN_PROBE_MESSAGES, WORLD_ACCESS_METHOD_QUERY, WORLD_ACCESS_METHOD_SPAWN_SINGLE, WORLD_ACCESS_METHOD_WRITE_PROBE_MESSAGE,
-    WorldQueryRequest, WorldSpawnSingleRequest, WriteProbeMessageRequest,
+    DrainMessagesRequest, WORLD_ACCESS_METHOD_DRAIN_MESSAGES, WORLD_ACCESS_METHOD_DRAIN_PROBE_MESSAGES, WORLD_ACCESS_METHOD_ENTITY,
+    WORLD_ACCESS_METHOD_ENTITY_MUT, WORLD_ACCESS_METHOD_QUERY, WORLD_ACCESS_METHOD_SPAWN_SINGLE, WORLD_ACCESS_METHOD_WRITE_MESSAGE,
+    WORLD_ACCESS_METHOD_WRITE_PROBE_MESSAGE, WorldEntityRequest, WorldQueryRequest, WorldSpawnSingleRequest, WriteMessageRequest, WriteProbeMessageRequest,
 };
 use crate::rhai_binding::runtime::std::iter::bindings::types::StringIter;
 use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Scoped};
@@ -62,6 +63,13 @@ unsafe impl AccessCellProvider<EntityWorldMut<'static>> for World {
                 dispatch(&mut ent, request.bundle);
                 ent
             }
+            WORLD_ACCESS_METHOD_ENTITY_MUT => {
+                let Ok(request) = args.downcast::<WorldEntityRequest>() else {
+                    panic!("Unsupported arguments for method '{}' in AccessCellProvider<EntityWorldMut> for World", method);
+                };
+                let request = *request;
+                self.entity_mut(request.entity)
+            }
             _ => panic!("Unsupported method '{}' in AccessCellProvider<EntityWorldMut> for World", method),
         };
 
@@ -76,6 +84,31 @@ unsafe impl AccessCellProvider<EntityWorldMut<'static>> for World {
 
         // Restore lifetime(s)
         let _returned_entity_world_mut = unsafe { std::mem::transmute::<EntityWorldMut<'static>, EntityWorldMut<'_>>(returned_static_entity_world_mut) };
+    }
+}
+
+unsafe impl AccessCellProvider<BevyEntityRef<'static>> for World {
+    unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> AccessCell<Scoped, BevyEntityRef<'static>> {
+        if method != WORLD_ACCESS_METHOD_ENTITY {
+            panic!("Unsupported method '{}' in AccessCellProvider<EntityRef> for World", method);
+        }
+        let Ok(request) = args.downcast::<WorldEntityRequest>() else {
+            panic!("Unsupported arguments for method '{}' in AccessCellProvider<EntityRef> for World", method);
+        };
+        let request = *request;
+        let entity_ref = self.entity(request.entity);
+
+        // Erase lifetime(s)
+        let entity_ref_static = unsafe { std::mem::transmute::<BevyEntityRef<'_>, BevyEntityRef<'static>>(entity_ref) };
+
+        AccessCell::new(entity_ref_static)
+    }
+
+    unsafe fn end_access(&mut self, handle: AccessCell<Scoped, BevyEntityRef<'static>>) {
+        let returned_entity_ref_static = handle.take();
+
+        // Restore lifetime(s)
+        let _returned_entity_ref = unsafe { std::mem::transmute::<BevyEntityRef<'static>, BevyEntityRef<'_>>(returned_entity_ref_static) };
     }
 }
 
@@ -104,15 +137,25 @@ unsafe impl AccessCellProvider<Query> for World {
 
 unsafe impl AccessCellProvider<()> for World {
     unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> AccessCell<Scoped, ()> {
-        if method != WORLD_ACCESS_METHOD_WRITE_PROBE_MESSAGE {
-            panic!("Unsupported method '{}' in AccessCellProvider<()> for World", method);
+        match method {
+            WORLD_ACCESS_METHOD_WRITE_PROBE_MESSAGE => {
+                let Ok(request) = args.downcast::<WriteProbeMessageRequest>() else {
+                    panic!("Unsupported arguments for method '{}' in AccessCellProvider<()> for World", method);
+                };
+                let request = *request;
+                let dispatch = resolve_message_write_dispatch(TYPE_PATH__SCRIPT_PROBE_MESSAGE);
+                dispatch(self, request.payload);
+            }
+            WORLD_ACCESS_METHOD_WRITE_MESSAGE => {
+                let Ok(request) = args.downcast::<WriteMessageRequest>() else {
+                    panic!("Unsupported arguments for method '{}' in AccessCellProvider<()> for World", method);
+                };
+                let request = *request;
+                let dispatch = resolve_message_write_dispatch(request.message_type_id.as_str());
+                dispatch(self, request.payload);
+            }
+            _ => panic!("Unsupported method '{}' in AccessCellProvider<()> for World", method),
         }
-        let Ok(request) = args.downcast::<WriteProbeMessageRequest>() else {
-            panic!("Unsupported arguments for method '{}' in AccessCellProvider<()> for World", method);
-        };
-        let request = *request;
-        let dispatch = resolve_message_write_dispatch(TYPE_PATH__SCRIPT_PROBE_MESSAGE);
-        dispatch(self, request.payload);
 
         AccessCell::new(())
     }
@@ -124,15 +167,25 @@ unsafe impl AccessCellProvider<()> for World {
 
 unsafe impl AccessCellProvider<StringIter> for World {
     unsafe fn start_access(&mut self, method: &str, args: Box<dyn Any>) -> AccessCell<Scoped, StringIter> {
-        if method != WORLD_ACCESS_METHOD_DRAIN_PROBE_MESSAGES {
-            panic!("Unsupported method '{}' in AccessCellProvider<StringIter> for World", method);
-        }
-        if !args.is::<()>() {
-            panic!("Unsupported arguments for method '{}' in AccessCellProvider<StringIter> for World", method);
-        }
+        let payloads = match method {
+            WORLD_ACCESS_METHOD_DRAIN_PROBE_MESSAGES => {
+                if !args.is::<()>() {
+                    panic!("Unsupported arguments for method '{}' in AccessCellProvider<StringIter> for World", method);
+                }
 
-        let dispatch = resolve_message_drain_dispatch(TYPE_PATH__SCRIPT_PROBE_MESSAGE);
-        let payloads = dispatch(self);
+                let dispatch = resolve_message_drain_dispatch(TYPE_PATH__SCRIPT_PROBE_MESSAGE);
+                dispatch(self)
+            }
+            WORLD_ACCESS_METHOD_DRAIN_MESSAGES => {
+                let Ok(request) = args.downcast::<DrainMessagesRequest>() else {
+                    panic!("Unsupported arguments for method '{}' in AccessCellProvider<StringIter> for World", method);
+                };
+                let request = *request;
+                let dispatch = resolve_message_drain_dispatch(request.message_type_id.as_str());
+                dispatch(self)
+            }
+            _ => panic!("Unsupported method '{}' in AccessCellProvider<StringIter> for World", method),
+        };
 
         AccessCell::new(StringIter::from_values(payloads))
     }
@@ -154,6 +207,15 @@ unsafe impl AccessCellProvider<EntityCommands<'static>> for Commands<'static, 's
                 }
 
                 self.spawn_empty()
+            }
+            "entity" => {
+                let Ok(entity) = args.downcast::<BevyEntity>() else {
+                    panic!(
+                        "Unsupported arguments for method '{}' in AccessCellProvider<EntityCommands> for Commands",
+                        method
+                    );
+                };
+                self.entity(*entity)
             }
             _ => panic!("Unsupported method '{}' in AccessCellProvider<EntityCommands> for Commands", method),
         };

@@ -1,20 +1,19 @@
-pub mod chunk_manifestation;
-pub mod chunk_manifestation_binding;
-pub mod manifestation_capability;
-pub mod manifestation_field;
-pub mod manifestation_meshing;
-pub mod manifestation_projection;
+pub mod capability;
+pub mod manifestation;
 
 use crate::bevy::prelude::*;
 use crate::core::{orchestration::AppSet, run_conditions::run_after_startup_finished};
 use crate::time::run_conditions::run_if_not_paused;
-use chunk_manifestation::{
+use capability::manifestation::{
+    ChunkManifestationInstanceAudioEmitter, ChunkManifestationInstanceInteractionTrigger, ChunkManifestationInstanceParticleEmitter,
+};
+use manifestation::binding::{ChunkManifestationAuthorityGrace, sync_chunk_manifestation_bindings_system};
+use manifestation::runtime::{
     ChunkManifestationBinding, UsfChunkManifestationHydrationWorkflowState, UsfChunkManifestationInstance, UsfChunkManifestationRuntimeSettings,
     UsfChunkManifestationStore, bind_chunk_manifestation_instances_to_world_presentation_root_system, clear_unbound_chunk_manifestation_instances_system,
     prune_chunk_manifestation_store_system, queue_chunk_manifestation_hydration_requests_system, run_chunk_manifestation_hydration_workflow_system,
     run_if_chunk_manifestation_runtime_enabled, sync_chunk_manifestation_instance_transforms_system, validate_chunk_manifestation_capability_contracts_system,
 };
-use chunk_manifestation_binding::{ChunkManifestationAuthorityGrace, sync_chunk_manifestation_bindings_system};
 
 pub(crate) struct UsfRuntimePlugin;
 impl Plugin for UsfRuntimePlugin {
@@ -52,6 +51,9 @@ impl Plugin for UsfRuntimePlugin {
             .register_type::<UsfChunkManifestationInstance>()
             .register_type::<ChunkManifestationBinding>()
             .register_type::<ChunkManifestationAuthorityGrace>()
+            .register_type::<ChunkManifestationInstanceAudioEmitter>()
+            .register_type::<ChunkManifestationInstanceParticleEmitter>()
+            .register_type::<ChunkManifestationInstanceInteractionTrigger>()
             .register_type::<UsfChunkManifestationRuntimeSettings>();
     }
 }

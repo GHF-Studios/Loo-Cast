@@ -1,6 +1,6 @@
 use crate::bevy::prelude::*;
 use crate::usf::pos::grid::types::GridVec;
-use crate::usf::runtime::manifestation_field::{ROOT_AXIS_PERIOD_UNITS, canonical_grid_coord, sample_root_native_position};
+use super::field::{ROOT_AXIS_PERIOD_UNITS, canonical_grid_coord, sample_root_native_position};
 use crate::usf::scale::Scale;
 use std::collections::{BTreeMap, HashSet};
 

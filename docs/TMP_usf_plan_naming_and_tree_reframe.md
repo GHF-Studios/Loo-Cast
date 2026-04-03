@@ -71,3 +71,20 @@ Align naming and project/module structure with ownership reality so the architec
 
 1. Execute early enough to prevent further semantic drift.
 2. Finish before final tech-demo polish to avoid double-work on content naming.
+
+## Execution Snapshot (2026-04-03)
+
+Completed:
+
+1. Runtime tree split introduced:
+   - `usf::runtime::manifestation::*`
+   - `usf::runtime::capability::manifestation`
+2. Manifestation hydration implementation moved under USF manifestation runtime ownership:
+   - `usf::runtime::manifestation::hydration_workflow`
+3. Authority/capability naming updated away from legacy path assumptions:
+   - `USF_DOMAIN_MANIFESTATION_RUNTIME = "usf.runtime.manifestation.runtime"`
+   - `world.chunk_manifestation.derived_cache`
+
+Still mixed / blocker:
+
+1. Workflow registry macro namespace is still tied to `Chunk` workflow module, so hydration workflow registration remains in `chunk::workflows::mod` even though implementation ownership moved.

@@ -8,6 +8,9 @@ pub enum PhenomenonCapability {
     ManifestationMaterialProfile,
     ManifestationCollider,
     SimulationService,
+    ManifestationAudioEmitter,
+    ManifestationParticleEmitter,
+    InteractionTrigger,
 }
 impl PhenomenonCapability {
     pub fn canonical_id(self) -> &'static str {
@@ -16,6 +19,9 @@ impl PhenomenonCapability {
             Self::ManifestationMaterialProfile => "manifestation_material_profile",
             Self::ManifestationCollider => "manifestation_collider",
             Self::SimulationService => "simulation_service",
+            Self::ManifestationAudioEmitter => "manifestation_audio_emitter",
+            Self::ManifestationParticleEmitter => "manifestation_particle_emitter",
+            Self::InteractionTrigger => "interaction_trigger",
         }
     }
 
@@ -27,6 +33,11 @@ impl PhenomenonCapability {
             }
             "manifestation_collider" | "manifestation-collider" | "collider" => Ok(Self::ManifestationCollider),
             "simulation_service" | "simulation-service" | "sim_service" | "sim-service" => Ok(Self::SimulationService),
+            "manifestation_audio_emitter" | "manifestation-audio-emitter" | "audio_emitter" | "audio-emitter" | "audio" => Ok(Self::ManifestationAudioEmitter),
+            "manifestation_particle_emitter" | "manifestation-particle-emitter" | "particle_emitter" | "particle-emitter" | "particles" => {
+                Ok(Self::ManifestationParticleEmitter)
+            }
+            "interaction_trigger" | "interaction-trigger" | "trigger" => Ok(Self::InteractionTrigger),
             unknown => Err(format!("unknown capability '{unknown}'")),
         }
     }
@@ -128,6 +139,62 @@ impl Default for PhenomenonSimulationServiceDefinition {
             target_hz: 20.0,
             stability_bias: 0.5,
             response_gain: 1.0,
+        }
+    }
+}
+
+#[derive(Reflect, Debug, Clone, PartialEq)]
+pub struct ManifestationAudioEmitterDefinition {
+    pub event_id: String,
+    pub looped: bool,
+    pub gain: f32,
+    pub spatial_range: f32,
+    pub start_offset_seconds: f32,
+}
+impl Default for ManifestationAudioEmitterDefinition {
+    fn default() -> Self {
+        Self {
+            event_id: "audio.event.default".to_string(),
+            looped: false,
+            gain: 1.0,
+            spatial_range: 256.0,
+            start_offset_seconds: 0.0,
+        }
+    }
+}
+
+#[derive(Reflect, Debug, Clone, PartialEq)]
+pub struct ManifestationParticleEmitterDefinition {
+    pub effect_id: String,
+    pub emission_rate: f32,
+    pub burst_count: u32,
+    pub lifetime_seconds: f32,
+    pub radius: f32,
+}
+impl Default for ManifestationParticleEmitterDefinition {
+    fn default() -> Self {
+        Self {
+            effect_id: "particles.effect.default".to_string(),
+            emission_rate: 1.0,
+            burst_count: 1,
+            lifetime_seconds: 1.0,
+            radius: 1.0,
+        }
+    }
+}
+
+#[derive(Reflect, Debug, Clone, PartialEq)]
+pub struct InteractionTriggerDefinition {
+    pub trigger_id: String,
+    pub cooldown_seconds: f32,
+    pub max_targets: u32,
+}
+impl Default for InteractionTriggerDefinition {
+    fn default() -> Self {
+        Self {
+            trigger_id: "interaction.trigger.default".to_string(),
+            cooldown_seconds: 0.1,
+            max_targets: 1,
         }
     }
 }
@@ -290,6 +357,28 @@ mod tests {
             PhenomenonCapability::SimulationService
         );
         assert_eq!(PhenomenonCapability::SimulationService.canonical_id(), "simulation_service");
+    }
+
+    #[test]
+    fn phenomenon_capability_parses_audio_particle_and_trigger_aliases() {
+        assert_eq!(
+            PhenomenonCapability::try_from_config_value("audio-emitter").expect("audio capability should parse"),
+            PhenomenonCapability::ManifestationAudioEmitter
+        );
+        assert_eq!(
+            PhenomenonCapability::try_from_config_value("particles").expect("particle capability should parse"),
+            PhenomenonCapability::ManifestationParticleEmitter
+        );
+        assert_eq!(
+            PhenomenonCapability::try_from_config_value("trigger").expect("trigger capability should parse"),
+            PhenomenonCapability::InteractionTrigger
+        );
+        assert_eq!(PhenomenonCapability::ManifestationAudioEmitter.canonical_id(), "manifestation_audio_emitter");
+        assert_eq!(
+            PhenomenonCapability::ManifestationParticleEmitter.canonical_id(),
+            "manifestation_particle_emitter"
+        );
+        assert_eq!(PhenomenonCapability::InteractionTrigger.canonical_id(), "interaction_trigger");
     }
 
     #[test]

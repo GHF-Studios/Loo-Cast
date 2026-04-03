@@ -220,10 +220,20 @@ pub(super) fn reconcile_zone_realization_system(
             .cloned()
             .or_else(|| live_zone_realizations.get(&zone_id).cloned())
         else {
+            let parent_selected_phenomenon_id = runtime_state
+                .parent_by_zone
+                .get(&zone_id)
+                .and_then(|parent_zone_id| {
+                    next_zone_to_phenomenon
+                        .get(parent_zone_id)
+                        .or_else(|| live_zone_realizations.get(parent_zone_id))
+                })
+                .map(|realization| realization.phenomenon_script_id.clone());
             let Some(selected_support) = select_supported_phenomenon_for_zone(
                 &zone_id,
                 &zone_behavior_registry,
                 &support_active_counts,
+                parent_selected_phenomenon_id.as_deref(),
                 temporal_context.active_scale,
                 &mut selection_runtime_state,
             ) else {
@@ -623,6 +633,7 @@ mod tests {
             &zone_id(Scale::MAX, "mystic", 1234),
             &registry,
             &HashMap::new(),
+            None,
             Scale::MAX,
             &mut ZoneSelectionRuntimeState::default(),
         )
@@ -672,6 +683,7 @@ mod tests {
             &zone_id(Scale::MAX, "mystic", 7),
             &registry,
             &active_counts,
+            None,
             Scale::MAX,
             &mut ZoneSelectionRuntimeState::default(),
         )
@@ -712,6 +724,7 @@ mod tests {
             &zone_id(Scale::MAX, "mystic", 8),
             &registry,
             &active_counts,
+            None,
             Scale::MAX,
             &mut ZoneSelectionRuntimeState::default(),
         );

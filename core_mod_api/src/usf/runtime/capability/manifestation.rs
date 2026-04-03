@@ -1,8 +1,29 @@
 use crate::bevy::prelude::*;
 use crate::bevy_rapier3d::prelude::{Collider, ComputedColliderShape};
+use crate::usf::phenomenon::{InteractionTriggerDefinition, ManifestationAudioEmitterDefinition, ManifestationParticleEmitterDefinition};
 
-use super::chunk_manifestation::{ChunkManifestationHydrationArtifact, UsfChunkManifestationInstance, UsfChunkManifestationStore};
-use super::manifestation_field::color_from_seed;
+use crate::usf::runtime::manifestation::field::color_from_seed;
+use crate::usf::runtime::manifestation::runtime::{
+    ChunkManifestationHydrationArtifact, UsfChunkManifestationInstance, UsfChunkManifestationStore,
+};
+
+#[derive(Component, Reflect, Debug, Clone, PartialEq)]
+#[reflect(Component)]
+pub struct ChunkManifestationInstanceAudioEmitter {
+    pub contract: ManifestationAudioEmitterDefinition,
+}
+
+#[derive(Component, Reflect, Debug, Clone, PartialEq)]
+#[reflect(Component)]
+pub struct ChunkManifestationInstanceParticleEmitter {
+    pub contract: ManifestationParticleEmitterDefinition,
+}
+
+#[derive(Component, Reflect, Debug, Clone, PartialEq)]
+#[reflect(Component)]
+pub struct ChunkManifestationInstanceInteractionTrigger {
+    pub contract: InteractionTriggerDefinition,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct ChunkManifestationCapabilityPolicy {
@@ -24,6 +45,9 @@ pub(crate) fn apply_chunk_manifestation_capabilities(
         record,
         manifestation_material_profile,
         manifestation_collider_enabled,
+        manifestation_audio_emitter,
+        manifestation_particle_emitter,
+        interaction_trigger,
         mesh,
     } = artifact;
 
@@ -79,6 +103,24 @@ pub(crate) fn apply_chunk_manifestation_capabilities(
         commands.entity(chunk_entity).remove::<Mesh3d>();
         commands.entity(chunk_entity).remove::<MeshMaterial3d<StandardMaterial>>();
         commands.entity(chunk_entity).remove::<Collider>();
+    }
+
+    if let Some(contract) = manifestation_audio_emitter {
+        commands.entity(chunk_entity).insert(ChunkManifestationInstanceAudioEmitter { contract });
+    } else {
+        commands.entity(chunk_entity).remove::<ChunkManifestationInstanceAudioEmitter>();
+    }
+
+    if let Some(contract) = manifestation_particle_emitter {
+        commands.entity(chunk_entity).insert(ChunkManifestationInstanceParticleEmitter { contract });
+    } else {
+        commands.entity(chunk_entity).remove::<ChunkManifestationInstanceParticleEmitter>();
+    }
+
+    if let Some(contract) = interaction_trigger {
+        commands.entity(chunk_entity).insert(ChunkManifestationInstanceInteractionTrigger { contract });
+    } else {
+        commands.entity(chunk_entity).remove::<ChunkManifestationInstanceInteractionTrigger>();
     }
 
     commands.entity(chunk_entity).insert(UsfChunkManifestationInstance {

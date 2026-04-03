@@ -25,5 +25,24 @@ fn register_phenomenon_model(ctx) {
         0.0,
     );
     ctx.set_manifestation_collider_enabled(true);
+    ctx.set_manifestation_audio_emitter(
+        "demo.chunk.ambient",
+        true,
+        0.25,
+        900.0,
+        0.0,
+    );
+    ctx.set_manifestation_particle_emitter(
+        "demo.chunk.dust",
+        0.4,
+        4,
+        1.8,
+        96.0,
+    );
+    ctx.set_interaction_trigger(
+        "demo.chunk.proximity",
+        0.25,
+        8,
+    );
     ctx.set_as_default_all_scales();
 }

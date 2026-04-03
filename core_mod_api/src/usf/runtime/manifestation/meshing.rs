@@ -3,7 +3,7 @@ use crate::bevy::mesh::Indices;
 use crate::bevy::prelude::*;
 use crate::bevy::render::render_resource::PrimitiveTopology;
 
-use crate::usf::runtime::manifestation_field::{CHUNK_SPAN_UNITS_I64, CachedChunkManifestationRecord, HALF_CHUNK_SPAN_F32};
+use super::field::{CHUNK_SPAN_UNITS_I64, CachedChunkManifestationRecord, HALF_CHUNK_SPAN_F32};
 
 pub(crate) fn build_chunk_mesh(record: &CachedChunkManifestationRecord) -> Option<Mesh> {
     let axis_points = record.axis_samples.len();

@@ -1,10 +1,13 @@
-use super::manifestation_field::{
+use super::field::{
     CachedChunkManifestationRecord, SerializableGridCoord, canonical_grid_coord, chunk_file_path, density_field_signature,
     generate_chunk_manifestation_cache_record, load_chunk_manifestation_cache_record, sample_root_native_position, save_chunk_manifestation_cache_record,
 };
-use super::manifestation_meshing::build_chunk_mesh;
-use super::manifestation_projection::{
+use super::meshing::build_chunk_mesh;
+use super::projection::{
     ChunkInstanceCullCandidate, chunk_center_in_active_native_space, chunk_instance_scale_in_active_native_space, select_visible_chunk_instance_entities,
+};
+use crate::usf::runtime::capability::manifestation::{
+    ChunkManifestationInstanceAudioEmitter, ChunkManifestationInstanceInteractionTrigger, ChunkManifestationInstanceParticleEmitter,
 };
 use crate::bevy::prelude::*;
 use crate::bevy_rapier3d::prelude::Collider;
@@ -15,7 +18,10 @@ use crate::render::components::{MainCamera, WorldPresentationRoot};
 use crate::usf::capability::{CapabilityId, UsfCapabilityGraph};
 use crate::usf::content::UsfActiveModpack;
 use crate::usf::definition::ZoneTypeId;
-use crate::usf::phenomenon::{ManifestationMaterialProfileDefinition, PhenomenonDefinitionRegistry, PhenomenonManifestationFieldContract};
+use crate::usf::phenomenon::{
+    InteractionTriggerDefinition, ManifestationAudioEmitterDefinition, ManifestationMaterialProfileDefinition, ManifestationParticleEmitterDefinition,
+    PhenomenonDefinitionRegistry, PhenomenonManifestationFieldContract,
+};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
 use crate::usf::zone::ZoneDensityProfile;
@@ -78,6 +84,9 @@ pub struct ChunkManifestationBinding {
     pub manifestation_field_contract: PhenomenonManifestationFieldContract,
     pub manifestation_material_profile: Option<ManifestationMaterialProfileDefinition>,
     pub manifestation_collider_enabled: bool,
+    pub manifestation_audio_emitter: Option<ManifestationAudioEmitterDefinition>,
+    pub manifestation_particle_emitter: Option<ManifestationParticleEmitterDefinition>,
+    pub interaction_trigger: Option<InteractionTriggerDefinition>,
     pub chunk_store_key: String,
 }
 
@@ -189,6 +198,33 @@ pub(crate) fn validate_chunk_manifestation_capability_contracts_system(
         if !capability_graph.simulation_capabilities.contains(&capability) {
             panic!(
                 "USF runtime capability validation failed: at least one phenomenon model enables manifestation collider and requires simulation capability '{}'.",
+                capability.0
+            );
+        }
+    }
+    if phenomenon_definitions.any_model_uses_manifestation_audio_emitter() {
+        let capability = CapabilityId::new("presentation.chunk_manifestation.instance_audio");
+        if !capability_graph.presentation_capabilities.contains(&capability) {
+            panic!(
+                "USF runtime capability validation failed: at least one phenomenon model defines manifestation audio and requires presentation capability '{}'.",
+                capability.0
+            );
+        }
+    }
+    if phenomenon_definitions.any_model_uses_manifestation_particle_emitter() {
+        let capability = CapabilityId::new("presentation.chunk_manifestation.instance_particles");
+        if !capability_graph.presentation_capabilities.contains(&capability) {
+            panic!(
+                "USF runtime capability validation failed: at least one phenomenon model defines manifestation particles and requires presentation capability '{}'.",
+                capability.0
+            );
+        }
+    }
+    if phenomenon_definitions.any_model_uses_interaction_trigger() {
+        let capability = CapabilityId::new("interaction.chunk_manifestation.instance_trigger");
+        if !capability_graph.interaction_capabilities.contains(&capability) {
+            panic!(
+                "USF runtime capability validation failed: at least one phenomenon model defines interaction trigger and requires interaction capability '{}'.",
                 capability.0
             );
         }
@@ -339,6 +375,9 @@ pub struct ChunkManifestationHydrationTask {
     pub manifestation_field_contract: PhenomenonManifestationFieldContract,
     pub manifestation_material_profile: Option<ManifestationMaterialProfileDefinition>,
     pub manifestation_collider_enabled: bool,
+    pub manifestation_audio_emitter: Option<ManifestationAudioEmitterDefinition>,
+    pub manifestation_particle_emitter: Option<ManifestationParticleEmitterDefinition>,
+    pub interaction_trigger: Option<InteractionTriggerDefinition>,
     pub chunk_store_key: String,
 }
 
@@ -350,6 +389,9 @@ pub struct ChunkManifestationHydrationArtifact {
     pub record: CachedChunkManifestationRecord,
     pub manifestation_material_profile: Option<ManifestationMaterialProfileDefinition>,
     pub manifestation_collider_enabled: bool,
+    pub manifestation_audio_emitter: Option<ManifestationAudioEmitterDefinition>,
+    pub manifestation_particle_emitter: Option<ManifestationParticleEmitterDefinition>,
+    pub interaction_trigger: Option<InteractionTriggerDefinition>,
     pub mesh: Option<Mesh>,
 }
 
@@ -454,6 +496,9 @@ pub(crate) fn run_chunk_manifestation_hydration_workflow_system(
             manifestation_field_contract: binding.manifestation_field_contract,
             manifestation_material_profile: binding.manifestation_material_profile,
             manifestation_collider_enabled: binding.manifestation_collider_enabled,
+            manifestation_audio_emitter: binding.manifestation_audio_emitter,
+            manifestation_particle_emitter: binding.manifestation_particle_emitter,
+            interaction_trigger: binding.interaction_trigger,
             chunk_store_key: binding.chunk_store_key,
         });
     }
@@ -473,7 +518,7 @@ pub(crate) fn run_chunk_manifestation_hydration_workflow_system(
     let spawned_tasks = in_flight_entities.len();
     hydration_state.mark_in_flight(&in_flight_entities);
 
-    let hydrate_async_input = crate::chunk::workflows::external::hydrate_chunk_manifestation_instances::AsyncInput {
+    let hydrate_async_input = crate::usf::runtime::manifestation::hydration_workflow::AsyncInput {
         settings: settings.clone(),
         tasks,
         build_workers: settings.hydration_build_workers.max(1),
@@ -482,13 +527,13 @@ pub(crate) fn run_chunk_manifestation_hydration_workflow_system(
 
     let handle = composite_workflow!(
         HydrateChunkManifestationInstancesBatch,
-        move in hydrate_async_input: crate::chunk::workflows::external::hydrate_chunk_manifestation_instances::AsyncInput,
+        move in hydrate_async_input: crate::usf::runtime::manifestation::hydration_workflow::AsyncInput,
     {
         let _ = run_workflow_ioe_with_timeout_control::<crate::chunk::workflows::chunk::hydrate_chunk_manifestation_instances::TypeIOE, _>(
             Duration::from_secs_f64(5.0),
             WorkflowTimeoutMode::VirtualTime,
             crate::chunk::workflows::chunk::hydrate_chunk_manifestation_instances::stages::build_artifacts::core_types::Input {
-                inner: crate::chunk::workflows::external::hydrate_chunk_manifestation_instances::Input {
+                inner: crate::usf::runtime::manifestation::hydration_workflow::Input {
                     inner: hydrate_async_input,
                 },
             },
@@ -583,6 +628,9 @@ pub(crate) fn prepare_chunk_manifestation_hydration_artifact(
         record,
         manifestation_material_profile: task.manifestation_material_profile,
         manifestation_collider_enabled: task.manifestation_collider_enabled,
+        manifestation_audio_emitter: task.manifestation_audio_emitter,
+        manifestation_particle_emitter: task.manifestation_particle_emitter,
+        interaction_trigger: task.interaction_trigger,
         mesh,
     }
 }
@@ -715,6 +763,9 @@ pub(crate) fn clear_unbound_chunk_manifestation_instances_system(
         commands.entity(entity).remove::<Mesh3d>();
         commands.entity(entity).remove::<MeshMaterial3d<StandardMaterial>>();
         commands.entity(entity).remove::<Collider>();
+        commands.entity(entity).remove::<ChunkManifestationInstanceAudioEmitter>();
+        commands.entity(entity).remove::<ChunkManifestationInstanceParticleEmitter>();
+        commands.entity(entity).remove::<ChunkManifestationInstanceInteractionTrigger>();
     }
 }
 

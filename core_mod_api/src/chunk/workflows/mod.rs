@@ -144,7 +144,7 @@ define_workflow_mod_OLD! {
         HydrateChunkManifestationInstances, timeout_secs: 5.0, timeout_mode: VirtualTime {
             user_imports: {
                 use crate::bevy::prelude::ResMut;
-                use crate::chunk::workflows::external::hydrate_chunk_manifestation_instances::{
+                use crate::usf::runtime::manifestation::hydration_workflow::{
                     ArtifactsOutput as BuildArtifactsOutput,
                     CommitOutput as CommitArtifactsOutput,
                     Error as HydrateChunkManifestationInstancesError,

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::bevy::prelude::*;
 use crate::core::orchestration::AppSet;
 use crate::rhai_binding::engine::statics::USF_ZLM_SCALES_BY_SCALE;
-use crate::usf::content::UsfActiveModpack;
+use crate::usf::content::{DPT_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID, UsfActiveModpack};
 use crate::usf::definition::{DptMetricId, DptSchema, ZoneTypeId};
 use crate::usf::scale::Scale;
 
@@ -48,6 +48,16 @@ impl Default for ZlmRegistry {
     }
 }
 impl ZlmRegistry {
+    fn classify_for_categorizer_id(&self, categorizer_id: &str, scale: Scale, schema: &DptSchema, metric_values: &[f32]) -> ZoneTypeId {
+        match categorizer_id.trim().to_ascii_lowercase().as_str() {
+            DPT_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID => self.classify(scale, schema, metric_values),
+            unknown => panic!(
+                "USF ZLM classification failed: unknown categorizer kernel '{}'; supported kernels: {}",
+                unknown, DPT_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID
+            ),
+        }
+    }
+
     pub fn classify(&self, scale: Scale, schema: &DptSchema, metric_values: &[f32]) -> ZoneTypeId {
         let Some(scale_map) = self.maps_by_scale.get(&scale) else {
             panic!("USF ZLM classification failed: missing map for scale index {}", scale.index_from_top());
@@ -79,7 +89,7 @@ impl ZlmRegistry {
     }
 
     pub fn classify_for_scale(&self, scale: Scale, schema: &DptSchema, metric_values: &[f32], active_modpack: &UsfActiveModpack) -> ZoneTypeId {
-        let _categorizer_id = active_modpack
+        let categorizer_id = active_modpack
             .scale_definition_for_scale(scale)
             .map(|scale_definition| scale_definition.dpt_categorizer_id.as_str())
             .unwrap_or_else(|| {
@@ -88,7 +98,7 @@ impl ZlmRegistry {
                     scale.index_from_top()
                 )
             });
-        self.classify(scale, schema, metric_values)
+        self.classify_for_categorizer_id(categorizer_id, scale, schema, metric_values)
     }
 
     pub fn validate_against(&self, active_modpack: &UsfActiveModpack) -> Result<(), String> {

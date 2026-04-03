@@ -55,8 +55,13 @@ impl DptStore {
 }
 
 fn metric_vector_for_sampler_id(sampler_id: &str, key: &DptChunkKey, schema: &DptSchema) -> Vec<f32> {
-    let _ = sampler_id;
-    deterministic_metric_vector(key, schema)
+    match sampler_id.trim().to_ascii_lowercase().as_str() {
+        DPT_SAMPLER_KERNEL_DEFAULT_ID => deterministic_metric_vector(key, schema),
+        unknown => panic!(
+            "USF DPT sampling failed: unknown sampler kernel '{}'; supported kernels: {}",
+            unknown, DPT_SAMPLER_KERNEL_DEFAULT_ID
+        ),
+    }
 }
 
 pub(crate) fn deterministic_metric_vector(key: &DptChunkKey, schema: &DptSchema) -> Vec<f32> {

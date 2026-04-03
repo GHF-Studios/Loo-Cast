@@ -1,5 +1,6 @@
 use crate::bevy::ecs::query::With;
 use crate::bevy::prelude::{Entity as BevyEntity, World as BevyWorld};
+use crate::chunk::components::{ChunkActor, ChunkLoader};
 use crate::player::components::Player;
 use crate::rhai_binding::runtime::ecs::dispatch_policy::submit_query_dispatch_entry;
 use crate::rhai_binding::runtime::ecs::system::query::bindings::types::Query;
@@ -7,9 +8,13 @@ use crate::rhai_binding::runtime::ecs::system::query::internals::types::{QueryDi
 
 pub const QUERY_SIG__ENTITY: &str = "QUERY_SIG__ENTITY";
 pub const QUERY_SIG__ENTITY__WITH_PLAYER: &str = "QUERY_SIG__ENTITY__WITH_PLAYER";
+pub const QUERY_SIG__ENTITY__WITH_CHUNK_ACTOR: &str = "QUERY_SIG__ENTITY__WITH_CHUNK_ACTOR";
+pub const QUERY_SIG__ENTITY__WITH_CHUNK_LOADER: &str = "QUERY_SIG__ENTITY__WITH_CHUNK_LOADER";
 
 pub const TYPE_PATH__ENTITY: &str = "bevy::ecs::entity::Entity";
 pub const TYPE_PATH__PLAYER: &str = "core_mod_api::player::components::Player";
+pub const TYPE_PATH__CHUNK_ACTOR: &str = "core_mod_api::chunk::components::ChunkActor";
+pub const TYPE_PATH__CHUNK_LOADER: &str = "core_mod_api::chunk::components::ChunkLoader";
 
 const QUERY_DATA__ENTITY: &[QueryDispatchTerm] = &[QueryDispatchTerm {
     type_id: TYPE_PATH__ENTITY,
@@ -28,6 +33,18 @@ fn dispatch_query_sig_entity_with_player(world: &mut BevyWorld) -> Query {
     Query::from_values(values)
 }
 
+fn dispatch_query_sig_entity_with_chunk_actor(world: &mut BevyWorld) -> Query {
+    let mut query = world.query_filtered::<BevyEntity, With<ChunkActor>>();
+    let values = query.iter(&*world).map(rhai::Dynamic::from).collect();
+    Query::from_values(values)
+}
+
+fn dispatch_query_sig_entity_with_chunk_loader(world: &mut BevyWorld) -> Query {
+    let mut query = world.query_filtered::<BevyEntity, With<ChunkLoader>>();
+    let values = query.iter(&*world).map(rhai::Dynamic::from).collect();
+    Query::from_values(values)
+}
+
 submit_query_dispatch_entry!(
     signature_id = QUERY_SIG__ENTITY,
     data_terms = QUERY_DATA__ENTITY,
@@ -42,4 +59,20 @@ submit_query_dispatch_entry!(
     filter_with = &[TYPE_PATH__PLAYER],
     filter_without = &[],
     dispatch = dispatch_query_sig_entity_with_player,
+);
+
+submit_query_dispatch_entry!(
+    signature_id = QUERY_SIG__ENTITY__WITH_CHUNK_ACTOR,
+    data_terms = QUERY_DATA__ENTITY,
+    filter_with = &[TYPE_PATH__CHUNK_ACTOR],
+    filter_without = &[],
+    dispatch = dispatch_query_sig_entity_with_chunk_actor,
+);
+
+submit_query_dispatch_entry!(
+    signature_id = QUERY_SIG__ENTITY__WITH_CHUNK_LOADER,
+    data_terms = QUERY_DATA__ENTITY,
+    filter_with = &[TYPE_PATH__CHUNK_LOADER],
+    filter_without = &[],
+    dispatch = dispatch_query_sig_entity_with_chunk_loader,
 );

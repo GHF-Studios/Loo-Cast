@@ -3,7 +3,10 @@ use std::collections::{HashMap, HashSet};
 use crate::bevy::prelude::*;
 use crate::config::{statics::CONFIG, types::ConfigValue};
 use crate::core::orchestration::AppSet;
-use crate::rhai_binding::engine::statics::{USF_DPT_SCHEMAS_BY_SCALE, USF_MODPACKS_BY_ID, USF_MODS_BY_ID, USF_SCALES_BY_INDEX, USF_ZONE_TYPES};
+use crate::rhai_binding::engine::statics::{
+    USF_DPT_CATEGORIZER_KERNEL_IDS, USF_DPT_SAMPLER_KERNEL_IDS, USF_DPT_SCHEMAS_BY_SCALE, USF_MODPACKS_BY_ID, USF_MODS_BY_ID, USF_SCALES_BY_INDEX,
+    USF_ZONE_TYPES,
+};
 use crate::usf::definition::{DptMetricDefinition, DptMetricId, DptMetricStorageClass, DptMetricValueType, DptSchema, ZoneTypeId};
 use crate::usf::scale::Scale;
 
@@ -239,11 +242,23 @@ impl UsfExecutionPlan {
 }
 
 fn script_dpt_samplers() -> HashSet<String> {
-    HashSet::from([DPT_SAMPLER_KERNEL_DEFAULT_ID.to_string()])
+    let kernels = USF_DPT_SAMPLER_KERNEL_IDS().lock().unwrap().clone();
+    if kernels.is_empty() {
+        panic!(
+            "USF content bootstrap failed: no DPT sampler kernels registered. Register at least one kernel id in '*.scale.rhai' via ctx.register_dpt_sampler_kernel_id(...)."
+        );
+    }
+    kernels
 }
 
 fn script_dpt_categorizers() -> HashSet<String> {
-    HashSet::from([DPT_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID.to_string()])
+    let kernels = USF_DPT_CATEGORIZER_KERNEL_IDS().lock().unwrap().clone();
+    if kernels.is_empty() {
+        panic!(
+            "USF content bootstrap failed: no DPT categorizer kernels registered. Register at least one kernel id in '*.scale.rhai' via ctx.register_dpt_categorizer_kernel_id(...)."
+        );
+    }
+    kernels
 }
 
 fn normalize_zone_type(value: &str) -> ZoneTypeId {

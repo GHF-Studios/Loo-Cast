@@ -11,7 +11,7 @@ pub const USF_DOMAIN_PHENOMENON_MODEL: &str = "usf.phenomenon_model";
 pub const USF_DOMAIN_PARTIAL_PHENOMENON_MODEL: &str = "usf.partial_phenomenon_model";
 pub const USF_DOMAIN_SUBSTRATE: &str = "usf.substrate";
 pub const USF_DOMAIN_ZONE: &str = "usf.zone";
-pub const USF_DOMAIN_CHUNK_MANIFESTATION: &str = "usf.runtime.chunk_manifestation";
+pub const USF_DOMAIN_MANIFESTATION_RUNTIME: &str = "usf.runtime.manifestation.runtime";
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum UsfAuthorityViolationMode {
@@ -106,7 +106,7 @@ impl Default for UsfWorldAuthorityContract {
             derived_runtime_domains: vec![
                 USF_DOMAIN_SUBSTRATE.to_string(),
                 USF_DOMAIN_ZONE.to_string(),
-                USF_DOMAIN_CHUNK_MANIFESTATION.to_string(),
+                USF_DOMAIN_MANIFESTATION_RUNTIME.to_string(),
             ],
             manifestation_authority_path: "usf.zone.ZoneRealizationState".to_string(),
             substrate_authority_path: "usf.substrate.AdaptiveSubstrateStore".to_string(),
@@ -319,7 +319,7 @@ pub(crate) fn validate_usf_world_authority_contract_system(contract: Res<UsfWorl
             panic!("USF world authority validation failed: missing canonical entity domain '{}'.", required);
         }
     }
-    let required_derived = [USF_DOMAIN_SUBSTRATE, USF_DOMAIN_ZONE, USF_DOMAIN_CHUNK_MANIFESTATION];
+    let required_derived = [USF_DOMAIN_SUBSTRATE, USF_DOMAIN_ZONE, USF_DOMAIN_MANIFESTATION_RUNTIME];
     for required in required_derived {
         if !contract.is_derived_domain(required) {
             panic!("USF world authority validation failed: missing derived runtime domain '{}'.", required);
@@ -339,7 +339,7 @@ mod tests {
         contract.assert_canonical_domain(USF_DOMAIN_PARTIAL_PHENOMENON_MODEL);
         contract.assert_derived_domain(USF_DOMAIN_SUBSTRATE);
         contract.assert_derived_domain(USF_DOMAIN_ZONE);
-        contract.assert_derived_domain(USF_DOMAIN_CHUNK_MANIFESTATION);
+        contract.assert_derived_domain(USF_DOMAIN_MANIFESTATION_RUNTIME);
     }
 
     #[test]

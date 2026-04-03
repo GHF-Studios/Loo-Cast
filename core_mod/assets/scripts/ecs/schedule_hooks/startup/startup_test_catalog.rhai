@@ -9,6 +9,7 @@ private fn run_startup_core_tests(world) {
     run_ecs_player_bundle_test(world);
     run_ecs_entity_primitives_test(world);
     run_ecs_query_messages_iterators_test(world);
+    run_ecs_world_resource_component_schedule_test(world);
 }
 
 private fn run_startup_example_tests() {

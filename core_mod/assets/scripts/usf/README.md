@@ -36,8 +36,8 @@ Authoring rule:
 
 Mod ownership is path-based for non-global script types:
 
-- `usf/<type>/<file>.rhai` -> belongs to `demo` (legacy/default test mod)
 - `usf/<type>/<mod.id>/.../*.rhai` -> belongs to that mod id
+- root-level package scripts are invalid and fail bootstrap (`usf/<type>/<file>.rhai` is no longer allowed)
 
 Current backend support is implemented for:
 
@@ -53,7 +53,7 @@ Current backend support is implemented for:
 - zone-supported phenomena (priority/weight/spawn policy/max_active) + selection policy
 - phenomenon-model registry with explicit scale-index selection
 - explicit model topology/support metadata (`monolithic_chunk` / `partitioned_by_chunk` + support radius)
-- fixed engine kernels for DPT sampling + DPT categorization (scripts select kernel IDs; they do not register new kernels)
+- fixed engine kernels for DPT sampling + DPT categorization (scripts must register kernel IDs they reference via scale ctx; kernel implementations remain engine-owned)
 
 Composition policy is strict:
 
@@ -89,8 +89,14 @@ Current placeholder gameplay contracts:
 - three derived root-position metrics are provided: `root_pos_x`, `root_pos_y`, `root_pos_z`
 - three zones are used: `empty` (no support/no manifestation instance), `spawn_buffer` (near-origin noop), and `solid` (spawns one manifestation-density phenomenon)
 - the chunk manifestation instance contract is currently driven by one phenomenon id: `demo_manifestation_density`
+- demo phenomenon/model scripts declare non-mesh contracts (`audio emitter`, `particle emitter`, `interaction trigger`) to validate capability-family extensibility end-to-end
 - `*.phenomenon_model.rhai` defines the model field policy via `set_manifestation_density_field(...)`
 - `*.phenomenon_model.rhai` can define model material policy via `set_manifestation_material_profile(...)`
+- `*.phenomenon_model.rhai` can define optional capability contracts via:
+  - `set_simulation_service(...)`
+  - `set_manifestation_audio_emitter(...)`
+  - `set_manifestation_particle_emitter(...)`
+  - `set_interaction_trigger(...)`
 - `*.phenomenon_model.rhai` must declare topology/support with:
   - `ctx.set_topology("monolithic_chunk" | "partitioned_by_chunk")`
   - `ctx.set_support_chunk_radius(...)` (required `>= 1` for partitioned)

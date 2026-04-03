@@ -11,6 +11,7 @@ use crate::usf::authority::{
 
 use crate::usf::phenomenon::components::{
     MonolithicPhenomenonModel, PartialPhenomenonModel, PartitionedPhenomenonModelMember, PartitionedPhenomenonModelRoot, Phenomenon, PhenomenonModel,
+    PhenomenonModelInteractionTriggerContract, PhenomenonModelManifestationAudioContract, PhenomenonModelManifestationParticleContract,
     PhenomenonModelProjectionContract, PhenomenonModelScriptDefinitionRef, PhenomenonModelSimulationContract, PhenomenonModelState, PhenomenonModelSupport,
     PhenomenonModelSupportBounds, PhenomenonModelTopology, PhenomenonNode, PhenomenonNodeLifecycle, PhenomenonNodeState, PhenomenonRootNodeRef,
     PhenomenonScriptDefinitionRef,
@@ -335,6 +336,9 @@ pub(super) fn ensure_scale_models_system(
                 )
             });
             let simulation_service = definitions.simulation_service_for_model(selected_model_id);
+            let manifestation_audio_emitter = definitions.manifestation_audio_emitter_for_model(selected_model_id);
+            let manifestation_particle_emitter = definitions.manifestation_particle_emitter_for_model(selected_model_id);
+            let interaction_trigger = definitions.interaction_trigger_for_model(selected_model_id);
             let projection = PhenomenonModelProjectionContract { contract: projection_contract };
             let model_name = format!(
                 "phenomena_model_scale{}_{}_{}",
@@ -372,6 +376,15 @@ pub(super) fn ensure_scale_models_system(
             }
             if let Some(contract) = simulation_service {
                 entity_commands.insert(PhenomenonModelSimulationContract { contract });
+            }
+            if let Some(contract) = manifestation_audio_emitter {
+                entity_commands.insert(PhenomenonModelManifestationAudioContract { contract });
+            }
+            if let Some(contract) = manifestation_particle_emitter {
+                entity_commands.insert(PhenomenonModelManifestationParticleContract { contract });
+            }
+            if let Some(contract) = interaction_trigger {
+                entity_commands.insert(PhenomenonModelInteractionTriggerContract { contract });
             }
             typed_models_by_phenomenon_scale.insert(lookup_key, entity_commands.id());
         }
@@ -538,6 +551,9 @@ pub(super) fn apply_child_scale_model_requests_system(
             continue;
         };
         let simulation_service = definitions.simulation_service_for_model(request.selected_model_id.as_str());
+        let manifestation_audio_emitter = definitions.manifestation_audio_emitter_for_model(request.selected_model_id.as_str());
+        let manifestation_particle_emitter = definitions.manifestation_particle_emitter_for_model(request.selected_model_id.as_str());
+        let interaction_trigger = definitions.interaction_trigger_for_model(request.selected_model_id.as_str());
         let configured_support_radius = definitions
             .support_chunk_radius_for_model(request.selected_model_id.as_str())
             .unwrap_or(match topology {
@@ -591,6 +607,15 @@ pub(super) fn apply_child_scale_model_requests_system(
         }
         if let Some(contract) = simulation_service {
             entity_commands.insert(PhenomenonModelSimulationContract { contract });
+        }
+        if let Some(contract) = manifestation_audio_emitter {
+            entity_commands.insert(PhenomenonModelManifestationAudioContract { contract });
+        }
+        if let Some(contract) = manifestation_particle_emitter {
+            entity_commands.insert(PhenomenonModelManifestationParticleContract { contract });
+        }
+        if let Some(contract) = interaction_trigger {
+            entity_commands.insert(PhenomenonModelInteractionTriggerContract { contract });
         }
         existing_model_keys.insert(model_key);
     }

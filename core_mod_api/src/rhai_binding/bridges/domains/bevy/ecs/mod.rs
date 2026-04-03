@@ -1,6 +1,6 @@
 core_mod_macros::reflect_extern_sub_module!(
     id = bevy::ecs,
-    sub_modules = [world, system, query, entity, bundle, message],
+    sub_modules = [world, system, query, entity, bundle, message, resource, component],
     traits = [],
     types = [],
     module_associated_functions = [bridge_info],
@@ -15,8 +15,10 @@ core_mod_macros::reflect_extern_module_associated_function!(
 
 pub mod bundle;
 pub mod catalog;
+pub mod component;
 pub mod entity;
 pub mod message;
 pub mod query;
+pub mod resource;
 pub mod system;
 pub mod world;

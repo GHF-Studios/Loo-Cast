@@ -15,6 +15,7 @@ pub mod types;
 
 pub use components::{
     MonolithicPhenomenonModel, PartialPhenomenonModel, PartitionedPhenomenonModelMember, PartitionedPhenomenonModelRoot, Phenomenon, PhenomenonModel,
+    PhenomenonModelInteractionTriggerContract, PhenomenonModelManifestationAudioContract, PhenomenonModelManifestationParticleContract,
     PhenomenonModelProjectionContract, PhenomenonModelProjectionSpec, PhenomenonModelScriptDefinitionRef, PhenomenonModelSimulationContract,
     PhenomenonModelState, PhenomenonModelSupport, PhenomenonModelSupportBounds, PhenomenonModelTopology, PhenomenonNode, PhenomenonNodeLifecycle,
     PhenomenonNodeState, PhenomenonRootNodeRef, PhenomenonScriptDefinitionRef,
@@ -35,8 +36,9 @@ pub use systems::{
     PhenomenonPersistenceHydrationState, PhenomenonPersistenceRuntimeSettings,
 };
 pub use types::{
-    ManifestationDensityFieldDefinition, ManifestationMaterialProfileDefinition, PhenomenonCapability, PhenomenonId, PhenomenonKind, PhenomenonLineage,
-    PhenomenonManifestationFieldContract, PhenomenonNodeKey, PhenomenonNodeSeed, PhenomenonSimulationServiceDefinition,
+    InteractionTriggerDefinition, ManifestationAudioEmitterDefinition, ManifestationDensityFieldDefinition, ManifestationMaterialProfileDefinition,
+    ManifestationParticleEmitterDefinition, PhenomenonCapability, PhenomenonId, PhenomenonKind, PhenomenonLineage, PhenomenonManifestationFieldContract,
+    PhenomenonNodeKey, PhenomenonNodeSeed, PhenomenonSimulationServiceDefinition,
 };
 
 use partition_runtime::sync_partitioned_model_members_system;
@@ -98,6 +100,9 @@ impl Plugin for PhenomenonPlugin {
             .register_type::<PhenomenonModelSupport>()
             .register_type::<PhenomenonModelProjectionContract>()
             .register_type::<PhenomenonModelSimulationContract>()
+            .register_type::<PhenomenonModelManifestationAudioContract>()
+            .register_type::<PhenomenonModelManifestationParticleContract>()
+            .register_type::<PhenomenonModelInteractionTriggerContract>()
             .register_type::<MonolithicPhenomenonModel>()
             .register_type::<PartitionedPhenomenonModelRoot>()
             .register_type::<PartitionedPhenomenonModelMember>()
@@ -123,6 +128,9 @@ impl Plugin for PhenomenonPlugin {
             .register_type::<ManifestationMaterialProfileDefinition>()
             .register_type::<PhenomenonManifestationFieldContract>()
             .register_type::<PhenomenonSimulationServiceDefinition>()
+            .register_type::<ManifestationAudioEmitterDefinition>()
+            .register_type::<ManifestationParticleEmitterDefinition>()
+            .register_type::<InteractionTriggerDefinition>()
             .register_type::<PhenomenonLatticeWindow>();
     }
 }

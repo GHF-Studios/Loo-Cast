@@ -13,7 +13,12 @@ core_mod_macros::reflect_extern_type!(
     id = bevy::ecs::world::entity_access::EntityWorldMut,
     rust_type = ScriptEntityWorldMut,
     value_semantics = scoped_mut,
-    method_functions = [bevy::ecs::world::entity_access::EntityWorldMut::id],
+    method_functions = [
+        bevy::ecs::world::entity_access::EntityWorldMut::id,
+        bevy::ecs::world::entity_access::EntityWorldMut::insert_component,
+        bevy::ecs::world::entity_access::EntityWorldMut::insert_components,
+        bevy::ecs::world::entity_access::EntityWorldMut::remove_component,
+    ],
 );
 
 core_mod_macros::reflect_extern_method_function!(
@@ -22,5 +27,41 @@ core_mod_macros::reflect_extern_method_function!(
         let get_name = name.clone();
         engine.register_get(get_name, |entity_world_mut: &mut ScriptEntityWorldMut| entity_world_mut.id());
         engine.register_fn(name, |entity_world_mut: &mut ScriptEntityWorldMut| entity_world_mut.id());
+    },
+);
+
+core_mod_macros::reflect_extern_method_function!(
+    id = bevy::ecs::world::entity_access::EntityWorldMut::insert_component,
+    registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
+        engine.register_fn(
+            name,
+            |entity_world_mut: &mut ScriptEntityWorldMut, component: crate::rhai_binding::runtime::ecs::component::bindings::types::Component| {
+                entity_world_mut.insert_component(component);
+            },
+        );
+    },
+);
+
+core_mod_macros::reflect_extern_method_function!(
+    id = bevy::ecs::world::entity_access::EntityWorldMut::remove_component,
+    registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
+        engine.register_fn(
+            name,
+            |entity_world_mut: &mut ScriptEntityWorldMut, component_type_id: rhai::ImmutableString| {
+                entity_world_mut.remove_component(component_type_id);
+            },
+        );
+    },
+);
+
+core_mod_macros::reflect_extern_method_function!(
+    id = bevy::ecs::world::entity_access::EntityWorldMut::insert_components,
+    registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
+        engine.register_fn(
+            name,
+            |entity_world_mut: &mut ScriptEntityWorldMut, components: rhai::Array| {
+                entity_world_mut.insert_components(components);
+            },
+        );
     },
 );

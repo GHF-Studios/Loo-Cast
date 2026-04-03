@@ -31,20 +31,26 @@ pub struct UsfCapabilityGraph {
     pub world_capabilities: Vec<CapabilityId>,
     pub presentation_capabilities: Vec<CapabilityId>,
     pub simulation_capabilities: Vec<CapabilityId>,
+    pub interaction_capabilities: Vec<CapabilityId>,
     pub contracts_by_capability: HashMap<CapabilityId, CapabilityExecutionContract>,
 }
 impl Default for UsfCapabilityGraph {
     fn default() -> Self {
-        let world_capabilities = vec![CapabilityId::new("world.chunk_manifestation_cache")];
-        let presentation_capabilities = vec![CapabilityId::new("presentation.chunk_manifestation.instance_render")];
+        let world_capabilities = vec![CapabilityId::new("world.chunk_manifestation.derived_cache")];
+        let presentation_capabilities = vec![
+            CapabilityId::new("presentation.chunk_manifestation.instance_render"),
+            CapabilityId::new("presentation.chunk_manifestation.instance_audio"),
+            CapabilityId::new("presentation.chunk_manifestation.instance_particles"),
+        ];
         let simulation_capabilities = vec![CapabilityId::new("simulation.chunk_manifestation.instance_collider")];
+        let interaction_capabilities = vec![CapabilityId::new("interaction.chunk_manifestation.instance_trigger")];
 
         let mut contracts_by_capability = HashMap::new();
         contracts_by_capability.insert(
-            CapabilityId::new("world.chunk_manifestation_cache"),
+            CapabilityId::new("world.chunk_manifestation.derived_cache"),
             CapabilityExecutionContract {
-                id: CapabilityId::new("world.chunk_manifestation_cache"),
-                owner_path: "usf.runtime.chunk_manifestation".to_string(),
+                id: CapabilityId::new("world.chunk_manifestation.derived_cache"),
+                owner_path: "usf.runtime.manifestation.runtime".to_string(),
                 authority_mode: CapabilityAuthorityMode::ProjectionOnly,
             },
         );
@@ -52,7 +58,7 @@ impl Default for UsfCapabilityGraph {
             CapabilityId::new("presentation.chunk_manifestation.instance_render"),
             CapabilityExecutionContract {
                 id: CapabilityId::new("presentation.chunk_manifestation.instance_render"),
-                owner_path: "usf.runtime.manifestation_capability".to_string(),
+                owner_path: "usf.runtime.capability.manifestation".to_string(),
                 authority_mode: CapabilityAuthorityMode::ProjectionOnly,
             },
         );
@@ -60,7 +66,31 @@ impl Default for UsfCapabilityGraph {
             CapabilityId::new("simulation.chunk_manifestation.instance_collider"),
             CapabilityExecutionContract {
                 id: CapabilityId::new("simulation.chunk_manifestation.instance_collider"),
-                owner_path: "usf.runtime.manifestation_capability".to_string(),
+                owner_path: "usf.runtime.capability.manifestation".to_string(),
+                authority_mode: CapabilityAuthorityMode::LeasedLocalAuthority,
+            },
+        );
+        contracts_by_capability.insert(
+            CapabilityId::new("presentation.chunk_manifestation.instance_audio"),
+            CapabilityExecutionContract {
+                id: CapabilityId::new("presentation.chunk_manifestation.instance_audio"),
+                owner_path: "usf.runtime.capability.manifestation".to_string(),
+                authority_mode: CapabilityAuthorityMode::ProjectionOnly,
+            },
+        );
+        contracts_by_capability.insert(
+            CapabilityId::new("presentation.chunk_manifestation.instance_particles"),
+            CapabilityExecutionContract {
+                id: CapabilityId::new("presentation.chunk_manifestation.instance_particles"),
+                owner_path: "usf.runtime.capability.manifestation".to_string(),
+                authority_mode: CapabilityAuthorityMode::ProjectionOnly,
+            },
+        );
+        contracts_by_capability.insert(
+            CapabilityId::new("interaction.chunk_manifestation.instance_trigger"),
+            CapabilityExecutionContract {
+                id: CapabilityId::new("interaction.chunk_manifestation.instance_trigger"),
+                owner_path: "usf.runtime.capability.manifestation".to_string(),
                 authority_mode: CapabilityAuthorityMode::LeasedLocalAuthority,
             },
         );
@@ -69,6 +99,7 @@ impl Default for UsfCapabilityGraph {
             world_capabilities,
             presentation_capabilities,
             simulation_capabilities,
+            interaction_capabilities,
             contracts_by_capability,
         }
     }
@@ -84,12 +115,16 @@ fn validate_capability_graph_system(graph: Res<UsfCapabilityGraph>) {
     if graph.simulation_capabilities.is_empty() {
         panic!("USF capability graph validation failed: simulation.* capability bucket must not be empty");
     }
+    if graph.interaction_capabilities.is_empty() {
+        panic!("USF capability graph validation failed: interaction.* capability bucket must not be empty");
+    }
 
     for capability in graph
         .world_capabilities
         .iter()
         .chain(graph.presentation_capabilities.iter())
         .chain(graph.simulation_capabilities.iter())
+        .chain(graph.interaction_capabilities.iter())
     {
         if !graph.contracts_by_capability.contains_key(capability) {
             panic!(
@@ -109,5 +144,58 @@ impl Plugin for CapabilityPlugin {
             .register_type::<CapabilityAuthorityMode>()
             .register_type::<CapabilityExecutionContract>()
             .register_type::<UsfCapabilityGraph>();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn contains_capability(capabilities: &[CapabilityId], expected: &str) -> bool {
+        let expected = CapabilityId::new(expected);
+        capabilities.contains(&expected)
+    }
+
+    #[test]
+    fn default_capability_graph_includes_extended_manifestation_families() {
+        let graph = UsfCapabilityGraph::default();
+        assert!(contains_capability(
+            &graph.presentation_capabilities,
+            "presentation.chunk_manifestation.instance_render"
+        ));
+        assert!(contains_capability(
+            &graph.presentation_capabilities,
+            "presentation.chunk_manifestation.instance_audio"
+        ));
+        assert!(contains_capability(
+            &graph.presentation_capabilities,
+            "presentation.chunk_manifestation.instance_particles"
+        ));
+        assert!(contains_capability(
+            &graph.simulation_capabilities,
+            "simulation.chunk_manifestation.instance_collider"
+        ));
+        assert!(contains_capability(
+            &graph.interaction_capabilities,
+            "interaction.chunk_manifestation.instance_trigger"
+        ));
+    }
+
+    #[test]
+    fn default_capability_graph_has_contract_for_every_declared_capability() {
+        let graph = UsfCapabilityGraph::default();
+        for capability in graph
+            .world_capabilities
+            .iter()
+            .chain(graph.presentation_capabilities.iter())
+            .chain(graph.simulation_capabilities.iter())
+            .chain(graph.interaction_capabilities.iter())
+        {
+            assert!(
+                graph.contracts_by_capability.contains_key(capability),
+                "missing contract for capability '{}'",
+                capability.0
+            );
+        }
     }
 }

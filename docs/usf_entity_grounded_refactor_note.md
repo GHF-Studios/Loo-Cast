@@ -11,8 +11,10 @@ Scope: `core_mod_api::usf` runtime/persistence authority cut
 - Zone runtime no longer classifies chunks from `UsfWorld` procedural sampling as authority.
 - USF runtime naming moved from `chunk_surface` to `chunk_manifestation` for non-ontology cache/render workflows.
 - USF module path naming moved from `usf.mod_runtime` to `usf.runtime`.
+- USF runtime ownership split introduced explicit subtrees: `usf::runtime::manifestation::*` (derived orchestration) and
+  `usf::runtime::capability::*` (engine execution kernels).
 - Legacy global Rhai mutation surfaces under `core_mod_api::usf::{substrate, phenomenon}` were removed from bridge exports.
-- Mesh/collider/material application for manifestation instances moved into a dedicated runtime capability module (`usf::runtime::manifestation_capability`).
+- Mesh/collider/material application for manifestation instances moved into a dedicated runtime capability module (`usf::runtime::capability::manifestation`).
 - Phenomenon model field validation now checks capability contracts instead of hardcoded phenomenon-kind string equality.
 - Partitioned model member lifecycle authority moved into dedicated runtime module (`usf::phenomenon::partition_runtime`).
 - Authoritative phenomenon/model persistence writes moved from direct sync writes to queued/batched persistence runtime flush (`usf::phenomenon::persistence_runtime`).

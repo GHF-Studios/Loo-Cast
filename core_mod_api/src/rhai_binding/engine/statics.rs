@@ -97,6 +97,8 @@ pub struct ScriptUsfModManifestDefinition {
 #[derive(Debug, Clone, Default)]
 pub struct ScriptUsfModContribution {
     pub zone_types: HashSet<String>,
+    pub dpt_sampler_kernel_ids: HashSet<String>,
+    pub dpt_categorizer_kernel_ids: HashSet<String>,
     pub dpt_schemas_by_scale: HashMap<u8, ScriptDptSchemaDefinition>,
     pub zlm_scales_by_scale: HashMap<u8, ScriptZlmScaleDefinition>,
     pub zone_density_profile_by_type: HashMap<String, ScriptZoneDensityProfileDefinition>,
@@ -200,6 +202,62 @@ impl Default for ScriptSimulationServiceDefinition {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct ScriptManifestationAudioEmitterDefinition {
+    pub event_id: String,
+    pub looped: bool,
+    pub gain: f32,
+    pub spatial_range: f32,
+    pub start_offset_seconds: f32,
+}
+impl Default for ScriptManifestationAudioEmitterDefinition {
+    fn default() -> Self {
+        Self {
+            event_id: "audio.event.default".to_string(),
+            looped: false,
+            gain: 1.0,
+            spatial_range: 256.0,
+            start_offset_seconds: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ScriptManifestationParticleEmitterDefinition {
+    pub effect_id: String,
+    pub emission_rate: f32,
+    pub burst_count: u32,
+    pub lifetime_seconds: f32,
+    pub radius: f32,
+}
+impl Default for ScriptManifestationParticleEmitterDefinition {
+    fn default() -> Self {
+        Self {
+            effect_id: "particles.effect.default".to_string(),
+            emission_rate: 1.0,
+            burst_count: 1,
+            lifetime_seconds: 1.0,
+            radius: 1.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ScriptInteractionTriggerDefinition {
+    pub trigger_id: String,
+    pub cooldown_seconds: f32,
+    pub max_targets: u32,
+}
+impl Default for ScriptInteractionTriggerDefinition {
+    fn default() -> Self {
+        Self {
+            trigger_id: "interaction.trigger.default".to_string(),
+            cooldown_seconds: 0.1,
+            max_targets: 1,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ScriptPhenomenonModelDefinition {
     pub id: String,
@@ -213,6 +271,9 @@ pub struct ScriptPhenomenonModelDefinition {
     pub manifestation_material: Option<ScriptManifestationMaterialDefinition>,
     pub manifestation_collider_enabled: bool,
     pub simulation_service: Option<ScriptSimulationServiceDefinition>,
+    pub manifestation_audio_emitter: Option<ScriptManifestationAudioEmitterDefinition>,
+    pub manifestation_particle_emitter: Option<ScriptManifestationParticleEmitterDefinition>,
+    pub interaction_trigger: Option<ScriptInteractionTriggerDefinition>,
 }
 impl Default for ScriptPhenomenonModelDefinition {
     fn default() -> Self {
@@ -228,6 +289,9 @@ impl Default for ScriptPhenomenonModelDefinition {
             manifestation_material: None,
             manifestation_collider_enabled: false,
             simulation_service: None,
+            manifestation_audio_emitter: None,
+            manifestation_particle_emitter: None,
+            interaction_trigger: None,
         }
     }
 }
@@ -248,6 +312,11 @@ pub struct ScriptZoneSelectionPolicyDefinition {
 
 export_static!(self, crate::rhai_binding::engine::statics::SCHEDULE_HOOKS: Lazy<Mutex<Vec<String>>> = Lazy::new(Default::default));
 export_static!(self, crate::rhai_binding::engine::statics::USF_ZONE_TYPES: Lazy<Mutex<HashSet<String>>> = Lazy::new(Default::default));
+export_static!(self, crate::rhai_binding::engine::statics::USF_DPT_SAMPLER_KERNEL_IDS: Lazy<Mutex<HashSet<String>>> = Lazy::new(Default::default));
+export_static!(
+    self,
+    crate::rhai_binding::engine::statics::USF_DPT_CATEGORIZER_KERNEL_IDS: Lazy<Mutex<HashSet<String>>> = Lazy::new(Default::default)
+);
 export_static!(self, crate::rhai_binding::engine::statics::USF_DPT_SCHEMAS_BY_SCALE: Lazy<Mutex<HashMap<u8, ScriptDptSchemaDefinition>>> = Lazy::new(Default::default));
 export_static!(self, crate::rhai_binding::engine::statics::USF_ZLM_SCALES_BY_SCALE: Lazy<Mutex<HashMap<u8, ScriptZlmScaleDefinition>>> = Lazy::new(Default::default));
 export_static!(self, crate::rhai_binding::engine::statics::USF_ZONE_DENSITY_PROFILE_BY_TYPE: Lazy<Mutex<HashMap<String, ScriptZoneDensityProfileDefinition>>> = Lazy::new(Default::default));

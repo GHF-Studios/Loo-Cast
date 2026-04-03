@@ -75,3 +75,12 @@ pub fn resolve_message_drain_dispatch(message_type_id: &str) -> MessageDrainDisp
         )
     })
 }
+
+pub fn registered_message_type_ids() -> Vec<String> {
+    MESSAGE_WRITE_DISPATCH_REGISTRY.keys().cloned().collect::<Vec<_>>()
+}
+
+pub fn is_registered_message_type(message_type_id: &str) -> bool {
+    let key = message_dispatch_key(message_type_id);
+    MESSAGE_WRITE_DISPATCH_REGISTRY.contains_key(&key) || MESSAGE_DRAIN_DISPATCH_REGISTRY.contains_key(&key)
+}

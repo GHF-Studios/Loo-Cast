@@ -16,6 +16,8 @@ pub const QUERY_SIGNATURE_PREFIX: &str = "QUERY_SIG__";
 pub const MESSAGE_SIGNATURE_PREFIX: &str = "MESSAGE_SIG__";
 /// Prefix required for bundle signature IDs.
 pub const BUNDLE_SIGNATURE_PREFIX: &str = "BUNDLE_SIG__";
+/// Prefix required for resource signature IDs.
+pub const RESOURCE_SIGNATURE_PREFIX: &str = "RESOURCE_SIG__";
 
 /// Validate query signature ID format.
 pub fn validate_query_signature_id(signature_id: &str) {
@@ -30,6 +32,11 @@ pub fn validate_message_signature_id(signature_id: &str) {
 /// Validate bundle signature ID format.
 pub fn validate_bundle_signature_id(signature_id: &str) {
     validate_signature_id(signature_id, BUNDLE_SIGNATURE_PREFIX, "bundle");
+}
+
+/// Validate resource signature ID format.
+pub fn validate_resource_signature_id(signature_id: &str) {
+    validate_signature_id(signature_id, RESOURCE_SIGNATURE_PREFIX, "resource");
 }
 
 /// Validate canonical Rust-style type path IDs used by dispatch contracts.
@@ -150,24 +157,123 @@ macro_rules! submit_bundle_spawn_dispatch_entry {
 }
 pub(crate) use submit_bundle_spawn_dispatch_entry;
 
+macro_rules! submit_resource_insert_dispatch_entry {
+    (
+        signature_id = $signature_id:expr,
+        resource_type_id = $resource_type_id:expr,
+        dispatch = $dispatch:path $(,)?
+    ) => {
+        inventory::submit! {
+            crate::rhai_binding::runtime::ecs::resource::internals::types::ResourceInsertDispatchEntry {
+                signature_id: $signature_id,
+                resource_type_id: $resource_type_id,
+                dispatch: $dispatch,
+            }
+        }
+    };
+}
+pub(crate) use submit_resource_insert_dispatch_entry;
+
+macro_rules! submit_resource_init_dispatch_entry {
+    (
+        signature_id = $signature_id:expr,
+        resource_type_id = $resource_type_id:expr,
+        dispatch = $dispatch:path $(,)?
+    ) => {
+        inventory::submit! {
+            crate::rhai_binding::runtime::ecs::resource::internals::types::ResourceInitDispatchEntry {
+                signature_id: $signature_id,
+                resource_type_id: $resource_type_id,
+                dispatch: $dispatch,
+            }
+        }
+    };
+}
+pub(crate) use submit_resource_init_dispatch_entry;
+
+macro_rules! submit_resource_get_dispatch_entry {
+    (
+        signature_id = $signature_id:expr,
+        resource_type_id = $resource_type_id:expr,
+        dispatch = $dispatch:path $(,)?
+    ) => {
+        inventory::submit! {
+            crate::rhai_binding::runtime::ecs::resource::internals::types::ResourceGetDispatchEntry {
+                signature_id: $signature_id,
+                resource_type_id: $resource_type_id,
+                dispatch: $dispatch,
+            }
+        }
+    };
+}
+pub(crate) use submit_resource_get_dispatch_entry;
+
+macro_rules! submit_resource_get_mut_dispatch_entry {
+    (
+        signature_id = $signature_id:expr,
+        resource_type_id = $resource_type_id:expr,
+        dispatch = $dispatch:path $(,)?
+    ) => {
+        inventory::submit! {
+            crate::rhai_binding::runtime::ecs::resource::internals::types::ResourceGetMutDispatchEntry {
+                signature_id: $signature_id,
+                resource_type_id: $resource_type_id,
+                dispatch: $dispatch,
+            }
+        }
+    };
+}
+pub(crate) use submit_resource_get_mut_dispatch_entry;
+
+macro_rules! submit_resource_remove_dispatch_entry {
+    (
+        signature_id = $signature_id:expr,
+        resource_type_id = $resource_type_id:expr,
+        dispatch = $dispatch:path $(,)?
+    ) => {
+        inventory::submit! {
+            crate::rhai_binding::runtime::ecs::resource::internals::types::ResourceRemoveDispatchEntry {
+                signature_id: $signature_id,
+                resource_type_id: $resource_type_id,
+                dispatch: $dispatch,
+            }
+        }
+    };
+}
+pub(crate) use submit_resource_remove_dispatch_entry;
+
 #[cfg(test)]
 mod tests {
     use super::{
-        validate_bundle_signature_id, validate_message_signature_id, validate_query_signature_id, validate_trait_path_id, validate_type_path_id,
-        validate_type_path_list,
+        validate_bundle_signature_id, validate_message_signature_id, validate_query_signature_id, validate_resource_signature_id, validate_trait_path_id,
+        validate_type_path_id, validate_type_path_list,
     };
     use std::collections::HashSet;
 
     use crate::rhai_binding::bridges::domains::bevy::ecs::catalog::{
         bundle_signatures::{BUNDLE_SIG__PLAYER__SPAWN_SINGLE, TYPE_PATH__PLAYER_BUNDLE, TYPE_PATH__TRAIT_BUNDLE},
         message_signatures::{MESSAGE_SIG__SCRIPT_PROBE__DRAIN, MESSAGE_SIG__SCRIPT_PROBE__WRITE, TYPE_PATH__SCRIPT_PROBE_MESSAGE},
-        query_signatures::{QUERY_SIG__ENTITY, QUERY_SIG__ENTITY__WITH_PLAYER, TYPE_PATH__ENTITY, TYPE_PATH__PLAYER},
+        query_signatures::{
+            QUERY_SIG__ENTITY, QUERY_SIG__ENTITY__WITH_CHUNK_ACTOR, QUERY_SIG__ENTITY__WITH_CHUNK_LOADER, QUERY_SIG__ENTITY__WITH_PLAYER,
+            TYPE_PATH__CHUNK_ACTOR, TYPE_PATH__CHUNK_LOADER, TYPE_PATH__ENTITY, TYPE_PATH__PLAYER,
+        },
+        resource_signatures::{
+            RESOURCE_SIG__SCRIPT_PROBE__GET, RESOURCE_SIG__SCRIPT_PROBE__GET_MUT, RESOURCE_SIG__SCRIPT_PROBE__INIT, RESOURCE_SIG__SCRIPT_PROBE__INSERT,
+            RESOURCE_SIG__SCRIPT_PROBE__REMOVE, TYPE_PATH__SCRIPT_PROBE_RESOURCE,
+        },
     };
     use crate::rhai_binding::internals::statics::RUNTIME_BINDING_GRAPH;
     use crate::rhai_binding::runtime::ecs::bundle::internals::statics::bundle_spawn_dispatch_registry;
     use crate::rhai_binding::runtime::ecs::bundle::internals::types::{BundleSpawnDispatchEntry, bundle_spawn_dispatch_key_from_paths};
     use crate::rhai_binding::runtime::ecs::message::internals::statics::{resolve_message_drain_dispatch, resolve_message_write_dispatch};
     use crate::rhai_binding::runtime::ecs::message::internals::types::{MessageDrainDispatchEntry, MessageWriteDispatchEntry};
+    use crate::rhai_binding::runtime::ecs::resource::internals::statics::{
+        resolve_resource_get_dispatch, resolve_resource_get_mut_dispatch, resolve_resource_init_dispatch, resolve_resource_insert_dispatch,
+        resolve_resource_remove_dispatch,
+    };
+    use crate::rhai_binding::runtime::ecs::resource::internals::types::{
+        ResourceGetDispatchEntry, ResourceGetMutDispatchEntry, ResourceInitDispatchEntry, ResourceInsertDispatchEntry, ResourceRemoveDispatchEntry,
+    };
     use crate::rhai_binding::runtime::ecs::system::query::internals::statics::resolve_query_dispatch;
     use crate::rhai_binding::runtime::ecs::system::query::internals::types::{
         QueryDispatchAccess, QueryDispatchEntry, QueryDispatchTerm, query_data_key, query_filter_key,
@@ -192,6 +298,8 @@ mod tests {
 
         assert!(ids.contains(QUERY_SIG__ENTITY));
         assert!(ids.contains(QUERY_SIG__ENTITY__WITH_PLAYER));
+        assert!(ids.contains(QUERY_SIG__ENTITY__WITH_CHUNK_ACTOR));
+        assert!(ids.contains(QUERY_SIG__ENTITY__WITH_CHUNK_LOADER));
     }
 
     #[test]
@@ -236,6 +344,69 @@ mod tests {
     }
 
     #[test]
+    fn resource_signatures_follow_policy_and_are_registered() {
+        let mut insert_ids = HashSet::new();
+        for entry in inventory::iter::<ResourceInsertDispatchEntry> {
+            validate_resource_signature_id(entry.signature_id);
+            validate_type_path_id("ResourceInsertDispatchEntry::resource_type_id", entry.resource_type_id);
+            assert!(
+                insert_ids.insert(entry.signature_id),
+                "Duplicate resource insert signature id '{}'",
+                entry.signature_id
+            );
+        }
+        assert!(insert_ids.contains(RESOURCE_SIG__SCRIPT_PROBE__INSERT));
+
+        let mut init_ids = HashSet::new();
+        for entry in inventory::iter::<ResourceInitDispatchEntry> {
+            validate_resource_signature_id(entry.signature_id);
+            validate_type_path_id("ResourceInitDispatchEntry::resource_type_id", entry.resource_type_id);
+            assert!(
+                init_ids.insert(entry.signature_id),
+                "Duplicate resource init signature id '{}'",
+                entry.signature_id
+            );
+        }
+        assert!(init_ids.contains(RESOURCE_SIG__SCRIPT_PROBE__INIT));
+
+        let mut get_ids = HashSet::new();
+        for entry in inventory::iter::<ResourceGetDispatchEntry> {
+            validate_resource_signature_id(entry.signature_id);
+            validate_type_path_id("ResourceGetDispatchEntry::resource_type_id", entry.resource_type_id);
+            assert!(
+                get_ids.insert(entry.signature_id),
+                "Duplicate resource get signature id '{}'",
+                entry.signature_id
+            );
+        }
+        assert!(get_ids.contains(RESOURCE_SIG__SCRIPT_PROBE__GET));
+
+        let mut get_mut_ids = HashSet::new();
+        for entry in inventory::iter::<ResourceGetMutDispatchEntry> {
+            validate_resource_signature_id(entry.signature_id);
+            validate_type_path_id("ResourceGetMutDispatchEntry::resource_type_id", entry.resource_type_id);
+            assert!(
+                get_mut_ids.insert(entry.signature_id),
+                "Duplicate resource get_mut signature id '{}'",
+                entry.signature_id
+            );
+        }
+        assert!(get_mut_ids.contains(RESOURCE_SIG__SCRIPT_PROBE__GET_MUT));
+
+        let mut remove_ids = HashSet::new();
+        for entry in inventory::iter::<ResourceRemoveDispatchEntry> {
+            validate_resource_signature_id(entry.signature_id);
+            validate_type_path_id("ResourceRemoveDispatchEntry::resource_type_id", entry.resource_type_id);
+            assert!(
+                remove_ids.insert(entry.signature_id),
+                "Duplicate resource remove signature id '{}'",
+                entry.signature_id
+            );
+        }
+        assert!(remove_ids.contains(RESOURCE_SIG__SCRIPT_PROBE__REMOVE));
+    }
+
+    #[test]
     fn query_metadata_and_dispatch_catalog_are_coherent() {
         let graph = RUNTIME_BINDING_GRAPH();
         assert!(graph.generic_definitions.contains_key(QUERY_GENERIC_ID));
@@ -250,15 +421,28 @@ mod tests {
         }]);
         let no_filter_key = query_filter_key(&[], &[]);
         let player_filter_key = query_filter_key(&[TYPE_PATH__PLAYER], &[]);
+        let chunk_actor_filter_key = query_filter_key(&[TYPE_PATH__CHUNK_ACTOR], &[]);
+        let chunk_loader_filter_key = query_filter_key(&[TYPE_PATH__CHUNK_LOADER], &[]);
 
         let _ = resolve_query_dispatch(data_key.as_str(), no_filter_key.as_str());
         let _ = resolve_query_dispatch(data_key.as_str(), player_filter_key.as_str());
+        let _ = resolve_query_dispatch(data_key.as_str(), chunk_actor_filter_key.as_str());
+        let _ = resolve_query_dispatch(data_key.as_str(), chunk_loader_filter_key.as_str());
     }
 
     #[test]
     fn message_catalog_resolves_known_signatures() {
         let _ = resolve_message_write_dispatch(TYPE_PATH__SCRIPT_PROBE_MESSAGE);
         let _ = resolve_message_drain_dispatch(TYPE_PATH__SCRIPT_PROBE_MESSAGE);
+    }
+
+    #[test]
+    fn resource_catalog_resolves_known_signatures() {
+        let _ = resolve_resource_insert_dispatch(TYPE_PATH__SCRIPT_PROBE_RESOURCE);
+        let _ = resolve_resource_init_dispatch(TYPE_PATH__SCRIPT_PROBE_RESOURCE);
+        let _ = resolve_resource_get_dispatch(TYPE_PATH__SCRIPT_PROBE_RESOURCE);
+        let _ = resolve_resource_get_mut_dispatch(TYPE_PATH__SCRIPT_PROBE_RESOURCE);
+        let _ = resolve_resource_remove_dispatch(TYPE_PATH__SCRIPT_PROBE_RESOURCE);
     }
 
     #[test]

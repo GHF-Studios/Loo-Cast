@@ -1,12 +1,12 @@
 use crate::bevy::prelude::*;
 use crate::chunk::components::Chunk;
 use crate::chunk::resources::ChunkManager;
-use crate::usf::runtime::chunk_manifestation::{
+use crate::usf::runtime::capability::manifestation::{ChunkManifestationCapabilityPolicy, apply_chunk_manifestation_capabilities};
+use crate::usf::runtime::manifestation::field::{canonical_grid_coord, density_field_signature};
+use crate::usf::runtime::manifestation::runtime::{
     ChunkManifestationBinding, ChunkManifestationHydrationArtifact, ChunkManifestationHydrationTask, UsfChunkManifestationInstance,
     UsfChunkManifestationRuntimeSettings, UsfChunkManifestationStore, prepare_chunk_manifestation_hydration_artifact,
 };
-use crate::usf::runtime::manifestation_capability::{ChunkManifestationCapabilityPolicy, apply_chunk_manifestation_capabilities};
-use crate::usf::runtime::manifestation_field::{canonical_grid_coord, density_field_signature};
 use crate::workflow::types::Outcome;
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
@@ -171,6 +171,9 @@ fn hydration_artifact_matches_binding(
         && artifact.record.density_field_signature == density_field_signature(binding.manifestation_field_contract)
         && artifact.manifestation_material_profile == binding.manifestation_material_profile
         && artifact.manifestation_collider_enabled == binding.manifestation_collider_enabled
+        && artifact.manifestation_audio_emitter == binding.manifestation_audio_emitter
+        && artifact.manifestation_particle_emitter == binding.manifestation_particle_emitter
+        && artifact.interaction_trigger == binding.interaction_trigger
 }
 
 fn build_artifacts_parallel(
