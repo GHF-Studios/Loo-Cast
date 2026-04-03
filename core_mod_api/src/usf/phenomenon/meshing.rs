@@ -99,7 +99,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn seam_contract_keeps_shared_face_on_same_lattice_coordinates() {
+    fn seam_spec_keeps_shared_face_on_same_lattice_coordinates() {
         let a = seam_safe_lattice_window(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.5, 1.0, 1.0), 12);
         let b = seam_safe_lattice_window(Vec3::new(0.5, 0.0, 0.0), Vec3::new(0.5, 1.0, 1.0), 12);
 

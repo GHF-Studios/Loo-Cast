@@ -8,10 +8,10 @@ Scope: current `core_mod_api::usf` architecture contract
 1. Canonical persistence authority is entity-grounded:
    - `Phenomenon`
    - `PhenomenonModel`
-   - `PartialPhenomenaModel`
-2. Metrics, substrate leaves, zone maps, and manifestation records are derived runtime/cache state.
+   - `PartialPhenomenonModel`
+2. Metrics, substrate leaves, zone maps, and chunk realization records are runtime/cache state.
 3. Runtime model resolution is explicit by `(phenomenon_id, scale_index)`. There is no primary-model authority path.
-4. Zone realization is manifestation authority for chunk-level phenomenon binding.
+4. Zone classification/selection is authority for chunk-level phenomenon selection.
 5. Substrate stores adaptive geometry and leaf containers only; transition policy is simulation-owned.
 
 ## Ownership Boundaries
@@ -19,8 +19,8 @@ Scope: current `core_mod_api::usf` architecture contract
 ### Phenomenon Layer (Canonical)
 
 - `Phenomenon`: global identity + kind.
-- `PhenomenonModel`: scale-specific manifestation contract and support topology.
-- `PartialPhenomenaModel`: partition member state keyed by `(phenomenon_id, scale, chunk_coord)`.
+- `PhenomenonModel`: scale-specific semantic state/projection and support topology.
+- `PartialPhenomenonModel`: partition member state keyed by `(phenomenon_id, scale, chunk_coord)`.
 
 This layer is the only authoritative world truth in USF runtime persistence.
 
@@ -43,14 +43,14 @@ This layer is the only authoritative world truth in USF runtime persistence.
 - Zones are classifier outputs over substrate summaries.
 - Zone runtime computes stable region/grouping and parent relations.
 - Zone realization decides which phenomenon entity is active for a zone and emits spawn/despawn lifecycle events.
-- Zone lifecycle is the single authority path for chunk manifestation binding.
+- Zone lifecycle is the single authority path for chunk realization intent resolution.
 
-### Manifestation Layer (Derived Capability Application)
+### Chunk Realization Layer (Derived Output Application)
 
-- Chunk manifestation is non-authoritative cache/projection state.
-- Runtime bindings are derived from zone realization + substrate summaries + phenomenon model contracts.
-- Engine-level capability application (mesh/material/collider) is isolated in runtime capability code.
-- Runtime toggles (`attach_meshes`, `enable_instance_culling`) control presentation behavior; collider attachment is model-scoped capability intent.
+- Chunk realization is non-authoritative cache/projection state.
+- Runtime intents are derived from zone realization + substrate summaries + runtime phenomenon-model entities/support.
+- Engine-level output application (mesh/material/collider/audio/particles/trigger/simulation_service) is isolated in bridge registrations.
+- Instance culling is runtime-configured presentation behavior; mesh/material/collider/audio/particles/trigger/simulation_service are model-emitted intent payloads.
 
 ## Scale Contract
 
@@ -62,12 +62,12 @@ This layer is the only authoritative world truth in USF runtime persistence.
 
 ## Runtime Pipeline (Current)
 
-1. Load/hydrate canonical phenomenon/model entities.
+1. Load/restore canonical phenomenon/model entities.
 2. Build/rebuild affected chunk substrate from model projections + support contracts.
 3. Derive zone runtime state from substrate summaries.
 4. Reconcile zone realization (spawn/despawn phenomenon containers by zone policy).
-5. Derive chunk manifestation bindings from zone realization + substrate authority.
-6. Build manifestation cache artifacts and apply engine capabilities to chunk instances.
+5. Derive chunk realization intents from zone realization + substrate authority.
+6. Build realization cache artifacts and apply bridge-registered outputs to chunk instances.
 
 ## Persistence Contract
 
@@ -76,8 +76,8 @@ Authoritative:
 - phenomenon-model record
 - partial phenomenon-model record
 
-Derived cache:
-- chunk manifestation cache records (`cache_authority = "derived_cache"`)
+Runtime cache:
+- chunk realization cache records (`cache_authority = "runtime_cache"`)
 
 Rule:
 - Cached arrays/records are never canonical truth and may be dropped/rebuilt.
@@ -100,5 +100,5 @@ Rule:
 ## Explicit Non-Goals
 
 - Backward compatibility with legacy primary-model assumptions.
-- Treating chunk cache/surface/manifestation records as ontology.
+- Treating chunk cache/surface/realization records as ontology.
 - Reintroducing dense authoritative world fields as persistence truth.

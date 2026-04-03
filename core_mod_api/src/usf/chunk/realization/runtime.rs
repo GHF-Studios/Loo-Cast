@@ -1,23 +1,23 @@
 use super::field::{
-    ChunkRealizationRecord, SerializableGridCoord, canonical_grid_coord, chunk_file_path, density_field_signature,
-    generate_chunk_realization_record, load_chunk_realization_record, sample_root_native_position, save_chunk_realization_record,
+    ChunkRealizationRecord, SerializableGridCoord, canonical_grid_coord, chunk_file_path, density_field_signature, generate_chunk_realization_record,
+    load_chunk_realization_record, sample_root_native_position, save_chunk_realization_record,
 };
 use super::meshing::build_chunk_mesh;
 use super::projection::{
     ChunkInstanceCullCandidate, chunk_center_in_active_native_space, chunk_instance_scale_in_active_native_space, select_visible_chunk_instance_entities,
 };
-use crate::rhai_binding::bridges::domains::core_mod_api::usf::realization_channels::{
-    ChunkRealizationAudioEmitter, ChunkRealizationInteractionTrigger, ChunkRealizationParticleEmitter, RealizationChannelPayload,
-    RealizationChannelRegistry,
-};
 use crate::bevy::prelude::*;
 use crate::bevy_rapier3d::prelude::Collider;
-use crate::usf::chunk::components::{Chunk, ChunkLoader};
 use crate::config::statics::CONFIG;
 use crate::player::components::Player;
 use crate::render::components::{MainCamera, WorldPresentationRoot};
+use crate::rhai_binding::bridges::domains::core_mod_api::usf::output_channels::{
+    ChunkRealizationAudioEmitter, ChunkRealizationInteractionTrigger, ChunkRealizationParticleEmitter, ChunkRealizationSimulationService,
+    OutputChannelPayload, OutputChannelRegistry,
+};
+use crate::usf::chunk::components::{Chunk, ChunkLoader};
 use crate::usf::mod_packs::UsfActiveModPack;
-use crate::usf::phenomenon::{PhenomenonDefinitionRegistry, PhenomenonRealizationFieldContract};
+use crate::usf::phenomenon::{PhenomenonDefinitionRegistry, PhenomenonOutputFieldSpec};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
 use crate::usf::zone::ZoneDensityProfile;
@@ -35,9 +35,8 @@ use tokio::task::JoinHandle;
 #[reflect(Resource)]
 pub struct UsfChunkRealizationRuntimeSettings {
     pub enabled: bool,
-    pub attach_meshes: bool,
     pub enable_instance_culling: bool,
-    pub binding_grace_frames: u32,
+    pub intent_grace_frames: u32,
     pub world_seed: u64,
     pub sample_step: u16,
     pub iso_level: u8,
@@ -50,9 +49,8 @@ impl Default for UsfChunkRealizationRuntimeSettings {
     fn default() -> Self {
         Self {
             enabled: CONFIG().get::<bool>("usf/chunk/realization/enabled"),
-            attach_meshes: CONFIG().get::<bool>("usf/chunk/realization/attach_meshes"),
             enable_instance_culling: CONFIG().get::<bool>("usf/chunk/realization/enable_instance_culling"),
-            binding_grace_frames: CONFIG().get::<u32>("usf/chunk/realization/binding_grace_frames"),
+            intent_grace_frames: CONFIG().get::<u32>("usf/chunk/realization/intent_grace_frames"),
             world_seed: CONFIG().get::<u64>("usf/chunk/realization/world_seed"),
             sample_step: CONFIG().get::<u16>("usf/chunk/realization/sample_step"),
             iso_level: CONFIG().get::<u8>("usf/chunk/realization/iso_level"),
@@ -78,8 +76,9 @@ pub struct ChunkRealizationIntent {
     pub zone_density_profile: ZoneDensityProfile,
     pub zone_density_signature: u64,
     pub phenomenon_script_id: String,
-    pub realization_field_contract: PhenomenonRealizationFieldContract,
-    pub channel_payloads: HashMap<String, RealizationChannelPayload>,
+    pub selected_model_id: String,
+    pub output_field_spec: PhenomenonOutputFieldSpec,
+    pub channel_payloads: HashMap<String, OutputChannelPayload>,
     pub chunk_store_key: String,
 }
 
@@ -159,9 +158,9 @@ impl ChunkRealizationReconcileWorkflowState {
     }
 }
 
-pub(crate) fn validate_chunk_realization_channel_contracts_system(
+pub(crate) fn validate_chunk_realization_channel_registrations_system(
     settings: Option<Res<UsfChunkRealizationRuntimeSettings>>,
-    channel_registry: Option<Res<RealizationChannelRegistry>>,
+    channel_registry: Option<Res<OutputChannelRegistry>>,
     phenomenon_definitions: Option<Res<PhenomenonDefinitionRegistry>>,
 ) {
     let Some(settings) = settings else {
@@ -171,49 +170,40 @@ pub(crate) fn validate_chunk_realization_channel_contracts_system(
         return;
     }
     let Some(channel_registry) = channel_registry else {
-        panic!("USF runtime channel-contract validation failed: missing RealizationChannelRegistry resource.");
+        panic!("USF runtime channel-registration validation failed: missing OutputChannelRegistry resource.");
     };
     let ensure_channel = |channel: &str, reason: &str| {
-        if !channel_registry.has(channel) {
+        if !channel_registry.has_registration(channel) {
             panic!(
-                "USF runtime channel-contract validation failed: {} requires realization channel '{}', but it is not enabled.",
-                reason, channel
-            );
-        }
-        if !channel_registry.has_contract(channel) {
-            panic!(
-                "USF runtime channel-contract validation failed: {} requires realization channel '{}', but no execution contract is registered.",
+                "USF runtime channel-registration validation failed: {} requires output channel '{}', but no execution registration is present.",
                 reason, channel
             );
         }
     };
 
-    if settings.attach_meshes {
-        ensure_channel("mesh", "attach_meshes=true");
-    }
     let Some(phenomenon_definitions) = phenomenon_definitions else {
-        panic!("USF runtime channel-contract validation failed: missing PhenomenonDefinitionRegistry resource.");
+        panic!("USF runtime channel-registration validation failed: missing PhenomenonDefinitionRegistry resource.");
     };
-    if phenomenon_definitions.any_model_declares_realization_collider_contract() {
-        ensure_channel(
-            "collider",
-            "at least one phenomenon model enables collider output",
-        );
+    if phenomenon_definitions.any_model_declares_output_density_field() {
+        ensure_channel("mesh", "at least one phenomenon model defines mesh density output");
     }
-    if phenomenon_definitions.any_model_declares_realization_audio_emitter_contract() {
+    if phenomenon_definitions.any_model_declares_output_material_profile() {
+        ensure_channel("material", "at least one phenomenon model defines material profile output");
+    }
+    if phenomenon_definitions.any_model_declares_output_collider() {
+        ensure_channel("collider", "at least one phenomenon model enables collider output");
+    }
+    if phenomenon_definitions.any_model_declares_output_audio_emitter() {
         ensure_channel("audio", "at least one phenomenon model defines audio output");
     }
-    if phenomenon_definitions.any_model_declares_realization_particle_emitter_contract() {
-        ensure_channel(
-            "particles",
-            "at least one phenomenon model defines particle output",
-        );
+    if phenomenon_definitions.any_model_declares_output_particle_emitter() {
+        ensure_channel("particles", "at least one phenomenon model defines particle output");
     }
-    if phenomenon_definitions.any_model_declares_interaction_trigger_contract() {
-        ensure_channel(
-            "trigger",
-            "at least one phenomenon model defines interaction trigger",
-        );
+    if phenomenon_definitions.any_model_declares_output_interaction_trigger() {
+        ensure_channel("trigger", "at least one phenomenon model defines interaction trigger");
+    }
+    if phenomenon_definitions.any_model_declares_simulation_service() {
+        ensure_channel("simulation_service", "at least one phenomenon model defines simulation service");
     }
 }
 
@@ -358,8 +348,9 @@ pub struct ChunkRealizationIntentSnapshot {
     pub zone_density_profile: ZoneDensityProfile,
     pub zone_density_signature: u64,
     pub phenomenon_script_id: String,
-    pub realization_field_contract: PhenomenonRealizationFieldContract,
-    pub channel_payloads: HashMap<String, RealizationChannelPayload>,
+    pub selected_model_id: String,
+    pub output_field_spec: PhenomenonOutputFieldSpec,
+    pub channel_payloads: HashMap<String, OutputChannelPayload>,
     pub chunk_store_key: String,
 }
 
@@ -369,7 +360,7 @@ pub struct ChunkRealizationResolvedArtifact {
     pub chunk_coord: GridVec,
     pub canonical_coord: GridVec,
     pub record: ChunkRealizationRecord,
-    pub channel_payloads: HashMap<String, RealizationChannelPayload>,
+    pub channel_payloads: HashMap<String, OutputChannelPayload>,
     pub mesh: Option<Mesh>,
 }
 
@@ -446,15 +437,15 @@ pub(crate) fn run_chunk_realization_reconcile_workflow_system(
     let mut tasks = Vec::<ChunkRealizationIntentSnapshot>::new();
 
     for entity in batch_entities {
-        let Ok((chunk, maybe_instance, binding)) = chunk_query.get(entity) else {
+        let Ok((chunk, maybe_instance, intent)) = chunk_query.get(entity) else {
             // Chunk disappeared between queueing and reconcile dispatch.
             continue;
         };
         if maybe_instance.is_some() {
             continue;
         }
-        let Some(binding) = binding.cloned() else {
-            // Binding authority can lag one or more frames; retry this chunk later.
+        let Some(intent) = intent.cloned() else {
+            // Intent authority can lag one or more frames; retry this chunk later.
             reconcile_state.queue(entity);
             continue;
         };
@@ -467,13 +458,14 @@ pub(crate) fn run_chunk_realization_reconcile_workflow_system(
             chunk_coord: chunk.coord.clone(),
             chunk_scale,
             canonical_coord,
-            zone_type: binding.zone_type,
-            zone_density_profile: binding.zone_density_profile,
-            zone_density_signature: binding.zone_density_signature,
-            phenomenon_script_id: binding.phenomenon_script_id,
-            realization_field_contract: binding.realization_field_contract,
-            channel_payloads: binding.channel_payloads,
-            chunk_store_key: binding.chunk_store_key,
+            zone_type: intent.zone_type,
+            zone_density_profile: intent.zone_density_profile,
+            zone_density_signature: intent.zone_density_signature,
+            phenomenon_script_id: intent.phenomenon_script_id,
+            selected_model_id: intent.selected_model_id,
+            output_field_spec: intent.output_field_spec,
+            channel_payloads: intent.channel_payloads,
+            chunk_store_key: intent.chunk_store_key,
         });
     }
 
@@ -558,19 +550,21 @@ pub(crate) fn resolve_chunk_realization_artifact(
         task.chunk_store_key.as_str(),
     );
     let expected_coord = SerializableGridCoord::from_grid(&task.canonical_coord);
-    let expected_density_field_signature = density_field_signature(task.realization_field_contract);
+    let expected_density_field_signature = density_field_signature(task.output_field_spec);
 
     let mut record = load_chunk_realization_record(&chunk_file).filter(|loaded| {
-        loaded.world_seed == settings.world_seed
+        loaded.schema_version == 3
+            && loaded.world_seed == settings.world_seed
             && loaded.active_scale_index == task.chunk_scale.index_from_top()
             && loaded.chunk_coord == expected_coord
             && loaded.zone_type.eq_ignore_ascii_case(&task.zone_type.0)
             && loaded.zone_density_signature == task.zone_density_signature
             && loaded.density_field_signature == expected_density_field_signature
             && loaded.phenomenon_script_id.eq_ignore_ascii_case(task.phenomenon_script_id.as_str())
+            && loaded.selected_model_id.eq_ignore_ascii_case(task.selected_model_id.as_str())
             && loaded.sample_step == settings.sample_step
             && loaded.iso_level == settings.iso_level
-            && loaded.cache_authority == "derived_cache"
+            && loaded.cache_authority == "runtime_cache"
     });
 
     if record.is_none() {
@@ -584,7 +578,8 @@ pub(crate) fn resolve_chunk_realization_artifact(
             task.zone_density_profile,
             task.zone_density_signature,
             task.phenomenon_script_id.as_str(),
-            task.realization_field_contract,
+            task.selected_model_id.as_str(),
+            task.output_field_spec,
         );
         if let Err(error) = save_chunk_realization_record(&chunk_file, &generated) {
             warn!("USF runtime persistence write failed for {:?}: {}", chunk_file, error);
@@ -593,7 +588,8 @@ pub(crate) fn resolve_chunk_realization_artifact(
     }
 
     let record = record.expect("USF runtime chunk record should exist after generate/load");
-    let mesh = if settings.attach_meshes { build_chunk_mesh(&record) } else { None };
+    let mesh_requested = matches!(task.channel_payloads.get("mesh"), Some(OutputChannelPayload::Mesh));
+    let mesh = if mesh_requested { build_chunk_mesh(&record) } else { None };
 
     ChunkRealizationResolvedArtifact {
         chunk_entity: task.chunk_entity,
@@ -725,8 +721,8 @@ pub(crate) fn clear_unbound_chunk_realization_instances_system(
     mut commands: Commands,
     instance_query: Query<(Entity, Option<&ChunkRealizationIntent>), With<ChunkRealizationInstance>>,
 ) {
-    for (entity, binding) in instance_query.iter() {
-        if binding.is_some() {
+    for (entity, intent) in instance_query.iter() {
+        if intent.is_some() {
             continue;
         }
         commands.entity(entity).remove::<ChunkRealizationInstance>();
@@ -736,6 +732,7 @@ pub(crate) fn clear_unbound_chunk_realization_instances_system(
         commands.entity(entity).remove::<ChunkRealizationAudioEmitter>();
         commands.entity(entity).remove::<ChunkRealizationParticleEmitter>();
         commands.entity(entity).remove::<ChunkRealizationInteractionTrigger>();
+        commands.entity(entity).remove::<ChunkRealizationSimulationService>();
     }
 }
 

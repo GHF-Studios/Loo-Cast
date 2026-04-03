@@ -1,10 +1,10 @@
 use rhai::{Array, ImmutableString};
 
+use crate::bevy::ecs::entity::Entity as BevyEntity;
 use crate::rhai_binding::runtime::ecs::component::{
     bindings::types::Component,
     internals::statics::{COMPONENT_CTOR_REGISTRY, COMPONENT_REMOVE_REGISTRY},
 };
-use crate::bevy::ecs::entity::Entity as BevyEntity;
 use crate::rhai_binding::runtime::ecs::world::entity_ref::{
     bindings::types::{EntityMut, EntityRef, EntityWorldMut},
     internals::traits::{EntityMutApi, EntityRefApi, EntityWorldMutApi},

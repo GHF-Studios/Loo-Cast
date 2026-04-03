@@ -11,7 +11,7 @@ use crate::usf::pos::types::GridXyz;
 use crate::usf::scale::Scale;
 
 use super::components::{
-    MonolithicPhenomenonModel, PartialPhenomenonModel, PhenomenonModelProjectionContract, PhenomenonModelState, PhenomenonModelSupport, PhenomenonModelTopology,
+    MonolithicPhenomenonModel, PartialPhenomenonModel, PhenomenonModelProjection, PhenomenonModelState, PhenomenonModelSupport, PhenomenonModelTopology,
 };
 use super::types::PhenomenonId;
 
@@ -296,7 +296,7 @@ pub fn model_record_from_runtime(
     scale: Scale,
     topology: PhenomenonModelTopology,
     support: &PhenomenonModelSupport,
-    projection: &PhenomenonModelProjectionContract,
+    projection: &PhenomenonModelProjection,
     state: &PhenomenonModelState,
 ) -> PersistedPhenomenonModelRecord {
     PersistedPhenomenonModelRecord {
@@ -307,9 +307,9 @@ pub fn model_record_from_runtime(
         topology: topology_to_tag(topology).to_string(),
         support_anchor_chunk: PersistedGridCoord::from_grid(&support.support.anchor_chunk),
         support_chunk_radius: support.support.chunk_radius,
-        projection_metric_name: projection.contract.metric_name.to_ascii_lowercase(),
-        projection_bias: projection.contract.projection_bias,
-        projection_gain: projection.contract.projection_gain,
+        projection_metric_name: projection.spec.metric_name.to_ascii_lowercase(),
+        projection_bias: projection.spec.projection_bias,
+        projection_gain: projection.spec.projection_gain,
         scalar_channels: state.scalar_channels.clone(),
     }
 }
@@ -334,7 +334,7 @@ pub fn monolithic_model_record_from_runtime(
     model_id: &str,
     monolithic_model: &MonolithicPhenomenonModel,
     support: &PhenomenonModelSupport,
-    projection: &PhenomenonModelProjectionContract,
+    projection: &PhenomenonModelProjection,
     state: &PhenomenonModelState,
 ) -> PersistedPhenomenonModelRecord {
     model_record_from_runtime(
@@ -466,13 +466,13 @@ mod tests {
             schema_version: PHENOMENON_SCHEMA_VERSION,
             phenomenon_id: 7,
             kind: "RealizationDensityDebug".to_string(),
-            script_id: "phenomenon.demo.realization_density".to_string(),
+            script_id: "phenomenon.demo.mass_density".to_string(),
             metadata: vec![("author".to_string(), "test".to_string())],
         };
         let model_record = PersistedPhenomenonModelRecord {
             schema_version: PHENOMENON_MODEL_SCHEMA_VERSION,
             phenomenon_id: 7,
-            model_id: "demo_realization_density.default".to_string(),
+            model_id: "demo_mass_density.default".to_string(),
             scale_index: 0,
             topology: "monolithic_chunk".to_string(),
             support_anchor_chunk: PersistedGridCoord::from_grid(&test_coord()),
@@ -485,7 +485,7 @@ mod tests {
         let partial_record = PersistedPartialPhenomenonModelRecord {
             schema_version: PARTIAL_PHENOMENON_MODEL_SCHEMA_VERSION,
             phenomenon_id: 7,
-            model_id: "demo_realization_density.default".to_string(),
+            model_id: "demo_mass_density.default".to_string(),
             scale_index: 1,
             chunk_coord: PersistedGridCoord::from_grid(&test_coord()),
             partition_key: 9182,
@@ -524,7 +524,7 @@ mod tests {
             schema_version: PHENOMENON_SCHEMA_VERSION,
             phenomenon_id: 17,
             kind: "RealizationDensityDebug".to_string(),
-            script_id: "phenomenon.demo.realization_density".to_string(),
+            script_id: "phenomenon.demo.mass_density".to_string(),
             metadata: vec![("durability".to_string(), "fsync".to_string())],
         };
 
@@ -553,7 +553,7 @@ mod tests {
     fn migration_upgrades_v1_model_records_to_v2() {
         let legacy = serde_json::json!({
             "phenomenon_id": 77_u64,
-            "model_id": "demo_realization_density.default",
+            "model_id": "demo_mass_density.default",
             "scale_index": 0_u8,
             "support_anchor_chunk": PersistedGridCoord::from_grid(&test_coord()),
             "support_chunk_radius": 3_u16

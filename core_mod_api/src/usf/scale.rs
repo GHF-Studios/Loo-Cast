@@ -718,13 +718,6 @@ impl Scale {
         self.zoom_out();
         self
     }
-
-    /// Backwards-compatible alias for the canonical depth mapping.
-    /// Use this for all scale->z placement in proxies, player visuals, and helpers.
-    #[inline]
-    pub fn compute_z(self) -> f32 {
-        self.canonical_z()
-    }
 }
 
 pub trait ConstScale: 'static + Send + Sync + Clone + Copy + Default + Debug + Reflect + PartialOrd + Ord + PartialEq + Eq + Hash {

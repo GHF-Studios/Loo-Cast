@@ -5,8 +5,8 @@ use crate::rhai_binding::meta::abstract_::trait_identity::GetTypeId;
 use crate::rhai_binding::value_semantics::modes::{GetTypeValueSemantics, TypeValueSemantics};
 use crate::usf::scale::Scale;
 use crate::{
-    usf::chunk::components::{ChunkActor, ChunkLoader},
     config::statics::CONFIG,
+    usf::chunk::components::{ChunkActor, ChunkLoader},
 };
 
 use super::components::{Player, PlayerSpawnRecovery};
@@ -38,7 +38,7 @@ impl Default for PlayerBundle {
                 ..Default::default()
             },
             transform: Transform {
-                translation: Vec3::new(0.0, 0.0, Scale::MAX.compute_z() + CONFIG().get::<f32>("player/z_offset")),
+                translation: Vec3::new(0.0, 0.0, Scale::MAX.canonical_z() + CONFIG().get::<f32>("player/z_offset")),
                 ..Default::default()
             },
             name: Name::new("player"),

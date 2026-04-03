@@ -1,7 +1,8 @@
 use crate::bevy::prelude::{Mut, Time, Virtual, World as BevyWorld};
-use crate::rhai_binding::bridges::domains::core_mod_api::usf::realization_channels::ChunkRealizationChannelTelemetry;
+use crate::rhai_binding::bridges::domains::core_mod_api::usf::output_channels::ChunkRealizationChannelTelemetry;
 use crate::rhai_binding::engine::preprocess::preprocess_script_source;
 use crate::rhai_binding::engine::resources::MainScriptEngineHandle;
+use crate::rhai_binding::engine::statics::USF_BOOTSTRAP_REPORT;
 use crate::rhai_binding::runtime::ecs::world::bindings::types::World;
 use crate::rhai_binding::value_semantics::access_cell::{AccessCell, Scoped};
 use crate::usf::phenomenon::PhenomenonDebugStats;
@@ -111,10 +112,16 @@ struct ScheduleEntrypointCommonParams {
     elapsed_seconds: rhai::FLOAT,
     has_virtual_time: bool,
     chunk_realization_mesh_instances: rhai::INT,
+    chunk_realization_material_instances: rhai::INT,
     chunk_realization_collider_instances: rhai::INT,
     chunk_realization_audio_emitters: rhai::INT,
     chunk_realization_particle_emitters: rhai::INT,
     chunk_realization_interaction_triggers: rhai::INT,
+    chunk_realization_simulation_services: rhai::INT,
+    bootstrap_global_script_count: rhai::INT,
+    bootstrap_package_script_count: rhai::INT,
+    bootstrap_selected_mod_count: rhai::INT,
+    bootstrap_executed_entrypoint_count: rhai::INT,
 }
 
 #[derive(Clone, Debug)]
@@ -164,19 +171,37 @@ fn build_schedule_entrypoint_params(world: &BevyWorld, entrypoint_name: &str, en
     } else {
         (0.0, 0.0, false)
     };
-    let (chunk_realization_mesh_instances, chunk_realization_collider_instances, chunk_realization_audio_emitters, chunk_realization_particle_emitters, chunk_realization_interaction_triggers) =
-        world
-            .get_resource::<ChunkRealizationChannelTelemetry>()
-            .map(|telemetry| {
-                (
-                    telemetry.mesh_instances as rhai::INT,
-                    telemetry.collider_instances as rhai::INT,
-                    telemetry.audio_emitters as rhai::INT,
-                    telemetry.particle_emitters as rhai::INT,
-                    telemetry.interaction_triggers as rhai::INT,
-                )
-            })
-            .unwrap_or((0, 0, 0, 0, 0));
+    let (
+        chunk_realization_mesh_instances,
+        chunk_realization_material_instances,
+        chunk_realization_collider_instances,
+        chunk_realization_audio_emitters,
+        chunk_realization_particle_emitters,
+        chunk_realization_interaction_triggers,
+        chunk_realization_simulation_services,
+    ) = world
+        .get_resource::<ChunkRealizationChannelTelemetry>()
+        .map(|telemetry| {
+            (
+                telemetry.mesh_instances as rhai::INT,
+                telemetry.material_instances as rhai::INT,
+                telemetry.collider_instances as rhai::INT,
+                telemetry.audio_emitters as rhai::INT,
+                telemetry.particle_emitters as rhai::INT,
+                telemetry.interaction_triggers as rhai::INT,
+                telemetry.simulation_services as rhai::INT,
+            )
+        })
+        .unwrap_or((0, 0, 0, 0, 0, 0, 0));
+    let (bootstrap_global_script_count, bootstrap_package_script_count, bootstrap_selected_mod_count, bootstrap_executed_entrypoint_count) = {
+        let report = USF_BOOTSTRAP_REPORT().lock().unwrap();
+        (
+            report.discovered_global_scripts.len() as rhai::INT,
+            report.discovered_package_scripts.len() as rhai::INT,
+            report.selected_mod_ids.len() as rhai::INT,
+            report.executed_entrypoints.len() as rhai::INT,
+        )
+    };
     let common = ScheduleEntrypointCommonParams {
         entrypoint_name: entrypoint_name.to_string(),
         entrypoint_file: entrypoint_file.to_string(),
@@ -186,10 +211,16 @@ fn build_schedule_entrypoint_params(world: &BevyWorld, entrypoint_name: &str, en
         elapsed_seconds,
         has_virtual_time,
         chunk_realization_mesh_instances,
+        chunk_realization_material_instances,
         chunk_realization_collider_instances,
         chunk_realization_audio_emitters,
         chunk_realization_particle_emitters,
         chunk_realization_interaction_triggers,
+        chunk_realization_simulation_services,
+        bootstrap_global_script_count,
+        bootstrap_package_script_count,
+        bootstrap_selected_mod_count,
+        bootstrap_executed_entrypoint_count,
     };
     let (active_scale_index, has_active_scale) = active_scale_context(world);
 
@@ -254,78 +285,142 @@ pub(in super::super) fn register_schedule_entrypoint_param_types(engine: &mut En
     engine.register_get("chunk_realization_mesh_instances", |params: &mut ScheduleEntrypointCommonParams| {
         params.chunk_realization_mesh_instances
     });
-    engine.register_get(
-        "chunk_realization_collider_instances",
-        |params: &mut ScheduleEntrypointCommonParams| params.chunk_realization_collider_instances,
-    );
+    engine.register_get("chunk_realization_material_instances", |params: &mut ScheduleEntrypointCommonParams| {
+        params.chunk_realization_material_instances
+    });
+    engine.register_get("chunk_realization_collider_instances", |params: &mut ScheduleEntrypointCommonParams| {
+        params.chunk_realization_collider_instances
+    });
     engine.register_get("chunk_realization_audio_emitters", |params: &mut ScheduleEntrypointCommonParams| {
         params.chunk_realization_audio_emitters
     });
     engine.register_get("chunk_realization_particle_emitters", |params: &mut ScheduleEntrypointCommonParams| {
         params.chunk_realization_particle_emitters
     });
-    engine.register_get(
-        "chunk_realization_interaction_triggers",
-        |params: &mut ScheduleEntrypointCommonParams| params.chunk_realization_interaction_triggers,
-    );
+    engine.register_get("chunk_realization_interaction_triggers", |params: &mut ScheduleEntrypointCommonParams| {
+        params.chunk_realization_interaction_triggers
+    });
+    engine.register_get("chunk_realization_simulation_services", |params: &mut ScheduleEntrypointCommonParams| {
+        params.chunk_realization_simulation_services
+    });
+    engine.register_get("bootstrap_global_script_count", |params: &mut ScheduleEntrypointCommonParams| {
+        params.bootstrap_global_script_count
+    });
+    engine.register_get("bootstrap_package_script_count", |params: &mut ScheduleEntrypointCommonParams| {
+        params.bootstrap_package_script_count
+    });
+    engine.register_get("bootstrap_selected_mod_count", |params: &mut ScheduleEntrypointCommonParams| {
+        params.bootstrap_selected_mod_count
+    });
+    engine.register_get("bootstrap_executed_entrypoint_count", |params: &mut ScheduleEntrypointCommonParams| {
+        params.bootstrap_executed_entrypoint_count
+    });
 
     engine.register_type_with_name::<GlobalScheduleEntrypointParams>("GlobalScheduleEntrypointParams");
     engine.register_get("common", |params: &mut GlobalScheduleEntrypointParams| params.common.clone());
-    engine.register_get("entrypoint_name", |params: &mut GlobalScheduleEntrypointParams| params.common.entrypoint_name.clone());
-    engine.register_get("entrypoint_file", |params: &mut GlobalScheduleEntrypointParams| params.common.entrypoint_file.clone());
+    engine.register_get("entrypoint_name", |params: &mut GlobalScheduleEntrypointParams| {
+        params.common.entrypoint_name.clone()
+    });
+    engine.register_get("entrypoint_file", |params: &mut GlobalScheduleEntrypointParams| {
+        params.common.entrypoint_file.clone()
+    });
     engine.register_get("domain", |params: &mut GlobalScheduleEntrypointParams| params.common.domain.clone());
     engine.register_get("stage", |params: &mut GlobalScheduleEntrypointParams| params.common.stage.clone());
     engine.register_get("chunk_realization_mesh_instances", |params: &mut GlobalScheduleEntrypointParams| {
         params.common.chunk_realization_mesh_instances
     });
-    engine.register_get(
-        "chunk_realization_collider_instances",
-        |params: &mut GlobalScheduleEntrypointParams| params.common.chunk_realization_collider_instances,
-    );
+    engine.register_get("chunk_realization_material_instances", |params: &mut GlobalScheduleEntrypointParams| {
+        params.common.chunk_realization_material_instances
+    });
+    engine.register_get("chunk_realization_collider_instances", |params: &mut GlobalScheduleEntrypointParams| {
+        params.common.chunk_realization_collider_instances
+    });
     engine.register_get("chunk_realization_audio_emitters", |params: &mut GlobalScheduleEntrypointParams| {
         params.common.chunk_realization_audio_emitters
     });
     engine.register_get("chunk_realization_particle_emitters", |params: &mut GlobalScheduleEntrypointParams| {
         params.common.chunk_realization_particle_emitters
     });
-    engine.register_get(
-        "chunk_realization_interaction_triggers",
-        |params: &mut GlobalScheduleEntrypointParams| params.common.chunk_realization_interaction_triggers,
-    );
+    engine.register_get("chunk_realization_interaction_triggers", |params: &mut GlobalScheduleEntrypointParams| {
+        params.common.chunk_realization_interaction_triggers
+    });
+    engine.register_get("chunk_realization_simulation_services", |params: &mut GlobalScheduleEntrypointParams| {
+        params.common.chunk_realization_simulation_services
+    });
+    engine.register_get("bootstrap_global_script_count", |params: &mut GlobalScheduleEntrypointParams| {
+        params.common.bootstrap_global_script_count
+    });
+    engine.register_get("bootstrap_package_script_count", |params: &mut GlobalScheduleEntrypointParams| {
+        params.common.bootstrap_package_script_count
+    });
+    engine.register_get("bootstrap_selected_mod_count", |params: &mut GlobalScheduleEntrypointParams| {
+        params.common.bootstrap_selected_mod_count
+    });
+    engine.register_get("bootstrap_executed_entrypoint_count", |params: &mut GlobalScheduleEntrypointParams| {
+        params.common.bootstrap_executed_entrypoint_count
+    });
 
     engine.register_type_with_name::<SubstrateScheduleEntrypointParams>("SubstrateScheduleEntrypointParams");
     engine.register_get("common", |params: &mut SubstrateScheduleEntrypointParams| params.common.clone());
-    engine.register_get("entrypoint_name", |params: &mut SubstrateScheduleEntrypointParams| params.common.entrypoint_name.clone());
-    engine.register_get("entrypoint_file", |params: &mut SubstrateScheduleEntrypointParams| params.common.entrypoint_file.clone());
+    engine.register_get("entrypoint_name", |params: &mut SubstrateScheduleEntrypointParams| {
+        params.common.entrypoint_name.clone()
+    });
+    engine.register_get("entrypoint_file", |params: &mut SubstrateScheduleEntrypointParams| {
+        params.common.entrypoint_file.clone()
+    });
     engine.register_get("domain", |params: &mut SubstrateScheduleEntrypointParams| params.common.domain.clone());
     engine.register_get("stage", |params: &mut SubstrateScheduleEntrypointParams| params.common.stage.clone());
     engine.register_get("delta_seconds", |params: &mut SubstrateScheduleEntrypointParams| params.common.delta_seconds);
-    engine.register_get("elapsed_seconds", |params: &mut SubstrateScheduleEntrypointParams| params.common.elapsed_seconds);
-    engine.register_get("has_virtual_time", |params: &mut SubstrateScheduleEntrypointParams| params.common.has_virtual_time);
+    engine.register_get("elapsed_seconds", |params: &mut SubstrateScheduleEntrypointParams| {
+        params.common.elapsed_seconds
+    });
+    engine.register_get("has_virtual_time", |params: &mut SubstrateScheduleEntrypointParams| {
+        params.common.has_virtual_time
+    });
     engine.register_get("chunk_realization_mesh_instances", |params: &mut SubstrateScheduleEntrypointParams| {
         params.common.chunk_realization_mesh_instances
     });
-    engine.register_get(
-        "chunk_realization_collider_instances",
-        |params: &mut SubstrateScheduleEntrypointParams| params.common.chunk_realization_collider_instances,
-    );
+    engine.register_get("chunk_realization_material_instances", |params: &mut SubstrateScheduleEntrypointParams| {
+        params.common.chunk_realization_material_instances
+    });
+    engine.register_get("chunk_realization_collider_instances", |params: &mut SubstrateScheduleEntrypointParams| {
+        params.common.chunk_realization_collider_instances
+    });
     engine.register_get("chunk_realization_audio_emitters", |params: &mut SubstrateScheduleEntrypointParams| {
         params.common.chunk_realization_audio_emitters
     });
     engine.register_get("chunk_realization_particle_emitters", |params: &mut SubstrateScheduleEntrypointParams| {
         params.common.chunk_realization_particle_emitters
     });
-    engine.register_get(
-        "chunk_realization_interaction_triggers",
-        |params: &mut SubstrateScheduleEntrypointParams| params.common.chunk_realization_interaction_triggers,
-    );
+    engine.register_get("chunk_realization_interaction_triggers", |params: &mut SubstrateScheduleEntrypointParams| {
+        params.common.chunk_realization_interaction_triggers
+    });
+    engine.register_get("chunk_realization_simulation_services", |params: &mut SubstrateScheduleEntrypointParams| {
+        params.common.chunk_realization_simulation_services
+    });
+    engine.register_get("bootstrap_global_script_count", |params: &mut SubstrateScheduleEntrypointParams| {
+        params.common.bootstrap_global_script_count
+    });
+    engine.register_get("bootstrap_package_script_count", |params: &mut SubstrateScheduleEntrypointParams| {
+        params.common.bootstrap_package_script_count
+    });
+    engine.register_get("bootstrap_selected_mod_count", |params: &mut SubstrateScheduleEntrypointParams| {
+        params.common.bootstrap_selected_mod_count
+    });
+    engine.register_get("bootstrap_executed_entrypoint_count", |params: &mut SubstrateScheduleEntrypointParams| {
+        params.common.bootstrap_executed_entrypoint_count
+    });
     engine.register_get("active_scale_index", |params: &mut SubstrateScheduleEntrypointParams| params.active_scale_index);
     engine.register_get("has_active_scale", |params: &mut SubstrateScheduleEntrypointParams| params.has_active_scale);
 
     engine.register_type_with_name::<ZoneScheduleEntrypointParams>("ZoneScheduleEntrypointParams");
     engine.register_get("common", |params: &mut ZoneScheduleEntrypointParams| params.common.clone());
-    engine.register_get("entrypoint_name", |params: &mut ZoneScheduleEntrypointParams| params.common.entrypoint_name.clone());
-    engine.register_get("entrypoint_file", |params: &mut ZoneScheduleEntrypointParams| params.common.entrypoint_file.clone());
+    engine.register_get("entrypoint_name", |params: &mut ZoneScheduleEntrypointParams| {
+        params.common.entrypoint_name.clone()
+    });
+    engine.register_get("entrypoint_file", |params: &mut ZoneScheduleEntrypointParams| {
+        params.common.entrypoint_file.clone()
+    });
     engine.register_get("domain", |params: &mut ZoneScheduleEntrypointParams| params.common.domain.clone());
     engine.register_get("stage", |params: &mut ZoneScheduleEntrypointParams| params.common.stage.clone());
     engine.register_get("delta_seconds", |params: &mut ZoneScheduleEntrypointParams| params.common.delta_seconds);
@@ -334,20 +429,36 @@ pub(in super::super) fn register_schedule_entrypoint_param_types(engine: &mut En
     engine.register_get("chunk_realization_mesh_instances", |params: &mut ZoneScheduleEntrypointParams| {
         params.common.chunk_realization_mesh_instances
     });
-    engine.register_get(
-        "chunk_realization_collider_instances",
-        |params: &mut ZoneScheduleEntrypointParams| params.common.chunk_realization_collider_instances,
-    );
+    engine.register_get("chunk_realization_material_instances", |params: &mut ZoneScheduleEntrypointParams| {
+        params.common.chunk_realization_material_instances
+    });
+    engine.register_get("chunk_realization_collider_instances", |params: &mut ZoneScheduleEntrypointParams| {
+        params.common.chunk_realization_collider_instances
+    });
     engine.register_get("chunk_realization_audio_emitters", |params: &mut ZoneScheduleEntrypointParams| {
         params.common.chunk_realization_audio_emitters
     });
     engine.register_get("chunk_realization_particle_emitters", |params: &mut ZoneScheduleEntrypointParams| {
         params.common.chunk_realization_particle_emitters
     });
-    engine.register_get(
-        "chunk_realization_interaction_triggers",
-        |params: &mut ZoneScheduleEntrypointParams| params.common.chunk_realization_interaction_triggers,
-    );
+    engine.register_get("chunk_realization_interaction_triggers", |params: &mut ZoneScheduleEntrypointParams| {
+        params.common.chunk_realization_interaction_triggers
+    });
+    engine.register_get("chunk_realization_simulation_services", |params: &mut ZoneScheduleEntrypointParams| {
+        params.common.chunk_realization_simulation_services
+    });
+    engine.register_get("bootstrap_global_script_count", |params: &mut ZoneScheduleEntrypointParams| {
+        params.common.bootstrap_global_script_count
+    });
+    engine.register_get("bootstrap_package_script_count", |params: &mut ZoneScheduleEntrypointParams| {
+        params.common.bootstrap_package_script_count
+    });
+    engine.register_get("bootstrap_selected_mod_count", |params: &mut ZoneScheduleEntrypointParams| {
+        params.common.bootstrap_selected_mod_count
+    });
+    engine.register_get("bootstrap_executed_entrypoint_count", |params: &mut ZoneScheduleEntrypointParams| {
+        params.common.bootstrap_executed_entrypoint_count
+    });
     engine.register_get("active_scale_index", |params: &mut ZoneScheduleEntrypointParams| params.active_scale_index);
     engine.register_get("has_active_scale", |params: &mut ZoneScheduleEntrypointParams| params.has_active_scale);
     engine.register_get("loaded_zone_count", |params: &mut ZoneScheduleEntrypointParams| params.loaded_zone_count);
@@ -355,31 +466,57 @@ pub(in super::super) fn register_schedule_entrypoint_param_types(engine: &mut En
 
     engine.register_type_with_name::<PhenomenonScheduleEntrypointParams>("PhenomenonScheduleEntrypointParams");
     engine.register_get("common", |params: &mut PhenomenonScheduleEntrypointParams| params.common.clone());
-    engine.register_get("entrypoint_name", |params: &mut PhenomenonScheduleEntrypointParams| params.common.entrypoint_name.clone());
-    engine.register_get("entrypoint_file", |params: &mut PhenomenonScheduleEntrypointParams| params.common.entrypoint_file.clone());
+    engine.register_get("entrypoint_name", |params: &mut PhenomenonScheduleEntrypointParams| {
+        params.common.entrypoint_name.clone()
+    });
+    engine.register_get("entrypoint_file", |params: &mut PhenomenonScheduleEntrypointParams| {
+        params.common.entrypoint_file.clone()
+    });
     engine.register_get("domain", |params: &mut PhenomenonScheduleEntrypointParams| params.common.domain.clone());
     engine.register_get("stage", |params: &mut PhenomenonScheduleEntrypointParams| params.common.stage.clone());
     engine.register_get("delta_seconds", |params: &mut PhenomenonScheduleEntrypointParams| params.common.delta_seconds);
-    engine.register_get("elapsed_seconds", |params: &mut PhenomenonScheduleEntrypointParams| params.common.elapsed_seconds);
-    engine.register_get("has_virtual_time", |params: &mut PhenomenonScheduleEntrypointParams| params.common.has_virtual_time);
+    engine.register_get("elapsed_seconds", |params: &mut PhenomenonScheduleEntrypointParams| {
+        params.common.elapsed_seconds
+    });
+    engine.register_get("has_virtual_time", |params: &mut PhenomenonScheduleEntrypointParams| {
+        params.common.has_virtual_time
+    });
     engine.register_get("chunk_realization_mesh_instances", |params: &mut PhenomenonScheduleEntrypointParams| {
         params.common.chunk_realization_mesh_instances
     });
-    engine.register_get(
-        "chunk_realization_collider_instances",
-        |params: &mut PhenomenonScheduleEntrypointParams| params.common.chunk_realization_collider_instances,
-    );
+    engine.register_get("chunk_realization_material_instances", |params: &mut PhenomenonScheduleEntrypointParams| {
+        params.common.chunk_realization_material_instances
+    });
+    engine.register_get("chunk_realization_collider_instances", |params: &mut PhenomenonScheduleEntrypointParams| {
+        params.common.chunk_realization_collider_instances
+    });
     engine.register_get("chunk_realization_audio_emitters", |params: &mut PhenomenonScheduleEntrypointParams| {
         params.common.chunk_realization_audio_emitters
     });
     engine.register_get("chunk_realization_particle_emitters", |params: &mut PhenomenonScheduleEntrypointParams| {
         params.common.chunk_realization_particle_emitters
     });
-    engine.register_get(
-        "chunk_realization_interaction_triggers",
-        |params: &mut PhenomenonScheduleEntrypointParams| params.common.chunk_realization_interaction_triggers,
-    );
-    engine.register_get("active_scale_index", |params: &mut PhenomenonScheduleEntrypointParams| params.active_scale_index);
+    engine.register_get("chunk_realization_interaction_triggers", |params: &mut PhenomenonScheduleEntrypointParams| {
+        params.common.chunk_realization_interaction_triggers
+    });
+    engine.register_get("chunk_realization_simulation_services", |params: &mut PhenomenonScheduleEntrypointParams| {
+        params.common.chunk_realization_simulation_services
+    });
+    engine.register_get("bootstrap_global_script_count", |params: &mut PhenomenonScheduleEntrypointParams| {
+        params.common.bootstrap_global_script_count
+    });
+    engine.register_get("bootstrap_package_script_count", |params: &mut PhenomenonScheduleEntrypointParams| {
+        params.common.bootstrap_package_script_count
+    });
+    engine.register_get("bootstrap_selected_mod_count", |params: &mut PhenomenonScheduleEntrypointParams| {
+        params.common.bootstrap_selected_mod_count
+    });
+    engine.register_get("bootstrap_executed_entrypoint_count", |params: &mut PhenomenonScheduleEntrypointParams| {
+        params.common.bootstrap_executed_entrypoint_count
+    });
+    engine.register_get("active_scale_index", |params: &mut PhenomenonScheduleEntrypointParams| {
+        params.active_scale_index
+    });
     engine.register_get("has_active_scale", |params: &mut PhenomenonScheduleEntrypointParams| params.has_active_scale);
     engine.register_get("active_node_count", |params: &mut PhenomenonScheduleEntrypointParams| params.active_node_count);
     engine.register_get("active_frontier_proxy_count", |params: &mut PhenomenonScheduleEntrypointParams| {
@@ -411,10 +548,7 @@ pub(in super::super) fn new_schedule_entrypoint_runner_system(path: String) -> i
             };
 
             if let Err(error) = engine.call_fn::<()>(&mut scope, &ast, "main", (world_binding, entrypoint_params)) {
-                panic!(
-                    "Failed to run schedule entrypoint 'main(world, params)' for '{}': {error}",
-                    path
-                );
+                panic!("Failed to run schedule entrypoint 'main(world, params)' for '{}': {error}", path);
             }
 
             let returned_world = world_raw_handle.take();

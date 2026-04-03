@@ -1,7 +1,7 @@
 pub mod bootstrap;
-pub mod schedule_entrypoint;
 mod preprocess;
 pub mod resources;
+pub mod schedule_entrypoint;
 pub mod statics;
 
 use crate::bevy::prelude::*;

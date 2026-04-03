@@ -5,8 +5,6 @@ use egui_dock::{DockArea, Style};
 use once_cell::sync::OnceCell;
 
 use crate::{
-    usf::chunk::components::ChunkLoader,
-    usf::chunk::resources::{ChunkLoadGate, ChunkLoadGateState},
     config::statics::CONFIG,
     debug::types::DebugSuiteTabViewer,
     input::states::InputMode,
@@ -16,6 +14,8 @@ use crate::{
         resources::TimeInfo,
         types::{PauseState, StepConfig},
     },
+    usf::chunk::components::ChunkLoader,
+    usf::chunk::resources::{ChunkLoadGate, ChunkLoadGateState},
     usf::phenomenon::PhenomenonDebugStats,
 };
 

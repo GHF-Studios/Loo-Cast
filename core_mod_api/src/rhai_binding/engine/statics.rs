@@ -112,6 +112,24 @@ pub struct ScriptUsfModContribution {
     pub phenomenon_model_selection_by_phenomenon_scale: HashMap<String, String>,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ScriptUsfEntrypointExecutionRecord {
+    pub script_file: String,
+    pub script_type_id: String,
+    pub scope: String,
+    pub owner_mod_id: Option<String>,
+    pub entrypoint: String,
+    pub expected_signature: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ScriptUsfBootstrapReport {
+    pub discovered_global_scripts: Vec<String>,
+    pub discovered_package_scripts: Vec<String>,
+    pub selected_mod_ids: Vec<String>,
+    pub executed_entrypoints: Vec<ScriptUsfEntrypointExecutionRecord>,
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct ScriptPhenomenonDefinition {
     pub id: String,
@@ -119,7 +137,7 @@ pub struct ScriptPhenomenonDefinition {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct ScriptRealizationDensityDefinition {
+pub struct ScriptOutputDensityFieldDefinition {
     pub coarse_span_units: f64,
     pub detail_span_units: f64,
     pub coarse_weight: f32,
@@ -131,7 +149,7 @@ pub struct ScriptRealizationDensityDefinition {
     pub seed_salt_detail: u64,
 }
 
-impl Default for ScriptRealizationDensityDefinition {
+impl Default for ScriptOutputDensityFieldDefinition {
     fn default() -> Self {
         Self {
             coarse_span_units: 320.0,
@@ -148,7 +166,7 @@ impl Default for ScriptRealizationDensityDefinition {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct ScriptRealizationMaterialDefinition {
+pub struct ScriptOutputMaterialProfileDefinition {
     pub albedo_r: f32,
     pub albedo_g: f32,
     pub albedo_b: f32,
@@ -158,7 +176,7 @@ pub struct ScriptRealizationMaterialDefinition {
     pub emissive_strength: f32,
 }
 
-impl Default for ScriptRealizationMaterialDefinition {
+impl Default for ScriptOutputMaterialProfileDefinition {
     fn default() -> Self {
         Self {
             albedo_r: 0.54,
@@ -190,14 +208,14 @@ impl Default for ScriptSimulationServiceDefinition {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct ScriptRealizationAudioEmitterDefinition {
+pub struct ScriptOutputAudioEmitterDefinition {
     pub event_id: String,
     pub looped: bool,
     pub gain: f32,
     pub spatial_range: f32,
     pub start_offset_seconds: f32,
 }
-impl Default for ScriptRealizationAudioEmitterDefinition {
+impl Default for ScriptOutputAudioEmitterDefinition {
     fn default() -> Self {
         Self {
             event_id: "audio.event.default".to_string(),
@@ -210,14 +228,14 @@ impl Default for ScriptRealizationAudioEmitterDefinition {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct ScriptRealizationParticleEmitterDefinition {
+pub struct ScriptOutputParticleEmitterDefinition {
     pub effect_id: String,
     pub emission_rate: f32,
     pub burst_count: u32,
     pub lifetime_seconds: f32,
     pub radius: f32,
 }
-impl Default for ScriptRealizationParticleEmitterDefinition {
+impl Default for ScriptOutputParticleEmitterDefinition {
     fn default() -> Self {
         Self {
             effect_id: "particles.effect.default".to_string(),
@@ -254,13 +272,13 @@ pub struct ScriptPhenomenonModelDefinition {
     pub projection_metric_name: String,
     pub projection_bias: f32,
     pub projection_gain: f32,
-    pub realization_density: Option<ScriptRealizationDensityDefinition>,
-    pub realization_material: Option<ScriptRealizationMaterialDefinition>,
-    pub realization_collider_enabled: bool,
+    pub output_density_field: Option<ScriptOutputDensityFieldDefinition>,
+    pub output_material_profile: Option<ScriptOutputMaterialProfileDefinition>,
+    pub output_collider_enabled: bool,
     pub simulation_service: Option<ScriptSimulationServiceDefinition>,
-    pub realization_audio_emitter: Option<ScriptRealizationAudioEmitterDefinition>,
-    pub realization_particle_emitter: Option<ScriptRealizationParticleEmitterDefinition>,
-    pub interaction_trigger: Option<ScriptInteractionTriggerDefinition>,
+    pub output_audio_emitter: Option<ScriptOutputAudioEmitterDefinition>,
+    pub output_particle_emitter: Option<ScriptOutputParticleEmitterDefinition>,
+    pub output_interaction_trigger: Option<ScriptInteractionTriggerDefinition>,
 }
 impl Default for ScriptPhenomenonModelDefinition {
     fn default() -> Self {
@@ -272,13 +290,13 @@ impl Default for ScriptPhenomenonModelDefinition {
             projection_metric_name: "demo_mass_density".to_string(),
             projection_bias: 0.0,
             projection_gain: 1.0,
-            realization_density: None,
-            realization_material: None,
-            realization_collider_enabled: false,
+            output_density_field: None,
+            output_material_profile: None,
+            output_collider_enabled: false,
             simulation_service: None,
-            realization_audio_emitter: None,
-            realization_particle_emitter: None,
-            interaction_trigger: None,
+            output_audio_emitter: None,
+            output_particle_emitter: None,
+            output_interaction_trigger: None,
         }
     }
 }
@@ -335,3 +353,7 @@ export_static!(self, crate::rhai_binding::engine::statics::USF_ZONE_PHENOMENON_S
 export_static!(self, crate::rhai_binding::engine::statics::USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE: Lazy<Mutex<HashMap<String, ScriptZoneSelectionPolicyDefinition>>> = Lazy::new(Default::default));
 export_static!(self, crate::rhai_binding::engine::statics::USF_PHENOMENON_MODELS_BY_ID: Lazy<Mutex<HashMap<String, ScriptPhenomenonModelDefinition>>> = Lazy::new(Default::default));
 export_static!(self, crate::rhai_binding::engine::statics::USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE: Lazy<Mutex<HashMap<String, String>>> = Lazy::new(Default::default));
+export_static!(
+    self,
+    crate::rhai_binding::engine::statics::USF_BOOTSTRAP_REPORT: Lazy<Mutex<ScriptUsfBootstrapReport>> = Lazy::new(Default::default)
+);

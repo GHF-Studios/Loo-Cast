@@ -88,8 +88,8 @@ pub struct PhenomenonModelSupport {
 
 #[derive(Component, Reflect, Debug, Clone, PartialEq)]
 #[reflect(Component)]
-pub struct PhenomenonModelProjectionContract {
-    pub contract: PhenomenonModelProjectionSpec,
+pub struct PhenomenonModelProjection {
+    pub spec: PhenomenonModelProjectionSpec,
 }
 
 #[derive(Component, Reflect, Debug, Clone, PartialEq, Eq)]

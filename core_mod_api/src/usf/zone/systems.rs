@@ -1,7 +1,7 @@
 use crate::bevy::prelude::*;
-use crate::usf::chunk::components::{Chunk, ChunkLoader};
 use crate::player::components::Player;
 use crate::usf::authority::{USF_DOMAIN_ZONE, UsfAuthorityDiagnostics, UsfWorldAuthorityContract, guard_runtime_state_domain_with_diagnostics};
+use crate::usf::chunk::components::{Chunk, ChunkLoader};
 use crate::usf::phenomenon::{Phenomenon, PhenomenonId, PhenomenonModel, PhenomenonScriptDefinitionRef};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
@@ -254,9 +254,7 @@ pub(super) fn reconcile_zone_realization_system(
                         zone_id.zone_type.0,
                         zone_id.stable_region_id.0
                     )),
-                    Phenomenon {
-                        id: phenomenon_id,
-                    },
+                    Phenomenon { id: phenomenon_id },
                     PhenomenonScriptDefinitionRef {
                         phenomenon_id: selected_phenomenon_script_id.clone(),
                     },
@@ -612,7 +610,7 @@ mod tests {
         registry.phenomenon_support_by_zone.insert(
             ZoneTypeId::new("mystic"),
             vec![ZonePhenomenonSupport {
-                phenomenon_id: "phenomenon.demo.realization_density".to_string(),
+                phenomenon_id: "phenomenon.demo.mass_density".to_string(),
                 priority: 100,
                 weight: 1.0,
                 spawn_policy: ZonePhenomenonSpawnPolicy::SinglePerZone,
@@ -636,7 +634,7 @@ mod tests {
         )
         .expect("expected support selection")
         .phenomenon_id;
-        assert_eq!(phenomenon_id, "phenomenon.demo.realization_density");
+        assert_eq!(phenomenon_id, "phenomenon.demo.mass_density");
     }
 
     #[test]

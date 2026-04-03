@@ -88,7 +88,8 @@ private fn run_ecs_world_resource_component_schedule_test(world) {
         world.exists_filtered(entity_data, chunk_loader_filter)
     );
 
-    let first_player = world.single_filtered(entity_data, QueryFilter::require(bevy::ecs::component::player_type_id()));
+    let player_entities = world.query_filtered(entity_data, QueryFilter::require(bevy::ecs::component::player_type_id()));
+    let first_player = player_entities.next();
     if first_player != () {
         world.get_entity(first_player, |entity_ref| {
             print("[Startup][ECS] get_entity id = " + entity_ref.id().to_string());

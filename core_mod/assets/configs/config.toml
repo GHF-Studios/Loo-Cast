@@ -67,7 +67,7 @@ third_person_camera_smoothness = 0.15
 z_offset = 10.0 # For good measure, we pretty much always want gizmos on top of everything else.
 
 [rhai_binding]
-testing_enabled = true
+testing_enabled = false
 
 [time]
 start_paused = false

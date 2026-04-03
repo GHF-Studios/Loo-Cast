@@ -1,11 +1,12 @@
 # TEMP USF Naming Alignment Review (Deep Pass)
 
 Date: 2026-04-03  
-Status: revised after user corrections (authority = user mental model)
+Status: revised after user corrections + drift reset (authority = user mental model)
 
 ## Why this exists
 
-The code currently compiles, but naming still leaks implementation-centric framing (`runtime/*`, `capability/*`, `hydrate_*`) instead of reflecting the intended architecture:
+The code currently compiles, and the largest naming migrations are already landed.  
+Remaining drift is now mostly documentation/status coherence and residual terminology pockets that still obscure the intended architecture:
 
 1. Rhai entrypoints are content authority.
 2. Rust is execution kernel / bridge platform.
@@ -24,146 +25,28 @@ This document is intentionally opinionated and designed for line-by-line correct
 
 ## Observed High-Impact Naming Drift
 
-## A) `runtime/manifestation` + `runtime/capability` are too explicit and implementation-centric
+## A) Resolved architectural naming migrations (historical record, not current drift)
 
-Current code surface:
+These were major drift vectors and are now migrated on active runtime paths:
 
-- `core_mod_api/src/usf/runtime/mod.rs`
-- `core_mod_api/src/usf/runtime/manifestation/*`
-- `core_mod_api/src/usf/runtime/capability/manifestation.rs`
+1. `usf/runtime/*` + `usf/runtime/capability/*` were removed from active ownership boundaries.
+2. `chunk_manifestation` pipeline naming was migrated to `chunk_realization`.
+3. `hydration` wording on active realization/persistence paths was migrated to `reconcile_*` / `restore_*`.
+4. Workflow ownership moved under `core_mod_api/src/usf/chunk/*` (`core_mod_api/src/chunk/*` no longer exists).
+5. Capability identifiers were flattened to top-level ids (`mesh`, `material`, `collider`, `audio`, `particles`, `trigger`, `simulation_service`).
+6. Schedule entrypoint vocabulary replaced legacy hook naming and removed `main(world)` fallback.
+7. `PhenomenonKind` debug enum hardcoding was removed from ontology runtime types.
+8. `Dpt*` runtime type/module naming was migrated to `metric_container/*` on active paths.
 
-Problem:
+This section remains only to preserve decision provenance.
 
-1. Path names encode internal execution mechanics instead of concept ownership.
-2. `capability` appears as a top-level structural noun, but in the desired framing capabilities are implicit bridge mechanics, not first-class user-facing architecture buckets.
-3. “runtime” as an explicit subtree for these concepts reinforces “engine side owns content behavior” perception.
+## B) Remaining high-impact drift (active)
 
-Impact:
-
-1. Misleads contributors about authority boundaries.
-2. Encourages more code to accrete under generic “runtime” and “capability” buckets.
-
-## B) `chunk_manifestation` is overloaded and mixes ontology/projection/debug semantics
-
-Current code surface:
-
-- types and systems prefixed with `ChunkManifestation*`
-- config namespace `[usf.runtime.chunk_manifestation]`
-- workflow id `HydrateChunkManifestationInstances`
-
-Problem:
-
-1. “manifestation” is a valid concept at phenomenon-model contract level, but `chunk_manifestation` now also names cache artifacts, mesh building, collider attach, and workflow execution.
-2. It reads like “chunk owns manifestation ontology”, which conflicts with entity-grounded authority.
-3. It still carries historical “chunk surface” flavor in a new name.
-
-Impact:
-
-1. Hard to tell what is authority vs cache vs output application.
-2. Encourages global behavior flags over model-emitted intent schemas.
-
-## C) `hydration` naming is too mechanical and wrong at semantic level
-
-Current code surface:
-
-- `hydration_workflow.rs`
-- `queue_chunk_manifestation_hydration_requests_system`
-- `run_chunk_manifestation_hydration_workflow_system`
-
-Problem:
-
-1. “Hydration” is storage/process jargon, not domain meaning.
-2. The real operation is “reconcile chunk output artifacts from zone classification + model state + realization intents”.
-
-Impact:
-
-1. Hides the actual policy boundary (selection already decided upstream).
-2. Makes pipeline harder to reason about.
-
-## D) workflow registry naming remains chunk-owned for USF projection execution
-
-Current code surface:
-
-- `core_mod_api/src/chunk/workflows/mod.rs` defines `HydrateChunkManifestationInstances`
-- implementation now lives in USF path
-
-Problem:
-
-1. Ownership and execution id names diverge.
-2. Registry macro coupling (`Chunk` namespace) forces mixed framing.
-3. The `core_mod_api/src/chunk` module is not yet fully integrated and moved into `core_mod_api/src/usf` as a submodule.
-
-Impact:
-
-1. Persistent contributor confusion around “is this chunk core behavior or USF derived projection behavior?”
-
-## E) Capability IDs and authority domain IDs are still tied to old phrasing
-
-Current code surface:
-
-- capability ids: `presentation.chunk_manifestation.instance_render`, etc.
-- authority domain: `usf.runtime.manifestation.runtime`
-
-Problem:
-
-1. Repeats the overloaded `chunk_manifestation` term in contracts.
-2. `...manifestation.runtime` is tautological and low-signal.
-
-Impact:
-
-1. Diagnostic messages remain semantically noisy.
-2. Slows future capability-family growth (audio/particles/fx/etc.) under clean names.
-
-## F) `PhenomenonKind` currently encodes demo/debug literal in ontology enum
-
-Current code surface:
-
-- `PhenomenonKind::ManifestationDensityDebug`
-- script uses `ctx.register("manifestation_density_debug")`
-
-Problem:
-
-1. Debug content category is embedded in ontology type.
-2. This is content framing leaking into core type system.
-
-Impact:
-
-1. Limits generalization.
-2. Reinforces wrong mental model that engine ontology should enumerate gameplay/debug kinds.
-
-## G) Hook/entrypoint vocabulary split is still uneven
-
-Current code surface:
-
-- strict USF typed entrypoints in bootstrap (`register_zone(ctx)`, etc.)
-- separate “hook” system still uses `main(world, params)` with legacy fallback `main(world)`
-
-Problem:
-
-1. Two different mental models for script invocation coexist.
-2. “hook” naming is generic and not aligned with “entrypoint contract” framing.
-
-Impact:
-
-1. Makes script architecture feel less unified.
-2. Encourages accidental drift back to ad-hoc scripting patterns.
-
-## H) `DPT` naming still carries legacy dense-metric historical baggage
-
-Current code surface:
-
-- module `usf/dpt/*`
-- types `DptChunkRecord`, `DptStore`, `DptSchema`
-
-Problem:
-
-1. The acronym is historically tied to dense “Data Point Matrix” framing.
-2. Current architecture treats these as schema/sampler/categorizer vector contracts, not dense canonical storage.
-
-Impact:
-
-1. Constant cognitive mismatch for new contributors.
-2. Makes docs and code feel like two eras stitched together.
+1. Some docs (especially historical/reference notes) still describe migrated surfaces and need explicit historical labeling.
+2. Status/evidence semantics are inconsistent between tmp documents, creating planning drift.
+3. Canonical entity naming must stay normalized (`PhenomenonModel` / `PartialPhenomenonModel`) across all docs and scripts.
+4. Sampler/categorizer planning language still drifts between historical `dpt_*` ids and active `metric_*` ids.
+5. Module-tree end-state framing (`usf/core`, deeper ownership map) is not yet fully reflected by real tree/state and should remain explicitly marked as target architecture, not current state.
 
 ## Proposed Naming Direction (Strict, Final-State-Oriented)
 
@@ -198,7 +81,7 @@ Proposed buckets:
 
 ## 2) Replace `chunk_manifestation` with `chunk_realization` as model-driven output build
 
-Default proposal:
+Migration target (`historical -> current`, largely completed on active path):
 
 1. Stop using `manifestation` as an architecture noun for this pipeline.
 2. Treat this pipeline as chunk realization from selected phenomena + model state + DPT-driven realization intents.
@@ -219,7 +102,7 @@ Reason:
 
 ## 3) Replace `hydration` wording with reconciliation wording
 
-Default proposal:
+Migration target (`historical -> current`, largely completed on active path):
 
 1. `hydration_workflow.rs` -> `reconcile_chunk_realization_artifacts_workflow.rs`.
 2. `HydrateChunkManifestationInstances` workflow id -> `ReconcileChunkRealizationArtifacts`.
@@ -236,11 +119,11 @@ Reason:
 
 ## 4) Move engine-output application under bridges, not USF runtime nouns
 
-Default proposal:
+Migration target (`historical -> current`, largely completed on active path):
 
 1. Remove `usf/runtime/capability/*`.
 2. Host mesh/collider/audio/particle/trigger application code under:
-   `rhai_binding/bridges/domains/core_mod_api/usf/realization_channels/*`, plus other bridge domains as needed (`render`, `camera`, `logging`, etc.).
+   `rhai_binding/bridges/domains/core_mod_api/usf/output_channels/*`, plus other bridge domains as needed (`render`, `camera`, `logging`, etc.).
 3. Add a bridge-side capability registry that maps rust-native channel ids to handlers.
 4. Keep USF modules focused on declaration/state/intent schemas + intent orchestration, not direct capability application.
 5. Remove USF-side per-capability application structs that duplicate bridge responsibility.
@@ -253,13 +136,14 @@ Reason:
 
 ## 5) Flatten capability identifiers into top-level capability domains
 
-Default proposal:
+Migration target (`historical -> current`, largely completed on active path):
 
 1. `presentation.chunk_manifestation.instance_render` -> `mesh`.
 2. `simulation.chunk_manifestation.instance_collider` -> `collider`.
 3. `presentation.chunk_manifestation.instance_audio` -> `audio`.
 4. `presentation.chunk_manifestation.instance_particles` -> `particles`.
 5. `interaction.chunk_manifestation.instance_trigger` -> `trigger`.
+6. `simulation.chunk_manifestation.instance_runtime_service` -> `simulation_service`.
 
 Reason:
 
@@ -269,7 +153,7 @@ Reason:
 
 ## 6) Authority ids as role-based domains (non-hierarchical)
 
-Default proposal:
+Target proposal (partially migrated):
 
 1. Drop `derived` as a naming class in domain ids.
 2. Use a neutral pattern: `usf.<domain>.<role>`.
@@ -295,12 +179,12 @@ Reason:
 
 ## 7) Path/type rename matrix (medium/high-impact only, aligned to model-owned capabilities)
 
-Default proposal:
+Migration matrix (`historical -> current`):
 
 1. `core_mod_api/src/usf/runtime/manifestation/*`
    -> `core_mod_api/src/usf/chunk/realization/*`
 2. `core_mod_api/src/usf/runtime/capability/manifestation.rs`
-   -> `core_mod_api/src/rhai_binding/bridges/domains/core_mod_api/usf/realization_channels.rs`
+   -> `core_mod_api/src/rhai_binding/bridges/domains/core_mod_api/usf/output_channels.rs`
 3. `ChunkManifestationBinding`
    -> `ChunkRealizationIntent`
 4. `UsfChunkManifestationInstance`
@@ -326,7 +210,7 @@ Reason:
 
 ## 8) Entrypoint taxonomy and naming lock
 
-Default proposal:
+Migration target (`historical -> current`, largely completed):
 
 1. Registration entrypoints remain one-file/one-entity typed contracts:
    `register_metric(ctx)`, `register_metric_set(ctx)`, `register_zone(ctx)`,
@@ -335,7 +219,7 @@ Default proposal:
    `register_mod(ctx)`, `register_modpack(ctx)`.
 2. Schedule execution scripts are reframed as schedule entrypoints, not hooks.
 3. Type names migrate from `Hook*` to `ScheduleEntrypoint*`.
-4. Legacy fallback `main(world)` is deprecated and then removed.
+4. Legacy fallback `main(world)` is removed from schedule entrypoint execution.
 
 Reason:
 
@@ -343,11 +227,11 @@ Reason:
 
 ## 9) `chunk` integration into USF ownership
 
-Default proposal:
+Target proposal (partially migrated):
 
 1. Target ownership path becomes `core_mod_api/src/usf/chunk/*`.
-2. Current workflow macro coupling to `Chunk` namespace is treated as temporary infrastructure constraint.
-3. Workflow ids and types follow USF naming even if macro container temporarily stays `Chunk`.
+2. Current workflow macro coupling already uses `UsfChunk` naming and is treated as temporary infrastructure constraint.
+3. Workflow ids and types stay USF-owned even while workflow-macro infrastructure remains.
 4. Final state removes dual ownership signals (`chunk/*` vs `usf/*` for same pipeline).
 
 Reason:
@@ -356,7 +240,7 @@ Reason:
 
 ## 10) Keep DPT concept as first-class mutable container (rename acronym, do not remove concept)
 
-Default proposal:
+Migration target (`historical -> current`, partially completed):
 
 1. Keep the conceptual layer currently called DPT:
    a generic runtime data container that is parameterized by a metric set and stores/interacts/mutates metric data.
@@ -377,7 +261,7 @@ Reason:
 1. Slice A: Introduce bridge-side rust capability registry + Rhai exposure path.
 2. Slice B: Replace legacy realization-binding structs with `ChunkRealizationIntent`.
 3. Slice C: Split hydration workflow into intent-resolution and output-application reconciliation stages.
-4. Slice D: Re-home output application code into `rhai_binding/bridges/.../realization_channels/*`.
+4. Slice D: Re-home output application code into `rhai_binding/bridges/.../output_channels/*`.
 5. Slice E: Rename paths/types/config keys to `chunk_realization` once behavior is migrated.
 6. Slice F: Introduce `usf/chunk/*` ownership path and re-home chunk USF logic.
 7. Slice G: Rename `dpt` layer/types while preserving the container concept.
@@ -388,10 +272,10 @@ Current implementation pass status (recalibrated):
 Status semantics align with the execution checklist:
 `implemented`, `partially_validated`, `architecturally_complete`.
 
-1. Slice A: `implemented` (bridge-side `RealizationChannelRegistry` owns channel enablement + execution validation; USF-side `capability` module removed).
+1. Slice A: `implemented` (bridge-side `OutputChannelRegistry` owns channel enablement + execution validation; USF-side `capability` module removed).
 2. Slice B: `implemented` (`ChunkRealizationIntent` replaced legacy binding type).
 3. Slice C: `implemented` (workflow stages are `ResolveIntents` + `ApplyOutputs`; hydration wording removed on active path).
-4. Slice D: `implemented` (output application moved to bridge module `.../usf/realization_channels.rs`).
+4. Slice D: `implemented` (output application moved to bridge module `.../usf/output_channels.rs`).
 5. Slice E: `partially_validated` (`chunk_realization` paths/config migrated, but naming drift can still exist outside active paths).
 6. Slice F: `partially_validated` (`usf/chunk/*` owns active workflow definitions/callsites; broader module-tree alignment still pending).
 7. Slice G: `partially_validated` (`metric_container` module/types + script API names migrated from `dpt_*`).
@@ -406,13 +290,48 @@ Status semantics align with the execution checklist:
 16. Non-mesh channel observability pass: `implemented` (`ChunkRealizationChannelAppliedEvent` + per-channel diagnostics).
 17. Partition-runtime observability pass: `implemented` (`PhenomenonDebugStats` includes partitioned model counters exposed to schedule entrypoint params).
 18. Definition-bucket removal pass: `implemented` (`usf::definition` removed; metric/layout/zone types moved to domain modules).
+19. Global mesh gate removal pass: `implemented` (`attach_meshes` removed; mesh output is now intent+channel-registration driven, matching model-scoped output authority).
+20. Channel registration terminology pass: `implemented` (`RealizationChannelExecutionContract` -> `OutputChannelExecutionRegistration`,
+    `has_contract` -> `has_registration`, and validation path renamed to registration wording).
+21. Selected-model identity pass: `implemented` (`ChunkRealizationIntent`/snapshot/cache record now include `selected_model_id`; chunk realization cache schema bumped to v3 and stale v2 records are regenerated).
+22. Projection/field spec terminology pass: `implemented` (`PhenomenonRealizationFieldContract` -> `PhenomenonOutputFieldSpec`,
+    `PhenomenonModelProjectionContract` -> `PhenomenonModelProjection`, projection component field `contract` -> `spec`,
+    and registry API renamed from `projection_contract_*` to `projection_spec_*`).
+23. Script API naming pass: `implemented` (`set_projection_contract(...)` renamed to `set_projection_spec(...)` and demo model scripts updated).
+24. Chunk intent-sync naming pass: `implemented` (`usf/chunk/realization/binding.rs` moved to `intent.rs`,
+    `ChunkRealizationAuthorityGrace` -> `ChunkRealizationIntentGrace`, `binding_grace_frames` -> `intent_grace_frames`,
+    and sync probes/counters renamed to `IntentSync*`).
+25. Zone-model reconcile naming pass: `implemented` (`apply_zone_realization_startup_hooks_system` renamed to
+    `reconcile_zone_realization_model_state_system` to remove hook-centric vocabulary from phenomenon runtime).
+26. Chunk realization authority-id normalization pass: `implemented` (`USF_DOMAIN_CHUNK_REALIZATION_RUNTIME` renamed to
+    `USF_DOMAIN_CHUNK_REALIZATION_STATE` with domain id `usf.chunk_realization.runtime_state`).
+27. Runtime-cache terminology pass: `implemented` (chunk realization cache authority tag renamed from `derived_cache`
+    to `runtime_cache` in record generation + load filter contracts).
+28. USF module-tree cleanup pass: `implemented` (stale empty `usf/content` and `usf/definition` directories removed).
+29. Material-channel extraction pass: `implemented` (`OutputChannelPayload::Material(...)` introduced as a first-class
+    channel, `material` added to channel registry defaults, intent resolution emits separate mesh+material payloads,
+    and schedule entrypoint telemetry now exposes `chunk_realization_material_instances`).
+30. Runtime-model intent authority pass: `implemented` (chunk realization intent resolution now selects model ids from
+    live `PhenomenonModel` entities at `(phenomenon_entity, scale)` with support-bounds matching, instead of directly
+    sourcing selected model ids from definition-only lookup).
+31. Phenomenon-model output API naming pass: `implemented` (Rhai model ctx APIs renamed from
+    `set_realization_*`/`set_interaction_trigger` to `set_output_*` names, matching output-intent framing instead of
+    forced realization/capability-contract wording).
+32. Channel-gate removal pass: `implemented` (`OutputChannelRegistry` no longer carries a separate
+    `enabled_channels` gate set; execution registrations are the single authority for channel availability).
+33. Entrypoint descriptor/report pass: `implemented` (bootstrap now compiles deterministic `UsfEntrypointDescriptor` lists,
+    records discovered/executed entrypoints in `USF_BOOTSTRAP_REPORT`, and exposes bootstrap counters to schedule entrypoint params).
 
 Evidence backlog (required before claiming `architecturally_complete`):
 
-1. Code anchors for every status claim: `TODO`.
-2. Automated validation refs per slice: `TODO`.
-3. Runtime/demo capture refs per slice: `TODO`.
-4. Open gaps with explicit owners: `TODO`.
+1. Code anchors for every status claim:
+   partially populated in this doc + `docs/TMP_usf_refactor_execution_checklist.md`; continue filling while tracks change.
+2. Automated validation refs per slice:
+   `cargo check -p core_mod_api` anchors are recorded for active slices; targeted long-run/determinism suites remain pending.
+3. Runtime/demo capture refs per slice:
+   pending capture artifact links for sustained runtime sessions and cache-wipe restore cycles.
+4. Open gaps with explicit owners:
+   should be tracked in checklist track logs (owner + next checkpoint date), not as freeform `TODO`.
 
 ## 12) Explicit decision checklist (please mark each)
 
@@ -422,7 +341,7 @@ Evidence backlog (required before claiming `architecturally_complete`):
 2. Confirm model-output intent family naming (`ChunkRealizationIntent`, etc.).
 3. Confirm reconciliation naming (`ReconcileChunkRealizationArtifacts`, `*_reconcile_*`).
 4. Confirm bridge ownership for realization channels under `rhai_binding/bridges`.
-5. Confirm flattened top-level capability ids (`mesh`, `collider`, `audio`, `particles`, `trigger`) with no lane split.
+5. Confirm flattened top-level capability ids (`mesh`, `material`, `collider`, `audio`, `particles`, `trigger`, `simulation_service`) with no lane split.
 6. Confirm workflow ownership direction: temporary macro coupling accepted, final ownership under `usf/chunk/*`.
 7. Confirm DPT concept is retained as container abstraction (rename only).
 8. Confirm `Dpt*` rename targets (`MetricContainerLayout`, `MetricContainerStore`, `MetricContainerRecord`).

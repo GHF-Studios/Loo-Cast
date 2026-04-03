@@ -1,48 +1,51 @@
 use super::field::canonical_grid_coord;
-use super::runtime::{ChunkRealizationIntent, ChunkRealizationInstance, UsfChunkRealizationRuntimeSettings};
+use super::runtime::{ChunkRealizationInstance, ChunkRealizationIntent, UsfChunkRealizationRuntimeSettings};
 use crate::bevy::prelude::*;
 use crate::bevy_rapier3d::prelude::Collider;
-use crate::usf::chunk::components::Chunk;
-use crate::usf::authority::{USF_DOMAIN_CHUNK_REALIZATION_RUNTIME, UsfAuthorityDiagnostics, UsfWorldAuthorityContract, guard_runtime_state_domain_with_diagnostics};
-use crate::usf::mod_packs::UsfExecutionPlan;
-use crate::usf::phenomenon::PhenomenonDefinitionRegistry;
-use crate::rhai_binding::bridges::domains::core_mod_api::usf::realization_channels::{
-    ChunkRealizationAudioEmitter, ChunkRealizationInteractionTrigger, ChunkRealizationParticleEmitter, RealizationChannelPayload,
+use crate::rhai_binding::bridges::domains::core_mod_api::usf::output_channels::{
+    ChunkRealizationAudioEmitter, ChunkRealizationInteractionTrigger, ChunkRealizationParticleEmitter, ChunkRealizationSimulationService,
+    OutputChannelPayload,
 };
+use crate::usf::authority::{
+    USF_DOMAIN_CHUNK_REALIZATION_STATE, UsfAuthorityDiagnostics, UsfWorldAuthorityContract, guard_runtime_state_domain_with_diagnostics,
+};
+use crate::usf::chunk::components::Chunk;
+use crate::usf::mod_packs::UsfExecutionPlan;
+use crate::usf::phenomenon::{PhenomenonDefinitionRegistry, PhenomenonModel, PhenomenonModelScriptDefinitionRef, PhenomenonModelSupport};
 use crate::usf::substrate::AdaptiveSubstrateStore;
-use crate::usf::zone::{ZoneBehaviorRegistry, ZoneId, ZoneRealizationState, ZoneRuntimeState};
+use crate::usf::zone::{ZoneBehaviorRegistry, ZoneId, ZoneRealizationState, ZoneRealizedPhenomenon, ZoneRuntimeState};
 use std::collections::HashMap;
 use std::sync::OnceLock;
 use std::time::{Duration, Instant};
 
 #[derive(Component, Reflect, Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[reflect(Component)]
-pub struct ChunkRealizationAuthorityGrace {
+pub struct ChunkRealizationIntentGrace {
     pub missing_frames: u32,
 }
 
 #[derive(Default)]
-struct BindingSyncCounters {
+struct IntentSyncCounters {
     scanned_chunks: u64,
     upserted: u64,
     removed: u64,
     unchanged: u64,
     none_to_none: u64,
 }
-impl BindingSyncCounters {
-    fn record(&mut self, action: BindingSyncAction) {
+impl IntentSyncCounters {
+    fn record(&mut self, action: IntentSyncAction) {
         self.scanned_chunks += 1;
         match action {
-            BindingSyncAction::Unchanged => self.unchanged += 1,
-            BindingSyncAction::Upserted => self.upserted += 1,
-            BindingSyncAction::Removed => self.removed += 1,
-            BindingSyncAction::NoneToNone => self.none_to_none += 1,
+            IntentSyncAction::Unchanged => self.unchanged += 1,
+            IntentSyncAction::Upserted => self.upserted += 1,
+            IntentSyncAction::Removed => self.removed += 1,
+            IntentSyncAction::NoneToNone => self.none_to_none += 1,
         }
     }
 }
 
 #[derive(Default)]
-pub(crate) struct BindingSyncProbe {
+pub(crate) struct IntentSyncProbe {
     window_start: Option<Instant>,
     calls: u32,
     full_sync_calls: u32,
@@ -54,10 +57,10 @@ pub(crate) struct BindingSyncProbe {
     zone_realization_changed_calls: u32,
     zone_behavior_changed_calls: u32,
     dirty_chunk_only_calls: u32,
-    counters: BindingSyncCounters,
+    counters: IntentSyncCounters,
 }
-impl BindingSyncProbe {
-    fn observe(&mut self, full_sync: bool, reason_flags: BindingSyncReasonFlags, counters: BindingSyncCounters) {
+impl IntentSyncProbe {
+    fn observe(&mut self, full_sync: bool, reason_flags: IntentSyncReasonFlags, counters: IntentSyncCounters) {
         if !usf_hotpath_probe_enabled() {
             return;
         }
@@ -131,12 +134,12 @@ impl BindingSyncProbe {
         self.zone_realization_changed_calls = 0;
         self.zone_behavior_changed_calls = 0;
         self.dirty_chunk_only_calls = 0;
-        self.counters = BindingSyncCounters::default();
+        self.counters = IntentSyncCounters::default();
     }
 }
 
 #[derive(Default, Clone, Copy)]
-struct BindingSyncReasonFlags {
+struct IntentSyncReasonFlags {
     settings_changed: bool,
     execution_plan_changed: bool,
     substrate_changed: bool,
@@ -148,7 +151,7 @@ struct BindingSyncReasonFlags {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum BindingSyncAction {
+enum IntentSyncAction {
     Unchanged,
     Upserted,
     Removed,
@@ -164,6 +167,13 @@ fn usf_hotpath_probe_enabled() -> bool {
     })
 }
 
+#[derive(Debug, Clone)]
+struct RuntimeModelIntentCandidate {
+    model_entity_bits: u64,
+    model_id: String,
+    support: Option<crate::usf::phenomenon::PhenomenonModelSupportBounds>,
+}
+
 pub(crate) fn sync_chunk_realization_intents_system(
     authority_contract: Res<UsfWorldAuthorityContract>,
     mut authority_diagnostics: Option<ResMut<UsfAuthorityDiagnostics>>,
@@ -171,23 +181,24 @@ pub(crate) fn sync_chunk_realization_intents_system(
     execution_plan: Res<UsfExecutionPlan>,
     substrate_store: Res<AdaptiveSubstrateStore>,
     phenomenon_definitions: Res<PhenomenonDefinitionRegistry>,
+    phenomenon_model_query: Query<(Entity, &PhenomenonModel, &PhenomenonModelScriptDefinitionRef, Option<&PhenomenonModelSupport>)>,
     zone_runtime_state: Res<ZoneRuntimeState>,
     zone_realization_state: Res<ZoneRealizationState>,
     zone_behavior_registry: Res<ZoneBehaviorRegistry>,
     dirty_chunks: Query<Entity, (With<Chunk>, Or<(Added<Chunk>, Changed<Chunk>)>)>,
-    chunk_query: Query<(Entity, &Chunk, Option<&ChunkRealizationIntent>, Option<&ChunkRealizationAuthorityGrace>)>,
+    chunk_query: Query<(Entity, &Chunk, Option<&ChunkRealizationIntent>, Option<&ChunkRealizationIntentGrace>)>,
     mut commands: Commands,
-    mut probe: Local<BindingSyncProbe>,
+    mut probe: Local<IntentSyncProbe>,
 ) {
     if !guard_runtime_state_domain_with_diagnostics(
         authority_contract.as_ref(),
         authority_diagnostics.as_deref_mut(),
-        USF_DOMAIN_CHUNK_REALIZATION_RUNTIME,
+        USF_DOMAIN_CHUNK_REALIZATION_STATE,
     ) {
         return;
     }
 
-    let reason_flags = BindingSyncReasonFlags {
+    let reason_flags = IntentSyncReasonFlags {
         settings_changed: settings.is_changed(),
         execution_plan_changed: execution_plan.is_changed(),
         substrate_changed: substrate_store.is_changed(),
@@ -207,20 +218,39 @@ pub(crate) fn sync_chunk_realization_intents_system(
     if !full_sync && !reason_flags.has_dirty_chunks {
         return;
     }
-    let mut counters = BindingSyncCounters::default();
+    let mut counters = IntentSyncCounters::default();
+    let mut runtime_models_by_phenomenon_scale = HashMap::<(Entity, u8), Vec<RuntimeModelIntentCandidate>>::new();
+    for (model_entity, model, model_ref, support) in phenomenon_model_query.iter() {
+        runtime_models_by_phenomenon_scale
+            .entry((model.phenomenon_entity, model.scale.index_from_top()))
+            .or_default()
+            .push(RuntimeModelIntentCandidate {
+                model_entity_bits: model_entity.to_bits(),
+                model_id: model_ref.model_id.clone(),
+                support: support.map(|value| value.support.clone()),
+            });
+    }
+    for candidates in runtime_models_by_phenomenon_scale.values_mut() {
+        candidates.sort_by(|left, right| {
+            left.model_id
+                .cmp(&right.model_id)
+                .then_with(|| left.model_entity_bits.cmp(&right.model_entity_bits))
+        });
+    }
 
     if full_sync {
-        for (entity, chunk, existing_binding, existing_grace) in chunk_query.iter() {
+        for (entity, chunk, existing_intent, existing_grace) in chunk_query.iter() {
             let action = sync_chunk_realization_intent_for_entity(
                 entity,
                 chunk,
-                existing_binding.cloned(),
+                existing_intent.cloned(),
                 existing_grace.copied(),
                 settings.enabled,
-                settings.binding_grace_frames,
+                settings.intent_grace_frames,
                 &execution_plan,
                 &substrate_store,
                 &phenomenon_definitions,
+                &runtime_models_by_phenomenon_scale,
                 &zone_runtime_state,
                 &zone_realization_state,
                 &zone_behavior_registry,
@@ -233,19 +263,20 @@ pub(crate) fn sync_chunk_realization_intents_system(
     }
 
     for entity in dirty_chunks.iter() {
-        let Ok((_entity, chunk, existing_binding, existing_grace)) = chunk_query.get(entity) else {
+        let Ok((_entity, chunk, existing_intent, existing_grace)) = chunk_query.get(entity) else {
             continue;
         };
         let action = sync_chunk_realization_intent_for_entity(
             entity,
             chunk,
-            existing_binding.cloned(),
+            existing_intent.cloned(),
             existing_grace.copied(),
             settings.enabled,
-            settings.binding_grace_frames,
+            settings.intent_grace_frames,
             &execution_plan,
             &substrate_store,
             &phenomenon_definitions,
+            &runtime_models_by_phenomenon_scale,
             &zone_runtime_state,
             &zone_realization_state,
             &zone_behavior_registry,
@@ -259,22 +290,23 @@ pub(crate) fn sync_chunk_realization_intents_system(
 fn sync_chunk_realization_intent_for_entity(
     entity: Entity,
     chunk: &Chunk,
-    existing_binding: Option<ChunkRealizationIntent>,
-    existing_grace: Option<ChunkRealizationAuthorityGrace>,
+    existing_intent: Option<ChunkRealizationIntent>,
+    existing_grace: Option<ChunkRealizationIntentGrace>,
     chunk_realization_runtime_enabled: bool,
-    binding_grace_frames: u32,
+    intent_grace_frames: u32,
     execution_plan: &UsfExecutionPlan,
     substrate_store: &AdaptiveSubstrateStore,
     phenomenon_definitions: &PhenomenonDefinitionRegistry,
+    runtime_models_by_phenomenon_scale: &HashMap<(Entity, u8), Vec<RuntimeModelIntentCandidate>>,
     zone_runtime_state: &ZoneRuntimeState,
     zone_realization_state: &ZoneRealizationState,
     zone_behavior_registry: &ZoneBehaviorRegistry,
     commands: &mut Commands,
-) -> BindingSyncAction {
+) -> IntentSyncAction {
     if !chunk_realization_runtime_enabled {
-        if existing_binding.is_some() || existing_grace.is_some() {
+        if existing_intent.is_some() || existing_grace.is_some() {
             commands.entity(entity).remove::<ChunkRealizationIntent>();
-            commands.entity(entity).remove::<ChunkRealizationAuthorityGrace>();
+            commands.entity(entity).remove::<ChunkRealizationIntentGrace>();
             commands.entity(entity).remove::<ChunkRealizationInstance>();
             commands.entity(entity).remove::<Mesh3d>();
             commands.entity(entity).remove::<MeshMaterial3d<StandardMaterial>>();
@@ -282,9 +314,10 @@ fn sync_chunk_realization_intent_for_entity(
             commands.entity(entity).remove::<ChunkRealizationAudioEmitter>();
             commands.entity(entity).remove::<ChunkRealizationParticleEmitter>();
             commands.entity(entity).remove::<ChunkRealizationInteractionTrigger>();
-            return BindingSyncAction::Removed;
+            commands.entity(entity).remove::<ChunkRealizationSimulationService>();
+            return IntentSyncAction::Removed;
         }
-        return BindingSyncAction::NoneToNone;
+        return IntentSyncAction::NoneToNone;
     }
 
     let desired = if chunk_realization_runtime_enabled {
@@ -293,6 +326,7 @@ fn sync_chunk_realization_intent_for_entity(
             execution_plan,
             substrate_store,
             phenomenon_definitions,
+            runtime_models_by_phenomenon_scale,
             zone_runtime_state,
             zone_realization_state,
             zone_behavior_registry,
@@ -301,17 +335,17 @@ fn sync_chunk_realization_intent_for_entity(
         None
     };
 
-    match (existing_binding, desired) {
+    match (existing_intent, desired) {
         (Some(current), Some(next)) if current == next => {
             if existing_grace.is_some() {
-                commands.entity(entity).remove::<ChunkRealizationAuthorityGrace>();
+                commands.entity(entity).remove::<ChunkRealizationIntentGrace>();
             }
-            BindingSyncAction::Unchanged
+            IntentSyncAction::Unchanged
         }
         (_, Some(next)) => {
             // Intent changes invalidate the current realization artifact and force deterministic rebuild.
             commands.entity(entity).insert(next);
-            commands.entity(entity).remove::<ChunkRealizationAuthorityGrace>();
+            commands.entity(entity).remove::<ChunkRealizationIntentGrace>();
             commands.entity(entity).remove::<ChunkRealizationInstance>();
             commands.entity(entity).remove::<Mesh3d>();
             commands.entity(entity).remove::<MeshMaterial3d<StandardMaterial>>();
@@ -319,21 +353,22 @@ fn sync_chunk_realization_intent_for_entity(
             commands.entity(entity).remove::<ChunkRealizationAudioEmitter>();
             commands.entity(entity).remove::<ChunkRealizationParticleEmitter>();
             commands.entity(entity).remove::<ChunkRealizationInteractionTrigger>();
-            BindingSyncAction::Upserted
+            commands.entity(entity).remove::<ChunkRealizationSimulationService>();
+            IntentSyncAction::Upserted
         }
-        // Keep the previous binding only for a bounded grace window while authority settles.
+        // Keep the previous intent only for a bounded grace window while authority settles.
         (Some(_), None) => {
-            let grace_limit = binding_grace_frames.max(1);
+            let grace_limit = intent_grace_frames.max(1);
             let next_missing_frames = existing_grace.map(|grace| grace.missing_frames.saturating_add(1)).unwrap_or(1);
             if next_missing_frames < grace_limit {
-                commands.entity(entity).insert(ChunkRealizationAuthorityGrace {
+                commands.entity(entity).insert(ChunkRealizationIntentGrace {
                     missing_frames: next_missing_frames,
                 });
-                return BindingSyncAction::Unchanged;
+                return IntentSyncAction::Unchanged;
             }
 
             commands.entity(entity).remove::<ChunkRealizationIntent>();
-            commands.entity(entity).remove::<ChunkRealizationAuthorityGrace>();
+            commands.entity(entity).remove::<ChunkRealizationIntentGrace>();
             commands.entity(entity).remove::<ChunkRealizationInstance>();
             commands.entity(entity).remove::<Mesh3d>();
             commands.entity(entity).remove::<MeshMaterial3d<StandardMaterial>>();
@@ -341,13 +376,14 @@ fn sync_chunk_realization_intent_for_entity(
             commands.entity(entity).remove::<ChunkRealizationAudioEmitter>();
             commands.entity(entity).remove::<ChunkRealizationParticleEmitter>();
             commands.entity(entity).remove::<ChunkRealizationInteractionTrigger>();
-            BindingSyncAction::Removed
+            commands.entity(entity).remove::<ChunkRealizationSimulationService>();
+            IntentSyncAction::Removed
         }
         (None, None) => {
             if existing_grace.is_some() {
-                commands.entity(entity).remove::<ChunkRealizationAuthorityGrace>();
+                commands.entity(entity).remove::<ChunkRealizationIntentGrace>();
             }
-            BindingSyncAction::NoneToNone
+            IntentSyncAction::NoneToNone
         }
     }
 }
@@ -357,6 +393,7 @@ fn desired_chunk_realization_intent(
     execution_plan: &UsfExecutionPlan,
     substrate_store: &AdaptiveSubstrateStore,
     phenomenon_definitions: &PhenomenonDefinitionRegistry,
+    runtime_models_by_phenomenon_scale: &HashMap<(Entity, u8), Vec<RuntimeModelIntentCandidate>>,
     zone_runtime_state: &ZoneRuntimeState,
     zone_realization_state: &ZoneRealizationState,
     zone_behavior_registry: &ZoneBehaviorRegistry,
@@ -376,7 +413,8 @@ fn desired_chunk_realization_intent(
     let zone_density_profile = zone_behavior_registry
         .density_profile_for_zone(&zone_type)
         .unwrap_or_else(|| panic!("USF chunk realization intent failed: missing zone density profile for zone '{}'.", zone_type.0));
-    let phenomenon_script_id = realized_phenomenon_script_id_for_zone(zone_id, zone_realization_state)?.to_string();
+    let realization = realized_phenomenon_for_zone(zone_id, zone_realization_state)?;
+    let phenomenon_script_id = realization.phenomenon_script_id.clone();
     let supports_zone_phenomenon = zone_behavior_registry.supports_for_zone(&zone_type).is_some_and(|supports| {
         supports
             .iter()
@@ -388,27 +426,45 @@ fn desired_chunk_realization_intent(
             phenomenon_script_id, zone_type.0
         );
     }
-    let Some(realization_field_contract) = phenomenon_definitions.realization_field_contract_for_scale(phenomenon_script_id.as_str(), chunk_scale) else {
+    let Some(selected_model_id) =
+        select_runtime_model_id_for_chunk(realization.phenomenon_entity, chunk_scale, &canonical_coord, runtime_models_by_phenomenon_scale)
+    else {
         return None;
     };
-    let mut channel_payloads = HashMap::<String, RealizationChannelPayload>::new();
-    channel_payloads.insert(
-        "mesh".to_string(),
-        RealizationChannelPayload::Mesh {
-            material_profile: phenomenon_definitions.realization_material_for_scale(phenomenon_script_id.as_str(), chunk_scale),
-        },
-    );
-    if phenomenon_definitions.realization_collider_enabled_for_scale(phenomenon_script_id.as_str(), chunk_scale) {
-        channel_payloads.insert("collider".to_string(), RealizationChannelPayload::Collider);
+    if !phenomenon_definitions.model_belongs_to_phenomenon(selected_model_id.as_str(), phenomenon_script_id.as_str()) {
+        panic!(
+            "USF chunk realization intent failed: selected model '{}' does not belong to phenomenon '{}' at scale {}.",
+            selected_model_id,
+            phenomenon_script_id,
+            chunk_scale.index_from_top()
+        );
     }
-    if let Some(audio_emitter) = phenomenon_definitions.realization_audio_emitter_for_scale(phenomenon_script_id.as_str(), chunk_scale) {
-        channel_payloads.insert("audio".to_string(), RealizationChannelPayload::Audio(audio_emitter));
+    let Some(output_density_field) = phenomenon_definitions.output_density_field_for_model(selected_model_id.as_str()) else {
+        return None;
+    };
+    let output_field_spec = crate::usf::phenomenon::PhenomenonOutputFieldSpec::DensityField(output_density_field);
+    let mut channel_payloads = HashMap::<String, OutputChannelPayload>::new();
+    channel_payloads.insert("mesh".to_string(), OutputChannelPayload::Mesh);
+    if let Some(material_profile) = phenomenon_definitions.output_material_profile_for_model(selected_model_id.as_str()) {
+        channel_payloads.insert("material".to_string(), OutputChannelPayload::Material(material_profile));
     }
-    if let Some(particle_emitter) = phenomenon_definitions.realization_particle_emitter_for_scale(phenomenon_script_id.as_str(), chunk_scale) {
-        channel_payloads.insert("particles".to_string(), RealizationChannelPayload::Particles(particle_emitter));
+    if phenomenon_definitions.output_collider_enabled_for_model(selected_model_id.as_str()) {
+        channel_payloads.insert("collider".to_string(), OutputChannelPayload::Collider);
     }
-    if let Some(trigger) = phenomenon_definitions.interaction_trigger_for_scale(phenomenon_script_id.as_str(), chunk_scale) {
-        channel_payloads.insert("trigger".to_string(), RealizationChannelPayload::Trigger(trigger));
+    if let Some(audio_emitter) = phenomenon_definitions.output_audio_emitter_for_model(selected_model_id.as_str()) {
+        channel_payloads.insert("audio".to_string(), OutputChannelPayload::Audio(audio_emitter));
+    }
+    if let Some(particle_emitter) = phenomenon_definitions.output_particle_emitter_for_model(selected_model_id.as_str()) {
+        channel_payloads.insert("particles".to_string(), OutputChannelPayload::Particles(particle_emitter));
+    }
+    if let Some(trigger) = phenomenon_definitions.output_interaction_trigger_for_model(selected_model_id.as_str()) {
+        channel_payloads.insert("trigger".to_string(), OutputChannelPayload::Trigger(trigger));
+    }
+    if let Some(simulation_service) = phenomenon_definitions.simulation_service_for_model(selected_model_id.as_str()) {
+        channel_payloads.insert(
+            "simulation_service".to_string(),
+            OutputChannelPayload::SimulationService(simulation_service),
+        );
     }
 
     Some(ChunkRealizationIntent {
@@ -416,22 +472,48 @@ fn desired_chunk_realization_intent(
         zone_density_profile,
         zone_density_signature: zone_density_profile.signature(),
         phenomenon_script_id,
-        realization_field_contract,
+        selected_model_id,
+        output_field_spec,
         channel_payloads,
         chunk_store_key: route.chunk_store_key.to_string(),
     })
 }
 
-fn realized_phenomenon_script_id_for_zone<'a>(zone_id: &ZoneId, realization_state: &'a ZoneRealizationState) -> Option<&'a str> {
-    realization_state
-        .zone_to_phenomenon
-        .get(zone_id)
-        .map(|realization| realization.phenomenon_script_id.as_str())
+fn realized_phenomenon_for_zone<'a>(zone_id: &ZoneId, realization_state: &'a ZoneRealizationState) -> Option<&'a ZoneRealizedPhenomenon> {
+    realization_state.zone_to_phenomenon.get(zone_id)
+}
+
+fn select_runtime_model_id_for_chunk(
+    phenomenon_entity: Entity,
+    chunk_scale: crate::usf::scale::Scale,
+    canonical_coord: &crate::usf::pos::grid::types::GridVec,
+    runtime_models_by_phenomenon_scale: &HashMap<(Entity, u8), Vec<RuntimeModelIntentCandidate>>,
+) -> Option<String> {
+    let mut matching = runtime_models_by_phenomenon_scale
+        .get(&(phenomenon_entity, chunk_scale.index_from_top()))?
+        .iter()
+        .filter(|candidate| candidate.support.as_ref().map_or(true, |support| support.contains_chunk(canonical_coord)))
+        .collect::<Vec<_>>();
+    if matching.is_empty() {
+        return None;
+    }
+    matching.sort_by(|left, right| {
+        let left_radius = left.support.as_ref().map(|support| support.chunk_radius).unwrap_or(u16::MAX);
+        let right_radius = right.support.as_ref().map(|support| support.chunk_radius).unwrap_or(u16::MAX);
+        left_radius
+            .cmp(&right_radius)
+            .then_with(|| left.model_id.cmp(&right.model_id))
+            .then_with(|| left.model_entity_bits.cmp(&right.model_entity_bits))
+    });
+    matching.first().map(|candidate| candidate.model_id.clone())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::usf::phenomenon::PhenomenonModelSupportBounds;
+    use crate::usf::pos::grid::types::GridVec;
+    use crate::usf::pos::types::GridXyz;
     use crate::usf::scale::Scale;
     use crate::usf::zone::ZoneTypeId;
     use crate::usf::zone::{StableRegionId, ZoneRealizedPhenomenon};
@@ -456,7 +538,40 @@ mod tests {
             },
         );
 
-        let selected = realized_phenomenon_script_id_for_zone(&zone_id, &realization_state).expect("expected realized phenomenon mapping");
+        let selected = realized_phenomenon_for_zone(&zone_id, &realization_state)
+            .expect("expected realized phenomenon mapping")
+            .phenomenon_script_id
+            .clone();
         assert_eq!(selected, "phenomenon.debug.authoritative");
+    }
+
+    #[test]
+    fn runtime_model_selection_prefers_more_specific_support() {
+        let phenomenon_entity = Entity::from_bits(11);
+        let chunk_scale = Scale::MAX;
+        let chunk_coord = GridVec::new_splat(chunk_scale, GridXyz::ZERO);
+        let mut runtime_models_by_phenomenon_scale = HashMap::<(Entity, u8), Vec<RuntimeModelIntentCandidate>>::new();
+        runtime_models_by_phenomenon_scale.insert(
+            (phenomenon_entity, chunk_scale.index_from_top()),
+            vec![
+                RuntimeModelIntentCandidate {
+                    model_entity_bits: 100,
+                    model_id: "model_fallback".to_string(),
+                    support: None,
+                },
+                RuntimeModelIntentCandidate {
+                    model_entity_bits: 200,
+                    model_id: "model_specific".to_string(),
+                    support: Some(PhenomenonModelSupportBounds {
+                        anchor_chunk: chunk_coord.clone(),
+                        chunk_radius: 0,
+                    }),
+                },
+            ],
+        );
+
+        let selected = select_runtime_model_id_for_chunk(phenomenon_entity, chunk_scale, &chunk_coord, &runtime_models_by_phenomenon_scale)
+            .expect("expected runtime model selection");
+        assert_eq!(selected, "model_specific");
     }
 }

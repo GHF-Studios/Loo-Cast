@@ -8,7 +8,7 @@ use crate::usf::authority::{
 };
 
 use super::components::{
-    PartialPhenomenonModel, PartitionedPhenomenonModelMember, PartitionedPhenomenonModelRoot, PhenomenonModel, PhenomenonModelProjectionContract,
+    PartialPhenomenonModel, PartitionedPhenomenonModelMember, PartitionedPhenomenonModelRoot, PhenomenonModel, PhenomenonModelProjection,
     PhenomenonModelScriptDefinitionRef, PhenomenonModelState, PhenomenonModelSupport, PhenomenonModelTopology,
 };
 use super::persistence::{load_partial_phenomenon_model_record, partial_record_path};
@@ -118,8 +118,8 @@ pub(super) fn sync_partitioned_model_members_system(
                 Changed<PhenomenonModelScriptDefinitionRef>,
                 Added<PhenomenonModelSupport>,
                 Changed<PhenomenonModelSupport>,
-                Added<PhenomenonModelProjectionContract>,
-                Changed<PhenomenonModelProjectionContract>,
+                Added<PhenomenonModelProjection>,
+                Changed<PhenomenonModelProjection>,
             )>,
         ),
     >,
@@ -143,7 +143,7 @@ pub(super) fn sync_partitioned_model_members_system(
             &PhenomenonModel,
             &PhenomenonModelScriptDefinitionRef,
             &PhenomenonModelSupport,
-            &PhenomenonModelProjectionContract,
+            &PhenomenonModelProjection,
             &PhenomenonModelState,
         ),
         With<PartitionedPhenomenonModelRoot>,
@@ -154,7 +154,7 @@ pub(super) fn sync_partitioned_model_members_system(
             &PhenomenonModel,
             &PhenomenonModelScriptDefinitionRef,
             &PhenomenonModelSupport,
-            &PhenomenonModelProjectionContract,
+            &PhenomenonModelProjection,
             &PartitionedPhenomenonModelMember,
             &PartialPhenomenonModel,
         ),
@@ -199,7 +199,7 @@ pub(super) fn sync_partitioned_model_members_system(
         model: PhenomenonModel,
         model_script_ref: PhenomenonModelScriptDefinitionRef,
         support: PhenomenonModelSupport,
-        projection: PhenomenonModelProjectionContract,
+        projection: PhenomenonModelProjection,
         partial: PartialPhenomenonModel,
     }
 
@@ -209,7 +209,7 @@ pub(super) fn sync_partitioned_model_members_system(
         root_model: PhenomenonModel,
         model_script_ref: PhenomenonModelScriptDefinitionRef,
         support: PhenomenonModelSupport,
-        projection: PhenomenonModelProjectionContract,
+        projection: PhenomenonModelProjection,
         state: PhenomenonModelState,
         anchor_chunk: GridVec,
         radius: i32,

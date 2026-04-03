@@ -11,7 +11,7 @@ pub const USF_DOMAIN_PHENOMENON_MODEL: &str = "usf.phenomenon_model.persistence_
 pub const USF_DOMAIN_PARTIAL_PHENOMENON_MODEL: &str = "usf.partial_phenomenon_model.persistence_state";
 pub const USF_DOMAIN_SUBSTRATE: &str = "usf.substrate.runtime_state";
 pub const USF_DOMAIN_ZONE: &str = "usf.zone.selection_state";
-pub const USF_DOMAIN_CHUNK_REALIZATION_RUNTIME: &str = "usf.chunk.realization.runtime_state";
+pub const USF_DOMAIN_CHUNK_REALIZATION_STATE: &str = "usf.chunk_realization.runtime_state";
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum UsfAuthorityViolationMode {
@@ -106,9 +106,9 @@ impl Default for UsfWorldAuthorityContract {
             runtime_state_domains: vec![
                 USF_DOMAIN_SUBSTRATE.to_string(),
                 USF_DOMAIN_ZONE.to_string(),
-                USF_DOMAIN_CHUNK_REALIZATION_RUNTIME.to_string(),
+                USF_DOMAIN_CHUNK_REALIZATION_STATE.to_string(),
             ],
-            chunk_realization_authority_path: USF_DOMAIN_CHUNK_REALIZATION_RUNTIME.to_string(),
+            chunk_realization_authority_path: USF_DOMAIN_CHUNK_REALIZATION_STATE.to_string(),
             substrate_authority_path: USF_DOMAIN_SUBSTRATE.to_string(),
             zone_authority_path: USF_DOMAIN_ZONE.to_string(),
             phenomenon_authority_path: "usf.phenomenon.{Phenomenon,PhenomenonModel,PartialPhenomenonModel}".to_string(),
@@ -131,7 +131,11 @@ pub fn guard_canonical_domain_with_diagnostics(
     false
 }
 
-pub fn guard_runtime_state_domain_with_diagnostics(contract: &UsfWorldAuthorityContract, diagnostics: Option<&mut UsfAuthorityDiagnostics>, domain_id: &str) -> bool {
+pub fn guard_runtime_state_domain_with_diagnostics(
+    contract: &UsfWorldAuthorityContract,
+    diagnostics: Option<&mut UsfAuthorityDiagnostics>,
+    domain_id: &str,
+) -> bool {
     if contract.guard_runtime_state_domain(domain_id) {
         return true;
     }
@@ -319,7 +323,7 @@ pub(crate) fn validate_usf_world_authority_contract_system(contract: Res<UsfWorl
             panic!("USF world authority validation failed: missing canonical entity domain '{}'.", required);
         }
     }
-    let required_runtime_state = [USF_DOMAIN_SUBSTRATE, USF_DOMAIN_ZONE, USF_DOMAIN_CHUNK_REALIZATION_RUNTIME];
+    let required_runtime_state = [USF_DOMAIN_SUBSTRATE, USF_DOMAIN_ZONE, USF_DOMAIN_CHUNK_REALIZATION_STATE];
     for required in required_runtime_state {
         if !contract.is_runtime_state_domain(required) {
             panic!("USF world authority validation failed: missing runtime-state domain '{}'.", required);
@@ -339,7 +343,7 @@ mod tests {
         contract.assert_canonical_domain(USF_DOMAIN_PARTIAL_PHENOMENON_MODEL);
         contract.assert_runtime_state_domain(USF_DOMAIN_SUBSTRATE);
         contract.assert_runtime_state_domain(USF_DOMAIN_ZONE);
-        contract.assert_runtime_state_domain(USF_DOMAIN_CHUNK_REALIZATION_RUNTIME);
+        contract.assert_runtime_state_domain(USF_DOMAIN_CHUNK_REALIZATION_STATE);
     }
 
     #[test]

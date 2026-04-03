@@ -1,7 +1,7 @@
 use rhai::{Dynamic, ImmutableString};
 
-use crate::rhai_binding::runtime::ecs::component::internals::statics::COMPONENT_CTOR_REGISTRY;
 use crate::rhai_binding::runtime::ecs::component::bindings::types::Component as ScriptComponent;
+use crate::rhai_binding::runtime::ecs::component::internals::statics::COMPONENT_CTOR_REGISTRY;
 
 pub const TYPE_PATH__PLAYER: &str = "core_mod_api::player::components::Player";
 pub const TYPE_PATH__CHUNK_ACTOR: &str = "core_mod_api::usf::chunk::components::ChunkActor";
@@ -33,12 +33,9 @@ core_mod_macros::reflect_extern_type!(
 core_mod_macros::reflect_extern_module_associated_function!(
     id = bevy::ecs::component::create_single,
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
-        rhai::FuncRegistration::new(name).set_into_module(
-            parent_module,
-            |component_id: ImmutableString, params: Dynamic| -> ScriptComponent {
-                ScriptComponent::create_single((component_id.to_string().into(), params))
-            },
-        );
+        rhai::FuncRegistration::new(name).set_into_module(parent_module, |component_id: ImmutableString, params: Dynamic| -> ScriptComponent {
+            ScriptComponent::create_single((component_id.to_string().into(), params))
+        });
     },
 );
 

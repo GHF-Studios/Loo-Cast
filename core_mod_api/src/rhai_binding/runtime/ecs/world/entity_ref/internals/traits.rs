@@ -1,7 +1,7 @@
 use rhai::{Array, ImmutableString};
 
-use crate::rhai_binding::runtime::ecs::component::bindings::types::Component;
 use crate::bevy::prelude::Entity as BevyEntity;
+use crate::rhai_binding::runtime::ecs::component::bindings::types::Component;
 
 pub trait EntityRefApi {
     fn id(&self) -> BevyEntity;

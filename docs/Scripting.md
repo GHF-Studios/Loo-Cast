@@ -19,15 +19,21 @@
 - Schedule entrypoint contract supports:
   - `fn main(world, params)` only
 - `params` is domain-typed instead of map-typed:
-  - `SubstrateHookParams` for `substrate_*` entrypoints
-  - `ZoneHookParams` for `zone_*` entrypoints
-  - `PhenomenonHookParams` for `phenomenon_*` entrypoints
-  - `GlobalHookParams` for non-domain entrypoints
+  - `SubstrateScheduleEntrypointParams` for `substrate_*` entrypoints
+  - `ZoneScheduleEntrypointParams` for `zone_*` entrypoints
+  - `PhenomenonScheduleEntrypointParams` for `phenomenon_*` entrypoints
+  - `GlobalScheduleEntrypointParams` for non-domain entrypoints
 - Typed params expose shared metadata (`entrypoint_name`, `entrypoint_file`, `domain`, `stage`,
-  `delta_seconds`, `elapsed_seconds`, `has_virtual_time`) and domain-specific fields
-  (for example `ZoneHookParams.loaded_zone_count`).
+  `delta_seconds`, `elapsed_seconds`, `has_virtual_time`,
+  `bootstrap_global_script_count`, `bootstrap_package_script_count`, `bootstrap_selected_mod_count`,
+  `bootstrap_executed_entrypoint_count`, `chunk_realization_mesh_instances`, `chunk_realization_material_instances`,
+  `chunk_realization_collider_instances`, `chunk_realization_audio_emitters`, `chunk_realization_particle_emitters`,
+  `chunk_realization_interaction_triggers`, `chunk_realization_simulation_services`) and domain-specific fields
+  (for example `ZoneScheduleEntrypointParams.loaded_zone_count`).
 - Testing gate is exposed via `rhai_binding::testing::enabled()`, backed by config key
   `rhai_binding/testing_enabled`.
+- Bootstrap diagnostics are exposed via `rhai_binding::usf_bootstrap::*`
+  (`selected_mod_ids`, `discovered_global_scripts`, `discovered_package_scripts`, `executed_entrypoint_count`).
 - Startup test scripts only execute when `rhai_binding/testing_enabled = true`.
 - Policy: keep script helper orchestration out of global namespace; prefer namespaced modules and `private fn`.
 

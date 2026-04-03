@@ -88,15 +88,16 @@ Current placeholder gameplay contracts:
 - one terrain metric drives classification: `demo_mass_density`
 - three derived root-position metrics are provided: `root_pos_x`, `root_pos_y`, `root_pos_z`
 - three zones are used: `empty` (no support/no realization instance), `spawn_buffer` (near-origin noop), and `solid` (spawns one realization-density phenomenon)
-- the chunk realization instance contract is currently driven by one phenomenon id: `demo_realization_density`
-- demo phenomenon/model scripts declare non-mesh contracts (`audio emitter`, `particle emitter`, `interaction trigger`) to validate capability-family extensibility end-to-end
-- `*.phenomenon_model.rhai` defines the model field policy via `set_realization_density_field(...)`
-- `*.phenomenon_model.rhai` can define model material policy via `set_realization_material_profile(...)`
-- `*.phenomenon_model.rhai` can define optional simulation/realization contracts via:
+- the chunk realization instance contract is currently driven by one phenomenon id: `demo_mass_density`
+- demo phenomenon/model scripts declare non-mesh contracts (`audio emitter`, `particle emitter`, `interaction trigger`, `simulation service`) to validate capability-family extensibility end-to-end
+- `*.phenomenon_model.rhai` defines the model field policy via `set_output_density_field(...)`
+- `*.phenomenon_model.rhai` can define model material policy via `set_output_material_profile(...)`
+- `*.phenomenon_model.rhai` can define optional simulation/output contracts via:
   - `set_simulation_service(...)`
-  - `set_realization_audio_emitter(...)`
-  - `set_realization_particle_emitter(...)`
-  - `set_interaction_trigger(...)`
+  - `set_output_collider_enabled(...)`
+  - `set_output_audio_emitter(...)`
+  - `set_output_particle_emitter(...)`
+  - `set_output_interaction_trigger(...)`
 - `*.phenomenon_model.rhai` must declare topology/support with:
   - `ctx.set_topology("monolithic_chunk" | "partitioned_by_chunk")`
   - `ctx.set_support_chunk_radius(...)` (required `>= 1` for partitioned)

@@ -2,10 +2,10 @@ use crate::bevy::prelude::*;
 use core_mod_macros::{composite_workflow, composite_workflow_return};
 use std::collections::HashMap;
 
-use crate::usf::chunk::components::{ChunkActor, ChunkLoader};
 use crate::core::resources::EntityProxyRuntimeState;
 use crate::player::components::Player;
 use crate::render::components::{EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision, RenderProxy, RenderProxyWindowMode};
+use crate::usf::chunk::components::{ChunkActor, ChunkLoader};
 use crate::usf::pos::grid::types::GridVec;
 use crate::workflow::functions::handle_composite_workflow_return_later;
 
@@ -174,7 +174,7 @@ pub(super) fn sync_logic_proxies_from_main_entities_system(
 
         if link.root_transform_is_proxy {
             let main_coord = chunk_actor.coord.clone();
-            let z = main_coord.scale.compute_z();
+            let z = main_coord.scale.canonical_z();
             let (pos, scale) = main_coord.to_native_visual(origin_offset.clone());
             logic_transform.translation = Vec3::new(pos.x, pos.y, pos.z + z);
             logic_transform.rotation = Quat::IDENTITY;

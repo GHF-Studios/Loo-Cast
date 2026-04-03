@@ -1,10 +1,10 @@
 fn register_phenomenon_model(ctx) {
-    ctx.set_id("demo_realization_density_default");
-    ctx.register("demo_realization_density");
+    ctx.set_id("demo_mass_density_default");
+    ctx.register("demo_mass_density");
     ctx.set_topology("partitioned_by_chunk");
     ctx.set_support_chunk_radius(2);
-    ctx.set_projection_contract("demo_mass_density", 0.0, 1.0);
-    ctx.set_realization_density_field(
+    ctx.set_projection_spec("demo_mass_density", 0.0, 1.0);
+    ctx.set_output_density_field(
         320.0,
         128.0,
         0.82,
@@ -15,7 +15,7 @@ fn register_phenomenon_model(ctx) {
         608139381523021511,
         2748924730191034777,
     );
-    ctx.set_realization_material_profile(
+    ctx.set_output_material_profile(
         0.62,
         0.71,
         0.84,
@@ -24,22 +24,27 @@ fn register_phenomenon_model(ctx) {
         0.02,
         0.0,
     );
-    ctx.set_realization_collider_enabled(true);
-    ctx.set_realization_audio_emitter(
+    ctx.set_output_collider_enabled(true);
+    ctx.set_simulation_service(
+        30.0,
+        0.5,
+        1.0,
+    );
+    ctx.set_output_audio_emitter(
         "demo.chunk.ambient",
         true,
         0.25,
         900.0,
         0.0,
     );
-    ctx.set_realization_particle_emitter(
+    ctx.set_output_particle_emitter(
         "demo.chunk.dust",
         0.4,
         4,
         1.8,
         96.0,
     );
-    ctx.set_interaction_trigger(
+    ctx.set_output_interaction_trigger(
         "demo.chunk.proximity",
         0.25,
         8,

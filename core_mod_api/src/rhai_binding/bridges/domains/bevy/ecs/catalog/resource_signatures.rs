@@ -5,8 +5,8 @@
 
 use crate::bevy::prelude::World as BevyWorld;
 use crate::rhai_binding::runtime::ecs::dispatch_policy::{
-    submit_resource_get_dispatch_entry, submit_resource_get_mut_dispatch_entry, submit_resource_init_dispatch_entry,
-    submit_resource_insert_dispatch_entry, submit_resource_remove_dispatch_entry,
+    submit_resource_get_dispatch_entry, submit_resource_get_mut_dispatch_entry, submit_resource_init_dispatch_entry, submit_resource_insert_dispatch_entry,
+    submit_resource_remove_dispatch_entry,
 };
 use crate::rhai_binding::runtime::ecs::resource::bindings::types::ScriptProbeResource;
 
@@ -31,8 +31,7 @@ fn dispatch_resource_sig_script_probe_get(world: &mut BevyWorld) -> Option<Strin
 }
 
 fn dispatch_resource_sig_script_probe_get_mut(world: &mut BevyWorld) -> Option<String> {
-    world.get_resource_mut::<ScriptProbeResource>()
-        .map(|resource| resource.payload.clone())
+    world.get_resource_mut::<ScriptProbeResource>().map(|resource| resource.payload.clone())
 }
 
 fn dispatch_resource_sig_script_probe_remove(world: &mut BevyWorld) -> Option<String> {

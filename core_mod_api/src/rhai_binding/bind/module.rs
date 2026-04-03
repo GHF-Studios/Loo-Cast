@@ -17,18 +17,30 @@ impl TopLevelModuleMetadata {
         top_level_module.set_id(id_path.module_name());
 
         for path in self.sub_modules().get().into_iter() {
-            let sub_module = graph.sub_modules.get(&path).unwrap().clone();
+            let sub_module = graph
+                .sub_modules
+                .get(&path)
+                .unwrap_or_else(|| panic!("Missing SubModuleMetadata '{}' while registering top-level module '{}'", path, id_path.module_name()))
+                .clone();
             sub_module.register_sub_module(engine, &mut top_level_module);
         }
 
         for path in self.traits().get().into_iter() {
-            let (trait_, trait_object) = graph.traits.get(&path).unwrap().clone();
+            let (trait_, trait_object) = graph
+                .traits
+                .get(&path)
+                .unwrap_or_else(|| panic!("Missing TraitMetadata '{}' while registering top-level module '{}'", path, id_path.module_name()))
+                .clone();
             trait_.register_trait(&mut top_level_module);
             trait_object.register_trait_object(&mut top_level_module);
         }
 
         for path in self.types().get().into_iter() {
-            let type_ = graph.types.get(&path).unwrap().clone();
+            let type_ = graph
+                .types
+                .get(&path)
+                .unwrap_or_else(|| panic!("Missing TypeMetadata '{}' while registering top-level module '{}'", path, id_path.module_name()))
+                .clone();
             type_.register_type(&mut top_level_module);
         }
 
@@ -71,7 +83,17 @@ impl TopLevelModuleMetadata {
         }
 
         for path in self.module_associated_functions().get().into_iter() {
-            let module_associated_function = graph.module_associated_functions.get(&path).unwrap().clone();
+            let module_associated_function = graph
+                .module_associated_functions
+                .get(&path)
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Missing ModuleAssociatedFunctionMetadata '{}' while registering top-level module '{}'",
+                        path,
+                        id_path.module_name()
+                    )
+                })
+                .clone();
             module_associated_function.register_module_associated_function(&mut top_level_module);
         }
 
@@ -87,18 +109,30 @@ impl SubModuleMetadata {
         origin_sub_module.set_id(id_path.module_name());
 
         for path in self.sub_modules().get().into_iter() {
-            let sub_module = graph.sub_modules.get(&path).unwrap().clone();
+            let sub_module = graph
+                .sub_modules
+                .get(&path)
+                .unwrap_or_else(|| panic!("Missing SubModuleMetadata '{}' while registering sub-module '{}'", path, id_path.module_name()))
+                .clone();
             sub_module.register_sub_module(engine, &mut origin_sub_module);
         }
 
         for path in self.traits().get().into_iter() {
-            let (trait_, trait_object) = graph.traits.get(&path).unwrap().clone();
+            let (trait_, trait_object) = graph
+                .traits
+                .get(&path)
+                .unwrap_or_else(|| panic!("Missing TraitMetadata '{}' while registering sub-module '{}'", path, id_path.module_name()))
+                .clone();
             trait_.register_trait(&mut origin_sub_module);
             trait_object.register_trait_object(&mut origin_sub_module);
         }
 
         for path in self.types().get().into_iter() {
-            let type_ = graph.types.get(&path).unwrap().clone();
+            let type_ = graph
+                .types
+                .get(&path)
+                .unwrap_or_else(|| panic!("Missing TypeMetadata '{}' while registering sub-module '{}'", path, id_path.module_name()))
+                .clone();
             type_.register_type(&mut origin_sub_module);
         }
 
@@ -141,7 +175,17 @@ impl SubModuleMetadata {
         }
 
         for path in self.module_associated_functions().get().into_iter() {
-            let module_associated_function = graph.module_associated_functions.get(&path).unwrap().clone();
+            let module_associated_function = graph
+                .module_associated_functions
+                .get(&path)
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Missing ModuleAssociatedFunctionMetadata '{}' while registering sub-module '{}'",
+                        path,
+                        id_path.module_name()
+                    )
+                })
+                .clone();
             module_associated_function.register_module_associated_function(&mut origin_sub_module);
         }
 

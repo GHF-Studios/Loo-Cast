@@ -9,9 +9,7 @@ pub struct PhenomenonKind {
 
 impl Default for PhenomenonKind {
     fn default() -> Self {
-        Self {
-            id: "untyped".to_string(),
-        }
+        Self { id: "untyped".to_string() }
     }
 }
 
@@ -28,7 +26,6 @@ impl PhenomenonKind {
     pub fn from_config_value(raw: &str) -> Self {
         Self::try_from_config_value(raw).unwrap_or_else(|error| panic!("USF phenomenon kind parse failed: {}", error))
     }
-
 }
 
 fn normalize_kind_identifier(raw: &str) -> Result<String, String> {
@@ -36,20 +33,14 @@ fn normalize_kind_identifier(raw: &str) -> Result<String, String> {
     if normalized.is_empty() {
         return Err("kind identifier cannot be empty".to_string());
     }
-    if !normalized
-        .chars()
-        .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '_')
-    {
-        return Err(format!(
-            "kind identifier '{}' contains unsupported characters; expected [a-z0-9_]",
-            normalized
-        ));
+    if !normalized.chars().all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '_') {
+        return Err(format!("kind identifier '{}' contains unsupported characters; expected [a-z0-9_]", normalized));
     }
     Ok(normalized)
 }
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq)]
-pub struct RealizationDensityFieldDefinition {
+pub struct OutputDensityFieldDefinition {
     pub coarse_span_units: f64,
     pub detail_span_units: f64,
     pub coarse_weight: f32,
@@ -60,7 +51,7 @@ pub struct RealizationDensityFieldDefinition {
     pub seed_salt_coarse: u64,
     pub seed_salt_detail: u64,
 }
-impl Default for RealizationDensityFieldDefinition {
+impl Default for OutputDensityFieldDefinition {
     fn default() -> Self {
         Self {
             coarse_span_units: 320.0,
@@ -77,12 +68,12 @@ impl Default for RealizationDensityFieldDefinition {
 }
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq)]
-pub enum PhenomenonRealizationFieldContract {
-    DensityField(RealizationDensityFieldDefinition),
+pub enum PhenomenonOutputFieldSpec {
+    DensityField(OutputDensityFieldDefinition),
 }
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq)]
-pub struct RealizationMaterialProfileDefinition {
+pub struct OutputMaterialProfileDefinition {
     pub albedo_r: f32,
     pub albedo_g: f32,
     pub albedo_b: f32,
@@ -109,14 +100,14 @@ impl Default for PhenomenonSimulationServiceDefinition {
 }
 
 #[derive(Reflect, Debug, Clone, PartialEq)]
-pub struct RealizationAudioEmitterDefinition {
+pub struct OutputAudioEmitterDefinition {
     pub event_id: String,
     pub looped: bool,
     pub gain: f32,
     pub spatial_range: f32,
     pub start_offset_seconds: f32,
 }
-impl Default for RealizationAudioEmitterDefinition {
+impl Default for OutputAudioEmitterDefinition {
     fn default() -> Self {
         Self {
             event_id: "audio.event.default".to_string(),
@@ -129,14 +120,14 @@ impl Default for RealizationAudioEmitterDefinition {
 }
 
 #[derive(Reflect, Debug, Clone, PartialEq)]
-pub struct RealizationParticleEmitterDefinition {
+pub struct OutputParticleEmitterDefinition {
     pub effect_id: String,
     pub emission_rate: f32,
     pub burst_count: u32,
     pub lifetime_seconds: f32,
     pub radius: f32,
 }
-impl Default for RealizationParticleEmitterDefinition {
+impl Default for OutputParticleEmitterDefinition {
     fn default() -> Self {
         Self {
             effect_id: "particles.effect.default".to_string(),
@@ -163,7 +154,7 @@ impl Default for InteractionTriggerDefinition {
         }
     }
 }
-impl Default for RealizationMaterialProfileDefinition {
+impl Default for OutputMaterialProfileDefinition {
     fn default() -> Self {
         Self {
             albedo_r: 0.54,
@@ -313,10 +304,10 @@ mod tests {
 
     #[test]
     fn phenomenon_kind_parsing_normalizes_aliases() {
-        let underscore = PhenomenonKind::try_from_config_value("demo_realization_density").expect("underscore kind id should parse");
-        let kebab = PhenomenonKind::try_from_config_value("demo-realization-density").expect("kebab kind id should parse");
+        let underscore = PhenomenonKind::try_from_config_value("demo_mass_density").expect("underscore kind id should parse");
+        let kebab = PhenomenonKind::try_from_config_value("demo-mass-density").expect("kebab kind id should parse");
         assert_eq!(underscore, kebab);
-        assert_eq!(underscore.canonical_id(), "demo_realization_density");
+        assert_eq!(underscore.canonical_id(), "demo_mass_density");
     }
 
     #[test]
@@ -324,5 +315,4 @@ mod tests {
         let kind = PhenomenonKind::from_config_value("galactic-supercluster");
         assert_eq!(kind.canonical_id(), "galactic_supercluster");
     }
-
 }

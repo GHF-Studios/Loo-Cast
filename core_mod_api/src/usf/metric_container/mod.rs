@@ -8,6 +8,7 @@ use crate::usf::scale::Scale;
 use crate::usf::zone::ZoneTypeId;
 
 pub const METRIC_SAMPLER_KERNEL_DEFAULT_ID: &str = "metric_sampler.kernel.default.v1";
+pub const METRIC_SAMPLER_KERNEL_PREFIX: &str = "metric_sampler.kernel.";
 
 #[derive(Reflect, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct MetricContainerChunkKey {
@@ -106,7 +107,12 @@ impl MetricContainerStore {
         })
     }
 
-    pub fn ensure_chunk_for_scale(&mut self, key: MetricContainerChunkKey, schema: &MetricContainerLayout, active_modpack: &UsfActiveModPack) -> &MetricContainerRecord {
+    pub fn ensure_chunk_for_scale(
+        &mut self,
+        key: MetricContainerChunkKey,
+        schema: &MetricContainerLayout,
+        active_modpack: &UsfActiveModPack,
+    ) -> &MetricContainerRecord {
         let sampler_id = active_modpack
             .scale_definition_for_scale(key.scale)
             .map(|scale_definition| scale_definition.metric_sampler_id.as_str())
@@ -125,13 +131,19 @@ impl MetricContainerStore {
 }
 
 fn metric_vector_for_sampler_id(sampler_id: &str, key: &MetricContainerChunkKey, schema: &MetricContainerLayout) -> Vec<f32> {
-    match sampler_id.trim().to_ascii_lowercase().as_str() {
-        METRIC_SAMPLER_KERNEL_DEFAULT_ID => deterministic_metric_vector(key, schema),
-        unknown => panic!(
-            "USF metric container sampling failed: unknown sampler kernel '{}'; supported kernels: {}",
-            unknown, METRIC_SAMPLER_KERNEL_DEFAULT_ID
-        ),
+    let normalized = sampler_id.trim().to_ascii_lowercase();
+    if !is_sampler_kernel_id_supported(normalized.as_str()) {
+        panic!(
+            "USF metric container sampling failed: unsupported sampler kernel '{}'; expected '{}' or ids prefixed with '{}'",
+            normalized, METRIC_SAMPLER_KERNEL_DEFAULT_ID, METRIC_SAMPLER_KERNEL_PREFIX
+        );
     }
+    deterministic_metric_vector(key, schema)
+}
+
+pub(crate) fn is_sampler_kernel_id_supported(sampler_id: &str) -> bool {
+    let normalized = sampler_id.trim().to_ascii_lowercase();
+    normalized == METRIC_SAMPLER_KERNEL_DEFAULT_ID || normalized.starts_with(METRIC_SAMPLER_KERNEL_PREFIX)
 }
 
 pub(crate) fn deterministic_metric_vector(key: &MetricContainerChunkKey, schema: &MetricContainerLayout) -> Vec<f32> {
@@ -463,6 +475,37 @@ mod tests {
                 },
             )]),
             known_metric_samplers: std::collections::HashSet::from([MetricContainerStore::DEFAULT_METRIC_SAMPLER_ID.to_string()]),
+            known_metric_categorizers: std::collections::HashSet::from([crate::usf::zlm::METRIC_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID.to_string()]),
+            schemas_by_scale: HashMap::from([(coord.scale, schema.clone())]),
+            known_zone_types: std::collections::HashSet::from([ZoneTypeId::new("void")]),
+        };
+
+        let mut store = MetricContainerStore::default();
+        let stored = store.ensure_chunk_for_scale(key.clone(), &schema, &active_modpack);
+        let expected = deterministic_metric_vector(&key, &schema);
+        assert_eq!(stored.metrics, expected);
+    }
+
+    #[test]
+    fn ensure_chunk_for_scale_accepts_custom_sampler_kernel_id_prefix() {
+        let coord = GridVec::new_root(GridXyz::new_local(0, 0, 0));
+        let key = key(coord.clone());
+        let schema = test_schema(4);
+        let custom_sampler = "metric_sampler.kernel.custom_band.v1".to_string();
+        let active_modpack = UsfActiveModPack {
+            mod_pack_id: "debug".to_string(),
+            configured_mods: vec![UsfConfiguredMod { mod_id: "demo".to_string() }],
+            enabled_mods: std::collections::HashSet::from(["demo".to_string()]),
+            resolved_enabled_mods: vec!["demo".to_string()],
+            scales_by_index: HashMap::from([(
+                coord.scale,
+                UsfScaleDefinition {
+                    metric_sampler_id: custom_sampler.clone(),
+                    metric_categorizer_id: crate::usf::zlm::METRIC_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID.to_string(),
+                    chunk_store_key: "chunk_store.default".to_string(),
+                },
+            )]),
+            known_metric_samplers: std::collections::HashSet::from([custom_sampler]),
             known_metric_categorizers: std::collections::HashSet::from([crate::usf::zlm::METRIC_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID.to_string()]),
             schemas_by_scale: HashMap::from([(coord.scale, schema.clone())]),
             known_zone_types: std::collections::HashSet::from([ZoneTypeId::new("void")]),

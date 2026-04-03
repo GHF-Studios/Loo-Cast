@@ -45,23 +45,17 @@ core_mod_macros::reflect_extern_method_function!(
 core_mod_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::entity_access::EntityWorldMut::remove_component,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
-        engine.register_fn(
-            name,
-            |entity_world_mut: &mut ScriptEntityWorldMut, component_type_id: rhai::ImmutableString| {
-                entity_world_mut.remove_component(component_type_id);
-            },
-        );
+        engine.register_fn(name, |entity_world_mut: &mut ScriptEntityWorldMut, component_type_id: rhai::ImmutableString| {
+            entity_world_mut.remove_component(component_type_id);
+        });
     },
 );
 
 core_mod_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::entity_access::EntityWorldMut::insert_components,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
-        engine.register_fn(
-            name,
-            |entity_world_mut: &mut ScriptEntityWorldMut, components: rhai::Array| {
-                entity_world_mut.insert_components(components);
-            },
-        );
+        engine.register_fn(name, |entity_world_mut: &mut ScriptEntityWorldMut, components: rhai::Array| {
+            entity_world_mut.insert_components(components);
+        });
     },
 );

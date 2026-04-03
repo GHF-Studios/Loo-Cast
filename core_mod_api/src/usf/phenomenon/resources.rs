@@ -6,22 +6,22 @@ use crate::usf::scale::Scale;
 
 use super::components::{PhenomenonModelProjectionSpec, PhenomenonModelTopology};
 use super::types::{
-    InteractionTriggerDefinition, RealizationAudioEmitterDefinition, RealizationDensityFieldDefinition, RealizationMaterialProfileDefinition,
-    RealizationParticleEmitterDefinition, PhenomenonKind, PhenomenonRealizationFieldContract, PhenomenonSimulationServiceDefinition,
+    InteractionTriggerDefinition, OutputAudioEmitterDefinition, OutputDensityFieldDefinition, OutputMaterialProfileDefinition, OutputParticleEmitterDefinition,
+    PhenomenonKind, PhenomenonOutputFieldSpec, PhenomenonSimulationServiceDefinition,
 };
 
 #[derive(Resource, Reflect, Debug, Clone)]
 #[reflect(Resource)]
 pub struct PhenomenonDefinitionRegistry {
     pub kind_by_phenomenon_id: HashMap<String, PhenomenonKind>,
-    pub realization_density_by_model_id: HashMap<String, RealizationDensityFieldDefinition>,
-    pub realization_material_by_model_id: HashMap<String, RealizationMaterialProfileDefinition>,
-    pub realization_collider_enabled_by_model_id: HashMap<String, bool>,
+    pub output_density_field_by_model_id: HashMap<String, OutputDensityFieldDefinition>,
+    pub output_material_profile_by_model_id: HashMap<String, OutputMaterialProfileDefinition>,
+    pub output_collider_enabled_by_model_id: HashMap<String, bool>,
     pub simulation_service_by_model_id: HashMap<String, PhenomenonSimulationServiceDefinition>,
-    pub realization_audio_emitter_by_model_id: HashMap<String, RealizationAudioEmitterDefinition>,
-    pub realization_particle_emitter_by_model_id: HashMap<String, RealizationParticleEmitterDefinition>,
-    pub interaction_trigger_by_model_id: HashMap<String, InteractionTriggerDefinition>,
-    pub projection_contract_by_model_id: HashMap<String, PhenomenonModelProjectionSpec>,
+    pub output_audio_emitter_by_model_id: HashMap<String, OutputAudioEmitterDefinition>,
+    pub output_particle_emitter_by_model_id: HashMap<String, OutputParticleEmitterDefinition>,
+    pub output_interaction_trigger_by_model_id: HashMap<String, InteractionTriggerDefinition>,
+    pub projection_spec_by_model_id: HashMap<String, PhenomenonModelProjectionSpec>,
     pub topology_by_model_id: HashMap<String, PhenomenonModelTopology>,
     pub support_chunk_radius_by_model_id: HashMap<String, u16>,
     pub model_selection_by_phenomenon_scale: HashMap<String, String>,
@@ -55,14 +55,14 @@ impl Default for PhenomenonDefinitionRegistry {
         }
 
         let mut phenomenon_by_model_id = HashMap::new();
-        let mut realization_density_by_model_id = HashMap::new();
-        let mut realization_material_by_model_id = HashMap::new();
-        let mut realization_collider_enabled_by_model_id = HashMap::new();
+        let mut output_density_field_by_model_id = HashMap::new();
+        let mut output_material_profile_by_model_id = HashMap::new();
+        let mut output_collider_enabled_by_model_id = HashMap::new();
         let mut simulation_service_by_model_id = HashMap::new();
-        let mut realization_audio_emitter_by_model_id = HashMap::new();
-        let mut realization_particle_emitter_by_model_id = HashMap::new();
-        let mut interaction_trigger_by_model_id = HashMap::new();
-        let mut projection_contract_by_model_id = HashMap::new();
+        let mut output_audio_emitter_by_model_id = HashMap::new();
+        let mut output_particle_emitter_by_model_id = HashMap::new();
+        let mut output_interaction_trigger_by_model_id = HashMap::new();
+        let mut projection_spec_by_model_id = HashMap::new();
         let mut topology_by_model_id = HashMap::new();
         let mut support_chunk_radius_by_model_id = HashMap::new();
         for (model_id, model) in script_models {
@@ -74,13 +74,13 @@ impl Default for PhenomenonDefinitionRegistry {
                     normalized_model_id, normalized_phenomenon_id
                 );
             };
-            let has_realization_density_contract = model.realization_density.is_some();
-            if has_realization_density_contract {
-                let Some(field) = model.realization_density else {
+            let has_realization_density_output = model.output_density_field.is_some();
+            if has_realization_density_output {
+                let Some(field) = model.output_density_field else {
                     panic!(
                         "USF phenomenon bootstrap failed: model '{}' belongs to phenomenon '{}' (kind='{}') \
-                         declares contract 'realization_density_field' but has no field definition. \
-                         Call set_realization_density_field(...) in the model script.",
+                         declares output 'density_field' but has no field definition. \
+                         Call set_output_density_field(...) in the model script.",
                         normalized_model_id,
                         normalized_phenomenon_id,
                         kind.canonical_id()
@@ -115,9 +115,9 @@ impl Default for PhenomenonDefinitionRegistry {
                         normalized_model_id, field.bias, field.gain, field.center
                     );
                 }
-                realization_density_by_model_id.insert(
+                output_density_field_by_model_id.insert(
                     normalized_model_id.clone(),
-                    RealizationDensityFieldDefinition {
+                    OutputDensityFieldDefinition {
                         coarse_span_units: field.coarse_span_units,
                         detail_span_units: field.detail_span_units,
                         coarse_weight: field.coarse_weight,
@@ -130,13 +130,13 @@ impl Default for PhenomenonDefinitionRegistry {
                     },
                 );
             }
-            let has_realization_material_contract = model.realization_material.is_some();
-            if has_realization_material_contract {
-                let Some(material) = model.realization_material else {
+            let has_realization_material_output = model.output_material_profile.is_some();
+            if has_realization_material_output {
+                let Some(material) = model.output_material_profile else {
                     panic!(
                         "USF phenomenon bootstrap failed: model '{}' belongs to phenomenon '{}' (kind='{}') \
-                         declares contract 'realization_material_profile' but has no material profile definition. \
-                         Call set_realization_material_profile(...) in the model script.",
+                         declares output 'material_profile' but has no material profile definition. \
+                         Call set_output_material_profile(...) in the model script.",
                         normalized_model_id,
                         normalized_phenomenon_id,
                         kind.canonical_id()
@@ -172,9 +172,9 @@ impl Default for PhenomenonDefinitionRegistry {
                         normalized_model_id, material.emissive_strength
                     );
                 }
-                realization_material_by_model_id.insert(
+                output_material_profile_by_model_id.insert(
                     normalized_model_id.clone(),
-                    RealizationMaterialProfileDefinition {
+                    OutputMaterialProfileDefinition {
                         albedo_r: material.albedo_r,
                         albedo_g: material.albedo_g,
                         albedo_b: material.albedo_b,
@@ -185,13 +185,13 @@ impl Default for PhenomenonDefinitionRegistry {
                     },
                 );
             }
-            realization_collider_enabled_by_model_id.insert(normalized_model_id.clone(), model.realization_collider_enabled);
-            let has_simulation_service_contract = model.simulation_service.is_some();
-            if has_simulation_service_contract {
+            output_collider_enabled_by_model_id.insert(normalized_model_id.clone(), model.output_collider_enabled);
+            let has_simulation_service_output = model.simulation_service.is_some();
+            if has_simulation_service_output {
                 let Some(simulation_service) = model.simulation_service else {
                     panic!(
                         "USF phenomenon bootstrap failed: model '{}' belongs to phenomenon '{}' (kind='{}') \
-                         declares contract 'simulation_service' but has no simulation service definition. \
+                         declares output 'simulation_service' but has no simulation service definition. \
                          Call set_simulation_service(...) in the model script.",
                         normalized_model_id,
                         normalized_phenomenon_id,
@@ -225,13 +225,13 @@ impl Default for PhenomenonDefinitionRegistry {
                     },
                 );
             }
-            let has_realization_audio_contract = model.realization_audio_emitter.is_some();
-            if has_realization_audio_contract {
-                let Some(audio_emitter) = model.realization_audio_emitter.clone() else {
+            let has_realization_audio_output = model.output_audio_emitter.is_some();
+            if has_realization_audio_output {
+                let Some(audio_emitter) = model.output_audio_emitter.clone() else {
                     panic!(
                         "USF phenomenon bootstrap failed: model '{}' belongs to phenomenon '{}' (kind='{}') \
-                         declares contract 'realization_audio_emitter' but has no audio emitter definition. \
-                         Call set_realization_audio_emitter(...) in the model script.",
+                         declares output 'audio_emitter' but has no audio emitter definition. \
+                         Call set_output_audio_emitter(...) in the model script.",
                         normalized_model_id,
                         normalized_phenomenon_id,
                         kind.canonical_id()
@@ -259,9 +259,9 @@ impl Default for PhenomenonDefinitionRegistry {
                         normalized_model_id, audio_emitter.start_offset_seconds
                     );
                 }
-                realization_audio_emitter_by_model_id.insert(
+                output_audio_emitter_by_model_id.insert(
                     normalized_model_id.clone(),
-                    RealizationAudioEmitterDefinition {
+                    OutputAudioEmitterDefinition {
                         event_id,
                         looped: audio_emitter.looped,
                         gain: audio_emitter.gain,
@@ -270,13 +270,13 @@ impl Default for PhenomenonDefinitionRegistry {
                     },
                 );
             }
-            let has_realization_particle_contract = model.realization_particle_emitter.is_some();
-            if has_realization_particle_contract {
-                let Some(particle_emitter) = model.realization_particle_emitter.clone() else {
+            let has_realization_particle_output = model.output_particle_emitter.is_some();
+            if has_realization_particle_output {
+                let Some(particle_emitter) = model.output_particle_emitter.clone() else {
                     panic!(
                         "USF phenomenon bootstrap failed: model '{}' belongs to phenomenon '{}' (kind='{}') \
-                         declares contract 'realization_particle_emitter' but has no particle emitter definition. \
-                         Call set_realization_particle_emitter(...) in the model script.",
+                         declares output 'particle_emitter' but has no particle emitter definition. \
+                         Call set_output_particle_emitter(...) in the model script.",
                         normalized_model_id,
                         normalized_phenomenon_id,
                         kind.canonical_id()
@@ -310,9 +310,9 @@ impl Default for PhenomenonDefinitionRegistry {
                         normalized_model_id, particle_emitter.radius
                     );
                 }
-                realization_particle_emitter_by_model_id.insert(
+                output_particle_emitter_by_model_id.insert(
                     normalized_model_id.clone(),
-                    RealizationParticleEmitterDefinition {
+                    OutputParticleEmitterDefinition {
                         effect_id,
                         emission_rate: particle_emitter.emission_rate,
                         burst_count: particle_emitter.burst_count,
@@ -321,13 +321,13 @@ impl Default for PhenomenonDefinitionRegistry {
                     },
                 );
             }
-            let has_interaction_trigger_contract = model.interaction_trigger.is_some();
-            if has_interaction_trigger_contract {
-                let Some(interaction_trigger) = model.interaction_trigger.clone() else {
+            let has_interaction_trigger_output = model.output_interaction_trigger.is_some();
+            if has_interaction_trigger_output {
+                let Some(interaction_trigger) = model.output_interaction_trigger.clone() else {
                     panic!(
                         "USF phenomenon bootstrap failed: model '{}' belongs to phenomenon '{}' (kind='{}') \
-                         declares contract 'interaction_trigger' but has no trigger definition. \
-                         Call set_interaction_trigger(...) in the model script.",
+                         declares output 'interaction_trigger' but has no trigger definition. \
+                         Call set_output_interaction_trigger(...) in the model script.",
                         normalized_model_id,
                         normalized_phenomenon_id,
                         kind.canonical_id()
@@ -352,7 +352,7 @@ impl Default for PhenomenonDefinitionRegistry {
                         normalized_model_id
                     );
                 }
-                interaction_trigger_by_model_id.insert(
+                output_interaction_trigger_by_model_id.insert(
                     normalized_model_id.clone(),
                     InteractionTriggerDefinition {
                         trigger_id,
@@ -380,7 +380,7 @@ impl Default for PhenomenonDefinitionRegistry {
                     normalized_model_id, model.projection_gain
                 );
             }
-            projection_contract_by_model_id.insert(
+            projection_spec_by_model_id.insert(
                 normalized_model_id.clone(),
                 PhenomenonModelProjectionSpec {
                     metric_name: projection_metric_name,
@@ -460,14 +460,14 @@ impl Default for PhenomenonDefinitionRegistry {
         }
         Self {
             kind_by_phenomenon_id,
-            realization_density_by_model_id,
-            realization_material_by_model_id,
-            realization_collider_enabled_by_model_id,
+            output_density_field_by_model_id,
+            output_material_profile_by_model_id,
+            output_collider_enabled_by_model_id,
             simulation_service_by_model_id,
-            realization_audio_emitter_by_model_id,
-            realization_particle_emitter_by_model_id,
-            interaction_trigger_by_model_id,
-            projection_contract_by_model_id,
+            output_audio_emitter_by_model_id,
+            output_particle_emitter_by_model_id,
+            output_interaction_trigger_by_model_id,
+            projection_spec_by_model_id,
             topology_by_model_id,
             support_chunk_radius_by_model_id,
             model_selection_by_phenomenon_scale,
@@ -481,37 +481,37 @@ impl PhenomenonDefinitionRegistry {
         self.kind_by_phenomenon_id.get(&normalize_identifier(phenomenon_id)).cloned()
     }
 
-    pub fn realization_density_for(&self, phenomenon_id: &str) -> Option<RealizationDensityFieldDefinition> {
-        self.realization_density_for_scale(phenomenon_id, Scale::MAX)
+    pub fn output_density_field_for(&self, phenomenon_id: &str) -> Option<OutputDensityFieldDefinition> {
+        self.output_density_field_for_scale(phenomenon_id, Scale::MAX)
     }
 
-    pub fn realization_density_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<RealizationDensityFieldDefinition> {
+    pub fn output_density_field_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<OutputDensityFieldDefinition> {
         let model_id = self.model_for_scale(phenomenon_id, scale)?;
-        self.realization_density_for_model(model_id)
+        self.output_density_field_for_model(model_id)
     }
 
-    pub fn realization_density_for_model(&self, model_id: &str) -> Option<RealizationDensityFieldDefinition> {
-        self.realization_density_by_model_id.get(&normalize_identifier(model_id)).copied()
+    pub fn output_density_field_for_model(&self, model_id: &str) -> Option<OutputDensityFieldDefinition> {
+        self.output_density_field_by_model_id.get(&normalize_identifier(model_id)).copied()
     }
 
-    pub fn realization_material_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<RealizationMaterialProfileDefinition> {
+    pub fn output_material_profile_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<OutputMaterialProfileDefinition> {
         let model_id = self.model_for_scale(phenomenon_id, scale)?;
-        self.realization_material_for_model(model_id)
+        self.output_material_profile_for_model(model_id)
     }
 
-    pub fn realization_material_for_model(&self, model_id: &str) -> Option<RealizationMaterialProfileDefinition> {
-        self.realization_material_by_model_id.get(&normalize_identifier(model_id)).copied()
+    pub fn output_material_profile_for_model(&self, model_id: &str) -> Option<OutputMaterialProfileDefinition> {
+        self.output_material_profile_by_model_id.get(&normalize_identifier(model_id)).copied()
     }
 
-    pub fn realization_collider_enabled_for_scale(&self, phenomenon_id: &str, scale: Scale) -> bool {
+    pub fn output_collider_enabled_for_scale(&self, phenomenon_id: &str, scale: Scale) -> bool {
         let Some(model_id) = self.model_for_scale(phenomenon_id, scale) else {
             return false;
         };
-        self.realization_collider_enabled_for_model(model_id)
+        self.output_collider_enabled_for_model(model_id)
     }
 
-    pub fn realization_collider_enabled_for_model(&self, model_id: &str) -> bool {
-        self.realization_collider_enabled_by_model_id
+    pub fn output_collider_enabled_for_model(&self, model_id: &str) -> bool {
+        self.output_collider_enabled_by_model_id
             .get(&normalize_identifier(model_id))
             .copied()
             .unwrap_or(false)
@@ -526,61 +526,73 @@ impl PhenomenonDefinitionRegistry {
         self.simulation_service_by_model_id.get(&normalize_identifier(model_id)).copied()
     }
 
-    pub fn realization_audio_emitter_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<RealizationAudioEmitterDefinition> {
+    pub fn output_audio_emitter_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<OutputAudioEmitterDefinition> {
         let model_id = self.model_for_scale(phenomenon_id, scale)?;
-        self.realization_audio_emitter_for_model(model_id)
+        self.output_audio_emitter_for_model(model_id)
     }
 
-    pub fn realization_audio_emitter_for_model(&self, model_id: &str) -> Option<RealizationAudioEmitterDefinition> {
-        self.realization_audio_emitter_by_model_id.get(&normalize_identifier(model_id)).cloned()
+    pub fn output_audio_emitter_for_model(&self, model_id: &str) -> Option<OutputAudioEmitterDefinition> {
+        self.output_audio_emitter_by_model_id.get(&normalize_identifier(model_id)).cloned()
     }
 
-    pub fn realization_particle_emitter_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<RealizationParticleEmitterDefinition> {
+    pub fn output_particle_emitter_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<OutputParticleEmitterDefinition> {
         let model_id = self.model_for_scale(phenomenon_id, scale)?;
-        self.realization_particle_emitter_for_model(model_id)
+        self.output_particle_emitter_for_model(model_id)
     }
 
-    pub fn realization_particle_emitter_for_model(&self, model_id: &str) -> Option<RealizationParticleEmitterDefinition> {
-        self.realization_particle_emitter_by_model_id.get(&normalize_identifier(model_id)).cloned()
+    pub fn output_particle_emitter_for_model(&self, model_id: &str) -> Option<OutputParticleEmitterDefinition> {
+        self.output_particle_emitter_by_model_id.get(&normalize_identifier(model_id)).cloned()
     }
 
-    pub fn interaction_trigger_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<InteractionTriggerDefinition> {
+    pub fn output_interaction_trigger_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<InteractionTriggerDefinition> {
         let model_id = self.model_for_scale(phenomenon_id, scale)?;
-        self.interaction_trigger_for_model(model_id)
+        self.output_interaction_trigger_for_model(model_id)
     }
 
-    pub fn interaction_trigger_for_model(&self, model_id: &str) -> Option<InteractionTriggerDefinition> {
-        self.interaction_trigger_by_model_id.get(&normalize_identifier(model_id)).cloned()
+    pub fn output_interaction_trigger_for_model(&self, model_id: &str) -> Option<InteractionTriggerDefinition> {
+        self.output_interaction_trigger_by_model_id.get(&normalize_identifier(model_id)).cloned()
     }
 
-    pub fn projection_contract_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<PhenomenonModelProjectionSpec> {
+    pub fn projection_spec_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<PhenomenonModelProjectionSpec> {
         let model_id = self.model_for_scale(phenomenon_id, scale)?;
-        self.projection_contract_for_model(model_id)
+        self.projection_spec_for_model(model_id)
     }
 
-    pub fn projection_contract_for_model(&self, model_id: &str) -> Option<PhenomenonModelProjectionSpec> {
-        self.projection_contract_by_model_id.get(&normalize_identifier(model_id)).cloned()
+    pub fn projection_spec_for_model(&self, model_id: &str) -> Option<PhenomenonModelProjectionSpec> {
+        self.projection_spec_by_model_id.get(&normalize_identifier(model_id)).cloned()
     }
 
-    pub fn any_model_declares_realization_collider_contract(&self) -> bool {
-        self.realization_collider_enabled_by_model_id.values().copied().any(|enabled| enabled)
+    pub fn any_model_declares_output_density_field(&self) -> bool {
+        !self.output_density_field_by_model_id.is_empty()
     }
 
-    pub fn any_model_declares_realization_audio_emitter_contract(&self) -> bool {
-        !self.realization_audio_emitter_by_model_id.is_empty()
+    pub fn any_model_declares_output_material_profile(&self) -> bool {
+        !self.output_material_profile_by_model_id.is_empty()
     }
 
-    pub fn any_model_declares_realization_particle_emitter_contract(&self) -> bool {
-        !self.realization_particle_emitter_by_model_id.is_empty()
+    pub fn any_model_declares_output_collider(&self) -> bool {
+        self.output_collider_enabled_by_model_id.values().copied().any(|enabled| enabled)
     }
 
-    pub fn any_model_declares_interaction_trigger_contract(&self) -> bool {
-        !self.interaction_trigger_by_model_id.is_empty()
+    pub fn any_model_declares_simulation_service(&self) -> bool {
+        !self.simulation_service_by_model_id.is_empty()
     }
 
-    pub fn realization_field_contract_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<PhenomenonRealizationFieldContract> {
-        self.realization_density_for_scale(phenomenon_id, scale)
-            .map(PhenomenonRealizationFieldContract::DensityField)
+    pub fn any_model_declares_output_audio_emitter(&self) -> bool {
+        !self.output_audio_emitter_by_model_id.is_empty()
+    }
+
+    pub fn any_model_declares_output_particle_emitter(&self) -> bool {
+        !self.output_particle_emitter_by_model_id.is_empty()
+    }
+
+    pub fn any_model_declares_output_interaction_trigger(&self) -> bool {
+        !self.output_interaction_trigger_by_model_id.is_empty()
+    }
+
+    pub fn output_field_spec_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<PhenomenonOutputFieldSpec> {
+        self.output_density_field_for_scale(phenomenon_id, scale)
+            .map(PhenomenonOutputFieldSpec::DensityField)
     }
 
     pub fn model_selector_single(&self, phenomenon_id: &str, scale: Scale) -> Option<&str> {

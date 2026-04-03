@@ -1,7 +1,7 @@
 # TEMP Plan: Entrypoint-First USF Runtime Platform
 
-Date: 2026-04-02  
-Status: planned execution track
+Date: 2026-04-03  
+Status: active execution track (`partially_validated`)
 
 ## Goal
 
@@ -31,7 +31,7 @@ Make script entrypoints the primary USF authoring and orchestration interface, w
 3. `EntrypointRegistry`
    - deterministic load order
    - validated descriptors
-   - typed ctx factory hooks
+   - typed ctx factory paths
 4. `BootstrapReport`
    - per-script success/failure
    - normalized error codes

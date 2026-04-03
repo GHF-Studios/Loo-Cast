@@ -10,29 +10,30 @@ use crate::bevy::prelude::{App, First, Last, PostStartup, PostUpdate, PreStartup
 use crate::config::{statics::CONFIG, types::ConfigValue};
 use crate::core::functions::asset_root;
 use crate::rhai_binding::bind::engine_ext::EngineExt;
-use crate::rhai_binding::engine::schedule_entrypoint::{new_schedule_entrypoint_runner_system, register_schedule_entrypoint_param_types};
 use crate::rhai_binding::engine::preprocess::preprocess_script_source;
 use crate::rhai_binding::engine::resources::MainScriptEngineHandle;
+use crate::rhai_binding::engine::schedule_entrypoint::{new_schedule_entrypoint_runner_system, register_schedule_entrypoint_param_types};
 use crate::rhai_binding::engine::statics::{
-    SCHEDULE_ENTRYPOINTS, ScriptMetricDefinition, ScriptMetricContainerLayoutDefinition, ScriptInteractionTriggerDefinition, ScriptRealizationAudioEmitterDefinition,
-    ScriptRealizationDensityDefinition, ScriptRealizationMaterialDefinition, ScriptRealizationParticleEmitterDefinition,
-    ScriptPhenomenonDefinition, ScriptPhenomenonModelDefinition, ScriptScaleDefinition, ScriptSimulationServiceDefinition, ScriptSingletonConflictPolicy,
-    ScriptUsfModContribution, ScriptUsfModDefinition, ScriptUsfModManifestDefinition, ScriptUsfModpackDefinition, ScriptZlmMetricBandDefinition,
-    ScriptZlmRuleDefinition, ScriptZlmScaleDefinition, ScriptZoneDensityProfileDefinition, ScriptZonePhenomenonSupportDefinition,
-    ScriptZoneSelectionPolicyDefinition, USF_METRIC_CATEGORIZER_KERNEL_IDS, USF_METRIC_SAMPLER_KERNEL_IDS, USF_METRIC_CONTAINER_LAYOUTS_BY_SCALE, USF_METRIC_SETS_BY_ID,
-    USF_METRICS_BY_NAME, USF_MOD_CONTRIBUTIONS_BY_ID, USF_MOD_MANIFESTS_BY_ID, USF_MODPACKS_BY_ID, USF_MODS_BY_ID, USF_PHENOMENA_BY_ID,
-    USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE, USF_PHENOMENON_MODELS_BY_ID, USF_SCALES_BY_INDEX, USF_ZLM_SCALES_BY_SCALE,
-    USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE, USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE, USF_ZONE_TYPES,
+    SCHEDULE_ENTRYPOINTS, ScriptInteractionTriggerDefinition, ScriptMetricContainerLayoutDefinition, ScriptMetricDefinition,
+    ScriptOutputAudioEmitterDefinition, ScriptOutputDensityFieldDefinition, ScriptOutputMaterialProfileDefinition, ScriptOutputParticleEmitterDefinition, ScriptPhenomenonDefinition,
+    ScriptPhenomenonModelDefinition, ScriptScaleDefinition, ScriptSimulationServiceDefinition, ScriptSingletonConflictPolicy, ScriptUsfBootstrapReport,
+    ScriptUsfEntrypointExecutionRecord, ScriptUsfModContribution, ScriptUsfModDefinition, ScriptUsfModManifestDefinition, ScriptUsfModpackDefinition,
+    ScriptZlmMetricBandDefinition, ScriptZlmRuleDefinition, ScriptZlmScaleDefinition, ScriptZoneDensityProfileDefinition, ScriptZonePhenomenonSupportDefinition,
+    ScriptZoneSelectionPolicyDefinition, USF_BOOTSTRAP_REPORT, USF_METRIC_CATEGORIZER_KERNEL_IDS, USF_METRIC_CONTAINER_LAYOUTS_BY_SCALE,
+    USF_METRIC_SAMPLER_KERNEL_IDS, USF_METRIC_SETS_BY_ID, USF_METRICS_BY_NAME, USF_MOD_CONTRIBUTIONS_BY_ID, USF_MOD_MANIFESTS_BY_ID, USF_MODPACKS_BY_ID,
+    USF_MODS_BY_ID, USF_PHENOMENA_BY_ID, USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE, USF_PHENOMENON_MODELS_BY_ID, USF_SCALES_BY_INDEX,
+    USF_ZLM_SCALES_BY_SCALE, USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE, USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE,
+    USF_ZONE_TYPES,
 };
 use crate::rhai_binding::runtime::ecs::message::bindings::types::ScriptProbeMessage;
 use crate::usf::metric_container::METRIC_SAMPLER_KERNEL_DEFAULT_ID;
-use crate::usf::zlm::METRIC_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID;
 use crate::usf::phenomenon::PhenomenonKind;
 use crate::usf::scale::Scale;
 use crate::usf::schedule::{UsfPhenomenonSet, UsfSubstrateSet, UsfZoneSet};
+use crate::usf::zlm::METRIC_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID;
 use rhai::{Engine, EvalAltResult};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 struct UsfScriptEntrypointContract {
     script_type_id: &'static str,
     scope: UsfScriptScope,
@@ -81,14 +82,6 @@ struct CompositionSingletonOrigins {
     scale_by_index: HashMap<u8, SingletonEntryOrigin>,
     metric_container_layout_by_scale: HashMap<u8, SingletonEntryOrigin>,
     zlm_by_scale: HashMap<u8, SingletonEntryOrigin>,
-}
-
-#[derive(Clone, Debug)]
-struct UsfScriptCtx {
-    script_kind: String,
-    script_file: String,
-    script_id: String,
-    owner_mod_id: String,
 }
 
 #[derive(Clone, Debug)]
@@ -246,6 +239,21 @@ fn script_entrypoint_contracts_for_scope(scope: UsfScriptScope) -> impl Iterator
     USF_SCRIPT_ENTRYPOINT_CONTRACTS.into_iter().filter(move |contract| contract.scope == scope)
 }
 
+#[derive(Clone, Debug)]
+struct UsfEntrypointDescriptor {
+    file: PathBuf,
+    contract: UsfScriptEntrypointContract,
+    owner_mod_id: Option<String>,
+}
+
+#[inline]
+fn scope_label(scope: UsfScriptScope) -> &'static str {
+    match scope {
+        UsfScriptScope::Global => "global",
+        UsfScriptScope::PackageScoped => "package_scoped",
+    }
+}
+
 pub fn build(app: &mut App) {
     app.init_resource::<MainScriptEngineHandle>();
     app.add_message::<ScriptProbeMessage>();
@@ -287,17 +295,26 @@ pub fn build(app: &mut App) {
             "substrate_pre_update" => {
                 let file = format!("{name}.rhai");
                 let file_path = path.join(file);
-                app.add_systems(Update, new_schedule_entrypoint_runner_system(file_path.display().to_string()).in_set(UsfSubstrateSet::Pre));
+                app.add_systems(
+                    Update,
+                    new_schedule_entrypoint_runner_system(file_path.display().to_string()).in_set(UsfSubstrateSet::Pre),
+                );
             }
             "zone_pre_update" => {
                 let file = format!("{name}.rhai");
                 let file_path = path.join(file);
-                app.add_systems(Update, new_schedule_entrypoint_runner_system(file_path.display().to_string()).in_set(UsfZoneSet::Pre));
+                app.add_systems(
+                    Update,
+                    new_schedule_entrypoint_runner_system(file_path.display().to_string()).in_set(UsfZoneSet::Pre),
+                );
             }
             "phenomenon_pre_update" => {
                 let file = format!("{name}.rhai");
                 let file_path = path.join(file);
-                app.add_systems(Update, new_schedule_entrypoint_runner_system(file_path.display().to_string()).in_set(UsfPhenomenonSet::Pre));
+                app.add_systems(
+                    Update,
+                    new_schedule_entrypoint_runner_system(file_path.display().to_string()).in_set(UsfPhenomenonSet::Pre),
+                );
             }
             "update" => {
                 let file = format!("{name}.rhai");
@@ -307,17 +324,26 @@ pub fn build(app: &mut App) {
             "substrate_update" => {
                 let file = format!("{name}.rhai");
                 let file_path = path.join(file);
-                app.add_systems(Update, new_schedule_entrypoint_runner_system(file_path.display().to_string()).in_set(UsfSubstrateSet::Post));
+                app.add_systems(
+                    Update,
+                    new_schedule_entrypoint_runner_system(file_path.display().to_string()).in_set(UsfSubstrateSet::Post),
+                );
             }
             "zone_update" => {
                 let file = format!("{name}.rhai");
                 let file_path = path.join(file);
-                app.add_systems(Update, new_schedule_entrypoint_runner_system(file_path.display().to_string()).in_set(UsfZoneSet::Post));
+                app.add_systems(
+                    Update,
+                    new_schedule_entrypoint_runner_system(file_path.display().to_string()).in_set(UsfZoneSet::Post),
+                );
             }
             "phenomenon_update" => {
                 let file = format!("{name}.rhai");
                 let file_path = path.join(file);
-                app.add_systems(Update, new_schedule_entrypoint_runner_system(file_path.display().to_string()).in_set(UsfPhenomenonSet::Post));
+                app.add_systems(
+                    Update,
+                    new_schedule_entrypoint_runner_system(file_path.display().to_string()).in_set(UsfPhenomenonSet::Post),
+                );
             }
             "post_update" => {
                 let file = format!("{name}.rhai");
@@ -342,6 +368,7 @@ fn clear_usf_bootstrap_statics() {
     USF_MOD_MANIFESTS_BY_ID().lock().unwrap().clear();
     USF_MODPACKS_BY_ID().lock().unwrap().clear();
     USF_MOD_CONTRIBUTIONS_BY_ID().lock().unwrap().clear();
+    *USF_BOOTSTRAP_REPORT().lock().unwrap() = ScriptUsfBootstrapReport::default();
 }
 
 fn clear_usf_domain_bootstrap_statics() {
@@ -359,6 +386,119 @@ fn clear_usf_domain_bootstrap_statics() {
     USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE().lock().unwrap().clear();
     USF_PHENOMENON_MODELS_BY_ID().lock().unwrap().clear();
     USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE().lock().unwrap().clear();
+}
+
+fn record_discovered_entrypoints(scope: UsfScriptScope, files: &[PathBuf]) {
+    if files.is_empty() {
+        return;
+    }
+    let mut report = USF_BOOTSTRAP_REPORT().lock().unwrap();
+    let target = match scope {
+        UsfScriptScope::Global => &mut report.discovered_global_scripts,
+        UsfScriptScope::PackageScoped => &mut report.discovered_package_scripts,
+    };
+    for file in files {
+        let file = file.display().to_string();
+        if !target.iter().any(|existing| existing == &file) {
+            target.push(file);
+        }
+    }
+}
+
+fn record_selected_mods(mod_ids: &[String]) {
+    USF_BOOTSTRAP_REPORT().lock().unwrap().selected_mod_ids = mod_ids.to_vec();
+}
+
+fn record_executed_entrypoint(file: &Path, contract: UsfScriptEntrypointContract, owner_mod_id: Option<&str>) {
+    USF_BOOTSTRAP_REPORT()
+        .lock()
+        .unwrap()
+        .executed_entrypoints
+        .push(ScriptUsfEntrypointExecutionRecord {
+            script_file: file.display().to_string(),
+            script_type_id: contract.script_type_id.to_string(),
+            scope: scope_label(contract.scope).to_string(),
+            owner_mod_id: owner_mod_id.map(str::to_string),
+            entrypoint: contract.entrypoint.to_string(),
+            expected_signature: contract.expected_signature(),
+        });
+}
+
+fn collect_global_entrypoint_descriptors(usf_root: &Path) -> Vec<UsfEntrypointDescriptor> {
+    let mut descriptors = Vec::<UsfEntrypointDescriptor>::new();
+    for contract in script_entrypoint_contracts_for_scope(UsfScriptScope::Global) {
+        let script_dir = usf_root.join(contract.relative_dir);
+        if !script_dir.is_dir() {
+            continue;
+        }
+        let mut files = Vec::new();
+        collect_usf_registration_scripts(&script_dir, contract, &mut files);
+        files.sort_by(|a, b| a.to_string_lossy().cmp(&b.to_string_lossy()));
+        record_discovered_entrypoints(UsfScriptScope::Global, &files);
+        descriptors.extend(files.into_iter().map(|file| UsfEntrypointDescriptor {
+            file,
+            contract,
+            owner_mod_id: None,
+        }));
+    }
+    descriptors
+}
+
+fn collect_package_entrypoint_descriptors(usf_root: &Path) -> Vec<UsfEntrypointDescriptor> {
+    let mut descriptors = Vec::<UsfEntrypointDescriptor>::new();
+    for contract in script_entrypoint_contracts_for_scope(UsfScriptScope::PackageScoped) {
+        let script_dir = usf_root.join(contract.relative_dir);
+        if !script_dir.is_dir() {
+            continue;
+        }
+
+        let mut files = Vec::new();
+        collect_usf_registration_scripts(&script_dir, contract, &mut files);
+        files.sort_by(|a, b| a.to_string_lossy().cmp(&b.to_string_lossy()));
+        record_discovered_entrypoints(UsfScriptScope::PackageScoped, &files);
+
+        for file in files {
+            let relative_path = file.strip_prefix(&script_dir).unwrap_or_else(|_| {
+                panic!(
+                    "USF bootstrap failed: script '{}' is not under expected package directory '{}'",
+                    file.display(),
+                    script_dir.display()
+                )
+            });
+            let owner_package_id = script_owner_package_id(relative_path).unwrap_or_else(|reason| {
+                panic!(
+                    "USF bootstrap failed: could not resolve owner mod for '{}' (script type '{}'): {}",
+                    file.display(),
+                    contract.script_type_id,
+                    reason
+                )
+            });
+            descriptors.push(UsfEntrypointDescriptor {
+                file,
+                contract,
+                owner_mod_id: Some(owner_package_id),
+            });
+        }
+    }
+    descriptors.sort_by(|left, right| {
+        left.owner_mod_id
+            .cmp(&right.owner_mod_id)
+            .then_with(|| entrypoint_contract_order(left.contract).cmp(&entrypoint_contract_order(right.contract)))
+            .then_with(|| left.file.to_string_lossy().cmp(&right.file.to_string_lossy()))
+    });
+    descriptors
+}
+
+fn entrypoint_contract_order(contract: UsfScriptEntrypointContract) -> usize {
+    USF_SCRIPT_ENTRYPOINT_CONTRACTS
+        .iter()
+        .position(|candidate| candidate.script_type_id == contract.script_type_id && candidate.scope == contract.scope)
+        .unwrap_or_else(|| {
+            panic!(
+                "USF bootstrap failed: script type '{}' for scope '{:?}' is not present in entrypoint contract table.",
+                contract.script_type_id, contract.scope
+            )
+        })
 }
 
 fn collect_usf_registration_scripts(dir: &Path, contract: UsfScriptEntrypointContract, out: &mut Vec<PathBuf>) {
@@ -472,13 +612,6 @@ fn single_entity_domain_label(domain: SingleEntityDomain) -> &'static str {
     }
 }
 
-fn script_kind_for_contract(contract: UsfScriptEntrypointContract) -> String {
-    match contract.single_entity_domain {
-        Some(domain) => single_entity_domain_label(domain).to_string(),
-        None => contract.relative_dir.to_string(),
-    }
-}
-
 fn script_ctx_for_contract(file: &Path, contract: UsfScriptEntrypointContract, owner_mod_id: Option<&str>) -> rhai::Dynamic {
     let script_file = file.display().to_string();
     let script_id = script_id_from_path(file, contract.suffix).unwrap_or_else(|| {
@@ -524,22 +657,22 @@ fn script_ctx_for_contract(file: &Path, contract: UsfScriptEntrypointContract, o
             owner_mod_id,
             model_id: script_id,
         }),
-        None if contract.relative_dir == "zlms" => rhai::Dynamic::from(UsfZlmScriptCtx {
+        None if contract.script_type_id == "zlm" => rhai::Dynamic::from(UsfZlmScriptCtx {
             script_file,
             owner_mod_id,
             zlm_id: script_id,
         }),
-        None if contract.relative_dir == "scales" => rhai::Dynamic::from(UsfScaleScriptCtx {
+        None if contract.script_type_id == "scale" => rhai::Dynamic::from(UsfScaleScriptCtx {
             script_file,
             owner_mod_id,
             scale_script_id: script_id,
         }),
-        _ => rhai::Dynamic::from(UsfScriptCtx {
-            script_kind: script_kind_for_contract(contract),
-            script_file,
-            script_id,
-            owner_mod_id,
-        }),
+        None => panic!(
+            "USF bootstrap failed: script '{}' uses unsupported non-singleton script type '{}' (suffix '{}').",
+            file.display(),
+            contract.script_type_id,
+            contract.suffix
+        ),
     }
 }
 
@@ -548,6 +681,7 @@ fn run_usf_script_file_for_contract(engine: &Engine, file: &Path, contract: UsfS
     let before_manifest = matches!(contract.single_entity_domain, Some(SingleEntityDomain::Mod)).then(|| USF_MOD_MANIFESTS_BY_ID().lock().unwrap().len());
     let script_ctx = script_ctx_for_contract(file, contract, owner_mod_id);
     run_usf_script_file(engine, file, contract, script_ctx);
+    record_executed_entrypoint(file, contract, owner_mod_id);
 
     let Some(domain) = contract.single_entity_domain else {
         return;
@@ -577,6 +711,7 @@ fn run_usf_script_file_for_contract(engine: &Engine, file: &Path, contract: UsfS
             );
         }
     }
+
 }
 
 fn script_owner_package_id(script_relative_path: &Path) -> Result<String, String> {
@@ -591,89 +726,6 @@ fn script_owner_package_id(script_relative_path: &Path) -> Result<String, String
         ));
     }
     Ok(first.as_os_str().to_string_lossy().to_string())
-}
-
-fn run_usf_script_type_bootstrap_global(engine: &Engine, usf_root: &Path, contract: UsfScriptEntrypointContract) {
-    let script_dir = usf_root.join(contract.relative_dir);
-    if !script_dir.is_dir() {
-        return;
-    }
-
-    let mut files = Vec::new();
-    collect_usf_registration_scripts(&script_dir, contract, &mut files);
-    files.sort_by(|a, b| a.to_string_lossy().cmp(&b.to_string_lossy()));
-
-    for file in files {
-        run_usf_script_file_for_contract(engine, &file, contract, None);
-    }
-}
-
-fn validate_package_scoped_script_owners(usf_root: &Path) {
-    let known_mod_ids = USF_MODS_BY_ID().lock().unwrap().keys().cloned().collect::<HashSet<_>>();
-    for contract in script_entrypoint_contracts_for_scope(UsfScriptScope::PackageScoped) {
-        let script_dir = usf_root.join(contract.relative_dir);
-        if !script_dir.is_dir() {
-            continue;
-        }
-
-        let mut files = Vec::new();
-        collect_usf_registration_scripts(&script_dir, contract, &mut files);
-        files.sort_by(|a, b| a.to_string_lossy().cmp(&b.to_string_lossy()));
-        for file in files {
-            let relative_path = file.strip_prefix(&script_dir).unwrap_or_else(|_| {
-                panic!(
-                    "USF bootstrap failed: script '{}' is not under expected package directory '{}'",
-                    file.display(),
-                    script_dir.display()
-                )
-            });
-            let owner_package_id = script_owner_package_id(relative_path).unwrap_or_else(|reason| {
-                panic!(
-                    "USF bootstrap failed: could not resolve owner mod for '{}' (script type '{}'): {}",
-                    file.display(),
-                    contract.script_type_id,
-                    reason
-                )
-            });
-            if !known_mod_ids.contains(owner_package_id.as_str()) {
-                panic!(
-                    "USF bootstrap failed: script '{}' (type '{}') resolves owner mod '{}' which is not declared by any '*.mod.rhai' script",
-                    file.display(),
-                    contract.script_type_id,
-                    owner_package_id
-                );
-            }
-        }
-    }
-}
-
-fn run_usf_script_type_bootstrap_for_package(engine: &Engine, usf_root: &Path, contract: UsfScriptEntrypointContract, mod_id: &str) {
-    let script_dir = usf_root.join(contract.relative_dir);
-    if !script_dir.is_dir() {
-        return;
-    }
-
-    let mut files = Vec::new();
-    collect_usf_registration_scripts(&script_dir, contract, &mut files);
-    files.sort_by(|a, b| a.to_string_lossy().cmp(&b.to_string_lossy()));
-
-    for file in files {
-        let Ok(relative_path) = file.strip_prefix(&script_dir) else {
-            continue;
-        };
-        let owner_package_id = script_owner_package_id(relative_path).unwrap_or_else(|reason| {
-            panic!(
-                "USF bootstrap failed: could not resolve owner mod for '{}' (script type '{}'): {}",
-                file.display(),
-                contract.script_type_id,
-                reason
-            )
-        });
-        if owner_package_id != mod_id {
-            continue;
-        }
-        run_usf_script_file_for_contract(engine, &file, contract, Some(mod_id));
-    }
 }
 
 fn snapshot_usf_domain_statics() -> ScriptUsfModContribution {
@@ -1146,22 +1198,45 @@ fn run_usf_content_bootstrap(engine: &Engine) {
     }
 
     clear_usf_bootstrap_statics();
-    for contract in script_entrypoint_contracts_for_scope(UsfScriptScope::Global) {
-        run_usf_script_type_bootstrap_global(engine, &usf_root, contract);
+    let global_descriptors = collect_global_entrypoint_descriptors(&usf_root);
+    for descriptor in &global_descriptors {
+        run_usf_script_file_for_contract(engine, &descriptor.file, descriptor.contract, None);
     }
-    validate_package_scoped_script_owners(&usf_root);
+
+    let package_descriptors = collect_package_entrypoint_descriptors(&usf_root);
+    let known_mod_ids = USF_MODS_BY_ID().lock().unwrap().keys().cloned().collect::<HashSet<_>>();
+    for descriptor in &package_descriptors {
+        let owner_mod_id = descriptor.owner_mod_id.as_ref().unwrap_or_else(|| {
+            panic!(
+                "USF bootstrap failed: package descriptor missing owner for script '{}'",
+                descriptor.file.display()
+            )
+        });
+        if !known_mod_ids.contains(owner_mod_id) {
+            panic!(
+                "USF bootstrap failed: script '{}' (type '{}') resolves owner mod '{}' which is not declared by any '*.mod.rhai' script",
+                descriptor.file.display(),
+                descriptor.contract.script_type_id,
+                owner_mod_id
+            );
+        }
+    }
 
     let selected_mod_ids = selected_mod_ids_for_active_modpack();
+    record_selected_mods(&selected_mod_ids);
     let mod_manifests = USF_MOD_MANIFESTS_BY_ID().lock().unwrap().clone();
     let mod_definitions = USF_MODS_BY_ID().lock().unwrap().clone();
     let mut composed = ScriptUsfModContribution::default();
     let mut singleton_origins = CompositionSingletonOrigins::default();
     let mut mod_contributions = HashMap::<String, ScriptUsfModContribution>::new();
 
-    for (load_order_index, mod_id) in selected_mod_ids.into_iter().enumerate() {
+    for (load_order_index, mod_id) in selected_mod_ids.iter().enumerate() {
         clear_usf_domain_bootstrap_statics();
-        for contract in script_entrypoint_contracts_for_scope(UsfScriptScope::PackageScoped) {
-            run_usf_script_type_bootstrap_for_package(engine, &usf_root, contract, mod_id.as_str());
+        for descriptor in package_descriptors
+            .iter()
+            .filter(|descriptor| descriptor.owner_mod_id.as_deref() == Some(mod_id.as_str()))
+        {
+            run_usf_script_file_for_contract(engine, &descriptor.file, descriptor.contract, Some(mod_id.as_str()));
         }
         let contribution = snapshot_usf_domain_statics();
         let Some(manifest) = mod_manifests.get(mod_id.as_str()) else {
@@ -1180,7 +1255,7 @@ fn run_usf_content_bootstrap(engine: &Engine) {
             &mod_definitions,
             load_order_index,
         );
-        mod_contributions.insert(mod_id, contribution);
+        mod_contributions.insert(mod_id.clone(), contribution);
     }
 
     *USF_MOD_CONTRIBUTIONS_BY_ID().lock().unwrap() = mod_contributions;
@@ -1390,12 +1465,6 @@ fn set_phenomenon_model_selection(phenomenon_id: &str, scale_index: u8, model_id
 }
 
 fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
-    engine.register_type_with_name::<UsfScriptCtx>("UsfScriptCtx");
-    engine.register_get("script_kind", |ctx: &mut UsfScriptCtx| ctx.script_kind.clone());
-    engine.register_get("script_file", |ctx: &mut UsfScriptCtx| ctx.script_file.clone());
-    engine.register_get("script_id", |ctx: &mut UsfScriptCtx| ctx.script_id.clone());
-    engine.register_get("owner_mod_id", |ctx: &mut UsfScriptCtx| ctx.owner_mod_id.clone());
-
     engine.register_type_with_name::<UsfModScriptCtx>("UsfModScriptCtx");
     engine.register_get("mod_id", |ctx: &mut UsfModScriptCtx| ctx.mod_id.clone());
     engine.register_get("script_file", |ctx: &mut UsfModScriptCtx| ctx.script_file.clone());
@@ -1485,7 +1554,13 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                 "scale" => mod_definition.scale_conflict_policy = policy,
                 "metric_container_layout" => mod_definition.metric_container_layout_conflict_policy = policy,
                 "zlm" | "zlm_scale" => mod_definition.zlm_conflict_policy = policy,
-                _ => return Err(format!("singleton_domain '{}' is invalid; expected one of: scale, metric_container_layout, zlm", singleton_domain).into()),
+                _ => {
+                    return Err(format!(
+                        "singleton_domain '{}' is invalid; expected one of: scale, metric_container_layout, zlm",
+                        singleton_domain
+                    )
+                    .into());
+                }
             }
             Ok(())
         },
@@ -1568,16 +1643,19 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
         manifest.required_scales.extend(0..(Scale::SCALE_LEVEL_COUNT as u8));
         Ok(())
     });
-    engine.register_fn("declare_all_metric_container_layouts", |ctx: &mut UsfModScriptCtx| -> Result<(), Box<EvalAltResult>> {
-        let mod_id = normalize_script_identifier("mod_id", ctx.mod_id.as_str())?;
-        ensure_mod_and_manifest_registered(mod_id.as_str());
-        let mut manifests = USF_MOD_MANIFESTS_BY_ID().lock().unwrap();
-        let Some(manifest) = manifests.get_mut(mod_id.as_str()) else {
-            return Err(format!("mod '{}' manifest is not registered", mod_id).into());
-        };
-        manifest.required_metric_container_layout_scales.extend(0..(Scale::SCALE_LEVEL_COUNT as u8));
-        Ok(())
-    });
+    engine.register_fn(
+        "declare_all_metric_container_layouts",
+        |ctx: &mut UsfModScriptCtx| -> Result<(), Box<EvalAltResult>> {
+            let mod_id = normalize_script_identifier("mod_id", ctx.mod_id.as_str())?;
+            ensure_mod_and_manifest_registered(mod_id.as_str());
+            let mut manifests = USF_MOD_MANIFESTS_BY_ID().lock().unwrap();
+            let Some(manifest) = manifests.get_mut(mod_id.as_str()) else {
+                return Err(format!("mod '{}' manifest is not registered", mod_id).into());
+            };
+            manifest.required_metric_container_layout_scales.extend(0..(Scale::SCALE_LEVEL_COUNT as u8));
+            Ok(())
+        },
+    );
     engine.register_fn("declare_all_zlms", |ctx: &mut UsfModScriptCtx| -> Result<(), Box<EvalAltResult>> {
         let mod_id = normalize_script_identifier("mod_id", ctx.mod_id.as_str())?;
         ensure_mod_and_manifest_registered(mod_id.as_str());
@@ -2224,13 +2302,13 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                         projection_metric_name: "demo_mass_density".to_string(),
                         projection_bias: 0.0,
                         projection_gain: 1.0,
-                        realization_density: None,
-                        realization_material: None,
-                        realization_collider_enabled: false,
+                        output_density_field: None,
+                        output_material_profile: None,
+                        output_collider_enabled: false,
                         simulation_service: None,
-                        realization_audio_emitter: None,
-                        realization_particle_emitter: None,
-                        interaction_trigger: None,
+                        output_audio_emitter: None,
+                        output_particle_emitter: None,
+                        output_interaction_trigger: None,
                     },
                 );
             }
@@ -2243,7 +2321,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
         },
     );
     engine.register_fn(
-        "set_realization_density_field",
+        "set_output_density_field",
         |ctx: &mut UsfPhenomenonModelScriptCtx,
          coarse_span_units: f64,
          detail_span_units: f64,
@@ -2286,7 +2364,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                 return Err("center must be finite".into());
             }
 
-            model.realization_density = Some(ScriptRealizationDensityDefinition {
+            model.output_density_field = Some(ScriptOutputDensityFieldDefinition {
                 coarse_span_units,
                 detail_span_units,
                 coarse_weight: coarse_weight as f32,
@@ -2317,7 +2395,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
         },
     );
     engine.register_fn(
-        "set_projection_contract",
+        "set_projection_spec",
         |ctx: &mut UsfPhenomenonModelScriptCtx, projection_metric_name: &str, projection_bias: f64, projection_gain: f64| -> Result<(), Box<EvalAltResult>> {
             let model_id = normalize_script_identifier("model_id", ctx.model_id.as_str())?;
             let projection_metric_name = normalize_script_identifier("projection_metric_name", projection_metric_name)?;
@@ -2339,7 +2417,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
         },
     );
     engine.register_fn(
-        "set_realization_material_profile",
+        "set_output_material_profile",
         |ctx: &mut UsfPhenomenonModelScriptCtx,
          albedo_r: f64,
          albedo_g: f64,
@@ -2371,7 +2449,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                 return Err("emissive_strength must be finite".into());
             }
 
-            model.realization_material = Some(ScriptRealizationMaterialDefinition {
+            model.output_material_profile = Some(ScriptOutputMaterialProfileDefinition {
                 albedo_r: albedo_r as f32,
                 albedo_g: albedo_g as f32,
                 albedo_b: albedo_b as f32,
@@ -2384,7 +2462,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
         },
     );
     engine.register_fn(
-        "set_realization_collider_enabled",
+        "set_output_collider_enabled",
         |ctx: &mut UsfPhenomenonModelScriptCtx, enabled: bool| -> Result<(), Box<EvalAltResult>> {
             let model_id = normalize_script_identifier("model_id", ctx.model_id.as_str())?;
             let mut models = USF_PHENOMENON_MODELS_BY_ID().lock().unwrap();
@@ -2392,7 +2470,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                 return Err(format!("phenomenon model '{}' is not registered; call ctx.register(...) first", model_id).into());
             };
 
-            model.realization_collider_enabled = enabled;
+            model.output_collider_enabled = enabled;
             Ok(())
         },
     );
@@ -2424,7 +2502,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
         },
     );
     engine.register_fn(
-        "set_realization_audio_emitter",
+        "set_output_audio_emitter",
         |ctx: &mut UsfPhenomenonModelScriptCtx,
          event_id: &str,
          looped: bool,
@@ -2449,7 +2527,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                 return Err("start_offset_seconds must be finite and >= 0".into());
             }
 
-            model.realization_audio_emitter = Some(ScriptRealizationAudioEmitterDefinition {
+            model.output_audio_emitter = Some(ScriptOutputAudioEmitterDefinition {
                 event_id,
                 looped,
                 gain: gain as f32,
@@ -2460,7 +2538,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
         },
     );
     engine.register_fn(
-        "set_realization_particle_emitter",
+        "set_output_particle_emitter",
         |ctx: &mut UsfPhenomenonModelScriptCtx,
          effect_id: &str,
          emission_rate: f64,
@@ -2489,7 +2567,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
             }
             let burst_count = u32::try_from(burst_count).map_err(|_| "burst_count must fit in u32")?;
 
-            model.realization_particle_emitter = Some(ScriptRealizationParticleEmitterDefinition {
+            model.output_particle_emitter = Some(ScriptOutputParticleEmitterDefinition {
                 effect_id,
                 emission_rate: emission_rate as f32,
                 burst_count,
@@ -2500,7 +2578,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
         },
     );
     engine.register_fn(
-        "set_interaction_trigger",
+        "set_output_interaction_trigger",
         |ctx: &mut UsfPhenomenonModelScriptCtx, trigger_id: &str, cooldown_seconds: f64, max_targets: i64| -> Result<(), Box<EvalAltResult>> {
             let model_id = normalize_script_identifier("model_id", ctx.model_id.as_str())?;
             let mut models = USF_PHENOMENON_MODELS_BY_ID().lock().unwrap();
@@ -2517,7 +2595,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
             }
             let max_targets = u32::try_from(max_targets).map_err(|_| "max_targets must fit in u32")?;
 
-            model.interaction_trigger = Some(ScriptInteractionTriggerDefinition {
+            model.output_interaction_trigger = Some(ScriptInteractionTriggerDefinition {
                 trigger_id,
                 cooldown_seconds: cooldown_seconds as f32,
                 max_targets,
@@ -2557,6 +2635,7 @@ fn register_runtime_bindings(engine: &mut rhai::Engine) {
     register_schedule_entrypoint_param_types(engine);
     register_usf_script_ctx_runtime_module(engine);
     register_schedule_entrypoints_runtime_module(engine);
+    register_usf_bootstrap_runtime_module(engine);
     register_testing_runtime_module(engine);
 }
 
@@ -2574,6 +2653,32 @@ fn register_schedule_entrypoints_runtime_module(engine: &mut rhai::Engine) {
         Ok(())
     });
     engine.register_static_module("rhai_binding::schedule_entrypoints", Arc::new(schedule_entrypoints_module));
+}
+
+#[inline]
+fn to_dynamic_string_array(values: &[String]) -> rhai::Array {
+    values.iter().cloned().map(rhai::Dynamic::from).collect::<rhai::Array>()
+}
+
+fn register_usf_bootstrap_runtime_module(engine: &mut rhai::Engine) {
+    let mut bootstrap_module = rhai::Module::new();
+    bootstrap_module.set_native_fn("selected_mod_ids", || -> Result<rhai::Array, Box<rhai::EvalAltResult>> {
+        let report = USF_BOOTSTRAP_REPORT().lock().unwrap();
+        Ok(to_dynamic_string_array(&report.selected_mod_ids))
+    });
+    bootstrap_module.set_native_fn("discovered_global_scripts", || -> Result<rhai::Array, Box<rhai::EvalAltResult>> {
+        let report = USF_BOOTSTRAP_REPORT().lock().unwrap();
+        Ok(to_dynamic_string_array(&report.discovered_global_scripts))
+    });
+    bootstrap_module.set_native_fn("discovered_package_scripts", || -> Result<rhai::Array, Box<rhai::EvalAltResult>> {
+        let report = USF_BOOTSTRAP_REPORT().lock().unwrap();
+        Ok(to_dynamic_string_array(&report.discovered_package_scripts))
+    });
+    bootstrap_module.set_native_fn("executed_entrypoint_count", || -> Result<rhai::INT, Box<rhai::EvalAltResult>> {
+        let report = USF_BOOTSTRAP_REPORT().lock().unwrap();
+        Ok(report.executed_entrypoints.len() as rhai::INT)
+    });
+    engine.register_static_module("rhai_binding::usf_bootstrap", Arc::new(bootstrap_module));
 }
 
 fn register_testing_runtime_module(engine: &mut rhai::Engine) {
@@ -2657,5 +2762,58 @@ mod tests {
 
         let mut files = Vec::new();
         collect_usf_registration_scripts(&script_dir, contract, &mut files);
+    }
+
+    #[test]
+    fn collect_global_entrypoint_descriptors_discovers_and_sorts() {
+        *USF_BOOTSTRAP_REPORT().lock().unwrap() = ScriptUsfBootstrapReport::default();
+
+        let root = test_temp_dir("usf_collect_global_descriptors");
+        let mods_dir = root.join("mods");
+        fs::create_dir_all(&mods_dir).expect("failed to create mods dir");
+        fs::write(mods_dir.join("zeta.mod.rhai"), "fn register_mod(ctx) {}").expect("failed to write zeta mod script");
+        fs::write(mods_dir.join("alpha.mod.rhai"), "fn register_mod(ctx) {}").expect("failed to write alpha mod script");
+
+        let descriptors = collect_global_entrypoint_descriptors(&root);
+        assert_eq!(descriptors.len(), 2);
+        assert_eq!(
+            descriptors
+                .iter()
+                .map(|descriptor| descriptor.file.file_name().unwrap().to_string_lossy().to_string())
+                .collect::<Vec<_>>(),
+            vec!["alpha.mod.rhai".to_string(), "zeta.mod.rhai".to_string()]
+        );
+        assert!(descriptors.iter().all(|descriptor| descriptor.owner_mod_id.is_none()));
+        assert!(descriptors.iter().all(|descriptor| descriptor.contract.scope == UsfScriptScope::Global));
+
+        let report = USF_BOOTSTRAP_REPORT().lock().unwrap().clone();
+        assert_eq!(report.discovered_global_scripts.len(), 2);
+        assert!(report.discovered_package_scripts.is_empty());
+    }
+
+    #[test]
+    fn collect_package_entrypoint_descriptors_resolves_owner_mod() {
+        *USF_BOOTSTRAP_REPORT().lock().unwrap() = ScriptUsfBootstrapReport::default();
+
+        let root = test_temp_dir("usf_collect_package_descriptors");
+        let metrics_dir = root.join("metrics");
+        fs::create_dir_all(metrics_dir.join("demo/metrics")).expect("failed to create demo metrics dir");
+        fs::create_dir_all(metrics_dir.join("zeta/metrics")).expect("failed to create zeta metrics dir");
+        fs::write(metrics_dir.join("demo/metrics/aaa.metric.rhai"), "fn register_metric(ctx) {}").expect("failed to write demo metric script");
+        fs::write(metrics_dir.join("zeta/metrics/bbb.metric.rhai"), "fn register_metric(ctx) {}").expect("failed to write zeta metric script");
+
+        let descriptors = collect_package_entrypoint_descriptors(&root);
+        assert_eq!(descriptors.len(), 2);
+        assert_eq!(
+            descriptors
+                .iter()
+                .map(|descriptor| descriptor.owner_mod_id.clone().unwrap_or_default())
+                .collect::<Vec<_>>(),
+            vec!["demo".to_string(), "zeta".to_string()]
+        );
+        assert!(descriptors.iter().all(|descriptor| descriptor.contract.scope == UsfScriptScope::PackageScoped));
+
+        let report = USF_BOOTSTRAP_REPORT().lock().unwrap().clone();
+        assert_eq!(report.discovered_package_scripts.len(), 2);
     }
 }

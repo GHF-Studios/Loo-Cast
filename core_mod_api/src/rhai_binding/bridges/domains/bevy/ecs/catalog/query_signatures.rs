@@ -1,10 +1,10 @@
 use crate::bevy::ecs::query::With;
 use crate::bevy::prelude::{Entity as BevyEntity, World as BevyWorld};
-use crate::usf::chunk::components::{ChunkActor, ChunkLoader};
 use crate::player::components::Player;
 use crate::rhai_binding::runtime::ecs::dispatch_policy::submit_query_dispatch_entry;
 use crate::rhai_binding::runtime::ecs::system::query::bindings::types::Query;
 use crate::rhai_binding::runtime::ecs::system::query::internals::types::{QueryDispatchAccess, QueryDispatchTerm};
+use crate::usf::chunk::components::{ChunkActor, ChunkLoader};
 
 pub const QUERY_SIG__ENTITY: &str = "QUERY_SIG__ENTITY";
 pub const QUERY_SIG__ENTITY__WITH_PLAYER: &str = "QUERY_SIG__ENTITY__WITH_PLAYER";

@@ -1,17 +1,17 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::bevy::prelude::*;
-use crate::usf::chunk::components::{Chunk, ChunkLoader};
 use crate::config::statics::CONFIG;
 use crate::player::components::Player;
 use crate::usf::authority::{
     USF_DOMAIN_PARTIAL_PHENOMENON_MODEL, USF_DOMAIN_PHENOMENON, USF_DOMAIN_PHENOMENON_MODEL, UsfAuthorityDiagnostics, UsfWorldAuthorityContract,
     guard_canonical_domain_with_diagnostics,
 };
+use crate::usf::chunk::components::{Chunk, ChunkLoader};
 
 use crate::usf::phenomenon::components::{
     MonolithicPhenomenonModel, PartialPhenomenonModel, PartitionedPhenomenonModelMember, PartitionedPhenomenonModelRoot, Phenomenon, PhenomenonModel,
-    PhenomenonModelProjectionContract, PhenomenonModelScriptDefinitionRef, PhenomenonModelState, PhenomenonModelSupport, PhenomenonModelSupportBounds,
+    PhenomenonModelProjection, PhenomenonModelScriptDefinitionRef, PhenomenonModelState, PhenomenonModelSupport, PhenomenonModelSupportBounds,
     PhenomenonModelTopology, PhenomenonNode, PhenomenonNodeLifecycle, PhenomenonNodeState, PhenomenonRootNodeRef, PhenomenonScriptDefinitionRef,
 };
 use crate::usf::phenomenon::generator::{BuildStateInput, PhenomenonGenerator, PlanChildrenInput};
@@ -320,13 +320,13 @@ pub(super) fn ensure_scale_models_system(
                     chunk_radius,
                 },
             };
-            let projection_contract = definitions.projection_contract_for_model(selected_model_id).unwrap_or_else(|| {
+            let projection_spec = definitions.projection_spec_for_model(selected_model_id).unwrap_or_else(|| {
                 panic!(
-                    "USF phenomenon runtime failed: selected model '{}' is missing projection contract metadata.",
+                    "USF phenomenon runtime failed: selected model '{}' is missing projection spec metadata.",
                     selected_model_id
                 )
             });
-            let projection = PhenomenonModelProjectionContract { contract: projection_contract };
+            let projection = PhenomenonModelProjection { spec: projection_spec };
             let model_name = format!(
                 "phenomena_model_scale{}_{}_{}",
                 scale.index_from_top(),
@@ -518,9 +518,9 @@ pub(super) fn apply_child_scale_model_requests_system(
             );
             continue;
         };
-        let Some(projection_contract) = definitions.projection_contract_for_model(request.selected_model_id.as_str()) else {
+        let Some(projection_spec) = definitions.projection_spec_for_model(request.selected_model_id.as_str()) else {
             warn!(
-                "USF child-scale request skipped: model '{}' has no projection contract metadata.",
+                "USF child-scale request skipped: model '{}' has no projection spec metadata.",
                 request.selected_model_id
             );
             continue;
@@ -561,7 +561,7 @@ pub(super) fn apply_child_scale_model_requests_system(
                 phenomenon_id: request.phenomenon_script_id.clone(),
             },
             support,
-            PhenomenonModelProjectionContract { contract: projection_contract },
+            PhenomenonModelProjection { spec: projection_spec },
             PhenomenonModelState::default(),
         ));
         match topology {
@@ -580,7 +580,7 @@ pub(super) fn apply_child_scale_model_requests_system(
     }
 }
 
-pub(super) fn enforce_model_topology_component_contracts_system(
+pub(super) fn enforce_model_topology_component_invariants_system(
     authority_contract: Res<UsfWorldAuthorityContract>,
     mut authority_diagnostics: Option<ResMut<UsfAuthorityDiagnostics>>,
     mut commands: Commands,
@@ -676,7 +676,7 @@ pub(super) fn enforce_model_topology_component_contracts_system(
     }
 }
 
-pub(super) fn apply_zone_realization_startup_hooks_system(
+pub(super) fn reconcile_zone_realization_model_state_system(
     authority_contract: Res<UsfWorldAuthorityContract>,
     mut authority_diagnostics: Option<ResMut<UsfAuthorityDiagnostics>>,
     mut zone_realization_events: MessageReader<ZoneRealizationEvent>,
@@ -1193,7 +1193,7 @@ pub(super) fn restore_persisted_phenomena_state_system(
         &PhenomenonModel,
         &PhenomenonModelScriptDefinitionRef,
         &mut PhenomenonModelSupport,
-        &mut PhenomenonModelProjectionContract,
+        &mut PhenomenonModelProjection,
         &mut PhenomenonModelState,
         Option<&PartitionedPhenomenonModelMember>,
     )>,
@@ -1248,9 +1248,9 @@ pub(super) fn restore_persisted_phenomena_state_system(
             support.support.anchor_chunk = anchor_chunk;
         }
         support.support.chunk_radius = record.support_chunk_radius;
-        projection.contract.metric_name = record.projection_metric_name;
-        projection.contract.projection_bias = record.projection_bias;
-        projection.contract.projection_gain = record.projection_gain;
+        projection.spec.metric_name = record.projection_metric_name;
+        projection.spec.projection_bias = record.projection_bias;
+        projection.spec.projection_gain = record.projection_gain;
         state.scalar_channels = record.scalar_channels;
     }
 
@@ -1375,10 +1375,10 @@ pub(super) fn despawn_invalid_nodes_system(
 
     for (entity, node, lifecycle) in node_query.iter() {
         let detached_root = node.parent.is_none() && !live_phenomena.contains(&node.phenomenon_id);
-        let invalid_root_contract = node.parent.is_none() && !is_canonical_root_node(node);
+        let invalid_root_invariant = node.parent.is_none() && !is_canonical_root_node(node);
         let missing_parent = node.parent.is_some_and(|parent_seed| !live_seeds.contains(&parent_seed));
         let out_of_policy_depth = lifecycle.depth > policy.max_depth;
-        if detached_root || invalid_root_contract || missing_parent || out_of_policy_depth {
+        if detached_root || invalid_root_invariant || missing_parent || out_of_policy_depth {
             commands.entity(entity).despawn();
         }
     }
@@ -1426,9 +1426,7 @@ mod tests {
     #[test]
     fn decentralized_lifecycle_spawns_root_children_and_grandchildren() {
         let mut app = setup_lifecycle_test_app(3, 2);
-        app.world_mut().spawn(Phenomenon {
-            id: PhenomenonId(1),
-        });
+        app.world_mut().spawn(Phenomenon { id: PhenomenonId(1) });
 
         for _ in 0..3 {
             app.update();
@@ -1455,9 +1453,7 @@ mod tests {
     #[test]
     fn lifecycle_despawns_nodes_when_depth_policy_shrinks() {
         let mut app = setup_lifecycle_test_app(3, 2);
-        app.world_mut().spawn(Phenomenon {
-            id: PhenomenonId(2),
-        });
+        app.world_mut().spawn(Phenomenon { id: PhenomenonId(2) });
         for _ in 0..3 {
             app.update();
         }
@@ -1483,9 +1479,7 @@ mod tests {
         let mut app = setup_lifecycle_test_app(2, 2);
         app.init_resource::<PhenomenonDebugStats>();
         app.add_systems(Update, refresh_active_node_stats_system);
-        app.world_mut().spawn(Phenomenon {
-            id: PhenomenonId(3),
-        });
+        app.world_mut().spawn(Phenomenon { id: PhenomenonId(3) });
         app.update();
         app.update();
 
@@ -1496,12 +1490,7 @@ mod tests {
     #[test]
     fn lifecycle_replaces_noncanonical_root_with_pinned_root_contract() {
         let mut app = setup_lifecycle_test_app(2, 2);
-        let phenomenon_entity = app
-            .world_mut()
-            .spawn(Phenomenon {
-                id: PhenomenonId(77),
-            })
-            .id();
+        let phenomenon_entity = app.world_mut().spawn(Phenomenon { id: PhenomenonId(77) }).id();
 
         let bad_root_key = PhenomenonNodeKey {
             phenomenon_id: PhenomenonId(77),

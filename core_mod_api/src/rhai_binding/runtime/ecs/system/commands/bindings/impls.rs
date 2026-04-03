@@ -23,11 +23,7 @@ fn decode_component_specs(components: Array, context: &str) -> Vec<(String, Dyna
     specs
 }
 
-fn queue_component_specs(
-    commands: &mut crate::bevy::prelude::Commands<'_, '_>,
-    entity: BevyEntity,
-    component_specs: Vec<(String, Dynamic)>,
-) {
+fn queue_component_specs(commands: &mut crate::bevy::prelude::Commands<'_, '_>, entity: BevyEntity, component_specs: Vec<(String, Dynamic)>) {
     commands.queue(move |world: &mut crate::bevy::prelude::World| {
         let mut entity_world_mut = world.entity_mut(entity);
         for (component_id, params) in component_specs {

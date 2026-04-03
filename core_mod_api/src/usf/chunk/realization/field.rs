@@ -1,7 +1,7 @@
-use crate::bevy::prelude::*;
 #[cfg(not(test))]
 use super::gpu_density;
-use crate::usf::phenomenon::{RealizationDensityFieldDefinition, PhenomenonRealizationFieldContract};
+use crate::bevy::prelude::*;
+use crate::usf::phenomenon::{OutputDensityFieldDefinition, PhenomenonOutputFieldSpec};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::unit::types::UnitVec;
 use crate::usf::scale::Scale;
@@ -98,6 +98,8 @@ pub struct ChunkRealizationRecord {
     pub density_field_signature: u64,
     #[serde(default)]
     pub phenomenon_script_id: String,
+    #[serde(default)]
+    pub selected_model_id: String,
     pub chunk_seed: u64,
     pub sample_step: u16,
     pub iso_level: u8,
@@ -116,7 +118,8 @@ pub(crate) fn generate_chunk_realization_record(
     zone_density_profile: ZoneDensityProfile,
     zone_density_signature: u64,
     phenomenon_script_id: &str,
-    realization_field_contract: PhenomenonRealizationFieldContract,
+    selected_model_id: &str,
+    output_field_spec: PhenomenonOutputFieldSpec,
 ) -> ChunkRealizationRecord {
     let axis_samples = build_axis_samples(sample_step);
     let axis_points = axis_samples.len();
@@ -124,27 +127,21 @@ pub(crate) fn generate_chunk_realization_record(
 
     let chunk_seed = derive_chunk_seed(world_seed, canonical_coord);
 
-    let rho_values = sample_density_field_values(
-        world_seed,
-        chunk_scale,
-        canonical_coord,
-        &axis_samples,
-        zone_density_profile,
-        realization_field_contract,
-    );
+    let rho_values = sample_density_field_values(world_seed, chunk_scale, canonical_coord, &axis_samples, zone_density_profile, output_field_spec);
     let zone_id = zone_numeric_id(zone_type);
     let zone_values = vec![zone_id; total_points];
 
     ChunkRealizationRecord {
-        schema_version: 2,
-        cache_authority: "derived_cache".to_string(),
+        schema_version: 3,
+        cache_authority: "runtime_cache".to_string(),
         world_seed,
         active_scale_index: chunk_scale.index_from_top(),
         chunk_coord: SerializableGridCoord::from_grid(canonical_coord),
         zone_type: zone_type.0.clone(),
         zone_density_signature,
-        density_field_signature: density_field_signature(realization_field_contract),
+        density_field_signature: density_field_signature(output_field_spec),
         phenomenon_script_id: phenomenon_script_id.to_ascii_lowercase(),
+        selected_model_id: selected_model_id.to_ascii_lowercase(),
         chunk_seed,
         sample_step,
         iso_level,
@@ -160,17 +157,17 @@ pub(crate) fn sample_density_field_values(
     canonical_coord: &GridVec,
     axis_samples: &[u16],
     zone_density_profile: ZoneDensityProfile,
-    realization_field_contract: PhenomenonRealizationFieldContract,
+    output_field_spec: PhenomenonOutputFieldSpec,
 ) -> Vec<u8> {
     #[cfg(test)]
     {
         let _ = chunk_scale;
-        sample_density_field_values_cpu(world_seed, canonical_coord, axis_samples, zone_density_profile, realization_field_contract)
+        sample_density_field_values_cpu(world_seed, canonical_coord, axis_samples, zone_density_profile, output_field_spec)
     }
 
     #[cfg(not(test))]
     {
-        let density_field = realization_density_field_from_contract(realization_field_contract);
+        let density_field = output_density_field_from_spec(output_field_spec);
         let semantics = gpu_density::GpuDensitySemantics {
             coarse_span_units: density_field.coarse_span_units as f32,
             detail_span_units: density_field.detail_span_units as f32,
@@ -204,9 +201,9 @@ fn sample_density_field_values_cpu(
     canonical_coord: &GridVec,
     axis_samples: &[u16],
     zone_density_profile: ZoneDensityProfile,
-    realization_field_contract: PhenomenonRealizationFieldContract,
+    output_field_spec: PhenomenonOutputFieldSpec,
 ) -> Vec<u8> {
-    let realization_density_field = realization_density_field_from_contract(realization_field_contract);
+    let output_density_field = output_density_field_from_spec(output_field_spec);
     let axis_points = axis_samples.len();
     let total_points = axis_points * axis_points * axis_points;
     let mut rho_values = Vec::with_capacity(total_points);
@@ -220,7 +217,7 @@ fn sample_density_field_values_cpu(
                     axis_samples[iz] as f32 - HALF_CHUNK_SPAN_F32,
                 );
                 let root_native = sample_root_native_position(canonical_coord, local_offset);
-                rho_values.push(hash_density_u8(world_seed, root_native, zone_density_profile, realization_density_field));
+                rho_values.push(hash_density_u8(world_seed, root_native, zone_density_profile, output_density_field));
             }
         }
     }
@@ -282,23 +279,23 @@ pub(crate) fn color_from_seed(seed: u64) -> Color {
     Color::srgb(0.2 + 0.6 * r, 0.2 + 0.6 * g, 0.2 + 0.6 * b)
 }
 
-pub(crate) fn density_field_signature(realization_field_contract: PhenomenonRealizationFieldContract) -> u64 {
-    let realization_density_field = realization_density_field_from_contract(realization_field_contract);
+pub(crate) fn density_field_signature(output_field_spec: PhenomenonOutputFieldSpec) -> u64 {
+    let output_density_field = output_density_field_from_spec(output_field_spec);
     const DENSITY_ALGO_REVISION: u64 = 5;
     let mut signature_seed = 0xa3f1_1a89_5d4c_2be7_u64 ^ DENSITY_ALGO_REVISION;
     signature_seed ^= CHUNK_SPAN_UNITS_I64 as u64;
     signature_seed ^= (ROOT_AXIS_CELL_COUNT as u64) << 8;
     signature_seed ^= (ROOT_AXIS_PERIOD_UNITS as u64) << 16;
     signature_seed ^= 0x4750_555f_5345_4d41_u64; // "GPU_SEMA"
-    signature_seed ^= realization_density_field.coarse_span_units.to_bits();
-    signature_seed ^= realization_density_field.detail_span_units.to_bits();
-    signature_seed ^= (realization_density_field.coarse_weight.to_bits() as u64) << 1;
-    signature_seed ^= (realization_density_field.detail_weight.to_bits() as u64) << 2;
-    signature_seed ^= (realization_density_field.bias.to_bits() as u64) << 3;
-    signature_seed ^= (realization_density_field.gain.to_bits() as u64) << 4;
-    signature_seed ^= (realization_density_field.center.to_bits() as u64) << 5;
-    signature_seed ^= realization_density_field.seed_salt_coarse;
-    signature_seed ^= realization_density_field.seed_salt_detail;
+    signature_seed ^= output_density_field.coarse_span_units.to_bits();
+    signature_seed ^= output_density_field.detail_span_units.to_bits();
+    signature_seed ^= (output_density_field.coarse_weight.to_bits() as u64) << 1;
+    signature_seed ^= (output_density_field.detail_weight.to_bits() as u64) << 2;
+    signature_seed ^= (output_density_field.bias.to_bits() as u64) << 3;
+    signature_seed ^= (output_density_field.gain.to_bits() as u64) << 4;
+    signature_seed ^= (output_density_field.center.to_bits() as u64) << 5;
+    signature_seed ^= output_density_field.seed_salt_coarse;
+    signature_seed ^= output_density_field.seed_salt_detail;
     mix64(signature_seed)
 }
 
@@ -349,22 +346,20 @@ fn hash_density_u8(
     world_seed: u64,
     root_native: (f64, f64, f64),
     zone_density_profile: ZoneDensityProfile,
-    realization_density_field: RealizationDensityFieldDefinition,
+    output_density_field: OutputDensityFieldDefinition,
 ) -> u8 {
     let (wx, wy, wz) = wrap_root_native_position(root_native);
     let world_seed_folded = mix32((world_seed & 0xffff_ffff) as u32 ^ (world_seed >> 32) as u32);
-    let coarse_seed = mix32(
-        world_seed_folded ^ (realization_density_field.seed_salt_coarse & 0xffff_ffff) as u32 ^ (realization_density_field.seed_salt_coarse >> 32) as u32,
-    );
-    let detail_seed = mix32(
-        world_seed_folded ^ (realization_density_field.seed_salt_detail & 0xffff_ffff) as u32 ^ (realization_density_field.seed_salt_detail >> 32) as u32,
-    );
+    let coarse_seed =
+        mix32(world_seed_folded ^ (output_density_field.seed_salt_coarse & 0xffff_ffff) as u32 ^ (output_density_field.seed_salt_coarse >> 32) as u32);
+    let detail_seed =
+        mix32(world_seed_folded ^ (output_density_field.seed_salt_detail & 0xffff_ffff) as u32 ^ (output_density_field.seed_salt_detail >> 32) as u32);
 
-    let base = value_noise_3d(coarse_seed, wx, wy, wz, realization_density_field.coarse_span_units);
-    let detail = value_noise_3d(detail_seed, wx, wy, wz, realization_density_field.detail_span_units);
-    let weight_sum = (realization_density_field.coarse_weight + realization_density_field.detail_weight).max(f32::MIN_POSITIVE);
-    let combined = ((base * realization_density_field.coarse_weight) + (detail * realization_density_field.detail_weight)) / weight_sum;
-    let shaped = ((combined - realization_density_field.bias) * realization_density_field.gain + realization_density_field.center).clamp(0.0, 1.0);
+    let base = value_noise_3d(coarse_seed, wx, wy, wz, output_density_field.coarse_span_units);
+    let detail = value_noise_3d(detail_seed, wx, wy, wz, output_density_field.detail_span_units);
+    let weight_sum = (output_density_field.coarse_weight + output_density_field.detail_weight).max(f32::MIN_POSITIVE);
+    let combined = ((base * output_density_field.coarse_weight) + (detail * output_density_field.detail_weight)) / weight_sum;
+    let shaped = ((combined - output_density_field.bias) * output_density_field.gain + output_density_field.center).clamp(0.0, 1.0);
     let zoned = zone_density_profile.normalized_density(shaped);
 
     (zoned * 255.0).round() as u8
@@ -379,9 +374,9 @@ fn zone_numeric_id(zone_type: &ZoneTypeId) -> u32 {
 }
 
 #[inline]
-fn realization_density_field_from_contract(realization_field_contract: PhenomenonRealizationFieldContract) -> RealizationDensityFieldDefinition {
-    match realization_field_contract {
-        PhenomenonRealizationFieldContract::DensityField(field) => field,
+fn output_density_field_from_spec(output_field_spec: PhenomenonOutputFieldSpec) -> OutputDensityFieldDefinition {
+    match output_field_spec {
+        PhenomenonOutputFieldSpec::DensityField(field) => field,
     }
 }
 
@@ -511,12 +506,16 @@ mod tests {
         "phenomenon.test.realization_density"
     }
 
-    fn test_realization_density_field() -> RealizationDensityFieldDefinition {
-        RealizationDensityFieldDefinition::default()
+    fn test_model_id() -> &'static str {
+        "model.test.realization_density"
     }
 
-    fn test_realization_field_contract() -> PhenomenonRealizationFieldContract {
-        PhenomenonRealizationFieldContract::DensityField(test_realization_density_field())
+    fn test_output_density_field() -> OutputDensityFieldDefinition {
+        OutputDensityFieldDefinition::default()
+    }
+
+    fn test_output_field_spec() -> PhenomenonOutputFieldSpec {
+        PhenomenonOutputFieldSpec::DensityField(test_output_density_field())
     }
 
     fn grid_index(ix: usize, iy: usize, iz: usize, axis_points: usize) -> usize {
@@ -541,7 +540,8 @@ mod tests {
             zone_density_profile,
             zone_density_signature,
             test_phenomenon_id(),
-            test_realization_field_contract(),
+            test_model_id(),
+            test_output_field_spec(),
         );
         let right_record = generate_chunk_realization_record(
             settings.world_seed,
@@ -553,7 +553,8 @@ mod tests {
             zone_density_profile,
             zone_density_signature,
             test_phenomenon_id(),
-            test_realization_field_contract(),
+            test_model_id(),
+            test_output_field_spec(),
         );
 
         let axis_points = left_record.axis_samples.len();
@@ -591,7 +592,8 @@ mod tests {
             zone_density_profile,
             zone_density_signature,
             test_phenomenon_id(),
-            test_realization_field_contract(),
+            test_model_id(),
+            test_output_field_spec(),
         );
         let right_record = generate_chunk_realization_record(
             settings.world_seed,
@@ -603,7 +605,8 @@ mod tests {
             zone_density_profile,
             zone_density_signature,
             test_phenomenon_id(),
-            test_realization_field_contract(),
+            test_model_id(),
+            test_output_field_spec(),
         );
 
         let axis_points = left_record.axis_samples.len();
@@ -642,7 +645,8 @@ mod tests {
             zone_density_profile,
             zone_density_profile.signature(),
             test_phenomenon_id(),
-            test_realization_field_contract(),
+            test_model_id(),
+            test_output_field_spec(),
         );
 
         let path = Path::new(&settings.persistence_dir).join("roundtrip_chunk.json");
@@ -684,13 +688,8 @@ mod tests {
                 "root-native mismatch for child_local={child_local}: child={wrapped_child:?}, parent={wrapped_parent:?}"
             );
 
-            let child_density = hash_density_u8(settings.world_seed, child_root_native, zone_density_profile, test_realization_density_field());
-            let parent_density = hash_density_u8(
-                settings.world_seed,
-                parent_root_native,
-                zone_density_profile,
-                test_realization_density_field(),
-            );
+            let child_density = hash_density_u8(settings.world_seed, child_root_native, zone_density_profile, test_output_density_field());
+            let parent_density = hash_density_u8(settings.world_seed, parent_root_native, zone_density_profile, test_output_density_field());
             assert_eq!(
                 child_density, parent_density,
                 "density mismatch for child_local={child_local}: child={child_density}, parent={parent_density}"
@@ -735,13 +734,8 @@ mod tests {
                 "root-native mismatch for child_offset={child_offset:?}: child={wrapped_child:?}, parent={wrapped_parent:?}"
             );
 
-            let child_density = hash_density_u8(settings.world_seed, child_root_native, zone_density_profile, test_realization_density_field());
-            let parent_density = hash_density_u8(
-                settings.world_seed,
-                parent_root_native,
-                zone_density_profile,
-                test_realization_density_field(),
-            );
+            let child_density = hash_density_u8(settings.world_seed, child_root_native, zone_density_profile, test_output_density_field());
+            let parent_density = hash_density_u8(settings.world_seed, parent_root_native, zone_density_profile, test_output_density_field());
             assert_eq!(
                 child_density, parent_density,
                 "fractional density mismatch for child_offset={child_offset:?}: child={child_density}, parent={parent_density}"

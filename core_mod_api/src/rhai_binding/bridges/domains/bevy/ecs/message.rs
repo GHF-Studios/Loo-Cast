@@ -20,10 +20,7 @@ core_mod_macros::reflect_extern_module_associated_function!(
     id = bevy::ecs::message::registered_type_ids,
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
         rhai::FuncRegistration::new(name).set_into_module(parent_module, || -> rhai::Array {
-            registered_message_type_ids()
-                .into_iter()
-                .map(rhai::Dynamic::from)
-                .collect::<rhai::Array>()
+            registered_message_type_ids().into_iter().map(rhai::Dynamic::from).collect::<rhai::Array>()
         });
     },
 );
@@ -31,9 +28,8 @@ core_mod_macros::reflect_extern_module_associated_function!(
 core_mod_macros::reflect_extern_module_associated_function!(
     id = bevy::ecs::message::is_registered_type,
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
-        rhai::FuncRegistration::new(name)
-            .set_into_module(parent_module, |message_type_id: rhai::ImmutableString| -> bool {
-                is_registered_message_type(message_type_id.as_str())
-            });
+        rhai::FuncRegistration::new(name).set_into_module(parent_module, |message_type_id: rhai::ImmutableString| -> bool {
+            is_registered_message_type(message_type_id.as_str())
+        });
     },
 );

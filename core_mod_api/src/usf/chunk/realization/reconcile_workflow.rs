@@ -1,14 +1,14 @@
 use crate::bevy::prelude::*;
-use crate::usf::chunk::components::Chunk;
-use crate::usf::chunk::resources::ChunkManager;
-use crate::rhai_binding::bridges::domains::core_mod_api::usf::realization_channels::{
-    ChunkRealizationChannelAppliedEvent, ChunkRealizationChannelPolicy, RealizationChannelRegistry, apply_chunk_realization_channels,
+use crate::rhai_binding::bridges::domains::core_mod_api::usf::output_channels::{
+    ChunkRealizationChannelAppliedEvent, OutputChannelRegistry, apply_chunk_output_channels,
 };
+use crate::usf::chunk::components::Chunk;
 use crate::usf::chunk::realization::field::{canonical_grid_coord, density_field_signature};
 use crate::usf::chunk::realization::runtime::{
-    ChunkRealizationCache, ChunkRealizationInstance, ChunkRealizationIntent, ChunkRealizationResolvedArtifact, ChunkRealizationIntentSnapshot,
+    ChunkRealizationCache, ChunkRealizationInstance, ChunkRealizationIntent, ChunkRealizationIntentSnapshot, ChunkRealizationResolvedArtifact,
     UsfChunkRealizationRuntimeSettings, resolve_chunk_realization_artifact,
 };
+use crate::usf::chunk::resources::ChunkManager;
 use crate::workflow::types::Outcome;
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
@@ -24,13 +24,11 @@ pub struct AsyncInput {
 pub struct ResolvedIntentsOutput {
     pub artifacts: VecDeque<ChunkRealizationResolvedArtifact>,
     pub commit_budget: usize,
-    pub attach_meshes: bool,
 }
 
 pub struct State {
     pub artifacts: VecDeque<ChunkRealizationResolvedArtifact>,
     pub commit_budget: usize,
-    pub attach_meshes: bool,
     pub applied: usize,
     pub skipped: usize,
 }
@@ -63,7 +61,7 @@ pub struct MainAccess<'w, 's> {
     pub chunk_store: ResMut<'w, ChunkRealizationCache>,
     pub meshes: ResMut<'w, Assets<Mesh>>,
     pub materials: ResMut<'w, Assets<StandardMaterial>>,
-    pub channel_registry: Res<'w, RealizationChannelRegistry>,
+    pub channel_registry: Res<'w, OutputChannelRegistry>,
     pub channel_events: MessageWriter<'w, ChunkRealizationChannelAppliedEvent>,
 }
 
@@ -71,13 +69,11 @@ pub fn run_async(input: Input) -> Result<ResolvedIntentsOutput, Error> {
     let Input { inner } = input;
     let commit_budget = inner.commit_budget.max(1);
     let settings = inner.settings;
-    let attach_meshes = settings.attach_meshes;
     let artifacts = build_artifacts_parallel(settings, inner.tasks, inner.build_workers.max(1));
 
     Ok(ResolvedIntentsOutput {
         artifacts: artifacts.into_iter().collect(),
         commit_budget,
-        attach_meshes,
     })
 }
 
@@ -85,7 +81,6 @@ pub fn setup_ecs_while(input: ResolvedIntentsOutput, _main_access: MainAccess) -
     Ok(State {
         artifacts: input.artifacts,
         commit_budget: input.commit_budget.max(1),
-        attach_meshes: input.attach_meshes,
         applied: 0,
         skipped: 0,
     })
@@ -129,11 +124,8 @@ pub fn run_ecs_while(state: State, main_access: MainAccess) -> Result<Outcome<St
             continue;
         }
 
-        apply_chunk_realization_channels(
+        apply_chunk_output_channels(
             artifact,
-            ChunkRealizationChannelPolicy {
-                attach_meshes: state.attach_meshes,
-            },
             &channel_registry,
             &mut channel_events,
             &mut commands,
@@ -155,12 +147,8 @@ pub fn run_ecs_while(state: State, main_access: MainAccess) -> Result<Outcome<St
     Ok(Outcome::Wait(state))
 }
 
-fn reconcile_artifact_matches_intent(
-    artifact: &ChunkRealizationResolvedArtifact,
-    chunk: &Chunk,
-    maybe_binding: Option<&ChunkRealizationIntent>,
-) -> bool {
-    let Some(binding) = maybe_binding else {
+fn reconcile_artifact_matches_intent(artifact: &ChunkRealizationResolvedArtifact, chunk: &Chunk, maybe_intent: Option<&ChunkRealizationIntent>) -> bool {
+    let Some(intent) = maybe_intent else {
         return false;
     };
 
@@ -173,11 +161,12 @@ fn reconcile_artifact_matches_intent(
         return false;
     }
 
-    artifact.record.zone_type.eq_ignore_ascii_case(&binding.zone_type.0)
-        && artifact.record.zone_density_signature == binding.zone_density_signature
-        && artifact.record.phenomenon_script_id.eq_ignore_ascii_case(binding.phenomenon_script_id.as_str())
-        && artifact.record.density_field_signature == density_field_signature(binding.realization_field_contract)
-        && artifact.channel_payloads == binding.channel_payloads
+    artifact.record.zone_type.eq_ignore_ascii_case(&intent.zone_type.0)
+        && artifact.record.zone_density_signature == intent.zone_density_signature
+        && artifact.record.phenomenon_script_id.eq_ignore_ascii_case(intent.phenomenon_script_id.as_str())
+        && artifact.record.selected_model_id.eq_ignore_ascii_case(intent.selected_model_id.as_str())
+        && artifact.record.density_field_signature == density_field_signature(intent.output_field_spec)
+        && artifact.channel_payloads == intent.channel_payloads
 }
 
 fn build_artifacts_parallel(
@@ -194,10 +183,7 @@ fn build_artifacts_parallel(
     let worker_count = requested_workers.max(1).min(available_workers).min(task_count);
 
     if worker_count <= 1 {
-        return tasks
-            .into_iter()
-            .map(|task| resolve_chunk_realization_artifact(&settings, task))
-            .collect();
+        return tasks.into_iter().map(|task| resolve_chunk_realization_artifact(&settings, task)).collect();
     }
 
     let queued_tasks = Arc::new(Mutex::new(tasks.into_iter().enumerate().collect::<VecDeque<_>>()));

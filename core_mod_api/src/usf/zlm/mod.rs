@@ -10,6 +10,7 @@ use crate::usf::scale::Scale;
 use crate::usf::zone::ZoneTypeId;
 
 pub const METRIC_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID: &str = "metric_categorizer.kernel.zlm_lookup.v1";
+pub const METRIC_CATEGORIZER_KERNEL_PREFIX: &str = "metric_categorizer.kernel.";
 
 #[derive(Reflect, Debug, Clone, PartialEq)]
 pub struct ZlmMetricBand {
@@ -53,13 +54,14 @@ impl Default for ZlmRegistry {
 }
 impl ZlmRegistry {
     fn classify_for_categorizer_id(&self, categorizer_id: &str, scale: Scale, schema: &MetricContainerLayout, metric_values: &[f32]) -> ZoneTypeId {
-        match categorizer_id.trim().to_ascii_lowercase().as_str() {
-            METRIC_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID => self.classify(scale, schema, metric_values),
-            unknown => panic!(
-                "USF ZLM classification failed: unknown categorizer kernel '{}'; supported kernels: {}",
-                unknown, METRIC_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID
-            ),
+        let normalized = categorizer_id.trim().to_ascii_lowercase();
+        if !is_categorizer_kernel_id_supported(normalized.as_str()) {
+            panic!(
+                "USF ZLM classification failed: unsupported categorizer kernel '{}'; expected '{}' or ids prefixed with '{}'",
+                normalized, METRIC_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID, METRIC_CATEGORIZER_KERNEL_PREFIX
+            );
         }
+        self.classify(scale, schema, metric_values)
     }
 
     pub fn classify(&self, scale: Scale, schema: &MetricContainerLayout, metric_values: &[f32]) -> ZoneTypeId {
@@ -170,6 +172,11 @@ impl ZlmRegistry {
     }
 }
 
+pub(crate) fn is_categorizer_kernel_id_supported(categorizer_id: &str) -> bool {
+    let normalized = categorizer_id.trim().to_ascii_lowercase();
+    normalized == METRIC_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID || normalized.starts_with(METRIC_CATEGORIZER_KERNEL_PREFIX)
+}
+
 fn normalize_zone_type(value: &str) -> ZoneTypeId {
     ZoneTypeId::new(value.trim().to_ascii_lowercase())
 }
@@ -230,8 +237,8 @@ impl Plugin for ZlmPlugin {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::usf::mod_packs::UsfActiveModPack;
     use crate::usf::metric::{MetricDefinition, MetricId, MetricStorageClass, MetricValueType};
+    use crate::usf::mod_packs::UsfActiveModPack;
     use std::collections::HashMap;
 
     fn active_modpack_for_tests() -> UsfActiveModPack {
@@ -347,5 +354,42 @@ mod tests {
 
         let error = zlm_registry.validate_against(&active_modpack).unwrap_err();
         assert!(error.contains("must be >= schema revision"));
+    }
+
+    #[test]
+    fn classify_for_scale_accepts_custom_categorizer_kernel_id_prefix() {
+        let scale = Scale::MAX;
+        let mut active_modpack = active_modpack_for_tests();
+        let custom_categorizer = "metric_categorizer.kernel.custom_lookup.v1".to_string();
+        active_modpack
+            .scales_by_index
+            .get_mut(&scale)
+            .expect("scale definition must exist")
+            .metric_categorizer_id = custom_categorizer.clone();
+        active_modpack.known_metric_categorizers.insert(custom_categorizer);
+
+        let schema = active_modpack
+            .schema_for_scale(scale)
+            .expect("schema for scale must exist")
+            .clone();
+        let mut maps_by_scale = HashMap::new();
+        maps_by_scale.insert(
+            scale,
+            ZlmScaleDefinition {
+                revision: 1,
+                fallback_zone: ZoneTypeId::new("void"),
+                rules: vec![ZlmZoneRule {
+                    zone_type: ZoneTypeId::new("void"),
+                    metric_bands: vec![ZlmMetricBand {
+                        metric_id: MetricId(0),
+                        min: 0.0,
+                        max: 1.0,
+                    }],
+                }],
+            },
+        );
+        let zlm_registry = ZlmRegistry { maps_by_scale };
+        let classified = zlm_registry.classify_for_scale(scale, &schema, &[0.42], &active_modpack);
+        assert_eq!(classified, ZoneTypeId::new("void"));
     }
 }

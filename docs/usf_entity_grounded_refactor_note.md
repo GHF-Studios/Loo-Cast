@@ -10,12 +10,13 @@ Scope: `core_mod_api::usf` runtime/persistence authority cut
 - Chunk realization reconcile no longer uses direct `supports.first()` behavior.
 - Zone runtime no longer classifies chunks from `UsfWorld` procedural sampling as authority.
 - USF runtime naming moved from `chunk_surface` / `chunk_manifestation` to `chunk_realization` for non-ontology cache/render workflows.
-- USF module path naming moved from `usf.mod_runtime` / `usf.runtime` to domain-owned paths (`usf::chunk::realization`, `rhai_binding::bridges::...::realization_channels`).
+- USF module path naming moved from `usf.mod_runtime` / `usf.runtime` to domain-owned paths (`usf::chunk::realization`, `rhai_binding::bridges::...::output_channels`).
 - Legacy global Rhai mutation surfaces under `core_mod_api::usf::{substrate, phenomenon}` were removed from bridge exports.
 - Mesh/collider/material/audio/particles/trigger application for chunk outputs moved into bridge realization channels
-  (`rhai_binding::bridges::domains::core_mod_api::usf::realization_channels`).
+  (`rhai_binding::bridges::domains::core_mod_api::usf::output_channels`).
 - Chunk realization intent shape is channel-payload based (`channel_payloads`) instead of hardcoded per-channel fields.
-- Phenomenon model runtime no longer stores explicit per-channel contract components on `PhenomenonModel` entities.
+- Rhai phenomenon-model ctx method names moved from `set_realization_*`/`set_interaction_trigger(...)` to `set_output_*` APIs.
+- Phenomenon model runtime no longer stores explicit per-channel output components on `PhenomenonModel` entities.
 - `PhenomenonKind` is no longer a hardcoded enum variant list; it is normalized string-backed metadata.
 - `PhenomenonCapability` / `ctx.add_capability(...)` metadata flow was removed from runtime/script API.
 - `Phenomenon.kind` and `ZonePhenomenonSupport.kind` were removed from ECS runtime state; kind remains script-definition metadata.
@@ -31,19 +32,19 @@ Scope: `core_mod_api::usf` runtime/persistence authority cut
 
 - Authoritative persistence is entity-grounded:
   - `Phenomenon`
-  - `PhenomenaModel`
-  - `PartialPhenomenaModel`
+  - `PhenomenonModel`
+  - `PartialPhenomenonModel`
 - Substrate state is adaptive and derived (`octree + polymorphic leaves`), not ontology-owned.
 - Zone semantics are derived classifiers over substrate summaries.
-- Chunk realization records are explicit derived caches (`cache_authority = "derived_cache"`).
+- Chunk realization records are explicit runtime caches (`cache_authority = "runtime_cache"`).
 - Cross-chunk coupling is explicit through chunk-edge interfaces.
 - Partitioned model roots and members are topology-enforced at runtime (`root` vs `member` contracts are normalized each frame).
 - Model selection is explicit by `(phenomenon_id, scale_index)`.
 - Realization reconcile reads selected phenomenon from `ZoneRealizationState` authority, not a secondary selection pass.
-- Runtime reconcile consumes `ChunkRealizationIntent` contracts; phenomenon-specific selection logic is separated into a binding system.
-- Runtime channel toggles are explicit and orthogonal (`attach_meshes`, `enable_instance_culling`), while collider/audio/particles/trigger are model-scoped via resolved channel payloads.
+- Runtime reconcile consumes `ChunkRealizationIntent` payload schemas; phenomenon-specific selection logic is separated into an intent sync system.
+- Runtime output application is channel-registry driven; `enable_instance_culling` remains a presentation toggle, while mesh/material/collider/audio/particles/trigger/simulation_service are model-scoped resolved payloads.
 - Chunk realization emits bridge-level `ChunkRealizationChannelAppliedEvent` messages and periodic channel telemetry diagnostics
-  (`mesh/collider/audio/particles/trigger`) for non-mesh capability observability.
+  (`mesh/material/collider/audio/particles/trigger/simulation_service`) for non-mesh capability observability.
 - Persistence startup restore path uses explicit restore naming (no hydration wording).
 - World ownership contract is explicit via `UsfWorldAuthorityContract` resource and startup validation.
 

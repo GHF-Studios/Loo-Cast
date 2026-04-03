@@ -4,13 +4,14 @@ use crate::bevy::prelude::*;
 use crate::config::{statics::CONFIG, types::ConfigValue};
 use crate::core::orchestration::AppSet;
 use crate::rhai_binding::engine::statics::{
-    USF_METRIC_CATEGORIZER_KERNEL_IDS, USF_METRIC_SAMPLER_KERNEL_IDS, USF_METRIC_CONTAINER_LAYOUTS_BY_SCALE, USF_MODPACKS_BY_ID, USF_MODS_BY_ID, USF_SCALES_BY_INDEX,
-    USF_ZONE_TYPES,
+    USF_METRIC_CATEGORIZER_KERNEL_IDS, USF_METRIC_CONTAINER_LAYOUTS_BY_SCALE, USF_METRIC_SAMPLER_KERNEL_IDS, USF_MODPACKS_BY_ID, USF_MODS_BY_ID,
+    USF_SCALES_BY_INDEX, USF_ZONE_TYPES,
 };
 use crate::usf::metric::{MetricDefinition, MetricId, MetricStorageClass, MetricValueType};
-use crate::usf::metric_container::MetricContainerLayout;
+use crate::usf::metric_container::{MetricContainerLayout, is_sampler_kernel_id_supported};
 use crate::usf::mods::UsfConfiguredMod;
 use crate::usf::scale::Scale;
+use crate::usf::zlm::is_categorizer_kernel_id_supported;
 use crate::usf::zone::ZoneTypeId;
 
 pub const DEFAULT_DEMO_MOD_ID: &str = "demo";
@@ -170,6 +171,20 @@ impl UsfActiveModPack {
             if !self.known_metric_categorizers.contains(&scale_definition.metric_categorizer_id) {
                 return Err(format!(
                     "unknown metric_categorizer_id '{}' for scale index {}",
+                    scale_definition.metric_categorizer_id,
+                    scale.index_from_top()
+                ));
+            }
+            if !is_sampler_kernel_id_supported(scale_definition.metric_sampler_id.as_str()) {
+                return Err(format!(
+                    "metric_sampler_id '{}' for scale index {} is registered but not runtime-supported",
+                    scale_definition.metric_sampler_id,
+                    scale.index_from_top()
+                ));
+            }
+            if !is_categorizer_kernel_id_supported(scale_definition.metric_categorizer_id.as_str()) {
+                return Err(format!(
+                    "metric_categorizer_id '{}' for scale index {} is registered but not runtime-supported",
                     scale_definition.metric_categorizer_id,
                     scale.index_from_top()
                 ));
@@ -669,8 +684,8 @@ mod tests {
     use super::*;
 
     fn scripted_scales_and_kernels() -> (HashMap<Scale, UsfScaleDefinition>, HashSet<String>, HashSet<String>) {
-        let sampler_id = "metric_sampler.test.default.v1".to_string();
-        let categorizer_id = "metric_categorizer.test.default.v1".to_string();
+        let sampler_id = crate::usf::metric_container::METRIC_SAMPLER_KERNEL_DEFAULT_ID.to_string();
+        let categorizer_id = crate::usf::zlm::METRIC_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID.to_string();
         let mut scales_by_index = HashMap::new();
         for index in 0..Scale::SCALE_LEVEL_COUNT {
             let Some(scale) = Scale::from_index_from_top(index) else {
@@ -755,6 +770,44 @@ mod tests {
         scale_definition.metric_sampler_id = "metric_sampler.unknown".to_string();
         let error = active_modpack.validate().unwrap_err();
         assert!(error.contains("unknown metric_sampler_id"));
+    }
+
+    #[test]
+    fn active_modpack_rejects_registered_but_runtime_unsupported_sampler_id() {
+        let mut active_modpack = scripted_active_modpack();
+        let unsupported = "metric_sampler.custom_legacy_id".to_string();
+        active_modpack.known_metric_samplers.insert(unsupported.clone());
+        let scale_definition = active_modpack.scales_by_index.get_mut(&Scale::MAX).unwrap();
+        scale_definition.metric_sampler_id = unsupported;
+        let error = active_modpack.validate().unwrap_err();
+        assert!(error.contains("not runtime-supported"));
+    }
+
+    #[test]
+    fn active_modpack_rejects_registered_but_runtime_unsupported_categorizer_id() {
+        let mut active_modpack = scripted_active_modpack();
+        let unsupported = "metric_categorizer.custom_legacy_id".to_string();
+        active_modpack.known_metric_categorizers.insert(unsupported.clone());
+        let scale_definition = active_modpack.scales_by_index.get_mut(&Scale::MAX).unwrap();
+        scale_definition.metric_categorizer_id = unsupported;
+        let error = active_modpack.validate().unwrap_err();
+        assert!(error.contains("not runtime-supported"));
+    }
+
+    #[test]
+    fn active_modpack_accepts_runtime_supported_custom_kernel_ids() {
+        let mut active_modpack = scripted_active_modpack();
+        let custom_sampler = "metric_sampler.kernel.scale_max.experimental.v1".to_string();
+        let custom_categorizer = "metric_categorizer.kernel.scale_max.experimental.v1".to_string();
+        active_modpack.known_metric_samplers.insert(custom_sampler.clone());
+        active_modpack.known_metric_categorizers.insert(custom_categorizer.clone());
+
+        let scale_definition = active_modpack.scales_by_index.get_mut(&Scale::MAX).unwrap();
+        scale_definition.metric_sampler_id = custom_sampler;
+        scale_definition.metric_categorizer_id = custom_categorizer;
+
+        let validation = active_modpack.validate();
+        assert!(validation.is_ok(), "expected custom runtime-supported kernel ids to validate, got: {validation:?}");
     }
 
     #[test]

@@ -26,7 +26,7 @@ Quick links
 - `TMP_usf_plan_entrypoint_first_runtime.md` — dedicated plan for entrypoint-first runtime platform
 - `TMP_usf_plan_capability_platform.md` — dedicated plan for capability/platform separation
 - `TMP_usf_plan_sampler_categorizer_generalization.md` — dedicated plan for generic sampler/categorizer pipeline
-- `TMP_usf_plan_naming_and_tree_reframe.md` — dedicated plan for naming/module-tree cleanup
+- `TMP_usf_naming_alignment_review.md` — active naming/module-tree alignment review and execution slices
 - `TMP_usf_plan_minimal_tech_demo.md` — dedicated plan for minimal USF technical demo scope
 - `UsfTransformPolicy.md` — canonical transform/pivot policy and phased 3D+rotation migration plan
 

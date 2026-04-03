@@ -4,20 +4,20 @@ use std::sync::OnceLock;
 use std::time::{Duration, Instant};
 
 use crate::bevy::prelude::*;
-use crate::usf::chunk::components::Chunk;
 use crate::config::statics::CONFIG;
 use crate::usf::authority::{USF_DOMAIN_SUBSTRATE, UsfAuthorityDiagnostics, UsfWorldAuthorityContract, guard_runtime_state_domain_with_diagnostics};
+use crate::usf::chunk::components::Chunk;
 use crate::usf::metric_container::{MetricContainerChunkKey, MetricContainerLayout, deterministic_metric_vector};
 use crate::usf::mod_packs::UsfActiveModPack;
 use crate::usf::phenomenon::{
-    PartialPhenomenonModel, PersistedPartialPhenomenonModelRecord, PersistedPhenomenonModelRecord, PhenomenonId, PhenomenonModel,
-    PhenomenonModelProjectionContract, PhenomenonModelScriptDefinitionRef, PhenomenonModelState, PhenomenonModelSupport, PhenomenonModelTopology,
+    PartialPhenomenonModel, PersistedPartialPhenomenonModelRecord, PersistedPhenomenonModelRecord, PhenomenonId, PhenomenonModel, PhenomenonModelProjection,
+    PhenomenonModelScriptDefinitionRef, PhenomenonModelState, PhenomenonModelSupport, PhenomenonModelTopology,
 };
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
 use crate::usf::schedule::{UsfSimulationSet, UsfSubstrateSet};
-use crate::usf::zone::ZoneTypeId;
 use crate::usf::zlm::ZlmRegistry;
+use crate::usf::zone::ZoneTypeId;
 
 mod policy;
 use policy::{
@@ -375,7 +375,7 @@ pub(super) fn plan_chunk_substrate_rebuilds_system(
     model_query: Query<(
         &PhenomenonModel,
         &PhenomenonModelScriptDefinitionRef,
-        &PhenomenonModelProjectionContract,
+        &PhenomenonModelProjection,
         Option<&PhenomenonModelSupport>,
         Option<&PhenomenonModelState>,
         Option<&PartialPhenomenonModel>,
@@ -389,8 +389,8 @@ pub(super) fn plan_chunk_substrate_rebuilds_system(
                 Changed<PhenomenonModel>,
                 Added<PhenomenonModelScriptDefinitionRef>,
                 Changed<PhenomenonModelScriptDefinitionRef>,
-                Added<PhenomenonModelProjectionContract>,
-                Changed<PhenomenonModelProjectionContract>,
+                Added<PhenomenonModelProjection>,
+                Changed<PhenomenonModelProjection>,
                 Added<PhenomenonModelSupport>,
                 Changed<PhenomenonModelSupport>,
                 Added<PhenomenonModelState>,
@@ -680,12 +680,7 @@ pub fn rebuild_substrate_from_persisted_models(
         }
 
         let partial_match = if topology == PhenomenonModelTopology::PartitionedByChunk {
-            partial_records.iter().find(|partial| {
-                partial.phenomenon_id == model.phenomenon_id
-                    && partial.model_id.eq_ignore_ascii_case(model.model_id.as_str())
-                    && partial.scale_index == model.scale_index
-                    && partial.chunk_coord == canonical_persisted_coord
-            })
+            select_matching_partial_record(partial_records, model, &canonical_persisted_coord)
         } else {
             None
         };
@@ -706,9 +701,6 @@ pub fn rebuild_substrate_from_persisted_models(
             mix64(hash_string(model.model_id.as_str()) ^ hash_string(model.projection_metric_name.as_str())),
         );
         let projected = (value * model.projection_gain + model.projection_bias + jitter).clamp(0.0, 1.0);
-        if let Some(slot) = metric_vector.get_mut(model_metric_index) {
-            *slot = (*slot + projected).clamp(0.0, 1.0);
-        }
         contributions.push(ModelProjectionContribution {
             phenomenon_id: PhenomenonId(model.phenomenon_id),
             model_id: model.model_id.clone(),
@@ -729,6 +721,7 @@ pub fn rebuild_substrate_from_persisted_models(
         );
     }
 
+    apply_projection_contributions_to_metric_vector(&mut metric_vector, &contributions);
     sort_projection_contributions(&mut contributions);
 
     let refinement_state = compute_refinement_state(&metric_vector, &contributions, None);
@@ -777,7 +770,7 @@ fn build_chunk_substrate_runtime(
     model_query: &Query<(
         &PhenomenonModel,
         &PhenomenonModelScriptDefinitionRef,
-        &PhenomenonModelProjectionContract,
+        &PhenomenonModelProjection,
         Option<&PhenomenonModelSupport>,
         Option<&PhenomenonModelState>,
         Option<&PartialPhenomenonModel>,
@@ -812,14 +805,10 @@ fn build_chunk_substrate_runtime(
             continue;
         }
 
-        let metric_index = metric_index_for_projection_metric(schema, projection.contract.metric_name.as_str()).unwrap_or_default();
+        let metric_index = metric_index_for_projection_metric(schema, projection.spec.metric_name.as_str()).unwrap_or_default();
         let fallback_state = PhenomenonModelState::default();
         let state = model_state.unwrap_or(&fallback_state);
         let projected_value = projection_value_for_model(canonical_coord, model_script_ref, projection, state);
-        if let Some(slot) = metric_vector.get_mut(metric_index) {
-            *slot = (*slot + projected_value).clamp(0.0, 1.0);
-        }
-
         contributions.push(ModelProjectionContribution {
             phenomenon_id: model.phenomenon_id,
             model_id: model_script_ref.model_id.clone(),
@@ -840,6 +829,7 @@ fn build_chunk_substrate_runtime(
         );
     }
 
+    apply_projection_contributions_to_metric_vector(&mut metric_vector, &contributions);
     let parent_metrics = canonical_coord
         .parent
         .as_ref()
@@ -917,21 +907,21 @@ fn summary_for_chunk_with_overlay<'a>(
 fn projection_value_for_model(
     canonical_coord: &GridVec,
     model_script_ref: &PhenomenonModelScriptDefinitionRef,
-    projection: &PhenomenonModelProjectionContract,
+    projection: &PhenomenonModelProjection,
     state: &PhenomenonModelState,
 ) -> f32 {
     let channel_value = state
         .scalar_channels
         .iter()
-        .find(|(name, _)| name.eq_ignore_ascii_case(projection.contract.metric_name.as_str()))
+        .find(|(name, _)| name.eq_ignore_ascii_case(projection.spec.metric_name.as_str()))
         .or_else(|| state.scalar_channels.first())
         .map(|(_, value)| *value)
         .unwrap_or(0.5);
     let jitter = deterministic_jitter(
         canonical_coord,
-        mix64(hash_string(model_script_ref.model_id.as_str()) ^ hash_string(projection.contract.metric_name.as_str())),
+        mix64(hash_string(model_script_ref.model_id.as_str()) ^ hash_string(projection.spec.metric_name.as_str())),
     );
-    (channel_value * projection.contract.projection_gain + projection.contract.projection_bias + jitter).clamp(0.0, 1.0)
+    (channel_value * projection.spec.projection_gain + projection.spec.projection_bias + jitter).clamp(0.0, 1.0)
 }
 
 fn metric_index_for_projection_metric(schema: &MetricContainerLayout, metric_name: &str) -> Option<usize> {
@@ -953,6 +943,46 @@ fn compare_projection_identity(a: &ModelProjectionContribution, b: &ModelProject
         .then_with(|| a.model_id.cmp(&b.model_id))
         .then_with(|| a.metric_index.cmp(&b.metric_index))
         .then_with(|| a.partition_key.unwrap_or(0).cmp(&b.partition_key.unwrap_or(0)))
+}
+
+fn apply_projection_contributions_to_metric_vector(metric_vector: &mut [f32], contributions: &[ModelProjectionContribution]) {
+    if metric_vector.is_empty() || contributions.is_empty() {
+        return;
+    }
+    let mut totals = vec![0.0_f32; metric_vector.len()];
+    for contribution in contributions {
+        let Some(total) = totals.get_mut(contribution.metric_index) else {
+            continue;
+        };
+        *total += contribution.value;
+    }
+    for (index, total) in totals.into_iter().enumerate() {
+        if total == 0.0 {
+            continue;
+        }
+        metric_vector[index] = (metric_vector[index] + total).clamp(0.0, 1.0);
+    }
+}
+
+fn select_matching_partial_record<'a>(
+    partial_records: &'a [PersistedPartialPhenomenonModelRecord],
+    model: &PersistedPhenomenonModelRecord,
+    canonical_persisted_coord: &crate::usf::phenomenon::persistence::PersistedGridCoord,
+) -> Option<&'a PersistedPartialPhenomenonModelRecord> {
+    partial_records
+        .iter()
+        .filter(|partial| {
+            partial.phenomenon_id == model.phenomenon_id
+                && partial.model_id.eq_ignore_ascii_case(model.model_id.as_str())
+                && partial.scale_index == model.scale_index
+                && partial.chunk_coord == *canonical_persisted_coord
+        })
+        .min_by(|left, right| {
+            left.partition_key
+                .cmp(&right.partition_key)
+                .then_with(|| left.scalar_channels.len().cmp(&right.scalar_channels.len()))
+                .then_with(|| left.model_id.cmp(&right.model_id))
+        })
 }
 
 fn build_chunk_edge_interfaces(
@@ -1093,7 +1123,7 @@ fn build_partition_projection_index_runtime(
     model_query: &Query<(
         &PhenomenonModel,
         &PhenomenonModelScriptDefinitionRef,
-        &PhenomenonModelProjectionContract,
+        &PhenomenonModelProjection,
         Option<&PhenomenonModelSupport>,
         Option<&PhenomenonModelState>,
         Option<&PartialPhenomenonModel>,
@@ -1120,7 +1150,7 @@ fn build_partition_projection_index_runtime(
             continue;
         }
 
-        let metric_index = metric_index_for_projection_metric(schema, projection.contract.metric_name.as_str()).unwrap_or_default();
+        let metric_index = metric_index_for_projection_metric(schema, projection.spec.metric_name.as_str()).unwrap_or_default();
         let fallback_state = PhenomenonModelState::default();
         let state = model_state.unwrap_or(&fallback_state);
         let value = projection_value_for_model(&canonical_chunk, model_script_ref, projection, state);
@@ -1380,7 +1410,7 @@ mod tests {
         let model = PersistedPhenomenonModelRecord {
             schema_version: 2,
             phenomenon_id: 11,
-            model_id: "demo_realization_density.default".to_string(),
+            model_id: "demo_mass_density.default".to_string(),
             scale_index: coord.scale.index_from_top(),
             topology: "partitioned_by_chunk".to_string(),
             support_anchor_chunk: support_coord.clone(),
@@ -1393,7 +1423,7 @@ mod tests {
         let partial = PersistedPartialPhenomenonModelRecord {
             schema_version: 2,
             phenomenon_id: 11,
-            model_id: "demo_realization_density.default".to_string(),
+            model_id: "demo_mass_density.default".to_string(),
             scale_index: coord.scale.index_from_top(),
             chunk_coord: support_coord,
             partition_key: 778811,
@@ -1410,6 +1440,51 @@ mod tests {
     }
 
     #[test]
+    fn substrate_rebuild_is_stable_under_model_record_order_permutation() {
+        let schema = test_schema_two_metrics();
+        let coord = test_coord();
+        let support_coord = super::super::phenomenon::persistence::PersistedGridCoord::from_grid(&coord);
+        let model_a = PersistedPhenomenonModelRecord {
+            schema_version: 2,
+            phenomenon_id: 41,
+            model_id: "demo_mass_density.model_a".to_string(),
+            scale_index: coord.scale.index_from_top(),
+            topology: "monolithic_chunk".to_string(),
+            support_anchor_chunk: support_coord.clone(),
+            support_chunk_radius: 0,
+            projection_metric_name: "metric_a".to_string(),
+            projection_bias: 0.1,
+            projection_gain: 1.0,
+            scalar_channels: vec![("metric_a".to_string(), 0.3)],
+        };
+        let model_b = PersistedPhenomenonModelRecord {
+            schema_version: 2,
+            phenomenon_id: 42,
+            model_id: "demo_mass_density.model_b".to_string(),
+            scale_index: coord.scale.index_from_top(),
+            topology: "monolithic_chunk".to_string(),
+            support_anchor_chunk: support_coord,
+            support_chunk_radius: 0,
+            projection_metric_name: "metric_b".to_string(),
+            projection_bias: 0.2,
+            projection_gain: 1.0,
+            scalar_channels: vec![("metric_b".to_string(), 0.4)],
+        };
+
+        let ordered = rebuild_substrate_from_persisted_models(
+            &coord,
+            &schema,
+            ZoneTypeId::new("empty"),
+            &[model_a.clone(), model_b.clone()],
+            &[],
+        );
+        let reversed = rebuild_substrate_from_persisted_models(&coord, &schema, ZoneTypeId::new("empty"), &[model_b, model_a], &[]);
+        assert_eq!(ordered.summary.metric_vector, reversed.summary.metric_vector);
+        assert_eq!(ordered.summary.projection_signature, reversed.summary.projection_signature);
+        assert_eq!(ordered.summary.edge_interfaces, reversed.summary.edge_interfaces);
+    }
+
+    #[test]
     fn persisted_partial_matching_is_scoped_by_phenomenon_id() {
         let schema = test_schema_two_metrics();
         let coord = test_coord();
@@ -1417,7 +1492,7 @@ mod tests {
         let model_a = PersistedPhenomenonModelRecord {
             schema_version: 2,
             phenomenon_id: 111,
-            model_id: "demo_realization_density.default".to_string(),
+            model_id: "demo_mass_density.default".to_string(),
             scale_index: coord.scale.index_from_top(),
             topology: "partitioned_by_chunk".to_string(),
             support_anchor_chunk: support_coord.clone(),
@@ -1430,7 +1505,7 @@ mod tests {
         let model_b = PersistedPhenomenonModelRecord {
             schema_version: 2,
             phenomenon_id: 222,
-            model_id: "demo_realization_density.default".to_string(),
+            model_id: "demo_mass_density.default".to_string(),
             scale_index: coord.scale.index_from_top(),
             topology: "partitioned_by_chunk".to_string(),
             support_anchor_chunk: support_coord.clone(),
@@ -1443,7 +1518,7 @@ mod tests {
         let partial_a = PersistedPartialPhenomenonModelRecord {
             schema_version: 2,
             phenomenon_id: 111,
-            model_id: "demo_realization_density.default".to_string(),
+            model_id: "demo_mass_density.default".to_string(),
             scale_index: coord.scale.index_from_top(),
             chunk_coord: support_coord.clone(),
             partition_key: 0x1111,
@@ -1452,7 +1527,7 @@ mod tests {
         let partial_b = PersistedPartialPhenomenonModelRecord {
             schema_version: 2,
             phenomenon_id: 222,
-            model_id: "demo_realization_density.default".to_string(),
+            model_id: "demo_mass_density.default".to_string(),
             scale_index: coord.scale.index_from_top(),
             chunk_coord: support_coord,
             partition_key: 0x2222,
@@ -1470,6 +1545,62 @@ mod tests {
     }
 
     #[test]
+    fn duplicate_partition_partials_select_deterministic_lowest_partition_key() {
+        let schema = test_schema();
+        let coord = test_coord();
+        let support_coord = super::super::phenomenon::persistence::PersistedGridCoord::from_grid(&coord);
+        let model = PersistedPhenomenonModelRecord {
+            schema_version: 2,
+            phenomenon_id: 99,
+            model_id: "demo_mass_density.default".to_string(),
+            scale_index: coord.scale.index_from_top(),
+            topology: "partitioned_by_chunk".to_string(),
+            support_anchor_chunk: support_coord.clone(),
+            support_chunk_radius: 1,
+            projection_metric_name: "demo_mass_density".to_string(),
+            projection_bias: 0.0,
+            projection_gain: 1.0,
+            scalar_channels: vec![("demo_mass_density".to_string(), 0.1)],
+        };
+        let low_key = PersistedPartialPhenomenonModelRecord {
+            schema_version: 2,
+            phenomenon_id: 99,
+            model_id: "demo_mass_density.default".to_string(),
+            scale_index: coord.scale.index_from_top(),
+            chunk_coord: support_coord.clone(),
+            partition_key: 1,
+            scalar_channels: vec![("demo_mass_density".to_string(), 0.2)],
+        };
+        let high_key = PersistedPartialPhenomenonModelRecord {
+            schema_version: 2,
+            phenomenon_id: 99,
+            model_id: "demo_mass_density.default".to_string(),
+            scale_index: coord.scale.index_from_top(),
+            chunk_coord: support_coord,
+            partition_key: 200,
+            scalar_channels: vec![("demo_mass_density".to_string(), 0.9)],
+        };
+
+        let first_low = rebuild_substrate_from_persisted_models(
+            &coord,
+            &schema,
+            ZoneTypeId::new("empty"),
+            std::slice::from_ref(&model),
+            &[low_key.clone(), high_key.clone()],
+        );
+        let first_high = rebuild_substrate_from_persisted_models(
+            &coord,
+            &schema,
+            ZoneTypeId::new("empty"),
+            std::slice::from_ref(&model),
+            &[high_key, low_key],
+        );
+
+        assert_eq!(first_low.summary.metric_vector, first_high.summary.metric_vector);
+        assert_eq!(first_low.summary.projection_signature, first_high.summary.projection_signature);
+    }
+
+    #[test]
     fn partition_neighbor_coupling_changes_edge_projection_when_neighbor_exists() {
         let schema = test_schema();
         let coord = test_coord();
@@ -1481,7 +1612,7 @@ mod tests {
         let model = PersistedPhenomenonModelRecord {
             schema_version: 2,
             phenomenon_id: 11,
-            model_id: "demo_realization_density.default".to_string(),
+            model_id: "demo_mass_density.default".to_string(),
             scale_index: coord.scale.index_from_top(),
             topology: "partitioned_by_chunk".to_string(),
             support_anchor_chunk: support_coord.clone(),
@@ -1494,7 +1625,7 @@ mod tests {
         let current_partial = PersistedPartialPhenomenonModelRecord {
             schema_version: 2,
             phenomenon_id: 11,
-            model_id: "demo_realization_density.default".to_string(),
+            model_id: "demo_mass_density.default".to_string(),
             scale_index: coord.scale.index_from_top(),
             chunk_coord: support_coord,
             partition_key: 0xaaaa,
@@ -1503,7 +1634,7 @@ mod tests {
         let neighbor_partial = PersistedPartialPhenomenonModelRecord {
             schema_version: 2,
             phenomenon_id: 11,
-            model_id: "demo_realization_density.default".to_string(),
+            model_id: "demo_mass_density.default".to_string(),
             scale_index: coord.scale.index_from_top(),
             chunk_coord: neighbor_support_coord,
             partition_key: 0xbbbb,
@@ -1611,7 +1742,7 @@ mod tests {
 
         let contributions = vec![ModelProjectionContribution {
             phenomenon_id: PhenomenonId(1),
-            model_id: "demo_realization_density.default".to_string(),
+            model_id: "demo_mass_density.default".to_string(),
             topology: PhenomenonModelTopology::PartitionedByChunk,
             partition_key: Some(0xaaaa),
             metric_index: 0,
@@ -1620,7 +1751,7 @@ mod tests {
         let mut partition_index = PartitionProjectionIndex::default();
         partition_index.insert(PartitionProjectionSample {
             phenomenon_id: PhenomenonId(1),
-            model_id: "demo_realization_density.default".to_string(),
+            model_id: "demo_mass_density.default".to_string(),
             scale: canonical.scale,
             chunk_coord: neighbor.clone(),
             partition_key: 0xbbbb,

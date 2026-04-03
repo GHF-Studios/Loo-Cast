@@ -16,7 +16,7 @@ use crate::usf::authority::{
 
 use super::components::{
     MonolithicPhenomenonModel, PartialPhenomenonModel, PartitionedPhenomenonModelMember, PartitionedPhenomenonModelRoot, Phenomenon, PhenomenonModel,
-    PhenomenonModelProjectionContract, PhenomenonModelScriptDefinitionRef, PhenomenonModelState, PhenomenonModelSupport, PhenomenonScriptDefinitionRef,
+    PhenomenonModelProjection, PhenomenonModelScriptDefinitionRef, PhenomenonModelState, PhenomenonModelSupport, PhenomenonScriptDefinitionRef,
 };
 use super::persistence::{
     PersistedPartialPhenomenonModelRecord, PersistedPhenomenonModelRecord, PersistedPhenomenonRecord, PhenomenonPersistenceDurability,
@@ -335,8 +335,8 @@ pub(super) fn enqueue_authoritative_phenomena_persistence_writes_system(
                 Changed<PhenomenonModelScriptDefinitionRef>,
                 Added<PhenomenonModelSupport>,
                 Changed<PhenomenonModelSupport>,
-                Added<PhenomenonModelProjectionContract>,
-                Changed<PhenomenonModelProjectionContract>,
+                Added<PhenomenonModelProjection>,
+                Changed<PhenomenonModelProjection>,
                 Added<PhenomenonModelState>,
                 Changed<PhenomenonModelState>,
                 Added<PartialPhenomenonModel>,
@@ -350,7 +350,7 @@ pub(super) fn enqueue_authoritative_phenomena_persistence_writes_system(
         &PhenomenonModel,
         &PhenomenonModelScriptDefinitionRef,
         &PhenomenonModelSupport,
-        &PhenomenonModelProjectionContract,
+        &PhenomenonModelProjection,
         &PhenomenonModelState,
         Option<&MonolithicPhenomenonModel>,
         Option<&PartialPhenomenonModel>,
@@ -778,7 +778,7 @@ mod tests {
             schema_version: 2,
             phenomenon_id: 11,
             kind: "RealizationDensityDebug".to_string(),
-            script_id: "phenomenon.demo.realization_density".to_string(),
+            script_id: "phenomenon.demo.mass_density".to_string(),
             metadata: vec![("k".to_string(), "v".to_string())],
         }
     }
@@ -787,7 +787,7 @@ mod tests {
     fn batch_journal_roundtrips_runtime_requests() {
         let request = PersistenceWriteRequest::Phenomenon {
             path: PathBuf::from("target/usf_demo/authority/phenomenon_000000000000000b.json"),
-            script_id: "phenomenon.demo.realization_density".to_string(),
+            script_id: "phenomenon.demo.mass_density".to_string(),
             record: sample_record(),
         };
         let journal = PersistedBatchJournalRecord::from_runtime(7, &[request.clone()]);
@@ -796,7 +796,7 @@ mod tests {
         match &rebuilt[0] {
             PersistenceWriteRequest::Phenomenon { path, script_id, record } => {
                 assert!(path.to_string_lossy().contains("phenomenon_000000000000000b.json"));
-                assert_eq!(script_id, "phenomenon.demo.realization_density");
+                assert_eq!(script_id, "phenomenon.demo.mass_density");
                 assert_eq!(record, &sample_record());
             }
             _ => panic!("expected phenomenon journal request"),

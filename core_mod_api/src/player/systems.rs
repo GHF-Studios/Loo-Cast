@@ -6,7 +6,6 @@ use crate::bevy_rapier3d::prelude::{
     CharacterLength, Collider, KinematicCharacterController, LockedAxes, QueryFilter as RapierQueryFilter, ReadRapierContext, RigidBody,
 };
 
-use crate::usf::chunk::components::ChunkLoader;
 use crate::config::statics::CONFIG;
 use crate::core::protocol::PlayerMotionIntent;
 use crate::follower::components::Follower;
@@ -18,6 +17,7 @@ use crate::render::components::MainCamera;
 use crate::render::resources::PrimaryWindowUiState;
 use crate::time::resources::TimeInfo;
 use crate::time::types::PauseState;
+use crate::usf::chunk::components::ChunkLoader;
 
 #[derive(Default)]
 pub(super) struct PlayerRuntimeConfigCache {
@@ -38,6 +38,31 @@ const SPAWN_RECOVERY_MAX_STEP: f32 = 16.0;
 const SPAWN_RECOVERY_MAX_PUSH_SCALE: f32 = 4.0;
 const SPAWN_RECOVERY_MAX_PROBE_STEPS: i32 = 32;
 const SPAWN_RECOVERY_POINT_PROJECTION_MAX_DIST_FACTOR: f32 = 8.0;
+
+pub(super) fn ensure_single_player_exists_system(mut commands: Commands, player_query: Query<Entity, With<Player>>) {
+    let mut players: Vec<Entity> = player_query.iter().collect();
+    if players.is_empty() {
+        commands.spawn(PlayerBundle::default());
+        warn!("Player bootstrap: spawned default player because no Player entity existed after startup.");
+        return;
+    }
+
+    if players.len() <= 1 {
+        warn!("Player bootstrap: found existing single Player entity {:?}; keeping as authoritative player.", players[0]);
+        return;
+    }
+
+    players.sort_by_key(|entity| entity.index());
+    let keep = players[0];
+    for duplicate in players.into_iter().skip(1) {
+        commands.entity(duplicate).despawn();
+    }
+
+    warn!(
+        "Player bootstrap: detected duplicate Player entities; kept {:?} and despawned extras to preserve single-player runtime invariants.",
+        keep
+    );
+}
 
 #[cfg(test)]
 #[inline]

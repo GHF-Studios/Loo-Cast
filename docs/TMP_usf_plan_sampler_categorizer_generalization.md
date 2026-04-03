@@ -1,7 +1,7 @@
 # TEMP Plan: Generic Sampler/Categorizer Pipeline
 
-Date: 2026-04-02  
-Status: planned execution track
+Date: 2026-04-03  
+Status: active execution track (`partially_validated`)
 
 ## Goal
 
@@ -9,10 +9,13 @@ Make metric sampling and zone categorization generic, deterministic, and script-
 
 ## Target End State
 
-1. `scale` binds `metric_set`, `dpt_sampler`, `dpt_categorizer`, and `zlm` explicitly.
+1. `scale` binds `metric_set`, `metric_sampler_id`, `metric_categorizer_id`, and `zlm` explicitly.
 2. Sampler/categorizer kernels are reusable algorithms with validated parameterization.
 3. Runtime resolves sampler/categorizer by ids from scale contracts.
 4. No fixed-id fallback authority in core runtime paths.
+5. Runtime support contract is explicit:
+   sampler ids must follow `metric_sampler.kernel.*`,
+   categorizer ids must follow `metric_categorizer.kernel.*`.
 
 ## Core Runtime Contracts
 
@@ -27,8 +30,8 @@ Make metric sampling and zone categorization generic, deterministic, and script-
 3. `ScaleSamplingContract`
    - scale id/index
    - metric set id
-   - sampler id
-   - categorizer id
+   - metric sampler id
+   - metric categorizer id
    - zlm id
 
 ## Execution Steps
@@ -37,7 +40,7 @@ Make metric sampling and zone categorization generic, deterministic, and script-
    - define sampler/categorizer kernel registries in Rust.
    - expose script-facing ids with validation.
 2. Scale binding hardening
-   - require explicit kernel ids on each scale contract.
+   - require explicit `metric_sampler_id` + `metric_categorizer_id` on each scale contract.
    - validate metric-set and zlm compatibility at bootstrap.
 3. Runtime resolution
    - route chunk sampling through resolved scale contracts.
@@ -59,12 +62,13 @@ Make metric sampling and zone categorization generic, deterministic, and script-
 
 1. Risk: metric layout drift between metric sets and runtime vectors.
    - Mitigation: immutable metric-set index tables and validation gates.
-2. Risk: accidental fallback to legacy default kernel.
+2. Risk: accidental fallback to legacy default kernel ids.
    - Mitigation: remove fallback paths and require explicit binding.
 3. Risk: heavy generic abstraction hurts performance.
    - Mitigation: keep kernel dispatch thin and data-oriented.
 
 ## Sequencing Notes
 
-1. Run alongside capability platform work where kernel outputs feed capability orchestration.
-2. Prioritize correctness and deterministic diagnostics before optimization.
+1. Keep this aligned with `UsfScaleDefinition { metric_sampler_id, metric_categorizer_id }`.
+2. DPT terminology is retained only as historical aliasing context; runtime naming uses `metric_container`.
+3. Prioritize correctness and deterministic diagnostics before optimization.

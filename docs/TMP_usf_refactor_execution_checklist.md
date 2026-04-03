@@ -58,7 +58,8 @@ Track state: `partially_validated`
 - `[implemented]` Typed ctx injection and lifecycle deterministic at bootstrap/runtime path.
 - `[implemented]` USF content declarations loaded through typed entrypoints.
 - `[implemented]` Bootstrap hard-fails on missing/invalid signatures.
-- `[partially_validated]` Diagnostics quality for exact file + entrypoint + expected signature.
+- `[implemented]` Bootstrap compiles deterministic entrypoint descriptors (`file + script_type + owner + entrypoint + expected signature`) and records execution in `USF_BOOTSTRAP_REPORT`.
+- `[partially_validated]` Diagnostics quality for exact file + entrypoint + expected signature/error-codes.
 
 Exit condition:
 
@@ -66,30 +67,50 @@ Exit condition:
 
 Evidence log (required for `architecturally_complete`):
 
-- Code anchors: `TODO`
-- Automated validation: `TODO`
-- Runtime/demo proof: `TODO`
-- Open gaps: broaden entrypoint stress tests across mod packs and schedules.
+- Code anchors:
+  `core_mod_api/src/rhai_binding/engine/bootstrap.rs`
+  (`UsfEntrypointDescriptor`, `collect_global_entrypoint_descriptors`, `collect_package_entrypoint_descriptors`, `run_usf_content_bootstrap`),
+  `core_mod_api/src/rhai_binding/engine/statics.rs`
+  (`ScriptUsfBootstrapReport`, `ScriptUsfEntrypointExecutionRecord`, `USF_BOOTSTRAP_REPORT`),
+  `core_mod_api/src/rhai_binding/engine/schedule_entrypoint.rs`
+  (bootstrap counters exposed in schedule entrypoint params).
+- Automated validation:
+  `cargo check -p core_mod_api` passed on 2026-04-03 after descriptor/report integration.
+- Runtime/demo proof:
+  pending runtime capture using schedule entrypoint bootstrap telemetry fields.
+- Open gaps: bootstrap error-code normalization + stress tests across large modpack/script trees.
 
 ## Track B: Canonical Entity Persistence Boundary
 
 Track state: `partially_validated`
 
 - `[implemented]` Authoritative persistence restricted to phenomenon/model/partial-model records.
-- `[implemented]` Chunk realization and zone caches treated as derived cache only.
+- `[implemented]` Chunk realization and zone caches treated as runtime cache only.
 - `[implemented]` Schema versioning + migration hooks explicit for canonical records.
 - `[partially_validated]` Deterministic substrate rebuild from canonical model records.
 - `[implemented]` Stale source-of-truth cache paths removed from primary flow.
 
 Exit condition:
 
-- `[partially_validated]` Deleting derived caches recreates equivalent runtime state from canonical records.
+- `[partially_validated]` Deleting runtime caches recreates equivalent runtime state from canonical records.
 
 Evidence log:
 
-- Code anchors: `TODO`
-- Automated validation: `TODO`
-- Runtime/demo proof: `TODO`
+- Code anchors:
+  `core_mod_api/src/usf/phenomenon/persistence.rs`
+  (canonical record schemas + versions),
+  `core_mod_api/src/usf/phenomenon/persistence_runtime.rs`
+  (queued/batched canonical persistence flush),
+  `core_mod_api/src/usf/substrate/mod.rs`
+  (`rebuild_substrate_from_persisted_models`, deterministic partial-record matching),
+  `core_mod_api/src/usf/chunk/realization/field.rs`
+  (runtime-cache schema/version + `cache_authority = runtime_cache` contract).
+- Automated validation:
+  deterministic substrate/persistence tests are present in
+  `core_mod_api/src/usf/substrate/mod.rs` (`substrate_rebuild_from_persisted_models_is_deterministic`,
+  partition-key/order tests); broader persistence round-trip suite still pending checkpoint run.
+- Runtime/demo proof:
+  pending run capture proving cache wipe + restore equivalence from canonical records only.
 - Open gaps: migration drift and long-lived save compatibility matrix.
 
 ## Track C: Zone Classification + Model-Driven Chunk Realization
@@ -108,9 +129,15 @@ Exit condition:
 
 Evidence log:
 
-- Code anchors: `TODO`
-- Automated validation: `TODO`
-- Runtime/demo proof: `TODO`
+- Code anchors:
+  `core_mod_api/src/usf/zone/policy.rs` (zone selection authority),
+  `core_mod_api/src/usf/zone/systems.rs` (zone realization lifecycle),
+  `core_mod_api/src/usf/chunk/realization/intent.rs`
+  (chunk intent resolved from zone realization + runtime phenomenon-model entities at scale, then validated against selected model id contracts).
+- Automated validation:
+  `cargo check -p core_mod_api` passed on 2026-04-03 after selected-model-id + intent path updates.
+- Runtime/demo proof:
+  pending targeted run capture after next integration slice.
 - Open gaps: cross-scale continuity under sustained runtime load.
 
 ## Track D: Adaptive Substrate Runtime
@@ -129,9 +156,18 @@ Exit condition:
 
 Evidence log:
 
-- Code anchors: `TODO`
-- Automated validation: `TODO`
-- Runtime/demo proof: `TODO`
+- Code anchors:
+  `core_mod_api/src/usf/substrate/mod.rs`
+  (adaptive leaf transitions, contribution aggregation, deterministic rebuild/runtime composition),
+  `core_mod_api/src/usf/substrate/policy.rs`
+  (state-driven substrate policy boundaries),
+  `core_mod_api/src/usf/phenomenon/partition_runtime.rs`
+  (explicit chunk-edge partition member topology + coupling contracts).
+- Automated validation:
+  substrate determinism tests exist in `core_mod_api/src/usf/substrate/mod.rs`;
+  high-load profiling/continuity coverage remains pending.
+- Runtime/demo proof:
+  pending sustained-load run capture for cross-chunk boundary exchange and stabilization behavior.
 - Open gaps: high-load behavior and boundary exchange profiling.
 
 ## Track E: Bridge Registration + Realization Intent Schema
@@ -146,13 +182,27 @@ Track state: `partially_validated`
 
 Exit condition:
 
-- `[partially_validated]` New output channels (mesh/collider/material/audio/particles/trigger) can be added via bridge registrations without ontology changes.
+- `[partially_validated]` New output channels (mesh/collider/material/audio/particles/trigger/simulation_service) can be added via bridge registrations without ontology changes.
 
 Evidence log:
 
-- Code anchors: `TODO`
-- Automated validation: `TODO`
-- Runtime/demo proof: `TODO`
+- Code anchors:
+  `core_mod_api/src/rhai_binding/bridges/domains/core_mod_api/usf/output_channels.rs`
+  (channel execution registration + payload apply, including first-class `material` + `simulation_service` channels and no separate enabled-channel gate model),
+  `core_mod_api/src/usf/chunk/realization/runtime.rs`
+  (registration validation + selected-model-id cache keying),
+  `core_mod_api/src/usf/chunk/realization/intent.rs`
+  (separate mesh/material/simulation_service channel payload emission from model definitions),
+  `core_mod_api/src/usf/chunk/realization/reconcile_workflow.rs`
+  (intent->artifact reconcile path),
+  `core_mod_api/src/usf/chunk/realization/field.rs`
+  (record schema v3 with selected_model_id),
+  `core_mod_api/src/rhai_binding/engine/schedule_entrypoint.rs`
+  (`chunk_realization_material_instances` + `chunk_realization_simulation_services` telemetry exposure).
+- Automated validation:
+  `cargo check -p core_mod_api` passed on 2026-04-03.
+- Runtime/demo proof:
+  pending targeted runtime verification for channel payload families after registry rename.
 - Open gaps: channel-family expansion proof beyond current demo pathways.
 
 ## Track F: Generic Sampler/Categorizer Pipeline
@@ -162,6 +212,7 @@ Track state: `partially_validated`
 - `[implemented]` Sampler/categorizer driven by scale + metric-set + ZLM compatibility.
 - `[implemented]` Fixed-id assumptions removed from selection path.
 - `[implemented]` Metric-container layout and zone classification deterministic/schema-validated.
+- `[implemented]` Runtime-supported kernel-id guardrails exist (`metric_sampler.kernel.*` / `metric_categorizer.kernel.*`), preventing bootstrap-valid but runtime-unsupported ids.
 - `[implemented]` Generic algorithm core reusable across scales/mod packs.
 - `[partially_validated]` Script-defined ids bind to validated runtime kernels end-to-end.
 
@@ -171,9 +222,25 @@ Exit condition:
 
 Evidence log:
 
-- Code anchors: `TODO`
-- Automated validation: `TODO`
-- Runtime/demo proof: `TODO`
+- Code anchors:
+  `core_mod_api/src/usf/mod_packs/mod.rs`
+  (`UsfScaleDefinition` explicit `metric_sampler_id` + `metric_categorizer_id` bindings + validation),
+  `core_mod_api/src/usf/metric_container/mod.rs`
+  (sampler dispatch via modpack/scale contract),
+  `core_mod_api/src/usf/zlm/mod.rs`
+  (categorizer-driven classification and zlm lookup path),
+  `core_mod_api/src/rhai_binding/engine/bootstrap.rs`
+  (`register_metric_sampler_kernel_id`, `register_metric_categorizer_kernel_id`, scale binding validation).
+- Automated validation:
+  targeted tests validate custom runtime-supported kernel ids and reject runtime-unsupported registered ids
+  (`active_modpack_accepts_runtime_supported_custom_kernel_ids`,
+  `active_modpack_rejects_registered_but_runtime_unsupported_sampler_id`,
+  `active_modpack_rejects_registered_but_runtime_unsupported_categorizer_id`,
+  `ensure_chunk_for_scale_accepts_custom_sampler_kernel_id_prefix`,
+  `classify_for_scale_accepts_custom_categorizer_kernel_id_prefix`);
+  broader malformed-contract coverage across large script trees remains pending.
+- Runtime/demo proof:
+  pending run capture showing different scale kernel ids selected without Rust branching.
 - Open gaps: wider script-first coverage and failure-mode diagnostics.
 
 ## Track G: Naming and Module-Tree Reframe
@@ -192,14 +259,34 @@ Exit condition:
 
 Evidence log:
 
-- Code anchors: `TODO`
-- Automated validation: `TODO`
-- Runtime/demo proof: `TODO`
+- Code anchors:
+  `core_mod_api/src/usf/chunk/realization/intent.rs`
+  (`ChunkRealizationIntentGrace`, `IntentSync*` naming pass + intent authority sync),
+  `core_mod_api/src/usf/chunk/realization/runtime.rs` (validation renamed to channel registrations),
+  `core_mod_api/src/usf/authority.rs`
+  (`USF_DOMAIN_CHUNK_REALIZATION_STATE = "usf.chunk_realization.runtime_state"`),
+  `core_mod_api/src/rhai_binding/bridges/domains/core_mod_api/usf/output_channels.rs`
+  (`OutputChannelExecutionRegistration`, `has_registration`),
+  `core_mod_api/src/usf/phenomenon/types.rs`
+  (`PhenomenonOutputFieldSpec`),
+  `core_mod_api/src/usf/phenomenon/components.rs`
+  (`PhenomenonModelProjection` with `spec` field),
+  `core_mod_api/src/usf/phenomenon/systems.rs`
+  (`reconcile_zone_realization_model_state_system`),
+  `core_mod_api/src/usf/phenomenon/resources.rs`
+  (`projection_spec_*` registry APIs),
+  `core_mod_api/src/rhai_binding/engine/bootstrap.rs`
+  (`set_projection_spec` and `set_output_*` script APIs),
+  `docs/Scripting.md`, `docs/USF.md`, `docs/usf_entity_grounded_refactor_note.md` (terminology pass).
+- Automated validation:
+  `cargo check -p core_mod_api` passed on 2026-04-03 after naming refactor.
+- Runtime/demo proof:
+  pending follow-up run to confirm no naming-drift regressions in script diagnostics output.
 - Open gaps: remaining naming drift and parallel ownership signals.
 
 ## Track H: Minimal Technical Demo
 
-Track state: `implemented`
+Track state: `partially_validated`
 
 - `[implemented]` Narrow multi-scale content slice exists via USF scripting entrypoints.
 - `[partially_validated]` Deterministic load/persist/rebuild and zone-driven realization authority under repeated runs.
@@ -213,9 +300,20 @@ Exit condition:
 
 Evidence log:
 
-- Code anchors: `TODO`
-- Automated validation: `TODO`
-- Runtime/demo proof: `TODO`
+- Code anchors:
+  `core_mod/assets/scripts/usf/*` (typed script-entrypoint demo content),
+  `core_mod_api/src/usf/chunk/realization/intent.rs`
+  (zone/model-driven intent resolution),
+  `core_mod_api/src/rhai_binding/bridges/domains/core_mod_api/usf/output_channels.rs`
+  (channel application/telemetry including non-mesh families),
+  `core_mod_api/src/usf/substrate/mod.rs`
+  (deterministic rebuild from persisted canonical records),
+  `core_mod_api/src/rhai_binding/engine/schedule_entrypoint.rs`
+  (bootstrap + channel telemetry surface for demo observability).
+- Automated validation:
+  `cargo check -p core_mod_api` passed after recent integration slices; full demo-suite and long-session tests pending major checkpoint.
+- Runtime/demo proof:
+  demo boots and renders after refactor slices, but deterministic long-session capture and repeated restore-cycle capture are still pending.
 - Open gaps: determinism runs, long-session stability, and scale-transition continuity.
 
 ## Major Checkpoint Validation
@@ -233,4 +331,4 @@ Checklist is complete only when:
 1. Every track exit condition is `architecturally_complete`.
 2. Every track evidence log is populated with concrete refs (code/tests/runtime proof).
 3. Minimal technical demo is stable and deterministic on canonical persistence boundaries.
-4. Remaining TODOs are optional polish, not architectural blockers.
+4. Remaining unresolved evidence items are explicitly tracked with owner + next checkpoint date; none are left as silent `TODO`.

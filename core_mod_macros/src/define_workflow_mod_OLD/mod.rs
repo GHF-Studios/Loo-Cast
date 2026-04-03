@@ -89,11 +89,11 @@ impl WorkflowModule {
         let plugin_name = format!("{}WorkflowsPlugin", module_name);
         let plugin_ident = Ident::new(plugin_name.as_str(), module_ident.span());
 
-        let (workflow_modules, workflow_data, workflow_plugin_addition_literals): (Vec<_>, Vec<_>, Vec<_>) =
-            self.workflows
-                .into_iter()
-                .map(|w| w.generate(module_ident.clone(), workflow_root_path.clone()))
-                .unzip3();
+        let (workflow_modules, workflow_data, workflow_plugin_addition_literals): (Vec<_>, Vec<_>, Vec<_>) = self
+            .workflows
+            .into_iter()
+            .map(|w| w.generate(module_ident.clone(), workflow_root_path.clone()))
+            .unzip3();
 
         let workflow_literals = workflow_data
             .into_iter()

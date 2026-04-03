@@ -1,11 +1,11 @@
 pub mod aspects;
 pub mod authority;
 pub mod chunk;
+pub mod math;
 pub mod metric;
 pub mod metric_container;
-pub mod mods;
 pub mod mod_packs;
-pub mod math;
+pub mod mods;
 pub mod phenomenon;
 pub mod pos;
 pub mod scale;
@@ -22,14 +22,14 @@ use authority::{
     UsfAuthorityViolationMode, UsfWorldAuthorityContract, export_usf_authority_diagnostics_events_system, report_usf_authority_diagnostics_system,
     validate_usf_world_authority_contract_system,
 };
+use metric::{MetricDefinition, MetricId};
+use metric_container::MetricContainerLayout;
+use metric_container::{MetricContainerChunkKey, MetricContainerRecord};
 use mod_packs::{UsfActiveModPack, UsfExecutionPlan, UsfScaleDefinition, UsfScaleExecutionRoute};
 use mods::UsfConfiguredMod;
-use metric::{MetricDefinition, MetricId};
-use metric_container::{MetricContainerChunkKey, MetricContainerRecord};
-use metric_container::MetricContainerLayout;
 use phenomenon::{
-    RealizationMaterialProfileDefinition, PartitionedPhenomenonModelMember, PartitionedPhenomenonModelRoot, PhenomenonId, PhenomenonKind, PhenomenonLineage,
-    PhenomenonRealizationFieldContract, PhenomenonMeshWindow, PhenomenonNodeKey, PhenomenonNodeSeed, PhenomenonStateSnapshot,
+    OutputMaterialProfileDefinition, PartitionedPhenomenonModelMember, PartitionedPhenomenonModelRoot, PhenomenonId, PhenomenonKind, PhenomenonLineage,
+    PhenomenonMeshWindow, PhenomenonNodeKey, PhenomenonNodeSeed, PhenomenonOutputFieldSpec, PhenomenonStateSnapshot,
 };
 use substrate::{
     AdaptiveChunkSubstrate, AdaptiveSubstrateOctreeNode, ChunkEdgeInterface, SubstrateChunkEdge, SubstrateChunkSummary, SubstrateLeafContainer,
@@ -108,8 +108,8 @@ impl Plugin for UsfPlugin {
             .register_type::<PhenomenonNodeKey>()
             .register_type::<PhenomenonStateSnapshot>()
             .register_type::<PhenomenonMeshWindow>()
-            .register_type::<PhenomenonRealizationFieldContract>()
-            .register_type::<RealizationMaterialProfileDefinition>()
+            .register_type::<PhenomenonOutputFieldSpec>()
+            .register_type::<OutputMaterialProfileDefinition>()
             .register_type::<PartitionedPhenomenonModelRoot>()
             .register_type::<PartitionedPhenomenonModelMember>()
             .register_type::<SubstrateChunkEdge>()

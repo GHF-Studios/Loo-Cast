@@ -1,7 +1,7 @@
 # TEMP Plan: Minimal USF Technical Demo
 
-Date: 2026-04-02  
-Status: planned execution target
+Date: 2026-04-03  
+Status: active execution target (`partially_validated`)
 
 ## Goal
 
@@ -10,11 +10,11 @@ Ship a focused, fully working USF technical demonstration that proves the archit
 ## Demo Proof Objectives
 
 1. Full script-entrypoint driven content registration for USF core domains.
-2. Deterministic zone-driven manifestation authority.
+2. Deterministic zone-driven realization authority.
 3. Canonical persistence only in phenomenon/model/partial-model records.
-4. Deterministic substrate/zone/manifestation rebuild from canonical records.
+4. Deterministic substrate/zone/chunk-realization rebuild from canonical records.
 5. At least one partitioned large-support phenomenon across chunk boundaries.
-6. At least one additional manifestation channel beyond mesh (audio or particles).
+6. At least one additional realization channel beyond mesh (audio or particles).
 
 ## Demo Scope (Intentionally Narrow)
 
@@ -29,10 +29,10 @@ Ship a focused, fully working USF technical demonstration that proves the archit
    - `empty`, `spawn_buffer`, `solid` baseline
    - deterministic realization behavior
 4. Phenomena
-   - one monolithic debug manifestation phenomenon
+   - one monolithic debug realization phenomenon
    - one partitioned broad-support phenomenon
 5. Capabilities
-   - mesh/material/collider on manifestation
+   - mesh/material/collider on realization
    - one non-mesh capability path
 
 ## Build Path
@@ -40,17 +40,17 @@ Ship a focused, fully working USF technical demonstration that proves the archit
 1. Content baseline
    - script files for metric, metric_set, zone, zlm, scale, phenomenon, phenomenon_model, mod, modpack.
 2. Runtime authority path
-   - verify zone realization is sole manifestation selector.
-   - verify chunk manifestation binding follows zone realization only.
+   - verify zone realization is sole realization selector.
+   - verify chunk realization intent resolution follows zone realization only.
 3. Persistence cycle
    - persist canonical records.
-   - wipe derived caches.
+   - wipe runtime caches.
    - rebuild and compare deterministic outcomes.
 4. Partition demonstration
    - enforce chunk-edge coupling through explicit interfaces.
    - verify deterministic partition keying and membership reconciliation.
 5. Capability demonstration
-   - declare capability contracts in scripts.
+   - declare realization channel payloads in scripts.
    - verify runtime binder application with diagnostics.
 
 ## Demo Acceptance Criteria

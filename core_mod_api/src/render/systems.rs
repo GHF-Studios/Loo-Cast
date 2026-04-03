@@ -5,8 +5,6 @@ use crate::bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureD
 use crate::bevy_rapier3d::parry::shape::Capsule as RapierCapsule;
 use crate::bevy_rapier3d::prelude::{QueryFilter as RapierQueryFilter, ReadRapierContext};
 
-use crate::usf::chunk::components::{Chunk, ChunkActor, ChunkDebugWireframe, ChunkLoader};
-use crate::usf::chunk::resources::{ChunkActionWorkflowState, ChunkLoadGate};
 use crate::config::statics::CONFIG;
 use crate::core::protocol::PlayerMotionIntent;
 use crate::input::states::InputMode;
@@ -20,6 +18,8 @@ use crate::render::{
 };
 use crate::time::resources::VirtualPaused;
 use crate::tracing::{error, info};
+use crate::usf::chunk::components::{Chunk, ChunkActor, ChunkDebugWireframe, ChunkLoader};
+use crate::usf::chunk::resources::{ChunkActionWorkflowState, ChunkLoadGate};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::unit::types::UnitVec;
 use crate::usf::scale::Scale;

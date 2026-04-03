@@ -4,8 +4,8 @@ use once_cell::sync::Lazy;
 
 use crate::rhai_binding::runtime::ecs::dispatch_policy::{validate_resource_signature_id, validate_type_path_id};
 use crate::rhai_binding::runtime::ecs::resource::internals::types::{
-    ResourceGetDispatchEntry, ResourceGetDispatchFn, ResourceGetMutDispatchEntry, ResourceGetMutDispatchFn, ResourceInitDispatchEntry,
-    ResourceInitDispatchFn, ResourceInsertDispatchEntry, ResourceInsertDispatchFn, ResourceRemoveDispatchEntry, ResourceRemoveDispatchFn,
+    ResourceGetDispatchEntry, ResourceGetDispatchFn, ResourceGetMutDispatchEntry, ResourceGetMutDispatchFn, ResourceInitDispatchEntry, ResourceInitDispatchFn,
+    ResourceInsertDispatchEntry, ResourceInsertDispatchFn, ResourceRemoveDispatchEntry, ResourceRemoveDispatchFn,
 };
 
 pub type ResourceDispatchKey = String;
@@ -113,11 +113,7 @@ static RESOURCE_REMOVE_DISPATCH_REGISTRY: Lazy<HashMap<ResourceDispatchKey, Reso
 pub fn resolve_resource_insert_dispatch(resource_type_id: &str) -> ResourceInsertDispatchFn {
     let key = resource_dispatch_key(resource_type_id);
     RESOURCE_INSERT_DISPATCH_REGISTRY.get(&key).copied().unwrap_or_else(|| {
-        let available = RESOURCE_INSERT_DISPATCH_REGISTRY
-            .keys()
-            .map(String::as_str)
-            .collect::<Vec<_>>()
-            .join(", ");
+        let available = RESOURCE_INSERT_DISPATCH_REGISTRY.keys().map(String::as_str).collect::<Vec<_>>().join(", ");
         panic!(
             "No resource insert dispatcher registered for resource_type_id='{}'. Available dispatchers: [{}]",
             resource_type_id, available

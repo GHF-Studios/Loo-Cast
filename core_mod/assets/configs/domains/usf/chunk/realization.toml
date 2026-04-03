@@ -1,8 +1,7 @@
 [usf.chunk.realization]
 enabled = true
-attach_meshes = true
 enable_instance_culling = true
-binding_grace_frames = 3
+intent_grace_frames = 3
 world_seed = 1337
 sample_step = 64
 iso_level = 170
