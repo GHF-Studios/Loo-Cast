@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::bevy::prelude::*;
-use crate::chunk::components::{Chunk, ChunkLoader};
+use crate::usf::chunk::components::{Chunk, ChunkLoader};
 use crate::config::statics::CONFIG;
 use crate::player::components::Player;
 use crate::usf::authority::{
@@ -11,10 +11,8 @@ use crate::usf::authority::{
 
 use crate::usf::phenomenon::components::{
     MonolithicPhenomenonModel, PartialPhenomenonModel, PartitionedPhenomenonModelMember, PartitionedPhenomenonModelRoot, Phenomenon, PhenomenonModel,
-    PhenomenonModelInteractionTriggerContract, PhenomenonModelManifestationAudioContract, PhenomenonModelManifestationParticleContract,
-    PhenomenonModelProjectionContract, PhenomenonModelScriptDefinitionRef, PhenomenonModelSimulationContract, PhenomenonModelState, PhenomenonModelSupport,
-    PhenomenonModelSupportBounds, PhenomenonModelTopology, PhenomenonNode, PhenomenonNodeLifecycle, PhenomenonNodeState, PhenomenonRootNodeRef,
-    PhenomenonScriptDefinitionRef,
+    PhenomenonModelProjectionContract, PhenomenonModelScriptDefinitionRef, PhenomenonModelState, PhenomenonModelSupport, PhenomenonModelSupportBounds,
+    PhenomenonModelTopology, PhenomenonNode, PhenomenonNodeLifecycle, PhenomenonNodeState, PhenomenonRootNodeRef, PhenomenonScriptDefinitionRef,
 };
 use crate::usf::phenomenon::generator::{BuildStateInput, PhenomenonGenerator, PlanChildrenInput};
 use crate::usf::phenomenon::persistence::{
@@ -74,6 +72,8 @@ pub struct PhenomenonGeneratorState {
 pub struct PhenomenonDebugStats {
     pub active_nodes: u32,
     pub active_frontier_proxies: u32,
+    pub partitioned_root_models: u32,
+    pub partitioned_member_models: u32,
     pub frontier_focus_seed: u64,
     pub frontier_focus_scale_index: u32,
     pub frontier_focus_window_size_milli: u32,
@@ -100,18 +100,18 @@ pub struct PhenomenonPersistenceRuntimeSettings {
 }
 impl Default for PhenomenonPersistenceRuntimeSettings {
     fn default() -> Self {
-        let persistence_dir = CONFIG().get::<String>("usf/runtime/phenomenon_persistence/persistence_dir");
-        let durability_tag = CONFIG().get::<String>("usf/runtime/phenomenon_persistence/durability");
+        let persistence_dir = CONFIG().get::<String>("usf/phenomenon/persistence_state/persistence_dir");
+        let durability_tag = CONFIG().get::<String>("usf/phenomenon/persistence_state/durability");
         Self {
-            enabled: CONFIG().get::<bool>("usf/runtime/phenomenon_persistence/enabled"),
+            enabled: CONFIG().get::<bool>("usf/phenomenon/persistence_state/enabled"),
             persistence_dir,
-            async_write_enabled: CONFIG().get::<bool>("usf/runtime/phenomenon_persistence/async_write_enabled"),
-            async_write_batch_size: CONFIG().get::<usize>("usf/runtime/phenomenon_persistence/async_write_batch_size"),
-            max_queued_records_soft: CONFIG().get::<usize>("usf/runtime/phenomenon_persistence/max_queued_records_soft"),
+            async_write_enabled: CONFIG().get::<bool>("usf/phenomenon/persistence_state/async_write_enabled"),
+            async_write_batch_size: CONFIG().get::<usize>("usf/phenomenon/persistence_state/async_write_batch_size"),
+            max_queued_records_soft: CONFIG().get::<usize>("usf/phenomenon/persistence_state/max_queued_records_soft"),
             durability: parse_persistence_durability(durability_tag.as_str()),
-            journal_enabled: CONFIG().get::<bool>("usf/runtime/phenomenon_persistence/journal_enabled"),
-            journal_dir: CONFIG().get::<String>("usf/runtime/phenomenon_persistence/journal_dir"),
-            retain_successful_journal_batches: CONFIG().get::<bool>("usf/runtime/phenomenon_persistence/retain_successful_journal_batches"),
+            journal_enabled: CONFIG().get::<bool>("usf/phenomenon/persistence_state/journal_enabled"),
+            journal_dir: CONFIG().get::<String>("usf/phenomenon/persistence_state/journal_dir"),
+            retain_successful_journal_batches: CONFIG().get::<bool>("usf/phenomenon/persistence_state/retain_successful_journal_batches"),
         }
     }
 }
@@ -130,8 +130,8 @@ fn parse_persistence_durability(raw: &str) -> PhenomenonPersistenceDurability {
 }
 
 #[derive(Resource, Debug, Default)]
-pub struct PhenomenonPersistenceHydrationState {
-    pub hydrated: bool,
+pub struct PhenomenonPersistenceRestoreState {
+    pub restored: bool,
 }
 
 #[derive(Resource, Reflect, Debug, Clone, PartialEq)]
@@ -145,10 +145,10 @@ pub struct PhenomenonChildScaleRequestSettings {
 }
 impl Default for PhenomenonChildScaleRequestSettings {
     fn default() -> Self {
-        let min_support_radius = CONFIG().get::<u16>("usf/runtime/phenomenon_child_model/min_support_radius");
-        let instability_threshold = CONFIG().get::<f32>("usf/runtime/phenomenon_child_model/instability_threshold");
-        let child_support_radius_multiplier = CONFIG().get::<f32>("usf/runtime/phenomenon_child_model/child_support_radius_multiplier");
-        let max_requests_per_frame = CONFIG().get::<usize>("usf/runtime/phenomenon_child_model/max_requests_per_frame");
+        let min_support_radius = CONFIG().get::<u16>("usf/phenomenon/runtime_state/child_model/min_support_radius");
+        let instability_threshold = CONFIG().get::<f32>("usf/phenomenon/runtime_state/child_model/instability_threshold");
+        let child_support_radius_multiplier = CONFIG().get::<f32>("usf/phenomenon/runtime_state/child_model/child_support_radius_multiplier");
+        let max_requests_per_frame = CONFIG().get::<usize>("usf/phenomenon/runtime_state/child_model/max_requests_per_frame");
         if min_support_radius == 0 {
             panic!("USF child-scale model config is invalid: min_support_radius must be >= 1.");
         }
@@ -168,7 +168,7 @@ impl Default for PhenomenonChildScaleRequestSettings {
             panic!("USF child-scale model config is invalid: max_requests_per_frame must be >= 1.");
         }
         Self {
-            enabled: CONFIG().get::<bool>("usf/runtime/phenomenon_child_model/enabled"),
+            enabled: CONFIG().get::<bool>("usf/phenomenon/runtime_state/child_model/enabled"),
             min_support_radius,
             instability_threshold,
             child_support_radius_multiplier,
@@ -280,20 +280,11 @@ pub(super) fn ensure_scale_models_system(
         let Some(definition_ref) = definition_ref else {
             continue;
         };
-        let Some(expected_kind) = definitions.kind_for(&definition_ref.phenomenon_id) else {
+        if definitions.kind_for(&definition_ref.phenomenon_id).is_none() {
             panic!(
                 "USF phenomenon runtime failed: phenomenon entity {} references unknown definition '{}'.",
                 phenomenon_entity.index(),
                 definition_ref.phenomenon_id
-            );
-        };
-        if expected_kind != phenomenon.kind {
-            panic!(
-                "USF phenomenon runtime failed: phenomenon entity {} has kind '{:?}' but definition '{}' requires '{:?}'.",
-                phenomenon_entity.index(),
-                phenomenon.kind,
-                definition_ref.phenomenon_id,
-                expected_kind
             );
         }
 
@@ -335,10 +326,6 @@ pub(super) fn ensure_scale_models_system(
                     selected_model_id
                 )
             });
-            let simulation_service = definitions.simulation_service_for_model(selected_model_id);
-            let manifestation_audio_emitter = definitions.manifestation_audio_emitter_for_model(selected_model_id);
-            let manifestation_particle_emitter = definitions.manifestation_particle_emitter_for_model(selected_model_id);
-            let interaction_trigger = definitions.interaction_trigger_for_model(selected_model_id);
             let projection = PhenomenonModelProjectionContract { contract: projection_contract };
             let model_name = format!(
                 "phenomena_model_scale{}_{}_{}",
@@ -373,18 +360,6 @@ pub(super) fn ensure_scale_models_system(
                 PhenomenonModelTopology::PartitionedByChunk => {
                     entity_commands.insert(PartitionedPhenomenonModelRoot);
                 }
-            }
-            if let Some(contract) = simulation_service {
-                entity_commands.insert(PhenomenonModelSimulationContract { contract });
-            }
-            if let Some(contract) = manifestation_audio_emitter {
-                entity_commands.insert(PhenomenonModelManifestationAudioContract { contract });
-            }
-            if let Some(contract) = manifestation_particle_emitter {
-                entity_commands.insert(PhenomenonModelManifestationParticleContract { contract });
-            }
-            if let Some(contract) = interaction_trigger {
-                entity_commands.insert(PhenomenonModelInteractionTriggerContract { contract });
             }
             typed_models_by_phenomenon_scale.insert(lookup_key, entity_commands.id());
         }
@@ -550,10 +525,6 @@ pub(super) fn apply_child_scale_model_requests_system(
             );
             continue;
         };
-        let simulation_service = definitions.simulation_service_for_model(request.selected_model_id.as_str());
-        let manifestation_audio_emitter = definitions.manifestation_audio_emitter_for_model(request.selected_model_id.as_str());
-        let manifestation_particle_emitter = definitions.manifestation_particle_emitter_for_model(request.selected_model_id.as_str());
-        let interaction_trigger = definitions.interaction_trigger_for_model(request.selected_model_id.as_str());
         let configured_support_radius = definitions
             .support_chunk_radius_for_model(request.selected_model_id.as_str())
             .unwrap_or(match topology {
@@ -604,18 +575,6 @@ pub(super) fn apply_child_scale_model_requests_system(
             PhenomenonModelTopology::PartitionedByChunk => {
                 entity_commands.insert(PartitionedPhenomenonModelRoot);
             }
-        }
-        if let Some(contract) = simulation_service {
-            entity_commands.insert(PhenomenonModelSimulationContract { contract });
-        }
-        if let Some(contract) = manifestation_audio_emitter {
-            entity_commands.insert(PhenomenonModelManifestationAudioContract { contract });
-        }
-        if let Some(contract) = manifestation_particle_emitter {
-            entity_commands.insert(PhenomenonModelManifestationParticleContract { contract });
-        }
-        if let Some(contract) = interaction_trigger {
-            entity_commands.insert(PhenomenonModelInteractionTriggerContract { contract });
         }
         existing_model_keys.insert(model_key);
     }
@@ -1224,11 +1183,11 @@ fn mix64(mut state: u64) -> u64 {
     state ^ (state >> 31)
 }
 
-pub(super) fn hydrate_persisted_phenomena_state_system(
+pub(super) fn restore_persisted_phenomena_state_system(
     authority_contract: Res<UsfWorldAuthorityContract>,
     mut authority_diagnostics: Option<ResMut<UsfAuthorityDiagnostics>>,
     settings: Res<PhenomenonPersistenceRuntimeSettings>,
-    mut hydration_state: ResMut<PhenomenonPersistenceHydrationState>,
+    mut restore_state: ResMut<PhenomenonPersistenceRestoreState>,
     phenomenon_query: Query<(&Phenomenon, &PhenomenonScriptDefinitionRef)>,
     mut model_query: Query<(
         &PhenomenonModel,
@@ -1243,20 +1202,20 @@ pub(super) fn hydrate_persisted_phenomena_state_system(
         return;
     }
 
-    if !settings.enabled || hydration_state.hydrated {
+    if !settings.enabled || restore_state.restored {
         return;
     }
 
     for (phenomenon, script_ref) in phenomenon_query.iter() {
         let record_path = phenomenon_record_path(settings.persistence_dir.as_str(), phenomenon.id);
         let Some(record) = load_phenomenon_record(&record_path)
-            .unwrap_or_else(|error| panic!("USF phenomenon hydrate failed: could not load phenomenon record '{record_path:?}': {error}"))
+            .unwrap_or_else(|error| panic!("USF phenomenon restore failed: could not load phenomenon record '{record_path:?}': {error}"))
         else {
             continue;
         };
         if record.phenomenon_id != phenomenon.id.0 {
             panic!(
-                "USF phenomenon hydrate failed: persisted phenomenon id mismatch for '{}': runtime={} persisted={}",
+                "USF phenomenon restore failed: persisted phenomenon id mismatch for '{}': runtime={} persisted={}",
                 script_ref.phenomenon_id, phenomenon.id.0, record.phenomenon_id
             );
         }
@@ -1273,14 +1232,14 @@ pub(super) fn hydrate_persisted_phenomena_state_system(
             model_script_ref.model_id.as_str(),
         );
         let Some(record) = load_phenomenon_model_record(&model_path)
-            .unwrap_or_else(|error| panic!("USF phenomenon hydrate failed: could not load model record '{model_path:?}': {error}"))
+            .unwrap_or_else(|error| panic!("USF phenomenon restore failed: could not load model record '{model_path:?}': {error}"))
         else {
             continue;
         };
         if let Ok(topology) = topology_from_tag(record.topology.as_str()) {
             if topology != model.topology {
                 warn!(
-                    "USF phenomenon hydrate: persisted topology '{}' does not match runtime topology '{:?}' for model '{}'.",
+                    "USF phenomenon restore: persisted topology '{}' does not match runtime topology '{:?}' for model '{}'.",
                     record.topology, model.topology, model_script_ref.model_id
                 );
             }
@@ -1295,7 +1254,7 @@ pub(super) fn hydrate_persisted_phenomena_state_system(
         state.scalar_channels = record.scalar_channels;
     }
 
-    hydration_state.hydrated = true;
+    restore_state.restored = true;
 }
 
 pub(super) fn sync_policy_depth_to_frontier_scale_system(
@@ -1425,17 +1384,23 @@ pub(super) fn despawn_invalid_nodes_system(
     }
 }
 
-pub(super) fn refresh_active_node_stats_system(node_query: Query<&PhenomenonNode>, mut stats: ResMut<PhenomenonDebugStats>) {
+pub(super) fn refresh_active_node_stats_system(
+    node_query: Query<&PhenomenonNode>,
+    partition_root_query: Query<(), With<PartitionedPhenomenonModelRoot>>,
+    partition_member_query: Query<(), With<PartitionedPhenomenonModelMember>>,
+    mut stats: ResMut<PhenomenonDebugStats>,
+) {
     stats.active_nodes = node_query.iter().count() as u32;
+    stats.partitioned_root_models = partition_root_query.iter().count() as u32;
+    stats.partitioned_member_models = partition_member_query.iter().count() as u32;
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::usf::definition::ZoneTypeId;
     use crate::usf::phenomenon::generator::PhenomenonStateSnapshot;
-    use crate::usf::phenomenon::types::PhenomenonKind;
     use crate::usf::pos::types::GridXyz;
+    use crate::usf::zone::ZoneTypeId;
     use crate::usf::zone::{StableRegionId, ZoneExtent};
 
     fn setup_lifecycle_test_app(max_depth: u32, max_children_per_node: u32) -> App {
@@ -1463,7 +1428,6 @@ mod tests {
         let mut app = setup_lifecycle_test_app(3, 2);
         app.world_mut().spawn(Phenomenon {
             id: PhenomenonId(1),
-            kind: PhenomenonKind::ManifestationDensityDebug,
         });
 
         for _ in 0..3 {
@@ -1493,7 +1457,6 @@ mod tests {
         let mut app = setup_lifecycle_test_app(3, 2);
         app.world_mut().spawn(Phenomenon {
             id: PhenomenonId(2),
-            kind: PhenomenonKind::ManifestationDensityDebug,
         });
         for _ in 0..3 {
             app.update();
@@ -1522,7 +1485,6 @@ mod tests {
         app.add_systems(Update, refresh_active_node_stats_system);
         app.world_mut().spawn(Phenomenon {
             id: PhenomenonId(3),
-            kind: PhenomenonKind::ManifestationDensityDebug,
         });
         app.update();
         app.update();
@@ -1538,7 +1500,6 @@ mod tests {
             .world_mut()
             .spawn(Phenomenon {
                 id: PhenomenonId(77),
-                kind: PhenomenonKind::ManifestationDensityDebug,
             })
             .id();
 

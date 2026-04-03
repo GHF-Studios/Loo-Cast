@@ -1,7 +1,7 @@
 fn register_zone(ctx) {
     ctx.register();
     ctx.add_supported_phenomenon(
-        "demo_manifestation_density",
+        "demo_realization_density",
         100,
         1.0,
         "single_per_zone",

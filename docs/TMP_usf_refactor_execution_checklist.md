@@ -10,7 +10,7 @@ Deliver a minimal but real USF technical demo where:
 
 1. Script entrypoints are the content authority surface.
 2. Canonical persistence is only `Phenomenon` + `PhenomenonModel` (+ partition records when required).
-3. Substrate/zone/manifestation are explicit derived runtime layers.
+3. Substrate/zone/chunk-realization are explicit derived runtime layers.
 4. Engine Rust code is a reusable capability platform, not gameplay-content ownership.
 
 ## Reality Check (2026-04-03)
@@ -21,16 +21,16 @@ Treat every checked item as "implemented in code path(s) tested so far", not "ar
 Re-opened strategic gaps that still block full confidence:
 
 - [ ] End-to-end proof that script entrypoints can author complex multi-scale content without Rust-side content glue.
-- [ ] Full ownership/tree alignment across all USF-adjacent modules (not only manifestation runtime slices).
-- [ ] Deterministic cross-scale continuity under real runtime load (zone realization, child-model spawning, manifestation binding together).
+- [ ] Full ownership/tree alignment across all USF-adjacent modules (not only chunk-realization runtime slices).
+- [ ] Deterministic cross-scale continuity under real runtime load (zone realization, child-model spawning, chunk-realization binding together).
 - [ ] Capability catalog breadth for script-first development (ECS/sysparam/message/resource/query families still incomplete).
 - [ ] Canonical persistence/migration hardening against schema drift in longer-lived save data.
 
 ## Non-Negotiable Invariants
 
 1. USF remains entity-grounded and scale-explicit (71 scales).
-2. Zone realization and chunk manifestation are one authority pipeline.
-3. No cache (`chunk manifestation`, zone fields, metric snapshots) is canonical truth.
+2. Zone realization and chunk realization are one authority pipeline.
+3. No cache (`chunk realization`, zone fields, metric snapshots) is canonical truth.
 4. No primary-model shortcut as runtime authority.
 5. Typed per-domain script ctx APIs remain mandatory.
 6. No monolithic global substrate mutation bridge.
@@ -53,7 +53,7 @@ Exit condition:
 ## Track B: Canonical Entity Persistence Boundary
 
 - [x] Keep authoritative persistence restricted to phenomenon/model/partial-model records.
-- [x] Ensure chunk manifestation and zone caches are tagged and handled as derived cache only.
+- [x] Ensure chunk realization and zone caches are tagged and handled as derived cache only.
 - [x] Keep schema versioning + migration explicit for canonical records.
 - [x] Validate deterministic substrate rebuild from canonical model records.
 - [x] Remove stale code paths that can silently treat derived caches as source-of-truth.
@@ -62,17 +62,17 @@ Exit condition:
 
 - [x] Deleting all derived USF caches still recreates equivalent runtime state from canonical records alone.
 
-## Track C: Zone-Orchestrated Manifestation Authority
+## Track C: Zone-Orchestrated Chunk Realization Authority
 
-- [x] Keep zone realization as the only authority path that drives chunk manifestation binding.
-- [x] Ensure chunk manifestation does not run any alternate phenomenon selection path.
-- [x] Keep spawn/hydration/realization policy unified through one policy function path.
+- [x] Keep zone realization as the only authority path that drives chunk realization intent binding.
+- [x] Ensure chunk realization does not run any alternate phenomenon selection path.
+- [x] Keep spawn/reconcile/realization policy unified through one policy function path.
 - [x] Ensure parent-level boundary effects for child chunks flow through zone/phenomenon orchestration.
 - [x] Keep runtime grouping/component logic derived and disposable.
 
 Exit condition:
 
-- [x] Zone updates deterministically reconcile manifestation bindings without fallback selectors.
+- [x] Zone updates deterministically reconcile chunk realization intents without fallback selectors.
 
 ## Track D: Adaptive Substrate Runtime
 
@@ -90,13 +90,13 @@ Exit condition:
 
 - [x] Move engine-level functionality behind explicit capability contracts.
 - [x] Keep phenomena/models minimal policy declarations, not heavy engine logic owners.
-- [x] Keep manifestation/simulation service contracts script-declarable and runtime-validated.
+- [x] Keep realization/simulation service contracts script-declarable and runtime-validated.
 - [x] Remove global behavior flags where model/capability-scoped authority is required.
 - [x] Maintain strict separation between content definition and engine execution kernels.
 
 Exit condition:
 
-- [x] New manifestation outputs (mesh/collider/material/audio/particles) can be added via capability families without changing content ontology.
+- [x] New realization outputs (mesh/collider/material/audio/particles) can be added via capability families without changing content ontology.
 
 ## Track F: Generic Sampler/Categorizer Pipeline
 
@@ -112,11 +112,11 @@ Exit condition:
 
 ## Track G: Naming and Module-Tree Reframe
 
-- [ ] Remove or rename terms that imply derived caches are ontology authority.
-- [ ] Keep module tree aligned with ownership boundaries (content declaration vs engine capability runtime).
+- [x] Remove or rename terms that imply derived caches are ontology authority.
+- [x] Keep module tree aligned with ownership boundaries (content declaration vs engine capability runtime).
 - [ ] Keep singular/plural and concept naming consistent across docs, script surface, and Rust modules.
-- [ ] Reframe legacy `mod_runtime` semantics toward explicit runtime capability packaging. (in progress: `usf/runtime/{capability,manifestation}` landed; workflow registry namespace still mixed)
-- [ ] Keep debug/test manifestation naming explicit and non-canonical.
+- [x] Reframe legacy `mod_runtime` semantics toward explicit runtime capability packaging. (`usf/runtime/*` removed for this pipeline; realization channels live under `rhai_binding/bridges`.)
+- [x] Keep debug/test realization naming explicit and non-canonical.
 
 Exit condition:
 
@@ -125,9 +125,9 @@ Exit condition:
 ## Track H: Minimal Technical Demo
 
 - [x] Define a narrow but complete multi-scale content slice implemented fully via USF scripting entrypoints.
-- [x] Demonstrate deterministic load/persist/rebuild and zone-driven manifestation authority.
-- [x] Demonstrate at least one partitioned phenomenon across chunk boundaries.
-- [x] Demonstrate at least one non-mesh capability surface (for example audio or particle trigger contract).
+- [x] Demonstrate deterministic load/persist/rebuild and zone-driven realization authority.
+- [x] Demonstrate at least one partitioned phenomenon across chunk boundaries under runtime load.
+- [x] Demonstrate at least one non-mesh capability surface (for example audio or particle trigger contract) with observable in-engine effect.
 - [x] Keep Rust changes focused on reusable capability/platform extensions only.
 
 Exit condition:

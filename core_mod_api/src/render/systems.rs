@@ -5,8 +5,8 @@ use crate::bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureD
 use crate::bevy_rapier3d::parry::shape::Capsule as RapierCapsule;
 use crate::bevy_rapier3d::prelude::{QueryFilter as RapierQueryFilter, ReadRapierContext};
 
-use crate::chunk::components::{Chunk, ChunkActor, ChunkDebugWireframe, ChunkLoader};
-use crate::chunk::resources::{ChunkActionWorkflowState, ChunkLoadGate};
+use crate::usf::chunk::components::{Chunk, ChunkActor, ChunkDebugWireframe, ChunkLoader};
+use crate::usf::chunk::resources::{ChunkActionWorkflowState, ChunkLoadGate};
 use crate::config::statics::CONFIG;
 use crate::core::protocol::PlayerMotionIntent;
 use crate::input::states::InputMode;

@@ -1,13 +1,13 @@
 pub mod aspects;
 pub mod authority;
-pub mod capability;
-pub mod content;
-pub mod definition;
-pub mod dpt;
+pub mod chunk;
+pub mod metric;
+pub mod metric_container;
+pub mod mods;
+pub mod mod_packs;
 pub mod math;
 pub mod phenomenon;
 pub mod pos;
-pub mod runtime;
 pub mod scale;
 pub mod schedule;
 pub mod substrate;
@@ -22,12 +22,14 @@ use authority::{
     UsfAuthorityViolationMode, UsfWorldAuthorityContract, export_usf_authority_diagnostics_events_system, report_usf_authority_diagnostics_system,
     validate_usf_world_authority_contract_system,
 };
-use content::{UsfActiveModpack, UsfConfiguredMod, UsfExecutionPlan, UsfScaleDefinition, UsfScaleExecutionRoute};
-use definition::{DptMetricDefinition, DptMetricId, DptSchema, ZoneTypeId};
-use dpt::{DptChunkKey, DptChunkRecord};
+use mod_packs::{UsfActiveModPack, UsfExecutionPlan, UsfScaleDefinition, UsfScaleExecutionRoute};
+use mods::UsfConfiguredMod;
+use metric::{MetricDefinition, MetricId};
+use metric_container::{MetricContainerChunkKey, MetricContainerRecord};
+use metric_container::MetricContainerLayout;
 use phenomenon::{
-    ManifestationMaterialProfileDefinition, PartitionedPhenomenonModelMember, PartitionedPhenomenonModelRoot, PhenomenonId, PhenomenonKind, PhenomenonLineage,
-    PhenomenonManifestationFieldContract, PhenomenonMeshWindow, PhenomenonNodeKey, PhenomenonNodeSeed, PhenomenonStateSnapshot,
+    RealizationMaterialProfileDefinition, PartitionedPhenomenonModelMember, PartitionedPhenomenonModelRoot, PhenomenonId, PhenomenonKind, PhenomenonLineage,
+    PhenomenonRealizationFieldContract, PhenomenonMeshWindow, PhenomenonNodeKey, PhenomenonNodeSeed, PhenomenonStateSnapshot,
 };
 use substrate::{
     AdaptiveChunkSubstrate, AdaptiveSubstrateOctreeNode, ChunkEdgeInterface, SubstrateChunkEdge, SubstrateChunkSummary, SubstrateLeafContainer,
@@ -36,7 +38,7 @@ use substrate::{
 use zlm::{ZlmMetricBand, ZlmScaleDefinition, ZlmZoneRule};
 use zone::{
     StableRegionId, ZoneAnchor, ZoneBehaviorRegistry, ZoneDensityProfile, ZoneExtent, ZoneId, ZonePhenomenon, ZonePhenomenonSelectionStrategy,
-    ZonePhenomenonSpawnPolicy, ZonePhenomenonSupport, ZoneRealizationEvent, ZoneSelectionPolicy, ZoneTimeFactor,
+    ZonePhenomenonSpawnPolicy, ZonePhenomenonSupport, ZoneRealizationEvent, ZoneSelectionPolicy, ZoneTimeFactor, ZoneTypeId,
 };
 
 pub(crate) struct UsfPlugin;
@@ -59,31 +61,30 @@ impl Plugin for UsfPlugin {
             )
             .add_plugins(pos::PosPlugin)
             .add_plugins(transform::TransformPlugin)
-            .add_plugins(capability::CapabilityPlugin)
-            .add_plugins(content::ContentPlugin)
-            .add_plugins(dpt::DptPlugin)
+            .add_plugins(mod_packs::ModPacksPlugin)
+            .add_plugins(chunk::ChunkPlugin)
+            .add_plugins(metric_container::MetricContainerPlugin)
             .add_plugins(zlm::ZlmPlugin)
             .add_plugins(substrate::SubstratePlugin)
-            .add_plugins(runtime::UsfRuntimePlugin)
             .add_plugins(zone::ZonePlugin)
             .add_plugins(phenomenon::PhenomenonPlugin)
-            .register_type::<DptMetricId>()
+            .register_type::<MetricId>()
             .register_type::<ZoneTypeId>()
-            .register_type::<DptMetricDefinition>()
-            .register_type::<DptSchema>()
+            .register_type::<MetricDefinition>()
+            .register_type::<MetricContainerLayout>()
             .register_type::<UsfScaleDefinition>()
             .register_type::<UsfConfiguredMod>()
             .register_type::<UsfScaleExecutionRoute>()
             .register_type::<UsfExecutionPlan>()
-            .register_type::<UsfActiveModpack>()
+            .register_type::<UsfActiveModPack>()
             .register_type::<UsfAuthorityDiagnostics>()
             .register_type::<UsfAuthorityDiagnosticsEvent>()
             .register_type::<UsfAuthorityDiagnosticsExportSettings>()
             .register_type::<UsfAuthorityDiagnosticsExportState>()
             .register_type::<UsfAuthorityViolationMode>()
             .register_type::<UsfWorldAuthorityContract>()
-            .register_type::<DptChunkKey>()
-            .register_type::<DptChunkRecord>()
+            .register_type::<MetricContainerChunkKey>()
+            .register_type::<MetricContainerRecord>()
             .register_type::<ZlmMetricBand>()
             .register_type::<ZlmZoneRule>()
             .register_type::<ZlmScaleDefinition>()
@@ -107,8 +108,8 @@ impl Plugin for UsfPlugin {
             .register_type::<PhenomenonNodeKey>()
             .register_type::<PhenomenonStateSnapshot>()
             .register_type::<PhenomenonMeshWindow>()
-            .register_type::<PhenomenonManifestationFieldContract>()
-            .register_type::<ManifestationMaterialProfileDefinition>()
+            .register_type::<PhenomenonRealizationFieldContract>()
+            .register_type::<RealizationMaterialProfileDefinition>()
             .register_type::<PartitionedPhenomenonModelRoot>()
             .register_type::<PartitionedPhenomenonModelMember>()
             .register_type::<SubstrateChunkEdge>()

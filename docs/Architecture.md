@@ -31,7 +31,7 @@ The runtime is a modular Rust engine that composes a core executable (`core_engi
 
 - The engine composes Bevy `Plugins`, and builds and registers a `CoreApiPluginGroup`, which in turn registers bevy systems, bevy resources, bevy schedules, etc. defined in `core_mod_api`. Bevy's ECS is used for game state management, and as the primary entrypoint for everything, although some init/update functionality may run outside the ECS context as needed.
 - Mods expose initialization hooks and register bevy plugin groups, bevy systems, etc. to facilitate the "rust-side entrypoint". 
-- The core mod specifically also exposes schedule hooks which hook into the bevy-powered engine's ecs lifecycle via rhai-scripting.
+- The core mod specifically also exposes schedule entrypoints which hook into the bevy-powered engine's ecs lifecycle via rhai-scripting.
 
 ---
 
@@ -47,7 +47,7 @@ The runtime is a modular Rust engine that composes a core executable (`core_engi
 
 - `core_engine/src/main.rs` — app composition, Bevy plugin configuration, and global init.
 - `core_mod` — canonical engine assets and script hooks (`core_mod/assets/scripts/`).
-- `core_mod_api` — typed APIs, plugin groups, and schedule hook registration.
+- `core_mod_api` — typed APIs, plugin groups, and schedule entrypoint registration.
 - `base_mod` — gameplay assets and script bundles.
 - `base_mod_api` — scripting bindings (rhai wrappers) for gameplay scripts.
 

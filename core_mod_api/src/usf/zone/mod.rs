@@ -5,7 +5,7 @@ mod types;
 
 use crate::bevy::prelude::*;
 use crate::core::orchestration::AppSet;
-use crate::usf::content::UsfActiveModpack;
+use crate::usf::mod_packs::UsfActiveModPack;
 use crate::usf::schedule::{UsfSimulationSet, UsfZoneSet};
 
 pub use policy::{select_supported_phenomenon_for_zone, support_count_key};
@@ -14,11 +14,11 @@ pub use resources::{
     ZoneRealizationState, ZoneRealizedPhenomenon, ZoneRuntimeState, ZoneSelectionPolicy, ZoneSelectionRuntimeState, ZoneTemporalContext,
     time_scale_for_levels_above, time_scale_for_scale, time_scale_for_scale_indices,
 };
-pub use types::{StableRegionId, ZoneAnchor, ZoneExtent, ZoneId, ZonePhenomenon, ZoneRealizationEvent, ZoneTimeFactor};
+pub use types::{StableRegionId, ZoneAnchor, ZoneExtent, ZoneId, ZonePhenomenon, ZoneRealizationEvent, ZoneTimeFactor, ZoneTypeId};
 
 use systems::{reconcile_zone_realization_system, reconcile_zone_runtime_system, sync_zone_temporal_context_system};
 
-fn validate_zone_behavior_registry_system(active_modpack: Res<UsfActiveModpack>, zone_behavior_registry: Res<ZoneBehaviorRegistry>) {
+fn validate_zone_behavior_registry_system(active_modpack: Res<UsfActiveModPack>, zone_behavior_registry: Res<ZoneBehaviorRegistry>) {
     for zone_type in &active_modpack.known_zone_types {
         if zone_behavior_registry.supports_for_zone(zone_type).is_none() {
             panic!(

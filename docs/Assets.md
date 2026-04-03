@@ -14,7 +14,7 @@ Short, concrete rules for where assets live and how we name, load, and test them
 ## Canonical paths
 
 - `core_mod/assets/configs/` — engine config files (e.g., `config.toml`). Use `core_mod_api::config`.
-- `core_mod/assets/scripts/` — engine scripts (mainly just schedule hooks for now). These are typically very rarely changed as most scripting logic is gameplay logic; literally by design.
+- `core_mod/assets/scripts/` — engine scripts (mainly just schedule entrypoints for now). These are typically very rarely changed as most scripting logic is gameplay logic; literally by design.
 - `core_mod/assets/{shaders,models,textures,audio,etc.}/` — mandatory basic engine assets (think basic ui sprites, ui sounds, ui shaders, debug scripts, etc.).
 
 - `base_mod/assets/scripts/` — gameplay scripts (.rhai) and data-driven logic.
@@ -25,7 +25,7 @@ Short, concrete rules for where assets live and how we name, load, and test them
 
 - `core_mod/assets/configs/config.toml`
 - `core_mod/assets/scripts/core/boot.rhai`
-- `core_mod/assets/scripts/ecs/schedule_hooks/*.rhai`
+- `core_mod/assets/scripts/ecs/schedule_entrypoints/*.rhai`
 - `core_mod/assets/shaders/texture_generators/*.wgsl`
 
 ## Packaging & build

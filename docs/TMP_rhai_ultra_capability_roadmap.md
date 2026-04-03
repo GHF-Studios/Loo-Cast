@@ -71,7 +71,7 @@ Build a script-first engine surface where Rhai can drive ECS/USF/gameplay conten
 
 ### E) Scheduling and System Entry
 
-1. Script entrypoints as first-class schedule hooks by domain.
+1. Script entrypoints as first-class schedule entrypoints by domain.
 2. Explicit schedule registration APIs:
    - add schedule, add system bundle, run schedule, run system.
 3. Binding of domain-specific injected params per entrypoint type.

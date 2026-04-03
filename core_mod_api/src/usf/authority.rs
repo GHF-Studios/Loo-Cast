@@ -6,12 +6,12 @@ use std::io::Write;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-pub const USF_DOMAIN_PHENOMENON: &str = "usf.phenomenon";
-pub const USF_DOMAIN_PHENOMENON_MODEL: &str = "usf.phenomenon_model";
-pub const USF_DOMAIN_PARTIAL_PHENOMENON_MODEL: &str = "usf.partial_phenomenon_model";
-pub const USF_DOMAIN_SUBSTRATE: &str = "usf.substrate";
-pub const USF_DOMAIN_ZONE: &str = "usf.zone";
-pub const USF_DOMAIN_MANIFESTATION_RUNTIME: &str = "usf.runtime.manifestation.runtime";
+pub const USF_DOMAIN_PHENOMENON: &str = "usf.phenomenon.persistence_state";
+pub const USF_DOMAIN_PHENOMENON_MODEL: &str = "usf.phenomenon_model.persistence_state";
+pub const USF_DOMAIN_PARTIAL_PHENOMENON_MODEL: &str = "usf.partial_phenomenon_model.persistence_state";
+pub const USF_DOMAIN_SUBSTRATE: &str = "usf.substrate.runtime_state";
+pub const USF_DOMAIN_ZONE: &str = "usf.zone.selection_state";
+pub const USF_DOMAIN_CHUNK_REALIZATION_RUNTIME: &str = "usf.chunk.realization.runtime_state";
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum UsfAuthorityViolationMode {
@@ -24,30 +24,30 @@ pub enum UsfAuthorityViolationMode {
 #[reflect(Resource)]
 pub struct UsfAuthorityDiagnostics {
     pub canonical_guard_rejections: u64,
-    pub derived_guard_rejections: u64,
+    pub runtime_state_guard_rejections: u64,
     pub last_rejected_domain: String,
-    pub last_rejected_expected_class: String,
+    pub last_rejected_expected_role: String,
 }
 impl UsfAuthorityDiagnostics {
     fn record_canonical_rejection(&mut self, domain_id: &str) {
         self.canonical_guard_rejections = self.canonical_guard_rejections.saturating_add(1);
         self.last_rejected_domain = domain_id.to_string();
-        self.last_rejected_expected_class = "canonical".to_string();
+        self.last_rejected_expected_role = "canonical".to_string();
     }
 
-    fn record_derived_rejection(&mut self, domain_id: &str) {
-        self.derived_guard_rejections = self.derived_guard_rejections.saturating_add(1);
+    fn record_runtime_state_rejection(&mut self, domain_id: &str) {
+        self.runtime_state_guard_rejections = self.runtime_state_guard_rejections.saturating_add(1);
         self.last_rejected_domain = domain_id.to_string();
-        self.last_rejected_expected_class = "derived".to_string();
+        self.last_rejected_expected_role = "runtime_state".to_string();
     }
 }
 
 #[derive(Message, Reflect, Debug, Clone, PartialEq, Eq)]
 pub struct UsfAuthorityDiagnosticsEvent {
     pub canonical_guard_rejections: u64,
-    pub derived_guard_rejections: u64,
+    pub runtime_state_guard_rejections: u64,
     pub last_rejected_domain: String,
-    pub last_rejected_expected_class: String,
+    pub last_rejected_expected_role: String,
 }
 
 #[derive(Resource, Reflect, Debug, Clone, PartialEq, Eq)]
@@ -78,17 +78,17 @@ struct PersistedUsfAuthorityDiagnosticsEvent {
     pub schema_version: u16,
     pub exported_unix_ms: u64,
     pub canonical_guard_rejections: u64,
-    pub derived_guard_rejections: u64,
+    pub runtime_state_guard_rejections: u64,
     pub last_rejected_domain: String,
-    pub last_rejected_expected_class: String,
+    pub last_rejected_expected_role: String,
 }
 
 #[derive(Resource, Reflect, Debug, Clone, PartialEq, Eq)]
 #[reflect(Resource)]
 pub struct UsfWorldAuthorityContract {
     pub canonical_entity_domains: Vec<String>,
-    pub derived_runtime_domains: Vec<String>,
-    pub manifestation_authority_path: String,
+    pub runtime_state_domains: Vec<String>,
+    pub chunk_realization_authority_path: String,
     pub substrate_authority_path: String,
     pub zone_authority_path: String,
     pub phenomenon_authority_path: String,
@@ -103,14 +103,14 @@ impl Default for UsfWorldAuthorityContract {
                 USF_DOMAIN_PHENOMENON_MODEL.to_string(),
                 USF_DOMAIN_PARTIAL_PHENOMENON_MODEL.to_string(),
             ],
-            derived_runtime_domains: vec![
+            runtime_state_domains: vec![
                 USF_DOMAIN_SUBSTRATE.to_string(),
                 USF_DOMAIN_ZONE.to_string(),
-                USF_DOMAIN_MANIFESTATION_RUNTIME.to_string(),
+                USF_DOMAIN_CHUNK_REALIZATION_RUNTIME.to_string(),
             ],
-            manifestation_authority_path: "usf.zone.ZoneRealizationState".to_string(),
-            substrate_authority_path: "usf.substrate.AdaptiveSubstrateStore".to_string(),
-            zone_authority_path: "usf.zone.ZoneRuntimeState".to_string(),
+            chunk_realization_authority_path: USF_DOMAIN_CHUNK_REALIZATION_RUNTIME.to_string(),
+            substrate_authority_path: USF_DOMAIN_SUBSTRATE.to_string(),
+            zone_authority_path: USF_DOMAIN_ZONE.to_string(),
             phenomenon_authority_path: "usf.phenomenon.{Phenomenon,PhenomenonModel,PartialPhenomenonModel}".to_string(),
             violation_mode: UsfAuthorityViolationMode::Panic,
         }
@@ -131,12 +131,12 @@ pub fn guard_canonical_domain_with_diagnostics(
     false
 }
 
-pub fn guard_derived_domain_with_diagnostics(contract: &UsfWorldAuthorityContract, diagnostics: Option<&mut UsfAuthorityDiagnostics>, domain_id: &str) -> bool {
-    if contract.guard_derived_domain(domain_id) {
+pub fn guard_runtime_state_domain_with_diagnostics(contract: &UsfWorldAuthorityContract, diagnostics: Option<&mut UsfAuthorityDiagnostics>, domain_id: &str) -> bool {
+    if contract.guard_runtime_state_domain(domain_id) {
         return true;
     }
     if let Some(diagnostics) = diagnostics {
-        diagnostics.record_derived_rejection(domain_id);
+        diagnostics.record_runtime_state_rejection(domain_id);
     }
     false
 }
@@ -149,7 +149,7 @@ pub(crate) fn report_usf_authority_diagnostics_system(
     if !diagnostics.is_changed() {
         return;
     }
-    if diagnostics.canonical_guard_rejections == 0 && diagnostics.derived_guard_rejections == 0 {
+    if diagnostics.canonical_guard_rejections == 0 && diagnostics.runtime_state_guard_rejections == 0 {
         return;
     }
     if *diagnostics == *last_reported {
@@ -157,17 +157,17 @@ pub(crate) fn report_usf_authority_diagnostics_system(
     }
 
     warn!(
-        "USF authority diagnostics: canonical_guard_rejections={} derived_guard_rejections={} last_rejected_domain='{}' last_rejected_expected_class='{}'",
+        "USF authority diagnostics: canonical_guard_rejections={} runtime_state_guard_rejections={} last_rejected_domain='{}' last_rejected_expected_role='{}'",
         diagnostics.canonical_guard_rejections,
-        diagnostics.derived_guard_rejections,
+        diagnostics.runtime_state_guard_rejections,
         diagnostics.last_rejected_domain,
-        diagnostics.last_rejected_expected_class
+        diagnostics.last_rejected_expected_role
     );
     diagnostics_writer.write(UsfAuthorityDiagnosticsEvent {
         canonical_guard_rejections: diagnostics.canonical_guard_rejections,
-        derived_guard_rejections: diagnostics.derived_guard_rejections,
+        runtime_state_guard_rejections: diagnostics.runtime_state_guard_rejections,
         last_rejected_domain: diagnostics.last_rejected_domain.clone(),
-        last_rejected_expected_class: diagnostics.last_rejected_expected_class.clone(),
+        last_rejected_expected_role: diagnostics.last_rejected_expected_role.clone(),
     });
     *last_reported = diagnostics.clone();
 }
@@ -198,8 +198,8 @@ impl UsfWorldAuthorityContract {
         self.canonical_entity_domains.iter().any(|value| value.eq_ignore_ascii_case(domain_id))
     }
 
-    pub fn is_derived_domain(&self, domain_id: &str) -> bool {
-        self.derived_runtime_domains.iter().any(|value| value.eq_ignore_ascii_case(domain_id))
+    pub fn is_runtime_state_domain(&self, domain_id: &str) -> bool {
+        self.runtime_state_domains.iter().any(|value| value.eq_ignore_ascii_case(domain_id))
     }
 
     pub fn assert_canonical_domain(&self, domain_id: &str) {
@@ -212,12 +212,12 @@ impl UsfWorldAuthorityContract {
         );
     }
 
-    pub fn assert_derived_domain(&self, domain_id: &str) {
-        if self.is_derived_domain(domain_id) {
+    pub fn assert_runtime_state_domain(&self, domain_id: &str) {
+        if self.is_runtime_state_domain(domain_id) {
             return;
         }
         panic!(
-            "USF world authority contract violation: domain '{}' is not registered as derived runtime authority.",
+            "USF world authority contract violation: domain '{}' is not registered as runtime-state authority.",
             domain_id
         );
     }
@@ -243,20 +243,20 @@ impl UsfWorldAuthorityContract {
         }
     }
 
-    pub fn guard_derived_domain(&self, domain_id: &str) -> bool {
-        if self.is_derived_domain(domain_id) {
+    pub fn guard_runtime_state_domain(&self, domain_id: &str) -> bool {
+        if self.is_runtime_state_domain(domain_id) {
             return true;
         }
         match self.violation_mode {
             UsfAuthorityViolationMode::Panic => {
                 panic!(
-                    "USF world authority contract violation: domain '{}' is not registered as derived runtime authority.",
+                    "USF world authority contract violation: domain '{}' is not registered as runtime-state authority.",
                     domain_id
                 );
             }
             UsfAuthorityViolationMode::Warn => {
                 warn!(
-                    "USF world authority contract violation: domain '{}' is not registered as derived runtime authority (skipping guarded system path).",
+                    "USF world authority contract violation: domain '{}' is not registered as runtime-state authority (skipping guarded system path).",
                     domain_id
                 );
                 false
@@ -283,9 +283,9 @@ fn append_authority_diagnostics_events(output_path: &Path, events: &[UsfAuthorit
             schema_version: 1,
             exported_unix_ms: unix_timestamp_ms(),
             canonical_guard_rejections: event.canonical_guard_rejections,
-            derived_guard_rejections: event.derived_guard_rejections,
+            runtime_state_guard_rejections: event.runtime_state_guard_rejections,
             last_rejected_domain: event.last_rejected_domain.clone(),
-            last_rejected_expected_class: event.last_rejected_expected_class.clone(),
+            last_rejected_expected_role: event.last_rejected_expected_role.clone(),
         };
         let line = serde_json::to_vec(&persisted).map_err(|error| format!("serialize event failed: {error}"))?;
         file.write_all(line.as_slice()).map_err(|error| format!("write event failed: {error}"))?;
@@ -309,8 +309,8 @@ pub(crate) fn validate_usf_world_authority_contract_system(contract: Res<UsfWorl
     if contract.canonical_entity_domains.is_empty() {
         panic!("USF world authority validation failed: canonical_entity_domains must not be empty.");
     }
-    if contract.derived_runtime_domains.is_empty() {
-        panic!("USF world authority validation failed: derived_runtime_domains must not be empty.");
+    if contract.runtime_state_domains.is_empty() {
+        panic!("USF world authority validation failed: runtime_state_domains must not be empty.");
     }
 
     let required_canonical = [USF_DOMAIN_PHENOMENON, USF_DOMAIN_PHENOMENON_MODEL, USF_DOMAIN_PARTIAL_PHENOMENON_MODEL];
@@ -319,10 +319,10 @@ pub(crate) fn validate_usf_world_authority_contract_system(contract: Res<UsfWorl
             panic!("USF world authority validation failed: missing canonical entity domain '{}'.", required);
         }
     }
-    let required_derived = [USF_DOMAIN_SUBSTRATE, USF_DOMAIN_ZONE, USF_DOMAIN_MANIFESTATION_RUNTIME];
-    for required in required_derived {
-        if !contract.is_derived_domain(required) {
-            panic!("USF world authority validation failed: missing derived runtime domain '{}'.", required);
+    let required_runtime_state = [USF_DOMAIN_SUBSTRATE, USF_DOMAIN_ZONE, USF_DOMAIN_CHUNK_REALIZATION_RUNTIME];
+    for required in required_runtime_state {
+        if !contract.is_runtime_state_domain(required) {
+            panic!("USF world authority validation failed: missing runtime-state domain '{}'.", required);
         }
     }
 }
@@ -337,9 +337,9 @@ mod tests {
         contract.assert_canonical_domain(USF_DOMAIN_PHENOMENON);
         contract.assert_canonical_domain(USF_DOMAIN_PHENOMENON_MODEL);
         contract.assert_canonical_domain(USF_DOMAIN_PARTIAL_PHENOMENON_MODEL);
-        contract.assert_derived_domain(USF_DOMAIN_SUBSTRATE);
-        contract.assert_derived_domain(USF_DOMAIN_ZONE);
-        contract.assert_derived_domain(USF_DOMAIN_MANIFESTATION_RUNTIME);
+        contract.assert_runtime_state_domain(USF_DOMAIN_SUBSTRATE);
+        contract.assert_runtime_state_domain(USF_DOMAIN_ZONE);
+        contract.assert_runtime_state_domain(USF_DOMAIN_CHUNK_REALIZATION_RUNTIME);
     }
 
     #[test]
@@ -347,7 +347,7 @@ mod tests {
         let mut contract = UsfWorldAuthorityContract::default();
         contract.violation_mode = UsfAuthorityViolationMode::Warn;
         assert!(!contract.guard_canonical_domain("usf.unknown.domain"));
-        assert!(!contract.guard_derived_domain("usf.unknown.domain"));
+        assert!(!contract.guard_runtime_state_domain("usf.unknown.domain"));
     }
 
     #[test]
@@ -361,12 +361,16 @@ mod tests {
             Some(&mut diagnostics),
             "usf.invalid.canonical"
         ));
-        assert!(!guard_derived_domain_with_diagnostics(&contract, Some(&mut diagnostics), "usf.invalid.derived"));
+        assert!(!guard_runtime_state_domain_with_diagnostics(
+            &contract,
+            Some(&mut diagnostics),
+            "usf.invalid.runtime_state"
+        ));
 
         assert_eq!(diagnostics.canonical_guard_rejections, 1);
-        assert_eq!(diagnostics.derived_guard_rejections, 1);
-        assert_eq!(diagnostics.last_rejected_domain, "usf.invalid.derived");
-        assert_eq!(diagnostics.last_rejected_expected_class, "derived");
+        assert_eq!(diagnostics.runtime_state_guard_rejections, 1);
+        assert_eq!(diagnostics.last_rejected_domain, "usf.invalid.runtime_state");
+        assert_eq!(diagnostics.last_rejected_expected_role, "runtime_state");
     }
 
     #[test]
@@ -375,15 +379,15 @@ mod tests {
         let events = vec![
             UsfAuthorityDiagnosticsEvent {
                 canonical_guard_rejections: 1,
-                derived_guard_rejections: 0,
+                runtime_state_guard_rejections: 0,
                 last_rejected_domain: "usf.invalid.canonical".to_string(),
-                last_rejected_expected_class: "canonical".to_string(),
+                last_rejected_expected_role: "canonical".to_string(),
             },
             UsfAuthorityDiagnosticsEvent {
                 canonical_guard_rejections: 1,
-                derived_guard_rejections: 2,
-                last_rejected_domain: "usf.invalid.derived".to_string(),
-                last_rejected_expected_class: "derived".to_string(),
+                runtime_state_guard_rejections: 2,
+                last_rejected_domain: "usf.invalid.runtime_state".to_string(),
+                last_rejected_expected_role: "runtime_state".to_string(),
             },
         ];
         append_authority_diagnostics_events(temp_path.as_path(), events.as_slice(), true).expect("append diagnostics events");
@@ -395,7 +399,7 @@ mod tests {
         let first = serde_json::from_str::<PersistedUsfAuthorityDiagnosticsEvent>(lines[0]).expect("parse first line");
         let second = serde_json::from_str::<PersistedUsfAuthorityDiagnosticsEvent>(lines[1]).expect("parse second line");
         assert_eq!(first.canonical_guard_rejections, 1);
-        assert_eq!(second.derived_guard_rejections, 2);
+        assert_eq!(second.runtime_state_guard_rejections, 2);
 
         let _ = std::fs::remove_file(temp_path);
     }

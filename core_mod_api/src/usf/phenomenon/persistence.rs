@@ -13,7 +13,7 @@ use crate::usf::scale::Scale;
 use super::components::{
     MonolithicPhenomenonModel, PartialPhenomenonModel, PhenomenonModelProjectionContract, PhenomenonModelState, PhenomenonModelSupport, PhenomenonModelTopology,
 };
-use super::types::{PhenomenonId, PhenomenonKind};
+use super::types::PhenomenonId;
 
 pub const PHENOMENON_SCHEMA_VERSION: u16 = 2;
 pub const PHENOMENON_MODEL_SCHEMA_VERSION: u16 = 2;
@@ -280,11 +280,11 @@ pub fn topology_from_tag(tag: &str) -> Result<PhenomenonModelTopology, String> {
     }
 }
 
-pub fn phenomenon_record_from_runtime(phenomenon_id: PhenomenonId, kind: PhenomenonKind, script_id: &str) -> PersistedPhenomenonRecord {
+pub fn phenomenon_record_from_runtime(phenomenon_id: PhenomenonId, kind_id: &str, script_id: &str) -> PersistedPhenomenonRecord {
     PersistedPhenomenonRecord {
         schema_version: PHENOMENON_SCHEMA_VERSION,
         phenomenon_id: phenomenon_id.0,
-        kind: format!("{kind:?}"),
+        kind: kind_id.to_ascii_lowercase(),
         script_id: script_id.to_ascii_lowercase(),
         metadata: Vec::new(),
     }
@@ -465,14 +465,14 @@ mod tests {
         let phenomenon_record = PersistedPhenomenonRecord {
             schema_version: PHENOMENON_SCHEMA_VERSION,
             phenomenon_id: 7,
-            kind: "ManifestationDensityDebug".to_string(),
-            script_id: "phenomenon.demo.manifestation_density".to_string(),
+            kind: "RealizationDensityDebug".to_string(),
+            script_id: "phenomenon.demo.realization_density".to_string(),
             metadata: vec![("author".to_string(), "test".to_string())],
         };
         let model_record = PersistedPhenomenonModelRecord {
             schema_version: PHENOMENON_MODEL_SCHEMA_VERSION,
             phenomenon_id: 7,
-            model_id: "demo_manifestation_density.default".to_string(),
+            model_id: "demo_realization_density.default".to_string(),
             scale_index: 0,
             topology: "monolithic_chunk".to_string(),
             support_anchor_chunk: PersistedGridCoord::from_grid(&test_coord()),
@@ -485,7 +485,7 @@ mod tests {
         let partial_record = PersistedPartialPhenomenonModelRecord {
             schema_version: PARTIAL_PHENOMENON_MODEL_SCHEMA_VERSION,
             phenomenon_id: 7,
-            model_id: "demo_manifestation_density.default".to_string(),
+            model_id: "demo_realization_density.default".to_string(),
             scale_index: 1,
             chunk_coord: PersistedGridCoord::from_grid(&test_coord()),
             partition_key: 9182,
@@ -523,8 +523,8 @@ mod tests {
         let phenomenon_record = PersistedPhenomenonRecord {
             schema_version: PHENOMENON_SCHEMA_VERSION,
             phenomenon_id: 17,
-            kind: "ManifestationDensityDebug".to_string(),
-            script_id: "phenomenon.demo.manifestation_density".to_string(),
+            kind: "RealizationDensityDebug".to_string(),
+            script_id: "phenomenon.demo.realization_density".to_string(),
             metadata: vec![("durability".to_string(), "fsync".to_string())],
         };
 
@@ -553,7 +553,7 @@ mod tests {
     fn migration_upgrades_v1_model_records_to_v2() {
         let legacy = serde_json::json!({
             "phenomenon_id": 77_u64,
-            "model_id": "demo_manifestation_density.default",
+            "model_id": "demo_realization_density.default",
             "scale_index": 0_u8,
             "support_anchor_chunk": PersistedGridCoord::from_grid(&test_coord()),
             "support_chunk_radius": 3_u16

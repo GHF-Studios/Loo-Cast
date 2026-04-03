@@ -139,7 +139,7 @@ This is the canonical backlog for expanding the Rhai dialect bridge surface.
 2. Add provider/access wiring in `bridges/domains/bevy/ecs/catalog/sysparam_providers.rs`.
 3. Add reflection declarations in `bridges/domains/*`.
 4. Register signatures in `bridges/domains/bevy/ecs/catalog/*` when generic/monomorphized.
-5. Add startup test coverage in `core_mod/assets/scripts/ecs/schedule_hooks/startup/tests/*`.
+5. Add startup test coverage in `core_mod/assets/scripts/ecs/schedule_entrypoints/startup/tests/*`.
 6. Validate with:
    - `cargo check -p core_mod_api`
    - `./build.sh dev`

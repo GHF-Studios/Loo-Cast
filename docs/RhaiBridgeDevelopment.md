@@ -34,7 +34,7 @@ Macro surface notes: `docs/RhaiMacroSurface.md`.
 - shared generic-dispatch policy and validation:
   - `core_mod_api/src/rhai_binding/runtime/ecs/dispatch_policy.rs`
 - Script integration tests:
-  - `core_mod/assets/scripts/ecs/schedule_hooks/startup/tests/*`
+  - `core_mod/assets/scripts/ecs/schedule_entrypoints/startup/tests/*`
 
 ## Workflow: add a new bridge feature
 

@@ -1,5 +1,5 @@
 pub mod bootstrap;
-pub mod hook;
+pub mod schedule_entrypoint;
 mod preprocess;
 pub mod resources;
 pub mod statics;

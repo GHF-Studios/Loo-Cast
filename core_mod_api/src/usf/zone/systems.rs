@@ -1,8 +1,7 @@
 use crate::bevy::prelude::*;
-use crate::chunk::components::{Chunk, ChunkLoader};
+use crate::usf::chunk::components::{Chunk, ChunkLoader};
 use crate::player::components::Player;
-use crate::usf::authority::{USF_DOMAIN_ZONE, UsfAuthorityDiagnostics, UsfWorldAuthorityContract, guard_derived_domain_with_diagnostics};
-use crate::usf::definition::ZoneTypeId;
+use crate::usf::authority::{USF_DOMAIN_ZONE, UsfAuthorityDiagnostics, UsfWorldAuthorityContract, guard_runtime_state_domain_with_diagnostics};
 use crate::usf::phenomenon::{Phenomenon, PhenomenonId, PhenomenonModel, PhenomenonScriptDefinitionRef};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
@@ -13,7 +12,7 @@ use super::resources::{
     ZoneBehaviorRegistry, ZonePhenomenonSpawnPolicy, ZoneRealizationSettings, ZoneRealizationState, ZoneRealizedPhenomenon, ZoneRuntimeState,
     ZoneSelectionRuntimeState, ZoneTemporalContext,
 };
-use super::types::{StableRegionId, ZoneAnchor, ZoneExtent, ZoneId, ZonePhenomenon, ZoneRealizationEvent, ZoneTimeFactor};
+use super::types::{StableRegionId, ZoneAnchor, ZoneExtent, ZoneId, ZonePhenomenon, ZoneRealizationEvent, ZoneTimeFactor, ZoneTypeId};
 use super::{select_supported_phenomenon_for_zone, support_count_key};
 
 pub(super) fn sync_zone_temporal_context_system(player_loader_query: Query<&ChunkLoader, With<Player>>, mut temporal_context: ResMut<ZoneTemporalContext>) {
@@ -33,7 +32,7 @@ pub(super) fn reconcile_zone_runtime_system(
     mut runtime_state: ResMut<ZoneRuntimeState>,
     mut zone_anchor_query: Query<(&mut ZoneAnchor, &mut ZoneTimeFactor)>,
 ) {
-    if !guard_derived_domain_with_diagnostics(authority_contract.as_ref(), authority_diagnostics.as_deref_mut(), USF_DOMAIN_ZONE) {
+    if !guard_runtime_state_domain_with_diagnostics(authority_contract.as_ref(), authority_diagnostics.as_deref_mut(), USF_DOMAIN_ZONE) {
         return;
     }
 
@@ -128,7 +127,7 @@ pub(super) fn reconcile_zone_realization_system(
     phenomenon_model_query: Query<(Entity, &PhenomenonModel)>,
     mut zone_realization_event_writer: MessageWriter<ZoneRealizationEvent>,
 ) {
-    if !guard_derived_domain_with_diagnostics(authority_contract.as_ref(), authority_diagnostics.as_deref_mut(), USF_DOMAIN_ZONE) {
+    if !guard_runtime_state_domain_with_diagnostics(authority_contract.as_ref(), authority_diagnostics.as_deref_mut(), USF_DOMAIN_ZONE) {
         return;
     }
 
@@ -257,7 +256,6 @@ pub(super) fn reconcile_zone_realization_system(
                     )),
                     Phenomenon {
                         id: phenomenon_id,
-                        kind: selected_support.kind,
                     },
                     PhenomenonScriptDefinitionRef {
                         phenomenon_id: selected_phenomenon_script_id.clone(),
@@ -614,8 +612,7 @@ mod tests {
         registry.phenomenon_support_by_zone.insert(
             ZoneTypeId::new("mystic"),
             vec![ZonePhenomenonSupport {
-                phenomenon_id: "phenomenon.demo.manifestation_density".to_string(),
-                kind: crate::usf::phenomenon::PhenomenonKind::ManifestationDensityDebug,
+                phenomenon_id: "phenomenon.demo.realization_density".to_string(),
                 priority: 100,
                 weight: 1.0,
                 spawn_policy: ZonePhenomenonSpawnPolicy::SinglePerZone,
@@ -629,7 +626,7 @@ mod tests {
             },
         );
 
-        let kind = select_supported_phenomenon_for_zone(
+        let phenomenon_id = select_supported_phenomenon_for_zone(
             &zone_id(Scale::MAX, "mystic", 1234),
             &registry,
             &HashMap::new(),
@@ -638,8 +635,8 @@ mod tests {
             &mut ZoneSelectionRuntimeState::default(),
         )
         .expect("expected support selection")
-        .kind;
-        assert_eq!(kind, crate::usf::phenomenon::PhenomenonKind::ManifestationDensityDebug);
+        .phenomenon_id;
+        assert_eq!(phenomenon_id, "phenomenon.demo.realization_density");
     }
 
     #[test]
@@ -654,7 +651,6 @@ mod tests {
             vec![
                 ZonePhenomenonSupport {
                     phenomenon_id: "phenomenon.debug.alpha".to_string(),
-                    kind: crate::usf::phenomenon::PhenomenonKind::ManifestationDensityDebug,
                     priority: 100,
                     weight: 1.0,
                     spawn_policy: ZonePhenomenonSpawnPolicy::SinglePerZone,
@@ -662,7 +658,6 @@ mod tests {
                 },
                 ZonePhenomenonSupport {
                     phenomenon_id: "phenomenon.debug.beta".to_string(),
-                    kind: crate::usf::phenomenon::PhenomenonKind::ManifestationDensityDebug,
                     priority: 100,
                     weight: 1.0,
                     spawn_policy: ZonePhenomenonSpawnPolicy::SinglePerZone,
@@ -703,7 +698,6 @@ mod tests {
             ZoneTypeId::new("mystic"),
             vec![ZonePhenomenonSupport {
                 phenomenon_id: "phenomenon.debug.alpha".to_string(),
-                kind: crate::usf::phenomenon::PhenomenonKind::ManifestationDensityDebug,
                 priority: 100,
                 weight: 1.0,
                 spawn_policy: ZonePhenomenonSpawnPolicy::SinglePerZone,

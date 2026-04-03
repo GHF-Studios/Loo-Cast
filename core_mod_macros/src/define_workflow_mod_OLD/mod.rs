@@ -17,6 +17,7 @@ pub(super) mod kw {
     syn::custom_keyword!(error);
     syn::custom_keyword!(world);
     syn::custom_keyword!(name);
+    syn::custom_keyword!(root_path);
     syn::custom_keyword!(workflows);
     syn::custom_keyword!(user_imports);
     syn::custom_keyword!(user_items);
@@ -36,6 +37,7 @@ use user_item::UserItems;
 
 pub struct WorkflowModule {
     pub name: Ident,
+    pub workflow_root_path: Option<Path>,
     pub workflows: Vec<Workflow>,
 }
 
@@ -48,6 +50,16 @@ impl Parse for WorkflowModule {
 
         input.parse::<Token![,]>()?;
 
+        let workflow_root_path = if input.peek(kw::root_path) {
+            let _: kw::root_path = input.parse()?;
+            input.parse::<Token![:]>()?;
+            let root_path: Path = input.parse()?;
+            input.parse::<Token![,]>()?;
+            Some(root_path)
+        } else {
+            None
+        };
+
         let _: kw::workflows = input.parse()?;
         input.parse::<Token![:]>()?;
         let content;
@@ -58,7 +70,11 @@ impl Parse for WorkflowModule {
             workflows.push(content.parse()?);
         }
 
-        Ok(WorkflowModule { name, workflows })
+        Ok(WorkflowModule {
+            name,
+            workflow_root_path,
+            workflows,
+        })
     }
 }
 
@@ -67,11 +83,17 @@ impl WorkflowModule {
         let module_ident = &self.name;
         let module_name = module_ident.to_string();
         let module_ident = Ident::new(module_name.as_str().to_snake_case().as_str(), module_ident.span());
+        let workflow_root_path = self
+            .workflow_root_path
+            .unwrap_or_else(|| syn::parse_str::<Path>(module_ident.to_string().as_str()).expect("workflow root path should parse"));
         let plugin_name = format!("{}WorkflowsPlugin", module_name);
         let plugin_ident = Ident::new(plugin_name.as_str(), module_ident.span());
 
         let (workflow_modules, workflow_data, workflow_plugin_addition_literals): (Vec<_>, Vec<_>, Vec<_>) =
-            self.workflows.into_iter().map(|w| w.generate(module_ident.clone())).unzip3();
+            self.workflows
+                .into_iter()
+                .map(|w| w.generate(module_ident.clone(), workflow_root_path.clone()))
+                .unzip3();
 
         let workflow_literals = workflow_data
             .into_iter()
@@ -311,24 +333,12 @@ trait IteratorExt: Iterator {
 impl<T: ?Sized> IteratorExt for T where T: Iterator {}
 
 impl Workflow {
-    pub fn generate(self, workflow_module_ident: Ident) -> (TokenStream, (WorkflowSignature, Ident), TokenStream) {
+    pub fn generate(self, workflow_module_ident: Ident, workflow_root_path: Path) -> (TokenStream, (WorkflowSignature, Ident), TokenStream) {
         let workflow_ident = &self.name;
         let workflow_signature = self.signature;
         let workflow_name = workflow_ident.to_string();
         let workflow_ident = Ident::new(workflow_name.as_str().to_snake_case().as_str(), workflow_ident.span());
-        let workflow_path = format!("crate::{}::workflows::{}::{}", workflow_module_ident, workflow_module_ident, workflow_ident);
-        let workflow_path = Path {
-            leading_colon: None,
-            segments: workflow_path
-                .split("::")
-                .map(|s| Ident::new(s, workflow_ident.span()))
-                .map(|s| syn::PathSegment {
-                    ident: s,
-                    arguments: syn::PathArguments::None,
-                })
-                .collect(),
-        };
-        let workflow_path = quote! { #workflow_path };
+        let workflow_path = quote! { crate::#workflow_root_path::workflows::#workflow_module_ident::#workflow_ident };
         let workflow_plugin_name = format!("{}WorkflowPlugin", workflow_name);
         let workflow_plugin_ident = Ident::new(workflow_plugin_name.as_str(), workflow_ident.span());
 
@@ -498,7 +508,7 @@ impl Workflow {
 
         let workflow_plugin_addition_literal = {
             quote! {
-                .add_plugins(crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::#workflow_plugin_ident)
+                .add_plugins(crate::#workflow_root_path::workflows::#workflow_module_ident::#workflow_ident::#workflow_plugin_ident)
             }
         };
 
@@ -513,10 +523,10 @@ impl Workflow {
                     .iter()
                     .map(|stage| {
                         (
-                            stage.get_state_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                            stage.get_out_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                            stage.get_err_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                            stage.get_in_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_state_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_out_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_err_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_in_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
                         )
                     })
                     .unzip4();
@@ -653,10 +663,10 @@ impl Workflow {
                     .iter()
                     .map(|stage| {
                         (
-                            stage.get_state_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                            stage.get_out_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                            stage.get_err_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                            stage.get_in_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_state_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_out_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_err_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_in_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
                         )
                     })
                     .unzip4();
@@ -765,10 +775,10 @@ impl Workflow {
                     .iter()
                     .map(|stage| {
                         (
-                            stage.get_state_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                            stage.get_out_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                            stage.get_err_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                            stage.get_in_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_state_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_out_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_err_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_in_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
                         )
                     })
                     .unzip4();
@@ -913,10 +923,10 @@ impl Workflow {
                     .iter()
                     .map(|stage| {
                         (
-                            stage.get_state_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                            stage.get_out_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                            stage.get_err_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                            stage.get_in_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_state_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_out_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_err_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_in_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
                         )
                     })
                     .unzip4();
@@ -1026,10 +1036,10 @@ impl Workflow {
                     .iter()
                     .map(|stage| {
                         (
-                            stage.get_state_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                            stage.get_out_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                            stage.get_err_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                            stage.get_in_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_state_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_out_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_err_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_in_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
                         )
                     })
                     .unzip4();
@@ -1174,10 +1184,10 @@ impl Workflow {
                     .iter()
                     .map(|stage| {
                         (
-                            stage.get_state_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                            stage.get_out_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                            stage.get_err_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                            stage.get_in_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_state_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_out_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_err_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_in_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
                         )
                     })
                     .unzip4();
@@ -1290,10 +1300,10 @@ impl Workflow {
                     .iter()
                     .map(|stage| {
                         (
-                            stage.get_state_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                            stage.get_out_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                            stage.get_err_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                            stage.get_in_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_state_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_out_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_err_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_in_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
                         )
                     })
                     .unzip4();
@@ -1442,10 +1452,10 @@ impl Workflow {
                     .iter()
                     .map(|stage| {
                         (
-                            stage.get_state_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                            stage.get_out_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                            stage.get_err_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
-                            stage.get_in_type_path(workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_state_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_out_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_err_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
+                            stage.get_in_type_path(&workflow_root_path, workflow_module_ident.clone(), workflow_ident.clone()),
                         )
                     })
                     .unzip4();

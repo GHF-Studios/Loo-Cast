@@ -6,7 +6,7 @@ use crate::bevy_rapier3d::prelude::{
     CharacterLength, Collider, KinematicCharacterController, LockedAxes, QueryFilter as RapierQueryFilter, ReadRapierContext, RigidBody,
 };
 
-use crate::chunk::components::ChunkLoader;
+use crate::usf::chunk::components::ChunkLoader;
 use crate::config::statics::CONFIG;
 use crate::core::protocol::PlayerMotionIntent;
 use crate::follower::components::Follower;

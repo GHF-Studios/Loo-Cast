@@ -1,6 +1,6 @@
-use rhai_binding::schedule_hooks as ScheduleHooks;
+use rhai_binding::schedule_entrypoints as ScheduleEntrypoints;
 
-for hook in [
+for entrypoint in [
     "pre_startup",
     "startup",
     "post_startup",
@@ -16,9 +16,9 @@ for hook in [
     "post_update",
     "last",
 ] {
-    ScheduleHooks::add(hook);
+    ScheduleEntrypoints::add(entrypoint);
 }
 
 // USF substrate content registration now comes from typed scripts under:
 // core_mod/scripts/usf/*
-// Boot script keeps schedule-hook registration only.
+// Boot script keeps schedule-entrypoint registration only.

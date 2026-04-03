@@ -2,7 +2,7 @@ use crate::bevy::prelude::*;
 use core_mod_macros::{composite_workflow, composite_workflow_return};
 use std::collections::HashMap;
 
-use crate::chunk::components::{ChunkActor, ChunkLoader};
+use crate::usf::chunk::components::{ChunkActor, ChunkLoader};
 use crate::core::resources::EntityProxyRuntimeState;
 use crate::player::components::Player;
 use crate::render::components::{EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision, RenderProxy, RenderProxyWindowMode};

@@ -12,7 +12,7 @@ task status or temporary migration notes.
 
 - Global Rhai namespace is reserved for truly central primitives and top-level modules.
 - Do not add ad-hoc global helper functions for hook or test orchestration.
-- Schedule hook registration must go through `rhai_binding::schedule_hooks::add`.
+- Schedule hook registration must go through `rhai_binding::schedule_entrypoints::add`.
 - Testing gate must use config key `rhai_binding/testing_enabled`, not env vars.
 - Startup tests/examples must execute only when `rhai_binding::testing::enabled() == true`.
 - Keep testing/example bridge content available for harness coverage (for example `shop::divisions::sex`).
@@ -22,9 +22,9 @@ task status or temporary migration notes.
 
 ## Rhai Runtime Layout Policy
 
-- `core_mod/assets/scripts/core/boot.rhai` is responsible for registering schedule hooks.
+- `core_mod/assets/scripts/core/boot.rhai` is responsible for registering schedule entrypoints.
 - Runtime utility modules exposed to scripts remain explicit and minimal.
-- Startup harness code under `core_mod/assets/scripts/ecs/schedule_hooks/startup/` is tests/examples, not gameplay logic.
+- Startup harness code under `core_mod/assets/scripts/ecs/schedule_entrypoints/startup/` is tests/examples, not gameplay logic.
 - `core` is a reserved script module name for core functionality.
 - Non-core scripting logic should live under dedicated module paths (for example `scripts/<module_name>/...`).
 

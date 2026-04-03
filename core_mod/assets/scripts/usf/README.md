@@ -48,12 +48,12 @@ Current backend support is implemented for:
 - USF mod registration (modpack-owned activation)
 - USF modpack registration (mod routing)
 - ZLM registration
-- scale contract + DPT schema derivation from metric sets
+- scale contract + metric-container layout derivation from metric sets
 - phenomenon registry
 - zone-supported phenomena (priority/weight/spawn policy/max_active) + selection policy
 - phenomenon-model registry with explicit scale-index selection
 - explicit model topology/support metadata (`monolithic_chunk` / `partitioned_by_chunk` + support radius)
-- fixed engine kernels for DPT sampling + DPT categorization (scripts must register kernel IDs they reference via scale ctx; kernel implementations remain engine-owned)
+- fixed engine kernels for metric sampling + metric categorization (scripts must register kernel IDs they reference via scale ctx; kernel implementations remain engine-owned)
 
 Composition policy is strict:
 
@@ -62,17 +62,17 @@ Composition policy is strict:
 - modpack mod order is authoritative
 - dependency/load-after graph is resolved deterministically after activation (`depends_on`, `load_after`, `priority`)
 - mod conflicts (`conflicts_with`) are hard errors when both mods are enabled
-- additive-key collisions are hard-error; singleton domains (`scale`, `dpt_schema`, `zlm`) use owner policy (`hard_error`/`replace`/`replace_if_higher_priority`)
+- additive-key collisions are hard-error; singleton domains (`scale`, `metric_container_layout`, `zlm`) use owner policy (`hard_error`/`replace`/`replace_if_higher_priority`)
 - no engine-level fallback mod/modpack/schema/binding generation exists
 
 Script authority constraints (current contracts):
 
 - `*.metric_set.rhai` should explicitly list metric members with `add_metric_set_metric(...)`; avoid implicit "all metrics" expansion
-- DPT sampler kernel resolves metric values by script metric semantics (`semantics_tag`/`name`), not by hardcoded metric index position
+- metric sampler kernel resolves metric values by script metric semantics (`semantics_tag`/`name`), not by hardcoded metric index position
 - per-domain script ctx registration now auto-populates mod manifest ownership requirements
-- phenomenon capabilities are now explicit script metadata (defaulted from kind on `ctx.register(...)`, optionally extended via `ctx.add_capability(...)`)
+- phenomenon model contracts are authoritative; no explicit phenomenon capability tag API is required
 - `*.mod.rhai` currently controls mod metadata/policies (priority/dependencies/conflicts/singleton policies)
-- scale declaration helpers support `single`, `range`, `set`, and `all` selection styles for `scale`, `dpt_schema`, and `zlm` requirements
+- scale declaration helpers support `single`, `range`, `set`, and `all` selection styles for `scale`, `metric_container_layout`, and `zlm` requirements
 - mod-level metadata is declared in `*.mod.rhai` via:
   - `ctx.set_priority(...)`
   - `ctx.depends_on(...)`
@@ -87,15 +87,15 @@ Current placeholder gameplay contracts:
 
 - one terrain metric drives classification: `demo_mass_density`
 - three derived root-position metrics are provided: `root_pos_x`, `root_pos_y`, `root_pos_z`
-- three zones are used: `empty` (no support/no manifestation instance), `spawn_buffer` (near-origin noop), and `solid` (spawns one manifestation-density phenomenon)
-- the chunk manifestation instance contract is currently driven by one phenomenon id: `demo_manifestation_density`
+- three zones are used: `empty` (no support/no realization instance), `spawn_buffer` (near-origin noop), and `solid` (spawns one realization-density phenomenon)
+- the chunk realization instance contract is currently driven by one phenomenon id: `demo_realization_density`
 - demo phenomenon/model scripts declare non-mesh contracts (`audio emitter`, `particle emitter`, `interaction trigger`) to validate capability-family extensibility end-to-end
-- `*.phenomenon_model.rhai` defines the model field policy via `set_manifestation_density_field(...)`
-- `*.phenomenon_model.rhai` can define model material policy via `set_manifestation_material_profile(...)`
-- `*.phenomenon_model.rhai` can define optional capability contracts via:
+- `*.phenomenon_model.rhai` defines the model field policy via `set_realization_density_field(...)`
+- `*.phenomenon_model.rhai` can define model material policy via `set_realization_material_profile(...)`
+- `*.phenomenon_model.rhai` can define optional simulation/realization contracts via:
   - `set_simulation_service(...)`
-  - `set_manifestation_audio_emitter(...)`
-  - `set_manifestation_particle_emitter(...)`
+  - `set_realization_audio_emitter(...)`
+  - `set_realization_particle_emitter(...)`
   - `set_interaction_trigger(...)`
 - `*.phenomenon_model.rhai` must declare topology/support with:
   - `ctx.set_topology("monolithic_chunk" | "partitioned_by_chunk")`

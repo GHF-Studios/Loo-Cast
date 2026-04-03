@@ -30,12 +30,12 @@ This project treats Rhai as a customizable runtime dialect for Bevy/ECS workflow
 - `start_access`/`end_access` pairs are required and must complete inside one synchronous system frame.
 - Violations panic intentionally (fail-fast model).
 
-### 4) Hook/runtime execution
+### 4) Schedule Entrypoint Runtime Execution
 
-- Hook runner: `core_mod_api/src/rhai_binding/engine/hook.rs`
-- For each schedule hook, loader composes:
+- Schedule entrypoint runner: `core_mod_api/src/rhai_binding/engine/schedule_entrypoint.rs`
+- For each schedule entrypoint, loader composes:
   1. recursively discovered companion `.rhai` files,
-  2. then the hook root file.
+  2. then the entrypoint root file.
 - Startup entrypoint is kept at `startup.rhai`, with categorized tests under `startup/`.
 
 ## Value semantics model
@@ -108,8 +108,8 @@ Architectural role note:
 - `bridges/testing/*`: explicit testing-only bridge space.
 - `bridges/domains/bevy/ecs/catalog/*`: compile-time registries for signatures and providers.
 - `runtime/ecs/dispatch_policy.rs`: canonical generic-dispatch policy, invariant checks, and submission macros.
-- `core_mod/assets/scripts/ecs/schedule_hooks/startup/*`: startup test harness scripts.
-- `core_mod/assets/scripts/ecs/schedule_hooks/startup/tests/*`: integration tests and example-tests.
+- `core_mod/assets/scripts/ecs/schedule_entrypoints/startup/*`: startup test harness scripts.
+- `core_mod/assets/scripts/ecs/schedule_entrypoints/startup/tests/*`: integration tests and example-tests.
 - `*/assets/scripts/<module_name>/*`: module-owned script trees outside core hooks.
 
 Macro surface assessment and unification plan: `docs/RhaiMacroSurface.md`.

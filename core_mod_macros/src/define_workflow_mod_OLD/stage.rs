@@ -6,7 +6,7 @@ use heck::ToSnakeCase;
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
-    Ident, LitBool, LitInt, Result, Token, braced, bracketed,
+    Ident, LitBool, LitInt, Path, Result, Token, braced, bracketed,
     parse::{Parse, ParseStream},
 };
 
@@ -263,43 +263,43 @@ impl Stage {
         }
     }
 
-    pub fn get_in_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_in_type_path(&self, workflow_root_path: &Path, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         match self {
-            Stage::Ecs(stage) => stage.get_in_type_path(workflow_module_ident, workflow_ident),
-            Stage::Render(stage) => stage.get_in_type_path(workflow_module_ident, workflow_ident),
-            Stage::Async(stage) => stage.get_in_type_path(workflow_module_ident, workflow_ident),
-            Stage::EcsWhile(stage) => stage.get_in_type_path(workflow_module_ident, workflow_ident),
-            Stage::RenderWhile(stage) => stage.get_in_type_path(workflow_module_ident, workflow_ident),
+            Stage::Ecs(stage) => stage.get_in_type_path(workflow_root_path, workflow_module_ident, workflow_ident),
+            Stage::Render(stage) => stage.get_in_type_path(workflow_root_path, workflow_module_ident, workflow_ident),
+            Stage::Async(stage) => stage.get_in_type_path(workflow_root_path, workflow_module_ident, workflow_ident),
+            Stage::EcsWhile(stage) => stage.get_in_type_path(workflow_root_path, workflow_module_ident, workflow_ident),
+            Stage::RenderWhile(stage) => stage.get_in_type_path(workflow_root_path, workflow_module_ident, workflow_ident),
         }
     }
 
-    pub fn get_state_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_state_type_path(&self, workflow_root_path: &Path, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         match self {
             Stage::Ecs(_) => None,
             Stage::Render(_) => None,
             Stage::Async(_) => None,
-            Stage::EcsWhile(stage) => stage.get_state_type_path(workflow_module_ident, workflow_ident),
-            Stage::RenderWhile(stage) => stage.get_state_type_path(workflow_module_ident, workflow_ident),
+            Stage::EcsWhile(stage) => stage.get_state_type_path(workflow_root_path, workflow_module_ident, workflow_ident),
+            Stage::RenderWhile(stage) => stage.get_state_type_path(workflow_root_path, workflow_module_ident, workflow_ident),
         }
     }
 
-    pub fn get_out_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_out_type_path(&self, workflow_root_path: &Path, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         match self {
-            Stage::Ecs(stage) => stage.get_out_type_path(workflow_module_ident, workflow_ident),
-            Stage::Render(stage) => stage.get_out_type_path(workflow_module_ident, workflow_ident),
-            Stage::Async(stage) => stage.get_out_type_path(workflow_module_ident, workflow_ident),
-            Stage::EcsWhile(stage) => stage.get_out_type_path(workflow_module_ident, workflow_ident),
-            Stage::RenderWhile(stage) => stage.get_out_type_path(workflow_module_ident, workflow_ident),
+            Stage::Ecs(stage) => stage.get_out_type_path(workflow_root_path, workflow_module_ident, workflow_ident),
+            Stage::Render(stage) => stage.get_out_type_path(workflow_root_path, workflow_module_ident, workflow_ident),
+            Stage::Async(stage) => stage.get_out_type_path(workflow_root_path, workflow_module_ident, workflow_ident),
+            Stage::EcsWhile(stage) => stage.get_out_type_path(workflow_root_path, workflow_module_ident, workflow_ident),
+            Stage::RenderWhile(stage) => stage.get_out_type_path(workflow_root_path, workflow_module_ident, workflow_ident),
         }
     }
 
-    pub fn get_err_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_err_type_path(&self, workflow_root_path: &Path, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         match self {
-            Stage::Ecs(stage) => stage.get_err_type_path(workflow_module_ident, workflow_ident),
-            Stage::Render(stage) => stage.get_err_type_path(workflow_module_ident, workflow_ident),
-            Stage::Async(stage) => stage.get_err_type_path(workflow_module_ident, workflow_ident),
-            Stage::EcsWhile(stage) => stage.get_err_type_path(workflow_module_ident, workflow_ident),
-            Stage::RenderWhile(stage) => stage.get_err_type_path(workflow_module_ident, workflow_ident),
+            Stage::Ecs(stage) => stage.get_err_type_path(workflow_root_path, workflow_module_ident, workflow_ident),
+            Stage::Render(stage) => stage.get_err_type_path(workflow_root_path, workflow_module_ident, workflow_ident),
+            Stage::Async(stage) => stage.get_err_type_path(workflow_root_path, workflow_module_ident, workflow_ident),
+            Stage::EcsWhile(stage) => stage.get_err_type_path(workflow_root_path, workflow_module_ident, workflow_ident),
+            Stage::RenderWhile(stage) => stage.get_err_type_path(workflow_root_path, workflow_module_ident, workflow_ident),
         }
     }
 }
@@ -948,7 +948,7 @@ impl TypedStage<Ecs> {
         self.index
     }
 
-    pub fn get_in_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_in_type_path(&self, workflow_root_path: &Path, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
@@ -956,10 +956,10 @@ impl TypedStage<Ecs> {
         core_types
             .input
             .as_ref()
-            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
+            .map(|_| quote! { crate::#workflow_root_path::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
     }
 
-    pub fn get_out_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_out_type_path(&self, workflow_root_path: &Path, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
@@ -967,10 +967,10 @@ impl TypedStage<Ecs> {
         core_types
             .output
             .as_ref()
-            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
+            .map(|_| quote! { crate::#workflow_root_path::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
     }
 
-    pub fn get_err_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_err_type_path(&self, workflow_root_path: &Path, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
@@ -978,7 +978,7 @@ impl TypedStage<Ecs> {
         core_types
             .error
             .as_ref()
-            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error })
+            .map(|_| quote! { crate::#workflow_root_path::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error })
     }
 }
 
@@ -1378,7 +1378,7 @@ impl TypedStage<Render> {
         self.index
     }
 
-    pub fn get_in_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_in_type_path(&self, workflow_root_path: &Path, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
@@ -1386,10 +1386,10 @@ impl TypedStage<Render> {
         core_types
             .input
             .as_ref()
-            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
+            .map(|_| quote! { crate::#workflow_root_path::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
     }
 
-    pub fn get_out_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_out_type_path(&self, workflow_root_path: &Path, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
@@ -1397,10 +1397,10 @@ impl TypedStage<Render> {
         core_types
             .output
             .as_ref()
-            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
+            .map(|_| quote! { crate::#workflow_root_path::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
     }
 
-    pub fn get_err_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_err_type_path(&self, workflow_root_path: &Path, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
@@ -1408,7 +1408,7 @@ impl TypedStage<Render> {
         core_types
             .error
             .as_ref()
-            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error })
+            .map(|_| quote! { crate::#workflow_root_path::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error })
     }
 }
 
@@ -1808,7 +1808,7 @@ impl TypedStage<Async> {
         self.index
     }
 
-    pub fn get_in_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_in_type_path(&self, workflow_root_path: &Path, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
@@ -1816,10 +1816,10 @@ impl TypedStage<Async> {
         core_types
             .input
             .as_ref()
-            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
+            .map(|_| quote! { crate::#workflow_root_path::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
     }
 
-    pub fn get_out_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_out_type_path(&self, workflow_root_path: &Path, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
@@ -1827,10 +1827,10 @@ impl TypedStage<Async> {
         core_types
             .output
             .as_ref()
-            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
+            .map(|_| quote! { crate::#workflow_root_path::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
     }
 
-    pub fn get_err_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_err_type_path(&self, workflow_root_path: &Path, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
@@ -1838,7 +1838,7 @@ impl TypedStage<Async> {
         core_types
             .error
             .as_ref()
-            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error })
+            .map(|_| quote! { crate::#workflow_root_path::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error })
     }
 }
 
@@ -2951,7 +2951,7 @@ impl TypedStage<EcsWhile> {
         self.index
     }
 
-    pub fn get_in_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_in_type_path(&self, workflow_root_path: &Path, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
@@ -2959,10 +2959,10 @@ impl TypedStage<EcsWhile> {
         core_types
             .input
             .as_ref()
-            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
+            .map(|_| quote! { crate::#workflow_root_path::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
     }
 
-    pub fn get_state_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_state_type_path(&self, workflow_root_path: &Path, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
@@ -2970,10 +2970,10 @@ impl TypedStage<EcsWhile> {
         core_types
             .state
             .as_ref()
-            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::State })
+            .map(|_| quote! { crate::#workflow_root_path::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::State })
     }
 
-    pub fn get_out_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_out_type_path(&self, workflow_root_path: &Path, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
@@ -2981,10 +2981,10 @@ impl TypedStage<EcsWhile> {
         core_types
             .output
             .as_ref()
-            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
+            .map(|_| quote! { crate::#workflow_root_path::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
     }
 
-    pub fn get_err_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_err_type_path(&self, workflow_root_path: &Path, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
@@ -2992,7 +2992,7 @@ impl TypedStage<EcsWhile> {
         core_types
             .error
             .as_ref()
-            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error })
+            .map(|_| quote! { crate::#workflow_root_path::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error })
     }
 }
 
@@ -4110,7 +4110,7 @@ impl TypedStage<RenderWhile> {
         self.index
     }
 
-    pub fn get_in_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_in_type_path(&self, workflow_root_path: &Path, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
@@ -4118,10 +4118,10 @@ impl TypedStage<RenderWhile> {
         core_types
             .input
             .as_ref()
-            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
+            .map(|_| quote! { crate::#workflow_root_path::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Input })
     }
 
-    pub fn get_state_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_state_type_path(&self, workflow_root_path: &Path, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
@@ -4129,10 +4129,10 @@ impl TypedStage<RenderWhile> {
         core_types
             .state
             .as_ref()
-            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::State })
+            .map(|_| quote! { crate::#workflow_root_path::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::State })
     }
 
-    pub fn get_out_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_out_type_path(&self, workflow_root_path: &Path, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
@@ -4140,10 +4140,10 @@ impl TypedStage<RenderWhile> {
         core_types
             .output
             .as_ref()
-            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
+            .map(|_| quote! { crate::#workflow_root_path::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Output })
     }
 
-    pub fn get_err_type_path(&self, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
+    pub fn get_err_type_path(&self, workflow_root_path: &Path, workflow_module_ident: Ident, workflow_ident: Ident) -> Option<TokenStream> {
         let stage_ident = &self.name;
         let stage_ident = Ident::new(stage_ident.to_string().to_snake_case().as_str(), stage_ident.span());
         let core_types = &self.core_types;
@@ -4151,6 +4151,6 @@ impl TypedStage<RenderWhile> {
         core_types
             .error
             .as_ref()
-            .map(|_| quote! { crate::#workflow_module_ident::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error })
+            .map(|_| quote! { crate::#workflow_root_path::workflows::#workflow_module_ident::#workflow_ident::stages::#stage_ident::core_types::Error })
     }
 }

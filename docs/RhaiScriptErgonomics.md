@@ -7,7 +7,7 @@ Generic binding contract reference: `docs/RhaiGenericBindingPolicy.md`.
 Implemented now:
 
 - Proposal A (`use <full_path> as <alias>;`) is active in script preprocessing
-  for boot scripts and schedule hook scripts.
+  for boot scripts and schedule entrypoint scripts.
 - Alias expansion currently rewrites path roots only:
   - `Alias::...` -> `<full_path>::...`
   - bare `Alias` token -> `"<full_path>"` (type-id literal)

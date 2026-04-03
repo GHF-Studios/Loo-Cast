@@ -5,8 +5,8 @@ use egui_dock::{DockArea, Style};
 use once_cell::sync::OnceCell;
 
 use crate::{
-    chunk::components::ChunkLoader,
-    chunk::resources::{ChunkLoadGate, ChunkLoadGateState},
+    usf::chunk::components::ChunkLoader,
+    usf::chunk::resources::{ChunkLoadGate, ChunkLoadGateState},
     config::statics::CONFIG,
     debug::types::DebugSuiteTabViewer,
     input::states::InputMode,

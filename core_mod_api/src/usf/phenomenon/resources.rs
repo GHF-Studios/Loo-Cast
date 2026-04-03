@@ -6,21 +6,20 @@ use crate::usf::scale::Scale;
 
 use super::components::{PhenomenonModelProjectionSpec, PhenomenonModelTopology};
 use super::types::{
-    InteractionTriggerDefinition, ManifestationAudioEmitterDefinition, ManifestationDensityFieldDefinition, ManifestationMaterialProfileDefinition,
-    ManifestationParticleEmitterDefinition, PhenomenonCapability, PhenomenonKind, PhenomenonManifestationFieldContract, PhenomenonSimulationServiceDefinition,
+    InteractionTriggerDefinition, RealizationAudioEmitterDefinition, RealizationDensityFieldDefinition, RealizationMaterialProfileDefinition,
+    RealizationParticleEmitterDefinition, PhenomenonKind, PhenomenonRealizationFieldContract, PhenomenonSimulationServiceDefinition,
 };
 
 #[derive(Resource, Reflect, Debug, Clone)]
 #[reflect(Resource)]
 pub struct PhenomenonDefinitionRegistry {
     pub kind_by_phenomenon_id: HashMap<String, PhenomenonKind>,
-    pub capabilities_by_phenomenon_id: HashMap<String, Vec<PhenomenonCapability>>,
-    pub manifestation_density_by_model_id: HashMap<String, ManifestationDensityFieldDefinition>,
-    pub manifestation_material_by_model_id: HashMap<String, ManifestationMaterialProfileDefinition>,
-    pub manifestation_collider_enabled_by_model_id: HashMap<String, bool>,
+    pub realization_density_by_model_id: HashMap<String, RealizationDensityFieldDefinition>,
+    pub realization_material_by_model_id: HashMap<String, RealizationMaterialProfileDefinition>,
+    pub realization_collider_enabled_by_model_id: HashMap<String, bool>,
     pub simulation_service_by_model_id: HashMap<String, PhenomenonSimulationServiceDefinition>,
-    pub manifestation_audio_emitter_by_model_id: HashMap<String, ManifestationAudioEmitterDefinition>,
-    pub manifestation_particle_emitter_by_model_id: HashMap<String, ManifestationParticleEmitterDefinition>,
+    pub realization_audio_emitter_by_model_id: HashMap<String, RealizationAudioEmitterDefinition>,
+    pub realization_particle_emitter_by_model_id: HashMap<String, RealizationParticleEmitterDefinition>,
     pub interaction_trigger_by_model_id: HashMap<String, InteractionTriggerDefinition>,
     pub projection_contract_by_model_id: HashMap<String, PhenomenonModelProjectionSpec>,
     pub topology_by_model_id: HashMap<String, PhenomenonModelTopology>,
@@ -49,22 +48,19 @@ impl Default for PhenomenonDefinitionRegistry {
         }
 
         let mut kind_by_phenomenon_id = HashMap::new();
-        let mut capabilities_by_phenomenon_id = HashMap::new();
         for (phenomenon_id, phenomenon) in script_phenomena {
             let normalized_phenomenon_id = normalize_identifier(&phenomenon_id);
             let kind = PhenomenonKind::from_config_value(phenomenon.kind.as_str());
-            let capabilities = parse_capability_list(phenomenon.capabilities.as_slice(), kind);
             kind_by_phenomenon_id.insert(normalized_phenomenon_id.clone(), kind);
-            capabilities_by_phenomenon_id.insert(normalized_phenomenon_id, capabilities);
         }
 
         let mut phenomenon_by_model_id = HashMap::new();
-        let mut manifestation_density_by_model_id = HashMap::new();
-        let mut manifestation_material_by_model_id = HashMap::new();
-        let mut manifestation_collider_enabled_by_model_id = HashMap::new();
+        let mut realization_density_by_model_id = HashMap::new();
+        let mut realization_material_by_model_id = HashMap::new();
+        let mut realization_collider_enabled_by_model_id = HashMap::new();
         let mut simulation_service_by_model_id = HashMap::new();
-        let mut manifestation_audio_emitter_by_model_id = HashMap::new();
-        let mut manifestation_particle_emitter_by_model_id = HashMap::new();
+        let mut realization_audio_emitter_by_model_id = HashMap::new();
+        let mut realization_particle_emitter_by_model_id = HashMap::new();
         let mut interaction_trigger_by_model_id = HashMap::new();
         let mut projection_contract_by_model_id = HashMap::new();
         let mut topology_by_model_id = HashMap::new();
@@ -72,21 +68,19 @@ impl Default for PhenomenonDefinitionRegistry {
         for (model_id, model) in script_models {
             let normalized_model_id = normalize_identifier(&model_id);
             let normalized_phenomenon_id = normalize_identifier(&model.phenomenon_id);
-            let Some(kind) = kind_by_phenomenon_id.get(&normalized_phenomenon_id).copied() else {
+            let Some(kind) = kind_by_phenomenon_id.get(&normalized_phenomenon_id).cloned() else {
                 panic!(
                     "USF phenomenon bootstrap failed: model '{}' references unknown phenomenon '{}'.",
                     normalized_model_id, normalized_phenomenon_id
                 );
             };
-            let has_manifestation_density_capability = capabilities_by_phenomenon_id
-                .get(&normalized_phenomenon_id)
-                .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::ManifestationDensityField));
-            if has_manifestation_density_capability {
-                let Some(field) = model.manifestation_density else {
+            let has_realization_density_contract = model.realization_density.is_some();
+            if has_realization_density_contract {
+                let Some(field) = model.realization_density else {
                     panic!(
                         "USF phenomenon bootstrap failed: model '{}' belongs to phenomenon '{}' (kind='{}') \
-                         requiring capability 'manifestation_density_field' but has no field definition. \
-                         Call set_manifestation_density_field(...) in the model script.",
+                         declares contract 'realization_density_field' but has no field definition. \
+                         Call set_realization_density_field(...) in the model script.",
                         normalized_model_id,
                         normalized_phenomenon_id,
                         kind.canonical_id()
@@ -121,9 +115,9 @@ impl Default for PhenomenonDefinitionRegistry {
                         normalized_model_id, field.bias, field.gain, field.center
                     );
                 }
-                manifestation_density_by_model_id.insert(
+                realization_density_by_model_id.insert(
                     normalized_model_id.clone(),
-                    ManifestationDensityFieldDefinition {
+                    RealizationDensityFieldDefinition {
                         coarse_span_units: field.coarse_span_units,
                         detail_span_units: field.detail_span_units,
                         coarse_weight: field.coarse_weight,
@@ -136,15 +130,13 @@ impl Default for PhenomenonDefinitionRegistry {
                     },
                 );
             }
-            let has_manifestation_material_capability = capabilities_by_phenomenon_id
-                .get(&normalized_phenomenon_id)
-                .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::ManifestationMaterialProfile));
-            if has_manifestation_material_capability {
-                let Some(material) = model.manifestation_material else {
+            let has_realization_material_contract = model.realization_material.is_some();
+            if has_realization_material_contract {
+                let Some(material) = model.realization_material else {
                     panic!(
                         "USF phenomenon bootstrap failed: model '{}' belongs to phenomenon '{}' (kind='{}') \
-                         requiring capability 'manifestation_material_profile' but has no material profile definition. \
-                         Call set_manifestation_material_profile(...) in the model script.",
+                         declares contract 'realization_material_profile' but has no material profile definition. \
+                         Call set_realization_material_profile(...) in the model script.",
                         normalized_model_id,
                         normalized_phenomenon_id,
                         kind.canonical_id()
@@ -180,9 +172,9 @@ impl Default for PhenomenonDefinitionRegistry {
                         normalized_model_id, material.emissive_strength
                     );
                 }
-                manifestation_material_by_model_id.insert(
+                realization_material_by_model_id.insert(
                     normalized_model_id.clone(),
-                    ManifestationMaterialProfileDefinition {
+                    RealizationMaterialProfileDefinition {
                         albedo_r: material.albedo_r,
                         albedo_g: material.albedo_g,
                         albedo_b: material.albedo_b,
@@ -193,27 +185,13 @@ impl Default for PhenomenonDefinitionRegistry {
                     },
                 );
             }
-            let has_manifestation_collider_capability = capabilities_by_phenomenon_id
-                .get(&normalized_phenomenon_id)
-                .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::ManifestationCollider));
-            if model.manifestation_collider_enabled && !has_manifestation_collider_capability {
-                panic!(
-                    "USF phenomenon bootstrap failed: model '{}' enables manifestation collider, but phenomenon '{}' (kind='{}') \
-                     does not declare capability 'manifestation_collider'.",
-                    normalized_model_id,
-                    normalized_phenomenon_id,
-                    kind.canonical_id(),
-                );
-            }
-            manifestation_collider_enabled_by_model_id.insert(normalized_model_id.clone(), model.manifestation_collider_enabled);
-            let has_simulation_service_capability = capabilities_by_phenomenon_id
-                .get(&normalized_phenomenon_id)
-                .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::SimulationService));
-            if has_simulation_service_capability {
+            realization_collider_enabled_by_model_id.insert(normalized_model_id.clone(), model.realization_collider_enabled);
+            let has_simulation_service_contract = model.simulation_service.is_some();
+            if has_simulation_service_contract {
                 let Some(simulation_service) = model.simulation_service else {
                     panic!(
                         "USF phenomenon bootstrap failed: model '{}' belongs to phenomenon '{}' (kind='{}') \
-                         requiring capability 'simulation_service' but has no simulation service definition. \
+                         declares contract 'simulation_service' but has no simulation service definition. \
                          Call set_simulation_service(...) in the model script.",
                         normalized_model_id,
                         normalized_phenomenon_id,
@@ -247,15 +225,13 @@ impl Default for PhenomenonDefinitionRegistry {
                     },
                 );
             }
-            let has_manifestation_audio_capability = capabilities_by_phenomenon_id
-                .get(&normalized_phenomenon_id)
-                .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::ManifestationAudioEmitter));
-            if has_manifestation_audio_capability {
-                let Some(audio_emitter) = model.manifestation_audio_emitter.clone() else {
+            let has_realization_audio_contract = model.realization_audio_emitter.is_some();
+            if has_realization_audio_contract {
+                let Some(audio_emitter) = model.realization_audio_emitter.clone() else {
                     panic!(
                         "USF phenomenon bootstrap failed: model '{}' belongs to phenomenon '{}' (kind='{}') \
-                         requiring capability 'manifestation_audio_emitter' but has no audio emitter definition. \
-                         Call set_manifestation_audio_emitter(...) in the model script.",
+                         declares contract 'realization_audio_emitter' but has no audio emitter definition. \
+                         Call set_realization_audio_emitter(...) in the model script.",
                         normalized_model_id,
                         normalized_phenomenon_id,
                         kind.canonical_id()
@@ -283,9 +259,9 @@ impl Default for PhenomenonDefinitionRegistry {
                         normalized_model_id, audio_emitter.start_offset_seconds
                     );
                 }
-                manifestation_audio_emitter_by_model_id.insert(
+                realization_audio_emitter_by_model_id.insert(
                     normalized_model_id.clone(),
-                    ManifestationAudioEmitterDefinition {
+                    RealizationAudioEmitterDefinition {
                         event_id,
                         looped: audio_emitter.looped,
                         gain: audio_emitter.gain,
@@ -294,15 +270,13 @@ impl Default for PhenomenonDefinitionRegistry {
                     },
                 );
             }
-            let has_manifestation_particle_capability = capabilities_by_phenomenon_id
-                .get(&normalized_phenomenon_id)
-                .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::ManifestationParticleEmitter));
-            if has_manifestation_particle_capability {
-                let Some(particle_emitter) = model.manifestation_particle_emitter.clone() else {
+            let has_realization_particle_contract = model.realization_particle_emitter.is_some();
+            if has_realization_particle_contract {
+                let Some(particle_emitter) = model.realization_particle_emitter.clone() else {
                     panic!(
                         "USF phenomenon bootstrap failed: model '{}' belongs to phenomenon '{}' (kind='{}') \
-                         requiring capability 'manifestation_particle_emitter' but has no particle emitter definition. \
-                         Call set_manifestation_particle_emitter(...) in the model script.",
+                         declares contract 'realization_particle_emitter' but has no particle emitter definition. \
+                         Call set_realization_particle_emitter(...) in the model script.",
                         normalized_model_id,
                         normalized_phenomenon_id,
                         kind.canonical_id()
@@ -336,9 +310,9 @@ impl Default for PhenomenonDefinitionRegistry {
                         normalized_model_id, particle_emitter.radius
                     );
                 }
-                manifestation_particle_emitter_by_model_id.insert(
+                realization_particle_emitter_by_model_id.insert(
                     normalized_model_id.clone(),
-                    ManifestationParticleEmitterDefinition {
+                    RealizationParticleEmitterDefinition {
                         effect_id,
                         emission_rate: particle_emitter.emission_rate,
                         burst_count: particle_emitter.burst_count,
@@ -347,14 +321,12 @@ impl Default for PhenomenonDefinitionRegistry {
                     },
                 );
             }
-            let has_interaction_trigger_capability = capabilities_by_phenomenon_id
-                .get(&normalized_phenomenon_id)
-                .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::InteractionTrigger));
-            if has_interaction_trigger_capability {
+            let has_interaction_trigger_contract = model.interaction_trigger.is_some();
+            if has_interaction_trigger_contract {
                 let Some(interaction_trigger) = model.interaction_trigger.clone() else {
                     panic!(
                         "USF phenomenon bootstrap failed: model '{}' belongs to phenomenon '{}' (kind='{}') \
-                         requiring capability 'interaction_trigger' but has no trigger definition. \
+                         declares contract 'interaction_trigger' but has no trigger definition. \
                          Call set_interaction_trigger(...) in the model script.",
                         normalized_model_id,
                         normalized_phenomenon_id,
@@ -486,111 +458,14 @@ impl Default for PhenomenonDefinitionRegistry {
                 }
             }
         }
-        for (phenomenon_id, kind) in &kind_by_phenomenon_id {
-            let has_manifestation_density_capability = capabilities_by_phenomenon_id
-                .get(phenomenon_id)
-                .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::ManifestationDensityField));
-            for scale_index in 0..(Scale::SCALE_LEVEL_COUNT as u8) {
-                let key = selection_key(phenomenon_id.as_str(), scale_index);
-                let Some(model_id) = model_selection_by_phenomenon_scale.get(&key) else {
-                    if has_manifestation_density_capability {
-                        panic!(
-                            "USF phenomenon bootstrap failed: phenomenon '{}' (kind='{}') requiring capability 'manifestation_density_field' \
-                             has no model assignment for scale {}.",
-                            phenomenon_id,
-                            kind.canonical_id(),
-                            scale_index
-                        );
-                    }
-                    continue;
-                };
-                if has_manifestation_density_capability && !manifestation_density_by_model_id.contains_key(model_id) {
-                    panic!(
-                        "USF phenomenon bootstrap failed: selected model '{}' for phenomenon '{}' (kind='{}') at scale {} \
-                         has no manifestation density field definition.",
-                        model_id,
-                        phenomenon_id,
-                        kind.canonical_id(),
-                        scale_index
-                    );
-                }
-                let has_manifestation_material_capability = capabilities_by_phenomenon_id
-                    .get(phenomenon_id)
-                    .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::ManifestationMaterialProfile));
-                if has_manifestation_material_capability && !manifestation_material_by_model_id.contains_key(model_id) {
-                    panic!(
-                        "USF phenomenon bootstrap failed: selected model '{}' for phenomenon '{}' (kind='{}') at scale {} \
-                         has no manifestation material profile definition.",
-                        model_id,
-                        phenomenon_id,
-                        kind.canonical_id(),
-                        scale_index
-                    );
-                }
-                let has_simulation_service_capability = capabilities_by_phenomenon_id
-                    .get(phenomenon_id)
-                    .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::SimulationService));
-                if has_simulation_service_capability && !simulation_service_by_model_id.contains_key(model_id) {
-                    panic!(
-                        "USF phenomenon bootstrap failed: selected model '{}' for phenomenon '{}' (kind='{}') at scale {} \
-                         has no simulation service definition.",
-                        model_id,
-                        phenomenon_id,
-                        kind.canonical_id(),
-                        scale_index
-                    );
-                }
-                let has_manifestation_audio_capability = capabilities_by_phenomenon_id
-                    .get(phenomenon_id)
-                    .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::ManifestationAudioEmitter));
-                if has_manifestation_audio_capability && !manifestation_audio_emitter_by_model_id.contains_key(model_id) {
-                    panic!(
-                        "USF phenomenon bootstrap failed: selected model '{}' for phenomenon '{}' (kind='{}') at scale {} \
-                         has no manifestation audio emitter definition.",
-                        model_id,
-                        phenomenon_id,
-                        kind.canonical_id(),
-                        scale_index
-                    );
-                }
-                let has_manifestation_particle_capability = capabilities_by_phenomenon_id
-                    .get(phenomenon_id)
-                    .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::ManifestationParticleEmitter));
-                if has_manifestation_particle_capability && !manifestation_particle_emitter_by_model_id.contains_key(model_id) {
-                    panic!(
-                        "USF phenomenon bootstrap failed: selected model '{}' for phenomenon '{}' (kind='{}') at scale {} \
-                         has no manifestation particle emitter definition.",
-                        model_id,
-                        phenomenon_id,
-                        kind.canonical_id(),
-                        scale_index
-                    );
-                }
-                let has_interaction_trigger_capability = capabilities_by_phenomenon_id
-                    .get(phenomenon_id)
-                    .is_some_and(|capabilities| capabilities.contains(&PhenomenonCapability::InteractionTrigger));
-                if has_interaction_trigger_capability && !interaction_trigger_by_model_id.contains_key(model_id) {
-                    panic!(
-                        "USF phenomenon bootstrap failed: selected model '{}' for phenomenon '{}' (kind='{}') at scale {} \
-                         has no interaction trigger definition.",
-                        model_id,
-                        phenomenon_id,
-                        kind.canonical_id(),
-                        scale_index
-                    );
-                }
-            }
-        }
-
         Self {
             kind_by_phenomenon_id,
-            capabilities_by_phenomenon_id,
-            manifestation_density_by_model_id,
-            manifestation_material_by_model_id,
-            manifestation_collider_enabled_by_model_id,
+            realization_density_by_model_id,
+            realization_material_by_model_id,
+            realization_collider_enabled_by_model_id,
             simulation_service_by_model_id,
-            manifestation_audio_emitter_by_model_id,
-            manifestation_particle_emitter_by_model_id,
+            realization_audio_emitter_by_model_id,
+            realization_particle_emitter_by_model_id,
             interaction_trigger_by_model_id,
             projection_contract_by_model_id,
             topology_by_model_id,
@@ -603,64 +478,46 @@ impl Default for PhenomenonDefinitionRegistry {
 
 impl PhenomenonDefinitionRegistry {
     pub fn kind_for(&self, phenomenon_id: &str) -> Option<PhenomenonKind> {
-        self.kind_by_phenomenon_id.get(&normalize_identifier(phenomenon_id)).copied()
+        self.kind_by_phenomenon_id.get(&normalize_identifier(phenomenon_id)).cloned()
     }
 
-    pub fn capabilities_for(&self, phenomenon_id: &str) -> Option<&[PhenomenonCapability]> {
-        self.capabilities_by_phenomenon_id.get(&normalize_identifier(phenomenon_id)).map(Vec::as_slice)
+    pub fn realization_density_for(&self, phenomenon_id: &str) -> Option<RealizationDensityFieldDefinition> {
+        self.realization_density_for_scale(phenomenon_id, Scale::MAX)
     }
 
-    pub fn supports_capability_for_phenomenon(&self, phenomenon_id: &str, capability: PhenomenonCapability) -> bool {
-        self.capabilities_for(phenomenon_id)
-            .is_some_and(|capabilities| capabilities.contains(&capability))
-    }
-
-    pub fn manifestation_density_for(&self, phenomenon_id: &str) -> Option<ManifestationDensityFieldDefinition> {
-        self.manifestation_density_for_scale(phenomenon_id, Scale::MAX)
-    }
-
-    pub fn manifestation_density_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<ManifestationDensityFieldDefinition> {
+    pub fn realization_density_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<RealizationDensityFieldDefinition> {
         let model_id = self.model_for_scale(phenomenon_id, scale)?;
-        self.manifestation_density_for_model(model_id)
+        self.realization_density_for_model(model_id)
     }
 
-    pub fn manifestation_density_for_model(&self, model_id: &str) -> Option<ManifestationDensityFieldDefinition> {
-        self.manifestation_density_by_model_id.get(&normalize_identifier(model_id)).copied()
+    pub fn realization_density_for_model(&self, model_id: &str) -> Option<RealizationDensityFieldDefinition> {
+        self.realization_density_by_model_id.get(&normalize_identifier(model_id)).copied()
     }
 
-    pub fn manifestation_material_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<ManifestationMaterialProfileDefinition> {
-        if !self.supports_capability_for_phenomenon(phenomenon_id, PhenomenonCapability::ManifestationMaterialProfile) {
-            return None;
-        }
+    pub fn realization_material_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<RealizationMaterialProfileDefinition> {
         let model_id = self.model_for_scale(phenomenon_id, scale)?;
-        self.manifestation_material_for_model(model_id)
+        self.realization_material_for_model(model_id)
     }
 
-    pub fn manifestation_material_for_model(&self, model_id: &str) -> Option<ManifestationMaterialProfileDefinition> {
-        self.manifestation_material_by_model_id.get(&normalize_identifier(model_id)).copied()
+    pub fn realization_material_for_model(&self, model_id: &str) -> Option<RealizationMaterialProfileDefinition> {
+        self.realization_material_by_model_id.get(&normalize_identifier(model_id)).copied()
     }
 
-    pub fn manifestation_collider_enabled_for_scale(&self, phenomenon_id: &str, scale: Scale) -> bool {
-        if !self.supports_capability_for_phenomenon(phenomenon_id, PhenomenonCapability::ManifestationCollider) {
-            return false;
-        }
+    pub fn realization_collider_enabled_for_scale(&self, phenomenon_id: &str, scale: Scale) -> bool {
         let Some(model_id) = self.model_for_scale(phenomenon_id, scale) else {
             return false;
         };
-        self.manifestation_collider_enabled_for_model(model_id)
+        self.realization_collider_enabled_for_model(model_id)
     }
 
-    pub fn manifestation_collider_enabled_for_model(&self, model_id: &str) -> bool {
-        self.manifestation_collider_enabled_by_model_id
+    pub fn realization_collider_enabled_for_model(&self, model_id: &str) -> bool {
+        self.realization_collider_enabled_by_model_id
             .get(&normalize_identifier(model_id))
             .copied()
             .unwrap_or(false)
     }
 
     pub fn simulation_service_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<PhenomenonSimulationServiceDefinition> {
-        if !self.supports_capability_for_phenomenon(phenomenon_id, PhenomenonCapability::SimulationService) {
-            return None;
-        }
         let model_id = self.model_for_scale(phenomenon_id, scale)?;
         self.simulation_service_for_model(model_id)
     }
@@ -669,34 +526,25 @@ impl PhenomenonDefinitionRegistry {
         self.simulation_service_by_model_id.get(&normalize_identifier(model_id)).copied()
     }
 
-    pub fn manifestation_audio_emitter_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<ManifestationAudioEmitterDefinition> {
-        if !self.supports_capability_for_phenomenon(phenomenon_id, PhenomenonCapability::ManifestationAudioEmitter) {
-            return None;
-        }
+    pub fn realization_audio_emitter_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<RealizationAudioEmitterDefinition> {
         let model_id = self.model_for_scale(phenomenon_id, scale)?;
-        self.manifestation_audio_emitter_for_model(model_id)
+        self.realization_audio_emitter_for_model(model_id)
     }
 
-    pub fn manifestation_audio_emitter_for_model(&self, model_id: &str) -> Option<ManifestationAudioEmitterDefinition> {
-        self.manifestation_audio_emitter_by_model_id.get(&normalize_identifier(model_id)).cloned()
+    pub fn realization_audio_emitter_for_model(&self, model_id: &str) -> Option<RealizationAudioEmitterDefinition> {
+        self.realization_audio_emitter_by_model_id.get(&normalize_identifier(model_id)).cloned()
     }
 
-    pub fn manifestation_particle_emitter_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<ManifestationParticleEmitterDefinition> {
-        if !self.supports_capability_for_phenomenon(phenomenon_id, PhenomenonCapability::ManifestationParticleEmitter) {
-            return None;
-        }
+    pub fn realization_particle_emitter_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<RealizationParticleEmitterDefinition> {
         let model_id = self.model_for_scale(phenomenon_id, scale)?;
-        self.manifestation_particle_emitter_for_model(model_id)
+        self.realization_particle_emitter_for_model(model_id)
     }
 
-    pub fn manifestation_particle_emitter_for_model(&self, model_id: &str) -> Option<ManifestationParticleEmitterDefinition> {
-        self.manifestation_particle_emitter_by_model_id.get(&normalize_identifier(model_id)).cloned()
+    pub fn realization_particle_emitter_for_model(&self, model_id: &str) -> Option<RealizationParticleEmitterDefinition> {
+        self.realization_particle_emitter_by_model_id.get(&normalize_identifier(model_id)).cloned()
     }
 
     pub fn interaction_trigger_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<InteractionTriggerDefinition> {
-        if !self.supports_capability_for_phenomenon(phenomenon_id, PhenomenonCapability::InteractionTrigger) {
-            return None;
-        }
         let model_id = self.model_for_scale(phenomenon_id, scale)?;
         self.interaction_trigger_for_model(model_id)
     }
@@ -714,28 +562,25 @@ impl PhenomenonDefinitionRegistry {
         self.projection_contract_by_model_id.get(&normalize_identifier(model_id)).cloned()
     }
 
-    pub fn any_model_uses_manifestation_collider(&self) -> bool {
-        self.manifestation_collider_enabled_by_model_id.values().copied().any(|enabled| enabled)
+    pub fn any_model_declares_realization_collider_contract(&self) -> bool {
+        self.realization_collider_enabled_by_model_id.values().copied().any(|enabled| enabled)
     }
 
-    pub fn any_model_uses_manifestation_audio_emitter(&self) -> bool {
-        !self.manifestation_audio_emitter_by_model_id.is_empty()
+    pub fn any_model_declares_realization_audio_emitter_contract(&self) -> bool {
+        !self.realization_audio_emitter_by_model_id.is_empty()
     }
 
-    pub fn any_model_uses_manifestation_particle_emitter(&self) -> bool {
-        !self.manifestation_particle_emitter_by_model_id.is_empty()
+    pub fn any_model_declares_realization_particle_emitter_contract(&self) -> bool {
+        !self.realization_particle_emitter_by_model_id.is_empty()
     }
 
-    pub fn any_model_uses_interaction_trigger(&self) -> bool {
+    pub fn any_model_declares_interaction_trigger_contract(&self) -> bool {
         !self.interaction_trigger_by_model_id.is_empty()
     }
 
-    pub fn manifestation_field_contract_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<PhenomenonManifestationFieldContract> {
-        if !self.supports_capability_for_phenomenon(phenomenon_id, PhenomenonCapability::ManifestationDensityField) {
-            return None;
-        }
-        self.manifestation_density_for_scale(phenomenon_id, scale)
-            .map(PhenomenonManifestationFieldContract::DensityField)
+    pub fn realization_field_contract_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<PhenomenonRealizationFieldContract> {
+        self.realization_density_for_scale(phenomenon_id, scale)
+            .map(PhenomenonRealizationFieldContract::DensityField)
     }
 
     pub fn model_selector_single(&self, phenomenon_id: &str, scale: Scale) -> Option<&str> {
@@ -856,31 +701,4 @@ fn parse_topology_tag(raw: &str) -> PhenomenonModelTopology {
             normalized
         ),
     }
-}
-
-fn parse_capability_list(raw_capabilities: &[String], kind: PhenomenonKind) -> Vec<PhenomenonCapability> {
-    let source = if raw_capabilities.is_empty() {
-        kind.declared_capabilities()
-            .iter()
-            .map(|capability| capability.canonical_id().to_string())
-            .collect::<Vec<_>>()
-    } else {
-        raw_capabilities.to_vec()
-    };
-
-    let mut parsed = Vec::<PhenomenonCapability>::new();
-    for raw in source {
-        let capability = PhenomenonCapability::try_from_config_value(raw.as_str()).unwrap_or_else(|error| {
-            panic!(
-                "USF phenomenon bootstrap failed: unknown capability '{}' for kind '{}': {}",
-                raw,
-                kind.canonical_id(),
-                error
-            )
-        });
-        if !parsed.contains(&capability) {
-            parsed.push(capability);
-        }
-    }
-    parsed
 }

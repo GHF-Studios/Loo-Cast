@@ -25,10 +25,10 @@ pub struct PartitionRuntimeSettings {
 }
 impl Default for PartitionRuntimeSettings {
     fn default() -> Self {
-        let max_support_radius = CONFIG().get::<u16>("usf/runtime/phenomenon_partition/max_support_radius");
-        let max_chunks_per_root = CONFIG().get::<usize>("usf/runtime/phenomenon_partition/max_chunks_per_root");
-        let generation_budget_per_frame = CONFIG().get::<usize>("usf/runtime/phenomenon_partition/generation_budget_per_frame");
-        let member_mutations_per_frame = CONFIG().get::<usize>("usf/runtime/phenomenon_partition/member_mutations_per_frame");
+        let max_support_radius = CONFIG().get::<u16>("usf/phenomenon/runtime_state/partition/max_support_radius");
+        let max_chunks_per_root = CONFIG().get::<usize>("usf/phenomenon/runtime_state/partition/max_chunks_per_root");
+        let generation_budget_per_frame = CONFIG().get::<usize>("usf/phenomenon/runtime_state/partition/generation_budget_per_frame");
+        let member_mutations_per_frame = CONFIG().get::<usize>("usf/phenomenon/runtime_state/partition/member_mutations_per_frame");
         if max_support_radius == 0 {
             panic!("USF phenomenon partition config is invalid: max_support_radius must be >= 1.");
         }
@@ -380,7 +380,7 @@ pub(super) fn sync_partitioned_model_members_system(
                     Ok(None) => {}
                     Err(error) => {
                         warn!(
-                            "USF phenomenon partition hydrate skipped: could not load partial record '{:?}': {}",
+                            "USF phenomenon partition restore skipped: could not load partial record '{:?}': {}",
                             partial_path, error
                         );
                     }

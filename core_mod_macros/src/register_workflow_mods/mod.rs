@@ -4,7 +4,7 @@ use quote::quote;
 use syn::braced;
 use syn::parse::{Parse, ParseStream, Result};
 use syn::punctuated::Punctuated;
-use syn::{Ident, Token};
+use syn::{Ident, Path, Token};
 
 pub struct WorkflowMods {
     pub modules: Vec<WorkflowMod>,
@@ -12,6 +12,7 @@ pub struct WorkflowMods {
 
 pub struct WorkflowMod {
     pub name: Ident,
+    pub workflow_root_path: Option<Path>,
     pub workflows: Vec<Workflow>,
 }
 
@@ -44,12 +45,22 @@ impl Parse for WorkflowMods {
 impl Parse for WorkflowMod {
     fn parse(input: ParseStream) -> Result<Self> {
         let name: Ident = input.parse()?;
+        let workflow_root_path = if input.peek(Token![@]) {
+            input.parse::<Token![@]>()?;
+            Some(input.parse::<Path>()?)
+        } else {
+            None
+        };
         let content;
         braced!(content in input);
 
         let workflows = Punctuated::<Workflow, Token![,]>::parse_terminated(&content)?.into_iter().collect();
 
-        Ok(Self { name, workflows })
+        Ok(Self {
+            name,
+            workflow_root_path,
+            workflows,
+        })
     }
 }
 
@@ -101,10 +112,14 @@ impl WorkflowMods {
                 let ident = &workflow_module.name;
                 let mod_name = ident.to_string().to_snake_case();
                 let mod_ident = Ident::new(mod_name.as_str(), ident.span());
+                let workflow_root_path = workflow_module
+                    .workflow_root_path
+                    .clone()
+                    .unwrap_or_else(|| syn::parse_str::<Path>(mod_name.as_str()).expect("workflow root path should parse"));
                 let plugin_name = syn::Ident::new(&format!("{}WorkflowsPlugin", ident), ident.span());
 
                 quote! {
-                    .add(crate::#mod_ident::workflows::#mod_ident::#plugin_name)
+                    .add(crate::#workflow_root_path::workflows::#mod_ident::#plugin_name)
                 }
             })
             .collect();
@@ -291,10 +306,14 @@ impl WorkflowMod {
     pub fn generate(self) -> TokenStream {
         let workflow_module_name = self.name.to_string();
         let workflow_module_name_snake_case = workflow_module_name.as_str().to_snake_case();
+        let module_ident = Ident::new(workflow_module_name_snake_case.as_str(), self.name.span());
+        let workflow_root_path = self
+            .workflow_root_path
+            .unwrap_or_else(|| syn::parse_str::<Path>(workflow_module_name_snake_case.as_str()).expect("workflow root path should parse"));
         let workflow_module_metadata: Vec<_> = self
             .workflows
             .into_iter()
-            .map(|workflow| workflow.generate(Ident::new(workflow_module_name_snake_case.as_str(), self.name.span())))
+            .map(|workflow| workflow.generate(workflow_root_path.clone(), module_ident.clone()))
             .collect();
 
         quote! {
@@ -309,13 +328,19 @@ impl WorkflowMod {
 }
 
 impl Workflow {
-    pub fn generate(self, module_name: Ident) -> TokenStream {
+    pub fn generate(self, workflow_root_path: Path, module_name: Ident) -> TokenStream {
         let workflow_name = self.name.to_string();
         let workflow_name_snake_case = workflow_name.as_str().to_snake_case();
         let workflow_metadata: Vec<_> = self
             .stages
             .into_iter()
-            .map(|workflow| workflow.generate(module_name.clone(), Ident::new(workflow_name_snake_case.as_str(), self.name.span())))
+            .map(|workflow| {
+                workflow.generate(
+                    workflow_root_path.clone(),
+                    module_name.clone(),
+                    Ident::new(workflow_name_snake_case.as_str(), self.name.span()),
+                )
+            })
             .collect();
 
         quote! {
@@ -330,7 +355,7 @@ impl Workflow {
 }
 
 impl Stage {
-    pub fn generate(self, module_name: Ident, workflow_name: Ident) -> TokenStream {
+    pub fn generate(self, workflow_root_path: Path, module_name: Ident, workflow_name: Ident) -> TokenStream {
         let stage_name = self.name.to_string();
         let stage_name_snake_case = stage_name.as_str().to_snake_case();
         let stage_ident = Ident::new(stage_name_snake_case.as_str(), self.name.span());
@@ -340,7 +365,7 @@ impl Stage {
                 quote! {
                     WorkflowStageMetadata::Ecs {
                         name: #stage_name,
-                        sender: Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::pre_initialize_fill_workflow_stage_buffer_channel())
+                        sender: Box::new(crate::#workflow_root_path::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::pre_initialize_fill_workflow_stage_buffer_channel())
                     }
                 }
             }
@@ -348,7 +373,7 @@ impl Stage {
                 quote! {
                     WorkflowStageMetadata::Render {
                         name: #stage_name,
-                        sender: Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::pre_initialize_fill_workflow_stage_buffer_channel())
+                        sender: Box::new(crate::#workflow_root_path::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::pre_initialize_fill_workflow_stage_buffer_channel())
                     }
                 }
             }
@@ -356,7 +381,7 @@ impl Stage {
                 quote! {
                     WorkflowStageMetadata::Async {
                         name: #stage_name,
-                        sender: Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::pre_initialize_fill_workflow_stage_buffer_channel())
+                        sender: Box::new(crate::#workflow_root_path::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::pre_initialize_fill_workflow_stage_buffer_channel())
                     }
                 }
             }
@@ -364,7 +389,7 @@ impl Stage {
                 quote! {
                     WorkflowStageMetadata::EcsWhile {
                         name: #stage_name,
-                        sender: Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::pre_initialize_fill_workflow_stage_buffer_channel())
+                        sender: Box::new(crate::#workflow_root_path::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::pre_initialize_fill_workflow_stage_buffer_channel())
                     }
                 }
             }
@@ -372,7 +397,7 @@ impl Stage {
                 quote! {
                     WorkflowStageMetadata::RenderWhile {
                         name: #stage_name,
-                        sender: Box::new(crate::#module_name::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::pre_initialize_fill_workflow_stage_buffer_channel())
+                        sender: Box::new(crate::#workflow_root_path::workflows::#module_name::#workflow_name::stages::#stage_ident::core_types::pre_initialize_fill_workflow_stage_buffer_channel())
                     }
                 }
             }

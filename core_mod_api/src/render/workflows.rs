@@ -12,7 +12,7 @@ define_workflow_mod_OLD! {
                 use bevy_egui::{EguiGlobalSettings, EguiRenderOutput};
                 use bevy_inspector_egui::bevy_egui::PrimaryEguiContext;
 
-                use crate::chunk::components::ChunkActor;
+                use crate::usf::chunk::components::ChunkActor;
                 use crate::config::statics::CONFIG;
                 use crate::follower::components::{Follower, FollowerTarget};
                 use crate::render::{

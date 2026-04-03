@@ -4,8 +4,8 @@ use crate::rhai_binding::runtime::ecs::component::internals::statics::COMPONENT_
 use crate::rhai_binding::runtime::ecs::component::bindings::types::Component as ScriptComponent;
 
 pub const TYPE_PATH__PLAYER: &str = "core_mod_api::player::components::Player";
-pub const TYPE_PATH__CHUNK_ACTOR: &str = "core_mod_api::chunk::components::ChunkActor";
-pub const TYPE_PATH__CHUNK_LOADER: &str = "core_mod_api::chunk::components::ChunkLoader";
+pub const TYPE_PATH__CHUNK_ACTOR: &str = "core_mod_api::usf::chunk::components::ChunkActor";
+pub const TYPE_PATH__CHUNK_LOADER: &str = "core_mod_api::usf::chunk::components::ChunkLoader";
 
 core_mod_macros::reflect_extern_sub_module!(
     id = bevy::ecs::component,

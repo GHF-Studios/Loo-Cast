@@ -1,0 +1,6 @@
+[usf.phenomenon.runtime_state.child_model]
+enabled = true
+min_support_radius = 2
+instability_threshold = 0.56
+child_support_radius_multiplier = 2.0
+max_requests_per_frame = 48

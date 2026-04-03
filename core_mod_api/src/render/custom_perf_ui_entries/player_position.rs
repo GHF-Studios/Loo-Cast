@@ -2,7 +2,7 @@ use crate::bevy::ecs::system::SystemParam;
 use crate::bevy::prelude::*;
 use iyes_perf_ui::{entry::PerfUiEntry, ui::root::PerfUiRoot, utils::next_sort_key};
 
-use crate::chunk::components::ChunkActor;
+use crate::usf::chunk::components::ChunkActor;
 use crate::player::components::Player;
 use crate::usf::pos::grid::types::GridVec;
 

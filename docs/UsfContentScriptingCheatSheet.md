@@ -36,7 +36,7 @@ assets/scripts/usf/
   dpt_samplers/*.dpt_sampler.rhai
   dpt_categorizers/*.dpt_categorizer.rhai
 assets/scripts/ecs/
-  schedule_hooks/*.schedule_hook.rhai 
+  schedule_entrypoints/*.schedule_entrypoint.rhai 
 ```
 
 Each file type has one entrypoint:
@@ -50,7 +50,7 @@ Each file type has one entrypoint:
 - `*.phenomenon_model.rhai`: `fn register_phenomenon_model(ctx) { ... }`
 - `*.dpt_sampler.rhai`: `fn register_dpt_sampler(ctx) { ... }`
 - `*.dpt_categorizer.rhai`: `fn register_dpt_categorizer(ctx) { ... }`
-- `*.schedule_hook.rhai`: `fn run(world, params) { ... }`
+- `*.schedule_entrypoint.rhai`: `fn run(world, params) { ... }`
 
 Rule: domain APIs are isolated. A script type get's any functions or types or methods or anything it needs via the context.
 ECS Schedule hooks are another type of script, not directly related to the USF however.
@@ -207,7 +207,7 @@ This preserves clean content authoring while solving N-dimensional metric-space 
 7. Define scale configs (`*.scale.rhai`).
 8. Define phenomena (`*.phenomenon.rhai`).
 9. Define phenomenon models (`*.phenomenon_model.rhai`).
-10. Wire ECS hooks only where runtime behavior is needed (`*.schedule_hook.rhai`).
+10. Wire ECS hooks only where runtime behavior is needed (`*.schedule_entrypoint.rhai`).
 
 If these steps are enough to ship content, the scripting API is doing its job.
 

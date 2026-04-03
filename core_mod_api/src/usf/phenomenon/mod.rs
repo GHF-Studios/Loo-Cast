@@ -15,10 +15,9 @@ pub mod types;
 
 pub use components::{
     MonolithicPhenomenonModel, PartialPhenomenonModel, PartitionedPhenomenonModelMember, PartitionedPhenomenonModelRoot, Phenomenon, PhenomenonModel,
-    PhenomenonModelInteractionTriggerContract, PhenomenonModelManifestationAudioContract, PhenomenonModelManifestationParticleContract,
-    PhenomenonModelProjectionContract, PhenomenonModelProjectionSpec, PhenomenonModelScriptDefinitionRef, PhenomenonModelSimulationContract,
-    PhenomenonModelState, PhenomenonModelSupport, PhenomenonModelSupportBounds, PhenomenonModelTopology, PhenomenonNode, PhenomenonNodeLifecycle,
-    PhenomenonNodeState, PhenomenonRootNodeRef, PhenomenonScriptDefinitionRef,
+    PhenomenonModelProjectionContract, PhenomenonModelProjectionSpec, PhenomenonModelScriptDefinitionRef, PhenomenonModelState, PhenomenonModelSupport,
+    PhenomenonModelSupportBounds, PhenomenonModelTopology, PhenomenonNode, PhenomenonNodeLifecycle, PhenomenonNodeState, PhenomenonRootNodeRef,
+    PhenomenonScriptDefinitionRef,
 };
 pub use generator::{
     BuildStateInput, MeshWindowInput, PhenomenonChildPlan, PhenomenonGenerator, PhenomenonMeshWindow, PhenomenonStateSnapshot, PlanChildrenInput,
@@ -33,12 +32,12 @@ pub use persistence::{
 pub use resources::PhenomenonDefinitionRegistry;
 pub use systems::{
     PhenomenonChildScaleModelRequest, PhenomenonChildScaleRequestSettings, PhenomenonDebugStats, PhenomenonGeneratorState, PhenomenonLifecyclePolicy,
-    PhenomenonPersistenceHydrationState, PhenomenonPersistenceRuntimeSettings,
+    PhenomenonPersistenceRestoreState, PhenomenonPersistenceRuntimeSettings,
 };
 pub use types::{
-    InteractionTriggerDefinition, ManifestationAudioEmitterDefinition, ManifestationDensityFieldDefinition, ManifestationMaterialProfileDefinition,
-    ManifestationParticleEmitterDefinition, PhenomenonCapability, PhenomenonId, PhenomenonKind, PhenomenonLineage, PhenomenonManifestationFieldContract,
-    PhenomenonNodeKey, PhenomenonNodeSeed, PhenomenonSimulationServiceDefinition,
+    InteractionTriggerDefinition, RealizationAudioEmitterDefinition, RealizationDensityFieldDefinition, RealizationMaterialProfileDefinition,
+    RealizationParticleEmitterDefinition, PhenomenonId, PhenomenonKind, PhenomenonLineage, PhenomenonRealizationFieldContract, PhenomenonNodeKey,
+    PhenomenonNodeSeed, PhenomenonSimulationServiceDefinition,
 };
 
 use partition_runtime::sync_partitioned_model_members_system;
@@ -50,7 +49,7 @@ use persistence_runtime::{
 use systems::{
     apply_child_scale_model_requests_system, apply_zone_realization_startup_hooks_system, despawn_invalid_nodes_system, emit_child_scale_model_requests_system,
     enforce_model_topology_component_contracts_system, ensure_root_nodes_system, ensure_scale_models_system, expand_phenomenon_frontier_system,
-    hydrate_persisted_phenomena_state_system, prune_orphan_models_system, refresh_active_node_stats_system, sync_policy_depth_to_frontier_scale_system,
+    prune_orphan_models_system, refresh_active_node_stats_system, restore_persisted_phenomena_state_system, sync_policy_depth_to_frontier_scale_system,
 };
 
 pub(crate) struct PhenomenonPlugin;
@@ -61,7 +60,7 @@ impl Plugin for PhenomenonPlugin {
             .init_resource::<PhenomenonGeneratorState>()
             .init_resource::<PhenomenonDebugStats>()
             .init_resource::<PhenomenonPersistenceRuntimeSettings>()
-            .init_resource::<PhenomenonPersistenceHydrationState>()
+            .init_resource::<PhenomenonPersistenceRestoreState>()
             .init_resource::<PhenomenonPersistenceWriteRuntimeState>()
             .init_resource::<PhenomenonPersistenceWriteStats>()
             .init_resource::<PhenomenonPersistenceJournalRecoveryState>()
@@ -76,8 +75,8 @@ impl Plugin for PhenomenonPlugin {
                     ensure_scale_models_system,
                     enforce_model_topology_component_contracts_system.after(ensure_scale_models_system),
                     apply_zone_realization_startup_hooks_system.after(enforce_model_topology_component_contracts_system),
-                    hydrate_persisted_phenomena_state_system.after(apply_zone_realization_startup_hooks_system),
-                    emit_child_scale_model_requests_system.after(hydrate_persisted_phenomena_state_system),
+                    restore_persisted_phenomena_state_system.after(apply_zone_realization_startup_hooks_system),
+                    emit_child_scale_model_requests_system.after(restore_persisted_phenomena_state_system),
                     apply_child_scale_model_requests_system.after(emit_child_scale_model_requests_system),
                     sync_partitioned_model_members_system.after(apply_child_scale_model_requests_system),
                     prune_orphan_models_system.after(sync_partitioned_model_members_system),
@@ -99,10 +98,6 @@ impl Plugin for PhenomenonPlugin {
             .register_type::<PhenomenonModelProjectionSpec>()
             .register_type::<PhenomenonModelSupport>()
             .register_type::<PhenomenonModelProjectionContract>()
-            .register_type::<PhenomenonModelSimulationContract>()
-            .register_type::<PhenomenonModelManifestationAudioContract>()
-            .register_type::<PhenomenonModelManifestationParticleContract>()
-            .register_type::<PhenomenonModelInteractionTriggerContract>()
             .register_type::<MonolithicPhenomenonModel>()
             .register_type::<PartitionedPhenomenonModelRoot>()
             .register_type::<PartitionedPhenomenonModelMember>()
@@ -124,12 +119,12 @@ impl Plugin for PhenomenonPlugin {
             .register_type::<PartitionRuntimeSettings>()
             .register_type::<PhenomenonChildScaleRequestSettings>()
             .register_type::<PhenomenonChildScaleModelRequest>()
-            .register_type::<ManifestationDensityFieldDefinition>()
-            .register_type::<ManifestationMaterialProfileDefinition>()
-            .register_type::<PhenomenonManifestationFieldContract>()
+            .register_type::<RealizationDensityFieldDefinition>()
+            .register_type::<RealizationMaterialProfileDefinition>()
+            .register_type::<PhenomenonRealizationFieldContract>()
             .register_type::<PhenomenonSimulationServiceDefinition>()
-            .register_type::<ManifestationAudioEmitterDefinition>()
-            .register_type::<ManifestationParticleEmitterDefinition>()
+            .register_type::<RealizationAudioEmitterDefinition>()
+            .register_type::<RealizationParticleEmitterDefinition>()
             .register_type::<InteractionTriggerDefinition>()
             .register_type::<PhenomenonLatticeWindow>();
     }

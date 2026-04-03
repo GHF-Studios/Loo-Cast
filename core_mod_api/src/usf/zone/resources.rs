@@ -5,12 +5,10 @@ use crate::config::statics::CONFIG;
 use crate::rhai_binding::engine::statics::{
     USF_PHENOMENA_BY_ID, USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE, USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE,
 };
-use crate::usf::definition::ZoneTypeId;
-use crate::usf::phenomenon::PhenomenonKind;
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
 
-use super::types::{ZoneExtent, ZoneId};
+use super::types::{ZoneExtent, ZoneId, ZoneTypeId};
 
 #[derive(Resource, Debug, Default)]
 pub struct ZoneRuntimeState {
@@ -117,7 +115,6 @@ pub struct ZoneSelectionPolicy {
 #[derive(Reflect, Debug, Clone, PartialEq)]
 pub struct ZonePhenomenonSupport {
     pub phenomenon_id: String,
-    pub kind: PhenomenonKind,
     pub priority: i32,
     pub weight: f32,
     pub spawn_policy: ZonePhenomenonSpawnPolicy,
@@ -169,7 +166,7 @@ impl Default for ZoneBehaviorRegistry {
         for (zone_type, supports) in script_zone_supports {
             let mut compiled_supports = Vec::<ZonePhenomenonSupport>::new();
             for support in supports {
-                let Some(phenomenon_definition) = script_phenomena_by_id.get(&support.phenomenon_id) else {
+                let Some(_phenomenon_definition) = script_phenomena_by_id.get(&support.phenomenon_id) else {
                     panic!(
                         "USF zone behavior bootstrap failed: zone '{}' references unknown phenomenon '{}'.",
                         zone_type, support.phenomenon_id
@@ -190,7 +187,6 @@ impl Default for ZoneBehaviorRegistry {
 
                 compiled_supports.push(ZonePhenomenonSupport {
                     phenomenon_id: support.phenomenon_id,
-                    kind: PhenomenonKind::from_config_value(&phenomenon_definition.kind),
                     priority: support.priority,
                     weight: support.weight,
                     spawn_policy: ZonePhenomenonSpawnPolicy::from_config_value(&support.spawn_policy),

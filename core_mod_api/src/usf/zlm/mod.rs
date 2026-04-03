@@ -3,13 +3,17 @@ use std::collections::HashMap;
 use crate::bevy::prelude::*;
 use crate::core::orchestration::AppSet;
 use crate::rhai_binding::engine::statics::USF_ZLM_SCALES_BY_SCALE;
-use crate::usf::content::{DPT_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID, UsfActiveModpack};
-use crate::usf::definition::{DptMetricId, DptSchema, ZoneTypeId};
+use crate::usf::metric::MetricId;
+use crate::usf::metric_container::MetricContainerLayout;
+use crate::usf::mod_packs::UsfActiveModPack;
 use crate::usf::scale::Scale;
+use crate::usf::zone::ZoneTypeId;
+
+pub const METRIC_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID: &str = "metric_categorizer.kernel.zlm_lookup.v1";
 
 #[derive(Reflect, Debug, Clone, PartialEq)]
 pub struct ZlmMetricBand {
-    pub metric_id: DptMetricId,
+    pub metric_id: MetricId,
     pub min: f32,
     pub max: f32,
 }
@@ -48,17 +52,17 @@ impl Default for ZlmRegistry {
     }
 }
 impl ZlmRegistry {
-    fn classify_for_categorizer_id(&self, categorizer_id: &str, scale: Scale, schema: &DptSchema, metric_values: &[f32]) -> ZoneTypeId {
+    fn classify_for_categorizer_id(&self, categorizer_id: &str, scale: Scale, schema: &MetricContainerLayout, metric_values: &[f32]) -> ZoneTypeId {
         match categorizer_id.trim().to_ascii_lowercase().as_str() {
-            DPT_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID => self.classify(scale, schema, metric_values),
+            METRIC_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID => self.classify(scale, schema, metric_values),
             unknown => panic!(
                 "USF ZLM classification failed: unknown categorizer kernel '{}'; supported kernels: {}",
-                unknown, DPT_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID
+                unknown, METRIC_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID
             ),
         }
     }
 
-    pub fn classify(&self, scale: Scale, schema: &DptSchema, metric_values: &[f32]) -> ZoneTypeId {
+    pub fn classify(&self, scale: Scale, schema: &MetricContainerLayout, metric_values: &[f32]) -> ZoneTypeId {
         let Some(scale_map) = self.maps_by_scale.get(&scale) else {
             panic!("USF ZLM classification failed: missing map for scale index {}", scale.index_from_top());
         };
@@ -88,10 +92,10 @@ impl ZlmRegistry {
         scale_map.fallback_zone.clone()
     }
 
-    pub fn classify_for_scale(&self, scale: Scale, schema: &DptSchema, metric_values: &[f32], active_modpack: &UsfActiveModpack) -> ZoneTypeId {
+    pub fn classify_for_scale(&self, scale: Scale, schema: &MetricContainerLayout, metric_values: &[f32], active_modpack: &UsfActiveModPack) -> ZoneTypeId {
         let categorizer_id = active_modpack
             .scale_definition_for_scale(scale)
-            .map(|scale_definition| scale_definition.dpt_categorizer_id.as_str())
+            .map(|scale_definition| scale_definition.metric_categorizer_id.as_str())
             .unwrap_or_else(|| {
                 panic!(
                     "USF ZLM classification failed: missing scale definition for scale index {}",
@@ -101,7 +105,7 @@ impl ZlmRegistry {
         self.classify_for_categorizer_id(categorizer_id, scale, schema, metric_values)
     }
 
-    pub fn validate_against(&self, active_modpack: &UsfActiveModpack) -> Result<(), String> {
+    pub fn validate_against(&self, active_modpack: &UsfActiveModPack) -> Result<(), String> {
         for index in 0..Scale::SCALE_LEVEL_COUNT {
             let Some(scale) = Scale::from_index_from_top(index) else {
                 continue;
@@ -190,7 +194,7 @@ fn script_zlm_overrides() -> Vec<(Scale, ZlmScaleDefinition)> {
                         .metric_bands
                         .into_iter()
                         .map(|band| ZlmMetricBand {
-                            metric_id: DptMetricId(band.metric_id),
+                            metric_id: MetricId(band.metric_id),
                             min: band.min,
                             max: band.max,
                         })
@@ -209,7 +213,7 @@ fn script_zlm_overrides() -> Vec<(Scale, ZlmScaleDefinition)> {
         .collect()
 }
 
-fn validate_zlm_registry_system(active_modpack: Res<UsfActiveModpack>, zlm_registry: Res<ZlmRegistry>) {
+fn validate_zlm_registry_system(active_modpack: Res<UsfActiveModPack>, zlm_registry: Res<ZlmRegistry>) {
     if let Err(reason) = zlm_registry.validate_against(&active_modpack) {
         panic!("USF ZLM registry validation failed: {reason}");
     }
@@ -226,11 +230,11 @@ impl Plugin for ZlmPlugin {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::usf::content::UsfActiveModpack;
-    use crate::usf::definition::{DptMetricDefinition, DptMetricId, DptMetricStorageClass, DptMetricValueType};
+    use crate::usf::mod_packs::UsfActiveModPack;
+    use crate::usf::metric::{MetricDefinition, MetricId, MetricStorageClass, MetricValueType};
     use std::collections::HashMap;
 
-    fn active_modpack_for_tests() -> UsfActiveModpack {
+    fn active_modpack_for_tests() -> UsfActiveModPack {
         let mut known_zone_types = std::collections::HashSet::new();
         known_zone_types.insert(ZoneTypeId::new("void"));
 
@@ -242,14 +246,14 @@ mod tests {
             let scale_index = scale.index_from_top();
             schemas_by_scale.insert(
                 scale,
-                DptSchema {
+                MetricContainerLayout {
                     revision: 1,
-                    metrics: vec![DptMetricDefinition {
-                        id: DptMetricId(0),
+                    metrics: vec![MetricDefinition {
+                        id: MetricId(0),
                         name: "temperature".to_string(),
-                        value_type: DptMetricValueType::F32,
+                        value_type: MetricValueType::F32,
                         semantics_tag: "climate.temperature.normalized".to_string(),
-                        storage_class: DptMetricStorageClass::Brick,
+                        storage_class: MetricStorageClass::Brick,
                         derived: false,
                         min_scale_index: scale_index,
                         max_scale_index: scale_index,
@@ -259,9 +263,9 @@ mod tests {
             );
         }
 
-        UsfActiveModpack {
-            modpack_id: "modpack.test.default".to_string(),
-            configured_mods: vec![crate::usf::content::UsfConfiguredMod {
+        UsfActiveModPack {
+            mod_pack_id: "modpack.test.default".to_string(),
+            configured_mods: vec![crate::usf::mods::UsfConfiguredMod {
                 mod_id: "mod.test.default".to_string(),
             }],
             enabled_mods: std::collections::HashSet::from(["mod.test.default".to_string()]),
@@ -271,16 +275,16 @@ mod tests {
                 .map(|scale| {
                     (
                         scale,
-                        crate::usf::content::UsfScaleDefinition {
-                            dpt_sampler_id: crate::usf::content::DPT_SAMPLER_KERNEL_DEFAULT_ID.to_string(),
-                            dpt_categorizer_id: crate::usf::content::DPT_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID.to_string(),
+                        crate::usf::mod_packs::UsfScaleDefinition {
+                            metric_sampler_id: crate::usf::metric_container::METRIC_SAMPLER_KERNEL_DEFAULT_ID.to_string(),
+                            metric_categorizer_id: crate::usf::zlm::METRIC_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID.to_string(),
                             chunk_store_key: "chunk_store.test.default".to_string(),
                         },
                     )
                 })
                 .collect(),
-            known_dpt_samplers: std::collections::HashSet::from([crate::usf::content::DPT_SAMPLER_KERNEL_DEFAULT_ID.to_string()]),
-            known_dpt_categorizers: std::collections::HashSet::from([crate::usf::content::DPT_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID.to_string()]),
+            known_metric_samplers: std::collections::HashSet::from([crate::usf::metric_container::METRIC_SAMPLER_KERNEL_DEFAULT_ID.to_string()]),
+            known_metric_categorizers: std::collections::HashSet::from([crate::usf::zlm::METRIC_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID.to_string()]),
             schemas_by_scale,
             known_zone_types,
         }
@@ -289,14 +293,14 @@ mod tests {
     #[test]
     fn classify_uses_scale_map_fallback_zone_when_no_rule_matches() {
         let scale = Scale::MAX;
-        let schema = DptSchema {
+        let schema = MetricContainerLayout {
             revision: 1,
-            metrics: vec![DptMetricDefinition {
-                id: DptMetricId(0),
+            metrics: vec![MetricDefinition {
+                id: MetricId(0),
                 name: "temperature".to_string(),
-                value_type: crate::usf::definition::DptMetricValueType::F32,
+                value_type: crate::usf::metric::MetricValueType::F32,
                 semantics_tag: "climate.temperature.normalized".to_string(),
-                storage_class: crate::usf::definition::DptMetricStorageClass::Brick,
+                storage_class: crate::usf::metric::MetricStorageClass::Brick,
                 derived: false,
                 min_scale_index: 0,
                 max_scale_index: Scale::SCALE_LEVEL_COUNT.saturating_sub(1),

@@ -14,7 +14,7 @@ use systems::{
     toggle_player_camera_mode_system, update_player_system,
 };
 
-use crate::chunk::run_conditions::run_if_chunk_load_gate_open;
+use crate::usf::chunk::run_conditions::run_if_chunk_load_gate_open;
 use crate::core::{orchestration::AppSet, run_conditions::run_after_startup_finished};
 use crate::follower::systems::update_follower_system;
 use crate::time::run_conditions::run_if_not_paused;

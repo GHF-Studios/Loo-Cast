@@ -24,6 +24,7 @@ use super::persistence::{
     phenomenon_record_from_runtime, phenomenon_record_path, save_partial_phenomenon_model_record_with_durability, save_phenomenon_model_record_with_durability,
     save_phenomenon_record_with_durability,
 };
+use super::resources::PhenomenonDefinitionRegistry;
 use super::systems::PhenomenonPersistenceRuntimeSettings;
 
 const PHENOMENON_PERSISTENCE_BATCH_JOURNAL_SCHEMA_VERSION: u16 = 1;
@@ -310,6 +311,7 @@ pub(super) fn enqueue_authoritative_phenomena_persistence_writes_system(
     authority_contract: Res<UsfWorldAuthorityContract>,
     mut authority_diagnostics: Option<ResMut<UsfAuthorityDiagnostics>>,
     settings: Res<PhenomenonPersistenceRuntimeSettings>,
+    definitions: Res<PhenomenonDefinitionRegistry>,
     dirty_phenomena_query: Query<
         Entity,
         (
@@ -390,7 +392,11 @@ pub(super) fn enqueue_authoritative_phenomena_persistence_writes_system(
     let mut script_id_by_entity = HashMap::<Entity, String>::new();
     for (entity, phenomenon, script_ref) in phenomenon_query.iter() {
         if dirty_phenomena.contains(&entity) {
-            let record = phenomenon_record_from_runtime(phenomenon.id, phenomenon.kind, script_ref.phenomenon_id.as_str());
+            let kind_id = definitions
+                .kind_for(script_ref.phenomenon_id.as_str())
+                .map(|kind| kind.canonical_id().to_string())
+                .unwrap_or_else(|| "untyped".to_string());
+            let record = phenomenon_record_from_runtime(phenomenon.id, kind_id.as_str(), script_ref.phenomenon_id.as_str());
             let path = phenomenon_record_path(settings.persistence_dir.as_str(), phenomenon.id);
             runtime_state.queued_by_path.insert(
                 path.clone(),
@@ -771,8 +777,8 @@ mod tests {
         PersistedPhenomenonRecord {
             schema_version: 2,
             phenomenon_id: 11,
-            kind: "ManifestationDensityDebug".to_string(),
-            script_id: "phenomenon.demo.manifestation_density".to_string(),
+            kind: "RealizationDensityDebug".to_string(),
+            script_id: "phenomenon.demo.realization_density".to_string(),
             metadata: vec![("k".to_string(), "v".to_string())],
         }
     }
@@ -781,7 +787,7 @@ mod tests {
     fn batch_journal_roundtrips_runtime_requests() {
         let request = PersistenceWriteRequest::Phenomenon {
             path: PathBuf::from("target/usf_demo/authority/phenomenon_000000000000000b.json"),
-            script_id: "phenomenon.demo.manifestation_density".to_string(),
+            script_id: "phenomenon.demo.realization_density".to_string(),
             record: sample_record(),
         };
         let journal = PersistedBatchJournalRecord::from_runtime(7, &[request.clone()]);
@@ -790,7 +796,7 @@ mod tests {
         match &rebuilt[0] {
             PersistenceWriteRequest::Phenomenon { path, script_id, record } => {
                 assert!(path.to_string_lossy().contains("phenomenon_000000000000000b.json"));
-                assert_eq!(script_id, "phenomenon.demo.manifestation_density");
+                assert_eq!(script_id, "phenomenon.demo.realization_density");
                 assert_eq!(record, &sample_record());
             }
             _ => panic!("expected phenomenon journal request"),

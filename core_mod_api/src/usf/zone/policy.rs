@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
-use crate::usf::definition::ZoneTypeId;
 use crate::usf::scale::Scale;
 
 use super::resources::{ZoneBehaviorRegistry, ZonePhenomenonSelectionStrategy, ZonePhenomenonSupport, ZoneSelectionRuntimeState};
-use super::types::ZoneId;
+use super::types::{ZoneId, ZoneTypeId};
 
 pub fn select_supported_phenomenon_for_zone(
     zone_id: &ZoneId,
@@ -145,7 +144,6 @@ fn mix64(mut state: u64) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::usf::phenomenon::PhenomenonKind;
     use crate::usf::zone::{ZonePhenomenonSpawnPolicy, ZoneSelectionPolicy};
 
     fn round_robin_registry() -> ZoneBehaviorRegistry {
@@ -160,7 +158,6 @@ mod tests {
             vec![
                 ZonePhenomenonSupport {
                     phenomenon_id: "phenomenon.a".to_string(),
-                    kind: PhenomenonKind::ManifestationDensityDebug,
                     priority: 100,
                     weight: 1.0,
                     spawn_policy: ZonePhenomenonSpawnPolicy::SinglePerZone,
@@ -168,7 +165,6 @@ mod tests {
                 },
                 ZonePhenomenonSupport {
                     phenomenon_id: "phenomenon.b".to_string(),
-                    kind: PhenomenonKind::ManifestationDensityDebug,
                     priority: 100,
                     weight: 1.0,
                     spawn_policy: ZonePhenomenonSpawnPolicy::SinglePerZone,

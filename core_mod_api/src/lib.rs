@@ -107,7 +107,6 @@ pub use uuid;
 //pub mod traits;
 
 // Modules
-pub mod chunk;
 pub mod config;
 pub mod core;
 pub mod debug;
@@ -129,7 +128,6 @@ pub mod workflow;
 use crate::bevy::{app::PluginGroupBuilder, prelude::*};
 use core_mod_macros::register_workflow_mods;
 
-use chunk::ChunkPlugin;
 use config::ConfigPlugin;
 use core::CorePlugin;
 use debug::DebugPlugin;
@@ -153,7 +151,6 @@ impl PluginGroup for CoreApiPluginGroup {
         PluginGroupBuilder::start::<Self>()
             .add_group(WorkflowPlugins)
             .add(CorePlugin)
-            .add(ChunkPlugin)
             .add(ConfigPlugin)
             .add(DebugPlugin)
             .add(FollowerPlugin)
@@ -173,16 +170,16 @@ impl PluginGroup for CoreApiPluginGroup {
 }
 
 register_workflow_mods!(
-    Chunk {
+    UsfChunk @ usf::chunk {
         SpawnChunks {
             ValidateAndSpawnAndWait: EcsWhile,
         },
         DespawnChunks {
             FindAndDespawnAndWait: EcsWhile,
         },
-        HydrateChunkManifestationInstances {
-            BuildArtifacts: Async,
-            CommitArtifacts: EcsWhile,
+        ReconcileChunkRealizationArtifacts {
+            ResolveIntents: Async,
+            ApplyOutputs: EcsWhile,
         },
     },
     Core {

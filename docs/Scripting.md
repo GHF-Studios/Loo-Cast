@@ -1,4 +1,4 @@
-# Scripting — Rhai Dialect and Hook Tests
+# Scripting — Rhai Dialect and Schedule Entrypoint Tests
 
 ## Overview
 
@@ -6,25 +6,24 @@
 - Startup script entrypoint:
   - authoring path: `core_mod/assets/scripts/core/boot.rhai`
   - runtime asset path: `core_mod/scripts/core/boot.rhai` (resolved by `asset_root()`).
-- `boot.rhai` registers schedule hooks through `rhai_binding::schedule_hooks::add("<schedule_name>")`.
+- `boot.rhai` registers schedule entrypoints through `rhai_binding::schedule_entrypoints::add("<schedule_name>")`.
 - USF substrate contracts are loaded from typed scripts under `core_mod/assets/scripts/usf/*`
   by the engine bootstrap loader (entrypoint-per-script-type).
 - zone behavior (density + supported phenomena + selection policy + per-support `max_active` caps) is also authored in typed USF scripts,
   not via `boot.rhai`.
-- Hook registration order is preserved (first `add(...)` call runs first for the same Bevy schedule phase).
-- USF phase hooks are wired into deterministic simulation subsets:
+- Schedule entrypoint registration order is preserved (first `add(...)` call runs first for the same Bevy schedule phase).
+- USF phase schedule entrypoints are wired into deterministic simulation subsets:
   - `substrate_pre_update` / `substrate_update` -> `UsfSubstrateSet::{Pre, Post}`
   - `zone_pre_update` / `zone_update` -> `UsfZoneSet::{Pre, Post}`
   - `phenomenon_pre_update` / `phenomenon_update` -> `UsfPhenomenonSet::{Pre, Post}`
-- Hook entrypoint contract supports:
-  - `fn main(world, params)` (preferred)
-  - `fn main(world)` (legacy fallback)
-- `params` is now domain-typed instead of map-typed:
-  - `SubstrateHookParams` for `substrate_*` hooks
-  - `ZoneHookParams` for `zone_*` hooks
-  - `PhenomenonHookParams` for `phenomenon_*` hooks
-  - `GlobalHookParams` for non-domain hooks
-- Typed params expose shared metadata (`hook_name`, `hook_file`, `domain`, `stage`,
+- Schedule entrypoint contract supports:
+  - `fn main(world, params)` only
+- `params` is domain-typed instead of map-typed:
+  - `SubstrateHookParams` for `substrate_*` entrypoints
+  - `ZoneHookParams` for `zone_*` entrypoints
+  - `PhenomenonHookParams` for `phenomenon_*` entrypoints
+  - `GlobalHookParams` for non-domain entrypoints
+- Typed params expose shared metadata (`entrypoint_name`, `entrypoint_file`, `domain`, `stage`,
   `delta_seconds`, `elapsed_seconds`, `has_virtual_time`) and domain-specific fields
   (for example `ZoneHookParams.loaded_zone_count`).
 - Testing gate is exposed via `rhai_binding::testing::enabled()`, backed by config key
@@ -32,23 +31,23 @@
 - Startup test scripts only execute when `rhai_binding/testing_enabled = true`.
 - Policy: keep script helper orchestration out of global namespace; prefer namespaced modules and `private fn`.
 
-## Hook loading model
+## Entrypoint loading model
 
-- Hook runner lives in `core_mod_api/src/rhai_binding/engine/hook.rs`.
-- Each hook stage loads:
+- Schedule entrypoint runner lives in `core_mod_api/src/rhai_binding/engine/schedule_entrypoint.rs`.
+- Each schedule entrypoint loads:
   1. all companion script files under a same-name companion directory recursively, ordered by file type then path:
      - `*.lib.rhai`
-     - `*.hook.rhai`
+     - `*.entrypoint.rhai`
      - `*.substrate.rhai`
      - `*.zone.rhai`
      - `*.phenomenon.rhai`
      - any other `*.rhai`
-  2. then the stage's root file itself.
+  2. then the entrypoint root file itself.
 - Example:
-  - `startup.rhai` pulls in everything under `startup/` first, then calls `main(world)`.
+  - `startup.rhai` pulls in everything under `startup/` first, then calls `main(world, params)`.
   - `zone_update.rhai` can split responsibilities by file type:
     - `zone_math.lib.rhai` for reusable helpers,
-    - `zone_pipeline.hook.rhai` for stage orchestration,
+    - `zone_pipeline.entrypoint.rhai` for stage orchestration,
     - `zone_runtime.zone.rhai` for zone-domain runtime logic.
 
 This makes `startup.rhai` a stable startup-test entrypoint while companion files hold organized tests.
@@ -56,9 +55,9 @@ This makes `startup.rhai` a stable startup-test entrypoint while companion files
 ## Script layout
 
 - Core scripts root: `core_mod/assets/scripts/core/`
-- ECS schedule hooks: `core_mod/assets/scripts/ecs/schedule_hooks/`
+- ECS schedule entrypoints: `core_mod/assets/scripts/ecs/schedule_entrypoints/`
   - includes dedicated `substrate_*`, `zone_*`, and `phenomenon_*` phase files for USF simulation staging.
-- Startup test harness: `core_mod/assets/scripts/ecs/schedule_hooks/startup/`
+- Startup test harness: `core_mod/assets/scripts/ecs/schedule_entrypoints/startup/`
   - `tests/reflection/` for reflection graph smoke checks.
   - `tests/ecs/` for ECS integration tests (World, Commands, Query, Messages, iterators).
   - `tests/examples/` for runnable example-tests, currently including `shop::divisions::sex`.
@@ -75,7 +74,7 @@ Supported script alias form:
 Current behavior:
 
 - aliases are preprocessed before Rhai compilation,
-- use declarations are preprocessed per script file before hook-source composition,
+- use declarations are preprocessed per script file before entrypoint-source composition,
 - alias substitution applies to:
   - path roots (`Alias::...`),
   - bare alias tokens (`Alias`) as canonical type-id string literals,

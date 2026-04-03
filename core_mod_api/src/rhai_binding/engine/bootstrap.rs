@@ -10,23 +10,24 @@ use crate::bevy::prelude::{App, First, Last, PostStartup, PostUpdate, PreStartup
 use crate::config::{statics::CONFIG, types::ConfigValue};
 use crate::core::functions::asset_root;
 use crate::rhai_binding::bind::engine_ext::EngineExt;
-use crate::rhai_binding::engine::hook::{new_hook_runner_system, register_hook_param_types};
+use crate::rhai_binding::engine::schedule_entrypoint::{new_schedule_entrypoint_runner_system, register_schedule_entrypoint_param_types};
 use crate::rhai_binding::engine::preprocess::preprocess_script_source;
 use crate::rhai_binding::engine::resources::MainScriptEngineHandle;
 use crate::rhai_binding::engine::statics::{
-    SCHEDULE_HOOKS, ScriptDptMetricDefinition, ScriptDptSchemaDefinition, ScriptInteractionTriggerDefinition, ScriptManifestationAudioEmitterDefinition,
-    ScriptManifestationDensityDefinition, ScriptManifestationMaterialDefinition, ScriptManifestationParticleEmitterDefinition, ScriptMetricDefinition,
+    SCHEDULE_ENTRYPOINTS, ScriptMetricDefinition, ScriptMetricContainerLayoutDefinition, ScriptInteractionTriggerDefinition, ScriptRealizationAudioEmitterDefinition,
+    ScriptRealizationDensityDefinition, ScriptRealizationMaterialDefinition, ScriptRealizationParticleEmitterDefinition,
     ScriptPhenomenonDefinition, ScriptPhenomenonModelDefinition, ScriptScaleDefinition, ScriptSimulationServiceDefinition, ScriptSingletonConflictPolicy,
     ScriptUsfModContribution, ScriptUsfModDefinition, ScriptUsfModManifestDefinition, ScriptUsfModpackDefinition, ScriptZlmMetricBandDefinition,
     ScriptZlmRuleDefinition, ScriptZlmScaleDefinition, ScriptZoneDensityProfileDefinition, ScriptZonePhenomenonSupportDefinition,
-    ScriptZoneSelectionPolicyDefinition, USF_DPT_CATEGORIZER_KERNEL_IDS, USF_DPT_SAMPLER_KERNEL_IDS, USF_DPT_SCHEMAS_BY_SCALE, USF_METRIC_SETS_BY_ID,
+    ScriptZoneSelectionPolicyDefinition, USF_METRIC_CATEGORIZER_KERNEL_IDS, USF_METRIC_SAMPLER_KERNEL_IDS, USF_METRIC_CONTAINER_LAYOUTS_BY_SCALE, USF_METRIC_SETS_BY_ID,
     USF_METRICS_BY_NAME, USF_MOD_CONTRIBUTIONS_BY_ID, USF_MOD_MANIFESTS_BY_ID, USF_MODPACKS_BY_ID, USF_MODS_BY_ID, USF_PHENOMENA_BY_ID,
     USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE, USF_PHENOMENON_MODELS_BY_ID, USF_SCALES_BY_INDEX, USF_ZLM_SCALES_BY_SCALE,
     USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE, USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE, USF_ZONE_TYPES,
 };
 use crate::rhai_binding::runtime::ecs::message::bindings::types::ScriptProbeMessage;
-use crate::usf::content::{DPT_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID, DPT_SAMPLER_KERNEL_DEFAULT_ID};
-use crate::usf::phenomenon::{PhenomenonCapability, PhenomenonKind};
+use crate::usf::metric_container::METRIC_SAMPLER_KERNEL_DEFAULT_ID;
+use crate::usf::zlm::METRIC_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID;
+use crate::usf::phenomenon::PhenomenonKind;
 use crate::usf::scale::Scale;
 use crate::usf::schedule::{UsfPhenomenonSet, UsfSubstrateSet, UsfZoneSet};
 use rhai::{Engine, EvalAltResult};
@@ -53,7 +54,7 @@ const ACTIVE_MODPACK_CONFIG_KEY: &str = "usf/active_modpack_id";
 #[derive(Debug, Clone, Copy)]
 enum SingletonDomain {
     Scale,
-    DptSchema,
+    MetricContainerLayout,
     Zlm,
 }
 
@@ -78,7 +79,7 @@ struct SingletonEntryOrigin {
 #[derive(Debug, Clone, Default)]
 struct CompositionSingletonOrigins {
     scale_by_index: HashMap<u8, SingletonEntryOrigin>,
-    dpt_schema_by_scale: HashMap<u8, SingletonEntryOrigin>,
+    metric_container_layout_by_scale: HashMap<u8, SingletonEntryOrigin>,
     zlm_by_scale: HashMap<u8, SingletonEntryOrigin>,
 }
 
@@ -249,84 +250,84 @@ pub fn build(app: &mut App) {
     app.init_resource::<MainScriptEngineHandle>();
     app.add_message::<ScriptProbeMessage>();
 
-    let path = "core_mod/scripts/ecs/schedule_hooks/";
+    let path = "core_mod/scripts/ecs/schedule_entrypoints/";
     let mut abs_path = PathBuf::from(path);
     if abs_path.is_relative() {
         abs_path = asset_root().join(path);
     }
     let path = abs_path;
 
-    for name in SCHEDULE_HOOKS().lock().unwrap().drain(..) {
+    for name in SCHEDULE_ENTRYPOINTS().lock().unwrap().drain(..) {
         match name.as_str() {
             "pre_startup" => {
                 let file = format!("{name}.rhai");
                 let file_path = path.join(file);
-                app.add_systems(PreStartup, new_hook_runner_system(file_path.display().to_string()));
+                app.add_systems(PreStartup, new_schedule_entrypoint_runner_system(file_path.display().to_string()));
             }
             "startup" => {
                 let file = format!("{name}.rhai");
                 let file_path = path.join(file);
-                app.add_systems(Startup, new_hook_runner_system(file_path.display().to_string()));
+                app.add_systems(Startup, new_schedule_entrypoint_runner_system(file_path.display().to_string()));
             }
             "post_startup" => {
                 let file = format!("{name}.rhai");
                 let file_path = path.join(file);
-                app.add_systems(PostStartup, new_hook_runner_system(file_path.display().to_string()));
+                app.add_systems(PostStartup, new_schedule_entrypoint_runner_system(file_path.display().to_string()));
             }
             "first" => {
                 let file = format!("{name}.rhai");
                 let file_path = path.join(file);
-                app.add_systems(First, new_hook_runner_system(file_path.display().to_string()));
+                app.add_systems(First, new_schedule_entrypoint_runner_system(file_path.display().to_string()));
             }
             "pre_update" => {
                 let file = format!("{name}.rhai");
                 let file_path = path.join(file);
-                app.add_systems(PreUpdate, new_hook_runner_system(file_path.display().to_string()));
+                app.add_systems(PreUpdate, new_schedule_entrypoint_runner_system(file_path.display().to_string()));
             }
             "substrate_pre_update" => {
                 let file = format!("{name}.rhai");
                 let file_path = path.join(file);
-                app.add_systems(Update, new_hook_runner_system(file_path.display().to_string()).in_set(UsfSubstrateSet::Pre));
+                app.add_systems(Update, new_schedule_entrypoint_runner_system(file_path.display().to_string()).in_set(UsfSubstrateSet::Pre));
             }
             "zone_pre_update" => {
                 let file = format!("{name}.rhai");
                 let file_path = path.join(file);
-                app.add_systems(Update, new_hook_runner_system(file_path.display().to_string()).in_set(UsfZoneSet::Pre));
+                app.add_systems(Update, new_schedule_entrypoint_runner_system(file_path.display().to_string()).in_set(UsfZoneSet::Pre));
             }
             "phenomenon_pre_update" => {
                 let file = format!("{name}.rhai");
                 let file_path = path.join(file);
-                app.add_systems(Update, new_hook_runner_system(file_path.display().to_string()).in_set(UsfPhenomenonSet::Pre));
+                app.add_systems(Update, new_schedule_entrypoint_runner_system(file_path.display().to_string()).in_set(UsfPhenomenonSet::Pre));
             }
             "update" => {
                 let file = format!("{name}.rhai");
                 let file_path = path.join(file);
-                app.add_systems(Update, new_hook_runner_system(file_path.display().to_string()));
+                app.add_systems(Update, new_schedule_entrypoint_runner_system(file_path.display().to_string()));
             }
             "substrate_update" => {
                 let file = format!("{name}.rhai");
                 let file_path = path.join(file);
-                app.add_systems(Update, new_hook_runner_system(file_path.display().to_string()).in_set(UsfSubstrateSet::Post));
+                app.add_systems(Update, new_schedule_entrypoint_runner_system(file_path.display().to_string()).in_set(UsfSubstrateSet::Post));
             }
             "zone_update" => {
                 let file = format!("{name}.rhai");
                 let file_path = path.join(file);
-                app.add_systems(Update, new_hook_runner_system(file_path.display().to_string()).in_set(UsfZoneSet::Post));
+                app.add_systems(Update, new_schedule_entrypoint_runner_system(file_path.display().to_string()).in_set(UsfZoneSet::Post));
             }
             "phenomenon_update" => {
                 let file = format!("{name}.rhai");
                 let file_path = path.join(file);
-                app.add_systems(Update, new_hook_runner_system(file_path.display().to_string()).in_set(UsfPhenomenonSet::Post));
+                app.add_systems(Update, new_schedule_entrypoint_runner_system(file_path.display().to_string()).in_set(UsfPhenomenonSet::Post));
             }
             "post_update" => {
                 let file = format!("{name}.rhai");
                 let file_path = path.join(file);
-                app.add_systems(PostUpdate, new_hook_runner_system(file_path.display().to_string()));
+                app.add_systems(PostUpdate, new_schedule_entrypoint_runner_system(file_path.display().to_string()));
             }
             "last" => {
                 let file = format!("{name}.rhai");
                 let file_path = path.join(file);
-                app.add_systems(Last, new_hook_runner_system(file_path.display().to_string()));
+                app.add_systems(Last, new_schedule_entrypoint_runner_system(file_path.display().to_string()));
             }
             unknown => {
                 panic!("Schedule name '{unknown}' is not known!");
@@ -345,10 +346,10 @@ fn clear_usf_bootstrap_statics() {
 
 fn clear_usf_domain_bootstrap_statics() {
     USF_ZONE_TYPES().lock().unwrap().clear();
-    USF_DPT_SAMPLER_KERNEL_IDS().lock().unwrap().clear();
-    USF_DPT_CATEGORIZER_KERNEL_IDS().lock().unwrap().clear();
+    USF_METRIC_SAMPLER_KERNEL_IDS().lock().unwrap().clear();
+    USF_METRIC_CATEGORIZER_KERNEL_IDS().lock().unwrap().clear();
     USF_ZONE_DENSITY_PROFILE_BY_TYPE().lock().unwrap().clear();
-    USF_DPT_SCHEMAS_BY_SCALE().lock().unwrap().clear();
+    USF_METRIC_CONTAINER_LAYOUTS_BY_SCALE().lock().unwrap().clear();
     USF_ZLM_SCALES_BY_SCALE().lock().unwrap().clear();
     USF_SCALES_BY_INDEX().lock().unwrap().clear();
     USF_METRICS_BY_NAME().lock().unwrap().clear();
@@ -678,9 +679,9 @@ fn run_usf_script_type_bootstrap_for_package(engine: &Engine, usf_root: &Path, c
 fn snapshot_usf_domain_statics() -> ScriptUsfModContribution {
     ScriptUsfModContribution {
         zone_types: USF_ZONE_TYPES().lock().unwrap().clone(),
-        dpt_sampler_kernel_ids: USF_DPT_SAMPLER_KERNEL_IDS().lock().unwrap().clone(),
-        dpt_categorizer_kernel_ids: USF_DPT_CATEGORIZER_KERNEL_IDS().lock().unwrap().clone(),
-        dpt_schemas_by_scale: USF_DPT_SCHEMAS_BY_SCALE().lock().unwrap().clone(),
+        metric_sampler_kernel_ids: USF_METRIC_SAMPLER_KERNEL_IDS().lock().unwrap().clone(),
+        metric_categorizer_kernel_ids: USF_METRIC_CATEGORIZER_KERNEL_IDS().lock().unwrap().clone(),
+        metric_container_layouts_by_scale: USF_METRIC_CONTAINER_LAYOUTS_BY_SCALE().lock().unwrap().clone(),
         zlm_scales_by_scale: USF_ZLM_SCALES_BY_SCALE().lock().unwrap().clone(),
         zone_density_profile_by_type: USF_ZONE_DENSITY_PROFILE_BY_TYPE().lock().unwrap().clone(),
         scales_by_index: USF_SCALES_BY_INDEX().lock().unwrap().clone(),
@@ -696,9 +697,9 @@ fn snapshot_usf_domain_statics() -> ScriptUsfModContribution {
 
 fn apply_usf_domain_snapshot(snapshot: ScriptUsfModContribution) {
     *USF_ZONE_TYPES().lock().unwrap() = snapshot.zone_types;
-    *USF_DPT_SAMPLER_KERNEL_IDS().lock().unwrap() = snapshot.dpt_sampler_kernel_ids;
-    *USF_DPT_CATEGORIZER_KERNEL_IDS().lock().unwrap() = snapshot.dpt_categorizer_kernel_ids;
-    *USF_DPT_SCHEMAS_BY_SCALE().lock().unwrap() = snapshot.dpt_schemas_by_scale;
+    *USF_METRIC_SAMPLER_KERNEL_IDS().lock().unwrap() = snapshot.metric_sampler_kernel_ids;
+    *USF_METRIC_CATEGORIZER_KERNEL_IDS().lock().unwrap() = snapshot.metric_categorizer_kernel_ids;
+    *USF_METRIC_CONTAINER_LAYOUTS_BY_SCALE().lock().unwrap() = snapshot.metric_container_layouts_by_scale;
     *USF_ZLM_SCALES_BY_SCALE().lock().unwrap() = snapshot.zlm_scales_by_scale;
     *USF_ZONE_DENSITY_PROFILE_BY_TYPE().lock().unwrap() = snapshot.zone_density_profile_by_type;
     *USF_SCALES_BY_INDEX().lock().unwrap() = snapshot.scales_by_index;
@@ -741,7 +742,7 @@ fn merge_map_unique<K: Eq + Hash + Clone + std::fmt::Debug, V>(target: &mut Hash
 fn singleton_conflict_policy_for_domain(package: &ScriptUsfModDefinition, domain: SingletonDomain) -> ScriptSingletonConflictPolicy {
     match domain {
         SingletonDomain::Scale => package.scale_conflict_policy,
-        SingletonDomain::DptSchema => package.dpt_schema_conflict_policy,
+        SingletonDomain::MetricContainerLayout => package.metric_container_layout_conflict_policy,
         SingletonDomain::Zlm => package.zlm_conflict_policy,
     }
 }
@@ -816,18 +817,18 @@ fn merge_mod_contribution_into_composed(
     incoming_load_order_index: usize,
 ) {
     merge_set_unique(&mut composed.zone_types, contribution.zone_types, "zone_type", mod_id);
-    merge_set_union(&mut composed.dpt_sampler_kernel_ids, contribution.dpt_sampler_kernel_ids);
-    merge_set_union(&mut composed.dpt_categorizer_kernel_ids, contribution.dpt_categorizer_kernel_ids);
+    merge_set_union(&mut composed.metric_sampler_kernel_ids, contribution.metric_sampler_kernel_ids);
+    merge_set_union(&mut composed.metric_categorizer_kernel_ids, contribution.metric_categorizer_kernel_ids);
 
     merge_singleton_map(
-        &mut composed.dpt_schemas_by_scale,
-        contribution.dpt_schemas_by_scale,
-        &mut singleton_origins.dpt_schema_by_scale,
+        &mut composed.metric_container_layouts_by_scale,
+        contribution.metric_container_layouts_by_scale,
+        &mut singleton_origins.metric_container_layout_by_scale,
         mod_id,
         mod_definitions,
         incoming_load_order_index,
-        SingletonDomain::DptSchema,
-        "dpt_schema_scale_index",
+        SingletonDomain::MetricContainerLayout,
+        "metric_container_layout_scale_index",
     );
     merge_singleton_map(
         &mut composed.zlm_scales_by_scale,
@@ -933,10 +934,10 @@ fn validate_mod_contribution_against_manifest(mod_id: &str, contribution: &Scrip
             );
         }
     }
-    for scale_index in &manifest.required_dpt_schema_scales {
-        if !contribution.dpt_schemas_by_scale.contains_key(scale_index) {
+    for scale_index in &manifest.required_metric_container_layout_scales {
+        if !contribution.metric_container_layouts_by_scale.contains_key(scale_index) {
             panic!(
-                "USF mod composition hard error: mod '{}' manifest requires DPT schema at scale {}, but contribution did not define it",
+                "USF mod composition hard error: mod '{}' manifest requires metric container layout at scale {}, but contribution did not define it",
                 mod_id, scale_index
             );
         }
@@ -1352,14 +1353,6 @@ fn normalize_phenomenon_kind(kind: &str) -> Result<String, Box<EvalAltResult>> {
 }
 
 #[inline]
-fn normalize_phenomenon_capability(capability: &str) -> Result<String, Box<EvalAltResult>> {
-    let capability = normalize_script_identifier("capability", capability)?;
-    let parsed = PhenomenonCapability::try_from_config_value(capability.as_str())
-        .map_err(|error| format!("unknown phenomenon capability '{}': {}", capability, error))?;
-    Ok(parsed.canonical_id().to_string())
-}
-
-#[inline]
 fn normalize_phenomena_model_topology(topology: &str) -> Result<String, Box<EvalAltResult>> {
     let topology = normalize_script_identifier("topology", topology)?;
     match topology.as_str() {
@@ -1490,9 +1483,9 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
 
             match singleton_domain.as_str() {
                 "scale" => mod_definition.scale_conflict_policy = policy,
-                "dpt_schema" => mod_definition.dpt_schema_conflict_policy = policy,
+                "metric_container_layout" => mod_definition.metric_container_layout_conflict_policy = policy,
                 "zlm" | "zlm_scale" => mod_definition.zlm_conflict_policy = policy,
-                _ => return Err(format!("singleton_domain '{}' is invalid; expected one of: scale, dpt_schema, zlm", singleton_domain).into()),
+                _ => return Err(format!("singleton_domain '{}' is invalid; expected one of: scale, metric_container_layout, zlm", singleton_domain).into()),
             }
             Ok(())
         },
@@ -1575,14 +1568,14 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
         manifest.required_scales.extend(0..(Scale::SCALE_LEVEL_COUNT as u8));
         Ok(())
     });
-    engine.register_fn("declare_all_dpt_schemas", |ctx: &mut UsfModScriptCtx| -> Result<(), Box<EvalAltResult>> {
+    engine.register_fn("declare_all_metric_container_layouts", |ctx: &mut UsfModScriptCtx| -> Result<(), Box<EvalAltResult>> {
         let mod_id = normalize_script_identifier("mod_id", ctx.mod_id.as_str())?;
         ensure_mod_and_manifest_registered(mod_id.as_str());
         let mut manifests = USF_MOD_MANIFESTS_BY_ID().lock().unwrap();
         let Some(manifest) = manifests.get_mut(mod_id.as_str()) else {
             return Err(format!("mod '{}' manifest is not registered", mod_id).into());
         };
-        manifest.required_dpt_schema_scales.extend(0..(Scale::SCALE_LEVEL_COUNT as u8));
+        manifest.required_metric_container_layout_scales.extend(0..(Scale::SCALE_LEVEL_COUNT as u8));
         Ok(())
     });
     engine.register_fn("declare_all_zlms", |ctx: &mut UsfModScriptCtx| -> Result<(), Box<EvalAltResult>> {
@@ -1975,30 +1968,30 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
     engine.register_fn("scale_level_count", |_ctx: &mut UsfScaleScriptCtx| -> rhai::INT {
         Scale::SCALE_LEVEL_COUNT as rhai::INT
     });
-    engine.register_fn("default_dpt_sampler_kernel_id", |_ctx: &mut UsfScaleScriptCtx| -> String {
-        DPT_SAMPLER_KERNEL_DEFAULT_ID.to_string()
+    engine.register_fn("default_metric_sampler_kernel_id", |_ctx: &mut UsfScaleScriptCtx| -> String {
+        METRIC_SAMPLER_KERNEL_DEFAULT_ID.to_string()
     });
-    engine.register_fn("default_dpt_categorizer_kernel_id", |_ctx: &mut UsfScaleScriptCtx| -> String {
-        DPT_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID.to_string()
+    engine.register_fn("default_metric_categorizer_kernel_id", |_ctx: &mut UsfScaleScriptCtx| -> String {
+        METRIC_CATEGORIZER_KERNEL_ZLM_LOOKUP_ID.to_string()
     });
     engine.register_fn(
-        "register_dpt_sampler_kernel_id",
-        |_ctx: &mut UsfScaleScriptCtx, dpt_sampler_id: &str| -> Result<(), Box<EvalAltResult>> {
-            let dpt_sampler_id = normalize_script_identifier("dpt_sampler_id", dpt_sampler_id)?;
-            USF_DPT_SAMPLER_KERNEL_IDS().lock().unwrap().insert(dpt_sampler_id);
+        "register_metric_sampler_kernel_id",
+        |_ctx: &mut UsfScaleScriptCtx, metric_sampler_id: &str| -> Result<(), Box<EvalAltResult>> {
+            let metric_sampler_id = normalize_script_identifier("metric_sampler_id", metric_sampler_id)?;
+            USF_METRIC_SAMPLER_KERNEL_IDS().lock().unwrap().insert(metric_sampler_id);
             Ok(())
         },
     );
     engine.register_fn(
-        "register_dpt_categorizer_kernel_id",
-        |_ctx: &mut UsfScaleScriptCtx, dpt_categorizer_id: &str| -> Result<(), Box<EvalAltResult>> {
-            let dpt_categorizer_id = normalize_script_identifier("dpt_categorizer_id", dpt_categorizer_id)?;
-            USF_DPT_CATEGORIZER_KERNEL_IDS().lock().unwrap().insert(dpt_categorizer_id);
+        "register_metric_categorizer_kernel_id",
+        |_ctx: &mut UsfScaleScriptCtx, metric_categorizer_id: &str| -> Result<(), Box<EvalAltResult>> {
+            let metric_categorizer_id = normalize_script_identifier("metric_categorizer_id", metric_categorizer_id)?;
+            USF_METRIC_CATEGORIZER_KERNEL_IDS().lock().unwrap().insert(metric_categorizer_id);
             Ok(())
         },
     );
     engine.register_fn(
-        "set_dpt_schema_from_metric_set",
+        "set_metric_container_layout_from_metric_set",
         |ctx: &mut UsfScaleScriptCtx, scale_index: i64, revision: i64, fallback_zone: &str, metric_set_id: &str| -> Result<(), Box<EvalAltResult>> {
             let owner_mod_id = ensure_owner_mod_for_ctx(ctx.owner_mod_id.as_str())?;
             let scale_index = parse_scale_index(scale_index)?;
@@ -2018,12 +2011,12 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
             };
 
             let metrics = USF_METRICS_BY_NAME().lock().unwrap();
-            let mut compiled_metrics = Vec::<ScriptDptMetricDefinition>::with_capacity(metric_set.len());
+            let mut compiled_metrics = Vec::<ScriptMetricDefinition>::with_capacity(metric_set.len());
             for metric_name in metric_set {
                 let Some(metric) = metrics.get(&metric_name) else {
                     return Err(format!("metric_set '{}' references unknown metric '{}'", metric_set_id, metric_name).into());
                 };
-                compiled_metrics.push(ScriptDptMetricDefinition {
+                compiled_metrics.push(ScriptMetricDefinition {
                     id: metric.id,
                     name: metric.name.clone(),
                     value_type: metric.value_type.clone(),
@@ -2036,16 +2029,16 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
             }
             drop(metrics);
 
-            USF_DPT_SCHEMAS_BY_SCALE().lock().unwrap().insert(
+            USF_METRIC_CONTAINER_LAYOUTS_BY_SCALE().lock().unwrap().insert(
                 scale_index,
-                ScriptDptSchemaDefinition {
+                ScriptMetricContainerLayoutDefinition {
                     revision,
                     fallback_zone,
                     metrics: compiled_metrics,
                 },
             );
             with_owner_mod_manifest_mut(owner_mod_id.as_str(), |manifest| {
-                manifest.required_dpt_schema_scales.insert(scale_index);
+                manifest.required_metric_container_layout_scales.insert(scale_index);
             })?;
             Ok(())
         },
@@ -2054,34 +2047,34 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
         "set_scale",
         |ctx: &mut UsfScaleScriptCtx,
          scale_index: i64,
-         dpt_sampler_id: &str,
-         dpt_categorizer_id: &str,
+         metric_sampler_id: &str,
+         metric_categorizer_id: &str,
          chunk_store_key: &str|
          -> Result<(), Box<EvalAltResult>> {
             let owner_mod_id = ensure_owner_mod_for_ctx(ctx.owner_mod_id.as_str())?;
             let scale_index = parse_scale_index(scale_index)?;
-            let dpt_sampler_id = normalize_script_identifier("dpt_sampler_id", dpt_sampler_id)?;
-            let dpt_categorizer_id = normalize_script_identifier("dpt_categorizer_id", dpt_categorizer_id)?;
+            let metric_sampler_id = normalize_script_identifier("metric_sampler_id", metric_sampler_id)?;
+            let metric_categorizer_id = normalize_script_identifier("metric_categorizer_id", metric_categorizer_id)?;
             let chunk_store_key = normalize_script_identifier("chunk_store_key", chunk_store_key)?;
-            if !USF_DPT_SAMPLER_KERNEL_IDS().lock().unwrap().contains(dpt_sampler_id.as_str()) {
+            if !USF_METRIC_SAMPLER_KERNEL_IDS().lock().unwrap().contains(metric_sampler_id.as_str()) {
                 return Err(format!(
-                    "dpt_sampler_id '{}' is not registered; call ctx.register_dpt_sampler_kernel_id(...) first",
-                    dpt_sampler_id
+                    "metric_sampler_id '{}' is not registered; call ctx.register_metric_sampler_kernel_id(...) first",
+                    metric_sampler_id
                 )
                 .into());
             }
-            if !USF_DPT_CATEGORIZER_KERNEL_IDS().lock().unwrap().contains(dpt_categorizer_id.as_str()) {
+            if !USF_METRIC_CATEGORIZER_KERNEL_IDS().lock().unwrap().contains(metric_categorizer_id.as_str()) {
                 return Err(format!(
-                    "dpt_categorizer_id '{}' is not registered; call ctx.register_dpt_categorizer_kernel_id(...) first",
-                    dpt_categorizer_id
+                    "metric_categorizer_id '{}' is not registered; call ctx.register_metric_categorizer_kernel_id(...) first",
+                    metric_categorizer_id
                 )
                 .into());
             }
             USF_SCALES_BY_INDEX().lock().unwrap().insert(
                 scale_index,
                 ScriptScaleDefinition {
-                    dpt_sampler_id,
-                    dpt_categorizer_id,
+                    metric_sampler_id,
+                    metric_categorizer_id,
                     chunk_store_key,
                 },
             );
@@ -2109,13 +2102,8 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
             let owner_mod_id = ensure_owner_mod_for_ctx(ctx.owner_mod_id.as_str())?;
             let phenomenon_id = normalize_script_identifier("phenomenon_id", ctx.phenomenon_id.as_str())?;
             let phenomenon_kind = normalize_phenomenon_kind(phenomenon_kind)?;
-            let kind = PhenomenonKind::try_from_config_value(phenomenon_kind.as_str())
+            PhenomenonKind::try_from_config_value(phenomenon_kind.as_str())
                 .map_err(|error| format!("unknown phenomenon_kind '{}': {}", phenomenon_kind, error))?;
-            let capabilities = kind
-                .declared_capabilities()
-                .iter()
-                .map(|capability| capability.canonical_id().to_string())
-                .collect::<Vec<_>>();
 
             let mut phenomena = USF_PHENOMENA_BY_ID().lock().unwrap();
             if let Some(existing) = phenomena.get(&phenomenon_id) {
@@ -2126,20 +2114,12 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                     )
                     .into());
                 }
-                if existing.capabilities != capabilities {
-                    return Err(format!(
-                        "phenomenon '{}' already exists with capabilities {:?}; got {:?}",
-                        phenomenon_id, existing.capabilities, capabilities
-                    )
-                    .into());
-                }
             } else {
                 phenomena.insert(
                     phenomenon_id.clone(),
                     ScriptPhenomenonDefinition {
                         id: phenomenon_id.clone(),
                         kind: phenomenon_kind,
-                        capabilities,
                     },
                 );
             }
@@ -2148,25 +2128,6 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
             with_owner_mod_manifest_mut(owner_mod_id.as_str(), |manifest| {
                 manifest.required_phenomena.insert(phenomenon_id);
             })?;
-            Ok(())
-        },
-    );
-    engine.register_fn(
-        "add_capability",
-        |ctx: &mut UsfPhenomenonScriptCtx, capability: &str| -> Result<(), Box<EvalAltResult>> {
-            let phenomenon_id = normalize_script_identifier("phenomenon_id", ctx.phenomenon_id.as_str())?;
-            let capability = normalize_phenomenon_capability(capability)?;
-            let mut phenomena = USF_PHENOMENA_BY_ID().lock().unwrap();
-            let Some(phenomenon) = phenomena.get_mut(&phenomenon_id) else {
-                return Err(format!(
-                    "phenomenon '{}' is not registered; call ctx.register(...) before add_capability(...)",
-                    phenomenon_id
-                )
-                .into());
-            };
-            if !phenomenon.capabilities.iter().any(|value| value == &capability) {
-                phenomenon.capabilities.push(capability);
-            }
             Ok(())
         },
     );
@@ -2263,12 +2224,12 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                         projection_metric_name: "demo_mass_density".to_string(),
                         projection_bias: 0.0,
                         projection_gain: 1.0,
-                        manifestation_density: None,
-                        manifestation_material: None,
-                        manifestation_collider_enabled: false,
+                        realization_density: None,
+                        realization_material: None,
+                        realization_collider_enabled: false,
                         simulation_service: None,
-                        manifestation_audio_emitter: None,
-                        manifestation_particle_emitter: None,
+                        realization_audio_emitter: None,
+                        realization_particle_emitter: None,
                         interaction_trigger: None,
                     },
                 );
@@ -2282,7 +2243,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
         },
     );
     engine.register_fn(
-        "set_manifestation_density_field",
+        "set_realization_density_field",
         |ctx: &mut UsfPhenomenonModelScriptCtx,
          coarse_span_units: f64,
          detail_span_units: f64,
@@ -2299,25 +2260,6 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
             let Some(model) = models.get_mut(&model_id) else {
                 return Err(format!("phenomenon model '{}' is not registered; call ctx.register(...) first", model_id).into());
             };
-
-            let phenomena = USF_PHENOMENA_BY_ID().lock().unwrap();
-            let Some(phenomenon) = phenomena.get(model.phenomenon_id.as_str()) else {
-                return Err(format!("phenomenon model '{}' references unknown phenomenon '{}'", model_id, model.phenomenon_id).into());
-            };
-            let required_capability = PhenomenonCapability::ManifestationDensityField.canonical_id();
-            if !phenomenon
-                .capabilities
-                .iter()
-                .any(|capability| capability.eq_ignore_ascii_case(required_capability))
-            {
-                return Err(format!(
-                    "phenomenon model '{}' belongs to phenomenon '{}' (kind='{}') without capability '{}'; \
-                     set_manifestation_density_field requires that capability.",
-                    model_id, model.phenomenon_id, phenomenon.kind, required_capability
-                )
-                .into());
-            }
-            drop(phenomena);
 
             if !coarse_span_units.is_finite() || coarse_span_units <= 0.0 {
                 return Err("coarse_span_units must be finite and > 0".into());
@@ -2344,7 +2286,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                 return Err("center must be finite".into());
             }
 
-            model.manifestation_density = Some(ScriptManifestationDensityDefinition {
+            model.realization_density = Some(ScriptRealizationDensityDefinition {
                 coarse_span_units,
                 detail_span_units,
                 coarse_weight: coarse_weight as f32,
@@ -2397,7 +2339,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
         },
     );
     engine.register_fn(
-        "set_manifestation_material_profile",
+        "set_realization_material_profile",
         |ctx: &mut UsfPhenomenonModelScriptCtx,
          albedo_r: f64,
          albedo_g: f64,
@@ -2412,25 +2354,6 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
             let Some(model) = models.get_mut(&model_id) else {
                 return Err(format!("phenomenon model '{}' is not registered; call ctx.register(...) first", model_id).into());
             };
-
-            let phenomena = USF_PHENOMENA_BY_ID().lock().unwrap();
-            let Some(phenomenon) = phenomena.get(model.phenomenon_id.as_str()) else {
-                return Err(format!("phenomenon model '{}' references unknown phenomenon '{}'", model_id, model.phenomenon_id).into());
-            };
-            let required_capability = PhenomenonCapability::ManifestationMaterialProfile.canonical_id();
-            if !phenomenon
-                .capabilities
-                .iter()
-                .any(|capability| capability.eq_ignore_ascii_case(required_capability))
-            {
-                return Err(format!(
-                    "phenomenon model '{}' belongs to phenomenon '{}' (kind='{}') without capability '{}'; \
-                     set_manifestation_material_profile requires that capability.",
-                    model_id, model.phenomenon_id, phenomenon.kind, required_capability
-                )
-                .into());
-            }
-            drop(phenomena);
 
             if !albedo_r.is_finite() || !albedo_g.is_finite() || !albedo_b.is_finite() {
                 return Err("albedo channels must be finite".into());
@@ -2448,7 +2371,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                 return Err("emissive_strength must be finite".into());
             }
 
-            model.manifestation_material = Some(ScriptManifestationMaterialDefinition {
+            model.realization_material = Some(ScriptRealizationMaterialDefinition {
                 albedo_r: albedo_r as f32,
                 albedo_g: albedo_g as f32,
                 albedo_b: albedo_b as f32,
@@ -2461,7 +2384,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
         },
     );
     engine.register_fn(
-        "set_manifestation_collider_enabled",
+        "set_realization_collider_enabled",
         |ctx: &mut UsfPhenomenonModelScriptCtx, enabled: bool| -> Result<(), Box<EvalAltResult>> {
             let model_id = normalize_script_identifier("model_id", ctx.model_id.as_str())?;
             let mut models = USF_PHENOMENON_MODELS_BY_ID().lock().unwrap();
@@ -2469,27 +2392,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                 return Err(format!("phenomenon model '{}' is not registered; call ctx.register(...) first", model_id).into());
             };
 
-            if enabled {
-                let phenomena = USF_PHENOMENA_BY_ID().lock().unwrap();
-                let Some(phenomenon) = phenomena.get(model.phenomenon_id.as_str()) else {
-                    return Err(format!("phenomenon model '{}' references unknown phenomenon '{}'", model_id, model.phenomenon_id).into());
-                };
-                let required_capability = PhenomenonCapability::ManifestationCollider.canonical_id();
-                if !phenomenon
-                    .capabilities
-                    .iter()
-                    .any(|capability| capability.eq_ignore_ascii_case(required_capability))
-                {
-                    return Err(format!(
-                        "phenomenon model '{}' belongs to phenomenon '{}' (kind='{}') without capability '{}'; \
-                         set_manifestation_collider_enabled(true) requires that capability.",
-                        model_id, model.phenomenon_id, phenomenon.kind, required_capability
-                    )
-                    .into());
-                }
-            }
-
-            model.manifestation_collider_enabled = enabled;
+            model.realization_collider_enabled = enabled;
             Ok(())
         },
     );
@@ -2501,25 +2404,6 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
             let Some(model) = models.get_mut(&model_id) else {
                 return Err(format!("phenomenon model '{}' is not registered; call ctx.register(...) first", model_id).into());
             };
-
-            let phenomena = USF_PHENOMENA_BY_ID().lock().unwrap();
-            let Some(phenomenon) = phenomena.get(model.phenomenon_id.as_str()) else {
-                return Err(format!("phenomenon model '{}' references unknown phenomenon '{}'", model_id, model.phenomenon_id).into());
-            };
-            let required_capability = PhenomenonCapability::SimulationService.canonical_id();
-            if !phenomenon
-                .capabilities
-                .iter()
-                .any(|capability| capability.eq_ignore_ascii_case(required_capability))
-            {
-                return Err(format!(
-                    "phenomenon model '{}' belongs to phenomenon '{}' (kind='{}') without capability '{}'; \
-                     set_simulation_service requires that capability.",
-                    model_id, model.phenomenon_id, phenomenon.kind, required_capability
-                )
-                .into());
-            }
-            drop(phenomena);
 
             if !target_hz.is_finite() || target_hz <= 0.0 {
                 return Err("target_hz must be finite and > 0".into());
@@ -2540,7 +2424,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
         },
     );
     engine.register_fn(
-        "set_manifestation_audio_emitter",
+        "set_realization_audio_emitter",
         |ctx: &mut UsfPhenomenonModelScriptCtx,
          event_id: &str,
          looped: bool,
@@ -2554,25 +2438,6 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                 return Err(format!("phenomenon model '{}' is not registered; call ctx.register(...) first", model_id).into());
             };
 
-            let phenomena = USF_PHENOMENA_BY_ID().lock().unwrap();
-            let Some(phenomenon) = phenomena.get(model.phenomenon_id.as_str()) else {
-                return Err(format!("phenomenon model '{}' references unknown phenomenon '{}'", model_id, model.phenomenon_id).into());
-            };
-            let required_capability = PhenomenonCapability::ManifestationAudioEmitter.canonical_id();
-            if !phenomenon
-                .capabilities
-                .iter()
-                .any(|capability| capability.eq_ignore_ascii_case(required_capability))
-            {
-                return Err(format!(
-                    "phenomenon model '{}' belongs to phenomenon '{}' (kind='{}') without capability '{}'; \
-                     set_manifestation_audio_emitter requires that capability.",
-                    model_id, model.phenomenon_id, phenomenon.kind, required_capability
-                )
-                .into());
-            }
-            drop(phenomena);
-
             let event_id = normalize_script_identifier("event_id", event_id)?;
             if !gain.is_finite() || gain < 0.0 {
                 return Err("gain must be finite and >= 0".into());
@@ -2584,7 +2449,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                 return Err("start_offset_seconds must be finite and >= 0".into());
             }
 
-            model.manifestation_audio_emitter = Some(ScriptManifestationAudioEmitterDefinition {
+            model.realization_audio_emitter = Some(ScriptRealizationAudioEmitterDefinition {
                 event_id,
                 looped,
                 gain: gain as f32,
@@ -2595,7 +2460,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
         },
     );
     engine.register_fn(
-        "set_manifestation_particle_emitter",
+        "set_realization_particle_emitter",
         |ctx: &mut UsfPhenomenonModelScriptCtx,
          effect_id: &str,
          emission_rate: f64,
@@ -2608,25 +2473,6 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
             let Some(model) = models.get_mut(&model_id) else {
                 return Err(format!("phenomenon model '{}' is not registered; call ctx.register(...) first", model_id).into());
             };
-
-            let phenomena = USF_PHENOMENA_BY_ID().lock().unwrap();
-            let Some(phenomenon) = phenomena.get(model.phenomenon_id.as_str()) else {
-                return Err(format!("phenomenon model '{}' references unknown phenomenon '{}'", model_id, model.phenomenon_id).into());
-            };
-            let required_capability = PhenomenonCapability::ManifestationParticleEmitter.canonical_id();
-            if !phenomenon
-                .capabilities
-                .iter()
-                .any(|capability| capability.eq_ignore_ascii_case(required_capability))
-            {
-                return Err(format!(
-                    "phenomenon model '{}' belongs to phenomenon '{}' (kind='{}') without capability '{}'; \
-                     set_manifestation_particle_emitter requires that capability.",
-                    model_id, model.phenomenon_id, phenomenon.kind, required_capability
-                )
-                .into());
-            }
-            drop(phenomena);
 
             let effect_id = normalize_script_identifier("effect_id", effect_id)?;
             if !emission_rate.is_finite() || emission_rate < 0.0 {
@@ -2643,7 +2489,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
             }
             let burst_count = u32::try_from(burst_count).map_err(|_| "burst_count must fit in u32")?;
 
-            model.manifestation_particle_emitter = Some(ScriptManifestationParticleEmitterDefinition {
+            model.realization_particle_emitter = Some(ScriptRealizationParticleEmitterDefinition {
                 effect_id,
                 emission_rate: emission_rate as f32,
                 burst_count,
@@ -2661,25 +2507,6 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
             let Some(model) = models.get_mut(&model_id) else {
                 return Err(format!("phenomenon model '{}' is not registered; call ctx.register(...) first", model_id).into());
             };
-
-            let phenomena = USF_PHENOMENA_BY_ID().lock().unwrap();
-            let Some(phenomenon) = phenomena.get(model.phenomenon_id.as_str()) else {
-                return Err(format!("phenomenon model '{}' references unknown phenomenon '{}'", model_id, model.phenomenon_id).into());
-            };
-            let required_capability = PhenomenonCapability::InteractionTrigger.canonical_id();
-            if !phenomenon
-                .capabilities
-                .iter()
-                .any(|capability| capability.eq_ignore_ascii_case(required_capability))
-            {
-                return Err(format!(
-                    "phenomenon model '{}' belongs to phenomenon '{}' (kind='{}') without capability '{}'; \
-                     set_interaction_trigger requires that capability.",
-                    model_id, model.phenomenon_id, phenomenon.kind, required_capability
-                )
-                .into());
-            }
-            drop(phenomena);
 
             let trigger_id = normalize_script_identifier("trigger_id", trigger_id)?;
             if !cooldown_seconds.is_finite() || cooldown_seconds < 0.0 {
@@ -2727,26 +2554,26 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
 }
 
 fn register_runtime_bindings(engine: &mut rhai::Engine) {
-    register_hook_param_types(engine);
+    register_schedule_entrypoint_param_types(engine);
     register_usf_script_ctx_runtime_module(engine);
-    register_schedule_hooks_runtime_module(engine);
+    register_schedule_entrypoints_runtime_module(engine);
     register_testing_runtime_module(engine);
 }
 
-fn register_schedule_hooks_runtime_module(engine: &mut rhai::Engine) {
-    let mut schedule_hooks_module = rhai::Module::new();
-    schedule_hooks_module.set_native_fn("add", |hook: &str| -> Result<(), Box<rhai::EvalAltResult>> {
-        let hook = hook.trim();
-        if hook.is_empty() {
-            return Err("schedule hook must not be empty".into());
+fn register_schedule_entrypoints_runtime_module(engine: &mut rhai::Engine) {
+    let mut schedule_entrypoints_module = rhai::Module::new();
+    schedule_entrypoints_module.set_native_fn("add", |entrypoint: &str| -> Result<(), Box<rhai::EvalAltResult>> {
+        let entrypoint = entrypoint.trim();
+        if entrypoint.is_empty() {
+            return Err("schedule entrypoint must not be empty".into());
         }
-        let mut hooks = SCHEDULE_HOOKS().lock().unwrap();
-        if !hooks.iter().any(|registered| registered == hook) {
-            hooks.push(hook.to_string());
+        let mut entrypoints = SCHEDULE_ENTRYPOINTS().lock().unwrap();
+        if !entrypoints.iter().any(|registered| registered == entrypoint) {
+            entrypoints.push(entrypoint.to_string());
         }
         Ok(())
     });
-    engine.register_static_module("rhai_binding::schedule_hooks", Arc::new(schedule_hooks_module));
+    engine.register_static_module("rhai_binding::schedule_entrypoints", Arc::new(schedule_entrypoints_module));
 }
 
 fn register_testing_runtime_module(engine: &mut rhai::Engine) {
@@ -2781,16 +2608,16 @@ mod tests {
 
     #[test]
     fn merge_mod_contribution_allows_shared_kernel_ids_across_mods() {
-        let sampler = "dpt_sampler.kernel.default.v1".to_string();
-        let categorizer = "dpt_categorizer.kernel.zlm_lookup.v1".to_string();
+        let sampler = "metric_sampler.kernel.default.v1".to_string();
+        let categorizer = "metric_categorizer.kernel.zlm_lookup.v1".to_string();
 
         let mut contrib_a = ScriptUsfModContribution::default();
-        contrib_a.dpt_sampler_kernel_ids.insert(sampler.clone());
-        contrib_a.dpt_categorizer_kernel_ids.insert(categorizer.clone());
+        contrib_a.metric_sampler_kernel_ids.insert(sampler.clone());
+        contrib_a.metric_categorizer_kernel_ids.insert(categorizer.clone());
 
         let mut contrib_b = ScriptUsfModContribution::default();
-        contrib_b.dpt_sampler_kernel_ids.insert(sampler.clone());
-        contrib_b.dpt_categorizer_kernel_ids.insert(categorizer.clone());
+        contrib_b.metric_sampler_kernel_ids.insert(sampler.clone());
+        contrib_b.metric_categorizer_kernel_ids.insert(categorizer.clone());
 
         let mut composed = ScriptUsfModContribution::default();
         let mut singleton_origins = CompositionSingletonOrigins::default();
@@ -2801,10 +2628,10 @@ mod tests {
         merge_mod_contribution_into_composed("mod_a", contrib_a, &mut composed, &mut singleton_origins, &mod_definitions, 0);
         merge_mod_contribution_into_composed("mod_b", contrib_b, &mut composed, &mut singleton_origins, &mod_definitions, 1);
 
-        assert_eq!(composed.dpt_sampler_kernel_ids.len(), 1);
-        assert_eq!(composed.dpt_categorizer_kernel_ids.len(), 1);
-        assert!(composed.dpt_sampler_kernel_ids.contains(&sampler));
-        assert!(composed.dpt_categorizer_kernel_ids.contains(&categorizer));
+        assert_eq!(composed.metric_sampler_kernel_ids.len(), 1);
+        assert_eq!(composed.metric_categorizer_kernel_ids.len(), 1);
+        assert!(composed.metric_sampler_kernel_ids.contains(&sampler));
+        assert!(composed.metric_categorizer_kernel_ids.contains(&categorizer));
     }
 
     #[test]

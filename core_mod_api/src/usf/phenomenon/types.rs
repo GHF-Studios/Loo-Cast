@@ -2,89 +2,54 @@ use crate::bevy::prelude::*;
 use crate::usf::pos::types::LocalCell3;
 use crate::usf::scale::Scale;
 
-#[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum PhenomenonCapability {
-    ManifestationDensityField,
-    ManifestationMaterialProfile,
-    ManifestationCollider,
-    SimulationService,
-    ManifestationAudioEmitter,
-    ManifestationParticleEmitter,
-    InteractionTrigger,
-}
-impl PhenomenonCapability {
-    pub fn canonical_id(self) -> &'static str {
-        match self {
-            Self::ManifestationDensityField => "manifestation_density_field",
-            Self::ManifestationMaterialProfile => "manifestation_material_profile",
-            Self::ManifestationCollider => "manifestation_collider",
-            Self::SimulationService => "simulation_service",
-            Self::ManifestationAudioEmitter => "manifestation_audio_emitter",
-            Self::ManifestationParticleEmitter => "manifestation_particle_emitter",
-            Self::InteractionTrigger => "interaction_trigger",
-        }
-    }
-
-    pub fn try_from_config_value(raw: &str) -> Result<Self, String> {
-        match raw.trim().to_ascii_lowercase().as_str() {
-            "manifestation_density_field" | "manifestation-density-field" | "density_field" | "density-field" => Ok(Self::ManifestationDensityField),
-            "manifestation_material_profile" | "manifestation-material-profile" | "material_profile" | "material-profile" => {
-                Ok(Self::ManifestationMaterialProfile)
-            }
-            "manifestation_collider" | "manifestation-collider" | "collider" => Ok(Self::ManifestationCollider),
-            "simulation_service" | "simulation-service" | "sim_service" | "sim-service" => Ok(Self::SimulationService),
-            "manifestation_audio_emitter" | "manifestation-audio-emitter" | "audio_emitter" | "audio-emitter" | "audio" => Ok(Self::ManifestationAudioEmitter),
-            "manifestation_particle_emitter" | "manifestation-particle-emitter" | "particle_emitter" | "particle-emitter" | "particles" => {
-                Ok(Self::ManifestationParticleEmitter)
-            }
-            "interaction_trigger" | "interaction-trigger" | "trigger" => Ok(Self::InteractionTrigger),
-            unknown => Err(format!("unknown capability '{unknown}'")),
-        }
-    }
-
-    pub fn from_config_value(raw: &str) -> Self {
-        Self::try_from_config_value(raw).unwrap_or_else(|error| panic!("USF phenomenon capability parse failed: {error}"))
-    }
+#[derive(Reflect, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PhenomenonKind {
+    id: String,
 }
 
-#[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum PhenomenonKind {
-    #[default]
-    ManifestationDensityDebug,
+impl Default for PhenomenonKind {
+    fn default() -> Self {
+        Self {
+            id: "untyped".to_string(),
+        }
+    }
 }
 
 impl PhenomenonKind {
-    pub fn canonical_id(self) -> &'static str {
-        match self {
-            Self::ManifestationDensityDebug => "manifestation_density_debug",
-        }
+    pub fn canonical_id(&self) -> &str {
+        self.id.as_str()
     }
 
     pub fn try_from_config_value(raw: &str) -> Result<Self, String> {
-        let normalized = raw.trim().to_ascii_lowercase();
-        match normalized.as_str() {
-            "manifestation_density_debug" | "manifestation-density-debug" => Ok(Self::ManifestationDensityDebug),
-            _ => Err(format!("unknown kind '{}'", normalized)),
-        }
+        let normalized = normalize_kind_identifier(raw)?;
+        Ok(Self { id: normalized })
     }
 
     pub fn from_config_value(raw: &str) -> Self {
         Self::try_from_config_value(raw).unwrap_or_else(|error| panic!("USF phenomenon kind parse failed: {}", error))
     }
 
-    pub fn declared_capabilities(self) -> &'static [PhenomenonCapability] {
-        match self {
-            Self::ManifestationDensityDebug => &[PhenomenonCapability::ManifestationDensityField],
-        }
-    }
+}
 
-    pub fn supports_capability(self, capability: PhenomenonCapability) -> bool {
-        self.declared_capabilities().contains(&capability)
+fn normalize_kind_identifier(raw: &str) -> Result<String, String> {
+    let normalized = raw.trim().to_ascii_lowercase().replace('-', "_");
+    if normalized.is_empty() {
+        return Err("kind identifier cannot be empty".to_string());
     }
+    if !normalized
+        .chars()
+        .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '_')
+    {
+        return Err(format!(
+            "kind identifier '{}' contains unsupported characters; expected [a-z0-9_]",
+            normalized
+        ));
+    }
+    Ok(normalized)
 }
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq)]
-pub struct ManifestationDensityFieldDefinition {
+pub struct RealizationDensityFieldDefinition {
     pub coarse_span_units: f64,
     pub detail_span_units: f64,
     pub coarse_weight: f32,
@@ -95,7 +60,7 @@ pub struct ManifestationDensityFieldDefinition {
     pub seed_salt_coarse: u64,
     pub seed_salt_detail: u64,
 }
-impl Default for ManifestationDensityFieldDefinition {
+impl Default for RealizationDensityFieldDefinition {
     fn default() -> Self {
         Self {
             coarse_span_units: 320.0,
@@ -112,12 +77,12 @@ impl Default for ManifestationDensityFieldDefinition {
 }
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq)]
-pub enum PhenomenonManifestationFieldContract {
-    DensityField(ManifestationDensityFieldDefinition),
+pub enum PhenomenonRealizationFieldContract {
+    DensityField(RealizationDensityFieldDefinition),
 }
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq)]
-pub struct ManifestationMaterialProfileDefinition {
+pub struct RealizationMaterialProfileDefinition {
     pub albedo_r: f32,
     pub albedo_g: f32,
     pub albedo_b: f32,
@@ -144,14 +109,14 @@ impl Default for PhenomenonSimulationServiceDefinition {
 }
 
 #[derive(Reflect, Debug, Clone, PartialEq)]
-pub struct ManifestationAudioEmitterDefinition {
+pub struct RealizationAudioEmitterDefinition {
     pub event_id: String,
     pub looped: bool,
     pub gain: f32,
     pub spatial_range: f32,
     pub start_offset_seconds: f32,
 }
-impl Default for ManifestationAudioEmitterDefinition {
+impl Default for RealizationAudioEmitterDefinition {
     fn default() -> Self {
         Self {
             event_id: "audio.event.default".to_string(),
@@ -164,14 +129,14 @@ impl Default for ManifestationAudioEmitterDefinition {
 }
 
 #[derive(Reflect, Debug, Clone, PartialEq)]
-pub struct ManifestationParticleEmitterDefinition {
+pub struct RealizationParticleEmitterDefinition {
     pub effect_id: String,
     pub emission_rate: f32,
     pub burst_count: u32,
     pub lifetime_seconds: f32,
     pub radius: f32,
 }
-impl Default for ManifestationParticleEmitterDefinition {
+impl Default for RealizationParticleEmitterDefinition {
     fn default() -> Self {
         Self {
             effect_id: "particles.effect.default".to_string(),
@@ -198,7 +163,7 @@ impl Default for InteractionTriggerDefinition {
         }
     }
 }
-impl Default for ManifestationMaterialProfileDefinition {
+impl Default for RealizationMaterialProfileDefinition {
     fn default() -> Self {
         Self {
             albedo_r: 0.54,
@@ -347,70 +312,17 @@ mod tests {
     }
 
     #[test]
-    fn phenomenon_capability_parses_simulation_service_aliases() {
-        assert_eq!(
-            PhenomenonCapability::try_from_config_value("simulation_service").expect("capability should parse"),
-            PhenomenonCapability::SimulationService
-        );
-        assert_eq!(
-            PhenomenonCapability::try_from_config_value("sim-service").expect("capability should parse"),
-            PhenomenonCapability::SimulationService
-        );
-        assert_eq!(PhenomenonCapability::SimulationService.canonical_id(), "simulation_service");
-    }
-
-    #[test]
-    fn phenomenon_capability_parses_audio_particle_and_trigger_aliases() {
-        assert_eq!(
-            PhenomenonCapability::try_from_config_value("audio-emitter").expect("audio capability should parse"),
-            PhenomenonCapability::ManifestationAudioEmitter
-        );
-        assert_eq!(
-            PhenomenonCapability::try_from_config_value("particles").expect("particle capability should parse"),
-            PhenomenonCapability::ManifestationParticleEmitter
-        );
-        assert_eq!(
-            PhenomenonCapability::try_from_config_value("trigger").expect("trigger capability should parse"),
-            PhenomenonCapability::InteractionTrigger
-        );
-        assert_eq!(PhenomenonCapability::ManifestationAudioEmitter.canonical_id(), "manifestation_audio_emitter");
-        assert_eq!(
-            PhenomenonCapability::ManifestationParticleEmitter.canonical_id(),
-            "manifestation_particle_emitter"
-        );
-        assert_eq!(PhenomenonCapability::InteractionTrigger.canonical_id(), "interaction_trigger");
-    }
-
-    #[test]
     fn phenomenon_kind_parsing_normalizes_aliases() {
-        let underscore = PhenomenonKind::try_from_config_value("manifestation_density_debug").expect("underscore kind id should parse");
-        let kebab = PhenomenonKind::try_from_config_value("manifestation-density-debug").expect("kebab kind id should parse");
+        let underscore = PhenomenonKind::try_from_config_value("demo_realization_density").expect("underscore kind id should parse");
+        let kebab = PhenomenonKind::try_from_config_value("demo-realization-density").expect("kebab kind id should parse");
         assert_eq!(underscore, kebab);
-        assert_eq!(underscore.canonical_id(), "manifestation_density_debug");
+        assert_eq!(underscore.canonical_id(), "demo_realization_density");
     }
 
     #[test]
-    fn phenomenon_kind_capability_contract_is_explicit() {
-        let kind = PhenomenonKind::ManifestationDensityDebug;
-        assert!(kind.supports_capability(PhenomenonCapability::ManifestationDensityField));
+    fn phenomenon_kind_accepts_arbitrary_normalized_identifiers() {
+        let kind = PhenomenonKind::from_config_value("galactic-supercluster");
+        assert_eq!(kind.canonical_id(), "galactic_supercluster");
     }
 
-    #[test]
-    fn phenomenon_capability_parsing_normalizes_aliases() {
-        let underscore = PhenomenonCapability::try_from_config_value("manifestation_density_field").expect("underscore capability should parse");
-        let kebab = PhenomenonCapability::try_from_config_value("manifestation-density-field").expect("kebab capability should parse");
-        assert_eq!(underscore, kebab);
-        assert_eq!(underscore.canonical_id(), "manifestation_density_field");
-
-        let material_underscore =
-            PhenomenonCapability::try_from_config_value("manifestation_material_profile").expect("material underscore capability should parse");
-        let material_alias = PhenomenonCapability::try_from_config_value("material-profile").expect("material alias capability should parse");
-        assert_eq!(material_underscore, material_alias);
-        assert_eq!(material_underscore.canonical_id(), "manifestation_material_profile");
-
-        let collider_underscore = PhenomenonCapability::try_from_config_value("manifestation_collider").expect("collider underscore capability should parse");
-        let collider_alias = PhenomenonCapability::try_from_config_value("collider").expect("collider alias capability should parse");
-        assert_eq!(collider_underscore, collider_alias);
-        assert_eq!(collider_underscore.canonical_id(), "manifestation_collider");
-    }
 }

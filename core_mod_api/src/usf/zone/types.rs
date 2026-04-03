@@ -1,8 +1,15 @@
 use crate::bevy::prelude::*;
-use crate::usf::definition::ZoneTypeId;
 use crate::usf::phenomenon::PhenomenonId;
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
+
+#[derive(Reflect, Debug, Clone, PartialEq, Eq, Hash, Default, PartialOrd, Ord)]
+pub struct ZoneTypeId(pub String);
+impl ZoneTypeId {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self(name.into())
+    }
+}
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct StableRegionId(pub u64);

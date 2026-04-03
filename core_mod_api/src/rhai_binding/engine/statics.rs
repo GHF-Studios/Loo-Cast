@@ -5,7 +5,7 @@ use core_mod_macros::export_static;
 use once_cell::sync::Lazy;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct ScriptDptMetricDefinition {
+pub struct ScriptMetricDefinition {
     pub id: u16,
     pub name: String,
     pub value_type: String,
@@ -17,10 +17,10 @@ pub struct ScriptDptMetricDefinition {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct ScriptDptSchemaDefinition {
+pub struct ScriptMetricContainerLayoutDefinition {
     pub revision: u64,
     pub fallback_zone: String,
-    pub metrics: Vec<ScriptDptMetricDefinition>,
+    pub metrics: Vec<ScriptMetricDefinition>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -53,8 +53,8 @@ pub struct ScriptZoneDensityProfileDefinition {
 
 #[derive(Debug, Clone, Default)]
 pub struct ScriptScaleDefinition {
-    pub dpt_sampler_id: String,
-    pub dpt_categorizer_id: String,
+    pub metric_sampler_id: String,
+    pub metric_categorizer_id: String,
     pub chunk_store_key: String,
 }
 
@@ -70,7 +70,7 @@ pub struct ScriptUsfModDefinition {
     pub load_after: HashSet<String>,
     pub conflicts_with: HashSet<String>,
     pub scale_conflict_policy: ScriptSingletonConflictPolicy,
-    pub dpt_schema_conflict_policy: ScriptSingletonConflictPolicy,
+    pub metric_container_layout_conflict_policy: ScriptSingletonConflictPolicy,
     pub zlm_conflict_policy: ScriptSingletonConflictPolicy,
 }
 
@@ -90,16 +90,16 @@ pub struct ScriptUsfModManifestDefinition {
     pub required_phenomena: HashSet<String>,
     pub required_phenomenon_models: HashSet<String>,
     pub required_scales: HashSet<u8>,
-    pub required_dpt_schema_scales: HashSet<u8>,
+    pub required_metric_container_layout_scales: HashSet<u8>,
     pub required_zlm_scales: HashSet<u8>,
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct ScriptUsfModContribution {
     pub zone_types: HashSet<String>,
-    pub dpt_sampler_kernel_ids: HashSet<String>,
-    pub dpt_categorizer_kernel_ids: HashSet<String>,
-    pub dpt_schemas_by_scale: HashMap<u8, ScriptDptSchemaDefinition>,
+    pub metric_sampler_kernel_ids: HashSet<String>,
+    pub metric_categorizer_kernel_ids: HashSet<String>,
+    pub metric_container_layouts_by_scale: HashMap<u8, ScriptMetricContainerLayoutDefinition>,
     pub zlm_scales_by_scale: HashMap<u8, ScriptZlmScaleDefinition>,
     pub zone_density_profile_by_type: HashMap<String, ScriptZoneDensityProfileDefinition>,
     pub scales_by_index: HashMap<u8, ScriptScaleDefinition>,
@@ -112,27 +112,14 @@ pub struct ScriptUsfModContribution {
     pub phenomenon_model_selection_by_phenomenon_scale: HashMap<String, String>,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct ScriptMetricDefinition {
-    pub id: u16,
-    pub name: String,
-    pub value_type: String,
-    pub semantics_tag: String,
-    pub storage_class: String,
-    pub derived: bool,
-    pub min_scale_index: u8,
-    pub max_scale_index: u8,
-}
-
 #[derive(Debug, Clone, Default)]
 pub struct ScriptPhenomenonDefinition {
     pub id: String,
     pub kind: String,
-    pub capabilities: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct ScriptManifestationDensityDefinition {
+pub struct ScriptRealizationDensityDefinition {
     pub coarse_span_units: f64,
     pub detail_span_units: f64,
     pub coarse_weight: f32,
@@ -144,7 +131,7 @@ pub struct ScriptManifestationDensityDefinition {
     pub seed_salt_detail: u64,
 }
 
-impl Default for ScriptManifestationDensityDefinition {
+impl Default for ScriptRealizationDensityDefinition {
     fn default() -> Self {
         Self {
             coarse_span_units: 320.0,
@@ -161,7 +148,7 @@ impl Default for ScriptManifestationDensityDefinition {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct ScriptManifestationMaterialDefinition {
+pub struct ScriptRealizationMaterialDefinition {
     pub albedo_r: f32,
     pub albedo_g: f32,
     pub albedo_b: f32,
@@ -171,7 +158,7 @@ pub struct ScriptManifestationMaterialDefinition {
     pub emissive_strength: f32,
 }
 
-impl Default for ScriptManifestationMaterialDefinition {
+impl Default for ScriptRealizationMaterialDefinition {
     fn default() -> Self {
         Self {
             albedo_r: 0.54,
@@ -203,14 +190,14 @@ impl Default for ScriptSimulationServiceDefinition {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct ScriptManifestationAudioEmitterDefinition {
+pub struct ScriptRealizationAudioEmitterDefinition {
     pub event_id: String,
     pub looped: bool,
     pub gain: f32,
     pub spatial_range: f32,
     pub start_offset_seconds: f32,
 }
-impl Default for ScriptManifestationAudioEmitterDefinition {
+impl Default for ScriptRealizationAudioEmitterDefinition {
     fn default() -> Self {
         Self {
             event_id: "audio.event.default".to_string(),
@@ -223,14 +210,14 @@ impl Default for ScriptManifestationAudioEmitterDefinition {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct ScriptManifestationParticleEmitterDefinition {
+pub struct ScriptRealizationParticleEmitterDefinition {
     pub effect_id: String,
     pub emission_rate: f32,
     pub burst_count: u32,
     pub lifetime_seconds: f32,
     pub radius: f32,
 }
-impl Default for ScriptManifestationParticleEmitterDefinition {
+impl Default for ScriptRealizationParticleEmitterDefinition {
     fn default() -> Self {
         Self {
             effect_id: "particles.effect.default".to_string(),
@@ -267,12 +254,12 @@ pub struct ScriptPhenomenonModelDefinition {
     pub projection_metric_name: String,
     pub projection_bias: f32,
     pub projection_gain: f32,
-    pub manifestation_density: Option<ScriptManifestationDensityDefinition>,
-    pub manifestation_material: Option<ScriptManifestationMaterialDefinition>,
-    pub manifestation_collider_enabled: bool,
+    pub realization_density: Option<ScriptRealizationDensityDefinition>,
+    pub realization_material: Option<ScriptRealizationMaterialDefinition>,
+    pub realization_collider_enabled: bool,
     pub simulation_service: Option<ScriptSimulationServiceDefinition>,
-    pub manifestation_audio_emitter: Option<ScriptManifestationAudioEmitterDefinition>,
-    pub manifestation_particle_emitter: Option<ScriptManifestationParticleEmitterDefinition>,
+    pub realization_audio_emitter: Option<ScriptRealizationAudioEmitterDefinition>,
+    pub realization_particle_emitter: Option<ScriptRealizationParticleEmitterDefinition>,
     pub interaction_trigger: Option<ScriptInteractionTriggerDefinition>,
 }
 impl Default for ScriptPhenomenonModelDefinition {
@@ -285,12 +272,12 @@ impl Default for ScriptPhenomenonModelDefinition {
             projection_metric_name: "demo_mass_density".to_string(),
             projection_bias: 0.0,
             projection_gain: 1.0,
-            manifestation_density: None,
-            manifestation_material: None,
-            manifestation_collider_enabled: false,
+            realization_density: None,
+            realization_material: None,
+            realization_collider_enabled: false,
             simulation_service: None,
-            manifestation_audio_emitter: None,
-            manifestation_particle_emitter: None,
+            realization_audio_emitter: None,
+            realization_particle_emitter: None,
             interaction_trigger: None,
         }
     }
@@ -310,14 +297,14 @@ pub struct ScriptZoneSelectionPolicyDefinition {
     pub strategy: String,
 }
 
-export_static!(self, crate::rhai_binding::engine::statics::SCHEDULE_HOOKS: Lazy<Mutex<Vec<String>>> = Lazy::new(Default::default));
+export_static!(self, crate::rhai_binding::engine::statics::SCHEDULE_ENTRYPOINTS: Lazy<Mutex<Vec<String>>> = Lazy::new(Default::default));
 export_static!(self, crate::rhai_binding::engine::statics::USF_ZONE_TYPES: Lazy<Mutex<HashSet<String>>> = Lazy::new(Default::default));
-export_static!(self, crate::rhai_binding::engine::statics::USF_DPT_SAMPLER_KERNEL_IDS: Lazy<Mutex<HashSet<String>>> = Lazy::new(Default::default));
+export_static!(self, crate::rhai_binding::engine::statics::USF_METRIC_SAMPLER_KERNEL_IDS: Lazy<Mutex<HashSet<String>>> = Lazy::new(Default::default));
 export_static!(
     self,
-    crate::rhai_binding::engine::statics::USF_DPT_CATEGORIZER_KERNEL_IDS: Lazy<Mutex<HashSet<String>>> = Lazy::new(Default::default)
+    crate::rhai_binding::engine::statics::USF_METRIC_CATEGORIZER_KERNEL_IDS: Lazy<Mutex<HashSet<String>>> = Lazy::new(Default::default)
 );
-export_static!(self, crate::rhai_binding::engine::statics::USF_DPT_SCHEMAS_BY_SCALE: Lazy<Mutex<HashMap<u8, ScriptDptSchemaDefinition>>> = Lazy::new(Default::default));
+export_static!(self, crate::rhai_binding::engine::statics::USF_METRIC_CONTAINER_LAYOUTS_BY_SCALE: Lazy<Mutex<HashMap<u8, ScriptMetricContainerLayoutDefinition>>> = Lazy::new(Default::default));
 export_static!(self, crate::rhai_binding::engine::statics::USF_ZLM_SCALES_BY_SCALE: Lazy<Mutex<HashMap<u8, ScriptZlmScaleDefinition>>> = Lazy::new(Default::default));
 export_static!(self, crate::rhai_binding::engine::statics::USF_ZONE_DENSITY_PROFILE_BY_TYPE: Lazy<Mutex<HashMap<String, ScriptZoneDensityProfileDefinition>>> = Lazy::new(Default::default));
 export_static!(

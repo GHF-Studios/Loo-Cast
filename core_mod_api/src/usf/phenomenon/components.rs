@@ -4,16 +4,12 @@ use crate::usf::scale::Scale;
 
 use super::PHENOMENON_MODEL_SCHEMA_VERSION;
 use super::generator::PhenomenonStateSnapshot;
-use super::types::{
-    InteractionTriggerDefinition, ManifestationAudioEmitterDefinition, ManifestationParticleEmitterDefinition, PhenomenonId, PhenomenonKind, PhenomenonLineage,
-    PhenomenonNodeKey, PhenomenonNodeSeed, PhenomenonSimulationServiceDefinition,
-};
+use super::types::{PhenomenonId, PhenomenonLineage, PhenomenonNodeKey, PhenomenonNodeSeed};
 
-#[derive(Component, Reflect, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Component, Reflect, Debug, Clone, PartialEq, Eq)]
 #[reflect(Component)]
 pub struct Phenomenon {
     pub id: PhenomenonId,
-    pub kind: PhenomenonKind,
 }
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -94,30 +90,6 @@ pub struct PhenomenonModelSupport {
 #[reflect(Component)]
 pub struct PhenomenonModelProjectionContract {
     pub contract: PhenomenonModelProjectionSpec,
-}
-
-#[derive(Component, Reflect, Debug, Clone, PartialEq)]
-#[reflect(Component)]
-pub struct PhenomenonModelSimulationContract {
-    pub contract: PhenomenonSimulationServiceDefinition,
-}
-
-#[derive(Component, Reflect, Debug, Clone, PartialEq)]
-#[reflect(Component)]
-pub struct PhenomenonModelManifestationAudioContract {
-    pub contract: ManifestationAudioEmitterDefinition,
-}
-
-#[derive(Component, Reflect, Debug, Clone, PartialEq)]
-#[reflect(Component)]
-pub struct PhenomenonModelManifestationParticleContract {
-    pub contract: ManifestationParticleEmitterDefinition,
-}
-
-#[derive(Component, Reflect, Debug, Clone, PartialEq)]
-#[reflect(Component)]
-pub struct PhenomenonModelInteractionTriggerContract {
-    pub contract: InteractionTriggerDefinition,
 }
 
 #[derive(Component, Reflect, Debug, Clone, PartialEq, Eq)]
