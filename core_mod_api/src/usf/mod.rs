@@ -25,7 +25,10 @@ use authority::{
 use metric::{MetricDefinition, MetricId};
 use metric_container::MetricContainerLayout;
 use metric_container::{MetricContainerChunkKey, MetricContainerRecord};
-use mod_packs::{UsfActiveModPack, UsfExecutionPlan, UsfScaleDefinition, UsfScaleExecutionRoute};
+use mod_packs::{
+    UsfActiveModPack, UsfExecutionPlan, UsfMetricRegistry, UsfMetricSetRegistry, UsfModDefinition, UsfModRegistry, UsfModpackDefinition,
+    UsfModpackRegistry, UsfScaleDefinition, UsfScaleExecutionRoute, UsfScaleRegistry,
+};
 use mods::UsfConfiguredMod;
 use phenomenon::{
     OutputMaterialProfileDefinition, PartitionedPhenomenonModelMember, PartitionedPhenomenonModelRoot, PhenomenonId, PhenomenonKind, PhenomenonLineage,
@@ -73,9 +76,16 @@ impl Plugin for UsfPlugin {
             .register_type::<MetricDefinition>()
             .register_type::<MetricContainerLayout>()
             .register_type::<UsfScaleDefinition>()
+            .register_type::<UsfModDefinition>()
+            .register_type::<UsfModpackDefinition>()
             .register_type::<UsfConfiguredMod>()
             .register_type::<UsfScaleExecutionRoute>()
             .register_type::<UsfExecutionPlan>()
+            .register_type::<UsfModRegistry>()
+            .register_type::<UsfModpackRegistry>()
+            .register_type::<UsfMetricRegistry>()
+            .register_type::<UsfMetricSetRegistry>()
+            .register_type::<UsfScaleRegistry>()
             .register_type::<UsfActiveModPack>()
             .register_type::<UsfAuthorityDiagnostics>()
             .register_type::<UsfAuthorityDiagnosticsEvent>()

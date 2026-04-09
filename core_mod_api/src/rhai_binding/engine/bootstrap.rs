@@ -2324,7 +2324,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
                         phenomenon_id,
                         topology: "monolithic_chunk".to_string(),
                         support_chunk_radius: 0,
-                        projection_metric_name: "demo_mass_density".to_string(),
+                        projection_metric_name: String::new(),
                         projection_bias: 0.0,
                         projection_gain: 1.0,
                         output_density_field: None,

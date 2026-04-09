@@ -298,7 +298,7 @@ impl Default for ScriptPhenomenonModelDefinition {
             phenomenon_id: String::new(),
             topology: "monolithic_chunk".to_string(),
             support_chunk_radius: 0,
-            projection_metric_name: "demo_mass_density".to_string(),
+            projection_metric_name: String::new(),
             projection_bias: 0.0,
             projection_gain: 1.0,
             output_density_field: None,

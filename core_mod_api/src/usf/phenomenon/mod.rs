@@ -29,7 +29,7 @@ pub use persistence::{
     PARTIAL_PHENOMENON_MODEL_SCHEMA_VERSION, PHENOMENON_MODEL_SCHEMA_VERSION, PHENOMENON_SCHEMA_VERSION, PersistedPartialPhenomenonModelRecord,
     PersistedPhenomenonModelRecord, PersistedPhenomenonRecord, PhenomenonPersistenceDurability,
 };
-pub use resources::PhenomenonDefinitionRegistry;
+pub use resources::{PhenomenonDefinitionRegistry, PhenomenonModelRegistry};
 pub use systems::{
     PhenomenonChildScaleModelRequest, PhenomenonChildScaleRequestSettings, PhenomenonDebugStats, PhenomenonGeneratorState, PhenomenonLifecyclePolicy,
     PhenomenonPersistenceRestoreState, PhenomenonPersistenceRuntimeSettings,
@@ -53,10 +53,50 @@ use systems::{
 };
 
 pub(crate) struct PhenomenonPlugin;
+fn validate_phenomenon_model_registry_system(
+    definitions: Res<PhenomenonDefinitionRegistry>,
+    model_registry: Res<PhenomenonModelRegistry>,
+) {
+    if model_registry.phenomenon_by_model_id.is_empty() {
+        panic!("USF phenomenon model registry validation failed: no phenomenon models are registered.");
+    }
+    if model_registry.model_selection_by_phenomenon_scale.is_empty() {
+        panic!("USF phenomenon model registry validation failed: no model selection entries are registered.");
+    }
+
+    for (model_id, phenomenon_id) in &model_registry.phenomenon_by_model_id {
+        if !definitions.model_belongs_to_phenomenon(model_id, phenomenon_id) {
+            panic!(
+                "USF phenomenon model registry validation failed: model '{}' is not linked to phenomenon '{}'.",
+                model_id, phenomenon_id
+            );
+        }
+        if !model_registry.topology_by_model_id.contains_key(model_id) {
+            panic!(
+                "USF phenomenon model registry validation failed: model '{}' has no topology entry.",
+                model_id
+            );
+        }
+        if !model_registry.support_chunk_radius_by_model_id.contains_key(model_id) {
+            panic!(
+                "USF phenomenon model registry validation failed: model '{}' has no support_chunk_radius entry.",
+                model_id
+            );
+        }
+        if !model_registry.projection_spec_by_model_id.contains_key(model_id) {
+            panic!(
+                "USF phenomenon model registry validation failed: model '{}' has no projection spec entry.",
+                model_id
+            );
+        }
+    }
+}
+
 impl Plugin for PhenomenonPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<PhenomenonLifecyclePolicy>()
             .init_resource::<PhenomenonDefinitionRegistry>()
+            .init_resource::<PhenomenonModelRegistry>()
             .init_resource::<PhenomenonGeneratorState>()
             .init_resource::<PhenomenonDebugStats>()
             .init_resource::<PhenomenonPersistenceRuntimeSettings>()
@@ -68,6 +108,7 @@ impl Plugin for PhenomenonPlugin {
             .init_resource::<PartitionSyncRuntimeState>()
             .init_resource::<PhenomenonChildScaleRequestSettings>()
             .add_message::<PhenomenonChildScaleModelRequest>()
+            .add_systems(Startup, validate_phenomenon_model_registry_system.in_set(AppSet::Diagnostics))
             .add_systems(
                 Update,
                 (
@@ -110,6 +151,7 @@ impl Plugin for PhenomenonPlugin {
             .register_type::<PhenomenonNodeState>()
             .register_type::<PhenomenonNodeLifecycle>()
             .register_type::<PhenomenonDefinitionRegistry>()
+            .register_type::<PhenomenonModelRegistry>()
             .register_type::<PhenomenonLifecyclePolicy>()
             .register_type::<PhenomenonDebugStats>()
             .register_type::<PhenomenonPersistenceRuntimeSettings>()

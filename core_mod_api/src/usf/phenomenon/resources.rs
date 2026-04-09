@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::bevy::prelude::*;
 use crate::rhai_binding::engine::statics::USF_CONCEPT_CATALOG;
+use crate::usf::mod_packs::UsfMetricRegistry;
 use crate::usf::scale::Scale;
 
 use super::components::{PhenomenonModelProjectionSpec, PhenomenonModelTopology};
@@ -28,12 +29,75 @@ pub struct PhenomenonDefinitionRegistry {
     pub phenomenon_by_model_id: HashMap<String, String>,
 }
 
+#[derive(Resource, Reflect, Debug, Clone)]
+#[reflect(Resource)]
+pub struct PhenomenonModelRegistry {
+    pub phenomenon_by_model_id: HashMap<String, String>,
+    pub topology_by_model_id: HashMap<String, PhenomenonModelTopology>,
+    pub support_chunk_radius_by_model_id: HashMap<String, u16>,
+    pub projection_spec_by_model_id: HashMap<String, PhenomenonModelProjectionSpec>,
+    pub output_field_by_model_id: HashMap<String, PhenomenonOutputFieldSpec>,
+    pub model_selection_by_phenomenon_scale: HashMap<String, String>,
+}
+impl FromWorld for PhenomenonModelRegistry {
+    fn from_world(world: &mut World) -> Self {
+        let definitions = world
+            .get_resource::<PhenomenonDefinitionRegistry>()
+            .cloned()
+            .unwrap_or_else(|| panic!("USF phenomenon model registry bootstrap failed: missing PhenomenonDefinitionRegistry."));
+        let metric_registry = world.get_resource::<UsfMetricRegistry>().cloned();
+
+        let mut output_field_by_model_id = HashMap::<String, PhenomenonOutputFieldSpec>::new();
+        for model_id in definitions.phenomenon_by_model_id.keys() {
+            if let Some(field_spec) = definitions.output_field_spec_for_model(model_id) {
+                output_field_by_model_id.insert(model_id.clone(), field_spec);
+            }
+            let projection_spec = definitions.projection_spec_for_model(model_id).unwrap_or_else(|| {
+                panic!(
+                    "USF phenomenon model registry bootstrap failed: model '{}' has no projection specification.",
+                    model_id
+                )
+            });
+            if let Some(metrics) = metric_registry.as_ref() {
+                if !metrics.metrics_by_name.contains_key(projection_spec.metric_name.as_str()) {
+                    panic!(
+                        "USF phenomenon model registry bootstrap failed: model '{}' references unknown projection metric '{}'.",
+                        model_id, projection_spec.metric_name
+                    );
+                }
+            }
+        }
+
+        Self {
+            phenomenon_by_model_id: definitions.phenomenon_by_model_id.clone(),
+            topology_by_model_id: definitions.topology_by_model_id.clone(),
+            support_chunk_radius_by_model_id: definitions.support_chunk_radius_by_model_id.clone(),
+            projection_spec_by_model_id: definitions.projection_spec_by_model_id.clone(),
+            output_field_by_model_id,
+            model_selection_by_phenomenon_scale: definitions.model_selection_by_phenomenon_scale.clone(),
+        }
+    }
+}
+impl PhenomenonModelRegistry {
+    pub fn model_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<&str> {
+        let selection_key = selection_key(normalize_identifier(phenomenon_id).as_str(), scale.index_from_top());
+        self.model_selection_by_phenomenon_scale
+            .get(selection_key.as_str())
+            .map(|value| value.as_str())
+    }
+}
+
 impl Default for PhenomenonDefinitionRegistry {
     fn default() -> Self {
         let catalog = USF_CONCEPT_CATALOG().lock().unwrap().clone();
+        let script_metrics_by_name = catalog.composed.metrics_by_name.clone();
         let script_phenomena = catalog.composed.phenomena_by_id;
         let script_models = catalog.composed.phenomenon_models_by_id;
         let script_model_selection = catalog.composed.phenomenon_model_selection_by_phenomenon_scale;
+        let script_metrics = script_metrics_by_name
+            .keys()
+            .map(|metric_name| normalize_identifier(metric_name))
+            .collect::<std::collections::HashSet<_>>();
 
         if script_phenomena.is_empty() {
             panic!("USF phenomenon bootstrap failed: no phenomena registered. Define at least one '*.phenomenon.rhai' file.");
@@ -369,6 +433,12 @@ impl Default for PhenomenonDefinitionRegistry {
                     normalized_model_id
                 );
             }
+            if !script_metrics.contains(&projection_metric_name) {
+                panic!(
+                    "USF phenomenon bootstrap failed: model '{}' references unknown projection metric '{}'.",
+                    normalized_model_id, projection_metric_name
+                );
+            }
             if !model.projection_bias.is_finite() {
                 panic!(
                     "USF phenomenon bootstrap failed: model '{}' has invalid projection_bias={}.",
@@ -593,6 +663,11 @@ impl PhenomenonDefinitionRegistry {
 
     pub fn output_field_spec_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<PhenomenonOutputFieldSpec> {
         self.output_density_field_for_scale(phenomenon_id, scale)
+            .map(PhenomenonOutputFieldSpec::DensityField)
+    }
+
+    pub fn output_field_spec_for_model(&self, model_id: &str) -> Option<PhenomenonOutputFieldSpec> {
+        self.output_density_field_for_model(model_id)
             .map(PhenomenonOutputFieldSpec::DensityField)
     }
 

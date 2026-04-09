@@ -18,6 +18,128 @@ pub struct UsfScaleDefinition {
     pub chunk_store_key: String,
 }
 
+#[derive(Reflect, Debug, Clone, PartialEq, Eq, Default)]
+pub struct UsfModDefinition {
+    pub priority: i32,
+    pub dependencies: HashSet<String>,
+    pub load_after: HashSet<String>,
+    pub conflicts_with: HashSet<String>,
+}
+
+#[derive(Reflect, Debug, Clone, PartialEq, Eq, Default)]
+pub struct UsfModpackDefinition {
+    pub mod_ids: Vec<String>,
+}
+
+#[derive(Resource, Reflect, Debug, Clone, Default)]
+#[reflect(Resource)]
+pub struct UsfModRegistry {
+    pub active_modpack_id: String,
+    pub resolved_mod_ids: Vec<String>,
+    pub mods_by_id: HashMap<String, UsfModDefinition>,
+}
+impl UsfModRegistry {
+    pub fn get(&self, mod_id: &str) -> Option<&UsfModDefinition> {
+        self.mods_by_id.get(mod_id)
+    }
+}
+impl FromWorld for UsfModRegistry {
+    fn from_world(_world: &mut World) -> Self {
+        Self {
+            active_modpack_id: script_active_modpack_id(),
+            resolved_mod_ids: script_resolved_mod_ids(),
+            mods_by_id: script_mods(),
+        }
+    }
+}
+
+#[derive(Resource, Reflect, Debug, Clone, Default)]
+#[reflect(Resource)]
+pub struct UsfModpackRegistry {
+    pub active_modpack_id: String,
+    pub modpacks_by_id: HashMap<String, UsfModpackDefinition>,
+}
+impl UsfModpackRegistry {
+    pub fn active(&self) -> Option<&UsfModpackDefinition> {
+        self.modpacks_by_id.get(self.active_modpack_id.as_str())
+    }
+}
+impl FromWorld for UsfModpackRegistry {
+    fn from_world(_world: &mut World) -> Self {
+        Self {
+            active_modpack_id: script_active_modpack_id(),
+            modpacks_by_id: script_modpacks(),
+        }
+    }
+}
+
+#[derive(Resource, Reflect, Debug, Clone, Default)]
+#[reflect(Resource)]
+pub struct UsfMetricRegistry {
+    pub metrics_by_name: HashMap<String, MetricDefinition>,
+    pub metric_name_by_id: HashMap<MetricId, String>,
+}
+impl UsfMetricRegistry {
+    pub fn get_by_name(&self, name: &str) -> Option<&MetricDefinition> {
+        self.metrics_by_name.get(name)
+    }
+}
+impl FromWorld for UsfMetricRegistry {
+    fn from_world(_world: &mut World) -> Self {
+        let metrics_by_name = script_metrics_by_name();
+        let metric_name_by_id = metrics_by_name
+            .iter()
+            .map(|(name, definition)| (definition.id, name.clone()))
+            .collect::<HashMap<_, _>>();
+        Self {
+            metrics_by_name,
+            metric_name_by_id,
+        }
+    }
+}
+
+#[derive(Resource, Reflect, Debug, Clone, Default)]
+#[reflect(Resource)]
+pub struct UsfMetricSetRegistry {
+    pub metric_names_by_set_id: HashMap<String, Vec<String>>,
+}
+impl FromWorld for UsfMetricSetRegistry {
+    fn from_world(_world: &mut World) -> Self {
+        Self {
+            metric_names_by_set_id: script_metric_sets(),
+        }
+    }
+}
+
+#[derive(Resource, Reflect, Debug, Clone, Default)]
+#[reflect(Resource)]
+pub struct UsfScaleRegistry {
+    pub scales_by_index: HashMap<Scale, UsfScaleDefinition>,
+    pub known_metric_samplers: HashSet<String>,
+    pub known_metric_categorizers: HashSet<String>,
+    pub schemas_by_scale: HashMap<Scale, MetricContainerLayout>,
+    pub known_zone_types: HashSet<ZoneTypeId>,
+}
+impl FromWorld for UsfScaleRegistry {
+    fn from_world(_world: &mut World) -> Self {
+        let mut known_zone_types = HashSet::<ZoneTypeId>::new();
+        for zone in script_zone_types() {
+            known_zone_types.insert(zone);
+        }
+        let mut schemas_by_scale = HashMap::<Scale, MetricContainerLayout>::new();
+        for (scale, schema) in script_schema_overrides() {
+            schemas_by_scale.insert(scale, schema);
+        }
+        Self {
+            scales_by_index: script_scales(),
+            known_metric_samplers: script_metric_samplers(),
+            known_metric_categorizers: script_metric_categorizers(),
+            schemas_by_scale,
+            known_zone_types,
+        }
+    }
+}
+
 #[derive(Resource, Reflect, Debug, Clone)]
 #[reflect(Resource)]
 pub struct UsfActiveModPack {
@@ -237,6 +359,127 @@ fn script_concept_catalog() -> ScriptUsfConceptCatalog {
     USF_CONCEPT_CATALOG().lock().unwrap().clone()
 }
 
+fn script_active_modpack_id() -> String {
+    let active_modpack_id = script_concept_catalog().active_modpack_id.trim().to_ascii_lowercase();
+    if active_modpack_id.is_empty() {
+        panic!("USF concept catalog resolve failed: active_modpack_id is empty");
+    }
+    active_modpack_id
+}
+
+fn script_resolved_mod_ids() -> Vec<String> {
+    let resolved_mod_ids = script_concept_catalog()
+        .resolved_mod_ids
+        .into_iter()
+        .map(|mod_id| mod_id.trim().to_ascii_lowercase())
+        .collect::<Vec<_>>();
+    if resolved_mod_ids.is_empty() {
+        panic!("USF concept catalog resolve failed: resolved_mod_ids is empty");
+    }
+    resolved_mod_ids
+}
+
+fn script_mods() -> HashMap<String, UsfModDefinition> {
+    script_concept_catalog()
+        .mods_by_id
+        .into_iter()
+        .map(|(mod_id, mod_definition)| {
+            (
+                mod_id.trim().to_ascii_lowercase(),
+                UsfModDefinition {
+                    priority: mod_definition.priority,
+                    dependencies: mod_definition
+                        .dependencies
+                        .into_iter()
+                        .map(|value| value.trim().to_ascii_lowercase())
+                        .collect(),
+                    load_after: mod_definition
+                        .load_after
+                        .into_iter()
+                        .map(|value| value.trim().to_ascii_lowercase())
+                        .collect(),
+                    conflicts_with: mod_definition
+                        .conflicts_with
+                        .into_iter()
+                        .map(|value| value.trim().to_ascii_lowercase())
+                        .collect(),
+                },
+            )
+        })
+        .collect()
+}
+
+fn script_modpacks() -> HashMap<String, UsfModpackDefinition> {
+    script_concept_catalog()
+        .modpacks_by_id
+        .into_iter()
+        .map(|(modpack_id, modpack_definition)| {
+            (
+                modpack_id.trim().to_ascii_lowercase(),
+                UsfModpackDefinition {
+                    mod_ids: modpack_definition
+                        .mod_ids
+                        .into_iter()
+                        .map(|mod_id| mod_id.trim().to_ascii_lowercase())
+                        .collect(),
+                },
+            )
+        })
+        .collect()
+}
+
+fn script_metrics_by_name() -> HashMap<String, MetricDefinition> {
+    script_concept_catalog()
+        .composed
+        .metrics_by_name
+        .into_iter()
+        .map(|(metric_name, metric)| {
+            let value_type = MetricValueType::from_tag(&metric.value_type).unwrap_or_else(|| {
+                panic!(
+                    "USF script metric '{}' has invalid value_type '{}'; expected one of: u8, u16, i32, f32, f64",
+                    metric_name, metric.value_type
+                )
+            });
+            let storage_class = MetricStorageClass::from_tag(&metric.storage_class).unwrap_or_else(|| {
+                panic!(
+                    "USF script metric '{}' has invalid storage_class '{}'; expected one of: uniform, brick",
+                    metric_name, metric.storage_class
+                )
+            });
+            (
+                metric_name.trim().to_ascii_lowercase(),
+                MetricDefinition {
+                    id: MetricId(metric.id),
+                    name: metric.name.trim().to_ascii_lowercase(),
+                    value_type,
+                    semantics_tag: metric.semantics_tag.trim().to_ascii_lowercase(),
+                    storage_class,
+                    derived: metric.derived,
+                    min_scale_index: metric.min_scale_index,
+                    max_scale_index: metric.max_scale_index,
+                },
+            )
+        })
+        .collect()
+}
+
+fn script_metric_sets() -> HashMap<String, Vec<String>> {
+    script_concept_catalog()
+        .composed
+        .metric_sets_by_id
+        .into_iter()
+        .map(|(metric_set_id, metric_names)| {
+            (
+                metric_set_id.trim().to_ascii_lowercase(),
+                metric_names
+                    .into_iter()
+                    .map(|metric_name| metric_name.trim().to_ascii_lowercase())
+                    .collect::<Vec<_>>(),
+            )
+        })
+        .collect()
+}
+
 fn configured_mods_for_active_modpack_from_catalog() -> (String, Vec<UsfConfiguredMod>, Vec<String>) {
     let catalog = script_concept_catalog();
     let mod_pack_id = catalog.active_modpack_id.trim().to_ascii_lowercase();
@@ -393,6 +636,267 @@ fn script_scales() -> HashMap<Scale, UsfScaleDefinition> {
         .collect()
 }
 
+fn validate_usf_mod_registry_system(mod_registry: Res<UsfModRegistry>, modpack_registry: Res<UsfModpackRegistry>) {
+    if mod_registry.mods_by_id.is_empty() {
+        panic!("USF mod registry validation failed: no mods are registered.");
+    }
+    if mod_registry.resolved_mod_ids.is_empty() {
+        panic!("USF mod registry validation failed: resolved_mod_ids is empty.");
+    }
+    let Some(active_modpack) = modpack_registry.active() else {
+        panic!(
+            "USF mod registry validation failed: active modpack '{}' is not present in modpack registry.",
+            modpack_registry.active_modpack_id
+        );
+    };
+    if active_modpack.mod_ids.is_empty() {
+        panic!(
+            "USF mod registry validation failed: active modpack '{}' has no mods.",
+            modpack_registry.active_modpack_id
+        );
+    }
+
+    let mut seen = HashSet::<String>::new();
+    for mod_id in &active_modpack.mod_ids {
+        if !seen.insert(mod_id.clone()) {
+            panic!(
+                "USF mod registry validation failed: active modpack '{}' contains duplicate mod '{}'.",
+                modpack_registry.active_modpack_id, mod_id
+            );
+        }
+        if !mod_registry.mods_by_id.contains_key(mod_id) {
+            panic!(
+                "USF mod registry validation failed: active modpack '{}' references unknown mod '{}'.",
+                modpack_registry.active_modpack_id, mod_id
+            );
+        }
+    }
+
+    for mod_id in &mod_registry.resolved_mod_ids {
+        if !mod_registry.mods_by_id.contains_key(mod_id) {
+            panic!(
+                "USF mod registry validation failed: resolved mod '{}' is not present in mod registry.",
+                mod_id
+            );
+        }
+        if !seen.contains(mod_id) {
+            panic!(
+                "USF mod registry validation failed: resolved mod '{}' is not listed in active modpack '{}'.",
+                mod_id, modpack_registry.active_modpack_id
+            );
+        }
+    }
+}
+
+fn validate_usf_metric_registry_system(
+    metric_registry: Res<UsfMetricRegistry>,
+    metric_set_registry: Res<UsfMetricSetRegistry>,
+    scale_registry: Res<UsfScaleRegistry>,
+) {
+    if metric_registry.metrics_by_name.is_empty() {
+        panic!("USF metric registry validation failed: no metrics are registered.");
+    }
+    if metric_registry.metric_name_by_id.is_empty() {
+        panic!("USF metric registry validation failed: metric_name_by_id is empty.");
+    }
+    for (metric_id, metric_name) in &metric_registry.metric_name_by_id {
+        let Some(definition) = metric_registry.metrics_by_name.get(metric_name) else {
+            panic!(
+                "USF metric registry validation failed: metric id {} points to unknown metric '{}'.",
+                metric_id.0, metric_name
+            );
+        };
+        if definition.id != *metric_id {
+            panic!(
+                "USF metric registry validation failed: metric id mismatch for '{}': map has {}, definition has {}.",
+                metric_name, metric_id.0, definition.id.0
+            );
+        }
+    }
+
+    if metric_set_registry.metric_names_by_set_id.is_empty() {
+        panic!("USF metric set registry validation failed: no metric sets are registered.");
+    }
+    for (metric_set_id, metric_names) in &metric_set_registry.metric_names_by_set_id {
+        if metric_names.is_empty() {
+            panic!(
+                "USF metric set registry validation failed: metric set '{}' has no metrics.",
+                metric_set_id
+            );
+        }
+        let mut seen = HashSet::<String>::new();
+        for metric_name in metric_names {
+            if !seen.insert(metric_name.clone()) {
+                panic!(
+                    "USF metric set registry validation failed: metric set '{}' contains duplicate metric '{}'.",
+                    metric_set_id, metric_name
+                );
+            }
+            if !metric_registry.metrics_by_name.contains_key(metric_name) {
+                panic!(
+                    "USF metric set registry validation failed: metric set '{}' references unknown metric '{}'.",
+                    metric_set_id, metric_name
+                );
+            }
+        }
+    }
+
+    for (scale, schema) in &scale_registry.schemas_by_scale {
+        for schema_metric in &schema.metrics {
+            let schema_metric_name = schema_metric.name.trim().to_ascii_lowercase();
+            let Some(registry_metric) = metric_registry.metrics_by_name.get(&schema_metric_name) else {
+                panic!(
+                    "USF metric registry validation failed: schema metric '{}' at scale {} is not registered.",
+                    schema_metric.name,
+                    scale.index_from_top()
+                );
+            };
+            if registry_metric.id != schema_metric.id {
+                panic!(
+                    "USF metric registry validation failed: schema metric '{}' id mismatch at scale {} (schema={}, registry={}).",
+                    schema_metric.name,
+                    scale.index_from_top(),
+                    schema_metric.id.0,
+                    registry_metric.id.0
+                );
+            }
+        }
+    }
+}
+
+fn validate_usf_scale_registry_system(scale_registry: Res<UsfScaleRegistry>) {
+    if scale_registry.scales_by_index.is_empty() {
+        panic!("USF scale registry validation failed: no scales are registered.");
+    }
+    if scale_registry.schemas_by_scale.is_empty() {
+        panic!("USF scale registry validation failed: no metric container layouts are registered.");
+    }
+    if scale_registry.known_metric_samplers.is_empty() {
+        panic!("USF scale registry validation failed: no metric samplers are registered.");
+    }
+    if scale_registry.known_metric_categorizers.is_empty() {
+        panic!("USF scale registry validation failed: no metric categorizers are registered.");
+    }
+    if scale_registry.known_zone_types.is_empty() {
+        panic!("USF scale registry validation failed: no zone types are registered.");
+    }
+
+    for index in 0..Scale::SCALE_LEVEL_COUNT {
+        let Some(scale) = Scale::from_index_from_top(index) else {
+            continue;
+        };
+        let Some(scale_definition) = scale_registry.scales_by_index.get(&scale) else {
+            panic!(
+                "USF scale registry validation failed: missing scale definition for scale {}.",
+                scale.index_from_top()
+            );
+        };
+        if !scale_registry.known_metric_samplers.contains(&scale_definition.metric_sampler_id) {
+            panic!(
+                "USF scale registry validation failed: unknown metric sampler '{}' for scale {}.",
+                scale_definition.metric_sampler_id,
+                scale.index_from_top()
+            );
+        }
+        if !scale_registry
+            .known_metric_categorizers
+            .contains(&scale_definition.metric_categorizer_id)
+        {
+            panic!(
+                "USF scale registry validation failed: unknown metric categorizer '{}' for scale {}.",
+                scale_definition.metric_categorizer_id,
+                scale.index_from_top()
+            );
+        }
+        if !is_sampler_kernel_id_supported(scale_definition.metric_sampler_id.as_str()) {
+            panic!(
+                "USF scale registry validation failed: sampler '{}' is not runtime-supported for scale {}.",
+                scale_definition.metric_sampler_id,
+                scale.index_from_top()
+            );
+        }
+        if !is_categorizer_kernel_id_supported(scale_definition.metric_categorizer_id.as_str()) {
+            panic!(
+                "USF scale registry validation failed: categorizer '{}' is not runtime-supported for scale {}.",
+                scale_definition.metric_categorizer_id,
+                scale.index_from_top()
+            );
+        }
+        let Some(schema) = scale_registry.schemas_by_scale.get(&scale) else {
+            panic!(
+                "USF scale registry validation failed: missing metric container layout for scale {}.",
+                scale.index_from_top()
+            );
+        };
+        if let Err(reason) = schema.validate() {
+            panic!(
+                "USF scale registry validation failed: invalid metric container layout for scale {}: {}",
+                scale.index_from_top(),
+                reason
+            );
+        }
+        if !scale_registry.known_zone_types.contains(&schema.fallback_zone) {
+            panic!(
+                "USF scale registry validation failed: fallback zone '{}' for scale {} is not registered.",
+                schema.fallback_zone.0,
+                scale.index_from_top()
+            );
+        }
+    }
+}
+
+fn validate_usf_active_mod_pack_alignment_system(
+    active_modpack: Res<UsfActiveModPack>,
+    mod_registry: Res<UsfModRegistry>,
+    modpack_registry: Res<UsfModpackRegistry>,
+    scale_registry: Res<UsfScaleRegistry>,
+) {
+    if active_modpack.mod_pack_id != modpack_registry.active_modpack_id {
+        panic!(
+            "USF active modpack alignment failed: active modpack id '{}' differs from modpack registry '{}'.",
+            active_modpack.mod_pack_id, modpack_registry.active_modpack_id
+        );
+    }
+    if active_modpack.mod_pack_id != mod_registry.active_modpack_id {
+        panic!(
+            "USF active modpack alignment failed: active modpack id '{}' differs from mod registry '{}'.",
+            active_modpack.mod_pack_id, mod_registry.active_modpack_id
+        );
+    }
+    let active_modpack_def = modpack_registry.active().unwrap_or_else(|| {
+        panic!(
+            "USF active modpack alignment failed: active modpack '{}' missing in modpack registry.",
+            modpack_registry.active_modpack_id
+        )
+    });
+    let active_configured = active_modpack
+        .configured_mods
+        .iter()
+        .map(|entry| entry.mod_id.clone())
+        .collect::<Vec<_>>();
+    if active_configured != active_modpack_def.mod_ids {
+        panic!("USF active modpack alignment failed: configured mod list diverges from active modpack registry.");
+    }
+    if active_modpack.resolved_enabled_mods != mod_registry.resolved_mod_ids {
+        panic!("USF active modpack alignment failed: resolved enabled mod list diverges from mod registry.");
+    }
+    if active_modpack.scales_by_index != scale_registry.scales_by_index {
+        panic!("USF active modpack alignment failed: scale definitions diverge from scale registry.");
+    }
+    if active_modpack.known_metric_samplers != scale_registry.known_metric_samplers {
+        panic!("USF active modpack alignment failed: metric samplers diverge from scale registry.");
+    }
+    if active_modpack.known_metric_categorizers != scale_registry.known_metric_categorizers {
+        panic!("USF active modpack alignment failed: metric categorizers diverge from scale registry.");
+    }
+    if active_modpack.schemas_by_scale != scale_registry.schemas_by_scale {
+        panic!("USF active modpack alignment failed: schemas diverge from scale registry.");
+    }
+    if active_modpack.known_zone_types != scale_registry.known_zone_types {
+        panic!("USF active modpack alignment failed: zone types diverge from scale registry.");
+    }
+}
+
 fn validate_usf_active_mod_pack_system(active_modpack: Res<UsfActiveModPack>) {
     if let Err(reason) = active_modpack.validate() {
         panic!("USF active modpack validation failed: {reason}");
@@ -492,16 +996,27 @@ fn validate_usf_execution_plan_system(execution_plan: Res<UsfExecutionPlan>, act
 pub(crate) struct ModPacksPlugin;
 impl Plugin for ModPacksPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<UsfActiveModPack>().init_resource::<UsfExecutionPlan>().add_systems(
-            Startup,
-            (
-                validate_usf_active_mod_pack_system,
-                rebuild_usf_execution_plan_system,
-                validate_usf_execution_plan_system,
-            )
-                .chain()
-                .in_set(AppSet::Diagnostics),
-        );
+        app.init_resource::<UsfModRegistry>()
+            .init_resource::<UsfModpackRegistry>()
+            .init_resource::<UsfMetricRegistry>()
+            .init_resource::<UsfMetricSetRegistry>()
+            .init_resource::<UsfScaleRegistry>()
+            .init_resource::<UsfActiveModPack>()
+            .init_resource::<UsfExecutionPlan>()
+            .add_systems(
+                Startup,
+                (
+                    validate_usf_mod_registry_system,
+                    validate_usf_scale_registry_system,
+                    validate_usf_metric_registry_system,
+                    validate_usf_active_mod_pack_alignment_system,
+                    validate_usf_active_mod_pack_system,
+                    rebuild_usf_execution_plan_system,
+                    validate_usf_execution_plan_system,
+                )
+                    .chain()
+                    .in_set(AppSet::Diagnostics),
+            );
     }
 }
 

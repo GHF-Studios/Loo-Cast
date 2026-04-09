@@ -64,7 +64,7 @@ pub struct PhenomenonModelProjectionSpec {
 impl Default for PhenomenonModelProjectionSpec {
     fn default() -> Self {
         Self {
-            metric_name: "demo_mass_density".to_string(),
+            metric_name: String::new(),
             projection_bias: 0.0,
             projection_gain: 1.0,
         }
