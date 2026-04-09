@@ -131,6 +131,17 @@ pub struct ScriptUsfBootstrapReport {
 }
 
 #[derive(Debug, Clone, Default)]
+pub struct ScriptUsfConceptCatalog {
+    pub active_modpack_id: String,
+    pub resolved_mod_ids: Vec<String>,
+    pub mods_by_id: HashMap<String, ScriptUsfModDefinition>,
+    pub mod_manifests_by_id: HashMap<String, ScriptUsfModManifestDefinition>,
+    pub modpacks_by_id: HashMap<String, ScriptUsfModpackDefinition>,
+    pub mod_contributions_by_id: HashMap<String, ScriptUsfModContribution>,
+    pub composed: ScriptUsfModContribution,
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct ScriptPhenomenonDefinition {
     pub id: String,
     pub kind: String,
@@ -355,4 +366,8 @@ export_static!(self, crate::rhai_binding::engine::statics::USF_PHENOMENON_MODEL_
 export_static!(
     self,
     crate::rhai_binding::engine::statics::USF_BOOTSTRAP_REPORT: Lazy<Mutex<ScriptUsfBootstrapReport>> = Lazy::new(Default::default)
+);
+export_static!(
+    self,
+    crate::rhai_binding::engine::statics::USF_CONCEPT_CATALOG: Lazy<Mutex<ScriptUsfConceptCatalog>> = Lazy::new(Default::default)
 );

@@ -1,5 +1,9 @@
 # Documents — Table of Contents
 
-Nothing, there's nothing properly documented here, go back as long as you can!
+This folder is archival/supporting material, not canonical project guidance.
 
-If you dare look at whatever stuff I was too attached to throw away, or cringey ai-generated lore, go right ahead into `/documents/legacy_stuff/`.
+Use:
+
+1. `../AGENTS.md` and `../docs/README.md` for canonical docs.
+2. `temp_stuff/` for archived temporary planning and handoff documents.
+3. `legacy_stuff/` for historical notes and old artifacts.

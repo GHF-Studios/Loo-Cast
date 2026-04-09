@@ -1,12 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::bevy::prelude::*;
-use crate::config::{statics::CONFIG, types::ConfigValue};
 use crate::core::orchestration::AppSet;
-use crate::rhai_binding::engine::statics::{
-    USF_METRIC_CATEGORIZER_KERNEL_IDS, USF_METRIC_CONTAINER_LAYOUTS_BY_SCALE, USF_METRIC_SAMPLER_KERNEL_IDS, USF_MODPACKS_BY_ID, USF_MODS_BY_ID,
-    USF_SCALES_BY_INDEX, USF_ZONE_TYPES,
-};
+use crate::rhai_binding::engine::statics::{ScriptUsfConceptCatalog, USF_CONCEPT_CATALOG};
 use crate::usf::metric::{MetricDefinition, MetricId, MetricStorageClass, MetricValueType};
 use crate::usf::metric_container::{MetricContainerLayout, is_sampler_kernel_id_supported};
 use crate::usf::mods::UsfConfiguredMod;
@@ -37,8 +33,7 @@ pub struct UsfActiveModPack {
 }
 impl Default for UsfActiveModPack {
     fn default() -> Self {
-        let mod_pack_id = active_usf_mod_pack_id_from_config();
-        let (configured_mods, resolved_enabled_mods) = configured_mods_for_mod_pack(mod_pack_id.as_str());
+        let (mod_pack_id, configured_mods, resolved_enabled_mods) = configured_mods_for_active_modpack_from_catalog();
         let enabled_mods = configured_mods.iter().map(|mod_entry| mod_entry.mod_id.clone()).collect::<HashSet<_>>();
 
         let mut active_modpack = Self {
@@ -218,19 +213,6 @@ impl UsfActiveModPack {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-struct UsfScriptModPackDefinition {
-    pub mod_ids: Vec<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-struct UsfScriptModDefinition {
-    pub priority: i32,
-    pub dependencies: HashSet<String>,
-    pub load_after: HashSet<String>,
-    pub conflicts_with: HashSet<String>,
-}
-
 #[derive(Reflect, Debug, Clone, PartialEq, Eq, Default)]
 pub struct UsfScaleExecutionRoute {
     pub metric_sampler_id: String,
@@ -251,22 +233,75 @@ impl UsfExecutionPlan {
     }
 }
 
-fn script_metric_samplers() -> HashSet<String> {
-    let kernels = USF_METRIC_SAMPLER_KERNEL_IDS().lock().unwrap().clone();
-    if kernels.is_empty() {
+fn script_concept_catalog() -> ScriptUsfConceptCatalog {
+    USF_CONCEPT_CATALOG().lock().unwrap().clone()
+}
+
+fn configured_mods_for_active_modpack_from_catalog() -> (String, Vec<UsfConfiguredMod>, Vec<String>) {
+    let catalog = script_concept_catalog();
+    let mod_pack_id = catalog.active_modpack_id.trim().to_ascii_lowercase();
+    if mod_pack_id.is_empty() {
+        panic!("USF active modpack resolve failed: concept catalog has no active modpack id");
+    }
+
+    let Some(active_modpack) = catalog.modpacks_by_id.get(&mod_pack_id) else {
+        panic!("USF active modpack resolve failed: modpack '{}' is not present in concept catalog", mod_pack_id);
+    };
+    if active_modpack.mod_ids.is_empty() {
+        panic!("USF active modpack resolve failed: modpack '{}' contains no mods", mod_pack_id);
+    }
+
+    let configured_mods = active_modpack
+        .mod_ids
+        .iter()
+        .map(|mod_id| mod_id.trim().to_ascii_lowercase())
+        .map(|mod_id| {
+            if !catalog.mods_by_id.contains_key(&mod_id) {
+                panic!(
+                    "USF active modpack resolve failed: modpack '{}' references unknown mod '{}' in concept catalog",
+                    mod_pack_id, mod_id
+                );
+            }
+            UsfConfiguredMod { mod_id }
+        })
+        .collect::<Vec<_>>();
+
+    let resolved_enabled_mods = catalog
+        .resolved_mod_ids
+        .iter()
+        .map(|mod_id| mod_id.trim().to_ascii_lowercase())
+        .collect::<Vec<_>>();
+    if resolved_enabled_mods.is_empty() {
         panic!(
-            "USF content bootstrap failed: no metric sampler kernels registered. Register at least one kernel id in '*.scale.rhai' via ctx.register_metric_sampler_kernel_id(...)."
+            "USF active modpack resolve failed: concept catalog has no resolved enabled mods for modpack '{}'",
+            mod_pack_id
         );
+    }
+    let configured_mod_set = configured_mods.iter().map(|entry| entry.mod_id.clone()).collect::<HashSet<_>>();
+    for mod_id in &resolved_enabled_mods {
+        if !configured_mod_set.contains(mod_id) {
+            panic!(
+                "USF active modpack resolve failed: resolved mod '{}' is not configured by modpack '{}'",
+                mod_id, mod_pack_id
+            );
+        }
+    }
+
+    (mod_pack_id, configured_mods, resolved_enabled_mods)
+}
+
+fn script_metric_samplers() -> HashSet<String> {
+    let kernels = script_concept_catalog().composed.metric_sampler_kernel_ids;
+    if kernels.is_empty() {
+        panic!("USF content bootstrap failed: no metric sampler kernels in concept catalog");
     }
     kernels
 }
 
 fn script_metric_categorizers() -> HashSet<String> {
-    let kernels = USF_METRIC_CATEGORIZER_KERNEL_IDS().lock().unwrap().clone();
+    let kernels = script_concept_catalog().composed.metric_categorizer_kernel_ids;
     if kernels.is_empty() {
-        panic!(
-            "USF content bootstrap failed: no metric categorizer kernels registered. Register at least one kernel id in '*.scale.rhai' via ctx.register_metric_categorizer_kernel_id(...)."
-        );
+        panic!("USF content bootstrap failed: no metric categorizer kernels in concept catalog");
     }
     kernels
 }
@@ -276,15 +311,17 @@ fn normalize_zone_type(value: &str) -> ZoneTypeId {
 }
 
 fn script_zone_types() -> Vec<ZoneTypeId> {
-    let zone_types = USF_ZONE_TYPES().lock().unwrap().clone();
-    let mut ordered = zone_types.into_iter().collect::<Vec<_>>();
+    let mut ordered = script_concept_catalog().composed.zone_types.into_iter().collect::<Vec<_>>();
     ordered.sort();
     ordered.into_iter().map(|zone_type| normalize_zone_type(&zone_type)).collect()
 }
 
 fn script_schema_overrides() -> Vec<(Scale, MetricContainerLayout)> {
-    let schema_map = USF_METRIC_CONTAINER_LAYOUTS_BY_SCALE().lock().unwrap().clone();
-    let mut ordered = schema_map.into_iter().collect::<Vec<_>>();
+    let mut ordered = script_concept_catalog()
+        .composed
+        .metric_container_layouts_by_scale
+        .into_iter()
+        .collect::<Vec<_>>();
     ordered.sort_by_key(|(scale_index, _)| *scale_index);
 
     ordered
@@ -335,8 +372,7 @@ fn script_schema_overrides() -> Vec<(Scale, MetricContainerLayout)> {
 }
 
 fn script_scales() -> HashMap<Scale, UsfScaleDefinition> {
-    let bindings = USF_SCALES_BY_INDEX().lock().unwrap().clone();
-    let mut ordered = bindings.into_iter().collect::<Vec<_>>();
+    let mut ordered = script_concept_catalog().composed.scales_by_index.into_iter().collect::<Vec<_>>();
     ordered.sort_by_key(|(scale_index, _)| *scale_index);
 
     ordered
@@ -355,216 +391,6 @@ fn script_scales() -> HashMap<Scale, UsfScaleDefinition> {
             ))
         })
         .collect()
-}
-
-fn script_mods() -> HashMap<String, UsfScriptModDefinition> {
-    USF_MODS_BY_ID()
-        .lock()
-        .unwrap()
-        .iter()
-        .map(|(mod_id, mod_definition)| {
-            (
-                mod_id.clone(),
-                UsfScriptModDefinition {
-                    priority: mod_definition.priority,
-                    dependencies: mod_definition.dependencies.iter().map(|value| value.trim().to_ascii_lowercase()).collect(),
-                    load_after: mod_definition.load_after.iter().map(|value| value.trim().to_ascii_lowercase()).collect(),
-                    conflicts_with: mod_definition.conflicts_with.iter().map(|value| value.trim().to_ascii_lowercase()).collect(),
-                },
-            )
-        })
-        .collect()
-}
-
-fn script_mod_packs() -> HashMap<String, UsfScriptModPackDefinition> {
-    USF_MODPACKS_BY_ID()
-        .lock()
-        .unwrap()
-        .iter()
-        .map(|(mod_pack_id, profile)| {
-            (
-                mod_pack_id.clone(),
-                UsfScriptModPackDefinition {
-                    mod_ids: profile.mod_ids.iter().map(|mod_id| mod_id.trim().to_ascii_lowercase()).collect(),
-                },
-            )
-        })
-        .collect()
-}
-
-fn active_usf_mod_pack_id_from_config() -> String {
-    match CONFIG().data.get("usf/active_modpack_id") {
-        Some(ConfigValue::String(value)) => {
-            let normalized = value.trim().to_ascii_lowercase();
-            if normalized.is_empty() {
-                panic!("USF active modpack resolve failed: 'usf/active_modpack_id' must not be empty");
-            }
-            normalized
-        }
-        Some(other) => panic!("USF active modpack resolve failed: 'usf/active_modpack_id' must be a string, got {:?}", other),
-        None => panic!("USF active modpack resolve failed: 'usf/active_modpack_id' must be configured explicitly"),
-    }
-}
-
-fn configured_mods_for_mod_pack(mod_pack_id: &str) -> (Vec<UsfConfiguredMod>, Vec<String>) {
-    let modpacks = script_mod_packs();
-    let mods_by_id = script_mods();
-    let Some(modpack) = modpacks.get(mod_pack_id) else {
-        panic!("USF active modpack resolve failed: modpack '{}' is not registered", mod_pack_id);
-    };
-    if modpack.mod_ids.is_empty() {
-        panic!("USF active modpack resolve failed: modpack '{}' contains no mods", mod_pack_id);
-    }
-
-    let mut configured_mods = Vec::<UsfConfiguredMod>::new();
-    let mut modpack_index_by_mod = HashMap::<String, usize>::new();
-    let mut seen_mod_ids = HashSet::<String>::new();
-    for (index, mod_id) in modpack.mod_ids.iter().enumerate() {
-        if !seen_mod_ids.insert(mod_id.clone()) {
-            panic!(
-                "USF active modpack resolve failed: modpack '{}' contains duplicate mod '{}'",
-                mod_pack_id, mod_id
-            );
-        }
-        modpack_index_by_mod.insert(mod_id.clone(), index);
-        let Some(_mod_definition) = mods_by_id.get(mod_id) else {
-            panic!(
-                "USF active modpack resolve failed: modpack '{}' references unknown mod '{}'",
-                mod_pack_id, mod_id
-            );
-        };
-        configured_mods.push(UsfConfiguredMod { mod_id: mod_id.clone() });
-    }
-
-    let enabled_mod_ids = configured_mods.iter().map(|entry| entry.mod_id.clone()).collect::<Vec<_>>();
-    let enabled_mod_set = enabled_mod_ids.iter().cloned().collect::<HashSet<_>>();
-
-    for mod_id in &enabled_mod_ids {
-        let mod_definition = mods_by_id
-            .get(mod_id)
-            .unwrap_or_else(|| panic!("USF active modpack resolve failed: mod '{}' definition missing unexpectedly", mod_id));
-
-        for dependency in &mod_definition.dependencies {
-            if !mods_by_id.contains_key(dependency) {
-                panic!("USF active modpack resolve failed: mod '{}' depends_on unknown mod '{}'", mod_id, dependency);
-            }
-            if !enabled_mod_set.contains(dependency) {
-                panic!(
-                    "USF active modpack resolve failed: mod '{}' depends_on '{}' but dependency is not enabled in modpack '{}'",
-                    mod_id, dependency, mod_pack_id
-                );
-            }
-        }
-
-        for conflict in &mod_definition.conflicts_with {
-            if enabled_mod_set.contains(conflict) {
-                panic!(
-                    "USF active modpack resolve failed: mod '{}' conflicts_with '{}' and both are enabled in modpack '{}'",
-                    mod_id, conflict, mod_pack_id
-                );
-            }
-        }
-    }
-
-    let mut indegree = HashMap::<String, usize>::new();
-    let mut edges = HashMap::<String, HashSet<String>>::new();
-    for mod_id in &enabled_mod_ids {
-        indegree.insert(mod_id.clone(), 0);
-        edges.insert(mod_id.clone(), HashSet::new());
-    }
-
-    for mod_id in &enabled_mod_ids {
-        let mod_definition = mods_by_id
-            .get(mod_id)
-            .unwrap_or_else(|| panic!("USF active modpack resolve failed: mod '{}' definition missing unexpectedly", mod_id));
-
-        for dependency in &mod_definition.dependencies {
-            if !enabled_mod_set.contains(dependency) {
-                continue;
-            }
-            let adjacency = edges
-                .get_mut(dependency.as_str())
-                .unwrap_or_else(|| panic!("USF active modpack resolve failed: graph missing dependency node '{}'", dependency));
-            if adjacency.insert(mod_id.clone()) {
-                *indegree
-                    .get_mut(mod_id.as_str())
-                    .unwrap_or_else(|| panic!("USF active modpack resolve failed: graph missing indegree for '{}'", mod_id)) += 1;
-            }
-        }
-
-        for after_mod_id in &mod_definition.load_after {
-            if !mods_by_id.contains_key(after_mod_id) {
-                panic!("USF active modpack resolve failed: mod '{}' load_after unknown mod '{}'", mod_id, after_mod_id);
-            }
-            if !enabled_mod_set.contains(after_mod_id) {
-                continue;
-            }
-            let adjacency = edges
-                .get_mut(after_mod_id.as_str())
-                .unwrap_or_else(|| panic!("USF active modpack resolve failed: graph missing load_after node '{}'", after_mod_id));
-            if adjacency.insert(mod_id.clone()) {
-                *indegree
-                    .get_mut(mod_id.as_str())
-                    .unwrap_or_else(|| panic!("USF active modpack resolve failed: graph missing indegree for '{}'", mod_id)) += 1;
-            }
-        }
-    }
-
-    let mut resolved_enabled = Vec::<String>::new();
-    let mut ready = indegree
-        .iter()
-        .filter_map(|(mod_id, degree)| if *degree == 0 { Some(mod_id.clone()) } else { None })
-        .collect::<Vec<_>>();
-
-    while !ready.is_empty() {
-        ready.sort_by(|left, right| {
-            let left_definition = mods_by_id
-                .get(left)
-                .unwrap_or_else(|| panic!("USF active modpack resolve failed: mod '{}' missing during dependency resolution", left));
-            let right_definition = mods_by_id
-                .get(right)
-                .unwrap_or_else(|| panic!("USF active modpack resolve failed: mod '{}' missing during dependency resolution", right));
-            right_definition
-                .priority
-                .cmp(&left_definition.priority)
-                .then_with(|| {
-                    modpack_index_by_mod
-                        .get(left)
-                        .copied()
-                        .unwrap_or(usize::MAX)
-                        .cmp(&modpack_index_by_mod.get(right).copied().unwrap_or(usize::MAX))
-                })
-                .then_with(|| left.cmp(right))
-        });
-        let current = ready.remove(0);
-        resolved_enabled.push(current.clone());
-        let outgoing = edges
-            .get(current.as_str())
-            .cloned()
-            .unwrap_or_else(|| panic!("USF active modpack resolve failed: graph missing adjacency for mod '{}'", current));
-        for downstream in outgoing {
-            let degree = indegree
-                .get_mut(downstream.as_str())
-                .unwrap_or_else(|| panic!("USF active modpack resolve failed: graph missing indegree for mod '{}'", downstream));
-            *degree = degree.saturating_sub(1);
-            if *degree == 0 {
-                ready.push(downstream);
-            }
-        }
-    }
-
-    if resolved_enabled.len() != enabled_mod_ids.len() {
-        let unresolved = indegree
-            .iter()
-            .filter_map(|(mod_id, degree)| if *degree > 0 { Some(mod_id.clone()) } else { None })
-            .collect::<Vec<_>>();
-        panic!(
-            "USF active modpack resolve failed: dependency cycle detected in modpack '{}'; unresolved mods: {:?}",
-            mod_pack_id, unresolved
-        );
-    }
-
-    (configured_mods, resolved_enabled)
 }
 
 fn validate_usf_active_mod_pack_system(active_modpack: Res<UsfActiveModPack>) {

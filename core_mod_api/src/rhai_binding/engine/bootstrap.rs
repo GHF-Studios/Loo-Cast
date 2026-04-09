@@ -15,13 +15,14 @@ use crate::rhai_binding::engine::resources::MainScriptEngineHandle;
 use crate::rhai_binding::engine::schedule_entrypoint::{new_schedule_entrypoint_runner_system, register_schedule_entrypoint_param_types};
 use crate::rhai_binding::engine::statics::{
     SCHEDULE_ENTRYPOINTS, ScriptInteractionTriggerDefinition, ScriptMetricContainerLayoutDefinition, ScriptMetricDefinition,
+    ScriptUsfConceptCatalog,
     ScriptOutputAudioEmitterDefinition, ScriptOutputDensityFieldDefinition, ScriptOutputMaterialProfileDefinition, ScriptOutputParticleEmitterDefinition, ScriptPhenomenonDefinition,
     ScriptPhenomenonModelDefinition, ScriptScaleDefinition, ScriptSimulationServiceDefinition, ScriptSingletonConflictPolicy, ScriptUsfBootstrapReport,
     ScriptUsfEntrypointExecutionRecord, ScriptUsfModContribution, ScriptUsfModDefinition, ScriptUsfModManifestDefinition, ScriptUsfModpackDefinition,
     ScriptZlmMetricBandDefinition, ScriptZlmRuleDefinition, ScriptZlmScaleDefinition, ScriptZoneDensityProfileDefinition, ScriptZonePhenomenonSupportDefinition,
     ScriptZoneSelectionPolicyDefinition, USF_BOOTSTRAP_REPORT, USF_METRIC_CATEGORIZER_KERNEL_IDS, USF_METRIC_CONTAINER_LAYOUTS_BY_SCALE,
     USF_METRIC_SAMPLER_KERNEL_IDS, USF_METRIC_SETS_BY_ID, USF_METRICS_BY_NAME, USF_MOD_CONTRIBUTIONS_BY_ID, USF_MOD_MANIFESTS_BY_ID, USF_MODPACKS_BY_ID,
-    USF_MODS_BY_ID, USF_PHENOMENA_BY_ID, USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE, USF_PHENOMENON_MODELS_BY_ID, USF_SCALES_BY_INDEX,
+    USF_MODS_BY_ID, USF_PHENOMENA_BY_ID, USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE, USF_PHENOMENON_MODELS_BY_ID, USF_SCALES_BY_INDEX, USF_CONCEPT_CATALOG,
     USF_ZLM_SCALES_BY_SCALE, USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE, USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE,
     USF_ZONE_TYPES,
 };
@@ -369,6 +370,7 @@ fn clear_usf_bootstrap_statics() {
     USF_MODPACKS_BY_ID().lock().unwrap().clear();
     USF_MOD_CONTRIBUTIONS_BY_ID().lock().unwrap().clear();
     *USF_BOOTSTRAP_REPORT().lock().unwrap() = ScriptUsfBootstrapReport::default();
+    *USF_CONCEPT_CATALOG().lock().unwrap() = ScriptUsfConceptCatalog::default();
 }
 
 fn clear_usf_domain_bootstrap_statics() {
@@ -764,6 +766,26 @@ fn apply_usf_domain_snapshot(snapshot: ScriptUsfModContribution) {
     *USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE().lock().unwrap() = snapshot.phenomenon_model_selection_by_phenomenon_scale;
 }
 
+fn publish_usf_concept_catalog(
+    active_modpack_id: String,
+    resolved_mod_ids: Vec<String>,
+    mods_by_id: HashMap<String, ScriptUsfModDefinition>,
+    mod_manifests_by_id: HashMap<String, ScriptUsfModManifestDefinition>,
+    modpacks_by_id: HashMap<String, ScriptUsfModpackDefinition>,
+    mod_contributions_by_id: HashMap<String, ScriptUsfModContribution>,
+    composed: ScriptUsfModContribution,
+) {
+    *USF_CONCEPT_CATALOG().lock().unwrap() = ScriptUsfConceptCatalog {
+        active_modpack_id,
+        resolved_mod_ids,
+        mods_by_id,
+        mod_manifests_by_id,
+        modpacks_by_id,
+        mod_contributions_by_id,
+        composed,
+    };
+}
+
 fn merge_set_unique<T: Eq + Hash + Clone + std::fmt::Debug>(target: &mut HashSet<T>, source: HashSet<T>, domain: &str, mod_id: &str) {
     for value in source {
         if !target.insert(value.clone()) {
@@ -1021,10 +1043,9 @@ fn active_usf_modpack_id_from_config() -> String {
     }
 }
 
-fn selected_mod_ids_for_active_modpack() -> Vec<String> {
-    let active_modpack_id = active_usf_modpack_id_from_config();
+fn selected_mod_ids_for_active_modpack(active_modpack_id: &str) -> Vec<String> {
     let modpacks = USF_MODPACKS_BY_ID().lock().unwrap().clone();
-    let Some(modpack_definition) = modpacks.get(&active_modpack_id) else {
+    let Some(modpack_definition) = modpacks.get(active_modpack_id) else {
         panic!("USF bootstrap failed: active modpack '{}' is not registered", active_modpack_id);
     };
     if modpack_definition.mod_ids.is_empty() {
@@ -1222,10 +1243,12 @@ fn run_usf_content_bootstrap(engine: &Engine) {
         }
     }
 
-    let selected_mod_ids = selected_mod_ids_for_active_modpack();
+    let active_modpack_id = active_usf_modpack_id_from_config();
+    let selected_mod_ids = selected_mod_ids_for_active_modpack(active_modpack_id.as_str());
     record_selected_mods(&selected_mod_ids);
     let mod_manifests = USF_MOD_MANIFESTS_BY_ID().lock().unwrap().clone();
     let mod_definitions = USF_MODS_BY_ID().lock().unwrap().clone();
+    let modpacks = USF_MODPACKS_BY_ID().lock().unwrap().clone();
     let mut composed = ScriptUsfModContribution::default();
     let mut singleton_origins = CompositionSingletonOrigins::default();
     let mut mod_contributions = HashMap::<String, ScriptUsfModContribution>::new();
@@ -1258,8 +1281,17 @@ fn run_usf_content_bootstrap(engine: &Engine) {
         mod_contributions.insert(mod_id.clone(), contribution);
     }
 
-    *USF_MOD_CONTRIBUTIONS_BY_ID().lock().unwrap() = mod_contributions;
-    apply_usf_domain_snapshot(composed);
+    *USF_MOD_CONTRIBUTIONS_BY_ID().lock().unwrap() = mod_contributions.clone();
+    apply_usf_domain_snapshot(composed.clone());
+    publish_usf_concept_catalog(
+        active_modpack_id,
+        selected_mod_ids,
+        mod_definitions,
+        mod_manifests,
+        modpacks,
+        mod_contributions,
+        composed,
+    );
 }
 
 pub(super) fn new_main_script_engine() -> Engine {

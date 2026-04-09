@@ -16,10 +16,17 @@ Generative AI tools such as ChatGPT, GitHub Copilot, and GitHub Copilot Chat hav
 
 ## Quick links
 
+- AI entrypoint/manifest: `AGENTS.md`
 - Docs: `docs/` (TOC in `docs/README.md`)
+- Canonical context docs:
+  - `docs/VISION_ARCHITECTURE.md`
+  - `docs/USF_FLOW_GRAPH.md`
+  - `docs/PROTOTYPE_CAPABILITIES.md`
+  - `docs/STYLE_PATTERNS.md`
 - Crates: `docs/Crates.md` (differentiates code vs canonical assets)
 - Build & Run: `./build.ps1` / `./build.sh` and `./run.ps1` / `./run.sh`
-- Design notes: `documents/` (Inadvisable to visit at the present time; WIP!)
+- Archived temporary planning notes: `documents/temp_stuff/`
+- Long-form historical notes: `documents/legacy_stuff/`
 
 ---
 
@@ -65,7 +72,9 @@ For conventions and guidelines, see `docs/Assets.md`.
 
 ## Guidelines for docs
 
-- Prefer short, navigable docs in `docs/` and keep long-form history and design notes in `documents/`.
+- Canonical project context starts in `AGENTS.md` and the three canonical docs in `docs/`.
+- Temporary planning/handoff documents belong in `documents/temp_stuff/`.
+- Long-form historical notes belong in `documents/legacy_stuff/`.
 
 ---
 

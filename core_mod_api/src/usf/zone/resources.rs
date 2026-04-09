@@ -2,9 +2,7 @@ use std::collections::HashMap;
 
 use crate::bevy::prelude::*;
 use crate::config::statics::CONFIG;
-use crate::rhai_binding::engine::statics::{
-    USF_PHENOMENA_BY_ID, USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE, USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE,
-};
+use crate::rhai_binding::engine::statics::USF_CONCEPT_CATALOG;
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
 
@@ -132,10 +130,11 @@ impl Default for ZoneBehaviorRegistry {
         let mut phenomenon_support_by_zone = HashMap::new();
         let mut selection_policy_by_zone = HashMap::new();
         let mut density_profile_by_zone = HashMap::new();
-        let script_phenomena_by_id = USF_PHENOMENA_BY_ID().lock().unwrap().clone();
-        let script_zone_supports = USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE().lock().unwrap().clone();
-        let script_selection_policies = USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE().lock().unwrap().clone();
-        let script_density_entries = USF_ZONE_DENSITY_PROFILE_BY_TYPE().lock().unwrap().clone();
+        let catalog = USF_CONCEPT_CATALOG().lock().unwrap().clone();
+        let script_phenomena_by_id = catalog.composed.phenomena_by_id;
+        let script_zone_supports = catalog.composed.zone_phenomenon_support_by_zone_type;
+        let script_selection_policies = catalog.composed.zone_selection_policy_by_zone_type;
+        let script_density_entries = catalog.composed.zone_density_profile_by_type;
         let mut script_zone_types = std::collections::HashSet::<String>::new();
         script_zone_types.extend(script_zone_supports.keys().cloned());
         script_zone_types.extend(script_selection_policies.keys().cloned());

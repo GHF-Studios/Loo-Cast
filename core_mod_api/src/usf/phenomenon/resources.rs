@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::bevy::prelude::*;
-use crate::rhai_binding::engine::statics::{USF_PHENOMENA_BY_ID, USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE, USF_PHENOMENON_MODELS_BY_ID};
+use crate::rhai_binding::engine::statics::USF_CONCEPT_CATALOG;
 use crate::usf::scale::Scale;
 
 use super::components::{PhenomenonModelProjectionSpec, PhenomenonModelTopology};
@@ -30,9 +30,10 @@ pub struct PhenomenonDefinitionRegistry {
 
 impl Default for PhenomenonDefinitionRegistry {
     fn default() -> Self {
-        let script_phenomena = USF_PHENOMENA_BY_ID().lock().unwrap().clone();
-        let script_models = USF_PHENOMENON_MODELS_BY_ID().lock().unwrap().clone();
-        let script_model_selection = USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE().lock().unwrap().clone();
+        let catalog = USF_CONCEPT_CATALOG().lock().unwrap().clone();
+        let script_phenomena = catalog.composed.phenomena_by_id;
+        let script_models = catalog.composed.phenomenon_models_by_id;
+        let script_model_selection = catalog.composed.phenomenon_model_selection_by_phenomenon_scale;
 
         if script_phenomena.is_empty() {
             panic!("USF phenomenon bootstrap failed: no phenomena registered. Define at least one '*.phenomenon.rhai' file.");

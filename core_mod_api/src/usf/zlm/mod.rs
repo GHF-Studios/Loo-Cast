@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::bevy::prelude::*;
 use crate::core::orchestration::AppSet;
-use crate::rhai_binding::engine::statics::USF_ZLM_SCALES_BY_SCALE;
+use crate::rhai_binding::engine::statics::USF_CONCEPT_CATALOG;
 use crate::usf::metric::MetricId;
 use crate::usf::metric_container::MetricContainerLayout;
 use crate::usf::mod_packs::UsfActiveModPack;
@@ -182,7 +182,7 @@ fn normalize_zone_type(value: &str) -> ZoneTypeId {
 }
 
 fn script_zlm_overrides() -> Vec<(Scale, ZlmScaleDefinition)> {
-    let zlm_maps = USF_ZLM_SCALES_BY_SCALE().lock().unwrap().clone();
+    let zlm_maps = USF_CONCEPT_CATALOG().lock().unwrap().composed.zlm_scales_by_scale.clone();
     let mut ordered = zlm_maps.into_iter().collect::<Vec<_>>();
     ordered.sort_by_key(|(scale_index, _)| *scale_index);
 
