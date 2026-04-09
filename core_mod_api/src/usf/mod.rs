@@ -12,6 +12,7 @@ pub mod scale;
 pub mod schedule;
 pub mod substrate;
 pub mod transform;
+pub mod worldgen;
 pub mod zlm;
 pub mod zone;
 
@@ -71,6 +72,7 @@ impl Plugin for UsfPlugin {
             .add_plugins(substrate::SubstratePlugin)
             .add_plugins(zone::ZonePlugin)
             .add_plugins(phenomenon::PhenomenonPlugin)
+            .add_plugins(worldgen::WorldgenPlugin)
             .register_type::<MetricId>()
             .register_type::<ZoneTypeId>()
             .register_type::<MetricDefinition>()

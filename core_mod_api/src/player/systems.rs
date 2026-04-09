@@ -18,6 +18,7 @@ use crate::render::resources::PrimaryWindowUiState;
 use crate::time::resources::TimeInfo;
 use crate::time::types::PauseState;
 use crate::usf::chunk::components::ChunkLoader;
+use crate::usf::worldgen::UsfBootstrapWorldgenState;
 
 #[derive(Default)]
 pub(super) struct PlayerRuntimeConfigCache {
@@ -534,6 +535,7 @@ pub(super) fn update_player_system(
     mut player_look_state: ResMut<PlayerLookState>,
     camera_mode: Res<PlayerCameraMode>,
     control_settings: Res<PlayerControlSettings>,
+    bootstrap_worldgen_state: Option<Res<UsfBootstrapWorldgenState>>,
     mut runtime_config: Local<PlayerRuntimeConfigCache>,
     mut had_mouse_control_last_frame: Local<bool>,
 ) {
@@ -553,7 +555,9 @@ pub(super) fn update_player_system(
         runtime_config.local_translation_buffer_ratio = CONFIG().get::<f32>("usf/translation/local_buffer_ratio");
     }
 
-    let (mut chunk_loader, mut character_controller) = if keys.just_pressed(KeyCode::F1) && input_mode.is_game() {
+    let bootstrap_input_locked = bootstrap_worldgen_state.as_ref().is_some_and(|state| state.input_locked);
+
+    let (mut chunk_loader, mut character_controller) = if keys.just_pressed(KeyCode::F1) && input_mode.is_game() && !bootstrap_input_locked {
         if player_query.is_empty() {
             commands.spawn(PlayerBundle::default());
             return;
@@ -580,7 +584,7 @@ pub(super) fn update_player_system(
         runtime_config.local_translation_buffer_ratio as f64,
     );
 
-    let has_mouse_control = input_mode.is_game() && !ui_state.pause_menu_open;
+    let has_mouse_control = !bootstrap_input_locked && input_mode.is_game() && !ui_state.pause_menu_open;
     if has_mouse_control {
         if !*had_mouse_control_last_frame {
             mouse_motion_reader.clear();

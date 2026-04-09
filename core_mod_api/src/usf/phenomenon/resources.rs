@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
 use crate::bevy::prelude::*;
-use crate::rhai_binding::engine::statics::USF_CONCEPT_CATALOG;
-use crate::usf::mod_packs::UsfMetricRegistry;
+use crate::usf::mod_packs::{UsfMetricRegistry, UsfRuntimeConceptView};
 use crate::usf::scale::Scale;
 
 use super::components::{PhenomenonModelProjectionSpec, PhenomenonModelTopology};
@@ -87,9 +86,12 @@ impl PhenomenonModelRegistry {
     }
 }
 
-impl Default for PhenomenonDefinitionRegistry {
-    fn default() -> Self {
-        let catalog = USF_CONCEPT_CATALOG().lock().unwrap().clone();
+impl FromWorld for PhenomenonDefinitionRegistry {
+    fn from_world(world: &mut World) -> Self {
+        let catalog = world
+            .get_resource::<UsfRuntimeConceptView>()
+            .map(|view| view.catalog_snapshot())
+            .unwrap_or_else(|| panic!("USF phenomenon bootstrap failed: missing UsfRuntimeConceptView resource."));
         let script_metrics_by_name = catalog.composed.metrics_by_name.clone();
         let script_phenomena = catalog.composed.phenomena_by_id;
         let script_models = catalog.composed.phenomenon_models_by_id;

@@ -28,6 +28,7 @@ Concept families:
 1. Top scales: minimal placeholder but valid world hierarchy context.
 2. Mid descent: maintain just enough parent coverage so child generation is legal/consistent.
 3. Near `10^0 m`: broaden content and interaction depth.
+   - Current demo target: keep top/mid scales minimally valid while fanning human-band zone/phenomenon diversity (`solid`, `ridge`, `lush`, `arid` + dedicated phenomenon/model contracts).
 4. Initial world generation can use controlled top-down descent (including temporary input lock and managed zoom progression) to establish layered world slices deterministically.
 
 ## Lens 3: Lifecycle Behavior

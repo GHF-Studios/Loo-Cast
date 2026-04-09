@@ -59,7 +59,12 @@ Bevy ECS is the internal execution substrate behind the USF-facing model.
    - global contracts (`mod`, `modpack`)
    - package-scoped contracts (`metric`, `zone`, `metric_set`, `zlm`, `scale`, `phenomenon`, `phenomenon_model`)
 5. Active modpack is selected from config and composed deterministically.
-6. Runtime systems execute domain pipelines (substrate, zone, phenomenon, realization).
+6. Canonical runtime concept registries are materialized from the composed concept catalog:
+   - concept catalog
+   - runtime concept query view (`UsfRuntimeConceptView`)
+   - mod/modpack/manifest/contribution registries
+   - metric/metric_set/scale registries
+7. Runtime systems execute domain pipelines (substrate, zone, phenomenon, realization), including optional top-down bootstrap worldgen descent control.
 
 ## Core Boundaries
 

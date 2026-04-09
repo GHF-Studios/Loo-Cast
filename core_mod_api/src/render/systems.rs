@@ -23,6 +23,7 @@ use crate::usf::chunk::resources::{ChunkActionWorkflowState, ChunkLoadGate};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::unit::types::UnitVec;
 use crate::usf::scale::Scale;
+use crate::usf::worldgen::{UsfBootstrapWorldgenState, UsfBootstrapZoomDirective};
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 const MIN_WINDOW_SIZE_LOCAL: f32 = f32::MIN_POSITIVE;
@@ -752,6 +753,8 @@ pub(super) fn main_camera_zoom_system(
     mut player_loader_query: Query<(Entity, &mut ChunkLoader, &Transform), With<Player>>,
     rapier_context: ReadRapierContext,
     mut dev_zoom_factor: ResMut<DevZoomFactor>,
+    worldgen_zoom_directive: Option<Res<UsfBootstrapZoomDirective>>,
+    worldgen_state: Option<Res<UsfBootstrapWorldgenState>>,
     mut zoom_initialized: Local<bool>,
 ) {
     const ZOOM_SCROLL_DEADZONE: f32 = 0.05;
@@ -782,7 +785,31 @@ pub(super) fn main_camera_zoom_system(
         *zoom_initialized = true;
     }
 
-    if !input_mode.is_game() || virtual_paused.0 || (chunk_load_gate_enabled && chunk_load_gate.as_ref().is_some_and(|gate| gate.is_locked())) {
+    let bootstrap_zoom_active = worldgen_zoom_directive.as_ref().is_some_and(|directive| directive.active);
+    let bootstrap_input_locked = worldgen_state.as_ref().is_some_and(|state| state.input_locked);
+
+    if bootstrap_zoom_active {
+        scroll_message_reader.clear();
+        let zoom_step = worldgen_zoom_directive
+            .as_ref()
+            .map(|directive| directive.zoom_step_multiplier.max(1.001))
+            .unwrap_or(1.01);
+        let local_zoom = chunk_loader.usf_transform.scale.local_f32();
+        let candidate_zoom = (local_zoom / zoom_step).clamp(input_local_zoom_min, input_local_zoom_max);
+        let next_local_zoom = if (candidate_zoom - local_zoom).abs() <= f32::EPSILON {
+            input_local_zoom_min
+        } else {
+            candidate_zoom
+        };
+        chunk_loader.usf_transform.scale.set_local(next_local_zoom as f64);
+        return;
+    }
+
+    if bootstrap_input_locked
+        || !input_mode.is_game()
+        || virtual_paused.0
+        || (chunk_load_gate_enabled && chunk_load_gate.as_ref().is_some_and(|gate| gate.is_locked()))
+    {
         scroll_message_reader.clear();
         return;
     }

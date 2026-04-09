@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::bevy::prelude::*;
 use crate::core::orchestration::AppSet;
-use crate::rhai_binding::engine::statics::{ScriptUsfConceptCatalog, USF_CONCEPT_CATALOG};
+use crate::rhai_binding::engine::statics::{ScriptUsfConceptCatalog, ScriptUsfModContribution, ScriptUsfModManifestDefinition, USF_CONCEPT_CATALOG};
 use crate::usf::metric::{MetricDefinition, MetricId, MetricStorageClass, MetricValueType};
 use crate::usf::metric_container::{MetricContainerLayout, is_sampler_kernel_id_supported};
 use crate::usf::mods::UsfConfiguredMod;
@@ -31,7 +31,70 @@ pub struct UsfModpackDefinition {
     pub mod_ids: Vec<String>,
 }
 
-#[derive(Resource, Reflect, Debug, Clone, Default)]
+#[derive(Resource, Debug, Clone)]
+pub struct UsfConceptCatalog {
+    pub raw: ScriptUsfConceptCatalog,
+}
+impl FromWorld for UsfConceptCatalog {
+    fn from_world(_world: &mut World) -> Self {
+        Self {
+            raw: USF_CONCEPT_CATALOG().lock().unwrap().clone(),
+        }
+    }
+}
+impl UsfConceptCatalog {
+    pub fn snapshot(&self) -> ScriptUsfConceptCatalog {
+        self.raw.clone()
+    }
+}
+
+#[derive(Resource, Debug, Clone)]
+pub struct UsfModManifestRegistry {
+    pub manifests_by_mod_id: HashMap<String, ScriptUsfModManifestDefinition>,
+}
+impl FromWorld for UsfModManifestRegistry {
+    fn from_world(world: &mut World) -> Self {
+        let catalog = world
+            .get_resource::<UsfConceptCatalog>()
+            .map(|catalog| catalog.snapshot())
+            .unwrap_or_else(|| panic!("USF mod manifest registry bootstrap failed: missing UsfConceptCatalog resource."));
+
+        let manifests_by_mod_id = catalog
+            .mod_manifests_by_id
+            .into_iter()
+            .map(|(mod_id, manifest)| (mod_id.trim().to_ascii_lowercase(), manifest))
+            .collect::<HashMap<_, _>>();
+
+        Self { manifests_by_mod_id }
+    }
+}
+
+#[derive(Resource, Debug, Clone)]
+pub struct UsfModContributionRegistry {
+    pub contributions_by_mod_id: HashMap<String, ScriptUsfModContribution>,
+    pub composed: ScriptUsfModContribution,
+}
+impl FromWorld for UsfModContributionRegistry {
+    fn from_world(world: &mut World) -> Self {
+        let catalog = world
+            .get_resource::<UsfConceptCatalog>()
+            .map(|catalog| catalog.snapshot())
+            .unwrap_or_else(|| panic!("USF mod contribution registry bootstrap failed: missing UsfConceptCatalog resource."));
+
+        let contributions_by_mod_id = catalog
+            .mod_contributions_by_id
+            .into_iter()
+            .map(|(mod_id, contribution)| (mod_id.trim().to_ascii_lowercase(), contribution))
+            .collect::<HashMap<_, _>>();
+
+        Self {
+            contributions_by_mod_id,
+            composed: catalog.composed,
+        }
+    }
+}
+
+#[derive(Resource, Reflect, Debug, Clone)]
 #[reflect(Resource)]
 pub struct UsfModRegistry {
     pub active_modpack_id: String,
@@ -44,16 +107,20 @@ impl UsfModRegistry {
     }
 }
 impl FromWorld for UsfModRegistry {
-    fn from_world(_world: &mut World) -> Self {
+    fn from_world(world: &mut World) -> Self {
+        let catalog = world
+            .get_resource::<UsfConceptCatalog>()
+            .map(|catalog| catalog.snapshot())
+            .unwrap_or_else(|| panic!("USF mod registry bootstrap failed: missing UsfConceptCatalog resource."));
         Self {
-            active_modpack_id: script_active_modpack_id(),
-            resolved_mod_ids: script_resolved_mod_ids(),
-            mods_by_id: script_mods(),
+            active_modpack_id: script_active_modpack_id(&catalog),
+            resolved_mod_ids: script_resolved_mod_ids(&catalog),
+            mods_by_id: script_mods(&catalog),
         }
     }
 }
 
-#[derive(Resource, Reflect, Debug, Clone, Default)]
+#[derive(Resource, Reflect, Debug, Clone)]
 #[reflect(Resource)]
 pub struct UsfModpackRegistry {
     pub active_modpack_id: String,
@@ -65,15 +132,19 @@ impl UsfModpackRegistry {
     }
 }
 impl FromWorld for UsfModpackRegistry {
-    fn from_world(_world: &mut World) -> Self {
+    fn from_world(world: &mut World) -> Self {
+        let catalog = world
+            .get_resource::<UsfConceptCatalog>()
+            .map(|catalog| catalog.snapshot())
+            .unwrap_or_else(|| panic!("USF modpack registry bootstrap failed: missing UsfConceptCatalog resource."));
         Self {
-            active_modpack_id: script_active_modpack_id(),
-            modpacks_by_id: script_modpacks(),
+            active_modpack_id: script_active_modpack_id(&catalog),
+            modpacks_by_id: script_modpacks(&catalog),
         }
     }
 }
 
-#[derive(Resource, Reflect, Debug, Clone, Default)]
+#[derive(Resource, Reflect, Debug, Clone)]
 #[reflect(Resource)]
 pub struct UsfMetricRegistry {
     pub metrics_by_name: HashMap<String, MetricDefinition>,
@@ -85,8 +156,12 @@ impl UsfMetricRegistry {
     }
 }
 impl FromWorld for UsfMetricRegistry {
-    fn from_world(_world: &mut World) -> Self {
-        let metrics_by_name = script_metrics_by_name();
+    fn from_world(world: &mut World) -> Self {
+        let catalog = world
+            .get_resource::<UsfConceptCatalog>()
+            .map(|catalog| catalog.snapshot())
+            .unwrap_or_else(|| panic!("USF metric registry bootstrap failed: missing UsfConceptCatalog resource."));
+        let metrics_by_name = script_metrics_by_name(&catalog);
         let metric_name_by_id = metrics_by_name
             .iter()
             .map(|(name, definition)| (definition.id, name.clone()))
@@ -98,20 +173,24 @@ impl FromWorld for UsfMetricRegistry {
     }
 }
 
-#[derive(Resource, Reflect, Debug, Clone, Default)]
+#[derive(Resource, Reflect, Debug, Clone)]
 #[reflect(Resource)]
 pub struct UsfMetricSetRegistry {
     pub metric_names_by_set_id: HashMap<String, Vec<String>>,
 }
 impl FromWorld for UsfMetricSetRegistry {
-    fn from_world(_world: &mut World) -> Self {
+    fn from_world(world: &mut World) -> Self {
+        let catalog = world
+            .get_resource::<UsfConceptCatalog>()
+            .map(|catalog| catalog.snapshot())
+            .unwrap_or_else(|| panic!("USF metric set registry bootstrap failed: missing UsfConceptCatalog resource."));
         Self {
-            metric_names_by_set_id: script_metric_sets(),
+            metric_names_by_set_id: script_metric_sets(&catalog),
         }
     }
 }
 
-#[derive(Resource, Reflect, Debug, Clone, Default)]
+#[derive(Resource, Reflect, Debug, Clone)]
 #[reflect(Resource)]
 pub struct UsfScaleRegistry {
     pub scales_by_index: HashMap<Scale, UsfScaleDefinition>,
@@ -121,19 +200,23 @@ pub struct UsfScaleRegistry {
     pub known_zone_types: HashSet<ZoneTypeId>,
 }
 impl FromWorld for UsfScaleRegistry {
-    fn from_world(_world: &mut World) -> Self {
+    fn from_world(world: &mut World) -> Self {
+        let catalog = world
+            .get_resource::<UsfConceptCatalog>()
+            .map(|catalog| catalog.snapshot())
+            .unwrap_or_else(|| panic!("USF scale registry bootstrap failed: missing UsfConceptCatalog resource."));
         let mut known_zone_types = HashSet::<ZoneTypeId>::new();
-        for zone in script_zone_types() {
+        for zone in script_zone_types(&catalog) {
             known_zone_types.insert(zone);
         }
         let mut schemas_by_scale = HashMap::<Scale, MetricContainerLayout>::new();
-        for (scale, schema) in script_schema_overrides() {
+        for (scale, schema) in script_schema_overrides(&catalog) {
             schemas_by_scale.insert(scale, schema);
         }
         Self {
-            scales_by_index: script_scales(),
-            known_metric_samplers: script_metric_samplers(),
-            known_metric_categorizers: script_metric_categorizers(),
+            scales_by_index: script_scales(&catalog),
+            known_metric_samplers: script_metric_samplers(&catalog),
+            known_metric_categorizers: script_metric_categorizers(&catalog),
             schemas_by_scale,
             known_zone_types,
         }
@@ -153,9 +236,13 @@ pub struct UsfActiveModPack {
     pub schemas_by_scale: HashMap<Scale, MetricContainerLayout>,
     pub known_zone_types: HashSet<ZoneTypeId>,
 }
-impl Default for UsfActiveModPack {
-    fn default() -> Self {
-        let (mod_pack_id, configured_mods, resolved_enabled_mods) = configured_mods_for_active_modpack_from_catalog();
+impl FromWorld for UsfActiveModPack {
+    fn from_world(world: &mut World) -> Self {
+        let catalog = world
+            .get_resource::<UsfConceptCatalog>()
+            .map(|catalog| catalog.snapshot())
+            .unwrap_or_else(|| panic!("USF active modpack bootstrap failed: missing UsfConceptCatalog resource."));
+        let (mod_pack_id, configured_mods, resolved_enabled_mods) = configured_mods_for_active_modpack_from_catalog(&catalog);
         let enabled_mods = configured_mods.iter().map(|mod_entry| mod_entry.mod_id.clone()).collect::<HashSet<_>>();
 
         let mut active_modpack = Self {
@@ -164,19 +251,19 @@ impl Default for UsfActiveModPack {
             enabled_mods,
             resolved_enabled_mods,
             scales_by_index: HashMap::new(),
-            known_metric_samplers: script_metric_samplers(),
-            known_metric_categorizers: script_metric_categorizers(),
+            known_metric_samplers: script_metric_samplers(&catalog),
+            known_metric_categorizers: script_metric_categorizers(&catalog),
             schemas_by_scale: HashMap::new(),
             known_zone_types: HashSet::new(),
         };
 
-        for (scale, definition) in script_scales() {
+        for (scale, definition) in script_scales(&catalog) {
             active_modpack.scales_by_index.insert(scale, definition);
         }
-        for zone in script_zone_types() {
+        for zone in script_zone_types(&catalog) {
             active_modpack.known_zone_types.insert(zone);
         }
-        for (scale, schema) in script_schema_overrides() {
+        for (scale, schema) in script_schema_overrides(&catalog) {
             active_modpack.schemas_by_scale.insert(scale, schema);
         }
 
@@ -335,6 +422,123 @@ impl UsfActiveModPack {
     }
 }
 
+#[derive(Resource, Debug, Clone)]
+pub struct UsfRuntimeConceptView {
+    catalog: ScriptUsfConceptCatalog,
+    active_modpack: UsfActiveModPack,
+    mod_registry: UsfModRegistry,
+    modpack_registry: UsfModpackRegistry,
+    metric_registry: UsfMetricRegistry,
+    metric_set_registry: UsfMetricSetRegistry,
+    scale_registry: UsfScaleRegistry,
+    mod_manifest_registry: UsfModManifestRegistry,
+    mod_contribution_registry: UsfModContributionRegistry,
+}
+impl FromWorld for UsfRuntimeConceptView {
+    fn from_world(world: &mut World) -> Self {
+        let catalog = world
+            .get_resource::<UsfConceptCatalog>()
+            .map(|catalog| catalog.snapshot())
+            .unwrap_or_else(|| panic!("USF runtime concept view bootstrap failed: missing UsfConceptCatalog resource."));
+        let active_modpack = world
+            .get_resource::<UsfActiveModPack>()
+            .cloned()
+            .unwrap_or_else(|| panic!("USF runtime concept view bootstrap failed: missing UsfActiveModPack resource."));
+        let mod_registry = world
+            .get_resource::<UsfModRegistry>()
+            .cloned()
+            .unwrap_or_else(|| panic!("USF runtime concept view bootstrap failed: missing UsfModRegistry resource."));
+        let modpack_registry = world
+            .get_resource::<UsfModpackRegistry>()
+            .cloned()
+            .unwrap_or_else(|| panic!("USF runtime concept view bootstrap failed: missing UsfModpackRegistry resource."));
+        let metric_registry = world
+            .get_resource::<UsfMetricRegistry>()
+            .cloned()
+            .unwrap_or_else(|| panic!("USF runtime concept view bootstrap failed: missing UsfMetricRegistry resource."));
+        let metric_set_registry = world
+            .get_resource::<UsfMetricSetRegistry>()
+            .cloned()
+            .unwrap_or_else(|| panic!("USF runtime concept view bootstrap failed: missing UsfMetricSetRegistry resource."));
+        let scale_registry = world
+            .get_resource::<UsfScaleRegistry>()
+            .cloned()
+            .unwrap_or_else(|| panic!("USF runtime concept view bootstrap failed: missing UsfScaleRegistry resource."));
+        let mod_manifest_registry = world
+            .get_resource::<UsfModManifestRegistry>()
+            .cloned()
+            .unwrap_or_else(|| panic!("USF runtime concept view bootstrap failed: missing UsfModManifestRegistry resource."));
+        let mod_contribution_registry = world
+            .get_resource::<UsfModContributionRegistry>()
+            .cloned()
+            .unwrap_or_else(|| panic!("USF runtime concept view bootstrap failed: missing UsfModContributionRegistry resource."));
+
+        Self {
+            catalog,
+            active_modpack,
+            mod_registry,
+            modpack_registry,
+            metric_registry,
+            metric_set_registry,
+            scale_registry,
+            mod_manifest_registry,
+            mod_contribution_registry,
+        }
+    }
+}
+impl UsfRuntimeConceptView {
+    pub fn catalog_snapshot(&self) -> ScriptUsfConceptCatalog {
+        self.catalog.clone()
+    }
+
+    pub fn active_modpack(&self) -> &UsfActiveModPack {
+        &self.active_modpack
+    }
+
+    pub fn is_mod_enabled(&self, mod_id: &str) -> bool {
+        self.active_modpack.is_mod_enabled(mod_id)
+    }
+
+    pub fn mod_definition(&self, mod_id: &str) -> Option<&UsfModDefinition> {
+        self.mod_registry.mods_by_id.get(mod_id)
+    }
+
+    pub fn active_modpack_definition(&self) -> Option<&UsfModpackDefinition> {
+        self.modpack_registry.active()
+    }
+
+    pub fn scale_definition_for_scale(&self, scale: Scale) -> Option<&UsfScaleDefinition> {
+        self.scale_registry.scales_by_index.get(&scale)
+    }
+
+    pub fn schema_for_scale(&self, scale: Scale) -> Option<&MetricContainerLayout> {
+        self.scale_registry.schemas_by_scale.get(&scale)
+    }
+
+    pub fn metric_definition(&self, metric_name: &str) -> Option<&MetricDefinition> {
+        self.metric_registry.get_by_name(metric_name)
+    }
+
+    pub fn metric_set_members(&self, metric_set_id: &str) -> Option<&[String]> {
+        self.metric_set_registry
+            .metric_names_by_set_id
+            .get(metric_set_id)
+            .map(Vec::as_slice)
+    }
+
+    pub fn zone_types(&self) -> &HashSet<ZoneTypeId> {
+        &self.scale_registry.known_zone_types
+    }
+
+    pub fn mod_manifest(&self, mod_id: &str) -> Option<&ScriptUsfModManifestDefinition> {
+        self.mod_manifest_registry.manifests_by_mod_id.get(mod_id)
+    }
+
+    pub fn mod_contribution(&self, mod_id: &str) -> Option<&ScriptUsfModContribution> {
+        self.mod_contribution_registry.contributions_by_mod_id.get(mod_id)
+    }
+}
+
 #[derive(Reflect, Debug, Clone, PartialEq, Eq, Default)]
 pub struct UsfScaleExecutionRoute {
     pub metric_sampler_id: String,
@@ -355,22 +559,18 @@ impl UsfExecutionPlan {
     }
 }
 
-fn script_concept_catalog() -> ScriptUsfConceptCatalog {
-    USF_CONCEPT_CATALOG().lock().unwrap().clone()
-}
-
-fn script_active_modpack_id() -> String {
-    let active_modpack_id = script_concept_catalog().active_modpack_id.trim().to_ascii_lowercase();
+fn script_active_modpack_id(catalog: &ScriptUsfConceptCatalog) -> String {
+    let active_modpack_id = catalog.active_modpack_id.trim().to_ascii_lowercase();
     if active_modpack_id.is_empty() {
         panic!("USF concept catalog resolve failed: active_modpack_id is empty");
     }
     active_modpack_id
 }
 
-fn script_resolved_mod_ids() -> Vec<String> {
-    let resolved_mod_ids = script_concept_catalog()
+fn script_resolved_mod_ids(catalog: &ScriptUsfConceptCatalog) -> Vec<String> {
+    let resolved_mod_ids = catalog
         .resolved_mod_ids
-        .into_iter()
+        .iter()
         .map(|mod_id| mod_id.trim().to_ascii_lowercase())
         .collect::<Vec<_>>();
     if resolved_mod_ids.is_empty() {
@@ -379,10 +579,10 @@ fn script_resolved_mod_ids() -> Vec<String> {
     resolved_mod_ids
 }
 
-fn script_mods() -> HashMap<String, UsfModDefinition> {
-    script_concept_catalog()
+fn script_mods(catalog: &ScriptUsfConceptCatalog) -> HashMap<String, UsfModDefinition> {
+    catalog
         .mods_by_id
-        .into_iter()
+        .iter()
         .map(|(mod_id, mod_definition)| {
             (
                 mod_id.trim().to_ascii_lowercase(),
@@ -390,17 +590,17 @@ fn script_mods() -> HashMap<String, UsfModDefinition> {
                     priority: mod_definition.priority,
                     dependencies: mod_definition
                         .dependencies
-                        .into_iter()
+                        .iter()
                         .map(|value| value.trim().to_ascii_lowercase())
                         .collect(),
                     load_after: mod_definition
                         .load_after
-                        .into_iter()
+                        .iter()
                         .map(|value| value.trim().to_ascii_lowercase())
                         .collect(),
                     conflicts_with: mod_definition
                         .conflicts_with
-                        .into_iter()
+                        .iter()
                         .map(|value| value.trim().to_ascii_lowercase())
                         .collect(),
                 },
@@ -409,17 +609,17 @@ fn script_mods() -> HashMap<String, UsfModDefinition> {
         .collect()
 }
 
-fn script_modpacks() -> HashMap<String, UsfModpackDefinition> {
-    script_concept_catalog()
+fn script_modpacks(catalog: &ScriptUsfConceptCatalog) -> HashMap<String, UsfModpackDefinition> {
+    catalog
         .modpacks_by_id
-        .into_iter()
+        .iter()
         .map(|(modpack_id, modpack_definition)| {
             (
                 modpack_id.trim().to_ascii_lowercase(),
                 UsfModpackDefinition {
                     mod_ids: modpack_definition
                         .mod_ids
-                        .into_iter()
+                        .iter()
                         .map(|mod_id| mod_id.trim().to_ascii_lowercase())
                         .collect(),
                 },
@@ -428,11 +628,11 @@ fn script_modpacks() -> HashMap<String, UsfModpackDefinition> {
         .collect()
 }
 
-fn script_metrics_by_name() -> HashMap<String, MetricDefinition> {
-    script_concept_catalog()
+fn script_metrics_by_name(catalog: &ScriptUsfConceptCatalog) -> HashMap<String, MetricDefinition> {
+    catalog
         .composed
         .metrics_by_name
-        .into_iter()
+        .iter()
         .map(|(metric_name, metric)| {
             let value_type = MetricValueType::from_tag(&metric.value_type).unwrap_or_else(|| {
                 panic!(
@@ -463,16 +663,16 @@ fn script_metrics_by_name() -> HashMap<String, MetricDefinition> {
         .collect()
 }
 
-fn script_metric_sets() -> HashMap<String, Vec<String>> {
-    script_concept_catalog()
+fn script_metric_sets(catalog: &ScriptUsfConceptCatalog) -> HashMap<String, Vec<String>> {
+    catalog
         .composed
         .metric_sets_by_id
-        .into_iter()
+        .iter()
         .map(|(metric_set_id, metric_names)| {
             (
                 metric_set_id.trim().to_ascii_lowercase(),
                 metric_names
-                    .into_iter()
+                    .iter()
                     .map(|metric_name| metric_name.trim().to_ascii_lowercase())
                     .collect::<Vec<_>>(),
             )
@@ -480,8 +680,7 @@ fn script_metric_sets() -> HashMap<String, Vec<String>> {
         .collect()
 }
 
-fn configured_mods_for_active_modpack_from_catalog() -> (String, Vec<UsfConfiguredMod>, Vec<String>) {
-    let catalog = script_concept_catalog();
+fn configured_mods_for_active_modpack_from_catalog(catalog: &ScriptUsfConceptCatalog) -> (String, Vec<UsfConfiguredMod>, Vec<String>) {
     let mod_pack_id = catalog.active_modpack_id.trim().to_ascii_lowercase();
     if mod_pack_id.is_empty() {
         panic!("USF active modpack resolve failed: concept catalog has no active modpack id");
@@ -533,16 +732,16 @@ fn configured_mods_for_active_modpack_from_catalog() -> (String, Vec<UsfConfigur
     (mod_pack_id, configured_mods, resolved_enabled_mods)
 }
 
-fn script_metric_samplers() -> HashSet<String> {
-    let kernels = script_concept_catalog().composed.metric_sampler_kernel_ids;
+fn script_metric_samplers(catalog: &ScriptUsfConceptCatalog) -> HashSet<String> {
+    let kernels = catalog.composed.metric_sampler_kernel_ids.clone();
     if kernels.is_empty() {
         panic!("USF content bootstrap failed: no metric sampler kernels in concept catalog");
     }
     kernels
 }
 
-fn script_metric_categorizers() -> HashSet<String> {
-    let kernels = script_concept_catalog().composed.metric_categorizer_kernel_ids;
+fn script_metric_categorizers(catalog: &ScriptUsfConceptCatalog) -> HashSet<String> {
+    let kernels = catalog.composed.metric_categorizer_kernel_ids.clone();
     if kernels.is_empty() {
         panic!("USF content bootstrap failed: no metric categorizer kernels in concept catalog");
     }
@@ -553,16 +752,17 @@ fn normalize_zone_type(value: &str) -> ZoneTypeId {
     ZoneTypeId::new(value.trim().to_ascii_lowercase())
 }
 
-fn script_zone_types() -> Vec<ZoneTypeId> {
-    let mut ordered = script_concept_catalog().composed.zone_types.into_iter().collect::<Vec<_>>();
+fn script_zone_types(catalog: &ScriptUsfConceptCatalog) -> Vec<ZoneTypeId> {
+    let mut ordered = catalog.composed.zone_types.clone().into_iter().collect::<Vec<_>>();
     ordered.sort();
     ordered.into_iter().map(|zone_type| normalize_zone_type(&zone_type)).collect()
 }
 
-fn script_schema_overrides() -> Vec<(Scale, MetricContainerLayout)> {
-    let mut ordered = script_concept_catalog()
+fn script_schema_overrides(catalog: &ScriptUsfConceptCatalog) -> Vec<(Scale, MetricContainerLayout)> {
+    let mut ordered = catalog
         .composed
         .metric_container_layouts_by_scale
+        .clone()
         .into_iter()
         .collect::<Vec<_>>();
     ordered.sort_by_key(|(scale_index, _)| *scale_index);
@@ -614,8 +814,8 @@ fn script_schema_overrides() -> Vec<(Scale, MetricContainerLayout)> {
         .collect()
 }
 
-fn script_scales() -> HashMap<Scale, UsfScaleDefinition> {
-    let mut ordered = script_concept_catalog().composed.scales_by_index.into_iter().collect::<Vec<_>>();
+fn script_scales(catalog: &ScriptUsfConceptCatalog) -> HashMap<Scale, UsfScaleDefinition> {
+    let mut ordered = catalog.composed.scales_by_index.clone().into_iter().collect::<Vec<_>>();
     ordered.sort_by_key(|(scale_index, _)| *scale_index);
 
     ordered
@@ -634,6 +834,126 @@ fn script_scales() -> HashMap<Scale, UsfScaleDefinition> {
             ))
         })
         .collect()
+}
+
+fn validate_usf_concept_catalog_system(catalog: Res<UsfConceptCatalog>) {
+    let snapshot = catalog.snapshot();
+    if snapshot.active_modpack_id.trim().is_empty() {
+        panic!("USF concept catalog validation failed: active_modpack_id is empty.");
+    }
+    if snapshot.resolved_mod_ids.is_empty() {
+        panic!("USF concept catalog validation failed: resolved_mod_ids is empty.");
+    }
+    if snapshot.mods_by_id.is_empty() {
+        panic!("USF concept catalog validation failed: mods_by_id is empty.");
+    }
+    if snapshot.modpacks_by_id.is_empty() {
+        panic!("USF concept catalog validation failed: modpacks_by_id is empty.");
+    }
+}
+
+fn validate_usf_mod_manifest_registry_system(mod_registry: Res<UsfModRegistry>, mod_manifest_registry: Res<UsfModManifestRegistry>) {
+    if mod_manifest_registry.manifests_by_mod_id.is_empty() {
+        panic!("USF mod manifest registry validation failed: no manifests are registered.");
+    }
+    for mod_id in mod_registry.mods_by_id.keys() {
+        if !mod_manifest_registry.manifests_by_mod_id.contains_key(mod_id) {
+            panic!(
+                "USF mod manifest registry validation failed: missing manifest for mod '{}'.",
+                mod_id
+            );
+        }
+    }
+}
+
+fn validate_usf_mod_contribution_registry_system(
+    mod_registry: Res<UsfModRegistry>,
+    mod_manifest_registry: Res<UsfModManifestRegistry>,
+    mod_contribution_registry: Res<UsfModContributionRegistry>,
+) {
+    if mod_contribution_registry.contributions_by_mod_id.is_empty() {
+        panic!("USF mod contribution registry validation failed: no mod contributions are registered.");
+    }
+
+    for mod_id in &mod_registry.resolved_mod_ids {
+        if !mod_contribution_registry.contributions_by_mod_id.contains_key(mod_id) {
+            panic!(
+                "USF mod contribution registry validation failed: missing contribution for resolved mod '{}'.",
+                mod_id
+            );
+        }
+    }
+
+    for (mod_id, manifest) in &mod_manifest_registry.manifests_by_mod_id {
+        let Some(contribution) = mod_contribution_registry.contributions_by_mod_id.get(mod_id) else {
+            continue;
+        };
+
+        for required_metric in &manifest.required_metrics {
+            if !contribution.metrics_by_name.contains_key(required_metric) {
+                panic!(
+                    "USF mod contribution registry validation failed: mod '{}' manifest requires metric '{}' but contribution does not define it.",
+                    mod_id, required_metric
+                );
+            }
+        }
+        for required_metric_set in &manifest.required_metric_sets {
+            if !contribution.metric_sets_by_id.contains_key(required_metric_set) {
+                panic!(
+                    "USF mod contribution registry validation failed: mod '{}' manifest requires metric_set '{}' but contribution does not define it.",
+                    mod_id, required_metric_set
+                );
+            }
+        }
+        for required_zone_type in &manifest.required_zone_types {
+            if !contribution.zone_types.contains(required_zone_type) {
+                panic!(
+                    "USF mod contribution registry validation failed: mod '{}' manifest requires zone '{}' but contribution does not define it.",
+                    mod_id, required_zone_type
+                );
+            }
+        }
+        for required_phenomenon in &manifest.required_phenomena {
+            if !contribution.phenomena_by_id.contains_key(required_phenomenon) {
+                panic!(
+                    "USF mod contribution registry validation failed: mod '{}' manifest requires phenomenon '{}' but contribution does not define it.",
+                    mod_id, required_phenomenon
+                );
+            }
+        }
+        for required_model in &manifest.required_phenomenon_models {
+            if !contribution.phenomenon_models_by_id.contains_key(required_model) {
+                panic!(
+                    "USF mod contribution registry validation failed: mod '{}' manifest requires phenomenon_model '{}' but contribution does not define it.",
+                    mod_id, required_model
+                );
+            }
+        }
+        for required_scale in &manifest.required_scales {
+            if !contribution.scales_by_index.contains_key(required_scale) {
+                panic!(
+                    "USF mod contribution registry validation failed: mod '{}' manifest requires scale {} but contribution does not define it.",
+                    mod_id, required_scale
+                );
+            }
+        }
+        for required_schema_scale in &manifest.required_metric_container_layout_scales {
+            if !contribution.metric_container_layouts_by_scale.contains_key(required_schema_scale) {
+                panic!(
+                    "USF mod contribution registry validation failed: mod '{}' manifest requires metric_container_layout scale {} but contribution does not define it.",
+                    mod_id, required_schema_scale
+                );
+            }
+        }
+        for required_zlm_scale in &manifest.required_zlm_scales {
+            if !contribution.zlm_scales_by_scale.contains_key(required_zlm_scale) {
+                panic!(
+                    "USF mod contribution registry validation failed: mod '{}' manifest requires zlm scale {} but contribution does not define it.",
+                    mod_id, required_zlm_scale
+                );
+            }
+        }
+    }
 }
 
 fn validate_usf_mod_registry_system(mod_registry: Res<UsfModRegistry>, modpack_registry: Res<UsfModpackRegistry>) {
@@ -903,6 +1223,46 @@ fn validate_usf_active_mod_pack_system(active_modpack: Res<UsfActiveModPack>) {
     }
 }
 
+fn validate_usf_runtime_concept_view_system(
+    runtime_view: Res<UsfRuntimeConceptView>,
+    active_modpack: Res<UsfActiveModPack>,
+    mod_registry: Res<UsfModRegistry>,
+    modpack_registry: Res<UsfModpackRegistry>,
+    metric_registry: Res<UsfMetricRegistry>,
+    metric_set_registry: Res<UsfMetricSetRegistry>,
+    scale_registry: Res<UsfScaleRegistry>,
+    mod_manifest_registry: Res<UsfModManifestRegistry>,
+    mod_contribution_registry: Res<UsfModContributionRegistry>,
+) {
+    let catalog = runtime_view.catalog_snapshot();
+    if catalog.active_modpack_id.trim().is_empty() {
+        panic!("USF runtime concept view validation failed: catalog snapshot has empty active_modpack_id.");
+    }
+    if runtime_view.active_modpack().mod_pack_id != active_modpack.mod_pack_id {
+        panic!("USF runtime concept view validation failed: active modpack id mismatch.");
+    }
+    if runtime_view.active_modpack().resolved_enabled_mods != active_modpack.resolved_enabled_mods {
+        panic!("USF runtime concept view validation failed: resolved enabled mods mismatch.");
+    }
+    if runtime_view.mod_registry.mods_by_id != mod_registry.mods_by_id
+        || runtime_view.mod_registry.resolved_mod_ids != mod_registry.resolved_mod_ids
+        || runtime_view.modpack_registry.modpacks_by_id != modpack_registry.modpacks_by_id
+        || runtime_view.metric_registry.metrics_by_name != metric_registry.metrics_by_name
+        || runtime_view.metric_set_registry.metric_names_by_set_id != metric_set_registry.metric_names_by_set_id
+        || runtime_view.scale_registry.scales_by_index != scale_registry.scales_by_index
+        || runtime_view.scale_registry.schemas_by_scale != scale_registry.schemas_by_scale
+        || runtime_view.scale_registry.known_zone_types != scale_registry.known_zone_types
+    {
+        panic!("USF runtime concept view validation failed: registry mirror mismatch.");
+    }
+    if runtime_view.mod_manifest_registry.manifests_by_mod_id.len() != mod_manifest_registry.manifests_by_mod_id.len() {
+        panic!("USF runtime concept view validation failed: mod manifest registry size mismatch.");
+    }
+    if runtime_view.mod_contribution_registry.contributions_by_mod_id.len() != mod_contribution_registry.contributions_by_mod_id.len() {
+        panic!("USF runtime concept view validation failed: mod contribution registry size mismatch.");
+    }
+}
+
 fn rebuild_usf_execution_plan_system(mut execution_plan: ResMut<UsfExecutionPlan>, active_modpack: Res<UsfActiveModPack>) {
     execution_plan.routes_by_scale.clear();
     let enabled_mod_ids = active_modpack.enabled_mods_in_profile_order();
@@ -996,21 +1356,29 @@ fn validate_usf_execution_plan_system(execution_plan: Res<UsfExecutionPlan>, act
 pub(crate) struct ModPacksPlugin;
 impl Plugin for ModPacksPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<UsfModRegistry>()
+        app.init_resource::<UsfConceptCatalog>()
+            .init_resource::<UsfModManifestRegistry>()
+            .init_resource::<UsfModContributionRegistry>()
+            .init_resource::<UsfModRegistry>()
             .init_resource::<UsfModpackRegistry>()
             .init_resource::<UsfMetricRegistry>()
             .init_resource::<UsfMetricSetRegistry>()
             .init_resource::<UsfScaleRegistry>()
             .init_resource::<UsfActiveModPack>()
+            .init_resource::<UsfRuntimeConceptView>()
             .init_resource::<UsfExecutionPlan>()
             .add_systems(
                 Startup,
                 (
+                    validate_usf_concept_catalog_system,
                     validate_usf_mod_registry_system,
+                    validate_usf_mod_manifest_registry_system,
+                    validate_usf_mod_contribution_registry_system,
                     validate_usf_scale_registry_system,
                     validate_usf_metric_registry_system,
                     validate_usf_active_mod_pack_alignment_system,
                     validate_usf_active_mod_pack_system,
+                    validate_usf_runtime_concept_view_system,
                     rebuild_usf_execution_plan_system,
                     validate_usf_execution_plan_system,
                 )

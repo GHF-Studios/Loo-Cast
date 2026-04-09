@@ -2,10 +2,9 @@ use std::collections::HashMap;
 
 use crate::bevy::prelude::*;
 use crate::core::orchestration::AppSet;
-use crate::rhai_binding::engine::statics::USF_CONCEPT_CATALOG;
 use crate::usf::metric::MetricId;
 use crate::usf::metric_container::MetricContainerLayout;
-use crate::usf::mod_packs::UsfActiveModPack;
+use crate::usf::mod_packs::{UsfActiveModPack, UsfRuntimeConceptView};
 use crate::usf::scale::Scale;
 use crate::usf::zone::ZoneTypeId;
 
@@ -41,9 +40,13 @@ pub struct ZlmScaleDefinition {
 pub struct ZlmRegistry {
     pub maps_by_scale: HashMap<Scale, ZlmScaleDefinition>,
 }
-impl Default for ZlmRegistry {
-    fn default() -> Self {
-        let script_maps = script_zlm_overrides();
+impl FromWorld for ZlmRegistry {
+    fn from_world(world: &mut World) -> Self {
+        let catalog = world
+            .get_resource::<UsfRuntimeConceptView>()
+            .map(|view| view.catalog_snapshot())
+            .unwrap_or_else(|| panic!("USF ZLM bootstrap failed: missing UsfRuntimeConceptView resource."));
+        let script_maps = script_zlm_overrides(&catalog);
         if script_maps.is_empty() {
             panic!("USF ZLM bootstrap failed: no ZLM maps registered. Define at least one '*.zlm.rhai' file.");
         }
@@ -181,8 +184,8 @@ fn normalize_zone_type(value: &str) -> ZoneTypeId {
     ZoneTypeId::new(value.trim().to_ascii_lowercase())
 }
 
-fn script_zlm_overrides() -> Vec<(Scale, ZlmScaleDefinition)> {
-    let zlm_maps = USF_CONCEPT_CATALOG().lock().unwrap().composed.zlm_scales_by_scale.clone();
+fn script_zlm_overrides(catalog: &crate::rhai_binding::engine::statics::ScriptUsfConceptCatalog) -> Vec<(Scale, ZlmScaleDefinition)> {
+    let zlm_maps = catalog.composed.zlm_scales_by_scale.clone();
     let mut ordered = zlm_maps.into_iter().collect::<Vec<_>>();
     ordered.sort_by_key(|(scale_index, _)| *scale_index);
 
@@ -220,8 +223,8 @@ fn script_zlm_overrides() -> Vec<(Scale, ZlmScaleDefinition)> {
         .collect()
 }
 
-fn validate_zlm_registry_system(active_modpack: Res<UsfActiveModPack>, zlm_registry: Res<ZlmRegistry>) {
-    if let Err(reason) = zlm_registry.validate_against(&active_modpack) {
+fn validate_zlm_registry_system(runtime_concepts: Res<UsfRuntimeConceptView>, zlm_registry: Res<ZlmRegistry>) {
+    if let Err(reason) = zlm_registry.validate_against(runtime_concepts.active_modpack()) {
         panic!("USF ZLM registry validation failed: {reason}");
     }
 }

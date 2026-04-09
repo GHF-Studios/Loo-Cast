@@ -70,6 +70,10 @@ Chunk + substrate summary + zone runtime + zone realization + phenomenon model d
    - package-scoped contracts for selected mods: `metric`, `zone`, `metric_set`, `zlm`, `scale`, `phenomenon`, `phenomenon_model`
 4. Active modpack is validated and execution plan is built.
 5. Runtime registries initialize from script-defined contracts:
+   - canonical concept catalog resource (`UsfConceptCatalog`)
+   - mod manifest registry (`UsfModManifestRegistry`)
+   - mod contribution registry (`UsfModContributionRegistry`)
+   - unified runtime concept query service (`UsfRuntimeConceptView`)
    - metric container schemas
    - zlm registry
    - zone behavior registry
@@ -166,6 +170,21 @@ Target operational worldgen mode for bootstrap/demo:
 3. Descend scale-by-scale in deterministic steps.
 4. At each scale slice, wait for chunk + substrate + zone + realization stabilization.
 5. Unlock player control at target gameplay scale window.
+
+Runtime implementation note:
+
+- A dedicated bootstrap worldgen controller now exists and can be toggled with environment flags:
+  - `LOOCAST_USF_BOOTSTRAP_ENABLED`
+  - `LOOCAST_USF_BOOTSTRAP_START_SCALE_INDEX`
+  - `LOOCAST_USF_BOOTSTRAP_TARGET_SCALE_INDEX`
+  - `LOOCAST_USF_BOOTSTRAP_SETTLE_FRAMES`
+  - `LOOCAST_USF_BOOTSTRAP_ZOOM_STEP_MULTIPLIER`
+- While active, player movement/zoom input is locked and zoom descent is automation-driven until stabilization criteria pass per scale slice.
+- Stabilization now includes:
+  - chunk load gate/batch quietness,
+  - active-scale chunk and zone availability,
+  - zone realization presence for zones that require phenomenon support,
+  - active-scale phenomenon-model readiness for realized zone proxies.
 
 ## Guardrails
 

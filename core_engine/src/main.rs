@@ -10,12 +10,11 @@
 use core_mod::*;
 use core_mod_api::config::statics::CONFIG;
 use core_mod_api::core::types::ShortTime;
-use core_mod_api::logging::tracing::types::LogTreeTracingLayer;
 use core_mod_api::*;
 
 use bevy::app::PluginGroupBuilder;
 use bevy::diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, SystemInformationDiagnosticsPlugin};
-use bevy::log::{LogPlugin, error, info, info_span, warn};
+use bevy::log::{LogPlugin, info, info_span, warn};
 use bevy::prelude::*;
 use bevy::window::PresentMode;
 
@@ -55,19 +54,27 @@ fn setup_tracing() {
         .with_ansi(true)
         .with_filter(EnvFilter::new(CONFIG().get::<&'static str>("core/cli_log_filter")));
 
-    let subscriber = tracing_subscriber::registry()
-        // .with(LogTreeTracingLayer)
-        .with(fmt_layer)
-        .with(console_subscriber::spawn());
+    let console_enabled = std::env::var("LOOCAST_CONSOLE_SUBSCRIBER")
+        .map(|raw| matches!(raw.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"))
+        .unwrap_or(false);
 
+    if console_enabled {
+        let subscriber = tracing_subscriber::registry().with(fmt_layer).with(console_subscriber::spawn());
+        tracing::subscriber::set_global_default(subscriber).expect("Failed to set global subscriber");
+        return;
+    }
+
+    let subscriber = tracing_subscriber::registry().with(fmt_layer);
     tracing::subscriber::set_global_default(subscriber).expect("Failed to set global subscriber");
 }
 
 fn configure_low_level_stuff() {
     info!("Configuring low-level stuff");
 
-    std::panic::set_hook(Box::new(|panic_info| {
-        error!("{}", panic_info);
+    let default_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |panic_info| {
+        eprintln!("[core_engine panic] {panic_info}");
+        default_hook(panic_info);
     }));
 }
 

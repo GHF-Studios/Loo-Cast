@@ -52,6 +52,9 @@ Purpose: canonical AI entrypoint and manifest for this repository.
 - Rhai bootstrap + typed USF script contracts: `core_mod_api/src/rhai_binding/engine/bootstrap.rs`
 - Schedule entrypoint runtime: `core_mod_api/src/rhai_binding/engine/schedule_entrypoint.rs`
 - Core scripts + USF content scripts: `core_mod/assets/scripts/*`
+- Canonical runtime catalog/registries: `core_mod_api/src/usf/mod_packs/mod.rs`
+- Unified runtime concept query view: `UsfRuntimeConceptView` in `core_mod_api/src/usf/mod_packs/mod.rs`
+- Bootstrap worldgen descent controller: `core_mod_api/src/usf/worldgen/mod.rs`
 
 ## Manifest Maintenance Rule
 

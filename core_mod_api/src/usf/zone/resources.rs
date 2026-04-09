@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::bevy::prelude::*;
 use crate::config::statics::CONFIG;
-use crate::rhai_binding::engine::statics::USF_CONCEPT_CATALOG;
+use crate::usf::mod_packs::UsfRuntimeConceptView;
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
 
@@ -125,12 +125,15 @@ pub struct ZoneBehaviorRegistry {
     pub selection_policy_by_zone: HashMap<ZoneTypeId, ZoneSelectionPolicy>,
     pub density_profile_by_zone: HashMap<ZoneTypeId, ZoneDensityProfile>,
 }
-impl Default for ZoneBehaviorRegistry {
-    fn default() -> Self {
+impl FromWorld for ZoneBehaviorRegistry {
+    fn from_world(world: &mut World) -> Self {
         let mut phenomenon_support_by_zone = HashMap::new();
         let mut selection_policy_by_zone = HashMap::new();
         let mut density_profile_by_zone = HashMap::new();
-        let catalog = USF_CONCEPT_CATALOG().lock().unwrap().clone();
+        let catalog = world
+            .get_resource::<UsfRuntimeConceptView>()
+            .map(|view| view.catalog_snapshot())
+            .unwrap_or_else(|| panic!("USF zone behavior bootstrap failed: missing UsfRuntimeConceptView resource."));
         let script_phenomena_by_id = catalog.composed.phenomena_by_id;
         let script_zone_supports = catalog.composed.zone_phenomenon_support_by_zone_type;
         let script_selection_policies = catalog.composed.zone_selection_policy_by_zone_type;
