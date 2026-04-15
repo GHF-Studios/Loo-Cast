@@ -2,7 +2,7 @@
   "schema_version": "1.1.0",
   "generated_on": "2026-04-14",
   "scope": "whole-project-technical-active-intent",
-  "record_count": 87,
+  "record_count": 79,
   "notes": "Active intent map. Archive/legacy signals moved to records_archive_signals.json. USF observations default to low confidence until owner-confirmed.",
   "records": [
     {
@@ -296,7 +296,7 @@
       }
     },
     {
-      "id": "R-0012",
+      "id": "R-0011",
       "title": "Script Roots Are Separated By Role",
       "category": "workspace",
       "tags": [
@@ -326,7 +326,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0013",
+      "id": "R-0012",
       "title": "AppSet Defines Ordered Global Runtime Phases",
       "category": "runtime_support",
       "tags": [
@@ -352,15 +352,15 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0014",
+      "id": "R-0013",
       "title": "Workflow Plugin Is Central Staged Orchestration Infrastructure",
       "category": "workflow_support",
       "tags": [
         "workflow",
         "channels"
       ],
-      "summary": "Workflow plugin initializes channels/resources, relays requests/responses, and bridges ECS/render stages.",
-      "description": "Composite workflows are first-class runtime orchestration primitives.",
+      "summary": "Workflow plugin is a core utility-side infrastructure capability for staged, high-throughput orchestration.",
+      "description": "It initializes channels/resources, relays requests/responses, and bridges ECS/render stages. Workflows are intended for pipelineable/parallelizable heavy workloads in the engine-level utility layer.",
       "current_implementation_observation": "Observed in workflow plugin build.",
       "owner_direction": "No direct contradiction.",
       "status": "observed",
@@ -382,7 +382,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0015",
+      "id": "R-0014",
       "title": "Workflow Stage Taxonomy Is Explicit",
       "category": "workflow_support",
       "tags": [
@@ -408,7 +408,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0016",
+      "id": "R-0015",
       "title": "Workflow Timeout Default Is Panic-Fast",
       "category": "workflow_support",
       "tags": [
@@ -434,7 +434,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0017",
+      "id": "R-0016",
       "title": "Chunk Load Gate Is Config-Gated Run Condition",
       "category": "workflow_support",
       "tags": [
@@ -460,7 +460,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0018",
+      "id": "R-0017",
       "title": "Config Is Global Static Loaded From TOML",
       "category": "config_support",
       "tags": [
@@ -486,7 +486,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0019",
+      "id": "R-0018",
       "title": "Config Flattening Uses Slash-Key Paths",
       "category": "config_support",
       "tags": [
@@ -512,7 +512,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0020",
+      "id": "R-0019",
       "title": "Config Supports Domain Tree Merge",
       "category": "config_support",
       "tags": [
@@ -542,7 +542,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0021",
+      "id": "R-0020",
       "title": "Config Getter Has Explicit Performance Design Concern",
       "category": "config_support",
       "tags": [
@@ -564,7 +564,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0022",
+      "id": "R-0021",
       "title": "Active Modpack Default Is `debug`",
       "category": "config_support",
       "tags": [
@@ -590,7 +590,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0023",
+      "id": "R-0022",
       "title": "USF Chunk/Zone Realization Defaults Are Configured In Domain File",
       "category": "config_support",
       "tags": [
@@ -616,7 +616,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0024",
+      "id": "R-0023",
       "title": "Main Runtime Uses Panic Hook And Optional Tracing Subscriber",
       "category": "runtime_support",
       "tags": [
@@ -642,7 +642,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0025",
+      "id": "R-0024",
       "title": "Boot Script Is Schedule Registration Only",
       "category": "rhai_support",
       "tags": [
@@ -668,7 +668,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0026",
+      "id": "R-0025",
       "title": "USF Schedule Entrypoints Are Explicitly Split By Domain",
       "category": "rhai_support",
       "tags": [
@@ -694,7 +694,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0027",
+      "id": "R-0026",
       "title": "Schedule Entrypoint Loader Uses Companion Ordering",
       "category": "rhai_support",
       "tags": [
@@ -720,7 +720,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0028",
+      "id": "R-0027",
       "title": "Schedule Entrypoint Params Are Domain-Typed",
       "category": "rhai_support",
       "tags": [
@@ -746,7 +746,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0029",
+      "id": "R-0028",
       "title": "Schedule Params Include Bootstrap And Channel Telemetry",
       "category": "rhai_support",
       "tags": [
@@ -772,7 +772,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0030",
+      "id": "R-0029",
       "title": "Typed USF Bootstrap Contract Defines Nine Script Types",
       "category": "rhai_support",
       "tags": [
@@ -798,7 +798,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0031",
+      "id": "R-0030",
       "title": "USF Script Contracts Use Global And Package Scopes",
       "category": "rhai_support",
       "tags": [
@@ -824,7 +824,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0032",
+      "id": "R-0031",
       "title": "Rhai Bootstrap Is Fail-Fast On Contract Violations",
       "category": "rhai_support",
       "tags": [
@@ -850,7 +850,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0033",
+      "id": "R-0032",
       "title": "Rhai Startup Test Harness Is Config-Gated",
       "category": "rhai_support",
       "tags": [
@@ -876,7 +876,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0034",
+      "id": "R-0033",
       "title": "Alias Preprocessor Is Partially Implemented",
       "category": "rhai_support",
       "tags": [
@@ -902,7 +902,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0035",
+      "id": "R-0034",
       "title": "Generic-Like Dispatch Uses Signature Catalog + Resolver Policy",
       "category": "rhai_support",
       "tags": [
@@ -928,7 +928,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0036",
+      "id": "R-0035",
       "title": "AccessCell Provider Pattern Is Soundness Boundary",
       "category": "rhai_support",
       "tags": [
@@ -954,7 +954,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0037",
+      "id": "R-0036",
       "title": "Bridge Architecture Splits Domains And Runtime Wrappers",
       "category": "rhai_support",
       "tags": [
@@ -980,7 +980,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0038",
+      "id": "R-0037",
       "title": "Rhai Capability Coverage Is Broad But Incomplete",
       "category": "rhai_support",
       "tags": [
@@ -1011,7 +1011,7 @@
       }
     },
     {
-      "id": "R-0039",
+      "id": "R-0038",
       "title": "Startup Test Harness Has Structured Script Subtree",
       "category": "rhai_support",
       "tags": [
@@ -1033,7 +1033,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0040",
+      "id": "R-0039",
       "title": "USF Implementation Snapshot: Modular but Legacy/Zone-Centric",
       "category": "usf_observation",
       "tags": [
@@ -1065,7 +1065,7 @@
       }
     },
     {
-      "id": "R-0041",
+      "id": "R-0040",
       "title": "USF Simulation Order Is Substrate -> Zone -> Phenomenon",
       "category": "usf_observation",
       "tags": [
@@ -1096,7 +1096,7 @@
       }
     },
     {
-      "id": "R-0042",
+      "id": "R-0041",
       "title": "USF Authority Contract Splits Canonical vs Runtime-State Domains",
       "category": "usf_observation",
       "tags": [
@@ -1131,7 +1131,7 @@
       }
     },
     {
-      "id": "R-0044",
+      "id": "R-0042",
       "title": "Runtime Concept Catalog And Registries Are Materialized At Bootstrap",
       "category": "usf_observation",
       "tags": [
@@ -1166,7 +1166,7 @@
       }
     },
     {
-      "id": "R-0045",
+      "id": "R-0043",
       "title": "Active Modpack Validation Is Strict And Panic-Oriented",
       "category": "usf_observation",
       "tags": [
@@ -1203,7 +1203,7 @@
       }
     },
     {
-      "id": "R-0046",
+      "id": "R-0044",
       "title": "Scale-First Foundation Signal (Current Code Only Partially Reflects It)",
       "category": "usf_observation",
       "tags": [
@@ -1241,7 +1241,7 @@
       }
     },
     {
-      "id": "R-0051",
+      "id": "R-0045",
       "title": "Scale-Window Chunk Targeting Uses Active Radius Plus Configurable Ancestor Closure",
       "category": "usf_observation",
       "tags": [
@@ -1252,7 +1252,7 @@
       "description": "USF scale-window behavior is defined from scale semantics first, not current code shape. Active+above remains canonical, and ancestor-scale chunk load depth/count is a first-class configuration knob.",
       "current_implementation_observation": "Current code roughly follows active+above parent closure, but ancestor-scale loading configurability is limited.",
       "owner_direction": "Decouple this rule from implementation details while keeping active+above loading and tunable ancestor-scale closure as the intended pattern.",
-      "status": "divergence",
+      "status": "divergent",
       "confidence": "medium",
       "sources": [
         {
@@ -1272,7 +1272,7 @@
       }
     },
     {
-      "id": "R-0052",
+      "id": "R-0046",
       "title": "USF State Is Scale-Dependent Across Loaded Scales",
       "category": "usf_observation",
       "tags": [
@@ -1317,7 +1317,7 @@
       }
     },
     {
-      "id": "R-0054",
+      "id": "R-0047",
       "title": "Chunk Realization Is Intent-Driven Across Representation/Projection/Interaction Substrate Domains",
       "category": "usf_observation",
       "tags": [
@@ -1365,7 +1365,7 @@
       }
     },
     {
-      "id": "R-0055",
+      "id": "R-0048",
       "title": "Bootstrap Descent Controller Defines Genesis/Evolve World Initialization Contract",
       "category": "usf_observation",
       "tags": [
@@ -1375,7 +1375,7 @@
         "evolve"
       ],
       "summary": "Target USF contract: a bootstrap descent controller governs initial Genesis sweep and subsequent Evolve catch-up across scales to the requested timeline.",
-      "description": "Operational/controller realization of the higher-level Genesis/Evolve split principle (R-0076): Genesis creates irreversible base-state structure per seed/content, then Evolve advances state with script-defined dynamics under shared macro laws. The controller owns scale progression/stabilization gates and timeline catch-up policy.",
+      "description": "Operational/controller realization of the higher-level Genesis/Evolve split principle (R-0061): Genesis creates irreversible base-state structure per seed/content, then Evolve advances state with script-defined dynamics under shared macro laws. The controller owns scale progression/stabilization gates and timeline catch-up policy.",
       "current_implementation_observation": "Current worldgen module shows an early bootstrap controller shape with stabilization/input-lock plumbing, but it is still zone-era and non-authoritative.",
       "owner_direction": "Keep bootstrap descent controller concept; formalize it as a zone-free Genesis/Evolve contract.",
       "status": "decision",
@@ -1406,7 +1406,7 @@
       }
     },
     {
-      "id": "R-0056",
+      "id": "R-0049",
       "title": "Temporal Context Is A Zone-Free Scale-Native Contract",
       "category": "usf_observation",
       "tags": [
@@ -1445,7 +1445,7 @@
       }
     },
     {
-      "id": "R-0059",
+      "id": "R-0050",
       "title": "Scale Spine: 71 Canonical Scales Are Core USF Structure",
       "category": "usf_math_observation",
       "tags": [
@@ -1496,7 +1496,7 @@
       }
     },
     {
-      "id": "R-0061",
+      "id": "R-0051",
       "title": "Cross-Scale Scalar Arithmetic Is An Explicit Math-Boundary Primitive (Partial Contract)",
       "category": "usf_math_observation",
       "tags": [
@@ -1545,7 +1545,7 @@
       }
     },
     {
-      "id": "R-0062",
+      "id": "R-0052",
       "title": "Balanced Digit Normalization Contract Uses Local Range -5..4",
       "category": "usf_math_observation",
       "tags": [
@@ -1570,7 +1570,7 @@
         },
         {
           "kind": "user",
-          "ref": "conversation: R-0062 is a contract, more like code documentation"
+          "ref": "conversation: R-0052 is a contract, more like code documentation"
         }
       ],
       "uncertainty": {
@@ -1585,7 +1585,7 @@
       }
     },
     {
-      "id": "R-0063",
+      "id": "R-0053",
       "title": "UnitVec Local-Window Plus Grid-Carry Behavior Is A Contract Fragment",
       "category": "usf_math_observation",
       "tags": [
@@ -1611,7 +1611,7 @@
         },
         {
           "kind": "user",
-          "ref": "conversation: yes, absolutely (promote R-0063 to contract fragment)"
+          "ref": "conversation: yes, absolutely (promote R-0053 to contract fragment)"
         }
       ],
       "uncertainty": {
@@ -1626,7 +1626,7 @@
       }
     },
     {
-      "id": "R-0064",
+      "id": "R-0054",
       "title": "UsfFloat Folding Is An Essential USF Math Primitive",
       "category": "usf_math_observation",
       "tags": [
@@ -1671,7 +1671,7 @@
       }
     },
     {
-      "id": "R-0065",
+      "id": "R-0055",
       "title": "UsfScale 10x Multiplicative Pivot Is Directionally Preferred",
       "category": "usf_math_observation",
       "tags": [
@@ -1712,7 +1712,7 @@
       }
     },
     {
-      "id": "R-0066",
+      "id": "R-0056",
       "title": "Linear Wrap/Fold Transform Policy Is A Core But Parameter-Uncertain Contract",
       "category": "usf_math_observation",
       "tags": [
@@ -1754,7 +1754,7 @@
       }
     },
     {
-      "id": "R-0067",
+      "id": "R-0057",
       "title": "Executable USF Script Tree Is A Low-Authority Runtime Snapshot",
       "category": "content_observation",
       "tags": [
@@ -1798,7 +1798,7 @@
       }
     },
     {
-      "id": "R-0073",
+      "id": "R-0058",
       "title": "Owner Direction: Replace Zones With Metrics + PhenomenaRealizer + Phenomena Per Scale",
       "category": "owner_direction",
       "tags": [
@@ -1827,7 +1827,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0074",
+      "id": "R-0059",
       "title": "Owner Direction: Strict Active + Above Policy",
       "category": "owner_direction",
       "tags": [
@@ -1849,7 +1849,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0075",
+      "id": "R-0060",
       "title": "Owner Direction: Statistical Consistency Over Bitwise Determinism",
       "category": "owner_direction",
       "tags": [
@@ -1871,7 +1871,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0076",
+      "id": "R-0061",
       "title": "Owner Direction: Genesis and Evolve Are Distinct First-Class Concepts",
       "category": "owner_direction",
       "tags": [
@@ -1879,7 +1879,7 @@
         "evolve"
       ],
       "summary": "World generation and world evolution must be separated conceptually (base state plus ongoing patch/evolve behavior).",
-      "description": "Principle-level semantic law: Genesis and Evolve are non-interchangeable lifecycle phases. Operational/controller realization details are captured separately in R-0055.",
+      "description": "Principle-level semantic law: Genesis and Evolve are non-interchangeable lifecycle phases. Operational/controller realization details are captured separately in R-0048.",
       "current_implementation_observation": "Conversation direction.",
       "owner_direction": "Formalize genesis/evolve split.",
       "status": "locked_by_owner",
@@ -1893,7 +1893,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0077",
+      "id": "R-0062",
       "title": "Owner Direction: USF Math Boundaries Must Be Explicit",
       "category": "owner_direction",
       "tags": [
@@ -1928,7 +1928,7 @@
       }
     },
     {
-      "id": "R-0078",
+      "id": "R-0063",
       "title": "Owner Direction: Scripts Own Policy, Substrate Executes Capabilities",
       "category": "owner_direction",
       "tags": [
@@ -1936,9 +1936,9 @@
         "substrate"
       ],
       "summary": "Principle-level rule: policy/control/intelligence live in scripts, while substrate remains structural and capability-execution oriented.",
-      "description": "This is the governance/control-plane principle. The concrete orchestration shape for this principle is captured in R-0107 (capability-channel pipelines), and invocation governance is captured in R-0079.",
+      "description": "This is the governance/control-plane principle. The concrete orchestration shape for this principle is captured in R-0064 (capability-channel pipelines), and invocation governance is captured in R-0066.",
       "current_implementation_observation": "Conversation direction.",
-      "owner_direction": "Keep script-driven intelligence with minimal structural substrate; operationalize through R-0107.",
+      "owner_direction": "Keep script-driven intelligence with minimal structural substrate; operationalize through R-0064.",
       "status": "locked_by_owner",
       "confidence": "high",
       "sources": [
@@ -1954,7 +1954,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0107",
+      "id": "R-0064",
       "title": "Owner Direction: Capability Channels Operationalize Script-Orchestration",
       "category": "owner_direction",
       "tags": [
@@ -1966,10 +1966,10 @@
         "layers",
         "canonical-space"
       ],
-      "summary": "Operational model for R-0078/R-0079: capability channels are composable script-orchestrated pipelines with explicit scale-domain differentiation as a core requirement.",
+      "summary": "Operational model for R-0063/R-0066: capability channels are composable script-orchestrated pipelines with explicit scale-domain differentiation as a core requirement.",
       "description": "Rust defines/implements engine-level capabilities; scripts route and compose intent through capability channels across representation/projection/interaction domains (for example physics, audio, particles, pathfinding, IO, and related systems). Capability channels operate in one mode: they differentiate scales as channel layers of the same canonical/global space, with channel-specific handling details.",
       "current_implementation_observation": "Conversation direction; partially reflected by early channel-family realization code.",
-      "owner_direction": "Preserve capability-channel pipelining; use script-authored capability invocation by default (R-0079); and require every capability to support scale-aware layer differentiation representing the same canonical/global space.",
+      "owner_direction": "Preserve capability-channel pipelining; use script-authored capability invocation by default (R-0066); and require every capability to support scale-aware layer differentiation representing the same canonical/global space.",
       "status": "locked_by_owner",
       "confidence": "medium",
       "sources": [
@@ -2018,7 +2018,7 @@
       }
     },
     {
-      "id": "R-0113",
+      "id": "R-0065",
       "title": "Owner Direction: Recursive Sub-Phenomena Are A First-Class Interface",
       "category": "owner_direction",
       "tags": [
@@ -2055,7 +2055,7 @@
       }
     },
     {
-      "id": "R-0079",
+      "id": "R-0066",
       "title": "Owner Direction: Capability Invocation Is Script-Authored By Default",
       "category": "owner_direction",
       "tags": [
@@ -2088,7 +2088,7 @@
       }
     },
     {
-      "id": "R-0080",
+      "id": "R-0067",
       "title": "Owner Direction: Replay Is Deferred Due To Feasibility Uncertainty",
       "category": "owner_direction",
       "tags": [
@@ -2120,7 +2120,7 @@
       }
     },
     {
-      "id": "R-0081",
+      "id": "R-0068",
       "title": "Owner Direction: Script Failures Should Panic Fast",
       "category": "owner_direction",
       "tags": [
@@ -2142,7 +2142,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0089",
+      "id": "R-0069",
       "title": "Divergence: Zone-Centric Runtime/Docs Vs Remove-Zones Target",
       "category": "divergence",
       "tags": [
@@ -2172,7 +2172,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0090",
+      "id": "R-0070",
       "title": "Divergence: Below-Active Window Support Vs Strict Active+Above",
       "category": "divergence",
       "tags": [
@@ -2198,7 +2198,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0091",
+      "id": "R-0071",
       "title": "Divergence: Child Finer-Scale Request Paths Vs Active+Above-Only Simulation",
       "category": "divergence",
       "tags": [
@@ -2230,7 +2230,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0092",
+      "id": "R-0072",
       "title": "Divergence: Determinism Language Vs Statistical Consistency Direction",
       "category": "divergence",
       "tags": [
@@ -2261,7 +2261,7 @@
       }
     },
     {
-      "id": "R-0093",
+      "id": "R-0073",
       "title": "Contract Target: Genesis and Evolve Must Be Distinct Lifecycle Phases",
       "category": "gap",
       "tags": [
@@ -2287,7 +2287,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0094",
+      "id": "R-0074",
       "title": "Gap: Post-Zone Replacement Vocabulary Is Unlocked",
       "category": "gap",
       "tags": [
@@ -2314,7 +2314,7 @@
       }
     },
     {
-      "id": "R-0095",
+      "id": "R-0075",
       "title": "Gap: Script-First Capability Invocation Governance Is Not Formalized",
       "category": "gap",
       "tags": [
@@ -2338,7 +2338,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0096",
+      "id": "R-0076",
       "title": "Gap: Timescale Model Decoupled From Zones Is Not Formalized",
       "category": "gap",
       "tags": [
@@ -2364,7 +2364,7 @@
       "uncertainty": {}
     },
     {
-      "id": "R-0097",
+      "id": "R-0077",
       "title": "Gap: Formal Seed/Content/Timeline Semantics Are Not Codified",
       "category": "gap",
       "tags": [
@@ -2391,7 +2391,7 @@
       }
     },
     {
-      "id": "R-0114",
+      "id": "R-0078",
       "title": "Gap: Logic-Entity Vs Representation-Entity Split Contract Is Not Formalized",
       "category": "gap",
       "tags": [
@@ -2424,7 +2424,7 @@
       }
     },
     {
-      "id": "R-0117",
+      "id": "R-0079",
       "title": "Gap: Capability Scale-Layer Semantics And Invariants Are Not Formalized",
       "category": "gap",
       "tags": [

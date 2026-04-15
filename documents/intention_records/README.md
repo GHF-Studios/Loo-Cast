@@ -18,7 +18,8 @@ Included:
 4. Rhai runtime + typed bootstrap + scripting contracts
 5. USF code/docs/content observations
 6. owner-stated target directions
-7. design gaps
+7. selected high-signal divergences
+8. design gaps
 
 Excluded (from active intent records):
 
@@ -29,11 +30,11 @@ Excluded (from active intent records):
 ## File Layout
 
 1. `records.v1.json`
-   Active intent map for current design work.
+   Primary active intent map for current design work (including owner-direction contracts, selected divergences, and gaps).
 2. `records_archive_signals.json`
    Legacy/archived/temp signals kept separately at low confidence.
 3. `records_divergences.json`
-   Implementation-vs-owner-direction divergence records kept separately from the primary intent map.
+   Extended divergence backlog and migration-lag signals.
 
 ## Active Record Schema
 
@@ -71,9 +72,11 @@ Required fields:
    Observation explicitly treated as non-authoritative for target design.
 3. `locked_by_owner`
    Owner direction, authoritative.
-4. `divergent`
+4. `decision`
+   Directional contract accepted, but not necessarily fully formalized/complete.
+5. `divergent`
    Implementation/docs and owner direction conflict.
-5. `gap`
+6. `gap`
    Missing design contract or unresolved decision.
 
 Archive file status:
@@ -134,6 +137,35 @@ Any field can be marked uncertain:
   }
 }
 ```
+
+## Primary Sections (One-File Cordoning)
+
+Current `records.v1.json` is intentionally ordered into these review sections:
+
+1. `R-0001..R-0038` Infrastructure Axioms (workspace/runtime/workflow/config/rhai foundations)
+2. `R-0039..R-0057` USF + Math Contract Signals (observations and promoted contract fragments)
+3. `R-0058..R-0068` Locked Owner Directions (core target contracts)
+4. `R-0069..R-0072` Divergences (high-signal active mismatches)
+5. `R-0073..R-0079` Gaps (explicit unresolved contracts)
+
+This keeps one primary file while still providing strict conceptual separation.
+
+## Iteration 2 Review Format (Range-Based)
+
+Use small sequential ranges instead of full sweeps:
+
+1. Range A: `R-0001..R-0012` (workspace + runtime anchors)
+2. Range B: `R-0013..R-0038` (workflow/config/rhai axioms)
+3. Range C: `R-0039..R-0057` (USF/math/content contract signals)
+4. Range D: `R-0058..R-0068` (locked owner directions)
+5. Range E: `R-0069..R-0079` (divergences + gaps)
+
+Within each range:
+
+1. summarize each record in one line
+2. decide keep/edit/drop
+3. patch immediately
+4. carry unresolved items to the relevant `gap` record
 
 ## Staged Update Workflow
 
