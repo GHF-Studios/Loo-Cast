@@ -1,8 +1,8 @@
 {
   "schema_version": "1.1.0",
-  "generated_on": "2026-04-14",
+  "generated_on": "2026-04-16",
   "scope": "whole-project-technical-active-intent",
-  "record_count": 79,
+  "record_count": 90,
   "notes": "Active intent map. Archive/legacy signals moved to records_archive_signals.json. USF observations default to low confidence until owner-confirmed.",
   "records": [
     {
@@ -2127,19 +2127,32 @@
         "fail-fast",
         "scripts"
       ],
-      "summary": "Owner explicitly prefers immediate crash/panic on script failure over defensive recovery complexity.",
-      "description": "Fail-fast is accepted as practical runtime stance.",
+      "summary": "Owner prefers panic-fast as the default failure policy for script/runtime failures.",
+      "description": "Default stance is fail-fast panic for unexpected/unwanted failures. Non-panic paths are allowed only as explicit intentional sentinel/error branches, not hidden fallback behavior.",
       "current_implementation_observation": "Conversation direction.",
-      "owner_direction": "Keep panic-fast behavior.",
+      "owner_direction": "Keep panic-fast as default with explicit intentional exceptions only.",
       "status": "locked_by_owner",
       "confidence": "medium",
       "sources": [
         {
           "kind": "user",
           "ref": "conversation: script failures should panic fast"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: unexpected failures panic; sentinel-path errors may be non-panic"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: default should be panic-fast, not a 100%-always mandatory mode"
         }
       ],
-      "uncertainty": {}
+      "uncertainty": {
+        "exception_policy": {
+          "level": "medium",
+          "reason": "Intentional non-panic exception taxonomy and enforcement mechanism are not yet fully formalized."
+        }
+      }
     },
     {
       "id": "R-0069",
@@ -2461,6 +2474,350 @@
         "formalization": {
           "level": "high",
           "reason": "Core direction exists, but concrete per-capability layer semantics and invariants are still undefined."
+        }
+      }
+    },
+    {
+      "id": "R-0080",
+      "title": "Owner Direction: Canonical USF Definitions Are Script-Declared At Startup And Then Frozen",
+      "category": "owner_direction",
+      "tags": [
+        "scripts",
+        "startup",
+        "contracts",
+        "immutability"
+      ],
+      "summary": "Scales, Metrics, Phenomena, and PhenomenaRealizers are declared in script-land during startup and become immutable for runtime updates.",
+      "description": "Canonical USF definition contracts are loaded once at startup/pre-genesis. Runtime update phases may not register new canonical definitions.",
+      "current_implementation_observation": "Conversation direction.",
+      "owner_direction": "Lock canonical definition authoring to startup and freeze definitions afterward.",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: realizers/phenomena/metrics/scales are entirely script-defined"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: canonical type definitions immutable after startup"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: no new canonical definitions during Update"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0081",
+      "title": "Owner Direction: Update Phase Is For State Evolution And Intent Emission Only",
+      "category": "owner_direction",
+      "tags": [
+        "update",
+        "state",
+        "intents"
+      ],
+      "summary": "Update-time scripting is limited to evolving state and emitting intents under predeclared canonical contracts.",
+      "description": "Canonical definition changes are startup-only. Update flow mutates runtime state through authorized state evolution and capability intent pathways.",
+      "current_implementation_observation": "Conversation direction.",
+      "owner_direction": "Treat update as runtime evolution only; no definition registration.",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: during Update only evolve state/emit intents"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0082",
+      "title": "Owner Direction: Scripts Emit Intents, Rust Capability Contracts Commit",
+      "category": "owner_direction",
+      "tags": [
+        "intents",
+        "capabilities",
+        "rust",
+        "rhai"
+      ],
+      "summary": "Scripts are intent authors; Rust-defined capability channels own merge/reconcile/apply semantics and final state commit.",
+      "description": "Capability channels are Rust authority surfaces. Script-side APIs parameterize capability behavior but do not bypass Rust contract legality.",
+      "current_implementation_observation": "Conversation direction.",
+      "owner_direction": "Keep intent/commit split with Rust owning merge/reconcile/apply and panic-fast failure handling.",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: emit intents processed by rust-side"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: rust-defined capability handles merge/reconcile/cancel and panics on failure"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: rust contract defines what scripts can and cannot do"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0083",
+      "title": "Owner Direction: Capability Orchestration Must Be ECS-Native, Not Public Global Statics",
+      "category": "owner_direction",
+      "tags": [
+        "ecs",
+        "orchestration",
+        "statics",
+        "capabilities"
+      ],
+      "summary": "Gameplay capability orchestration should live in ECS systems/resources/events, not publicly accessible global statics.",
+      "description": "Inert infra statics (for example globally loaded config) are acceptable, but orchestration for gameplay capabilities (graphics/audio/physics/pathfinding/AI/etc.) must remain ECS-native.",
+      "current_implementation_observation": "Conversation direction; existing code still uses wider static patterns.",
+      "owner_direction": "Remove static-global gameplay-capability coordination; keep orchestration in ECS scheduling/runtime surfaces.",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: do not create global statics for capability coordination; embrace Bevy ECS"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: config-like global static is fine, gameplay capability statics are not"
+        }
+      ],
+      "uncertainty": {
+        "migration_scope": {
+          "level": "medium",
+          "reason": "Existing static usages need classification into tolerated infra vs forbidden gameplay orchestration."
+        }
+      }
+    },
+    {
+      "id": "R-0084",
+      "title": "Owner Direction: One PhenomenaRealizer Contract Per Scale, Chunk-Parameterized Execution",
+      "category": "owner_direction",
+      "tags": [
+        "phenomena_realizer",
+        "scale",
+        "chunks"
+      ],
+      "summary": "Each scale has one realizer definition; realization runs per chunk using chunk data as parameter/context.",
+      "description": "Realizer cardinality is per scale, not per chunk. Chunks are large partitions and may host internal optimized spatial structures (including sub-chunk partitioning details) used during realization.",
+      "current_implementation_observation": "Conversation direction.",
+      "owner_direction": "Lock one realizer definition per scale with chunk-parameterized realization semantics.",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: one realizer per scale; chunk is parameterization/input context"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: chunks act as parent partitions with internal sub-partition structures"
+        }
+      ],
+      "uncertainty": {
+        "partition_mechanics": {
+          "level": "medium",
+          "reason": "Exact chunk-internal partitioning strategy is directional (octree/smart leaves) but not finalized."
+        }
+      }
+    },
+    {
+      "id": "R-0085",
+      "title": "Owner Direction: Metrics And Phenomena Must Coexist In Persistence",
+      "category": "owner_direction",
+      "tags": [
+        "persistence",
+        "metrics",
+        "phenomena"
+      ],
+      "summary": "Both Metrics and Phenomena are required persistent state domains; neither is optional in save-state authority.",
+      "description": "Phenomena may be rebuilt with expected fidelity/data loss, but persistence should keep both domains to preserve practical world continuity and detail representation.",
+      "current_implementation_observation": "Conversation direction.",
+      "owner_direction": "Persist both Metrics and Phenomena as canonical coexisting world state.",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: phenomena and metrics must coexist even in persistence"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: rebuild may be possible but with significant loss"
+        }
+      ],
+      "uncertainty": {
+        "rebuild_policy": {
+          "level": "medium",
+          "reason": "Exact rebuild/recovery policy and acceptable loss thresholds are not yet formalized."
+        }
+      }
+    },
+    {
+      "id": "R-0086",
+      "title": "Owner Direction: Cross-Scale Access Requires Explicit Specialized APIs",
+      "category": "owner_direction",
+      "tags": [
+        "cross-scale",
+        "api",
+        "boundaries"
+      ],
+      "summary": "Any communication or mutation across scales must flow through explicit specialized interfaces.",
+      "description": "Arbitrary direct cross-scale access is disallowed. Cross-scale coupling can be bidirectional, but only via explicit operations/contracts.",
+      "current_implementation_observation": "Conversation direction.",
+      "owner_direction": "Treat cross-scale operations as explicit API-bound actions with clear contract semantics.",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: cross-scale communication should be explicit operations"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: working with other scales requires specialized interface/API"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0087",
+      "title": "Owner Direction: Capability Channels Are Closed Typed Contracts With Bootstrap Dependency Validation",
+      "category": "owner_direction",
+      "tags": [
+        "capabilities",
+        "channels",
+        "typing",
+        "dependencies",
+        "bootstrap"
+      ],
+      "summary": "Capability channels are predeclared typed engine contracts; compatibility/dependency mismatches fail fast at bootstrap.",
+      "description": "Mods and phenomenon types bind against declared channel contracts and dependency graphs. Future engine-level capability extensions are allowed, but channel legality remains contract-driven and validated before runtime.",
+      "current_implementation_observation": "Conversation direction.",
+      "owner_direction": "Keep channels closed/typed-by-contract and enforce dependency compatibility with panic-fast startup validation.",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: hardcode/contract capabilities as channels to prevent improper use"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: capability mismatch at bootstrap should panic immediately"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: capability channels declared at engine level; phenomenon types declare required capabilities"
+        }
+      ],
+      "uncertainty": {
+        "extension_model": {
+          "level": "medium",
+          "reason": "Future engine-level modded capability extension model is desired but not yet formalized."
+        }
+      }
+    },
+    {
+      "id": "R-0088",
+      "title": "Owner Direction: Capability Channels Use Explicit Dependency Graph Semantics",
+      "category": "owner_direction",
+      "tags": [
+        "capability-channels",
+        "dependencies",
+        "compatibility",
+        "bootstrap"
+      ],
+      "summary": "Capability channels should declare explicit dependency/compatibility relations (for example required companion channels or equivalent providers).",
+      "description": "Direction favors a channel-level dependency graph so capability requirements are explicit and validated at bootstrap. Invalid graphs, missing dependencies, and version mismatches should fail fast. Dependency semantics may include alternatives (for example one-of provider classes) rather than only hard one-to-one requirements.",
+      "current_implementation_observation": "Conversation direction.",
+      "owner_direction": "Formalize capability-channel dependency graph semantics as bootstrap compatibility authority.",
+      "status": "decision",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: capability channels should encode dependencies between capabilities"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: compatibility/dependency mismatches should panic at bootstrap"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: correction — dependency-graph direction applies to capability channels, not script precedence"
+        }
+      ],
+      "uncertainty": {
+        "graph_model": {
+          "level": "high",
+          "reason": "Exact channel dependency schema, alternative-provider semantics, and cycle policy are not yet formally specified."
+        }
+      }
+    },
+    {
+      "id": "R-0089",
+      "title": "Gap: Endgame-Backwards Capability Contract And Script-Type Demo Spec Is Missing",
+      "category": "gap",
+      "tags": [
+        "planning",
+        "capabilities",
+        "scripts",
+        "demo"
+      ],
+      "summary": "A concrete endgame-driven demo spec (sample phenomena, script hooks, capability API usage) is still missing.",
+      "description": "Owner direction is to design backwards from a target demo/content slice (similar to TEMP sketches) so script types, hooks/methods, parameter APIs, and global capability APIs are defined by demonstrated use-cases before implementation.",
+      "current_implementation_observation": "Current records contain many principles but not a compact backwards-designed demo contract artifact.",
+      "owner_direction": "Create a concrete target-demo design slice and derive capability contracts/script interfaces from it.",
+      "status": "gap",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: work backwards from endgame demo and TEMP sketches to define script hooks and capability APIs"
+        }
+      ],
+      "uncertainty": {
+        "demo_scope": {
+          "level": "medium",
+          "reason": "Exact first demo slice boundaries and selected phenomena are not yet locked."
+        }
+      }
+    },
+    {
+      "id": "R-0090",
+      "title": "Gap: Script/Module Dependency Graph Semantics Are Not Formalized",
+      "category": "gap",
+      "tags": [
+        "scripts",
+        "modules",
+        "dependencies",
+        "modding"
+      ],
+      "summary": "Script/module package dependency and conflict semantics are still underdefined as a first-class contract.",
+      "description": "Beyond capability-channel dependency graphs, script/module composition likely needs explicit dependency/conflict/version semantics and deterministic resolution rules. Current direction is exploratory and should stay separate from capability-channel graph authority.",
+      "current_implementation_observation": "Conversation direction indicates possible need, but no formal contract is locked.",
+      "owner_direction": "Keep as an open design gap while capability-channel dependency graph remains the primary locked direction.",
+      "status": "gap",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: script/package-manager-like dependency semantics were discussed but later corrected as not the primary dependency graph focus"
+        }
+      ],
+      "uncertainty": {
+        "scope": {
+          "level": "high",
+          "reason": "Unclear whether script/module graph needs full package-manager semantics or a narrower execution-order/declaration model."
         }
       }
     }
