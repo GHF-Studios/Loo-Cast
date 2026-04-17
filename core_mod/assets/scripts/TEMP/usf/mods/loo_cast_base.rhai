@@ -1,9 +1,16 @@
 fn register_mod(ctx) {
     let mod = ctx.start();
 
-    mod.id("loo_cast_base");
     mod.name("Loo Cast Base Mod");
-    mod.metrics(["baryons", "dark_energy", "dark_matter", "photons"]);
+    mod.scales([
+
+    ]);
+    mod.metrics([
+        "baryons",
+        "dark_energy",
+        "dark_matter",
+        "photons"
+    ]);
     mod.phenomena([
         "universal.undefined", "universal.universe",
         "cosmological.cosmic_web",
