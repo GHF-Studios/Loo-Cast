@@ -43,7 +43,14 @@ class CrossScaleGateway {
 }
 
 class EvaluatorHookEndpoint {
+  +evaluator_id
   +evaluate_policy_predicate()
+}
+
+class EvaluatorRegistry {
+  +evaluator_id
+  +signature
+  +scope
 }
 
 ScriptEntrypointContract -[#1E88E5]-> RootCtx : defines root context surface for entrypoint execution
@@ -54,4 +61,5 @@ RootCtx -[#00897B]-> CrossScaleGateway : exposes explicit cross-scale gateway in
 DomainCtx -[#00897B]-> ReadOnlyView : projects state snapshots to read-only view
 CapabilityChannelEndpoint -[#43A047]-> MutableIntentSink : emits typed intents via mutable intent sink
 CapabilityChannelEndpoint -[#00897B]-> EvaluatorHookEndpoint : exposes declared evaluator hooks for policy predicates
+EvaluatorHookEndpoint "*" -[#1E88E5]-> "1" EvaluatorRegistry : resolves evaluator_id in shared evaluator registry
 @enduml

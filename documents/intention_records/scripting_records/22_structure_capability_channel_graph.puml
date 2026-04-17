@@ -19,7 +19,7 @@ class CapabilityIntentType {
 
 class CapabilityDependencyEdge {
   +source_channel
-  +required_channel
+  +target_channel
   +edge_kind
   +version_constraint
   +provider_mode
@@ -42,7 +42,7 @@ class ReconcilePolicy {
 }
 
 class PolicyEvaluatorHook {
-  +predicate_fn_id
+  +evaluator_id
   +hook_stage
   +optional
 }
@@ -50,6 +50,12 @@ class PolicyEvaluatorHook {
 class ChannelLayerInvariant {
   +layer_scope
   +cross_layer_bridge_required
+}
+
+class EvaluatorRegistry {
+  +evaluator_id
+  +signature
+  +scope
 }
 
 CapabilityChannel "1" -[#1E88E5]-> "*" CapabilityIntentType : declares admissible intent schemas in channel contract
@@ -61,4 +67,5 @@ CapabilityDependencyEdge "*" -[#00897B]-> "1" CapabilityDependencyGraph : materi
 CapabilityDependencyGraph "1" -[#1E88E5]-> "1..*" CapabilityChannel : validates resolved channel set within graph closure
 CapabilityRuntimeAdapter "*" -[#43A047]-> "1" CapabilityChannel : realizes backend operations in channel runtime
 CapabilityRuntimeAdapter "*" -[#43A047]-> "0..*" PolicyEvaluatorHook : executes declared evaluator hooks in reconcile stage
+PolicyEvaluatorHook "*" -[#1E88E5]-> "1" EvaluatorRegistry : resolves evaluator_id in shared evaluator registry
 @enduml

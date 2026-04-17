@@ -32,6 +32,11 @@ package "Output Application" {
     +audio_runtime
     +service_runtime
   }
+
+  class RuntimeCommitPass {
+    +accepted_intents
+    +commit_delta
+  }
 }
 
 TypedScriptDefinitions -[#1E88E5]-> CanonicalRuntimeState : defines admissible mutation contracts in Canonical Runtime Authority
@@ -39,4 +44,6 @@ TypedScriptDefinitions -[#1E88E5]-> DerivedRuntimeState : defines rebuild polici
 CanonicalRuntimeState -[#43A047]-> DerivedRuntimeState : derives transient structures in Derived Runtime Authority
 DerivedRuntimeState -[#43A047]-> CapabilityOutputState : drives output intents via Output Application
 CapabilityOutputState -[#8E24AA]-> DerivedRuntimeState : emits runtime telemetry back to Derived Runtime Authority
+CapabilityOutputState -[#FB8C00]-> RuntimeCommitPass : stages accepted runtime mutations in commit pass
+RuntimeCommitPass -[#43A047]-> CanonicalRuntimeState : commits authoritative state updates in Canonical Runtime Authority
 @enduml

@@ -20,11 +20,13 @@
 *** channel operations are layer-partitioned; cross-layer effects require explicit bridge ops
 ** Meta Bootstrap [high]
 *** multiple meta entrypoints are allowed and executed by an ordered staged plan
+*** staged entrypoint collisions must resolve by explicit precedence policy; unresolved collisions panic-fast
 *** policy narrowing output = typed allow/deny/bounds graph with deterministic merge order
 *** bootstrap emits a machine-readable introspection artifact
 ** Runtime Orchestration [high]
 *** keep coarse global phases and allow typed domain subphases
 *** panic-fast is default; sentinel paths are explicit and contract-declared only
+*** canonical definition changes after seal require explicit full rebootstrap, not hot mutation
 ** Compile-Time vs Runtime Registration [medium]
 *** compile-time owns capability interfaces + hard safety bounds
 *** runtime owns script registration, composition, and activation
@@ -35,6 +37,7 @@
 ** evaluator hook placement granularity per capability
 ** metadata format details for bootstrap artifact
 ** compile-time vs runtime split details for future extension macros
+** explicit rebootstrap trigger contract shape
 @endmindmap
 
 @startuml

@@ -39,10 +39,10 @@ Purpose: canonical AI entrypoint and manifest for this repository.
 - USF is script-configured at the content/ontology layer.
 - Rust/Bevy is the capability and execution platform.
 - Rhai is for content declaration/orchestration, not for replacing engine implementation ownership.
-- Public USF-facing concepts are the canonical language (zones, phenomena, phenomenon models, metrics, metric sets, ZLMs, scales, mods, modpacks).
+- Public USF-facing concepts are the canonical language (metrics, metric sets, scales, phenomenon realizers, phenomena, phenomenon models, mods, modpacks, capability channels).
 - Bevy ECS is an internal execution substrate and implementation detail behind the USF-facing model.
-- Zones are derived but entity-backed; zone assignment is one-per-location with sentinel fallback.
-- Phenomena and phenomenon models influence zones indirectly via substrate/metric state feedback.
+- Per-scale realization is driven by phenomenon realizers over metric/substrate state.
+- Capability channels are part of the typed ctx graph and are used by scripts through intent emission.
 
 ## Runtime Composition Anchors
 

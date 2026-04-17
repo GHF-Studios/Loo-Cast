@@ -12,5 +12,7 @@ Registered -[#FB8C00]-> Frozen : seal definition surfaces
 Frozen -[#FB8C00]-> RuntimeActive : start update loop
 RuntimeActive -[#FB8C00]-> RuntimeActive : evolve state and emit intents only
 RuntimeActive -[#E53935]-> [*] : panic on attempted canonical definition mutation
+RuntimeActive -[#FB8C00]-> RebootstrapRequested : request explicit full rebootstrap
+RebootstrapRequested -[#FB8C00]-> Uninitialized : restart from clean bootstrap state
 RuntimeActive -[#FB8C00]-> [*] : shutdown
 @enduml

@@ -11,7 +11,8 @@ class FolderTypeBinding {
 
 class ScriptFileTypeContract {
   +id
-  +member_policy
+  +member_policy_default
+  +member_policy_precedence
   +forbidden_members
   +required_hooks
   +optional_hooks
@@ -23,6 +24,7 @@ class ScriptFileTypeContract {
 class ScriptMemberContract {
   +name
   +signature
+  +policy_override
   +mutability_policy
   +required
 }
@@ -34,8 +36,14 @@ class HookSignatureContract {
 }
 
 class PredicateEvaluatorRef {
-  +predicate_fn_id
+  +evaluator_id
   +hook_point
+}
+
+class EvaluatorRegistry {
+  +evaluator_id
+  +signature
+  +scope
 }
 
 class ScriptFile {
@@ -59,6 +67,8 @@ FolderTypeBinding "1..*" -[#1E88E5]-> "1" ScriptFileTypeContract : binds folder 
 ScriptFileTypeContract "1" -[#1E88E5]-> "*" ScriptMemberContract : projects member policy to member-level contracts
 ScriptFileTypeContract "1" -[#1E88E5]-> "*" HookSignatureContract : projects required/optional hooks to hook contracts
 ScriptFileTypeContract "1" -[#1E88E5]-> "0..*" PredicateEvaluatorRef : declares conditional evaluator hooks in contract
+ScriptMemberContract "*" -[#1E88E5]-> "1" ScriptFileTypeContract : resolves policy_override against contract default precedence
+PredicateEvaluatorRef "*" -[#1E88E5]-> "1" EvaluatorRegistry : resolves evaluator_id in shared evaluator registry
 ScriptFile "*" -[#00897B]-> "1" ScriptFileTypeContract : resolves each script file against its target contract
 ScriptFile "1" -[#00897B]-> "1" ValidationReport : emits validation outcome to a report record
 ValidationReport "1" -[#43A047]-> "0..1" TypedFileRegistry : permits successful insertion in typed-file registry

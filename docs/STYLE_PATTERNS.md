@@ -8,15 +8,17 @@ Purpose: durable implementation and authoring patterns for this repository.
 2. Rust owns execution kernels, capability backends, and runtime orchestration.
 3. Bevy ECS is internal infrastructure, not the public USF language.
 4. Canonical runtime persistence authority is entity-grounded:
+   - metric state
    - `Phenomenon`
    - `PhenomenonModel`
    - `PartialPhenomenonModel`
-5. Zones are derived but may be entity-backed runtime abstractions with agency.
-6. Substrate and chunk realization artifacts are derived/runtime state.
+5. Phenomenon realizers are canonical realization-policy contracts per scale.
+6. Substrate summaries, realization decisions, and chunk realization artifacts are derived/runtime state.
+7. Capability channels are part of the typed ctx graph and are used through intent emission.
 
 ## Rhai Authoring Patterns
 
-1. Use typed script entrypoints only (`register_metric`, `register_zone`, `register_scale`, etc.).
+1. Use typed script entrypoints only (`register_metric`, `register_metric_set`, `register_scale`, `register_phenomenon_realizer`, `register_phenomenon`, etc.).
 2. Keep one-entity-per-file for entity-bearing USF script types.
 3. Keep `boot.rhai` focused on schedule entrypoint registration.
 4. Use script ctx APIs to declare content contracts; do not script around engine internals.
@@ -27,11 +29,12 @@ Purpose: durable implementation and authoring patterns for this repository.
 1. Prefer deterministic behavior and fail-fast validation over silent fallback.
 2. Reject invalid/missing script contracts at bootstrap.
 3. Keep ownership boundaries explicit (definition vs runtime state vs output application).
-4. Keep zone behavior parameterized over derived world data/policy, not ad-hoc canonical zone truth.
+4. Keep realization decisions parameterized over metrics/substrate + realizer contracts.
 5. Keep capability application routed through registered execution channels, not hardcoded per-content branches.
-6. Keep zone assignment exclusive per location/scale; map unclassified locations to a sentinel zone.
-7. Keep phenomenon-to-zone feedback indirect through substrate/metric updates, never through direct canonical zone mutation.
+6. Keep cross-scale access explicit through dedicated scale-aware gateways.
+7. Keep evaluator hooks explicit and contract-declared; do not allow hidden dynamic hooks.
 8. Treat direct reconciliation versus intent queues as implementation strategy only; do not change lifecycle authority semantics.
+9. Disallow canonical definition mutation after seal; require explicit full rebootstrap.
 
 ## Workflow Framework Patterns
 
