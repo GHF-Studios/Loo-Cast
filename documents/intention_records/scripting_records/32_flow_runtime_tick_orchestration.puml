@@ -1,0 +1,29 @@
+@startuml
+title Flow - Runtime Tick Orchestration
+participant "Bevy Schedule" as Sched
+participant "Typed Script Entrypoints" as Scripts
+participant "Ctx Graph" as Ctx
+participant "Capability Channels" as Channels
+participant "Capability Runtimes" as Runtime
+participant "Evaluator Hook(s)" as Eval
+participant "ECS World" as ECS
+
+Sched -[#FB8C00]> Scripts : invoke typed entrypoints in script-execution phase
+Scripts -[#FB8C00]> Ctx : query views + handles via Ctx Graph
+Scripts -[#43A047]> Channels : emit typed intents via Capability Channels
+Channels -[#43A047]> Runtime : route intents by channel/layer in Capability Runtimes
+Runtime -[#43A047]> Runtime : merge and reconcile intents within Capability Runtimes
+Runtime -[#43A047]> Eval : evaluate optional reconcile predicates via declared hooks
+
+alt invalid intent or dependency violation
+  Runtime -[#E53935]--> Sched : return failure signal to Bevy Schedule
+  Sched -[#E53935]> Sched : panic-fast inside Bevy Schedule
+else evaluator rejects
+  Eval -[#E53935]--> Sched : return evaluator rejection to Bevy Schedule
+  Sched -[#E53935]> Sched : panic-fast inside Bevy Schedule
+else valid intents
+  Eval -[#43A047]--> Runtime : return evaluator acceptance to Capability Runtimes
+  Runtime -[#43A047]> ECS : commit mutations/events/resources in ECS World
+  ECS -[#43A047]--> Sched : return committed runtime state to Bevy Schedule
+end
+@enduml

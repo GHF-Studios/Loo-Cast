@@ -1,0 +1,13 @@
+@startuml
+title Lifecycle - Capability Intent to Commit
+
+[*] -[#FB8C00]-> Emitted : script emits intent
+Emitted -[#FB8C00]-> Routed : route via ctx channel
+Routed -[#FB8C00]-> Batched : queue by layer/channel
+Batched -[#FB8C00]-> Reconciled : merge + reconcile
+Reconciled -[#FB8C00]-> Evaluated : run optional evaluator predicates
+Evaluated -[#E53935]-> Rejected : detect invalid conflict/dependency/evaluator rejection
+Rejected -[#E53935]-> [*] : panic-fast abort
+Evaluated -[#43A047]-> Committed : apply world mutations/events
+Committed -[#FB8C00]-> [*] : frame complete
+@enduml

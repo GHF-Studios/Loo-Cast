@@ -1,0 +1,25 @@
+@startuml
+title Flow - Entrypoint Loading and Preprocess Chain
+participant "Schedule Runner" as Runner
+participant "Entrypoint Resolver" as Resolver
+participant "Companion Loader" as Companion
+participant "Alias Preprocessor" as Alias
+participant "Script Compiler" as Compiler
+participant "Script Executor" as Exec
+
+Runner -[#FB8C00]> Resolver : resolve schedule target via Entrypoint Resolver
+Resolver -[#FB8C00]> Companion : discover companion files via Companion Loader
+Companion -[#8E24AA]--> Resolver : return ordered file list to Entrypoint Resolver
+Resolver -[#FB8C00]> Alias : preprocess source units via Alias Preprocessor
+Alias -[#8E24AA]--> Resolver : return rewritten source units to Entrypoint Resolver
+Resolver -[#FB8C00]> Compiler : compile composed source bundle via Script Compiler
+
+alt compile fails
+  Compiler -[#E53935]--> Runner : return compile diagnostics to Schedule Runner
+  Runner -[#E53935]> Runner : panic-fast inside Schedule Runner
+else compile succeeds
+  Compiler -[#43A047]--> Runner : return executable handles to Schedule Runner
+  Runner -[#FB8C00]> Exec : invoke main(world, params) in Script Executor
+  Exec -[#43A047]--> Runner : return emitted intents/events/reads to Schedule Runner
+end
+@enduml
