@@ -16,6 +16,6 @@ Non-core scripting logic should live under its own top-level module path, for ex
 
 ## Important references
 
-- `docs/Scripting.md`
-- `docs/RhaiDialect.md`
-- `docs/RhaiBridgeDevelopment.md`
+- `documents/intention_records/scripting_records/00_manifest.puml`
+- `documents/markdown_summary/scripting_runtime_reference.md`
+- `documents/markdown_summary/rhai_bridge_playbook.md`

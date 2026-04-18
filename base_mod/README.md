@@ -11,4 +11,4 @@ Notes
 - Keep gameplay logic data-driven where possible: prefer scripts and configs over hard-coded behavior.
 - Use `base_mod_api` to expose safe wrappers to scripts and to translate between runtime types and scripting types.
 
-See also: `docs/Modding.md` and `docs/Assets.md`.
+See also: `documents/markdown_summary/modding_status.md` and `documents/markdown_summary/assets_and_ownership.md`.

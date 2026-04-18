@@ -8,4 +8,4 @@ Key points
 - **Intended audience**: engine and mod developers working inside this repository — internal-first.
 - **Stability**: public items are *internal-first*. External stability is currently not a primary concern, and thus a heavy WIP!
 
-See the crate doc in `src/lib.rs` for the canonical crate-level notes and `docs/Crates.md` for workspace-level context.
+See the crate doc in `src/lib.rs` for the canonical crate-level notes and `documents/markdown_summary/crates_workspace.md` for workspace-level context.

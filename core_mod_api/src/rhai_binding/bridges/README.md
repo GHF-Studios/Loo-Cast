@@ -15,5 +15,5 @@ Keep domain modules mirrored and decentralized. Avoid funneling unrelated bridge
 
 For extension workflow, see:
 
-- `docs/RhaiDialect.md`
-- `docs/RhaiBridgeDevelopment.md`
+- `documents/intention_records/scripting_records/00_manifest.puml`
+- `documents/markdown_summary/rhai_bridge_playbook.md`

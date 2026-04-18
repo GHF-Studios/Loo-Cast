@@ -8,7 +8,7 @@
 - For Linux / macOS, use `./build.sh [profile]` and `./run.sh [profile]`.
 - Use configuration values under `core_mod/configs/` to change runtime behavior (logging, profiling, window settings).
 
-See `docs/Building.md` for details on build profiles and commands.
+See `documents/markdown_summary/build_and_run.md` for details on build profiles and commands.
 
 ## Debugging tips
 

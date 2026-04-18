@@ -17,22 +17,25 @@ Purpose: canonical AI entrypoint and manifest for this repository.
 1. User instructions in the current conversation.
 2. Canonical docs:
    - `AGENTS.md`
-   - `docs/VISION_ARCHITECTURE.md`
-   - `docs/USF_FLOW_GRAPH.md`
-   - `docs/PROTOTYPE_CAPABILITIES.md`
-   - `docs/STYLE_PATTERNS.md`
+   - `documents/intention_records/README.puml`
+   - `documents/intention_records/usf_records/00_manifest.puml`
+   - `documents/intention_records/scripting_records/00_manifest.puml`
+   - `documents/intention_records/platform_records/00_manifest.puml`
+   - `documents/markdown_summary/README.md`
 3. Current code behavior (ground truth for what is implemented right now).
 4. Archived planning notes in `documents/temp_stuff/` (historical context only).
 
 ## Mandatory Read Order (New Session)
 
 1. `AGENTS.md`
-2. `docs/VISION_ARCHITECTURE.md`
-3. `docs/USF_FLOW_GRAPH.md`
-4. `docs/PROTOTYPE_CAPABILITIES.md`
-5. `docs/STYLE_PATTERNS.md`
-6. `docs/Crates.md` and `docs/Scripting.md`
-7. Relevant source files for the active task
+2. `documents/intention_records/README.puml`
+3. `documents/intention_records/usf_records/00_manifest.puml`
+4. `documents/intention_records/usf_records/10_vision_architecture.puml`
+5. `documents/intention_records/usf_records/20_flow_graph.puml`
+6. `documents/intention_records/scripting_records/00_manifest.puml`
+7. `documents/intention_records/platform_records/00_manifest.puml`
+8. `documents/markdown_summary/README.md`
+9. Relevant source files for the active task
 
 ## Project Orientation (Short)
 
@@ -58,7 +61,7 @@ Purpose: canonical AI entrypoint and manifest for this repository.
 
 ## Manifest Maintenance Rule
 
-Update this manifest and the three canonical docs whenever one of these changes:
+Update this manifest and canonical atlases/summaries whenever one of these changes:
 
 1. USF authority boundaries.
 2. Runtime/bootstrap composition flow.

@@ -5,7 +5,7 @@
 //! application loop used for development and testing.
 //!
 //! Use the repository build scripts (`build.ps1` / `build.sh`) to build and run the binary. For
-//! in-depth design notes see `documents/` and `docs/`.
+//! in-depth design notes see `documents/intention_records/` and `documents/markdown_summary/`.
 
 use core_mod::*;
 use core_mod_api::config::statics::CONFIG;

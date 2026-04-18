@@ -2,6 +2,27 @@
 
 Purpose: maintain a whole-project technical intent map while treating USF as clean-slate and non-implemented for design work.
 
+## Canonical Diagram Atlases
+
+1. `README.puml`
+   Repository-level manifest linking all active documentation atlases.
+2. `scripting_records/`
+   Script/runtime contracts and decision locks.
+3. `usf_records/`
+   USF architecture, flow, prototype scope, and math contracts.
+4. `platform_records/`
+   Runtime composition and build/runtime flow.
+
+## Focused Implementation Summaries
+
+Near-code operational summaries live in:
+
+- `../markdown_summary/README.md`
+
+Historical note:
+
+- Existing JSON records may still contain legacy `docs/*` source references as evidence snapshots from earlier repository states.
+
 ## Design Position
 
 1. USF in this repo is treated as unimplemented for planning/design.

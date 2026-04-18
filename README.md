@@ -5,7 +5,7 @@
 - **Engine**: a runtime for scale-aware simulation (ECS + modular runtime logic).
 - **Gameplay (base mod)**: a mod built on top of the engine that provides scripts, configs, and content.
 
-> Status: Active development. Docs and architecture are evolving — see `docs/` for curated references and `documents/` for long-form design notes.
+> Status: Active development. Architecture references are centered in `documents/intention_records/` and implementation summaries in `documents/markdown_summary/`.
 
 ---
 
@@ -17,13 +17,11 @@ Generative AI tools such as ChatGPT, GitHub Copilot, and GitHub Copilot Chat hav
 ## Quick links
 
 - AI entrypoint/manifest: `AGENTS.md`
-- Docs: `docs/` (TOC in `docs/README.md`)
-- Canonical context docs:
-  - `docs/VISION_ARCHITECTURE.md`
-  - `docs/USF_FLOW_GRAPH.md`
-  - `docs/PROTOTYPE_CAPABILITIES.md`
-  - `docs/STYLE_PATTERNS.md`
-- Crates: `docs/Crates.md` (differentiates code vs canonical assets)
+- Canonical atlas manifest: `documents/intention_records/README.puml`
+- USF atlas manifest: `documents/intention_records/usf_records/00_manifest.puml`
+- Scripting atlas manifest: `documents/intention_records/scripting_records/00_manifest.puml`
+- Platform atlas manifest: `documents/intention_records/platform_records/00_manifest.puml`
+- Focused implementation summaries: `documents/markdown_summary/README.md`
 - Build & Run: `./build.ps1` / `./build.sh` and `./run.ps1` / `./run.sh`
 - Archived temporary planning notes: `documents/temp_stuff/`
 - Long-form historical notes: `documents/legacy_stuff/`
@@ -66,13 +64,13 @@ Build artifacts (mods & assets) are placed under `build/<profile>/`.
 - `core_mod/assets/*MY_ASSET_TYPE*/` - other engine-related assets of any kind, e.g.: shaders, models, textures, sound files, etc.
 - `base_mod/assets/*MY_ASSET_TYPE*/` — gameplay-related configs, scripts, shaders, models, textures, sound files, etc.
 
-For conventions and guidelines, see `docs/Assets.md`.
+For conventions and guidelines, see `documents/markdown_summary/assets_and_ownership.md`.
 
 ---
 
 ## Guidelines for docs
 
-- Canonical project context starts in `AGENTS.md` and the three canonical docs in `docs/`.
+- Canonical project context starts in `AGENTS.md` and the manifests in `documents/intention_records/`.
 - Temporary planning/handoff documents belong in `documents/temp_stuff/`.
 - Long-form historical notes belong in `documents/legacy_stuff/`.
 
@@ -91,7 +89,7 @@ For conventions and guidelines, see `docs/Assets.md`.
 | `base_mod_macros`          | Helpers for generating scripting wrappers. |
 | `bevy_consumable_message`  | Small reusable Bevy message utility. |
 
-See `docs/Crates.md` for more details.
+See `documents/markdown_summary/crates_workspace.md` for more details.
 
 ---
 

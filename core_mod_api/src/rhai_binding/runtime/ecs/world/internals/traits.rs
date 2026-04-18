@@ -38,4 +38,4 @@ pub trait WorldApi {
     fn drain_probe_messages(&self) -> StringIter;
 }
 // Binding coverage backlog and World API hierarchy live in:
-// docs/RhaiBindingRoadmap.md
+// documents/markdown_summary/rhai_binding_roadmap.md

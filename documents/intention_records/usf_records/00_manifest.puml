@@ -1,0 +1,30 @@
+@startuml
+title USF Atlas Manifest
+left to right direction
+skinparam componentStyle rectangle
+
+component "10_vision_architecture.puml" as U10
+component "20_flow_graph.puml" as U20
+component "30_prototype_capabilities.puml" as U30
+component "60_usf_math_contracts.puml" as U60
+
+component "../scripting_records/00_manifest.puml" as SCR
+component "../platform_records/00_manifest.puml" as PLT
+component "../../markdown_summary/usf_math.md" as MSM
+
+U10 -[#1E88E5]-> U20 : constrains runtime flow vocabulary and authority boundaries
+U10 -[#1E88E5]-> U30 : constrains prototype acceptance framing
+U10 -[#1E88E5]-> U60 : constrains scale/math framing and boundaries
+
+U60 -[#00897B]-> U20 : constrains cross-scale math usage in runtime phases
+U20 -[#FB8C00]-> U30 : supplies phase/lifecycle evidence for prototype completion
+
+SCR -[#00897B]-> U10 : supplies typed script authority and ctx/channel contracts
+PLT -[#00897B]-> U20 : supplies runtime execution and build/runtime substrate
+U60 -[#8E24AA]-> MSM : is elaborated as focused math summary and open questions
+
+note bottom
+Read U10 first, then U20 and U60, then U30.
+Scripting and platform atlases are mandatory companion context.
+end note
+@enduml

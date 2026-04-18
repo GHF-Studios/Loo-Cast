@@ -37,8 +37,8 @@
 //!
 //! Documentation style guidance
 //! - Keep the crate-level doc focused and short, with links to per-module docs for detail.
-//! - Prefer architectural notes and design discussions in `documents/` (longform) and `docs/`
-//!   (curated reference). Avoid long usage examples here until the API is intentionally
+//! - Prefer architectural notes and design discussions in `documents/intention_records/` (diagram
+//!   atlases) and `documents/markdown_summary/` (focused implementation notes). Avoid long usage examples here until the API is intentionally
 //!   stabilized for external consumption.
 //! - When adding public APIs, include a concise module-level doc explaining intent, lifecycle
 //!   guarantees, and any invariants callers must respect.

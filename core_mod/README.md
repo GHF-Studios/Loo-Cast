@@ -6,4 +6,4 @@
 - The crate exposes an `api_initializer!` hook used by the engine to register global statics and connect assets to the `core_mod_api` code surface.
 - Keep non-gameplay assets here, and gameplay-related assets in `base_mod`.
 
-See also: `docs/Assets.md` for canonical paths and conventions.
+See also: `documents/markdown_summary/assets_and_ownership.md` for canonical paths and conventions.
