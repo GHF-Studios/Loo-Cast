@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+/// Transform-focused aliases for translation/rotation domain unions.
+pub mod aliases;
 /// Normal transform wrappers and composition policies.
 pub mod normal;
 /// Shared transform contracts consumed by both normal and USF transform surfaces.

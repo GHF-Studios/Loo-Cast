@@ -1,10 +1,9 @@
 #![allow(dead_code)]
 
-pub use super::super::aliases::UsfOrNormalVector;
 use super::super::field::Field;
 use super::super::scalar::normal::NormalDecimalScalar;
 use super::super::scalar::usf::UsfScalar;
-use crate::utils::one_of::OneOf2;
+pub use super::aliases::{UsfOrNormalVector, VectorOrScalar};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UsfVector<const D: usize> {
@@ -15,7 +14,6 @@ pub struct UsfVector<const D: usize> {
 pub type UsfVector2d = UsfVector<2>;
 pub type UsfVector3d = UsfVector<3>;
 pub type UsfVector4d = UsfVector<4>;
-pub type VectorOrScalar<const D: usize> = OneOf2<UsfVector<D>, UsfScalar>;
 
 impl<const D: usize> UsfVector<D> {
     pub fn zero() -> Self {

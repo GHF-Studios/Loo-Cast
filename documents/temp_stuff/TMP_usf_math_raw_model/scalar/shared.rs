@@ -252,10 +252,10 @@ pub trait ScalarCoreOps: Clone + Sized {
     fn fma(&self, _b: Self, _c: Self) -> Self {
         todo!()
     }
-    fn lerp<ScalarB>(&self, _rhs: Self, _t: OneOf2<Self, ScalarB>) -> Self {
+    fn lerp<ScalarB: ScalarContract>(&self, _rhs: Self, _t: OneOf2<Self, ScalarB>) -> Self {
         todo!()
     }
-    fn smoothstep<ScalarB>(&self, _edge0: Self, _edge1: Self, _t: OneOf2<Self, ScalarB>) -> Self {
+    fn smoothstep<ScalarB: ScalarContract>(&self, _edge0: Self, _edge1: Self, _t: OneOf2<Self, ScalarB>) -> Self {
         todo!()
     }
     fn cmp_eq(&self, _rhs: Self) -> bool {
@@ -288,14 +288,14 @@ pub trait ScalarFieldOps: ScalarCoreOps {
 }
 
 pub trait ScalarBridgeOps: ScalarCoreOps {
-    fn from_scalar<ScalarB>(_value: OneOf2<Self, ScalarB>) -> Self {
+    fn from_scalar<ScalarB: ScalarContract>(_value: OneOf2<Self, ScalarB>) -> Self {
         todo!()
     }
-    fn to_scalar<ScalarB>(&self) -> OneOf2<Self, ScalarB> {
+    fn to_scalar<ScalarB: ScalarContract>(&self) -> OneOf2<Self, ScalarB> {
         todo!()
     }
 }
 
-pub trait ScalarOps: ScalarCoreOps + ScalarFieldOps + ScalarBridgeOps {}
+pub trait ScalarContract: ScalarCoreOps + ScalarFieldOps + ScalarBridgeOps {}
 
-impl<T> ScalarOps for T where T: ScalarCoreOps + ScalarFieldOps + ScalarBridgeOps {}
+impl<T> ScalarContract for T where T: ScalarCoreOps + ScalarFieldOps + ScalarBridgeOps {}

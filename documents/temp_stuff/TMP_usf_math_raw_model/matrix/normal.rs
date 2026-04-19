@@ -77,6 +77,11 @@ impl<const R: usize, const C: usize> super::shared::MatrixFieldOps<NormalScalar,
 {
 }
 
+impl<const R: usize, const C: usize> super::shared::MatrixBridgeOps<NormalScalar, NormalVector<C>, NormalVector<R>, NormalMatrix<C, R>, R, C>
+    for NormalMatrix<R, C>
+{
+}
+
 impl<const D: usize> super::shared::SquareMatrixCoreOps<NormalScalar, NormalVector<D>, D> for NormalMatrix<D, D> {}
 
 impl<const D: usize> super::shared::SquareMatrixBridgeOps<NormalScalar, NormalVector<D>, D> for NormalMatrix<D, D> {}

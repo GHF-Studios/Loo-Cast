@@ -1,8 +1,9 @@
 #![allow(dead_code)]
 
+use super::super::scalar::shared::ScalarContract;
 use crate::utils::one_of::OneOf2;
 
-pub trait TensorCoreOps<Scalar, MatrixBc, VectorC, const A: usize, const B: usize, const C: usize>: Clone + Sized {
+pub trait TensorCoreOps<Scalar: ScalarContract, MatrixBc, VectorC, const A: usize, const B: usize, const C: usize>: Clone + Sized {
     fn zero() -> Self {
         todo!()
     }
@@ -44,7 +45,9 @@ pub trait TensorCoreOps<Scalar, MatrixBc, VectorC, const A: usize, const B: usiz
     }
 }
 
-pub trait TensorFieldOps<Scalar, MatrixBc, VectorC, const A: usize, const B: usize, const C: usize>: TensorCoreOps<Scalar, MatrixBc, VectorC, A, B, C> {
+pub trait TensorFieldOps<Scalar: ScalarContract, MatrixBc, VectorC, const A: usize, const B: usize, const C: usize>:
+    TensorCoreOps<Scalar, MatrixBc, VectorC, A, B, C>
+{
     /// Slice orthogonal to axis A, shape `(B, C)`.
     fn get_slice(&self, _index: usize) -> MatrixBc {
         todo!()
@@ -69,8 +72,18 @@ pub trait TensorFieldOps<Scalar, MatrixBc, VectorC, const A: usize, const B: usi
     }
 }
 
-pub trait TensorProjectionCoreOps<Scalar, MatrixAb, MatrixAc, MatrixBc, VectorA, VectorB, VectorC, const A: usize, const B: usize, const C: usize>:
-    TensorFieldOps<Scalar, MatrixBc, VectorC, A, B, C>
+pub trait TensorProjectionCoreOps<
+    Scalar: ScalarContract,
+    MatrixAb,
+    MatrixAc,
+    MatrixBc,
+    VectorA,
+    VectorB,
+    VectorC,
+    const A: usize,
+    const B: usize,
+    const C: usize,
+>: TensorFieldOps<Scalar, MatrixBc, VectorC, A, B, C>
 {
     /// Slice orthogonal to axis C, shape `(A, B)`.
     fn get_matrix_ab(&self, _k: usize) -> MatrixAb {
@@ -121,16 +134,16 @@ pub trait TensorProjectionCoreOps<Scalar, MatrixAb, MatrixAc, MatrixBc, VectorA,
     }
 }
 
-pub trait TensorBridgeOps<Scalar, MatrixBc, VectorC, const A: usize, const B: usize, const C: usize>:
+pub trait TensorBridgeOps<Scalar: ScalarContract, MatrixBc, VectorC, const A: usize, const B: usize, const C: usize>:
     TensorCoreOps<Scalar, MatrixBc, VectorC, A, B, C>
 {
 }
 
-pub trait TensorOps<Scalar, MatrixBc, VectorC, const A: usize, const B: usize, const C: usize>:
+pub trait TensorContract<Scalar: ScalarContract, MatrixBc, VectorC, const A: usize, const B: usize, const C: usize>:
     TensorCoreOps<Scalar, MatrixBc, VectorC, A, B, C> + TensorFieldOps<Scalar, MatrixBc, VectorC, A, B, C> + TensorBridgeOps<Scalar, MatrixBc, VectorC, A, B, C>
 {
 }
-impl<T, Scalar, MatrixBc, VectorC, const A: usize, const B: usize, const C: usize> TensorOps<Scalar, MatrixBc, VectorC, A, B, C> for T where
+impl<T, Scalar: ScalarContract, MatrixBc, VectorC, const A: usize, const B: usize, const C: usize> TensorContract<Scalar, MatrixBc, VectorC, A, B, C> for T where
     T: TensorCoreOps<Scalar, MatrixBc, VectorC, A, B, C>
         + TensorFieldOps<Scalar, MatrixBc, VectorC, A, B, C>
         + TensorBridgeOps<Scalar, MatrixBc, VectorC, A, B, C>

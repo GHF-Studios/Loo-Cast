@@ -1,9 +1,9 @@
 #![allow(dead_code)]
 
-pub use super::super::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
 use super::super::field::Field;
+pub use super::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
 use super::normal::{NormalDecimalScalar, NormalScalar};
-use super::shared::{FloatType, IntegerType, ScalarType, SignedIntegerType, UnsignedIntegerType};
+use super::shared::{FloatType, IntegerType, ScalarContract, ScalarType, SignedIntegerType, UnsignedIntegerType};
 use crate::utils::one_of::OneOf2;
 
 pub type UsfDigit = i8;
@@ -277,10 +277,10 @@ impl UsfScalar {
     pub fn to_normal_scalar(&self) -> NormalScalar {
         todo!()
     }
-    pub fn from_scalar<ScalarB>(_value: OneOf2<UsfScalar, ScalarB>) -> Self {
+    pub fn from_scalar<ScalarB: ScalarContract>(_value: OneOf2<UsfScalar, ScalarB>) -> Self {
         todo!()
     }
-    pub fn to_scalar<ScalarB>(&self) -> OneOf2<UsfScalar, ScalarB> {
+    pub fn to_scalar<ScalarB: ScalarContract>(&self) -> OneOf2<UsfScalar, ScalarB> {
         todo!()
     }
     pub fn get_value(&self) -> UsfScalar {

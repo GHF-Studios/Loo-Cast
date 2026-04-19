@@ -1,9 +1,9 @@
 #![allow(dead_code)]
 
-use super::super::scalar::shared::SignedIntegerType;
+use super::super::scalar::shared::{ScalarContract, SignedIntegerType};
 use crate::utils::one_of::OneOf2;
 
-pub trait MatrixCoreOps<Scalar, RowVector, ColVector, TransposedMatrix, const R: usize, const C: usize>: Clone + Sized {
+pub trait MatrixCoreOps<Scalar: ScalarContract, RowVector, ColVector, TransposedMatrix, const R: usize, const C: usize>: Clone + Sized {
     fn zero() -> Self {
         todo!()
     }
@@ -22,19 +22,19 @@ pub trait MatrixCoreOps<Scalar, RowVector, ColVector, TransposedMatrix, const R:
     fn div_elem(&self, _rhs: Self) -> Self {
         todo!()
     }
-    fn add<ScalarB>(&self, _rhs: OneOf2<Self, OneOf2<Scalar, ScalarB>>) -> Self {
+    fn add<ScalarB: ScalarContract>(&self, _rhs: OneOf2<Self, OneOf2<Scalar, ScalarB>>) -> Self {
         todo!()
     }
-    fn sub<ScalarB>(&self, _rhs: OneOf2<Self, OneOf2<Scalar, ScalarB>>) -> Self {
+    fn sub<ScalarB: ScalarContract>(&self, _rhs: OneOf2<Self, OneOf2<Scalar, ScalarB>>) -> Self {
         todo!()
     }
-    fn mul<ScalarB>(&self, _rhs: OneOf2<Self, OneOf2<Scalar, ScalarB>>) -> Self {
+    fn mul<ScalarB: ScalarContract>(&self, _rhs: OneOf2<Self, OneOf2<Scalar, ScalarB>>) -> Self {
         todo!()
     }
-    fn div<ScalarB>(&self, _rhs: OneOf2<Self, OneOf2<Scalar, ScalarB>>) -> Self {
+    fn div<ScalarB: ScalarContract>(&self, _rhs: OneOf2<Self, OneOf2<Scalar, ScalarB>>) -> Self {
         todo!()
     }
-    fn rem<ScalarB>(&self, _rhs: OneOf2<Self, OneOf2<Scalar, ScalarB>>) -> Self {
+    fn rem<ScalarB: ScalarContract>(&self, _rhs: OneOf2<Self, OneOf2<Scalar, ScalarB>>) -> Self {
         todo!()
     }
     fn min(&self, _rhs: Self) -> Self {
@@ -63,7 +63,7 @@ pub trait MatrixCoreOps<Scalar, RowVector, ColVector, TransposedMatrix, const R:
     }
 }
 
-pub trait MatrixFieldOps<Scalar, RowVector, ColVector, TransposedMatrix, const R: usize, const C: usize>:
+pub trait MatrixFieldOps<Scalar: ScalarContract, RowVector, ColVector, TransposedMatrix, const R: usize, const C: usize>:
     MatrixCoreOps<Scalar, RowVector, ColVector, TransposedMatrix, R, C>
 {
     fn get_row(&self, _index: usize) -> RowVector {
@@ -80,17 +80,22 @@ pub trait MatrixFieldOps<Scalar, RowVector, ColVector, TransposedMatrix, const R
     }
 }
 
-pub trait SquareMatrixCoreOps<Scalar, Vector, const D: usize>: MatrixCoreOps<Scalar, Vector, Vector, Self, D, D> {
+pub trait MatrixBridgeOps<Scalar: ScalarContract, RowVector, ColVector, TransposedMatrix, const R: usize, const C: usize>:
+    MatrixCoreOps<Scalar, RowVector, ColVector, TransposedMatrix, R, C>
+{
+}
+
+pub trait SquareMatrixCoreOps<Scalar: ScalarContract, Vector, const D: usize>: MatrixCoreOps<Scalar, Vector, Vector, Self, D, D> {
     fn identity() -> Self {
         todo!()
     }
-    fn determinant<ScalarB>(&self) -> OneOf2<Scalar, ScalarB> {
+    fn determinant<ScalarB: ScalarContract>(&self) -> OneOf2<Scalar, ScalarB> {
         todo!()
     }
     fn inverse(&self) -> Self {
         todo!()
     }
-    fn trace<ScalarB>(&self) -> OneOf2<Scalar, ScalarB> {
+    fn trace<ScalarB: ScalarContract>(&self) -> OneOf2<Scalar, ScalarB> {
         todo!()
     }
     fn powi<T: SignedIntegerType>(&self, _exp: T) -> Self {
@@ -101,19 +106,28 @@ pub trait SquareMatrixCoreOps<Scalar, Vector, const D: usize>: MatrixCoreOps<Sca
     }
 }
 
-pub trait SquareMatrixBridgeOps<Scalar, Vector, const D: usize>: SquareMatrixCoreOps<Scalar, Vector, D> {}
+pub trait SquareMatrixBridgeOps<Scalar: ScalarContract, Vector, const D: usize>: SquareMatrixCoreOps<Scalar, Vector, D> {}
 
-pub trait MatrixOps<Scalar, RowVector, ColVector, TransposedMatrix, const R: usize, const C: usize>:
-    MatrixCoreOps<Scalar, RowVector, ColVector, TransposedMatrix, R, C> + MatrixFieldOps<Scalar, RowVector, ColVector, TransposedMatrix, R, C>
+pub trait MatrixContract<Scalar: ScalarContract, RowVector, ColVector, TransposedMatrix, const R: usize, const C: usize>:
+    MatrixCoreOps<Scalar, RowVector, ColVector, TransposedMatrix, R, C>
+    + MatrixFieldOps<Scalar, RowVector, ColVector, TransposedMatrix, R, C>
+    + MatrixBridgeOps<Scalar, RowVector, ColVector, TransposedMatrix, R, C>
 {
 }
-impl<T, Scalar, RowVector, ColVector, TransposedMatrix, const R: usize, const C: usize> MatrixOps<Scalar, RowVector, ColVector, TransposedMatrix, R, C> for T where
-    T: MatrixCoreOps<Scalar, RowVector, ColVector, TransposedMatrix, R, C> + MatrixFieldOps<Scalar, RowVector, ColVector, TransposedMatrix, R, C>
+impl<T, Scalar: ScalarContract, RowVector, ColVector, TransposedMatrix, const R: usize, const C: usize>
+    MatrixContract<Scalar, RowVector, ColVector, TransposedMatrix, R, C> for T
+where
+    T: MatrixCoreOps<Scalar, RowVector, ColVector, TransposedMatrix, R, C>
+        + MatrixFieldOps<Scalar, RowVector, ColVector, TransposedMatrix, R, C>
+        + MatrixBridgeOps<Scalar, RowVector, ColVector, TransposedMatrix, R, C>,
 {
 }
 
-pub trait SquareMatrixOps<Scalar, Vector, const D: usize>: SquareMatrixCoreOps<Scalar, Vector, D> + SquareMatrixBridgeOps<Scalar, Vector, D> {}
-impl<T, Scalar, Vector, const D: usize> SquareMatrixOps<Scalar, Vector, D> for T where
-    T: SquareMatrixCoreOps<Scalar, Vector, D> + SquareMatrixBridgeOps<Scalar, Vector, D>
+pub trait SquareMatrixContract<Scalar: ScalarContract, Vector, const D: usize>:
+    SquareMatrixCoreOps<Scalar, Vector, D> + MatrixFieldOps<Scalar, Vector, Vector, Self, D, D> + SquareMatrixBridgeOps<Scalar, Vector, D>
+{
+}
+impl<T, Scalar: ScalarContract, Vector, const D: usize> SquareMatrixContract<Scalar, Vector, D> for T where
+    T: SquareMatrixCoreOps<Scalar, Vector, D> + MatrixFieldOps<Scalar, Vector, Vector, Self, D, D> + SquareMatrixBridgeOps<Scalar, Vector, D>
 {
 }

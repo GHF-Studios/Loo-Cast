@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use super::super::scalar::shared::ScalarContract;
 use crate::utils::one_of::OneOf2;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -12,7 +13,13 @@ pub enum HomogeneousWState {
     NonFinite,
 }
 
-pub trait VectorCoreOps<Scalar, const D: usize>: Clone + Sized {
+#[derive(Clone, Debug, PartialEq)]
+pub enum HomogeneousPointOrDirection<Vector3d> {
+    Point(Vector3d),
+    Direction(Vector3d),
+}
+
+pub trait VectorCoreOps<Scalar: ScalarContract, const D: usize>: Clone + Sized {
     fn zero() -> Self {
         todo!()
     }
@@ -73,19 +80,19 @@ pub trait VectorCoreOps<Scalar, const D: usize>: Clone + Sized {
     fn clamp(&self, _lo: Self, _hi: Self) -> Self {
         todo!()
     }
-    fn lerp<ScalarB>(&self, _rhs: Self, _t: OneOf2<Scalar, ScalarB>) -> Self {
+    fn lerp<ScalarB: ScalarContract>(&self, _rhs: Self, _t: OneOf2<Scalar, ScalarB>) -> Self {
         todo!()
     }
-    fn smoothstep<ScalarB>(&self, _rhs: Self, _t: OneOf2<Scalar, ScalarB>) -> Self {
+    fn smoothstep<ScalarB: ScalarContract>(&self, _rhs: Self, _t: OneOf2<Scalar, ScalarB>) -> Self {
         todo!()
     }
-    fn dot<ScalarB>(&self, _rhs: Self) -> OneOf2<Scalar, ScalarB> {
+    fn dot<ScalarB: ScalarContract>(&self, _rhs: Self) -> OneOf2<Scalar, ScalarB> {
         todo!()
     }
-    fn distance<ScalarB>(&self, _rhs: Self) -> OneOf2<Scalar, ScalarB> {
+    fn distance<ScalarB: ScalarContract>(&self, _rhs: Self) -> OneOf2<Scalar, ScalarB> {
         todo!()
     }
-    fn angle_between<ScalarB>(&self, _rhs: Self) -> OneOf2<Scalar, ScalarB> {
+    fn angle_between<ScalarB: ScalarContract>(&self, _rhs: Self) -> OneOf2<Scalar, ScalarB> {
         todo!()
     }
     fn project(&self, _onto: Self) -> Self {
@@ -112,10 +119,10 @@ pub trait VectorCoreOps<Scalar, const D: usize>: Clone + Sized {
     fn get_dimension(&self) -> usize {
         todo!()
     }
-    fn get_length<ScalarB>(&self) -> OneOf2<Scalar, ScalarB> {
+    fn get_length<ScalarB: ScalarContract>(&self) -> OneOf2<Scalar, ScalarB> {
         todo!()
     }
-    fn get_length_squared<ScalarB>(&self) -> OneOf2<Scalar, ScalarB> {
+    fn get_length_squared<ScalarB: ScalarContract>(&self) -> OneOf2<Scalar, ScalarB> {
         todo!()
     }
     fn get_lane(&self, _index: usize) -> Scalar {
@@ -126,9 +133,12 @@ pub trait VectorCoreOps<Scalar, const D: usize>: Clone + Sized {
     }
 }
 
-pub trait VectorBridgeOps<Scalar, const D: usize>: VectorCoreOps<Scalar, D> {}
+pub trait VectorBridgeOps<Scalar: ScalarContract, const D: usize>: VectorCoreOps<Scalar, D> {}
 
-pub trait Vector2dFieldOps<Scalar>: Clone + Sized {
+pub trait VectorFieldOps<Scalar: ScalarContract, const D: usize>: VectorCoreOps<Scalar, D> {}
+impl<T, Scalar: ScalarContract, const D: usize> VectorFieldOps<Scalar, D> for T where T: VectorCoreOps<Scalar, D> {}
+
+pub trait Vector2dFieldOps<Scalar: ScalarContract>: Clone + Sized {
     fn get_x(&self) -> Scalar {
         todo!()
     }
@@ -143,7 +153,7 @@ pub trait Vector2dFieldOps<Scalar>: Clone + Sized {
     }
 }
 
-pub trait Vector3dFieldOps<Scalar>: Vector2dFieldOps<Scalar> {
+pub trait Vector3dFieldOps<Scalar: ScalarContract>: Vector2dFieldOps<Scalar> {
     fn get_z(&self) -> Scalar {
         todo!()
     }
@@ -152,7 +162,7 @@ pub trait Vector3dFieldOps<Scalar>: Vector2dFieldOps<Scalar> {
     }
 }
 
-pub trait Vector4dFieldOps<Scalar>: Vector3dFieldOps<Scalar> {
+pub trait Vector4dFieldOps<Scalar: ScalarContract>: Vector3dFieldOps<Scalar> {
     fn get_w(&self) -> Scalar {
         todo!()
     }
@@ -161,7 +171,7 @@ pub trait Vector4dFieldOps<Scalar>: Vector3dFieldOps<Scalar> {
     }
 }
 
-pub trait Vector2dCoreOps<Scalar>: Vector2dFieldOps<Scalar> + VectorCoreOps<Scalar, 2> {
+pub trait Vector2dCoreOps<Scalar: ScalarContract>: Vector2dFieldOps<Scalar> + VectorCoreOps<Scalar, 2> {
     fn perp_ccw(&self) -> Self {
         todo!()
     }
@@ -188,7 +198,7 @@ pub trait Vector2dCoreOps<Scalar>: Vector2dFieldOps<Scalar> + VectorCoreOps<Scal
     }
 }
 
-pub trait Vector3dCoreOps<Scalar>: Vector3dFieldOps<Scalar> + VectorCoreOps<Scalar, 3> {
+pub trait Vector3dCoreOps<Scalar: ScalarContract>: Vector3dFieldOps<Scalar> + VectorCoreOps<Scalar, 3> {
     fn cross(&self, _rhs: Self) -> Self {
         todo!()
     }
@@ -218,7 +228,7 @@ pub trait Vector3dCoreOps<Scalar>: Vector3dFieldOps<Scalar> + VectorCoreOps<Scal
     }
 }
 
-pub trait Vector4dCoreOps<Scalar, Vector3d>: Vector4dFieldOps<Scalar> + VectorCoreOps<Scalar, 4> {
+pub trait Vector4dCoreOps<Scalar: ScalarContract, Vector3d>: Vector4dFieldOps<Scalar> + VectorCoreOps<Scalar, 4> {
     fn from_vec3_w(_xyz: Vector3d, _w: Scalar) -> Self {
         todo!()
     }
@@ -233,19 +243,19 @@ pub trait Vector4dCoreOps<Scalar, Vector3d>: Vector4dFieldOps<Scalar> + VectorCo
     }
 }
 
-pub trait Vector4dBridgeOps<Scalar, Vector3d>: Vector4dCoreOps<Scalar, Vector3d> + VectorBridgeOps<Scalar, 4> {
+pub trait Vector4dBridgeOps<Scalar: ScalarContract, Vector3d>: Vector4dCoreOps<Scalar, Vector3d> + VectorBridgeOps<Scalar, 4> {
     fn classify_homogeneous_w(&self) -> HomogeneousWState {
         todo!()
     }
     /// # Panics
     /// - Panics when `w == 0` (direction/point-at-infinity) under strict point dehomogenization.
     /// - Panics when `w` is non-finite under strict point dehomogenization mode.
-    fn homogenized_to_vec3_strict(&self) -> OneOf2<Vector3d, Vector3d> {
+    fn homogenized_to_vec3_strict(&self) -> HomogeneousPointOrDirection<Vector3d> {
         todo!()
     }
     /// Non-panicking dehomogenization policy:
     /// - if `w == 0` or non-finite, treat value as direction branch.
-    fn homogenized_to_vec3_or_direction(&self) -> OneOf2<Vector3d, Vector3d> {
+    fn homogenized_to_vec3_or_direction(&self) -> HomogeneousPointOrDirection<Vector3d> {
         todo!()
     }
     /// Returns `(xyz, is_direction)` where `is_direction == true` means `w == 0` or non-finite
@@ -255,17 +265,23 @@ pub trait Vector4dBridgeOps<Scalar, Vector3d>: Vector4dCoreOps<Scalar, Vector3d>
     }
 }
 
-pub trait VectorOps<Scalar, const D: usize>: VectorCoreOps<Scalar, D> + VectorBridgeOps<Scalar, D> {}
-impl<T, Scalar, const D: usize> VectorOps<Scalar, D> for T where T: VectorCoreOps<Scalar, D> + VectorBridgeOps<Scalar, D> {}
+pub trait VectorContract<Scalar: ScalarContract, const D: usize>: VectorCoreOps<Scalar, D> + VectorFieldOps<Scalar, D> + VectorBridgeOps<Scalar, D> {}
+impl<T, Scalar: ScalarContract, const D: usize> VectorContract<Scalar, D> for T where
+    T: VectorCoreOps<Scalar, D> + VectorFieldOps<Scalar, D> + VectorBridgeOps<Scalar, D>
+{
+}
 
-pub trait Vector2dOps<Scalar>: Vector2dCoreOps<Scalar> + Vector2dFieldOps<Scalar> {}
-impl<T, Scalar> Vector2dOps<Scalar> for T where T: Vector2dCoreOps<Scalar> + Vector2dFieldOps<Scalar> {}
+pub trait Vector2dContract<Scalar: ScalarContract>: Vector2dCoreOps<Scalar> + Vector2dFieldOps<Scalar> {}
+impl<T, Scalar: ScalarContract> Vector2dContract<Scalar> for T where T: Vector2dCoreOps<Scalar> + Vector2dFieldOps<Scalar> {}
 
-pub trait Vector3dOps<Scalar>: Vector3dCoreOps<Scalar> + Vector3dFieldOps<Scalar> {}
-impl<T, Scalar> Vector3dOps<Scalar> for T where T: Vector3dCoreOps<Scalar> + Vector3dFieldOps<Scalar> {}
+pub trait Vector3dContract<Scalar: ScalarContract>: Vector3dCoreOps<Scalar> + Vector3dFieldOps<Scalar> {}
+impl<T, Scalar: ScalarContract> Vector3dContract<Scalar> for T where T: Vector3dCoreOps<Scalar> + Vector3dFieldOps<Scalar> {}
 
-pub trait Vector4dOps<Scalar, Vector3d>: Vector4dCoreOps<Scalar, Vector3d> + Vector4dFieldOps<Scalar> + Vector4dBridgeOps<Scalar, Vector3d> {}
-impl<T, Scalar, Vector3d> Vector4dOps<Scalar, Vector3d> for T where
+pub trait Vector4dContract<Scalar: ScalarContract, Vector3d>:
+    Vector4dCoreOps<Scalar, Vector3d> + Vector4dFieldOps<Scalar> + Vector4dBridgeOps<Scalar, Vector3d>
+{
+}
+impl<T, Scalar: ScalarContract, Vector3d> Vector4dContract<Scalar, Vector3d> for T where
     T: Vector4dCoreOps<Scalar, Vector3d> + Vector4dFieldOps<Scalar> + Vector4dBridgeOps<Scalar, Vector3d>
 {
 }

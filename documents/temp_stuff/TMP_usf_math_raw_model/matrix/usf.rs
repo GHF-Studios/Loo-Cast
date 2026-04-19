@@ -1,12 +1,11 @@
 #![allow(dead_code)]
 
-pub use super::super::aliases::UsfOrNormalMatrix;
 use super::super::field::Field;
 use super::super::scalar::normal::NormalDecimalScalar;
 use super::super::scalar::shared::SignedIntegerType;
 use super::super::scalar::usf::UsfScalar;
 use super::super::vector::usf::UsfVector;
-use crate::utils::one_of::OneOf2;
+pub use super::aliases::{MatrixOrScalar, MatrixOrVector, UsfOrNormalMatrix};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UsfMatrix<const R: usize, const C: usize> {
@@ -27,8 +26,6 @@ pub type UsfMatrix5x5 = UsfMatrix<5, 5>;
 pub type UsfMatrix6x6 = UsfMatrix<6, 6>;
 pub type UsfMatrix7x7 = UsfMatrix<7, 7>;
 pub type UsfMatrix8x8 = UsfMatrix<8, 8>;
-pub type MatrixOrScalar<const R: usize, const C: usize> = OneOf2<UsfMatrix<R, C>, UsfScalar>;
-pub type MatrixOrVector<const R: usize, const C: usize> = OneOf2<UsfMatrix<R, C>, UsfVector<C>>;
 
 impl<const R: usize, const C: usize> UsfMatrix<R, C> {
     pub fn zero() -> Self {
@@ -167,6 +164,8 @@ impl<const D: usize> UsfMatrix<D, D> {
 impl<const R: usize, const C: usize> super::shared::MatrixCoreOps<UsfScalar, UsfVector<C>, UsfVector<R>, UsfMatrix<C, R>, R, C> for UsfMatrix<R, C> {}
 
 impl<const R: usize, const C: usize> super::shared::MatrixFieldOps<UsfScalar, UsfVector<C>, UsfVector<R>, UsfMatrix<C, R>, R, C> for UsfMatrix<R, C> {}
+
+impl<const R: usize, const C: usize> super::shared::MatrixBridgeOps<UsfScalar, UsfVector<C>, UsfVector<R>, UsfMatrix<C, R>, R, C> for UsfMatrix<R, C> {}
 
 impl<const D: usize> super::shared::SquareMatrixCoreOps<UsfScalar, UsfVector<D>, D> for UsfMatrix<D, D> {}
 

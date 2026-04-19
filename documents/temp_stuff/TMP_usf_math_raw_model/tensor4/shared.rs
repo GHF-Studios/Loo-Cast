@@ -1,8 +1,11 @@
 #![allow(dead_code)]
 
+use super::super::scalar::shared::ScalarContract;
 use crate::utils::one_of::OneOf2;
 
-pub trait Tensor4CoreOps<Scalar, TensorBcd, MatrixCd, VectorD, const A: usize, const B: usize, const C: usize, const D: usize>: Clone + Sized {
+pub trait Tensor4CoreOps<Scalar: ScalarContract, TensorBcd, MatrixCd, VectorD, const A: usize, const B: usize, const C: usize, const D: usize>:
+    Clone + Sized
+{
     fn zero() -> Self {
         todo!()
     }
@@ -44,7 +47,7 @@ pub trait Tensor4CoreOps<Scalar, TensorBcd, MatrixCd, VectorD, const A: usize, c
     }
 }
 
-pub trait Tensor4FieldOps<Scalar, TensorBcd, MatrixCd, VectorD, const A: usize, const B: usize, const C: usize, const D: usize>:
+pub trait Tensor4FieldOps<Scalar: ScalarContract, TensorBcd, MatrixCd, VectorD, const A: usize, const B: usize, const C: usize, const D: usize>:
     Tensor4CoreOps<Scalar, TensorBcd, MatrixCd, VectorD, A, B, C, D>
 {
     /// Hyperplane orthogonal to axis A, shape `(B, C, D)`.
@@ -80,7 +83,7 @@ pub trait Tensor4FieldOps<Scalar, TensorBcd, MatrixCd, VectorD, const A: usize, 
 }
 
 pub trait Tensor4ProjectionCoreOps<
-    Scalar,
+    Scalar: ScalarContract,
     TensorAbc,
     TensorAbd,
     TensorAcd,
@@ -200,19 +203,19 @@ pub trait Tensor4ProjectionCoreOps<
     }
 }
 
-pub trait Tensor4BridgeOps<Scalar, TensorBcd, MatrixCd, VectorD, const A: usize, const B: usize, const C: usize, const D: usize>:
+pub trait Tensor4BridgeOps<Scalar: ScalarContract, TensorBcd, MatrixCd, VectorD, const A: usize, const B: usize, const C: usize, const D: usize>:
     Tensor4CoreOps<Scalar, TensorBcd, MatrixCd, VectorD, A, B, C, D>
 {
 }
 
-pub trait Tensor4Ops<Scalar, TensorBcd, MatrixCd, VectorD, const A: usize, const B: usize, const C: usize, const D: usize>:
+pub trait Tensor4Contract<Scalar: ScalarContract, TensorBcd, MatrixCd, VectorD, const A: usize, const B: usize, const C: usize, const D: usize>:
     Tensor4CoreOps<Scalar, TensorBcd, MatrixCd, VectorD, A, B, C, D>
     + Tensor4FieldOps<Scalar, TensorBcd, MatrixCd, VectorD, A, B, C, D>
     + Tensor4BridgeOps<Scalar, TensorBcd, MatrixCd, VectorD, A, B, C, D>
 {
 }
-impl<T, Scalar, TensorBcd, MatrixCd, VectorD, const A: usize, const B: usize, const C: usize, const D: usize>
-    Tensor4Ops<Scalar, TensorBcd, MatrixCd, VectorD, A, B, C, D> for T
+impl<T, Scalar: ScalarContract, TensorBcd, MatrixCd, VectorD, const A: usize, const B: usize, const C: usize, const D: usize>
+    Tensor4Contract<Scalar, TensorBcd, MatrixCd, VectorD, A, B, C, D> for T
 where
     T: Tensor4CoreOps<Scalar, TensorBcd, MatrixCd, VectorD, A, B, C, D>
         + Tensor4FieldOps<Scalar, TensorBcd, MatrixCd, VectorD, A, B, C, D>

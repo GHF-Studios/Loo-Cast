@@ -1,11 +1,11 @@
 #![allow(dead_code)]
 
-pub use super::super::aliases::{UsfOrNormalQuaternion, UsfOrNormalVector};
 use super::super::field::Field;
 use super::super::quaternion::usf::UsfQuaternion;
 use super::super::scalar::normal::NormalDecimalScalar;
 use super::super::scalar::usf::UsfScalar;
 use super::super::vector::usf::UsfVector;
+pub use super::aliases::{UsfOrNormalRotationQuaternion, UsfOrNormalTranslationVector};
 use super::normal::{NormalRotationf32, NormalScalef32, NormalTranslation3f32};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -49,10 +49,10 @@ pub struct UsfAngularAcceleration;
 impl<const D: usize> UsfTranslation<D> {
     /// # Panics
     /// - Panics if runtime validation rejects translation dimensionality constraints.
-    pub fn from_vector(_value: UsfOrNormalVector<D>) -> Self {
+    pub fn from_vector(_value: UsfOrNormalTranslationVector<D>) -> Self {
         todo!()
     }
-    pub fn to_vector(&self) -> UsfOrNormalVector<D> {
+    pub fn to_vector(&self) -> UsfOrNormalTranslationVector<D> {
         todo!()
     }
     pub fn add(&self, _rhs: UsfVector<D>) -> Self {
@@ -75,10 +75,10 @@ impl<const D: usize> UsfTranslation<D> {
 impl UsfRotation {
     /// # Panics
     /// - Panics if `value` is not a valid normalized rotation quaternion.
-    pub fn from_quat(_value: UsfOrNormalQuaternion) -> Self {
+    pub fn from_quat(_value: UsfOrNormalRotationQuaternion) -> Self {
         todo!()
     }
-    pub fn to_quat(&self) -> UsfOrNormalQuaternion {
+    pub fn to_quat(&self) -> UsfOrNormalRotationQuaternion {
         todo!()
     }
     /// # Panics

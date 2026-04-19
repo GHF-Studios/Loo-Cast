@@ -1,12 +1,12 @@
 #![allow(dead_code)]
 
-pub use super::super::aliases::UsfOrNormalMat3;
 use super::super::field::Field;
 use super::super::matrix::usf::UsfMatrix;
 use super::super::scalar::normal::NormalDecimalScalar;
 use super::super::scalar::usf::UsfScalar;
 use super::super::vector::normal::NormalVector;
 use super::super::vector::usf::UsfVector;
+pub use super::aliases::{UsfOrNormalMat3, UsfOrNormalQuaternion};
 use super::normal::NormalQuaternion;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
