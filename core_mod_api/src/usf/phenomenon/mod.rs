@@ -53,10 +53,7 @@ use systems::{
 };
 
 pub(crate) struct PhenomenonPlugin;
-fn validate_phenomenon_model_registry_system(
-    definitions: Res<PhenomenonDefinitionRegistry>,
-    model_registry: Res<PhenomenonModelRegistry>,
-) {
+fn validate_phenomenon_model_registry_system(definitions: Res<PhenomenonDefinitionRegistry>, model_registry: Res<PhenomenonModelRegistry>) {
     if model_registry.phenomenon_by_model_id.is_empty() {
         panic!("USF phenomenon model registry validation failed: no phenomenon models are registered.");
     }
@@ -72,10 +69,7 @@ fn validate_phenomenon_model_registry_system(
             );
         }
         if !model_registry.topology_by_model_id.contains_key(model_id) {
-            panic!(
-                "USF phenomenon model registry validation failed: model '{}' has no topology entry.",
-                model_id
-            );
+            panic!("USF phenomenon model registry validation failed: model '{}' has no topology entry.", model_id);
         }
         if !model_registry.support_chunk_radius_by_model_id.contains_key(model_id) {
             panic!(

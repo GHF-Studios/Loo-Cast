@@ -20,7 +20,13 @@ impl TopLevelModuleMetadata {
             let sub_module = graph
                 .sub_modules
                 .get(&path)
-                .unwrap_or_else(|| panic!("Missing SubModuleMetadata '{}' while registering top-level module '{}'", path, id_path.module_name()))
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Missing SubModuleMetadata '{}' while registering top-level module '{}'",
+                        path,
+                        id_path.module_name()
+                    )
+                })
                 .clone();
             sub_module.register_sub_module(engine, &mut top_level_module);
         }
@@ -29,7 +35,13 @@ impl TopLevelModuleMetadata {
             let (trait_, trait_object) = graph
                 .traits
                 .get(&path)
-                .unwrap_or_else(|| panic!("Missing TraitMetadata '{}' while registering top-level module '{}'", path, id_path.module_name()))
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Missing TraitMetadata '{}' while registering top-level module '{}'",
+                        path,
+                        id_path.module_name()
+                    )
+                })
                 .clone();
             trait_.register_trait(&mut top_level_module);
             trait_object.register_trait_object(&mut top_level_module);

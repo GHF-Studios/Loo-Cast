@@ -14,8 +14,8 @@ use super::resources::{
     ZoneBehaviorRegistry, ZonePhenomenonSpawnPolicy, ZoneRealizationSettings, ZoneRealizationState, ZoneRealizedPhenomenon, ZoneRuntimeState,
     ZoneSelectionRuntimeState, ZoneTemporalContext,
 };
-use super::types::{StableRegionId, ZoneAnchor, ZoneExtent, ZoneId, ZonePhenomenon, ZoneRealizationEvent, ZoneTimeFactor, ZoneTypeId};
 use super::select_supported_phenomenon_for_zone;
+use super::types::{StableRegionId, ZoneAnchor, ZoneExtent, ZoneId, ZonePhenomenon, ZoneRealizationEvent, ZoneTimeFactor, ZoneTypeId};
 
 fn usf_hotpath_probe_enabled() -> bool {
     static ENABLED: OnceLock<bool> = OnceLock::new();
@@ -107,14 +107,7 @@ pub(super) struct ZoneRealizationProbe {
     elapsed_ms_total: f64,
 }
 impl ZoneRealizationProbe {
-    fn observe(
-        &mut self,
-        desired_zones: usize,
-        live_realizations: usize,
-        spawned: usize,
-        despawned: usize,
-        elapsed: Duration,
-    ) {
+    fn observe(&mut self, desired_zones: usize, live_realizations: usize, spawned: usize, despawned: usize, elapsed: Duration) {
         if !usf_hotpath_probe_enabled() {
             return;
         }
@@ -855,9 +848,7 @@ mod tests {
             selection_policy_by_zone: HashMap::new(),
             density_profile_by_zone: HashMap::new(),
         };
-        registry
-            .phenomenon_support_by_zone
-            .insert(ZoneTypeId::new("mystic"), Vec::new());
+        registry.phenomenon_support_by_zone.insert(ZoneTypeId::new("mystic"), Vec::new());
         registry.selection_policy_by_zone.insert(
             ZoneTypeId::new("mystic"),
             crate::usf::zone::ZoneSelectionPolicy {

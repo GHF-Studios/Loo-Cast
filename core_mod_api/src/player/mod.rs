@@ -39,10 +39,7 @@ impl Plugin for PlayerPlugin {
                 sync_mouse_capture_system.in_set(AppSet::Presentation).run_if(run_after_startup_finished),
             ),
         )
-        .add_systems(
-            PostStartup,
-            ensure_single_player_exists_system,
-        )
+        .add_systems(PostStartup, ensure_single_player_exists_system)
         .add_systems(
             PostUpdate,
             (

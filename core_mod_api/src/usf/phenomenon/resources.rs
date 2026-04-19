@@ -80,9 +80,7 @@ impl FromWorld for PhenomenonModelRegistry {
 impl PhenomenonModelRegistry {
     pub fn model_for_scale(&self, phenomenon_id: &str, scale: Scale) -> Option<&str> {
         let selection_key = selection_key(normalize_identifier(phenomenon_id).as_str(), scale.index_from_top());
-        self.model_selection_by_phenomenon_scale
-            .get(selection_key.as_str())
-            .map(|value| value.as_str())
+        self.model_selection_by_phenomenon_scale.get(selection_key.as_str()).map(|value| value.as_str())
     }
 }
 
@@ -669,8 +667,7 @@ impl PhenomenonDefinitionRegistry {
     }
 
     pub fn output_field_spec_for_model(&self, model_id: &str) -> Option<PhenomenonOutputFieldSpec> {
-        self.output_density_field_for_model(model_id)
-            .map(PhenomenonOutputFieldSpec::DensityField)
+        self.output_density_field_for_model(model_id).map(PhenomenonOutputFieldSpec::DensityField)
     }
 
     pub fn model_selector_single(&self, phenomenon_id: &str, scale: Scale) -> Option<&str> {

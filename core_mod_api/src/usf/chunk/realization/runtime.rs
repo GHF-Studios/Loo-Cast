@@ -12,8 +12,8 @@ use crate::config::statics::CONFIG;
 use crate::player::components::Player;
 use crate::render::components::{MainCamera, WorldPresentationRoot};
 use crate::rhai_binding::bridges::domains::core_mod_api::usf::output_channels::{
-    ChunkRealizationAudioEmitter, ChunkRealizationInteractionTrigger, ChunkRealizationParticleEmitter, ChunkRealizationSimulationService,
-    OutputChannelPayload, OutputChannelRegistry,
+    ChunkRealizationAudioEmitter, ChunkRealizationInteractionTrigger, ChunkRealizationParticleEmitter, ChunkRealizationSimulationService, OutputChannelPayload,
+    OutputChannelRegistry,
 };
 use crate::usf::chunk::components::{Chunk, ChunkLoader};
 use crate::usf::mod_packs::UsfActiveModPack;

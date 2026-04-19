@@ -408,16 +408,11 @@ struct RuntimeModelProjectionIndex {
 }
 impl RuntimeModelProjectionIndex {
     fn insert(&mut self, scale: Scale, snapshot: RuntimeModelProjectionSnapshot) {
-        self.by_scale
-            .entry(scale.index_from_top())
-            .or_default()
-            .push(snapshot);
+        self.by_scale.entry(scale.index_from_top()).or_default().push(snapshot);
     }
 
     fn snapshots_for_scale(&self, scale: Scale) -> Option<&[RuntimeModelProjectionSnapshot]> {
-        self.by_scale
-            .get(&scale.index_from_top())
-            .map(Vec::as_slice)
+        self.by_scale.get(&scale.index_from_top()).map(Vec::as_slice)
     }
 }
 
@@ -577,9 +572,7 @@ pub(super) fn apply_planned_chunk_substrates_system(
             .filter(|coord| !plan_queue.live_chunk_coords.contains(*coord))
             .cloned()
             .collect::<Vec<_>>();
-        substrate_store
-            .chunks
-            .retain(|coord, _| plan_queue.live_chunk_coords.contains(coord));
+        substrate_store.chunks.retain(|coord, _| plan_queue.live_chunk_coords.contains(coord));
         for coord in removed {
             delta_state.mark_removed(coord);
         }
@@ -594,9 +587,7 @@ pub(super) fn apply_planned_chunk_substrates_system(
         .filter(|coord| !plan_queue.live_chunk_coords.contains(*coord))
         .cloned()
         .collect::<Vec<_>>();
-    substrate_store
-        .chunks
-        .retain(|coord, _| plan_queue.live_chunk_coords.contains(coord));
+    substrate_store.chunks.retain(|coord, _| plan_queue.live_chunk_coords.contains(coord));
     for coord in removed_after_apply {
         delta_state.mark_removed(coord);
     }
@@ -871,8 +862,7 @@ fn build_chunk_substrate_runtime(
     let mut contributions = Vec::<ModelProjectionContribution>::new();
     if let Some(snapshots) = runtime_model_projection_index.snapshots_for_scale(canonical_coord.scale) {
         for snapshot in snapshots {
-            if snapshot.topology == PhenomenonModelTopology::PartitionedByChunk
-                && snapshot.partial_chunk.as_ref().is_none_or(|chunk| chunk != canonical_coord)
+            if snapshot.topology == PhenomenonModelTopology::PartitionedByChunk && snapshot.partial_chunk.as_ref().is_none_or(|chunk| chunk != canonical_coord)
             {
                 continue;
             }
@@ -885,8 +875,7 @@ fn build_chunk_substrate_runtime(
                 continue;
             }
 
-            let metric_index =
-                metric_index_for_projection_metric(schema, snapshot.projection_metric_name.as_str()).unwrap_or_default();
+            let metric_index = metric_index_for_projection_metric(schema, snapshot.projection_metric_name.as_str()).unwrap_or_default();
             let projected_value = projection_value_for_snapshot(canonical_coord, snapshot);
             contributions.push(ModelProjectionContribution {
                 phenomenon_id: snapshot.phenomenon_id,
@@ -1000,9 +989,7 @@ fn build_runtime_model_projection_index(
         if let Some(chunk) = partial_chunk.as_mut() {
             chunk.normalize();
         }
-        let scalar_channels = model_state
-            .map(|state| state.scalar_channels.clone())
-            .unwrap_or_default();
+        let scalar_channels = model_state.map(|state| state.scalar_channels.clone()).unwrap_or_default();
 
         index.insert(
             model.scale,
@@ -1616,13 +1603,7 @@ mod tests {
             scalar_channels: vec![("metric_b".to_string(), 0.4)],
         };
 
-        let ordered = rebuild_substrate_from_persisted_models(
-            &coord,
-            &schema,
-            ZoneTypeId::new("empty"),
-            &[model_a.clone(), model_b.clone()],
-            &[],
-        );
+        let ordered = rebuild_substrate_from_persisted_models(&coord, &schema, ZoneTypeId::new("empty"), &[model_a.clone(), model_b.clone()], &[]);
         let reversed = rebuild_substrate_from_persisted_models(&coord, &schema, ZoneTypeId::new("empty"), &[model_b, model_a], &[]);
         assert_eq!(ordered.summary.metric_vector, reversed.summary.metric_vector);
         assert_eq!(ordered.summary.projection_signature, reversed.summary.projection_signature);
@@ -1733,13 +1714,7 @@ mod tests {
             std::slice::from_ref(&model),
             &[low_key.clone(), high_key.clone()],
         );
-        let first_high = rebuild_substrate_from_persisted_models(
-            &coord,
-            &schema,
-            ZoneTypeId::new("empty"),
-            std::slice::from_ref(&model),
-            &[high_key, low_key],
-        );
+        let first_high = rebuild_substrate_from_persisted_models(&coord, &schema, ZoneTypeId::new("empty"), std::slice::from_ref(&model), &[high_key, low_key]);
 
         assert_eq!(first_low.summary.metric_vector, first_high.summary.metric_vector);
         assert_eq!(first_low.summary.projection_signature, first_high.summary.projection_signature);

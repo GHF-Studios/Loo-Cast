@@ -173,10 +173,8 @@ mod tests {
         };
         let mut runtime_state = ZoneSelectionRuntimeState::default();
 
-        let first =
-            select_supported_phenomenon_for_zone(&zone_id, &registry, None, Scale::MAX, &mut runtime_state).expect("first selection should resolve");
-        let second =
-            select_supported_phenomenon_for_zone(&zone_id, &registry, None, Scale::MAX, &mut runtime_state).expect("second selection should resolve");
+        let first = select_supported_phenomenon_for_zone(&zone_id, &registry, None, Scale::MAX, &mut runtime_state).expect("first selection should resolve");
+        let second = select_supported_phenomenon_for_zone(&zone_id, &registry, None, Scale::MAX, &mut runtime_state).expect("second selection should resolve");
 
         assert_ne!(first.phenomenon_id, second.phenomenon_id);
     }
@@ -191,14 +189,8 @@ mod tests {
         };
         let mut runtime_state = ZoneSelectionRuntimeState::default();
 
-        let selected = select_supported_phenomenon_for_zone(
-            &zone_id,
-            &registry,
-            Some("phenomenon.b"),
-            Scale::MAX,
-            &mut runtime_state,
-        )
-        .expect("selection should resolve");
+        let selected =
+            select_supported_phenomenon_for_zone(&zone_id, &registry, Some("phenomenon.b"), Scale::MAX, &mut runtime_state).expect("selection should resolve");
 
         assert_eq!(selected.phenomenon_id, "phenomenon.b");
     }

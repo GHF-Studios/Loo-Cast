@@ -2,4 +2,4 @@
 
 set -e
 
-cloc core_engine core_mod_macros core_mod_api core_mod base_mod_macros base_mod_api base_mod bevy_consumable_message
+./dev_cloc core_engine core_mod_macros core_mod_api core_mod base_mod_macros base_mod_api base_mod bevy_consumable_message documents markdown_summary temp_stuff

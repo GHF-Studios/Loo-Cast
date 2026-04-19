@@ -49,7 +49,10 @@ pub(super) fn ensure_single_player_exists_system(mut commands: Commands, player_
     }
 
     if players.len() <= 1 {
-        warn!("Player bootstrap: found existing single Player entity {:?}; keeping as authoritative player.", players[0]);
+        warn!(
+            "Player bootstrap: found existing single Player entity {:?}; keeping as authoritative player.",
+            players[0]
+        );
         return;
     }
 

@@ -3,8 +3,7 @@ use super::runtime::{ChunkRealizationInstance, ChunkRealizationIntent, UsfChunkR
 use crate::bevy::prelude::*;
 use crate::bevy_rapier3d::prelude::Collider;
 use crate::rhai_binding::bridges::domains::core_mod_api::usf::output_channels::{
-    ChunkRealizationAudioEmitter, ChunkRealizationInteractionTrigger, ChunkRealizationParticleEmitter, ChunkRealizationSimulationService,
-    OutputChannelPayload,
+    ChunkRealizationAudioEmitter, ChunkRealizationInteractionTrigger, ChunkRealizationParticleEmitter, ChunkRealizationSimulationService, OutputChannelPayload,
 };
 use crate::usf::authority::{
     USF_DOMAIN_CHUNK_REALIZATION_STATE, UsfAuthorityDiagnostics, UsfWorldAuthorityContract, guard_runtime_state_domain_with_diagnostics,
@@ -204,8 +203,8 @@ pub(crate) fn sync_chunk_realization_intents_system(
     if substrate_delta_changed {
         *last_seen_substrate_delta_revision = substrate_delta_state.revision;
     }
-    let has_substrate_chunk_deltas = substrate_delta_changed
-        && (!substrate_delta_state.changed_chunks.is_empty() || !substrate_delta_state.removed_chunks.is_empty());
+    let has_substrate_chunk_deltas =
+        substrate_delta_changed && (!substrate_delta_state.changed_chunks.is_empty() || !substrate_delta_state.removed_chunks.is_empty());
     let reason_flags = IntentSyncReasonFlags {
         settings_changed: settings.is_changed(),
         execution_plan_changed: execution_plan.is_changed(),
@@ -481,10 +480,7 @@ fn desired_chunk_realization_intent(
         channel_payloads.insert("trigger".to_string(), OutputChannelPayload::Trigger(trigger));
     }
     if let Some(simulation_service) = phenomenon_definitions.simulation_service_for_model(selected_model_id.as_str()) {
-        channel_payloads.insert(
-            "simulation_service".to_string(),
-            OutputChannelPayload::SimulationService(simulation_service),
-        );
+        channel_payloads.insert("simulation_service".to_string(), OutputChannelPayload::SimulationService(simulation_service));
     }
 
     Some(ChunkRealizationIntent {

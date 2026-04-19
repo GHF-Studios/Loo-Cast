@@ -22,24 +22,15 @@ fn env_bool(name: &str, default: bool) -> bool {
 }
 
 fn env_u8(name: &str, default: u8) -> u8 {
-    std::env::var(name)
-        .ok()
-        .and_then(|raw| raw.trim().parse::<u8>().ok())
-        .unwrap_or(default)
+    std::env::var(name).ok().and_then(|raw| raw.trim().parse::<u8>().ok()).unwrap_or(default)
 }
 
 fn env_u32(name: &str, default: u32) -> u32 {
-    std::env::var(name)
-        .ok()
-        .and_then(|raw| raw.trim().parse::<u32>().ok())
-        .unwrap_or(default)
+    std::env::var(name).ok().and_then(|raw| raw.trim().parse::<u32>().ok()).unwrap_or(default)
 }
 
 fn env_f32(name: &str, default: f32) -> f32 {
-    std::env::var(name)
-        .ok()
-        .and_then(|raw| raw.trim().parse::<f32>().ok())
-        .unwrap_or(default)
+    std::env::var(name).ok().and_then(|raw| raw.trim().parse::<f32>().ok()).unwrap_or(default)
 }
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq)]
@@ -352,9 +343,7 @@ impl Plugin for WorldgenPlugin {
             .init_resource::<UsfBootstrapZoomDirective>()
             .add_systems(
                 Update,
-                sync_usf_bootstrap_worldgen_system
-                    .in_set(AppSet::Intent)
-                    .run_if(run_after_startup_finished),
+                sync_usf_bootstrap_worldgen_system.in_set(AppSet::Intent).run_if(run_after_startup_finished),
             )
             .register_type::<UsfBootstrapWorldgenPhase>()
             .register_type::<UsfBootstrapWorldgenSettings>()

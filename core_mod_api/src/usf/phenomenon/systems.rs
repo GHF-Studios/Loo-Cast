@@ -749,10 +749,7 @@ pub(super) fn reconcile_zone_realization_model_state_system(
 
     let mut model_entities_by_phenomenon = HashMap::<Entity, Vec<Entity>>::new();
     for (model_entity, model) in model_queries.p1().iter() {
-        model_entities_by_phenomenon
-            .entry(model.phenomenon_entity)
-            .or_default()
-            .push(model_entity);
+        model_entities_by_phenomenon.entry(model.phenomenon_entity).or_default().push(model_entity);
     }
     let mut model_query = model_queries.p2();
 

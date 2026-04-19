@@ -371,10 +371,7 @@ mod tests {
             .metric_categorizer_id = custom_categorizer.clone();
         active_modpack.known_metric_categorizers.insert(custom_categorizer);
 
-        let schema = active_modpack
-            .schema_for_scale(scale)
-            .expect("schema for scale must exist")
-            .clone();
+        let schema = active_modpack.schema_for_scale(scale).expect("schema for scale must exist").clone();
         let mut maps_by_scale = HashMap::new();
         maps_by_scale.insert(
             scale,

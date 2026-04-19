@@ -520,10 +520,7 @@ impl UsfRuntimeConceptView {
     }
 
     pub fn metric_set_members(&self, metric_set_id: &str) -> Option<&[String]> {
-        self.metric_set_registry
-            .metric_names_by_set_id
-            .get(metric_set_id)
-            .map(Vec::as_slice)
+        self.metric_set_registry.metric_names_by_set_id.get(metric_set_id).map(Vec::as_slice)
     }
 
     pub fn zone_types(&self) -> &HashSet<ZoneTypeId> {
@@ -588,21 +585,9 @@ fn script_mods(catalog: &ScriptUsfConceptCatalog) -> HashMap<String, UsfModDefin
                 mod_id.trim().to_ascii_lowercase(),
                 UsfModDefinition {
                     priority: mod_definition.priority,
-                    dependencies: mod_definition
-                        .dependencies
-                        .iter()
-                        .map(|value| value.trim().to_ascii_lowercase())
-                        .collect(),
-                    load_after: mod_definition
-                        .load_after
-                        .iter()
-                        .map(|value| value.trim().to_ascii_lowercase())
-                        .collect(),
-                    conflicts_with: mod_definition
-                        .conflicts_with
-                        .iter()
-                        .map(|value| value.trim().to_ascii_lowercase())
-                        .collect(),
+                    dependencies: mod_definition.dependencies.iter().map(|value| value.trim().to_ascii_lowercase()).collect(),
+                    load_after: mod_definition.load_after.iter().map(|value| value.trim().to_ascii_lowercase()).collect(),
+                    conflicts_with: mod_definition.conflicts_with.iter().map(|value| value.trim().to_ascii_lowercase()).collect(),
                 },
             )
         })
@@ -617,11 +602,7 @@ fn script_modpacks(catalog: &ScriptUsfConceptCatalog) -> HashMap<String, UsfModp
             (
                 modpack_id.trim().to_ascii_lowercase(),
                 UsfModpackDefinition {
-                    mod_ids: modpack_definition
-                        .mod_ids
-                        .iter()
-                        .map(|mod_id| mod_id.trim().to_ascii_lowercase())
-                        .collect(),
+                    mod_ids: modpack_definition.mod_ids.iter().map(|mod_id| mod_id.trim().to_ascii_lowercase()).collect(),
                 },
             )
         })
@@ -759,12 +740,7 @@ fn script_zone_types(catalog: &ScriptUsfConceptCatalog) -> Vec<ZoneTypeId> {
 }
 
 fn script_schema_overrides(catalog: &ScriptUsfConceptCatalog) -> Vec<(Scale, MetricContainerLayout)> {
-    let mut ordered = catalog
-        .composed
-        .metric_container_layouts_by_scale
-        .clone()
-        .into_iter()
-        .collect::<Vec<_>>();
+    let mut ordered = catalog.composed.metric_container_layouts_by_scale.clone().into_iter().collect::<Vec<_>>();
     ordered.sort_by_key(|(scale_index, _)| *scale_index);
 
     ordered
@@ -858,10 +834,7 @@ fn validate_usf_mod_manifest_registry_system(mod_registry: Res<UsfModRegistry>, 
     }
     for mod_id in mod_registry.mods_by_id.keys() {
         if !mod_manifest_registry.manifests_by_mod_id.contains_key(mod_id) {
-            panic!(
-                "USF mod manifest registry validation failed: missing manifest for mod '{}'.",
-                mod_id
-            );
+            panic!("USF mod manifest registry validation failed: missing manifest for mod '{}'.", mod_id);
         }
     }
 }
@@ -994,10 +967,7 @@ fn validate_usf_mod_registry_system(mod_registry: Res<UsfModRegistry>, modpack_r
 
     for mod_id in &mod_registry.resolved_mod_ids {
         if !mod_registry.mods_by_id.contains_key(mod_id) {
-            panic!(
-                "USF mod registry validation failed: resolved mod '{}' is not present in mod registry.",
-                mod_id
-            );
+            panic!("USF mod registry validation failed: resolved mod '{}' is not present in mod registry.", mod_id);
         }
         if !seen.contains(mod_id) {
             panic!(
@@ -1039,10 +1009,7 @@ fn validate_usf_metric_registry_system(
     }
     for (metric_set_id, metric_names) in &metric_set_registry.metric_names_by_set_id {
         if metric_names.is_empty() {
-            panic!(
-                "USF metric set registry validation failed: metric set '{}' has no metrics.",
-                metric_set_id
-            );
+            panic!("USF metric set registry validation failed: metric set '{}' has no metrics.", metric_set_id);
         }
         let mut seen = HashSet::<String>::new();
         for metric_name in metric_names {
@@ -1118,10 +1085,7 @@ fn validate_usf_scale_registry_system(scale_registry: Res<UsfScaleRegistry>) {
                 scale.index_from_top()
             );
         }
-        if !scale_registry
-            .known_metric_categorizers
-            .contains(&scale_definition.metric_categorizer_id)
-        {
+        if !scale_registry.known_metric_categorizers.contains(&scale_definition.metric_categorizer_id) {
             panic!(
                 "USF scale registry validation failed: unknown metric categorizer '{}' for scale {}.",
                 scale_definition.metric_categorizer_id,
@@ -1189,11 +1153,7 @@ fn validate_usf_active_mod_pack_alignment_system(
             modpack_registry.active_modpack_id
         )
     });
-    let active_configured = active_modpack
-        .configured_mods
-        .iter()
-        .map(|entry| entry.mod_id.clone())
-        .collect::<Vec<_>>();
+    let active_configured = active_modpack.configured_mods.iter().map(|entry| entry.mod_id.clone()).collect::<Vec<_>>();
     if active_configured != active_modpack_def.mod_ids {
         panic!("USF active modpack alignment failed: configured mod list diverges from active modpack registry.");
     }
@@ -1516,7 +1476,10 @@ mod tests {
         scale_definition.metric_categorizer_id = custom_categorizer;
 
         let validation = active_modpack.validate();
-        assert!(validation.is_ok(), "expected custom runtime-supported kernel ids to validate, got: {validation:?}");
+        assert!(
+            validation.is_ok(),
+            "expected custom runtime-supported kernel ids to validate, got: {validation:?}"
+        );
     }
 
     #[test]

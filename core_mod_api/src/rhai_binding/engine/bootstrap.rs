@@ -15,16 +15,15 @@ use crate::rhai_binding::engine::resources::MainScriptEngineHandle;
 use crate::rhai_binding::engine::schedule_entrypoint::{new_schedule_entrypoint_runner_system, register_schedule_entrypoint_param_types};
 use crate::rhai_binding::engine::statics::{
     SCHEDULE_ENTRYPOINTS, ScriptInteractionTriggerDefinition, ScriptMetricContainerLayoutDefinition, ScriptMetricDefinition,
-    ScriptUsfConceptCatalog,
-    ScriptOutputAudioEmitterDefinition, ScriptOutputDensityFieldDefinition, ScriptOutputMaterialProfileDefinition, ScriptOutputParticleEmitterDefinition, ScriptPhenomenonDefinition,
-    ScriptPhenomenonModelDefinition, ScriptScaleDefinition, ScriptSimulationServiceDefinition, ScriptSingletonConflictPolicy, ScriptUsfBootstrapReport,
-    ScriptUsfEntrypointExecutionRecord, ScriptUsfModContribution, ScriptUsfModDefinition, ScriptUsfModManifestDefinition, ScriptUsfModpackDefinition,
-    ScriptZlmMetricBandDefinition, ScriptZlmRuleDefinition, ScriptZlmScaleDefinition, ScriptZoneDensityProfileDefinition, ScriptZonePhenomenonSupportDefinition,
-    ScriptZoneSelectionPolicyDefinition, USF_BOOTSTRAP_REPORT, USF_METRIC_CATEGORIZER_KERNEL_IDS, USF_METRIC_CONTAINER_LAYOUTS_BY_SCALE,
-    USF_METRIC_SAMPLER_KERNEL_IDS, USF_METRIC_SETS_BY_ID, USF_METRICS_BY_NAME, USF_MOD_CONTRIBUTIONS_BY_ID, USF_MOD_MANIFESTS_BY_ID, USF_MODPACKS_BY_ID,
-    USF_MODS_BY_ID, USF_PHENOMENA_BY_ID, USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE, USF_PHENOMENON_MODELS_BY_ID, USF_SCALES_BY_INDEX, USF_CONCEPT_CATALOG,
-    USF_ZLM_SCALES_BY_SCALE, USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE, USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE,
-    USF_ZONE_TYPES,
+    ScriptOutputAudioEmitterDefinition, ScriptOutputDensityFieldDefinition, ScriptOutputMaterialProfileDefinition, ScriptOutputParticleEmitterDefinition,
+    ScriptPhenomenonDefinition, ScriptPhenomenonModelDefinition, ScriptScaleDefinition, ScriptSimulationServiceDefinition, ScriptSingletonConflictPolicy,
+    ScriptUsfBootstrapReport, ScriptUsfConceptCatalog, ScriptUsfEntrypointExecutionRecord, ScriptUsfModContribution, ScriptUsfModDefinition,
+    ScriptUsfModManifestDefinition, ScriptUsfModpackDefinition, ScriptZlmMetricBandDefinition, ScriptZlmRuleDefinition, ScriptZlmScaleDefinition,
+    ScriptZoneDensityProfileDefinition, ScriptZonePhenomenonSupportDefinition, ScriptZoneSelectionPolicyDefinition, USF_BOOTSTRAP_REPORT, USF_CONCEPT_CATALOG,
+    USF_METRIC_CATEGORIZER_KERNEL_IDS, USF_METRIC_CONTAINER_LAYOUTS_BY_SCALE, USF_METRIC_SAMPLER_KERNEL_IDS, USF_METRIC_SETS_BY_ID, USF_METRICS_BY_NAME,
+    USF_MOD_CONTRIBUTIONS_BY_ID, USF_MOD_MANIFESTS_BY_ID, USF_MODPACKS_BY_ID, USF_MODS_BY_ID, USF_PHENOMENA_BY_ID,
+    USF_PHENOMENON_MODEL_SELECTION_BY_PHENOMENON_SCALE, USF_PHENOMENON_MODELS_BY_ID, USF_SCALES_BY_INDEX, USF_ZLM_SCALES_BY_SCALE,
+    USF_ZONE_DENSITY_PROFILE_BY_TYPE, USF_ZONE_PHENOMENON_SUPPORT_BY_ZONE_TYPE, USF_ZONE_SELECTION_POLICY_BY_ZONE_TYPE, USF_ZONE_TYPES,
 };
 use crate::rhai_binding::runtime::ecs::message::bindings::types::ScriptProbeMessage;
 use crate::usf::metric_container::METRIC_SAMPLER_KERNEL_DEFAULT_ID;
@@ -713,7 +712,6 @@ fn run_usf_script_file_for_contract(engine: &Engine, file: &Path, contract: UsfS
             );
         }
     }
-
 }
 
 fn script_owner_package_id(script_relative_path: &Path) -> Result<String, String> {
@@ -1895,12 +1893,7 @@ fn register_usf_script_ctx_runtime_module(engine: &mut rhai::Engine) {
     );
     engine.register_fn(
         "add_supported_phenomenon",
-        |ctx: &mut UsfZoneScriptCtx,
-         phenomenon_id: &str,
-         priority: i64,
-         weight: rhai::FLOAT,
-         spawn_policy: &str|
-         -> Result<(), Box<EvalAltResult>> {
+        |ctx: &mut UsfZoneScriptCtx, phenomenon_id: &str, priority: i64, weight: rhai::FLOAT, spawn_policy: &str| -> Result<(), Box<EvalAltResult>> {
             let zone_type = normalize_zone_type(ctx.zone_type.as_str())?;
             if !USF_ZONE_TYPES().lock().unwrap().contains(&zone_type) {
                 return Err(format!("zone_type '{}' is not registered; call ctx.register() first", zone_type).into());
