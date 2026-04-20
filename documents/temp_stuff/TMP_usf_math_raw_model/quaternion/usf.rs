@@ -53,28 +53,28 @@ impl UsfQuaternion {
     pub fn inverse(&self) -> Self {
         todo!()
     }
-    /// Adds quaternion from either domain.
+    /// Adds quaternion from either domain component-wise.
     /// # Panics
     /// Domain combinations:
     /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
     /// - Disallowed combinations: none; all domain pairs are accepted.
-    pub fn add(&self, _rhs: UsfOrNormalQuaternion) -> Self {
+    pub fn component_add(&self, _rhs: UsfOrNormalQuaternion) -> Self {
         todo!()
     }
-    /// Subtracts quaternion from either domain.
+    /// Subtracts quaternion from either domain component-wise.
     /// # Panics
     /// Domain combinations:
     /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
     /// - Disallowed combinations: none; all domain pairs are accepted.
-    pub fn sub(&self, _rhs: UsfOrNormalQuaternion) -> Self {
+    pub fn component_sub(&self, _rhs: UsfOrNormalQuaternion) -> Self {
         todo!()
     }
-    /// Multiplies quaternion from either domain.
+    /// Applies Hamilton product with quaternion from either domain.
     /// # Panics
     /// Domain combinations:
     /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
     /// - Disallowed combinations: none; all domain pairs are accepted.
-    pub fn mul(&self, _rhs: UsfOrNormalQuaternion) -> Self {
+    pub fn hamilton_mul(&self, _rhs: UsfOrNormalQuaternion) -> Self {
         todo!()
     }
     /// # Panics
@@ -82,15 +82,7 @@ impl UsfQuaternion {
     /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
     /// - Disallowed combinations: none; all domain pairs are accepted.
     /// - Panics if `rhs` represents a zero-norm divisor under quaternion division semantics.
-    pub fn div(&self, _rhs: UsfOrNormalQuaternion) -> Self {
-        todo!()
-    }
-    /// # Panics
-    /// Domain combinations:
-    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
-    /// - Disallowed combinations: none; all domain pairs are accepted.
-    /// - Panics if remainder semantics are undefined for the operand pair.
-    pub fn rem(&self, _rhs: UsfOrNormalQuaternion) -> Self {
+    pub fn hamilton_div(&self, _rhs: UsfOrNormalQuaternion) -> Self {
         todo!()
     }
     /// Returns component-wise minimum.
@@ -98,7 +90,7 @@ impl UsfQuaternion {
     /// Domain combinations:
     /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
     /// - Disallowed combinations: none; all domain pairs are accepted.
-    pub fn min(&self, _rhs: UsfOrNormalQuaternion) -> Self {
+    pub fn component_min(&self, _rhs: UsfOrNormalQuaternion) -> Self {
         todo!()
     }
     /// Returns component-wise maximum.
@@ -106,7 +98,7 @@ impl UsfQuaternion {
     /// Domain combinations:
     /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
     /// - Disallowed combinations: none; all domain pairs are accepted.
-    pub fn max(&self, _rhs: UsfOrNormalQuaternion) -> Self {
+    pub fn component_max(&self, _rhs: UsfOrNormalQuaternion) -> Self {
         todo!()
     }
     /// # Panics
@@ -114,7 +106,7 @@ impl UsfQuaternion {
     /// - Accepts all `{lo, hi}` pairings in `{Usf, Normal} × {Usf, Normal}`.
     /// - Disallowed combinations: none; all domain pairs are accepted.
     /// - Panics if any quaternion component has `lo > hi`.
-    pub fn clamp(&self, _lo: UsfOrNormalQuaternion, _hi: UsfOrNormalQuaternion) -> Self {
+    pub fn component_clamp(&self, _lo: UsfOrNormalQuaternion, _hi: UsfOrNormalQuaternion) -> Self {
         todo!()
     }
     /// Performs linear interpolation.
@@ -123,7 +115,7 @@ impl UsfQuaternion {
     /// - Accepts `rhs` in `{Usf, Normal}`.
     /// - Accepts `t` in `{Usf, Normal}`.
     /// - Disallowed combinations: none; all domain pairs are accepted.
-    pub fn lerp(&self, _rhs: UsfOrNormalQuaternion, _t: UsfOrNormalDecimalScalar) -> Self {
+    pub fn component_lerp(&self, _rhs: UsfOrNormalQuaternion, _t: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
     /// Performs smoothstep interpolation.
@@ -132,7 +124,7 @@ impl UsfQuaternion {
     /// - Accepts `rhs` in `{Usf, Normal}`.
     /// - Accepts `t` in `{Usf, Normal}`.
     /// - Disallowed combinations: none; all domain pairs are accepted.
-    pub fn smoothstep(&self, _rhs: UsfOrNormalQuaternion, _t: UsfOrNormalDecimalScalar) -> Self {
+    pub fn component_smoothstep(&self, _rhs: UsfOrNormalQuaternion, _t: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
     /// Computes quaternion dot product in requested output mode.
@@ -153,7 +145,7 @@ impl UsfQuaternion {
     /// Domain combinations:
     /// - Accepts `{self: Usf, scalar: Usf}` and `{self: Usf, scalar: Normal}`.
     /// - Disallowed combinations: none; all domain pairs are accepted.
-    pub fn mul_scalar(&self, _rhs: UsfOrNormalScalar) -> Self {
+    pub fn component_mul_scalar(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// # Panics
@@ -161,7 +153,7 @@ impl UsfQuaternion {
     /// - Accepts `{self: Usf, scalar: Usf}` and `{self: Usf, scalar: Normal}`.
     /// - Disallowed combinations: none; all domain pairs are accepted.
     /// - Panics if `rhs` is zero.
-    pub fn div_scalar(&self, _rhs: UsfOrNormalScalar) -> Self {
+    pub fn component_div_scalar(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// # Panics

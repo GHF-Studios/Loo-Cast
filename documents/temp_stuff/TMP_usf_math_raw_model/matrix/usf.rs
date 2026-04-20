@@ -49,12 +49,12 @@ impl<const R: usize, const C: usize> UsfMatrix<R, C> {
         todo!()
     }
     /// Performs element-wise multiplication.
-    pub fn mul_elem(&self, _rhs: UsfMatrix<R, C>) -> Self {
+    pub fn component_mul(&self, _rhs: UsfMatrix<R, C>) -> Self {
         todo!()
     }
     /// # Panics
     /// - Panics if any corresponding matrix component in `rhs` is zero.
-    pub fn div_elem(&self, _rhs: UsfMatrix<R, C>) -> Self {
+    pub fn component_div(&self, _rhs: UsfMatrix<R, C>) -> Self {
         todo!()
     }
     /// Adds matrix or scalar operand from either domain.
@@ -75,31 +75,20 @@ impl<const R: usize, const C: usize> UsfMatrix<R, C> {
     pub fn sub(&self, _rhs: OneOf2<UsfOrNormalMatrix<R, C>, UsfOrNormalScalar>) -> Self {
         todo!()
     }
-    /// Multiplies by matrix or scalar operand from either domain.
+    /// Scales by scalar operand from either domain.
     /// # Panics
     /// Domain combinations:
-    /// - Accepts matrix branch with `{self: Usf, rhs_matrix: Usf}` and `{self: Usf, rhs_matrix: Normal}`.
-    /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
-    /// - Disallowed combinations: passing both matrix and scalar operands in the same call, because `OneOf2` selects exactly one branch.
-    pub fn mul(&self, _rhs: OneOf2<UsfOrNormalMatrix<R, C>, UsfOrNormalScalar>) -> Self {
+    /// - Accepts `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
+    pub fn mul(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// # Panics
     /// Domain combinations:
-    /// - Accepts matrix branch with `{self: Usf, rhs_matrix: Usf}` and `{self: Usf, rhs_matrix: Normal}`.
-    /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
-    /// - Disallowed combinations: passing both matrix and scalar operands in the same call, because `OneOf2` selects exactly one branch.
-    /// - Panics if any corresponding matrix component in `rhs` is zero.
-    pub fn div(&self, _rhs: OneOf2<UsfOrNormalMatrix<R, C>, UsfOrNormalScalar>) -> Self {
-        todo!()
-    }
-    /// # Panics
-    /// Domain combinations:
-    /// - Accepts matrix branch with `{self: Usf, rhs_matrix: Usf}` and `{self: Usf, rhs_matrix: Normal}`.
-    /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
-    /// - Disallowed combinations: passing both matrix and scalar operands in the same call, because `OneOf2` selects exactly one branch.
-    /// - Panics if any corresponding matrix component in `rhs` is zero.
-    pub fn rem(&self, _rhs: OneOf2<UsfOrNormalMatrix<R, C>, UsfOrNormalScalar>) -> Self {
+    /// - Accepts `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
+    /// - Panics if `rhs` is zero.
+    pub fn div(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// Returns element-wise minimum.

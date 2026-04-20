@@ -25,16 +25,12 @@ pub trait TensorCoreOps<Scalar: ScalarContract, MatrixBc, VectorC, const A: usiz
     fn sub(&self, _rhs: OneOf2<Self, Scalar>) -> Self {
         todo!()
     }
-    /// Multiplies tensor or scalar operand.
-    fn mul(&self, _rhs: OneOf2<Self, Scalar>) -> Self {
+    /// Multiplies tensor or scalar operand component-wise.
+    fn component_mul(&self, _rhs: OneOf2<Self, Scalar>) -> Self {
         todo!()
     }
-    /// Divides tensor or scalar operand.
-    fn div(&self, _rhs: OneOf2<Self, Scalar>) -> Self {
-        todo!()
-    }
-    /// Computes remainder against tensor or scalar operand.
-    fn rem(&self, _rhs: OneOf2<Self, Scalar>) -> Self {
+    /// Divides tensor or scalar operand component-wise.
+    fn component_div(&self, _rhs: OneOf2<Self, Scalar>) -> Self {
         todo!()
     }
     /// Returns element-wise minimum.

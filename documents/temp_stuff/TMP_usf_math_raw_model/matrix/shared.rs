@@ -23,11 +23,11 @@ pub trait MatrixCoreOps<RowVector, ColVector, TransposedMatrix, const R: usize, 
         todo!()
     }
     /// Element-wise multiplication.
-    fn mul_elem(&self, _rhs: Self) -> Self {
+    fn component_mul(&self, _rhs: Self) -> Self {
         todo!()
     }
     /// Element-wise division.
-    fn div_elem(&self, _rhs: Self) -> Self {
+    fn component_div(&self, _rhs: Self) -> Self {
         todo!()
     }
     /// Adds matrix or scalar operand.
@@ -38,16 +38,12 @@ pub trait MatrixCoreOps<RowVector, ColVector, TransposedMatrix, const R: usize, 
     fn sub(&self, _rhs: OneOf2<Self, UsfOrNormalScalar>) -> Self {
         todo!()
     }
-    /// Multiplies matrix or scalar operand.
-    fn mul(&self, _rhs: OneOf2<Self, UsfOrNormalScalar>) -> Self {
+    /// Multiplies by scalar operand.
+    fn mul(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    /// Divides matrix or scalar operand.
-    fn div(&self, _rhs: OneOf2<Self, UsfOrNormalScalar>) -> Self {
-        todo!()
-    }
-    /// Computes remainder with matrix or scalar operand.
-    fn rem(&self, _rhs: OneOf2<Self, UsfOrNormalScalar>) -> Self {
+    /// Divides by scalar operand.
+    fn div(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// Returns element-wise minimum.

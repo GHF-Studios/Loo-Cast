@@ -91,7 +91,7 @@ impl<const D: usize> UsfVector<D> {
     /// - Accepts `{self: Usf, rhs: Usf}`.
     /// - Accepts `{self: Usf, rhs: Normal}`.
     /// - Disallowed combinations: none; all domain pairs are accepted.
-    pub fn mul(&self, _rhs: UsfOrNormalVector<D>) -> Self {
+    pub fn component_mul(&self, _rhs: UsfOrNormalVector<D>) -> Self {
         todo!()
     }
     /// # Panics
@@ -100,7 +100,7 @@ impl<const D: usize> UsfVector<D> {
     /// - Accepts `{self: Usf, rhs: Normal}`.
     /// - Disallowed combinations: none; all domain pairs are accepted.
     /// - Panics if any corresponding vector component in `rhs` is zero.
-    pub fn div(&self, _rhs: UsfOrNormalVector<D>) -> Self {
+    pub fn component_div(&self, _rhs: UsfOrNormalVector<D>) -> Self {
         todo!()
     }
     /// # Panics
@@ -109,7 +109,7 @@ impl<const D: usize> UsfVector<D> {
     /// - Accepts `{self: Usf, rhs: Normal}`.
     /// - Disallowed combinations: none; all domain pairs are accepted.
     /// - Panics if any corresponding vector component in `rhs` is zero.
-    pub fn rem(&self, _rhs: UsfOrNormalVector<D>) -> Self {
+    pub fn component_rem(&self, _rhs: UsfOrNormalVector<D>) -> Self {
         todo!()
     }
     /// Returns component-wise minimum.
@@ -223,24 +223,6 @@ impl<const D: usize> UsfVector<D> {
     /// - Disallowed combinations: none; all domain pairs are accepted.
     /// - Panics if `normal` is the zero vector.
     pub fn reflect(&self, _normal: UsfOrNormalVector<D>) -> Self {
-        todo!()
-    }
-    /// Multiplies component-wise.
-    /// # Panics
-    /// Domain combinations:
-    /// - Accepts `{self: Usf, rhs: Usf}`.
-    /// - Accepts `{self: Usf, rhs: Normal}`.
-    /// - Disallowed combinations: none; all domain pairs are accepted.
-    pub fn mul_elem(&self, _rhs: UsfOrNormalVector<D>) -> Self {
-        todo!()
-    }
-    /// # Panics
-    /// Domain combinations:
-    /// - Accepts `{self: Usf, rhs: Usf}`.
-    /// - Accepts `{self: Usf, rhs: Normal}`.
-    /// - Disallowed combinations: none; all domain pairs are accepted.
-    /// - Panics if any corresponding vector component in `rhs` is zero.
-    pub fn div_elem(&self, _rhs: UsfOrNormalVector<D>) -> Self {
         todo!()
     }
     /// Computes fused multiply-add per vector component.

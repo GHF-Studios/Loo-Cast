@@ -77,15 +77,15 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
         todo!()
     }
     /// Multiplies vector operand per vector component.
-    fn mul<V: VectorContract<D>>(&self, _rhs: V) -> Self {
+    fn component_mul<V: VectorContract<D>>(&self, _rhs: V) -> Self {
         todo!()
     }
     /// Divides vector operand per vector component.
-    fn div<V: VectorContract<D>>(&self, _rhs: V) -> Self {
+    fn component_div<V: VectorContract<D>>(&self, _rhs: V) -> Self {
         todo!()
     }
     /// Computes remainder per vector component.
-    fn rem<V: VectorContract<D>>(&self, _rhs: V) -> Self {
+    fn component_rem<V: VectorContract<D>>(&self, _rhs: V) -> Self {
         todo!()
     }
     /// Returns per vector component minimum.
@@ -130,14 +130,6 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     }
     /// Reflects around normal.
     fn reflect<V: VectorContract<D>>(&self, _normal: V) -> Self {
-        todo!()
-    }
-    /// Multiplies vector components element-wise.
-    fn mul_elem<V: VectorContract<D>>(&self, _rhs: V) -> Self {
-        todo!()
-    }
-    /// Divides vector components element-wise.
-    fn div_elem<V: VectorContract<D>>(&self, _rhs: V) -> Self {
         todo!()
     }
     /// Fused multiply-add.

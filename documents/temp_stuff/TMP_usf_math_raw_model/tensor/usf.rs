@@ -78,31 +78,23 @@ impl<const A: usize, const B: usize, const C: usize> UsfTensor<A, B, C> {
     pub fn sub(&self, _rhs: TensorOrScalar<A, B, C>) -> Self {
         todo!()
     }
-    /// Multiplies tensor or scalar operand.
+    /// Multiplies tensor or scalar operand component-wise.
     /// # Panics
     /// Domain combinations:
     /// - Accepts tensor branch with `{self: Usf, rhs_tensor: Usf}` and `{self: Usf, rhs_tensor: Normal}`.
     /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
     /// - Disallowed combinations: passing both tensor and scalar operands in the same call, because `OneOf2` selects exactly one branch.
-    pub fn mul(&self, _rhs: TensorOrScalar<A, B, C>) -> Self {
+    pub fn component_mul(&self, _rhs: TensorOrScalar<A, B, C>) -> Self {
         todo!()
     }
+    /// Divides tensor or scalar operand component-wise.
     /// # Panics
     /// Domain combinations:
     /// - Accepts tensor branch with `{self: Usf, rhs_tensor: Usf}` and `{self: Usf, rhs_tensor: Normal}`.
     /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
     /// - Disallowed combinations: passing both tensor and scalar operands in the same call, because `OneOf2` selects exactly one branch.
     /// - Panics if divisor operand resolves to zero in any addressed tensor component.
-    pub fn div(&self, _rhs: TensorOrScalar<A, B, C>) -> Self {
-        todo!()
-    }
-    /// # Panics
-    /// Domain combinations:
-    /// - Accepts tensor branch with `{self: Usf, rhs_tensor: Usf}` and `{self: Usf, rhs_tensor: Normal}`.
-    /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
-    /// - Disallowed combinations: passing both tensor and scalar operands in the same call, because `OneOf2` selects exactly one branch.
-    /// - Panics if divisor operand resolves to zero in any addressed tensor component.
-    pub fn rem(&self, _rhs: TensorOrScalar<A, B, C>) -> Self {
+    pub fn component_div(&self, _rhs: TensorOrScalar<A, B, C>) -> Self {
         todo!()
     }
     /// Returns element-wise minimum.

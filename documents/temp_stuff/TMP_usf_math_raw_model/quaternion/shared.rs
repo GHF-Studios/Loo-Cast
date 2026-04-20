@@ -4,7 +4,6 @@ use super::super::aliases::OutputMode;
 use super::super::matrix::shared::SquareMatrixContract;
 use super::super::scalar::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
 use crate::utils::one_of::OneOf2;
-
 pub trait QuaternionCoreOps<Vector3, Matrix3>: Clone + Sized {
     /// Returns identity quaternion.
     fn identity() -> Self {
@@ -30,44 +29,48 @@ pub trait QuaternionCoreOps<Vector3, Matrix3>: Clone + Sized {
     fn inverse(&self) -> Self {
         todo!()
     }
-    /// Adds quaternion or scalar operand.
-    fn add(&self, _rhs: OneOf2<Self, UsfOrNormalScalar>) -> Self {
+    /// Adds quaternion operand component-wise.
+    fn component_add(&self, _rhs: Self) -> Self {
         todo!()
     }
-    /// Subtracts quaternion or scalar operand.
-    fn sub(&self, _rhs: OneOf2<Self, UsfOrNormalScalar>) -> Self {
+    /// Subtracts quaternion operand component-wise.
+    fn component_sub(&self, _rhs: Self) -> Self {
         todo!()
     }
-    /// Multiplies quaternion or scalar operand.
-    fn mul(&self, _rhs: OneOf2<Self, UsfOrNormalScalar>) -> Self {
+    /// Hamilton product.
+    fn hamilton_mul(&self, _rhs: Self) -> Self {
         todo!()
     }
-    /// Divides quaternion or scalar operand.
-    fn div(&self, _rhs: OneOf2<Self, UsfOrNormalScalar>) -> Self {
+    /// Hamilton division.
+    fn hamilton_div(&self, _rhs: Self) -> Self {
         todo!()
     }
-    /// Computes remainder with quaternion or scalar operand.
-    fn rem(&self, _rhs: OneOf2<Self, UsfOrNormalScalar>) -> Self {
+    /// Multiplies all components by scalar.
+    fn component_mul_scalar(&self, _rhs: UsfOrNormalScalar) -> Self {
+        todo!()
+    }
+    /// Divides all components by scalar.
+    fn component_div_scalar(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// Returns component-wise minimum.
-    fn min(&self, _rhs: Self) -> Self {
+    fn component_min(&self, _rhs: Self) -> Self {
         todo!()
     }
     /// Returns component-wise maximum.
-    fn max(&self, _rhs: Self) -> Self {
+    fn component_max(&self, _rhs: Self) -> Self {
         todo!()
     }
     /// Clamps each quaternion component to `[lo, hi]`.
-    fn clamp(&self, _lo: Self, _hi: Self) -> Self {
+    fn component_clamp(&self, _lo: Self, _hi: Self) -> Self {
         todo!()
     }
     /// Performs linear interpolation.
-    fn lerp(&self, _rhs: Self, _t: UsfOrNormalDecimalScalar) -> Self {
+    fn component_lerp(&self, _rhs: Self, _t: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
     /// Performs smoothstep interpolation.
-    fn smoothstep(&self, _rhs: Self, _t: UsfOrNormalDecimalScalar) -> Self {
+    fn component_smoothstep(&self, _rhs: Self, _t: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
     /// Computes dot product in requested output mode.
