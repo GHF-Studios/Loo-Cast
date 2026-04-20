@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use super::super::aliases::OutputMode;
 use super::super::field::Field;
 use super::super::quaternion::usf::UsfQuaternion;
 use super::super::scalar::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
@@ -49,6 +50,9 @@ pub struct UsfAngularAcceleration;
 
 impl<const D: usize> UsfTranslation<D> {
     /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{value: Usf}` and `{value: Normal}`.
+    /// - Disallowed combinations: none; all domain values are accepted.
     /// - Panics if runtime validation rejects translation dimensionality constraints.
     pub fn from_vector(_value: UsfOrNormalTranslationVector<D>) -> Self {
         todo!()
@@ -58,14 +62,26 @@ impl<const D: usize> UsfTranslation<D> {
         todo!()
     }
     /// Adds translation delta.
+    /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Disallowed combinations: none; all domain values are accepted.
     pub fn add(&self, _rhs: UsfOrNormalTranslationVector<D>) -> Self {
         todo!()
     }
     /// Subtracts translation delta.
+    /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Disallowed combinations: none; all domain values are accepted.
     pub fn sub(&self, _rhs: UsfOrNormalTranslationVector<D>) -> Self {
         todo!()
     }
     /// Scales translation magnitude.
+    /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Disallowed combinations: none; all domain values are accepted.
     pub fn scale(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
@@ -81,6 +97,9 @@ impl<const D: usize> UsfTranslation<D> {
 
 impl UsfRotation {
     /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{value: Usf}` and `{value: Normal}`.
+    /// - Disallowed combinations: none; all domain values are accepted.
     /// - Panics if `value` is not a valid normalized rotation quaternion.
     pub fn from_quat(_value: UsfOrNormalRotationQuaternion) -> Self {
         todo!()
@@ -106,24 +125,37 @@ impl UsfRotation {
 
 impl UsfScale {
     /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{log_base: Usf}` and `{log_base: Normal}`.
+    /// - Allowed: `{fractional_log_offset: Usf}` and `{fractional_log_offset: Normal}`.
+    /// - Disallowed combinations: none; all domain values are accepted.
     /// - Panics if `log_base <= 0` or `log_base == 1`.
     /// - Panics if any scalar component is non-finite under finite-only scale semantics.
     pub fn make(_log_base: UsfOrNormalDecimalScalar, _scale_index: i16, _fractional_log_offset: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
-    /// Returns logarithmic base.
-    pub fn get_log_base(&self, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
+    /// Returns logarithmic base in requested output mode.
+    /// # Panics
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
+    pub fn get_log_base(&self, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
     /// Returns integer scale index.
     pub fn get_scale_index(&self) -> i16 {
         todo!()
     }
-    /// Returns fractional log offset.
-    pub fn get_fractional_log_offset(&self, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
+    /// Returns fractional log offset in requested output mode.
+    /// # Panics
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
+    pub fn get_fractional_log_offset(&self, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
     /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{value: Usf}` and `{value: Normal}`.
+    /// - Disallowed combinations: none; all domain values are accepted.
     /// - Panics if `value <= 0` or `value == 1`.
     /// - Panics if `value` is non-finite under finite-only scale semantics.
     pub fn set_log_base(&mut self, _value: UsfOrNormalDecimalScalar) {
@@ -141,6 +173,9 @@ impl UsfScale {
 
 impl UsfTransform {
     /// # Panics
+    /// Domain combinations:
+    /// - Allowed: each component independently in `{Usf, Normal}`.
+    /// - Disallowed combinations: none; all domain combinations are accepted.
     /// - Panics if any component violates transform invariants (invalid rotation or scale state).
     pub fn make(
         _translation: OneOf2<UsfTranslation<3>, NormalTranslation3f32>,
@@ -149,28 +184,40 @@ impl UsfTransform {
     ) -> Self {
         todo!()
     }
-    /// Returns translation component.
-    pub fn get_translation(&self) -> UsfTranslation<3> {
+    /// Returns translation component in requested domain.
+    pub fn get_translation(&self) -> OneOf2<UsfTranslation<3>, NormalTranslation3f32> {
         todo!()
     }
-    /// Returns rotation component.
-    pub fn get_rotation(&self) -> UsfRotation {
+    /// Returns rotation component in requested domain.
+    pub fn get_rotation(&self) -> OneOf2<UsfRotation, NormalRotationf32> {
         todo!()
     }
-    /// Returns scale component.
-    pub fn get_scale(&self) -> UsfScale {
+    /// Returns scale component in requested domain.
+    pub fn get_scale(&self) -> OneOf2<UsfScale, NormalScalef32> {
         todo!()
     }
-    /// Sets translation component.
-    pub fn set_translation(&mut self, _translation: UsfTranslation<3>) {
+    /// Sets translation component from either domain.
+    /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{translation: Usf}` and `{translation: Normal}`.
+    /// - Disallowed combinations: none; all domain values are accepted.
+    pub fn set_translation(&mut self, _translation: OneOf2<UsfTranslation<3>, NormalTranslation3f32>) {
         todo!()
     }
-    /// Sets rotation component.
-    pub fn set_rotation(&mut self, _rotation: UsfRotation) {
+    /// Sets rotation component from either domain.
+    /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{rotation: Usf}` and `{rotation: Normal}`.
+    /// - Disallowed combinations: none; all domain values are accepted.
+    pub fn set_rotation(&mut self, _rotation: OneOf2<UsfRotation, NormalRotationf32>) {
         todo!()
     }
-    /// Sets scale component.
-    pub fn set_scale(&mut self, _scale: UsfScale) {
+    /// Sets scale component from either domain.
+    /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{scale: Usf}` and `{scale: Normal}`.
+    /// - Disallowed combinations: none; all domain values are accepted.
+    pub fn set_scale(&mut self, _scale: OneOf2<UsfScale, NormalScalef32>) {
         todo!()
     }
 }

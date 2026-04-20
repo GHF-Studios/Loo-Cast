@@ -1,10 +1,16 @@
 #![allow(dead_code)]
 
+use super::super::aliases::OutputMode;
 use super::super::field::Field;
+use super::super::matrix::aliases::UsfOrNormalMatrix;
 use super::super::matrix::usf::UsfMatrix;
+use super::super::scalar::aliases::UsfOrNormalScalar;
 use super::super::scalar::usf::UsfScalar;
+use super::super::tensor::aliases::UsfOrNormalTensor;
 use super::super::tensor::usf::UsfTensor;
+use super::super::vector::aliases::UsfOrNormalVector;
 use super::super::vector::usf::UsfVector;
+pub use super::aliases::{Tensor4OrScalar, UsfOrNormalTensor4};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UsfTensor4<const A: usize, const B: usize, const C: usize, const D: usize> {
@@ -29,109 +35,154 @@ pub type UsfTensor2x4x4x8 = UsfTensor4<2, 4, 4, 8>;
 pub type UsfTensor8x4x4x2 = UsfTensor4<8, 4, 4, 2>;
 
 impl<const A: usize, const B: usize, const C: usize, const D: usize> UsfTensor4<A, B, C, D> {
+    /// Returns additive identity rank-4 tensor.
     pub fn zero() -> Self {
         todo!()
     }
     /// # Panics
+    /// Domain combinations:
+    /// - Accepts each chunk in `{Usf, Normal}` independently.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     /// - Panics if runtime validation rejects degenerate tensor shape constraints.
-    pub fn from_chunks(_chunks: [UsfTensor<B, C, D>; A]) -> Self {
+    pub fn from_chunks(_chunks: [UsfOrNormalTensor<B, C, D>; A]) -> Self {
         todo!()
     }
-    pub fn to_chunks(&self) -> [UsfTensor<B, C, D>; A] {
+    /// Returns axis-A chunks in requested output mode.
+    /// Output behavior:
+    /// - Projects each returned chunk into `output_mode.domain`.
+    /// # Panics
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but chunk projection loses precision or range.
+    pub fn to_chunks(&self, _output_mode: OutputMode) -> [UsfOrNormalTensor<B, C, D>; A] {
         todo!()
     }
-    pub fn add_scalar(&self, _rhs: UsfScalar) -> Self {
+    /// Adds tensor or scalar operand.
+    /// # Panics
+    /// Domain combinations:
+    /// - Accepts tensor branch with `{self: Usf, rhs_tensor: Usf}` and `{self: Usf, rhs_tensor: Normal}`.
+    /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
+    /// - Disallowed combinations: passing both tensor and scalar operands in the same call, because `OneOf2` selects exactly one branch.
+    pub fn add(&self, _rhs: Tensor4OrScalar<A, B, C, D>) -> Self {
         todo!()
     }
-    pub fn sub_scalar(&self, _rhs: UsfScalar) -> Self {
+    /// Subtracts tensor or scalar operand.
+    /// # Panics
+    /// Domain combinations:
+    /// - Accepts tensor branch with `{self: Usf, rhs_tensor: Usf}` and `{self: Usf, rhs_tensor: Normal}`.
+    /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
+    /// - Disallowed combinations: passing both tensor and scalar operands in the same call, because `OneOf2` selects exactly one branch.
+    pub fn sub(&self, _rhs: Tensor4OrScalar<A, B, C, D>) -> Self {
         todo!()
     }
-    pub fn mul_scalar(&self, _rhs: UsfScalar) -> Self {
+    /// Multiplies tensor or scalar operand.
+    /// # Panics
+    /// Domain combinations:
+    /// - Accepts tensor branch with `{self: Usf, rhs_tensor: Usf}` and `{self: Usf, rhs_tensor: Normal}`.
+    /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
+    /// - Disallowed combinations: passing both tensor and scalar operands in the same call, because `OneOf2` selects exactly one branch.
+    pub fn mul(&self, _rhs: Tensor4OrScalar<A, B, C, D>) -> Self {
         todo!()
     }
     /// # Panics
-    /// - Panics if `rhs` is zero.
-    pub fn div_scalar(&self, _rhs: UsfScalar) -> Self {
-        todo!()
-    }
-    pub fn add(&self, _rhs: UsfTensor4<A, B, C, D>) -> Self {
-        todo!()
-    }
-    pub fn sub(&self, _rhs: UsfTensor4<A, B, C, D>) -> Self {
-        todo!()
-    }
-    pub fn mul(&self, _rhs: UsfTensor4<A, B, C, D>) -> Self {
+    /// Domain combinations:
+    /// - Accepts tensor branch with `{self: Usf, rhs_tensor: Usf}` and `{self: Usf, rhs_tensor: Normal}`.
+    /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
+    /// - Disallowed combinations: passing both tensor and scalar operands in the same call, because `OneOf2` selects exactly one branch.
+    /// - Panics if divisor operand resolves to zero in any addressed tensor component.
+    pub fn div(&self, _rhs: Tensor4OrScalar<A, B, C, D>) -> Self {
         todo!()
     }
     /// # Panics
-    /// - Panics if any corresponding lane in `rhs` is zero.
-    pub fn div(&self, _rhs: UsfTensor4<A, B, C, D>) -> Self {
+    /// Domain combinations:
+    /// - Accepts tensor branch with `{self: Usf, rhs_tensor: Usf}` and `{self: Usf, rhs_tensor: Normal}`.
+    /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
+    /// - Disallowed combinations: passing both tensor and scalar operands in the same call, because `OneOf2` selects exactly one branch.
+    /// - Panics if divisor operand resolves to zero in any addressed tensor component.
+    pub fn rem(&self, _rhs: Tensor4OrScalar<A, B, C, D>) -> Self {
+        todo!()
+    }
+    /// Returns element-wise minimum.
+    /// # Panics
+    /// Domain combinations:
+    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
+    pub fn min(&self, _rhs: UsfOrNormalTensor4<A, B, C, D>) -> Self {
+        todo!()
+    }
+    /// Returns element-wise maximum.
+    /// # Panics
+    /// Domain combinations:
+    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
+    pub fn max(&self, _rhs: UsfOrNormalTensor4<A, B, C, D>) -> Self {
         todo!()
     }
     /// # Panics
-    /// - Panics if any corresponding lane in `rhs` is zero.
-    pub fn rem(&self, _rhs: UsfTensor4<A, B, C, D>) -> Self {
+    /// Domain combinations:
+    /// - Accepts all `{lo, hi}` pairings in `{Usf, Normal} × {Usf, Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
+    /// - Panics if any tensor component has `lo > hi`.
+    pub fn clamp(&self, _lo: UsfOrNormalTensor4<A, B, C, D>, _hi: UsfOrNormalTensor4<A, B, C, D>) -> Self {
         todo!()
     }
-    pub fn min(&self, _rhs: UsfTensor4<A, B, C, D>) -> Self {
-        todo!()
-    }
-    pub fn max(&self, _rhs: UsfTensor4<A, B, C, D>) -> Self {
-        todo!()
-    }
-    /// # Panics
-    /// - Panics if any lane has `lo > hi`.
-    pub fn clamp(&self, _lo: UsfTensor4<A, B, C, D>, _hi: UsfTensor4<A, B, C, D>) -> Self {
-        todo!()
-    }
+    /// Returns `(A, B, C, D)` dimensions.
     pub fn get_dimensions(&self) -> (usize, usize, usize, usize) {
         todo!()
     }
+    /// Returns total scalar component count.
     pub fn get_element_count(&self) -> usize {
         todo!()
     }
     /// # Panics
     /// - Panics if `index` is out of bounds.
-    pub fn get_chunk(&self, _index: usize) -> UsfTensor<B, C, D> {
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but chunk projection loses precision or range.
+    pub fn get_chunk(&self, _index: usize, _output_mode: OutputMode) -> UsfOrNormalTensor<B, C, D> {
         todo!()
     }
     /// # Panics
     /// - Panics if `index` is out of bounds.
     /// - Panics if the target chunk is immutable under runtime field mutability policy.
-    pub fn set_chunk(&mut self, _index: usize, _value: UsfTensor<B, C, D>) {
+    pub fn set_chunk(&mut self, _index: usize, _value: UsfOrNormalTensor<B, C, D>) {
         todo!()
     }
     /// # Panics
     /// - Panics if `i` or `j` is out of bounds.
-    pub fn get_matrix(&self, _i: usize, _j: usize) -> UsfMatrix<C, D> {
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but matrix projection loses precision or range.
+    pub fn get_matrix(&self, _i: usize, _j: usize, _output_mode: OutputMode) -> UsfOrNormalMatrix<C, D> {
         todo!()
     }
     /// # Panics
     /// - Panics if `i` or `j` is out of bounds.
     /// - Panics if the target matrix is immutable under runtime field mutability policy.
-    pub fn set_matrix(&mut self, _i: usize, _j: usize, _value: UsfMatrix<C, D>) {
+    pub fn set_matrix(&mut self, _i: usize, _j: usize, _value: UsfOrNormalMatrix<C, D>) {
         todo!()
     }
     /// # Panics
     /// - Panics if `i`, `j`, or `k` is out of bounds.
-    pub fn get_vector(&self, _i: usize, _j: usize, _k: usize) -> UsfVector<D> {
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but vector projection loses precision or range.
+    pub fn get_vector(&self, _i: usize, _j: usize, _k: usize, _output_mode: OutputMode) -> UsfOrNormalVector<D> {
         todo!()
     }
     /// # Panics
     /// - Panics if `i`, `j`, or `k` is out of bounds.
     /// - Panics if the target vector is immutable under runtime field mutability policy.
-    pub fn set_vector(&mut self, _i: usize, _j: usize, _k: usize, _value: UsfVector<D>) {
+    pub fn set_vector(&mut self, _i: usize, _j: usize, _k: usize, _value: UsfOrNormalVector<D>) {
         todo!()
     }
     /// # Panics
     /// - Panics if any index is out of bounds.
-    pub fn get_lane(&self, _i: usize, _j: usize, _k: usize, _l: usize) -> UsfScalar {
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but component projection loses precision or range.
+    pub fn get_component(&self, _i: usize, _j: usize, _k: usize, _l: usize, _output_mode: OutputMode) -> UsfOrNormalScalar {
         todo!()
     }
     /// # Panics
     /// - Panics if any index is out of bounds.
-    /// - Panics if the target lane is immutable under runtime field mutability policy.
-    pub fn set_lane(&mut self, _i: usize, _j: usize, _k: usize, _l: usize, _value: UsfScalar) {
+    /// - Panics if the target tensor component is immutable under runtime field mutability policy.
+    pub fn set_component(&mut self, _i: usize, _j: usize, _k: usize, _l: usize, _value: UsfOrNormalScalar) {
         todo!()
     }
 }

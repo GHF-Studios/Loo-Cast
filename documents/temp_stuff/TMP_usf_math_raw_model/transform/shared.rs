@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use super::super::aliases::OutputMode;
 use super::super::quaternion::shared::QuaternionAnyContract;
 use super::super::scalar::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
 use super::super::vector::shared::VectorContract;
@@ -77,16 +78,16 @@ pub trait ScaleCoreOps: Clone + Sized {
 }
 
 pub trait ScaleFieldOps: ScaleCoreOps {
-    /// Returns logarithmic base in selected domain.
-    fn get_log_base(&self, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
+    /// Returns logarithmic base in requested output mode.
+    fn get_log_base(&self, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
     /// Returns integer scale index.
     fn get_scale_index(&self) -> i16 {
         todo!()
     }
-    /// Returns fractional offset in selected domain.
-    fn get_fractional_log_offset(&self, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
+    /// Returns fractional offset in requested output mode.
+    fn get_fractional_log_offset(&self, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
     /// Sets logarithmic base.
@@ -119,28 +120,28 @@ pub trait TransformCoreOps<Translation: TranslationAnyContract, Rotation: Rotati
 pub trait TransformFieldOps<Translation: TranslationAnyContract, Rotation: RotationAnyContract, Scale: ScaleAnyContract>:
     TransformCoreOps<Translation, Rotation, Scale>
 {
-    /// Returns translation component.
-    fn get_translation(&self) -> Translation {
+    /// Returns translation component in requested domain.
+    fn get_translation<TranslationB: TranslationAnyContract>(&self) -> OneOf2<Translation, TranslationB> {
         todo!()
     }
-    /// Returns rotation component.
-    fn get_rotation(&self) -> Rotation {
+    /// Returns rotation component in requested domain.
+    fn get_rotation<RotationB: RotationAnyContract>(&self) -> OneOf2<Rotation, RotationB> {
         todo!()
     }
-    /// Returns scale component.
-    fn get_scale(&self) -> Scale {
+    /// Returns scale component in requested domain.
+    fn get_scale<ScaleB: ScaleAnyContract>(&self) -> OneOf2<Scale, ScaleB> {
         todo!()
     }
-    /// Sets translation component.
-    fn set_translation(&mut self, _translation: Translation) {
+    /// Sets translation component from either domain.
+    fn set_translation<TranslationB: TranslationAnyContract>(&mut self, _translation: OneOf2<Translation, TranslationB>) {
         todo!()
     }
-    /// Sets rotation component.
-    fn set_rotation(&mut self, _rotation: Rotation) {
+    /// Sets rotation component from either domain.
+    fn set_rotation<RotationB: RotationAnyContract>(&mut self, _rotation: OneOf2<Rotation, RotationB>) {
         todo!()
     }
-    /// Sets scale component.
-    fn set_scale(&mut self, _scale: Scale) {
+    /// Sets scale component from either domain.
+    fn set_scale<ScaleB: ScaleAnyContract>(&mut self, _scale: OneOf2<Scale, ScaleB>) {
         todo!()
     }
 }

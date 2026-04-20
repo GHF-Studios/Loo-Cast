@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use super::super::aliases::OutputMode;
 use super::super::field::Field;
 use super::super::scalar::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
 use super::super::scalar::shared::SignedIntegerType;
@@ -52,47 +53,90 @@ impl<const R: usize, const C: usize> UsfMatrix<R, C> {
         todo!()
     }
     /// # Panics
-    /// - Panics if any corresponding lane in `rhs` is zero.
+    /// - Panics if any corresponding matrix component in `rhs` is zero.
     pub fn div_elem(&self, _rhs: UsfMatrix<R, C>) -> Self {
         todo!()
     }
     /// Adds matrix or scalar operand from either domain.
+    /// # Panics
+    /// Domain combinations:
+    /// - Accepts matrix branch with `{self: Usf, rhs_matrix: Usf}` and `{self: Usf, rhs_matrix: Normal}`.
+    /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
+    /// - Disallowed combinations: passing both matrix and scalar operands in the same call, because `OneOf2` selects exactly one branch.
     pub fn add(&self, _rhs: OneOf2<UsfOrNormalMatrix<R, C>, UsfOrNormalScalar>) -> Self {
         todo!()
     }
     /// Subtracts matrix or scalar operand from either domain.
+    /// # Panics
+    /// Domain combinations:
+    /// - Accepts matrix branch with `{self: Usf, rhs_matrix: Usf}` and `{self: Usf, rhs_matrix: Normal}`.
+    /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
+    /// - Disallowed combinations: passing both matrix and scalar operands in the same call, because `OneOf2` selects exactly one branch.
     pub fn sub(&self, _rhs: OneOf2<UsfOrNormalMatrix<R, C>, UsfOrNormalScalar>) -> Self {
         todo!()
     }
     /// Multiplies by matrix or scalar operand from either domain.
+    /// # Panics
+    /// Domain combinations:
+    /// - Accepts matrix branch with `{self: Usf, rhs_matrix: Usf}` and `{self: Usf, rhs_matrix: Normal}`.
+    /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
+    /// - Disallowed combinations: passing both matrix and scalar operands in the same call, because `OneOf2` selects exactly one branch.
     pub fn mul(&self, _rhs: OneOf2<UsfOrNormalMatrix<R, C>, UsfOrNormalScalar>) -> Self {
         todo!()
     }
     /// # Panics
-    /// - Panics if any corresponding lane in `rhs` is zero.
+    /// Domain combinations:
+    /// - Accepts matrix branch with `{self: Usf, rhs_matrix: Usf}` and `{self: Usf, rhs_matrix: Normal}`.
+    /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
+    /// - Disallowed combinations: passing both matrix and scalar operands in the same call, because `OneOf2` selects exactly one branch.
+    /// - Panics if any corresponding matrix component in `rhs` is zero.
     pub fn div(&self, _rhs: OneOf2<UsfOrNormalMatrix<R, C>, UsfOrNormalScalar>) -> Self {
         todo!()
     }
     /// # Panics
-    /// - Panics if any corresponding lane in `rhs` is zero.
+    /// Domain combinations:
+    /// - Accepts matrix branch with `{self: Usf, rhs_matrix: Usf}` and `{self: Usf, rhs_matrix: Normal}`.
+    /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
+    /// - Disallowed combinations: passing both matrix and scalar operands in the same call, because `OneOf2` selects exactly one branch.
+    /// - Panics if any corresponding matrix component in `rhs` is zero.
     pub fn rem(&self, _rhs: OneOf2<UsfOrNormalMatrix<R, C>, UsfOrNormalScalar>) -> Self {
         todo!()
     }
     /// Returns element-wise minimum.
+    /// # Panics
+    /// Domain combinations:
+    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     pub fn min(&self, _rhs: UsfOrNormalMatrix<R, C>) -> Self {
         todo!()
     }
     /// Returns element-wise maximum.
+    /// # Panics
+    /// Domain combinations:
+    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     pub fn max(&self, _rhs: UsfOrNormalMatrix<R, C>) -> Self {
         todo!()
     }
     /// # Panics
-    /// - Panics if any lane has `lo > hi`.
+    /// Domain combinations:
+    /// - Accepts all `{lo, hi}` pairings in `{Usf, Normal} × {Usf, Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
+    /// - Panics if any matrix component has `lo > hi`.
     pub fn clamp(&self, _lo: UsfOrNormalMatrix<R, C>, _hi: UsfOrNormalMatrix<R, C>) -> Self {
         todo!()
     }
     /// Multiplies this matrix by vector from either domain.
-    pub fn mul_vec(&self, _rhs: UsfOrNormalVector<C>, _use_usf_output: bool) -> UsfOrNormalVector<R> {
+    /// Output behavior:
+    /// - Computes using canonical USF working precision.
+    /// - Projects the result into `output_mode.domain`.
+    /// # Panics
+    /// Domain combinations:
+    /// - Accepts `{self: Usf, rhs_vector: Usf}` and `{self: Usf, rhs_vector: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
+    pub fn mul_vec(&self, _rhs: UsfOrNormalVector<C>, _output_mode: OutputMode) -> UsfOrNormalVector<R> {
         todo!()
     }
     /// Returns row count.
@@ -107,7 +151,7 @@ impl<const R: usize, const C: usize> UsfMatrix<R, C> {
     pub fn get_shape(&self) -> (usize, usize) {
         todo!()
     }
-    /// Returns total lane count.
+    /// Returns total matrix component count.
     pub fn get_element_count(&self) -> usize {
         todo!()
     }
@@ -123,13 +167,15 @@ impl<const R: usize, const C: usize> UsfMatrix<R, C> {
     }
     /// # Panics
     /// - Panics if `row` or `col` is out of bounds.
-    pub fn get_lane(&self, _row: usize, _col: usize, _use_usf_output: bool) -> UsfOrNormalScalar {
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but component projection loses precision or range.
+    pub fn get_component(&self, _row: usize, _col: usize, _output_mode: OutputMode) -> UsfOrNormalScalar {
         todo!()
     }
     /// # Panics
     /// - Panics if `row` or `col` is out of bounds.
-    /// - Panics if the target lane is immutable under runtime field mutability policy.
-    pub fn set_lane(&mut self, _row: usize, _col: usize, _value: UsfOrNormalScalar) {
+    /// - Panics if the target matrix component is immutable under runtime field mutability policy.
+    pub fn set_component(&mut self, _row: usize, _col: usize, _value: UsfOrNormalScalar) {
         todo!()
     }
 }
@@ -139,8 +185,11 @@ impl<const D: usize> UsfMatrix<D, D> {
     pub fn identity() -> Self {
         todo!()
     }
-    /// Computes determinant with runtime output-domain selection.
-    pub fn determinant(&self, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
+    /// Computes determinant in requested output mode.
+    /// # Panics
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
+    pub fn determinant(&self, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
     /// # Panics
@@ -148,8 +197,11 @@ impl<const D: usize> UsfMatrix<D, D> {
     pub fn inverse(&self) -> Self {
         todo!()
     }
-    /// Computes matrix trace with runtime output-domain selection.
-    pub fn trace(&self, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
+    /// Computes matrix trace in requested output mode.
+    /// # Panics
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
+    pub fn trace(&self, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
     /// Raises matrix to integer power.

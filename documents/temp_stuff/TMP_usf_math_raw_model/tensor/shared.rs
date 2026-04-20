@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use super::super::aliases::OutputMode;
 use super::super::scalar::shared::ScalarContract;
 use crate::utils::one_of::OneOf2;
 
@@ -12,8 +13,8 @@ pub trait TensorCoreOps<Scalar: ScalarContract, MatrixBc, VectorC, const A: usiz
     fn from_slices(_slices: [MatrixBc; A]) -> Self {
         todo!()
     }
-    /// Returns axis-A slices.
-    fn to_slices(&self) -> [MatrixBc; A] {
+    /// Returns axis-A slices in requested output mode.
+    fn to_slices(&self, _output_mode: OutputMode) -> [MatrixBc; A] {
         todo!()
     }
     /// Adds tensor or scalar operand.
@@ -62,7 +63,7 @@ pub trait TensorFieldOps<Scalar: ScalarContract, MatrixBc, VectorC, const A: usi
     TensorCoreOps<Scalar, MatrixBc, VectorC, A, B, C>
 {
     /// Slice orthogonal to axis A, shape `(B, C)`.
-    fn get_slice(&self, _index: usize) -> MatrixBc {
+    fn get_slice(&self, _index: usize, _output_mode: OutputMode) -> MatrixBc {
         todo!()
     }
     /// Slice orthogonal to axis A, shape `(B, C)`.
@@ -70,19 +71,19 @@ pub trait TensorFieldOps<Scalar: ScalarContract, MatrixBc, VectorC, const A: usi
         todo!()
     }
     /// Vector along axis C at fixed `(A=i, B=j)`.
-    fn get_vector(&self, _i: usize, _j: usize) -> VectorC {
+    fn get_vector(&self, _i: usize, _j: usize, _output_mode: OutputMode) -> VectorC {
         todo!()
     }
     /// Vector along axis C at fixed `(A=i, B=j)`.
     fn set_vector(&mut self, _i: usize, _j: usize, _value: VectorC) {
         todo!()
     }
-    /// Returns scalar lane `(i, j, k)`.
-    fn get_lane(&self, _i: usize, _j: usize, _k: usize) -> Scalar {
+    /// Returns scalar tensor component `(i, j, k)`.
+    fn get_component(&self, _i: usize, _j: usize, _k: usize, _output_mode: OutputMode) -> Scalar {
         todo!()
     }
-    /// Sets scalar lane `(i, j, k)`.
-    fn set_lane(&mut self, _i: usize, _j: usize, _k: usize, _value: Scalar) {
+    /// Sets scalar tensor component `(i, j, k)`.
+    fn set_component(&mut self, _i: usize, _j: usize, _k: usize, _value: Scalar) {
         todo!()
     }
 }
@@ -101,7 +102,7 @@ pub trait TensorProjectionCoreOps<
 >: TensorFieldOps<Scalar, MatrixBc, VectorC, A, B, C>
 {
     /// Slice orthogonal to axis C, shape `(A, B)`.
-    fn get_matrix_ab(&self, _k: usize) -> MatrixAb {
+    fn get_matrix_ab(&self, _k: usize, _output_mode: OutputMode) -> MatrixAb {
         todo!()
     }
     /// Slice orthogonal to axis C, shape `(A, B)`.
@@ -110,7 +111,7 @@ pub trait TensorProjectionCoreOps<
     }
 
     /// Slice orthogonal to axis B, shape `(A, C)`.
-    fn get_matrix_ac(&self, _j: usize) -> MatrixAc {
+    fn get_matrix_ac(&self, _j: usize, _output_mode: OutputMode) -> MatrixAc {
         todo!()
     }
     /// Slice orthogonal to axis B, shape `(A, C)`.
@@ -119,7 +120,7 @@ pub trait TensorProjectionCoreOps<
     }
 
     /// Slice orthogonal to axis A, shape `(B, C)`.
-    fn get_matrix_bc(&self, _i: usize) -> MatrixBc {
+    fn get_matrix_bc(&self, _i: usize, _output_mode: OutputMode) -> MatrixBc {
         todo!()
     }
     /// Slice orthogonal to axis A, shape `(B, C)`.
@@ -128,7 +129,7 @@ pub trait TensorProjectionCoreOps<
     }
 
     /// Vector along axis A at fixed `(B=b, C=c)`.
-    fn get_vector_a(&self, _b: usize, _c: usize) -> VectorA {
+    fn get_vector_a(&self, _b: usize, _c: usize, _output_mode: OutputMode) -> VectorA {
         todo!()
     }
     /// Vector along axis A at fixed `(B=b, C=c)`.
@@ -137,7 +138,7 @@ pub trait TensorProjectionCoreOps<
     }
 
     /// Vector along axis B at fixed `(A=a, C=c)`.
-    fn get_vector_b(&self, _a: usize, _c: usize) -> VectorB {
+    fn get_vector_b(&self, _a: usize, _c: usize, _output_mode: OutputMode) -> VectorB {
         todo!()
     }
     /// Vector along axis B at fixed `(A=a, C=c)`.
@@ -146,7 +147,7 @@ pub trait TensorProjectionCoreOps<
     }
 
     /// Vector along axis C at fixed `(A=a, B=b)`.
-    fn get_vector_c(&self, _a: usize, _b: usize) -> VectorC {
+    fn get_vector_c(&self, _a: usize, _b: usize, _output_mode: OutputMode) -> VectorC {
         todo!()
     }
     /// Vector along axis C at fixed `(A=a, B=b)`.

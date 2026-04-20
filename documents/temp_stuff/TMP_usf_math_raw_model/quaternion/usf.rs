@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use super::super::aliases::OutputMode;
 use super::super::field::Field;
 use super::super::matrix::usf::UsfMatrix;
 use super::super::scalar::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
@@ -24,12 +25,18 @@ impl UsfQuaternion {
         todo!()
     }
     /// # Panics
+    /// Domain combinations:
+    /// - Allowed: each component independently in `{Usf, Normal}`.
+    /// - Disallowed combinations: none; all domain combinations are accepted.
     /// - Panics if the input quaternion cannot be normalized into a valid rotation state.
     pub fn from_xyzw(_x: UsfOrNormalDecimalScalar, _y: UsfOrNormalDecimalScalar, _z: UsfOrNormalDecimalScalar, _w: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
-    /// Returns quaternion lanes with runtime output-domain selection.
-    pub fn to_xyzw(&self, _use_usf_output: bool) -> [UsfOrNormalDecimalScalar; 4] {
+    /// Returns quaternion components in requested output mode.
+    /// # Panics
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but component projection loses precision or range.
+    pub fn to_xyzw(&self, _output_mode: OutputMode) -> [UsfOrNormalDecimalScalar; 4] {
         todo!()
     }
     /// # Panics
@@ -47,92 +54,172 @@ impl UsfQuaternion {
         todo!()
     }
     /// Adds quaternion from either domain.
+    /// # Panics
+    /// Domain combinations:
+    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     pub fn add(&self, _rhs: UsfOrNormalQuaternion) -> Self {
         todo!()
     }
     /// Subtracts quaternion from either domain.
+    /// # Panics
+    /// Domain combinations:
+    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     pub fn sub(&self, _rhs: UsfOrNormalQuaternion) -> Self {
         todo!()
     }
     /// Multiplies quaternion from either domain.
+    /// # Panics
+    /// Domain combinations:
+    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     pub fn mul(&self, _rhs: UsfOrNormalQuaternion) -> Self {
         todo!()
     }
     /// # Panics
+    /// Domain combinations:
+    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     /// - Panics if `rhs` represents a zero-norm divisor under quaternion division semantics.
     pub fn div(&self, _rhs: UsfOrNormalQuaternion) -> Self {
         todo!()
     }
     /// # Panics
+    /// Domain combinations:
+    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     /// - Panics if remainder semantics are undefined for the operand pair.
     pub fn rem(&self, _rhs: UsfOrNormalQuaternion) -> Self {
         todo!()
     }
-    /// Returns lane-wise minimum.
+    /// Returns component-wise minimum.
+    /// # Panics
+    /// Domain combinations:
+    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     pub fn min(&self, _rhs: UsfOrNormalQuaternion) -> Self {
         todo!()
     }
-    /// Returns lane-wise maximum.
+    /// Returns component-wise maximum.
+    /// # Panics
+    /// Domain combinations:
+    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     pub fn max(&self, _rhs: UsfOrNormalQuaternion) -> Self {
         todo!()
     }
     /// # Panics
-    /// - Panics if any lane has `lo > hi`.
+    /// Domain combinations:
+    /// - Accepts all `{lo, hi}` pairings in `{Usf, Normal} × {Usf, Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
+    /// - Panics if any quaternion component has `lo > hi`.
     pub fn clamp(&self, _lo: UsfOrNormalQuaternion, _hi: UsfOrNormalQuaternion) -> Self {
         todo!()
     }
     /// Performs linear interpolation.
+    /// # Panics
+    /// Domain combinations:
+    /// - Accepts `rhs` in `{Usf, Normal}`.
+    /// - Accepts `t` in `{Usf, Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     pub fn lerp(&self, _rhs: UsfOrNormalQuaternion, _t: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
     /// Performs smoothstep interpolation.
+    /// # Panics
+    /// Domain combinations:
+    /// - Accepts `rhs` in `{Usf, Normal}`.
+    /// - Accepts `t` in `{Usf, Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     pub fn smoothstep(&self, _rhs: UsfOrNormalQuaternion, _t: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
-    /// Computes quaternion dot product with runtime output-domain selection.
-    pub fn dot(&self, _rhs: UsfOrNormalQuaternion, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
+    /// Computes quaternion dot product in requested output mode.
+    /// Output behavior:
+    /// - Computes using canonical USF working precision.
+    /// - Projects the result into `output_mode.domain`.
+    /// # Panics
+    /// Domain combinations:
+    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
+    pub fn dot(&self, _rhs: UsfOrNormalQuaternion, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
-    /// Multiplies all lanes by scalar.
+    /// Multiplies all quaternion components by scalar.
+    /// # Panics
+    /// Domain combinations:
+    /// - Accepts `{self: Usf, scalar: Usf}` and `{self: Usf, scalar: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     pub fn mul_scalar(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// # Panics
+    /// Domain combinations:
+    /// - Accepts `{self: Usf, scalar: Usf}` and `{self: Usf, scalar: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     /// - Panics if `rhs` is zero.
     pub fn div_scalar(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// # Panics
+    /// Domain combinations:
+    /// - Accepts `{self: Usf, rhs_vector: Usf}` and `{self: Usf, rhs_vector: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     /// - Panics if `self` is not a valid normalized rotation quaternion.
-    pub fn rotate_vec3(&self, _rhs: UsfOrNormalVector<3>, _use_usf_output: bool) -> UsfOrNormalVector<3> {
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
+    pub fn rotate_vec3(&self, _rhs: UsfOrNormalVector<3>, _output_mode: OutputMode) -> UsfOrNormalVector<3> {
         todo!()
     }
     /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{axis: Usf}` and `{axis: Normal}`.
+    /// - Allowed: `{angle_rad: Usf}` and `{angle_rad: Normal}`.
+    /// - Disallowed combinations: none; all domain combinations are accepted.
     /// - Panics if `axis` is zero-length.
     pub fn from_axis_angle(_axis: UsfOrNormalVector<3>, _angle_rad: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
     /// # Panics
     /// - Panics if `self` is not a valid normalized rotation quaternion.
-    pub fn to_axis_angle(&self, _use_usf_output: bool) -> (UsfOrNormalVector<3>, UsfOrNormalDecimalScalar) {
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
+    pub fn to_axis_angle(&self, _output_mode: OutputMode) -> (UsfOrNormalVector<3>, UsfOrNormalDecimalScalar) {
         todo!()
     }
     /// Builds quaternion from XYZ Euler angles.
+    /// # Panics
+    /// Domain combinations:
+    /// - Allowed: each Euler component independently in `{Usf, Normal}`.
+    /// - Disallowed combinations: none; all domain combinations are accepted.
     pub fn from_euler_xyz(_x_rad: UsfOrNormalDecimalScalar, _y_rad: UsfOrNormalDecimalScalar, _z_rad: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
     /// # Panics
     /// - Panics if `self` is not a valid normalized rotation quaternion.
-    pub fn to_euler_xyz(&self, _use_usf_output: bool) -> [UsfOrNormalDecimalScalar; 3] {
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
+    pub fn to_euler_xyz(&self, _output_mode: OutputMode) -> [UsfOrNormalDecimalScalar; 3] {
         todo!()
     }
     /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Allowed: `{t: Usf}` and `{t: Normal}`.
+    /// - Disallowed combinations: none; all domain combinations are accepted.
     /// - Panics if interpolation endpoints are invalid rotation quaternions.
     /// - Panics if interpolation path is undefined for the endpoint pair.
     pub fn slerp(&self, _rhs: UsfOrNormalQuaternion, _t: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
     /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Allowed: `{t: Usf}` and `{t: Normal}`.
+    /// - Disallowed combinations: none; all domain combinations are accepted.
     /// - Panics if interpolation endpoints are invalid rotation quaternions.
     /// - Panics if normalized interpolation produces a zero norm.
     pub fn nlerp(&self, _rhs: UsfOrNormalQuaternion, _t: UsfOrNormalDecimalScalar) -> Self {
@@ -140,28 +227,45 @@ impl UsfQuaternion {
     }
     /// # Panics
     /// - Panics if `self` is not a valid normalized rotation quaternion.
-    pub fn to_mat3(&self, _use_usf_output: bool) -> UsfOrNormalMat3 {
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but matrix projection loses precision or range.
+    pub fn to_mat3(&self, _output_mode: OutputMode) -> UsfOrNormalMat3 {
         todo!()
     }
     /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{value: Usf}` and `{value: Normal}`.
+    /// - Disallowed combinations: none; all domain values are accepted.
     /// - Panics if `value` is not a valid rotation matrix under strict rotation-matrix validation.
     pub fn from_mat3(_value: UsfOrNormalMat3) -> Self {
         todo!()
     }
     /// Returns `x` component.
-    pub fn get_x(&self, _use_usf_output: bool) -> UsfOrNormalScalar {
+    /// # Panics
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but component projection loses precision or range.
+    pub fn get_x(&self, _output_mode: OutputMode) -> UsfOrNormalScalar {
         todo!()
     }
     /// Returns `y` component.
-    pub fn get_y(&self, _use_usf_output: bool) -> UsfOrNormalScalar {
+    /// # Panics
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but component projection loses precision or range.
+    pub fn get_y(&self, _output_mode: OutputMode) -> UsfOrNormalScalar {
         todo!()
     }
     /// Returns `z` component.
-    pub fn get_z(&self, _use_usf_output: bool) -> UsfOrNormalScalar {
+    /// # Panics
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but component projection loses precision or range.
+    pub fn get_z(&self, _output_mode: OutputMode) -> UsfOrNormalScalar {
         todo!()
     }
     /// Returns `w` component.
-    pub fn get_w(&self, _use_usf_output: bool) -> UsfOrNormalScalar {
+    /// # Panics
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but component projection loses precision or range.
+    pub fn get_w(&self, _output_mode: OutputMode) -> UsfOrNormalScalar {
         todo!()
     }
     /// Sets `x` component.

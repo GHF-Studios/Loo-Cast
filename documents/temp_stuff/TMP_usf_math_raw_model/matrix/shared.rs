@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use super::super::aliases::OutputMode;
 use super::super::scalar::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
 use super::super::scalar::shared::SignedIntegerType;
 use crate::utils::one_of::OneOf2;
@@ -57,7 +58,7 @@ pub trait MatrixCoreOps<RowVector, ColVector, TransposedMatrix, const R: usize, 
     fn max(&self, _rhs: Self) -> Self {
         todo!()
     }
-    /// Clamps each lane to `[lo, hi]`.
+    /// Clamps each matrix component to `[lo, hi]`.
     fn clamp(&self, _lo: Self, _hi: Self) -> Self {
         todo!()
     }
@@ -94,12 +95,12 @@ pub trait MatrixFieldOps<RowVector, ColVector, TransposedMatrix, const R: usize,
     fn get_col(&self, _index: usize) -> ColVector {
         todo!()
     }
-    /// Returns matrix lane.
-    fn get_lane(&self, _row: usize, _col: usize, _use_usf_output: bool) -> UsfOrNormalScalar {
+    /// Returns matrix component.
+    fn get_component(&self, _row: usize, _col: usize, _output_mode: OutputMode) -> UsfOrNormalScalar {
         todo!()
     }
-    /// Sets matrix lane.
-    fn set_lane(&mut self, _row: usize, _col: usize, _value: UsfOrNormalScalar) {
+    /// Sets matrix component.
+    fn set_component(&mut self, _row: usize, _col: usize, _value: UsfOrNormalScalar) {
         todo!()
     }
 }
@@ -114,16 +115,16 @@ pub trait SquareMatrixCoreOps<Vector, const D: usize>: MatrixCoreOps<Vector, Vec
     fn identity() -> Self {
         todo!()
     }
-    /// Returns determinant with runtime output-domain selection.
-    fn determinant(&self, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
+    /// Returns determinant in requested output mode.
+    fn determinant(&self, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
     /// Returns inverse matrix.
     fn inverse(&self) -> Self {
         todo!()
     }
-    /// Returns trace with runtime output-domain selection.
-    fn trace(&self, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
+    /// Returns trace in requested output mode.
+    fn trace(&self, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
     /// Raises matrix to signed integer power.

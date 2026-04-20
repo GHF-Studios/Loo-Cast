@@ -226,92 +226,172 @@ impl UsfScalar {
         todo!()
     }
     /// Adds another scalar.
+    /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
     pub fn add(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// Subtracts another scalar.
+    /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
     pub fn sub(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// Multiplies by another scalar.
+    /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
     pub fn mul(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
     /// - Panics if `rhs` is zero.
     pub fn div(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
     /// - Panics if `rhs` is zero.
     pub fn rem(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    /// Returns lane-wise minimum.
+    /// Returns minimum with `rhs`.
+    /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
     pub fn min(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    /// Returns lane-wise maximum.
+    /// Returns maximum with `rhs`.
+    /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
     pub fn max(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// # Panics
+    /// Domain combinations:
+    /// - Allowed: all `{lo, hi}` pairings in `{Usf, Normal} × {Usf, Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     /// - Panics if `lo > hi`.
     pub fn clamp(&self, _lo: UsfOrNormalScalar, _hi: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
     /// - Panics for undefined exponent/base combinations under real-only semantics.
     pub fn pow(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// Computes two-argument arctangent.
+    /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
     pub fn atan2(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// Computes hypotenuse with another scalar.
+    /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
     pub fn hypot(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
     /// - Panics if `rhs` is zero.
     pub fn mod_euclid(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// Computes fused multiply-add: `self * b + c`.
+    /// # Panics
+    /// Domain combinations:
+    /// - Allowed: all `{b, c}` pairings in `{Usf, Normal} × {Usf, Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     pub fn fma(&self, _b: UsfOrNormalScalar, _c: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// Performs linear interpolation.
+    /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Allowed: `{t: Usf}` and `{t: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     pub fn lerp(&self, _rhs: UsfOrNormalScalar, _t: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
     /// # Panics
+    /// Domain combinations:
+    /// - Allowed: all `{edge0, edge1}` pairings in `{Usf, Normal} × {Usf, Normal}`.
+    /// - Allowed: `{t: Usf}` and `{t: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     /// - Panics if edge ordering is invalid (`edge0 > edge1`) under strict smoothstep semantics.
     pub fn smoothstep(&self, _edge0: UsfOrNormalScalar, _edge1: UsfOrNormalScalar, _t: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
     /// Compares equality.
+    /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
     pub fn cmp_eq(&self, _rhs: UsfOrNormalScalar) -> bool {
         todo!()
     }
     /// Compares inequality.
+    /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
     pub fn cmp_ne(&self, _rhs: UsfOrNormalScalar) -> bool {
         todo!()
     }
     /// Compares `<`.
+    /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
     pub fn cmp_lt(&self, _rhs: UsfOrNormalScalar) -> bool {
         todo!()
     }
     /// Compares `<=`.
+    /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
     pub fn cmp_le(&self, _rhs: UsfOrNormalScalar) -> bool {
         todo!()
     }
     /// Compares `>`.
+    /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
     pub fn cmp_gt(&self, _rhs: UsfOrNormalScalar) -> bool {
         todo!()
     }
     /// Compares `>=`.
+    /// # Panics
+    /// Domain combinations:
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
     pub fn cmp_ge(&self, _rhs: UsfOrNormalScalar) -> bool {
         todo!()
     }

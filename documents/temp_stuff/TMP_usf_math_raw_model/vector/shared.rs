@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use super::super::aliases::OutputMode;
 use super::super::scalar::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -27,43 +28,43 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     fn one() -> Self {
         todo!()
     }
-    /// Builds vector with all lanes set to `value`.
+    /// Builds vector with all vector components set to `value`.
     fn splat(_value: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    /// Builds vector from lane array.
-    fn from_lanes(_lanes: [UsfOrNormalScalar; D]) -> Self {
+    /// Builds vector from vector component array.
+    fn from_vector_components(_vector_components: [UsfOrNormalScalar; D]) -> Self {
         todo!()
     }
-    /// Returns lane array in requested output domain.
-    fn to_lanes(&self, _use_usf_output: bool) -> [UsfOrNormalScalar; D] {
+    /// Returns vector component array in requested output mode.
+    fn to_vector_components(&self, _output_mode: OutputMode) -> [UsfOrNormalScalar; D] {
         todo!()
     }
     /// Returns normalized direction.
     fn normalize(&self) -> Self {
         todo!()
     }
-    /// Applies floor lane-wise.
+    /// Applies floor per vector component.
     fn floor(&self) -> Self {
         todo!()
     }
-    /// Applies ceil lane-wise.
+    /// Applies ceil per vector component.
     fn ceil(&self) -> Self {
         todo!()
     }
-    /// Applies round lane-wise.
+    /// Applies round per vector component.
     fn round(&self) -> Self {
         todo!()
     }
-    /// Applies fract lane-wise.
+    /// Applies fract per vector component.
     fn fract(&self) -> Self {
         todo!()
     }
-    /// Negates each lane.
+    /// Negates each vector component.
     fn neg(&self) -> Self {
         todo!()
     }
-    /// Applies abs lane-wise.
+    /// Applies abs per vector component.
     fn abs(&self) -> Self {
         todo!()
     }
@@ -75,27 +76,27 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     fn sub<V: VectorContract<D>>(&self, _rhs: V) -> Self {
         todo!()
     }
-    /// Multiplies vector operand lane-wise.
+    /// Multiplies vector operand per vector component.
     fn mul<V: VectorContract<D>>(&self, _rhs: V) -> Self {
         todo!()
     }
-    /// Divides vector operand lane-wise.
+    /// Divides vector operand per vector component.
     fn div<V: VectorContract<D>>(&self, _rhs: V) -> Self {
         todo!()
     }
-    /// Computes remainder lane-wise.
+    /// Computes remainder per vector component.
     fn rem<V: VectorContract<D>>(&self, _rhs: V) -> Self {
         todo!()
     }
-    /// Returns lane-wise minimum.
+    /// Returns per vector component minimum.
     fn min<V: VectorContract<D>>(&self, _rhs: V) -> Self {
         todo!()
     }
-    /// Returns lane-wise maximum.
+    /// Returns per vector component maximum.
     fn max<V: VectorContract<D>>(&self, _rhs: V) -> Self {
         todo!()
     }
-    /// Clamps each lane to `[lo, hi]`.
+    /// Clamps each vector component to `[lo, hi]`.
     fn clamp<V: VectorContract<D>>(&self, _lo: V, _hi: V) -> Self {
         todo!()
     }
@@ -107,16 +108,16 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     fn smoothstep<V: VectorContract<D>>(&self, _rhs: V, _t: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
-    /// Computes dot product in requested output domain.
-    fn dot<V: VectorContract<D>>(&self, _rhs: V, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
+    /// Computes dot product in requested output mode.
+    fn dot<V: VectorContract<D>>(&self, _rhs: V, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
-    /// Computes distance in requested output domain.
-    fn distance<V: VectorContract<D>>(&self, _rhs: V, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
+    /// Computes distance in requested output mode.
+    fn distance<V: VectorContract<D>>(&self, _rhs: V, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
-    /// Computes angle in requested output domain.
-    fn angle_between<V: VectorContract<D>>(&self, _rhs: V, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
+    /// Computes angle in requested output mode.
+    fn angle_between<V: VectorContract<D>>(&self, _rhs: V, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
     /// Projects onto `onto`.
@@ -131,11 +132,11 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     fn reflect<V: VectorContract<D>>(&self, _normal: V) -> Self {
         todo!()
     }
-    /// Multiplies lanes element-wise.
+    /// Multiplies vector components element-wise.
     fn mul_elem<V: VectorContract<D>>(&self, _rhs: V) -> Self {
         todo!()
     }
-    /// Divides lanes element-wise.
+    /// Divides vector components element-wise.
     fn div_elem<V: VectorContract<D>>(&self, _rhs: V) -> Self {
         todo!()
     }
@@ -151,20 +152,20 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     fn get_dimension(&self) -> usize {
         todo!()
     }
-    /// Returns length in requested output domain.
-    fn get_length(&self, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
+    /// Returns length in requested output mode.
+    fn get_length(&self, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
-    /// Returns squared length in requested output domain.
-    fn get_length_squared(&self, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
+    /// Returns squared length in requested output mode.
+    fn get_length_squared(&self, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
-    /// Returns lane at index.
-    fn get_lane(&self, _index: usize, _use_usf_output: bool) -> UsfOrNormalScalar {
+    /// Returns vector component at index in requested output mode.
+    fn get_vector_component(&self, _index: usize, _output_mode: OutputMode) -> UsfOrNormalScalar {
         todo!()
     }
-    /// Sets lane at index.
-    fn set_lane(&mut self, _index: usize, _value: UsfOrNormalScalar) {
+    /// Sets vector component at index.
+    fn set_vector_component(&mut self, _index: usize, _value: UsfOrNormalScalar) {
         todo!()
     }
 }
@@ -175,41 +176,41 @@ pub trait VectorFieldOps<const D: usize>: VectorCoreOps<D> {}
 impl<T, const D: usize> VectorFieldOps<D> for T where T: VectorCoreOps<D> {}
 
 pub trait Vector2dFieldOps: Clone + Sized {
-    /// Returns `x` lane.
-    fn get_x(&self, _use_usf_output: bool) -> UsfOrNormalScalar {
+    /// Returns `x` vector component.
+    fn get_x(&self, _output_mode: OutputMode) -> UsfOrNormalScalar {
         todo!()
     }
-    /// Returns `y` lane.
-    fn get_y(&self, _use_usf_output: bool) -> UsfOrNormalScalar {
+    /// Returns `y` vector component.
+    fn get_y(&self, _output_mode: OutputMode) -> UsfOrNormalScalar {
         todo!()
     }
-    /// Sets `x` lane.
+    /// Sets `x` vector component.
     fn set_x(&mut self, _value: UsfOrNormalScalar) {
         todo!()
     }
-    /// Sets `y` lane.
+    /// Sets `y` vector component.
     fn set_y(&mut self, _value: UsfOrNormalScalar) {
         todo!()
     }
 }
 
 pub trait Vector3dFieldOps: Vector2dFieldOps {
-    /// Returns `z` lane.
-    fn get_z(&self, _use_usf_output: bool) -> UsfOrNormalScalar {
+    /// Returns `z` vector component.
+    fn get_z(&self, _output_mode: OutputMode) -> UsfOrNormalScalar {
         todo!()
     }
-    /// Sets `z` lane.
+    /// Sets `z` vector component.
     fn set_z(&mut self, _value: UsfOrNormalScalar) {
         todo!()
     }
 }
 
 pub trait Vector4dFieldOps: Vector3dFieldOps {
-    /// Returns `w` lane.
-    fn get_w(&self, _use_usf_output: bool) -> UsfOrNormalScalar {
+    /// Returns `w` vector component.
+    fn get_w(&self, _output_mode: OutputMode) -> UsfOrNormalScalar {
         todo!()
     }
-    /// Sets `w` lane.
+    /// Sets `w` vector component.
     fn set_w(&mut self, _value: UsfOrNormalScalar) {
         todo!()
     }
@@ -225,7 +226,7 @@ pub trait Vector2dCoreOps: Vector2dFieldOps + VectorCoreOps<2> {
         todo!()
     }
     /// Returns 2D perpendicular dot product.
-    fn perp_dot<Rhs: VectorContract<2>>(&self, _rhs: Rhs, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
+    fn perp_dot<Rhs: VectorContract<2>>(&self, _rhs: Rhs, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
     /// Builds unit direction from angle.
@@ -233,7 +234,7 @@ pub trait Vector2dCoreOps: Vector2dFieldOps + VectorCoreOps<2> {
         todo!()
     }
     /// Returns polar angle.
-    fn angle(&self, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
+    fn angle(&self, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
     /// Rotates by angle.
@@ -241,7 +242,7 @@ pub trait Vector2dCoreOps: Vector2dFieldOps + VectorCoreOps<2> {
         todo!()
     }
     /// Converts to `(radius, angle)`.
-    fn to_polar(&self, _use_usf_output: bool) -> (UsfOrNormalDecimalScalar, UsfOrNormalDecimalScalar) {
+    fn to_polar(&self, _output_mode: OutputMode) -> (UsfOrNormalDecimalScalar, UsfOrNormalDecimalScalar) {
         todo!()
     }
     /// Builds from `(radius, angle)`.
@@ -260,7 +261,7 @@ pub trait Vector3dCoreOps: Vector3dFieldOps + VectorCoreOps<3> {
         todo!()
     }
     /// Computes scalar triple product.
-    fn triple_product<B: VectorContract<3>, C: VectorContract<3>>(&self, _b: B, _c: C, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
+    fn triple_product<B: VectorContract<3>, C: VectorContract<3>>(&self, _b: B, _c: C, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
     /// Projects onto plane.
@@ -276,11 +277,11 @@ pub trait Vector3dCoreOps: Vector3dFieldOps + VectorCoreOps<3> {
         todo!()
     }
     /// Computes signed angle around axis.
-    fn signed_angle<Rhs: VectorContract<3>, Axis: VectorContract<3>>(&self, _rhs: Rhs, _axis: Axis, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
+    fn signed_angle<Rhs: VectorContract<3>, Axis: VectorContract<3>>(&self, _rhs: Rhs, _axis: Axis, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
     /// Converts to spherical coordinates.
-    fn to_spherical(&self, _use_usf_output: bool) -> (UsfOrNormalDecimalScalar, UsfOrNormalDecimalScalar, UsfOrNormalDecimalScalar) {
+    fn to_spherical(&self, _output_mode: OutputMode) -> (UsfOrNormalDecimalScalar, UsfOrNormalDecimalScalar, UsfOrNormalDecimalScalar) {
         todo!()
     }
     /// Builds from spherical coordinates.
@@ -295,21 +296,21 @@ pub trait Vector4dCoreOps<Vector3d: VectorContract<3>>: Vector4dFieldOps + Vecto
         todo!()
     }
     /// Returns xyz projection.
-    fn xyz(&self, _use_usf_output: bool) -> Vector3d {
+    fn xyz(&self, _output_mode: OutputMode) -> Vector3d {
         todo!()
     }
     /// Returns copy with replaced `w`.
     fn with_w(&self, _w: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    /// Computes 3D-style dot product over xyz lanes.
-    fn dot3<Rhs: VectorContract<4>>(&self, _rhs: Rhs, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
+    /// Computes 3D-style dot product over xyz vector components.
+    fn dot3<Rhs: VectorContract<4>>(&self, _rhs: Rhs, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
 }
 
 pub trait Vector4dBridgeOps<Vector3d: VectorContract<3>>: Vector4dCoreOps<Vector3d> + VectorBridgeOps<4> {
-    /// Classifies homogeneous `w` lane.
+    /// Classifies homogeneous `w` vector component.
     fn classify_homogeneous_w(&self) -> HomogeneousWState {
         todo!()
     }

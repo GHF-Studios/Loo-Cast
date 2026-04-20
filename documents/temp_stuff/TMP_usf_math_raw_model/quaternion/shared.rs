@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use super::super::aliases::OutputMode;
 use super::super::matrix::shared::SquareMatrixContract;
 use super::super::scalar::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
 use crate::utils::one_of::OneOf2;
@@ -9,12 +10,12 @@ pub trait QuaternionCoreOps<Vector3, Matrix3>: Clone + Sized {
     fn identity() -> Self {
         todo!()
     }
-    /// Builds quaternion from lanes.
+    /// Builds quaternion from components.
     fn from_xyzw(_x: UsfOrNormalDecimalScalar, _y: UsfOrNormalDecimalScalar, _z: UsfOrNormalDecimalScalar, _w: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
-    /// Returns quaternion lanes with runtime output-domain selection.
-    fn to_xyzw(&self, _use_usf_output: bool) -> [UsfOrNormalDecimalScalar; 4] {
+    /// Returns quaternion components in requested output mode.
+    fn to_xyzw(&self, _output_mode: OutputMode) -> [UsfOrNormalDecimalScalar; 4] {
         todo!()
     }
     /// Returns normalized quaternion.
@@ -49,15 +50,15 @@ pub trait QuaternionCoreOps<Vector3, Matrix3>: Clone + Sized {
     fn rem(&self, _rhs: OneOf2<Self, UsfOrNormalScalar>) -> Self {
         todo!()
     }
-    /// Returns lane-wise minimum.
+    /// Returns component-wise minimum.
     fn min(&self, _rhs: Self) -> Self {
         todo!()
     }
-    /// Returns lane-wise maximum.
+    /// Returns component-wise maximum.
     fn max(&self, _rhs: Self) -> Self {
         todo!()
     }
-    /// Clamps each lane to `[lo, hi]`.
+    /// Clamps each quaternion component to `[lo, hi]`.
     fn clamp(&self, _lo: Self, _hi: Self) -> Self {
         todo!()
     }
@@ -69,8 +70,8 @@ pub trait QuaternionCoreOps<Vector3, Matrix3>: Clone + Sized {
     fn smoothstep(&self, _rhs: Self, _t: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
-    /// Computes dot product with runtime output-domain selection.
-    fn dot(&self, _rhs: Self, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
+    /// Computes dot product in requested output mode.
+    fn dot(&self, _rhs: Self, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
     /// Rotates a 3D vector.
@@ -82,7 +83,7 @@ pub trait QuaternionCoreOps<Vector3, Matrix3>: Clone + Sized {
         todo!()
     }
     /// Converts quaternion to axis-angle.
-    fn to_axis_angle(&self, _use_usf_output: bool) -> (Vector3, UsfOrNormalDecimalScalar) {
+    fn to_axis_angle(&self, _output_mode: OutputMode) -> (Vector3, UsfOrNormalDecimalScalar) {
         todo!()
     }
     /// Builds quaternion from XYZ Euler angles.
@@ -90,7 +91,7 @@ pub trait QuaternionCoreOps<Vector3, Matrix3>: Clone + Sized {
         todo!()
     }
     /// Converts quaternion to XYZ Euler angles.
-    fn to_euler_xyz(&self, _use_usf_output: bool) -> [UsfOrNormalDecimalScalar; 3] {
+    fn to_euler_xyz(&self, _output_mode: OutputMode) -> [UsfOrNormalDecimalScalar; 3] {
         todo!()
     }
     /// Performs spherical interpolation.
@@ -102,7 +103,7 @@ pub trait QuaternionCoreOps<Vector3, Matrix3>: Clone + Sized {
         todo!()
     }
     /// Converts quaternion to 3x3 matrix representation.
-    fn to_mat3<Matrix3B: SquareMatrixContract<Vector3, 3>>(&self, _use_usf_output: bool) -> OneOf2<Matrix3, Matrix3B> {
+    fn to_mat3<Matrix3B: SquareMatrixContract<Vector3, 3>>(&self, _output_mode: OutputMode) -> OneOf2<Matrix3, Matrix3B> {
         todo!()
     }
     /// Builds quaternion from 3x3 matrix representation.
@@ -112,35 +113,35 @@ pub trait QuaternionCoreOps<Vector3, Matrix3>: Clone + Sized {
 }
 
 pub trait QuaternionFieldOps: Clone + Sized {
-    /// Returns `x` lane.
-    fn get_x(&self, _use_usf_output: bool) -> UsfOrNormalScalar {
+    /// Returns `x` component.
+    fn get_x(&self, _output_mode: OutputMode) -> UsfOrNormalScalar {
         todo!()
     }
-    /// Returns `y` lane.
-    fn get_y(&self, _use_usf_output: bool) -> UsfOrNormalScalar {
+    /// Returns `y` component.
+    fn get_y(&self, _output_mode: OutputMode) -> UsfOrNormalScalar {
         todo!()
     }
-    /// Returns `z` lane.
-    fn get_z(&self, _use_usf_output: bool) -> UsfOrNormalScalar {
+    /// Returns `z` component.
+    fn get_z(&self, _output_mode: OutputMode) -> UsfOrNormalScalar {
         todo!()
     }
-    /// Returns `w` lane.
-    fn get_w(&self, _use_usf_output: bool) -> UsfOrNormalScalar {
+    /// Returns `w` component.
+    fn get_w(&self, _output_mode: OutputMode) -> UsfOrNormalScalar {
         todo!()
     }
-    /// Sets `x` lane.
+    /// Sets `x` component.
     fn set_x(&mut self, _value: UsfOrNormalScalar) {
         todo!()
     }
-    /// Sets `y` lane.
+    /// Sets `y` component.
     fn set_y(&mut self, _value: UsfOrNormalScalar) {
         todo!()
     }
-    /// Sets `z` lane.
+    /// Sets `z` component.
     fn set_z(&mut self, _value: UsfOrNormalScalar) {
         todo!()
     }
-    /// Sets `w` lane.
+    /// Sets `w` component.
     fn set_w(&mut self, _value: UsfOrNormalScalar) {
         todo!()
     }
