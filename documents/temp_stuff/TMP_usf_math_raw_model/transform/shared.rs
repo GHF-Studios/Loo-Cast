@@ -1,55 +1,67 @@
 #![allow(dead_code)]
 
 use super::super::quaternion::shared::QuaternionAnyContract;
-use super::super::scalar::shared::ScalarContract;
+use super::super::scalar::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
 use super::super::vector::shared::VectorContract;
 use crate::utils::one_of::OneOf2;
 
-pub trait TranslationCoreOps<Scalar: ScalarContract, Vector: VectorContract<Scalar, D>, const D: usize>: Clone + Sized {
-    fn from_vector<VectorB: VectorContract<Scalar, D>>(_value: OneOf2<Vector, VectorB>) -> Self {
+pub trait TranslationCoreOps<Vector: VectorContract<D>, const D: usize>: Clone + Sized {
+    /// Builds translation from vector input.
+    fn from_vector<VectorB: VectorContract<D>>(_value: OneOf2<Vector, VectorB>) -> Self {
         todo!()
     }
-    fn to_vector<VectorB: VectorContract<Scalar, D>>(&self) -> OneOf2<Vector, VectorB> {
+    /// Returns translation as vector in either domain.
+    fn to_vector<VectorB: VectorContract<D>>(&self) -> OneOf2<Vector, VectorB> {
         todo!()
     }
-    fn add<VectorB: VectorContract<Scalar, D>>(&self, _rhs: OneOf2<Vector, VectorB>) -> Self {
+    /// Adds translation delta.
+    fn add<VectorB: VectorContract<D>>(&self, _rhs: OneOf2<Vector, VectorB>) -> Self {
         todo!()
     }
-    fn sub<VectorB: VectorContract<Scalar, D>>(&self, _rhs: OneOf2<Vector, VectorB>) -> Self {
+    /// Subtracts translation delta.
+    fn sub<VectorB: VectorContract<D>>(&self, _rhs: OneOf2<Vector, VectorB>) -> Self {
         todo!()
     }
-    fn scale<ScalarB: ScalarContract>(&self, _rhs: OneOf2<Scalar, ScalarB>) -> Self {
+    /// Scales translation by scalar from either domain.
+    fn scale(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
 }
 
-pub trait TranslationFieldOps<Scalar: ScalarContract, Vector: VectorContract<Scalar, D>, const D: usize>: TranslationCoreOps<Scalar, Vector, D> {
+pub trait TranslationFieldOps<Vector: VectorContract<D>, const D: usize>: TranslationCoreOps<Vector, D> {
+    /// Returns wrapped vector.
     fn get_vector(&self) -> Vector {
         todo!()
     }
+    /// Sets wrapped vector.
     fn set_vector(&mut self, _value: Vector) {
         todo!()
     }
 }
 
-pub trait TranslationBridgeOps<Scalar: ScalarContract, Vector: VectorContract<Scalar, D>, const D: usize>: TranslationCoreOps<Scalar, Vector, D> {}
+pub trait TranslationBridgeOps<Vector: VectorContract<D>, const D: usize>: TranslationCoreOps<Vector, D> {}
 
 pub trait RotationCoreOps<Quaternion: QuaternionAnyContract>: Clone + Sized {
+    /// Builds rotation from quaternion.
     fn from_quat<QuaternionB: QuaternionAnyContract>(_value: OneOf2<Quaternion, QuaternionB>) -> Self {
         todo!()
     }
+    /// Returns wrapped quaternion in either domain.
     fn to_quat<QuaternionB: QuaternionAnyContract>(&self) -> OneOf2<Quaternion, QuaternionB> {
         todo!()
     }
+    /// Composes two rotations.
     fn compose(&self, _rhs: Quaternion) -> Self {
         todo!()
     }
 }
 
 pub trait RotationFieldOps<Quaternion: QuaternionAnyContract>: RotationCoreOps<Quaternion> {
+    /// Returns wrapped quaternion.
     fn get_quaternion(&self) -> Quaternion {
         todo!()
     }
+    /// Sets wrapped quaternion.
     fn set_quaternion(&mut self, _value: Quaternion) {
         todo!()
     }
@@ -57,36 +69,44 @@ pub trait RotationFieldOps<Quaternion: QuaternionAnyContract>: RotationCoreOps<Q
 
 pub trait RotationBridgeOps<Quaternion: QuaternionAnyContract>: RotationCoreOps<Quaternion> {}
 
-pub trait ScaleCoreOps<Scalar: ScalarContract>: Clone + Sized {
-    fn make<ScalarB: ScalarContract>(_log_base: OneOf2<Scalar, ScalarB>, _scale_index: i16, _fractional_log_offset: OneOf2<Scalar, ScalarB>) -> Self {
+pub trait ScaleCoreOps: Clone + Sized {
+    /// Builds logarithmic scale descriptor.
+    fn make(_log_base: UsfOrNormalDecimalScalar, _scale_index: i16, _fractional_log_offset: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
 }
 
-pub trait ScaleFieldOps<Scalar: ScalarContract>: ScaleCoreOps<Scalar> {
-    fn get_log_base(&self) -> Scalar {
+pub trait ScaleFieldOps: ScaleCoreOps {
+    /// Returns logarithmic base in selected domain.
+    fn get_log_base(&self, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
         todo!()
     }
+    /// Returns integer scale index.
     fn get_scale_index(&self) -> i16 {
         todo!()
     }
-    fn get_fractional_log_offset(&self) -> Scalar {
+    /// Returns fractional offset in selected domain.
+    fn get_fractional_log_offset(&self, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
         todo!()
     }
-    fn set_log_base(&mut self, _value: Scalar) {
+    /// Sets logarithmic base.
+    fn set_log_base(&mut self, _value: UsfOrNormalDecimalScalar) {
         todo!()
     }
+    /// Sets integer scale index.
     fn set_scale_index(&mut self, _value: i16) {
         todo!()
     }
-    fn set_fractional_log_offset(&mut self, _value: Scalar) {
+    /// Sets fractional offset.
+    fn set_fractional_log_offset(&mut self, _value: UsfOrNormalDecimalScalar) {
         todo!()
     }
 }
 
-pub trait ScaleBridgeOps<Scalar: ScalarContract>: ScaleCoreOps<Scalar> {}
+pub trait ScaleBridgeOps: ScaleCoreOps {}
 
 pub trait TransformCoreOps<Translation: TranslationAnyContract, Rotation: RotationAnyContract, Scale: ScaleAnyContract>: Clone + Sized {
+    /// Builds transform tuple `(translation, rotation, scale)`.
     fn make<TranslationB: TranslationAnyContract, RotationB: RotationAnyContract, ScaleB: ScaleAnyContract>(
         _translation: OneOf2<Translation, TranslationB>,
         _rotation: OneOf2<Rotation, RotationB>,
@@ -99,21 +119,27 @@ pub trait TransformCoreOps<Translation: TranslationAnyContract, Rotation: Rotati
 pub trait TransformFieldOps<Translation: TranslationAnyContract, Rotation: RotationAnyContract, Scale: ScaleAnyContract>:
     TransformCoreOps<Translation, Rotation, Scale>
 {
+    /// Returns translation component.
     fn get_translation(&self) -> Translation {
         todo!()
     }
+    /// Returns rotation component.
     fn get_rotation(&self) -> Rotation {
         todo!()
     }
+    /// Returns scale component.
     fn get_scale(&self) -> Scale {
         todo!()
     }
+    /// Sets translation component.
     fn set_translation(&mut self, _translation: Translation) {
         todo!()
     }
+    /// Sets rotation component.
     fn set_rotation(&mut self, _rotation: Rotation) {
         todo!()
     }
+    /// Sets scale component.
     fn set_scale(&mut self, _scale: Scale) {
         todo!()
     }
@@ -124,12 +150,12 @@ pub trait TransformBridgeOps<Translation: TranslationAnyContract, Rotation: Rota
 {
 }
 
-pub trait TranslationContract<Scalar: ScalarContract, Vector: VectorContract<Scalar, D>, const D: usize>:
-    TranslationCoreOps<Scalar, Vector, D> + TranslationFieldOps<Scalar, Vector, D> + TranslationBridgeOps<Scalar, Vector, D>
+pub trait TranslationContract<Vector: VectorContract<D>, const D: usize>:
+    TranslationCoreOps<Vector, D> + TranslationFieldOps<Vector, D> + TranslationBridgeOps<Vector, D>
 {
 }
-impl<T, Scalar: ScalarContract, Vector: VectorContract<Scalar, D>, const D: usize> TranslationContract<Scalar, Vector, D> for T where
-    T: TranslationCoreOps<Scalar, Vector, D> + TranslationFieldOps<Scalar, Vector, D> + TranslationBridgeOps<Scalar, Vector, D>
+impl<T, Vector: VectorContract<D>, const D: usize> TranslationContract<Vector, D> for T where
+    T: TranslationCoreOps<Vector, D> + TranslationFieldOps<Vector, D> + TranslationBridgeOps<Vector, D>
 {
 }
 
@@ -142,8 +168,8 @@ impl<T, Quaternion: QuaternionAnyContract> RotationContract<Quaternion> for T wh
 {
 }
 
-pub trait ScaleContract<Scalar: ScalarContract>: ScaleCoreOps<Scalar> + ScaleFieldOps<Scalar> + ScaleBridgeOps<Scalar> {}
-impl<T, Scalar: ScalarContract> ScaleContract<Scalar> for T where T: ScaleCoreOps<Scalar> + ScaleFieldOps<Scalar> + ScaleBridgeOps<Scalar> {}
+pub trait ScaleContract: ScaleCoreOps + ScaleFieldOps + ScaleBridgeOps {}
+impl<T> ScaleContract for T where T: ScaleCoreOps + ScaleFieldOps + ScaleBridgeOps {}
 
 pub trait TransformContract<Translation: TranslationAnyContract, Rotation: RotationAnyContract, Scale: ScaleAnyContract>:
     TransformCoreOps<Translation, Rotation, Scale> + TransformFieldOps<Translation, Rotation, Scale> + TransformBridgeOps<Translation, Rotation, Scale>
@@ -155,10 +181,10 @@ impl<T, Translation: TranslationAnyContract, Rotation: RotationAnyContract, Scal
 }
 
 pub trait TranslationAnyContract: Clone + Sized {}
-impl<T, Scalar: ScalarContract, Vector: VectorContract<Scalar, D>, const D: usize> TranslationAnyContract for T where T: TranslationContract<Scalar, Vector, D> {}
+impl<T, Vector: VectorContract<D>, const D: usize> TranslationAnyContract for T where T: TranslationContract<Vector, D> {}
 
 pub trait RotationAnyContract: Clone + Sized {}
 impl<T, Quaternion: QuaternionAnyContract> RotationAnyContract for T where T: RotationContract<Quaternion> {}
 
 pub trait ScaleAnyContract: Clone + Sized {}
-impl<T, Scalar: ScalarContract> ScaleAnyContract for T where T: ScaleContract<Scalar> {}
+impl<T> ScaleAnyContract for T where T: ScaleContract {}

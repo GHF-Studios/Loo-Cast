@@ -1,132 +1,158 @@
 #![allow(dead_code)]
 
 use super::super::matrix::shared::SquareMatrixContract;
-use super::super::scalar::shared::ScalarContract;
+use super::super::scalar::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
 use crate::utils::one_of::OneOf2;
 
-pub trait QuaternionCoreOps<Scalar: ScalarContract, Vector3, Matrix3>: Clone + Sized {
+pub trait QuaternionCoreOps<Vector3, Matrix3>: Clone + Sized {
+    /// Returns identity quaternion.
     fn identity() -> Self {
         todo!()
     }
-    fn from_xyzw<ScalarB: ScalarContract>(
-        _x: OneOf2<Scalar, ScalarB>,
-        _y: OneOf2<Scalar, ScalarB>,
-        _z: OneOf2<Scalar, ScalarB>,
-        _w: OneOf2<Scalar, ScalarB>,
-    ) -> Self {
+    /// Builds quaternion from lanes.
+    fn from_xyzw(_x: UsfOrNormalDecimalScalar, _y: UsfOrNormalDecimalScalar, _z: UsfOrNormalDecimalScalar, _w: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
-    fn to_xyzw<ScalarB: ScalarContract>(&self) -> [OneOf2<Scalar, ScalarB>; 4] {
+    /// Returns quaternion lanes with runtime output-domain selection.
+    fn to_xyzw(&self, _use_usf_output: bool) -> [UsfOrNormalDecimalScalar; 4] {
         todo!()
     }
+    /// Returns normalized quaternion.
     fn normalize(&self) -> Self {
         todo!()
     }
+    /// Returns quaternion conjugate.
     fn conjugate(&self) -> Self {
         todo!()
     }
+    /// Returns quaternion inverse.
     fn inverse(&self) -> Self {
         todo!()
     }
-    fn add<ScalarB: ScalarContract>(&self, _rhs: OneOf2<Self, OneOf2<Scalar, ScalarB>>) -> Self {
+    /// Adds quaternion or scalar operand.
+    fn add(&self, _rhs: OneOf2<Self, UsfOrNormalScalar>) -> Self {
         todo!()
     }
-    fn sub<ScalarB: ScalarContract>(&self, _rhs: OneOf2<Self, OneOf2<Scalar, ScalarB>>) -> Self {
+    /// Subtracts quaternion or scalar operand.
+    fn sub(&self, _rhs: OneOf2<Self, UsfOrNormalScalar>) -> Self {
         todo!()
     }
-    fn mul<ScalarB: ScalarContract>(&self, _rhs: OneOf2<Self, OneOf2<Scalar, ScalarB>>) -> Self {
+    /// Multiplies quaternion or scalar operand.
+    fn mul(&self, _rhs: OneOf2<Self, UsfOrNormalScalar>) -> Self {
         todo!()
     }
-    fn div<ScalarB: ScalarContract>(&self, _rhs: OneOf2<Self, OneOf2<Scalar, ScalarB>>) -> Self {
+    /// Divides quaternion or scalar operand.
+    fn div(&self, _rhs: OneOf2<Self, UsfOrNormalScalar>) -> Self {
         todo!()
     }
-    fn rem<ScalarB: ScalarContract>(&self, _rhs: OneOf2<Self, OneOf2<Scalar, ScalarB>>) -> Self {
+    /// Computes remainder with quaternion or scalar operand.
+    fn rem(&self, _rhs: OneOf2<Self, UsfOrNormalScalar>) -> Self {
         todo!()
     }
+    /// Returns lane-wise minimum.
     fn min(&self, _rhs: Self) -> Self {
         todo!()
     }
+    /// Returns lane-wise maximum.
     fn max(&self, _rhs: Self) -> Self {
         todo!()
     }
+    /// Clamps each lane to `[lo, hi]`.
     fn clamp(&self, _lo: Self, _hi: Self) -> Self {
         todo!()
     }
-    fn lerp<ScalarB: ScalarContract>(&self, _rhs: Self, _t: OneOf2<Scalar, ScalarB>) -> Self {
+    /// Performs linear interpolation.
+    fn lerp(&self, _rhs: Self, _t: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
-    fn smoothstep<ScalarB: ScalarContract>(&self, _rhs: Self, _t: OneOf2<Scalar, ScalarB>) -> Self {
+    /// Performs smoothstep interpolation.
+    fn smoothstep(&self, _rhs: Self, _t: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
-    fn dot<ScalarB: ScalarContract>(&self, _rhs: Self) -> OneOf2<Scalar, ScalarB> {
+    /// Computes dot product with runtime output-domain selection.
+    fn dot(&self, _rhs: Self, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
         todo!()
     }
+    /// Rotates a 3D vector.
     fn rotate_vec3(&self, _rhs: Vector3) -> Vector3 {
         todo!()
     }
-    fn from_axis_angle<ScalarB: ScalarContract>(_axis: Vector3, _angle_rad: OneOf2<Scalar, ScalarB>) -> Self {
+    /// Builds quaternion from axis-angle.
+    fn from_axis_angle(_axis: Vector3, _angle_rad: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
-    fn to_axis_angle<ScalarB: ScalarContract>(&self) -> (Vector3, OneOf2<Scalar, ScalarB>) {
+    /// Converts quaternion to axis-angle.
+    fn to_axis_angle(&self, _use_usf_output: bool) -> (Vector3, UsfOrNormalDecimalScalar) {
         todo!()
     }
-    fn from_euler_xyz<ScalarB: ScalarContract>(_x_rad: OneOf2<Scalar, ScalarB>, _y_rad: OneOf2<Scalar, ScalarB>, _z_rad: OneOf2<Scalar, ScalarB>) -> Self {
+    /// Builds quaternion from XYZ Euler angles.
+    fn from_euler_xyz(_x_rad: UsfOrNormalDecimalScalar, _y_rad: UsfOrNormalDecimalScalar, _z_rad: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
-    fn to_euler_xyz<ScalarB: ScalarContract>(&self) -> [OneOf2<Scalar, ScalarB>; 3] {
+    /// Converts quaternion to XYZ Euler angles.
+    fn to_euler_xyz(&self, _use_usf_output: bool) -> [UsfOrNormalDecimalScalar; 3] {
         todo!()
     }
-    fn slerp<ScalarB: ScalarContract>(&self, _rhs: Self, _t: OneOf2<Scalar, ScalarB>) -> Self {
+    /// Performs spherical interpolation.
+    fn slerp(&self, _rhs: Self, _t: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
-    fn nlerp<ScalarB: ScalarContract>(&self, _rhs: Self, _t: OneOf2<Scalar, ScalarB>) -> Self {
+    /// Performs normalized linear interpolation.
+    fn nlerp(&self, _rhs: Self, _t: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
-    fn to_mat3<Matrix3B: SquareMatrixContract<Scalar, Vector3, 3>>(&self) -> OneOf2<Matrix3, Matrix3B> {
+    /// Converts quaternion to 3x3 matrix representation.
+    fn to_mat3<Matrix3B: SquareMatrixContract<Vector3, 3>>(&self, _use_usf_output: bool) -> OneOf2<Matrix3, Matrix3B> {
         todo!()
     }
-    fn from_mat3<Matrix3B: SquareMatrixContract<Scalar, Vector3, 3>>(_value: OneOf2<Matrix3, Matrix3B>) -> Self {
-        todo!()
-    }
-}
-
-pub trait QuaternionFieldOps<Scalar: ScalarContract>: Clone + Sized {
-    fn get_x(&self) -> Scalar {
-        todo!()
-    }
-    fn get_y(&self) -> Scalar {
-        todo!()
-    }
-    fn get_z(&self) -> Scalar {
-        todo!()
-    }
-    fn get_w(&self) -> Scalar {
-        todo!()
-    }
-    fn set_x(&mut self, _value: Scalar) {
-        todo!()
-    }
-    fn set_y(&mut self, _value: Scalar) {
-        todo!()
-    }
-    fn set_z(&mut self, _value: Scalar) {
-        todo!()
-    }
-    fn set_w(&mut self, _value: Scalar) {
+    /// Builds quaternion from 3x3 matrix representation.
+    fn from_mat3<Matrix3B: SquareMatrixContract<Vector3, 3>>(_value: OneOf2<Matrix3, Matrix3B>) -> Self {
         todo!()
     }
 }
 
-pub trait QuaternionBridgeOps<Scalar: ScalarContract, Vector3, Matrix3>: QuaternionCoreOps<Scalar, Vector3, Matrix3> {}
-
-pub trait QuaternionContract<Scalar: ScalarContract, Vector3, Matrix3>:
-    QuaternionCoreOps<Scalar, Vector3, Matrix3> + QuaternionFieldOps<Scalar> + QuaternionBridgeOps<Scalar, Vector3, Matrix3>
-{
+pub trait QuaternionFieldOps: Clone + Sized {
+    /// Returns `x` lane.
+    fn get_x(&self, _use_usf_output: bool) -> UsfOrNormalScalar {
+        todo!()
+    }
+    /// Returns `y` lane.
+    fn get_y(&self, _use_usf_output: bool) -> UsfOrNormalScalar {
+        todo!()
+    }
+    /// Returns `z` lane.
+    fn get_z(&self, _use_usf_output: bool) -> UsfOrNormalScalar {
+        todo!()
+    }
+    /// Returns `w` lane.
+    fn get_w(&self, _use_usf_output: bool) -> UsfOrNormalScalar {
+        todo!()
+    }
+    /// Sets `x` lane.
+    fn set_x(&mut self, _value: UsfOrNormalScalar) {
+        todo!()
+    }
+    /// Sets `y` lane.
+    fn set_y(&mut self, _value: UsfOrNormalScalar) {
+        todo!()
+    }
+    /// Sets `z` lane.
+    fn set_z(&mut self, _value: UsfOrNormalScalar) {
+        todo!()
+    }
+    /// Sets `w` lane.
+    fn set_w(&mut self, _value: UsfOrNormalScalar) {
+        todo!()
+    }
 }
-impl<T, Scalar: ScalarContract, Vector3, Matrix3> QuaternionContract<Scalar, Vector3, Matrix3> for T where
-    T: QuaternionCoreOps<Scalar, Vector3, Matrix3> + QuaternionFieldOps<Scalar> + QuaternionBridgeOps<Scalar, Vector3, Matrix3>
+
+pub trait QuaternionBridgeOps<Vector3, Matrix3>: QuaternionCoreOps<Vector3, Matrix3> {}
+
+pub trait QuaternionContract<Vector3, Matrix3>: QuaternionCoreOps<Vector3, Matrix3> + QuaternionFieldOps + QuaternionBridgeOps<Vector3, Matrix3> {}
+impl<T, Vector3, Matrix3> QuaternionContract<Vector3, Matrix3> for T where
+    T: QuaternionCoreOps<Vector3, Matrix3> + QuaternionFieldOps + QuaternionBridgeOps<Vector3, Matrix3>
 {
 }
 
 pub trait QuaternionAnyContract: Clone + Sized {}
-impl<T, Scalar: ScalarContract, Vector3, Matrix3> QuaternionAnyContract for T where T: QuaternionContract<Scalar, Vector3, Matrix3> {}
+impl<T, Vector3, Matrix3> QuaternionAnyContract for T where T: QuaternionContract<Vector3, Matrix3> {}

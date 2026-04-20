@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 
-use super::super::scalar::shared::ScalarContract;
-use crate::utils::one_of::OneOf2;
+use super::super::scalar::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum HomogeneousWState {
@@ -19,231 +18,298 @@ pub enum HomogeneousPointOrDirection<Vector3d> {
     Direction(Vector3d),
 }
 
-pub trait VectorCoreOps<Scalar: ScalarContract, const D: usize>: Clone + Sized {
+pub trait VectorCoreOps<const D: usize>: Clone + Sized {
+    /// Returns additive identity vector.
     fn zero() -> Self {
         todo!()
     }
+    /// Returns all-ones vector.
     fn one() -> Self {
         todo!()
     }
-    fn splat(_value: Scalar) -> Self {
+    /// Builds vector with all lanes set to `value`.
+    fn splat(_value: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    fn from_lanes(_lanes: [Scalar; D]) -> Self {
+    /// Builds vector from lane array.
+    fn from_lanes(_lanes: [UsfOrNormalScalar; D]) -> Self {
         todo!()
     }
-    fn to_lanes(&self) -> [Scalar; D] {
+    /// Returns lane array in requested output domain.
+    fn to_lanes(&self, _use_usf_output: bool) -> [UsfOrNormalScalar; D] {
         todo!()
     }
+    /// Returns normalized direction.
     fn normalize(&self) -> Self {
         todo!()
     }
+    /// Applies floor lane-wise.
     fn floor(&self) -> Self {
         todo!()
     }
+    /// Applies ceil lane-wise.
     fn ceil(&self) -> Self {
         todo!()
     }
+    /// Applies round lane-wise.
     fn round(&self) -> Self {
         todo!()
     }
+    /// Applies fract lane-wise.
     fn fract(&self) -> Self {
         todo!()
     }
+    /// Negates each lane.
     fn neg(&self) -> Self {
         todo!()
     }
+    /// Applies abs lane-wise.
     fn abs(&self) -> Self {
         todo!()
     }
-    fn add(&self, _rhs: OneOf2<Self, Scalar>) -> Self {
+    /// Adds vector operand.
+    fn add<V: VectorContract<D>>(&self, _rhs: V) -> Self {
         todo!()
     }
-    fn sub(&self, _rhs: OneOf2<Self, Scalar>) -> Self {
+    /// Subtracts vector operand.
+    fn sub<V: VectorContract<D>>(&self, _rhs: V) -> Self {
         todo!()
     }
-    fn mul(&self, _rhs: OneOf2<Self, Scalar>) -> Self {
+    /// Multiplies vector operand lane-wise.
+    fn mul<V: VectorContract<D>>(&self, _rhs: V) -> Self {
         todo!()
     }
-    fn div(&self, _rhs: OneOf2<Self, Scalar>) -> Self {
+    /// Divides vector operand lane-wise.
+    fn div<V: VectorContract<D>>(&self, _rhs: V) -> Self {
         todo!()
     }
-    fn rem(&self, _rhs: OneOf2<Self, Scalar>) -> Self {
+    /// Computes remainder lane-wise.
+    fn rem<V: VectorContract<D>>(&self, _rhs: V) -> Self {
         todo!()
     }
-    fn min(&self, _rhs: Self) -> Self {
+    /// Returns lane-wise minimum.
+    fn min<V: VectorContract<D>>(&self, _rhs: V) -> Self {
         todo!()
     }
-    fn max(&self, _rhs: Self) -> Self {
+    /// Returns lane-wise maximum.
+    fn max<V: VectorContract<D>>(&self, _rhs: V) -> Self {
         todo!()
     }
-    fn clamp(&self, _lo: Self, _hi: Self) -> Self {
+    /// Clamps each lane to `[lo, hi]`.
+    fn clamp<V: VectorContract<D>>(&self, _lo: V, _hi: V) -> Self {
         todo!()
     }
-    fn lerp<ScalarB: ScalarContract>(&self, _rhs: Self, _t: OneOf2<Scalar, ScalarB>) -> Self {
+    /// Performs linear interpolation.
+    fn lerp<V: VectorContract<D>>(&self, _rhs: V, _t: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
-    fn smoothstep<ScalarB: ScalarContract>(&self, _rhs: Self, _t: OneOf2<Scalar, ScalarB>) -> Self {
+    /// Performs smoothstep interpolation.
+    fn smoothstep<V: VectorContract<D>>(&self, _rhs: V, _t: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
-    fn dot<ScalarB: ScalarContract>(&self, _rhs: Self) -> OneOf2<Scalar, ScalarB> {
+    /// Computes dot product in requested output domain.
+    fn dot<V: VectorContract<D>>(&self, _rhs: V, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
         todo!()
     }
-    fn distance<ScalarB: ScalarContract>(&self, _rhs: Self) -> OneOf2<Scalar, ScalarB> {
+    /// Computes distance in requested output domain.
+    fn distance<V: VectorContract<D>>(&self, _rhs: V, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
         todo!()
     }
-    fn angle_between<ScalarB: ScalarContract>(&self, _rhs: Self) -> OneOf2<Scalar, ScalarB> {
+    /// Computes angle in requested output domain.
+    fn angle_between<V: VectorContract<D>>(&self, _rhs: V, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
         todo!()
     }
-    fn project(&self, _onto: Self) -> Self {
+    /// Projects onto `onto`.
+    fn project<V: VectorContract<D>>(&self, _onto: V) -> Self {
         todo!()
     }
-    fn reject(&self, _onto: Self) -> Self {
+    /// Rejects from `onto`.
+    fn reject<V: VectorContract<D>>(&self, _onto: V) -> Self {
         todo!()
     }
-    fn reflect(&self, _normal: Self) -> Self {
+    /// Reflects around normal.
+    fn reflect<V: VectorContract<D>>(&self, _normal: V) -> Self {
         todo!()
     }
-    fn mul_elem(&self, _rhs: Self) -> Self {
+    /// Multiplies lanes element-wise.
+    fn mul_elem<V: VectorContract<D>>(&self, _rhs: V) -> Self {
         todo!()
     }
-    fn div_elem(&self, _rhs: Self) -> Self {
+    /// Divides lanes element-wise.
+    fn div_elem<V: VectorContract<D>>(&self, _rhs: V) -> Self {
         todo!()
     }
-    fn fma(&self, _b: Self, _c: Self) -> Self {
+    /// Fused multiply-add.
+    fn fma<V: VectorContract<D>>(&self, _b: V, _c: V) -> Self {
         todo!()
     }
-    fn scale(&self, _rhs: Scalar) -> Self {
+    /// Scales by scalar.
+    fn scale(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
+    /// Returns dimension.
     fn get_dimension(&self) -> usize {
         todo!()
     }
-    fn get_length<ScalarB: ScalarContract>(&self) -> OneOf2<Scalar, ScalarB> {
+    /// Returns length in requested output domain.
+    fn get_length(&self, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
         todo!()
     }
-    fn get_length_squared<ScalarB: ScalarContract>(&self) -> OneOf2<Scalar, ScalarB> {
+    /// Returns squared length in requested output domain.
+    fn get_length_squared(&self, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
         todo!()
     }
-    fn get_lane(&self, _index: usize) -> Scalar {
+    /// Returns lane at index.
+    fn get_lane(&self, _index: usize, _use_usf_output: bool) -> UsfOrNormalScalar {
         todo!()
     }
-    fn set_lane(&mut self, _index: usize, _value: Scalar) {
-        todo!()
-    }
-}
-
-pub trait VectorBridgeOps<Scalar: ScalarContract, const D: usize>: VectorCoreOps<Scalar, D> {}
-
-pub trait VectorFieldOps<Scalar: ScalarContract, const D: usize>: VectorCoreOps<Scalar, D> {}
-impl<T, Scalar: ScalarContract, const D: usize> VectorFieldOps<Scalar, D> for T where T: VectorCoreOps<Scalar, D> {}
-
-pub trait Vector2dFieldOps<Scalar: ScalarContract>: Clone + Sized {
-    fn get_x(&self) -> Scalar {
-        todo!()
-    }
-    fn get_y(&self) -> Scalar {
-        todo!()
-    }
-    fn set_x(&mut self, _value: Scalar) {
-        todo!()
-    }
-    fn set_y(&mut self, _value: Scalar) {
+    /// Sets lane at index.
+    fn set_lane(&mut self, _index: usize, _value: UsfOrNormalScalar) {
         todo!()
     }
 }
 
-pub trait Vector3dFieldOps<Scalar: ScalarContract>: Vector2dFieldOps<Scalar> {
-    fn get_z(&self) -> Scalar {
+pub trait VectorBridgeOps<const D: usize>: VectorCoreOps<D> {}
+
+pub trait VectorFieldOps<const D: usize>: VectorCoreOps<D> {}
+impl<T, const D: usize> VectorFieldOps<D> for T where T: VectorCoreOps<D> {}
+
+pub trait Vector2dFieldOps: Clone + Sized {
+    /// Returns `x` lane.
+    fn get_x(&self, _use_usf_output: bool) -> UsfOrNormalScalar {
         todo!()
     }
-    fn set_z(&mut self, _value: Scalar) {
+    /// Returns `y` lane.
+    fn get_y(&self, _use_usf_output: bool) -> UsfOrNormalScalar {
+        todo!()
+    }
+    /// Sets `x` lane.
+    fn set_x(&mut self, _value: UsfOrNormalScalar) {
+        todo!()
+    }
+    /// Sets `y` lane.
+    fn set_y(&mut self, _value: UsfOrNormalScalar) {
         todo!()
     }
 }
 
-pub trait Vector4dFieldOps<Scalar: ScalarContract>: Vector3dFieldOps<Scalar> {
-    fn get_w(&self) -> Scalar {
+pub trait Vector3dFieldOps: Vector2dFieldOps {
+    /// Returns `z` lane.
+    fn get_z(&self, _use_usf_output: bool) -> UsfOrNormalScalar {
         todo!()
     }
-    fn set_w(&mut self, _value: Scalar) {
+    /// Sets `z` lane.
+    fn set_z(&mut self, _value: UsfOrNormalScalar) {
         todo!()
     }
 }
 
-pub trait Vector2dCoreOps<Scalar: ScalarContract>: Vector2dFieldOps<Scalar> + VectorCoreOps<Scalar, 2> {
+pub trait Vector4dFieldOps: Vector3dFieldOps {
+    /// Returns `w` lane.
+    fn get_w(&self, _use_usf_output: bool) -> UsfOrNormalScalar {
+        todo!()
+    }
+    /// Sets `w` lane.
+    fn set_w(&mut self, _value: UsfOrNormalScalar) {
+        todo!()
+    }
+}
+
+pub trait Vector2dCoreOps: Vector2dFieldOps + VectorCoreOps<2> {
+    /// Returns 90° CCW perpendicular.
     fn perp_ccw(&self) -> Self {
         todo!()
     }
+    /// Returns 90° CW perpendicular.
     fn perp_cw(&self) -> Self {
         todo!()
     }
-    fn perp_dot(&self, _rhs: Self) -> Scalar {
+    /// Returns 2D perpendicular dot product.
+    fn perp_dot<Rhs: VectorContract<2>>(&self, _rhs: Rhs, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
         todo!()
     }
-    fn from_angle(_angle_rad: Scalar) -> Self {
+    /// Builds unit direction from angle.
+    fn from_angle(_angle_rad: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
-    fn angle(&self) -> Scalar {
+    /// Returns polar angle.
+    fn angle(&self, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
         todo!()
     }
-    fn rotate(&self, _angle_rad: Scalar) -> Self {
+    /// Rotates by angle.
+    fn rotate(&self, _angle_rad: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
-    fn to_polar(&self) -> (Scalar, Scalar) {
+    /// Converts to `(radius, angle)`.
+    fn to_polar(&self, _use_usf_output: bool) -> (UsfOrNormalDecimalScalar, UsfOrNormalDecimalScalar) {
         todo!()
     }
-    fn from_polar(_radius: Scalar, _angle_rad: Scalar) -> Self {
-        todo!()
-    }
-}
-
-pub trait Vector3dCoreOps<Scalar: ScalarContract>: Vector3dFieldOps<Scalar> + VectorCoreOps<Scalar, 3> {
-    fn cross(&self, _rhs: Self) -> Self {
-        todo!()
-    }
-    fn cross_normalized(&self, _rhs: Self) -> Self {
-        todo!()
-    }
-    fn triple_product(&self, _b: Self, _c: Self) -> Scalar {
-        todo!()
-    }
-    fn project_on_plane(&self, _plane_normal: Self) -> Self {
-        todo!()
-    }
-    fn reflect_on_plane(&self, _plane_normal: Self) -> Self {
-        todo!()
-    }
-    fn rotate_around_axis(&self, _axis: Self, _angle_rad: Scalar) -> Self {
-        todo!()
-    }
-    fn signed_angle(&self, _rhs: Self, _axis: Self) -> Scalar {
-        todo!()
-    }
-    fn to_spherical(&self) -> (Scalar, Scalar, Scalar) {
-        todo!()
-    }
-    fn from_spherical(_radius: Scalar, _azimuth: Scalar, _inclination: Scalar) -> Self {
+    /// Builds from `(radius, angle)`.
+    fn from_polar(_radius: UsfOrNormalDecimalScalar, _angle_rad: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
 }
 
-pub trait Vector4dCoreOps<Scalar: ScalarContract, Vector3d>: Vector4dFieldOps<Scalar> + VectorCoreOps<Scalar, 4> {
-    fn from_vec3_w(_xyz: Vector3d, _w: Scalar) -> Self {
+pub trait Vector3dCoreOps: Vector3dFieldOps + VectorCoreOps<3> {
+    /// Computes 3D cross product.
+    fn cross<Rhs: VectorContract<3>>(&self, _rhs: Rhs) -> Self {
         todo!()
     }
-    fn xyz(&self) -> Vector3d {
+    /// Computes normalized cross product.
+    fn cross_normalized<Rhs: VectorContract<3>>(&self, _rhs: Rhs) -> Self {
         todo!()
     }
-    fn with_w(&self, _w: Scalar) -> Self {
+    /// Computes scalar triple product.
+    fn triple_product<B: VectorContract<3>, C: VectorContract<3>>(&self, _b: B, _c: C, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
         todo!()
     }
-    fn dot3(&self, _rhs: Self) -> Scalar {
+    /// Projects onto plane.
+    fn project_on_plane<PlaneNormal: VectorContract<3>>(&self, _plane_normal: PlaneNormal) -> Self {
+        todo!()
+    }
+    /// Reflects on plane.
+    fn reflect_on_plane<PlaneNormal: VectorContract<3>>(&self, _plane_normal: PlaneNormal) -> Self {
+        todo!()
+    }
+    /// Rotates around axis.
+    fn rotate_around_axis<Axis: VectorContract<3>>(&self, _axis: Axis, _angle_rad: UsfOrNormalDecimalScalar) -> Self {
+        todo!()
+    }
+    /// Computes signed angle around axis.
+    fn signed_angle<Rhs: VectorContract<3>, Axis: VectorContract<3>>(&self, _rhs: Rhs, _axis: Axis, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
+        todo!()
+    }
+    /// Converts to spherical coordinates.
+    fn to_spherical(&self, _use_usf_output: bool) -> (UsfOrNormalDecimalScalar, UsfOrNormalDecimalScalar, UsfOrNormalDecimalScalar) {
+        todo!()
+    }
+    /// Builds from spherical coordinates.
+    fn from_spherical(_radius: UsfOrNormalDecimalScalar, _azimuth: UsfOrNormalDecimalScalar, _inclination: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
 }
 
-pub trait Vector4dBridgeOps<Scalar: ScalarContract, Vector3d>: Vector4dCoreOps<Scalar, Vector3d> + VectorBridgeOps<Scalar, 4> {
+pub trait Vector4dCoreOps<Vector3d: VectorContract<3>>: Vector4dFieldOps + VectorCoreOps<4> {
+    /// Builds from `(xyz, w)`.
+    fn from_vec3_w(_xyz: Vector3d, _w: UsfOrNormalScalar) -> Self {
+        todo!()
+    }
+    /// Returns xyz projection.
+    fn xyz(&self, _use_usf_output: bool) -> Vector3d {
+        todo!()
+    }
+    /// Returns copy with replaced `w`.
+    fn with_w(&self, _w: UsfOrNormalScalar) -> Self {
+        todo!()
+    }
+    /// Computes 3D-style dot product over xyz lanes.
+    fn dot3<Rhs: VectorContract<4>>(&self, _rhs: Rhs, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
+        todo!()
+    }
+}
+
+pub trait Vector4dBridgeOps<Vector3d: VectorContract<3>>: Vector4dCoreOps<Vector3d> + VectorBridgeOps<4> {
+    /// Classifies homogeneous `w` lane.
     fn classify_homogeneous_w(&self) -> HomogeneousWState {
         todo!()
     }
@@ -265,23 +331,14 @@ pub trait Vector4dBridgeOps<Scalar: ScalarContract, Vector3d>: Vector4dCoreOps<S
     }
 }
 
-pub trait VectorContract<Scalar: ScalarContract, const D: usize>: VectorCoreOps<Scalar, D> + VectorFieldOps<Scalar, D> + VectorBridgeOps<Scalar, D> {}
-impl<T, Scalar: ScalarContract, const D: usize> VectorContract<Scalar, D> for T where
-    T: VectorCoreOps<Scalar, D> + VectorFieldOps<Scalar, D> + VectorBridgeOps<Scalar, D>
-{
-}
+pub trait VectorContract<const D: usize>: VectorCoreOps<D> + VectorFieldOps<D> + VectorBridgeOps<D> {}
+impl<T, const D: usize> VectorContract<D> for T where T: VectorCoreOps<D> + VectorFieldOps<D> + VectorBridgeOps<D> {}
 
-pub trait Vector2dContract<Scalar: ScalarContract>: Vector2dCoreOps<Scalar> + Vector2dFieldOps<Scalar> {}
-impl<T, Scalar: ScalarContract> Vector2dContract<Scalar> for T where T: Vector2dCoreOps<Scalar> + Vector2dFieldOps<Scalar> {}
+pub trait Vector2dContract: Vector2dCoreOps + Vector2dFieldOps {}
+impl<T> Vector2dContract for T where T: Vector2dCoreOps + Vector2dFieldOps {}
 
-pub trait Vector3dContract<Scalar: ScalarContract>: Vector3dCoreOps<Scalar> + Vector3dFieldOps<Scalar> {}
-impl<T, Scalar: ScalarContract> Vector3dContract<Scalar> for T where T: Vector3dCoreOps<Scalar> + Vector3dFieldOps<Scalar> {}
+pub trait Vector3dContract: Vector3dCoreOps + Vector3dFieldOps {}
+impl<T> Vector3dContract for T where T: Vector3dCoreOps + Vector3dFieldOps {}
 
-pub trait Vector4dContract<Scalar: ScalarContract, Vector3d>:
-    Vector4dCoreOps<Scalar, Vector3d> + Vector4dFieldOps<Scalar> + Vector4dBridgeOps<Scalar, Vector3d>
-{
-}
-impl<T, Scalar: ScalarContract, Vector3d> Vector4dContract<Scalar, Vector3d> for T where
-    T: Vector4dCoreOps<Scalar, Vector3d> + Vector4dFieldOps<Scalar> + Vector4dBridgeOps<Scalar, Vector3d>
-{
-}
+pub trait Vector4dContract<Vector3d: VectorContract<3>>: Vector4dCoreOps<Vector3d> + Vector4dFieldOps + Vector4dBridgeOps<Vector3d> {}
+impl<T, Vector3d: VectorContract<3>> Vector4dContract<Vector3d> for T where T: Vector4dCoreOps<Vector3d> + Vector4dFieldOps + Vector4dBridgeOps<Vector3d> {}

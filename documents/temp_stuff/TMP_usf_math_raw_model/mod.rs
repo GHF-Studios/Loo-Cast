@@ -3,7 +3,6 @@
 pub mod aliases;
 pub mod catalog;
 pub mod field;
-pub mod geometry;
 pub mod matrix;
 pub mod quaternion;
 pub mod scalar;

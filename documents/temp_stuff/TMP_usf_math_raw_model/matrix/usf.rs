@@ -1,11 +1,13 @@
 #![allow(dead_code)]
 
 use super::super::field::Field;
-use super::super::scalar::normal::NormalDecimalScalar;
+use super::super::scalar::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
 use super::super::scalar::shared::SignedIntegerType;
 use super::super::scalar::usf::UsfScalar;
+use super::super::vector::aliases::UsfOrNormalVector;
 use super::super::vector::usf::UsfVector;
 pub use super::aliases::{MatrixOrScalar, MatrixOrVector, UsfOrNormalMatrix};
+use crate::utils::one_of::OneOf2;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UsfMatrix<const R: usize, const C: usize> {
@@ -28,6 +30,7 @@ pub type UsfMatrix7x7 = UsfMatrix<7, 7>;
 pub type UsfMatrix8x8 = UsfMatrix<8, 8>;
 
 impl<const R: usize, const C: usize> UsfMatrix<R, C> {
+    /// Returns additive identity matrix.
     pub fn zero() -> Self {
         todo!()
     }
@@ -36,12 +39,15 @@ impl<const R: usize, const C: usize> UsfMatrix<R, C> {
     pub fn from_rows(_rows: [UsfVector<C>; R]) -> Self {
         todo!()
     }
+    /// Returns row-major matrix representation.
     pub fn to_rows(&self) -> [UsfVector<C>; R] {
         todo!()
     }
+    /// Returns transposed matrix.
     pub fn transpose(&self) -> UsfMatrix<C, R> {
         todo!()
     }
+    /// Performs element-wise multiplication.
     pub fn mul_elem(&self, _rhs: UsfMatrix<R, C>) -> Self {
         todo!()
     }
@@ -50,62 +56,58 @@ impl<const R: usize, const C: usize> UsfMatrix<R, C> {
     pub fn div_elem(&self, _rhs: UsfMatrix<R, C>) -> Self {
         todo!()
     }
-    pub fn add_scalar(&self, _rhs: UsfScalar) -> Self {
+    /// Adds matrix or scalar operand from either domain.
+    pub fn add(&self, _rhs: OneOf2<UsfOrNormalMatrix<R, C>, UsfOrNormalScalar>) -> Self {
         todo!()
     }
-    pub fn sub_scalar(&self, _rhs: UsfScalar) -> Self {
+    /// Subtracts matrix or scalar operand from either domain.
+    pub fn sub(&self, _rhs: OneOf2<UsfOrNormalMatrix<R, C>, UsfOrNormalScalar>) -> Self {
         todo!()
     }
-    pub fn mul_scalar(&self, _rhs: UsfScalar) -> Self {
-        todo!()
-    }
-    /// # Panics
-    /// - Panics if `rhs` is zero.
-    pub fn div_scalar(&self, _rhs: UsfScalar) -> Self {
-        todo!()
-    }
-    pub fn add(&self, _rhs: UsfMatrix<R, C>) -> Self {
-        todo!()
-    }
-    pub fn sub(&self, _rhs: UsfMatrix<R, C>) -> Self {
-        todo!()
-    }
-    pub fn mul(&self, _rhs: UsfMatrix<R, C>) -> Self {
+    /// Multiplies by matrix or scalar operand from either domain.
+    pub fn mul(&self, _rhs: OneOf2<UsfOrNormalMatrix<R, C>, UsfOrNormalScalar>) -> Self {
         todo!()
     }
     /// # Panics
     /// - Panics if any corresponding lane in `rhs` is zero.
-    pub fn div(&self, _rhs: UsfMatrix<R, C>) -> Self {
+    pub fn div(&self, _rhs: OneOf2<UsfOrNormalMatrix<R, C>, UsfOrNormalScalar>) -> Self {
         todo!()
     }
     /// # Panics
     /// - Panics if any corresponding lane in `rhs` is zero.
-    pub fn rem(&self, _rhs: UsfMatrix<R, C>) -> Self {
+    pub fn rem(&self, _rhs: OneOf2<UsfOrNormalMatrix<R, C>, UsfOrNormalScalar>) -> Self {
         todo!()
     }
-    pub fn min(&self, _rhs: UsfMatrix<R, C>) -> Self {
+    /// Returns element-wise minimum.
+    pub fn min(&self, _rhs: UsfOrNormalMatrix<R, C>) -> Self {
         todo!()
     }
-    pub fn max(&self, _rhs: UsfMatrix<R, C>) -> Self {
+    /// Returns element-wise maximum.
+    pub fn max(&self, _rhs: UsfOrNormalMatrix<R, C>) -> Self {
         todo!()
     }
     /// # Panics
     /// - Panics if any lane has `lo > hi`.
-    pub fn clamp(&self, _lo: UsfMatrix<R, C>, _hi: UsfMatrix<R, C>) -> Self {
+    pub fn clamp(&self, _lo: UsfOrNormalMatrix<R, C>, _hi: UsfOrNormalMatrix<R, C>) -> Self {
         todo!()
     }
-    pub fn mul_vec(&self, _rhs: UsfVector<C>) -> UsfVector<R> {
+    /// Multiplies this matrix by vector from either domain.
+    pub fn mul_vec(&self, _rhs: UsfOrNormalVector<C>, _use_usf_output: bool) -> UsfOrNormalVector<R> {
         todo!()
     }
+    /// Returns row count.
     pub fn get_row_count(&self) -> usize {
         todo!()
     }
+    /// Returns column count.
     pub fn get_col_count(&self) -> usize {
         todo!()
     }
+    /// Returns `(rows, cols)`.
     pub fn get_shape(&self) -> (usize, usize) {
         todo!()
     }
+    /// Returns total lane count.
     pub fn get_element_count(&self) -> usize {
         todo!()
     }
@@ -121,25 +123,24 @@ impl<const R: usize, const C: usize> UsfMatrix<R, C> {
     }
     /// # Panics
     /// - Panics if `row` or `col` is out of bounds.
-    pub fn get_lane(&self, _row: usize, _col: usize) -> UsfScalar {
+    pub fn get_lane(&self, _row: usize, _col: usize, _use_usf_output: bool) -> UsfOrNormalScalar {
         todo!()
     }
     /// # Panics
     /// - Panics if `row` or `col` is out of bounds.
     /// - Panics if the target lane is immutable under runtime field mutability policy.
-    pub fn set_lane(&mut self, _row: usize, _col: usize, _value: UsfScalar) {
+    pub fn set_lane(&mut self, _row: usize, _col: usize, _value: UsfOrNormalScalar) {
         todo!()
     }
 }
 
 impl<const D: usize> UsfMatrix<D, D> {
+    /// Returns identity matrix.
     pub fn identity() -> Self {
         todo!()
     }
-    pub fn determinant_usf(&self) -> UsfScalar {
-        todo!()
-    }
-    pub fn determinant_normal(&self) -> NormalDecimalScalar {
+    /// Computes determinant with runtime output-domain selection.
+    pub fn determinant(&self, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
         todo!()
     }
     /// # Panics
@@ -147,26 +148,26 @@ impl<const D: usize> UsfMatrix<D, D> {
     pub fn inverse(&self) -> Self {
         todo!()
     }
-    pub fn trace_usf(&self) -> UsfScalar {
+    /// Computes matrix trace with runtime output-domain selection.
+    pub fn trace(&self, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
         todo!()
     }
-    pub fn trace_normal(&self) -> NormalDecimalScalar {
-        todo!()
-    }
+    /// Raises matrix to integer power.
     pub fn powi<T: SignedIntegerType>(&self, _exp: T) -> Self {
         todo!()
     }
+    /// Performs square matrix product.
     pub fn mul_mat(&self, _rhs: UsfMatrix<D, D>) -> UsfMatrix<D, D> {
         todo!()
     }
 }
 
-impl<const R: usize, const C: usize> super::shared::MatrixCoreOps<UsfScalar, UsfVector<C>, UsfVector<R>, UsfMatrix<C, R>, R, C> for UsfMatrix<R, C> {}
+impl<const R: usize, const C: usize> super::shared::MatrixCoreOps<UsfVector<C>, UsfVector<R>, UsfMatrix<C, R>, R, C> for UsfMatrix<R, C> {}
 
-impl<const R: usize, const C: usize> super::shared::MatrixFieldOps<UsfScalar, UsfVector<C>, UsfVector<R>, UsfMatrix<C, R>, R, C> for UsfMatrix<R, C> {}
+impl<const R: usize, const C: usize> super::shared::MatrixFieldOps<UsfVector<C>, UsfVector<R>, UsfMatrix<C, R>, R, C> for UsfMatrix<R, C> {}
 
-impl<const R: usize, const C: usize> super::shared::MatrixBridgeOps<UsfScalar, UsfVector<C>, UsfVector<R>, UsfMatrix<C, R>, R, C> for UsfMatrix<R, C> {}
+impl<const R: usize, const C: usize> super::shared::MatrixBridgeOps<UsfVector<C>, UsfVector<R>, UsfMatrix<C, R>, R, C> for UsfMatrix<R, C> {}
 
-impl<const D: usize> super::shared::SquareMatrixCoreOps<UsfScalar, UsfVector<D>, D> for UsfMatrix<D, D> {}
+impl<const D: usize> super::shared::SquareMatrixCoreOps<UsfVector<D>, D> for UsfMatrix<D, D> {}
 
-impl<const D: usize> super::shared::SquareMatrixBridgeOps<UsfScalar, UsfVector<D>, D> for UsfMatrix<D, D> {}
+impl<const D: usize> super::shared::SquareMatrixBridgeOps<UsfVector<D>, D> for UsfMatrix<D, D> {}

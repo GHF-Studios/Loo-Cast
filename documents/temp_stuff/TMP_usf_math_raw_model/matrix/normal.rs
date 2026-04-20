@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use super::super::field::Field;
-use super::super::scalar::normal::{NormalDecimalScalar, NormalScalar};
+use super::super::scalar::normal::NormalScalar;
 use super::super::vector::normal::NormalVector;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -67,21 +67,12 @@ pub type NormalMatrix6x6 = NormalMatrix<6, 6>;
 pub type NormalMatrix7x7 = NormalMatrix<7, 7>;
 pub type NormalMatrix8x8 = NormalMatrix<8, 8>;
 
-impl<const R: usize, const C: usize> super::shared::MatrixCoreOps<NormalScalar, NormalVector<C>, NormalVector<R>, NormalMatrix<C, R>, R, C>
-    for NormalMatrix<R, C>
-{
-}
+impl<const R: usize, const C: usize> super::shared::MatrixCoreOps<NormalVector<C>, NormalVector<R>, NormalMatrix<C, R>, R, C> for NormalMatrix<R, C> {}
 
-impl<const R: usize, const C: usize> super::shared::MatrixFieldOps<NormalScalar, NormalVector<C>, NormalVector<R>, NormalMatrix<C, R>, R, C>
-    for NormalMatrix<R, C>
-{
-}
+impl<const R: usize, const C: usize> super::shared::MatrixFieldOps<NormalVector<C>, NormalVector<R>, NormalMatrix<C, R>, R, C> for NormalMatrix<R, C> {}
 
-impl<const R: usize, const C: usize> super::shared::MatrixBridgeOps<NormalScalar, NormalVector<C>, NormalVector<R>, NormalMatrix<C, R>, R, C>
-    for NormalMatrix<R, C>
-{
-}
+impl<const R: usize, const C: usize> super::shared::MatrixBridgeOps<NormalVector<C>, NormalVector<R>, NormalMatrix<C, R>, R, C> for NormalMatrix<R, C> {}
 
-impl<const D: usize> super::shared::SquareMatrixCoreOps<NormalScalar, NormalVector<D>, D> for NormalMatrix<D, D> {}
+impl<const D: usize> super::shared::SquareMatrixCoreOps<NormalVector<D>, D> for NormalMatrix<D, D> {}
 
-impl<const D: usize> super::shared::SquareMatrixBridgeOps<NormalScalar, NormalVector<D>, D> for NormalMatrix<D, D> {}
+impl<const D: usize> super::shared::SquareMatrixBridgeOps<NormalVector<D>, D> for NormalMatrix<D, D> {}

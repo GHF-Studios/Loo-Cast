@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use super::super::field::Field;
-use super::super::scalar::normal::NormalDecimalScalar;
+use super::super::scalar::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
 use super::super::scalar::usf::UsfScalar;
 pub use super::aliases::{UsfOrNormalVector, VectorOrScalar};
 
@@ -16,12 +16,15 @@ pub type UsfVector3d = UsfVector<3>;
 pub type UsfVector4d = UsfVector<4>;
 
 impl<const D: usize> UsfVector<D> {
+    /// Returns additive identity vector.
     pub fn zero() -> Self {
         todo!()
     }
+    /// Returns all-ones vector.
     pub fn one() -> Self {
         todo!()
     }
+    /// Returns vector with all lanes set to `value`.
     pub fn splat(_value: UsfScalar) -> Self {
         todo!()
     }
@@ -30,6 +33,7 @@ impl<const D: usize> UsfVector<D> {
     pub fn from_lanes(_lanes: [UsfScalar; D]) -> Self {
         todo!()
     }
+    /// Returns lane array representation.
     pub fn to_lanes(&self) -> [UsfScalar; D] {
         todo!()
     }
@@ -38,174 +42,176 @@ impl<const D: usize> UsfVector<D> {
     pub fn normalize(&self) -> Self {
         todo!()
     }
+    /// Rounds each lane down.
     pub fn floor(&self) -> Self {
         todo!()
     }
+    /// Rounds each lane up.
     pub fn ceil(&self) -> Self {
         todo!()
     }
+    /// Rounds each lane to nearest integer.
     pub fn round(&self) -> Self {
         todo!()
     }
+    /// Keeps fractional part per lane.
     pub fn fract(&self) -> Self {
         todo!()
     }
+    /// Negates each lane.
     pub fn neg(&self) -> Self {
         todo!()
     }
+    /// Takes absolute value per lane.
     pub fn abs(&self) -> Self {
         todo!()
     }
-    pub fn add(&self, _rhs: UsfVector<D>) -> Self {
+    /// Adds a vector in either domain.
+    pub fn add(&self, _rhs: UsfOrNormalVector<D>) -> Self {
         todo!()
     }
-    pub fn sub(&self, _rhs: UsfVector<D>) -> Self {
+    /// Subtracts a vector in either domain.
+    pub fn sub(&self, _rhs: UsfOrNormalVector<D>) -> Self {
         todo!()
     }
-    pub fn mul(&self, _rhs: UsfVector<D>) -> Self {
+    /// Multiplies lane-wise by a vector in either domain.
+    pub fn mul(&self, _rhs: UsfOrNormalVector<D>) -> Self {
         todo!()
     }
     /// # Panics
     /// - Panics if any corresponding lane in `rhs` is zero.
-    pub fn div(&self, _rhs: UsfVector<D>) -> Self {
+    pub fn div(&self, _rhs: UsfOrNormalVector<D>) -> Self {
         todo!()
     }
     /// # Panics
     /// - Panics if any corresponding lane in `rhs` is zero.
-    pub fn rem(&self, _rhs: UsfVector<D>) -> Self {
+    pub fn rem(&self, _rhs: UsfOrNormalVector<D>) -> Self {
         todo!()
     }
-    pub fn min(&self, _rhs: UsfVector<D>) -> Self {
+    /// Returns lane-wise minimum.
+    pub fn min(&self, _rhs: UsfOrNormalVector<D>) -> Self {
         todo!()
     }
-    pub fn max(&self, _rhs: UsfVector<D>) -> Self {
+    /// Returns lane-wise maximum.
+    pub fn max(&self, _rhs: UsfOrNormalVector<D>) -> Self {
         todo!()
     }
     /// # Panics
     /// - Panics if any lane has `lo > hi`.
-    pub fn clamp(&self, _lo: UsfVector<D>, _hi: UsfVector<D>) -> Self {
+    pub fn clamp(&self, _lo: UsfOrNormalVector<D>, _hi: UsfOrNormalVector<D>) -> Self {
         todo!()
     }
-    pub fn lerp_normal(&self, _rhs: UsfVector<D>, _t: NormalDecimalScalar) -> Self {
+    /// Performs linear interpolation.
+    pub fn lerp(&self, _rhs: UsfOrNormalVector<D>, _t: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
-    pub fn lerp_usf(&self, _rhs: UsfVector<D>, _t: UsfScalar) -> Self {
+    /// Performs smoothstep interpolation.
+    pub fn smoothstep(&self, _rhs: UsfOrNormalVector<D>, _t: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
-    pub fn smoothstep_normal(&self, _rhs: UsfVector<D>, _t: NormalDecimalScalar) -> Self {
+    /// Computes dot product with runtime output-domain selection.
+    pub fn dot(&self, _rhs: UsfOrNormalVector<D>, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
         todo!()
     }
-    pub fn smoothstep_usf(&self, _rhs: UsfVector<D>, _t: UsfScalar) -> Self {
-        todo!()
-    }
-    pub fn dot_usf(&self, _rhs: UsfVector<D>) -> UsfScalar {
-        todo!()
-    }
-    pub fn dot_normal(&self, _rhs: UsfVector<D>) -> NormalDecimalScalar {
-        todo!()
-    }
-    pub fn distance_usf(&self, _rhs: UsfVector<D>) -> UsfScalar {
-        todo!()
-    }
-    pub fn distance_normal(&self, _rhs: UsfVector<D>) -> NormalDecimalScalar {
+    /// Computes Euclidean distance with runtime output-domain selection.
+    pub fn distance(&self, _rhs: UsfOrNormalVector<D>, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
         todo!()
     }
     /// # Panics
     /// - Panics if either vector has zero length.
-    pub fn angle_between_usf(&self, _rhs: UsfVector<D>) -> UsfScalar {
-        todo!()
-    }
-    /// # Panics
-    /// - Panics if either vector has zero length.
-    pub fn angle_between_normal(&self, _rhs: UsfVector<D>) -> NormalDecimalScalar {
+    pub fn angle_between(&self, _rhs: UsfOrNormalVector<D>, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
         todo!()
     }
     /// # Panics
     /// - Panics if `onto` is the zero vector.
-    pub fn project(&self, _onto: UsfVector<D>) -> Self {
+    pub fn project(&self, _onto: UsfOrNormalVector<D>) -> Self {
         todo!()
     }
     /// # Panics
     /// - Panics if `onto` is the zero vector.
-    pub fn reject(&self, _onto: UsfVector<D>) -> Self {
+    pub fn reject(&self, _onto: UsfOrNormalVector<D>) -> Self {
         todo!()
     }
     /// # Panics
     /// - Panics if `normal` is the zero vector.
-    pub fn reflect(&self, _normal: UsfVector<D>) -> Self {
+    pub fn reflect(&self, _normal: UsfOrNormalVector<D>) -> Self {
         todo!()
     }
-    pub fn mul_elem(&self, _rhs: UsfVector<D>) -> Self {
+    /// Multiplies lane-wise.
+    pub fn mul_elem(&self, _rhs: UsfOrNormalVector<D>) -> Self {
         todo!()
     }
     /// # Panics
     /// - Panics if any corresponding lane in `rhs` is zero.
-    pub fn div_elem(&self, _rhs: UsfVector<D>) -> Self {
+    pub fn div_elem(&self, _rhs: UsfOrNormalVector<D>) -> Self {
         todo!()
     }
+    /// Computes fused multiply-add per lane.
     pub fn fma(&self, _b: UsfVector<D>, _c: UsfVector<D>) -> Self {
         todo!()
     }
-    pub fn add_scalar(&self, _rhs: UsfScalar) -> Self {
+    /// Adds scalar to each lane.
+    pub fn add_scalar(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    pub fn sub_scalar(&self, _rhs: UsfScalar) -> Self {
+    /// Subtracts scalar from each lane.
+    pub fn sub_scalar(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    pub fn mul_scalar(&self, _rhs: UsfScalar) -> Self {
+    /// Multiplies each lane by scalar.
+    pub fn mul_scalar(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// # Panics
     /// - Panics if `rhs` is zero.
-    pub fn div_scalar(&self, _rhs: UsfScalar) -> Self {
+    pub fn div_scalar(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    pub fn scale(&self, _rhs: UsfScalar) -> Self {
+    /// Scales this vector by scalar factor.
+    pub fn scale(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
+    /// Returns compile-time dimension value.
     pub fn get_dimension(&self) -> usize {
         todo!()
     }
-    pub fn get_length_usf(&self) -> UsfScalar {
+    /// Returns vector length with runtime output-domain selection.
+    pub fn get_length(&self, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
         todo!()
     }
-    pub fn get_length_normal(&self) -> NormalDecimalScalar {
-        todo!()
-    }
-    pub fn get_length_squared_usf(&self) -> UsfScalar {
-        todo!()
-    }
-    pub fn get_length_squared_normal(&self) -> NormalDecimalScalar {
+    /// Returns squared vector length with runtime output-domain selection.
+    pub fn get_length_squared(&self, _use_usf_output: bool) -> UsfOrNormalDecimalScalar {
         todo!()
     }
     /// # Panics
     /// - Panics if `index` is out of bounds.
-    pub fn get_lane(&self, _index: usize) -> UsfScalar {
+    pub fn get_lane(&self, _index: usize, _use_usf_output: bool) -> UsfOrNormalScalar {
         todo!()
     }
     /// # Panics
     /// - Panics if `index` is out of bounds.
     /// - Panics if the lane is immutable under runtime field mutability policy.
-    pub fn set_lane(&mut self, _index: usize, _value: UsfScalar) {
+    pub fn set_lane(&mut self, _index: usize, _value: UsfOrNormalScalar) {
         todo!()
     }
 }
 
 impl UsfVector<3> {
+    /// Computes 3D cross product.
     pub fn cross(&self, _rhs: UsfVector<3>) -> Self {
         todo!()
     }
 }
 
-impl<const D: usize> super::shared::VectorCoreOps<UsfScalar, D> for UsfVector<D> {}
+impl<const D: usize> super::shared::VectorCoreOps<D> for UsfVector<D> {}
 
-impl super::shared::Vector2dFieldOps<UsfScalar> for UsfVector<2> {}
-impl super::shared::Vector3dFieldOps<UsfScalar> for UsfVector<3> {}
-impl super::shared::Vector4dFieldOps<UsfScalar> for UsfVector<4> {}
+impl super::shared::Vector2dFieldOps for UsfVector<2> {}
+impl super::shared::Vector3dFieldOps for UsfVector<3> {}
+impl super::shared::Vector4dFieldOps for UsfVector<4> {}
 
-impl super::shared::Vector2dCoreOps<UsfScalar> for UsfVector<2> {}
-impl super::shared::Vector3dCoreOps<UsfScalar> for UsfVector<3> {}
-impl super::shared::Vector4dCoreOps<UsfScalar, UsfVector<3>> for UsfVector<4> {}
+impl super::shared::Vector2dCoreOps for UsfVector<2> {}
+impl super::shared::Vector3dCoreOps for UsfVector<3> {}
+impl super::shared::Vector4dCoreOps<UsfVector<3>> for UsfVector<4> {}
 
-impl<const D: usize> super::shared::VectorBridgeOps<UsfScalar, D> for UsfVector<D> {}
-impl super::shared::Vector4dBridgeOps<UsfScalar, UsfVector<3>> for UsfVector<4> {}
+impl<const D: usize> super::shared::VectorBridgeOps<D> for UsfVector<D> {}
+impl super::shared::Vector4dBridgeOps<UsfVector<3>> for UsfVector<4> {}

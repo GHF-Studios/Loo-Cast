@@ -6,42 +6,55 @@ use crate::utils::one_of::OneOf2;
 pub trait Tensor4CoreOps<Scalar: ScalarContract, TensorBcd, MatrixCd, VectorD, const A: usize, const B: usize, const C: usize, const D: usize>:
     Clone + Sized
 {
+    /// Returns additive identity tensor.
     fn zero() -> Self {
         todo!()
     }
+    /// Builds tensor from axis-A chunks.
     fn from_chunks(_chunks: [TensorBcd; A]) -> Self {
         todo!()
     }
+    /// Returns axis-A chunks.
     fn to_chunks(&self) -> [TensorBcd; A] {
         todo!()
     }
+    /// Adds tensor or scalar operand.
     fn add(&self, _rhs: OneOf2<Self, Scalar>) -> Self {
         todo!()
     }
+    /// Subtracts tensor or scalar operand.
     fn sub(&self, _rhs: OneOf2<Self, Scalar>) -> Self {
         todo!()
     }
+    /// Multiplies tensor or scalar operand.
     fn mul(&self, _rhs: OneOf2<Self, Scalar>) -> Self {
         todo!()
     }
+    /// Divides tensor or scalar operand.
     fn div(&self, _rhs: OneOf2<Self, Scalar>) -> Self {
         todo!()
     }
+    /// Computes remainder against tensor or scalar operand.
     fn rem(&self, _rhs: OneOf2<Self, Scalar>) -> Self {
         todo!()
     }
+    /// Returns element-wise minimum.
     fn min(&self, _rhs: Self) -> Self {
         todo!()
     }
+    /// Returns element-wise maximum.
     fn max(&self, _rhs: Self) -> Self {
         todo!()
     }
+    /// Clamps element-wise to `[lo, hi]`.
     fn clamp(&self, _lo: Self, _hi: Self) -> Self {
         todo!()
     }
+    /// Returns `(A, B, C, D)` dimensions.
     fn get_dimensions(&self) -> (usize, usize, usize, usize) {
         todo!()
     }
+    /// Returns total element count.
     fn get_element_count(&self) -> usize {
         todo!()
     }
@@ -74,9 +87,11 @@ pub trait Tensor4FieldOps<Scalar: ScalarContract, TensorBcd, MatrixCd, VectorD, 
     fn set_vector(&mut self, _i: usize, _j: usize, _k: usize, _value: VectorD) {
         todo!()
     }
+    /// Returns scalar lane `(i, j, k, l)`.
     fn get_lane(&self, _i: usize, _j: usize, _k: usize, _l: usize) -> Scalar {
         todo!()
     }
+    /// Sets scalar lane `(i, j, k, l)`.
     fn set_lane(&mut self, _i: usize, _j: usize, _k: usize, _l: usize, _value: Scalar) {
         todo!()
     }
@@ -104,100 +119,128 @@ pub trait Tensor4ProjectionCoreOps<
     const D: usize,
 >: Tensor4FieldOps<Scalar, TensorBcd, MatrixCd, VectorD, A, B, C, D>
 {
+    /// Returns tensor view orthogonal to axis A.
     fn get_tensor_bcd(&self, _a: usize) -> TensorBcd {
         todo!()
     }
+    /// Sets tensor view orthogonal to axis A.
     fn set_tensor_bcd(&mut self, _a: usize, _value: TensorBcd) {
         todo!()
     }
 
+    /// Returns tensor view orthogonal to axis B.
     fn get_tensor_acd(&self, _b: usize) -> TensorAcd {
         todo!()
     }
+    /// Sets tensor view orthogonal to axis B.
     fn set_tensor_acd(&mut self, _b: usize, _value: TensorAcd) {
         todo!()
     }
 
+    /// Returns tensor view orthogonal to axis C.
     fn get_tensor_abd(&self, _c: usize) -> TensorAbd {
         todo!()
     }
+    /// Sets tensor view orthogonal to axis C.
     fn set_tensor_abd(&mut self, _c: usize, _value: TensorAbd) {
         todo!()
     }
 
+    /// Returns tensor view orthogonal to axis D.
     fn get_tensor_abc(&self, _d: usize) -> TensorAbc {
         todo!()
     }
+    /// Sets tensor view orthogonal to axis D.
     fn set_tensor_abc(&mut self, _d: usize, _value: TensorAbc) {
         todo!()
     }
 
+    /// Returns `(C, D)` matrix at fixed `(A=a, B=b)`.
     fn get_matrix_cd(&self, _a: usize, _b: usize) -> MatrixCd {
         todo!()
     }
+    /// Sets `(C, D)` matrix at fixed `(A=a, B=b)`.
     fn set_matrix_cd(&mut self, _a: usize, _b: usize, _value: MatrixCd) {
         todo!()
     }
 
+    /// Returns `(B, D)` matrix at fixed `(A=a, C=c)`.
     fn get_matrix_bd(&self, _a: usize, _c: usize) -> MatrixBd {
         todo!()
     }
+    /// Sets `(B, D)` matrix at fixed `(A=a, C=c)`.
     fn set_matrix_bd(&mut self, _a: usize, _c: usize, _value: MatrixBd) {
         todo!()
     }
 
+    /// Returns `(B, C)` matrix at fixed `(A=a, D=d)`.
     fn get_matrix_bc(&self, _a: usize, _d: usize) -> MatrixBc {
         todo!()
     }
+    /// Sets `(B, C)` matrix at fixed `(A=a, D=d)`.
     fn set_matrix_bc(&mut self, _a: usize, _d: usize, _value: MatrixBc) {
         todo!()
     }
 
+    /// Returns `(A, D)` matrix at fixed `(B=b, C=c)`.
     fn get_matrix_ad(&self, _b: usize, _c: usize) -> MatrixAd {
         todo!()
     }
+    /// Sets `(A, D)` matrix at fixed `(B=b, C=c)`.
     fn set_matrix_ad(&mut self, _b: usize, _c: usize, _value: MatrixAd) {
         todo!()
     }
 
+    /// Returns `(A, C)` matrix at fixed `(B=b, D=d)`.
     fn get_matrix_ac(&self, _b: usize, _d: usize) -> MatrixAc {
         todo!()
     }
+    /// Sets `(A, C)` matrix at fixed `(B=b, D=d)`.
     fn set_matrix_ac(&mut self, _b: usize, _d: usize, _value: MatrixAc) {
         todo!()
     }
 
+    /// Returns `(A, B)` matrix at fixed `(C=c, D=d)`.
     fn get_matrix_ab(&self, _c: usize, _d: usize) -> MatrixAb {
         todo!()
     }
+    /// Sets `(A, B)` matrix at fixed `(C=c, D=d)`.
     fn set_matrix_ab(&mut self, _c: usize, _d: usize, _value: MatrixAb) {
         todo!()
     }
 
+    /// Returns vector along axis D.
     fn get_vector_d(&self, _a: usize, _b: usize, _c: usize) -> VectorD {
         todo!()
     }
+    /// Sets vector along axis D.
     fn set_vector_d(&mut self, _a: usize, _b: usize, _c: usize, _value: VectorD) {
         todo!()
     }
 
+    /// Returns vector along axis C.
     fn get_vector_c(&self, _a: usize, _b: usize, _d: usize) -> VectorC {
         todo!()
     }
+    /// Sets vector along axis C.
     fn set_vector_c(&mut self, _a: usize, _b: usize, _d: usize, _value: VectorC) {
         todo!()
     }
 
+    /// Returns vector along axis B.
     fn get_vector_b(&self, _a: usize, _c: usize, _d: usize) -> VectorB {
         todo!()
     }
+    /// Sets vector along axis B.
     fn set_vector_b(&mut self, _a: usize, _c: usize, _d: usize, _value: VectorB) {
         todo!()
     }
 
+    /// Returns vector along axis A.
     fn get_vector_a(&self, _b: usize, _c: usize, _d: usize) -> VectorA {
         todo!()
     }
+    /// Sets vector along axis A.
     fn set_vector_a(&mut self, _b: usize, _c: usize, _d: usize, _value: VectorA) {
         todo!()
     }

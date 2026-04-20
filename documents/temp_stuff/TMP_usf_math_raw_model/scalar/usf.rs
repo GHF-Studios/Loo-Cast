@@ -15,36 +15,47 @@ pub struct UsfScalar {
 }
 
 impl UsfScalar {
+    /// Returns additive identity.
     pub fn zero() -> Self {
         todo!()
     }
+    /// Returns multiplicative identity.
     pub fn one() -> Self {
         todo!()
     }
+    /// Returns scalar value `2`.
     pub fn two() -> Self {
         todo!()
     }
+    /// Returns scalar value `10`.
     pub fn ten() -> Self {
         todo!()
     }
+    /// Returns scalar value `-1`.
     pub fn neg_one() -> Self {
         todo!()
     }
+    /// Returns the constant π.
     pub fn pi() -> Self {
         todo!()
     }
+    /// Returns the constant τ.
     pub fn tau() -> Self {
         todo!()
     }
+    /// Returns the constant e.
     pub fn e() -> Self {
         todo!()
     }
+    /// Returns a NaN sentinel value.
     pub fn nan() -> Self {
         todo!()
     }
+    /// Returns positive infinity.
     pub fn infinity() -> Self {
         todo!()
     }
+    /// Returns negative infinity.
     pub fn neg_infinity() -> Self {
         todo!()
     }
@@ -54,36 +65,47 @@ impl UsfScalar {
     pub fn parse_decimal(_text: &str) -> Self {
         todo!()
     }
+    /// Formats this value as a decimal string.
     pub fn to_decimal_string(&self) -> String {
         todo!()
     }
+    /// Formats this value as a scientific-notation string.
     pub fn to_scientific_string(&self) -> String {
         todo!()
     }
+    /// Canonicalizes internal digit/radix representation.
     pub fn normalize(&self) -> Self {
         todo!()
     }
+    /// Returns true when value equals zero.
     pub fn is_zero(&self) -> bool {
         todo!()
     }
+    /// Returns true when value equals one.
     pub fn is_one(&self) -> bool {
         todo!()
     }
+    /// Returns true when value is NaN.
     pub fn is_nan(&self) -> bool {
         todo!()
     }
+    /// Returns true when value is +/- infinity.
     pub fn is_infinite(&self) -> bool {
         todo!()
     }
+    /// Returns true when value is finite.
     pub fn is_finite(&self) -> bool {
         todo!()
     }
+    /// Returns true when value is strictly positive.
     pub fn is_positive(&self) -> bool {
         todo!()
     }
+    /// Returns true when value is strictly negative.
     pub fn is_negative(&self) -> bool {
         todo!()
     }
+    /// Returns the sign of this value.
     pub fn signum(&self) -> Self {
         todo!()
     }
@@ -92,9 +114,11 @@ impl UsfScalar {
     pub fn recip(&self) -> Self {
         todo!()
     }
+    /// Squares this value.
     pub fn square(&self) -> Self {
         todo!()
     }
+    /// Cubes this value.
     pub fn cube(&self) -> Self {
         todo!()
     }
@@ -103,15 +127,19 @@ impl UsfScalar {
     pub fn sqrt(&self) -> Self {
         todo!()
     }
+    /// Computes cubic root.
     pub fn cbrt(&self) -> Self {
         todo!()
     }
+    /// Computes e^x.
     pub fn exp(&self) -> Self {
         todo!()
     }
+    /// Computes 2^x.
     pub fn exp2(&self) -> Self {
         todo!()
     }
+    /// Computes 10^x.
     pub fn exp10(&self) -> Self {
         todo!()
     }
@@ -130,9 +158,11 @@ impl UsfScalar {
     pub fn log10(&self) -> Self {
         todo!()
     }
+    /// Computes sine in radians.
     pub fn sin(&self) -> Self {
         todo!()
     }
+    /// Computes cosine in radians.
     pub fn cos(&self) -> Self {
         todo!()
     }
@@ -151,141 +181,171 @@ impl UsfScalar {
     pub fn acos(&self) -> Self {
         todo!()
     }
+    /// Computes arctangent in radians.
     pub fn atan(&self) -> Self {
         todo!()
     }
+    /// Computes hyperbolic sine.
     pub fn sinh(&self) -> Self {
         todo!()
     }
+    /// Computes hyperbolic cosine.
     pub fn cosh(&self) -> Self {
         todo!()
     }
+    /// Computes hyperbolic tangent.
     pub fn tanh(&self) -> Self {
         todo!()
     }
+    /// Rounds down.
     pub fn floor(&self) -> Self {
         todo!()
     }
+    /// Rounds up.
     pub fn ceil(&self) -> Self {
         todo!()
     }
+    /// Rounds to nearest integer.
     pub fn round(&self) -> Self {
         todo!()
     }
+    /// Truncates fractional component.
     pub fn trunc(&self) -> Self {
         todo!()
     }
+    /// Returns fractional component.
     pub fn fract(&self) -> Self {
         todo!()
     }
+    /// Negates this value.
     pub fn neg(&self) -> Self {
         todo!()
     }
+    /// Returns absolute value.
     pub fn abs(&self) -> Self {
         todo!()
     }
-    pub fn add(&self, _rhs: UsfScalar) -> Self {
+    /// Adds another scalar.
+    pub fn add(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    pub fn sub(&self, _rhs: UsfScalar) -> Self {
+    /// Subtracts another scalar.
+    pub fn sub(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    pub fn mul(&self, _rhs: UsfScalar) -> Self {
+    /// Multiplies by another scalar.
+    pub fn mul(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// # Panics
     /// - Panics if `rhs` is zero.
-    pub fn div(&self, _rhs: UsfScalar) -> Self {
+    pub fn div(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// # Panics
     /// - Panics if `rhs` is zero.
-    pub fn rem(&self, _rhs: UsfScalar) -> Self {
+    pub fn rem(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    pub fn min(&self, _rhs: UsfScalar) -> Self {
+    /// Returns lane-wise minimum.
+    pub fn min(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    pub fn max(&self, _rhs: UsfScalar) -> Self {
+    /// Returns lane-wise maximum.
+    pub fn max(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// # Panics
     /// - Panics if `lo > hi`.
-    pub fn clamp(&self, _lo: UsfScalar, _hi: UsfScalar) -> Self {
+    pub fn clamp(&self, _lo: UsfOrNormalScalar, _hi: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// # Panics
     /// - Panics for undefined exponent/base combinations under real-only semantics.
-    pub fn pow(&self, _rhs: UsfScalar) -> Self {
+    pub fn pow(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    pub fn atan2(&self, _rhs: UsfScalar) -> Self {
+    /// Computes two-argument arctangent.
+    pub fn atan2(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    pub fn hypot(&self, _rhs: UsfScalar) -> Self {
+    /// Computes hypotenuse with another scalar.
+    pub fn hypot(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
     /// # Panics
     /// - Panics if `rhs` is zero.
-    pub fn mod_euclid(&self, _rhs: UsfScalar) -> Self {
+    pub fn mod_euclid(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    pub fn fma(&self, _b: UsfScalar, _c: UsfScalar) -> Self {
+    /// Computes fused multiply-add: `self * b + c`.
+    pub fn fma(&self, _b: UsfOrNormalScalar, _c: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    pub fn lerp_normal(&self, _rhs: UsfScalar, _t: NormalDecimalScalar) -> Self {
-        todo!()
-    }
-    pub fn lerp_usf(&self, _rhs: UsfScalar, _t: UsfScalar) -> Self {
+    /// Performs linear interpolation.
+    pub fn lerp(&self, _rhs: UsfOrNormalScalar, _t: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
     /// # Panics
     /// - Panics if edge ordering is invalid (`edge0 > edge1`) under strict smoothstep semantics.
-    pub fn smoothstep(&self, _edge0: UsfScalar, _edge1: UsfScalar) -> Self {
+    pub fn smoothstep(&self, _edge0: UsfOrNormalScalar, _edge1: UsfOrNormalScalar, _t: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
-    pub fn cmp_eq(&self, _rhs: UsfScalar) -> bool {
+    /// Compares equality.
+    pub fn cmp_eq(&self, _rhs: UsfOrNormalScalar) -> bool {
         todo!()
     }
-    pub fn cmp_ne(&self, _rhs: UsfScalar) -> bool {
+    /// Compares inequality.
+    pub fn cmp_ne(&self, _rhs: UsfOrNormalScalar) -> bool {
         todo!()
     }
-    pub fn cmp_lt(&self, _rhs: UsfScalar) -> bool {
+    /// Compares `<`.
+    pub fn cmp_lt(&self, _rhs: UsfOrNormalScalar) -> bool {
         todo!()
     }
-    pub fn cmp_le(&self, _rhs: UsfScalar) -> bool {
+    /// Compares `<=`.
+    pub fn cmp_le(&self, _rhs: UsfOrNormalScalar) -> bool {
         todo!()
     }
-    pub fn cmp_gt(&self, _rhs: UsfScalar) -> bool {
+    /// Compares `>`.
+    pub fn cmp_gt(&self, _rhs: UsfOrNormalScalar) -> bool {
         todo!()
     }
-    pub fn cmp_ge(&self, _rhs: UsfScalar) -> bool {
+    /// Compares `>=`.
+    pub fn cmp_ge(&self, _rhs: UsfOrNormalScalar) -> bool {
         todo!()
     }
-    pub fn from_normal<T: ScalarType>(_value: T) -> Self {
+    /// Converts a normal scalar into USF scalar.
+    pub fn from_primitive<T: ScalarType>(_value: T) -> Self {
         todo!()
     }
     /// # Panics
     /// - Panics if conversion to `T` would overflow, underflow, or lose required domain semantics.
     /// - Panics if `T` is unsupported by the concrete conversion backend.
-    pub fn to_normal<T: ScalarType>(&self) -> T {
+    pub fn to_primitive<T: ScalarType>(&self) -> T {
         todo!()
     }
-    pub fn from_normal_scalar(_value: NormalScalar) -> Self {
+    /// Converts a `NormalScalar` wrapper into USF scalar.
+    pub fn from_scalar_wrapper(_value: NormalScalar) -> Self {
         todo!()
     }
-    pub fn to_normal_scalar(&self) -> NormalScalar {
+    /// Converts this value into `NormalScalar`.
+    pub fn to_scalar_wrapper(&self) -> NormalScalar {
         todo!()
     }
+    /// Converts from scalar union.
     pub fn from_scalar<ScalarB: ScalarContract>(_value: OneOf2<UsfScalar, ScalarB>) -> Self {
         todo!()
     }
+    /// Converts to scalar union.
     pub fn to_scalar<ScalarB: ScalarContract>(&self) -> OneOf2<UsfScalar, ScalarB> {
         todo!()
     }
+    /// Gets stored scalar value.
     pub fn get_value(&self) -> UsfScalar {
         todo!()
     }
+    /// Sets stored scalar value.
     pub fn set_value(&mut self, _value: UsfScalar) {
         todo!()
     }

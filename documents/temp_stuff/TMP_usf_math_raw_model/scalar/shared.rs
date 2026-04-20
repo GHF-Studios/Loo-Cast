@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use super::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
 use crate::utils::one_of::OneOf2;
 
 pub trait ScalarType: Clone + 'static {}
@@ -63,234 +64,309 @@ impl ScalarType for f64 {}
 impl FloatType for f64 {}
 
 pub trait ScalarCoreOps: Clone + Sized {
+    /// Returns additive identity.
     fn zero() -> Self {
         todo!()
     }
+    /// Returns multiplicative identity.
     fn one() -> Self {
         todo!()
     }
+    /// Returns scalar `2`.
     fn two() -> Self {
         todo!()
     }
+    /// Returns scalar `10`.
     fn ten() -> Self {
         todo!()
     }
+    /// Returns scalar `-1`.
     fn neg_one() -> Self {
         todo!()
     }
+    /// Returns constant π.
     fn pi() -> Self {
         todo!()
     }
+    /// Returns constant τ.
     fn tau() -> Self {
         todo!()
     }
+    /// Returns constant e.
     fn e() -> Self {
         todo!()
     }
+    /// Returns NaN sentinel value.
     fn nan() -> Self {
         todo!()
     }
+    /// Returns positive infinity.
     fn infinity() -> Self {
         todo!()
     }
+    /// Returns negative infinity.
     fn neg_infinity() -> Self {
         todo!()
     }
+    /// Parses decimal literal.
     fn parse_decimal(_text: &str) -> Self {
         todo!()
     }
+    /// Formats decimal string.
     fn to_decimal_string(&self) -> String {
         todo!()
     }
+    /// Formats scientific notation string.
     fn to_scientific_string(&self) -> String {
         todo!()
     }
+    /// Canonicalizes representation.
     fn normalize(&self) -> Self {
         todo!()
     }
+    /// Returns true when value is zero.
     fn is_zero(&self) -> bool {
         todo!()
     }
+    /// Returns true when value is one.
     fn is_one(&self) -> bool {
         todo!()
     }
+    /// Returns true when value is NaN.
     fn is_nan(&self) -> bool {
         todo!()
     }
+    /// Returns true when value is +/- infinity.
     fn is_infinite(&self) -> bool {
         todo!()
     }
+    /// Returns true when value is finite.
     fn is_finite(&self) -> bool {
         todo!()
     }
+    /// Returns true when value is positive.
     fn is_positive(&self) -> bool {
         todo!()
     }
+    /// Returns true when value is negative.
     fn is_negative(&self) -> bool {
         todo!()
     }
+    /// Returns sign of this value.
     fn signum(&self) -> Self {
         todo!()
     }
+    /// Returns reciprocal.
     fn recip(&self) -> Self {
         todo!()
     }
+    /// Returns squared value.
     fn square(&self) -> Self {
         todo!()
     }
+    /// Returns cubed value.
     fn cube(&self) -> Self {
         todo!()
     }
+    /// Returns square root.
     fn sqrt(&self) -> Self {
         todo!()
     }
+    /// Returns cubic root.
     fn cbrt(&self) -> Self {
         todo!()
     }
+    /// Returns e^x.
     fn exp(&self) -> Self {
         todo!()
     }
+    /// Returns 2^x.
     fn exp2(&self) -> Self {
         todo!()
     }
+    /// Returns 10^x.
     fn exp10(&self) -> Self {
         todo!()
     }
+    /// Returns natural logarithm.
     fn ln(&self) -> Self {
         todo!()
     }
+    /// Returns base-2 logarithm.
     fn log2(&self) -> Self {
         todo!()
     }
+    /// Returns base-10 logarithm.
     fn log10(&self) -> Self {
         todo!()
     }
+    /// Returns sine.
     fn sin(&self) -> Self {
         todo!()
     }
+    /// Returns cosine.
     fn cos(&self) -> Self {
         todo!()
     }
+    /// Returns tangent.
     fn tan(&self) -> Self {
         todo!()
     }
+    /// Returns arcsine.
     fn asin(&self) -> Self {
         todo!()
     }
+    /// Returns arccosine.
     fn acos(&self) -> Self {
         todo!()
     }
+    /// Returns arctangent.
     fn atan(&self) -> Self {
         todo!()
     }
+    /// Returns hyperbolic sine.
     fn sinh(&self) -> Self {
         todo!()
     }
+    /// Returns hyperbolic cosine.
     fn cosh(&self) -> Self {
         todo!()
     }
+    /// Returns hyperbolic tangent.
     fn tanh(&self) -> Self {
         todo!()
     }
+    /// Applies floor.
     fn floor(&self) -> Self {
         todo!()
     }
+    /// Applies ceil.
     fn ceil(&self) -> Self {
         todo!()
     }
+    /// Applies round.
     fn round(&self) -> Self {
         todo!()
     }
+    /// Applies trunc.
     fn trunc(&self) -> Self {
         todo!()
     }
+    /// Returns fractional component.
     fn fract(&self) -> Self {
         todo!()
     }
+    /// Returns negated value.
     fn neg(&self) -> Self {
         todo!()
     }
+    /// Returns absolute value.
     fn abs(&self) -> Self {
         todo!()
     }
-    fn add(&self, _rhs: Self) -> Self {
+    /// Adds scalar operand.
+    fn add(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    fn sub(&self, _rhs: Self) -> Self {
+    /// Subtracts scalar operand.
+    fn sub(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    fn mul(&self, _rhs: Self) -> Self {
+    /// Multiplies scalar operand.
+    fn mul(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    fn div(&self, _rhs: Self) -> Self {
+    /// Divides scalar operand.
+    fn div(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    fn rem(&self, _rhs: Self) -> Self {
+    /// Computes remainder against scalar operand.
+    fn rem(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    fn min(&self, _rhs: Self) -> Self {
+    /// Returns minimum of operands.
+    fn min(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    fn max(&self, _rhs: Self) -> Self {
+    /// Returns maximum of operands.
+    fn max(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    fn clamp(&self, _lo: Self, _hi: Self) -> Self {
+    /// Clamps this value to `[lo, hi]`.
+    fn clamp(&self, _lo: UsfOrNormalScalar, _hi: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    fn pow(&self, _rhs: Self) -> Self {
+    /// Raises to power.
+    fn pow(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    fn atan2(&self, _rhs: Self) -> Self {
+    /// Computes `atan2(self, rhs)`.
+    fn atan2(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    fn hypot(&self, _rhs: Self) -> Self {
+    /// Computes hypotenuse with `rhs`.
+    fn hypot(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    fn mod_euclid(&self, _rhs: Self) -> Self {
+    /// Computes Euclidean modulo.
+    fn mod_euclid(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    fn fma(&self, _b: Self, _c: Self) -> Self {
+    /// Computes `self * b + c`.
+    fn fma(&self, _b: UsfOrNormalScalar, _c: UsfOrNormalScalar) -> Self {
         todo!()
     }
-    fn lerp<ScalarB: ScalarContract>(&self, _rhs: Self, _t: OneOf2<Self, ScalarB>) -> Self {
+    /// Performs linear interpolation.
+    fn lerp(&self, _rhs: UsfOrNormalScalar, _t: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
-    fn smoothstep<ScalarB: ScalarContract>(&self, _edge0: Self, _edge1: Self, _t: OneOf2<Self, ScalarB>) -> Self {
+    /// Performs smoothstep interpolation.
+    fn smoothstep(&self, _edge0: UsfOrNormalScalar, _edge1: UsfOrNormalScalar, _t: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
-    fn cmp_eq(&self, _rhs: Self) -> bool {
+    /// Compares equality.
+    fn cmp_eq(&self, _rhs: UsfOrNormalScalar) -> bool {
         todo!()
     }
-    fn cmp_ne(&self, _rhs: Self) -> bool {
+    /// Compares inequality.
+    fn cmp_ne(&self, _rhs: UsfOrNormalScalar) -> bool {
         todo!()
     }
-    fn cmp_lt(&self, _rhs: Self) -> bool {
+    /// Compares less-than.
+    fn cmp_lt(&self, _rhs: UsfOrNormalScalar) -> bool {
         todo!()
     }
-    fn cmp_le(&self, _rhs: Self) -> bool {
+    /// Compares less-or-equal.
+    fn cmp_le(&self, _rhs: UsfOrNormalScalar) -> bool {
         todo!()
     }
-    fn cmp_gt(&self, _rhs: Self) -> bool {
+    /// Compares greater-than.
+    fn cmp_gt(&self, _rhs: UsfOrNormalScalar) -> bool {
         todo!()
     }
-    fn cmp_ge(&self, _rhs: Self) -> bool {
+    /// Compares greater-or-equal.
+    fn cmp_ge(&self, _rhs: UsfOrNormalScalar) -> bool {
         todo!()
     }
 }
 
 pub trait ScalarFieldOps: ScalarCoreOps {
+    /// Returns wrapped scalar value.
     fn get_value(&self) -> Self {
         todo!()
     }
+    /// Sets wrapped scalar value.
     fn set_value(&mut self, _value: Self) {
         todo!()
     }
 }
 
 pub trait ScalarBridgeOps: ScalarCoreOps {
+    /// Converts from scalar union.
     fn from_scalar<ScalarB: ScalarContract>(_value: OneOf2<Self, ScalarB>) -> Self {
         todo!()
     }
+    /// Converts to scalar union.
     fn to_scalar<ScalarB: ScalarContract>(&self) -> OneOf2<Self, ScalarB> {
         todo!()
     }

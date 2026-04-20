@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use super::super::field::Field;
-use super::super::scalar::normal::{NormalDecimalScalar, NormalScalar};
+use super::super::scalar::normal::NormalScalar;
 
 #[derive(Clone, Debug, PartialEq)]
 #[repr(transparent)]
@@ -63,14 +63,14 @@ pub type NormalVector2d = NormalVector<2>;
 pub type NormalVector3d = NormalVector<3>;
 pub type NormalVector4d = NormalVector<4>;
 
-impl<const D: usize> super::shared::VectorCoreOps<NormalScalar, D> for NormalVector<D> {}
+impl<const D: usize> super::shared::VectorCoreOps<D> for NormalVector<D> {}
 
-impl super::shared::Vector2dFieldOps<NormalScalar> for NormalVector<2> {}
-impl super::shared::Vector3dFieldOps<NormalScalar> for NormalVector<3> {}
-impl super::shared::Vector4dFieldOps<NormalScalar> for NormalVector<4> {}
+impl super::shared::Vector2dFieldOps for NormalVector<2> {}
+impl super::shared::Vector3dFieldOps for NormalVector<3> {}
+impl super::shared::Vector4dFieldOps for NormalVector<4> {}
 
-impl super::shared::Vector2dCoreOps<NormalScalar> for NormalVector<2> {}
-impl super::shared::Vector3dCoreOps<NormalScalar> for NormalVector<3> {}
-impl super::shared::Vector4dCoreOps<NormalScalar, NormalVector<3>> for NormalVector<4> {}
-impl<const D: usize> super::shared::VectorBridgeOps<NormalScalar, D> for NormalVector<D> {}
-impl super::shared::Vector4dBridgeOps<NormalScalar, NormalVector<3>> for NormalVector<4> {}
+impl super::shared::Vector2dCoreOps for NormalVector<2> {}
+impl super::shared::Vector3dCoreOps for NormalVector<3> {}
+impl super::shared::Vector4dCoreOps<NormalVector<3>> for NormalVector<4> {}
+impl<const D: usize> super::shared::VectorBridgeOps<D> for NormalVector<D> {}
+impl super::shared::Vector4dBridgeOps<NormalVector<3>> for NormalVector<4> {}
