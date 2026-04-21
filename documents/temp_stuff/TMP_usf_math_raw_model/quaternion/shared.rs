@@ -8,9 +8,9 @@
 //!
 //! Kind/repr mechanism:
 //! - Mixed-repr operands use `UsfOrNormal*` aliases.
-//! - Output projection selection uses `OpMode`.
+//! - Type-level projection selection uses `Mode: OpMode`.
 //! - Invalid kind/repr combinations panic fast.
-//! - Operation-intrinsic mode variance should be expressed with `op_policy::OpPolicy<T>`.
+//! - Operation-intrinsic mode variance should be expressed with `op_policy::OpPolicy`, and policy compatibility must be validated at runtime by each concrete algorithm implementation.
 //!
 //! Method doc schema:
 //! - Summary line: describe intent and core working principle.
@@ -20,6 +20,7 @@
 //! - Optional `# Panics` section for runtime guard clauses and undefined math states.
 
 use super::super::op_mode::OpMode;
+use super::super::op_policy::OpPolicy;
 use super::super::scalar::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
 use super::super::vector::aliases::UsfOrNormalVector;
 use super::aliases::{UsfOrNormalMat3, UsfOrNormalQuaternion};
@@ -64,18 +65,18 @@ pub trait QuaternionCoreOps: Clone + Sized {
         todo!()
     }
 
-    /// Returns quaternion components in requested op mode.
+    /// Returns quaternion components in selected mode specialization.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Fixed-size array result of type `[UsfOrNormalFractionalScalar; 4]`.
     ///
     /// # Repr
-    /// - Output projection is selected via `op_mode`.
-    fn to_xyzw(&self, _op_mode: OpMode) -> [UsfOrNormalFractionalScalar; 4] {
+    /// - Output projection is selected by `Mode: OpMode` at facade monomorphization time.
+    fn to_xyzw<Mode: OpMode>(&self, _op_policy: OpPolicy) -> [UsfOrNormalFractionalScalar; 4] {
         todo!()
     }
 
@@ -333,15 +334,15 @@ pub trait QuaternionCoreOps: Clone + Sized {
         todo!()
     }
 
-    /// Computes quaternion dot product in requested op mode.
+    /// Computes quaternion dot product in selected mode specialization.
     /// Output behavior:
     /// - Computes using canonical USF working precision.
-    /// - Projects the result into `op_mode.repr`.
+    /// - Projects the result into the repr selected by `Mode: OpMode`.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `rhs` (UsfOrNormalQuaternion): Right-hand-side operand.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalFractionalScalar`.
@@ -351,7 +352,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
-    fn dot(&self, _rhs: UsfOrNormalQuaternion, _op_mode: OpMode) -> UsfOrNormalFractionalScalar {
+    fn dot<Mode: OpMode>(&self, _rhs: UsfOrNormalQuaternion, _op_policy: OpPolicy) -> UsfOrNormalFractionalScalar {
         todo!()
     }
 
@@ -360,7 +361,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `rhs` (UsfOrNormalVector<3>): Right-hand-side operand.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalVector<3>`.
@@ -371,7 +372,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     /// - Panics if `self` is not a valid normalized rotation quaternion.
-    fn rotate_vec3(&self, _rhs: UsfOrNormalVector<3>, _op_mode: OpMode) -> UsfOrNormalVector<3> {
+    fn rotate_vec3<Mode: OpMode>(&self, _rhs: UsfOrNormalVector<3>, _op_policy: OpPolicy) -> UsfOrNormalVector<3> {
         todo!()
     }
 
@@ -399,16 +400,16 @@ pub trait QuaternionCoreOps: Clone + Sized {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Tuple result of type `(UsfOrNormalVector<3>, UsfOrNormalFractionalScalar)`.
     ///
     /// # Repr
-    /// - Output projection is selected via `op_mode`.
+    /// - Output projection is selected by `Mode: OpMode` at facade monomorphization time.
     /// # Panics
     /// - Panics if `self` is not a valid normalized rotation quaternion.
-    fn to_axis_angle(&self, _op_mode: OpMode) -> (UsfOrNormalVector<3>, UsfOrNormalFractionalScalar) {
+    fn to_axis_angle<Mode: OpMode>(&self, _op_policy: OpPolicy) -> (UsfOrNormalVector<3>, UsfOrNormalFractionalScalar) {
         todo!()
     }
 
@@ -435,16 +436,16 @@ pub trait QuaternionCoreOps: Clone + Sized {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Fixed-size array result of type `[UsfOrNormalFractionalScalar; 3]`.
     ///
     /// # Repr
-    /// - Output projection is selected via `op_mode`.
+    /// - Output projection is selected by `Mode: OpMode` at facade monomorphization time.
     /// # Panics
     /// - Panics if `self` is not a valid normalized rotation quaternion.
-    fn to_euler_xyz(&self, _op_mode: OpMode) -> [UsfOrNormalFractionalScalar; 3] {
+    fn to_euler_xyz<Mode: OpMode>(&self, _op_policy: OpPolicy) -> [UsfOrNormalFractionalScalar; 3] {
         todo!()
     }
 
@@ -496,16 +497,16 @@ pub trait QuaternionCoreOps: Clone + Sized {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalMat3`.
     ///
     /// # Repr
-    /// - Output projection is selected via `op_mode`.
+    /// - Output projection is selected by `Mode: OpMode` at facade monomorphization time.
     /// # Panics
     /// - Panics if `self` is not a valid normalized rotation quaternion.
-    fn to_mat3(&self, _op_mode: OpMode) -> UsfOrNormalMat3 {
+    fn to_mat3<Mode: OpMode>(&self, _op_policy: OpPolicy) -> UsfOrNormalMat3 {
         todo!()
     }
 
@@ -534,14 +535,14 @@ pub trait QuaternionFieldOps: Clone + Sized {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalScalar`.
     ///
     /// # Repr
-    /// - Output projection is selected via `op_mode`.
-    fn get_x(&self, _op_mode: OpMode) -> UsfOrNormalScalar {
+    /// - Output projection is selected by `Mode: OpMode` at facade monomorphization time.
+    fn get_x<Mode: OpMode>(&self, _op_policy: OpPolicy) -> UsfOrNormalScalar {
         todo!()
     }
 
@@ -549,14 +550,14 @@ pub trait QuaternionFieldOps: Clone + Sized {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalScalar`.
     ///
     /// # Repr
-    /// - Output projection is selected via `op_mode`.
-    fn get_y(&self, _op_mode: OpMode) -> UsfOrNormalScalar {
+    /// - Output projection is selected by `Mode: OpMode` at facade monomorphization time.
+    fn get_y<Mode: OpMode>(&self, _op_policy: OpPolicy) -> UsfOrNormalScalar {
         todo!()
     }
 
@@ -564,14 +565,14 @@ pub trait QuaternionFieldOps: Clone + Sized {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalScalar`.
     ///
     /// # Repr
-    /// - Output projection is selected via `op_mode`.
-    fn get_z(&self, _op_mode: OpMode) -> UsfOrNormalScalar {
+    /// - Output projection is selected by `Mode: OpMode` at facade monomorphization time.
+    fn get_z<Mode: OpMode>(&self, _op_policy: OpPolicy) -> UsfOrNormalScalar {
         todo!()
     }
 
@@ -579,14 +580,14 @@ pub trait QuaternionFieldOps: Clone + Sized {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalScalar`.
     ///
     /// # Repr
-    /// - Output projection is selected via `op_mode`.
-    fn get_w(&self, _op_mode: OpMode) -> UsfOrNormalScalar {
+    /// - Output projection is selected by `Mode: OpMode` at facade monomorphization time.
+    fn get_w<Mode: OpMode>(&self, _op_policy: OpPolicy) -> UsfOrNormalScalar {
         todo!()
     }
 

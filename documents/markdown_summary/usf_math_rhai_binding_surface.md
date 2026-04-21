@@ -54,8 +54,8 @@ Purpose: define how the math sketch is documented and projected into script-faci
 Mechanisms:
 
 - Mixed-repr inputs: `UsfOrNormal*`, `OneOf*`.
-- Generic projection intent (pre-facade monomorphization): `op_mode::OpMode`.
-- Operation-intrinsic mode variance: `op_policy::OpPolicy<T>` with `OpPolicy::DeferToGlobal` as the default route.
+- Generic projection intent (pre-facade monomorphization): `Mode: op_mode::OpMode` (`op_mode::Mode<Kind, Repr>`).
+- Operation-intrinsic mode variance: `op_policy::OpPolicy` with `OpPolicy::DeferToGlobal` as the default route.
 - Invalid kind/repr selections for a concrete operation/backend: panic-fast guard clauses.
 
 ## Function Expansion Contract (Documentation Rule)
@@ -70,7 +70,7 @@ Every operation intended for scripting should document:
    - Allowed and disallowed operand/output combinations.
 4. Rhai surface intent:
    - Planned function/method name and call shape.
-   - Whether output kind/repr selection is caller-controlled.
+   - Which overload/facade specialization carries the selected kind/repr mode.
    - Whether operation-specific policy override is caller-controlled.
 5. Panic contract:
    - Kind/repr/policy guard failures.
@@ -83,16 +83,16 @@ Every operation intended for scripting should document:
 - Keep script syntax predictable:
   - method-like where object semantics are clear.
   - function-like for constructors/converters.
-- Keep kind/repr controls explicit for operations with ambiguous output projection.
+- Keep kind/repr controls explicit through overload/specialization selection, not runtime mode arguments.
 
 ## Example Expansion Pattern
 
 - Rust contract:
-- `fn determinant(&self, op_mode: OpMode, policy: OpPolicy<DeterminantPolicy>) -> UsfOrNormalDecimalScalar`
+- `fn determinant<Mode: OpMode>(&self, policy: OpPolicy) -> UsfOrNormalDecimalScalar`
 - Rhai facade intent:
-  - `mat.determinant(mode)`
-  - `mat.determinant(mode, policy)` for override paths.
-  - where `mode` encodes kind + repr projection intent.
+  - `mat.determinant()` for default policy route.
+  - `mat.determinant(policy)` for explicit override paths.
+  - where kind/repr projection is encoded by the selected overload/specialization.
   - where `policy` defaults to `DeferToGlobal` unless explicitly provided.
 - Panic conditions:
   - invalid kind/repr projection selection

@@ -8,9 +8,9 @@
 //!
 //! Kind/repr mechanism:
 //! - Mixed-repr vector/scalar operands are represented with `UsfOrNormal*` aliases.
-//! - Output projection requests are represented with `OpMode`.
+//! - Type-level projection requests are represented with `Mode: OpMode`.
 //! - Invalid kind/repr combinations are guarded by panic-fast checks.
-//! - Operation-intrinsic mode variance should be expressed with `op_policy::OpPolicy<T>`.
+//! - Operation-intrinsic mode variance should be expressed with `op_policy::OpPolicy`, and policy compatibility must be validated at runtime by each concrete algorithm implementation.
 //!
 //! Method doc schema:
 //! - Summary line: describe intent and core working principle.
@@ -20,6 +20,7 @@
 //! - Optional `# Panics` section for runtime guard clauses and undefined math states.
 
 use super::super::op_mode::OpMode;
+use super::super::op_policy::OpPolicy;
 use super::super::scalar::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
 use super::super::scalar::shared::{FractionalScalarContract, ScalarContract};
 use super::aliases::UsfOrNormalVector;
@@ -56,6 +57,7 @@ pub enum HomogeneousPointOrDirection<Vector3d> {
 /// use crate::usf::math::vector::shared::{Vector3dCoreOps, VectorContract};
 /// use crate::usf::math::scalar::shared::FractionalScalarContract;
 /// use crate::usf::math::op_mode::OpMode;
+/// use crate::usf::math::op_policy::OpPolicy;
 ///
 /// fn cross_into_out<V, Rhs, Out>(lhs: &V, rhs: Rhs) -> Out
 /// where
@@ -66,12 +68,13 @@ pub enum HomogeneousPointOrDirection<Vector3d> {
 ///     lhs.cross::<Rhs, Out>(rhs)
 /// }
 ///
-/// fn length_into_fractional<V, OutFractional>(v: &V, mode: OpMode) -> OutFractional
+/// fn length_into_fractional<ModeT, V, OutFractional>(v: &V) -> OutFractional
 /// where
+///     ModeT: OpMode,
 ///     V: VectorContract<3>,
 ///     OutFractional: FractionalScalarContract,
 /// {
-///     v.get_length::<OutFractional>(mode)
+///     v.get_length::<ModeT, OutFractional>(OpPolicy::DeferToGlobal)
 /// }
 /// ```
 pub trait VectorCoreOps<const D: usize>: Clone + Sized {
@@ -134,14 +137,14 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
-    /// - Fixed-size array result of type `[OutScalar; D]`, projected according to `op_mode`.
+    /// - Fixed-size array result of type `[OutScalar; D]`, projected according to `Mode: OpMode`.
     ///
     /// # Repr
-    /// - Output projection policy is selected via `op_mode`.
-    fn to_vector_components<OutScalar: ScalarContract>(&self, _op_mode: OpMode) -> [OutScalar; D] {
+    /// - Output projection policy is selected by `Mode: OpMode` at facade monomorphization time.
+    fn to_vector_components<Mode: OpMode, OutScalar: ScalarContract>(&self, _op_policy: OpPolicy) -> [OutScalar; D] {
         todo!()
     }
 
@@ -405,12 +408,12 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
         todo!()
     }
 
-    /// Computes dot product in requested op mode.
+    /// Computes dot product in selected mode specialization.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `rhs` (V): Right-hand-side operand.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Dot-product scalar converted into `OutFractional`.
@@ -419,19 +422,19 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// - `rhs` can use any repr branch exposed by `V: VectorContract<D>`.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
-    fn dot<V: VectorContract<D>, OutFractional: FractionalScalarContract>(&self, _rhs: V, _op_mode: OpMode) -> OutFractional {
+    fn dot<Mode: OpMode, V: VectorContract<D>, OutFractional: FractionalScalarContract>(&self, _rhs: V, _op_policy: OpPolicy) -> OutFractional {
         todo!()
     }
 
-    /// Computes Euclidean distance in requested op mode.
+    /// Computes Euclidean distance in selected mode specialization.
     /// Output behavior:
     /// - Computes using canonical USF working precision.
-    /// - Projects the result into `op_mode.repr`.
+    /// - Projects the result into the repr selected by `Mode: OpMode`.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `rhs` (V): Right-hand-side operand.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Euclidean distance converted into `OutFractional`.
@@ -440,19 +443,19 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// - `rhs` can use any repr branch exposed by `V: VectorContract<D>`.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
-    fn distance<V: VectorContract<D>, OutFractional: FractionalScalarContract>(&self, _rhs: V, _op_mode: OpMode) -> OutFractional {
+    fn distance<Mode: OpMode, V: VectorContract<D>, OutFractional: FractionalScalarContract>(&self, _rhs: V, _op_policy: OpPolicy) -> OutFractional {
         todo!()
     }
 
-    /// Computes angle between vectors in requested op mode.
+    /// Computes angle between vectors in selected mode specialization.
     /// Output behavior:
     /// - Computes using canonical USF working precision.
-    /// - Projects the result into `op_mode.repr`.
+    /// - Projects the result into the repr selected by `Mode: OpMode`.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `rhs` (V): Right-hand-side operand.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Angle value converted into `OutFractional`.
@@ -462,7 +465,7 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     /// - Panics if either vector has zero length.
-    fn angle_between<V: VectorContract<D>, OutFractional: FractionalScalarContract>(&self, _rhs: V, _op_mode: OpMode) -> OutFractional {
+    fn angle_between<Mode: OpMode, V: VectorContract<D>, OutFractional: FractionalScalarContract>(&self, _rhs: V, _op_policy: OpPolicy) -> OutFractional {
         todo!()
     }
 
@@ -635,51 +638,51 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
         todo!()
     }
 
-    /// Returns vector length in requested op mode.
+    /// Returns vector length in selected mode specialization.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Length value converted into `OutFractional`.
     ///
     /// # Repr
-    /// - Output projection is selected via `op_mode`.
-    fn get_length<OutFractional: FractionalScalarContract>(&self, _op_mode: OpMode) -> OutFractional {
+    /// - Output projection is selected by `Mode: OpMode` at facade monomorphization time.
+    fn get_length<Mode: OpMode, OutFractional: FractionalScalarContract>(&self, _op_policy: OpPolicy) -> OutFractional {
         todo!()
     }
 
-    /// Returns squared vector length in requested op mode.
+    /// Returns squared vector length in selected mode specialization.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Squared-length value converted into `OutFractional`.
     ///
     /// # Repr
-    /// - Output projection is selected via `op_mode`.
-    fn get_length_squared<OutFractional: FractionalScalarContract>(&self, _op_mode: OpMode) -> OutFractional {
+    /// - Output projection is selected by `Mode: OpMode` at facade monomorphization time.
+    fn get_length_squared<Mode: OpMode, OutFractional: FractionalScalarContract>(&self, _op_policy: OpPolicy) -> OutFractional {
         todo!()
     }
 
-    /// Returns vector component at index in requested op mode.
+    /// Returns vector component at index in selected mode specialization.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `index` (usize): Zero-based index.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Component value converted into `OutScalar`.
     ///
     /// # Repr
-    /// - Output projection is selected via `op_mode`.
+    /// - Output projection is selected by `Mode: OpMode` at facade monomorphization time.
     /// # Panics
     /// - Panics if `index` is out of bounds.
-    fn get_vector_component<OutScalar: ScalarContract>(&self, _index: usize, _op_mode: OpMode) -> OutScalar {
+    fn get_vector_component<Mode: OpMode, OutScalar: ScalarContract>(&self, _index: usize, _op_policy: OpPolicy) -> OutScalar {
         todo!()
     }
 
@@ -718,11 +721,11 @@ pub trait Vector2dFieldOps: Clone + Sized {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - `x` component converted into `OutScalar`.
-    fn get_x<OutScalar: ScalarContract>(&self, _op_mode: OpMode) -> OutScalar {
+    fn get_x<Mode: OpMode, OutScalar: ScalarContract>(&self, _op_policy: OpPolicy) -> OutScalar {
         todo!()
     }
 
@@ -730,11 +733,11 @@ pub trait Vector2dFieldOps: Clone + Sized {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - `y` component converted into `OutScalar`.
-    fn get_y<OutScalar: ScalarContract>(&self, _op_mode: OpMode) -> OutScalar {
+    fn get_y<Mode: OpMode, OutScalar: ScalarContract>(&self, _op_policy: OpPolicy) -> OutScalar {
         todo!()
     }
 
@@ -769,11 +772,11 @@ pub trait Vector3dFieldOps: Vector2dFieldOps {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - `z` component converted into `OutScalar`.
-    fn get_z<OutScalar: ScalarContract>(&self, _op_mode: OpMode) -> OutScalar {
+    fn get_z<Mode: OpMode, OutScalar: ScalarContract>(&self, _op_policy: OpPolicy) -> OutScalar {
         todo!()
     }
 
@@ -796,11 +799,11 @@ pub trait Vector4dFieldOps: Vector3dFieldOps {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - `w` component converted into `OutScalar`.
-    fn get_w<OutScalar: ScalarContract>(&self, _op_mode: OpMode) -> OutScalar {
+    fn get_w<Mode: OpMode, OutScalar: ScalarContract>(&self, _op_policy: OpPolicy) -> OutScalar {
         todo!()
     }
 
@@ -846,14 +849,14 @@ pub trait Vector2dCoreOps: Vector2dFieldOps + VectorCoreOps<2> {
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `rhs` (Rhs): Right-hand-side operand.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Perpendicular-dot scalar converted into `OutFractional`.
     ///
     /// # Panics
-    /// - Panics when `op_mode` requests an unsupported kind/repr projection.
-    fn perp_dot<Rhs: VectorContract<2>, OutFractional: FractionalScalarContract>(&self, _rhs: Rhs, _op_mode: OpMode) -> OutFractional {
+    /// - Panics when `Mode: OpMode` resolves to an unsupported kind/repr projection.
+    fn perp_dot<Mode: OpMode, Rhs: VectorContract<2>, OutFractional: FractionalScalarContract>(&self, _rhs: Rhs, _op_policy: OpPolicy) -> OutFractional {
         todo!()
     }
 
@@ -872,14 +875,14 @@ pub trait Vector2dCoreOps: Vector2dFieldOps + VectorCoreOps<2> {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Polar angle converted into `OutFractional`.
     ///
     /// # Panics
-    /// - Panics when `op_mode` requests an unsupported kind/repr projection.
-    fn angle<OutFractional: FractionalScalarContract>(&self, _op_mode: OpMode) -> OutFractional {
+    /// - Panics when `Mode: OpMode` resolves to an unsupported kind/repr projection.
+    fn angle<Mode: OpMode, OutFractional: FractionalScalarContract>(&self, _op_policy: OpPolicy) -> OutFractional {
         todo!()
     }
 
@@ -899,14 +902,14 @@ pub trait Vector2dCoreOps: Vector2dFieldOps + VectorCoreOps<2> {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Polar tuple `(radius, angle)` with both entries converted into `OutFractional`.
     ///
     /// # Panics
-    /// - Panics when `op_mode` requests an unsupported kind/repr projection.
-    fn to_polar<OutFractional: FractionalScalarContract>(&self, _op_mode: OpMode) -> (OutFractional, OutFractional) {
+    /// - Panics when `Mode: OpMode` resolves to an unsupported kind/repr projection.
+    fn to_polar<Mode: OpMode, OutFractional: FractionalScalarContract>(&self, _op_policy: OpPolicy) -> (OutFractional, OutFractional) {
         todo!()
     }
 
@@ -960,18 +963,18 @@ pub trait Vector3dCoreOps: Vector3dFieldOps + VectorCoreOps<3> {
     /// - `self`: Receiver value.
     /// - `b` (B): Secondary operand used by the operation.
     /// - `c` (C): Tertiary operand used by the operation.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Triple-product scalar converted into `OutFractional`.
     ///
     /// # Panics
-    /// - Panics when `op_mode` requests an unsupported kind/repr projection.
-    fn triple_product<B: VectorContract<3>, C: VectorContract<3>, OutFractional: FractionalScalarContract>(
+    /// - Panics when `Mode: OpMode` resolves to an unsupported kind/repr projection.
+    fn triple_product<Mode: OpMode, B: VectorContract<3>, C: VectorContract<3>, OutFractional: FractionalScalarContract>(
         &self,
         _b: B,
         _c: C,
-        _op_mode: OpMode,
+        _op_policy: OpPolicy,
     ) -> OutFractional {
         todo!()
     }
@@ -1019,19 +1022,19 @@ pub trait Vector3dCoreOps: Vector3dFieldOps + VectorCoreOps<3> {
     /// - `self`: Receiver value.
     /// - `rhs` (Rhs): Right-hand-side operand.
     /// - `axis` (Axis): Axis vector.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Signed angle converted into `OutFractional`.
     ///
     /// # Panics
     /// - Panics when `_axis` has zero length.
-    /// - Panics when `op_mode` requests an unsupported kind/repr projection.
-    fn signed_angle<Rhs: VectorContract<3>, Axis: VectorContract<3>, OutFractional: FractionalScalarContract>(
+    /// - Panics when `Mode: OpMode` resolves to an unsupported kind/repr projection.
+    fn signed_angle<Mode: OpMode, Rhs: VectorContract<3>, Axis: VectorContract<3>, OutFractional: FractionalScalarContract>(
         &self,
         _rhs: Rhs,
         _axis: Axis,
-        _op_mode: OpMode,
+        _op_policy: OpPolicy,
     ) -> OutFractional {
         todo!()
     }
@@ -1040,14 +1043,14 @@ pub trait Vector3dCoreOps: Vector3dFieldOps + VectorCoreOps<3> {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Spherical tuple `(radius, azimuth, inclination)` with each entry converted into `OutFractional`.
     ///
     /// # Panics
-    /// - Panics when `op_mode` requests an unsupported kind/repr projection.
-    fn to_spherical<OutFractional: FractionalScalarContract>(&self, _op_mode: OpMode) -> (OutFractional, OutFractional, OutFractional) {
+    /// - Panics when `Mode: OpMode` resolves to an unsupported kind/repr projection.
+    fn to_spherical<Mode: OpMode, OutFractional: FractionalScalarContract>(&self, _op_policy: OpPolicy) -> (OutFractional, OutFractional, OutFractional) {
         todo!()
     }
 
@@ -1083,11 +1086,11 @@ pub trait Vector4dCoreOps: Vector4dFieldOps + VectorCoreOps<4> {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - XYZ slice converted into `Out`.
-    fn xyz<Out: VectorContract<3>>(&self, _op_mode: OpMode) -> Out {
+    fn xyz<Mode: OpMode, Out: VectorContract<3>>(&self, _op_policy: OpPolicy) -> Out {
         todo!()
     }
 
@@ -1108,14 +1111,14 @@ pub trait Vector4dCoreOps: Vector4dFieldOps + VectorCoreOps<4> {
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `rhs` (Rhs): Right-hand-side operand.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - XYZ-only dot-product scalar converted into `OutFractional`.
     ///
     /// # Panics
-    /// - Panics when `op_mode` requests an unsupported kind/repr projection.
-    fn dot3<Rhs: VectorContract<4>, OutFractional: FractionalScalarContract>(&self, _rhs: Rhs, _op_mode: OpMode) -> OutFractional {
+    /// - Panics when `Mode: OpMode` resolves to an unsupported kind/repr projection.
+    fn dot3<Mode: OpMode, Rhs: VectorContract<4>, OutFractional: FractionalScalarContract>(&self, _rhs: Rhs, _op_policy: OpPolicy) -> OutFractional {
         todo!()
     }
 }

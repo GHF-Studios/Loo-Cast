@@ -8,8 +8,8 @@
 //!
 //! Kind/repr mechanism:
 //! - Mixed-repr operands use `UsfOrNormal*` aliases and `OneOf2` branch wrappers.
-//! - Projection requests that can materialize USF or normal output use `OpMode`.
-//! - Operation-intrinsic mode variance should be expressed with `op_policy::OpPolicy<T>`.
+//! - Projection specializations that can materialize USF or normal output use `Mode: OpMode`.
+//! - Operation-intrinsic mode variance should be expressed with `op_policy::OpPolicy`, and policy compatibility must be validated at runtime by each concrete algorithm implementation.
 //!
 //! Method doc schema:
 //! - Summary line: describe intent and core working principle.
@@ -19,6 +19,7 @@
 //! - Optional `# Panics` section for runtime guard clauses and undefined math states.
 
 use super::super::op_mode::OpMode;
+use super::super::op_policy::OpPolicy;
 use super::super::scalar::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
 use super::super::scalar::shared::SignedIntegerType;
 use super::super::vector::aliases::UsfOrNormalVector;
@@ -257,7 +258,7 @@ pub trait MatrixCoreOps<const R: usize, const C: usize>: Clone + Sized {
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `rhs` (UsfOrNormalVector<C>): Right-hand-side operand.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalVector<R>`.
@@ -267,7 +268,7 @@ pub trait MatrixCoreOps<const R: usize, const C: usize>: Clone + Sized {
     /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
-    fn matmul_vector(&self, _rhs: UsfOrNormalVector<C>, _op_mode: OpMode) -> UsfOrNormalVector<R> {
+    fn matmul_vector<Mode: OpMode>(&self, _rhs: UsfOrNormalVector<C>, _op_policy: OpPolicy) -> UsfOrNormalVector<R> {
         todo!()
     }
 
@@ -276,7 +277,7 @@ pub trait MatrixCoreOps<const R: usize, const C: usize>: Clone + Sized {
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `rhs` (UsfOrNormalMatrix<C, K>): Right-hand-side operand.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalMatrix<R, K>`.
@@ -286,7 +287,7 @@ pub trait MatrixCoreOps<const R: usize, const C: usize>: Clone + Sized {
     /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
-    fn matmul<const K: usize>(&self, _rhs: UsfOrNormalMatrix<C, K>, _op_mode: OpMode) -> UsfOrNormalMatrix<R, K> {
+    fn matmul<Mode: OpMode, const K: usize>(&self, _rhs: UsfOrNormalMatrix<C, K>, _op_policy: OpPolicy) -> UsfOrNormalMatrix<R, K> {
         todo!()
     }
 
@@ -367,22 +368,22 @@ pub trait MatrixFieldOps<const R: usize, const C: usize>: MatrixCoreOps<R, C> {
         todo!()
     }
 
-    /// Returns matrix component in requested op mode.
+    /// Returns matrix component in selected mode specialization.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `row` (usize): Zero-based row index.
     /// - `col` (usize): Zero-based column index.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalScalar`.
     ///
     /// # Repr
-    /// - Output projection is selected via `op_mode`.
+    /// - Output projection is selected by `Mode: OpMode` at facade monomorphization time.
     /// # Panics
     /// - Panics if `row` or `col` is out of bounds.
-    fn get_component(&self, _row: usize, _col: usize, _op_mode: OpMode) -> UsfOrNormalScalar {
+    fn get_component<Mode: OpMode>(&self, _row: usize, _col: usize, _op_policy: OpPolicy) -> UsfOrNormalScalar {
         todo!()
     }
 
@@ -425,18 +426,18 @@ pub trait SquareMatrixCoreOps<const D: usize>: MatrixCoreOps<D, D> {
         todo!()
     }
 
-    /// Computes determinant in requested op mode.
+    /// Computes determinant in selected mode specialization.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalFractionalScalar`.
     ///
     /// # Repr
-    /// - Output projection is selected via `op_mode`.
-    fn determinant(&self, _op_mode: OpMode) -> UsfOrNormalFractionalScalar {
+    /// - Output projection is selected by `Mode: OpMode` at facade monomorphization time.
+    fn determinant<Mode: OpMode>(&self, _op_policy: OpPolicy) -> UsfOrNormalFractionalScalar {
         todo!()
     }
 
@@ -457,18 +458,18 @@ pub trait SquareMatrixCoreOps<const D: usize>: MatrixCoreOps<D, D> {
         todo!()
     }
 
-    /// Computes matrix trace in requested op mode.
+    /// Computes matrix trace in selected mode specialization.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalFractionalScalar`.
     ///
     /// # Repr
-    /// - Output projection is selected via `op_mode`.
-    fn trace(&self, _op_mode: OpMode) -> UsfOrNormalFractionalScalar {
+    /// - Output projection is selected by `Mode: OpMode` at facade monomorphization time.
+    fn trace<Mode: OpMode>(&self, _op_policy: OpPolicy) -> UsfOrNormalFractionalScalar {
         todo!()
     }
 

@@ -20,8 +20,8 @@ Purpose: focused math contract summary for cross-scale and local-runtime interop
 
 - These math contracts are not intended as direct end-user Rust APIs.
 - Canonical usage path is: Rust contract -> facade surface -> Rhai binding surface.
-- Kind/repr projection ambiguity is resolved through explicit parameter types (`UsfOrNormal*`, `OneOf*`) and `op_mode::OpMode`.
-- Operation-intrinsic mode variance (strictness, validation, algorithm flavor) is represented with `op_policy::OpPolicy<T>` and `OpPolicy::DeferToGlobal`.
+- Kind/repr projection is resolved through type-level mode parameterization (`Mode: op_mode::OpMode`, typically `op_mode::Mode<Kind, Repr>`), not runtime mode values.
+- Operation-intrinsic mode variance (strictness, validation, algorithm flavor) is represented with `op_policy::OpPolicy` and `OpPolicy::DeferToGlobal`.
 - Every exposed operation should document both:
   - Rust-side contract semantics.
   - Target Rhai call semantics/syntax once facades are bound.

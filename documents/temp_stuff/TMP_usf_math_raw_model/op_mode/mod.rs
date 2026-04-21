@@ -1,52 +1,76 @@
 #![allow(dead_code)]
 
-/// Mathematical kind targeted by an operation projection request.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum MathKind {
-    Scalar,
-    Vector,
-    Matrix,
-    Tensor3,
-    Tensor4,
-    Quaternion,
-    Translation,
-    Rotation,
-    Scale,
-    Transform,
-}
+use core::marker::PhantomData;
 
-/// Numeric representation regime requested for operation output.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum OpRepr {
-    Usf,
-    Normal,
-}
+/// Type-level marker for mathematical shape families.
+pub trait MathKind {}
 
-/// Generic operation projection configuration.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct ScalarKind;
+impl MathKind for ScalarKind {}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct VectorKind;
+impl MathKind for VectorKind {}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct MatrixKind;
+impl MathKind for MatrixKind {}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Tensor3Kind;
+impl MathKind for Tensor3Kind {}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Tensor4Kind;
+impl MathKind for Tensor4Kind {}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct QuaternionKind;
+impl MathKind for QuaternionKind {}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct TranslationKind;
+impl MathKind for TranslationKind {}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RotationKind;
+impl MathKind for RotationKind {}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct ScaleKind;
+impl MathKind for ScaleKind {}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct TransformKind;
+impl MathKind for TransformKind {}
+
+/// Type-level marker for representation regime.
+pub trait OpRepr {}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct UsfRepr;
+impl OpRepr for UsfRepr {}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct NormalRepr;
+impl OpRepr for NormalRepr {}
+
+/// Type-level OpMode contract.
 ///
-/// Intended for contract/facade layers where a call can project into
-/// different mathematical kinds and representation regimes before
-/// facade-level monomorphization.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct OpMode {
-    pub kind: MathKind,
-    pub repr: OpRepr,
+/// OpMode is not a runtime configuration value.
+/// It exists only as a generic parameterization (`Kind`, `Repr`) for
+/// facade monomorphization and overload selection.
+pub trait OpMode {
+    type Kind: MathKind;
+    type Repr: OpRepr;
 }
 
-impl OpMode {
-    #[inline]
-    pub const fn usf(kind: MathKind) -> Self {
-        Self {
-            kind,
-            repr: OpRepr::Usf,
-        }
-    }
+/// Generic type-level op-mode marker.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Mode<K: MathKind, R: OpRepr>(PhantomData<(K, R)>);
 
-    #[inline]
-    pub const fn normal(kind: MathKind) -> Self {
-        Self {
-            kind,
-            repr: OpRepr::Normal,
-        }
-    }
+impl<K: MathKind, R: OpRepr> OpMode for Mode<K, R> {
+    type Kind = K;
+    type Repr = R;
 }

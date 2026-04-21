@@ -8,11 +8,12 @@
 //!
 //! Kind/repr mechanism:
 //! - Mixed-repr operands are represented with `UsfOrNormal*` aliases and `OneOf2`.
-//! - Output projection-sensitive getters use `OpMode` where needed.
+//! - Type-level projection-sensitive getters use `Mode: OpMode` where needed.
 //! - Invalid kind/repr combinations panic fast.
-//! - Operation-intrinsic mode variance should be expressed with `op_policy::OpPolicy<T>`.
+//! - Operation-intrinsic mode variance should be expressed with `op_policy::OpPolicy`, and policy compatibility must be validated at runtime by each concrete algorithm implementation.
 
 use super::super::op_mode::OpMode;
+use super::super::op_policy::OpPolicy;
 use super::super::scalar::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
 use super::aliases::{UsfOrNormalRotationQuaternion, UsfOrNormalTranslationVector};
 use crate::utils::one_of::OneOf2;
@@ -278,48 +279,48 @@ pub trait ScaleCoreOps: Clone + Sized {
 
 /// Scale field access contract.
 pub trait ScaleFieldOps: ScaleCoreOps {
-    /// Returns X-axis scale component in requested op mode.
+    /// Returns X-axis scale component in selected mode specialization.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalFractionalScalar`.
     ///
     /// # Repr
-    /// - Output projection is selected via `op_mode`.
-    fn get_x(&self, _op_mode: OpMode) -> UsfOrNormalFractionalScalar {
+    /// - Output projection is selected by `Mode: OpMode` at facade monomorphization time.
+    fn get_x<Mode: OpMode>(&self, _op_policy: OpPolicy) -> UsfOrNormalFractionalScalar {
         todo!()
     }
 
-    /// Returns Y-axis scale component in requested op mode.
+    /// Returns Y-axis scale component in selected mode specialization.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalFractionalScalar`.
     ///
     /// # Repr
-    /// - Output projection is selected via `op_mode`.
-    fn get_y(&self, _op_mode: OpMode) -> UsfOrNormalFractionalScalar {
+    /// - Output projection is selected by `Mode: OpMode` at facade monomorphization time.
+    fn get_y<Mode: OpMode>(&self, _op_policy: OpPolicy) -> UsfOrNormalFractionalScalar {
         todo!()
     }
 
-    /// Returns Z-axis scale component in requested op mode.
+    /// Returns Z-axis scale component in selected mode specialization.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalFractionalScalar`.
     ///
     /// # Repr
-    /// - Output projection is selected via `op_mode`.
-    fn get_z(&self, _op_mode: OpMode) -> UsfOrNormalFractionalScalar {
+    /// - Output projection is selected by `Mode: OpMode` at facade monomorphization time.
+    fn get_z<Mode: OpMode>(&self, _op_policy: OpPolicy) -> UsfOrNormalFractionalScalar {
         todo!()
     }
 

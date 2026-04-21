@@ -9,8 +9,8 @@
 //! Kind/repr mechanism:
 //! - Mixed-repr scalar inputs use `UsfOrNormalScalar`.
 //! - Mixed-repr interpolation factors use `UsfOrNormalFractionalScalar`.
-//! - Output projection policy for mixed-repr read paths is handled by facade-level `OpMode` where needed.
-//! - Operation-intrinsic mode variance should be expressed with `op_policy::OpPolicy<T>`.
+//! - Output projection policy for mixed-repr read paths is handled by facade-level `Mode: OpMode` parameterization where needed.
+//! - Operation-intrinsic mode variance should be expressed with `op_policy::OpPolicy`, and policy compatibility must be validated at runtime by each concrete algorithm implementation.
 //!
 //! Method doc schema:
 //! - Summary line: describe intent and core working principle.

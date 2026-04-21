@@ -8,11 +8,12 @@
 //!
 //! Kind/repr mechanism:
 //! - Mixed-repr operands use `UsfOrNormal*` aliases and `Tensor4OrScalar`.
-//! - Output projection requests are expressed through `OpMode`.
+//! - Type-level projection requests are expressed through `Mode: OpMode`.
 //! - Invalid kind/repr combinations panic fast.
-//! - Operation-intrinsic mode variance should be expressed with `op_policy::OpPolicy<T>`.
+//! - Operation-intrinsic mode variance should be expressed with `op_policy::OpPolicy`, and policy compatibility must be validated at runtime by each concrete algorithm implementation.
 
 use super::super::op_mode::OpMode;
+use super::super::op_policy::OpPolicy;
 use super::super::matrix::aliases::UsfOrNormalMatrix;
 use super::super::scalar::aliases::UsfOrNormalScalar;
 use super::super::tensor::aliases::UsfOrNormalTensor;
@@ -56,18 +57,18 @@ pub trait Tensor4CoreOps<const A: usize, const B: usize, const C: usize, const D
         todo!()
     }
 
-    /// Returns axis-A chunks in requested op mode.
+    /// Returns axis-A chunks in selected mode specialization.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Fixed-size array result of type `[UsfOrNormalTensor<B, C, D>; A]`.
     ///
     /// # Repr
-    /// - Output projection is selected via `op_mode`.
-    fn to_chunks(&self, _op_mode: OpMode) -> [UsfOrNormalTensor<B, C, D>; A] {
+    /// - Output projection is selected by `Mode: OpMode` at facade monomorphization time.
+    fn to_chunks<Mode: OpMode>(&self, _op_policy: OpPolicy) -> [UsfOrNormalTensor<B, C, D>; A] {
         todo!()
     }
 
@@ -234,16 +235,16 @@ pub trait Tensor4FieldOps<const A: usize, const B: usize, const C: usize, const 
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `index` (usize): Zero-based index.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalTensor<B, C, D>`.
     ///
     /// # Repr
-    /// - Output projection is selected via `op_mode`.
+    /// - Output projection is selected by `Mode: OpMode` at facade monomorphization time.
     /// # Panics
     /// - Panics if `index` is out of bounds.
-    fn get_chunk(&self, _index: usize, _op_mode: OpMode) -> UsfOrNormalTensor<B, C, D> {
+    fn get_chunk<Mode: OpMode>(&self, _index: usize, _op_policy: OpPolicy) -> UsfOrNormalTensor<B, C, D> {
         todo!()
     }
 
@@ -274,16 +275,16 @@ pub trait Tensor4FieldOps<const A: usize, const B: usize, const C: usize, const 
     /// - `self`: Receiver value.
     /// - `i` (usize): Axis index i (zero-based).
     /// - `j` (usize): Axis index j (zero-based).
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalMatrix<C, D>`.
     ///
     /// # Repr
-    /// - Output projection is selected via `op_mode`.
+    /// - Output projection is selected by `Mode: OpMode` at facade monomorphization time.
     /// # Panics
     /// - Panics if `i` or `j` is out of bounds.
-    fn get_matrix(&self, _i: usize, _j: usize, _op_mode: OpMode) -> UsfOrNormalMatrix<C, D> {
+    fn get_matrix<Mode: OpMode>(&self, _i: usize, _j: usize, _op_policy: OpPolicy) -> UsfOrNormalMatrix<C, D> {
         todo!()
     }
 
@@ -316,16 +317,16 @@ pub trait Tensor4FieldOps<const A: usize, const B: usize, const C: usize, const 
     /// - `i` (usize): Axis index i (zero-based).
     /// - `j` (usize): Axis index j (zero-based).
     /// - `k` (usize): Axis index k (zero-based).
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalVector<D>`.
     ///
     /// # Repr
-    /// - Output projection is selected via `op_mode`.
+    /// - Output projection is selected by `Mode: OpMode` at facade monomorphization time.
     /// # Panics
     /// - Panics if `i`, `j`, or `k` is out of bounds.
-    fn get_vector(&self, _i: usize, _j: usize, _k: usize, _op_mode: OpMode) -> UsfOrNormalVector<D> {
+    fn get_vector<Mode: OpMode>(&self, _i: usize, _j: usize, _k: usize, _op_policy: OpPolicy) -> UsfOrNormalVector<D> {
         todo!()
     }
 
@@ -360,16 +361,16 @@ pub trait Tensor4FieldOps<const A: usize, const B: usize, const C: usize, const 
     /// - `j` (usize): Axis index j (zero-based).
     /// - `k` (usize): Axis index k (zero-based).
     /// - `l` (usize): Axis index l (zero-based).
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalScalar`.
     ///
     /// # Repr
-    /// - Output projection is selected via `op_mode`.
+    /// - Output projection is selected by `Mode: OpMode` at facade monomorphization time.
     /// # Panics
     /// - Panics if any index is out of bounds.
-    fn get_component(&self, _i: usize, _j: usize, _k: usize, _l: usize, _op_mode: OpMode) -> UsfOrNormalScalar {
+    fn get_component<Mode: OpMode>(&self, _i: usize, _j: usize, _k: usize, _l: usize, _op_policy: OpPolicy) -> UsfOrNormalScalar {
         todo!()
     }
 
@@ -401,7 +402,7 @@ pub trait Tensor4FieldOps<const A: usize, const B: usize, const C: usize, const 
 /// Higher-rank projection helpers for rank-4 tensors.
 /// # Panics
 /// - Getter methods panic if any provided index is out of bounds.
-/// - Getter methods panic when `op_mode` requests an unsupported kind/repr projection.
+/// - Getter methods panic when `Mode: OpMode` resolves to an unsupported kind/repr projection.
 /// - Setter methods panic if any provided index is out of bounds.
 /// - Setter methods panic if repr combination is invalid for this operation.
 /// - Setter methods panic when the addressed field is immutable under backend field policy.
@@ -411,11 +412,11 @@ pub trait Tensor4ProjectionCoreOps<const A: usize, const B: usize, const C: usiz
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `a` (usize): Axis index a (zero-based).
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalTensor<B, C, D>`.
-    fn get_tensor_bcd(&self, _a: usize, _op_mode: OpMode) -> UsfOrNormalTensor<B, C, D> {
+    fn get_tensor_bcd<Mode: OpMode>(&self, _a: usize, _op_policy: OpPolicy) -> UsfOrNormalTensor<B, C, D> {
         todo!()
     }
 
@@ -437,11 +438,11 @@ pub trait Tensor4ProjectionCoreOps<const A: usize, const B: usize, const C: usiz
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `b` (usize): Secondary operand used by the operation.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalTensor<A, C, D>`.
-    fn get_tensor_acd(&self, _b: usize, _op_mode: OpMode) -> UsfOrNormalTensor<A, C, D> {
+    fn get_tensor_acd<Mode: OpMode>(&self, _b: usize, _op_policy: OpPolicy) -> UsfOrNormalTensor<A, C, D> {
         todo!()
     }
 
@@ -463,11 +464,11 @@ pub trait Tensor4ProjectionCoreOps<const A: usize, const B: usize, const C: usiz
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `c` (usize): Tertiary operand used by the operation.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalTensor<A, B, D>`.
-    fn get_tensor_abd(&self, _c: usize, _op_mode: OpMode) -> UsfOrNormalTensor<A, B, D> {
+    fn get_tensor_abd<Mode: OpMode>(&self, _c: usize, _op_policy: OpPolicy) -> UsfOrNormalTensor<A, B, D> {
         todo!()
     }
 
@@ -489,11 +490,11 @@ pub trait Tensor4ProjectionCoreOps<const A: usize, const B: usize, const C: usiz
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `d` (usize): Axis index d (zero-based).
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalTensor<A, B, C>`.
-    fn get_tensor_abc(&self, _d: usize, _op_mode: OpMode) -> UsfOrNormalTensor<A, B, C> {
+    fn get_tensor_abc<Mode: OpMode>(&self, _d: usize, _op_policy: OpPolicy) -> UsfOrNormalTensor<A, B, C> {
         todo!()
     }
 
@@ -516,11 +517,11 @@ pub trait Tensor4ProjectionCoreOps<const A: usize, const B: usize, const C: usiz
     /// - `self`: Receiver value.
     /// - `a` (usize): Axis index a (zero-based).
     /// - `b` (usize): Secondary operand used by the operation.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalMatrix<C, D>`.
-    fn get_matrix_cd(&self, _a: usize, _b: usize, _op_mode: OpMode) -> UsfOrNormalMatrix<C, D> {
+    fn get_matrix_cd<Mode: OpMode>(&self, _a: usize, _b: usize, _op_policy: OpPolicy) -> UsfOrNormalMatrix<C, D> {
         todo!()
     }
 
@@ -544,11 +545,11 @@ pub trait Tensor4ProjectionCoreOps<const A: usize, const B: usize, const C: usiz
     /// - `self`: Receiver value.
     /// - `a` (usize): Axis index a (zero-based).
     /// - `c` (usize): Tertiary operand used by the operation.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalMatrix<B, D>`.
-    fn get_matrix_bd(&self, _a: usize, _c: usize, _op_mode: OpMode) -> UsfOrNormalMatrix<B, D> {
+    fn get_matrix_bd<Mode: OpMode>(&self, _a: usize, _c: usize, _op_policy: OpPolicy) -> UsfOrNormalMatrix<B, D> {
         todo!()
     }
 
@@ -572,11 +573,11 @@ pub trait Tensor4ProjectionCoreOps<const A: usize, const B: usize, const C: usiz
     /// - `self`: Receiver value.
     /// - `a` (usize): Axis index a (zero-based).
     /// - `d` (usize): Axis index d (zero-based).
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalMatrix<B, C>`.
-    fn get_matrix_bc(&self, _a: usize, _d: usize, _op_mode: OpMode) -> UsfOrNormalMatrix<B, C> {
+    fn get_matrix_bc<Mode: OpMode>(&self, _a: usize, _d: usize, _op_policy: OpPolicy) -> UsfOrNormalMatrix<B, C> {
         todo!()
     }
 
@@ -600,11 +601,11 @@ pub trait Tensor4ProjectionCoreOps<const A: usize, const B: usize, const C: usiz
     /// - `self`: Receiver value.
     /// - `b` (usize): Secondary operand used by the operation.
     /// - `c` (usize): Tertiary operand used by the operation.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalMatrix<A, D>`.
-    fn get_matrix_ad(&self, _b: usize, _c: usize, _op_mode: OpMode) -> UsfOrNormalMatrix<A, D> {
+    fn get_matrix_ad<Mode: OpMode>(&self, _b: usize, _c: usize, _op_policy: OpPolicy) -> UsfOrNormalMatrix<A, D> {
         todo!()
     }
 
@@ -628,11 +629,11 @@ pub trait Tensor4ProjectionCoreOps<const A: usize, const B: usize, const C: usiz
     /// - `self`: Receiver value.
     /// - `b` (usize): Secondary operand used by the operation.
     /// - `d` (usize): Axis index d (zero-based).
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalMatrix<A, C>`.
-    fn get_matrix_ac(&self, _b: usize, _d: usize, _op_mode: OpMode) -> UsfOrNormalMatrix<A, C> {
+    fn get_matrix_ac<Mode: OpMode>(&self, _b: usize, _d: usize, _op_policy: OpPolicy) -> UsfOrNormalMatrix<A, C> {
         todo!()
     }
 
@@ -656,11 +657,11 @@ pub trait Tensor4ProjectionCoreOps<const A: usize, const B: usize, const C: usiz
     /// - `self`: Receiver value.
     /// - `c` (usize): Tertiary operand used by the operation.
     /// - `d` (usize): Axis index d (zero-based).
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalMatrix<A, B>`.
-    fn get_matrix_ab(&self, _c: usize, _d: usize, _op_mode: OpMode) -> UsfOrNormalMatrix<A, B> {
+    fn get_matrix_ab<Mode: OpMode>(&self, _c: usize, _d: usize, _op_policy: OpPolicy) -> UsfOrNormalMatrix<A, B> {
         todo!()
     }
 
@@ -685,11 +686,11 @@ pub trait Tensor4ProjectionCoreOps<const A: usize, const B: usize, const C: usiz
     /// - `a` (usize): Axis index a (zero-based).
     /// - `b` (usize): Secondary operand used by the operation.
     /// - `c` (usize): Tertiary operand used by the operation.
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalVector<D>`.
-    fn get_vector_d(&self, _a: usize, _b: usize, _c: usize, _op_mode: OpMode) -> UsfOrNormalVector<D> {
+    fn get_vector_d<Mode: OpMode>(&self, _a: usize, _b: usize, _c: usize, _op_policy: OpPolicy) -> UsfOrNormalVector<D> {
         todo!()
     }
 
@@ -715,11 +716,11 @@ pub trait Tensor4ProjectionCoreOps<const A: usize, const B: usize, const C: usiz
     /// - `a` (usize): Axis index a (zero-based).
     /// - `b` (usize): Secondary operand used by the operation.
     /// - `d` (usize): Axis index d (zero-based).
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalVector<C>`.
-    fn get_vector_c(&self, _a: usize, _b: usize, _d: usize, _op_mode: OpMode) -> UsfOrNormalVector<C> {
+    fn get_vector_c<Mode: OpMode>(&self, _a: usize, _b: usize, _d: usize, _op_policy: OpPolicy) -> UsfOrNormalVector<C> {
         todo!()
     }
 
@@ -745,11 +746,11 @@ pub trait Tensor4ProjectionCoreOps<const A: usize, const B: usize, const C: usiz
     /// - `a` (usize): Axis index a (zero-based).
     /// - `c` (usize): Tertiary operand used by the operation.
     /// - `d` (usize): Axis index d (zero-based).
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalVector<B>`.
-    fn get_vector_b(&self, _a: usize, _c: usize, _d: usize, _op_mode: OpMode) -> UsfOrNormalVector<B> {
+    fn get_vector_b<Mode: OpMode>(&self, _a: usize, _c: usize, _d: usize, _op_policy: OpPolicy) -> UsfOrNormalVector<B> {
         todo!()
     }
 
@@ -775,11 +776,11 @@ pub trait Tensor4ProjectionCoreOps<const A: usize, const B: usize, const C: usiz
     /// - `b` (usize): Secondary operand used by the operation.
     /// - `c` (usize): Tertiary operand used by the operation.
     /// - `d` (usize): Axis index d (zero-based).
-    /// - `op_mode` (OpMode): Output kind/repr projection policy.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalVector<A>`.
-    fn get_vector_a(&self, _b: usize, _c: usize, _d: usize, _op_mode: OpMode) -> UsfOrNormalVector<A> {
+    fn get_vector_a<Mode: OpMode>(&self, _b: usize, _c: usize, _d: usize, _op_policy: OpPolicy) -> UsfOrNormalVector<A> {
         todo!()
     }
 

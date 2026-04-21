@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-/// Operation policy wrapper for mathematically intrinsic mode variants.
+/// Runtime operation-policy wrapper for mathematically intrinsic mode variants.
 ///
 /// `DeferToGlobal` is the default route for runtime-configured policy.
 /// `Explicit` allows call-site override when the operation surface exposes it.
