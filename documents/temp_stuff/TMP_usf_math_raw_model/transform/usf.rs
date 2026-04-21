@@ -3,7 +3,7 @@
 use super::super::aliases::OutputMode;
 use super::super::field::Field;
 use super::super::quaternion::usf::UsfQuaternion;
-use super::super::scalar::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
+use super::super::scalar::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
 use super::super::scalar::usf::UsfScalar;
 use super::super::vector::usf::UsfVector;
 pub use super::aliases::{UsfOrNormalRotationQuaternion, UsfOrNormalTranslationVector};

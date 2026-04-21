@@ -26,10 +26,10 @@ pub(super) enum NormalScalarRepr {
 
 #[derive(Clone, Debug, PartialEq)]
 #[repr(transparent)]
-pub struct NormalDecimalScalar(pub(super) Field<NormalDecimalScalarRepr>);
+pub struct NormalFractionalScalar(pub(super) Field<NormalFractionalScalarRepr>);
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) enum NormalDecimalScalarRepr {
+pub(super) enum NormalFractionalScalarRepr {
     F32(f32),
     F64(f64),
 }
@@ -38,6 +38,7 @@ impl super::shared::ScalarCoreOps for NormalScalar {}
 impl super::shared::ScalarFieldOps for NormalScalar {}
 impl super::shared::ScalarBridgeOps for NormalScalar {}
 
-impl super::shared::ScalarCoreOps for NormalDecimalScalar {}
-impl super::shared::ScalarFieldOps for NormalDecimalScalar {}
-impl super::shared::ScalarBridgeOps for NormalDecimalScalar {}
+impl super::shared::ScalarCoreOps for NormalFractionalScalar {}
+impl super::shared::ScalarFieldOps for NormalFractionalScalar {}
+impl super::shared::ScalarBridgeOps for NormalFractionalScalar {}
+impl super::shared::FractionalScalarContract for NormalFractionalScalar {}

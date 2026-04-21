@@ -1,8 +1,6 @@
 #![allow(dead_code)]
 
-use super::super::aliases::OutputMode;
 use super::super::field::Field;
-use super::super::scalar::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
 use super::super::scalar::usf::UsfScalar;
 pub use super::aliases::{UsfOrNormalVector, VectorOrScalar};
 

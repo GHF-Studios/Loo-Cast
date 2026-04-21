@@ -1,10 +1,9 @@
 #![allow(dead_code)]
 
 use super::super::field::Field;
-pub use super::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
-use super::normal::{NormalDecimalScalar, NormalScalar};
-use super::shared::{FloatType, IntegerType, ScalarContract, ScalarType, SignedIntegerType, UnsignedIntegerType};
-use crate::utils::one_of::OneOf2;
+pub use super::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
+use super::normal::{NormalFractionalScalar, NormalScalar};
+use super::shared::{FloatType, IntegerType, ScalarType, SignedIntegerType, UnsignedIntegerType};
 
 pub type UsfDigit = i8;
 
@@ -23,3 +22,4 @@ impl FloatType for UsfScalar {}
 impl super::shared::ScalarCoreOps for UsfScalar {}
 impl super::shared::ScalarFieldOps for UsfScalar {}
 impl super::shared::ScalarBridgeOps for UsfScalar {}
+impl super::shared::FractionalScalarContract for UsfScalar {}

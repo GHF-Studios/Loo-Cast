@@ -19,7 +19,7 @@
 //! - Optional `# Panics` section for runtime guard clauses and undefined math states.
 
 use super::super::aliases::OutputMode;
-use super::super::scalar::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
+use super::super::scalar::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
 use super::super::vector::aliases::UsfOrNormalVector;
 use super::aliases::{UsfOrNormalMat3, UsfOrNormalQuaternion};
 
@@ -45,10 +45,10 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// Builds a value from xyzw.
     ///
     /// # Parameters
-    /// - `x` (UsfOrNormalDecimalScalar): X component value.
-    /// - `y` (UsfOrNormalDecimalScalar): Y component value.
-    /// - `z` (UsfOrNormalDecimalScalar): Z component value.
-    /// - `w` (UsfOrNormalDecimalScalar): W component value.
+    /// - `x` (UsfOrNormalFractionalScalar): X component value.
+    /// - `y` (UsfOrNormalFractionalScalar): Y component value.
+    /// - `z` (UsfOrNormalFractionalScalar): Z component value.
+    /// - `w` (UsfOrNormalFractionalScalar): W component value.
     ///
     /// # Returns
     /// - A new value of the same concrete type.
@@ -59,7 +59,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
     /// - Panics if the input quaternion cannot be normalized into a valid rotation state.
-    fn from_xyzw(_x: UsfOrNormalDecimalScalar, _y: UsfOrNormalDecimalScalar, _z: UsfOrNormalDecimalScalar, _w: UsfOrNormalDecimalScalar) -> Self {
+    fn from_xyzw(_x: UsfOrNormalFractionalScalar, _y: UsfOrNormalFractionalScalar, _z: UsfOrNormalFractionalScalar, _w: UsfOrNormalFractionalScalar) -> Self {
         todo!()
     }
 
@@ -70,14 +70,14 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - `output_mode` (OutputMode): Output domain/quality projection policy.
     ///
     /// # Returns
-    /// - Fixed-size array result of type `[UsfOrNormalDecimalScalar; 4]`.
+    /// - Fixed-size array result of type `[UsfOrNormalFractionalScalar; 4]`.
     ///
     /// # Domain
     /// - Output projection is selected via `output_mode`.
     /// # Panics
     /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
     /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but component projection loses precision or range.
-    fn to_xyzw(&self, _output_mode: OutputMode) -> [UsfOrNormalDecimalScalar; 4] {
+    fn to_xyzw(&self, _output_mode: OutputMode) -> [UsfOrNormalFractionalScalar; 4] {
         todo!()
     }
 
@@ -300,7 +300,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `rhs` (UsfOrNormalQuaternion): Right-hand-side operand.
-    /// - `t` (UsfOrNormalDecimalScalar): Interpolation factor.
+    /// - `t` (UsfOrNormalFractionalScalar): Interpolation factor.
     ///
     /// # Returns
     /// - A new value of the same concrete type.
@@ -311,7 +311,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - Disallowed combinations: none; all domain pairs are accepted.
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
-    fn component_lerp(&self, _rhs: UsfOrNormalQuaternion, _t: UsfOrNormalDecimalScalar) -> Self {
+    fn component_lerp(&self, _rhs: UsfOrNormalQuaternion, _t: UsfOrNormalFractionalScalar) -> Self {
         todo!()
     }
 
@@ -320,7 +320,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `rhs` (UsfOrNormalQuaternion): Right-hand-side operand.
-    /// - `t` (UsfOrNormalDecimalScalar): Interpolation factor.
+    /// - `t` (UsfOrNormalFractionalScalar): Interpolation factor.
     ///
     /// # Returns
     /// - A new value of the same concrete type.
@@ -331,7 +331,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - Disallowed combinations: none; all domain pairs are accepted.
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
-    fn component_smoothstep(&self, _rhs: UsfOrNormalQuaternion, _t: UsfOrNormalDecimalScalar) -> Self {
+    fn component_smoothstep(&self, _rhs: UsfOrNormalQuaternion, _t: UsfOrNormalFractionalScalar) -> Self {
         todo!()
     }
 
@@ -346,7 +346,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - `output_mode` (OutputMode): Output domain/quality projection policy.
     ///
     /// # Returns
-    /// - Computed result of type `UsfOrNormalDecimalScalar`.
+    /// - Computed result of type `UsfOrNormalFractionalScalar`.
     ///
     /// # Domain
     /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
@@ -355,7 +355,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - Panics if domain selection is invalid for this backend.
     /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
     /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
-    fn dot(&self, _rhs: UsfOrNormalQuaternion, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
+    fn dot(&self, _rhs: UsfOrNormalQuaternion, _output_mode: OutputMode) -> UsfOrNormalFractionalScalar {
         todo!()
     }
 
@@ -385,7 +385,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     ///
     /// # Parameters
     /// - `axis` (UsfOrNormalVector<3>): Axis vector.
-    /// - `angle_rad` (UsfOrNormalDecimalScalar): Angle in radians.
+    /// - `angle_rad` (UsfOrNormalFractionalScalar): Angle in radians.
     ///
     /// # Returns
     /// - A new value of the same concrete type.
@@ -397,7 +397,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
     /// - Panics if `axis` is zero-length.
-    fn from_axis_angle(_axis: UsfOrNormalVector<3>, _angle_rad: UsfOrNormalDecimalScalar) -> Self {
+    fn from_axis_angle(_axis: UsfOrNormalVector<3>, _angle_rad: UsfOrNormalFractionalScalar) -> Self {
         todo!()
     }
 
@@ -408,7 +408,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - `output_mode` (OutputMode): Output domain/quality projection policy.
     ///
     /// # Returns
-    /// - Tuple result of type `(UsfOrNormalVector<3>, UsfOrNormalDecimalScalar)`.
+    /// - Tuple result of type `(UsfOrNormalVector<3>, UsfOrNormalFractionalScalar)`.
     ///
     /// # Domain
     /// - Output projection is selected via `output_mode`.
@@ -416,16 +416,16 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - Panics if `self` is not a valid normalized rotation quaternion.
     /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
     /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
-    fn to_axis_angle(&self, _output_mode: OutputMode) -> (UsfOrNormalVector<3>, UsfOrNormalDecimalScalar) {
+    fn to_axis_angle(&self, _output_mode: OutputMode) -> (UsfOrNormalVector<3>, UsfOrNormalFractionalScalar) {
         todo!()
     }
 
     /// Builds quaternion from XYZ Euler angles.
     ///
     /// # Parameters
-    /// - `x_rad` (UsfOrNormalDecimalScalar): Parameter `x_rad`.
-    /// - `y_rad` (UsfOrNormalDecimalScalar): Parameter `y_rad`.
-    /// - `z_rad` (UsfOrNormalDecimalScalar): Parameter `z_rad`.
+    /// - `x_rad` (UsfOrNormalFractionalScalar): Parameter `x_rad`.
+    /// - `y_rad` (UsfOrNormalFractionalScalar): Parameter `y_rad`.
+    /// - `z_rad` (UsfOrNormalFractionalScalar): Parameter `z_rad`.
     ///
     /// # Returns
     /// - A new value of the same concrete type.
@@ -435,7 +435,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - Disallowed combinations: none; all domain combinations are accepted.
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
-    fn from_euler_xyz(_x_rad: UsfOrNormalDecimalScalar, _y_rad: UsfOrNormalDecimalScalar, _z_rad: UsfOrNormalDecimalScalar) -> Self {
+    fn from_euler_xyz(_x_rad: UsfOrNormalFractionalScalar, _y_rad: UsfOrNormalFractionalScalar, _z_rad: UsfOrNormalFractionalScalar) -> Self {
         todo!()
     }
 
@@ -446,7 +446,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - `output_mode` (OutputMode): Output domain/quality projection policy.
     ///
     /// # Returns
-    /// - Fixed-size array result of type `[UsfOrNormalDecimalScalar; 3]`.
+    /// - Fixed-size array result of type `[UsfOrNormalFractionalScalar; 3]`.
     ///
     /// # Domain
     /// - Output projection is selected via `output_mode`.
@@ -454,7 +454,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - Panics if `self` is not a valid normalized rotation quaternion.
     /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
     /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
-    fn to_euler_xyz(&self, _output_mode: OutputMode) -> [UsfOrNormalDecimalScalar; 3] {
+    fn to_euler_xyz(&self, _output_mode: OutputMode) -> [UsfOrNormalFractionalScalar; 3] {
         todo!()
     }
 
@@ -463,7 +463,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `rhs` (UsfOrNormalQuaternion): Right-hand-side operand.
-    /// - `t` (UsfOrNormalDecimalScalar): Interpolation factor.
+    /// - `t` (UsfOrNormalFractionalScalar): Interpolation factor.
     ///
     /// # Returns
     /// - A new value of the same concrete type.
@@ -476,7 +476,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - Panics if domain selection is invalid for this backend.
     /// - Panics if interpolation endpoints are invalid rotation quaternions.
     /// - Panics if interpolation path is undefined for the endpoint pair.
-    fn slerp(&self, _rhs: UsfOrNormalQuaternion, _t: UsfOrNormalDecimalScalar) -> Self {
+    fn slerp(&self, _rhs: UsfOrNormalQuaternion, _t: UsfOrNormalFractionalScalar) -> Self {
         todo!()
     }
 
@@ -485,7 +485,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `rhs` (UsfOrNormalQuaternion): Right-hand-side operand.
-    /// - `t` (UsfOrNormalDecimalScalar): Interpolation factor.
+    /// - `t` (UsfOrNormalFractionalScalar): Interpolation factor.
     ///
     /// # Returns
     /// - A new value of the same concrete type.
@@ -498,7 +498,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - Panics if domain selection is invalid for this backend.
     /// - Panics if interpolation endpoints are invalid rotation quaternions.
     /// - Panics if normalized interpolation produces a zero norm.
-    fn nlerp(&self, _rhs: UsfOrNormalQuaternion, _t: UsfOrNormalDecimalScalar) -> Self {
+    fn nlerp(&self, _rhs: UsfOrNormalQuaternion, _t: UsfOrNormalFractionalScalar) -> Self {
         todo!()
     }
 

@@ -2,7 +2,7 @@
 
 use super::super::aliases::OutputMode;
 use super::super::field::Field;
-use super::super::scalar::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
+use super::super::scalar::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
 use super::super::scalar::shared::SignedIntegerType;
 use super::super::scalar::usf::UsfScalar;
 use super::super::vector::aliases::UsfOrNormalVector;

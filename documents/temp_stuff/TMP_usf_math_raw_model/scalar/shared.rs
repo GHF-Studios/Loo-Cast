@@ -8,7 +8,7 @@
 //!
 //! Domain/quality mechanism:
 //! - Mixed-domain scalar inputs use `UsfOrNormalScalar`.
-//! - Mixed-domain interpolation factors use `UsfOrNormalDecimalScalar`.
+//! - Mixed-domain interpolation factors use `UsfOrNormalFractionalScalar`.
 //! - Output projection policy for mixed-domain read paths is handled by facade-level `OutputMode` where needed.
 //!
 //! Method doc schema:
@@ -18,7 +18,7 @@
 //! - Optional `# Domain` section for mixed-domain semantics.
 //! - Optional `# Panics` section for runtime guard clauses and undefined math states.
 
-use super::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
+use super::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
 use crate::utils::one_of::OneOf2;
 
 /// Base trait for scalar carrier types used by the math sketch.
@@ -92,9 +92,24 @@ impl FloatType for f64 {}
 /// # Working Principle
 /// - Implementers define scalar semantics for their concrete representation.
 /// - Default method bodies are contract stubs and should be replaced by backend logic.
+/// - Mixed-domain operands are accepted through `UsfOrNormal*` aliases and resolved by backend policy.
+/// # Precision & Range
+/// - Implementations are responsible for enforcing range and precision constraints.
+/// - Lossless/lossy projection rules are typically coordinated through facade-level output policies.
 /// # Usage
 /// - Use `ScalarContract` bounds when consumers need core, field, and bridge operations together.
-/// - Use `UsfOrNormalScalar` / `UsfOrNormalDecimalScalar` parameters for mixed-domain inputs.
+/// - Use `UsfOrNormalScalar` / `UsfOrNormalFractionalScalar` parameters for mixed-domain inputs.
+///
+/// # Examples
+/// ```ignore
+/// use crate::usf::math::scalar::shared::ScalarContract;
+/// use crate::usf::math::scalar::aliases::UsfOrNormalScalar;
+/// use crate::usf::math::scalar::aliases::UsfOrNormalFractionalScalar;
+///
+/// fn blend<S: ScalarContract>(lhs: &S, rhs: UsfOrNormalScalar, factor: UsfOrNormalFractionalScalar) -> S {
+///     lhs.lerp(rhs, factor)
+/// }
+/// ```
 pub trait ScalarCoreOps: Clone + Sized {
     // Naming contract: scalars are single-component values, so canonical arithmetic names
     // stay `add/sub/mul/div/rem` instead of `component_*`.
@@ -228,8 +243,8 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// - A new value of the same concrete type.
     ///
     /// # Panics
-    /// - Panics if `text` is not a valid finite decimal literal for `UsfScalar`.
-    /// - Panics if the parsed range/precision cannot be represented by the internal digit model.
+    /// - Panics if `text` is not a valid finite decimal literal for this backend.
+    /// - Panics if parsed range/precision cannot be represented by this backend's numeric model.
     fn parse_decimal(_text: &str) -> Self {
         todo!()
     }
@@ -922,7 +937,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `rhs` (UsfOrNormalScalar): Right-hand-side operand.
-    /// - `t` (UsfOrNormalDecimalScalar): Interpolation factor.
+    /// - `t` (UsfOrNormalFractionalScalar): Interpolation factor.
     ///
     /// # Returns
     /// - A new value of the same concrete type.
@@ -933,7 +948,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// - Disallowed combinations: none; all domain pairs are accepted.
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
-    fn lerp(&self, _rhs: UsfOrNormalScalar, _t: UsfOrNormalDecimalScalar) -> Self {
+    fn lerp(&self, _rhs: UsfOrNormalScalar, _t: UsfOrNormalFractionalScalar) -> Self {
         todo!()
     }
 
@@ -943,7 +958,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// - `self`: Receiver value.
     /// - `edge0` (UsfOrNormalScalar): Lower interpolation edge.
     /// - `edge1` (UsfOrNormalScalar): Upper interpolation edge.
-    /// - `t` (UsfOrNormalDecimalScalar): Interpolation factor.
+    /// - `t` (UsfOrNormalFractionalScalar): Interpolation factor.
     ///
     /// # Returns
     /// - A new value of the same concrete type.
@@ -955,7 +970,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
     /// - Panics if edge ordering is invalid (`edge0 > edge1`) under strict smoothstep semantics.
-    fn smoothstep(&self, _edge0: UsfOrNormalScalar, _edge1: UsfOrNormalScalar, _t: UsfOrNormalDecimalScalar) -> Self {
+    fn smoothstep(&self, _edge0: UsfOrNormalScalar, _edge1: UsfOrNormalScalar, _t: UsfOrNormalFractionalScalar) -> Self {
         todo!()
     }
 
@@ -1175,3 +1190,25 @@ pub trait ScalarBridgeOps: ScalarCoreOps {
 pub trait ScalarContract: ScalarCoreOps + ScalarFieldOps + ScalarBridgeOps {}
 
 impl<T> ScalarContract for T where T: ScalarCoreOps + ScalarFieldOps + ScalarBridgeOps {}
+
+/// Marker contract for scalar carriers that can represent fractional values.
+/// This is a capability marker, not a value-class marker:
+/// - Types implementing this trait may still hold integer-valued runtime states.
+/// - The contract only requires that fractional representation is supported when needed.
+///
+/// This preserves semantics for operations that must not project into integer-only scalar
+/// domains (for example norms, distances, and angles).
+///
+/// # Examples
+/// ```ignore
+/// use crate::usf::math::scalar::shared::{FractionalScalarContract, ScalarContract};
+///
+/// fn keep_fractional<S: FractionalScalarContract>(value: S) -> S {
+///     value
+/// }
+///
+/// fn generic_scalar<S: ScalarContract>(value: S) -> S {
+///     value
+/// }
+/// ```
+pub trait FractionalScalarContract: ScalarContract {}

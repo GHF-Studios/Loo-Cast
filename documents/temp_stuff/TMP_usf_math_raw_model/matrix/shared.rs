@@ -18,7 +18,7 @@
 //! - Optional `# Panics` section for runtime guard clauses and undefined math states.
 
 use super::super::aliases::OutputMode;
-use super::super::scalar::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
+use super::super::scalar::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
 use super::super::scalar::shared::SignedIntegerType;
 use super::super::vector::aliases::UsfOrNormalVector;
 use super::aliases::UsfOrNormalMatrix;
@@ -437,14 +437,14 @@ pub trait SquareMatrixCoreOps<const D: usize>: MatrixCoreOps<D, D> {
     /// - `output_mode` (OutputMode): Output domain/quality projection policy.
     ///
     /// # Returns
-    /// - Computed result of type `UsfOrNormalDecimalScalar`.
+    /// - Computed result of type `UsfOrNormalFractionalScalar`.
     ///
     /// # Domain
     /// - Output projection is selected via `output_mode`.
     /// # Panics
     /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
     /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
-    fn determinant(&self, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
+    fn determinant(&self, _output_mode: OutputMode) -> UsfOrNormalFractionalScalar {
         todo!()
     }
 
@@ -472,14 +472,14 @@ pub trait SquareMatrixCoreOps<const D: usize>: MatrixCoreOps<D, D> {
     /// - `output_mode` (OutputMode): Output domain/quality projection policy.
     ///
     /// # Returns
-    /// - Computed result of type `UsfOrNormalDecimalScalar`.
+    /// - Computed result of type `UsfOrNormalFractionalScalar`.
     ///
     /// # Domain
     /// - Output projection is selected via `output_mode`.
     /// # Panics
     /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
     /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
-    fn trace(&self, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
+    fn trace(&self, _output_mode: OutputMode) -> UsfOrNormalFractionalScalar {
         todo!()
     }
 

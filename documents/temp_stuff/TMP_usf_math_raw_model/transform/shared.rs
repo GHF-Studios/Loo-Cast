@@ -12,7 +12,7 @@
 //! - Invalid domain-quality combinations panic fast.
 
 use super::super::aliases::OutputMode;
-use super::super::scalar::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
+use super::super::scalar::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
 use super::aliases::{UsfOrNormalRotationQuaternion, UsfOrNormalTranslationVector};
 use crate::utils::one_of::OneOf2;
 
@@ -257,9 +257,9 @@ pub trait ScaleCoreOps: Clone + Sized {
     /// Builds logarithmic scale state from base/index/fractional offset.
     ///
     /// # Parameters
-    /// - `log_base` (UsfOrNormalDecimalScalar): Logarithmic base.
+    /// - `log_base` (UsfOrNormalFractionalScalar): Logarithmic base.
     /// - `scale_index` (i16): Integral scale index.
-    /// - `fractional_log_offset` (UsfOrNormalDecimalScalar): Fractional logarithmic offset.
+    /// - `fractional_log_offset` (UsfOrNormalFractionalScalar): Fractional logarithmic offset.
     ///
     /// # Returns
     /// - A new value of the same concrete type.
@@ -272,7 +272,7 @@ pub trait ScaleCoreOps: Clone + Sized {
     /// - Panics if domain selection is invalid for this backend.
     /// - Panics if `log_base <= 0` or `log_base == 1`.
     /// - Panics if any scalar component is non-finite under finite-only scale semantics.
-    fn make(_log_base: UsfOrNormalDecimalScalar, _scale_index: i16, _fractional_log_offset: UsfOrNormalDecimalScalar) -> Self {
+    fn make(_log_base: UsfOrNormalFractionalScalar, _scale_index: i16, _fractional_log_offset: UsfOrNormalFractionalScalar) -> Self {
         todo!()
     }
 }
@@ -286,14 +286,14 @@ pub trait ScaleFieldOps: ScaleCoreOps {
     /// - `output_mode` (OutputMode): Output domain/quality projection policy.
     ///
     /// # Returns
-    /// - Computed result of type `UsfOrNormalDecimalScalar`.
+    /// - Computed result of type `UsfOrNormalFractionalScalar`.
     ///
     /// # Domain
     /// - Output projection is selected via `output_mode`.
     /// # Panics
     /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
     /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
-    fn get_log_base(&self, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
+    fn get_log_base(&self, _output_mode: OutputMode) -> UsfOrNormalFractionalScalar {
         todo!()
     }
 
@@ -315,14 +315,14 @@ pub trait ScaleFieldOps: ScaleCoreOps {
     /// - `output_mode` (OutputMode): Output domain/quality projection policy.
     ///
     /// # Returns
-    /// - Computed result of type `UsfOrNormalDecimalScalar`.
+    /// - Computed result of type `UsfOrNormalFractionalScalar`.
     ///
     /// # Domain
     /// - Output projection is selected via `output_mode`.
     /// # Panics
     /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
     /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
-    fn get_fractional_log_offset(&self, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
+    fn get_fractional_log_offset(&self, _output_mode: OutputMode) -> UsfOrNormalFractionalScalar {
         todo!()
     }
 
@@ -330,7 +330,7 @@ pub trait ScaleFieldOps: ScaleCoreOps {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `value` (UsfOrNormalDecimalScalar): Input value for this operation.
+    /// - `value` (UsfOrNormalFractionalScalar): Input value for this operation.
     ///
     /// # Returns
     /// - No value; mutates receiver state where applicable.
@@ -342,7 +342,7 @@ pub trait ScaleFieldOps: ScaleCoreOps {
     /// - Panics if domain selection is invalid for this backend.
     /// - Panics if `value <= 0` or `value == 1`.
     /// - Panics if `value` is non-finite under finite-only scale semantics.
-    fn set_log_base(&mut self, _value: UsfOrNormalDecimalScalar) {
+    fn set_log_base(&mut self, _value: UsfOrNormalFractionalScalar) {
         todo!()
     }
 
@@ -365,7 +365,7 @@ pub trait ScaleFieldOps: ScaleCoreOps {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `value` (UsfOrNormalDecimalScalar): Input value for this operation.
+    /// - `value` (UsfOrNormalFractionalScalar): Input value for this operation.
     ///
     /// # Returns
     /// - No value; mutates receiver state where applicable.
@@ -376,7 +376,7 @@ pub trait ScaleFieldOps: ScaleCoreOps {
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
     /// - Panics if the wrapped fractional-offset field is immutable under runtime field mutability policy.
-    fn set_fractional_log_offset(&mut self, _value: UsfOrNormalDecimalScalar) {
+    fn set_fractional_log_offset(&mut self, _value: UsfOrNormalFractionalScalar) {
         todo!()
     }
 }
