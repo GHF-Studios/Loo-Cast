@@ -11,7 +11,9 @@
 //! - Projection requests that can materialize USF or normal output use `OutputMode`.
 //!
 //! Method doc schema:
-//! - Summary line only when it adds value.
+//! - Summary line: describe intent and core working principle.
+//! - `# Parameters`: document each argument and expected role.
+//! - `# Returns`: document the returned value and shape/branch semantics.
 //! - Optional `# Domain` section for mixed-domain semantics.
 //! - Optional `# Panics` section for runtime guard clauses and undefined math states.
 
@@ -23,141 +25,314 @@ use super::aliases::UsfOrNormalMatrix;
 use crate::utils::one_of::OneOf2;
 
 /// Dimension-generic matrix core operations.
-/// Rhai surface target:
-/// - Expose shape-specific overloads (`2x2`, `3x3`, ...) through facade bindings.
-/// - Keep projection-sensitive ops explicit via `OutputMode`.
+/// # Working Principle
+/// - `R` and `C` are compile-time shape parameters for row and column counts.
+/// - Core methods define shape-preserving arithmetic plus projection-sensitive operations.
+/// # Usage
+/// - Implement this trait on concrete matrix carriers.
+/// - Use `MatrixContract<R, C>` or `SquareMatrixContract<D>` bounds in generic consumers.
 pub trait MatrixCoreOps<const R: usize, const C: usize>: Clone + Sized {
+    /// Zero matrix.
+    ///
+    /// # Parameters
+    /// - None.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
     fn zero() -> Self {
         todo!()
     }
 
-    /// Builds matrix from rows.
+    /// Builds matrix from `R` rows of width `C`.
+    ///
+    /// # Parameters
+    /// - `rows` ([UsfOrNormalVector<C>; R]): Row vectors used to build the matrix.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    ///
+    /// # Domain
+    /// - Allowed: `{rows: Usf}`.
+    /// - Disallowed combinations: `{rows: Normal}` in this concrete `UsfMatrix` API.
+    /// # Panics
+    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if runtime validation rejects degenerate matrix shape constraints.
     fn from_rows(_rows: [UsfOrNormalVector<C>; R]) -> Self {
         todo!()
     }
 
-    /// Returns row array.
+    /// Returns row-major matrix representation as USF rows.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    ///
+    /// # Returns
+    /// - Fixed-size array result of type `[UsfOrNormalVector<C>; R]`.
     fn to_rows(&self) -> [UsfOrNormalVector<C>; R] {
         todo!()
     }
 
     /// Returns transposed matrix.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    ///
+    /// # Returns
+    /// - Computed result of type `UsfOrNormalMatrix<C, R>`.
     fn transpose(&self) -> UsfOrNormalMatrix<C, R> {
         todo!()
     }
 
-    /// Element-wise multiplication.
+    /// Performs element-wise multiplication.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `rhs` (UsfOrNormalMatrix<R, C>): Right-hand-side operand.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    ///
+    /// # Domain
+    /// - Allowed: `{self: Usf, rhs: Usf}`.
+    /// - Disallowed combinations: `{rhs: Normal}` in this concrete `UsfMatrix` API.
+    /// # Panics
+    /// - Panics if domain selection is invalid for this backend.
     fn component_mul(&self, _rhs: UsfOrNormalMatrix<R, C>) -> Self {
         todo!()
     }
 
-    /// Element-wise division.
+    /// Performs element-wise division.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `rhs` (UsfOrNormalMatrix<R, C>): Right-hand-side operand.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    ///
+    /// # Domain
+    /// - Allowed: `{self: Usf, rhs: Usf}`.
+    /// - Disallowed combinations: `{rhs: Normal}` in this concrete `UsfMatrix` API.
     /// # Panics
-    /// - Panics if any addressed divisor component is zero.
+    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if any corresponding matrix component in `rhs` is zero.
     fn component_div(&self, _rhs: UsfOrNormalMatrix<R, C>) -> Self {
         todo!()
     }
 
-    /// Adds matrix or scalar operand.
-    /// # Rhai
-    /// - Facade overload keeps this method name; concrete bindings resolve operand variants.
+    /// Adds matrix or scalar operand from either domain.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `rhs` (OneOf2<UsfOrNormalMatrix<R, C>, UsfOrNormalScalar>): Right-hand-side operand.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    ///
     /// # Domain
-    /// - Accepts matrix branch and scalar branch via `OneOf2`.
-    /// - Branch/domain validation is delegated to the concrete backend.
+    /// - Accepts matrix branch with `{self: Usf, rhs_matrix: Usf}` and `{self: Usf, rhs_matrix: Normal}`.
+    /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
+    /// - Disallowed combinations: passing both matrix and scalar operands in the same call, because `OneOf2` selects exactly one branch.
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
     fn add(&self, _rhs: OneOf2<UsfOrNormalMatrix<R, C>, UsfOrNormalScalar>) -> Self {
         todo!()
     }
 
-    /// Subtracts matrix or scalar operand.
-    /// # Rhai
-    /// - Facade overload keeps this method name; concrete bindings resolve operand variants.
+    /// Subtracts matrix or scalar operand from either domain.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `rhs` (OneOf2<UsfOrNormalMatrix<R, C>, UsfOrNormalScalar>): Right-hand-side operand.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    ///
     /// # Domain
-    /// - Accepts matrix branch and scalar branch via `OneOf2`.
-    /// - Branch/domain validation is delegated to the concrete backend.
+    /// - Accepts matrix branch with `{self: Usf, rhs_matrix: Usf}` and `{self: Usf, rhs_matrix: Normal}`.
+    /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
+    /// - Disallowed combinations: passing both matrix and scalar operands in the same call, because `OneOf2` selects exactly one branch.
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
     fn sub(&self, _rhs: OneOf2<UsfOrNormalMatrix<R, C>, UsfOrNormalScalar>) -> Self {
         todo!()
     }
 
-    /// Multiplies by scalar operand.
-    /// # Rhai
-    /// - Facade overload keeps this method name; concrete bindings resolve operand variants.
+    /// Scales by scalar operand from either domain.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `rhs` (UsfOrNormalScalar): Right-hand-side operand.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    ///
     /// # Domain
-    /// - Accepts scalar input from either domain variant.
+    /// - Accepts `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
     fn mul_scalar(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
 
-    /// Divides by scalar operand.
-    /// # Rhai
-    /// - Facade overload keeps this method name; concrete bindings resolve operand variants.
+    /// Divides by scalar operand from either domain.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `rhs` (UsfOrNormalScalar): Right-hand-side operand.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    ///
     /// # Domain
-    /// - Accepts scalar input from either domain variant.
+    /// - Accepts `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
-    /// - Panics if `_rhs` resolves to zero.
+    /// - Panics if `rhs` is zero.
     fn div_scalar(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
 
     /// Returns element-wise minimum.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `rhs` (UsfOrNormalMatrix<R, C>): Right-hand-side operand.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    ///
+    /// # Domain
+    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
+    /// # Panics
+    /// - Panics if domain selection is invalid for this backend.
     fn min(&self, _rhs: UsfOrNormalMatrix<R, C>) -> Self {
         todo!()
     }
 
     /// Returns element-wise maximum.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `rhs` (UsfOrNormalMatrix<R, C>): Right-hand-side operand.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    ///
+    /// # Domain
+    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
+    /// # Panics
+    /// - Panics if domain selection is invalid for this backend.
     fn max(&self, _rhs: UsfOrNormalMatrix<R, C>) -> Self {
         todo!()
     }
 
-    /// Clamps each matrix component to `[lo, hi]`.
+    /// Clamps the value to the provided bounds.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `lo` (UsfOrNormalMatrix<R, C>): Lower bound.
+    /// - `hi` (UsfOrNormalMatrix<R, C>): Upper bound.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    ///
+    /// # Domain
+    /// - Accepts all `{lo, hi}` pairings in `{Usf, Normal} × {Usf, Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     /// # Panics
-    /// - Panics if any addressed component has `lo > hi`.
+    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if any matrix component has `lo > hi`.
     fn clamp(&self, _lo: UsfOrNormalMatrix<R, C>, _hi: UsfOrNormalMatrix<R, C>) -> Self {
         todo!()
     }
 
-    /// Matrix-vector product in requested output mode.
-    /// # Rhai
-    /// - Facade overload keeps this method name; concrete bindings resolve operand variants.
+    /// Multiplies this matrix by vector from either domain.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `rhs` (UsfOrNormalVector<C>): Right-hand-side operand.
+    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    ///
+    /// # Returns
+    /// - Computed result of type `UsfOrNormalVector<R>`.
+    ///
     /// # Domain
-    /// - Accepts matrix/vector inputs from mixed domains.
+    /// - Accepts `{self: Usf, rhs_vector: Usf}` and `{self: Usf, rhs_vector: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
-    /// - Panics when `output_mode` requests an unsupported projection policy.
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
     fn matmul_vector(&self, _rhs: UsfOrNormalVector<C>, _output_mode: OutputMode) -> UsfOrNormalVector<R> {
         todo!()
     }
 
-    /// Matrix-matrix product in requested output mode.
-    /// # Rhai
-    /// - Facade overload keeps this method name; concrete bindings resolve operand variants.
+    /// Multiplies this matrix by matrix from either domain.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `rhs` (UsfOrNormalMatrix<C, K>): Right-hand-side operand.
+    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    ///
+    /// # Returns
+    /// - Computed result of type `UsfOrNormalMatrix<R, K>`.
+    ///
     /// # Domain
-    /// - Accepts matrix inputs from mixed domains.
+    /// - Accepts `{self: Usf, rhs_matrix: Usf}` and `{self: Usf, rhs_matrix: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
-    /// - Panics when `output_mode` requests an unsupported projection policy.
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
     fn matmul<const K: usize>(&self, _rhs: UsfOrNormalMatrix<C, K>, _output_mode: OutputMode) -> UsfOrNormalMatrix<R, K> {
         todo!()
     }
 
+    /// Returns row count.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    ///
+    /// # Returns
+    /// - Numeric metadata value (usize).
     fn get_row_count(&self) -> usize {
         todo!()
     }
 
+    /// Returns column count.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    ///
+    /// # Returns
+    /// - Numeric metadata value (usize).
     fn get_col_count(&self) -> usize {
         todo!()
     }
 
+    /// Returns `(rows, cols)`.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    ///
+    /// # Returns
+    /// - Tuple result of type `(usize, usize)`.
     fn get_shape(&self) -> (usize, usize) {
         todo!()
     }
 
+    /// Returns total matrix component count.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    ///
+    /// # Returns
+    /// - Numeric metadata value (usize).
     fn get_element_count(&self) -> usize {
         todo!()
     }
@@ -166,31 +341,74 @@ pub trait MatrixCoreOps<const R: usize, const C: usize>: Clone + Sized {
 /// Matrix field/component access contract.
 pub trait MatrixFieldOps<const R: usize, const C: usize>: MatrixCoreOps<R, C> {
     /// Returns row by index.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `index` (usize): Zero-based index.
+    ///
+    /// # Returns
+    /// - Computed result of type `UsfOrNormalVector<C>`.
+    ///
     /// # Panics
-    /// - Panics if `_index` is out of bounds.
+    /// - Panics if `index` is out of bounds.
     fn get_row(&self, _index: usize) -> UsfOrNormalVector<C> {
         todo!()
     }
 
     /// Returns column by index.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `index` (usize): Zero-based index.
+    ///
+    /// # Returns
+    /// - Computed result of type `UsfOrNormalVector<R>`.
+    ///
     /// # Panics
-    /// - Panics if `_index` is out of bounds.
+    /// - Panics if `index` is out of bounds.
     fn get_col(&self, _index: usize) -> UsfOrNormalVector<R> {
         todo!()
     }
 
-    /// Returns matrix component.
+    /// Returns matrix component in requested output mode.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `row` (usize): Zero-based row index.
+    /// - `col` (usize): Zero-based column index.
+    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    ///
+    /// # Returns
+    /// - Computed result of type `UsfOrNormalScalar`.
+    ///
+    /// # Domain
+    /// - Output projection is selected via `output_mode`.
     /// # Panics
-    /// - Panics if `(_row, _col)` is out of bounds.
-    /// - Panics when `output_mode` requests an unsupported projection policy.
+    /// - Panics if `row` or `col` is out of bounds.
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but component projection loses precision or range.
     fn get_component(&self, _row: usize, _col: usize, _output_mode: OutputMode) -> UsfOrNormalScalar {
         todo!()
     }
 
     /// Sets matrix component.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `row` (usize): Zero-based row index.
+    /// - `col` (usize): Zero-based column index.
+    /// - `value` (UsfOrNormalScalar): Input value for this operation.
+    ///
+    /// # Returns
+    /// - No value; mutates receiver state where applicable.
+    ///
+    /// # Domain
+    /// - Accepts `{value: Usf}` and `{value: Normal}`.
+    /// - Disallowed combinations: none; all domain values are accepted.
     /// # Panics
-    /// - Panics if `(_row, _col)` is out of bounds.
-    /// - Panics when the addressed component is immutable under backend field policy.
+    /// - Panics if `row` or `col` is out of bounds.
+    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if the target matrix component is immutable under runtime field mutability policy.
     fn set_component(&mut self, _row: usize, _col: usize, _value: UsfOrNormalScalar) {
         todo!()
     }
@@ -201,41 +419,98 @@ pub trait MatrixBridgeOps<const R: usize, const C: usize>: MatrixCoreOps<R, C> {
 
 /// Square-matrix-only operations (determinant, inverse, trace, integer powers).
 pub trait SquareMatrixCoreOps<const D: usize>: MatrixCoreOps<D, D> {
+    /// Identity matrix.
+    ///
+    /// # Parameters
+    /// - None.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
     fn identity() -> Self {
         todo!()
     }
 
-    /// Returns determinant in requested output mode.
+    /// Computes determinant in requested output mode.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    ///
+    /// # Returns
+    /// - Computed result of type `UsfOrNormalDecimalScalar`.
+    ///
+    /// # Domain
+    /// - Output projection is selected via `output_mode`.
     /// # Panics
-    /// - Panics when `output_mode` requests an unsupported projection policy.
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
     fn determinant(&self, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
 
     /// Returns inverse matrix.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    ///
+    /// # Domain
+    /// - Allowed: `{self: Usf}`.
+    /// - Disallowed combinations: not applicable in this unary concrete `UsfMatrix` API.
     /// # Panics
-    /// - Panics if the matrix is singular (non-invertible).
+    /// - Panics if the matrix is singular or numerically non-invertible.
     fn inverse(&self) -> Self {
         todo!()
     }
 
-    /// Returns trace in requested output mode.
+    /// Computes matrix trace in requested output mode.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    ///
+    /// # Returns
+    /// - Computed result of type `UsfOrNormalDecimalScalar`.
+    ///
+    /// # Domain
+    /// - Output projection is selected via `output_mode`.
     /// # Panics
-    /// - Panics when `output_mode` requests an unsupported projection policy.
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
     fn trace(&self, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
 
-    /// Raises matrix to signed integer power.
+    /// Raises matrix to integer power.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `exp` (T): Exponent value.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    ///
+    /// # Domain
+    /// - Allowed: `{self: Usf}`.
+    /// - Disallowed combinations: not applicable in this unary concrete `UsfMatrix` API.
     fn powi<T: SignedIntegerType>(&self, _exp: T) -> Self {
         todo!()
     }
 
-    /// Performs square matrix product.
-    /// # Rhai
-    /// - Facade overload keeps this method name; concrete bindings resolve operand variants.
+    /// Performs square matrix product with matrix from either domain.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `rhs` (UsfOrNormalMatrix<D, D>): Right-hand-side operand.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    ///
     /// # Domain
-    /// - Accepts matrix inputs from mixed domains.
+    /// - Accepts `{self: Usf, rhs_matrix: Usf}` and `{self: Usf, rhs_matrix: Normal}`.
+    /// - Disallowed combinations: none; all domain pairs are accepted.
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
     fn matmul_square(&self, _rhs: UsfOrNormalMatrix<D, D>) -> Self {

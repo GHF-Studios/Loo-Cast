@@ -17,21 +17,41 @@ use super::aliases::{UsfOrNormalRotationQuaternion, UsfOrNormalTranslationVector
 use crate::utils::one_of::OneOf2;
 
 /// Translation core operations for `D`-dimensional translation wrappers.
-/// Rhai surface target:
-/// - Expose translation wrappers through typed facade objects.
-/// - Keep conversion shape explicit (`from_vector`, `to_vector`).
+/// # Working Principle
+/// - Translation wrappers carry position offsets while preserving dimension `D`.
+/// - Core methods define conversion and arithmetic semantics independent of backend storage.
+/// # Usage
+/// - Implement this trait for translation carriers in each backend domain.
+/// - Use `TranslationContract<D>` bounds at generic call sites.
 pub trait TranslationCoreOps<const D: usize>: Clone + Sized {
     /// Builds translation from vector input.
+    ///
+    /// # Parameters
+    /// - `value` (UsfOrNormalTranslationVector<D>): Input value for this operation.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    ///
     /// # Domain
-    /// - Accepts translation vectors from either domain variant.
+    /// - Allowed: `{value: Usf}` and `{value: Normal}`.
+    /// - Disallowed combinations: none; all domain values are accepted.
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
-    /// - Panics if runtime translation invariants are violated.
+    /// - Panics if runtime validation rejects translation dimensionality constraints.
     fn from_vector(_value: UsfOrNormalTranslationVector<D>) -> Self {
         todo!()
     }
 
-    /// Returns translation as vector in either domain.
+    /// Returns wrapped translation vector.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    ///
+    /// # Returns
+    /// - Computed result of type `UsfOrNormalTranslationVector<D>`.
+    ///
+    /// # Domain
+    /// - Output branch may be `Usf` or `Normal`, selected by backend policy.
     /// # Panics
     /// - Panics when translation cannot be represented under current backend rules.
     fn to_vector(&self) -> UsfOrNormalTranslationVector<D> {
@@ -39,8 +59,17 @@ pub trait TranslationCoreOps<const D: usize>: Clone + Sized {
     }
 
     /// Adds translation delta.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `rhs` (UsfOrNormalTranslationVector<D>): Right-hand-side operand.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    ///
     /// # Domain
-    /// - Accepts translation deltas from either domain variant.
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Disallowed combinations: none; all domain values are accepted.
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
     fn add(&self, _rhs: UsfOrNormalTranslationVector<D>) -> Self {
@@ -48,17 +77,35 @@ pub trait TranslationCoreOps<const D: usize>: Clone + Sized {
     }
 
     /// Subtracts translation delta.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `rhs` (UsfOrNormalTranslationVector<D>): Right-hand-side operand.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    ///
     /// # Domain
-    /// - Accepts translation deltas from either domain variant.
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Disallowed combinations: none; all domain values are accepted.
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
     fn sub(&self, _rhs: UsfOrNormalTranslationVector<D>) -> Self {
         todo!()
     }
 
-    /// Scales translation by scalar from either domain.
+    /// Scales translation magnitude.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `rhs` (UsfOrNormalScalar): Right-hand-side operand.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    ///
     /// # Domain
-    /// - Accepts scalar from either domain variant.
+    /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
+    /// - Disallowed combinations: none; all domain values are accepted.
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
     fn scale(&self, _rhs: UsfOrNormalScalar) -> Self {
@@ -68,17 +115,32 @@ pub trait TranslationCoreOps<const D: usize>: Clone + Sized {
 
 /// Translation field access contract.
 pub trait TranslationFieldOps<const D: usize>: TranslationCoreOps<D> {
-    /// Returns wrapped vector.
+    /// Returns translation vector component.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    ///
+    /// # Returns
+    /// - Computed result of type `UsfOrNormalTranslationVector<D>`.
+    ///
     /// # Panics
-    /// - Panics when translation cannot be represented under current backend rules.
+    /// - Panics when the wrapped translation field is inaccessible under runtime field policy.
     fn get_vector(&self) -> UsfOrNormalTranslationVector<D> {
         todo!()
     }
 
-    /// Sets wrapped vector.
+    /// Sets translation vector component.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `value` (UsfOrNormalTranslationVector<D>): Input value for this operation.
+    ///
+    /// # Returns
+    /// - No value; mutates receiver state where applicable.
+    ///
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
-    /// - Panics when the field is immutable under backend field policy.
+    /// - Panics if runtime translation invariants are violated.
+    /// - Panics if the wrapped translation field is immutable under runtime field mutability policy.
     fn set_vector(&mut self, _value: UsfOrNormalTranslationVector<D>) {
         todo!()
     }
@@ -88,33 +150,61 @@ pub trait TranslationFieldOps<const D: usize>: TranslationCoreOps<D> {
 pub trait TranslationBridgeOps<const D: usize>: TranslationCoreOps<D> {}
 
 /// Rotation core operations backed by quaternion semantics.
-/// Rhai surface target:
-/// - Keep quaternion-backed rotation operations explicit.
-/// - Bind concrete rotation wrappers via facade layers.
+/// # Working Principle
+/// - Rotations are modeled as quaternion-backed orientation carriers.
+/// - Core methods define composition and conversion without exposing backend storage details.
+/// # Usage
+/// - Implement this trait for rotation wrappers that enforce valid orientation invariants.
+/// - Use `RotationContract` bounds when generic code depends on rotation behavior.
 pub trait RotationCoreOps: Clone + Sized {
-    /// Builds rotation from quaternion.
+    /// Builds rotation from quaternion input.
+    ///
+    /// # Parameters
+    /// - `value` (UsfOrNormalRotationQuaternion): Input value for this operation.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    ///
     /// # Domain
-    /// - Accepts quaternion values from either domain variant.
+    /// - Allowed: `{value: Usf}` and `{value: Normal}`.
+    /// - Disallowed combinations: none; all domain values are accepted.
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
-    /// - Panics if quaternion is invalid for rotation usage.
+    /// - Panics if `value` is not a valid normalized rotation quaternion.
     fn from_quat(_value: UsfOrNormalRotationQuaternion) -> Self {
         todo!()
     }
 
-    /// Returns wrapped quaternion in either domain.
+    /// Returns wrapped rotation quaternion.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    ///
+    /// # Returns
+    /// - Computed result of type `UsfOrNormalRotationQuaternion`.
+    ///
+    /// # Domain
+    /// - Output branch may be `Usf` or `Normal`, selected by backend policy.
     /// # Panics
     /// - Panics when rotation cannot be represented under current backend rules.
     fn to_quat(&self) -> UsfOrNormalRotationQuaternion {
         todo!()
     }
 
-    /// Composes two rotations.
+    /// Composes this rotation with another quaternion rotation.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `rhs` (UsfOrNormalRotationQuaternion): Right-hand-side operand.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    ///
     /// # Domain
-    /// - Accepts quaternion values from either domain variant.
+    /// - Allowed: `{self: Usf, rhs: Usf}`.
+    /// - Disallowed combinations: `{rhs: Normal}` in this concrete `UsfRotation` API.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
-    /// - Panics if either operand is invalid for rotation composition.
+    /// - Panics if either operand is not a valid normalized rotation quaternion.
     fn compose(&self, _rhs: UsfOrNormalRotationQuaternion) -> Self {
         todo!()
     }
@@ -122,18 +212,32 @@ pub trait RotationCoreOps: Clone + Sized {
 
 /// Rotation field access contract.
 pub trait RotationFieldOps: RotationCoreOps {
-    /// Returns wrapped quaternion.
+    /// Returns quaternion component.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    ///
+    /// # Returns
+    /// - Computed result of type `UsfOrNormalRotationQuaternion`.
+    ///
     /// # Panics
-    /// - Panics when rotation cannot be represented under current backend rules.
+    /// - Panics when the wrapped rotation field is inaccessible under runtime field policy.
     fn get_quaternion(&self) -> UsfOrNormalRotationQuaternion {
         todo!()
     }
 
-    /// Sets wrapped quaternion.
+    /// Sets quaternion component.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `value` (UsfOrNormalRotationQuaternion): Input value for this operation.
+    ///
+    /// # Returns
+    /// - No value; mutates receiver state where applicable.
+    ///
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
-    /// - Panics when quaternion is invalid for rotation usage.
-    /// - Panics when the field is immutable under backend field policy.
+    /// - Panics if `value` is not a valid normalized rotation quaternion.
+    /// - Panics if the wrapped rotation field is immutable under runtime field mutability policy.
     fn set_quaternion(&mut self, _value: UsfOrNormalRotationQuaternion) {
         todo!()
     }
@@ -143,16 +247,31 @@ pub trait RotationFieldOps: RotationCoreOps {
 pub trait RotationBridgeOps: RotationCoreOps {}
 
 /// Logarithmic scale core operations.
-/// Rhai surface target:
-/// - Keep logarithmic terminology explicit (`log_base`, `scale_index`, `fractional_log_offset`).
-/// - Bind concrete scale wrapper through facade-level constructors.
+/// # Working Principle
+/// - Scale state is represented in logarithmic form: base, integer exponent index, and fractional offset.
+/// - Core methods encode construction semantics and invariant boundaries.
+/// # Usage
+/// - Implement this trait for concrete logarithmic scale wrappers.
+/// - Use `ScaleContract` bounds when callers require scale core+field+bridge behavior.
 pub trait ScaleCoreOps: Clone + Sized {
-    /// Builds logarithmic scale descriptor.
+    /// Builds logarithmic scale state from base/index/fractional offset.
+    ///
+    /// # Parameters
+    /// - `log_base` (UsfOrNormalDecimalScalar): Logarithmic base.
+    /// - `scale_index` (i16): Integral scale index.
+    /// - `fractional_log_offset` (UsfOrNormalDecimalScalar): Fractional logarithmic offset.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    ///
     /// # Domain
-    /// - Accepts `log_base` and `fractional_log_offset` from either domain variant.
+    /// - Allowed: `{log_base: Usf}` and `{log_base: Normal}`.
+    /// - Allowed: `{fractional_log_offset: Usf}` and `{fractional_log_offset: Normal}`.
+    /// - Disallowed combinations: none; all domain values are accepted.
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
-    /// - Panics if logarithmic scale invariants are violated (for example invalid base).
+    /// - Panics if `log_base <= 0` or `log_base == 1`.
+    /// - Panics if any scalar component is non-finite under finite-only scale semantics.
     fn make(_log_base: UsfOrNormalDecimalScalar, _scale_index: i16, _fractional_log_offset: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
@@ -161,48 +280,102 @@ pub trait ScaleCoreOps: Clone + Sized {
 /// Logarithmic scale field access contract.
 pub trait ScaleFieldOps: ScaleCoreOps {
     /// Returns logarithmic base in requested output mode.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    ///
+    /// # Returns
+    /// - Computed result of type `UsfOrNormalDecimalScalar`.
+    ///
+    /// # Domain
+    /// - Output projection is selected via `output_mode`.
     /// # Panics
-    /// - Panics when `output_mode` requests an unsupported projection policy.
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
     fn get_log_base(&self, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
 
     /// Returns integer scale index.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    ///
+    /// # Returns
+    /// - Numeric metadata value (i16).
     fn get_scale_index(&self) -> i16 {
         todo!()
     }
 
-    /// Returns fractional offset in requested output mode.
+    /// Returns fractional log offset in requested output mode.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    ///
+    /// # Returns
+    /// - Computed result of type `UsfOrNormalDecimalScalar`.
+    ///
+    /// # Domain
+    /// - Output projection is selected via `output_mode`.
     /// # Panics
-    /// - Panics when `output_mode` requests an unsupported projection policy.
+    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
+    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
     fn get_fractional_log_offset(&self, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
 
     /// Sets logarithmic base.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `value` (UsfOrNormalDecimalScalar): Input value for this operation.
+    ///
+    /// # Returns
+    /// - No value; mutates receiver state where applicable.
+    ///
     /// # Domain
-    /// - Accepts base value from either domain variant.
+    /// - Allowed: `{value: Usf}` and `{value: Normal}`.
+    /// - Disallowed combinations: none; all domain values are accepted.
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
-    /// - Panics if scale invariants are violated (for example invalid base).
-    /// - Panics when the field is immutable under backend field policy.
+    /// - Panics if `value <= 0` or `value == 1`.
+    /// - Panics if `value` is non-finite under finite-only scale semantics.
     fn set_log_base(&mut self, _value: UsfOrNormalDecimalScalar) {
         todo!()
     }
 
     /// Sets integer scale index.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `value` (i16): Input value for this operation.
+    ///
+    /// # Returns
+    /// - No value; mutates receiver state where applicable.
+    ///
     /// # Panics
-    /// - Panics when the field is immutable under backend field policy.
+    /// - Panics if the wrapped scale-index field is immutable under runtime field mutability policy.
     fn set_scale_index(&mut self, _value: i16) {
         todo!()
     }
 
-    /// Sets fractional offset.
+    /// Sets fractional log offset.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `value` (UsfOrNormalDecimalScalar): Input value for this operation.
+    ///
+    /// # Returns
+    /// - No value; mutates receiver state where applicable.
+    ///
     /// # Domain
-    /// - Accepts fractional offset from either domain variant.
+    /// - Allowed: `{value: Usf}` and `{value: Normal}`.
+    /// - Disallowed combinations: none; all domain values are accepted.
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
-    /// - Panics when the field is immutable under backend field policy.
+    /// - Panics if the wrapped fractional-offset field is immutable under runtime field mutability policy.
     fn set_fractional_log_offset(&mut self, _value: UsfOrNormalDecimalScalar) {
         todo!()
     }
@@ -212,16 +385,29 @@ pub trait ScaleFieldOps: ScaleCoreOps {
 pub trait ScaleBridgeOps: ScaleCoreOps {}
 
 /// Transform tuple core operations (`translation`, `rotation`, `scale`).
-/// Rhai surface target:
-/// - Bind tuple composition/decomposition as high-level script methods.
-/// - Keep domain-branch choices explicit through `OneOf2` facade signatures.
+/// # Working Principle
+/// - A transform is modeled as a typed tuple of translation, rotation, and scale components.
+/// - Core construction APIs accept branch unions so each component can originate from different domains.
+/// # Usage
+/// - Implement this trait for concrete transform carriers.
+/// - Use `TransformContract` bounds for generic decomposition/composition flows.
 pub trait TransformCoreOps: Clone + Sized {
     /// Builds transform tuple `(translation, rotation, scale)`.
+    ///
+    /// # Parameters
+    /// - `translation` (OneOf2<TranslationA, TranslationB>): Translation component value.
+    /// - `rotation` (OneOf2<RotationA, RotationB>): Rotation component value.
+    /// - `scale` (OneOf2<ScaleA, ScaleB>): Scale component value.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    ///
     /// # Domain
-    /// - Each component is supplied as `OneOf2`, enabling mixed-domain composition.
+    /// - Allowed: each component independently in `{Usf, Normal}`.
+    /// - Disallowed combinations: none; all domain combinations are accepted.
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
-    /// - Panics if any component violates transform invariants.
+    /// - Panics if any component violates transform invariants (invalid rotation or scale state).
     fn make<
         TranslationA: TranslationAnyContract,
         TranslationB: TranslationAnyContract,
@@ -240,31 +426,69 @@ pub trait TransformCoreOps: Clone + Sized {
 
 /// Transform field access and mutation contract.
 pub trait TransformFieldOps: TransformCoreOps {
-    /// Returns translation component in requested domain.
+    /// Returns translation component in backend-selected output branch.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    ///
+    /// # Returns
+    /// - Branch-union result of type `OneOf2<TranslationA, TranslationB>`.
+    ///
+    /// # Domain
+    /// - Output branch may be `UsfTranslation` or `NormalTranslation3f32`.
     /// # Panics
-    /// - Panics if requested translation variant cannot be produced by the backend.
+    /// - Panics when the selected branch cannot be represented under current backend rules.
     fn get_translation<TranslationA: TranslationAnyContract, TranslationB: TranslationAnyContract>(&self) -> OneOf2<TranslationA, TranslationB> {
         todo!()
     }
 
-    /// Returns rotation component in requested domain.
+    /// Returns rotation component in backend-selected output branch.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    ///
+    /// # Returns
+    /// - Branch-union result of type `OneOf2<RotationA, RotationB>`.
+    ///
+    /// # Domain
+    /// - Output branch may be `UsfRotation` or `NormalRotationf32`.
     /// # Panics
-    /// - Panics if requested rotation variant cannot be produced by the backend.
+    /// - Panics when the selected branch cannot be represented under current backend rules.
     fn get_rotation<RotationA: RotationAnyContract, RotationB: RotationAnyContract>(&self) -> OneOf2<RotationA, RotationB> {
         todo!()
     }
 
-    /// Returns scale component in requested domain.
+    /// Returns scale component in backend-selected output branch.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    ///
+    /// # Returns
+    /// - Branch-union result of type `OneOf2<ScaleA, ScaleB>`.
+    ///
+    /// # Domain
+    /// - Output branch may be `UsfScale` or `NormalScalef32`.
     /// # Panics
-    /// - Panics if requested scale variant cannot be produced by the backend.
+    /// - Panics when the selected branch cannot be represented under current backend rules.
     fn get_scale<ScaleA: ScaleAnyContract, ScaleB: ScaleAnyContract>(&self) -> OneOf2<ScaleA, ScaleB> {
         todo!()
     }
 
     /// Sets translation component from either domain.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `translation` (OneOf2<TranslationA, TranslationB>): Translation component value.
+    ///
+    /// # Returns
+    /// - No value; mutates receiver state where applicable.
+    ///
+    /// # Domain
+    /// - Allowed: `{translation: Usf}` and `{translation: Normal}`.
+    /// - Disallowed combinations: none; all domain values are accepted.
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
-    /// - Panics when the field is immutable under backend field policy.
+    /// - Panics if the wrapped translation field is immutable under runtime field mutability policy.
     fn set_translation<TranslationA: TranslationAnyContract, TranslationB: TranslationAnyContract>(
         &mut self,
         _translation: OneOf2<TranslationA, TranslationB>,
@@ -273,19 +497,41 @@ pub trait TransformFieldOps: TransformCoreOps {
     }
 
     /// Sets rotation component from either domain.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `rotation` (OneOf2<RotationA, RotationB>): Rotation component value.
+    ///
+    /// # Returns
+    /// - No value; mutates receiver state where applicable.
+    ///
+    /// # Domain
+    /// - Allowed: `{rotation: Usf}` and `{rotation: Normal}`.
+    /// - Disallowed combinations: none; all domain values are accepted.
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
-    /// - Panics if rotation value is invalid for rotation usage.
-    /// - Panics when the field is immutable under backend field policy.
+    /// - Panics if rotation invariants are violated.
+    /// - Panics if the wrapped rotation field is immutable under runtime field mutability policy.
     fn set_rotation<RotationA: RotationAnyContract, RotationB: RotationAnyContract>(&mut self, _rotation: OneOf2<RotationA, RotationB>) {
         todo!()
     }
 
     /// Sets scale component from either domain.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `scale` (OneOf2<ScaleA, ScaleB>): Scale component value.
+    ///
+    /// # Returns
+    /// - No value; mutates receiver state where applicable.
+    ///
+    /// # Domain
+    /// - Allowed: `{scale: Usf}` and `{scale: Normal}`.
+    /// - Disallowed combinations: none; all domain values are accepted.
     /// # Panics
     /// - Panics if domain selection is invalid for this backend.
-    /// - Panics if scale value violates logarithmic-scale invariants.
-    /// - Panics when the field is immutable under backend field policy.
+    /// - Panics if scale invariants are violated.
+    /// - Panics if the wrapped scale field is immutable under runtime field mutability policy.
     fn set_scale<ScaleA: ScaleAnyContract, ScaleB: ScaleAnyContract>(&mut self, _scale: OneOf2<ScaleA, ScaleB>) {
         todo!()
     }
