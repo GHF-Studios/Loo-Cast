@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-/// Rank-3 tensor aliases for domain unions and operand variants.
+/// Rank-3 tensor aliases for repr unions and operand variants.
 pub mod aliases;
 /// Normal rank-3 tensor representations and contracts.
 pub mod normal;

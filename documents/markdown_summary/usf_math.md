@@ -5,7 +5,7 @@ Purpose: focused math contract summary for cross-scale and local-runtime interop
 ## Core Direction
 
 1. USF has a global, scale-aware math space.
-2. Runtime capability internals should use local numeric domains where valid (`f32/f64/i32/i64` style).
+2. Runtime capability internals should use local numeric representations where valid (`f32/f64/i32/i64` style).
 3. Global-to-local and local-to-global conversion boundaries must be explicit.
 4. Expensive global math usage should be visible and deliberate.
 
@@ -20,7 +20,8 @@ Purpose: focused math contract summary for cross-scale and local-runtime interop
 
 - These math contracts are not intended as direct end-user Rust APIs.
 - Canonical usage path is: Rust contract -> facade surface -> Rhai binding surface.
-- Domain/quality ambiguity is resolved through explicit parameter types (`UsfOrNormal*`, `OneOf*`) and `OutputMode`.
+- Kind/repr projection ambiguity is resolved through explicit parameter types (`UsfOrNormal*`, `OneOf*`) and `op_mode::OpMode`.
+- Operation-intrinsic mode variance (strictness, validation, algorithm flavor) is represented with `op_policy::OpPolicy<T>` and `OpPolicy::DeferToGlobal`.
 - Every exposed operation should document both:
   - Rust-side contract semantics.
   - Target Rhai call semantics/syntax once facades are bound.

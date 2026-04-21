@@ -6,12 +6,13 @@
 //! - Traits here specify operation semantics, not direct script API layout.
 //! - Rhai-facing APIs should be generated from concrete facades.
 //!
-//! Domain/quality mechanism:
-//! - Mixed-domain operands use `UsfOrNormal*` aliases and `TensorOrScalar`.
-//! - Output projection selection uses `OutputMode`.
-//! - Unsupported domain/quality combinations panic fast.
+//! Kind/repr mechanism:
+//! - Mixed-repr operands use `UsfOrNormal*` aliases and `TensorOrScalar`.
+//! - Output projection selection uses `OpMode`.
+//! - Unsupported kind/repr combinations panic fast.
+//! - Operation-intrinsic mode variance should be expressed with `op_policy::OpPolicy<T>`.
 
-use super::super::aliases::OutputMode;
+use super::super::op_mode::OpMode;
 use super::super::matrix::aliases::UsfOrNormalMatrix;
 use super::super::scalar::aliases::UsfOrNormalScalar;
 use super::super::vector::aliases::UsfOrNormalVector;
@@ -20,7 +21,7 @@ use super::aliases::{TensorOrScalar, UsfOrNormalTensor};
 /// Rank-3 tensor core operations.
 /// # Working Principle
 /// - `A`, `B`, and `C` are compile-time axis extents for this rank-3 tensor contract.
-/// - Core methods model shape-aware arithmetic and domain-aware construction/projection.
+/// - Core methods model shape-aware arithmetic and repr-aware construction/projection.
 /// # Usage
 /// - Implement this trait on concrete tensor carriers with stable axis ordering.
 /// - Use `TensorContract<A, B, C>` bounds to consume tensor behavior generically.
@@ -44,31 +45,28 @@ pub trait TensorCoreOps<const A: usize, const B: usize, const C: usize>: Clone +
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Accepts each slice in `{Usf, Normal}` independently.
-    /// - Disallowed combinations: none; all domain pairs are accepted.
+    /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     /// - Panics if runtime validation rejects degenerate tensor shape constraints.
     fn from_slices(_slices: [UsfOrNormalMatrix<B, C>; A]) -> Self {
         todo!()
     }
 
-    /// Returns axis-A slices in requested output mode.
+    /// Returns axis-A slices in requested op mode.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - Fixed-size array result of type `[UsfOrNormalMatrix<B, C>; A]`.
     ///
-    /// # Domain
-    /// - Output projection is selected via `output_mode`.
-    /// # Panics
-    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
-    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but slice projection loses precision or range.
-    fn to_slices(&self, _output_mode: OutputMode) -> [UsfOrNormalMatrix<B, C>; A] {
+    /// # Repr
+    /// - Output projection is selected via `op_mode`.
+    fn to_slices(&self, _op_mode: OpMode) -> [UsfOrNormalMatrix<B, C>; A] {
         todo!()
     }
 
@@ -81,12 +79,12 @@ pub trait TensorCoreOps<const A: usize, const B: usize, const C: usize>: Clone +
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Accepts tensor branch with `{self: Usf, rhs_tensor: Usf}` and `{self: Usf, rhs_tensor: Normal}`.
     /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
     /// - Disallowed combinations: passing both tensor and scalar operands in the same call, because `OneOf2` selects exactly one branch.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     fn add(&self, _rhs: TensorOrScalar<A, B, C>) -> Self {
         todo!()
     }
@@ -100,12 +98,12 @@ pub trait TensorCoreOps<const A: usize, const B: usize, const C: usize>: Clone +
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Accepts tensor branch with `{self: Usf, rhs_tensor: Usf}` and `{self: Usf, rhs_tensor: Normal}`.
     /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
     /// - Disallowed combinations: passing both tensor and scalar operands in the same call, because `OneOf2` selects exactly one branch.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     fn sub(&self, _rhs: TensorOrScalar<A, B, C>) -> Self {
         todo!()
     }
@@ -119,12 +117,12 @@ pub trait TensorCoreOps<const A: usize, const B: usize, const C: usize>: Clone +
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Accepts tensor branch with `{self: Usf, rhs_tensor: Usf}` and `{self: Usf, rhs_tensor: Normal}`.
     /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
     /// - Disallowed combinations: passing both tensor and scalar operands in the same call, because `OneOf2` selects exactly one branch.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     fn component_mul(&self, _rhs: TensorOrScalar<A, B, C>) -> Self {
         todo!()
     }
@@ -138,12 +136,12 @@ pub trait TensorCoreOps<const A: usize, const B: usize, const C: usize>: Clone +
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Accepts tensor branch with `{self: Usf, rhs_tensor: Usf}` and `{self: Usf, rhs_tensor: Normal}`.
     /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
     /// - Disallowed combinations: passing both tensor and scalar operands in the same call, because `OneOf2` selects exactly one branch.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     /// - Panics if divisor operand resolves to zero in any addressed tensor component.
     fn component_div(&self, _rhs: TensorOrScalar<A, B, C>) -> Self {
         todo!()
@@ -158,11 +156,11 @@ pub trait TensorCoreOps<const A: usize, const B: usize, const C: usize>: Clone +
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
-    /// - Disallowed combinations: none; all domain pairs are accepted.
+    /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     fn min(&self, _rhs: UsfOrNormalTensor<A, B, C>) -> Self {
         todo!()
     }
@@ -176,11 +174,11 @@ pub trait TensorCoreOps<const A: usize, const B: usize, const C: usize>: Clone +
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
-    /// - Disallowed combinations: none; all domain pairs are accepted.
+    /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     fn max(&self, _rhs: UsfOrNormalTensor<A, B, C>) -> Self {
         todo!()
     }
@@ -195,11 +193,11 @@ pub trait TensorCoreOps<const A: usize, const B: usize, const C: usize>: Clone +
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Accepts all `{lo, hi}` pairings in `{Usf, Normal} × {Usf, Normal}`.
-    /// - Disallowed combinations: none; all domain pairs are accepted.
+    /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     /// - Panics if any tensor component has `lo > hi`.
     fn clamp(&self, _lo: UsfOrNormalTensor<A, B, C>, _hi: UsfOrNormalTensor<A, B, C>) -> Self {
         todo!()
@@ -235,18 +233,16 @@ pub trait TensorFieldOps<const A: usize, const B: usize, const C: usize>: Tensor
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `index` (usize): Zero-based index.
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalMatrix<B, C>`.
     ///
-    /// # Domain
-    /// - Output projection is selected via `output_mode`.
+    /// # Repr
+    /// - Output projection is selected via `op_mode`.
     /// # Panics
     /// - Panics if `index` is out of bounds.
-    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
-    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but slice projection loses precision or range.
-    fn get_slice(&self, _index: usize, _output_mode: OutputMode) -> UsfOrNormalMatrix<B, C> {
+    fn get_slice(&self, _index: usize, _op_mode: OpMode) -> UsfOrNormalMatrix<B, C> {
         todo!()
     }
 
@@ -260,12 +256,12 @@ pub trait TensorFieldOps<const A: usize, const B: usize, const C: usize>: Tensor
     /// # Returns
     /// - No value; mutates receiver state where applicable.
     ///
-    /// # Domain
+    /// # Repr
     /// - Accepts `{value: Usf}` and `{value: Normal}`.
-    /// - Disallowed combinations: none; all domain values are accepted.
+    /// - Disallowed combinations: none; all repr values are accepted.
     /// # Panics
     /// - Panics if `index` is out of bounds.
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     /// - Panics if the target slice is immutable under runtime field mutability policy.
     fn set_slice(&mut self, _index: usize, _value: UsfOrNormalMatrix<B, C>) {
         todo!()
@@ -277,18 +273,16 @@ pub trait TensorFieldOps<const A: usize, const B: usize, const C: usize>: Tensor
     /// - `self`: Receiver value.
     /// - `i` (usize): Axis index i (zero-based).
     /// - `j` (usize): Axis index j (zero-based).
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalVector<C>`.
     ///
-    /// # Domain
-    /// - Output projection is selected via `output_mode`.
+    /// # Repr
+    /// - Output projection is selected via `op_mode`.
     /// # Panics
     /// - Panics if `i` or `j` is out of bounds.
-    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
-    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but vector projection loses precision or range.
-    fn get_vector(&self, _i: usize, _j: usize, _output_mode: OutputMode) -> UsfOrNormalVector<C> {
+    fn get_vector(&self, _i: usize, _j: usize, _op_mode: OpMode) -> UsfOrNormalVector<C> {
         todo!()
     }
 
@@ -303,12 +297,12 @@ pub trait TensorFieldOps<const A: usize, const B: usize, const C: usize>: Tensor
     /// # Returns
     /// - No value; mutates receiver state where applicable.
     ///
-    /// # Domain
+    /// # Repr
     /// - Accepts `{value: Usf}` and `{value: Normal}`.
-    /// - Disallowed combinations: none; all domain values are accepted.
+    /// - Disallowed combinations: none; all repr values are accepted.
     /// # Panics
     /// - Panics if `i` or `j` is out of bounds.
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     /// - Panics if the target vector is immutable under runtime field mutability policy.
     fn set_vector(&mut self, _i: usize, _j: usize, _value: UsfOrNormalVector<C>) {
         todo!()
@@ -321,18 +315,16 @@ pub trait TensorFieldOps<const A: usize, const B: usize, const C: usize>: Tensor
     /// - `i` (usize): Axis index i (zero-based).
     /// - `j` (usize): Axis index j (zero-based).
     /// - `k` (usize): Axis index k (zero-based).
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalScalar`.
     ///
-    /// # Domain
-    /// - Output projection is selected via `output_mode`.
+    /// # Repr
+    /// - Output projection is selected via `op_mode`.
     /// # Panics
     /// - Panics if any index is out of bounds.
-    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
-    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but component projection loses precision or range.
-    fn get_component(&self, _i: usize, _j: usize, _k: usize, _output_mode: OutputMode) -> UsfOrNormalScalar {
+    fn get_component(&self, _i: usize, _j: usize, _k: usize, _op_mode: OpMode) -> UsfOrNormalScalar {
         todo!()
     }
 
@@ -348,12 +340,12 @@ pub trait TensorFieldOps<const A: usize, const B: usize, const C: usize>: Tensor
     /// # Returns
     /// - No value; mutates receiver state where applicable.
     ///
-    /// # Domain
+    /// # Repr
     /// - Accepts `{value: Usf}` and `{value: Normal}`.
-    /// - Disallowed combinations: none; all domain values are accepted.
+    /// - Disallowed combinations: none; all repr values are accepted.
     /// # Panics
     /// - Panics if any index is out of bounds.
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     /// - Panics if the target tensor component is immutable under runtime field mutability policy.
     fn set_component(&mut self, _i: usize, _j: usize, _k: usize, _value: UsfOrNormalScalar) {
         todo!()
@@ -367,15 +359,15 @@ pub trait TensorProjectionCoreOps<const A: usize, const B: usize, const C: usize
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `k` (usize): Axis index k (zero-based).
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalMatrix<A, B>`.
     ///
     /// # Panics
     /// - Panics if `_k` is out of bounds.
-    /// - Panics when `output_mode` requests an unsupported projection policy.
-    fn get_matrix_ab(&self, _k: usize, _output_mode: OutputMode) -> UsfOrNormalMatrix<A, B> {
+    /// - Panics when `op_mode` requests an unsupported kind/repr projection.
+    fn get_matrix_ab(&self, _k: usize, _op_mode: OpMode) -> UsfOrNormalMatrix<A, B> {
         todo!()
     }
 
@@ -391,7 +383,7 @@ pub trait TensorProjectionCoreOps<const A: usize, const B: usize, const C: usize
     ///
     /// # Panics
     /// - Panics if `_k` is out of bounds.
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     /// - Panics when the addressed field is immutable under backend field policy.
     fn set_matrix_ab(&mut self, _k: usize, _value: UsfOrNormalMatrix<A, B>) {
         todo!()
@@ -402,15 +394,15 @@ pub trait TensorProjectionCoreOps<const A: usize, const B: usize, const C: usize
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `j` (usize): Axis index j (zero-based).
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalMatrix<A, C>`.
     ///
     /// # Panics
     /// - Panics if `_j` is out of bounds.
-    /// - Panics when `output_mode` requests an unsupported projection policy.
-    fn get_matrix_ac(&self, _j: usize, _output_mode: OutputMode) -> UsfOrNormalMatrix<A, C> {
+    /// - Panics when `op_mode` requests an unsupported kind/repr projection.
+    fn get_matrix_ac(&self, _j: usize, _op_mode: OpMode) -> UsfOrNormalMatrix<A, C> {
         todo!()
     }
 
@@ -426,7 +418,7 @@ pub trait TensorProjectionCoreOps<const A: usize, const B: usize, const C: usize
     ///
     /// # Panics
     /// - Panics if `_j` is out of bounds.
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     /// - Panics when the addressed field is immutable under backend field policy.
     fn set_matrix_ac(&mut self, _j: usize, _value: UsfOrNormalMatrix<A, C>) {
         todo!()
@@ -437,15 +429,15 @@ pub trait TensorProjectionCoreOps<const A: usize, const B: usize, const C: usize
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `i` (usize): Axis index i (zero-based).
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalMatrix<B, C>`.
     ///
     /// # Panics
     /// - Panics if `_i` is out of bounds.
-    /// - Panics when `output_mode` requests an unsupported projection policy.
-    fn get_matrix_bc(&self, _i: usize, _output_mode: OutputMode) -> UsfOrNormalMatrix<B, C> {
+    /// - Panics when `op_mode` requests an unsupported kind/repr projection.
+    fn get_matrix_bc(&self, _i: usize, _op_mode: OpMode) -> UsfOrNormalMatrix<B, C> {
         todo!()
     }
 
@@ -461,7 +453,7 @@ pub trait TensorProjectionCoreOps<const A: usize, const B: usize, const C: usize
     ///
     /// # Panics
     /// - Panics if `_i` is out of bounds.
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     /// - Panics when the addressed field is immutable under backend field policy.
     fn set_matrix_bc(&mut self, _i: usize, _value: UsfOrNormalMatrix<B, C>) {
         todo!()
@@ -473,15 +465,15 @@ pub trait TensorProjectionCoreOps<const A: usize, const B: usize, const C: usize
     /// - `self`: Receiver value.
     /// - `b` (usize): Secondary operand used by the operation.
     /// - `c` (usize): Tertiary operand used by the operation.
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalVector<A>`.
     ///
     /// # Panics
     /// - Panics if `(_b, _c)` is out of bounds.
-    /// - Panics when `output_mode` requests an unsupported projection policy.
-    fn get_vector_a(&self, _b: usize, _c: usize, _output_mode: OutputMode) -> UsfOrNormalVector<A> {
+    /// - Panics when `op_mode` requests an unsupported kind/repr projection.
+    fn get_vector_a(&self, _b: usize, _c: usize, _op_mode: OpMode) -> UsfOrNormalVector<A> {
         todo!()
     }
 
@@ -498,7 +490,7 @@ pub trait TensorProjectionCoreOps<const A: usize, const B: usize, const C: usize
     ///
     /// # Panics
     /// - Panics if `(_b, _c)` is out of bounds.
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     /// - Panics when the addressed field is immutable under backend field policy.
     fn set_vector_a(&mut self, _b: usize, _c: usize, _value: UsfOrNormalVector<A>) {
         todo!()
@@ -510,15 +502,15 @@ pub trait TensorProjectionCoreOps<const A: usize, const B: usize, const C: usize
     /// - `self`: Receiver value.
     /// - `a` (usize): Axis index a (zero-based).
     /// - `c` (usize): Tertiary operand used by the operation.
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalVector<B>`.
     ///
     /// # Panics
     /// - Panics if `(_a, _c)` is out of bounds.
-    /// - Panics when `output_mode` requests an unsupported projection policy.
-    fn get_vector_b(&self, _a: usize, _c: usize, _output_mode: OutputMode) -> UsfOrNormalVector<B> {
+    /// - Panics when `op_mode` requests an unsupported kind/repr projection.
+    fn get_vector_b(&self, _a: usize, _c: usize, _op_mode: OpMode) -> UsfOrNormalVector<B> {
         todo!()
     }
 
@@ -535,7 +527,7 @@ pub trait TensorProjectionCoreOps<const A: usize, const B: usize, const C: usize
     ///
     /// # Panics
     /// - Panics if `(_a, _c)` is out of bounds.
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     /// - Panics when the addressed field is immutable under backend field policy.
     fn set_vector_b(&mut self, _a: usize, _c: usize, _value: UsfOrNormalVector<B>) {
         todo!()
@@ -547,15 +539,15 @@ pub trait TensorProjectionCoreOps<const A: usize, const B: usize, const C: usize
     /// - `self`: Receiver value.
     /// - `a` (usize): Axis index a (zero-based).
     /// - `b` (usize): Secondary operand used by the operation.
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - Computed result of type `UsfOrNormalVector<C>`.
     ///
     /// # Panics
     /// - Panics if `(_a, _b)` is out of bounds.
-    /// - Panics when `output_mode` requests an unsupported projection policy.
-    fn get_vector_c(&self, _a: usize, _b: usize, _output_mode: OutputMode) -> UsfOrNormalVector<C> {
+    /// - Panics when `op_mode` requests an unsupported kind/repr projection.
+    fn get_vector_c(&self, _a: usize, _b: usize, _op_mode: OpMode) -> UsfOrNormalVector<C> {
         todo!()
     }
 
@@ -572,7 +564,7 @@ pub trait TensorProjectionCoreOps<const A: usize, const B: usize, const C: usize
     ///
     /// # Panics
     /// - Panics if `(_a, _b)` is out of bounds.
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     /// - Panics when the addressed field is immutable under backend field policy.
     fn set_vector_c(&mut self, _a: usize, _b: usize, _value: UsfOrNormalVector<C>) {
         todo!()

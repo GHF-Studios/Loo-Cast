@@ -1,15 +1,7 @@
 #![allow(dead_code)]
 
-use super::super::aliases::OutputMode;
 use super::super::field::Field;
-use super::super::matrix::aliases::UsfOrNormalMatrix;
-use super::super::matrix::usf::UsfMatrix;
-use super::super::scalar::aliases::UsfOrNormalScalar;
-use super::super::scalar::usf::UsfScalar;
-use super::super::tensor::aliases::UsfOrNormalTensor;
 use super::super::tensor::usf::UsfTensor;
-use super::super::vector::aliases::UsfOrNormalVector;
-use super::super::vector::usf::UsfVector;
 pub use super::aliases::{Tensor4OrScalar, UsfOrNormalTensor4};
 
 #[derive(Clone, Debug, PartialEq, Eq)]

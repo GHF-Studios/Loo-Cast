@@ -1,14 +1,10 @@
 #![allow(dead_code)]
 
-use super::super::aliases::OutputMode;
 use super::super::field::Field;
 use super::super::quaternion::usf::UsfQuaternion;
-use super::super::scalar::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
 use super::super::scalar::usf::UsfScalar;
 use super::super::vector::usf::UsfVector;
 pub use super::aliases::{UsfOrNormalRotationQuaternion, UsfOrNormalTranslationVector};
-use super::normal::{NormalRotationf32, NormalScalef32, NormalTranslation3f32};
-use crate::utils::one_of::OneOf2;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[repr(transparent)]
@@ -20,9 +16,9 @@ pub struct UsfRotation(pub(super) Field<UsfQuaternion>);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UsfScale {
-    pub(super) log_base: Field<UsfScalar>,
-    pub(super) scale_index: Field<i16>,
-    pub(super) fractional_log_offset: Field<UsfScalar>,
+    pub(super) x: Field<UsfScalar>,
+    pub(super) y: Field<UsfScalar>,
+    pub(super) z: Field<UsfScalar>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

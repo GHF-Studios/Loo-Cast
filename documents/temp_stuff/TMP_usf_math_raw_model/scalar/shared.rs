@@ -6,16 +6,17 @@
 //! - These traits define semantics and panic contracts.
 //! - Script-facing APIs should be exposed through facade/binding layers, not direct generic trait calls.
 //!
-//! Domain/quality mechanism:
-//! - Mixed-domain scalar inputs use `UsfOrNormalScalar`.
-//! - Mixed-domain interpolation factors use `UsfOrNormalFractionalScalar`.
-//! - Output projection policy for mixed-domain read paths is handled by facade-level `OutputMode` where needed.
+//! Kind/repr mechanism:
+//! - Mixed-repr scalar inputs use `UsfOrNormalScalar`.
+//! - Mixed-repr interpolation factors use `UsfOrNormalFractionalScalar`.
+//! - Output projection policy for mixed-repr read paths is handled by facade-level `OpMode` where needed.
+//! - Operation-intrinsic mode variance should be expressed with `op_policy::OpPolicy<T>`.
 //!
 //! Method doc schema:
 //! - Summary line: describe intent and core working principle.
 //! - `# Parameters`: document each argument and expected role.
 //! - `# Returns`: document the returned value and shape/branch semantics.
-//! - Optional `# Domain` section for mixed-domain semantics.
+//! - Optional `# Repr` section for mixed-repr semantics.
 //! - Optional `# Panics` section for runtime guard clauses and undefined math states.
 
 use super::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
@@ -86,19 +87,19 @@ impl FloatType for f32 {}
 impl ScalarType for f64 {}
 impl FloatType for f64 {}
 
-/// Domain-agnostic scalar operations.
+/// Repr-agnostic scalar operations.
 /// This trait encodes arithmetic and transcendental behavior independent of the concrete
 /// representation family (`Usf` vs `Normal`).
 /// # Working Principle
 /// - Implementers define scalar semantics for their concrete representation.
 /// - Default method bodies are contract stubs and should be replaced by backend logic.
-/// - Mixed-domain operands are accepted through `UsfOrNormal*` aliases and resolved by backend policy.
+/// - Mixed-repr operands are accepted through `UsfOrNormal*` aliases and resolved by backend policy.
 /// # Precision & Range
 /// - Implementations are responsible for enforcing range and precision constraints.
-/// - Lossless/lossy projection rules are typically coordinated through facade-level output policies.
+/// - Repr projection rules are coordinated through facade-level output policies.
 /// # Usage
 /// - Use `ScalarContract` bounds when consumers need core, field, and bridge operations together.
-/// - Use `UsfOrNormalScalar` / `UsfOrNormalFractionalScalar` parameters for mixed-domain inputs.
+/// - Use `UsfOrNormalScalar` / `UsfOrNormalFractionalScalar` parameters for mixed-repr inputs.
 ///
 /// # Examples
 /// ```ignore
@@ -700,11 +701,11 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     fn add(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
@@ -718,11 +719,11 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     fn sub(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
@@ -736,11 +737,11 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     fn mul(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
@@ -754,11 +755,11 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     /// - Panics if `rhs` is zero.
     fn div(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
@@ -773,11 +774,11 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     /// - Panics if `rhs` is zero.
     fn rem(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
@@ -792,11 +793,11 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     fn min(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
@@ -810,11 +811,11 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     fn max(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
@@ -829,11 +830,11 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Allowed: all `{lo, hi}` pairings in `{Usf, Normal} × {Usf, Normal}`.
-    /// - Disallowed combinations: none; all domain pairs are accepted.
+    /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     /// - Panics if `lo > hi`.
     fn clamp(&self, _lo: UsfOrNormalScalar, _hi: UsfOrNormalScalar) -> Self {
         todo!()
@@ -848,11 +849,11 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     /// - Panics for undefined exponent/base combinations under real-only semantics.
     fn pow(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
@@ -867,11 +868,11 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     fn atan2(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
@@ -885,11 +886,11 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     fn hypot(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
@@ -903,11 +904,11 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     /// - Panics if `rhs` is zero.
     fn mod_euclid(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
@@ -923,11 +924,11 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Allowed: all `{b, c}` pairings in `{Usf, Normal} × {Usf, Normal}`.
-    /// - Disallowed combinations: none; all domain pairs are accepted.
+    /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     fn fma(&self, _b: UsfOrNormalScalar, _c: UsfOrNormalScalar) -> Self {
         todo!()
     }
@@ -942,12 +943,12 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
     /// - Allowed: `{t: Usf}` and `{t: Normal}`.
-    /// - Disallowed combinations: none; all domain pairs are accepted.
+    /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     fn lerp(&self, _rhs: UsfOrNormalScalar, _t: UsfOrNormalFractionalScalar) -> Self {
         todo!()
     }
@@ -963,12 +964,12 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Allowed: all `{edge0, edge1}` pairings in `{Usf, Normal} × {Usf, Normal}`.
     /// - Allowed: `{t: Usf}` and `{t: Normal}`.
-    /// - Disallowed combinations: none; all domain pairs are accepted.
+    /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     /// - Panics if edge ordering is invalid (`edge0 > edge1`) under strict smoothstep semantics.
     fn smoothstep(&self, _edge0: UsfOrNormalScalar, _edge1: UsfOrNormalScalar, _t: UsfOrNormalFractionalScalar) -> Self {
         todo!()
@@ -983,11 +984,11 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Returns
     /// - Boolean result of the requested predicate or comparison.
     ///
-    /// # Domain
+    /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     fn cmp_eq(&self, _rhs: UsfOrNormalScalar) -> bool {
         todo!()
     }
@@ -1001,11 +1002,11 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Returns
     /// - Boolean result of the requested predicate or comparison.
     ///
-    /// # Domain
+    /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     fn cmp_ne(&self, _rhs: UsfOrNormalScalar) -> bool {
         todo!()
     }
@@ -1019,11 +1020,11 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Returns
     /// - Boolean result of the requested predicate or comparison.
     ///
-    /// # Domain
+    /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     fn cmp_lt(&self, _rhs: UsfOrNormalScalar) -> bool {
         todo!()
     }
@@ -1037,11 +1038,11 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Returns
     /// - Boolean result of the requested predicate or comparison.
     ///
-    /// # Domain
+    /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     fn cmp_le(&self, _rhs: UsfOrNormalScalar) -> bool {
         todo!()
     }
@@ -1055,11 +1056,11 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Returns
     /// - Boolean result of the requested predicate or comparison.
     ///
-    /// # Domain
+    /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     fn cmp_gt(&self, _rhs: UsfOrNormalScalar) -> bool {
         todo!()
     }
@@ -1073,11 +1074,11 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Returns
     /// - Boolean result of the requested predicate or comparison.
     ///
-    /// # Domain
+    /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs domains.
+    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     fn cmp_ge(&self, _rhs: UsfOrNormalScalar) -> bool {
         todo!()
     }
@@ -1112,7 +1113,7 @@ pub trait ScalarFieldOps: ScalarCoreOps {
 }
 
 /// Scalar conversion/bridge contract.
-/// This trait models domain-bridge hooks used by facade layers when converting between
+/// This trait models repr-bridge hooks used by facade layers when converting between
 /// concrete scalar carriers.
 pub trait ScalarBridgeOps: ScalarCoreOps {
     /// Converts a primitive scalar into this scalar carrier.
@@ -1135,7 +1136,7 @@ pub trait ScalarBridgeOps: ScalarCoreOps {
     /// - Computed result of type `T`.
     ///
     /// # Panics
-    /// - Panics if conversion to `T` would overflow, underflow, or lose required domain semantics.
+    /// - Panics if conversion to `T` would overflow, underflow, or lose required repr semantics.
     /// - Panics if `T` is unsupported by the concrete conversion backend.
     fn to_primitive<T: ScalarType>(&self) -> T {
         todo!()
@@ -1197,7 +1198,7 @@ impl<T> ScalarContract for T where T: ScalarCoreOps + ScalarFieldOps + ScalarBri
 /// - The contract only requires that fractional representation is supported when needed.
 ///
 /// This preserves semantics for operations that must not project into integer-only scalar
-/// domains (for example norms, distances, and angles).
+/// repr branches (for example norms, distances, and angles).
 ///
 /// # Examples
 /// ```ignore

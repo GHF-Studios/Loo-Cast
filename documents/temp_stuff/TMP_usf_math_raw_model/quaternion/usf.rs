@@ -1,10 +1,7 @@
 #![allow(dead_code)]
 
-use super::super::aliases::OutputMode;
 use super::super::field::Field;
-use super::super::scalar::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
 use super::super::scalar::usf::UsfScalar;
-use super::super::vector::aliases::UsfOrNormalVector;
 pub use super::aliases::{UsfOrNormalMat3, UsfOrNormalQuaternion};
 
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -162,7 +162,7 @@ pub mod optimization {
     pub mod optimal_control {}
 }
 
-/// Signal, frequency, and transform-domain math. (`normal-only` first, selective `normal+usf`)
+/// Signal, frequency, and transform-space math. (`normal-only` first, selective `normal+usf`)
 pub mod signal_and_spectral {
     /// Time-series operations and filters. (`normal-only`)
     pub mod time_domain {}

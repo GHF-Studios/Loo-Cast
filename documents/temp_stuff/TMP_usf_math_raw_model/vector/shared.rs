@@ -6,19 +6,20 @@
 //! - These traits are semantic contracts, not final end-user APIs.
 //! - Rhai exposure should happen through monomorphized facades/bindings.
 //!
-//! Domain/quality mechanism:
-//! - Mixed-domain vector/scalar operands are represented with `UsfOrNormal*` aliases.
-//! - Output projection requests are represented with `OutputMode`.
-//! - Invalid domain-quality combinations are guarded by panic-fast checks.
+//! Kind/repr mechanism:
+//! - Mixed-repr vector/scalar operands are represented with `UsfOrNormal*` aliases.
+//! - Output projection requests are represented with `OpMode`.
+//! - Invalid kind/repr combinations are guarded by panic-fast checks.
+//! - Operation-intrinsic mode variance should be expressed with `op_policy::OpPolicy<T>`.
 //!
 //! Method doc schema:
 //! - Summary line: describe intent and core working principle.
 //! - `# Parameters`: document each argument and expected role.
 //! - `# Returns`: document the returned value and shape/branch semantics.
-//! - Optional `# Domain` section for mixed-domain semantics.
+//! - Optional `# Repr` section for mixed-repr semantics.
 //! - Optional `# Panics` section for runtime guard clauses and undefined math states.
 
-use super::super::aliases::OutputMode;
+use super::super::op_mode::OpMode;
 use super::super::scalar::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
 use super::super::scalar::shared::{FractionalScalarContract, ScalarContract};
 use super::aliases::UsfOrNormalVector;
@@ -42,7 +43,7 @@ pub enum HomogeneousPointOrDirection<Vector3d> {
 /// Dimension-generic vector core operations.
 /// # Working Principle
 /// - `D` is the compile-time vector dimension and governs component-oriented behavior.
-/// - Methods use mixed-domain aliases for inputs and allow generic output codomains where needed.
+/// - Methods use mixed-repr aliases for inputs and allow generic output codomains where needed.
 /// - Fractional-return operations constrain output with `FractionalScalarContract` to preserve
 ///   fractional-capable semantics without forcing a value to be non-integer at runtime.
 /// # Usage
@@ -54,7 +55,7 @@ pub enum HomogeneousPointOrDirection<Vector3d> {
 /// ```ignore
 /// use crate::usf::math::vector::shared::{Vector3dCoreOps, VectorContract};
 /// use crate::usf::math::scalar::shared::FractionalScalarContract;
-/// use crate::usf::math::aliases::OutputMode;
+/// use crate::usf::math::op_mode::OpMode;
 ///
 /// fn cross_into_out<V, Rhs, Out>(lhs: &V, rhs: Rhs) -> Out
 /// where
@@ -65,7 +66,7 @@ pub enum HomogeneousPointOrDirection<Vector3d> {
 ///     lhs.cross::<Rhs, Out>(rhs)
 /// }
 ///
-/// fn length_into_fractional<V, OutFractional>(v: &V, mode: OutputMode) -> OutFractional
+/// fn length_into_fractional<V, OutFractional>(v: &V, mode: OpMode) -> OutFractional
 /// where
 ///     V: VectorContract<3>,
 ///     OutFractional: FractionalScalarContract,
@@ -104,10 +105,10 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - `value` can come from either branch of `UsfOrNormalScalar`.
     /// # Panics
-    /// - Panics if this backend does not support the selected domain branch.
+    /// - Panics if this backend does not support the selected repr branch.
     fn splat(_value: UsfOrNormalScalar) -> Self {
         todo!()
     }
@@ -120,10 +121,10 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Components can come from either branch of `UsfOrNormalScalar`.
     /// # Panics
-    /// - Panics if this backend does not support the selected domain branch.
+    /// - Panics if this backend does not support the selected repr branch.
     /// - Panics if `D < 2` is rejected by runtime validation.
     fn from_vector_components(_vector_components: [UsfOrNormalScalar; D]) -> Self {
         todo!()
@@ -133,14 +134,14 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
-    /// - Fixed-size array result of type `[OutScalar; D]`, projected according to `output_mode`.
+    /// - Fixed-size array result of type `[OutScalar; D]`, projected according to `op_mode`.
     ///
-    /// # Domain
-    /// - Output projection policy is selected via `output_mode`.
-    fn to_vector_components<OutScalar: ScalarContract>(&self, _output_mode: OutputMode) -> [OutScalar; D] {
+    /// # Repr
+    /// - Output projection policy is selected via `op_mode`.
+    fn to_vector_components<OutScalar: ScalarContract>(&self, _op_mode: OpMode) -> [OutScalar; D] {
         todo!()
     }
 
@@ -152,7 +153,7 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Returns
     /// - A new value of the same concrete type.
     ///
-    /// # Domain
+    /// # Repr
     /// - Unary operation on the current backend's representation.
     /// # Panics
     /// - Panics if the vector has zero length.
@@ -226,7 +227,7 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
         todo!()
     }
 
-    /// Adds a vector in either domain.
+    /// Adds a vector in either repr.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
@@ -235,15 +236,15 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Returns
     /// - Vector result converted into `Out`.
     ///
-    /// # Domain
-    /// - `rhs` can use any domain branch exposed by `V: VectorContract<D>`.
+    /// # Repr
+    /// - `rhs` can use any repr branch exposed by `V: VectorContract<D>`.
     /// # Panics
-    /// - Panics if this backend cannot evaluate the selected operand/output domains.
+    /// - Panics if this backend cannot evaluate the selected operand/output repr branches.
     fn add<V: VectorContract<D>, Out: VectorContract<D>>(&self, _rhs: V) -> Out {
         todo!()
     }
 
-    /// Subtracts a vector in either domain.
+    /// Subtracts a vector in either repr.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
@@ -252,15 +253,15 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Returns
     /// - Vector result converted into `Out`.
     ///
-    /// # Domain
-    /// - `rhs` can use any domain branch exposed by `V: VectorContract<D>`.
+    /// # Repr
+    /// - `rhs` can use any repr branch exposed by `V: VectorContract<D>`.
     /// # Panics
-    /// - Panics if this backend cannot evaluate the selected operand/output domains.
+    /// - Panics if this backend cannot evaluate the selected operand/output repr branches.
     fn sub<V: VectorContract<D>, Out: VectorContract<D>>(&self, _rhs: V) -> Out {
         todo!()
     }
 
-    /// Multiplies component-wise by a vector in either domain.
+    /// Multiplies component-wise by a vector in either repr.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
@@ -269,15 +270,15 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Returns
     /// - Vector result converted into `Out`.
     ///
-    /// # Domain
-    /// - `rhs` can use any domain branch exposed by `V: VectorContract<D>`.
+    /// # Repr
+    /// - `rhs` can use any repr branch exposed by `V: VectorContract<D>`.
     /// # Panics
-    /// - Panics if this backend cannot evaluate the selected operand/output domains.
+    /// - Panics if this backend cannot evaluate the selected operand/output repr branches.
     fn component_mul<V: VectorContract<D>, Out: VectorContract<D>>(&self, _rhs: V) -> Out {
         todo!()
     }
 
-    /// Divides component-wise by a vector in either domain.
+    /// Divides component-wise by a vector in either repr.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
@@ -286,16 +287,16 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Returns
     /// - Vector result converted into `Out`.
     ///
-    /// # Domain
-    /// - `rhs` can use any domain branch exposed by `V: VectorContract<D>`.
+    /// # Repr
+    /// - `rhs` can use any repr branch exposed by `V: VectorContract<D>`.
     /// # Panics
-    /// - Panics if this backend cannot evaluate the selected operand/output domains.
+    /// - Panics if this backend cannot evaluate the selected operand/output repr branches.
     /// - Panics if any corresponding vector component in `rhs` is zero.
     fn component_div<V: VectorContract<D>, Out: VectorContract<D>>(&self, _rhs: V) -> Out {
         todo!()
     }
 
-    /// Computes component-wise remainder with a vector in either domain.
+    /// Computes component-wise remainder with a vector in either repr.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
@@ -304,10 +305,10 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Returns
     /// - Vector result converted into `Out`.
     ///
-    /// # Domain
-    /// - `rhs` can use any domain branch exposed by `V: VectorContract<D>`.
+    /// # Repr
+    /// - `rhs` can use any repr branch exposed by `V: VectorContract<D>`.
     /// # Panics
-    /// - Panics if this backend cannot evaluate the selected operand/output domains.
+    /// - Panics if this backend cannot evaluate the selected operand/output repr branches.
     /// - Panics if any corresponding vector component in `rhs` is zero.
     fn component_rem<V: VectorContract<D>, Out: VectorContract<D>>(&self, _rhs: V) -> Out {
         todo!()
@@ -322,10 +323,10 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Returns
     /// - Vector result converted into `Out`.
     ///
-    /// # Domain
-    /// - `rhs` can use any domain branch exposed by `V: VectorContract<D>`.
+    /// # Repr
+    /// - `rhs` can use any repr branch exposed by `V: VectorContract<D>`.
     /// # Panics
-    /// - Panics if this backend cannot evaluate the selected operand/output domains.
+    /// - Panics if this backend cannot evaluate the selected operand/output repr branches.
     fn min<V: VectorContract<D>, Out: VectorContract<D>>(&self, _rhs: V) -> Out {
         todo!()
     }
@@ -339,10 +340,10 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Returns
     /// - Vector result converted into `Out`.
     ///
-    /// # Domain
-    /// - `rhs` can use any domain branch exposed by `V: VectorContract<D>`.
+    /// # Repr
+    /// - `rhs` can use any repr branch exposed by `V: VectorContract<D>`.
     /// # Panics
-    /// - Panics if this backend cannot evaluate the selected operand/output domains.
+    /// - Panics if this backend cannot evaluate the selected operand/output repr branches.
     fn max<V: VectorContract<D>, Out: VectorContract<D>>(&self, _rhs: V) -> Out {
         todo!()
     }
@@ -357,10 +358,10 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Returns
     /// - Vector result converted into `Out`.
     ///
-    /// # Domain
-    /// - `lo` and `hi` can use any domain branch exposed by `V: VectorContract<D>`.
+    /// # Repr
+    /// - `lo` and `hi` can use any repr branch exposed by `V: VectorContract<D>`.
     /// # Panics
-    /// - Panics if this backend cannot evaluate the selected operand/output domains.
+    /// - Panics if this backend cannot evaluate the selected operand/output repr branches.
     /// - Panics if any vector component has `lo > hi`.
     fn clamp<V: VectorContract<D>, Out: VectorContract<D>>(&self, _lo: V, _hi: V) -> Out {
         todo!()
@@ -376,11 +377,11 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Returns
     /// - Interpolated vector converted into `Out`.
     ///
-    /// # Domain
-    /// - `rhs` can use any domain branch exposed by `V: VectorContract<D>`.
+    /// # Repr
+    /// - `rhs` can use any repr branch exposed by `V: VectorContract<D>`.
     /// - `t` can use either branch of `UsfOrNormalFractionalScalar`.
     /// # Panics
-    /// - Panics if this backend cannot evaluate the selected operand/output domains.
+    /// - Panics if this backend cannot evaluate the selected operand/output repr branches.
     fn lerp<V: VectorContract<D>, Out: VectorContract<D>>(&self, _rhs: V, _t: UsfOrNormalFractionalScalar) -> Out {
         todo!()
     }
@@ -395,79 +396,73 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Returns
     /// - Smoothed interpolation result converted into `Out`.
     ///
-    /// # Domain
-    /// - `rhs` can use any domain branch exposed by `V: VectorContract<D>`.
+    /// # Repr
+    /// - `rhs` can use any repr branch exposed by `V: VectorContract<D>`.
     /// - `t` can use either branch of `UsfOrNormalFractionalScalar`.
     /// # Panics
-    /// - Panics if this backend cannot evaluate the selected operand/output domains.
+    /// - Panics if this backend cannot evaluate the selected operand/output repr branches.
     fn smoothstep<V: VectorContract<D>, Out: VectorContract<D>>(&self, _rhs: V, _t: UsfOrNormalFractionalScalar) -> Out {
         todo!()
     }
 
-    /// Computes dot product in requested output mode.
+    /// Computes dot product in requested op mode.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `rhs` (V): Right-hand-side operand.
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - Dot-product scalar converted into `OutFractional`.
     ///
-    /// # Domain
-    /// - `rhs` can use any domain branch exposed by `V: VectorContract<D>`.
+    /// # Repr
+    /// - `rhs` can use any repr branch exposed by `V: VectorContract<D>`.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
-    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
-    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
-    fn dot<V: VectorContract<D>, OutFractional: FractionalScalarContract>(&self, _rhs: V, _output_mode: OutputMode) -> OutFractional {
+    /// - Panics if repr selection is invalid for this backend.
+    fn dot<V: VectorContract<D>, OutFractional: FractionalScalarContract>(&self, _rhs: V, _op_mode: OpMode) -> OutFractional {
         todo!()
     }
 
-    /// Computes Euclidean distance in requested output mode.
+    /// Computes Euclidean distance in requested op mode.
     /// Output behavior:
     /// - Computes using canonical USF working precision.
-    /// - Projects the result into `output_mode.domain`.
+    /// - Projects the result into `op_mode.repr`.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `rhs` (V): Right-hand-side operand.
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - Euclidean distance converted into `OutFractional`.
     ///
-    /// # Domain
-    /// - `rhs` can use any domain branch exposed by `V: VectorContract<D>`.
+    /// # Repr
+    /// - `rhs` can use any repr branch exposed by `V: VectorContract<D>`.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
-    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
-    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
-    fn distance<V: VectorContract<D>, OutFractional: FractionalScalarContract>(&self, _rhs: V, _output_mode: OutputMode) -> OutFractional {
+    /// - Panics if repr selection is invalid for this backend.
+    fn distance<V: VectorContract<D>, OutFractional: FractionalScalarContract>(&self, _rhs: V, _op_mode: OpMode) -> OutFractional {
         todo!()
     }
 
-    /// Computes angle between vectors in requested output mode.
+    /// Computes angle between vectors in requested op mode.
     /// Output behavior:
     /// - Computes using canonical USF working precision.
-    /// - Projects the result into `output_mode.domain`.
+    /// - Projects the result into `op_mode.repr`.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `rhs` (V): Right-hand-side operand.
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - Angle value converted into `OutFractional`.
     ///
-    /// # Domain
-    /// - `rhs` can use any domain branch exposed by `V: VectorContract<D>`.
+    /// # Repr
+    /// - `rhs` can use any repr branch exposed by `V: VectorContract<D>`.
     /// # Panics
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     /// - Panics if either vector has zero length.
-    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
-    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
-    fn angle_between<V: VectorContract<D>, OutFractional: FractionalScalarContract>(&self, _rhs: V, _output_mode: OutputMode) -> OutFractional {
+    fn angle_between<V: VectorContract<D>, OutFractional: FractionalScalarContract>(&self, _rhs: V, _op_mode: OpMode) -> OutFractional {
         todo!()
     }
 
@@ -480,10 +475,10 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Returns
     /// - Projection result converted into `Out`.
     ///
-    /// # Domain
-    /// - `onto` can use any domain branch exposed by `V: VectorContract<D>`.
+    /// # Repr
+    /// - `onto` can use any repr branch exposed by `V: VectorContract<D>`.
     /// # Panics
-    /// - Panics if this backend cannot evaluate the selected operand/output domains.
+    /// - Panics if this backend cannot evaluate the selected operand/output repr branches.
     /// - Panics if `onto` is the zero vector.
     fn project<V: VectorContract<D>, Out: VectorContract<D>>(&self, _onto: V) -> Out {
         todo!()
@@ -498,10 +493,10 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Returns
     /// - Rejection result converted into `Out`.
     ///
-    /// # Domain
-    /// - `onto` can use any domain branch exposed by `V: VectorContract<D>`.
+    /// # Repr
+    /// - `onto` can use any repr branch exposed by `V: VectorContract<D>`.
     /// # Panics
-    /// - Panics if this backend cannot evaluate the selected operand/output domains.
+    /// - Panics if this backend cannot evaluate the selected operand/output repr branches.
     /// - Panics if `onto` is the zero vector.
     fn reject<V: VectorContract<D>, Out: VectorContract<D>>(&self, _onto: V) -> Out {
         todo!()
@@ -516,10 +511,10 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Returns
     /// - Reflection result converted into `Out`.
     ///
-    /// # Domain
-    /// - `normal` can use any domain branch exposed by `V: VectorContract<D>`.
+    /// # Repr
+    /// - `normal` can use any repr branch exposed by `V: VectorContract<D>`.
     /// # Panics
-    /// - Panics if this backend cannot evaluate the selected operand/output domains.
+    /// - Panics if this backend cannot evaluate the selected operand/output repr branches.
     /// - Panics if `normal` is the zero vector.
     fn reflect<V: VectorContract<D>, Out: VectorContract<D>>(&self, _normal: V) -> Out {
         todo!()
@@ -535,10 +530,10 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Returns
     /// - Component-wise fused multiply-add result converted into `Out`.
     ///
-    /// # Domain
-    /// - `b` and `c` can use any domain branch exposed by `V: VectorContract<D>`.
+    /// # Repr
+    /// - `b` and `c` can use any repr branch exposed by `V: VectorContract<D>`.
     /// # Panics
-    /// - Panics if this backend cannot evaluate the selected operand/output domains.
+    /// - Panics if this backend cannot evaluate the selected operand/output repr branches.
     fn fma<V: VectorContract<D>, Out: VectorContract<D>>(&self, _b: V, _c: V) -> Out {
         todo!()
     }
@@ -552,10 +547,10 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Returns
     /// - Vector result converted into `Out`.
     ///
-    /// # Domain
+    /// # Repr
     /// - `rhs` can use either branch of `UsfOrNormalScalar`.
     /// # Panics
-    /// - Panics if this backend cannot evaluate the selected operand/output domains.
+    /// - Panics if this backend cannot evaluate the selected operand/output repr branches.
     fn add_scalar<Out: VectorContract<D>>(&self, _rhs: UsfOrNormalScalar) -> Out {
         todo!()
     }
@@ -569,10 +564,10 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Returns
     /// - Vector result converted into `Out`.
     ///
-    /// # Domain
+    /// # Repr
     /// - `rhs` can use either branch of `UsfOrNormalScalar`.
     /// # Panics
-    /// - Panics if this backend cannot evaluate the selected operand/output domains.
+    /// - Panics if this backend cannot evaluate the selected operand/output repr branches.
     fn sub_scalar<Out: VectorContract<D>>(&self, _rhs: UsfOrNormalScalar) -> Out {
         todo!()
     }
@@ -586,10 +581,10 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Returns
     /// - Vector result converted into `Out`.
     ///
-    /// # Domain
+    /// # Repr
     /// - `rhs` can use either branch of `UsfOrNormalScalar`.
     /// # Panics
-    /// - Panics if this backend cannot evaluate the selected operand/output domains.
+    /// - Panics if this backend cannot evaluate the selected operand/output repr branches.
     fn mul_scalar<Out: VectorContract<D>>(&self, _rhs: UsfOrNormalScalar) -> Out {
         todo!()
     }
@@ -603,10 +598,10 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Returns
     /// - Vector result converted into `Out`.
     ///
-    /// # Domain
+    /// # Repr
     /// - `rhs` can use either branch of `UsfOrNormalScalar`.
     /// # Panics
-    /// - Panics if this backend cannot evaluate the selected operand/output domains.
+    /// - Panics if this backend cannot evaluate the selected operand/output repr branches.
     /// - Panics if `rhs` is zero.
     fn div_scalar<Out: VectorContract<D>>(&self, _rhs: UsfOrNormalScalar) -> Out {
         todo!()
@@ -621,10 +616,10 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Returns
     /// - Vector result converted into `Out`.
     ///
-    /// # Domain
+    /// # Repr
     /// - `rhs` can use either branch of `UsfOrNormalScalar`.
     /// # Panics
-    /// - Panics if this backend cannot evaluate the selected operand/output domains.
+    /// - Panics if this backend cannot evaluate the selected operand/output repr branches.
     fn scale<Out: VectorContract<D>>(&self, _rhs: UsfOrNormalScalar) -> Out {
         todo!()
     }
@@ -640,59 +635,51 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
         todo!()
     }
 
-    /// Returns vector length in requested output mode.
+    /// Returns vector length in requested op mode.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - Length value converted into `OutFractional`.
     ///
-    /// # Domain
-    /// - Output projection is selected via `output_mode`.
-    /// # Panics
-    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
-    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
-    fn get_length<OutFractional: FractionalScalarContract>(&self, _output_mode: OutputMode) -> OutFractional {
+    /// # Repr
+    /// - Output projection is selected via `op_mode`.
+    fn get_length<OutFractional: FractionalScalarContract>(&self, _op_mode: OpMode) -> OutFractional {
         todo!()
     }
 
-    /// Returns squared vector length in requested output mode.
+    /// Returns squared vector length in requested op mode.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - Squared-length value converted into `OutFractional`.
     ///
-    /// # Domain
-    /// - Output projection is selected via `output_mode`.
-    /// # Panics
-    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
-    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but the projection loses precision or range.
-    fn get_length_squared<OutFractional: FractionalScalarContract>(&self, _output_mode: OutputMode) -> OutFractional {
+    /// # Repr
+    /// - Output projection is selected via `op_mode`.
+    fn get_length_squared<OutFractional: FractionalScalarContract>(&self, _op_mode: OpMode) -> OutFractional {
         todo!()
     }
 
-    /// Returns vector component at index in requested output mode.
+    /// Returns vector component at index in requested op mode.
     ///
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `index` (usize): Zero-based index.
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - Component value converted into `OutScalar`.
     ///
-    /// # Domain
-    /// - Output projection is selected via `output_mode`.
+    /// # Repr
+    /// - Output projection is selected via `op_mode`.
     /// # Panics
     /// - Panics if `index` is out of bounds.
-    /// - Panics when `output_mode.domain == OutputDomain::Usf` and `output_mode.quality_constraint == OutputQualityConstraint::AllowLossy`, because USF output never uses lossy projection.
-    /// - Panics when `output_mode.domain == OutputDomain::Normal` and `output_mode.quality_constraint == OutputQualityConstraint::RequireLossless` but component projection loses precision or range.
-    fn get_vector_component<OutScalar: ScalarContract>(&self, _index: usize, _output_mode: OutputMode) -> OutScalar {
+    fn get_vector_component<OutScalar: ScalarContract>(&self, _index: usize, _op_mode: OpMode) -> OutScalar {
         todo!()
     }
 
@@ -706,12 +693,12 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Returns
     /// - No value; mutates receiver state where applicable.
     ///
-    /// # Domain
+    /// # Repr
     /// - Accepts `{value: Usf}` and `{value: Normal}`.
-    /// - Disallowed combinations: none; all domain values are accepted.
+    /// - Disallowed combinations: none; all repr values are accepted.
     /// # Panics
     /// - Panics if `index` is out of bounds.
-    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if repr selection is invalid for this backend.
     /// - Panics if the vector component is immutable under runtime field mutability policy.
     fn set_vector_component(&mut self, _index: usize, _value: UsfOrNormalScalar) {
         todo!()
@@ -731,11 +718,11 @@ pub trait Vector2dFieldOps: Clone + Sized {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - `x` component converted into `OutScalar`.
-    fn get_x<OutScalar: ScalarContract>(&self, _output_mode: OutputMode) -> OutScalar {
+    fn get_x<OutScalar: ScalarContract>(&self, _op_mode: OpMode) -> OutScalar {
         todo!()
     }
 
@@ -743,11 +730,11 @@ pub trait Vector2dFieldOps: Clone + Sized {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - `y` component converted into `OutScalar`.
-    fn get_y<OutScalar: ScalarContract>(&self, _output_mode: OutputMode) -> OutScalar {
+    fn get_y<OutScalar: ScalarContract>(&self, _op_mode: OpMode) -> OutScalar {
         todo!()
     }
 
@@ -782,11 +769,11 @@ pub trait Vector3dFieldOps: Vector2dFieldOps {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - `z` component converted into `OutScalar`.
-    fn get_z<OutScalar: ScalarContract>(&self, _output_mode: OutputMode) -> OutScalar {
+    fn get_z<OutScalar: ScalarContract>(&self, _op_mode: OpMode) -> OutScalar {
         todo!()
     }
 
@@ -809,11 +796,11 @@ pub trait Vector4dFieldOps: Vector3dFieldOps {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - `w` component converted into `OutScalar`.
-    fn get_w<OutScalar: ScalarContract>(&self, _output_mode: OutputMode) -> OutScalar {
+    fn get_w<OutScalar: ScalarContract>(&self, _op_mode: OpMode) -> OutScalar {
         todo!()
     }
 
@@ -859,14 +846,14 @@ pub trait Vector2dCoreOps: Vector2dFieldOps + VectorCoreOps<2> {
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `rhs` (Rhs): Right-hand-side operand.
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - Perpendicular-dot scalar converted into `OutFractional`.
     ///
     /// # Panics
-    /// - Panics when `output_mode` requests an unsupported projection policy.
-    fn perp_dot<Rhs: VectorContract<2>, OutFractional: FractionalScalarContract>(&self, _rhs: Rhs, _output_mode: OutputMode) -> OutFractional {
+    /// - Panics when `op_mode` requests an unsupported kind/repr projection.
+    fn perp_dot<Rhs: VectorContract<2>, OutFractional: FractionalScalarContract>(&self, _rhs: Rhs, _op_mode: OpMode) -> OutFractional {
         todo!()
     }
 
@@ -885,14 +872,14 @@ pub trait Vector2dCoreOps: Vector2dFieldOps + VectorCoreOps<2> {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - Polar angle converted into `OutFractional`.
     ///
     /// # Panics
-    /// - Panics when `output_mode` requests an unsupported projection policy.
-    fn angle<OutFractional: FractionalScalarContract>(&self, _output_mode: OutputMode) -> OutFractional {
+    /// - Panics when `op_mode` requests an unsupported kind/repr projection.
+    fn angle<OutFractional: FractionalScalarContract>(&self, _op_mode: OpMode) -> OutFractional {
         todo!()
     }
 
@@ -912,14 +899,14 @@ pub trait Vector2dCoreOps: Vector2dFieldOps + VectorCoreOps<2> {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - Polar tuple `(radius, angle)` with both entries converted into `OutFractional`.
     ///
     /// # Panics
-    /// - Panics when `output_mode` requests an unsupported projection policy.
-    fn to_polar<OutFractional: FractionalScalarContract>(&self, _output_mode: OutputMode) -> (OutFractional, OutFractional) {
+    /// - Panics when `op_mode` requests an unsupported kind/repr projection.
+    fn to_polar<OutFractional: FractionalScalarContract>(&self, _op_mode: OpMode) -> (OutFractional, OutFractional) {
         todo!()
     }
 
@@ -947,10 +934,10 @@ pub trait Vector3dCoreOps: Vector3dFieldOps + VectorCoreOps<3> {
     /// # Returns
     /// - Cross-product vector converted into `Out`.
     ///
-    /// # Domain
-    /// - `rhs` can use any domain branch exposed by `Rhs: VectorContract<3>`.
+    /// # Repr
+    /// - `rhs` can use any repr branch exposed by `Rhs: VectorContract<3>`.
     /// # Panics
-    /// - Panics if this backend cannot evaluate the selected operand/output domains.
+    /// - Panics if this backend cannot evaluate the selected operand/output repr branches.
     fn cross<Rhs: VectorContract<3>, Out: VectorContract<3>>(&self, _rhs: Rhs) -> Out {
         todo!()
     }
@@ -973,18 +960,18 @@ pub trait Vector3dCoreOps: Vector3dFieldOps + VectorCoreOps<3> {
     /// - `self`: Receiver value.
     /// - `b` (B): Secondary operand used by the operation.
     /// - `c` (C): Tertiary operand used by the operation.
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - Triple-product scalar converted into `OutFractional`.
     ///
     /// # Panics
-    /// - Panics when `output_mode` requests an unsupported projection policy.
+    /// - Panics when `op_mode` requests an unsupported kind/repr projection.
     fn triple_product<B: VectorContract<3>, C: VectorContract<3>, OutFractional: FractionalScalarContract>(
         &self,
         _b: B,
         _c: C,
-        _output_mode: OutputMode,
+        _op_mode: OpMode,
     ) -> OutFractional {
         todo!()
     }
@@ -1032,19 +1019,19 @@ pub trait Vector3dCoreOps: Vector3dFieldOps + VectorCoreOps<3> {
     /// - `self`: Receiver value.
     /// - `rhs` (Rhs): Right-hand-side operand.
     /// - `axis` (Axis): Axis vector.
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - Signed angle converted into `OutFractional`.
     ///
     /// # Panics
     /// - Panics when `_axis` has zero length.
-    /// - Panics when `output_mode` requests an unsupported projection policy.
+    /// - Panics when `op_mode` requests an unsupported kind/repr projection.
     fn signed_angle<Rhs: VectorContract<3>, Axis: VectorContract<3>, OutFractional: FractionalScalarContract>(
         &self,
         _rhs: Rhs,
         _axis: Axis,
-        _output_mode: OutputMode,
+        _op_mode: OpMode,
     ) -> OutFractional {
         todo!()
     }
@@ -1053,14 +1040,14 @@ pub trait Vector3dCoreOps: Vector3dFieldOps + VectorCoreOps<3> {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - Spherical tuple `(radius, azimuth, inclination)` with each entry converted into `OutFractional`.
     ///
     /// # Panics
-    /// - Panics when `output_mode` requests an unsupported projection policy.
-    fn to_spherical<OutFractional: FractionalScalarContract>(&self, _output_mode: OutputMode) -> (OutFractional, OutFractional, OutFractional) {
+    /// - Panics when `op_mode` requests an unsupported kind/repr projection.
+    fn to_spherical<OutFractional: FractionalScalarContract>(&self, _op_mode: OpMode) -> (OutFractional, OutFractional, OutFractional) {
         todo!()
     }
 
@@ -1096,11 +1083,11 @@ pub trait Vector4dCoreOps: Vector4dFieldOps + VectorCoreOps<4> {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - XYZ slice converted into `Out`.
-    fn xyz<Out: VectorContract<3>>(&self, _output_mode: OutputMode) -> Out {
+    fn xyz<Out: VectorContract<3>>(&self, _op_mode: OpMode) -> Out {
         todo!()
     }
 
@@ -1121,14 +1108,14 @@ pub trait Vector4dCoreOps: Vector4dFieldOps + VectorCoreOps<4> {
     /// # Parameters
     /// - `self`: Receiver value.
     /// - `rhs` (Rhs): Right-hand-side operand.
-    /// - `output_mode` (OutputMode): Output domain/quality projection policy.
+    /// - `op_mode` (OpMode): Output kind/repr projection policy.
     ///
     /// # Returns
     /// - XYZ-only dot-product scalar converted into `OutFractional`.
     ///
     /// # Panics
-    /// - Panics when `output_mode` requests an unsupported projection policy.
-    fn dot3<Rhs: VectorContract<4>, OutFractional: FractionalScalarContract>(&self, _rhs: Rhs, _output_mode: OutputMode) -> OutFractional {
+    /// - Panics when `op_mode` requests an unsupported kind/repr projection.
+    fn dot3<Rhs: VectorContract<4>, OutFractional: FractionalScalarContract>(&self, _rhs: Rhs, _op_mode: OpMode) -> OutFractional {
         todo!()
     }
 }

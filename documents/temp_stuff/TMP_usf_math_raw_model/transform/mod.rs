@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-/// Transform-focused aliases for translation/rotation domain unions.
+/// Transform-focused aliases for translation/rotation repr unions.
 pub mod aliases;
 /// Normal transform wrappers and composition policies.
 pub mod normal;

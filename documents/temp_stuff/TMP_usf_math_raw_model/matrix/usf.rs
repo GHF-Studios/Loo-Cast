@@ -1,14 +1,8 @@
 #![allow(dead_code)]
 
-use super::super::aliases::OutputMode;
 use super::super::field::Field;
-use super::super::scalar::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
-use super::super::scalar::shared::SignedIntegerType;
-use super::super::scalar::usf::UsfScalar;
-use super::super::vector::aliases::UsfOrNormalVector;
 use super::super::vector::usf::UsfVector;
 pub use super::aliases::{MatrixOrScalar, MatrixOrVector, UsfOrNormalMatrix};
-use crate::utils::one_of::OneOf2;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UsfMatrix<const R: usize, const C: usize> {

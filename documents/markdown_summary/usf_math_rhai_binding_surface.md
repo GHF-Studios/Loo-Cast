@@ -34,20 +34,29 @@ Purpose: define how the math sketch is documented and projected into script-faci
 4. Register into Rhai via bridge graph or explicit registration.
 5. Expose script-call syntax aligned with ctx/capability model.
 
-## Domain and Quality Semantics
+## Kind and Repr Semantics
 
-- Domain (representation family):
+- Kind (mathematical shape family):
+  - `Scalar`
+  - `Vector`
+  - `Matrix`
+  - `Tensor3`
+  - `Tensor4`
+  - `Quaternion`
+  - `Translation`
+  - `Rotation`
+  - `Scale`
+  - `Transform`
+- Repr (representation regime):
   - `Usf`
   - `Normal`
-- Quality (projection policy):
-  - lossless required
-  - lossy allowed
 
 Mechanisms:
 
-- Mixed-domain inputs: `UsfOrNormal*`, `OneOf*`.
-- Output projection intent: `OutputMode`.
-- Invalid domain/quality combinations: panic-fast guard clauses.
+- Mixed-repr inputs: `UsfOrNormal*`, `OneOf*`.
+- Generic projection intent (pre-facade monomorphization): `op_mode::OpMode`.
+- Operation-intrinsic mode variance: `op_policy::OpPolicy<T>` with `OpPolicy::DeferToGlobal` as the default route.
+- Invalid kind/repr selections for a concrete operation/backend: panic-fast guard clauses.
 
 ## Function Expansion Contract (Documentation Rule)
 
@@ -57,13 +66,14 @@ Every operation intended for scripting should document:
    - Start with the core concept, not implementation detail.
 2. Rust contract:
    - Exact parameter and return intent.
-3. Domain combinations:
+3. Kind/repr combinations:
    - Allowed and disallowed operand/output combinations.
 4. Rhai surface intent:
    - Planned function/method name and call shape.
-   - Whether output-domain selection is caller-controlled.
+   - Whether output kind/repr selection is caller-controlled.
+   - Whether operation-specific policy override is caller-controlled.
 5. Panic contract:
-   - Domain/quality guard failures.
+   - Kind/repr/policy guard failures.
    - Mathematical undefined states (divide by zero, singular inverse, etc.).
 
 ## Rhai Surface Shape (Target)
@@ -73,17 +83,20 @@ Every operation intended for scripting should document:
 - Keep script syntax predictable:
   - method-like where object semantics are clear.
   - function-like for constructors/converters.
-- Keep domain/quality controls explicit for operations with ambiguous output projection.
+- Keep kind/repr controls explicit for operations with ambiguous output projection.
 
 ## Example Expansion Pattern
 
 - Rust contract:
-  - `fn determinant(&self, output_mode: OutputMode) -> UsfOrNormalDecimalScalar`
+- `fn determinant(&self, op_mode: OpMode, policy: OpPolicy<DeterminantPolicy>) -> UsfOrNormalDecimalScalar`
 - Rhai facade intent:
   - `mat.determinant(mode)`
-  - where `mode` encodes domain + quality policy.
+  - `mat.determinant(mode, policy)` for override paths.
+  - where `mode` encodes kind + repr projection intent.
+  - where `policy` defaults to `DeferToGlobal` unless explicitly provided.
 - Panic conditions:
-  - invalid output projection policy
+  - invalid kind/repr projection selection
+  - invalid operation-policy selection
   - unsupported backend combination
 
 ## Capability/Context Alignment
