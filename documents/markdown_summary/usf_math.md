@@ -16,6 +16,16 @@ Purpose: focused math contract summary for cross-scale and local-runtime interop
 - Capability channels are allowed to compute locally and reconcile canonically through explicit adapters.
 - 71 scales are a structural backbone for math/context partitioning.
 
+## Facade-First Binding Rule
+
+- These math contracts are not intended as direct end-user Rust APIs.
+- Canonical usage path is: Rust contract -> facade surface -> Rhai binding surface.
+- Domain/quality ambiguity is resolved through explicit parameter types (`UsfOrNormal*`, `OneOf*`) and `OutputMode`.
+- Every exposed operation should document both:
+  - Rust-side contract semantics.
+  - Target Rhai call semantics/syntax once facades are bound.
+- Direct binding of generic trait contracts is out of scope; bindings are monomorphized via facade layers.
+
 ## Open Questions
 
 1. Exact canonical numeric types and operator sets for global math core.
@@ -26,3 +36,4 @@ Purpose: focused math contract summary for cross-scale and local-runtime interop
 ## Diagram Pair
 
 - `../intention_records/usf_records/60_usf_math_contracts.puml`
+- `usf_math_rhai_binding_surface.md`

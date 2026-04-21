@@ -1,191 +1,323 @@
 #![allow(dead_code)]
 
+//! Shared transform-domain contracts (translation, rotation, logarithmic scale, transform bundle).
+//!
+//! Facade-first rule:
+//! - These traits define model semantics and panic contracts.
+//! - Script-facing API shape should be provided through explicit facades/bindings.
+//!
+//! Domain/quality mechanism:
+//! - Mixed-domain operands are represented with `UsfOrNormal*` aliases and `OneOf2`.
+//! - Output projection-sensitive getters use `OutputMode` where needed.
+//! - Invalid domain-quality combinations panic fast.
+
 use super::super::aliases::OutputMode;
-use super::super::quaternion::shared::QuaternionAnyContract;
 use super::super::scalar::aliases::{UsfOrNormalDecimalScalar, UsfOrNormalScalar};
-use super::super::vector::shared::VectorContract;
+use super::aliases::{UsfOrNormalRotationQuaternion, UsfOrNormalTranslationVector};
 use crate::utils::one_of::OneOf2;
 
-pub trait TranslationCoreOps<Vector: VectorContract<D>, const D: usize>: Clone + Sized {
+/// Translation core operations for `D`-dimensional translation wrappers.
+/// Rhai surface target:
+/// - Expose translation wrappers through typed facade objects.
+/// - Keep conversion shape explicit (`from_vector`, `to_vector`).
+pub trait TranslationCoreOps<const D: usize>: Clone + Sized {
     /// Builds translation from vector input.
-    fn from_vector<VectorB: VectorContract<D>>(_value: OneOf2<Vector, VectorB>) -> Self {
+    /// # Domain
+    /// - Accepts translation vectors from either domain variant.
+    /// # Panics
+    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if runtime translation invariants are violated.
+    fn from_vector(_value: UsfOrNormalTranslationVector<D>) -> Self {
         todo!()
     }
+
     /// Returns translation as vector in either domain.
-    fn to_vector<VectorB: VectorContract<D>>(&self) -> OneOf2<Vector, VectorB> {
+    /// # Panics
+    /// - Panics when translation cannot be represented under current backend rules.
+    fn to_vector(&self) -> UsfOrNormalTranslationVector<D> {
         todo!()
     }
+
     /// Adds translation delta.
-    fn add<VectorB: VectorContract<D>>(&self, _rhs: OneOf2<Vector, VectorB>) -> Self {
+    /// # Domain
+    /// - Accepts translation deltas from either domain variant.
+    /// # Panics
+    /// - Panics if domain selection is invalid for this backend.
+    fn add(&self, _rhs: UsfOrNormalTranslationVector<D>) -> Self {
         todo!()
     }
+
     /// Subtracts translation delta.
-    fn sub<VectorB: VectorContract<D>>(&self, _rhs: OneOf2<Vector, VectorB>) -> Self {
+    /// # Domain
+    /// - Accepts translation deltas from either domain variant.
+    /// # Panics
+    /// - Panics if domain selection is invalid for this backend.
+    fn sub(&self, _rhs: UsfOrNormalTranslationVector<D>) -> Self {
         todo!()
     }
+
     /// Scales translation by scalar from either domain.
+    /// # Domain
+    /// - Accepts scalar from either domain variant.
+    /// # Panics
+    /// - Panics if domain selection is invalid for this backend.
     fn scale(&self, _rhs: UsfOrNormalScalar) -> Self {
         todo!()
     }
 }
 
-pub trait TranslationFieldOps<Vector: VectorContract<D>, const D: usize>: TranslationCoreOps<Vector, D> {
+/// Translation field access contract.
+pub trait TranslationFieldOps<const D: usize>: TranslationCoreOps<D> {
     /// Returns wrapped vector.
-    fn get_vector(&self) -> Vector {
+    /// # Panics
+    /// - Panics when translation cannot be represented under current backend rules.
+    fn get_vector(&self) -> UsfOrNormalTranslationVector<D> {
         todo!()
     }
+
     /// Sets wrapped vector.
-    fn set_vector(&mut self, _value: Vector) {
+    /// # Panics
+    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics when the field is immutable under backend field policy.
+    fn set_vector(&mut self, _value: UsfOrNormalTranslationVector<D>) {
         todo!()
     }
 }
 
-pub trait TranslationBridgeOps<Vector: VectorContract<D>, const D: usize>: TranslationCoreOps<Vector, D> {}
+/// Bridge-only extension point for translation surfaces.
+pub trait TranslationBridgeOps<const D: usize>: TranslationCoreOps<D> {}
 
-pub trait RotationCoreOps<Quaternion: QuaternionAnyContract>: Clone + Sized {
+/// Rotation core operations backed by quaternion semantics.
+/// Rhai surface target:
+/// - Keep quaternion-backed rotation operations explicit.
+/// - Bind concrete rotation wrappers via facade layers.
+pub trait RotationCoreOps: Clone + Sized {
     /// Builds rotation from quaternion.
-    fn from_quat<QuaternionB: QuaternionAnyContract>(_value: OneOf2<Quaternion, QuaternionB>) -> Self {
+    /// # Domain
+    /// - Accepts quaternion values from either domain variant.
+    /// # Panics
+    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if quaternion is invalid for rotation usage.
+    fn from_quat(_value: UsfOrNormalRotationQuaternion) -> Self {
         todo!()
     }
+
     /// Returns wrapped quaternion in either domain.
-    fn to_quat<QuaternionB: QuaternionAnyContract>(&self) -> OneOf2<Quaternion, QuaternionB> {
+    /// # Panics
+    /// - Panics when rotation cannot be represented under current backend rules.
+    fn to_quat(&self) -> UsfOrNormalRotationQuaternion {
         todo!()
     }
+
     /// Composes two rotations.
-    fn compose(&self, _rhs: Quaternion) -> Self {
+    /// # Domain
+    /// - Accepts quaternion values from either domain variant.
+    /// # Panics
+    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if either operand is invalid for rotation composition.
+    fn compose(&self, _rhs: UsfOrNormalRotationQuaternion) -> Self {
         todo!()
     }
 }
 
-pub trait RotationFieldOps<Quaternion: QuaternionAnyContract>: RotationCoreOps<Quaternion> {
+/// Rotation field access contract.
+pub trait RotationFieldOps: RotationCoreOps {
     /// Returns wrapped quaternion.
-    fn get_quaternion(&self) -> Quaternion {
+    /// # Panics
+    /// - Panics when rotation cannot be represented under current backend rules.
+    fn get_quaternion(&self) -> UsfOrNormalRotationQuaternion {
         todo!()
     }
+
     /// Sets wrapped quaternion.
-    fn set_quaternion(&mut self, _value: Quaternion) {
+    /// # Panics
+    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics when quaternion is invalid for rotation usage.
+    /// - Panics when the field is immutable under backend field policy.
+    fn set_quaternion(&mut self, _value: UsfOrNormalRotationQuaternion) {
         todo!()
     }
 }
 
-pub trait RotationBridgeOps<Quaternion: QuaternionAnyContract>: RotationCoreOps<Quaternion> {}
+/// Bridge-only extension point for rotation surfaces.
+pub trait RotationBridgeOps: RotationCoreOps {}
 
+/// Logarithmic scale core operations.
+/// Rhai surface target:
+/// - Keep logarithmic terminology explicit (`log_base`, `scale_index`, `fractional_log_offset`).
+/// - Bind concrete scale wrapper through facade-level constructors.
 pub trait ScaleCoreOps: Clone + Sized {
     /// Builds logarithmic scale descriptor.
+    /// # Domain
+    /// - Accepts `log_base` and `fractional_log_offset` from either domain variant.
+    /// # Panics
+    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if logarithmic scale invariants are violated (for example invalid base).
     fn make(_log_base: UsfOrNormalDecimalScalar, _scale_index: i16, _fractional_log_offset: UsfOrNormalDecimalScalar) -> Self {
         todo!()
     }
 }
 
+/// Logarithmic scale field access contract.
 pub trait ScaleFieldOps: ScaleCoreOps {
     /// Returns logarithmic base in requested output mode.
+    /// # Panics
+    /// - Panics when `output_mode` requests an unsupported projection policy.
     fn get_log_base(&self, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
+
     /// Returns integer scale index.
     fn get_scale_index(&self) -> i16 {
         todo!()
     }
+
     /// Returns fractional offset in requested output mode.
+    /// # Panics
+    /// - Panics when `output_mode` requests an unsupported projection policy.
     fn get_fractional_log_offset(&self, _output_mode: OutputMode) -> UsfOrNormalDecimalScalar {
         todo!()
     }
+
     /// Sets logarithmic base.
+    /// # Domain
+    /// - Accepts base value from either domain variant.
+    /// # Panics
+    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if scale invariants are violated (for example invalid base).
+    /// - Panics when the field is immutable under backend field policy.
     fn set_log_base(&mut self, _value: UsfOrNormalDecimalScalar) {
         todo!()
     }
+
     /// Sets integer scale index.
+    /// # Panics
+    /// - Panics when the field is immutable under backend field policy.
     fn set_scale_index(&mut self, _value: i16) {
         todo!()
     }
+
     /// Sets fractional offset.
+    /// # Domain
+    /// - Accepts fractional offset from either domain variant.
+    /// # Panics
+    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics when the field is immutable under backend field policy.
     fn set_fractional_log_offset(&mut self, _value: UsfOrNormalDecimalScalar) {
         todo!()
     }
 }
 
+/// Bridge-only extension point for logarithmic scale surfaces.
 pub trait ScaleBridgeOps: ScaleCoreOps {}
 
-pub trait TransformCoreOps<Translation: TranslationAnyContract, Rotation: RotationAnyContract, Scale: ScaleAnyContract>: Clone + Sized {
+/// Transform tuple core operations (`translation`, `rotation`, `scale`).
+/// Rhai surface target:
+/// - Bind tuple composition/decomposition as high-level script methods.
+/// - Keep domain-branch choices explicit through `OneOf2` facade signatures.
+pub trait TransformCoreOps: Clone + Sized {
     /// Builds transform tuple `(translation, rotation, scale)`.
-    fn make<TranslationB: TranslationAnyContract, RotationB: RotationAnyContract, ScaleB: ScaleAnyContract>(
-        _translation: OneOf2<Translation, TranslationB>,
-        _rotation: OneOf2<Rotation, RotationB>,
-        _scale: OneOf2<Scale, ScaleB>,
+    /// # Domain
+    /// - Each component is supplied as `OneOf2`, enabling mixed-domain composition.
+    /// # Panics
+    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if any component violates transform invariants.
+    fn make<
+        TranslationA: TranslationAnyContract,
+        TranslationB: TranslationAnyContract,
+        RotationA: RotationAnyContract,
+        RotationB: RotationAnyContract,
+        ScaleA: ScaleAnyContract,
+        ScaleB: ScaleAnyContract,
+    >(
+        _translation: OneOf2<TranslationA, TranslationB>,
+        _rotation: OneOf2<RotationA, RotationB>,
+        _scale: OneOf2<ScaleA, ScaleB>,
     ) -> Self {
         todo!()
     }
 }
 
-pub trait TransformFieldOps<Translation: TranslationAnyContract, Rotation: RotationAnyContract, Scale: ScaleAnyContract>:
-    TransformCoreOps<Translation, Rotation, Scale>
-{
+/// Transform field access and mutation contract.
+pub trait TransformFieldOps: TransformCoreOps {
     /// Returns translation component in requested domain.
-    fn get_translation<TranslationB: TranslationAnyContract>(&self) -> OneOf2<Translation, TranslationB> {
+    /// # Panics
+    /// - Panics if requested translation variant cannot be produced by the backend.
+    fn get_translation<TranslationA: TranslationAnyContract, TranslationB: TranslationAnyContract>(&self) -> OneOf2<TranslationA, TranslationB> {
         todo!()
     }
+
     /// Returns rotation component in requested domain.
-    fn get_rotation<RotationB: RotationAnyContract>(&self) -> OneOf2<Rotation, RotationB> {
+    /// # Panics
+    /// - Panics if requested rotation variant cannot be produced by the backend.
+    fn get_rotation<RotationA: RotationAnyContract, RotationB: RotationAnyContract>(&self) -> OneOf2<RotationA, RotationB> {
         todo!()
     }
+
     /// Returns scale component in requested domain.
-    fn get_scale<ScaleB: ScaleAnyContract>(&self) -> OneOf2<Scale, ScaleB> {
+    /// # Panics
+    /// - Panics if requested scale variant cannot be produced by the backend.
+    fn get_scale<ScaleA: ScaleAnyContract, ScaleB: ScaleAnyContract>(&self) -> OneOf2<ScaleA, ScaleB> {
         todo!()
     }
+
     /// Sets translation component from either domain.
-    fn set_translation<TranslationB: TranslationAnyContract>(&mut self, _translation: OneOf2<Translation, TranslationB>) {
+    /// # Panics
+    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics when the field is immutable under backend field policy.
+    fn set_translation<TranslationA: TranslationAnyContract, TranslationB: TranslationAnyContract>(
+        &mut self,
+        _translation: OneOf2<TranslationA, TranslationB>,
+    ) {
         todo!()
     }
+
     /// Sets rotation component from either domain.
-    fn set_rotation<RotationB: RotationAnyContract>(&mut self, _rotation: OneOf2<Rotation, RotationB>) {
+    /// # Panics
+    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if rotation value is invalid for rotation usage.
+    /// - Panics when the field is immutable under backend field policy.
+    fn set_rotation<RotationA: RotationAnyContract, RotationB: RotationAnyContract>(&mut self, _rotation: OneOf2<RotationA, RotationB>) {
         todo!()
     }
+
     /// Sets scale component from either domain.
-    fn set_scale<ScaleB: ScaleAnyContract>(&mut self, _scale: OneOf2<Scale, ScaleB>) {
+    /// # Panics
+    /// - Panics if domain selection is invalid for this backend.
+    /// - Panics if scale value violates logarithmic-scale invariants.
+    /// - Panics when the field is immutable under backend field policy.
+    fn set_scale<ScaleA: ScaleAnyContract, ScaleB: ScaleAnyContract>(&mut self, _scale: OneOf2<ScaleA, ScaleB>) {
         todo!()
     }
 }
 
-pub trait TransformBridgeOps<Translation: TranslationAnyContract, Rotation: RotationAnyContract, Scale: ScaleAnyContract>:
-    TransformCoreOps<Translation, Rotation, Scale>
-{
-}
+/// Bridge-only extension point for transform surfaces.
+pub trait TransformBridgeOps: TransformCoreOps {}
 
-pub trait TranslationContract<Vector: VectorContract<D>, const D: usize>:
-    TranslationCoreOps<Vector, D> + TranslationFieldOps<Vector, D> + TranslationBridgeOps<Vector, D>
-{
-}
-impl<T, Vector: VectorContract<D>, const D: usize> TranslationContract<Vector, D> for T where
-    T: TranslationCoreOps<Vector, D> + TranslationFieldOps<Vector, D> + TranslationBridgeOps<Vector, D>
-{
-}
+/// Full translation contract.
+pub trait TranslationContract<const D: usize>: TranslationCoreOps<D> + TranslationFieldOps<D> + TranslationBridgeOps<D> {}
+impl<T, const D: usize> TranslationContract<D> for T where T: TranslationCoreOps<D> + TranslationFieldOps<D> + TranslationBridgeOps<D> {}
 
-pub trait RotationContract<Quaternion: QuaternionAnyContract>:
-    RotationCoreOps<Quaternion> + RotationFieldOps<Quaternion> + RotationBridgeOps<Quaternion>
-{
-}
-impl<T, Quaternion: QuaternionAnyContract> RotationContract<Quaternion> for T where
-    T: RotationCoreOps<Quaternion> + RotationFieldOps<Quaternion> + RotationBridgeOps<Quaternion>
-{
-}
+/// Full rotation contract.
+pub trait RotationContract: RotationCoreOps + RotationFieldOps + RotationBridgeOps {}
+impl<T> RotationContract for T where T: RotationCoreOps + RotationFieldOps + RotationBridgeOps {}
 
+/// Full logarithmic scale contract.
 pub trait ScaleContract: ScaleCoreOps + ScaleFieldOps + ScaleBridgeOps {}
 impl<T> ScaleContract for T where T: ScaleCoreOps + ScaleFieldOps + ScaleBridgeOps {}
 
-pub trait TransformContract<Translation: TranslationAnyContract, Rotation: RotationAnyContract, Scale: ScaleAnyContract>:
-    TransformCoreOps<Translation, Rotation, Scale> + TransformFieldOps<Translation, Rotation, Scale> + TransformBridgeOps<Translation, Rotation, Scale>
-{
-}
-impl<T, Translation: TranslationAnyContract, Rotation: RotationAnyContract, Scale: ScaleAnyContract> TransformContract<Translation, Rotation, Scale> for T where
-    T: TransformCoreOps<Translation, Rotation, Scale> + TransformFieldOps<Translation, Rotation, Scale> + TransformBridgeOps<Translation, Rotation, Scale>
-{
-}
+/// Full transform contract.
+pub trait TransformContract: TransformCoreOps + TransformFieldOps + TransformBridgeOps {}
+impl<T> TransformContract for T where T: TransformCoreOps + TransformFieldOps + TransformBridgeOps {}
 
+/// Erased translation contract for generic facade plumbing.
 pub trait TranslationAnyContract: Clone + Sized {}
-impl<T, Vector: VectorContract<D>, const D: usize> TranslationAnyContract for T where T: TranslationContract<Vector, D> {}
+impl<T, const D: usize> TranslationAnyContract for T where T: TranslationContract<D> {}
 
+/// Erased rotation contract for generic facade plumbing.
 pub trait RotationAnyContract: Clone + Sized {}
-impl<T, Quaternion: QuaternionAnyContract> RotationAnyContract for T where T: RotationContract<Quaternion> {}
+impl<T> RotationAnyContract for T where T: RotationContract {}
 
+/// Erased scale contract for generic facade plumbing.
 pub trait ScaleAnyContract: Clone + Sized {}
 impl<T> ScaleAnyContract for T where T: ScaleContract {}

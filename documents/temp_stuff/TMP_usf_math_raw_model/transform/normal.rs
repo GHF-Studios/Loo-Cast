@@ -1,26 +1,22 @@
 #![allow(dead_code)]
 
-use super::super::quaternion::normal::NormalQuaternion;
-use super::super::scalar::normal::NormalScalar;
-use super::super::vector::normal::NormalVector;
-
 pub type NormalTranslation3f32 = bevy::math::Vec3;
 pub type NormalRotationf32 = bevy::math::Quat;
 pub type NormalScalef32 = bevy::math::Vec3;
 pub type NormalTransformf32 = bevy::prelude::Transform;
 
-impl super::shared::TranslationCoreOps<NormalVector<3>, 3> for NormalTranslation3f32 {}
-impl super::shared::TranslationFieldOps<NormalVector<3>, 3> for NormalTranslation3f32 {}
-impl super::shared::TranslationBridgeOps<NormalVector<3>, 3> for NormalTranslation3f32 {}
+impl super::shared::TranslationCoreOps<3> for NormalTranslation3f32 {}
+impl super::shared::TranslationFieldOps<3> for NormalTranslation3f32 {}
+impl super::shared::TranslationBridgeOps<3> for NormalTranslation3f32 {}
 
-impl super::shared::RotationCoreOps<NormalQuaternion> for NormalRotationf32 {}
-impl super::shared::RotationFieldOps<NormalQuaternion> for NormalRotationf32 {}
-impl super::shared::RotationBridgeOps<NormalQuaternion> for NormalRotationf32 {}
+impl super::shared::RotationCoreOps for NormalRotationf32 {}
+impl super::shared::RotationFieldOps for NormalRotationf32 {}
+impl super::shared::RotationBridgeOps for NormalRotationf32 {}
 
 impl super::shared::ScaleCoreOps for NormalScalef32 {}
 impl super::shared::ScaleFieldOps for NormalScalef32 {}
 impl super::shared::ScaleBridgeOps for NormalScalef32 {}
 
-impl super::shared::TransformCoreOps<NormalTranslation3f32, NormalRotationf32, NormalScalef32> for NormalTransformf32 {}
-impl super::shared::TransformFieldOps<NormalTranslation3f32, NormalRotationf32, NormalScalef32> for NormalTransformf32 {}
-impl super::shared::TransformBridgeOps<NormalTranslation3f32, NormalRotationf32, NormalScalef32> for NormalTransformf32 {}
+impl super::shared::TransformCoreOps for NormalTransformf32 {}
+impl super::shared::TransformFieldOps for NormalTransformf32 {}
+impl super::shared::TransformBridgeOps for NormalTransformf32 {}

@@ -71,6 +71,6 @@ impl super::shared::Vector4dFieldOps for NormalVector<4> {}
 
 impl super::shared::Vector2dCoreOps for NormalVector<2> {}
 impl super::shared::Vector3dCoreOps for NormalVector<3> {}
-impl super::shared::Vector4dCoreOps<NormalVector<3>> for NormalVector<4> {}
+impl super::shared::Vector4dCoreOps for NormalVector<4> {}
 impl<const D: usize> super::shared::VectorBridgeOps<D> for NormalVector<D> {}
-impl super::shared::Vector4dBridgeOps<NormalVector<3>> for NormalVector<4> {}
+impl super::shared::Vector4dBridgeOps for NormalVector<4> {}

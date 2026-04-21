@@ -1,10 +1,6 @@
 #![allow(dead_code)]
 
 use super::super::field::Field;
-use super::super::matrix::normal::NormalMatrix;
-use super::super::scalar::normal::NormalScalar;
-use super::super::vector::normal::NormalVector;
-
 #[derive(Clone, Debug, PartialEq)]
 #[repr(transparent)]
 pub struct NormalQuaternion(pub(super) Field<NormalQuaternionRepr>);
@@ -43,8 +39,8 @@ pub(super) enum NormalQuaternionConcreteRepr {
     F64(bevy::math::DQuat),
 }
 
-impl super::shared::QuaternionCoreOps<NormalVector<3>, NormalMatrix<3, 3>> for NormalQuaternion {}
+impl super::shared::QuaternionCoreOps for NormalQuaternion {}
 
 impl super::shared::QuaternionFieldOps for NormalQuaternion {}
 
-impl super::shared::QuaternionBridgeOps<NormalVector<3>, NormalMatrix<3, 3>> for NormalQuaternion {}
+impl super::shared::QuaternionBridgeOps for NormalQuaternion {}

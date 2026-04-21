@@ -39,33 +39,10 @@ pub type NormalTensor4x4x4 = NormalTensor<4, 4, 4>;
 pub type NormalTensor2x4x8 = NormalTensor<2, 4, 8>;
 pub type NormalTensor8x4x2 = NormalTensor<8, 4, 2>;
 
-impl<const A: usize, const B: usize, const C: usize> super::shared::TensorCoreOps<NormalScalar, NormalMatrix<B, C>, NormalVector<C>, A, B, C>
-    for NormalTensor<A, B, C>
-{
-}
+impl<const A: usize, const B: usize, const C: usize> super::shared::TensorCoreOps<A, B, C> for NormalTensor<A, B, C> {}
 
-impl<const A: usize, const B: usize, const C: usize> super::shared::TensorFieldOps<NormalScalar, NormalMatrix<B, C>, NormalVector<C>, A, B, C>
-    for NormalTensor<A, B, C>
-{
-}
+impl<const A: usize, const B: usize, const C: usize> super::shared::TensorFieldOps<A, B, C> for NormalTensor<A, B, C> {}
 
-impl<const A: usize, const B: usize, const C: usize> super::shared::TensorBridgeOps<NormalScalar, NormalMatrix<B, C>, NormalVector<C>, A, B, C>
-    for NormalTensor<A, B, C>
-{
-}
+impl<const A: usize, const B: usize, const C: usize> super::shared::TensorBridgeOps<A, B, C> for NormalTensor<A, B, C> {}
 
-impl<const A: usize, const B: usize, const C: usize>
-    super::shared::TensorProjectionCoreOps<
-        NormalScalar,
-        NormalMatrix<A, B>,
-        NormalMatrix<A, C>,
-        NormalMatrix<B, C>,
-        NormalVector<A>,
-        NormalVector<B>,
-        NormalVector<C>,
-        A,
-        B,
-        C,
-    > for NormalTensor<A, B, C>
-{
-}
+impl<const A: usize, const B: usize, const C: usize> super::shared::TensorProjectionCoreOps<A, B, C> for NormalTensor<A, B, C> {}

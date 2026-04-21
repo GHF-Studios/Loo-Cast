@@ -37,42 +37,10 @@ pub type NormalTensor4x4x4x4 = NormalTensor4<4, 4, 4, 4>;
 pub type NormalTensor2x4x4x8 = NormalTensor4<2, 4, 4, 8>;
 pub type NormalTensor8x4x4x2 = NormalTensor4<8, 4, 4, 2>;
 
-impl<const A: usize, const B: usize, const C: usize, const D: usize>
-    super::shared::Tensor4CoreOps<NormalScalar, NormalTensor<B, C, D>, NormalMatrix<C, D>, NormalVector<D>, A, B, C, D> for NormalTensor4<A, B, C, D>
-{
-}
+impl<const A: usize, const B: usize, const C: usize, const D: usize> super::shared::Tensor4CoreOps<A, B, C, D> for NormalTensor4<A, B, C, D> {}
 
-impl<const A: usize, const B: usize, const C: usize, const D: usize>
-    super::shared::Tensor4FieldOps<NormalScalar, NormalTensor<B, C, D>, NormalMatrix<C, D>, NormalVector<D>, A, B, C, D> for NormalTensor4<A, B, C, D>
-{
-}
+impl<const A: usize, const B: usize, const C: usize, const D: usize> super::shared::Tensor4FieldOps<A, B, C, D> for NormalTensor4<A, B, C, D> {}
 
-impl<const A: usize, const B: usize, const C: usize, const D: usize>
-    super::shared::Tensor4BridgeOps<NormalScalar, NormalTensor<B, C, D>, NormalMatrix<C, D>, NormalVector<D>, A, B, C, D> for NormalTensor4<A, B, C, D>
-{
-}
+impl<const A: usize, const B: usize, const C: usize, const D: usize> super::shared::Tensor4BridgeOps<A, B, C, D> for NormalTensor4<A, B, C, D> {}
 
-impl<const A: usize, const B: usize, const C: usize, const D: usize>
-    super::shared::Tensor4ProjectionCoreOps<
-        NormalScalar,
-        NormalTensor<A, B, C>,
-        NormalTensor<A, B, D>,
-        NormalTensor<A, C, D>,
-        NormalTensor<B, C, D>,
-        NormalMatrix<A, B>,
-        NormalMatrix<A, C>,
-        NormalMatrix<A, D>,
-        NormalMatrix<B, C>,
-        NormalMatrix<B, D>,
-        NormalMatrix<C, D>,
-        NormalVector<A>,
-        NormalVector<B>,
-        NormalVector<C>,
-        NormalVector<D>,
-        A,
-        B,
-        C,
-        D,
-    > for NormalTensor4<A, B, C, D>
-{
-}
+impl<const A: usize, const B: usize, const C: usize, const D: usize> super::shared::Tensor4ProjectionCoreOps<A, B, C, D> for NormalTensor4<A, B, C, D> {}
