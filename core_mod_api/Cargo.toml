@@ -103,7 +103,7 @@ bevy = { version = "0.18.0", default-features = false, features = [
 ] }
 
 [dependencies]
-core_mod_macros = { path = "../core_mod_macros" }
+core_engine_macros = { path = "../core_engine_macros" }
 
 heck = { workspace = true }
 inventory = { workspace = true }

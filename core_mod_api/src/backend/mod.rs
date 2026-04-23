@@ -1,8 +1,12 @@
 pub mod config;
 pub mod core;
 pub mod debug;
+pub mod input;
 pub mod logging;
+pub mod picking;
+pub mod player;
 pub mod reflection;
+pub mod render;
 pub mod rhai_binding;
 pub mod time;
 pub mod usf;

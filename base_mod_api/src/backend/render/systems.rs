@@ -570,7 +570,7 @@ fn collect_target_chunk_frontier(chunk_loader: &ChunkLoader, load_radius: u32) -
     loop {
         let parent_coords = frontier
             .iter()
-            .filter_map(|coord| coord.parent.as_ref().map(|parent| parent.as_ref().clone()))
+            .filter_map(|coord| coord.parent.as_deref().cloned())
             .collect::<HashSet<_>>();
         if parent_coords.is_empty() {
             break;

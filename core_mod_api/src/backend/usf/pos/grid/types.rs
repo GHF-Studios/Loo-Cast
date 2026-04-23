@@ -69,9 +69,9 @@ impl GridVecBuilder {
 
 #[derive(Default, Clone, Reflect)]
 pub struct GridVec {
-    pub(crate) parent: Option<Arc<GridVec>>,
-    pub(crate) scale: Scale,
-    pub(crate) xyz: GridXyz,
+    pub parent: Option<Arc<GridVec>>,
+    pub scale: Scale,
+    pub xyz: GridXyz,
 }
 impl GridVec {
     pub const MAX_DEPTH: usize = 71;

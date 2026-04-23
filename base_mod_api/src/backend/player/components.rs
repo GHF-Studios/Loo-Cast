@@ -1,5 +1,5 @@
 use crate::bevy::prelude::*;
-use core_mod_macros::component_ctor;
+use core_engine_macros::component_ctor;
 use rhai::Dynamic;
 
 use crate::rhai_binding::runtime::ecs::component::internals::traits::InsertComponentFromDynamic;

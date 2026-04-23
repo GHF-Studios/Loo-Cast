@@ -1,4 +1,4 @@
-core_mod_macros::reflect_extern_top_level_module!(
+core_engine_macros::reflect_extern_top_level_module!(
     id = core_mod_api,
     sub_modules = [player, usf],
     traits = [],

@@ -1,5 +1,5 @@
 use crate::bevy::prelude::*;
-use core_mod_macros::{composite_workflow, composite_workflow_return};
+use core_engine_macros::{composite_workflow, composite_workflow_return};
 use std::collections::HashMap;
 
 use crate::core::resources::EntityProxyRuntimeState;
@@ -13,8 +13,6 @@ use crate::workflow::functions::handle_composite_workflow_return_later;
 pub(super) fn startup_system() {
     let handle = composite_workflow!(Startup, {
         warn!("Running composite workflow 'Startup'");
-
-        workflow!(Render::SpawnCameras);
 
         workflow!(Core::FinishStartup);
     });

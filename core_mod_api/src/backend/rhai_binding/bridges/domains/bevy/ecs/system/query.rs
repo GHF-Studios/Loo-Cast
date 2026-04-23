@@ -1,7 +1,7 @@
 use crate::rhai_binding::runtime::ecs::system::query::bindings::types::Query as ScriptQuery;
 use crate::rhai_binding::runtime::ecs::system::query::internals::traits::QueryApi;
 
-core_mod_macros::reflect_extern_generic_definition!(
+core_engine_macros::reflect_extern_generic_definition!(
     id = "bevy::ecs::system::Query<TData, TFilter>",
     owner_kind = r#type,
     params = [TData, TFilter],
@@ -13,7 +13,7 @@ core_mod_macros::reflect_extern_generic_definition!(
     ],
 );
 
-core_mod_macros::reflect_extern_generic_instantiation!(
+core_engine_macros::reflect_extern_generic_instantiation!(
     id = "bevy::ecs::system::Query<bevy::ecs::entity::Entity, core_mod_api::player::components::Player>",
     generic_id = "bevy::ecs::system::Query<TData, TFilter>",
     type_arguments = [bevy::ecs::entity::Entity, core_mod_api::player::components::Player],
@@ -21,7 +21,7 @@ core_mod_macros::reflect_extern_generic_instantiation!(
     value_semantics = clone,
 );
 
-core_mod_macros::reflect_extern_type!(
+core_engine_macros::reflect_extern_type!(
     id = bevy::ecs::system::Query,
     rust_type = ScriptQuery,
     value_semantics = clone,
@@ -33,14 +33,14 @@ core_mod_macros::reflect_extern_type!(
     ],
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::system::Query::next,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_fn(name, |query: &mut ScriptQuery| query.next());
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::system::Query::remaining_len,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         let get_name = name.clone();
@@ -49,14 +49,14 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::system::Query::collect_remaining,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_fn(name, |query: &mut ScriptQuery| query.collect_remaining());
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::system::Query::is_empty,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         let get_name = name.clone();

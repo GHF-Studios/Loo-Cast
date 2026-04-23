@@ -13,7 +13,7 @@ pub struct BindingPath {
     segments: Vec<BindingPathSegment>,
 }
 impl BindingPath {
-    pub(in crate::rhai_binding) fn parse_with_classifier<F>(raw: &ImmutableString, mut classify: F) -> Self
+    pub(in crate::backend::rhai_binding) fn parse_with_classifier<F>(raw: &ImmutableString, mut classify: F) -> Self
     where
         F: FnMut(usize, usize, &ImmutableString) -> BindingPathSegment,
     {

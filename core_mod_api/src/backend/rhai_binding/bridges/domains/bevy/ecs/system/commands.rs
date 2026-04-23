@@ -9,7 +9,7 @@ use crate::rhai_binding::runtime::ecs::system::commands::internals::traits::{Com
 type ScriptCommands = Commands;
 type ScriptEntityCommands = EntityCommands;
 
-core_mod_macros::reflect_extern_type!(
+core_engine_macros::reflect_extern_type!(
     id = bevy::ecs::system::Commands,
     rust_type = ScriptCommands,
     value_semantics = scoped_mut,
@@ -22,7 +22,7 @@ core_mod_macros::reflect_extern_type!(
     ],
 );
 
-core_mod_macros::reflect_extern_type!(
+core_engine_macros::reflect_extern_type!(
     id = bevy::ecs::system::EntityCommands,
     rust_type = ScriptEntityCommands,
     value_semantics = scoped_mut,
@@ -36,7 +36,7 @@ core_mod_macros::reflect_extern_type!(
     ],
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::system::Commands::spawn_empty,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptCommands>(), RustTypeId::of::<FnPtr>()], |ctx, args| {
@@ -47,7 +47,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::system::Commands::spawn_components,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptCommands>(), RustTypeId::of::<Array>()], |_, args| {
@@ -58,7 +58,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::system::Commands::spawn_components_batch,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptCommands>(), RustTypeId::of::<Array>()], |_, args| {
@@ -69,7 +69,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::system::Commands::entity,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(
@@ -85,7 +85,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::system::Commands::despawn,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptCommands>(), RustTypeId::of::<BevyEntity>()], |_, args| {
@@ -97,7 +97,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::system::EntityCommands::id,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         let get_name = name.clone();
@@ -109,7 +109,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::system::EntityCommands::commands,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptEntityCommands>(), RustTypeId::of::<FnPtr>()], |ctx, args| {
@@ -120,7 +120,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::system::EntityCommands::insert_component,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(
@@ -136,7 +136,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::system::EntityCommands::insert_components,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptEntityCommands>(), RustTypeId::of::<Array>()], |_, args| {
@@ -148,7 +148,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::system::EntityCommands::remove_component,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(
@@ -164,7 +164,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::system::EntityCommands::despawn,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptEntityCommands>()], |_, args| {

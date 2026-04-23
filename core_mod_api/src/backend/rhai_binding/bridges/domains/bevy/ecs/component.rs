@@ -7,7 +7,7 @@ pub const TYPE_PATH__PLAYER: &str = "core_mod_api::player::components::Player";
 pub const TYPE_PATH__CHUNK_ACTOR: &str = "core_mod_api::usf::chunk::components::ChunkActor";
 pub const TYPE_PATH__CHUNK_LOADER: &str = "core_mod_api::usf::chunk::components::ChunkLoader";
 
-core_mod_macros::reflect_extern_sub_module!(
+core_engine_macros::reflect_extern_sub_module!(
     id = bevy::ecs::component,
     sub_modules = [],
     traits = [],
@@ -23,14 +23,14 @@ core_mod_macros::reflect_extern_sub_module!(
     ],
 );
 
-core_mod_macros::reflect_extern_type!(
+core_engine_macros::reflect_extern_type!(
     id = bevy::ecs::component::Component,
     rust_type = ScriptComponent,
     value_semantics = clone,
     method_functions = [],
 );
 
-core_mod_macros::reflect_extern_module_associated_function!(
+core_engine_macros::reflect_extern_module_associated_function!(
     id = bevy::ecs::component::create_single,
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
         rhai::FuncRegistration::new(name).set_into_module(parent_module, |component_id: ImmutableString, params: Dynamic| -> ScriptComponent {
@@ -39,7 +39,7 @@ core_mod_macros::reflect_extern_module_associated_function!(
     },
 );
 
-core_mod_macros::reflect_extern_module_associated_function!(
+core_engine_macros::reflect_extern_module_associated_function!(
     id = bevy::ecs::component::create_unit,
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
         rhai::FuncRegistration::new(name).set_into_module(parent_module, |component_id: ImmutableString| -> ScriptComponent {
@@ -48,7 +48,7 @@ core_mod_macros::reflect_extern_module_associated_function!(
     },
 );
 
-core_mod_macros::reflect_extern_module_associated_function!(
+core_engine_macros::reflect_extern_module_associated_function!(
     id = bevy::ecs::component::registered_ids,
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
         rhai::FuncRegistration::new(name).set_into_module(parent_module, || -> rhai::Array {
@@ -60,7 +60,7 @@ core_mod_macros::reflect_extern_module_associated_function!(
     },
 );
 
-core_mod_macros::reflect_extern_module_associated_function!(
+core_engine_macros::reflect_extern_module_associated_function!(
     id = bevy::ecs::component::is_registered,
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
         rhai::FuncRegistration::new(name).set_into_module(parent_module, |component_id: ImmutableString| -> bool {
@@ -69,21 +69,21 @@ core_mod_macros::reflect_extern_module_associated_function!(
     },
 );
 
-core_mod_macros::reflect_extern_module_associated_function!(
+core_engine_macros::reflect_extern_module_associated_function!(
     id = bevy::ecs::component::player_type_id,
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
         rhai::FuncRegistration::new(name).set_into_module(parent_module, || -> String { TYPE_PATH__PLAYER.to_string() });
     },
 );
 
-core_mod_macros::reflect_extern_module_associated_function!(
+core_engine_macros::reflect_extern_module_associated_function!(
     id = bevy::ecs::component::chunk_actor_type_id,
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
         rhai::FuncRegistration::new(name).set_into_module(parent_module, || -> String { TYPE_PATH__CHUNK_ACTOR.to_string() });
     },
 );
 
-core_mod_macros::reflect_extern_module_associated_function!(
+core_engine_macros::reflect_extern_module_associated_function!(
     id = bevy::ecs::component::chunk_loader_type_id,
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
         rhai::FuncRegistration::new(name).set_into_module(parent_module, || -> String { TYPE_PATH__CHUNK_LOADER.to_string() });

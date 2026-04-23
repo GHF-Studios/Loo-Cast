@@ -43,7 +43,7 @@
 //!   guarantees, and any invariants callers must respect.
 
 pub use bevy_consumable_message;
-pub use core_mod_macros;
+pub use core_engine_macros;
 
 pub use anymap;
 pub use bevy;
@@ -64,6 +64,7 @@ pub use egui_dock;
 pub use futures;
 pub use glam;
 pub use image;
+pub use inventory;
 // pub use iyes_perf_ui; // Stuck on bevy 0.16.0
 pub use lazy_static;
 pub use log;
@@ -77,6 +78,7 @@ pub use pin_project_lite;
 pub use queues;
 pub use radsort;
 pub use rand;
+pub use rhai;
 pub use serde;
 pub use serde_json;
 pub use thiserror;
@@ -86,6 +88,7 @@ pub use tracing;
 pub use tracing_appender;
 pub use tracing_subscriber;
 pub use uuid;
+pub use wgpu;
 
 // Data types
 //pub mod components;
@@ -106,10 +109,10 @@ pub use uuid;
 //pub mod traits;
 
 pub mod backend;
-pub use backend::{config, core, debug, logging, reflection, rhai_binding, time, usf, utils, window, workflow};
+pub use backend::{config, core, debug, input, logging, picking, player, reflection, render, rhai_binding, time, usf, utils, window, workflow};
 
 use crate::bevy::{app::PluginGroupBuilder, prelude::*};
-use core_mod_macros::register_workflow_mods;
+use core_engine_macros::register_workflow_mods;
 
 use backend::config::ConfigPlugin;
 use backend::core::CorePlugin;

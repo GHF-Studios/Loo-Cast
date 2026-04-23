@@ -1,9 +1,9 @@
-use core_mod_macros::{
+use core_engine_macros::{
     reflect_constructor_function, reflect_inherent_impl, reflect_item_associated_function, reflect_method_function, reflect_module_associated_function,
     reflect_trait, reflect_trait_impl, reflect_type,
 };
 
-core_mod_macros::reflect_extern_sub_module!(
+core_engine_macros::reflect_extern_sub_module!(
     id = shop::divisions::sex,
     sub_modules = [],
     traits = [SexShopTest],

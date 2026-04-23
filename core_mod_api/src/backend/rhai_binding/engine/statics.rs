@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
 
-use core_mod_macros::export_static;
+use core_engine_macros::export_static;
 use once_cell::sync::Lazy;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]

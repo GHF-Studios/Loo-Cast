@@ -97,8 +97,8 @@ impl UnitVecBuilder {
 
 #[derive(Default, Clone, PartialEq, Reflect)]
 pub struct UnitVec {
-    pub(crate) grid_offset: GridVec, // Recursive chunk position
-    pub(crate) unit_offset: Vec3,    // Bevy units inside the chunk (e.g., [-500.0..500.0])
+    pub grid_offset: GridVec, // Recursive chunk position
+    pub unit_offset: Vec3,    // Bevy units inside the chunk (e.g., [-500.0..500.0])
 }
 impl UnitVec {
     pub fn build() -> UnitVecBuilder {

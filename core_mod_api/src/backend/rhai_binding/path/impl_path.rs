@@ -5,7 +5,7 @@ use crate::rhai_binding::path::{trait_path::TraitPath, type_path::TypePath};
 /// Format: `"Type"`
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct InherentImplPath {
-    pub(in crate::rhai_binding) type_path: TypePath,
+    pub(in crate::backend::rhai_binding) type_path: TypePath,
 }
 impl InherentImplPath {
     pub fn type_path(&self) -> &TypePath {

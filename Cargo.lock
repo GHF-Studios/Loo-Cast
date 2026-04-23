@@ -533,12 +533,19 @@ dependencies = [
  "bevy_ecs",
  "bevy_egui",
  "bevy_reflect",
+ "bevy_state",
+ "bytemuck",
+ "core_engine_macros",
  "core_mod_api",
- "core_mod_macros",
+ "crossbeam-channel",
+ "dyn-clone",
  "egui",
  "egui_dock",
+ "inventory",
  "once_cell",
  "rhai",
+ "thiserror 2.0.16",
+ "tracing",
  "uuid",
  "wgpu",
 ]
@@ -2373,6 +2380,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "core_engine_macros"
+version = "0.1.0"
+dependencies = [
+ "heck 0.4.1",
+ "paste",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "thiserror 2.0.16",
+]
+
+[[package]]
 name = "core_maths"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2385,8 +2404,8 @@ dependencies = [
 name = "core_mod"
 version = "0.1.0"
 dependencies = [
+ "core_engine_macros",
  "core_mod_api",
- "core_mod_macros",
  "paste",
 ]
 
@@ -2409,7 +2428,7 @@ dependencies = [
  "bevy_state",
  "bytemuck",
  "console-subscriber",
- "core_mod_macros",
+ "core_engine_macros",
  "crossbeam",
  "crossbeam-channel",
  "dashmap",
@@ -2450,14 +2469,6 @@ dependencies = [
 [[package]]
 name = "core_mod_macros"
 version = "0.1.0"
-dependencies = [
- "heck 0.4.1",
- "paste",
- "proc-macro2",
- "quote",
- "syn",
- "thiserror 2.0.16",
-]
 
 [[package]]
 name = "coreaudio-rs"

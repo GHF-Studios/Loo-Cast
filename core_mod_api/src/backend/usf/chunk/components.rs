@@ -1,5 +1,5 @@
 use crate::bevy::prelude::*;
-use core_mod_macros::component_ctor;
+use core_engine_macros::component_ctor;
 use rhai::Dynamic;
 
 use crate::rhai_binding::runtime::ecs::component::internals::traits::InsertComponentFromDynamic;
@@ -12,7 +12,7 @@ use super::enums::ZoomState;
 #[derive(Component, Default, Debug, Reflect)]
 #[reflect(Component)]
 pub struct Chunk {
-    pub(crate) coord: GridVec,
+    pub coord: GridVec,
 }
 
 #[derive(Component, Default, Debug, Reflect)]
@@ -35,11 +35,11 @@ impl InsertComponentFromDynamic for ChunkActor {
 #[reflect(Component)]
 #[component_ctor]
 pub struct ChunkLoader {
-    pub(crate) scale: Scale,
-    pub(crate) zoom_state: ZoomState,
-    pub(crate) coord: GridVec,
-    pub(crate) origin_offset: GridVec,
-    pub(crate) usf_transform: UsfTransform,
+    pub scale: Scale,
+    pub zoom_state: ZoomState,
+    pub coord: GridVec,
+    pub origin_offset: GridVec,
+    pub usf_transform: UsfTransform,
 }
 impl InsertComponentFromDynamic for ChunkLoader {
     fn insert_component_from_dynamic(entity: &mut EntityWorldMut, _params: Dynamic) {

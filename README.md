@@ -52,7 +52,8 @@ Build artifacts (mods & assets) are placed under `build/<profile>/`.
   - **`core_mod_api`** — code-only crate: typed APIs, plugin groups, workflows.
   - **`core_mod`** — canonical assets & initialization: configs, scripts-as-assets, models, shaders, and default data.
   - **`base_mod` / `base_mod_api`** — gameplay assets and scripting wrappers (rhai bindings).
-  - **`core_mod_macros` / `base_mod_macros`** — procedural macros used internally.
+  - **`core_engine_macros` / `base_mod_macros`** — active procedural macro crates.
+  - **`core_mod_macros`** — integral workspace crate, intentionally unused in this current organization phase.
   - **`core_engine`** — runtime binary: loads all mods, register all plugins and plugin groups of all mods, and launches the bevy app.
 
 ---
@@ -83,7 +84,8 @@ For conventions and guidelines, see `documents/markdown_summary/assets_and_owner
 | `core_engine`              | Runtime binary: composes Bevy plugins & runs app loop. |
 | `core_mod`                 | Canonical assets & built-in data; provides init hook for statics. |
 | `core_mod_api`             | Code-only API surface: plugins, types, workflows. |
-| `core_mod_macros`          | Procedural macros used by core crates. |
+| `core_engine_macros`       | Active procedural macros used by core crates. |
+| `core_mod_macros`          | Integral crate currently unused in this organization phase. |
 | `base_mod`                 | Gameplay mod bundle (scripts, configs, assets). |
 | `base_mod_api`             | Scripting bindings (rhai wrappers) for gameplay. |
 | `base_mod_macros`          | Helpers for generating scripting wrappers. |

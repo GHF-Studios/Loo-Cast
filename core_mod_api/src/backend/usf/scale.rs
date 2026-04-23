@@ -1,7 +1,7 @@
 #![allow(clippy::default_constructed_unit_structs)]
 
 use crate::bevy::prelude::{Reflect, ReflectResource, Resource};
-use core_mod_macros::{scale_factor_exponent_dynamic_match, scale_type_generic_match};
+use core_engine_macros::{scale_factor_exponent_dynamic_match, scale_type_generic_match};
 use std::fmt::Debug;
 use std::hash::Hash;
 

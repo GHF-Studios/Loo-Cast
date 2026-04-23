@@ -1,4 +1,4 @@
-core_mod_macros::reflect_extern_sub_module!(
+core_engine_macros::reflect_extern_sub_module!(
     id = core_mod_api::player,
     sub_modules = [bundles],
     traits = [],

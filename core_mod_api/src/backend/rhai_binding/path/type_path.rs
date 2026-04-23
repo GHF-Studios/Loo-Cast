@@ -11,7 +11,7 @@ use crate::{
 
 /// Format: `"snake::snake::Type"`
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct TypePath(pub(in crate::rhai_binding) BindingPath);
+pub struct TypePath(pub(in crate::backend::rhai_binding) BindingPath);
 impl TypePath {
     pub fn parse(raw: &ImmutableString) -> Self {
         let path = BindingPath::parse_with_classifier(raw, |i, total, seg| {

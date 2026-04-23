@@ -63,9 +63,9 @@ LOCK-IN SET (SCRUBBED + RECONCILED)
 [Script/API Exposure]
 - Script capability exposure is controlled by explicit module-selection profiles, not by crate ownership boundaries.
 - All script-visible APIs require explicit reflection/binding metadata.
-- Selection is context-specific per content/script type (Zone, Phenomenon, Metric, etc.).
-- core_engine and core_mod_api may both contribute script-visible capabilities through declared metadata/bindings.
-- “core_engine is never directly script-accessible” is removed.
+- Selection is context-specific per content/script type (modpack, mod, scale, metric, phenomenon_realizer, phenomenon, texture, sfx, music, shader, config, usf_texture, usf_sfx, usf_model, etc.).
+- core_mod_api and base_mod_api may both contribute script-visible capabilities through declared metadata/bindings.
+- core_engine is composition/runtime host (bin-only), not a direct capability-authority crate.
 - Ownership split remains implementation ownership, not an access prohibition.
 - Non-bound direct Rust access from scripts is out-of-model/unsupported.
 
@@ -76,19 +76,21 @@ LOCK-IN SET (SCRUBBED + RECONCILED)
 - Rust fully owns script execution timing and orchestration.
 - Remove top-level `scripts/` domain.
 - No required `usf/` filesystem root.
-- Content concepts are sibling roots (e.g. `phenomena/...`, `zones/...`, `metrics/...`, `sfx/...`, `textures/...`, `shaders/...`).
+- Content concepts are sibling roots (e.g. `modpack/...`, `mod/...`, `scale/...`, `metric/...`, `phenomenon_realizer/...`, `phenomenon/...`, `texture/...`, `sfx/...`, `music/...`, `shader/...`, `config/...`, `usf_texture/...`, `usf_sfx/...`, `usf_model/...`).
 - USF remains framework/model concept in Rust/contracts, not a required root folder name.
 
-[Ownership Split (Previously Agreed, Kept Here)]
-- Move to core_engine:
-    - `access`, `config`, `core`, `debug`, `logging`, `reflection`, `rhai_binding`, `usf`, `utils`, `window`, `workflow`
-- Keep in core_mod_api:
-    - `follower`, `gpu`, `input`, `picking`, `player`, `render`, `time`
+[Ownership Split (Current Cutover Direction)]
+- core_engine:
+    - bin-only composition/runtime host (`src/main.rs`)
+- keep in core_mod_api:
+    - `access`, `config`, `core`, `debug`, `logging`, `reflection`, `rhai_binding`, `usf`, `utils`, `window`, `workflow`, `time`
+- keep in base_mod_api:
+    - `follower`, `gpu`, `input`, `picking`, `player`, `render`
 
 [Macro Crate Migration + Build Policy]
 - Create `core_engine_macros` crate (workspace + Cargo wiring).
 - Move `core_mod_macros/src/*` into `core_engine_macros`.
-- Leave `core_mod_macros` as empty placeholder crate (not deprecated, currently unused).
+- Keep `core_mod_macros` as an integral workspace crate that is currently unused in this organization phase.
 - Keep packaging/build orchestration in existing root scripts (`build.sh`, `build.ps1`, run scripts); no `build.rs` migration in this phase.
 
 [Input/Output Domain Projection Invariant]

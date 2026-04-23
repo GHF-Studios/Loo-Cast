@@ -64,7 +64,7 @@ pub enum InspectorSelection {
     Asset(TypeId, String, #[reflect(ignore)] Option<UntypedAssetId>),
 }
 
-pub(crate) struct DebugSuiteTabViewer<'a> {
+pub struct DebugSuiteTabViewer<'a> {
     pub world: &'a mut World,
     pub state: &'a mut PrimaryWindowUiState,
     pub game_view_texture_id: Option<egui::TextureId>,

@@ -1,6 +1,6 @@
 use rhai::FuncRegistration;
 
-core_mod_macros::reflect_extern_sub_module!(
+core_engine_macros::reflect_extern_sub_module!(
     id = core_mod_api::usf::zone,
     sub_modules = [],
     traits = [],
@@ -8,7 +8,7 @@ core_mod_macros::reflect_extern_sub_module!(
     module_associated_functions = [time_scale_for_levels_above, time_scale_for_scale_indices],
 );
 
-core_mod_macros::reflect_extern_module_associated_function!(
+core_engine_macros::reflect_extern_module_associated_function!(
     id = core_mod_api::usf::zone::time_scale_for_levels_above,
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
         FuncRegistration::new(name).set_into_module(parent_module, |levels_above: i64| -> rhai::FLOAT {
@@ -17,7 +17,7 @@ core_mod_macros::reflect_extern_module_associated_function!(
     },
 );
 
-core_mod_macros::reflect_extern_module_associated_function!(
+core_engine_macros::reflect_extern_module_associated_function!(
     id = core_mod_api::usf::zone::time_scale_for_scale_indices,
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
         FuncRegistration::new(name).set_into_module(parent_module, |active_scale_index: i64, target_scale_index: i64| -> rhai::FLOAT {

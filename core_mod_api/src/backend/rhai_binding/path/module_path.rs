@@ -152,7 +152,7 @@ impl std::fmt::Display for SubModulePath {
 
 /// Format: `"snake::snake::Pascal"`
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct TypeBindingModulePath(pub(in crate::rhai_binding) TypePath);
+pub struct TypeBindingModulePath(pub(in crate::backend::rhai_binding) TypePath);
 impl TypeBindingModulePath {
     pub fn parse(raw: &ImmutableString) -> Self {
         let type_path = TypePath::parse(raw);

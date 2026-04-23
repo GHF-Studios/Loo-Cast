@@ -12,7 +12,7 @@ use crate::rhai_binding::runtime::std::iter::bindings::types::StringIter as Scri
 
 type ScriptWorld = World;
 
-core_mod_macros::reflect_extern_sub_module!(
+core_engine_macros::reflect_extern_sub_module!(
     id = bevy::ecs::world,
     sub_modules = [entity_access],
     traits = [],
@@ -20,7 +20,7 @@ core_mod_macros::reflect_extern_sub_module!(
     module_associated_functions = [],
 );
 
-core_mod_macros::reflect_extern_type!(
+core_engine_macros::reflect_extern_type!(
     id = bevy::ecs::world::World,
     rust_type = ScriptWorld,
     value_semantics = scoped_mut,
@@ -58,21 +58,21 @@ core_mod_macros::reflect_extern_type!(
     ],
 );
 
-core_mod_macros::reflect_extern_type!(
+core_engine_macros::reflect_extern_type!(
     id = bevy::ecs::world::EntityRef,
     rust_type = ScriptEntityRef,
     value_semantics = scoped_ref,
     method_functions = [bevy::ecs::world::EntityRef::id],
 );
 
-core_mod_macros::reflect_extern_type!(
+core_engine_macros::reflect_extern_type!(
     id = bevy::ecs::world::EntityMut,
     rust_type = ScriptEntityMut,
     value_semantics = scoped_mut,
     method_functions = [bevy::ecs::world::EntityMut::id],
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::flush,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>()], |_, args| {
@@ -83,7 +83,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::commands,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>(), RustTypeId::of::<FnPtr>()], |ctx, args| {
@@ -94,7 +94,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::spawn_empty,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>(), RustTypeId::of::<FnPtr>()], |ctx, args| {
@@ -105,7 +105,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::spawn_single,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(
@@ -125,7 +125,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::spawn_batch,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>(), RustTypeId::of::<rhai::Array>()], |_, args| {
@@ -136,7 +136,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::spawn_components,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>(), RustTypeId::of::<rhai::Array>()], |_, args| {
@@ -147,7 +147,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::entity,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(
@@ -163,7 +163,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::entity_mut,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(
@@ -179,7 +179,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::get_entity,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(
@@ -195,7 +195,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::get_entity_mut,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(
@@ -211,7 +211,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::despawn,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>(), RustTypeId::of::<BevyEntity>()], |_, args| {
@@ -223,7 +223,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::entities,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>()], |_, args| {
@@ -233,7 +233,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::query,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>(), RustTypeId::of::<ScriptQueryData>()], |_, args| {
@@ -245,7 +245,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::query_filtered,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(
@@ -266,7 +266,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::single,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>(), RustTypeId::of::<ScriptQueryData>()], |_, args| {
@@ -277,7 +277,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::single_filtered,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(
@@ -297,7 +297,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::exists,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>(), RustTypeId::of::<ScriptQueryData>()], |_, args| {
@@ -308,7 +308,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::exists_filtered,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(
@@ -328,7 +328,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::insert_resource,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(
@@ -349,7 +349,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::init_resource,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>(), RustTypeId::of::<ImmutableString>()], |_, args| {
@@ -361,7 +361,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::remove_resource,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>(), RustTypeId::of::<ImmutableString>()], |_, args| {
@@ -372,7 +372,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::get_resource,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>(), RustTypeId::of::<ImmutableString>()], |_, args| {
@@ -383,7 +383,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::get_resource_mut,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>(), RustTypeId::of::<ImmutableString>()], |_, args| {
@@ -394,7 +394,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::has_resource,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>(), RustTypeId::of::<ImmutableString>()], |_, args| {
@@ -405,7 +405,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::known_schedules,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>()], |_, args| {
@@ -415,7 +415,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::run_schedule,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>(), RustTypeId::of::<ImmutableString>()], |_, args| {
@@ -426,7 +426,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::write_message,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(
@@ -447,7 +447,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::drain_messages,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>(), RustTypeId::of::<ImmutableString>()], |_, args| {
@@ -459,7 +459,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::write_probe_message,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>(), RustTypeId::of::<ImmutableString>()], |_, args| {
@@ -471,7 +471,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::World::drain_probe_messages,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         engine.register_raw_fn(name, [RustTypeId::of::<ScriptWorld>()], |_, args| {
@@ -482,7 +482,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::EntityRef::id,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         let get_name = name.clone();
@@ -491,7 +491,7 @@ core_mod_macros::reflect_extern_method_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = bevy::ecs::world::EntityMut::id,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         let get_name = name.clone();

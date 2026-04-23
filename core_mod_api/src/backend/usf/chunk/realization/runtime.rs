@@ -25,7 +25,7 @@ use crate::usf::zone::ZoneTypeId;
 use crate::workflow::composite_workflow_context::ScopedCompositeWorkflowContext;
 use crate::workflow::functions::{WorkflowTimeoutControlDecision, handle_composite_workflow_return_now, run_workflow_ioe_with_timeout_control};
 use crate::workflow::types::WorkflowTimeoutMode;
-use core_mod_macros::{composite_workflow, composite_workflow_return};
+use core_engine_macros::{composite_workflow, composite_workflow_return};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::OnceLock;
 use std::time::{Duration, Instant};

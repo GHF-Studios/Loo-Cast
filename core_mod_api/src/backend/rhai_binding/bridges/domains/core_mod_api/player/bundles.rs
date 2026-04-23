@@ -10,7 +10,7 @@ use crate::rhai_binding::value_semantics::trait_object::StaticTraitObject;
 type OwnedPlayerBundle = AccessCell<Persistent, NativePlayerBundle>;
 type ScopedPlayerBundle = AccessCell<Scoped, NativePlayerBundle>;
 
-core_mod_macros::reflect_extern_sub_module!(
+core_engine_macros::reflect_extern_sub_module!(
     id = core_mod_api::player::bundles,
     sub_modules = [],
     traits = [],
@@ -18,7 +18,7 @@ core_mod_macros::reflect_extern_sub_module!(
     module_associated_functions = [],
 );
 
-core_mod_macros::reflect_extern_type!(
+core_engine_macros::reflect_extern_type!(
     id = core_mod_api::player::bundles::PlayerBundle,
     rust_type = OwnedPlayerBundle,
     value_semantics = owned,
@@ -40,7 +40,7 @@ core_mod_macros::reflect_extern_type!(
     },
 );
 
-core_mod_macros::reflect_extern_item_associated_function!(
+core_engine_macros::reflect_extern_item_associated_function!(
     id = core_mod_api::player::bundles::PlayerBundle::as_trait_obj,
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
         match <NativePlayerBundle as GetTypeValueSemantics>::VALUE_SEMANTICS {
@@ -69,7 +69,7 @@ core_mod_macros::reflect_extern_item_associated_function!(
     },
 );
 
-core_mod_macros::reflect_extern_constructor_function!(
+core_engine_macros::reflect_extern_constructor_function!(
     id = core_mod_api::player::bundles::PlayerBundle::new_default,
     registrator = |name: rhai::ImmutableString, parent_module: &mut rhai::Module| {
         match <NativePlayerBundle as GetTypeValueSemantics>::VALUE_SEMANTICS {
@@ -86,7 +86,7 @@ core_mod_macros::reflect_extern_constructor_function!(
     },
 );
 
-core_mod_macros::reflect_extern_method_function!(
+core_engine_macros::reflect_extern_method_function!(
     id = core_mod_api::player::bundles::PlayerBundle::test_print,
     registrator = |name: rhai::ImmutableString, engine: &mut rhai::Engine| {
         match <NativePlayerBundle as GetTypeValueSemantics>::VALUE_SEMANTICS {

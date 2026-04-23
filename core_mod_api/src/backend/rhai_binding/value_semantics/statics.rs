@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use core_mod_macros::export_static;
+use core_engine_macros::export_static;
 use once_cell::sync::Lazy;
 use rhai::Dynamic;
 
