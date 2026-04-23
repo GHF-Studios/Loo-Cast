@@ -2,7 +2,7 @@ use super::field::canonical_grid_coord;
 use super::runtime::{ChunkRealizationInstance, ChunkRealizationIntent, UsfChunkRealizationRuntimeSettings};
 use crate::bevy::prelude::*;
 use crate::bevy_rapier3d::prelude::Collider;
-use crate::rhai_binding::bridges::domains::core_mod_api::usf::output_channels::{
+use crate::usf::chunk::realization::output_channels::{
     ChunkRealizationAudioEmitter, ChunkRealizationInteractionTrigger, ChunkRealizationParticleEmitter, ChunkRealizationSimulationService, OutputChannelPayload,
 };
 use crate::usf::authority::{

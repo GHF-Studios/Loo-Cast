@@ -1,5 +1,5 @@
 use crate::bevy::prelude::{Mut, Time, Virtual, World as BevyWorld};
-use crate::rhai_binding::bridges::domains::core_mod_api::usf::output_channels::ChunkRealizationChannelTelemetry;
+use crate::usf::chunk::realization::output_channels::ChunkRealizationChannelTelemetry;
 use crate::rhai_binding::engine::preprocess::preprocess_script_source;
 use crate::rhai_binding::engine::resources::MainScriptEngineHandle;
 use crate::rhai_binding::engine::statics::USF_BOOTSTRAP_REPORT;

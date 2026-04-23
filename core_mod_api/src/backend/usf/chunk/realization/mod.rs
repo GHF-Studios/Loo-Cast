@@ -2,13 +2,14 @@ pub mod field;
 pub mod gpu_density;
 pub mod intent;
 pub mod meshing;
+pub mod output_channels;
 pub mod projection;
 pub mod reconcile_workflow;
 pub mod runtime;
 
 use crate::bevy::prelude::*;
 use crate::core::{orchestration::AppSet, run_conditions::run_after_startup_finished};
-use crate::rhai_binding::bridges::domains::core_mod_api::usf::output_channels::{
+use crate::usf::chunk::realization::output_channels::{
     ChunkRealizationAudioEmitter, ChunkRealizationChannelAppliedEvent, ChunkRealizationChannelTelemetry, ChunkRealizationChannelTelemetrySettings,
     ChunkRealizationInteractionTrigger, ChunkRealizationParticleEmitter, ChunkRealizationSimulationService, OutputChannelAuthorityMode,
     OutputChannelExecutionRegistration, OutputChannelPayload, OutputChannelRegistry, report_chunk_realization_channel_telemetry_system,

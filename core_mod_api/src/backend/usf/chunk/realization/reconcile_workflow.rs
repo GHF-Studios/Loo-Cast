@@ -1,5 +1,5 @@
 use crate::bevy::prelude::*;
-use crate::rhai_binding::bridges::domains::core_mod_api::usf::output_channels::{
+use crate::usf::chunk::realization::output_channels::{
     ChunkRealizationChannelAppliedEvent, OutputChannelRegistry, apply_chunk_output_channels,
 };
 use crate::usf::chunk::components::Chunk;

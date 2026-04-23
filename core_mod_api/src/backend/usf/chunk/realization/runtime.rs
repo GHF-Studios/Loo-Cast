@@ -11,7 +11,7 @@ use crate::bevy_rapier3d::prelude::Collider;
 use crate::config::statics::CONFIG;
 use crate::player::components::Player;
 use crate::render::components::{MainCamera, WorldPresentationRoot};
-use crate::rhai_binding::bridges::domains::core_mod_api::usf::output_channels::{
+use crate::usf::chunk::realization::output_channels::{
     ChunkRealizationAudioEmitter, ChunkRealizationInteractionTrigger, ChunkRealizationParticleEmitter, ChunkRealizationSimulationService, OutputChannelPayload,
     OutputChannelRegistry,
 };

@@ -1,11 +1,3 @@
-core_engine_macros::reflect_extern_sub_module!(
-    id = core_mod_api::usf::output_channels,
-    sub_modules = [],
-    traits = [],
-    types = [],
-    module_associated_functions = [],
-);
-
 use crate::bevy::prelude::*;
 use crate::bevy_rapier3d::prelude::{Collider, ComputedColliderShape};
 use crate::config::statics::CONFIG;
@@ -183,7 +175,7 @@ impl Default for OutputChannelRegistry {
                 "mesh",
                 OutputChannelExecutionRegistration {
                     channel_id: "mesh".to_string(),
-                    owner_path: "rhai_binding.bridges.domains.core_mod_api.usf.output_channels".to_string(),
+                    owner_path: "usf.chunk.realization.output_channels".to_string(),
                     authority_mode: OutputChannelAuthorityMode::ProjectionOnly,
                 },
             ),
@@ -191,7 +183,7 @@ impl Default for OutputChannelRegistry {
                 "material",
                 OutputChannelExecutionRegistration {
                     channel_id: "material".to_string(),
-                    owner_path: "rhai_binding.bridges.domains.core_mod_api.usf.output_channels".to_string(),
+                    owner_path: "usf.chunk.realization.output_channels".to_string(),
                     authority_mode: OutputChannelAuthorityMode::ProjectionOnly,
                 },
             ),
@@ -199,7 +191,7 @@ impl Default for OutputChannelRegistry {
                 "collider",
                 OutputChannelExecutionRegistration {
                     channel_id: "collider".to_string(),
-                    owner_path: "rhai_binding.bridges.domains.core_mod_api.usf.output_channels".to_string(),
+                    owner_path: "usf.chunk.realization.output_channels".to_string(),
                     authority_mode: OutputChannelAuthorityMode::LeasedLocalAuthority,
                 },
             ),
@@ -207,7 +199,7 @@ impl Default for OutputChannelRegistry {
                 "audio",
                 OutputChannelExecutionRegistration {
                     channel_id: "audio".to_string(),
-                    owner_path: "rhai_binding.bridges.domains.core_mod_api.usf.output_channels".to_string(),
+                    owner_path: "usf.chunk.realization.output_channels".to_string(),
                     authority_mode: OutputChannelAuthorityMode::ProjectionOnly,
                 },
             ),
@@ -215,7 +207,7 @@ impl Default for OutputChannelRegistry {
                 "particles",
                 OutputChannelExecutionRegistration {
                     channel_id: "particles".to_string(),
-                    owner_path: "rhai_binding.bridges.domains.core_mod_api.usf.output_channels".to_string(),
+                    owner_path: "usf.chunk.realization.output_channels".to_string(),
                     authority_mode: OutputChannelAuthorityMode::ProjectionOnly,
                 },
             ),
@@ -223,7 +215,7 @@ impl Default for OutputChannelRegistry {
                 "trigger",
                 OutputChannelExecutionRegistration {
                     channel_id: "trigger".to_string(),
-                    owner_path: "rhai_binding.bridges.domains.core_mod_api.usf.output_channels".to_string(),
+                    owner_path: "usf.chunk.realization.output_channels".to_string(),
                     authority_mode: OutputChannelAuthorityMode::LeasedLocalAuthority,
                 },
             ),
@@ -231,7 +223,7 @@ impl Default for OutputChannelRegistry {
                 "simulation_service",
                 OutputChannelExecutionRegistration {
                     channel_id: "simulation_service".to_string(),
-                    owner_path: "rhai_binding.bridges.domains.core_mod_api.usf.output_channels".to_string(),
+                    owner_path: "usf.chunk.realization.output_channels".to_string(),
                     authority_mode: OutputChannelAuthorityMode::AuthoritativeRuntime,
                 },
             ),
