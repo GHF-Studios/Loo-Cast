@@ -1,7 +1,7 @@
 // Imports
 use crate::bevy::prelude::{Commands, Entity, Query, ResMut};
 
-use crate::usf::chunk::{components::Chunk, resources::ChunkManager};
+use crate::chunk::{components::Chunk, resources::ChunkManager};
 use crate::usf::pos::grid::types::GridVec;
 use crate::workflow::types::Outcome;
 

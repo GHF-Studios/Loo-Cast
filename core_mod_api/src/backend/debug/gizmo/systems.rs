@@ -7,7 +7,7 @@ use crate::picking::constants::{DIEGETIC_MOUSE_POINTER_ID, META_MOUSE_POINTER_ID
 use crate::player::components::{Player, PlayerVisual3dLink};
 use crate::render::components::{EntityProxyLink, LogicProxy, MainCamera, RenderProxy};
 use crate::render::resources::PrimaryWindowUiState;
-use crate::usf::chunk::components::{Chunk, ChunkActor, ChunkLoader};
+use crate::chunk::components::{Chunk, ChunkActor, ChunkLoader};
 
 use super::components::{GizmoArrow, GizmoRoot};
 use super::types::Axis3D;

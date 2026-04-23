@@ -3,7 +3,6 @@ pub mod enums;
 pub mod errors;
 pub mod functions;
 pub mod messages;
-pub mod realization;
 pub mod resources;
 pub mod run_conditions;
 pub mod systems;
@@ -29,7 +28,7 @@ use crate::{
 pub(crate) struct ChunkPlugin;
 impl Plugin for ChunkPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(ChunkCorePlugin).add_plugins(realization::ChunkRealizationPlugin);
+        app.add_plugins(ChunkCorePlugin);
     }
 }
 

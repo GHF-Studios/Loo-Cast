@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use crate::core::resources::EntityProxyRuntimeState;
 use crate::player::components::Player;
 use crate::render::components::{EntityProxyLink, LogicProxy, MainCamera, ProxySyncRevision, RenderProxy, RenderProxyWindowMode};
-use crate::usf::chunk::components::{ChunkActor, ChunkLoader};
+use crate::chunk::components::{ChunkActor, ChunkLoader};
 use crate::usf::pos::grid::types::GridVec;
 use crate::workflow::functions::handle_composite_workflow_return_later;
 

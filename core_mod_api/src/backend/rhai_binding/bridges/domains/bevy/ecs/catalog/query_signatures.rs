@@ -4,7 +4,7 @@ use crate::player::components::Player;
 use crate::rhai_binding::runtime::ecs::dispatch_policy::submit_query_dispatch_entry;
 use crate::rhai_binding::runtime::ecs::system::query::bindings::types::Query;
 use crate::rhai_binding::runtime::ecs::system::query::internals::types::{QueryDispatchAccess, QueryDispatchTerm};
-use crate::usf::chunk::components::{ChunkActor, ChunkLoader};
+use crate::chunk::components::{ChunkActor, ChunkLoader};
 
 pub const QUERY_SIG__ENTITY: &str = "QUERY_SIG__ENTITY";
 pub const QUERY_SIG__ENTITY__WITH_PLAYER: &str = "QUERY_SIG__ENTITY__WITH_PLAYER";
@@ -13,8 +13,8 @@ pub const QUERY_SIG__ENTITY__WITH_CHUNK_LOADER: &str = "QUERY_SIG__ENTITY__WITH_
 
 pub const TYPE_PATH__ENTITY: &str = "bevy::ecs::entity::Entity";
 pub const TYPE_PATH__PLAYER: &str = "core_mod_api::player::components::Player";
-pub const TYPE_PATH__CHUNK_ACTOR: &str = "core_mod_api::usf::chunk::components::ChunkActor";
-pub const TYPE_PATH__CHUNK_LOADER: &str = "core_mod_api::usf::chunk::components::ChunkLoader";
+pub const TYPE_PATH__CHUNK_ACTOR: &str = "core_mod_api::chunk::components::ChunkActor";
+pub const TYPE_PATH__CHUNK_LOADER: &str = "core_mod_api::chunk::components::ChunkLoader";
 
 const QUERY_DATA__ENTITY: &[QueryDispatchTerm] = &[QueryDispatchTerm {
     type_id: TYPE_PATH__ENTITY,

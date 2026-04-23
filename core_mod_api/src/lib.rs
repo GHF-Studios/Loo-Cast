@@ -151,10 +151,6 @@ register_workflow_mods!(
         DespawnChunks {
             FindAndDespawnAndWait: EcsWhile,
         },
-        ReconcileChunkRealizationArtifacts {
-            ResolveIntents: Async,
-            ApplyOutputs: EcsWhile,
-        },
     },
     Core {
         FinishStartup {

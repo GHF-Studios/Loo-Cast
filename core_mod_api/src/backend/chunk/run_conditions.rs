@@ -1,7 +1,7 @@
 use crate::bevy::prelude::*;
 
 use crate::config::statics::CONFIG;
-use crate::usf::chunk::resources::{ChunkBatchTracker, ChunkLoadGate};
+use crate::chunk::resources::{ChunkBatchTracker, ChunkLoadGate};
 
 pub fn run_if_chunk_load_gate_open(chunk_load_gate: Option<Res<ChunkLoadGate>>) -> bool {
     if !CONFIG().get::<bool>("workflow/chunk_load_gate_enabled") {

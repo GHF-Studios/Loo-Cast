@@ -17,7 +17,7 @@ use crate::render::components::MainCamera;
 use crate::render::resources::PrimaryWindowUiState;
 use crate::time::resources::TimeInfo;
 use crate::time::types::PauseState;
-use crate::usf::chunk::components::ChunkLoader;
+use crate::chunk::components::ChunkLoader;
 use crate::usf::worldgen::UsfBootstrapWorldgenState;
 
 #[derive(Default)]

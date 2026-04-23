@@ -1,14 +1,15 @@
-pub mod bootstrap;
 mod preprocess;
 pub mod resources;
-pub mod schedule_entrypoint;
-pub mod statics;
 
 use crate::bevy::prelude::*;
 
 pub struct RhaiEnginePlugin;
 impl Plugin for RhaiEnginePlugin {
     fn build(&self, app: &mut App) {
-        bootstrap::build(app);
+        app.init_resource::<resources::MainScriptEngineHandle>();
     }
+}
+
+pub(super) fn new_main_script_engine() -> rhai::Engine {
+    rhai::Engine::new()
 }

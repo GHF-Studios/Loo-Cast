@@ -1,6 +1,6 @@
 use crate::bevy::prelude::*;
 
-use super::bootstrap::new_main_script_engine;
+use super::new_main_script_engine;
 
 #[repr(transparent)]
 #[derive(Resource)]

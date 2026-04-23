@@ -12,7 +12,7 @@ define_workflow_mod_OLD! {
                 use bevy_egui::{EguiGlobalSettings, EguiRenderOutput};
                 use bevy_inspector_egui::bevy_egui::PrimaryEguiContext;
 
-                use crate::usf::chunk::components::ChunkActor;
+                use crate::chunk::components::ChunkActor;
                 use crate::config::statics::CONFIG;
                 use crate::follower::components::{Follower, FollowerTarget};
                 use crate::render::{
@@ -101,7 +101,7 @@ define_workflow_mod_OLD! {
                                 },
                             ));
                             commands.spawn((
-                                Name::new("phenomenon_model_directional_light"),
+                                Name::new("directional_light"),
                                 DirectionalLight::default(),
                                 Transform {
                                     translation: Vec3::new(0.0, 0.0, Scale::CANONICAL_CAMERA_Z - 2_000.0),

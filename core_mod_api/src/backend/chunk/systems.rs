@@ -6,12 +6,12 @@ use std::time::Duration;
 use crate::config::statics::CONFIG;
 use crate::core::protocol::{AppOrchestrationSignal, AppOrchestrationState, OrchestrationPressure};
 use crate::player::components::Player;
-use crate::usf::chunk::components::ChunkLoader;
-use crate::usf::chunk::enums::ZoomState;
-use crate::usf::chunk::messages::ChunkBatchLifecycleMessage;
-use crate::usf::chunk::resources::{ChunkActionWorkflowState, ChunkBatchPlanResult, ChunkBatchTracker, ChunkLoadGate, ChunkLoadGateState, ChunkManager};
-use crate::usf::chunk::workflows::external::despawn_chunks::DespawnChunkInput;
-use crate::usf::chunk::workflows::external::spawn_chunks::SpawnChunkInput;
+use crate::chunk::components::ChunkLoader;
+use crate::chunk::enums::ZoomState;
+use crate::chunk::messages::ChunkBatchLifecycleMessage;
+use crate::chunk::resources::{ChunkActionWorkflowState, ChunkBatchPlanResult, ChunkBatchTracker, ChunkLoadGate, ChunkLoadGateState, ChunkManager};
+use crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput;
+use crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput;
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::unit::types::UnitVec;
 use crate::workflow::functions::{WorkflowTimeoutControlDecision, handle_composite_workflow_return_now, run_workflow_ioe_with_timeout_control};
@@ -224,7 +224,7 @@ pub(crate) fn chunk_management_system(
             );
             chunk_batch_lifecycle_writer.write(ChunkBatchLifecycleMessage::Cancelled {
                 batch_id: previous.id,
-                reason: crate::usf::chunk::resources::ChunkBatchCancellationReason::Replanned,
+                reason: crate::chunk::resources::ChunkBatchCancellationReason::Replanned,
                 spawn_count: previous.spawn_count(),
                 despawn_count: previous.despawn_count(),
             });
@@ -360,11 +360,11 @@ pub(crate) fn chunk_management_system(
         {
             warn!("Running composite workflow 'SpawnChunks'");
 
-            let _ = run_workflow_ioe_with_timeout_control::<crate::usf::chunk::workflows::usf_chunk::spawn_chunks::TypeIOE, _>(
+            let _ = run_workflow_ioe_with_timeout_control::<crate::chunk::workflows::usf_chunk::spawn_chunks::TypeIOE, _>(
                 Duration::from_secs_f64(CHUNK_WORKFLOW_TIMEOUT_SECS),
                 WorkflowTimeoutMode::VirtualTime,
-                crate::usf::chunk::workflows::usf_chunk::spawn_chunks::stages::validate_and_spawn_and_wait::core_types::Input {
-                    inner: crate::usf::chunk::workflows::external::spawn_chunks::Input {
+                crate::chunk::workflows::usf_chunk::spawn_chunks::stages::validate_and_spawn_and_wait::core_types::Input {
+                    inner: crate::chunk::workflows::external::spawn_chunks::Input {
                         inputs: spawn_chunk_inputs,
                     },
                 },
@@ -383,11 +383,11 @@ pub(crate) fn chunk_management_system(
         {
             warn!("Running composite workflow 'DespawnChunks'");
 
-            let _ = run_workflow_ioe_with_timeout_control::<crate::usf::chunk::workflows::usf_chunk::despawn_chunks::TypeIOE, _>(
+            let _ = run_workflow_ioe_with_timeout_control::<crate::chunk::workflows::usf_chunk::despawn_chunks::TypeIOE, _>(
                 Duration::from_secs_f64(CHUNK_WORKFLOW_TIMEOUT_SECS),
                 WorkflowTimeoutMode::VirtualTime,
-                crate::usf::chunk::workflows::usf_chunk::despawn_chunks::stages::find_and_despawn_and_wait::core_types::Input {
-                    inner: crate::usf::chunk::workflows::external::despawn_chunks::Input {
+                crate::chunk::workflows::usf_chunk::despawn_chunks::stages::find_and_despawn_and_wait::core_types::Input {
+                    inner: crate::chunk::workflows::external::despawn_chunks::Input {
                         inputs: despawn_chunk_inputs,
                     },
                 },
@@ -400,7 +400,7 @@ pub(crate) fn chunk_management_system(
     };
 
     workflow_state.set_in_flight_targets(incoming_spawn_targets, incoming_despawn_targets);
-    workflow_state.handles = Some(crate::usf::chunk::types::ChunkActionWorkflowHandles {
+    workflow_state.handles = Some(crate::chunk::types::ChunkActionWorkflowHandles {
         spawn: spawn_handle,
         despawn: despawn_handle,
     });

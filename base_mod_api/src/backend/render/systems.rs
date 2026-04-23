@@ -18,8 +18,8 @@ use crate::render::{
 };
 use crate::time::resources::VirtualPaused;
 use crate::tracing::{error, info};
-use crate::usf::chunk::components::{Chunk, ChunkActor, ChunkDebugWireframe, ChunkLoader};
-use crate::usf::chunk::resources::{ChunkActionWorkflowState, ChunkLoadGate};
+use crate::chunk::components::{Chunk, ChunkActor, ChunkDebugWireframe, ChunkLoader};
+use crate::chunk::resources::{ChunkActionWorkflowState, ChunkLoadGate};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::unit::types::UnitVec;
 use crate::usf::scale::Scale;

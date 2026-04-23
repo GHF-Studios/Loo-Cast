@@ -15,7 +15,7 @@ pub use core_mod_api::{
 
 pub mod backend;
 pub use backend::{follower, gpu, input, picking, player, render};
-pub use core_mod_api::{config, core, debug, logging, reflection, rhai_binding, time, usf, utils, window, workflow};
+pub use core_mod_api::{chunk, config, core, debug, logging, reflection, rhai_binding, time, usf, utils, window, workflow};
 
 use core_mod_api::bevy::{app::PluginGroupBuilder, prelude::*};
 use core_mod_api::core_engine_macros::register_workflow_mods;

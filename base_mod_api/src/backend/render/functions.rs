@@ -14,9 +14,8 @@ use crate::{
         resources::TimeInfo,
         types::{PauseState, StepConfig},
     },
-    usf::chunk::components::ChunkLoader,
-    usf::chunk::resources::{ChunkLoadGate, ChunkLoadGateState},
-    usf::phenomenon::PhenomenonDebugStats,
+    chunk::components::ChunkLoader,
+    chunk::resources::{ChunkLoadGate, ChunkLoadGateState},
 };
 
 static RESERVED_EGUI_CAMERA_ENTITY: OnceCell<Entity> = OnceCell::new();
@@ -188,21 +187,6 @@ pub(crate) fn draw_primary_window_ui(
                     }
                 }
 
-                if let Some(stats) = world.get_resource::<PhenomenonDebugStats>() {
-                    ui.separator();
-                    ui.label(format!("Nodes {}", stats.active_nodes));
-                    ui.label(format!("Proxies {}", stats.active_frontier_proxies));
-                    ui.label(format!(
-                        "Frontier s={} seed={} w={}‰ (+{} / -{})",
-                        stats.frontier_focus_scale_index,
-                        stats.frontier_focus_seed,
-                        stats.frontier_focus_window_size_milli,
-                        stats.frontier_proxy_spawns_frame,
-                        stats.frontier_proxy_despawns_frame
-                    ));
-                    ui.label(format!("Meshes {} (+{})", stats.generated_meshes_total, stats.generated_meshes_frame));
-                    ui.label(format!("Cache {} (+{})", stats.mesh_cache_hits_total, stats.mesh_cache_hits_frame));
-                }
             });
         });
 
@@ -468,21 +452,6 @@ fn draw_runtime_debug_overlay(state: &PrimaryWindowUiState, world: &mut World, c
         "chunk_locator_debug={} mesh_wire_highlight={} hotkey_help={}",
         runtime_toggles.chunk_locator_enabled, mesh_wire_highlight_enabled, runtime_toggles.show_hotkey_help
     ));
-
-    if let Some(stats) = world.get_resource::<PhenomenonDebugStats>() {
-        lines.push(format!(
-            "nodes={} proxies={} frontier_scale={} frontier_seed={}",
-            stats.active_nodes, stats.active_frontier_proxies, stats.frontier_focus_scale_index, stats.frontier_focus_seed
-        ));
-        lines.push(format!(
-            "frontier_window={}‰ proxy_spawns(+{}) proxy_despawns(-{})",
-            stats.frontier_focus_window_size_milli, stats.frontier_proxy_spawns_frame, stats.frontier_proxy_despawns_frame
-        ));
-        lines.push(format!(
-            "meshes_total={} meshes_frame={} cache_total={} cache_frame={}",
-            stats.generated_meshes_total, stats.generated_meshes_frame, stats.mesh_cache_hits_total, stats.mesh_cache_hits_frame
-        ));
-    }
 
     if runtime_toggles.show_hotkey_help {
         lines.push("Hotkeys: Esc=pause menu, F2=input mode, F4=debug suite, F5=camera mode, F6=runtime overlay".to_string());

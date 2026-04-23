@@ -1,7 +1,7 @@
 // Imports
 use crate::bevy::prelude::*;
 
-use crate::usf::chunk::{
+use crate::chunk::{
     components::{Chunk, ChunkDebugWireframe, ChunkLoader},
     resources::ChunkManager,
 };
