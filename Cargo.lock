@@ -529,7 +529,18 @@ name = "base_mod_api"
 version = "0.1.0"
 dependencies = [
  "base_mod_macros",
+ "bevy-inspector-egui",
+ "bevy_ecs",
+ "bevy_egui",
+ "bevy_reflect",
  "core_mod_api",
+ "core_mod_macros",
+ "egui",
+ "egui_dock",
+ "once_cell",
+ "rhai",
+ "uuid",
+ "wgpu",
 ]
 
 [[package]]

@@ -25,9 +25,8 @@
 //!   external backward-compat guarantees unless explicitly marked.
 //!
 //! Structure, scope & assets
-//! - Modules are organized around runtime subsystems: `chunk`, `config`, `core`, `debug`, `gpu`,
-//!   `input`, `logging`, `picking`, `player`, `reflection`, `render`, `rhai_binding`, `time`, `usf`,
-//!   `utils`, `window`, and `workflow`.
+//! - Public API modules are exposed under `facade::*`.
+//! - Internal implementation modules live under `backend::*`.
 //! - The crate registers workflows and plugin groups; see `CoreApiPluginGroup` and the
 //!   `register_workflow_mods!` invocation for the canonical composition approach used by the
 //!   engine.
@@ -106,44 +105,22 @@ pub use uuid;
 //pub mod singletons;
 //pub mod traits;
 
-// Modules
-pub mod config;
-pub mod core;
-pub mod debug;
-pub mod follower;
-pub mod gpu;
-pub mod input;
-pub mod logging;
-pub mod picking;
-pub mod player;
-pub mod reflection;
-pub mod render;
-pub mod rhai_binding;
-pub mod time;
-pub mod usf;
-pub mod utils;
-pub mod window;
-pub mod workflow;
+pub mod backend;
+pub use backend::{config, core, debug, logging, reflection, rhai_binding, time, usf, utils, window, workflow};
 
 use crate::bevy::{app::PluginGroupBuilder, prelude::*};
 use core_mod_macros::register_workflow_mods;
 
-use config::ConfigPlugin;
-use core::CorePlugin;
-use debug::DebugPlugin;
-use follower::FollowerPlugin;
-use gpu::GpuPlugin;
-use input::InputPlugin;
-use logging::LogPlugin;
-use picking::PickingPlugin;
-use player::PlayerPlugin;
-use render::RenderPlugin;
-use rhai_binding::engine::RhaiEnginePlugin;
-use time::TimePlugin;
-use usf::UsfPlugin;
-use utils::UtilsPlugin;
-use window::WindowPlugin;
-use workflow::WorkflowPlugin;
+use backend::config::ConfigPlugin;
+use backend::core::CorePlugin;
+use backend::debug::DebugPlugin;
+use backend::logging::LogPlugin;
+use backend::rhai_binding::engine::RhaiEnginePlugin;
+use backend::time::TimePlugin;
+use backend::usf::UsfPlugin;
+use backend::utils::UtilsPlugin;
+use backend::window::WindowPlugin;
+use backend::workflow::WorkflowPlugin;
 
 pub struct CoreApiPluginGroup;
 impl PluginGroup for CoreApiPluginGroup {
@@ -153,14 +130,8 @@ impl PluginGroup for CoreApiPluginGroup {
             .add(CorePlugin)
             .add(ConfigPlugin)
             .add(DebugPlugin)
-            .add(FollowerPlugin)
-            .add(GpuPlugin)
-            .add(InputPlugin)
             .add(LogPlugin)
-            .add(PickingPlugin)
-            .add(PlayerPlugin)
             .add(RhaiEnginePlugin)
-            .add(RenderPlugin)
             .add(TimePlugin)
             .add(UsfPlugin)
             .add(UtilsPlugin)
@@ -185,31 +156,6 @@ register_workflow_mods!(
     Core {
         FinishStartup {
             InsertResource: Ecs,
-        },
-    },
-    Gpu {
-        SetupTextureGenerator {
-            SetupPhase1: Ecs,
-            SetupPhase2: RenderWhile,
-            SetupPhase3: Ecs,
-        },
-        GenerateTextures {
-            PrepareBatch: Ecs,
-            GetTextureViews: RenderWhile,
-            DispatchBatch: Render,
-            WaitForBatch: EcsWhile,
-        },
-        GenerateChunkTextures {
-            PrepareRenderExecutor: Ecs,
-            GetTextureViews: RenderWhile,
-            DispatchChunkTextures: Render,
-            WaitForTexturesReady: EcsWhile,
-            ReadbackTextureData: Ecs,
-        }
-    },
-    Render {
-        SpawnCameras {
-            SpawnAndWait: EcsWhile,
         },
     },
 );

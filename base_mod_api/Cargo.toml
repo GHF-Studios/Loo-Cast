@@ -12,3 +12,16 @@ allow_premium_box = ["core_mod_api/allow_premium_box"]
 [dependencies]
 core_mod_api = { path = "../core_mod_api" }
 base_mod_macros = { path = "../base_mod_macros" }
+core_mod_macros = { path = "../core_mod_macros" }
+
+rhai = { workspace = true }
+once_cell = { workspace = true }
+
+bevy_ecs = "0.18.0"
+bevy_reflect = "0.18.0"
+bevy_egui = { version = "0.39.0" }
+bevy-inspector-egui = "0.36.0"
+egui = "0.33.3"
+egui_dock = "0.18.0"
+wgpu = "27.0.1"
+uuid = { version = "1.12.0", features = ["v4"] }
