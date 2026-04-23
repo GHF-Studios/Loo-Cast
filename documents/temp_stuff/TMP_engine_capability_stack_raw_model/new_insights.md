@@ -90,3 +90,19 @@ LOCK-IN SET (SCRUBBED + RECONCILED)
 - Move `core_mod_macros/src/*` into `core_engine_macros`.
 - Leave `core_mod_macros` as empty placeholder crate (not deprecated, currently unused).
 - Keep packaging/build orchestration in existing root scripts (`build.sh`, `build.ps1`, run scripts); no `build.rs` migration in this phase.
+
+[Input/Output Domain Projection Invariant]
+- Input Domains and Output Domains are separate model layers with separate lifetimes.
+- Input Domains are reflection-derived from facade-authorized Rust declarations and may be aggregated from decentralized sources.
+- Input Domains are modeled as either Centralized Input Domains or Decentralized Input Domains.
+- Output Domains are centralized asset authority domains for materialized folder/file layout and Rhai module/member layout.
+- DomainRegistry stores Output Domains.
+- Input-domain aggregation artifacts are not the runtime authority registry.
+- Domain Projection is operationally defined in Rust and registered through macro-generated metadata.
+- Domain Projection executes over fully aggregated/resolved input-domain declarations and materializes output-domain claims.
+- Claims are generated automatically from facade metadata.
+- Source locality is retained as provenance metadata for diagnostics, but is not part of runtime authority identity.
+- Generated claims are validated globally for non-overlap.
+- Compile/build-time emits reflection metadata and projection instructions.
+- Early runtime aggregates decentralized but early-registered input domains, resolves projection instructions, and materializes output domains into DomainRegistry.
+- Facade modules are the only Rust surface eligible for this reflection-based domain projection model.
