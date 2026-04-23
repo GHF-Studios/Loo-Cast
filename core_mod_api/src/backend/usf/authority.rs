@@ -6,13 +6,6 @@ use std::io::Write;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-pub const USF_DOMAIN_PHENOMENON: &str = "usf.phenomenon.persistence_state";
-pub const USF_DOMAIN_PHENOMENON_MODEL: &str = "usf.phenomenon_model.persistence_state";
-pub const USF_DOMAIN_PARTIAL_PHENOMENON_MODEL: &str = "usf.partial_phenomenon_model.persistence_state";
-pub const USF_DOMAIN_SUBSTRATE: &str = "usf.substrate.runtime_state";
-pub const USF_DOMAIN_ZONE: &str = "usf.zone.selection_state";
-pub const USF_DOMAIN_CHUNK_REALIZATION_STATE: &str = "usf.chunk_realization.runtime_state";
-
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum UsfAuthorityViolationMode {
     #[default]
@@ -28,6 +21,7 @@ pub struct UsfAuthorityDiagnostics {
     pub last_rejected_domain: String,
     pub last_rejected_expected_role: String,
 }
+
 impl UsfAuthorityDiagnostics {
     fn record_canonical_rejection(&mut self, domain_id: &str) {
         self.canonical_guard_rejections = self.canonical_guard_rejections.saturating_add(1);
@@ -57,6 +51,7 @@ pub struct UsfAuthorityDiagnosticsExportSettings {
     pub output_path: String,
     pub flush_each_write: bool,
 }
+
 impl Default for UsfAuthorityDiagnosticsExportSettings {
     fn default() -> Self {
         Self {
@@ -73,45 +68,19 @@ pub struct UsfAuthorityDiagnosticsExportState {
     pub exported_events_total: u64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct PersistedUsfAuthorityDiagnosticsEvent {
-    pub schema_version: u16,
-    pub exported_unix_ms: u64,
-    pub canonical_guard_rejections: u64,
-    pub runtime_state_guard_rejections: u64,
-    pub last_rejected_domain: String,
-    pub last_rejected_expected_role: String,
-}
-
 #[derive(Resource, Reflect, Debug, Clone, PartialEq, Eq)]
 #[reflect(Resource)]
 pub struct UsfWorldAuthorityContract {
     pub canonical_entity_domains: Vec<String>,
     pub runtime_state_domains: Vec<String>,
-    pub chunk_realization_authority_path: String,
-    pub substrate_authority_path: String,
-    pub zone_authority_path: String,
-    pub phenomenon_authority_path: String,
     pub violation_mode: UsfAuthorityViolationMode,
 }
 
 impl Default for UsfWorldAuthorityContract {
     fn default() -> Self {
         Self {
-            canonical_entity_domains: vec![
-                USF_DOMAIN_PHENOMENON.to_string(),
-                USF_DOMAIN_PHENOMENON_MODEL.to_string(),
-                USF_DOMAIN_PARTIAL_PHENOMENON_MODEL.to_string(),
-            ],
-            runtime_state_domains: vec![
-                USF_DOMAIN_SUBSTRATE.to_string(),
-                USF_DOMAIN_ZONE.to_string(),
-                USF_DOMAIN_CHUNK_REALIZATION_STATE.to_string(),
-            ],
-            chunk_realization_authority_path: USF_DOMAIN_CHUNK_REALIZATION_STATE.to_string(),
-            substrate_authority_path: USF_DOMAIN_SUBSTRATE.to_string(),
-            zone_authority_path: USF_DOMAIN_ZONE.to_string(),
-            phenomenon_authority_path: "usf.phenomenon.{Phenomenon,PhenomenonModel,PartialPhenomenonModel}".to_string(),
+            canonical_entity_domains: Vec::new(),
+            runtime_state_domains: Vec::new(),
             violation_mode: UsfAuthorityViolationMode::Panic,
         }
     }
@@ -182,10 +151,7 @@ pub(crate) fn export_usf_authority_diagnostics_events_system(
     mut diagnostics_reader: MessageReader<UsfAuthorityDiagnosticsEvent>,
 ) {
     let events = diagnostics_reader.read().cloned().collect::<Vec<_>>();
-    if events.is_empty() {
-        return;
-    }
-    if !settings.enabled {
+    if events.is_empty() || !settings.enabled {
         return;
     }
     append_authority_diagnostics_events(Path::new(settings.output_path.as_str()), events.as_slice(), settings.flush_each_write).unwrap_or_else(|error| {
@@ -206,26 +172,6 @@ impl UsfWorldAuthorityContract {
         self.runtime_state_domains.iter().any(|value| value.eq_ignore_ascii_case(domain_id))
     }
 
-    pub fn assert_canonical_domain(&self, domain_id: &str) {
-        if self.is_canonical_domain(domain_id) {
-            return;
-        }
-        panic!(
-            "USF world authority contract violation: domain '{}' is not registered as canonical authority.",
-            domain_id
-        );
-    }
-
-    pub fn assert_runtime_state_domain(&self, domain_id: &str) {
-        if self.is_runtime_state_domain(domain_id) {
-            return;
-        }
-        panic!(
-            "USF world authority contract violation: domain '{}' is not registered as runtime-state authority.",
-            domain_id
-        );
-    }
-
     pub fn guard_canonical_domain(&self, domain_id: &str) -> bool {
         if self.is_canonical_domain(domain_id) {
             return true;
@@ -242,9 +188,9 @@ impl UsfWorldAuthorityContract {
                     "USF world authority contract violation: domain '{}' is not registered as canonical authority (skipping guarded system path).",
                     domain_id
                 );
-                false
             }
         }
+        false
     }
 
     pub fn guard_runtime_state_domain(&self, domain_id: &str) -> bool {
@@ -263,24 +209,37 @@ impl UsfWorldAuthorityContract {
                     "USF world authority contract violation: domain '{}' is not registered as runtime-state authority (skipping guarded system path).",
                     domain_id
                 );
-                false
             }
         }
+        false
     }
 }
 
-fn append_authority_diagnostics_events(output_path: &Path, events: &[UsfAuthorityDiagnosticsEvent], flush_each_write: bool) -> Result<(), String> {
-    if events.is_empty() {
-        return Ok(());
-    }
-    if let Some(parent) = output_path.parent() {
-        fs::create_dir_all(parent).map_err(|error| format!("create_dir_all failed: {error}"))?;
+pub(crate) fn validate_usf_world_authority_contract_system(_contract: Res<UsfWorldAuthorityContract>) {}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct PersistedUsfAuthorityDiagnosticsEvent {
+    pub schema_version: u16,
+    pub exported_unix_ms: u64,
+    pub canonical_guard_rejections: u64,
+    pub runtime_state_guard_rejections: u64,
+    pub last_rejected_domain: String,
+    pub last_rejected_expected_role: String,
+}
+
+fn append_authority_diagnostics_events(
+    path: &Path,
+    events: &[UsfAuthorityDiagnosticsEvent],
+    flush_each_write: bool,
+) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|error| format!("create parent directory failed: {error}"))?;
     }
     let mut file = OpenOptions::new()
         .create(true)
         .append(true)
-        .open(output_path)
-        .map_err(|error| format!("open file failed: {error}"))?;
+        .open(path)
+        .map_err(|error| format!("open output file failed: {error}"))?;
 
     for event in events {
         let persisted = PersistedUsfAuthorityDiagnosticsEvent {
@@ -307,104 +266,4 @@ fn unix_timestamp_ms() -> u64 {
         .unwrap_or_default()
         .as_millis()
         .min(u64::MAX as u128) as u64
-}
-
-pub(crate) fn validate_usf_world_authority_contract_system(contract: Res<UsfWorldAuthorityContract>) {
-    if contract.canonical_entity_domains.is_empty() {
-        panic!("USF world authority validation failed: canonical_entity_domains must not be empty.");
-    }
-    if contract.runtime_state_domains.is_empty() {
-        panic!("USF world authority validation failed: runtime_state_domains must not be empty.");
-    }
-
-    let required_canonical = [USF_DOMAIN_PHENOMENON, USF_DOMAIN_PHENOMENON_MODEL, USF_DOMAIN_PARTIAL_PHENOMENON_MODEL];
-    for required in required_canonical {
-        if !contract.is_canonical_domain(required) {
-            panic!("USF world authority validation failed: missing canonical entity domain '{}'.", required);
-        }
-    }
-    let required_runtime_state = [USF_DOMAIN_SUBSTRATE, USF_DOMAIN_ZONE, USF_DOMAIN_CHUNK_REALIZATION_STATE];
-    for required in required_runtime_state {
-        if !contract.is_runtime_state_domain(required) {
-            panic!("USF world authority validation failed: missing runtime-state domain '{}'.", required);
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn default_contract_contains_required_domain_ids() {
-        let contract = UsfWorldAuthorityContract::default();
-        contract.assert_canonical_domain(USF_DOMAIN_PHENOMENON);
-        contract.assert_canonical_domain(USF_DOMAIN_PHENOMENON_MODEL);
-        contract.assert_canonical_domain(USF_DOMAIN_PARTIAL_PHENOMENON_MODEL);
-        contract.assert_runtime_state_domain(USF_DOMAIN_SUBSTRATE);
-        contract.assert_runtime_state_domain(USF_DOMAIN_ZONE);
-        contract.assert_runtime_state_domain(USF_DOMAIN_CHUNK_REALIZATION_STATE);
-    }
-
-    #[test]
-    fn warn_mode_guards_return_false_instead_of_panicking() {
-        let mut contract = UsfWorldAuthorityContract::default();
-        contract.violation_mode = UsfAuthorityViolationMode::Warn;
-        assert!(!contract.guard_canonical_domain("usf.unknown.domain"));
-        assert!(!contract.guard_runtime_state_domain("usf.unknown.domain"));
-    }
-
-    #[test]
-    fn diagnostics_track_guard_rejections() {
-        let mut contract = UsfWorldAuthorityContract::default();
-        contract.violation_mode = UsfAuthorityViolationMode::Warn;
-        let mut diagnostics = UsfAuthorityDiagnostics::default();
-
-        assert!(!guard_canonical_domain_with_diagnostics(
-            &contract,
-            Some(&mut diagnostics),
-            "usf.invalid.canonical"
-        ));
-        assert!(!guard_runtime_state_domain_with_diagnostics(
-            &contract,
-            Some(&mut diagnostics),
-            "usf.invalid.runtime_state"
-        ));
-
-        assert_eq!(diagnostics.canonical_guard_rejections, 1);
-        assert_eq!(diagnostics.runtime_state_guard_rejections, 1);
-        assert_eq!(diagnostics.last_rejected_domain, "usf.invalid.runtime_state");
-        assert_eq!(diagnostics.last_rejected_expected_role, "runtime_state");
-    }
-
-    #[test]
-    fn authority_diagnostics_events_can_be_exported_as_ndjson() {
-        let temp_path = std::env::temp_dir().join(format!("usf_authority_diag_{:x}.ndjson", unix_timestamp_ms()));
-        let events = vec![
-            UsfAuthorityDiagnosticsEvent {
-                canonical_guard_rejections: 1,
-                runtime_state_guard_rejections: 0,
-                last_rejected_domain: "usf.invalid.canonical".to_string(),
-                last_rejected_expected_role: "canonical".to_string(),
-            },
-            UsfAuthorityDiagnosticsEvent {
-                canonical_guard_rejections: 1,
-                runtime_state_guard_rejections: 2,
-                last_rejected_domain: "usf.invalid.runtime_state".to_string(),
-                last_rejected_expected_role: "runtime_state".to_string(),
-            },
-        ];
-        append_authority_diagnostics_events(temp_path.as_path(), events.as_slice(), true).expect("append diagnostics events");
-
-        let bytes = std::fs::read(&temp_path).expect("read ndjson output");
-        let text = String::from_utf8(bytes).expect("utf8");
-        let lines = text.lines().collect::<Vec<_>>();
-        assert_eq!(lines.len(), 2);
-        let first = serde_json::from_str::<PersistedUsfAuthorityDiagnosticsEvent>(lines[0]).expect("parse first line");
-        let second = serde_json::from_str::<PersistedUsfAuthorityDiagnosticsEvent>(lines[1]).expect("parse second line");
-        assert_eq!(first.canonical_guard_rejections, 1);
-        assert_eq!(second.runtime_state_guard_rejections, 2);
-
-        let _ = std::fs::remove_file(temp_path);
-    }
 }

@@ -109,7 +109,7 @@ pub use wgpu;
 //pub mod traits;
 
 pub mod backend;
-pub use backend::{config, core, debug, input, logging, picking, player, reflection, render, rhai_binding, time, usf, utils, window, workflow};
+pub use backend::{chunk, config, core, debug, input, logging, picking, player, reflection, render, rhai_binding, time, usf, utils, window, workflow};
 
 use crate::bevy::{app::PluginGroupBuilder, prelude::*};
 use core_engine_macros::register_workflow_mods;
@@ -144,7 +144,7 @@ impl PluginGroup for CoreApiPluginGroup {
 }
 
 register_workflow_mods!(
-    UsfChunk @ usf::chunk {
+    UsfChunk @ chunk {
         SpawnChunks {
             ValidateAndSpawnAndWait: EcsWhile,
         },
