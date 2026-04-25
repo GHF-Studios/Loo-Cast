@@ -1,4 +1,4 @@
-use crate::rhai_binding::value_semantics::trait_object::StaticTraitObject;
+use std::marker::PhantomData;
 
 // TODO: Consolidate Type::name() into here as TYPE_NAME similarly to GetTraitId
 // TODO: Add string-format documentation or newtype with invariant-enforcing on construction
@@ -26,6 +26,25 @@ pub trait DynGetTraitName: 'static {
 pub trait DynGetTraitObjectName: 'static {
     fn trait_object_name(&self) -> &'static str;
 }
+
+#[derive(Clone)]
+pub struct StaticTraitObject<T: GetTraitId> {
+    pub value: rhai::Dynamic,
+    pub trait_id: &'static str,
+    pub instance_type_id: &'static str,
+    pub _phantom: PhantomData<T>,
+}
+impl<T: GetTraitId> StaticTraitObject<T> {
+    pub fn new(value: rhai::Dynamic, instance_type_id: &'static str) -> Self {
+        Self {
+            value,
+            trait_id: T::TRAIT_ID,
+            instance_type_id,
+            _phantom: PhantomData,
+        }
+    }
+}
+
 pub trait ToTraitObject<T: GetTraitId>: Sized {
     fn cast_to(self) -> StaticTraitObject<T>;
     fn cast_from(obj: StaticTraitObject<T>) -> Self;

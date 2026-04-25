@@ -1,10 +1,10 @@
 use rhai::ImmutableString;
 
 use crate::reflection::names::TypeName;
-use crate::rhai_binding::value_semantics::ids::{DynamicTraitId, StaticTraitId, TypeId};
 
 use super::{
     function_ids::{CtorId, MethodId, StaticFunctionId},
+    ids::{DynamicTraitId, TypeId},
     layout::{FieldInfo, TypeDataInfo, TypeFormInfo, TypeLayoutInfo, VariantInfo},
     signatures::{CtorSignature, FunctionOrigin, MethodSignature, StaticFunctionSignature},
 };

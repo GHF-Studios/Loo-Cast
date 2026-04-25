@@ -8,7 +8,7 @@ Core constraint: Rhai cannot request new Rust monomorphizations at runtime.
 2. Register compile-time signatures in catalogs.
 3. Resolve by normalized deterministic dispatch keys.
 4. Execute through provider/resolver paths.
-5. Cover with startup integration scripts.
+5. Cover with startup integration registration flows.
 
 ## Required Invariants
 
@@ -22,5 +22,5 @@ Core constraint: Rhai cannot request new Rust monomorphizations at runtime.
 
 ## Enforcement Anchors
 
-- `core_mod_api/src/rhai_binding/runtime/ecs/dispatch_policy.rs`
+- `core_mod_api/src/backend/rhai_binding/runtime/ecs/dispatch_policy.rs`
 - query/message/bundle runtime registry internals in `runtime/ecs/*/internals/*`

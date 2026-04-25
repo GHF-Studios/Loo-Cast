@@ -1,28 +1,28 @@
 @startuml
-title Flow - Entrypoint Loading and Preprocess Chain
-participant "Schedule Runner" as Runner
-participant "Entrypoint Resolver" as Resolver
-participant "Phase Scope Router" as PhaseRouter
+title Flow - Content Contract Loading and Preprocess Chain
+participant "Execution Dispatcher" as Runner
+participant "Contract Resolver" as Resolver
+participant "Content Type Router" as TypeRouter
 participant "Companion Loader" as Companion
 participant "Alias Preprocessor" as Alias
 participant "Script Compiler" as Compiler
 participant "Script Executor" as Exec
 
-Runner -[#FB8C00]> Resolver : resolve schedule target via Entrypoint Resolver
-Resolver -[#FB8C00]> PhaseRouter : map schedule target to typed phase_scope entrypoint
-PhaseRouter -[#8E24AA]--> Resolver : return resolved typed entrypoint target to Entrypoint Resolver
+Runner -[#FB8C00]> Resolver : resolve content execution target via Contract Resolver
+Resolver -[#FB8C00]> TypeRouter : map target to typed content contract and execution hook
+TypeRouter -[#8E24AA]--> Resolver : return resolved typed contract target to Contract Resolver
 Resolver -[#FB8C00]> Companion : discover companion files via Companion Loader
-Companion -[#8E24AA]--> Resolver : return ordered file list to Entrypoint Resolver
+Companion -[#8E24AA]--> Resolver : return ordered file list to Contract Resolver
 Resolver -[#FB8C00]> Alias : preprocess source units via Alias Preprocessor
-Alias -[#8E24AA]--> Resolver : return rewritten source units to Entrypoint Resolver
+Alias -[#8E24AA]--> Resolver : return rewritten source units to Contract Resolver
 Resolver -[#FB8C00]> Compiler : compile composed source bundle via Script Compiler
 
 alt compile fails
-  Compiler -[#E53935]--> Runner : return compile diagnostics to Schedule Runner
-  Runner -[#E53935]> Runner : panic-fast inside Schedule Runner
+  Compiler -[#E53935]--> Runner : return compile diagnostics to Execution Dispatcher
+  Runner -[#E53935]> Runner : panic-fast inside Execution Dispatcher
 else compile succeeds
-  Compiler -[#43A047]--> Runner : return executable handles to Schedule Runner
-  Runner -[#FB8C00]> Exec : invoke main(world, params) in Script Executor
-  Exec -[#43A047]--> Runner : return emitted intents/events/reads to Schedule Runner
+  Compiler -[#43A047]--> Runner : return executable handles to Execution Dispatcher
+  Runner -[#FB8C00]> Exec : invoke declared runtime hook in Script Executor
+  Exec -[#43A047]--> Runner : return emitted intents/events/reads to Execution Dispatcher
 end
 @enduml

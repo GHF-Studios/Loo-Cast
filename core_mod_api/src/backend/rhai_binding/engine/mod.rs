@@ -2,6 +2,7 @@ mod preprocess;
 pub mod resources;
 
 use crate::bevy::prelude::*;
+use crate::rhai_binding::bind::engine_ext::EngineExt;
 
 pub struct RhaiEnginePlugin;
 impl Plugin for RhaiEnginePlugin {
@@ -11,5 +12,7 @@ impl Plugin for RhaiEnginePlugin {
 }
 
 pub(super) fn new_main_script_engine() -> rhai::Engine {
-    rhai::Engine::new()
+    let mut engine = rhai::Engine::new();
+    engine.register_binding_graph();
+    engine
 }

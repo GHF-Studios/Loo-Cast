@@ -31,8 +31,8 @@ alt validation fails
   Engine -[#E53935]> Engine : panic-fast abort inside Engine Startup
 else validation succeeds
   Validator -[#43A047]--> Engine : return validated descriptors to Engine Startup
-  Engine -[#FB8C00]> PhaseBinder : bind phase_scope contracts to schedule entrypoint maps
-  PhaseBinder -[#43A047]--> Engine : return phase-to-entrypoint bindings to Engine Startup
+  Engine -[#FB8C00]> PhaseBinder : bind execution contracts to content-type dispatch maps
+  PhaseBinder -[#43A047]--> Engine : return content-type dispatch bindings to Engine Startup
   Engine -[#FB8C00]> Registry : build typed registries via Typed Registry Builder
   Registry -[#43A047]--> Engine : return runtime contract graph to Engine Startup
   Engine -[#FB8C00]> Seal : seal definition surfaces in Definition Seal Step

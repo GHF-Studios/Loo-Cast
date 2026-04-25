@@ -41,7 +41,7 @@ Purpose: canonical AI entrypoint and manifest for this repository.
 
 - USF is script-configured at the content/ontology layer.
 - Rust/Bevy is the capability and execution platform.
-- Rhai is for content declaration/orchestration, not for replacing engine implementation ownership.
+- Rhai is for content declaration/integration, not for replacing engine implementation ownership.
 - Public USF-facing concepts are the canonical language (metrics, metric sets, scales, phenomenon realizers, phenomena, phenomenon models, mods, modpacks, capability channels).
 - Bevy ECS is an internal execution substrate and implementation detail behind the USF-facing model.
 - Per-scale realization is driven by phenomenon realizers over metric/substrate state.
@@ -51,13 +51,12 @@ Purpose: canonical AI entrypoint and manifest for this repository.
 
 - Engine entrypoint: `core_engine/src/main.rs`
 - Plugin group composition: `core_mod_api/src/lib.rs` (`CoreApiPluginGroup`)
-- Workflow runtime framework: `core_mod_api/src/workflow/*`
-- Rhai bootstrap + typed USF script contracts: `core_mod_api/src/rhai_binding/engine/bootstrap.rs`
-- Schedule entrypoint runtime: `core_mod_api/src/rhai_binding/engine/schedule_entrypoint.rs`
-- Core scripts + USF content scripts: `core_mod/assets/scripts/*`
-- Canonical runtime catalog/registries: `core_mod_api/src/usf/mod_packs/mod.rs`
-- Unified runtime concept query view: `UsfRuntimeConceptView` in `core_mod_api/src/usf/mod_packs/mod.rs`
-- Bootstrap worldgen descent controller: `core_mod_api/src/usf/worldgen/mod.rs`
+- Workflow runtime framework: `core_mod_api/src/backend/workflow/*`
+- Rhai engine bootstrap/runtime handle: `core_mod_api/src/backend/rhai_binding/engine/mod.rs`
+- Rhai source preprocessing pipeline: `core_mod_api/src/backend/rhai_binding/engine/preprocess.rs`
+- Rhai reflection metadata + binding graph substrate: `core_mod_api/src/backend/rhai_binding/{meta,bind,path,internals}/*`
+- USF runtime plugin + authority contracts: `core_mod_api/src/backend/usf/{mod.rs,authority.rs}`
+- Canonical engine asset roots: `core_mod/assets/{configs,shaders,...}`
 
 ## Manifest Maintenance Rule
 

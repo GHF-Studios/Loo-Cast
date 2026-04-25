@@ -1,8 +1,4 @@
 use crate::bevy::prelude::*;
-use core_engine_macros::component_ctor;
-use rhai::Dynamic;
-
-use crate::rhai_binding::runtime::ecs::component::internals::traits::InsertComponentFromDynamic;
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::scale::Scale;
 use crate::usf::transform::types::{UsfFloatDomain, UsfFloatPivotResult, UsfTransform};
@@ -21,30 +17,18 @@ pub struct ChunkDebugWireframe;
 
 #[derive(Component, Default, Reflect)]
 #[reflect(Component)]
-#[component_ctor]
 pub struct ChunkActor {
     pub coord: GridVec,
-}
-impl InsertComponentFromDynamic for ChunkActor {
-    fn insert_component_from_dynamic(entity: &mut EntityWorldMut, _params: Dynamic) {
-        entity.insert(ChunkActor::default());
-    }
 }
 
 #[derive(Component, Default, Reflect)]
 #[reflect(Component)]
-#[component_ctor]
 pub struct ChunkLoader {
     pub scale: Scale,
     pub zoom_state: ZoomState,
     pub coord: GridVec,
     pub origin_offset: GridVec,
     pub usf_transform: UsfTransform,
-}
-impl InsertComponentFromDynamic for ChunkLoader {
-    fn insert_component_from_dynamic(entity: &mut EntityWorldMut, _params: Dynamic) {
-        entity.insert(ChunkLoader::default());
-    }
 }
 
 #[derive(Debug, Clone, Copy, Reflect, PartialEq)]

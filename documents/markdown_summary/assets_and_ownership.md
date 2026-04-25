@@ -11,7 +11,7 @@ Current path and ownership conventions.
 ## Canonical Path Families
 
 - `*/assets/configs/`
-- `*/assets/scripts/`
+- `*/assets/{modpack,mod,scale,metric,phenomenon_realizer,phenomenon,texture,sfx,music,shader,config,usf_texture,usf_sfx,usf_model,...}/`
 - `*/assets/{shaders,models,textures,audio,...}/`
 
 ## Packaging

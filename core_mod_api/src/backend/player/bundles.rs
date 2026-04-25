@@ -1,6 +1,5 @@
 use crate::bevy::prelude::*;
 use crate::rhai_binding::meta::abstract_::trait_identity::GetTypeId;
-use crate::rhai_binding::value_semantics::modes::{GetTypeValueSemantics, TypeValueSemantics};
 
 use super::components::Player;
 
@@ -30,7 +29,4 @@ impl PlayerBundle {
 }
 impl GetTypeId for PlayerBundle {
     const TYPE_ID: &'static str = "core_mod_api::player::bundles::PlayerBundle";
-}
-impl GetTypeValueSemantics for PlayerBundle {
-    const VALUE_SEMANTICS: TypeValueSemantics = TypeValueSemantics::Owned;
 }

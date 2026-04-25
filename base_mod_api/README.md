@@ -4,4 +4,4 @@
 
 ## Guidance
 
-- Place scripts that use these bindings in `base_mod/assets/scripts/`.
+- Place content declarations that use these bindings in explicit content-domain roots under `base_mod/assets/`.

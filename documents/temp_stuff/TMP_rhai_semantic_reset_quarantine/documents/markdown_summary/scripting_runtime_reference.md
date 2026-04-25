@@ -4,16 +4,16 @@ Current implementation + near-term target notes for Rhai runtime integration.
 
 ## Runtime Anchors
 
-- Bootstrap: `core_mod_api/src/rhai_binding/engine/bootstrap.rs`
-- Schedule entrypoint runtime: `core_mod_api/src/rhai_binding/engine/schedule_entrypoint.rs`
-- Bridge declarations: `core_mod_api/src/rhai_binding/bridges/*`
-- Runtime wrappers: `core_mod_api/src/rhai_binding/runtime/*`
+- Engine runtime plugin + handle: `core_mod_api/src/backend/rhai_binding/engine/mod.rs`
+- Source preprocess pipeline: `core_mod_api/src/backend/rhai_binding/engine/preprocess.rs`
+- Bridge declarations: `core_mod_api/src/backend/rhai_binding/bridges/*`
+- Runtime wrappers: `core_mod_api/src/backend/rhai_binding/runtime/*`
 
-## Entrypoint Model (Current)
+## Execution Ownership
 
-- `boot.rhai` registers schedule entrypoints.
-- Entrypoint loader resolves companion files recursively, then entrypoint root file.
-- Ordered schedule execution is preserved by registration order for each schedule phase.
+- Runtime lifecycle orchestration is Rust-owned.
+- Script execution timing is determined by runtime capability composition, not script-driven phase wiring.
+- Discovery and execution are attached to typed content contracts and registry metadata.
 
 ## Contract Direction
 

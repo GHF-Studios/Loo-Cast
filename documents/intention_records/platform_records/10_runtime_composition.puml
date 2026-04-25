@@ -17,7 +17,7 @@ Subs -[#43A047]-> Ecs : registers systems/resources/schedules in ECS runtime
 Subs -[#43A047]-> Rhai : registers scripting runtime and entrypoint plumbing
 Rhai -[#FB8C00]-> Usf : loads typed USF contracts in startup bootstrap
 Usf -[#43A047]-> Ecs : drives USF phase execution in schedule sets
-Ecs -[#8E24AA]-> Rhai : executes schedule entrypoints via registered hooks
+Ecs -[#8E24AA]-> Rhai : executes typed content contracts via runtime-owned orchestration
 
 note bottom
 Bevy ECS is execution substrate.

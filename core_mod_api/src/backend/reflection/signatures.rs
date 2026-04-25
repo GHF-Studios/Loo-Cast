@@ -1,9 +1,7 @@
 use rhai::ImmutableString;
 
-use crate::rhai_binding::value_semantics::ids::DynamicTraitId;
-
 use super::{
-    ids::TypeId,
+    ids::{DynamicTraitId, TypeId},
     names::{ArgName, CtorName, MethodName, StaticFunctionName},
 };
 

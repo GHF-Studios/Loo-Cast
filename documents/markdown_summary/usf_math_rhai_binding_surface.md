@@ -16,22 +16,21 @@ Purpose: define how the math sketch is documented and projected into script-faci
 
 ## Runtime Anchors
 
-- Bootstrap + typed entrypoints:
-  - `core_mod_api/src/rhai_binding/engine/bootstrap.rs`
-  - `core_mod_api/src/rhai_binding/engine/schedule_entrypoint.rs`
+- Engine runtime + execution surfaces:
+  - `core_mod_api/src/backend/rhai_binding/engine/mod.rs`
 - Binding graph + metadata path:
-  - `core_mod_api/src/rhai_binding/bind/*`
-  - `core_mod_api/src/rhai_binding/meta/*`
-  - `core_mod_api/src/rhai_binding/bridges/*`
+  - `core_mod_api/src/backend/rhai_binding/bind/*`
+  - `core_mod_api/src/backend/rhai_binding/meta/*`
+  - `core_mod_api/src/backend/rhai_binding/path/*`
 - Script preprocessing:
-  - `core_mod_api/src/rhai_binding/engine/preprocess.rs`
+  - `core_mod_api/src/backend/rhai_binding/engine/preprocess.rs`
 
 ## Rust Contract -> Rhai Surface Pipeline
 
 1. Define operation semantics in Rust core contracts (`*CoreOps`, `*FieldOps`, `*BridgeOps`).
 2. Build facade methods that remove trait-level generic complexity.
 3. Monomorphize facade signatures into bindable concrete functions/types.
-4. Register into Rhai via bridge graph or explicit registration.
+4. Register into Rhai via reflection metadata and binding graph registration.
 5. Expose script-call syntax aligned with ctx/capability model.
 
 ## Kind and Repr Semantics
@@ -103,7 +102,7 @@ Every operation intended for scripting should document:
 
 - Math exposure is contextual, not globally dumped.
 - Facades should be available through typed ctx graphs and capability channels.
-- Binding visibility should respect script type + schedule context rules.
+- Binding visibility should respect script type + runtime context rules.
 
 ## Status Rule
 
