@@ -62,4 +62,10 @@ DomainCtx -[#00897B]-> ReadOnlyView : projects state snapshots to read-only view
 CapabilityChannelEndpoint -[#43A047]-> MutableIntentSink : emits typed intents via mutable intent sink
 CapabilityChannelEndpoint -[#00897B]-> EvaluatorHookEndpoint : exposes declared evaluator hooks for policy predicates
 EvaluatorHookEndpoint "*" -[#1E88E5]-> "1" EvaluatorRegistry : resolves evaluator_id in shared evaluator registry
+
+note bottom
+Current MVP channel exposure under ctx root:
+- ctx::math::scalar
+- ctx::math::vector
+end note
 @enduml

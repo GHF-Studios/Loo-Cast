@@ -5,6 +5,8 @@ use egui_dock::{DockArea, Style};
 use once_cell::sync::OnceCell;
 
 use crate::{
+    chunk::components::ChunkLoader,
+    chunk::resources::{ChunkLoadGate, ChunkLoadGateState},
     config::statics::CONFIG,
     debug::types::DebugSuiteTabViewer,
     input::states::InputMode,
@@ -14,8 +16,6 @@ use crate::{
         resources::TimeInfo,
         types::{PauseState, StepConfig},
     },
-    chunk::components::ChunkLoader,
-    chunk::resources::{ChunkLoadGate, ChunkLoadGateState},
 };
 
 static RESERVED_EGUI_CAMERA_ENTITY: OnceCell<Entity> = OnceCell::new();
@@ -186,7 +186,6 @@ pub(crate) fn draw_primary_window_ui(
                         ui.add(egui::DragValue::new(seconds).speed(1));
                     }
                 }
-
             });
         });
 

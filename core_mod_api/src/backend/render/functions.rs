@@ -1,11 +1,6 @@
 use egui::Color32;
 
-pub(crate) fn draw_game_view(
-    ui: &mut egui::Ui,
-    texture_id: egui::TextureId,
-    image_size: egui::Vec2,
-    viewport_rect_precision_proxy: &mut Option<egui::Rect>,
-) {
+pub(crate) fn draw_game_view(ui: &mut egui::Ui, texture_id: egui::TextureId, image_size: egui::Vec2, viewport_rect_precision_proxy: &mut Option<egui::Rect>) {
     let available_size = ui.available_size();
     let available_aspect = available_size.x / available_size.y;
     let image_aspect = image_size.x / image_size.y;

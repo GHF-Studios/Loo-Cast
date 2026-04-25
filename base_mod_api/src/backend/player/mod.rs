@@ -14,10 +14,10 @@ use systems::{
     sync_pause_menu_state_system, toggle_pause_menu_system, toggle_player_camera_mode_system, update_player_system,
 };
 
+use crate::chunk::run_conditions::run_if_chunk_load_gate_open;
 use crate::core::{orchestration::AppSet, run_conditions::run_after_startup_finished};
 use crate::follower::systems::update_follower_system;
 use crate::time::run_conditions::run_if_not_paused;
-use crate::chunk::run_conditions::run_if_chunk_load_gate_open;
 
 pub(crate) struct PlayerPlugin;
 impl Plugin for PlayerPlugin {

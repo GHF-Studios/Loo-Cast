@@ -19,8 +19,10 @@
 //!
 //! TODO: add a crate-level README listing canonical config paths and asset conventions
 
-pub use core_mod_api;
 pub use core_engine_macros;
+pub use core_mod_api;
+
+pub mod script_channels;
 
 use core_engine_macros::api_initializer;
 

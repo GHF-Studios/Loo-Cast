@@ -5,6 +5,8 @@ use crate::bevy::render::render_resource::{Extent3d, TextureDescriptor, TextureD
 use crate::bevy_rapier3d::parry::shape::Capsule as RapierCapsule;
 use crate::bevy_rapier3d::prelude::{QueryFilter as RapierQueryFilter, ReadRapierContext};
 
+use crate::chunk::components::{Chunk, ChunkActor, ChunkDebugWireframe, ChunkLoader};
+use crate::chunk::resources::{ChunkActionWorkflowState, ChunkLoadGate};
 use crate::config::statics::CONFIG;
 use crate::core::protocol::PlayerMotionIntent;
 use crate::input::states::InputMode;
@@ -18,8 +20,6 @@ use crate::render::{
 };
 use crate::time::resources::VirtualPaused;
 use crate::tracing::{error, info};
-use crate::chunk::components::{Chunk, ChunkActor, ChunkDebugWireframe, ChunkLoader};
-use crate::chunk::resources::{ChunkActionWorkflowState, ChunkLoadGate};
 use crate::usf::pos::grid::types::GridVec;
 use crate::usf::pos::unit::types::UnitVec;
 use crate::usf::scale::Scale;
@@ -568,10 +568,7 @@ fn collect_target_chunk_frontier(chunk_loader: &ChunkLoader, load_radius: u32) -
     let mut frontier = target_coords.clone();
 
     loop {
-        let parent_coords = frontier
-            .iter()
-            .filter_map(|coord| coord.parent.as_deref().cloned())
-            .collect::<HashSet<_>>();
+        let parent_coords = frontier.iter().filter_map(|coord| coord.parent.as_deref().cloned()).collect::<HashSet<_>>();
         if parent_coords.is_empty() {
             break;
         }

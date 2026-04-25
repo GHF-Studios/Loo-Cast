@@ -55,7 +55,9 @@ Purpose: canonical AI entrypoint and manifest for this repository.
 - Rhai engine bootstrap/runtime handle: `core_mod_api/src/backend/rhai_binding/engine/mod.rs`
 - Rhai source preprocessing pipeline: `core_mod_api/src/backend/rhai_binding/engine/preprocess.rs`
 - Rhai reflection metadata + binding graph substrate: `core_mod_api/src/backend/rhai_binding/{meta,bind,path,internals}/*`
+- Decentralized capability channel modules (current MVP): `core_mod/src/script_channels/*`
 - USF runtime plugin + authority contracts: `core_mod_api/src/backend/usf/{mod.rs,authority.rs}`
+- USF MVP script loader/evaluator: `core_mod_api/src/backend/usf/script_mvp.rs`
 - Canonical engine asset roots: `core_mod/assets/{configs,shaders,...}`
 
 ## Manifest Maintenance Rule

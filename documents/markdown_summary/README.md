@@ -17,6 +17,7 @@ Purpose: focused implementation-oriented notes that support (but do not replace)
 - `modding_status.md` - current modding status and limits.
 - `rhai_reflection_substrate.md` - active Rhai metadata/binding substrate and registration model.
 - `rhai_macro_surface.md` - macro-surface split and migration direction.
+- `usf_script_profiles_and_mvp_slice.md` - active script file-type profiles and current startup vertical slice.
 - `usf_transform_policy.md` - transform policy and migration phases.
 - `usf_math.md` - USF math boundary contracts and open questions.
 - `usf_math_rhai_binding_surface.md` - facade-first math binding contract for Rhai-facing script APIs.

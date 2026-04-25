@@ -374,7 +374,7 @@ fn rewrite_alias_tokens(source: &str, aliases: &HashMap<String, String>) -> Stri
     out
 }
 
-pub(super) fn preprocess_script_source(source: &str, source_name: &str) -> String {
+pub(crate) fn preprocess_script_source(source: &str, source_name: &str) -> String {
     let (stripped, aliases) = extract_use_aliases(source, source_name);
     validate_alias_local_declarations(&stripped, &aliases, source_name);
     rewrite_alias_tokens(&stripped, &aliases)

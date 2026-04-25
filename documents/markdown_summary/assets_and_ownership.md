@@ -25,3 +25,10 @@ Use `lower_snake_case` for folders and files.
 ## Status
 
 Modding/discovery semantics are still incomplete; use this as implementation guidance only.
+
+## Current MVP Script Slice
+
+- `core_mod/assets/scale/35.rhai`
+- `core_mod/assets/metric/test_metric.rhai`
+- `core_mod/assets/phenomenon/test_phenomenon.rhai`
+- `core_mod/assets/phenomenon_realizer/35.rhai`

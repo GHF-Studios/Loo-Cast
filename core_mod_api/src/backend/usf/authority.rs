@@ -227,11 +227,7 @@ struct PersistedUsfAuthorityDiagnosticsEvent {
     pub last_rejected_expected_role: String,
 }
 
-fn append_authority_diagnostics_events(
-    path: &Path,
-    events: &[UsfAuthorityDiagnosticsEvent],
-    flush_each_write: bool,
-) -> Result<(), String> {
+fn append_authority_diagnostics_events(path: &Path, events: &[UsfAuthorityDiagnosticsEvent], flush_each_write: bool) -> Result<(), String> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|error| format!("create parent directory failed: {error}"))?;
     }

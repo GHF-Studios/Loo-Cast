@@ -40,4 +40,9 @@ else validation succeeds
   Engine -[#FB8C00]> Artifact : emit introspection artifact for bootstrap contracts
   Artifact -[#43A047]--> Engine : return artifact handle to Engine Startup
 end
+
+note bottom
+Current MVP executes startup-only load/validate/freeze over:
+scale, metric, phenomenon, phenomenon_realizer script roots.
+end note
 @enduml

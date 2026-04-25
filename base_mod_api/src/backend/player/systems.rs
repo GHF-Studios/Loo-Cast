@@ -6,6 +6,7 @@ use crate::bevy_rapier3d::prelude::{
     CharacterLength, Collider, KinematicCharacterController, LockedAxes, QueryFilter as RapierQueryFilter, ReadRapierContext, RigidBody,
 };
 
+use crate::chunk::components::ChunkLoader;
 use crate::config::statics::CONFIG;
 use crate::core::protocol::PlayerMotionIntent;
 use crate::follower::components::Follower;
@@ -17,7 +18,6 @@ use crate::render::components::MainCamera;
 use crate::render::resources::PrimaryWindowUiState;
 use crate::time::resources::TimeInfo;
 use crate::time::types::PauseState;
-use crate::chunk::components::ChunkLoader;
 use crate::usf::worldgen::UsfBootstrapWorldgenState;
 
 #[derive(Default)]

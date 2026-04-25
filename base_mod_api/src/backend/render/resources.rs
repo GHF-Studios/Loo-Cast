@@ -3,8 +3,8 @@ use egui::TextureId;
 use egui_dock::{DockState, NodeIndex};
 
 use crate::config::statics::CONFIG;
-use crate::debug::types::DebugSuiteTab;
 pub use crate::core_mod_api::render::resources::{PauseMenuWindow, PrimaryWindowUiState, RuntimeDebugToggles};
+use crate::debug::types::DebugSuiteTab;
 use crate::usf::scale::Scale;
 
 /// The current scale of the camera (0 = base, +1 = one scale up, -1 = one down, etc.)

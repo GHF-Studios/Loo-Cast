@@ -16,3 +16,7 @@ pub(super) fn new_main_script_engine() -> rhai::Engine {
     engine.register_binding_graph();
     engine
 }
+
+pub(crate) fn preprocess_script_source(source: &str, source_name: &str) -> String {
+    preprocess::preprocess_script_source(source, source_name)
+}

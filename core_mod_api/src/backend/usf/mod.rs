@@ -3,6 +3,7 @@ pub mod authority;
 pub mod metric;
 pub mod phenomenon_realizer;
 pub mod scale;
+pub mod script_mvp;
 
 use crate::bevy::prelude::*;
 use crate::core::orchestration::AppSet;
@@ -13,6 +14,7 @@ use authority::{
 };
 use metric::{MetricDefinition, MetricId, MetricStorageClass, MetricValueType};
 use phenomenon_realizer::PhenomenonRealizerId;
+use script_mvp::{UsfScriptMvpBootstrapState, bootstrap_usf_script_mvp_system};
 
 pub(crate) struct UsfPlugin;
 impl Plugin for UsfPlugin {
@@ -21,8 +23,15 @@ impl Plugin for UsfPlugin {
             .init_resource::<UsfAuthorityDiagnostics>()
             .init_resource::<UsfAuthorityDiagnosticsExportSettings>()
             .init_resource::<UsfAuthorityDiagnosticsExportState>()
+            .init_resource::<UsfScriptMvpBootstrapState>()
             .add_message::<UsfAuthorityDiagnosticsEvent>()
             .add_systems(Startup, validate_usf_world_authority_contract_system.in_set(AppSet::Diagnostics))
+            .add_systems(
+                Startup,
+                bootstrap_usf_script_mvp_system
+                    .after(validate_usf_world_authority_contract_system)
+                    .in_set(AppSet::Diagnostics),
+            )
             .add_systems(Update, report_usf_authority_diagnostics_system.in_set(AppSet::Diagnostics))
             .add_systems(
                 Update,
@@ -39,6 +48,7 @@ impl Plugin for UsfPlugin {
             .register_type::<UsfAuthorityDiagnosticsEvent>()
             .register_type::<UsfAuthorityDiagnosticsExportSettings>()
             .register_type::<UsfAuthorityDiagnosticsExportState>()
+            .register_type::<UsfScriptMvpBootstrapState>()
             .register_type::<UsfAuthorityViolationMode>()
             .register_type::<UsfWorldAuthorityContract>();
     }

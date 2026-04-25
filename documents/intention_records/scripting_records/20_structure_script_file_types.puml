@@ -72,4 +72,12 @@ PredicateEvaluatorRef "*" -[#1E88E5]-> "1" EvaluatorRegistry : resolves evaluato
 ScriptFile "*" -[#00897B]-> "1" ScriptFileTypeContract : resolves each script file against its target contract
 ScriptFile "1" -[#00897B]-> "1" ValidationReport : emits validation outcome to a report record
 ValidationReport "1" -[#43A047]-> "0..1" TypedFileRegistry : permits successful insertion in typed-file registry
+
+note bottom
+Current MVP typed roots:
+- scale/35.rhai
+- metric/test_metric.rhai
+- phenomenon/test_phenomenon.rhai
+- phenomenon_realizer/35.rhai
+end note
 @enduml

@@ -1,13 +1,13 @@
 use crate::bevy::picking::prelude::Pickable;
 use crate::bevy::prelude::*;
 
+use crate::chunk::components::{Chunk, ChunkActor, ChunkLoader};
 use crate::config::statics::CONFIG;
 use crate::core::components::Meta;
 use crate::picking::constants::{DIEGETIC_MOUSE_POINTER_ID, META_MOUSE_POINTER_ID, NO_HIT_SENTINEL};
 use crate::player::components::{Player, PlayerVisual3dLink};
 use crate::render::components::{EntityProxyLink, LogicProxy, MainCamera, RenderProxy};
 use crate::render::resources::PrimaryWindowUiState;
-use crate::chunk::components::{Chunk, ChunkActor, ChunkLoader};
 
 use super::components::{GizmoArrow, GizmoRoot};
 use super::types::Axis3D;

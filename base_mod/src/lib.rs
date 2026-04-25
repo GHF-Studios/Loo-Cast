@@ -14,7 +14,7 @@
 
 use base_mod_api::*;
 use base_mod_macros::*;
-use core_mod_api::*;
 use core_engine_macros::api_initializer;
+use core_mod_api::*;
 
 api_initializer!("base_mod");
