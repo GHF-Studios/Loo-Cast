@@ -1,0 +1,10 @@
+{
+    "statNames": [
+        "Intellect",
+        "Mind",
+        "Knowledge"
+    ],
+    "level": 0,
+    "maxLevel": 0,
+    "proposedLevelChange": 0
+}

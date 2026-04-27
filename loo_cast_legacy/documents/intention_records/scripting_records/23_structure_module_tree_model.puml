@@ -1,0 +1,38 @@
+@startuml
+title Structure - Folder-to-Module Tree Model
+hide empty members
+left to right direction
+
+class ScriptRoot {
+  +root_path
+  +mod_scope
+}
+
+class FolderNode {
+  +path
+  +folder_role
+  +typed_binding
+}
+
+class ScriptFileNode {
+  +path
+  +file_type
+  +exported_members
+}
+
+class GeneratedModuleNode {
+  +module_path
+  +visible_symbols
+}
+
+class NamespaceExportTable {
+  +qualified_symbol_map
+  +collision_policy
+}
+
+ScriptRoot "1" -[#00897B]-> "*" FolderNode : expands script root scope across folder hierarchy
+FolderNode "1" -[#00897B]-> "*" ScriptFileNode : resolves typed script files in folder nodes
+FolderNode "*" -[#00897B]-> "1..*" GeneratedModuleNode : projects folder segments to generated modules
+ScriptFileNode "*" -[#00897B]-> "1..*" GeneratedModuleNode : contributes exported symbols to generated modules
+GeneratedModuleNode "*" -[#43A047]-> "1" NamespaceExportTable : materializes symbol maps in export table
+@enduml

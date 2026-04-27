@@ -1,0 +1,71 @@
+@startuml
+title Structure - Typed Ctx API Graph
+hide empty members
+left to right direction
+
+class ScriptEntrypointContract {
+  +entrypoint_name
+  +ctx_root_type
+  +allowed_sub_apis
+}
+
+class RootCtx {
+  +query_runtime_metadata()
+  +get_domain_ctx()
+  +get_capability_endpoint()
+  +get_cross_scale_gateway()
+}
+
+class DomainCtx {
+  +query_domain_state()
+  +get_capability_endpoint()
+  +read_scale_window()
+}
+
+class CapabilityChannelEndpoint {
+  +channel_id
+  +emit_typed_intent()
+  +query_channel_status()
+}
+
+class ReadOnlyView {
+  +snapshot_id
+  +snapshot_time
+}
+
+class MutableIntentSink {
+  +queue_intent()
+}
+
+class CrossScaleGateway {
+  +read_scale_projection()
+  +emit_cross_scale_intent()
+}
+
+class EvaluatorHookEndpoint {
+  +evaluator_id
+  +evaluate_policy_predicate()
+}
+
+class EvaluatorRegistry {
+  +evaluator_id
+  +signature
+  +scope
+}
+
+ScriptEntrypointContract -[#1E88E5]-> RootCtx : defines root context surface for entrypoint execution
+RootCtx -[#00897B]-> DomainCtx : narrows API traversal to bounded domain context
+RootCtx -[#00897B]-> CapabilityChannelEndpoint : exposes channel endpoint nodes in ctx graph
+DomainCtx -[#00897B]-> CapabilityChannelEndpoint : exposes scoped channel endpoints in ctx graph
+RootCtx -[#00897B]-> CrossScaleGateway : exposes explicit cross-scale gateway in ctx graph
+DomainCtx -[#00897B]-> ReadOnlyView : projects state snapshots to read-only view
+CapabilityChannelEndpoint -[#43A047]-> MutableIntentSink : emits typed intents via mutable intent sink
+CapabilityChannelEndpoint -[#00897B]-> EvaluatorHookEndpoint : exposes declared evaluator hooks for policy predicates
+EvaluatorHookEndpoint "*" -[#1E88E5]-> "1" EvaluatorRegistry : resolves evaluator_id in shared evaluator registry
+
+note bottom
+Current MVP channel exposure under ctx root:
+- ctx::math::scalar
+- ctx::math::vector
+end note
+@enduml

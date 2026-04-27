@@ -1,0 +1,71 @@
+@startuml
+title Structure - Capability Channel Graph
+hide empty members
+left to right direction
+
+class CapabilityChannel {
+  +id
+  +intent_types
+  +layer_partition_rule
+  +dependency_policy
+  +reconcile_policy
+}
+
+class CapabilityIntentType {
+  +id
+  +payload_schema
+  +target_kind
+}
+
+class CapabilityDependencyEdge {
+  +source_channel
+  +target_channel
+  +edge_kind
+  +version_constraint
+  +provider_mode
+}
+
+class CapabilityDependencyGraph {
+  +edges
+  +validate_compatibility()
+}
+
+class CapabilityRuntimeAdapter {
+  +decode_intent()
+  +merge_reconcile_apply()
+  +panic_on_invalid()
+}
+
+class ReconcilePolicy {
+  +default_mode
+  +allowed_modes
+}
+
+class PolicyEvaluatorHook {
+  +evaluator_id
+  +hook_stage
+  +optional
+}
+
+class ChannelLayerInvariant {
+  +layer_scope
+  +cross_layer_bridge_required
+}
+
+class EvaluatorRegistry {
+  +evaluator_id
+  +signature
+  +scope
+}
+
+CapabilityChannel "1" -[#1E88E5]-> "*" CapabilityIntentType : declares admissible intent schemas in channel contract
+CapabilityChannel "1" -[#1E88E5]-> "*" CapabilityDependencyEdge : declares dependency edges in dependency set
+CapabilityChannel "1" -[#1E88E5]-> "1" ReconcilePolicy : declares default reconciliation policy in channel contract
+CapabilityChannel "1" -[#1E88E5]-> "0..*" PolicyEvaluatorHook : declares optional evaluator hooks in channel contract
+CapabilityChannel "1" -[#1E88E5]-> "1" ChannelLayerInvariant : declares layer partition invariants in channel contract
+CapabilityDependencyEdge "*" -[#00897B]-> "1" CapabilityDependencyGraph : materializes edge definitions in dependency graph
+CapabilityDependencyGraph "1" -[#1E88E5]-> "1..*" CapabilityChannel : validates resolved channel set within graph closure
+CapabilityRuntimeAdapter "*" -[#43A047]-> "1" CapabilityChannel : realizes backend operations in channel runtime
+CapabilityRuntimeAdapter "*" -[#43A047]-> "0..*" PolicyEvaluatorHook : executes declared evaluator hooks in reconcile stage
+PolicyEvaluatorHook "*" -[#1E88E5]-> "1" EvaluatorRegistry : resolves evaluator_id in shared evaluator registry
+@enduml

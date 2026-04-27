@@ -1,0 +1,95 @@
+# Loo Cast — Project Overview
+
+**Loo Cast** is a work-in-progress repository that contains both an engine and a game mod built in Rust.
+
+- **Engine**: a runtime for scale-aware simulation (ECS + modular runtime logic).
+- **Gameplay (base mod)**: a mod built on top of the engine that provides configs, content declarations, and assets.
+
+> Status: Active development. Architecture references are centered in `documents/intention_records/` and implementation summaries in `documents/markdown_summary/`.
+
+---
+
+## AI usage notice
+Generative AI tools such as ChatGPT, GitHub Copilot, and GitHub Copilot Chat have been used to assist in the creation of code and documentation within this repository. While these tools can enhance productivity, all content generated with their assistance has been reviewed and validated by a human to ensure accuracy and quality. Still, inconsistencies or errors are bound to turn up from time to time, so please report any issues you find if you feel like it <3
+
+---
+
+## Quick links
+
+- AI entrypoint/manifest: `AGENTS.md`
+- Canonical atlas manifest: `documents/intention_records/README.puml`
+- USF atlas manifest: `documents/intention_records/usf_records/00_manifest.puml`
+- Scripting atlas manifest: `documents/intention_records/scripting_records/00_manifest.puml`
+- Platform atlas manifest: `documents/intention_records/platform_records/00_manifest.puml`
+- Focused implementation summaries: `documents/markdown_summary/README.md`
+- Build & Run: `./build.ps1` / `./build.sh` and `./run.ps1` / `./run.sh`
+- Archived temporary planning notes: `documents/temp_stuff/`
+- Long-form historical notes: `documents/legacy_stuff/`
+
+---
+
+## Quick start
+
+Windows (PowerShell):
+
+```powershell
+./build.ps1 [dev|fastdev|release]; ./run.ps1 [profile]
+```
+
+Linux / macOS:
+
+```bash
+./build.sh [dev|fastdev|release]; ./run.sh [profile]
+```
+
+Build artifacts (mods & assets) are placed under `build/<profile>/`.
+
+---
+
+## High-level structure
+
+- Repository is a Cargo workspace. Key responsibilities are intentionally split:
+  - **`core_mod_api`** — code-only crate: typed APIs, plugin groups, workflows.
+  - **`core_mod`** — canonical assets & initialization: configs, content-domain declarations, models, shaders, and default data.
+  - **`base_mod` / `base_mod_api`** — gameplay assets and gameplay capability wrappers (rhai bindings).
+  - **`core_engine_macros` / `base_mod_macros`** — active procedural macro crates.
+  - **`core_mod_macros`** — integral workspace crate, intentionally unused in this current organization phase.
+  - **`core_engine`** — runtime binary: loads all mods, register all plugins and plugin groups of all mods, and launches the bevy app.
+
+---
+
+## Canonical asset locations
+
+- `core_mod/assets/configs/` — engine-related configuration files.
+- `core_mod/assets/*CONTENT_DOMAIN*/` — engine-owned content-domain roots (for example: `modpack`, `mod`, `scale`, `metric`, `phenomenon_realizer`, `phenomenon`, `texture`, `sfx`, `music`, `shader`, `config`, `usf_texture`, `usf_sfx`, `usf_model`).
+- `core_mod/assets/*MY_ASSET_TYPE*/` - other engine-related assets of any kind, e.g.: shaders, models, textures, sound files, etc.
+- `base_mod/assets/*CONTENT_DOMAIN*/` — gameplay-owned content-domain roots.
+- `base_mod/assets/*MY_ASSET_TYPE*/` — gameplay-related assets (configs, shaders, models, textures, sound files, etc.).
+
+For conventions and guidelines, see `documents/markdown_summary/assets_and_ownership.md`.
+
+---
+
+## Guidelines for docs
+
+- Canonical project context starts in `AGENTS.md` and the manifests in `documents/intention_records/`.
+- Temporary planning/handoff documents belong in `documents/temp_stuff/`.
+- Long-form historical notes belong in `documents/legacy_stuff/`.
+
+---
+
+## Crate summary (short)
+
+| Crate                      | Purpose & focus                             |
+|----------------------------|----------------------------------------------|
+| `core_engine`              | Runtime binary: composes Bevy plugins & runs app loop. |
+| `core_mod`                 | Canonical assets & built-in data; provides init hook for statics. |
+| `core_mod_api`             | Code-only API surface: plugins, types, workflows. |
+| `core_engine_macros`       | Active procedural macros used by core crates. |
+| `core_mod_macros`          | Integral crate currently unused in this organization phase. |
+| `base_mod`                 | Gameplay mod bundle (content declarations, configs, assets). |
+| `base_mod_api`             | Capability bindings (rhai wrappers) for gameplay. |
+| `base_mod_macros`          | Helpers for generating scripting wrappers. |
+| `bevy_consumable_message`  | Small reusable Bevy message utility. |
+
+See `documents/markdown_summary/crates_workspace.md` for more details.

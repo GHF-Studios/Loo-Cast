@@ -1,0 +1,1704 @@
+use crate::define_workflow_mod_OLD::WorkflowSignature;
+
+use super::stage::{Async, Ecs, EcsWhile, Render, RenderWhile, StageSignature};
+use heck::ToPascalCase;
+use proc_macro2::TokenStream;
+use quote::{ToTokens, quote};
+use std::marker::PhantomData;
+use syn::{
+    Fields, Ident, ItemEnum, ItemStruct, Result, Visibility,
+    parse::{Parse, ParseStream},
+    token::Pub,
+};
+
+fn align_core_struct(item: &mut ItemStruct) {
+    let span = item.ident.span();
+
+    item.vis = Visibility::Public(Pub(span));
+
+    match &mut item.fields {
+        Fields::Named(named) => {
+            for field in &mut named.named {
+                field.vis = Visibility::Public(Pub(span));
+            }
+        }
+        Fields::Unnamed(unnamed) => {
+            for field in &mut unnamed.unnamed {
+                field.vis = Visibility::Public(Pub(span));
+            }
+        }
+        Fields::Unit => {}
+    }
+}
+
+fn align_core_enum(item: &mut ItemEnum) {
+    let span = item.ident.span();
+
+    item.vis = Visibility::Public(Pub(span));
+}
+
+pub struct Input;
+pub struct State;
+pub struct Output;
+pub struct Error;
+pub struct MainAccess;
+pub struct RenderAccess;
+
+pub enum CoreType<T> {
+    Struct(ItemStruct, PhantomData<T>),
+    Enum(ItemEnum, PhantomData<T>),
+}
+
+impl CoreType<Input> {
+    pub fn generate(&self, stage_signature: StageSignature) -> TokenStream {
+        let workflow_input_trait_variant = match stage_signature {
+            StageSignature::None => panic!("Input type is not allowed in stages with non-input signature"),
+            StageSignature::O => panic!("Input type is not allowed in stages with non-input signature"),
+            StageSignature::E => panic!("Input type is not allowed in stages with non-input signature"),
+            StageSignature::OE => panic!("Input type is not allowed in stages with non-input signature"),
+            StageSignature::I => quote! { WorkflowInputI },
+            StageSignature::IO => quote! { WorkflowInputIO },
+            StageSignature::IE => quote! { WorkflowInputIE },
+            StageSignature::IOE => quote! { WorkflowInputIOE },
+        };
+
+        match self {
+            CoreType::Struct(item, _) => {
+                let item = item.to_token_stream();
+                quote! {
+                    #[repr(C)]
+                    #item
+                    impl crate::workflow::traits::#workflow_input_trait_variant for Input {}
+                }
+            }
+            CoreType::Enum(item, _) => {
+                let item = item.to_token_stream();
+                quote! {
+                    #[repr(C)]
+                    #item
+                    impl crate::workflow::traits::#workflow_input_trait_variant for Input {}
+                }
+            }
+        }
+    }
+}
+
+impl CoreType<State> {
+    pub fn generate(&self) -> TokenStream {
+        match self {
+            CoreType::Struct(item, _) => {
+                let item = item.to_token_stream();
+                quote! {
+                    #[repr(C)]
+                    #item
+                }
+            }
+            CoreType::Enum(item, _) => {
+                let item = item.to_token_stream();
+                quote! {
+                    #[repr(C)]
+                    #item
+                }
+            }
+        }
+    }
+}
+
+impl CoreType<Output> {
+    pub fn generate(&self, stage_signature: StageSignature) -> TokenStream {
+        let workflow_output_trait_variant = match stage_signature {
+            StageSignature::None => panic!("Output type is not allowed in stages with non-output signature"),
+            StageSignature::O => quote! { WorkflowOutputO },
+            StageSignature::E => panic!("Output type is not allowed in stages with non-output signature"),
+            StageSignature::OE => quote! { WorkflowOutputOE },
+            StageSignature::I => panic!("Output type is not allowed in stages with non-output signature"),
+            StageSignature::IO => quote! { WorkflowOutputIO },
+            StageSignature::IE => panic!("Output type is not allowed in stages with non-output signature"),
+            StageSignature::IOE => quote! { WorkflowOutputIOE },
+        };
+        let from_boxed = match stage_signature {
+            StageSignature::None => panic!("Output type is not allowed in workflows with non-output signature"),
+            StageSignature::O => {
+                quote! {
+                    let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseO>();
+                    response.output.into_inner()
+                }
+            }
+            StageSignature::OE => {
+                quote! {
+                    let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseOE>();
+                    match response.result {
+                        Ok(output) => output.into_inner(),
+                        Err(_) => panic!("Expected Output but got Error"),
+                    }
+                }
+            }
+            StageSignature::E => panic!("Output type is not allowed in workflows with non-output signature"),
+            StageSignature::I => panic!("Output type is not allowed in workflows with non-output signature"),
+            StageSignature::IO => {
+                quote! {
+                    let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseO>();
+                    response.output.into_inner()
+                }
+            }
+            StageSignature::IE => panic!("Output type is not allowed in workflows with non-output signature"),
+            StageSignature::IOE => {
+                quote! {
+                    let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseOE>();
+                    match response.result {
+                        Ok(output) => output.into_inner(),
+                        Err(_) => panic!("Expected Output but got Error"),
+                    }
+                }
+            }
+        };
+
+        match self {
+            CoreType::Struct(item, _) => {
+                let item = item.to_token_stream();
+                quote! {
+                    #[repr(C)]
+                    #item
+                    impl crate::workflow::traits::#workflow_output_trait_variant for Output {
+                        fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self {
+                            #from_boxed
+                        }
+                    }
+                }
+            }
+            CoreType::Enum(item, _) => {
+                let item = item.to_token_stream();
+                quote! {
+                    #[repr(C)]
+                    #item
+                    impl crate::workflow::traits::#workflow_output_trait_variant for Output {
+                        fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self {
+                            boxed.into_inner()
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+impl CoreType<Error> {
+    pub fn generate(
+        &self,
+        workflow_path: TokenStream,
+        workflow_signature: WorkflowSignature,
+        stage_signature: StageSignature,
+        stage_name_snake_case: Ident,
+    ) -> TokenStream {
+        let stage_name_pascal_case = stage_name_snake_case.to_string().to_pascal_case();
+        let stage_name_pascal_case = format!("{stage_name_pascal_case}Error");
+        let stage_name_pascal_case = Ident::new(&stage_name_pascal_case, stage_name_snake_case.span());
+        // let stage_error_type_path = quote! { #workflow_path::stages::#stage_name_snake_case::core_types::Error };
+        let workflow_error_type_path = quote! { #workflow_path::Error };
+        // let workflow_name_pascal_case = format!("{}Error", workflow_path.to_string().split("::").last().unwrap().to_string().to_pascal_case());
+        // let workflow_name_pascal_case = Ident::new(&workflow_name_pascal_case, stage_name_snake_case.span());
+        let workflow_error_variant_trait_variant = match workflow_signature {
+            WorkflowSignature::None => panic!("Error type is not allowed in stages with non-error signature"),
+            WorkflowSignature::O => panic!("Error type is not allowed in stages with non-error signature"),
+            WorkflowSignature::E => quote! { WorkflowErrorEVariant },
+            WorkflowSignature::OE => quote! { WorkflowErrorOEVariant },
+            WorkflowSignature::I => panic!("Error type is not allowed in stages with non-error signature"),
+            WorkflowSignature::IO => panic!("Error type is not allowed in stages with non-error signature"),
+            WorkflowSignature::IE => quote! { WorkflowErrorIEVariant },
+            WorkflowSignature::IOE => quote! { WorkflowErrorIOEVariant },
+        };
+        // let work_error_trait_variant = match workflow_signature {
+        //     WorkflowSignature::None => panic!("Error type is not allowed in workflows with non-error signature"),
+        //     WorkflowSignature::O => panic!("Error type is not allowed in workflows with non-error signature"),
+        //     WorkflowSignature::E => quote! { WorkflowErrorE },
+        //     WorkflowSignature::OE => quote! { WorkflowErrorOE },
+        //     WorkflowSignature::I => panic!("Error type is not allowed in workflows with non-error signature"),
+        //     WorkflowSignature::IO => panic!("Error type is not allowed in workflows with non-error signature"),
+        //     WorkflowSignature::IE => quote! { WorkflowErrorIE },
+        //     WorkflowSignature::IOE => quote! { WorkflowErrorIOE },
+        // };
+        let from_boxed = match stage_signature {
+            StageSignature::None => panic!("Error type is not allowed in stages with non-error signature"),
+            StageSignature::O => panic!("Error type is not allowed in stages with non-error signature"),
+            StageSignature::E => {
+                quote! {
+                    let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseE>();
+                    match response.result {
+                        Ok(_) => panic!("Expected Error but got Output"),
+                        Err(error) => error.into_inner(),
+                    }
+                }
+            }
+            StageSignature::OE => {
+                quote! {
+                    let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseOE>();
+                    match response.result {
+                        Ok(_) => panic!("Expected Error but got Output"),
+                        Err(error) => error.into_inner(),
+                    }
+                }
+            }
+            StageSignature::I => panic!("Error type is not allowed in stages with non-error signature"),
+            StageSignature::IO => panic!("Error type is not allowed in stages with non-error signature"),
+            StageSignature::IE => {
+                quote! {
+                    let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseE>();
+                    match response.result {
+                        Ok(_) => panic!("Expected Error but got Output"),
+                        Err(error) => error.into_inner(),
+                    }
+                }
+            }
+            StageSignature::IOE => {
+                quote! {
+                    let response = boxed.into_inner::<crate::workflow::response::TypedWorkflowResponseOE>();
+                    match response.result {
+                        Ok(_) => panic!("Expected Error but got Output"),
+                        Err(error) => error.into_inner(),
+                    }
+                }
+            }
+        };
+
+        match self {
+            CoreType::Struct(_item, _) => {
+                panic!("Struct is not supported for Error type");
+            }
+            CoreType::Enum(item, _) => {
+                let item = item.to_token_stream();
+                quote! {
+                    #[derive(std::fmt::Debug, Error)]
+                    #item
+                    impl std::fmt::Display for Error {
+                        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                            write!(f, "{:?}", self)
+                        }
+                    }
+                    impl crate::workflow::traits::#workflow_error_variant_trait_variant<#workflow_error_type_path> for Error {
+                        fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self {
+                            #from_boxed
+                        }
+
+                        fn into_workflow_error(self) -> #workflow_error_type_path {
+                            #workflow_error_type_path::#stage_name_pascal_case(self)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+impl CoreType<MainAccess> {
+    pub fn generate(&self) -> TokenStream {
+        match self {
+            CoreType::Struct(item, _) => {
+                let item = item.to_token_stream();
+                quote! {
+                    #[derive(crate::bevy::ecs::system::SystemParam)]
+                    #item
+                }
+            }
+            CoreType::Enum(item, _) => {
+                let item = item.to_token_stream();
+                quote! {
+                    #[derive(crate::bevy::ecs::system::SystemParam)]
+                    #item
+                }
+            }
+        }
+    }
+}
+
+impl CoreType<RenderAccess> {
+    pub fn generate(&self) -> TokenStream {
+        match self {
+            CoreType::Struct(item, _) => {
+                let item = item.to_token_stream();
+                quote! {
+                    #[derive(crate::bevy::ecs::system::SystemParam)]
+                    #item
+                }
+            }
+            CoreType::Enum(item, _) => {
+                let item = item.to_token_stream();
+                quote! {
+                    #[derive(crate::bevy::ecs::system::SystemParam)]
+                    #item
+                }
+            }
+        }
+    }
+}
+
+pub struct CoreTypes<T> {
+    pub _phantom_data: PhantomData<T>,
+    pub input: Option<CoreType<Input>>,
+    pub state: Option<CoreType<State>>,
+    pub output: Option<CoreType<Output>>,
+    pub error: Option<CoreType<Error>>,
+    pub main_access: Option<CoreType<MainAccess>>,
+    pub render_access: Option<CoreType<RenderAccess>>,
+}
+
+impl Parse for CoreTypes<Ecs> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut input_type = None;
+        let mut output_type = None;
+        let mut error_type = None;
+        let mut main_access_type = None;
+
+        while !input.is_empty() {
+            let mut item: syn::Item = input.parse()?;
+            match item {
+                syn::Item::Struct(ref mut s) if s.ident == "Input" => {
+                    align_core_struct(s);
+                    if input_type.is_some() {
+                        return Err(input.error("Duplicate Input type"));
+                    }
+                    input_type = Some(CoreType::<Input>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "Input" => {
+                    align_core_enum(e);
+                    if input_type.is_some() {
+                        return Err(input.error("Duplicate Input type"));
+                    }
+                    input_type = Some(CoreType::<Input>::Enum(e.clone(), PhantomData));
+                }
+                syn::Item::Struct(ref mut s) if s.ident == "Output" => {
+                    align_core_struct(s);
+                    if output_type.is_some() {
+                        return Err(input.error("Duplicate Output type"));
+                    }
+                    output_type = Some(CoreType::<Output>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "Output" => {
+                    align_core_enum(e);
+                    if output_type.is_some() {
+                        return Err(input.error("Duplicate Output type"));
+                    }
+                    output_type = Some(CoreType::<Output>::Enum(e.clone(), PhantomData));
+                }
+                syn::Item::Struct(ref mut s) if s.ident == "Error" => {
+                    align_core_struct(s);
+                    if error_type.is_some() {
+                        return Err(input.error("Duplicate Error type"));
+                    }
+                    error_type = Some(CoreType::<Error>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "Error" => {
+                    align_core_enum(e);
+                    if error_type.is_some() {
+                        return Err(input.error("Duplicate Error type"));
+                    }
+                    error_type = Some(CoreType::<Error>::Enum(e.clone(), PhantomData));
+                }
+                syn::Item::Struct(ref s) if s.ident == "State" || matches!(item, syn::Item::Enum(ref e) if e.ident == "State") => {
+                    return Err(input.error("State is not allowed in Ecs stages"));
+                }
+                syn::Item::Struct(ref mut s) if s.ident == "MainAccess" => {
+                    align_core_struct(s);
+                    if main_access_type.is_some() {
+                        return Err(input.error("Duplicate MainAccess type"));
+                    }
+                    main_access_type = Some(CoreType::<MainAccess>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "MainAccess" => {
+                    align_core_enum(e);
+                    if main_access_type.is_some() {
+                        return Err(input.error("Duplicate MainAccess type"));
+                    }
+                    main_access_type = Some(CoreType::<MainAccess>::Enum(e.clone(), PhantomData));
+                }
+                _ => return Err(input.error("Invalid or misplaced core type declaration")),
+            }
+        }
+
+        Ok(CoreTypes {
+            _phantom_data: PhantomData,
+            input: input_type,
+            state: None,
+            output: output_type,
+            error: error_type,
+            main_access: main_access_type,
+            render_access: None,
+        })
+    }
+}
+
+impl Parse for CoreTypes<EcsWhile> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut input_type = None;
+        let mut state_type = None;
+        let mut output_type = None;
+        let mut error_type = None;
+        let mut main_access_type = None;
+
+        while !input.is_empty() {
+            let mut item: syn::Item = input.parse()?;
+            match item {
+                syn::Item::Struct(ref mut s) if s.ident == "Input" => {
+                    align_core_struct(s);
+                    if input_type.is_some() {
+                        return Err(input.error("Duplicate Input type"));
+                    }
+                    input_type = Some(CoreType::<Input>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "Input" => {
+                    align_core_enum(e);
+                    if input_type.is_some() {
+                        return Err(input.error("Duplicate Input type"));
+                    }
+                    input_type = Some(CoreType::<Input>::Enum(e.clone(), PhantomData));
+                }
+                syn::Item::Struct(ref mut s) if s.ident == "State" => {
+                    align_core_struct(s);
+                    if state_type.is_some() {
+                        return Err(input.error("Duplicate State type"));
+                    }
+                    state_type = Some(CoreType::<State>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "State" => {
+                    align_core_enum(e);
+                    if state_type.is_some() {
+                        return Err(input.error("Duplicate State type"));
+                    }
+                    state_type = Some(CoreType::<State>::Enum(e.clone(), PhantomData));
+                }
+                syn::Item::Struct(ref mut s) if s.ident == "Output" => {
+                    align_core_struct(s);
+                    if output_type.is_some() {
+                        return Err(input.error("Duplicate Output type"));
+                    }
+                    output_type = Some(CoreType::<Output>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "Output" => {
+                    align_core_enum(e);
+                    if output_type.is_some() {
+                        return Err(input.error("Duplicate Output type"));
+                    }
+                    output_type = Some(CoreType::<Output>::Enum(e.clone(), PhantomData));
+                }
+                syn::Item::Struct(ref mut s) if s.ident == "Error" => {
+                    align_core_struct(s);
+                    if error_type.is_some() {
+                        return Err(input.error("Duplicate Error type"));
+                    }
+                    error_type = Some(CoreType::<Error>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "Error" => {
+                    align_core_enum(e);
+                    if error_type.is_some() {
+                        return Err(input.error("Duplicate Error type"));
+                    }
+                    error_type = Some(CoreType::<Error>::Enum(e.clone(), PhantomData));
+                }
+                syn::Item::Struct(ref mut s) if s.ident == "MainAccess" => {
+                    align_core_struct(s);
+                    if main_access_type.is_some() {
+                        return Err(input.error("Duplicate MainAccess type"));
+                    }
+                    main_access_type = Some(CoreType::<MainAccess>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "MainAccess" => {
+                    align_core_enum(e);
+                    if main_access_type.is_some() {
+                        return Err(input.error("Duplicate MainAccess type"));
+                    }
+                    main_access_type = Some(CoreType::<MainAccess>::Enum(e.clone(), PhantomData));
+                }
+                _ => return Err(input.error("Invalid or misplaced core type declaration")),
+            }
+        }
+
+        Ok(CoreTypes {
+            _phantom_data: PhantomData,
+            input: input_type,
+            state: state_type,
+            output: output_type,
+            error: error_type,
+            main_access: main_access_type,
+            render_access: None,
+        })
+    }
+}
+
+impl Parse for CoreTypes<Render> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut input_type = None;
+        let mut output_type = None;
+        let mut error_type = None;
+        let mut render_access_type = None;
+
+        while !input.is_empty() {
+            let mut item: syn::Item = input.parse()?;
+            match item {
+                syn::Item::Struct(ref mut s) if s.ident == "Input" => {
+                    align_core_struct(s);
+                    if input_type.is_some() {
+                        return Err(input.error("Duplicate Input type"));
+                    }
+                    input_type = Some(CoreType::<Input>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "Input" => {
+                    align_core_enum(e);
+                    if input_type.is_some() {
+                        return Err(input.error("Duplicate Input type"));
+                    }
+                    input_type = Some(CoreType::<Input>::Enum(e.clone(), PhantomData));
+                }
+                syn::Item::Struct(ref mut s) if s.ident == "Output" => {
+                    align_core_struct(s);
+                    if output_type.is_some() {
+                        return Err(input.error("Duplicate Output type"));
+                    }
+                    output_type = Some(CoreType::<Output>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "Output" => {
+                    align_core_enum(e);
+                    if output_type.is_some() {
+                        return Err(input.error("Duplicate Output type"));
+                    }
+                    output_type = Some(CoreType::<Output>::Enum(e.clone(), PhantomData));
+                }
+                syn::Item::Struct(ref mut s) if s.ident == "Error" => {
+                    align_core_struct(s);
+                    if error_type.is_some() {
+                        return Err(input.error("Duplicate Error type"));
+                    }
+                    error_type = Some(CoreType::<Error>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "Error" => {
+                    align_core_enum(e);
+                    if error_type.is_some() {
+                        return Err(input.error("Duplicate Error type"));
+                    }
+                    error_type = Some(CoreType::<Error>::Enum(e.clone(), PhantomData));
+                }
+                syn::Item::Struct(ref s) if s.ident == "State" || matches!(item, syn::Item::Enum(ref e) if e.ident == "State") => {
+                    return Err(input.error("State is not allowed in Render stages"));
+                }
+                syn::Item::Struct(ref mut s) if s.ident == "RenderAccess" => {
+                    align_core_struct(s);
+                    if render_access_type.is_some() {
+                        return Err(input.error("Duplicate RenderAccess type"));
+                    }
+                    render_access_type = Some(CoreType::<RenderAccess>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "RenderAccess" => {
+                    align_core_enum(e);
+                    if render_access_type.is_some() {
+                        return Err(input.error("Duplicate RenderAccess type"));
+                    }
+                    render_access_type = Some(CoreType::<RenderAccess>::Enum(e.clone(), PhantomData));
+                }
+                _ => return Err(input.error("Invalid or misplaced core type declaration")),
+            }
+        }
+
+        Ok(CoreTypes {
+            _phantom_data: PhantomData,
+            input: input_type,
+            state: None,
+            output: output_type,
+            error: error_type,
+            main_access: None,
+            render_access: render_access_type,
+        })
+    }
+}
+
+impl Parse for CoreTypes<RenderWhile> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut input_type = None;
+        let mut state_type = None;
+        let mut output_type = None;
+        let mut error_type = None;
+        let mut render_access_type = None;
+
+        while !input.is_empty() {
+            let mut item: syn::Item = input.parse()?;
+            match item {
+                syn::Item::Struct(ref mut s) if s.ident == "Input" => {
+                    align_core_struct(s);
+                    if input_type.is_some() {
+                        return Err(input.error("Duplicate Input type"));
+                    }
+                    input_type = Some(CoreType::<Input>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "Input" => {
+                    align_core_enum(e);
+                    if input_type.is_some() {
+                        return Err(input.error("Duplicate Input type"));
+                    }
+                    input_type = Some(CoreType::<Input>::Enum(e.clone(), PhantomData));
+                }
+                syn::Item::Struct(ref mut s) if s.ident == "State" => {
+                    align_core_struct(s);
+                    if state_type.is_some() {
+                        return Err(input.error("Duplicate State type"));
+                    }
+                    state_type = Some(CoreType::<State>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "State" => {
+                    align_core_enum(e);
+                    if state_type.is_some() {
+                        return Err(input.error("Duplicate State type"));
+                    }
+                    state_type = Some(CoreType::<State>::Enum(e.clone(), PhantomData));
+                }
+                syn::Item::Struct(ref mut s) if s.ident == "Output" => {
+                    align_core_struct(s);
+                    if output_type.is_some() {
+                        return Err(input.error("Duplicate Output type"));
+                    }
+                    output_type = Some(CoreType::<Output>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "Output" => {
+                    align_core_enum(e);
+                    if output_type.is_some() {
+                        return Err(input.error("Duplicate Output type"));
+                    }
+                    output_type = Some(CoreType::<Output>::Enum(e.clone(), PhantomData));
+                }
+                syn::Item::Struct(ref mut s) if s.ident == "Error" => {
+                    align_core_struct(s);
+                    if error_type.is_some() {
+                        return Err(input.error("Duplicate Error type"));
+                    }
+                    error_type = Some(CoreType::<Error>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "Error" => {
+                    align_core_enum(e);
+                    if error_type.is_some() {
+                        return Err(input.error("Duplicate Error type"));
+                    }
+                    error_type = Some(CoreType::<Error>::Enum(e.clone(), PhantomData));
+                }
+                syn::Item::Struct(ref mut s) if s.ident == "RenderAccess" => {
+                    align_core_struct(s);
+                    if render_access_type.is_some() {
+                        return Err(input.error("Duplicate RenderAccess type"));
+                    }
+                    render_access_type = Some(CoreType::<RenderAccess>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "RenderAccess" => {
+                    align_core_enum(e);
+                    if render_access_type.is_some() {
+                        return Err(input.error("Duplicate RenderAccess type"));
+                    }
+                    render_access_type = Some(CoreType::<RenderAccess>::Enum(e.clone(), PhantomData));
+                }
+                _ => return Err(input.error("Invalid or misplaced core type declaration")),
+            }
+        }
+
+        Ok(CoreTypes {
+            _phantom_data: PhantomData,
+            input: input_type,
+            state: state_type,
+            output: output_type,
+            error: error_type,
+            main_access: None,
+            render_access: render_access_type,
+        })
+    }
+}
+
+impl Parse for CoreTypes<Async> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut input_type = None;
+        let mut output_type = None;
+        let mut error_type = None;
+
+        while !input.is_empty() {
+            let mut item: syn::Item = input.parse()?;
+            match item {
+                syn::Item::Struct(ref mut s) if s.ident == "Input" => {
+                    align_core_struct(s);
+                    if input_type.is_some() {
+                        return Err(input.error("Duplicate Input type"));
+                    }
+                    input_type = Some(CoreType::<Input>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "Input" => {
+                    align_core_enum(e);
+                    if input_type.is_some() {
+                        return Err(input.error("Duplicate Input type"));
+                    }
+                    input_type = Some(CoreType::<Input>::Enum(e.clone(), PhantomData));
+                }
+                syn::Item::Struct(ref mut s) if s.ident == "Output" => {
+                    align_core_struct(s);
+                    if output_type.is_some() {
+                        return Err(input.error("Duplicate Output type"));
+                    }
+                    output_type = Some(CoreType::<Output>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "Output" => {
+                    align_core_enum(e);
+                    if output_type.is_some() {
+                        return Err(input.error("Duplicate Output type"));
+                    }
+                    output_type = Some(CoreType::<Output>::Enum(e.clone(), PhantomData));
+                }
+                syn::Item::Struct(ref mut s) if s.ident == "Error" => {
+                    align_core_struct(s);
+                    if error_type.is_some() {
+                        return Err(input.error("Duplicate Error type"));
+                    }
+                    error_type = Some(CoreType::<Error>::Struct(s.clone(), PhantomData));
+                }
+                syn::Item::Enum(ref mut e) if e.ident == "Error" => {
+                    align_core_enum(e);
+                    if error_type.is_some() {
+                        return Err(input.error("Duplicate Error type"));
+                    }
+                    error_type = Some(CoreType::<Error>::Enum(e.clone(), PhantomData));
+                }
+                syn::Item::Struct(ref s) if s.ident == "State" || matches!(item, syn::Item::Enum(ref e) if e.ident == "State") => {
+                    return Err(input.error("State is not allowed in Async stages"));
+                }
+                _ => return Err(input.error("Invalid or misplaced core type declaration")),
+            }
+        }
+
+        Ok(CoreTypes {
+            _phantom_data: PhantomData,
+            input: input_type,
+            state: None,
+            output: output_type,
+            error: error_type,
+            main_access: None,
+            render_access: None,
+        })
+    }
+}
+
+impl CoreTypes<Ecs> {
+    pub fn generate_stage_type_dependent_stuff(&self, module_name: &str, workflow_name: &str, stage_index: usize) -> TokenStream {
+        quote! {
+            static FILL_WORKFLOW_STAGE_BUFFER_SENDER: std::sync::OnceLock<FillWorkflowStageEcsBufferMessageSender> = std::sync::OnceLock::new();
+            static FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE: std::sync::OnceLock<std::sync::Mutex<Option<FillWorkflowStageEcsBufferMessageReceiver>>> = std::sync::OnceLock::new();
+
+            pub fn pre_initialize_fill_workflow_stage_buffer_channel() -> FillWorkflowStageEcsBufferMessageSender {
+                let (tx, rx) = crossbeam_channel::unbounded();
+
+                let sender = FillWorkflowStageEcsBufferMessageSender {
+                    module_name: #module_name,
+                    workflow_name: #workflow_name,
+                    stage_index: #stage_index,
+                    sender: tx,
+                };
+
+                let receiver = FillWorkflowStageEcsBufferMessageReceiver(rx);
+
+                FILL_WORKFLOW_STAGE_BUFFER_SENDER
+                    .set(sender.clone())
+                    .expect("Sender already initialized!");
+
+                FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE.set(std::sync::Mutex::new(Some(receiver))).expect("Receiver cache already initialized");
+
+                sender
+            }
+
+            pub fn take_fill_workflow_stage_buffer_receiver() -> FillWorkflowStageEcsBufferMessageReceiver {
+                let cache = FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE
+                    .get()
+                    .expect("Receiver cache not initialized");
+
+                let mut guard = cache.lock().unwrap();
+                guard
+                    .take()
+                    .expect("Receiver already taken or never initialized")
+            }
+
+            pub fn get_fill_workflow_stage_buffer_sender() -> FillWorkflowStageEcsBufferMessageSender {
+                let sender = FILL_WORKFLOW_STAGE_BUFFER_SENDER
+                    .get()
+                    .expect("Sender not initialized!");
+
+                let sender: Box<dyn crate::DynFillWorkflowStageEcsBufferMessageSender> = dyn_clone::clone_box(sender);
+
+                if let Some(sender) = sender.as_any_ref().downcast_ref::<FillWorkflowStageEcsBufferMessageSender>() {
+                    sender.clone()
+                } else {
+                    unreachable!("Sender was not the expected concrete type!");
+                }
+            }
+
+            pub fn receive_ecs_stages_to_ecs_buffers_system(mut receiver: ResMut<FillWorkflowStageEcsBufferMessageReceiver>, mut buffer: ResMut<StageBuffer>) {
+                loop {
+                    match receiver.0.try_recv() {
+                        Ok(message) => buffer.fill(message.module_name, message.workflow_name, message.stage_index, message.stage, message.stage_data),
+                        Err(err) => match err {
+                            crossbeam_channel::TryRecvError::Empty => {
+                                break;
+                            }
+                            crossbeam_channel::TryRecvError::Disconnected => {
+                                unreachable!("Receiver disconnected");
+                            }
+                        }
+                    }
+                }
+            }
+
+            pub struct FillWorkflowStageEcsBufferMessage {
+                module_name: &'static str,
+                workflow_name: &'static str,
+                stage_index: usize,
+                stage: crate::workflow::stage::StageEcs,
+                stage_data: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+            }
+            impl crate::FillWorkflowStageEcsBufferMessageMarker for FillWorkflowStageEcsBufferMessage {}
+
+            #[derive(Resource, Debug)]
+            pub struct FillWorkflowStageEcsBufferMessageReceiver(pub crossbeam_channel::Receiver<FillWorkflowStageEcsBufferMessage>);
+
+            #[derive(Clone, Debug)]
+            pub struct FillWorkflowStageEcsBufferMessageSender {
+                module_name: &'static str,
+                workflow_name: &'static str,
+                stage_index: usize,
+                sender: crossbeam_channel::Sender<FillWorkflowStageEcsBufferMessage>
+            }
+            impl crate::DynFillWorkflowStageEcsBufferMessageSender for FillWorkflowStageEcsBufferMessageSender {
+                fn module_name(&self) -> &'static str {
+                    self.module_name
+                }
+
+                fn workflow_name(&self) -> &'static str {
+                    self.workflow_name
+                }
+
+                fn stage_index(&self) -> usize {
+                    self.stage_index
+                }
+
+                fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageEcs, stage_buffer: Option<crate::utils::premium_box::AnySendSyncPremiumBox>) {
+                    let message = FillWorkflowStageEcsBufferMessage {
+                        module_name,
+                        workflow_name,
+                        stage_index,
+                        stage,
+                        stage_data: stage_buffer
+                    };
+
+                    if let Err(err) = self.sender.send(message) {
+                        unreachable!("Failed to send FillWorkflowStageEcsBufferMessage: {}", err);
+                    };
+                }
+
+                fn as_any_ref(&self) -> &dyn std::any::Any {
+                    self
+                }
+            }
+
+            #[derive(Resource, Default)]
+            pub struct StageBuffer(
+                std::collections::VecDeque<(
+                    &'static str,
+                    &'static str,
+                    usize,
+                    crate::workflow::stage::StageEcs,
+                    Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+                )>,
+            );
+            impl StageBuffer {
+                pub fn fill(
+                    &mut self,
+                    module_name: &'static str,
+                    workflow_name: &'static str,
+                    stage_index: usize,
+                    stage: crate::workflow::stage::StageEcs,
+                    stage_data: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+                ) {
+                    self.0.push_back((module_name, workflow_name, stage_index, stage, stage_data));
+                }
+
+                pub fn empty(
+                    &mut self,
+                ) -> (
+                    &'static str,
+                    &'static str,
+                    usize,
+                    crate::workflow::stage::StageEcs,
+                    Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+                ) {
+                    self.0
+                        .pop_front()
+                        .unwrap_or_else(|| unreachable!("StageEcs buffer is not filled"))
+                }
+
+                pub fn is_empty(&self) -> bool {
+                    self.0.is_empty()
+                }
+            }
+        }
+    }
+}
+
+impl CoreTypes<Render> {
+    pub fn generate_stage_type_dependent_stuff(&self, module_name: &str, workflow_name: &str, stage_index: usize) -> TokenStream {
+        quote! {
+            static FILL_WORKFLOW_STAGE_BUFFER_SENDER: std::sync::OnceLock<FillWorkflowStageRenderBufferMessageSender> = std::sync::OnceLock::new();
+            static FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE: std::sync::OnceLock<std::sync::Mutex<Option<FillWorkflowStageRenderBufferMessageReceiver>>> = std::sync::OnceLock::new();
+
+            pub fn pre_initialize_fill_workflow_stage_buffer_channel() -> FillWorkflowStageRenderBufferMessageSender {
+                let (tx, rx) = crossbeam_channel::unbounded();
+
+                let sender = FillWorkflowStageRenderBufferMessageSender {
+                    module_name: #module_name,
+                    workflow_name: #workflow_name,
+                    stage_index: #stage_index,
+                    sender: tx,
+                };
+
+                let receiver = FillWorkflowStageRenderBufferMessageReceiver(rx);
+
+                FILL_WORKFLOW_STAGE_BUFFER_SENDER
+                    .set(sender.clone())
+                    .expect("Sender already initialized!");
+
+                FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE.set(std::sync::Mutex::new(Some(receiver))).expect("Receiver cache already initialized");
+
+                sender
+            }
+
+            pub fn take_fill_workflow_stage_buffer_receiver() -> FillWorkflowStageRenderBufferMessageReceiver {
+                let cache = FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE
+                    .get()
+                    .expect("Receiver cache not initialized");
+
+                let mut guard = cache.lock().unwrap();
+                guard
+                    .take()
+                    .expect("Receiver already taken or never initialized")
+            }
+
+            pub fn get_fill_workflow_stage_buffer_sender() -> FillWorkflowStageRenderBufferMessageSender {
+                let sender = FILL_WORKFLOW_STAGE_BUFFER_SENDER
+                    .get()
+                    .expect("Sender not initialized!");
+
+                let sender: Box<dyn crate::DynFillWorkflowStageRenderBufferMessageSender> = dyn_clone::clone_box(sender);
+
+                if let Some(sender) = sender.as_any_ref().downcast_ref::<FillWorkflowStageRenderBufferMessageSender>() {
+                    sender.clone()
+                } else {
+                    unreachable!("Sender was not the expected concrete type!");
+                }
+            }
+
+            pub fn receive_render_stages_to_render_buffers_system(mut receiver: ResMut<FillWorkflowStageRenderBufferMessageReceiver>, mut buffer: ResMut<StageBuffer>) {
+                loop {
+                    match receiver.0.try_recv() {
+                        Ok(message) => buffer.fill(message.module_name, message.workflow_name, message.stage_index, message.stage, message.stage_data),
+                        Err(err) => match err {
+                            crossbeam_channel::TryRecvError::Empty => {
+                                break;
+                            }
+                            crossbeam_channel::TryRecvError::Disconnected => {
+                                unreachable!("Receiver disconnected");
+                            }
+                        }
+                    }
+                }
+            }
+
+            pub struct FillWorkflowStageRenderBufferMessage {
+                module_name: &'static str,
+                workflow_name: &'static str,
+                stage_index: usize,
+                stage: crate::workflow::stage::StageRender,
+                stage_data: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+            }
+            impl crate::FillWorkflowStageRenderBufferMessageMarker for FillWorkflowStageRenderBufferMessage {}
+
+            #[derive(Resource, Debug)]
+            pub struct FillWorkflowStageRenderBufferMessageReceiver(pub crossbeam_channel::Receiver<FillWorkflowStageRenderBufferMessage>);
+
+            #[derive(Clone, Debug)]
+            pub struct FillWorkflowStageRenderBufferMessageSender {
+                module_name: &'static str,
+                workflow_name: &'static str,
+                stage_index: usize,
+                sender: crossbeam_channel::Sender<FillWorkflowStageRenderBufferMessage>
+            }
+            impl crate::DynFillWorkflowStageRenderBufferMessageSender for FillWorkflowStageRenderBufferMessageSender {
+                fn module_name(&self) -> &'static str {
+                    self.module_name
+                }
+
+                fn workflow_name(&self) -> &'static str {
+                    self.workflow_name
+                }
+
+                fn stage_index(&self) -> usize {
+                    self.stage_index
+                }
+
+                fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageRender, stage_buffer: Option<crate::utils::premium_box::AnySendSyncPremiumBox>) {
+                    let message = FillWorkflowStageRenderBufferMessage {
+                        module_name,
+                        workflow_name,
+                        stage_index,
+                        stage,
+                        stage_data: stage_buffer
+                    };
+
+                    if let Err(err) = self.sender.send(message) {
+                        unreachable!("Failed to send FillWorkflowStageRenderBufferMessage: {}", err);
+                    };
+                }
+
+                fn as_any_ref(&self) -> &dyn std::any::Any {
+                    self
+                }
+            }
+
+            #[derive(Resource, Default)]
+            pub struct StageBuffer(
+                std::collections::VecDeque<(
+                    &'static str,
+                    &'static str,
+                    usize,
+                    crate::workflow::stage::StageRender,
+                    Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+                )>,
+            );
+            impl StageBuffer {
+                pub fn fill(
+                    &mut self,
+                    module_name: &'static str,
+                    workflow_name: &'static str,
+                    stage_index: usize,
+                    stage: crate::workflow::stage::StageRender,
+                    stage_data: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+                ) {
+                    self.0.push_back((module_name, workflow_name, stage_index, stage, stage_data));
+                }
+
+                pub fn empty(
+                    &mut self,
+                ) -> (
+                    &'static str,
+                    &'static str,
+                    usize,
+                    crate::workflow::stage::StageRender,
+                    Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+                ) {
+                    self.0
+                        .pop_front()
+                        .unwrap_or_else(|| unreachable!("StageRender buffer is not filled"))
+                }
+
+                pub fn is_empty(&self) -> bool {
+                    self.0.is_empty()
+                }
+            }
+        }
+    }
+}
+
+impl CoreTypes<Async> {
+    pub fn generate_stage_type_dependent_stuff(&self, module_name: &str, workflow_name: &str, stage_index: usize) -> TokenStream {
+        quote! {
+            static FILL_WORKFLOW_STAGE_BUFFER_SENDER: std::sync::OnceLock<FillWorkflowStageAsyncBufferMessageSender> = std::sync::OnceLock::new();
+            static FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE: std::sync::OnceLock<std::sync::Mutex<Option<FillWorkflowStageAsyncBufferMessageReceiver>>> = std::sync::OnceLock::new();
+
+            pub fn pre_initialize_fill_workflow_stage_buffer_channel() -> FillWorkflowStageAsyncBufferMessageSender {
+                let (tx, rx) = crossbeam_channel::unbounded();
+
+                let sender = FillWorkflowStageAsyncBufferMessageSender {
+                    module_name: #module_name,
+                    workflow_name: #workflow_name,
+                    stage_index: #stage_index,
+                    sender: tx,
+                };
+
+                let receiver = FillWorkflowStageAsyncBufferMessageReceiver(rx);
+
+                FILL_WORKFLOW_STAGE_BUFFER_SENDER
+                    .set(sender.clone())
+                    .expect("Sender already initialized!");
+
+                FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE.set(std::sync::Mutex::new(Some(receiver))).expect("Receiver cache already initialized");
+
+                sender
+            }
+
+            pub fn take_fill_workflow_stage_buffer_receiver() -> FillWorkflowStageAsyncBufferMessageReceiver {
+                let cache = FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE
+                    .get()
+                    .expect("Receiver cache not initialized");
+
+                let mut guard = cache.lock().unwrap();
+                guard
+                    .take()
+                    .expect("Receiver already taken or never initialized")
+            }
+
+            pub fn get_fill_workflow_stage_buffer_sender() -> FillWorkflowStageAsyncBufferMessageSender {
+                let sender = FILL_WORKFLOW_STAGE_BUFFER_SENDER
+                    .get()
+                    .expect("Sender not initialized!");
+
+                let sender: Box<dyn crate::DynFillWorkflowStageAsyncBufferMessageSender> = dyn_clone::clone_box(sender);
+
+                if let Some(sender) = sender.as_any_ref().downcast_ref::<FillWorkflowStageAsyncBufferMessageSender>() {
+                    sender.clone()
+                } else {
+                    unreachable!("Sender was not the expected concrete type!");
+                }
+            }
+
+            pub fn receive_async_stages_to_async_buffers_system(mut receiver: ResMut<FillWorkflowStageAsyncBufferMessageReceiver>, mut buffer: ResMut<StageBuffer>) {
+                loop {
+                    match receiver.0.try_recv() {
+                        Ok(message) => buffer.fill(message.module_name, message.workflow_name, message.stage_index, message.stage, message.stage_data),
+                        Err(err) => match err {
+                            crossbeam_channel::TryRecvError::Empty => {
+                                break;
+                            }
+                            crossbeam_channel::TryRecvError::Disconnected => {
+                                unreachable!("Receiver disconnected");
+                            }
+                        }
+                    }
+                }
+            }
+
+            pub struct FillWorkflowStageAsyncBufferMessage {
+                module_name: &'static str,
+                workflow_name: &'static str,
+                stage_index: usize,
+                stage: crate::workflow::stage::StageAsync,
+                stage_data: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+            }
+            impl crate::FillWorkflowStageAsyncBufferMessageMarker for FillWorkflowStageAsyncBufferMessage {}
+
+            #[derive(Resource, Debug)]
+            pub struct FillWorkflowStageAsyncBufferMessageReceiver(pub crossbeam_channel::Receiver<FillWorkflowStageAsyncBufferMessage>);
+
+            #[derive(Clone, Debug)]
+            pub struct FillWorkflowStageAsyncBufferMessageSender {
+                module_name: &'static str,
+                workflow_name: &'static str,
+                stage_index: usize,
+                sender: crossbeam_channel::Sender<FillWorkflowStageAsyncBufferMessage>
+            }
+            impl crate::DynFillWorkflowStageAsyncBufferMessageSender for FillWorkflowStageAsyncBufferMessageSender {
+                fn module_name(&self) -> &'static str {
+                    self.module_name
+                }
+
+                fn workflow_name(&self) -> &'static str {
+                    self.workflow_name
+                }
+
+                fn stage_index(&self) -> usize {
+                    self.stage_index
+                }
+
+                fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageAsync, stage_buffer: Option<crate::utils::premium_box::AnySendSyncPremiumBox>) {
+                    let message = FillWorkflowStageAsyncBufferMessage {
+                        module_name,
+                        workflow_name,
+                        stage_index,
+                        stage,
+                        stage_data: stage_buffer
+                    };
+
+                    if let Err(err) = self.sender.send(message) {
+                        unreachable!("Failed to send FillWorkflowStageAsyncBufferMessage: {}", err);
+                    };
+                }
+
+                fn as_any_ref(&self) -> &dyn std::any::Any {
+                    self
+                }
+            }
+
+            #[derive(Resource, Default)]
+            pub struct StageBuffer(
+                std::collections::VecDeque<(
+                    &'static str,
+                    &'static str,
+                    usize,
+                    crate::workflow::stage::StageAsync,
+                    Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+                )>,
+            );
+            impl StageBuffer {
+                pub fn fill(
+                    &mut self,
+                    module_name: &'static str,
+                    workflow_name: &'static str,
+                    stage_index: usize,
+                    stage: crate::workflow::stage::StageAsync,
+                    stage_data: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+                ) {
+                    self.0.push_back((module_name, workflow_name, stage_index, stage, stage_data));
+                }
+
+                pub fn empty(
+                    &mut self,
+                ) -> (
+                    &'static str,
+                    &'static str,
+                    usize,
+                    crate::workflow::stage::StageAsync,
+                    Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+                ) {
+                    self.0
+                        .pop_front()
+                        .unwrap_or_else(|| unreachable!("StageAsync buffer is not filled"))
+                }
+
+                pub fn is_empty(&self) -> bool {
+                    self.0.is_empty()
+                }
+            }
+        }
+    }
+}
+
+impl CoreTypes<EcsWhile> {
+    pub fn generate_stage_type_dependent_stuff(&self, module_name: &str, workflow_name: &str, stage_index: usize) -> TokenStream {
+        quote! {
+            static FILL_WORKFLOW_STAGE_BUFFER_SENDER: std::sync::OnceLock<FillWorkflowStageEcsWhileBufferMessageSender> = std::sync::OnceLock::new();
+            static FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE: std::sync::OnceLock<std::sync::Mutex<Option<FillWorkflowStageEcsWhileBufferMessageReceiver>>> = std::sync::OnceLock::new();
+
+            pub fn pre_initialize_fill_workflow_stage_buffer_channel() -> FillWorkflowStageEcsWhileBufferMessageSender {
+                let (tx, rx) = crossbeam_channel::unbounded();
+
+                let sender = FillWorkflowStageEcsWhileBufferMessageSender {
+                    module_name: #module_name,
+                    workflow_name: #workflow_name,
+                    stage_index: #stage_index,
+                    sender: tx,
+                };
+
+                let receiver = FillWorkflowStageEcsWhileBufferMessageReceiver(rx);
+
+                FILL_WORKFLOW_STAGE_BUFFER_SENDER
+                    .set(sender.clone())
+                    .expect("Sender already initialized!");
+
+                FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE.set(std::sync::Mutex::new(Some(receiver))).expect("Receiver cache already initialized");
+
+                sender
+            }
+
+            pub fn take_fill_workflow_stage_buffer_receiver() -> FillWorkflowStageEcsWhileBufferMessageReceiver {
+                let cache = FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE
+                    .get()
+                    .expect("Receiver cache not initialized");
+
+                let mut guard = cache.lock().unwrap();
+                guard
+                    .take()
+                    .expect("Receiver already taken or never initialized")
+            }
+
+            pub fn get_fill_workflow_stage_buffer_sender() -> FillWorkflowStageEcsWhileBufferMessageSender {
+                let sender = FILL_WORKFLOW_STAGE_BUFFER_SENDER
+                    .get()
+                    .expect("Sender not initialized!");
+
+                let sender: Box<dyn crate::DynFillWorkflowStageEcsWhileBufferMessageSender> = dyn_clone::clone_box(sender);
+
+                if let Some(sender) = sender.as_any_ref().downcast_ref::<FillWorkflowStageEcsWhileBufferMessageSender>() {
+                    sender.clone()
+                } else {
+                    unreachable!("Sender was not the expected concrete type!");
+                }
+            }
+
+            pub fn receive_ecs_while_stages_to_ecs_while_buffers_system(mut receiver: ResMut<FillWorkflowStageEcsWhileBufferMessageReceiver>, mut buffer: ResMut<StageBuffer>) {
+                loop {
+                    match receiver.0.try_recv() {
+                        Ok(message) => buffer.fill(message.module_name, message.workflow_name, message.stage_index, message.stage, message.stage_data),
+                        Err(err) => match err {
+                            crossbeam_channel::TryRecvError::Empty => {
+                                break;
+                            }
+                            crossbeam_channel::TryRecvError::Disconnected => {
+                                unreachable!("Receiver disconnected");
+                            }
+                        }
+                    }
+                }
+            }
+
+            pub struct FillWorkflowStageEcsWhileBufferMessage {
+                module_name: &'static str,
+                workflow_name: &'static str,
+                stage_index: usize,
+                stage: crate::workflow::stage::StageEcsWhile,
+                stage_data: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+            }
+            impl crate::FillWorkflowStageEcsWhileBufferMessageMarker for FillWorkflowStageEcsWhileBufferMessage {}
+
+            #[derive(Resource, Debug)]
+            pub struct FillWorkflowStageEcsWhileBufferMessageReceiver(pub crossbeam_channel::Receiver<FillWorkflowStageEcsWhileBufferMessage>);
+
+            #[derive(Clone, Debug)]
+            pub struct FillWorkflowStageEcsWhileBufferMessageSender {
+                module_name: &'static str,
+                workflow_name: &'static str,
+                stage_index: usize,
+                sender: crossbeam_channel::Sender<FillWorkflowStageEcsWhileBufferMessage>
+            }
+            impl crate::DynFillWorkflowStageEcsWhileBufferMessageSender for FillWorkflowStageEcsWhileBufferMessageSender {
+                fn module_name(&self) -> &'static str {
+                    self.module_name
+                }
+
+                fn workflow_name(&self) -> &'static str {
+                    self.workflow_name
+                }
+
+                fn stage_index(&self) -> usize {
+                    self.stage_index
+                }
+
+                fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageEcsWhile, stage_buffer: Option<crate::utils::premium_box::AnySendSyncPremiumBox>) {
+                    let message = FillWorkflowStageEcsWhileBufferMessage {
+                        module_name,
+                        workflow_name,
+                        stage_index,
+                        stage,
+                        stage_data: stage_buffer
+                    };
+
+                    if let Err(err) = self.sender.send(message) {
+                        unreachable!("Failed to send FillWorkflowStageEcsWhileBufferMessage: {}", err);
+                    };
+                }
+
+                fn as_any_ref(&self) -> &dyn std::any::Any {
+                    self
+                }
+            }
+
+            #[derive(Resource, Default)]
+            pub struct StageBuffer(
+                std::collections::VecDeque<(
+                    &'static str,
+                    &'static str,
+                    usize,
+                    crate::workflow::stage::StageEcsWhile,
+                    Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+                )>,
+            );
+            impl StageBuffer {
+                pub fn fill(
+                    &mut self,
+                    module_name: &'static str,
+                    workflow_name: &'static str,
+                    stage_index: usize,
+                    stage: crate::workflow::stage::StageEcsWhile,
+                    stage_data: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+                ) {
+                    self.0.push_back((module_name, workflow_name, stage_index, stage, stage_data));
+                }
+
+                pub fn empty(
+                    &mut self,
+                ) -> (
+                    &'static str,
+                    &'static str,
+                    usize,
+                    crate::workflow::stage::StageEcsWhile,
+                    Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+                ) {
+                    self.0
+                        .pop_front()
+                        .unwrap_or_else(|| unreachable!("StageEcsWhile buffer is not filled"))
+                }
+
+                pub fn is_empty(&self) -> bool {
+                    self.0.is_empty()
+                }
+            }
+        }
+    }
+}
+
+impl CoreTypes<RenderWhile> {
+    pub fn generate_stage_type_dependent_stuff(&self, module_name: &str, workflow_name: &str, stage_index: usize) -> TokenStream {
+        let module_name_pascal_case = module_name.to_pascal_case();
+        let workflow_name_pascal_case = workflow_name.to_pascal_case();
+
+        quote! {
+            static FILL_WORKFLOW_STAGE_BUFFER_SENDER: std::sync::OnceLock<FillWorkflowStageRenderWhileBufferMessageSender> = std::sync::OnceLock::new();
+            static FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE: std::sync::OnceLock<std::sync::Mutex<Option<FillWorkflowStageRenderWhileBufferMessageReceiver>>> = std::sync::OnceLock::new();
+
+            pub fn pre_initialize_fill_workflow_stage_buffer_channel() -> FillWorkflowStageRenderWhileBufferMessageSender {
+                let (tx, rx) = crossbeam_channel::unbounded();
+
+                let sender = FillWorkflowStageRenderWhileBufferMessageSender {
+                    module_name: #module_name,
+                    workflow_name: #workflow_name,
+                    stage_index: #stage_index,
+                    sender: tx,
+                };
+
+                let receiver = FillWorkflowStageRenderWhileBufferMessageReceiver(rx);
+
+                FILL_WORKFLOW_STAGE_BUFFER_SENDER
+                    .set(sender.clone())
+                    .expect("Sender already initialized!");
+
+                FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE.set(std::sync::Mutex::new(Some(receiver))).expect("Receiver cache already initialized");
+
+                sender
+            }
+
+            pub fn take_fill_workflow_stage_buffer_receiver() -> FillWorkflowStageRenderWhileBufferMessageReceiver {
+                let cache = FILL_WORKFLOW_STAGE_BUFFER_RECEIVER_CACHE
+                    .get()
+                    .expect("Receiver cache not initialized");
+
+                let mut guard = cache.lock().unwrap();
+                guard
+                    .take()
+                    .expect("Receiver already taken or never initialized")
+            }
+
+            pub fn get_fill_workflow_stage_buffer_sender() -> FillWorkflowStageRenderWhileBufferMessageSender {
+                let sender = FILL_WORKFLOW_STAGE_BUFFER_SENDER
+                    .get()
+                    .expect("Sender not initialized!");
+
+                let sender: Box<dyn crate::DynFillWorkflowStageRenderWhileBufferMessageSender> = dyn_clone::clone_box(sender);
+
+                if let Some(sender) = sender.as_any_ref().downcast_ref::<FillWorkflowStageRenderWhileBufferMessageSender>() {
+                    sender.clone()
+                } else {
+                    unreachable!("Sender was not the expected concrete type!");
+                }
+            }
+
+            pub fn split_render_while_workflow_state_extract_system(mut state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, mut state_extract_shard: ResMut<RenderWhileWorkflowStateExtractShard>) {
+                if let Some((module_name, workflow_name, stage_type, stage_initialized, stage_completed)) = state_extract.remove_entry(#module_name_pascal_case, #workflow_name_pascal_case) {
+                    *state_extract_shard = RenderWhileWorkflowStateExtractShard::Some {
+                        module_name,
+                        workflow_name,
+                        stage_type,
+                        stage_initialized,
+                        stage_completed,
+                    };
+                } else {
+                    *state_extract_shard = RenderWhileWorkflowStateExtractShard::None;
+                }
+            }
+
+            pub fn fuse_render_while_workflow_state_extract_shards_system(mut state_extract: ResMut<crate::workflow::resources::RenderWhileWorkflowStateExtract>, mut state_extract_shard: ResMut<RenderWhileWorkflowStateExtractShard>) {
+                if let RenderWhileWorkflowStateExtractShard::Some {
+                    module_name,
+                    workflow_name,
+                    stage_type,
+                    stage_initialized,
+                    stage_completed,
+                } = std::mem::take(state_extract_shard.as_mut()) {
+                    state_extract.insert_entry(module_name, workflow_name, stage_type, stage_initialized, stage_completed);
+                }
+            }
+
+            pub fn receive_render_while_stage_to_render_while_buffer_system(mut receiver: ResMut<FillWorkflowStageRenderWhileBufferMessageReceiver>, mut buffer: ResMut<StageBuffer>) {
+                loop {
+                    match receiver.0.try_recv() {
+                        Ok(message) => buffer.fill(message.module_name, message.workflow_name, message.stage_index, message.stage, message.stage_data),
+                        Err(err) => match err {
+                            crossbeam_channel::TryRecvError::Empty => {
+                                break;
+                            }
+                            crossbeam_channel::TryRecvError::Disconnected => {
+                                unreachable!("Receiver disconnected");
+                            }
+                        }
+                    }
+                }
+            }
+
+            pub struct FillWorkflowStageRenderWhileBufferMessage {
+                module_name: &'static str,
+                workflow_name: &'static str,
+                stage_index: usize,
+                stage: crate::workflow::stage::StageRenderWhile,
+                stage_data: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+            }
+            impl crate::FillWorkflowStageRenderWhileBufferMessageMarker for FillWorkflowStageRenderWhileBufferMessage {}
+
+            #[derive(Resource, Debug)]
+            pub struct FillWorkflowStageRenderWhileBufferMessageReceiver(pub crossbeam_channel::Receiver<FillWorkflowStageRenderWhileBufferMessage>);
+
+            #[derive(Clone, Debug)]
+            pub struct FillWorkflowStageRenderWhileBufferMessageSender {
+                module_name: &'static str,
+                workflow_name: &'static str,
+                stage_index: usize,
+                sender: crossbeam_channel::Sender<FillWorkflowStageRenderWhileBufferMessage>
+            }
+            impl crate::DynFillWorkflowStageRenderWhileBufferMessageSender for FillWorkflowStageRenderWhileBufferMessageSender {
+                fn module_name(&self) -> &'static str {
+                    self.module_name
+                }
+
+                fn workflow_name(&self) -> &'static str {
+                    self.workflow_name
+                }
+
+                fn stage_index(&self) -> usize {
+                    self.stage_index
+                }
+
+                fn send(&self, module_name: &'static str, workflow_name: &'static str, stage_index: usize, stage: crate::workflow::stage::StageRenderWhile, stage_buffer: Option<crate::utils::premium_box::AnySendSyncPremiumBox>) {
+                    let message = FillWorkflowStageRenderWhileBufferMessage {
+                        module_name,
+                        workflow_name,
+                        stage_index,
+                        stage,
+                        stage_data: stage_buffer
+                    };
+
+                    if let Err(err) = self.sender.send(message) {
+                        unreachable!("Failed to send FillWorkflowStageRenderWhileBufferMessage: {}", err);
+                    };
+                }
+
+                fn as_any_ref(&self) -> &dyn std::any::Any {
+                    self
+                }
+            }
+
+            #[derive(Resource, Default, Debug)]
+            pub enum RenderWhileWorkflowStateExtractShard {
+                #[default]
+                None,
+                Some {
+                    module_name: &'static str,
+                    workflow_name: &'static str,
+                    stage_type: crate::workflow::stage::StageType,
+                    stage_initialized: bool,
+                    stage_completed: bool,
+                }
+            }
+
+            #[derive(Resource, Default)]
+            pub struct StageBuffer(
+                std::collections::VecDeque<(
+                    &'static str,
+                    &'static str,
+                    usize,
+                    crate::workflow::stage::StageRenderWhile,
+                    Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+                )>,
+            );
+            impl StageBuffer {
+                pub fn fill(
+                    &mut self,
+                    module_name: &'static str,
+                    workflow_name: &'static str,
+                    stage_index: usize,
+                    stage: crate::workflow::stage::StageRenderWhile,
+                    stage_data: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+                ) {
+                    self.0.push_back((module_name, workflow_name, stage_index, stage, stage_data));
+                }
+
+                pub fn empty(
+                    &mut self,
+                ) -> (
+                    &'static str,
+                    &'static str,
+                    usize,
+                    crate::workflow::stage::StageRenderWhile,
+                    Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+                ) {
+                    self.0
+                        .pop_front()
+                        .unwrap_or_else(|| unreachable!("StageRenderWhile buffer is not filled"))
+                }
+
+                pub fn is_empty(&self) -> bool {
+                    self.0.is_empty()
+                }
+            }
+        }
+    }
+}
+
+impl<T> CoreTypes<T> {
+    pub fn generate(
+        &self,
+        workflow_path: TokenStream,
+        stage_signature: StageSignature,
+        workflow_signature: WorkflowSignature,
+        stage_name_snake_case: Ident,
+        other_stuff: TokenStream,
+    ) -> TokenStream {
+        let input = self.input.as_ref().map(|t| t.generate(stage_signature));
+        let state = self.state.as_ref().map(|t| t.generate());
+        let output = self.output.as_ref().map(|t| t.generate(stage_signature));
+        let error = self
+            .error
+            .as_ref()
+            .map(|t| t.generate(workflow_path, workflow_signature, stage_signature, stage_name_snake_case));
+        let main_access = self.main_access.as_ref().map(|t| t.generate());
+        let render_access = self.render_access.as_ref().map(|t| t.generate());
+
+        let imports = if self.error.is_some() {
+            Some(quote! {
+                use thiserror::Error;
+            })
+        } else {
+            None
+        };
+
+        quote! {
+            #imports
+
+            #input
+            #state
+            #output
+            #error
+            #main_access
+            #render_access
+
+            #other_stuff
+        }
+    }
+
+    pub fn has_input(&self) -> bool {
+        self.input.is_some()
+    }
+
+    pub fn has_output(&self) -> bool {
+        self.output.is_some()
+    }
+
+    pub fn has_error(&self) -> bool {
+        self.error.is_some()
+    }
+
+    pub fn get_signature(&self) -> StageSignature {
+        let has_input = self.has_input();
+        let has_output = self.has_output();
+        let has_error = self.has_error();
+
+        match (has_input, has_output, has_error) {
+            (false, false, false) => StageSignature::None,
+            (false, false, true) => StageSignature::E,
+            (false, true, false) => StageSignature::O,
+            (false, true, true) => StageSignature::OE,
+            (true, false, false) => StageSignature::I,
+            (true, false, true) => StageSignature::IE,
+            (true, true, false) => StageSignature::IO,
+            (true, true, true) => StageSignature::IOE,
+        }
+    }
+}

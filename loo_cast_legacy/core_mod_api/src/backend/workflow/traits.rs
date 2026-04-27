@@ -1,0 +1,1708 @@
+use crate::bevy::ecs::world::World;
+use crossbeam_channel::Sender;
+
+use super::types::Outcome;
+
+// TODO: MAYBE: THIS: Rename all to "Workflow"
+// --- Workflow Types ---
+pub trait WorkflowType {
+    const MODULE_NAME: &'static str;
+    const WORKFLOW_NAME: &'static str;
+}
+pub trait WorkflowTypeE {
+    type Error: WorkflowErrorE;
+
+    const MODULE_NAME: &'static str;
+    const WORKFLOW_NAME: &'static str;
+}
+pub trait WorkflowTypeO {
+    type Output: WorkflowOutputO;
+
+    const MODULE_NAME: &'static str;
+    const WORKFLOW_NAME: &'static str;
+}
+pub trait WorkflowTypeOE {
+    type Output: WorkflowOutputOE;
+    type Error: WorkflowErrorOE;
+
+    const MODULE_NAME: &'static str;
+    const WORKFLOW_NAME: &'static str;
+}
+pub trait WorkflowTypeI {
+    type Input: WorkflowInput;
+
+    const MODULE_NAME: &'static str;
+    const WORKFLOW_NAME: &'static str;
+}
+pub trait WorkflowTypeIE {
+    type Input: WorkflowInput;
+    type Error: WorkflowErrorIE;
+
+    const MODULE_NAME: &'static str;
+    const WORKFLOW_NAME: &'static str;
+}
+pub trait WorkflowTypeIO {
+    type Input: WorkflowInput;
+    type Output: WorkflowOutputIO;
+
+    const MODULE_NAME: &'static str;
+    const WORKFLOW_NAME: &'static str;
+}
+pub trait WorkflowTypeIOE {
+    type Input: WorkflowInput;
+    type Output: WorkflowOutputIOE;
+    type Error: WorkflowErrorIOE;
+
+    const MODULE_NAME: &'static str;
+    const WORKFLOW_NAME: &'static str;
+}
+
+// --- Primitive Workflow-Data Types ---
+pub trait WorkflowInput: 'static + Send + Sync {}
+impl<T: 'static + Send + Sync> WorkflowInput for T {}
+pub trait WorkflowInputI: WorkflowInput {}
+pub trait WorkflowInputIE: WorkflowInput {}
+pub trait WorkflowInputIO: WorkflowInput {}
+pub trait WorkflowInputIOE: WorkflowInput {}
+
+pub trait WorkflowOutputO: 'static + Send + Sync {
+    fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
+}
+pub trait WorkflowOutputOE: 'static + Send + Sync {
+    fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
+}
+pub trait WorkflowOutputIO: 'static + Send + Sync {
+    fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
+}
+pub trait WorkflowOutputIOE: 'static + Send + Sync {
+    fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
+}
+
+pub trait WorkflowErrorEVariant<WE: WorkflowErrorE> {
+    fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
+    fn into_workflow_error(self) -> WE;
+}
+pub trait WorkflowErrorIEVariant<WE: WorkflowErrorIE> {
+    fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
+    fn into_workflow_error(self) -> WE;
+}
+pub trait WorkflowErrorOEVariant<WE: WorkflowErrorOE> {
+    fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
+    fn into_workflow_error(self) -> WE;
+}
+pub trait WorkflowErrorIOEVariant<WE: WorkflowErrorIOE> {
+    fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
+    fn into_workflow_error(self) -> WE;
+}
+
+pub trait WorkflowErrorE: 'static + Send + Sync {
+    fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
+}
+pub trait WorkflowErrorIE: 'static + Send + Sync {
+    fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
+}
+pub trait WorkflowErrorOE: 'static + Send + Sync {
+    fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
+}
+pub trait WorkflowErrorIOE: 'static + Send + Sync {
+    fn from_boxed(boxed: crate::utils::premium_box::AnySendSyncPremiumBox) -> Self;
+}
+
+// --- Complex Workflow-Data Types ---
+pub trait WorkflowResultE: 'static + Send + Sync {
+    type Error: WorkflowErrorE;
+
+    fn from_response(response: super::response::TypedWorkflowResponseE) -> Result<(), Self::Error> {
+        match response.result {
+            Ok(_) => Ok(()),
+            Err(boxed) => Err(Self::Error::from_boxed(boxed)),
+        }
+    }
+}
+impl<Error: WorkflowErrorE> WorkflowResultE for Result<(), Error> {
+    type Error = Error;
+}
+
+pub trait WorkflowResultOE: 'static + Send + Sync {
+    type Output: WorkflowOutputOE;
+    type Error: WorkflowErrorOE;
+
+    fn from_response(response: super::response::TypedWorkflowResponseOE) -> Result<Self::Output, Self::Error> {
+        match response.result {
+            Ok(boxed) => Ok(Self::Output::from_boxed(boxed)),
+            Err(boxed) => Err(Self::Error::from_boxed(boxed)),
+        }
+    }
+}
+impl<Output: WorkflowOutputOE, Error: WorkflowErrorOE> WorkflowResultOE for Result<Output, Error> {
+    type Output = Output;
+    type Error = Error;
+}
+
+pub trait WorkflowResultIE: 'static + Send + Sync {
+    type Error: WorkflowErrorIE;
+
+    fn from_response(response: super::response::TypedWorkflowResponseE) -> Result<(), Self::Error> {
+        match response.result {
+            Ok(_) => Ok(()),
+            Err(boxed) => Err(Self::Error::from_boxed(boxed)),
+        }
+    }
+}
+impl<Error: WorkflowErrorIE> WorkflowResultIE for Result<(), Error> {
+    type Error = Error;
+}
+
+pub trait WorkflowResultIOE: 'static + Send + Sync {
+    type Output: WorkflowOutputIOE;
+    type Error: WorkflowErrorIOE;
+
+    fn from_response(response: super::response::TypedWorkflowResponseOE) -> Result<Self::Output, Self::Error> {
+        match response.result {
+            Ok(boxed) => Ok(Self::Output::from_boxed(boxed)),
+            Err(boxed) => Err(Self::Error::from_boxed(boxed)),
+        }
+    }
+}
+impl<Output: WorkflowOutputIOE, Error: WorkflowErrorIOE> WorkflowResultIOE for Result<Output, Error> {
+    type Output = Output;
+    type Error = Error;
+}
+
+// TODO: MAYBE: THAT: Rename all to "WorkflowStage*Type"
+// --- Ecs Workflow Stages ---
+pub trait WorkflowStageEcs {
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn run_ecs(&mut self, world: &mut World);
+    fn handle_ecs_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageEcsE {
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn run_ecs(&mut self, world: &mut World) -> Result<(), Self::Error>;
+    fn handle_ecs_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageEcsO {
+    type Output: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn run_ecs(&mut self, world: &mut World) -> Self::Output;
+    fn handle_ecs_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageEcsOE {
+    type Output: 'static + Send + Sync;
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn run_ecs(&mut self, world: &mut World) -> Result<Self::Output, Self::Error>;
+    fn handle_ecs_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageEcsI {
+    type Input: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn run_ecs(&mut self, input: Self::Input, world: &mut World);
+    fn handle_ecs_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageEcsIE {
+    type Input: 'static + Send + Sync;
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn run_ecs(&mut self, input: Self::Input, world: &mut World) -> Result<(), Self::Error>;
+    fn handle_ecs_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageEcsIO {
+    type Input: 'static + Send + Sync;
+    type Output: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn run_ecs(&mut self, input: Self::Input, world: &mut World) -> Self::Output;
+    fn handle_ecs_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageEcsIOE {
+    type Input: 'static + Send + Sync;
+    type Output: 'static + Send + Sync;
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn run_ecs(&mut self, input: Self::Input, world: &mut World) -> Result<Self::Output, Self::Error>;
+    fn handle_ecs_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcs,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+
+// --- Render Workflow Stages ---
+pub trait WorkflowStageRender {
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn run_render(&mut self, world: &mut World);
+    fn handle_render_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageRenderE {
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn run_render(&mut self, world: &mut World) -> Result<(), Self::Error>;
+    fn handle_render_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageRenderO {
+    type Output: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn run_render(&mut self, world: &mut World) -> Self::Output;
+    fn handle_render_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageRenderOE {
+    type Output: 'static + Send + Sync;
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn run_render(&mut self, world: &mut World) -> Result<Self::Output, Self::Error>;
+    fn handle_render_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageRenderI {
+    type Input: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn run_render(&mut self, input: Self::Input, world: &mut World);
+    fn handle_render_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageRenderIE {
+    type Input: 'static + Send + Sync;
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn run_render(&mut self, input: Self::Input, world: &mut World) -> Result<(), Self::Error>;
+    fn handle_render_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageRenderIO {
+    type Input: 'static + Send + Sync;
+    type Output: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn run_render(&mut self, input: Self::Input, world: &mut World) -> Self::Output;
+    fn handle_render_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageRenderIOE {
+    type Input: 'static + Send + Sync;
+    type Output: 'static + Send + Sync;
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn run_render(&mut self, input: Self::Input, world: &mut World) -> Result<Self::Output, Self::Error>;
+    fn handle_render_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRender,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+
+// --- Async Workflow Stages ---
+pub trait WorkflowStageAsync {
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn run_render(&mut self, world: &mut World);
+    fn handle_async_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageAsyncE {
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn run_render(&mut self, world: &mut World) -> Result<(), Self::Error>;
+    fn handle_async_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageAsyncO {
+    type Output: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn run_render(&mut self, world: &mut World) -> Self::Output;
+    fn handle_async_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageAsyncOE {
+    type Output: 'static + Send + Sync;
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn run_render(&mut self, world: &mut World) -> Result<Self::Output, Self::Error>;
+    fn handle_async_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageAsyncI {
+    type Input: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn run_render(&mut self, input: Self::Input, world: &mut World);
+    fn handle_async_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageAsyncIE {
+    type Input: 'static + Send + Sync;
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn run_render(&mut self, input: Self::Input, world: &mut World) -> Result<(), Self::Error>;
+    fn handle_async_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageAsyncIO {
+    type Input: 'static + Send + Sync;
+    type Output: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn run_render(&mut self, input: Self::Input, world: &mut World) -> Self::Output;
+    fn handle_async_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageAsyncIOE {
+    type Input: 'static + Send + Sync;
+    type Output: 'static + Send + Sync;
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn run_render(&mut self, input: Self::Input, world: &mut World) -> Result<Self::Output, Self::Error>;
+    fn handle_async_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageAsync,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+
+// --- Ecs While Workflow Stages ---
+pub trait WorkflowStageEcsWhile {
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_ecs_while(&mut self, world: &mut World);
+    fn run_ecs_while(&mut self, world: &mut World) -> Outcome<(), ()>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageEcsWhileE {
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_ecs_while(&mut self, world: &mut World);
+    fn run_ecs_while(&mut self, world: &mut World) -> Result<Outcome<(), ()>, Self::Error>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageEcsWhileO {
+    type Output: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_ecs_while(&mut self, world: &mut World);
+    fn run_ecs_while(&mut self, world: &mut World) -> Outcome<(), Self::Output>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageEcsWhileOE {
+    type Output: 'static + Send + Sync;
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_ecs_while(&mut self, world: &mut World);
+    fn run_ecs_while(&mut self, world: &mut World) -> Result<Outcome<(), Self::Output>, Self::Error>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageEcsWhileS {
+    type State: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_ecs_while(&mut self, world: &mut World) -> Self::State;
+    fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, ()>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageEcsWhileSE {
+    type State: 'static + Send + Sync;
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_ecs_while(&mut self, world: &mut World) -> Result<Self::State, Self::Error>;
+    fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Result<Outcome<Self::State, ()>, Self::Error>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageEcsWhileSO {
+    type State: 'static + Send + Sync;
+    type Output: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_ecs_while(&mut self, world: &mut World) -> Self::State;
+    fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, Self::Output>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageEcsWhileSOE {
+    type State: 'static + Send + Sync;
+    type Output: 'static + Send + Sync;
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_ecs_while(&mut self, world: &mut World) -> Result<Self::State, Self::Error>;
+    fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Result<Outcome<Self::State, Self::Output>, Self::Error>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageEcsWhileI {
+    type Input: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_ecs_while(&mut self, input: Self::Input, world: &mut World);
+    fn run_ecs_while(&mut self, world: &mut World) -> Outcome<(), ()>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageEcsWhileIE {
+    type Input: 'static + Send + Sync;
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_ecs_while(&mut self, input: Self::Input, world: &mut World);
+    fn run_ecs_while(&mut self, world: &mut World) -> Result<Outcome<(), ()>, Self::Error>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageEcsWhileIO {
+    type Input: 'static + Send + Sync;
+    type Output: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_ecs_while(&mut self, input: Self::Input, world: &mut World);
+    fn run_ecs_while(&mut self, world: &mut World) -> Outcome<(), Self::Output>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageEcsWhileIOE {
+    type Input: 'static + Send + Sync;
+    type Output: 'static + Send + Sync;
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_ecs_while(&mut self, input: Self::Input, world: &mut World);
+    fn run_ecs_while(&mut self, world: &mut World) -> Result<Outcome<(), Self::Output>, Self::Error>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageEcsWhileIS {
+    type Input: 'static + Send + Sync;
+    type State: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_ecs_while(&mut self, input: Self::Input, world: &mut World) -> Self::State;
+    fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, ()>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageEcsWhileISE {
+    type Input: 'static + Send + Sync;
+    type State: 'static + Send + Sync;
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_ecs_while(&mut self, input: Self::Input, world: &mut World) -> Result<Self::State, Self::Error>;
+    fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Result<Outcome<Self::State, ()>, Self::Error>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageEcsWhileISO {
+    type Input: 'static + Send + Sync;
+    type State: 'static + Send + Sync;
+    type Output: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_ecs_while(&mut self, input: Self::Input, world: &mut World) -> Self::State;
+    fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, Self::Output>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageEcsWhileISOE {
+    type Input: 'static + Send + Sync;
+    type State: 'static + Send + Sync;
+    type Output: 'static + Send + Sync;
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_ecs_while(&mut self, input: Self::Input, world: &mut World) -> Result<Self::State, Self::Error>;
+    fn run_ecs_while(&mut self, state: Self::State, world: &mut World) -> Result<Outcome<Self::State, Self::Output>, Self::Error>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageEcsWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+
+// --- Render While Workflow Stages ---
+pub trait WorkflowStageRenderWhile {
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_render_while(&mut self, world: &mut World);
+    fn run_render_while(&mut self, world: &mut World) -> Outcome<(), ()>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageRenderWhileE {
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_render_while(&mut self, world: &mut World);
+    fn run_render_while(&mut self, world: &mut World) -> Result<Outcome<(), ()>, Self::Error>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageRenderWhileO {
+    type Output: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_render_while(&mut self, world: &mut World);
+    fn run_render_while(&mut self, world: &mut World) -> Outcome<(), Self::Output>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageRenderWhileOE {
+    type Output: 'static + Send + Sync;
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_render_while(&mut self, world: &mut World);
+    fn run_render_while(&mut self, world: &mut World) -> Result<Outcome<(), Self::Output>, Self::Error>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageRenderWhileS {
+    type State: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_render_while(&mut self, world: &mut World) -> Self::State;
+    fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, ()>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageRenderWhileSE {
+    type State: 'static + Send + Sync;
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_render_while(&mut self, world: &mut World) -> Result<Self::State, Self::Error>;
+    fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Result<Outcome<Self::State, ()>, Self::Error>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageRenderWhileSO {
+    type State: 'static + Send + Sync;
+    type Output: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_render_while(&mut self, world: &mut World) -> Self::State;
+    fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, Self::Output>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageRenderWhileSOE {
+    type State: 'static + Send + Sync;
+    type Output: 'static + Send + Sync;
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_render_while(&mut self, world: &mut World) -> Result<Self::State, Self::Error>;
+    fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Result<Outcome<Self::State, Self::Output>, Self::Error>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageRenderWhileI {
+    type Input: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_render_while(&mut self, input: Self::Input, world: &mut World);
+    fn run_render_while(&mut self, world: &mut World) -> Outcome<(), ()>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageRenderWhileIE {
+    type Input: 'static + Send + Sync;
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_render_while(&mut self, input: Self::Input, world: &mut World);
+    fn run_render_while(&mut self, world: &mut World) -> Result<Outcome<(), ()>, Self::Error>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageRenderWhileIO {
+    type Input: 'static + Send + Sync;
+    type Output: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_render_while(&mut self, input: Self::Input, world: &mut World);
+    fn run_render_while(&mut self, world: &mut World) -> Outcome<(), Self::Output>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageRenderWhileIOE {
+    type Input: 'static + Send + Sync;
+    type Output: 'static + Send + Sync;
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_render_while(&mut self, input: Self::Input, world: &mut World);
+    fn run_render_while(&mut self, world: &mut World) -> Result<Outcome<(), Self::Output>, Self::Error>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageRenderWhileIS {
+    type Input: 'static + Send + Sync;
+    type State: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_render_while(&mut self, input: Self::Input, world: &mut World) -> Self::State;
+    fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, ()>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageRenderWhileISE {
+    type Input: 'static + Send + Sync;
+    type State: 'static + Send + Sync;
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_render_while(&mut self, input: Self::Input, world: &mut World) -> Result<Self::State, Self::Error>;
+    fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Result<Outcome<Self::State, ()>, Self::Error>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageRenderWhileISO {
+    type Input: 'static + Send + Sync;
+    type State: 'static + Send + Sync;
+    type Output: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_render_while(&mut self, input: Self::Input, world: &mut World) -> Self::State;
+    fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Outcome<Self::State, Self::Output>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}
+pub trait WorkflowStageRenderWhileISOE {
+    type Input: 'static + Send + Sync;
+    type State: 'static + Send + Sync;
+    type Output: 'static + Send + Sync;
+    type Error: 'static + Send + Sync;
+
+    fn module_name(&self) -> &'static str;
+    fn name(&self) -> &'static str;
+    fn index(&self) -> usize;
+    fn setup_render_while(&mut self, input: Self::Input, world: &mut World) -> Result<Self::State, Self::Error>;
+    fn run_render_while(&mut self, state: Self::State, world: &mut World) -> Result<Outcome<Self::State, Self::Output>, Self::Error>;
+    fn handle_ecs_while_run_response(
+        &mut self,
+        stage_response: Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        completion_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+        failure_sender: Sender<(
+            &str,
+            &str,
+            usize,
+            super::stage::StageRenderWhile,
+            Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+        )>,
+    );
+}

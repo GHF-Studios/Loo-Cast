@@ -1,0 +1,2825 @@
+{
+  "schema_version": "1.1.0",
+  "generated_on": "2026-04-16",
+  "scope": "whole-project-technical-active-intent",
+  "record_count": 90,
+  "notes": "Active intent map. Archive/legacy signals moved to records_archive_signals.json. USF observations default to low confidence until owner-confirmed.",
+  "records": [
+    {
+      "id": "R-0001",
+      "title": "Workspace Crate Role Split",
+      "category": "workspace",
+      "tags": [
+        "cargo",
+        "structure"
+      ],
+      "summary": "Repository is split into focused crates for engine, APIs, assets, mods, macros, and utils.",
+      "description": "Crate responsibilities are documented and reflected in workspace layout.",
+      "current_implementation_observation": "Observed in docs and root workspace files.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "doc",
+          "ref": "docs/Crates.md:3"
+        },
+        {
+          "kind": "code",
+          "ref": "Cargo.toml:1"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0002",
+      "title": "Engine Entrypoint Composes Runtime",
+      "category": "workspace",
+      "tags": [
+        "entrypoint",
+        "bevy"
+      ],
+      "summary": "`core_engine` configures tracing/panic hooks, third-party Bevy plugins, `CoreApiPluginGroup`, then runs app.",
+      "description": "Main binary is orchestration entrypoint and invokes core init function.",
+      "current_implementation_observation": "Observed in `core_engine/src/main.rs`.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_engine/src/main.rs:37"
+        },
+        {
+          "kind": "code",
+          "ref": "core_engine/src/main.rs:129"
+        },
+        {
+          "kind": "code",
+          "ref": "core_engine/src/main.rs:148"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0003",
+      "title": "CoreApiPluginGroup Is Primary Internal Composition Surface",
+      "category": "workspace",
+      "tags": [
+        "plugins",
+        "composition"
+      ],
+      "summary": "`CoreApiPluginGroup` registers workflow/core/config/debug/input/player/rhai/render/time/usf and related modules.",
+      "description": "This is the principal module composition boundary for the runtime.",
+      "current_implementation_observation": "Observed in `core_mod_api/src/lib.rs` plugin group build.",
+      "owner_direction": "Keep as infrastructure baseline; semantics above it are redesignable.",
+      "status": "observed",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/lib.rs:148"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/lib.rs:152"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/lib.rs:165"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0004",
+      "title": "core_mod_api Is Code-Only Internal Platform",
+      "category": "workspace",
+      "tags": [
+        "api",
+        "assets-boundary"
+      ],
+      "summary": "`core_mod_api` declares itself code-only and internal-first.",
+      "description": "Assets are expected in companion asset crates, not in `core_mod_api`.",
+      "current_implementation_observation": "Observed in crate-level docs.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/lib.rs:11"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/lib.rs:34"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0005",
+      "title": "Build Pipeline Packages Profile Outputs",
+      "category": "workspace",
+      "tags": [
+        "build",
+        "packaging"
+      ],
+      "summary": "Build scripts produce `build/<profile>` with executable, mod dylibs, and copied assets.",
+      "description": "Profiles supported: `dev`, `fastdev`, `release`.",
+      "current_implementation_observation": "Observed in shell scripts and build docs.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "build.sh:31"
+        },
+        {
+          "kind": "code",
+          "ref": "build.sh:57"
+        },
+        {
+          "kind": "doc",
+          "ref": "docs/Building.md:24"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0006",
+      "title": "Build Uses Nightly And Separate Mod Build With init_api",
+      "category": "workspace",
+      "tags": [
+        "build",
+        "nightly",
+        "mods"
+      ],
+      "summary": "Main workspace build excludes mod crates, then mods are built separately with `--features init_api`.",
+      "description": "This enforces explicit init symbol strategy for mod artifacts.",
+      "current_implementation_observation": "Observed in build script and docs.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "build.sh:58"
+        },
+        {
+          "kind": "code",
+          "ref": "build.sh:63"
+        },
+        {
+          "kind": "doc",
+          "ref": "docs/Building.md:14"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0007",
+      "title": "Run Script Configures Dynamic Library Resolution For Dev",
+      "category": "workspace",
+      "tags": [
+        "run",
+        "ld_library_path"
+      ],
+      "summary": "Dev/fastdev runs prepend target deps and Rust target lib dir to `LD_LIBRARY_PATH`.",
+      "description": "Runtime launch path is `build/<profile>/core_engine`.",
+      "current_implementation_observation": "Observed in run script.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "run.sh:21"
+        },
+        {
+          "kind": "code",
+          "ref": "run.sh:29"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0008",
+      "title": "Docs Tree Separates Canonical vs Temp vs Legacy",
+      "category": "workspace",
+      "tags": [
+        "docs",
+        "organization"
+      ],
+      "summary": "`docs/` is curated reference; `documents/temp_stuff` is non-canonical; `documents/legacy_stuff` is historical.",
+      "description": "Repository explicitly distinguishes reference tiers.",
+      "current_implementation_observation": "Observed in docs/readme files.",
+      "owner_direction": "USF redesign currently treats all repo USF guidance as observation-only until reapproved.",
+      "status": "observed",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "doc",
+          "ref": "docs/README.md:3"
+        },
+        {
+          "kind": "doc",
+          "ref": "documents/temp_stuff/README.md:3"
+        },
+        {
+          "kind": "doc",
+          "ref": "README.md:19"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0009",
+      "title": "Architecture Doc Describes Dynamic Mod Loading Convention",
+      "category": "workspace",
+      "tags": [
+        "mods",
+        "dynamic-loading"
+      ],
+      "summary": "Architecture docs describe cdylib mods and init symbol convention for dynamic loading.",
+      "description": "Current executable path still initializes core statically and leaves dynamic loading path commented.",
+      "current_implementation_observation": "Observed in docs and main code.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "doc",
+          "ref": "docs/Architecture.md:24"
+        },
+        {
+          "kind": "code",
+          "ref": "core_engine/src/main.rs:148"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0010",
+      "title": "base_mod/base_mod_api Layers Exist",
+      "category": "workspace",
+      "tags": [
+        "gameplay",
+        "mods"
+      ],
+      "summary": "Gameplay mod and API crates are present in workspace structure.",
+      "description": "Current conversation centers on USF redesign; gameplay scope remains secondary.",
+      "current_implementation_observation": "Observed in crate docs and source tree.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "doc",
+          "ref": "docs/Crates.md:11"
+        },
+        {
+          "kind": "code",
+          "ref": "base_mod/src/lib.rs:1"
+        },
+        {
+          "kind": "code",
+          "ref": "base_mod_api/src/lib.rs:1"
+        }
+      ],
+      "uncertainty": {
+        "future_depth": {
+          "level": "medium",
+          "reason": "Gameplay layer depth is likely to change during USF redesign."
+        }
+      }
+    },
+    {
+      "id": "R-0011",
+      "title": "Script Roots Are Separated By Role",
+      "category": "workspace",
+      "tags": [
+        "scripts",
+        "layout"
+      ],
+      "summary": "Core boot scripts, schedule entrypoint scripts, USF typed content, and TEMP ontology drafts are separated in `core_mod/assets/scripts`.",
+      "description": "Current executable USF scripts and TEMP exploratory scripts coexist.",
+      "current_implementation_observation": "Observed in repository paths.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod/assets/scripts/core/boot.rhai:1"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod/assets/scripts/usf/README.md:1"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod/assets/scripts/TEMP/usf/mods/loo_cast_base.rhai:1"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0012",
+      "title": "AppSet Defines Ordered Global Runtime Phases",
+      "category": "runtime_support",
+      "tags": [
+        "scheduling",
+        "phases"
+      ],
+      "summary": "Application-level orchestration chains Input->Intent->Simulation->BoundaryResolve->ChunkOrchestration->Camera->Presentation->Diagnostics.",
+      "description": "Subsystems are expected to attach into these sets instead of ad-hoc ordering.",
+      "current_implementation_observation": "Observed in core orchestration module.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/core/orchestration.rs:8"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/core/orchestration.rs:27"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0013",
+      "title": "Workflow Plugin Is Central Staged Orchestration Infrastructure",
+      "category": "workflow_support",
+      "tags": [
+        "workflow",
+        "channels"
+      ],
+      "summary": "Workflow plugin is a core utility-side infrastructure capability for staged, high-throughput orchestration.",
+      "description": "It initializes channels/resources, relays requests/responses, and bridges ECS/render stages. Workflows are intended for pipelineable/parallelizable heavy workloads in the engine-level utility layer.",
+      "current_implementation_observation": "Observed in workflow plugin build.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/workflow/mod.rs:77"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/workflow/mod.rs:99"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/workflow/mod.rs:233"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0014",
+      "title": "Workflow Stage Taxonomy Is Explicit",
+      "category": "workflow_support",
+      "tags": [
+        "workflow",
+        "stages"
+      ],
+      "summary": "Stage families include `Ecs`, `Render`, `Async`, `EcsWhile`, and `RenderWhile`.",
+      "description": "Stage contracts are generated/used by workflow macros and runtime types.",
+      "current_implementation_observation": "Observed in workflow modules and style docs.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "doc",
+          "ref": "docs/STYLE_PATTERNS.md:38"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/workflow/mod.rs:1"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0015",
+      "title": "Workflow Timeout Default Is Panic-Fast",
+      "category": "workflow_support",
+      "tags": [
+        "timeout",
+        "fail-fast"
+      ],
+      "summary": "Timeout handling emits a signal then panics in default run paths.",
+      "description": "Abort/retry logic exists as control enums, but default path remains panic-fast.",
+      "current_implementation_observation": "Observed in workflow functions.",
+      "owner_direction": "Aligns with owner panic-fast preference.",
+      "status": "observed",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/workflow/functions.rs:213"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/workflow/functions.rs:279"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0016",
+      "title": "Chunk Load Gate Is Config-Gated Run Condition",
+      "category": "workflow_support",
+      "tags": [
+        "chunk",
+        "gate"
+      ],
+      "summary": "Chunk-load gate can lock chunk processing and is enabled/disabled by config key `workflow/chunk_load_gate_enabled`.",
+      "description": "Gate integrates with chunk orchestration run conditions.",
+      "current_implementation_observation": "Observed in run condition logic and config.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/chunk/run_conditions.rs:6"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod/assets/configs/config.toml:99"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0017",
+      "title": "Config Is Global Static Loaded From TOML",
+      "category": "config_support",
+      "tags": [
+        "config",
+        "static"
+      ],
+      "summary": "Global CONFIG static loads `core_mod/configs/config.toml` through asset-root resolution.",
+      "description": "Runtime code calls `CONFIG().get::<T>(...)` extensively.",
+      "current_implementation_observation": "Observed in config statics and struct loader.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/config/statics.rs:5"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/config/structs.rs:21"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0018",
+      "title": "Config Flattening Uses Slash-Key Paths",
+      "category": "config_support",
+      "tags": [
+        "config",
+        "flattening"
+      ],
+      "summary": "Nested TOML tables are flattened into slash-delimited key paths (e.g., `usf/active_modpack_id`).",
+      "description": "This flattening defines the common runtime config lookup model.",
+      "current_implementation_observation": "Observed in flatten implementation.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/config/structs.rs:81"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/config/structs.rs:85"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0019",
+      "title": "Config Supports Domain Tree Merge",
+      "category": "config_support",
+      "tags": [
+        "config",
+        "domains"
+      ],
+      "summary": "Config loader merges extra TOML files under a `domains/` subtree in deterministic path order.",
+      "description": "This provides extensible multi-file config composition.",
+      "current_implementation_observation": "Observed in config merge code and domain files.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/config/structs.rs:33"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/config/structs.rs:44"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod/assets/configs/domains/usf/chunk/realization.toml:1"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0020",
+      "title": "Config Getter Has Explicit Performance Design Concern",
+      "category": "config_support",
+      "tags": [
+        "config",
+        "performance"
+      ],
+      "summary": "Code notes a critical performance design flaw in dynamic typed config access and caching approach.",
+      "description": "Potential future static/inlined config strategy is noted as TODO.",
+      "current_implementation_observation": "Observed in config getter comments.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/config/structs.rs:109"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0021",
+      "title": "Active Modpack Default Is `debug`",
+      "category": "config_support",
+      "tags": [
+        "usf",
+        "modpack"
+      ],
+      "summary": "Default configured active USF modpack id is `debug` in root config.",
+      "description": "Bootstrap reads this key to resolve active modpack.",
+      "current_implementation_observation": "Observed in config and bootstrap constants.",
+      "owner_direction": "USF semantics around this remain redesignable.",
+      "status": "observed",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod/assets/configs/config.toml:23"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/rhai_binding/engine/bootstrap.rs:54"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0022",
+      "title": "USF Chunk/Zone Realization Defaults Are Configured In Domain File",
+      "category": "config_support",
+      "tags": [
+        "usf",
+        "realization"
+      ],
+      "summary": "Chunk realization defaults and zone realization window defaults are present in domain config files.",
+      "description": "Current defaults set `levels_above_active=0` and `levels_below_active=0`.",
+      "current_implementation_observation": "Observed in domain config file.",
+      "owner_direction": "Window semantics are likely to change with zone removal direction.",
+      "status": "observed",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod/assets/configs/domains/usf/chunk/realization.toml:1"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod/assets/configs/domains/usf/chunk/realization.toml:15"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0023",
+      "title": "Main Runtime Uses Panic Hook And Optional Tracing Subscriber",
+      "category": "runtime_support",
+      "tags": [
+        "panic",
+        "tracing"
+      ],
+      "summary": "Main sets custom panic hook and optional tracing subscriber based on config/env.",
+      "description": "Runtime observability and failure visibility are intentionally direct.",
+      "current_implementation_observation": "Observed in engine main.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_engine/src/main.rs:46"
+        },
+        {
+          "kind": "code",
+          "ref": "core_engine/src/main.rs:74"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0024",
+      "title": "Boot Script Is Schedule Registration Only",
+      "category": "rhai_support",
+      "tags": [
+        "boot",
+        "schedule"
+      ],
+      "summary": "`boot.rhai` only registers schedule entrypoints and does not directly register USF content.",
+      "description": "USF typed content registration is handled by dedicated bootstrap loader.",
+      "current_implementation_observation": "Observed in script and docs.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod/assets/scripts/core/boot.rhai:3"
+        },
+        {
+          "kind": "doc",
+          "ref": "docs/Scripting.md:9"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0025",
+      "title": "USF Schedule Entrypoints Are Explicitly Split By Domain",
+      "category": "rhai_support",
+      "tags": [
+        "schedule",
+        "usf-domains"
+      ],
+      "summary": "Schedule list includes `substrate_*`, `zone_*`, and `phenomenon_*` entrypoints.",
+      "description": "Domain naming drives stage routing.",
+      "current_implementation_observation": "Observed in boot script and bootstrap scheduler registration.",
+      "owner_direction": "Zone domain portions are likely temporary under clean-slate direction.",
+      "status": "observed",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod/assets/scripts/core/boot.rhai:9"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/rhai_binding/engine/bootstrap.rs:296"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0026",
+      "title": "Schedule Entrypoint Loader Uses Companion Ordering",
+      "category": "rhai_support",
+      "tags": [
+        "loader",
+        "ordering"
+      ],
+      "summary": "Companion files are loaded in deterministic suffix priority order before root entrypoint file.",
+      "description": "Priority sequence: `.lib`, `.entrypoint`, `.substrate`, `.zone`, `.phenomenon`, then other `.rhai`.",
+      "current_implementation_observation": "Observed in schedule entrypoint runtime.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/rhai_binding/engine/schedule_entrypoint.rs:31"
+        },
+        {
+          "kind": "doc",
+          "ref": "docs/Scripting.md:44"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0027",
+      "title": "Schedule Entrypoint Params Are Domain-Typed",
+      "category": "rhai_support",
+      "tags": [
+        "params",
+        "typed"
+      ],
+      "summary": "Entrypoint params are typed (`Global`, `Substrate`, `Zone`, `Phenomenon`) rather than generic map payloads.",
+      "description": "Typed params include domain metadata and runtime counters.",
+      "current_implementation_observation": "Observed in schedule entrypoint types and docs.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/rhai_binding/engine/schedule_entrypoint.rs:127"
+        },
+        {
+          "kind": "doc",
+          "ref": "docs/Scripting.md:21"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0028",
+      "title": "Schedule Params Include Bootstrap And Channel Telemetry",
+      "category": "rhai_support",
+      "tags": [
+        "telemetry",
+        "bootstrap"
+      ],
+      "summary": "Common params expose bootstrap script counts and chunk realization channel counters.",
+      "description": "Scripts can inspect runtime state for diagnostics/orchestration decisions.",
+      "current_implementation_observation": "Observed in param builder.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/rhai_binding/engine/schedule_entrypoint.rs:174"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/rhai_binding/engine/schedule_entrypoint.rs:196"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0029",
+      "title": "Typed USF Bootstrap Contract Defines Nine Script Types",
+      "category": "rhai_support",
+      "tags": [
+        "bootstrap",
+        "contracts"
+      ],
+      "summary": "Bootstrap defines typed contract list for `mod`, `modpack`, `metric`, `zone`, `metric_set`, `zlm`, `scale`, `phenomenon`, `phenomenon_model`.",
+      "description": "Each has explicit suffix, entrypoint, context type, and scope.",
+      "current_implementation_observation": "Observed in bootstrap contract table.",
+      "owner_direction": "Contract set is expected to evolve under redesign.",
+      "status": "observed",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/rhai_binding/engine/bootstrap.rs:155"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/rhai_binding/engine/bootstrap.rs:229"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0030",
+      "title": "USF Script Contracts Use Global And Package Scopes",
+      "category": "rhai_support",
+      "tags": [
+        "bootstrap",
+        "scope"
+      ],
+      "summary": "Script contracts separate global (`mod`, `modpack`) and package-scoped definitions for other USF types.",
+      "description": "Scope labels are enforced in bootstrap processing.",
+      "current_implementation_observation": "Observed in bootstrap scope enum/filters.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/rhai_binding/engine/bootstrap.rs:48"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/rhai_binding/engine/bootstrap.rs:239"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0031",
+      "title": "Rhai Bootstrap Is Fail-Fast On Contract Violations",
+      "category": "rhai_support",
+      "tags": [
+        "bootstrap",
+        "fail-fast"
+      ],
+      "summary": "Bootstrap and loader use panic-on-invalid contract/file/signature semantics.",
+      "description": "This aligns with overall fail-fast scripting philosophy in current implementation.",
+      "current_implementation_observation": "Observed across loader code and docs.",
+      "owner_direction": "Owner direction keeps panic-fast behavior.",
+      "status": "observed",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/rhai_binding/engine/schedule_entrypoint.rs:14"
+        },
+        {
+          "kind": "doc",
+          "ref": "docs/RhaiDialect.md:119"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0032",
+      "title": "Rhai Startup Test Harness Is Config-Gated",
+      "category": "rhai_support",
+      "tags": [
+        "testing",
+        "gate"
+      ],
+      "summary": "Startup tests execute only when `rhai_binding/testing_enabled` is true.",
+      "description": "Testing behavior is part of script/runtime integration policy.",
+      "current_implementation_observation": "Observed in docs and config.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "doc",
+          "ref": "docs/Scripting.md:33"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod/assets/configs/config.toml:69"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0033",
+      "title": "Alias Preprocessor Is Partially Implemented",
+      "category": "rhai_support",
+      "tags": [
+        "ergonomics",
+        "aliases"
+      ],
+      "summary": "`use ... as ...` alias preprocessing is active for boot/schedule scripts, with safety checks.",
+      "description": "Typed helper and display shorthand proposals remain incomplete.",
+      "current_implementation_observation": "Observed in ergonomics docs and scripting docs.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "doc",
+          "ref": "docs/RhaiScriptErgonomics.md:3"
+        },
+        {
+          "kind": "doc",
+          "ref": "docs/Scripting.md:80"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0034",
+      "title": "Generic-Like Dispatch Uses Signature Catalog + Resolver Policy",
+      "category": "rhai_support",
+      "tags": [
+        "generics",
+        "dispatch"
+      ],
+      "summary": "Rhai generic-like behavior is resolved through reflected metadata, compile-time signature catalogs, and runtime dispatch keys.",
+      "description": "Duplicate/invalid dispatch entries are policy errors.",
+      "current_implementation_observation": "Observed in generic binding policy docs.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "doc",
+          "ref": "docs/RhaiGenericBindingPolicy.md:8"
+        },
+        {
+          "kind": "doc",
+          "ref": "docs/RhaiGenericBindingPolicy.md:40"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0035",
+      "title": "AccessCell Provider Pattern Is Soundness Boundary",
+      "category": "rhai_support",
+      "tags": [
+        "access-cell",
+        "safety"
+      ],
+      "summary": "`AccessCell` + provider patterns define runtime borrow/lifecycle safety boundary; misuse intentionally panics.",
+      "description": "This model underpins bridge semantics.",
+      "current_implementation_observation": "Observed in RhaiDialect docs.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "doc",
+          "ref": "docs/RhaiDialect.md:27"
+        },
+        {
+          "kind": "doc",
+          "ref": "docs/RhaiDialect.md:31"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0036",
+      "title": "Bridge Architecture Splits Domains And Runtime Wrappers",
+      "category": "rhai_support",
+      "tags": [
+        "bridges",
+        "layout"
+      ],
+      "summary": "Bridge declarations live under `bridges/domains/*` and wrappers under `runtime/*`.",
+      "description": "Separation is explicit in scripting docs and dialect docs.",
+      "current_implementation_observation": "Observed in docs.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "doc",
+          "ref": "docs/Scripting.md:95"
+        },
+        {
+          "kind": "doc",
+          "ref": "docs/RhaiDialect.md:15"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0037",
+      "title": "Rhai Capability Coverage Is Broad But Incomplete",
+      "category": "rhai_support",
+      "tags": [
+        "coverage",
+        "roadmap"
+      ],
+      "summary": "Current bridge/runtime surface is substantial but not complete for full desired capability graph.",
+      "description": "Roadmap docs and temp notes both indicate expansion remains.",
+      "current_implementation_observation": "Observed in docs/temp docs.",
+      "owner_direction": "No direct contradiction.",
+      "status": "gap",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "doc",
+          "ref": "docs/RhaiBindingRoadmap.md:1"
+        },
+        {
+          "kind": "temp_doc",
+          "ref": "documents/temp_stuff/TMP_rhai_ultra_capability_roadmap.md:18"
+        }
+      ],
+      "uncertainty": {
+        "coverage_extent": {
+          "level": "medium",
+          "reason": "Coverage status is partially qualitative and still changing."
+        }
+      }
+    },
+    {
+      "id": "R-0038",
+      "title": "Startup Test Harness Has Structured Script Subtree",
+      "category": "rhai_support",
+      "tags": [
+        "testing",
+        "startup"
+      ],
+      "summary": "Startup tests/examples live under dedicated schedule companion subtree.",
+      "description": "Harness is intentionally separated from gameplay content scripts.",
+      "current_implementation_observation": "Observed in scripting docs.",
+      "owner_direction": "No direct contradiction.",
+      "status": "observed",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "doc",
+          "ref": "docs/Scripting.md:66"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0039",
+      "title": "USF Implementation Snapshot: Modular but Legacy/Zone-Centric",
+      "category": "usf_observation",
+      "tags": [
+        "usf",
+        "modules",
+        "legacy_snapshot"
+      ],
+      "summary": "Current USF codebase is treated as a legacy/insufficient implementation snapshot, not as target architecture authority.",
+      "description": "Observed module composition is still zone-centric and mainly useful as migration context.",
+      "current_implementation_observation": "Observed in USF plugin composition; considered low-authority evidence only.",
+      "owner_direction": "Semi-permanent directive: do not treat current USF implementation as authoritative during redesign.",
+      "status": "observed_non_authoritative",
+      "confidence": "low",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/mod.rs:48"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/mod.rs:73"
+        }
+      ],
+      "uncertainty": {
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction explicitly treats current USF codebase as non-authoritative legacy context for a clean-slate redesign."
+        }
+      }
+    },
+    {
+      "id": "R-0040",
+      "title": "USF Simulation Order Is Substrate -> Zone -> Phenomenon",
+      "category": "usf_observation",
+      "tags": [
+        "schedule",
+        "pipeline"
+      ],
+      "summary": "Current simulation set chain is substrate first, then zone, then phenomenon.",
+      "description": "Per-domain pre/runtime/post subsets are also chained.",
+      "current_implementation_observation": "Observed in USF schedule configuration.",
+      "owner_direction": "Keep as context-only observation; not target-architecture authority.",
+      "status": "observed_non_authoritative",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/schedule.rs:32"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/schedule.rs:35"
+        }
+      ],
+      "uncertainty": {
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0041",
+      "title": "USF Authority Contract Splits Canonical vs Runtime-State Domains",
+      "category": "usf_observation",
+      "tags": [
+        "authority",
+        "persistence"
+      ],
+      "summary": "Current implementation separates persistent world-truth domains from rebuildable runtime-state domains.",
+      "description": "This truth-vs-derived split is a potentially reusable architecture pattern, even if domain membership changes under redesign.",
+      "current_implementation_observation": "Observed in authority resource defaults.",
+      "owner_direction": "Keep as non-authoritative structural observation; exact domain membership is redesign-dependent.",
+      "status": "observed_non_authoritative",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/authority.rs:88"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/authority.rs:101"
+        }
+      ],
+      "uncertainty": {
+        "contract_elaboration": {
+          "level": "medium",
+          "reason": "Generalized scale-dependent USF state contract is accepted but still requires deeper formal elaboration."
+        },
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0042",
+      "title": "Runtime Concept Catalog And Registries Are Materialized At Bootstrap",
+      "category": "usf_observation",
+      "tags": [
+        "catalog",
+        "registries"
+      ],
+      "summary": "Current runtime materializes a central concept catalog plus queryable registries during bootstrap.",
+      "description": "Keep this as a pattern observation (central registry/query surface), not as a lock on concrete type names.",
+      "current_implementation_observation": "Observed in mod_packs resource initialization.",
+      "owner_direction": "Keep registry/query-view pattern as useful context; concrete structures remain redesignable.",
+      "status": "observed_non_authoritative",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/mod_packs/mod.rs:35"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/mod_packs/mod.rs:426"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/mod_packs/mod.rs:1368"
+        }
+      ],
+      "uncertainty": {
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0043",
+      "title": "Active Modpack Validation Is Strict And Panic-Oriented",
+      "category": "usf_observation",
+      "tags": [
+        "modpack",
+        "validation",
+        "fail-fast",
+        "error-policy"
+      ],
+      "summary": "Current validation paths are strict and should fail fast on unexpected or unwanted failures.",
+      "description": "Non-panic paths should exist only for explicitly intentional sentinel/control-flow errors that are meaningfully interpreted (for example reconciliation semantics).",
+      "current_implementation_observation": "Observed in modpack validation code.",
+      "owner_direction": "Panic immediately on unexpected/unwanted failures; use non-panic error handling only for explicit sentinel paths.",
+      "status": "observed_non_authoritative",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/mod_packs/mod.rs:294"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/mod_packs/mod.rs:352"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: unexpected/unwanted errors should panic; sentinel-path errors can be accepted"
+        }
+      ],
+      "uncertainty": {
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0044",
+      "title": "Scale-First Foundation Signal (Current Code Only Partially Reflects It)",
+      "category": "usf_observation",
+      "tags": [
+        "scale",
+        "foundation",
+        "71_scales",
+        "usf_math",
+        "scripting"
+      ],
+      "summary": "Core direction is scale-first: all core USF concepts should be fundamentally structured around the locked 71-scale model.",
+      "description": "Current code only shows a narrow slice of this via per-scale routing fields; target intent is broader (USF math/custom-stdlib foundation usable from Rust and exposed to scripting).",
+      "current_implementation_observation": "Observed in modpack types/resources.",
+      "owner_direction": "Everything should be scale-native in some form, with scale adapters only where performance requires local/native execution windows.",
+      "status": "observed_non_authoritative",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/mod_packs/mod.rs:15"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/mod_packs/mod.rs:553"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: everything should be fundamentally scale-based around locked 71 scales"
+        }
+      ],
+      "uncertainty": {
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0045",
+      "title": "Scale-Window Chunk Targeting Uses Active Radius Plus Configurable Ancestor Closure",
+      "category": "usf_observation",
+      "tags": [
+        "chunk",
+        "scale-window"
+      ],
+      "summary": "Target contract: chunk targeting is active-scale neighborhood plus an explicit, configurable ancestor-scale closure window.",
+      "description": "USF scale-window behavior is defined from scale semantics first, not current code shape. Active+above remains canonical, and ancestor-scale chunk load depth/count is a first-class configuration knob.",
+      "current_implementation_observation": "Current code roughly follows active+above parent closure, but ancestor-scale loading configurability is limited.",
+      "owner_direction": "Decouple this rule from implementation details while keeping active+above loading and tunable ancestor-scale closure as the intended pattern.",
+      "status": "divergent",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/chunk/systems.rs:168"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: decouple this from code; keep active+above pattern; improve configurability for ancestor-scale chunk loading"
+        }
+      ],
+      "uncertainty": {
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0046",
+      "title": "USF State Is Scale-Dependent Across Loaded Scales",
+      "category": "usf_observation",
+      "tags": [
+        "state",
+        "scale-window",
+        "metrics",
+        "phenomena"
+      ],
+      "summary": "Target USF contract: all USF state domains are scale-dependent and reconciled across the loaded scale window.",
+      "description": "This applies to Metrics, Phenomena, and additional USF-level domains as they emerge. Persistence/evolution semantics are scale-aware by design. Logic/state may run in optimized local numeric domains, but must be convertible into representations that preserve USF scale semantics.",
+      "current_implementation_observation": "Current docs/code only show partial hints (mainly phenomenon-side reconcile/interaction), and remain non-authoritative for final design.",
+      "owner_direction": "High-confidence direction: fundamental USF state/logic revolves around locked scale principles, with Bevy/ECS as execution substrate and room for future script-level USF mechanics.",
+      "status": "decision",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "doc",
+          "ref": "docs/USF_FLOW_GRAPH.md:108"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/phenomenon/systems.rs:1"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: keep as target contract with high confidence; state/persistence deeply scale-dependent; optimized local processing allowed via conversion; Bevy/ECS is substrate bedrock"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: this applies to any USF state, not only phenomena; includes metrics and potential future USF mechanics"
+        }
+      ],
+      "uncertainty": {
+        "contract_elaboration": {
+          "level": "medium",
+          "reason": "Generalized scale-dependent USF state contract is accepted but still requires deeper formal elaboration."
+        },
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0047",
+      "title": "Chunk Realization Is Intent-Driven Across Representation/Projection/Interaction Substrate Domains",
+      "category": "usf_observation",
+      "tags": [
+        "realization",
+        "capabilities",
+        "capability-channels",
+        "pipeline",
+        "representation",
+        "projection",
+        "interaction"
+      ],
+      "summary": "Target USF contract: chunk realization is intent-driven, with scripts orchestrating capability-channel pipelines across representation/projection/interaction substrate domains.",
+      "description": "USF should define intent and contract boundaries, while engine-level capabilities execute concrete work (for example physics, audio, particles, pathfinding, IO, and related systems). Capability channels are intended as composable routing/pipelining surfaces between script intent and substrate execution.",
+      "current_implementation_observation": "Current docs/runtime show an early channel-family implementation direction, but it is only a partial and non-authoritative signal.",
+      "owner_direction": "Direction is strongly aligned, but current implementation depth is far behind target scope.",
+      "status": "decision",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "doc",
+          "ref": "docs/USF.md:52"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/chunk/realization/mod.rs:1"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: use representation/projection/interaction substrate framing; channel details are implementation-side and only partially aligned"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: capability-channel wording and channel-based pipelining semantics are desirable"
+        }
+      ],
+      "uncertainty": {
+        "contract_elaboration": {
+          "level": "medium",
+          "reason": "High-level direction is agreed but execution contracts and domain boundaries still need formal refinement."
+        },
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0048",
+      "title": "Bootstrap Descent Controller Defines Genesis/Evolve World Initialization Contract",
+      "category": "usf_observation",
+      "tags": [
+        "worldgen",
+        "bootstrap-descent-controller",
+        "genesis",
+        "evolve"
+      ],
+      "summary": "Target USF contract: a bootstrap descent controller governs initial Genesis sweep and subsequent Evolve catch-up across scales to the requested timeline.",
+      "description": "Operational/controller realization of the higher-level Genesis/Evolve split principle (R-0061): Genesis creates irreversible base-state structure per seed/content, then Evolve advances state with script-defined dynamics under shared macro laws. The controller owns scale progression/stabilization gates and timeline catch-up policy.",
+      "current_implementation_observation": "Current worldgen module shows an early bootstrap controller shape with stabilization/input-lock plumbing, but it is still zone-era and non-authoritative.",
+      "owner_direction": "Keep bootstrap descent controller concept; formalize it as a zone-free Genesis/Evolve contract.",
+      "status": "decision",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/worldgen/mod.rs:55"
+        },
+        {
+          "kind": "doc",
+          "ref": "docs/USF_FLOW_GRAPH.md:176"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: keep bootstrap descent controller wording; rewrite as target genesis/evolve contract"
+        }
+      ],
+      "uncertainty": {
+        "contract_elaboration": {
+          "level": "medium",
+          "reason": "Genesis sweep strategy, stabilization semantics, and timeline catch-up controls still need formal specification."
+        },
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0049",
+      "title": "Temporal Context Is A Zone-Free Scale-Native Contract",
+      "category": "usf_observation",
+      "tags": [
+        "time-scale",
+        "scale-time"
+      ],
+      "summary": "Target USF contract: temporal context is defined directly by scale semantics, not by zones.",
+      "description": "Time progression and scale-relative factors must be computed from zone-free scale primitives and integrated with active+above simulation policy.",
+      "current_implementation_observation": "Current implementation hosts temporal context in zone resources with power-of-ten coarser-scale factors.",
+      "owner_direction": "Replace zone-coupled temporal context with a scale-native model.",
+      "status": "decision",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/zone/resources.rs:249"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/zone/resources.rs:294"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: zones removed; temporal model should be rewritten as zone-free scale-time contract"
+        }
+      ],
+      "uncertainty": {
+        "contract_elaboration": {
+          "level": "medium",
+          "reason": "Exact scale-time primitives and conversion rules remain underdefined."
+        },
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0050",
+      "title": "Scale Spine: 71 Canonical Scales Are Core USF Structure",
+      "category": "usf_math_observation",
+      "tags": [
+        "scale",
+        "numeric",
+        "spine",
+        "locked-scale-count",
+        "scale-assets",
+        "singleton"
+      ],
+      "summary": "Target USF contract: the system is organized around a fixed 71-scale spine.",
+      "description": "Scale is a foundational axis across USF state, logic, and data representation. The locked 71-scale spine is a core concept-level backbone, and scales are treated as strict singleton content assets: exactly one per scale index, with no duplicates and no missing entries.",
+      "current_implementation_observation": "Current scale module encodes a 71-level structure with exponent/index mapping helpers.",
+      "owner_direction": "Treat canonical scales as strict singleton assets and core USF architecture (exactly 71, one per index).",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/scale.rs:639"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/scale.rs:655"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: 71 scales are the spine/core of the USF concept"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: scales are assets/content; exactly 71 with one per scale, no duplicates, nothing missing"
+        }
+      ],
+      "uncertainty": {
+        "contract_elaboration": {
+          "level": "medium",
+          "reason": "Scale spine is locked, but formal semantics for all per-scale contracts remain underdefined."
+        },
+        "modding_semantics": {
+          "level": "medium",
+          "reason": "Interaction between strict scale-singleton rules and broader mod conflict/dependency semantics remains under-specified."
+        },
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0051",
+      "title": "Cross-Scale Scalar Arithmetic Is An Explicit Math-Boundary Primitive (Partial Contract)",
+      "category": "usf_math_observation",
+      "tags": [
+        "scalar",
+        "cross-scale",
+        "global-math",
+        "api-conversion"
+      ],
+      "summary": "Target math direction (partial): USF global scalar math is explicit and interoperable with local numeric regimes through deliberate conversions.",
+      "description": "USFScalar-like constructs represent only a small fraction of the intended USF math contract. Most within-scale execution should still prefer cheaper local numerics, but global USF math may also be used inside local logic where needed. The key contract is explicit, meaningful conversion in both directions between global USF math types and local engine numeric types.",
+      "current_implementation_observation": "Current scalar module provides a concrete but non-authoritative example of digit-stack cross-scale arithmetic and window conversion.",
+      "owner_direction": "Use this as a partial anchor for broader USF global-math contracts and conversion-focused API design, not as a strict boundary-only rule or the full target math model.",
+      "status": "decision",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/math/scalar.rs:16"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/math/scalar.rs:64"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: rewrite as a small fraction of intended target math-boundary/general math contracts"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: global USF math is not boundary-only; local logic may still need it; conversions to/from local numeric types must be explicit and meaningful"
+        }
+      ],
+      "uncertainty": {
+        "contract_scope": {
+          "level": "high",
+          "reason": "This records only a partial boundary primitive; the larger USF math contract remains underdefined."
+        },
+        "usage_policy": {
+          "level": "medium",
+          "reason": "Preference toward local numerics is clear, but exact policy for when global math is required inside local logic is not yet formalized."
+        },
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0052",
+      "title": "Balanced Digit Normalization Contract Uses Local Range -5..4",
+      "category": "usf_math_observation",
+      "tags": [
+        "digits",
+        "normalization",
+        "contract"
+      ],
+      "summary": "Contract-level rule: scalar/unit digit normalization uses a balanced local range (-5..4) with carry propagation.",
+      "description": "This is a concrete math behavior contract (close to code-level documentation) used to keep digit state valid and composable across operations.",
+      "current_implementation_observation": "Observed in scalar and unit math.",
+      "owner_direction": "Treat as a specific math contract fragment that can anchor future API/docs formalization.",
+      "status": "decision",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/math/scalar.rs:255"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/pos/unit/types.rs:275"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: R-0052 is a contract, more like code documentation"
+        }
+      ],
+      "uncertainty": {
+        "contract_portability": {
+          "level": "medium",
+          "reason": "Rule is useful as contract/documentation anchor, but global applicability across all future math types is not yet confirmed."
+        },
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0053",
+      "title": "UnitVec Local-Window Plus Grid-Carry Behavior Is A Contract Fragment",
+      "category": "usf_math_observation",
+      "tags": [
+        "position",
+        "window",
+        "carry",
+        "contract"
+      ],
+      "summary": "Contract-level rule: UnitVec keeps local offsets in a bounded native window and carries overflow into grid lineage.",
+      "description": "This functions as code-level math/position contract documentation: local operations stay in a native window while add/sub/zoom semantics rely on explicit wrap-plus-carry behavior.",
+      "current_implementation_observation": "Observed in unit position types.",
+      "owner_direction": "Treat as a useful contract fragment aligned with local-first numerics and explicit global carry semantics.",
+      "status": "decision",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/pos/unit/types.rs:99"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/pos/unit/types.rs:153"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: yes, absolutely (promote R-0053 to contract fragment)"
+        }
+      ],
+      "uncertainty": {
+        "contract_portability": {
+          "level": "medium",
+          "reason": "Rule is accepted as contract fragment, but parameter values and applicability across future position primitives may evolve."
+        },
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0054",
+      "title": "UsfFloat Folding Is An Essential USF Math Primitive",
+      "category": "usf_math_observation",
+      "tags": [
+        "usffloat",
+        "folding",
+        "global-local-interop",
+        "contract"
+      ],
+      "summary": "Contract-level direction: folded value representation (local window + canonical cycle count) is an essential USF math primitive.",
+      "description": "This primitive is core to USF math and is also a primary mechanism for global/local interoperation. It enables cheap local updates while preserving explicit semantics for larger-scale crossings in both multiplicative and linear domains.",
+      "current_implementation_observation": "Observed in transform types.",
+      "owner_direction": "Treat folding as essential USF math primitive and major interop mechanism; retain uncertainty around concrete viability and final formulation.",
+      "status": "decision",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/transform/types.rs:49"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/transform/types.rs:74"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: folding is an essential part of USF math and primarily used for global/local interoperation"
+        }
+      ],
+      "uncertainty": {
+        "viability": {
+          "level": "high",
+          "reason": "Owner explicitly notes uncertainty around concrete implementation approach and practical viability."
+        },
+        "contract_elaboration": {
+          "level": "medium",
+          "reason": "Primitive intent is clear, but exact folding semantics and broader domain integration remain underdefined."
+        },
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0055",
+      "title": "UsfScale 10x Multiplicative Pivot Is Directionally Preferred",
+      "category": "usf_math_observation",
+      "tags": [
+        "scale",
+        "pivot",
+        "multiplicative",
+        "contract"
+      ],
+      "summary": "Contract direction: scale folding should prefer a clean multiplicative 10x pivot with local-window composition.",
+      "description": "The 10x step is treated as directionally right because it composes cleanly across scale transitions, even when perfect fine subdivision is not always available.",
+      "current_implementation_observation": "Observed in transform types.",
+      "owner_direction": "Adopt 10x multiplicative pivot as directional contract guidance, not as fully finalized semantics.",
+      "status": "decision",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/transform/types.rs:176"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/transform/types.rs:183"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: clean 10x jump works best and composes nicely; directionally right"
+        }
+      ],
+      "uncertainty": {
+        "directional_fit": {
+          "level": "medium",
+          "reason": "Owner confirms 10x as preferred direction, but exact downstream semantics and subdivisions are not fully finalized."
+        },
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0056",
+      "title": "Linear Wrap/Fold Transform Policy Is A Core But Parameter-Uncertain Contract",
+      "category": "usf_math_observation",
+      "tags": [
+        "translation",
+        "rotation",
+        "wrap",
+        "folding",
+        "contract"
+      ],
+      "summary": "Contract-level direction: translation/rotation-style domains use local-range wrap plus fold-delta tracking to preserve global continuity.",
+      "description": "This is a core transform math pattern: keep local values bounded for efficient local processing, and capture range crossings as explicit fold/wrap deltas for larger-scale continuity.",
+      "current_implementation_observation": "Observed in transform types.",
+      "owner_direction": "Treat this as core direction while keeping concrete wrap constants and policy mechanics open.",
+      "status": "decision",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/transform/types.rs:131"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/transform/types.rs:215"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: this is a core thing, but uncertain"
+        }
+      ],
+      "uncertainty": {
+        "policy_parameters": {
+          "level": "high",
+          "reason": "Core wrap/fold direction is accepted, but concrete constants, commit-buffer behavior, and per-domain policy details are not finalized."
+        },
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0057",
+      "title": "Executable USF Script Tree Is A Low-Authority Runtime Snapshot",
+      "category": "content_observation",
+      "tags": [
+        "scripts",
+        "usf",
+        "runtime-snapshot"
+      ],
+      "summary": "Current executable USF tree is a compact, runnable demo slice useful as runtime reference, not target-semantics authority.",
+      "description": "This snapshot shows what is currently wired and executable, but coverage is narrow and still carries legacy concepts. It should be used as migration/context signal rather than as a statement of final USF design.",
+      "current_implementation_observation": "Observed by file inventory.",
+      "owner_direction": "Keep as active low-authority runtime snapshot under clean-slate policy.",
+      "status": "observed_non_authoritative",
+      "confidence": "low",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod/assets/scripts/usf/README.md:1"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod/assets/scripts/usf/modpacks/debug.modpack.rhai:1"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: keep as active runtime snapshot signal, not target semantics"
+        }
+      ],
+      "uncertainty": {
+        "semantic_authority": {
+          "level": "high",
+          "reason": "Snapshot includes legacy concepts and cannot be treated as target architecture authority."
+        },
+        "coverage": {
+          "level": "medium",
+          "reason": "Runnable content slice is intentionally compact relative to intended final USF scope."
+        },
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0058",
+      "title": "Owner Direction: Replace Zones With Metrics + PhenomenaRealizer + Phenomena Per Scale",
+      "category": "owner_direction",
+      "tags": [
+        "zones",
+        "model-change",
+        "phenomena_realizer",
+        "metrics",
+        "scales"
+      ],
+      "summary": "Zones are deprecated and should be removed entirely from the target model.",
+      "description": "Target per-scale concept set is: Metrics + PhenomenaRealizer + Phenomena.",
+      "current_implementation_observation": "Owner clarified and strengthened this direction in conversation.",
+      "owner_direction": "Only (Metrics + PhenomenaRealizer + Phenomena) per Scale; remove zones entirely.",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: 'Get rid of Zones!'"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: 'Only (Metrics + PhenomenaRealizer + Phenomena) per Scale'"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0059",
+      "title": "Owner Direction: Strict Active + Above Policy",
+      "category": "owner_direction",
+      "tags": [
+        "scales",
+        "loading"
+      ],
+      "summary": "Target policy should avoid detail explosion by restricting to active scale and coarser scales.",
+      "description": "Below-active proliferation should be disfavored unless explicitly justified.",
+      "current_implementation_observation": "Conversation direction.",
+      "owner_direction": "Strictly active + above.",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: strictly active + above"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0060",
+      "title": "Owner Direction: Statistical Consistency Over Bitwise Determinism",
+      "category": "owner_direction",
+      "tags": [
+        "determinism",
+        "stochastic"
+      ],
+      "summary": "Same seed+content+timeline should obey macro laws while allowing stochastic drift with advancement.",
+      "description": "Determinism means believable macro identity, not strict micro replay equivalence.",
+      "current_implementation_observation": "Conversation direction.",
+      "owner_direction": "Use statistical consistency framing.",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: statistically consistent universe with expected drift"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0061",
+      "title": "Owner Direction: Genesis and Evolve Are Distinct First-Class Concepts",
+      "category": "owner_direction",
+      "tags": [
+        "genesis",
+        "evolve"
+      ],
+      "summary": "World generation and world evolution must be separated conceptually (base state plus ongoing patch/evolve behavior).",
+      "description": "Principle-level semantic law: Genesis and Evolve are non-interchangeable lifecycle phases. Operational/controller realization details are captured separately in R-0048.",
+      "current_implementation_observation": "Conversation direction.",
+      "owner_direction": "Formalize genesis/evolve split.",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: world GEN and world EVOLVE are very different"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0062",
+      "title": "Owner Direction: USF Math Boundaries Must Be Explicit",
+      "category": "owner_direction",
+      "tags": [
+        "math",
+        "performance"
+      ],
+      "summary": "Cross-scale/global data and logic should use explicit scale-aware USF math primitives; inside-scale simulation should prefer native numerics by default.",
+      "description": "This is a local-first performance policy, not a prohibition: global USF math may still be used inside local logic where needed, with explicit and meaningful conversions. Boundary points may also exist inside USF itself (between domains/mechanisms), and outputs may need USF-form representations even if internal calculation paths vary.",
+      "current_implementation_observation": "Conversation direction.",
+      "owner_direction": "Adopt explicit cross-scale boundary policy.",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: cross-scale math boundary I/II/III accepted"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: global USF math is not boundary-only; local logic may still need it with explicit conversions"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: uncertain where global USF math is needed; may be interface layers inside USF domains and output-in-USF requirements"
+        }
+      ],
+      "uncertainty": {
+        "usage_topology": {
+          "level": "high",
+          "reason": "Exact placement of global-USF math boundaries (global<->local and intra-USF domain interfaces) is not yet formally mapped."
+        }
+      }
+    },
+    {
+      "id": "R-0063",
+      "title": "Owner Direction: Scripts Own Policy, Substrate Executes Capabilities",
+      "category": "owner_direction",
+      "tags": [
+        "scripts",
+        "substrate"
+      ],
+      "summary": "Principle-level rule: policy/control/intelligence live in scripts, while substrate remains structural and capability-execution oriented.",
+      "description": "This is the governance/control-plane principle. The concrete orchestration shape for this principle is captured in R-0064 (capability-channel pipelines), and invocation governance is captured in R-0066.",
+      "current_implementation_observation": "Conversation direction.",
+      "owner_direction": "Keep script-driven intelligence with minimal structural substrate; operationalize through R-0064.",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: scripts are smart, substrate is dumb"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: rust capabilities exposed and orchestrated in scripts"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0064",
+      "title": "Owner Direction: Capability Channels Operationalize Script-Orchestration",
+      "category": "owner_direction",
+      "tags": [
+        "capability-channels",
+        "scripts",
+        "pipeline",
+        "rust-capabilities",
+        "scale-domain-differentiation",
+        "layers",
+        "canonical-space"
+      ],
+      "summary": "Operational model for R-0063/R-0066: capability channels are composable script-orchestrated pipelines with explicit scale-domain differentiation as a core requirement.",
+      "description": "Rust defines/implements engine-level capabilities; scripts route and compose intent through capability channels across representation/projection/interaction domains (for example physics, audio, particles, pathfinding, IO, and related systems). Capability channels operate in one mode: they differentiate scales as channel layers of the same canonical/global space, with channel-specific handling details.",
+      "current_implementation_observation": "Conversation direction; partially reflected by early channel-family realization code.",
+      "owner_direction": "Preserve capability-channel pipelining; use script-authored capability invocation by default (R-0066); and require every capability to support scale-aware layer differentiation representing the same canonical/global space.",
+      "status": "locked_by_owner",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: capability channel wording and pipelining implications are desirable"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: scripts orchestrate rust-defined engine-level capabilities through USF"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: capability channels should each implement subregioning in their own way with scale domain differentiation as a core requirement"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: capabilities should differentiate scales as layers of the same things in the same global/canonical space; no separate operational-mode split"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: not 100% sure yet which capabilities will exist/be needed"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: capabilities should be script-authored by default; direct rust exceptions may exist if sensible"
+        }
+      ],
+      "uncertainty": {
+        "contract_elaboration": {
+          "level": "medium",
+          "reason": "Capability-channel interface boundaries and composition primitives remain underdefined."
+        },
+        "capability_surface": {
+          "level": "high",
+          "reason": "Exact capability inventory is still open and expected to evolve."
+        },
+        "invocation_governance": {
+          "level": "medium",
+          "reason": "Script-first invocation is clear, but exception scope and enforcement model are not yet formalized."
+        },
+        "layer_semantics": {
+          "level": "high",
+          "reason": "Per-capability semantics for layer identity, simulation cadence, and composition remain underdefined."
+        }
+      }
+    },
+    {
+      "id": "R-0065",
+      "title": "Owner Direction: Recursive Sub-Phenomena Are A First-Class Interface",
+      "category": "owner_direction",
+      "tags": [
+        "phenomena",
+        "sub-phenomena",
+        "recursion",
+        "interfaces"
+      ],
+      "summary": "Phenomena may recursively decompose into sub-Phenomena so simulation/representation/interaction can operate on partial regions.",
+      "description": "This is locked as high-level USF interface intent, not a single low-level mechanism. Sub-Phenomena recursion drives capability-channel work, but each capability may realize decomposition/layering differently.",
+      "current_implementation_observation": "Conversation direction; current implementation does not yet formalize this interface.",
+      "owner_direction": "Treat recursive sub-Phenomena semantics as core USF intent and keep mechanism details channel-specific.",
+      "status": "locked_by_owner",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: subregioning is complex/uncertain and should be a high-level interface"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: game/engine is recursive subregioning of phenomena via further phenomena"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: subregioning is a generalization; phenomena as sub-phenomena is the specific framing"
+        }
+      ],
+      "uncertainty": {
+        "contract_elaboration": {
+          "level": "high",
+          "reason": "Core intent is locked, but interface semantics and lifecycle boundaries remain underdefined."
+        }
+      }
+    },
+    {
+      "id": "R-0066",
+      "title": "Owner Direction: Capability Invocation Is Script-Authored By Default",
+      "category": "owner_direction",
+      "tags": [
+        "capabilities",
+        "scripts",
+        "invocation",
+        "authoring"
+      ],
+      "summary": "Core direction: scripts author USF content and are the default invocation surface for capabilities.",
+      "description": "Capabilities should be consumed through script-authored USF concepts (for example Phenomena, Metrics, and PhenomenaRealizers), not as direct Rust-side gameplay paths by default. Narrow direct-Rust exceptions are allowed when justified.",
+      "current_implementation_observation": "Conversation direction.",
+      "owner_direction": "Treat script-authored capability invocation as primary; allow sensible exceptions explicitly.",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: scripts fully author content and utilize capabilities"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: capabilities should explicitly/exclusively be used by scripts, with exceptions when they make sense"
+        }
+      ],
+      "uncertainty": {
+        "exception_scope": {
+          "level": "medium",
+          "reason": "Exceptions are allowed, but criteria/guardrails for direct Rust-side invocation are not yet formalized."
+        }
+      }
+    },
+    {
+      "id": "R-0067",
+      "title": "Owner Direction: Replay Is Deferred Due To Feasibility Uncertainty",
+      "category": "owner_direction",
+      "tags": [
+        "scope",
+        "replay",
+        "feasibility"
+      ],
+      "summary": "Replay is intentionally deferred because current target architecture is not assumed to support it cleanly without major changes.",
+      "description": "Replay constraints should not drive current core USF design. Replay may be revisited later if feasibility improves, but it is currently a high-uncertainty, high-cost candidate and may remain unimplemented.",
+      "current_implementation_observation": "Conversation direction.",
+      "owner_direction": "Defer replay strongly and treat it as optional/uncertain until architecture maturity justifies re-evaluation.",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: ignore replay plumbing"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: unsure replay is feasible without extensive changes; defer heavily and possibly never implement"
+        }
+      ],
+      "uncertainty": {
+        "long_term_inclusion": {
+          "level": "high",
+          "reason": "Owner is uncertain replay can be supported without significant architectural changes and may choose not to implement it."
+        }
+      }
+    },
+    {
+      "id": "R-0068",
+      "title": "Owner Direction: Script Failures Should Panic Fast",
+      "category": "owner_direction",
+      "tags": [
+        "fail-fast",
+        "scripts"
+      ],
+      "summary": "Owner prefers panic-fast as the default failure policy for script/runtime failures.",
+      "description": "Default stance is fail-fast panic for unexpected/unwanted failures. Non-panic paths are allowed only as explicit intentional sentinel/error branches, not hidden fallback behavior.",
+      "current_implementation_observation": "Conversation direction.",
+      "owner_direction": "Keep panic-fast as default with explicit intentional exceptions only.",
+      "status": "locked_by_owner",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: script failures should panic fast"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: unexpected failures panic; sentinel-path errors may be non-panic"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: default should be panic-fast, not a 100%-always mandatory mode"
+        }
+      ],
+      "uncertainty": {
+        "exception_policy": {
+          "level": "medium",
+          "reason": "Intentional non-panic exception taxonomy and enforcement mechanism are not yet fully formalized."
+        }
+      }
+    },
+    {
+      "id": "R-0069",
+      "title": "Divergence: Zone-Centric Runtime/Docs Vs Remove-Zones Target",
+      "category": "divergence",
+      "tags": [
+        "zones",
+        "conflict"
+      ],
+      "summary": "Current implementation and canonical docs remain strongly zone-centric.",
+      "description": "Owner target model removes zones as first-class concept.",
+      "current_implementation_observation": "Observed across code/docs + owner direction.",
+      "owner_direction": "Resolve by defining zone replacement vocabulary and authority path.",
+      "status": "divergent",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/mod.rs:17"
+        },
+        {
+          "kind": "doc",
+          "ref": "docs/USF_FLOW_GRAPH.md:9"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: remove zones"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0070",
+      "title": "Divergence: Below-Active Window Support Vs Strict Active+Above",
+      "category": "divergence",
+      "tags": [
+        "scales",
+        "window"
+      ],
+      "summary": "Current code still supports below-active windows, but target policy is locked to active+above only.",
+      "description": "This is an explicit implementation lag, not an open direction question.",
+      "current_implementation_observation": "Observed in zone resources and owner direction.",
+      "owner_direction": "Lock active+above only.",
+      "status": "divergent",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/zone/resources.rs:268"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: strict active + above"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0071",
+      "title": "Divergence: Child Finer-Scale Request Paths Vs Active+Above-Only Simulation",
+      "category": "divergence",
+      "tags": [
+        "phenomenon",
+        "child-scale",
+        "scales",
+        "active+above"
+      ],
+      "summary": "Current flow references child finer-scale request paths, but owner direction forbids below-active active/full simulation.",
+      "description": "No exceptions: scales below the currently active scale are never actively or fully simulated.",
+      "current_implementation_observation": "Observed in flow docs + owner direction.",
+      "owner_direction": "Lock active+above-only simulation; disallow below-active active/full simulation.",
+      "status": "divergent",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "doc",
+          "ref": "docs/USF_FLOW_GRAPH.md:112"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: strict active + above"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: no exceptions; below-active scales are never actively/fully simulated"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0072",
+      "title": "Divergence: Determinism Language Vs Statistical Consistency Direction",
+      "category": "divergence",
+      "tags": [
+        "determinism",
+        "semantics"
+      ],
+      "summary": "Prototype docs still demand deterministic equal-seed behavior.",
+      "description": "Owner direction reframes this as macro-law consistency with stochastic drift over timeline.",
+      "current_implementation_observation": "Observed in docs + owner direction.",
+      "owner_direction": "Requires doc and contract rewrite.",
+      "status": "divergent",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "doc",
+          "ref": "docs/PROTOTYPE_CAPABILITIES.md:69"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: statistical consistency + drift"
+        }
+      ],
+      "uncertainty": {
+        "determinism_semantics": {
+          "level": "high",
+          "reason": "This remains actively debated and needs precise formal language."
+        }
+      }
+    },
+    {
+      "id": "R-0073",
+      "title": "Contract Target: Genesis and Evolve Must Be Distinct Lifecycle Phases",
+      "category": "gap",
+      "tags": [
+        "worldgen",
+        "lifecycle"
+      ],
+      "summary": "Genesis defines initial world-state creation; evolve defines ongoing world-state progression under the same macro laws.",
+      "description": "Target contract: genesis and evolve are first-class, non-interchangeable phases with explicit boundaries.",
+      "current_implementation_observation": "Observed in worldgen code and owner discussion.",
+      "owner_direction": "Formalize the genesis/evolve contract in explicit records/spec terms.",
+      "status": "gap",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/worldgen/mod.rs:45"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: genesis/evolve split must be formalized"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0074",
+      "title": "Gap: Post-Zone Replacement Vocabulary Is Unlocked",
+      "category": "gap",
+      "tags": [
+        "terminology",
+        "architecture"
+      ],
+      "summary": "Zone removal is decided, but replacement canonical terminology (e.g., realizer naming) is not yet locked.",
+      "description": "Current terms appear exploratory and inconsistent.",
+      "current_implementation_observation": "Observed from conversation and records.",
+      "owner_direction": "Needs controlled vocabulary decision.",
+      "status": "gap",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: possible phenomena_realizer mention + remove zones"
+        }
+      ],
+      "uncertainty": {
+        "terminology": {
+          "level": "high",
+          "reason": "No final canonical naming selected."
+        }
+      }
+    },
+    {
+      "id": "R-0075",
+      "title": "Gap: Script-First Capability Invocation Governance Is Not Formalized",
+      "category": "gap",
+      "tags": [
+        "capabilities",
+        "scripts",
+        "governance",
+        "exceptions"
+      ],
+      "summary": "Script-authored capability invocation is locked directionally, but exception policy and enforcement mechanics are not yet specified.",
+      "description": "Open questions include allowed direct-Rust exception paths, required justification/visibility for exceptions, and enforcement points that keep script-first invocation as the default contract.",
+      "current_implementation_observation": "Observed from owner direction and current implementation lag signals.",
+      "owner_direction": "Define explicit invocation governance contract: script-first default, exception scope, and enforcement model.",
+      "status": "gap",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: capabilities are script-authored by default, with exceptions allowed if sensible"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0076",
+      "title": "Gap: Timescale Model Decoupled From Zones Is Not Formalized",
+      "category": "gap",
+      "tags": [
+        "timescale",
+        "architecture"
+      ],
+      "summary": "Current timescale helper lives under zone module, but target model removes zones.",
+      "description": "A zone-less temporal contract is not documented yet.",
+      "current_implementation_observation": "Observed from code and owner direction.",
+      "owner_direction": "Needs new first-class timescale contract.",
+      "status": "gap",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/zone/resources.rs:249"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: remove zones + timescale coupling still important"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0077",
+      "title": "Gap: Formal Seed/Content/Timeline Semantics Are Not Codified",
+      "category": "gap",
+      "tags": [
+        "simulation-law",
+        "seed"
+      ],
+      "summary": "Owner direction defines macro-law consistency with drift, but formal contract terms for seed/content/timeline interaction are not yet written.",
+      "description": "No precise metrics/acceptance criteria currently specified.",
+      "current_implementation_observation": "Observed from owner discussion.",
+      "owner_direction": "Needs explicit formalism records.",
+      "status": "gap",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: same seed+content+timeline should keep macro laws with drift"
+        }
+      ],
+      "uncertainty": {
+        "formal_spec": {
+          "level": "high",
+          "reason": "Target semantics are conceptual but not formally parameterized yet."
+        }
+      }
+    },
+    {
+      "id": "R-0078",
+      "title": "Gap: Logic-Entity Vs Representation-Entity Split Contract Is Not Formalized",
+      "category": "gap",
+      "tags": [
+        "entities",
+        "frontend-backend",
+        "multi-scale",
+        "composition"
+      ],
+      "summary": "Owner direction requires an explicit phenomenon backend/frontend split (logic entities vs representation entities), but both sides are still concretely underdefined.",
+      "description": "This split is needed for multi-scale local composition in shared Bevy-space, but remains a distinct responsibility from recursive subregioning. We have rough ideas/signals for how to pull it off, yet concrete logic-side and representation-side contracts (ownership, sync cadence, lifecycle, projection, and mapping rules) are still open.",
+      "current_implementation_observation": "Observed from owner discussion; current records/code do not define a formal split contract.",
+      "owner_direction": "Specify this contract independently from recursive subregioning semantics.",
+      "status": "gap",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: multi-scale composition needs explicit logic/backend vs rendering/frontend entity split"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: do not mix entity split and recursive subregioning as one responsibility"
+        }
+      ],
+      "uncertainty": {
+        "formalization": {
+          "level": "high",
+          "reason": "Contract boundaries and mechanics are acknowledged but still largely undefined."
+        }
+      }
+    },
+    {
+      "id": "R-0079",
+      "title": "Gap: Capability Scale-Layer Semantics And Invariants Are Not Formalized",
+      "category": "gap",
+      "tags": [
+        "capability-channels",
+        "layers",
+        "scale",
+        "canonical-space"
+      ],
+      "summary": "Direction is locked that capabilities differentiate scales as layers of the same canonical/global space, but concrete layer semantics/invariants are not yet specified.",
+      "description": "Open questions include per-capability layer identity rules, layer simulation cadence, layer-to-layer interaction/composition rules, and required invariants each capability must expose for coherent scale orchestration.",
+      "current_implementation_observation": "Observed from owner discussion; no formal per-capability scale-layer invariants are currently recorded.",
+      "owner_direction": "Define explicit per-capability scale-layer semantics and invariants under a single canonical-space layering model.",
+      "status": "gap",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: capabilities each need independently-simulated separated layers and scale differentiation"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: layers represent the same things in the same global/canonical space; no separate operational-mode split"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: this sounds like a good unresolved question"
+        }
+      ],
+      "uncertainty": {
+        "capability_inventory": {
+          "level": "high",
+          "reason": "Target capability set is not finalized, so required invariants must remain capability-agnostic for now."
+        },
+        "formalization": {
+          "level": "high",
+          "reason": "Core direction exists, but concrete per-capability layer semantics and invariants are still undefined."
+        }
+      }
+    },
+    {
+      "id": "R-0080",
+      "title": "Owner Direction: Canonical USF Definitions Are Script-Declared At Startup And Then Frozen",
+      "category": "owner_direction",
+      "tags": [
+        "scripts",
+        "startup",
+        "contracts",
+        "immutability"
+      ],
+      "summary": "Scales, Metrics, Phenomena, and PhenomenaRealizers are declared in script-land during startup and become immutable for runtime updates.",
+      "description": "Canonical USF definition contracts are loaded once at startup/pre-genesis. Runtime update phases may not register new canonical definitions.",
+      "current_implementation_observation": "Conversation direction.",
+      "owner_direction": "Lock canonical definition authoring to startup and freeze definitions afterward.",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: realizers/phenomena/metrics/scales are entirely script-defined"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: canonical type definitions immutable after startup"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: no new canonical definitions during Update"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0081",
+      "title": "Owner Direction: Update Phase Is For State Evolution And Intent Emission Only",
+      "category": "owner_direction",
+      "tags": [
+        "update",
+        "state",
+        "intents"
+      ],
+      "summary": "Update-time scripting is limited to evolving state and emitting intents under predeclared canonical contracts.",
+      "description": "Canonical definition changes are startup-only. Update flow mutates runtime state through authorized state evolution and capability intent pathways.",
+      "current_implementation_observation": "Conversation direction.",
+      "owner_direction": "Treat update as runtime evolution only; no definition registration.",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: during Update only evolve state/emit intents"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0082",
+      "title": "Owner Direction: Scripts Emit Intents, Rust Capability Contracts Commit",
+      "category": "owner_direction",
+      "tags": [
+        "intents",
+        "capabilities",
+        "rust",
+        "rhai"
+      ],
+      "summary": "Scripts are intent authors; Rust-defined capability channels own merge/reconcile/apply semantics and final state commit.",
+      "description": "Capability channels are Rust authority surfaces. Script-side APIs parameterize capability behavior but do not bypass Rust contract legality.",
+      "current_implementation_observation": "Conversation direction.",
+      "owner_direction": "Keep intent/commit split with Rust owning merge/reconcile/apply and panic-fast failure handling.",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: emit intents processed by rust-side"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: rust-defined capability handles merge/reconcile/cancel and panics on failure"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: rust contract defines what scripts can and cannot do"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0083",
+      "title": "Owner Direction: Capability Orchestration Must Be ECS-Native, Not Public Global Statics",
+      "category": "owner_direction",
+      "tags": [
+        "ecs",
+        "orchestration",
+        "statics",
+        "capabilities"
+      ],
+      "summary": "Gameplay capability orchestration should live in ECS systems/resources/events, not publicly accessible global statics.",
+      "description": "Inert infra statics (for example globally loaded config) are acceptable, but orchestration for gameplay capabilities (graphics/audio/physics/pathfinding/AI/etc.) must remain ECS-native.",
+      "current_implementation_observation": "Conversation direction; existing code still uses wider static patterns.",
+      "owner_direction": "Remove static-global gameplay-capability coordination; keep orchestration in ECS scheduling/runtime surfaces.",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: do not create global statics for capability coordination; embrace Bevy ECS"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: config-like global static is fine, gameplay capability statics are not"
+        }
+      ],
+      "uncertainty": {
+        "migration_scope": {
+          "level": "medium",
+          "reason": "Existing static usages need classification into tolerated infra vs forbidden gameplay orchestration."
+        }
+      }
+    },
+    {
+      "id": "R-0084",
+      "title": "Owner Direction: One PhenomenaRealizer Contract Per Scale, Chunk-Parameterized Execution",
+      "category": "owner_direction",
+      "tags": [
+        "phenomena_realizer",
+        "scale",
+        "chunks"
+      ],
+      "summary": "Each scale has one realizer definition; realization runs per chunk using chunk data as parameter/context.",
+      "description": "Realizer cardinality is per scale, not per chunk. Chunks are large partitions and may host internal optimized spatial structures (including sub-chunk partitioning details) used during realization.",
+      "current_implementation_observation": "Conversation direction.",
+      "owner_direction": "Lock one realizer definition per scale with chunk-parameterized realization semantics.",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: one realizer per scale; chunk is parameterization/input context"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: chunks act as parent partitions with internal sub-partition structures"
+        }
+      ],
+      "uncertainty": {
+        "partition_mechanics": {
+          "level": "medium",
+          "reason": "Exact chunk-internal partitioning strategy is directional (octree/smart leaves) but not finalized."
+        }
+      }
+    },
+    {
+      "id": "R-0085",
+      "title": "Owner Direction: Metrics And Phenomena Must Coexist In Persistence",
+      "category": "owner_direction",
+      "tags": [
+        "persistence",
+        "metrics",
+        "phenomena"
+      ],
+      "summary": "Both Metrics and Phenomena are required persistent state domains; neither is optional in save-state authority.",
+      "description": "Phenomena may be rebuilt with expected fidelity/data loss, but persistence should keep both domains to preserve practical world continuity and detail representation.",
+      "current_implementation_observation": "Conversation direction.",
+      "owner_direction": "Persist both Metrics and Phenomena as canonical coexisting world state.",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: phenomena and metrics must coexist even in persistence"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: rebuild may be possible but with significant loss"
+        }
+      ],
+      "uncertainty": {
+        "rebuild_policy": {
+          "level": "medium",
+          "reason": "Exact rebuild/recovery policy and acceptable loss thresholds are not yet formalized."
+        }
+      }
+    },
+    {
+      "id": "R-0086",
+      "title": "Owner Direction: Cross-Scale Access Requires Explicit Specialized APIs",
+      "category": "owner_direction",
+      "tags": [
+        "cross-scale",
+        "api",
+        "boundaries"
+      ],
+      "summary": "Any communication or mutation across scales must flow through explicit specialized interfaces.",
+      "description": "Arbitrary direct cross-scale access is disallowed. Cross-scale coupling can be bidirectional, but only via explicit operations/contracts.",
+      "current_implementation_observation": "Conversation direction.",
+      "owner_direction": "Treat cross-scale operations as explicit API-bound actions with clear contract semantics.",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: cross-scale communication should be explicit operations"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: working with other scales requires specialized interface/API"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0087",
+      "title": "Owner Direction: Capability Channels Are Closed Typed Contracts With Bootstrap Dependency Validation",
+      "category": "owner_direction",
+      "tags": [
+        "capabilities",
+        "channels",
+        "typing",
+        "dependencies",
+        "bootstrap"
+      ],
+      "summary": "Capability channels are predeclared typed engine contracts; compatibility/dependency mismatches fail fast at bootstrap.",
+      "description": "Mods and phenomenon types bind against declared channel contracts and dependency graphs. Future engine-level capability extensions are allowed, but channel legality remains contract-driven and validated before runtime.",
+      "current_implementation_observation": "Conversation direction.",
+      "owner_direction": "Keep channels closed/typed-by-contract and enforce dependency compatibility with panic-fast startup validation.",
+      "status": "locked_by_owner",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: hardcode/contract capabilities as channels to prevent improper use"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: capability mismatch at bootstrap should panic immediately"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: capability channels declared at engine level; phenomenon types declare required capabilities"
+        }
+      ],
+      "uncertainty": {
+        "extension_model": {
+          "level": "medium",
+          "reason": "Future engine-level modded capability extension model is desired but not yet formalized."
+        }
+      }
+    },
+    {
+      "id": "R-0088",
+      "title": "Owner Direction: Capability Channels Use Explicit Dependency Graph Semantics",
+      "category": "owner_direction",
+      "tags": [
+        "capability-channels",
+        "dependencies",
+        "compatibility",
+        "bootstrap"
+      ],
+      "summary": "Capability channels should declare explicit dependency/compatibility relations (for example required companion channels or equivalent providers).",
+      "description": "Direction favors a channel-level dependency graph so capability requirements are explicit and validated at bootstrap. Invalid graphs, missing dependencies, and version mismatches should fail fast. Dependency semantics may include alternatives (for example one-of provider classes) rather than only hard one-to-one requirements.",
+      "current_implementation_observation": "Conversation direction.",
+      "owner_direction": "Formalize capability-channel dependency graph semantics as bootstrap compatibility authority.",
+      "status": "decision",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: capability channels should encode dependencies between capabilities"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: compatibility/dependency mismatches should panic at bootstrap"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: correction — dependency-graph direction applies to capability channels, not script precedence"
+        }
+      ],
+      "uncertainty": {
+        "graph_model": {
+          "level": "high",
+          "reason": "Exact channel dependency schema, alternative-provider semantics, and cycle policy are not yet formally specified."
+        }
+      }
+    },
+    {
+      "id": "R-0089",
+      "title": "Gap: Endgame-Backwards Capability Contract And Script-Type Demo Spec Is Missing",
+      "category": "gap",
+      "tags": [
+        "planning",
+        "capabilities",
+        "scripts",
+        "demo"
+      ],
+      "summary": "A concrete endgame-driven demo spec (sample phenomena, script hooks, capability API usage) is still missing.",
+      "description": "Owner direction is to design backwards from a target demo/content slice (similar to TEMP sketches) so script types, hooks/methods, parameter APIs, and global capability APIs are defined by demonstrated use-cases before implementation.",
+      "current_implementation_observation": "Current records contain many principles but not a compact backwards-designed demo contract artifact.",
+      "owner_direction": "Create a concrete target-demo design slice and derive capability contracts/script interfaces from it.",
+      "status": "gap",
+      "confidence": "high",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: work backwards from endgame demo and TEMP sketches to define script hooks and capability APIs"
+        }
+      ],
+      "uncertainty": {
+        "demo_scope": {
+          "level": "medium",
+          "reason": "Exact first demo slice boundaries and selected phenomena are not yet locked."
+        }
+      }
+    },
+    {
+      "id": "R-0090",
+      "title": "Gap: Script/Module Dependency Graph Semantics Are Not Formalized",
+      "category": "gap",
+      "tags": [
+        "scripts",
+        "modules",
+        "dependencies",
+        "modding"
+      ],
+      "summary": "Script/module package dependency and conflict semantics are still underdefined as a first-class contract.",
+      "description": "Beyond capability-channel dependency graphs, script/module composition likely needs explicit dependency/conflict/version semantics and deterministic resolution rules. Current direction is exploratory and should stay separate from capability-channel graph authority.",
+      "current_implementation_observation": "Conversation direction indicates possible need, but no formal contract is locked.",
+      "owner_direction": "Keep as an open design gap while capability-channel dependency graph remains the primary locked direction.",
+      "status": "gap",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: script/package-manager-like dependency semantics were discussed but later corrected as not the primary dependency graph focus"
+        }
+      ],
+      "uncertainty": {
+        "scope": {
+          "level": "high",
+          "reason": "Unclear whether script/module graph needs full package-manager semantics or a narrower execution-order/declaration model."
+        }
+      }
+    }
+  ]
+}

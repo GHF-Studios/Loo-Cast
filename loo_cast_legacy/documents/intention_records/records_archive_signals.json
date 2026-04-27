@@ -1,0 +1,317 @@
+{
+  "schema_version": "1.0.0",
+  "generated_on": "2026-04-14",
+  "scope": "archive-and-legacy-signals",
+  "record_count": 12,
+  "notes": "Historical/temp/legacy signals retained for context only. All records here are low-confidence and non-authoritative.",
+  "records": [
+    {
+      "id": "R-0011",
+      "title": "Legacy Code And Assets Are Present",
+      "category": "workspace",
+      "tags": [
+        "legacy",
+        "historical"
+      ],
+      "summary": "Repository still includes large legacy folders (`legacy/`, `LEGACY/`) as historical artifacts.",
+      "description": "These are context signals, not active source-of-truth for target USF design.",
+      "current_implementation_observation": "Observed in workspace file tree.",
+      "owner_direction": "Treat as low-authority reference.",
+      "status": "archived_low_confidence",
+      "confidence": "low",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "legacy/srcs/spacetime_engine_26_05_2025/src/main.rs:1"
+        },
+        {
+          "kind": "code",
+          "ref": "LEGACY/assets/Wireframe/Shaders/Wireframe.shader:1"
+        }
+      ],
+      "uncertainty": {
+        "design_authority": {
+          "level": "high",
+          "reason": "Legacy content is historical and does not define current target model."
+        }
+      }
+    },
+    {
+      "id": "R-0068",
+      "title": "TEMP USF Script Tree Is Large Ontology Draft",
+      "category": "content_observation",
+      "tags": [
+        "scripts",
+        "temp",
+        "ontology"
+      ],
+      "summary": "TEMP USF tree contains 95 files, mostly phenomenon taxonomy and exploratory content scaffolding.",
+      "description": "Large concept breadth but sparse executable integration.",
+      "current_implementation_observation": "Observed by file inventory.",
+      "owner_direction": "Treat as low-authority idea source unless owner confirms specifics.",
+      "status": "archived_low_confidence",
+      "confidence": "low",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod/assets/scripts/TEMP/usf/phenomena/_domain_catalogs/planetary.txt:1"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod/assets/scripts/TEMP/usf/modpacks/loo_cast.rhai:1"
+        }
+      ],
+      "uncertainty": {
+        "authoritative_weight": {
+          "level": "high",
+          "reason": "TEMP tree is exploratory and not integrated into canonical runtime contracts."
+        }
+      }
+    },
+    {
+      "id": "R-0069",
+      "title": "Temp Planning/Handoff Docs Provide Historical Design Signals",
+      "category": "content_observation",
+      "tags": [
+        "temp_docs",
+        "history"
+      ],
+      "summary": "`documents/temp_stuff` currently includes 13 markdown docs spanning handoff, roadmap, and USF plan artifacts.",
+      "description": "These docs are explicitly marked non-canonical context.",
+      "current_implementation_observation": "Observed in temp docs and temp README.",
+      "owner_direction": "Include as low-confidence record source only.",
+      "status": "archived_low_confidence",
+      "confidence": "low",
+      "sources": [
+        {
+          "kind": "doc",
+          "ref": "documents/temp_stuff/README.md:7"
+        },
+        {
+          "kind": "temp_doc",
+          "ref": "documents/temp_stuff/TMP_usf_refactor_execution_checklist.md:1"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0098",
+      "title": "Archive Signal: Entrypoint-First Runtime Plan",
+      "category": "archive_low_confidence",
+      "tags": [
+        "archive",
+        "entrypoints"
+      ],
+      "summary": "Temp plan proposes strict entrypoint-contract-first runtime shape with deterministic validation and registry compilation.",
+      "description": "Potentially useful design input but not authoritative.",
+      "current_implementation_observation": "Observed in temp plan doc.",
+      "owner_direction": "Use as low-confidence input only.",
+      "status": "archived_low_confidence",
+      "confidence": "low",
+      "sources": [
+        {
+          "kind": "temp_doc",
+          "ref": "documents/temp_stuff/TMP_usf_plan_entrypoint_first_runtime.md:1"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0099",
+      "title": "Archive Signal: Capability Platform Separation Plan",
+      "category": "archive_low_confidence",
+      "tags": [
+        "archive",
+        "capabilities"
+      ],
+      "summary": "Temp plan proposes output channel taxonomy and bridge-registered execution capabilities.",
+      "description": "Aligns conceptually with script-orchestrated Rust capability model.",
+      "current_implementation_observation": "Observed in temp plan doc.",
+      "owner_direction": "Use as low-confidence input only.",
+      "status": "archived_low_confidence",
+      "confidence": "low",
+      "sources": [
+        {
+          "kind": "temp_doc",
+          "ref": "documents/temp_stuff/TMP_usf_plan_capability_platform.md:1"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0100",
+      "title": "Archive Signal: Sampler/Categorizer Generalization Plan",
+      "category": "archive_low_confidence",
+      "tags": [
+        "archive",
+        "sampler",
+        "categorizer"
+      ],
+      "summary": "Temp plan proposes scale-bound generic sampler/categorizer contracts with explicit kernel ids.",
+      "description": "May inform future metric/realizer architecture.",
+      "current_implementation_observation": "Observed in temp plan doc.",
+      "owner_direction": "Use as low-confidence input only.",
+      "status": "archived_low_confidence",
+      "confidence": "low",
+      "sources": [
+        {
+          "kind": "temp_doc",
+          "ref": "documents/temp_stuff/TMP_usf_plan_sampler_categorizer_generalization.md:1"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0101",
+      "title": "Archive Signal: Minimal USF Tech Demo Plan",
+      "category": "archive_low_confidence",
+      "tags": [
+        "archive",
+        "demo"
+      ],
+      "summary": "Temp plan defines narrow proof objectives for a minimal USF demo.",
+      "description": "Contains deterministic and zone-centric assumptions that may now diverge.",
+      "current_implementation_observation": "Observed in temp plan doc.",
+      "owner_direction": "Use as low-confidence input only.",
+      "status": "archived_low_confidence",
+      "confidence": "low",
+      "sources": [
+        {
+          "kind": "temp_doc",
+          "ref": "documents/temp_stuff/TMP_usf_plan_minimal_tech_demo.md:1"
+        }
+      ],
+      "uncertainty": {
+        "alignment": {
+          "level": "medium",
+          "reason": "Some assumptions in this plan conflict with current owner direction."
+        }
+      }
+    },
+    {
+      "id": "R-0102",
+      "title": "Archive Signal: Naming Alignment Review",
+      "category": "archive_low_confidence",
+      "tags": [
+        "archive",
+        "naming"
+      ],
+      "summary": "Temp naming review records historical migrations and remaining naming drift concerns.",
+      "description": "Useful for terminology cleanup, not target architecture authority.",
+      "current_implementation_observation": "Observed in temp review doc.",
+      "owner_direction": "Use as low-confidence input only.",
+      "status": "archived_low_confidence",
+      "confidence": "low",
+      "sources": [
+        {
+          "kind": "temp_doc",
+          "ref": "documents/temp_stuff/TMP_usf_naming_alignment_review.md:1"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0103",
+      "title": "Archive Signal: Draft USF Architecture Contract",
+      "category": "archive_low_confidence",
+      "tags": [
+        "archive",
+        "contract"
+      ],
+      "summary": "Draft contract proposes invariants/config model and script-authority framing.",
+      "description": "Document predates latest owner clean-slate direction and may contain conflicting assumptions.",
+      "current_implementation_observation": "Observed in temp architecture contract.",
+      "owner_direction": "Use as low-confidence input only.",
+      "status": "archived_low_confidence",
+      "confidence": "low",
+      "sources": [
+        {
+          "kind": "temp_doc",
+          "ref": "documents/temp_stuff/UsfArchitectureContract.md:1"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0104",
+      "title": "Archive Signal: Content Scripting Cheat Sheet Draft",
+      "category": "archive_low_confidence",
+      "tags": [
+        "archive",
+        "scripting"
+      ],
+      "summary": "Cheat-sheet draft captures older content ABI ideas and script archetype proposals.",
+      "description": "Contains mixed legacy terminology; useful as idea source only.",
+      "current_implementation_observation": "Observed in temp cheat-sheet doc.",
+      "owner_direction": "Use as low-confidence input only.",
+      "status": "archived_low_confidence",
+      "confidence": "low",
+      "sources": [
+        {
+          "kind": "temp_doc",
+          "ref": "documents/temp_stuff/UsfContentScriptingCheatSheet.md:1"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0105",
+      "title": "Archive Signal: Refactor Checklist And Entity-Grounded Note",
+      "category": "archive_low_confidence",
+      "tags": [
+        "archive",
+        "refactor"
+      ],
+      "summary": "Temp checklist and refactor note describe migration state and invariants from prior refactor phases.",
+      "description": "They are historical progress artifacts, not current authoritative design.",
+      "current_implementation_observation": "Observed in temp checklist/refactor docs.",
+      "owner_direction": "Use as low-confidence input only.",
+      "status": "archived_low_confidence",
+      "confidence": "low",
+      "sources": [
+        {
+          "kind": "temp_doc",
+          "ref": "documents/temp_stuff/TMP_usf_refactor_execution_checklist.md:1"
+        },
+        {
+          "kind": "temp_doc",
+          "ref": "documents/temp_stuff/usf_entity_grounded_refactor_note.md:1"
+        }
+      ],
+      "uncertainty": {}
+    },
+    {
+      "id": "R-0106",
+      "title": "Archive Signal: Early Channel-Family Realization Layout",
+      "category": "archive_low_confidence",
+      "tags": [
+        "archive",
+        "realization",
+        "channels",
+        "implementation"
+      ],
+      "summary": "Current implementation sketches chunk realization via concrete channel families with telemetry.",
+      "description": "This is useful implementation context, but not the target USF contract. It captures an early direction where concrete families (e.g., mesh/material/collider/audio/particles/trigger/simulation_service) route realization outputs.",
+      "current_implementation_observation": "Observed in USF docs and runtime realization modules.",
+      "owner_direction": "Keep as archival implementation signal only; primary intent is a broader representation/projection/interaction capability substrate contract.",
+      "status": "archived_low_confidence",
+      "confidence": "low",
+      "sources": [
+        {
+          "kind": "doc",
+          "ref": "docs/USF.md:52"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/chunk/realization/mod.rs:1"
+        }
+      ],
+      "uncertainty": {
+        "design_authority": {
+          "level": "high",
+          "reason": "Owner direction treats this as partial implementation context, not authoritative USF design."
+        }
+      }
+    }
+  ]
+}
