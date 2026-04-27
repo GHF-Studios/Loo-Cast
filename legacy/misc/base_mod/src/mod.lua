@@ -1,5 +1,0 @@
-dofile("core/mod.lua")
-dofile("camera/mod.lua")
-dofile("chunk/mod.lua")
-dofile("chunk_actor/mod.lua")
-dofile("chunk_loader/mod.lua")

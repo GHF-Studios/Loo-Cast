@@ -1,1 +1,0 @@
-pub const SPEED: f32 = 1000.0;

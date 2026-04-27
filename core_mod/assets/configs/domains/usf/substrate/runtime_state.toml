@@ -1,4 +1,0 @@
-[usf.substrate.runtime_state]
-max_chunks_per_frame = 64
-partition_edge_existing_weight = 0.70
-partition_edge_neighbor_weight = 0.30

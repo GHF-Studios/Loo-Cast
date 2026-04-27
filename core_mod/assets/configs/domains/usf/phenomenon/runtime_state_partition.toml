@@ -1,5 +1,0 @@
-[usf.phenomenon.runtime_state.partition]
-max_support_radius = 6
-max_chunks_per_root = 2048
-generation_budget_per_frame = 256
-member_mutations_per_frame = 192

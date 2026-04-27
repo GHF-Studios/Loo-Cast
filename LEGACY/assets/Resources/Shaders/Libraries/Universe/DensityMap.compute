@@ -1,6 +1,0 @@
-struct DensityData
-{
-    int XPosition;
-    int YPosition;
-    float Value;
-};
