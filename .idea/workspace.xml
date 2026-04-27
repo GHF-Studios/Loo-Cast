@@ -14,8 +14,17 @@
   <component name="ChangeListManager">
     <list default="true" id="4dcf2329-f34f-4671-9aca-23b5a23283b3" name="Changes" comment="David">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/cloc-1.98.exe" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/cloc-1.98-windows.exe" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/dev_cloc" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/cloc-2.10-preview-linux" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/build.ps1" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/build.ps1" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/build.sh" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/build.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/cloc.sh" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/cloc.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/core_mod/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/core_mod/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/core_mod/LooCast.toml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/core_mod/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/core_mod/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/run.ps1" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/run.ps1" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/run.sh" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/run.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/visualize_repo.sh" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/visualize_repo.sh" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -212,23 +221,7 @@
       <workItem from="1777227613712" duration="2332000" />
       <workItem from="1777235576400" duration="636000" />
       <workItem from="1777281309506" duration="16213000" />
-      <workItem from="1777298698155" duration="10079000" />
-    </task>
-    <task id="LOCAL-00009" summary="Did some stuff">
-      <option name="closed" value="true" />
-      <created>1775217125950</created>
-      <option name="number" value="00009" />
-      <option name="presentableId" value="LOCAL-00009" />
-      <option name="project" value="LOCAL" />
-      <updated>1775217125950</updated>
-    </task>
-    <task id="LOCAL-00010" summary="Updated temporary rename/refactor docs">
-      <option name="closed" value="true" />
-      <created>1775217944443</created>
-      <option name="number" value="00010" />
-      <option name="presentableId" value="LOCAL-00010" />
-      <option name="project" value="LOCAL" />
-      <updated>1775217944443</updated>
+      <workItem from="1777298698155" duration="11309000" />
     </task>
     <task id="LOCAL-00011" summary="Did some stuff">
       <option name="closed" value="true" />
@@ -606,7 +599,23 @@
       <option name="project" value="LOCAL" />
       <updated>1777314679270</updated>
     </task>
-    <option name="localTasksCounter" value="58" />
+    <task id="LOCAL-00058" summary="David">
+      <option name="closed" value="true" />
+      <created>1777316888224</created>
+      <option name="number" value="00058" />
+      <option name="presentableId" value="LOCAL-00058" />
+      <option name="project" value="LOCAL" />
+      <updated>1777316888227</updated>
+    </task>
+    <task id="LOCAL-00059" summary="David">
+      <option name="closed" value="true" />
+      <created>1777316894115</created>
+      <option name="number" value="00059" />
+      <option name="presentableId" value="LOCAL-00059" />
+      <option name="project" value="LOCAL" />
+      <updated>1777316894115</updated>
+    </task>
+    <option name="localTasksCounter" value="60" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
