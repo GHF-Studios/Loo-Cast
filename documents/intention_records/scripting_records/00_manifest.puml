@@ -34,6 +34,8 @@ package "Decision Layer" {
   component "50_decision_contracts.puml" as D50
 }
 
+component "../platform_records/30_module_event_message_seams.puml" as P30
+
 CONV -[#1E88E5]-> C10 : constrains naming + relation grammar within C10
 CONV -[#1E88E5]-> C11 : constrains naming + relation grammar within C11
 CONV -[#1E88E5]-> S20 : constrains naming + relation grammar within S20
@@ -62,6 +64,7 @@ S20 -[#FB8C00]-> F30 : drives bootstrap registration steps in F30
 S23 -[#FB8C00]-> F31 : drives file/module discovery steps in F31
 S21 -[#FB8C00]-> F32 : drives frame-time script interaction in F32
 S22 -[#FB8C00]-> F32 : drives reconcile/apply semantics in F32
+F32 -[#00897B]-> P30 : constrains module-level intent/fact seam boundaries used in runtime orchestration
 
 F30 -[#FB8C00]-> L40 : advances registration flow in definition lifecycle
 F31 -[#FB8C00]-> L40 : feeds validation + sealing gates in definition lifecycle
@@ -74,6 +77,7 @@ D50 -[#1E88E5]-> F30 : locks meta-bootstrap contract semantics in F30
 D50 -[#1E88E5]-> F32 : locks runtime-orchestration semantics in F32
 D50 -[#1E88E5]-> L40 : locks startup definition-seal semantics in L40
 D50 -[#1E88E5]-> L41 : locks intent reconciliation semantics in L41
+D50 -[#1E88E5]-> P30 : constrains seam evolution to declared scripting/runtime contracts
 
 note bottom
 The atlas is a graph, not a linear read order.

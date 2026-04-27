@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use crate::chunk::components::ChunkLoader;
 use crate::chunk::enums::ZoomState;
-use crate::chunk::messages::ChunkBatchLifecycleMessage;
+use crate::chunk::messages::{ChunkBatchLifecycleMessage, ChunkBoundaryDeltaKind, ChunkBoundaryDeltaMessage};
 use crate::chunk::resources::{ChunkActionWorkflowState, ChunkBatchPlanResult, ChunkBatchTracker, ChunkLoadGate, ChunkLoadGateState, ChunkManager};
 use crate::chunk::workflows::external::despawn_chunks::DespawnChunkInput;
 use crate::chunk::workflows::external::spawn_chunks::SpawnChunkInput;
@@ -193,7 +193,9 @@ pub(crate) fn chunk_management_system(
     In(inputs): In<(Vec<SpawnChunkInput>, Vec<DespawnChunkInput>)>,
     mut workflow_state: ResMut<ChunkActionWorkflowState>,
     mut chunk_load_gate: ResMut<ChunkLoadGate>,
+    chunk_manager: Res<ChunkManager>,
     mut chunk_batch_tracker: ResMut<ChunkBatchTracker>,
+    mut chunk_boundary_delta_writer: MessageWriter<ChunkBoundaryDeltaMessage>,
     mut chunk_batch_lifecycle_writer: MessageWriter<ChunkBatchLifecycleMessage>,
 ) {
     let (spawn_chunk_inputs, despawn_chunk_inputs) = inputs;
@@ -207,6 +209,15 @@ pub(crate) fn chunk_management_system(
     match chunk_batch_tracker.sync_plan(&incoming_spawn_targets, &incoming_despawn_targets) {
         ChunkBatchPlanResult::Unchanged => {}
         ChunkBatchPlanResult::Planned(batch) => {
+            chunk_boundary_delta_writer.write(ChunkBoundaryDeltaMessage {
+                kind: ChunkBoundaryDeltaKind::Planned,
+                batch_id: Some(batch.id),
+                spawn_targets: batch.targets.spawn.iter().cloned().collect(),
+                despawn_targets: batch.targets.despawn.iter().cloned().collect(),
+                active_scale: chunk_manager.active_scale,
+                loader_origin_grid: chunk_manager.loader_origin_grid.clone(),
+                loader_origin_unit: chunk_manager.loader_origin_unit.clone(),
+            });
             warn!(
                 "Chunk batch planned: batch_id={}, spawn={}, despawn={}",
                 batch.id,
@@ -216,6 +227,15 @@ pub(crate) fn chunk_management_system(
             chunk_batch_lifecycle_writer.write(ChunkBatchLifecycleMessage::Planned { batch });
         }
         ChunkBatchPlanResult::Replanned { previous, planned } => {
+            chunk_boundary_delta_writer.write(ChunkBoundaryDeltaMessage {
+                kind: ChunkBoundaryDeltaKind::Replanned,
+                batch_id: Some(planned.id),
+                spawn_targets: planned.targets.spawn.iter().cloned().collect(),
+                despawn_targets: planned.targets.despawn.iter().cloned().collect(),
+                active_scale: chunk_manager.active_scale,
+                loader_origin_grid: chunk_manager.loader_origin_grid.clone(),
+                loader_origin_unit: chunk_manager.loader_origin_unit.clone(),
+            });
             warn!(
                 "Chunk batch cancelled: batch_id={}, reason=Replanned, spawn={}, despawn={}",
                 previous.id,
@@ -237,6 +257,15 @@ pub(crate) fn chunk_management_system(
             chunk_batch_lifecycle_writer.write(ChunkBatchLifecycleMessage::Planned { batch: planned });
         }
         ChunkBatchPlanResult::Cleared { previous, reason } => {
+            chunk_boundary_delta_writer.write(ChunkBoundaryDeltaMessage {
+                kind: ChunkBoundaryDeltaKind::Cleared,
+                batch_id: Some(previous.id),
+                spawn_targets: Vec::new(),
+                despawn_targets: Vec::new(),
+                active_scale: chunk_manager.active_scale,
+                loader_origin_grid: chunk_manager.loader_origin_grid.clone(),
+                loader_origin_unit: chunk_manager.loader_origin_unit.clone(),
+            });
             warn!(
                 "Chunk batch cancelled: batch_id={}, reason={}, spawn={}, despawn={}",
                 previous.id,

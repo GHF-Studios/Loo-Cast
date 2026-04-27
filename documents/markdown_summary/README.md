@@ -21,6 +21,7 @@ Purpose: focused implementation-oriented notes that support (but do not replace)
 - `usf_transform_policy.md` - transform policy and migration phases.
 - `usf_math.md` - USF math boundary contracts and open questions.
 - `usf_math_rhai_binding_surface.md` - facade-first math binding contract for Rhai-facing script APIs.
+- `module_event_message_seams_focus_slice.md` - focused event/message seam blueprint for the current runtime slice.
 
 ## Rule
 

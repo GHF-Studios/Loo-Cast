@@ -13,7 +13,7 @@ use crate::bevy::prelude::*;
 use components::{Chunk, ChunkActor, ChunkDebugWireframe, ChunkLoader, PhenomenonFrontierView};
 use enums::ZoomState;
 use errors::{DespawnError, SpawnError};
-use messages::ChunkBatchLifecycleMessage;
+use messages::{ChunkBatchLifecycleMessage, ChunkBoundaryDeltaKind, ChunkBoundaryDeltaMessage};
 use resources::{ChunkActionWorkflowState, ChunkBatchTracker, ChunkLoadGate, ChunkLoadGateLockInfo, ChunkLoadGateState, ChunkManager};
 use systems::{
     chunk_detection_system, chunk_management_system, chunk_timeout_signal_system, chunk_zoom_cooldown_system, sync_chunk_manager_loader_state_system,
@@ -40,6 +40,7 @@ impl Plugin for ChunkCorePlugin {
             .insert_resource(ChunkBatchTracker::default())
             .insert_resource(ChunkActionWorkflowState::default())
             .add_message::<ChunkBatchLifecycleMessage>()
+            .add_message::<ChunkBoundaryDeltaMessage>()
             .add_systems(PreUpdate, chunk_timeout_signal_system.run_if(run_after_startup_finished))
             .add_systems(
                 Update,
@@ -69,6 +70,8 @@ impl Plugin for ChunkCorePlugin {
             .register_type::<ChunkLoadGate>()
             .register_type::<ChunkLoadGateState>()
             .register_type::<ChunkLoadGateLockInfo>()
+            .register_type::<ChunkBoundaryDeltaKind>()
+            .register_type::<ChunkBoundaryDeltaMessage>()
             .register_type::<SpawnError>()
             .register_type::<DespawnError>()
             .register_type::<ZoomState>();

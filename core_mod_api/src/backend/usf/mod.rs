@@ -1,5 +1,6 @@
 pub mod aspects;
 pub mod authority;
+pub mod boundary;
 pub mod metric;
 pub mod phenomenon_realizer;
 pub mod scale;
@@ -12,6 +13,7 @@ use authority::{
     UsfAuthorityViolationMode, UsfWorldAuthorityContract, export_usf_authority_diagnostics_events_system, report_usf_authority_diagnostics_system,
     validate_usf_world_authority_contract_system,
 };
+use boundary::{UsfChunkBoundaryMessageState, consume_chunk_boundary_delta_messages_system};
 use metric::{MetricDefinition, MetricId, MetricStorageClass, MetricValueType};
 use phenomenon_realizer::PhenomenonRealizerId;
 use script_mvp::{UsfScriptMvpBootstrapState, bootstrap_usf_script_mvp_system};
@@ -24,6 +26,7 @@ impl Plugin for UsfPlugin {
             .init_resource::<UsfAuthorityDiagnosticsExportSettings>()
             .init_resource::<UsfAuthorityDiagnosticsExportState>()
             .init_resource::<UsfScriptMvpBootstrapState>()
+            .init_resource::<UsfChunkBoundaryMessageState>()
             .add_message::<UsfAuthorityDiagnosticsEvent>()
             .add_systems(Startup, validate_usf_world_authority_contract_system.in_set(AppSet::Diagnostics))
             .add_systems(
@@ -33,6 +36,11 @@ impl Plugin for UsfPlugin {
                     .in_set(AppSet::Diagnostics),
             )
             .add_systems(Update, report_usf_authority_diagnostics_system.in_set(AppSet::Diagnostics))
+            .add_systems(
+                Update,
+                consume_chunk_boundary_delta_messages_system
+                    .in_set(AppSet::BoundaryResolve),
+            )
             .add_systems(
                 Update,
                 export_usf_authority_diagnostics_events_system
@@ -49,6 +57,7 @@ impl Plugin for UsfPlugin {
             .register_type::<UsfAuthorityDiagnosticsExportSettings>()
             .register_type::<UsfAuthorityDiagnosticsExportState>()
             .register_type::<UsfScriptMvpBootstrapState>()
+            .register_type::<UsfChunkBoundaryMessageState>()
             .register_type::<UsfAuthorityViolationMode>()
             .register_type::<UsfWorldAuthorityContract>();
     }
