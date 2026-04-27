@@ -1,0 +1,3 @@
+[crate]
+kind = "mod"
+has_assets = true
