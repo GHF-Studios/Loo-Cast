@@ -2,4 +2,4 @@
 
 set -euo pipefail
 
-cargo xtask run_fastdev
+cargo xtask run
