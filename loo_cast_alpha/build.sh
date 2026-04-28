@@ -2,4 +2,4 @@
 
 set -euo pipefail
 
-cargo xtask build_fastdev
+cargo xtask build_sdk
