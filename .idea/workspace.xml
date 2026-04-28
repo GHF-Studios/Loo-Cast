@@ -40,25 +40,14 @@
     </cargoProject>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4dcf2329-f34f-4671-9aca-23b5a23283b3" name="Changes" comment="David">
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/admin.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/build.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/build.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/cloc.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/cloc.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/deploy.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/deploy.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/gource.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/gource.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/help.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/help.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/package.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/package.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/run.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/run.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/sdk.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/build_target.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/build_target.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/fs.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/fs.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/git.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/git.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/live_repo.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/options.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/profile.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/profile.rs" afterDir="false" />
+    <list default="true" id="4dcf2329-f34f-4671-9aca-23b5a23283b3" name="Changes" comment="WIP Modding SDK &amp; High-Level Project Structure">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/launcher/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/launcher/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/docs/CONTRACTS.md" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/docs/CONTRACTS.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/docs/DECISIONS.md" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/docs/DECISIONS.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/docs/NOW.md" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/docs/NOW.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/docs/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/docs/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/docs/WORKFLOWS.md" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/docs/WORKFLOWS.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -297,14 +286,6 @@
       <workItem from="1777328003316" duration="14000" />
       <workItem from="1777330519315" duration="115000" />
       <workItem from="1777366010323" duration="26431000" />
-    </task>
-    <task id="LOCAL-00013" summary="Stuff">
-      <option name="closed" value="true" />
-      <created>1775740148542</created>
-      <option name="number" value="00013" />
-      <option name="presentableId" value="LOCAL-00013" />
-      <option name="project" value="LOCAL" />
-      <updated>1775740148542</updated>
     </task>
     <task id="LOCAL-00014" summary="Stuff">
       <option name="closed" value="true" />
@@ -690,7 +671,15 @@
       <option name="project" value="LOCAL" />
       <updated>1777376597511</updated>
     </task>
-    <option name="localTasksCounter" value="62" />
+    <task id="LOCAL-00062" summary="WIP Modding SDK &amp; High-Level Project Structure">
+      <option name="closed" value="true" />
+      <created>1777410622580</created>
+      <option name="number" value="00062" />
+      <option name="presentableId" value="LOCAL-00062" />
+      <option name="project" value="LOCAL" />
+      <updated>1777410622580</updated>
+    </task>
+    <option name="localTasksCounter" value="63" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

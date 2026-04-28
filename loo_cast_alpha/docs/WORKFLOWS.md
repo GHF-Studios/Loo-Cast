@@ -37,3 +37,17 @@ Breaking change flow:
 3. Add migration guide at `docs/migrations/<from>-to-<to>.md`.
 4. Record decision in `DECISIONS.md`.
 5. Validate build/package/run before release.
+
+Publish flow (stable):
+
+1. Merge release-ready changes to `main`.
+2. Create tag `vX.Y.Z`.
+3. Build immutable artifacts from that tag.
+4. Push artifacts to stable channel.
+
+Publish flow (pre-release):
+
+1. Merge release-candidate changes to `main`.
+2. Create tag `vX.Y.Z-rc.N` (or `-beta.N`).
+3. Build immutable artifacts from that tag.
+4. Push artifacts to non-stable channel.

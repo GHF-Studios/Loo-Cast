@@ -14,5 +14,6 @@ Rules:
 - Keep sections small.
 - Update `NOW.md` first when direction changes.
 - Keep compatibility definitions in `CONTRACTS.md`.
+- Keep ownership enforcement in `.github/CODEOWNERS`.
 - Record durable choices in `DECISIONS.md`.
 - Do not write long speculative plans here.

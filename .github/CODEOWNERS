@@ -1,0 +1,11 @@
+# Default owner for repository changes.
+* @leslieghf
+
+# Contract governance must be maintainer-reviewed.
+/loo_cast_alpha/docs/CONTRACTS.md @leslieghf
+/loo_cast_alpha/docs/ARCHITECTURE.md @leslieghf
+/loo_cast_alpha/docs/DECISIONS.md @leslieghf
+
+# Public-facing mod platform surface.
+/loo_cast_alpha/crates/core_mod/ @leslieghf
+/loo_cast_alpha/crates/base_mod/ @leslieghf

@@ -9,3 +9,6 @@ Format: `Date | Status | Decision | Reason`
 - 2026-04-28 | Active | Use short, indexed docs (`NOW/ARCHITECTURE/CONTRACTS/WORKFLOWS/DECISIONS`). | Reduce documentation fragmentation.
 - 2026-04-28 | Active | Use lockstep game/contract versioning. | Simplify compatibility reasoning.
 - 2026-04-28 | Active | Require migration guides for breaking changes. | Make contract breaks explicit and reviewable.
+- 2026-04-28 | Active | Define published version as immutable tag + artifacts + distribution channel. | Remove ambiguity between commits and releases.
+- 2026-04-28 | Active | Use semver pre-release tags (`-rc.N`, `-beta.N`) for non-stable publishes. | Support staged release validation.
+- 2026-04-28 | Active | Use CODEOWNERS for contracts and first-party mod surface. | Enforce ownership at review time.

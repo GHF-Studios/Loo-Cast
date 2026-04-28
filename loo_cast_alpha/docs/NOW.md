@@ -9,6 +9,7 @@ Current direction:
 - Treat `core_mod` and `base_mod` as first-party mods, not engine internals.
 - Build a composable mod ecosystem (mods can depend on mods).
 - Use lockstep game/contract versioning.
+- Treat publish as immutable tag + artifact + channel event.
 
 Current scope:
 
@@ -16,6 +17,7 @@ Current scope:
 - No SDK/toolchain redistribution layer right now.
 - No dual-repo automation right now.
 - Compatibility policy is defined in `CONTRACTS.md`.
+- Breaking changes require a major bump + migration guide.
 
 Success for this phase:
 
