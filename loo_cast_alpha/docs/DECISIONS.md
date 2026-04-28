@@ -6,4 +6,6 @@ Format: `Date | Status | Decision | Reason`
 - 2026-04-28 | Active | Keep xtask focused on build/package/run/cloc/gource. | Lower complexity and maintenance cost.
 - 2026-04-28 | Active | Model `core_mod` and `base_mod` as first-party mods. | Keep engine lean and enable consistent mod layering.
 - 2026-04-28 | Active | Prioritize composable mods (including integration mods). | Avoid monolithic total-conversion-only mod style.
-- 2026-04-28 | Active | Use short, indexed docs (`NOW/ARCHITECTURE/WORKFLOWS/DECISIONS`). | Reduce documentation fragmentation.
+- 2026-04-28 | Active | Use short, indexed docs (`NOW/ARCHITECTURE/CONTRACTS/WORKFLOWS/DECISIONS`). | Reduce documentation fragmentation.
+- 2026-04-28 | Active | Use lockstep game/contract versioning. | Simplify compatibility reasoning.
+- 2026-04-28 | Active | Require migration guides for breaking changes. | Make contract breaks explicit and reviewable.

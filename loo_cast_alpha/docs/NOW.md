@@ -8,12 +8,14 @@ Current direction:
 - Keep xtask small and focused.
 - Treat `core_mod` and `base_mod` as first-party mods, not engine internals.
 - Build a composable mod ecosystem (mods can depend on mods).
+- Use lockstep game/contract versioning.
 
 Current scope:
 
 - Primary tasks: `build`, `package`, `run`, `cloc`, `gource`.
 - No SDK/toolchain redistribution layer right now.
 - No dual-repo automation right now.
+- Compatibility policy is defined in `CONTRACTS.md`.
 
 Success for this phase:
 
