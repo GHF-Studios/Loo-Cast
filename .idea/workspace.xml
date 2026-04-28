@@ -9,22 +9,50 @@
         <feature name="default" enabled="true" />
       </package>
     </cargoProject>
-    <cargoProject FILE="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/Cargo.toml" />
+    <cargoProject FILE="$PROJECT_DIR$/loo_cast_alpha/Cargo.toml">
+      <package file="$PROJECT_DIR$/loo_cast_alpha/crates/base_mod">
+        <feature name="default" enabled="true" />
+      </package>
+      <package file="$PROJECT_DIR$/loo_cast_alpha/crates/base_mod_macros">
+        <feature name="default" enabled="true" />
+      </package>
+      <package file="$PROJECT_DIR$/loo_cast_alpha/crates/bevy_consumable_message">
+        <feature name="default" enabled="true" />
+      </package>
+      <package file="$PROJECT_DIR$/loo_cast_alpha/crates/core_engine">
+        <feature name="default" enabled="true" />
+      </package>
+      <package file="$PROJECT_DIR$/loo_cast_alpha/crates/core_engine_macros">
+        <feature name="default" enabled="true" />
+      </package>
+      <package file="$PROJECT_DIR$/loo_cast_alpha/crates/core_mod">
+        <feature name="default" enabled="true" />
+      </package>
+      <package file="$PROJECT_DIR$/loo_cast_alpha/crates/core_mod_macros">
+        <feature name="default" enabled="true" />
+      </package>
+      <package file="$PROJECT_DIR$/loo_cast_alpha/crates/launcher">
+        <feature name="default" enabled="true" />
+      </package>
+      <package file="$PROJECT_DIR$/loo_cast_alpha/crates/xtask">
+        <feature name="default" enabled="true" />
+      </package>
+    </cargoProject>
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4dcf2329-f34f-4671-9aca-23b5a23283b3" name="Changes" comment="David">
+      <change afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/mod.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/build_target.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/fs.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/git.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/mod.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/profile.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/build.ps1" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/build.ps1" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/build.sh" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/build.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/cloc.sh" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/cloc.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/core_mod/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/core_mod/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/core_mod/LooCast.toml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/core_mod/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/core_mod/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/Cargo.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/run.ps1" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/run.ps1" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/run.sh" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/run.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/visualize_repo.sh" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/visualize_repo.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_legacy/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_legacy/Cargo.toml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -32,9 +60,16 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="7565" />
+    <option name="cachedIndexableFilesCount" value="7616" />
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="RsBuildProfile:dev" />
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Rust File" />
+      </list>
+    </option>
+  </component>
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
@@ -91,6 +126,7 @@
     &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
     &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;develop&quot;,
+    &quot;js.buildTools.grunt.grunt-cli.package&quot;: &quot;&quot;,
     &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
     &quot;last_opened_file_path&quot;: &quot;/home/leslieghf/Documents/GitHub/Loo-Cast/loo_cast_alpha/crates/core_engine&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
@@ -125,6 +161,13 @@
       <recent name="$PROJECT_DIR$/loo_cast_alpha/built_in_crates/lib/third_party_continued" />
       <recent name="$PROJECT_DIR$/loo_cast_alpha/third_party_crates" />
     </key>
+  </component>
+  <component name="RunManager">
+    <configuration default="true" type="js.build_tools.grunt">
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
   </component>
   <component name="RustProjectSettings">
     <option name="toolchainHomeDirectory" value="$USER_HOME$/.cargo/bin" />
@@ -221,15 +264,10 @@
       <workItem from="1777227613712" duration="2332000" />
       <workItem from="1777235576400" duration="636000" />
       <workItem from="1777281309506" duration="16213000" />
-      <workItem from="1777298698155" duration="11309000" />
-    </task>
-    <task id="LOCAL-00011" summary="Did some stuff">
-      <option name="closed" value="true" />
-      <created>1775232798765</created>
-      <option name="number" value="00011" />
-      <option name="presentableId" value="LOCAL-00011" />
-      <option name="project" value="LOCAL" />
-      <updated>1775232798766</updated>
+      <workItem from="1777298698155" duration="16154000" />
+      <workItem from="1777328003316" duration="14000" />
+      <workItem from="1777330519315" duration="115000" />
+      <workItem from="1777366010323" duration="8192000" />
     </task>
     <task id="LOCAL-00012" summary="Works better">
       <option name="closed" value="true" />
@@ -615,7 +653,15 @@
       <option name="project" value="LOCAL" />
       <updated>1777316894115</updated>
     </task>
-    <option name="localTasksCounter" value="60" />
+    <task id="LOCAL-00060" summary="David">
+      <option name="closed" value="true" />
+      <created>1777318334643</created>
+      <option name="number" value="00060" />
+      <option name="presentableId" value="LOCAL-00060" />
+      <option name="project" value="LOCAL" />
+      <updated>1777318334643</updated>
+    </task>
+    <option name="localTasksCounter" value="61" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

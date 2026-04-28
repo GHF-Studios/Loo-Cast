@@ -31,7 +31,7 @@ lto = false
 
 [profile.fastdev]
 inherits = "dev"
-lto = "thin"
+lto = false
 
 [profile.release]
 opt-level = 3
