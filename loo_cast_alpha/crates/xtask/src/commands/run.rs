@@ -1,18 +1,17 @@
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 use std::path::Path;
 use std::process::Command;
 use xshell::Shell;
 
 use crate::commands::package::package;
 use crate::utils::build_target::BuildTarget;
-use crate::utils::fs::staged_build_dir;
-use crate::utils::options::XtaskOptions;
+use crate::utils::fs::{executable_name, staged_build_dir};
 use crate::utils::profile::Profile;
 
-pub fn run(sh: &Shell, root: &Path, profile: Profile, options: XtaskOptions) -> Result<()> {
-    package(sh, root, profile, BuildTarget::Host, options)?;
+pub fn run(sh: &Shell, root: &Path, profile: Profile) -> Result<()> {
+    package(sh, root, profile, BuildTarget::Host)?;
     let build_dir = staged_build_dir(root, profile, BuildTarget::Host);
-    let executable = build_dir.join(launcher_binary_name());
+    let executable = build_dir.join(executable_name(BuildTarget::Host));
 
     let status = Command::new(&executable)
         .current_dir(&build_dir)
@@ -24,8 +23,4 @@ pub fn run(sh: &Shell, root: &Path, profile: Profile, options: XtaskOptions) -> 
         bail!("staged executable exited with status {status}");
     }
     Ok(())
-}
-
-fn launcher_binary_name() -> &'static str {
-    if cfg!(target_os = "windows") { "launcher.exe" } else { "launcher" }
 }

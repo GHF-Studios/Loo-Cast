@@ -41,11 +41,24 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4dcf2329-f34f-4671-9aca-23b5a23283b3" name="Changes" comment="David">
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/docs/ARCHITECTURE.md" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/docs/ARCHITECTURE.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/docs/NOW.md" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/docs/NOW.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/docs/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/docs/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/docs/WORKFLOWS.md" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/docs/WORKFLOWS.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/docs/launcher_v1_spec.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/admin.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/build.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/build.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/cloc.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/cloc.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/deploy.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/deploy.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/gource.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/gource.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/help.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/help.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/mod.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/package.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/package.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/run.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/run.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/sdk.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/build_target.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/build_target.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/fs.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/fs.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/git.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/git.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/live_repo.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/mod.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/options.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/profile.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/profile.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

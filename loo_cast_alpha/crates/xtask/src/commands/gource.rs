@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 use std::env;
 use std::path::{Path, PathBuf};
 use std::process::Command;
