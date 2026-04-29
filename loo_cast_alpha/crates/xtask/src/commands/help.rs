@@ -21,6 +21,8 @@ Commands:
   run_fastdev
   run_release
   audit
+  build_docs
+  open_docs
   setup_sdk
   cloc
   gource

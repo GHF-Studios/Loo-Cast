@@ -9,6 +9,7 @@ use crate::commands::audit::audit;
 use crate::commands::build::build;
 use crate::commands::cloc::run_cloc;
 use crate::commands::deploy::deploy_stub;
+use crate::commands::docs::build_docs;
 use crate::commands::gource::run_gource;
 use crate::commands::help::print_help;
 use crate::commands::package::package;
@@ -55,6 +56,8 @@ fn main() -> Result<()> {
         "run_fastdev" => run(&sh, &root, Profile::Fastdev)?,
         "run_release" => run(&sh, &root, Profile::Release)?,
         "audit" => audit(&root)?,
+        "build_docs" => build_docs(&sh, false)?,
+        "open_docs" => build_docs(&sh, true)?,
         "setup_sdk" => setup_sdk(&root)?,
         "cloc" => run_cloc(&root)?,
         "gource" => run_gource(&root)?,
