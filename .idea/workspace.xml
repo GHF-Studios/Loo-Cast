@@ -10,31 +10,41 @@
       </package>
     </cargoProject>
     <cargoProject FILE="$PROJECT_DIR$/loo_cast_alpha/Cargo.toml">
+      <package file="$PROJECT_DIR$/loo_cast_alpha/crates/base_mod">
+        <feature name="default" enabled="true" />
+      </package>
+      <package file="$PROJECT_DIR$/loo_cast_alpha/crates/base_mod_macros">
+        <feature name="default" enabled="true" />
+      </package>
+      <package file="$PROJECT_DIR$/loo_cast_alpha/crates/bevy_consumable_message">
+        <feature name="default" enabled="true" />
+      </package>
+      <package file="$PROJECT_DIR$/loo_cast_alpha/crates/core_engine">
+        <feature name="default" enabled="true" />
+      </package>
+      <package file="$PROJECT_DIR$/loo_cast_alpha/crates/core_engine_macros">
+        <feature name="default" enabled="true" />
+      </package>
+      <package file="$PROJECT_DIR$/loo_cast_alpha/crates/core_mod">
+        <feature name="default" enabled="true" />
+      </package>
+      <package file="$PROJECT_DIR$/loo_cast_alpha/crates/core_mod_macros">
+        <feature name="default" enabled="true" />
+      </package>
+      <package file="$PROJECT_DIR$/loo_cast_alpha/crates/launcher">
+        <feature name="default" enabled="true" />
+      </package>
       <package file="$PROJECT_DIR$/loo_cast_alpha/crates/xtask">
         <feature name="default" enabled="true" />
       </package>
     </cargoProject>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4dcf2329-f34f-4671-9aca-23b5a23283b3" name="Changes" comment="potential AI hallucinations; we'll leave it in for now">
-      <change afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/setup_hooks.rs" afterDir="false" />
+    <list default="true" id="4dcf2329-f34f-4671-9aca-23b5a23283b3" name="Changes" comment="xtask: switch to setup_git_hooks, add TOML-driven audit steps, and strip direct deps">
       <change beforePath="$PROJECT_DIR$/loo_cast_alpha/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/Cargo.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/launcher/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/launcher/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/bevy_consumable_message/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/bevy_consumable_message/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/bevy_consumable_message/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/bevy_consumable_message/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/build.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/build.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/cloc.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/cloc.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/deploy.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/deploy.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/gource.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/gource.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/help.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/help.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/package.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/package.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/run.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/run.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/build_target.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/build_target.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/fs.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/fs.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/git.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/git.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/profile.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/profile.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -274,15 +284,7 @@
       <workItem from="1777330519315" duration="115000" />
       <workItem from="1777366010323" duration="26431000" />
       <workItem from="1777460586294" duration="736000" />
-      <workItem from="1777462023923" duration="13012000" />
-    </task>
-    <task id="LOCAL-00018" summary="stuff (du hond)">
-      <option name="closed" value="true" />
-      <created>1775886753086</created>
-      <option name="number" value="00018" />
-      <option name="presentableId" value="LOCAL-00018" />
-      <option name="project" value="LOCAL" />
-      <updated>1775886753086</updated>
+      <workItem from="1777462023923" duration="13706000" />
     </task>
     <task id="LOCAL-00019" summary="stuff (du hond)">
       <option name="closed" value="true" />
@@ -668,7 +670,15 @@
       <option name="project" value="LOCAL" />
       <updated>1777486239165</updated>
     </task>
-    <option name="localTasksCounter" value="67" />
+    <task id="LOCAL-00067" summary="xtask: switch to setup_git_hooks, add TOML-driven audit steps, and strip direct deps">
+      <option name="closed" value="true" />
+      <created>1777487447378</created>
+      <option name="number" value="00067" />
+      <option name="presentableId" value="LOCAL-00067" />
+      <option name="project" value="LOCAL" />
+      <updated>1777487447378</updated>
+    </task>
+    <option name="localTasksCounter" value="68" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -687,7 +697,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CHECK_NEW_TODO" value="false" />
-    <MESSAGE value="Works better" />
     <MESSAGE value="Some ai stuff and now some manual stuff" />
     <MESSAGE value="stuff (du hond)" />
     <MESSAGE value="stuff (du hond) (effektiv gegen 100% fett, jetzt bei deiner Volksbank nicht erhältlich)" />
@@ -712,7 +721,8 @@
     <MESSAGE value="docs: add CHANGELOG, and CONTRIBUTING" />
     <MESSAGE value="feat: add issue and PR templates" />
     <MESSAGE value="potential AI hallucinations; we'll leave it in for now" />
-    <option name="LAST_COMMIT_MESSAGE" value="potential AI hallucinations; we'll leave it in for now" />
+    <MESSAGE value="xtask: switch to setup_git_hooks, add TOML-driven audit steps, and strip direct deps" />
+    <option name="LAST_COMMIT_MESSAGE" value="xtask: switch to setup_git_hooks, add TOML-driven audit steps, and strip direct deps" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="NON_MODAL_COMMIT_POSTPONE_SLOW_CHECKS" value="false" />
   </component>
