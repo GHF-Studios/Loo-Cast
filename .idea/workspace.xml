@@ -40,11 +40,9 @@
     </cargoProject>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4dcf2329-f34f-4671-9aca-23b5a23283b3" name="Changes" comment="xtask: consolidate setup commands under setup_sdk">
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/bevy_consumable_message/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/bevy_consumable_message/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/audit_steps.toml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/audit.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/audit.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/build.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/build.rs" afterDir="false" />
+    <list default="true" id="4dcf2329-f34f-4671-9aca-23b5a23283b3" name="Changes" comment="xtask: simplify audit config">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -284,15 +282,7 @@
       <workItem from="1777330519315" duration="115000" />
       <workItem from="1777366010323" duration="26431000" />
       <workItem from="1777460586294" duration="736000" />
-      <workItem from="1777462023923" duration="15459000" />
-    </task>
-    <task id="LOCAL-00021" summary="stuff (du hond)">
-      <option name="closed" value="true" />
-      <created>1775939525283</created>
-      <option name="number" value="00021" />
-      <option name="presentableId" value="LOCAL-00021" />
-      <option name="project" value="LOCAL" />
-      <updated>1775939525283</updated>
+      <workItem from="1777462023923" duration="15608000" />
     </task>
     <task id="LOCAL-00022" summary="stuff (du hond) (effektiv gegen 100% fett, jetzt bei deiner Volksbank nicht erhältlich)">
       <option name="closed" value="true" />
@@ -678,7 +668,15 @@
       <option name="project" value="LOCAL" />
       <updated>1777493759543</updated>
     </task>
-    <option name="localTasksCounter" value="70" />
+    <task id="LOCAL-00070" summary="xtask: simplify audit config">
+      <option name="closed" value="true" />
+      <created>1777494012142</created>
+      <option name="number" value="00070" />
+      <option name="presentableId" value="LOCAL-00070" />
+      <option name="project" value="LOCAL" />
+      <updated>1777494012142</updated>
+    </task>
+    <option name="localTasksCounter" value="71" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -697,7 +695,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CHECK_NEW_TODO" value="false" />
-    <MESSAGE value="stuff (du hond)" />
     <MESSAGE value="stuff (du hond) (effektiv gegen 100% fett, jetzt bei deiner Volksbank nicht erhältlich)" />
     <MESSAGE value="Big yap" />
     <MESSAGE value="Some stuff" />
@@ -722,7 +719,8 @@
     <MESSAGE value="potential AI hallucinations; we'll leave it in for now" />
     <MESSAGE value="xtask: switch to setup_git_hooks, add TOML-driven audit steps, and strip direct deps" />
     <MESSAGE value="xtask: consolidate setup commands under setup_sdk" />
-    <option name="LAST_COMMIT_MESSAGE" value="xtask: consolidate setup commands under setup_sdk" />
+    <MESSAGE value="xtask: simplify audit config" />
+    <option name="LAST_COMMIT_MESSAGE" value="xtask: simplify audit config" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="NON_MODAL_COMMIT_POSTPONE_SLOW_CHECKS" value="false" />
   </component>
