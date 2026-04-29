@@ -1,0 +1,11 @@
+[[steps]]
+name = "Formatting check"
+command = "cargo fmt --check"
+
+[[steps]]
+name = "Clippy lint check"
+command = "cargo clippy -- -D warnings"
+
+[[steps]]
+name = "Tests"
+command = "cargo test"

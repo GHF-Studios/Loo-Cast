@@ -1,9 +1,9 @@
-use anyhow::{bail, Result};
-use xshell::{cmd, Shell};
+use anyhow::{Result, bail};
+use xshell::{Shell, cmd};
 
-use crate::{LINUX_RELEASE_TARGET, WINDOWS_RELEASE_TARGET, XTASK_CRATE};
 use crate::utils::build_target::BuildTarget;
 use crate::utils::profile::Profile;
+use crate::{LINUX_RELEASE_TARGET, WINDOWS_RELEASE_TARGET, XTASK_CRATE};
 
 pub fn build(sh: &Shell, profile: Profile, target: BuildTarget) -> Result<()> {
     match (profile, target) {

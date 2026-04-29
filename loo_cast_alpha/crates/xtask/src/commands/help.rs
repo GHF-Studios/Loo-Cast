@@ -20,6 +20,8 @@ Commands:
   run_dev
   run_fastdev
   run_release
+  audit
+  setup_git_hooks
   cloc
   gource
   deploy"

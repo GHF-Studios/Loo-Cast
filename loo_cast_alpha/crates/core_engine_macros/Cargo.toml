@@ -10,7 +10,3 @@ proc-macro = true
 heck = { workspace = true }
 paste = { workspace = true }
 thiserror = { workspace = true }
-
-syn = { version = "2.0", features = ["full", "visit"] }
-quote = "1.0"
-proc-macro2 = "1.0"

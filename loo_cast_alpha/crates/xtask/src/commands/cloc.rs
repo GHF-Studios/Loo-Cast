@@ -1,10 +1,10 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use std::env;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use crate::utils::fs::discover_workspace_crates;
 use crate::XTASK_CRATE;
+use crate::utils::fs::discover_workspace_crates;
 
 pub fn run_cloc(root: &Path) -> Result<()> {
     let cloc_binary_name = if cfg!(target_os = "windows") {

@@ -5,6 +5,7 @@ use anyhow::{Context, Result, bail};
 use std::env;
 use xshell::Shell;
 
+use crate::commands::audit::audit;
 use crate::commands::build::build;
 use crate::commands::cloc::run_cloc;
 use crate::commands::deploy::deploy_stub;
@@ -12,6 +13,7 @@ use crate::commands::gource::run_gource;
 use crate::commands::help::print_help;
 use crate::commands::package::package;
 use crate::commands::run::run;
+use crate::commands::setup_git_hooks::setup_git_hooks;
 use crate::utils::build_target::BuildTarget;
 use crate::utils::profile::Profile;
 
@@ -52,6 +54,8 @@ fn main() -> Result<()> {
         "run_dev" => run(&sh, &root, Profile::Dev)?,
         "run_fastdev" => run(&sh, &root, Profile::Fastdev)?,
         "run_release" => run(&sh, &root, Profile::Release)?,
+        "audit" => audit(&root)?,
+        "setup_git_hooks" => setup_git_hooks(&root)?,
         "cloc" => run_cloc(&root)?,
         "gource" => run_gource(&root)?,
         "deploy" => deploy_stub(),

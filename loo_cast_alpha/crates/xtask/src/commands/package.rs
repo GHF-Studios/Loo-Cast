@@ -6,9 +6,7 @@ use crate::CORE_ENGINE_CRATE;
 use crate::commands::build::build;
 use crate::utils::build_target::BuildTarget;
 use crate::utils::fs::{
-    cargo_artifact_dir, clean_dir, copy_dir_recursive, copy_file,
-    copy_optional_symbol, discover_workspace_crates, executable_name,
-    staged_build_dir
+    cargo_artifact_dir, clean_dir, copy_dir_recursive, copy_file, copy_optional_symbol, discover_workspace_crates, executable_name, staged_build_dir,
 };
 use crate::utils::profile::Profile;
 
