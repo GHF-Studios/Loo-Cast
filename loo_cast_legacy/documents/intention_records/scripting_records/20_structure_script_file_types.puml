@@ -1,0 +1,83 @@
+@startuml
+title Structure - Script File Type Contracts
+hide empty members
+left to right direction
+
+class FolderTypeBinding {
+  +folder_path
+  +file_type_id
+  +owner_scope
+}
+
+class ScriptFileTypeContract {
+  +id
+  +member_policy_default
+  +member_policy_precedence
+  +forbidden_members
+  +required_hooks
+  +optional_hooks
+  +ctx_profile_id
+  +phase_scope
+  +capability_profile_id
+}
+
+class ScriptMemberContract {
+  +name
+  +signature
+  +policy_override
+  +mutability_policy
+  +required
+}
+
+class HookSignatureContract {
+  +hook_name
+  +signature
+  +required
+}
+
+class PredicateEvaluatorRef {
+  +evaluator_id
+  +hook_point
+}
+
+class EvaluatorRegistry {
+  +evaluator_id
+  +signature
+  +scope
+}
+
+class ScriptFile {
+  +path
+  +declared_members
+  +declared_imports
+}
+
+class ValidationReport {
+  +is_valid
+  +violations
+  +warnings
+}
+
+class TypedFileRegistry {
+  +files_by_type
+  +files_by_scope
+}
+
+FolderTypeBinding "1..*" -[#1E88E5]-> "1" ScriptFileTypeContract : binds folder scopes to script-file-type contracts
+ScriptFileTypeContract "1" -[#1E88E5]-> "*" ScriptMemberContract : projects member policy to member-level contracts
+ScriptFileTypeContract "1" -[#1E88E5]-> "*" HookSignatureContract : projects required/optional hooks to hook contracts
+ScriptFileTypeContract "1" -[#1E88E5]-> "0..*" PredicateEvaluatorRef : declares conditional evaluator hooks in contract
+ScriptMemberContract "*" -[#1E88E5]-> "1" ScriptFileTypeContract : resolves policy_override against contract default precedence
+PredicateEvaluatorRef "*" -[#1E88E5]-> "1" EvaluatorRegistry : resolves evaluator_id in shared evaluator registry
+ScriptFile "*" -[#00897B]-> "1" ScriptFileTypeContract : resolves each script file against its target contract
+ScriptFile "1" -[#00897B]-> "1" ValidationReport : emits validation outcome to a report record
+ValidationReport "1" -[#43A047]-> "0..1" TypedFileRegistry : permits successful insertion in typed-file registry
+
+note bottom
+Current MVP typed roots:
+- scale/35.rhai
+- metric/test_metric.rhai
+- phenomenon/test_phenomenon.rhai
+- phenomenon_realizer/35.rhai
+end note
+@enduml

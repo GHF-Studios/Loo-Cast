@@ -1,0 +1,4 @@
+[usf.authority.diagnostics_export]
+enabled = true
+output_path = "target/usf_demo/authority_diagnostics.ndjson"
+flush_each_write = false

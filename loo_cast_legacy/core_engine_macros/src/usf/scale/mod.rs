@@ -1,0 +1,3 @@
+pub mod configure_app_with_all_scales;
+pub mod scale_factor_exponent_dynamic_match;
+pub mod scale_type_generic_match;

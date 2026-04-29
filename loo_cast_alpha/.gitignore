@@ -1,0 +1,6 @@
+.vs
+.vscode
+.idea
+target
+assets/data
+build

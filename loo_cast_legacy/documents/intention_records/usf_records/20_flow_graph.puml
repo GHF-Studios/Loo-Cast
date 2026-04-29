@@ -1,0 +1,44 @@
+@startuml
+title USF Runtime Flow - Startup and Tick Contracts
+left to right direction
+
+rectangle "Typed USF Scripts\n(mod/modpack + metric family + scale + realizer + phenomenon/model)" as Scripts
+rectangle "Bootstrap Composer\n(modpack selection + validation + registry materialization)" as Boot
+rectangle "Runtime Registries\n(catalog + runtime concept view + typed registries)" as Reg
+
+package "USF Tick Domains" {
+  rectangle "Substrate Runtime" as Sub
+  rectangle "Realization Runtime" as Real
+  rectangle "Phenomenon Runtime" as Phen
+  rectangle "Capability Commit Runtime" as Cap
+}
+
+rectangle "Canonical Runtime Authority\n(scale/chunk metric + phenomenon/model records)" as Canon
+rectangle "Derived Runtime Caches\n(summary/decision/artifact state)" as Derived
+rectangle "Bevy ECS Runtime" as ECS
+
+Scripts -[#1E88E5]-> Boot : register typed definitions in startup bootstrap
+Boot -[#43A047]-> Reg : materialize deterministic registries in startup bootstrap
+Reg -[#43A047]-> Sub : drives runtime domain inputs in deterministic phase order
+
+Sub -[#FB8C00]-> Real : emits substrate summaries and signals in phase handoff
+Real -[#FB8C00]-> Phen : emits realization decisions and support intents in phase handoff
+Phen -[#FB8C00]-> Cap : emits typed capability intents and canonical update intents in phase handoff
+
+Cap -[#43A047]-> ECS : commits capability effects via channel backends
+Sub -[#43A047]-> Derived : updates substrate summaries in runtime cache layer
+Real -[#43A047]-> Derived : updates decision streams in runtime cache layer
+Phen -[#43A047]-> Canon : reconciles phenomenon/model authority in canonical layer
+Cap -[#43A047]-> Canon : reconciles accepted canonical mutations in canonical layer
+Derived -[#8E24AA]-> Sub : feeds next-tick rebuild inputs via bounded derivation chain
+
+note right of Cap
+Evaluator hooks are optional and contract-declared.
+Failures are panic-fast.
+end note
+
+note bottom
+Definition surfaces are sealed after startup bootstrap.
+Runtime definition mutation requires explicit full rebootstrap.
+end note
+@enduml

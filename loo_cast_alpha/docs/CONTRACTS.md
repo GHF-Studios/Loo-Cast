@@ -1,0 +1,79 @@
+# Contracts
+
+Purpose:
+
+- Define what external code/data may rely on.
+- Define when a change is breaking.
+- Define required migration behavior.
+
+Glossary:
+
+- Published game version
+  - `vX.Y.Z` (stable) or `vX.Y.Z-rc.N`/`vX.Y.Z-beta.N` (pre-release) tag on `main`.
+  - CI-built immutable artifacts from that exact tag.
+  - Artifacts pushed to a named distribution channel.
+  - Not the same as an arbitrary `develop` commit.
+
+- Contract version
+  - Version of the frozen contract set.
+  - Locked to published game version (lockstep versioning).
+
+- Breaking change
+  - Any change that can invalidate previously compatible mods, saves, manifests, or load behavior.
+
+- Compatible mod
+  - Mod that declares support for the target contract version and passes build/load checks.
+
+- Migration guide
+  - Required document for each breaking change.
+  - Must provide upgrade steps or explicit "no migration path".
+
+Frozen contract set (per published game version):
+
+- Public `mod_api` surface.
+- Mod manifest schema.
+- Mod package/load-order rules.
+- Save-data schema + compatibility semantics.
+
+Publish policy:
+
+- Stable publish requires all of:
+  - `main` tag `vX.Y.Z`
+  - immutable artifacts built from tag
+  - release pushed to stable channel
+
+- Pre-release publish requires all of:
+  - `main` tag `vX.Y.Z-rc.N` or `vX.Y.Z-beta.N`
+  - immutable artifacts built from tag
+  - release pushed to non-stable channel
+
+- Immutability rules:
+  - no retagging published versions
+  - no replacing published artifacts in-place
+  - supersede by publishing a new version only
+
+Version policy:
+
+- Use `MAJOR.MINOR.PATCH` for published game/contract versions.
+- `PATCH`: backward-compatible fixes only.
+- `MINOR`: backward-compatible additions only.
+- `MAJOR`: breaking changes allowed.
+- No contract break is allowed inside one published version.
+- Any contract break requires a new published version.
+
+Lockstep version topology:
+
+- Shared version tag: `core_engine`, `mod_api` (when present), `core_mod`, `base_mod`.
+- Third-party mods version independently.
+- Third-party mods must declare compatible contract range.
+
+Migration policy:
+
+- Breaking PRs must target a new `MAJOR` (or pre-release of that `MAJOR`).
+- Breaking PRs must include a migration guide at `docs/migrations/<from>-to-<to>.md`.
+- Breaking PRs must update `CONTRACTS.md` and `DECISIONS.md`.
+- Guide must include:
+  - affected contracts
+  - who is impacted
+  - exact upgrade steps
+  - fallback/rollback notes

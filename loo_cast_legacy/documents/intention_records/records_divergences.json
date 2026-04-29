@@ -1,0 +1,374 @@
+{
+  "schema_version": "1.0.0",
+  "generated_on": "2026-04-14",
+  "scope": "usf-implementation-vs-owner-direction-divergences",
+  "record_count": 9,
+  "notes": "Divergence records are kept separate from active intent records. They preserve implementation-vs-target mismatches for review without polluting the primary target contract map.",
+  "records": [
+    {
+      "id": "R-0053",
+      "title": "Child Finer-Scale Model Request Path Conflicts With Active+Above Policy",
+      "category": "divergence",
+      "tags": [
+        "phenomenon",
+        "child-scale",
+        "active-above"
+      ],
+      "summary": "Current flow/runtime signals include child/finer-scale model request paths, which conflicts with the locked no-below-active simulation rule.",
+      "description": "Implementation-facing docs and modules still reflect detail-scale expansion mechanics below active scale, while owner direction locks simulation scope to active scale plus coarser scales only.",
+      "current_implementation_observation": "Observed in flow docs and phenomenon runtime modules.",
+      "owner_direction": "No exceptions: scales below the currently active scale are never actively or fully simulated.",
+      "status": "divergent",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "doc",
+          "ref": "docs/USF_FLOW_GRAPH.md:112"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/phenomenon/systems.rs:1"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: no exceptions, scales below active are never actively/fully simulated"
+        }
+      ],
+      "uncertainty": {
+        "implementation_semantics": {
+          "level": "medium",
+          "reason": "Current docs/code indicate the path exists, but exact runtime behavior details are still under redesign."
+        },
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0108",
+      "title": "Bootstrap Descent Controller Implementation Is Still Zone-Era And Under-Scoped",
+      "category": "divergence",
+      "tags": [
+        "bootstrap-descent-controller",
+        "worldgen",
+        "zones",
+        "genesis-evolve"
+      ],
+      "summary": "Current bootstrap/worldgen implementation shape is aligned in direction but materially under-scoped and still tied to zone-era readiness assumptions.",
+      "description": "Owner direction keeps the bootstrap descent controller concept but requires a zone-free, explicit Genesis/Evolve contract with scale progression, stabilization gates, and timeline catch-up semantics.",
+      "current_implementation_observation": "Observed in worldgen module and flow docs.",
+      "owner_direction": "Retain bootstrap descent controller concept, but elevate it to a formal Genesis/Evolve contract decoupled from zone-era assumptions.",
+      "status": "divergent",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/worldgen/mod.rs:55"
+        },
+        {
+          "kind": "doc",
+          "ref": "docs/USF_FLOW_GRAPH.md:176"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: aligned in direction but only partially there; move implementation-shaped part to divergences; rewrite as target Genesis/Evolve contract"
+        }
+      ],
+      "uncertainty": {
+        "implementation_semantics": {
+          "level": "medium",
+          "reason": "Existing bootstrap behavior is visible, but future contract semantics are still being formalized."
+        },
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0109",
+      "title": "Temporal Context Implementation Is Zone-Coupled But Target Is Scale-Native",
+      "category": "divergence",
+      "tags": [
+        "time-scale",
+        "zones",
+        "active-above"
+      ],
+      "summary": "Current temporal context plumbing depends on zone resources, while owner direction requires zone-free scale-native temporal semantics.",
+      "description": "Implementation currently computes scale factors from zone-coupled resources. Target design requires temporal context anchored directly in scale primitives and aligned with active+above simulation policy.",
+      "current_implementation_observation": "Observed in zone temporal context resource code.",
+      "owner_direction": "Temporal context must be rewritten as a zone-free scale-time model.",
+      "status": "divergent",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/zone/resources.rs:249"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/zone/resources.rs:294"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: zones removed; rewrite temporal context to zone-free scale-native contract"
+        }
+      ],
+      "uncertainty": {
+        "implementation_semantics": {
+          "level": "medium",
+          "reason": "Current scale-factor behavior is visible, but migration semantics to scale-native temporal model remain open."
+        },
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0110",
+      "title": "Canonical Docs Remain Zone-Centric While Target Model Removes Zones",
+      "category": "divergence",
+      "tags": [
+        "docs",
+        "zones",
+        "authority"
+      ],
+      "summary": "Canonical architecture/flow/prototype docs still encode zones as major USF concepts, conflicting with the locked remove-zones target direction.",
+      "description": "Current canonical docs preserve a zone-centric model, but owner direction treats zones as fully deprecated and replaced by per-scale Metrics + PhenomenaRealizer + Phenomena.",
+      "current_implementation_observation": "Observed in canonical documentation set.",
+      "owner_direction": "Remove zones entirely from target USF vocabulary and runtime contracts.",
+      "status": "divergent",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "doc",
+          "ref": "docs/VISION_ARCHITECTURE.md:18"
+        },
+        {
+          "kind": "doc",
+          "ref": "docs/USF_FLOW_GRAPH.md:9"
+        },
+        {
+          "kind": "doc",
+          "ref": "docs/PROTOTYPE_CAPABILITIES.md:20"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: remove zones entirely; only Metrics + PhenomenaRealizer + Phenomena per scale"
+        }
+      ],
+      "uncertainty": {
+        "migration_scope": {
+          "level": "medium",
+          "reason": "Full doc migration plan and sequencing are still open."
+        },
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF docs/code as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0111",
+      "title": "Prototype Determinism Wording Conflicts With Statistical-Consistency Direction",
+      "category": "divergence",
+      "tags": [
+        "determinism",
+        "prototype",
+        "macro-laws",
+        "drift"
+      ],
+      "summary": "Prototype acceptance text still implies deterministic equal-seed behavior, while owner direction defines macro-law consistency with stochastic drift.",
+      "description": "Determinism framing in prototype docs is out of sync with target semantics for seed/content/timeline behavior.",
+      "current_implementation_observation": "Observed in prototype capabilities document.",
+      "owner_direction": "Use statistical consistency under shared macro laws, with expected timeline drift.",
+      "status": "divergent",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "doc",
+          "ref": "docs/PROTOTYPE_CAPABILITIES.md:69"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: statistically consistent universe with expected drift; same macro laws"
+        }
+      ],
+      "uncertainty": {
+        "semantic_precision": {
+          "level": "medium",
+          "reason": "Formal acceptance criteria for macro-law consistency and drift are still being specified."
+        },
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF docs/code as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0112",
+      "title": "Legacy 2D Scale-Depth Layering Conflicts With 3D Multi-Scale Composition Direction",
+      "category": "divergence",
+      "tags": [
+        "render",
+        "2d-legacy",
+        "3d",
+        "scale-composition"
+      ],
+      "summary": "Current scale module hard-codes canonical render depth layering per scale, a leftover 2D policy that does not match current 3D composition direction.",
+      "description": "Owner direction requires richer multi-scale composition with explicit logic-vs-representation separation and recursive phenomenon subregioning. Fixed scale->depth mapping is treated as legacy implementation policy.",
+      "current_implementation_observation": "Observed in scale render-depth constants and helpers.",
+      "owner_direction": "Deprecate this 2D-era depth-layer policy in favor of 3D composition contracts.",
+      "status": "divergent",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/scale.rs:644"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/scale.rs:688"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: this is a leftover from 2D; 3D needs recursive subregions and explicit frontend/backend entity split"
+        }
+      ],
+      "uncertainty": {
+        "replacement_contract": {
+          "level": "medium",
+          "reason": "Legacy mismatch is clear, but full replacement render/composition contract is still being designed."
+        },
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0115",
+      "title": "Canonical Demo Content Remains Zone-Centric And Misaligned With Target USF Model",
+      "category": "divergence",
+      "tags": [
+        "demo-content",
+        "zones",
+        "scripts",
+        "content-quality"
+      ],
+      "summary": "Current runnable demo scripts still encode zone-centric concepts and behaviors, conflicting with the locked remove-zones direction.",
+      "description": "Executable demo content is acknowledged as severely misaligned with target USF semantics and should be treated as legacy migration context, not as quality or architecture reference.",
+      "current_implementation_observation": "Observed in active script tree content.",
+      "owner_direction": "Remove zones entirely and avoid treating current demo content quality/structure as target direction.",
+      "status": "divergent",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "code",
+          "ref": "core_mod/assets/scripts/usf/zones/demo/solid.zone.rhai:1"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod/assets/scripts/usf/zlms/demo/default.zlm.rhai:1"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: current demo content is implemented terribly overall"
+        }
+      ],
+      "uncertainty": {
+        "migration_path": {
+          "level": "medium",
+          "reason": "Misalignment is clear, but exact replacement sequencing for demo content is still open."
+        },
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0116",
+      "title": "Script Ownership Boundary Diverges From Gameplay-Side Target Placement",
+      "category": "divergence",
+      "tags": [
+        "assets-boundary",
+        "scripts",
+        "mod-ownership"
+      ],
+      "summary": "Docs signal that most scripts should eventually live gameplay-side, but current primary USF scripts remain under engine-side assets.",
+      "description": "This is a packaging/ownership divergence rather than a direct USF semantics contract, but it impacts future content architecture and migration planning.",
+      "current_implementation_observation": "Observed in README notes and current script tree placement.",
+      "owner_direction": "Treat as divergence to be resolved through content-boundary migration decisions.",
+      "status": "divergent",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "doc",
+          "ref": "README.md:90"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod/assets/scripts/usf/README.md:1"
+        },
+        {
+          "kind": "user",
+          "ref": "conversation: this should be treated as divergence"
+        }
+      ],
+      "uncertainty": {
+        "migration_timing": {
+          "level": "medium",
+          "reason": "Target boundary direction exists, but sequencing/timing remains open."
+        },
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    },
+    {
+      "id": "R-0118",
+      "title": "Capability-Channel Implementation Depth Diverges From Script-First Operational Target",
+      "category": "divergence",
+      "tags": [
+        "capability-channels",
+        "implementation-lag",
+        "scripts",
+        "operational-gap"
+      ],
+      "summary": "Target direction relies on script-first capability channels, but current implementation depth/adoption is still minimal and far from target operational shape.",
+      "description": "Owner indicates runtime behavior is overwhelmingly direct Bevy/Rust capability usage, with capability-channel architecture barely implemented so far. This is a direct mismatch with target script-authored orchestration.",
+      "current_implementation_observation": "Observed from owner review and partial channel-family signals in code/docs.",
+      "owner_direction": "Prioritize capability-channel architecture as primary operational path; treat current state as early/insufficient.",
+      "status": "divergent",
+      "confidence": "medium",
+      "sources": [
+        {
+          "kind": "user",
+          "ref": "conversation: basically nothing uses capability channels; ~99.999% is direct native rust/bevy capability usage"
+        },
+        {
+          "kind": "code",
+          "ref": "core_mod_api/src/usf/chunk/realization/mod.rs:1"
+        },
+        {
+          "kind": "doc",
+          "ref": "docs/USF.md:52"
+        }
+      ],
+      "uncertainty": {
+        "implementation_measurement": {
+          "level": "medium",
+          "reason": "Gap severity is clear directionally, but no formal quantitative maturity metric is defined."
+        },
+        "current_implementation_observation": {
+          "level": "high",
+          "reason": "Owner direction treats current USF code/docs as non-authoritative clean-slate signals."
+        }
+      }
+    }
+  ]
+}

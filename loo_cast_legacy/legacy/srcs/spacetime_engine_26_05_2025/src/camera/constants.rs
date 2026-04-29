@@ -1,0 +1,1 @@
+pub(in crate) const TRANSLATION_LERP_FOLLOWER_SMOOTHNESS: f32 = 0.1;

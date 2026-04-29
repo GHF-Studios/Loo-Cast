@@ -1,0 +1,7 @@
+Valid Zoom In/Out Operations
+
+GRID_SIZE = 10
+
+(Scale: 0 | GRID_XY: [0,0] | SUBGRID_XY: [0,0]) => (Scale: 1 | GRID_XY: [0,0] | SUBGRID_XY: [0,0]) => (Scale: 0 | GRID_XY: [0,0] | SUBGRID_XY: [0,0])
+
+(Scale: 0 | GRID_XY: [0,0] | SUBGRID_XY: [1,1]) => (Scale: 1 | GRID_XY: [0,0] | SUBGRID_XY: [0,0])

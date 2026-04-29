@@ -1,0 +1,26 @@
+@startuml
+title Context - Runtime Domains and Control Boundaries
+left to right direction
+
+rectangle "Rust Engine Domain" as Rust
+rectangle "Binding / Reflection Domain" as Bind
+rectangle "Meta-Scripting Domain" as Meta
+rectangle "Typed Script Domain" as Script
+rectangle "Ctx Graph Domain" as Ctx
+rectangle "Capability Runtime Domain" as Cap
+rectangle "Bevy ECS Runtime Domain" as ECS
+rectangle "USF Runtime State Domain" as USF
+
+Rust -[#1E88E5]-> Bind : exports engine namespaces to Binding/Reflection Domain
+Bind -[#1E88E5]-> Meta : exposes bounded meta primitives to Meta-Scripting Domain
+Meta -[#1E88E5]-> Script : projects file-type + module rules to Typed Script Domain
+Script -[#FB8C00]-> Ctx : navigates script operations via Ctx Graph Domain
+Ctx -[#43A047]-> Cap : emits typed capability intents via Capability Runtime Domain
+Cap -[#43A047]-> ECS : commits runtime effects in Bevy ECS Runtime Domain
+ECS -[#43A047]-> USF : materializes canonical + derived state in USF Runtime State Domain
+USF -[#8E24AA]-> Ctx : exposes runtime snapshots back to Ctx Graph Domain
+Ctx -[#8E24AA]-> Script : exposes typed read handles back to Typed Script Domain
+Rust -[#1E88E5]-> ECS : installs schedule drivers in Bevy ECS Runtime Domain
+Rust -[#1E88E5]-> Cap : installs channel backends in Capability Runtime Domain
+Rust -[#1E88E5]-> Ctx : installs ctx graph roots and gateways in Ctx Graph Domain
+@enduml

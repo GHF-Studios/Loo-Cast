@@ -1,0 +1,239 @@
+use crate::bevy::prelude::Reflect;
+use crossbeam_channel::Sender;
+
+use super::messages::*;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect)]
+pub enum StageSignature {
+    None,
+    E,
+    O,
+    OE,
+    I,
+    IE,
+    IO,
+    IOE,
+}
+impl StageSignature {
+    pub fn has_input(&self) -> bool {
+        matches!(self, StageSignature::I | StageSignature::IE | StageSignature::IO | StageSignature::IOE)
+    }
+    pub fn has_output(&self) -> bool {
+        matches!(self, StageSignature::O | StageSignature::OE | StageSignature::IO | StageSignature::IOE)
+    }
+    pub fn has_error(&self) -> bool {
+        matches!(self, StageSignature::E | StageSignature::OE | StageSignature::IE | StageSignature::IOE)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect)]
+pub enum StageType {
+    Ecs,
+    Render,
+    Async,
+    EcsWhile,
+    RenderWhile,
+}
+impl std::fmt::Display for StageType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            StageType::Ecs => write!(f, "WorkflowStageType(Ecs)"),
+            StageType::Render => write!(f, "WorkflowStageType(Render)"),
+            StageType::Async => write!(f, "WorkflowStageType(Async)"),
+            StageType::EcsWhile => write!(f, "WorkflowStageType(EcsWhile)"),
+            StageType::RenderWhile => write!(f, "WorkflowStageType(RenderWhile)"),
+        }
+    }
+}
+
+pub enum Stage {
+    Ecs(StageEcs),
+    Render(StageRender),
+    Async(StageAsync),
+    EcsWhile(StageEcsWhile),
+    RenderWhile(StageRenderWhile),
+}
+impl Stage {
+    pub fn get_type(&self) -> StageType {
+        match self {
+            Stage::Ecs(_) => StageType::Ecs,
+            Stage::Render(_) => StageType::Render,
+            Stage::Async(_) => StageType::Async,
+            Stage::EcsWhile(_) => StageType::EcsWhile,
+            Stage::RenderWhile(_) => StageType::RenderWhile,
+        }
+    }
+
+    pub fn get_index(&self) -> usize {
+        match self {
+            Stage::Ecs(stage) => stage.stage_signature as usize,
+            Stage::Render(stage) => stage.stage_signature as usize,
+            Stage::Async(stage) => stage.stage_signature as usize,
+            Stage::EcsWhile(stage) => stage.stage_signature as usize,
+            Stage::RenderWhile(stage) => stage.stage_signature as usize,
+        }
+    }
+
+    pub fn get_signature(&self) -> StageSignature {
+        match self {
+            Stage::Ecs(stage) => stage.stage_signature,
+            Stage::Render(stage) => stage.stage_signature,
+            Stage::Async(stage) => stage.stage_signature,
+            Stage::EcsWhile(stage) => stage.stage_signature,
+            Stage::RenderWhile(stage) => stage.stage_signature,
+        }
+    }
+
+    pub fn get_wait_sender(&self) -> Option<Sender<StageWaitMessage>> {
+        match self {
+            Stage::Ecs(_) => None,
+            Stage::Render(_) => None,
+            Stage::Async(_) => None,
+            Stage::EcsWhile(stage) => Some(stage.wait_sender.clone()),
+            Stage::RenderWhile(stage) => Some(stage.wait_sender.clone()),
+        }
+    }
+
+    pub fn get_completion_sender(&self) -> Sender<StageCompletionMessage> {
+        match self {
+            Stage::Ecs(stage) => stage.completion_sender.clone(),
+            Stage::Render(stage) => stage.completion_sender.clone(),
+            Stage::Async(stage) => stage.completion_sender.clone(),
+            Stage::EcsWhile(stage) => stage.completion_sender.clone(),
+            Stage::RenderWhile(stage) => stage.completion_sender.clone(),
+        }
+    }
+
+    pub fn get_failure_sender(&self) -> Option<Sender<StageFailureMessage>> {
+        match self {
+            Stage::Ecs(stage) => stage.failure_sender.clone(),
+            Stage::Render(stage) => stage.failure_sender.clone(),
+            Stage::Async(stage) => stage.failure_sender.clone(),
+            Stage::EcsWhile(stage) => stage.failure_sender.clone(),
+            Stage::RenderWhile(stage) => stage.failure_sender.clone(),
+        }
+    }
+}
+
+pub struct StageEcs {
+    pub index: usize,
+    pub name: &'static str,
+    pub stage_signature: StageSignature,
+    pub handle_ecs_run_response: Box<
+        dyn FnMut(
+                &'static str,
+                &'static str,
+                Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+                Sender<StageCompletionMessage>,
+                Option<Sender<StageFailureMessage>>,
+            ) -> Box<dyn FnOnce(StageEcs) + Send + Sync>
+            + Send
+            + Sync,
+    >,
+    pub completion_sender: Sender<StageCompletionMessage>,
+    pub failure_sender: Option<Sender<StageFailureMessage>>,
+}
+
+pub struct StageRender {
+    pub index: usize,
+    pub name: &'static str,
+    pub stage_signature: StageSignature,
+    pub handle_render_run_response: Box<
+        dyn FnMut(
+                &'static str,
+                &'static str,
+                Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+                Sender<StageCompletionMessage>,
+                Option<Sender<StageFailureMessage>>,
+            ) -> Box<dyn FnOnce(StageRender) + Send + Sync>
+            + Send
+            + Sync,
+    >,
+    pub completion_sender: Sender<StageCompletionMessage>,
+    pub failure_sender: Option<Sender<StageFailureMessage>>,
+}
+
+pub struct StageAsync {
+    pub index: usize,
+    pub name: &'static str,
+    pub stage_signature: StageSignature,
+    pub handle_async_run_response: Box<
+        dyn FnMut(
+                &'static str,
+                &'static str,
+                Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+                Sender<StageCompletionMessage>,
+                Option<Sender<StageFailureMessage>>,
+            ) -> Box<dyn FnOnce(StageAsync) + Send + Sync>
+            + Send
+            + Sync,
+    >,
+    pub completion_sender: Sender<StageCompletionMessage>,
+    pub failure_sender: Option<Sender<StageFailureMessage>>,
+}
+
+pub struct StageEcsWhile {
+    pub index: usize,
+    pub name: &'static str,
+    pub stage_signature: StageSignature,
+    pub handle_ecs_while_setup_response: Box<
+        dyn FnMut(
+                &'static str,
+                &'static str,
+                Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+                Sender<StageSetupMessage>,
+                Option<Sender<StageFailureMessage>>,
+            ) -> Box<dyn FnOnce(StageEcsWhile) + Send + Sync>
+            + Send
+            + Sync,
+    >,
+    pub handle_ecs_while_run_response: Box<
+        dyn FnMut(
+                &'static str,
+                &'static str,
+                Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+                Sender<StageWaitMessage>,
+                Sender<StageCompletionMessage>,
+                Option<Sender<StageFailureMessage>>,
+            ) -> Box<dyn FnOnce(StageEcsWhile) + Send + Sync>
+            + Send
+            + Sync,
+    >,
+    pub setup_sender: Sender<StageSetupMessage>,
+    pub wait_sender: Sender<StageWaitMessage>,
+    pub completion_sender: Sender<StageCompletionMessage>,
+    pub failure_sender: Option<Sender<StageFailureMessage>>,
+}
+
+pub struct StageRenderWhile {
+    pub index: usize,
+    pub name: &'static str,
+    pub stage_signature: StageSignature,
+    pub handle_render_while_setup_response: Box<
+        dyn FnMut(
+                &'static str,
+                &'static str,
+                Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+                Sender<StageSetupMessage>,
+                Option<Sender<StageFailureMessage>>,
+            ) -> Box<dyn FnOnce(StageRenderWhile) + Send + Sync>
+            + Send
+            + Sync,
+    >,
+    pub handle_render_while_run_response: Box<
+        dyn FnMut(
+                &'static str,
+                &'static str,
+                Option<crate::utils::premium_box::AnySendSyncPremiumBox>,
+                Sender<StageWaitMessage>,
+                Sender<StageCompletionMessage>,
+                Option<Sender<StageFailureMessage>>,
+            ) -> Box<dyn FnOnce(StageRenderWhile) + Send + Sync>
+            + Send
+            + Sync,
+    >,
+    pub setup_sender: Sender<StageSetupMessage>,
+    pub wait_sender: Sender<StageWaitMessage>,
+    pub completion_sender: Sender<StageCompletionMessage>,
+    pub failure_sender: Option<Sender<StageFailureMessage>>,
+}

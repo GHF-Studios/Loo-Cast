@@ -1,0 +1,11 @@
+{
+    "statNames": [
+        "Stamina",
+        "Endurance",
+        "Vitality",
+        "Recovery"
+    ],
+    "level": 0,
+    "maxLevel": 0,
+    "proposedLevelChange": 0
+}

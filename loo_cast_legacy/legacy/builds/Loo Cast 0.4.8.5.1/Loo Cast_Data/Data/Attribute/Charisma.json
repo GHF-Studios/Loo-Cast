@@ -1,0 +1,10 @@
+{
+    "statNames": [
+        "Presence",
+        "Charm",
+        "Social"
+    ],
+    "level": 0,
+    "maxLevel": 0,
+    "proposedLevelChange": 0
+}

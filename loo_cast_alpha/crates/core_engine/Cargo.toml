@@ -1,0 +1,12 @@
+[package]
+name = "core_engine"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "core_engine"
+path = "src/main.rs"
+
+[dependencies]
+base_mod = { path = "../base_mod", features = ["init_api", "allow_premium_box"] }
+core_mod = { path = "../core_mod", features = ["init_api", "allow_premium_box"] }

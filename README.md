@@ -1,1 +1,2 @@
-# Loo-Cast
+ONLY `loo_cast_alpha` IS CURRENTLY RELEVANT!
+`loo_cast_legacy` IS NOT AUTHORITATIVE! IT IS A MUSEUM AND READ-ONLY!

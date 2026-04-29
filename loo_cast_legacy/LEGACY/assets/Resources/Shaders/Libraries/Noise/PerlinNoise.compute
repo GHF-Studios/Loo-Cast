@@ -1,0 +1,60 @@
+#include "../Math/Random.compute"
+
+float sampleRawNoise(float3 x)
+{
+    // The noise function returns a value in the range -1.0f -> 1.0f
+    float3 p = floor(x);
+    float3 f = frac(x);
+
+    f       = f*f*(3.0-2.0*f);
+    float n = p.x + p.y*57.0 + 113.0*p.z;
+
+    return lerp(lerp(lerp( hash(n+0.0), hash(n+1.0),f.x),
+                   lerp( hash(n+57.0), hash(n+58.0),f.x),f.y),
+               lerp(lerp( hash(n+113.0), hash(n+114.0),f.x),
+                   lerp( hash(n+170.0), hash(n+171.0),f.x),f.y),f.z);
+}
+
+float sampleNoise(float x, float y, uint seed, float frequency, int octaves, float persistence, float lacunarity, float amplitude)
+{
+    float2 octaveOffsets[8];
+    for (int i = 0; i < octaves; i++)
+    {
+        float octaveOffsetX = sampleRandomInRange(-100000, 100000);
+        float octaveOffsetY = sampleRandomInRange(-100000, 1000000);
+        octaveOffsets[i] = float2(octaveOffsetX, octaveOffsetY);
+    }
+
+    if (frequency <= 0)
+    {
+        frequency = 0.0001f;
+    }
+
+    float sampleAmplitude = 1.0f;
+    float sampleFrequency = 1.0f;
+    float noiseHeight = 0.0f;
+
+    for (int j = 0; j < octaves; j++)
+    {
+        float sampleX = ((x + octaveOffsets[i].x) / frequency) * sampleFrequency;
+        float sampleY = ((y + octaveOffsets[i].y) / frequency) * sampleFrequency;
+        float sampleZ = sampleRandomInRange(-100000, 100000);
+
+        noiseHeight += sampleRawNoise(float3(sampleX, sampleY, sampleZ)) * sampleAmplitude;
+
+        sampleAmplitude *= persistence;
+        sampleFrequency *= lacunarity;
+    }
+
+    float maxNoiseAmplitude = 0.0f;
+    float noiseAmplitude = 1.0f;
+    for (int k = 0; k < octaves; k++)
+    {
+        maxNoiseAmplitude += noiseAmplitude;
+        noiseAmplitude *= persistence;
+    }
+    
+    maxNoiseAmplitude *= 1 / amplitude;
+    noiseHeight = inverseLerp(-maxNoiseAmplitude, maxNoiseAmplitude, noiseHeight);
+    return noiseHeight;
+}

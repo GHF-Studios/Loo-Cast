@@ -1,0 +1,61 @@
+@startuml
+title Atlas Conventions - Relation Grammar and Status Tags
+left to right direction
+hide empty members
+
+class "Relation Verb Set" as VerbSet {
+  +defines
+  +constrains
+  +drives
+  +depends_on
+  +realizes
+  +materializes
+  +emits
+  +validates
+  +freezes
+  +commits
+}
+
+class "Confidence Tag" as Confidence {
+  +high
+  +medium
+  +low
+  +uncertain
+}
+
+class "Diagram Node" as NodeA
+class "Diagram Node" as NodeB
+class "Edge Label Rule" as Rule {
+  +format = "verb + payload + directional preposition"
+  +example = "emits typed intents via Capability Runtime Domain"
+  +ban = "unlabeled or destination-implicit structural edges"
+}
+
+class "Decision Contract Rule" as DecisionRule {
+  +source = "50_decision_contracts.puml"
+  +status = "normative for scripting atlas"
+}
+
+NodeA -[#1E88E5]-> NodeB : defines contract boundary for NodeB [high]
+VerbSet -[#1E88E5]-> Rule : constrains edge vocabulary within authoring rules
+Confidence -[#1E88E5]-> Rule : annotates certainty level within edge labels
+Rule -[#1E88E5]-> NodeA : constrains authoring style within diagram nodes
+DecisionRule -[#1E88E5]-> Rule : constrains relation semantics across atlas
+
+legend right
+  Conventions:
+  - Label structural edges with explicit verbs.
+  - Prefer "verb + payload + destination context" edge text.
+  - Include a directional preposition (`to`, `in`, `via`, `within`, `across`) where meaningful.
+  - <color:#1E88E5>Blue</color> = constraints / definition authority.
+  - <color:#43A047>Green</color> = data and intent flow in runtime state.
+  - <color:#FB8C00>Orange</color> = control/orchestration progression.
+  - <color:#8E24AA>Purple</color> = feedback/return flow back to caller context.
+  - <color:#E53935>Red</color> = failure or panic path.
+  - <color:#00897B>Teal</color> = structure projection/materialization links.
+  - Add confidence in brackets when uncertain.
+  - Use stereotypes only for design certainty, not for type category.
+  - Keep sequence/activity labels action-oriented.
+  - Decision contracts in `50_decision_contracts.puml` are normative.
+endlegend
+@enduml
