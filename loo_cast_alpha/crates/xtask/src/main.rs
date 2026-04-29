@@ -13,7 +13,7 @@ use crate::commands::gource::run_gource;
 use crate::commands::help::print_help;
 use crate::commands::package::package;
 use crate::commands::run::run;
-use crate::commands::setup_git_hooks::setup_git_hooks;
+use crate::commands::setup_sdk::setup_sdk;
 use crate::utils::build_target::BuildTarget;
 use crate::utils::profile::Profile;
 
@@ -55,7 +55,7 @@ fn main() -> Result<()> {
         "run_fastdev" => run(&sh, &root, Profile::Fastdev)?,
         "run_release" => run(&sh, &root, Profile::Release)?,
         "audit" => audit(&root)?,
-        "setup_git_hooks" => setup_git_hooks(&root)?,
+        "setup_sdk" => setup_sdk(&root)?,
         "cloc" => run_cloc(&root)?,
         "gource" => run_gource(&root)?,
         "deploy" => deploy_stub(),

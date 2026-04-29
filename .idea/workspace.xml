@@ -41,10 +41,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4dcf2329-f34f-4671-9aca-23b5a23283b3" name="Changes" comment="xtask: switch to setup_git_hooks, add TOML-driven audit steps, and strip direct deps">
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/Cargo.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/bevy_consumable_message/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/bevy_consumable_message/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/bevy_consumable_message/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/bevy_consumable_message/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/build.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/build.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/help.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/help.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/mod.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/setup_git_hooks.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/main.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -284,15 +287,7 @@
       <workItem from="1777330519315" duration="115000" />
       <workItem from="1777366010323" duration="26431000" />
       <workItem from="1777460586294" duration="736000" />
-      <workItem from="1777462023923" duration="13706000" />
-    </task>
-    <task id="LOCAL-00019" summary="stuff (du hond)">
-      <option name="closed" value="true" />
-      <created>1775887849936</created>
-      <option name="number" value="00019" />
-      <option name="presentableId" value="LOCAL-00019" />
-      <option name="project" value="LOCAL" />
-      <updated>1775887849936</updated>
+      <workItem from="1777462023923" duration="14776000" />
     </task>
     <task id="LOCAL-00020" summary="stuff (du hond)">
       <option name="closed" value="true" />
@@ -678,7 +673,15 @@
       <option name="project" value="LOCAL" />
       <updated>1777487447378</updated>
     </task>
-    <option name="localTasksCounter" value="68" />
+    <task id="LOCAL-00068" summary="xtask: switch to setup_git_hooks, add TOML-driven audit steps, and strip direct deps">
+      <option name="closed" value="true" />
+      <created>1777487618302</created>
+      <option name="number" value="00068" />
+      <option name="presentableId" value="LOCAL-00068" />
+      <option name="project" value="LOCAL" />
+      <updated>1777487618302</updated>
+    </task>
+    <option name="localTasksCounter" value="69" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

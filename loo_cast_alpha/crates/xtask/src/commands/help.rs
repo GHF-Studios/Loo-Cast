@@ -21,7 +21,7 @@ Commands:
   run_fastdev
   run_release
   audit
-  setup_git_hooks
+  setup_sdk
   cloc
   gource
   deploy"

@@ -6,4 +6,4 @@ pub mod gource;
 pub mod help;
 pub mod package;
 pub mod run;
-pub mod setup_git_hooks;
+pub mod setup_sdk;
