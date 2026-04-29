@@ -40,14 +40,11 @@
     </cargoProject>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4dcf2329-f34f-4671-9aca-23b5a23283b3" name="Changes" comment="xtask: switch to setup_git_hooks, add TOML-driven audit steps, and strip direct deps">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    <list default="true" id="4dcf2329-f34f-4671-9aca-23b5a23283b3" name="Changes" comment="xtask: consolidate setup commands under setup_sdk">
       <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/bevy_consumable_message/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/bevy_consumable_message/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/audit_steps.toml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/audit.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/audit.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/build.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/build.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/help.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/help.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/setup_git_hooks.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/main.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -287,15 +284,7 @@
       <workItem from="1777330519315" duration="115000" />
       <workItem from="1777366010323" duration="26431000" />
       <workItem from="1777460586294" duration="736000" />
-      <workItem from="1777462023923" duration="14776000" />
-    </task>
-    <task id="LOCAL-00020" summary="stuff (du hond)">
-      <option name="closed" value="true" />
-      <created>1775913099242</created>
-      <option name="number" value="00020" />
-      <option name="presentableId" value="LOCAL-00020" />
-      <option name="project" value="LOCAL" />
-      <updated>1775913099242</updated>
+      <workItem from="1777462023923" duration="15459000" />
     </task>
     <task id="LOCAL-00021" summary="stuff (du hond)">
       <option name="closed" value="true" />
@@ -681,7 +670,15 @@
       <option name="project" value="LOCAL" />
       <updated>1777487618302</updated>
     </task>
-    <option name="localTasksCounter" value="69" />
+    <task id="LOCAL-00069" summary="xtask: consolidate setup commands under setup_sdk">
+      <option name="closed" value="true" />
+      <created>1777493759542</created>
+      <option name="number" value="00069" />
+      <option name="presentableId" value="LOCAL-00069" />
+      <option name="project" value="LOCAL" />
+      <updated>1777493759543</updated>
+    </task>
+    <option name="localTasksCounter" value="70" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -700,7 +697,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CHECK_NEW_TODO" value="false" />
-    <MESSAGE value="Some ai stuff and now some manual stuff" />
     <MESSAGE value="stuff (du hond)" />
     <MESSAGE value="stuff (du hond) (effektiv gegen 100% fett, jetzt bei deiner Volksbank nicht erhältlich)" />
     <MESSAGE value="Big yap" />
@@ -725,7 +721,8 @@
     <MESSAGE value="feat: add issue and PR templates" />
     <MESSAGE value="potential AI hallucinations; we'll leave it in for now" />
     <MESSAGE value="xtask: switch to setup_git_hooks, add TOML-driven audit steps, and strip direct deps" />
-    <option name="LAST_COMMIT_MESSAGE" value="xtask: switch to setup_git_hooks, add TOML-driven audit steps, and strip direct deps" />
+    <MESSAGE value="xtask: consolidate setup commands under setup_sdk" />
+    <option name="LAST_COMMIT_MESSAGE" value="xtask: consolidate setup commands under setup_sdk" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="NON_MODAL_COMMIT_POSTPONE_SLOW_CHECKS" value="false" />
   </component>
