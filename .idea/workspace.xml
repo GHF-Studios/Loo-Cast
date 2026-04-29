@@ -40,12 +40,24 @@
     </cargoProject>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4dcf2329-f34f-4671-9aca-23b5a23283b3" name="Changes" comment="WIP Modding SDK &amp; High-Level Project Structure">
+    <list default="true" id="4dcf2329-f34f-4671-9aca-23b5a23283b3" name="Changes" comment="feat: add issue and PR templates">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/launcher/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/launcher/src/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/docs/CONTRACTS.md" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/docs/CONTRACTS.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/build.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/build.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/cloc.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/cloc.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/deploy.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/deploy.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/gource.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/gource.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/help.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/help.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/mod.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/package.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/package.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/run.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/commands/run.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/build_target.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/build_target.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/fs.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/fs.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/git.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/git.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/mod.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/profile.rs" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/crates/xtask/src/utils/profile.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/loo_cast_alpha/docs/DECISIONS.md" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/docs/DECISIONS.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loo_cast_alpha/docs/NOW.md" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/docs/NOW.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/loo_cast_alpha/docs/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/docs/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/loo_cast_alpha/docs/WORKFLOWS.md" beforeDir="false" afterPath="$PROJECT_DIR$/loo_cast_alpha/docs/WORKFLOWS.md" afterDir="false" />
     </list>
@@ -55,7 +67,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="7616" />
+    <option name="cachedIndexableFilesCount" value="7646" />
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="RsBuildProfile:dev" />
   <component name="FileTemplateManagerImpl">
@@ -107,41 +119,41 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Cargo.Build base_mod.executor&quot;: &quot;Run&quot;,
-    &quot;Cargo.fetch [loo_cast_alpha].executor&quot;: &quot;Run&quot;,
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.rust.reset.selective.auto.import&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;SHELLCHECK.PATH&quot;: &quot;/home/leslieghf/.local/share/JetBrains/RustRover2025.3/Shell Script/shellcheck&quot;,
-    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
-    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;develop&quot;,
-    &quot;js.buildTools.grunt.grunt-cli.package&quot;: &quot;&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/leslieghf/Documents/GitHub/Loo-Cast/loo_cast_alpha/crates/core_engine&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;org.rust.cargo.project.model.PROJECT_DISCOVERY&quot;: &quot;true&quot;,
-    &quot;org.rust.cargo.project.model.impl.CargoExternalSystemProjectAware.subscribe.first.balloon&quot;: &quot;&quot;,
-    &quot;org.rust.disableDetachedFileInspection/home/leslieghf/Documents/GitHub/Loo-Cast/loo_cast_alpha/crates/xtask/src/main.rs&quot;: &quot;true&quot;,
-    &quot;org.rust.first.attach.projects&quot;: &quot;true&quot;,
-    &quot;org.rust.hideNoCargoProjectNotifications/home/leslieghf/Documents/GitHub/Loo-Cast/loo_cast_alpha/Cargo.toml&quot;: &quot;true&quot;,
-    &quot;org.rust.hideNoCargoProjectNotifications/home/leslieghf/Documents/GitHub/Loo-Cast/loo_cast_alpha/crates/xtask/src/main.rs&quot;: &quot;true&quot;,
-    &quot;org.rust.hideNoCargoProjectNotifications/home/leslieghf/Documents/GitHub/Loo-Cast/loo_cast_legacy/Cargo.toml&quot;: &quot;true&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;ml.llm.LLMThirdPartyAiProvidersConfigurable&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Cargo.Build base_mod.executor": "Run",
+    "Cargo.fetch [loo_cast_alpha].executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.rust.reset.selective.auto.import": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "SHELLCHECK.PATH": "/home/leslieghf/.local/share/JetBrains/RustRover2025.3/Shell Script/shellcheck",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "develop",
+    "js.buildTools.grunt.grunt-cli.package": "",
+    "junie.onboarding.icon.badge.shown": "true",
+    "last_opened_file_path": "/home/leslieghf/Documents/GitHub/Loo-Cast/loo_cast_alpha/crates/core_engine",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "org.rust.cargo.project.model.PROJECT_DISCOVERY": "true",
+    "org.rust.cargo.project.model.impl.CargoExternalSystemProjectAware.subscribe.first.balloon": "",
+    "org.rust.disableDetachedFileInspection/home/leslieghf/Documents/GitHub/Loo-Cast/loo_cast_alpha/crates/xtask/src/main.rs": "true",
+    "org.rust.first.attach.projects": "true",
+    "org.rust.hideNoCargoProjectNotifications/home/leslieghf/Documents/GitHub/Loo-Cast/loo_cast_alpha/Cargo.toml": "true",
+    "org.rust.hideNoCargoProjectNotifications/home/leslieghf/Documents/GitHub/Loo-Cast/loo_cast_alpha/crates/xtask/src/main.rs": "true",
+    "org.rust.hideNoCargoProjectNotifications/home/leslieghf/Documents/GitHub/Loo-Cast/loo_cast_legacy/Cargo.toml": "true",
+    "settings.editor.selected.configurable": "fileTemplates",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/loo_cast_alpha/crates/core_engine" />
@@ -151,11 +163,11 @@
       <recent name="$PROJECT_DIR$/loo_cast_alpha/crates/base_mod_macros" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/loo_cast_alpha/docs" />
       <recent name="$PROJECT_DIR$/loo_cast_alpha/crates/engine" />
       <recent name="$PROJECT_DIR$/loo_cast_alpha/crates/util" />
       <recent name="$PROJECT_DIR$/loo_cast_alpha/crates" />
       <recent name="$PROJECT_DIR$/loo_cast_alpha/built_in_crates/lib/third_party_continued" />
-      <recent name="$PROJECT_DIR$/loo_cast_alpha/third_party_crates" />
     </key>
   </component>
   <component name="RunManager">
@@ -286,30 +298,8 @@
       <workItem from="1777328003316" duration="14000" />
       <workItem from="1777330519315" duration="115000" />
       <workItem from="1777366010323" duration="26431000" />
-    </task>
-    <task id="LOCAL-00014" summary="Stuff">
-      <option name="closed" value="true" />
-      <created>1775741645350</created>
-      <option name="number" value="00014" />
-      <option name="presentableId" value="LOCAL-00014" />
-      <option name="project" value="LOCAL" />
-      <updated>1775741645350</updated>
-    </task>
-    <task id="LOCAL-00015" summary="Stuff">
-      <option name="closed" value="true" />
-      <created>1775751475923</created>
-      <option name="number" value="00015" />
-      <option name="presentableId" value="LOCAL-00015" />
-      <option name="project" value="LOCAL" />
-      <updated>1775751475923</updated>
-    </task>
-    <task id="LOCAL-00016" summary="Some ai stuff and now some manual stuff">
-      <option name="closed" value="true" />
-      <created>1775878562637</created>
-      <option name="number" value="00016" />
-      <option name="presentableId" value="LOCAL-00016" />
-      <option name="project" value="LOCAL" />
-      <updated>1775878562637</updated>
+      <workItem from="1777460586294" duration="736000" />
+      <workItem from="1777462023923" duration="11437000" />
     </task>
     <task id="LOCAL-00017" summary="stuff (du hond)">
       <option name="closed" value="true" />
@@ -679,7 +669,31 @@
       <option name="project" value="LOCAL" />
       <updated>1777410622580</updated>
     </task>
-    <option name="localTasksCounter" value="63" />
+    <task id="LOCAL-00063" summary="WIP Modding SDK &amp; High-Level Project Structure">
+      <option name="closed" value="true" />
+      <created>1777412768461</created>
+      <option name="number" value="00063" />
+      <option name="presentableId" value="LOCAL-00063" />
+      <option name="project" value="LOCAL" />
+      <updated>1777412768461</updated>
+    </task>
+    <task id="LOCAL-00064" summary="docs: add CHANGELOG, and CONTRIBUTING">
+      <option name="closed" value="true" />
+      <created>1777476041818</created>
+      <option name="number" value="00064" />
+      <option name="presentableId" value="LOCAL-00064" />
+      <option name="project" value="LOCAL" />
+      <updated>1777476041820</updated>
+    </task>
+    <task id="LOCAL-00065" summary="feat: add issue and PR templates">
+      <option name="closed" value="true" />
+      <created>1777482184033</created>
+      <option name="number" value="00065" />
+      <option name="presentableId" value="LOCAL-00065" />
+      <option name="project" value="LOCAL" />
+      <updated>1777482184033</updated>
+    </task>
+    <option name="localTasksCounter" value="66" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -697,9 +711,7 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <option name="CHECK_CODE_SMELLS_BEFORE_PROJECT_COMMIT" value="false" />
     <option name="CHECK_NEW_TODO" value="false" />
-    <MESSAGE value="Updated temporary rename/refactor docs" />
     <MESSAGE value="Did some stuff" />
     <MESSAGE value="Works better" />
     <MESSAGE value="Some ai stuff and now some manual stuff" />
@@ -723,7 +735,10 @@
     <MESSAGE value="Davif" />
     <MESSAGE value="David" />
     <MESSAGE value="WIP Modding SDK &amp; High-Level Project Structure" />
-    <option name="LAST_COMMIT_MESSAGE" value="WIP Modding SDK &amp; High-Level Project Structure" />
+    <MESSAGE value="docs: add CHANGELOG, and CONTRIBUTING" />
+    <MESSAGE value="feat: add issue and PR templates" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: add issue and PR templates" />
+    <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
     <option name="NON_MODAL_COMMIT_POSTPONE_SLOW_CHECKS" value="false" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">

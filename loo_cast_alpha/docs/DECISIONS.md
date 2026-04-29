@@ -12,3 +12,5 @@ Format: `Date | Status | Decision | Reason`
 - 2026-04-28 | Active | Define published version as immutable tag + artifacts + distribution channel. | Remove ambiguity between commits and releases.
 - 2026-04-28 | Active | Use semver pre-release tags (`-rc.N`, `-beta.N`) for non-stable publishes. | Support staged release validation.
 - 2026-04-28 | Active | Use CODEOWNERS for contracts and first-party mod surface. | Enforce ownership at review time.
+- 2026-04-29 | Active | Use lightweight RFC workflow for major design changes. | Keep architecture decisions explicit
+  before implementation.

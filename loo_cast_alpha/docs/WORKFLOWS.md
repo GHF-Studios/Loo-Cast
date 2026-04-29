@@ -35,8 +35,9 @@ Breaking change flow:
 1. Bump target published version per `CONTRACTS.md`.
 2. Update affected contract definitions.
 3. Add migration guide at `docs/migrations/<from>-to-<to>.md`.
-4. Record decision in `DECISIONS.md`.
-5. Validate build/package/run before release.
+4. Draft/update RFC in `docs/RFCS/` for design rationale.
+5. Record decision in `DECISIONS.md`.
+6. Validate build/package/run before release.
 
 Publish flow (stable):
 
