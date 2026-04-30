@@ -1,0 +1,83 @@
+name: Phase Child Issue
+description: Track one scoped work item under a milestone phase
+title: "[PHASE-X][TASK] "
+labels:
+  - "type:phase-task"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use one child issue per concrete work item.
+        Optional mock ID format: `P2-T03` (Phase 2, Task 03).
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Phase
+      options:
+        - Phase 1
+        - Phase 2
+        - Phase 3
+        - Phase 4
+        - Phase 5
+    validations:
+      required: true
+  - type: input
+    id: work_item_id
+    attributes:
+      label: Work Item ID (Optional)
+      description: Planning ID used before real issue numbers exist.
+      placeholder: P2-T03
+    validations:
+      required: false
+  - type: input
+    id: tracking_issue_link
+    attributes:
+      label: Parent Tracking Issue Link
+      description: Link to `[PHASE-X][TRACK]` issue.
+      placeholder: https://github.com/OWNER/REPO/issues/123
+    validations:
+      required: true
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: One concrete outcome for this issue.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance_checklist
+    attributes:
+      label: Acceptance Checklist
+      placeholder: |
+        - [ ] Check 1
+        - [ ] Check 2
+    validations:
+      required: true
+  - type: textarea
+    id: evidence_links
+    attributes:
+      label: Evidence Links
+      description: Links to PRs/commits/test runs/docs.
+      placeholder: |
+        - PR: <link>
+        - Tests: <link>
+        - Docs: <link>
+    validations:
+      required: false
+  - type: dropdown
+    id: contract_impact
+    attributes:
+      label: Contract Impact
+      options:
+        - none
+        - non-breaking
+        - breaking
+    validations:
+      required: true
+  - type: textarea
+    id: next_action
+    attributes:
+      label: Next Action
+      description: Immediate next executable step.
+    validations:
+      required: true

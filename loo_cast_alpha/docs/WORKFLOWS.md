@@ -53,6 +53,32 @@ Publish flow (pre-release):
 3. Build immutable artifacts from that tag.
 4. Push artifacts to non-stable channel.
 
+GitHub phase workflow (built-in/free features):
+
+1. Milestones are manual descriptions. Use `.github/MILESTONE_TEMPLATE/phase_milestone.md` as copy/paste source when creating or editing a milestone.
+2. Phase issue creation uses issue forms in `.github/ISSUE_TEMPLATE/`:
+   - `phase_tracking_issue.yml` with title prefix `[PHASE-X][TRACK]`
+   - `phase_child_issue.yml` with title prefix `[PHASE-X][TASK]`
+   - `phase_gate_issue.yml` with title prefix `[GATE][PHASE-X]`
+   - blank issues are disabled for non-maintainers via `.github/ISSUE_TEMPLATE/config.yml`
+3. Gate decision is canonical only in `phase_gate_issue.yml`. Any note in the tracking issue is a mirror only.
+4. Optional planning IDs before real issue numbers exist:
+   - `P1-T01` (Phase 1, task 01)
+   - `P3-T12` (Phase 3, task 12)
+5. Recommended labels:
+   - `type:phase-tracking`
+   - `type:phase-task`
+   - `type:phase-gate`
+   - `phase:1`, `phase:2`, `phase:3`, `phase:4`, `phase:5`
+
+Pull request template workflow:
+
+1. Default/non-phase PRs use `.github/PULL_REQUEST_TEMPLATE.md`.
+2. Phase-linked PRs use `.github/PULL_REQUEST_TEMPLATE/phase_work.md`.
+3. Use GitHub `template=` query parameter when opening phase-linked PRs. Example:
+   - `.../compare/main...<branch>?quick_pull=1&template=phase_work.md`
+4. PRs may exist outside phases. If a PR is phase-linked, it must include phase issue linkage and evidence.
+
 RFC trigger rule (minimum):
 
 1. RFC required for contract changes.

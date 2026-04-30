@@ -1,3 +1,6 @@
+> Use this default template for non-phase PRs.  
+> For phase-linked PRs, use `.github/PULL_REQUEST_TEMPLATE/phase_work.md`.
+
 ## Description
 
 Brief description of changes.
