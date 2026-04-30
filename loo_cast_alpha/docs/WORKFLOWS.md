@@ -83,9 +83,9 @@ GitHub phase workflow (built-in/free features):
 1. Milestones are lightweight containers. Use `.github/MILESTONE_TEMPLATE/phase_milestone.md` as copy/paste source when
    creating or editing a milestone.
 2. Phase issue creation uses issue forms in `.github/ISSUE_TEMPLATE/`:
-   - `phase_tracking_issue.yml` with title prefix `[PHASE-X][TRACK]`
-   - `phase_child_issue.yml` with title prefix `[PHASE-X][TASK]`
-   - `phase_gate_issue.yml` with title prefix `[GATE][PHASE-X]`
+   - `phase_tracking_issue.yml` for phase tracking issues
+   - `phase_child_issue.yml` for phase task issues
+   - `phase_gate_issue.yml` for phase gate issues
    - blank issues are disabled for non-maintainers via `.github/ISSUE_TEMPLATE/config.yml`
 3. Authority split:
    - Milestone: lightweight phase summary and links.

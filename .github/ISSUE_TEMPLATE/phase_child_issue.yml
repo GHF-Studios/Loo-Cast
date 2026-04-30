@@ -1,6 +1,6 @@
 name: Phase Child Issue
 description: Track one scoped work item under a milestone phase
-title: "[PHASE-X][TASK] "
+title: "P1-T01 "
 labels:
   - "type:phase-task"
 body:
@@ -33,7 +33,7 @@ body:
     id: tracking_issue_link
     attributes:
       label: Parent Tracking Issue Link
-      description: Link to `[PHASE-X][TRACK]` issue.
+      description: Link to the phase tracking issue.
       placeholder: https://github.com/OWNER/REPO/issues/123
     validations:
       required: true

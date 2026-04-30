@@ -31,5 +31,5 @@ Exit summary:
 
 Tracking linkage:
 
-- Phase tracking issue: TBD (`[PHASE-X][TRACK]` issue from `.github/ISSUE_TEMPLATE/phase_tracking_issue.yml`)
-- Gate issue: TBD (`[GATE][PHASE-X]` issue from `.github/ISSUE_TEMPLATE/phase_gate_issue.yml`)
+- Phase tracking issue: TBD (issue from `.github/ISSUE_TEMPLATE/phase_tracking_issue.yml`)
+- Gate issue: TBD (issue from `.github/ISSUE_TEMPLATE/phase_gate_issue.yml`)

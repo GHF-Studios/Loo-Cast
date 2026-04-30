@@ -1,4 +1,4 @@
-Title: \[PHASE-4\]\[TRACK\] Phase 4: Vertical-Slice Restoration
+Title: Phase 4: Vertical-Slice Restoration
 Labels: type:phase-tracking, phase:4
 
 Phase Name:
