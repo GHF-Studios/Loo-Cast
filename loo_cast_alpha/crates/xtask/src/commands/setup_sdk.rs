@@ -32,23 +32,33 @@ impl SetupSdk<'_> {
         let hooks_dir = git_dir.join("hooks");
         fs::create_dir_all(&hooks_dir).with_context(|| format!("failed to create '{}'", hooks_dir.display()))?;
 
-        let pre_push_hook = hooks_dir.join("pre-push");
-        if pre_push_hook.exists() {
-            fs::remove_file(&pre_push_hook).with_context(|| format!("failed to remove '{}'", pre_push_hook.display()))?;
+        self.install_hook(&hooks_dir, "pre-commit", "cargo fmt --manifest-path loo_cast_alpha/Cargo.toml --all\n")?;
+        self.install_hook(
+            &hooks_dir,
+            "pre-push",
+            "cargo run --manifest-path loo_cast_alpha/Cargo.toml -p xtask -- audit\n",
+        )?;
+        Ok(())
+    }
+
+    fn install_hook(&self, hooks_dir: &Path, hook_name: &str, hook_contents: &str) -> Result<()> {
+        let hook_path = hooks_dir.join(hook_name);
+        if hook_path.exists() {
+            fs::remove_file(&hook_path).with_context(|| format!("failed to remove '{}'", hook_path.display()))?;
         }
-        fs::write(&pre_push_hook, "cargo xtask audit\n").with_context(|| format!("failed to write '{}'", pre_push_hook.display()))?;
+        fs::write(&hook_path, hook_contents).with_context(|| format!("failed to write '{}'", hook_path.display()))?;
 
         #[cfg(unix)]
         {
-            let mut permissions = fs::metadata(&pre_push_hook)
-                .with_context(|| format!("failed to read permissions for '{}'", pre_push_hook.display()))?
+            let mut permissions = fs::metadata(&hook_path)
+                .with_context(|| format!("failed to read permissions for '{}'", hook_path.display()))?
                 .permissions();
             permissions.set_mode(0o755);
-            fs::set_permissions(&pre_push_hook, permissions).with_context(|| format!("failed to set execute permissions on '{}'", pre_push_hook.display()))?;
+            fs::set_permissions(&hook_path, permissions).with_context(|| format!("failed to set execute permissions on '{}'", hook_path.display()))?;
         }
 
-        println!("installed pre-push hook: {}", pre_push_hook.display());
-        println!("hook command: cargo xtask audit");
+        println!("installed {hook_name} hook: {}", hook_path.display());
+        println!("hook command: {}", hook_contents.trim_end());
         Ok(())
     }
 }

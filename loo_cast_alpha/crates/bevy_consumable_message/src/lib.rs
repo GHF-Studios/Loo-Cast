@@ -96,7 +96,7 @@ impl<M: Message> ConsumableMessages<M> {
 
     /// Sends a list of `messages` all at once, which can later be [`read`]. This is
     /// more efficient than sending each message individually.
-    pub fn send_batch(&mut self, messages: impl IntoIterator<Item=M>) {
+    pub fn send_batch(&mut self, messages: impl IntoIterator<Item = M>) {
         self.extend(messages);
     }
 
@@ -132,7 +132,7 @@ impl<M: Message> ConsumableMessages<M> {
 impl<M: Message> Extend<M> for ConsumableMessages<M> {
     fn extend<I>(&mut self, iter: I)
     where
-        I: IntoIterator<Item=M>,
+        I: IntoIterator<Item = M>,
     {
         self.messages.extend(iter.into_iter().map(|message| Some(message)));
     }
@@ -198,7 +198,7 @@ impl<'w, M: Message> ConsumableMessageWriter<'w, M> {
 
     /// Sends a list of `messages` all at once, which can later be [`read`]. This is
     /// more efficient than sending each message individually.
-    pub fn send_batch(&mut self, messages: impl IntoIterator<Item=M>) {
+    pub fn send_batch(&mut self, messages: impl IntoIterator<Item = M>) {
         self.messages.send_batch(messages);
     }
 
@@ -246,7 +246,7 @@ impl<'w, M: Message> ConsumableMessageReader<'w, M> {
     }
 
     /// Reads all unconsumed messages, consuming them all along the way.
-    pub fn read_and_consume_all(&mut self) -> impl Iterator<Item=M> + '_ {
+    pub fn read_and_consume_all(&mut self) -> impl Iterator<Item = M> + '_ {
         // TODO: The lifetime bounds of this function are wrong. Rust 2024 edition
         // fixes this, but for now, this will most likely be fine.
         self.messages.read().map(|message| message.consume())

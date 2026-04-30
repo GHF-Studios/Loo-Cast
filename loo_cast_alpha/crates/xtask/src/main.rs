@@ -3,6 +3,7 @@ mod utils;
 
 use anyhow::{Context, Result, bail};
 use std::env;
+use std::path::PathBuf;
 use xshell::Shell;
 
 use crate::commands::audit::audit;
@@ -23,9 +24,18 @@ const XTASK_CRATE: &str = "xtask";
 const LINUX_RELEASE_TARGET: &str = "x86_64-unknown-linux-gnu";
 const WINDOWS_RELEASE_TARGET: &str = "x86_64-pc-windows-msvc";
 
+fn workspace_root() -> Result<PathBuf> {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    manifest_dir
+        .parent()
+        .and_then(|path| path.parent())
+        .map(PathBuf::from)
+        .with_context(|| format!("failed to resolve workspace root from CARGO_MANIFEST_DIR='{}'", manifest_dir.display()))
+}
+
 fn main() -> Result<()> {
     let sh = Shell::new().context("failed to create shell")?;
-    let root = env::current_dir().context("failed to get current directory")?;
+    let root = workspace_root()?;
     sh.change_dir(&root);
 
     let mut args = env::args().skip(1);

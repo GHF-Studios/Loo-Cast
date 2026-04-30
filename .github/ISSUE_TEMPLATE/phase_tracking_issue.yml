@@ -1,0 +1,133 @@
+name: Phase Tracking Issue
+description: Track one full milestone phase with entry/scope/exit gates
+title: "[PHASE-X][TRACK] "
+labels:
+  - "type:phase-tracking"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this issue as the single tracking source for one phase.
+        Canonical gate decision is recorded in `phase_gate_issue.yml`; this issue only mirrors it.
+        Optional mock IDs for planning: `P1-T01`, `P2-T03`, `P4-T12`.
+  - type: input
+    id: phase_name
+    attributes:
+      label: Phase Name
+      description: "Example: Phase 3: Alpha Spine and Release Proof"
+      placeholder: "Phase N: Short Name"
+    validations:
+      required: true
+  - type: input
+    id: phase_number
+    attributes:
+      label: Phase Number
+      description: Used for title/tag alignment and label selection.
+      placeholder: "1"
+    validations:
+      required: true
+  - type: input
+    id: milestone_link
+    attributes:
+      label: Milestone Link
+      description: Link to the GitHub milestone for this phase.
+      placeholder: https://github.com/OWNER/REPO/milestone/1
+    validations:
+      required: true
+  - type: input
+    id: owner
+    attributes:
+      label: Owner / Final Decider
+      placeholder: "@handle"
+    validations:
+      required: true
+  - type: textarea
+    id: purpose
+    attributes:
+      label: Purpose
+      description: Why this phase exists.
+      placeholder: 1-3 lines
+    validations:
+      required: true
+  - type: textarea
+    id: entry_criteria
+    attributes:
+      label: Entry Criteria
+      description: Required preconditions before phase execution.
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Concrete in-scope deliverables.
+      placeholder: |
+        - [ ] Deliverable 1
+        - [ ] Deliverable 2
+        - [ ] Deliverable 3
+    validations:
+      required: true
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of Scope
+      description: Explicit non-goals.
+      placeholder: |
+        - Non-goal 1
+        - Non-goal 2
+    validations:
+      required: true
+  - type: textarea
+    id: done_means
+    attributes:
+      label: Done Means
+      description: Objective completion conditions.
+      placeholder: |
+        - [ ] Condition 1
+        - [ ] Condition 2
+        - [ ] Condition 3
+    validations:
+      required: true
+  - type: textarea
+    id: linked_child_issues
+    attributes:
+      label: Linked Child Issues
+      description: Add links to issues created from `phase_child_issue.yml`.
+      placeholder: |
+        - #123
+        - #124
+    validations:
+      required: false
+  - type: textarea
+    id: exit_evidence_packet
+    attributes:
+      label: Exit Evidence Packet
+      description: Track required evidence before gate closure.
+      value: |
+        - [ ] Tracking issue link present
+        - [ ] All closed child issue links present
+        - [ ] Implementation artifact links present (PR/commit)
+        - [ ] Validation artifact links present (CI/tests/benchmarks when required)
+        - [ ] Documentation update links present
+        - [ ] Gate issue linked (`phase_gate_issue.yml`)
+    validations:
+      required: true
+  - type: input
+    id: gate_issue_link
+    attributes:
+      label: Gate Issue Link
+      description: Link to the `[GATE][PHASE-X]` issue.
+      placeholder: https://github.com/OWNER/REPO/issues/123
+    validations:
+      required: false
+  - type: textarea
+    id: gate_note_mirror
+    attributes:
+      label: Gate Note Mirror (Non-Canonical)
+      description: Optional one-line mirror from the gate issue decision.
+      placeholder: "Phase X complete; unlock Phase Y."
+    validations:
+      required: false
