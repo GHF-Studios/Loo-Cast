@@ -1,6 +1,6 @@
 name: Phase Tracking Issue
 description: Track one full milestone phase with entry/scope/exit gates
-title: "[PHASE-X][TRACK] "
+title: "Phase N: "
 labels:
   - "type:phase-tracking"
 body:
@@ -151,7 +151,7 @@ body:
     id: gate_issue_link
     attributes:
       label: Gate Issue Link
-      description: Link to the `[GATE][PHASE-X]` issue.
+      description: Link to the phase gate issue.
       placeholder: https://github.com/OWNER/REPO/issues/123
     validations:
       required: false

@@ -1,4 +1,4 @@
-Title: \[PHASE-3\]\[TRACK\] Phase 3: Alpha Spine and Release Proof
+Title: Phase 3: Alpha Spine and Release Proof
 Labels: type:phase-tracking, phase:3
 
 Phase Name:

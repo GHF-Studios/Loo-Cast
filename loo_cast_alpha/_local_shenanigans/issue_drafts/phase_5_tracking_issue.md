@@ -1,4 +1,4 @@
-Title: \[PHASE-5\]\[TRACK\] Phase 5: Boundary Hardening and SDK/API Finalization
+Title: Phase 5: Boundary Hardening and SDK/API Finalization
 Labels: type:phase-tracking, phase:5
 
 Phase Name:

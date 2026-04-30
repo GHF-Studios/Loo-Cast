@@ -1,4 +1,4 @@
-Title: \[PHASE-2\]\[TRACK\] Phase 2: Legacy Truth Map and USF/SDK Executable Plan
+Title: Phase 2: Legacy Truth Map and USF/SDK Executable Plan
 Labels: type:phase-tracking, phase:2
 
 Phase Name:
