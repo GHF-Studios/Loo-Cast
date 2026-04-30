@@ -52,3 +52,11 @@ Publish flow (pre-release):
 2. Create tag `vX.Y.Z-rc.N` (or `-beta.N`).
 3. Build immutable artifacts from that tag.
 4. Push artifacts to non-stable channel.
+
+RFC trigger rule (minimum):
+
+1. RFC required for contract changes.
+2. RFC required for crate-boundary policy changes.
+3. RFC required for major USF runtime model changes.
+4. RFC required for irreversible migration decisions.
+5. RFC optional for local refactors that do not alter contracts or boundaries.
