@@ -24,9 +24,13 @@ GitHub Actions audit rail:
 
 1. `.github/workflows/audit.yml` runs `cargo xtask audit` on pull requests, pushes to `main`, and manual dispatch.
 2. The workflow uses standard Linux GitHub-hosted runners only and uploads no artifacts.
-3. For zero-cost mode, keep the repository public or attach a self-hosted runner before relying on private-repository
+3. The workflow restores Cargo registry, Cargo git, and `target/` caches before audit. The runner VM itself is
+   disposable; only explicit caches survive between runs.
+4. Cache hits can reuse Cargo downloads and compatible build/incremental artifacts, but source/toolchain/config changes
+   can still trigger recompilation.
+5. For zero-cost mode, keep the repository public or attach a self-hosted runner before relying on private-repository
    workflow runs.
-4. Local hooks remain required even when GitHub Actions is enabled.
+6. Local hooks remain required even when GitHub Actions is enabled.
 
 Mod author loop (current):
 

@@ -65,7 +65,12 @@ Done Means:
 
 Linked Child Issues:
 
-- [ ] (add links after child issue creation)
+- [ ] P1-T01 draft: `loo_cast_alpha/_local_shenanigans/issue_drafts/phase_1_child_p1_t01_docs_baseline.md`
+- [ ] P1-T02 draft: `loo_cast_alpha/_local_shenanigans/issue_drafts/phase_1_child_p1_t02_xtask_hooks.md`
+- [ ] P1-T03 draft: `loo_cast_alpha/_local_shenanigans/issue_drafts/phase_1_child_p1_t03_github_actions_audit.md`
+- [ ] P1-T04 draft: `loo_cast_alpha/_local_shenanigans/issue_drafts/phase_1_child_p1_t04_templates_labels_codeowners.md`
+- [ ] P1-T05 draft: `loo_cast_alpha/_local_shenanigans/issue_drafts/phase_1_child_p1_t05_fresh_clone_rehearsal.md`
+- [ ] P1-T06 draft: `loo_cast_alpha/_local_shenanigans/issue_drafts/phase_1_child_p1_t06_release_targets.md`
 
 Exit Evidence Packet:
 
