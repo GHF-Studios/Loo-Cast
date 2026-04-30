@@ -6,8 +6,9 @@ Read order:
 2. `ARCHITECTURE.md` (stable boundaries)
 3. `CONTRACTS.md` (compatibility promises + version policy)
 4. `WORKFLOWS.md` (how to do things)
-5. `RFCS/` (design proposals before major changes)
-6. `DECISIONS.md` (why things changed)
+5. `AI_COLLABORATION.md` (prompt template for supervised AI work)
+6. `RFCS/` (design proposals before major changes)
+7. `DECISIONS.md` (why things changed)
 
 Rules:
 
