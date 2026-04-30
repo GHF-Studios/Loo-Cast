@@ -15,7 +15,7 @@
 ## Code Style
 
 - Follow Rust standard style. The pre-commit hook runs `cargo fmt`.
-- No clippy warnings. `cargo xtask audit` runs clippy with `-D warnings`.
+- No clippy warnings in workspace code. `cargo xtask audit` runs clippy with `--no-deps` and `-D warnings`.
 - Add tests for new features
 - Document public APIs
 

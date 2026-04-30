@@ -19,7 +19,7 @@ Acceptance Checklist:
 - [ ] `pre-commit` hook formats the alpha workspace
 - [ ] `pre-push` hook runs `cargo xtask audit`
 - [ ] Generated hook scripts fail on command errors
-- [ ] `cargo xtask audit` checks formatting, clippy warnings, and tests
+- [ ] `cargo xtask audit` checks workspace formatting, workspace clippy with `--no-deps`, and workspace lib/bin tests
 - [ ] Hook behavior is documented in `WORKFLOWS.md` and `CONTRIBUTING.md`
 
 Evidence Links:

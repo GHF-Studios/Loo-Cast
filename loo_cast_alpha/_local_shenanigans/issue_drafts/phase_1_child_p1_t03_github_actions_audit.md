@@ -21,6 +21,7 @@ Acceptance Checklist:
 - [ ] Workflow installs required system and Rust toolchain components for the alpha workspace
 - [ ] Workflow restores Cargo registry/git and `target/` caches before audit
 - [ ] Workflow uploads no artifacts by default
+- [ ] Workflow audit does not lint dependencies or run dependency tests
 - [ ] `WORKFLOWS.md` documents private-repo minute posture and local hooks as the first guardrail
 - [ ] At least one successful workflow run or documented local runner run is linked before Phase 1 gate closure
 

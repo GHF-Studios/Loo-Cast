@@ -16,9 +16,11 @@ Support tools:
 Local validation rails:
 
 1. `cargo xtask setup_sdk` installs git hooks.
-2. `pre-commit` runs `cargo fmt --manifest-path loo_cast_alpha/Cargo.toml --all` and writes formatting changes to disk.
-3. `pre-push` runs `cargo run --manifest-path loo_cast_alpha/Cargo.toml -p xtask -- audit`.
-4. `cargo xtask audit` checks formatting, clippy warnings, and tests.
+   a. `pre-commit` runs `cargo fmt --manifest-path loo_cast_alpha/Cargo.toml --all` and writes formatting changes to
+   disk.
+   b. `pre-push` runs `cargo run --manifest-path loo_cast_alpha/Cargo.toml -p xtask -- audit`.
+   2`cargo xtask audit` checks workspace formatting, lints workspace targets with `--no-deps`, and runs workspace
+   library/binary tests.
 
 GitHub Actions audit rail:
 

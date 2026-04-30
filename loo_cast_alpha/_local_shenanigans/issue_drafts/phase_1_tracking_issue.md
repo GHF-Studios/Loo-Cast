@@ -31,8 +31,8 @@ Scope:
 - [ ] `xtask` remains the canonical local entrypoint for build/package/run/audit/setup tasks
 - [ ] `cargo xtask setup_sdk` hook behavior is documented and validated (`pre-commit` formats, `pre-push` audits)
 - [ ] GitHub Actions audit workflow exists for pull requests, pushes to `main`, and manual dispatch
-- [ ] Remote/self-hosted validation runs the same audit surface as local `cargo xtask audit` (`cargo fmt --check`,
-  `cargo clippy -- -D warnings`, `cargo test`)
+- [ ] Remote/self-hosted validation runs the same audit surface as local `cargo xtask audit` (`cargo fmt --all --check`,
+  `cargo clippy --workspace --all-targets --no-deps -- -D warnings`, `cargo test --workspace --lib --bins`)
 - [ ] Zero-cost validation posture is documented (public GitHub-hosted Linux or self-hosted runner; no required
   artifacts)
 - [ ] PR and issue templates include required fields for objective, acceptance, and evidence

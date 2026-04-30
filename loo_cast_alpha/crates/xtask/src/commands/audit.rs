@@ -12,17 +12,17 @@ const AUDIT_STEPS: &[AuditStep] = &[
     AuditStep {
         name: "Formatting check",
         program: "cargo",
-        args: &["fmt", "--check"],
+        args: &["fmt", "--all", "--check"],
     },
     AuditStep {
         name: "Clippy lint check",
         program: "cargo",
-        args: &["clippy", "--", "-D", "warnings"],
+        args: &["clippy", "--workspace", "--all-targets", "--no-deps", "--", "-D", "warnings"],
     },
     AuditStep {
-        name: "Tests",
+        name: "Workspace tests",
         program: "cargo",
-        args: &["test"],
+        args: &["test", "--workspace", "--lib", "--bins"],
     },
 ];
 
