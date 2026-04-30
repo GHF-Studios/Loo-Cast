@@ -14,9 +14,7 @@ Brief description of changes.
 ## Checklist
 
 - [ ] Tests added/updated
-- [ ] `cargo fmt` run
-- [ ] `cargo clippy` passing
-- [ ] All tests passing
+- [ ] `cargo xtask audit` passing
 - [ ] Documentation updated
 
 ## Related Issues

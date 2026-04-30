@@ -1,6 +1,6 @@
 # NOW
 
-Date: 2026-04-28
+Date: 2026-04-30
 
 Current direction:
 
@@ -13,7 +13,9 @@ Current direction:
 
 Current scope:
 
-- Primary tasks: `build`, `package`, `run`, `cloc`, `gource`.
+- Primary tasks: `setup_sdk`, `build`, `package`, `run`, `audit`, `cloc`, `gource`.
+- Local hooks are the first validation rail: pre-commit formats, pre-push audits.
+- GitHub Actions mirrors `cargo xtask audit` as a low-maintenance remote validation rail.
 - No SDK/toolchain redistribution layer right now.
 - No dual-repo automation right now.
 - Compatibility policy is defined in `CONTRACTS.md`.
