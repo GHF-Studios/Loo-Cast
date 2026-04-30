@@ -69,9 +69,9 @@ body:
     attributes:
       label: Contract Impact
       options:
-        - none
-        - non-breaking
-        - breaking
+        - contract:none
+        - contract:non-breaking
+        - contract:breaking
     validations:
       required: true
   - type: textarea
