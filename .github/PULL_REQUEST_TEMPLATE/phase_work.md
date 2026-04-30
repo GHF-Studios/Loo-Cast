@@ -7,7 +7,6 @@ Concrete outcome this PR delivers for the phase.
 - Phase tracking issue: #
 - Phase child issue(s): #
 - Gate issue (if applicable): #
-- Work item ID (optional): `P2-T03`
 
 ## Acceptance Criteria
 

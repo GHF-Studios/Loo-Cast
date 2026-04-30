@@ -1,6 +1,6 @@
 name: Phase Child Issue
 description: Track one scoped work item under a milestone phase
-title: "P1-T01 "
+title: ""
 labels:
   - "type:phase-task"
 body:
@@ -8,7 +8,6 @@ body:
     attributes:
       value: |
         Use one child issue per concrete work item.
-        Optional mock ID format: `P2-T03` (Phase 2, Task 03).
   - type: dropdown
     id: phase
     attributes:
@@ -21,14 +20,6 @@ body:
         - Phase 5
     validations:
       required: true
-  - type: input
-    id: work_item_id
-    attributes:
-      label: Work Item ID (Optional)
-      description: Planning ID used before real issue numbers exist.
-      placeholder: P2-T03
-    validations:
-      required: false
   - type: input
     id: tracking_issue_link
     attributes:

@@ -10,7 +10,6 @@ body:
         Use this issue as the single tracking source for one phase.
         The milestone should stay lightweight; this issue is the living authority while the phase is open.
         Canonical gate decision is recorded in `phase_gate_issue.yml`; this issue only mirrors it.
-        Optional mock IDs for planning: `P1-T01`, `P2-T03`, `P4-T12`.
   - type: input
     id: phase_name
     attributes:
@@ -107,10 +106,10 @@ body:
     id: child_issue_buckets
     attributes:
       label: Child Issue Buckets
-      description: Planned child issue groups or mock IDs before real issue numbers exist.
+      description: Planned child issue groups before real issue numbers exist.
       placeholder: |
-        - [ ] P2-T01: Work item
-        - [ ] P2-T02: Work item
+        - [ ] Work item
+        - [ ] Work item
     validations:
       required: false
   - type: textarea

@@ -93,10 +93,7 @@ GitHub phase workflow (built-in/free features):
    - Child issues: concrete executable work.
    - Gate issue: final exit decision and evidence record.
 4. Gate decision is canonical only in `phase_gate_issue.yml`. Any note in the tracking issue is a mirror only.
-5. Optional planning IDs before real issue numbers exist:
-   - `P1-T01` (Phase 1, task 01)
-   - `P3-T12` (Phase 3, task 12)
-6. Recommended labels are listed in `.github/labels.yml`:
+5. Recommended labels are listed in `.github/labels.yml`:
    - `type:phase-tracking`
    - `type:phase-task`
    - `type:phase-gate`
