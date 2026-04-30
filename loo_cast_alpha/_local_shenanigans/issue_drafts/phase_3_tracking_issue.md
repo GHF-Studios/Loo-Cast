@@ -1,4 +1,4 @@
-Title: [PHASE-3][TRACK] Phase 3: Alpha Spine and Release Proof
+Title: \[PHASE-3\]\[TRACK\] Phase 3: Alpha Spine and Release Proof
 Labels: type:phase-tracking, phase:3
 
 Phase Name:
@@ -12,6 +12,10 @@ https://github.com/OWNER/REPO/milestone/3
 
 Owner / Final Decider:
 @leslieghf
+
+Authority:
+This tracking issue is the living authority for Phase 3 while the phase is open. The milestone is only a lightweight
+summary. The gate issue is the canonical final exit decision.
 
 Purpose:
 Implement the minimum real USF runtime spine in `loo_cast_alpha`, prove core runtime claims, and prove the release smoke
@@ -32,6 +36,17 @@ Scope:
 - [ ] Release smoke path runbook is completed (tagging, artifact build, Steam dry-run checklist, rollback steps)
 - [ ] One full release smoke run is executed with linked evidence
 - [ ] Phase 3 tracking issue has linked child issues
+
+Child Issue Buckets:
+
+- [ ] P3-T01: Typed entrypoint contract
+- [ ] P3-T02: Deterministic bootstrap sequence
+- [ ] P3-T03: Canonical vs derived state boundary
+- [ ] P3-T04: Initial named capability bridge set
+- [ ] P3-T05: Determinism scenarios and evidence
+- [ ] P3-T06: Observability baseline
+- [ ] P3-T07: Release smoke path runbook
+- [ ] P3-T08: Release smoke run evidence and Phase 4 gap conversion
 
 Out of Scope:
 

@@ -2,14 +2,31 @@
 
 Daily developer loop:
 
-1. `cargo xtask build`
-2. `cargo xtask package`
-3. `cargo xtask run`
+1. `cargo xtask setup_sdk` once per clone.
+2. `cargo xtask build`
+3. `cargo xtask package`
+4. `cargo xtask run`
 
 Support tools:
 
+- `cargo xtask audit`
 - `cargo xtask cloc`
 - `cargo xtask gource`
+
+Local validation rails:
+
+1. `cargo xtask setup_sdk` installs git hooks.
+2. `pre-commit` runs `cargo fmt --manifest-path loo_cast_alpha/Cargo.toml --all` and writes formatting changes to disk.
+3. `pre-push` runs `cargo run --manifest-path loo_cast_alpha/Cargo.toml -p xtask -- audit`.
+4. `cargo xtask audit` checks formatting, clippy warnings, and tests.
+
+GitHub Actions audit rail:
+
+1. `.github/workflows/audit.yml` runs `cargo xtask audit` on pull requests, pushes to `main`, and manual dispatch.
+2. The workflow uses standard Linux GitHub-hosted runners only and uploads no artifacts.
+3. For zero-cost mode, keep the repository public or attach a self-hosted runner before relying on private-repository
+   workflow runs.
+4. Local hooks remain required even when GitHub Actions is enabled.
 
 Mod author loop (current):
 
@@ -27,8 +44,10 @@ Composition loop:
 Contract-safe change flow:
 
 1. Change engine/mod code without breaking `CONTRACTS.md`.
-2. Run `cargo xtask build`, `cargo xtask package`, `cargo xtask run`.
-3. Update docs only if behavior/workflow changed.
+2. Let pre-commit format changed Rust files.
+3. Run `cargo xtask build`, `cargo xtask package`, `cargo xtask run`.
+4. Run `cargo xtask audit` before pushing.
+5. Update docs only if behavior/workflow changed.
 
 Breaking change flow:
 
@@ -55,21 +74,29 @@ Publish flow (pre-release):
 
 GitHub phase workflow (built-in/free features):
 
-1. Milestones are manual descriptions. Use `.github/MILESTONE_TEMPLATE/phase_milestone.md` as copy/paste source when creating or editing a milestone.
+1. Milestones are lightweight containers. Use `.github/MILESTONE_TEMPLATE/phase_milestone.md` as copy/paste source when
+   creating or editing a milestone.
 2. Phase issue creation uses issue forms in `.github/ISSUE_TEMPLATE/`:
    - `phase_tracking_issue.yml` with title prefix `[PHASE-X][TRACK]`
    - `phase_child_issue.yml` with title prefix `[PHASE-X][TASK]`
    - `phase_gate_issue.yml` with title prefix `[GATE][PHASE-X]`
    - blank issues are disabled for non-maintainers via `.github/ISSUE_TEMPLATE/config.yml`
-3. Gate decision is canonical only in `phase_gate_issue.yml`. Any note in the tracking issue is a mirror only.
-4. Optional planning IDs before real issue numbers exist:
+3. Authority split:
+   - Milestone: lightweight phase summary and links.
+   - Tracking issue: living authority while the phase is open.
+   - Child issues: concrete executable work.
+   - Gate issue: final exit decision and evidence record.
+4. Gate decision is canonical only in `phase_gate_issue.yml`. Any note in the tracking issue is a mirror only.
+5. Optional planning IDs before real issue numbers exist:
    - `P1-T01` (Phase 1, task 01)
    - `P3-T12` (Phase 3, task 12)
-5. Recommended labels:
+6. Recommended labels are listed in `.github/labels.yml`:
    - `type:phase-tracking`
    - `type:phase-task`
    - `type:phase-gate`
    - `phase:1`, `phase:2`, `phase:3`, `phase:4`, `phase:5`
+   - `contract:none`, `contract:non-breaking`, `contract:breaking`
+   - `risk:blocker`, `risk:high`, `risk:medium`, `risk:low`
 
 Pull request template workflow:
 

@@ -1,4 +1,4 @@
-Title: [PHASE-4][TRACK] Phase 4: Vertical-Slice Restoration
+Title: \[PHASE-4\]\[TRACK\] Phase 4: Vertical-Slice Restoration
 Labels: type:phase-tracking, phase:4
 
 Phase Name:
@@ -12,6 +12,10 @@ https://github.com/OWNER/REPO/milestone/4
 
 Owner / Final Decider:
 @leslieghf
+
+Authority:
+This tracking issue is the living authority for Phase 4 while the phase is open. The milestone is only a lightweight
+summary. The gate issue is the canonical final exit decision.
 
 Purpose:
 Restore prioritized legacy functionality through small vertical slices that must satisfy predefined acceptance gates
@@ -30,6 +34,17 @@ Scope:
 - [ ] Decoupling work discovered during slice integration may be deferred only via explicit debt issue (owner + target
   phase)
 - [ ] Phase 4 tracking issue has linked child issues and slice status
+
+Slice Status Table:
+
+| Slice ID | Risk class | Dependency parents | Child issue | PR/evidence | Status |
+|----------|------------|--------------------|-------------|-------------|--------|
+| TBD      | TBD        | TBD                | TBD         | TBD         | TBD    |
+
+Child Issue Buckets:
+
+- [ ] P4-T01+: One child issue per prioritized restoration slice
+- [ ] P4-DEBT-01+: One child issue per explicitly deferred debt item
 
 Out of Scope:
 

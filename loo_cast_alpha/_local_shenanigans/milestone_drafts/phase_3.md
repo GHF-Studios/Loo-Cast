@@ -8,42 +8,27 @@ Gate-based (unlocked only after Phase 2 gate issue decision note).
 
 Description =>
 
+Authority note:
+This milestone is a lightweight phase container. The Phase 3 tracking issue is the living authority while the phase is
+open. The gate issue is the final exit decision record.
+
 Purpose:
 Implement the minimum real USF runtime spine in `loo_cast_alpha`, prove core runtime claims, and prove the release smoke
 path.
 
-Entry criteria:
+Summary scope:
 
-- [ ] Phase 2 gate issue decision note linked in Phase 2 tracking issue
+- [ ] Minimal typed USF runtime spine boots and runs in alpha
+- [ ] Deterministic bootstrap, state boundary, capability bridge, and observability baseline are proven
+- [ ] Release smoke path is documented and executed once with evidence
 
-Scope:
+Exit summary:
 
-- [ ] Typed entrypoint contract is implemented and documented (inputs, outputs, failure modes)
-- [ ] Deterministic bootstrap sequence is implemented and documented step-by-step
-- [ ] Canonical vs derived state boundary is implemented for the minimal spine path, including cache-rebuild rule
-- [ ] Initial capability bridge set is explicit and implemented (named channel families only; no "misc" bucket)
-- [ ] Determinism scenarios are defined and executed for the minimal spine
-- [ ] Observability baseline is implemented for bootstrap/runtime/contract failures
-- [ ] Release smoke path runbook is completed (tagging, artifact build, Steam dry-run checklist, rollback steps)
-- [ ] One full release smoke run is executed with linked evidence
-- [ ] Phase 3 tracking issue with linked child issues
-
-Out of scope:
-
-- Broad feature-parity migration
-- Broad capability surface completion
-- Final SDK/API exposure decisions
-
-Done means (all required):
-
-- [ ] Minimal USF spine boots and runs in alpha without ad-hoc/manual patch steps
-- [ ] Determinism scenarios pass with linked run evidence (test output or reproducible script output)
-- [ ] Release smoke run is reproducible from runbook with linked artifacts
-- [ ] Known gaps are converted to explicit Phase 4 issues with owners and acceptance checklists
-- [ ] Phase exit evidence packet is complete (see `.github/ISSUE_TEMPLATE/phase_gate_issue.yml`)
+- [ ] Determinism and release smoke evidence are linked from the tracking issue
+- [ ] Known gaps are converted to Phase 4 issues
+- [ ] Gate issue records final Phase 3 decision and unlocks Phase 4
 
 Tracking linkage:
 
-- Phase tracking issue: [link to `[PHASE-3][TRACK]` issue from `.github/ISSUE_TEMPLATE/phase_tracking_issue.yml`]
-- Child issues: [links to `[PHASE-3][TASK]` issues from `.github/ISSUE_TEMPLATE/phase_child_issue.yml`]
-- Gate issue: [link to `[GATE][PHASE-3]` issue from `.github/ISSUE_TEMPLATE/phase_gate_issue.yml`]
+- Phase tracking issue: TBD (`[PHASE-3][TRACK]` issue from `.github/ISSUE_TEMPLATE/phase_tracking_issue.yml`)
+- Gate issue: TBD (`[GATE][PHASE-3]` issue from `.github/ISSUE_TEMPLATE/phase_gate_issue.yml`)

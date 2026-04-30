@@ -1,5 +1,8 @@
-> Manual template note: GitHub milestones do not auto-apply repository templates.  
+> Manual template note: GitHub milestones do not auto-apply repository templates.
 > Copy/paste this structure into the milestone description field.
+>
+> Authority note: keep milestones lightweight. The phase tracking issue is the living authority while the phase is open.
+> The gate issue is the final exit decision record.
 
 Title =>
 
@@ -14,30 +17,19 @@ Description =>
 Purpose:
 [Why this phase exists]
 
-Entry criteria:
-
-- [ ] [Required prior gate issue decision note or dependency]
-
-Scope:
+Summary scope:
 
 - [ ] [Concrete in-scope deliverable 1]
 - [ ] [Concrete in-scope deliverable 2]
 - [ ] [Concrete in-scope deliverable 3]
 
-Out of scope:
-
-- [Explicit non-goal 1]
-- [Explicit non-goal 2]
-
-Done means (all required):
+Exit summary:
 
 - [ ] [Objective completion condition 1]
 - [ ] [Objective completion condition 2]
-- [ ] [Objective completion condition 3]
-- [ ] Phase exit evidence packet is complete (see `.github/ISSUE_TEMPLATE/phase_gate_issue.yml`)
+- [ ] Gate issue records final decision and evidence
 
 Tracking linkage:
 
-- Phase tracking issue: [link to `[PHASE-X][TRACK]` issue from `.github/ISSUE_TEMPLATE/phase_tracking_issue.yml`]
-- Child issues: [links to `[PHASE-X][TASK]` issues from `.github/ISSUE_TEMPLATE/phase_child_issue.yml`]
-- Gate issue: [link to `[GATE][PHASE-X]` issue from `.github/ISSUE_TEMPLATE/phase_gate_issue.yml`]
+- Phase tracking issue: TBD (`[PHASE-X][TRACK]` issue from `.github/ISSUE_TEMPLATE/phase_tracking_issue.yml`)
+- Gate issue: TBD (`[GATE][PHASE-X]` issue from `.github/ISSUE_TEMPLATE/phase_gate_issue.yml`)

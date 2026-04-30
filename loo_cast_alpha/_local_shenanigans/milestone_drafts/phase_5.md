@@ -8,37 +8,27 @@ Gate-based (unlocked only after Phase 4 gate issue decision note).
 
 Description =>
 
+Authority note:
+This milestone is a lightweight phase container. The Phase 5 tracking issue is the living authority while the phase is
+open. The gate issue is the final exit decision record.
+
 Purpose:
 Finish architecture hardening by enforcing boundaries in automation, closing planned decoupling work, and finalizing
 SDK/API contract posture.
 
-Entry criteria:
+Summary scope:
 
-- [ ] Phase 4 gate issue decision note linked in Phase 4 tracking issue
+- [ ] Boundary policy is enforced by automated checks
+- [ ] Cross-system decoupling targets and outstanding Phase 4 debt are reconciled
+- [ ] SDK/API candidate table is fully resolved for downstream modding work
 
-Scope:
+Exit summary:
 
-- [ ] Crate-boundary policy is encoded in automated checks that run in CI
-- [ ] Cross-system seams targeted for decoupling are listed explicitly and tracked to closure
-- [ ] SDK/API candidate table from Phase 2 is fully resolved (`keep-public` or `internalize`; no unresolved `defer`)
-- [ ] Documentation requirements are enforced for in-scope migrated crates (public module docs + workflow docs
-  alignment)
-- [ ] Outstanding Phase 4 debt is reconciled (closed or explicitly deferred with rationale)
-- [ ] Phase 5 tracking issue with linked child issues
-
-Out of scope:
-
-- New large feature work unrelated to architecture/contract hardening
-
-Done means (all required):
-
-- [ ] Boundary violations are caught by automated checks (not only by manual review)
-- [ ] Public SDK/API contract state is explicitly documented for downstream modding work
-- [ ] In-scope docs and quality gates are green in CI
-- [ ] Phase exit evidence packet is complete (see `.github/ISSUE_TEMPLATE/phase_gate_issue.yml`)
+- [ ] Boundary, documentation, and quality gates are green
+- [ ] Public SDK/API contract state is explicitly documented
+- [ ] Gate issue records final Phase 5 decision
 
 Tracking linkage:
 
-- Phase tracking issue: [link to `[PHASE-5][TRACK]` issue from `.github/ISSUE_TEMPLATE/phase_tracking_issue.yml`]
-- Child issues: [links to `[PHASE-5][TASK]` issues from `.github/ISSUE_TEMPLATE/phase_child_issue.yml`]
-- Gate issue: [link to `[GATE][PHASE-5]` issue from `.github/ISSUE_TEMPLATE/phase_gate_issue.yml`]
+- Phase tracking issue: TBD (`[PHASE-5][TRACK]` issue from `.github/ISSUE_TEMPLATE/phase_tracking_issue.yml`)
+- Gate issue: TBD (`[GATE][PHASE-5]` issue from `.github/ISSUE_TEMPLATE/phase_gate_issue.yml`)

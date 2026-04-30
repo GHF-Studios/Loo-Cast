@@ -1,4 +1,4 @@
-Title: [PHASE-5][TRACK] Phase 5: Boundary Hardening and SDK/API Finalization
+Title: \[PHASE-5\]\[TRACK\] Phase 5: Boundary Hardening and SDK/API Finalization
 Labels: type:phase-tracking, phase:5
 
 Phase Name:
@@ -12,6 +12,10 @@ https://github.com/OWNER/REPO/milestone/5
 
 Owner / Final Decider:
 @leslieghf
+
+Authority:
+This tracking issue is the living authority for Phase 5 while the phase is open. The milestone is only a lightweight
+summary. The gate issue is the canonical final exit decision.
 
 Purpose:
 Finish architecture hardening by enforcing boundaries in automation, closing planned decoupling work, and finalizing
@@ -30,6 +34,21 @@ Scope:
   alignment)
 - [ ] Outstanding Phase 4 debt is reconciled (closed or explicitly deferred with rationale)
 - [ ] Phase 5 tracking issue has linked child issues
+
+Hardening Registers:
+
+- [ ] Boundary policy check list
+- [ ] Cross-system decoupling target list
+- [ ] SDK/API candidate resolution table
+- [ ] Outstanding Phase 4 debt reconciliation table
+
+Child Issue Buckets:
+
+- [ ] P5-T01: Automated crate-boundary policy checks
+- [ ] P5-T02: Cross-system decoupling closure
+- [ ] P5-T03: SDK/API candidate table final resolution
+- [ ] P5-T04: Documentation enforcement for migrated crates
+- [ ] P5-T05: Phase 4 debt reconciliation
 
 Out of Scope:
 

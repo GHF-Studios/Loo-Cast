@@ -1,4 +1,4 @@
-Title: [GATE][PHASE-1] Complete
+Title: \[GATE\]\[PHASE-1\] Complete
 Labels: type:phase-gate, phase:1
 
 Phase:

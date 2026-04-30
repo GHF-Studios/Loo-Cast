@@ -1,0 +1,28 @@
+name: Audit
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: cargo xtask audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: loo_cast_alpha
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install nightly --profile minimal --component rustfmt,clippy
+
+      - name: Run audit
+        run: cargo xtask audit
