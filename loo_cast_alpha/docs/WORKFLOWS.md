@@ -91,6 +91,7 @@ Work modes:
 2. Unmanaged work is allowed for small, self-contained maintenance that does not need phase tracking.
 3. Every commit needs clear intent. For unmanaged work, the commit title/body is the primary record.
 4. Do not lock commit intent into a fixed prefix taxonomy until the repo has enough examples to justify one.
+5. When unsure whether work is phase-managed or unmanaged, prefer the path with clearer review evidence.
 
 Phase-managed work:
 
@@ -111,11 +112,27 @@ Phase-managed work:
 
 Unmanaged work:
 
-1. Small unmanaged work may be committed directly only when it is local, obvious, and low-risk.
-2. If unmanaged work needs review, evidence, or isolation, use both a short-lived branch and a pull request.
-3. Unmanaged PRs do not require a pre-existing issue, but the PR body must explain the change, scope, and validation.
-4. Incidental work found during phase-managed work stays in that phase branch only when it directly supports the phase
-   task. Otherwise, split it into unmanaged work.
+1. Unmanaged maintenance is small, self-contained work that does not need phase tracking, a milestone decision, or a
+   dedicated issue before starting.
+2. Direct commits are acceptable only when all of these are true:
+   - the change is local, obvious, and low-risk
+   - the commit title/body fully records the intent
+   - no review, isolation, or evidence trail would materially help
+   - the change does not alter contracts, workflow policy, release posture, branch/ruleset policy, or phase scope
+3. Use both a short-lived branch and a pull request when unmanaged work needs review, evidence, or isolation.
+4. Unmanaged PRs do not require a pre-existing issue, but the PR body must explain the change, scope, validation, and
+   issue relationship. Use `References`, `Advances`, and `Closes` when any issue is relevant.
+5. Convert work to phase-managed when it affects phase scope, phase evidence, milestone/gate decisions, contract policy,
+   GitHub workflow policy, or public project documentation posture.
+6. Incidental work found during phase-managed work stays in that phase branch only when it directly supports the phase
+   task. Otherwise, split it into unmanaged work or create a new phase child issue if it has process-tracking weight.
+7. Examples:
+   - docs typo or stale wording: direct commit if obvious; unmanaged branch+PR if wording changes policy or needs review
+   - broken wrapper scripts such as stale `build_sdk`/`clean_sdk` shims: phase-managed when tied to Phase 1 execution
+     rails, otherwise unmanaged branch+PR because validation evidence matters
+   - small tooling fix: unmanaged branch+PR when it changes commands, hooks, or validation behavior
+   - incidental finding during phase work: keep it only if it directly supports the current phase child issue; split it
+     otherwise
 
 GitHub phase workflow (built-in/free features):
 

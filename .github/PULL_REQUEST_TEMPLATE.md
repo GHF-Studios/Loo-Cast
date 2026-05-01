@@ -5,6 +5,13 @@
 
 Brief description of changes.
 
+For unmanaged maintenance, include:
+
+- scope:
+- why this does not need phase tracking:
+- validation evidence:
+- rollback note, if useful:
+
 ## Workflow Mode
 
 Choose one:
