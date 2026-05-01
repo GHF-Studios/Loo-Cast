@@ -130,9 +130,19 @@ GitHub phase workflow (built-in/free features):
    - Milestone: lightweight phase summary and links.
    - Tracking issue: living authority while the phase is open.
    - Child issues: concrete executable work.
-   - Gate issue: final exit decision and evidence record.
-4. Gate decision is canonical only in `phase_gate_issue.yml`. Any note in the tracking issue is a mirror only.
-5. Recommended labels are listed in `.github/labels.yml`:
+   - Gate issue: short final decision record.
+4. Gate decision is canonical only in `phase_gate_issue.yml`. Any note in the tracking issue is a mirror only. The gate
+   issue should summarize the decision, required evidence, waivers/deferred items, and final note; it should not repeat
+   the full tracking issue.
+5. In GitHub-rendered text, use bare references such as `#123` or `PR #123`. Do not duplicate issue or PR titles next
+   to references unless the text must stand alone outside GitHub.
+6. Tracking issue child checkboxes mean closed or explicitly deferred, not merely created or accepted into scope.
+7. PRs use issue relationship operators in this order:
+   - `References`: linked context; the PR does not directly complete acceptance criteria.
+   - `Advances`: partial work or evidence toward an issue; the issue remains open.
+   - `Closes`: full completion of the issue. Only this relationship may use GitHub auto-close keywords.
+8. PR templates include workflow-mode checkboxes. Choose one mode; GitHub Markdown cannot enforce radio-button behavior.
+9. Recommended labels are listed in `.github/labels.yml`:
    - `type:phase-tracking`
    - `type:phase-task`
    - `type:phase-gate`

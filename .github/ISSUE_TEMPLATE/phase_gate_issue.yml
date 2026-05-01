@@ -1,13 +1,14 @@
 name: Phase Gate Issue
-description: Close a phase with required evidence and unlock the next phase
-title: "Phase N Gate: Complete"
+description: Record the final decision for a phase
+title: "Phase N Gate"
 labels:
   - "type:phase-gate"
 body:
   - type: markdown
     attributes:
       value: |
-        This is the canonical gate decision record for a phase.
+        This is the canonical final decision record for a phase.
+        Keep this short. Do not duplicate the full tracking issue.
         Any gate note copied to the tracking issue is a mirror only.
   - type: dropdown
     id: phase
@@ -27,48 +28,29 @@ body:
     attributes:
       label: Tracking Issue Link
       description: Link to the phase tracking issue.
-      placeholder: https://github.com/OWNER/REPO/issues/123
+      placeholder: "#123"
     validations:
       required: true
   - type: textarea
-    id: closed_child_issues
+    id: decision
     attributes:
-      label: Closed Child Issues
-      description: Links to all closed phase task issues.
+      label: Decision
+      description: Final phase decision.
       placeholder: |
-        - #123
-        - #124
+        go / conditional go / hold / recycle
     validations:
       required: true
   - type: textarea
-    id: implementation_artifacts
+    id: required_evidence
     attributes:
-      label: Implementation Artifacts
-      description: PR/commit links.
+      label: Required Evidence
+      description: Bare links/references only; do not repeat issue or PR titles.
       placeholder: |
-        - PR: <link>
-        - Commit: <link>
-    validations:
-      required: true
-  - type: textarea
-    id: validation_artifacts
-    attributes:
-      label: Validation Artifacts
-      description: CI runs, test outputs, benchmark links when required.
-      placeholder: |
-        - CI: <link>
-        - Tests: <link>
-        - Benchmarks: <link or n/a>
-    validations:
-      required: true
-  - type: textarea
-    id: documentation_updates
-    attributes:
-      label: Documentation Updates
-      description: Links to docs changed in this phase.
-      placeholder: |
-        - docs/path.md
-        - docs/another-path.md
+        - Tracking issue: #123
+        - Child issues: #124, #125
+        - PRs/commits: PR #126
+        - Validation: <link or n/a>
+        - Docs: <path or n/a>
     validations:
       required: true
   - type: textarea
@@ -86,8 +68,8 @@ body:
   - type: textarea
     id: gate_decision_note
     attributes:
-      label: Gate Decision Note
-      description: Confirm completion and explicitly name the unlocked next phase.
+      label: Final Note
+      description: Short final note. Explicitly name the unlocked next phase when applicable.
       placeholder: "Phase X complete. Unlock Phase Y."
     validations:
       required: true

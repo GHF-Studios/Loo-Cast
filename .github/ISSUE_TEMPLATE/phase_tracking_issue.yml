@@ -126,7 +126,7 @@ body:
     id: linked_child_issues
     attributes:
       label: Linked Child Issues
-      description: Add links to issues created from `phase_child_issue.yml`.
+      description: Add links to issues created from `phase_child_issue.yml`. Leave checklist items unchecked until the child issue is closed or explicitly deferred.
       placeholder: |
         - #123
         - #124
