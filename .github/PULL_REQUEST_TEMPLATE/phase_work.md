@@ -8,6 +8,14 @@ Concrete outcome this PR delivers for the phase.
 - Phase child issue(s): #124
 - Gate issue (if applicable): #125
 
+## Workflow Mode
+
+Choose one:
+
+- [ ] phase-managed
+- [ ] unmanaged maintenance
+- [ ] process-policy
+
 ## Acceptance Criteria
 
 - [ ] Criterion 1
@@ -31,6 +39,8 @@ Concrete outcome this PR delivers for the phase.
 - [ ] `cargo xtask audit` passing
 - [ ] Documentation updated
 
-## Related Issues
+## Issue Relationship
 
-Closes #123
+- References: #123
+- Advances: #123
+- Closes: #123

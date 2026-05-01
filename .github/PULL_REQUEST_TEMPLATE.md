@@ -5,11 +5,15 @@
 
 Brief description of changes.
 
-## Type of Change
+## Workflow Mode
+
+Choose one:
 
 - [ ] Bug fix
 - [ ] New feature
 - [ ] Documentation update
+- [ ] Unmanaged maintenance
+- [ ] Process-policy
 
 ## Checklist
 
@@ -17,6 +21,8 @@ Brief description of changes.
 - [ ] `cargo xtask audit` passing
 - [ ] Documentation updated
 
-## Related Issues
+## Issue Relationship
 
-Closes #123
+- References: #123
+- Advances: #123
+- Closes: #123
