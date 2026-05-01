@@ -9,11 +9,16 @@ Brief description of changes.
 
 Choose one:
 
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Documentation update
 - [ ] Unmanaged maintenance
 - [ ] Process-policy
+- [ ] Other non-phase work
+
+## Change Kind
+
+- [ ] Bug fix
+- [ ] Feature/change
+- [ ] Documentation
+- [ ] Workflow/repository metadata
 
 ## Checklist
 

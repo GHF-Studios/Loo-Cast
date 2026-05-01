@@ -15,7 +15,11 @@ Current scope:
 
 - Primary tasks: `setup_sdk`, `build`, `package`, `run`, `audit`, `cloc`, `gource`.
 - `develop` is the active integration line; scoped topic branches merge into it through PRs.
+- `main` is protected by ruleset; `develop` discipline is process-enforced until Phase 0 decides whether to add a
+  ruleset.
 - Phase 0 bootstraps the workflow/process baseline before later alpha phase work relies on it.
+- GitHub labels are live repository metadata. There is no committed label manifest.
+- Required labels are applied manually until metadata automation exists.
 - Local hooks are the first validation rail: pre-commit formats, pre-push audits.
 - GitHub Actions mirrors `cargo xtask audit` as a low-maintenance remote validation rail.
 - No SDK/toolchain redistribution layer right now.

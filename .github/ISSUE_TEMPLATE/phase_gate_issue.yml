@@ -10,6 +10,7 @@ body:
         This is the canonical final decision record for a phase.
         Keep this short. Do not duplicate the full tracking issue.
         Any gate note copied to the tracking issue is a mirror only.
+        After creation, manually apply the matching `phase:N` label.
   - type: dropdown
     id: phase
     attributes:

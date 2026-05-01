@@ -16,6 +16,8 @@ Choose one:
 - [ ] unmanaged maintenance
 - [ ] process-policy
 
+GitHub Markdown cannot enforce radio-button behavior. Leave exactly one mode checked.
+
 ## Acceptance Criteria
 
 - [ ] Criterion 1
@@ -32,6 +34,8 @@ Choose one:
 - [ ] none
 - [ ] non-breaking
 - [ ] breaking
+
+Apply the matching contract label when applicable.
 
 ## Checklist
 
