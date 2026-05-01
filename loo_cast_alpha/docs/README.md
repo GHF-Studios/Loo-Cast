@@ -16,6 +16,7 @@ Rules:
 - Keep sections small.
 - Update `NOW.md` first when direction changes.
 - Keep compatibility definitions in `CONTRACTS.md`.
+- Keep durable workflow rules in `WORKFLOWS.md`, not only in issues, PRs, or milestones.
 - Keep ownership enforcement in `.github/CODEOWNERS`.
 - Use `RFCS/` for major design changes before implementation.
 - Record durable choices in `DECISIONS.md`.

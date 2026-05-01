@@ -142,13 +142,22 @@ GitHub phase workflow (built-in/free features):
    - `Advances`: partial work or evidence toward an issue; the issue remains open.
    - `Closes`: full completion of the issue. Only this relationship may use GitHub auto-close keywords.
 8. PR templates include workflow-mode checkboxes. Choose one mode; GitHub Markdown cannot enforce radio-button behavior.
-9. Recommended labels are listed in `.github/labels.yml`:
-   - `type:phase-tracking`
-   - `type:phase-task`
-   - `type:phase-gate`
-   - `phase:0`, `phase:1`, `phase:2`, `phase:3`, `phase:4`, `phase:5`
-   - `contract:none`, `contract:non-breaking`, `contract:breaking`
-   - `risk:blocker`, `risk:high`, `risk:medium`, `risk:low`
+9. Labels are live GitHub repository metadata, not a committed manifest. Until metadata automation exists, maintainers
+   apply labels manually when creating or triaging issues and PRs:
+   - exactly one type label for phase issues: `type:phase-tracking`, `type:phase-task`, or `type:phase-gate`
+   - the matching phase label: `phase:0`, `phase:1`, `phase:2`, `phase:3`, `phase:4`, or `phase:5`
+   - a contract label for child issues and PRs when applicable: `contract:none`, `contract:non-breaking`, or
+     `contract:breaking`
+   - risk labels only when useful for triage: `risk:blocker`, `risk:high`, `risk:medium`, or `risk:low`
+10. GitHub issue forms cannot derive labels from dropdown fields. Treat template notes as required maintainer actions
+    until a lightweight metadata automation path is accepted.
+
+Branch protection and rulesets:
+
+1. `main` is protected by a GitHub ruleset.
+2. `develop` is the active integration line. Until Phase 0 explicitly changes the repository ruleset posture, its
+   branch+PR discipline is process-enforced rather than ruleset-enforced.
+3. Phase 0 must either add protection for `develop` or record why lightweight solo integration remains intentional.
 
 Pull request template workflow:
 

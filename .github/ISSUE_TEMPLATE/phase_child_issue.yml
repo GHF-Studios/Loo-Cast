@@ -1,6 +1,5 @@
 name: Phase Child Issue
 description: Track one scoped work item under a milestone phase
-title: ""
 labels:
   - "type:phase-task"
 body:
@@ -8,6 +7,8 @@ body:
     attributes:
       value: |
         Use one child issue per concrete work item.
+        After creation, manually apply the matching `phase:N` label and the selected contract label.
+        GitHub issue forms cannot derive labels from dropdown fields.
   - type: dropdown
     id: phase
     attributes:

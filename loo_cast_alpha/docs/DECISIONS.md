@@ -20,3 +20,7 @@ Format: `Date | Status | Decision | Reason`
   relying on the phase system for later alpha work.
 - 2026-05-01 | Active | Treat `0.5.0` as alpha, `0.9.0` as beta, and `1.0.0` as stable commercial baseline. | Preserve
   project milestone meaning while acknowledging SemVer initial-development rules before `1.0.0`.
+- 2026-05-01 | Active | Treat GitHub labels as live repository metadata, not a committed manifest. | The GitHub CLI makes
+  live label inspection and edits practical; a stale manifest would add process weight without enough value.
+- 2026-05-01 | Active | Keep `develop` process-enforced until Phase 0 decides whether to add a ruleset. | Preserve solo
+  workflow flexibility while the branch/PR policy is still being tested.
