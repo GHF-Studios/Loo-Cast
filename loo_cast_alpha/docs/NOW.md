@@ -1,6 +1,6 @@
 # NOW
 
-Date: 2026-04-30
+Date: 2026-05-01
 
 Current direction:
 
@@ -14,12 +14,14 @@ Current direction:
 Current scope:
 
 - Primary tasks: `setup_sdk`, `build`, `package`, `run`, `audit`, `cloc`, `gource`.
+- `develop` is the active integration line; scoped topic branches merge into it through PRs.
+- Phase 0 bootstraps the workflow/process baseline before later alpha phase work relies on it.
 - Local hooks are the first validation rail: pre-commit formats, pre-push audits.
 - GitHub Actions mirrors `cargo xtask audit` as a low-maintenance remote validation rail.
 - No SDK/toolchain redistribution layer right now.
 - No dual-repo automation right now.
 - Compatibility policy is defined in `CONTRACTS.md`.
-- Breaking changes require a major bump + migration guide.
+- Breaking changes require a new published version + migration guide.
 
 Success for this phase:
 

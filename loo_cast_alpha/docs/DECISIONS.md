@@ -14,3 +14,9 @@ Format: `Date | Status | Decision | Reason`
 - 2026-04-28 | Active | Use CODEOWNERS for contracts and first-party mod surface. | Enforce ownership at review time.
 - 2026-04-29 | Active | Use lightweight RFC workflow for major design changes. | Keep architecture decisions explicit
   before implementation.
+- 2026-05-01 | Active | Use `main` as release line and `develop` as active integration line. | Keep release history distinct
+  from organic alpha work.
+- 2026-05-01 | Active | Add Phase 0 as the bootstrap process-stabilization phase. | Formalize workflow decisions before
+  relying on the phase system for later alpha work.
+- 2026-05-01 | Active | Treat `0.5.0` as alpha, `0.9.0` as beta, and `1.0.0` as stable commercial baseline. | Preserve
+  project milestone meaning while acknowledging SemVer initial-development rules before `1.0.0`.

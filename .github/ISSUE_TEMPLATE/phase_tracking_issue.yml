@@ -23,7 +23,7 @@ body:
     attributes:
       label: Phase Number
       description: Used for title/tag alignment and label selection.
-      placeholder: "1"
+      placeholder: "0"
     validations:
       required: true
   - type: input

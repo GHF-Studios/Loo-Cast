@@ -16,15 +16,15 @@ Support tools:
 Local validation rails:
 
 1. `cargo xtask setup_sdk` installs git hooks.
-   a. `pre-commit` runs `cargo fmt --manifest-path loo_cast_alpha/Cargo.toml --all` and writes formatting changes to
-   disk.
-   b. `pre-push` runs `cargo run --manifest-path loo_cast_alpha/Cargo.toml -p xtask -- audit`.
-   2`cargo xtask audit` checks workspace formatting, lints workspace targets with `--no-deps`, and runs workspace
+2. `pre-commit` runs `cargo fmt --manifest-path loo_cast_alpha/Cargo.toml --all` and writes formatting changes to disk.
+3. `pre-push` runs `cargo run --manifest-path loo_cast_alpha/Cargo.toml -p xtask -- audit`.
+4. `cargo xtask audit` checks workspace formatting, lints workspace targets with `--no-deps`, and runs workspace
    library/binary tests.
 
 GitHub Actions audit rail:
 
-1. `.github/workflows/audit.yml` runs `cargo xtask audit` on pull requests, pushes to `main`, and manual dispatch.
+1. `.github/workflows/audit.yml` runs `cargo xtask audit` on pull requests, pushes to `develop`, pushes to `main`,
+   and manual dispatch.
 2. The workflow uses standard Linux GitHub-hosted runners only and uploads no artifacts.
 3. The workflow restores Cargo registry, Cargo git, and `target/` caches before audit. The runner VM itself is
    disposable; only explicit caches survive between runs.
@@ -78,6 +78,45 @@ Publish flow (pre-release):
 3. Build immutable artifacts from that tag.
 4. Push artifacts to non-stable channel.
 
+Repository branch roles:
+
+1. `main` is the stable/release line.
+2. `develop` is the integration line for active alpha work.
+3. Topic branches carry reviewable work into `develop`.
+4. Do not treat `develop` as a scratch branch.
+
+Work modes:
+
+1. Phase-managed work is required for phase execution.
+2. Unmanaged work is allowed for small, self-contained maintenance that does not need phase tracking.
+3. Every commit needs clear intent. For unmanaged work, the commit title/body is the primary record.
+4. Do not lock commit intent into a fixed prefix taxonomy until the repo has enough examples to justify one.
+
+Phase-managed work:
+
+1. Phase-managed work requires:
+   - milestone
+   - phase tracking issue
+   - phase gate issue
+   - child/task issues
+   - branch and pull request for changes that merge into `develop`
+   - recorded evidence
+   - acceptance criteria before closure
+2. Phase branches do not need to map to product features. They may represent docs alignment, workflow cleanup, contract
+   adjustment, architecture settlement, or another bounded slice of the evolving framework.
+3. Phase 0 is the bootstrap phase for stabilizing this process itself. It records locked-in workflow decisions, updates
+   workflow/contract docs and GitHub templates, creates any missing process issues, and produces a process baseline that
+   can be used for a few weeks before review.
+4. Later phases use the Phase 0 baseline unless a new decision changes it.
+
+Unmanaged work:
+
+1. Small unmanaged work may be committed directly only when it is local, obvious, and low-risk.
+2. If unmanaged work needs review, evidence, or isolation, use both a short-lived branch and a pull request.
+3. Unmanaged PRs do not require a pre-existing issue, but the PR body must explain the change, scope, and validation.
+4. Incidental work found during phase-managed work stays in that phase branch only when it directly supports the phase
+   task. Otherwise, split it into unmanaged work.
+
 GitHub phase workflow (built-in/free features):
 
 1. Milestones are lightweight containers. Use `.github/MILESTONE_TEMPLATE/phase_milestone.md` as copy/paste source when
@@ -97,7 +136,7 @@ GitHub phase workflow (built-in/free features):
    - `type:phase-tracking`
    - `type:phase-task`
    - `type:phase-gate`
-   - `phase:1`, `phase:2`, `phase:3`, `phase:4`, `phase:5`
+   - `phase:0`, `phase:1`, `phase:2`, `phase:3`, `phase:4`, `phase:5`
    - `contract:none`, `contract:non-breaking`, `contract:breaking`
    - `risk:blocker`, `risk:high`, `risk:medium`, `risk:low`
 
@@ -106,7 +145,7 @@ Pull request template workflow:
 1. Default/non-phase PRs use `.github/PULL_REQUEST_TEMPLATE.md`.
 2. Phase-linked PRs use `.github/PULL_REQUEST_TEMPLATE/phase_work.md`.
 3. Use GitHub `template=` query parameter when opening phase-linked PRs. Example:
-   - `.../compare/main...<branch>?quick_pull=1&template=phase_work.md`
+   - `.../compare/develop...<branch>?quick_pull=1&template=phase_work.md`
 4. PRs may exist outside phases. If a PR is phase-linked, it must include phase issue linkage and evidence.
 
 AI collaboration workflow:
