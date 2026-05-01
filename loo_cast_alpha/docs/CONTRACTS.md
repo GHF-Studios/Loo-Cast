@@ -55,9 +55,16 @@ Publish policy:
 Version policy:
 
 - Use `MAJOR.MINOR.PATCH` for published game/contract versions.
-- `PATCH`: backward-compatible fixes only.
-- `MINOR`: backward-compatible additions only.
-- `MAJOR`: breaking changes allowed.
+- `0.y.z` is initial development. Public API stability is not guaranteed.
+- `0.5.0` is the alpha milestone: the feature framework, mod/API shape, and execution rails are coherent enough for
+  sustained feature and gameplay development.
+- `0.9.0` is the beta milestone: feature/framework direction is mostly locked, and work shifts toward bug fixing,
+  refinement, compatibility, packaging, and release hardening.
+- `1.0.0` is the stable commercial release baseline: the public API is defined, compatibility rules become stricter, and
+  the project can move toward its finalized open-source/licensing structure.
+- After `1.0.0`, `PATCH`: backward-compatible fixes only.
+- After `1.0.0`, `MINOR`: backward-compatible additions only.
+- After `1.0.0`, `MAJOR`: breaking changes allowed.
 - No contract break is allowed inside one published version.
 - Any contract break requires a new published version.
 
@@ -69,7 +76,8 @@ Lockstep version topology:
 
 Migration policy:
 
-- Breaking PRs must target a new `MAJOR` (or pre-release of that `MAJOR`).
+- Breaking PRs must target a new published version.
+- After `1.0.0`, breaking PRs must target a new `MAJOR` (or pre-release of that `MAJOR`).
 - Breaking PRs must include a migration guide at `docs/migrations/<from>-to-<to>.md`.
 - Breaking PRs must update `CONTRACTS.md` and `DECISIONS.md`.
 - Guide must include:

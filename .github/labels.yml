@@ -1,0 +1,48 @@
+- name: type:phase-tracking
+  color: c5def5
+  description: Tracks one full milestone phase.
+- name: type:phase-task
+  color: c5def5
+  description: Scoped task under a phase tracking issue.
+- name: type:phase-gate
+  color: c5def5
+  description: Canonical phase exit decision and evidence record.
+- name: phase:0
+  color: b60205
+  description: Bootstrap process-stabilization phase.
+- name: phase:1
+  color: b60205
+  description: Phase 1 work.
+- name: phase:2
+  color: b60205
+  description: Phase 2 work.
+- name: phase:3
+  color: b60205
+  description: Phase 3 work.
+- name: phase:4
+  color: b60205
+  description: Phase 4 work.
+- name: phase:5
+  color: b60205
+  description: Phase 5 work.
+- name: contract:none
+  color: bfd4f2
+  description: No contract impact.
+- name: contract:non-breaking
+  color: bfd4f2
+  description: Contract impact without a breaking change.
+- name: contract:breaking
+  color: bfd4f2
+  description: Breaking contract impact.
+- name: risk:blocker
+  color: d93f0b
+  description: Blocks phase or release progress.
+- name: risk:high
+  color: d93f0b
+  description: High risk.
+- name: risk:medium
+  color: fbca04
+  description: Medium risk.
+- name: risk:low
+  color: 0e8a16
+  description: Low risk.

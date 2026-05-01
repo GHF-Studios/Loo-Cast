@@ -6,7 +6,7 @@
 
 Title =>
 
-Phase [N]: [Short Name]
+Phase [0-N]: [Short Name]
 
 Due date =>
 
