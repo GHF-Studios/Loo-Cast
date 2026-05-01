@@ -8,6 +8,8 @@ Concrete outcome this PR delivers for the phase.
 - Phase child issue(s): #124
 - Gate issue (if applicable): #125
 
+Apply the matching phase milestone and `phase:N` label before review.
+
 ## Workflow Mode
 
 Choose one:

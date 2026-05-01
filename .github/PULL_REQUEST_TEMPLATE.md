@@ -13,6 +13,12 @@ Choose one:
 - [ ] Process-policy
 - [ ] Other non-phase work
 
+Apply matching live GitHub metadata before review:
+
+- milestone when applicable
+- label: `contract:none`, `contract:non-breaking`, or `contract:breaking`
+- label: `phase:N` only when the PR is phase-linked
+
 ## Change Kind
 
 - [ ] Bug fix

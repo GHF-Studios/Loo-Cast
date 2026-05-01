@@ -1,10 +1,14 @@
 # Default owner for repository changes.
 * @Leslieghf
 
-# Contract governance must be maintainer-reviewed.
+# Workflow and contract governance must be maintainer-reviewed.
+/.github/ @Leslieghf
+/loo_cast_alpha/docs/WORKFLOWS.md @Leslieghf
 /loo_cast_alpha/docs/CONTRACTS.md @Leslieghf
 /loo_cast_alpha/docs/ARCHITECTURE.md @Leslieghf
 /loo_cast_alpha/docs/DECISIONS.md @Leslieghf
+/loo_cast_alpha/docs/NOW.md @Leslieghf
+/loo_cast_alpha/docs/AI_COLLABORATION.md @Leslieghf
 
 # Public-facing mod platform surface.
 /loo_cast_alpha/crates/core_mod/ @Leslieghf
