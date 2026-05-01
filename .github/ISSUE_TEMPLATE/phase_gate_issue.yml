@@ -1,6 +1,6 @@
 name: Phase Gate Issue
 description: Record the final decision for a phase
-title: "Phase N Gate: Complete"
+title: "Phase N Gate"
 labels:
   - "type:phase-gate"
 body:

@@ -2,7 +2,7 @@
 > Copy/paste this structure into the milestone description field.
 >
 > Authority note: keep milestones lightweight. The phase tracking issue is the living authority while the phase is open.
-> The gate issue is the final exit decision record.
+> The gate issue is the final decision record.
 
 Title =>
 
@@ -27,7 +27,7 @@ Exit summary:
 
 - [ ] [Objective completion condition 1]
 - [ ] [Objective completion condition 2]
-- [ ] Gate issue records final decision and evidence
+- [ ] Gate issue records final decision
 
 Tracking linkage:
 
