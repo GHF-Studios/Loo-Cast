@@ -15,8 +15,7 @@ Current scope:
 
 - Primary tasks: `setup_sdk`, `build`, `package`, `run`, `audit`, `cloc`, `gource`.
 - `develop` is the active integration line; scoped topic branches merge into it through PRs.
-- `main` is protected by ruleset; `develop` discipline is process-enforced until Phase 0 decides whether to add a
-  ruleset.
+- `main` is protected by ruleset; `develop` is intentionally process-enforced without a ruleset for solo integration.
 - Phase 0 bootstraps the workflow/process baseline before later alpha phase work relies on it.
 - GitHub labels are live repository metadata. There is no committed label manifest.
 - Required labels are applied manually until metadata automation exists.

@@ -155,9 +155,13 @@ GitHub phase workflow (built-in/free features):
 Branch protection and rulesets:
 
 1. `main` is protected by a GitHub ruleset.
-2. `develop` is the active integration line. Until Phase 0 explicitly changes the repository ruleset posture, its
-   branch+PR discipline is process-enforced rather than ruleset-enforced.
-3. Phase 0 must either add protection for `develop` or record why lightweight solo integration remains intentional.
+2. `develop` is the active integration line. It intentionally has no ruleset while this is a solo-development repo.
+3. `develop` branch+PR discipline is process-enforced rather than ruleset-enforced:
+   - use topic branches for reviewable work
+   - open PRs into `develop`
+   - record issue relationships and validation evidence in the PR
+4. Revisit a `develop` ruleset when collaborators need enforced review, required status checks, required linear history,
+   or direct-push prevention.
 
 Pull request template workflow:
 
