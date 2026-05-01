@@ -4,9 +4,9 @@ Concrete outcome this PR delivers for the phase.
 
 ## Phase Linkage
 
-- Phase tracking issue: #
-- Phase child issue(s): #
-- Gate issue (if applicable): #
+- Phase tracking issue: #123
+- Phase child issue(s): #124
+- Gate issue (if applicable): #125
 
 ## Acceptance Criteria
 
@@ -33,4 +33,4 @@ Concrete outcome this PR delivers for the phase.
 
 ## Related Issues
 
-Closes #(issue)
+Closes #123

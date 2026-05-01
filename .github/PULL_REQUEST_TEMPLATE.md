@@ -19,4 +19,4 @@ Brief description of changes.
 
 ## Related Issues
 
-Closes #(issue)
+Closes #123
