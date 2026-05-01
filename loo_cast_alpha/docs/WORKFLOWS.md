@@ -151,6 +151,16 @@ GitHub phase workflow (built-in/free features):
    - risk labels only when useful for triage: `risk:blocker`, `risk:high`, `risk:medium`, or `risk:low`
 10. GitHub issue forms cannot derive labels from dropdown fields. Treat template notes as required maintainer actions
     until a lightweight metadata automation path is accepted.
+11. Default GitHub labels (`bug`, `documentation`, `enhancement`, and similar) remain available for non-phase issue
+    triage. Phase governance labels define the managed workflow surface; they do not replace normal GitHub triage labels.
+
+CODEOWNERS:
+
+1. `.github/CODEOWNERS` is the review-ownership record for workflow governance, contract docs, and first-party mod
+   platform surface.
+2. The default owner is `@Leslieghf`.
+3. Workflow/template changes, contract-policy docs, architecture/decision docs, current-state docs, AI collaboration
+   prompts, and first-party mod crates are explicitly owned.
 
 Branch protection and rulesets:
 
