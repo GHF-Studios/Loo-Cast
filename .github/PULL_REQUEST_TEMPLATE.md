@@ -39,8 +39,11 @@ Apply matching live GitHub metadata before review:
 - [ ] `cargo xtask audit` passing or not run (reason provided)
 - [ ] Documentation updated or not needed (reason provided)
 
-## Issue Relationship
+## Associated Issues
 
-- References: #123
-- Advances: #123
-- Closes: #123
+List only issues this PR actually works on:
+
+- [ ] #123 (issue remains open after merge)
+- [x] #124 (issue is fully resolved and should be closed)
+
+If an issue is context-only and not worked here, mention it in PR comments instead of this list.
