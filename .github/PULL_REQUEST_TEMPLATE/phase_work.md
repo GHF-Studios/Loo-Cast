@@ -35,11 +35,11 @@ Workflow mode (select one; replace `( )` with `(x)`):
 - [ ] `cargo xtask audit` passing or not run (reason provided)
 - [ ] Documentation updated or not needed (reason provided)
 
-## Associated Issues
+## Issues Closed by This PR
 
-List only issues this PR actually works on:
+List only issues fully resolved by this PR:
 
-- [ ] #123 (issue remains open after merge)
-- [x] #124 (issue is fully resolved and should be closed)
+- [x] #123
 
-If an issue is context-only and not worked here, mention it in PR comments instead of this list.
+If this PR closes no issues, write `- none`.
+If an issue is only partially advanced or context-only, mention it in PR comments instead of this list.

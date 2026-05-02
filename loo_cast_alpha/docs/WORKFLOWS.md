@@ -154,10 +154,10 @@ GitHub phase workflow (built-in/free features):
 5. In GitHub-rendered text, use bare references such as `#123` or `PR #123`. Do not duplicate issue or PR titles next
    to references unless the text must stand alone outside GitHub.
 6. Tracking issue child checkboxes mean closed or explicitly deferred, not merely created or accepted into scope.
-7. PRs use one `Associated Issues` checklist:
-   - `[x] #123` means the issue is fully resolved by this PR and should be closed after merge.
-   - `[ ] #124` means the issue is worked/advanced but remains open after merge.
-   - context-only mentions belong in PR comments, not in the associated-issues checklist.
+7. PRs use one `Issues Closed by This PR` checklist:
+   - list only issues fully resolved by the PR (`[x] #123`).
+   - if no issue is fully resolved, write `- none`.
+   - partially advanced issues and context-only mentions belong in PR comments, not in the close-list checklist.
 8. PR templates use non-checkbox selector markers for workflow mode (so they do not inflate PR task counts) and keep
    real checkboxes for acceptance and validation status.
 9. Labels are live GitHub repository metadata, not a committed manifest. Until metadata automation exists, maintainers
