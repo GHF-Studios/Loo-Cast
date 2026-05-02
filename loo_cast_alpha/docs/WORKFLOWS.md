@@ -158,7 +158,8 @@ GitHub phase workflow (built-in/free features):
    - `References`: linked context; the PR does not directly complete acceptance criteria.
    - `Advances`: partial work or evidence toward an issue; the issue remains open.
    - `Closes`: full completion of the issue. Only this relationship may use GitHub auto-close keywords.
-8. PR templates include workflow-mode checkboxes. Choose one mode; GitHub Markdown cannot enforce radio-button behavior.
+8. PR templates use non-checkbox selector markers for workflow mode (so they do not inflate PR task counts) and keep
+   real checkboxes for acceptance and validation status.
 9. Labels are live GitHub repository metadata, not a committed manifest. Until metadata automation exists, maintainers
    apply labels manually when creating or triaging issues and PRs:
    - exactly one type label for phase issues: `type:phase-tracking`, `type:phase-task`, or `type:phase-gate`

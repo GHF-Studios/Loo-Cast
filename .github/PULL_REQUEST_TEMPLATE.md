@@ -12,13 +12,20 @@ For unmanaged maintenance, include:
 - validation evidence:
 - rollback note, if useful:
 
-## Workflow Mode
+## Workflow Metadata
 
-Choose one:
+Workflow mode (select one; replace `( )` with `(x)`):
 
-- [ ] Unmanaged maintenance
-- [ ] Process-policy
-- [ ] Other non-phase work
+- ( ) unmanaged-maintenance
+- ( ) process-policy
+- ( ) other-non-phase
+
+Change kind (select one; replace `( )` with `(x)`):
+
+- ( ) bug-fix
+- ( ) feature-change
+- ( ) documentation
+- ( ) workflow-metadata
 
 Apply matching live GitHub metadata before review:
 
@@ -26,18 +33,11 @@ Apply matching live GitHub metadata before review:
 - label: `contract:none`, `contract:non-breaking`, or `contract:breaking`
 - label: `phase:N` only when the PR is phase-linked
 
-## Change Kind
+## Validation
 
-- [ ] Bug fix
-- [ ] Feature/change
-- [ ] Documentation
-- [ ] Workflow/repository metadata
-
-## Checklist
-
-- [ ] Tests added/updated
-- [ ] `cargo xtask audit` passing
-- [ ] Documentation updated
+- [ ] Tests added/updated or not needed (reason provided)
+- [ ] `cargo xtask audit` passing or not run (reason provided)
+- [ ] Documentation updated or not needed (reason provided)
 
 ## Issue Relationship
 

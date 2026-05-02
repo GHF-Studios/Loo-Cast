@@ -10,15 +10,13 @@ Concrete outcome this PR delivers for the phase.
 
 Apply the matching phase milestone and `phase:N` label before review.
 
-## Workflow Mode
+## Workflow Metadata
 
-Choose one:
+Workflow mode (select one; replace `( )` with `(x)`):
 
-- [ ] phase-managed
-- [ ] unmanaged maintenance
-- [ ] process-policy
-
-GitHub Markdown cannot enforce radio-button behavior. Leave exactly one mode checked.
+- ( ) phase-managed
+- ( ) unmanaged-maintenance
+- ( ) process-policy
 
 ## Acceptance Criteria
 
@@ -31,19 +29,11 @@ GitHub Markdown cannot enforce radio-button behavior. Leave exactly one mode che
 - CI/tests/benchmarks:
 - Docs updates:
 
-## Contract Impact
+## Validation
 
-- [ ] none
-- [ ] non-breaking
-- [ ] breaking
-
-Apply the matching contract label when applicable.
-
-## Checklist
-
-- [ ] Tests added/updated
-- [ ] `cargo xtask audit` passing
-- [ ] Documentation updated
+- [ ] Tests added/updated or not needed (reason provided)
+- [ ] `cargo xtask audit` passing or not run (reason provided)
+- [ ] Documentation updated or not needed (reason provided)
 
 ## Issue Relationship
 

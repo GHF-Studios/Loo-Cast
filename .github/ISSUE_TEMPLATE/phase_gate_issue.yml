@@ -71,6 +71,6 @@ body:
     attributes:
       label: Final Note
       description: Short final note. Explicitly name the unlocked next phase when applicable.
-      placeholder: "Phase X complete. Unlock Phase Y."
+      placeholder: "Gate passed. Unlock next phase."
     validations:
       required: true

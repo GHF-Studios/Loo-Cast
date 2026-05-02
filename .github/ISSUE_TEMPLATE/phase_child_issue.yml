@@ -7,21 +7,9 @@ body:
     attributes:
       value: |
         Use one child issue per concrete work item.
+        Reference related work with bare issue numbers (`#123`) instead of custom work item IDs.
         After creation, manually apply the matching `phase:N` label and the selected contract label.
-        GitHub issue forms cannot derive labels from dropdown fields.
-  - type: dropdown
-    id: phase
-    attributes:
-      label: Phase
-      options:
-        - Phase 0
-        - Phase 1
-        - Phase 2
-        - Phase 3
-        - Phase 4
-        - Phase 5
-    validations:
-      required: true
+        GitHub issue forms cannot derive labels from field values.
   - type: input
     id: tracking_issue_link
     attributes:
