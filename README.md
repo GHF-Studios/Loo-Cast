@@ -11,6 +11,8 @@ for current implementation decisions.
 - `loo_cast_alpha/`: active alpha workspace and delivery surface.
 - `loo_cast_alpha/docs/`: canonical docs entrypoint for current direction, contracts, workflows, and decisions.
 - `loo_cast_legacy/`: legacy archive/museum; no active development target.
+  - outer `loo_cast_legacy/` Rust/Bevy-era material: pre-issue/PR structured workflow period.
+  - inner legacy archives (notably `loo_cast_legacy/LEGACY/` and nested legacy-history folders): Unity-era material.
 
 ## Quick Start (Active Alpha Workspace)
 
@@ -29,4 +31,6 @@ cargo xtask audit
 - `loo_cast_alpha/docs/WORKFLOWS.md` for branch/PR/validation process rules.
 - `loo_cast_alpha/docs/CONTRACTS.md` for compatibility and version policy.
 - `loo_cast_alpha/docs/DECISIONS.md` for durable policy/architecture decisions.
+- `loo_cast_alpha/docs/CHANGELOG_DRAFT.md` for pre-stable release-note drafting.
+- `loo_cast_alpha/docs/MIGRATIONS_DRAFT.md` for pre-stable migration-impact drafting.
 - `loo_cast_alpha/docs/RUSTDOC_BASELINE.md` for active-crate docs posture and deferred documentation boundaries.

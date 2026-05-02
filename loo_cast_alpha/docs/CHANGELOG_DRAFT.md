@@ -1,12 +1,16 @@
-# Changelog
+# Changelog Draft
 
-All notable changes to this project will be documented in this file.
+This file tracks notable changes while the project is still in a high-churn structural phase.
+It is intentionally a draft surface, not yet a finalized published changelog contract.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and published game/contract versions use [Semantic Versioning](https://semver.org/).
 
-Pre-`1.0.0` versions are initial development. Public API stability is not guaranteed until `1.0.0`; see
-`CONTRACTS.md` for the project-specific milestone meanings.
+Current phase note:
+
+- Structural/bootstrap changes are expected and frequent.
+- Public API stability is not guaranteed.
+- When stable-contract mode is declared, this draft should be promoted into the formal changelog surface.
 
 ## [Unreleased]
 

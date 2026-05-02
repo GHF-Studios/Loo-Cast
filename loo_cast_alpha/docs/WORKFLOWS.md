@@ -59,10 +59,13 @@ Breaking change flow:
 
 1. Bump target published version per `CONTRACTS.md`.
 2. Update affected contract definitions.
-3. Add migration guide at `docs/migrations/<from>-to-<to>.md`.
-4. Draft/update RFC in `docs/RFCS/` for design rationale.
-5. Record decision in `DECISIONS.md`.
-6. Validate build/package/run before release.
+3. During structural-churn phase, record migration-impact notes in `docs/MIGRATIONS_DRAFT.md`.
+4. Once stable-contract mode is active, add formal migration guide at `docs/migrations/<from>-to-<to>.md`.
+5. Record release-note intent in `docs/CHANGELOG_DRAFT.md`.
+6. When stable-contract mode is active, promote draft release notes into the formal changelog process.
+7. Draft/update RFC in `docs/RFCS/` for design rationale.
+8. Record decision in `DECISIONS.md`.
+9. Validate build/package/run before release.
 
 Publish flow (stable):
 
