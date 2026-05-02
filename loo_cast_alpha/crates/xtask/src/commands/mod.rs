@@ -1,5 +1,6 @@
 pub mod audit;
 pub mod build;
+pub mod clean_sdk;
 pub mod cloc;
 pub mod deploy;
 pub mod docs;

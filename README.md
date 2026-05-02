@@ -10,6 +10,7 @@ for current implementation decisions.
 
 - `loo_cast_alpha/`: active alpha workspace and delivery surface.
 - `loo_cast_alpha/docs/`: canonical docs entrypoint for current direction, contracts, workflows, and decisions.
+- `loo_cast_alpha/third_party/`: intentionally vendored third-party utilities used by xtask support commands.
 - `loo_cast_legacy/`: legacy archive/museum; no active development target.
   - outer `loo_cast_legacy/` Rust/Bevy-era material: pre-issue/PR structured workflow period.
   - inner legacy archives (notably `loo_cast_legacy/LEGACY/` and nested legacy-history folders): Unity-era material.

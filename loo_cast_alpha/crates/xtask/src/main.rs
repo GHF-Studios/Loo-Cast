@@ -13,6 +13,7 @@ use xshell::Shell;
 
 use crate::commands::audit::audit;
 use crate::commands::build::build;
+use crate::commands::clean_sdk::clean_sdk;
 use crate::commands::cloc::run_cloc;
 use crate::commands::deploy::deploy_stub;
 use crate::commands::docs::build_docs;
@@ -74,6 +75,7 @@ fn main() -> Result<()> {
         "build_docs" => build_docs(&sh, false)?,
         "open_docs" => build_docs(&sh, true)?,
         "setup_sdk" => setup_sdk(&root)?,
+        "clean_sdk" => clean_sdk(&root)?,
         "cloc" => run_cloc(&root)?,
         "gource" => run_gource(&root)?,
         "deploy" => deploy_stub(),
