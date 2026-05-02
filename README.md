@@ -1,2 +1,32 @@
-ONLY `loo_cast_alpha` IS CURRENTLY RELEVANT!
-`loo_cast_legacy` IS NOT AUTHORITATIVE! IT IS A MUSEUM AND READ-ONLY!
+# Loo-Cast
+
+Loo-Cast is currently developed in the `loo_cast_alpha/` subtree. That subtree contains the active Rust workspace,
+current workflow policy, and authoritative project docs for ongoing alpha work.
+
+`loo_cast_legacy/` is a read-only archive of older code. It is useful for historical reference but is not authoritative
+for current implementation decisions.
+
+## Repository Map
+
+- `loo_cast_alpha/`: active alpha workspace and delivery surface.
+- `loo_cast_alpha/docs/`: canonical docs entrypoint for current direction, contracts, workflows, and decisions.
+- `loo_cast_legacy/`: legacy archive/museum; no active development target.
+
+## Quick Start (Active Alpha Workspace)
+
+```bash
+cd loo_cast_alpha
+cargo xtask setup_sdk
+cargo xtask build
+cargo xtask run
+cargo xtask audit
+```
+
+## Docs Entrypoints
+
+- Start with `loo_cast_alpha/docs/README.md` for read order.
+- `loo_cast_alpha/docs/NOW.md` for current direction and scope.
+- `loo_cast_alpha/docs/WORKFLOWS.md` for branch/PR/validation process rules.
+- `loo_cast_alpha/docs/CONTRACTS.md` for compatibility and version policy.
+- `loo_cast_alpha/docs/DECISIONS.md` for durable policy/architecture decisions.
+- `loo_cast_alpha/docs/RUSTDOC_BASELINE.md` for active-crate docs posture and deferred documentation boundaries.

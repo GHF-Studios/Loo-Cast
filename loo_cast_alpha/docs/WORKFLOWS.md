@@ -121,7 +121,7 @@ Unmanaged work:
    - the change does not alter contracts, workflow policy, release posture, branch/ruleset policy, or phase scope
 3. Use both a short-lived branch and a pull request when unmanaged work needs review, evidence, or isolation.
 4. Unmanaged PRs do not require a pre-existing issue, but the PR body must explain the change, scope, validation, and
-   associated issues.
+   issue-closure intent (`Issues Closed by This PR`) plus any partial/context references in comments.
 5. Convert work to phase-managed when it affects phase scope, phase evidence, milestone/gate decisions, contract policy,
    GitHub workflow policy, or public project documentation posture.
 6. Incidental work found during phase-managed work stays in that phase branch only when it directly supports the phase

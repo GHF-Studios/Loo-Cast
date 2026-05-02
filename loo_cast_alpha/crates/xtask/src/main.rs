@@ -1,3 +1,8 @@
+//! Workspace task runner for Loo-Cast alpha.
+//!
+//! `xtask` is the canonical command surface for setup, build, package, run, audit,
+//! and support utilities used by the current execution rails.
+
 mod commands;
 mod utils;
 
