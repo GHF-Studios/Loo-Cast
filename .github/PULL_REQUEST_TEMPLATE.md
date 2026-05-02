@@ -12,13 +12,20 @@ For unmanaged maintenance, include:
 - validation evidence:
 - rollback note, if useful:
 
-## Workflow Mode
+## Workflow Metadata
 
-Choose one:
+Workflow mode (select one; replace `( )` with `(x)`):
 
-- [ ] Unmanaged maintenance
-- [ ] Process-policy
-- [ ] Other non-phase work
+- ( ) unmanaged-maintenance
+- ( ) process-policy
+- ( ) other-non-phase
+
+Change kind (select one; replace `( )` with `(x)`):
+
+- ( ) bug-fix
+- ( ) feature-change
+- ( ) documentation
+- ( ) workflow-metadata
 
 Apply matching live GitHub metadata before review:
 
@@ -26,21 +33,17 @@ Apply matching live GitHub metadata before review:
 - label: `contract:none`, `contract:non-breaking`, or `contract:breaking`
 - label: `phase:N` only when the PR is phase-linked
 
-## Change Kind
+## Validation
 
-- [ ] Bug fix
-- [ ] Feature/change
-- [ ] Documentation
-- [ ] Workflow/repository metadata
+- [ ] Tests added/updated or not needed (reason provided)
+- [ ] `cargo xtask audit` passing or not run (reason provided)
+- [ ] Documentation updated or not needed (reason provided)
 
-## Checklist
+## Issues Closed by This PR
 
-- [ ] Tests added/updated
-- [ ] `cargo xtask audit` passing
-- [ ] Documentation updated
+List only issues fully resolved by this PR:
 
-## Issue Relationship
+- [x] #123
 
-- References: #123
-- Advances: #123
-- Closes: #123
+If this PR closes no issues, write `- none`.
+If an issue is only partially advanced or context-only, mention it in PR comments instead of this list.

@@ -121,7 +121,7 @@ Unmanaged work:
    - the change does not alter contracts, workflow policy, release posture, branch/ruleset policy, or phase scope
 3. Use both a short-lived branch and a pull request when unmanaged work needs review, evidence, or isolation.
 4. Unmanaged PRs do not require a pre-existing issue, but the PR body must explain the change, scope, validation, and
-   issue relationship. Use `References`, `Advances`, and `Closes` when any issue is relevant.
+   associated issues.
 5. Convert work to phase-managed when it affects phase scope, phase evidence, milestone/gate decisions, contract policy,
    GitHub workflow policy, or public project documentation posture.
 6. Incidental work found during phase-managed work stays in that phase branch only when it directly supports the phase
@@ -154,11 +154,12 @@ GitHub phase workflow (built-in/free features):
 5. In GitHub-rendered text, use bare references such as `#123` or `PR #123`. Do not duplicate issue or PR titles next
    to references unless the text must stand alone outside GitHub.
 6. Tracking issue child checkboxes mean closed or explicitly deferred, not merely created or accepted into scope.
-7. PRs use issue relationship operators in this order:
-   - `References`: linked context; the PR does not directly complete acceptance criteria.
-   - `Advances`: partial work or evidence toward an issue; the issue remains open.
-   - `Closes`: full completion of the issue. Only this relationship may use GitHub auto-close keywords.
-8. PR templates include workflow-mode checkboxes. Choose one mode; GitHub Markdown cannot enforce radio-button behavior.
+7. PRs use one `Issues Closed by This PR` checklist:
+   - list only issues fully resolved by the PR (`[x] #123`).
+   - if no issue is fully resolved, write `- none`.
+   - partially advanced issues and context-only mentions belong in PR comments, not in the close-list checklist.
+8. PR templates use non-checkbox selector markers for workflow mode (so they do not inflate PR task counts) and keep
+   real checkboxes for acceptance and validation status.
 9. Labels are live GitHub repository metadata, not a committed manifest. Until metadata automation exists, maintainers
    apply labels manually when creating or triaging issues and PRs:
    - exactly one type label for phase issues: `type:phase-tracking`, `type:phase-task`, or `type:phase-gate`

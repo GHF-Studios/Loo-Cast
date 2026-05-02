@@ -10,21 +10,27 @@ body:
         Use this issue as the single tracking source for one phase.
         The milestone should stay lightweight; this issue is the living authority while the phase is open.
         Canonical gate decision is recorded in `phase_gate_issue.yml`; this issue only mirrors it.
-        After creation, manually apply the matching `phase:N` label. GitHub issue forms cannot derive labels from the phase number field.
+        Use the phase selector and phase-name field to compose the title as `Phase N: <Name>`.
+        After creation, manually apply the matching `phase:N` label.
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Phase
+      options:
+        - Phase 0
+        - Phase 1
+        - Phase 2
+        - Phase 3
+        - Phase 4
+        - Phase 5
+    validations:
+      required: true
   - type: input
     id: phase_name
     attributes:
       label: Phase Name
-      description: "Example: Phase 3: Alpha Spine and Release Proof"
-      placeholder: "Phase N: Short Name"
-    validations:
-      required: true
-  - type: input
-    id: phase_number
-    attributes:
-      label: Phase Number
-      description: Used for title/tag alignment and label selection.
-      placeholder: "0"
+      description: "Descriptive phase name used in the title."
+      placeholder: "Process Bootstrap"
     validations:
       required: true
   - type: input
@@ -160,6 +166,6 @@ body:
     attributes:
       label: Gate Note Mirror (Non-Canonical)
       description: Optional one-line mirror from the gate issue decision.
-      placeholder: "Phase X complete; unlock Phase Y."
+      placeholder: "Gate passed; unlock next phase."
     validations:
       required: false
