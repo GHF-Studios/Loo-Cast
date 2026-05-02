@@ -24,6 +24,7 @@ Commands:
   build_docs
   open_docs
   setup_sdk
+  clean_sdk
   cloc
   gource
   deploy"

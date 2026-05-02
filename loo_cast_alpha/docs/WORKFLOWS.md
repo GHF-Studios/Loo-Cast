@@ -10,8 +10,14 @@ Daily developer loop:
 Support tools:
 
 - `cargo xtask audit`
+- `cargo xtask clean_sdk`
 - `cargo xtask cloc`
 - `cargo xtask gource`
+
+Third-party utility binaries:
+
+- `cargo xtask cloc` uses bundled `cloc` binaries from `loo_cast_alpha/third_party/cloc/`.
+- Keep bundled third-party utilities out of alpha workspace root so ownership and provenance stay explicit.
 
 Local validation rails:
 
@@ -20,6 +26,7 @@ Local validation rails:
 3. `pre-push` runs `cargo run --manifest-path loo_cast_alpha/Cargo.toml -p xtask -- audit`.
 4. `cargo xtask audit` checks workspace formatting, lints workspace targets with `--no-deps`, and runs workspace
    library/binary tests.
+5. `cargo xtask clean_sdk` removes only managed `setup_sdk` hooks and leaves non-managed custom hook content untouched.
 
 GitHub Actions audit rail:
 
@@ -131,7 +138,7 @@ Unmanaged work:
    task. Otherwise, split it into unmanaged work or create a new phase child issue if it has process-tracking weight.
 7. Examples:
    - docs typo or stale wording: direct commit if obvious; unmanaged branch+PR if wording changes policy or needs review
-   - broken wrapper scripts such as stale `build_sdk`/`clean_sdk` shims: phase-managed when tied to Phase 1 execution
+   - broken wrapper scripts that diverge from the canonical xtask surface: phase-managed when tied to Phase 1 execution
      rails, otherwise unmanaged branch+PR because validation evidence matters
    - small tooling fix: unmanaged branch+PR when it changes commands, hooks, or validation behavior
    - incidental finding during phase work: keep it only if it directly supports the current phase child issue; split it

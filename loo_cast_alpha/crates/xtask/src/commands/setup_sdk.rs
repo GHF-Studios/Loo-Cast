@@ -6,6 +6,9 @@ use std::path::Path;
 
 use crate::utils::git::find_git_dir;
 
+pub(crate) const PRE_COMMIT_HOOK_CONTENTS: &str = "#!/usr/bin/env sh\nset -e\ncargo fmt --manifest-path loo_cast_alpha/Cargo.toml --all\n";
+pub(crate) const PRE_PUSH_HOOK_CONTENTS: &str = "#!/usr/bin/env sh\nset -e\ncargo run --manifest-path loo_cast_alpha/Cargo.toml -p xtask -- audit\n";
+
 pub fn setup_sdk(root: &Path) -> Result<()> {
     SetupSdk { root }.run()
 }
@@ -32,16 +35,8 @@ impl SetupSdk<'_> {
         let hooks_dir = git_dir.join("hooks");
         fs::create_dir_all(&hooks_dir).with_context(|| format!("failed to create '{}'", hooks_dir.display()))?;
 
-        self.install_hook(
-            &hooks_dir,
-            "pre-commit",
-            "#!/usr/bin/env sh\nset -e\ncargo fmt --manifest-path loo_cast_alpha/Cargo.toml --all\n",
-        )?;
-        self.install_hook(
-            &hooks_dir,
-            "pre-push",
-            "#!/usr/bin/env sh\nset -e\ncargo run --manifest-path loo_cast_alpha/Cargo.toml -p xtask -- audit\n",
-        )?;
+        self.install_hook(&hooks_dir, "pre-commit", PRE_COMMIT_HOOK_CONTENTS)?;
+        self.install_hook(&hooks_dir, "pre-push", PRE_PUSH_HOOK_CONTENTS)?;
         Ok(())
     }
 

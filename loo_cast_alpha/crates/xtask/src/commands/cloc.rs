@@ -12,7 +12,7 @@ pub fn run_cloc(root: &Path) -> Result<()> {
         bail!("cloc task is unsupported on '{}'; only windows and linux are supported", env::consts::OS);
     };
 
-    let cloc_binary_path = root.join(cloc_binary_name);
+    let cloc_binary_path = root.join("third_party").join("cloc").join(cloc_binary_name);
     if !cloc_binary_path.is_file() {
         bail!("expected cloc binary '{}' at '{}'", cloc_binary_name, cloc_binary_path.display());
     }
