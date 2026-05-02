@@ -24,7 +24,8 @@ Current scope:
 - No SDK/toolchain redistribution layer right now.
 - No dual-repo automation right now.
 - Compatibility policy is defined in `CONTRACTS.md`.
-- Breaking changes require a new published version + migration guide.
+- `CHANGELOG_DRAFT.md` and `MIGRATIONS_DRAFT.md` are active draft surfaces while structural churn is expected.
+- Stable-contract mode rule: breaking changes require a new published version + formal migration guide.
 
 Success for this phase:
 

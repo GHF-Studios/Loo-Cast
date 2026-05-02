@@ -59,10 +59,13 @@ Breaking change flow:
 
 1. Bump target published version per `CONTRACTS.md`.
 2. Update affected contract definitions.
-3. Add migration guide at `docs/migrations/<from>-to-<to>.md`.
-4. Draft/update RFC in `docs/RFCS/` for design rationale.
-5. Record decision in `DECISIONS.md`.
-6. Validate build/package/run before release.
+3. During structural-churn phase, record migration-impact notes in `docs/MIGRATIONS_DRAFT.md`.
+4. Once stable-contract mode is active, add formal migration guide at `docs/migrations/<from>-to-<to>.md`.
+5. Record release-note intent in `docs/CHANGELOG_DRAFT.md`.
+6. When stable-contract mode is active, promote draft release notes into the formal changelog process.
+7. Draft/update RFC in `docs/RFCS/` for design rationale.
+8. Record decision in `DECISIONS.md`.
+9. Validate build/package/run before release.
 
 Publish flow (stable):
 
@@ -121,7 +124,7 @@ Unmanaged work:
    - the change does not alter contracts, workflow policy, release posture, branch/ruleset policy, or phase scope
 3. Use both a short-lived branch and a pull request when unmanaged work needs review, evidence, or isolation.
 4. Unmanaged PRs do not require a pre-existing issue, but the PR body must explain the change, scope, validation, and
-   associated issues.
+   issue-closure intent (`Issues Closed by This PR`) plus any partial/context references in comments.
 5. Convert work to phase-managed when it affects phase scope, phase evidence, milestone/gate decisions, contract policy,
    GitHub workflow policy, or public project documentation posture.
 6. Incidental work found during phase-managed work stays in that phase branch only when it directly supports the phase

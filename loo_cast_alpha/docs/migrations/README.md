@@ -1,6 +1,8 @@
 # Migrations
 
-Store breaking-change migration guides here.
+Store formal, versioned breaking-change migration guides here once stable-contract mode is active.
+
+During the current structural-churn phase, use `../MIGRATIONS_DRAFT.md` for provisional migration-impact notes.
 
 Filename format:
 

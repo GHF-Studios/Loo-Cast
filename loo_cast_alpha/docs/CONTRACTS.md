@@ -25,7 +25,7 @@ Glossary:
   - Mod that declares support for the target contract version and passes build/load checks.
 
 - Migration guide
-  - Required document for each breaking change.
+  - Formal, versioned document for a breaking change once stable-contract mode is active.
   - Must provide upgrade steps or explicit "no migration path".
 
 Frozen contract set (per published game version):
@@ -76,12 +76,17 @@ Lockstep version topology:
 
 Migration policy:
 
-- Breaking PRs must target a new published version.
-- After `1.0.0`, breaking PRs must target a new `MAJOR` (or pre-release of that `MAJOR`).
-- Breaking PRs must include a migration guide at `docs/migrations/<from>-to-<to>.md`.
-- Breaking PRs must update `CONTRACTS.md` and `DECISIONS.md`.
-- Guide must include:
-  - affected contracts
-  - who is impacted
-  - exact upgrade steps
-  - fallback/rollback notes
+- Current structural phase (active now):
+  - Breaking-shape changes are expected while architecture/contracts are still settling.
+  - Track migration-impact notes in `MIGRATIONS_DRAFT.md`.
+  - Track release-note intent in `CHANGELOG_DRAFT.md`.
+- Stable-contract mode (activated by explicit decision):
+  - Breaking PRs must target a new published version.
+  - After `1.0.0`, breaking PRs must target a new `MAJOR` (or pre-release of that `MAJOR`).
+  - Breaking PRs must include a migration guide at `docs/migrations/<from>-to-<to>.md`.
+  - Breaking PRs must update `CONTRACTS.md` and `DECISIONS.md`.
+  - Guide must include:
+    - affected contracts
+    - who is impacted
+    - exact upgrade steps
+    - fallback/rollback notes
