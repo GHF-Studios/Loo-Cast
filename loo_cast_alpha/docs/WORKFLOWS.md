@@ -97,8 +97,8 @@ Repository branch roles:
 
 Work modes:
 
-1. Phase-managed work is required for phase execution.
-2. Unmanaged work is allowed for small, self-contained maintenance that does not need phase tracking.
+1. Phase-managed work is the default for planned development.
+2. Unmanaged work is allowed for small, self-contained maintenance that does not need milestone planning.
 3. Every commit needs clear intent. For unmanaged work, the commit title/body is the primary record.
 4. Do not lock commit intent into a fixed prefix taxonomy until the repo has enough examples to justify one.
 5. When unsure whether work is phase-managed or unmanaged, prefer the path with clearer review evidence.
@@ -107,22 +107,19 @@ Phase-managed work:
 
 1. Phase-managed work requires:
    - milestone
-   - phase tracking issue
-   - phase gate issue
-   - child/task issues
+   - phase task issues
    - branch and pull request for changes that merge into `develop`
    - recorded evidence
-   - acceptance criteria before closure
+   - completion checks before closure
 2. Phase branches do not need to map to product features. They may represent docs alignment, workflow cleanup, contract
    adjustment, architecture settlement, or another bounded slice of the evolving framework.
-3. Phase 0 is the bootstrap phase for stabilizing this process itself. It records locked-in workflow decisions, updates
-   workflow/contract docs and GitHub templates, creates any missing process issues, and produces a process baseline that
-   can be used for a few weeks before review.
-4. Later phases use the Phase 0 baseline unless a new decision changes it.
+3. Milestone descriptions are the active phase authority (intent, scope, out-of-scope, and exit criteria).
+4. Phase issues carry concrete task execution context and should stay concise.
+5. Later phases use the current baseline unless a new decision changes it.
 
 Unmanaged work:
 
-1. Unmanaged maintenance is small, self-contained work that does not need phase tracking, a milestone decision, or a
+1. Unmanaged maintenance is small, self-contained work that does not need phase planning, a milestone decision, or a
    dedicated issue before starting.
 2. Direct commits are acceptable only when all of these are true:
    - the change is local, obvious, and low-risk
@@ -130,57 +127,33 @@ Unmanaged work:
    - no review, isolation, or evidence trail would materially help
    - the change does not alter contracts, workflow policy, release posture, branch/ruleset policy, or phase scope
 3. Use both a short-lived branch and a pull request when unmanaged work needs review, evidence, or isolation.
-4. Unmanaged PRs do not require a pre-existing issue, but the PR body must explain the change, scope, validation, and
-   issue-closure intent (`Issues Closed by This PR`) plus any partial/context references in comments.
-5. Convert work to phase-managed when it affects phase scope, phase evidence, milestone/gate decisions, contract policy,
-   GitHub workflow policy, or public project documentation posture.
+4. Unmanaged PRs do not require a pre-existing issue, but the PR body must explain the change and validation clearly.
+5. Convert work to phase-managed when it affects phase scope, phase evidence, milestone decisions, GitHub workflow
+   policy, or public project documentation posture.
 6. Incidental work found during phase-managed work stays in that phase branch only when it directly supports the phase
-   task. Otherwise, split it into unmanaged work or create a new phase child issue if it has process-tracking weight.
+   task. Otherwise, split it into unmanaged work or create a new phase task issue if it has tracking weight.
 7. Examples:
    - docs typo or stale wording: direct commit if obvious; unmanaged branch+PR if wording changes policy or needs review
    - broken wrapper scripts that diverge from the canonical xtask surface: phase-managed when tied to Phase 1 execution
      rails, otherwise unmanaged branch+PR because validation evidence matters
    - small tooling fix: unmanaged branch+PR when it changes commands, hooks, or validation behavior
-   - incidental finding during phase work: keep it only if it directly supports the current phase child issue; split it
+   - incidental finding during phase work: keep it only if it directly supports the current phase task issue; split it
      otherwise
 
 GitHub phase workflow (built-in/free features):
 
-1. Milestones are lightweight containers. Use `.github/MILESTONE_TEMPLATE/phase_milestone.md` as copy/paste source when
-   creating or editing a milestone.
-2. Phase issue creation uses issue forms in `.github/ISSUE_TEMPLATE/`:
-   - `phase_tracking_issue.yml` for phase tracking issues
-   - `phase_child_issue.yml` for phase task issues
-   - `phase_gate_issue.yml` for phase gate issues
+1. Milestones are the phase authority surface. Use `.github/MILESTONE_TEMPLATE/phase_milestone.md` as copy/paste source
+   when creating or editing a milestone.
+2. Phase issue creation uses one issue form in `.github/ISSUE_TEMPLATE/`:
+   - `phase_task.yml` for all phase task issues
    - blank issues are disabled for non-maintainers via `.github/ISSUE_TEMPLATE/config.yml`
-3. Authority split:
-   - Milestone: lightweight phase summary and links.
-   - Tracking issue: living authority while the phase is open.
-   - Child issues: concrete executable work.
-   - Gate issue: short final decision record.
-4. Gate decision is canonical only in `phase_gate_issue.yml`. Any note in the tracking issue is a mirror only. The gate
-   issue should summarize the decision, required evidence, waivers/deferred items, and final note; it should not repeat
-   the full tracking issue.
-5. In GitHub-rendered text, use bare references such as `#123` or `PR #123`. Do not duplicate issue or PR titles next
-   to references unless the text must stand alone outside GitHub.
-6. Tracking issue child checkboxes mean closed or explicitly deferred, not merely created or accepted into scope.
-7. PRs use one `Issues Closed by This PR` checklist:
-   - list only issues fully resolved by the PR (`[x] #123`).
-   - if no issue is fully resolved, write `- none`.
-   - partially advanced issues and context-only mentions belong in PR comments, not in the close-list checklist.
-8. PR templates use non-checkbox selector markers for workflow mode (so they do not inflate PR task counts) and keep
-   real checkboxes for acceptance and validation status.
-9. Labels are live GitHub repository metadata, not a committed manifest. Until metadata automation exists, maintainers
-   apply labels manually when creating or triaging issues and PRs:
-   - exactly one type label for phase issues: `type:phase-tracking`, `type:phase-task`, or `type:phase-gate`
-   - the matching phase label: `phase:0`, `phase:1`, `phase:2`, `phase:3`, `phase:4`, or `phase:5`
-   - a contract label for child issues and PRs when applicable: `contract:none`, `contract:non-breaking`, or
-     `contract:breaking`
-   - risk labels only when useful for triage: `risk:blocker`, `risk:high`, `risk:medium`, or `risk:low`
-10. GitHub issue forms cannot derive labels from dropdown fields. Treat template notes as required maintainer actions
-    until a lightweight metadata automation path is accepted.
-11. Default GitHub labels (`bug`, `documentation`, `enhancement`, and similar) remain available for non-phase issue
-    triage. Phase governance labels define the managed workflow surface; they do not replace normal GitHub triage labels.
+3. The issue form auto-applies `type:phase-task`.
+4. Apply matching `phase:N` labels manually until metadata automation exists.
+5. Labels are live GitHub repository metadata, not a committed manifest.
+6. PRs use one template: `.github/PULL_REQUEST_TEMPLATE.md`.
+7. Link related issues in the PR sidebar (`Development`) instead of listing issue numbers in the PR body.
+8. Linked issues should be closed before PR merge.
+9. Metadata automation is tracked separately and can evolve this flow later.
 
 CODEOWNERS:
 
@@ -203,11 +176,10 @@ Branch protection and rulesets:
 
 Pull request template workflow:
 
-1. Default/non-phase PRs use `.github/PULL_REQUEST_TEMPLATE.md`.
-2. Phase-linked PRs use `.github/PULL_REQUEST_TEMPLATE/phase_work.md`.
-3. Use GitHub `template=` query parameter when opening phase-linked PRs. Example:
-   - `.../compare/develop...<branch>?quick_pull=1&template=phase_work.md`
-4. PRs may exist outside phases. If a PR is phase-linked, it must include phase issue linkage and evidence.
+1. All PRs use `.github/PULL_REQUEST_TEMPLATE.md`.
+2. Link related issues in the PR sidebar (`Development`).
+3. Keep PR body content concise: summary, validation, and optional notes.
+4. Close linked issues before merging.
 
 AI collaboration workflow:
 
