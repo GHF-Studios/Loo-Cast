@@ -176,6 +176,8 @@ Pull request template workflow:
 5. Link related issues in the PR sidebar (`Development`).
 6. Keep PR body content concise: summary, validation, and optional notes.
 7. Close linked issues before merging.
+8. If a PR is intentionally closed without merge (for example, superseded, abandoned, or replaced during branch rename),
+   leave a closing comment that states what happened and links to the replacement PR/issue/branch when one exists.
 
 AI collaboration workflow:
 
