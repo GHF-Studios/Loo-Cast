@@ -18,9 +18,12 @@ Describe the fix-pass scope and why it runs outside the active phase stream.
 
 - Why deferring this fix would be risky:
 - Integration impact on active phase PR:
+- Supersedes PR (if applicable):
+- Supersession reason:
 
 Before requesting review:
 
 - [ ] Related fix issue linked in PR sidebar (`Development`)
 - [ ] Fix issue closed, or will be closed before merge
 - [ ] Milestone and labels are set in GitHub metadata when applicable
+- [ ] If this PR supersedes another PR, closure breadcrumb + replacement link were posted and references were updated

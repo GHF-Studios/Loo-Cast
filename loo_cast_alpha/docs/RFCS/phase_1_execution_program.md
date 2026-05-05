@@ -74,6 +74,11 @@ Superseded records:
    - what evidence was added,
    - what uncertainty was resolved (or remains unresolved).
 4. Keep issue bodies concise; use this RFC + milestone for holistic narrative and cross-issue reasoning.
+5. If the active phase PR must be replaced (branch rename/scope reset/history cleanup), follow explicit supersession:
+   - open replacement PR first
+   - carry forward metadata/context/evidence structure
+   - comment and close old PR with replacement pointer
+   - update milestone/RFC links to the replacement PR
 
 ## Fix Policy During Phase Execution
 

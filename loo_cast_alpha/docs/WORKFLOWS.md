@@ -178,6 +178,14 @@ Pull request template workflow:
 7. Close linked issues before merging.
 8. If a PR is intentionally closed without merge (for example, superseded, abandoned, or replaced during branch rename),
    leave a closing comment that states what happened and links to the replacement PR/issue/branch when one exists.
+9. PR supersession/migration protocol (when replacing an open PR):
+   - open the replacement PR first
+   - carry forward summary/evidence/checklist context
+   - apply equivalent metadata (milestone/labels/linked issues)
+   - comment on the old PR with reason + replacement link
+   - close old PR without merge
+   - update milestone/RFC/docs references to the replacement PR
+   - verify only one active phase PR remains
 
 AI collaboration workflow:
 
