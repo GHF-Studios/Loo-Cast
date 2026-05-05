@@ -1,4 +1,5 @@
-> Single PR template. Keep this short and execution-focused.
+> Default PR template. Keep this short and execution-focused.
+> For dedicated fix-pass PRs, use `.github/PULL_REQUEST_TEMPLATE/fixing_phase.md`.
 
 ## Summary
 

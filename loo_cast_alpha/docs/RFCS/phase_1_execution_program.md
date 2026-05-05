@@ -67,18 +67,29 @@ Superseded records:
 
 ## PR Operating Model for Phase 1
 
-1. Keep one long-lived Phase 1 PR open as the integration/discussion surface.
-2. Treat each issue close as one explicit checkpoint in the PR timeline.
+1. Use PR #46 as the single composite integration container for remaining Phase 1 execution work.
+2. Do not run parallel topic/feature PRs while Phase 1 execution is active.
 3. Record in PR updates:
    - what changed,
    - what evidence was added,
    - what uncertainty was resolved (or remains unresolved).
 4. Keep issue bodies concise; use this RFC + milestone for holistic narrative and cross-issue reasoning.
 
+## Fix Policy During Phase Execution
+
+1. Simple incidental fixes discovered during active phase work should be applied immediately in the active phase stream.
+2. For simple incidental fixes:
+   - keep fix trace in commit title/body
+   - mention the fix once in PR #46 progress updates
+3. Complex unrelated fixes should move to a standalone fix issue and dedicated fix-pass PR into `develop`.
+4. While a complex fix-pass PR is active, pause new Phase 1 implementation commits.
+5. After fix-pass merge, sync the phase branch with `develop` and check for any (new) merge conflicts in the current
+   phase PR, so we at least get some idea of the impact of our fixes on phase execution, before resuming said phase
+   execution.
+
 ## Decision Hooks
 
 Open questions that can force strategy change:
 
 1. If Windows release validation cannot run in current environment, what exact deferment bar is acceptable for Phase 1 exit?
-2. Which metadata checks must remain manual even after first #26 automation increment?
-3. Should #11 fresh-clone rehearsal run in one environment or multiple (minimum Linux + one Windows path)?
+2. Should #11 fresh-clone rehearsal run in one environment or multiple (minimum Linux + one Windows path)?
