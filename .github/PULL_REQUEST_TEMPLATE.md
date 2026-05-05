@@ -1,22 +1,21 @@
-> Use this default template for non-phase PRs.  
-> For phase-linked PRs, use `.github/PULL_REQUEST_TEMPLATE/phase_work.md`.
+> Single PR template. Keep this short and execution-focused.
 
-## Description
+## Summary
 
-Brief description of changes.
+What changed and why.
 
-## Type of Change
+## Validation
 
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Documentation update
+- [ ] `cargo xtask audit` passed, or reason it was not run
+- [ ] Tests added/updated, or reason not needed
+- [ ] Documentation updated, or reason not needed
 
-## Checklist
+## Notes (Optional)
 
-- [ ] Tests added/updated
-- [ ] `cargo xtask audit` passing
-- [ ] Documentation updated
+Risks, rollout notes, blockers, or follow-ups.
 
-## Related Issues
+Before requesting review:
 
-Closes #(issue)
+- [ ] Related issue(s) linked in the PR sidebar (`Development`)
+- [ ] Linked issue(s) are closed, or will be closed before merge
+- [ ] Milestone and labels are set in GitHub metadata when applicable

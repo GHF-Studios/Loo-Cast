@@ -24,6 +24,7 @@
 - `pre-commit` formats the alpha workspace.
 - `pre-push` runs `cargo xtask audit`.
 - If hooks are missing, run `cargo xtask setup_sdk`.
+- To remove managed hooks installed by `setup_sdk`, run `cargo xtask clean_sdk`.
 
 ## Questions?
 

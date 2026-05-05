@@ -1,6 +1,6 @@
 # NOW
 
-Date: 2026-04-30
+Date: 2026-05-05
 
 Current direction:
 
@@ -13,13 +13,19 @@ Current direction:
 
 Current scope:
 
-- Primary tasks: `setup_sdk`, `build`, `package`, `run`, `audit`, `cloc`, `gource`.
+- Primary tasks: `setup_sdk`, `clean_sdk`, `build`, `package`, `run`, `audit`, `cloc`, `gource`.
+- `develop` is the active integration line; scoped topic branches merge into it through PRs.
+- `main` is protected by ruleset; `develop` is intentionally process-enforced without a ruleset for solo integration.
+- Phase 0 workflow/process bootstrap is complete as of 2026-05-03.
+- GitHub labels are live repository metadata. There is no committed label manifest.
+- Required labels are applied manually by policy.
 - Local hooks are the first validation rail: pre-commit formats, pre-push audits.
 - GitHub Actions mirrors `cargo xtask audit` as a low-maintenance remote validation rail.
 - No SDK/toolchain redistribution layer right now.
 - No dual-repo automation right now.
 - Compatibility policy is defined in `CONTRACTS.md`.
-- Breaking changes require a major bump + migration guide.
+- `CHANGELOG_DRAFT.md` and `MIGRATIONS_DRAFT.md` are active draft surfaces while structural churn is expected.
+- Stable-contract mode rule: breaking changes require a new published version + formal migration guide.
 
 Success for this phase:
 
