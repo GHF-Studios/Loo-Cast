@@ -22,5 +22,8 @@ Format: `Date | Status | Decision | Reason`
   project milestone meaning while acknowledging SemVer initial-development rules before `1.0.0`.
 - 2026-05-01 | Active | Treat GitHub labels as live repository metadata, not a committed manifest. | The GitHub CLI makes
   live label inspection and edits practical; a stale manifest would add process weight without enough value.
+- 2026-05-03 | Active | Keep issue/PR metadata handling manual and do not add dedicated metadata automation jobs for now. |
+  Current manual flow is low-cost and clear enough for the active solo workflow; extra automation would add maintenance
+  surface without enough return.
 - 2026-05-01 | Active | Keep `develop` process-enforced without a ruleset for now. | Preserve solo workflow
   flexibility while topic branches, PRs, evidence, and GitHub Actions already provide enough discipline.
