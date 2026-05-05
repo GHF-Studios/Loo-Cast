@@ -5,29 +5,29 @@ If you arrived from repository root, use this file as the docs map and read-orde
 
 ## Read Order
 
-1. `NOW.md` (current truth and active scope)
-2. `ARCHITECTURE.md` (layer boundaries and ownership cadence)
-3. `CONTRACTS.md` (compatibility/version/migration policy)
-4. `WORKFLOWS.md` (daily loop, phase rules, and GitHub process policy)
-5. `AI_COLLABORATION.md` (supervised AI workflow prompt and gate sequence)
-6. `DECISIONS.md` (durable policy decisions and rationale)
-7. `CHANGELOG_DRAFT.md` (pre-stable release-note drafting while structure is still shifting)
-8. `MIGRATIONS_DRAFT.md` (pre-stable migration-impact drafting while contracts are still shifting)
-9. `migrations/README.md` (formal migration-guide location/rules once stable-contract mode is active)
+1. [NOW.md](NOW.md) (current truth and active scope)
+2. [ARCHITECTURE.md](ARCHITECTURE.md) (layer boundaries and ownership cadence)
+3. [CONTRACTS.md](CONTRACTS.md) (compatibility/version/migration policy)
+4. [WORKFLOWS.md](WORKFLOWS.md) (daily loop, phase rules, and GitHub process policy)
+5. [AI_COLLABORATION.md](AI_COLLABORATION.md) (supervised AI workflow prompt and gate sequence)
+6. [DECISIONS.md](DECISIONS.md) (durable policy decisions and rationale)
+7. [CHANGELOG_DRAFT.md](CHANGELOG_DRAFT.md) (pre-stable release-note drafting while structure is still shifting)
+8. [MIGRATIONS_DRAFT.md](MIGRATIONS_DRAFT.md) (pre-stable migration-impact drafting while contracts are still shifting)
+9. [migrations/README.md](migrations/README.md) (formal migration-guide location/rules once stable-contract mode is active)
 
 ## Entry By Intent
 
-- I want current direction: `NOW.md`
-- I want to build/package/run/audit: `WORKFLOWS.md`
-- I want compatibility guarantees: `CONTRACTS.md`
-- I want architecture boundaries: `ARCHITECTURE.md`
-- I want policy history: `DECISIONS.md`
-- I want draft release/migration notes during structural churn: `CHANGELOG_DRAFT.md`, `MIGRATIONS_DRAFT.md`
-- I want crate docs posture and known deferrals: `RUSTDOC_BASELINE.md`
+- I want current direction: [NOW.md](NOW.md)
+- I want to build/package/run/audit: [WORKFLOWS.md](WORKFLOWS.md)
+- I want compatibility guarantees: [CONTRACTS.md](CONTRACTS.md)
+- I want architecture boundaries: [ARCHITECTURE.md](ARCHITECTURE.md)
+- I want policy history: [DECISIONS.md](DECISIONS.md)
+- I want draft release/migration notes during structural churn: [CHANGELOG_DRAFT.md](CHANGELOG_DRAFT.md), [MIGRATIONS_DRAFT.md](MIGRATIONS_DRAFT.md)
+- I want crate docs posture and known deferrals: [RUSTDOC_BASELINE.md](RUSTDOC_BASELINE.md)
 
 ## Rust Docs Baseline
 
-`RUSTDOC_BASELINE.md` inventories active crates and marks each as:
+[RUSTDOC_BASELINE.md](RUSTDOC_BASELINE.md) inventories active crates and marks each as:
 
 - documented and sufficient for current bootstrap scope, or
 - intentionally minimal with rationale and follow-up routing.

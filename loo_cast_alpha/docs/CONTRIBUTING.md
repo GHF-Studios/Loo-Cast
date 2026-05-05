@@ -1,23 +1,26 @@
 # Contributing
 
-## How to Contribute
+Current audience: internal/solo workflow for active alpha development.
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Make your changes
-4. Add tests
-5. Run `cargo xtask setup_sdk` once per clone
-6. Run `cargo xtask audit`
-7. Commit: `git commit -m "feat: add my feature"`
-8. Push: `git push origin feature/my-feature`
-9. Create a pull request
+## Flow
+
+1. Start from a named issue.
+2. Update local `develop` and create a topic branch from it.
+3. Run `cargo xtask setup_sdk` once per clone (or when hooks are missing).
+4. Make the scoped change.
+5. Add/update tests when needed.
+6. Run `cargo xtask audit`.
+7. Push the topic branch.
+8. Open a PR into `develop`.
+9. Link related issue(s) in the PR sidebar (`Development`).
+10. Close linked issue(s) before merge.
 
 ## Code Style
 
 - Follow Rust standard style. The pre-commit hook runs `cargo fmt`.
 - No clippy warnings in workspace code. `cargo xtask audit` runs clippy with `--no-deps` and `-D warnings`.
-- Add tests for new features
-- Document public APIs
+- Add tests when behavior changes.
+- Update docs when behavior/workflow changes.
 
 ## Local Hooks
 
