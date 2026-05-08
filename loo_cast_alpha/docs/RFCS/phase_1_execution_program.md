@@ -75,7 +75,9 @@ Issue #11 evidence captured (2026-05-08):
   - `cargo xtask package`
   - `cargo xtask run`
   - `cargo xtask audit`
-- Missing prerequisite resolved in docs: run `cargo xtask ...` from `loo_cast_alpha/` workspace root
+- Command invocation ergonomics documented and validated:
+  - repository-root shim (`Cargo.toml` + `.cargo/config.toml`) enables `cargo xtask ...` from root
+  - direct invocation from `loo_cast_alpha/` workspace root remains valid
 
 ## Known Ambiguities and Risks
 

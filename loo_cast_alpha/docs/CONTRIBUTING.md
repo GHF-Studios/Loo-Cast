@@ -6,7 +6,7 @@ Current audience: internal/solo workflow for active alpha development.
 
 1. Start from a named issue.
 2. Update local `develop` and create a topic branch from it.
-3. Run all `cargo xtask ...` commands from `loo_cast_alpha/` workspace root.
+3. Run `cargo xtask ...` from repository root (root alias shim) or from `loo_cast_alpha/` workspace root.
 4. Run `cargo xtask setup_sdk` once per clone (or when hooks are missing).
 5. Make the scoped change.
 6. Add/update tests when needed.
