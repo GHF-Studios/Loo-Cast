@@ -11,9 +11,10 @@ If you arrived from repository root, use this file as the docs map and read-orde
 4. [WORKFLOWS.md](WORKFLOWS.md) (daily loop, phase rules, and GitHub process policy)
 5. [AI_COLLABORATION.md](AI_COLLABORATION.md) (supervised AI workflow prompt and gate sequence)
 6. [DECISIONS.md](DECISIONS.md) (durable policy decisions and rationale)
-7. [CHANGELOG_DRAFT.md](CHANGELOG_DRAFT.md) (pre-stable release-note drafting while structure is still shifting)
-8. [MIGRATIONS_DRAFT.md](MIGRATIONS_DRAFT.md) (pre-stable migration-impact drafting while contracts are still shifting)
-9. [migrations/README.md](migrations/README.md) (formal migration-guide location/rules once stable-contract mode is active)
+7. [RFCS/README.md](RFCS/README.md) (phase/program-level strategy and design rationale)
+8. [CHANGELOG_DRAFT.md](CHANGELOG_DRAFT.md) (pre-stable release-note drafting while structure is still shifting)
+9. [MIGRATIONS_DRAFT.md](MIGRATIONS_DRAFT.md) (pre-stable migration-impact drafting while contracts are still shifting)
+10. [migrations/README.md](migrations/README.md) (formal migration-guide location/rules once stable-contract mode is active)
 
 ## Entry By Intent
 
@@ -22,6 +23,7 @@ If you arrived from repository root, use this file as the docs map and read-orde
 - I want compatibility guarantees: [CONTRACTS.md](CONTRACTS.md)
 - I want architecture boundaries: [ARCHITECTURE.md](ARCHITECTURE.md)
 - I want policy history: [DECISIONS.md](DECISIONS.md)
+- I want phase/program execution strategy: [RFCS/README.md](RFCS/README.md)
 - I want draft release/migration notes during structural churn: [CHANGELOG_DRAFT.md](CHANGELOG_DRAFT.md), [MIGRATIONS_DRAFT.md](MIGRATIONS_DRAFT.md)
 - I want crate docs posture and known deferrals: [RUSTDOC_BASELINE.md](RUSTDOC_BASELINE.md)
 
