@@ -39,7 +39,7 @@ GitHub Actions audit rail:
    can still trigger recompilation.
 5. For zero-cost mode, keep the repository public or attach a self-hosted runner before relying on private-repository
    workflow runs.
-6. Local hooks remain required even when GitHub Actions is enabled.
+6. Local hooks are the first guardrail; GitHub Actions is secondary parity validation.
 
 Mod author loop (current):
 

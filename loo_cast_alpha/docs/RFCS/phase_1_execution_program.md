@@ -21,13 +21,13 @@ Completed:
 - #3 `Remove stale workflow wrappers and relocate bundled utilities`
 - #7 `Docs baseline and read-order alignment`
 - #8 `xtask command surface and hook behavior validation`
+- #9 `GitHub Actions audit workflow and zero-cost runner posture`
 - #13 `Lightweight GitHub automation jobs`
 - #27 `Relocate bundled utility binaries`
 - #28 `Remove or repair stale xtask wrapper scripts`
 
 Open workstreams:
 
-- #9 `GitHub Actions audit workflow and zero-cost runner posture`
 - #10 `GitHub templates, labels, and CODEOWNERS alignment`
 - #11 `Fresh-clone build/package/run/audit rehearsal`
 - #12 `Linux and Windows release target validation`
@@ -39,13 +39,11 @@ Superseded records:
 
 ## Workstream Map
 
-1. #9 CI parity and cost posture:
-   keep CI audit aligned with local audit, with low-maintenance cost discipline.
-2. #10 Metadata/process surface alignment:
+1. #10 Metadata/process surface alignment:
    keep templates/labels/ownership coherent under the milestone-first model; route automation follow-up to #26.
-3. #11 Fresh-clone rehearsal:
+2. #11 Fresh-clone rehearsal:
    verify docs and command surface from zero-state environment.
-4. #12 Release-target proof:
+3. #12 Release-target proof:
    validate Linux and Windows release targets or explicitly record blockers/deferred items.
 
 Issue #8 evidence captured (2026-05-08):
@@ -54,6 +52,12 @@ Issue #8 evidence captured (2026-05-08):
 - `cargo run --manifest-path loo_cast_alpha/Cargo.toml -p xtask -- audit`
 - `cargo run --manifest-path loo_cast_alpha/Cargo.toml -p xtask -- clean_sdk`
 - `cargo run --manifest-path loo_cast_alpha/Cargo.toml -p xtask -- setup_sdk` (restore managed hooks)
+
+Issue #9 evidence captured (2026-05-08):
+
+- Workflow file: `.github/workflows/audit.yml`
+- Successful run: https://github.com/GHF-Studios/Loo-Cast/actions/runs/25557345236
+- Verified job steps: checkout, system tool install, nightly+components install, cargo cache restore, `cargo xtask audit`
 
 ## Known Ambiguities and Risks
 
@@ -65,10 +69,9 @@ Issue #8 evidence captured (2026-05-08):
 ## Execution Strategy
 
 1. Keep #10 active as a cross-cutting consistency guardrail.
-2. Close #9 first to lock CI parity after local validation closure from #8.
-3. Run #11 after #9 updates to verify fresh-clone reproducibility against the finalized rails.
-4. Run #12 once command rails are stable; capture hard blockers if environment gaps exist.
-5. Close Phase 1 when milestone exit criteria are satisfied and evidence is linked in milestone #1.
+2. Run #11 to verify fresh-clone reproducibility against the finalized rails.
+3. Run #12 once command rails are stable; capture hard blockers if environment gaps exist.
+4. Close Phase 1 when milestone exit criteria are satisfied and evidence is linked in milestone #1.
 
 ## PR Operating Model for Phase 1
 
