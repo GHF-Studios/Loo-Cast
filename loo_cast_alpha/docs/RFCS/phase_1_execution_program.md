@@ -30,7 +30,7 @@ Completed:
 
 Open workstreams:
 
-- #12 `Linux and Windows release target validation`
+- None (Phase 1 scope complete; #12 deferred to a future phase with explicit rationale).
 
 Superseded records:
 
@@ -39,8 +39,8 @@ Superseded records:
 
 ## Workstream Map
 
-1. #12 Release-target proof:
-   validate Linux and Windows release targets or explicitly record blockers/deferred items.
+1. #12 Deferred cross-platform runtime proof:
+   moved out of Phase 1; future phase requires real-machine Windows runtime validation with human oversight.
 
 Issue #8 evidence captured (2026-05-08):
 
@@ -82,17 +82,23 @@ Issue #11 evidence captured (2026-05-08):
   - prefer parameterless named tasks over argument matrices
   - add new named tasks for common variants instead of expanding flag/parameter spaces
 
+Issue #12 deferment decision recorded (2026-05-08):
+
+- Deferred out of Phase 1 due missing real Windows machine for runtime oversight.
+- CI and hook checks are not treated as sufficient substitute for platform-runtime confidence.
+- Future phase should require human-in-loop launch and runtime review on target platforms.
+
 ## Known Ambiguities and Risks
 
-1. Windows release validation prerequisites may vary across runner/local environments.
-2. “Sufficient evidence” quality can drift unless each issue links concrete command/run artifacts.
-3. Metadata remains manually applied until #26 automation lands; this can cause process drift.
-4. CI parity claims can become stale if local/CI command surfaces diverge without immediate doc updates.
+1. “Sufficient evidence” quality can drift unless each issue links concrete command/run artifacts.
+2. Metadata remains manually applied until #26 automation lands; this can cause process drift.
+3. CI parity claims can become stale if local/CI command surfaces diverge without immediate doc updates.
+4. Deferred cross-platform runtime validation can remain stale unless re-scheduled and actively executed in a future phase.
 
 ## Execution Strategy
 
-1. Run #12 once command rails are stable; capture hard blockers if environment gaps exist.
-2. Close Phase 1 when milestone exit criteria are satisfied and evidence is linked in milestone #1.
+1. Keep #12 deferred until target hardware/runtime oversight capacity exists.
+2. Close Phase 1 with explicit deferment rationale linked as release-target evidence.
 
 ## PR Operating Model for Phase 1
 
@@ -125,5 +131,5 @@ Issue #11 evidence captured (2026-05-08):
 
 Open questions that can force strategy change:
 
-1. If Windows release validation cannot run in current environment, what exact deferment bar is acceptable for Phase 1 exit?
-2. Should #12 release-target validation require multiple Windows execution paths or one canonical path?
+1. What concrete trigger should promote deferred #12 back into active phase scope?
+2. Should future cross-platform runtime validation require one canonical Windows path first, then expand later?
