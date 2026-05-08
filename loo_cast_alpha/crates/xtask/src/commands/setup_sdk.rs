@@ -37,10 +37,7 @@ pub(crate) const PRE_PUSH_HOOK_CONTENTS: &str = r#"
 ///
 /// Or simpler, but only works from loo_cast_alpha:
 /// ```text
-/// // We do this once, so we are in the correct directory
-/// cd loo_cast_alpha
-///
-/// // Because then our life becomes much easier
+/// cd loo_cast_alpha (only once ofc)
 /// cargo xtask setup_sdk
 /// ```
 pub fn setup_sdk(root: &Path) -> Result<()> {
