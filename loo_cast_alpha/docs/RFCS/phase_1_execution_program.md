@@ -78,6 +78,9 @@ Issue #11 evidence captured (2026-05-08):
 - Command invocation ergonomics documented and validated:
   - repository-root shim (`Cargo.toml` + `.cargo/config.toml`) enables `cargo xtask ...` from root
   - direct invocation from `loo_cast_alpha/` workspace root remains valid
+- xtask usability policy documented:
+  - prefer parameterless named tasks over argument matrices
+  - add new named tasks for common variants instead of expanding flag/parameter spaces
 
 ## Known Ambiguities and Risks
 

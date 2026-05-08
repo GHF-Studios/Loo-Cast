@@ -16,6 +16,13 @@ Support tools:
 - `cargo xtask cloc`
 - `cargo xtask gource`
 
+xtask command-surface policy:
+
+1. Default developer tasks should be parameterless (`cargo xtask <named-task>`).
+2. Prefer explicit task names for variants (`build_release`, `package_windows_release`) over flag matrices.
+3. Avoid introducing argument combinations that create implicit invalid states.
+4. Use arguments only for exceptional internal tooling cases, and document those cases explicitly.
+
 Third-party utility binaries:
 
 - `cargo xtask cloc` uses bundled `cloc` binaries from `loo_cast_alpha/third_party/cloc/`.
