@@ -2,6 +2,8 @@
 
 Daily developer loop:
 
+Run commands from the `loo_cast_alpha/` workspace root.
+
 1. `cargo xtask setup_sdk` once per clone.
 2. `cargo xtask build`
 3. `cargo xtask package`

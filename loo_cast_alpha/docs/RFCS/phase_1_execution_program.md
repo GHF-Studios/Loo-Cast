@@ -23,13 +23,13 @@ Completed:
 - #8 `xtask command surface and hook behavior validation`
 - #9 `GitHub Actions audit workflow and zero-cost runner posture`
 - #10 `GitHub templates, labels, and CODEOWNERS alignment`
+- #11 `Fresh-clone build/package/run/audit rehearsal`
 - #13 `Lightweight GitHub automation jobs`
 - #27 `Relocate bundled utility binaries`
 - #28 `Remove or repair stale xtask wrapper scripts`
 
 Open workstreams:
 
-- #11 `Fresh-clone build/package/run/audit rehearsal`
 - #12 `Linux and Windows release target validation`
 
 Superseded records:
@@ -39,9 +39,7 @@ Superseded records:
 
 ## Workstream Map
 
-1. #11 Fresh-clone rehearsal:
-   verify docs and command surface from zero-state environment.
-2. #12 Release-target proof:
+1. #12 Release-target proof:
    validate Linux and Windows release targets or explicitly record blockers/deferred items.
 
 Issue #8 evidence captured (2026-05-08):
@@ -67,6 +65,18 @@ Issue #10 evidence captured (2026-05-08):
 - Live phase labels aligned to form options (`phase:0` through `phase:9`)
 - Metadata automation gap remains explicitly tracked under open issue #26
 
+Issue #11 evidence captured (2026-05-08):
+
+- Fresh clone rehearsal root: `/tmp/loo-cast-fresh-cpeSE7/repo`
+- Rehearsal workspace root: `/tmp/loo-cast-fresh-cpeSE7/repo/loo_cast_alpha`
+- Executed successfully:
+  - `cargo xtask setup_sdk`
+  - `cargo xtask build`
+  - `cargo xtask package`
+  - `cargo xtask run`
+  - `cargo xtask audit`
+- Missing prerequisite resolved in docs: run `cargo xtask ...` from `loo_cast_alpha/` workspace root
+
 ## Known Ambiguities and Risks
 
 1. Windows release validation prerequisites may vary across runner/local environments.
@@ -76,9 +86,8 @@ Issue #10 evidence captured (2026-05-08):
 
 ## Execution Strategy
 
-1. Run #11 to verify fresh-clone reproducibility against the finalized rails.
-2. Run #12 once command rails are stable; capture hard blockers if environment gaps exist.
-3. Close Phase 1 when milestone exit criteria are satisfied and evidence is linked in milestone #1.
+1. Run #12 once command rails are stable; capture hard blockers if environment gaps exist.
+2. Close Phase 1 when milestone exit criteria are satisfied and evidence is linked in milestone #1.
 
 ## PR Operating Model for Phase 1
 
@@ -112,4 +121,4 @@ Issue #10 evidence captured (2026-05-08):
 Open questions that can force strategy change:
 
 1. If Windows release validation cannot run in current environment, what exact deferment bar is acceptable for Phase 1 exit?
-2. Should #11 fresh-clone rehearsal run in one environment or multiple (minimum Linux + one Windows path)?
+2. Should #12 release-target validation require multiple Windows execution paths or one canonical path?
