@@ -14,19 +14,19 @@ This RFC is the durable map for current status, sequencing, unresolved ambiguiti
 
 Establish stable solo execution rails so routine work, validation, and delivery are repeatable before deeper USF restoration.
 
-## Current Snapshot (2026-05-05)
+## Current Snapshot (2026-05-08)
 
 Completed:
 
 - #3 `Remove stale workflow wrappers and relocate bundled utilities`
 - #7 `Docs baseline and read-order alignment`
+- #8 `xtask command surface and hook behavior validation`
 - #13 `Lightweight GitHub automation jobs`
 - #27 `Relocate bundled utility binaries`
 - #28 `Remove or repair stale xtask wrapper scripts`
 
 Open workstreams:
 
-- #8 `xtask command surface and hook behavior validation`
 - #9 `GitHub Actions audit workflow and zero-cost runner posture`
 - #10 `GitHub templates, labels, and CODEOWNERS alignment`
 - #11 `Fresh-clone build/package/run/audit rehearsal`
@@ -39,16 +39,21 @@ Superseded records:
 
 ## Workstream Map
 
-1. #8 Local hook and audit-command truth:
-   prove local setup and validation are deterministic.
-2. #9 CI parity and cost posture:
+1. #9 CI parity and cost posture:
    keep CI audit aligned with local audit, with low-maintenance cost discipline.
-3. #10 Metadata/process surface alignment:
+2. #10 Metadata/process surface alignment:
    keep templates/labels/ownership coherent under the milestone-first model; route automation follow-up to #26.
-4. #11 Fresh-clone rehearsal:
+3. #11 Fresh-clone rehearsal:
    verify docs and command surface from zero-state environment.
-5. #12 Release-target proof:
+4. #12 Release-target proof:
    validate Linux and Windows release targets or explicitly record blockers/deferred items.
+
+Issue #8 evidence captured (2026-05-08):
+
+- `cargo run --manifest-path loo_cast_alpha/Cargo.toml -p xtask -- setup_sdk`
+- `cargo run --manifest-path loo_cast_alpha/Cargo.toml -p xtask -- audit`
+- `cargo run --manifest-path loo_cast_alpha/Cargo.toml -p xtask -- clean_sdk`
+- `cargo run --manifest-path loo_cast_alpha/Cargo.toml -p xtask -- setup_sdk` (restore managed hooks)
 
 ## Known Ambiguities and Risks
 
@@ -60,8 +65,8 @@ Superseded records:
 ## Execution Strategy
 
 1. Keep #10 active as a cross-cutting consistency guardrail.
-2. Close #8 and #9 first to lock local+CI validation behavior.
-3. Run #11 after #8/#9 updates to verify fresh-clone reproducibility against the finalized rails.
+2. Close #9 first to lock CI parity after local validation closure from #8.
+3. Run #11 after #9 updates to verify fresh-clone reproducibility against the finalized rails.
 4. Run #12 once command rails are stable; capture hard blockers if environment gaps exist.
 5. Close Phase 1 when milestone exit criteria are satisfied and evidence is linked in milestone #1.
 
