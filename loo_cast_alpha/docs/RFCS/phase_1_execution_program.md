@@ -22,13 +22,13 @@ Completed:
 - #7 `Docs baseline and read-order alignment`
 - #8 `xtask command surface and hook behavior validation`
 - #9 `GitHub Actions audit workflow and zero-cost runner posture`
+- #10 `GitHub templates, labels, and CODEOWNERS alignment`
 - #13 `Lightweight GitHub automation jobs`
 - #27 `Relocate bundled utility binaries`
 - #28 `Remove or repair stale xtask wrapper scripts`
 
 Open workstreams:
 
-- #10 `GitHub templates, labels, and CODEOWNERS alignment`
 - #11 `Fresh-clone build/package/run/audit rehearsal`
 - #12 `Linux and Windows release target validation`
 
@@ -39,11 +39,9 @@ Superseded records:
 
 ## Workstream Map
 
-1. #10 Metadata/process surface alignment:
-   keep templates/labels/ownership coherent under the milestone-first model; route automation follow-up to #26.
-2. #11 Fresh-clone rehearsal:
+1. #11 Fresh-clone rehearsal:
    verify docs and command surface from zero-state environment.
-3. #12 Release-target proof:
+2. #12 Release-target proof:
    validate Linux and Windows release targets or explicitly record blockers/deferred items.
 
 Issue #8 evidence captured (2026-05-08):
@@ -59,6 +57,16 @@ Issue #9 evidence captured (2026-05-08):
 - Successful run: https://github.com/GHF-Studios/Loo-Cast/actions/runs/25557345236
 - Verified job steps: checkout, system tool install, nightly+components install, cargo cache restore, `cargo xtask audit`
 
+Issue #10 evidence captured (2026-05-08):
+
+- Phase authority/process docs: `loo_cast_alpha/docs/WORKFLOWS.md`, `loo_cast_alpha/docs/CONTRIBUTING.md`
+- Phase issue form baseline: `.github/ISSUE_TEMPLATE/phase_task.yml`
+- PR template baseline: `.github/PULL_REQUEST_TEMPLATE.md`
+- Dedicated fix-pass PR template retained: `.github/PULL_REQUEST_TEMPLATE/fixing_phase.md`
+- CODEOWNERS ownership path coverage: `.github/CODEOWNERS`
+- Live phase labels aligned to form options (`phase:0` through `phase:9`)
+- Metadata automation gap remains explicitly tracked under open issue #26
+
 ## Known Ambiguities and Risks
 
 1. Windows release validation prerequisites may vary across runner/local environments.
@@ -68,10 +76,9 @@ Issue #9 evidence captured (2026-05-08):
 
 ## Execution Strategy
 
-1. Keep #10 active as a cross-cutting consistency guardrail.
-2. Run #11 to verify fresh-clone reproducibility against the finalized rails.
-3. Run #12 once command rails are stable; capture hard blockers if environment gaps exist.
-4. Close Phase 1 when milestone exit criteria are satisfied and evidence is linked in milestone #1.
+1. Run #11 to verify fresh-clone reproducibility against the finalized rails.
+2. Run #12 once command rails are stable; capture hard blockers if environment gaps exist.
+3. Close Phase 1 when milestone exit criteria are satisfied and evidence is linked in milestone #1.
 
 ## PR Operating Model for Phase 1
 
