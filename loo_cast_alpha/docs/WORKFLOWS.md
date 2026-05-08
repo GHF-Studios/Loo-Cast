@@ -201,6 +201,7 @@ AI collaboration workflow:
 1. Use `AI_COLLABORATION.md` as the conversation starter for supervised AI work.
 2. AI-assisted changes should start from a named GitHub issue or PR.
 3. Approval gates are required before local inspection, editing, validation, and PR creation/update.
+4. For multi-line GitHub CLI content (issue/PR bodies, comments, code/text blocks), use temporary files with `--body-file`/`-F` instead of escaped newline strings.
 
 RFC trigger rule (minimum):
 
