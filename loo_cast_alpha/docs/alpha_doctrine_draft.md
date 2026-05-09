@@ -13,6 +13,10 @@ Status: Draft in active conversation loop. Sections are locked only when explici
 - `USF` is composed behavior built from capability-providing mods, not a monolithic special-case package.
 - `core_mod` is an entry/facade mod that may depend on a graph of internal core mods.
 
+Open questions for this section:
+
+- (none)
+
 ## 2) Authority Model (Locked v1)
 
 - Authority should be explicit and fail-fast where ambiguity would create undefined runtime behavior.
@@ -29,73 +33,28 @@ Open questions for this section:
 
 - (none)
 
-## 6) Defer/Commit Policy + Anti-Goals (Locked v1)
+## 3) Phase Intent Model (Locked v1)
 
-Defer/commit policy:
+- Phases alternate between planning and implementation by default.
+- Planning phases are for locking concepts, contracts, boundaries, and proof expectations.
+- Implementation phases are for proving previously locked plans with minimal sufficient execution.
+- If implementation reveals a true conceptual gap, flow returns to the matching planning phase (explicit loopback, not silent drift).
+- There is no mandatory single output artifact type per phase.
+- Implementation phases are not strictly forbidden from scope expansion by a hard gate.
+- A formal loopback marker is required when implementation is blocked by unresolved planning ambiguity.
 
-- Commit now when a decision affects cross-layer contracts, safety gates, or phase ordering.
-- Defer when a choice is implementation-local and does not alter published contracts.
-- Defer by default only if a clear revisit trigger is recorded.
-- If a deferred decision starts causing repeated ambiguity, escalate it to committed doctrine.
+Draft intent map:
 
-Revisit trigger rule:
-
-- Every deferred item should carry a trigger condition (for example "before Phase 3 implementation", "before public SDK", or "before gameplay planning lock").
-
-Anti-goals (what this project should not become):
-
-- Not a silent-fallback system that launches invalid configurations.
-- Not a monolithic hardcoded engine where mods are superficial.
-- Not a loader that treats conflicts/capability ambiguity as best-effort warnings.
-- Not a documentation-only SDK without practical tooling/workflow support.
-- Not a UX that requires expert-level steps for basic user/modder onboarding.
-
-Doctrine safety preference:
-
-- Prefer explicit constraints over hidden permissiveness.
-- Prefer deterministic failure over nondeterministic success.
-- Deferred decisions are tracked in doctrine/RFC documentation only (no separate index artifact).
-- No numeric cap is imposed on unresolved deferred items per phase.
-
-Open questions for this section:
-
-- (none)
-
-## 5) Governance Worldview (Locked v2)
-
-- Governance should maximize ecosystem openness without sacrificing deterministic safety and coherence.
-- Contract clarity is preferred over implicit social conventions.
-- Invalid states are blocked by system rules, not deferred to post-breakage support.
-
-Trust model:
-
-- Root layer is trusted to evolve core contracts and platform internals.
-- Modders are trusted to innovate within published contracts.
-- Users are trusted to compose configurations, but launcher/runtime gates enforce validity boundaries.
-
-Compatibility ethics:
-
-- Compatibility claims should be explicit (declared), not assumed.
-- Conflict and capability semantics must be machine-resolvable where possible.
-- Breaking changes should be intentional, visible, and paired with migration intent.
-
-Publishing norms:
-
-- Mods and modpacks are both publishable artifacts.
-- Default UX favors safe and reproducible compositions over hidden magic.
-- Ownership and provenance of published artifacts should remain visible.
-
-Operational principle:
-
-- "Open by default, gated by invariant safety."
-- Doctrine defines provenance trust tiers for artifacts.
-- Trust tiers are a doctrine-level visibility/safety construct, not a full moderation regime.
-- Initial trust tiers are minimal: `official` and `unofficial`.
-- `official` maps to built-in first-party artifacts; `unofficial` maps to non-built-in artifacts (for example Workshop-acquired).
-- In alpha, trust tier does not change behavior by itself; it is primarily a classification distinction.
-- Compatibility declarations are mandatory for publishable artifacts from day one of public SDK release.
-- Root/official artifacts must not rely on undocumented behavior.
-- Community artifacts may experiment more freely, but launcher/runtime safety gates still enforce invariant boundaries.
+- Phase 2: planning lock for alpha doctrine + mod/framework contracts.
+- Phase 3: implement modding framework baseline and prove end-to-end minimal loop.
+- Phase 4: plan USF semantics contracts.
+- Phase 5: implement USF semantics contracts.
+- Phase 6: plan USF math contracts.
+- Phase 7: implement USF math contracts.
+- Phase 8: plan broad capability platform needed before gameplay.
+- Phase 9: implement capability platform baseline.
+- Phase 10: plan gameplay slice target.
+- Phase 11: implement gameplay slice + human validation proof.
 
 Open questions for this section:
 
@@ -145,28 +104,73 @@ Open questions for this section:
 
 - (none)
 
-## 3) Phase Intent Model (Locked v1)
+## 5) Governance Worldview (Locked v2)
 
-- Phases alternate between planning and implementation by default.
-- Planning phases are for locking concepts, contracts, boundaries, and proof expectations.
-- Implementation phases are for proving previously locked plans with minimal sufficient execution.
-- If implementation reveals a true conceptual gap, flow returns to the matching planning phase (explicit loopback, not silent drift).
-- There is no mandatory single output artifact type per phase.
-- Implementation phases are not strictly forbidden from scope expansion by a hard gate.
-- A formal loopback marker is required when implementation is blocked by unresolved planning ambiguity.
+- Governance should maximize ecosystem openness without sacrificing deterministic safety and coherence.
+- Contract clarity is preferred over implicit social conventions.
+- Invalid states are blocked by system rules, not deferred to post-breakage support.
 
-Draft intent map:
+Trust model:
 
-- Phase 2: planning lock for alpha doctrine + mod/framework contracts.
-- Phase 3: implement modding framework baseline and prove end-to-end minimal loop.
-- Phase 4: plan USF semantics contracts.
-- Phase 5: implement USF semantics contracts.
-- Phase 6: plan USF math contracts.
-- Phase 7: implement USF math contracts.
-- Phase 8: plan broad capability platform needed before gameplay.
-- Phase 9: implement capability platform baseline.
-- Phase 10: plan gameplay slice target.
-- Phase 11: implement gameplay slice + human validation proof.
+- Root layer is trusted to evolve core contracts and platform internals.
+- Modders are trusted to innovate within published contracts.
+- Users are trusted to compose configurations, but launcher/runtime gates enforce validity boundaries.
+
+Compatibility ethics:
+
+- Compatibility claims should be explicit (declared), not assumed.
+- Conflict and capability semantics must be machine-resolvable where possible.
+- Breaking changes should be intentional, visible, and paired with migration intent.
+
+Publishing norms:
+
+- Mods and modpacks are both publishable artifacts.
+- Default UX favors safe and reproducible compositions over hidden magic.
+- Ownership and provenance of published artifacts should remain visible.
+
+Operational principle:
+
+- "Open by default, gated by invariant safety."
+- Doctrine defines provenance trust tiers for artifacts.
+- Trust tiers are a doctrine-level visibility/safety construct, not a full moderation regime.
+- Initial trust tiers are minimal: `official` and `unofficial`.
+- `official` maps to built-in first-party artifacts; `unofficial` maps to non-built-in artifacts (for example Workshop-acquired).
+- In alpha, trust tier does not change behavior by itself; it is primarily a classification distinction.
+- Compatibility declarations are mandatory for publishable artifacts from day one of public SDK release.
+- Root/official artifacts must not rely on undocumented behavior.
+- Community artifacts may experiment more freely, but launcher/runtime safety gates still enforce invariant boundaries.
+
+Open questions for this section:
+
+- (none)
+
+## 6) Defer/Commit Policy + Anti-Goals (Locked v1)
+
+Defer/commit policy:
+
+- Commit now when a decision affects cross-layer contracts, safety gates, or phase ordering.
+- Defer when a choice is implementation-local and does not alter published contracts.
+- Defer by default only if a clear revisit trigger is recorded.
+- If a deferred decision starts causing repeated ambiguity, escalate it to committed doctrine.
+
+Revisit trigger rule:
+
+- Every deferred item should carry a trigger condition (for example "before Phase 3 implementation", "before public SDK", or "before gameplay planning lock").
+
+Anti-goals (what this project should not become):
+
+- Not a silent-fallback system that launches invalid configurations.
+- Not a monolithic hardcoded engine where mods are superficial.
+- Not a loader that treats conflicts/capability ambiguity as best-effort warnings.
+- Not a documentation-only SDK without practical tooling/workflow support.
+- Not a UX that requires expert-level steps for basic user/modder onboarding.
+
+Doctrine safety preference:
+
+- Prefer explicit constraints over hidden permissiveness.
+- Prefer deterministic failure over nondeterministic success.
+- Deferred decisions are tracked in doctrine/RFC documentation only (no separate index artifact).
+- No numeric cap is imposed on unresolved deferred items per phase.
 
 Open questions for this section:
 

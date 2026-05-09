@@ -245,10 +245,10 @@ accident.
 Unresolved:
 Which workflow/macro surfaces are allowed in early restoration before domain contracts are locked?
 
-`R22` Phase 2 must include launcher + modding framework baseline
+`R22` Launcher + modding framework baseline timing
 
 User position:
-Launcher plus modding framework/setup is not optional later work; it should be explicitly part of Phase 2.
+Launcher plus modding framework/setup is not optional later work; it must be an explicit early implementation target.
 
 Integrated commentary:
 Agree. This is a prerequisite for meaningful alpha execution and must not be deferred beyond initial contract/kernel
