@@ -1,6 +1,7 @@
 # Draft Phase Buckets (2-11, Expandable)
 
 Status: Working draft only. Nothing here is final, locked, or committed as roadmap truth.
+Consolidation note: this V1 infodump source is now consolidated under `phase_2_to_11_execution_program.md`.
 
 Rules:
 

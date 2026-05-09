@@ -1,6 +1,7 @@
 # Alpha Doctrine Draft (Incremental)
 
 Status: Draft in active conversation loop. Sections are locked only when explicitly confirmed.
+Consolidation note: this V1 infodump source is now consolidated under `phase_2_to_11_execution_program.md`.
 
 ## 1) Ontology (Locked v1)
 
