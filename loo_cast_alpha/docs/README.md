@@ -16,7 +16,7 @@ If you arrived from repository root, use this file as the docs map and read-orde
 9. [MIGRATIONS_DRAFT.md](MIGRATIONS_DRAFT.md) (pre-stable migration-impact drafting while contracts are still shifting)
 10. [migrations/README.md](migrations/README.md) (formal migration-guide location/rules once stable-contract mode is active)
 11. [RFCS/phase_2_to_11_execution_program.md](RFCS/phase_2_to_11_execution_program.md) (consolidated roadmap drafting surface for Phases 2..11 and viewpoint infodumps)
-12. [diagrams/README.md](diagrams/README.md) (PlantUML diagram conventions and working architecture/flow/timeline visuals)
+12. [diagrams/](diagrams/) (working PlantUML architecture/governance/runtime diagram set)
 
 ## Entry By Intent
 
@@ -27,7 +27,7 @@ If you arrived from repository root, use this file as the docs map and read-orde
 - I want policy history: [DECISIONS.md](DECISIONS.md)
 - I want phase/program execution strategy: [RFCS/README.md](RFCS/README.md)
 - I want consolidated Phase 2..11 roadmap drafting + viewpoint infodump capture: [RFCS/phase_2_to_11_execution_program.md](RFCS/phase_2_to_11_execution_program.md)
-- I want visual architecture/flow/timeline drafts with one consistent schema: [diagrams/README.md](diagrams/README.md)
+- I want the current architecture/governance/runtime diagrams: [diagrams/](diagrams/)
 - I want draft release/migration notes during structural churn: [CHANGELOG_DRAFT.md](CHANGELOG_DRAFT.md), [MIGRATIONS_DRAFT.md](MIGRATIONS_DRAFT.md)
 - I want crate docs posture and known deferrals: [RUSTDOC_BASELINE.md](RUSTDOC_BASELINE.md)
 
