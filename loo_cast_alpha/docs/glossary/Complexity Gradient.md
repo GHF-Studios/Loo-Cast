@@ -1,6 +1,6 @@
 ---
 canonical_name: Complexity Gradient
-status: draft
+status: WIP-draft
 aliases: []
 source_of_truth: []
 ---
