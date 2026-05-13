@@ -11,4 +11,4 @@ It is not one monolithic mechanism.
 Each contract family must have a corresponding model/backend that implements and supports that family's runtime
 mechanisms.
 Current primary families are the [[Capability Contract Surface]] and the [[Modding Contract Surface]], with counterparts
-in the [[Capability Model]] and the [[Modding Model]].
+in the [[Capability Backend]] and the [[Modding Backend]].

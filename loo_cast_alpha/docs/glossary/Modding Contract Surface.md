@@ -9,4 +9,4 @@ The Modding Contract Surface defines mod declaration, lifecycle, dependency, com
 Mods may introduce new capabilities and new contract families, plus their implementations.
 Mod composition is additive-only: mods do not modify or remove existing registered definitions.
 This family composes with other contract families through the [[Contract Surface]], while runtime orchestration is
-handled by the [[Modding Model]].
+handled by the [[Modding Backend]].
