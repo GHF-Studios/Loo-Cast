@@ -5,7 +5,8 @@ aliases: [ ]
 source_of_truth: [ ]
 ---
 
-The Capability Contract Surface defines how capabilities and capability channels are declared, implemented, extended,
-and validated in the [[Spacetime Engine]].
-It is one contract family within the [[Contract Surface]] and integrates directly with the [[Capability Model]].
-Capabilities are generic cross-scale backends, while channels map capability behavior to single scales.
+The Capability Contract Surface defines what a capability contract must declare and satisfy.
+Capabilities implement capability contracts, and channels are implementation structure inside capability backends rather
+than separate contracts.
+This family defines compatibility and boundary rules for capability implementations within the [[Contract Surface]].
+Runtime orchestration and channel coordination are handled by the [[Capability Model]].
