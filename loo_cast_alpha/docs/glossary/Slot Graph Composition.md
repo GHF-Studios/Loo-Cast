@@ -11,4 +11,4 @@ The `core_engine` root slot is occupied by one `core_mod`, and mods may expose a
 slots to be filled.
 Composition is valid only when required slots resolve and singleton-critical ownership resolves to exactly one owner per
 scope key under the [[Modding Contract]].
-Invalid graphs hard-fail before runtime and are fixed once the [[Runtime Lock]] is reached.
+Invalid graphs hard-fail before runtime and are guaranteed to not be the case once the [[Runtime Lock]] is reached.
