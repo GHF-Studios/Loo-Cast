@@ -5,8 +5,7 @@ aliases: []
 source_of_truth: []
 ---
 
-The Project Structure defines how the project is organized as a repository and workspace across runtime, content,
-modding, and tooling surfaces.
-It covers both file/folder conventions and structural ownership boundaries so authoring, composition, and execution
-responsibilities remain coherent.
-This structure underpins [[Mod Structure]] and is operationalized through the [[SDK]].
+The Project Structure defines the three-stage structural shape of the
+project: [[Project Authoring Structure]], [[Project Artifact Structure]], and [[Project Runtime Representation]].
+These stages separate source layout, build outputs, and runtime integration boundaries while aligning project-level
+organization with [[Mod Structure]] and the [[SDK]].
