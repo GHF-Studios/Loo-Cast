@@ -9,6 +9,8 @@ The USF Runtime is the default first-party runtime implementation of the [[USF C
 It realizes one active USF implementation and composes with the [[Capability Runtime]] and the [[Modding Runtime]].
 It invokes declaration-surface entrypoints with profile-tailored `ctx` capability-object subgraphs during activation,
 then executes the resulting runtime concept instances.
+These subgraphs come from hierarchical API graph composition (atomic + composite nodes) with include/exclude
+path filtering and runtime open/close behavior.
 It executes contract-defined behavior rather than defining the contract itself.
 
 Implementation-facing notes:

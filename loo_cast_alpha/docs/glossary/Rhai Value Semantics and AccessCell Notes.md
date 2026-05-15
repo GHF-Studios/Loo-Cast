@@ -33,13 +33,15 @@ Current design tension (intentional and unresolved):
 2. Rich-semantics direction:
    retain a deeper value-semantics model (`Scoped*`, lifecycle windows, explicit access policy) as a first-class
    scripting contract. More complex but also more flexible rhai-facing semantics.
+3. Integration constraint:
+   whichever direction wins must compose cleanly with declaration-type objects and profile-tailored `ctx`
+   capability-object subgraphs.
 
 Both directions have merit; final shape is still open and should be decided after more runtime + ergonomics review.
 
 Legacy source pointers:
 
 -
-
 `loo_cast_legacy/documents/temp_stuff/TMP_rhai_semantic_reset_quarantine/documents/markdown_summary/rhai_value_semantics.md`
 -
 `loo_cast_legacy/documents/temp_stuff/TMP_rhai_semantic_reset_quarantine/core_mod_api/src/backend/rhai_binding/value_semantics/modes.rs`

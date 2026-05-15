@@ -23,19 +23,23 @@ Current profile-direction notes (legacy MVP slice alignment):
    grant or deny access.
 9. Executing script declaration code yields a full working declaration-type object that semantically describes one
    concept (for example one scale type or one phenomenon type).
-10. Complex concepts are still authored as one file/one concept by using richer declaration syntax and logic within that
+10. API graph topology is hierarchical: atomic capability nodes plus composite/category nodes.
+11. Profile selects access via include/exclude path declarations over that graph.
+12. `ctx` is object-based and dynamic, so domains/subdomains can open/close over time.
+13. Complex concepts are still authored as one file/one concept by using richer declaration syntax and logic within that
     file.
-11. Runtime later materializes USF concept instances (for example Scale/Phenomenon instances) from frozen declaration
+14. Runtime later materializes USF concept instances (for example Scale/Phenomenon instances) from frozen declaration
     objects.
-12. These runtime concept instances carry closures/logic that execute through profile-tailored `ctx` capability-object
+15. These runtime concept instances carry closures/logic that execute through profile-tailored `ctx` capability-object
     subgraphs.
-13. Capability semantics are split between declaration-level capability APIs (builder-like declaration surface) and
+16. Capability semantics are split between declaration-level capability APIs (builder-like declaration surface) and
     runtime concept-instance behavior.
+17. Scripts are object descriptors first, effectively the closest thing to project assets in this model.
 
 Current startup-flow shape used as reference:
 
 1. Read script files.
-2. Validate capability paths against profile.
+2. Resolve include/exclude capability-path declarations against profile API graph topology.
 3. Preprocess aliases.
 4. Compile and execute declaration entrypoints with profile-tailored `ctx` API subgraphs to materialize declaration-type
    objects.

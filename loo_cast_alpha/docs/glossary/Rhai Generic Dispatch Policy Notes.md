@@ -27,20 +27,25 @@ Declaration-first posture (primary model):
 2. One script/file always defines exactly one singleton-like Rhai declaration-type object of that profile kind.
 3. "Type" here is script/declaration type in Rhai-domain terms, not Rust type and not plain Rust data-object instance
    semantics.
-4. Profile defines the allowed script API graph domains and the callable script surface available to that declaration
-   kind.
-5. Domains that are nonsensical, non-implementable for the kind, or dangerous are intentionally omitted.
-6. Capabilities are Rhai-native dynamic API objects, identified by human-readable string IDs, and access to them is
+4. Profile defines the allowed script API graph topology: atomic capability nodes plus composite category nodes.
+5. Access is declared as include/exclude path sets over that graph, so very specific capability-object subgraphs can be
+   exposed.
+6. Domains that are nonsensical, non-implementable for the kind, or dangerous are intentionally omitted.
+7. Capabilities are Rhai-native dynamic API objects, identified by human-readable string IDs, and access to them is
    granted or denied by profile/policy.
-7. Executing a declaration script materializes a full working declaration-type object that semantically describes one
+8. `ctx` is object-based and dynamic; domains/subdomains can open/close over time according to runtime policy and
+   declaration context.
+9. Executing a declaration script materializes a full working declaration-type object that semantically describes one
    concept (for example a scale or phenomenon type).
-8. Runtime invokes declaration-surface entrypoints with profile-tailored `ctx` API subgraphs (
-   exposed/available/sensible/safe capability-object domains).
-9. Complex concepts can still live in one file: richer syntax/logic/fields/parameters (and optional value-semantics
-   helpers) are used to keep the one-file/one-concept rule intact.
-10. Capability semantics are intentionally split:
-    declaration-level capability APIs (script-side, builder-like definition surface) and runtime concept instances (
-    execution-side Scale/Phenomenon/etc. instances containing closures over those API subgraphs).
+10. Runtime invokes declaration-surface entrypoints with profile-tailored `ctx` API subgraphs (
+    exposed/available/sensible/safe capability-object domains).
+11. Complex concepts can still live in one file: richer syntax/logic/fields/parameters (and optional value-semantics
+    helpers) are used to keep the one-file/one-concept rule intact.
+12. Capability semantics are intentionally split:
+    declaration-level capability APIs (script-side, builder-like definition surface) and runtime concept instances
+    (execution-side Scale/Phenomenon/etc. instances containing closures over those API subgraphs).
+13. This makes declaration scripts object descriptors first, effectively the closest thing to content assets in this
+    project’s model.
 
 Legacy dispatch extraction (still useful, but secondary to declaration semantics):
 
@@ -53,11 +58,13 @@ Open design space (rephrased around declaration/profile model):
 
 1. How profile -> declaration-kind mapping is encoded and validated at load time.
 2. How the one-script/one-concept invariant is enforced in tooling/runtime (error shape, diagnostics, migration path).
-3. How API graph-domain allow/deny surfaces are authored, reviewed, and evolved per profile.
-4. How capability-object grants/denials are declared, composed, and audited per profile.
-5. How declaration-surface entrypoints + `ctx` subgraphs map to runtime hooks without leaking unrelated domains.
-6. How fail-fast vs softer failure policy is scoped per profile and environment.
-7. Which registry/dispatch details remain global and which should become profile-local.
+3. How atomic/composite API graph nodes are authored and versioned per profile.
+4. How include/exclude path grammar, precedence, and conflict resolution are specified.
+5. How API graph-domain allow/deny surfaces are reviewed and evolved per profile.
+6. How capability-object grants/denials are declared, composed, audited, and dynamically opened/closed per profile.
+7. How declaration-surface entrypoints + `ctx` subgraphs map to runtime hooks without leaking unrelated domains.
+8. How fail-fast vs softer failure policy is scoped per profile and environment.
+9. Which registry/dispatch details remain global and which should become profile-local.
 
 Raw-model alignment (math + scripting contract posture):
 

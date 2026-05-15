@@ -6,14 +6,17 @@ source_of_truth: []
 ---
 
 The USF Instantiation Scripts are the declaration-centric authoring surface under [[Loo Cast]] for defining
-singleton-like
-Rhai declaration-type objects for contract-defined USF concept kinds from the [[USF Contract]].
+singleton-like Rhai declaration-type objects for contract-defined USF concept kinds from the [[USF Contract]].
 Executing these declaration entrypoints with a profile-tailored `ctx` API subgraph materializes full declaration objects
 that include structured data plus logic closures.
+The `ctx` graph is hierarchical (atomic capability nodes + composite/category nodes) and filtered through
+include/exclude path declarations for each profile.
 Runtime activation then materializes active USF concept instances from those frozen declarations into the
 [[USF Instance Graph]].
 Capabilities are exposed to scripts as declaration-level API objects through `ctx`; runtime behavior is executed by the
 resulting concept instances.
+In practice this makes scripts object descriptors first, effectively the closest thing to game-asset authoring in this
+project’s architecture.
 This surface is governed by the [[USF Definition Lifecycle]].
 
 Implementation-facing notes:

@@ -11,6 +11,8 @@ Channel availability across scales is governed by [[Scale Support]], and executi
 context.
 Declaration scripts access channel-relevant capability objects through profile-tailored `ctx` API subgraphs, and
 runtime concept instances execute closure logic through those resolved channels.
+Those subgraphs are derived from hierarchical API graph composition (atomic + composite nodes) with include/exclude
+path filtering.
 It is governed through the capability contract context inside the [[Contract]], without being its own standalone
 contract family.
 
