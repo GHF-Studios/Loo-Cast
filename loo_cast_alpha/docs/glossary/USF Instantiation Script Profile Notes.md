@@ -16,16 +16,30 @@ Current profile-direction notes (legacy MVP slice alignment):
 3. Alias preprocessing (`use ... as ...`) is part of the script-loading flow.
 4. Definition content is loaded, validated, and frozen for runtime progression.
 5. Each profile maps to one declaration kind.
-6. One script/file declares one instance of that profile kind.
-7. Profile "type" here is script/declaration typing in Rhai-domain terms, not Rust typing.
+6. One script/file always defines one singleton-like Rhai declaration-type object of that profile kind.
+7. Profile "type" here is script/declaration typing in Rhai-domain terms, not Rust typing and not plain Rust
+   object-instance semantics.
+8. Capabilities in scripts are Rhai-native dynamic API objects (human-readable string IDs), with profile/policy-based
+   grant or deny access.
+9. Executing script declaration code yields a full working declaration-type object that semantically describes one
+   concept (for example one scale type or one phenomenon type).
+10. Complex concepts are still authored as one file/one concept by using richer declaration syntax and logic within that
+    file.
+11. Runtime later materializes USF concept instances (for example Scale/Phenomenon instances) from frozen declaration
+    objects.
+12. These runtime concept instances carry closures/logic that execute through profile-tailored `ctx` capability-object
+    subgraphs.
+13. Capability semantics are split between declaration-level capability APIs (builder-like declaration surface) and
+    runtime concept-instance behavior.
 
 Current startup-flow shape used as reference:
 
 1. Read script files.
 2. Validate capability paths against profile.
 3. Preprocess aliases.
-4. Compile and execute definition hooks.
-5. Execute sample realization path.
+4. Compile and execute declaration entrypoints with profile-tailored `ctx` API subgraphs to materialize declaration-type
+   objects.
+5. Activate runtime and materialize concept instances from frozen declarations.
 6. Emit runtime proof logging.
 7. Freeze definition-side mutation.
 

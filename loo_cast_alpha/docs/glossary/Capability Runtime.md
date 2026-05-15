@@ -7,7 +7,10 @@ source_of_truth: []
 
 The Capability Runtime is the runtime orchestration layer for capabilities in the [[Spacetime Engine]].
 It handles dynamic discovery, registration, coordination, and execution routing for capability implementations.
-Capability implementations expose [[Scaled Capability Channel]] structures as per-scale execution paths.
+Declaration scripts consume capability objects through profile-tailored `ctx` API subgraphs; runtime concept instances
+execute closure logic against the realized capability implementations.
+Capability implementations expose [[Scaled Capability Channel]] structures as per-scale execution paths for that
+runtime execution.
 The runtime realizes contracts defined by the [[Capability Contract]] and coordinates
 with [[Observer-Relative Simulation]].
 

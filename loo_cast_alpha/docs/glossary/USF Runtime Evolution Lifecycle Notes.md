@@ -13,7 +13,9 @@ Current execution-shape notes:
 
 1. Definition side freezes before runtime progression.
 2. Runtime flow is still framed as `intent -> reconcile -> commit -> apply`.
-3. Lifecycle semantics remain intentionally high-level, but still constrained by lock/freeze boundaries.
+3. Runtime operates on active concept instances materialized from frozen declarations.
+4. These concept instances execute closure logic through profile-tailored `ctx` capability-object subgraphs.
+5. Lifecycle semantics remain intentionally high-level, but still constrained by lock/freeze boundaries.
 
 Cross-module seam hints carried from legacy slice docs:
 

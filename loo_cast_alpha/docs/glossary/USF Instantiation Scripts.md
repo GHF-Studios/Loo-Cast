@@ -5,14 +5,15 @@ aliases: []
 source_of_truth: []
 ---
 
-The USF Instantiation Scripts are the declaration-centric authoring surface under [[Loo Cast]] for instantiating
-contract-defined USF concept types from the [[USF Contract]].
-These scripts register structured data and functions-as-data fields that become part of the
-active [[USF Instance Graph]].
-Script-side data and behavior access is routed through a bundled Context API surface that is typed and specialized per
-instantiation-script profile.
-Capability implementations live in Rust, while gameplay-content usage of capabilities is expressed through these
-instantiation surfaces and resolved at runtime.
+The USF Instantiation Scripts are the declaration-centric authoring surface under [[Loo Cast]] for defining
+singleton-like
+Rhai declaration-type objects for contract-defined USF concept kinds from the [[USF Contract]].
+Executing these declaration entrypoints with a profile-tailored `ctx` API subgraph materializes full declaration objects
+that include structured data plus logic closures.
+Runtime activation then materializes active USF concept instances from those frozen declarations into the
+[[USF Instance Graph]].
+Capabilities are exposed to scripts as declaration-level API objects through `ctx`; runtime behavior is executed by the
+resulting concept instances.
 This surface is governed by the [[USF Definition Lifecycle]].
 
 Implementation-facing notes:

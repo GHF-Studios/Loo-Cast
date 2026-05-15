@@ -6,8 +6,9 @@ source_of_truth: [ ]
 ---
 
 The USF Runtime Evolution Lifecycle governs runtime progression after definition freeze.
-Runtime interactions are driven by instantiated declaration content, including functions-as-data fields, through typed
-Context API surfaces.
+Runtime interactions are driven by active concept instances materialized from frozen declarations; these instances
+carry logic closures and data defined by declaration scripts.
+Execution flows through profile-tailored Context API subgraphs that bound exposed capability objects.
 This runtime flow emits intents that runtime authorities reconcile, commit, and apply as state transitions.
 ECS is substrate and execution medium in this flow, not semantic concept authority.
 At this layer, lifecycle semantics are intentionally/unavoidably high-level and still underexplored in deeper

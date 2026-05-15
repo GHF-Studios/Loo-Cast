@@ -24,12 +24,23 @@ Quarantine extraction (`TMP_rhai_semantic_reset_quarantine`) with high signal bu
 Declaration-first posture (primary model):
 
 1. A script profile defines exactly one declaration kind.
-2. One script/file corresponds to one declaration instance of that profile kind.
-3. "Type" here is script/declaration type in Rhai-domain terms, not Rust type.
-4. Profile defines the allowed script API graph domains (and their utility surface).
+2. One script/file always defines exactly one singleton-like Rhai declaration-type object of that profile kind.
+3. "Type" here is script/declaration type in Rhai-domain terms, not Rust type and not plain Rust data-object instance
+   semantics.
+4. Profile defines the allowed script API graph domains and the callable script surface available to that declaration
+   kind.
 5. Domains that are nonsensical, non-implementable for the kind, or dangerous are intentionally omitted.
-6. Runtime method calls are secondary and profile-bounded: they are methods on declared instances, not the conceptual
-   center.
+6. Capabilities are Rhai-native dynamic API objects, identified by human-readable string IDs, and access to them is
+   granted or denied by profile/policy.
+7. Executing a declaration script materializes a full working declaration-type object that semantically describes one
+   concept (for example a scale or phenomenon type).
+8. Runtime invokes declaration-surface entrypoints with profile-tailored `ctx` API subgraphs (
+   exposed/available/sensible/safe capability-object domains).
+9. Complex concepts can still live in one file: richer syntax/logic/fields/parameters (and optional value-semantics
+   helpers) are used to keep the one-file/one-concept rule intact.
+10. Capability semantics are intentionally split:
+    declaration-level capability APIs (script-side, builder-like definition surface) and runtime concept instances (
+    execution-side Scale/Phenomenon/etc. instances containing closures over those API subgraphs).
 
 Legacy dispatch extraction (still useful, but secondary to declaration semantics):
 
@@ -41,16 +52,18 @@ Legacy dispatch extraction (still useful, but secondary to declaration semantics
 Open design space (rephrased around declaration/profile model):
 
 1. How profile -> declaration-kind mapping is encoded and validated at load time.
-2. How strict the one-script/one-declaration-instance rule should be in edge cases.
+2. How the one-script/one-concept invariant is enforced in tooling/runtime (error shape, diagnostics, migration path).
 3. How API graph-domain allow/deny surfaces are authored, reviewed, and evolved per profile.
-4. How profile-bounded instance methods map to capability/runtime hooks without leaking unrelated domains.
-5. How fail-fast vs softer failure policy is scoped per profile and environment.
-6. Which registry/dispatch details remain global and which should become profile-local.
+4. How capability-object grants/denials are declared, composed, and audited per profile.
+5. How declaration-surface entrypoints + `ctx` subgraphs map to runtime hooks without leaking unrelated domains.
+6. How fail-fast vs softer failure policy is scoped per profile and environment.
+7. Which registry/dispatch details remain global and which should become profile-local.
 
 Raw-model alignment (math + scripting contract posture):
 
 - script entrypoints are declaration-profile entrypoints first
-- facade/bridge surfaces are the monomorphized Rhai-safe contract surface used by those profile-bounded instance methods
+- facade/bridge surfaces are the monomorphized Rhai-safe contract surface used by declaration entrypoints, `ctx` API
+  subgraphs, and capability objects
 - the bridge layer should stay thin: translate between Rhai-friendly shapes and contract-facing typed surfaces
 - avoid exposing raw generic math trait surfaces directly to scripts
 - preserve explicit kind/repr/policy selection semantics (`OpMode` + `OpPolicy`)

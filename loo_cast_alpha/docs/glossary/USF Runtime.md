@@ -7,6 +7,8 @@ source_of_truth: []
 
 The USF Runtime is the default first-party runtime implementation of the [[USF Contract]] family in `core_mod`.
 It realizes one active USF implementation and composes with the [[Capability Runtime]] and the [[Modding Runtime]].
+It invokes declaration-surface entrypoints with profile-tailored `ctx` capability-object subgraphs during activation,
+then executes the resulting runtime concept instances.
 It executes contract-defined behavior rather than defining the contract itself.
 
 Implementation-facing notes:
