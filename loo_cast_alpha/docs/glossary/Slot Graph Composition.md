@@ -12,3 +12,5 @@ slots to be filled.
 Composition is valid only when required slots resolve and singleton-critical ownership resolves to exactly one owner per
 scope key under the [[Modding Contract]].
 Invalid graphs hard-fail before runtime and are guaranteed to not be the case once the [[Runtime Lock]] is reached.
+
+#glossary

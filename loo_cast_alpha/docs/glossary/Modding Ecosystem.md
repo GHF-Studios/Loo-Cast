@@ -9,3 +9,5 @@ The Modding Ecosystem is the creator-facing layer for publishing, composing, and
 and the [[Contract]].
 It operationalizes creator agency around the runtime stack and extends the same [[Player-to-Creator Path]] beyond
 gameplay.
+
+#glossary

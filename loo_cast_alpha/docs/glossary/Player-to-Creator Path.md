@@ -16,3 +16,5 @@ behavior.
 The transition typically starts when players optimize parts of the game loop and reaches authorship when game-level
 limits require direct code changes, after which system understanding plus Rust proficiency can carry them into
 full-blown serious/professional mod development.
+
+#glossary

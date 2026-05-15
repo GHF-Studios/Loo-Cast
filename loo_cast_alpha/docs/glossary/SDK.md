@@ -11,3 +11,5 @@ rules.
 This surface includes structure conventions and workflow rails for both [[Project Structure]] and [[Mod Structure]].
 Runtime execution semantics remain enforced by runtime authorities such as the [[Modding Runtime]] and their respective
 contracts such as the [[Modding Contract]].
+
+#glossary

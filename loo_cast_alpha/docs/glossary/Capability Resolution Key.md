@@ -10,3 +10,5 @@ Resolution is key-based and deterministic, and singleton-critical responsibiliti
 per key before activation.
 This model is used by runtime resolution surfaces such as [[Capability Runtime]], [[Slot Graph Composition]],
 and [[Runtime Lock]].
+
+#glossary

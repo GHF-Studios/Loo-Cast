@@ -13,3 +13,5 @@ Build/development artifacts include the [[Mod Contract Source]] and the [[Mod Im
 redistributable contract packaging formalized as the [[Redistributable Mod Contract Source]].
 Reuse and rebuild boundaries for build/development artifacts are defined by the [[Artifact Compatibility Envelope]].
 This note describes artifact shape only and does not define runtime composition or runtime integration behavior.
+
+#glossary

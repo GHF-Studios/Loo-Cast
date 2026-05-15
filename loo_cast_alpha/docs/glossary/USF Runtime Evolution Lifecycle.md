@@ -12,3 +12,7 @@ This runtime flow emits intents that runtime authorities reconcile, commit, and 
 ECS is substrate and execution medium in this flow, not semantic concept authority.
 At this layer, lifecycle semantics are intentionally/unavoidably high-level and still underexplored in deeper
 operational detail.
+
+Implementation-facing notes: [USF Runtime Evolution Lifecycle Notes](USF%20Runtime%20Evolution%20Lifecycle%20Notes.md)
+
+#glossary

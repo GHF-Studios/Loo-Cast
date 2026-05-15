@@ -11,3 +11,5 @@ After lock, the active mod graph and resolved ownership mappings are fixed, and 
 allowed/possible.
 Deterministic behavior here is grounded in pre-runtime validation and fixed load ordering through
 the [[Modding Runtime]] and the [[Slot Graph Composition]].
+
+#glossary

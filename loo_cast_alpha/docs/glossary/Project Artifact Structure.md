@@ -13,3 +13,5 @@ and the [[Redistributable Mod Contract Source]], while runtime delivery centers 
 the [[Redistributable Mod Implementation Library]].
 Compatibility and reuse boundaries for cached build artifacts are defined by the [[Artifact Compatibility Envelope]].
 This note describes artifact classes only and does not define runtime composition or in-memory integration behavior.
+
+#glossary

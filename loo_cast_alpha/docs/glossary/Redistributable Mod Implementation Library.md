@@ -9,3 +9,5 @@ The Redistributable Mod Implementation Library is the runtime-deliverable implem
 It includes identity and manifest metadata plus platform-specific dynamic runtime-library artifacts (`.dll`, `.so`,
 `.dylib`) for all supported ecosystem targets.
 It is distributed through Steam-facing delivery channels and remains distinct from source-side artifacts.
+
+#glossary

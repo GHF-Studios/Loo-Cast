@@ -5,7 +5,17 @@ aliases: []
 source_of_truth: []
 ---
 
-The Observer-Relative Simulation constrains detail by active observation scale: simulation resolves context above the
-current scale and does not resolve detail below it.
-Scale behavior is interpreted through scale-aware capabilities in the [[Capability Runtime]], with spatial and temporal
-scaling coordinated to preserve predictable cross-scale behavior.
+Observer-Relative Simulation defines view-conditioned detail resolution over the scale system.
+Given an active [[Scale View]], simulation keeps required higher-scale context available while eliding lower-scale
+detail
+outside the active view unless explicitly bridged.
+Interpretation and reconciliation of this behavior run through scale-aware capabilities in the [[Capability Runtime]]
+with the goal of predictable cross-scale traversal semantics.
+Concrete runtime techniques (for example chunk loading around a camera/player locus, [[Entity Proxy]], or
+[[Portal Traversal Semantics]]) may realize this behavior but are not the defining concept at this glossary layer.
+
+Implementation-facing notes:
+
+- [USF Position Stack and Overflow Policy Notes](USF%20Position%20Stack%20and%20Overflow%20Policy%20Notes.md)
+
+#glossary

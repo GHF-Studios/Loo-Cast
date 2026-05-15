@@ -1,0 +1,34 @@
+# USF Contract Runtime Boundary Notes
+
+#tech_glossary
+
+Related glossary terms:
+
+- [USF Contract](USF%20Contract.md)
+- [USF Runtime](USF%20Runtime.md)
+- [Capability Runtime](Capability%20Runtime.md)
+- [Modding Runtime](Modding%20Runtime.md)
+- [Contract Family](Contract%20Family.md)
+
+Boundary notes:
+
+1. `core_engine` is treated as composition/runtime host boundary.
+2. `core_mod` is treated as the default first-party runtime counterpart boundary for USF.
+3. Capability + modding runtime composition is sibling-runtime coupling, not contract redefinition.
+4. Replacement implementations are allowed when they satisfy the same contract family obligations.
+
+This mirrors the ownership split direction from legacy notes:
+
+- `core_engine`: composition/runtime host
+- `core_mod_api` / `base_mod_api`: runtime and capability surfaces
+
+Legacy source pointers:
+
+- `loo_cast_legacy/core_mod_api/src/lib.rs`
+- `loo_cast_legacy/base_mod_api/src/lib.rs`
+- `loo_cast_legacy/documents/temp_stuff/TMP_engine_capability_stack_raw_model/new_insights.md`
+
+Rustdoc anchors:
+
+- `crates/core_engine/src/spec/mod.rs`
+- `crates/core_mod/src/spec/mod.rs`

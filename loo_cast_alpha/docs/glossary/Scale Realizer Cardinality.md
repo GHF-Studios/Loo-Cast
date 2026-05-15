@@ -5,6 +5,9 @@ aliases: []
 source_of_truth: []
 ---
 
-The Scale Realizer Cardinality invariant requires exactly one effective realizer per scale slice in an
-active [[USF Instance Graph]].
-Missing or multiply-effective realizers for the same slice are invalid states for activation.
+Scale Realizer Cardinality is the activation invariant for [[Scale Realizer]] bindings in an active
+[[USF Instance Graph]].
+Each [[Scale Slice]] must resolve to exactly one effective scale realizer.
+Missing or multiply-effective scale realizers for the same slice are invalid states for activation.
+
+#glossary

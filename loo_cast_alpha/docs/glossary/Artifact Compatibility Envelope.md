@@ -13,3 +13,5 @@ Cached build artifacts of the [[Redistributable Mod Implementation Library]] may
 compatibility bucket to reduce unnecessary full dependency-graph recompiles in normal SDK-stable workflows.
 Source archival remains mandatory so dynamic and static artifacts can always be rebuilt without relying on external
 second-party repository availability.
+
+#glossary

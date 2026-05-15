@@ -2,6 +2,11 @@
 //!
 //! The legacy engine entrypoint composes Bevy plugins and runtime module graphs.
 //! In alpha bootstrap we intentionally keep only a top-level static-link smoke path.
+//!
+//! Tech glossary anchor:
+//! - `docs/glossary/USF Contract Runtime Boundary Notes.md`
+
+mod spec;
 
 fn main() {
     let linked_crates = [core_mod::crate_identity(), base_mod::crate_identity()];

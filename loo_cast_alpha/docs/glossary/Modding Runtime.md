@@ -12,3 +12,5 @@ registered definitions.
 It supports introducing new contract families and implementations through declared integration points.
 The runtime realizes rules defined by the [[Modding Contract]] and composes with sibling families through
 the [[Contract]].
+
+#glossary

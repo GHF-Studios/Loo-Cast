@@ -10,3 +10,10 @@ It handles dynamic discovery, registration, coordination, and execution routing 
 Capability implementations expose [[Scaled Capability Channel]] structures as per-scale execution paths.
 The runtime realizes contracts defined by the [[Capability Contract]] and coordinates
 with [[Observer-Relative Simulation]].
+
+Implementation-facing notes:
+
+- [USF Contract Runtime Boundary Notes](USF%20Contract%20Runtime%20Boundary%20Notes.md)
+- [Rhai Generic Dispatch Policy Notes](Rhai%20Generic%20Dispatch%20Policy%20Notes.md)
+
+#glossary

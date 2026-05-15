@@ -5,8 +5,14 @@ aliases: [ ]
 source_of_truth: [ ]
 ---
 
-The Scale Contract defines what a [[Scale]] must declare and satisfy within the [[USF Contract]].
-A scale declaration includes capability types, metric types, and phenomena types relevant at that scale.
-For each capability and each global scale in the canonical -35..35 set (71 total), support must be declared explicitly.
-Each capability-scale pair has exactly one support state: `supported` or `unsupported`.
+The Scale Contract defines the declaration and compatibility rules for [[Scale Definition]], [[Scale Support]], and
+[[Scale Realizer]] inside the [[USF Contract]] family.
+For each canonical [[Scale]] coordinate in the global -35..35 set (71 total), one scale definition and one declared
+scale-realizer type must be present.
+For each capability and each canonical scale coordinate, support must be declared explicitly.
+Each capability-scale pair has exactly one [[Scale Support]] state: `supported` or `unsupported`.
 The default runtime counterpart composes through the [[USF Runtime]] and the [[Capability Runtime]].
+
+Implementation-facing notes: [Scale Contract Runtime Notes](Scale%20Contract%20Runtime%20Notes.md)
+
+#glossary

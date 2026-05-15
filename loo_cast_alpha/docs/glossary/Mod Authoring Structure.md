@@ -14,3 +14,5 @@ Materialized media payloads (for example textures or audio buffers) are runtime-
 rather than canonical authored source.
 Typed script declarations are authored against contextual APIs rather than unrestricted raw runtime access, and are
 aligned with the [[SDK]], the [[Modding Contract]], and the [[Capability Contract]].
+
+#glossary
