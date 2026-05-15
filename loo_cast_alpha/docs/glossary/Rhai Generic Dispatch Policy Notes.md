@@ -28,7 +28,8 @@ Declaration-first posture (primary model):
 3. "Type" here is script/declaration type in Rhai-domain terms, not Rust type and not plain Rust data-object instance
    semantics.
 4. Profile defines the allowed script API graph topology: atomic capability nodes plus composite category nodes.
-5. Access is declared as include/exclude path sets over that graph, so very specific capability-object subgraphs can be
+5. Access is declared as include/exclude path declarations over that graph, so very specific capability-object subgraphs
+   can be
    exposed.
 6. Domains that are nonsensical, non-implementable for the kind, or dangerous are intentionally omitted.
 7. Capabilities are Rhai-native dynamic API objects, identified by human-readable string IDs, and access to them is
@@ -37,8 +38,8 @@ Declaration-first posture (primary model):
    declaration context.
 9. Executing a declaration script materializes a full working declaration-type object that semantically describes one
    concept (for example a scale or phenomenon type).
-10. Runtime invokes declaration-surface entrypoints with profile-tailored `ctx` API subgraphs (
-    exposed/available/sensible/safe capability-object domains).
+10. Runtime invokes declaration-surface entrypoints with profile-tailored `ctx` capability-object subgraphs
+    (exposed/available/sensible/safe capability-object domains).
 11. Complex concepts can still live in one file: richer syntax/logic/fields/parameters (and optional value-semantics
     helpers) are used to keep the one-file/one-concept rule intact.
 12. Capability semantics are intentionally split:
@@ -62,14 +63,16 @@ Open design space (rephrased around declaration/profile model):
 4. How include/exclude path grammar, precedence, and conflict resolution are specified.
 5. How API graph-domain allow/deny surfaces are reviewed and evolved per profile.
 6. How capability-object grants/denials are declared, composed, audited, and dynamically opened/closed per profile.
-7. How declaration-surface entrypoints + `ctx` subgraphs map to runtime hooks without leaking unrelated domains.
+7. How declaration-surface entrypoints + `ctx` capability-object subgraphs map to runtime hooks without leaking
+   unrelated domains.
 8. How fail-fast vs softer failure policy is scoped per profile and environment.
 9. Which registry/dispatch details remain global and which should become profile-local.
 
 Raw-model alignment (math + scripting contract posture):
 
 - script entrypoints are declaration-profile entrypoints first
-- facade/bridge surfaces are the monomorphized Rhai-safe contract surface used by declaration entrypoints, `ctx` API
+- facade/bridge surfaces are the monomorphized Rhai-safe contract surface used by declaration entrypoints, `ctx`
+  capability-object
   subgraphs, and capability objects
 - the bridge layer should stay thin: translate between Rhai-friendly shapes and contract-facing typed surfaces
 - avoid exposing raw generic math trait surfaces directly to scripts

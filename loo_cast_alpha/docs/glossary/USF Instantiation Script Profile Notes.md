@@ -41,7 +41,8 @@ Current startup-flow shape used as reference:
 1. Read script files.
 2. Resolve include/exclude capability-path declarations against profile API graph topology.
 3. Preprocess aliases.
-4. Compile and execute declaration entrypoints with profile-tailored `ctx` API subgraphs to materialize declaration-type
+4. Compile and execute declaration entrypoints with profile-tailored `ctx` capability-object subgraphs to materialize
+   declaration-type
    objects.
 5. Activate runtime and materialize concept instances from frozen declarations.
 6. Emit runtime proof logging.

@@ -7,7 +7,8 @@ source_of_truth: []
 
 The USF Instantiation Scripts are the declaration-centric authoring surface under [[Loo Cast]] for defining
 singleton-like Rhai declaration-type objects for contract-defined USF concept kinds from the [[USF Contract]].
-Executing these declaration entrypoints with a profile-tailored `ctx` API subgraph materializes full declaration objects
+Executing these declaration entrypoints with profile-tailored `ctx` capability-object subgraphs materializes full
+declaration objects
 that include structured data plus logic closures.
 The `ctx` graph is hierarchical (atomic capability nodes + composite/category nodes) and filtered through
 include/exclude path declarations for each profile.
