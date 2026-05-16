@@ -7,6 +7,10 @@ Related glossary terms:
 - [USF Instantiation Scripts](USF%20Instantiation%20Scripts.md)
 - [USF Definition Lifecycle](USF%20Definition%20Lifecycle.md)
 - [USF Instance Graph](USF%20Instance%20Graph.md)
+- [Concept Archetype](Concept%20Archetype.md)
+- [Concept Declaration Artifact](Concept%20Declaration%20Artifact.md)
+- [Rhai Capability](Rhai%20Capability.md)
+- [Rust Capability](Rust%20Capability.md)
 - [USF Math Raw Model Foundation Notes](USF%20Math%20Raw%20Model%20Foundation%20Notes.md)
 
 Current profile-direction notes (legacy MVP slice alignment):
@@ -16,24 +20,23 @@ Current profile-direction notes (legacy MVP slice alignment):
 3. Alias preprocessing (`use ... as ...`) is part of the script-loading flow.
 4. Definition content is loaded, validated, and frozen for runtime progression.
 5. Each profile maps to one declaration kind.
-6. One script/file always defines one singleton-like Rhai declaration-type object of that profile kind.
-7. Profile "type" here is script/declaration typing in Rhai-domain terms, not Rust typing and not plain Rust
-   object-instance semantics.
-8. Capabilities in scripts are Rhai-native dynamic API objects (human-readable string IDs), with profile/policy-based
+6. One script/file always defines one singleton-like [[Concept Declaration Artifact]] of that profile kind.
+7. [[Concept Archetype]]s are Rust-side template authorities (trait/registration wiring), while scripts emit
+   declaration artifacts for those archetypes.
+8. Capabilities in scripts are [[Rhai Capability]] dynamic API objects (human-readable string IDs), with profile/policy
    grant or deny access.
-9. Executing script declaration code yields a full working declaration-type object that semantically describes one
-   concept (for example one scale type or one phenomenon type).
+9. Executing script declaration code yields a declaration artifact that semantically describes one concept definition.
 10. API graph topology is hierarchical: atomic capability nodes plus composite/category nodes.
 11. Profile selects access via include/exclude path declarations over that graph.
 12. `ctx` is object-based and dynamic, so domains/subdomains can open/close over time.
 13. Complex concepts are still authored as one file/one concept by using richer declaration syntax and logic within that
     file.
 14. Runtime later materializes USF concept instances (for example Scale/Phenomenon instances) from frozen declaration
-    objects.
+    artifacts.
 15. These runtime concept instances carry closures/logic that execute through profile-tailored `ctx` capability-object
     subgraphs.
-16. Capability semantics are split between declaration-level capability APIs (builder-like declaration surface) and
-    runtime concept-instance behavior.
+16. Capability semantics are split between declaration-level [[Rhai Capability]] APIs and runtime-side
+    [[Rust Capability]] behavior.
 17. Scripts are object descriptors first, effectively the closest thing to project assets in this model.
 
 Current startup-flow shape used as reference:
@@ -41,10 +44,9 @@ Current startup-flow shape used as reference:
 1. Read script files.
 2. Resolve include/exclude capability-path declarations against profile API graph topology.
 3. Preprocess aliases.
-4. Compile and execute declaration entrypoints with profile-tailored `ctx` capability-object subgraphs to materialize
-   declaration-type
-   objects.
-5. Activate runtime and materialize concept instances from frozen declarations.
+4. Compile and execute declaration entrypoints with profile-tailored `ctx` capability-object subgraphs to emit
+   declaration artifacts.
+5. Activate runtime and materialize concept instances from frozen declaration artifacts.
 6. Emit runtime proof logging.
 7. Freeze definition-side mutation.
 

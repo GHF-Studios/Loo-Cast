@@ -5,7 +5,7 @@ aliases: []
 source_of_truth: []
 ---
 
-The USF Definition Lifecycle establishes and validates singleton-like declaration-type objects before runtime
+The USF Definition Lifecycle establishes and validates singleton-like [[Concept Declaration Artifact]]s before runtime
 activation.
 Runtime activation materializes active USF concept instances (for example Scale/Phenomenon instances) from those frozen
 declarations.

@@ -19,3 +19,4 @@ Current implementation-facing notes:
 - [Rhai Value Semantics and AccessCell Notes](Rhai%20Value%20Semantics%20and%20AccessCell%20Notes.md)
 - [USF Math Raw Model Foundation Notes](USF%20Math%20Raw%20Model%20Foundation%20Notes.md)
 - [USF Position Stack and Overflow Policy Notes](USF%20Position%20Stack%20and%20Overflow%20Policy%20Notes.md)
+- [Workflow Framework Premise Notes](Workflow%20Framework%20Premise%20Notes.md)

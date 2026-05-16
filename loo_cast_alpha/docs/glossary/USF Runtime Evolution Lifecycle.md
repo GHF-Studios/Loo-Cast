@@ -6,7 +6,8 @@ source_of_truth: [ ]
 ---
 
 The USF Runtime Evolution Lifecycle governs runtime progression after definition freeze.
-Runtime interactions are driven by active concept instances materialized from frozen declarations; these instances
+Runtime interactions are driven by active concept instances materialized from frozen [[Concept Declaration Artifact]]s;
+these instances
 carry logic closures and data defined by declaration scripts.
 Execution flows through profile-tailored `ctx` capability-object subgraphs that bound exposed capability objects via
 hierarchical graph composition (atomic + composite nodes) and include/exclude path declarations.

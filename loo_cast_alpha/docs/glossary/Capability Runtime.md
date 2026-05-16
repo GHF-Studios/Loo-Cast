@@ -7,9 +7,10 @@ source_of_truth: []
 
 The Capability Runtime is the runtime orchestration layer for capabilities in the [[Spacetime Engine]].
 It handles dynamic discovery, registration, coordination, and execution routing for capability implementations.
-Declaration scripts consume capability objects through profile-tailored `ctx` capability-object subgraphs; runtime
+Declaration scripts consume [[Rhai Capability]] objects through profile-tailored `ctx` capability-object subgraphs;
+runtime
 concept instances
-execute closure logic against the realized capability implementations.
+execute closure logic against realized [[Rust Capability]] implementations.
 `ctx` capability-object subgraphs are composed from hierarchical API graph nodes (atomic + composite) via
 include/exclude
 path declarations and can dynamically open/close by runtime policy.

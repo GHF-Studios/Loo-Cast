@@ -12,5 +12,10 @@ registered definitions.
 It supports introducing new contract families and implementations through declared integration points.
 The runtime realizes rules defined by the [[Modding Contract]] and composes with sibling families through
 the [[Contract]].
+Runtime lifecycle staging can be delegated to the [[Workflow Framework]].
+
+Implementation-facing notes:
+
+- [Workflow Framework Premise Notes](Workflow%20Framework%20Premise%20Notes.md)
 
 #glossary

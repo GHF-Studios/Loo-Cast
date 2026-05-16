@@ -6,7 +6,7 @@ source_of_truth: []
 ---
 
 The Mod Runtime Representation defines the in-memory integrated form of a mod after loading and registration.
-The runtime resolves frozen declaration-type objects (for example [[Scale Definition]], metric, phenomenon, and
+The runtime resolves frozen [[Concept Declaration Artifact]]s (for example [[Scale Definition]], metric, phenomenon, and
 [[Scale Realizer]] declarations) into active concept instances and executable behavior through the [[Modding Runtime]],
 the [[Capability Runtime]],
 and the [[USF Runtime]].

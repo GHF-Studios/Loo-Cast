@@ -6,6 +6,7 @@ Related glossary terms:
 
 - [USF Runtime Evolution Lifecycle](USF%20Runtime%20Evolution%20Lifecycle.md)
 - [USF Definition Lifecycle](USF%20Definition%20Lifecycle.md)
+- [Concept Declaration Artifact](Concept%20Declaration%20Artifact.md)
 - [USF Runtime](USF%20Runtime.md)
 - [Runtime Lock](Runtime%20Lock.md)
 
@@ -13,7 +14,7 @@ Current execution-shape notes:
 
 1. Definition side freezes before runtime progression.
 2. Runtime flow is still framed as `intent -> reconcile -> commit -> apply`.
-3. Runtime operates on active concept instances materialized from frozen declarations.
+3. Runtime operates on active concept instances materialized from frozen [[Concept Declaration Artifact]]s.
 4. These concept instances execute closure logic through profile-tailored `ctx` capability-object subgraphs.
 5. `ctx` capability-object subgraphs are hierarchical (atomic + composite API graph nodes), filtered by include/exclude
    path declarations, and may
