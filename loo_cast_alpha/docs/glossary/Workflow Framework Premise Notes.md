@@ -12,10 +12,23 @@ Related glossary terms:
 - [Modding Runtime](Modding%20Runtime.md)
 - [Capability Runtime](Capability%20Runtime.md)
 - [USF Runtime](USF%20Runtime.md)
+- [Workflow Runtime Structure Notes](Workflow%20Runtime%20Structure%20Notes.md)
+- [Composite Workflow Runtime Notes](Composite%20Workflow%20Runtime%20Notes.md)
+- [Normal Workflow Runtime Notes](Normal%20Workflow%20Runtime%20Notes.md)
+- [Workflow Type Request and Timeout Notes](Workflow%20Type%20Request%20and%20Timeout%20Notes.md)
+- [Workflow Instance Runtime Notes](Workflow%20Instance%20Runtime%20Notes.md)
+- [Workflow State Runtime Notes](Workflow%20State%20Runtime%20Notes.md)
+- [Workflow Stage Runtime Notes](Workflow%20Stage%20Runtime%20Notes.md)
+- [Workflow Stage Type Runtime Notes](Workflow%20Stage%20Type%20Runtime%20Notes.md)
+- [Stage Buffer Runtime Notes](Stage%20Buffer%20Runtime%20Notes.md)
+- [Stage Sender Cache Runtime Notes](Stage%20Sender%20Cache%20Runtime%20Notes.md)
+- [Workflow Invariant Ledger Notes](Workflow%20Invariant%20Ledger%20Notes.md)
+- [Workflow Usage Patterns Legacy Notes](Workflow%20Usage%20Patterns%20Legacy%20Notes.md)
+- [Workflow Execution Trace Notes](Workflow%20Execution%20Trace%20Notes.md)
 
 Current premise slice (draft, intentionally not frozen):
 
-1. Workflow framework scope is Rust-side orchestration semantics, not Rhai-side capability/domain exposure policy.
+1. Workflow framework scope is Rust-side orchestration semantics.
 2. Stage execution should stay scheduler-visible as normal Bevy systems with typed `SystemParam` access.
 3. Control-plane lifecycle handling and execution-plane stage logic are separate concerns.
 4. `ECS`, `Render`, and `Async` are first-class distinct workflow domains.
@@ -23,6 +36,13 @@ Current premise slice (draft, intentionally not frozen):
 6. Workflow stages should orchestrate materialized Rust-side runtime artifacts, not raw Rhai engine internals.
 7. If declaration/materialization progression is orchestrated by workflow, it should be mediated through explicit
    Rust-side capability contracts rather than ad hoc script engine calls.
+
+Terminology baseline used in this note cluster:
+
+1. A workflow run is one runtime lifecycle unit for a typed workflow request.
+2. `WorkflowInstance` is the runtime container for a workflow run.
+3. `WorkflowState` is the lifecycle state machine for a workflow run.
+4. `StageType` is the workflow-domain discriminator for the active stage in a workflow run.
 
 Why this premise is currently high-signal:
 
@@ -32,6 +52,22 @@ Why this premise is currently high-signal:
    than a useful premise.
 3. The framework already separates domain stage families (`Ecs`/`Render`/`Async` + while variants), matching the
    intended mental model.
+
+Current behavior coverage notes (documentation-first slice):
+
+1. [Workflow Runtime Structure Notes](Workflow%20Runtime%20Structure%20Notes.md)
+2. [Composite Workflow Runtime Notes](Composite%20Workflow%20Runtime%20Notes.md)
+3. [Normal Workflow Runtime Notes](Normal%20Workflow%20Runtime%20Notes.md)
+4. [Workflow Type Request and Timeout Notes](Workflow%20Type%20Request%20and%20Timeout%20Notes.md)
+5. [Workflow Instance Runtime Notes](Workflow%20Instance%20Runtime%20Notes.md)
+6. [Workflow State Runtime Notes](Workflow%20State%20Runtime%20Notes.md)
+7. [Workflow Stage Runtime Notes](Workflow%20Stage%20Runtime%20Notes.md)
+8. [Workflow Stage Type Runtime Notes](Workflow%20Stage%20Type%20Runtime%20Notes.md)
+9. [Stage Buffer Runtime Notes](Stage%20Buffer%20Runtime%20Notes.md)
+10. [Stage Sender Cache Runtime Notes](Stage%20Sender%20Cache%20Runtime%20Notes.md)
+11. [Workflow Invariant Ledger Notes](Workflow%20Invariant%20Ledger%20Notes.md)
+12. [Workflow Usage Patterns Legacy Notes](Workflow%20Usage%20Patterns%20Legacy%20Notes.md)
+13. [Workflow Execution Trace Notes](Workflow%20Execution%20Trace%20Notes.md)
 
 Near-term direction (still draft):
 
@@ -51,7 +87,7 @@ Run identity + concurrency draft v0.1 (still draft, not frozen):
 7. Conflict handling policy can choose `reject`, `queue`, or `replace`; deterministic `queue` is the current default
    candidate.
 8. Cancellation is cooperative and keyed by `run_id`; `completed`/`failed`/`cancelled` are terminal states.
-9. Observability minimum per transition: `run_id`, `concurrency_key`, stage domain, lifecycle transition, outcome.
+9. Observability minimum per transition: `run_id`, `concurrency_key`, workflow domain, lifecycle transition, outcome.
 10. If workflow orchestrates declaration/materialization progression, it should do so via explicit Rust capability
     contracts, not ad hoc script-engine calls.
 
