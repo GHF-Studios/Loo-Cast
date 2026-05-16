@@ -34,7 +34,7 @@ Current design tension (intentional and unresolved):
    retain a deeper value-semantics model (`Scoped*`, lifecycle windows, explicit access policy) as a first-class
    scripting contract. More complex but also more flexible rhai-facing semantics.
 3. Integration constraint:
-   whichever direction wins must compose cleanly with [[Concept Declaration Artifact]]s and profile-tailored `ctx`
+   whichever direction wins must compose cleanly with [[Capability Declaration]]s and profile-tailored `ctx`
    capability-object subgraphs.
 
 Both directions have merit; final shape is still open and should be decided after more runtime + ergonomics review.

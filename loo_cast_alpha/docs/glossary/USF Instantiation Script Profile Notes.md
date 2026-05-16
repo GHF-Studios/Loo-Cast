@@ -7,10 +7,14 @@ Related glossary terms:
 - [USF Instantiation Scripts](USF%20Instantiation%20Scripts.md)
 - [USF Definition Lifecycle](USF%20Definition%20Lifecycle.md)
 - [USF Instance Graph](USF%20Instance%20Graph.md)
-- [Concept Archetype](Concept%20Archetype.md)
-- [Concept Declaration Artifact](Concept%20Declaration%20Artifact.md)
+- [Capability Type Template](Capability%20Type%20Template.md)
+- [Capability Type](Capability%20Type.md)
+- [Capability Declaration](Capability%20Declaration.md)
+- [Capability](Capability.md)
 - [Rhai Capability](Rhai%20Capability.md)
-- [Rust Capability](Rust%20Capability.md)
+- [Capability Runtime](Capability%20Runtime.md)
+- [Runtime Substrate](Runtime%20Substrate.md)
+- [Capability Dependency Layer Notes](Capability%20Dependency%20Layer%20Notes.md)
 - [USF Math Raw Model Foundation Notes](USF%20Math%20Raw%20Model%20Foundation%20Notes.md)
 
 Current profile-direction notes (legacy MVP slice alignment):
@@ -18,26 +22,31 @@ Current profile-direction notes (legacy MVP slice alignment):
 1. Script file profiles are explicit (`scale`, `metric`, `phenomenon`, `phenomenon_realizer`).
 2. Capability use is context-rooted and profile-gated.
 3. Alias preprocessing (`use ... as ...`) is part of the script-loading flow.
-4. Definition content is loaded, validated, and frozen for runtime progression.
-5. Each profile maps to one declaration kind.
-6. One script/file always defines one singleton-like [[Concept Declaration Artifact]] of that profile kind.
-7. [[Concept Archetype]]s are Rust-side template authorities (trait/registration wiring), while scripts emit
-   declaration artifacts for those archetypes.
+4. Definition content is loaded, validated, and transitioned through Runtime Lock for runtime progression.
+5. Each profile maps to one [[Capability Type]].
+6. One script/file always defines one singleton-like [[Capability Declaration]] of that capability type.
+7. [[Capability Type Template]]s are Rust-side template authorities (trait/registration wiring), while scripts emit
+   capability declarations for those templates.
 8. Capabilities in scripts are [[Rhai Capability]] dynamic API objects (human-readable string IDs), with profile/policy
    grant or deny access.
-9. Executing script declaration code yields a declaration artifact that semantically describes one concept definition.
+9. Executing script declaration code yields one capability declaration.
 10. API graph topology is hierarchical: atomic capability nodes plus composite/category nodes.
 11. Profile selects access via include/exclude path declarations over that graph.
 12. `ctx` is object-based and dynamic, so domains/subdomains can open/close over time.
-13. Complex concepts are still authored as one file/one concept by using richer declaration syntax and logic within that
-    file.
-14. Runtime later materializes USF concept instances (for example Scale/Phenomenon instances) from frozen declaration
-    artifacts.
-15. These runtime concept instances carry closures/logic that execute through profile-tailored `ctx` capability-object
-    subgraphs.
-16. Capability semantics are split between declaration-level [[Rhai Capability]] APIs and runtime-side
-    [[Rust Capability]] behavior.
-17. Scripts are object descriptors first, effectively the closest thing to project assets in this model.
+13. Access used during declaration entrypoint execution is separate from callback invocation access; callback closures
+    run with callback-scoped `ctx` masks resolved by allow/deny policy, which may be narrower or otherwise different.
+14. Complex declarations are still authored as one file/one capability declaration by using richer declaration syntax
+    and logic within that file.
+15. Runtime later materializes USF capability instances (for example Scale/Phenomenon instances) from capabilities
+    established at Runtime Lock.
+16. These runtime capability instances carry closures/logic that execute through profile-tailored `ctx`
+    capability-object subgraphs.
+17. Canonical lifecycle, cyclic Rust/Rhai loop semantics, callback-path semantics, and multiplicity classes are
+    defined in [[Capability]].
+18. This note focuses on profile selection, `ctx` graph shaping, and declaration authoring ergonomics.
+19. Scripts are object descriptors first, effectively the closest thing to project assets in this model.
+20. Dependency semantics are layered: declaration dependencies are `ctx` path requirements, while provider and runtime
+    dependencies live in separate layers.
 
 Current startup-flow shape used as reference:
 
@@ -45,10 +54,10 @@ Current startup-flow shape used as reference:
 2. Resolve include/exclude capability-path declarations against profile API graph topology.
 3. Preprocess aliases.
 4. Compile and execute declaration entrypoints with profile-tailored `ctx` capability-object subgraphs to emit
-   declaration artifacts.
-5. Activate runtime and materialize concept instances from frozen declaration artifacts.
+   capability declarations.
+5. Activate runtime and materialize capability instances from capabilities established at Runtime Lock.
 6. Emit runtime proof logging.
-7. Freeze definition-side mutation.
+7. Runtime-lock definition-side mutation.
 
 Legacy source pointers:
 

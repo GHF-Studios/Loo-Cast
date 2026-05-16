@@ -7,6 +7,7 @@ Related glossary terms:
 - [USF Contract](USF%20Contract.md)
 - [USF Runtime](USF%20Runtime.md)
 - [Capability Runtime](Capability%20Runtime.md)
+- [Capability Dependency Layer Notes](Capability%20Dependency%20Layer%20Notes.md)
 - [Modding Runtime](Modding%20Runtime.md)
 - [Contract Family](Contract%20Family.md)
 
@@ -16,6 +17,8 @@ Boundary notes:
 2. `core_mod` is treated as the default first-party runtime counterpart boundary for USF.
 3. Capability + modding runtime composition is sibling-runtime coupling, not contract redefinition.
 4. Replacement implementations are allowed when they satisfy the same contract family obligations.
+5. Seam analysis is phase-tagged: declaration seams (script load/validate/lock path) and execution seams
+   (post-lock runtime evolution path).
 
 This mirrors the ownership split direction from legacy notes:
 

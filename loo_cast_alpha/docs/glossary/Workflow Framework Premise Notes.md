@@ -5,9 +5,8 @@
 Related glossary terms:
 
 - [Workflow Framework](Workflow%20Framework.md)
-- [Concept Declaration Artifact](Concept%20Declaration%20Artifact.md)
+- [Capability Declaration](Capability%20Declaration.md)
 - [Rhai Capability](Rhai%20Capability.md)
-- [Rust Capability](Rust%20Capability.md)
 - [Runtime Substrate](Runtime%20Substrate.md)
 - [Modding Runtime](Modding%20Runtime.md)
 - [Capability Runtime](Capability%20Runtime.md)
@@ -36,6 +35,14 @@ Current premise slice (draft, intentionally not frozen):
 6. Workflow stages should orchestrate materialized Rust-side runtime artifacts, not raw Rhai engine internals.
 7. If declaration/materialization progression is orchestrated by workflow, it should be mediated through explicit
    Rust-side capability contracts rather than ad hoc script engine calls.
+
+Concurrent-domain reminder (Rust is the host boundary):
+
+1. Capability declaration/materialization domain:
+   USF + Rhai declaration semantics, profile gating, and capability declaration output shape.
+2. Rust-native runtime orchestration domain:
+   workflow framework mechanics, scheduling/lifecycle orchestration, and runtime execution management.
+3. These domains share Rust as a compatibility boundary but keep distinct semantic contracts.
 
 Terminology baseline used in this note cluster:
 
