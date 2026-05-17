@@ -8,6 +8,7 @@ Related glossary terms:
 - [USF Runtime](USF%20Runtime.md)
 - [Runtime Substrate](Runtime%20Substrate.md)
 - [Rhai Reflection Macro Surface Notes](Rhai%20Reflection%20Macro%20Surface%20Notes.md)
+- [Rhai Bridge Domains and Access Provider Notes](Rhai%20Bridge%20Domains%20and%20Access%20Provider%20Notes.md)
 - [USF Math Raw Model Foundation Notes](USF%20Math%20Raw%20Model%20Foundation%20Notes.md)
 
 Quarantine extraction (`TMP_rhai_semantic_reset_quarantine`) with high signal but provisional authority:
@@ -19,12 +20,32 @@ Quarantine extraction (`TMP_rhai_semantic_reset_quarantine`) with high signal bu
 4. Scoped modes rely on provider-managed frame/window lifecycles.
 5. Stale/invalid access and lifecycle contract violations are panic-fast.
 
+Concrete behavior extracted from the quarantine implementation:
+
+1. `AccessCell` state machine is explicit: `Taken`, `Available`, `Writing`, and `Reading { ref_count }`.
+2. Transition operations are explicit and validated (`start_read`, `end_read`, `start_write`, `end_write`, `take`).
+3. Guard discipline is strict: dropping read/write guards without explicit `end_*` invalidation panics.
+4. Busy contention uses bounded retry/yield and then panics on exceeded wait budget.
+5. Unsupported provider methods/argument shapes in `AccessCellProvider` implementations panic immediately.
+6. Scoped provider usage relies on same-frame lifecycle discipline (`start_access` and `end_access` in one execution
+   window).
+
 `AccessCell` behavior surface that matters for future rewrite/migration:
 
 - explicit start/end read and write transitions
 - no overlap of write with any active read/write path
 - optional take/invalidation path for scoped borrow recovery
 - contention guardrail (bounded busy wait, then panic)
+
+Provider-bridge signal worth preserving:
+
+1. Bridge/runtime code uses `AccessCellProvider` to gate access to `World`, `Commands`, `EntityCommands`, query/message
+   facades, and related scoped wrappers.
+2. Provider contracts are method-keyed and request-shaped; invalid method names or mismatched request payloads
+   hard-fail.
+3. Lifetime-erased access windows are intentionally localized and explicitly closed.
+4. This pattern aligns with script-safe contextual projection semantics, even though concrete profile plumbing is still
+   incomplete.
 
 Current tree divergence to account for:
 

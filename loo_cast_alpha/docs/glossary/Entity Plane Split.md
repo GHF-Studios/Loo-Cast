@@ -10,4 +10,10 @@ The backend plane owns interaction/state authority while the frontend plane owns
 This split is intended to support scale-relative visibility, projection tricks, and portal/wrapping mechanics without
 collapsing semantic authority boundaries.
 
+See also:
+
+- [[Entity Proxy]]
+- [[Observer-Relative Simulation]]
+- [[Portal Traversal Semantics]]
+
 #glossary

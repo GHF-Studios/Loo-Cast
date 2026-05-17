@@ -5,32 +5,36 @@ aliases: []
 source_of_truth: []
 ---
 
-Capability Resolution Semantics defines how capability ownership and selection resolve for one
-([[Capability Scope Key]], [[Capability Resolution Key]]) pair.
+Capability Resolution Semantics defines how capabilities/APIs are resolved from declaration/bootstrap into locked
+runtime state without collapsing dependency resolution and projection/access resolution into one layer.
 
-Resolution is intentionally two-layered and the layers must not be conflated:
+Resolution is intentionally multi-layered:
 
-1. Static ownership resolution (pre-lock):
-   composition/validation resolves effective owner(s) with deterministic precedence rules inside the
-   [[Scope Envelope]].
-   Singleton-critical responsibilities must resolve to exactly one effective owner before [[Runtime Lock]].
-   Collection responsibilities may resolve to multiple owners only where multiplicity policy allows it.
-2. Dynamic API-surface resolution (runtime):
-   callback `ctx` masks and runtime policy can narrow or deny runtime access to already-resolved capabilities.
-   This layer may reject invocation paths and can later re-open them, but it does not retroactively change pre-lock
-   ownership outcomes or widen scope beyond the envelope.
+1. Dependency-graph resolution (bootstrap):
+   dynamic strict layered passes resolve currently satisfiable nodes from concrete topology.
+   First-order profiles are root-level and cannot depend on other capabilities.
+   Cycles are invalid.
+   Dependency resolution strategy is policy-ordered:
+   host type-system enforcement first, selective explicit dependency declarations second, and selective inference
+   fallback third.
+2. Materialization/merge resolution:
+   validated declaration outputs are materialized and merged into the host graph and the process repeats until
+   fixed-point convergence.
+3. Projection/access resolution:
+   profile-scoped projection APIs and allow/deny path policy determine accessible contextual facades.
+   Declaration and callback projection contexts are co-equal projections, not implicit parent/child scope layers.
+   This layer may narrow/deny/re-open paths, but cannot widen authority beyond
+   [[Capability Graph Scope Envelope]].
 
-Hard-fail conditions include unresolved required owner, singleton conflicts, invalid multiplicity, or denied required
+Hard-fail conditions include unresolved required dependencies, cycle detection, invalid multiplicity, or denied required
 callback paths after policy resolution.
-No implicit fallback owner is introduced.
-
-This split keeps lock-time authority deterministic while still allowing dynamic/nested capability-API graph gating at
-runtime.
+No implicit fallback dependency owner is introduced.
 
 See also:
 
-- [[Capability Scope Key]]
-- [[Capability Resolution Key]]
-- [[Scope Envelope]]
+- [[Capability Bootstrap Fixed-Point Cycle]]
+- [[Capability Path]]
+- [[Capability Projection API]]
+- [[Capability Graph Scope Envelope]]
 
 #glossary

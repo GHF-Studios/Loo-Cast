@@ -11,4 +11,10 @@ The glossary in `docs/glossary` is a first-class canonical authoring surface for
 Current file system layout is treated as transitional and may contain legacy or already-outdated segments, so this note
 captures intended structural direction rather than claiming the current tree is already clean in any way.
 
+See also:
+
+- [[Project Structure]]
+- [[Project Artifact Structure]]
+- [[Project Runtime Representation]]
+
 #glossary

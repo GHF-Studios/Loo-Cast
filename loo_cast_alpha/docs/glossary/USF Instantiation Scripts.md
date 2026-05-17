@@ -6,8 +6,8 @@ source_of_truth: []
 ---
 
 The USF Instantiation Scripts are the declaration-centric authoring surface under [[Loo Cast]] for defining
-singleton-like [[Capability Declaration]]s for contract-defined [[Capability Type]]s from the [[USF Contract]].
-These declarations target Rust-registered [[Capability Type Template]] authorities.
+singleton-like [[Capability Declaration]]s for contract-defined profile categories from the [[USF Contract]].
+These declarations target Rust-registered [[Capability Type Template]] host authorities.
 Executing these declaration entrypoints with profile-tailored `ctx` capability-object subgraphs emits full
 capability declarations that include structured data plus logic closures.
 Declaration entrypoint access and callback invocation access are distinct scopes (`decl_ctx` vs callback-scoped
@@ -20,6 +20,7 @@ Capabilities are exposed to scripts as declaration-level [[Rhai Capability]] API
 is executed by the resulting materialized capability instances.
 Lifecycle, Rust/Rhai cyclic loop semantics, callback-path semantics, and capability multiplicity classes are
 canonicalized in [[Capability]].
+First-order declaration profiles are root-level and cannot depend on other capabilities.
 In practice this makes scripts object descriptors first, effectively the closest thing to game-asset authoring in this
 project’s architecture.
 This surface is governed by the [[USF Definition Lifecycle]].

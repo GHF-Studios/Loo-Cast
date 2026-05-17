@@ -12,13 +12,15 @@ This is capability-first, not capability-exclusive.
 
 Global rudimentary surfaces (for example math and logging) may exist as explicitly defined global capability
 surfaces, without collapsing domain-specific capability boundaries.
-Global scope at this layer still remains bounded by the [[Scope Envelope]].
+Global scope at this layer still remains bounded by the [[Capability Graph Scope Envelope]] and script-safe projection
+policy.
 
 See also:
 
 - [[Capability]]
-- [[Scope Envelope]]
+- [[Capability Graph Scope Envelope]]
 - [[Runtime Substrate]]
 - [[Global Capability Surface]]
+- [[Script Safety]]
 
 #glossary

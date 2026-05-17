@@ -12,10 +12,12 @@ Execution flows through profile-tailored `ctx` capability-object subgraphs that 
 hierarchical graph composition (atomic + composite nodes) and include/exclude path declarations.
 When Rhai-declared callbacks are invoked in this phase, runtime enforces resolved effective callback `ctx` path masks
 from allow/deny policy resolution.
-Dynamic policy can narrow or re-open these callback paths per context, but only inside the [[Scope Envelope]].
+Dynamic policy can narrow or re-open these callback paths per context, but only inside
+the [[Capability Graph Scope Envelope]].
 This runtime flow emits intents that runtime authorities reconcile, commit, and apply as state transitions.
 This is the operational form of the [[Execution-Reconciliation Dual Core]].
 ECS is substrate and execution medium in this flow, not capability-type-template authority.
+This lifecycle is entered after bootstrap fixed-point convergence and lock, not during unresolved bootstrap layering.
 At this layer, lifecycle semantics are intentionally/unavoidably high-level and still underexplored in deeper
 operational detail.
 

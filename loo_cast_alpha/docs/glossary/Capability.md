@@ -1,7 +1,8 @@
 ---
 canonical_name: Capability
 status: WIP-draft
-aliases: [ ]
+aliases:
+   - API
 source_of_truth: [ ]
 ---
 
@@ -15,7 +16,7 @@ At the definition lock transition, validated capability declarations are promote
 Capability flow across Rust/Rhai is cyclic, not one-way:
 This is phase-separated runtime: declaration phase and execution phase coexist in one runtime but remain distinct.
 
-1. Rust registers capability type templates and projected API graph surfaces.
+1. Rust registers host templates and projected API graph surfaces.
 2. Rhai declaration entrypoints run with profile-scoped `ctx` and emit one capability declaration.
 3. Declaration payload includes structured data plus declared behavior callbacks/closures shaped by contract/profile.
 4. Rust validates and lock-transitions that declaration into a capability.
@@ -26,7 +27,8 @@ Callback invocation paths are what restore script control flow freedom, but only
 lifetime-bounded interfaces.
 Declaration entrypoint context and callback invocation context are distinct policy surfaces and can expose different
 effective capability-path masks after allow/deny resolution.
-These runtime masks can only narrow/re-open inside the [[Scope Envelope]]; they cannot widen template/profile scope.
+These runtime masks can only narrow/re-open inside the [[Capability Graph Scope Envelope]]; they cannot widen
+profile scope.
 Any attempted access outside the resolved effective `ctx` path mask is invalid and should hard-fail.
 
 Access is asymmetric inside that cycle:
@@ -45,10 +47,11 @@ Multiplicity classes:
 See also:
 
 - [[Capability Declaration]]
-- [[Capability Type]]
+- [[Capability Profile]]
 - [[Rhai Capability]]
 - [[Scale Realizer Cardinality]]
 - [[USF Instance Graph]]
+- [[Capability Projection API]]
 - [Capability Dependency Layer Notes](Capability%20Dependency%20Layer%20Notes.md)
 
 #glossary

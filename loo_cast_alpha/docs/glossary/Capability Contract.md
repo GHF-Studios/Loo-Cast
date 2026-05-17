@@ -8,6 +8,7 @@ source_of_truth: [ ]
 ---
 
 The Capability Contract Family defines what capability contracts must declare and satisfy.
+It is not the same concept as [[Capability Type Template]] host template authority.
 Capabilities implement this family and expose [[Scaled Capability Channel]]s as scale-specific execution faces whose
 required/allowed shape is derived from that family.
 In declaration scripts, capabilities appear as [[Rhai Capability]] API objects surfaced through profile-tailored `ctx`
@@ -22,9 +23,9 @@ Dependency semantics are layered:
 - declaration dependencies resolve through profile-scoped `ctx` path access requirements
 
 This [[Contract Family]] defines compatibility and boundary rules for capability implementations within the
-[[Contract]] through [[Capability Scope Key]] and [[Capability Resolution Semantics]].
+[[Contract]] through [[Capability Path]], [[Capability Resolution Semantics]], and profile-governed projection APIs.
 Runtime callback/API access can be dynamically narrowed/re-opened by policy, but remains bounded by the
-[[Scope Envelope]].
+[[Capability Graph Scope Envelope]].
 Scale compatibility declarations are defined by the [[Scale Contract]] through [[Scale Support]] over [[Scale]]
 coordinates.
 Runtime orchestration and channel coordination are handled by [[Capability Runtime]].

@@ -7,6 +7,7 @@ Related glossary terms:
 - [USF Instantiation Scripts](USF%20Instantiation%20Scripts.md)
 - [USF Instantiation Script Profile Notes](USF%20Instantiation%20Script%20Profile%20Notes.md)
 - [USF Runtime](USF%20Runtime.md)
+- [Capability Profile](Capability%20Profile.md)
 - [Capability Type Template](Capability%20Type%20Template.md)
 - [Capability Type](Capability%20Type.md)
 - [Capability Declaration](Capability%20Declaration.md)
@@ -14,6 +15,7 @@ Related glossary terms:
 - [Capability Runtime](Capability%20Runtime.md)
 - [Runtime Substrate](Runtime%20Substrate.md)
 - [Rhai Reflection Macro Surface Notes](Rhai%20Reflection%20Macro%20Surface%20Notes.md)
+- [Rhai Bridge Domains and Access Provider Notes](Rhai%20Bridge%20Domains%20and%20Access%20Provider%20Notes.md)
 - [Capability Dependency Layer Notes](Capability%20Dependency%20Layer%20Notes.md)
 - [Workflow Framework](Workflow%20Framework.md)
 - [USF Math Raw Model Foundation Notes](USF%20Math%20Raw%20Model%20Foundation%20Notes.md)
@@ -36,6 +38,13 @@ Active legacy reflection/registration slice (`loo_cast_legacy/core_mod_api`) wit
 4. Reflection/registration uses custom proc-macros (`reflect_extern_*`) in `core_engine_macros`.
 5. This gives a deterministic metadata-first registration surface even where runtime bridge coverage is incomplete.
 
+Active quarantine dispatch-surface signal (`TMP_rhai_semantic_reset_quarantine`):
+
+1. Query/message/bundle/resource dispatch catalogs are compile-time registered and key-resolved at runtime.
+2. Dispatch policy enforces canonical signature prefixes and canonical path-style type/trait IDs.
+3. Resolver misses include available-key diagnostics and hard-fail by default.
+4. Generic-like query metadata is explicit and catalog-backed; runtime does not synthesize new monomorphizations.
+
 High-signal documentation anchor for reflection shape and layering boundaries:
 [Rhai Reflection Macro Surface Notes](Rhai%20Reflection%20Macro%20Surface%20Notes.md)
 
@@ -47,31 +56,32 @@ Terminology correction (draft):
 
 Declaration-first posture (primary model):
 
-1. A script profile defines exactly one [[Capability Type]].
-2. One script/file defines exactly one singleton-like [[Capability Declaration]] of that capability type.
-3. [[Capability Type Template]]s are Rust-side template authorities (trait/registration wiring), not script-produced
+1. A script profile defines exactly one [[Capability Profile]] identity.
+2. One script/file defines exactly one singleton-like [[Capability Declaration]] of that capability profile.
+3. Legacy wording still uses "Capability Type" in some paths; at glossary level this maps to [[Capability Profile]].
+4. [[Capability Type Template]]s are Rust-side template authorities (trait/registration wiring), not script-produced
    objects.
-4. Script execution yields data-first capability declarations (POD-oriented with declared behavior payload), not raw
+5. Script execution yields data-first capability declarations (POD-oriented with declared behavior payload), not raw
    Rust type objects.
-5. Profile defines the allowed script API graph topology: atomic capability nodes plus composite category nodes.
-6. Access is declared as include/exclude path declarations over that graph, so very specific capability-object subgraphs
+6. Profile defines the allowed script API graph topology: atomic capability nodes plus composite category nodes.
+7. Access is declared as include/exclude path declarations over that graph, so very specific capability-object subgraphs
    can be exposed.
-7. Domains that are nonsensical, non-implementable for that capability type, or dangerous are intentionally omitted.
-8. Capabilities exposed to scripts are [[Rhai Capability]] objects, identified by human-readable string IDs, and access
+8. Domains that are nonsensical, non-implementable for that capability profile, or dangerous are intentionally omitted.
+9. Capabilities exposed to scripts are [[Rhai Capability]] objects, identified by human-readable string IDs, and access
    to them is granted or denied by profile/policy.
-9. `ctx` is object-based and dynamic; domains/subdomains can open/close over time according to runtime policy and
+10. `ctx` is object-based and dynamic; domains/subdomains can open/close over time according to runtime policy and
    declaration context.
-10. Runtime executes declaration entrypoints with profile-tailored `ctx` subgraphs to produce capability declarations.
-11. Callback closures declared by those entrypoints execute with callback-scoped effective `ctx` masks resolved by
+11. Runtime executes declaration entrypoints with profile-tailored `ctx` subgraphs to produce capability declarations.
+12. Callback closures declared by those entrypoints execute with callback-scoped effective `ctx` masks resolved by
     allow/deny policy, not implicit inheritance from declaration-entrypoint `ctx`.
-12. A Rust materialization pass consumes those declarations and produces runtime capability machinery.
-13. Complex capability declarations can still live in one file: richer syntax/logic/fields/parameters (and optional
+13. A Rust materialization pass consumes those declarations and produces runtime capability machinery.
+14. Complex capability declarations can still live in one file: richer syntax/logic/fields/parameters (and optional
     value-semantics helpers) are used to keep the one-file/one-capability-declaration rule intact.
-14. Capability semantics are intentionally split:
+15. Capability semantics are intentionally split:
     declaration-level [[Rhai Capability]] API surfaces and runtime-side Rust implementation/execution surfaces under
     [[Capability Runtime]] in the [[Runtime Substrate]].
-15. This keeps scripts declaration/object-descriptor first while runtime behavior remains Rust-side.
-16. Dependency semantics should remain layered: mod/provider resolution, declaration `ctx` path requirements, and
+16. This keeps scripts declaration/object-descriptor first while runtime behavior remains Rust-side.
+17. Dependency semantics should remain layered: mod/provider resolution, declaration `ctx` path requirements, and
     post-lock runtime interaction must not be conflated.
 
 Legacy dispatch extraction (still useful, but secondary to declaration semantics):

@@ -1,21 +1,24 @@
 ---
 canonical_name: Capability Type
 status: WIP-draft
-aliases: [ ]
+aliases: []
 source_of_truth: [ ]
 ---
 
-The Capability Type is the declaration-time type category for a capability declaration in the USF/Rhai stack.
+Capability Type is a legacy label for the declaration-time profile category now modeled as [[Capability Profile]].
+It remains valid as a compatibility term in legacy notes and code-facing language.
 
-A capability type answers "what kind of declaration is this?" (for example `Scale`, `Metric`, `Phenomenon`,
-`Scale Realizer`).
+A capability/profile answers "what kind of declaration profile is this?" (for example `Scale`, `Metric`,
+`Phenomenon`, `Scale Realizer`).
 
-Each script profile maps to exactly one capability type, and one script file declares exactly one capability
-declaration of one capability type.
-Multiplicity policy for capability types is canonicalized in [[Capability]].
+Each script profile maps to one capability profile identity for that declaration context.
+Multiplicity policy for capability/profile categories is canonicalized in [[Capability]].
 
 See also:
 
+- [[Capability Profile]]
+- [[Script Profile]]
+- [[Callback Profile]]
 - [[Capability Type Template]]
 - [[Capability Declaration]]
 - [[Capability]]
