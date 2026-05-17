@@ -13,6 +13,5 @@ See also:
 
 - [[Closed Runtime and Open Design]]
 - [[Polycentric Pillars]]
-- [[Project Ethos]]
 
 #glossary

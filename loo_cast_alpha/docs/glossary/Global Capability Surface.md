@@ -11,13 +11,12 @@ It is globally scoped by contract, but it is not a blanket authority grant over 
 
 Global availability does not bypass [[Scope Envelope]] constraints and does not expand script/profile/template
 authority beyond declared limits.
-Runtime policy may still narrow or deny access to these surfaces in specific contexts.
+Runtime policy can narrow or deny access in context and can later re-open access, but only inside the same envelope.
 
 See also:
 
-- [[Capability-Centric Semantics]]
 - [[Scope Envelope]]
-- [[Capability Resolution Semantics]]
 - [[Dynamic Authority Resolution]]
+- [[Capability Resolution Semantics]]
 
 #glossary

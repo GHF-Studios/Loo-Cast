@@ -17,6 +17,7 @@ At this stage, the runtime includes:
 
 Definition structure is fixed at [[Runtime Lock]].
 Runtime evolution changes state and intent within that structure rather than mutating structure itself.
+This is the project-level runtime shape of [[Closed Runtime and Open Design]].
 
 At project scope, this representation composes [[Mod Runtime Representation]], [[Capability Runtime]],
 [[USF Runtime]], and [[Modding Runtime]].

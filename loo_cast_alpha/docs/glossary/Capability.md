@@ -26,6 +26,7 @@ Callback invocation paths are what restore script control flow freedom, but only
 lifetime-bounded interfaces.
 Declaration entrypoint context and callback invocation context are distinct policy surfaces and can expose different
 effective capability-path masks after allow/deny resolution.
+These runtime masks can only narrow/re-open inside the [[Scope Envelope]]; they cannot widen template/profile scope.
 Any attempted access outside the resolved effective `ctx` path mask is invalid and should hard-fail.
 
 Access is asymmetric inside that cycle:

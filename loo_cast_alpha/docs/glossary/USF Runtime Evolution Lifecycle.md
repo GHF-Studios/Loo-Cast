@@ -7,14 +7,14 @@ source_of_truth: [ ]
 
 The USF Runtime Evolution Lifecycle governs runtime progression after the definition lock transition.
 Runtime interactions are driven by active capability instances materialized from capabilities established at the
-definition lock transition;
-these instances
-carry logic closures and data defined by declaration scripts.
+definition lock transition; these instances carry logic closures and data defined by declaration scripts.
 Execution flows through profile-tailored `ctx` capability-object subgraphs that bound exposed capability objects via
 hierarchical graph composition (atomic + composite nodes) and include/exclude path declarations.
 When Rhai-declared callbacks are invoked in this phase, runtime enforces resolved effective callback `ctx` path masks
 from allow/deny policy resolution.
+Dynamic policy can narrow or re-open these callback paths per context, but only inside the [[Scope Envelope]].
 This runtime flow emits intents that runtime authorities reconcile, commit, and apply as state transitions.
+This is the operational form of the [[Execution-Reconciliation Dual Core]].
 ECS is substrate and execution medium in this flow, not capability-type-template authority.
 At this layer, lifecycle semantics are intentionally/unavoidably high-level and still underexplored in deeper
 operational detail.

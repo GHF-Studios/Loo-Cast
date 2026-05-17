@@ -5,20 +5,20 @@ aliases: []
 source_of_truth: []
 ---
 
-Capability-Centric Semantics means project meaning is modeled through capabilities first, while execution still runs
-on lower-level runtime primitives in the [[Runtime Substrate]].
+Capability-Centric Semantics means project meaning and authority are modeled through capabilities first, while
+execution still runs on lower-level runtime primitives in the [[Runtime Substrate]].
+Capability contracts define semantic authority; substrate primitives define operational execution.
 This is capability-first, not capability-exclusive.
-Capability contracts define semantic authority, while substrate primitives remain the operational medium.
 
-Global rudimentary surfaces (for example math and logging) may exist as explicitly defined globally scoped capability
+Global rudimentary surfaces (for example math and logging) may exist as explicitly defined global capability
 surfaces, without collapsing domain-specific capability boundaries.
+Global scope at this layer still remains bounded by the [[Scope Envelope]].
 
 See also:
 
 - [[Capability]]
+- [[Scope Envelope]]
 - [[Runtime Substrate]]
-- [[USF Runtime]]
 - [[Global Capability Surface]]
-- [[Project Runtime Representation]]
 
 #glossary

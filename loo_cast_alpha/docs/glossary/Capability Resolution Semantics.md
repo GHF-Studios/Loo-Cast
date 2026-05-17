@@ -11,12 +11,14 @@ Capability Resolution Semantics defines how capability ownership and selection r
 Resolution is intentionally two-layered and the layers must not be conflated:
 
 1. Static ownership resolution (pre-lock):
-   composition/validation resolves effective owner(s) with deterministic precedence rules.
+   composition/validation resolves effective owner(s) with deterministic precedence rules inside the
+   [[Scope Envelope]].
    Singleton-critical responsibilities must resolve to exactly one effective owner before [[Runtime Lock]].
    Collection responsibilities may resolve to multiple owners only where multiplicity policy allows it.
 2. Dynamic API-surface resolution (runtime):
    callback `ctx` masks and runtime policy can narrow or deny runtime access to already-resolved capabilities.
-   This layer may reject invocation paths, but it does not retroactively change pre-lock ownership outcomes.
+   This layer may reject invocation paths and can later re-open them, but it does not retroactively change pre-lock
+   ownership outcomes or widen scope beyond the envelope.
 
 Hard-fail conditions include unresolved required owner, singleton conflicts, invalid multiplicity, or denied required
 callback paths after policy resolution.
@@ -24,5 +26,11 @@ No implicit fallback owner is introduced.
 
 This split keeps lock-time authority deterministic while still allowing dynamic/nested capability-API graph gating at
 runtime.
+
+See also:
+
+- [[Capability Scope Key]]
+- [[Capability Resolution Key]]
+- [[Scope Envelope]]
 
 #glossary

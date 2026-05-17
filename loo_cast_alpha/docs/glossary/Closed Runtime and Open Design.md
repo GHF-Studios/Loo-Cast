@@ -13,7 +13,7 @@ Design changes become runtime changes through explicit lifecycle transitions, no
 See also:
 
 - [[Runtime Lock]]
+- [[Managed Ambiguity]]
 - [[USF Definition Lifecycle]]
-- [[Project Runtime Representation]]
 
 #glossary

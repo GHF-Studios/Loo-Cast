@@ -15,7 +15,7 @@ Runtime execution/orchestration semantics are carried by runtime-side Rust imple
 Rhai capability usage participates in the cyclic Rust/Rhai execution loop through callback invocation paths; it is not
 an authoring-only surface.
 Callback invocation access resolves to effective callback `ctx` path masks through allow/deny policy gating, rather
-than implicit inheritance from declaration-entry access.
+than implicit inheritance from declaration-entry access, and remains bounded by the [[Scope Envelope]].
 Canonical loop/lifecycle/multiplicity semantics are defined in [[Capability]].
 
 #glossary

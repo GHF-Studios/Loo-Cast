@@ -5,11 +5,11 @@ aliases: []
 source_of_truth: []
 ---
 
-The Capability Scope Key identifies the authority scope where capability ownership and compatibility must resolve.
+The Capability Scope Key identifies the authority partition where capability ownership and compatibility must resolve.
 
 A scope key is stable across definition validation and runtime activation.
 It is not a transient runtime handle and it is not a callback-access mask.
-A scope key defines the static authority envelope (for example slot/owner boundary + capability target scope) that
+A scope key defines one static authority partition (for example slot/owner boundary + capability target scope) that
 must resolve before [[Runtime Lock]].
 
 Scope-key semantics:
@@ -21,6 +21,7 @@ Scope-key semantics:
 4. Callback `ctx` allow/deny masks may dynamically narrow access at runtime, but they do not replace scope-key
    ownership resolution.
 
-This key model composes with [[Capability Resolution Key]] and is interpreted by [[Capability Resolution Semantics]].
+Scope keys compose with [[Capability Resolution Key]] and are interpreted by [[Capability Resolution Semantics]].
+At a broader layer, scope keys are one structural component of the [[Scope Envelope]].
 
 #glossary

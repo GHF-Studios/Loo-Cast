@@ -7,6 +7,7 @@ source_of_truth: []
 
 The Runtime Lock is the boundary where validated composition becomes immutable runtime state in
 the [[Spacetime Engine]].
+By this boundary, ownership resolution inside the [[Scope Envelope]] must already be finalized.
 At this boundary, callback access policy inputs must already be resolved into effective callback `ctx` path masks for
 runtime invocation.
 After lock, the active mod graph and resolved ownership mappings are fixed, and runtime load or unload mutation is not

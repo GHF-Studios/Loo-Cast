@@ -11,6 +11,7 @@ It is data-first (POD-oriented) with declared behavior payload and metadata shap
 [[Capability Type Template]].
 When callbacks are declared, callback access policy inputs must resolve into effective callback `ctx` path masks before
 [[Runtime Lock]].
+These runtime callback masks remain bounded by the [[Scope Envelope]].
 
 One script file defines exactly one capability declaration.
 At the definition lock transition, each validated capability declaration is promoted into a [[Capability]].

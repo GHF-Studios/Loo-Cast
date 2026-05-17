@@ -7,9 +7,9 @@ source_of_truth: []
 
 Polycentric Pillars means project architecture is intentionally multi-pillar rather than centered on one singular
 framework.
-USF, capability semantics, runtime substrate/orchestration, workflow framework, and Rhai reflection surfaces are
+USF, capability semantics, runtime substrate/orchestration, workflow framework, and scripting/reflection surfaces are
 co-significant architecture signals.
-Design decisions should preserve cross-pillar coherence instead of elevating one pillar into hierarchy apex.
+Design decisions should preserve cross-pillar coherence instead of elevating one pillar into a hierarchy apex.
 
 See also:
 
@@ -17,6 +17,5 @@ See also:
 - [[Capability]]
 - [[Runtime Substrate]]
 - [[Workflow Framework]]
-- [[Rhai Capability]]
 
 #glossary

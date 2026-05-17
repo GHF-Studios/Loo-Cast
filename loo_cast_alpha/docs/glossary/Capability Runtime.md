@@ -10,7 +10,8 @@ It handles dynamic discovery, registration, coordination, and execution routing 
 Declaration scripts consume [[Rhai Capability]] objects through profile-tailored `ctx` capability-object subgraphs;
 runtime materialized capability instances execute closure logic against runtime capability implementations.
 `ctx` capability-object subgraphs are composed from hierarchical API graph nodes (atomic + composite) via
-include/exclude path declarations and can dynamically open/close by runtime policy.
+include/exclude path declarations and can dynamically narrow/re-open by runtime policy inside the
+[[Scope Envelope]].
 Callback invocation enforces resolved effective callback `ctx` path masks (allow/deny policy outcome), not implicit
 inheritance from declaration-entrypoint access.
 Capability implementations expose [[Scaled Capability Channel]] structures as per-scale execution paths for that
