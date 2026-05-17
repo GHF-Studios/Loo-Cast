@@ -13,6 +13,7 @@ Related glossary terms:
 - [Rhai Capability](Rhai%20Capability.md)
 - [Capability Runtime](Capability%20Runtime.md)
 - [Runtime Substrate](Runtime%20Substrate.md)
+- [Rhai Reflection Macro Surface Notes](Rhai%20Reflection%20Macro%20Surface%20Notes.md)
 - [Capability Dependency Layer Notes](Capability%20Dependency%20Layer%20Notes.md)
 - [Workflow Framework](Workflow%20Framework.md)
 - [USF Math Raw Model Foundation Notes](USF%20Math%20Raw%20Model%20Foundation%20Notes.md)
@@ -26,6 +27,17 @@ Quarantine extraction (`TMP_rhai_semantic_reset_quarantine`) with high signal bu
 4. Canonical Rust path-style type/trait IDs are likely useful for traceability and determinism.
 5. Duplicate/invalid registration and resolver-miss handling should be fail-fast by default unless we later define
    softer recovery paths.
+
+Active legacy reflection/registration slice (`loo_cast_legacy/core_mod_api`) with concrete runtime signal:
+
+1. Runtime binding metadata is inventory-collected into one `RuntimeBindingGraph`.
+2. Duplicate IDs and missing required pairings (for example trait without trait-object metadata) hard-fail.
+3. Engine bootstrap registers top-level modules from that graph (`register_binding_graph`).
+4. Reflection/registration uses custom proc-macros (`reflect_extern_*`) in `core_engine_macros`.
+5. This gives a deterministic metadata-first registration surface even where runtime bridge coverage is incomplete.
+
+High-signal documentation anchor for reflection shape and layering boundaries:
+[Rhai Reflection Macro Surface Notes](Rhai%20Reflection%20Macro%20Surface%20Notes.md)
 
 Terminology correction (draft):
 
@@ -83,6 +95,8 @@ Open design space (rephrased around declaration/profile model):
 8. How fail-fast vs softer failure policy is scoped per profile and environment.
 9. Which registry/dispatch details remain global and which should become profile-local.
 10. How declaration-seam events are shaped relative to execution-seam events without phase leakage.
+11. How much of the legacy inventory+macro reflection stack should remain canonical vs being replaced by a smaller
+    profile-first registry surface.
 
 Raw-model alignment (math + scripting contract posture):
 
@@ -107,6 +121,10 @@ Legacy source pointers:
 - `loo_cast_legacy/documents/temp_stuff/TMP_usf_math_raw_model/catalog.rs`
 - `loo_cast_legacy/documents/temp_stuff/TMP_usf_math_raw_model/scalar/shared.rs`
 - `loo_cast_legacy/documents/temp_stuff/TMP_usf_math_raw_model/vector/shared.rs`
+- `loo_cast_legacy/core_mod_api/src/backend/rhai_binding/meta/registry.rs`
+- `loo_cast_legacy/core_mod_api/src/backend/rhai_binding/bind/engine_ext.rs`
+- `loo_cast_legacy/core_mod_api/src/backend/rhai_binding/engine/preprocess.rs`
+- `loo_cast_legacy/core_engine_macros/src/rhai_binding/reflection/mod.rs`
 
 Rustdoc anchors:
 

@@ -24,6 +24,7 @@ Related glossary terms:
 - [Workflow Invariant Ledger Notes](Workflow%20Invariant%20Ledger%20Notes.md)
 - [Workflow Usage Patterns Legacy Notes](Workflow%20Usage%20Patterns%20Legacy%20Notes.md)
 - [Workflow Execution Trace Notes](Workflow%20Execution%20Trace%20Notes.md)
+- [Rhai Reflection Macro Surface Notes](Rhai%20Reflection%20Macro%20Surface%20Notes.md)
 
 Current premise slice (draft, intentionally not frozen):
 
@@ -59,6 +60,8 @@ Why this premise is currently high-signal:
    than a useful premise.
 3. The framework already separates domain stage families (`Ecs`/`Render`/`Async` + while variants), matching the
    intended mental model.
+4. This is one high-signal working framework surface among multiple pillars (for example, Rhai reflection macros),
+   not a hierarchy apex.
 
 Current behavior coverage notes (documentation-first slice):
 

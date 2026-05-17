@@ -10,6 +10,7 @@ Related glossary terms:
 - [USF Runtime](USF%20Runtime.md)
 - [Runtime Lock](Runtime%20Lock.md)
 - [Capability Dependency Layer Notes](Capability%20Dependency%20Layer%20Notes.md)
+- [Runtime Intent Reconcile Commit Apply Mapping Notes](Runtime%20Intent%20Reconcile%20Commit%20Apply%20Mapping%20Notes.md)
 
 Current execution-shape notes:
 
@@ -22,6 +23,15 @@ Current execution-shape notes:
    dynamically open/close by runtime policy.
 6. Callback invocation paths enforce resolved effective callback `ctx` path masks from allow/deny policy outcomes.
 7. Lifecycle semantics remain intentionally high-level, but still constrained by Runtime Lock boundaries.
+
+Current implementation reality check:
+
+1. `loo_cast_alpha` is still spec-anchor first (`crates/core_mod/src/spec/*`), not a full runtime pipeline
+   implementation.
+2. The strongest executable signal for phased runtime behavior currently sits in legacy `core_mod_api`
+   orchestration/workflow/chunk systems.
+3. Intent/reconcile/commit/apply is therefore canonical as target semantics, with legacy code used as
+   implementation evidence and mismatch detector.
 
 Cross-module seam hints carried from legacy slice docs:
 

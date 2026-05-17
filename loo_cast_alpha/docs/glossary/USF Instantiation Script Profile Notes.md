@@ -59,6 +59,12 @@ Current startup-flow shape used as reference:
 6. Emit runtime proof logging.
 7. Runtime-lock definition-side mutation.
 
+Reference-scope caveat:
+
+1. This section captures profile/pipeline semantics.
+2. Concrete legacy path wiring in MVP bootstrap code may drift from current asset layout snapshots.
+3. When path-level details diverge, keep these semantics and update path examples from the active tree.
+
 Legacy source pointers:
 
 - `loo_cast_legacy/documents/markdown_summary/usf_script_profiles_and_mvp_slice.md`

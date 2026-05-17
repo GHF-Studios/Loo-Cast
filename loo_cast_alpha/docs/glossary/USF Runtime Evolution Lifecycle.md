@@ -19,7 +19,10 @@ ECS is substrate and execution medium in this flow, not capability-type-template
 At this layer, lifecycle semantics are intentionally/unavoidably high-level and still underexplored in deeper
 operational detail.
 
-Implementation-facing notes: [USF Runtime Evolution Lifecycle Notes](USF%20Runtime%20Evolution%20Lifecycle%20Notes.md)
+Implementation-facing notes:
+[USF Runtime Evolution Lifecycle Notes](USF%20Runtime%20Evolution%20Lifecycle%20Notes.md)
+and
+[Runtime Intent Reconcile Commit Apply Mapping Notes](Runtime%20Intent%20Reconcile%20Commit%20Apply%20Mapping%20Notes.md)
 Dependency-layer and callback-mask policy framing are defined in
 [Capability Dependency Layer Notes](Capability%20Dependency%20Layer%20Notes.md).
 
