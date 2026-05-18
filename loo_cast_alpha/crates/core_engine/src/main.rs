@@ -9,6 +9,4 @@
 mod spec;
 
 fn main() {
-    let linked_crates = [core_mod::crate_identity(), base_mod::crate_identity()];
-    println!("Loo Cast alpha core_engine stub; statically linked crates: {}", linked_crates.join(", "));
 }
