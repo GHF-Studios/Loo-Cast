@@ -5,7 +5,7 @@
 //! - Script-facing calls should go through monomorphized facade/binding layers.
 //!
 //! Kind/repr mechanism:
-//! - Mixed-repr operands use `UsfOrNormal*` aliases and `OneOf2` branch wrappers.
+//! - Mixed-repr operands use `UsfOrNormal*` aliases and explicit branch-union wrappers.
 //! - Projection specializations that can materialize USF or normal output use `Mode: OpMode`.
 //! - Operation-intrinsic mode variance should be expressed with `op_policy::OpPolicy`, and policy compatibility must be validated at runtime by each concrete algorithm implementation.
 //!
@@ -52,8 +52,8 @@ pub trait MatrixCoreOps<const R: usize, const C: usize>: Clone + Sized {
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Allowed: `{rows: Usf}`.
-    /// - Disallowed combinations: `{rows: Normal}` in this concrete `UsfMatrix` API.
+    /// - `rows` accepts both `Usf` and `Normal` branches per row.
+    /// - Disallowed combinations: none; all repr row combinations are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     /// - Panics if runtime validation rejects degenerate matrix shape constraints.
@@ -93,8 +93,8 @@ pub trait MatrixCoreOps<const R: usize, const C: usize>: Clone + Sized {
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Allowed: `{self: Usf, rhs: Usf}`.
-    /// - Disallowed combinations: `{rhs: Normal}` in this concrete `UsfMatrix` API.
+    /// - `rhs` accepts both `Usf` and `Normal` branches.
+    /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     fn component_mul(&self, _rhs: UsfOrNormalMatrix<R, C>) -> Self {
@@ -111,8 +111,8 @@ pub trait MatrixCoreOps<const R: usize, const C: usize>: Clone + Sized {
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Allowed: `{self: Usf, rhs: Usf}`.
-    /// - Disallowed combinations: `{rhs: Normal}` in this concrete `UsfMatrix` API.
+    /// - `rhs` accepts both `Usf` and `Normal` branches.
+    /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     /// - Panics if any corresponding matrix component in `rhs` is zero.
@@ -124,15 +124,15 @@ pub trait MatrixCoreOps<const R: usize, const C: usize>: Clone + Sized {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `rhs` (OneOf2<UsfOrNormalMatrix<R, C>, UsfOrNormalScalar>): Right-hand-side operand.
+    /// - `rhs` (matrix-or-scalar branch union): Right-hand-side operand.
     ///
     /// # Returns
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Accepts matrix branch with `{self: Usf, rhs_matrix: Usf}` and `{self: Usf, rhs_matrix: Normal}`.
-    /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
-    /// - Disallowed combinations: passing both matrix and scalar operands in the same call, because `OneOf2` selects exactly one branch.
+    /// - Matrix branch accepts `rhs_matrix` in `{Usf, Normal}`.
+    /// - Scalar branch accepts `rhs_scalar` in `{Usf, Normal}`.
+    /// - Exactly one operand family is selected per call.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     fn add(&self, _rhs: OneOf2<UsfOrNormalMatrix<R, C>, UsfOrNormalScalar>) -> Self {
@@ -143,15 +143,15 @@ pub trait MatrixCoreOps<const R: usize, const C: usize>: Clone + Sized {
     ///
     /// # Parameters
     /// - `self`: Receiver value.
-    /// - `rhs` (OneOf2<UsfOrNormalMatrix<R, C>, UsfOrNormalScalar>): Right-hand-side operand.
+    /// - `rhs` (matrix-or-scalar branch union): Right-hand-side operand.
     ///
     /// # Returns
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Accepts matrix branch with `{self: Usf, rhs_matrix: Usf}` and `{self: Usf, rhs_matrix: Normal}`.
-    /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
-    /// - Disallowed combinations: passing both matrix and scalar operands in the same call, because `OneOf2` selects exactly one branch.
+    /// - Matrix branch accepts `rhs_matrix` in `{Usf, Normal}`.
+    /// - Scalar branch accepts `rhs_scalar` in `{Usf, Normal}`.
+    /// - Exactly one operand family is selected per call.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     fn sub(&self, _rhs: OneOf2<UsfOrNormalMatrix<R, C>, UsfOrNormalScalar>) -> Self {
@@ -168,7 +168,7 @@ pub trait MatrixCoreOps<const R: usize, const C: usize>: Clone + Sized {
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Accepts `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
+    /// - `rhs` accepts both `Usf` and `Normal` branches.
     /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
@@ -186,7 +186,7 @@ pub trait MatrixCoreOps<const R: usize, const C: usize>: Clone + Sized {
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Accepts `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
+    /// - `rhs` accepts both `Usf` and `Normal` branches.
     /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
@@ -205,7 +205,7 @@ pub trait MatrixCoreOps<const R: usize, const C: usize>: Clone + Sized {
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - `rhs` accepts both `Usf` and `Normal` branches.
     /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
@@ -223,7 +223,7 @@ pub trait MatrixCoreOps<const R: usize, const C: usize>: Clone + Sized {
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - `rhs` accepts both `Usf` and `Normal` branches.
     /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
@@ -262,7 +262,7 @@ pub trait MatrixCoreOps<const R: usize, const C: usize>: Clone + Sized {
     /// - Computed result of type `UsfOrNormalVector<R>`.
     ///
     /// # Repr
-    /// - Accepts `{self: Usf, rhs_vector: Usf}` and `{self: Usf, rhs_vector: Normal}`.
+    /// - `rhs` accepts both `Usf` and `Normal` vector branches.
     /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
@@ -281,7 +281,7 @@ pub trait MatrixCoreOps<const R: usize, const C: usize>: Clone + Sized {
     /// - Computed result of type `UsfOrNormalMatrix<R, K>`.
     ///
     /// # Repr
-    /// - Accepts `{self: Usf, rhs_matrix: Usf}` and `{self: Usf, rhs_matrix: Normal}`.
+    /// - `rhs` accepts both `Usf` and `Normal` matrix branches.
     /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
@@ -448,8 +448,8 @@ pub trait SquareMatrixCoreOps<const D: usize>: MatrixCoreOps<D, D> {
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Allowed: `{self: Usf}`.
-    /// - Disallowed combinations: not applicable in this unary concrete `UsfMatrix` API.
+    /// - Allowed: current backend representation.
+    /// - Disallowed combinations: not applicable for unary operation.
     /// # Panics
     /// - Panics if the matrix is singular or numerically non-invertible.
     fn inverse(&self) -> Self {
@@ -481,8 +481,8 @@ pub trait SquareMatrixCoreOps<const D: usize>: MatrixCoreOps<D, D> {
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Allowed: `{self: Usf}`.
-    /// - Disallowed combinations: not applicable in this unary concrete `UsfMatrix` API.
+    /// - Allowed: current backend representation.
+    /// - Disallowed combinations: not applicable for unary operation.
     fn powi<T: SignedIntegerType>(&self, _exp: T) -> Self {
         todo!()
     }
@@ -497,7 +497,7 @@ pub trait SquareMatrixCoreOps<const D: usize>: MatrixCoreOps<D, D> {
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Accepts `{self: Usf, rhs_matrix: Usf}` and `{self: Usf, rhs_matrix: Normal}`.
+    /// - `rhs` accepts both `Usf` and `Normal` matrix branches.
     /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
@@ -516,11 +516,3 @@ impl<T, const R: usize, const C: usize> MatrixContract<R, C> for T where T: Matr
 /// Full square-matrix contract for `D x D`.
 pub trait SquareMatrixContract<const D: usize>: SquareMatrixCoreOps<D> + MatrixFieldOps<D, D> + SquareMatrixBridgeOps<D> {}
 impl<T, const D: usize> SquareMatrixContract<D> for T where T: SquareMatrixCoreOps<D> + MatrixFieldOps<D, D> + SquareMatrixBridgeOps<D> {}
-
-/// Erased dimension-aware matrix contract for generic facade plumbing.
-pub trait MatrixAnyContract<const R: usize, const C: usize>: Clone + Sized {}
-impl<T, const R: usize, const C: usize> MatrixAnyContract<R, C> for T where T: MatrixContract<R, C> {}
-
-/// Erased dimension-aware square-matrix contract for generic facade plumbing.
-pub trait SquareMatrixAnyContract<const D: usize>: Clone + Sized {}
-impl<T, const D: usize> SquareMatrixAnyContract<D> for T where T: SquareMatrixContract<D> {}

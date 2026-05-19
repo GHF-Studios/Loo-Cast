@@ -406,11 +406,7 @@ pub trait Transform3dCoreOps: Clone + Sized {
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     /// - Panics if any component violates transform invariants (invalid rotation or scale state).
-    fn make(
-        _translation: UsfOrNormalTranslation3dVector,
-        _rotation: UsfOrNormalRotation3dQuaternion,
-        _scale: UsfOrNormalScale3dVector,
-    ) -> Self {
+    fn make(_translation: UsfOrNormalTranslation3dVector, _rotation: UsfOrNormalRotation3dQuaternion, _scale: UsfOrNormalScale3dVector) -> Self {
         todo!()
     }
 }
@@ -541,10 +537,5 @@ pub trait ScaleContract: Scale3dCoreOps + Scale3dFieldOps + Scale3dBridgeOps {}
 impl<T> ScaleContract for T where T: Scale3dCoreOps + Scale3dFieldOps + Scale3dBridgeOps {}
 
 /// Full transform contract.
-pub trait TransformContract:
-Transform3dCoreOps + Transform3dFieldOps + Transform3dBridgeOps
-{}
-impl<T> TransformContract for T
-where
-    T: Transform3dCoreOps + Transform3dFieldOps + Transform3dBridgeOps,
-{}
+pub trait TransformContract: Transform3dCoreOps + Transform3dFieldOps + Transform3dBridgeOps {}
+impl<T> TransformContract for T where T: Transform3dCoreOps + Transform3dFieldOps + Transform3dBridgeOps {}

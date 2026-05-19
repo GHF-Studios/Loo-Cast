@@ -10,9 +10,9 @@
 //! - Invalid kind/repr combinations panic fast.
 //! - Operation-intrinsic mode variance should be expressed with `op_policy::OpPolicy`, and policy compatibility must be validated at runtime by each concrete algorithm implementation.
 
+use super::super::matrix::aliases::UsfOrNormalMatrix;
 use super::super::op_mode::OpMode;
 use super::super::op_policy::OpPolicy;
-use super::super::matrix::aliases::UsfOrNormalMatrix;
 use super::super::scalar::aliases::UsfOrNormalScalar;
 use super::super::tensor::aliases::UsfOrNormalTensor;
 use super::super::vector::aliases::UsfOrNormalVector;
@@ -80,9 +80,9 @@ pub trait Tensor4CoreOps<const A: usize, const B: usize, const C: usize, const D
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Accepts tensor branch with `{self: Usf, rhs_tensor: Usf}` and `{self: Usf, rhs_tensor: Normal}`.
-    /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
-    /// - Disallowed combinations: passing both tensor and scalar operands in the same call, because `OneOf2` selects exactly one branch.
+    /// - Tensor branch accepts `rhs_tensor` in `{Usf, Normal}`.
+    /// - Scalar branch accepts `rhs_scalar` in `{Usf, Normal}`.
+    /// - Exactly one operand family is selected per call.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     fn add(&self, _rhs: Tensor4OrScalar<A, B, C, D>) -> Self {
@@ -99,9 +99,9 @@ pub trait Tensor4CoreOps<const A: usize, const B: usize, const C: usize, const D
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Accepts tensor branch with `{self: Usf, rhs_tensor: Usf}` and `{self: Usf, rhs_tensor: Normal}`.
-    /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
-    /// - Disallowed combinations: passing both tensor and scalar operands in the same call, because `OneOf2` selects exactly one branch.
+    /// - Tensor branch accepts `rhs_tensor` in `{Usf, Normal}`.
+    /// - Scalar branch accepts `rhs_scalar` in `{Usf, Normal}`.
+    /// - Exactly one operand family is selected per call.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     fn sub(&self, _rhs: Tensor4OrScalar<A, B, C, D>) -> Self {
@@ -118,9 +118,9 @@ pub trait Tensor4CoreOps<const A: usize, const B: usize, const C: usize, const D
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Accepts tensor branch with `{self: Usf, rhs_tensor: Usf}` and `{self: Usf, rhs_tensor: Normal}`.
-    /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
-    /// - Disallowed combinations: passing both tensor and scalar operands in the same call, because `OneOf2` selects exactly one branch.
+    /// - Tensor branch accepts `rhs_tensor` in `{Usf, Normal}`.
+    /// - Scalar branch accepts `rhs_scalar` in `{Usf, Normal}`.
+    /// - Exactly one operand family is selected per call.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     fn component_mul(&self, _rhs: Tensor4OrScalar<A, B, C, D>) -> Self {
@@ -137,9 +137,9 @@ pub trait Tensor4CoreOps<const A: usize, const B: usize, const C: usize, const D
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Accepts tensor branch with `{self: Usf, rhs_tensor: Usf}` and `{self: Usf, rhs_tensor: Normal}`.
-    /// - Accepts scalar branch with `{self: Usf, rhs_scalar: Usf}` and `{self: Usf, rhs_scalar: Normal}`.
-    /// - Disallowed combinations: passing both tensor and scalar operands in the same call, because `OneOf2` selects exactly one branch.
+    /// - Tensor branch accepts `rhs_tensor` in `{Usf, Normal}`.
+    /// - Scalar branch accepts `rhs_scalar` in `{Usf, Normal}`.
+    /// - Exactly one operand family is selected per call.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     /// - Panics if divisor operand resolves to zero in any addressed tensor component.
@@ -157,7 +157,7 @@ pub trait Tensor4CoreOps<const A: usize, const B: usize, const C: usize, const D
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - `rhs` accepts both `Usf` and `Normal` branches.
     /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
@@ -175,7 +175,7 @@ pub trait Tensor4CoreOps<const A: usize, const B: usize, const C: usize, const D
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - `rhs` accepts both `Usf` and `Normal` branches.
     /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
@@ -808,11 +808,4 @@ Tensor4CoreOps<A, B, C, D> + Tensor4FieldOps<A, B, C, D> + Tensor4BridgeOps<A, B
 impl<T, const A: usize, const B: usize, const C: usize, const D: usize> Tensor4Contract<A, B, C, D> for T
 where
     T: Tensor4CoreOps<A, B, C, D> + Tensor4FieldOps<A, B, C, D> + Tensor4BridgeOps<A, B, C, D>,
-{}
-
-/// Erased dimension-aware rank-4 tensor contract for generic facade plumbing.
-pub trait Tensor4AnyContract<const A: usize, const B: usize, const C: usize, const D: usize>: Clone + Sized {}
-impl<T, const A: usize, const B: usize, const C: usize, const D: usize> Tensor4AnyContract<A, B, C, D> for T
-where
-    T: Tensor4Contract<A, B, C, D>,
 {}

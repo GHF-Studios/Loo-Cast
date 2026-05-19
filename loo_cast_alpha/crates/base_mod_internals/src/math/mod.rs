@@ -11,7 +11,7 @@
 //! ## More on `shared`:
 //! - Provides the `*Contract`  for the respective mathematical object.
 //! - This contract is NOT to be implemented manually; it is an implementation detail.
-//! - This trait contains default implementations for every mathematical operation defined in `*Contract`.
+//! - This trait contains default contract stubs for mathematical operations defined in `*Contract`.
 //!
 //! ## More on `normal`:
 //! - Provides the `Normal*` type for the respective mathematical object.

@@ -8,14 +8,6 @@ pub struct UsfTensor4<const A: usize, const B: usize, const C: usize, const D: u
     pub chunks: Field<[UsfTensor<B, C, D>; A]>,
 }
 
-pub type Tensor2x2x2x2 = UsfTensor4<2, 2, 2, 2>;
-pub type Tensor2x2x3x4 = UsfTensor4<2, 2, 3, 4>;
-pub type Tensor2x3x3x4 = UsfTensor4<2, 3, 3, 4>;
-pub type Tensor3x3x3x3 = UsfTensor4<3, 3, 3, 3>;
-pub type Tensor4x4x4x4 = UsfTensor4<4, 4, 4, 4>;
-pub type Tensor2x4x4x8 = UsfTensor4<2, 4, 4, 8>;
-pub type Tensor8x4x4x2 = UsfTensor4<8, 4, 4, 2>;
-
 pub type UsfTensor2x2x2x2 = UsfTensor4<2, 2, 2, 2>;
 pub type UsfTensor2x2x3x4 = UsfTensor4<2, 2, 3, 4>;
 pub type UsfTensor2x3x3x4 = UsfTensor4<2, 3, 3, 4>;

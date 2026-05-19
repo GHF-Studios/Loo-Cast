@@ -87,8 +87,8 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Allowed: `{self: Usf}`.
-    /// - Disallowed combinations: not applicable in this unary concrete `UsfQuaternion` API.
+    /// - Allowed: current backend representation.
+    /// - Disallowed combinations: not applicable for unary operation.
     /// # Panics
     /// - Panics if quaternion norm is zero.
     fn normalize(&self) -> Self {
@@ -115,8 +115,8 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Allowed: `{self: Usf}`.
-    /// - Disallowed combinations: not applicable in this unary concrete `UsfQuaternion` API.
+    /// - Allowed: current backend representation.
+    /// - Disallowed combinations: not applicable for unary operation.
     /// # Panics
     /// - Panics if quaternion norm is zero.
     fn inverse(&self) -> Self {
@@ -134,7 +134,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - `rhs` accepts both `Usf` and `Normal` branches.
     /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
@@ -153,7 +153,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - `rhs` accepts both `Usf` and `Normal` branches.
     /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
@@ -171,7 +171,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - `rhs` accepts both `Usf` and `Normal` branches.
     /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
@@ -189,7 +189,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - `rhs` accepts both `Usf` and `Normal` branches.
     /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
@@ -209,7 +209,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Accepts `{self: Usf, scalar: Usf}` and `{self: Usf, scalar: Normal}`.
+    /// - `rhs` accepts both `Usf` and `Normal` scalar branches.
     /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
@@ -227,7 +227,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Accepts `{self: Usf, scalar: Usf}` and `{self: Usf, scalar: Normal}`.
+    /// - `rhs` accepts both `Usf` and `Normal` scalar branches.
     /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
@@ -246,7 +246,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - `rhs` accepts both `Usf` and `Normal` branches.
     /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
@@ -264,7 +264,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - A new value of the same concrete type.
     ///
     /// # Repr
-    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - `rhs` accepts both `Usf` and `Normal` branches.
     /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
@@ -346,7 +346,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - Computed result of type `UsfOrNormalFractionalScalar`.
     ///
     /// # Repr
-    /// - Accepts `{self: Usf, rhs: Usf}` and `{self: Usf, rhs: Normal}`.
+    /// - `rhs` accepts both `Usf` and `Normal` branches.
     /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
@@ -365,7 +365,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// - Computed result of type `UsfOrNormalVector<3>`.
     ///
     /// # Repr
-    /// - Accepts `{self: Usf, rhs_vector: Usf}` and `{self: Usf, rhs_vector: Normal}`.
+    /// - `rhs` accepts both `Usf` and `Normal` vector branches.
     /// - Disallowed combinations: none; all repr pairs are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
@@ -672,7 +672,3 @@ pub trait QuaternionBridgeOps: QuaternionCoreOps {}
 /// Full quaternion contract.
 pub trait QuaternionContract: QuaternionCoreOps + QuaternionFieldOps + QuaternionBridgeOps {}
 impl<T> QuaternionContract for T where T: QuaternionCoreOps + QuaternionFieldOps + QuaternionBridgeOps {}
-
-/// Erased quaternion contract for generic bridge/facade plumbing.
-pub trait QuaternionAnyContract: Clone + Sized {}
-impl<T> QuaternionAnyContract for T where T: QuaternionContract {}

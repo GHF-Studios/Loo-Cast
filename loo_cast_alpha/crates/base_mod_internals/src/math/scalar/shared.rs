@@ -701,7 +701,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     ///
     /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
+    /// - Disallowed combinations: none; all rhs repr branches are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     fn add(&self, _rhs: UsfOrNormalScalar) -> Self {
@@ -719,7 +719,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     ///
     /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
+    /// - Disallowed combinations: none; all rhs repr branches are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     fn sub(&self, _rhs: UsfOrNormalScalar) -> Self {
@@ -737,7 +737,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     ///
     /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
+    /// - Disallowed combinations: none; all rhs repr branches are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     fn mul(&self, _rhs: UsfOrNormalScalar) -> Self {
@@ -755,7 +755,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     ///
     /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
+    /// - Disallowed combinations: none; all rhs repr branches are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     /// - Panics if `rhs` is zero.
@@ -774,7 +774,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     ///
     /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
+    /// - Disallowed combinations: none; all rhs repr branches are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     /// - Panics if `rhs` is zero.
@@ -793,7 +793,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     ///
     /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
+    /// - Disallowed combinations: none; all rhs repr branches are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     fn min(&self, _rhs: UsfOrNormalScalar) -> Self {
@@ -811,7 +811,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     ///
     /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
+    /// - Disallowed combinations: none; all rhs repr branches are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     fn max(&self, _rhs: UsfOrNormalScalar) -> Self {
@@ -849,7 +849,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     ///
     /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
+    /// - Disallowed combinations: none; all rhs repr branches are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     /// - Panics for undefined exponent/base combinations under real-only semantics.
@@ -868,7 +868,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     ///
     /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
+    /// - Disallowed combinations: none; all rhs repr branches are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     fn atan2(&self, _rhs: UsfOrNormalScalar) -> Self {
@@ -886,7 +886,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     ///
     /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
+    /// - Disallowed combinations: none; all rhs repr branches are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     fn hypot(&self, _rhs: UsfOrNormalScalar) -> Self {
@@ -904,7 +904,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     ///
     /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
+    /// - Disallowed combinations: none; all rhs repr branches are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     /// - Panics if `rhs` is zero.
@@ -984,7 +984,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     ///
     /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
+    /// - Disallowed combinations: none; all rhs repr branches are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     fn cmp_eq(&self, _rhs: UsfOrNormalScalar) -> bool {
@@ -1002,7 +1002,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     ///
     /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
+    /// - Disallowed combinations: none; all rhs repr branches are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     fn cmp_ne(&self, _rhs: UsfOrNormalScalar) -> bool {
@@ -1020,7 +1020,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     ///
     /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
+    /// - Disallowed combinations: none; all rhs repr branches are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     fn cmp_lt(&self, _rhs: UsfOrNormalScalar) -> bool {
@@ -1038,7 +1038,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     ///
     /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
+    /// - Disallowed combinations: none; all rhs repr branches are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     fn cmp_le(&self, _rhs: UsfOrNormalScalar) -> bool {
@@ -1056,7 +1056,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     ///
     /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
+    /// - Disallowed combinations: none; all rhs repr branches are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     fn cmp_gt(&self, _rhs: UsfOrNormalScalar) -> bool {
@@ -1074,7 +1074,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     ///
     /// # Repr
     /// - Allowed: `{rhs: Usf}` and `{rhs: Normal}`.
-    /// - Disallowed combinations: none; `UsfScalar` accepts both rhs repr branches.
+    /// - Disallowed combinations: none; all rhs repr branches are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     fn cmp_ge(&self, _rhs: UsfOrNormalScalar) -> bool {
@@ -1165,7 +1165,7 @@ pub trait ScalarBridgeOps: ScalarCoreOps {
     /// Converts from scalar union.
     ///
     /// # Parameters
-    /// - `value` (OneOf2<Self, ScalarB>): Input value for this operation.
+    /// - `value` (scalar-union branch of `Self` or `ScalarB`): Input value for this operation.
     ///
     /// # Returns
     /// - A new value of the same concrete type.
@@ -1179,7 +1179,7 @@ pub trait ScalarBridgeOps: ScalarCoreOps {
     /// - `self`: Receiver value.
     ///
     /// # Returns
-    /// - Branch-union result of type `OneOf2<Self, ScalarB>`.
+    /// - Branch-union result carrying either `Self` or `ScalarB`.
     fn to_scalar<ScalarB: ScalarContract>(&self) -> OneOf2<Self, ScalarB> {
         todo!()
     }
@@ -1189,10 +1189,6 @@ pub trait ScalarBridgeOps: ScalarCoreOps {
 pub trait ScalarContract: ScalarCoreOps + ScalarFieldOps + ScalarBridgeOps {}
 
 impl<T> ScalarContract for T where T: ScalarCoreOps + ScalarFieldOps + ScalarBridgeOps {}
-
-/// Erased scalar contract for generic facade plumbing.
-pub trait ScalarAnyContract: Clone + Sized {}
-impl<T> ScalarAnyContract for T where T: ScalarContract {}
 
 /// Marker contract for scalar carriers that can represent fractional values.
 /// This is a capability marker, not a value-class marker:

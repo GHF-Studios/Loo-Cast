@@ -1191,7 +1191,3 @@ impl<T> Vector3dContract for T where T: Vector3dCoreOps + Vector3dFieldOps {}
 /// Full 4D vector contract.
 pub trait Vector4dContract: Vector4dCoreOps + Vector4dFieldOps + Vector4dBridgeOps {}
 impl<T> Vector4dContract for T where T: Vector4dCoreOps + Vector4dFieldOps + Vector4dBridgeOps {}
-
-/// Erased dimension-aware vector contract for generic facade plumbing.
-pub trait VectorAnyContract<const D: usize>: Clone + Sized {}
-impl<T, const D: usize> VectorAnyContract<D> for T where T: VectorContract<D> {}
