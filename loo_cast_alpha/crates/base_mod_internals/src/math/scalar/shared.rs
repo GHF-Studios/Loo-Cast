@@ -18,7 +18,6 @@
 //! - Optional `# Panics` section for runtime guard clauses and undefined math states.
 
 use super::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
-use base_mod_shared::utils::one_of::OneOf2;
 
 /// Base trait for scalar carrier types used by the math sketch.
 pub trait ScalarType: Clone + 'static {}
@@ -1113,6 +1112,8 @@ pub trait ScalarFieldOps: ScalarCoreOps {
 /// Scalar conversion/bridge contract.
 /// This trait models repr-bridge hooks used by facade layers when converting between
 /// concrete scalar carriers.
+/// Branch-union dispatch between alternate scalar carrier families is resolved by
+/// higher-level operation surfaces, not this bridge trait.
 pub trait ScalarBridgeOps: ScalarCoreOps {
     /// Converts a primitive scalar into this scalar carrier.
     ///
@@ -1162,27 +1163,6 @@ pub trait ScalarBridgeOps: ScalarCoreOps {
         todo!()
     }
 
-    /// Converts from scalar union.
-    ///
-    /// # Parameters
-    /// - `value` (scalar-union branch of `Self` or `ScalarB`): Input value for this operation.
-    ///
-    /// # Returns
-    /// - A new value of the same concrete type.
-    fn from_scalar<ScalarB: ScalarContract>(_value: OneOf2<Self, ScalarB>) -> Self {
-        todo!()
-    }
-
-    /// Converts to scalar union.
-    ///
-    /// # Parameters
-    /// - `self`: Receiver value.
-    ///
-    /// # Returns
-    /// - Branch-union result carrying either `Self` or `ScalarB`.
-    fn to_scalar<ScalarB: ScalarContract>(&self) -> OneOf2<Self, ScalarB> {
-        todo!()
-    }
 }
 
 /// Full scalar contract used by higher-level math traits and facade generators.
