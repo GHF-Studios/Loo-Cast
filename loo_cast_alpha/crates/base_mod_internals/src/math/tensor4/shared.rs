@@ -51,7 +51,7 @@ pub trait Tensor4CoreOps<const A: usize, const B: usize, const C: usize, const D
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     /// - Panics if runtime validation rejects degenerate tensor shape constraints.
-    fn from_chunks(_chunks: [UsfOrNormalTensor<B, C, D>; A]) -> Self {
+    fn new(_chunks: [UsfOrNormalTensor<B, C, D>; A]) -> Self {
         todo!()
     }
 

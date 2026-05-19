@@ -50,7 +50,7 @@ pub trait TensorCoreOps<const A: usize, const B: usize, const C: usize>: Clone +
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     /// - Panics if runtime validation rejects degenerate tensor shape constraints.
-    fn from_slices(_slices: [UsfOrNormalMatrix<B, C>; A]) -> Self {
+    fn new(_slices: [UsfOrNormalMatrix<B, C>; A]) -> Self {
         todo!()
     }
 

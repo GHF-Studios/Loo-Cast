@@ -1,4 +1,4 @@
-/// Vector-focused aliases, including USF/normal union wrappers.
+/// Vector-focused aliases, including USF/normal union wrappers and product-node unions.
 pub mod aliases;
 /// Normal vector representations (generic + concrete glam/bevy-backed).
 pub mod normal;

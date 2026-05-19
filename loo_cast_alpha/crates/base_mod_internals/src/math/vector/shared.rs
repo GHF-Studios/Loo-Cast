@@ -1,8 +1,8 @@
 //! Shared vector contracts for both USF and normal vector surfaces.
 //!
-//! Facade-first rule:
-//! - These traits are semantic contracts, not final end-user APIs.
-//! - Rhai exposure should happen through monomorphized facades/bindings.
+//! Contract-first rule:
+//! - These traits define semantic operation surfaces, not storage-specific implementations.
+//! - Script/runtime adapters may project these contracts differently, but semantics stay here.
 //!
 //! Kind/repr mechanism:
 //! - Mixed-repr vector/scalar operands are represented with `UsfOrNormal*` aliases.
@@ -17,11 +17,12 @@
 //! - Optional `# Repr` section for mixed-repr semantics.
 //! - Optional `# Panics` section for runtime guard clauses and undefined math states.
 
+use super::super::op_kind::VectorMulKind;
 use super::super::op_mode::OpMode;
 use super::super::op_policy::OpPolicy;
 use super::super::scalar::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
 use super::super::scalar::shared::{FractionalScalarContract, ScalarContract};
-use super::aliases::UsfOrNormalVector;
+use super::aliases::{UsfOrNormalVector, VectorProductOperand, VectorProductResult};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum HomogeneousWState {
@@ -48,7 +49,7 @@ pub enum HomogeneousPointOrDirection<Vector3d> {
 /// # Usage
 /// - Implement this trait on concrete vector carriers (`Usf`, `Normal`, or other backends).
 /// - Use `VectorContract<D>` bounds when generic call sites need vector core+field+bridge behavior.
-/// - Facade layers monomorphize valid permutations and hide unsupported ones.
+/// - Backend implementations map these contracts onto concrete runtime representations.
 ///
 /// # Examples
 /// ```ignore
@@ -127,7 +128,7 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Panics
     /// - Panics if this backend does not support the selected repr branch.
     /// - Panics if `D < 2` is rejected by runtime validation.
-    fn from_vector_components(_vector_components: [UsfOrNormalScalar; D]) -> Self {
+    fn new(_vector_components: [UsfOrNormalScalar; D]) -> Self {
         todo!()
     }
 
@@ -225,6 +226,32 @@ pub trait VectorCoreOps<const D: usize>: Clone + Sized {
     /// # Returns
     /// - A new value of the same concrete type.
     fn abs(&self) -> Self {
+        todo!()
+    }
+
+    /// Applies multiplication-class operation selected by explicit semantic tag.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `kind` (VectorMulKind): Semantic multiplication operation selector.
+    /// - `rhs` (VectorProductOperand<D>): Right-hand-side branch union:
+    ///   vector branch for vector-vector products, scalar branch for vector-scalar scaling.
+    /// - `Mode` (`Mode: OpMode`): Type-level kind/repr projection parameter.
+    ///
+    /// # Returns
+    /// - Branch-union result of type `VectorProductResult<D>`.
+    /// - Vector branch for `Scale`, `ComponentMul`, and `Cross`.
+    /// - Fractional-scalar branch for `Dot`.
+    ///
+    /// # Repr
+    /// - Both vector and scalar rhs branches accept mixed `{Usf, Normal}` repr values.
+    /// - Output projection policy is selected by `Mode: OpMode`.
+    ///
+    /// # Panics
+    /// - Panics if `kind` and `rhs` branch are incompatible.
+    /// - Panics if `kind == Cross` and `D != 3`.
+    /// - Panics when `Mode: OpMode` resolves to an unsupported kind/repr projection.
+    fn mul<Mode: OpMode>(&self, _kind: VectorMulKind, _rhs: VectorProductOperand<D>, _op_policy: OpPolicy) -> VectorProductResult<D> {
         todo!()
     }
 

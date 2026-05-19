@@ -111,6 +111,17 @@ impl FloatType for f64 {}
 pub trait ScalarCoreOps: Clone + Sized {
     // Naming contract: scalars are single-component values, so canonical arithmetic names
     // stay `add/sub/mul/div/rem` instead of `component_*`.
+    /// Builds scalar value from a primitive payload.
+    ///
+    /// # Parameters
+    /// - `value` (T): Input value for this operation.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    fn new<T: ScalarType>(_value: T) -> Self {
+        todo!()
+    }
+
     /// Returns the additive identity value.
     ///
     /// # Parameters
@@ -1122,8 +1133,8 @@ pub trait ScalarBridgeOps: ScalarCoreOps {
     ///
     /// # Returns
     /// - A new value of the same concrete type.
-    fn from_primitive<T: ScalarType>(_value: T) -> Self {
-        todo!()
+    fn from_primitive<T: ScalarType>(value: T) -> Self {
+        Self::new(value)
     }
 
     /// Converts this scalar carrier into primitive scalar `T`.
@@ -1162,7 +1173,6 @@ pub trait ScalarBridgeOps: ScalarCoreOps {
     fn to_scalar_wrapper(&self) -> super::normal::NormalScalar {
         todo!()
     }
-
 }
 
 /// Full scalar contract used by higher-level math traits and facade generators.

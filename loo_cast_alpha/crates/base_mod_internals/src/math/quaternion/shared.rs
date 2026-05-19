@@ -59,7 +59,7 @@ pub trait QuaternionCoreOps: Clone + Sized {
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     /// - Panics if the input quaternion cannot be normalized into a valid rotation state.
-    fn from_xyzw(_x: UsfOrNormalFractionalScalar, _y: UsfOrNormalFractionalScalar, _z: UsfOrNormalFractionalScalar, _w: UsfOrNormalFractionalScalar) -> Self {
+    fn new(_x: UsfOrNormalFractionalScalar, _y: UsfOrNormalFractionalScalar, _z: UsfOrNormalFractionalScalar, _w: UsfOrNormalFractionalScalar) -> Self {
         todo!()
     }
 

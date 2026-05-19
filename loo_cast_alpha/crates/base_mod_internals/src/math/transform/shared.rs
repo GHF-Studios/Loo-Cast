@@ -37,7 +37,7 @@ pub trait Translation3dCoreOps: Clone + Sized {
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     /// - Panics if runtime validation rejects translation dimensionality constraints.
-    fn from_vector(_value: UsfOrNormalTranslation3dVector) -> Self {
+    fn new(_value: UsfOrNormalTranslation3dVector) -> Self {
         todo!()
     }
 
@@ -170,7 +170,7 @@ pub trait Rotation3dCoreOps: Clone + Sized {
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     /// - Panics if `value` is not a valid normalized rotation quaternion.
-    fn from_quat(_value: UsfOrNormalRotation3dQuaternion) -> Self {
+    fn new(_value: UsfOrNormalRotation3dQuaternion) -> Self {
         todo!()
     }
 
@@ -269,7 +269,7 @@ pub trait Scale3dCoreOps: Clone + Sized {
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     /// - Panics if any component violates scale invariants for this backend.
-    fn make(_x: UsfOrNormalFractionalScalar, _y: UsfOrNormalFractionalScalar, _z: UsfOrNormalFractionalScalar) -> Self {
+    fn new(_x: UsfOrNormalFractionalScalar, _y: UsfOrNormalFractionalScalar, _z: UsfOrNormalFractionalScalar) -> Self {
         todo!()
     }
 }
@@ -406,7 +406,7 @@ pub trait Transform3dCoreOps: Clone + Sized {
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     /// - Panics if any component violates transform invariants (invalid rotation or scale state).
-    fn make(_translation: UsfOrNormalTranslation3dVector, _rotation: UsfOrNormalRotation3dQuaternion, _scale: UsfOrNormalScale3dVector) -> Self {
+    fn new(_translation: UsfOrNormalTranslation3dVector, _rotation: UsfOrNormalRotation3dQuaternion, _scale: UsfOrNormalScale3dVector) -> Self {
         todo!()
     }
 }

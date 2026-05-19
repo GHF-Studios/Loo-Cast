@@ -57,7 +57,7 @@ pub trait MatrixCoreOps<const R: usize, const C: usize>: Clone + Sized {
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     /// - Panics if runtime validation rejects degenerate matrix shape constraints.
-    fn from_rows(_rows: [UsfOrNormalVector<C>; R]) -> Self {
+    fn new(_rows: [UsfOrNormalVector<C>; R]) -> Self {
         todo!()
     }
 
