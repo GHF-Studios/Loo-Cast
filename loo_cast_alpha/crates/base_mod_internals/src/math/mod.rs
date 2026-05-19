@@ -57,32 +57,17 @@ mod tests {
     use super::scalar::usf::UsfScalar;
     use super::vector::aliases::{UsfOrNormalVector, VectorProductOperand};
     use super::vector::usf::UsfVector3d;
-    use base_mod_shared::utils::one_of::OneOf2;
     use crate::math::scalar::shared::ScalarCoreOps;
+    use base_mod_shared::utils::one_of::OneOf2;
 
     #[test]
-    fn vector_mul_operand_branch_smoke_test() {
-        let seventeen = <UsfScalar as ScalarCoreOps>::new(17.3_f64);
+    fn scalar_core_ops_test() {
+        let a = <UsfScalar as ScalarCoreOps>::new(17.3_f64);
+        let b = <UsfScalar as ScalarCoreOps>::new(3_i8);
+        let b = UsfOrNormalScalar::A(b);
+        let sum = a.add(b);
+        let expected_sum = <UsfScalar as ScalarCoreOps>::new(20.3_f64);
 
-        let one = UsfScalar {
-            digits: Field::new(vec![1]),
-            radix_position: Field::new(35),
-        };
-
-        let vec3 = UsfVector3d {
-            vector_components: Field::new([one.clone(), one.clone(), one.clone()]),
-        };
-
-        let rhs_vec3: VectorProductOperand<3> = OneOf2::A(UsfOrNormalVector::A(vec3.clone()));
-        let rhs_scalar3: VectorProductOperand<3> = OneOf2::B(UsfOrNormalScalar::A(one));
-
-        assert!(matches!(
-            (VectorMulKind::Dot, rhs_vec3),
-            (VectorMulKind::Dot, OneOf2::A(_))
-        ));
-        assert!(matches!(
-            (VectorMulKind::Scale, rhs_scalar3),
-            (VectorMulKind::Scale, OneOf2::B(_))
-        ));
+        assert_eq!(sum, expected_sum);
     }
 }
