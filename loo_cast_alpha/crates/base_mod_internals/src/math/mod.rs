@@ -60,6 +60,45 @@ mod tests {
     use crate::math::scalar::shared::ScalarCoreOps;
     use base_mod_shared::utils::one_of::OneOf2;
 
+    fn seeded_digit_sets(seed: u64, digit_count: usize, digit_set_count: usize) -> Vec<Vec<u8>> {
+        use rand::{Rng, SeedableRng};
+        use rand::rngs::StdRng;
+
+        let mut rng = StdRng::seed_from_u64(seed);
+        let digit_sets: Vec<Vec<u8>> = (0..digit_set_count)
+            .map(|_| {
+                let digit_set: Vec<u8> = (0..digit_count)
+                    .map(|_| {
+                        rng.random_range(0_u8..10_u8)
+                    }).collect();
+                digit_set
+            }).collect();
+        digit_sets
+    }
+
+    fn seeded_numbers(seed: u64, digit_count: usize, digit_set_count: usize) -> Vec<UsfScalar> {
+        let primitive_digit_sets = seeded_digit_sets(seed, digit_count, digit_set_count);
+        let numbers: Vec<UsfScalar> = primitive_digit_sets.iter().map(|primitive_digit_set| {
+            let number: String = primitive_digit_set
+                .iter()
+                .map(|d| char::from(b'0' + d))
+                .collect();
+            UsfScalar::from_decimal_str(number.as_str())
+        }).collect();
+        numbers
+    }
+
+    #[test]
+    fn rng_test() {
+        let mut numbers = seeded_numbers(1337, 4, 2);
+        let b = numbers.pop().unwrap();
+        let a = numbers.pop().unwrap();
+
+        println!("a: {:?}", a);
+        println!("b: {:?}", b);
+        // assert_eq!(a, b);
+    }
+
     #[test]
     fn scalar_core_ops_test() {
         let a = <UsfScalar as ScalarCoreOps>::new(17.3_f64);

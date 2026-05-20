@@ -122,6 +122,43 @@ pub trait ScalarCoreOps: Clone + Sized {
         todo!()
     }
 
+    /// Parses a plain decimal literal into this scalar type.
+    ///
+    /// # Parameters
+    /// - `s` (&str): Decimal text input without scientific exponent marker (for example `"-42"`, `"0.125"`).
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    ///
+    /// # Constraints
+    /// - Format: optional sign, digits, and at most one decimal point.
+    /// - Scientific exponent markers (`e`/`E`) are not allowed in this method.
+    ///
+    /// # Panics
+    /// - Panics if any constraint above is violated.
+    /// - *Should* panic if any representation-specific constraint is violated.
+    fn from_decimal_str(_s: &str) -> Self {
+        todo!()
+    }
+
+    /// Parses a scientific-notation literal into this scalar type.
+    ///
+    /// # Parameters
+    /// - `s` (&str): Scientific text input (for example `"1e3"`, `"-7.125e-6"`).
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    ///
+    /// # Constraints
+    /// - Format: optional sign + mantissa + exponent marker (`e`/`E`) + signed exponent digits.
+    ///
+    /// # Panics
+    /// - Panics if any constraint above is violated.
+    /// - *Should* panic if any representation-specific constraint is violated.
+    fn from_scientific_str(_s: &str) -> Self {
+        todo!()
+    }
+
     /// Returns the additive identity value.
     ///
     /// # Parameters

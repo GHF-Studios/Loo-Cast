@@ -575,6 +575,7 @@ version = "0.1.0"
 dependencies = [
  "base_mod_shared",
  "bevy",
+    "rand",
 ]
 
 [[package]]
