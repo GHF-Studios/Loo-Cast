@@ -1,11 +1,8 @@
-use crate::math::scalar::digits::{ScalarDecimalDigit, ScalarDecimalDigits};
 pub use super::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
 use super::shared::{
-    FloatType, IntegerType, SCALAR_FRAC_DIGITS_MAX_LEN, SCALAR_INT_DIGITS_LEN, ScalarCoreOps, ScalarType, SignedIntegerType,
-    UnsignedIntegerType,
+    FloatType, IntegerType, SCALAR_FRAC_DIGITS_MAX_LEN, SCALAR_INT_DIGITS_LEN, ScalarCoreOps, ScalarType, SignedIntegerType, UnsignedIntegerType,
 };
-
-
+use crate::math::scalar::digits::{ScalarDecimalDigit, ScalarDecimalDigits};
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct UsfScalar {
@@ -27,11 +24,7 @@ impl FloatType for UsfScalar {}
 
 impl UsfScalar {
     fn validate_decimal_input(int_digits: &[u8], frac_digits: &[u8]) {
-        assert_eq!(
-            int_digits.len(),
-            SCALAR_INT_DIGITS_LEN,
-            "int_digits must be len {SCALAR_INT_DIGITS_LEN}",
-        );
+        assert_eq!(int_digits.len(), SCALAR_INT_DIGITS_LEN, "int_digits must be len {SCALAR_INT_DIGITS_LEN}", );
         assert!(
             frac_digits.len() <= SCALAR_FRAC_DIGITS_MAX_LEN,
             "frac_digits must be <= {SCALAR_FRAC_DIGITS_MAX_LEN}",
@@ -96,10 +89,7 @@ impl super::shared::ScalarCoreOps for UsfScalar {
         let digits = Self::build_scalar_decimal_digits(negative, balanced_digits);
         let radix_position = Self::radix_position_from_digits(&digits);
 
-        Self {
-            digits,
-            radix_position,
-        }
+        Self { digits, radix_position }
     }
 
     fn to_decimal_u8_digits(&self) -> (bool, Vec<u8>, Vec<u8>) {

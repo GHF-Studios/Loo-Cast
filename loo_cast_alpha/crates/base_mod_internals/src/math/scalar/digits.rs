@@ -68,11 +68,7 @@ impl ScalarDecimalDigits {
     /// # Panics
     /// - Should panic when `frac_digits.len() > 35`.
     /// - Should normalize/deny negative zero according to invariant policy.
-    pub fn from_parts_checked(
-        negative: bool,
-        int_digits: [ScalarDecimalDigit; SCALAR_INT_DIGITS_LEN],
-        frac_digits: Vec<ScalarDecimalDigit>,
-    ) -> Self {
+    pub fn from_parts_checked(negative: bool, int_digits: [ScalarDecimalDigit; SCALAR_INT_DIGITS_LEN], frac_digits: Vec<ScalarDecimalDigit>) -> Self {
         let _ = negative;
         let _ = int_digits;
         let _ = frac_digits;
@@ -93,11 +89,7 @@ impl ScalarDecimalDigits {
     /// - Should panic when `int_digits.len() > 36`.
     /// - Should panic when `frac_digits.len() > 35`.
     /// - Should normalize/deny negative zero according to invariant policy.
-    pub fn from_variable_parts_checked(
-        negative: bool,
-        int_digits: Vec<ScalarDecimalDigit>,
-        frac_digits: Vec<ScalarDecimalDigit>,
-    ) -> Self {
+    pub fn from_variable_parts_checked(negative: bool, int_digits: Vec<ScalarDecimalDigit>, frac_digits: Vec<ScalarDecimalDigit>) -> Self {
         let _ = negative;
         let _ = int_digits;
         let _ = frac_digits;
@@ -304,11 +296,6 @@ pub(crate) fn decimal_from_coeff_and_point(_coeff: Vec<u8>, _point: i64, _whole:
 /// # Panics
 /// - Should panic if `int_digits` cannot fit within `int_max`.
 #[allow(dead_code)]
-pub(crate) fn finalize_decimal_digits(
-    _negative: bool,
-    _int_digits: Vec<u8>,
-    _frac_digits: Vec<u8>,
-    _int_max: usize,
-) -> (bool, Vec<u8>, Vec<u8>) {
+pub(crate) fn finalize_decimal_digits(_negative: bool, _int_digits: Vec<u8>, _frac_digits: Vec<u8>, _int_max: usize) -> (bool, Vec<u8>, Vec<u8>) {
     todo!()
 }

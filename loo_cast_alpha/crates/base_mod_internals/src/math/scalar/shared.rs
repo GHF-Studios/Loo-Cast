@@ -243,9 +243,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// - Panics if any constraint above is violated.
     /// - *Should* panic if any representation-specific constraint is violated.
     fn from_scientific_str(s: &str) -> Self {
-        use base_mod_shared::utils::string::{
-            parse_ascii_digits, split_leading_sign, split_once_e_marker, trim_leading_zeros_keep_one, trim_trailing_zeros,
-        };
+        use base_mod_shared::utils::string::{parse_ascii_digits, split_leading_sign, split_once_e_marker, trim_leading_zeros_keep_one, trim_trailing_zeros};
 
         assert!(!s.is_empty(), "invalid scientific literal: empty input");
 

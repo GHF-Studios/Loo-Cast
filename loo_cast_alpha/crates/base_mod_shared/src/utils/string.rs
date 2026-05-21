@@ -12,7 +12,13 @@
 /// - A leading `+` is accepted and treated as non-negative.
 /// - This helper does not validate digits or numeric format.
 pub fn split_leading_sign(s: &str) -> (bool, &str) {
-    if let Some(rest) = s.strip_prefix('-') { (true, rest) } else if let Some(rest) = s.strip_prefix('+') { (false, rest) } else { (false, s) }
+    if let Some(rest) = s.strip_prefix('-') {
+        (true, rest)
+    } else if let Some(rest) = s.strip_prefix('+') {
+        (false, rest)
+    } else {
+        (false, s)
+    }
 }
 
 /// Splits scientific-notation text into mantissa and exponent parts.
@@ -29,8 +35,7 @@ pub fn split_leading_sign(s: &str) -> (bool, &str) {
 /// - Should panic when no exponent marker exists.
 /// - Should panic when more than one exponent marker exists.
 pub fn split_once_e_marker(s: &str) -> (&str, &str) {
-    let idx = s.bytes().position(|b| b == b'e' || b == b'E')
-        .expect("missing exponent marker");
+    let idx = s.bytes().position(|b| b == b'e' || b == b'E').expect("missing exponent marker");
     let mantissa = &s[..idx];
     let exponent = &s[idx + 1..];
     assert!(!exponent.bytes().any(|b| b == b'e' || b == b'E'), "multiple exponent markers");
@@ -84,5 +89,7 @@ pub fn trim_leading_zeros_keep_one(digits: &mut Vec<u8>) {
 ///   semantics are required, this helper should likely operate on `&mut Vec<u8>` or return
 ///   a subslice/new length.
 pub fn trim_trailing_zeros(digits: &mut Vec<u8>) {
-    while digits.last() == Some(&0) { digits.pop(); }
+    while digits.last() == Some(&0) {
+        digits.pop();
+    }
 }
