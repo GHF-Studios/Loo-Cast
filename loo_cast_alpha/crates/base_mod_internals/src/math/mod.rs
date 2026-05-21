@@ -61,51 +61,110 @@ mod tests {
     use base_mod_shared::utils::one_of::OneOf2;
 
     fn seeded_digit_sets(seed: u64, digit_count: usize, digit_set_count: usize) -> Vec<Vec<u8>> {
-        use rand::{Rng, SeedableRng};
         use rand::rngs::StdRng;
+        use rand::{Rng, SeedableRng};
 
         let mut rng = StdRng::seed_from_u64(seed);
         let digit_sets: Vec<Vec<u8>> = (0..digit_set_count)
             .map(|_| {
-                let digit_set: Vec<u8> = (0..digit_count)
-                    .map(|_| {
-                        rng.random_range(0_u8..10_u8)
-                    }).collect();
+                let digit_set: Vec<u8> = (0..digit_count).map(|_| rng.random_range(0_u8..10_u8)).collect();
                 digit_set
-            }).collect();
+            })
+            .collect();
         digit_sets
     }
 
     fn seeded_numbers(seed: u64, digit_count: usize, digit_set_count: usize) -> Vec<UsfScalar> {
         let primitive_digit_sets = seeded_digit_sets(seed, digit_count, digit_set_count);
-        let numbers: Vec<UsfScalar> = primitive_digit_sets.iter().map(|primitive_digit_set| {
-            let number: String = primitive_digit_set
-                .iter()
-                .map(|d| char::from(b'0' + d))
-                .collect();
-            UsfScalar::from_decimal_str(number.as_str())
-        }).collect();
+        let numbers: Vec<UsfScalar> = primitive_digit_sets
+            .iter()
+            .map(|primitive_digit_set| {
+                let number: String = primitive_digit_set.iter().map(|d| char::from(b'0' + d)).collect();
+                UsfScalar::from_decimal_str(number.as_str())
+            })
+            .collect();
         numbers
     }
 
     #[test]
     fn rng_test() {
-        let mut numbers = seeded_numbers(1337, 4, 2);
+        let mut numbers = seeded_numbers(1337, 36, 17);
         let b = numbers.pop().unwrap();
         let a = numbers.pop().unwrap();
 
-        println!("a: {:?}", a);
-        println!("b: {:?}", b);
+        // println!("a: {:?}", a);
+        // println!("b: {:?}", b);
+        println!("a: {}", a);
+        println!("b: {}", b);
         // assert_eq!(a, b);
     }
 
     #[test]
+    fn usf_decimal_roundtrip_stability_test() {
+        let seeds = [
+            "0",
+            "-0.0000",
+            "42",
+            "-42",
+            "000000000000000000000000000457827552.09973578589733825723454287935874215",
+            "-000000000000000000000000000457827552.09973578589733825723454287935874215",
+            "0.1",
+            "-0.1",
+        ];
+
+        for seed in seeds {
+            let parsed = <UsfScalar as ScalarCoreOps>::from_decimal_str(seed);
+            let parsed_digits = <UsfScalar as ScalarCoreOps>::to_decimal_u8_digits(&parsed);
+
+            let mut scalar = <UsfScalar as ScalarCoreOps>::from_decimal_u8_digits(
+                parsed_digits.0,
+                parsed_digits.1.clone(),
+                parsed_digits.2.clone(),
+            );
+            let mut as_string = <UsfScalar as ScalarCoreOps>::to_decimal_str(&scalar);
+            let mut raw_digits = <UsfScalar as ScalarCoreOps>::to_decimal_u8_digits(&scalar);
+
+            for _ in 0..8 {
+                let from_raw = <UsfScalar as ScalarCoreOps>::from_decimal_u8_digits(
+                    raw_digits.0,
+                    raw_digits.1.clone(),
+                    raw_digits.2.clone(),
+                );
+                assert_eq!(from_raw, scalar, "raw roundtrip changed scalar for seed `{seed}`");
+                assert_eq!(
+                    <UsfScalar as ScalarCoreOps>::to_decimal_u8_digits(&from_raw),
+                    raw_digits,
+                    "raw roundtrip changed digit tuple for seed `{seed}`",
+                );
+
+                let from_string = <UsfScalar as ScalarCoreOps>::from_decimal_str(as_string.as_str());
+                let string_after = <UsfScalar as ScalarCoreOps>::to_decimal_str(&from_string);
+                assert_eq!(string_after, as_string, "string roundtrip changed text for seed `{seed}`");
+
+                let digits_after = <UsfScalar as ScalarCoreOps>::to_decimal_u8_digits(&from_string);
+                assert_eq!(digits_after, raw_digits, "string roundtrip changed raw digits for seed `{seed}`");
+
+                let scalar_after = <UsfScalar as ScalarCoreOps>::from_decimal_u8_digits(
+                    digits_after.0,
+                    digits_after.1.clone(),
+                    digits_after.2.clone(),
+                );
+                assert_eq!(scalar_after, scalar, "string/raw cycle changed scalar repr for seed `{seed}`");
+
+                scalar = scalar_after;
+                raw_digits = digits_after;
+                as_string = string_after;
+            }
+        }
+    }
+
+    // #[test]
     fn scalar_core_ops_test() {
-        let a = <UsfScalar as ScalarCoreOps>::new(17.3_f64);
-        let b = <UsfScalar as ScalarCoreOps>::new(3_i8);
+        let a = <UsfScalar as ScalarCoreOps>::from_decimal_str("17.3");
+        let b = <UsfScalar as ScalarCoreOps>::from_decimal_str("3");
         let b = UsfOrNormalScalar::A(b);
         let sum = a.add(b);
-        let expected_sum = <UsfScalar as ScalarCoreOps>::new(20.3_f64);
+        let expected_sum = <UsfScalar as ScalarCoreOps>::from_decimal_str("20.3");
 
         assert_eq!(sum, expected_sum);
     }

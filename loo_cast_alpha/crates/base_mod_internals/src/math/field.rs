@@ -114,6 +114,22 @@ impl<T: PartialEq> PartialEq for Field<T> {
 
 impl<T: Eq> Eq for Field<T> {}
 
+impl<T: PartialOrd> PartialOrd for Field<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        let lhs = self.read();
+        let rhs = other.read();
+        lhs.partial_cmp(&*rhs)
+    }
+}
+
+impl<T: Ord> Ord for Field<T> {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        let lhs = self.read();
+        let rhs = other.read();
+        lhs.cmp(&*rhs)
+    }
+}
+
 impl<T> Field<T> {
     #[inline]
     pub fn new(value: T) -> Self {

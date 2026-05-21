@@ -109,42 +109,119 @@ impl FloatType for f64 {}
 /// }
 /// ```
 pub trait ScalarCoreOps: Clone + Sized {
-    // Naming contract: scalars are single-component values, so canonical arithmetic names
-    // stay `add/sub/mul/div/rem` instead of `component_*`.
-    /// Builds scalar value from a primitive payload.
+    /// Builds a scalar from pre-parsed base-10 decimal digits.
     ///
     /// # Parameters
-    /// - `value` (T): Input value for this operation.
+    /// - `negative`: Flag indicating negativity
+    /// - `int_digits` - Integer digits, big-endian (MSD at index 0) and left-padded with zeros to exactly 36 elements.
+    /// - `frac_digits` - Fractional digits, big-endian (tenths at index 0). Max 35 digits; trailing padding zeros are optional.
+    fn from_decimal_u8_digits(_negative: bool, _int_digits: Vec<u8>, _frac_digits: Vec<u8>) -> Self;
+
+    /// Exports this scalar as pre-parsed base-10 decimal digits.
     ///
     /// # Returns
-    /// - A new value of the same concrete type.
-    fn new<T: ScalarType>(_value: T) -> Self {
-        todo!()
-    }
+    /// - Tuple `(negative, int_digits, frac_digits)` where:
+    /// - `negative` is `true` only for non-zero negative values.
+    /// - `int_digits` are integer digits in big-endian order (MSD at index 0).
+    /// - `frac_digits` are fractional digits in big-endian order (tenths at index 0).
+    fn to_decimal_u8_digits(&self) -> (bool, Vec<u8>, Vec<u8>);
 
     /// Parses a plain decimal literal into this scalar type.
     ///
     /// # Parameters
-    /// - `s` (&str): Decimal text input without scientific exponent marker (for example `"-42"`, `"0.125"`).
+    /// - `s`: Decimal text input without scientific exponent marker (for example `"-42"`, `"+1."`, `"0.125"`).
     ///
     /// # Returns
     /// - A new value of the same concrete type.
     ///
     /// # Constraints
-    /// - Format: optional sign, digits, and at most one decimal point.
-    /// - Scientific exponent markers (`e`/`E`) are not allowed in this method.
+    /// - Intended format: optional leading sign (`+` or `-`) + integer digits (`len=36`) + optional decimal point + optional fractional digits (`max_len=35`).
+    /// - Integer digits shorter than 36 are left-padded with zeros before dispatch to `from_decimal_u8_digits`.
+    /// # Examples
+    /// - "-13.7"
+    /// - "+1."
+    /// - "42"
+    /// - "000000000000000000000000000457827552.09973578589733825723454287935874215"
     ///
     /// # Panics
     /// - Panics if any constraint above is violated.
     /// - *Should* panic if any representation-specific constraint is violated.
-    fn from_decimal_str(_s: &str) -> Self {
-        todo!()
+    fn from_decimal_str(s: &str) -> Self {
+        assert!(!s.is_empty(), "invalid decimal literal: empty input");
+        let (negative, body) = if let Some(rest) = s.strip_prefix('-') { (true, rest) } else { (false, s) };
+        assert!(!body.is_empty(), "invalid decimal literal `{s}`: missing digits after sign");
+        assert!(
+            body.bytes().all(|b| b.is_ascii_digit() || b == b'.'),
+            "invalid decimal literal `{s}`: only digits and `.` are allowed",
+        );
+
+        let (int_part, frac_part) = match body.split_once('.') {
+            Some((int_part, frac_part)) => {
+                assert!(!frac_part.contains('.'), "invalid decimal literal `{s}`: multiple decimal points", );
+                assert!(
+                    !int_part.is_empty(),
+                    "invalid decimal literal `{s}`: missing integer digits before decimal point",
+                );
+                assert!(
+                    !frac_part.is_empty(),
+                    "invalid decimal literal `{s}`: missing fractional digits after decimal point",
+                );
+                (int_part, frac_part)
+            }
+            None => (body, ""),
+        };
+
+        let int_len = int_part.len();
+        assert!(
+            int_len <= 36,
+            "invalid decimal literal `{s}`: integer part exceeds 36 digits (got {int_len})",
+        );
+        assert!(frac_part.len() <= 35, "invalid decimal literal `{s}`: fractional part exceeds 35 digits");
+
+        let mut int_digits: Vec<u8> = vec![0; 36 - int_len];
+        int_digits.extend(int_part.bytes().map(|b| b - b'0'));
+
+        let frac_digits: Vec<u8> = frac_part.bytes().map(|b| b - b'0').collect();
+
+        let is_zero = int_digits.iter().all(|d| *d == 0) && frac_digits.iter().all(|d| *d == 0);
+        let effective_negative = negative && !is_zero;
+
+        Self::from_decimal_u8_digits(effective_negative, int_digits, frac_digits)
+    }
+
+    /// Formats this scalar as a plain base-10 decimal literal (non-scientific).
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    ///
+    /// # Returns
+    /// - A decimal string with optional leading `-`, integer digits, and optional fractional digits.
+    /// - Never contains exponent markers (`e`/`E`).
+    ///
+    /// # Panics
+    /// - May panic if backend digit/radix invariants are violated.
+    fn to_decimal_str(&self) -> String {
+        let (neg, mut int, mut frac) = self.to_decimal_u8_digits();
+
+        let first = int.iter().position(|&d| d != 0).unwrap_or(int.len().saturating_sub(1));
+        int.drain(0..first); // keeps exactly one digit for zero case
+
+        while frac.last() == Some(&0) { frac.pop(); }
+
+        let mut s = String::new();
+        if neg && !(int.len() == 1 && int[0] == 0 && frac.is_empty()) { s.push('-'); }
+        s.extend(int.into_iter().map(|d| char::from(b'0' + d)));
+        if !frac.is_empty() {
+            s.push('.');
+            s.extend(frac.into_iter().map(|d| char::from(b'0' + d)));
+        }
+        s
     }
 
     /// Parses a scientific-notation literal into this scalar type.
     ///
     /// # Parameters
-    /// - `s` (&str): Scientific text input (for example `"1e3"`, `"-7.125e-6"`).
+    /// - `s`: Scientific text input (for example `"1e3"`, `"-7.125e-6"`).
     ///
     /// # Returns
     /// - A new value of the same concrete type.
@@ -156,7 +233,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// - Panics if any constraint above is violated.
     /// - *Should* panic if any representation-specific constraint is violated.
     fn from_scientific_str(_s: &str) -> Self {
-        todo!()
+        todo!() // Not for long!
     }
 
     /// Returns the additive identity value.
@@ -1170,8 +1247,8 @@ pub trait ScalarBridgeOps: ScalarCoreOps {
     ///
     /// # Returns
     /// - A new value of the same concrete type.
-    fn from_primitive<T: ScalarType>(value: T) -> Self {
-        Self::new(value)
+    fn from_primitive<T: ScalarType>(_value: T) -> Self {
+        todo!()
     }
 
     /// Converts this scalar carrier into primitive scalar `T`.
