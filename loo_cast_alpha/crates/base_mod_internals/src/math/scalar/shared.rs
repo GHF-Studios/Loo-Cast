@@ -19,6 +19,9 @@
 
 use super::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
 
+pub(crate) const SCALAR_INT_DIGITS_LEN: usize = 36;
+pub(crate) const SCALAR_FRAC_DIGITS_MAX_LEN: usize = 35;
+
 /// Base trait for scalar carrier types used by the math sketch.
 pub trait ScalarType: Clone + 'static {}
 /// Marker trait for integer scalar types.
@@ -113,8 +116,8 @@ pub trait ScalarCoreOps: Clone + Sized {
     ///
     /// # Parameters
     /// - `negative`: Flag indicating negativity
-    /// - `int_digits` - Integer digits, big-endian (MSD at index 0) and left-padded with zeros to exactly 36 elements.
-    /// - `frac_digits` - Fractional digits, big-endian (tenths at index 0). Max 35 digits; trailing padding zeros are optional.
+    /// - `int_digits` - Integer digits, big-endian (MSD at index 0) and left-padded with zeros to exactly `SCALAR_INT_DIGITS_LEN` elements.
+    /// - `frac_digits` - Fractional digits, big-endian (tenths at index 0). Max `SCALAR_FRAC_DIGITS_MAX_LEN` digits; trailing padding zeros are optional.
     fn from_decimal_u8_digits(_negative: bool, _int_digits: Vec<u8>, _frac_digits: Vec<u8>) -> Self;
 
     /// Exports this scalar as pre-parsed base-10 decimal digits.
@@ -135,8 +138,8 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// - A new value of the same concrete type.
     ///
     /// # Constraints
-    /// - Intended format: optional leading sign (`+` or `-`) + integer digits (`len=36`) + optional decimal point + optional fractional digits (`max_len=35`).
-    /// - Integer digits shorter than 36 are left-padded with zeros before dispatch to `from_decimal_u8_digits`.
+    /// - Intended format: optional leading sign (`+` or `-`) + integer digits (`len=SCALAR_INT_DIGITS_LEN`) + optional decimal point + optional fractional digits (`max_len=SCALAR_FRAC_DIGITS_MAX_LEN`).
+    /// - Integer digits shorter than `SCALAR_INT_DIGITS_LEN` are left-padded with zeros before dispatch to `from_decimal_u8_digits`.
     /// # Examples
     /// - "-13.7"
     /// - "+1."
@@ -172,10 +175,16 @@ pub trait ScalarCoreOps: Clone + Sized {
         };
 
         let int_len = int_part.len();
-        assert!(int_len <= 36, "invalid decimal literal `{s}`: integer part exceeds 36 digits (got {int_len})", );
-        assert!(frac_part.len() <= 35, "invalid decimal literal `{s}`: fractional part exceeds 35 digits");
+        assert!(
+            int_len <= SCALAR_INT_DIGITS_LEN,
+            "invalid decimal literal `{s}`: integer part exceeds {SCALAR_INT_DIGITS_LEN} digits (got {int_len})",
+        );
+        assert!(
+            frac_part.len() <= SCALAR_FRAC_DIGITS_MAX_LEN,
+            "invalid decimal literal `{s}`: fractional part exceeds {SCALAR_FRAC_DIGITS_MAX_LEN} digits",
+        );
 
-        let mut int_digits: Vec<u8> = vec![0; 36 - int_len];
+        let mut int_digits: Vec<u8> = vec![0; SCALAR_INT_DIGITS_LEN - int_len];
         int_digits.extend(int_part.bytes().map(|b| b - b'0'));
 
         let frac_digits: Vec<u8> = frac_part.bytes().map(|b| b - b'0').collect();
@@ -233,8 +242,159 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Panics
     /// - Panics if any constraint above is violated.
     /// - *Should* panic if any representation-specific constraint is violated.
-    fn from_scientific_str(_s: &str) -> Self {
-        todo!() // Not for long!
+    fn from_scientific_str(s: &str) -> Self {
+        use base_mod_shared::utils::string::{
+            parse_ascii_digits, split_leading_sign, split_once_e_marker, trim_leading_zeros_keep_one, trim_trailing_zeros,
+        };
+
+        assert!(!s.is_empty(), "invalid scientific literal: empty input");
+
+        // sign
+        let (negative, body) = split_leading_sign(s);
+        assert!(!body.is_empty(), "invalid scientific literal `{s}`: missing body");
+
+        // split mantissa / exponent
+        assert!(
+            body.bytes().any(|b| b == b'e' || b == b'E'),
+            "invalid scientific literal `{s}`: missing `e`/`E`",
+        );
+        let (mantissa, exp_part) = split_once_e_marker(body);
+
+        assert!(!mantissa.is_empty(), "invalid scientific literal `{s}`: missing mantissa");
+        assert!(!exp_part.is_empty(), "invalid scientific literal `{s}`: missing exponent");
+        assert!(
+            !exp_part.bytes().any(|b| b == b'e' || b == b'E'),
+            "invalid scientific literal `{s}`: multiple exponent markers",
+        );
+
+        // parse exponent (checked)
+        let (exp_neg, exp_digits) = split_leading_sign(exp_part);
+        assert!(!exp_digits.is_empty(), "invalid scientific literal `{s}`: empty exponent digits");
+        assert!(
+            exp_digits.bytes().all(|b| b.is_ascii_digit()),
+            "invalid scientific literal `{s}`: exponent must be signed digits",
+        );
+
+        let mut exp_abs: i64 = 0;
+        for d in parse_ascii_digits(exp_digits) {
+            exp_abs = exp_abs
+                .checked_mul(10)
+                .and_then(|v| v.checked_add(d as i64))
+                .unwrap_or_else(|| panic!("invalid scientific literal `{s}`: exponent too large"));
+        }
+
+        let exponent = if exp_neg {
+            exp_abs
+                .checked_neg()
+                .unwrap_or_else(|| panic!("invalid scientific literal `{s}`: exponent too large"))
+        } else {
+            exp_abs
+        };
+
+        // parse mantissa
+        assert!(
+            mantissa.bytes().all(|b| b.is_ascii_digit() || b == b'.'),
+            "invalid scientific literal `{s}`: mantissa may only contain digits and `.`",
+        );
+
+        let (int_part, frac_part) = match mantissa.split_once('.') {
+            Some((i, f)) => {
+                assert!(!f.contains('.'), "invalid scientific literal `{s}`: multiple `.` in mantissa");
+                (i, f)
+            }
+            None => (mantissa, ""),
+        };
+
+        assert!(
+            !(int_part.is_empty() && frac_part.is_empty()),
+            "invalid scientific literal `{s}`: mantissa has no digits",
+        );
+
+        let mut coeff = parse_ascii_digits(int_part);
+        coeff.extend(parse_ascii_digits(frac_part));
+
+        // zero fast-path
+        if coeff.iter().all(|d| *d == 0) {
+            return Self::from_decimal_u8_digits(false, vec![0; SCALAR_INT_DIGITS_LEN], Vec::new());
+        }
+
+        // trim leading zeros
+        trim_leading_zeros_keep_one(&mut coeff);
+
+        // shift/pad math: point = coeff.len() + (exp - mantissa_frac_len)
+        let shift = exponent
+            .checked_sub(frac_part.len() as i64)
+            .unwrap_or_else(|| panic!("invalid scientific literal `{s}`: exponent adjustment overflow"));
+
+        let point = (coeff.len() as i64)
+            .checked_add(shift)
+            .unwrap_or_else(|| panic!("invalid scientific literal `{s}`: decimal-point placement overflow"));
+
+        // pre-check target lengths BEFORE allocating big padding
+        let coeff_len = coeff.len() as i64;
+        let (int_len_i64, frac_len_i64) = if point <= 0 {
+            (1_i64, (-point) + coeff_len)
+        } else if point >= coeff_len {
+            (point, 0_i64)
+        } else {
+            (point, coeff_len - point)
+        };
+
+        let int_len = usize::try_from(int_len_i64).unwrap();
+        let frac_len = usize::try_from(frac_len_i64).unwrap();
+
+        assert!(
+            int_len <= SCALAR_INT_DIGITS_LEN,
+            "invalid scientific literal `{s}`: integer part exceeds {SCALAR_INT_DIGITS_LEN} digits (got {int_len})",
+        );
+        assert!(
+            frac_len <= SCALAR_FRAC_DIGITS_MAX_LEN,
+            "invalid scientific literal `{s}`: fractional part exceeds {SCALAR_FRAC_DIGITS_MAX_LEN} digits (got {frac_len})",
+        );
+
+        // build shifted decimal digits
+        let (mut int_digits, mut frac_digits): (Vec<u8>, Vec<u8>) = if point <= 0 {
+            let mut frac = vec![0; usize::try_from(-point).unwrap()];
+            frac.extend(coeff);
+            (vec![0], frac)
+        } else {
+            let p = usize::try_from(point).unwrap();
+            if p >= coeff.len() {
+                let mut int = coeff;
+                int.extend(std::iter::repeat(0).take(p - int.len()));
+                (int, Vec::new())
+            } else {
+                (coeff[..p].to_vec(), coeff[p..].to_vec())
+            }
+        };
+
+        // canonicalize
+        trim_leading_zeros_keep_one(&mut int_digits);
+        trim_trailing_zeros(&mut frac_digits);
+
+        // pad integer digits to fixed width and normalize negative zero
+        let mut padded_int = vec![0; SCALAR_INT_DIGITS_LEN - int_digits.len()];
+        padded_int.extend(int_digits);
+
+        let is_zero = padded_int.iter().all(|d| *d == 0) && frac_digits.iter().all(|d| *d == 0);
+        let effective_negative = negative && !is_zero;
+
+        Self::from_decimal_u8_digits(effective_negative, padded_int, frac_digits)
+    }
+
+    /// Formats this scalar as a base-10 scientific-notation literal.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    ///
+    /// # Returns
+    /// - A scientific-notation string with optional leading `-`, a mantissa, and an exponent.
+    /// - Uses an exponent marker (`e`/`E`).
+    ///
+    /// # Panics
+    /// - May panic if backend digit/radix invariants are violated.
+    fn to_scientific_str(&self) -> String {
+        todo!()
     }
 
     /// Returns the additive identity value.

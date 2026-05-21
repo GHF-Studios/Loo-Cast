@@ -1,11 +1,10 @@
-use super::super::field::Field;
 use super::super::vector::usf::UsfVector;
 pub use super::aliases::UsfOrNormalMatrix;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UsfMatrix<const R: usize, const C: usize> {
     // CONTRACT: R >= 2 and C >= 2. 1xN / Nx1 are vector-equivalent and forbidden.
-    pub rows: Field<[UsfVector<C>; R]>,
+    pub rows: [UsfVector<C>; R],
 }
 
 pub type UsfMatrix2x2 = UsfMatrix<2, 2>;

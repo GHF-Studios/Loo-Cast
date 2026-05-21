@@ -1,16 +1,16 @@
-use super::super::field::Field;
+use crate::math::scalar::digits::{ScalarDecimalDigit, ScalarDecimalDigits};
 pub use super::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
-use super::shared::{FloatType, IntegerType, ScalarCoreOps, ScalarType, SignedIntegerType, UnsignedIntegerType};
+use super::shared::{
+    FloatType, IntegerType, SCALAR_FRAC_DIGITS_MAX_LEN, SCALAR_INT_DIGITS_LEN, ScalarCoreOps, ScalarType, SignedIntegerType,
+    UnsignedIntegerType,
+};
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct UsfDigit {
-    digit: i8,
-}
+
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct UsfScalar {
-    pub digits: Field<Vec<UsfDigit>>,
-    pub radix_position: Field<i64>,
+    pub digits: ScalarDecimalDigits,
+    pub radix_position: i64,
 }
 
 impl std::fmt::Display for UsfScalar {
@@ -25,87 +25,87 @@ impl SignedIntegerType for UsfScalar {}
 impl UnsignedIntegerType for UsfScalar {}
 impl FloatType for UsfScalar {}
 
-impl super::shared::ScalarCoreOps for UsfScalar {
-    fn from_decimal_u8_digits(negative: bool, int_digits: Vec<u8>, frac_digits: Vec<u8>) -> Self {
-        assert_eq!(int_digits.len(), 36, "int_digits must be len 36");
-        assert!(frac_digits.len() <= 35, "frac_digits must be <= 35");
+impl UsfScalar {
+    fn validate_decimal_input(int_digits: &[u8], frac_digits: &[u8]) {
+        assert_eq!(
+            int_digits.len(),
+            SCALAR_INT_DIGITS_LEN,
+            "int_digits must be len {SCALAR_INT_DIGITS_LEN}",
+        );
+        assert!(
+            frac_digits.len() <= SCALAR_FRAC_DIGITS_MAX_LEN,
+            "frac_digits must be <= {SCALAR_FRAC_DIGITS_MAX_LEN}",
+        );
         assert!(
             int_digits.iter().chain(frac_digits.iter()).all(|d| *d <= 9),
-            "all decimal digits must be in 0..=9"
+            "all digits must be in range 0..=9"
         );
+    }
 
-        let mut out_rev: Vec<UsfDigit> = Vec::with_capacity(int_digits.len() + frac_digits.len() + 1);
+    fn balanced_digit_and_carry(value: i16) -> (ScalarDecimalDigit, i16) {
+        let balanced = ((value + 5).rem_euclid(10)) - 5; // range: -5..5 (-5..=4)
+        let carry = (value - balanced).div_euclid(10);
+        (ScalarDecimalDigit::new_checked(balanced as i8), carry)
+    }
+
+    fn encode_balanced_digits(negative: bool, int_digits: Vec<u8>, frac_digits: Vec<u8>) -> Vec<ScalarDecimalDigit> {
+        let mut out_rev: Vec<ScalarDecimalDigit> = Vec::with_capacity(int_digits.len() + frac_digits.len() + 1);
         let mut carry: i16 = 0;
 
         for d in int_digits.into_iter().chain(frac_digits).rev() {
-            let v = (if negative { -(d as i16) } else { d as i16 }) + carry;
-            let bal = ((v + 5).rem_euclid(10)) - 5; // range: -5..5
-            carry = (v - bal).div_euclid(10);
-            out_rev.push(UsfDigit { digit: bal as i8 });
+            let signed = if negative { -(d as i16) } else { d as i16 };
+            let (balanced_digit, next_carry) = Self::balanced_digit_and_carry(signed + carry);
+            carry = next_carry;
+            out_rev.push(balanced_digit);
         }
 
         while carry != 0 {
-            let bal = ((carry + 5).rem_euclid(10)) - 5; // range: -5..5
-            carry = (carry - bal).div_euclid(10);
-            out_rev.push(UsfDigit { digit: bal as i8 });
+            let (balanced_digit, next_carry) = Self::balanced_digit_and_carry(carry);
+            carry = next_carry;
+            out_rev.push(balanced_digit);
         }
 
         out_rev.reverse();
-        while out_rev.len() > 1 && out_rev.last().is_some_and(|d| d.digit == 0) {
-            out_rev.pop();
+        Self::trim_balanced_tail_zeros(&mut out_rev);
+        out_rev
+    }
+
+    fn trim_balanced_tail_zeros(digits: &mut Vec<ScalarDecimalDigit>) {
+        while digits.len() > 1 && digits.last().is_some_and(|d| d.get() == 0) {
+            digits.pop();
         }
-        let radix_position = out_rev.len().checked_sub(1).expect("at least one digit") as i64;
+    }
+
+    fn build_scalar_decimal_digits(negative: bool, balanced_digits: Vec<ScalarDecimalDigit>) -> ScalarDecimalDigits {
+        let split = balanced_digits.len().min(SCALAR_INT_DIGITS_LEN);
+        let (int_digits, frac_digits) = balanced_digits.split_at(split);
+        ScalarDecimalDigits::from_variable_parts_checked(negative, int_digits.to_vec(), frac_digits.to_vec())
+    }
+
+    fn radix_position_from_digits(digits: &ScalarDecimalDigits) -> i64 {
+        let radix_position = digits.len().checked_sub(1).expect("at least one digit") as i64;
         assert!((0..=70).contains(&radix_position), "radix_position out of range");
+        radix_position
+    }
+}
+
+impl super::shared::ScalarCoreOps for UsfScalar {
+    fn from_decimal_u8_digits(negative: bool, int_digits: Vec<u8>, frac_digits: Vec<u8>) -> Self {
+        Self::validate_decimal_input(&int_digits, &frac_digits);
+        let balanced_digits = Self::encode_balanced_digits(negative, int_digits, frac_digits);
+        let digits = Self::build_scalar_decimal_digits(negative, balanced_digits);
+        let radix_position = Self::radix_position_from_digits(&digits);
 
         Self {
-            digits: Field::new(out_rev),
-            radix_position: Field::new(radix_position),
+            digits,
+            radix_position,
         }
     }
 
     fn to_decimal_u8_digits(&self) -> (bool, Vec<u8>, Vec<u8>) {
-        const INT_DIGITS: usize = 36;
-        const FRAC_DIGITS: usize = 35;
-        const TOTAL_DIGITS: usize = INT_DIGITS + FRAC_DIGITS;
-
-        let digits = self.digits.get();
-        let radix_position = self.radix_position.get();
-
+        let radix_position = self.radix_position;
         assert!((0..=70).contains(&radix_position), "radix_position out of range");
-        assert_eq!(digits.len(), (radix_position as usize) + 1, "digits/radix_position mismatch");
-
-        let mut balanced: Vec<i16> = vec![0; TOTAL_DIGITS];
-        for (idx, d) in digits.iter().enumerate() {
-            assert!((-5..=5).contains(&d.digit), "usf digit out of balanced range");
-            balanced[idx] = d.digit as i16;
-        }
-
-        let first_nonzero = balanced.iter().position(|d| *d != 0);
-        if first_nonzero.is_none() {
-            return (false, vec![0; INT_DIGITS], vec![0; FRAC_DIGITS]);
-        }
-        let negative = balanced[first_nonzero.unwrap()] < 0;
-
-        if negative {
-            for d in &mut balanced {
-                *d = -*d;
-            }
-        }
-
-        let mut carry: i16 = 0;
-        let mut decimal_rev: Vec<u8> = Vec::with_capacity(TOTAL_DIGITS);
-        for d in balanced.into_iter().rev() {
-            let v = d + carry;
-            let digit = v.rem_euclid(10) as u8;
-            carry = v.div_euclid(10);
-            decimal_rev.push(digit);
-        }
-        assert_eq!(carry, 0, "failed to convert balanced digits into canonical decimal digits");
-
-        decimal_rev.reverse();
-        let int_digits = decimal_rev[..INT_DIGITS].to_vec();
-        let frac_digits = decimal_rev[INT_DIGITS..].to_vec();
-        (negative, int_digits, frac_digits)
+        self.digits.clone().into_tuple()
     }
 }
 impl super::shared::ScalarFieldOps for UsfScalar {}

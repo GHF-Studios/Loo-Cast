@@ -117,7 +117,7 @@ mod tests {
             .collect()
     }
 
-    #[test]
+    // #[test]
     fn rng_test() {
         let mut numbers = seeded_numbers(1337, 71, 17);
         // let b = numbers.pop().unwrap();
@@ -129,6 +129,12 @@ mod tests {
         for number in numbers {
             println!("{}", number);
         }
+    }
+
+    #[test]
+    fn other_test() {
+        let number = UsfScalar::from_scientific_str("1.616e-35");
+        println!("{}", number);
     }
 
     #[test]
@@ -178,7 +184,7 @@ mod tests {
         }
     }
 
-    // #[test]
+    #[test]
     fn scalar_core_ops_test() {
         let a = <UsfScalar as ScalarCoreOps>::from_decimal_str("17.3");
         let b = <UsfScalar as ScalarCoreOps>::from_decimal_str("3");

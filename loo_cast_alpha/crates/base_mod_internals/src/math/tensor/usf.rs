@@ -1,11 +1,10 @@
-use super::super::field::Field;
 use super::super::matrix::usf::UsfMatrix;
 pub use super::aliases::{TensorOrScalar, UsfOrNormalTensor};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UsfTensor<const A: usize, const B: usize, const C: usize> {
     // CONTRACT: A,B,C >= 2. Any axis == 1 is reducible and forbidden.
-    pub slices: Field<[UsfMatrix<B, C>; A]>,
+    pub slices: [UsfMatrix<B, C>; A],
 }
 impl<const A: usize, const B: usize, const C: usize> super::shared::TensorCoreOps<A, B, C> for UsfTensor<A, B, C> {}
 impl<const A: usize, const B: usize, const C: usize> super::shared::TensorFieldOps<A, B, C> for UsfTensor<A, B, C> {}

@@ -1,11 +1,10 @@
-use super::super::field::Field;
 use super::super::tensor::usf::UsfTensor;
 pub use super::aliases::{Tensor4OrScalar, UsfOrNormalTensor4};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UsfTensor4<const A: usize, const B: usize, const C: usize, const D: usize> {
     // CONTRACT: A,B,C,D >= 2. Any axis == 1 is reducible and forbidden.
-    pub chunks: Field<[UsfTensor<B, C, D>; A]>,
+    pub chunks: [UsfTensor<B, C, D>; A],
 }
 
 pub type UsfTensor2x2x2x2 = UsfTensor4<2, 2, 2, 2>;

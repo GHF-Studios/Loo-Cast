@@ -1,11 +1,10 @@
-use super::super::field::Field;
 use super::super::scalar::usf::UsfScalar;
 pub use super::aliases::UsfOrNormalVector;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UsfVector<const D: usize> {
     // CONTRACT: D >= 2. D == 1 is scalar-equivalent and forbidden by model contract.
-    pub vector_components: Field<[UsfScalar; D]>,
+    pub vector_components: [UsfScalar; D],
 }
 
 pub type UsfVector2d = UsfVector<2>;

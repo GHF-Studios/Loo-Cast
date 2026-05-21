@@ -1,23 +1,22 @@
-use super::super::field::Field;
 use super::super::quaternion::usf::UsfQuaternion;
 use super::super::vector::usf::UsfVector;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[repr(transparent)]
-pub struct UsfTranslation3d(pub Field<UsfVector<3>>);
+pub struct UsfTranslation3d(pub UsfVector<3>);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct UsfRotation3d(pub Field<UsfQuaternion>);
+pub struct UsfRotation3d(pub UsfQuaternion);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[repr(transparent)]
-pub struct UsfScale3d(pub Field<UsfVector<3>>);
+pub struct UsfScale3d(pub UsfVector<3>);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UsfTransform3d {
-    pub translation: Field<UsfTranslation3d>,
-    pub rotation: Field<UsfRotation3d>,
-    pub scale: Field<UsfScale3d>,
+    pub translation: UsfTranslation3d,
+    pub rotation: UsfRotation3d,
+    pub scale: UsfScale3d,
 }
 
 impl super::shared::Translation3dCoreOps for UsfTranslation3d {}
