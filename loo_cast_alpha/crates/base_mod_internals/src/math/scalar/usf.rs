@@ -57,7 +57,10 @@ impl super::shared::ScalarCoreOps for UsfScalar {
         let radix_position = out_rev.len().checked_sub(1).expect("at least one digit") as i64;
         assert!((0..=70).contains(&radix_position), "radix_position out of range");
 
-        Self { digits: Field::new(out_rev), radix_position: Field::new(radix_position) }
+        Self {
+            digits: Field::new(out_rev),
+            radix_position: Field::new(radix_position),
+        }
     }
 
     fn to_decimal_u8_digits(&self) -> (bool, Vec<u8>, Vec<u8>) {

@@ -172,10 +172,7 @@ pub trait ScalarCoreOps: Clone + Sized {
         };
 
         let int_len = int_part.len();
-        assert!(
-            int_len <= 36,
-            "invalid decimal literal `{s}`: integer part exceeds 36 digits (got {int_len})",
-        );
+        assert!(int_len <= 36, "invalid decimal literal `{s}`: integer part exceeds 36 digits (got {int_len})", );
         assert!(frac_part.len() <= 35, "invalid decimal literal `{s}`: fractional part exceeds 35 digits");
 
         let mut int_digits: Vec<u8> = vec![0; 36 - int_len];
@@ -206,10 +203,14 @@ pub trait ScalarCoreOps: Clone + Sized {
         let first = int.iter().position(|&d| d != 0).unwrap_or(int.len().saturating_sub(1));
         int.drain(0..first); // keeps exactly one digit for zero case
 
-        while frac.last() == Some(&0) { frac.pop(); }
+        while frac.last() == Some(&0) {
+            frac.pop();
+        }
 
         let mut s = String::new();
-        if neg && !(int.len() == 1 && int[0] == 0 && frac.is_empty()) { s.push('-'); }
+        if neg && !(int.len() == 1 && int[0] == 0 && frac.is_empty()) {
+            s.push('-');
+        }
         s.extend(int.into_iter().map(|d| char::from(b'0' + d)));
         if !frac.is_empty() {
             s.push('.');

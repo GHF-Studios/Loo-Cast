@@ -75,28 +75,60 @@ mod tests {
     }
 
     fn seeded_numbers(seed: u64, digit_count: usize, digit_set_count: usize) -> Vec<UsfScalar> {
+        use rand::rngs::StdRng;
+        use rand::{Rng, SeedableRng};
+
+        fn would_overflow(negative: bool, int_digits: &[u8], frac_digits: &[u8]) -> bool {
+            let mut carry: i16 = 0;
+            for d in int_digits.iter().copied().chain(frac_digits.iter().copied()).rev() {
+                let v = (if negative { -(d as i16) } else { d as i16 }) + carry;
+                let bal = ((v + 5).rem_euclid(10)) - 5;
+                carry = (v - bal).div_euclid(10);
+            }
+            carry != 0
+        }
+
         let primitive_digit_sets = seeded_digit_sets(seed, digit_count, digit_set_count);
-        let numbers: Vec<UsfScalar> = primitive_digit_sets
-            .iter()
-            .map(|primitive_digit_set| {
-                let number: String = primitive_digit_set.iter().map(|d| char::from(b'0' + d)).collect();
-                UsfScalar::from_decimal_str(number.as_str())
+        let mut sign_rng = StdRng::seed_from_u64(seed.wrapping_add(0x9E37_79B9_7F4A_7C15));
+
+        primitive_digit_sets
+            .into_iter()
+            .map(|digits| {
+                assert!(digits.len() <= 71, "digit set must be <= 71");
+
+                let split = digits.len().min(36);
+                let (int_src, frac_src) = digits.split_at(split);
+
+                let mut int_digits = vec![0_u8; 36 - int_src.len()];
+                int_digits.extend_from_slice(int_src);
+
+                let frac_digits = frac_src.to_vec(); // 0..=35
+                let mut negative: bool = sign_rng.random(); // ~50% true
+                if would_overflow(negative, &int_digits, &frac_digits) {
+                    negative = !negative;
+                }
+                if would_overflow(negative, &int_digits, &frac_digits) {
+                    // Keep the topmost decimal digit in a range that cannot emit an extra head carry.
+                    int_digits[0] %= 4;
+                }
+
+                <UsfScalar as ScalarCoreOps>::from_decimal_u8_digits(negative, int_digits, frac_digits)
             })
-            .collect();
-        numbers
+            .collect()
     }
 
     #[test]
     fn rng_test() {
-        let mut numbers = seeded_numbers(1337, 36, 17);
-        let b = numbers.pop().unwrap();
-        let a = numbers.pop().unwrap();
+        let mut numbers = seeded_numbers(1337, 71, 17);
+        // let b = numbers.pop().unwrap();
+        // let a = numbers.pop().unwrap();
 
-        // println!("a: {:?}", a);
-        // println!("b: {:?}", b);
-        println!("a: {}", a);
-        println!("b: {}", b);
-        // assert_eq!(a, b);
+        // println!("a: {}", a);
+        // println!("b: {}", b);
+
+        for number in numbers {
+            println!("{}", number);
+        }
     }
 
     #[test]
@@ -116,20 +148,12 @@ mod tests {
             let parsed = <UsfScalar as ScalarCoreOps>::from_decimal_str(seed);
             let parsed_digits = <UsfScalar as ScalarCoreOps>::to_decimal_u8_digits(&parsed);
 
-            let mut scalar = <UsfScalar as ScalarCoreOps>::from_decimal_u8_digits(
-                parsed_digits.0,
-                parsed_digits.1.clone(),
-                parsed_digits.2.clone(),
-            );
+            let mut scalar = <UsfScalar as ScalarCoreOps>::from_decimal_u8_digits(parsed_digits.0, parsed_digits.1.clone(), parsed_digits.2.clone());
             let mut as_string = <UsfScalar as ScalarCoreOps>::to_decimal_str(&scalar);
             let mut raw_digits = <UsfScalar as ScalarCoreOps>::to_decimal_u8_digits(&scalar);
 
             for _ in 0..8 {
-                let from_raw = <UsfScalar as ScalarCoreOps>::from_decimal_u8_digits(
-                    raw_digits.0,
-                    raw_digits.1.clone(),
-                    raw_digits.2.clone(),
-                );
+                let from_raw = <UsfScalar as ScalarCoreOps>::from_decimal_u8_digits(raw_digits.0, raw_digits.1.clone(), raw_digits.2.clone());
                 assert_eq!(from_raw, scalar, "raw roundtrip changed scalar for seed `{seed}`");
                 assert_eq!(
                     <UsfScalar as ScalarCoreOps>::to_decimal_u8_digits(&from_raw),
@@ -144,11 +168,7 @@ mod tests {
                 let digits_after = <UsfScalar as ScalarCoreOps>::to_decimal_u8_digits(&from_string);
                 assert_eq!(digits_after, raw_digits, "string roundtrip changed raw digits for seed `{seed}`");
 
-                let scalar_after = <UsfScalar as ScalarCoreOps>::from_decimal_u8_digits(
-                    digits_after.0,
-                    digits_after.1.clone(),
-                    digits_after.2.clone(),
-                );
+                let scalar_after = <UsfScalar as ScalarCoreOps>::from_decimal_u8_digits(digits_after.0, digits_after.1.clone(), digits_after.2.clone());
                 assert_eq!(scalar_after, scalar, "string/raw cycle changed scalar repr for seed `{seed}`");
 
                 scalar = scalar_after;
