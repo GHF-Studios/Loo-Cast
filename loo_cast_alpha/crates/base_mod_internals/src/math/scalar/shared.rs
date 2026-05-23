@@ -22,6 +22,98 @@ use super::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
 pub(crate) const SCALAR_INT_DIGITS_LEN: usize = 36;
 pub(crate) const SCALAR_FRAC_DIGITS_MAX_LEN: usize = 35;
 
+/// Fixed-width decimal parts bridge used by scalar constructors and exporters.
+///
+/// # Invariants
+/// - `int_digits` is always fixed-width (`SCALAR_INT_DIGITS_LEN`) and left-padded.
+/// - `frac_digits` is always fixed-width (`SCALAR_FRAC_DIGITS_MAX_LEN`) and right-padded.
+/// - `frac_len` is the amount of meaningful fractional digits (`0..=SCALAR_FRAC_DIGITS_MAX_LEN`).
+/// - Fractional digits strictly after `frac_len` are placeholder zeros.
+/// - `negative == true` is disallowed for zero values (normalized sign).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ScalarDecimalU8Parts {
+    pub negative: bool,
+    pub int_digits: [u8; SCALAR_INT_DIGITS_LEN],
+    pub frac_digits: [u8; SCALAR_FRAC_DIGITS_MAX_LEN],
+    pub frac_len: usize,
+}
+
+impl ScalarDecimalU8Parts {
+    /// Returns canonical zero.
+    pub const fn zero() -> Self {
+        Self {
+            negative: false,
+            int_digits: [0; SCALAR_INT_DIGITS_LEN],
+            frac_digits: [0; SCALAR_FRAC_DIGITS_MAX_LEN],
+            frac_len: 0,
+        }
+    }
+
+    /// Builds canonical fixed-width parts and normalizes sign/fractional length.
+    ///
+    /// # Panics
+    /// - Panics when digits are outside `0..=9`.
+    /// - Panics when `frac_len` is out of bounds.
+    /// - Panics when placeholder fractional digits are non-zero.
+    pub fn new_checked(negative: bool, int_digits: [u8; SCALAR_INT_DIGITS_LEN], frac_digits: [u8; SCALAR_FRAC_DIGITS_MAX_LEN], frac_len: usize) -> Self {
+        assert!(
+            frac_len <= SCALAR_FRAC_DIGITS_MAX_LEN,
+            "invalid decimal parts: frac_len must be <= {} (got {})",
+            SCALAR_FRAC_DIGITS_MAX_LEN,
+            frac_len,
+        );
+        assert!(
+            int_digits.iter().chain(frac_digits.iter()).all(|d| *d <= 9),
+            "invalid decimal parts: all digits must be in 0..=9",
+        );
+        assert!(
+            frac_digits.iter().skip(frac_len).all(|d| *d == 0),
+            "invalid decimal parts: fractional placeholder digits after frac_len must be zero",
+        );
+
+        let mut effective_frac_len = frac_len;
+        while effective_frac_len > 0 && frac_digits[effective_frac_len - 1] == 0 {
+            effective_frac_len -= 1;
+        }
+
+        let is_zero = int_digits.iter().all(|d| *d == 0) && effective_frac_len == 0;
+        let effective_negative = negative && !is_zero;
+
+        let out = Self {
+            negative: effective_negative,
+            int_digits,
+            frac_digits,
+            frac_len: effective_frac_len,
+        };
+        out.assert_valid();
+        out
+    }
+
+    /// Re-validates all invariants.
+    ///
+    /// # Panics
+    /// - Panics when any invariant listed on this type is violated.
+    pub fn assert_valid(&self) {
+        assert!(
+            self.frac_len <= SCALAR_FRAC_DIGITS_MAX_LEN,
+            "invalid decimal parts: frac_len must be <= {} (got {})",
+            SCALAR_FRAC_DIGITS_MAX_LEN,
+            self.frac_len,
+        );
+        assert!(
+            self.int_digits.iter().chain(self.frac_digits.iter()).all(|d| *d <= 9),
+            "invalid decimal parts: all digits must be in 0..=9",
+        );
+        assert!(
+            self.frac_digits.iter().skip(self.frac_len).all(|d| *d == 0),
+            "invalid decimal parts: fractional placeholder digits after frac_len must be zero",
+        );
+
+        let is_zero = self.int_digits.iter().all(|d| *d == 0) && self.frac_len == 0;
+        assert!(!(self.negative && is_zero), "invalid decimal parts: negative zero is not canonical", );
+    }
+}
+
 /// Base trait for scalar carrier types used by the math sketch.
 pub trait ScalarType: Clone + 'static {}
 /// Marker trait for integer scalar types.
@@ -115,19 +207,17 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// Builds a scalar from pre-parsed base-10 decimal digits.
     ///
     /// # Parameters
-    /// - `negative`: Flag indicating negativity
-    /// - `int_digits` - Integer digits, big-endian (MSD at index 0) and left-padded with zeros to exactly `SCALAR_INT_DIGITS_LEN` elements.
-    /// - `frac_digits` - Fractional digits, big-endian (tenths at index 0). Max `SCALAR_FRAC_DIGITS_MAX_LEN` digits; trailing padding zeros are optional.
-    fn from_decimal_u8_digits(_negative: bool, _int_digits: Vec<u8>, _frac_digits: Vec<u8>) -> Self;
+    /// - `parts`: Fixed-width decimal parts:
+    ///   - `int_digits` is always left-padded to `SCALAR_INT_DIGITS_LEN`.
+    ///   - `frac_digits` is always right-padded to `SCALAR_FRAC_DIGITS_MAX_LEN`.
+    ///   - `frac_len` marks meaningful fractional width.
+    fn from_decimal_u8_digits(_parts: ScalarDecimalU8Parts) -> Self;
 
     /// Exports this scalar as pre-parsed base-10 decimal digits.
     ///
     /// # Returns
-    /// - Tuple `(negative, int_digits, frac_digits)` where:
-    /// - `negative` is `true` only for non-zero negative values.
-    /// - `int_digits` are integer digits in big-endian order (MSD at index 0).
-    /// - `frac_digits` are fractional digits in big-endian order (tenths at index 0).
-    fn to_decimal_u8_digits(&self) -> (bool, Vec<u8>, Vec<u8>);
+    /// - Fixed-width decimal parts in canonical form.
+    fn to_decimal_u8_digits(&self) -> ScalarDecimalU8Parts;
 
     /// Parses a plain decimal literal into this scalar type.
     ///
@@ -138,8 +228,8 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// - A new value of the same concrete type.
     ///
     /// # Constraints
-    /// - Intended format: optional leading sign (`+` or `-`) + integer digits (`len=SCALAR_INT_DIGITS_LEN`) + optional decimal point + optional fractional digits (`max_len=SCALAR_FRAC_DIGITS_MAX_LEN`).
-    /// - Integer digits shorter than `SCALAR_INT_DIGITS_LEN` are left-padded with zeros before dispatch to `from_decimal_u8_digits`.
+    /// - Intended format: optional leading sign (`+` or `-`) + integer digits + optional decimal point + optional fractional digits.
+    /// - Input widths are flexible, then canonicalized into padded fixed arrays before dispatch.
     /// # Examples
     /// - "-13.7"
     /// - "+1."
@@ -150,8 +240,10 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// - Panics if any constraint above is violated.
     /// - *Should* panic if any representation-specific constraint is violated.
     fn from_decimal_str(s: &str) -> Self {
+        use base_mod_shared::utils::string::split_leading_sign;
+
         assert!(!s.is_empty(), "invalid decimal literal: empty input");
-        let (negative, body) = if let Some(rest) = s.strip_prefix('-') { (true, rest) } else { (false, s) };
+        let (negative, body) = split_leading_sign(s);
         assert!(!body.is_empty(), "invalid decimal literal `{s}`: missing digits after sign");
         assert!(
             body.bytes().all(|b| b.is_ascii_digit() || b == b'.'),
@@ -164,10 +256,6 @@ pub trait ScalarCoreOps: Clone + Sized {
                 assert!(
                     !int_part.is_empty(),
                     "invalid decimal literal `{s}`: missing integer digits before decimal point",
-                );
-                assert!(
-                    !frac_part.is_empty(),
-                    "invalid decimal literal `{s}`: missing fractional digits after decimal point",
                 );
                 (int_part, frac_part)
             }
@@ -184,15 +272,24 @@ pub trait ScalarCoreOps: Clone + Sized {
             "invalid decimal literal `{s}`: fractional part exceeds {SCALAR_FRAC_DIGITS_MAX_LEN} digits",
         );
 
-        let mut int_digits: Vec<u8> = vec![0; SCALAR_INT_DIGITS_LEN - int_len];
-        int_digits.extend(int_part.bytes().map(|b| b - b'0'));
+        let mut int_digits = [0_u8; SCALAR_INT_DIGITS_LEN];
+        let int_start = SCALAR_INT_DIGITS_LEN - int_len;
+        for (offset, b) in int_part.bytes().enumerate() {
+            int_digits[int_start + offset] = b - b'0';
+        }
 
-        let frac_digits: Vec<u8> = frac_part.bytes().map(|b| b - b'0').collect();
+        let mut frac_digits = [0_u8; SCALAR_FRAC_DIGITS_MAX_LEN];
+        for (offset, b) in frac_part.bytes().enumerate() {
+            frac_digits[offset] = b - b'0';
+        }
 
-        let is_zero = int_digits.iter().all(|d| *d == 0) && frac_digits.iter().all(|d| *d == 0);
-        let effective_negative = negative && !is_zero;
+        let mut frac_len = frac_part.len();
+        while frac_len > 0 && frac_digits[frac_len - 1] == 0 {
+            frac_len -= 1;
+        }
 
-        Self::from_decimal_u8_digits(effective_negative, int_digits, frac_digits)
+        let parts = ScalarDecimalU8Parts::new_checked(negative, int_digits, frac_digits, frac_len);
+        Self::from_decimal_u8_digits(parts)
     }
 
     /// Formats this scalar as a plain base-10 decimal literal (non-scientific).
@@ -207,23 +304,22 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Panics
     /// - May panic if backend digit/radix invariants are violated.
     fn to_decimal_str(&self) -> String {
-        let (neg, mut int, mut frac) = self.to_decimal_u8_digits();
-
-        let first = int.iter().position(|&d| d != 0).unwrap_or(int.len().saturating_sub(1));
-        int.drain(0..first); // keeps exactly one digit for zero case
-
-        while frac.last() == Some(&0) {
-            frac.pop();
-        }
+        let parts = self.to_decimal_u8_digits();
+        parts.assert_valid();
+        let first = parts.int_digits.iter().position(|&d| d != 0).unwrap_or(SCALAR_INT_DIGITS_LEN.saturating_sub(1));
 
         let mut s = String::new();
-        if neg && !(int.len() == 1 && int[0] == 0 && frac.is_empty()) {
+        if parts.negative {
             s.push('-');
         }
-        s.extend(int.into_iter().map(|d| char::from(b'0' + d)));
-        if !frac.is_empty() {
+        for digit in parts.int_digits.iter().skip(first) {
+            s.push(char::from(b'0' + *digit));
+        }
+        if parts.frac_len > 0 {
             s.push('.');
-            s.extend(frac.into_iter().map(|d| char::from(b'0' + d)));
+            for digit in parts.frac_digits.iter().take(parts.frac_len) {
+                s.push(char::from(b'0' + *digit));
+            }
         }
         s
     }
@@ -243,141 +339,59 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// - Panics if any constraint above is violated.
     /// - *Should* panic if any representation-specific constraint is violated.
     fn from_scientific_str(s: &str) -> Self {
-        use base_mod_shared::utils::string::{parse_ascii_digits, split_leading_sign, split_once_e_marker, trim_leading_zeros_keep_one, trim_trailing_zeros};
-
-        assert!(!s.is_empty(), "invalid scientific literal: empty input");
-
-        // sign
-        let (negative, body) = split_leading_sign(s);
-        assert!(!body.is_empty(), "invalid scientific literal `{s}`: missing body");
-
-        // split mantissa / exponent
-        assert!(
-            body.bytes().any(|b| b == b'e' || b == b'E'),
-            "invalid scientific literal `{s}`: missing `e`/`E`",
-        );
-        let (mantissa, exp_part) = split_once_e_marker(body);
-
-        assert!(!mantissa.is_empty(), "invalid scientific literal `{s}`: missing mantissa");
-        assert!(!exp_part.is_empty(), "invalid scientific literal `{s}`: missing exponent");
-        assert!(
-            !exp_part.bytes().any(|b| b == b'e' || b == b'E'),
-            "invalid scientific literal `{s}`: multiple exponent markers",
-        );
-
-        // parse exponent (checked)
-        let (exp_neg, exp_digits) = split_leading_sign(exp_part);
-        assert!(!exp_digits.is_empty(), "invalid scientific literal `{s}`: empty exponent digits");
-        assert!(
-            exp_digits.bytes().all(|b| b.is_ascii_digit()),
-            "invalid scientific literal `{s}`: exponent must be signed digits",
-        );
-
-        let mut exp_abs: i64 = 0;
-        for d in parse_ascii_digits(exp_digits) {
-            exp_abs = exp_abs
-                .checked_mul(10)
-                .and_then(|v| v.checked_add(d as i64))
-                .unwrap_or_else(|| panic!("invalid scientific literal `{s}`: exponent too large"));
-        }
-
-        let exponent = if exp_neg {
-            exp_abs
-                .checked_neg()
-                .unwrap_or_else(|| panic!("invalid scientific literal `{s}`: exponent too large"))
-        } else {
-            exp_abs
+        use base_mod_shared::utils::string::{
+            decimal_parts_from_coeff_and_point, parse_ascii_digits, parse_signed_scientific_exponent_i8, scientific_decimal_point_index,
+            split_scientific_literal_parts, split_scientific_mantissa_parts, trim_leading_zeros_keep_one, trim_trailing_zeros,
         };
 
-        // parse mantissa
-        assert!(
-            mantissa.bytes().all(|b| b.is_ascii_digit() || b == b'.'),
-            "invalid scientific literal `{s}`: mantissa may only contain digits and `.`",
-        );
+        let (negative, mantissa, exp_part) = split_scientific_literal_parts(s);
+        let exponent = parse_signed_scientific_exponent_i8(exp_part, s);
+        let (int_part, frac_part) = split_scientific_mantissa_parts(mantissa, s);
 
-        let (int_part, frac_part) = match mantissa.split_once('.') {
-            Some((i, f)) => {
-                assert!(!f.contains('.'), "invalid scientific literal `{s}`: multiple `.` in mantissa");
-                (i, f)
-            }
-            None => (mantissa, ""),
-        };
-
-        assert!(
-            !(int_part.is_empty() && frac_part.is_empty()),
-            "invalid scientific literal `{s}`: mantissa has no digits",
-        );
-
-        let mut coeff = parse_ascii_digits(int_part);
-        coeff.extend(parse_ascii_digits(frac_part));
+        let mut coeff = [0_u8; SCALAR_INT_DIGITS_LEN + SCALAR_FRAC_DIGITS_MAX_LEN];
+        let int_coeff_len = parse_ascii_digits(int_part, &mut coeff[..]);
+        let frac_coeff_len = parse_ascii_digits(frac_part, &mut coeff[int_coeff_len..]);
+        let coeff_len = int_coeff_len + frac_coeff_len;
 
         // zero fast-path
-        if coeff.iter().all(|d| *d == 0) {
-            return Self::from_decimal_u8_digits(false, vec![0; SCALAR_INT_DIGITS_LEN], Vec::new());
+        if coeff[..coeff_len].iter().all(|d| *d == 0) {
+            return Self::from_decimal_u8_digits(ScalarDecimalU8Parts::zero());
         }
 
         // trim leading zeros
-        trim_leading_zeros_keep_one(&mut coeff);
+        let coeff_start = trim_leading_zeros_keep_one(&coeff, coeff_len);
+        let coeff_trimmed = &coeff[coeff_start..coeff_len];
 
-        // shift/pad math: point = coeff.len() + (exp - mantissa_frac_len)
-        let shift = exponent
-            .checked_sub(frac_part.len() as i64)
-            .unwrap_or_else(|| panic!("invalid scientific literal `{s}`: exponent adjustment overflow"));
+        let point = scientific_decimal_point_index(coeff_trimmed.len(), frac_part.len(), exponent, s);
 
-        let point = (coeff.len() as i64)
-            .checked_add(shift)
-            .unwrap_or_else(|| panic!("invalid scientific literal `{s}`: decimal-point placement overflow"));
+        let mut int_digits = [0_u8; SCALAR_INT_DIGITS_LEN];
+        let mut frac_digits = [0_u8; SCALAR_FRAC_DIGITS_MAX_LEN];
+        let (int_len, mut frac_len) = decimal_parts_from_coeff_and_point(coeff_trimmed, point, &mut int_digits, &mut frac_digits);
 
-        // pre-check target lengths BEFORE allocating big padding
-        let coeff_len = coeff.len() as i64;
-        let (int_len_i64, frac_len_i64) = if point <= 0 {
-            (1_i64, (-point) + coeff_len)
-        } else if point >= coeff_len {
-            (point, 0_i64)
-        } else {
-            (point, coeff_len - point)
-        };
-
-        let int_len = usize::try_from(int_len_i64).unwrap();
-        let frac_len = usize::try_from(frac_len_i64).unwrap();
+        let int_start = trim_leading_zeros_keep_one(&int_digits, int_len);
+        let trimmed_int_len = int_len - int_start;
+        frac_len = trim_trailing_zeros(&frac_digits, frac_len);
 
         assert!(
-            int_len <= SCALAR_INT_DIGITS_LEN,
-            "invalid scientific literal `{s}`: integer part exceeds {SCALAR_INT_DIGITS_LEN} digits (got {int_len})",
+            trimmed_int_len <= SCALAR_INT_DIGITS_LEN,
+            "invalid scientific literal `{s}`: integer part exceeds {SCALAR_INT_DIGITS_LEN} digits (got {trimmed_int_len})",
         );
         assert!(
             frac_len <= SCALAR_FRAC_DIGITS_MAX_LEN,
             "invalid scientific literal `{s}`: fractional part exceeds {SCALAR_FRAC_DIGITS_MAX_LEN} digits (got {frac_len})",
         );
 
-        // build shifted decimal digits
-        let (mut int_digits, mut frac_digits): (Vec<u8>, Vec<u8>) = if point <= 0 {
-            let mut frac = vec![0; usize::try_from(-point).unwrap()];
-            frac.extend(coeff);
-            (vec![0], frac)
-        } else {
-            let p = usize::try_from(point).unwrap();
-            if p >= coeff.len() {
-                let mut int = coeff;
-                int.extend(std::iter::repeat(0).take(p - int.len()));
-                (int, Vec::new())
-            } else {
-                (coeff[..p].to_vec(), coeff[p..].to_vec())
-            }
-        };
+        let mut padded_int = [0_u8; SCALAR_INT_DIGITS_LEN];
+        let dst_start = SCALAR_INT_DIGITS_LEN - trimmed_int_len;
+        for idx in 0..trimmed_int_len {
+            padded_int[dst_start + idx] = int_digits[int_start + idx];
+        }
 
-        // canonicalize
-        trim_leading_zeros_keep_one(&mut int_digits);
-        trim_trailing_zeros(&mut frac_digits);
+        let mut padded_frac = [0_u8; SCALAR_FRAC_DIGITS_MAX_LEN];
+        padded_frac[..frac_len].copy_from_slice(&frac_digits[..frac_len]);
 
-        // pad integer digits to fixed width and normalize negative zero
-        let mut padded_int = vec![0; SCALAR_INT_DIGITS_LEN - int_digits.len()];
-        padded_int.extend(int_digits);
-
-        let is_zero = padded_int.iter().all(|d| *d == 0) && frac_digits.iter().all(|d| *d == 0);
-        let effective_negative = negative && !is_zero;
-
-        Self::from_decimal_u8_digits(effective_negative, padded_int, frac_digits)
+        let parts = ScalarDecimalU8Parts::new_checked(negative, padded_int, padded_frac, frac_len);
+        Self::from_decimal_u8_digits(parts)
     }
 
     /// Formats this scalar as a base-10 scientific-notation literal.
