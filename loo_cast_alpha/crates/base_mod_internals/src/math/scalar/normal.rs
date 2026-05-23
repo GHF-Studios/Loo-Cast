@@ -33,11 +33,16 @@ pub enum NormalFractionalScalarRepr {
 }
 
 impl super::shared::ScalarCoreOps for NormalScalar {
-    fn from_decimal_u8_digits(_parts: super::shared::ScalarDecimalU8Parts) -> Self {
+    fn from_decimal_u8_digits(
+        _negative: bool,
+        _int_digits: super::shared::ScalarIntDigitBuffer,
+        _frac_digits: super::shared::ScalarFracDigitBuffer,
+        _radix_index: i8,
+    ) -> Self {
         todo!()
     }
 
-    fn to_decimal_u8_digits(&self) -> super::shared::ScalarDecimalU8Parts {
+    fn to_decimal_u8_digits(&self) -> (bool, super::shared::ScalarIntDigitBuffer, super::shared::ScalarFracDigitBuffer, i8) {
         todo!()
     }
 }
@@ -45,11 +50,16 @@ impl super::shared::ScalarFieldOps for NormalScalar {}
 impl super::shared::ScalarBridgeOps for NormalScalar {}
 
 impl super::shared::ScalarCoreOps for NormalFractionalScalar {
-    fn from_decimal_u8_digits(_parts: super::shared::ScalarDecimalU8Parts) -> Self {
+    fn from_decimal_u8_digits(
+        _negative: bool,
+        _int_digits: super::shared::ScalarIntDigitBuffer,
+        _frac_digits: super::shared::ScalarFracDigitBuffer,
+        _radix_index: i8,
+    ) -> Self {
         todo!()
     }
 
-    fn to_decimal_u8_digits(&self) -> super::shared::ScalarDecimalU8Parts {
+    fn to_decimal_u8_digits(&self) -> (bool, super::shared::ScalarIntDigitBuffer, super::shared::ScalarFracDigitBuffer, i8) {
         todo!()
     }
 }

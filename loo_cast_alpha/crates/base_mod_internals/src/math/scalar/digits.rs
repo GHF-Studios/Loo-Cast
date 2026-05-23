@@ -1,4 +1,4 @@
-use super::shared::{SCALAR_FRAC_DIGITS_MAX_LEN, SCALAR_INT_DIGITS_LEN, ScalarDecimalU8Parts};
+use super::shared::{SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN, ScalarDecimalU8Parts};
 use base_mod_shared::utils::string::{split_leading_sign, split_scientific_literal_parts};
 
 /// Single balanced base-10 digit.
@@ -45,22 +45,22 @@ impl ScalarDecimalDigit {
 ///
 /// # Invariants
 /// - `int_digits` is fixed-width (`SCALAR_INT_DIGITS_LEN`), big-endian.
-/// - `frac_digits` is fixed-width (`SCALAR_FRAC_DIGITS_MAX_LEN`), big-endian.
-/// - `radix_position` is in `[SCALAR_INT_DIGITS_LEN - 1, SCALAR_INT_DIGITS_LEN + SCALAR_FRAC_DIGITS_MAX_LEN - 1]`.
+/// - `frac_digits` is fixed-width (`SCALAR_FRAC_DIGITS_LEN`), big-endian.
+/// - `radix_position` is in `[SCALAR_INT_DIGITS_LEN - 1, SCALAR_INT_DIGITS_LEN + SCALAR_FRAC_DIGITS_LEN - 1]`.
 /// - All digits strictly after `radix_position` are placeholder zeros.
 /// - `negative == true` is disallowed for zero values (normalized sign).
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ScalarDecimalDigits {
     negative: bool,
     int_digits: [ScalarDecimalDigit; SCALAR_INT_DIGITS_LEN],
-    frac_digits: [ScalarDecimalDigit; SCALAR_FRAC_DIGITS_MAX_LEN],
+    frac_digits: [ScalarDecimalDigit; SCALAR_FRAC_DIGITS_LEN],
     radix_position: i8,
 }
 
 impl ScalarDecimalDigits {
-    const SCALAR_TOTAL_DIGITS_LEN: usize = SCALAR_INT_DIGITS_LEN + SCALAR_FRAC_DIGITS_MAX_LEN;
+    const SCALAR_TOTAL_DIGITS_LEN: usize = SCALAR_INT_DIGITS_LEN + SCALAR_FRAC_DIGITS_LEN;
     const RADIX_POSITION_MIN: i8 = (SCALAR_INT_DIGITS_LEN as i8) - 1;
-    const RADIX_POSITION_MAX: i8 = (SCALAR_INT_DIGITS_LEN as i8) + (SCALAR_FRAC_DIGITS_MAX_LEN as i8) - 1;
+    const RADIX_POSITION_MAX: i8 = (SCALAR_INT_DIGITS_LEN as i8) + (SCALAR_FRAC_DIGITS_LEN as i8) - 1;
 
     fn digit_at_linear_index(&self, idx: usize) -> ScalarDecimalDigit {
         if idx < SCALAR_INT_DIGITS_LEN {
@@ -108,24 +108,20 @@ impl ScalarDecimalDigits {
     /// # Parameters
     /// - `negative`: Requested sign flag for the source value.
     /// - `int_digits`: Fixed-width integer digits (length `SCALAR_INT_DIGITS_LEN`).
-    /// - `frac_digits`: Fixed-width fractional digits (length `SCALAR_FRAC_DIGITS_MAX_LEN`).
+    /// - `frac_digits`: Fixed-width fractional digits (length `SCALAR_FRAC_DIGITS_LEN`).
     ///
     /// # Returns
     /// - Canonical `ScalarDecimalDigits` with normalized sign and padded integer part.
     ///
     /// # Panics
     /// - Panics if lengths exceed configured limits or any source digit is outside `0..=9`.
-    pub(crate) fn from_decimal_u8_parts_checked(
-        negative: bool,
-        int_digits: [u8; SCALAR_INT_DIGITS_LEN],
-        frac_digits: [u8; SCALAR_FRAC_DIGITS_MAX_LEN],
-    ) -> Self {
+    pub(crate) fn from_decimal_u8_parts_checked(negative: bool, int_digits: [u8; SCALAR_INT_DIGITS_LEN], frac_digits: [u8; SCALAR_FRAC_DIGITS_LEN]) -> Self {
         assert!(
             int_digits.iter().chain(frac_digits.iter()).all(|d| *d <= 9),
             "all digits must be in range 0..=9",
         );
 
-        let mut frac_significant_len = SCALAR_FRAC_DIGITS_MAX_LEN;
+        let mut frac_significant_len = SCALAR_FRAC_DIGITS_LEN;
         while frac_significant_len > 0 && frac_digits[frac_significant_len - 1] == 0 {
             frac_significant_len -= 1;
         }
@@ -182,7 +178,7 @@ impl ScalarDecimalDigits {
     ///
     /// # Panics
     /// - Panics when input is empty.
-    /// - Panics when total balanced-digit width exceeds `SCALAR_INT_DIGITS_LEN + SCALAR_FRAC_DIGITS_MAX_LEN`.
+    /// - Panics when total balanced-digit width exceeds `SCALAR_INT_DIGITS_LEN + SCALAR_FRAC_DIGITS_LEN`.
     pub(crate) fn from_balanced_digits_checked(negative: bool, balanced_digits: &[ScalarDecimalDigit]) -> Self {
         assert!(
             !balanced_digits.is_empty(),
@@ -205,7 +201,7 @@ impl ScalarDecimalDigits {
             padded_int[int_start + offset] = digit;
         }
 
-        let mut padded_frac = [ScalarDecimalDigit::new_checked(0); SCALAR_FRAC_DIGITS_MAX_LEN];
+        let mut padded_frac = [ScalarDecimalDigit::new_checked(0); SCALAR_FRAC_DIGITS_LEN];
         for (offset, digit) in frac_balanced.iter().copied().enumerate() {
             padded_frac[offset] = digit;
         }
@@ -216,7 +212,7 @@ impl ScalarDecimalDigits {
     /// Decodes canonical balanced digits back into plain decimal digit parts.
     ///
     /// # Returns
-    /// - Fixed-width decimal parts with normalized sign and canonical `frac_len`.
+    /// - Fixed-width decimal parts with normalized sign and canonical index metadata.
     ///
     /// # Panics
     /// - Panics if internal digits violate carry consistency during decode.
@@ -243,7 +239,7 @@ impl ScalarDecimalDigits {
             int_digits[idx] = coeff_rev[meaningful_len - 1 - idx];
         }
 
-        let mut frac_digits = [0_u8; SCALAR_FRAC_DIGITS_MAX_LEN];
+        let mut frac_digits = [0_u8; SCALAR_FRAC_DIGITS_LEN];
         let raw_frac_len = meaningful_len.saturating_sub(SCALAR_INT_DIGITS_LEN);
         for idx in 0..raw_frac_len {
             frac_digits[idx] = coeff_rev[meaningful_len - 1 - (SCALAR_INT_DIGITS_LEN + idx)];
@@ -254,7 +250,12 @@ impl ScalarDecimalDigits {
             frac_len -= 1;
         }
 
-        ScalarDecimalU8Parts::new_checked(self.negative, int_digits, frac_digits, frac_len)
+        let radix_index = if frac_len == 0 {
+            ScalarDecimalU8Parts::RADIX_INDEX_MIN
+        } else {
+            i8::try_from((SCALAR_INT_DIGITS_LEN - 1) + frac_len).unwrap()
+        };
+        ScalarDecimalU8Parts::new_checked(self.negative, int_digits, frac_digits, radix_index)
     }
 
     /// Builds this canonical decimal carrier from already-shaped parts.
@@ -276,7 +277,7 @@ impl ScalarDecimalDigits {
     pub fn from_parts_checked(
         negative: bool,
         int_digits: [ScalarDecimalDigit; SCALAR_INT_DIGITS_LEN],
-        frac_digits: [ScalarDecimalDigit; SCALAR_FRAC_DIGITS_MAX_LEN],
+        frac_digits: [ScalarDecimalDigit; SCALAR_FRAC_DIGITS_LEN],
     ) -> Self {
         let frac_significant_len = frac_digits.iter().rposition(|d| d.get() != 0).map(|idx| idx + 1).unwrap_or(0);
 
@@ -337,8 +338,8 @@ impl ScalarDecimalDigits {
             "invalid decimal literal `{s}`: integer part exceeds {SCALAR_INT_DIGITS_LEN} digits (got {int_len})",
         );
         assert!(
-            frac_part.len() <= SCALAR_FRAC_DIGITS_MAX_LEN,
-            "invalid decimal literal `{s}`: fractional part exceeds {SCALAR_FRAC_DIGITS_MAX_LEN} digits",
+            frac_part.len() <= SCALAR_FRAC_DIGITS_LEN,
+            "invalid decimal literal `{s}`: fractional part exceeds {SCALAR_FRAC_DIGITS_LEN} digits",
         );
 
         let mut int_digits = [0_u8; SCALAR_INT_DIGITS_LEN];
@@ -347,7 +348,7 @@ impl ScalarDecimalDigits {
             int_digits[int_start + offset] = b - b'0';
         }
 
-        let mut frac_digits = [0_u8; SCALAR_FRAC_DIGITS_MAX_LEN];
+        let mut frac_digits = [0_u8; SCALAR_FRAC_DIGITS_LEN];
         for (offset, b) in frac_part.bytes().enumerate() {
             frac_digits[offset] = b - b'0';
         }
@@ -385,7 +386,7 @@ impl ScalarDecimalDigits {
 
         let first_non_zero = coeff[..coeff_len].iter().position(|d| *d != 0).unwrap_or(coeff_len);
         if first_non_zero == coeff_len {
-            return Self::from_decimal_u8_parts_checked(false, [0; SCALAR_INT_DIGITS_LEN], [0; SCALAR_FRAC_DIGITS_MAX_LEN]);
+            return Self::from_decimal_u8_parts_checked(false, [0; SCALAR_INT_DIGITS_LEN], [0; SCALAR_FRAC_DIGITS_LEN]);
         }
 
         let coeff_trimmed = &coeff[first_non_zero..coeff_len];
@@ -401,7 +402,7 @@ impl ScalarDecimalDigits {
             .unwrap_or_else(|| panic!("invalid scientific literal `{s}`: decimal-point placement overflow"));
 
         let mut int_digits = [0_u8; SCALAR_INT_DIGITS_LEN];
-        let mut frac_digits = [0_u8; SCALAR_FRAC_DIGITS_MAX_LEN];
+        let mut frac_digits = [0_u8; SCALAR_FRAC_DIGITS_LEN];
 
         if point <= 0 {
             let frac_len_i64 = (-point)
@@ -409,8 +410,8 @@ impl ScalarDecimalDigits {
                 .unwrap_or_else(|| panic!("invalid scientific literal `{s}`: decimal-point placement overflow"));
             let frac_len = usize::try_from(frac_len_i64).unwrap_or_else(|_| panic!("invalid scientific literal `{s}`: decimal-point placement overflow"));
             assert!(
-                frac_len <= SCALAR_FRAC_DIGITS_MAX_LEN,
-                "invalid scientific literal `{s}`: fractional part exceeds {SCALAR_FRAC_DIGITS_MAX_LEN} digits (got {frac_len})",
+                frac_len <= SCALAR_FRAC_DIGITS_LEN,
+                "invalid scientific literal `{s}`: fractional part exceeds {SCALAR_FRAC_DIGITS_LEN} digits (got {frac_len})",
             );
 
             let left_pad = usize::try_from(-point).unwrap_or_else(|_| panic!("invalid scientific literal `{s}`: decimal-point placement overflow"));
@@ -437,8 +438,8 @@ impl ScalarDecimalDigits {
                 "invalid scientific literal `{s}`: integer part exceeds {SCALAR_INT_DIGITS_LEN} digits (got {split})",
             );
             assert!(
-                frac_len <= SCALAR_FRAC_DIGITS_MAX_LEN,
-                "invalid scientific literal `{s}`: fractional part exceeds {SCALAR_FRAC_DIGITS_MAX_LEN} digits (got {frac_len})",
+                frac_len <= SCALAR_FRAC_DIGITS_LEN,
+                "invalid scientific literal `{s}`: fractional part exceeds {SCALAR_FRAC_DIGITS_LEN} digits (got {frac_len})",
             );
 
             let int_start = SCALAR_INT_DIGITS_LEN - split;
@@ -481,14 +482,14 @@ impl ScalarDecimalDigits {
     ///
     /// # Returns
     /// - Reference to fixed-width fractional digit array (length 35).
-    pub fn frac_digits(&self) -> &[ScalarDecimalDigit; SCALAR_FRAC_DIGITS_MAX_LEN] {
+    pub fn frac_digits(&self) -> &[ScalarDecimalDigit; SCALAR_FRAC_DIGITS_LEN] {
         &self.frac_digits
     }
 
     /// Returns index of the last meaningful digit in flattened `[int | frac]` storage.
     ///
     /// # Returns
-    /// - `35..=70` (`SCALAR_INT_DIGITS_LEN - 1` .. `SCALAR_INT_DIGITS_LEN + SCALAR_FRAC_DIGITS_MAX_LEN - 1`).
+    /// - `35..=70` (`SCALAR_INT_DIGITS_LEN - 1` .. `SCALAR_INT_DIGITS_LEN + SCALAR_FRAC_DIGITS_LEN - 1`).
     pub fn radix_position(&self) -> i8 {
         self.radix_position
     }
@@ -501,7 +502,7 @@ impl ScalarDecimalDigits {
     /// Exports canonical fixed-width decimal parts.
     ///
     /// # Returns
-    /// - `ScalarDecimalU8Parts` with fixed-width arrays and canonical `frac_len`.
+    /// - `ScalarDecimalU8Parts` with fixed-width arrays and canonical index metadata.
     pub fn to_decimal_u8_parts(&self) -> ScalarDecimalU8Parts {
         self.decode_decimal_u8_parts()
     }
@@ -512,20 +513,20 @@ impl ScalarDecimalDigits {
     /// - Decimal text with optional leading `-`, integer digits, and optional fractional digits.
     pub fn to_decimal_string(&self) -> String {
         let decoded = self.decode_decimal_u8_parts();
-        let first_int = decoded.int_digits.iter().position(|d| *d != 0).unwrap_or(SCALAR_INT_DIGITS_LEN - 1);
+        let first_int = decoded.int_start_index();
 
         let mut out = String::new();
-        if decoded.negative {
+        if decoded.negative() {
             out.push('-');
         }
 
-        for digit in decoded.int_digits.iter().skip(first_int) {
+        for digit in decoded.int_digits().iter().skip(first_int) {
             out.push(char::from(b'0' + *digit));
         }
 
-        if decoded.frac_len > 0 {
+        if decoded.frac_end_index() > 0 {
             out.push('.');
-            for digit in decoded.frac_digits.iter().take(decoded.frac_len) {
+            for digit in decoded.frac_digits().iter().take(decoded.frac_end_index()) {
                 out.push(char::from(b'0' + *digit));
             }
         }
@@ -540,32 +541,32 @@ impl ScalarDecimalDigits {
     /// - Zero should be emitted in a canonical scientific form.
     pub fn to_scientific_string(&self) -> String {
         let decoded = self.decode_decimal_u8_parts();
-        let is_zero = decoded.int_digits.iter().all(|d| *d == 0) && decoded.frac_len == 0;
+        let is_zero = decoded.int_digits().iter().all(|d| *d == 0) && decoded.frac_end_index() == 0;
         if is_zero {
             return "0e0".to_string();
         }
 
         let mut coeff = [0_u8; Self::SCALAR_TOTAL_DIGITS_LEN];
-        let (coeff_len, exponent): (usize, i64) = if let Some(first_non_zero) = decoded.int_digits.iter().position(|d| *d != 0) {
+        let (coeff_len, exponent): (usize, i64) = if let Some(first_non_zero) = decoded.int_digits().iter().position(|d| *d != 0) {
             let mut len = 0_usize;
-            for digit in decoded.int_digits.iter().skip(first_non_zero) {
+            for digit in decoded.int_digits().iter().skip(first_non_zero) {
                 coeff[len] = *digit;
                 len += 1;
             }
-            for digit in decoded.frac_digits.iter().take(decoded.frac_len) {
+            for digit in decoded.frac_digits().iter().take(decoded.frac_end_index()) {
                 coeff[len] = *digit;
                 len += 1;
             }
             let exp = i64::try_from(SCALAR_INT_DIGITS_LEN - first_non_zero - 1).unwrap();
             (len, exp)
         } else {
-            let first_frac_non_zero = decoded.frac_digits[..decoded.frac_len]
+            let first_frac_non_zero = decoded.frac_digits()[..decoded.frac_end_index()]
                 .iter()
                 .position(|d| *d != 0)
                 .expect("non-zero fraction required");
             let mut len = 0_usize;
-            for idx in first_frac_non_zero..decoded.frac_len {
-                coeff[len] = decoded.frac_digits[idx];
+            for idx in first_frac_non_zero..decoded.frac_end_index() {
+                coeff[len] = decoded.frac_digits()[idx];
                 len += 1;
             }
             let exp = -i64::try_from(first_frac_non_zero + 1).unwrap();
@@ -573,7 +574,7 @@ impl ScalarDecimalDigits {
         };
 
         let mut out = String::new();
-        if decoded.negative {
+        if decoded.negative() {
             out.push('-');
         }
 

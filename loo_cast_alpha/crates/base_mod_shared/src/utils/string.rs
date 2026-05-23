@@ -42,7 +42,10 @@ pub fn split_once_e_marker(s: &str) -> (&str, &str) {
     (mantissa, exponent)
 }
 
-/// Converts an ASCII digit string into numeric digit values.
+pub type Digit = u8;
+pub type DigitBuffer<const N: usize> = [Digit; N];
+
+/// Parses ASCII decimal digits into a preallocated digit buffer.
 ///
 /// # Parameters
 /// - `s`: Text expected to contain only ASCII digits (`0`..`9`).
@@ -54,7 +57,7 @@ pub fn split_once_e_marker(s: &str) -> (&str, &str) {
 /// # Panics
 /// - Should panic when `s` contains any non-digit character.
 /// - Should panic when `out` is too small.
-pub fn parse_ascii_digits(s: &str, out: &mut [u8]) -> usize {
+pub fn parse_ascii_digits_into_buffer(s: &str, out: &mut [Digit]) -> usize {
     assert!(out.len() >= s.len(), "digit output buffer too small: need {}, got {}", s.len(), out.len(), );
     assert!(s.bytes().all(|b| b.is_ascii_digit()), "non-digit found");
     for (idx, b) in s.bytes().enumerate() {
@@ -76,7 +79,7 @@ pub fn parse_ascii_digits(s: &str, out: &mut [u8]) -> usize {
 ///
 /// # Returns
 /// - Start index of the trimmed view.
-pub fn trim_leading_zeros_keep_one(digits: &[u8], len: usize) -> usize {
+pub fn start_index_after_leading_zeros_keep_one(digits: &[Digit], len: usize) -> usize {
     assert!(len <= digits.len(), "trim length out of range");
     let mut start = 0_usize;
     while start + 1 < len && digits[start] == 0 {
@@ -93,16 +96,12 @@ pub fn trim_leading_zeros_keep_one(digits: &[u8], len: usize) -> usize {
 ///
 /// # Behavior
 /// - Intended for contexts where trailing zeros do not affect value (for example fractional tails).
-///
-/// # Returns
-/// - New meaningful length after trimming.
-pub fn trim_trailing_zeros(digits: &[u8], len: usize) -> usize {
-    assert!(len <= digits.len(), "trim length out of range");
-    let mut out_len = len;
-    while out_len > 0 && digits[out_len - 1] == 0 {
-        out_len -= 1;
+/// - Updates `len` in place to the trimmed end index.
+pub fn trim_trailing_zeros_len(digits: &[Digit], len: &mut usize) {
+    assert!(*len <= digits.len(), "trim length out of range");
+    while *len > 0 && digits[*len - 1] == 0 {
+        *len -= 1;
     }
-    out_len
 }
 
 /// Splits a scientific literal into sign, mantissa, and exponent text.

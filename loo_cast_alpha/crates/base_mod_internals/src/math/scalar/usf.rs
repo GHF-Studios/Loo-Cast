@@ -1,5 +1,8 @@
 pub use super::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
-use super::shared::{FloatType, IntegerType, ScalarCoreOps, ScalarDecimalU8Parts, ScalarType, SignedIntegerType, UnsignedIntegerType};
+use super::shared::{
+    FloatType, IntegerType, ScalarCoreOps, ScalarDecimalU8Parts, ScalarFracDigitBuffer, ScalarIntDigitBuffer, ScalarType, SignedIntegerType,
+    UnsignedIntegerType,
+};
 use crate::math::scalar::digits::ScalarDecimalDigits;
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -20,15 +23,16 @@ impl UnsignedIntegerType for UsfScalar {}
 impl FloatType for UsfScalar {}
 
 impl super::shared::ScalarCoreOps for UsfScalar {
-    fn from_decimal_u8_digits(parts: ScalarDecimalU8Parts) -> Self {
-        parts.assert_valid();
-        let digits = ScalarDecimalDigits::from_decimal_u8_parts_checked(parts.negative, parts.int_digits, parts.frac_digits);
+    fn from_decimal_u8_digits(negative: bool, int_digits: ScalarIntDigitBuffer, frac_digits: ScalarFracDigitBuffer, radix_index: i8) -> Self {
+        let parts = ScalarDecimalU8Parts::new_checked(negative, int_digits, frac_digits, radix_index);
+        let digits = ScalarDecimalDigits::from_decimal_u8_parts_checked(parts.negative(), *parts.int_digits(), *parts.frac_digits());
         Self { digits }
     }
 
-    fn to_decimal_u8_digits(&self) -> ScalarDecimalU8Parts {
+    fn to_decimal_u8_digits(&self) -> (bool, ScalarIntDigitBuffer, ScalarFracDigitBuffer, i8) {
         self.digits.assert_invariants();
-        self.digits.to_decimal_u8_parts()
+        let parts = self.digits.to_decimal_u8_parts();
+        (parts.negative(), *parts.int_digits(), *parts.frac_digits(), parts.radix_index())
     }
 }
 impl super::shared::ScalarFieldOps for UsfScalar {}

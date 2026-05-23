@@ -57,7 +57,7 @@ mod tests {
     use super::scalar::usf::UsfScalar;
     use super::vector::aliases::{UsfOrNormalVector, VectorProductOperand};
     use super::vector::usf::UsfVector3d;
-    use crate::math::scalar::shared::{SCALAR_FRAC_DIGITS_MAX_LEN, SCALAR_INT_DIGITS_LEN, ScalarCoreOps, ScalarDecimalU8Parts};
+    use crate::math::scalar::shared::{SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN, ScalarCoreOps};
     use base_mod_shared::utils::one_of::OneOf2;
 
     fn seeded_digit_sets(seed: u64, digit_count: usize, digit_set_count: usize) -> Vec<Vec<u8>> {
@@ -101,11 +101,15 @@ mod tests {
 
                 let mut int_digits = [0_u8; SCALAR_INT_DIGITS_LEN];
                 let int_start = SCALAR_INT_DIGITS_LEN - int_src.len();
-                int_digits[int_start..].copy_from_slice(int_src);
+                for (offset, digit) in int_src.iter().copied().enumerate() {
+                    int_digits[int_start + offset] = digit;
+                }
 
-                let mut frac_digits = [0_u8; SCALAR_FRAC_DIGITS_MAX_LEN];
-                let frac_len = frac_src.len().min(SCALAR_FRAC_DIGITS_MAX_LEN);
-                frac_digits[..frac_len].copy_from_slice(&frac_src[..frac_len]);
+                let mut frac_digits = [0_u8; SCALAR_FRAC_DIGITS_LEN];
+                let frac_len = frac_src.len().min(SCALAR_FRAC_DIGITS_LEN);
+                for (offset, digit) in frac_src.iter().copied().take(frac_len).enumerate() {
+                    frac_digits[offset] = digit;
+                }
                 let mut negative: bool = sign_rng.random(); // ~50% true
                 if would_overflow(negative, &int_digits, &frac_digits[..frac_len]) {
                     negative = !negative;
@@ -115,7 +119,12 @@ mod tests {
                     int_digits[0] %= 4;
                 }
 
-                <UsfScalar as ScalarCoreOps>::from_decimal_u8_digits(ScalarDecimalU8Parts::new_checked(negative, int_digits, frac_digits, frac_len))
+                let radix_index = if frac_len == 0 {
+                    (SCALAR_INT_DIGITS_LEN as i8) - 1
+                } else {
+                    i8::try_from((SCALAR_INT_DIGITS_LEN - 1) + frac_len).unwrap()
+                };
+                <UsfScalar as ScalarCoreOps>::from_decimal_u8_digits(negative, int_digits, frac_digits, radix_index)
             })
             .collect()
     }
@@ -136,7 +145,7 @@ mod tests {
 
     #[test]
     fn other_test() {
-        let number = UsfScalar::from_scientific_str("1.616e-35");
+        let number = UsfScalar::from_scientific_str("1.616e-32");
         println!("{}", number);
     }
 
@@ -157,12 +166,12 @@ mod tests {
             let parsed = <UsfScalar as ScalarCoreOps>::from_decimal_str(seed);
             let parsed_digits = <UsfScalar as ScalarCoreOps>::to_decimal_u8_digits(&parsed);
 
-            let mut scalar = <UsfScalar as ScalarCoreOps>::from_decimal_u8_digits(parsed_digits);
+            let mut scalar = <UsfScalar as ScalarCoreOps>::from_decimal_u8_digits(parsed_digits.0, parsed_digits.1, parsed_digits.2, parsed_digits.3);
             let mut as_string = <UsfScalar as ScalarCoreOps>::to_decimal_str(&scalar);
             let mut raw_digits = <UsfScalar as ScalarCoreOps>::to_decimal_u8_digits(&scalar);
 
             for _ in 0..8 {
-                let from_raw = <UsfScalar as ScalarCoreOps>::from_decimal_u8_digits(raw_digits);
+                let from_raw = <UsfScalar as ScalarCoreOps>::from_decimal_u8_digits(raw_digits.0, raw_digits.1, raw_digits.2, raw_digits.3);
                 assert_eq!(from_raw, scalar, "raw roundtrip changed scalar for seed `{seed}`");
                 assert_eq!(
                     <UsfScalar as ScalarCoreOps>::to_decimal_u8_digits(&from_raw),
@@ -177,7 +186,7 @@ mod tests {
                 let digits_after = <UsfScalar as ScalarCoreOps>::to_decimal_u8_digits(&from_string);
                 assert_eq!(digits_after, raw_digits, "string roundtrip changed raw digits for seed `{seed}`");
 
-                let scalar_after = <UsfScalar as ScalarCoreOps>::from_decimal_u8_digits(digits_after);
+                let scalar_after = <UsfScalar as ScalarCoreOps>::from_decimal_u8_digits(digits_after.0, digits_after.1, digits_after.2, digits_after.3);
                 assert_eq!(scalar_after, scalar, "string/raw cycle changed scalar repr for seed `{seed}`");
 
                 scalar = scalar_after;
