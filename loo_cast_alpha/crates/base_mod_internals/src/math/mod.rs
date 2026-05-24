@@ -57,7 +57,7 @@ mod tests {
     use super::scalar::usf::UsfScalar;
     use super::vector::aliases::{UsfOrNormalVector, VectorProductOperand};
     use super::vector::usf::UsfVector3d;
-    use crate::math::scalar::shared::{SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN, ScalarCoreOps};
+    use crate::math::scalar::shared::{ScalarCoreOps, SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN};
     use base_mod_shared::utils::one_of::OneOf2;
 
     fn seeded_digit_sets(seed: u64, digit_count: usize, digit_set_count: usize) -> Vec<Vec<u8>> {
@@ -144,13 +144,65 @@ mod tests {
     }
 
     #[test]
-    fn other_test() {
-        let number = UsfScalar::from_scientific_str("1.616e-32");
-        println!("{}", number);
+    fn usf_scalar_debug_fmt_test() {
+        let number_str_decimal = UsfScalar::from_decimal_str("0.00000000000000000000000000000000001616255");
     }
 
     #[test]
-    fn usf_decimal_roundtrip_stability_test() {
+    fn usf_scalar_display_fmt_test() {}
+
+    #[test]
+    fn usf_scalar_from_scientific_str_test() {
+        let number_str_scientific = "1.61625512345678987654321e-35";
+        let number_str_decimal_public = "0.00000000000000000000000000000000002";
+        let number_str_decimal_internal = "0.00000000000000000000000000000000001616255123";
+        let number = UsfScalar::from_scientific_str(number_str_scientific);
+        let number_str_recovered_public = format!("{}", number);
+        let number_str_recovered_internal = number.to_decimal_str_internal();
+
+        assert_eq!(number_str_recovered_public, number_str_decimal_public);
+        assert_eq!(number_str_recovered_internal, number_str_decimal_internal);
+    }
+
+    #[test]
+    fn usf_scalar_from_decimal_str_test() {
+        let number_str_decimal_up = "0.00000000000000000000000000000000001616255123";
+        let number_str_decimal_up_public = "0.00000000000000000000000000000000002";
+
+        let number_up = UsfScalar::from_decimal_str(number_str_decimal_up);
+        let number_up_public = format!("{}", number_up);
+        let number_up_internal = number_up.to_decimal_str_internal();
+
+        assert_eq!(number_up_public, number_str_decimal_up_public);
+        assert_eq!(number_up_internal, number_str_decimal_up);
+
+        let number_str_decimal_down = "0.00000000000000000000000000000000001416255123";
+        let number_str_decimal_down_public = "0.00000000000000000000000000000000001";
+
+        let number_down = UsfScalar::from_decimal_str(number_str_decimal_down);
+        let number_down_public = format!("{}", number_down);
+        let number_down_internal = number_down.to_decimal_str_internal();
+
+        assert_eq!(number_down_public, number_str_decimal_down_public);
+        assert_eq!(number_down_internal, number_str_decimal_down);
+    }
+
+    #[test]
+    #[should_panic]
+    fn usf_scalar_from_decimal_str_excess_frac_panics_test() {
+        let number_str_decimal_excess = "0.0000000000000000000000000000000000161625512345678987654321";
+        let _ = UsfScalar::from_decimal_str(number_str_decimal_excess);
+    }
+
+    #[test]
+    fn usf_scalar_try_from_decimal_str_excess_frac_err_test() {
+        let number_str_decimal_excess = "0.0000000000000000000000000000000000161625512345678987654321";
+        let err = UsfScalar::try_from_decimal_str(number_str_decimal_excess).unwrap_err();
+        assert!(err.message().contains("fractional part exceeds"));
+    }
+
+    #[test]
+    fn usf_scalar_roundtrip_stability_test() {
         let seeds = [
             "0",
             "-0.0000",

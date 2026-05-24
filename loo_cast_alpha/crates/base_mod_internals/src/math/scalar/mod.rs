@@ -1,7 +1,9 @@
 /// Scalar-focused aliases, including USF/normal union wrappers.
 pub mod aliases;
+/// Canonical fixed-width decimal parts and shared digit buffers.
+pub mod decimal_parts;
 /// Canonical decimal-digit carrier and scientific-literal parsing scaffolding.
-pub(crate) mod digits;
+pub mod digits;
 /// Normal scalar representations and normal-space scalar contracts.
 pub mod normal;
 /// Shared scalar contracts consumed by both normal and USF scalar surfaces.

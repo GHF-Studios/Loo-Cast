@@ -33,6 +33,22 @@ pub enum NormalFractionalScalarRepr {
 }
 
 impl super::shared::ScalarCoreOps for NormalScalar {
+    fn from_decimal_str(_s: &str) -> Self {
+        todo!()
+    }
+
+    fn to_decimal_str(&self) -> String {
+        todo!()
+    }
+
+    fn from_scientific_str(_s: &str) -> Self {
+        todo!()
+    }
+
+    fn to_scientific_str(&self) -> String {
+        todo!()
+    }
+
     fn from_decimal_u8_digits(
         _negative: bool,
         _int_digits: super::shared::ScalarIntDigitBuffer,
@@ -50,6 +66,22 @@ impl super::shared::ScalarFieldOps for NormalScalar {}
 impl super::shared::ScalarBridgeOps for NormalScalar {}
 
 impl super::shared::ScalarCoreOps for NormalFractionalScalar {
+    fn from_decimal_str(_s: &str) -> Self {
+        todo!()
+    }
+
+    fn to_decimal_str(&self) -> String {
+        todo!()
+    }
+
+    fn from_scientific_str(_s: &str) -> Self {
+        todo!()
+    }
+
+    fn to_scientific_str(&self) -> String {
+        todo!()
+    }
+
     fn from_decimal_u8_digits(
         _negative: bool,
         _int_digits: super::shared::ScalarIntDigitBuffer,
