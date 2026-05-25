@@ -57,7 +57,7 @@ mod tests {
     use super::scalar::usf::UsfScalar;
     use super::vector::aliases::{UsfOrNormalVector, VectorProductOperand};
     use super::vector::usf::UsfVector3d;
-    use crate::math::scalar::shared::{ScalarCoreOps, SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN};
+    use crate::math::scalar::shared::{SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN, ScalarCoreOps};
     use base_mod_shared::utils::one_of::OneOf2;
 
     fn seeded_digit_sets(seed: u64, digit_count: usize, digit_set_count: usize) -> Vec<Vec<u8>> {

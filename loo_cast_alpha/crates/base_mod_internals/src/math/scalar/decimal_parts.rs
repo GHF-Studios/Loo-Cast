@@ -97,7 +97,7 @@ impl ScalarDecimalU8Parts {
 
         if !is_zero && effective_radix_index > Self::RADIX_INDEX_MIN {
             let tail = Self::digit_at_linear_index(&self.int_digits, &self.frac_digits, usize::try_from(effective_radix_index).unwrap());
-            assert!(tail != 0, "invalid decimal parts: digit at radix_index must be non-zero for non-zero values", );
+            assert!(tail != 0, "invalid decimal parts: digit at radix_index must be non-zero for non-zero values",);
         }
 
         self.negative = effective_negative;
@@ -180,6 +180,6 @@ impl ScalarDecimalU8Parts {
     pub fn assert_valid(&self) {
         let mut normalized = *self;
         normalized.normalize_in_place();
-        assert_eq!(normalized, *self, "invalid decimal parts: value is non-canonical or violates invariants", );
+        assert_eq!(normalized, *self, "invalid decimal parts: value is non-canonical or violates invariants",);
     }
 }

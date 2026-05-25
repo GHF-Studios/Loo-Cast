@@ -19,7 +19,7 @@ pub fn build(sh: &Shell, profile: Profile, target: BuildTarget, binary: RuntimeB
                 sh,
                 "cargo build --workspace --exclude {XTASK_CRATE} --release --target {WINDOWS_RELEASE_TARGET}"
             )
-                .run()?,
+            .run()?,
             _ => bail!("only release profile supports explicit target tasks"),
         },
         RuntimeBinary::Launcher => {

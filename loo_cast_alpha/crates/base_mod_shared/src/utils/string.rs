@@ -58,7 +58,7 @@ pub type DigitBuffer<const N: usize> = [Digit; N];
 /// - Should panic when `s` contains any non-digit character.
 /// - Should panic when `out` is too small.
 pub fn parse_ascii_digits_into_buffer(s: &str, out: &mut [Digit]) -> usize {
-    assert!(out.len() >= s.len(), "digit output buffer too small: need {}, got {}", s.len(), out.len(), );
+    assert!(out.len() >= s.len(), "digit output buffer too small: need {}, got {}", s.len(), out.len(),);
     assert!(s.bytes().all(|b| b.is_ascii_digit()), "non-digit found");
     for (idx, b) in s.bytes().enumerate() {
         out[idx] = b - b'0';
@@ -153,7 +153,7 @@ pub fn split_scientific_literal_parts(s: &str) -> (bool, &str, &str) {
 /// - Should panic on checked overflow while parsing or negating.
 pub fn parse_signed_scientific_exponent_i8(exp_part: &str, whole: &str) -> i8 {
     let (exp_neg, exp_digits) = split_leading_sign(exp_part);
-    assert!(!exp_digits.is_empty(), "invalid scientific literal `{whole}`: empty exponent digits", );
+    assert!(!exp_digits.is_empty(), "invalid scientific literal `{whole}`: empty exponent digits",);
     assert!(
         exp_digits.bytes().all(|b| b.is_ascii_digit()),
         "invalid scientific literal `{whole}`: exponent must be signed digits",
@@ -197,7 +197,7 @@ pub fn split_scientific_mantissa_parts<'a>(mantissa: &'a str, whole: &str) -> (&
 
     let (int_part, frac_part) = match mantissa.split_once('.') {
         Some((i, f)) => {
-            assert!(!f.contains('.'), "invalid scientific literal `{whole}`: multiple `.` in mantissa", );
+            assert!(!f.contains('.'), "invalid scientific literal `{whole}`: multiple `.` in mantissa",);
             (i, f)
         }
         None => (mantissa, ""),
@@ -270,7 +270,7 @@ pub fn decimal_parts_from_coeff_and_point(coeff: &[u8], point: i8, int_out: &mut
         (1, frac_len)
     } else {
         let p = usize::try_from(point).unwrap();
-        assert!(p <= int_out.len(), "integer output buffer too small: need {}, got {}", p, int_out.len(), );
+        assert!(p <= int_out.len(), "integer output buffer too small: need {}, got {}", p, int_out.len(),);
         if p >= coeff.len() {
             int_out[..coeff.len()].copy_from_slice(coeff);
             int_out[coeff.len()..p].fill(0);

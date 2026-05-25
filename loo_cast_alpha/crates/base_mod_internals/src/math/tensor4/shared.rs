@@ -803,9 +803,10 @@ pub trait Tensor4BridgeOps<const A: usize, const B: usize, const C: usize, const
 
 /// Full rank-4 tensor contract.
 pub trait Tensor4Contract<const A: usize, const B: usize, const C: usize, const D: usize>:
-Tensor4CoreOps<A, B, C, D> + Tensor4FieldOps<A, B, C, D> + Tensor4BridgeOps<A, B, C, D>
-{}
-impl<T, const A: usize, const B: usize, const C: usize, const D: usize> Tensor4Contract<A, B, C, D> for T
-where
-    T: Tensor4CoreOps<A, B, C, D> + Tensor4FieldOps<A, B, C, D> + Tensor4BridgeOps<A, B, C, D>,
-{}
+    Tensor4CoreOps<A, B, C, D> + Tensor4FieldOps<A, B, C, D> + Tensor4BridgeOps<A, B, C, D>
+{
+}
+impl<T, const A: usize, const B: usize, const C: usize, const D: usize> Tensor4Contract<A, B, C, D> for T where
+    T: Tensor4CoreOps<A, B, C, D> + Tensor4FieldOps<A, B, C, D> + Tensor4BridgeOps<A, B, C, D>
+{
+}

@@ -136,7 +136,7 @@ impl LauncherUi {
                 downloads_selected,
                 NAV_ICON_SIZE,
             )
-                .on_hover_text("Download Manager");
+            .on_hover_text("Download Manager");
             if downloads_response.clicked() {
                 state.select_download_manager();
             }
@@ -150,7 +150,7 @@ impl LauncherUi {
                 configurator_selected,
                 NAV_ICON_SIZE,
             )
-                .on_hover_text("Modpack Configurator");
+            .on_hover_text("Modpack Configurator");
             if configurator_response.clicked() {
                 state.select_modpack_configurator();
             }

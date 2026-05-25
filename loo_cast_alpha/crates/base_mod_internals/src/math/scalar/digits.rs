@@ -1,4 +1,4 @@
-use super::shared::{ScalarDecimalU8Parts, SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN};
+use super::shared::{SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN, ScalarDecimalU8Parts};
 use base_mod_shared::utils::string::split_leading_sign;
 
 const SCALAR_SHADOW_FRAC_DIGITS_LEN: usize = 9;
@@ -308,11 +308,7 @@ impl ScalarDecimalDigits {
         out
     }
 
-    fn format_decimal_literal_padded(
-        negative: bool,
-        int_digits: &[u8; SCALAR_INT_DIGITS_LEN],
-        frac_digits: &[u8; SCALAR_FRAC_DIGITS_LEN],
-    ) -> String {
+    fn format_decimal_literal_padded(negative: bool, int_digits: &[u8; SCALAR_INT_DIGITS_LEN], frac_digits: &[u8; SCALAR_FRAC_DIGITS_LEN]) -> String {
         let mut out = String::with_capacity((if negative { 1 } else { 0 }) + SCALAR_INT_DIGITS_LEN + 1 + SCALAR_FRAC_DIGITS_LEN);
         if negative {
             out.push('-');

@@ -1,7 +1,7 @@
 pub use super::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
 use super::shared::{
-    FloatType, IntegerType, ScalarCoreOps, ScalarDecimalU8Parts, ScalarFracDigitBuffer, ScalarIntDigitBuffer, ScalarType, SignedIntegerType,
-    UnsignedIntegerType, SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN,
+    FloatType, IntegerType, SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN, ScalarCoreOps, ScalarDecimalU8Parts, ScalarFracDigitBuffer, ScalarIntDigitBuffer,
+    ScalarType, SignedIntegerType, UnsignedIntegerType,
 };
 use crate::math::scalar::digits::ScalarDecimalDigits;
 pub use crate::math::scalar::digits::{DecimalParseError, ScalarParseError, ScientificParseError};

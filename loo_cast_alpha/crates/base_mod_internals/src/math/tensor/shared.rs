@@ -575,7 +575,7 @@ pub trait TensorBridgeOps<const A: usize, const B: usize, const C: usize>: Tenso
 
 /// Full rank-3 tensor contract.
 pub trait TensorContract<const A: usize, const B: usize, const C: usize>: TensorCoreOps<A, B, C> + TensorFieldOps<A, B, C> + TensorBridgeOps<A, B, C> {}
-impl<T, const A: usize, const B: usize, const C: usize> TensorContract<A, B, C> for T
-where
-    T: TensorCoreOps<A, B, C> + TensorFieldOps<A, B, C> + TensorBridgeOps<A, B, C>,
-{}
+impl<T, const A: usize, const B: usize, const C: usize> TensorContract<A, B, C> for T where
+    T: TensorCoreOps<A, B, C> + TensorFieldOps<A, B, C> + TensorBridgeOps<A, B, C>
+{
+}

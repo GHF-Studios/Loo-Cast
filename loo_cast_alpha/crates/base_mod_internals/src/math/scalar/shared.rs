@@ -18,8 +18,8 @@
 //! - Optional `# Panics` section for runtime guard clauses and undefined math states.
 
 use super::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
-pub use super::decimal_parts::{ScalarDecimalU8Parts, ScalarDigitBuffer, ScalarFracDigitBuffer, ScalarIntDigitBuffer};
 pub use super::decimal_parts::{SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN};
+pub use super::decimal_parts::{ScalarDecimalU8Parts, ScalarDigitBuffer, ScalarFracDigitBuffer, ScalarIntDigitBuffer};
 
 /// Base trait for scalar carrier types used by the math sketch.
 pub trait ScalarType: Clone + 'static {}
