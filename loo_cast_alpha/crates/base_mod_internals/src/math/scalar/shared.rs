@@ -19,7 +19,57 @@
 
 use super::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
 pub use super::decimal_parts::{SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN};
-pub use super::decimal_parts::{ScalarDecimalU8Parts, ScalarDigitBuffer, ScalarFracDigitBuffer, ScalarIntDigitBuffer};
+pub use super::decimal_parts::{
+    PublicFlatDigits, PublicFracDigits, PublicIntDigits, ScalarDecimalU8Parts, ScalarDigitBuffer, ScalarFracDigitBuffer, ScalarIntDigitBuffer,
+};
+
+const PUBLIC_DECIMAL_TOTAL_DIGITS_LEN: usize = SCALAR_INT_DIGITS_LEN + SCALAR_FRAC_DIGITS_LEN;
+
+/// Adds two non-negative public magnitudes.
+///
+/// # Panics
+/// - Panics if result does not fit configured integer width.
+fn add_public_decimal_magnitude(lhs: &PublicFlatDigits, rhs: &PublicFlatDigits) -> PublicFlatDigits {
+    let lhs = lhs.as_array();
+    let rhs = rhs.as_array();
+    let mut out = [0_u8; PUBLIC_DECIMAL_TOTAL_DIGITS_LEN];
+    let mut carry: i16 = 0;
+
+    for idx in (0..PUBLIC_DECIMAL_TOTAL_DIGITS_LEN).rev() {
+        let sum = i16::from(lhs[idx]) + i16::from(rhs[idx]) + carry;
+        out[idx] = u8::try_from(sum.rem_euclid(10)).unwrap();
+        carry = sum.div_euclid(10);
+    }
+
+    assert_eq!(carry, 0, "scalar add overflow: integer part exceeds {SCALAR_INT_DIGITS_LEN} digits");
+    PublicFlatDigits::new_checked(out)
+}
+
+/// Subtracts two non-negative public magnitudes (`bigger - smaller`).
+///
+/// # Panics
+/// - Panics if `smaller > bigger`.
+fn sub_public_decimal_magnitude_non_negative(bigger: &PublicFlatDigits, smaller: &PublicFlatDigits) -> PublicFlatDigits {
+    let bigger = bigger.as_array();
+    let smaller = smaller.as_array();
+    let mut out = [0_u8; PUBLIC_DECIMAL_TOTAL_DIGITS_LEN];
+    let mut borrow: i16 = 0;
+
+    for idx in (0..PUBLIC_DECIMAL_TOTAL_DIGITS_LEN).rev() {
+        let lhs = i16::from(bigger[idx]) - borrow;
+        let rhs = i16::from(smaller[idx]);
+        if lhs < rhs {
+            out[idx] = u8::try_from(lhs + 10 - rhs).unwrap();
+            borrow = 1;
+        } else {
+            out[idx] = u8::try_from(lhs - rhs).unwrap();
+            borrow = 0;
+        }
+    }
+
+    assert_eq!(borrow, 0, "scalar add internal borrow underflow");
+    PublicFlatDigits::new_checked(out)
+}
 
 /// Base trait for scalar carrier types used by the math sketch.
 pub trait ScalarType: Clone + 'static {}
@@ -816,101 +866,37 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     fn add(&self, rhs: UsfOrNormalScalar) -> Self {
-        const TOTAL_DIGITS_LEN: usize = SCALAR_INT_DIGITS_LEN + SCALAR_FRAC_DIGITS_LEN;
-
-        /// Flattens fixed-width integer/fractional digit buffers into a single `[int | frac]` buffer.
-        fn flatten_decimal_buffers(int_digits: ScalarIntDigitBuffer, frac_digits: ScalarFracDigitBuffer) -> ScalarDigitBuffer {
-            let mut out = [0_u8; TOTAL_DIGITS_LEN];
-            out[..SCALAR_INT_DIGITS_LEN].copy_from_slice(&int_digits);
-            out[SCALAR_INT_DIGITS_LEN..].copy_from_slice(&frac_digits);
-            out
-        }
-
-        /// Splits a flattened `[int | frac]` buffer back into fixed-width component buffers.
-        fn split_decimal_buffer(digits: ScalarDigitBuffer) -> (ScalarIntDigitBuffer, ScalarFracDigitBuffer) {
-            let mut int_digits = [0_u8; SCALAR_INT_DIGITS_LEN];
-            int_digits.copy_from_slice(&digits[..SCALAR_INT_DIGITS_LEN]);
-
-            let mut frac_digits = [0_u8; SCALAR_FRAC_DIGITS_LEN];
-            frac_digits.copy_from_slice(&digits[SCALAR_INT_DIGITS_LEN..]);
-
-            (int_digits, frac_digits)
-        }
-
-        /// Compares absolute magnitudes represented by flattened decimal buffers.
-        fn cmp_decimal_magnitude(lhs: &ScalarDigitBuffer, rhs: &ScalarDigitBuffer) -> std::cmp::Ordering {
-            lhs.cmp(rhs)
-        }
-
-        /// Adds two non-negative flattened decimal magnitudes.
-        ///
-        /// # Panics
-        /// - Panics if result does not fit configured integer width.
-        fn add_decimal_magnitude(lhs: &ScalarDigitBuffer, rhs: &ScalarDigitBuffer) -> ScalarDigitBuffer {
-            let mut out = [0_u8; TOTAL_DIGITS_LEN];
-            let mut carry: i16 = 0;
-
-            for idx in (0..TOTAL_DIGITS_LEN).rev() {
-                let sum = i16::from(lhs[idx]) + i16::from(rhs[idx]) + carry;
-                out[idx] = u8::try_from(sum.rem_euclid(10)).unwrap();
-                carry = sum.div_euclid(10);
-            }
-
-            assert_eq!(carry, 0, "scalar add overflow: integer part exceeds {SCALAR_INT_DIGITS_LEN} digits");
-
-            out
-        }
-
-        /// Subtracts two non-negative flattened decimal magnitudes (`bigger - smaller`).
-        ///
-        /// # Panics
-        /// - Panics if `smaller > bigger`.
-        fn sub_decimal_magnitude_non_negative(bigger: &ScalarDigitBuffer, smaller: &ScalarDigitBuffer) -> ScalarDigitBuffer {
-            let mut out = [0_u8; TOTAL_DIGITS_LEN];
-            let mut borrow: i16 = 0;
-
-            for idx in (0..TOTAL_DIGITS_LEN).rev() {
-                let lhs = i16::from(bigger[idx]) - borrow;
-                let rhs = i16::from(smaller[idx]);
-                if lhs < rhs {
-                    out[idx] = u8::try_from(lhs + 10 - rhs).unwrap();
-                    borrow = 1;
-                } else {
-                    out[idx] = u8::try_from(lhs - rhs).unwrap();
-                    borrow = 0;
-                }
-            }
-
-            assert_eq!(borrow, 0, "scalar add internal borrow underflow");
-            out
-        }
-
-        let (lhs_negative, lhs_int_digits, lhs_frac_digits, _lhs_radix) = self.to_digits();
-        let (rhs_negative, rhs_int_digits, rhs_frac_digits, _rhs_radix) = match rhs {
+        let (lhs_negative, lhs_int_digits_raw, lhs_frac_digits_raw, _lhs_radix) = self.to_digits();
+        let (rhs_negative, rhs_int_digits_raw, rhs_frac_digits_raw, _rhs_radix) = match rhs {
             UsfOrNormalScalar::A(value) => value.to_digits(),
             UsfOrNormalScalar::B(value) => value.to_digits(),
         };
 
-        let lhs_magnitude = flatten_decimal_buffers(lhs_int_digits, lhs_frac_digits);
-        let rhs_magnitude = flatten_decimal_buffers(rhs_int_digits, rhs_frac_digits);
+        let lhs_int_digits = PublicIntDigits::new_checked(lhs_int_digits_raw);
+        let lhs_frac_digits = PublicFracDigits::new_checked(lhs_frac_digits_raw);
+        let rhs_int_digits = PublicIntDigits::new_checked(rhs_int_digits_raw);
+        let rhs_frac_digits = PublicFracDigits::new_checked(rhs_frac_digits_raw);
+
+        let lhs_magnitude = PublicFlatDigits::from_parts(lhs_int_digits, lhs_frac_digits);
+        let rhs_magnitude = PublicFlatDigits::from_parts(rhs_int_digits, rhs_frac_digits);
 
         let (result_negative, result_magnitude) = if lhs_negative == rhs_negative {
-            (lhs_negative, add_decimal_magnitude(&lhs_magnitude, &rhs_magnitude))
+            (lhs_negative, add_public_decimal_magnitude(&lhs_magnitude, &rhs_magnitude))
         } else {
-            match cmp_decimal_magnitude(&lhs_magnitude, &rhs_magnitude) {
-                std::cmp::Ordering::Greater => (lhs_negative, sub_decimal_magnitude_non_negative(&lhs_magnitude, &rhs_magnitude)),
-                std::cmp::Ordering::Less => (rhs_negative, sub_decimal_magnitude_non_negative(&rhs_magnitude, &lhs_magnitude)),
-                std::cmp::Ordering::Equal => (false, [0_u8; TOTAL_DIGITS_LEN]),
+            match lhs_magnitude.as_array().cmp(rhs_magnitude.as_array()) {
+                std::cmp::Ordering::Greater => (lhs_negative, sub_public_decimal_magnitude_non_negative(&lhs_magnitude, &rhs_magnitude)),
+                std::cmp::Ordering::Less => (rhs_negative, sub_public_decimal_magnitude_non_negative(&rhs_magnitude, &lhs_magnitude)),
+                std::cmp::Ordering::Equal => (false, PublicFlatDigits::new_checked([0_u8; PUBLIC_DECIMAL_TOTAL_DIGITS_LEN])),
             }
         };
 
-        let is_zero = result_magnitude.iter().all(|digit| *digit == 0);
-        let (result_int_digits, result_frac_digits) = split_decimal_buffer(result_magnitude);
+        let is_zero = result_magnitude.as_array().iter().all(|digit| *digit == 0);
+        let (result_int_digits, result_frac_digits) = result_magnitude.split();
 
         Self::from_digits(
             result_negative && !is_zero,
-            result_int_digits,
-            result_frac_digits,
+            result_int_digits.into_array(),
+            result_frac_digits.into_array(),
             ScalarDecimalU8Parts::RADIX_INDEX_MAX,
         )
     }

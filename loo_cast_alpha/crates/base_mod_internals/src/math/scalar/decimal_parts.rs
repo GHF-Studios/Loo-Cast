@@ -14,6 +14,125 @@ pub type ScalarFracDigitBuffer = [u8; SCALAR_FRAC_DIGITS_LEN];
 /// Flattened fixed-width decimal digit buffer (`[int | frac]`).
 pub type ScalarDigitBuffer = [u8; SCALAR_TOTAL_DIGITS_LEN];
 
+/// Public integer decimal digits (`0..=9`) with fixed width and left padding semantics.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(transparent)]
+pub struct PublicIntDigits(ScalarIntDigitBuffer);
+
+impl PublicIntDigits {
+    /// Builds typed public integer digits.
+    ///
+    /// # Panics
+    /// - Panics if any digit is outside `0..=9`.
+    pub fn new_checked(digits: ScalarIntDigitBuffer) -> Self {
+        assert!(
+            digits.iter().all(|d| *d <= 9),
+            "invalid public int digits: all digits must be in 0..=9",
+        );
+        Self(digits)
+    }
+
+    /// Returns canonical all-zero integer digits.
+    pub const fn zero() -> Self {
+        Self([0; SCALAR_INT_DIGITS_LEN])
+    }
+
+    /// Returns inner fixed-width array by reference.
+    pub fn as_array(&self) -> &ScalarIntDigitBuffer {
+        &self.0
+    }
+
+    /// Returns inner fixed-width array by value.
+    pub fn into_array(self) -> ScalarIntDigitBuffer {
+        self.0
+    }
+}
+
+/// Public fractional decimal digits (`0..=9`) with fixed width and right padding semantics.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(transparent)]
+pub struct PublicFracDigits(ScalarFracDigitBuffer);
+
+impl PublicFracDigits {
+    /// Builds typed public fractional digits.
+    ///
+    /// # Panics
+    /// - Panics if any digit is outside `0..=9`.
+    pub fn new_checked(digits: ScalarFracDigitBuffer) -> Self {
+        assert!(
+            digits.iter().all(|d| *d <= 9),
+            "invalid public frac digits: all digits must be in 0..=9",
+        );
+        Self(digits)
+    }
+
+    /// Returns canonical all-zero fractional digits.
+    pub const fn zero() -> Self {
+        Self([0; SCALAR_FRAC_DIGITS_LEN])
+    }
+
+    /// Returns inner fixed-width array by reference.
+    pub fn as_array(&self) -> &ScalarFracDigitBuffer {
+        &self.0
+    }
+
+    /// Returns inner fixed-width array by value.
+    pub fn into_array(self) -> ScalarFracDigitBuffer {
+        self.0
+    }
+}
+
+/// Flattened public decimal digit buffer (`[int | frac]`) preserving fixed-width layout.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(transparent)]
+pub struct PublicFlatDigits(ScalarDigitBuffer);
+
+impl PublicFlatDigits {
+    /// Builds typed flattened public digits.
+    ///
+    /// # Panics
+    /// - Panics if any digit is outside `0..=9`.
+    pub fn new_checked(digits: ScalarDigitBuffer) -> Self {
+        assert!(
+            digits.iter().all(|d| *d <= 9),
+            "invalid public flat digits: all digits must be in 0..=9",
+        );
+        Self(digits)
+    }
+
+    /// Builds flattened public digits from typed integer/fractional components.
+    pub fn from_parts(int_digits: PublicIntDigits, frac_digits: PublicFracDigits) -> Self {
+        let mut out = [0_u8; SCALAR_TOTAL_DIGITS_LEN];
+        out[..SCALAR_INT_DIGITS_LEN].copy_from_slice(int_digits.as_array());
+        out[SCALAR_INT_DIGITS_LEN..].copy_from_slice(frac_digits.as_array());
+        Self(out)
+    }
+
+    /// Splits flattened public digits into typed integer/fractional components.
+    pub fn split(self) -> (PublicIntDigits, PublicFracDigits) {
+        let mut int_digits = [0_u8; SCALAR_INT_DIGITS_LEN];
+        int_digits.copy_from_slice(&self.0[..SCALAR_INT_DIGITS_LEN]);
+
+        let mut frac_digits = [0_u8; SCALAR_FRAC_DIGITS_LEN];
+        frac_digits.copy_from_slice(&self.0[SCALAR_INT_DIGITS_LEN..]);
+
+        (
+            PublicIntDigits::new_checked(int_digits),
+            PublicFracDigits::new_checked(frac_digits),
+        )
+    }
+
+    /// Returns inner fixed-width array by reference.
+    pub fn as_array(&self) -> &ScalarDigitBuffer {
+        &self.0
+    }
+
+    /// Returns inner fixed-width array by value.
+    pub fn into_array(self) -> ScalarDigitBuffer {
+        self.0
+    }
+}
+
 /// Fixed-width decimal parts bridge used by scalar constructors and exporters.
 ///
 /// # Invariants
@@ -204,5 +323,82 @@ impl ScalarDecimalU8Parts {
         let mut normalized = *self;
         normalized.normalize_in_place();
         assert_eq!(normalized, *self, "invalid decimal parts: value is non-canonical or violates invariants",);
+    }
+}
+
+/// Marker wrapper for canonical decimal parts (validated by `assert_valid`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(transparent)]
+pub struct CanonicalDecimalParts(ScalarDecimalU8Parts);
+
+impl CanonicalDecimalParts {
+    /// Builds canonical decimal-parts wrapper after re-validating invariants.
+    pub fn new_checked(parts: ScalarDecimalU8Parts) -> Self {
+        parts.assert_valid();
+        Self(parts)
+    }
+
+    /// Returns wrapped canonical decimal parts.
+    pub fn into_inner(self) -> ScalarDecimalU8Parts {
+        self.0
+    }
+
+    /// Returns wrapped canonical decimal parts by reference.
+    pub fn as_inner(&self) -> &ScalarDecimalU8Parts {
+        &self.0
+    }
+}
+
+/// Marker wrapper for non-zero canonical decimal parts.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(transparent)]
+pub struct NonZeroDecimalParts(ScalarDecimalU8Parts);
+
+impl NonZeroDecimalParts {
+    /// Attempts to build non-zero decimal-parts wrapper.
+    pub fn try_new(parts: ScalarDecimalU8Parts) -> Option<Self> {
+        parts.assert_valid();
+        let is_zero = parts.int_digits().iter().all(|d| *d == 0) && parts.frac_end_index() == 0;
+        if is_zero {
+            None
+        } else {
+            Some(Self(parts))
+        }
+    }
+
+    /// Returns wrapped non-zero decimal parts.
+    pub fn into_inner(self) -> ScalarDecimalU8Parts {
+        self.0
+    }
+
+    /// Returns wrapped non-zero decimal parts by reference.
+    pub fn as_inner(&self) -> &ScalarDecimalU8Parts {
+        &self.0
+    }
+}
+
+/// Marker wrapper for positive canonical decimal parts (`> 0`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(transparent)]
+pub struct PositiveDecimalParts(ScalarDecimalU8Parts);
+
+impl PositiveDecimalParts {
+    /// Attempts to build positive decimal-parts wrapper.
+    pub fn try_new(parts: ScalarDecimalU8Parts) -> Option<Self> {
+        parts.assert_valid();
+        if parts.negative() {
+            return None;
+        }
+        NonZeroDecimalParts::try_new(parts).map(|nz| Self(nz.into_inner()))
+    }
+
+    /// Returns wrapped positive decimal parts.
+    pub fn into_inner(self) -> ScalarDecimalU8Parts {
+        self.0
+    }
+
+    /// Returns wrapped positive decimal parts by reference.
+    pub fn as_inner(&self) -> &ScalarDecimalU8Parts {
+        &self.0
     }
 }
