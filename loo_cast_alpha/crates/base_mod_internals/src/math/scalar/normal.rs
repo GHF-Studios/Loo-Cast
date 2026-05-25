@@ -65,6 +65,58 @@ impl super::shared::ScalarCoreOps for NormalScalar {
     fn to_digits(&self) -> (bool, super::shared::ScalarIntDigitBuffer, super::shared::ScalarFracDigitBuffer, i8) {
         todo!()
     }
+
+    fn exp(&self) -> Self {
+        todo!()
+    }
+
+    fn exp2(&self) -> Self {
+        todo!()
+    }
+
+    fn exp10(&self) -> Self {
+        todo!()
+    }
+
+    fn ln(&self) -> Self {
+        todo!()
+    }
+
+    fn log2(&self) -> Self {
+        todo!()
+    }
+
+    fn log10(&self) -> Self {
+        todo!()
+    }
+
+    fn log(&self, _base: super::aliases::UsfOrNormalScalar) -> Self {
+        todo!()
+    }
+
+    fn add(&self, _rhs: super::aliases::UsfOrNormalScalar) -> Self {
+        todo!()
+    }
+
+    fn sub(&self, _rhs: super::aliases::UsfOrNormalScalar) -> Self {
+        todo!()
+    }
+
+    fn mul(&self, _rhs: super::aliases::UsfOrNormalScalar) -> Self {
+        todo!()
+    }
+
+    fn div(&self, _rhs: super::aliases::UsfOrNormalScalar) -> Self {
+        todo!()
+    }
+
+    fn rem(&self, _rhs: super::aliases::UsfOrNormalScalar) -> Self {
+        todo!()
+    }
+
+    fn pow(&self, _rhs: super::aliases::UsfOrNormalScalar) -> Self {
+        todo!()
+    }
 }
 impl super::shared::ScalarFieldOps for NormalScalar {}
 impl super::shared::ScalarBridgeOps for NormalScalar {}
@@ -96,6 +148,58 @@ impl super::shared::ScalarCoreOps for NormalFractionalScalar {
     }
 
     fn to_digits(&self) -> (bool, super::shared::ScalarIntDigitBuffer, super::shared::ScalarFracDigitBuffer, i8) {
+        todo!()
+    }
+
+    fn exp(&self) -> Self {
+        todo!()
+    }
+
+    fn exp2(&self) -> Self {
+        todo!()
+    }
+
+    fn exp10(&self) -> Self {
+        todo!()
+    }
+
+    fn ln(&self) -> Self {
+        todo!()
+    }
+
+    fn log2(&self) -> Self {
+        todo!()
+    }
+
+    fn log10(&self) -> Self {
+        todo!()
+    }
+
+    fn log(&self, _base: super::aliases::UsfOrNormalScalar) -> Self {
+        todo!()
+    }
+
+    fn add(&self, _rhs: super::aliases::UsfOrNormalScalar) -> Self {
+        todo!()
+    }
+
+    fn sub(&self, _rhs: super::aliases::UsfOrNormalScalar) -> Self {
+        todo!()
+    }
+
+    fn mul(&self, _rhs: super::aliases::UsfOrNormalScalar) -> Self {
+        todo!()
+    }
+
+    fn div(&self, _rhs: super::aliases::UsfOrNormalScalar) -> Self {
+        todo!()
+    }
+
+    fn rem(&self, _rhs: super::aliases::UsfOrNormalScalar) -> Self {
+        todo!()
+    }
+
+    fn pow(&self, _rhs: super::aliases::UsfOrNormalScalar) -> Self {
         todo!()
     }
 }

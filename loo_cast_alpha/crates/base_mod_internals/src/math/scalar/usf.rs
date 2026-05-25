@@ -1,7 +1,7 @@
 pub use super::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
 use super::shared::{
-    FloatType, IntegerType, SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN, ScalarCoreOps, ScalarDecimalU8Parts, ScalarFracDigitBuffer, ScalarIntDigitBuffer,
-    ScalarType, SignedIntegerType, UnsignedIntegerType,
+    FloatType, IntegerType, PublicFlatDigits, PublicFracDigits, PublicIntDigits, SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN, ScalarCoreOps,
+    ScalarDecimalU8Parts, ScalarFracDigitBuffer, ScalarIntDigitBuffer, ScalarType, SignedIntegerType, UnsignedIntegerType,
 };
 use crate::math::scalar::digits::ScalarDecimalDigits;
 pub use crate::math::scalar::digits::{DecimalParseError, ScalarParseError, ScientificParseError};
@@ -256,6 +256,122 @@ impl super::shared::ScalarCoreOps for UsfScalar {
         self.digits.assert_invariants();
         let parts = self.digits.to_decimal_u8_parts();
         (parts.negative(), *parts.int_digits(), *parts.frac_digits(), parts.radix_index())
+    }
+
+    fn exp(&self) -> Self {
+        todo!()
+    }
+
+    fn exp2(&self) -> Self {
+        todo!()
+    }
+
+    fn exp10(&self) -> Self {
+        todo!()
+    }
+
+    fn ln(&self) -> Self {
+        todo!()
+    }
+
+    fn log2(&self) -> Self {
+        todo!()
+    }
+
+    fn log10(&self) -> Self {
+        todo!()
+    }
+
+    fn log(&self, _base: UsfOrNormalScalar) -> Self {
+        todo!()
+    }
+
+    fn add(&self, rhs: UsfOrNormalScalar) -> Self {
+        let (lhs_negative, lhs_int_digits_raw, lhs_frac_digits_raw, _lhs_radix) = self.to_digits();
+        let (rhs_negative, rhs_int_digits_raw, rhs_frac_digits_raw, _rhs_radix) = match rhs {
+            UsfOrNormalScalar::A(value) => value.to_digits(),
+            UsfOrNormalScalar::B(value) => value.to_digits(),
+        };
+
+        let lhs_int_digits = PublicIntDigits::new_checked(lhs_int_digits_raw);
+        let lhs_frac_digits = PublicFracDigits::new_checked(lhs_frac_digits_raw);
+        let rhs_int_digits = PublicIntDigits::new_checked(rhs_int_digits_raw);
+        let rhs_frac_digits = PublicFracDigits::new_checked(rhs_frac_digits_raw);
+
+        let lhs_magnitude = PublicFlatDigits::from_parts(lhs_int_digits, lhs_frac_digits);
+        let rhs_magnitude = PublicFlatDigits::from_parts(rhs_int_digits, rhs_frac_digits);
+
+        let (result_negative, result_magnitude) = if lhs_negative == rhs_negative {
+            (lhs_negative, lhs_magnitude + rhs_magnitude)
+        } else {
+            match lhs_magnitude.as_array().cmp(rhs_magnitude.as_array()) {
+                std::cmp::Ordering::Greater => (lhs_negative, lhs_magnitude - rhs_magnitude),
+                std::cmp::Ordering::Less => (rhs_negative, rhs_magnitude - lhs_magnitude),
+                std::cmp::Ordering::Equal => (false, PublicFlatDigits::zero()),
+            }
+        };
+
+        let is_zero = result_magnitude.is_zero();
+        let (result_int_digits, result_frac_digits) = result_magnitude.split();
+
+        Self::from_digits(
+            result_negative && !is_zero,
+            result_int_digits.into_array(),
+            result_frac_digits.into_array(),
+            ScalarDecimalU8Parts::RADIX_INDEX_MAX,
+        )
+    }
+
+    fn sub(&self, rhs: UsfOrNormalScalar) -> Self {
+        let (lhs_negative, lhs_int_digits_raw, lhs_frac_digits_raw, _lhs_radix) = self.to_digits();
+        let (rhs_negative, rhs_int_digits_raw, rhs_frac_digits_raw, _rhs_radix) = match rhs {
+            UsfOrNormalScalar::A(value) => value.to_digits(),
+            UsfOrNormalScalar::B(value) => value.to_digits(),
+        };
+
+        let lhs_int_digits = PublicIntDigits::new_checked(lhs_int_digits_raw);
+        let lhs_frac_digits = PublicFracDigits::new_checked(lhs_frac_digits_raw);
+        let rhs_int_digits = PublicIntDigits::new_checked(rhs_int_digits_raw);
+        let rhs_frac_digits = PublicFracDigits::new_checked(rhs_frac_digits_raw);
+
+        let lhs_magnitude = PublicFlatDigits::from_parts(lhs_int_digits, lhs_frac_digits);
+        let rhs_magnitude = PublicFlatDigits::from_parts(rhs_int_digits, rhs_frac_digits);
+
+        let (result_negative, result_magnitude) = if lhs_negative != rhs_negative {
+            (lhs_negative, lhs_magnitude + rhs_magnitude)
+        } else {
+            match lhs_magnitude.as_array().cmp(rhs_magnitude.as_array()) {
+                std::cmp::Ordering::Greater => (lhs_negative, lhs_magnitude - rhs_magnitude),
+                std::cmp::Ordering::Less => (!lhs_negative, rhs_magnitude - lhs_magnitude),
+                std::cmp::Ordering::Equal => (false, PublicFlatDigits::zero()),
+            }
+        };
+
+        let is_zero = result_magnitude.is_zero();
+        let (result_int_digits, result_frac_digits) = result_magnitude.split();
+
+        Self::from_digits(
+            result_negative && !is_zero,
+            result_int_digits.into_array(),
+            result_frac_digits.into_array(),
+            ScalarDecimalU8Parts::RADIX_INDEX_MAX,
+        )
+    }
+
+    fn mul(&self, _rhs: UsfOrNormalScalar) -> Self {
+        todo!()
+    }
+
+    fn div(&self, _rhs: UsfOrNormalScalar) -> Self {
+        todo!()
+    }
+
+    fn rem(&self, _rhs: UsfOrNormalScalar) -> Self {
+        todo!()
+    }
+
+    fn pow(&self, _rhs: UsfOrNormalScalar) -> Self {
+        todo!()
     }
 }
 impl super::shared::ScalarFieldOps for UsfScalar {}

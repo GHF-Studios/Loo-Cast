@@ -302,7 +302,6 @@ mod tests {
         }
 
         #[test]
-        #[ignore = "ScalarCoreOps::sub is still todo!()"]
         fn usf_scalar_sub_identity_test() {
             let (a, _, _) = additive_law_samples();
             let zero = UsfScalar::zero();
@@ -312,7 +311,6 @@ mod tests {
         }
 
         #[test]
-        #[ignore = "ScalarCoreOps::sub is still todo!()"]
         fn usf_scalar_sub_self_zero_test() {
             let (a, _, _) = additive_law_samples();
             let zero = UsfScalar::zero();
@@ -408,7 +406,6 @@ mod tests {
         }
 
         #[test]
-        #[ignore = "ScalarCoreOps::sub is still todo!()"]
         fn usf_scalar_sub_randomized_stress_test() {
             let values = random_add_sub_values(0xADDD_0002, 24);
             for a in &values {

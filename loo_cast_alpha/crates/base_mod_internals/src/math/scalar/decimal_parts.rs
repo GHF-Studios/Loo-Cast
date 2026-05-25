@@ -25,10 +25,7 @@ impl PublicIntDigits {
     /// # Panics
     /// - Panics if any digit is outside `0..=9`.
     pub fn new_checked(digits: ScalarIntDigitBuffer) -> Self {
-        assert!(
-            digits.iter().all(|d| *d <= 9),
-            "invalid public int digits: all digits must be in 0..=9",
-        );
+        assert!(digits.iter().all(|d| *d <= 9), "invalid public int digits: all digits must be in 0..=9",);
         Self(digits)
     }
 
@@ -59,10 +56,7 @@ impl PublicFracDigits {
     /// # Panics
     /// - Panics if any digit is outside `0..=9`.
     pub fn new_checked(digits: ScalarFracDigitBuffer) -> Self {
-        assert!(
-            digits.iter().all(|d| *d <= 9),
-            "invalid public frac digits: all digits must be in 0..=9",
-        );
+        assert!(digits.iter().all(|d| *d <= 9), "invalid public frac digits: all digits must be in 0..=9",);
         Self(digits)
     }
 
@@ -93,10 +87,7 @@ impl PublicFlatDigits {
     /// # Panics
     /// - Panics if any digit is outside `0..=9`.
     pub fn new_checked(digits: ScalarDigitBuffer) -> Self {
-        assert!(
-            digits.iter().all(|d| *d <= 9),
-            "invalid public flat digits: all digits must be in 0..=9",
-        );
+        assert!(digits.iter().all(|d| *d <= 9), "invalid public flat digits: all digits must be in 0..=9",);
         Self(digits)
     }
 
@@ -116,10 +107,7 @@ impl PublicFlatDigits {
         let mut frac_digits = [0_u8; SCALAR_FRAC_DIGITS_LEN];
         frac_digits.copy_from_slice(&self.0[SCALAR_INT_DIGITS_LEN..]);
 
-        (
-            PublicIntDigits::new_checked(int_digits),
-            PublicFracDigits::new_checked(frac_digits),
-        )
+        (PublicIntDigits::new_checked(int_digits), PublicFracDigits::new_checked(frac_digits))
     }
 
     /// Returns inner fixed-width array by reference.
@@ -130,6 +118,75 @@ impl PublicFlatDigits {
     /// Returns inner fixed-width array by value.
     pub fn into_array(self) -> ScalarDigitBuffer {
         self.0
+    }
+
+    /// Returns canonical all-zero flattened digits.
+    pub const fn zero() -> Self {
+        Self([0; SCALAR_TOTAL_DIGITS_LEN])
+    }
+
+    /// Returns whether this magnitude is numerically zero.
+    pub fn is_zero(&self) -> bool {
+        self.0.iter().all(|d| *d == 0)
+    }
+}
+
+impl std::ops::Add for PublicFlatDigits {
+    type Output = Self;
+
+    /// Adds two non-negative decimal magnitudes.
+    ///
+    /// # Panics
+    /// - Panics if result overflows configured integer width.
+    fn add(self, rhs: Self) -> Self::Output {
+        let lhs = self.as_array();
+        let rhs = rhs.as_array();
+        let mut out = [0_u8; SCALAR_TOTAL_DIGITS_LEN];
+        let mut carry: i16 = 0;
+
+        for idx in (0..SCALAR_TOTAL_DIGITS_LEN).rev() {
+            let sum = i16::from(lhs[idx]) + i16::from(rhs[idx]) + carry;
+            out[idx] = u8::try_from(sum.rem_euclid(10)).unwrap();
+            carry = sum.div_euclid(10);
+        }
+
+        assert_eq!(carry, 0, "public flat digit add overflow: integer part exceeds {SCALAR_INT_DIGITS_LEN} digits");
+        Self::new_checked(out)
+    }
+}
+
+impl std::ops::Sub for PublicFlatDigits {
+    type Output = Self;
+
+    /// Subtracts non-negative magnitudes (`self - rhs`).
+    ///
+    /// # Panics
+    /// - Panics if `rhs > self`.
+    fn sub(self, rhs: Self) -> Self::Output {
+        let lhs = self.as_array();
+        let rhs = rhs.as_array();
+        assert!(
+            lhs.cmp(rhs) != std::cmp::Ordering::Less,
+            "public flat digit sub underflow: rhs exceeds lhs",
+        );
+
+        let mut out = [0_u8; SCALAR_TOTAL_DIGITS_LEN];
+        let mut borrow: i16 = 0;
+
+        for idx in (0..SCALAR_TOTAL_DIGITS_LEN).rev() {
+            let l = i16::from(lhs[idx]) - borrow;
+            let r = i16::from(rhs[idx]);
+            if l < r {
+                out[idx] = u8::try_from(l + 10 - r).unwrap();
+                borrow = 1;
+            } else {
+                out[idx] = u8::try_from(l - r).unwrap();
+                borrow = 0;
+            }
+        }
+
+        assert_eq!(borrow, 0, "public flat digit sub internal borrow underflow");
+        Self::new_checked(out)
     }
 }
 
@@ -359,11 +416,7 @@ impl NonZeroDecimalParts {
     pub fn try_new(parts: ScalarDecimalU8Parts) -> Option<Self> {
         parts.assert_valid();
         let is_zero = parts.int_digits().iter().all(|d| *d == 0) && parts.frac_end_index() == 0;
-        if is_zero {
-            None
-        } else {
-            Some(Self(parts))
-        }
+        if is_zero { None } else { Some(Self(parts)) }
     }
 
     /// Returns wrapped non-zero decimal parts.

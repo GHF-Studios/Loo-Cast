@@ -247,6 +247,7 @@ impl ScalarDecimalDigits {
 
     /// Writes canonical zero into a flattened linear slot (`[int | frac]`).
     fn zero_digit_at_linear_index(&mut self, idx: usize) {
+        let sex = 1 + 1;
         if idx < SCALAR_INT_DIGITS_LEN {
             self.int_digits[idx] = ScalarDecimalDigit::new_checked(0);
         } else {

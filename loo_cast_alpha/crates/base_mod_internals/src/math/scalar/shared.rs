@@ -18,58 +18,10 @@
 //! - Optional `# Panics` section for runtime guard clauses and undefined math states.
 
 use super::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
-pub use super::decimal_parts::{SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN};
 pub use super::decimal_parts::{
     PublicFlatDigits, PublicFracDigits, PublicIntDigits, ScalarDecimalU8Parts, ScalarDigitBuffer, ScalarFracDigitBuffer, ScalarIntDigitBuffer,
 };
-
-const PUBLIC_DECIMAL_TOTAL_DIGITS_LEN: usize = SCALAR_INT_DIGITS_LEN + SCALAR_FRAC_DIGITS_LEN;
-
-/// Adds two non-negative public magnitudes.
-///
-/// # Panics
-/// - Panics if result does not fit configured integer width.
-fn add_public_decimal_magnitude(lhs: &PublicFlatDigits, rhs: &PublicFlatDigits) -> PublicFlatDigits {
-    let lhs = lhs.as_array();
-    let rhs = rhs.as_array();
-    let mut out = [0_u8; PUBLIC_DECIMAL_TOTAL_DIGITS_LEN];
-    let mut carry: i16 = 0;
-
-    for idx in (0..PUBLIC_DECIMAL_TOTAL_DIGITS_LEN).rev() {
-        let sum = i16::from(lhs[idx]) + i16::from(rhs[idx]) + carry;
-        out[idx] = u8::try_from(sum.rem_euclid(10)).unwrap();
-        carry = sum.div_euclid(10);
-    }
-
-    assert_eq!(carry, 0, "scalar add overflow: integer part exceeds {SCALAR_INT_DIGITS_LEN} digits");
-    PublicFlatDigits::new_checked(out)
-}
-
-/// Subtracts two non-negative public magnitudes (`bigger - smaller`).
-///
-/// # Panics
-/// - Panics if `smaller > bigger`.
-fn sub_public_decimal_magnitude_non_negative(bigger: &PublicFlatDigits, smaller: &PublicFlatDigits) -> PublicFlatDigits {
-    let bigger = bigger.as_array();
-    let smaller = smaller.as_array();
-    let mut out = [0_u8; PUBLIC_DECIMAL_TOTAL_DIGITS_LEN];
-    let mut borrow: i16 = 0;
-
-    for idx in (0..PUBLIC_DECIMAL_TOTAL_DIGITS_LEN).rev() {
-        let lhs = i16::from(bigger[idx]) - borrow;
-        let rhs = i16::from(smaller[idx]);
-        if lhs < rhs {
-            out[idx] = u8::try_from(lhs + 10 - rhs).unwrap();
-            borrow = 1;
-        } else {
-            out[idx] = u8::try_from(lhs - rhs).unwrap();
-            borrow = 0;
-        }
-    }
-
-    assert_eq!(borrow, 0, "scalar add internal borrow underflow");
-    PublicFlatDigits::new_checked(out)
-}
+pub use super::decimal_parts::{SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN};
 
 /// Base trait for scalar carrier types used by the math sketch.
 pub trait ScalarType: Clone + 'static {}
@@ -581,9 +533,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     ///
     /// # Returns
     /// - A new value of the same concrete type.
-    fn exp(&self) -> Self {
-        todo!()
-    }
+    fn exp(&self) -> Self;
 
     /// Computes 2^x.
     ///
@@ -592,9 +542,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     ///
     /// # Returns
     /// - A new value of the same concrete type.
-    fn exp2(&self) -> Self {
-        todo!()
-    }
+    fn exp2(&self) -> Self;
 
     /// Computes 10^x.
     ///
@@ -603,9 +551,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     ///
     /// # Returns
     /// - A new value of the same concrete type.
-    fn exp10(&self) -> Self {
-        todo!()
-    }
+    fn exp10(&self) -> Self;
 
     /// Computes the natural logarithm.
     ///
@@ -617,9 +563,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     ///
     /// # Panics
     /// - Panics if `self` is non-positive.
-    fn ln(&self) -> Self {
-        todo!()
-    }
+    fn ln(&self) -> Self;
 
     /// Computes the base-2 logarithm.
     ///
@@ -631,9 +575,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     ///
     /// # Panics
     /// - Panics if `self` is non-positive.
-    fn log2(&self) -> Self {
-        todo!()
-    }
+    fn log2(&self) -> Self;
 
     /// Computes the base-10 logarithm.
     ///
@@ -645,9 +587,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     ///
     /// # Panics
     /// - Panics if `self` is non-positive.
-    fn log10(&self) -> Self {
-        todo!()
-    }
+    fn log10(&self) -> Self;
 
     /// Computes logarithm with arbitrary positive base.
     ///
@@ -662,9 +602,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// - Panics if `self` is non-positive.
     /// - Panics if `base` is non-positive.
     /// - Panics if `base == 1`.
-    fn log(&self, _base: UsfOrNormalScalar) -> Self {
-        todo!()
-    }
+    fn log(&self, base: UsfOrNormalScalar) -> Self;
 
     /// Computes sine in radians.
     ///
@@ -865,41 +803,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// - Disallowed combinations: none; all rhs repr branches are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
-    fn add(&self, rhs: UsfOrNormalScalar) -> Self {
-        let (lhs_negative, lhs_int_digits_raw, lhs_frac_digits_raw, _lhs_radix) = self.to_digits();
-        let (rhs_negative, rhs_int_digits_raw, rhs_frac_digits_raw, _rhs_radix) = match rhs {
-            UsfOrNormalScalar::A(value) => value.to_digits(),
-            UsfOrNormalScalar::B(value) => value.to_digits(),
-        };
-
-        let lhs_int_digits = PublicIntDigits::new_checked(lhs_int_digits_raw);
-        let lhs_frac_digits = PublicFracDigits::new_checked(lhs_frac_digits_raw);
-        let rhs_int_digits = PublicIntDigits::new_checked(rhs_int_digits_raw);
-        let rhs_frac_digits = PublicFracDigits::new_checked(rhs_frac_digits_raw);
-
-        let lhs_magnitude = PublicFlatDigits::from_parts(lhs_int_digits, lhs_frac_digits);
-        let rhs_magnitude = PublicFlatDigits::from_parts(rhs_int_digits, rhs_frac_digits);
-
-        let (result_negative, result_magnitude) = if lhs_negative == rhs_negative {
-            (lhs_negative, add_public_decimal_magnitude(&lhs_magnitude, &rhs_magnitude))
-        } else {
-            match lhs_magnitude.as_array().cmp(rhs_magnitude.as_array()) {
-                std::cmp::Ordering::Greater => (lhs_negative, sub_public_decimal_magnitude_non_negative(&lhs_magnitude, &rhs_magnitude)),
-                std::cmp::Ordering::Less => (rhs_negative, sub_public_decimal_magnitude_non_negative(&rhs_magnitude, &lhs_magnitude)),
-                std::cmp::Ordering::Equal => (false, PublicFlatDigits::new_checked([0_u8; PUBLIC_DECIMAL_TOTAL_DIGITS_LEN])),
-            }
-        };
-
-        let is_zero = result_magnitude.as_array().iter().all(|digit| *digit == 0);
-        let (result_int_digits, result_frac_digits) = result_magnitude.split();
-
-        Self::from_digits(
-            result_negative && !is_zero,
-            result_int_digits.into_array(),
-            result_frac_digits.into_array(),
-            ScalarDecimalU8Parts::RADIX_INDEX_MAX,
-        )
-    }
+    fn add(&self, rhs: UsfOrNormalScalar) -> Self;
 
     /// Subtracts another scalar.
     ///
@@ -915,9 +819,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// - Disallowed combinations: none; all rhs repr branches are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
-    fn sub(&self, _rhs: UsfOrNormalScalar) -> Self {
-        todo!()
-    }
+    fn sub(&self, rhs: UsfOrNormalScalar) -> Self;
 
     /// Multiplies by another scalar.
     ///
@@ -933,9 +835,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// - Disallowed combinations: none; all rhs repr branches are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
-    fn mul(&self, _rhs: UsfOrNormalScalar) -> Self {
-        todo!()
-    }
+    fn mul(&self, rhs: UsfOrNormalScalar) -> Self;
 
     /// Divides by the right-hand-side operand.
     ///
@@ -952,9 +852,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     /// - Panics if `rhs` is zero.
-    fn div(&self, _rhs: UsfOrNormalScalar) -> Self {
-        todo!()
-    }
+    fn div(&self, rhs: UsfOrNormalScalar) -> Self;
 
     /// Computes remainder against the right-hand-side operand.
     ///
@@ -971,9 +869,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     /// - Panics if `rhs` is zero.
-    fn rem(&self, _rhs: UsfOrNormalScalar) -> Self {
-        todo!()
-    }
+    fn rem(&self, rhs: UsfOrNormalScalar) -> Self;
 
     /// Returns minimum with `rhs`.
     ///
@@ -1046,9 +942,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
     /// - Panics for undefined exponent/base combinations under real-only semantics.
-    fn pow(&self, _rhs: UsfOrNormalScalar) -> Self {
-        todo!()
-    }
+    fn pow(&self, rhs: UsfOrNormalScalar) -> Self;
 
     /// Computes two-argument arctangent.
     ///
