@@ -1,9 +1,11 @@
 use super::super::field::Field;
 
+/// General-purpose scalar wrapper around heterogeneous primitive numeric reprs.
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 #[repr(transparent)]
 pub struct NormalScalar(pub Field<NormalScalarRepr>);
 
+/// Primitive representation variants for [`NormalScalar`].
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub enum NormalScalarRepr {
     I8(i8),
@@ -22,10 +24,12 @@ pub enum NormalScalarRepr {
     F64(f64),
 }
 
+/// Fractional-only scalar wrapper around float reprs.
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 #[repr(transparent)]
 pub struct NormalFractionalScalar(pub Field<NormalFractionalScalarRepr>);
 
+/// Primitive representation variants for [`NormalFractionalScalar`].
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub enum NormalFractionalScalarRepr {
     F32(f32),

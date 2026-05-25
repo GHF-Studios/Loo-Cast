@@ -1,11 +1,17 @@
 //! Canonical fixed-width decimal part buffers and invariants shared by scalar modules.
 
+/// Fixed integer-digit width used by scalar decimal parts.
 pub const SCALAR_INT_DIGITS_LEN: usize = 36;
+/// Fixed public fractional-digit width used by scalar decimal parts.
 pub const SCALAR_FRAC_DIGITS_LEN: usize = 35;
+/// Total public digit width (`integer + fractional`).
 pub const SCALAR_TOTAL_DIGITS_LEN: usize = SCALAR_INT_DIGITS_LEN + SCALAR_FRAC_DIGITS_LEN;
 
+/// Fixed-width integer digit buffer (`0..=9`, big-endian, left-padded).
 pub type ScalarIntDigitBuffer = [u8; SCALAR_INT_DIGITS_LEN];
+/// Fixed-width fractional digit buffer (`0..=9`, big-endian, right-padded).
 pub type ScalarFracDigitBuffer = [u8; SCALAR_FRAC_DIGITS_LEN];
+/// Flattened fixed-width decimal digit buffer (`[int | frac]`).
 pub type ScalarDigitBuffer = [u8; SCALAR_TOTAL_DIGITS_LEN];
 
 /// Fixed-width decimal parts bridge used by scalar constructors and exporters.
@@ -29,7 +35,9 @@ pub struct ScalarDecimalU8Parts {
 }
 
 impl ScalarDecimalU8Parts {
+    /// Smallest valid radix index (`integer LSD`).
     pub const RADIX_INDEX_MIN: i8 = (SCALAR_INT_DIGITS_LEN as i8) - 1;
+    /// Largest valid radix index (`fractional LSD`).
     pub const RADIX_INDEX_MAX: i8 = (SCALAR_TOTAL_DIGITS_LEN as i8) - 1;
 
     /// Returns canonical zero.
@@ -125,49 +133,60 @@ impl ScalarDecimalU8Parts {
         out
     }
 
+    /// Returns normalized sign flag.
     pub fn negative(&self) -> bool {
         self.negative
     }
 
+    /// Returns fixed-width integer digits.
     pub fn int_digits(&self) -> &ScalarIntDigitBuffer {
         &self.int_digits
     }
 
+    /// Returns fixed-width fractional digits.
     pub fn frac_digits(&self) -> &ScalarFracDigitBuffer {
         &self.frac_digits
     }
 
+    /// Returns canonical radix index.
     pub fn radix_index(&self) -> i8 {
         self.radix_index
     }
 
+    /// Returns decimal-point index in flattened storage.
     pub fn decimal_point_index(&self) -> i8 {
         Self::RADIX_INDEX_MIN
     }
 
+    /// Returns index of first meaningful integer digit.
     pub fn int_start_index(&self) -> usize {
         self.int_start_index
     }
 
+    /// Returns one-past-last meaningful fractional digit.
     pub fn frac_end_index(&self) -> usize {
         self.frac_end_index
     }
 
+    /// Updates sign and re-normalizes metadata.
     pub fn set_negative_checked(&mut self, negative: bool) {
         self.negative = negative;
         self.normalize_in_place();
     }
 
+    /// Updates integer digits and re-normalizes metadata.
     pub fn set_int_digits_checked(&mut self, int_digits: ScalarIntDigitBuffer) {
         self.int_digits = int_digits;
         self.normalize_in_place();
     }
 
+    /// Updates fractional digits and re-normalizes metadata.
     pub fn set_frac_digits_checked(&mut self, frac_digits: ScalarFracDigitBuffer) {
         self.frac_digits = frac_digits;
         self.normalize_in_place();
     }
 
+    /// Updates radix index and re-normalizes metadata.
     pub fn set_radix_index_checked(&mut self, radix_index: i8) {
         self.radix_index = radix_index;
         self.normalize_in_place();

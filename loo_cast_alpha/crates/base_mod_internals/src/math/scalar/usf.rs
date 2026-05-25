@@ -8,6 +8,7 @@ pub use crate::math::scalar::digits::{DecimalParseError, ScalarParseError, Scien
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct UsfScalar {
+    /// Canonical balanced-digit carrier for this scalar value.
     pub digits: ScalarDecimalDigits,
 }
 
@@ -16,7 +17,7 @@ impl UsfScalar {
         <Self as ScalarCoreOps>::from_digits(negative, int_digits, frac_digits, radix_index)
     }
 
-    /// Canonical additive identity built from raw digit parts.
+    /// Canonical additive identity (`0`) built from raw digit parts.
     pub fn zero() -> Self {
         Self::from_raw_parts(
             false,
@@ -26,28 +27,31 @@ impl UsfScalar {
         )
     }
 
-    /// Canonical multiplicative identity built from raw digit parts.
+    /// Canonical multiplicative identity (`1`) built from raw digit parts.
     pub fn one() -> Self {
         let mut int_digits = [0_u8; SCALAR_INT_DIGITS_LEN];
         int_digits[SCALAR_INT_DIGITS_LEN - 1] = 1;
         Self::from_raw_parts(false, int_digits, [0; SCALAR_FRAC_DIGITS_LEN], ScalarDecimalU8Parts::RADIX_INDEX_MIN)
     }
 
-    /// Smallest positive public step (`10^-35`) built from raw digit parts.
+    /// Smallest positive public step
+    /// (`0.00000000000000000000000000000000001`, i.e. `10^-35`) built from raw digit parts.
     pub fn epsilon() -> Self {
         let mut frac_digits = [0_u8; SCALAR_FRAC_DIGITS_LEN];
         frac_digits[SCALAR_FRAC_DIGITS_LEN - 1] = 1;
         Self::from_raw_parts(false, [0; SCALAR_INT_DIGITS_LEN], frac_digits, ScalarDecimalU8Parts::RADIX_INDEX_MAX)
     }
 
-    /// `39999999999999999999999999999999999999999999999999999999999999999999999`
+    /// Largest currently constructible decimal constant used as practical upper bound in tests:
+    /// `399999999999999999999999999999999999.99999999999999999999999999999999999`.
     pub fn max() -> Self {
         let mut int_digits = [9_u8; SCALAR_INT_DIGITS_LEN];
         int_digits[0] = 3;
         Self::from_raw_parts(false, int_digits, [9; SCALAR_FRAC_DIGITS_LEN], ScalarDecimalU8Parts::RADIX_INDEX_MAX)
     }
 
-    /// ´-49999999999999999999999999999999999999999999999999999999999999999999999`
+    /// Smallest currently constructible decimal constant used as practical lower bound in tests:
+    /// `-499999999999999999999999999999999999.99999999999999999999999999999999999`.
     pub fn min() -> Self {
         let mut int_digits = [9_u8; SCALAR_INT_DIGITS_LEN];
         int_digits[0] = 4;
@@ -80,41 +84,65 @@ impl UsfScalar {
     }
 
     /// Raises `self` to `rhs`.
+    ///
+    /// # Panics
+    /// - See [`ScalarCoreOps::pow`] for more information.
     pub fn pow(&self, rhs: UsfOrNormalScalar) -> Self {
         <Self as ScalarCoreOps>::pow(self, rhs)
     }
 
     /// Computes `e^self`.
+    ///
+    /// # Panics
+    /// - See [`ScalarCoreOps::exp`] for more information.
     pub fn exp(&self) -> Self {
         <Self as ScalarCoreOps>::exp(self)
     }
 
     /// Computes `2^self`.
+    ///
+    /// # Panics
+    /// - See [`ScalarCoreOps::exp2`] for more information.
     pub fn exp2(&self) -> Self {
         <Self as ScalarCoreOps>::exp2(self)
     }
 
     /// Computes `10^self`.
+    ///
+    /// # Panics
+    /// - See [`ScalarCoreOps::exp10`] for more information.
     pub fn exp10(&self) -> Self {
         <Self as ScalarCoreOps>::exp10(self)
     }
 
     /// Computes natural logarithm.
+    ///
+    /// # Panics
+    /// - See [`ScalarCoreOps::ln`] for more information.
     pub fn ln(&self) -> Self {
         <Self as ScalarCoreOps>::ln(self)
     }
 
     /// Computes base-2 logarithm.
+    ///
+    /// # Panics
+    /// - See [`ScalarCoreOps::log2`] for more information.
     pub fn log2(&self) -> Self {
         <Self as ScalarCoreOps>::log2(self)
     }
 
     /// Computes base-10 logarithm.
+    ///
+    /// # Panics
+    /// - See [`ScalarCoreOps::log10`] for more information.
     pub fn log10(&self) -> Self {
         <Self as ScalarCoreOps>::log10(self)
     }
 
     /// Computes logarithm in arbitrary base.
+    ///
+    /// # Panics
+    /// - See [`ScalarCoreOps::log`] for more information.
     pub fn log(&self, base: UsfOrNormalScalar) -> Self {
         <Self as ScalarCoreOps>::log(self, base)
     }
