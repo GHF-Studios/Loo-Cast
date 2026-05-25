@@ -145,12 +145,29 @@ impl ScalarDecimalDigit {
 /// - `radix_position` is in `[SCALAR_INT_DIGITS_LEN - 1, SCALAR_INT_DIGITS_LEN + (SCALAR_FRAC_DIGITS_LEN + 9) - 1]`.
 /// - All digits strictly after `radix_position` are placeholder zeros.
 /// - `negative == true` is disallowed for zero values (normalized sign).
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct ScalarDecimalDigits {
     negative: bool,
     int_digits: [ScalarDecimalDigit; SCALAR_INT_DIGITS_LEN],
     frac_digits: [ScalarDecimalDigit; SCALAR_INTERNAL_FRAC_DIGITS_LEN],
     radix_position: i8,
+}
+
+impl std::cmp::PartialOrd for ScalarDecimalDigits {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl std::cmp::Ord for ScalarDecimalDigits {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match (self.negative, other.negative) {
+            (true, false) => std::cmp::Ordering::Less,
+            (false, true) => std::cmp::Ordering::Greater,
+            (false, false) => self.cmp_abs_internal(other),
+            (true, true) => self.cmp_abs_internal(other).reverse(),
+        }
+    }
 }
 
 impl std::fmt::Debug for ScalarDecimalDigits {
@@ -200,6 +217,26 @@ impl ScalarDecimalDigits {
         } else {
             self.frac_digits[idx - SCALAR_INT_DIGITS_LEN]
         }
+    }
+
+    fn cmp_abs_internal(&self, other: &Self) -> std::cmp::Ordering {
+        let (_self_negative, self_int, self_frac, self_int_start, self_frac_end) = self.decode_decimal_internal_parts();
+        let (_other_negative, other_int, other_frac, other_int_start, other_frac_end) = other.decode_decimal_internal_parts();
+
+        let self_int_len = SCALAR_INT_DIGITS_LEN - self_int_start;
+        let other_int_len = SCALAR_INT_DIGITS_LEN - other_int_start;
+        match self_int_len.cmp(&other_int_len) {
+            std::cmp::Ordering::Equal => {}
+            non_eq => return non_eq,
+        }
+
+        let int_cmp = self_int[self_int_start..].cmp(&other_int[other_int_start..]);
+        if int_cmp != std::cmp::Ordering::Equal {
+            return int_cmp;
+        }
+
+        let frac_cmp_len = self_frac_end.max(other_frac_end);
+        self_frac[..frac_cmp_len].cmp(&other_frac[..frac_cmp_len])
     }
 
     const MAX_ENCODED_DIGITS_LEN: usize = Self::SCALAR_TOTAL_DIGITS_LEN + 1;

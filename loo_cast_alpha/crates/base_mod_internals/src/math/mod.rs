@@ -51,229 +51,586 @@ pub mod vector;
 
 #[cfg(test)]
 mod tests {
-    use super::field::Field;
-    use super::op_kind::VectorMulKind;
     use super::scalar::aliases::UsfOrNormalScalar;
     use super::scalar::usf::UsfScalar;
-    use super::vector::aliases::{UsfOrNormalVector, VectorProductOperand};
-    use super::vector::usf::UsfVector3d;
-    use crate::math::scalar::shared::{SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN, ScalarCoreOps};
-    use base_mod_shared::utils::one_of::OneOf2;
+    use crate::math::scalar::shared::ScalarCoreOps;
 
-    fn seeded_digit_sets(seed: u64, digit_count: usize, digit_set_count: usize) -> Vec<Vec<u8>> {
-        use rand::rngs::StdRng;
-        use rand::{Rng, SeedableRng};
-
-        let mut rng = StdRng::seed_from_u64(seed);
-        let digit_sets: Vec<Vec<u8>> = (0..digit_set_count)
-            .map(|_| {
-                let digit_set: Vec<u8> = (0..digit_count).map(|_| rng.random_range(0_u8..10_u8)).collect();
-                digit_set
-            })
-            .collect();
-        digit_sets
+    fn scalar_from_decimal(text: &str) -> UsfScalar {
+        <UsfScalar as ScalarCoreOps>::from_decimal_str(text)
     }
 
-    fn seeded_numbers(seed: u64, digit_count: usize, digit_set_count: usize) -> Vec<UsfScalar> {
+    fn additive_law_samples() -> (UsfScalar, UsfScalar, UsfScalar) {
+        (
+            scalar_from_decimal("17.3"),
+            scalar_from_decimal("-3.125"),
+            scalar_from_decimal("0.00000000000000000000000000000000001"),
+        )
+    }
+
+    fn multiplicative_law_samples() -> (UsfScalar, UsfScalar) {
+        (scalar_from_decimal("17.3"), scalar_from_decimal("-3.125"))
+    }
+
+    mod test_utils {
+        use super::{UsfScalar, scalar_from_decimal};
         use rand::rngs::StdRng;
         use rand::{Rng, SeedableRng};
 
-        fn would_overflow(negative: bool, int_digits: &[u8], frac_digits: &[u8]) -> bool {
-            let mut carry: i16 = 0;
-            for d in int_digits.iter().copied().chain(frac_digits.iter().copied()).rev() {
-                let v = (if negative { -(d as i16) } else { d as i16 }) + carry;
-                let bal = ((v + 5).rem_euclid(10)) - 5;
-                carry = (v - bal).div_euclid(10);
+        #[derive(Clone, Copy)]
+        pub struct ScalarRandomSpec {
+            pub max_int_digits: usize,
+            pub max_frac_digits: usize,
+            pub allow_negative: bool,
+            pub force_positive: bool,
+            pub require_non_zero: bool,
+        }
+
+        impl ScalarRandomSpec {
+            pub const fn add_sub() -> Self {
+                Self {
+                    max_int_digits: 8,
+                    max_frac_digits: 12,
+                    allow_negative: true,
+                    force_positive: false,
+                    require_non_zero: false,
+                }
             }
-            carry != 0
+
+            pub const fn mul_div() -> Self {
+                Self {
+                    max_int_digits: 4,
+                    max_frac_digits: 8,
+                    allow_negative: true,
+                    force_positive: false,
+                    require_non_zero: false,
+                }
+            }
+
+            pub const fn non_zero_divisor() -> Self {
+                Self {
+                    require_non_zero: true,
+                    ..Self::mul_div()
+                }
+            }
+
+            pub const fn exp_ln_domain() -> Self {
+                Self {
+                    max_int_digits: 2,
+                    max_frac_digits: 12,
+                    allow_negative: true,
+                    force_positive: false,
+                    require_non_zero: false,
+                }
+            }
+
+            pub const fn positive_log_domain() -> Self {
+                Self {
+                    max_int_digits: 2,
+                    max_frac_digits: 10,
+                    allow_negative: false,
+                    force_positive: true,
+                    require_non_zero: true,
+                }
+            }
+
+            pub const fn positive_log_base_gt_one() -> Self {
+                Self {
+                    max_int_digits: 1,
+                    max_frac_digits: 10,
+                    allow_negative: false,
+                    force_positive: true,
+                    require_non_zero: true,
+                }
+            }
         }
 
-        let primitive_digit_sets = seeded_digit_sets(seed, digit_count, digit_set_count);
-        let mut sign_rng = StdRng::seed_from_u64(seed.wrapping_add(0x9E37_79B9_7F4A_7C15));
+        pub struct ScalarRandomGen {
+            rng: StdRng,
+            spec: ScalarRandomSpec,
+        }
 
-        primitive_digit_sets
-            .into_iter()
-            .map(|digits| {
-                assert!(digits.len() <= 71, "digit set must be <= 71");
+        impl ScalarRandomGen {
+            pub fn new(seed: u64, spec: ScalarRandomSpec) -> Self {
+                Self {
+                    rng: StdRng::seed_from_u64(seed),
+                    spec,
+                }
+            }
 
-                let split = digits.len().min(SCALAR_INT_DIGITS_LEN);
-                let (int_src, frac_src) = digits.split_at(split);
+            fn random_decimal_text(&mut self) -> String {
+                let int_len = self.rng.random_range(1_usize..=self.spec.max_int_digits.max(1));
+                let frac_len = self.rng.random_range(0_usize..=self.spec.max_frac_digits);
 
-                let mut int_digits = [0_u8; SCALAR_INT_DIGITS_LEN];
-                let int_start = SCALAR_INT_DIGITS_LEN - int_src.len();
-                for (offset, digit) in int_src.iter().copied().enumerate() {
-                    int_digits[int_start + offset] = digit;
+                let mut int_digits = String::with_capacity(int_len);
+                for idx in 0..int_len {
+                    let digit = if idx == 0 && int_len > 1 {
+                        self.rng.random_range(1_u8..10_u8)
+                    } else {
+                        self.rng.random_range(0_u8..10_u8)
+                    };
+                    int_digits.push(char::from(b'0' + digit));
                 }
 
-                let mut frac_digits = [0_u8; SCALAR_FRAC_DIGITS_LEN];
-                let frac_len = frac_src.len().min(SCALAR_FRAC_DIGITS_LEN);
-                for (offset, digit) in frac_src.iter().copied().take(frac_len).enumerate() {
-                    frac_digits[offset] = digit;
-                }
-                let mut negative: bool = sign_rng.random(); // ~50% true
-                if would_overflow(negative, &int_digits, &frac_digits[..frac_len]) {
-                    negative = !negative;
-                }
-                if would_overflow(negative, &int_digits, &frac_digits[..frac_len]) {
-                    // Keep the topmost decimal digit in a range that cannot emit an extra head carry.
-                    int_digits[0] %= 4;
+                let mut frac_digits = String::with_capacity(frac_len);
+                for _ in 0..frac_len {
+                    let digit = self.rng.random_range(0_u8..10_u8);
+                    frac_digits.push(char::from(b'0' + digit));
                 }
 
-                let radix_index = if frac_len == 0 {
-                    (SCALAR_INT_DIGITS_LEN as i8) - 1
-                } else {
-                    i8::try_from((SCALAR_INT_DIGITS_LEN - 1) + frac_len).unwrap()
-                };
-                <UsfScalar as ScalarCoreOps>::from_digits(negative, int_digits, frac_digits, radix_index)
-            })
-            .collect()
-    }
+                let all_zero = int_digits.bytes().all(|b| b == b'0') && frac_digits.bytes().all(|b| b == b'0');
+                if self.spec.require_non_zero && all_zero {
+                    if frac_len > 0 {
+                        frac_digits.replace_range(frac_len - 1..frac_len, "1");
+                    } else {
+                        int_digits.replace_range(int_len - 1..int_len, "1");
+                    }
+                }
 
-    // #[test]
-    fn rng_test() {
-        let mut numbers = seeded_numbers(1337, 71, 17);
-        // let b = numbers.pop().unwrap();
-        // let a = numbers.pop().unwrap();
+                let mut out = String::new();
+                let negative = self.spec.allow_negative && !self.spec.force_positive && self.rng.random::<bool>();
+                if negative {
+                    out.push('-');
+                }
+                out.push_str(&int_digits);
+                if frac_len > 0 {
+                    out.push('.');
+                    out.push_str(&frac_digits);
+                }
+                out
+            }
 
-        // println!("a: {}", a);
-        // println!("b: {}", b);
+            pub fn next_scalar(&mut self) -> UsfScalar {
+                loop {
+                    let text = self.random_decimal_text();
+                    let value = scalar_from_decimal(text.as_str());
 
-        for number in numbers {
-            println!("{}", number);
+                    if self.spec.force_positive && value <= UsfScalar::zero() {
+                        continue;
+                    }
+                    if self.spec.require_non_zero && value == UsfScalar::zero() {
+                        continue;
+                    }
+                    return value;
+                }
+            }
+        }
+
+        pub fn random_scalar_pool(seed: u64, count: usize, spec: ScalarRandomSpec) -> Vec<UsfScalar> {
+            let mut gen_ = ScalarRandomGen::new(seed, spec);
+            (0..count).map(|_| gen_.next_scalar()).collect()
+        }
+
+        pub fn random_add_sub_values(seed: u64, count: usize) -> Vec<UsfScalar> {
+            random_scalar_pool(seed, count, ScalarRandomSpec::add_sub())
+        }
+
+        pub fn random_mul_values(seed: u64, count: usize) -> Vec<UsfScalar> {
+            random_scalar_pool(seed, count, ScalarRandomSpec::mul_div())
+        }
+
+        pub fn random_divisors_non_zero(seed: u64, count: usize) -> Vec<UsfScalar> {
+            random_scalar_pool(seed, count, ScalarRandomSpec::non_zero_divisor())
+        }
+
+        pub fn random_exp_ln_values(seed: u64, count: usize) -> Vec<UsfScalar> {
+            random_scalar_pool(seed, count, ScalarRandomSpec::exp_ln_domain())
+        }
+
+        pub fn random_positive_log_values(seed: u64, count: usize) -> Vec<UsfScalar> {
+            random_scalar_pool(seed, count, ScalarRandomSpec::positive_log_domain())
+        }
+
+        pub fn random_positive_log_bases_gt_one(seed: u64, count: usize) -> Vec<UsfScalar> {
+            let mut values = random_scalar_pool(seed, count, ScalarRandomSpec::positive_log_base_gt_one());
+            let one = scalar_from_decimal("1");
+            for value in &mut values {
+                if *value <= one {
+                    *value = scalar_from_decimal("2");
+                }
+            }
+            values
         }
     }
 
-    #[test]
-    fn usf_scalar_debug_fmt_test() {
-        let number = UsfScalar::one();
-        let result = format!("{:?}", number);
-        let expected = "UsfScalar { digits: ScalarDecimalDigits[ 000000000000000000000000000000000001.00000000000000000000000000000000000 ] }";
-        assert_eq!(result, expected);
+    mod add_sub_laws {
+        use super::{UsfOrNormalScalar, UsfScalar, additive_law_samples};
+        use crate::math::scalar::shared::ScalarCoreOps;
+
+        #[test]
+        fn usf_scalar_add_identity_test() {
+            let (a, _, _) = additive_law_samples();
+            let zero = UsfScalar::zero();
+
+            let a_plus_zero = a.add(UsfOrNormalScalar::A(zero.clone()));
+            let zero_plus_a = zero.add(UsfOrNormalScalar::A(a.clone()));
+
+            assert_eq!(a_plus_zero, a);
+            assert_eq!(zero_plus_a, a);
+        }
+
+        #[test]
+        fn usf_scalar_add_inverse_test() {
+            let a = <UsfScalar as ScalarCoreOps>::from_decimal_str("17.3");
+            let neg_a = <UsfScalar as ScalarCoreOps>::from_decimal_str("-17.3");
+            let zero = UsfScalar::zero();
+
+            let a_plus_neg_a = a.add(UsfOrNormalScalar::A(neg_a.clone()));
+            let neg_a_plus_a = neg_a.add(UsfOrNormalScalar::A(a.clone()));
+
+            assert_eq!(a_plus_neg_a, zero);
+            assert_eq!(neg_a_plus_a, zero);
+        }
+
+        #[test]
+        fn usf_scalar_add_associative_test() {
+            let (a, b, c) = additive_law_samples();
+
+            let lhs = a.clone().add(UsfOrNormalScalar::A(b.clone())).add(UsfOrNormalScalar::A(c.clone()));
+            let rhs = a.add(UsfOrNormalScalar::A(b.add(UsfOrNormalScalar::A(c))));
+
+            assert_eq!(lhs, rhs);
+        }
+
+        #[test]
+        fn usf_scalar_add_commutative_test() {
+            let (a, b, _) = additive_law_samples();
+
+            let a_plus_b = a.add(UsfOrNormalScalar::A(b.clone()));
+            let b_plus_a = b.add(UsfOrNormalScalar::A(a.clone()));
+
+            assert_eq!(a_plus_b, b_plus_a);
+        }
+
+        #[test]
+        #[ignore = "ScalarCoreOps::sub is still todo!()"]
+        fn usf_scalar_sub_identity_test() {
+            let (a, _, _) = additive_law_samples();
+            let zero = UsfScalar::zero();
+
+            let a_minus_zero = a.sub(UsfOrNormalScalar::A(zero));
+            assert_eq!(a_minus_zero, a);
+        }
+
+        #[test]
+        #[ignore = "ScalarCoreOps::sub is still todo!()"]
+        fn usf_scalar_sub_self_zero_test() {
+            let (a, _, _) = additive_law_samples();
+            let zero = UsfScalar::zero();
+
+            let a_minus_a = a.sub(UsfOrNormalScalar::A(a.clone()));
+            assert_eq!(a_minus_a, zero);
+        }
     }
 
-    #[test]
-    fn usf_scalar_display_fmt_test() {
-        let number = UsfScalar::one();
-        let result = format!("{}", number);
-        let expected = "1";
-        assert_eq!(result, expected);
+    mod mul_div_laws {
+        use super::{UsfOrNormalScalar, UsfScalar, multiplicative_law_samples};
+        use crate::math::scalar::shared::ScalarCoreOps;
+
+        #[test]
+        #[ignore = "ScalarCoreOps::mul is still todo!()"]
+        fn usf_scalar_mul_commutative_test() {
+            let (a, b) = multiplicative_law_samples();
+
+            let a_mul_b = a.mul(UsfOrNormalScalar::A(b.clone()));
+            let b_mul_a = b.mul(UsfOrNormalScalar::A(a.clone()));
+
+            assert_eq!(a_mul_b, b_mul_a);
+        }
+
+        #[test]
+        #[ignore = "ScalarCoreOps::div is still todo!()"]
+        fn usf_scalar_div_identity_test() {
+            let (a, _) = multiplicative_law_samples();
+            let one = UsfScalar::one();
+
+            let a_div_one = a.div(UsfOrNormalScalar::A(one));
+            assert_eq!(a_div_one, a);
+        }
+
+        #[test]
+        #[ignore = "ScalarCoreOps::div is still todo!()"]
+        fn usf_scalar_div_self_one_test() {
+            let (a, _) = multiplicative_law_samples();
+            let one = UsfScalar::one();
+
+            let a_div_a = a.div(UsfOrNormalScalar::A(a.clone()));
+            assert_eq!(a_div_a, one);
+        }
     }
 
-    #[test]
-    fn usf_scalar_core_test() {
-        let zero = UsfScalar::zero();
-        let one = UsfScalar::one();
-        let epsilon = UsfScalar::epsilon();
-        let max = UsfScalar::max();
-        let min = UsfScalar::min();
+    mod exp_log_laws {
+        use super::{UsfOrNormalScalar, scalar_from_decimal};
 
-        assert_eq!(format!("{zero}"), "0");
-        assert_eq!(format!("{one}"), "1");
-        assert_eq!(format!("{epsilon}"), "0.00000000000000000000000000000000001");
-        assert!(one > zero);
-        assert!(zero < one);
-        assert!(max > one);
-        assert!(min < zero);
+        #[test]
+        #[ignore = "exp/log ops are not implemented yet"]
+        fn usf_scalar_exp_ln_inverse_test() {
+            let x = scalar_from_decimal("2.5");
+            let result = x.exp().ln();
+            assert_eq!(result, x);
+        }
+
+        #[test]
+        #[ignore = "exp/log ops are not implemented yet"]
+        fn usf_scalar_pow_log_inverse_test() {
+            let base = scalar_from_decimal("2");
+            let exponent = scalar_from_decimal("3");
+            let value = base.pow(UsfOrNormalScalar::A(exponent.clone()));
+            let recovered = value.log(UsfOrNormalScalar::A(base));
+            assert_eq!(recovered, exponent);
+        }
+
+        #[test]
+        #[ignore = "exp/log ops are not implemented yet"]
+        fn usf_scalar_log10_alias_test() {
+            let x = scalar_from_decimal("1000");
+            assert_eq!(x.log10(), x.log_10());
+        }
     }
 
-    #[test]
-    fn usf_scalar_from_scientific_str_core_test() {
-        let number_str_scientific = "1.61625512345678987654321e-35";
-        let number_str_decimal_public = "0.00000000000000000000000000000000002";
-        let number_str_decimal_internal = "0.00000000000000000000000000000000001616255123";
-        let number = UsfScalar::from_scientific_str(number_str_scientific);
-        let number_str_recovered_public = format!("{}", number);
-        let number_str_recovered_internal = number.to_decimal_str_internal();
+    mod stress_tests {
+        use super::test_utils::{
+            random_add_sub_values, random_divisors_non_zero, random_exp_ln_values, random_mul_values, random_positive_log_bases_gt_one,
+            random_positive_log_values,
+        };
+        use super::UsfOrNormalScalar;
+        use crate::math::scalar::shared::ScalarCoreOps;
 
-        assert_eq!(number_str_recovered_public, number_str_decimal_public);
-        assert_eq!(number_str_recovered_internal, number_str_decimal_internal);
-    }
+        #[test]
+        fn usf_scalar_add_randomized_stress_test() {
+            let values = random_add_sub_values(0xADDD_0001, 24);
+            for a in &values {
+                for b in &values {
+                    let lhs = a.clone().add(UsfOrNormalScalar::A(b.clone()));
+                    let rhs = b.clone().add(UsfOrNormalScalar::A(a.clone()));
+                    assert_eq!(lhs, rhs, "add commutativity failed for a={a}, b={b}");
+                }
+            }
+        }
 
-    #[test]
-    fn usf_scalar_from_decimal_str_rounding_test() {
-        let number_str_decimal_up = "0.00000000000000000000000000000000001616255123";
-        let number_str_decimal_up_public = "0.00000000000000000000000000000000002";
+        #[test]
+        #[ignore = "ScalarCoreOps::sub is still todo!()"]
+        fn usf_scalar_sub_randomized_stress_test() {
+            let values = random_add_sub_values(0xADDD_0002, 24);
+            for a in &values {
+                for b in &values {
+                    let recovered = a.clone().sub(UsfOrNormalScalar::A(b.clone())).add(UsfOrNormalScalar::A(b.clone()));
+                    assert_eq!(recovered, a.clone(), "sub cancellation failed for a={a}, b={b}");
+                }
+            }
+        }
 
-        let number_up = UsfScalar::from_decimal_str(number_str_decimal_up);
-        let number_up_public = format!("{}", number_up);
-        let number_up_internal = number_up.to_decimal_str_internal();
+        #[test]
+        #[ignore = "ScalarCoreOps::mul is still todo!()"]
+        fn usf_scalar_mul_randomized_stress_test() {
+            let values = random_mul_values(0xBEEF_0001, 24);
+            for a in &values {
+                for b in &values {
+                    let lhs = a.clone().mul(UsfOrNormalScalar::A(b.clone()));
+                    let rhs = b.clone().mul(UsfOrNormalScalar::A(a.clone()));
+                    assert_eq!(lhs, rhs, "mul commutativity failed for a={a}, b={b}");
+                }
+            }
+        }
 
-        assert_eq!(number_up_public, number_str_decimal_up_public);
-        assert_eq!(number_up_internal, number_str_decimal_up);
+        #[test]
+        #[ignore = "ScalarCoreOps::div is still todo!()"]
+        fn usf_scalar_div_randomized_stress_test() {
+            let numerators = random_mul_values(0xBEEF_0002, 24);
+            let divisors = random_divisors_non_zero(0xBEEF_0003, 24);
+            for a in &numerators {
+                for b in &divisors {
+                    let recovered = a.clone().div(UsfOrNormalScalar::A(b.clone())).mul(UsfOrNormalScalar::A(b.clone()));
+                    assert_eq!(recovered, a.clone(), "div/mul recovery failed for a={a}, b={b}");
+                }
+            }
+        }
 
-        let number_str_decimal_down = "0.00000000000000000000000000000000001416255123";
-        let number_str_decimal_down_public = "0.00000000000000000000000000000000001";
+        #[test]
+        #[ignore = "exp/log ops are not implemented yet"]
+        fn usf_scalar_exp_ln_randomized_stress_test() {
+            let values = random_exp_ln_values(0xE001, 48);
+            for x in values {
+                let recovered = x.exp().ln();
+                assert_eq!(recovered, x, "exp/ln roundtrip failed for x={x}");
+            }
+        }
 
-        let number_down = UsfScalar::from_decimal_str(number_str_decimal_down);
-        let number_down_public = format!("{}", number_down);
-        let number_down_internal = number_down.to_decimal_str_internal();
-
-        assert_eq!(number_down_public, number_str_decimal_down_public);
-        assert_eq!(number_down_internal, number_str_decimal_down);
-    }
-
-    #[test]
-    fn usf_scalar_from_decimal_str_excess_frac_err_test() {
-        let number_str_decimal_excess = "0.0000000000000000000000000000000000161625512345678987654321";
-        let err = UsfScalar::try_from_decimal_str(number_str_decimal_excess).unwrap_err();
-        assert!(err.message().contains("fractional part exceeds"));
-    }
-
-    #[test]
-    fn usf_scalar_roundtrip_stability_test() {
-        let seeds = [
-            "0",
-            "-0.0000",
-            "42",
-            "-42",
-            "000000000000000000000000000457827552.09973578589733825723454287935874215",
-            "-000000000000000000000000000457827552.09973578589733825723454287935874215",
-            "0.1",
-            "-0.1",
-        ];
-
-        for seed in seeds {
-            let parsed = <UsfScalar as ScalarCoreOps>::from_decimal_str(seed);
-            let parsed_digits = <UsfScalar as ScalarCoreOps>::to_digits(&parsed);
-
-            let mut scalar = <UsfScalar as ScalarCoreOps>::from_digits(parsed_digits.0, parsed_digits.1, parsed_digits.2, parsed_digits.3);
-            let mut as_string = <UsfScalar as ScalarCoreOps>::to_decimal_str(&scalar);
-            let mut raw_digits = <UsfScalar as ScalarCoreOps>::to_digits(&scalar);
-
-            for _ in 0..8 {
-                let from_raw = <UsfScalar as ScalarCoreOps>::from_digits(raw_digits.0, raw_digits.1, raw_digits.2, raw_digits.3);
-                assert_eq!(from_raw, scalar, "raw roundtrip changed scalar for seed `{seed}`");
+        #[test]
+        #[ignore = "exp/log/pow ops are not implemented yet"]
+        fn usf_scalar_pow_log_randomized_stress_test() {
+            let exponents = random_exp_ln_values(0xE002, 48);
+            let bases = random_positive_log_bases_gt_one(0xE003, 48);
+            for (base, exponent) in bases.into_iter().zip(exponents.into_iter()) {
+                let value = base.clone().pow(UsfOrNormalScalar::A(exponent.clone()));
+                let recovered = value.log(UsfOrNormalScalar::A(base.clone()));
                 assert_eq!(
-                    <UsfScalar as ScalarCoreOps>::to_digits(&from_raw),
-                    raw_digits,
-                    "raw roundtrip changed digit tuple for seed `{seed}`",
+                    recovered, exponent,
+                    "pow/log roundtrip failed for base={base}, exponent={exponent}"
                 );
+            }
+        }
 
-                let from_string = <UsfScalar as ScalarCoreOps>::from_decimal_str(as_string.as_str());
-                let string_after = <UsfScalar as ScalarCoreOps>::to_decimal_str(&from_string);
-                assert_eq!(string_after, as_string, "string roundtrip changed text for seed `{seed}`");
+        #[test]
+        #[ignore = "log ops are not implemented yet"]
+        fn usf_scalar_log_base_consistency_randomized_stress_test() {
+            let values = random_positive_log_values(0xE004, 48);
+            let two = super::scalar_from_decimal("2");
+            let ten = super::scalar_from_decimal("10");
 
-                let digits_after = <UsfScalar as ScalarCoreOps>::to_digits(&from_string);
-                assert_eq!(digits_after, raw_digits, "string roundtrip changed raw digits for seed `{seed}`");
-
-                let scalar_after = <UsfScalar as ScalarCoreOps>::from_digits(digits_after.0, digits_after.1, digits_after.2, digits_after.3);
-                assert_eq!(scalar_after, scalar, "string/raw cycle changed scalar repr for seed `{seed}`");
-
-                scalar = scalar_after;
-                raw_digits = digits_after;
-                as_string = string_after;
+            for x in values {
+                assert_eq!(
+                    x.log2(),
+                    x.log(UsfOrNormalScalar::A(two.clone())),
+                    "log2 mismatch for x={x}"
+                );
+                assert_eq!(
+                    x.log10(),
+                    x.log(UsfOrNormalScalar::A(ten.clone())),
+                    "log10 mismatch for x={x}"
+                );
+                assert_eq!(x.log10(), x.log_10(), "log10 alias mismatch for x={x}");
             }
         }
     }
 
-    // #[test]
-    fn scalar_core_ops_test() {
-        let a = <UsfScalar as ScalarCoreOps>::from_decimal_str("17.3");
-        let b = <UsfScalar as ScalarCoreOps>::from_decimal_str("3");
-        let b = UsfOrNormalScalar::A(b);
-        let sum = a.add(b);
-        let expected_sum = <UsfScalar as ScalarCoreOps>::from_decimal_str("20.3");
+    mod misc_invariants {
+        use super::test_utils::random_add_sub_values;
+        use super::UsfScalar;
+        use crate::math::scalar::shared::ScalarCoreOps;
 
-        assert_eq!(sum, expected_sum);
+        // #[test]
+        fn rng_test() {
+            let numbers = random_add_sub_values(1337, 17);
+            for number in numbers {
+                println!("{}", number);
+            }
+        }
+
+        #[test]
+        fn usf_scalar_core_test() {
+            let zero = UsfScalar::zero();
+            let one = UsfScalar::one();
+            let epsilon = UsfScalar::epsilon();
+            let max = UsfScalar::max();
+            let min = UsfScalar::min();
+
+            assert_eq!(format!("{zero}"), "0");
+            assert_eq!(format!("{one}"), "1");
+            assert_eq!(format!("{epsilon}"), "0.00000000000000000000000000000000001");
+            assert_eq!(format!("{max}"), "399999999999999999999999999999999999.99999999999999999999999999999999999");
+            assert_eq!(format!("{min}"), "-499999999999999999999999999999999999.99999999999999999999999999999999999");
+
+            assert_eq!(one, one);
+            assert!(one > zero);
+            assert!(zero < one);
+            assert!(max > one);
+            assert!(min < zero);
+        }
+
+        #[test]
+        fn usf_scalar_debug_fmt_test() {
+            let number = UsfScalar::one();
+            let result = format!("{:?}", number);
+            let expected = "UsfScalar { digits: ScalarDecimalDigits[ 000000000000000000000000000000000001.00000000000000000000000000000000000 ] }";
+            assert_eq!(result, expected);
+        }
+
+        #[test]
+        fn usf_scalar_display_fmt_test() {
+            let number = UsfScalar::one();
+            let result = format!("{}", number);
+            let expected = "1";
+            assert_eq!(result, expected);
+        }
+
+        #[test]
+        fn usf_scalar_from_scientific_str_core_test() {
+            let number_str_scientific = "1.61625512345678987654321e-35";
+            let number_str_decimal_public = "0.00000000000000000000000000000000002";
+            let number_str_decimal_internal = "0.00000000000000000000000000000000001616255123";
+            let number = UsfScalar::from_scientific_str(number_str_scientific);
+            let number_str_recovered_public = format!("{}", number);
+            let number_str_recovered_internal = number.to_decimal_str_internal();
+
+            assert_eq!(number_str_recovered_public, number_str_decimal_public);
+            assert_eq!(number_str_recovered_internal, number_str_decimal_internal);
+        }
+
+        #[test]
+        fn usf_scalar_from_decimal_str_rounding_test() {
+            let number_str_decimal_up = "0.00000000000000000000000000000000001616255123";
+            let number_str_decimal_up_public = "0.00000000000000000000000000000000002";
+
+            let number_up = UsfScalar::from_decimal_str(number_str_decimal_up);
+            let number_up_public = format!("{}", number_up);
+            let number_up_internal = number_up.to_decimal_str_internal();
+
+            assert_eq!(number_up_public, number_str_decimal_up_public);
+            assert_eq!(number_up_internal, number_str_decimal_up);
+
+            let number_str_decimal_down = "0.00000000000000000000000000000000001416255123";
+            let number_str_decimal_down_public = "0.00000000000000000000000000000000001";
+
+            let number_down = UsfScalar::from_decimal_str(number_str_decimal_down);
+            let number_down_public = format!("{}", number_down);
+            let number_down_internal = number_down.to_decimal_str_internal();
+
+            assert_eq!(number_down_public, number_str_decimal_down_public);
+            assert_eq!(number_down_internal, number_str_decimal_down);
+        }
+
+        #[test]
+        fn usf_scalar_from_decimal_str_excess_frac_err_test() {
+            let number_str_decimal_excess = "0.0000000000000000000000000000000000161625512345678987654321";
+            let err = UsfScalar::try_from_decimal_str(number_str_decimal_excess).unwrap_err();
+            assert!(err.message().contains("fractional part exceeds"));
+        }
+
+        #[test]
+        fn usf_scalar_roundtrip_stability_test() {
+            let seeds = [
+                "0",
+                "-0.0000",
+                "42",
+                "-42",
+                "000000000000000000000000000457827552.09973578589733825723454287935874215",
+                "-000000000000000000000000000457827552.09973578589733825723454287935874215",
+                "0.1",
+                "-0.1",
+            ];
+
+            for seed in seeds {
+                let parsed = <UsfScalar as ScalarCoreOps>::from_decimal_str(seed);
+                let parsed_digits = <UsfScalar as ScalarCoreOps>::to_digits(&parsed);
+
+                let mut scalar = <UsfScalar as ScalarCoreOps>::from_digits(parsed_digits.0, parsed_digits.1, parsed_digits.2, parsed_digits.3);
+                let mut as_string = <UsfScalar as ScalarCoreOps>::to_decimal_str(&scalar);
+                let mut raw_digits = <UsfScalar as ScalarCoreOps>::to_digits(&scalar);
+
+                for _ in 0..8 {
+                    let from_raw = <UsfScalar as ScalarCoreOps>::from_digits(raw_digits.0, raw_digits.1, raw_digits.2, raw_digits.3);
+                    assert_eq!(from_raw, scalar, "raw roundtrip changed scalar for seed `{seed}`");
+                    assert_eq!(
+                        <UsfScalar as ScalarCoreOps>::to_digits(&from_raw),
+                        raw_digits,
+                        "raw roundtrip changed digit tuple for seed `{seed}`",
+                    );
+
+                    let from_string = <UsfScalar as ScalarCoreOps>::from_decimal_str(as_string.as_str());
+                    let string_after = <UsfScalar as ScalarCoreOps>::to_decimal_str(&from_string);
+                    assert_eq!(string_after, as_string, "string roundtrip changed text for seed `{seed}`");
+
+                    let digits_after = <UsfScalar as ScalarCoreOps>::to_digits(&from_string);
+                    assert_eq!(digits_after, raw_digits, "string roundtrip changed raw digits for seed `{seed}`");
+
+                    let scalar_after = <UsfScalar as ScalarCoreOps>::from_digits(digits_after.0, digits_after.1, digits_after.2, digits_after.3);
+                    assert_eq!(scalar_after, scalar, "string/raw cycle changed scalar repr for seed `{seed}`");
+
+                    scalar = scalar_after;
+                    raw_digits = digits_after;
+                    as_string = string_after;
+                }
+            }
+        }
     }
 }

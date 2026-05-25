@@ -599,6 +599,23 @@ pub trait ScalarCoreOps: Clone + Sized {
         todo!()
     }
 
+    /// Computes logarithm with arbitrary positive base.
+    ///
+    /// # Parameters
+    /// - `self`: Receiver value.
+    /// - `base` (UsfOrNormalScalar): Logarithm base.
+    ///
+    /// # Returns
+    /// - A new value of the same concrete type.
+    ///
+    /// # Panics
+    /// - Panics if `self` is non-positive.
+    /// - Panics if `base` is non-positive.
+    /// - Panics if `base == 1`.
+    fn log(&self, _base: UsfOrNormalScalar) -> Self {
+        todo!()
+    }
+
     /// Computes sine in radians.
     ///
     /// # Parameters
@@ -798,8 +815,96 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// - Disallowed combinations: none; all rhs repr branches are accepted.
     /// # Panics
     /// - Panics if repr selection is invalid for this backend.
-    fn add(&self, _rhs: UsfOrNormalScalar) -> Self {
-        todo!()
+    fn add(&self, rhs: UsfOrNormalScalar) -> Self {
+        const TOTAL_DIGITS_LEN: usize = SCALAR_INT_DIGITS_LEN + SCALAR_FRAC_DIGITS_LEN;
+
+        fn flatten_digits(int_digits: ScalarIntDigitBuffer, frac_digits: ScalarFracDigitBuffer) -> ScalarDigitBuffer {
+            let mut out = [0_u8; TOTAL_DIGITS_LEN];
+            out[..SCALAR_INT_DIGITS_LEN].copy_from_slice(&int_digits);
+            out[SCALAR_INT_DIGITS_LEN..].copy_from_slice(&frac_digits);
+            out
+        }
+
+        fn split_digits(digits: ScalarDigitBuffer) -> (ScalarIntDigitBuffer, ScalarFracDigitBuffer) {
+            let mut int_digits = [0_u8; SCALAR_INT_DIGITS_LEN];
+            int_digits.copy_from_slice(&digits[..SCALAR_INT_DIGITS_LEN]);
+
+            let mut frac_digits = [0_u8; SCALAR_FRAC_DIGITS_LEN];
+            frac_digits.copy_from_slice(&digits[SCALAR_INT_DIGITS_LEN..]);
+
+            (int_digits, frac_digits)
+        }
+
+        fn compare_magnitudes(lhs: &ScalarDigitBuffer, rhs: &ScalarDigitBuffer) -> std::cmp::Ordering {
+            lhs.cmp(rhs)
+        }
+
+        fn add_magnitudes(lhs: &ScalarDigitBuffer, rhs: &ScalarDigitBuffer) -> ScalarDigitBuffer {
+            let mut out = [0_u8; TOTAL_DIGITS_LEN];
+            let mut carry: i16 = 0;
+
+            for idx in (0..TOTAL_DIGITS_LEN).rev() {
+                let sum = i16::from(lhs[idx]) + i16::from(rhs[idx]) + carry;
+                out[idx] = u8::try_from(sum.rem_euclid(10)).unwrap();
+                carry = sum.div_euclid(10);
+            }
+
+            assert_eq!(
+                carry, 0,
+                "scalar add overflow: integer part exceeds {SCALAR_INT_DIGITS_LEN} digits"
+            );
+
+            out
+        }
+
+        fn subtract_magnitudes(bigger: &ScalarDigitBuffer, smaller: &ScalarDigitBuffer) -> ScalarDigitBuffer {
+            let mut out = [0_u8; TOTAL_DIGITS_LEN];
+            let mut borrow: i16 = 0;
+
+            for idx in (0..TOTAL_DIGITS_LEN).rev() {
+                let lhs = i16::from(bigger[idx]) - borrow;
+                let rhs = i16::from(smaller[idx]);
+                if lhs < rhs {
+                    out[idx] = u8::try_from(lhs + 10 - rhs).unwrap();
+                    borrow = 1;
+                } else {
+                    out[idx] = u8::try_from(lhs - rhs).unwrap();
+                    borrow = 0;
+                }
+            }
+
+            assert_eq!(borrow, 0, "scalar add internal borrow underflow");
+            out
+        }
+
+        let (lhs_negative, lhs_int_digits, lhs_frac_digits, _lhs_radix) = self.to_digits();
+        let (rhs_negative, rhs_int_digits, rhs_frac_digits, _rhs_radix) = match rhs {
+            UsfOrNormalScalar::A(value) => value.to_digits(),
+            UsfOrNormalScalar::B(value) => value.to_digits(),
+        };
+
+        let lhs_magnitude = flatten_digits(lhs_int_digits, lhs_frac_digits);
+        let rhs_magnitude = flatten_digits(rhs_int_digits, rhs_frac_digits);
+
+        let (result_negative, result_magnitude) = if lhs_negative == rhs_negative {
+            (lhs_negative, add_magnitudes(&lhs_magnitude, &rhs_magnitude))
+        } else {
+            match compare_magnitudes(&lhs_magnitude, &rhs_magnitude) {
+                std::cmp::Ordering::Greater => (lhs_negative, subtract_magnitudes(&lhs_magnitude, &rhs_magnitude)),
+                std::cmp::Ordering::Less => (rhs_negative, subtract_magnitudes(&rhs_magnitude, &lhs_magnitude)),
+                std::cmp::Ordering::Equal => (false, [0_u8; TOTAL_DIGITS_LEN]),
+            }
+        };
+
+        let is_zero = result_magnitude.iter().all(|digit| *digit == 0);
+        let (result_int_digits, result_frac_digits) = split_digits(result_magnitude);
+
+        Self::from_digits(
+            result_negative && !is_zero,
+            result_int_digits,
+            result_frac_digits,
+            ScalarDecimalU8Parts::RADIX_INDEX_MAX,
+        )
     }
 
     /// Subtracts another scalar.

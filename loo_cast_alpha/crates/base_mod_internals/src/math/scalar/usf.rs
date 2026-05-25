@@ -79,6 +79,51 @@ impl UsfScalar {
         self.digits.to_decimal_string_internal()
     }
 
+    /// Raises `self` to `rhs`.
+    pub fn pow(&self, rhs: UsfOrNormalScalar) -> Self {
+        <Self as ScalarCoreOps>::pow(self, rhs)
+    }
+
+    /// Computes `e^self`.
+    pub fn exp(&self) -> Self {
+        <Self as ScalarCoreOps>::exp(self)
+    }
+
+    /// Computes `2^self`.
+    pub fn exp2(&self) -> Self {
+        <Self as ScalarCoreOps>::exp2(self)
+    }
+
+    /// Computes `10^self`.
+    pub fn exp10(&self) -> Self {
+        <Self as ScalarCoreOps>::exp10(self)
+    }
+
+    /// Computes natural logarithm.
+    pub fn ln(&self) -> Self {
+        <Self as ScalarCoreOps>::ln(self)
+    }
+
+    /// Computes base-2 logarithm.
+    pub fn log2(&self) -> Self {
+        <Self as ScalarCoreOps>::log2(self)
+    }
+
+    /// Computes base-10 logarithm.
+    pub fn log10(&self) -> Self {
+        <Self as ScalarCoreOps>::log10(self)
+    }
+
+    /// Computes logarithm in arbitrary base.
+    pub fn log(&self, base: UsfOrNormalScalar) -> Self {
+        <Self as ScalarCoreOps>::log(self, base)
+    }
+
+    /// Alias for base-10 logarithm.
+    pub fn log_10(&self) -> Self {
+        self.log10()
+    }
+
     /// Quantizes in-place to the given layer index.
     pub fn quantize_to_layer_checked(&mut self, radix_position: i8) {
         self.digits.quantize_to_layer_checked(radix_position);
