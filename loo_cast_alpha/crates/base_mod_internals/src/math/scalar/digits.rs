@@ -87,9 +87,21 @@ impl std::error::Error for ScalarParseError {}
 ///
 /// # Invariants
 /// - Inner value is always in range `-5..5` (`-5..=4`).
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ScalarDecimalDigit {
     digit: i8,
+}
+
+impl std::fmt::Debug for ScalarDecimalDigit {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.digit)
+    }
+}
+
+impl std::fmt::Display for ScalarDecimalDigit {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.digit)
+    }
 }
 
 impl ScalarDecimalDigit {
@@ -133,12 +145,28 @@ impl ScalarDecimalDigit {
 /// - `radix_position` is in `[SCALAR_INT_DIGITS_LEN - 1, SCALAR_INT_DIGITS_LEN + (SCALAR_FRAC_DIGITS_LEN + 9) - 1]`.
 /// - All digits strictly after `radix_position` are placeholder zeros.
 /// - `negative == true` is disallowed for zero values (normalized sign).
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ScalarDecimalDigits {
     negative: bool,
     int_digits: [ScalarDecimalDigit; SCALAR_INT_DIGITS_LEN],
     frac_digits: [ScalarDecimalDigit; SCALAR_INTERNAL_FRAC_DIGITS_LEN],
     radix_position: i8,
+}
+
+impl std::fmt::Debug for ScalarDecimalDigits {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("ScalarDecimalDigits[ ")?;
+        f.write_str(&self.to_decimal_string_padded())?;
+        f.write_str(" ]")
+    }
+}
+
+impl std::fmt::Display for ScalarDecimalDigits {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("ScalarDecimalDigits[ ")?;
+        f.write_str(&self.to_decimal_string())?;
+        f.write_str(" ]")
+    }
 }
 
 impl ScalarDecimalDigits {
@@ -276,6 +304,25 @@ impl ScalarDecimalDigits {
             for digit in frac_digits.iter().take(frac_len) {
                 out.push(char::from(b'0' + *digit));
             }
+        }
+        out
+    }
+
+    fn format_decimal_literal_padded(
+        negative: bool,
+        int_digits: &[u8; SCALAR_INT_DIGITS_LEN],
+        frac_digits: &[u8; SCALAR_FRAC_DIGITS_LEN],
+    ) -> String {
+        let mut out = String::with_capacity((if negative { 1 } else { 0 }) + SCALAR_INT_DIGITS_LEN + 1 + SCALAR_FRAC_DIGITS_LEN);
+        if negative {
+            out.push('-');
+        }
+        for digit in int_digits {
+            out.push(char::from(b'0' + *digit));
+        }
+        out.push('.');
+        for digit in frac_digits {
+            out.push(char::from(b'0' + *digit));
         }
         out
     }
@@ -966,6 +1013,15 @@ impl ScalarDecimalDigits {
     pub fn to_decimal_string_internal(&self) -> String {
         let (negative, int_digits, frac_digits, int_start, frac_end) = self.decode_decimal_internal_parts();
         Self::format_decimal_literal(negative, &int_digits, int_start, &frac_digits, frac_end)
+    }
+
+    /// Formats the public value as fixed-width padded decimal text (`36.35`).
+    ///
+    /// - Uses public precision only (no shadow-digit exposure).
+    /// - Always emits all integer and fractional slots.
+    pub fn to_decimal_string_padded(&self) -> String {
+        let decoded = self.decode_decimal_u8_parts();
+        Self::format_decimal_literal_padded(decoded.negative(), decoded.int_digits(), decoded.frac_digits())
     }
 
     /// Quantizes this value to the given precision layer by zeroing all less-significant layers.

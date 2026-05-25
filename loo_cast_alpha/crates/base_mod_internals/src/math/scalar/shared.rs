@@ -118,13 +118,13 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// - `int_digits`: Fixed-width integer digits (left-padded).
     /// - `frac_digits`: Fixed-width fractional digits (right-padded).
     /// - `radix_index`: Last meaningful digit index in flattened `[int | frac]` storage.
-    fn from_decimal_u8_digits(_negative: bool, _int_digits: ScalarIntDigitBuffer, _frac_digits: ScalarFracDigitBuffer, _radix_index: i8) -> Self;
+    fn from_digits(_negative: bool, _int_digits: ScalarIntDigitBuffer, _frac_digits: ScalarFracDigitBuffer, _radix_index: i8) -> Self;
 
     /// Exports this scalar as pre-parsed base-10 decimal digits.
     ///
     /// # Returns
     /// - Tuple `(negative, int_digits, frac_digits, radix_index)` in canonical fixed-width form.
-    fn to_decimal_u8_digits(&self) -> (bool, ScalarIntDigitBuffer, ScalarFracDigitBuffer, i8);
+    fn to_digits(&self) -> (bool, ScalarIntDigitBuffer, ScalarFracDigitBuffer, i8);
 
     /// Parses a plain decimal literal into this scalar type.
     ///

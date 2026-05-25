@@ -124,7 +124,7 @@ mod tests {
                 } else {
                     i8::try_from((SCALAR_INT_DIGITS_LEN - 1) + frac_len).unwrap()
                 };
-                <UsfScalar as ScalarCoreOps>::from_decimal_u8_digits(negative, int_digits, frac_digits, radix_index)
+                <UsfScalar as ScalarCoreOps>::from_digits(negative, int_digits, frac_digits, radix_index)
             })
             .collect()
     }
@@ -145,14 +145,39 @@ mod tests {
 
     #[test]
     fn usf_scalar_debug_fmt_test() {
-        let number_str_decimal = UsfScalar::from_decimal_str("0.00000000000000000000000000000000001616255");
+        let number = UsfScalar::one();
+        let result = format!("{:?}", number);
+        let expected = "UsfScalar { digits: ScalarDecimalDigits[ 000000000000000000000000000000000001.00000000000000000000000000000000000 ] }";
+        assert_eq!(result, expected);
     }
 
     #[test]
-    fn usf_scalar_display_fmt_test() {}
+    fn usf_scalar_display_fmt_test() {
+        let number = UsfScalar::one();
+        let result = format!("{}", number);
+        let expected = "1";
+        assert_eq!(result, expected);
+    }
 
     #[test]
-    fn usf_scalar_from_scientific_str_test() {
+    fn usf_scalar_core_test() {
+        let zero = UsfScalar::zero();
+        let one = UsfScalar::one();
+        let epsilon = UsfScalar::epsilon();
+        let max = UsfScalar::max();
+        let min = UsfScalar::min();
+
+        assert_eq!(format!("{zero}"), "0");
+        assert_eq!(format!("{one}"), "1");
+        assert_eq!(format!("{epsilon}"), "0.00000000000000000000000000000000001");
+        assert!(one > zero);
+        assert!(zero < one);
+        assert!(max > one);
+        assert!(min < zero);
+    }
+
+    #[test]
+    fn usf_scalar_from_scientific_str_core_test() {
         let number_str_scientific = "1.61625512345678987654321e-35";
         let number_str_decimal_public = "0.00000000000000000000000000000000002";
         let number_str_decimal_internal = "0.00000000000000000000000000000000001616255123";
@@ -165,7 +190,7 @@ mod tests {
     }
 
     #[test]
-    fn usf_scalar_from_decimal_str_test() {
+    fn usf_scalar_from_decimal_str_rounding_test() {
         let number_str_decimal_up = "0.00000000000000000000000000000000001616255123";
         let number_str_decimal_up_public = "0.00000000000000000000000000000000002";
 
@@ -188,14 +213,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
-    fn usf_scalar_from_decimal_str_excess_frac_panics_test() {
-        let number_str_decimal_excess = "0.0000000000000000000000000000000000161625512345678987654321";
-        let _ = UsfScalar::from_decimal_str(number_str_decimal_excess);
-    }
-
-    #[test]
-    fn usf_scalar_try_from_decimal_str_excess_frac_err_test() {
+    fn usf_scalar_from_decimal_str_excess_frac_err_test() {
         let number_str_decimal_excess = "0.0000000000000000000000000000000000161625512345678987654321";
         let err = UsfScalar::try_from_decimal_str(number_str_decimal_excess).unwrap_err();
         assert!(err.message().contains("fractional part exceeds"));
@@ -216,17 +234,17 @@ mod tests {
 
         for seed in seeds {
             let parsed = <UsfScalar as ScalarCoreOps>::from_decimal_str(seed);
-            let parsed_digits = <UsfScalar as ScalarCoreOps>::to_decimal_u8_digits(&parsed);
+            let parsed_digits = <UsfScalar as ScalarCoreOps>::to_digits(&parsed);
 
-            let mut scalar = <UsfScalar as ScalarCoreOps>::from_decimal_u8_digits(parsed_digits.0, parsed_digits.1, parsed_digits.2, parsed_digits.3);
+            let mut scalar = <UsfScalar as ScalarCoreOps>::from_digits(parsed_digits.0, parsed_digits.1, parsed_digits.2, parsed_digits.3);
             let mut as_string = <UsfScalar as ScalarCoreOps>::to_decimal_str(&scalar);
-            let mut raw_digits = <UsfScalar as ScalarCoreOps>::to_decimal_u8_digits(&scalar);
+            let mut raw_digits = <UsfScalar as ScalarCoreOps>::to_digits(&scalar);
 
             for _ in 0..8 {
-                let from_raw = <UsfScalar as ScalarCoreOps>::from_decimal_u8_digits(raw_digits.0, raw_digits.1, raw_digits.2, raw_digits.3);
+                let from_raw = <UsfScalar as ScalarCoreOps>::from_digits(raw_digits.0, raw_digits.1, raw_digits.2, raw_digits.3);
                 assert_eq!(from_raw, scalar, "raw roundtrip changed scalar for seed `{seed}`");
                 assert_eq!(
-                    <UsfScalar as ScalarCoreOps>::to_decimal_u8_digits(&from_raw),
+                    <UsfScalar as ScalarCoreOps>::to_digits(&from_raw),
                     raw_digits,
                     "raw roundtrip changed digit tuple for seed `{seed}`",
                 );
@@ -235,10 +253,10 @@ mod tests {
                 let string_after = <UsfScalar as ScalarCoreOps>::to_decimal_str(&from_string);
                 assert_eq!(string_after, as_string, "string roundtrip changed text for seed `{seed}`");
 
-                let digits_after = <UsfScalar as ScalarCoreOps>::to_decimal_u8_digits(&from_string);
+                let digits_after = <UsfScalar as ScalarCoreOps>::to_digits(&from_string);
                 assert_eq!(digits_after, raw_digits, "string roundtrip changed raw digits for seed `{seed}`");
 
-                let scalar_after = <UsfScalar as ScalarCoreOps>::from_decimal_u8_digits(digits_after.0, digits_after.1, digits_after.2, digits_after.3);
+                let scalar_after = <UsfScalar as ScalarCoreOps>::from_digits(digits_after.0, digits_after.1, digits_after.2, digits_after.3);
                 assert_eq!(scalar_after, scalar, "string/raw cycle changed scalar repr for seed `{seed}`");
 
                 scalar = scalar_after;

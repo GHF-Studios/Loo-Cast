@@ -49,7 +49,7 @@ impl super::shared::ScalarCoreOps for NormalScalar {
         todo!()
     }
 
-    fn from_decimal_u8_digits(
+    fn from_digits(
         _negative: bool,
         _int_digits: super::shared::ScalarIntDigitBuffer,
         _frac_digits: super::shared::ScalarFracDigitBuffer,
@@ -58,7 +58,7 @@ impl super::shared::ScalarCoreOps for NormalScalar {
         todo!()
     }
 
-    fn to_decimal_u8_digits(&self) -> (bool, super::shared::ScalarIntDigitBuffer, super::shared::ScalarFracDigitBuffer, i8) {
+    fn to_digits(&self) -> (bool, super::shared::ScalarIntDigitBuffer, super::shared::ScalarFracDigitBuffer, i8) {
         todo!()
     }
 }
@@ -82,7 +82,7 @@ impl super::shared::ScalarCoreOps for NormalFractionalScalar {
         todo!()
     }
 
-    fn from_decimal_u8_digits(
+    fn from_digits(
         _negative: bool,
         _int_digits: super::shared::ScalarIntDigitBuffer,
         _frac_digits: super::shared::ScalarFracDigitBuffer,
@@ -91,7 +91,7 @@ impl super::shared::ScalarCoreOps for NormalFractionalScalar {
         todo!()
     }
 
-    fn to_decimal_u8_digits(&self) -> (bool, super::shared::ScalarIntDigitBuffer, super::shared::ScalarFracDigitBuffer, i8) {
+    fn to_digits(&self) -> (bool, super::shared::ScalarIntDigitBuffer, super::shared::ScalarFracDigitBuffer, i8) {
         todo!()
     }
 }

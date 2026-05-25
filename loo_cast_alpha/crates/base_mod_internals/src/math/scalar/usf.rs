@@ -1,7 +1,7 @@
 pub use super::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
 use super::shared::{
     FloatType, IntegerType, ScalarCoreOps, ScalarDecimalU8Parts, ScalarFracDigitBuffer, ScalarIntDigitBuffer, ScalarType, SignedIntegerType,
-    UnsignedIntegerType,
+    UnsignedIntegerType, SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN,
 };
 use crate::math::scalar::digits::ScalarDecimalDigits;
 pub use crate::math::scalar::digits::{DecimalParseError, ScalarParseError, ScientificParseError};
@@ -12,6 +12,48 @@ pub struct UsfScalar {
 }
 
 impl UsfScalar {
+    fn from_raw_parts(negative: bool, int_digits: ScalarIntDigitBuffer, frac_digits: ScalarFracDigitBuffer, radix_index: i8) -> Self {
+        <Self as ScalarCoreOps>::from_digits(negative, int_digits, frac_digits, radix_index)
+    }
+
+    /// Canonical additive identity built from raw digit parts.
+    pub fn zero() -> Self {
+        Self::from_raw_parts(
+            false,
+            [0; SCALAR_INT_DIGITS_LEN],
+            [0; SCALAR_FRAC_DIGITS_LEN],
+            ScalarDecimalU8Parts::RADIX_INDEX_MIN,
+        )
+    }
+
+    /// Canonical multiplicative identity built from raw digit parts.
+    pub fn one() -> Self {
+        let mut int_digits = [0_u8; SCALAR_INT_DIGITS_LEN];
+        int_digits[SCALAR_INT_DIGITS_LEN - 1] = 1;
+        Self::from_raw_parts(false, int_digits, [0; SCALAR_FRAC_DIGITS_LEN], ScalarDecimalU8Parts::RADIX_INDEX_MIN)
+    }
+
+    /// Smallest positive public step (`10^-35`) built from raw digit parts.
+    pub fn epsilon() -> Self {
+        let mut frac_digits = [0_u8; SCALAR_FRAC_DIGITS_LEN];
+        frac_digits[SCALAR_FRAC_DIGITS_LEN - 1] = 1;
+        Self::from_raw_parts(false, [0; SCALAR_INT_DIGITS_LEN], frac_digits, ScalarDecimalU8Parts::RADIX_INDEX_MAX)
+    }
+
+    /// `39999999999999999999999999999999999999999999999999999999999999999999999`
+    pub fn max() -> Self {
+        let mut int_digits = [9_u8; SCALAR_INT_DIGITS_LEN];
+        int_digits[0] = 3;
+        Self::from_raw_parts(false, int_digits, [9; SCALAR_FRAC_DIGITS_LEN], ScalarDecimalU8Parts::RADIX_INDEX_MAX)
+    }
+
+    /// ´-49999999999999999999999999999999999999999999999999999999999999999999999`
+    pub fn min() -> Self {
+        let mut int_digits = [9_u8; SCALAR_INT_DIGITS_LEN];
+        int_digits[0] = 4;
+        Self::from_raw_parts(true, int_digits, [9; SCALAR_FRAC_DIGITS_LEN], ScalarDecimalU8Parts::RADIX_INDEX_MAX)
+    }
+
     /// Fallible decimal parser with operation-specific error type.
     pub fn try_from_decimal_str(s: &str) -> Result<Self, DecimalParseError> {
         ScalarDecimalDigits::try_from_decimal_str(s).map(|digits| Self { digits })
@@ -104,13 +146,39 @@ impl super::shared::ScalarCoreOps for UsfScalar {
         self.digits.to_scientific_string()
     }
 
-    fn from_decimal_u8_digits(negative: bool, int_digits: ScalarIntDigitBuffer, frac_digits: ScalarFracDigitBuffer, radix_index: i8) -> Self {
+    fn zero() -> Self {
+        UsfScalar::zero()
+    }
+
+    fn one() -> Self {
+        UsfScalar::one()
+    }
+
+    fn two() -> Self {
+        let mut int_digits = [0_u8; SCALAR_INT_DIGITS_LEN];
+        int_digits[SCALAR_INT_DIGITS_LEN - 1] = 2;
+        Self::from_raw_parts(false, int_digits, [0; SCALAR_FRAC_DIGITS_LEN], ScalarDecimalU8Parts::RADIX_INDEX_MIN)
+    }
+
+    fn ten() -> Self {
+        let mut int_digits = [0_u8; SCALAR_INT_DIGITS_LEN];
+        int_digits[SCALAR_INT_DIGITS_LEN - 2] = 1;
+        Self::from_raw_parts(false, int_digits, [0; SCALAR_FRAC_DIGITS_LEN], ScalarDecimalU8Parts::RADIX_INDEX_MIN)
+    }
+
+    fn neg_one() -> Self {
+        let mut int_digits = [0_u8; SCALAR_INT_DIGITS_LEN];
+        int_digits[SCALAR_INT_DIGITS_LEN - 1] = 1;
+        Self::from_raw_parts(true, int_digits, [0; SCALAR_FRAC_DIGITS_LEN], ScalarDecimalU8Parts::RADIX_INDEX_MIN)
+    }
+
+    fn from_digits(negative: bool, int_digits: ScalarIntDigitBuffer, frac_digits: ScalarFracDigitBuffer, radix_index: i8) -> Self {
         let parts = ScalarDecimalU8Parts::new_checked(negative, int_digits, frac_digits, radix_index);
         let digits = ScalarDecimalDigits::from_decimal_u8_parts_checked(parts.negative(), *parts.int_digits(), *parts.frac_digits());
         Self { digits }
     }
 
-    fn to_decimal_u8_digits(&self) -> (bool, ScalarIntDigitBuffer, ScalarFracDigitBuffer, i8) {
+    fn to_digits(&self) -> (bool, ScalarIntDigitBuffer, ScalarFracDigitBuffer, i8) {
         self.digits.assert_invariants();
         let parts = self.digits.to_decimal_u8_parts();
         (parts.negative(), *parts.int_digits(), *parts.frac_digits(), parts.radix_index())
