@@ -1,7 +1,7 @@
 pub use super::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
 use super::shared::{
-    FloatType, IntegerType, PublicFlatDigits, PublicFracDigits, PublicIntDigits, SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN, ScalarCoreOps,
-    ScalarDecimalU8Parts, ScalarFracDigitBuffer, ScalarIntDigitBuffer, ScalarType, SignedIntegerType, UnsignedIntegerType,
+    FloatType, IntegerType, PublicSignedMagnitude, ScalarConstOps, ScalarCoreOps, ScalarDecimalU8Parts, ScalarFracDigitBuffer, ScalarIntDigitBuffer,
+    ScalarType, SignedIntegerType, UnsignedIntegerType,
 };
 use crate::math::scalar::digits::ScalarDecimalDigits;
 pub use crate::math::scalar::digits::{DecimalParseError, ScalarParseError, ScientificParseError};
@@ -13,50 +13,80 @@ pub struct UsfScalar {
 }
 
 impl UsfScalar {
-    /// Internal constructor bridge for raw decimal-part input.
-    fn from_raw_parts(negative: bool, int_digits: ScalarIntDigitBuffer, frac_digits: ScalarFracDigitBuffer, radix_index: i8) -> Self {
-        <Self as ScalarCoreOps>::from_digits(negative, int_digits, frac_digits, radix_index)
-    }
+    /// Canonical additive identity (`0`) built from fixed-width balanced digits.
+    pub const ZERO: Self = Self {
+        digits: ScalarDecimalDigits::ZERO,
+    };
 
-    /// Canonical additive identity (`0`) built from raw digit parts.
-    pub fn zero() -> Self {
-        Self::from_raw_parts(
-            false,
-            [0; SCALAR_INT_DIGITS_LEN],
-            [0; SCALAR_FRAC_DIGITS_LEN],
-            ScalarDecimalU8Parts::RADIX_INDEX_MIN,
-        )
-    }
+    /// Canonical multiplicative identity (`1`) built from fixed-width balanced digits.
+    pub const ONE: Self = Self {
+        digits: ScalarDecimalDigits::ONE,
+    };
 
-    /// Canonical multiplicative identity (`1`) built from raw digit parts.
-    pub fn one() -> Self {
-        let mut int_digits = [0_u8; SCALAR_INT_DIGITS_LEN];
-        int_digits[SCALAR_INT_DIGITS_LEN - 1] = 1;
-        Self::from_raw_parts(false, int_digits, [0; SCALAR_FRAC_DIGITS_LEN], ScalarDecimalU8Parts::RADIX_INDEX_MIN)
-    }
+    /// Canonical negative-one constant (`-1`) built from fixed-width balanced digits.
+    pub const NEG_ONE: Self = Self {
+        digits: ScalarDecimalDigits::NEG_ONE,
+    };
 
-    /// Smallest positive public step
-    /// (`0.00000000000000000000000000000000001`, i.e. `10^-35`) built from raw digit parts.
-    pub fn epsilon() -> Self {
-        let mut frac_digits = [0_u8; SCALAR_FRAC_DIGITS_LEN];
-        frac_digits[SCALAR_FRAC_DIGITS_LEN - 1] = 1;
-        Self::from_raw_parts(false, [0; SCALAR_INT_DIGITS_LEN], frac_digits, ScalarDecimalU8Parts::RADIX_INDEX_MAX)
-    }
+    /// Canonical two constant (`2`) built from fixed-width balanced digits.
+    pub const TWO: Self = Self {
+        digits: ScalarDecimalDigits::TWO,
+    };
 
-    /// Largest currently constructible decimal constant used as practical upper bound in tests:
-    /// `399999999999999999999999999999999999.99999999999999999999999999999999999`.
-    pub fn max() -> Self {
-        let mut int_digits = [9_u8; SCALAR_INT_DIGITS_LEN];
-        int_digits[0] = 3;
-        Self::from_raw_parts(false, int_digits, [9; SCALAR_FRAC_DIGITS_LEN], ScalarDecimalU8Parts::RADIX_INDEX_MAX)
-    }
+    /// Canonical ten constant (`10`) built from fixed-width balanced digits.
+    pub const TEN: Self = Self {
+        digits: ScalarDecimalDigits::TEN,
+    };
 
-    /// Smallest currently constructible decimal constant used as practical lower bound in tests:
-    /// `-499999999999999999999999999999999999.99999999999999999999999999999999999`.
-    pub fn min() -> Self {
-        let mut int_digits = [9_u8; SCALAR_INT_DIGITS_LEN];
-        int_digits[0] = 4;
-        Self::from_raw_parts(true, int_digits, [9; SCALAR_FRAC_DIGITS_LEN], ScalarDecimalU8Parts::RADIX_INDEX_MAX)
+    /// Canonical smallest positive finite step (`10^-35`).
+    ///
+    /// Decimal text: `0.00000000000000000000000000000000001`.
+    pub const EPSILON: Self = Self {
+        digits: ScalarDecimalDigits::EPSILON,
+    };
+
+    /// Canonical pi constant.
+    ///
+    /// Decimal text: `3.14159265358979323846264338327950288`.
+    pub const PI: Self = Self {
+        digits: ScalarDecimalDigits::PI,
+    };
+
+    /// Canonical tau constant.
+    ///
+    /// Decimal text: `6.28318530717958647692528676655900577`.
+    pub const TAU: Self = Self {
+        digits: ScalarDecimalDigits::TAU,
+    };
+
+    /// Canonical Euler's number constant.
+    ///
+    /// Decimal text: `2.71828182845904523536028747135266250`.
+    pub const E: Self = Self {
+        digits: ScalarDecimalDigits::E,
+    };
+
+    /// Canonical maximum finite scalar constant for this backend.
+    ///
+    /// Decimal text: `399999999999999999999999999999999999.99999999999999999999999999999999999`.
+    pub const MAX: Self = Self {
+        digits: ScalarDecimalDigits::MAX,
+    };
+
+    /// Canonical minimum finite scalar constant for this backend.
+    ///
+    /// Decimal text: `-499999999999999999999999999999999999.99999999999999999999999999999999999`.
+    pub const MIN: Self = Self {
+        digits: ScalarDecimalDigits::MIN,
+    };
+
+    /// Converts mixed-repr scalar operand into signed-magnitude view.
+    fn rhs_to_signed_magnitude(rhs: UsfOrNormalScalar) -> PublicSignedMagnitude {
+        let (negative, int_digits, frac_digits, _radix) = match rhs {
+            UsfOrNormalScalar::A(value) => value.to_digits(),
+            UsfOrNormalScalar::B(value) => value.to_digits(),
+        };
+        ScalarDecimalDigits::public_signed_magnitude_from_u8_parts(negative, int_digits, frac_digits)
     }
 
     /// Fallible decimal parser with operation-specific error type.
@@ -197,6 +227,52 @@ impl SignedIntegerType for UsfScalar {}
 impl UnsignedIntegerType for UsfScalar {}
 impl FloatType for UsfScalar {}
 
+impl ScalarConstOps for UsfScalar {
+    fn zero() -> Self {
+        UsfScalar::ZERO
+    }
+
+    fn one() -> Self {
+        UsfScalar::ONE
+    }
+
+    fn two() -> Self {
+        UsfScalar::TWO
+    }
+
+    fn ten() -> Self {
+        UsfScalar::TEN
+    }
+
+    fn max() -> Self {
+        UsfScalar::MAX
+    }
+
+    fn min() -> Self {
+        UsfScalar::MIN
+    }
+
+    fn neg_one() -> Self {
+        UsfScalar::NEG_ONE
+    }
+
+    fn epsilon() -> Self {
+        UsfScalar::EPSILON
+    }
+
+    fn pi() -> Self {
+        UsfScalar::PI
+    }
+
+    fn tau() -> Self {
+        UsfScalar::TAU
+    }
+
+    fn e() -> Self {
+        UsfScalar::E
+    }
+}
+
 impl super::shared::ScalarCoreOps for UsfScalar {
     fn from_decimal_str(s: &str) -> Self {
         match Self::try_from_decimal_str(s) {
@@ -218,32 +294,6 @@ impl super::shared::ScalarCoreOps for UsfScalar {
 
     fn to_scientific_str(&self) -> String {
         self.digits.to_scientific_string()
-    }
-
-    fn zero() -> Self {
-        UsfScalar::zero()
-    }
-
-    fn one() -> Self {
-        UsfScalar::one()
-    }
-
-    fn two() -> Self {
-        let mut int_digits = [0_u8; SCALAR_INT_DIGITS_LEN];
-        int_digits[SCALAR_INT_DIGITS_LEN - 1] = 2;
-        Self::from_raw_parts(false, int_digits, [0; SCALAR_FRAC_DIGITS_LEN], ScalarDecimalU8Parts::RADIX_INDEX_MIN)
-    }
-
-    fn ten() -> Self {
-        let mut int_digits = [0_u8; SCALAR_INT_DIGITS_LEN];
-        int_digits[SCALAR_INT_DIGITS_LEN - 2] = 1;
-        Self::from_raw_parts(false, int_digits, [0; SCALAR_FRAC_DIGITS_LEN], ScalarDecimalU8Parts::RADIX_INDEX_MIN)
-    }
-
-    fn neg_one() -> Self {
-        let mut int_digits = [0_u8; SCALAR_INT_DIGITS_LEN];
-        int_digits[SCALAR_INT_DIGITS_LEN - 1] = 1;
-        Self::from_raw_parts(true, int_digits, [0; SCALAR_FRAC_DIGITS_LEN], ScalarDecimalU8Parts::RADIX_INDEX_MIN)
     }
 
     fn from_digits(negative: bool, int_digits: ScalarIntDigitBuffer, frac_digits: ScalarFracDigitBuffer, radix_index: i8) -> Self {
@@ -287,87 +337,43 @@ impl super::shared::ScalarCoreOps for UsfScalar {
     }
 
     fn add(&self, rhs: UsfOrNormalScalar) -> Self {
-        let (lhs_negative, lhs_int_digits_raw, lhs_frac_digits_raw, _lhs_radix) = self.to_digits();
-        let (rhs_negative, rhs_int_digits_raw, rhs_frac_digits_raw, _rhs_radix) = match rhs {
-            UsfOrNormalScalar::A(value) => value.to_digits(),
-            UsfOrNormalScalar::B(value) => value.to_digits(),
-        };
-
-        let lhs_int_digits = PublicIntDigits::new_checked(lhs_int_digits_raw);
-        let lhs_frac_digits = PublicFracDigits::new_checked(lhs_frac_digits_raw);
-        let rhs_int_digits = PublicIntDigits::new_checked(rhs_int_digits_raw);
-        let rhs_frac_digits = PublicFracDigits::new_checked(rhs_frac_digits_raw);
-
-        let lhs_magnitude = PublicFlatDigits::from_parts(lhs_int_digits, lhs_frac_digits);
-        let rhs_magnitude = PublicFlatDigits::from_parts(rhs_int_digits, rhs_frac_digits);
-
-        let (result_negative, result_magnitude) = if lhs_negative == rhs_negative {
-            (lhs_negative, lhs_magnitude + rhs_magnitude)
-        } else {
-            match lhs_magnitude.as_array().cmp(rhs_magnitude.as_array()) {
-                std::cmp::Ordering::Greater => (lhs_negative, lhs_magnitude - rhs_magnitude),
-                std::cmp::Ordering::Less => (rhs_negative, rhs_magnitude - lhs_magnitude),
-                std::cmp::Ordering::Equal => (false, PublicFlatDigits::zero()),
-            }
-        };
-
-        let is_zero = result_magnitude.is_zero();
-        let (result_int_digits, result_frac_digits) = result_magnitude.split();
-
-        Self::from_digits(
-            result_negative && !is_zero,
-            result_int_digits.into_array(),
-            result_frac_digits.into_array(),
-            ScalarDecimalU8Parts::RADIX_INDEX_MAX,
-        )
+        let lhs = self.digits.to_public_signed_magnitude();
+        let rhs = Self::rhs_to_signed_magnitude(rhs);
+        Self {
+            digits: ScalarDecimalDigits::from_public_signed_magnitude(PublicSignedMagnitude::combine_add(lhs, rhs)),
+        }
     }
 
     fn sub(&self, rhs: UsfOrNormalScalar) -> Self {
-        let (lhs_negative, lhs_int_digits_raw, lhs_frac_digits_raw, _lhs_radix) = self.to_digits();
-        let (rhs_negative, rhs_int_digits_raw, rhs_frac_digits_raw, _rhs_radix) = match rhs {
-            UsfOrNormalScalar::A(value) => value.to_digits(),
-            UsfOrNormalScalar::B(value) => value.to_digits(),
-        };
-
-        let lhs_int_digits = PublicIntDigits::new_checked(lhs_int_digits_raw);
-        let lhs_frac_digits = PublicFracDigits::new_checked(lhs_frac_digits_raw);
-        let rhs_int_digits = PublicIntDigits::new_checked(rhs_int_digits_raw);
-        let rhs_frac_digits = PublicFracDigits::new_checked(rhs_frac_digits_raw);
-
-        let lhs_magnitude = PublicFlatDigits::from_parts(lhs_int_digits, lhs_frac_digits);
-        let rhs_magnitude = PublicFlatDigits::from_parts(rhs_int_digits, rhs_frac_digits);
-
-        let (result_negative, result_magnitude) = if lhs_negative != rhs_negative {
-            (lhs_negative, lhs_magnitude + rhs_magnitude)
-        } else {
-            match lhs_magnitude.as_array().cmp(rhs_magnitude.as_array()) {
-                std::cmp::Ordering::Greater => (lhs_negative, lhs_magnitude - rhs_magnitude),
-                std::cmp::Ordering::Less => (!lhs_negative, rhs_magnitude - lhs_magnitude),
-                std::cmp::Ordering::Equal => (false, PublicFlatDigits::zero()),
-            }
-        };
-
-        let is_zero = result_magnitude.is_zero();
-        let (result_int_digits, result_frac_digits) = result_magnitude.split();
-
-        Self::from_digits(
-            result_negative && !is_zero,
-            result_int_digits.into_array(),
-            result_frac_digits.into_array(),
-            ScalarDecimalU8Parts::RADIX_INDEX_MAX,
-        )
+        let lhs = self.digits.to_public_signed_magnitude();
+        let rhs = Self::rhs_to_signed_magnitude(rhs);
+        Self {
+            digits: ScalarDecimalDigits::from_public_signed_magnitude(PublicSignedMagnitude::combine_sub(lhs, rhs)),
+        }
     }
 
-    fn mul(&self, _rhs: UsfOrNormalScalar) -> Self {
-        todo!()
+    fn mul(&self, rhs: UsfOrNormalScalar) -> Self {
+        let lhs = self.digits.to_public_signed_magnitude();
+        let rhs = Self::rhs_to_signed_magnitude(rhs);
+        Self {
+            digits: ScalarDecimalDigits::from_public_signed_magnitude(PublicSignedMagnitude::combine_mul(lhs, rhs)),
+        }
     }
 
-    fn div(&self, _rhs: UsfOrNormalScalar) -> Self {
-        todo!()
+    fn div(&self, rhs: UsfOrNormalScalar) -> Self {
+        let lhs = self.digits.to_public_signed_magnitude();
+        let rhs = Self::rhs_to_signed_magnitude(rhs);
+        Self {
+            digits: ScalarDecimalDigits::from_public_signed_magnitude(PublicSignedMagnitude::combine_div(lhs, rhs)),
+        }
     }
 
-    fn rem(&self, _rhs: UsfOrNormalScalar) -> Self {
-        todo!()
+    fn rem(&self, rhs: UsfOrNormalScalar) -> Self {
+        let lhs = self.digits.to_public_signed_magnitude();
+        let rhs = Self::rhs_to_signed_magnitude(rhs);
+        Self {
+            digits: ScalarDecimalDigits::from_public_signed_magnitude(PublicSignedMagnitude::combine_rem(lhs, rhs)),
+        }
     }
 
     fn pow(&self, _rhs: UsfOrNormalScalar) -> Self {

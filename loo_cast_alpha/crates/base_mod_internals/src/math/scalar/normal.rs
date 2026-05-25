@@ -36,6 +36,52 @@ pub enum NormalFractionalScalarRepr {
     F64(f64),
 }
 
+impl super::shared::ScalarConstOps for NormalScalar {
+    fn zero() -> Self {
+        todo!()
+    }
+
+    fn one() -> Self {
+        todo!()
+    }
+
+    fn two() -> Self {
+        todo!()
+    }
+
+    fn ten() -> Self {
+        todo!()
+    }
+
+    fn max() -> Self {
+        todo!()
+    }
+
+    fn min() -> Self {
+        todo!()
+    }
+
+    fn neg_one() -> Self {
+        todo!()
+    }
+
+    fn epsilon() -> Self {
+        todo!()
+    }
+
+    fn pi() -> Self {
+        todo!()
+    }
+
+    fn tau() -> Self {
+        todo!()
+    }
+
+    fn e() -> Self {
+        todo!()
+    }
+}
+
 impl super::shared::ScalarCoreOps for NormalScalar {
     fn from_decimal_str(_s: &str) -> Self {
         todo!()
@@ -120,6 +166,52 @@ impl super::shared::ScalarCoreOps for NormalScalar {
 }
 impl super::shared::ScalarFieldOps for NormalScalar {}
 impl super::shared::ScalarBridgeOps for NormalScalar {}
+
+impl super::shared::ScalarConstOps for NormalFractionalScalar {
+    fn zero() -> Self {
+        todo!()
+    }
+
+    fn one() -> Self {
+        todo!()
+    }
+
+    fn two() -> Self {
+        todo!()
+    }
+
+    fn ten() -> Self {
+        todo!()
+    }
+
+    fn max() -> Self {
+        todo!()
+    }
+
+    fn min() -> Self {
+        todo!()
+    }
+
+    fn neg_one() -> Self {
+        todo!()
+    }
+
+    fn epsilon() -> Self {
+        todo!()
+    }
+
+    fn pi() -> Self {
+        todo!()
+    }
+
+    fn tau() -> Self {
+        todo!()
+    }
+
+    fn e() -> Self {
+        todo!()
+    }
+}
 
 impl super::shared::ScalarCoreOps for NormalFractionalScalar {
     fn from_decimal_str(_s: &str) -> Self {

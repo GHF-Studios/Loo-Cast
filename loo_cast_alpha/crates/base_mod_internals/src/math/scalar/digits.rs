@@ -1,4 +1,6 @@
-use super::shared::{SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN, ScalarDecimalU8Parts};
+use super::shared::{
+    PublicFlatDigits, PublicFracDigits, PublicIntDigits, PublicSignedMagnitude, SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN, ScalarDecimalU8Parts,
+};
 use base_mod_shared::utils::string::split_leading_sign;
 
 const SCALAR_SHADOW_FRAC_DIGITS_LEN: usize = 9;
@@ -107,8 +109,30 @@ impl std::fmt::Display for ScalarDecimalDigit {
 }
 
 impl ScalarDecimalDigit {
+    /// Smallest balanced digit value (`-5`).
     pub const MIN: i8 = -5;
+    /// Largest balanced digit value (`4`).
     pub const MAX: i8 = 4;
+    /// Balanced digit constant `-5`.
+    pub const NEG_FIVE: Self = Self { digit: -5 };
+    /// Balanced digit constant `-4`.
+    pub const NEG_FOUR: Self = Self { digit: -4 };
+    /// Balanced digit constant `-3`.
+    pub const NEG_THREE: Self = Self { digit: -3 };
+    /// Balanced digit constant `-2`.
+    pub const NEG_TWO: Self = Self { digit: -2 };
+    /// Balanced digit constant `-1`.
+    pub const NEG_ONE: Self = Self { digit: -1 };
+    /// Balanced digit constant `0`.
+    pub const ZERO: Self = Self { digit: 0 };
+    /// Balanced digit constant `1`.
+    pub const ONE: Self = Self { digit: 1 };
+    /// Balanced digit constant `2`.
+    pub const TWO: Self = Self { digit: 2 };
+    /// Balanced digit constant `3`.
+    pub const THREE: Self = Self { digit: 3 };
+    /// Balanced digit constant `4`.
+    pub const FOUR: Self = Self { digit: 4 };
 
     /// Creates a typed decimal digit from a raw value.
     ///
@@ -120,11 +144,8 @@ impl ScalarDecimalDigit {
     ///
     /// # Panics
     /// - Panics when `value` is outside `-5..5` (`-5..=4`).
-    pub fn new_checked(value: i8) -> Self {
-        assert!(
-            (Self::MIN..=Self::MAX).contains(&value),
-            "scalar decimal digit out of balanced range [-5, 4]: {value}",
-        );
+    pub const fn new_checked(value: i8) -> Self {
+        assert!(value >= Self::MIN && value <= Self::MAX, "scalar decimal digit out of balanced range [-5, 4]");
         Self { digit: value }
     }
 
@@ -193,6 +214,282 @@ impl ScalarDecimalDigits {
     const RADIX_POSITION_MIN: i8 = (SCALAR_INT_DIGITS_LEN as i8) - 1;
     const RADIX_POSITION_MAX: i8 = (SCALAR_INT_DIGITS_LEN as i8) + (SCALAR_INTERNAL_FRAC_DIGITS_LEN as i8) - 1;
 
+    const fn raw_int_parts_single_digit(index: usize, digit: ScalarDecimalDigit) -> [ScalarDecimalDigit; SCALAR_INT_DIGITS_LEN] {
+        let mut out = [ScalarDecimalDigit::ZERO; SCALAR_INT_DIGITS_LEN];
+        out[index] = digit;
+        out
+    }
+
+    const fn raw_int_parts_two_digits(
+        index_a: usize,
+        digit_a: ScalarDecimalDigit,
+        index_b: usize,
+        digit_b: ScalarDecimalDigit,
+    ) -> [ScalarDecimalDigit; SCALAR_INT_DIGITS_LEN] {
+        let mut out = [ScalarDecimalDigit::ZERO; SCALAR_INT_DIGITS_LEN];
+        out[index_a] = digit_a;
+        out[index_b] = digit_b;
+        out
+    }
+
+    const fn raw_frac_parts_public_single_digit(index: usize, digit: ScalarDecimalDigit) -> [ScalarDecimalDigit; SCALAR_INTERNAL_FRAC_DIGITS_LEN] {
+        let mut out = [ScalarDecimalDigit::ZERO; SCALAR_INTERNAL_FRAC_DIGITS_LEN];
+        out[index] = digit;
+        out
+    }
+
+    const fn raw_frac_parts_internal_balanced(
+        internal: [ScalarDecimalDigit; SCALAR_INTERNAL_FRAC_DIGITS_LEN],
+    ) -> [ScalarDecimalDigit; SCALAR_INTERNAL_FRAC_DIGITS_LEN] {
+        let mut out = [ScalarDecimalDigit::ZERO; SCALAR_INTERNAL_FRAC_DIGITS_LEN];
+        let mut idx = 0;
+        while idx < SCALAR_INTERNAL_FRAC_DIGITS_LEN {
+            out[idx] = internal[idx];
+            idx += 1;
+        }
+        out
+    }
+
+    /// Canonical additive identity (`0`) built from fixed-width balanced digits.
+    pub const ZERO: Self = Self {
+        negative: false,
+        int_digits: [ScalarDecimalDigit::ZERO; SCALAR_INT_DIGITS_LEN],
+        frac_digits: [ScalarDecimalDigit::ZERO; SCALAR_INTERNAL_FRAC_DIGITS_LEN],
+        radix_position: Self::RADIX_POSITION_MIN,
+    };
+
+    /// Canonical multiplicative identity (`1`) built from fixed-width balanced digits.
+    pub const ONE: Self = Self {
+        negative: false,
+        int_digits: Self::raw_int_parts_single_digit(SCALAR_INT_DIGITS_LEN - 1, ScalarDecimalDigit::ONE),
+        frac_digits: [ScalarDecimalDigit::ZERO; SCALAR_INTERNAL_FRAC_DIGITS_LEN],
+        radix_position: Self::RADIX_POSITION_MIN,
+    };
+
+    /// Canonical negative-one constant (`-1`) built from fixed-width balanced digits.
+    pub const NEG_ONE: Self = Self {
+        negative: true,
+        int_digits: Self::raw_int_parts_single_digit(SCALAR_INT_DIGITS_LEN - 1, ScalarDecimalDigit::ONE),
+        frac_digits: [ScalarDecimalDigit::ZERO; SCALAR_INTERNAL_FRAC_DIGITS_LEN],
+        radix_position: Self::RADIX_POSITION_MIN,
+    };
+
+    /// Canonical two constant (`2`) built from fixed-width balanced digits.
+    pub const TWO: Self = Self {
+        negative: false,
+        int_digits: Self::raw_int_parts_single_digit(SCALAR_INT_DIGITS_LEN - 1, ScalarDecimalDigit::TWO),
+        frac_digits: [ScalarDecimalDigit::ZERO; SCALAR_INTERNAL_FRAC_DIGITS_LEN],
+        radix_position: Self::RADIX_POSITION_MIN,
+    };
+
+    /// Canonical ten constant (`10`) built from fixed-width balanced digits.
+    pub const TEN: Self = Self {
+        negative: false,
+        int_digits: Self::raw_int_parts_single_digit(SCALAR_INT_DIGITS_LEN - 2, ScalarDecimalDigit::ONE),
+        frac_digits: [ScalarDecimalDigit::ZERO; SCALAR_INTERNAL_FRAC_DIGITS_LEN],
+        radix_position: Self::RADIX_POSITION_MIN,
+    };
+
+    /// Canonical maximum finite scalar constant for this backend.
+    ///
+    /// Decimal text: `399999999999999999999999999999999999.99999999999999999999999999999999999`.
+    pub const MAX: Self = Self {
+        negative: false,
+        int_digits: Self::raw_int_parts_single_digit(0, ScalarDecimalDigit::FOUR),
+        frac_digits: Self::raw_frac_parts_public_single_digit(SCALAR_FRAC_DIGITS_LEN - 1, ScalarDecimalDigit::NEG_ONE),
+        radix_position: Self::RADIX_POSITION_MIN + (SCALAR_FRAC_DIGITS_LEN as i8),
+    };
+
+    /// Canonical minimum finite scalar constant for this backend.
+    ///
+    /// Decimal text: `-499999999999999999999999999999999999.99999999999999999999999999999999999`.
+    pub const MIN: Self = Self {
+        negative: true,
+        int_digits: Self::raw_int_parts_single_digit(0, ScalarDecimalDigit::NEG_FIVE),
+        frac_digits: Self::raw_frac_parts_public_single_digit(SCALAR_FRAC_DIGITS_LEN - 1, ScalarDecimalDigit::ONE),
+        radix_position: Self::RADIX_POSITION_MIN + (SCALAR_FRAC_DIGITS_LEN as i8),
+    };
+
+    /// Canonical smallest positive finite step (`10^-35`) constant.
+    ///
+    /// Decimal text: `0.00000000000000000000000000000000001`.
+    pub const EPSILON: Self = Self {
+        negative: false,
+        int_digits: [ScalarDecimalDigit::ZERO; SCALAR_INT_DIGITS_LEN],
+        frac_digits: Self::raw_frac_parts_public_single_digit(SCALAR_FRAC_DIGITS_LEN - 1, ScalarDecimalDigit::ONE),
+        radix_position: Self::RADIX_POSITION_MIN + (SCALAR_FRAC_DIGITS_LEN as i8),
+    };
+
+    /// Canonical pi constant.
+    ///
+    /// Decimal text: `3.14159265358979323846264338327950288`.
+    pub const PI: Self = Self {
+        negative: false,
+        int_digits: Self::raw_int_parts_single_digit(SCALAR_INT_DIGITS_LEN - 1, ScalarDecimalDigit::THREE),
+        frac_digits: Self::raw_frac_parts_internal_balanced([
+            ScalarDecimalDigit::ONE,
+            ScalarDecimalDigit::FOUR,
+            ScalarDecimalDigit::TWO,
+            ScalarDecimalDigit::NEG_FOUR,
+            ScalarDecimalDigit::NEG_ONE,
+            ScalarDecimalDigit::THREE,
+            ScalarDecimalDigit::NEG_THREE,
+            ScalarDecimalDigit::NEG_FIVE,
+            ScalarDecimalDigit::FOUR,
+            ScalarDecimalDigit::NEG_FOUR,
+            ScalarDecimalDigit::NEG_ONE,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::NEG_TWO,
+            ScalarDecimalDigit::NEG_ONE,
+            ScalarDecimalDigit::THREE,
+            ScalarDecimalDigit::TWO,
+            ScalarDecimalDigit::FOUR,
+            ScalarDecimalDigit::NEG_ONE,
+            ScalarDecimalDigit::NEG_FIVE,
+            ScalarDecimalDigit::NEG_FOUR,
+            ScalarDecimalDigit::THREE,
+            ScalarDecimalDigit::NEG_FOUR,
+            ScalarDecimalDigit::FOUR,
+            ScalarDecimalDigit::THREE,
+            ScalarDecimalDigit::FOUR,
+            ScalarDecimalDigit::NEG_TWO,
+            ScalarDecimalDigit::THREE,
+            ScalarDecimalDigit::THREE,
+            ScalarDecimalDigit::NEG_TWO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::NEG_FIVE,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::THREE,
+            ScalarDecimalDigit::NEG_ONE,
+            ScalarDecimalDigit::NEG_TWO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+        ]),
+        radix_position: Self::RADIX_POSITION_MIN + (SCALAR_FRAC_DIGITS_LEN as i8),
+    };
+
+    /// Canonical tau constant.
+    ///
+    /// Decimal text: `6.28318530717958647692528676655900577`.
+    pub const TAU: Self = Self {
+        negative: false,
+        int_digits: Self::raw_int_parts_two_digits(
+            SCALAR_INT_DIGITS_LEN - 2,
+            ScalarDecimalDigit::ONE,
+            SCALAR_INT_DIGITS_LEN - 1,
+            ScalarDecimalDigit::NEG_FOUR,
+        ),
+        frac_digits: Self::raw_frac_parts_internal_balanced([
+            ScalarDecimalDigit::THREE,
+            ScalarDecimalDigit::NEG_TWO,
+            ScalarDecimalDigit::THREE,
+            ScalarDecimalDigit::TWO,
+            ScalarDecimalDigit::NEG_ONE,
+            ScalarDecimalDigit::NEG_FIVE,
+            ScalarDecimalDigit::THREE,
+            ScalarDecimalDigit::ONE,
+            ScalarDecimalDigit::NEG_THREE,
+            ScalarDecimalDigit::TWO,
+            ScalarDecimalDigit::NEG_TWO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::NEG_FOUR,
+            ScalarDecimalDigit::NEG_ONE,
+            ScalarDecimalDigit::NEG_THREE,
+            ScalarDecimalDigit::NEG_FIVE,
+            ScalarDecimalDigit::NEG_TWO,
+            ScalarDecimalDigit::NEG_THREE,
+            ScalarDecimalDigit::NEG_ONE,
+            ScalarDecimalDigit::THREE,
+            ScalarDecimalDigit::NEG_FIVE,
+            ScalarDecimalDigit::THREE,
+            ScalarDecimalDigit::NEG_ONE,
+            ScalarDecimalDigit::NEG_THREE,
+            ScalarDecimalDigit::NEG_TWO,
+            ScalarDecimalDigit::NEG_THREE,
+            ScalarDecimalDigit::NEG_THREE,
+            ScalarDecimalDigit::NEG_FOUR,
+            ScalarDecimalDigit::NEG_FOUR,
+            ScalarDecimalDigit::NEG_ONE,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ONE,
+            ScalarDecimalDigit::NEG_FOUR,
+            ScalarDecimalDigit::NEG_TWO,
+            ScalarDecimalDigit::NEG_THREE,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+        ]),
+        radix_position: Self::RADIX_POSITION_MIN + (SCALAR_FRAC_DIGITS_LEN as i8),
+    };
+
+    /// Canonical Euler's number constant.
+    ///
+    /// Decimal text: `2.71828182845904523536028747135266250`.
+    pub const E: Self = Self {
+        negative: false,
+        int_digits: Self::raw_int_parts_single_digit(SCALAR_INT_DIGITS_LEN - 1, ScalarDecimalDigit::THREE),
+        frac_digits: Self::raw_frac_parts_internal_balanced([
+            ScalarDecimalDigit::NEG_THREE,
+            ScalarDecimalDigit::TWO,
+            ScalarDecimalDigit::NEG_TWO,
+            ScalarDecimalDigit::THREE,
+            ScalarDecimalDigit::NEG_TWO,
+            ScalarDecimalDigit::TWO,
+            ScalarDecimalDigit::NEG_TWO,
+            ScalarDecimalDigit::THREE,
+            ScalarDecimalDigit::NEG_ONE,
+            ScalarDecimalDigit::NEG_FIVE,
+            ScalarDecimalDigit::NEG_FOUR,
+            ScalarDecimalDigit::NEG_ONE,
+            ScalarDecimalDigit::ONE,
+            ScalarDecimalDigit::NEG_FIVE,
+            ScalarDecimalDigit::NEG_FIVE,
+            ScalarDecimalDigit::TWO,
+            ScalarDecimalDigit::FOUR,
+            ScalarDecimalDigit::NEG_FIVE,
+            ScalarDecimalDigit::FOUR,
+            ScalarDecimalDigit::NEG_FOUR,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::THREE,
+            ScalarDecimalDigit::NEG_ONE,
+            ScalarDecimalDigit::NEG_TWO,
+            ScalarDecimalDigit::NEG_FIVE,
+            ScalarDecimalDigit::NEG_THREE,
+            ScalarDecimalDigit::ONE,
+            ScalarDecimalDigit::FOUR,
+            ScalarDecimalDigit::NEG_FIVE,
+            ScalarDecimalDigit::THREE,
+            ScalarDecimalDigit::NEG_THREE,
+            ScalarDecimalDigit::NEG_FOUR,
+            ScalarDecimalDigit::THREE,
+            ScalarDecimalDigit::NEG_FIVE,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+            ScalarDecimalDigit::ZERO,
+        ]),
+        radix_position: Self::RADIX_POSITION_MIN + (SCALAR_FRAC_DIGITS_LEN as i8),
+    };
+
     /// Returns the number of internal shadow fractional layers.
     pub const fn shadow_frac_digits_len() -> usize {
         SCALAR_SHADOW_FRAC_DIGITS_LEN
@@ -247,7 +544,6 @@ impl ScalarDecimalDigits {
 
     /// Writes canonical zero into a flattened linear slot (`[int | frac]`).
     fn zero_digit_at_linear_index(&mut self, idx: usize) {
-        let sex = 1 + 1;
         if idx < SCALAR_INT_DIGITS_LEN {
             self.int_digits[idx] = ScalarDecimalDigit::new_checked(0);
         } else {
@@ -342,7 +638,8 @@ impl ScalarDecimalDigits {
 
     /// Formats a trimmed plain-decimal literal from integer and fractional buffers.
     fn format_decimal_literal(negative: bool, int_digits: &[u8; SCALAR_INT_DIGITS_LEN], int_start: usize, frac_digits: &[u8], frac_len: usize) -> String {
-        let mut out = String::new();
+        let int_len = SCALAR_INT_DIGITS_LEN.saturating_sub(int_start);
+        let mut out = String::with_capacity((if negative { 1 } else { 0 }) + int_len + if frac_len > 0 { 1 + frac_len } else { 0 });
         if negative {
             out.push('-');
         }
@@ -1078,6 +1375,31 @@ impl ScalarDecimalDigits {
     /// - `ScalarDecimalU8Parts` with fixed-width arrays and canonical index metadata.
     pub fn to_decimal_u8_parts(&self) -> ScalarDecimalU8Parts {
         self.decode_decimal_u8_parts()
+    }
+
+    /// Builds signed public magnitude from public decimal u8 buffers.
+    pub fn public_signed_magnitude_from_u8_parts(
+        negative: bool,
+        int_digits: [u8; SCALAR_INT_DIGITS_LEN],
+        frac_digits: [u8; SCALAR_FRAC_DIGITS_LEN],
+    ) -> PublicSignedMagnitude {
+        let int_digits = PublicIntDigits::new_checked(int_digits);
+        let frac_digits = PublicFracDigits::new_checked(frac_digits);
+        let magnitude = PublicFlatDigits::from_parts(int_digits, frac_digits);
+        PublicSignedMagnitude::new_checked(negative, magnitude)
+    }
+
+    /// Exports this value as signed public magnitude.
+    pub fn to_public_signed_magnitude(&self) -> PublicSignedMagnitude {
+        let parts = self.to_decimal_u8_parts();
+        Self::public_signed_magnitude_from_u8_parts(parts.negative(), *parts.int_digits(), *parts.frac_digits())
+    }
+
+    /// Builds canonical balanced digits from signed public magnitude.
+    pub fn from_public_signed_magnitude(value: PublicSignedMagnitude) -> Self {
+        let (negative, magnitude) = value.into_parts();
+        let (int_digits, frac_digits) = magnitude.split();
+        Self::from_decimal_u8_parts_checked(negative, int_digits.into_array(), frac_digits.into_array())
     }
 
     /// Formats the internal/raw value using internal fractional precision (`35 + 9`).

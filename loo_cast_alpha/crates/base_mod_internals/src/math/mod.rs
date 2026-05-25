@@ -204,10 +204,10 @@ mod tests {
                     let text = self.random_decimal_text();
                     let value = scalar_from_decimal(text.as_str());
 
-                    if self.spec.force_positive && value <= UsfScalar::zero() {
+                    if self.spec.force_positive && value <= UsfScalar::ZERO {
                         continue;
                     }
-                    if self.spec.require_non_zero && value == UsfScalar::zero() {
+                    if self.spec.require_non_zero && value == UsfScalar::ZERO {
                         continue;
                     }
                     return value;
@@ -259,7 +259,7 @@ mod tests {
         #[test]
         fn usf_scalar_add_identity_test() {
             let (a, _, _) = additive_law_samples();
-            let zero = UsfScalar::zero();
+            let zero = UsfScalar::ZERO;
 
             let a_plus_zero = a.add(UsfOrNormalScalar::A(zero.clone()));
             let zero_plus_a = zero.add(UsfOrNormalScalar::A(a.clone()));
@@ -272,7 +272,7 @@ mod tests {
         fn usf_scalar_add_inverse_test() {
             let a = <UsfScalar as ScalarCoreOps>::from_decimal_str("17.3");
             let neg_a = <UsfScalar as ScalarCoreOps>::from_decimal_str("-17.3");
-            let zero = UsfScalar::zero();
+            let zero = UsfScalar::ZERO;
 
             let a_plus_neg_a = a.add(UsfOrNormalScalar::A(neg_a.clone()));
             let neg_a_plus_a = neg_a.add(UsfOrNormalScalar::A(a.clone()));
@@ -304,7 +304,7 @@ mod tests {
         #[test]
         fn usf_scalar_sub_identity_test() {
             let (a, _, _) = additive_law_samples();
-            let zero = UsfScalar::zero();
+            let zero = UsfScalar::ZERO;
 
             let a_minus_zero = a.sub(UsfOrNormalScalar::A(zero));
             assert_eq!(a_minus_zero, a);
@@ -313,7 +313,7 @@ mod tests {
         #[test]
         fn usf_scalar_sub_self_zero_test() {
             let (a, _, _) = additive_law_samples();
-            let zero = UsfScalar::zero();
+            let zero = UsfScalar::ZERO;
 
             let a_minus_a = a.sub(UsfOrNormalScalar::A(a.clone()));
             assert_eq!(a_minus_a, zero);
@@ -339,7 +339,7 @@ mod tests {
         #[ignore = "ScalarCoreOps::div is still todo!()"]
         fn usf_scalar_div_identity_test() {
             let (a, _) = multiplicative_law_samples();
-            let one = UsfScalar::one();
+            let one = UsfScalar::ONE;
 
             let a_div_one = a.div(UsfOrNormalScalar::A(one));
             assert_eq!(a_div_one, a);
@@ -349,7 +349,7 @@ mod tests {
         #[ignore = "ScalarCoreOps::div is still todo!()"]
         fn usf_scalar_div_self_one_test() {
             let (a, _) = multiplicative_law_samples();
-            let one = UsfScalar::one();
+            let one = UsfScalar::ONE;
 
             let a_div_a = a.div(UsfOrNormalScalar::A(a.clone()));
             assert_eq!(a_div_a, one);
@@ -494,11 +494,11 @@ mod tests {
 
         #[test]
         fn usf_scalar_core_test() {
-            let zero = UsfScalar::zero();
-            let one = UsfScalar::one();
-            let epsilon = UsfScalar::epsilon();
-            let max = UsfScalar::max();
-            let min = UsfScalar::min();
+            let zero = UsfScalar::ZERO;
+            let one = UsfScalar::ONE;
+            let epsilon = UsfScalar::EPSILON;
+            let max = UsfScalar::MAX;
+            let min = UsfScalar::MIN;
 
             assert_eq!(format!("{zero}"), "0");
             assert_eq!(format!("{one}"), "1");
@@ -515,7 +515,7 @@ mod tests {
 
         #[test]
         fn usf_scalar_debug_fmt_test() {
-            let number = UsfScalar::one();
+            let number = UsfScalar::ONE;
             let result = format!("{:?}", number);
             let expected = "UsfScalar { digits: ScalarDecimalDigits[ 000000000000000000000000000000000001.00000000000000000000000000000000000 ] }";
             assert_eq!(result, expected);
@@ -523,7 +523,7 @@ mod tests {
 
         #[test]
         fn usf_scalar_display_fmt_test() {
-            let number = UsfScalar::one();
+            let number = UsfScalar::ONE;
             let result = format!("{}", number);
             let expected = "1";
             assert_eq!(result, expected);

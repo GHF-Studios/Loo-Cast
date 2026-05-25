@@ -19,7 +19,8 @@
 
 use super::aliases::{UsfOrNormalFractionalScalar, UsfOrNormalScalar};
 pub use super::decimal_parts::{
-    PublicFlatDigits, PublicFracDigits, PublicIntDigits, ScalarDecimalU8Parts, ScalarDigitBuffer, ScalarFracDigitBuffer, ScalarIntDigitBuffer,
+    PublicFlatDigits, PublicFracDigits, PublicIntDigits, PublicSignedMagnitude, ScalarDecimalU8Parts, ScalarDigitBuffer, ScalarFracDigitBuffer,
+    ScalarIntDigitBuffer,
 };
 pub use super::decimal_parts::{SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN};
 
@@ -88,6 +89,93 @@ impl FloatType for f32 {}
 impl ScalarType for f64 {}
 impl FloatType for f64 {}
 
+/// Scalar constant accessor contract.
+///
+/// This trait is intentionally separate from [`ScalarCoreOps`] to avoid naming collisions
+/// with binary operation methods like `min(&self, rhs)` / `max(&self, rhs)`.
+pub trait ScalarConstOps: Clone + Sized {
+    /// Returns the additive identity value.
+    ///
+    /// Implementers should return a canonical backend constant built from raw parts.
+    /// Do not route this through parsing or other ops; construct directly from raw parts/constants.
+    fn zero() -> Self;
+
+    /// Returns the multiplicative identity value.
+    ///
+    /// Implementers should return a canonical backend constant built from raw parts.
+    /// Do not route this through parsing or other ops; construct directly from raw parts/constants.
+    fn one() -> Self;
+
+    /// Returns constant two.
+    ///
+    /// Implementers should return a canonical backend constant built from raw parts.
+    /// Do not route this through parsing or other ops; construct directly from raw parts/constants.
+    fn two() -> Self;
+
+    /// Returns constant ten.
+    ///
+    /// Implementers should return a canonical backend constant built from raw parts.
+    /// Do not route this through parsing or other ops; construct directly from raw parts/constants.
+    fn ten() -> Self;
+
+    /// Returns maximum finite constant supported by this backend.
+    ///
+    /// Implementers should return a canonical backend constant built from raw parts.
+    /// Do not route this through parsing or other ops; construct directly from raw parts/constants.
+    fn max() -> Self;
+
+    /// Returns minimum finite constant supported by this backend.
+    ///
+    /// Implementers should return a canonical backend constant built from raw parts.
+    /// Do not route this through parsing or other ops; construct directly from raw parts/constants.
+    fn min() -> Self;
+
+    /// Returns constant negative one.
+    ///
+    /// Implementers should return a canonical backend constant built from raw parts.
+    /// Do not route this through parsing or other ops; construct directly from raw parts/constants.
+    fn neg_one() -> Self;
+
+    /// Returns constant epsilon (`10^-35`).
+    ///
+    /// Implementers should return a canonical backend constant built from raw parts.
+    /// Do not route this through parsing or other ops; construct directly from raw parts/constants.
+    fn epsilon() -> Self;
+
+    /// Returns constant pi.
+    ///
+    /// Implementers should return a canonical backend constant built from raw parts.
+    /// Do not route this through parsing or other ops; construct directly from raw parts/constants.
+    fn pi() -> Self;
+
+    /// Returns constant tau.
+    ///
+    /// Implementers should return a canonical backend constant built from raw parts.
+    /// Do not route this through parsing or other ops; construct directly from raw parts/constants.
+    fn tau() -> Self;
+
+    /// Returns constant e.
+    ///
+    /// Implementers should return a canonical backend constant built from raw parts.
+    /// Do not route this through parsing or other ops; construct directly from raw parts/constants.
+    fn e() -> Self;
+
+    /// Returns a NaN value.
+    fn nan() -> Self {
+        todo!()
+    }
+
+    /// Returns positive infinity.
+    fn infinity() -> Self {
+        todo!()
+    }
+
+    /// Returns negative infinity.
+    fn neg_infinity() -> Self {
+        todo!()
+    }
+}
+
 /// Repr-agnostic scalar operations.
 /// This trait encodes arithmetic and transcendental behavior independent of the concrete
 /// representation family (`Usf` vs `Normal`).
@@ -112,7 +200,7 @@ impl FloatType for f64 {}
 ///     lhs.lerp(rhs, factor)
 /// }
 /// ```
-pub trait ScalarCoreOps: Clone + Sized {
+pub trait ScalarCoreOps: ScalarConstOps {
     /// Builds a scalar from pre-parsed base-10 decimal digits.
     ///
     /// # Parameters
@@ -207,127 +295,6 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// - Implementers should route this through their canonical format path.
     /// - No default formatter body is provided here to avoid duplicate formatting logic.
     fn to_scientific_str(&self) -> String;
-
-    /// Returns the additive identity value.
-    ///
-    /// # Parameters
-    /// - None.
-    ///
-    /// # Returns
-    /// - A new value of the same concrete type.
-    fn zero() -> Self {
-        todo!()
-    }
-
-    /// Returns the multiplicative identity value.
-    ///
-    /// # Parameters
-    /// - None.
-    ///
-    /// # Returns
-    /// - A new value of the same concrete type.
-    fn one() -> Self {
-        todo!()
-    }
-
-    /// Returns constant two.
-    ///
-    /// # Parameters
-    /// - None.
-    ///
-    /// # Returns
-    /// - A new value of the same concrete type.
-    fn two() -> Self {
-        todo!()
-    }
-
-    /// Returns constant ten.
-    ///
-    /// # Parameters
-    /// - None.
-    ///
-    /// # Returns
-    /// - A new value of the same concrete type.
-    fn ten() -> Self {
-        todo!()
-    }
-
-    /// Returns constant negative one.
-    ///
-    /// # Parameters
-    /// - None.
-    ///
-    /// # Returns
-    /// - A new value of the same concrete type.
-    fn neg_one() -> Self {
-        todo!()
-    }
-
-    /// Returns constant pi.
-    ///
-    /// # Parameters
-    /// - None.
-    ///
-    /// # Returns
-    /// - A new value of the same concrete type.
-    fn pi() -> Self {
-        todo!()
-    }
-
-    /// Returns constant tau.
-    ///
-    /// # Parameters
-    /// - None.
-    ///
-    /// # Returns
-    /// - A new value of the same concrete type.
-    fn tau() -> Self {
-        todo!()
-    }
-
-    /// Returns constant e.
-    ///
-    /// # Parameters
-    /// - None.
-    ///
-    /// # Returns
-    /// - A new value of the same concrete type.
-    fn e() -> Self {
-        todo!()
-    }
-
-    /// Returns a NaN value.
-    ///
-    /// # Parameters
-    /// - None.
-    ///
-    /// # Returns
-    /// - A new value of the same concrete type.
-    fn nan() -> Self {
-        todo!()
-    }
-
-    /// Returns positive infinity.
-    ///
-    /// # Parameters
-    /// - None.
-    ///
-    /// # Returns
-    /// - A new value of the same concrete type.
-    fn infinity() -> Self {
-        todo!()
-    }
-
-    /// Returns negative infinity.
-    ///
-    /// # Parameters
-    /// - None.
-    ///
-    /// # Returns
-    /// - A new value of the same concrete type.
-    fn neg_infinity() -> Self {
-        todo!()
-    }
 
     /// Parses a decimal literal into this scalar type.
     ///
@@ -693,7 +660,7 @@ pub trait ScalarCoreOps: Clone + Sized {
     /// Computes hyperbolic cosine.
     ///
     /// # Parameters
-    /// - `self`: Receiver value.
+    /// - `self`: Receiver value.You do the fix.
     ///
     /// # Returns
     /// - A new value of the same concrete type.

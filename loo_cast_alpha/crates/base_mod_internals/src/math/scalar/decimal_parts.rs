@@ -129,6 +129,45 @@ impl PublicFlatDigits {
     pub fn is_zero(&self) -> bool {
         self.0.iter().all(|d| *d == 0)
     }
+
+    /// Compares two non-negative magnitudes.
+    pub fn cmp_magnitude(&self, rhs: &Self) -> std::cmp::Ordering {
+        self.0.cmp(&rhs.0)
+    }
+
+    /// Multiplies two non-negative magnitudes.
+    ///
+    /// # Panics
+    /// - Panics if multiplication overflows configured precision.
+    pub fn mul_non_negative(_lhs: Self, _rhs: Self) -> Self {
+        todo!()
+    }
+
+    /// Divides two non-negative magnitudes and returns `(quotient, remainder)`.
+    ///
+    /// # Panics
+    /// - Panics if divisor is zero.
+    /// - Panics if division cannot be represented under configured precision.
+    pub fn div_rem_non_negative(_lhs: Self, _rhs: Self) -> (Self, Self) {
+        todo!()
+    }
+
+    /// Divides two non-negative magnitudes and returns quotient.
+    ///
+    /// # Panics
+    /// - Panics if divisor is zero.
+    /// - Panics if division cannot be represented under configured precision.
+    pub fn div_non_negative(lhs: Self, rhs: Self) -> Self {
+        Self::div_rem_non_negative(lhs, rhs).0
+    }
+
+    /// Computes remainder of two non-negative magnitudes.
+    ///
+    /// # Panics
+    /// - Panics if divisor is zero.
+    pub fn rem_non_negative(lhs: Self, rhs: Self) -> Self {
+        Self::div_rem_non_negative(lhs, rhs).1
+    }
 }
 
 impl std::ops::Add for PublicFlatDigits {
@@ -165,10 +204,7 @@ impl std::ops::Sub for PublicFlatDigits {
     fn sub(self, rhs: Self) -> Self::Output {
         let lhs = self.as_array();
         let rhs = rhs.as_array();
-        assert!(
-            lhs.cmp(rhs) != std::cmp::Ordering::Less,
-            "public flat digit sub underflow: rhs exceeds lhs",
-        );
+        assert!(lhs.cmp(rhs) != std::cmp::Ordering::Less, "public flat digit sub underflow: rhs exceeds lhs",);
 
         let mut out = [0_u8; SCALAR_TOTAL_DIGITS_LEN];
         let mut borrow: i16 = 0;
@@ -187,6 +223,103 @@ impl std::ops::Sub for PublicFlatDigits {
 
         assert_eq!(borrow, 0, "public flat digit sub internal borrow underflow");
         Self::new_checked(out)
+    }
+}
+
+/// Signed wrapper around public decimal magnitude.
+///
+/// # Invariants
+/// - `magnitude` stores non-negative decimal digits.
+/// - Zero magnitude is always normalized to `negative == false`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PublicSignedMagnitude {
+    negative: bool,
+    magnitude: PublicFlatDigits,
+}
+
+impl PublicSignedMagnitude {
+    /// Returns canonical zero.
+    pub const fn zero() -> Self {
+        Self {
+            negative: false,
+            magnitude: PublicFlatDigits::zero(),
+        }
+    }
+
+    /// Builds signed magnitude and normalizes zero sign.
+    pub fn new_checked(negative: bool, magnitude: PublicFlatDigits) -> Self {
+        if magnitude.is_zero() {
+            Self::zero()
+        } else {
+            Self { negative, magnitude }
+        }
+    }
+
+    /// Returns sign flag.
+    pub fn negative(&self) -> bool {
+        self.negative
+    }
+
+    /// Returns magnitude by reference.
+    pub fn magnitude(&self) -> &PublicFlatDigits {
+        &self.magnitude
+    }
+
+    /// Returns `(negative, magnitude)` parts.
+    pub fn into_parts(self) -> (bool, PublicFlatDigits) {
+        (self.negative, self.magnitude)
+    }
+
+    /// Returns signed subtraction (`lhs - rhs`) resolved via sign/magnitude rules.
+    pub fn combine_sub(lhs: Self, rhs: Self) -> Self {
+        if lhs.negative != rhs.negative {
+            return Self::new_checked(lhs.negative, lhs.magnitude + rhs.magnitude);
+        }
+
+        match lhs.magnitude.cmp_magnitude(&rhs.magnitude) {
+            std::cmp::Ordering::Greater => Self::new_checked(lhs.negative, lhs.magnitude - rhs.magnitude),
+            std::cmp::Ordering::Less => Self::new_checked(!lhs.negative, rhs.magnitude - lhs.magnitude),
+            std::cmp::Ordering::Equal => Self::zero(),
+        }
+    }
+
+    /// Returns signed addition (`lhs + rhs`) resolved via sign/magnitude rules.
+    pub fn combine_add(lhs: Self, rhs: Self) -> Self {
+        if lhs.negative == rhs.negative {
+            return Self::new_checked(lhs.negative, lhs.magnitude + rhs.magnitude);
+        }
+
+        match lhs.magnitude.cmp_magnitude(&rhs.magnitude) {
+            std::cmp::Ordering::Greater => Self::new_checked(lhs.negative, lhs.magnitude - rhs.magnitude),
+            std::cmp::Ordering::Less => Self::new_checked(rhs.negative, rhs.magnitude - lhs.magnitude),
+            std::cmp::Ordering::Equal => Self::zero(),
+        }
+    }
+
+    /// Returns signed multiplication (`lhs * rhs`) resolved via sign/magnitude rules.
+    pub fn combine_mul(lhs: Self, rhs: Self) -> Self {
+        let magnitude = PublicFlatDigits::mul_non_negative(lhs.magnitude, rhs.magnitude);
+        let negative = lhs.negative ^ rhs.negative;
+        Self::new_checked(negative, magnitude)
+    }
+
+    /// Returns signed division (`lhs / rhs`) resolved via sign/magnitude rules.
+    ///
+    /// # Panics
+    /// - Panics if `rhs` magnitude is zero.
+    pub fn combine_div(lhs: Self, rhs: Self) -> Self {
+        let magnitude = PublicFlatDigits::div_non_negative(lhs.magnitude, rhs.magnitude);
+        let negative = lhs.negative ^ rhs.negative;
+        Self::new_checked(negative, magnitude)
+    }
+
+    /// Returns signed remainder (`lhs % rhs`) resolved via sign/magnitude rules.
+    ///
+    /// # Panics
+    /// - Panics if `rhs` magnitude is zero.
+    pub fn combine_rem(lhs: Self, rhs: Self) -> Self {
+        let magnitude = PublicFlatDigits::rem_non_negative(lhs.magnitude, rhs.magnitude);
+        Self::new_checked(lhs.negative, magnitude)
     }
 }
 
