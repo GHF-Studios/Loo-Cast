@@ -248,11 +248,7 @@ impl PublicSignedMagnitude {
 
     /// Builds signed magnitude and normalizes zero sign.
     pub fn new_checked(negative: bool, magnitude: PublicFlatDigits) -> Self {
-        if magnitude.is_zero() {
-            Self::zero()
-        } else {
-            Self { negative, magnitude }
-        }
+        if magnitude.is_zero() { Self::zero() } else { Self { negative, magnitude } }
     }
 
     /// Returns sign flag.
