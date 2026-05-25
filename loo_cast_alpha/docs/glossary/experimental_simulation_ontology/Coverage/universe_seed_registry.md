@@ -23,14 +23,14 @@ Status key:
 - [x] `solver.quantum.hybrid_monte_carlo`
 - [x] `solver.quantum.split_operator_fourier`
 - [ ] `paradigm.quantum.relativistic_pic`
-- [ ] `solver.quantum.maxwell_yee`
-- [ ] `solver.quantum.crank_nicolson`
+- [x] `solver.quantum.maxwell_yee`
+- [x] `solver.quantum.crank_nicolson`
 - [ ] `paradigm.quantum.dft_kohn_sham`
-- [ ] `solver.quantum.scf_iteration`
-- [ ] `solver.quantum.plane_wave_basis`
-- [ ] `solver.quantum.gaussian_basis`
+- [x] `solver.quantum.scf_iteration`
+- [x] `solver.quantum.plane_wave_basis`
+- [x] `solver.quantum.gaussian_basis`
 - [ ] `paradigm.quantum.qmc_vmc_dmc`
-- [ ] `solver.quantum.fixed_node_qmc`
+- [x] `solver.quantum.fixed_node_qmc`
 - [ ] `paradigm.quantum.tensor_network_mps`
 - [ ] `paradigm.quantum.tensor_network_peps`
 - [ ] `paradigm.quantum.tensor_network_mera`
@@ -45,11 +45,11 @@ Status key:
 - [ ] `paradigm.molecular.car_parrinello_md`
 - [ ] `paradigm.molecular.born_oppenheimer_md`
 - [ ] `paradigm.thermal.phonon_bte`
-- [ ] `solver.thermal.phonon_monte_carlo`
+- [x] `solver.thermal.phonon_monte_carlo`
 - [ ] `paradigm.thermal.non_fourier_heat`
 - [ ] `paradigm.chemical.master_equation`
 - [ ] `paradigm.chemical.reaction_diffusion_pde`
-- [ ] `solver.chemical.gray_scott_fvm`
+- [x] `solver.chemical.gray_scott_fvm`
 - [ ] `paradigm.phase_field.cahn_hilliard`
 - [ ] `paradigm.phase_field.allen_cahn`
 
@@ -64,7 +64,7 @@ Status key:
 - [ ] `paradigm.fracture.phase_field`
 - [ ] `paradigm.fracture.peridynamics`
 - [ ] `paradigm.discrete.dem_granular`
-- [ ] `solver.discrete.hertz_mindlin_contact`
+- [x] `solver.discrete.hertz_mindlin_contact`
 - [ ] `paradigm.multibody.featherstone_aba`
 - [ ] `paradigm.dynamics.pbd_xpbd`
 
@@ -75,12 +75,12 @@ Status key:
 - [x] `paradigm.fluid.lattice_boltzmann`
 - [x] `solver.riemann.hllc_hrsc`
 - [x] `solver.lbm.bgk_d3q19`
-- [ ] `solver.fluid.projection_fractional_step`
-- [ ] `solver.fluid.semi_lagrangian`
-- [ ] `solver.fluid.mac_cormack`
-- [ ] `solver.fluid.poisson_pressure`
+- [x] `solver.fluid.projection_fractional_step`
+- [x] `solver.fluid.semi_lagrangian`
+- [x] `solver.fluid.mac_cormack`
+- [x] `solver.fluid.poisson_pressure`
 - [ ] `paradigm.fluid.sph`
-- [ ] `solver.fluid.sph_cubic_spline`
+- [x] `solver.fluid.sph_cubic_spline`
 - [ ] `paradigm.fluid.vortex_particles`
 - [ ] `paradigm.wave.acoustic_fft_pseudospectral`
 - [ ] `paradigm.wave.fdtc_acoustics`
@@ -103,11 +103,11 @@ Status key:
 - [x] `solver.nbody.fast_multipole_method`
 - [ ] `paradigm.plasma.ideal_mhd`
 - [ ] `paradigm.plasma.resistive_mhd`
-- [ ] `solver.plasma.constrained_transport`
-- [ ] `solver.plasma.divergence_cleaning`
+- [x] `solver.plasma.constrained_transport`
+- [x] `solver.plasma.divergence_cleaning`
 - [ ] `paradigm.cosmo.particle_mesh_nbody`
-- [ ] `solver.gravity.fft_poisson`
-- [ ] `solver.gravity.tree_code`
+- [x] `solver.gravity.fft_poisson`
+- [x] `solver.gravity.tree_code`
 - [ ] `paradigm.relativity.geodesic_ray_tracing`
 
 ## 6) Information, Statistical, Topological
@@ -115,9 +115,9 @@ Status key:
 - [x] `paradigm.statistical_mechanics.ensemble_inference`
 - [x] `paradigm.bayesian_inference.posterior_dynamics`
 - [x] `paradigm.network.dynamic_graph_topology`
-- [ ] `solver.stats.mcmc_generic`
-- [ ] `solver.stats.replica_exchange`
-- [ ] `solver.stats.wang_landau`
+- [x] `solver.stats.mcmc_generic`
+- [x] `solver.stats.replica_exchange`
+- [x] `solver.stats.wang_landau`
 - [ ] `paradigm.info.maxent`
 - [ ] `paradigm.info.fisher_geometry`
 - [ ] `paradigm.network.kuramoto_sync`
@@ -129,7 +129,7 @@ Status key:
 - [x] `paradigm.optimization.energy_minimization`
 - [x] `paradigm.gradient_flow.dissipative_dynamics`
 - [ ] `paradigm.bio.cellular_automata`
-- [ ] `solver.bio.bitpacked_rule_tables`
+- [x] `solver.bio.bitpacked_rule_tables`
 - [ ] `paradigm.epi.sir_seir_ode`
 - [ ] `paradigm.epi.network_contagion`
 - [ ] `paradigm.biomech.hill_muscle`
