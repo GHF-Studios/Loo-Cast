@@ -49,6 +49,13 @@ Starter relation registry (v0):
 | `xdom:analogous_to` | `paradigm` | `morphism` | Cross-domain analogy membership |
 | `xdom:maps_from` | `morphism` | `paradigm` | Cross-domain source side |
 | `xdom:maps_to` | `morphism` | `paradigm` | Cross-domain target side |
+| `eng:option_for` | `principle` | `paradigm`, `solver`, `transform`, `morphism` | Engineering option applies to selected node families |
+| `eng:tradeoff_with` | `principle` | `principle` | Explicit option tradeoff relation |
+| `epi:supported_by` | `paradigm`, `solver`, `transform`, `morphism`, `principle` | `paradigm`, `solver`, `transform`, `morphism`, `principle` | Epistemic support or corroboration |
+| `epi:contradicted_by` | `paradigm`, `solver`, `transform`, `morphism`, `principle` | `paradigm`, `solver`, `transform`, `morphism`, `principle` | Explicit contradiction relation |
+| `gov:supersedes` | `paradigm`, `solver`, `transform`, `morphism`, `principle` | `paradigm`, `solver`, `transform`, `morphism`, `principle` | Newer model supersedes older one |
+| `gov:replaced_by` | `paradigm`, `solver`, `transform`, `morphism`, `principle` | `paradigm`, `solver`, `transform`, `morphism`, `principle` | Replacement relation for deprecation |
+| `gov:confidence_revised_by` | `paradigm`, `solver`, `transform`, `morphism`, `principle` | `paradigm`, `solver`, `transform`, `morphism`, `principle` | Confidence update lineage |
 
 Canonical edge record:
 
@@ -62,6 +69,52 @@ Canonical edge record:
     scale_separation: true
   evidence:
     - IMEX split limits fast-mode instability while preserving practical throughput.
+  status: experimental
+```
+
+Example instances for newly introduced adaptation edges:
+
+```yaml
+- rel: eng:option_for
+  from: option.stability.A_stability_requirement
+  to: solver.time.imex_bdf2
+  direction: out
+  status: experimental
+
+- rel: eng:tradeoff_with
+  from: option.accuracy.order_vs_cost_tradeoff
+  to: option.parallelism.gpu_acceleration
+  direction: out
+  status: experimental
+
+- rel: epi:supported_by
+  from: paradigm.quantum.dft_kohn_sham
+  to: solver.quantum.scf_iteration
+  direction: out
+  status: experimental
+
+- rel: epi:contradicted_by
+  from: paradigm.thermal.non_fourier_heat
+  to: paradigm.thermo.non_equilibrium_onsager
+  direction: out
+  status: experimental
+
+- rel: gov:supersedes
+  from: transform.reduction.state_space_balanced_truncation
+  to: transform.reduction.pod_dmd
+  direction: out
+  status: experimental
+
+- rel: gov:replaced_by
+  from: solver.fluid.mac_cormack
+  to: solver.riemann.hllc_hrsc
+  direction: out
+  status: experimental
+
+- rel: gov:confidence_revised_by
+  from: paradigm.radiative_transfer.monte_carlo
+  to: paradigm.radiative_transfer.dom
+  direction: out
   status: experimental
 ```
 

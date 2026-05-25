@@ -15,6 +15,7 @@ projection_tags:
   - book:physical_scale
 activated_modules:
   - core.identity
+  - trait.stochastic
 coordinate_annotations:
   S: continuum_radiative
   Pi: monte_carlo
@@ -25,6 +26,12 @@ coordinate_annotations:
 - `display_name`: Stochastic photon packet transport paradigm.
 - `summary`: Probabilistic radiative-transfer framework for complex scattering/absorption regimes.
 
+### `trait.stochastic`
+
+- `sampling_regime`: photon-packet random walk with probabilistic interaction events.
+- `estimator_family`: path-length, collision, and tally-based radiative estimators.
+- `variance_control`: importance sampling, stratification, and Russian-roulette/splitting controls.
+
 ## Edge Ledger (machine-parseable)
 
 ```yaml
@@ -33,4 +40,3 @@ edges: []
 
 #tech_glossary
 #experimental_ontology
-

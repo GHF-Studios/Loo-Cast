@@ -39,11 +39,16 @@ Directory map:
 - [Transform and Morphism View](Books/transform_morphism_view.md)
 - [Domain Panorama View](Books/domain_panorama_view.md)
 - [Solver Universe View](Books/solver_universe_view.md)
+- [Paradigm Universe View](Books/paradigm_universe_view.md)
 - [Engineering Option Space View](Books/engineering_option_space_view.md)
+- [Ontology Health Checks](Indexes/ontology_health_checks.md)
+- [Controlled Vocabulary Registry](Indexes/controlled_vocabulary_registry.md)
+- [Coherence and Adaptation Protocol](Schema/coherence_and_adaptation_protocol.md)
 - [Master Catalog Coverage Matrix](Coverage/master_catalog_coverage_matrix.md)
 - [Universe Seed Registry](Coverage/universe_seed_registry.md)
 - [Coverage Gaps and Options](Coverage/coverage_gaps_and_options.md)
 - [Node Inventory Snapshot](Coverage/node_inventory_snapshot.md)
+- [Insight Revision Ledger](Coverage/insight_revision_ledger.md)
 
 Design note:
 

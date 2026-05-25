@@ -10,7 +10,7 @@ Graph drift is not.
 
 Entropy controls:
 
-1. Controlled vocabulary for `node_types` and `traits`.
+1. Controlled vocabulary for `node_class`, `node_types`, and `traits`.
 2. Namespace registry for edges with meta-class ownership.
 3. Activation-graph validation for metadata modules.
 4. Stable `ontology_id` format.
@@ -52,6 +52,12 @@ Review checklist for each new node:
 5. Are optional coordinates present only when meaningful?
 
 This governance file is intentionally strict to keep exploratory growth structured.
+
+Adaptive governance hooks:
+
+- Use [Coherence and Adaptation Protocol](coherence_and_adaptation_protocol.md) for semantic revisions.
+- Record nontrivial revisions in [Insight Revision Ledger](../Coverage/insight_revision_ledger.md).
+- Run [Ontology Health Checks](../Indexes/ontology_health_checks.md) after each expansion wave.
 
 #tech_glossary
 #experimental_ontology

@@ -36,6 +36,10 @@ Immediate expansion references:
 - [Coverage Gaps and Options](coverage_gaps_and_options.md)
 - [Domain Panorama View](../Books/domain_panorama_view.md)
 - [Solver Universe View](../Books/solver_universe_view.md)
+- [Paradigm Universe View](../Books/paradigm_universe_view.md)
+- [Coherence and Adaptation Protocol](../Schema/coherence_and_adaptation_protocol.md)
+- [Ontology Health Checks](../Indexes/ontology_health_checks.md)
+- [Insight Revision Ledger](insight_revision_ledger.md)
 
 #tech_glossary
 #experimental_ontology
