@@ -37,3 +37,7 @@ Current implementation-facing notes:
 - [Workflow Invariant Ledger Notes](Workflow%20Invariant%20Ledger%20Notes.md)
 - [Workflow Usage Patterns Legacy Notes](Workflow%20Usage%20Patterns%20Legacy%20Notes.md)
 - [Workflow Execution Trace Notes](Workflow%20Execution%20Trace%20Notes.md)
+
+Experimental graph-native ontology section:
+
+- [Simulation Knowledge Manifold (Experimental)](experimental_simulation_ontology/README.md)
