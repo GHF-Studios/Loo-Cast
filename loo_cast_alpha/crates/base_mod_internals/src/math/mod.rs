@@ -388,11 +388,11 @@ mod tests {
     }
 
     mod stress_tests {
+        use super::UsfOrNormalScalar;
         use super::test_utils::{
             random_add_sub_values, random_divisors_non_zero, random_exp_ln_values, random_mul_values, random_positive_log_bases_gt_one,
             random_positive_log_values,
         };
-        use super::UsfOrNormalScalar;
         use crate::math::scalar::shared::ScalarCoreOps;
 
         #[test]
@@ -463,10 +463,7 @@ mod tests {
             for (base, exponent) in bases.into_iter().zip(exponents.into_iter()) {
                 let value = base.clone().pow(UsfOrNormalScalar::A(exponent.clone()));
                 let recovered = value.log(UsfOrNormalScalar::A(base.clone()));
-                assert_eq!(
-                    recovered, exponent,
-                    "pow/log roundtrip failed for base={base}, exponent={exponent}"
-                );
+                assert_eq!(recovered, exponent, "pow/log roundtrip failed for base={base}, exponent={exponent}");
             }
         }
 
@@ -478,24 +475,16 @@ mod tests {
             let ten = super::scalar_from_decimal("10");
 
             for x in values {
-                assert_eq!(
-                    x.log2(),
-                    x.log(UsfOrNormalScalar::A(two.clone())),
-                    "log2 mismatch for x={x}"
-                );
-                assert_eq!(
-                    x.log10(),
-                    x.log(UsfOrNormalScalar::A(ten.clone())),
-                    "log10 mismatch for x={x}"
-                );
+                assert_eq!(x.log2(), x.log(UsfOrNormalScalar::A(two.clone())), "log2 mismatch for x={x}");
+                assert_eq!(x.log10(), x.log(UsfOrNormalScalar::A(ten.clone())), "log10 mismatch for x={x}");
                 assert_eq!(x.log10(), x.log_10(), "log10 alias mismatch for x={x}");
             }
         }
     }
 
     mod misc_invariants {
-        use super::test_utils::random_add_sub_values;
         use super::UsfScalar;
+        use super::test_utils::random_add_sub_values;
         use crate::math::scalar::shared::ScalarCoreOps;
 
         // #[test]

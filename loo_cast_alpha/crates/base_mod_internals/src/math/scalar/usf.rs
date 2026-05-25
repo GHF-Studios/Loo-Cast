@@ -13,6 +13,7 @@ pub struct UsfScalar {
 }
 
 impl UsfScalar {
+    /// Internal constructor bridge for raw decimal-part input.
     fn from_raw_parts(negative: bool, int_digits: ScalarIntDigitBuffer, frac_digits: ScalarFracDigitBuffer, radix_index: i8) -> Self {
         <Self as ScalarCoreOps>::from_digits(negative, int_digits, frac_digits, radix_index)
     }

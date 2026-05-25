@@ -818,14 +818,16 @@ pub trait ScalarCoreOps: Clone + Sized {
     fn add(&self, rhs: UsfOrNormalScalar) -> Self {
         const TOTAL_DIGITS_LEN: usize = SCALAR_INT_DIGITS_LEN + SCALAR_FRAC_DIGITS_LEN;
 
-        fn flatten_digits(int_digits: ScalarIntDigitBuffer, frac_digits: ScalarFracDigitBuffer) -> ScalarDigitBuffer {
+        /// Flattens fixed-width integer/fractional digit buffers into a single `[int | frac]` buffer.
+        fn flatten_decimal_buffers(int_digits: ScalarIntDigitBuffer, frac_digits: ScalarFracDigitBuffer) -> ScalarDigitBuffer {
             let mut out = [0_u8; TOTAL_DIGITS_LEN];
             out[..SCALAR_INT_DIGITS_LEN].copy_from_slice(&int_digits);
             out[SCALAR_INT_DIGITS_LEN..].copy_from_slice(&frac_digits);
             out
         }
 
-        fn split_digits(digits: ScalarDigitBuffer) -> (ScalarIntDigitBuffer, ScalarFracDigitBuffer) {
+        /// Splits a flattened `[int | frac]` buffer back into fixed-width component buffers.
+        fn split_decimal_buffer(digits: ScalarDigitBuffer) -> (ScalarIntDigitBuffer, ScalarFracDigitBuffer) {
             let mut int_digits = [0_u8; SCALAR_INT_DIGITS_LEN];
             int_digits.copy_from_slice(&digits[..SCALAR_INT_DIGITS_LEN]);
 
@@ -835,11 +837,16 @@ pub trait ScalarCoreOps: Clone + Sized {
             (int_digits, frac_digits)
         }
 
-        fn compare_magnitudes(lhs: &ScalarDigitBuffer, rhs: &ScalarDigitBuffer) -> std::cmp::Ordering {
+        /// Compares absolute magnitudes represented by flattened decimal buffers.
+        fn cmp_decimal_magnitude(lhs: &ScalarDigitBuffer, rhs: &ScalarDigitBuffer) -> std::cmp::Ordering {
             lhs.cmp(rhs)
         }
 
-        fn add_magnitudes(lhs: &ScalarDigitBuffer, rhs: &ScalarDigitBuffer) -> ScalarDigitBuffer {
+        /// Adds two non-negative flattened decimal magnitudes.
+        ///
+        /// # Panics
+        /// - Panics if result does not fit configured integer width.
+        fn add_decimal_magnitude(lhs: &ScalarDigitBuffer, rhs: &ScalarDigitBuffer) -> ScalarDigitBuffer {
             let mut out = [0_u8; TOTAL_DIGITS_LEN];
             let mut carry: i16 = 0;
 
@@ -849,15 +856,16 @@ pub trait ScalarCoreOps: Clone + Sized {
                 carry = sum.div_euclid(10);
             }
 
-            assert_eq!(
-                carry, 0,
-                "scalar add overflow: integer part exceeds {SCALAR_INT_DIGITS_LEN} digits"
-            );
+            assert_eq!(carry, 0, "scalar add overflow: integer part exceeds {SCALAR_INT_DIGITS_LEN} digits");
 
             out
         }
 
-        fn subtract_magnitudes(bigger: &ScalarDigitBuffer, smaller: &ScalarDigitBuffer) -> ScalarDigitBuffer {
+        /// Subtracts two non-negative flattened decimal magnitudes (`bigger - smaller`).
+        ///
+        /// # Panics
+        /// - Panics if `smaller > bigger`.
+        fn sub_decimal_magnitude_non_negative(bigger: &ScalarDigitBuffer, smaller: &ScalarDigitBuffer) -> ScalarDigitBuffer {
             let mut out = [0_u8; TOTAL_DIGITS_LEN];
             let mut borrow: i16 = 0;
 
@@ -883,21 +891,21 @@ pub trait ScalarCoreOps: Clone + Sized {
             UsfOrNormalScalar::B(value) => value.to_digits(),
         };
 
-        let lhs_magnitude = flatten_digits(lhs_int_digits, lhs_frac_digits);
-        let rhs_magnitude = flatten_digits(rhs_int_digits, rhs_frac_digits);
+        let lhs_magnitude = flatten_decimal_buffers(lhs_int_digits, lhs_frac_digits);
+        let rhs_magnitude = flatten_decimal_buffers(rhs_int_digits, rhs_frac_digits);
 
         let (result_negative, result_magnitude) = if lhs_negative == rhs_negative {
-            (lhs_negative, add_magnitudes(&lhs_magnitude, &rhs_magnitude))
+            (lhs_negative, add_decimal_magnitude(&lhs_magnitude, &rhs_magnitude))
         } else {
-            match compare_magnitudes(&lhs_magnitude, &rhs_magnitude) {
-                std::cmp::Ordering::Greater => (lhs_negative, subtract_magnitudes(&lhs_magnitude, &rhs_magnitude)),
-                std::cmp::Ordering::Less => (rhs_negative, subtract_magnitudes(&rhs_magnitude, &lhs_magnitude)),
+            match cmp_decimal_magnitude(&lhs_magnitude, &rhs_magnitude) {
+                std::cmp::Ordering::Greater => (lhs_negative, sub_decimal_magnitude_non_negative(&lhs_magnitude, &rhs_magnitude)),
+                std::cmp::Ordering::Less => (rhs_negative, sub_decimal_magnitude_non_negative(&rhs_magnitude, &lhs_magnitude)),
                 std::cmp::Ordering::Equal => (false, [0_u8; TOTAL_DIGITS_LEN]),
             }
         };
 
         let is_zero = result_magnitude.iter().all(|digit| *digit == 0);
-        let (result_int_digits, result_frac_digits) = split_digits(result_magnitude);
+        let (result_int_digits, result_frac_digits) = split_decimal_buffer(result_magnitude);
 
         Self::from_digits(
             result_negative && !is_zero,

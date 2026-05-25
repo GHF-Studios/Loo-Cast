@@ -16,6 +16,7 @@ impl DecimalParseError {
         Self { message: message.into() }
     }
 
+    /// Returns human-readable parse failure detail.
     pub fn message(&self) -> &str {
         &self.message
     }
@@ -40,6 +41,7 @@ impl ScientificParseError {
         Self { message: message.into() }
     }
 
+    /// Returns human-readable parse failure detail.
     pub fn message(&self) -> &str {
         &self.message
     }
@@ -211,6 +213,7 @@ impl ScalarDecimalDigits {
         Self::RADIX_POSITION_MAX
     }
 
+    /// Returns balanced digit at flattened linear index (`[int | frac]`).
     fn digit_at_linear_index(&self, idx: usize) -> ScalarDecimalDigit {
         if idx < SCALAR_INT_DIGITS_LEN {
             self.int_digits[idx]
@@ -219,6 +222,7 @@ impl ScalarDecimalDigits {
         }
     }
 
+    /// Compares absolute numeric values using full internal precision (`35 + 9` fractional digits).
     fn cmp_abs_internal(&self, other: &Self) -> std::cmp::Ordering {
         let (_self_negative, self_int, self_frac, self_int_start, self_frac_end) = self.decode_decimal_internal_parts();
         let (_other_negative, other_int, other_frac, other_int_start, other_frac_end) = other.decode_decimal_internal_parts();
@@ -241,6 +245,7 @@ impl ScalarDecimalDigits {
 
     const MAX_ENCODED_DIGITS_LEN: usize = Self::SCALAR_TOTAL_DIGITS_LEN + 1;
 
+    /// Writes canonical zero into a flattened linear slot (`[int | frac]`).
     fn zero_digit_at_linear_index(&mut self, idx: usize) {
         if idx < SCALAR_INT_DIGITS_LEN {
             self.int_digits[idx] = ScalarDecimalDigit::new_checked(0);
@@ -280,6 +285,7 @@ impl ScalarDecimalDigits {
         }
     }
 
+    /// Returns one-past-last non-zero index for decimal digit buffers.
     fn trim_decimal_tail_zeros<const N: usize>(digits: &[u8; N]) -> usize {
         let mut len = N;
         while len > 0 && digits[len - 1] == 0 {
@@ -288,6 +294,7 @@ impl ScalarDecimalDigits {
         len
     }
 
+    /// Converts significant public fractional length into canonical radix index.
     fn radix_index_from_public_frac_len(frac_len: usize) -> i8 {
         if frac_len == 0 {
             ScalarDecimalU8Parts::RADIX_INDEX_MIN
@@ -296,6 +303,10 @@ impl ScalarDecimalDigits {
         }
     }
 
+    /// Increments base-10 digit slice in place.
+    ///
+    /// # Returns
+    /// - `true` if carry overflowed beyond most-significant digit.
     fn increment_decimal_digits_in_place(digits: &mut [u8]) -> bool {
         for idx in (0..digits.len()).rev() {
             if digits[idx] == 9 {
@@ -328,6 +339,7 @@ impl ScalarDecimalDigits {
         false
     }
 
+    /// Formats a trimmed plain-decimal literal from integer and fractional buffers.
     fn format_decimal_literal(negative: bool, int_digits: &[u8; SCALAR_INT_DIGITS_LEN], int_start: usize, frac_digits: &[u8], frac_len: usize) -> String {
         let mut out = String::new();
         if negative {
@@ -345,6 +357,7 @@ impl ScalarDecimalDigits {
         out
     }
 
+    /// Formats fixed-width padded plain-decimal literal (`36.35`).
     fn format_decimal_literal_padded(negative: bool, int_digits: &[u8; SCALAR_INT_DIGITS_LEN], frac_digits: &[u8; SCALAR_FRAC_DIGITS_LEN]) -> String {
         let mut out = String::with_capacity((if negative { 1 } else { 0 }) + SCALAR_INT_DIGITS_LEN + 1 + SCALAR_FRAC_DIGITS_LEN);
         if negative {
@@ -360,10 +373,12 @@ impl ScalarDecimalDigits {
         out
     }
 
+    /// Builds decimal-parse error with standardized message envelope.
     fn decimal_parse_error(whole: &str, detail: impl std::fmt::Display) -> DecimalParseError {
         DecimalParseError::new(format!("invalid decimal literal `{whole}`: {detail}"))
     }
 
+    /// Parses plain decimal literal into `(negative, int_part, frac_part)` slices.
     fn parse_decimal_literal_parts<'a>(s: &'a str) -> Result<(bool, &'a str, &'a str), DecimalParseError> {
         if s.is_empty() {
             return Err(DecimalParseError::new("invalid decimal literal: empty input"));
@@ -408,12 +423,14 @@ impl ScalarDecimalDigits {
         Ok((negative, int_part, frac_part))
     }
 
+    /// Writes ASCII decimal digits left-aligned into destination buffer.
     fn write_ascii_digits_left_aligned<const N: usize>(src: &str, out: &mut [u8; N]) {
         for (offset, b) in src.bytes().enumerate() {
             out[offset] = b - b'0';
         }
     }
 
+    /// Writes ASCII decimal digits right-aligned into destination buffer.
     fn write_ascii_digits_right_aligned<const N: usize>(src: &str, out: &mut [u8; N]) {
         let start = N - src.len();
         for (offset, b) in src.bytes().enumerate() {
@@ -421,6 +438,7 @@ impl ScalarDecimalDigits {
         }
     }
 
+    /// Builds fixed-width integer/fractional decimal buffers from parsed literal slices.
     fn decimal_digit_buffers_from_parts(int_part: &str, frac_part: &str) -> ([u8; SCALAR_INT_DIGITS_LEN], [u8; SCALAR_INTERNAL_FRAC_DIGITS_LEN]) {
         let mut int_digits = [0_u8; SCALAR_INT_DIGITS_LEN];
         Self::write_ascii_digits_right_aligned(int_part, &mut int_digits);
@@ -431,10 +449,12 @@ impl ScalarDecimalDigits {
         (int_digits, frac_digits)
     }
 
+    /// Builds scientific-parse error with standardized message envelope.
     fn scientific_parse_error(whole: &str, detail: impl std::fmt::Display) -> ScientificParseError {
         ScientificParseError::new(format!("invalid scientific literal `{whole}`: {detail}"))
     }
 
+    /// Parses signed scientific exponent part into `i64`.
     fn parse_signed_exponent_checked(exp_part: &str, whole: &str) -> Result<i64, ScientificParseError> {
         let (exp_neg, exp_digits) = split_leading_sign(exp_part);
         if exp_digits.is_empty() {
@@ -459,6 +479,7 @@ impl ScalarDecimalDigits {
         }
     }
 
+    /// Splits mantissa into integer/fractional slices and validates format.
     fn split_scientific_mantissa_checked<'a>(mantissa: &'a str, whole: &str) -> Result<(&'a str, &'a str), ScientificParseError> {
         if !mantissa.bytes().all(|b| b.is_ascii_digit() || b == b'.') {
             return Err(Self::scientific_parse_error(whole, "mantissa may only contain digits and `.`"));
@@ -481,6 +502,7 @@ impl ScalarDecimalDigits {
         Ok((int_part, frac_part))
     }
 
+    /// Parses scientific literal into normalized structural parts.
     fn parse_scientific_literal_parts<'a>(s: &'a str) -> Result<(bool, &'a str, &'a str, i64), ScientificParseError> {
         if s.is_empty() {
             return Err(ScientificParseError::new("invalid scientific literal: empty input"));
@@ -514,6 +536,7 @@ impl ScalarDecimalDigits {
         Ok((negative, int_part, frac_part, exponent))
     }
 
+    /// Extracts mantissa coefficient digits into contiguous buffer.
     fn parse_scientific_coefficient_digits(
         int_part: &str,
         frac_part: &str,
@@ -536,10 +559,12 @@ impl ScalarDecimalDigits {
         Ok((coeff, coeff_len))
     }
 
+    /// Trims leading coefficient zeros; returns `None` when coefficient is numerically zero.
     fn trim_leading_zeros_or_none<'a>(digits: &'a [u8], len: usize) -> Option<&'a [u8]> {
         Self::first_non_zero_index(&digits[..len]).map(|first_non_zero| &digits[first_non_zero..len])
     }
 
+    /// Computes scientific decimal-point location after applying exponent adjustment.
     fn scientific_point_checked(coeff_len: usize, mantissa_frac_len: usize, exponent: i64, whole: &str) -> Result<i64, ScientificParseError> {
         let coeff_len_i64 = i64::try_from(coeff_len).map_err(|_| Self::scientific_parse_error(whole, "decimal-point placement overflow"))?;
         let mantissa_frac_len_i64 = i64::try_from(mantissa_frac_len).map_err(|_| Self::scientific_parse_error(whole, "exponent adjustment overflow"))?;
@@ -551,6 +576,7 @@ impl ScalarDecimalDigits {
             .ok_or_else(|| Self::scientific_parse_error(whole, "decimal-point placement overflow"))
     }
 
+    /// Validates that projected scientific integer width fits scalar integer capacity.
     fn validate_scientific_integer_width(point: i64, whole: &str) -> Result<(), ScientificParseError> {
         let pre_int_len = if point <= 0 {
             1_usize
@@ -568,6 +594,7 @@ impl ScalarDecimalDigits {
         Ok(())
     }
 
+    /// Returns decimal digit for requested power-of-ten from scientific coefficient model.
     fn digit_at_power(coeff: &[u8], point: i64, power: i64) -> u8 {
         let idx = point - 1 - power;
         if !(0..i64::try_from(coeff.len()).unwrap()).contains(&idx) {
@@ -577,6 +604,7 @@ impl ScalarDecimalDigits {
         }
     }
 
+    /// Materializes integer/fractional buffers by sampling coefficient digits at each power-of-ten.
     fn fill_scientific_digit_buffers(coeff: &[u8], point: i64) -> ([u8; SCALAR_INT_DIGITS_LEN], [u8; SCALAR_INTERNAL_FRAC_DIGITS_LEN]) {
         let mut int_digits = [0_u8; SCALAR_INT_DIGITS_LEN];
         let mut frac_digits = [0_u8; SCALAR_INTERNAL_FRAC_DIGITS_LEN];
@@ -593,6 +621,7 @@ impl ScalarDecimalDigits {
         (int_digits, frac_digits)
     }
 
+    /// Returns rounding digit located just beyond internal fractional precision boundary.
     fn round_digit_at_internal_boundary(coeff: &[u8], point: i64) -> u8 {
         let round_idx = point + i64::try_from(SCALAR_INTERNAL_FRAC_DIGITS_LEN).unwrap();
         if !(0..i64::try_from(coeff.len()).unwrap()).contains(&round_idx) {
@@ -602,6 +631,7 @@ impl ScalarDecimalDigits {
         }
     }
 
+    /// Decodes balanced storage into reverse decimal coefficient digits.
     fn decode_reverse_coefficients(&self, meaningful_len: usize) -> [u8; Self::SCALAR_TOTAL_DIGITS_LEN] {
         let mut coeff_rev = [0_u8; Self::SCALAR_TOTAL_DIGITS_LEN];
         let mut carry: i8 = 0;
@@ -621,6 +651,7 @@ impl ScalarDecimalDigits {
         coeff_rev
     }
 
+    /// Decodes integer-decimal buffer from reverse coefficient digits.
     fn decode_int_digits_from_coeff_rev(coeff_rev: &[u8; Self::SCALAR_TOTAL_DIGITS_LEN], meaningful_len: usize) -> [u8; SCALAR_INT_DIGITS_LEN] {
         let mut int_digits = [0_u8; SCALAR_INT_DIGITS_LEN];
         for idx in 0..SCALAR_INT_DIGITS_LEN {
@@ -629,6 +660,7 @@ impl ScalarDecimalDigits {
         int_digits
     }
 
+    /// Decodes internal fractional-decimal buffer from reverse coefficient digits.
     fn decode_frac_digits_from_coeff_rev(coeff_rev: &[u8; Self::SCALAR_TOTAL_DIGITS_LEN], meaningful_len: usize) -> [u8; SCALAR_INTERNAL_FRAC_DIGITS_LEN] {
         let mut frac_digits = [0_u8; SCALAR_INTERNAL_FRAC_DIGITS_LEN];
         let raw_frac_len = meaningful_len.saturating_sub(SCALAR_INT_DIGITS_LEN);
@@ -638,10 +670,12 @@ impl ScalarDecimalDigits {
         frac_digits
     }
 
+    /// Returns index of first non-zero digit, if any.
     fn first_non_zero_index(digits: &[u8]) -> Option<usize> {
         digits.iter().position(|digit| *digit != 0)
     }
 
+    /// Collects scientific coefficient and exponent from canonical public decimal parts.
     fn collect_scientific_coeff_and_exponent(decoded: &ScalarDecimalU8Parts, coeff: &mut [u8; Self::SCALAR_TOTAL_DIGITS_LEN]) -> (usize, i64) {
         if let Some(first_int_non_zero) = Self::first_non_zero_index(decoded.int_digits()) {
             let int_digits = &decoded.int_digits()[first_int_non_zero..];
@@ -663,6 +697,7 @@ impl ScalarDecimalDigits {
         }
     }
 
+    /// Formats scientific literal from coefficient digits and exponent.
     fn format_scientific_literal(negative: bool, coeff: &[u8], coeff_len: usize, exponent: i64) -> String {
         let mut out = String::new();
         if negative {
@@ -702,6 +737,7 @@ impl ScalarDecimalDigits {
         Self::from_decimal_u8_parts_internal_checked(negative, int_digits, frac_with_shadow)
     }
 
+    /// Encodes decimal parts including internal shadow precision into canonical balanced storage.
     fn from_decimal_u8_parts_internal_checked(
         negative: bool,
         int_digits: [u8; SCALAR_INT_DIGITS_LEN],
@@ -854,6 +890,7 @@ impl ScalarDecimalDigits {
         ScalarDecimalU8Parts::new_checked(negative, int_digits, frac_digits, radix_index)
     }
 
+    /// Decodes canonical balanced storage into internal decimal buffers and trimmed bounds.
     fn decode_decimal_internal_parts(&self) -> (bool, [u8; SCALAR_INT_DIGITS_LEN], [u8; SCALAR_INTERNAL_FRAC_DIGITS_LEN], usize, usize) {
         let meaningful_len = self.len();
         let coeff_rev = Self::decode_reverse_coefficients(self, meaningful_len);
@@ -1082,6 +1119,7 @@ impl ScalarDecimalDigits {
         }
     }
 
+    /// Returns quantized copy at requested layer index.
     pub fn quantized_to_layer_checked(mut self, radix_position: i8) -> Self {
         self.quantize_to_layer_checked(radix_position);
         self

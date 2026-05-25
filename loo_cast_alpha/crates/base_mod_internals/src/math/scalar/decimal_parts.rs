@@ -52,14 +52,17 @@ impl ScalarDecimalU8Parts {
         }
     }
 
+    /// Returns first non-zero integer digit index, or integer LSD index when value is zero.
     fn first_non_zero_int_or_lsd(int_digits: &ScalarIntDigitBuffer) -> usize {
         int_digits.iter().position(|d| *d != 0).unwrap_or(SCALAR_INT_DIGITS_LEN - 1)
     }
 
+    /// Computes fractional one-past-last index implied by `radix_index`.
     fn frac_end_from_radix_index(radix_index: i8) -> usize {
         usize::try_from(radix_index + 1).unwrap().saturating_sub(SCALAR_INT_DIGITS_LEN)
     }
 
+    /// Reads decimal digit by flattened linear index (`[int | frac]`).
     fn digit_at_linear_index(int_digits: &ScalarIntDigitBuffer, frac_digits: &ScalarFracDigitBuffer, idx: usize) -> u8 {
         if idx < SCALAR_INT_DIGITS_LEN {
             int_digits[idx]
@@ -68,6 +71,7 @@ impl ScalarDecimalU8Parts {
         }
     }
 
+    /// Re-normalizes sign and index metadata and validates invariants.
     fn normalize_in_place(&mut self) {
         assert!(
             (Self::RADIX_INDEX_MIN..=Self::RADIX_INDEX_MAX).contains(&self.radix_index),
