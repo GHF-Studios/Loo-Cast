@@ -16,6 +16,7 @@ Scope of this first iteration:
 3. Define namespaced edge taxonomy and morphism policy.
 4. Demonstrate projection-based books over shared nodes.
 5. Provide example paradigm, solver, transform, and morphism nodes.
+6. Drive broad coverage across all major simulation domains.
 
 Cordon rules:
 
@@ -36,6 +37,11 @@ Directory map:
 - [Engineering Decision View](Books/engineering_decision_view.md)
 - [Computational Representation View](Books/computational_representation_view.md)
 - [Transform and Morphism View](Books/transform_morphism_view.md)
+- [Domain Panorama View](Books/domain_panorama_view.md)
+- [Master Catalog Coverage Matrix](Coverage/master_catalog_coverage_matrix.md)
+- [Universe Seed Registry](Coverage/universe_seed_registry.md)
+- [Coverage Gaps and Options](Coverage/coverage_gaps_and_options.md)
+- [Node Inventory Snapshot](Coverage/node_inventory_snapshot.md)
 
 Design note:
 

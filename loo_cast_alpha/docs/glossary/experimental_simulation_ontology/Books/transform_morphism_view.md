@@ -12,6 +12,8 @@ It is where hidden equivalences become first-class navigation paths.
 
 - [transform.coarse_graining.ensemble_map](../Nodes/transform.coarse_graining.ensemble_map.md)
 - [transform.limit.discrete_to_continuous](../Nodes/transform.limit.discrete_to_continuous.md)
+- [transform.reduction.pod_dmd](../Nodes/transform.reduction.pod_dmd.md)
+- [transform.operator_learning.fourier_neural_operator](../Nodes/transform.operator_learning.fourier_neural_operator.md)
 
 ## Morphism Nodes
 
@@ -33,6 +35,10 @@ It is where hidden equivalences become first-class navigation paths.
    [paradigm.optimization.energy_minimization](../Nodes/paradigm.optimization.energy_minimization.md)
    -> [morphism.equivalence.optimization_gradient_flow](../Nodes/morphism.equivalence.optimization_gradient_flow.md)
    -> [paradigm.gradient_flow.dissipative_dynamics](../Nodes/paradigm.gradient_flow.dissipative_dynamics.md)
+4. High-dimensional state to reduced model:
+   [paradigm.pde.incompressible_navier_stokes](../Nodes/paradigm.pde.incompressible_navier_stokes.md)
+   -> [transform.reduction.pod_dmd](../Nodes/transform.reduction.pod_dmd.md)
+   -> [transform.operator_learning.fourier_neural_operator](../Nodes/transform.operator_learning.fourier_neural_operator.md)
 
 #tech_glossary
 #experimental_ontology
