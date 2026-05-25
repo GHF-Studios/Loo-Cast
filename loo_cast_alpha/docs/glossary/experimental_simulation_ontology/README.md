@@ -39,6 +39,7 @@ Directory map:
 - [Transform and Morphism View](Books/transform_morphism_view.md)
 - [Domain Panorama View](Books/domain_panorama_view.md)
 - [Solver Universe View](Books/solver_universe_view.md)
+- [Engineering Option Space View](Books/engineering_option_space_view.md)
 - [Master Catalog Coverage Matrix](Coverage/master_catalog_coverage_matrix.md)
 - [Universe Seed Registry](Coverage/universe_seed_registry.md)
 - [Coverage Gaps and Options](Coverage/coverage_gaps_and_options.md)

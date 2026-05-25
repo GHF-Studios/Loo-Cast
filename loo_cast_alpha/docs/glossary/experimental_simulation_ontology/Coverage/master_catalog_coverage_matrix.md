@@ -9,21 +9,26 @@ Coverage is the active goal in this phase.
 
 Current instantiated ontology surface:
 
-- `61` node files in `Nodes/`
-- Includes paradigms, solvers, transforms, and morphisms across all 8 macro-domains
+- `136` node files in `Nodes/`
+- Includes paradigms, solvers, transforms, morphisms, and engineering-option principles across all 8 macro-domains
+
+Seed status:
+
+- All seed IDs listed in [Universe Seed Registry](universe_seed_registry.md) are now instantiated as first-class nodes.
+- Remaining work is depth expansion (metadata richness, edge density, morphism completeness), not missing seed identities.
 
 Coverage status by macro-domain:
 
 | Macro-domain | Instantiated now | Priority backlog themes | Primary unresolved fronts |
 | --- | --- | --- | --- |
-| Quantum/Subatomic/Relativistic Microphysics | `paradigm.quantum.lattice_qcd`, `paradigm.quantum.tdse`, `solver.quantum.hybrid_monte_carlo`, `solver.quantum.split_operator_fourier`, `solver.quantum.maxwell_yee`, `solver.quantum.crank_nicolson`, `solver.quantum.scf_iteration`, `solver.quantum.plane_wave_basis`, `solver.quantum.gaussian_basis`, `solver.quantum.fixed_node_qmc` | relativistic PIC, tensor-network many-body families | many-body compression completeness, gauge-preserving acceleration, sign-problem robustness envelopes |
-| Molecular/Chemical/Nanoscale | `paradigm.molecular.classical_md`, `paradigm.chemical.gillespie_ssa`, `solver.time.velocity_verlet`, `solver.stochastic.tau_leaping`, `solver.thermal.phonon_monte_carlo`, `solver.chemical.gray_scott_fvm` | reactive MD variants, master-equation and phase-field breadth | coupled thermo-chemistry stiffness, rare-event control, non-Fourier closure quality |
-| Continuum/Structural Mechanics | `paradigm.continuum.solid_mechanics_pde`, `solver.fem.galerkin_newmark_beta`, `solver.discrete.hertz_mindlin_contact` | fracture/peridynamics/plasticity families | crack topology evolution, memory constitutive models, mesh-particle coupling consistency |
-| Fluid/Gas/Transport | `paradigm.pde.incompressible_navier_stokes`, `paradigm.pde.compressible_flow_with_shocks`, `paradigm.fluid.lattice_boltzmann`, `solver.riemann.hllc_hrsc`, `solver.lbm.bgk_d3q19`, `solver.fluid.projection_fractional_step`, `solver.fluid.semi_lagrangian`, `solver.fluid.mac_cormack`, `solver.fluid.poisson_pressure`, `solver.fluid.sph_cubic_spline` | vortex particles, radiative transfer, interfacial physics | multiphase shock robustness, turbulence closure integration, stiff source coupling |
-| Relativity/Plasma/Astrophysical | `paradigm.astro.grmhd`, `paradigm.relativity.numerical_relativity_bssn`, `paradigm.particle.nbody_dynamics`, `solver.gravity.p3m`, `solver.relativity.bssn_ccz4`, `solver.nbody.fast_multipole_method`, `solver.plasma.constrained_transport`, `solver.plasma.divergence_cleaning`, `solver.gravity.fft_poisson`, `solver.gravity.tree_code` | ray tracing, resistive/ideal MHD paradigm variants | long-horizon conservation, boundary/horizon consistency, divergence control at scale |
-| Information/Statistical/Topological | `paradigm.statistical_mechanics.ensemble_inference`, `paradigm.bayesian_inference.posterior_dynamics`, `paradigm.network.dynamic_graph_topology`, `solver.stats.mcmc_generic`, `solver.stats.replica_exchange`, `solver.stats.wang_landau` | max-ent and information-geometry paradigms | identifiability under partial observability, critical-transition diagnostics |
-| Biological/Cognitive/Emergent | `paradigm.biological.agent_based_systems`, plus optimization/gradient-flow bridge nodes and `solver.bio.bitpacked_rule_tables` | epidemiological, biomechanical, ecological, game-dynamics families | calibration under sparse data, hybrid stochastic-deterministic coupling |
-| Cross-Scale/Reduction Architectures | `paradigm.multiscale.qmmm_hybrid`, `transform.coarse_graining.ensemble_map`, `transform.limit.discrete_to_continuous`, `transform.reduction.pod_dmd`, `transform.operator_learning.fourier_neural_operator`, `solver.ml.fno_inference` | AMR, PinT, multirate, UQ, DeepONet families | closure consistency, extrapolation failure detection, coupling stability proofs |
+| Quantum/Subatomic/Relativistic Microphysics | Core paradigms and solver stacks instantiated, including lattice, TDSE, QMC, DFT-family seed nodes, PIC seed node, and tensor-network families | richer edge typing between solver families and equivalence/morphism layer | deeper constraints for gauge invariants, sign-problem regimes, and basis-selection policies |
+| Molecular/Chemical/Nanoscale | Core MD, reactive, ab-initio, stochastic chemistry, transport, and phase-field seed nodes instantiated | richer coupling maps between kinetics, transport, and phase separation | stronger stiffness/rare-event metadata and solver recommendation edges |
+| Continuum/Structural Mechanics | Core solid, plasticity, viscoelasticity, fracture, DEM, multibody, and PBD/XPBD seed nodes instantiated | explicit constitutive/solver lineage graphs | path-dependent memory semantics and failure-mode edges |
+| Fluid/Gas/Transport | Core incompressible/compressible, SPH, vortex, wave, radiative, and interfacial seed nodes instantiated | fuller transform links across Eulerian/Lagrangian/spectral forms | turbulence, multiphase coupling, and radiative closure edge enrichment |
+| Relativity/Plasma/Astrophysical | Core GRMHD, numerical relativity, cosmological N-body, MHD variants, and gravity solver families instantiated | stronger morphism links between particle-field and metric formulations | horizon/boundary policy metadata and long-horizon invariants |
+| Information/Statistical/Topological | Core statistical, Bayesian, network, MaxEnt, and information-geometry seed nodes instantiated | richer cross-domain analogies and epistemic relations | identifiability and observability constraints at query time |
+| Biological/Cognitive/Emergent | Core CA, epidemiology, neuromechanics, ecology, MDP/game-theory, and procedural grammar seed nodes instantiated | stronger coupling between decision, control, and physical simulation layers | calibration/assimilation edge families and benchmark relations |
+| Cross-Scale/Reduction Architectures | Core coarse-graining, limits, AMR, multirate, PinT, reduction, operator-learning, and UQ seed nodes instantiated | complete transform composition graph and failure-mode taxonomy | robust domain-of-validity metadata and transform composability checks |
 
 Immediate expansion references:
 

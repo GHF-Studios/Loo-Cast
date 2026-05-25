@@ -14,6 +14,12 @@ It is where hidden equivalences become first-class navigation paths.
 - [transform.limit.discrete_to_continuous](../Nodes/transform.limit.discrete_to_continuous.md)
 - [transform.reduction.pod_dmd](../Nodes/transform.reduction.pod_dmd.md)
 - [transform.operator_learning.fourier_neural_operator](../Nodes/transform.operator_learning.fourier_neural_operator.md)
+- [transform.mesh.adaptive_mesh_refinement](../Nodes/transform.mesh.adaptive_mesh_refinement.md)
+- [transform.time.multirate_subcycling](../Nodes/transform.time.multirate_subcycling.md)
+- [transform.time.parallel_in_time_parareal](../Nodes/transform.time.parallel_in_time_parareal.md)
+- [transform.time.parallel_in_time_mgrit](../Nodes/transform.time.parallel_in_time_mgrit.md)
+- [transform.reduction.state_space_balanced_truncation](../Nodes/transform.reduction.state_space_balanced_truncation.md)
+- [transform.operator_learning.deepo_net](../Nodes/transform.operator_learning.deepo_net.md)
 
 ## Morphism Nodes
 

@@ -7,11 +7,12 @@ source_of_truth: []
 
 Snapshot for current coverage phase:
 
-- Total nodes: `61`
-- Paradigms: `19`
+- Total nodes: `136`
+- Paradigms: `76`
 - Solvers: `35`
-- Transforms: `4`
+- Transforms: `10`
 - Morphisms: `3`
+- Principles/Options: `12`
 
 Coverage guidance:
 
