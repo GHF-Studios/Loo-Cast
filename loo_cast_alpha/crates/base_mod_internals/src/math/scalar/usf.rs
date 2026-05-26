@@ -47,21 +47,24 @@ impl UsfScalar {
 
     /// Canonical pi constant.
     ///
-    /// Decimal text: `3.14159265358979323846264338327950288`.
+    /// Decimal text (internal 44-fraction precision):
+    /// `3.14159265358979323846264338327950288419716939937510`.
     pub const PI: Self = Self {
         digits: ScalarDecimalDigits::PI,
     };
 
     /// Canonical tau constant.
     ///
-    /// Decimal text: `6.28318530717958647692528676655900577`.
+    /// Decimal text (internal 44-fraction precision):
+    /// `6.28318530717958647692528676655900576839433879875020`.
     pub const TAU: Self = Self {
         digits: ScalarDecimalDigits::TAU,
     };
 
     /// Canonical Euler's number constant.
     ///
-    /// Decimal text: `2.71828182845904523536028747135266250`.
+    /// Decimal text (internal 44-fraction precision):
+    /// `2.71828182845904523536028747135266249775724709369996`.
     pub const E: Self = Self {
         digits: ScalarDecimalDigits::E,
     };
