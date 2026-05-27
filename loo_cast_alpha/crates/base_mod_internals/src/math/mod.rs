@@ -74,6 +74,7 @@ mod tests {
 
     mod test_utils {
         use super::{UsfScalar, scalar_from_decimal};
+        use crate::math::scalar::rand::RandomDistributionBuilder;
         use rand::rngs::StdRng;
         use rand::{Rng, SeedableRng};
 
@@ -87,16 +88,6 @@ mod tests {
         }
 
         impl ScalarRandomSpec {
-            pub const fn add_sub() -> Self {
-                Self {
-                    max_int_digits: 8,
-                    max_frac_digits: 12,
-                    allow_negative: true,
-                    force_positive: false,
-                    require_non_zero: false,
-                }
-            }
-
             pub const fn mul_div() -> Self {
                 Self {
                     max_int_digits: 4,
@@ -222,7 +213,17 @@ mod tests {
         }
 
         pub fn random_add_sub_values(seed: u64, count: usize) -> Vec<UsfScalar> {
-            random_scalar_pool(seed, count, ScalarRandomSpec::add_sub())
+            let one = scalar_from_decimal("1");
+            let neg_one = scalar_from_decimal("-1");
+
+            RandomDistributionBuilder::new()
+                .default_max_int_digits(8)
+                .default_max_frac_digits(12)
+                .component(3, |c| c.positive().integer().greater_than(one.clone()))
+                .component(3, |c| c.negative().integer().less_than(neg_one.clone()))
+                .component(2, |c| c.positive().fractional().greater_than(UsfScalar::ZERO).less_than(one))
+                .component(2, |c| c.negative().fractional().greater_than(neg_one).less_than(UsfScalar::ZERO))
+                .build(seed, count)
         }
 
         pub fn random_mul_values(seed: u64, count: usize) -> Vec<UsfScalar> {
@@ -482,16 +483,7 @@ mod tests {
 
     mod misc_invariants {
         use super::UsfScalar;
-        use super::test_utils::random_add_sub_values;
         use crate::math::scalar::shared::ScalarCoreOps;
-
-        // #[test]
-        fn rng_test() {
-            let numbers = random_add_sub_values(1337, 17);
-            for number in numbers {
-                println!("{}", number);
-            }
-        }
 
         #[test]
         fn usf_scalar_core_test() {

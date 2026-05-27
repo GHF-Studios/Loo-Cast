@@ -37,9 +37,9 @@
 //!             .fractional()
 //!             .less_than(UsfScalar::try_from_decimal_str("-0.5").unwrap())
 //!     })
-//!     .build(42, 0); // `count == 0` is supported in this scaffolding phase.
+//!     .build(42, 32);
 //!
-//! assert!(values.is_empty());
+//! assert_eq!(values.len(), 32);
 //! ```
 
 use super::shared::{SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN};
@@ -116,9 +116,7 @@ impl RandomDistributionBuilder {
     /// - If no component exists.
     /// - If any component is unsatisfiable.
     /// - If any two components overlap in effective value-domain.
-    /// - For `count > 0`, this scaffolding currently panics because sampling is
-    ///   intentionally not implemented yet.
-    pub fn build(self, _seed: u64, count: usize) -> Vec<UsfScalar> {
+    pub fn build(self, seed: u64, count: usize) -> Vec<UsfScalar> {
         if self.components.is_empty() {
             panic!("distribution must contain at least one component");
         }
@@ -154,11 +152,8 @@ impl RandomDistributionBuilder {
             total_weight += u64::from(component.weight);
         }
 
-        let _program = GenerationProgram { branches, total_weight };
-        if count == 0 {
-            return Vec::new();
-        }
-        panic!("sampling is not implemented yet")
+        let program = GenerationProgram { branches, total_weight };
+        program.sample_n(seed, count)
     }
 
     fn validate_int_digits(value: usize) {
@@ -354,11 +349,7 @@ impl DistributionComponentSpec {
         self.domain.validate_feasible(max_int_digits, max_frac_digits)
     }
 
-    fn compile_domain(
-        &self,
-        default_int_digits: Option<usize>,
-        default_frac_digits: Option<usize>,
-    ) -> Result<CompiledScalarDomain, &'static str> {
+    fn compile_domain(&self, default_int_digits: Option<usize>, default_frac_digits: Option<usize>) -> Result<CompiledScalarDomain, &'static str> {
         let max_int_digits = self.max_int_digits.or(default_int_digits).unwrap_or(SCALAR_INT_DIGITS_LEN);
         let max_frac_digits = self.max_frac_digits.or(default_frac_digits).unwrap_or(SCALAR_FRAC_DIGITS_LEN);
 
@@ -414,10 +405,7 @@ impl Default for DomainAccumulator {
         Self {
             sign: ScalarSignDomain::Mixed,
             kind: ScalarValueKindDomain::IntegerOrFractional,
-            interval: ScalarInterval {
-                lower: None,
-                upper: None,
-            },
+            interval: ScalarInterval { lower: None, upper: None },
             excluded_points: Vec::new(),
         }
     }
@@ -561,6 +549,83 @@ struct GenerationProgram {
     total_weight: u64,
 }
 
+impl GenerationProgram {
+    fn sample_n(&self, seed: u64, count: usize) -> Vec<UsfScalar> {
+        if count == 0 {
+            return Vec::new();
+        }
+
+        let mut rng = SplitMix64::new(seed);
+        let mut out = Vec::with_capacity(count);
+
+        for _ in 0..count {
+            let branch_index = self.select_branch_index(&mut rng);
+            let value = self.branches[branch_index].sampler.sample(&mut rng);
+            out.push(value);
+        }
+
+        out
+    }
+
+    fn select_branch_index(&self, rng: &mut SplitMix64) -> usize {
+        let mut ticket = rng.next_u64() % self.total_weight;
+        for (index, branch) in self.branches.iter().enumerate() {
+            let weight = u64::from(branch.weight);
+            if ticket < weight {
+                return index;
+            }
+            ticket -= weight;
+        }
+        self.branches
+            .len()
+            .checked_sub(1)
+            .expect("generation program must contain at least one branch")
+    }
+}
+
+impl ScalarSamplerSpec {
+    fn sample(&self, rng: &mut SplitMix64) -> UsfScalar {
+        let domain = self.domain();
+        sample_scalar_from_domain(domain, rng)
+    }
+}
+
+#[derive(Clone, Debug)]
+struct SplitMix64 {
+    state: u64,
+}
+
+impl SplitMix64 {
+    fn new(seed: u64) -> Self {
+        Self { state: seed }
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        self.state = self.state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+        let mut z = self.state;
+        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+        z ^ (z >> 31)
+    }
+
+    fn next_bool(&mut self) -> bool {
+        (self.next_u64() & 1) == 1
+    }
+
+    fn next_u8_inclusive(&mut self, min: u8, max: u8) -> u8 {
+        assert!(min <= max, "invalid u8 range");
+        let span = u64::from(max - min) + 1;
+        let offset = (self.next_u64() % span) as u8;
+        min + offset
+    }
+
+    fn next_usize_inclusive(&mut self, min: usize, max: usize) -> usize {
+        assert!(min <= max, "invalid usize range");
+        let span = max - min + 1;
+        min + (self.next_u64() as usize % span)
+    }
+}
+
 fn tighter_lower_bound(existing: ScalarBoundary, incoming: ScalarBoundary) -> ScalarBoundary {
     if incoming.value > existing.value {
         incoming
@@ -631,6 +696,149 @@ fn kind_allows(kind: ScalarValueKindDomain, value: &UsfScalar) -> bool {
 
 fn has_fractional_digits(value: &UsfScalar) -> bool {
     value.digits.frac_digits().iter().any(|digit| digit.get() != 0)
+}
+
+fn sample_scalar_from_domain(domain: &CompiledScalarDomain, rng: &mut SplitMix64) -> UsfScalar {
+    const MAX_ATTEMPTS: usize = 8_192;
+
+    for _ in 0..MAX_ATTEMPTS {
+        let candidate = generate_candidate_scalar(domain, rng);
+        if scalar_satisfies_compiled_domain(domain, &candidate) {
+            return candidate;
+        }
+    }
+
+    panic!("failed to sample scalar value for compiled domain after {MAX_ATTEMPTS} attempts");
+}
+
+fn generate_candidate_scalar(domain: &CompiledScalarDomain, rng: &mut SplitMix64) -> UsfScalar {
+    let must_be_fractional = matches!(domain.kind, ScalarValueKindDomain::FractionalOnly);
+    let can_be_fractional = matches!(
+        domain.kind,
+        ScalarValueKindDomain::FractionalOnly | ScalarValueKindDomain::IntegerOrFractional
+    ) && domain.max_frac_digits > 0;
+
+    let use_fractional = if must_be_fractional {
+        true
+    } else if can_be_fractional {
+        rng.next_bool()
+    } else {
+        false
+    };
+
+    let int_len = rng.next_usize_inclusive(1, domain.max_int_digits.max(1));
+    let frac_len = if use_fractional {
+        rng.next_usize_inclusive(1, domain.max_frac_digits.max(1))
+    } else {
+        0
+    };
+
+    let mut int_digits = vec![0_u8; int_len];
+    if int_len == 1 {
+        int_digits[0] = rng.next_u8_inclusive(0, 9);
+    } else {
+        int_digits[0] = rng.next_u8_inclusive(1, 9);
+        for digit in int_digits.iter_mut().skip(1) {
+            *digit = rng.next_u8_inclusive(0, 9);
+        }
+    }
+
+    let mut frac_digits = vec![0_u8; frac_len];
+    for digit in &mut frac_digits {
+        *digit = rng.next_u8_inclusive(0, 9);
+    }
+
+    if must_be_fractional && frac_digits.iter().all(|d| *d == 0) {
+        let idx = rng.next_usize_inclusive(0, frac_len - 1);
+        frac_digits[idx] = rng.next_u8_inclusive(1, 9);
+    }
+
+    let all_zero_int = int_digits.iter().all(|d| *d == 0);
+    let all_zero_frac = frac_digits.iter().all(|d| *d == 0);
+    if all_zero_int && all_zero_frac {
+        if frac_len > 0 {
+            let idx = rng.next_usize_inclusive(0, frac_len - 1);
+            frac_digits[idx] = 1;
+        } else {
+            let idx = int_len - 1;
+            int_digits[idx] = 1;
+        }
+    }
+
+    let negative = match domain.sign {
+        ScalarSignDomain::Mixed => rng.next_bool(),
+        ScalarSignDomain::PositiveOnly => false,
+        ScalarSignDomain::NegativeOnly => true,
+    };
+
+    let mut text = String::with_capacity(1 + int_len + if frac_len > 0 { 1 + frac_len } else { 0 });
+    if negative {
+        text.push('-');
+    }
+    for digit in &int_digits {
+        text.push(char::from(b'0' + *digit));
+    }
+    if frac_len > 0 {
+        text.push('.');
+        for digit in &frac_digits {
+            text.push(char::from(b'0' + *digit));
+        }
+    }
+
+    UsfScalar::try_from_decimal_str(&text).unwrap_or_else(|err| panic!("failed to parse generated scalar '{text}': {err}"))
+}
+
+fn scalar_satisfies_compiled_domain(domain: &CompiledScalarDomain, value: &UsfScalar) -> bool {
+    if !sign_allows(domain.sign, value) {
+        return false;
+    }
+    if !kind_allows(domain.kind, value) {
+        return false;
+    }
+    if !interval_contains(&domain.interval, value) {
+        return false;
+    }
+    if domain.excluded_points.iter().any(|excluded| excluded == value) {
+        return false;
+    }
+    if !digit_caps_allow(domain.max_int_digits, domain.max_frac_digits, value) {
+        return false;
+    }
+    true
+}
+
+fn interval_contains(interval: &ScalarInterval, value: &UsfScalar) -> bool {
+    if let Some(lower) = &interval.lower {
+        match value.cmp(&lower.value) {
+            std::cmp::Ordering::Less => return false,
+            std::cmp::Ordering::Equal if !lower.inclusive => return false,
+            _ => {}
+        }
+    }
+
+    if let Some(upper) = &interval.upper {
+        match value.cmp(&upper.value) {
+            std::cmp::Ordering::Greater => return false,
+            std::cmp::Ordering::Equal if !upper.inclusive => return false,
+            _ => {}
+        }
+    }
+
+    true
+}
+
+fn digit_caps_allow(max_int_digits: usize, max_frac_digits: usize, value: &UsfScalar) -> bool {
+    let int_digits = value.digits.int_digits();
+    let frac_digits = value.digits.frac_digits();
+
+    let int_len = int_digits
+        .iter()
+        .position(|digit| digit.get() != 0)
+        .map(|idx| SCALAR_INT_DIGITS_LEN - idx)
+        .unwrap_or(1);
+    let frac_len = frac_digits.iter().rposition(|digit| digit.get() != 0).map(|idx| idx + 1).unwrap_or(0);
+
+    int_len <= max_int_digits.max(1) && frac_len <= max_frac_digits
 }
 
 fn compiled_domains_overlap(left: &CompiledScalarDomain, right: &CompiledScalarDomain) -> bool {
@@ -727,17 +935,13 @@ mod tests {
     #[test]
     #[should_panic(expected = "cannot combine positive and negative")]
     fn contradictory_sign_panics_immediately() {
-        let _ = RandomDistributionBuilder::new()
-            .component(1, |c| c.positive().negative())
-            .build(0, 0);
+        let _ = RandomDistributionBuilder::new().component(1, |c| c.positive().negative()).build(0, 0);
     }
 
     #[test]
     #[should_panic(expected = "cannot combine integer-only and fractional-only")]
     fn contradictory_kind_panics_immediately() {
-        let _ = RandomDistributionBuilder::new()
-            .component(1, |c| c.integer().fractional())
-            .build(0, 0);
+        let _ = RandomDistributionBuilder::new().component(1, |c| c.integer().fractional()).build(0, 0);
     }
 
     #[test]
@@ -765,6 +969,38 @@ mod tests {
             .build(0, 0);
 
         assert!(values.is_empty());
+    }
+
+    #[test]
+    fn build_non_zero_count_generates_expected_domain_values() {
+        let values = RandomDistributionBuilder::new()
+            .default_max_int_digits(3)
+            .default_max_frac_digits(0)
+            .component(1, |c| c.positive().integer().greater_than(scalar("17")).less_than(scalar("100")))
+            .build(99, 128);
+
+        assert_eq!(values.len(), 128);
+        for value in values {
+            assert!(value > scalar("17"), "value must be > 17, got {value}");
+            assert!(value < scalar("100"), "value must be < 100, got {value}");
+            assert!(!has_fractional_digits(&value), "value must be integer, got {value}");
+        }
+    }
+
+    #[test]
+    fn build_is_deterministic_for_same_seed() {
+        let build_values = |seed| {
+            RandomDistributionBuilder::new()
+                .default_max_int_digits(2)
+                .default_max_frac_digits(2)
+                .component(3, |c| c.positive().integer().greater_than(scalar("1")))
+                .component(1, |c| c.negative().fractional().less_than(scalar("-0.1")))
+                .build(seed, 64)
+        };
+
+        let a = build_values(0xACE1_u64);
+        let b = build_values(0xACE1_u64);
+        assert_eq!(a, b);
     }
 
     #[test]
