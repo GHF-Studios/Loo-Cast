@@ -1,8 +1,8 @@
 use super::shared::{
     PublicFlatDigits, PublicFracDigits, PublicIntDigits, PublicSignedMagnitude, SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN, ScalarDecimalU8Parts,
 };
+use crate::math::scalar::decimal_parts::{SCALAR_FRAC_SHADOW_DIGITS_LEN, SCALAR_INTERNAL_FRAC_DIGITS_LEN, SCALAR_INTERNAL_TOTAL_DIGITS_LEN};
 use base_mod_shared::utils::string::split_leading_sign;
-use crate::math::scalar::decimal_parts::{SCALAR_INTERNAL_FRAC_DIGITS_LEN, SCALAR_INTERNAL_TOTAL_DIGITS_LEN, SCALAR_FRAC_SHADOW_DIGITS_LEN};
 
 /// Error produced while parsing plain decimal string input into scalar digits.
 #[derive(Clone, Debug, PartialEq, Eq)]

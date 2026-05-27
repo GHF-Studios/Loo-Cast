@@ -41,9 +41,9 @@
 //! assert_eq!(values.len(), 32);
 //! ```
 
-use crate::math::scalar::decimal_parts::SCALAR_INTERNAL_FRAC_DIGITS_LEN;
 use super::shared::SCALAR_INT_DIGITS_LEN;
 use super::usf::UsfScalar;
+use crate::math::scalar::decimal_parts::SCALAR_INTERNAL_FRAC_DIGITS_LEN;
 
 /// Fluent configuration builder for scalar random distributions.
 ///
@@ -105,7 +105,9 @@ impl RandomDistributionBuilder {
                 panic!("component at index {index} has zero weight");
             }
 
-            let domain = component.compile_domain().unwrap_or_else(|_| panic!("component at index {index} is unsatisfiable"));
+            let domain = component
+                .compile_domain()
+                .unwrap_or_else(|_| panic!("component at index {index} is unsatisfiable"));
 
             let sampler = match domain.kind {
                 ScalarValueKindDomain::IntegerOnly => ScalarSamplerSpec::IntegerRange { domain },
@@ -129,7 +131,6 @@ impl RandomDistributionBuilder {
         let program = GenerationProgram { branches, total_weight };
         program.sample_n(seed, count)
     }
-
 }
 
 /// Scoped builder for one weighted component.
@@ -645,8 +646,7 @@ fn sample_scalar_from_domain(domain: &CompiledScalarDomain, rng: &mut SplitMix64
             continue;
         };
 
-        let satisfies = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| scalar_satisfies_compiled_domain(domain, &candidate)))
-            .unwrap_or(false);
+        let satisfies = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| scalar_satisfies_compiled_domain(domain, &candidate))).unwrap_or(false);
 
         if satisfies {
             return candidate;
@@ -686,11 +686,7 @@ fn generate_candidate_scalar(domain: &CompiledScalarDomain, rng: &mut SplitMix64
     if int_len == 1 {
         int_digits[0] = rng.next_u8_inclusive(0, 9);
     } else {
-        let leading_max = if int_len == SCALAR_INT_DIGITS_LEN {
-            if negative { 4 } else { 3 }
-        } else {
-            9
-        };
+        let leading_max = if int_len == SCALAR_INT_DIGITS_LEN { if negative { 4 } else { 3 } } else { 9 };
         int_digits[0] = rng.next_u8_inclusive(1, leading_max);
         for digit in int_digits.iter_mut().skip(1) {
             *digit = rng.next_u8_inclusive(0, 9);
@@ -952,5 +948,4 @@ mod tests {
             .component(1, |c| c.equal_to(scalar("5")).not_equal_to(scalar("5")))
             .build(0, 0);
     }
-
 }

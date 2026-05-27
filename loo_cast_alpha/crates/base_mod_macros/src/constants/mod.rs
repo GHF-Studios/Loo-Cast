@@ -82,8 +82,8 @@ fn parse_requested_trait_name_or(input: TokenStream, default_name: &str) -> Stri
 }
 
 fn constants_root_from_manifest_dir() -> Result<PathBuf, String> {
-    let manifest_dir = env::var("CARGO_MANIFEST_DIR")
-        .map_err(|err| format!("missing CARGO_MANIFEST_DIR while generating UsfScalar constant values trait: {err}"))?;
+    let manifest_dir =
+        env::var("CARGO_MANIFEST_DIR").map_err(|err| format!("missing CARGO_MANIFEST_DIR while generating UsfScalar constant values trait: {err}"))?;
     Ok(PathBuf::from(manifest_dir).join("src/math/scalar/constants"))
 }
 
@@ -119,8 +119,7 @@ fn extract_pub_const_names(source: &str) -> Vec<String> {
 }
 
 fn parse_pub_const_names_in_file(path: &Path) -> Result<Vec<String>, String> {
-    let source = fs::read_to_string(path)
-        .map_err(|err| format!("failed reading constants source file `{}`: {err}", path.display()))?;
+    let source = fs::read_to_string(path).map_err(|err| format!("failed reading constants source file `{}`: {err}", path.display()))?;
     let names = extract_pub_const_names(&source);
     if names.is_empty() {
         return Err(format!("failed to discover `pub const` scalar constants in `{}`", path.display()));
@@ -185,18 +184,14 @@ pub(crate) fn declare_usf_scalar_constant_values_trait(input: TokenStream) -> To
             ));
         }
 
-        trait_constants.push_str(&format!(
-            "    const {constant_name}: crate::math::scalar::usf::UsfScalar;\n"
-        ));
+        trait_constants.push_str(&format!("    const {constant_name}: crate::math::scalar::usf::UsfScalar;\n"));
         impl_constants.push_str(&format!(
             "    const {constant_name}: crate::math::scalar::usf::UsfScalar = {{\n        let (int_balanced, frac_balanced_internal, balanced_negative, _) = {};\n        Self {{\n            digits: crate::math::scalar::digits::ScalarDecimalDigits::from_balanced_parts_const_checked(\n                balanced_negative,\n                int_balanced,\n                frac_balanced_internal,\n            ),\n        }}\n    }};\n",
             spec.const_path
         ));
     }
 
-    let out = format!(
-        "pub trait {trait_name} {{\n{trait_constants}}}\n\nimpl {trait_name} for crate::math::scalar::usf::UsfScalar {{\n{impl_constants}}}\n"
-    );
+    let out = format!("pub trait {trait_name} {{\n{trait_constants}}}\n\nimpl {trait_name} for crate::math::scalar::usf::UsfScalar {{\n{impl_constants}}}\n");
 
     parse_tokens(&out)
 }
