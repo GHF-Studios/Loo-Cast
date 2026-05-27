@@ -1,14 +1,22 @@
 #!/usr/bin/env rust-script
+//! ```cargo
+//! [dependencies]
+//! base_mod_shared = { path = "../crates/base_mod_shared" }
+//! ```
 
-use std::fs::{create_dir_all, File};
-use std::io::{BufWriter, Write};
+use base_mod_shared::utils::scalar_words::decimal_string_to_snake_case;
+use std::fs::{File, create_dir_all};
+use std::io::{self, BufWriter, Write};
 use std::path::PathBuf;
 
 const MIN_EXP: i32 = -44;
 const MAX_EXP: i32 = 35;
 const MAX_SAFE_TOP_MANTISSA: u32 = 4; // at 10^35, 5..9 overflows after balanced carry
+const MAX_LITERAL: &str = "444444444444444444444444444444444444.44444444444444444444444444444444444444444444";
+const FIVE_HUNDRED_DECILLION_LITERAL: &str = "500000000000000000000000000000000000";
+const MIN_LITERAL: &str = "-555555555555555555555555555555555555.55555555555555555555555555555555555555555555";
 
-fn main() -> std::io::Result<()> {
+fn main() -> io::Result<()> {
     println!("generating power lattice...");
 
     let exe_dir = PathBuf::from(file!()).parent().unwrap().to_path_buf();
@@ -20,9 +28,39 @@ fn main() -> std::io::Result<()> {
     let mut out = BufWriter::new(file);
 
     let mut emitted = 0usize;
+    let mut all_entries: Vec<(String, String)> = Vec::new();
+
     for exp in MIN_EXP..=MAX_EXP {
-        emitted += emit_bucket(exp, &mut out)?;
+        let bucket_entries = build_bucket_entries(exp)?;
+        all_entries.extend(bucket_entries);
     }
+
+    writeln!(out, "maximum={MAX_LITERAL}")?;
+    emitted += 1;
+
+    writeln!(out, "minimum={MIN_LITERAL}")?;
+    emitted += 1;
+
+    for (name, value) in all_entries.iter().rev() {
+        writeln!(out, "{name}={value}")?;
+        emitted += 1;
+    }
+
+    writeln!(out, "zero=0")?;
+    emitted += 1;
+
+    writeln!(out)?;
+
+    for (name, value) in all_entries {
+        writeln!(out, "negative_{name}=-{value}")?;
+        emitted += 1;
+    }
+
+    writeln!(
+        out,
+        "negative_five_hundred_decillion=-{FIVE_HUNDRED_DECILLION_LITERAL}"
+    )?;
+    emitted += 1;
 
     out.flush()?;
     println!("done");
@@ -31,27 +69,26 @@ fn main() -> std::io::Result<()> {
     Ok(())
 }
 
-fn emit_bucket(exp: i32, out: &mut impl Write) -> std::io::Result<usize> {
-    let mut emitted = 0usize;
+fn build_bucket_entries(exp: i32) -> io::Result<Vec<(String, String)>> {
     let max_mantissa = if exp == MAX_EXP {
         MAX_SAFE_TOP_MANTISSA
     } else {
         9
     };
 
+    let mut entries: Vec<(String, String)> = Vec::with_capacity(max_mantissa as usize);
     for mantissa in 1u32..=max_mantissa {
-        let name = if exp < 0 {
-            negative_name(mantissa, exp)
-        } else {
-            positive_name(mantissa, exp)
-        };
-
         let value = render_value(mantissa, exp);
-        writeln!(out, "{}={}", name, value)?;
-        emitted += 1;
+        let name = decimal_string_to_snake_case(&value).map_err(|error| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("failed to convert value `{value}` to name: {error}"),
+            )
+        })?;
+        entries.push((name, value));
     }
 
-    Ok(emitted)
+    Ok(entries)
 }
 
 fn render_value(mantissa: u32, exp: i32) -> String {
@@ -62,153 +99,5 @@ fn render_value(mantissa: u32, exp: i32) -> String {
     } else {
         let zeros = (-exp - 1) as usize;
         format!("0.{}{}", "0".repeat(zeros), mantissa)
-    }
-}
-
-fn positive_name(mantissa: u32, exp: i32) -> String {
-    let (prefix, scale) = folded_parts(mantissa, exp);
-    if scale.is_empty() {
-        prefix.to_string()
-    } else {
-        format!("{}_{}", prefix, scale)
-    }
-}
-
-fn negative_name(mantissa: u32, exp: i32) -> String {
-    let abs_exp = -exp;
-    let numerator = numerator_word(mantissa);
-    let denominator = denominator_word(abs_exp);
-    format!("{numerator}_over_{denominator}")
-}
-
-fn folded_parts(mantissa: u32, exp: i32) -> (&'static str, &'static str) {
-    match exp % 3 {
-        0 => (digit_word(mantissa), magnitude_group(exp)),
-        1 => (tens_word(mantissa), magnitude_group(exp - 1)),
-        2 => (hundreds_word(mantissa), magnitude_group(exp - 2)),
-        _ => unreachable!(),
-    }
-}
-
-fn digit_word(n: u32) -> &'static str {
-    match n {
-        1 => "one",
-        2 => "two",
-        3 => "three",
-        4 => "four",
-        5 => "five",
-        6 => "six",
-        7 => "seven",
-        8 => "eight",
-        9 => "nine",
-        _ => unreachable!(),
-    }
-}
-
-fn tens_word(n: u32) -> &'static str {
-    match n {
-        1 => "ten",
-        2 => "twenty",
-        3 => "thirty",
-        4 => "forty",
-        5 => "fifty",
-        6 => "sixty",
-        7 => "seventy",
-        8 => "eighty",
-        9 => "ninety",
-        _ => unreachable!(),
-    }
-}
-
-fn hundreds_word(n: u32) -> &'static str {
-    match n {
-        1 => "one_hundred",
-        2 => "two_hundred",
-        3 => "three_hundred",
-        4 => "four_hundred",
-        5 => "five_hundred",
-        6 => "six_hundred",
-        7 => "seven_hundred",
-        8 => "eight_hundred",
-        9 => "nine_hundred",
-        _ => unreachable!(),
-    }
-}
-
-fn magnitude_group(exp: i32) -> &'static str {
-    match exp {
-        0 => "",
-        1 => "ten",
-        2 => "one_hundred",
-        3 => "thousand",
-        6 => "million",
-        9 => "billion",
-        12 => "trillion",
-        15 => "quadrillion",
-        18 => "quintillion",
-        21 => "sextillion",
-        24 => "septillion",
-        27 => "octillion",
-        30 => "nonillion",
-        33 => "decillion",
-        36 => "undecillion",
-        39 => "duodecillion",
-        42 => "tredecillion",
-        _ => unreachable!(),
-    }
-}
-
-fn numerator_word(mantissa: u32) -> String {
-    if mantissa == 1 {
-        "one".to_string()
-    } else if mantissa < 10 {
-        digit_word(mantissa).to_string()
-    } else if mantissa < 100 {
-        let t = mantissa / 10;
-        let o = mantissa % 10;
-        if o == 0 {
-            tens_word(t).to_string()
-        } else {
-            format!("{}_{}", tens_word(t), digit_word(o))
-        }
-    } else {
-        let h = mantissa / 100;
-        let rem = mantissa % 100;
-        if rem == 0 {
-            format!("{}_hundred", digit_word(h))
-        } else if rem < 10 {
-            format!("{}_hundred_{}", digit_word(h), digit_word(rem))
-        } else {
-            let t = rem / 10;
-            let o = rem % 10;
-            if o == 0 {
-                format!("{}_hundred_{}", digit_word(h), tens_word(t))
-            } else {
-                format!(
-                    "{}_hundred_{}_{}",
-                    digit_word(h),
-                    tens_word(t),
-                    digit_word(o)
-                )
-            }
-        }
-    }
-}
-
-fn denominator_word(abs_exp: i32) -> String {
-    match abs_exp {
-        1 => "ten".to_string(),
-        2 => "one_hundred".to_string(),
-        _ => {
-            let rem = abs_exp % 3;
-            let group_exp = abs_exp - rem;
-            let group = magnitude_group(group_exp);
-            match rem {
-                0 => format!("one_{group}"),
-                1 => format!("ten_{group}"),
-                2 => format!("one_hundred_{group}"),
-                _ => unreachable!(),
-            }
-        }
     }
 }

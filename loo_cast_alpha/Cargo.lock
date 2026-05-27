@@ -573,6 +573,7 @@ dependencies = [
 name = "base_mod_internals"
 version = "0.1.0"
 dependencies = [
+ "base_mod_macros",
  "base_mod_shared",
  "bevy",
  "rand",

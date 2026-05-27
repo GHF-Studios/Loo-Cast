@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+base_mod_macros = { path = "../base_mod_macros" }
 base_mod_shared = { path = "../base_mod_shared" }
 bevy = { workspace = true }
 rand = "0.9.4"

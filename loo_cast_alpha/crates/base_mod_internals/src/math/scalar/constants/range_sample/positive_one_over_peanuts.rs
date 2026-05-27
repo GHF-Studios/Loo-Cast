@@ -1,0 +1,46 @@
+#![cfg_attr(any(), rustfmt::skip)]
+
+use crate::math::scalar::constants::ScalarCoreConst;
+
+pub trait PositiveOneOverPeanutsRangeSampleConstants {
+    const SCALAR_NINE_OVER_TEN: ScalarCoreConst = ( [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, ], [ -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], false, 36);
+    const SCALAR_EIGHT_OVER_TEN: ScalarCoreConst = ( [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, ], [ -2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], false, 36);
+    const SCALAR_SEVEN_OVER_TEN: ScalarCoreConst = ( [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, ], [ -3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], false, 36);
+    const SCALAR_SIX_OVER_TEN: ScalarCoreConst = ( [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, ], [ -4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], false, 36);
+    const SCALAR_FIVE_OVER_TEN: ScalarCoreConst = ( [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, ], [ -5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], false, 36);
+    const SCALAR_FOUR_OVER_TEN: ScalarCoreConst = ( [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], [ 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], false, 36);
+    const SCALAR_THREE_OVER_TEN: ScalarCoreConst = ( [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], [ 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], false, 36);
+    const SCALAR_TWO_OVER_TEN: ScalarCoreConst = ( [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], [ 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], false, 36);
+    const SCALAR_ONE_OVER_TEN: ScalarCoreConst = ( [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], [ 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], false, 36);
+    const SCALAR_NINE_OVER_ONE_HUNDRED: ScalarCoreConst = ( [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], [ 1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], false, 37);
+    const SCALAR_EIGHT_OVER_ONE_HUNDRED: ScalarCoreConst = ( [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], [ 1, -2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], false, 37);
+    const SCALAR_SEVEN_OVER_ONE_HUNDRED: ScalarCoreConst = ( [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], [ 1, -3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], false, 37);
+    const SCALAR_SIX_OVER_ONE_HUNDRED: ScalarCoreConst = ( [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], [ 1, -4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], false, 37);
+    const SCALAR_FIVE_OVER_ONE_HUNDRED: ScalarCoreConst = ( [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], [ 1, -5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], false, 37);
+    const SCALAR_FOUR_OVER_ONE_HUNDRED: ScalarCoreConst = ( [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], [ 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], false, 37);
+    const SCALAR_THREE_OVER_ONE_HUNDRED: ScalarCoreConst = ( [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], [ 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], false, 37);
+    const SCALAR_TWO_OVER_ONE_HUNDRED: ScalarCoreConst = ( [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], [ 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], false, 37);
+    const SCALAR_ONE_OVER_ONE_HUNDRED: ScalarCoreConst = ( [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], [ 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ], false, 37);
+}
+
+pub struct PositiveOneOverPeanutsRangeSampleConstantsConstSet;
+impl PositiveOneOverPeanutsRangeSampleConstants for PositiveOneOverPeanutsRangeSampleConstantsConstSet {}
+
+pub const SCALAR_NINE_OVER_TEN: ScalarCoreConst = <PositiveOneOverPeanutsRangeSampleConstantsConstSet as PositiveOneOverPeanutsRangeSampleConstants>::SCALAR_NINE_OVER_TEN;
+pub const SCALAR_EIGHT_OVER_TEN: ScalarCoreConst = <PositiveOneOverPeanutsRangeSampleConstantsConstSet as PositiveOneOverPeanutsRangeSampleConstants>::SCALAR_EIGHT_OVER_TEN;
+pub const SCALAR_SEVEN_OVER_TEN: ScalarCoreConst = <PositiveOneOverPeanutsRangeSampleConstantsConstSet as PositiveOneOverPeanutsRangeSampleConstants>::SCALAR_SEVEN_OVER_TEN;
+pub const SCALAR_SIX_OVER_TEN: ScalarCoreConst = <PositiveOneOverPeanutsRangeSampleConstantsConstSet as PositiveOneOverPeanutsRangeSampleConstants>::SCALAR_SIX_OVER_TEN;
+pub const SCALAR_FIVE_OVER_TEN: ScalarCoreConst = <PositiveOneOverPeanutsRangeSampleConstantsConstSet as PositiveOneOverPeanutsRangeSampleConstants>::SCALAR_FIVE_OVER_TEN;
+pub const SCALAR_FOUR_OVER_TEN: ScalarCoreConst = <PositiveOneOverPeanutsRangeSampleConstantsConstSet as PositiveOneOverPeanutsRangeSampleConstants>::SCALAR_FOUR_OVER_TEN;
+pub const SCALAR_THREE_OVER_TEN: ScalarCoreConst = <PositiveOneOverPeanutsRangeSampleConstantsConstSet as PositiveOneOverPeanutsRangeSampleConstants>::SCALAR_THREE_OVER_TEN;
+pub const SCALAR_TWO_OVER_TEN: ScalarCoreConst = <PositiveOneOverPeanutsRangeSampleConstantsConstSet as PositiveOneOverPeanutsRangeSampleConstants>::SCALAR_TWO_OVER_TEN;
+pub const SCALAR_ONE_OVER_TEN: ScalarCoreConst = <PositiveOneOverPeanutsRangeSampleConstantsConstSet as PositiveOneOverPeanutsRangeSampleConstants>::SCALAR_ONE_OVER_TEN;
+pub const SCALAR_NINE_OVER_ONE_HUNDRED: ScalarCoreConst = <PositiveOneOverPeanutsRangeSampleConstantsConstSet as PositiveOneOverPeanutsRangeSampleConstants>::SCALAR_NINE_OVER_ONE_HUNDRED;
+pub const SCALAR_EIGHT_OVER_ONE_HUNDRED: ScalarCoreConst = <PositiveOneOverPeanutsRangeSampleConstantsConstSet as PositiveOneOverPeanutsRangeSampleConstants>::SCALAR_EIGHT_OVER_ONE_HUNDRED;
+pub const SCALAR_SEVEN_OVER_ONE_HUNDRED: ScalarCoreConst = <PositiveOneOverPeanutsRangeSampleConstantsConstSet as PositiveOneOverPeanutsRangeSampleConstants>::SCALAR_SEVEN_OVER_ONE_HUNDRED;
+pub const SCALAR_SIX_OVER_ONE_HUNDRED: ScalarCoreConst = <PositiveOneOverPeanutsRangeSampleConstantsConstSet as PositiveOneOverPeanutsRangeSampleConstants>::SCALAR_SIX_OVER_ONE_HUNDRED;
+pub const SCALAR_FIVE_OVER_ONE_HUNDRED: ScalarCoreConst = <PositiveOneOverPeanutsRangeSampleConstantsConstSet as PositiveOneOverPeanutsRangeSampleConstants>::SCALAR_FIVE_OVER_ONE_HUNDRED;
+pub const SCALAR_FOUR_OVER_ONE_HUNDRED: ScalarCoreConst = <PositiveOneOverPeanutsRangeSampleConstantsConstSet as PositiveOneOverPeanutsRangeSampleConstants>::SCALAR_FOUR_OVER_ONE_HUNDRED;
+pub const SCALAR_THREE_OVER_ONE_HUNDRED: ScalarCoreConst = <PositiveOneOverPeanutsRangeSampleConstantsConstSet as PositiveOneOverPeanutsRangeSampleConstants>::SCALAR_THREE_OVER_ONE_HUNDRED;
+pub const SCALAR_TWO_OVER_ONE_HUNDRED: ScalarCoreConst = <PositiveOneOverPeanutsRangeSampleConstantsConstSet as PositiveOneOverPeanutsRangeSampleConstants>::SCALAR_TWO_OVER_ONE_HUNDRED;
+pub const SCALAR_ONE_OVER_ONE_HUNDRED: ScalarCoreConst = <PositiveOneOverPeanutsRangeSampleConstantsConstSet as PositiveOneOverPeanutsRangeSampleConstants>::SCALAR_ONE_OVER_ONE_HUNDRED;

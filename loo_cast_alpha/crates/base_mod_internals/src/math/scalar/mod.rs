@@ -1,3 +1,6 @@
+pub mod constants;
+pub mod rand;
+
 /// Scalar-focused aliases, including USF/normal union wrappers.
 pub mod aliases;
 /// Canonical fixed-width decimal parts and shared digit buffers.

@@ -220,9 +220,7 @@ impl ScalarDecimalDigits {
         out
     }
 
-    const fn raw_int_parts_internal_balanced(
-        internal: [ScalarDecimalDigit; SCALAR_INT_DIGITS_LEN],
-    ) -> [ScalarDecimalDigit; SCALAR_INT_DIGITS_LEN] {
+    const fn raw_int_parts_internal_balanced(internal: [ScalarDecimalDigit; SCALAR_INT_DIGITS_LEN]) -> [ScalarDecimalDigit; SCALAR_INT_DIGITS_LEN] {
         let mut out = [ScalarDecimalDigit::ZERO; SCALAR_INT_DIGITS_LEN];
         let mut idx = 0;
         while idx < SCALAR_INT_DIGITS_LEN {

@@ -37,6 +37,7 @@
 //!
 
 pub mod aliases;
+pub mod conversion;
 pub mod field;
 pub mod matrix;
 pub mod op_kind;

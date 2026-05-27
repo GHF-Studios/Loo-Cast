@@ -3,6 +3,7 @@ use super::shared::{
     FloatType, IntegerType, PublicSignedMagnitude, ScalarConstOps, ScalarCoreOps, ScalarDecimalU8Parts, ScalarFracDigitBuffer, ScalarIntDigitBuffer,
     ScalarType, SignedIntegerType, UnsignedIntegerType,
 };
+use base_mod_macros::impl_scalar_constants_for;
 use crate::math::scalar::digits::ScalarDecimalDigits;
 pub use crate::math::scalar::digits::{DecimalParseError, ScalarParseError, ScientificParseError};
 
@@ -12,75 +13,41 @@ pub struct UsfScalar {
     pub digits: ScalarDecimalDigits,
 }
 
+impl_scalar_constants_for!(UsfScalar);
+
 impl UsfScalar {
-    /// Canonical additive identity (`0`) built from fixed-width balanced digits.
     pub const ZERO: Self = Self {
         digits: ScalarDecimalDigits::ZERO,
     };
-
-    /// Canonical multiplicative identity (`1`) built from fixed-width balanced digits.
     pub const ONE: Self = Self {
         digits: ScalarDecimalDigits::ONE,
     };
-
-    /// Canonical negative-one constant (`-1`) built from fixed-width balanced digits.
-    pub const NEG_ONE: Self = Self {
-        digits: ScalarDecimalDigits::NEG_ONE,
-    };
-
-    /// Canonical two constant (`2`) built from fixed-width balanced digits.
     pub const TWO: Self = Self {
         digits: ScalarDecimalDigits::TWO,
     };
-
-    /// Canonical ten constant (`10`) built from fixed-width balanced digits.
     pub const TEN: Self = Self {
         digits: ScalarDecimalDigits::TEN,
     };
-
-    /// Canonical smallest positive finite step (`10^-35`).
-    ///
-    /// Decimal text: `0.00000000000000000000000000000000001`.
-    pub const EPSILON: Self = Self {
-        digits: ScalarDecimalDigits::EPSILON,
-    };
-
-    /// Canonical pi constant.
-    ///
-    /// Decimal text (internal 44-fraction precision):
-    /// `3.14159265358979323846264338327950288419716939937510`.
-    pub const PI: Self = Self {
-        digits: ScalarDecimalDigits::PI,
-    };
-
-    /// Canonical tau constant.
-    ///
-    /// Decimal text (internal 44-fraction precision):
-    /// `6.28318530717958647692528676655900576839433879875020`.
-    pub const TAU: Self = Self {
-        digits: ScalarDecimalDigits::TAU,
-    };
-
-    /// Canonical Euler's number constant.
-    ///
-    /// Decimal text (internal 44-fraction precision):
-    /// `2.71828182845904523536028747135266249775724709369996`.
-    pub const E: Self = Self {
-        digits: ScalarDecimalDigits::E,
-    };
-
-    /// Canonical maximum finite scalar constant for this backend.
-    ///
-    /// Decimal text: `399999999999999999999999999999999999.99999999999999999999999999999999999`.
     pub const MAX: Self = Self {
         digits: ScalarDecimalDigits::MAX,
     };
-
-    /// Canonical minimum finite scalar constant for this backend.
-    ///
-    /// Decimal text: `-499999999999999999999999999999999999.99999999999999999999999999999999999`.
     pub const MIN: Self = Self {
         digits: ScalarDecimalDigits::MIN,
+    };
+    pub const NEG_ONE: Self = Self {
+        digits: ScalarDecimalDigits::NEG_ONE,
+    };
+    pub const EPSILON: Self = Self {
+        digits: ScalarDecimalDigits::EPSILON,
+    };
+    pub const PI: Self = Self {
+        digits: ScalarDecimalDigits::PI,
+    };
+    pub const TAU: Self = Self {
+        digits: ScalarDecimalDigits::TAU,
+    };
+    pub const E: Self = Self {
+        digits: ScalarDecimalDigits::E,
     };
 
     /// Converts mixed-repr scalar operand into signed-magnitude view.
