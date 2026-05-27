@@ -5,7 +5,7 @@ use super::shared::{
 };
 use crate::math::scalar::digits::ScalarDecimalDigits;
 pub use crate::math::scalar::digits::{DecimalParseError, ScalarParseError, ScientificParseError};
-use base_mod_macros::impl_scalar_constants_for;
+use base_mod_macros::declare_usf_scalar_constant_values_trait;
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct UsfScalar {
@@ -13,7 +13,7 @@ pub struct UsfScalar {
     pub digits: ScalarDecimalDigits,
 }
 
-impl_scalar_constants_for!(UsfScalar);
+declare_usf_scalar_constant_values_trait!(UsfScalarConstants);
 
 impl UsfScalar {
     pub const ZERO: Self = Self {

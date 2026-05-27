@@ -2,10 +2,7 @@ use super::shared::{
     PublicFlatDigits, PublicFracDigits, PublicIntDigits, PublicSignedMagnitude, SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN, ScalarDecimalU8Parts,
 };
 use base_mod_shared::utils::string::split_leading_sign;
-
-const SCALAR_SHADOW_FRAC_DIGITS_LEN: usize = 9;
-const SCALAR_INTERNAL_FRAC_DIGITS_LEN: usize = SCALAR_FRAC_DIGITS_LEN + SCALAR_SHADOW_FRAC_DIGITS_LEN;
-const SCALAR_INTERNAL_TOTAL_DIGITS_LEN: usize = SCALAR_INT_DIGITS_LEN + SCALAR_INTERNAL_FRAC_DIGITS_LEN;
+use crate::math::scalar::decimal_parts::{SCALAR_INTERNAL_FRAC_DIGITS_LEN, SCALAR_INTERNAL_TOTAL_DIGITS_LEN, SCALAR_FRAC_SHADOW_DIGITS_LEN};
 
 /// Error produced while parsing plain decimal string input into scalar digits.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -153,7 +150,7 @@ impl ScalarDecimalDigit {
     ///
     /// # Returns
     /// - Raw balanced base-10 digit in `-5..5` (`-5..=4`).
-    pub fn get(self) -> i8 {
+    pub const fn get(self) -> i8 {
         self.digit
     }
 }
@@ -267,7 +264,7 @@ impl ScalarDecimalDigits {
     /// Canonical negative-one constant (`-1`) built from fixed-width balanced digits.
     pub const NEG_ONE: Self = Self {
         negative: true,
-        int_digits: Self::raw_int_parts_single_digit(SCALAR_INT_DIGITS_LEN - 1, ScalarDecimalDigit::ONE),
+        int_digits: Self::raw_int_parts_single_digit(SCALAR_INT_DIGITS_LEN - 1, ScalarDecimalDigit::NEG_ONE),
         frac_digits: [ScalarDecimalDigit::ZERO; SCALAR_INTERNAL_FRAC_DIGITS_LEN],
         radix_position: Self::RADIX_POSITION_MIN,
     };
@@ -599,7 +596,7 @@ impl ScalarDecimalDigits {
 
     /// Returns the number of internal shadow fractional layers.
     pub const fn shadow_frac_digits_len() -> usize {
-        SCALAR_SHADOW_FRAC_DIGITS_LEN
+        SCALAR_FRAC_SHADOW_DIGITS_LEN
     }
 
     /// Returns total internal fractional precision (`public + shadow`).
@@ -1350,6 +1347,94 @@ impl ScalarDecimalDigits {
 
         out.assert_invariants();
         out
+    }
+
+    /// Const-friendly constructor from balanced raw parts (`ScalarCoreConst` layout).
+    ///
+    /// # Parameters
+    /// - `negative`: Balanced sign bit.
+    /// - `int_balanced`: Balanced integer digits (`36`), big-endian.
+    /// - `frac_balanced_internal`: Balanced fractional digits (`35 + 9`), big-endian.
+    ///
+    /// # Panics
+    /// - Panics when digits are out of balanced range.
+    /// - Panics when canonical scalar digit invariants are violated.
+    pub const fn from_balanced_parts_const_checked(
+        negative: bool,
+        int_balanced: [i8; SCALAR_INT_DIGITS_LEN],
+        frac_balanced_internal: [i8; SCALAR_INTERNAL_FRAC_DIGITS_LEN],
+    ) -> Self {
+        let mut int_digits = [ScalarDecimalDigit::ZERO; SCALAR_INT_DIGITS_LEN];
+        let mut idx = 0;
+        while idx < SCALAR_INT_DIGITS_LEN {
+            int_digits[idx] = ScalarDecimalDigit::new_checked(int_balanced[idx]);
+            idx += 1;
+        }
+
+        let mut frac_digits = [ScalarDecimalDigit::ZERO; SCALAR_INTERNAL_FRAC_DIGITS_LEN];
+        idx = 0;
+        while idx < SCALAR_INTERNAL_FRAC_DIGITS_LEN {
+            frac_digits[idx] = ScalarDecimalDigit::new_checked(frac_balanced_internal[idx]);
+            idx += 1;
+        }
+
+        let mut int_all_zero = true;
+        idx = 0;
+        while idx < SCALAR_INT_DIGITS_LEN {
+            if int_digits[idx].get() != 0 {
+                int_all_zero = false;
+                break;
+            }
+            idx += 1;
+        }
+
+        let mut frac_all_zero = true;
+        idx = 0;
+        while idx < SCALAR_INTERNAL_FRAC_DIGITS_LEN {
+            if frac_digits[idx].get() != 0 {
+                frac_all_zero = false;
+                break;
+            }
+            idx += 1;
+        }
+
+        let mut frac_significant_len = 0_usize;
+        if !frac_all_zero {
+            let mut ridx = SCALAR_INTERNAL_FRAC_DIGITS_LEN;
+            while ridx > 0 {
+                ridx -= 1;
+                if frac_digits[ridx].get() != 0 {
+                    frac_significant_len = ridx + 1;
+                    break;
+                }
+            }
+        }
+
+        let is_zero = int_all_zero && frac_significant_len == 0;
+        let effective_negative = negative && !is_zero;
+        let radix_position_i8 = if is_zero {
+            Self::RADIX_POSITION_MIN
+        } else {
+            (SCALAR_INT_DIGITS_LEN - 1 + frac_significant_len) as i8
+        };
+
+        if is_zero {
+            assert!(
+                radix_position_i8 == Self::RADIX_POSITION_MIN,
+                "invalid scalar decimal digits: zero must use canonical radix_position"
+            );
+        }
+        assert!(
+            !(effective_negative && is_zero),
+            "invalid scalar decimal digits: negative zero is not canonical"
+        );
+
+        Self {
+            negative: effective_negative,
+            int_digits,
+            frac_digits,
+            radix_position: radix_position_i8,
+        }
     }
 
     /// Parses a non-scientific decimal literal into canonical decimal digits.

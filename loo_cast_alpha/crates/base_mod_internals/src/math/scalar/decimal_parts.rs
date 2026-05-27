@@ -1,11 +1,12 @@
 //! Canonical fixed-width decimal part buffers and invariants shared by scalar modules.
 
-/// Fixed integer-digit width used by scalar decimal parts.
 pub const SCALAR_INT_DIGITS_LEN: usize = 36;
-/// Fixed public fractional-digit width used by scalar decimal parts.
 pub const SCALAR_FRAC_DIGITS_LEN: usize = 35;
-/// Total public digit width (`integer + fractional`).
 pub const SCALAR_TOTAL_DIGITS_LEN: usize = SCALAR_INT_DIGITS_LEN + SCALAR_FRAC_DIGITS_LEN;
+
+pub const SCALAR_FRAC_SHADOW_DIGITS_LEN: usize = 9;
+pub const SCALAR_INTERNAL_FRAC_DIGITS_LEN: usize = SCALAR_FRAC_DIGITS_LEN + SCALAR_FRAC_SHADOW_DIGITS_LEN;
+pub const SCALAR_INTERNAL_TOTAL_DIGITS_LEN: usize = SCALAR_INT_DIGITS_LEN + SCALAR_INTERNAL_FRAC_DIGITS_LEN;
 
 /// Fixed-width integer digit buffer (`0..=9`, big-endian, left-padded).
 pub type ScalarIntDigitBuffer = [u8; SCALAR_INT_DIGITS_LEN];

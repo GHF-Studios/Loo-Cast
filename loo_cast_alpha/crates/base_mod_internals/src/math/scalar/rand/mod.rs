@@ -12,10 +12,11 @@
 //! - Additive weighted components, each with its own constraint domain.
 //! - Immediate validation: contradictions panic at the operation that caused them.
 //! - Single terminal call: [`RandomDistributionBuilder::build`].
+//! - Precision policy is fixed to backend limits (`36` integer digits + `44`
+//!   internal fractional digits); it is not configurable.
 //!
 //! ## Builder Invariants
 //! - Component `weight` must be `> 0`.
-//! - Integer/fractional digit caps must respect backend limits.
 //! - Each component's sign/kind/bounds/exclusions must be satisfiable.
 //! - Components must be pairwise non-overlapping (validated in `build`).
 //!
@@ -25,8 +26,6 @@
 //! use crate::math::scalar::usf::UsfScalar;
 //!
 //! let values = RandomDistributionBuilder::new()
-//!     .default_max_int_digits(8)
-//!     .default_max_frac_digits(4)
 //!     .component(3, |c| {
 //!         c.positive()
 //!             .integer()
@@ -42,7 +41,8 @@
 //! assert_eq!(values.len(), 32);
 //! ```
 
-use super::shared::{SCALAR_FRAC_DIGITS_LEN, SCALAR_INT_DIGITS_LEN};
+use crate::math::scalar::decimal_parts::SCALAR_INTERNAL_FRAC_DIGITS_LEN;
+use super::shared::SCALAR_INT_DIGITS_LEN;
 use super::usf::UsfScalar;
 
 /// Fluent configuration builder for scalar random distributions.
@@ -58,8 +58,6 @@ use super::usf::UsfScalar;
 #[derive(Clone, Debug, Default)]
 pub struct RandomDistributionBuilder {
     components: Vec<DistributionComponentSpec>,
-    default_max_int_digits: Option<usize>,
-    default_max_frac_digits: Option<usize>,
 }
 
 impl RandomDistributionBuilder {
@@ -80,34 +78,12 @@ impl RandomDistributionBuilder {
             panic!("component at index {index} has zero weight");
         }
 
-        let mut component = DistributionComponentSpec::new(weight);
-        if let Some(default_int_digits) = self.default_max_int_digits {
-            component.max_int_digits = Some(default_int_digits);
-        }
-        if let Some(default_frac_digits) = self.default_max_frac_digits {
-            component.max_frac_digits = Some(default_frac_digits);
-        }
-
-        self.components.push(component);
+        self.components.push(DistributionComponentSpec::new(weight));
         let component_builder = RandomDistributionComponentBuilder {
             parent: self,
             component_index: index,
         };
         configure(component_builder).parent
-    }
-
-    /// Sets default integer digit budget for components that omit it.
-    pub fn default_max_int_digits(mut self, digits: usize) -> Self {
-        Self::validate_int_digits(digits);
-        self.default_max_int_digits = Some(digits);
-        self
-    }
-
-    /// Sets default fractional digit budget for components that omit it.
-    pub fn default_max_frac_digits(mut self, digits: usize) -> Self {
-        Self::validate_frac_digits(digits);
-        self.default_max_frac_digits = Some(digits);
-        self
     }
 
     /// Compiles configured components and returns `count` sampled values.
@@ -129,9 +105,7 @@ impl RandomDistributionBuilder {
                 panic!("component at index {index} has zero weight");
             }
 
-            let domain = component
-                .compile_domain(self.default_max_int_digits, self.default_max_frac_digits)
-                .unwrap_or_else(|_| panic!("component at index {index} is unsatisfiable"));
+            let domain = component.compile_domain().unwrap_or_else(|_| panic!("component at index {index} is unsatisfiable"));
 
             let sampler = match domain.kind {
                 ScalarValueKindDomain::IntegerOnly => ScalarSamplerSpec::IntegerRange { domain },
@@ -156,17 +130,6 @@ impl RandomDistributionBuilder {
         program.sample_n(seed, count)
     }
 
-    fn validate_int_digits(value: usize) {
-        if value > SCALAR_INT_DIGITS_LEN {
-            panic!("invalid max_int_digits: {value}");
-        }
-    }
-
-    fn validate_frac_digits(value: usize) {
-        if value > SCALAR_FRAC_DIGITS_LEN {
-            panic!("invalid max_frac_digits: {value}");
-        }
-    }
 }
 
 /// Scoped builder for one weighted component.
@@ -268,24 +231,6 @@ impl RandomDistributionComponentBuilder {
         })
     }
 
-    /// Sets integer digit budget for this component.
-    pub fn max_int_digits(self, digits: usize) -> Self {
-        RandomDistributionBuilder::validate_int_digits(digits);
-        self.apply_constraint("max_int_digits()", move |component| {
-            component.max_int_digits = Some(digits);
-            Ok(())
-        })
-    }
-
-    /// Sets fractional digit budget for this component.
-    pub fn max_frac_digits(self, digits: usize) -> Self {
-        RandomDistributionBuilder::validate_frac_digits(digits);
-        self.apply_constraint("max_frac_digits()", move |component| {
-            component.max_frac_digits = Some(digits);
-            Ok(())
-        })
-    }
-
     fn apply_constraint<F>(mut self, operation: &'static str, mutator: F) -> Self
     where
         F: FnOnce(&mut DistributionComponentSpec) -> Result<(), &'static str>,
@@ -300,7 +245,7 @@ impl RandomDistributionComponentBuilder {
             panic!("component {}: {operation} failed: {detail}", self.component_index);
         }
 
-        if let Err(detail) = component.validate_with_defaults(self.parent.default_max_int_digits, self.parent.default_max_frac_digits) {
+        if let Err(detail) = component.validate() {
             panic!("component {}: {operation} failed: {detail}", self.component_index);
         }
 
@@ -327,8 +272,6 @@ enum ScalarConstraint {
 struct DistributionComponentSpec {
     weight: u32,
     required: Vec<ScalarConstraint>,
-    max_int_digits: Option<usize>,
-    max_frac_digits: Option<usize>,
     domain: DomainAccumulator,
 }
 
@@ -337,21 +280,19 @@ impl DistributionComponentSpec {
         Self {
             weight,
             required: Vec::new(),
-            max_int_digits: None,
-            max_frac_digits: None,
             domain: DomainAccumulator::default(),
         }
     }
 
-    fn validate_with_defaults(&self, default_int_digits: Option<usize>, default_frac_digits: Option<usize>) -> Result<(), &'static str> {
-        let max_int_digits = self.max_int_digits.or(default_int_digits).unwrap_or(SCALAR_INT_DIGITS_LEN);
-        let max_frac_digits = self.max_frac_digits.or(default_frac_digits).unwrap_or(SCALAR_FRAC_DIGITS_LEN);
+    fn validate(&self) -> Result<(), &'static str> {
+        let max_int_digits = SCALAR_INT_DIGITS_LEN;
+        let max_frac_digits = SCALAR_INTERNAL_FRAC_DIGITS_LEN;
         self.domain.validate_feasible(max_int_digits, max_frac_digits)
     }
 
-    fn compile_domain(&self, default_int_digits: Option<usize>, default_frac_digits: Option<usize>) -> Result<CompiledScalarDomain, &'static str> {
-        let max_int_digits = self.max_int_digits.or(default_int_digits).unwrap_or(SCALAR_INT_DIGITS_LEN);
-        let max_frac_digits = self.max_frac_digits.or(default_frac_digits).unwrap_or(SCALAR_FRAC_DIGITS_LEN);
+    fn compile_domain(&self) -> Result<CompiledScalarDomain, &'static str> {
+        let max_int_digits = SCALAR_INT_DIGITS_LEN;
+        let max_frac_digits = SCALAR_INTERNAL_FRAC_DIGITS_LEN;
 
         self.domain.validate_feasible(max_int_digits, max_frac_digits)?;
 
@@ -576,10 +517,7 @@ impl GenerationProgram {
             }
             ticket -= weight;
         }
-        self.branches
-            .len()
-            .checked_sub(1)
-            .expect("generation program must contain at least one branch")
+        self.branches.len().checked_sub(1).expect("generation program must contain at least one branch")
     }
 }
 
@@ -702,8 +640,15 @@ fn sample_scalar_from_domain(domain: &CompiledScalarDomain, rng: &mut SplitMix64
     const MAX_ATTEMPTS: usize = 8_192;
 
     for _ in 0..MAX_ATTEMPTS {
-        let candidate = generate_candidate_scalar(domain, rng);
-        if scalar_satisfies_compiled_domain(domain, &candidate) {
+        let candidate = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| generate_candidate_scalar(domain, rng)));
+        let Ok(Some(candidate)) = candidate else {
+            continue;
+        };
+
+        let satisfies = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| scalar_satisfies_compiled_domain(domain, &candidate)))
+            .unwrap_or(false);
+
+        if satisfies {
             return candidate;
         }
     }
@@ -711,12 +656,16 @@ fn sample_scalar_from_domain(domain: &CompiledScalarDomain, rng: &mut SplitMix64
     panic!("failed to sample scalar value for compiled domain after {MAX_ATTEMPTS} attempts");
 }
 
-fn generate_candidate_scalar(domain: &CompiledScalarDomain, rng: &mut SplitMix64) -> UsfScalar {
+fn generate_candidate_scalar(domain: &CompiledScalarDomain, rng: &mut SplitMix64) -> Option<UsfScalar> {
+    let negative = match domain.sign {
+        ScalarSignDomain::Mixed => rng.next_bool(),
+        ScalarSignDomain::PositiveOnly => false,
+        ScalarSignDomain::NegativeOnly => true,
+    };
+
     let must_be_fractional = matches!(domain.kind, ScalarValueKindDomain::FractionalOnly);
-    let can_be_fractional = matches!(
-        domain.kind,
-        ScalarValueKindDomain::FractionalOnly | ScalarValueKindDomain::IntegerOrFractional
-    ) && domain.max_frac_digits > 0;
+    let can_be_fractional =
+        matches!(domain.kind, ScalarValueKindDomain::FractionalOnly | ScalarValueKindDomain::IntegerOrFractional) && domain.max_frac_digits > 0;
 
     let use_fractional = if must_be_fractional {
         true
@@ -737,7 +686,12 @@ fn generate_candidate_scalar(domain: &CompiledScalarDomain, rng: &mut SplitMix64
     if int_len == 1 {
         int_digits[0] = rng.next_u8_inclusive(0, 9);
     } else {
-        int_digits[0] = rng.next_u8_inclusive(1, 9);
+        let leading_max = if int_len == SCALAR_INT_DIGITS_LEN {
+            if negative { 4 } else { 3 }
+        } else {
+            9
+        };
+        int_digits[0] = rng.next_u8_inclusive(1, leading_max);
         for digit in int_digits.iter_mut().skip(1) {
             *digit = rng.next_u8_inclusive(0, 9);
         }
@@ -765,12 +719,6 @@ fn generate_candidate_scalar(domain: &CompiledScalarDomain, rng: &mut SplitMix64
         }
     }
 
-    let negative = match domain.sign {
-        ScalarSignDomain::Mixed => rng.next_bool(),
-        ScalarSignDomain::PositiveOnly => false,
-        ScalarSignDomain::NegativeOnly => true,
-    };
-
     let mut text = String::with_capacity(1 + int_len + if frac_len > 0 { 1 + frac_len } else { 0 });
     if negative {
         text.push('-');
@@ -785,7 +733,7 @@ fn generate_candidate_scalar(domain: &CompiledScalarDomain, rng: &mut SplitMix64
         }
     }
 
-    UsfScalar::try_from_decimal_str(&text).unwrap_or_else(|err| panic!("failed to parse generated scalar '{text}': {err}"))
+    UsfScalar::try_from_decimal_str(&text).ok()
 }
 
 fn scalar_satisfies_compiled_domain(domain: &CompiledScalarDomain, value: &UsfScalar) -> bool {
@@ -911,8 +859,6 @@ mod tests {
     #[test]
     fn build_zero_count_returns_empty_for_valid_configuration() {
         let values = RandomDistributionBuilder::new()
-            .default_max_int_digits(8)
-            .default_max_frac_digits(4)
             .component(3, |c| c.positive().integer().greater_than(scalar("1")))
             .component(1, |c| c.negative().fractional().less_than(scalar("-0.5")))
             .build(7, 0);
@@ -974,8 +920,6 @@ mod tests {
     #[test]
     fn build_non_zero_count_generates_expected_domain_values() {
         let values = RandomDistributionBuilder::new()
-            .default_max_int_digits(3)
-            .default_max_frac_digits(0)
             .component(1, |c| c.positive().integer().greater_than(scalar("17")).less_than(scalar("100")))
             .build(99, 128);
 
@@ -991,8 +935,6 @@ mod tests {
     fn build_is_deterministic_for_same_seed() {
         let build_values = |seed| {
             RandomDistributionBuilder::new()
-                .default_max_int_digits(2)
-                .default_max_frac_digits(2)
                 .component(3, |c| c.positive().integer().greater_than(scalar("1")))
                 .component(1, |c| c.negative().fractional().less_than(scalar("-0.1")))
                 .build(seed, 64)
@@ -1011,26 +953,4 @@ mod tests {
             .build(0, 0);
     }
 
-    #[test]
-    #[should_panic(expected = "fractional values requested but max_frac_digits is 0")]
-    fn fractional_with_zero_frac_budget_panics() {
-        let _ = RandomDistributionBuilder::new()
-            .default_max_frac_digits(0)
-            .component(1, |c| c.fractional())
-            .build(0, 0);
-    }
-
-    #[test]
-    #[should_panic(expected = "invalid max_int_digits")]
-    fn invalid_default_int_digits_panics() {
-        let _ = RandomDistributionBuilder::new().default_max_int_digits(SCALAR_INT_DIGITS_LEN + 1);
-    }
-
-    #[test]
-    #[should_panic(expected = "invalid max_frac_digits")]
-    fn invalid_component_frac_digits_panics() {
-        let _ = RandomDistributionBuilder::new()
-            .component(1, |c| c.max_frac_digits(SCALAR_FRAC_DIGITS_LEN + 1))
-            .build(0, 0);
-    }
 }

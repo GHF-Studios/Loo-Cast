@@ -1,35 +1,36 @@
 use proc_macro::TokenStream;
+use std::collections::HashSet;
+use std::env;
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
-
-/// Canonical `core` constants trait path.
-const CORE_CONSTANT_TRAITS: &[&str] = &["crate::math::scalar::constants::core::CoreConstants"];
 
 /// Canonical range-sample constants module paths.
 const RANGE_SAMPLE_MODULES: &[&str] = &[
-    "positive_decillions",
-    "positive_nonillions",
-    "positive_octillions",
-    "positive_septillions",
-    "positive_sextillions",
-    "positive_quintillions",
-    "positive_quadrillions",
-    "positive_trillions",
-    "positive_billions",
-    "positive_millions",
-    "positive_thousands",
-    "positive_peanuts",
-    "positive_one_over_peanuts",
-    "positive_one_over_thousands",
-    "positive_one_over_millions",
-    "positive_one_over_billions",
-    "positive_one_over_trillions",
-    "positive_one_over_quadrillions",
-    "positive_one_over_quintillions",
-    "positive_one_over_sextillions",
-    "positive_one_over_septillions",
-    "positive_one_over_octillions",
-    "positive_one_over_nonillions",
-    "positive_one_over_decillions",
+    "positive_decillion",
+    "positive_nonillion",
+    "positive_octillion",
+    "positive_septillion",
+    "positive_sextillion",
+    "positive_quintillion",
+    "positive_quadrillion",
+    "positive_trillion",
+    "positive_billion",
+    "positive_million",
+    "positive_thousand",
+    "positive_peanut",
+    "positive_one_over_peanut",
+    "positive_one_over_thousand",
+    "positive_one_over_million",
+    "positive_one_over_billion",
+    "positive_one_over_trillion",
+    "positive_one_over_quadrillion",
+    "positive_one_over_quintillion",
+    "positive_one_over_sextillion",
+    "positive_one_over_septillion",
+    "positive_one_over_octillion",
+    "positive_one_over_nonillion",
+    "positive_one_over_decillion",
     "negative_decillion",
     "negative_nonillion",
     "negative_octillion",
@@ -41,19 +42,19 @@ const RANGE_SAMPLE_MODULES: &[&str] = &[
     "negative_billion",
     "negative_million",
     "negative_thousand",
-    "negative_peanuts",
-    "negative_one_over_peanuts",
-    "negative_one_over_thousands",
-    "negative_one_over_millions",
-    "negative_one_over_billions",
-    "negative_one_over_trillions",
-    "negative_one_over_quadrillions",
-    "negative_one_over_quintillions",
-    "negative_one_over_sextillions",
-    "negative_one_over_septillions",
-    "negative_one_over_octillions",
-    "negative_one_over_nonillions",
-    "negative_one_over_decillions",
+    "negative_peanut",
+    "negative_one_over_peanut",
+    "negative_one_over_thousand",
+    "negative_one_over_million",
+    "negative_one_over_billion",
+    "negative_one_over_trillion",
+    "negative_one_over_quadrillion",
+    "negative_one_over_quintillion",
+    "negative_one_over_sextillion",
+    "negative_one_over_septillion",
+    "negative_one_over_octillion",
+    "negative_one_over_nonillion",
+    "negative_one_over_decillion",
 ];
 
 /// Emits `compile_error!` tokens with an escaped message.
@@ -70,74 +71,132 @@ fn parse_tokens(source: &str) -> TokenStream {
     }
 }
 
-/// Converts a `snake_case` module segment to `PascalCase`.
-fn module_to_pascal(module: &str) -> String {
-    let mut out = String::new();
-    for segment in module.split('_') {
-        let mut chars = segment.chars();
-        if let Some(first) = chars.next() {
-            out.push(first.to_ascii_uppercase());
-            out.push_str(chars.as_str());
-        }
-    }
-    out
-}
-
-/// Resolves the range-sample trait identifier for a module.
-fn range_sample_trait_name(module: &str) -> String {
-    format!("{}RangeSampleConstants", module_to_pascal(module))
-}
-
-/// Resolves the fully-qualified range-sample trait path for a module.
-fn range_sample_trait_path(module: &str) -> String {
-    format!("crate::math::scalar::constants::range_sample::{module}::{}", range_sample_trait_name(module))
-}
-
-/// Returns all fully-qualified scalar constants trait paths (core + range-sample).
-fn all_constant_trait_paths() -> Vec<String> {
-    let mut trait_paths: Vec<String> = CORE_CONSTANT_TRAITS.iter().map(ToString::to_string).collect();
-    trait_paths.extend(RANGE_SAMPLE_MODULES.iter().map(|module| range_sample_trait_path(module)));
-    trait_paths
-}
-
 /// Parses an optional trait name argument from the macro input.
-fn parse_requested_trait_name(input: TokenStream) -> String {
+fn parse_requested_trait_name_or(input: TokenStream, default_name: &str) -> String {
     let requested_name = input.to_string();
     if requested_name.trim().is_empty() {
-        "ScalarConstants".to_string()
+        default_name.to_string()
     } else {
         requested_name.trim().to_string()
     }
 }
 
-/// Generates a master trait that blankets all scalar constants fragment traits.
-pub(crate) fn declare_scalar_constants_trait(input: TokenStream) -> TokenStream {
-    let trait_name = parse_requested_trait_name(input);
-    let bounds = all_constant_trait_paths();
-    let bounds_joined = bounds.join("\n    + ");
-    let out = format!(
-        "pub trait {trait_name}: {bounds_joined} {{}}
-
-impl<T> {trait_name} for T
-where
-    T: {bounds_joined}
-{{}}
-"
-    );
-
-    parse_tokens(&out)
+fn constants_root_from_manifest_dir() -> Result<PathBuf, String> {
+    let manifest_dir = env::var("CARGO_MANIFEST_DIR")
+        .map_err(|err| format!("missing CARGO_MANIFEST_DIR while generating UsfScalar constant values trait: {err}"))?;
+    Ok(PathBuf::from(manifest_dir).join("src/math/scalar/constants"))
 }
 
-/// Generates impl blocks for every scalar constants fragment trait on a concrete type.
-pub(crate) fn impl_scalar_constants_for(input: TokenStream) -> TokenStream {
-    let ty = input.to_string();
-    if ty.trim().is_empty() {
-        return compile_error_tokens("impl_scalar_constants_for! expects a type, e.g. impl_scalar_constants_for!(UsfScalar)");
+fn extract_pub_const_names(source: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut cursor = 0_usize;
+
+    while let Some(pos) = source[cursor..].find("pub const ") {
+        let const_kw_idx = cursor + pos;
+        let mut ident_start = const_kw_idx + "pub const ".len();
+        let bytes = source.as_bytes();
+        while ident_start < source.len() && bytes[ident_start].is_ascii_whitespace() {
+            ident_start += 1;
+        }
+
+        let mut ident_end = ident_start;
+        while ident_end < source.len() {
+            let ch = bytes[ident_end];
+            if ch.is_ascii_uppercase() || ch.is_ascii_digit() || ch == b'_' {
+                ident_end += 1;
+            } else {
+                break;
+            }
+        }
+
+        if ident_end > ident_start {
+            out.push(source[ident_start..ident_end].to_string());
+        }
+        cursor = ident_end.max(const_kw_idx + 1);
     }
 
-    let mut out = String::new();
-    for trait_path in all_constant_trait_paths() {
-        out.push_str(&format!("impl {trait_path} for {ty} {{}}\n"));
+    out
+}
+
+fn parse_pub_const_names_in_file(path: &Path) -> Result<Vec<String>, String> {
+    let source = fs::read_to_string(path)
+        .map_err(|err| format!("failed reading constants source file `{}`: {err}", path.display()))?;
+    let names = extract_pub_const_names(&source);
+    if names.is_empty() {
+        return Err(format!("failed to discover `pub const` scalar constants in `{}`", path.display()));
     }
+    Ok(names)
+}
+
+#[derive(Debug)]
+struct ConstantSpec {
+    const_name: String,
+    const_path: String,
+}
+
+fn all_constant_specs() -> Result<Vec<ConstantSpec>, String> {
+    let constants_root = constants_root_from_manifest_dir()?;
+    let mut specs = Vec::new();
+
+    let core_path = constants_root.join("core.rs");
+    for const_name in parse_pub_const_names_in_file(&core_path)? {
+        specs.push(ConstantSpec {
+            const_path: format!("crate::math::scalar::constants::core::{const_name}"),
+            const_name,
+        });
+    }
+
+    let range_root = constants_root.join("range_sample");
+    for module in RANGE_SAMPLE_MODULES {
+        let module_path = range_root.join(format!("{module}.rs"));
+        for const_name in parse_pub_const_names_in_file(&module_path)? {
+            specs.push(ConstantSpec {
+                const_path: format!("crate::math::scalar::constants::range_sample::{module}::{const_name}"),
+                const_name,
+            });
+        }
+    }
+
+    Ok(specs)
+}
+
+/// Declares and implements a giant `UsfScalar` constant-values trait generated from raw scalar constants files.
+///
+/// This emits:
+/// - `pub trait {TraitName}` with one associated `UsfScalar` constant per raw scalar constant.
+/// - `impl {TraitName} for crate::math::scalar::usf::UsfScalar` that converts each raw `ScalarCoreConst`
+///   through `ScalarDecimalDigits::from_balanced_parts_const_checked(...)`.
+pub(crate) fn declare_usf_scalar_constant_values_trait(input: TokenStream) -> TokenStream {
+    let trait_name = parse_requested_trait_name_or(input, "UsfScalarConstants");
+    let specs = match all_constant_specs() {
+        Ok(specs) => specs,
+        Err(err) => return compile_error_tokens(&format!("declare_usf_scalar_constant_values_trait! failed: {err}")),
+    };
+
+    let mut seen_constants = HashSet::<String>::new();
+    let mut trait_constants = String::new();
+    let mut impl_constants = String::new();
+
+    for spec in specs {
+        let constant_name = spec.const_name.to_ascii_uppercase();
+        if !seen_constants.insert(constant_name.clone()) {
+            return compile_error_tokens(&format!(
+                "declare_usf_scalar_constant_values_trait! generated duplicate constant `{constant_name}`"
+            ));
+        }
+
+        trait_constants.push_str(&format!(
+            "    const {constant_name}: crate::math::scalar::usf::UsfScalar;\n"
+        ));
+        impl_constants.push_str(&format!(
+            "    const {constant_name}: crate::math::scalar::usf::UsfScalar = {{\n        let (int_balanced, frac_balanced_internal, balanced_negative, _) = {};\n        Self {{\n            digits: crate::math::scalar::digits::ScalarDecimalDigits::from_balanced_parts_const_checked(\n                balanced_negative,\n                int_balanced,\n                frac_balanced_internal,\n            ),\n        }}\n    }};\n",
+            spec.const_path
+        ));
+    }
+
+    let out = format!(
+        "pub trait {trait_name} {{\n{trait_constants}}}\n\nimpl {trait_name} for crate::math::scalar::usf::UsfScalar {{\n{impl_constants}}}\n"
+    );
+
     parse_tokens(&out)
 }
