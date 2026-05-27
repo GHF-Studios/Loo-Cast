@@ -132,9 +132,7 @@ where
 pub(crate) fn impl_scalar_constants_for(input: TokenStream) -> TokenStream {
     let ty = input.to_string();
     if ty.trim().is_empty() {
-        return compile_error_tokens(
-            "impl_scalar_constants_for! expects a type, e.g. impl_scalar_constants_for!(UsfScalar)",
-        );
+        return compile_error_tokens("impl_scalar_constants_for! expects a type, e.g. impl_scalar_constants_for!(UsfScalar)");
     }
 
     let mut out = String::new();

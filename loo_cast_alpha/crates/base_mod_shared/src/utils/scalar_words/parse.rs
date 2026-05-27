@@ -28,19 +28,13 @@ pub(super) fn parse_decimal_literal(input: &str) -> Result<CanonicalDecimal, Dec
         build_parts_with_trailing_integer_zeros(raw_digits.as_str(), decimal_point)?
     } else {
         let split_at = decimal_point as usize;
-        (
-            raw_digits[..split_at].to_string(),
-            raw_digits[split_at..].to_string(),
-        )
+        (raw_digits[..split_at].to_string(), raw_digits[split_at..].to_string())
     };
 
     finalize_parts(negative, integer_digits, fractional_digits)
 }
 
-fn build_parts_with_leading_fractional_zeros(
-    raw_digits: &str,
-    decimal_point: i64,
-) -> Result<(String, String), DecimalWordNameError> {
+fn build_parts_with_leading_fractional_zeros(raw_digits: &str, decimal_point: i64) -> Result<(String, String), DecimalWordNameError> {
     let leading_zeros = (-decimal_point) as usize;
     if leading_zeros > MAX_FRACTIONAL_DIGITS {
         return Err(DecimalWordNameError::UnsupportedFractionalMagnitude {
@@ -55,10 +49,7 @@ fn build_parts_with_leading_fractional_zeros(
     Ok(("0".to_string(), fractional_digits))
 }
 
-fn build_parts_with_trailing_integer_zeros(
-    raw_digits: &str,
-    decimal_point: i64,
-) -> Result<(String, String), DecimalWordNameError> {
+fn build_parts_with_trailing_integer_zeros(raw_digits: &str, decimal_point: i64) -> Result<(String, String), DecimalWordNameError> {
     let zeros_to_append = (decimal_point as usize) - raw_digits.len();
     let total_digits = raw_digits.len() + zeros_to_append;
     if total_digits > MAX_INTEGER_DIGITS {
@@ -74,11 +65,7 @@ fn build_parts_with_trailing_integer_zeros(
     Ok((integer_digits, String::new()))
 }
 
-fn finalize_parts(
-    negative: bool,
-    integer_digits: String,
-    fractional_digits: String,
-) -> Result<CanonicalDecimal, DecimalWordNameError> {
+fn finalize_parts(negative: bool, integer_digits: String, fractional_digits: String) -> Result<CanonicalDecimal, DecimalWordNameError> {
     let trimmed_integer = integer_digits.trim_start_matches('0');
     let integer_digits = if trimmed_integer.is_empty() {
         "0".to_string()
@@ -112,10 +99,7 @@ fn finalize_parts(
     })
 }
 
-fn validate_representable_range(
-    negative: bool,
-    integer_digits: &str,
-) -> Result<(), DecimalWordNameError> {
+fn validate_representable_range(negative: bool, integer_digits: &str) -> Result<(), DecimalWordNameError> {
     if integer_digits.len() < MAX_INTEGER_DIGITS {
         return Ok(());
     }
@@ -197,9 +181,7 @@ fn split_mantissa_parts(mantissa: &str) -> Result<(&str, &str), DecimalWordNameE
 
         let int_part = if dot == 0 { "0" } else { &mantissa[..dot] };
         let frac_part = &mantissa[dot + 1..];
-        if !int_part.bytes().all(|b| b.is_ascii_digit())
-            || !frac_part.bytes().all(|b| b.is_ascii_digit())
-        {
+        if !int_part.bytes().all(|b| b.is_ascii_digit()) || !frac_part.bytes().all(|b| b.is_ascii_digit()) {
             return Err(DecimalWordNameError::InvalidNumericLiteral(mantissa.to_string()));
         }
         Ok((int_part, frac_part))

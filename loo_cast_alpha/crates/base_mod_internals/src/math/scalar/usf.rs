@@ -3,9 +3,9 @@ use super::shared::{
     FloatType, IntegerType, PublicSignedMagnitude, ScalarConstOps, ScalarCoreOps, ScalarDecimalU8Parts, ScalarFracDigitBuffer, ScalarIntDigitBuffer,
     ScalarType, SignedIntegerType, UnsignedIntegerType,
 };
-use base_mod_macros::impl_scalar_constants_for;
 use crate::math::scalar::digits::ScalarDecimalDigits;
 pub use crate::math::scalar::digits::{DecimalParseError, ScalarParseError, ScientificParseError};
+use base_mod_macros::impl_scalar_constants_for;
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct UsfScalar {

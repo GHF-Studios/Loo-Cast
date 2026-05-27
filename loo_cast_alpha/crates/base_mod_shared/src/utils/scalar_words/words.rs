@@ -3,9 +3,7 @@
 use super::{CanonicalDecimal, DecimalWordNameError, MAX_FRACTIONAL_DIGITS, MAX_INTEGER_DIGITS};
 
 /// Builds canonical English tokens from canonical parsed decimal parts.
-pub(super) fn tokens_from_canonical_decimal(
-    value: &CanonicalDecimal,
-) -> Result<Vec<&'static str>, DecimalWordNameError> {
+pub(super) fn tokens_from_canonical_decimal(value: &CanonicalDecimal) -> Result<Vec<&'static str>, DecimalWordNameError> {
     let mut tokens: Vec<&'static str> = Vec::new();
 
     if value.integer_digits == "0" && value.fractional_digits.is_empty() {
@@ -32,11 +30,7 @@ pub(super) fn tokens_from_canonical_decimal(
 
 fn fraction_tokens(frac_digits: &str) -> Result<Vec<&'static str>, DecimalWordNameError> {
     let numerator_digits = frac_digits.trim_start_matches('0');
-    let numerator_digits = if numerator_digits.is_empty() {
-        "0"
-    } else {
-        numerator_digits
-    };
+    let numerator_digits = if numerator_digits.is_empty() { "0" } else { numerator_digits };
 
     let mut tokens = integer_tokens_from_non_zero_digits(numerator_digits)?;
     tokens.push("over");
@@ -46,9 +40,7 @@ fn fraction_tokens(frac_digits: &str) -> Result<Vec<&'static str>, DecimalWordNa
 
 fn denominator_tokens(exp: usize) -> Result<Vec<&'static str>, DecimalWordNameError> {
     match exp {
-        0 => Err(DecimalWordNameError::InvalidNumericLiteral(
-            "missing fractional exponent".to_string(),
-        )),
+        0 => Err(DecimalWordNameError::InvalidNumericLiteral("missing fractional exponent".to_string())),
         1 => Ok(vec!["ten"]),
         2 => Ok(vec!["one", "hundred"]),
         _ => {
@@ -73,9 +65,7 @@ fn denominator_tokens(exp: usize) -> Result<Vec<&'static str>, DecimalWordNameEr
     }
 }
 
-fn integer_tokens_from_non_zero_digits(
-    digits: &str,
-) -> Result<Vec<&'static str>, DecimalWordNameError> {
+fn integer_tokens_from_non_zero_digits(digits: &str) -> Result<Vec<&'static str>, DecimalWordNameError> {
     let digits = digits.trim_start_matches('0');
     if digits.is_empty() {
         return Ok(vec!["zero"]);
@@ -98,9 +88,7 @@ fn integer_tokens_from_non_zero_digits(
     let mut out = Vec::new();
 
     for (idx, chunk) in padded.as_bytes().chunks(3).enumerate() {
-        let chunk_value = ((chunk[0] - b'0') as u16) * 100
-            + ((chunk[1] - b'0') as u16) * 10
-            + (chunk[2] - b'0') as u16;
+        let chunk_value = ((chunk[0] - b'0') as u16) * 100 + ((chunk[1] - b'0') as u16) * 10 + (chunk[2] - b'0') as u16;
         if chunk_value == 0 {
             continue;
         }

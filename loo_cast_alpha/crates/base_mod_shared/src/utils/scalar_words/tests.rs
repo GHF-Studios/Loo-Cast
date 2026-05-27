@@ -8,14 +8,8 @@ fn decimal_to_words_zero_test() {
 
 #[test]
 fn decimal_to_words_fraction_test() {
-    assert_eq!(
-        decimal_string_to_snake_case("0.000000000000000001").unwrap(),
-        "one_over_one_quintillion"
-    );
-    assert_eq!(
-        decimal_string_to_snake_case("0.0000000000000000006").unwrap(),
-        "six_over_ten_quintillion"
-    );
+    assert_eq!(decimal_string_to_snake_case("0.000000000000000001").unwrap(), "one_over_one_quintillion");
+    assert_eq!(decimal_string_to_snake_case("0.0000000000000000006").unwrap(), "six_over_ten_quintillion");
 }
 
 #[test]
@@ -38,10 +32,7 @@ fn decimal_to_words_mixed_and_negative_test() {
 #[test]
 fn decimal_to_words_scientific_test() {
     assert_eq!(decimal_string_to_snake_case("1e3").unwrap(), "one_thousand");
-    assert_eq!(
-        decimal_string_to_snake_case("1e-18").unwrap(),
-        "one_over_one_quintillion"
-    );
+    assert_eq!(decimal_string_to_snake_case("1e-18").unwrap(), "one_over_one_quintillion");
 }
 
 #[test]
@@ -52,16 +43,10 @@ fn decimal_to_words_tokens_output_test() {
 
 #[test]
 fn decimal_to_words_magnitude_limit_test() {
-    assert_eq!(
-        decimal_string_to_snake_case("1e-44").unwrap(),
-        "one_over_one_hundred_tredecillion"
-    );
+    assert_eq!(decimal_string_to_snake_case("1e-44").unwrap(), "one_over_one_hundred_tredecillion");
 
     let error = decimal_string_to_snake_case("1e-45").unwrap_err();
-    assert!(matches!(
-        error,
-        DecimalWordNameError::UnsupportedFractionalMagnitude { .. }
-    ));
+    assert!(matches!(error, DecimalWordNameError::UnsupportedFractionalMagnitude { .. }));
 }
 
 #[test]
