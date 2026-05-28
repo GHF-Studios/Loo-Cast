@@ -83,7 +83,7 @@ mod tests {
         /// Sweep invariant for `add`: `a + b == b + a`.
         #[test]
         fn add_commutative_sweep_prototype() {
-            let values = add_commutativity_sweep_values(0xADDD_0001, 155); // 155 and above crashes? It seems that maybe the amount of generated values changes the effective rng seed and thus produces a different set of numbers at len=155, hence why the error is NOT happening with number 155, but wy before that, suggesting new number generations may retroactively influence past generations? What the fuck? That cannot be right!
+            let values = add_commutativity_sweep_values(0xADDD_0001, 200); // 155 and above crashes? It seems that maybe the amount of generated values changes the effective rng seed and thus produces a different set of numbers at len=155, hence why the error is NOT happening with number 155, but wy before that, suggesting new number generations may retroactively influence past generations? What the fuck? That cannot be right!
             for (idx_a, a) in values.iter().enumerate() {
                 println!("({}: {})", idx_a, a);
                 for (idx_b, b) in values.iter().enumerate() {
