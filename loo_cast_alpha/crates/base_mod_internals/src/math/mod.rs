@@ -66,8 +66,8 @@ mod tests {
         let neg_one_trillion = <UsfScalar as UsfScalarConstants>::NEGATIVE_ONE_TRILLION;
 
         RandomDistributionBuilder::new()
-            .component(1, |c| c.positive().integer().greater_than(pos_one_trillion))
-            .component(1, |c| c.negative().integer().less_than(neg_one_trillion))
+            .component(1, |c| c.positive().integer().less_than(pos_one_trillion))
+            .component(1, |c| c.negative().integer().greater_than(neg_one_trillion))
             .build(seed, count)
     }
 
@@ -83,8 +83,9 @@ mod tests {
         /// Sweep invariant for `add`: `a + b == b + a`.
         #[test]
         fn add_commutative_sweep_prototype() {
-            let values = add_commutativity_sweep_values(0xADDD_0001, 155); // 155 and above crashes?
+            let values = add_commutativity_sweep_values(0xADDD_0001, 155); // 155 and above crashes? It seems that maybe the amount of generated values changes the effective rng seed and thus produces a different set of numbers at len=155, hence why the error is NOT happening with number 155, but wy before that, suggesting new number generations may retroactively influence past generations? What the fuck? That cannot be right!
             for (idx_a, a) in values.iter().enumerate() {
+                println!("({}: {})", idx_a, a);
                 for (idx_b, b) in values.iter().enumerate() {
                     let lhs = a.clone().add(UsfOrNormalScalar::A(b.clone()));
                     let rhs = b.clone().add(UsfOrNormalScalar::A(a.clone()));

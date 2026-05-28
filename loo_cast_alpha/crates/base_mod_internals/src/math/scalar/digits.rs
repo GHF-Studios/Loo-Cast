@@ -1201,7 +1201,7 @@ impl ScalarDecimalDigits {
         let min_frac_power = -i64::try_from(SCALAR_INTERNAL_FRAC_DIGITS_LEN).unwrap();
         assert!(
             msd_power <= max_int_power,
-            "invalid scalar decimal digits: integer part exceeds {SCALAR_INT_DIGITS_LEN} digits after balanced conversion",
+            "invalid scalar decimal digits: integer part ({msd_power}) exceeds {SCALAR_INT_DIGITS_LEN} digits after balanced conversion",
         );
 
         let mut padded_int = [ScalarDecimalDigit::new_checked(0); SCALAR_INT_DIGITS_LEN];
