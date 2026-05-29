@@ -2,6 +2,7 @@ use super::super::aliases::UsfOrNormal;
 use super::normal::{NormalFractionalScalar, NormalScalar};
 use super::usf::UsfScalar;
 
+// TODO: Make this a first-class type, so the variants don't have these generic-ass names `A` and `B` (etc.)
 /// Mixed-repr scalar alias for general scalar operands.
 pub type UsfOrNormalScalar = UsfOrNormal<UsfScalar, NormalScalar>;
 

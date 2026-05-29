@@ -1,5 +1,7 @@
 pub mod constants;
 pub mod rand;
+#[cfg(test)]
+pub mod tests;
 
 /// Scalar-focused aliases, including USF/normal union wrappers.
 pub mod aliases;
