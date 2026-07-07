@@ -5,9 +5,9 @@ name = "spacetime-engine"
 version.workspace = true
 
 [[traits]]
-name = "render-backend"
+name = "replacement-render-backend"
+cardinality = "zero-or-one"
 
 [[slots]]
-name = "renderer"
-trait = "ghf-studios/loo-cast/spacetime-engine/render-backend"
-cardinality = "one"
+name = "replacement-render-backend"
+trait = "ghf-studios/loo-cast/spacetime-engine/replacement-render-backend"
