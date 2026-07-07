@@ -1,5 +1,5 @@
 schema = 1
 
 [game]
-id = "ghf-studios/loo-cast/loo-cast-game"
+name = "loo-cast-game"
 version.workspace = true

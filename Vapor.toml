@@ -1,9 +1,7 @@
 schema = 1
 
 [workspace]
-id = "ghf-studios/loo-cast"
+name = "loo-cast"
+organization = "ghf-studios"
 version = "0.5.0"
 repository = "https://github.com/GHF-Studios/Loo-Cast"
-
-[[traits]]
-id = "ghf-studios/loo-cast/render-backend"

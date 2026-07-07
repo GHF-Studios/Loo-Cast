@@ -1,10 +1,13 @@
 schema = 1
 
 [engine]
-id = "ghf-studios/loo-cast/spacetime-engine"
+name = "spacetime-engine"
 version.workspace = true
+
+[[traits]]
+name = "render-backend"
 
 [[slots]]
 name = "renderer"
-trait = "ghf-studios/loo-cast/render-backend"
+trait = "ghf-studios/loo-cast/spacetime-engine/render-backend"
 cardinality = "one"
