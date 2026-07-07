@@ -1,0 +1,6 @@
+[package]
+name = "loo-cast-game"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

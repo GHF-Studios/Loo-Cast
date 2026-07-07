@@ -1,0 +1,11 @@
+schema = 1
+
+[packagepack]
+id = "ghf-studios/loo-cast/loo-cast-packagepack"
+version.workspace = true
+
+[packagepack.engine]
+id = "ghf-studios/loo-cast/spacetime-engine"
+
+[packagepack.game]
+id = "ghf-studios/loo-cast/loo-cast-game"
