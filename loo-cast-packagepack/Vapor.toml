@@ -4,6 +4,14 @@ schema = 1
 name = "loo-cast-packagepack"
 version.workspace = true
 
+[packagepack.steam]
+app-id = 2122620
+visibility = "private"
+title = "Loo-Cast Packagepack"
+description = "First-party playable packagepack for Loo-Cast."
+tags = ["packagepack", "first-party", "loo-cast"]
+change-note = "Vapor content update."
+
 [packagepack.engine]
 id = "ghf-studios/loo-cast/spacetime-engine"
 

@@ -4,6 +4,14 @@ schema = 1
 name = "spacetime-engine"
 version.workspace = true
 
+[engine.steam]
+app-id = 2122620
+visibility = "private"
+title = "Spacetime Engine"
+description = "First-party Vapor engine content for Loo-Cast."
+tags = ["engine", "first-party", "loo-cast"]
+change-note = "Vapor content update."
+
 [[traits]]
 name = "replacement-render-backend"
 cardinality = "zero-or-one"

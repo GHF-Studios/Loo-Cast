@@ -3,3 +3,11 @@ schema = 1
 [game]
 name = "loo-cast-game"
 version.workspace = true
+
+[game.steam]
+app-id = 2122620
+visibility = "private"
+title = "Loo-Cast Game"
+description = "First-party Vapor game content for Loo-Cast."
+tags = ["game", "first-party", "loo-cast"]
+change-note = "Vapor content update."
