@@ -3,4 +3,5 @@ name = "loo-cast-game"
 version.workspace = true
 edition.workspace = true
 
-[dependencies]
+[lib]
+crate-type = ["rlib", "cdylib"]

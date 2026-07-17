@@ -3,10 +3,12 @@ schema = 1
 [engine]
 name = "spacetime-engine"
 version.workspace = true
+binaries = ["spacetime-engine"]
 
 [engine.steam]
 app-id = 2122620
-visibility = "private"
+published-file-id = "3762162251"
+visibility = "public"
 title = "Spacetime Engine"
 description = "First-party Vapor engine content for Loo-Cast."
 tags = ["engine", "first-party", "loo-cast"]

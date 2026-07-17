@@ -6,7 +6,8 @@ version.workspace = true
 
 [packagepack.steam]
 app-id = 2122620
-visibility = "private"
+published-file-id = "3762162548"
+visibility = "public"
 title = "Loo-Cast Packagepack"
 description = "First-party playable packagepack for Loo-Cast."
 tags = ["packagepack", "first-party", "loo-cast"]
@@ -14,6 +15,8 @@ change-note = "Vapor content update."
 
 [packagepack.engine]
 id = "ghf-studios/loo-cast/spacetime-engine"
+workshop-id = "3762162251"
 
 [packagepack.game]
 id = "ghf-studios/loo-cast/loo-cast-game"
+workshop-id = "3762162407"
