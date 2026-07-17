@@ -1,8 +1,8 @@
 # Safe local content lifecycle proof. Requires this workspace to be open.
 content validate
-content package ghf-studios/loo-cast/spacetime-engine
-content package ghf-studios/loo-cast/loo-cast-game
-content package ghf-studios/loo-cast/loo-cast-packagepack
+content package ghf-studios/loo-cast/spacetime-engine --host-only
+content package ghf-studios/loo-cast/loo-cast-game --host-only
+content package ghf-studios/loo-cast/loo-cast-packagepack --host-only
 content subscribe ghf-studios/loo-cast/spacetime-engine
 content download ghf-studios/loo-cast/loo-cast-game
 content acquire ghf-studios/loo-cast/loo-cast-packagepack

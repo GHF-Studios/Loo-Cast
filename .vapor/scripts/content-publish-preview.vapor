@@ -1,8 +1,8 @@
 # Safe Workshop publication preview. Real create/publish/delete must be typed manually.
 content validate
-content create ghf-studios/loo-cast/spacetime-engine --dry-run
-content create ghf-studios/loo-cast/loo-cast-game --dry-run
-content create ghf-studios/loo-cast/loo-cast-packagepack --dry-run
-content publish ghf-studios/loo-cast/spacetime-engine --dry-run
-content publish ghf-studios/loo-cast/loo-cast-game --dry-run
-content publish ghf-studios/loo-cast/loo-cast-packagepack --dry-run
+content create ghf-studios/loo-cast/spacetime-engine --host-only --dry-run
+content create ghf-studios/loo-cast/loo-cast-game --host-only --dry-run
+content create ghf-studios/loo-cast/loo-cast-packagepack --host-only --dry-run
+content publish ghf-studios/loo-cast/spacetime-engine --host-only --dry-run
+content publish ghf-studios/loo-cast/loo-cast-game --host-only --dry-run
+content publish ghf-studios/loo-cast/loo-cast-packagepack --host-only --dry-run
