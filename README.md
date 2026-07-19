@@ -16,8 +16,9 @@ product label by itself. The Packagepack references its constituents through
 Vapor identities. It is not nested inside either constituent and does not turn
 Vapor composition into Cargo dependencies. The three child content projects are
 registered by
-`Loo-Cast/Vapor.toml` under `[[workspace.projects]]`; their own `Vapor.toml`
-files own the content roles and Workshop metadata.
+`Loo-Cast/Workspace.vapor.toml` under `[[workspace.projects]]`; their own
+`Engine.vapor.toml`, `Game.vapor.toml`, and `Packagepack.vapor.toml` files own
+the content roles and Workshop metadata.
 
 ## Vapor content workflow
 
