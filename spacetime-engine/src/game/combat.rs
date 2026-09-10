@@ -11,6 +11,8 @@ use bevy::prelude::*;
 
 use super::{GameAssets, GameSet};
 
+use crate::ecs::UsfManifestationOf;
+
 /// Generic finite health state.
 #[derive(Component, Debug, Clone, Copy)]
 pub struct Health {
@@ -262,11 +264,17 @@ fn simulate_projectiles(
 
 fn hits_to_damage(
     mut hits: MessageReader<Hit>,
+    manifestations: Query<&UsfManifestationOf>,
     mut damage: MessageWriter<Damage>,
 ) {
     for hit in hits.read() {
+        let target = manifestations
+            .get(hit.target)
+            .map(|manifestation| manifestation.0)
+            .unwrap_or(hit.target);
+
         damage.write(Damage {
-            target: hit.target,
+            target,
             instigator: Some(hit.instigator),
             amount: hit.damage,
         });

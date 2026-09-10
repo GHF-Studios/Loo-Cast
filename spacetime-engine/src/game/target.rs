@@ -10,6 +10,11 @@ use super::{
     combat::{Died, Health, Hitbox},
 };
 
+use crate::ecs::{
+    UsfEntity,
+    UsfManifestationOf,
+};
+
 /// Marks the test target.
 #[derive(Component)]
 pub struct TargetCube;
@@ -23,7 +28,7 @@ pub struct SpawnTarget;
 /// Configurable properties of newly spawned targets.
 #[derive(Resource, Debug, Clone, Copy)]
 pub struct TargetConfig {
-    pub position: Vec3,
+    pub manifestations: [Vec3; 2],
     pub size: f32,
     pub maximum_health: f32,
 }
@@ -31,7 +36,10 @@ pub struct TargetConfig {
 impl Default for TargetConfig {
     fn default() -> Self {
         Self {
-            position: Vec3::new(0.0, 1.0, -5.0),
+            manifestations: [
+                Vec3::new(-3.0, 1.0, -5.0),
+                Vec3::new(3.0, 1.0, -5.0),
+            ],
             size: 2.0,
             maximum_health: 100.0,
         }
@@ -82,26 +90,39 @@ fn spawn_target(
         return;
     }
 
-    // A burst of requests still means "ensure a target exists".
     requests.clear();
 
     if state.entity.is_some() {
         return;
     }
 
-    let entity = commands
+    // This entity is the semantic target.
+    //
+    // Health exists exactly once regardless of how many concrete
+    // manifestations the target currently has.
+    let target = commands
         .spawn((
-            Name::new("Target Cube"),
+            Name::new("Target"),
             TargetCube,
+            UsfEntity,
             Health::new(config.maximum_health),
-            Hitbox::cube(config.size),
-            Mesh3d(assets.target_mesh.clone()),
-            MeshMaterial3d(assets.target_material.clone()),
-            Transform::from_translation(config.position),
         ))
         .id();
 
-    state.entity = Some(entity);
+    for (index, position) in
+        config.manifestations.into_iter().enumerate()
+    {
+        commands.spawn((
+            Name::new(format!("Target Manifestation {index}")),
+            UsfManifestationOf(target),
+            Hitbox::cube(config.size),
+            Mesh3d(assets.target_mesh.clone()),
+            MeshMaterial3d(assets.target_material.clone()),
+            Transform::from_translation(position),
+        ));
+    }
+
+    state.entity = Some(target);
 }
 
 fn despawn_dead_target(
