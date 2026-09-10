@@ -1,11 +1,22 @@
 [workspace]
 resolver = "3"
-members = [
-    "spacetime-engine",
-    "loo-cast-game",
-    "loo-cast-packagepack",
-]
+members = ["spacetime-engine", "loo-cast-game", "loo-cast-packagepack", "spacetime-engine-macros"]
 
 [workspace.package]
 version = "0.5.0"
 edition = "2024"
+
+[profile.dev]
+opt-level = 1
+debug = true
+incremental = true
+lto = false
+
+[workspace.dependencies]
+proc-macro2 = "1.0.107"
+proc-macro-crate = "3.5.0"
+syn = { version = "3.0.5", features = [ "full" ] }
+quote = "1.0.47"
+inventory = "0.3.24"
+heck = "0.5.0"
+paste = "1.0.15"
