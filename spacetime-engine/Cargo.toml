@@ -13,6 +13,7 @@ bevy = {
         "default_platform",
         "3d_bevy_render",
         "ui_bevy_render",
+        "debug",
     ],
 }
 inventory = { workspace = true }
