@@ -6,7 +6,7 @@ use super::super::inventory::{
     Hotbar,
 };
 
-use super::item_view::{
+use super::item_view::
     ItemView,
     spawn_item_view,
 };
