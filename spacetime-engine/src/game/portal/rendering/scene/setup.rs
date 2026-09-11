@@ -119,6 +119,10 @@ pub fn setup_portals(
         materials.add(StandardMaterial {
             base_color: Color::BLACK,
             unlit: true,
+
+            cull_mode: None,
+            double_sided: true,
+
             ..default()
         });
 

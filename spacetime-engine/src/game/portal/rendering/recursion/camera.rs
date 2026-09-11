@@ -1,17 +1,18 @@
-//! Recursive portal-camera placement.
+//! Recursive directed portal-camera placement.
 //!
-//! This intentionally reproduces the original known-working renderer's
-//! transform mapping and clipping behavior.
+//! Front and back faces get independent cameras/render targets, but both use
+//! the same proven rigid physical portal mapping.
 
 use bevy::prelude::*;
 
 use crate::game::portal::{
     domain::{
         Portal,
+        PortalFace,
         PortalPair,
         PortalView,
     },
-    topology::mapping::portal_mapping,
+    topology::mapping::map_transform,
 };
 
 use super::path::PortalRenderCamera;
@@ -77,18 +78,6 @@ pub fn update_portal_cameras(
         return;
     };
 
-    let Ok(first) =
-        portals.get(pair.first)
-    else {
-        return;
-    };
-
-    let Ok(second) =
-        portals.get(pair.second)
-    else {
-        return;
-    };
-
     for (
         portal_camera,
         mut transform,
@@ -96,23 +85,28 @@ pub fn update_portal_cameras(
         mut camera,
     ) in &mut cameras.p1()
     {
-        let (
-            mapped,
-            destination,
-        ) = map_camera_path(
+        let Some((
+                     mapped,
+                     destination,
+                 )) = map_camera_path(
             &primary_transform,
-            portal_camera.node,
-            first,
-            second,
-        );
+            &portal_camera.path,
+            *pair,
+            &portals,
+        )
+        else {
+            continue;
+        };
 
         let mut perspective =
             primary_projection.clone();
 
+        // Preserve the exact clipping mechanism from the known-working
+        // one-sided renderer.
         perspective.near_clip_plane =
             portal_clip_plane(
                 &mapped,
-                destination,
+                &destination,
             );
 
         *transform =
@@ -123,73 +117,82 @@ pub fn update_portal_cameras(
                 perspective,
             );
 
-        // This is the only deliberate improvement over the earliest renderer:
-        // portal targets use the same world background as the primary camera.
         camera.clear_color =
             primary_clear_color.clone();
     }
 }
 
-/// Replays the portal sequence encoded by `node`.
+/// Applies each directed portal traversal.
 ///
-/// This is the exact traversal representation used by the original renderer.
-fn map_camera_path<'a>(
+/// Important:
+///
+/// The rigid world mapping itself is identical from front and back. The side
+/// distinction controls which surface owns this render target and which exit
+/// surface is suppressed in the child rendering context.
+///
+/// That lets us retain the exact mapping that already proved correct.
+fn map_camera_path(
     primary: &Transform,
-    node: usize,
-    first: &'a Transform,
-    second: &'a Transform,
-) -> (
+    path: &[PortalFace],
+    pair: PortalPair,
+    portals: &Query<
+        &Transform,
+        With<Portal>,
+    >,
+) -> Option<(
     Transform,
-    &'a Transform,
-) {
-    let mut transform =
+    Transform,
+)> {
+    let mut mapped =
         *primary;
 
-    let mut destination =
-        first;
+    let mut final_destination =
+        None;
 
-    let depth =
-        node_depth(node);
-
-    for shift in
-        (0..depth).rev()
-    {
-        let via_second =
-            (node >> shift) & 1 == 1;
-
-        let (
-            source,
-            target,
-        ) = if via_second {
-            (second, first)
-        } else {
-            (first, second)
-        };
-
-        transform =
-            Transform::from_matrix(
-                portal_mapping(
-                    source,
-                    target,
+    for face in path {
+        let source =
+            *portals
+                .get(
+                    pair.entity(
+                        face.endpoint,
+                    ),
                 )
-                    * transform
-                    .to_matrix(),
+                .ok()?;
+
+        let destination =
+            *portals
+                .get(
+                    pair.entity(
+                        face
+                            .endpoint
+                            .other(),
+                    ),
+                )
+                .ok()?;
+
+        // EXACT same rigid mapping used by the working one-sided renderer.
+        mapped =
+            map_transform(
+                &mapped,
+                &source,
+                &destination,
             );
 
-        destination =
-            target;
+        final_destination =
+            Some(destination);
     }
 
-    (
-        transform,
-        destination,
+    final_destination.map(
+        |destination| {
+            (
+                mapped,
+                destination,
+            )
+        },
     )
 }
 
-/// Original working destination clipping.
-///
-/// The portal plane normal is oriented using the virtual camera's actual
-/// position relative to the destination portal.
+/// Exact clipping rule from the known-working one-sided renderer.
 fn portal_clip_plane(
     camera: &Transform,
     destination: &Transform,
@@ -206,7 +209,6 @@ fn portal_clip_plane(
         plane_point
             - camera.translation;
 
-    // Bevy requires the projection plane normal to point away from the camera.
     if normal_world
         .dot(camera_to_plane)
         < 0.0
@@ -234,13 +236,4 @@ fn portal_clip_plane(
             point_view,
         ),
     )
-}
-
-fn node_depth(
-    node: usize,
-) -> usize {
-    usize::BITS as usize
-        - node.leading_zeros()
-        as usize
-        - 1
 }

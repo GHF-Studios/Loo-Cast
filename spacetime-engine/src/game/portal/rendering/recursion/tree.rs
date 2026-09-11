@@ -1,7 +1,15 @@
-//! Construction of the recursive portal-view tree.
+//! Recursive directed-face render tree.
 //!
-//! This intentionally preserves the original known-working binary-node
-//! representation while keeping the implementation isolated in its own file.
+//! The original renderer branched over two physical portals:
+//!
+//! `A | B`
+//!
+//! Two-sided portals branch over directed faces instead:
+//!
+//! `A-front | A-back | B-front | B-back`
+//!
+//! Each individual branch is still the same known-working one-sided portal
+//! mechanism.
 
 use bevy::{
     camera::{
@@ -14,14 +22,15 @@ use bevy::{
 use crate::game::portal::{
     domain::{
         PortalConfig,
+        PortalFace,
         PortalPair,
     },
     rendering::{
         WORLD_LAYER,
         material::PortalMaterial,
         scene::{
-            spawn_portal_surfaces,
-            spawn_terminal_surfaces,
+            spawn_portal_surface,
+            spawn_terminal_surface,
         },
     },
 };
@@ -31,81 +40,117 @@ use super::{
     targets::create_render_target,
 };
 
+const BRANCH_FACTOR: usize =
+    PortalFace::ALL.len();
+
 #[allow(clippy::too_many_arguments)]
 pub fn build_render_tree(
     commands: &mut Commands,
     pair: PortalPair,
     config: &PortalConfig,
     surface_mesh: &Handle<Mesh>,
-    terminal_material: &Handle<StandardMaterial>,
+    terminal_material:
+    &Handle<StandardMaterial>,
     render_size: UVec2,
-    materials: &mut Assets<PortalMaterial>,
-    images: &mut Assets<Image>,
+    materials:
+    &mut Assets<PortalMaterial>,
+    images:
+    &mut Assets<Image>,
 ) -> Vec<Handle<Image>> {
-    let mut targets = Vec::new();
+    let mut targets =
+        Vec::new();
 
     build_render_node(
         commands,
         pair,
+        config,
         1,
+        &[],
+        None,
         0,
-        config.visual_recursion_depth,
         surface_mesh,
         terminal_material,
         render_size,
         materials,
         images,
         &mut targets,
-        config,
     );
 
     targets
 }
 
-/// Builds the exact binary recursive structure used by the original renderer.
+/// Builds one recursive rendering context.
 ///
-/// Node `1` corresponds to the primary camera.
+/// `hidden_exit` is the crucial two-sided rule.
 ///
-/// Its children are:
-///
-/// - `2`: through portal A
-/// - `3`: through portal B
-///
-/// and the pattern recursively continues.
+/// Immediately after traversing a face, the virtual camera sits on the
+/// opposite physical side of the destination portal. The portal face pointing
+/// toward that camera must not exist in this context, otherwise the camera
+/// simply renders its own exit portal and recursively falls into the terminal
+/// black surface.
 #[allow(clippy::too_many_arguments)]
 fn build_render_node(
     commands: &mut Commands,
     pair: PortalPair,
-    node: usize,
-    depth: u8,
-    max_depth: u8,
-    mesh: &Handle<Mesh>,
-    terminal_material: &Handle<StandardMaterial>,
-    render_size: UVec2,
-    materials: &mut Assets<PortalMaterial>,
-    images: &mut Assets<Image>,
-    targets: &mut Vec<Handle<Image>>,
     config: &PortalConfig,
+    node: usize,
+    path: &[PortalFace],
+    hidden_exit: Option<PortalFace>,
+    depth: u8,
+    mesh: &Handle<Mesh>,
+    terminal_material:
+    &Handle<StandardMaterial>,
+    render_size: UVec2,
+    materials:
+    &mut Assets<PortalMaterial>,
+    images:
+    &mut Assets<Image>,
+    targets:
+    &mut Vec<Handle<Image>>,
 ) {
-    for (side, portal) in [
-        (0usize, pair.first),
-        (1usize, pair.second),
-    ] {
-        if depth == max_depth {
-            spawn_terminal_surfaces(
+    for face in PortalFace::ALL {
+        if !config
+            .sidedness
+            .allows(face.side)
+        {
+            continue;
+        }
+
+        // This is the face of the destination aperture that the virtual camera
+        // has just emerged behind. Rendering it would make the camera look
+        // directly back into its own exit portal.
+        if hidden_exit == Some(face) {
+            continue;
+        }
+
+        let portal =
+            pair.entity(
+                face.endpoint,
+            );
+
+        if depth
+            == config
+            .visual_recursion_depth
+        {
+            spawn_terminal_surface(
                 commands,
                 portal,
+                face.side,
                 node,
                 mesh,
                 terminal_material,
-                config.sidedness,
             );
 
             continue;
         }
 
+        // Base-4 equivalent of the original binary node scheme.
+        //
+        // RenderLayers can represent arbitrary layer indexes, so node remains
+        // a convenient unique context identifier.
         let child =
-            node * 2 + side;
+            node * BRANCH_FACTOR
+                + face.branch_index();
 
         let image =
             create_render_target(
@@ -125,27 +170,34 @@ fn build_render_node(
                 },
             );
 
-        spawn_portal_surfaces(
+        spawn_portal_surface(
             commands,
             portal,
+            face.side,
             node,
             mesh,
             &material,
-            config.sidedness,
         );
+
+        let mut child_path =
+            path.to_vec();
+
+        child_path.push(face);
 
         commands.spawn((
             Name::new(
                 format!(
-                    "Portal Camera {child}"
+                    "Portal Camera {:?}",
+                    child_path,
                 ),
             ),
             Camera3d::default(),
             Camera {
-                // Deeper render dependencies execute first.
+                // Deeper dependencies render first, exactly as before.
                 order:
-                -(node_depth(child)
+                -(child_path.len()
                     as isize),
+
                 ..default()
             },
             RenderTarget::Image(
@@ -156,40 +208,38 @@ fn build_render_node(
             ),
             Transform::default(),
 
-            // Ordinary world plus portal surfaces belonging to this camera's
-            // recursive context.
+            // Ordinary world + surfaces belonging to the child context.
             RenderLayers::layer(
                 WORLD_LAYER,
             )
                 .with(child),
 
             PortalRenderCamera {
-                node: child,
+                path: child_path.clone(),
             },
         ));
 
         build_render_node(
             commands,
             pair,
+            config,
             child,
+            &child_path,
+
+            // Entering A-front exits behind B, so B-back must disappear.
+            //
+            // Entering A-back exits in front of B, so B-front must disappear.
+            Some(
+                face.exit_face(),
+            ),
+
             depth + 1,
-            max_depth,
             mesh,
             terminal_material,
             render_size,
             materials,
             images,
             targets,
-            config,
         );
     }
-}
-
-fn node_depth(
-    node: usize,
-) -> usize {
-    usize::BITS as usize
-        - node.leading_zeros()
-        as usize
-        - 1
 }

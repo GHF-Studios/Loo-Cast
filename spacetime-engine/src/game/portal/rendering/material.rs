@@ -7,10 +7,11 @@ use bevy::{
 
 use super::PORTAL_SHADER;
 
-/// A one-sided screen-space aperture material.
+/// Material for one directed portal face.
 ///
-/// Two-sided portals are represented by two explicitly oriented surface
-/// entities, so this material can retain ordinary backface culling.
+/// Ordinary backface culling is intentionally retained. A physically
+/// two-sided portal is represented by two separate [`PortalFace`] mechanisms,
+/// not by one double-sided polygon.
 #[derive(
     Asset,
     TypePath,
