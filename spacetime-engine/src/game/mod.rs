@@ -2,14 +2,12 @@
 
 pub mod combat;
 pub mod player;
+pub mod playground;
 pub mod portal;
-pub mod target;
-pub mod ui;
 
 use bevy::prelude::*;
 
 use combat::{Damage, Died, FireWeapon, Hit};
-use target::SpawnTarget;
 
 /// Stable top-level extension points.
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -22,12 +20,15 @@ pub enum GameSet {
     Presentation,
 }
 
+/// Ordered structure inside [`GameSet::Input`].
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum InputSet {
+    Interface,
+    Cursor,
+    Gameplay,
+}
+
 /// Internal structure of physical simulation.
-///
-/// Topological remapping deliberately happens after motion but before
-/// collision:
-///
-/// `Motion -> Topology -> Collision`
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SimulationSet {
     Motion,
@@ -36,9 +37,6 @@ pub enum SimulationSet {
 }
 
 /// Ordering inside presentation.
-///
-/// The primary camera is resolved before views derived from it, such as portal
-/// render cameras.
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PresentationSet {
     PrimaryView,
@@ -49,8 +47,7 @@ pub struct TestGamePlugin;
 
 impl Plugin for TestGamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_message::<SpawnTarget>()
-            .add_message::<FireWeapon>()
+        app.add_message::<FireWeapon>()
             .add_message::<Hit>()
             .add_message::<Damage>()
             .add_message::<Died>()
@@ -65,6 +62,16 @@ impl Plugin for TestGamePlugin {
                     GameSet::Presentation,
                 )
                     .chain(),
+            )
+            .configure_sets(
+                Update,
+                (
+                    InputSet::Interface,
+                    InputSet::Cursor,
+                    InputSet::Gameplay,
+                )
+                    .chain()
+                    .in_set(GameSet::Input),
             )
             .configure_sets(
                 Update,
@@ -89,8 +96,7 @@ impl Plugin for TestGamePlugin {
                 combat::CombatPlugin,
                 player::PlayerPlugin,
                 portal::PortalPlugin,
-                target::TargetPlugin,
-                ui::HudPlugin,
+                playground::PlaygroundPlugin,
             ))
             .add_systems(Startup, setup_scene);
     }
@@ -98,8 +104,8 @@ impl Plugin for TestGamePlugin {
 
 #[derive(Resource)]
 pub(crate) struct GameAssets {
-    pub target_mesh: Handle<Mesh>,
-    pub target_material: Handle<StandardMaterial>,
+    pub damageable_cube_mesh: Handle<Mesh>,
+    pub damageable_cube_material: Handle<StandardMaterial>,
     pub projectile_mesh: Handle<Mesh>,
     pub projectile_material: Handle<StandardMaterial>,
 }
@@ -110,13 +116,14 @@ fn setup_scene(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     commands.insert_resource(GameAssets {
-        target_mesh: meshes.add(Cuboid::from_length(2.0)),
-        target_material: materials.add(Color::srgb(0.8, 0.2, 0.2)),
+        damageable_cube_mesh: meshes.add(Cuboid::from_length(1.0)),
+        damageable_cube_material: materials.add(Color::srgb(0.8, 0.2, 0.2)),
         projectile_mesh: meshes.add(Sphere::new(0.1)),
         projectile_material: materials.add(Color::WHITE),
     });
 
     commands.spawn((
+        Name::new("Playground Floor"),
         Mesh3d(
             meshes.add(
                 Plane3d::default()

@@ -1,14 +1,9 @@
 //! Local-player gameplay and presentation.
-//!
-//! The player and camera are deliberately separate entities:
-//!
-//! - [`Player`] owns gameplay position, aim, weapon and portal traversal.
-//! - [`PlayerCamera`] only observes that gameplay entity.
 
 mod camera;
 mod components;
 mod controls;
-mod cursor;
+pub mod cursor;
 mod model;
 
 pub use components::{
@@ -17,6 +12,7 @@ pub use components::{
     PlayerCamera,
     PlayerController,
 };
+
 pub use model::PlayerModel;
 
 use bevy::{
@@ -25,7 +21,7 @@ use bevy::{
 };
 
 use super::{
-    GameSet,
+    InputSet,
     PresentationSet,
     combat::Weapon,
     portal::{
@@ -35,31 +31,16 @@ use super::{
     },
 };
 
-#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum PlayerInputSet {
-    Cursor,
-    Control,
-}
-
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<cursor::CursorCapture>()
-            .configure_sets(
-                Update,
-                (
-                    PlayerInputSet::Cursor,
-                    PlayerInputSet::Control,
-                )
-                    .chain()
-                    .in_set(GameSet::Input),
-            )
             .add_systems(Startup, spawn_player)
             .add_systems(
                 Update,
                 cursor::update_cursor_capture
-                    .in_set(PlayerInputSet::Cursor),
+                    .in_set(InputSet::Cursor),
             )
             .add_systems(
                 Update,
@@ -67,10 +48,8 @@ impl Plugin for PlayerPlugin {
                     controls::look,
                     controls::movement,
                     camera::toggle_camera_mode,
-                    controls::request_fire,
-                    controls::request_target_spawn,
                 )
-                    .in_set(PlayerInputSet::Control),
+                    .in_set(InputSet::Gameplay),
             )
             .add_systems(
                 Update,
@@ -85,21 +64,28 @@ fn spawn_player(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let position = Vec3::new(0.0, 1.5, 8.0);
+    let position =
+        Vec3::new(0.0, 1.5, 8.0);
 
     let model =
-        model::create_model(&mut meshes, &mut materials);
+        model::create_model(
+            &mut meshes,
+            &mut materials,
+        );
 
-    let player = commands
-        .spawn((
-            Name::new("Player"),
-            Player,
-            PlayerController::default(),
-            Weapon::default(),
-            PortalTraveler::new(position),
-            Transform::from_translation(position),
-        ))
-        .id();
+    let player =
+        commands
+            .spawn((
+                Name::new("Player"),
+                Player,
+                PlayerController::default(),
+                Weapon::default(),
+                PortalTraveler::new(position),
+                Transform::from_translation(
+                    position,
+                ),
+            ))
+            .id();
 
     commands
         .entity(player)
@@ -113,7 +99,10 @@ fn spawn_player(
         PortalView,
         Camera3d::default(),
         IsDefaultUiCamera,
-        RenderLayers::layer(0).with(MAIN_PORTAL_LAYER),
-        Transform::from_translation(position),
+        RenderLayers::layer(0)
+            .with(MAIN_PORTAL_LAYER),
+        Transform::from_translation(
+            position,
+        ),
     ));
 }

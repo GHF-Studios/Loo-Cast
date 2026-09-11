@@ -1,9 +1,4 @@
 //! Focus-aware mouse capture.
-//!
-//! - losing window focus always releases the OS cursor;
-//! - Escape releases capture while focused;
-//! - left-clicking the focused game reacquires capture;
-//! - the reacquire click is not also treated as a weapon click.
 
 use bevy::{
     prelude::*,
@@ -19,6 +14,7 @@ pub struct CursorCapture {
     requested: bool,
     active: bool,
     just_captured: bool,
+    blocked: bool,
 }
 
 impl Default for CursorCapture {
@@ -27,6 +23,7 @@ impl Default for CursorCapture {
             requested: true,
             active: false,
             just_captured: false,
+            blocked: false,
         }
     }
 }
@@ -38,6 +35,25 @@ impl CursorCapture {
 
     pub fn accepts_gameplay_click(&self) -> bool {
         self.active && !self.just_captured
+    }
+
+    pub fn release(&mut self) {
+        self.requested = false;
+        self.active = false;
+    }
+
+    pub fn request(&mut self) {
+        if !self.blocked {
+            self.requested = true;
+        }
+    }
+
+    pub fn set_blocked(&mut self, blocked: bool) {
+        self.blocked = blocked;
+
+        if blocked {
+            self.release();
+        }
     }
 }
 
@@ -51,22 +67,25 @@ pub fn update_cursor_capture(
     capture.just_captured = false;
 
     if keyboard.just_pressed(KeyCode::Escape) {
-        capture.requested = false;
+        capture.release();
     }
 
     if mouse.just_pressed(MouseButton::Left)
         && window.focused
         && !capture.requested
+        && !capture.blocked
     {
         capture.requested = true;
         capture.just_captured = true;
     }
 
-    // Focus always wins over requested capture. Alt-Tab therefore cannot leave
-    // the pointer hidden/grabbed in another application.
-    capture.active = capture.requested && window.focused;
+    capture.active =
+        capture.requested
+            && window.focused
+            && !capture.blocked;
 
     cursor.visible = !capture.active;
+
     cursor.grab_mode = if capture.active {
         CursorGrabMode::Locked
     } else {
