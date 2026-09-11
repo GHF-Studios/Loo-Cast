@@ -1,16 +1,24 @@
-//! Small geometric tolerances belonging specifically to portal presentation.
+//! Geometric tolerances used only by portal presentation.
 
 /// Width of the visible frame around the aperture.
 pub const FRAME_BORDER: f32 = 0.12;
 
-/// Depth of the visible frame through the portal plane.
+/// Depth of the visible frame through the mathematical portal plane.
 pub const FRAME_DEPTH: f32 = 0.08;
 
-/// Portal surface extends slightly underneath the frame to avoid sub-pixel
-/// cracks between independently rasterized meshes.
+/// Aperture surfaces extend slightly underneath the frame.
+///
+/// This avoids sub-pixel cracks between independently rasterized meshes.
 pub const SURFACE_OVERSCAN: f32 = 0.02;
 
-/// Oblique clipping is pulled toward the virtual camera far enough to preserve
-/// the frame's finite depth plus a small numerical margin.
+/// Separates the front/back presentation surfaces from the exact mathematical
+/// portal plane.
+///
+/// The portal itself remains at local Z = 0. The rendered faces sit just to
+/// either side of it.
+pub const SURFACE_FACE_OFFSET: f32 = 0.002;
+
+/// Pulls destination clipping toward the virtual camera enough to retain the
+/// frame's near half plus a small numerical margin.
 pub const CLIP_MARGIN: f32 =
-    FRAME_DEPTH * 0.5 + 0.02;
+    FRAME_DEPTH * 0.5 + 0.002;

@@ -1,94 +1,74 @@
-//! Explicit front/back aperture surfaces.
-
-use std::f32::consts::PI;
+//! Portal aperture surfaces.
+//!
+//! This file currently preserves the original known-working one-sided renderer.
+//! Two-sided rendering will be reintroduced only after this baseline is
+//! visibly correct again.
 
 use bevy::{
     camera::visibility::RenderLayers,
     prelude::*,
 };
 
-use crate::game::portal::domain::{
-    PortalSide,
-    PortalSidedness,
-};
+use crate::game::portal::domain::PortalSidedness;
 
-fn local_surface_transform(
-    side: PortalSide,
-) -> Transform {
-    match side {
-        PortalSide::Front => Transform::IDENTITY,
-
-        // A physically separate, oppositely oriented face. We do not encode
-        // portal topology by disabling GPU culling.
-        PortalSide::Back => {
-            Transform::from_rotation(
-                Quat::from_rotation_y(PI),
-            )
-        }
-    }
-}
-
-fn sides(
-    sidedness: PortalSidedness,
-) -> &'static [PortalSide] {
-    if sidedness.is_two_sided() {
-        &[
-            PortalSide::Front,
-            PortalSide::Back,
-        ]
-    } else {
-        &[PortalSide::Front]
-    }
-}
-
+/// Spawns the ordinary render-texture aperture.
+///
+/// The surface sits a tiny distance in front of the mathematical portal plane,
+/// matching the original working implementation.
 pub fn spawn_portal_surfaces(
     commands: &mut Commands,
     portal: Entity,
     layer: usize,
     mesh: &Handle<Mesh>,
-    material: &Handle<super::super::material::PortalMaterial>,
-    sidedness: PortalSidedness,
+    material: &Handle<
+        super::super::material::PortalMaterial,
+    >,
+    _sidedness: PortalSidedness,
 ) {
     commands
         .entity(portal)
         .with_children(|parent| {
-            for side in sides(sidedness) {
-                parent.spawn((
-                    Mesh3d(mesh.clone()),
-                    MeshMaterial3d(
-                        material.clone(),
-                    ),
-                    local_surface_transform(
-                        *side,
-                    ),
-                    RenderLayers::layer(layer),
-                ));
-            }
+            parent.spawn((
+                Mesh3d(mesh.clone()),
+                MeshMaterial3d(
+                    material.clone(),
+                ),
+                Transform::from_xyz(
+                    0.0,
+                    0.0,
+                    0.002,
+                ),
+                RenderLayers::layer(layer),
+            ));
         });
 }
 
+/// Spawns the recursion-terminal aperture.
+///
+/// Like the live surface, this intentionally reproduces the original
+/// one-sided renderer exactly.
 pub fn spawn_terminal_surfaces(
     commands: &mut Commands,
     portal: Entity,
     layer: usize,
     mesh: &Handle<Mesh>,
     material: &Handle<StandardMaterial>,
-    sidedness: PortalSidedness,
+    _sidedness: PortalSidedness,
 ) {
     commands
         .entity(portal)
         .with_children(|parent| {
-            for side in sides(sidedness) {
-                parent.spawn((
-                    Mesh3d(mesh.clone()),
-                    MeshMaterial3d(
-                        material.clone(),
-                    ),
-                    local_surface_transform(
-                        *side,
-                    ),
-                    RenderLayers::layer(layer),
-                ));
-            }
+            parent.spawn((
+                Mesh3d(mesh.clone()),
+                MeshMaterial3d(
+                    material.clone(),
+                ),
+                Transform::from_xyz(
+                    0.0,
+                    0.0,
+                    0.002,
+                ),
+                RenderLayers::layer(layer),
+            ));
         });
 }

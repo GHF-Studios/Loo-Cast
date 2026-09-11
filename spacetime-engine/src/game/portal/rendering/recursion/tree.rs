@@ -1,4 +1,7 @@
-//! Construction of the recursive portal-view dependency tree.
+//! Construction of the recursive portal-view tree.
+//!
+//! This intentionally preserves the original known-working binary-node
+//! representation while keeping the implementation isolated in its own file.
 
 use bevy::{
     camera::{
@@ -11,11 +14,9 @@ use bevy::{
 use crate::game::portal::{
     domain::{
         PortalConfig,
-        PortalEndpoint,
         PortalPair,
     },
     rendering::{
-        MAIN_PORTAL_LAYER,
         WORLD_LAYER,
         material::PortalMaterial,
         scene::{
@@ -41,63 +42,61 @@ pub fn build_render_tree(
     materials: &mut Assets<PortalMaterial>,
     images: &mut Assets<Image>,
 ) -> Vec<Handle<Image>> {
-    let mut next_layer =
-        MAIN_PORTAL_LAYER + 1;
-
     let mut targets = Vec::new();
 
-    build_context(
+    build_render_node(
         commands,
         pair,
-        config,
-        &[],
-        MAIN_PORTAL_LAYER,
+        1,
         0,
+        config.visual_recursion_depth,
         surface_mesh,
         terminal_material,
         render_size,
         materials,
         images,
-        &mut next_layer,
         &mut targets,
+        config,
     );
 
     targets
 }
 
-/// Builds one rendering context.
+/// Builds the exact binary recursive structure used by the original renderer.
 ///
-/// `context_layer` contains exactly the aperture surfaces visible from the
-/// camera represented by `path`. Each active surface samples a child render
-/// target representing one more traversal.
+/// Node `1` corresponds to the primary camera.
+///
+/// Its children are:
+///
+/// - `2`: through portal A
+/// - `3`: through portal B
+///
+/// and the pattern recursively continues.
 #[allow(clippy::too_many_arguments)]
-fn build_context(
+fn build_render_node(
     commands: &mut Commands,
     pair: PortalPair,
-    config: &PortalConfig,
-    path: &[PortalEndpoint],
-    context_layer: usize,
+    node: usize,
     depth: u8,
-    surface_mesh: &Handle<Mesh>,
+    max_depth: u8,
+    mesh: &Handle<Mesh>,
     terminal_material: &Handle<StandardMaterial>,
     render_size: UVec2,
     materials: &mut Assets<PortalMaterial>,
     images: &mut Assets<Image>,
-    next_layer: &mut usize,
     targets: &mut Vec<Handle<Image>>,
+    config: &PortalConfig,
 ) {
-    for endpoint in PortalEndpoint::ALL {
-        let portal =
-            pair.entity(endpoint);
-
-        if depth
-            == config.visual_recursion_depth
-        {
+    for (side, portal) in [
+        (0usize, pair.first),
+        (1usize, pair.second),
+    ] {
+        if depth == max_depth {
             spawn_terminal_surfaces(
                 commands,
                 portal,
-                context_layer,
-                surface_mesh,
+                node,
+                mesh,
                 terminal_material,
                 config.sidedness,
             );
@@ -105,10 +104,8 @@ fn build_context(
             continue;
         }
 
-        let child_layer =
-            *next_layer;
-
-        *next_layer += 1;
+        let child =
+            node * 2 + side;
 
         let image =
             create_render_target(
@@ -116,77 +113,83 @@ fn build_context(
                 render_size,
             );
 
+        targets.push(
+            image.clone(),
+        );
+
         let material =
             materials.add(
                 PortalMaterial {
                     texture:
-                        image.clone(),
+                    image.clone(),
                 },
             );
 
-        // Front and back faces share the same virtual-camera texture. The
-        // source->destination rigid mapping is identical; the mapped camera's
-        // position naturally lands on the appropriate opposite side.
         spawn_portal_surfaces(
             commands,
             portal,
-            context_layer,
-            surface_mesh,
+            node,
+            mesh,
             &material,
             config.sidedness,
         );
 
-        let mut child_path =
-            path.to_vec();
-
-        child_path.push(endpoint);
-
         commands.spawn((
-            Name::new(format!(
-                "Portal Camera {:?}",
-                child_path,
-            )),
+            Name::new(
+                format!(
+                    "Portal Camera {child}"
+                ),
+            ),
             Camera3d::default(),
             Camera {
-                // Dependencies deeper in the tree render first.
+                // Deeper render dependencies execute first.
                 order:
-                    -(child_path.len()
-                        as isize),
+                -(node_depth(child)
+                    as isize),
                 ..default()
             },
             RenderTarget::Image(
-                image.clone().into(),
+                image.into(),
             ),
             Projection::Perspective(
                 PerspectiveProjection::default(),
             ),
             Transform::default(),
+
+            // Ordinary world plus portal surfaces belonging to this camera's
+            // recursive context.
             RenderLayers::layer(
                 WORLD_LAYER,
             )
-            .with(child_layer),
+                .with(child),
+
             PortalRenderCamera {
-                path:
-                    child_path.clone(),
+                node: child,
             },
         ));
 
-        targets.push(image);
-
-        build_context(
+        build_render_node(
             commands,
             pair,
-            config,
-            &child_path,
-            child_layer,
+            child,
             depth + 1,
-            surface_mesh,
+            max_depth,
+            mesh,
             terminal_material,
             render_size,
             materials,
             images,
-            next_layer,
             targets,
+            config,
         );
     }
+}
+
+fn node_depth(
+    node: usize,
+) -> usize {
+    usize::BITS as usize
+        - node.leading_zeros()
+        as usize
+        - 1
 }

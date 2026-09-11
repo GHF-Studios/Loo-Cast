@@ -1,15 +1,17 @@
 use bevy::prelude::*;
 
-use crate::game::portal::domain::PortalEndpoint;
-
-/// Human-readable sequence of portal endpoints traversed by a virtual camera.
+/// A camera rendering one node of the recursive portal-view tree.
 ///
-/// Examples:
+/// Node `1` is the primary camera context.
 ///
-/// - `[First]`
-/// - `[First, Second]`
-/// - `[Second, Second, First]`
-#[derive(Component, Debug, Clone)]
+/// For any node:
+///
+/// - `node * 2`     = view through portal A
+/// - `node * 2 + 1` = view through portal B
+///
+/// This is deliberately the same representation used by the original,
+/// known-working renderer.
+#[derive(Component, Debug, Clone, Copy)]
 pub struct PortalRenderCamera {
-    pub path: Vec<PortalEndpoint>,
+    pub node: usize,
 }
