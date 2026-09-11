@@ -1,14 +1,10 @@
 use bevy::prelude::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct PlaygroundItemId(
-    pub &'static str,
-);
+pub struct PlaygroundItemId(pub &'static str);
 
 impl PlaygroundItemId {
-    pub const fn new(
-        value: &'static str,
-    ) -> Self {
+    pub const fn new(value: &'static str) -> Self {
         Self(value)
     }
 }
@@ -26,17 +22,9 @@ pub struct PlaygroundCatalog {
 }
 
 impl PlaygroundCatalog {
-    pub fn register(
-        &mut self,
-        item: PlaygroundItem,
-    ) {
+    pub fn register(&mut self, item: PlaygroundItem) {
         assert!(
-            !self
-                .items
-                .iter()
-                .any(|existing| {
-                    existing.id == item.id
-                }),
+            !self.items.iter().any(|existing| existing.id == item.id),
             "duplicate playground item id: {}",
             item.id.0,
         );
@@ -44,41 +32,13 @@ impl PlaygroundCatalog {
         self.items.push(item);
     }
 
-    pub fn items(
-        &self,
-    ) -> &[PlaygroundItem] {
+    pub fn items(&self) -> &[PlaygroundItem] {
         &self.items
     }
 
-    pub fn find(
-        &self,
-        id: PlaygroundItemId,
-    ) -> Option<&PlaygroundItem> {
-        self.items
-            .iter()
-            .find(|item| item.id == id)
+    pub fn find(&self, id: PlaygroundItemId) -> Option<&PlaygroundItem> {
+        self.items.iter().find(|item| item.id == id)
     }
-}
-
-#[derive(Resource, Debug, Clone, Copy)]
-pub struct PlaygroundSelection {
-    pub item: PlaygroundItemId,
-}
-
-impl Default for PlaygroundSelection {
-    fn default() -> Self {
-        Self {
-            item:
-                PlaygroundItemId::new(
-                    "projectile_gun",
-                ),
-        }
-    }
-}
-
-#[derive(Resource, Debug, Default)]
-pub struct PlaygroundMenuState {
-    pub open: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -88,43 +48,25 @@ pub struct AimRay {
 }
 
 impl AimRay {
-    pub fn new(
-        origin: Vec3,
-        direction: Vec3,
-    ) -> Self {
+    pub fn new(origin: Vec3, direction: Vec3) -> Self {
         Self {
             origin,
-            direction:
-                direction.normalize_or_zero(),
+            direction: direction.normalize_or_zero(),
         }
     }
 
-    pub fn horizontal_plane(
-        self,
-        y: f32,
-        max_distance: f32,
-    ) -> Option<Vec3> {
-        if self.direction.y.abs()
-            <= f32::EPSILON
-        {
+    pub fn horizontal_plane(self, y: f32, max_distance: f32) -> Option<Vec3> {
+        if self.direction.y.abs() <= f32::EPSILON {
             return None;
         }
 
-        let distance =
-            (y - self.origin.y)
-                / self.direction.y;
+        let distance = (y - self.origin.y) / self.direction.y;
 
-        if distance < 0.0
-            || distance > max_distance
-        {
+        if distance < 0.0 || distance > max_distance {
             return None;
         }
 
-        Some(
-            self.origin
-                + self.direction
-                    * distance,
-        )
+        Some(self.origin + self.direction * distance)
     }
 }
 
