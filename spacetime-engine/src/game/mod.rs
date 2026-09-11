@@ -1,19 +1,8 @@
-//! Minimal, production-shaped test game.
-//!
-//! The game deliberately contains ordinary gameplay only. It exists as a
-//! clean baseline against which USF entity manifestation can later be tested.
-//!
-//! Public extension points are:
-//!
-//! - components containing gameplay state;
-//! - messages describing gameplay facts and requests;
-//! - [`GameSet`] for coarse system ordering;
-//! - configuration resources.
-//!
-//! Implementation systems remain private.
+//! Small test game used to pressure-test Spacetime Engine semantics.
 
 pub mod combat;
 pub mod player;
+pub mod portal;
 pub mod target;
 pub mod ui;
 
@@ -22,7 +11,7 @@ use bevy::prelude::*;
 use combat::{Damage, Died, FireWeapon, Hit};
 use target::SpawnTarget;
 
-/// Stable scheduling phases exposed to downstream gameplay and mods.
+/// Stable top-level extension points.
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum GameSet {
     Input,
@@ -33,7 +22,18 @@ pub enum GameSet {
     Presentation,
 }
 
-/// Complete baseline game.
+/// Internal structure of physical simulation.
+///
+/// Topology deliberately sits between motion and collision: an object moves,
+/// may cross a portal, and is then tested for collisions at its resulting
+/// location.
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SimulationSet {
+    Motion,
+    Topology,
+    Collision,
+}
+
 pub struct TestGamePlugin;
 
 impl Plugin for TestGamePlugin {
@@ -55,9 +55,20 @@ impl Plugin for TestGamePlugin {
                 )
                     .chain(),
             )
+            .configure_sets(
+                Update,
+                (
+                    SimulationSet::Motion,
+                    SimulationSet::Topology,
+                    SimulationSet::Collision,
+                )
+                    .chain()
+                    .in_set(GameSet::Simulation),
+            )
             .add_plugins((
                 combat::CombatPlugin,
                 player::PlayerPlugin,
+                portal::PortalPlugin,
                 target::TargetPlugin,
                 ui::HudPlugin,
             ))
@@ -65,9 +76,6 @@ impl Plugin for TestGamePlugin {
     }
 }
 
-/// Presentation assets shared by the built-in mechanics.
-///
-/// These are deliberately not part of the public gameplay API.
 #[derive(Resource)]
 pub(crate) struct GameAssets {
     pub target_mesh: Handle<Mesh>,

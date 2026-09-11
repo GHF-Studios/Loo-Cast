@@ -1,9 +1,7 @@
-//! Player entity and default input bindings.
-//!
-//! Input produces gameplay requests where appropriate instead of directly
-//! performing the requested mechanic.
+//! Player entity and built-in first-person input.
 
 use bevy::{
+    camera::visibility::RenderLayers,
     input::mouse::AccumulatedMouseMotion,
     prelude::*,
 };
@@ -11,14 +9,17 @@ use bevy::{
 use super::{
     GameSet,
     combat::{FireWeapon, Weapon},
+    portal::{
+        MAIN_PORTAL_LAYER,
+        PortalTraveler,
+        PortalView,
+    },
     target::SpawnTarget,
 };
 
-/// Marks the single locally controlled player.
 #[derive(Component)]
 pub struct Player;
 
-/// Configuration for the built-in first-person controller.
 #[derive(Component, Debug, Clone, Copy)]
 pub struct PlayerController {
     pub move_speed: f32,
@@ -54,13 +55,19 @@ impl Plugin for PlayerPlugin {
 }
 
 fn spawn_player(mut commands: Commands) {
+    let position = Vec3::new(0.0, 1.5, 8.0);
+
     commands.spawn((
         Name::new("Player"),
         Player,
         PlayerController::default(),
         Weapon::default(),
+        PortalView,
+        PortalTraveler::new(position),
         Camera3d::default(),
-        Transform::from_xyz(0.0, 1.5, 8.0),
+        IsDefaultUiCamera,
+        RenderLayers::layer(0).with(MAIN_PORTAL_LAYER),
+        Transform::from_translation(position),
     ));
 }
 
@@ -121,9 +128,10 @@ fn movement(
         direction -= right;
     }
 
-    transform.translation += direction.normalize_or_zero()
-        * controller.move_speed
-        * time.delta_secs();
+    transform.translation +=
+        direction.normalize_or_zero()
+            * controller.move_speed
+            * time.delta_secs();
 }
 
 fn request_fire(
