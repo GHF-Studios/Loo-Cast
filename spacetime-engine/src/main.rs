@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use spacetime_engine::{
     ecs::component_conflict::ComponentConflictPlugin,
     game::TestGamePlugin,
+    physics::SpacetimePhysicsPlugin,
 };
 
 fn main() {
@@ -10,6 +11,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugins((
             ComponentConflictPlugin,
+            SpacetimePhysicsPlugin,
             TestGamePlugin,
         ))
         .run();

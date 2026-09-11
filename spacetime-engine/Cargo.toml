@@ -16,4 +16,5 @@ bevy = {
         "debug",
     ],
 }
+avian3d = "0.7.0"
 inventory = { workspace = true }

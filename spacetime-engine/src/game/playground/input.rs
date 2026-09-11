@@ -7,6 +7,7 @@ use crate::game::{
     InputSet,
     player::{
         Player,
+        PlayerAim,
         PlayerCamera,
         cursor::CursorCapture,
     },
@@ -102,8 +103,8 @@ fn use_selected_item(
     menu: Res<CreativeMenuState>,
     hotbar: Res<Hotbar>,
     capture: Res<CursorCapture>,
-    player: Single<Entity, With<Player>>,
-    camera: Single<&Transform, With<PlayerCamera>>,
+    player: Single<(Entity, &Transform, &PlayerAim), With<Player>>,
+    camera: Single<&PlayerCamera>,
     mut use_item: MessageWriter<UsePlaygroundItem>,
     mut erase: MessageWriter<ErasePlaygroundObject>,
 ) {
@@ -111,9 +112,13 @@ fn use_selected_item(
         return;
     }
 
+    let (actor, body, player_aim) = player.into_inner();
+    let camera_transform =
+        camera.resolve_transform(body, player_aim);
+
     let aim = AimRay::new(
-        camera.translation,
-        camera.rotation * Vec3::NEG_Z,
+        camera_transform.translation,
+        camera_transform.rotation * Vec3::NEG_Z,
     );
 
     if mouse.just_pressed(MouseButton::Left)
@@ -122,7 +127,7 @@ fn use_selected_item(
     {
         use_item.write(UsePlaygroundItem {
             item,
-            actor: *player,
+            actor,
             aim,
         });
     }

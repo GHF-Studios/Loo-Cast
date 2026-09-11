@@ -8,8 +8,8 @@ pub struct PlayerModel;
 
 /// Creates the deliberately boring reference model.
 ///
-/// It is an actual 1×1×1 cube so portal projection problems are visually
-/// obvious instead of being confused with non-uniform model dimensions.
+/// It remains a 1×1×1 cube so portal projection problems are visually obvious.
+/// The parent gameplay transform now represents the physical hull center.
 pub fn create_model(
     meshes: &mut Assets<Mesh>,
     materials: &mut Assets<StandardMaterial>,
@@ -21,8 +21,6 @@ pub fn create_model(
         MeshMaterial3d(
             materials.add(Color::srgb(0.25, 0.45, 0.9)),
         ),
-
-        // The gameplay transform represents roughly eye height.
-        Transform::from_xyz(0.0, -0.75, 0.0),
+        Transform::IDENTITY,
     )
 }

@@ -9,15 +9,23 @@ mod model;
 pub use components::{
     CameraMode,
     Player,
+    PlayerAim,
     PlayerCamera,
     PlayerController,
 };
 
 pub use model::PlayerModel;
 
+use avian3d::prelude::Collider;
 use bevy::{
+    app::{RunFixedMainLoop, RunFixedMainLoopSystems},
     camera::visibility::RenderLayers,
     prelude::*,
+};
+
+use crate::physics::character::{
+    CharacterMotor,
+    SourceCharacterDimensions,
 };
 
 use super::{
@@ -38,17 +46,24 @@ impl Plugin for PlayerPlugin {
         app.init_resource::<cursor::CursorCapture>()
             .add_systems(Startup, spawn_player)
             .add_systems(
+                RunFixedMainLoop,
+                (
+                    controls::look,
+                    controls::movement,
+                )
+                    .chain()
+                    .in_set(
+                        RunFixedMainLoopSystems::BeforeFixedMainLoop,
+                    ),
+            )
+            .add_systems(
                 Update,
                 cursor::update_cursor_capture
                     .in_set(InputSet::Cursor),
             )
             .add_systems(
                 Update,
-                (
-                    controls::look,
-                    controls::movement,
-                    camera::toggle_camera_mode,
-                )
+                camera::toggle_camera_mode
                     .in_set(InputSet::Gameplay),
             )
             .add_systems(
@@ -64,8 +79,12 @@ fn spawn_player(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let position =
-        Vec3::new(0.0, 1.5, 8.0);
+    // Player Transform is the physical standing-hull center, not the eye.
+    let position = Vec3::new(
+        0.0,
+        SourceCharacterDimensions::HALF_HEIGHT + 0.01,
+        8.0,
+    );
 
     let model =
         model::create_model(
@@ -79,6 +98,9 @@ fn spawn_player(
                 Name::new("Player"),
                 Player,
                 PlayerController::default(),
+                PlayerAim::default(),
+                CharacterMotor,
+                SourceCharacterDimensions::standing_collider(),
                 Weapon::default(),
                 PortalTraveler::new(position),
                 Transform::from_translation(
@@ -101,8 +123,6 @@ fn spawn_player(
         IsDefaultUiCamera,
         RenderLayers::layer(0)
             .with(MAIN_PORTAL_LAYER),
-        Transform::from_translation(
-            position,
-        ),
+        Transform::from_translation(position),
     ));
 }

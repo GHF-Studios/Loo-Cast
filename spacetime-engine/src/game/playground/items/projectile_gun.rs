@@ -72,6 +72,10 @@ fn use_projectile_gun(
             FireWeapon {
                 wielder:
                     request.actor,
+                origin:
+                    request.aim.origin,
+                direction:
+                    request.aim.direction,
             },
         );
     }

@@ -101,6 +101,8 @@ impl Default for Weapon {
 #[derive(Message, Debug, Clone, Copy)]
 pub struct FireWeapon {
     pub wielder: Entity,
+    pub origin: Vec3,
+    pub direction: Vec3,
 }
 
 #[derive(Component, Debug, Clone, Copy)]
@@ -161,21 +163,25 @@ impl Plugin for CombatPlugin {
 fn fire_weapons(
     mut commands: Commands,
     mut requests: MessageReader<FireWeapon>,
-    weapons: Query<(&Weapon, &Transform)>,
+    weapons: Query<&Weapon>,
     assets: Res<GameAssets>,
 ) {
     for request in requests.read() {
-        let Ok((weapon, transform)) =
+        let Ok(weapon) =
             weapons.get(request.wielder)
         else {
             continue;
         };
 
         let forward =
-            transform.rotation * Vec3::NEG_Z;
+            request.direction.normalize_or_zero();
+
+        if forward == Vec3::ZERO {
+            continue;
+        }
 
         let position =
-            transform.translation + forward * 0.5;
+            request.origin + forward * 0.5;
 
         commands.spawn((
             Name::new("Projectile"),

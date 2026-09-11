@@ -4,6 +4,7 @@
 //! continuity problem while crossing is reserved for the later manifestation
 //! experiment.
 
+use avian3d::prelude::LinearVelocity;
 use bevy::prelude::*;
 
 use crate::game::portal::{
@@ -28,6 +29,7 @@ pub(in super::super) fn teleport_travelers(
             &mut Transform,
             &mut PortalTraveler,
             Option<&mut PortalVelocity>,
+            Option<&mut LinearVelocity>,
         ),
         Without<Portal>,
     >,
@@ -35,7 +37,8 @@ pub(in super::super) fn teleport_travelers(
     for (
         mut transform,
         mut traveler,
-        mut velocity,
+        mut portal_velocity,
+        mut linear_velocity,
     ) in &mut travelers
     {
         let current =
@@ -80,6 +83,12 @@ pub(in super::super) fn teleport_travelers(
         if let Some((source, destination)) =
             crossing
         {
+            let mapping =
+                portal_mapping(
+                    &source,
+                    &destination,
+                );
+
             *transform =
                 map_transform(
                     &transform,
@@ -88,14 +97,19 @@ pub(in super::super) fn teleport_travelers(
                 );
 
             if let Some(velocity) =
-                velocity.as_deref_mut()
+                portal_velocity.as_deref_mut()
             {
                 velocity.0 =
-                    portal_mapping(
-                        &source,
-                        &destination,
-                    )
-                    .transform_vector3(
+                    mapping.transform_vector3(
+                        velocity.0,
+                    );
+            }
+
+            if let Some(velocity) =
+                linear_velocity.as_deref_mut()
+            {
+                velocity.0 =
+                    mapping.transform_vector3(
                         velocity.0,
                     );
             }

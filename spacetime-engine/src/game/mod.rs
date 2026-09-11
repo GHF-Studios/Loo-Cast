@@ -5,6 +5,7 @@ pub mod player;
 pub mod playground;
 pub mod portal;
 
+use avian3d::prelude::{Collider, RigidBody};
 use bevy::prelude::*;
 
 use combat::{Damage, Died, FireWeapon, Hit};
@@ -134,6 +135,9 @@ fn setup_scene(
         MeshMaterial3d(
             materials.add(Color::srgb(0.15, 0.15, 0.15)),
         ),
+        RigidBody::Static,
+        Collider::cuboid(50.0, 0.1, 50.0),
+        Transform::from_xyz(0.0, -0.05, 0.0),
     ));
 
     commands.spawn((
