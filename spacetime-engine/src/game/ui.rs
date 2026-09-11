@@ -38,7 +38,9 @@ fn spawn_hud(mut commands: Commands) {
     ));
 
     commands.spawn((
-        Text::new("WASD move | Mouse look | LMB fire | G spawn"),
+        Text::new(
+            "WASD move | Mouse look | LMB fire | G spawn | F5 camera | Esc mouse",
+        ),
         Node {
             position_type: PositionType::Absolute,
             bottom: px(12),

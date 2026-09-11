@@ -24,14 +24,25 @@ pub enum GameSet {
 
 /// Internal structure of physical simulation.
 ///
-/// Topology deliberately sits between motion and collision: an object moves,
-/// may cross a portal, and is then tested for collisions at its resulting
-/// location.
+/// Topological remapping deliberately happens after motion but before
+/// collision:
+///
+/// `Motion -> Topology -> Collision`
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SimulationSet {
     Motion,
     Topology,
     Collision,
+}
+
+/// Ordering inside presentation.
+///
+/// The primary camera is resolved before views derived from it, such as portal
+/// render cameras.
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum PresentationSet {
+    PrimaryView,
+    DerivedViews,
 }
 
 pub struct TestGamePlugin;
@@ -65,6 +76,15 @@ impl Plugin for TestGamePlugin {
                     .chain()
                     .in_set(GameSet::Simulation),
             )
+            .configure_sets(
+                Update,
+                (
+                    PresentationSet::PrimaryView,
+                    PresentationSet::DerivedViews,
+                )
+                    .chain()
+                    .in_set(GameSet::Presentation),
+            )
             .add_plugins((
                 combat::CombatPlugin,
                 player::PlayerPlugin,
@@ -97,9 +117,13 @@ fn setup_scene(
     });
 
     commands.spawn((
-        Mesh3d(meshes.add(
-            Plane3d::default().mesh().size(50.0, 50.0),
-        )),
+        Mesh3d(
+            meshes.add(
+                Plane3d::default()
+                    .mesh()
+                    .size(50.0, 50.0),
+            ),
+        ),
         MeshMaterial3d(
             materials.add(Color::srgb(0.15, 0.15, 0.15)),
         ),
