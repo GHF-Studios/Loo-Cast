@@ -77,7 +77,7 @@ impl CharacterMovementConfig {
             max_ground_speed: 320.0 * Self::SOURCE_UNIT_METRES,
             ground_acceleration: 10.0,
             air_acceleration: 10.0,
-            friction: 4.0,
+            friction: 8.0,
             stop_speed: 100.0 * Self::SOURCE_UNIT_METRES,
             surface_friction: 1.0,
             gravity: 800.0 * Self::SOURCE_UNIT_METRES,

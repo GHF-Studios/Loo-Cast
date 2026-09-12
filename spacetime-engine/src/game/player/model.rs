@@ -2,6 +2,8 @@
 
 use bevy::prelude::*;
 
+use crate::physics::character::SourceCharacterDimensions;
+
 /// Marks presentation geometry belonging to the player.
 #[derive(Component)]
 pub struct PlayerModel;
@@ -17,7 +19,11 @@ pub fn create_model(
     (
         Name::new("Player Model"),
         PlayerModel,
-        Mesh3d(meshes.add(Cuboid::from_length(1.0))),
+        Mesh3d(meshes.add(Cuboid::new(
+            SourceCharacterDimensions::HULL_WIDTH,
+            SourceCharacterDimensions::HULL_HEIGHT,
+            SourceCharacterDimensions::HULL_WIDTH,
+        ))),
         MeshMaterial3d(
             materials.add(Color::srgb(0.25, 0.45, 0.9)),
         ),
