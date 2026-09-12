@@ -102,44 +102,50 @@ pub fn toggle_noclip(
 pub fn stance(
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
-    spatial_query: SpatialQuery,
-    mut player: Single<
-        (
-            Entity,
-            &mut Transform,
-            &mut Collider,
-            &mut PlayerStance,
-            &PlayerNoclip,
-            &mut PortalTraveler,
-        ),
-        With<Player>,
-    >,
+    mut params: ParamSet<(
+        SpatialQuery,
+        Single<
+            (
+                Entity,
+                &mut Transform,
+                &mut Collider,
+                &mut PlayerStance,
+                &PlayerNoclip,
+                &mut PortalTraveler,
+            ),
+            With<Player>,
+        >,
+    )>,
     mut camera: Single<&mut PlayerCamera>,
 ) {
     if gameplay_suppressed(&keyboard, &capture) {
         return;
     }
 
-    let (entity, mut body, mut collider, mut stance, noclip, mut traveler) =
-        player.into_inner();
-
-    if noclip.active {
-        return;
-    }
-
     let wants_crouch = keyboard.pressed(KeyCode::ControlLeft)
         || keyboard.pressed(KeyCode::KeyC);
 
-    if wants_crouch == stance.crouched {
+    let (noclip_active, crouched) = {
+        let mut player = params.p1();
+        let (_, _, _, stance, noclip, _) = player.into_inner();
+        (noclip.active, stance.crouched)
+    };
+
+    if noclip_active || wants_crouch == crouched {
         return;
     }
 
-    let up = (body.rotation * Vec3::Y).normalize_or_zero();
-    let up = if up == Vec3::ZERO { Vec3::Y } else { up };
     let center_delta = CharacterDimensions::HALF_HEIGHT
         - CharacterDimensions::CROUCH_HALF_HEIGHT;
 
     if wants_crouch {
+        let mut player = params.p1();
+        let (_, mut body, mut collider, mut stance, _, mut traveler) =
+            player.into_inner();
+
+        let up = (body.rotation * Vec3::Y).normalize_or_zero();
+        let up = if up == Vec3::ZERO { Vec3::Y } else { up };
+
         body.translation -= up * center_delta;
         *collider = CharacterDimensions::crouching_collider();
         stance.crouched = true;
@@ -149,21 +155,33 @@ pub fn stance(
         return;
     }
 
+    let (entity, target_center, rotation) = {
+        let mut player = params.p1();
+        let (entity, body, _, _, _, _) = player.into_inner();
+        let up = (body.rotation * Vec3::Y).normalize_or_zero();
+        let up = if up == Vec3::ZERO { Vec3::Y } else { up };
+
+        (
+            entity,
+            body.translation + up * center_delta,
+            body.rotation,
+        )
+    };
+
     let standing = CharacterDimensions::standing_collider();
-    let target_center = body.translation + up * center_delta;
     let filter = SpatialQueryFilter::from_excluded_entities([entity]);
 
-    if !spatial_query
-        .shape_intersections(
-            &standing,
-            target_center,
-            body.rotation,
-            &filter,
-        )
+    if !params
+        .p0()
+        .shape_intersections(&standing, target_center, rotation, &filter)
         .is_empty()
     {
         return;
     }
+
+    let mut player = params.p1();
+    let (_, mut body, mut collider, mut stance, _, mut traveler) =
+        player.into_inner();
 
     body.translation = target_center;
     *collider = standing;
@@ -171,7 +189,6 @@ pub fn stance(
     camera.first_person_offset = Vec3::Y * CharacterDimensions::CENTER_TO_EYE;
     traveler.commit_position(body.translation);
 }
-
 /// Samples local controls once per render frame immediately before the fixed
 /// loop. The fixed character motor then consumes this intent deterministically.
 pub fn movement(
