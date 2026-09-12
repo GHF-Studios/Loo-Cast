@@ -38,7 +38,7 @@ pub fn look(
     aim.pitch = aim.pitch.clamp(aim.min_pitch, aim.max_pitch);
 }
 
-/// `N` is the temporary direct binding for the developer `noclip` command.
+/// `V` is the temporary direct binding for the developer `noclip` command.
 pub fn toggle_noclip(
     mut commands: Commands,
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -54,7 +54,7 @@ pub fn toggle_noclip(
         With<Player>,
     >,
 ) {
-    if gameplay_suppressed(&keyboard, &capture) || !keyboard.just_pressed(KeyCode::KeyN) {
+    if gameplay_suppressed(&keyboard, &capture) || !keyboard.just_pressed(KeyCode::KeyV) {
         return;
     }
 
