@@ -2,6 +2,7 @@
 
 pub mod character;
 pub mod collision_topology;
+pub(crate) mod debug;
 pub mod topology;
 
 use avian3d::prelude::PhysicsPlugins;

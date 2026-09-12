@@ -11,6 +11,7 @@
 //! [`PortalCommand`] rather than editing portal entities directly. Rendering
 //! details remain private to this module.
 
+pub(crate) mod debug;
 mod domain;
 mod rendering;
 mod simulation;

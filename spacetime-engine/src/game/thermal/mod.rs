@@ -9,6 +9,7 @@
 //! thermal injury emits generic combat [`Damage`](crate::game::combat::Damage),
 //! while flame geometry/light is derived presentation only.
 
+pub(crate) mod debug;
 mod domain;
 mod presentation;
 mod simulation;

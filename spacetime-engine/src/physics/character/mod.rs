@@ -6,6 +6,7 @@
 
 mod config;
 mod controller;
+pub(crate) mod debug;
 mod frame;
 mod input;
 mod math;

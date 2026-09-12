@@ -27,6 +27,7 @@ use bevy::{
 };
 
 use crate::{
+    debug::DebugCamera,
     ecs::{UsfEntity, UsfManifestationAuthority, UsfManifestationOf},
     physics::{
         character::{CharacterDimensions, CharacterGroundState, CharacterMotor, CharacterMovementInput},
@@ -171,6 +172,7 @@ fn spawn_player(
         Name::new("Player Camera"),
         PlayerCamera::default(),
         PortalView,
+        DebugCamera,
         Camera3d::default(),
         IsDefaultUiCamera,
         RenderLayers::layer(0).with(MAIN_PORTAL_LAYER),
