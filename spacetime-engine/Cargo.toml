@@ -14,7 +14,10 @@ bevy = {
         "3d_bevy_render",
         "ui_bevy_render",
         "debug",
+        "file_watcher",
     ],
 }
 avian3d = "0.7.0"
+ron = "0.12"
+serde = { version = "1", features = ["derive"] }
 inventory = { workspace = true }

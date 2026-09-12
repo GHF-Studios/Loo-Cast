@@ -8,6 +8,7 @@ mod input;
 mod inventory;
 mod items;
 mod lifecycle;
+mod map;
 mod object;
 mod picking;
 mod ui;
@@ -47,6 +48,7 @@ impl Plugin for PlaygroundPlugin {
             .add_message::<ErasePlaygroundObject>()
             .add_plugins((
                 items::PlaygroundItemsPlugin,
+                map::PlaygroundMapPlugin,
                 ui::PlaygroundUiPlugin,
             ));
 

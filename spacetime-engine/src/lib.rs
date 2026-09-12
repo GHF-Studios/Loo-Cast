@@ -4,6 +4,7 @@
 
 pub mod ecs;
 pub mod game;
+pub mod geometry;
 pub mod physics;
 
 use spacetime_engine_macros::*;
