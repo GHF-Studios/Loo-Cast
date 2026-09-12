@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use avian3d::prelude::{Collider, LinearVelocity, RigidBody};
 use bevy::prelude::*;
 
+use crate::physics::collision_topology::CollisionClipSource;
+
 use super::{
     asset::AuthoredMap,
     compile::{CompiledGeometry, CompiledMotion, CompiledNode, CompiledShape, compile_map},
@@ -204,22 +206,26 @@ fn spawn_geometry(
         return;
     };
 
-    let (mesh, collider) = match &geometry.shape {
+    let (mesh, collider, clip_source) = match &geometry.shape {
         CompiledShape::Box { size } => (
             meshes.add(Cuboid::new(size.x, size.y, size.z)),
             Some(Collider::cuboid(size.x, size.y, size.z)),
+            Some(CollisionClipSource::cuboid(*size)),
         ),
         CompiledShape::Cylinder { radius, height } => (
             meshes.add(Cylinder::new(*radius, *height)),
             Some(Collider::cylinder(*radius, *height)),
+            None,
         ),
         CompiledShape::Sphere { radius } => (
             meshes.add(Sphere::new(*radius)),
             Some(Collider::sphere(*radius)),
+            None,
         ),
         CompiledShape::Capsule { radius, length } => (
             meshes.add(Capsule3d::new(*radius, *length)),
             Some(Collider::capsule(*radius, *length)),
+            None,
         ),
         CompiledShape::ConvexPrism {
             cross_section,
@@ -227,7 +233,7 @@ fn spawn_geometry(
         } => {
             let mesh = meshes.add(convex_prism_mesh(cross_section, *depth));
             let collider = Collider::convex_hull(convex_prism_points(cross_section, *depth));
-            (mesh, collider)
+            (mesh, collider, None)
         }
     };
 
@@ -265,6 +271,9 @@ fn spawn_geometry(
     } else if geometry.solid {
         if let Some(collider) = collider {
             entity.insert((RigidBody::Static, collider));
+            if let Some(source) = clip_source {
+                entity.insert(source);
+            }
         } else {
             warn!("authored convex geometry could not build a collider");
         }

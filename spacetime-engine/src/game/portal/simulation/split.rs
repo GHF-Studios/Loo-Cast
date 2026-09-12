@@ -34,10 +34,10 @@ use crate::game::portal::{
 
 const PREOPEN_MARGIN: f32 = 0.04;
 const CLEAR_MARGIN: f32 = 0.02;
-const APERTURE_MARGIN: f32 = 0.015;
-const HOST_PROBE_OFFSET: f32 = 0.04;
-const HOST_PROBE_DEPTH: f32 = 0.10;
-const HOST_SAMPLE_INSET: f32 = 0.96;
+/// Fit tolerance is positive: a hull exactly tangent to an aperture edge is a
+/// valid traversal configuration. The collision stencil itself adds a small
+/// physical clearance to keep numerical contacts from forming a lip.
+const APERTURE_FIT_TOLERANCE: f32 = 0.01;
 const CROSSING_EPSILON: f32 = 1.0e-5;
 const DESTINATION_REMAINDER_SUBSTEPS: usize = 4;
 
@@ -56,7 +56,6 @@ pub(crate) enum PortalSplitSet {
 /// one-frame ground contact before traversal gets a chance to happen.
 pub(crate) fn prepare_portal_splits(
     time: Res<Time<Fixed>>,
-    spatial_query: SpatialQuery,
     portals: Query<
         (Entity, &Portal, &PortalActive, &Transform),
         (With<Portal>, Without<UsfManifestationAuthority>),
@@ -107,22 +106,10 @@ pub(crate) fn prepare_portal_splits(
             split.active = find_split_candidate(*split_box, body, velocity.0, dt, &portals);
         }
 
-        let mut excluded = vec![peer];
-
-        if let Some(active) = split.active {
-            if let Ok((_, portal, active_flag, source)) = portals.get(active.source) {
-                if active_flag.0 {
-                    excluded.extend(collect_host_colliders(
-                        &spatial_query,
-                        source,
-                        portal.half_size,
-                        [entity, peer, active.source, active.destination],
-                    ));
-                }
-            }
-        }
-
-        exclusions.replace(excluded);
+        // Whole-entity exclusions are now reserved for the peer manifestation.
+        // Portal hosts expose an actual clipped collider instead of disappearing
+        // from the character controller's query world.
+        exclusions.replace([peer]);
     }
 }
 
@@ -290,9 +277,7 @@ pub(crate) fn resolve_portal_splits(
             traveler.commit_position(body.translation);
             continue;
         };
-        let Ok((_, destination_portal, destination_active, destination)) =
-            portals.get(active.destination)
-        else {
+        let Ok((_, _, destination_active, destination)) = portals.get(active.destination) else {
             split.active = None;
             exclusions.replace([peer]);
             traveler.commit_position(body.translation);
@@ -328,17 +313,7 @@ pub(crate) fn resolve_portal_splits(
                 let mapped_crossing = map_transform(&crossing, source, destination);
                 let mapped_velocity = mapping.transform_vector3(velocity.0);
 
-                let hosts = collect_host_colliders(
-                    &move_and_slide.spatial_query,
-                    destination,
-                    destination_portal.half_size,
-                    [entity, peer, active.source, active.destination],
-                );
-                let filter = SpatialQueryFilter::from_excluded_entities(
-                    std::iter::once(entity)
-                        .chain(std::iter::once(peer))
-                        .chain(hosts.iter().copied()),
-                );
+                let filter = SpatialQueryFilter::from_excluded_entities([entity, peer]);
 
                 let remaining = dt * (1.0 - fraction).clamp(0.0, 1.0);
                 let (resolved_body, resolved_velocity) = simulate_destination_remainder(
@@ -367,9 +342,7 @@ pub(crate) fn resolve_portal_splits(
                     destination: active.source,
                 });
 
-                let mut new_exclusions = vec![peer];
-                new_exclusions.extend(hosts);
-                exclusions.replace(new_exclusions);
+                exclusions.replace([peer]);
             }
         }
 
@@ -575,8 +548,8 @@ fn box_fits_aperture_at(
     let radius_x = split_box.projection_radius(body_rotation, right);
     let radius_y = split_box.projection_radius(body_rotation, up);
 
-    local.x.abs() + radius_x <= (half_size.x - APERTURE_MARGIN).max(0.0)
-        && local.y.abs() + radius_y <= (half_size.y - APERTURE_MARGIN).max(0.0)
+    local.x.abs() + radius_x <= half_size.x + APERTURE_FIT_TOLERANCE
+        && local.y.abs() + radius_y <= half_size.y + APERTURE_FIT_TOLERANCE
 }
 
 fn center_crossing_fraction(
@@ -654,41 +627,6 @@ fn destination_half_collider(
     } else {
         partition.negative_collider()
     }
-}
-
-fn collect_host_colliders(
-    spatial_query: &SpatialQuery,
-    portal: &Transform,
-    half_size: Vec2,
-    excluded: impl IntoIterator<Item = Entity>,
-) -> Vec<Entity> {
-    let normal = (portal.rotation * Vec3::Z).normalize_or_zero();
-    let right = portal.rotation * Vec3::X;
-    let up = portal.rotation * Vec3::Y;
-    let Ok(into_surface) = Dir3::new(-normal) else {
-        return Vec::new();
-    };
-    let filter = SpatialQueryFilter::from_excluded_entities(excluded);
-    let mut hosts = Vec::new();
-
-    for x in [-1.0_f32, 0.0, 1.0] {
-        for y in [-1.0_f32, 0.0, 1.0] {
-            let origin = portal.translation
-                + right * (x * half_size.x * HOST_SAMPLE_INSET)
-                + up * (y * half_size.y * HOST_SAMPLE_INSET)
-                + normal * HOST_PROBE_OFFSET;
-
-            if let Some(hit) =
-                spatial_query.cast_ray(origin, into_surface, HOST_PROBE_DEPTH, false, &filter)
-            {
-                if !hosts.contains(&hit.entity) {
-                    hosts.push(hit.entity);
-                }
-            }
-        }
-    }
-
-    hosts
 }
 
 fn peer_manifestation(

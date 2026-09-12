@@ -9,12 +9,7 @@ use bevy::prelude::*;
 
 use crate::{
     ecs::{UsfManifestationOf, UsfManifestations},
-    game::{
-        GameSet,
-        portal::{
-            Portal, PortalActive, PortalCommand, PortalConfig, PortalEndpoint, PortalPair,
-        },
-    },
+    game::{GameSet, portal::{PortalCommand, PortalEndpoint}},
 };
 
 use super::super::{
@@ -25,13 +20,6 @@ use super::super::{
 pub const PORTAL_GUN: PlaygroundItemId = PlaygroundItemId::new("portal_gun");
 
 const PORTAL_RANGE: f32 = 250.0;
-const FIT_PROBE_OFFSET: f32 = 0.02;
-const FIT_PROBE_DEPTH: f32 = 0.05;
-const FIT_INSET: f32 = 0.98;
-const FIT_NORMAL_DOT: f32 = 0.98;
-const PORTAL_OVERLAP_PLANE_EPSILON: f32 = 0.01;
-const PORTAL_OVERLAP_NORMAL_DOT: f32 = 0.999;
-const PORTAL_OVERLAP_EDGE_EPSILON: f32 = 1.0e-4;
 
 pub struct PortalGunItemPlugin;
 
@@ -52,13 +40,14 @@ fn register_item(mut catalog: ResMut<PlaygroundCatalog>) {
 }
 
 /// Converts tool actions into the portal subsystem's public command protocol.
+///
+/// The tool supplies aim intent and a surface-oriented transform only. The
+/// portal simulation layer owns authoritative fit/support/overlap validation,
+/// which keeps future snapping policy out of the item implementation.
 fn use_portal_gun(
     mut uses: MessageReader<UsePlaygroundItem>,
     actors: Query<(&Transform, Option<&UsfManifestationOf>)>,
     semantic_entities: Query<&UsfManifestations>,
-    config: Res<PortalConfig>,
-    pair: Option<Res<PortalPair>>,
-    portals: Query<(&Portal, &PortalActive, &Transform)>,
     spatial_query: SpatialQuery,
     mut portal_commands: MessageWriter<PortalCommand>,
 ) {
@@ -115,35 +104,7 @@ fn use_portal_gun(
         };
 
         let surface_point = request.aim.origin + request.aim.direction * hit.distance;
-
-        if !aperture_fits_surface(
-            &spatial_query,
-            &filter,
-            surface_point,
-            normal,
-            rotation,
-            config.size / 2.0,
-        ) {
-            continue;
-        }
-
         let transform = Transform::from_translation(surface_point).with_rotation(rotation);
-
-        if let Some(pair) = pair.as_deref() {
-            let other_entity = pair.entity(endpoint.other());
-            if let Ok((other_portal, other_active, other_transform)) = portals.get(other_entity) {
-                if other_active.0
-                    && coplanar_apertures_overlap(
-                        &transform,
-                        config.size / 2.0,
-                        other_transform,
-                        other_portal.half_size,
-                    )
-                {
-                    continue;
-                }
-            }
-        }
 
         portal_commands.write(PortalCommand::Place {
             endpoint,
@@ -195,89 +156,6 @@ fn reject(vector: Vec3, axis: Vec3) -> Vec3 {
     vector - axis * vector.dot(axis)
 }
 
-/// Returns whether two effectively coplanar portal apertures overlap.
-///
-/// Each aperture is treated as an oriented rectangle in its own local XY
-/// plane. Touching edges are allowed; positive-area overlap is rejected.
-fn coplanar_apertures_overlap(
-    first: &Transform,
-    first_half_size: Vec2,
-    second: &Transform,
-    second_half_size: Vec2,
-) -> bool {
-    let first_normal = (first.rotation * Vec3::Z).normalize_or_zero();
-    let second_normal = (second.rotation * Vec3::Z).normalize_or_zero();
-    if first_normal == Vec3::ZERO || second_normal == Vec3::ZERO {
-        return false;
-    }
-
-    if first_normal.dot(second_normal).abs() < PORTAL_OVERLAP_NORMAL_DOT {
-        return false;
-    }
-
-    let center_delta = second.translation - first.translation;
-    if center_delta.dot(first_normal).abs() > PORTAL_OVERLAP_PLANE_EPSILON {
-        return false;
-    }
-
-    let first_right = first.rotation * Vec3::X;
-    let first_up = first.rotation * Vec3::Y;
-    let second_right = second.rotation * Vec3::X;
-    let second_up = second.rotation * Vec3::Y;
-
-    [first_right, first_up, second_right, second_up]
-        .into_iter()
-        .all(|axis| {
-            let center_distance = center_delta.dot(axis).abs();
-            let first_radius = first_half_size.x * first_right.dot(axis).abs()
-                + first_half_size.y * first_up.dot(axis).abs();
-            let second_radius = second_half_size.x * second_right.dot(axis).abs()
-                + second_half_size.y * second_up.dot(axis).abs();
-
-            center_distance < first_radius + second_radius - PORTAL_OVERLAP_EDGE_EPSILON
-        })
-}
-
-/// Samples the candidate aperture against colliders so obvious wall edges,
-/// holes and sharp non-planar transitions reject placement. Adjacent coplanar
-/// collider entities are allowed; the portal domain does not care how a wall
-/// was authored.
-fn aperture_fits_surface(
-    spatial_query: &SpatialQuery,
-    filter: &SpatialQueryFilter,
-    center: Vec3,
-    normal: Vec3,
-    rotation: Quat,
-    half_size: Vec2,
-) -> bool {
-    let right = rotation * Vec3::X;
-    let up = rotation * Vec3::Y;
-    let Ok(into_surface) = Dir3::new(-normal) else {
-        return false;
-    };
-
-    for x in [-1.0_f32, 0.0, 1.0] {
-        for y in [-1.0_f32, 0.0, 1.0] {
-            let sample = center
-                + right * (x * half_size.x * FIT_INSET)
-                + up * (y * half_size.y * FIT_INSET)
-                + normal * FIT_PROBE_OFFSET;
-
-            let Some(hit) =
-                spatial_query.cast_ray(sample, into_surface, FIT_PROBE_DEPTH, false, filter)
-            else {
-                return false;
-            };
-
-            if hit.normal.normalize_or_zero().dot(normal) < FIT_NORMAL_DOT {
-                return false;
-            }
-        }
-    }
-
-    true
-}
-
 /// Presentation-only laser preview. Its inputs are generic playground state,
 /// not player camera/input internals.
 fn draw_laser_pointer(
@@ -324,26 +202,5 @@ mod tests {
 
         assert!((rotation * Vec3::Z - normal).length() < 1e-5);
         assert!((rotation * Vec3::Y - Vec3::Y).length() < 1e-5);
-    }
-
-    #[test]
-    fn coplanar_portal_apertures_reject_overlap_but_allow_touching() {
-        let first = Transform::default();
-        let overlapping = Transform::from_xyz(1.0, 0.0, 0.0);
-        let touching = Transform::from_xyz(2.5, 0.0, 0.0);
-        let half_size = Vec2::new(1.25, 1.75);
-
-        assert!(coplanar_apertures_overlap(
-            &first,
-            half_size,
-            &overlapping,
-            half_size,
-        ));
-        assert!(!coplanar_apertures_overlap(
-            &first,
-            half_size,
-            &touching,
-            half_size,
-        ));
     }
 }

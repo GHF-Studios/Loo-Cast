@@ -33,6 +33,13 @@ pub struct Portal {
     pub sidedness: PortalSidedness,
 }
 
+/// The clip-capable world collider currently supporting this endpoint.
+///
+/// Support is resolved when a portal is placed. Traversal never rediscovers
+/// hosts with ad-hoc raycasts; collision topology consumes this stable binding.
+#[derive(Component, Debug, Default, Clone, Copy)]
+pub(crate) struct PortalSupport(pub Option<Entity>);
+
 /// Whether an endpoint is currently placed in gameplay.
 ///
 /// The entity and its rendering infrastructure persist while inactive. This
@@ -44,7 +51,7 @@ pub struct PortalActive(pub bool);
 
 impl Default for PortalActive {
     fn default() -> Self {
-        Self(true)
+        Self(false)
     }
 }
 

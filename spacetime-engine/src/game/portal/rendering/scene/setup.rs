@@ -2,18 +2,23 @@
 
 use bevy::{prelude::*, window::PrimaryWindow};
 
-use crate::game::portal::{
-    PortalActive,
-    domain::{Portal, PortalConfig, PortalEndpoint, PortalPair},
-    rendering::{
-        layout::SURFACE_OVERSCAN,
-        material::PortalMaterial,
-        recursion::{targets::PortalRenderTargets, tree::build_render_tree},
-        render_size,
+use crate::{
+    game::portal::{
+        PortalActive,
+        domain::{Portal, PortalConfig, PortalEndpoint, PortalPair, PortalSupport},
+        rendering::{
+            layout::SURFACE_OVERSCAN,
+            material::PortalMaterial,
+            recursion::{targets::PortalRenderTargets, tree::build_render_tree},
+            render_size,
+        },
     },
+    physics::collision_topology::CollisionStencil,
 };
 
 use super::frame::{create_frame_meshes, spawn_frame};
+
+const COLLISION_APERTURE_CLEARANCE: f32 = 0.01;
 
 pub fn setup_portals(
     mut commands: Commands,
@@ -39,6 +44,12 @@ pub fn setup_portals(
             sidedness: config.sidedness,
         },
         PortalActive::default(),
+        PortalSupport::default(),
+        CollisionStencil::rectangular(
+            config.first.transform,
+            config.size / 2.0,
+            COLLISION_APERTURE_CLEARANCE,
+        ),
         Visibility::Inherited,
         config.first.transform,
     ));
@@ -52,6 +63,12 @@ pub fn setup_portals(
             sidedness: config.sidedness,
         },
         PortalActive::default(),
+        PortalSupport::default(),
+        CollisionStencil::rectangular(
+            config.second.transform,
+            config.size / 2.0,
+            COLLISION_APERTURE_CLEARANCE,
+        ),
         Visibility::Inherited,
         config.second.transform,
     ));

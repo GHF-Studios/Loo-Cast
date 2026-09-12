@@ -1,6 +1,7 @@
 //! Physics integration owned by Spacetime Engine.
 
 pub mod character;
+pub mod collision_topology;
 pub mod topology;
 
 use avian3d::prelude::PhysicsPlugins;
@@ -18,6 +19,10 @@ impl Plugin for SpacetimePhysicsPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<topology::SpatialSplitBox>()
             .add_plugins(PhysicsPlugins::default())
-            .add_plugins(CharacterMovementPlugin);
+            .add_plugins(CharacterMovementPlugin)
+            .add_systems(
+                PostUpdate,
+                collision_topology::rebuild_clipped_colliders,
+            );
     }
 }
