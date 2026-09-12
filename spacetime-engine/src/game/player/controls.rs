@@ -13,7 +13,7 @@ use crate::physics::character::{
 };
 
 use super::{
-    Player, PlayerAim, PlayerController, PlayerNoclip, PlayerStance, cursor::CursorCapture,
+    Player, PlayerAim, PlayerController, PlayerDead, PlayerNoclip, PlayerStance, cursor::CursorCapture,
 };
 
 pub(super) fn gameplay_suppressed(
@@ -49,6 +49,7 @@ pub fn toggle_noclip(
     player: Single<
         (
             Entity,
+            Option<&PlayerDead>,
             &mut PlayerNoclip,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
@@ -61,7 +62,10 @@ pub fn toggle_noclip(
         return;
     }
 
-    let (entity, mut noclip, mut input, mut ground, mut velocity) = player.into_inner();
+    let (entity, dead, mut noclip, mut input, mut ground, mut velocity) = player.into_inner();
+    if dead.is_some() {
+        return;
+    }
 
     noclip.active = !noclip.active;
     input.clear();
@@ -85,6 +89,7 @@ pub fn movement(
         (
             &CharacterLocomotionFrame,
             &CharacterControlFrame,
+            Option<&PlayerDead>,
             &PlayerAim,
             &PlayerController,
             &PlayerStance,
@@ -94,9 +99,9 @@ pub fn movement(
         With<Player>,
     >,
 ) {
-    let (frame, control, aim, controller, stance, noclip, mut input) = player.into_inner();
+    let (frame, control, dead, aim, controller, stance, noclip, mut input) = player.into_inner();
 
-    if gameplay_suppressed(&keyboard, &capture) || noclip.active {
+    if dead.is_some() || gameplay_suppressed(&keyboard, &capture) || noclip.active {
         input.clear();
         return;
     }
@@ -144,6 +149,7 @@ pub fn noclip_movement(
             &mut Transform,
             &CharacterLocomotionFrame,
             &CharacterControlFrame,
+            Option<&PlayerDead>,
             &PlayerAim,
             &PlayerController,
             &PlayerNoclip,
@@ -152,10 +158,10 @@ pub fn noclip_movement(
         With<Player>,
     >,
 ) {
-    let (mut body, frame, control, aim, controller, noclip, mut velocity) =
+    let (mut body, frame, control, dead, aim, controller, noclip, mut velocity) =
         player.into_inner();
 
-    if !noclip.active || gameplay_suppressed(&keyboard, &capture) {
+    if dead.is_some() || !noclip.active || gameplay_suppressed(&keyboard, &capture) {
         return;
     }
 

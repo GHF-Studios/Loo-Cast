@@ -13,7 +13,7 @@ mod model;
 mod stance;
 
 pub use camera::{CameraMode, PlayerCamera, ThirdPersonCamera};
-pub use components::{Player, PlayerAim, PlayerController, PlayerNoclip, PlayerStance};
+pub use components::{Player, PlayerAim, PlayerController, PlayerDead, PlayerNoclip, PlayerStance};
 pub use model::PlayerModel;
 
 use avian3d::prelude::{
@@ -29,15 +29,16 @@ use bevy::{
 use crate::{
     ecs::{UsfEntity, UsfManifestationAuthority, UsfManifestationOf},
     physics::{
-        character::{CharacterDimensions, CharacterMotor},
+        character::{CharacterDimensions, CharacterGroundState, CharacterMotor, CharacterMovementInput},
         topology::{KinematicQueryExclusions, SpatialSplitBox},
     },
 };
 
 use super::{
-    InputSet, PresentationSet,
-    combat::Weapon,
+    GameSet, InputSet, PresentationSet,
+    combat::{Died, Health, Weapon},
     portal::{MAIN_PORTAL_LAYER, PortalSplitTraveler, PortalTraveler, PortalView},
+    thermal::{ThermalBody, ThermalInjury, ThermalSpatialSample},
 };
 
 pub struct PlayerPlugin;
@@ -47,6 +48,7 @@ impl Plugin for PlayerPlugin {
         app.init_resource::<cursor::CursorCapture>()
             .register_type::<Player>()
             .register_type::<PlayerController>()
+            .register_type::<PlayerDead>()
             .register_type::<PlayerAim>()
             .register_type::<PlayerStance>()
             .register_type::<PlayerNoclip>()
@@ -76,6 +78,7 @@ impl Plugin for PlayerPlugin {
                     .chain()
                     .in_set(InputSet::Gameplay),
             )
+            .add_systems(Update, handle_player_death.in_set(GameSet::Cleanup))
             .add_systems(
                 Update,
                 (
@@ -103,7 +106,15 @@ fn spawn_player(
     // body and the reserved portal peer are two manifestations of this one USF
     // entity, which lets the split prototype be real ECS state instead of a
     // render-only clone.
-    let semantic_player = commands.spawn((Name::new("Player Entity"), UsfEntity)).id();
+    let semantic_player = commands
+        .spawn((
+            Name::new("Player Entity"),
+            UsfEntity,
+            Health::new(100.0),
+            ThermalBody::ambient(8_000.0, 25.0),
+            ThermalInjury::human_like(),
+        ))
+        .id();
 
     let player = commands
         .spawn((
@@ -111,6 +122,7 @@ fn spawn_player(
             Player,
             UsfManifestationOf(semantic_player),
             UsfManifestationAuthority,
+            ThermalSpatialSample,
             PlayerController::default(),
             PlayerAim::default(),
             PlayerStance::default(),
@@ -160,4 +172,38 @@ fn spawn_player(
         RenderLayers::layer(0).with(MAIN_PORTAL_LAYER),
         Transform::from_translation(position),
     ));
+}
+
+
+/// Adapts generic semantic death into local-player control state.
+///
+/// Respawning is intentionally a separate lifecycle mechanic; death cannot be
+/// undone by toggling noclip or by another input adapter accidentally restoring
+/// the character motor.
+fn handle_player_death(
+    mut commands: Commands,
+    mut deaths: MessageReader<Died>,
+    mut player: Single<(
+        Entity,
+        &UsfManifestationOf,
+        &mut PlayerNoclip,
+        &mut CharacterMovementInput,
+        &mut CharacterGroundState,
+        &mut LinearVelocity,
+    ), With<Player>>,
+) {
+    let (entity, manifestation, mut noclip, mut input, mut ground, mut velocity) =
+        player.into_inner();
+
+    if !deaths.read().any(|death| death.entity == manifestation.0) {
+        return;
+    }
+
+    noclip.active = false;
+    input.clear();
+    ground.grounded = false;
+    ground.ground_entity = None;
+    velocity.0 = Vec3::ZERO;
+
+    commands.entity(entity).remove::<CharacterMotor>().insert(PlayerDead);
 }

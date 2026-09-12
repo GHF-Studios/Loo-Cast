@@ -4,6 +4,7 @@ pub mod combat;
 pub mod player;
 pub mod playground;
 pub mod portal;
+pub mod thermal;
 
 use bevy::prelude::*;
 
@@ -34,6 +35,8 @@ pub enum SimulationSet {
     Motion,
     Topology,
     Collision,
+    /// Environmental/systemic phenomena evaluated after physical collision.
+    Phenomena,
 }
 
 /// Ordering inside presentation.
@@ -75,6 +78,7 @@ impl Plugin for TestGamePlugin {
                     SimulationSet::Motion,
                     SimulationSet::Topology,
                     SimulationSet::Collision,
+                    SimulationSet::Phenomena,
                 )
                     .chain()
                     .in_set(GameSet::Simulation),
@@ -89,6 +93,7 @@ impl Plugin for TestGamePlugin {
                 combat::CombatPlugin,
                 player::PlayerPlugin,
                 portal::PortalPlugin,
+                thermal::ThermalPlugin,
                 playground::PlaygroundPlugin,
             ))
             .add_systems(Startup, setup_scene);

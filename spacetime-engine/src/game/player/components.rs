@@ -11,6 +11,14 @@ use bevy::prelude::*;
 #[reflect(Component)]
 pub struct Player;
 
+/// Marks the local controlled manifestation after its semantic entity dies.
+///
+/// Death is gameplay state, not despawn policy. The camera and corpse may remain
+/// while control adapters refuse to resurrect movement implicitly.
+#[derive(Component, Reflect, Debug, Default, Clone, Copy)]
+#[reflect(Component)]
+pub struct PlayerDead;
+
 /// Local input tuning. Physical movement tuning remains in
 /// [`crate::physics::character::CharacterMovementConfig`].
 #[derive(Component, Reflect, Debug, Clone, Copy)]

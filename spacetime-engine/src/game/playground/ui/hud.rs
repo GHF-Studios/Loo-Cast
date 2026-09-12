@@ -1,6 +1,13 @@
 use bevy::prelude::*;
 
-use crate::game::{GameSet, combat::Health};
+use crate::{
+    ecs::UsfManifestationOf,
+    game::{
+        GameSet,
+        combat::Health,
+        player::{Player, PlayerDead},
+    },
+};
 
 use super::super::{inventory::CreativeMenuState, object::ShowHealthInPlaygroundHud};
 
@@ -73,10 +80,12 @@ fn spawn_hud(mut commands: Commands) {
 }
 
 fn update_health_hud(
-    health: Query<(&Name, &Health), With<ShowHealthInPlaygroundHud>>,
+    tracked_health: Query<(&Name, &Health), With<ShowHealthInPlaygroundHud>>,
+    health: Query<&Health>,
+    player: Single<(&UsfManifestationOf, Option<&PlayerDead>), With<Player>>,
     mut text: Single<&mut Text, With<HealthHudText>>,
 ) {
-    let mut lines: Vec<String> = health
+    let mut lines: Vec<String> = tracked_health
         .iter()
         .map(|(name, health)| {
             format!(
@@ -87,6 +96,17 @@ fn update_health_hud(
             )
         })
         .collect();
+
+    let (player_entity, dead) = player.into_inner();
+    if let Ok(player_health) = health.get(player_entity.0) {
+        let state = if dead.is_some() { " — DEAD" } else { "" };
+        lines.push(format!(
+            "Player: {:.0} / {:.0}{}",
+            player_health.current(),
+            player_health.maximum(),
+            state,
+        ));
+    }
 
     lines.sort();
 

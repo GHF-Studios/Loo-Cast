@@ -5,6 +5,7 @@
 //! consume semantic playground actions and/or emit domain messages.
 
 mod damageable_cube;
+mod heat_ray;
 mod portal_gun;
 mod projectile_gun;
 
@@ -18,6 +19,7 @@ impl Plugin for PlaygroundItemsPlugin {
             portal_gun::PortalGunItemPlugin,
             projectile_gun::ProjectileGunItemPlugin,
             damageable_cube::DamageableCubeItemPlugin,
+            heat_ray::HeatRayItemPlugin,
         ));
     }
 }

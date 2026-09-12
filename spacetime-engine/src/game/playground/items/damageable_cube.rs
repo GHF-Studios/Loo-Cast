@@ -8,6 +8,7 @@ use crate::{
     game::{
         GameAssets, GameSet,
         combat::{Health, Hitbox},
+        thermal::{CombustibleMaterial, Fuel, ThermalBody, ThermalSpatialSample},
     },
 };
 
@@ -40,13 +41,13 @@ fn register_items(mut catalog: ResMut<PlaygroundCatalog>) {
     catalog.register(PlaygroundItem {
         id: DAMAGEABLE_CUBE,
         name: "Damageable Cube",
-        description: "One semantic Health owner with one visible manifestation.",
+        description: "One semantic Health + thermal/fuel owner with one manifestation.",
     });
 
     catalog.register(PlaygroundItem {
         id: SPLIT_DAMAGEABLE_CUBE,
         name: "Split Damageable Cube",
-        description: "One semantic Health owner with two symmetric manifestations.",
+        description: "One semantic Health + thermal/fuel owner with two manifestations.",
     });
 }
 
@@ -85,6 +86,9 @@ fn use_cube_items(
                 ShowHealthInPlaygroundHud,
                 UsfEntity,
                 Health::new(MAXIMUM_HEALTH),
+                ThermalBody::ambient(600.0, 5.0),
+                CombustibleMaterial::wood_like(),
+                Fuel::new(1_200_000.0),
             ))
             .id();
 
@@ -94,6 +98,7 @@ fn use_cube_items(
             commands.spawn((
                 Name::new(format!("Cube Manifestation {index}")),
                 UsfManifestationOf(root),
+                ThermalSpatialSample,
                 PlaygroundPickable::cube(root, CUBE_SIZE),
                 Hitbox::cube(CUBE_SIZE),
                 Collider::cuboid(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE),
