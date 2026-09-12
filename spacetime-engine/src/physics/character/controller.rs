@@ -302,18 +302,17 @@ fn step_route(
     );
 
     let down_distance = step_height + ground_snap_distance;
-    let hit = move_and_slide.cast_move(
+    let hit = probe_ground(
+        move_and_slide,
         collider,
         moved.position,
         rotation,
-        -up * down_distance,
+        up,
+        down_distance,
         config.skin_width,
+        min_ground_dot,
         filter,
     )?;
-
-    if hit.normal1.dot(up) < min_ground_dot {
-        return None;
-    }
 
     moved.position -= up * hit.distance;
     moved.projected_velocity = reject(moved.projected_velocity, up);
@@ -335,24 +334,49 @@ fn probe_ground(
     let cast_config = ShapeCastConfig::from_max_distance(max_distance.max(skin_width))
         .with_target_distance(skin_width);
 
-    let hit = move_and_slide.spatial_query.cast_shape(
+    // A side wall can be at distance zero while valid floor is also inside the
+    // cast range. Source handles the same class of problem by retrying ground
+    // categorization with hull quadrants. With Avian, inspect all cast hits and
+    // pick the closest walkable contact instead of letting a wall mask ground.
+    let mut best: Option<GroundHit> = None;
+
+    move_and_slide.spatial_query.shape_hits_callback(
         collider,
         position,
         rotation,
         direction,
         &cast_config,
         filter,
-    )?;
+        |hit| {
+            let ground_dot = hit.normal1.dot(up);
+            if ground_dot < min_ground_dot {
+                return true;
+            }
 
-    if hit.normal1.dot(up) < min_ground_dot {
-        return None;
-    }
+            let candidate = GroundHit {
+                entity: hit.entity,
+                distance: hit.distance,
+                normal: hit.normal1,
+            };
 
-    Some(GroundHit {
-        entity: hit.entity,
-        distance: hit.distance,
-        normal: hit.normal1,
-    })
+            let replace = match best {
+                None => true,
+                Some(current) => {
+                    candidate.distance < current.distance - 1e-5
+                        || ((candidate.distance - current.distance).abs() <= 1e-5
+                            && ground_dot > current.normal.dot(up))
+                }
+            };
+
+            if replace {
+                best = Some(candidate);
+            }
+
+            true
+        },
+    );
+
+    best
 }
 
 fn set_ground_state(state: &mut CharacterGroundState, hit: Option<GroundHit>) {
