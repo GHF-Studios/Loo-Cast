@@ -12,13 +12,10 @@ pub(crate) const MAX_GENERATED_OBJECTS: usize = 20_000;
 pub type V3 = (f32, f32, f32);
 pub type V2 = (f32, f32);
 
+/// Human-authored geometry map. All distance-valued fields are metres.
 #[derive(Asset, TypePath, Debug, Deserialize)]
 pub struct AuthoredMap {
     pub name: String,
-
-    /// Conversion from one authored distance unit into one Bevy world unit.
-    /// The playground campus uses Source inches: 0.0254 metres per unit.
-    pub unit_scale: f32,
 
     #[serde(default)]
     pub zones: Vec<ZoneDef>,
@@ -32,10 +29,6 @@ pub struct AuthoredMap {
 
 impl AuthoredMap {
     pub fn validate(&self) -> Result<(), String> {
-        if !self.unit_scale.is_finite() || self.unit_scale <= 0.0 {
-            return Err("unit_scale must be finite and positive".into());
-        }
-
         let mut zone_ids = HashSet::new();
         for zone in &self.zones {
             if zone.id.trim().is_empty() {
@@ -505,7 +498,7 @@ pub struct RampDef {
 }
 
 fn default_slab_thickness() -> f32 {
-    4.0
+    0.1016
 }
 
 #[derive(Debug, Clone, Deserialize)]

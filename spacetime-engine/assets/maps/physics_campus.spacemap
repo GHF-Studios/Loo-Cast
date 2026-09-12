@@ -2,13 +2,10 @@
 
 // Physics Campus
 // -----------------------------------------------------------------------------
-// Distances are authored in Source-style inches. The runtime converts them to
-// Bevy metres using unit_scale. This file is intentionally content, not code:
+// Distances are authored directly in metres. This file is intentionally content, not code:
 // save it while the game is running and Bevy's file watcher rebuilds the map.
 (
     name: "Spacetime Physics Campus",
-    unit_scale: 0.0254,
-
     zones: [
         (id: "plaza", name: "Central Plaza", description: "Spawn hub and route interchange."),
         (id: "calibration", name: "Calibration Yard", description: "Exact movement dimensions, jump distances and clearance checks."),
@@ -43,264 +40,264 @@
         // =====================================================================
         // CENTRAL PLAZA / SPAWN HUB
         // =====================================================================
-        Box(id: "plaza/floor", zone: "plaza", position: (0.0, -8.0, 256.0), size: (1400.0, 16.0, 1050.0), material: "concrete", tags: ["floor", "hub"]),
-        Box(id: "plaza/south_wall_left", zone: "plaza", position: (-410.0, 64.0, -264.0), size: (580.0, 128.0, 16.0), material: "concrete_light"),
-        Box(id: "plaza/south_wall_right", zone: "plaza", position: (410.0, 64.0, -264.0), size: (580.0, 128.0, 16.0), material: "concrete_light"),
-        Box(id: "plaza/east_rail", zone: "plaza", position: (690.0, 24.0, 300.0), size: (20.0, 48.0, 900.0), material: "steel"),
-        Box(id: "plaza/west_rail", zone: "plaza", position: (-690.0, 24.0, 300.0), size: (20.0, 48.0, 900.0), material: "steel"),
-        Cylinder(id: "plaza/monument", zone: "plaza", position: (0.0, 96.0, 80.0), radius: 48.0, height: 192.0, material: "steel", tags: ["landmark"]),
-        Box(id: "plaza/monument_cap", zone: "plaza", position: (0.0, 202.0, 80.0), size: (120.0, 20.0, 120.0), rotation_degrees: (0.0, 45.0, 0.0), material: "paint_orange"),
-        Marker(id: "plaza/player_spawn", zone: "plaza", kind: "player_spawn", position: (0.0, 36.0, 315.0), rotation_degrees: (0.0, 180.0, 0.0), tags: ["spawn"]),
+        Box(id: "plaza/floor", zone: "plaza", position: (0.0, -0.2032, 6.5024), size: (35.56, 0.4064, 26.67), material: "concrete", tags: ["floor", "hub"]),
+        Box(id: "plaza/south_wall_left", zone: "plaza", position: (-10.414, 1.6256, -6.7056), size: (14.732, 3.2512, 0.4064), material: "concrete_light"),
+        Box(id: "plaza/south_wall_right", zone: "plaza", position: (10.414, 1.6256, -6.7056), size: (14.732, 3.2512, 0.4064), material: "concrete_light"),
+        Box(id: "plaza/east_rail", zone: "plaza", position: (17.526, 0.6096, 7.62), size: (0.508, 1.2192, 22.86), material: "steel"),
+        Box(id: "plaza/west_rail", zone: "plaza", position: (-17.526, 0.6096, 7.62), size: (0.508, 1.2192, 22.86), material: "steel"),
+        Cylinder(id: "plaza/monument", zone: "plaza", position: (0.0, 2.4384, 2.032), radius: 1.2192, height: 4.8768, material: "steel", tags: ["landmark"]),
+        Box(id: "plaza/monument_cap", zone: "plaza", position: (0.0, 5.1308, 2.032), size: (3.048, 0.508, 3.048), rotation_degrees: (0.0, 45.0, 0.0), material: "paint_orange"),
+        Marker(id: "plaza/player_spawn", zone: "plaza", kind: "player_spawn", position: (0.0, 0.9144, 8.001), rotation_degrees: (0.0, 180.0, 0.0), tags: ["spawn"]),
 
         // Plaza route ramps make every district reachable without teleportation.
-        Ramp(id: "plaza/ramp_to_calibration", zone: "plaza", start: (-560.0, 0.0, 640.0), yaw_degrees: -90.0, width: 180.0, run: 320.0, rise: 0.0, thickness: 12.0, material: "concrete_light"),
-        Ramp(id: "plaza/ramp_to_stairworks", zone: "plaza", start: (560.0, 0.0, 640.0), yaw_degrees: 90.0, width: 180.0, run: 320.0, rise: 0.0, thickness: 12.0, material: "concrete_light"),
-        Box(id: "plaza/north_avenue", zone: "plaza", position: (0.0, -4.0, 990.0), size: (240.0, 8.0, 440.0), material: "asphalt", tags: ["route", "connector"]),
-        Box(id: "plaza/south_gate_bridge", zone: "plaza", position: (0.0, -4.0, -315.0), size: (240.0, 8.0, 120.0), material: "asphalt", tags: ["route", "connector"]),
+        Ramp(id: "plaza/ramp_to_calibration", zone: "plaza", start: (-14.224, 0.0, 16.256), yaw_degrees: -90.0, width: 4.572, run: 8.128, rise: 0.0, thickness: 0.3048, material: "concrete_light"),
+        Ramp(id: "plaza/ramp_to_stairworks", zone: "plaza", start: (14.224, 0.0, 16.256), yaw_degrees: 90.0, width: 4.572, run: 8.128, rise: 0.0, thickness: 0.3048, material: "concrete_light"),
+        Box(id: "plaza/north_avenue", zone: "plaza", position: (0.0, -0.1016, 25.146), size: (6.096, 0.2032, 11.176), material: "asphalt", tags: ["route", "connector"]),
+        Box(id: "plaza/south_gate_bridge", zone: "plaza", position: (0.0, -0.1016, -8.001), size: (6.096, 0.2032, 3.048), material: "asphalt", tags: ["route", "connector"]),
 
         // =====================================================================
         // CALIBRATION YARD
         // =====================================================================
-        Box(id: "calibration/floor", zone: "calibration", position: (-1120.0, -8.0, 640.0), size: (760.0, 16.0, 1400.0), material: "asphalt", tags: ["floor"]),
-        Box(id: "calibration/backstop", zone: "calibration", position: (-1120.0, 96.0, 1332.0), size: (760.0, 192.0, 16.0), material: "concrete"),
+        Box(id: "calibration/floor", zone: "calibration", position: (-28.448, -0.2032, 16.256), size: (19.304, 0.4064, 35.56), material: "asphalt", tags: ["floor"]),
+        Box(id: "calibration/backstop", zone: "calibration", position: (-28.448, 2.4384, 33.8328), size: (19.304, 4.8768, 0.4064), material: "concrete"),
 
         // Long acceleration lane with precise distance ticks.
-        Box(id: "calibration/run_lane", zone: "calibration", position: (-1300.0, 1.0, 630.0), size: (160.0, 2.0, 1100.0), material: "concrete_light", tags: ["speed", "acceleration"]),
-        Box(id: "calibration/tick_0", zone: "calibration", position: (-1300.0, 2.0, 120.0), size: (176.0, 4.0, 4.0), material: "paint_yellow", solid: false),
-        Box(id: "calibration/tick_128", zone: "calibration", position: (-1300.0, 2.0, 248.0), size: (176.0, 4.0, 4.0), material: "paint_yellow", solid: false),
-        Box(id: "calibration/tick_256", zone: "calibration", position: (-1300.0, 2.0, 376.0), size: (176.0, 4.0, 4.0), material: "paint_yellow", solid: false),
-        Box(id: "calibration/tick_512", zone: "calibration", position: (-1300.0, 2.0, 632.0), size: (176.0, 4.0, 4.0), material: "paint_yellow", solid: false),
-        Box(id: "calibration/tick_768", zone: "calibration", position: (-1300.0, 2.0, 888.0), size: (176.0, 4.0, 4.0), material: "paint_yellow", solid: false),
-        Box(id: "calibration/tick_1024", zone: "calibration", position: (-1300.0, 2.0, 1144.0), size: (176.0, 4.0, 4.0), material: "paint_yellow", solid: false),
+        Box(id: "calibration/run_lane", zone: "calibration", position: (-33.02, 0.0254, 16.002), size: (4.064, 0.0508, 27.94), material: "concrete_light", tags: ["speed", "acceleration"]),
+        Box(id: "calibration/tick_0m", zone: "calibration", position: (-33.02, 0.0508, 3.048), size: (4.4704, 0.1016, 0.1016), material: "paint_yellow", solid: false),
+        Box(id: "calibration/tick_3_2512m", zone: "calibration", position: (-33.02, 0.0508, 6.2992), size: (4.4704, 0.1016, 0.1016), material: "paint_yellow", solid: false),
+        Box(id: "calibration/tick_6_5024m", zone: "calibration", position: (-33.02, 0.0508, 9.5504), size: (4.4704, 0.1016, 0.1016), material: "paint_yellow", solid: false),
+        Box(id: "calibration/tick_13_0048m", zone: "calibration", position: (-33.02, 0.0508, 16.0528), size: (4.4704, 0.1016, 0.1016), material: "paint_yellow", solid: false),
+        Box(id: "calibration/tick_19_5072m", zone: "calibration", position: (-33.02, 0.0508, 22.5552), size: (4.4704, 0.1016, 0.1016), material: "paint_yellow", solid: false),
+        Box(id: "calibration/tick_26_0096m", zone: "calibration", position: (-33.02, 0.0508, 29.0576), size: (4.4704, 0.1016, 0.1016), material: "paint_yellow", solid: false),
 
-        // Exact step threshold sweep. With the Source profile's 18u step this straddles
-        // the intended automatic-step boundary in half-unit increments.
+        // Exact step threshold sweep. With the current 0.4572 m automatic step height this straddles
+        // the intended automatic-step boundary in 0.0127 m increments.
         StepSweep(
-            id: "calibration/step_threshold_14_to_22",
+            id: "calibration/step_threshold_0_3556_to_0_5588m",
             zone: "calibration",
-            origin: (-1536.0, 0.0, 60.0),
-            start_height: 14.0,
-            end_height: 22.0,
-            increment: 0.5,
-            width: 56.0,
-            depth: 96.0,
-            gap: 10.0,
+            origin: (-39.0144, 0.0, 1.524),
+            start_height: 0.3556,
+            end_height: 0.5588,
+            increment: 0.0127,
+            width: 1.4224,
+            depth: 2.4384,
+            gap: 0.254,
             material: "paint_blue",
             tags: ["step", "threshold", "exact"],
         ),
 
         // Jump islands at increasingly obnoxious gaps.
-        Box(id: "calibration/jump_start", zone: "calibration", position: (-980.0, 8.0, 220.0), size: (160.0, 16.0, 160.0), material: "paint_green", tags: ["jump"]),
-        Box(id: "calibration/jump_96", zone: "calibration", position: (-980.0, 8.0, 476.0), size: (160.0, 16.0, 160.0), material: "paint_green", tags: ["jump", "gap_96"]),
-        Box(id: "calibration/jump_128", zone: "calibration", position: (-980.0, 8.0, 764.0), size: (160.0, 16.0, 160.0), material: "paint_green", tags: ["jump", "gap_128"]),
-        Box(id: "calibration/jump_160", zone: "calibration", position: (-980.0, 8.0, 1084.0), size: (160.0, 16.0, 160.0), material: "paint_green", tags: ["jump", "gap_160"]),
+        Box(id: "calibration/jump_start", zone: "calibration", position: (-24.892, 0.2032, 5.588), size: (4.064, 0.4064, 4.064), material: "paint_green", tags: ["jump"]),
+        Box(id: "calibration/jump_2_4384m", zone: "calibration", position: (-24.892, 0.2032, 12.0904), size: (4.064, 0.4064, 4.064), material: "paint_green", tags: ["jump", "gap_2_4384m"]),
+        Box(id: "calibration/jump_3_2512m", zone: "calibration", position: (-24.892, 0.2032, 19.4056), size: (4.064, 0.4064, 4.064), material: "paint_green", tags: ["jump", "gap_3_2512m"]),
+        Box(id: "calibration/jump_4_064m", zone: "calibration", position: (-24.892, 0.2032, 27.5336), size: (4.064, 0.4064, 4.064), material: "paint_green", tags: ["jump", "gap_4_064m"]),
 
         // Ceiling/clearance corridor: floor remains constant while ceilings descend.
-        Box(id: "calibration/clearance_left", zone: "calibration", position: (-780.0, 64.0, 450.0), size: (16.0, 128.0, 650.0), material: "concrete"),
-        Box(id: "calibration/clearance_right", zone: "calibration", position: (-580.0, 64.0, 450.0), size: (16.0, 128.0, 650.0), material: "concrete"),
-        Box(id: "calibration/ceiling_80", zone: "calibration", position: (-680.0, 84.0, 210.0), size: (184.0, 8.0, 100.0), material: "hazard", tags: ["clearance"]),
-        Box(id: "calibration/ceiling_74", zone: "calibration", position: (-680.0, 78.0, 330.0), size: (184.0, 8.0, 100.0), material: "hazard", tags: ["clearance"]),
-        Box(id: "calibration/ceiling_72", zone: "calibration", position: (-680.0, 76.0, 450.0), size: (184.0, 8.0, 100.0), material: "hazard", tags: ["clearance", "standing_height"]),
-        Box(id: "calibration/ceiling_70", zone: "calibration", position: (-680.0, 74.0, 570.0), size: (184.0, 8.0, 100.0), material: "hazard", tags: ["clearance"]),
-        Box(id: "calibration/ceiling_64", zone: "calibration", position: (-680.0, 68.0, 690.0), size: (184.0, 8.0, 100.0), material: "hazard", tags: ["clearance"]),
+        Box(id: "calibration/clearance_left", zone: "calibration", position: (-19.812, 1.6256, 11.43), size: (0.4064, 3.2512, 16.51), material: "concrete"),
+        Box(id: "calibration/clearance_right", zone: "calibration", position: (-14.732, 1.6256, 11.43), size: (0.4064, 3.2512, 16.51), material: "concrete"),
+        Box(id: "calibration/ceiling_2_032m", zone: "calibration", position: (-17.272, 2.1336, 5.334), size: (4.6736, 0.2032, 2.54), material: "hazard", tags: ["clearance"]),
+        Box(id: "calibration/ceiling_1_8796m", zone: "calibration", position: (-17.272, 1.9812, 8.382), size: (4.6736, 0.2032, 2.54), material: "hazard", tags: ["clearance"]),
+        Box(id: "calibration/ceiling_1_8288m", zone: "calibration", position: (-17.272, 1.9304, 11.43), size: (4.6736, 0.2032, 2.54), material: "hazard", tags: ["clearance", "standing_height"]),
+        Box(id: "calibration/ceiling_1_778m", zone: "calibration", position: (-17.272, 1.8796, 14.478), size: (4.6736, 0.2032, 2.54), material: "hazard", tags: ["clearance"]),
+        Box(id: "calibration/ceiling_1_6256m", zone: "calibration", position: (-17.272, 1.7272, 17.526), size: (4.6736, 0.2032, 2.54), material: "hazard", tags: ["clearance"]),
 
         // =====================================================================
         // STAIRWORKS
         // =====================================================================
-        Box(id: "stairworks/floor", zone: "stairworks", position: (1120.0, -8.0, 640.0), size: (760.0, 16.0, 1400.0), material: "concrete", tags: ["floor"]),
-        Staircase(id: "stairworks/classic_18u", zone: "stairworks", origin: (820.0, 0.0, 80.0), steps: 16, width: 160.0, step_height: 18.0, step_depth: 32.0, material: "concrete_light", tags: ["stairs", "source_18u"]),
-        Staircase(id: "stairworks/shallow_8u", zone: "stairworks", origin: (1050.0, 0.0, 80.0), steps: 24, width: 128.0, step_height: 8.0, step_depth: 24.0, material: "paint_green", tags: ["stairs", "shallow"]),
-        Staircase(id: "stairworks/tall_20u", zone: "stairworks", origin: (1260.0, 0.0, 80.0), steps: 12, width: 128.0, step_height: 20.0, step_depth: 36.0, material: "hazard", tags: ["stairs", "over_threshold"]),
-        Staircase(id: "stairworks/reverse_18u", zone: "stairworks", origin: (1510.0, 0.0, 1112.0), yaw_degrees: 180.0, steps: 16, width: 160.0, step_height: 18.0, step_depth: 32.0, material: "concrete_light", tags: ["stairs", "reverse", "descending", "snap"]),
+        Box(id: "stairworks/floor", zone: "stairworks", position: (28.448, -0.2032, 16.256), size: (19.304, 0.4064, 35.56), material: "concrete", tags: ["floor"]),
+        Staircase(id: "stairworks/classic_0_4572m", zone: "stairworks", origin: (20.828, 0.0, 2.032), steps: 16, width: 4.064, step_height: 0.4572, step_depth: 0.8128, material: "concrete_light", tags: ["stairs", "step_0_4572m"]),
+        Staircase(id: "stairworks/shallow_0_2032m", zone: "stairworks", origin: (26.67, 0.0, 2.032), steps: 24, width: 3.2512, step_height: 0.2032, step_depth: 0.6096, material: "paint_green", tags: ["stairs", "shallow"]),
+        Staircase(id: "stairworks/tall_0_508m", zone: "stairworks", origin: (32.004, 0.0, 2.032), steps: 12, width: 3.2512, step_height: 0.508, step_depth: 0.9144, material: "hazard", tags: ["stairs", "over_threshold"]),
+        Staircase(id: "stairworks/reverse_0_4572m", zone: "stairworks", origin: (38.354, 0.0, 28.2448), yaw_degrees: 180.0, steps: 16, width: 4.064, step_height: 0.4572, step_depth: 0.8128, material: "concrete_light", tags: ["stairs", "reverse", "descending", "snap"]),
 
         // Alternating tread islands force step logic to deal with interrupted support.
-        Box(id: "stairworks/island_01", zone: "stairworks", position: (870.0, 9.0, 900.0), size: (120.0, 18.0, 40.0), material: "paint_blue"),
-        Box(id: "stairworks/island_02", zone: "stairworks", position: (870.0, 27.0, 960.0), size: (120.0, 54.0, 40.0), material: "paint_orange"),
-        Box(id: "stairworks/island_03", zone: "stairworks", position: (870.0, 36.0, 1020.0), size: (120.0, 72.0, 40.0), material: "paint_blue"),
-        Box(id: "stairworks/island_04", zone: "stairworks", position: (870.0, 54.0, 1080.0), size: (120.0, 108.0, 40.0), material: "paint_orange"),
-        Box(id: "stairworks/island_05", zone: "stairworks", position: (870.0, 63.0, 1140.0), size: (120.0, 126.0, 40.0), material: "paint_blue"),
+        Box(id: "stairworks/island_01", zone: "stairworks", position: (22.098, 0.2286, 22.86), size: (3.048, 0.4572, 1.016), material: "paint_blue"),
+        Box(id: "stairworks/island_02", zone: "stairworks", position: (22.098, 0.6858, 24.384), size: (3.048, 1.3716, 1.016), material: "paint_orange"),
+        Box(id: "stairworks/island_03", zone: "stairworks", position: (22.098, 0.9144, 25.908), size: (3.048, 1.8288, 1.016), material: "paint_blue"),
+        Box(id: "stairworks/island_04", zone: "stairworks", position: (22.098, 1.3716, 27.432), size: (3.048, 2.7432, 1.016), material: "paint_orange"),
+        Box(id: "stairworks/island_05", zone: "stairworks", position: (22.098, 1.6002, 28.956), size: (3.048, 3.2004, 1.016), material: "paint_blue"),
 
         // =====================================================================
         // SLOPE CANYON
         // =====================================================================
-        Box(id: "slopes/floor", zone: "slopes", position: (-1020.0, -8.0, -850.0), size: (1350.0, 16.0, 950.0), material: "concrete", tags: ["floor"]),
+        Box(id: "slopes/floor", zone: "slopes", position: (-25.908, -0.2032, -21.59), size: (34.29, 0.4064, 24.13), material: "concrete", tags: ["floor"]),
         SlopeSweep(
             id: "slopes/walkability_fan",
             zone: "slopes",
-            origin: (-1540.0, 0.0, -1180.0),
+            origin: (-39.116, 0.0, -29.972),
             start_angle_degrees: 30.0,
             end_angle_degrees: 60.0,
             angle_increment_degrees: 2.5,
-            run: 320.0,
-            width: 72.0,
-            gap: 16.0,
-            thickness: 12.0,
+            run: 8.128,
+            width: 1.8288,
+            gap: 0.4064,
+            thickness: 0.3048,
             material: "concrete_light",
             tags: ["slope", "threshold", "walkability"],
         ),
-        Ramp(id: "slopes/long_15", zone: "slopes", start: (-1320.0, 0.0, -620.0), yaw_degrees: 0.0, width: 180.0, run: 640.0, rise: 171.49, thickness: 12.0, material: "paint_green", tags: ["slope", "transition"]),
-        Ramp(id: "slopes/long_30", zone: "slopes", start: (-1080.0, 0.0, -620.0), yaw_degrees: 0.0, width: 180.0, run: 560.0, rise: 323.32, thickness: 12.0, material: "paint_yellow", tags: ["slope", "transition"]),
-        Ramp(id: "slopes/long_45", zone: "slopes", start: (-840.0, 0.0, -620.0), yaw_degrees: 0.0, width: 180.0, run: 420.0, rise: 420.0, thickness: 12.0, material: "paint_orange", tags: ["slope", "steep"]),
-        Ramp(id: "slopes/reverse_45", zone: "slopes", start: (-520.0, 420.0, -200.0), yaw_degrees: 180.0, width: 180.0, run: 420.0, rise: -420.0, thickness: 12.0, material: "paint_blue", tags: ["slope", "downhill"]),
+        Ramp(id: "slopes/long_15", zone: "slopes", start: (-33.528, 0.0, -15.748), yaw_degrees: 0.0, width: 4.572, run: 16.256, rise: 4.355846, thickness: 0.3048, material: "paint_green", tags: ["slope", "transition"]),
+        Ramp(id: "slopes/long_30", zone: "slopes", start: (-27.432, 0.0, -15.748), yaw_degrees: 0.0, width: 4.572, run: 14.224, rise: 8.212328, thickness: 0.3048, material: "paint_yellow", tags: ["slope", "transition"]),
+        Ramp(id: "slopes/long_45", zone: "slopes", start: (-21.336, 0.0, -15.748), yaw_degrees: 0.0, width: 4.572, run: 10.668, rise: 10.668, thickness: 0.3048, material: "paint_orange", tags: ["slope", "steep"]),
+        Ramp(id: "slopes/reverse_45", zone: "slopes", start: (-13.208, 10.668, -5.08), yaw_degrees: 180.0, width: 4.572, run: 10.668, rise: -10.668, thickness: 0.3048, material: "paint_blue", tags: ["slope", "downhill"]),
 
         // Concave V and convex ridge made from matched ramps.
-        Ramp(id: "slopes/v_left", zone: "slopes", start: (-620.0, 160.0, -1180.0), yaw_degrees: 0.0, width: 160.0, run: 320.0, rise: -160.0, thickness: 12.0, material: "steel", tags: ["concave"]),
-        Ramp(id: "slopes/v_right", zone: "slopes", start: (-620.0, 0.0, -860.0), yaw_degrees: 0.0, width: 160.0, run: 320.0, rise: 160.0, thickness: 12.0, material: "steel", tags: ["concave"]),
+        Ramp(id: "slopes/v_left", zone: "slopes", start: (-15.748, 4.064, -29.972), yaw_degrees: 0.0, width: 4.064, run: 8.128, rise: -4.064, thickness: 0.3048, material: "steel", tags: ["concave"]),
+        Ramp(id: "slopes/v_right", zone: "slopes", start: (-15.748, 0.0, -21.844), yaw_degrees: 0.0, width: 4.064, run: 8.128, rise: 4.064, thickness: 0.3048, material: "steel", tags: ["concave"]),
 
         // =====================================================================
         // SURF FOUNDRY
         // =====================================================================
-        Box(id: "surf/floor", zone: "surf", position: (720.0, -24.0, -890.0), size: (1500.0, 48.0, 1100.0), material: "dark", tags: ["floor"]),
-        Box(id: "surf/west_wall", zone: "surf", position: (0.0, 180.0, -890.0), size: (24.0, 360.0, 1100.0), material: "steel"),
-        Box(id: "surf/east_wall", zone: "surf", position: (1440.0, 180.0, -890.0), size: (24.0, 360.0, 1100.0), material: "steel"),
-        Ramp(id: "surf/main_left", zone: "surf", start: (220.0, 0.0, -1320.0), yaw_degrees: 0.0, width: 360.0, run: 900.0, rise: 900.0, thickness: 18.0, material: "paint_blue", tags: ["surf", "45deg"]),
-        Ramp(id: "surf/main_right", zone: "surf", start: (1220.0, 900.0, -420.0), yaw_degrees: 180.0, width: 360.0, run: 900.0, rise: -900.0, thickness: 18.0, material: "paint_orange", tags: ["surf", "45deg"]),
-        Ramp(id: "surf/transfer_a", zone: "surf", start: (510.0, 64.0, -1250.0), yaw_degrees: 35.0, width: 170.0, run: 520.0, rise: 300.0, thickness: 12.0, material: "steel", tags: ["surf", "transfer"]),
-        Ramp(id: "surf/transfer_b", zone: "surf", start: (930.0, 360.0, -800.0), yaw_degrees: -35.0, width: 170.0, run: 520.0, rise: -300.0, thickness: 12.0, material: "steel", tags: ["surf", "transfer"]),
-        Box(id: "surf/launch_deck", zone: "surf", position: (720.0, 190.0, -300.0), size: (420.0, 24.0, 260.0), material: "concrete_light", tags: ["launch"]),
-        Ramp(id: "surf/launch_ramp", zone: "surf", start: (720.0, 202.0, -420.0), yaw_degrees: 180.0, width: 180.0, run: 220.0, rise: 170.0, thickness: 10.0, material: "hazard", tags: ["launch"]),
+        Box(id: "surf/floor", zone: "surf", position: (18.288, -0.6096, -22.606), size: (38.1, 1.2192, 27.94), material: "dark", tags: ["floor"]),
+        Box(id: "surf/west_wall", zone: "surf", position: (0.0, 4.572, -22.606), size: (0.6096, 9.144, 27.94), material: "steel"),
+        Box(id: "surf/east_wall", zone: "surf", position: (36.576, 4.572, -22.606), size: (0.6096, 9.144, 27.94), material: "steel"),
+        Ramp(id: "surf/main_left", zone: "surf", start: (5.588, 0.0, -33.528), yaw_degrees: 0.0, width: 9.144, run: 22.86, rise: 22.86, thickness: 0.4572, material: "paint_blue", tags: ["surf", "45deg"]),
+        Ramp(id: "surf/main_right", zone: "surf", start: (30.988, 22.86, -10.668), yaw_degrees: 180.0, width: 9.144, run: 22.86, rise: -22.86, thickness: 0.4572, material: "paint_orange", tags: ["surf", "45deg"]),
+        Ramp(id: "surf/transfer_a", zone: "surf", start: (12.954, 1.6256, -31.75), yaw_degrees: 35.0, width: 4.318, run: 13.208, rise: 7.62, thickness: 0.3048, material: "steel", tags: ["surf", "transfer"]),
+        Ramp(id: "surf/transfer_b", zone: "surf", start: (23.622, 9.144, -20.32), yaw_degrees: -35.0, width: 4.318, run: 13.208, rise: -7.62, thickness: 0.3048, material: "steel", tags: ["surf", "transfer"]),
+        Box(id: "surf/launch_deck", zone: "surf", position: (18.288, 4.826, -7.62), size: (10.668, 0.6096, 6.604), material: "concrete_light", tags: ["launch"]),
+        Ramp(id: "surf/launch_ramp", zone: "surf", start: (18.288, 5.1308, -10.668), yaw_degrees: 180.0, width: 4.572, run: 5.588, rise: 4.318, thickness: 0.254, material: "hazard", tags: ["launch"]),
 
         // =====================================================================
         // COLLISION ZOO
         // =====================================================================
-        Box(id: "collision/floor", zone: "collision", position: (-1120.0, -8.0, 1740.0), size: (900.0, 16.0, 1150.0), material: "concrete", tags: ["floor"]),
+        Box(id: "collision/floor", zone: "collision", position: (-28.448, -0.2032, 44.196), size: (22.86, 0.4064, 29.21), material: "concrete", tags: ["floor"]),
 
         // Acute and obtuse convex prisms.
-        Sphere(id: "collision/sphere_low", zone: "collision", position: (-1390.0, 48.0, 1890.0), radius: 48.0, material: "paint_green", tags: ["round", "contact"]),
-        Sphere(id: "collision/sphere_large", zone: "collision", position: (-1260.0, 96.0, 1890.0), radius: 96.0, material: "concrete_light", tags: ["round", "contact"]),
-        Capsule(id: "collision/capsule_upright", zone: "collision", position: (-1100.0, 86.0, 1890.0), radius: 36.0, length: 100.0, material: "paint_yellow", tags: ["round", "contact"]),
-        Capsule(id: "collision/capsule_tilted", zone: "collision", position: (-930.0, 80.0, 1890.0), rotation_degrees: (0.0, 0.0, 55.0), radius: 32.0, length: 120.0, material: "paint_orange", tags: ["round", "tilted"]),
-        Cylinder(id: "collision/cylinder", zone: "collision", position: (-760.0, 80.0, 1890.0), radius: 64.0, height: 160.0, material: "paint_blue", tags: ["round", "vertical"]),
+        Sphere(id: "collision/sphere_low", zone: "collision", position: (-35.306, 1.2192, 48.006), radius: 1.2192, material: "paint_green", tags: ["round", "contact"]),
+        Sphere(id: "collision/sphere_large", zone: "collision", position: (-32.004, 2.4384, 48.006), radius: 2.4384, material: "concrete_light", tags: ["round", "contact"]),
+        Capsule(id: "collision/capsule_upright", zone: "collision", position: (-27.94, 2.1844, 48.006), radius: 0.9144, length: 2.54, material: "paint_yellow", tags: ["round", "contact"]),
+        Capsule(id: "collision/capsule_tilted", zone: "collision", position: (-23.622, 2.032, 48.006), rotation_degrees: (0.0, 0.0, 55.0), radius: 0.8128, length: 3.048, material: "paint_orange", tags: ["round", "tilted"]),
+        Cylinder(id: "collision/cylinder", zone: "collision", position: (-19.304, 2.032, 48.006), radius: 1.6256, height: 4.064, material: "paint_blue", tags: ["round", "vertical"]),
 
-        ConvexPrism(id: "collision/wedge_acute", zone: "collision", position: (-1420.0, 0.0, 1420.0), cross_section: [(-90.0, 0.0), (90.0, 0.0), (90.0, 12.0)], depth: 180.0, material: "paint_orange", tags: ["wedge", "acute"]),
-        ConvexPrism(id: "collision/wedge_tall", zone: "collision", position: (-1180.0, 0.0, 1420.0), cross_section: [(-90.0, 0.0), (90.0, 0.0), (90.0, 220.0)], depth: 180.0, material: "paint_blue", tags: ["wedge", "steep"]),
-        ConvexPrism(id: "collision/diamond", zone: "collision", position: (-900.0, 90.0, 1420.0), rotation_degrees: (0.0, 20.0, 0.0), cross_section: [(0.0, 90.0), (90.0, 0.0), (0.0, -90.0), (-90.0, 0.0)], depth: 180.0, material: "steel", tags: ["corner", "convex"]),
+        ConvexPrism(id: "collision/wedge_acute", zone: "collision", position: (-36.068, 0.0, 36.068), cross_section: [(-2.286, 0.0), (2.286, 0.0), (2.286, 0.3048)], depth: 4.572, material: "paint_orange", tags: ["wedge", "acute"]),
+        ConvexPrism(id: "collision/wedge_tall", zone: "collision", position: (-29.972, 0.0, 36.068), cross_section: [(-2.286, 0.0), (2.286, 0.0), (2.286, 5.588)], depth: 4.572, material: "paint_blue", tags: ["wedge", "steep"]),
+        ConvexPrism(id: "collision/diamond", zone: "collision", position: (-22.86, 2.286, 36.068), rotation_degrees: (0.0, 20.0, 0.0), cross_section: [(0.0, 2.286), (2.286, 0.0), (0.0, -2.286), (-2.286, 0.0)], depth: 4.572, material: "steel", tags: ["corner", "convex"]),
 
         // Deliberately tiny ledges/slivers and almost-touching seams.
-        Box(id: "collision/ledge_1u", zone: "collision", position: (-1450.0, 0.5, 1680.0), size: (220.0, 1.0, 24.0), material: "hazard", tags: ["thin", "ledge"]),
-        Box(id: "collision/ledge_2u", zone: "collision", position: (-1450.0, 1.0, 1730.0), size: (220.0, 2.0, 24.0), material: "hazard", tags: ["thin", "ledge"]),
-        Box(id: "collision/ledge_4u", zone: "collision", position: (-1450.0, 2.0, 1780.0), size: (220.0, 4.0, 24.0), material: "hazard", tags: ["thin", "ledge"]),
-        Box(id: "collision/seam_left", zone: "collision", position: (-1128.25, 32.0, 1730.0), size: (255.5, 64.0, 300.0), material: "concrete_light", tags: ["seam"]),
-        Box(id: "collision/seam_right", zone: "collision", position: (-871.75, 32.0, 1730.0), size: (255.5, 64.0, 300.0), material: "concrete_light", tags: ["seam"]),
+        Box(id: "collision/ledge_0_0254m", zone: "collision", position: (-36.83, 0.0127, 42.672), size: (5.588, 0.0254, 0.6096), material: "hazard", tags: ["thin", "ledge"]),
+        Box(id: "collision/ledge_0_0508m", zone: "collision", position: (-36.83, 0.0254, 43.942), size: (5.588, 0.0508, 0.6096), material: "hazard", tags: ["thin", "ledge"]),
+        Box(id: "collision/ledge_0_1016m", zone: "collision", position: (-36.83, 0.0508, 45.212), size: (5.588, 0.1016, 0.6096), material: "hazard", tags: ["thin", "ledge"]),
+        Box(id: "collision/seam_left", zone: "collision", position: (-28.65755, 0.8128, 43.942), size: (6.4897, 1.6256, 7.62), material: "concrete_light", tags: ["seam"]),
+        Box(id: "collision/seam_right", zone: "collision", position: (-22.14245, 0.8128, 43.942), size: (6.4897, 1.6256, 7.62), material: "concrete_light", tags: ["seam"]),
 
         // Inside-corner and narrow-slot course.
-        Box(id: "collision/corner_wall_a", zone: "collision", position: (-1420.0, 96.0, 2050.0), size: (320.0, 192.0, 24.0), material: "dark", tags: ["inside_corner"]),
-        Box(id: "collision/corner_wall_b", zone: "collision", position: (-1272.0, 96.0, 1900.0), size: (24.0, 192.0, 320.0), material: "dark", tags: ["inside_corner"]),
-        Box(id: "collision/slot_wall_a", zone: "collision", position: (-1036.0, 96.0, 2070.0), size: (24.0, 192.0, 280.0), material: "steel", tags: ["slot"]),
-        Box(id: "collision/slot_wall_b", zone: "collision", position: (-996.0, 96.0, 2070.0), size: (24.0, 192.0, 280.0), material: "steel", tags: ["slot", "narrow"]),
+        Box(id: "collision/corner_wall_a", zone: "collision", position: (-36.068, 2.4384, 52.07), size: (8.128, 4.8768, 0.6096), material: "dark", tags: ["inside_corner"]),
+        Box(id: "collision/corner_wall_b", zone: "collision", position: (-32.3088, 2.4384, 48.26), size: (0.6096, 4.8768, 8.128), material: "dark", tags: ["inside_corner"]),
+        Box(id: "collision/slot_wall_a", zone: "collision", position: (-26.3144, 2.4384, 52.578), size: (0.6096, 4.8768, 7.112), material: "steel", tags: ["slot"]),
+        Box(id: "collision/slot_wall_b", zone: "collision", position: (-25.2984, 2.4384, 52.578), size: (0.6096, 4.8768, 7.112), material: "steel", tags: ["slot", "narrow"]),
 
-        PillarGrid(id: "collision/pillar_field", zone: "collision", origin: (-850.0, 0.0, 1580.0), columns: 5, rows: 5, spacing_x: 84.0, spacing_z: 84.0, pillar_width: 24.0, pillar_depth: 24.0, pillar_height: 140.0, material: "paint_yellow", tags: ["obstacle", "dense"]),
+        PillarGrid(id: "collision/pillar_field", zone: "collision", origin: (-21.59, 0.0, 40.132), columns: 5, rows: 5, spacing_x: 2.1336, spacing_z: 2.1336, pillar_width: 0.6096, pillar_depth: 0.6096, pillar_height: 3.556, material: "paint_yellow", tags: ["obstacle", "dense"]),
 
         // =====================================================================
         // MACHINERY HALL
         // =====================================================================
-        Box(id: "machinery/floor", zone: "machinery", position: (0.0, -8.0, 1770.0), size: (1050.0, 16.0, 1150.0), material: "dark", tags: ["floor"]),
-        Box(id: "machinery/roof", zone: "machinery", position: (0.0, 420.0, 1770.0), size: (1050.0, 20.0, 1150.0), material: "steel", tags: ["roof"]),
-        PillarGrid(id: "machinery/columns", zone: "machinery", origin: (-420.0, 0.0, 1320.0), columns: 5, rows: 4, spacing_x: 210.0, spacing_z: 280.0, pillar_width: 28.0, pillar_depth: 28.0, pillar_height: 420.0, material: "steel", tags: ["structure"]),
+        Box(id: "machinery/floor", zone: "machinery", position: (0.0, -0.2032, 44.958), size: (26.67, 0.4064, 29.21), material: "dark", tags: ["floor"]),
+        Box(id: "machinery/roof", zone: "machinery", position: (0.0, 10.668, 44.958), size: (26.67, 0.508, 29.21), material: "steel", tags: ["roof"]),
+        PillarGrid(id: "machinery/columns", zone: "machinery", origin: (-10.668, 0.0, 33.528), columns: 5, rows: 4, spacing_x: 5.334, spacing_z: 7.112, pillar_width: 0.7112, pillar_depth: 0.7112, pillar_height: 10.668, material: "steel", tags: ["structure"]),
 
-        MovingBox(id: "machinery/lift_vertical", zone: "machinery", position: (-300.0, 12.0, 1580.0), size: (180.0, 24.0, 180.0), travel: (0.0, 300.0, 0.0), period_seconds: 6.0, phase: 0.0, material: "paint_yellow", tags: ["moving_platform", "elevator"]),
-        MovingBox(id: "machinery/shuttle_long", zone: "machinery", position: (0.0, 80.0, 1500.0), size: (180.0, 20.0, 120.0), travel: (420.0, 0.0, 0.0), period_seconds: 5.0, phase: 0.25, material: "paint_blue", tags: ["moving_platform", "horizontal"]),
-        MovingBox(id: "machinery/shuttle_cross", zone: "machinery", position: (250.0, 160.0, 1850.0), size: (140.0, 20.0, 140.0), travel: (-500.0, 0.0, 0.0), period_seconds: 4.0, phase: 0.5, material: "paint_orange", tags: ["moving_platform", "horizontal"]),
-        MovingBox(id: "machinery/lift_high", zone: "machinery", position: (360.0, 12.0, 2150.0), size: (160.0, 24.0, 160.0), travel: (0.0, 360.0, 0.0), period_seconds: 8.0, phase: 0.15, material: "paint_green", tags: ["moving_platform", "elevator"]),
+        MovingBox(id: "machinery/lift_vertical", zone: "machinery", position: (-7.62, 0.3048, 40.132), size: (4.572, 0.6096, 4.572), travel: (0.0, 7.62, 0.0), period_seconds: 6.0, phase: 0.0, material: "paint_yellow", tags: ["moving_platform", "elevator"]),
+        MovingBox(id: "machinery/shuttle_long", zone: "machinery", position: (0.0, 2.032, 38.1), size: (4.572, 0.508, 3.048), travel: (10.668, 0.0, 0.0), period_seconds: 5.0, phase: 0.25, material: "paint_blue", tags: ["moving_platform", "horizontal"]),
+        MovingBox(id: "machinery/shuttle_cross", zone: "machinery", position: (6.35, 4.064, 46.99), size: (3.556, 0.508, 3.556), travel: (-12.7, 0.0, 0.0), period_seconds: 4.0, phase: 0.5, material: "paint_orange", tags: ["moving_platform", "horizontal"]),
+        MovingBox(id: "machinery/lift_high", zone: "machinery", position: (9.144, 0.3048, 54.61), size: (4.064, 0.6096, 4.064), travel: (0.0, 9.144, 0.0), period_seconds: 8.0, phase: 0.15, material: "paint_green", tags: ["moving_platform", "elevator"]),
 
-        Box(id: "machinery/catwalk_a", zone: "machinery", position: (-180.0, 220.0, 2150.0), size: (600.0, 16.0, 90.0), material: "steel", tags: ["catwalk"]),
-        Box(id: "machinery/catwalk_b", zone: "machinery", position: (360.0, 300.0, 1770.0), size: (90.0, 16.0, 700.0), material: "steel", tags: ["catwalk"]),
+        Box(id: "machinery/catwalk_a", zone: "machinery", position: (-4.572, 5.588, 54.61), size: (15.24, 0.4064, 2.286), material: "steel", tags: ["catwalk"]),
+        Box(id: "machinery/catwalk_b", zone: "machinery", position: (9.144, 7.62, 44.958), size: (2.286, 0.4064, 17.78), material: "steel", tags: ["catwalk"]),
 
         // =====================================================================
         // VERTICAL WORKS
         // =====================================================================
-        Box(id: "vertical/floor", zone: "vertical", position: (1120.0, -8.0, 1760.0), size: (900.0, 16.0, 1200.0), material: "concrete", tags: ["floor"]),
-        Box(id: "vertical/tower_core", zone: "vertical", position: (1160.0, 400.0, 1780.0), size: (280.0, 800.0, 280.0), material: "dark", tags: ["tower"]),
-        Box(id: "vertical/deck_1", zone: "vertical", position: (1160.0, 104.0, 1780.0), size: (620.0, 16.0, 620.0), material: "concrete_light", tags: ["landing"]),
-        Box(id: "vertical/deck_2", zone: "vertical", position: (1160.0, 232.0, 1780.0), size: (620.0, 16.0, 620.0), material: "concrete_light", tags: ["landing"]),
-        Box(id: "vertical/deck_3", zone: "vertical", position: (1160.0, 392.0, 1780.0), size: (620.0, 16.0, 620.0), material: "concrete_light", tags: ["landing"]),
-        Box(id: "vertical/deck_4", zone: "vertical", position: (1160.0, 584.0, 1780.0), size: (620.0, 16.0, 620.0), material: "concrete_light", tags: ["landing"]),
-        Staircase(id: "vertical/service_stairs", zone: "vertical", origin: (760.0, 0.0, 1360.0), yaw_degrees: 0.0, steps: 24, width: 120.0, step_height: 16.0, step_depth: 28.0, material: "steel", tags: ["stairs", "tower"]),
-        MovingBox(id: "vertical/elevator", zone: "vertical", position: (1460.0, 12.0, 1780.0), size: (160.0, 24.0, 160.0), travel: (0.0, 560.0, 0.0), period_seconds: 10.0, phase: 0.0, material: "paint_yellow", tags: ["elevator"]),
+        Box(id: "vertical/floor", zone: "vertical", position: (28.448, -0.2032, 44.704), size: (22.86, 0.4064, 30.48), material: "concrete", tags: ["floor"]),
+        Box(id: "vertical/tower_core", zone: "vertical", position: (29.464, 10.16, 45.212), size: (7.112, 20.32, 7.112), material: "dark", tags: ["tower"]),
+        Box(id: "vertical/deck_1", zone: "vertical", position: (29.464, 2.6416, 45.212), size: (15.748, 0.4064, 15.748), material: "concrete_light", tags: ["landing"]),
+        Box(id: "vertical/deck_2", zone: "vertical", position: (29.464, 5.8928, 45.212), size: (15.748, 0.4064, 15.748), material: "concrete_light", tags: ["landing"]),
+        Box(id: "vertical/deck_3", zone: "vertical", position: (29.464, 9.9568, 45.212), size: (15.748, 0.4064, 15.748), material: "concrete_light", tags: ["landing"]),
+        Box(id: "vertical/deck_4", zone: "vertical", position: (29.464, 14.8336, 45.212), size: (15.748, 0.4064, 15.748), material: "concrete_light", tags: ["landing"]),
+        Staircase(id: "vertical/service_stairs", zone: "vertical", origin: (19.304, 0.0, 34.544), yaw_degrees: 0.0, steps: 24, width: 3.048, step_height: 0.4064, step_depth: 0.7112, material: "steel", tags: ["stairs", "tower"]),
+        MovingBox(id: "vertical/elevator", zone: "vertical", position: (37.084, 0.3048, 45.212), size: (4.064, 0.6096, 4.064), travel: (0.0, 14.224, 0.0), period_seconds: 10.0, phase: 0.0, material: "paint_yellow", tags: ["elevator"]),
 
         // Drop shafts with progressively higher landings.
-        Box(id: "vertical/drop_128", zone: "vertical", position: (820.0, 128.0, 2180.0), size: (180.0, 16.0, 180.0), material: "paint_green", tags: ["fall", "landing"]),
-        Box(id: "vertical/drop_256", zone: "vertical", position: (1060.0, 256.0, 2180.0), size: (180.0, 16.0, 180.0), material: "paint_yellow", tags: ["fall", "landing"]),
-        Box(id: "vertical/drop_512", zone: "vertical", position: (1300.0, 512.0, 2180.0), size: (180.0, 16.0, 180.0), material: "hazard", tags: ["fall", "landing"]),
+        Box(id: "vertical/drop_128", zone: "vertical", position: (20.828, 3.2512, 55.372), size: (4.572, 0.4064, 4.572), material: "paint_green", tags: ["fall", "landing"]),
+        Box(id: "vertical/drop_256", zone: "vertical", position: (26.924, 6.5024, 55.372), size: (4.572, 0.4064, 4.572), material: "paint_yellow", tags: ["fall", "landing"]),
+        Box(id: "vertical/drop_512", zone: "vertical", position: (33.02, 13.0048, 55.372), size: (4.572, 0.4064, 4.572), material: "hazard", tags: ["fall", "landing"]),
 
         // =====================================================================
         // HABITATION BLOCK -- ordinary architecture on purpose
         // =====================================================================
-        Box(id: "habitation/site", zone: "habitation", position: (-1050.0, -8.0, -1750.0), size: (1350.0, 16.0, 900.0), material: "asphalt", tags: ["floor"]),
+        Box(id: "habitation/site", zone: "habitation", position: (-26.67, -0.2032, -44.45), size: (34.29, 0.4064, 22.86), material: "asphalt", tags: ["floor"]),
 
         // Building A shell: floor, roof, split front wall with doorway, side/back walls.
-        Box(id: "habitation/a_floor", zone: "habitation", position: (-1300.0, 8.0, -1750.0), size: (520.0, 16.0, 520.0), material: "concrete_light"),
-        Box(id: "habitation/a_roof", zone: "habitation", position: (-1300.0, 200.0, -1750.0), size: (520.0, 16.0, 520.0), material: "concrete"),
-        Box(id: "habitation/a_back", zone: "habitation", position: (-1300.0, 104.0, -2002.0), size: (520.0, 192.0, 16.0), material: "concrete"),
-        Box(id: "habitation/a_left", zone: "habitation", position: (-1552.0, 104.0, -1750.0), size: (16.0, 192.0, 520.0), material: "concrete"),
-        Box(id: "habitation/a_right", zone: "habitation", position: (-1048.0, 104.0, -1750.0), size: (16.0, 192.0, 520.0), material: "concrete"),
-        Box(id: "habitation/a_front_left", zone: "habitation", position: (-1430.0, 104.0, -1498.0), size: (260.0, 192.0, 16.0), material: "concrete"),
-        Box(id: "habitation/a_front_right", zone: "habitation", position: (-1120.0, 104.0, -1498.0), size: (144.0, 192.0, 16.0), material: "concrete"),
-        Box(id: "habitation/a_door_header", zone: "habitation", position: (-1260.0, 164.0, -1498.0), size: (136.0, 72.0, 16.0), material: "concrete"),
-        Box(id: "habitation/a_internal_wall", zone: "habitation", position: (-1300.0, 104.0, -1780.0), size: (16.0, 192.0, 320.0), material: "white", tags: ["interior"]),
-        Staircase(id: "habitation/a_roof_stairs", zone: "habitation", origin: (-1510.0, 16.0, -1960.0), yaw_degrees: 90.0, steps: 10, width: 88.0, step_height: 18.0, step_depth: 28.0, material: "steel", tags: ["stairs", "architecture"]),
+        Box(id: "habitation/a_floor", zone: "habitation", position: (-33.02, 0.2032, -44.45), size: (13.208, 0.4064, 13.208), material: "concrete_light"),
+        Box(id: "habitation/a_roof", zone: "habitation", position: (-33.02, 5.08, -44.45), size: (13.208, 0.4064, 13.208), material: "concrete"),
+        Box(id: "habitation/a_back", zone: "habitation", position: (-33.02, 2.6416, -50.8508), size: (13.208, 4.8768, 0.4064), material: "concrete"),
+        Box(id: "habitation/a_left", zone: "habitation", position: (-39.4208, 2.6416, -44.45), size: (0.4064, 4.8768, 13.208), material: "concrete"),
+        Box(id: "habitation/a_right", zone: "habitation", position: (-26.6192, 2.6416, -44.45), size: (0.4064, 4.8768, 13.208), material: "concrete"),
+        Box(id: "habitation/a_front_left", zone: "habitation", position: (-36.322, 2.6416, -38.0492), size: (6.604, 4.8768, 0.4064), material: "concrete"),
+        Box(id: "habitation/a_front_right", zone: "habitation", position: (-28.448, 2.6416, -38.0492), size: (3.6576, 4.8768, 0.4064), material: "concrete"),
+        Box(id: "habitation/a_door_header", zone: "habitation", position: (-32.004, 4.1656, -38.0492), size: (3.4544, 1.8288, 0.4064), material: "concrete"),
+        Box(id: "habitation/a_internal_wall", zone: "habitation", position: (-33.02, 2.6416, -45.212), size: (0.4064, 4.8768, 8.128), material: "white", tags: ["interior"]),
+        Staircase(id: "habitation/a_roof_stairs", zone: "habitation", origin: (-38.354, 0.4064, -49.784), yaw_degrees: 90.0, steps: 10, width: 2.2352, step_height: 0.4572, step_depth: 0.7112, material: "steel", tags: ["stairs", "architecture"]),
 
         // Building B: narrower corridors and window-height obstacles.
-        Box(id: "habitation/b_floor", zone: "habitation", position: (-650.0, 8.0, -1750.0), size: (520.0, 16.0, 520.0), material: "concrete_light"),
-        Box(id: "habitation/b_roof", zone: "habitation", position: (-650.0, 232.0, -1750.0), size: (520.0, 16.0, 520.0), material: "concrete"),
-        Box(id: "habitation/b_back", zone: "habitation", position: (-650.0, 120.0, -2002.0), size: (520.0, 224.0, 16.0), material: "concrete"),
-        Box(id: "habitation/b_left", zone: "habitation", position: (-902.0, 120.0, -1750.0), size: (16.0, 224.0, 520.0), material: "concrete"),
-        Box(id: "habitation/b_right", zone: "habitation", position: (-398.0, 120.0, -1750.0), size: (16.0, 224.0, 520.0), material: "concrete"),
-        Box(id: "habitation/b_front_left", zone: "habitation", position: (-790.0, 120.0, -1498.0), size: (224.0, 224.0, 16.0), material: "concrete"),
-        Box(id: "habitation/b_front_right", zone: "habitation", position: (-510.0, 120.0, -1498.0), size: (224.0, 224.0, 16.0), material: "concrete"),
-        Box(id: "habitation/b_door_header", zone: "habitation", position: (-650.0, 188.0, -1498.0), size: (56.0, 88.0, 16.0), material: "concrete", tags: ["doorway", "narrow"]),
-        Box(id: "habitation/b_corridor_left", zone: "habitation", position: (-720.0, 110.0, -1740.0), size: (16.0, 188.0, 380.0), material: "white", tags: ["corridor"]),
-        Box(id: "habitation/b_corridor_right", zone: "habitation", position: (-580.0, 110.0, -1740.0), size: (16.0, 188.0, 380.0), material: "white", tags: ["corridor"]),
+        Box(id: "habitation/b_floor", zone: "habitation", position: (-16.51, 0.2032, -44.45), size: (13.208, 0.4064, 13.208), material: "concrete_light"),
+        Box(id: "habitation/b_roof", zone: "habitation", position: (-16.51, 5.8928, -44.45), size: (13.208, 0.4064, 13.208), material: "concrete"),
+        Box(id: "habitation/b_back", zone: "habitation", position: (-16.51, 3.048, -50.8508), size: (13.208, 5.6896, 0.4064), material: "concrete"),
+        Box(id: "habitation/b_left", zone: "habitation", position: (-22.9108, 3.048, -44.45), size: (0.4064, 5.6896, 13.208), material: "concrete"),
+        Box(id: "habitation/b_right", zone: "habitation", position: (-10.1092, 3.048, -44.45), size: (0.4064, 5.6896, 13.208), material: "concrete"),
+        Box(id: "habitation/b_front_left", zone: "habitation", position: (-20.066, 3.048, -38.0492), size: (5.6896, 5.6896, 0.4064), material: "concrete"),
+        Box(id: "habitation/b_front_right", zone: "habitation", position: (-12.954, 3.048, -38.0492), size: (5.6896, 5.6896, 0.4064), material: "concrete"),
+        Box(id: "habitation/b_door_header", zone: "habitation", position: (-16.51, 4.7752, -38.0492), size: (1.4224, 2.2352, 0.4064), material: "concrete", tags: ["doorway", "narrow"]),
+        Box(id: "habitation/b_corridor_left", zone: "habitation", position: (-18.288, 2.794, -44.196), size: (0.4064, 4.7752, 9.652), material: "white", tags: ["corridor"]),
+        Box(id: "habitation/b_corridor_right", zone: "habitation", position: (-14.732, 2.794, -44.196), size: (0.4064, 4.7752, 9.652), material: "white", tags: ["corridor"]),
 
         // =====================================================================
         // PORTAL RESEARCH WING
         // =====================================================================
-        Box(id: "portal/floor", zone: "portal", position: (1000.0, -8.0, -1840.0), size: (1150.0, 16.0, 980.0), material: "white", tags: ["floor"]),
-        Box(id: "portal/back_wall", zone: "portal", position: (1000.0, 180.0, -2322.0), size: (1150.0, 360.0, 16.0), material: "concrete_light"),
-        Box(id: "portal/left_wall", zone: "portal", position: (432.0, 180.0, -1840.0), size: (16.0, 360.0, 980.0), material: "concrete_light"),
-        Box(id: "portal/right_wall", zone: "portal", position: (1568.0, 180.0, -1840.0), size: (16.0, 360.0, 980.0), material: "concrete_light"),
-        Box(id: "portal/mezzanine", zone: "portal", position: (1000.0, 220.0, -2050.0), size: (650.0, 20.0, 300.0), material: "steel", tags: ["mezzanine"]),
-        Ramp(id: "portal/mezzanine_ramp", zone: "portal", start: (620.0, 0.0, -1680.0), yaw_degrees: 180.0, width: 150.0, run: 440.0, rise: 220.0, thickness: 12.0, material: "steel"),
+        Box(id: "portal/floor", zone: "portal", position: (25.4, -0.2032, -46.736), size: (29.21, 0.4064, 24.892), material: "white", tags: ["floor"]),
+        Box(id: "portal/back_wall", zone: "portal", position: (25.4, 4.572, -58.9788), size: (29.21, 9.144, 0.4064), material: "concrete_light"),
+        Box(id: "portal/left_wall", zone: "portal", position: (10.9728, 4.572, -46.736), size: (0.4064, 9.144, 24.892), material: "concrete_light"),
+        Box(id: "portal/right_wall", zone: "portal", position: (39.8272, 4.572, -46.736), size: (0.4064, 9.144, 24.892), material: "concrete_light"),
+        Box(id: "portal/mezzanine", zone: "portal", position: (25.4, 5.588, -52.07), size: (16.51, 0.508, 7.62), material: "steel", tags: ["mezzanine"]),
+        Ramp(id: "portal/mezzanine_ramp", zone: "portal", start: (15.748, 0.0, -42.672), yaw_degrees: 180.0, width: 3.81, run: 11.176, rise: 5.588, thickness: 0.3048, material: "steel"),
 
         // The geometry engine knows only that these are markers. The playground adapter
         // interprets the kinds and moves the existing demo portal pair onto them.
-        Marker(id: "portal/anchor_a", zone: "portal", kind: "portal_a", position: (720.0, 70.0, -2310.0), rotation_degrees: (0.0, 0.0, 0.0), tags: ["portal", "wall"]),
-        Marker(id: "portal/anchor_b", zone: "portal", kind: "portal_b", position: (1540.0, 70.0, -1820.0), rotation_degrees: (0.0, -90.0, 0.0), tags: ["portal", "wall"]),
+        Marker(id: "portal/anchor_a", zone: "portal", kind: "portal_a", position: (18.288, 1.778, -58.674), rotation_degrees: (0.0, 0.0, 0.0), tags: ["portal", "wall"]),
+        Marker(id: "portal/anchor_b", zone: "portal", kind: "portal_b", position: (39.116, 1.778, -46.228), rotation_degrees: (0.0, -90.0, 0.0), tags: ["portal", "wall"]),
 
         // Geometry arranged to make portal exits immediately interact with other mechanics.
-        Staircase(id: "portal/exit_stairs", zone: "portal", origin: (1320.0, 0.0, -2000.0), yaw_degrees: 90.0, steps: 10, width: 140.0, step_height: 18.0, step_depth: 32.0, material: "paint_blue", tags: ["portal", "stairs"]),
-        Ramp(id: "portal/exit_surf", zone: "portal", start: (1080.0, 0.0, -2200.0), yaw_degrees: 90.0, width: 180.0, run: 360.0, rise: 360.0, thickness: 12.0, material: "paint_orange", tags: ["portal", "surf"]),
-        Box(id: "portal/fall_platform", zone: "portal", position: (520.0, 420.0, -2100.0), size: (220.0, 20.0, 220.0), material: "hazard", tags: ["portal", "fall_loop_candidate"]),
+        Staircase(id: "portal/exit_stairs", zone: "portal", origin: (33.528, 0.0, -50.8), yaw_degrees: 90.0, steps: 10, width: 3.556, step_height: 0.4572, step_depth: 0.8128, material: "paint_blue", tags: ["portal", "stairs"]),
+        Ramp(id: "portal/exit_surf", zone: "portal", start: (27.432, 0.0, -55.88), yaw_degrees: 90.0, width: 4.572, run: 9.144, rise: 9.144, thickness: 0.3048, material: "paint_orange", tags: ["portal", "surf"]),
+        Box(id: "portal/fall_platform", zone: "portal", position: (13.208, 10.668, -53.34), size: (5.588, 0.508, 5.588), material: "hazard", tags: ["portal", "fall_loop_candidate"]),
 
         // Guaranteed district-to-loop aprons keep the whole campus continuously walkable.
-        Box(id: "transit/link_collision_north", zone: "transit", position: (-1120.0, -4.0, 2372.0), size: (360.0, 8.0, 150.0), material: "asphalt", tags: ["route", "connector"]),
-        Box(id: "transit/link_machinery_north", zone: "transit", position: (0.0, -4.0, 2388.0), size: (360.0, 8.0, 190.0), material: "asphalt", tags: ["route", "connector"]),
-        Box(id: "transit/link_vertical_north", zone: "transit", position: (1120.0, -4.0, 2380.0), size: (360.0, 8.0, 170.0), material: "asphalt", tags: ["route", "connector"]),
-        Box(id: "transit/link_habitation_south", zone: "transit", position: (-1050.0, -4.0, -2410.0), size: (320.0, 8.0, 440.0), material: "asphalt", tags: ["route", "connector"]),
-        Box(id: "transit/link_portal_south", zone: "transit", position: (1000.0, -4.0, -2470.0), size: (320.0, 8.0, 320.0), material: "asphalt", tags: ["route", "connector"]),
+        Box(id: "transit/link_collision_north", zone: "transit", position: (-28.448, -0.1016, 60.2488), size: (9.144, 0.2032, 3.81), material: "asphalt", tags: ["route", "connector"]),
+        Box(id: "transit/link_machinery_north", zone: "transit", position: (0.0, -0.1016, 60.6552), size: (9.144, 0.2032, 4.826), material: "asphalt", tags: ["route", "connector"]),
+        Box(id: "transit/link_vertical_north", zone: "transit", position: (28.448, -0.1016, 60.452), size: (9.144, 0.2032, 4.318), material: "asphalt", tags: ["route", "connector"]),
+        Box(id: "transit/link_habitation_south", zone: "transit", position: (-26.67, -0.1016, -61.214), size: (8.128, 0.2032, 11.176), material: "asphalt", tags: ["route", "connector"]),
+        Box(id: "transit/link_portal_south", zone: "transit", position: (25.4, -0.1016, -62.738), size: (8.128, 0.2032, 8.128), material: "asphalt", tags: ["route", "connector"]),
 
         // =====================================================================
         // TRANSIT LOOP -- simple, wide, fast perimeter route
         // =====================================================================
-        Box(id: "transit/north", zone: "transit", position: (0.0, -4.0, 2520.0), size: (3300.0, 8.0, 180.0), material: "asphalt", tags: ["route", "long_run"]),
-        Box(id: "transit/south", zone: "transit", position: (0.0, -4.0, -2700.0), size: (3300.0, 8.0, 180.0), material: "asphalt", tags: ["route", "long_run"]),
-        Box(id: "transit/link_chaos", zone: "transit", position: (0.0, -4.0, -2820.0), size: (420.0, 8.0, 100.0), material: "asphalt", tags: ["route", "connector"]),
-        Box(id: "transit/west", zone: "transit", position: (-1560.0, -4.0, -90.0), size: (180.0, 8.0, 5040.0), material: "asphalt", tags: ["route", "long_run"]),
-        Box(id: "transit/east", zone: "transit", position: (1560.0, -4.0, -90.0), size: (180.0, 8.0, 5040.0), material: "asphalt", tags: ["route", "long_run"]),
-        Ramp(id: "transit/nw_bank", zone: "transit", start: (-1470.0, 0.0, 2390.0), yaw_degrees: 90.0, width: 160.0, run: 300.0, rise: 80.0, thickness: 10.0, material: "paint_blue", tags: ["bank"]),
-        Ramp(id: "transit/se_bank", zone: "transit", start: (1470.0, 0.0, -2570.0), yaw_degrees: -90.0, width: 160.0, run: 300.0, rise: 80.0, thickness: 10.0, material: "paint_orange", tags: ["bank"]),
+        Box(id: "transit/north", zone: "transit", position: (0.0, -0.1016, 64.008), size: (83.82, 0.2032, 4.572), material: "asphalt", tags: ["route", "long_run"]),
+        Box(id: "transit/south", zone: "transit", position: (0.0, -0.1016, -68.58), size: (83.82, 0.2032, 4.572), material: "asphalt", tags: ["route", "long_run"]),
+        Box(id: "transit/link_chaos", zone: "transit", position: (0.0, -0.1016, -71.628), size: (10.668, 0.2032, 2.54), material: "asphalt", tags: ["route", "connector"]),
+        Box(id: "transit/west", zone: "transit", position: (-39.624, -0.1016, -2.286), size: (4.572, 0.2032, 128.016), material: "asphalt", tags: ["route", "long_run"]),
+        Box(id: "transit/east", zone: "transit", position: (39.624, -0.1016, -2.286), size: (4.572, 0.2032, 128.016), material: "asphalt", tags: ["route", "long_run"]),
+        Ramp(id: "transit/nw_bank", zone: "transit", start: (-37.338, 0.0, 60.706), yaw_degrees: 90.0, width: 4.064, run: 7.62, rise: 2.032, thickness: 0.254, material: "paint_blue", tags: ["bank"]),
+        Ramp(id: "transit/se_bank", zone: "transit", start: (37.338, 0.0, -65.278), yaw_degrees: -90.0, width: 4.064, run: 7.62, rise: 2.032, thickness: 0.254, material: "paint_orange", tags: ["bank"]),
 
         // =====================================================================
         // CHAOS YARD
         // =====================================================================
-        Box(id: "chaos/floor", zone: "chaos", position: (0.0, -16.0, -3300.0), size: (1500.0, 32.0, 900.0), material: "dark", tags: ["floor"]),
-        PillarGrid(id: "chaos/pillars", zone: "chaos", origin: (-600.0, 0.0, -3600.0), columns: 7, rows: 5, spacing_x: 180.0, spacing_z: 150.0, pillar_width: 32.0, pillar_depth: 32.0, pillar_height: 220.0, material: "steel", tags: ["dense", "obstacle"]),
-        Staircase(id: "chaos/stairs_diagonal", zone: "chaos", origin: (-520.0, 0.0, -3150.0), yaw_degrees: 35.0, steps: 14, width: 120.0, step_height: 18.0, step_depth: 28.0, material: "paint_green", tags: ["stairs"]),
-        Ramp(id: "chaos/ramp_cross_a", zone: "chaos", start: (-200.0, 0.0, -3500.0), yaw_degrees: 25.0, width: 150.0, run: 500.0, rise: 260.0, thickness: 12.0, material: "paint_blue", tags: ["ramp"]),
-        Ramp(id: "chaos/ramp_cross_b", zone: "chaos", start: (350.0, 260.0, -3150.0), yaw_degrees: 205.0, width: 150.0, run: 500.0, rise: -260.0, thickness: 12.0, material: "paint_orange", tags: ["ramp"]),
-        MovingBox(id: "chaos/mover_x", zone: "chaos", position: (-300.0, 80.0, -3350.0), size: (120.0, 18.0, 120.0), travel: (600.0, 0.0, 0.0), period_seconds: 3.5, phase: 0.0, material: "hazard", tags: ["moving_platform"]),
-        MovingBox(id: "chaos/mover_y", zone: "chaos", position: (300.0, 24.0, -3450.0), size: (120.0, 18.0, 120.0), travel: (0.0, 280.0, 0.0), period_seconds: 5.5, phase: 0.3, material: "paint_yellow", tags: ["moving_platform"]),
-        ConvexPrism(id: "chaos/prism_a", zone: "chaos", position: (600.0, 70.0, -3200.0), rotation_degrees: (0.0, 40.0, 0.0), cross_section: [(-100.0, -70.0), (70.0, -70.0), (110.0, 20.0), (0.0, 100.0), (-90.0, 55.0)], depth: 180.0, material: "glassish", tags: ["convex", "weird"]),
+        Box(id: "chaos/floor", zone: "chaos", position: (0.0, -0.4064, -83.82), size: (38.1, 0.8128, 22.86), material: "dark", tags: ["floor"]),
+        PillarGrid(id: "chaos/pillars", zone: "chaos", origin: (-15.24, 0.0, -91.44), columns: 7, rows: 5, spacing_x: 4.572, spacing_z: 3.81, pillar_width: 0.8128, pillar_depth: 0.8128, pillar_height: 5.588, material: "steel", tags: ["dense", "obstacle"]),
+        Staircase(id: "chaos/stairs_diagonal", zone: "chaos", origin: (-13.208, 0.0, -80.01), yaw_degrees: 35.0, steps: 14, width: 3.048, step_height: 0.4572, step_depth: 0.7112, material: "paint_green", tags: ["stairs"]),
+        Ramp(id: "chaos/ramp_cross_a", zone: "chaos", start: (-5.08, 0.0, -88.9), yaw_degrees: 25.0, width: 3.81, run: 12.7, rise: 6.604, thickness: 0.3048, material: "paint_blue", tags: ["ramp"]),
+        Ramp(id: "chaos/ramp_cross_b", zone: "chaos", start: (8.89, 6.604, -80.01), yaw_degrees: 205.0, width: 3.81, run: 12.7, rise: -6.604, thickness: 0.3048, material: "paint_orange", tags: ["ramp"]),
+        MovingBox(id: "chaos/mover_x", zone: "chaos", position: (-7.62, 2.032, -85.09), size: (3.048, 0.4572, 3.048), travel: (15.24, 0.0, 0.0), period_seconds: 3.5, phase: 0.0, material: "hazard", tags: ["moving_platform"]),
+        MovingBox(id: "chaos/mover_y", zone: "chaos", position: (7.62, 0.6096, -87.63), size: (3.048, 0.4572, 3.048), travel: (0.0, 7.112, 0.0), period_seconds: 5.5, phase: 0.3, material: "paint_yellow", tags: ["moving_platform"]),
+        ConvexPrism(id: "chaos/prism_a", zone: "chaos", position: (15.24, 1.778, -81.28), rotation_degrees: (0.0, 40.0, 0.0), cross_section: [(-2.54, -1.778), (1.778, -1.778), (2.794, 0.508), (0.0, 2.54), (-2.286, 1.397)], depth: 4.572, material: "glassish", tags: ["convex", "weird"]),
 
         // =====================================================================
         // CAMPUS LIGHTING
@@ -308,16 +305,16 @@
         // =====================================================================
         DirectionalLight(id: "light/sun", rotation_degrees: (-52.0, -32.0, 0.0), color: (1.0, 0.94, 0.84), illuminance: 16000.0, shadows: true),
 
-        PointLight(id: "light/plaza", zone: "plaza", position: (0.0, 420.0, 300.0), color: (1.0, 0.90, 0.78), intensity: 2800000.0, range: 1200.0, shadows: false),
-        PointLight(id: "light/calibration", zone: "calibration", position: (-1100.0, 360.0, 650.0), color: (0.86, 0.92, 1.0), intensity: 2400000.0, range: 1100.0, shadows: false),
-        PointLight(id: "light/stairworks", zone: "stairworks", position: (1120.0, 420.0, 650.0), color: (1.0, 0.84, 0.68), intensity: 2500000.0, range: 1100.0, shadows: false),
-        PointLight(id: "light/slopes", zone: "slopes", position: (-1000.0, 520.0, -850.0), color: (0.75, 0.86, 1.0), intensity: 3000000.0, range: 1500.0, shadows: false),
-        PointLight(id: "light/surf", zone: "surf", position: (720.0, 700.0, -900.0), color: (0.68, 0.80, 1.0), intensity: 3600000.0, range: 1700.0, shadows: false),
-        PointLight(id: "light/collision", zone: "collision", position: (-1120.0, 420.0, 1750.0), color: (1.0, 0.78, 0.65), intensity: 2600000.0, range: 1100.0, shadows: false),
-        PointLight(id: "light/machinery", zone: "machinery", position: (0.0, 360.0, 1770.0), color: (0.72, 0.86, 1.0), intensity: 3000000.0, range: 1200.0, shadows: false),
-        PointLight(id: "light/vertical", zone: "vertical", position: (1120.0, 680.0, 1760.0), color: (1.0, 0.88, 0.72), intensity: 3200000.0, range: 1300.0, shadows: false),
-        PointLight(id: "light/habitation", zone: "habitation", position: (-1000.0, 420.0, -1750.0), color: (1.0, 0.82, 0.66), intensity: 2600000.0, range: 1300.0, shadows: false),
-        PointLight(id: "light/portal", zone: "portal", position: (1000.0, 420.0, -1840.0), color: (0.62, 0.76, 1.0), intensity: 3000000.0, range: 1300.0, shadows: false),
-        PointLight(id: "light/chaos", zone: "chaos", position: (0.0, 500.0, -3300.0), color: (1.0, 0.66, 0.52), intensity: 3400000.0, range: 1500.0, shadows: false),
+        PointLight(id: "light/plaza", zone: "plaza", position: (0.0, 10.668, 7.62), color: (1.0, 0.90, 0.78), intensity: 2800000.0, range: 30.48, shadows: false),
+        PointLight(id: "light/calibration", zone: "calibration", position: (-27.94, 9.144, 16.51), color: (0.86, 0.92, 1.0), intensity: 2400000.0, range: 27.94, shadows: false),
+        PointLight(id: "light/stairworks", zone: "stairworks", position: (28.448, 10.668, 16.51), color: (1.0, 0.84, 0.68), intensity: 2500000.0, range: 27.94, shadows: false),
+        PointLight(id: "light/slopes", zone: "slopes", position: (-25.4, 13.208, -21.59), color: (0.75, 0.86, 1.0), intensity: 3000000.0, range: 38.1, shadows: false),
+        PointLight(id: "light/surf", zone: "surf", position: (18.288, 17.78, -22.86), color: (0.68, 0.80, 1.0), intensity: 3600000.0, range: 43.18, shadows: false),
+        PointLight(id: "light/collision", zone: "collision", position: (-28.448, 10.668, 44.45), color: (1.0, 0.78, 0.65), intensity: 2600000.0, range: 27.94, shadows: false),
+        PointLight(id: "light/machinery", zone: "machinery", position: (0.0, 9.144, 44.958), color: (0.72, 0.86, 1.0), intensity: 3000000.0, range: 30.48, shadows: false),
+        PointLight(id: "light/vertical", zone: "vertical", position: (28.448, 17.272, 44.704), color: (1.0, 0.88, 0.72), intensity: 3200000.0, range: 33.02, shadows: false),
+        PointLight(id: "light/habitation", zone: "habitation", position: (-25.4, 10.668, -44.45), color: (1.0, 0.82, 0.66), intensity: 2600000.0, range: 33.02, shadows: false),
+        PointLight(id: "light/portal", zone: "portal", position: (25.4, 10.668, -46.736), color: (0.62, 0.76, 1.0), intensity: 3000000.0, range: 33.02, shadows: false),
+        PointLight(id: "light/chaos", zone: "chaos", position: (0.0, 12.7, -83.82), color: (1.0, 0.66, 0.52), intensity: 3400000.0, range: 38.1, shadows: false),
     ],
 )

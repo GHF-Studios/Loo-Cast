@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 
-use crate::physics::character::SourceCharacterDimensions;
+use crate::physics::character::CharacterDimensions;
 
 /// Marks presentation geometry belonging to the player.
 #[derive(Component)]
@@ -10,8 +10,8 @@ pub struct PlayerModel;
 
 /// Creates the deliberately boring reference model.
 ///
-/// It remains a 1×1×1 cube so portal projection problems are visually obvious.
-/// The parent gameplay transform now represents the physical hull center.
+/// The reference mesh matches the standing collision hull so presentation does
+/// not visually extend through geometry before the physical body reaches it.
 pub fn create_model(
     meshes: &mut Assets<Mesh>,
     materials: &mut Assets<StandardMaterial>,
@@ -20,9 +20,9 @@ pub fn create_model(
         Name::new("Player Model"),
         PlayerModel,
         Mesh3d(meshes.add(Cuboid::new(
-            SourceCharacterDimensions::HULL_WIDTH,
-            SourceCharacterDimensions::HULL_HEIGHT,
-            SourceCharacterDimensions::HULL_WIDTH,
+            CharacterDimensions::HULL_WIDTH,
+            CharacterDimensions::HULL_HEIGHT,
+            CharacterDimensions::HULL_WIDTH,
         ))),
         MeshMaterial3d(
             materials.add(Color::srgb(0.25, 0.45, 0.9)),

@@ -1,4 +1,4 @@
-//! Source-style kinematic character movement.
+//! Kinematic character movement.
 //!
 //! The motor owns movement semantics while Avian provides collision queries.
 //! Camera, local-player input, networking and prediction are adapters layered

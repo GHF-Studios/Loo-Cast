@@ -137,7 +137,7 @@ pub(super) fn simulate_character_motors(
                 dt,
             );
 
-            // Source-style split gravity: half before movement, half after.
+            // Split gravity: half before movement, half after.
             velocity.0 -= up * (config.gravity * dt * 0.5);
         }
 
@@ -256,8 +256,8 @@ fn slide(
     )
 }
 
-/// Source-style stair handling: compare the direct slide route with a raised
-/// route, then keep the route that makes more planar progress.
+/// Compare the direct slide route with a raised route, then keep the route that
+/// makes more planar progress.
 fn step_route(
     move_and_slide: &MoveAndSlide,
     collider: &Collider,
@@ -335,9 +335,8 @@ fn probe_ground(
         .with_target_distance(skin_width);
 
     // A side wall can be at distance zero while valid floor is also inside the
-    // cast range. Source handles the same class of problem by retrying ground
-    // categorization with hull quadrants. With Avian, inspect all cast hits and
-    // pick the closest walkable contact instead of letting a wall mask ground.
+    // cast range. Inspect every hit and select the nearest walkable contact so
+    // a side contact cannot mask valid ground.
     let mut best: Option<GroundHit> = None;
 
     move_and_slide.spatial_query.shape_hits_callback(

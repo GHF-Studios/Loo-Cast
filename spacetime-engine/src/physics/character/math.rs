@@ -64,8 +64,7 @@ pub fn air_accelerate(
     velocity + wish_dir * accel_speed
 }
 
-/// Source-style ground friction for a velocity already projected into the
-/// locomotion plane.
+/// Ground friction for a velocity already projected into the locomotion plane.
 #[inline]
 pub fn apply_friction(
     planar_velocity: Vec3,
@@ -109,7 +108,7 @@ mod tests {
     }
 
     #[test]
-    fn source_air_cap_limits_parallel_speed_gain() {
+    fn air_cap_limits_parallel_speed_gain() {
         let velocity =
             air_accelerate(Vec3::ZERO, Vec3::X, 10.0, Some(1.0), 1000.0, 1.0, 1.0);
         assert!((velocity.x - 1.0).abs() < 1e-5);

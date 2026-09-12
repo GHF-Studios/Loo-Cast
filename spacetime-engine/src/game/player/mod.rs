@@ -25,7 +25,7 @@ use bevy::{
 
 use crate::physics::character::{
     CharacterMotor,
-    SourceCharacterDimensions,
+    CharacterDimensions,
 };
 
 use super::{
@@ -82,7 +82,7 @@ fn spawn_player(
     // Player Transform is the physical standing-hull center, not the eye.
     let position = Vec3::new(
         0.0,
-        SourceCharacterDimensions::HALF_HEIGHT + 0.01,
+        CharacterDimensions::HALF_HEIGHT + 0.01,
         8.0,
     );
 
@@ -100,7 +100,7 @@ fn spawn_player(
                 PlayerController::default(),
                 PlayerAim::default(),
                 CharacterMotor,
-                SourceCharacterDimensions::standing_collider(),
+                CharacterDimensions::standing_collider(),
                 Weapon::default(),
                 PortalTraveler::new(position),
                 Transform::from_translation(

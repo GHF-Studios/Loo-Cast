@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::physics::character::SourceCharacterDimensions;
+use crate::physics::character::CharacterDimensions;
 
 /// The locally controlled gameplay entity.
 #[derive(Component)]
@@ -103,7 +103,7 @@ impl Default for PlayerCamera {
     fn default() -> Self {
         Self {
             mode: CameraMode::FirstPerson,
-            first_person_offset: Vec3::Y * SourceCharacterDimensions::CENTER_TO_EYE,
+            first_person_offset: Vec3::Y * CharacterDimensions::CENTER_TO_EYE,
 
             // +Z is behind because forward is local -Z.
             third_person_offset: Vec3::new(0.0, 0.75, 4.0),

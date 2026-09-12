@@ -5,11 +5,10 @@ They describe runtime geometry and generic anchors; gameplay-specific meaning st
 
 ## Coordinates and units
 
-`unit_scale` converts one authored unit into one Bevy world unit. `physics_campus.spacemap` uses
-Source-style inches (`0.0254` metres per authored unit), making values such as 18-unit stairs directly
-recognisable.
+All authored distances are metres. Speeds and accelerations do not currently appear in the geometry
+format; where physical quantities are added, SI is the default. Angles remain expressed in degrees.
 
-Transforms use `(x, y, z)` and Euler `(x, y, z)` degrees. Y is up. For directed generators, yaw `0`
+Transforms use `(x, y, z)` metres and Euler `(x, y, z)` degrees. Y is up. For directed generators, yaw `0`
 points along local/world `+Z`, `90` along `+X`, `-90` along `-X`.
 
 ## Primitive objects
