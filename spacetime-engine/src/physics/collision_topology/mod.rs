@@ -14,7 +14,10 @@ use bevy::prelude::*;
 
 use csg::{RectangularCut, subtract_rectangular_cuts_from_cuboid};
 
-pub use source::{CollisionClipSource, supports_rectangular_stencil};
+pub use source::{
+    CollisionClipSource, RectangularStencilFit, fit_rectangular_stencil,
+    supports_rectangular_stencil,
+};
 
 /// A bounded subtractive region in collision space.
 ///

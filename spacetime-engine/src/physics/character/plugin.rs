@@ -2,9 +2,9 @@ use avian3d::prelude::*;
 use bevy::prelude::*;
 
 use super::{
-    CharacterGroundState, CharacterLocomotionFrame, CharacterMovementConfig,
-    CharacterMovementInput,
-    controller::simulate_character_motors,
+    CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame,
+    CharacterMovementConfig, CharacterMovementInput, controller::simulate_character_motors,
+    frame::settle_character_control_frames,
 };
 
 /// Marker for an entity whose transform is integrated by the character motor.
@@ -23,7 +23,8 @@ use super::{
     CharacterMovementConfig,
     CharacterMovementInput,
     CharacterGroundState,
-    CharacterLocomotionFrame
+    CharacterLocomotionFrame,
+    CharacterControlFrame
 )]
 pub struct CharacterMotor;
 
@@ -41,6 +42,8 @@ impl Plugin for CharacterMovementPlugin {
             .register_type::<CharacterMovementInput>()
             .register_type::<CharacterGroundState>()
             .register_type::<CharacterLocomotionFrame>()
+            .register_type::<CharacterControlFrame>()
+            .add_systems(PreUpdate, settle_character_control_frames)
             .configure_sets(FixedUpdate, CharacterMovementSet::Simulate)
             .add_systems(
                 FixedUpdate,

@@ -62,6 +62,114 @@ impl CharacterLocomotionFrame {
     }
 }
 
+/// World-space basis used by view and locomotion input.
+///
+/// Unlike [`CharacterLocomotionFrame`], this frame is allowed to carry a
+/// temporary topology-induced roll/pitch. `PlayerAim`-style local look input is
+/// applied *after* this basis, so mouse input remains live while the basis
+/// settles back toward the stable locomotion frame.
+#[derive(Component, Reflect, Clone, Copy, Debug)]
+#[reflect(Component)]
+pub struct CharacterControlFrame {
+    rotation: Quat,
+    settle: Option<CharacterControlSettle>,
+}
+
+#[derive(Reflect, Clone, Copy, Debug)]
+struct CharacterControlSettle {
+    start: Quat,
+    target: Quat,
+    elapsed: f32,
+    duration: f32,
+    input_blend_duration: f32,
+}
+
+impl Default for CharacterControlFrame {
+    fn default() -> Self {
+        Self {
+            rotation: Quat::IDENTITY,
+            settle: None,
+        }
+    }
+}
+
+impl CharacterControlFrame {
+    pub fn rotation(&self) -> Quat {
+        self.rotation.normalize()
+    }
+
+    /// Starts a smooth basis transition without touching any local look state.
+    pub fn begin_settle(
+        &mut self,
+        start: Quat,
+        target: Quat,
+        duration: f32,
+        input_blend_duration: f32,
+    ) {
+        let start = start.normalize();
+        let target = target.normalize();
+        let duration = duration.max(0.0);
+
+        self.rotation = start;
+        if duration <= FRAME_EPSILON {
+            self.rotation = target;
+            self.settle = None;
+            return;
+        }
+
+        self.settle = Some(CharacterControlSettle {
+            start,
+            target,
+            elapsed: 0.0,
+            duration,
+            input_blend_duration: input_blend_duration.clamp(0.0, duration),
+        });
+    }
+
+    /// Existing momentum is never changed by this factor; callers use it only
+    /// to soften freshly commanded locomotion while orientation is changing.
+    pub fn movement_input_scale(&self) -> f32 {
+        let Some(settle) = self.settle else {
+            return 1.0;
+        };
+        if settle.input_blend_duration <= FRAME_EPSILON {
+            return 1.0;
+        }
+
+        smoothstep((settle.elapsed / settle.input_blend_duration).clamp(0.0, 1.0))
+    }
+
+    fn tick(&mut self, dt: f32) {
+        let Some(mut settle) = self.settle else {
+            return;
+        };
+
+        settle.elapsed = (settle.elapsed + dt.max(0.0)).min(settle.duration);
+        let t = smoothstep((settle.elapsed / settle.duration).clamp(0.0, 1.0));
+        self.rotation = settle.start.slerp(settle.target, t).normalize();
+
+        if settle.elapsed >= settle.duration - FRAME_EPSILON {
+            self.rotation = settle.target;
+            self.settle = None;
+        } else {
+            self.settle = Some(settle);
+        }
+    }
+}
+
+pub(super) fn settle_character_control_frames(
+    time: Res<Time>,
+    mut frames: Query<&mut CharacterControlFrame>,
+) {
+    for mut frame in &mut frames {
+        frame.tick(time.delta_secs());
+    }
+}
+
+fn smoothstep(t: f32) -> f32 {
+    t * t * (3.0 - 2.0 * t)
+}
+
 fn reject(vector: Vec3, axis: Vec3) -> Vec3 {
     vector - axis * vector.dot(axis)
 }
@@ -85,5 +193,22 @@ mod tests {
         let rebased = frame.aligned_rotation(Quat::IDENTITY);
 
         assert!((rebased * Vec3::Y - Vec3::Z).length() < 1.0e-5);
+    }
+
+    #[test]
+    fn control_frame_settle_preserves_local_offset_contract() {
+        let mut control = CharacterControlFrame::default();
+        let start = Quat::from_rotation_z(std::f32::consts::FRAC_PI_2);
+        control.begin_settle(start, Quat::IDENTITY, 0.3, 0.1);
+
+        assert!((control.rotation() * Vec3::Y - start * Vec3::Y).length() < 1.0e-5);
+        assert_eq!(control.movement_input_scale(), 0.0);
+
+        control.tick(0.15);
+        assert!(control.movement_input_scale() > 0.999);
+        assert!(control.rotation().dot(Quat::IDENTITY).abs() < 0.99999);
+
+        control.tick(0.15);
+        assert!(control.rotation().dot(Quat::IDENTITY).abs() > 0.99999);
     }
 }

@@ -6,9 +6,12 @@
 
 use bevy::{input::mouse::AccumulatedMouseScroll, prelude::*};
 
-use crate::game::{
-    InputSet,
-    player::{CameraMode, Player, PlayerAim, PlayerCamera, PlayerStance, cursor::CursorCapture},
+use crate::{
+    game::{
+        InputSet,
+        player::{CameraMode, Player, PlayerAim, PlayerCamera, PlayerStance, cursor::CursorCapture},
+    },
+    physics::character::CharacterControlFrame,
 };
 
 use super::{
@@ -96,7 +99,16 @@ fn scroll_hotbar(
 fn update_aim(
     menu: Res<CreativeMenuState>,
     capture: Res<CursorCapture>,
-    player: Single<(Entity, &Transform, &PlayerAim, &PlayerStance), With<Player>>,
+    player: Single<
+        (
+            Entity,
+            &Transform,
+            &CharacterControlFrame,
+            &PlayerAim,
+            &PlayerStance,
+        ),
+        With<Player>,
+    >,
     camera: Single<&PlayerCamera>,
     mut aim: ResMut<PlaygroundAim>,
 ) {
@@ -105,9 +117,9 @@ fn update_aim(
         return;
     }
 
-    let (actor, body, player_aim, stance) = player.into_inner();
-    let view_rotation = camera.view_rotation(body, player_aim);
-    let origin = camera.eye_position(body, stance);
+    let (actor, body, control, player_aim, stance) = player.into_inner();
+    let view_rotation = camera.view_rotation(control, player_aim);
+    let origin = camera.eye_position(body, control, stance);
 
     aim.set(Some(PlaygroundAimContext {
         actor,

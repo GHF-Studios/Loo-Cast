@@ -51,10 +51,11 @@ pub struct PlayerNoclip {
     pub active: bool,
 }
 
-/// View orientation relative to the physical player body frame.
+/// Live yaw/pitch offset relative to the character control frame.
 ///
-/// Body orientation is reserved for physical/topological orientation. Looking
-/// around therefore never tilts or yaws the collision hull.
+/// Portal/topology transitions may rotate that base control frame underneath
+/// this offset. Mouse look therefore remains responsive without rewriting the
+/// player's local aim while the world/view basis settles.
 #[derive(Component, Reflect, Debug, Clone, Copy)]
 #[reflect(Component)]
 pub struct PlayerAim {

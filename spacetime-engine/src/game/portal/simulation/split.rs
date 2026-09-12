@@ -21,7 +21,7 @@ use bevy::prelude::*;
 use crate::{
     ecs::{UsfManifestationAuthority, UsfManifestationOf, UsfManifestations},
     physics::{
-        character::{CharacterGroundState, CharacterLocomotionFrame},
+        character::{CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame},
         topology::{KinematicQueryExclusions, SpatialSplitBox, SplitPlane, partition_box_by_plane},
     },
 };
@@ -31,6 +31,8 @@ use crate::game::portal::{
     domain::{ActivePortalSplit, PortalSide},
     topology::mapping::{map_transform, portal_mapping},
 };
+
+use super::{CONTROL_INPUT_BLEND_DURATION, CONTROL_SETTLE_DURATION};
 
 const PREOPEN_MARGIN: f32 = 0.04;
 const CLEAR_MARGIN: f32 = 0.02;
@@ -244,6 +246,7 @@ pub(crate) fn resolve_portal_splits(
             &UsfManifestationOf,
             &mut Transform,
             Option<&CharacterLocomotionFrame>,
+            Option<&mut CharacterControlFrame>,
             &mut LinearVelocity,
             &mut CharacterGroundState,
             &mut PortalTraveler,
@@ -264,6 +267,7 @@ pub(crate) fn resolve_portal_splits(
         manifestation,
         mut body,
         locomotion_frame,
+        mut control_frame,
         mut velocity,
         mut ground,
         mut traveler,
@@ -324,6 +328,23 @@ pub(crate) fn resolve_portal_splits(
                 let mapping = portal_mapping(source, destination);
                 let mapped_crossing = map_transform(&crossing, source, destination);
                 let mapped_velocity = mapping.transform_vector3(velocity.0);
+
+                if let Some(control) = control_frame.as_deref_mut() {
+                    let mapped_control = map_transform(
+                        &Transform::from_rotation(control.rotation()),
+                        source,
+                        destination,
+                    )
+                    .rotation;
+                    let target = locomotion_frame
+                        .map_or(mapped_control, |frame| frame.aligned_rotation(mapped_control));
+                    control.begin_settle(
+                        mapped_control,
+                        target,
+                        CONTROL_SETTLE_DURATION,
+                        CONTROL_INPUT_BLEND_DURATION,
+                    );
+                }
 
                 let filter = SpatialQueryFilter::from_excluded_entities([entity, peer]);
 

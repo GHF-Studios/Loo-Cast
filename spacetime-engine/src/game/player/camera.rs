@@ -21,7 +21,7 @@ use bevy::{
 use crate::{
     ecs::{UsfManifestationOf, UsfManifestations},
     game::portal::DERIVED_VIEW_LAYER,
-    physics::character::CharacterDimensions,
+    physics::character::{CharacterControlFrame, CharacterDimensions},
 };
 
 use super::{Player, PlayerAim, PlayerModel, PlayerStance, cursor::CursorCapture};
@@ -47,7 +47,7 @@ pub struct ThirdPersonCamera {
     pub maximum_distance: f32,
     /// Metres added or removed for one scroll step.
     pub zoom_step: f32,
-    /// Body-up offset from the eye to the third-person orbit pivot.
+    /// Control-frame-up offset from the eye to the third-person orbit pivot.
     pub pivot_height: f32,
     /// Radius of the sphere swept from the pivot toward the desired camera.
     pub collision_radius: f32,
@@ -102,9 +102,9 @@ impl Default for ThirdPersonCamera {
 #[reflect(Component)]
 pub struct PlayerCamera {
     pub mode: CameraMode,
-    /// Body-local standing eye offset.
+    /// Control-frame-local standing eye offset.
     pub standing_eye_offset: Vec3,
-    /// Body-local crouched eye offset.
+    /// Control-frame-local crouched eye offset.
     pub crouched_eye_offset: Vec3,
     pub third_person: ThirdPersonCamera,
     /// Desired horizontal field of view in degrees.
@@ -120,12 +120,17 @@ impl PlayerCamera {
         }
     }
 
-    pub fn view_rotation(&self, body: &Transform, aim: &PlayerAim) -> Quat {
-        body.rotation * aim.local_rotation()
+    pub fn view_rotation(&self, control: &CharacterControlFrame, aim: &PlayerAim) -> Quat {
+        control.rotation() * aim.local_rotation()
     }
 
-    pub fn eye_position(&self, body: &Transform, stance: &PlayerStance) -> Vec3 {
-        body.translation + body.rotation * self.eye_offset(stance)
+    pub fn eye_position(
+        &self,
+        body: &Transform,
+        control: &CharacterControlFrame,
+        stance: &PlayerStance,
+    ) -> Vec3 {
+        body.translation + control.rotation() * self.eye_offset(stance)
     }
 }
 
@@ -180,6 +185,7 @@ pub fn sync_player_camera(
         (
             Entity,
             &Transform,
+            &CharacterControlFrame,
             &PlayerAim,
             &PlayerStance,
             &UsfManifestationOf,
@@ -189,16 +195,16 @@ pub fn sync_player_camera(
     camera: Single<(&mut PlayerCamera, &mut Transform), (With<PlayerCamera>, Without<Player>)>,
     semantic_entities: Query<&UsfManifestations>,
 ) {
-    let (player_entity, body, aim, stance, manifestation) = player.into_inner();
+    let (player_entity, body, control, aim, stance, manifestation) = player.into_inner();
     let (mut camera, mut camera_transform) = camera.into_inner();
 
-    let view_rotation = camera.view_rotation(body, aim);
-    let eye = camera.eye_position(body, stance);
+    let view_rotation = camera.view_rotation(control, aim);
+    let eye = camera.eye_position(body, control, stance);
 
     let translation = match camera.mode {
         CameraMode::FirstPerson => eye,
         CameraMode::ThirdPerson => {
-            let pivot = eye + body.rotation * Vec3::Y * camera.third_person.pivot_height;
+            let pivot = eye + control.rotation() * Vec3::Y * camera.third_person.pivot_height;
             let back = view_rotation * Vec3::Z;
             let desired_distance = camera.third_person.desired_distance();
 

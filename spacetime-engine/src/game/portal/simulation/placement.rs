@@ -9,10 +9,12 @@ use bevy::prelude::*;
 
 use crate::{
     game::portal::Portal,
-    physics::collision_topology::{CollisionClipSource, supports_rectangular_stencil},
+    physics::collision_topology::{CollisionClipSource, fit_rectangular_stencil},
 };
 
 const SUPPORT_PLANE_TOLERANCE: f32 = 0.025;
+const MAX_POSITION_SNAP_DISTANCE: f32 = 0.50;
+const EDGE_MAGNET_DISTANCE: f32 = 0.15;
 const OVERLAP_PLANE_EPSILON: f32 = 0.01;
 const OVERLAP_NORMAL_DOT: f32 = 0.999;
 const OVERLAP_EDGE_EPSILON: f32 = 1.0e-4;
@@ -24,8 +26,10 @@ pub(crate) struct PortalPlacement {
 }
 
 /// Resolves one proposed portal transform against immutable clip-capable source
-/// geometry. Current support is intentionally strict: one static host must own
-/// the complete aperture. Multi-host coplanar support can be added here later.
+/// geometry. Nearby positions are corrected onto the nearest valid face region;
+/// positions already close to a face edge magnetize to that edge (or corner).
+/// Cuboid support also returns an exact face-axis quarter-turn orientation.
+/// Multi-host coplanar support can be added here later.
 pub(crate) fn resolve_portal_placement(
     transform: Transform,
     half_size: Vec2,
@@ -33,21 +37,27 @@ pub(crate) fn resolve_portal_placement(
 ) -> Option<PortalPlacement> {
     hosts
         .iter()
-        .filter(|(_, source, host)| {
-            supports_rectangular_stencil(
-                **source,
+        .filter_map(|(support, source, host)| {
+            fit_rectangular_stencil(
+                *source,
                 host,
                 &transform,
                 half_size,
                 SUPPORT_PLANE_TOLERANCE,
+                MAX_POSITION_SNAP_DISTANCE,
+                EDGE_MAGNET_DISTANCE,
             )
+            .map(|fit| (support, fit))
         })
-        .min_by(|(_, _, a), (_, _, b)| {
-            a.translation
-                .distance_squared(transform.translation)
-                .total_cmp(&b.translation.distance_squared(transform.translation))
+        .min_by(|(_, a), (_, b)| {
+            a.displacement
+                .total_cmp(&b.displacement)
+                .then_with(|| b.snapped_edges.cmp(&a.snapped_edges))
         })
-        .map(|(support, _, _)| PortalPlacement { transform, support })
+        .map(|(support, fit)| PortalPlacement {
+            transform: fit.transform,
+            support,
+        })
 }
 
 /// Returns whether two effectively coplanar portal apertures overlap.

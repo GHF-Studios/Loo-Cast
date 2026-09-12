@@ -1,8 +1,8 @@
 //! Local-player gameplay and presentation.
 //!
-//! The player body is simulation state. Aim is body-local view intent. Camera
-//! placement is presentation. Device input is an adapter that writes those
-//! components. Keeping those layers explicit makes them independently
+//! The player body is simulation state. Aim is control-frame-local view intent.
+//! Camera placement is presentation. Device input is an adapter that writes
+//! those components. Keeping those layers explicit makes them independently
 //! replaceable by mods, AI, replay/network input or a different camera rig.
 
 mod camera;

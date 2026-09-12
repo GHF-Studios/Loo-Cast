@@ -16,8 +16,10 @@ use crate::{
             mapping::{map_transform, portal_mapping},
         },
     },
-    physics::character::CharacterLocomotionFrame,
+    physics::character::{CharacterControlFrame, CharacterLocomotionFrame},
 };
+
+use super::{CONTROL_INPUT_BLEND_DURATION, CONTROL_SETTLE_DURATION};
 
 pub(in super::super) fn teleport_travelers(
     portals: Query<(&Portal, &PortalActive, &Transform)>,
@@ -26,6 +28,7 @@ pub(in super::super) fn teleport_travelers(
             &mut Transform,
             &mut PortalTraveler,
             Option<&CharacterLocomotionFrame>,
+            Option<&mut CharacterControlFrame>,
             Option<&mut PortalVelocity>,
             Option<&mut LinearVelocity>,
         ),
@@ -39,6 +42,7 @@ pub(in super::super) fn teleport_travelers(
         mut transform,
         mut traveler,
         locomotion_frame,
+        mut control_frame,
         mut portal_velocity,
         mut linear_velocity,
     ) in &mut travelers
@@ -83,6 +87,23 @@ pub(in super::super) fn teleport_travelers(
 
         if let Some((source, destination)) = crossing {
             let mapping = portal_mapping(&source, &destination);
+
+            if let Some(control) = control_frame.as_deref_mut() {
+                let mapped_control = map_transform(
+                    &Transform::from_rotation(control.rotation()),
+                    &source,
+                    &destination,
+                )
+                .rotation;
+                let target = locomotion_frame
+                    .map_or(mapped_control, |frame| frame.aligned_rotation(mapped_control));
+                control.begin_settle(
+                    mapped_control,
+                    target,
+                    CONTROL_SETTLE_DURATION,
+                    CONTROL_INPUT_BLEND_DURATION,
+                );
+            }
 
             *transform = map_transform(&transform, &source, &destination);
             if let Some(frame) = locomotion_frame {
