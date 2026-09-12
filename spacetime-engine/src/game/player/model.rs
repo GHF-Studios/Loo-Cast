@@ -28,5 +28,6 @@ pub fn create_model(
             materials.add(Color::srgb(0.25, 0.45, 0.9)),
         ),
         Transform::IDENTITY,
+        Visibility::Hidden,
     )
 }

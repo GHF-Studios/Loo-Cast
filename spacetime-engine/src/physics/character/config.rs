@@ -1,20 +1,34 @@
 use avian3d::prelude::Collider;
 use bevy::prelude::*;
 
-/// Dimensions of the default standing character body, in metres.
+/// Dimensions of the default character body, in metres.
 pub struct CharacterDimensions;
 
 impl CharacterDimensions {
     pub const HULL_WIDTH: f32 = 0.8128;
-    pub const HULL_HEIGHT: f32 = 1.8288;
-    pub const HALF_HEIGHT: f32 = 0.9144;
-    pub const EYE_HEIGHT: f32 = 1.6256;
+    pub const HULL_HEIGHT: f32 = 1.9;
+    pub const HALF_HEIGHT: f32 = Self::HULL_HEIGHT / 2.0;
+    pub const EYE_HEIGHT: f32 = 1.73;
     pub const CENTER_TO_EYE: f32 = Self::EYE_HEIGHT - Self::HALF_HEIGHT;
+
+    pub const CROUCH_HEIGHT: f32 = 1.2;
+    pub const CROUCH_HALF_HEIGHT: f32 = Self::CROUCH_HEIGHT / 2.0;
+    pub const CROUCH_EYE_HEIGHT: f32 = 1.05;
+    pub const CROUCH_CENTER_TO_EYE: f32 =
+        Self::CROUCH_EYE_HEIGHT - Self::CROUCH_HALF_HEIGHT;
 
     pub fn standing_collider() -> Collider {
         Collider::cuboid(
             Self::HULL_WIDTH,
             Self::HULL_HEIGHT,
+            Self::HULL_WIDTH,
+        )
+    }
+
+    pub fn crouching_collider() -> Collider {
+        Collider::cuboid(
+            Self::HULL_WIDTH,
+            Self::CROUCH_HEIGHT,
             Self::HULL_WIDTH,
         )
     }
@@ -65,7 +79,8 @@ impl CharacterMovementConfig {
     /// in SI units.
     ///
     /// The name records the reference lineage rather than claiming byte-identical
-    /// defaults: this project's adopted ground friction is intentionally 8.0.
+    /// defaults. This project's canonical movement intentionally adopts stronger
+    /// ground friction and a higher jump for the portal-heavy game feel.
     pub fn source_2013() -> Self {
         Self {
             max_ground_speed: 8.128,
@@ -75,7 +90,7 @@ impl CharacterMovementConfig {
             stop_speed: 2.54,
             surface_friction: 1.0,
             gravity: 20.32,
-            jump_speed: 6.815_535_5,
+            jump_speed: 9.144,
             air_wish_speed_cap: Some(0.762),
             step_height: 0.4572,
             ground_snap_distance: 0.0508,

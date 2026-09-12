@@ -34,6 +34,20 @@ use bevy::prelude::*;
 
 use crate::game::SimulationSet;
 
+/// Whether a persistent portal endpoint currently exists in gameplay.
+///
+/// Portal rendering infrastructure is intentionally kept alive while inactive
+/// so a Portal Gun can later reposition/reactivate endpoints without rebuilding
+/// the recursive render tree.
+#[derive(Component, Debug, Clone, Copy)]
+pub struct PortalActive(pub bool);
+
+impl Default for PortalActive {
+    fn default() -> Self {
+        Self(true)
+    }
+}
+
 pub struct PortalPlugin;
 
 impl Plugin for PortalPlugin {

@@ -12,6 +12,8 @@ pub use components::{
     PlayerAim,
     PlayerCamera,
     PlayerController,
+    PlayerNoclip,
+    PlayerStance,
 };
 
 pub use model::PlayerModel;
@@ -49,7 +51,10 @@ impl Plugin for PlayerPlugin {
                 RunFixedMainLoop,
                 (
                     controls::look,
+                    controls::toggle_noclip,
+                    controls::stance,
                     controls::movement,
+                    controls::noclip_movement,
                 )
                     .chain()
                     .in_set(
@@ -68,7 +73,12 @@ impl Plugin for PlayerPlugin {
             )
             .add_systems(
                 Update,
-                camera::sync_player_camera
+                (
+                    camera::sync_player_camera,
+                    camera::sync_player_fov,
+                    camera::sync_player_model,
+                )
+                    .chain()
                     .in_set(PresentationSet::PrimaryView),
             );
     }
@@ -99,6 +109,8 @@ fn spawn_player(
                 Player,
                 PlayerController::default(),
                 PlayerAim::default(),
+                PlayerStance::default(),
+                PlayerNoclip::default(),
                 CharacterMotor,
                 CharacterDimensions::standing_collider(),
                 Weapon::default(),

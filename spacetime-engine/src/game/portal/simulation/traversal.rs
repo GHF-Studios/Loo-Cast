@@ -8,6 +8,7 @@ use avian3d::prelude::LinearVelocity;
 use bevy::prelude::*;
 
 use crate::game::portal::{
+    PortalActive,
     domain::{
         Portal,
         PortalTraveler,
@@ -23,7 +24,7 @@ use crate::game::portal::{
 };
 
 pub(in super::super) fn teleport_travelers(
-    portals: Query<(&Portal, &Transform)>,
+    portals: Query<(&Portal, &PortalActive, &Transform)>,
     mut travelers: Query<
         (
             &mut Transform,
@@ -53,7 +54,10 @@ pub(in super::super) fn teleport_travelers(
 
         let mut crossing = None;
 
-        for (portal, source) in &portals {
+        for (portal, active, source) in &portals {
+            if !active.0 {
+                continue;
+            }
             if crossed_aperture(
                 source,
                 portal.half_size,
@@ -66,11 +70,15 @@ pub(in super::super) fn teleport_travelers(
                 continue;
             }
 
-            let Ok((_, destination)) =
+            let Ok((_, destination_active, destination)) =
                 portals.get(portal.destination)
             else {
                 continue;
             };
+
+            if !destination_active.0 {
+                continue;
+            }
 
             crossing = Some((
                 *source,

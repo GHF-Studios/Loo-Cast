@@ -10,14 +10,32 @@ pub struct Player;
 #[derive(Component, Debug, Clone, Copy)]
 pub struct PlayerController {
     pub look_sensitivity: f32,
+    pub walk_speed: f32,
+    pub sprint_multiplier: f32,
+    pub crouch_speed_multiplier: f32,
+    pub noclip_speed: f32,
 }
 
 impl Default for PlayerController {
     fn default() -> Self {
         Self {
             look_sensitivity: 0.002,
+            walk_speed: 8.128,
+            sprint_multiplier: 2.0,
+            crouch_speed_multiplier: 0.45,
+            noclip_speed: 20.0,
         }
     }
+}
+
+#[derive(Component, Debug, Default, Clone, Copy)]
+pub struct PlayerStance {
+    pub crouched: bool,
+}
+
+#[derive(Component, Debug, Default, Clone, Copy)]
+pub struct PlayerNoclip {
+    pub active: bool,
 }
 
 /// View orientation relative to the physical player body frame.
@@ -69,6 +87,8 @@ pub struct PlayerCamera {
     pub first_person_offset: Vec3,
     /// View-local offset from the eye point in third person.
     pub third_person_offset: Vec3,
+    /// Desired horizontal field of view in degrees.
+    pub horizontal_fov_degrees: f32,
 }
 
 impl PlayerCamera {
@@ -107,6 +127,7 @@ impl Default for PlayerCamera {
 
             // +Z is behind because forward is local -Z.
             third_person_offset: Vec3::new(0.0, 0.75, 4.0),
+            horizontal_fov_degrees: 110.0,
         }
     }
 }

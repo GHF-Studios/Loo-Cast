@@ -16,7 +16,8 @@ pub struct Hotbar {
 impl Default for Hotbar {
     fn default() -> Self {
         let mut slots = [None; HOTBAR_SIZE];
-        slots[0] = Some(PlaygroundItemId::new("projectile_gun"));
+        slots[0] = Some(PlaygroundItemId::new("portal_gun"));
+        slots[1] = Some(PlaygroundItemId::new("projectile_gun"));
 
         Self {
             slots,

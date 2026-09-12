@@ -6,6 +6,7 @@ use bevy::{
 };
 
 use crate::game::portal::{
+    PortalActive,
     domain::{
         Portal,
         PortalConfig,
@@ -60,6 +61,8 @@ pub fn setup_portals(
             half_size: config.size / 2.0,
             sidedness: config.sidedness,
         },
+        PortalActive::default(),
+        Visibility::Inherited,
         config.first.transform,
     ));
 
@@ -71,6 +74,8 @@ pub fn setup_portals(
             half_size: config.size / 2.0,
             sidedness: config.sidedness,
         },
+        PortalActive::default(),
+        Visibility::Inherited,
         config.second.transform,
     ));
 
