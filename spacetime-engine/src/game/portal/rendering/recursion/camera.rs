@@ -6,12 +6,7 @@
 use bevy::prelude::*;
 
 use crate::game::portal::{
-    domain::{
-        Portal,
-        PortalFace,
-        PortalPair,
-        PortalView,
-    },
+    domain::{Portal, PortalFace, PortalPair, PortalView},
     topology::mapping::map_transform,
 };
 
@@ -20,11 +15,7 @@ use super::path::PortalRenderCamera;
 pub fn update_portal_cameras(
     mut cameras: ParamSet<(
         Single<
-            (
-                &Transform,
-                &Projection,
-                &Camera,
-            ),
+            (&Transform, &Projection, &Camera),
             (
                 With<PortalView>,
                 Without<PortalRenderCamera>,
@@ -38,87 +29,42 @@ pub fn update_portal_cameras(
                 &mut Projection,
                 &mut Camera,
             ),
-            (
-                Without<PortalView>,
-                Without<Portal>,
-            ),
+            (Without<PortalView>, Without<Portal>),
         >,
     )>,
     pair: Res<PortalPair>,
-    portals: Query<
-        &Transform,
-        With<Portal>,
-    >,
+    portals: Query<&Transform, With<Portal>>,
 ) {
-    let (
-        primary_transform,
-        primary_projection,
-        primary_clear_color,
-    ) = {
-        let primary =
-            cameras.p0();
+    let (primary_transform, primary_projection, primary_clear_color) = {
+        let primary = cameras.p0();
 
-        let (
-            transform,
-            projection,
-            camera,
-        ) = primary.into_inner();
+        let (transform, projection, camera) = primary.into_inner();
 
-        (
-            *transform,
-            projection.clone(),
-            camera.clear_color.clone(),
-        )
+        (*transform, projection.clone(), camera.clear_color.clone())
     };
 
-    let Projection::Perspective(
-        primary_projection,
-    ) = primary_projection
-    else {
+    let Projection::Perspective(primary_projection) = primary_projection else {
         return;
     };
 
-    for (
-        portal_camera,
-        mut transform,
-        mut projection,
-        mut camera,
-    ) in &mut cameras.p1()
-    {
-        let Some((
-                     mapped,
-                     destination,
-                 )) = map_camera_path(
-            &primary_transform,
-            &portal_camera.path,
-            *pair,
-            &portals,
-        )
+    for (portal_camera, mut transform, mut projection, mut camera) in &mut cameras.p1() {
+        let Some((mapped, destination)) =
+            map_camera_path(&primary_transform, &portal_camera.path, *pair, &portals)
         else {
             continue;
         };
 
-        let mut perspective =
-            primary_projection.clone();
+        let mut perspective = primary_projection.clone();
 
         // Preserve the exact clipping mechanism from the known-working
         // one-sided renderer.
-        perspective.near_clip_plane =
-            portal_clip_plane(
-                &mapped,
-                &destination,
-            );
+        perspective.near_clip_plane = portal_clip_plane(&mapped, &destination);
 
-        *transform =
-            mapped;
+        *transform = mapped;
 
-        *projection =
-            Projection::Perspective(
-                perspective,
-            );
+        *projection = Projection::Perspective(perspective);
 
-        camera.clear_color =
-            primary_clear_color.clone();
+        camera.clear_color = primary_clear_color.clone();
     }
 }
 
@@ -135,105 +81,43 @@ fn map_camera_path(
     primary: &Transform,
     path: &[PortalFace],
     pair: PortalPair,
-    portals: &Query<
-        &Transform,
-        With<Portal>,
-    >,
-) -> Option<(
-    Transform,
-    Transform,
-)> {
-    let mut mapped =
-        *primary;
+    portals: &Query<&Transform, With<Portal>>,
+) -> Option<(Transform, Transform)> {
+    let mut mapped = *primary;
 
-    let mut final_destination =
-        None;
+    let mut final_destination = None;
 
     for face in path {
-        let source =
-            *portals
-                .get(
-                    pair.entity(
-                        face.endpoint,
-                    ),
-                )
-                .ok()?;
+        let source = *portals.get(pair.entity(face.endpoint)).ok()?;
 
-        let destination =
-            *portals
-                .get(
-                    pair.entity(
-                        face
-                            .endpoint
-                            .other(),
-                    ),
-                )
-                .ok()?;
+        let destination = *portals.get(pair.entity(face.endpoint.other())).ok()?;
 
         // EXACT same rigid mapping used by the working one-sided renderer.
-        mapped =
-            map_transform(
-                &mapped,
-                &source,
-                &destination,
-            );
+        mapped = map_transform(&mapped, &source, &destination);
 
-        final_destination =
-            Some(destination);
+        final_destination = Some(destination);
     }
 
-    final_destination.map(
-        |destination| {
-            (
-                mapped,
-                destination,
-            )
-        },
-    )
+    final_destination.map(|destination| (mapped, destination))
 }
 
 /// Exact clipping rule from the known-working one-sided renderer.
-fn portal_clip_plane(
-    camera: &Transform,
-    destination: &Transform,
-) -> Vec4 {
-    let mut normal_world =
-        destination.rotation
-            * Vec3::Z;
+fn portal_clip_plane(camera: &Transform, destination: &Transform) -> Vec4 {
+    let mut normal_world = destination.rotation * Vec3::Z;
 
-    let plane_point =
-        destination.translation
-            + normal_world * 0.01;
+    let plane_point = destination.translation + normal_world * 0.01;
 
-    let camera_to_plane =
-        plane_point
-            - camera.translation;
+    let camera_to_plane = plane_point - camera.translation;
 
-    if normal_world
-        .dot(camera_to_plane)
-        < 0.0
-    {
-        normal_world =
-            -normal_world;
+    if normal_world.dot(camera_to_plane) < 0.0 {
+        normal_world = -normal_world;
     }
 
-    let view_rotation =
-        camera.rotation.inverse();
+    let view_rotation = camera.rotation.inverse();
 
-    let normal_view =
-        (
-            view_rotation
-                * normal_world
-        )
-            .normalize();
+    let normal_view = (view_rotation * normal_world).normalize();
 
-    let point_view =
-        view_rotation
-            * camera_to_plane;
+    let point_view = view_rotation * camera_to_plane;
 
-    normal_view.extend(
-        -normal_view.dot(
-            point_view,
-        ),
-    )
+    normal_view.extend(-normal_view.dot(point_view))
 }

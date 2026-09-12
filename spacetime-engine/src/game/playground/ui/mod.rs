@@ -12,9 +12,6 @@ impl Plugin for PlaygroundUiPlugin {
         creative_menu::configure(app);
         hud::configure(app);
 
-        app.add_systems(
-            PostUpdate,
-            item_view::sync_item_views,
-        );
+        app.add_systems(PostUpdate, item_view::sync_item_views);
     }
 }

@@ -12,13 +12,8 @@ use bevy::prelude::*;
 ///
 /// Because portal transforms are constrained to unit scale, this is a rigid
 /// mapping and supports arbitrary translation + 3D rotation.
-pub(crate) fn portal_mapping(
-    source: &Transform,
-    destination: &Transform,
-) -> Mat4 {
-    destination.to_matrix()
-        * Mat4::from_rotation_y(PI)
-        * source.to_matrix().inverse()
+pub(crate) fn portal_mapping(source: &Transform, destination: &Transform) -> Mat4 {
+    destination.to_matrix() * Mat4::from_rotation_y(PI) * source.to_matrix().inverse()
 }
 
 pub(crate) fn map_transform(
@@ -26,8 +21,5 @@ pub(crate) fn map_transform(
     source: &Transform,
     destination: &Transform,
 ) -> Transform {
-    Transform::from_matrix(
-        portal_mapping(source, destination)
-            * transform.to_matrix(),
-    )
+    Transform::from_matrix(portal_mapping(source, destination) * transform.to_matrix())
 }

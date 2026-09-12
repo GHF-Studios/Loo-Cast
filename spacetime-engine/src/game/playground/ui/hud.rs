@@ -1,19 +1,10 @@
 use bevy::prelude::*;
 
-use crate::game::{
-    GameSet,
-    combat::Health,
-};
+use crate::game::{GameSet, combat::Health};
 
-use super::super::{
-    inventory::CreativeMenuState,
-    object::ShowHealthInPlaygroundHud,
-};
+use super::super::{inventory::CreativeMenuState, object::ShowHealthInPlaygroundHud};
 
-use super::hotbar::{
-    spawn_hud_hotbar,
-    sync_hud_hotbar,
-};
+use super::hotbar::{spawn_hud_hotbar, sync_hud_hotbar};
 
 #[derive(Component)]
 struct HealthHudText;
@@ -22,16 +13,15 @@ struct HealthHudText;
 struct Crosshair;
 
 pub fn configure(app: &mut App) {
-    app.add_systems(Startup, spawn_hud)
-        .add_systems(
-            Update,
-            (
-                update_health_hud,
-                update_crosshair_visibility,
-                sync_hud_hotbar,
-            )
-                .in_set(GameSet::Presentation),
-        );
+    app.add_systems(Startup, spawn_hud).add_systems(
+        Update,
+        (
+            update_health_hud,
+            update_crosshair_visibility,
+            sync_hud_hotbar,
+        )
+            .in_set(GameSet::Presentation),
+    );
 }
 
 fn spawn_hud(mut commands: Commands) {
@@ -83,10 +73,7 @@ fn spawn_hud(mut commands: Commands) {
 }
 
 fn update_health_hud(
-    health: Query<
-        (&Name, &Health),
-        With<ShowHealthInPlaygroundHud>,
-    >,
+    health: Query<(&Name, &Health), With<ShowHealthInPlaygroundHud>>,
     mut text: Single<&mut Text, With<HealthHudText>>,
 ) {
     let mut lines: Vec<String> = health

@@ -1,25 +1,18 @@
-//! Instantaneous conventional portal traversal.
+//! Instantaneous conventional portal traversal fallback.
 //!
-//! This deliberately remains singular-entity teleportation. The visible
-//! continuity problem while crossing is reserved for the later manifestation
-//! experiment.
+//! Entities opted into `PortalSplitTraveler` are handled by the manifestation
+//! split prototype instead. This path remains useful for simple travelers that
+//! do not need partial presence on both sides of a portal.
 
 use avian3d::prelude::LinearVelocity;
 use bevy::prelude::*;
 
 use crate::game::portal::{
     PortalActive,
-    domain::{
-        Portal,
-        PortalTraveler,
-        PortalVelocity,
-    },
+    domain::{Portal, PortalTraveler, PortalVelocity},
     topology::{
         crossing::crossed_aperture,
-        mapping::{
-            map_transform,
-            portal_mapping,
-        },
+        mapping::{map_transform, portal_mapping},
     },
 };
 
@@ -32,22 +25,16 @@ pub(in super::super) fn teleport_travelers(
             Option<&mut PortalVelocity>,
             Option<&mut LinearVelocity>,
         ),
-        Without<Portal>,
+        (
+            Without<Portal>,
+            Without<crate::game::portal::PortalSplitTraveler>,
+        ),
     >,
 ) {
-    for (
-        mut transform,
-        mut traveler,
-        mut portal_velocity,
-        mut linear_velocity,
-    ) in &mut travelers
-    {
-        let current =
-            transform.translation;
+    for (mut transform, mut traveler, mut portal_velocity, mut linear_velocity) in &mut travelers {
+        let current = transform.translation;
 
-        let Some(previous) =
-            traveler.previous_position()
-        else {
+        let Some(previous) = traveler.previous_position() else {
             traveler.commit_position(current);
             continue;
         };
@@ -70,9 +57,7 @@ pub(in super::super) fn teleport_travelers(
                 continue;
             }
 
-            let Ok((_, destination_active, destination)) =
-                portals.get(portal.destination)
-            else {
+            let Ok((_, destination_active, destination)) = portals.get(portal.destination) else {
                 continue;
             };
 
@@ -80,53 +65,27 @@ pub(in super::super) fn teleport_travelers(
                 continue;
             }
 
-            crossing = Some((
-                *source,
-                *destination,
-            ));
+            crossing = Some((*source, *destination));
 
             break;
         }
 
-        if let Some((source, destination)) =
-            crossing
-        {
-            let mapping =
-                portal_mapping(
-                    &source,
-                    &destination,
-                );
+        if let Some((source, destination)) = crossing {
+            let mapping = portal_mapping(&source, &destination);
 
-            *transform =
-                map_transform(
-                    &transform,
-                    &source,
-                    &destination,
-                );
+            *transform = map_transform(&transform, &source, &destination);
 
-            if let Some(velocity) =
-                portal_velocity.as_deref_mut()
-            {
-                velocity.0 =
-                    mapping.transform_vector3(
-                        velocity.0,
-                    );
+            if let Some(velocity) = portal_velocity.as_deref_mut() {
+                velocity.0 = mapping.transform_vector3(velocity.0);
             }
 
-            if let Some(velocity) =
-                linear_velocity.as_deref_mut()
-            {
-                velocity.0 =
-                    mapping.transform_vector3(
-                        velocity.0,
-                    );
+            if let Some(velocity) = linear_velocity.as_deref_mut() {
+                velocity.0 = mapping.transform_vector3(velocity.0);
             }
         }
 
         // Commit after topology so arrival does not immediately retrigger the
         // destination portal.
-        traveler.commit_position(
-            transform.translation,
-        );
+        traveler.commit_position(transform.translation);
     }
 }

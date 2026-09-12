@@ -65,11 +65,7 @@ impl Plugin for TestGamePlugin {
             )
             .configure_sets(
                 Update,
-                (
-                    InputSet::Interface,
-                    InputSet::Cursor,
-                    InputSet::Gameplay,
-                )
+                (InputSet::Interface, InputSet::Cursor, InputSet::Gameplay)
                     .chain()
                     .in_set(GameSet::Input),
             )
@@ -85,10 +81,7 @@ impl Plugin for TestGamePlugin {
             )
             .configure_sets(
                 Update,
-                (
-                    PresentationSet::PrimaryView,
-                    PresentationSet::DerivedViews,
-                )
+                (PresentationSet::PrimaryView, PresentationSet::DerivedViews)
                     .chain()
                     .in_set(GameSet::Presentation),
             )

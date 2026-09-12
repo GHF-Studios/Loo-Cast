@@ -19,10 +19,7 @@ impl Default for Hotbar {
         slots[0] = Some(PlaygroundItemId::new("portal_gun"));
         slots[1] = Some(PlaygroundItemId::new("projectile_gun"));
 
-        Self {
-            slots,
-            selected: 0,
-        }
+        Self { slots, selected: 0 }
     }
 }
 
@@ -36,10 +33,7 @@ impl Hotbar {
     }
 
     pub fn select_offset(&mut self, offset: isize) {
-        self.selected =
-            (self.selected as isize + offset)
-                .rem_euclid(HOTBAR_SIZE as isize)
-                as usize;
+        self.selected = (self.selected as isize + offset).rem_euclid(HOTBAR_SIZE as isize) as usize;
     }
 }
 

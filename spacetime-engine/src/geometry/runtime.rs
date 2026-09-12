@@ -5,7 +5,7 @@ use bevy::prelude::*;
 
 use super::{
     asset::AuthoredMap,
-    compile::{compile_map, CompiledGeometry, CompiledMotion, CompiledNode, CompiledShape},
+    compile::{CompiledGeometry, CompiledMotion, CompiledNode, CompiledShape, compile_map},
     mesh::{convex_prism_mesh, convex_prism_points},
 };
 
@@ -258,12 +258,7 @@ fn spawn_geometry(
 
     if let Some(motion) = motion {
         if let Some(collider) = collider {
-            entity.insert((
-                RigidBody::Kinematic,
-                collider,
-                initial_velocity,
-                motion,
-            ));
+            entity.insert((RigidBody::Kinematic, collider, initial_velocity, motion));
         } else {
             warn!("moving authored convex geometry could not build a collider");
         }
@@ -287,15 +282,13 @@ fn authored_motion(base: Transform, motion: CompiledMotion) -> AuthoredMotion {
 }
 
 fn motion_state(motion: &AuthoredMotion) -> (Vec3, Vec3) {
-    let phase = (motion.phase + motion.elapsed_seconds / motion.period_seconds)
-        .rem_euclid(1.0);
+    let phase = (motion.phase + motion.elapsed_seconds / motion.period_seconds).rem_euclid(1.0);
     let angle = std::f32::consts::TAU * phase;
 
     // Smooth endpoint-to-endpoint oscillation. Position starts at base when phase=0,
     // reaches base+travel at phase=0.5, then returns.
     let factor = 0.5 - 0.5 * angle.cos();
-    let factor_velocity =
-        0.5 * std::f32::consts::TAU / motion.period_seconds * angle.sin();
+    let factor_velocity = 0.5 * std::f32::consts::TAU / motion.period_seconds * angle.sin();
 
     (
         motion.base.translation + motion.travel * factor,

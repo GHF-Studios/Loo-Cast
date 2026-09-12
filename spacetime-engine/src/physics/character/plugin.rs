@@ -2,9 +2,7 @@ use avian3d::prelude::*;
 use bevy::prelude::*;
 
 use super::{
-    CharacterGroundState,
-    CharacterMovementConfig,
-    CharacterMovementInput,
+    CharacterGroundState, CharacterMovementConfig, CharacterMovementInput,
     controller::simulate_character_motors,
 };
 

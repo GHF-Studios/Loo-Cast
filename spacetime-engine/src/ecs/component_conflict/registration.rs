@@ -1,12 +1,7 @@
 use std::any::{TypeId, type_name};
 
 use bevy::ecs::{
-    component::Component,
-    entity::Entity,
-    lifecycle::Add,
-    observer::On,
-    query::With,
-    system::Query,
+    component::Component, entity::Entity, lifecycle::Add, observer::On, query::With, system::Query,
     world::World,
 };
 
@@ -41,16 +36,11 @@ impl ConflictRegistration {
         }
     }
 
-    pub(crate) fn descriptor(
-        &self,
-    ) -> ConflictDescriptor {
+    pub(crate) fn descriptor(&self) -> ConflictDescriptor {
         (self.describe)()
     }
 
-    pub(crate) fn install(
-        &self,
-        world: &mut World,
-    ) {
+    pub(crate) fn install(&self, world: &mut World) {
         (self.install)(world);
     }
 }
@@ -84,9 +74,7 @@ where
     }
 }
 
-fn install<A, B>(
-    world: &mut World,
-)
+fn install<A, B>(world: &mut World)
 where
     A: Component,
     B: Component,
@@ -94,10 +82,7 @@ where
     assert_world_valid::<A, B>(world);
 
     world.add_observer(
-        |
-            event: On<Add, (A, B)>,
-            conflicts: Query<(), (With<A>, With<B>)>,
-        | {
+        |event: On<Add, (A, B)>, conflicts: Query<(), (With<A>, With<B>)>| {
             if conflicts.contains(event.entity) {
                 panic_conflict::<A, B>(event.entity);
             }
@@ -105,16 +90,13 @@ where
     );
 }
 
-fn assert_world_valid<A, B>(
-    world: &mut World,
-)
+fn assert_world_valid<A, B>(world: &mut World)
 where
     A: Component,
     B: Component,
 {
     let conflicting_entity = {
-        let mut query =
-            world.query_filtered::<Entity, (With<A>, With<B>)>();
+        let mut query = world.query_filtered::<Entity, (With<A>, With<B>)>();
 
         query.iter(world).next()
     };
@@ -126,9 +108,7 @@ where
 
 #[cold]
 #[track_caller]
-fn panic_conflict<A, B>(
-    entity: Entity,
-) -> !
+fn panic_conflict<A, B>(entity: Entity) -> !
 where
     A: Component,
     B: Component,

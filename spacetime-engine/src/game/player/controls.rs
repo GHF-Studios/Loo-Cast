@@ -5,24 +5,12 @@
 //! or movement tuning.
 
 use avian3d::prelude::LinearVelocity;
-use bevy::{
-    input::mouse::AccumulatedMouseMotion,
-    prelude::*,
-};
+use bevy::{input::mouse::AccumulatedMouseMotion, prelude::*};
 
-use crate::physics::character::{
-    CharacterGroundState,
-    CharacterMotor,
-    CharacterMovementInput,
-};
+use crate::physics::character::{CharacterGroundState, CharacterMotor, CharacterMovementInput};
 
 use super::{
-    Player,
-    PlayerAim,
-    PlayerController,
-    PlayerNoclip,
-    PlayerStance,
-    cursor::CursorCapture,
+    Player, PlayerAim, PlayerController, PlayerNoclip, PlayerStance, cursor::CursorCapture,
 };
 
 pub(super) fn gameplay_suppressed(
@@ -38,10 +26,7 @@ pub fn look(
     mouse: Res<AccumulatedMouseMotion>,
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
-    player: Single<
-        (&PlayerController, &mut PlayerAim),
-        With<Player>,
-    >,
+    player: Single<(&PlayerController, &mut PlayerAim), With<Player>>,
 ) {
     if gameplay_suppressed(&keyboard, &capture) {
         return;
@@ -69,14 +54,11 @@ pub fn toggle_noclip(
         With<Player>,
     >,
 ) {
-    if gameplay_suppressed(&keyboard, &capture)
-        || !keyboard.just_pressed(KeyCode::KeyN)
-    {
+    if gameplay_suppressed(&keyboard, &capture) || !keyboard.just_pressed(KeyCode::KeyN) {
         return;
     }
 
-    let (entity, mut noclip, mut input, mut ground, mut velocity) =
-        player.into_inner();
+    let (entity, mut noclip, mut input, mut ground, mut velocity) = player.into_inner();
 
     noclip.active = !noclip.active;
     input.clear();
@@ -108,8 +90,7 @@ pub fn movement(
         With<Player>,
     >,
 ) {
-    let (body, aim, controller, stance, noclip, mut input) =
-        player.into_inner();
+    let (body, aim, controller, stance, noclip, mut input) = player.into_inner();
 
     if gameplay_suppressed(&keyboard, &capture) || noclip.active {
         input.clear();
@@ -117,8 +98,7 @@ pub fn movement(
     }
 
     let sprinting = !stance.crouched
-        && (keyboard.pressed(KeyCode::ShiftLeft)
-            || keyboard.pressed(KeyCode::ShiftRight));
+        && (keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight));
 
     let speed_multiplier = if stance.crouched {
         controller.crouch_speed_multiplier
@@ -128,13 +108,10 @@ pub fn movement(
         1.0
     };
 
-    let horizontal = keyboard.pressed(KeyCode::KeyD) as i8
-        - keyboard.pressed(KeyCode::KeyA) as i8;
-    let forward = keyboard.pressed(KeyCode::KeyW) as i8
-        - keyboard.pressed(KeyCode::KeyS) as i8;
+    let horizontal = keyboard.pressed(KeyCode::KeyD) as i8 - keyboard.pressed(KeyCode::KeyA) as i8;
+    let forward = keyboard.pressed(KeyCode::KeyW) as i8 - keyboard.pressed(KeyCode::KeyS) as i8;
 
-    let axis = Vec2::new(horizontal as f32, forward as f32)
-        .clamp_length_max(1.0);
+    let axis = Vec2::new(horizontal as f32, forward as f32).clamp_length_max(1.0);
     let local_wish = Vec3::new(axis.x, 0.0, -axis.y);
     let world_wish = body.rotation * (aim.yaw_rotation() * local_wish);
 
@@ -159,19 +136,16 @@ pub fn noclip_movement(
         With<Player>,
     >,
 ) {
-    let (mut body, aim, controller, noclip, mut velocity) =
-        player.into_inner();
+    let (mut body, aim, controller, noclip, mut velocity) = player.into_inner();
 
     if !noclip.active || gameplay_suppressed(&keyboard, &capture) {
         return;
     }
 
-    let horizontal = keyboard.pressed(KeyCode::KeyD) as i8
-        - keyboard.pressed(KeyCode::KeyA) as i8;
-    let forward = keyboard.pressed(KeyCode::KeyW) as i8
-        - keyboard.pressed(KeyCode::KeyS) as i8;
-    let vertical = keyboard.pressed(KeyCode::Space) as i8
-        - keyboard.pressed(KeyCode::ControlLeft) as i8;
+    let horizontal = keyboard.pressed(KeyCode::KeyD) as i8 - keyboard.pressed(KeyCode::KeyA) as i8;
+    let forward = keyboard.pressed(KeyCode::KeyW) as i8 - keyboard.pressed(KeyCode::KeyS) as i8;
+    let vertical =
+        keyboard.pressed(KeyCode::Space) as i8 - keyboard.pressed(KeyCode::ControlLeft) as i8;
 
     let view_rotation = body.rotation * aim.local_rotation();
     let physical_up = body.rotation * Vec3::Y;
@@ -181,15 +155,12 @@ pub fn noclip_movement(
 
     wish = wish.normalize_or_zero();
 
-    let boost = if keyboard.pressed(KeyCode::ShiftLeft)
-        || keyboard.pressed(KeyCode::ShiftRight)
-    {
+    let boost = if keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight) {
         controller.sprint_multiplier
     } else {
         1.0
     };
 
-    body.translation +=
-        wish * controller.noclip_speed.max(0.0) * boost * time.delta_secs();
+    body.translation += wish * controller.noclip_speed.max(0.0) * boost * time.delta_secs();
     velocity.0 = Vec3::ZERO;
 }

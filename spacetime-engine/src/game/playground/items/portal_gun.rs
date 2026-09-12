@@ -4,33 +4,23 @@
 //! does not own portal entities, recursive rendering, keyboard bindings or
 //! cursor state.
 
-use avian3d::prelude::{
-    SpatialQuery,
-    SpatialQueryFilter,
-};
+use avian3d::prelude::{SpatialQuery, SpatialQueryFilter};
 use bevy::prelude::*;
 
-use crate::game::{
-    GameSet,
-    portal::{
-        PortalCommand,
-        PortalConfig,
-        PortalEndpoint,
+use crate::{
+    ecs::{UsfManifestationOf, UsfManifestations},
+    game::{
+        GameSet,
+        portal::{PortalCommand, PortalConfig, PortalEndpoint},
     },
 };
 
 use super::super::{
-    Hotbar,
-    PlaygroundAim,
-    PlaygroundCatalog,
-    PlaygroundItem,
-    PlaygroundItemAction,
-    PlaygroundItemId,
-    UsePlaygroundItem,
+    Hotbar, PlaygroundAim, PlaygroundCatalog, PlaygroundItem, PlaygroundItemAction,
+    PlaygroundItemId, UsePlaygroundItem,
 };
 
-pub const PORTAL_GUN: PlaygroundItemId =
-    PlaygroundItemId::new("portal_gun");
+pub const PORTAL_GUN: PlaygroundItemId = PlaygroundItemId::new("portal_gun");
 
 const PORTAL_RANGE: f32 = 250.0;
 const SURFACE_CLEARANCE: f32 = 0.005;
@@ -44,14 +34,8 @@ pub struct PortalGunItemPlugin;
 impl Plugin for PortalGunItemPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(PreStartup, register_item)
-            .add_systems(
-                Update,
-                use_portal_gun.in_set(GameSet::Action),
-            )
-            .add_systems(
-                Update,
-                draw_laser_pointer.in_set(GameSet::Presentation),
-            );
+            .add_systems(Update, use_portal_gun.in_set(GameSet::Action))
+            .add_systems(Update, draw_laser_pointer.in_set(GameSet::Presentation));
     }
 }
 
@@ -59,15 +43,15 @@ fn register_item(mut catalog: ResMut<PlaygroundCatalog>) {
     catalog.register(PlaygroundItem {
         id: PORTAL_GUN,
         name: "Portal Gun",
-        description:
-            "LMB places A, RMB places B, R removes both. The laser previews the aim ray.",
+        description: "LMB places A, RMB places B, R removes both. The laser previews the aim ray.",
     });
 }
 
 /// Converts tool actions into the portal subsystem's public command protocol.
 fn use_portal_gun(
     mut uses: MessageReader<UsePlaygroundItem>,
-    actors: Query<&Transform>,
+    actors: Query<(&Transform, Option<&UsfManifestationOf>)>,
+    semantic_entities: Query<&UsfManifestations>,
     config: Res<PortalConfig>,
     spatial_query: SpatialQuery,
     mut portal_commands: MessageWriter<PortalCommand>,
@@ -94,15 +78,17 @@ fn use_portal_gun(
             continue;
         };
 
-        let filter =
-            SpatialQueryFilter::from_excluded_entities([request.actor]);
-        let Some(hit) = spatial_query.cast_ray(
-            request.aim.origin,
-            direction,
-            PORTAL_RANGE,
-            false,
-            &filter,
-        ) else {
+        let filter = manifestation_filter(
+            request.actor,
+            actors
+                .get(request.actor)
+                .ok()
+                .and_then(|(_, manifestation)| manifestation),
+            &semantic_entities,
+        );
+        let Some(hit) =
+            spatial_query.cast_ray(request.aim.origin, direction, PORTAL_RANGE, false, &filter)
+        else {
             continue;
         };
 
@@ -111,22 +97,18 @@ fn use_portal_gun(
             continue;
         }
 
-        let actor = actors.get(request.actor).ok();
-        let preferred_up = actor.map_or(Vec3::Y, |actor| {
-            actor.rotation * Vec3::Y
-        });
-        let preferred_right = actor.map_or(Vec3::X, |actor| {
-            actor.rotation * Vec3::X
-        });
+        let actor = actors
+            .get(request.actor)
+            .ok()
+            .map(|(transform, _)| transform);
+        let preferred_up = actor.map_or(Vec3::Y, |actor| actor.rotation * Vec3::Y);
+        let preferred_right = actor.map_or(Vec3::X, |actor| actor.rotation * Vec3::X);
 
-        let Some(rotation) =
-            surface_rotation(normal, preferred_up, preferred_right)
-        else {
+        let Some(rotation) = surface_rotation(normal, preferred_up, preferred_right) else {
             continue;
         };
 
-        let surface_point =
-            request.aim.origin + request.aim.direction * hit.distance;
+        let surface_point = request.aim.origin + request.aim.direction * hit.distance;
 
         if !aperture_fits_surface(
             &spatial_query,
@@ -139,10 +121,8 @@ fn use_portal_gun(
             continue;
         }
 
-        let transform = Transform::from_translation(
-            surface_point + normal * SURFACE_CLEARANCE,
-        )
-        .with_rotation(rotation);
+        let transform = Transform::from_translation(surface_point + normal * SURFACE_CLEARANCE)
+            .with_rotation(rotation);
 
         portal_commands.write(PortalCommand::Place {
             endpoint,
@@ -151,13 +131,20 @@ fn use_portal_gun(
     }
 }
 
+fn manifestation_filter(
+    actor: Entity,
+    manifestation: Option<&UsfManifestationOf>,
+    semantic_entities: &Query<&UsfManifestations>,
+) -> SpatialQueryFilter {
+    manifestation
+        .and_then(|manifestation| semantic_entities.get(manifestation.0).ok())
+        .map(|manifestations| SpatialQueryFilter::from_excluded_entities(manifestations.iter()))
+        .unwrap_or_else(|| SpatialQueryFilter::from_excluded_entities([actor]))
+}
+
 /// Builds an orthonormal portal frame whose local +Z points away from the hit
 /// surface and whose local +Y stays as close as possible to the actor's up.
-fn surface_rotation(
-    normal: Vec3,
-    preferred_up: Vec3,
-    preferred_right: Vec3,
-) -> Option<Quat> {
+fn surface_rotation(normal: Vec3, preferred_up: Vec3, preferred_right: Vec3) -> Option<Quat> {
     let forward = normal.normalize_or_zero();
     if forward == Vec3::ZERO {
         return None;
@@ -180,11 +167,7 @@ fn surface_rotation(
     }
     let up = forward.cross(right).normalize_or_zero();
 
-    Some(Quat::from_mat3(&Mat3::from_cols(
-        right,
-        up,
-        forward,
-    )))
+    Some(Quat::from_mat3(&Mat3::from_cols(right, up, forward)))
 }
 
 fn reject(vector: Vec3, axis: Vec3) -> Vec3 {
@@ -216,13 +199,9 @@ fn aperture_fits_surface(
                 + up * (y * half_size.y * FIT_INSET)
                 + normal * FIT_PROBE_OFFSET;
 
-            let Some(hit) = spatial_query.cast_ray(
-                sample,
-                into_surface,
-                FIT_PROBE_DEPTH,
-                false,
-                filter,
-            ) else {
+            let Some(hit) =
+                spatial_query.cast_ray(sample, into_surface, FIT_PROBE_DEPTH, false, filter)
+            else {
                 return false;
             };
 
@@ -240,6 +219,8 @@ fn aperture_fits_surface(
 fn draw_laser_pointer(
     hotbar: Res<Hotbar>,
     aim: Res<PlaygroundAim>,
+    manifestations: Query<&UsfManifestationOf>,
+    semantic_entities: Query<&UsfManifestations>,
     spatial_query: SpatialQuery,
     mut gizmos: Gizmos,
 ) {
@@ -254,16 +235,13 @@ fn draw_laser_pointer(
         return;
     };
 
-    let filter =
-        SpatialQueryFilter::from_excluded_entities([context.actor]);
+    let filter = manifestation_filter(
+        context.actor,
+        manifestations.get(context.actor).ok(),
+        &semantic_entities,
+    );
     let distance = spatial_query
-        .cast_ray(
-            context.ray.origin,
-            direction,
-            PORTAL_RANGE,
-            false,
-            &filter,
-        )
+        .cast_ray(context.ray.origin, direction, PORTAL_RANGE, false, &filter)
         .map_or(PORTAL_RANGE, |hit| hit.distance);
 
     let start = context.ray.origin + context.ray.direction * 0.1;

@@ -1,15 +1,8 @@
 use bevy::prelude::*;
 
-use super::super::inventory::{
-    CreativeMenuState,
-    HOTBAR_SIZE,
-    Hotbar,
-};
+use super::super::inventory::{CreativeMenuState, HOTBAR_SIZE, Hotbar};
 
-use super::item_view::{
-    ItemView,
-    spawn_item_view,
-};
+use super::item_view::{ItemView, spawn_item_view};
 
 const SLOT_SIZE: f32 = 58.0;
 const SLOT_GAP: f32 = 4.0;
@@ -35,11 +28,9 @@ pub fn spawn_hud_hotbar(commands: &mut Commands) {
                 position_type: PositionType::Absolute,
                 bottom: px(12.0),
                 left: percent(50.0),
-                margin: UiRect::left(px(
-                    -((SLOT_SIZE * HOTBAR_SIZE as f32
-                        + SLOT_GAP * (HOTBAR_SIZE - 1) as f32)
-                        / 2.0),
-                )),
+                margin: UiRect::left(px(-((SLOT_SIZE * HOTBAR_SIZE as f32
+                    + SLOT_GAP * (HOTBAR_SIZE - 1) as f32)
+                    / 2.0))),
                 column_gap: px(SLOT_GAP),
                 ..default()
             },
@@ -65,11 +56,7 @@ pub fn spawn_hud_hotbar(commands: &mut Commands) {
 pub fn sync_hud_hotbar(
     hotbar: Res<Hotbar>,
     menu: Res<CreativeMenuState>,
-    mut slots: Query<(
-        &HudHotbarSlot,
-        &Children,
-        &mut BackgroundColor,
-    )>,
+    mut slots: Query<(&HudHotbarSlot, &Children, &mut BackgroundColor)>,
     mut views: Query<&mut ItemView>,
 ) {
     for (slot, children, mut background) in &mut slots {

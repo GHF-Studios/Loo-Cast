@@ -12,41 +12,32 @@ pub mod cursor;
 mod model;
 mod stance;
 
-pub use camera::{
-    CameraMode,
-    PlayerCamera,
-    ThirdPersonCamera,
-};
-pub use components::{
-    Player,
-    PlayerAim,
-    PlayerController,
-    PlayerNoclip,
-    PlayerStance,
-};
+pub use camera::{CameraMode, PlayerCamera, ThirdPersonCamera};
+pub use components::{Player, PlayerAim, PlayerController, PlayerNoclip, PlayerStance};
 pub use model::PlayerModel;
 
-use avian3d::prelude::Collider;
+use avian3d::prelude::{
+    CollisionLayers, CustomPositionIntegration, CustomVelocityIntegration, LinearVelocity,
+    RigidBody,
+};
 use bevy::{
     app::{RunFixedMainLoop, RunFixedMainLoopSystems},
     camera::visibility::RenderLayers,
     prelude::*,
 };
 
-use crate::physics::character::{
-    CharacterDimensions,
-    CharacterMotor,
+use crate::{
+    ecs::{UsfEntity, UsfManifestationAuthority, UsfManifestationOf},
+    physics::{
+        character::{CharacterDimensions, CharacterMotor},
+        topology::{KinematicQueryExclusions, SpatialSplitBox},
+    },
 };
 
 use super::{
-    InputSet,
-    PresentationSet,
+    InputSet, PresentationSet,
     combat::Weapon,
-    portal::{
-        MAIN_PORTAL_LAYER,
-        PortalTraveler,
-        PortalView,
-    },
+    portal::{MAIN_PORTAL_LAYER, PortalSplitTraveler, PortalTraveler, PortalView},
 };
 
 pub struct PlayerPlugin;
@@ -81,10 +72,7 @@ impl Plugin for PlayerPlugin {
             )
             .add_systems(
                 Update,
-                (
-                    camera::toggle_camera_mode,
-                    camera::zoom_third_person,
-                )
+                (camera::toggle_camera_mode, camera::zoom_third_person)
                     .chain()
                     .in_set(InputSet::Gameplay),
             )
@@ -107,29 +95,57 @@ fn spawn_player(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     // Player Transform is the physical standing-hull center, not the eye.
-    let position = Vec3::new(
-        0.0,
-        CharacterDimensions::HALF_HEIGHT + 0.01,
-        8.0,
-    );
+    let position = Vec3::new(0.0, CharacterDimensions::HALF_HEIGHT + 0.01, 8.0);
 
     let model = model::create_model(&mut meshes, &mut materials);
 
+    // Semantic identity is deliberately non-spatial. The ordinary controlled
+    // body and the reserved portal peer are two manifestations of this one USF
+    // entity, which lets the split prototype be real ECS state instead of a
+    // render-only clone.
+    let semantic_player = commands.spawn((Name::new("Player Entity"), UsfEntity)).id();
+
     let player = commands
         .spawn((
-            Name::new("Player"),
+            Name::new("Player Manifestation"),
             Player,
+            UsfManifestationOf(semantic_player),
+            UsfManifestationAuthority,
             PlayerController::default(),
             PlayerAim::default(),
             PlayerStance::default(),
             PlayerNoclip::default(),
             CharacterMotor,
             CharacterDimensions::standing_collider(),
+            SpatialSplitBox::from_size(Vec3::new(
+                CharacterDimensions::HULL_WIDTH,
+                CharacterDimensions::HULL_HEIGHT,
+                CharacterDimensions::HULL_WIDTH,
+            )),
             Weapon::default(),
             PortalTraveler::new(position),
             Transform::from_translation(position),
         ))
         .id();
+
+    let split_manifestation = commands
+        .spawn((
+            Name::new("Player Split Manifestation"),
+            UsfManifestationOf(semantic_player),
+            RigidBody::Kinematic,
+            CustomPositionIntegration,
+            CustomVelocityIntegration,
+            LinearVelocity::ZERO,
+            CharacterDimensions::standing_collider(),
+            CollisionLayers::NONE,
+            Transform::from_translation(position),
+        ))
+        .id();
+
+    commands.entity(player).insert((
+        PortalSplitTraveler::new(Transform::from_translation(position)),
+        KinematicQueryExclusions::from_entities([split_manifestation]),
+    ));
 
     commands.entity(player).with_children(|parent| {
         parent.spawn(model);

@@ -2,10 +2,7 @@
 
 use bevy::prelude::*;
 
-use crate::game::portal::domain::{
-    PortalSide,
-    PortalSidedness,
-};
+use crate::game::portal::domain::{PortalSide, PortalSidedness};
 
 /// Returns the side crossed by a world-space motion segment.
 ///
@@ -18,52 +15,39 @@ pub(crate) fn crossed_aperture(
     previous_world: Vec3,
     current_world: Vec3,
 ) -> Option<PortalSide> {
-    let world_to_portal =
-        portal_transform.to_matrix().inverse();
+    let world_to_portal = portal_transform.to_matrix().inverse();
 
-    let previous =
-        world_to_portal.transform_point3(
-            previous_world,
-        );
+    let previous = world_to_portal.transform_point3(previous_world);
 
-    let current =
-        world_to_portal.transform_point3(
-            current_world,
-        );
+    let current = world_to_portal.transform_point3(current_world);
 
-    let side =
-        if previous.z > 0.0 && current.z <= 0.0 {
-            PortalSide::Front
-        } else if previous.z < 0.0 && current.z >= 0.0 {
-            PortalSide::Back
-        } else {
-            return None;
-        };
+    let side = if previous.z > 0.0 && current.z <= 0.0 {
+        PortalSide::Front
+    } else if previous.z < 0.0 && current.z >= 0.0 {
+        PortalSide::Back
+    } else {
+        return None;
+    };
 
     if !sidedness.allows(side) {
         return None;
     }
 
-    let denominator =
-        previous.z - current.z;
+    let denominator = previous.z - current.z;
 
     if denominator.abs() <= f32::EPSILON {
         return None;
     }
 
-    let fraction =
-        previous.z / denominator;
+    let fraction = previous.z / denominator;
 
     if !(0.0..=1.0).contains(&fraction) {
         return None;
     }
 
-    let crossing =
-        previous.lerp(current, fraction);
+    let crossing = previous.lerp(current, fraction);
 
-    if crossing.x.abs() > half_size.x
-        || crossing.y.abs() > half_size.y
-    {
+    if crossing.x.abs() > half_size.x || crossing.y.abs() > half_size.y {
         return None;
     }
 

@@ -60,25 +60,13 @@ impl PortalFace {
 
     pub(crate) fn branch_index(self) -> usize {
         match (self.endpoint, self.side) {
-            (
-                PortalEndpoint::First,
-                PortalSide::Front,
-            ) => 0,
+            (PortalEndpoint::First, PortalSide::Front) => 0,
 
-            (
-                PortalEndpoint::First,
-                PortalSide::Back,
-            ) => 1,
+            (PortalEndpoint::First, PortalSide::Back) => 1,
 
-            (
-                PortalEndpoint::Second,
-                PortalSide::Front,
-            ) => 2,
+            (PortalEndpoint::Second, PortalSide::Front) => 2,
 
-            (
-                PortalEndpoint::Second,
-                PortalSide::Back,
-            ) => 3,
+            (PortalEndpoint::Second, PortalSide::Back) => 3,
         }
     }
 
@@ -99,14 +87,7 @@ impl PortalFace {
 }
 
 /// Determines which directed faces a physical portal exposes.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Default,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PortalSidedness {
     /// Only local +Z/front is active.
     OneSided,
@@ -117,14 +98,9 @@ pub enum PortalSidedness {
 }
 
 impl PortalSidedness {
-    pub(crate) fn allows(
-        self,
-        side: PortalSide,
-    ) -> bool {
+    pub(crate) fn allows(self, side: PortalSide) -> bool {
         match self {
-            Self::OneSided => {
-                side == PortalSide::Front
-            }
+            Self::OneSided => side == PortalSide::Front,
 
             Self::TwoSided => true,
         }

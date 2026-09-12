@@ -10,55 +10,39 @@ pub mod scene;
 mod visibility;
 
 use bevy::{
-    asset::{
-        load_internal_asset,
-        uuid_handle,
-    },
+    asset::{load_internal_asset, uuid_handle},
     prelude::*,
     shader::Shader,
 };
 
-use crate::game::{
-    GameSet,
-    PresentationSet,
-};
+use crate::game::{GameSet, PresentationSet};
 
 pub const MAIN_PORTAL_LAYER: usize = 1;
 pub const WORLD_LAYER: usize = 0;
 
-pub const PORTAL_SHADER: Handle<Shader> = uuid_handle!(
-    "14bc976d-50ec-4c03-a025-2d39405bb2fa"
-);
+pub const PORTAL_SHADER: Handle<Shader> = uuid_handle!("14bc976d-50ec-4c03-a025-2d39405bb2fa");
 
 pub struct PortalRenderingPlugin;
 
 impl Plugin for PortalRenderingPlugin {
     fn build(&self, app: &mut App) {
-        load_internal_asset!(
-            app,
-            PORTAL_SHADER,
-            "shader/portal.wgsl",
-            Shader::from_wgsl
-        );
+        load_internal_asset!(app, PORTAL_SHADER, "shader/portal.wgsl", Shader::from_wgsl);
 
-        app.add_plugins(
-            MaterialPlugin::<material::PortalMaterial>::default(),
-        )
-        .add_systems(Startup, scene::setup_portals)
-        .add_systems(
-            Update,
-            (
-                visibility::sync_portal_visibility,
-                recursion::camera::update_portal_cameras,
+        app.add_plugins(MaterialPlugin::<material::PortalMaterial>::default())
+            .add_systems(Startup, scene::setup_portals)
+            .add_systems(
+                Update,
+                (
+                    visibility::sync_portal_visibility,
+                    recursion::camera::update_portal_cameras,
+                )
+                    .chain()
+                    .in_set(PresentationSet::DerivedViews),
             )
-                .chain()
-                .in_set(PresentationSet::DerivedViews),
-        )
-        .add_systems(
-            Update,
-            recursion::targets::resize_render_targets
-                .in_set(GameSet::Presentation),
-        );
+            .add_systems(
+                Update,
+                recursion::targets::resize_render_targets.in_set(GameSet::Presentation),
+            );
     }
 }
 

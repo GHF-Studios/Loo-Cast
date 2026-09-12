@@ -1,7 +1,7 @@
 use std::{collections::HashSet, io};
 
 use bevy::{
-    asset::{io::Reader, AssetLoader, LoadContext},
+    asset::{AssetLoader, LoadContext, io::Reader},
     prelude::*,
     reflect::TypePath,
 };
@@ -49,10 +49,16 @@ impl AuthoredMap {
             }
             validate_color(material.color, &format!("material {:?}", material.id))?;
             if !material.metallic.is_finite() || !(0.0..=1.0).contains(&material.metallic) {
-                return Err(format!("material {:?} metallic must be in 0..=1", material.id));
+                return Err(format!(
+                    "material {:?} metallic must be in 0..=1",
+                    material.id
+                ));
             }
             if !material.roughness.is_finite() || !(0.0..=1.0).contains(&material.roughness) {
-                return Err(format!("material {:?} roughness must be in 0..=1", material.id));
+                return Err(format!(
+                    "material {:?} roughness must be in 0..=1",
+                    material.id
+                ));
             }
         }
 
@@ -102,7 +108,9 @@ fn validate_color(color: V3, context: &str) -> Result<(), String> {
         .into_iter()
         .any(|value| !value.is_finite() || !(0.0..=1.0).contains(&value))
     {
-        return Err(format!("{context} color channels must be finite and in 0..=1"));
+        return Err(format!(
+            "{context} color channels must be finite and in 0..=1"
+        ));
     }
     Ok(())
 }
@@ -167,7 +175,6 @@ impl MapObject {
             Self::DirectionalLight(value) => &value.id,
         }
     }
-
 
     pub fn zone(&self) -> &str {
         match self {
@@ -234,7 +241,7 @@ impl MapObject {
                 finite_v3(value.position, &value.id, "position")?;
                 finite_v3(value.rotation_degrees, &value.id, "rotation_degrees")?;
                 positive_v3(value.size, &value.id, "size")
-            },
+            }
             Self::Ramp(value) => {
                 finite_v3(value.start, &value.id, "start")?;
                 finite(value.yaw_degrees, &value.id, "yaw_degrees")?;
@@ -310,12 +317,15 @@ impl MapObject {
                 positive(value.run, &value.id, "run")?;
                 positive(value.width, &value.id, "width")?;
                 positive(value.thickness, &value.id, "thickness")?;
-                positive(value.angle_increment_degrees, &value.id, "angle_increment_degrees")?;
+                positive(
+                    value.angle_increment_degrees,
+                    &value.id,
+                    "angle_increment_degrees",
+                )?;
                 non_negative(value.gap, &value.id, "gap")?;
                 finite(value.start_angle_degrees, &value.id, "start_angle_degrees")?;
                 finite(value.end_angle_degrees, &value.id, "end_angle_degrees")?;
-                if value.start_angle_degrees.abs() >= 89.9
-                    || value.end_angle_degrees.abs() >= 89.9
+                if value.start_angle_degrees.abs() >= 89.9 || value.end_angle_degrees.abs() >= 89.9
                 {
                     return Err(format!(
                         "slope sweep {:?} angles must remain between -89.9 and 89.9 degrees",
@@ -352,7 +362,7 @@ impl MapObject {
             Self::Marker(value) => {
                 finite_v3(value.position, &value.id, "position")?;
                 finite_v3(value.rotation_degrees, &value.id, "rotation_degrees")
-            },
+            }
             Self::PointLight(value) => {
                 finite_v3(value.position, &value.id, "position")?;
                 validate_color(value.color, &format!("point light {:?}", value.id))?;
@@ -729,13 +739,11 @@ impl AssetLoader for AuthoredMapLoader {
         let mut bytes = Vec::new();
         reader.read_to_end(&mut bytes).await?;
 
-        let map: AuthoredMap = ron::de::from_bytes(&bytes).map_err(|error| {
-            io::Error::new(io::ErrorKind::InvalidData, error.to_string())
-        })?;
+        let map: AuthoredMap = ron::de::from_bytes(&bytes)
+            .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error.to_string()))?;
 
-        map.validate().map_err(|error| {
-            io::Error::new(io::ErrorKind::InvalidData, error)
-        })?;
+        map.validate()
+            .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
 
         Ok(map)
     }
@@ -754,7 +762,8 @@ mod tests {
         let bytes = include_bytes!("../../assets/maps/physics_campus.spacemap");
         let map: AuthoredMap = ron::de::from_bytes(bytes).expect("campus RON should parse");
 
-        map.validate().expect("campus should satisfy authored-map invariants");
+        map.validate()
+            .expect("campus should satisfy authored-map invariants");
         assert!(map.objects.len() >= 150);
         assert!(map.zones.len() >= 10);
     }

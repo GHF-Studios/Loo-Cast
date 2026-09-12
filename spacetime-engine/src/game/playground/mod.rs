@@ -16,28 +16,12 @@ mod picking;
 mod ui;
 
 pub use action::{
-    AimRay,
-    ErasePlaygroundObject,
-    PlaygroundAim,
-    PlaygroundAimContext,
-    PlaygroundItemAction,
+    AimRay, ErasePlaygroundObject, PlaygroundAim, PlaygroundAimContext, PlaygroundItemAction,
     UsePlaygroundItem,
 };
-pub use catalog::{
-    PlaygroundCatalog,
-    PlaygroundItem,
-    PlaygroundItemId,
-};
-pub use inventory::{
-    CreativeMenuState,
-    CursorItem,
-    Hotbar,
-};
-pub use object::{
-    PlaygroundPickable,
-    PlaygroundRoot,
-    ShowHealthInPlaygroundHud,
-};
+pub use catalog::{PlaygroundCatalog, PlaygroundItem, PlaygroundItemId};
+pub use inventory::{CreativeMenuState, CursorItem, Hotbar};
+pub use object::{PlaygroundPickable, PlaygroundRoot, ShowHealthInPlaygroundHud};
 
 use bevy::prelude::*;
 

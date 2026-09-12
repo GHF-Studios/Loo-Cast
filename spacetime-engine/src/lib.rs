@@ -7,8 +7,8 @@ pub mod game;
 pub mod geometry;
 pub mod physics;
 
-use spacetime_engine_macros::*;
 use bevy::prelude::*;
+use spacetime_engine_macros::*;
 
 ///
 pub enum UsfEntity {
@@ -25,14 +25,14 @@ pub enum OriginalUsfEntity {
     Uninitialized,
 
     Initialized {
-        entity: Entity
-    }
+        entity: Entity,
+    },
 }
 
 /// This is a pure/side-effect-less read-only relay to the state authority.
 #[derive(Component, Default)]
 pub struct ProxyImmutableUsfEntity {
-    original: OriginalUsfEntity
+    original: OriginalUsfEntity,
 }
 
 /// This is a pure/side-effect-less read-and-write relay from and to the state authority.

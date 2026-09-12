@@ -17,9 +17,7 @@ pub enum PortalCommand {
         transform: Transform,
     },
     /// Remove one endpoint while preserving its entity/infrastructure.
-    Remove {
-        endpoint: PortalEndpoint,
-    },
+    Remove { endpoint: PortalEndpoint },
     /// Remove both endpoints.
     RemovePair,
 }

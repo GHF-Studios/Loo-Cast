@@ -24,9 +24,7 @@ pub fn create_model(
             CharacterDimensions::HULL_HEIGHT,
             CharacterDimensions::HULL_WIDTH,
         ))),
-        MeshMaterial3d(
-            materials.add(Color::srgb(0.25, 0.45, 0.9)),
-        ),
+        MeshMaterial3d(materials.add(Color::srgb(0.25, 0.45, 0.9))),
         Transform::IDENTITY,
         Visibility::Hidden,
     )

@@ -1,8 +1,4 @@
-use bevy::{
-    asset::RenderAssetUsages,
-    prelude::*,
-    render::render_resource::PrimitiveTopology,
-};
+use bevy::{asset::RenderAssetUsages, prelude::*, render::render_resource::PrimitiveTopology};
 
 /// Builds a flat-shaded convex prism by extruding an XY cross-section along local Z.
 ///

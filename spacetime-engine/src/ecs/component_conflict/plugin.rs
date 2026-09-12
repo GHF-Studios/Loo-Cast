@@ -1,36 +1,25 @@
-use std::{
-    any::TypeId,
-    collections::HashSet,
-};
+use std::{any::TypeId, collections::HashSet};
 
 use bevy::app::{App, Plugin};
 
-use super::registration::{
-    ConflictDescriptor,
-    ConflictRegistration,
-};
+use super::registration::{ConflictDescriptor, ConflictRegistration};
 
 /// Installs all component-conflict invariants submitted through
 /// `#[conflict(...)]`.
 pub struct ComponentConflictPlugin;
 
 impl Plugin for ComponentConflictPlugin {
-    fn build(
-        &self,
-        app: &mut App,
-    ) {
-        let mut registrations =
-            inventory::iter::<ConflictRegistration>
-                .into_iter()
-                .collect::<Vec<_>>();
+    fn build(&self, app: &mut App) {
+        let mut registrations = inventory::iter::<ConflictRegistration>
+            .into_iter()
+            .collect::<Vec<_>>();
 
         // `inventory` intentionally provides no iteration-order guarantee.
         //
         // Normalize installation order so inventory/linker ordering does not
         // unnecessarily affect Bevy's component/system initialization order.
-        registrations.sort_unstable_by_key(|registration| {
-            registration.descriptor().canonical_names()
-        });
+        registrations
+            .sort_unstable_by_key(|registration| registration.descriptor().canonical_names());
 
         let mut installed = HashSet::new();
 
@@ -45,10 +34,7 @@ impl Plugin for ComponentConflictPlugin {
                 );
             }
 
-            let key = ConflictKey::new(
-                descriptor.left.type_id,
-                descriptor.right.type_id,
-            );
+            let key = ConflictKey::new(descriptor.left.type_id, descriptor.right.type_id);
 
             // Makes both duplicate declarations and explicitly mirrored
             // declarations idempotent:
@@ -73,10 +59,7 @@ struct ConflictKey {
 }
 
 impl ConflictKey {
-    fn new(
-        left: TypeId,
-        right: TypeId,
-    ) -> Self {
+    fn new(left: TypeId, right: TypeId) -> Self {
         if left <= right {
             Self {
                 first: left,
@@ -92,19 +75,11 @@ impl ConflictKey {
 }
 
 impl ConflictDescriptor {
-    fn canonical_names(
-        self,
-    ) -> (&'static str, &'static str) {
+    fn canonical_names(self) -> (&'static str, &'static str) {
         if self.left.type_name <= self.right.type_name {
-            (
-                self.left.type_name,
-                self.right.type_name,
-            )
+            (self.left.type_name, self.right.type_name)
         } else {
-            (
-                self.right.type_name,
-                self.left.type_name,
-            )
+            (self.right.type_name, self.left.type_name)
         }
     }
 }

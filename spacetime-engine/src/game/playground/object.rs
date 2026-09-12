@@ -13,23 +13,11 @@ pub struct PlaygroundPickable {
 }
 
 impl PlaygroundPickable {
-    pub fn cuboid(
-        root: Entity,
-        half_extents: Vec3,
-    ) -> Self {
-        Self {
-            root,
-            half_extents,
-        }
+    pub fn cuboid(root: Entity, half_extents: Vec3) -> Self {
+        Self { root, half_extents }
     }
 
-    pub fn cube(
-        root: Entity,
-        size: f32,
-    ) -> Self {
-        Self::cuboid(
-            root,
-            Vec3::splat(size / 2.0),
-        )
+    pub fn cube(root: Entity, size: f32) -> Self {
+        Self::cuboid(root, Vec3::splat(size / 2.0))
     }
 }

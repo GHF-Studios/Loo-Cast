@@ -1,9 +1,6 @@
 use bevy::prelude::*;
 
-use super::super::catalog::{
-    PlaygroundCatalog,
-    PlaygroundItemId,
-};
+use super::super::catalog::{PlaygroundCatalog, PlaygroundItemId};
 
 #[derive(Component, Debug, Clone, Copy, Default)]
 pub struct ItemView {
@@ -13,10 +10,7 @@ pub struct ItemView {
 #[derive(Component)]
 pub struct ItemViewLabel;
 
-pub fn spawn_item_view(
-    parent: &mut ChildSpawnerCommands,
-    item: Option<PlaygroundItemId>,
-) {
+pub fn spawn_item_view(parent: &mut ChildSpawnerCommands, item: Option<PlaygroundItemId>) {
     parent
         .spawn((
             ItemView { item },

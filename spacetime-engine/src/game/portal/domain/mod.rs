@@ -7,25 +7,11 @@ mod portal;
 mod traveler;
 
 pub use command::PortalCommand;
-pub use config::{
-    PortalConfig,
-    PortalEndpointConfig,
-};
+pub use config::{PortalConfig, PortalEndpointConfig};
 pub use face::PortalSidedness;
-pub use portal::{
-    Portal,
-    PortalActive,
-    PortalEndpoint,
-    PortalPair,
-    PortalView,
-};
-pub use traveler::{
-    PortalTraveler,
-    PortalVelocity,
-};
+pub use portal::{Portal, PortalActive, PortalEndpoint, PortalPair, PortalView};
+pub use traveler::{PortalSplitTraveler, PortalTraveler, PortalVelocity};
 
 pub(crate) use config::MAX_VISUAL_RECURSION_DEPTH;
-pub(crate) use face::{
-    PortalFace,
-    PortalSide,
-};
+pub(crate) use face::{PortalFace, PortalSide};
+pub(crate) use traveler::ActivePortalSplit;

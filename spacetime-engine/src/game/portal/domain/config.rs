@@ -42,34 +42,14 @@ impl Default for PortalConfig {
             render_scale: 1.0,
 
             first: PortalEndpointConfig {
-                transform: Transform::from_xyz(
-                    -3.5,
-                    1.75,
-                    -3.0,
-                ),
-                frame_color: Color::srgb(
-                    0.1,
-                    0.35,
-                    1.0,
-                ),
+                transform: Transform::from_xyz(-3.5, 1.75, -3.0),
+                frame_color: Color::srgb(0.1, 0.35, 1.0),
             },
 
             second: PortalEndpointConfig {
-                transform: Transform::from_xyz(
-                    4.5,
-                    1.75,
-                    -1.0,
-                )
-                .with_rotation(
-                    Quat::from_rotation_y(
-                        -std::f32::consts::FRAC_PI_2,
-                    ),
-                ),
-                frame_color: Color::srgb(
-                    1.0,
-                    0.35,
-                    0.05,
-                ),
+                transform: Transform::from_xyz(4.5, 1.75, -1.0)
+                    .with_rotation(Quat::from_rotation_y(-std::f32::consts::FRAC_PI_2)),
+                frame_color: Color::srgb(1.0, 0.35, 0.05),
             },
         }
     }
@@ -83,8 +63,7 @@ impl PortalConfig {
         );
 
         assert!(
-            self.visual_recursion_depth
-                <= MAX_VISUAL_RECURSION_DEPTH,
+            self.visual_recursion_depth <= MAX_VISUAL_RECURSION_DEPTH,
             "portal recursion depth exceeds \
              {MAX_VISUAL_RECURSION_DEPTH}"
         );
@@ -94,25 +73,14 @@ impl PortalConfig {
             "portal render scale must be positive"
         );
 
-        validate_rigid_transform(
-            "first",
-            &self.first.transform,
-        );
+        validate_rigid_transform("first", &self.first.transform);
 
-        validate_rigid_transform(
-            "second",
-            &self.second.transform,
-        );
+        validate_rigid_transform("second", &self.second.transform);
     }
 }
 
-fn validate_rigid_transform(
-    name: &str,
-    transform: &Transform,
-) {
-    let error =
-        (transform.scale - Vec3::ONE)
-            .length_squared();
+fn validate_rigid_transform(name: &str, transform: &Transform) {
+    let error = (transform.scale - Vec3::ONE).length_squared();
 
     assert!(
         error < 0.000001,

@@ -1,6 +1,7 @@
 //! Physics integration owned by Spacetime Engine.
 
 pub mod character;
+pub mod topology;
 
 use avian3d::prelude::PhysicsPlugins;
 use bevy::prelude::*;
@@ -15,7 +16,8 @@ pub struct SpacetimePhysicsPlugin;
 
 impl Plugin for SpacetimePhysicsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(PhysicsPlugins::default());
-        app.add_plugins(CharacterMovementPlugin);
+        app.register_type::<topology::SpatialSplitBox>()
+            .add_plugins(PhysicsPlugins::default())
+            .add_plugins(CharacterMovementPlugin);
     }
 }

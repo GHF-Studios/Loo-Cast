@@ -10,27 +10,15 @@
 //! user's intended zoom. When the obstruction disappears, the camera returns
 //! to `base_distance + zoom_offset`.
 
-use avian3d::prelude::{
-    Collider,
-    ShapeCastConfig,
-    SpatialQuery,
-    SpatialQueryFilter,
-};
-use bevy::{
-    input::mouse::AccumulatedMouseScroll,
-    prelude::*,
-    window::PrimaryWindow,
+use avian3d::prelude::{Collider, ShapeCastConfig, SpatialQuery, SpatialQueryFilter};
+use bevy::{input::mouse::AccumulatedMouseScroll, prelude::*, window::PrimaryWindow};
+
+use crate::{
+    ecs::{UsfManifestationOf, UsfManifestations},
+    physics::character::CharacterDimensions,
 };
 
-use crate::physics::character::CharacterDimensions;
-
-use super::{
-    Player,
-    PlayerAim,
-    PlayerModel,
-    PlayerStance,
-    cursor::CursorCapture,
-};
+use super::{Player, PlayerAim, PlayerModel, PlayerStance, cursor::CursorCapture};
 
 /// Available local-player camera presentations.
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -66,10 +54,7 @@ pub struct ThirdPersonCamera {
 
 impl ThirdPersonCamera {
     fn distance_limits(&self) -> (f32, f32) {
-        let minimum = self
-            .minimum_distance
-            .min(self.maximum_distance)
-            .max(0.0);
+        let minimum = self.minimum_distance.min(self.maximum_distance).max(0.0);
         let maximum = self
             .minimum_distance
             .max(self.maximum_distance)
@@ -84,9 +69,8 @@ impl ThirdPersonCamera {
 
     pub fn add_zoom_steps(&mut self, steps: f32) {
         let (minimum, maximum) = self.distance_limits();
-        let desired = (self.desired_distance()
-            + steps * self.zoom_step.abs())
-            .clamp(minimum, maximum);
+        let desired =
+            (self.desired_distance() + steps * self.zoom_step.abs()).clamp(minimum, maximum);
         self.zoom_offset = desired - self.base_distance;
     }
 }
@@ -134,11 +118,7 @@ impl PlayerCamera {
         body.rotation * aim.local_rotation()
     }
 
-    pub fn eye_position(
-        &self,
-        body: &Transform,
-        stance: &PlayerStance,
-    ) -> Vec3 {
+    pub fn eye_position(&self, body: &Transform, stance: &PlayerStance) -> Vec3 {
         body.translation + body.rotation * self.eye_offset(stance)
     }
 }
@@ -148,8 +128,7 @@ impl Default for PlayerCamera {
         Self {
             mode: CameraMode::FirstPerson,
             standing_eye_offset: Vec3::Y * CharacterDimensions::CENTER_TO_EYE,
-            crouched_eye_offset:
-                Vec3::Y * CharacterDimensions::CROUCH_CENTER_TO_EYE,
+            crouched_eye_offset: Vec3::Y * CharacterDimensions::CROUCH_CENTER_TO_EYE,
             third_person: ThirdPersonCamera::default(),
             horizontal_fov_degrees: 110.0,
         }
@@ -177,16 +156,11 @@ pub fn zoom_third_person(
     capture: Res<CursorCapture>,
     mut camera: Single<&mut PlayerCamera>,
 ) {
-    if !capture.active()
-        || camera.mode != CameraMode::ThirdPerson
-        || scroll.delta.y == 0.0
-    {
+    if !capture.active() || camera.mode != CameraMode::ThirdPerson || scroll.delta.y == 0.0 {
         return;
     }
 
-    camera
-        .third_person
-        .add_zoom_steps(-scroll.delta.y.signum());
+    camera.third_person.add_zoom_steps(-scroll.delta.y.signum());
 }
 
 /// Resolves camera presentation after simulation/topology.
@@ -197,15 +171,19 @@ pub fn zoom_third_person(
 pub fn sync_player_camera(
     spatial_query: SpatialQuery,
     player: Single<
-        (Entity, &Transform, &PlayerAim, &PlayerStance),
+        (
+            Entity,
+            &Transform,
+            &PlayerAim,
+            &PlayerStance,
+            &UsfManifestationOf,
+        ),
         (With<Player>, Without<PlayerCamera>),
     >,
-    camera: Single<
-        (&mut PlayerCamera, &mut Transform),
-        (With<PlayerCamera>, Without<Player>),
-    >,
+    camera: Single<(&mut PlayerCamera, &mut Transform), (With<PlayerCamera>, Without<Player>)>,
+    semantic_entities: Query<&UsfManifestations>,
 ) {
-    let (player_entity, body, aim, stance) = player.into_inner();
+    let (player_entity, body, aim, stance, manifestation) = player.into_inner();
     let (mut camera, mut camera_transform) = camera.into_inner();
 
     let view_rotation = camera.view_rotation(body, aim);
@@ -219,16 +197,20 @@ pub fn sync_player_camera(
             let desired_distance = camera.third_person.desired_distance();
 
             let resolved_distance = if let Ok(direction) = Dir3::new(back) {
-                let shape = Collider::sphere(
-                    camera.third_person.collision_radius.max(0.001),
-                );
+                let shape = Collider::sphere(camera.third_person.collision_radius.max(0.001));
                 let cast_config = ShapeCastConfig {
                     max_distance: desired_distance,
                     ignore_origin_penetration: true,
                     ..default()
                 };
-                let filter =
-                    SpatialQueryFilter::from_excluded_entities([player_entity]);
+                let filter = semantic_entities
+                    .get(manifestation.0)
+                    .map(|manifestations| {
+                        SpatialQueryFilter::from_excluded_entities(manifestations.iter())
+                    })
+                    .unwrap_or_else(|_| {
+                        SpatialQueryFilter::from_excluded_entities([player_entity])
+                    });
 
                 spatial_query
                     .cast_shape(
@@ -240,8 +222,7 @@ pub fn sync_player_camera(
                         &filter,
                     )
                     .map_or(desired_distance, |hit| {
-                        (hit.distance
-                            - camera.third_person.collision_padding.max(0.0))
+                        (hit.distance - camera.third_person.collision_padding.max(0.0))
                             .clamp(0.0, desired_distance)
                     })
             } else {
@@ -286,8 +267,7 @@ pub fn sync_player_fov(
         .clamp(1.0, 179.0)
         .to_radians();
 
-    perspective.fov =
-        2.0 * ((horizontal * 0.5).tan() / aspect).atan();
+    perspective.fov = 2.0 * ((horizontal * 0.5).tan() / aspect).atan();
 }
 
 pub fn sync_player_model(

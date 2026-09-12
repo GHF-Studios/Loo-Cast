@@ -1,33 +1,14 @@
-use bevy::{
-    input::mouse::AccumulatedMouseScroll,
-    prelude::*,
-    window::PrimaryWindow,
-};
+use bevy::{input::mouse::AccumulatedMouseScroll, prelude::*, window::PrimaryWindow};
 
 use crate::game::InputSet;
 
 use super::super::{
-    catalog::{
-        PlaygroundCatalog,
-        PlaygroundItemId,
-    },
-    input::{
-        creative_page_count,
-        pressed_hotbar_slot,
-    },
-    inventory::{
-        CREATIVE_PAGE_SIZE,
-        CreativeMenuState,
-        CursorItem,
-        HOTBAR_SIZE,
-        Hotbar,
-    },
+    catalog::{PlaygroundCatalog, PlaygroundItemId},
+    input::{creative_page_count, pressed_hotbar_slot},
+    inventory::{CREATIVE_PAGE_SIZE, CreativeMenuState, CursorItem, HOTBAR_SIZE, Hotbar},
 };
 
-use super::item_view::{
-    ItemView,
-    spawn_item_view,
-};
+use super::item_view::{ItemView, spawn_item_view};
 
 const PANEL_BACKGROUND: Color = Color::srgba(0.06, 0.06, 0.07, 0.96);
 const SLOT_NORMAL: Color = Color::srgba(0.15, 0.15, 0.17, 0.96);
@@ -72,11 +53,7 @@ pub fn configure(app: &mut App) {
         )
         .add_systems(
             Update,
-            (
-                sync_menu_hotbar,
-                sync_cursor_item,
-                position_cursor_item,
-            )
+            (sync_menu_hotbar, sync_cursor_item, position_cursor_item)
                 .in_set(crate::game::GameSet::Presentation),
         );
 }
@@ -166,10 +143,8 @@ fn spawn_creative_menu(mut commands: Commands) {
 
                     panel
                         .spawn(Node {
-                            width: px(
-                                SLOT_SIZE * HOTBAR_SIZE as f32
-                                    + SLOT_GAP * (HOTBAR_SIZE - 1) as f32,
-                            ),
+                            width: px(SLOT_SIZE * HOTBAR_SIZE as f32
+                                + SLOT_GAP * (HOTBAR_SIZE - 1) as f32),
                             column_gap: px(SLOT_GAP),
                             ..default()
                         })
@@ -272,10 +247,7 @@ fn sync_catalog_slots(
 
 fn handle_catalog_clicks(
     state: Res<CreativeMenuState>,
-    slots: Query<
-        (&Interaction, &CreativeCatalogSlot),
-        Changed<Interaction>,
-    >,
+    slots: Query<(&Interaction, &CreativeCatalogSlot), Changed<Interaction>>,
     mut cursor_item: ResMut<CursorItem>,
 ) {
     if !state.open {
@@ -293,10 +265,7 @@ fn handle_catalog_clicks(
 
 fn handle_menu_hotbar_clicks(
     state: Res<CreativeMenuState>,
-    slots: Query<
-        (&Interaction, &CreativeHotbarSlot),
-        Changed<Interaction>,
-    >,
+    slots: Query<(&Interaction, &CreativeHotbarSlot), Changed<Interaction>>,
     mut hotbar: ResMut<Hotbar>,
     mut cursor_item: ResMut<CursorItem>,
 ) {
@@ -306,10 +275,7 @@ fn handle_menu_hotbar_clicks(
 
     for (interaction, slot) in &slots {
         if *interaction == Interaction::Pressed {
-            std::mem::swap(
-                &mut cursor_item.item,
-                &mut hotbar.slots[slot.index],
-            );
+            std::mem::swap(&mut cursor_item.item, &mut hotbar.slots[slot.index]);
         }
     }
 }
@@ -329,14 +295,11 @@ fn handle_number_shortcuts(
         return;
     };
 
-    if let Some(item) = catalog_slots
-        .iter()
-        .find_map(|(interaction, slot)| {
-            (*interaction == Interaction::Hovered)
-                .then_some(slot.item)
-                .flatten()
-        })
-    {
+    if let Some(item) = catalog_slots.iter().find_map(|(interaction, slot)| {
+        (*interaction == Interaction::Hovered)
+            .then_some(slot.item)
+            .flatten()
+    }) {
         hotbar.slots[target] = Some(item);
         hotbar.select(target);
         return;

@@ -2,11 +2,7 @@
 
 use bevy::{
     prelude::*,
-    window::{
-        CursorGrabMode,
-        CursorOptions,
-        PrimaryWindow,
-    },
+    window::{CursorGrabMode, CursorOptions, PrimaryWindow},
 };
 
 #[derive(Resource, Debug)]
@@ -79,10 +75,7 @@ pub fn update_cursor_capture(
         capture.just_captured = true;
     }
 
-    capture.active =
-        capture.requested
-            && window.focused
-            && !capture.blocked;
+    capture.active = capture.requested && window.focused && !capture.blocked;
 
     cursor.visible = !capture.active;
 

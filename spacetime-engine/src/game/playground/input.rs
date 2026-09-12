@@ -4,56 +4,33 @@
 //! bindings. Item plugins receive semantic [`UsePlaygroundItem`] messages and
 //! remain independent from devices, hotbar UI and cursor capture.
 
-use bevy::{
-    input::mouse::AccumulatedMouseScroll,
-    prelude::*,
-};
+use bevy::{input::mouse::AccumulatedMouseScroll, prelude::*};
 
 use crate::game::{
     InputSet,
-    player::{
-        CameraMode,
-        Player,
-        PlayerAim,
-        PlayerCamera,
-        PlayerStance,
-        cursor::CursorCapture,
-    },
+    player::{CameraMode, Player, PlayerAim, PlayerCamera, PlayerStance, cursor::CursorCapture},
 };
 
 use super::{
-    AimRay,
-    ErasePlaygroundObject,
-    PlaygroundAim,
-    PlaygroundAimContext,
-    PlaygroundCatalog,
-    PlaygroundItemAction,
-    UsePlaygroundItem,
-    inventory::{
-        CreativeMenuState,
-        CursorItem,
-        HOTBAR_SIZE,
-        Hotbar,
-    },
+    AimRay, ErasePlaygroundObject, PlaygroundAim, PlaygroundAimContext, PlaygroundCatalog,
+    PlaygroundItemAction, UsePlaygroundItem,
+    inventory::{CreativeMenuState, CursorItem, HOTBAR_SIZE, Hotbar},
     ui::creative_menu::CreativeMenuRoot,
 };
 
 pub fn configure(app: &mut App) {
-    app.add_systems(
-        Update,
-        toggle_creative_menu.in_set(InputSet::Interface),
-    )
-    .add_systems(
-        Update,
-        (
-            select_hotbar_slot,
-            scroll_hotbar,
-            update_aim,
-            use_selected_item,
-        )
-            .chain()
-            .in_set(InputSet::Gameplay),
-    );
+    app.add_systems(Update, toggle_creative_menu.in_set(InputSet::Interface))
+        .add_systems(
+            Update,
+            (
+                select_hotbar_slot,
+                scroll_hotbar,
+                update_aim,
+                use_selected_item,
+            )
+                .chain()
+                .in_set(InputSet::Gameplay),
+        );
 }
 
 fn toggle_creative_menu(
@@ -108,10 +85,7 @@ fn scroll_hotbar(
     camera: Single<&PlayerCamera>,
     mut hotbar: ResMut<Hotbar>,
 ) {
-    if menu.open
-        || camera.mode == CameraMode::ThirdPerson
-        || scroll.delta.y == 0.0
-    {
+    if menu.open || camera.mode == CameraMode::ThirdPerson || scroll.delta.y == 0.0 {
         return;
     }
 
@@ -122,10 +96,7 @@ fn scroll_hotbar(
 fn update_aim(
     menu: Res<CreativeMenuState>,
     capture: Res<CursorCapture>,
-    player: Single<
-        (Entity, &Transform, &PlayerAim, &PlayerStance),
-        With<Player>,
-    >,
+    player: Single<(Entity, &Transform, &PlayerAim, &PlayerStance), With<Player>>,
     camera: Single<&PlayerCamera>,
     mut aim: ResMut<PlaygroundAim>,
 ) {
@@ -140,10 +111,7 @@ fn update_aim(
 
     aim.set(Some(PlaygroundAimContext {
         actor,
-        ray: AimRay::new(
-            origin,
-            view_rotation * Vec3::NEG_Z,
-        ),
+        ray: AimRay::new(origin, view_rotation * Vec3::NEG_Z),
     }));
 }
 
@@ -198,9 +166,7 @@ fn use_selected_item(
     }
 }
 
-pub(crate) fn pressed_hotbar_slot(
-    keyboard: &ButtonInput<KeyCode>,
-) -> Option<usize> {
+pub(crate) fn pressed_hotbar_slot(keyboard: &ButtonInput<KeyCode>) -> Option<usize> {
     const KEYS: [KeyCode; HOTBAR_SIZE] = [
         KeyCode::Digit1,
         KeyCode::Digit2,
@@ -213,8 +179,7 @@ pub(crate) fn pressed_hotbar_slot(
         KeyCode::Digit9,
     ];
 
-    KEYS.into_iter()
-        .position(|key| keyboard.just_pressed(key))
+    KEYS.into_iter().position(|key| keyboard.just_pressed(key))
 }
 
 pub(crate) fn creative_page_count(catalog: &PlaygroundCatalog) -> usize {

@@ -4,35 +4,20 @@ use avian3d::prelude::Collider;
 use bevy::prelude::*;
 
 use crate::{
-    ecs::{
-        UsfEntity,
-        UsfManifestationOf,
-    },
+    ecs::{UsfEntity, UsfManifestationOf},
     game::{
-        GameAssets,
-        GameSet,
-        combat::{
-            Health,
-            Hitbox,
-        },
+        GameAssets, GameSet,
+        combat::{Health, Hitbox},
     },
 };
 
 use super::super::{
-    PlaygroundCatalog,
-    PlaygroundItem,
-    PlaygroundItemAction,
-    PlaygroundItemId,
-    PlaygroundPickable,
-    PlaygroundRoot,
-    ShowHealthInPlaygroundHud,
-    UsePlaygroundItem,
+    PlaygroundCatalog, PlaygroundItem, PlaygroundItemAction, PlaygroundItemId, PlaygroundPickable,
+    PlaygroundRoot, ShowHealthInPlaygroundHud, UsePlaygroundItem,
 };
 
-pub const DAMAGEABLE_CUBE: PlaygroundItemId =
-    PlaygroundItemId::new("damageable_cube");
-pub const SPLIT_DAMAGEABLE_CUBE: PlaygroundItemId =
-    PlaygroundItemId::new("split_damageable_cube");
+pub const DAMAGEABLE_CUBE: PlaygroundItemId = PlaygroundItemId::new("damageable_cube");
+pub const SPLIT_DAMAGEABLE_CUBE: PlaygroundItemId = PlaygroundItemId::new("split_damageable_cube");
 
 const CUBE_SIZE: f32 = 1.0;
 const MAXIMUM_HEALTH: f32 = 100.0;
@@ -47,10 +32,7 @@ impl Plugin for DamageableCubeItemPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<CubeCounter>()
             .add_systems(PreStartup, register_items)
-            .add_systems(
-                Update,
-                use_cube_items.in_set(GameSet::Action),
-            );
+            .add_systems(Update, use_cube_items.in_set(GameSet::Action));
     }
 }
 
@@ -58,15 +40,13 @@ fn register_items(mut catalog: ResMut<PlaygroundCatalog>) {
     catalog.register(PlaygroundItem {
         id: DAMAGEABLE_CUBE,
         name: "Damageable Cube",
-        description:
-            "One semantic Health owner with one visible manifestation.",
+        description: "One semantic Health owner with one visible manifestation.",
     });
 
     catalog.register(PlaygroundItem {
         id: SPLIT_DAMAGEABLE_CUBE,
         name: "Split Damageable Cube",
-        description:
-            "One semantic Health owner with two symmetric manifestations.",
+        description: "One semantic Health owner with two symmetric manifestations.",
     });
 }
 
@@ -83,17 +63,11 @@ fn use_cube_items(
 
         let manifestation_offsets: &[Vec3] = match request.item {
             DAMAGEABLE_CUBE => &[Vec3::ZERO],
-            SPLIT_DAMAGEABLE_CUBE => &[
-                Vec3::new(-1.25, 0.0, 0.0),
-                Vec3::new(1.25, 0.0, 0.0),
-            ],
+            SPLIT_DAMAGEABLE_CUBE => &[Vec3::new(-1.25, 0.0, 0.0), Vec3::new(1.25, 0.0, 0.0)],
             _ => continue,
         };
 
-        let Some(ground) = request
-            .aim
-            .horizontal_plane(0.0, PLACEMENT_DISTANCE)
-        else {
+        let Some(ground) = request.aim.horizontal_plane(0.0, PLACEMENT_DISTANCE) else {
             continue;
         };
 
@@ -114,13 +88,8 @@ fn use_cube_items(
             ))
             .id();
 
-        for (index, offset) in manifestation_offsets
-            .iter()
-            .copied()
-            .enumerate()
-        {
-            let position =
-                ground + Vec3::Y * (CUBE_SIZE / 2.0) + offset;
+        for (index, offset) in manifestation_offsets.iter().copied().enumerate() {
+            let position = ground + Vec3::Y * (CUBE_SIZE / 2.0) + offset;
 
             commands.spawn((
                 Name::new(format!("Cube Manifestation {index}")),
@@ -129,9 +98,7 @@ fn use_cube_items(
                 Hitbox::cube(CUBE_SIZE),
                 Collider::cuboid(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE),
                 Mesh3d(assets.damageable_cube_mesh.clone()),
-                MeshMaterial3d(
-                    assets.damageable_cube_material.clone(),
-                ),
+                MeshMaterial3d(assets.damageable_cube_material.clone()),
                 Transform::from_translation(position),
             ));
         }

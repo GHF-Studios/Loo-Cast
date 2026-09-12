@@ -20,5 +20,4 @@ pub const SURFACE_FACE_OFFSET: f32 = 0.002;
 
 /// Pulls destination clipping toward the virtual camera enough to retain the
 /// frame's near half plus a small numerical margin.
-pub const CLIP_MARGIN: f32 =
-    FRAME_DEPTH * 0.5 + 0.002;
+pub const CLIP_MARGIN: f32 = FRAME_DEPTH * 0.5 + 0.002;

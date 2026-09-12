@@ -97,3 +97,61 @@ needs only:
 
 Runtime-loaded scripting/registries may be layered on later, but built-in code
 should not depend on that future mechanism to remain decoupled today.
+
+## Entity splitting prototype
+
+The first portal-splitting experiment deliberately uses reusable USF/ECS
+primitives rather than representing a split as a special Portal Gun clone.
+
+A semantic entity is an entity carrying `UsfEntity`. Concrete spatial bodies
+relate to it through `UsfManifestationOf`, and the semantic root exposes all of
+them through `UsfManifestations`. `UsfManifestationAuthority` marks the one
+manifestation that legacy systems may continue to treat as authoritative while
+those systems are not yet manifestation-aware.
+
+The intended split-aware rule is:
+
+- identity, inventory, health and other singular semantics normally execute
+  once on the semantic entity;
+- transform, collision, rendering and other spatial concerns execute per
+  manifestation;
+- a system that cannot support multiple manifestations yet should say so by
+  consuming the authoritative manifestation rather than silently assuming that
+  every semantic entity has exactly one body.
+
+`physics::topology` contains mechanism-independent helpers for the prototype:
+`SpatialSplitBox` can be partitioned by an arbitrary rigid world plane, and
+`KinematicQueryExclusions` lets topology temporarily remove specific colliders
+from manual movement queries. The portal module supplies only the portal plane,
+rigid mapping and host-surface exclusions.
+
+Current prototype limitation: one authoritative manifestation uses one reserve
+peer for one active spatial split at a time. This is intentionally narrower than
+the eventual generalized manifestation runtime, but the semantic relationship,
+partition geometry and collision-query seam are reusable outside portals.
+
+The current portal adapter is intentionally a pressure-test rather than the
+final split runtime. In particular:
+
+- only the player authority is opted in today; arbitrary entities can reuse the
+  manifestation/topology primitives but do not split automatically;
+- the reserve peer has a real clipped Avian collider but no split-aware visual
+  mesh yet;
+- the authoritative character motor is still singular, so destination-side
+  contacts before center crossing do not yet feed a coupled constraint back
+  into source-side locomotion;
+- crossing time is reconstructed from the motor tick's start/end segment rather
+  than from every internal slide segment;
+- one fixed tick resolves at most one center crossing, and crouch clearance is
+  still validated from the authoritative manifestation.
+
+Those are expected integration seams, not contracts of the generic
+manifestation relationship or box/plane partitioner.
+
+A different splitting mechanic does not need the portal module. Its minimum
+prototype path is: create/identify peer `UsfManifestationOf` entities, choose an
+authoritative manifestation, use `partition_box_by_plane` (or a future shape
+partitioner) to derive manifestation-local collision geometry, and write
+`KinematicQueryExclusions` for any topology-local holes its kinematic queries
+must observe. The mapping between manifestations is mechanism-owned; portals
+currently use their rigid source-to-destination transform for that step.

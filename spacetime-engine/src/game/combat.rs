@@ -7,9 +7,7 @@ use bevy::prelude::*;
 use crate::ecs::UsfManifestationOf;
 
 use super::{
-    GameAssets,
-    GameSet,
-    SimulationSet,
+    GameAssets, GameSet, SimulationSet,
     portal::{PortalTraveler, PortalVelocity},
 };
 
@@ -42,15 +40,11 @@ impl Health {
     }
 
     fn damage(&mut self, amount: f32) -> bool {
-        if amount <= 0.0
-            || !amount.is_finite()
-            || !self.is_alive()
-        {
+        if amount <= 0.0 || !amount.is_finite() || !self.is_alive() {
             return false;
         }
 
-        self.current =
-            (self.current - amount).max(0.0);
+        self.current = (self.current - amount).max(0.0);
 
         self.current == 0.0
     }
@@ -68,11 +62,7 @@ impl Hitbox {
         }
     }
 
-    fn contains(
-        &self,
-        point: Vec3,
-        transform: &Transform,
-    ) -> bool {
+    fn contains(&self, point: Vec3, transform: &Transform) -> bool {
         let offset = point - transform.translation;
 
         offset.x.abs() <= self.half_extents.x
@@ -138,25 +128,18 @@ pub struct CombatPlugin;
 
 impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            Update,
-            fire_weapons.in_set(GameSet::Action),
-        )
-        .add_systems(
-            Update,
-            move_projectiles.in_set(SimulationSet::Motion),
-        )
-        .add_systems(
-            Update,
-            detect_projectile_hits
-                .in_set(SimulationSet::Collision),
-        )
-        .add_systems(
-            Update,
-            (hits_to_damage, apply_damage)
-                .chain()
-                .in_set(GameSet::Consequence),
-        );
+        app.add_systems(Update, fire_weapons.in_set(GameSet::Action))
+            .add_systems(Update, move_projectiles.in_set(SimulationSet::Motion))
+            .add_systems(
+                Update,
+                detect_projectile_hits.in_set(SimulationSet::Collision),
+            )
+            .add_systems(
+                Update,
+                (hits_to_damage, apply_damage)
+                    .chain()
+                    .in_set(GameSet::Consequence),
+            );
     }
 }
 
@@ -167,38 +150,29 @@ fn fire_weapons(
     assets: Res<GameAssets>,
 ) {
     for request in requests.read() {
-        let Ok(weapon) =
-            weapons.get(request.wielder)
-        else {
+        let Ok(weapon) = weapons.get(request.wielder) else {
             continue;
         };
 
-        let forward =
-            request.direction.normalize_or_zero();
+        let forward = request.direction.normalize_or_zero();
 
         if forward == Vec3::ZERO {
             continue;
         }
 
-        let position =
-            request.origin + forward * 0.5;
+        let position = request.origin + forward * 0.5;
 
         commands.spawn((
             Name::new("Projectile"),
             Projectile {
                 instigator: request.wielder,
-                remaining_lifetime:
-                    weapon.projectile_lifetime,
+                remaining_lifetime: weapon.projectile_lifetime,
                 damage: weapon.damage,
             },
-            PortalVelocity(
-                forward * weapon.projectile_speed,
-            ),
+            PortalVelocity(forward * weapon.projectile_speed),
             PortalTraveler::new(position),
             Mesh3d(assets.projectile_mesh.clone()),
-            MeshMaterial3d(
-                assets.projectile_material.clone(),
-            ),
+            MeshMaterial3d(assets.projectile_material.clone()),
             Transform::from_translation(position),
         ));
     }
@@ -207,22 +181,11 @@ fn fire_weapons(
 fn move_projectiles(
     mut commands: Commands,
     time: Res<Time>,
-    mut projectiles: Query<(
-        Entity,
-        &mut Projectile,
-        &PortalVelocity,
-        &mut Transform,
-    )>,
+    mut projectiles: Query<(Entity, &mut Projectile, &PortalVelocity, &mut Transform)>,
 ) {
     let delta = time.delta_secs();
 
-    for (
-        entity,
-        mut projectile,
-        velocity,
-        mut transform,
-    ) in &mut projectiles
-    {
+    for (entity, mut projectile, velocity, mut transform) in &mut projectiles {
         transform.translation += velocity.0 * delta;
 
         projectile.remaining_lifetime -= delta;
@@ -236,15 +199,8 @@ fn move_projectiles(
 fn detect_projectile_hits(
     mut commands: Commands,
     mut hits: MessageWriter<Hit>,
-    projectiles: Query<(
-        Entity,
-        &Projectile,
-        &Transform,
-    )>,
-    hitboxes: Query<
-        (Entity, &Hitbox, &Transform),
-        Without<Projectile>,
-    >,
+    projectiles: Query<(Entity, &Projectile, &Transform)>,
+    hitboxes: Query<(Entity, &Hitbox, &Transform), Without<Projectile>>,
 ) {
     for (entity, projectile, transform) in &projectiles {
         if projectile.remaining_lifetime <= 0.0 {
@@ -253,26 +209,17 @@ fn detect_projectile_hits(
 
         let impact = hitboxes
             .iter()
-            .filter(|(target, _, _)| {
-                *target != projectile.instigator
+            .filter(|(target, _, _)| *target != projectile.instigator)
+            .filter_map(|(target, hitbox, target_transform)| {
+                hitbox
+                    .contains(transform.translation, target_transform)
+                    .then_some((
+                        target,
+                        transform
+                            .translation
+                            .distance_squared(target_transform.translation),
+                    ))
             })
-            .filter_map(
-                |(target, hitbox, target_transform)| {
-                    hitbox
-                        .contains(
-                            transform.translation,
-                            target_transform,
-                        )
-                        .then_some((
-                            target,
-                            transform
-                                .translation
-                                .distance_squared(
-                                    target_transform.translation,
-                                ),
-                        ))
-                },
-            )
             .min_by(|a, b| a.1.total_cmp(&b.1));
 
         let Some((target, _)) = impact else {
@@ -316,9 +263,7 @@ fn apply_damage(
     mut died: MessageWriter<Died>,
 ) {
     for damage in damage.read() {
-        let Ok(mut health) =
-            health.get_mut(damage.target)
-        else {
+        let Ok(mut health) = health.get_mut(damage.target) else {
             continue;
         };
 

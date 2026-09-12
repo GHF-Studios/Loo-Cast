@@ -4,24 +4,19 @@
 //! portal-traveler history. Camera presentation derives its eye offset from
 //! [`PlayerStance`](super::PlayerStance) instead of being mutated here.
 
-use avian3d::prelude::{
-    Collider,
-    SpatialQuery,
-    SpatialQueryFilter,
-};
+use avian3d::prelude::{Collider, SpatialQuery, SpatialQueryFilter};
 use bevy::prelude::*;
 
 use crate::{
     game::portal::PortalTraveler,
-    physics::character::CharacterDimensions,
+    physics::{
+        character::CharacterDimensions,
+        topology::{KinematicQueryExclusions, SpatialSplitBox},
+    },
 };
 
 use super::{
-    Player,
-    PlayerNoclip,
-    PlayerStance,
-    controls::gameplay_suppressed,
-    cursor::CursorCapture,
+    Player, PlayerNoclip, PlayerStance, controls::gameplay_suppressed, cursor::CursorCapture,
 };
 
 /// Changes the physical hull while keeping the feet fixed in body-local space.
@@ -39,6 +34,8 @@ pub fn update_stance(
                 &mut PlayerStance,
                 &PlayerNoclip,
                 &mut PortalTraveler,
+                &mut SpatialSplitBox,
+                Option<&KinematicQueryExclusions>,
             ),
             With<Player>,
         >,
@@ -48,12 +45,11 @@ pub fn update_stance(
         return;
     }
 
-    let wants_crouch = keyboard.pressed(KeyCode::ControlLeft)
-        || keyboard.pressed(KeyCode::KeyC);
+    let wants_crouch = keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::KeyC);
 
     let (noclip_active, crouched) = {
         let mut player = params.p1();
-        let (_, _, _, stance, noclip, _) = player.into_inner();
+        let (_, _, _, stance, noclip, _, _, _) = player.into_inner();
         (noclip.active, stance.crouched)
     };
 
@@ -61,34 +57,42 @@ pub fn update_stance(
         return;
     }
 
-    let center_delta = CharacterDimensions::HALF_HEIGHT
-        - CharacterDimensions::CROUCH_HALF_HEIGHT;
+    let center_delta = CharacterDimensions::HALF_HEIGHT - CharacterDimensions::CROUCH_HALF_HEIGHT;
 
     if wants_crouch {
         let mut player = params.p1();
-        let (_, mut body, mut collider, mut stance, _, mut traveler) =
+        let (_, mut body, mut collider, mut stance, _, mut traveler, mut split_box, _) =
             player.into_inner();
 
         let up = physical_up(&body);
         body.translation -= up * center_delta;
         *collider = CharacterDimensions::crouching_collider();
         stance.crouched = true;
+        split_box.half_extents = Vec3::new(
+            CharacterDimensions::HULL_WIDTH * 0.5,
+            CharacterDimensions::CROUCH_HALF_HEIGHT,
+            CharacterDimensions::HULL_WIDTH * 0.5,
+        );
         traveler.commit_position(body.translation);
         return;
     }
 
-    let (entity, target_center, rotation) = {
+    let (entity, target_center, rotation, excluded) = {
         let mut player = params.p1();
-        let (entity, body, _, _, _, _) = player.into_inner();
+        let (entity, body, _, _, _, _, _, exclusions) = player.into_inner();
         (
             entity,
             body.translation + physical_up(&body) * center_delta,
             body.rotation,
+            exclusions
+                .map(|exclusions| exclusions.iter().collect::<Vec<_>>())
+                .unwrap_or_default(),
         )
     };
 
     let standing = CharacterDimensions::standing_collider();
-    let filter = SpatialQueryFilter::from_excluded_entities([entity]);
+    let filter =
+        SpatialQueryFilter::from_excluded_entities(std::iter::once(entity).chain(excluded));
 
     if !params
         .p0()
@@ -99,12 +103,17 @@ pub fn update_stance(
     }
 
     let mut player = params.p1();
-    let (_, mut body, mut collider, mut stance, _, mut traveler) =
+    let (_, mut body, mut collider, mut stance, _, mut traveler, mut split_box, _) =
         player.into_inner();
 
     body.translation = target_center;
     *collider = standing;
     stance.crouched = false;
+    split_box.half_extents = Vec3::new(
+        CharacterDimensions::HULL_WIDTH * 0.5,
+        CharacterDimensions::HALF_HEIGHT,
+        CharacterDimensions::HULL_WIDTH * 0.5,
+    );
     traveler.commit_position(body.translation);
 }
 

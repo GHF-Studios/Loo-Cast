@@ -26,8 +26,7 @@ pub fn accelerate(
         return velocity;
     }
 
-    let accel_speed =
-        (acceleration * dt * wish_speed * surface_friction).min(add_speed);
+    let accel_speed = (acceleration * dt * wish_speed * surface_friction).min(add_speed);
 
     velocity + wish_dir * accel_speed
 }
@@ -50,16 +49,14 @@ pub fn air_accelerate(
         return velocity;
     }
 
-    let capped_wish_speed =
-        wish_speed_cap.map_or(wish_speed, |cap| wish_speed.min(cap));
+    let capped_wish_speed = wish_speed_cap.map_or(wish_speed, |cap| wish_speed.min(cap));
     let current_speed = velocity.dot(wish_dir);
     let add_speed = capped_wish_speed - current_speed;
     if add_speed <= 0.0 {
         return velocity;
     }
 
-    let accel_speed =
-        (acceleration * dt * wish_speed * surface_friction).min(add_speed);
+    let accel_speed = (acceleration * dt * wish_speed * surface_friction).min(add_speed);
 
     velocity + wish_dir * accel_speed
 }
@@ -101,16 +98,12 @@ mod tests {
 
     #[test]
     fn friction_cannot_reverse_velocity() {
-        assert_eq!(
-            apply_friction(Vec3::X, 100.0, 100.0, 1.0, 1.0),
-            Vec3::ZERO,
-        );
+        assert_eq!(apply_friction(Vec3::X, 100.0, 100.0, 1.0, 1.0), Vec3::ZERO,);
     }
 
     #[test]
     fn air_cap_limits_parallel_speed_gain() {
-        let velocity =
-            air_accelerate(Vec3::ZERO, Vec3::X, 10.0, Some(1.0), 1000.0, 1.0, 1.0);
+        let velocity = air_accelerate(Vec3::ZERO, Vec3::X, 10.0, Some(1.0), 1000.0, 1.0, 1.0);
         assert!((velocity.x - 1.0).abs() < 1e-5);
     }
 

@@ -28,11 +28,24 @@ pub(crate) struct CompiledGeometry {
 
 #[derive(Debug, Clone)]
 pub(crate) enum CompiledShape {
-    Box { size: Vec3 },
-    Cylinder { radius: f32, height: f32 },
-    Sphere { radius: f32 },
-    Capsule { radius: f32, length: f32 },
-    ConvexPrism { cross_section: Vec<Vec2>, depth: f32 },
+    Box {
+        size: Vec3,
+    },
+    Cylinder {
+        radius: f32,
+        height: f32,
+    },
+    Sphere {
+        radius: f32,
+    },
+    Capsule {
+        radius: f32,
+        length: f32,
+    },
+    ConvexPrism {
+        cross_section: Vec<Vec2>,
+        depth: f32,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -78,36 +91,18 @@ pub(crate) fn compile_map(map: &AuthoredMap) -> Vec<CompiledNode> {
     for object in &map.objects {
         match object {
             MapObject::Box(value) => push_geometry(&mut output, compile_box(value)),
-            MapObject::Ramp(value) => {
-                push_geometry(&mut output, compile_ramp(value))
-            }
-            MapObject::Cylinder(value) => {
-                push_geometry(&mut output, compile_cylinder(value))
-            }
-            MapObject::Sphere(value) => {
-                push_geometry(&mut output, compile_sphere(value))
-            }
-            MapObject::Capsule(value) => {
-                push_geometry(&mut output, compile_capsule(value))
-            }
+            MapObject::Ramp(value) => push_geometry(&mut output, compile_ramp(value)),
+            MapObject::Cylinder(value) => push_geometry(&mut output, compile_cylinder(value)),
+            MapObject::Sphere(value) => push_geometry(&mut output, compile_sphere(value)),
+            MapObject::Capsule(value) => push_geometry(&mut output, compile_capsule(value)),
             MapObject::ConvexPrism(value) => {
                 push_geometry(&mut output, compile_convex_prism(value))
             }
-            MapObject::Staircase(value) => {
-                compile_staircase(&mut output, value)
-            }
-            MapObject::StepSweep(value) => {
-                compile_step_sweep(&mut output, value)
-            }
-            MapObject::SlopeSweep(value) => {
-                compile_slope_sweep(&mut output, value)
-            }
-            MapObject::PillarGrid(value) => {
-                compile_pillar_grid(&mut output, value)
-            }
-            MapObject::MovingBox(value) => {
-                push_geometry(&mut output, compile_moving_box(value))
-            }
+            MapObject::Staircase(value) => compile_staircase(&mut output, value),
+            MapObject::StepSweep(value) => compile_step_sweep(&mut output, value),
+            MapObject::SlopeSweep(value) => compile_slope_sweep(&mut output, value),
+            MapObject::PillarGrid(value) => compile_pillar_grid(&mut output, value),
+            MapObject::MovingBox(value) => push_geometry(&mut output, compile_moving_box(value)),
             MapObject::Marker(value) => output.push(CompiledNode::Marker(CompiledMarker {
                 id: value.id.clone(),
                 zone: value.zone.clone(),
@@ -118,11 +113,10 @@ pub(crate) fn compile_map(map: &AuthoredMap) -> Vec<CompiledNode> {
             MapObject::PointLight(value) => {
                 output.push(CompiledNode::PointLight(compile_point_light(value)))
             }
-            MapObject::DirectionalLight(value) => {
-                output.push(CompiledNode::DirectionalLight(compile_directional_light(value)))
-            }
+            MapObject::DirectionalLight(value) => output.push(CompiledNode::DirectionalLight(
+                compile_directional_light(value),
+            )),
         }
-
     }
 
     output
@@ -201,12 +195,7 @@ fn compile_convex_prism(value: &ConvexPrismDef) -> CompiledGeometry {
         tags: value.tags.clone(),
         transform: authored_transform(value.position, value.rotation_degrees),
         shape: CompiledShape::ConvexPrism {
-            cross_section: value
-                .cross_section
-                .iter()
-                .copied()
-                .map(v2)
-                .collect(),
+            cross_section: value.cross_section.iter().copied().map(v2).collect(),
             depth: value.depth,
         },
         material: value.material.clone(),
@@ -256,9 +245,8 @@ fn compile_staircase(output: &mut Vec<CompiledNode>, value: &StaircaseDef) {
 
     for index in 0..value.steps {
         let height = step_height * (index + 1) as f32;
-        let center = origin
-            + forward * (step_depth * (index as f32 + 0.5))
-            + Vec3::Y * (height * 0.5);
+        let center =
+            origin + forward * (step_depth * (index as f32 + 0.5)) + Vec3::Y * (height * 0.5);
 
         push_geometry(
             output,
@@ -290,9 +278,8 @@ fn compile_step_sweep(output: &mut Vec<CompiledNode>, value: &StepSweepDef) {
     let mut index = 0usize;
     while height <= value.end_height + value.increment * 0.25 {
         let world_height = height;
-        let center = origin
-            + right * ((width + gap) * index as f32)
-            + Vec3::Y * (world_height * 0.5);
+        let center =
+            origin + right * ((width + gap) * index as f32) + Vec3::Y * (world_height * 0.5);
 
         push_geometry(
             output,
@@ -429,8 +416,7 @@ fn compile_directional_light(value: &DirectionalLightDef) -> CompiledDirectional
 }
 
 fn authored_transform(position: V3, rotation_degrees: V3) -> Transform {
-    Transform::from_translation(v3(position))
-        .with_rotation(authored_rotation(rotation_degrees))
+    Transform::from_translation(v3(position)).with_rotation(authored_rotation(rotation_degrees))
 }
 
 fn authored_rotation(rotation_degrees: V3) -> Quat {

@@ -1,10 +1,8 @@
 use bevy::prelude::*;
 
 use spacetime_engine::{
-    ecs::component_conflict::ComponentConflictPlugin,
-    game::TestGamePlugin,
-    geometry::AuthoredGeometryPlugin,
-    physics::SpacetimePhysicsPlugin,
+    ecs::component_conflict::ComponentConflictPlugin, game::TestGamePlugin,
+    geometry::AuthoredGeometryPlugin, physics::SpacetimePhysicsPlugin,
 };
 
 fn main() {

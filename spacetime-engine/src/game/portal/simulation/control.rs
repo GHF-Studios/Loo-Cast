@@ -5,21 +5,12 @@
 
 use bevy::prelude::*;
 
-use crate::game::portal::{
-    Portal,
-    PortalActive,
-    PortalCommand,
-    PortalEndpoint,
-    PortalPair,
-};
+use crate::game::portal::{Portal, PortalActive, PortalCommand, PortalEndpoint, PortalPair};
 
 pub fn apply_portal_commands(
     pair: Option<Res<PortalPair>>,
     mut commands: MessageReader<PortalCommand>,
-    mut portals: Query<
-        (&mut Transform, &mut PortalActive),
-        With<Portal>,
-    >,
+    mut portals: Query<(&mut Transform, &mut PortalActive), With<Portal>>,
 ) {
     let Some(pair) = pair else {
         // Consume commands even if startup has not produced the persistent pair.
@@ -39,25 +30,19 @@ pub fn apply_portal_commands(
                     continue;
                 }
 
-                if let Ok((mut current, mut active)) =
-                    portals.get_mut(pair.entity(*endpoint))
-                {
+                if let Ok((mut current, mut active)) = portals.get_mut(pair.entity(*endpoint)) {
                     *current = transform.clone();
                     active.0 = true;
                 }
             }
             PortalCommand::Remove { endpoint } => {
-                if let Ok((_, mut active)) =
-                    portals.get_mut(pair.entity(*endpoint))
-                {
+                if let Ok((_, mut active)) = portals.get_mut(pair.entity(*endpoint)) {
                     active.0 = false;
                 }
             }
             PortalCommand::RemovePair => {
                 for endpoint in [PortalEndpoint::First, PortalEndpoint::Second] {
-                    if let Ok((_, mut active)) =
-                        portals.get_mut(pair.entity(endpoint))
-                    {
+                    if let Ok((_, mut active)) = portals.get_mut(pair.entity(endpoint)) {
                         active.0 = false;
                     }
                 }

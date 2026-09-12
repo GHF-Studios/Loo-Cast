@@ -2,24 +2,17 @@ use std::time::Duration;
 
 use avian3d::{
     character_controller::move_and_slide::{
-        MoveAndSlide,
-        MoveAndSlideConfig,
-        MoveAndSlideHitResponse,
-        MoveAndSlideOutput,
+        MoveAndSlide, MoveAndSlideConfig, MoveAndSlideHitResponse, MoveAndSlideOutput,
     },
     prelude::*,
 };
 use bevy::prelude::*;
 
+use crate::physics::topology::KinematicQueryExclusions;
+
 use super::{
-    CharacterGroundState,
-    CharacterMotor,
-    CharacterMovementConfig,
-    CharacterMovementInput,
-    accelerate,
-    air_accelerate,
-    apply_friction,
-    reject,
+    CharacterGroundState, CharacterMotor, CharacterMovementConfig, CharacterMovementInput,
+    accelerate, air_accelerate, apply_friction, reject,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -41,6 +34,7 @@ pub(super) fn simulate_character_motors(
             &mut CharacterGroundState,
             &mut LinearVelocity,
             &mut Transform,
+            Option<&KinematicQueryExclusions>,
         ),
         With<CharacterMotor>,
     >,
@@ -60,6 +54,7 @@ pub(super) fn simulate_character_motors(
         mut ground,
         mut velocity,
         mut transform,
+        exclusions,
     ) in &mut query
     {
         ground.just_landed = false;
@@ -69,7 +64,10 @@ pub(super) fn simulate_character_motors(
         // The body frame, not camera pitch/yaw, defines physical up.
         let up = (transform.rotation * Vec3::Y).normalize_or_zero();
         let up = if up == Vec3::ZERO { Vec3::Y } else { up };
-        let filter = SpatialQueryFilter::from_excluded_entities([entity]);
+        let filter = exclusions.map_or_else(
+            || SpatialQueryFilter::from_excluded_entities([entity]),
+            |exclusions| exclusions.filter_for(entity),
+        );
         let move_config = MoveAndSlideConfig::default();
 
         let was_grounded = ground.grounded;
@@ -144,8 +142,7 @@ pub(super) fn simulate_character_motors(
 
         let start = transform.translation;
         let moving_from_ground = ground.grounded;
-        let moving_on_ground =
-            moving_from_ground && reject(velocity.0, up).length_squared() > 1e-8;
+        let moving_on_ground = moving_from_ground && reject(velocity.0, up).length_squared() > 1e-8;
 
         let direct = slide(
             &move_and_slide,
@@ -197,23 +194,22 @@ pub(super) fn simulate_character_motors(
             config.ground_snap_distance
         };
 
-        let final_ground = if !ground.just_jumped
-            && (moving_from_ground || velocity.0.dot(up) <= 0.0)
-        {
-            probe_ground(
-                &move_and_slide,
-                collider,
-                transform.translation,
-                transform.rotation,
-                up,
-                final_snap_distance,
-                move_config.skin_width,
-                config.min_ground_dot,
-                &filter,
-            )
-        } else {
-            None
-        };
+        let final_ground =
+            if !ground.just_jumped && (moving_from_ground || velocity.0.dot(up) <= 0.0) {
+                probe_ground(
+                    &move_and_slide,
+                    collider,
+                    transform.translation,
+                    transform.rotation,
+                    up,
+                    final_snap_distance,
+                    move_config.skin_width,
+                    config.min_ground_dot,
+                    &filter,
+                )
+            } else {
+                None
+            };
 
         if let Some(hit) = final_ground {
             transform.translation -= up * hit.distance;

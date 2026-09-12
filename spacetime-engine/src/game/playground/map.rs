@@ -12,18 +12,9 @@ use crate::{
     game::{
         GameSet,
         player::Player,
-        portal::{
-            PortalCommand,
-            PortalEndpoint,
-            PortalPair,
-            PortalTraveler,
-        },
+        portal::{PortalCommand, PortalEndpoint, PortalPair, PortalTraveler},
     },
-    geometry::{
-        AuthoredMap,
-        AuthoredMapMarker,
-        AuthoredMapScene,
-    },
+    geometry::{AuthoredMap, AuthoredMapMarker, AuthoredMapScene},
 };
 
 const CAMPUS_MAP: &str = "maps/physics_campus.spacemap";
@@ -39,8 +30,7 @@ impl Plugin for PlaygroundMapPlugin {
             .add_systems(Update, place_player_at_spawn_marker)
             .add_systems(
                 Update,
-                initialize_demo_portals_from_markers
-                    .in_set(GameSet::Action),
+                initialize_demo_portals_from_markers.in_set(GameSet::Action),
             );
     }
 }
@@ -48,10 +38,7 @@ impl Plugin for PlaygroundMapPlugin {
 fn load_campus(mut commands: Commands, asset_server: Res<AssetServer>) {
     let handle: Handle<AuthoredMap> = asset_server.load(CAMPUS_MAP);
 
-    commands.spawn((
-        Name::new("Physics Campus"),
-        AuthoredMapScene::new(handle),
-    ));
+    commands.spawn((Name::new("Physics Campus"), AuthoredMapScene::new(handle)));
 }
 
 /// Applies the authored player spawn once. Hot-reloading the map never yanks
@@ -59,10 +46,7 @@ fn load_campus(mut commands: Commands, asset_server: Res<AssetServer>) {
 fn place_player_at_spawn_marker(
     mut placed: Local<bool>,
     markers: Query<(&AuthoredMapMarker, &Transform), Without<Player>>,
-    player: Single<
-        (&mut Transform, &mut PortalTraveler, &mut LinearVelocity),
-        With<Player>,
-    >,
+    player: Single<(&mut Transform, &mut PortalTraveler, &mut LinearVelocity), With<Player>>,
 ) {
     if *placed {
         return;

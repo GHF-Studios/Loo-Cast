@@ -14,23 +14,14 @@ impl CharacterDimensions {
     pub const CROUCH_HEIGHT: f32 = 1.2;
     pub const CROUCH_HALF_HEIGHT: f32 = Self::CROUCH_HEIGHT / 2.0;
     pub const CROUCH_EYE_HEIGHT: f32 = 1.05;
-    pub const CROUCH_CENTER_TO_EYE: f32 =
-        Self::CROUCH_EYE_HEIGHT - Self::CROUCH_HALF_HEIGHT;
+    pub const CROUCH_CENTER_TO_EYE: f32 = Self::CROUCH_EYE_HEIGHT - Self::CROUCH_HALF_HEIGHT;
 
     pub fn standing_collider() -> Collider {
-        Collider::cuboid(
-            Self::HULL_WIDTH,
-            Self::HULL_HEIGHT,
-            Self::HULL_WIDTH,
-        )
+        Collider::cuboid(Self::HULL_WIDTH, Self::HULL_HEIGHT, Self::HULL_WIDTH)
     }
 
     pub fn crouching_collider() -> Collider {
-        Collider::cuboid(
-            Self::HULL_WIDTH,
-            Self::CROUCH_HEIGHT,
-            Self::HULL_WIDTH,
-        )
+        Collider::cuboid(Self::HULL_WIDTH, Self::CROUCH_HEIGHT, Self::HULL_WIDTH)
     }
 }
 
