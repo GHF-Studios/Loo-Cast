@@ -18,7 +18,10 @@ pub struct SpacetimePhysicsPlugin;
 impl Plugin for SpacetimePhysicsPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<topology::SpatialSplitBox>()
-            .add_plugins(PhysicsPlugins::default())
+            .add_plugins(
+                PhysicsPlugins::default()
+                    .with_collision_hooks::<topology::SpatialTopologyCollisionHooks>(),
+            )
             .add_plugins(CharacterMovementPlugin)
             .add_systems(
                 PostUpdate,

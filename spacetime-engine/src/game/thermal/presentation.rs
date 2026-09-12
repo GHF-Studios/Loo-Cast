@@ -7,9 +7,10 @@ use bevy::{color::LinearRgba, prelude::*};
 use crate::{
     ecs::UsfManifestationOf,
     game::GameSet,
+    physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive},
 };
 
-use super::Combustion;
+use super::{Combustion, ThermalSpatialSample};
 
 #[derive(Resource)]
 struct FirePresentationAssets {
@@ -55,7 +56,14 @@ fn sync_flame_visuals(
     mut commands: Commands,
     assets: Res<FirePresentationAssets>,
     combustions: Query<(), With<Combustion>>,
-    manifestations: Query<(Entity, &UsfManifestationOf, &Transform), Without<FlameVisual>>,
+    manifestations: Query<
+        (Entity, &UsfManifestationOf, &Transform),
+        (
+            With<ThermalSpatialSample>,
+            Without<FlameVisual>,
+            Or<(Without<SpatialSplitPeer>, With<SpatialSplitPeerActive>)>,
+        ),
+    >,
     visuals: Query<(Entity, &FlameVisual)>,
 ) {
     let existing: HashSet<Entity> = visuals

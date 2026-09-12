@@ -17,7 +17,7 @@ pub use components::{Player, PlayerAim, PlayerController, PlayerDead, PlayerNocl
 pub use model::PlayerModel;
 
 use avian3d::prelude::{
-    CollisionLayers, CustomPositionIntegration, CustomVelocityIntegration, LinearVelocity,
+    ActiveCollisionHooks, CollisionLayers, CustomPositionIntegration, CustomVelocityIntegration, LinearVelocity,
     RigidBody,
 };
 use bevy::{
@@ -30,7 +30,7 @@ use crate::{
     ecs::{UsfEntity, UsfManifestationAuthority, UsfManifestationOf},
     physics::{
         character::{CharacterDimensions, CharacterGroundState, CharacterMotor, CharacterMovementInput},
-        topology::{KinematicQueryExclusions, SpatialSplitBox},
+        topology::{KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeer},
     },
 };
 
@@ -100,8 +100,6 @@ fn spawn_player(
     // Player Transform is the physical standing-hull center, not the eye.
     let position = Vec3::new(0.0, CharacterDimensions::HALF_HEIGHT + 0.01, 8.0);
 
-    let model = model::create_model(&mut meshes, &mut materials);
-
     // Semantic identity is deliberately non-spatial. The ordinary controlled
     // body and the reserved portal peer are two manifestations of this one USF
     // entity, which lets the split prototype be real ECS state instead of a
@@ -144,6 +142,9 @@ fn spawn_player(
         .spawn((
             Name::new("Player Split Manifestation"),
             UsfManifestationOf(semantic_player),
+            SpatialSplitPeer { authority: player },
+            ActiveCollisionHooks::FILTER_PAIRS,
+            ThermalSpatialSample,
             RigidBody::Kinematic,
             CustomPositionIntegration,
             CustomVelocityIntegration,
@@ -155,12 +156,15 @@ fn spawn_player(
         .id();
 
     commands.entity(player).insert((
-        PortalSplitTraveler::new(Transform::from_translation(position)),
+        PortalSplitTraveler::new(Transform::from_translation(position), split_manifestation),
         KinematicQueryExclusions::from_entities([split_manifestation]),
     ));
 
     commands.entity(player).with_children(|parent| {
-        parent.spawn(model);
+        parent.spawn(model::create_model(&mut meshes, &mut materials));
+    });
+    commands.entity(split_manifestation).with_children(|parent| {
+        parent.spawn(model::create_model(&mut meshes, &mut materials));
     });
 
     commands.spawn((

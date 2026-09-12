@@ -8,6 +8,7 @@ use crate::{
         SimulationSet,
         combat::Damage,
     },
+    physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive},
 };
 
 use super::{
@@ -107,7 +108,13 @@ struct HeatEmission {
 /// state or combustion semantics.
 fn propagate_combustion_heat(
     time: Res<Time>,
-    samples: Query<(&UsfManifestationOf, &Transform), With<ThermalSpatialSample>>,
+    samples: Query<
+        (&UsfManifestationOf, &Transform),
+        (
+            With<ThermalSpatialSample>,
+            Or<(Without<SpatialSplitPeer>, With<SpatialSplitPeerActive>)>,
+        ),
+    >,
     sources: Query<(Entity, &Combustion, &CombustibleMaterial)>,
     mut targets: Query<&mut ThermalBody>,
 ) {

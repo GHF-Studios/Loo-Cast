@@ -1,15 +1,19 @@
-//! Damageable semantic entities with one or more visible manifestations.
+//! Damageable, thermal, dynamic rigid cubes exposed as playground items.
 
-use avian3d::prelude::Collider;
+use avian3d::prelude::*;
 use bevy::prelude::*;
 
 use crate::{
-    ecs::{UsfEntity, UsfManifestationOf},
+    ecs::{UsfEntity, UsfManifestationOf, UsfManifestations},
     game::{
         GameAssets, GameSet,
         combat::{Health, Hitbox},
+        portal::{
+            PortalRigidSplitBody, PortalSplitTraveler, PortalSplitVisual, PortalTraveler,
+        },
         thermal::{CombustibleMaterial, Fuel, ThermalBody, ThermalSpatialSample},
     },
+    physics::topology::{SpatialSplitBox, SpatialSplitPeer},
 };
 
 use super::super::{
@@ -21,8 +25,10 @@ pub const DAMAGEABLE_CUBE: PlaygroundItemId = PlaygroundItemId::new("damageable_
 pub const SPLIT_DAMAGEABLE_CUBE: PlaygroundItemId = PlaygroundItemId::new("split_damageable_cube");
 
 const CUBE_SIZE: f32 = 1.0;
+const CUBE_MASS_KG: f32 = 20.0;
 const MAXIMUM_HEALTH: f32 = 100.0;
 const PLACEMENT_DISTANCE: f32 = 100.0;
+const SURFACE_CLEARANCE: f32 = 0.08;
 
 #[derive(Resource, Default)]
 struct CubeCounter(u64);
@@ -41,13 +47,13 @@ fn register_items(mut catalog: ResMut<PlaygroundCatalog>) {
     catalog.register(PlaygroundItem {
         id: DAMAGEABLE_CUBE,
         name: "Damageable Cube",
-        description: "One semantic Health + thermal/fuel owner with one manifestation.",
+        description: "Dynamic rigid cube with shared Health, thermal state and finite fuel.",
     });
 
     catalog.register(PlaygroundItem {
         id: SPLIT_DAMAGEABLE_CUBE,
         name: "Split Damageable Cube",
-        description: "One semantic Health + thermal/fuel owner with two manifestations.",
+        description: "One semantic state with two independently dynamic spatial manifestations.",
     });
 }
 
@@ -55,6 +61,10 @@ fn use_cube_items(
     mut commands: Commands,
     mut uses: MessageReader<UsePlaygroundItem>,
     assets: Res<GameAssets>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    manifestations: Query<&UsfManifestationOf>,
+    semantic_entities: Query<&UsfManifestations>,
+    spatial_query: SpatialQuery,
     mut counter: ResMut<CubeCounter>,
 ) {
     for request in uses.read() {
@@ -62,15 +72,44 @@ fn use_cube_items(
             continue;
         }
 
-        let manifestation_offsets: &[Vec3] = match request.item {
-            DAMAGEABLE_CUBE => &[Vec3::ZERO],
-            SPLIT_DAMAGEABLE_CUBE => &[Vec3::new(-1.25, 0.0, 0.0), Vec3::new(1.25, 0.0, 0.0)],
+        let manifestation_count = match request.item {
+            DAMAGEABLE_CUBE => 1,
+            SPLIT_DAMAGEABLE_CUBE => 2,
             _ => continue,
         };
 
-        let Some(ground) = request.aim.horizontal_plane(0.0, PLACEMENT_DISTANCE) else {
+        let Ok(direction) = Dir3::new(request.aim.direction) else {
             continue;
         };
+        let filter = manifestations
+            .get(request.actor)
+            .ok()
+            .and_then(|manifestation| semantic_entities.get(manifestation.0).ok())
+            .map(|manifestations| SpatialQueryFilter::from_excluded_entities(manifestations.iter()))
+            .unwrap_or_else(|| SpatialQueryFilter::from_excluded_entities([request.actor]));
+
+        let Some(hit) = spatial_query.cast_ray(
+            request.aim.origin,
+            direction,
+            PLACEMENT_DISTANCE,
+            false,
+            &filter,
+        ) else {
+            continue;
+        };
+
+        let normal = hit.normal.normalize_or_zero();
+        if normal == Vec3::ZERO {
+            continue;
+        }
+        let hit_point = request.aim.origin + request.aim.direction * hit.distance;
+        // The cube is world-axis aligned when spawned. Its support radius along
+        // an arbitrary surface normal is larger than half its side length on
+        // sloped faces, so use the projected half-extents rather than assuming
+        // a horizontal plane.
+        let half = CUBE_SIZE * 0.5;
+        let support_radius = half * (normal.x.abs() + normal.y.abs() + normal.z.abs());
+        let spawn_center = hit_point + normal * (support_radius + SURFACE_CLEARANCE);
 
         counter.0 += 1;
         let logical_name = if request.item == DAMAGEABLE_CUBE {
@@ -92,20 +131,103 @@ fn use_cube_items(
             ))
             .id();
 
-        for (index, offset) in manifestation_offsets.iter().copied().enumerate() {
-            let position = ground + Vec3::Y * (CUBE_SIZE / 2.0) + offset;
-
-            commands.spawn((
-                Name::new(format!("Cube Manifestation {index}")),
-                UsfManifestationOf(root),
-                ThermalSpatialSample,
-                PlaygroundPickable::cube(root, CUBE_SIZE),
-                Hitbox::cube(CUBE_SIZE),
-                Collider::cuboid(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE),
-                Mesh3d(assets.damageable_cube_mesh.clone()),
-                MeshMaterial3d(assets.damageable_cube_material.clone()),
-                Transform::from_translation(position),
-            ));
+        let tangent = surface_tangent(normal);
+        for index in 0..manifestation_count {
+            let offset = if manifestation_count == 1 {
+                Vec3::ZERO
+            } else {
+                tangent * if index == 0 { -1.25 } else { 1.25 }
+            };
+            spawn_dynamic_manifestation(
+                &mut commands,
+                &mut meshes,
+                &assets,
+                root,
+                index,
+                spawn_center + offset,
+            );
         }
+    }
+}
+
+fn surface_tangent(normal: Vec3) -> Vec3 {
+    [Vec3::X, Vec3::Z, Vec3::Y]
+        .into_iter()
+        .map(|axis| (axis - normal * axis.dot(normal)).normalize_or_zero())
+        .find(|axis| *axis != Vec3::ZERO)
+        .unwrap_or(Vec3::X)
+}
+
+fn spawn_dynamic_manifestation(
+    commands: &mut Commands,
+    meshes: &mut Assets<Mesh>,
+    assets: &GameAssets,
+    semantic: Entity,
+    index: usize,
+    position: Vec3,
+) {
+    let transform = Transform::from_translation(position);
+    let full_collider = Collider::cuboid(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
+    let inertia = AngularInertia::from_shape(&full_collider, CUBE_MASS_KG);
+
+    let authority = commands
+        .spawn((
+            Name::new(format!("Cube Manifestation {index}")),
+            UsfManifestationOf(semantic),
+            ThermalSpatialSample,
+            PlaygroundPickable::cube(semantic, CUBE_SIZE),
+            Hitbox::cube(CUBE_SIZE),
+            RigidBody::Dynamic,
+            SleepingDisabled,
+            Mass(CUBE_MASS_KG),
+            inertia,
+            CenterOfMass::ZERO,
+            LinearVelocity::ZERO,
+            AngularVelocity::ZERO,
+            full_collider.clone(),
+            SpatialSplitBox::from_size(Vec3::splat(CUBE_SIZE)),
+            PortalTraveler::new(position),
+            PortalRigidSplitBody::default(),
+            transform,
+        ))
+        .id();
+
+    let peer = commands
+        .spawn((
+            Name::new(format!("Cube Portal Peer {index}")),
+            UsfManifestationOf(semantic),
+            SpatialSplitPeer { authority },
+            ActiveCollisionHooks::FILTER_PAIRS,
+            ThermalSpatialSample,
+            PlaygroundPickable::cube(semantic, CUBE_SIZE),
+            Hitbox::cube(CUBE_SIZE),
+            RigidBody::Dynamic,
+            SleepingDisabled,
+            CustomVelocityIntegration,
+            Mass(CUBE_MASS_KG),
+            inertia,
+            CenterOfMass::ZERO,
+            LinearVelocity::ZERO,
+            AngularVelocity::ZERO,
+            full_collider,
+            CollisionLayers::NONE,
+            transform,
+        ))
+        .id();
+
+    commands
+        .entity(authority)
+        .insert(PortalSplitTraveler::new(transform, peer));
+
+    for body in [authority, peer] {
+        commands.entity(body).with_children(|parent| {
+            parent.spawn((
+                Name::new("Cube Model"),
+                PortalSplitVisual,
+                Mesh3d(meshes.add(Cuboid::from_length(CUBE_SIZE))),
+                MeshMaterial3d(assets.damageable_cube_material.clone()),
+                Transform::IDENTITY,
+            ));
+        });
     }
 }

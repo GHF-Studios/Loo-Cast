@@ -25,28 +25,33 @@ impl PortalTraveler {
     }
 }
 
-/// Opts one authoritative manifestation into the narrow portal-split
-/// prototype.
+/// Opts one spatial manifestation into portal-aware partitioning.
 ///
-/// The peer manifestation is discovered through the generic
-/// `UsfManifestationOf` relationship rather than stored here. This component
-/// therefore contains only portal-specific orchestration state.
+/// `peer` is the reserved physical/presentation proxy for the opposite side of
+/// the active portal. Keeping this relation explicit lets semantic entities have
+/// any number of other manifestations without confusing them with split peers.
 #[derive(Component, Debug)]
 pub struct PortalSplitTraveler {
     pub(crate) active: Option<ActivePortalSplit>,
     pub(crate) tick_start: Transform,
+    peer: Entity,
 }
 
 impl PortalSplitTraveler {
-    pub fn new(initial_transform: Transform) -> Self {
+    pub fn new(initial_transform: Transform, peer: Entity) -> Self {
         Self {
             active: None,
             tick_start: initial_transform,
+            peer,
         }
     }
 
     pub fn is_split(&self) -> bool {
         self.active.is_some()
+    }
+
+    pub fn peer(&self) -> Entity {
+        self.peer
     }
 }
 
@@ -56,6 +61,30 @@ pub(crate) struct ActivePortalSplit {
     pub source: Entity,
     /// Peer portal to which the other manifestation is rigidly mapped.
     pub destination: Entity,
+}
+
+
+/// Runtime bridge that lets a dynamic rigid body remain one physical object
+/// while its collision geometry is represented by two portal-linked solver bodies.
+///
+/// External forces, gravity, mass and inertia belong to the authoritative body.
+/// The peer receives only mapped baseline velocity plus solver contacts; the
+/// resulting contact delta is folded back into the authority after Avian solves.
+#[derive(Component, Debug, Clone, Copy)]
+pub struct PortalRigidSplitBody {
+    pub(crate) peer_baseline_linear: Vec3,
+    pub(crate) peer_baseline_angular: Vec3,
+    pub(crate) peer_solver_active: bool,
+}
+
+impl Default for PortalRigidSplitBody {
+    fn default() -> Self {
+        Self {
+            peer_baseline_linear: Vec3::ZERO,
+            peer_baseline_angular: Vec3::ZERO,
+            peer_solver_active: false,
+        }
+    }
 }
 
 /// Optional linear velocity transformed alongside a conventional traveler.

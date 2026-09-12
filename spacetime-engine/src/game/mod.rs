@@ -102,7 +102,6 @@ impl Plugin for TestGamePlugin {
 
 #[derive(Resource)]
 pub(crate) struct GameAssets {
-    pub damageable_cube_mesh: Handle<Mesh>,
     pub damageable_cube_material: Handle<StandardMaterial>,
     pub projectile_mesh: Handle<Mesh>,
     pub projectile_material: Handle<StandardMaterial>,
@@ -114,7 +113,6 @@ fn setup_scene(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     commands.insert_resource(GameAssets {
-        damageable_cube_mesh: meshes.add(Cuboid::from_length(1.0)),
         damageable_cube_material: materials.add(Color::srgb(0.8, 0.2, 0.2)),
         projectile_mesh: meshes.add(Sphere::new(0.1)),
         projectile_material: materials.add(Color::WHITE),

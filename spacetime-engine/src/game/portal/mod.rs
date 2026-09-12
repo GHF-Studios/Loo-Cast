@@ -21,11 +21,20 @@ mod tests;
 
 pub use domain::{
     Portal, PortalActive, PortalCommand, PortalConfig, PortalEndpoint, PortalEndpointConfig,
-    PortalPair, PortalSidedness, PortalSplitTraveler, PortalTraveler, PortalVelocity, PortalView,
+    PortalPair, PortalRigidSplitBody, PortalSidedness, PortalSplitTraveler,
+    PortalTraveler, PortalVelocity, PortalView,
 };
 
-pub use rendering::{DERIVED_VIEW_LAYER, MAIN_PORTAL_LAYER};
+pub use rendering::{DERIVED_VIEW_LAYER, MAIN_PORTAL_LAYER, PortalSplitVisual};
 
+use avian3d::{
+    dynamics::{
+        integrator::IntegrationSystems,
+        solver::schedule::{SolverSystems, SubstepSchedule, SubstepSolverSystems},
+    },
+    prelude::PhysicsSystems,
+    schedule::PhysicsSchedule,
+};
 use bevy::prelude::*;
 
 use crate::{game::SimulationSet, physics::character::CharacterMovementSet};
@@ -77,6 +86,50 @@ impl Plugin for PortalPlugin {
                     simulation::split::materialize_portal_splits
                         .in_set(PortalSplitSet::MaterializeAfterMotor),
                 ),
+            )
+            .add_systems(
+                FixedPostUpdate,
+                simulation::rigid_split::apply_peer_character_pushes
+                    .in_set(CharacterMovementSet::PushDynamics)
+                    .in_set(PhysicsSystems::First),
+            )
+            .add_systems(
+                FixedPostUpdate,
+                simulation::rigid_split::prepare_rigid_splits
+                    .after(CharacterMovementSet::PushDynamics)
+                    .before(PhysicsSystems::Prepare),
+            )
+            .add_systems(
+                SubstepSchedule,
+                simulation::rigid_split::sync_rigid_split_solver_peers
+                    .after(IntegrationSystems::Velocity)
+                    .before(SubstepSolverSystems::WarmStart),
+            )
+            .add_systems(
+                SubstepSchedule,
+                simulation::rigid_split::couple_rigid_split_solver_peers
+                    .after(SubstepSolverSystems::SolveConstraints)
+                    .before(IntegrationSystems::Position),
+            )
+            .add_systems(
+                SubstepSchedule,
+                simulation::rigid_split::couple_rigid_split_solver_peers
+                    .after(SubstepSolverSystems::Damping),
+            )
+            .add_systems(
+                PhysicsSchedule,
+                simulation::rigid_split::couple_rigid_split_solver_peers
+                    .after(SolverSystems::Restitution)
+                    .before(SolverSystems::Finalize),
+            )
+            .add_systems(
+                FixedPostUpdate,
+                (
+                    simulation::rigid_split::receive_peer_dynamic_contact_pushes,
+                    simulation::rigid_split::reconcile_rigid_splits,
+                )
+                    .chain()
+                    .after(CharacterMovementSet::ReceiveDynamics),
             );
     }
 }

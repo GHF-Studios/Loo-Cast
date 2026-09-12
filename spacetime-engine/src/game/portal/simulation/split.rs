@@ -19,10 +19,13 @@ use avian3d::{
 use bevy::prelude::*;
 
 use crate::{
-    ecs::{UsfManifestationAuthority, UsfManifestationOf, UsfManifestations},
+    ecs::UsfManifestationAuthority,
     physics::{
         character::{CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame},
-        topology::{KinematicQueryExclusions, SpatialSplitBox, SplitPlane, partition_box_by_plane},
+        topology::{
+            KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeerActive, SplitPlane,
+            partition_box_by_plane,
+        },
     },
 };
 
@@ -62,7 +65,6 @@ pub(crate) fn prepare_portal_splits(
         (Entity, &Portal, &PortalActive, &Transform),
         (With<Portal>, Without<UsfManifestationAuthority>),
     >,
-    semantic_entities: Query<&UsfManifestations>,
     mut travelers: Query<
         (
             Entity,
@@ -70,7 +72,6 @@ pub(crate) fn prepare_portal_splits(
             Option<&CharacterLocomotionFrame>,
             &LinearVelocity,
             &SpatialSplitBox,
-            &UsfManifestationOf,
             &mut PortalSplitTraveler,
             &mut KinematicQueryExclusions,
         ),
@@ -85,17 +86,11 @@ pub(crate) fn prepare_portal_splits(
         locomotion_frame,
         velocity,
         split_box,
-        manifestation,
         mut split,
         mut exclusions,
     ) in &mut travelers
     {
-        let Some(peer) = peer_manifestation(entity, manifestation, &semantic_entities) else {
-            finish_character_split(&mut split, &mut body, locomotion_frame);
-            exclusions.replace(std::iter::empty::<Entity>());
-            split.tick_start = *body;
-            continue;
-        };
+        let peer = split.peer();
 
         if let Some(active) = split.active {
             if !active_pair_is_valid(active, &portals)
@@ -136,14 +131,12 @@ pub(crate) fn materialize_portal_splits(
         (&Portal, &PortalActive, &Transform),
         (With<Portal>, Without<UsfManifestationAuthority>),
     >,
-    semantic_entities: Query<&UsfManifestations>,
     mut authorities: Query<
         (
             Entity,
             &Transform,
             &LinearVelocity,
             &SpatialSplitBox,
-            &UsfManifestationOf,
             &PortalSplitTraveler,
             &mut Collider,
         ),
@@ -154,13 +147,10 @@ pub(crate) fn materialize_portal_splits(
         (Without<Portal>, Without<UsfManifestationAuthority>),
     >,
 ) {
-    for (authority, body, velocity, split_box, manifestation, split, mut authority_collider) in
+    for (_authority, body, velocity, split_box, split, mut authority_collider) in
         &mut authorities
     {
-        let Some(peer_entity) = peer_manifestation(authority, manifestation, &semantic_entities)
-        else {
-            continue;
-        };
+        let peer_entity = split.peer();
         let Ok((mut peer_transform, mut peer_velocity, mut peer_collider)) =
             peers.get_mut(peer_entity)
         else {
@@ -169,24 +159,36 @@ pub(crate) fn materialize_portal_splits(
 
         let Some(active) = split.active else {
             *authority_collider = split_box.full_collider();
-            commands.entity(peer_entity).insert(CollisionLayers::NONE);
+            commands
+                .entity(peer_entity)
+                .insert(CollisionLayers::NONE)
+                .remove::<SpatialSplitPeerActive>();
             peer_velocity.0 = Vec3::ZERO;
             continue;
         };
 
         let Ok((_, source_active, source)) = portals.get(active.source) else {
             *authority_collider = split_box.full_collider();
-            commands.entity(peer_entity).insert(CollisionLayers::NONE);
+            commands
+                .entity(peer_entity)
+                .insert(CollisionLayers::NONE)
+                .remove::<SpatialSplitPeerActive>();
             continue;
         };
         let Ok((_, destination_active, destination)) = portals.get(active.destination) else {
             *authority_collider = split_box.full_collider();
-            commands.entity(peer_entity).insert(CollisionLayers::NONE);
+            commands
+                .entity(peer_entity)
+                .insert(CollisionLayers::NONE)
+                .remove::<SpatialSplitPeerActive>();
             continue;
         };
         if !source_active.0 || !destination_active.0 {
             *authority_collider = split_box.full_collider();
-            commands.entity(peer_entity).insert(CollisionLayers::NONE);
+            commands
+                .entity(peer_entity)
+                .insert(CollisionLayers::NONE)
+                .remove::<SpatialSplitPeerActive>();
             continue;
         }
 
@@ -200,7 +202,10 @@ pub(crate) fn materialize_portal_splits(
 
         if !partition.straddles() {
             *authority_collider = split_box.full_collider();
-            commands.entity(peer_entity).insert(CollisionLayers::NONE);
+            commands
+                .entity(peer_entity)
+                .insert(CollisionLayers::NONE)
+                .remove::<SpatialSplitPeerActive>();
             continue;
         }
 
@@ -213,7 +218,10 @@ pub(crate) fn materialize_portal_splits(
 
         let (Some(authority_half), Some(peer_half)) = (authority_half, peer_half) else {
             *authority_collider = split_box.full_collider();
-            commands.entity(peer_entity).insert(CollisionLayers::NONE);
+            commands
+                .entity(peer_entity)
+                .insert(CollisionLayers::NONE)
+                .remove::<SpatialSplitPeerActive>();
             continue;
         };
 
@@ -221,7 +229,7 @@ pub(crate) fn materialize_portal_splits(
         *peer_collider = peer_half;
         commands
             .entity(peer_entity)
-            .insert(CollisionLayers::DEFAULT);
+            .insert((CollisionLayers::DEFAULT, SpatialSplitPeerActive));
     }
 }
 
@@ -238,12 +246,10 @@ pub(crate) fn resolve_portal_splits(
         (Entity, &Portal, &PortalActive, &Transform),
         (With<Portal>, Without<UsfManifestationAuthority>),
     >,
-    semantic_entities: Query<&UsfManifestations>,
     mut travelers: Query<
         (
             Entity,
             &SpatialSplitBox,
-            &UsfManifestationOf,
             &mut Transform,
             Option<&CharacterLocomotionFrame>,
             Option<&mut CharacterControlFrame>,
@@ -264,7 +270,6 @@ pub(crate) fn resolve_portal_splits(
     for (
         entity,
         split_box,
-        manifestation,
         mut body,
         locomotion_frame,
         mut control_frame,
@@ -275,12 +280,7 @@ pub(crate) fn resolve_portal_splits(
         mut exclusions,
     ) in &mut travelers
     {
-        let Some(peer) = peer_manifestation(entity, manifestation, &semantic_entities) else {
-            finish_character_split(&mut split, &mut body, locomotion_frame);
-            exclusions.replace(std::iter::empty::<Entity>());
-            traveler.commit_position(body.translation);
-            continue;
-        };
+        let peer = split.peer();
 
         let Some(active) = split.active else {
             traveler.commit_position(body.translation);
@@ -537,11 +537,11 @@ fn box_reaches_portal_this_tick(
         )
 }
 
-fn portal_plane(transform: &Transform) -> Option<SplitPlane> {
+pub(super) fn portal_plane(transform: &Transform) -> Option<SplitPlane> {
     SplitPlane::new(transform.translation, transform.rotation * Vec3::Z)
 }
 
-fn candidate_side(distance: f32, normal_speed: f32, support_radius: f32) -> Option<PortalSide> {
+pub(super) fn candidate_side(distance: f32, normal_speed: f32, support_radius: f32) -> Option<PortalSide> {
     // If the hull already touches/straddles the portal, allow a stationary or
     // inward-moving body to open the host surface. This covers placing a floor
     // portal beneath a standing player. An outward-moving body must not
@@ -569,7 +569,7 @@ fn candidate_side(distance: f32, normal_speed: f32, support_radius: f32) -> Opti
     }
 }
 
-fn projected_crossing_center(center: Vec3, velocity: Vec3, dt: f32, plane: SplitPlane) -> Vec3 {
+pub(super) fn projected_crossing_center(center: Vec3, velocity: Vec3, dt: f32, plane: SplitPlane) -> Vec3 {
     let distance = plane.signed_distance(center);
     let normal_speed = velocity.dot(plane.normal);
     if normal_speed.abs() > CROSSING_EPSILON {
@@ -580,7 +580,7 @@ fn projected_crossing_center(center: Vec3, velocity: Vec3, dt: f32, plane: Split
     }
 }
 
-fn box_fits_aperture_at(
+pub(super) fn box_fits_aperture_at(
     split_box: SpatialSplitBox,
     body_rotation: Quat,
     center: Vec3,
@@ -597,7 +597,7 @@ fn box_fits_aperture_at(
         && local.y.abs() + radius_y <= half_size.y + APERTURE_FIT_TOLERANCE
 }
 
-fn center_crossing_fraction(
+pub(super) fn center_crossing_fraction(
     portal: &Transform,
     start: Vec3,
     end: Vec3,
@@ -672,18 +672,6 @@ fn destination_half_collider(
     } else {
         partition.negative_collider()
     }
-}
-
-fn peer_manifestation(
-    authority: Entity,
-    manifestation: &UsfManifestationOf,
-    semantic_entities: &Query<&UsfManifestations>,
-) -> Option<Entity> {
-    semantic_entities
-        .get(manifestation.0)
-        .ok()?
-        .iter()
-        .find(|entity| *entity != authority)
 }
 
 #[cfg(test)]

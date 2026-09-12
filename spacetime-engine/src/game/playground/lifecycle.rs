@@ -1,11 +1,14 @@
+use avian3d::prelude::{SpatialQuery, SpatialQueryFilter};
 use bevy::prelude::*;
 
-use crate::game::{GameSet, combat::Died, playground::ErasePlaygroundObject};
-
-use super::{
-    object::{PlaygroundPickable, PlaygroundRoot},
-    picking::ray_box_distance,
+use crate::{
+    game::{GameSet, combat::Died, playground::ErasePlaygroundObject},
+    physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive},
 };
+
+use super::object::{PlaygroundPickable, PlaygroundRoot};
+
+const ERASE_DISTANCE: f32 = 250.0;
 
 pub fn configure(app: &mut App) {
     app.add_systems(Update, erase_aimed_object.in_set(GameSet::Action))
@@ -18,22 +21,32 @@ pub fn configure(app: &mut App) {
 fn erase_aimed_object(
     mut commands: Commands,
     mut requests: MessageReader<ErasePlaygroundObject>,
-    pickables: Query<(Entity, &PlaygroundPickable, &Transform)>,
+    spatial_query: SpatialQuery,
+    pickables: Query<
+        &PlaygroundPickable,
+        Or<(Without<SpatialSplitPeer>, With<SpatialSplitPeerActive>)>,
+    >,
 ) {
     for request in requests.read() {
-        let nearest = pickables
-            .iter()
-            .filter_map(|(entity, pickable, transform)| {
-                ray_box_distance(request.aim, transform, pickable.half_extents)
-                    .map(|distance| (entity, pickable.root, distance))
-            })
-            .min_by(|a, b| a.2.total_cmp(&b.2));
-
-        let Some((_hit, root, _distance)) = nearest else {
+        let Ok(direction) = Dir3::new(request.aim.direction) else {
             continue;
         };
 
-        commands.entity(root).despawn();
+        let Some(hit) = spatial_query.cast_ray_predicate(
+            request.aim.origin,
+            direction,
+            ERASE_DISTANCE,
+            false,
+            &SpatialQueryFilter::default(),
+            &|entity| pickables.contains(entity),
+        ) else {
+            continue;
+        };
+        let Ok(pickable) = pickables.get(hit.entity) else {
+            continue;
+        };
+
+        commands.entity(pickable.root).despawn();
     }
 }
 

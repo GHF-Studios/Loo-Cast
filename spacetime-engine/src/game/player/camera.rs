@@ -284,23 +284,13 @@ pub fn sync_player_fov(
 
 pub fn sync_player_model(
     camera: Single<&PlayerCamera>,
-    player: Single<&PlayerStance, With<Player>>,
-    mut models: Query<(&mut RenderLayers, &mut Transform), With<PlayerModel>>,
+    mut models: Query<&mut RenderLayers, With<PlayerModel>>,
 ) {
-    let stance = player.into_inner();
-
-    let height_scale = if stance.crouched {
-        CharacterDimensions::CROUCH_HEIGHT / CharacterDimensions::HULL_HEIGHT
-    } else {
-        1.0
-    };
-
-    for (mut render_layers, mut transform) in &mut models {
+    for mut render_layers in &mut models {
         *render_layers = match camera.mode {
             CameraMode::FirstPerson => RenderLayers::layer(DERIVED_VIEW_LAYER),
             CameraMode::ThirdPerson => RenderLayers::default(),
         };
-        transform.scale = Vec3::new(1.0, height_scale, 1.0);
     }
 }
 

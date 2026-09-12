@@ -10,7 +10,9 @@ pub use command::PortalCommand;
 pub use config::{PortalConfig, PortalEndpointConfig};
 pub use face::PortalSidedness;
 pub use portal::{Portal, PortalActive, PortalEndpoint, PortalPair, PortalView};
-pub use traveler::{PortalSplitTraveler, PortalTraveler, PortalVelocity};
+pub use traveler::{
+    PortalRigidSplitBody, PortalSplitTraveler, PortalTraveler, PortalVelocity,
+};
 
 pub(crate) use face::{PortalFace, PortalSide};
 pub(crate) use portal::PortalSupport;

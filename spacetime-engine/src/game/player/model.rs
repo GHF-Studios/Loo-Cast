@@ -3,7 +3,7 @@
 use bevy::{camera::visibility::RenderLayers, prelude::*};
 
 use crate::{
-    game::portal::DERIVED_VIEW_LAYER,
+    game::portal::{DERIVED_VIEW_LAYER, PortalSplitVisual},
     physics::character::CharacterDimensions,
 };
 
@@ -22,6 +22,7 @@ pub fn create_model(
     (
         Name::new("Player Model"),
         PlayerModel,
+        PortalSplitVisual,
         Mesh3d(meshes.add(Cuboid::new(
             CharacterDimensions::HULL_WIDTH,
             CharacterDimensions::HULL_HEIGHT,

@@ -8,13 +8,28 @@ use avian3d::{
 };
 use bevy::prelude::*;
 
-use crate::physics::topology::KinematicQueryExclusions;
+use crate::physics::topology::{KinematicQueryExclusions, SpatialSplitPeer};
 
 use super::{
     CharacterGroundState, CharacterLocomotionFrame, CharacterMotor, CharacterMovementConfig,
     CharacterMovementInput,
     accelerate, air_accelerate, apply_friction, reject,
 };
+
+const CHARACTER_PUSH_EFFECTIVE_MASS: f32 = 80.0;
+const CHARACTER_PUSH_IMPULSE_SCALE: f32 = 0.35;
+pub(crate) const MAX_DYNAMIC_CONTACT_DELTA_SPEED: f32 = 12.0;
+
+pub(crate) fn dynamic_contact_delta_velocity(direction: Vec3, impulse: f32) -> Vec3 {
+    direction * (impulse / CHARACTER_PUSH_EFFECTIVE_MASS)
+}
+
+#[derive(Message, Debug, Clone, Copy)]
+pub(crate) struct CharacterPush {
+    pub target: Entity,
+    pub point: Vec3,
+    pub impulse: Vec3,
+}
 
 #[derive(Clone, Copy, Debug)]
 struct GroundHit {
@@ -26,6 +41,7 @@ struct GroundHit {
 pub(super) fn simulate_character_motors(
     time: Res<Time<Fixed>>,
     move_and_slide: MoveAndSlide,
+    mut pushes: MessageWriter<CharacterPush>,
     mut query: Query<
         (
             Entity,
@@ -148,6 +164,28 @@ pub(super) fn simulate_character_motors(
         let moving_from_ground = ground.grounded;
         let moving_on_ground = moving_from_ground && reject(velocity.0, up).length_squared() > 1e-8;
 
+        if let Some(hit) = move_and_slide.cast_move(
+            collider,
+            start,
+            transform.rotation,
+            velocity.0 * dt,
+            move_config.skin_width,
+            &filter,
+        ) {
+            let normal = hit.normal1.as_vec3();
+            let closing_speed = (-velocity.0.dot(normal)).max(0.0);
+            if closing_speed > 0.0 {
+                pushes.write(CharacterPush {
+                    target: hit.entity,
+                    point: hit.point1,
+                    impulse: -normal
+                        * (closing_speed
+                            * CHARACTER_PUSH_EFFECTIVE_MASS
+                            * CHARACTER_PUSH_IMPULSE_SCALE),
+                });
+            }
+        }
+
         let direct = slide(
             &move_and_slide,
             collider,
@@ -232,6 +270,71 @@ pub(super) fn simulate_character_motors(
 
         // One-shot input is consumed by the physics tick; held input persists.
         input.jump_pressed = false;
+    }
+}
+
+pub(super) fn apply_character_pushes(
+    mut pushes: MessageReader<CharacterPush>,
+    mut bodies: Query<(Forces, &RigidBody), Without<SpatialSplitPeer>>,
+) {
+    for push in pushes.read() {
+        let Ok((mut forces, body)) = bodies.get_mut(push.target) else {
+            continue;
+        };
+        if *body != RigidBody::Dynamic {
+            continue;
+        }
+        forces.apply_linear_impulse_at_point(push.impulse, push.point);
+    }
+}
+
+
+pub(super) fn receive_dynamic_contact_pushes(
+    collisions: Collisions,
+    bodies: Query<&RigidBody>,
+    mut characters: Query<(Entity, &mut LinearVelocity), With<CharacterMotor>>,
+) {
+    for (entity, mut velocity) in &mut characters {
+        let mut delta_velocity = Vec3::ZERO;
+
+        for pair in collisions.collisions_with(entity) {
+            let character_is_first = if pair.body1 == Some(entity) || pair.collider1 == entity {
+                true
+            } else if pair.body2 == Some(entity) || pair.collider2 == entity {
+                false
+            } else {
+                continue;
+            };
+
+            let other_body = if character_is_first { pair.body2 } else { pair.body1 };
+            let Some(other_body) = other_body else {
+                continue;
+            };
+            let Ok(other_kind) = bodies.get(other_body) else {
+                continue;
+            };
+            if *other_kind != RigidBody::Dynamic {
+                continue;
+            }
+
+            for manifold in &pair.manifolds {
+                let impulse = manifold.total_normal_impulse().abs();
+                if impulse <= 0.0 {
+                    continue;
+                }
+
+                // Contact normals point from collider 1 to collider 2. The
+                // reaction on the character points away from the dynamic body.
+                let direction = if character_is_first {
+                    -manifold.normal
+                } else {
+                    manifold.normal
+                };
+                delta_velocity += dynamic_contact_delta_velocity(direction, impulse);
+            }
+        }
+
+        velocity.0 += delta_velocity.clamp_length_max(MAX_DYNAMIC_CONTACT_DELTA_SPEED);
     }
 }
 

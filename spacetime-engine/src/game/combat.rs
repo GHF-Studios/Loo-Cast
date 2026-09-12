@@ -2,9 +2,13 @@
 //!
 //! `Projectile -> Hit -> Damage -> Health -> Died`
 
+use avian3d::prelude::Collider;
 use bevy::prelude::*;
 
-use crate::ecs::UsfManifestationOf;
+use crate::{
+    ecs::UsfManifestationOf,
+    physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive},
+};
 
 use super::{
     GameAssets, GameSet, SimulationSet,
@@ -60,14 +64,6 @@ impl Hitbox {
         Self {
             half_extents: Vec3::splat(size / 2.0),
         }
-    }
-
-    fn contains(&self, point: Vec3, transform: &Transform) -> bool {
-        let offset = point - transform.translation;
-
-        offset.x.abs() <= self.half_extents.x
-            && offset.y.abs() <= self.half_extents.y
-            && offset.z.abs() <= self.half_extents.z
     }
 }
 
@@ -200,7 +196,13 @@ fn detect_projectile_hits(
     mut commands: Commands,
     mut hits: MessageWriter<Hit>,
     projectiles: Query<(Entity, &Projectile, &Transform)>,
-    hitboxes: Query<(Entity, &Hitbox, &Transform), Without<Projectile>>,
+    hitboxes: Query<
+        (Entity, &Hitbox, &Collider, &Transform),
+        (
+            Without<Projectile>,
+            Or<(Without<SpatialSplitPeer>, With<SpatialSplitPeerActive>)>,
+        ),
+    >,
 ) {
     for (entity, projectile, transform) in &projectiles {
         if projectile.remaining_lifetime <= 0.0 {
@@ -209,10 +211,14 @@ fn detect_projectile_hits(
 
         let impact = hitboxes
             .iter()
-            .filter(|(target, _, _)| *target != projectile.instigator)
-            .filter_map(|(target, hitbox, target_transform)| {
-                hitbox
-                    .contains(transform.translation, target_transform)
+            .filter(|(target, _, _, _)| *target != projectile.instigator)
+            .filter_map(|(target, _hitbox, collider, target_transform)| {
+                collider
+                    .contains_point(
+                        target_transform.translation,
+                        target_transform.rotation,
+                        transform.translation,
+                    )
                     .then_some((
                         target,
                         transform

@@ -12,6 +12,10 @@ mod math;
 mod plugin;
 mod state;
 
+pub(crate) use controller::{
+    CharacterPush, MAX_DYNAMIC_CONTACT_DELTA_SPEED, dynamic_contact_delta_velocity,
+};
+
 pub use config::*;
 pub use frame::*;
 pub use input::*;

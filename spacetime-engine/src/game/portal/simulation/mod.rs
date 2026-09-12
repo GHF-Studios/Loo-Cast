@@ -2,6 +2,7 @@
 
 pub(crate) mod control;
 pub(crate) mod placement;
+pub(crate) mod rigid_split;
 pub(crate) mod split;
 pub mod traversal;
 
