@@ -1,8 +1,11 @@
 //! Minimal visible representation of the player.
 
-use bevy::prelude::*;
+use bevy::{camera::visibility::RenderLayers, prelude::*};
 
-use crate::physics::character::CharacterDimensions;
+use crate::{
+    game::portal::DERIVED_VIEW_LAYER,
+    physics::character::CharacterDimensions,
+};
 
 /// Marks presentation geometry belonging to the player.
 #[derive(Component)]
@@ -26,6 +29,10 @@ pub fn create_model(
         ))),
         MeshMaterial3d(materials.add(Color::srgb(0.25, 0.45, 0.9))),
         Transform::IDENTITY,
-        Visibility::Hidden,
+        // First-person is the default camera mode. Keep the world model alive,
+        // but place it on the derived-view-only layer until presentation sync
+        // switches it back to the ordinary world layer in third person.
+        RenderLayers::layer(DERIVED_VIEW_LAYER),
+        Visibility::Inherited,
     )
 }

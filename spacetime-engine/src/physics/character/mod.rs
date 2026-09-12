@@ -6,12 +6,14 @@
 
 mod config;
 mod controller;
+mod frame;
 mod input;
 mod math;
 mod plugin;
 mod state;
 
 pub use config::*;
+pub use frame::*;
 pub use input::*;
 pub use math::*;
 pub use plugin::*;

@@ -7,7 +7,9 @@
 use avian3d::prelude::LinearVelocity;
 use bevy::{input::mouse::AccumulatedMouseMotion, prelude::*};
 
-use crate::physics::character::{CharacterGroundState, CharacterMotor, CharacterMovementInput};
+use crate::physics::character::{
+    CharacterGroundState, CharacterLocomotionFrame, CharacterMotor, CharacterMovementInput,
+};
 
 use super::{
     Player, PlayerAim, PlayerController, PlayerNoclip, PlayerStance, cursor::CursorCapture,
@@ -81,6 +83,7 @@ pub fn movement(
     player: Single<
         (
             &Transform,
+            &CharacterLocomotionFrame,
             &PlayerAim,
             &PlayerController,
             &PlayerStance,
@@ -90,7 +93,7 @@ pub fn movement(
         With<Player>,
     >,
 ) {
-    let (body, aim, controller, stance, noclip, mut input) = player.into_inner();
+    let (body, frame, aim, controller, stance, noclip, mut input) = player.into_inner();
 
     if gameplay_suppressed(&keyboard, &capture) || noclip.active {
         input.clear();
@@ -112,8 +115,16 @@ pub fn movement(
     let forward = keyboard.pressed(KeyCode::KeyW) as i8 - keyboard.pressed(KeyCode::KeyS) as i8;
 
     let axis = Vec2::new(horizontal as f32, forward as f32).clamp_length_max(1.0);
-    let local_wish = Vec3::new(axis.x, 0.0, -axis.y);
-    let world_wish = body.rotation * (aim.yaw_rotation() * local_wish);
+    let up = frame.up();
+    let view_forward = body.rotation * (aim.yaw_rotation() * Vec3::NEG_Z);
+    let planar_forward = view_forward - up * view_forward.dot(up);
+    let forward = if planar_forward.length_squared() > 1.0e-8 {
+        planar_forward.normalize()
+    } else {
+        frame.aligned_rotation(body.rotation) * Vec3::NEG_Z
+    };
+    let right = forward.cross(up).normalize_or_zero();
+    let world_wish = right * axis.x + forward * axis.y;
 
     input.set_wish(world_wish, axis.length());
     input.set_speed_multiplier(speed_multiplier);
@@ -128,6 +139,7 @@ pub fn noclip_movement(
     player: Single<
         (
             &mut Transform,
+            &CharacterLocomotionFrame,
             &PlayerAim,
             &PlayerController,
             &PlayerNoclip,
@@ -136,7 +148,7 @@ pub fn noclip_movement(
         With<Player>,
     >,
 ) {
-    let (mut body, aim, controller, noclip, mut velocity) = player.into_inner();
+    let (mut body, frame, aim, controller, noclip, mut velocity) = player.into_inner();
 
     if !noclip.active || gameplay_suppressed(&keyboard, &capture) {
         return;
@@ -148,7 +160,7 @@ pub fn noclip_movement(
         keyboard.pressed(KeyCode::Space) as i8 - keyboard.pressed(KeyCode::ControlLeft) as i8;
 
     let view_rotation = body.rotation * aim.local_rotation();
-    let physical_up = body.rotation * Vec3::Y;
+    let physical_up = frame.up();
     let mut wish = view_rotation * Vec3::X * horizontal as f32
         + view_rotation * Vec3::NEG_Z * forward as f32
         + physical_up * vertical as f32;

@@ -19,7 +19,7 @@ use bevy::{
 use crate::game::portal::{
     domain::{PortalConfig, PortalFace, PortalPair},
     rendering::{
-        WORLD_LAYER,
+        DERIVED_VIEW_LAYER, WORLD_LAYER,
         material::PortalMaterial,
         scene::{spawn_portal_surface, spawn_terminal_surface},
     },
@@ -139,7 +139,7 @@ fn build_render_node(
             Projection::Perspective(PerspectiveProjection::default()),
             Transform::default(),
             // Ordinary world + surfaces belonging to the child context.
-            RenderLayers::layer(WORLD_LAYER).with(child),
+            RenderLayers::layer(WORLD_LAYER).with(DERIVED_VIEW_LAYER).with(child),
             PortalRenderCamera {
                 path: child_path.clone(),
             },

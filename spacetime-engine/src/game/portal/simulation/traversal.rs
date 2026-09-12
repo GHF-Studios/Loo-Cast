@@ -7,13 +7,16 @@
 use avian3d::prelude::LinearVelocity;
 use bevy::prelude::*;
 
-use crate::game::portal::{
-    PortalActive,
-    domain::{Portal, PortalTraveler, PortalVelocity},
-    topology::{
-        crossing::crossed_aperture,
-        mapping::{map_transform, portal_mapping},
+use crate::{
+    game::portal::{
+        PortalActive,
+        domain::{Portal, PortalTraveler, PortalVelocity},
+        topology::{
+            crossing::crossed_aperture,
+            mapping::{map_transform, portal_mapping},
+        },
     },
+    physics::character::CharacterLocomotionFrame,
 };
 
 pub(in super::super) fn teleport_travelers(
@@ -22,6 +25,7 @@ pub(in super::super) fn teleport_travelers(
         (
             &mut Transform,
             &mut PortalTraveler,
+            Option<&CharacterLocomotionFrame>,
             Option<&mut PortalVelocity>,
             Option<&mut LinearVelocity>,
         ),
@@ -31,7 +35,14 @@ pub(in super::super) fn teleport_travelers(
         ),
     >,
 ) {
-    for (mut transform, mut traveler, mut portal_velocity, mut linear_velocity) in &mut travelers {
+    for (
+        mut transform,
+        mut traveler,
+        locomotion_frame,
+        mut portal_velocity,
+        mut linear_velocity,
+    ) in &mut travelers
+    {
         let current = transform.translation;
 
         let Some(previous) = traveler.previous_position() else {
@@ -74,6 +85,9 @@ pub(in super::super) fn teleport_travelers(
             let mapping = portal_mapping(&source, &destination);
 
             *transform = map_transform(&transform, &source, &destination);
+            if let Some(frame) = locomotion_frame {
+                transform.rotation = frame.aligned_rotation(transform.rotation);
+            }
 
             if let Some(velocity) = portal_velocity.as_deref_mut() {
                 velocity.0 = mapping.transform_vector3(velocity.0);

@@ -21,7 +21,7 @@ use bevy::prelude::*;
 use crate::{
     ecs::{UsfManifestationAuthority, UsfManifestationOf, UsfManifestations},
     physics::{
-        character::CharacterGroundState,
+        character::{CharacterGroundState, CharacterLocomotionFrame},
         topology::{KinematicQueryExclusions, SpatialSplitBox, SplitPlane, partition_box_by_plane},
     },
 };
@@ -64,7 +64,8 @@ pub(crate) fn prepare_portal_splits(
     mut travelers: Query<
         (
             Entity,
-            &Transform,
+            &mut Transform,
+            Option<&CharacterLocomotionFrame>,
             &LinearVelocity,
             &SpatialSplitBox,
             &UsfManifestationOf,
@@ -76,34 +77,43 @@ pub(crate) fn prepare_portal_splits(
 ) {
     let dt = time.delta_secs().max(0.0);
 
-    for (entity, body, velocity, split_box, manifestation, mut split, mut exclusions) in
-        &mut travelers
+    for (
+        entity,
+        mut body,
+        locomotion_frame,
+        velocity,
+        split_box,
+        manifestation,
+        mut split,
+        mut exclusions,
+    ) in &mut travelers
     {
         let Some(peer) = peer_manifestation(entity, manifestation, &semantic_entities) else {
-            split.active = None;
+            finish_character_split(&mut split, &mut body, locomotion_frame);
             exclusions.replace(std::iter::empty::<Entity>());
+            split.tick_start = *body;
             continue;
         };
-
-        split.tick_start = *body;
 
         if let Some(active) = split.active {
             if !active_pair_is_valid(active, &portals)
                 || !box_reaches_portal_this_tick(
                     *split_box,
-                    body,
+                    &body,
                     velocity.0,
                     dt,
                     active.source,
                     &portals,
                 )
             {
-                split.active = None;
+                finish_character_split(&mut split, &mut body, locomotion_frame);
             }
         }
 
+        split.tick_start = *body;
+
         if split.active.is_none() {
-            split.active = find_split_candidate(*split_box, body, velocity.0, dt, &portals);
+            split.active = find_split_candidate(*split_box, &body, velocity.0, dt, &portals);
         }
 
         // Whole-entity exclusions are now reserved for the peer manifestation.
@@ -233,6 +243,7 @@ pub(crate) fn resolve_portal_splits(
             &SpatialSplitBox,
             &UsfManifestationOf,
             &mut Transform,
+            Option<&CharacterLocomotionFrame>,
             &mut LinearVelocity,
             &mut CharacterGroundState,
             &mut PortalTraveler,
@@ -252,6 +263,7 @@ pub(crate) fn resolve_portal_splits(
         split_box,
         manifestation,
         mut body,
+        locomotion_frame,
         mut velocity,
         mut ground,
         mut traveler,
@@ -260,7 +272,7 @@ pub(crate) fn resolve_portal_splits(
     ) in &mut travelers
     {
         let Some(peer) = peer_manifestation(entity, manifestation, &semantic_entities) else {
-            split.active = None;
+            finish_character_split(&mut split, &mut body, locomotion_frame);
             exclusions.replace(std::iter::empty::<Entity>());
             traveler.commit_position(body.translation);
             continue;
@@ -272,20 +284,20 @@ pub(crate) fn resolve_portal_splits(
         };
 
         let Ok((_, source_portal, source_active, source)) = portals.get(active.source) else {
-            split.active = None;
+            finish_character_split(&mut split, &mut body, locomotion_frame);
             exclusions.replace([peer]);
             traveler.commit_position(body.translation);
             continue;
         };
         let Ok((_, _, destination_active, destination)) = portals.get(active.destination) else {
-            split.active = None;
+            finish_character_split(&mut split, &mut body, locomotion_frame);
             exclusions.replace([peer]);
             traveler.commit_position(body.translation);
             continue;
         };
 
         if !source_active.0 || !destination_active.0 {
-            split.active = None;
+            finish_character_split(&mut split, &mut body, locomotion_frame);
             exclusions.replace([peer]);
             traveler.commit_position(body.translation);
             continue;
@@ -351,7 +363,7 @@ pub(crate) fn resolve_portal_splits(
                 if let Some(plane) = portal_plane(current_source) {
                     let radius = split_box.projection_radius(body.rotation, plane.normal);
                     if plane.signed_distance(body.translation).abs() > radius + CLEAR_MARGIN {
-                        split.active = None;
+                        finish_character_split(&mut split, &mut body, locomotion_frame);
                         exclusions.replace([peer]);
                     }
                 }
@@ -359,6 +371,18 @@ pub(crate) fn resolve_portal_splits(
         }
 
         traveler.commit_position(body.translation);
+    }
+}
+
+fn finish_character_split(
+    split: &mut PortalSplitTraveler,
+    body: &mut Transform,
+    locomotion_frame: Option<&CharacterLocomotionFrame>,
+) {
+    if split.active.take().is_some() {
+        if let Some(frame) = locomotion_frame {
+            body.rotation = frame.aligned_rotation(body.rotation);
+        }
     }
 }
 

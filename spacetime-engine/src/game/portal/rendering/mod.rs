@@ -18,6 +18,10 @@ use bevy::{
 use crate::game::{GameSet, PresentationSet};
 
 pub const MAIN_PORTAL_LAYER: usize = 1;
+/// Entities that should be visible to derived world views (portal cameras,
+/// mirrors, etc.) while remaining hidden from the primary first-person view.
+/// Recursive portal-context layers start at 4, so layer 2 is reserved here.
+pub const DERIVED_VIEW_LAYER: usize = 2;
 pub const WORLD_LAYER: usize = 0;
 
 pub const PORTAL_SHADER: Handle<Shader> = uuid_handle!("14bc976d-50ec-4c03-a025-2d39405bb2fa");
@@ -34,6 +38,7 @@ impl Plugin for PortalRenderingPlugin {
                 Update,
                 (
                     visibility::sync_portal_visibility,
+                    visibility::sync_derived_view_lights,
                     recursion::camera::update_portal_cameras,
                 )
                     .chain()

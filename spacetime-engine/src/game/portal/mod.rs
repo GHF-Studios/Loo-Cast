@@ -24,7 +24,7 @@ pub use domain::{
     PortalPair, PortalSidedness, PortalSplitTraveler, PortalTraveler, PortalVelocity, PortalView,
 };
 
-pub use rendering::MAIN_PORTAL_LAYER;
+pub use rendering::{DERIVED_VIEW_LAYER, MAIN_PORTAL_LAYER};
 
 use bevy::prelude::*;
 

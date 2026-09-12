@@ -11,7 +11,8 @@ use bevy::prelude::*;
 use crate::physics::topology::KinematicQueryExclusions;
 
 use super::{
-    CharacterGroundState, CharacterMotor, CharacterMovementConfig, CharacterMovementInput,
+    CharacterGroundState, CharacterLocomotionFrame, CharacterMotor, CharacterMovementConfig,
+    CharacterMovementInput,
     accelerate, air_accelerate, apply_friction, reject,
 };
 
@@ -30,6 +31,7 @@ pub(super) fn simulate_character_motors(
             Entity,
             &Collider,
             &CharacterMovementConfig,
+            &CharacterLocomotionFrame,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
             &mut LinearVelocity,
@@ -50,6 +52,7 @@ pub(super) fn simulate_character_motors(
         entity,
         collider,
         config,
+        frame,
         mut input,
         mut ground,
         mut velocity,
@@ -61,9 +64,10 @@ pub(super) fn simulate_character_motors(
         ground.just_left_ground = false;
         ground.just_jumped = false;
 
-        // The body frame, not camera pitch/yaw, defines physical up.
-        let up = (transform.rotation * Vec3::Y).normalize_or_zero();
-        let up = if up == Vec3::ZERO { Vec3::Y } else { up };
+        // Locomotion/gravity up is persistent simulation state. The physical
+        // body rotation may temporarily be portal-mapped while manifestations
+        // split.
+        let up = frame.up();
         let filter = exclusions.map_or_else(
             || SpatialQueryFilter::from_excluded_entities([entity]),
             |exclusions| exclusions.filter_for(entity),

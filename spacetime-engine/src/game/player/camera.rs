@@ -11,10 +11,16 @@
 //! to `base_distance + zoom_offset`.
 
 use avian3d::prelude::{Collider, ShapeCastConfig, SpatialQuery, SpatialQueryFilter};
-use bevy::{input::mouse::AccumulatedMouseScroll, prelude::*, window::PrimaryWindow};
+use bevy::{
+    camera::visibility::RenderLayers,
+    input::mouse::AccumulatedMouseScroll,
+    prelude::*,
+    window::PrimaryWindow,
+};
 
 use crate::{
     ecs::{UsfManifestationOf, UsfManifestations},
+    game::portal::DERIVED_VIEW_LAYER,
     physics::character::CharacterDimensions,
 };
 
@@ -273,13 +279,9 @@ pub fn sync_player_fov(
 pub fn sync_player_model(
     camera: Single<&PlayerCamera>,
     player: Single<&PlayerStance, With<Player>>,
-    mut models: Query<(&mut Visibility, &mut Transform), With<PlayerModel>>,
+    mut models: Query<(&mut RenderLayers, &mut Transform), With<PlayerModel>>,
 ) {
     let stance = player.into_inner();
-    let visibility = match camera.mode {
-        CameraMode::FirstPerson => Visibility::Hidden,
-        CameraMode::ThirdPerson => Visibility::Inherited,
-    };
 
     let height_scale = if stance.crouched {
         CharacterDimensions::CROUCH_HEIGHT / CharacterDimensions::HULL_HEIGHT
@@ -287,8 +289,11 @@ pub fn sync_player_model(
         1.0
     };
 
-    for (mut model_visibility, mut transform) in &mut models {
-        *model_visibility = visibility;
+    for (mut render_layers, mut transform) in &mut models {
+        *render_layers = match camera.mode {
+            CameraMode::FirstPerson => RenderLayers::layer(DERIVED_VIEW_LAYER),
+            CameraMode::ThirdPerson => RenderLayers::default(),
+        };
         transform.scale = Vec3::new(1.0, height_scale, 1.0);
     }
 }

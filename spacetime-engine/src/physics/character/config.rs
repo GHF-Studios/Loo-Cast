@@ -27,8 +27,8 @@ impl CharacterDimensions {
 
 /// Per-character movement tuning.
 ///
-/// The physical body's local `+Y` axis is locomotion-up. This keeps arbitrary
-/// portal/gravity orientation independent from view yaw and pitch.
+/// [`super::CharacterLocomotionFrame`] defines locomotion/gravity up separately
+/// from the body's temporary physical/topological orientation.
 #[derive(Component, Reflect, Clone, Debug)]
 #[reflect(Component)]
 pub struct CharacterMovementConfig {

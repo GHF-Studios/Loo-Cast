@@ -2,7 +2,8 @@ use avian3d::prelude::*;
 use bevy::prelude::*;
 
 use super::{
-    CharacterGroundState, CharacterMovementConfig, CharacterMovementInput,
+    CharacterGroundState, CharacterLocomotionFrame, CharacterMovementConfig,
+    CharacterMovementInput,
     controller::simulate_character_motors,
 };
 
@@ -21,7 +22,8 @@ use super::{
     LinearVelocity,
     CharacterMovementConfig,
     CharacterMovementInput,
-    CharacterGroundState
+    CharacterGroundState,
+    CharacterLocomotionFrame
 )]
 pub struct CharacterMotor;
 
@@ -38,6 +40,7 @@ impl Plugin for CharacterMovementPlugin {
             .register_type::<CharacterMovementConfig>()
             .register_type::<CharacterMovementInput>()
             .register_type::<CharacterGroundState>()
+            .register_type::<CharacterLocomotionFrame>()
             .configure_sets(FixedUpdate, CharacterMovementSet::Simulate)
             .add_systems(
                 FixedUpdate,

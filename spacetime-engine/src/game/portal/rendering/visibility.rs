@@ -1,8 +1,14 @@
 //! Derives portal presentation visibility from domain activation state.
 
-use bevy::prelude::*;
+use bevy::{
+    camera::visibility::RenderLayers,
+    light::{DirectionalLight, PointLight, SpotLight},
+    prelude::*,
+};
 
 use crate::game::portal::{Portal, PortalActive, PortalPair};
+
+use super::DERIVED_VIEW_LAYER;
 
 /// Recursive rendering represents a complete pair, so a lone active endpoint
 /// remains logically placed but visually hidden until its partner exists too.
@@ -24,5 +30,32 @@ pub fn sync_portal_visibility(
         } else {
             Visibility::Hidden
         };
+    }
+}
+
+/// Keep ordinary world lights available to derived world views.
+///
+/// Bevy applies `RenderLayers` to lights as well as cameras/meshes. Preserve a
+/// light's authored layers and mirror only lights that already affect the
+/// ordinary world onto the derived-view layer.
+pub fn sync_derived_view_lights(
+    mut commands: Commands,
+    lights: Query<
+        (Entity, Option<&RenderLayers>),
+        Or<(
+            With<PointLight>,
+            With<DirectionalLight>,
+            With<SpotLight>,
+        )>,
+    >,
+) {
+    let world = RenderLayers::default();
+    let derived = RenderLayers::layer(DERIVED_VIEW_LAYER);
+
+    for (entity, layers) in &lights {
+        let current = layers.cloned().unwrap_or_default();
+        if current.intersects(&world) && !current.intersects(&derived) {
+            commands.entity(entity).insert(current.with(DERIVED_VIEW_LAYER));
+        }
     }
 }
