@@ -17,8 +17,8 @@ use bevy::prelude::*;
 use crate::{
     game::portal::{
         Portal, PortalActive, PortalRigidSplitBody, PortalSplitTraveler, PortalTraveler,
-        domain::{ActivePortalSplit, PortalSide},
-        topology::mapping::{map_transform, portal_mapping},
+        domain::ActivePortalSplit,
+        topology::mapping::{map_transform, portal_mapping, portal_plane},
     },
     physics::{
         character::{
@@ -32,8 +32,7 @@ use crate::{
 };
 
 use super::split::{
-    box_fits_aperture_at, candidate_side, center_crossing_fraction, portal_plane,
-    projected_crossing_center,
+    box_fits_aperture_at, candidate_side, center_crossing_fraction, projected_crossing_center,
 };
 
 const PREOPEN_MARGIN: f32 = 0.04;
@@ -192,7 +191,7 @@ pub(crate) fn prepare_rigid_splits(
     mut authorities: Query<
         (
             Entity,
-            &mut Transform,
+            &Transform,
             &LinearVelocity,
             &AngularVelocity,
             &SpatialSplitBox,
@@ -216,7 +215,7 @@ pub(crate) fn prepare_rigid_splits(
 
     for (
         _entity,
-        mut body,
+        body,
         velocity,
         angular_velocity,
         split_box,

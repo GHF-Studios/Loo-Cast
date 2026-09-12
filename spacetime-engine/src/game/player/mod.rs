@@ -187,7 +187,7 @@ fn spawn_player(
 fn handle_player_death(
     mut commands: Commands,
     mut deaths: MessageReader<Died>,
-    mut player: Single<(
+    player: Single<(
         Entity,
         &UsfManifestationOf,
         &mut PlayerNoclip,

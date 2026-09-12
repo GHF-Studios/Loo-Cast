@@ -172,7 +172,7 @@ pub(super) fn simulate_character_motors(
             move_config.skin_width,
             &filter,
         ) {
-            let normal = hit.normal1.as_vec3();
+            let normal = hit.normal1;
             let closing_speed = (-velocity.0.dot(normal)).max(0.0);
             if closing_speed > 0.0 {
                 pushes.write(CharacterPush {

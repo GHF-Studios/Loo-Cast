@@ -177,6 +177,12 @@ fn spawn_dynamic_manifestation(
             ThermalSpatialSample,
             PlaygroundPickable::cube(semantic, CUBE_SIZE),
             Hitbox::cube(CUBE_SIZE),
+            SpatialSplitBox::from_size(Vec3::splat(CUBE_SIZE)),
+            PortalTraveler::new(position),
+            PortalRigidSplitBody::default(),
+            transform,
+        ))
+        .insert((
             RigidBody::Dynamic,
             SleepingDisabled,
             Mass(CUBE_MASS_KG),
@@ -185,10 +191,6 @@ fn spawn_dynamic_manifestation(
             LinearVelocity::ZERO,
             AngularVelocity::ZERO,
             full_collider.clone(),
-            SpatialSplitBox::from_size(Vec3::splat(CUBE_SIZE)),
-            PortalTraveler::new(position),
-            PortalRigidSplitBody::default(),
-            transform,
         ))
         .id();
 
@@ -197,10 +199,13 @@ fn spawn_dynamic_manifestation(
             Name::new(format!("Cube Portal Peer {index}")),
             UsfManifestationOf(semantic),
             SpatialSplitPeer { authority },
-            ActiveCollisionHooks::FILTER_PAIRS,
             ThermalSpatialSample,
             PlaygroundPickable::cube(semantic, CUBE_SIZE),
             Hitbox::cube(CUBE_SIZE),
+            transform,
+        ))
+        .insert((
+            ActiveCollisionHooks::FILTER_PAIRS,
             RigidBody::Dynamic,
             SleepingDisabled,
             CustomVelocityIntegration,
@@ -211,7 +216,6 @@ fn spawn_dynamic_manifestation(
             AngularVelocity::ZERO,
             full_collider,
             CollisionLayers::NONE,
-            transform,
         ))
         .id();
 

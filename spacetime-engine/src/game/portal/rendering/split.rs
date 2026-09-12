@@ -11,13 +11,14 @@ use bevy::{
 };
 
 use crate::{
-    game::portal::{Portal, PortalActive, PortalSplitTraveler},
+    game::portal::{
+        Portal, PortalActive, PortalSplitTraveler,
+        topology::mapping::portal_plane,
+    },
     physics::topology::{
         SpatialSplitBox, SpatialSplitPeer, SpatialSplitPeerActive, partition_box_by_plane,
     },
 };
-
-use crate::game::portal::simulation::split::portal_plane;
 
 const FACE_EPSILON: f32 = 1.0e-4;
 
@@ -53,7 +54,7 @@ pub(super) fn sync_split_visuals(
             continue;
         };
 
-        let Some(mesh_asset) = meshes.get_mut(&mesh.0) else {
+        let Some(mut mesh_asset) = meshes.get_mut(&mesh.0) else {
             continue;
         };
 

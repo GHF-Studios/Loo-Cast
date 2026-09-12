@@ -32,7 +32,7 @@ use crate::{
 use crate::game::portal::{
     Portal, PortalActive, PortalSplitTraveler, PortalTraveler,
     domain::{ActivePortalSplit, PortalSide},
-    topology::mapping::{map_transform, portal_mapping},
+    topology::mapping::{map_transform, portal_mapping, portal_plane},
 };
 
 use super::{CONTROL_INPUT_BLEND_DURATION, CONTROL_SETTLE_DURATION};
@@ -67,7 +67,6 @@ pub(crate) fn prepare_portal_splits(
     >,
     mut travelers: Query<
         (
-            Entity,
             &mut Transform,
             Option<&CharacterLocomotionFrame>,
             &LinearVelocity,
@@ -81,7 +80,6 @@ pub(crate) fn prepare_portal_splits(
     let dt = time.delta_secs().max(0.0);
 
     for (
-        entity,
         mut body,
         locomotion_frame,
         velocity,
@@ -535,10 +533,6 @@ fn box_reaches_portal_this_tick(
             source,
             portal.half_size,
         )
-}
-
-pub(super) fn portal_plane(transform: &Transform) -> Option<SplitPlane> {
-    SplitPlane::new(transform.translation, transform.rotation * Vec3::Z)
 }
 
 pub(super) fn candidate_side(distance: f32, normal_speed: f32, support_radius: f32) -> Option<PortalSide> {
