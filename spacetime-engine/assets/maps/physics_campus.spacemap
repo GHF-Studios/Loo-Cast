@@ -46,16 +46,16 @@
         // PORTAL PLAZA -- the map should explain itself from the first frame.
         // =====================================================================
         Box(id: "plaza/floor", zone: "plaza", position: (0.0, -0.20, -1.0), size: (24.0, 0.40, 20.0), material: "concrete_light", tags: ["floor", "hub"]),
-        Box(id: "plaza/portal_pad", zone: "plaza", position: (0.0, 0.025, -0.5), size: (12.0, 0.05, 10.0), material: "dark", solid: false, tags: ["visual", "portal"]),
 
         // Spawn faces north (+Z) into the portal pair, only a few metres away.
         Marker(id: "plaza/player_spawn", zone: "plaza", kind: "player_spawn", position: (0.0, 0.96, -5.5), rotation_degrees: (0.0, 180.0, 0.0), tags: ["spawn"]),
 
         // Two orthogonal portal surfaces form an immediately readable L-shaped test court.
+        // Their portal markers lie exactly on the wall faces, with the 3.5 m apertures resting exactly on y = 0.
         Box(id: "plaza/portal_wall_a", zone: "plaza", position: (-2.8, 2.7, 3.8), size: (5.2, 5.4, 0.40), material: "white", tags: ["portal_surface"]),
         Box(id: "plaza/portal_wall_b", zone: "plaza", position: (4.8, 2.7, -0.5), size: (0.40, 5.4, 6.0), material: "white", tags: ["portal_surface"]),
-        Marker(id: "portal/anchor_a", zone: "portal", kind: "portal_a", position: (-2.8, 1.778, 3.55), rotation_degrees: (0.0, 180.0, 0.0), tags: ["portal", "spawn_pair"]),
-        Marker(id: "portal/anchor_b", zone: "portal", kind: "portal_b", position: (4.55, 1.778, -0.5), rotation_degrees: (0.0, -90.0, 0.0), tags: ["portal", "spawn_pair"]),
+        Marker(id: "portal/anchor_a", zone: "portal", kind: "portal_a", position: (-2.8, 1.75, 3.60), rotation_degrees: (0.0, 180.0, 0.0), tags: ["portal", "spawn_pair"]),
+        Marker(id: "portal/anchor_b", zone: "portal", kind: "portal_b", position: (4.60, 1.75, -0.5), rotation_degrees: (0.0, -90.0, 0.0), tags: ["portal", "spawn_pair"]),
 
         // Blue/orange beacons make the hub recognisable from almost anywhere.
         Box(id: "plaza/beacon_blue", zone: "plaza", position: (-6.5, 4.0, 4.5), size: (0.55, 8.0, 0.55), material: "paint_blue", tags: ["landmark"]),

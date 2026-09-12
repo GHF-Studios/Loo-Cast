@@ -23,7 +23,6 @@ use super::super::{
 pub const PORTAL_GUN: PlaygroundItemId = PlaygroundItemId::new("portal_gun");
 
 const PORTAL_RANGE: f32 = 250.0;
-const SURFACE_CLEARANCE: f32 = 0.005;
 const FIT_PROBE_OFFSET: f32 = 0.02;
 const FIT_PROBE_DEPTH: f32 = 0.05;
 const FIT_INSET: f32 = 0.98;
@@ -121,8 +120,7 @@ fn use_portal_gun(
             continue;
         }
 
-        let transform = Transform::from_translation(surface_point + normal * SURFACE_CLEARANCE)
-            .with_rotation(rotation);
+        let transform = Transform::from_translation(surface_point).with_rotation(rotation);
 
         portal_commands.write(PortalCommand::Place {
             endpoint,
