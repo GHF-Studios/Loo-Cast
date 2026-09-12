@@ -6,21 +6,7 @@
 //! deliberately different from making one mesh/material geometrically
 //! double-sided.
 
-/// Identifies one physical endpoint of the built-in portal pair.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) enum PortalEndpoint {
-    First,
-    Second,
-}
-
-impl PortalEndpoint {
-    pub(crate) fn other(self) -> Self {
-        match self {
-            Self::First => Self::Second,
-            Self::Second => Self::First,
-        }
-    }
-}
+use super::portal::PortalEndpoint;
 
 /// One geometric side of a physical portal plane.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

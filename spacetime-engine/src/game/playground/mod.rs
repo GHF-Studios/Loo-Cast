@@ -1,8 +1,10 @@
 //! Reusable in-game test playground.
 //!
-//! See `ARCHITECTURE.md` for the deliberately small contract between modding,
-//! actions, items, inventory state and UI presentation.
+//! The playground deliberately uses ordinary Bevy resources, components,
+//! messages and plugins as its extension surface. See `ARCHITECTURE.md` for the
+//! mod-facing contract.
 
+mod action;
 mod catalog;
 mod input;
 mod inventory;
@@ -13,21 +15,24 @@ mod object;
 mod picking;
 mod ui;
 
-pub use catalog::{
+pub use action::{
     AimRay,
     ErasePlaygroundObject,
+    PlaygroundAim,
+    PlaygroundAimContext,
+    PlaygroundItemAction,
+    UsePlaygroundItem,
+};
+pub use catalog::{
     PlaygroundCatalog,
     PlaygroundItem,
     PlaygroundItemId,
-    UsePlaygroundItem,
 };
-
 pub use inventory::{
     CreativeMenuState,
     CursorItem,
     Hotbar,
 };
-
 pub use object::{
     PlaygroundPickable,
     PlaygroundRoot,
@@ -44,6 +49,7 @@ impl Plugin for PlaygroundPlugin {
             .init_resource::<Hotbar>()
             .init_resource::<CreativeMenuState>()
             .init_resource::<CursorItem>()
+            .init_resource::<PlaygroundAim>()
             .add_message::<UsePlaygroundItem>()
             .add_message::<ErasePlaygroundObject>()
             .add_plugins((

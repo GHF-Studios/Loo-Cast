@@ -1,18 +1,28 @@
+//! Player-owned simulation and input state.
+//!
+//! Presentation-only camera state lives in [`super::camera`]. Keeping those
+//! concerns separate means gameplay/mod code can reason about the player body
+//! without depending on one particular camera implementation.
+
 use bevy::prelude::*;
 
-use crate::physics::character::CharacterDimensions;
-
 /// The locally controlled gameplay entity.
-#[derive(Component)]
+#[derive(Component, Reflect, Debug, Default)]
+#[reflect(Component)]
 pub struct Player;
 
-/// Configuration for local-player control mapping.
-#[derive(Component, Debug, Clone, Copy)]
+/// Local input tuning. Physical movement tuning remains in
+/// [`crate::physics::character::CharacterMovementConfig`].
+#[derive(Component, Reflect, Debug, Clone, Copy)]
+#[reflect(Component)]
 pub struct PlayerController {
+    /// Mouse radians per logical mouse unit.
     pub look_sensitivity: f32,
-    pub walk_speed: f32,
+    /// Multiplier applied while sprint is held.
     pub sprint_multiplier: f32,
+    /// Multiplier applied while crouched.
     pub crouch_speed_multiplier: f32,
+    /// Free-flight speed used by developer noclip, in m/s.
     pub noclip_speed: f32,
 }
 
@@ -20,7 +30,6 @@ impl Default for PlayerController {
     fn default() -> Self {
         Self {
             look_sensitivity: 0.002,
-            walk_speed: 8.128,
             sprint_multiplier: 2.0,
             crouch_speed_multiplier: 0.45,
             noclip_speed: 20.0,
@@ -28,12 +37,16 @@ impl Default for PlayerController {
     }
 }
 
-#[derive(Component, Debug, Default, Clone, Copy)]
+/// Current physical stance of the local player.
+#[derive(Component, Reflect, Debug, Default, Clone, Copy)]
+#[reflect(Component)]
 pub struct PlayerStance {
     pub crouched: bool,
 }
 
-#[derive(Component, Debug, Default, Clone, Copy)]
+/// Developer free-flight state.
+#[derive(Component, Reflect, Debug, Default, Clone, Copy)]
+#[reflect(Component)]
 pub struct PlayerNoclip {
     pub active: bool,
 }
@@ -42,7 +55,8 @@ pub struct PlayerNoclip {
 ///
 /// Body orientation is reserved for physical/topological orientation. Looking
 /// around therefore never tilts or yaws the collision hull.
-#[derive(Component, Debug, Clone, Copy)]
+#[derive(Component, Reflect, Debug, Clone, Copy)]
+#[reflect(Component)]
 pub struct PlayerAim {
     pub yaw: f32,
     pub pitch: f32,
@@ -68,66 +82,5 @@ impl PlayerAim {
 
     pub fn local_rotation(&self) -> Quat {
         self.yaw_rotation() * Quat::from_rotation_x(self.pitch)
-    }
-}
-
-/// Available local-player camera presentations.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum CameraMode {
-    #[default]
-    FirstPerson,
-    ThirdPerson,
-}
-
-/// Presentation state for the local player's camera.
-#[derive(Component, Debug)]
-pub struct PlayerCamera {
-    pub mode: CameraMode,
-    /// Body-local offset to the eye point.
-    pub first_person_offset: Vec3,
-    /// View-local offset from the eye point in third person.
-    pub third_person_offset: Vec3,
-    /// Desired horizontal field of view in degrees.
-    pub horizontal_fov_degrees: f32,
-}
-
-impl PlayerCamera {
-    /// Resolves the camera without reading its presentation transform.
-    ///
-    /// Input/actions can use this before presentation runs, avoiding a stale
-    /// one-frame camera transform.
-    pub fn resolve_transform(
-        &self,
-        body: &Transform,
-        aim: &PlayerAim,
-    ) -> Transform {
-        let view_rotation = body.rotation * aim.local_rotation();
-        let eye = body.translation + body.rotation * self.first_person_offset;
-
-        let translation = match self.mode {
-            CameraMode::FirstPerson => eye,
-            CameraMode::ThirdPerson => {
-                eye + view_rotation * self.third_person_offset
-            }
-        };
-
-        Transform {
-            translation,
-            rotation: view_rotation,
-            ..default()
-        }
-    }
-}
-
-impl Default for PlayerCamera {
-    fn default() -> Self {
-        Self {
-            mode: CameraMode::FirstPerson,
-            first_person_offset: Vec3::Y * CharacterDimensions::CENTER_TO_EYE,
-
-            // +Z is behind because forward is local -Z.
-            third_person_offset: Vec3::new(0.0, 0.75, 4.0),
-            horizontal_fov_degrees: 110.0,
-        }
     }
 }

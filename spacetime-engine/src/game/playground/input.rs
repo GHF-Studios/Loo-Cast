@@ -1,3 +1,9 @@
+//! Built-in local input adapter for playground actions.
+//!
+//! This is the only playground layer that knows the default mouse/keyboard
+//! bindings. Item plugins receive semantic [`UsePlaygroundItem`] messages and
+//! remain independent from devices, hotbar UI and cursor capture.
+
 use bevy::{
     input::mouse::AccumulatedMouseScroll,
     prelude::*,
@@ -6,20 +12,23 @@ use bevy::{
 use crate::game::{
     InputSet,
     player::{
+        CameraMode,
         Player,
         PlayerAim,
         PlayerCamera,
+        PlayerStance,
         cursor::CursorCapture,
     },
 };
 
 use super::{
-    catalog::{
-        AimRay,
-        ErasePlaygroundObject,
-        PlaygroundCatalog,
-        UsePlaygroundItem,
-    },
+    AimRay,
+    ErasePlaygroundObject,
+    PlaygroundAim,
+    PlaygroundAimContext,
+    PlaygroundCatalog,
+    PlaygroundItemAction,
+    UsePlaygroundItem,
     inventory::{
         CreativeMenuState,
         CursorItem,
@@ -36,7 +45,12 @@ pub fn configure(app: &mut App) {
     )
     .add_systems(
         Update,
-        (select_hotbar_slot, scroll_hotbar, use_selected_item)
+        (
+            select_hotbar_slot,
+            scroll_hotbar,
+            update_aim,
+            use_selected_item,
+        )
             .chain()
             .in_set(InputSet::Gameplay),
     );
@@ -86,25 +100,60 @@ fn select_hotbar_slot(
     }
 }
 
+/// The wheel controls camera distance in third person. Number keys still select
+/// hotbar slots there; wheel hotbar selection remains available in first person.
 fn scroll_hotbar(
     scroll: Res<AccumulatedMouseScroll>,
     menu: Res<CreativeMenuState>,
+    camera: Single<&PlayerCamera>,
     mut hotbar: ResMut<Hotbar>,
 ) {
-    if menu.open || scroll.delta.y == 0.0 {
+    if menu.open
+        || camera.mode == CameraMode::ThirdPerson
+        || scroll.delta.y == 0.0
+    {
         return;
     }
 
     hotbar.select_offset(if scroll.delta.y > 0.0 { -1 } else { 1 });
 }
 
+/// Produces one body-relative aim snapshot that every item can share this frame.
+fn update_aim(
+    menu: Res<CreativeMenuState>,
+    capture: Res<CursorCapture>,
+    player: Single<
+        (Entity, &Transform, &PlayerAim, &PlayerStance),
+        With<Player>,
+    >,
+    camera: Single<&PlayerCamera>,
+    mut aim: ResMut<PlaygroundAim>,
+) {
+    if menu.open || !capture.active() {
+        aim.set(None);
+        return;
+    }
+
+    let (actor, body, player_aim, stance) = player.into_inner();
+    let view_rotation = camera.view_rotation(body, player_aim);
+    let origin = camera.eye_position(body, stance);
+
+    aim.set(Some(PlaygroundAimContext {
+        actor,
+        ray: AimRay::new(
+            origin,
+            view_rotation * Vec3::NEG_Z,
+        ),
+    }));
+}
+
 fn use_selected_item(
     mouse: Res<ButtonInput<MouseButton>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
     menu: Res<CreativeMenuState>,
     hotbar: Res<Hotbar>,
     capture: Res<CursorCapture>,
-    player: Single<(Entity, &Transform, &PlayerAim), With<Player>>,
-    camera: Single<&PlayerCamera>,
+    aim: Res<PlaygroundAim>,
     mut use_item: MessageWriter<UsePlaygroundItem>,
     mut erase: MessageWriter<ErasePlaygroundObject>,
 ) {
@@ -112,27 +161,39 @@ fn use_selected_item(
         return;
     }
 
-    let (actor, body, player_aim) = player.into_inner();
-    let camera_transform =
-        camera.resolve_transform(body, player_aim);
+    let Some(context) = aim.current() else {
+        return;
+    };
 
-    let aim = AimRay::new(
-        camera_transform.translation,
-        camera_transform.rotation * Vec3::NEG_Z,
-    );
+    let aim = context.ray;
+    let actor = context.actor;
+    let selected = hotbar.selected_item();
+    let accepts_click = capture.accepts_gameplay_click();
 
-    if mouse.just_pressed(MouseButton::Left)
-        && capture.accepts_gameplay_click()
-        && let Some(item) = hotbar.selected_item()
-    {
-        use_item.write(UsePlaygroundItem {
-            item,
-            actor,
-            aim,
-        });
+    let mut send_action = |action| {
+        if let Some(item) = selected {
+            use_item.write(UsePlaygroundItem {
+                item,
+                action,
+                actor,
+                aim,
+            });
+        }
+    };
+
+    if accepts_click && mouse.just_pressed(MouseButton::Left) {
+        send_action(PlaygroundItemAction::PRIMARY);
+    }
+    if accepts_click && mouse.just_pressed(MouseButton::Right) {
+        send_action(PlaygroundItemAction::SECONDARY);
+    }
+    if keyboard.just_pressed(KeyCode::KeyR) {
+        send_action(PlaygroundItemAction::RELOAD);
     }
 
-    if mouse.just_pressed(MouseButton::Right) {
+    // Keep global sandbox deletion out of item semantics so secondary fire is
+    // free for items such as the Portal Gun.
+    if accepts_click && mouse.just_pressed(MouseButton::Middle) {
         erase.write(ErasePlaygroundObject { aim });
     }
 }

@@ -1,5 +1,11 @@
+//! Registered playground item definitions.
+//!
+//! The catalog is metadata, not behavior. Item behavior is supplied by ordinary
+//! Bevy plugins/systems that consume [`super::UsePlaygroundItem`] messages.
+
 use bevy::prelude::*;
 
+/// Stable logical ID used by inventory state and action routing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PlaygroundItemId(pub &'static str);
 
@@ -9,6 +15,7 @@ impl PlaygroundItemId {
     }
 }
 
+/// Presentation metadata for one registered playground item.
 #[derive(Debug, Clone, Copy)]
 pub struct PlaygroundItem {
     pub id: PlaygroundItemId,
@@ -16,6 +23,7 @@ pub struct PlaygroundItem {
     pub description: &'static str,
 }
 
+/// Runtime catalog populated by built-in content and mods during startup.
 #[derive(Resource, Default)]
 pub struct PlaygroundCatalog {
     items: Vec<PlaygroundItem>,
@@ -28,7 +36,6 @@ impl PlaygroundCatalog {
             "duplicate playground item id: {}",
             item.id.0,
         );
-
         self.items.push(item);
     }
 
@@ -39,45 +46,4 @@ impl PlaygroundCatalog {
     pub fn find(&self, id: PlaygroundItemId) -> Option<&PlaygroundItem> {
         self.items.iter().find(|item| item.id == id)
     }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct AimRay {
-    pub origin: Vec3,
-    pub direction: Vec3,
-}
-
-impl AimRay {
-    pub fn new(origin: Vec3, direction: Vec3) -> Self {
-        Self {
-            origin,
-            direction: direction.normalize_or_zero(),
-        }
-    }
-
-    pub fn horizontal_plane(self, y: f32, max_distance: f32) -> Option<Vec3> {
-        if self.direction.y.abs() <= f32::EPSILON {
-            return None;
-        }
-
-        let distance = (y - self.origin.y) / self.direction.y;
-
-        if distance < 0.0 || distance > max_distance {
-            return None;
-        }
-
-        Some(self.origin + self.direction * distance)
-    }
-}
-
-#[derive(Message, Debug, Clone, Copy)]
-pub struct UsePlaygroundItem {
-    pub item: PlaygroundItemId,
-    pub actor: Entity,
-    pub aim: AimRay,
-}
-
-#[derive(Message, Debug, Clone, Copy)]
-pub struct ErasePlaygroundObject {
-    pub aim: AimRay,
 }

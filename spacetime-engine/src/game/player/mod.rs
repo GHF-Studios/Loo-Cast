@@ -1,21 +1,29 @@
 //! Local-player gameplay and presentation.
+//!
+//! The player body is simulation state. Aim is body-local view intent. Camera
+//! placement is presentation. Device input is an adapter that writes those
+//! components. Keeping those layers explicit makes them independently
+//! replaceable by mods, AI, replay/network input or a different camera rig.
 
 mod camera;
 mod components;
 mod controls;
 pub mod cursor;
 mod model;
+mod stance;
 
-pub use components::{
+pub use camera::{
     CameraMode,
+    PlayerCamera,
+    ThirdPersonCamera,
+};
+pub use components::{
     Player,
     PlayerAim,
-    PlayerCamera,
     PlayerController,
     PlayerNoclip,
     PlayerStance,
 };
-
 pub use model::PlayerModel;
 
 use avian3d::prelude::Collider;
@@ -26,8 +34,8 @@ use bevy::{
 };
 
 use crate::physics::character::{
-    CharacterMotor,
     CharacterDimensions,
+    CharacterMotor,
 };
 
 use super::{
@@ -46,29 +54,38 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<cursor::CursorCapture>()
+            .register_type::<Player>()
+            .register_type::<PlayerController>()
+            .register_type::<PlayerAim>()
+            .register_type::<PlayerStance>()
+            .register_type::<PlayerNoclip>()
+            .register_type::<PlayerCamera>()
+            .register_type::<ThirdPersonCamera>()
+            .register_type::<CameraMode>()
             .add_systems(Startup, spawn_player)
             .add_systems(
                 RunFixedMainLoop,
                 (
                     controls::look,
                     controls::toggle_noclip,
-                    controls::stance,
+                    stance::update_stance,
                     controls::movement,
                     controls::noclip_movement,
                 )
                     .chain()
-                    .in_set(
-                        RunFixedMainLoopSystems::BeforeFixedMainLoop,
-                    ),
+                    .in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
             )
             .add_systems(
                 Update,
-                cursor::update_cursor_capture
-                    .in_set(InputSet::Cursor),
+                cursor::update_cursor_capture.in_set(InputSet::Cursor),
             )
             .add_systems(
                 Update,
-                camera::toggle_camera_mode
+                (
+                    camera::toggle_camera_mode,
+                    camera::zoom_third_person,
+                )
+                    .chain()
                     .in_set(InputSet::Gameplay),
             )
             .add_systems(
@@ -96,36 +113,27 @@ fn spawn_player(
         8.0,
     );
 
-    let model =
-        model::create_model(
-            &mut meshes,
-            &mut materials,
-        );
+    let model = model::create_model(&mut meshes, &mut materials);
 
-    let player =
-        commands
-            .spawn((
-                Name::new("Player"),
-                Player,
-                PlayerController::default(),
-                PlayerAim::default(),
-                PlayerStance::default(),
-                PlayerNoclip::default(),
-                CharacterMotor,
-                CharacterDimensions::standing_collider(),
-                Weapon::default(),
-                PortalTraveler::new(position),
-                Transform::from_translation(
-                    position,
-                ),
-            ))
-            .id();
+    let player = commands
+        .spawn((
+            Name::new("Player"),
+            Player,
+            PlayerController::default(),
+            PlayerAim::default(),
+            PlayerStance::default(),
+            PlayerNoclip::default(),
+            CharacterMotor,
+            CharacterDimensions::standing_collider(),
+            Weapon::default(),
+            PortalTraveler::new(position),
+            Transform::from_translation(position),
+        ))
+        .id();
 
-    commands
-        .entity(player)
-        .with_children(|parent| {
-            parent.spawn(model);
-        });
+    commands.entity(player).with_children(|parent| {
+        parent.spawn(model);
+    });
 
     commands.spawn((
         Name::new("Player Camera"),
@@ -133,8 +141,7 @@ fn spawn_player(
         PortalView,
         Camera3d::default(),
         IsDefaultUiCamera,
-        RenderLayers::layer(0)
-            .with(MAIN_PORTAL_LAYER),
+        RenderLayers::layer(0).with(MAIN_PORTAL_LAYER),
         Transform::from_translation(position),
     ));
 }

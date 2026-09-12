@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use super::catalog::AimRay;
+use crate::game::playground::AimRay;
 
 pub fn ray_box_distance(
     ray: AimRay,

@@ -3,10 +3,10 @@ use bevy::prelude::*;
 use crate::game::{
     GameSet,
     combat::Died,
+    playground::ErasePlaygroundObject,
 };
 
 use super::{
-    catalog::ErasePlaygroundObject,
     object::{
         PlaygroundPickable,
         PlaygroundRoot,

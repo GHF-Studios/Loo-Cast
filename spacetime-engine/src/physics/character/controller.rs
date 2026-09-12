@@ -92,8 +92,9 @@ pub(super) fn simulate_character_motors(
 
         let planar_wish = reject(input.wish_direction, up);
         let wish_dir = planar_wish.normalize_or_zero();
-        let wish_speed =
-            config.max_ground_speed * input.wish_speed_fraction.clamp(0.0, 1.0);
+        let wish_speed = config.max_ground_speed
+            * input.wish_speed_fraction.clamp(0.0, 1.0)
+            * input.speed_multiplier.max(0.0);
 
         let wants_jump = if config.auto_bhop {
             input.jump_held || input.jump_pressed

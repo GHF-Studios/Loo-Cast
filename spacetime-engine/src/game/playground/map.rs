@@ -1,12 +1,29 @@
+//! Adapts authored campus markers into initial gameplay state.
+//!
+//! The authored map supplies generic marker kinds. This adapter interprets a
+//! small built-in vocabulary once after the map loads; it does not retain
+//! authority over the player or portals afterward. Tools/mods can therefore
+//! move them without being overwritten every frame.
+
 use avian3d::prelude::LinearVelocity;
 use bevy::prelude::*;
 
 use crate::{
     game::{
+        GameSet,
         player::Player,
-        portal::{Portal, PortalPair, PortalTraveler},
+        portal::{
+            PortalCommand,
+            PortalEndpoint,
+            PortalPair,
+            PortalTraveler,
+        },
     },
-    geometry::{AuthoredMap, AuthoredMapMarker, AuthoredMapScene},
+    geometry::{
+        AuthoredMap,
+        AuthoredMapMarker,
+        AuthoredMapScene,
+    },
 };
 
 const CAMPUS_MAP: &str = "maps/physics_campus.spacemap";
@@ -18,13 +35,13 @@ pub struct PlaygroundMapPlugin;
 
 impl Plugin for PlaygroundMapPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, load_campus).add_systems(
-            Update,
-            (
-                place_player_at_spawn_marker,
-                place_demo_portals_from_markers,
-            ),
-        );
+        app.add_systems(Startup, load_campus)
+            .add_systems(Update, place_player_at_spawn_marker)
+            .add_systems(
+                Update,
+                initialize_demo_portals_from_markers
+                    .in_set(GameSet::Action),
+            );
     }
 }
 
@@ -37,12 +54,12 @@ fn load_campus(mut commands: Commands, asset_server: Res<AssetServer>) {
     ));
 }
 
-/// Applies the map's initial spawn exactly once. Hot-reloading geometry later should not
-/// teleport the player out of whatever they are currently testing.
+/// Applies the authored player spawn once. Hot-reloading the map never yanks
+/// the player out of their current experiment.
 fn place_player_at_spawn_marker(
     mut placed: Local<bool>,
     markers: Query<(&AuthoredMapMarker, &Transform), Without<Player>>,
-    mut player: Single<
+    player: Single<
         (&mut Transform, &mut PortalTraveler, &mut LinearVelocity),
         With<Player>,
     >,
@@ -65,17 +82,20 @@ fn place_player_at_spawn_marker(
     *placed = true;
 }
 
-/// The current portal experiment still owns exactly one built-in pair. The authored map
-/// provides only generic marker anchors; this adapter gives two marker kinds gameplay
-/// meaning. When the map hot-reloads and the markers move, the portal pair follows.
-fn place_demo_portals_from_markers(
+/// Seeds the persistent demo pair from authored markers exactly once.
+///
+/// After this initialization, portal placement tools own the transforms through
+/// [`PortalCommand`]. This prevents map-marker synchronization from undoing a
+/// portal that the player just moved with the Portal Gun.
+fn initialize_demo_portals_from_markers(
+    mut initialized: Local<bool>,
     pair: Option<Res<PortalPair>>,
-    markers: Query<(&AuthoredMapMarker, &Transform), Without<Portal>>,
-    mut portals: Query<&mut Transform, With<Portal>>,
+    markers: Query<(&AuthoredMapMarker, &Transform)>,
+    mut portal_commands: MessageWriter<PortalCommand>,
 ) {
-    let Some(pair) = pair else {
+    if *initialized || pair.is_none() {
         return;
-    };
+    }
 
     let mut first = None;
     let mut second = None;
@@ -88,15 +108,17 @@ fn place_demo_portals_from_markers(
         }
     }
 
-    if let Some(transform) = first {
-        if let Ok(mut portal) = portals.get_mut(pair.first) {
-            *portal = transform;
-        }
-    }
+    let (Some(first), Some(second)) = (first, second) else {
+        return;
+    };
 
-    if let Some(transform) = second {
-        if let Ok(mut portal) = portals.get_mut(pair.second) {
-            *portal = transform;
-        }
-    }
+    portal_commands.write(PortalCommand::Place {
+        endpoint: PortalEndpoint::First,
+        transform: first,
+    });
+    portal_commands.write(PortalCommand::Place {
+        endpoint: PortalEndpoint::Second,
+        transform: second,
+    });
+    *initialized = true;
 }

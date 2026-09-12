@@ -2,12 +2,15 @@
 //!
 //! Responsibility split:
 //!
-//! - `domain`: what a portal/traveler/config *is*;
-//! - `topology`: pure geometric mapping/crossing/clipping math;
-//! - `simulation`: conventional instantaneous teleportation;
-//! - `rendering`: the visual portal illusion.
+//! - `domain`: persistent portal data and the public [`PortalCommand`] protocol;
+//! - `topology`: pure mapping/crossing/clipping math;
+//! - `simulation`: applies commands and conventional instantaneous traversal;
+//! - `rendering`: the recursive visual portal illusion.
 //!
-//! This intentionally stops before USF manifestation-based crossing.
+//! Gameplay and mods should normally mutate portals by sending
+//! [`PortalCommand`] rather than editing portal entities directly. Rendering
+//! details remain private to this module. This intentionally stops before USF
+//! manifestation-based crossing.
 
 mod domain;
 mod rendering;
@@ -19,7 +22,10 @@ mod tests;
 
 pub use domain::{
     Portal,
+    PortalActive,
+    PortalCommand,
     PortalConfig,
+    PortalEndpoint,
     PortalEndpointConfig,
     PortalPair,
     PortalSidedness,
@@ -34,36 +40,22 @@ use bevy::prelude::*;
 
 use crate::game::SimulationSet;
 
-/// Whether a persistent portal endpoint currently exists in gameplay.
-///
-/// Portal rendering infrastructure is intentionally kept alive while inactive
-/// so a Portal Gun can later reposition/reactivate endpoints without rebuilding
-/// the recursive render tree.
-#[derive(Component, Debug, Clone, Copy)]
-pub struct PortalActive(pub bool);
-
-impl Default for PortalActive {
-    fn default() -> Self {
-        Self(true)
-    }
-}
-
 pub struct PortalPlugin;
 
 impl Plugin for PortalPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<PortalConfig>()
-            .add_plugins(
-                rendering::
-                    PortalRenderingPlugin,
-            )
+            .register_type::<PortalActive>()
+            .add_message::<PortalCommand>()
+            .add_plugins(rendering::PortalRenderingPlugin)
             .add_systems(
                 Update,
-                simulation::traversal::
-                    teleport_travelers
-                    .in_set(
-                        SimulationSet::Topology,
-                    ),
+                (
+                    simulation::control::apply_portal_commands,
+                    simulation::traversal::teleport_travelers,
+                )
+                    .chain()
+                    .in_set(SimulationSet::Topology),
             );
     }
 }

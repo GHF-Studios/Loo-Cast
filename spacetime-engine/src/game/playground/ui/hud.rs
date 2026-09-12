@@ -51,7 +51,7 @@ fn spawn_hud(mut commands: Commands) {
     ));
 
     commands.spawn((
-        Text::new("Tab creative | 1-9 / wheel hotbar | LMB use | RMB erase | F5 camera"),
+        Text::new("Tab creative | 1-9 select | wheel hotbar / 3P zoom | LMB/RMB item | R reload | MMB erase | F5 camera | N noclip"),
         TextFont {
             font_size: FontSize::Px(13.0),
             ..default()
