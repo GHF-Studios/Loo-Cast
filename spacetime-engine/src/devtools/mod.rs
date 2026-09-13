@@ -1,8 +1,8 @@
-//! Developer-facing inspection and visualization foundations.
+//! Developer-facing inspection, UI and spatial visualization.
 //!
-//! This is the replacement path for the current broad `observability` umbrella.
-//! Migration is staged; legacy observability remains active until individual
-//! responsibilities have working replacements.
+//! Developer tools deliberately separate structured inspection, screen-space UI,
+//! and text-free World Draw. The old generic observability control graph no longer
+//! participates in developer-tool state.
 
 mod draw;
 mod focus;
@@ -20,7 +20,9 @@ pub use inspect::{
     InspectField, InspectNumberFormat, InspectSection, InspectSectionId, InspectUnit,
     InspectValue, InspectionFrame,
 };
-pub use tools::{DeveloperTools, VisualizationId};
+pub use tools::{
+    AppDeveloperToolsExt, DeveloperTools, VisualizationId, VisualizationSpec,
+};
 pub use view::DeveloperView;
 
 use bevy::{prelude::*, transform::TransformSystems};
@@ -70,6 +72,9 @@ impl Plugin for DeveloperToolsPlugin {
             )
             .add_systems(PreUpdate, toggle_developer_tools);
 
+        crate::ecs::observability::configure(app);
+        crate::physics::character::observability::configure(app);
+
         draw::configure(app);
         ui::configure(app);
     }
@@ -79,9 +84,6 @@ fn toggle_developer_tools(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut tools: ResMut<DeveloperTools>,
 ) {
-    // F3 is also the legacy observability master during migration. Both start
-    // enabled and intentionally follow the same key until Stage 4 deletes the
-    // old control graph.
     if keyboard.just_pressed(KeyCode::F3) {
         tools.toggle_enabled();
     }

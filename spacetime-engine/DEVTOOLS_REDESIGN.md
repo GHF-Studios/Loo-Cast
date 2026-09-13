@@ -1,6 +1,6 @@
 # Developer tools / UI redesign migration
 
-Status: **Stage 3A is locally validated. Stage 3B destructive cleanup is implemented in `devtools-redesign-stage-3b.patch`; local compile/run validation is the next checkpoint before Stage 4.**
+Status: **Stage 3 is locally validated. Stage 4 tool-control simplification is implemented in `devtools-redesign-stage-4.patch`; local compile/run validation is the next checkpoint before Stage 5.**
 
 This document is the durable hand-off point for the debugging / visualization / UI / text redesign. Update it at the end of every migration stage so the work can resume from the repository alone, even if chat context is lost.
 
@@ -162,7 +162,7 @@ Validation in the assistant workspace: normal `git diff --check` passes and the 
 
 ### Stage 3 — World Draw cutover and text removal
 
-**Status: Stage 3B implemented in `devtools-redesign-stage-3b.patch`; awaiting local validation**
+**Status: COMPLETE and locally validated**
 
 Stage 3 is split at the destructive-cleanup boundary.
 
@@ -200,14 +200,23 @@ Exit condition: World Draw has no text concept, the old world-text implementatio
 
 ### Stage 4 — Tool-control simplification
 
-**Status: PLANNED**
+**Status: IMPLEMENTED in `devtools-redesign-stage-4.patch`; awaiting local validation**
 
-- Introduce the small Developer Tools palette.
-- Migrate visualization activation to `DeveloperTools` / `VisualizationId`.
-- Add typed per-tool settings resources only where current functionality truly needs settings.
-- Remove generic `DebugControlSpec`, graph hierarchy, conditions, requirements/conflicts and generic menu renderer.
+Implemented:
 
-Exit condition: no generic runtime control language remains.
+- Replaced the nested F4 control renderer with a compact persistent Developer Tools palette. F4 opens/closes it, Escape closes it, and the existing generic `InputFocus` arbitration handles modal input ownership.
+- `DeveloperTools` now owns a deliberately flat visualization catalog: stable ID, label, order and default state only. There is no parent/child graph, dependency system, condition language, conflict/requirement logic, generic choice/scalar/integer payload, or generated settings hierarchy.
+- F3 is now the sole developer-output master. Palette selections retain their raw state while F3 is off.
+- All developer visualizations default off; the structured Inspector remains available whenever developer mode is enabled and a focus exists.
+- Added an optional name-only Focus Badge as ordinary projected screen-space UI. It is off by default and never enters World Draw.
+- Pruned live visualization controls to six flat entries: Focus badge, Thermal bodies/cells, Thermal coupling field, USF manifestations, Portal topology, and Character controller.
+- USF, Portal and Character each became one visualization toggle. Their previous per-subfeature toggles/choices were intentionally not recreated.
+- Thermal became two visualization toggles. Bodies/cells renders thermal samples plus internal cells. The coupling field uses one fixed ground-XZ heatmap with auto range and sensible constants rather than preserving the old generic pile of slice/mode/range/size/resolution/opacity/height controls. If real use later demands adjustment, Thermal can earn a typed settings resource then.
+- Removed Avian's legacy developer-debug adapter from the live module graph rather than recreating its eleven backend controls.
+- `observability::control` and `observability::menu` are no longer modules in the compiled crate. Their source files remain orphaned only for later physical repository cleanup; no generic runtime control language remains.
+- Telemetry no longer owns a HUD or developer controls. It temporarily samples data at a fixed 1 Hz cadence so Stage 5 can move the data model without another control/UI dependency.
+
+Exit condition: no generic runtime control language participates in the build or runtime.
 
 ### Stage 5 — Telemetry extraction
 
@@ -250,17 +259,16 @@ This stage is deliberately late: shared UI should be extracted from proven use, 
 
 ## Current checkpoint / resume here
 
-**Current checkpoint:** Stage 3A is user-validated. Stage 3B is implemented on top of the pushed Stage 3A tree and removes the dead legacy presentation half plus the unused gravity/vector-field path.
+**Current checkpoint:** Stage 3 is user-validated and pushed. Stage 4 is implemented on top of that pushed tree and replaces the live generic control graph/menu with the flat Developer Tools palette while pruning controls that did not earn continued existence.
 
-**Required gate now:** apply `devtools-redesign-stage-3b.patch`, run `cargo fmt --all`, `cargo check -p spacetime-engine`, `cargo test -p spacetime-engine`, then smoke-test the retained Thermal, USF, Portal and Character world-draw paths plus the Inspector. Confirm the F4 legacy menu still controls the retained visualizations for this one migration stage and F3 still gates output.
+**Required gate now:** apply `devtools-redesign-stage-4.patch`, run `cargo fmt --all`, `cargo check -p spacetime-engine`, `cargo test -p spacetime-engine`, then smoke-test: F4 opens the small palette; each retained visualization toggles independently; F3 hides Inspector/Focus Badge/World Draw while preserving selections; P still pins focus; Thermal bodies/cells and coupling field both work; USF/Portal/Character remain functional.
 
-**If that gate passes, do next:** Stage 4 — replace the generic control graph/F4 renderer with the tiny Developer Tools palette and typed per-domain settings. Use the user's pruning feedback as a feature-selection rule: do not recreate controls or visualizers unless a current mechanic actually benefits from them. Add the Focus Badge only as an explicit optional palette feature.
+**If that gate passes, do next:** Stage 5 — move telemetry out of `observability` into a diagnostics-owned data subsystem, decide which metrics actually deserve to survive, and remove the temporary `DebugArtifact` compatibility marker from Developer UI / World Draw.
 
 **Temporary legacy systems intentionally still present:**
 
-- `src/observability/control.rs`, `menu.rs`, `telemetry.rs`, `ObservabilityPlugin`, and the old F4 control graph shell
-- temporary legacy controls still deciding whether retained Thermal/USF/Portal/Character world-draw producers run
-- Avian's native physics debug controls/backend, pending a Stage-4 keep/delete decision
+- `src/observability/telemetry.rs`, `ObservabilityPlugin`, `DebugId`, and `DebugArtifact` solely for the Stage-5 telemetry extraction
+- orphaned source files `src/observability/control.rs`, `src/observability/menu.rs`, and `src/physics/observability.rs`; they are no longer declared modules or compiled and can be physically deleted during final cleanup
 - legacy `DebugArtifact` marker on new Developer UI / retained World Draw entities solely for current telemetry exclusion
 
-The legacy world renderer, text model, context mirror, Inspector sink, scientific formatter, and sampled gravity/vector-field path are no longer migration bridges: Stage 3B deletes them.
+The old control graph/menu, Avian developer-control adapter, world renderer/text model, context mirror, Inspector sink, scientific formatter, gravity visualizer, and sampled vector-field path no longer participate in the build/runtime.

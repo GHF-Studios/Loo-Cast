@@ -1,53 +1,23 @@
-//! Character-controller observability.
+//! Character-controller developer visualization.
 
 use avian3d::prelude::LinearVelocity;
 use bevy::prelude::*;
 
-use crate::{
-    devtools::{DeveloperSet, DrawDepth, WorldDrawBatch, WorldDrawFrame},
-    observability::{
-        AppObservabilityExt, DebugControlSpec, DebugControls, DebugId, CATEGORY_PHYSICS,
-    },
+use crate::devtools::{
+    AppDeveloperToolsExt, DeveloperSet, DeveloperTools, DrawDepth, VisualizationId,
+    VisualizationSpec, WorldDrawBatch, WorldDrawFrame,
 };
 
 use super::{CharacterGroundState, CharacterLocomotionFrame, CharacterMotor};
 
-const TOOL: DebugId = DebugId("physics.character");
-const VELOCITY: DebugId = DebugId("physics.character.velocity");
-const UP: DebugId = DebugId("physics.character.up");
-const GROUND_NORMAL: DebugId = DebugId("physics.character.ground_normal");
+const VISUALIZATION: VisualizationId = VisualizationId("physics.character");
 
 pub(crate) fn configure(app: &mut App) {
-    app.register_debug_control(
-        DebugControlSpec::tool(
-            TOOL,
-            Some(CATEGORY_PHYSICS),
-            "Character controller",
-            10,
-            false,
-        )
-        .described("Engine-owned locomotion state, independent of collider rendering."),
-    )
-    .register_debug_control(DebugControlSpec::toggle(
-        VELOCITY,
-        Some(TOOL),
-        "Velocity",
-        0,
-        true,
-    ))
-    .register_debug_control(DebugControlSpec::toggle(
-        UP,
-        Some(TOOL),
-        "Locomotion up",
-        1,
-        true,
-    ))
-    .register_debug_control(DebugControlSpec::toggle(
-        GROUND_NORMAL,
-        Some(TOOL),
-        "Ground normal",
-        2,
-        true,
+    app.register_developer_visualization(VisualizationSpec::new(
+        VISUALIZATION,
+        "Character controller",
+        40,
+        false,
     ))
     .add_systems(
         PostUpdate,
@@ -56,7 +26,7 @@ pub(crate) fn configure(app: &mut App) {
 }
 
 fn collect_character_state(
-    controls: Res<DebugControls>,
+    tools: Res<DeveloperTools>,
     characters: Query<
         (
             &GlobalTransform,
@@ -68,7 +38,7 @@ fn collect_character_state(
     >,
     frame: Res<WorldDrawFrame>,
 ) {
-    if !controls.active(TOOL) {
+    if !tools.visualization_enabled(VISUALIZATION) {
         return;
     }
 
@@ -78,28 +48,24 @@ fn collect_character_state(
         let position = transform.translation();
         let up = locomotion.up();
 
-        if controls.active(VELOCITY) {
-            let rendered = velocity.0.clamp_length_max(20.0) * 0.15;
-            if rendered.length_squared() > 1.0e-6 {
-                batch.arrow(
-                    position,
-                    position + rendered,
-                    Color::srgb(1.0, 0.75, 0.1),
-                    DrawDepth::World,
-                );
-            }
-        }
-
-        if controls.active(UP) {
+        let rendered = velocity.0.clamp_length_max(20.0) * 0.15;
+        if rendered.length_squared() > 1.0e-6 {
             batch.arrow(
                 position,
-                position + up * 0.8,
-                Color::srgb(0.25, 0.7, 1.0),
+                position + rendered,
+                Color::srgb(1.0, 0.75, 0.1),
                 DrawDepth::World,
             );
         }
 
-        if controls.active(GROUND_NORMAL) && ground.grounded {
+        batch.arrow(
+            position,
+            position + up * 0.8,
+            Color::srgb(0.25, 0.7, 1.0),
+            DrawDepth::World,
+        );
+
+        if ground.grounded {
             batch.arrow(
                 position,
                 position + ground.ground_normal.normalize_or_zero() * 0.9,

@@ -1,7 +1,8 @@
-//! Instrumentation providers and a lightweight metric store.
+//! Temporary data-only telemetry provider.
 //!
-//! Collection and presentation are separate. Expensive structural metrics have an
-//! explicit cadence; the HUD only formats already-collected values.
+//! Stage 4 deliberately removes the old performance HUD and its generic control
+//! graph. Metrics continue sampling at a conservative fixed cadence so Stage 5
+//! can move the data model into `diagnostics` without another behavior dependency.
 
 use std::collections::{HashMap, HashSet};
 
@@ -11,19 +12,11 @@ use bevy::{
     },
     ecs::resource::IS_RESOURCE,
     prelude::*,
-    text::FontSize,
 };
 
-use super::{
-    AppObservabilityExt, DebugArtifact, DebugChoiceOption, DebugControlSpec, DebugControls,
-    DebugId,
-};
+use super::{DebugArtifact, DebugId};
 
-pub const PERFORMANCE_TOOL: DebugId = DebugId("diagnostics.performance");
-const PERFORMANCE_FRAME: DebugId = DebugId("diagnostics.performance.frame");
-const PERFORMANCE_ECS: DebugId = DebugId("diagnostics.performance.ecs");
-const PERFORMANCE_SYSTEM: DebugId = DebugId("diagnostics.performance.system");
-const PERFORMANCE_REFRESH: DebugId = DebugId("diagnostics.performance.refresh");
+const TELEMETRY_REFRESH_SECONDS: f32 = 1.0;
 
 const FPS: DebugId = DebugId("metric.frame.fps");
 const FRAME_MS: DebugId = DebugId("metric.frame.ms");
@@ -86,66 +79,17 @@ impl DebugMetrics {
 struct TelemetryCadence {
     derived_elapsed: f32,
     ecs_elapsed: f32,
-    hud_elapsed: f32,
 }
-
-#[derive(Component)]
-struct PerformanceHud;
 
 pub(super) fn configure(app: &mut App) {
     app.init_resource::<DebugMetrics>()
         .init_resource::<TelemetryCadence>()
-        .register_debug_control(
-            DebugControlSpec::tool(
-                PERFORMANCE_TOOL,
-                Some(super::CATEGORY_DIAGNOSTICS),
-                "Performance",
-                0,
-                false,
-            )
-            .described("Low-overhead metric providers with explicit sampling cadences."),
-        )
-        .register_debug_control(DebugControlSpec::toggle(
-            PERFORMANCE_FRAME,
-            Some(PERFORMANCE_TOOL),
-            "Frame timing",
-            0,
-            true,
-        ))
-        .register_debug_control(DebugControlSpec::toggle(
-            PERFORMANCE_ECS,
-            Some(PERFORMANCE_TOOL),
-            "ECS / world",
-            1,
-            true,
-        ))
-        .register_debug_control(DebugControlSpec::toggle(
-            PERFORMANCE_SYSTEM,
-            Some(PERFORMANCE_TOOL),
-            "System / process",
-            2,
-            true,
-        ))
-        .register_debug_control(DebugControlSpec::choice(
-            PERFORMANCE_REFRESH,
-            Some(PERFORMANCE_TOOL),
-            "Expensive metric refresh",
-            3,
-            [
-                DebugChoiceOption::new("4hz", "4 Hz"),
-                DebugChoiceOption::new("2hz", "2 Hz"),
-                DebugChoiceOption::new("1hz", "1 Hz"),
-            ],
-            1,
-        ))
         .add_plugins((
             FrameTimeDiagnosticsPlugin::new(3_600),
             SystemInformationDiagnosticsPlugin,
         ))
         .add_systems(Startup, register_metrics)
-        .add_systems(Startup, spawn_performance_hud)
         .add_systems(Update, collect_bevy_metrics)
-        .add_systems(Update, update_performance_hud)
         .add_systems(Last, collect_ecs_metrics);
 }
 
@@ -174,94 +118,73 @@ fn register_metrics(mut metrics: ResMut<DebugMetrics>) {
 
 fn collect_bevy_metrics(
     time: Res<Time>,
-    controls: Res<DebugControls>,
     diagnostics: Res<DiagnosticsStore>,
     mut cadence: ResMut<TelemetryCadence>,
     mut metrics: ResMut<DebugMetrics>,
 ) {
-    if !controls.selected(PERFORMANCE_TOOL) {
-        return;
-    }
-
     cadence.derived_elapsed += time.delta_secs();
-    let interval = refresh_interval(&controls);
-    if cadence.derived_elapsed < interval {
+    if cadence.derived_elapsed < TELEMETRY_REFRESH_SECONDS {
         return;
     }
-    cadence.derived_elapsed %= interval.max(f32::EPSILON);
+    cadence.derived_elapsed %= TELEMETRY_REFRESH_SECONDS;
 
-    if controls.selected(PERFORMANCE_FRAME) {
-        let frame_time = diagnostics.get(&FrameTimeDiagnosticsPlugin::FRAME_TIME);
-        if let Some(value) = diagnostics
-            .get(&FrameTimeDiagnosticsPlugin::FPS)
-            .and_then(|diagnostic| diagnostic.value())
-        {
-            metrics.set(FPS, value);
-        }
-        if let Some(value) = frame_time.and_then(|diagnostic| diagnostic.value()) {
-            metrics.set(FRAME_MS, value);
-        }
-        if let Some(value) = frame_time.and_then(|diagnostic| diagnostic.average()) {
-            metrics.set(FRAME_AVG_MS, value);
-        }
+    let frame_time = diagnostics.get(&FrameTimeDiagnosticsPlugin::FRAME_TIME);
+    if let Some(value) = diagnostics
+        .get(&FrameTimeDiagnosticsPlugin::FPS)
+        .and_then(|diagnostic| diagnostic.value())
+    {
+        metrics.set(FPS, value);
+    }
+    if let Some(value) = frame_time.and_then(|diagnostic| diagnostic.value()) {
+        metrics.set(FRAME_MS, value);
+    }
+    if let Some(value) = frame_time.and_then(|diagnostic| diagnostic.average()) {
+        metrics.set(FRAME_AVG_MS, value);
+    }
 
-        let mut frame_times = frame_time
-            .into_iter()
-            .flat_map(|diagnostic| diagnostic.values().copied())
-            .filter(|value| value.is_finite() && *value > 0.0)
-            .collect::<Vec<_>>();
+    let mut frame_times = frame_time
+        .into_iter()
+        .flat_map(|diagnostic| diagnostic.values().copied())
+        .filter(|value| value.is_finite() && *value > 0.0)
+        .collect::<Vec<_>>();
 
-        if let Some(value) = frame_times.iter().copied().reduce(f64::min) {
-            metrics.set(FRAME_MIN_MS, value);
+    if let Some(value) = frame_times.iter().copied().reduce(f64::min) {
+        metrics.set(FRAME_MIN_MS, value);
+    }
+    if let Some(value) = frame_times.iter().copied().reduce(f64::max) {
+        metrics.set(FRAME_MAX_MS, value);
+    }
+    if !frame_times.is_empty() {
+        frame_times.sort_by(|a, b| b.total_cmp(a));
+        if let Some(value) = low_fps_sorted(&frame_times, 0.01) {
+            metrics.set(FPS_1_LOW, value);
         }
-        if let Some(value) = frame_times.iter().copied().reduce(f64::max) {
-            metrics.set(FRAME_MAX_MS, value);
-        }
-        if !frame_times.is_empty() {
-            frame_times.sort_by(|a, b| b.total_cmp(a));
-            if let Some(value) = low_fps_sorted(&frame_times, 0.01) {
-                metrics.set(FPS_1_LOW, value);
-            }
-            if let Some(value) = low_fps_sorted(&frame_times, 0.001) {
-                metrics.set(FPS_POINT_1_LOW, value);
-            }
+        if let Some(value) = low_fps_sorted(&frame_times, 0.001) {
+            metrics.set(FPS_POINT_1_LOW, value);
         }
     }
 
-    if controls.selected(PERFORMANCE_SYSTEM) {
-        for (id, path) in [
-            (PROCESS_CPU, &SystemInformationDiagnosticsPlugin::PROCESS_CPU_USAGE),
-            (SYSTEM_CPU, &SystemInformationDiagnosticsPlugin::SYSTEM_CPU_USAGE),
-            (PROCESS_RAM, &SystemInformationDiagnosticsPlugin::PROCESS_MEM_USAGE),
-            (SYSTEM_RAM, &SystemInformationDiagnosticsPlugin::SYSTEM_MEM_USAGE),
-        ] {
-            if let Some(value) = diagnostics.get(path).and_then(|diagnostic| diagnostic.value()) {
-                metrics.set(id, value);
-            }
+    for (id, path) in [
+        (PROCESS_CPU, &SystemInformationDiagnosticsPlugin::PROCESS_CPU_USAGE),
+        (SYSTEM_CPU, &SystemInformationDiagnosticsPlugin::SYSTEM_CPU_USAGE),
+        (PROCESS_RAM, &SystemInformationDiagnosticsPlugin::PROCESS_MEM_USAGE),
+        (SYSTEM_RAM, &SystemInformationDiagnosticsPlugin::SYSTEM_MEM_USAGE),
+    ] {
+        if let Some(value) = diagnostics.get(path).and_then(|diagnostic| diagnostic.value()) {
+            metrics.set(id, value);
         }
     }
 }
 
 fn collect_ecs_metrics(world: &mut World) {
     let dt = world.resource::<Time>().delta_secs();
-    let (enabled, interval) = {
-        let controls = world.resource::<DebugControls>();
-        (
-            controls.selected(PERFORMANCE_ECS),
-            refresh_interval(controls),
-        )
-    };
-    if !enabled {
-        return;
-    }
-
     {
         let mut cadence = world.resource_mut::<TelemetryCadence>();
         cadence.ecs_elapsed += dt;
-        if cadence.ecs_elapsed < interval {
+        if cadence.ecs_elapsed < TELEMETRY_REFRESH_SECONDS {
             return;
         }
-        cadence.ecs_elapsed %= interval.max(f32::EPSILON);
+        cadence.ecs_elapsed %= TELEMETRY_REFRESH_SECONDS;
     }
 
     let debug_artifact = world.components().component_id::<DebugArtifact>();
@@ -317,124 +240,6 @@ fn collect_ecs_metrics(world: &mut World) {
     metrics.set(ARCHETYPE_COUNT, archetype_count as f64);
 }
 
-fn spawn_performance_hud(mut commands: Commands) {
-    commands.spawn((
-        Name::new("Performance Telemetry HUD"),
-        DebugArtifact,
-        PerformanceHud,
-        Text::new("PERFORMANCE\ncollecting..."),
-        TextFont {
-            font_size: FontSize::Px(13.0),
-            ..default()
-        },
-        TextColor(Color::WHITE),
-        Node {
-            position_type: PositionType::Absolute,
-            right: px(18),
-            bottom: px(18),
-            padding: UiRect::all(px(9)),
-            display: Display::None,
-            ..default()
-        },
-        BackgroundColor(Color::srgba(0.018, 0.022, 0.032, 0.90)),
-        GlobalZIndex(1_500),
-    ));
-}
-
-fn update_performance_hud(
-    time: Res<Time>,
-    controls: Res<DebugControls>,
-    metrics: Res<DebugMetrics>,
-    mut cadence: ResMut<TelemetryCadence>,
-    mut hud: Query<(&mut Text, &mut Node), With<PerformanceHud>>,
-) {
-    let visible = controls.active(PERFORMANCE_TOOL);
-
-    for (_, mut node) in &mut hud {
-        node.display = if visible { Display::Flex } else { Display::None };
-    }
-    if !visible {
-        return;
-    }
-
-    cadence.hud_elapsed += time.delta_secs();
-    if cadence.hud_elapsed < 0.20 {
-        return;
-    }
-    cadence.hud_elapsed %= 0.20;
-
-    let mut sections = Vec::new();
-    if controls.selected(PERFORMANCE_FRAME) {
-        sections.push(format!(
-            concat!(
-                "FRAME\n",
-                "FPS                 {}\n",
-                "Frame time          {} ms\n",
-                "Min / avg / max     {} / {} / {} ms\n",
-                "1% / 0.1% low       {} / {} FPS"
-            ),
-            fmt(metrics.value(FPS), 1),
-            fmt(metrics.value(FRAME_MS), 2),
-            fmt(metrics.value(FRAME_MIN_MS), 2),
-            fmt(metrics.value(FRAME_AVG_MS), 2),
-            fmt(metrics.value(FRAME_MAX_MS), 2),
-            fmt(metrics.value(FPS_1_LOW), 1),
-            fmt(metrics.value(FPS_POINT_1_LOW), 1),
-        ));
-    }
-
-    if controls.selected(PERFORMANCE_ECS) {
-        sections.push(format!(
-            concat!(
-                "ECS / WORLD (debug artifacts excluded)\n",
-                "Entities            {}\n",
-                "Component instances {}\n",
-                "Component types     {}\n",
-                "Resources           {}\n",
-                "Archetypes          {}"
-            ),
-            fmt(metrics.value(ENTITY_COUNT), 0),
-            fmt(metrics.value(COMPONENT_INSTANCES), 0),
-            fmt(metrics.value(COMPONENT_TYPES), 0),
-            fmt(metrics.value(RESOURCE_COUNT), 0),
-            fmt(metrics.value(ARCHETYPE_COUNT), 0),
-        ));
-    }
-
-    if controls.selected(PERFORMANCE_SYSTEM) {
-        sections.push(format!(
-            concat!(
-                "SYSTEM\n",
-                "CPU process / total {} / {} %\n",
-                "RAM process         {} GiB\n",
-                "RAM total           {} %"
-            ),
-            fmt(metrics.value(PROCESS_CPU), 1),
-            fmt(metrics.value(SYSTEM_CPU), 1),
-            fmt(metrics.value(PROCESS_RAM), 2),
-            fmt(metrics.value(SYSTEM_RAM), 1),
-        ));
-    }
-
-    let output = if sections.is_empty() {
-        "PERFORMANCE\n(no sections enabled)".to_owned()
-    } else {
-        format!("PERFORMANCE\n\n{}", sections.join("\n\n"))
-    };
-
-    for (mut text, _) in &mut hud {
-        text.0 = output.clone();
-    }
-}
-
-fn refresh_interval(controls: &DebugControls) -> f32 {
-    match controls.choice_value(PERFORMANCE_REFRESH) {
-        Some("4hz") => 0.25,
-        Some("1hz") => 1.0,
-        _ => 0.5,
-    }
-}
-
 fn low_fps_sorted(frame_times_descending: &[f64], fraction: f64) -> Option<f64> {
     if frame_times_descending.is_empty() {
         return None;
@@ -444,11 +249,4 @@ fn low_fps_sorted(frame_times_descending: &[f64], fraction: f64) -> Option<f64> 
     let average_ms =
         frame_times_descending[..count].iter().sum::<f64>() / count as f64;
     (average_ms > 0.0).then_some(1_000.0 / average_ms)
-}
-
-fn fmt(value: Option<f64>, decimals: usize) -> String {
-    value
-        .filter(|value| value.is_finite())
-        .map(|value| format!("{:.*}", decimals, value))
-        .unwrap_or_else(|| "--".to_owned())
 }
