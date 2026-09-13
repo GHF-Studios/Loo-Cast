@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::ui::UiTextStyle;
+
 use super::super::catalog::{PlaygroundCatalog, PlaygroundItemId};
 
 #[derive(Component, Debug, Clone, Copy, Default)]
@@ -10,7 +12,11 @@ pub struct ItemView {
 #[derive(Component)]
 pub struct ItemViewLabel;
 
-pub fn spawn_item_view(parent: &mut ChildSpawnerCommands, item: Option<PlaygroundItemId>) {
+pub fn spawn_item_view(
+    parent: &mut ChildSpawnerCommands,
+    item: Option<PlaygroundItemId>,
+    text_style: &UiTextStyle,
+) {
     parent
         .spawn((
             ItemView { item },
@@ -27,10 +33,8 @@ pub fn spawn_item_view(parent: &mut ChildSpawnerCommands, item: Option<Playgroun
             view.spawn((
                 ItemViewLabel,
                 Text::new(""),
-                TextFont {
-                    font_size: FontSize::Px(11.0),
-                    ..default()
-                },
+                text_style.font(),
+                text_style.color(),
                 TextLayout::justify(Justify::Center),
             ));
         });

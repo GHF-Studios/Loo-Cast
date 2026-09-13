@@ -1,7 +1,8 @@
-//! Shared presentation policy for ordinary game UI and developer UI.
+//! Shared presentation policy for ordinary game UI and Developer UI.
 //!
-//! This module is intentionally small. It is not an application-state framework;
-//! it centralizes only presentation decisions that are genuinely shared.
+//! This module is intentionally small. It does not own application state or
+//! layout structure; it centralizes only presentation decisions that are
+//! genuinely shared: typography/font sources, panel colors and basic spacing.
 
 mod theme;
 

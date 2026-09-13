@@ -4,7 +4,7 @@
 //! one persistent panel with a title and one text body updated in place. That is
 //! enough to make inspection useful without inventing another widget framework.
 
-use bevy::{prelude::*, text::FontSize};
+use bevy::prelude::*;
 
 use crate::ui::{UiTextRole, UiTheme};
 
@@ -31,7 +31,7 @@ pub(super) fn configure(app: &mut App) {
 
 fn spawn_inspector(mut commands: Commands, theme: Res<UiTheme>) {
     let heading = theme.text(UiTextRole::Heading);
-    let body = theme.text(UiTextRole::Body);
+    let body = theme.text(UiTextRole::Compact);
 
     commands
         .spawn((
@@ -46,9 +46,9 @@ fn spawn_inspector(mut commands: Commands, theme: Res<UiTheme>) {
                 width: px(360.0),
                 max_height: percent(88.0),
                 overflow: Overflow::scroll_y(),
-                padding: UiRect::all(px(10.0)),
+                padding: UiRect::all(px(theme.panel_padding_px)),
                 border: UiRect::all(px(1.0)),
-                row_gap: px(5.0),
+                row_gap: px(theme.spacing_px),
                 flex_direction: FlexDirection::Column,
                 ..default()
             },
@@ -61,21 +61,15 @@ fn spawn_inspector(mut commands: Commands, theme: Res<UiTheme>) {
                 DeveloperArtifact,
                 DeveloperInspectorTitle,
                 Text::new("INSPECTOR"),
-                TextFont {
-                    font_size: FontSize::Px(heading.font_size_px),
-                    ..default()
-                },
-                TextColor(heading.color),
+                heading.font(),
+                heading.color(),
             ));
             parent.spawn((
                 DeveloperArtifact,
                 DeveloperInspectorBody,
                 Text::new(""),
-                TextFont {
-                    font_size: FontSize::Px(body.font_size_px),
-                    ..default()
-                },
-                TextColor(body.color),
+                body.font(),
+                body.color(),
             ));
         });
 }

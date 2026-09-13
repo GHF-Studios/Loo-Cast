@@ -3,7 +3,7 @@
 //! This is UI projected from a world point, not World Draw text. It is name-only
 //! by design; detailed state belongs in the Inspector.
 
-use bevy::{prelude::*, text::FontSize};
+use bevy::prelude::*;
 
 use crate::ui::{UiTextRole, UiTheme};
 
@@ -59,11 +59,8 @@ fn spawn_focus_badge(mut commands: Commands, theme: Res<UiTheme>) {
                 DeveloperArtifact,
                 FocusBadgeText,
                 Text::new(""),
-                TextFont {
-                    font_size: FontSize::Px(tiny.font_size_px),
-                    ..default()
-                },
-                TextColor(tiny.color),
+                tiny.font(),
+                tiny.color(),
             ));
         });
 }

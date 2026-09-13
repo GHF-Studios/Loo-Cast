@@ -1,6 +1,6 @@
 # Developer tools / UI redesign migration
 
-Status: **Stages 0–4 are locally validated. Stage 5 diagnostics extraction is implemented in `devtools-redesign-stage-5.patch`; local compile/run validation is the next checkpoint before Stage 6.**
+Status: **Stages 0–5 are locally validated. Stage 6 shared UI consolidation is implemented in `devtools-redesign-stage-6.patch`; local compile/run validation is the next checkpoint before final cleanup.**
 
 This document is the durable hand-off point for the debugging / visualization / UI / text redesign. Update it at the end of every migration stage so the work can resume from the repository alone, even if chat context is lost.
 
@@ -240,13 +240,22 @@ Exit condition: diagnostics data has no developer-control/UI ownership, no compi
 
 ### Stage 6 — Shared UI consolidation
 
-**Status: PLANNED**
+**Status: IMPLEMENTED in `devtools-redesign-stage-6.patch`; awaiting local validation**
 
-- Migrate Developer UI and ordinary playground/game UI to the shared theme/text/widget foundation where this removes real duplication.
-- Choose/package an explicit Unicode-capable font asset with suitable licensing before relying on scientific glyph coverage.
-- Remove scattered font-size/color constants where the shared policy is clearly better.
+Implemented:
 
-This stage is deliberately late: shared UI should be extracted from proven use, not designed speculatively.
+- Expanded the deliberately small `UiTheme` into the single shared presentation-policy source for semantic text roles, font sources, panel colors, overlay scrim, spacing and panel padding.
+- `UiTextStyle` now materializes its own Bevy `TextFont` / `TextColor` components. Developer UI and playground UI no longer repeat the same `TextFont { font_size: ... }` construction at every spawn site.
+- Added semantic `Title`, `Body`, `Compact`, `Secondary`, etc. roles rather than encoding "developer" vs "game" presentation into the shared layer. One-off presentation such as the crosshair can locally resize a semantic style without becoming a global role.
+- Migrated Developer Inspector, Focus Badge and F4 Tools palette to the common typography/font-source helpers and common panel spacing policy.
+- Migrated the playground health HUD, control hint, creative-menu headings/page text and item labels to the same typography/font-source policy.
+- Migrated the creative-menu overlay/panel background, border, padding and spacing to `UiTheme`. Slot colors, slot sizing, hotbar selection and other gameplay-specific interaction presentation intentionally remain local.
+- Centered the crosshair around its 50%/50% anchor while touching the HUD instead of preserving the previous top-left glyph anchoring accident.
+- Centralized regular/data font ownership in `UiTheme`. Both currently retain Bevy's existing default font source so this stage does not introduce system-font discovery/fontconfig build dependencies or silently add a third-party binary asset.
+- **Known remaining font gap:** the repository still does not ship a project-owned Unicode-capable font asset. Therefore scientific glyph coverage is not guaranteed yet. The important architectural change is that adding such an asset later is now one font-policy change rather than a sweep across UI call sites.
+- No generic widget framework was introduced. Shared UI still owns presentation policy, not application state or screen structure.
+
+Exit condition: current Game UI and Developer UI share the presentation decisions that actually overlap, while domain/screen-specific interaction styling remains local.
 
 ### Stage 7 — Legacy removal and architecture cleanup
 
@@ -271,11 +280,11 @@ This stage is deliberately late: shared UI should be extracted from proven use, 
 
 ## Current checkpoint / resume here
 
-**Current checkpoint:** Stages 0–4 are user-validated and pushed. Stage 5 is implemented on top of that pushed tree: telemetry is now a typed diagnostics subsystem, the compiled `observability` umbrella is gone, and the `DebugArtifact` compatibility bridge has been removed.
+**Current checkpoint:** Stages 0–5 are user-validated and pushed. Stage 6 is implemented on top of that pushed tree: Developer UI and the current playground UI now consume the same small typography/font/panel policy instead of independently hardcoding those decisions.
 
-**Required gate now:** apply `devtools-redesign-stage-5.patch`, run `cargo fmt --all`, `cargo check -p spacetime-engine`, `cargo test -p spacetime-engine`, then smoke-test the existing Developer Tools/Inspector paths. No diagnostics UI exists in this stage, so runtime validation is primarily that ordinary gameplay/devtools behavior is unchanged while the new `RuntimeDiagnostics` resource samples successfully.
+**Required gate now:** apply `devtools-redesign-stage-6.patch`, run `cargo fmt --all`, `cargo check -p spacetime-engine`, `cargo test -p spacetime-engine`, then smoke-test the Inspector, Focus Badge, F4 palette, HUD/hotbar and creative menu. Confirm text remains readable/appropriately compact, menu input behavior is unchanged, and the centered crosshair still tracks creative-menu visibility.
 
-**If that gate passes, do next:** Stage 6 — consolidate proven shared UI presentation policy. In particular, address explicit Unicode-capable font ownership and remove duplicated typography/panel styling only where the current Game UI and Developer UI actually overlap.
+**If that gate passes, do next:** Stage 7 — physically remove orphaned migration source, rename live domain `observability.rs` adapters to `devtools.rs`, clean stale comments/names, and perform the final artifact/simulation-semantics audit. The separate project-font asset decision remains explicitly open; do not hide it behind system-font discovery.
 
 **Temporary legacy source intentionally still present but no longer compiled:**
 

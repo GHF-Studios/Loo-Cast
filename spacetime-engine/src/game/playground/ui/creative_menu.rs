@@ -1,6 +1,6 @@
 use bevy::{input::mouse::AccumulatedMouseScroll, prelude::*, window::PrimaryWindow};
 
-use crate::game::InputSet;
+use crate::{game::InputSet, ui::{UiTextRole, UiTheme}};
 
 use super::super::{
     catalog::{PlaygroundCatalog, PlaygroundItemId},
@@ -10,7 +10,6 @@ use super::super::{
 
 use super::item_view::{ItemView, spawn_item_view};
 
-const PANEL_BACKGROUND: Color = Color::srgba(0.06, 0.06, 0.07, 0.96);
 const SLOT_NORMAL: Color = Color::srgba(0.15, 0.15, 0.17, 0.96);
 const SLOT_HOVERED: Color = Color::srgba(0.26, 0.26, 0.30, 0.96);
 const HOTBAR_SELECTED: Color = Color::srgba(0.42, 0.42, 0.48, 0.96);
@@ -58,7 +57,11 @@ pub fn configure(app: &mut App) {
         );
 }
 
-fn spawn_creative_menu(mut commands: Commands) {
+fn spawn_creative_menu(mut commands: Commands, theme: Res<UiTheme>) {
+    let title = theme.text(UiTextRole::Title);
+    let heading = theme.text(UiTextRole::Heading);
+    let secondary = theme.text(UiTextRole::Secondary);
+    let item_text = theme.text(UiTextRole::Compact);
     commands
         .spawn((
             Name::new("Creative Menu"),
@@ -72,36 +75,34 @@ fn spawn_creative_menu(mut commands: Commands) {
                 justify_content: JustifyContent::Center,
                 ..default()
             },
-            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.35)),
+            BackgroundColor(theme.overlay_scrim),
         ))
         .with_children(|overlay| {
             overlay
                 .spawn((
                     Node {
                         width: px(590.0),
-                        padding: UiRect::all(px(16.0)),
+                        padding: UiRect::all(px(theme.panel_padding_px)),
+                        border: UiRect::all(px(1.0)),
                         flex_direction: FlexDirection::Column,
-                        row_gap: px(10.0),
+                        row_gap: px(theme.spacing_px * 1.5),
                         ..default()
                     },
-                    BackgroundColor(PANEL_BACKGROUND),
+                    BackgroundColor(theme.panel_background),
+                    BorderColor::all(theme.panel_border),
                 ))
                 .with_children(|panel| {
                     panel.spawn((
                         Text::new("Creative Items"),
-                        TextFont {
-                            font_size: FontSize::Px(24.0),
-                            ..default()
-                        },
+                        title.font(),
+                        title.color(),
                     ));
 
                     panel.spawn((
                         CreativePageText,
                         Text::new("Page 1 / 1"),
-                        TextFont {
-                            font_size: FontSize::Px(13.0),
-                            ..default()
-                        },
+                        secondary.font(),
+                        secondary.color(),
                     ));
 
                     panel
@@ -128,17 +129,15 @@ fn spawn_creative_menu(mut commands: Commands) {
                                     BackgroundColor(SLOT_NORMAL),
                                 ))
                                 .with_children(|slot| {
-                                    spawn_item_view(slot, None);
+                                    spawn_item_view(slot, None, &item_text);
                                 });
                             }
                         });
 
                     panel.spawn((
                         Text::new("Hotbar"),
-                        TextFont {
-                            font_size: FontSize::Px(14.0),
-                            ..default()
-                        },
+                        heading.font(),
+                        heading.color(),
                     ));
 
                     panel
@@ -161,7 +160,7 @@ fn spawn_creative_menu(mut commands: Commands) {
                                     BackgroundColor(SLOT_NORMAL),
                                 ))
                                 .with_children(|slot| {
-                                    spawn_item_view(slot, None);
+                                    spawn_item_view(slot, None, &item_text);
                                 });
                             }
                         });
@@ -181,7 +180,7 @@ fn spawn_creative_menu(mut commands: Commands) {
             GlobalZIndex(1000),
         ))
         .with_children(|root| {
-            spawn_item_view(root, None);
+            spawn_item_view(root, None, &item_text);
         });
 }
 

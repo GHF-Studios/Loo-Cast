@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::ui::UiTextStyle;
+
 use super::super::inventory::{CreativeMenuState, HOTBAR_SIZE, Hotbar};
 
 use super::item_view::{ItemView, spawn_item_view};
@@ -19,7 +21,7 @@ pub struct HudHotbarSlot {
     index: usize,
 }
 
-pub fn spawn_hud_hotbar(commands: &mut Commands) {
+pub fn spawn_hud_hotbar(commands: &mut Commands, item_text: &UiTextStyle) {
     commands
         .spawn((
             Name::new("HUD Hotbar"),
@@ -47,7 +49,7 @@ pub fn spawn_hud_hotbar(commands: &mut Commands) {
                     BackgroundColor(SLOT_NORMAL),
                 ))
                 .with_children(|slot| {
-                    spawn_item_view(slot, None);
+                    spawn_item_view(slot, None, item_text);
                 });
             }
         });

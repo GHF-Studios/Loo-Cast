@@ -7,6 +7,7 @@ use crate::{
         combat::Health,
         player::{Player, PlayerDead},
     },
+    ui::{UiTextRole, UiTheme},
 };
 
 use super::super::{inventory::CreativeMenuState, object::ShowHealthInPlaygroundHud};
@@ -31,14 +32,17 @@ pub fn configure(app: &mut App) {
     );
 }
 
-fn spawn_hud(mut commands: Commands) {
+fn spawn_hud(mut commands: Commands, theme: Res<UiTheme>) {
+    let body = theme.text(UiTextRole::Body);
+    let secondary = theme.text(UiTextRole::Secondary);
+    let crosshair = theme.text(UiTextRole::Heading).with_size(20.0);
+    let item_text = theme.text(UiTextRole::Compact);
+
     commands.spawn((
         HealthHudText,
         Text::new("No tracked Health"),
-        TextFont {
-            font_size: FontSize::Px(16.0),
-            ..default()
-        },
+        body.font(),
+        body.color(),
         Node {
             position_type: PositionType::Absolute,
             top: px(12.0),
@@ -49,10 +53,8 @@ fn spawn_hud(mut commands: Commands) {
 
     commands.spawn((
         Text::new("Tab creative | 1-9 select | wheel hotbar / 3P zoom | LMB/RMB item | R reload | MMB erase | F5 camera | V noclip"),
-        TextFont {
-            font_size: FontSize::Px(13.0),
-            ..default()
-        },
+        secondary.font(),
+        secondary.color(),
         Node {
             position_type: PositionType::Absolute,
             bottom: px(78.0),
@@ -64,19 +66,19 @@ fn spawn_hud(mut commands: Commands) {
     commands.spawn((
         Crosshair,
         Text::new("+"),
-        TextFont {
-            font_size: FontSize::Px(20.0),
-            ..default()
-        },
+        crosshair.font(),
+        crosshair.color(),
+        TextLayout::justify(Justify::Center),
         Node {
             position_type: PositionType::Absolute,
             left: percent(50.0),
             top: percent(50.0),
             ..default()
         },
+        UiTransform::from_translation(Val2::percent(-50.0, -50.0)),
     ));
 
-    spawn_hud_hotbar(&mut commands);
+    spawn_hud_hotbar(&mut commands, &item_text);
 }
 
 fn update_health_hud(

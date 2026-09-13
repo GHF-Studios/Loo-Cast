@@ -3,7 +3,7 @@
 //! F4 opens a short list of current visualizations. This is intentionally not a
 //! generic settings renderer: domains register only `id + label + order + default`.
 
-use bevy::{prelude::*, text::FontSize};
+use bevy::prelude::*;
 
 use crate::{
     input_focus::{InputFocus, InputFocusSet},
@@ -52,7 +52,7 @@ fn spawn_tools_palette(
     tools: Res<DeveloperTools>,
 ) {
     let heading = theme.text(UiTextRole::Heading);
-    let body = theme.text(UiTextRole::Body);
+    let body = theme.text(UiTextRole::Compact);
     let secondary = theme.text(UiTextRole::Secondary);
 
     let mut specs = tools.visualizations().copied().collect::<Vec<_>>();
@@ -69,9 +69,9 @@ fn spawn_tools_palette(
                 top: px(12.0),
                 right: px(12.0),
                 width: px(300.0),
-                padding: UiRect::all(px(10.0)),
+                padding: UiRect::all(px(theme.panel_padding_px)),
                 border: UiRect::all(px(1.0)),
-                row_gap: px(6.0),
+                row_gap: px(theme.spacing_px),
                 flex_direction: FlexDirection::Column,
                 ..default()
             },
@@ -83,21 +83,15 @@ fn spawn_tools_palette(
             parent.spawn((
                 DeveloperArtifact,
                 Text::new("DEVELOPER TOOLS"),
-                TextFont {
-                    font_size: FontSize::Px(heading.font_size_px),
-                    ..default()
-                },
-                TextColor(heading.color),
+                heading.font(),
+                heading.color(),
             ));
             parent.spawn((
                 DeveloperArtifact,
                 DeveloperMasterLabel,
                 Text::new(""),
-                TextFont {
-                    font_size: FontSize::Px(secondary.font_size_px),
-                    ..default()
-                },
-                TextColor(secondary.color),
+                secondary.font(),
+                secondary.color(),
             ));
 
             for spec in specs {
@@ -118,11 +112,8 @@ fn spawn_tools_palette(
                             DeveloperArtifact,
                             VisualizationLabel(spec.id),
                             Text::new(spec.label),
-                            TextFont {
-                                font_size: FontSize::Px(body.font_size_px),
-                                ..default()
-                            },
-                            TextColor(body.color),
+                            body.font(),
+                            body.color(),
                         ));
                     });
             }
