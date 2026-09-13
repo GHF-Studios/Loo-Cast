@@ -5,14 +5,19 @@
 //! to know whether its state is currently being visualized.
 
 mod color;
+mod field;
+mod menu;
+mod metrics;
 mod text;
 
 pub use color::{DebugColorRamp, DebugColorStop, DebugScalarRange};
+pub use field::{DebugScalarField2d, DebugVectorField2d, DebugVectorSpace};
+pub use menu::DebugMenuState;
 pub use text::{DebugCamera, billboard_text};
 
 use std::any::TypeId;
 
-use bevy::{log::info, prelude::*};
+use bevy::prelude::*;
 
 /// Depth-tested developer gizmos representing world geometry/state.
 #[derive(Default, Reflect, GizmoConfigGroup)]
@@ -22,9 +27,10 @@ pub struct DebugGizmos;
 #[derive(Default, Reflect, GizmoConfigGroup)]
 pub struct DebugOverlayGizmos;
 
-/// One independently controllable debug visualization.
+/// One independently controllable debug visualization / debug-equipment item.
 pub trait DebugView: Send + Sync + 'static {
     const NAME: &'static str;
+    const DESCRIPTION: &'static str = "";
     const ENABLED_BY_DEFAULT: bool = true;
 }
 
@@ -32,6 +38,7 @@ pub trait DebugView: Send + Sync + 'static {
 pub struct DebugViewInfo {
     pub type_id: TypeId,
     pub name: &'static str,
+    pub description: &'static str,
     pub enabled: bool,
 }
 
@@ -39,14 +46,15 @@ pub struct DebugViewInfo {
 struct DebugViewState {
     type_id: TypeId,
     name: &'static str,
+    description: &'static str,
     enabled: bool,
 }
 
 /// Runtime state shared by every debug adapter.
 ///
-/// Views are registered in deterministic plugin order. `solo` is intentionally
-/// generic: temporary keyboard controls can focus any registered view without
-/// teaching the core about portals, thermal state, physics, or future mods.
+/// Views are registered in deterministic plugin order. The registry is also the
+/// backing model for the in-game debug-equipment menu, so new engine/mod views
+/// become configurable without editing the menu itself.
 #[derive(Resource, Debug)]
 pub struct DebugViews {
     master_enabled: bool,
@@ -114,16 +122,35 @@ impl DebugViews {
         view.enabled
     }
 
+    pub fn toggle_type_id(&mut self, type_id: TypeId) -> Option<bool> {
+        let view = self.views.iter_mut().find(|view| view.type_id == type_id)?;
+        view.enabled = !view.enabled;
+        Some(view.enabled)
+    }
+
+    pub fn view(&self, type_id: TypeId) -> Option<DebugViewInfo> {
+        self.views
+            .iter()
+            .find(|view| view.type_id == type_id)
+            .map(|view| DebugViewInfo {
+                type_id: view.type_id,
+                name: view.name,
+                description: view.description,
+                enabled: view.enabled,
+            })
+    }
+
     pub fn views(&self) -> impl ExactSizeIterator<Item = DebugViewInfo> + '_ {
         self.views.iter().map(|view| DebugViewInfo {
             type_id: view.type_id,
             name: view.name,
+            description: view.description,
             enabled: view.enabled,
         })
     }
 
-    /// Cycles `all -> first -> second -> ... -> all` and returns the focused
-    /// view name. `None` means all individually enabled views are visible.
+    /// Optional temporary focus retained as a useful programmatic/tooling
+    /// operation even though the menu now provides the primary UI.
     pub fn cycle_focus(&mut self) -> Option<&'static str> {
         if self.views.is_empty() {
             self.solo = None;
@@ -159,6 +186,7 @@ impl DebugViews {
         self.views.push(DebugViewState {
             type_id,
             name: V::NAME,
+            description: V::DESCRIPTION,
             enabled: V::ENABLED_BY_DEFAULT,
         });
     }
@@ -185,14 +213,21 @@ impl Plugin for SpacetimeDebugPlugin {
         app.init_resource::<DebugViews>()
             .init_gizmo_group::<DebugGizmos>()
             .init_gizmo_group::<DebugOverlayGizmos>()
-            .add_systems(Startup, configure_debug_gizmos)
-            .add_systems(Update, debug_keyboard_controls);
+            .add_systems(Startup, configure_debug_gizmos);
+
+        // Generic render/instrumentation backends first so domain adapters can
+        // simply publish fields and views into them.
+        field::configure(app);
+        metrics::configure(app);
 
         crate::ecs::debug::configure(app);
         crate::physics::debug::configure(app);
         crate::physics::character::debug::configure(app);
         crate::game::portal::debug::configure(app);
         crate::game::thermal::debug::configure(app);
+
+        // Build the menu last so every registered view appears as an item.
+        menu::configure(app);
     }
 }
 
@@ -203,21 +238,4 @@ fn configure_debug_gizmos(mut store: ResMut<GizmoConfigStore>) {
     let (overlay, _) = store.config_mut::<DebugOverlayGizmos>();
     overlay.line.width = 2.0;
     overlay.depth_bias = -1.0;
-}
-
-fn debug_keyboard_controls(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    mut views: ResMut<DebugViews>,
-) {
-    if keyboard.just_pressed(KeyCode::F3) {
-        let enabled = views.toggle_master();
-        info!("debug visualizations: {}", if enabled { "on" } else { "off" });
-    }
-
-    if keyboard.just_pressed(KeyCode::F4) {
-        match views.cycle_focus() {
-            Some(name) => info!("debug focus: {name}"),
-            None => info!("debug focus: all views"),
-        }
-    }
 }

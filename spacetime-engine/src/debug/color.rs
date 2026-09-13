@@ -40,6 +40,32 @@ pub struct DebugColorRamp {
 }
 
 impl DebugColorRamp {
+    /// General-purpose low-to-high metric ramp for arbitrary scalar and vector magnitudes.
+    pub const METRIC: Self = Self {
+        stops: &[
+            DebugColorStop {
+                position: 0.0,
+                color: LinearRgba::rgb(0.05, 0.1, 0.45),
+            },
+            DebugColorStop {
+                position: 0.25,
+                color: LinearRgba::rgb(0.0, 0.75, 1.0),
+            },
+            DebugColorStop {
+                position: 0.5,
+                color: LinearRgba::rgb(0.1, 0.9, 0.25),
+            },
+            DebugColorStop {
+                position: 0.75,
+                color: LinearRgba::rgb(1.0, 0.85, 0.05),
+            },
+            DebugColorStop {
+                position: 1.0,
+                color: LinearRgba::rgb(1.0, 0.08, 0.02),
+            },
+        ],
+    };
+
     pub const THERMAL: Self = Self {
         stops: &[
             DebugColorStop {
