@@ -149,7 +149,7 @@ fn sync_world_health_bars(
     mut commands: Commands,
     assets: Res<WorldHealthBarAssets>,
     mut cache: ResMut<WorldHealthBarCache>,
-    cameras: Query<&GlobalTransform, With<PlayerCamera>>,
+    cameras: Query<&GlobalTransform, (With<PlayerCamera>, Without<WorldHealthBarVisual>)>,
     player: Query<&UsfManifestationOf, With<Player>>,
     health: Query<&Health>,
     manifestations: Query<
