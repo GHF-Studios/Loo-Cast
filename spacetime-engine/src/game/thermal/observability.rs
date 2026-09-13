@@ -9,8 +9,9 @@ use crate::{
     observability::{
         AppObservabilityExt, DebugChoiceOption, DebugColorRamp, DebugContext,
         DebugControlSpec, DebugControls, DebugDepth, DebugFrame, DebugFrameBatch, DebugId,
-        DebugScalarField, DebugScalarFieldMode, DebugScalarRange, ObservabilitySet,
-        CATEGORY_WORLD,
+        DebugInspector, DebugInspectorSection, DebugScalarField, DebugScalarFieldMode,
+        DebugScalarRange, ObservabilitySet, CATEGORY_WORLD, format_quantity,
+        format_quantity_range, scientific_unit,
     },
     physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive},
 };
@@ -213,12 +214,99 @@ fn collect_thermal_observations(
     >,
     sources: Query<(Entity, &Combustion, &CombustibleMaterial)>,
     frame: Res<DebugFrame>,
+    inspector: Res<DebugInspector>,
 ) {
     if !controls.active(TOOL) {
         return;
     }
 
     let mut batch = DebugFrameBatch::default();
+
+    if let Some(selection) = context.selection {
+        if let Ok(body) = thermal_bodies.get(selection.semantic_entity) {
+            let mut section = DebugInspectorSection::new(
+                DebugId("inspector.thermal"),
+                "Thermal",
+                20,
+            )
+            .row(
+                "Temperature",
+                format_quantity(
+                    body.temperature_kelvin(),
+                    scientific_unit::KELVIN,
+                    5,
+                ),
+            );
+
+            if combustions.contains(selection.semantic_entity) {
+                section = section.row("Combustion", "Burning");
+            }
+
+            if let Ok((field, material)) = thermal_fields.get(selection.semantic_entity) {
+                section = section
+                    .row(
+                        "Internal range",
+                        format_quantity_range(
+                            field.minimum_temperature_kelvin(material),
+                            field.maximum_temperature_kelvin(material),
+                            scientific_unit::KELVIN,
+                            5,
+                        ),
+                    )
+                    .row(
+                        "Internal energy",
+                        format_quantity(
+                            field.total_energy_joules(),
+                            scientific_unit::JOULE,
+                            5,
+                        ),
+                    )
+                    .row(
+                        "Grid",
+                        format!(
+                            "{} × {} × {} cells",
+                            field.resolution().x,
+                            field.resolution().y,
+                            field.resolution().z,
+                        ),
+                    )
+                    .row(
+                        "Density ρ",
+                        format_quantity(
+                            material.density_kg_per_cubic_meter,
+                            scientific_unit::DENSITY,
+                            5,
+                        ),
+                    )
+                    .row(
+                        "Specific heat cₚ",
+                        format_quantity(
+                            material.specific_heat_capacity_joules_per_kg_kelvin,
+                            scientific_unit::SPECIFIC_HEAT_CAPACITY,
+                            5,
+                        ),
+                    )
+                    .row(
+                        "Conductivity k",
+                        format_quantity(
+                            material.thermal_conductivity_watts_per_meter_kelvin,
+                            scientific_unit::THERMAL_CONDUCTIVITY,
+                            5,
+                        ),
+                    )
+                    .row(
+                        "Diffusivity α",
+                        format_quantity(
+                            material.thermal_diffusivity_square_meters_per_second(),
+                            scientific_unit::THERMAL_DIFFUSIVITY,
+                            4,
+                        ),
+                    );
+            }
+
+            inspector.submit(section);
+        }
+    }
 
     if controls.active(SAMPLES) {
         let range = DebugScalarRange::new(273.15, 800.0);
@@ -270,27 +358,21 @@ fn collect_thermal_observations(
             }
 
             if controls.active(SAMPLE_LABELS) {
-                let spatial_summary = spatial
-                    .map(|(field, material)| {
-                        format!(
-                            "\nmin {:.1} / max {:.1} K\nrho {:.0} kg/m^3, cp {:.0} J/(kg K), k {:.3} W/(m K)",
-                            field.minimum_temperature_kelvin(material),
-                            field.maximum_temperature_kelvin(material),
-                            material.density_kg_per_cubic_meter,
-                            material.specific_heat_capacity_joules_per_kg_kelvin,
-                            material.thermal_conductivity_watts_per_meter_kelvin,
-                        )
-                    })
-                    .unwrap_or_default();
-                batch.label(
+                let state = if combustions.contains(relation.0) {
+                    "\nburning"
+                } else {
+                    ""
+                };
+                batch.label_for(
+                    relation.0,
                     position + Vec3::Y * 0.65,
                     format!(
-                        "{temperature:.1} K{spatial_summary}{}",
-                        if combustions.contains(relation.0) {
-                            " [burning]"
-                        } else {
-                            ""
-                        },
+                        "{}{state}",
+                        format_quantity(
+                            temperature,
+                            scientific_unit::KELVIN,
+                            5,
+                        ),
                     ),
                     DebugFrameBatch::DEFAULT_LABEL_FONT_SIZE,
                     color,

@@ -116,7 +116,8 @@ fn collect_character_state(
         }
 
         if controls.active(LABELS) {
-            batch.label(
+            batch.label_for(
+                entity,
                 position + up * 1.25,
                 format!(
                     "{entity:?}\nspeed {:.2} m/s\n{}",

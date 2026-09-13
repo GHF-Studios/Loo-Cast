@@ -129,7 +129,8 @@ fn collect_manifestations(
                         if authority { " [authority]" } else { "" },
                     ),
                 };
-                batch.label(
+                batch.label_for(
+                    manifestation,
                     position + Vec3::Y * 0.35,
                     text,
                     DebugFrameBatch::DEFAULT_LABEL_FONT_SIZE,

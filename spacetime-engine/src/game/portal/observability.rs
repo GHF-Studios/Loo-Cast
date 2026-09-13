@@ -3,8 +3,9 @@
 use bevy::prelude::*;
 
 use crate::observability::{
-    AppObservabilityExt, DebugControlSpec, DebugControls, DebugDepth, DebugFrame, DebugFrameBatch,
-    DebugId, ObservabilitySet, CATEGORY_WORLD,
+    AppObservabilityExt, DebugContext, DebugControlSpec, DebugControls, DebugDepth, DebugFrame,
+    DebugFrameBatch, DebugId, DebugInspector, DebugInspectorSection, ObservabilitySet,
+    CATEGORY_WORLD, format_quantity, scientific_unit,
 };
 
 use super::{Portal, PortalActive, PortalEndpoint, PortalSplitTraveler};
@@ -70,16 +71,39 @@ pub(crate) fn configure(app: &mut App) {
 
 fn collect_portal_state(
     controls: Res<DebugControls>,
+    context: Res<DebugContext>,
     portals: Query<(Entity, &Portal, &PortalActive, &GlobalTransform)>,
     split_travelers: Query<(Entity, &GlobalTransform, &PortalSplitTraveler)>,
     transforms: Query<&GlobalTransform>,
     frame: Res<DebugFrame>,
+    inspector: Res<DebugInspector>,
 ) {
     if !controls.active(TOOL) {
         return;
     }
 
     let mut batch = DebugFrameBatch::default();
+
+    if let Some(selection) = context.selection
+        && let Ok((_, portal, active, _)) = portals.get(selection.entity)
+        && active.0
+    {
+        let aperture = portal.half_size * 2.0;
+        inspector.submit(
+            DebugInspectorSection::new(DebugId("inspector.portal"), "Portal", 10)
+                .row("Endpoint", format!("{:?}", portal.endpoint))
+                .row("Destination", format!("{:?}", portal.destination))
+                .row(
+                    "Aperture",
+                    format!(
+                        "{} × {}",
+                        format_quantity(aperture.x, scientific_unit::METER, 4),
+                        format_quantity(aperture.y, scientific_unit::METER, 4),
+                    ),
+                )
+                .row("Sidedness", format!("{:?}", portal.sidedness)),
+        );
+    }
 
     for (entity, portal, active, transform) in &portals {
         if !active.0 {
@@ -125,7 +149,8 @@ fn collect_portal_state(
         }
 
         if controls.active(LABELS) {
-            batch.label(
+            batch.label_for(
+                entity,
                 transform.translation
                     + transform.rotation * Vec3::Y * (portal.half_size.y + 0.25),
                 format!(
@@ -168,7 +193,8 @@ fn collect_portal_state(
         );
 
         if controls.active(LABELS) {
-            batch.label(
+            batch.label_for(
+                entity,
                 transform.translation + Vec3::Y,
                 format!(
                     "split {entity:?}\n{:?} -> {:?}\npeer {:?}",

@@ -10,12 +10,12 @@ use bevy::{
     asset::RenderAssetUsages,
     mesh::PrimitiveTopology,
     prelude::*,
+    text::FontSize,
 };
 
 use super::{
     DebugArtifact, DebugColorRamp, DebugContext, DebugDepth, DebugFrame, DebugFrameBatch, DebugId,
-    DebugPrimitive, DebugScalarField, DebugScalarFieldMode, DebugTextFacing,
-    DebugVectorSpace,
+    DebugPrimitive, DebugScalarField, DebugScalarFieldMode, DebugVectorSpace,
 };
 
 #[derive(Default, Reflect, GizmoConfigGroup)]
@@ -39,6 +39,9 @@ struct DebugRenderCache {
     scalar_fields: HashMap<DebugId, ScalarFieldVisual>,
 }
 
+#[derive(Component)]
+struct DebugFocusedLabelRoot;
+
 pub(super) fn configure(app: &mut App) {
     app.init_gizmo_group::<DebugWorldGizmos>()
         .init_gizmo_group::<DebugOverlayGizmos>()
@@ -46,7 +49,11 @@ pub(super) fn configure(app: &mut App) {
         .add_systems(Startup, setup_render_backend)
         .add_systems(
             PostUpdate,
-            (render_gizmos_and_text, sync_scalar_field_visuals)
+            (
+                render_gizmos_and_text,
+                sync_focused_label_ui,
+                sync_scalar_field_visuals,
+            )
                 .in_set(super::ObservabilitySet::Render),
         );
 }
@@ -94,26 +101,6 @@ fn render_gizmos_and_text(
         .observer
         .and_then(|entity| transforms.get(entity).ok())
         .map(|global| global.compute_transform().rotation);
-
-    for label in &frame.labels {
-        let rotation = match label.facing {
-            DebugTextFacing::Billboard => {
-                let Some(rotation) = observer_rotation else {
-                    continue;
-                };
-                rotation
-            }
-            DebugTextFacing::World(rotation) => rotation,
-        };
-
-        overlay.text(
-            Isometry3d::new(label.position, rotation),
-            &label.text,
-            label.font_size,
-            label.anchor,
-            label.color,
-        );
-    }
 
     for field in &frame.vector_fields {
         draw_vector_field(&mut world, field);
@@ -163,6 +150,83 @@ fn render_gizmos_and_text(
             }
         }
     }
+}
+
+fn sync_focused_label_ui(
+    mut commands: Commands,
+    frame: Res<DebugFrame>,
+    context: Res<DebugContext>,
+    cameras: Query<(&Camera, &GlobalTransform)>,
+    roots: Query<Entity, With<DebugFocusedLabelRoot>>,
+) {
+    for root in &roots {
+        commands.entity(root).despawn();
+    }
+
+    let Some(selection) = context.selection else {
+        return;
+    };
+    let Some(observer) = context.observer else {
+        return;
+    };
+    let Ok((camera, camera_transform)) = cameras.get(observer) else {
+        return;
+    };
+
+    let frame = frame.read();
+    let Some(label) = frame
+        .labels
+        .iter()
+        .filter(|label| {
+            label.subject.is_some_and(|subject| {
+                subject == selection.entity || subject == selection.semantic_entity
+            })
+        })
+        .min_by(|a, b| {
+            a.position
+                .distance_squared(selection.world_position)
+                .total_cmp(&b.position.distance_squared(selection.world_position))
+        })
+    else {
+        return;
+    };
+
+    let Ok(viewport_position) = camera.world_to_viewport(camera_transform, label.position) else {
+        return;
+    };
+
+    commands
+        .spawn((
+            Name::new("Debug focused world annotation"),
+            DebugArtifact,
+            DebugFocusedLabelRoot,
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(viewport_position.x),
+                top: px(viewport_position.y),
+                border: UiRect::all(px(1)),
+                padding: UiRect::axes(px(7), px(4)),
+                ..default()
+            },
+            // Offset by the measured UI node's own size: the box stays centered
+            // and compact regardless of line lengths or camera distance.
+            UiTransform::from_translation(Val2::percent(-50.0, -115.0)),
+            BackgroundColor(Color::srgba(0.018, 0.022, 0.034, 0.92)),
+            BorderColor::all(Color::srgba(0.72, 0.80, 0.94, 0.78)),
+            GlobalZIndex(1_850),
+        ))
+        .with_children(|parent| {
+            parent.spawn((
+                DebugArtifact,
+                Text::new(label.text.clone()),
+                TextFont {
+                    font_size: FontSize::Px(label.font_size),
+                    ..default()
+                },
+                TextLayout::justify(Justify::Center),
+                TextColor(label.color),
+            ));
+        });
 }
 
 fn primitive_depth(primitive: &DebugPrimitive) -> DebugDepth {

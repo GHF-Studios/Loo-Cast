@@ -14,12 +14,14 @@ mod color;
 mod context;
 mod control;
 mod frame;
+mod inspector;
 mod menu;
 mod render;
+mod scientific;
 mod telemetry;
 
 pub use color::{DebugColorRamp, DebugColorStop, DebugScalarRange};
-pub use context::DebugContext;
+pub use context::{DebugContext, DebugSelection};
 pub use control::{
     AppObservabilityExt, DebugChoiceOption, DebugCondition, DebugControlKind,
     DebugControlSpec, DebugControls, DebugId,
@@ -28,7 +30,11 @@ pub use frame::{
     DebugDepth, DebugFrame, DebugFrameBatch, DebugLabel, DebugPrimitive, DebugScalarField,
     DebugScalarFieldMode, DebugTextFacing, DebugVectorField, DebugVectorSpace,
 };
+pub use inspector::{DebugInspector, DebugInspectorRow, DebugInspectorSection};
 pub use menu::DebugMenuState;
+pub use scientific::{
+    format_number, format_quantity, format_quantity_range, unit as scientific_unit,
+};
 pub use telemetry::{DebugMetricSpec, DebugMetrics, MetricUnit};
 
 use bevy::{prelude::*, transform::TransformSystems};
@@ -90,6 +96,7 @@ impl Plugin for ObservabilityPlugin {
             .add_systems(PostStartup, validate_debug_control_graph);
 
         render::configure(app);
+        inspector::configure(app);
         telemetry::configure(app);
 
         crate::ecs::observability::configure(app);

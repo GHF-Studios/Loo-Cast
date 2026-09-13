@@ -68,6 +68,7 @@ pub struct DebugLabel {
     pub font_size: f32,
     pub anchor: Vec2,
     pub color: Color,
+    pub subject: Option<Entity>,
     pub facing: DebugTextFacing,
 }
 
@@ -131,12 +132,11 @@ pub struct DebugFrameBatch {
 }
 
 impl DebugFrameBatch {
-    /// Default world-space label size in metres. Bevy gizmo text is world-scaled,
-    /// not UI-font-sized.
-    pub const DEFAULT_LABEL_FONT_SIZE: f32 = 0.14;
+    /// Default screen-space font size for focused object annotations.
+    pub const DEFAULT_LABEL_FONT_SIZE: f32 = 12.0;
 
-    /// Slightly smaller world-space size used for field legends.
-    pub const DEFAULT_LEGEND_FONT_SIZE: f32 = 0.12;
+    /// Screen-space font size used by the remaining gizmo field legends.
+    pub const DEFAULT_LEGEND_FONT_SIZE: f32 = 12.0;
 
 
     pub fn line(&mut self, start: Vec3, end: Vec3, color: Color, depth: DebugDepth) {
@@ -223,8 +223,31 @@ impl DebugFrameBatch {
             position,
             text: text.into(),
             font_size,
-            anchor: Vec2::new(-0.5, -0.5),
+            // Object annotations use their world anchor as the center point.
+            anchor: Vec2::ZERO,
             color,
+            subject: None,
+            facing: DebugTextFacing::Billboard,
+        });
+    }
+
+    /// Object-scoped annotation. The renderer only presents labels whose
+    /// subject matches the currently focused concrete or semantic entity.
+    pub fn label_for(
+        &mut self,
+        subject: Entity,
+        position: Vec3,
+        text: impl Into<String>,
+        font_size: f32,
+        color: Color,
+    ) {
+        self.labels.push(DebugLabel {
+            position,
+            text: text.into(),
+            font_size,
+            anchor: Vec2::ZERO,
+            color,
+            subject: Some(subject),
             facing: DebugTextFacing::Billboard,
         });
     }
