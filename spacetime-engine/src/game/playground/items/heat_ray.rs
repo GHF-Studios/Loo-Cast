@@ -10,7 +10,7 @@ use crate::{
     ecs::{UsfManifestationOf, UsfManifestations},
     game::{
         GameSet,
-        thermal::ThermalImpulse,
+        thermal::ThermalPointImpulse,
     },
 };
 
@@ -37,7 +37,7 @@ fn register_item(mut catalog: ResMut<PlaygroundCatalog>) {
     catalog.register(PlaygroundItem {
         id: HEAT_RAY,
         name: "Heat Ray",
-        description: "LMB injects heat, RMB removes heat. Ignition is systemic.",
+        description: "LMB injects heat at the hit point; RMB removes it. Internal gradients are systemic.",
     });
 }
 
@@ -46,7 +46,7 @@ fn use_heat_ray(
     manifestations: Query<&UsfManifestationOf>,
     semantic_entities: Query<&UsfManifestations>,
     spatial_query: SpatialQuery,
-    mut impulses: MessageWriter<ThermalImpulse>,
+    mut impulses: MessageWriter<ThermalPointImpulse>,
 ) {
     for request in uses.read() {
         if request.item != HEAT_RAY {
@@ -82,13 +82,10 @@ fn use_heat_ray(
             continue;
         };
 
-        let target = manifestations
-            .get(hit.entity)
-            .map(|manifestation| manifestation.0)
-            .unwrap_or(hit.entity);
-
-        impulses.write(ThermalImpulse {
-            target,
+        let hit_point = request.aim.origin + request.aim.direction * hit.distance;
+        impulses.write(ThermalPointImpulse {
+            target: hit.entity,
+            world_position: hit_point,
             energy_joules,
         });
     }

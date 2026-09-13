@@ -11,7 +11,10 @@ use crate::{
         portal::{
             PortalRigidSplitBody, PortalSplitTraveler, PortalSplitVisual, PortalTraveler,
         },
-        thermal::{CombustibleMaterial, Fuel, ThermalBody, ThermalSpatialSample},
+        thermal::{
+            CombustibleMaterial, Fuel, ThermalBody, ThermalField, ThermalMaterial,
+            ThermalSpatialSample,
+        },
     },
     physics::topology::{SpatialSplitBox, SpatialSplitPeer},
 };
@@ -47,7 +50,7 @@ fn register_items(mut catalog: ResMut<PlaygroundCatalog>) {
     catalog.register(PlaygroundItem {
         id: DAMAGEABLE_CUBE,
         name: "Damageable Cube",
-        description: "Dynamic rigid cube with shared Health, thermal state and finite fuel.",
+        description: "Dynamic rigid cube with Health, finite fuel and an internal thermal-energy field.",
     });
 
     catalog.register(PlaygroundItem {
@@ -118,6 +121,15 @@ fn use_cube_items(
             format!("Split Cube {}", counter.0)
         };
 
+        let thermal_material = ThermalMaterial::dry_wood();
+        let thermal_field = ThermalField::ambient_box(
+            Vec3::splat(CUBE_SIZE),
+            UVec3::splat(6),
+            &thermal_material,
+        );
+        let thermal_capacity =
+            thermal_field.total_heat_capacity_joules_per_kelvin(&thermal_material);
+
         let root = commands
             .spawn((
                 Name::new(logical_name),
@@ -125,7 +137,9 @@ fn use_cube_items(
                 ShowHealthInPlaygroundHud,
                 UsfEntity,
                 Health::new(MAXIMUM_HEALTH),
-                ThermalBody::ambient(600.0, 5.0),
+                ThermalBody::ambient(thermal_capacity, 0.0),
+                thermal_material,
+                thermal_field,
                 CombustibleMaterial::wood_like(),
                 Fuel::new(1_200_000.0),
             ))

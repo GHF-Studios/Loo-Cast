@@ -9,12 +9,12 @@ use bevy::prelude::*;
 /// Reference room temperature used by the first thermal slice.
 pub const AMBIENT_TEMPERATURE_KELVIN: f32 = 293.15;
 
-/// Lumped thermal state for one semantic entity.
+/// Aggregate thermal state for one semantic entity.
 ///
-/// This first model treats the entity as one well-mixed thermal mass. The
-/// quantities are already expressed in SI-ish units so replacing the lumped
-/// model with spatial/material thermal domains later does not require changing
-/// callers that inject energy.
+/// Existing gameplay systems consume this well-mixed aggregate directly.
+/// Bodies that need internal gradients may additionally carry
+/// [`super::ThermalField`] + [`super::ThermalMaterial`]; the thermal simulation
+/// keeps that spatial refinement reconciled with this aggregate state.
 #[derive(Component, Reflect, Debug, Clone, Copy)]
 #[reflect(Component)]
 pub struct ThermalBody {

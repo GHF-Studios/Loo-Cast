@@ -17,12 +17,13 @@ use crate::{
 
 use super::{
     coupling::{combustion_heat_coupling, radial_heat_weight}, CombustibleMaterial, Combustion,
-    ThermalBody, ThermalSpatialSample,
+    ThermalBody, ThermalField, ThermalMaterial, ThermalSpatialSample,
 };
 
 const TOOL: DebugId = DebugId("world.thermal");
 const SAMPLES: DebugId = DebugId("world.thermal.samples");
 const SAMPLE_LABELS: DebugId = DebugId("world.thermal.sample_labels");
+const INTERNAL_CELLS: DebugId = DebugId("world.thermal.internal_cells");
 
 const FIELD: DebugId = DebugId("world.thermal.field");
 const FIELD_SLICE: DebugId = DebugId("world.thermal.field.slice");
@@ -46,7 +47,7 @@ pub(crate) fn configure(app: &mut App) {
             20,
             false,
         )
-        .described("Lumped temperatures and combustion heat-coupling potential."),
+        .described("Aggregate temperatures, internal solid-energy gradients and combustion heat coupling."),
     )
     .register_debug_control(DebugControlSpec::toggle(
         SAMPLES,
@@ -60,6 +61,13 @@ pub(crate) fn configure(app: &mut App) {
         Some(SAMPLES),
         "Temperature labels",
         0,
+        true,
+    ))
+    .register_debug_control(DebugControlSpec::toggle(
+        INTERNAL_CELLS,
+        Some(SAMPLES),
+        "Internal thermal cells",
+        1,
         true,
     ))
     .register_debug_control(
@@ -194,6 +202,7 @@ fn collect_thermal_observations(
     context: Res<DebugContext>,
     transforms: Query<&GlobalTransform>,
     thermal_bodies: Query<&ThermalBody>,
+    thermal_fields: Query<(&ThermalField, &ThermalMaterial)>,
     combustions: Query<(), With<Combustion>>,
     samples: Query<
         (&UsfManifestationOf, &GlobalTransform),
@@ -236,11 +245,47 @@ fn collect_thermal_observations(
                 DebugDepth::World,
             );
 
+            let spatial = thermal_fields.get(relation.0).ok();
+            if controls.active(INTERNAL_CELLS) {
+                if let Some((field, material)) = spatial {
+                    let minimum = field.minimum_temperature_kelvin(material);
+                    let maximum = field.maximum_temperature_kelvin(material);
+                    let cell_range = DebugScalarRange::new(minimum, maximum.max(minimum + 1.0));
+                    let radius = (field.cell_size_meters().min_element() * 0.16)
+                        .clamp(0.015, 0.12);
+
+                    for cell in field.cell_samples(material) {
+                        let cell_position = transform.affine().transform_point3(cell.local_center);
+                        let cell_color = DebugColorRamp::THERMAL
+                            .sample_scalar(cell_range, cell.temperature_kelvin);
+                        batch.sphere(
+                            Isometry3d::new(cell_position, Quat::IDENTITY),
+                            radius,
+                            cell_color,
+                            6,
+                            DebugDepth::World,
+                        );
+                    }
+                }
+            }
+
             if controls.active(SAMPLE_LABELS) {
+                let spatial_summary = spatial
+                    .map(|(field, material)| {
+                        format!(
+                            "\nmin {:.1} / max {:.1} K\nrho {:.0} kg/m^3, cp {:.0} J/(kg K), k {:.3} W/(m K)",
+                            field.minimum_temperature_kelvin(material),
+                            field.maximum_temperature_kelvin(material),
+                            material.density_kg_per_cubic_meter,
+                            material.specific_heat_capacity_joules_per_kg_kelvin,
+                            material.thermal_conductivity_watts_per_meter_kelvin,
+                        )
+                    })
+                    .unwrap_or_default();
                 batch.label(
                     position + Vec3::Y * 0.65,
                     format!(
-                        "{temperature:.1} K{}",
+                        "{temperature:.1} K{spatial_summary}{}",
                         if combustions.contains(relation.0) {
                             " [burning]"
                         } else {

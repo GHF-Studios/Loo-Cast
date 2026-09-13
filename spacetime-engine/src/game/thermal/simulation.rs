@@ -4,16 +4,13 @@ use bevy::prelude::*;
 
 use crate::{
     ecs::UsfManifestationOf,
-    game::{
-        SimulationSet,
-        combat::Damage,
-    },
+    game::combat::Damage,
     physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive},
 };
 
 use super::{
-    CombustibleMaterial, Combustion, Fuel, ThermalBody, ThermalImpulse, ThermalInjury,
-    ThermalSpatialSample,
+    CombustibleMaterial, Combustion, Fuel, ThermalBody, ThermalField, ThermalImpulse,
+    ThermalInjury, ThermalMaterial, ThermalSet, ThermalSpatialSample,
 };
 
 pub(super) fn configure(app: &mut App) {
@@ -27,7 +24,7 @@ pub(super) fn configure(app: &mut App) {
             emit_thermal_injury_damage,
         )
             .chain()
-            .in_set(SimulationSet::Phenomena),
+            .in_set(ThermalSet::Lumped),
     );
 }
 
@@ -55,6 +52,7 @@ fn apply_thermal_impulses(
 fn update_combustion(
     mut commands: Commands,
     time: Res<Time>,
+    spatial_fields: Query<(&ThermalField, &ThermalMaterial)>,
     mut candidates: Query<(
         Entity,
         &ThermalBody,
@@ -67,7 +65,10 @@ fn update_combustion(
 
     for (entity, body, material, mut fuel, combustion) in &mut candidates {
         let has_fuel = fuel.remaining_energy_joules() > 0.0;
-        let temperature = body.temperature_kelvin();
+        let temperature = spatial_fields
+            .get(entity)
+            .map(|(field, material)| field.maximum_temperature_kelvin(material))
+            .unwrap_or_else(|_| body.temperature_kelvin());
 
         match combustion {
             Some(combustion) => {
