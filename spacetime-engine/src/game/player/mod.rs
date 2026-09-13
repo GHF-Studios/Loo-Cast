@@ -27,8 +27,8 @@ use bevy::{
 };
 
 use crate::{
-    debug::DebugCamera,
     ecs::{UsfEntity, UsfManifestationAuthority, UsfManifestationOf},
+    input_focus::{InputFocus, InputFocusSet},
     physics::{
         character::{CharacterDimensions, CharacterGroundState, CharacterMotor, CharacterMovementInput},
         topology::{KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeer},
@@ -47,6 +47,7 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<cursor::CursorCapture>()
+            .init_resource::<InputFocus>()
             .register_type::<Player>()
             .register_type::<PlayerController>()
             .register_type::<PlayerDead>()
@@ -57,6 +58,10 @@ impl Plugin for PlayerPlugin {
             .register_type::<ThirdPersonCamera>()
             .register_type::<CameraMode>()
             .add_systems(Startup, spawn_player)
+            .add_systems(
+                PreUpdate,
+                cursor::apply_input_focus.in_set(InputFocusSet::Resolve),
+            )
             .add_systems(
                 RunFixedMainLoop,
                 (
@@ -172,7 +177,6 @@ fn spawn_player(
         Name::new("Player Camera"),
         PlayerCamera::default(),
         PortalView,
-        DebugCamera,
         Camera3d::default(),
         IsDefaultUiCamera,
         RenderLayers::layer(0).with(MAIN_PORTAL_LAYER),

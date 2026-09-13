@@ -1,5 +1,5 @@
 pub mod component_conflict;
-pub(crate) mod debug;
+pub(crate) mod observability;
 pub mod manifestation;
 
 pub use manifestation::{

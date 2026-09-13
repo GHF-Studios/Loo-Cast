@@ -5,7 +5,7 @@ use bevy::{
     window::{CursorGrabMode, CursorOptions, PrimaryWindow},
 };
 
-use crate::debug::DebugMenuState;
+use crate::input_focus::InputFocus;
 
 #[derive(Resource, Debug)]
 pub struct CursorCapture {
@@ -55,21 +55,21 @@ impl CursorCapture {
     }
 }
 
+pub fn apply_input_focus(
+    focus: Res<InputFocus>,
+    mut capture: ResMut<CursorCapture>,
+) {
+    capture.set_blocked(focus.pointer_claimed() || focus.gameplay_claimed());
+}
+
 pub fn update_cursor_capture(
     keyboard: Res<ButtonInput<KeyCode>>,
     mouse: Res<ButtonInput<MouseButton>>,
     window: Single<&Window, With<PrimaryWindow>>,
     mut cursor: Single<&mut CursorOptions, With<PrimaryWindow>>,
     mut capture: ResMut<CursorCapture>,
-    debug_menu: Option<Res<DebugMenuState>>,
 ) {
     capture.just_captured = false;
-
-    capture.set_blocked(
-        debug_menu
-            .as_deref()
-            .is_some_and(DebugMenuState::is_open),
-    );
 
     if keyboard.just_pressed(KeyCode::Escape) {
         capture.release();

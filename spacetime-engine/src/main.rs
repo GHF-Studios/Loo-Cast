@@ -1,9 +1,11 @@
 use bevy::prelude::*;
 
 use spacetime_engine::{
-    debug::SpacetimeDebugPlugin, ecs::component_conflict::ComponentConflictPlugin,
-    game::TestGamePlugin,
-    geometry::AuthoredGeometryPlugin, physics::SpacetimePhysicsPlugin,
+    ecs::component_conflict::ComponentConflictPlugin,
+    game::{TestGameObservabilityPlugin, TestGamePlugin},
+    geometry::AuthoredGeometryPlugin,
+    observability::ObservabilityPlugin,
+    physics::SpacetimePhysicsPlugin,
 };
 
 fn main() {
@@ -14,7 +16,8 @@ fn main() {
             AuthoredGeometryPlugin,
             SpacetimePhysicsPlugin,
             TestGamePlugin,
-            SpacetimeDebugPlugin,
+            ObservabilityPlugin,
+            TestGameObservabilityPlugin,
         ))
         .run();
 }

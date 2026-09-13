@@ -94,9 +94,8 @@ fn update_combustion(
 struct HeatEmission {
     source: Entity,
     positions: Vec<Vec3>,
-    power_watts: f32,
-    self_heating_fraction: f32,
-    environmental_transfer_fraction: f32,
+    self_heating_power_watts: f32,
+    environmental_power_watts: f32,
     radius_meters: f32,
 }
 
@@ -133,18 +132,18 @@ fn propagate_combustion_heat(
 
     let emissions: Vec<HeatEmission> = sources
         .iter()
-        .map(|(source, combustion, material)| HeatEmission {
-            source,
-            positions: positions_by_semantic
-                .get(&source)
-                .cloned()
-                .unwrap_or_default(),
-            power_watts: combustion.power_watts(),
-            self_heating_fraction: material.self_heating_fraction.clamp(0.0, 1.0),
-            environmental_transfer_fraction: material
-                .environmental_transfer_fraction
-                .clamp(0.0, 1.0),
-            radius_meters: material.heat_transfer_radius_meters.max(0.0),
+        .map(|(source, combustion, material)| {
+            let coupling = super::coupling::combustion_heat_coupling(combustion, material);
+            HeatEmission {
+                source,
+                positions: positions_by_semantic
+                    .get(&source)
+                    .cloned()
+                    .unwrap_or_default(),
+                self_heating_power_watts: coupling.self_heating_power_watts,
+                environmental_power_watts: coupling.environmental_power_watts,
+                radius_meters: coupling.radius_meters,
+            }
         })
         .collect();
 
@@ -152,11 +151,11 @@ fn propagate_combustion_heat(
 
     for emission in &emissions {
         *energy_by_target.entry(emission.source).or_default() +=
-            emission.power_watts * emission.self_heating_fraction * dt;
+            emission.self_heating_power_watts * dt;
 
         if emission.positions.is_empty()
             || emission.radius_meters <= 0.0
-            || emission.environmental_transfer_fraction <= 0.0
+            || emission.environmental_power_watts <= 0.0
         {
             continue;
         }
@@ -185,8 +184,10 @@ fn propagate_combustion_heat(
             }
 
             let distance = minimum_distance_squared.sqrt();
-            let normalized = 1.0 - distance / emission.radius_meters;
-            let weight = normalized * normalized;
+            let weight = super::coupling::radial_heat_weight(
+                distance,
+                emission.radius_meters,
+            );
             if weight > 0.0 {
                 weights.push((target, weight));
                 total_weight += weight;
@@ -197,8 +198,7 @@ fn propagate_combustion_heat(
         // when the combined weights would otherwise exceed the source's finite
         // environmental heat budget.
         let normalization = total_weight.max(1.0);
-        let environmental_energy =
-            emission.power_watts * emission.environmental_transfer_fraction * dt;
+        let environmental_energy = emission.environmental_power_watts * dt;
 
         for (target, weight) in weights {
             *energy_by_target.entry(target).or_default() +=
