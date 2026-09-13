@@ -1,0 +1,383 @@
+# Spacetime Engine — aggressive redesign / pruning plan
+
+Status: **PLAN / AUDIT CHARTER ACCEPTED. Implementation has not started.**
+
+This document is the durable hand-off point for the next Spacetime Engine cleanup and redesign effort. It **supersedes `DEVTOOLS_REDESIGN.md`** as the active migration/work plan. The completed developer-tools architecture is documented separately in `src/devtools/ARCHITECTURE.md`; it should not be reconstructed from the old migration history.
+
+The purpose of this effort is not another compatibility-preserving cleanup. It is an aggressive code **and design** review driven by current game pressure. Existing abstractions are not presumed valuable merely because they already exist.
+
+## Why this pass exists
+
+The previous developer-tools migration successfully replaced the old observability subsystem, but it deliberately preserved most surrounding engine assumptions. The codebase still contains evidence from multiple architectural eras and several systems still solve the same reality independently.
+
+The clearest recent example is portal topology:
+
+- collision topology cuts real holes into Avian collision geometry;
+- ordinary ray/shape queries still operate in one Euclidean physics scene;
+- Developer Focus manually merges an Avian ray hit with a portal-aperture hit;
+- Heat Ray, object placement and erasing use raw Avian queries and are portal-oblivious;
+- third-person camera pushback would need its own portal traversal logic to behave correctly.
+
+That is the wrong ownership model. The camera, Heat Ray, Focus, etc. should not each learn how portals work. They should consume one engine-level interpretation of **what space is like**.
+
+The same pattern appears elsewhere: obsolete USF identity code, an entire component-conflict macro subsystem supporting that obsolete model, orphan old-game files, speculative World Draw features with no consumer, and duplicate source assets remain in the repository.
+
+This pass exists to make the engine smaller, more truthful, and more systemic.
+
+## Governing rules
+
+These rules are the default unless real implementation pressure disproves them.
+
+1. **Current pressure earns abstractions.** If a mechanism has no current consumer or exists only for a superseded design, delete it. Git is the archive.
+2. **One consumer is suspicious, several different consumers can justify abstraction.** A one-off generic framework should normally be specialized or inlined unless its boundary is independently valuable.
+3. **Reality is modeled once.** Consumers should not each be taught portal behavior, manifestation behavior, unit behavior, etc. The owning subsystem changes the reality they consume.
+4. **Backend-local behavior is explicit.** Raw Avian/local-Euclidean queries may remain as an implementation escape hatch, but ordinary engine/game code should consume engine spatial semantics.
+5. **Do not preserve parity by inertia.** Existing behavior, debug tools, types, settings and modules may be removed when they do not justify their maintenance cost.
+6. **Prefer deletion over compatibility layers.** Temporary bridges need a named removal point. Permanent aliases for dead architecture are not a goal.
+7. **Do not generalize hypothetical mechanics.** Generalize only where current independent consumers already demonstrate the shared concept.
+8. **Keep patches pressure-tested and incremental.** One meaningful redesign/deletion batch at a time; user compiles/runs before stacking the next behavior-changing batch.
+9. **Documentation follows current ownership.** Migration history is not architecture. Once a redesign lands, steady-state architecture docs describe what exists now.
+10. **Accepted local work must be pushed before patch generation.** Before each implementation batch, refetch the exact pushed tree. Never generate a patch against remembered or assumed local state.
+
+## Central architectural direction: topology is part of space
+
+### Problem
+
+Today, an ordinary `avian3d::SpatialQuery` answers questions only inside the backend's current Euclidean scene. Portals then require special handling in callers. That produces multiple incompatible spatial realities.
+
+### Target
+
+Spacetime Engine owns a topology-aware spatial-query layer. Ordinary engine/game systems ask spatial questions through that layer. Portal connections participate in the answer because they are part of space, not because the caller knows about portals.
+
+Conceptually:
+
+```text
+consumer
+   |
+   v
+Spacetime spatial query
+   |
+   +-- local collision backend (Avian)
+   |
+   +-- spatial/topological connections
+   |
+   v
+connected-space result
+```
+
+A query path is piecewise:
+
+```text
+origin
+  |
+  | local segment
+  +---- collision before connection -> hit / stop
+  |
+  +---- connection before collision
+             |
+             +-- record crossing
+             +-- rigidly map query state
+             +-- subtract travelled path length
+             +-- continue in connected space
+```
+
+### Agreed semantics
+
+- **Topology-aware queries are the normal/default engine reality.** Raw backend queries are explicitly local/low-level.
+- Query range is **total travelled path length** across every segment. A 100 m ray remains 100 m total after portal crossings.
+- Topology crossings are normally transparent to hit-seeking queries, but the returned path can record crossings so Developer Focus/inspection or other callers can reason about them without performing a second custom portal raycast.
+- Query state mapping includes whatever the primitive needs: origin/position, direction, orientation, and remaining distance.
+- Traversal is bounded against pathological cycles. The distance budget is the primary termination rule; a conservative hop cap may exist as a safety invariant, not gameplay semantics.
+- The first required primitives are **ray casts and swept shape casts**, because current real consumers already need both.
+- Camera pushback becomes an ordinary topology-aware swept-sphere query. The camera may therefore cross before the player or remain behind after the player crosses without containing portal-specific logic.
+- Heat Ray, Developer Focus, playground placement/erase and similar mechanics migrate to the same query reality.
+- Do **not** immediately pretend full rigid-body simulation has been generalized by this query layer. Dynamic contacts and split-body solver coupling are a separate, harder problem and are reviewed later.
+
+### Important non-goal
+
+Do not build a giant abstract graph/wormhole framework first. Portals are the first real provider of connected-space topology. Extract only the mechanism demonstrated by current consumers; keep portal-specific policy portal-specific.
+
+## Current worktree / recent prototype notes
+
+The following recent work is relevant to the redesign checkpoint:
+
+- Developer-tools redesign Stages 0–7 were locally validated. `src/devtools/ARCHITECTURE.md` is the steady-state devtools reference.
+- A player/world Health-bar change was implemented locally after Stage 7, followed by two Bevy query-disjointness fixes. It may be unpushed; verify the repository before building on it.
+- `portal-aware-third-person-camera.patch` demonstrated the desired camera behavior but is **not the desired final architecture**. It teaches `PlayerCamera` how portals work and is therefore superseded conceptually by the systemic spatial-query redesign. If it is locally applied, its caller-specific portal logic should be removed/replaced when the systemic query layer lands.
+- Do not assume any of these local patches are on GitHub until explicitly verified.
+
+## Review method
+
+The first pass is a repository-wide audit, not an implementation spree.
+
+For every meaningful module/type/abstraction, classify it as:
+
+- **KEEP** — current responsibility is justified and boundary is healthy.
+- **SIMPLIFY** — responsibility is justified, surface area is not.
+- **REDESIGN** — current pressure is real but ownership/model is wrong.
+- **DELETE** — dead, superseded, speculative, duplicate, or cheaper to recreate later.
+
+Each classification should answer:
+
+1. What current behavior depends on it?
+2. How many genuinely different consumers does it have?
+3. Is it modeling reality once or making callers adapt to a special case?
+4. Is the abstraction more complex than the behavior it currently provides?
+5. What becomes simpler if it disappears?
+6. What concrete regression would deletion cause today?
+
+Do not count comments, future plans, or hypothetical mods as consumers.
+
+## Stage plan
+
+The exact contents of later stages may change as the audit discovers more. Their **ordering and gates** are intentional.
+
+### Stage 0 — Durable reset / charter
+
+**Status: THIS DOCUMENT**
+
+- Supersede the old `DEVTOOLS_REDESIGN.md` active plan.
+- Record the aggressive-pruning rules and topology direction.
+- Record recent local/prototype work so context survives chat rollover.
+- No engine behavior change.
+
+**Exit gate:** this document is in the repository and becomes the resume point.
+
+### Stage 1 — Whole-engine audit
+
+**Status: NEXT**
+
+Scope:
+
+- `spacetime-engine/src/**`
+- `spacetime-engine-macros/**`
+- relevant workspace dependencies / module wiring
+- source assets that participate in engine behavior (e.g. duplicate shaders)
+
+Work:
+
+- map module/file ownership and current consumers;
+- search for orphan files not in the live module graph;
+- search for public exports with no real consumer;
+- identify duplicate representations of the same concept;
+- identify backend APIs leaking into gameplay where an engine semantic layer should own them;
+- identify generic types/options with only one concrete branch in use;
+- identify comments/docs that describe superseded architecture;
+- produce/update a **KEEP / SIMPLIFY / REDESIGN / DELETE** table in this document before code changes.
+
+No large redesign patch is produced during the audit itself.
+
+**Exit gate:** user and assistant agree on the first deletion/redesign batches and disputed items are explicitly resolved.
+
+### Stage 2 — Zero-ambiguity deletion batch
+
+Delete things that are demonstrably dead/superseded before designing replacements.
+
+Already-identified strong candidates, subject to Stage 1 consumer verification:
+
+- root-level obsolete `UsfEntity::{Original, ProxyImmutable, ProxyMutable}` model;
+- `OriginalUsfEntity`, `ProxyImmutableUsfEntity`, `ProxyMutableUsfEntity`;
+- `ecs::component_conflict/**` if no surviving consumer remains;
+- `spacetime-engine-macros` if conflict is its only surviving macro;
+- now-unused macro/inventory workspace dependencies after that removal;
+- `game/ui.rs` old Cube-HP test HUD;
+- `game/target.rs` old singleton target prototype;
+- duplicate/orphan portal shader source;
+- other orphan files discovered by the audit.
+
+This stage should be mostly deletion/module/Cargo cleanup, with no replacement framework.
+
+**Exit gate:** fmt/check/test + ordinary gameplay smoke test. Repository should compile with visibly less historical architecture.
+
+### Stage 3 — Shrink live speculative abstractions
+
+Remove generic surface that has current functionality but more design than current pressure warrants.
+
+Known candidate:
+
+- World Draw scalar fields currently have `ScalarFieldMode::{Heatmap, HeightField}` and `height_scale`, while the only real producer is Thermal heatmap. Remove dead HeightField semantics. Evaluate whether `WorldScalarField` should honestly become a narrower `WorldHeatmap` rather than pretending to be a broader field framework.
+
+Audit other live abstractions under the same rule. Preserve genuinely useful common rendering/math helpers; remove unused modes/settings/type layers.
+
+**Exit gate:** behavior remains equivalent for retained features; public/internal model describes only supported behavior.
+
+### Stage 4 — Topology-aware spatial query foundation
+
+Design and implement the smallest engine spatial-query layer justified by current consumers.
+
+Required capabilities:
+
+- topology-aware ray cast;
+- topology-aware swept shape cast;
+- total path-distance budget;
+- nearest local collision vs nearest topology crossing arbitration;
+- rigid mapping through a connection;
+- path/crossing metadata in results;
+- caller-provided collision filtering/exclusions without leaking portal policy;
+- explicit access to backend-local queries for subsystem internals that truly require them;
+- cycle/hop safety.
+
+Portal code supplies the first real spatial connection provider. Query code must not live in `PlayerCamera` or other callers.
+
+Naming is deliberately **not frozen yet**. Do not create misleading generic names until Stage 1/4 design review settles ownership between `physics`, `topology`, and portal domain code.
+
+**Exit gate:** focused unit tests for path traversal + ray/shape behavior through arbitrary rotated portal mappings; no consumer migration required yet beyond test harnesses.
+
+### Stage 5 — Migrate spatial-query consumers
+
+Move current independent consumers onto the systemic query reality, deleting their portal/local-space workarounds as they migrate.
+
+Expected consumers include:
+
+- third-person camera collision/pushback;
+- Developer Focus;
+- Heat Ray;
+- playground cube placement;
+- playground erase/picking paths;
+- Portal Gun query paths where appropriate;
+- other raw Avian ray/shape casts discovered in Stage 1.
+
+Desired outcome: these systems express only their own semantics. For example, camera code asks for a swept-sphere placement path; it contains no `Portal`, aperture or mapping knowledge.
+
+**Exit gate:** portal-crossing camera scenario works in both directions; rays/tools work through portals consistently; caller-specific portal query code is gone.
+
+### Stage 6 — Simple spatial traversal ownership
+
+Review ordinary traveler teleportation after the query layer proves the shared topology concept.
+
+Question to resolve:
+
+> Should an ordinary point/rigid traveler move through a spatial connection because topology owns connected space, rather than because the entity carries a portal-specific `PortalTraveler` adapter?
+
+Likely direction:
+
+- extract only the shared connected-space traversal mechanism actually demonstrated by projectiles/simple travelers;
+- keep portal-specific activation/aperture/pair policy in Portal;
+- avoid pretending split rigid bodies are solved by the same mechanism.
+
+`PortalTraveler` / `PortalVelocity` may disappear, shrink, or become topology-generic depending on the audit.
+
+**Exit gate:** simple traversal ownership is singular and callers do not duplicate portal crossing/mapping logic.
+
+### Stage 7 — Split-body / collision-topology review
+
+Only after ordinary spatial queries/traversal have a clean model, revisit the heavier prototype machinery:
+
+- `SpatialSplitPeer` / `SpatialSplitPeerActive`;
+- `SpatialSplitBox`;
+- `PortalSplitTraveler`;
+- `KinematicQueryExclusions`;
+- portal character split code;
+- rigid split solver coupling;
+- `collision_topology` stencil/CSG ownership;
+- relationship between collision holes and connected-space topology.
+
+Questions:
+
+- Which pieces are genuinely mechanism-independent now?
+- Which were generalized prematurely from a single Portal experiment?
+- Is `physics::topology` one coherent subsystem or a bag of Portal-extracted helpers?
+- Can query exclusions disappear or shrink once consumers use the correct spatial reality?
+- Should collision topology and connected-space topology share an owner, or remain distinct layers with an explicit boundary?
+
+Do not rewrite working split physics for aesthetic symmetry. Delete/generalize only where the systemic model materially simplifies it.
+
+**Exit gate:** split prototype still works; remaining generic topology types each have a clear non-fictional responsibility.
+
+### Stage 8 — Domain-by-domain design/pruning pass
+
+Continue the audit beyond topology, prioritizing large/complex areas:
+
+- geometry/authored-geometry pipeline;
+- thermal domain/spatial coupling/presentation;
+- character controller/frame/config split;
+- playground catalog/action/input/item architecture;
+- devtools/diagnostics/shared UI after real usage pressure;
+- root plugin/module composition and public exports.
+
+This is not a mandate to rewrite every subsystem. The goal is to challenge each abstraction and remove/restructure only where the cost/ownership is unjustified.
+
+**Exit gate:** no known high-confidence DELETE/REDESIGN item remains merely because it was out of scope.
+
+### Stage 9 — Steady-state architecture/document cleanup
+
+- update subsystem architecture docs to describe the final ownership model;
+- remove obsolete migration prose and temporary TODOs;
+- decide whether this file becomes historical or is deleted after a concise current architecture index exists;
+- verify public exports and Cargo dependencies one final time;
+- perform a repository-wide orphan/stale-name sweep.
+
+**Exit gate:** repository structure and docs tell the same story as the running engine.
+
+## Initial audit findings already established
+
+These are evidence-backed starting points, not a complete audit.
+
+### High-confidence DELETE candidates
+
+- Obsolete root-level USF Original/Proxy model in `src/lib.rs`.
+- Component-conflict runtime/registration system if the obsolete model is its only live consumer.
+- Conflict proc-macro and potentially the entire `spacetime-engine-macros` crate if nothing else survives.
+- Orphan old test-game `game/ui.rs`.
+- Orphan old singleton-target `game/target.rs`.
+- Duplicate/orphan portal shader file once the actually loaded shader path is verified.
+- `ScalarFieldMode::HeightField` and associated `height_scale` if the audit confirms no hidden producer.
+
+### REDESIGN candidates
+
+- Raw `avian3d::SpatialQuery` consumption across game/devtools: replace ordinary use with engine topology-aware spatial queries.
+- Developer Focus's manual `spatial hit + portal aperture hit` merge: result should come from one spatial reality.
+- Third-person camera portal handling: caller-specific solution is a prototype only; systemic spatial query should own it.
+- Ordinary portal traversal (`PortalTraveler` family): revisit after systemic query semantics are proven.
+- `physics::topology` vs `collision_topology` vs Portal topology ownership: review after the query foundation, not before.
+
+### SIMPLIFY candidates
+
+- `WorldScalarField` -> narrower heatmap representation if Thermal remains its only real producer.
+- Any visualization/settings abstraction with only one current mode/consumer.
+- Public exports and workspace dependencies left over from removed prototypes.
+
+### Confirmed examples that currently earn themselves
+
+Do not delete merely for symmetry:
+
+- `DrawDepth::Overlay` has a real Portal topology visualization use for cross-space relationship lines.
+- World Draw scalar/heatmap rendering has a real Thermal consumer even if its current generic surface is too broad.
+- semantic `UsfEntity` + `UsfManifestationOf` / `UsfManifestations` are actively used by current game pressure and represent the current identity model.
+- collision stencil/CSG code has real Portal host-hole behavior; ownership may change, but the behavior itself is not dead.
+
+## Patch / validation discipline
+
+For implementation stages:
+
+1. User pushes accepted local work first.
+2. Refetch exact pushed files/tree.
+3. Generate one focused patch.
+4. Validate patch structure and exact baseline as far as the environment allows (`git apply --check`, clean reconstruction, `git diff --check`).
+5. User runs:
+
+```bash
+cargo fmt --all
+cargo check -p spacetime-engine
+cargo test -p spacetime-engine
+```
+
+6. User smoke-tests the mechanics touched by that stage.
+7. Only then stack the next behavior-changing patch.
+
+Do not use `--reject`, force application, or fuzzy conflict resolution as the normal workflow. If a patch baseline differs, refetch/regenerate.
+
+## Resume checkpoint
+
+If conversation context is lost, resume here:
+
+1. Read this file.
+2. Read `src/devtools/ARCHITECTURE.md` only if developer-tool ownership is relevant; the old devtools migration plan is superseded.
+3. Verify current GitHub `main` and ask/confirm whether accepted local Health-bar work has been pushed before generating code patches.
+4. Treat `portal-aware-third-person-camera.patch` as a behavioral prototype, **not** the target architecture.
+5. Continue with **Stage 1 — Whole-engine audit**.
+6. Before implementation, present the KEEP / SIMPLIFY / REDESIGN / DELETE findings for discussion. The user explicitly wants design review/back-and-forth before large structural changes.
+
+The governing question for the entire effort is:
+
+> **What current pressure earns this abstraction's existence, and is the owning subsystem modeling reality once?**
