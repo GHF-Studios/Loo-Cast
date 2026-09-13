@@ -1,8 +1,8 @@
 //! Developer-facing inspection, UI and spatial visualization.
 //!
 //! Developer tools deliberately separate structured inspection, screen-space UI,
-//! and text-free World Draw. The old generic observability control graph no longer
-//! participates in developer-tool state.
+//! and text-free World Draw. Domain-specific adapters live beside the domains they
+//! inspect or visualize rather than under a second cross-cutting framework.
 
 mod draw;
 mod focus;
@@ -71,8 +71,8 @@ impl Plugin for DeveloperToolsPlugin {
             )
             .add_systems(PreUpdate, toggle_developer_tools);
 
-        crate::ecs::observability::configure(app);
-        crate::physics::character::observability::configure(app);
+        crate::ecs::devtools::configure(app);
+        crate::physics::character::devtools::configure(app);
 
         draw::configure(app);
         ui::configure(app);

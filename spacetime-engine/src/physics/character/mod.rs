@@ -6,7 +6,7 @@
 
 mod config;
 mod controller;
-pub(crate) mod observability;
+pub(crate) mod devtools;
 mod frame;
 mod input;
 mod math;

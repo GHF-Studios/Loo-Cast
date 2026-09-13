@@ -23,7 +23,7 @@ const CELLS_VISUALIZATION: VisualizationId = VisualizationId("world.thermal.cell
 const COUPLING_FIELD_VISUALIZATION: VisualizationId =
     VisualizationId("world.thermal.coupling_field");
 
-const FIELD_OBSERVATION: DrawId = DrawId("observation.thermal.heat_coupling");
+const COUPLING_FIELD_DRAW: DrawId = DrawId("thermal.heat_coupling");
 const FIELD_SIZE_METERS: f32 = 20.0;
 const FIELD_RESOLUTION: u32 = 28;
 const FIELD_OPACITY: f32 = 0.58;
@@ -43,11 +43,11 @@ pub(crate) fn configure(app: &mut App) {
     ))
     .add_systems(
         PostUpdate,
-        collect_thermal_observations.in_set(DeveloperSet::CollectWorldDraw),
+        collect_thermal_world_draw.in_set(DeveloperSet::CollectWorldDraw),
     );
 }
 
-fn collect_thermal_observations(
+fn collect_thermal_world_draw(
     tools: Res<DeveloperTools>,
     view: Res<DeveloperView>,
     transforms: Query<&GlobalTransform>,
@@ -196,7 +196,7 @@ fn collect_thermal_observations(
     }
 
     batch.scalar_field(WorldScalarField {
-        id: FIELD_OBSERVATION,
+        id: COUPLING_FIELD_DRAW,
         transform,
         size: Vec2::splat(FIELD_SIZE_METERS),
         resolution,

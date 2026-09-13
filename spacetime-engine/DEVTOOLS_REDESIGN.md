@@ -1,6 +1,6 @@
 # Developer tools / UI redesign migration
 
-Status: **Stages 0–5 are locally validated. Stage 6 shared UI consolidation is implemented in `devtools-redesign-stage-6.patch`; local compile/run validation is the next checkpoint before final cleanup.**
+Status: **Stages 0–6 are locally validated. Stage 7 final cleanup is implemented in `devtools-redesign-stage-7.patch`; one final local compile/run gate remains.**
 
 This document is the durable hand-off point for the debugging / visualization / UI / text redesign. Update it at the end of every migration stage so the work can resume from the repository alone, even if chat context is lost.
 
@@ -220,7 +220,7 @@ Exit condition: no generic runtime control language participates in the build or
 
 ### Stage 5 — Diagnostics extraction
 
-**Status: IMPLEMENTED in `devtools-redesign-stage-5.patch`; awaiting local validation**
+**Status: COMPLETE and locally validated**
 
 Implemented:
 
@@ -240,7 +240,7 @@ Exit condition: diagnostics data has no developer-control/UI ownership, no compi
 
 ### Stage 6 — Shared UI consolidation
 
-**Status: IMPLEMENTED in `devtools-redesign-stage-6.patch`; awaiting local validation**
+**Status: COMPLETE and locally validated**
 
 Implemented:
 
@@ -259,13 +259,19 @@ Exit condition: current Game UI and Developer UI share the presentation decision
 
 ### Stage 7 — Legacy removal and architecture cleanup
 
-**Status: PLANNED**
+**Status: IMPLEMENTED in `devtools-redesign-stage-7.patch`; awaiting final local validation**
 
-- Physically delete the orphaned `src/observability/` migration sources and other dead debug files.
-- Rename/move domain adapters to `devtools.rs` where appropriate.
-- Update architecture docs and module comments.
-- Remove any remaining stale naming/comments and duplicate resources.
-- Audit debug artifacts so they cannot affect simulation semantics.
+Implemented:
+
+- Physically deleted the orphaned `src/observability/` control/menu/history source and the orphaned Avian `physics/observability.rs` adapter.
+- Renamed live ECS, Character and Portal domain adapters from `observability.rs` to `devtools.rs`; Thermal's substantial visualization adapter became `world_draw.rs` beside its existing structured-inspection `devtools.rs`.
+- Removed the remaining `observability` module references and migration-era composition comments from the live module graph.
+- Added `src/devtools/ARCHITECTURE.md` as the concise steady-state architecture. This file remains the migration history, not the canonical description of current ownership.
+- Updated Thermal architecture documentation to describe structured inspection and World Draw directly rather than a generic observability layer.
+- Audited `DeveloperArtifact`: it remains only as a presentation marker for Developer UI/retained developer-render entities, is excluded by runtime structural diagnostics, and has no simulation authority or simulation-query role.
+- Confirmed the intentionally open font decision remains explicit: shared font ownership exists, but a project-owned Unicode-capable font asset is still future work rather than hidden system-font discovery.
+
+Exit condition: no obsolete observability source/naming remains in the live developer-tool architecture, and current ownership is documented directly rather than through migration-era terminology.
 
 ## Migration rules
 
@@ -280,16 +286,8 @@ Exit condition: current Game UI and Developer UI share the presentation decision
 
 ## Current checkpoint / resume here
 
-**Current checkpoint:** Stages 0–5 are user-validated and pushed. Stage 6 is implemented on top of that pushed tree: Developer UI and the current playground UI now consume the same small typography/font/panel policy instead of independently hardcoding those decisions.
+**Current checkpoint:** Stages 0–6 are user-validated and pushed. Stage 7 is implemented on top of that tree and is the final migration patch.
 
-**Required gate now:** apply `devtools-redesign-stage-6.patch`, run `cargo fmt --all`, `cargo check -p spacetime-engine`, `cargo test -p spacetime-engine`, then smoke-test the Inspector, Focus Badge, F4 palette, HUD/hotbar and creative menu. Confirm text remains readable/appropriately compact, menu input behavior is unchanged, and the centered crosshair still tracks creative-menu visibility.
+**Required gate now:** apply `devtools-redesign-stage-7.patch`, run `cargo fmt --all`, `cargo check -p spacetime-engine`, `cargo test -p spacetime-engine`, and smoke-test focus/Inspector/F3/F4 plus the retained Thermal, USF, Portal and Character visualizations.
 
-**If that gate passes, do next:** Stage 7 — physically remove orphaned migration source, rename live domain `observability.rs` adapters to `devtools.rs`, clean stale comments/names, and perform the final artifact/simulation-semantics audit. The separate project-font asset decision remains explicitly open; do not hide it behind system-font discovery.
-
-**Temporary legacy source intentionally still present but no longer compiled:**
-
-- `src/observability/*` is now wholly orphaned historical migration source and can be physically deleted in Stage 7.
-- `src/physics/observability.rs` is likewise orphaned after the Stage-4 Avian adapter removal.
-- domain files still named `observability.rs` under ECS/Portal/Thermal/Character are live Developer Tools adapters; Stage 7 may rename them to `devtools.rs` for naming clarity after the architecture is settled.
-
-There are no remaining runtime bridges between the old observability architecture and Developer Tools/diagnostics.
+**If that gate passes:** the staged redesign is complete. Future work should use `src/devtools/ARCHITECTURE.md` as the current architecture reference; this document remains only the migration record. The separate project-owned Unicode font asset remains an ordinary follow-up, not another redesign stage.

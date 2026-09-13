@@ -11,11 +11,11 @@
 
 mod coupling;
 pub(crate) mod devtools;
-pub(crate) mod observability;
 mod domain;
 mod presentation;
 mod simulation;
 mod spatial;
+pub(crate) mod world_draw;
 
 pub use domain::*;
 pub use spatial::*;

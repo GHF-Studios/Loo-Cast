@@ -70,11 +70,11 @@ information is retained.
 Those belong in later mechanisms layered on the same state/event boundaries.
 
 
-## Debug observability
+## Developer tooling
 
-Thermal observability exposes aggregate temperature plus the internal field's
-minimum/maximum temperature, SI material properties and per-cell temperature
-samples. The generic observability layer renders those cells as a local-space
-thermal point cloud on each active manifestation; the simulation itself remains
-independent from debug rendering. The pre-existing combustion-coupling scalar
-field remains available separately.
+`devtools.rs` exposes structured inspection of aggregate temperature, the internal
+field's minimum/maximum temperature, energy and SI material properties.
+`world_draw.rs` independently renders thermal bodies/cells and the optional
+combustion-coupling scalar field through the engine's text-free World Draw API.
+Neither path owns thermal simulation state, and inspection remains available even
+when every thermal visualization is disabled.

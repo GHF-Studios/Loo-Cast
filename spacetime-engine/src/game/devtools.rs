@@ -1,4 +1,4 @@
-//! Test-game adapters for generic developer focus and inspection.
+//! Test-game adapters for developer focus, inspection and domain tooling.
 
 use avian3d::prelude::{SpatialQuery, SpatialQueryFilter};
 use bevy::prelude::*;
@@ -25,11 +25,9 @@ pub struct TestGameDeveloperToolsPlugin;
 
 impl Plugin for TestGameDeveloperToolsPlugin {
     fn build(&self, app: &mut App) {
-        // Stage 3B: game-side world-draw adapters are composed here now that
-        // the legacy TestGameObservabilityPlugin compatibility layer is gone.
-        super::portal::observability::configure(app);
-        super::thermal::observability::configure(app);
+        super::portal::devtools::configure(app);
         super::thermal::devtools::configure(app);
+        super::thermal::world_draw::configure(app);
 
         app.add_systems(
             PostUpdate,
