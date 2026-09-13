@@ -1,4 +1,5 @@
 pub mod creative_menu;
+mod health;
 mod hotbar;
 mod hud;
 mod item_view;
@@ -10,6 +11,7 @@ pub struct PlaygroundUiPlugin;
 impl Plugin for PlaygroundUiPlugin {
     fn build(&self, app: &mut App) {
         creative_menu::configure(app);
+        health::configure(app);
         hud::configure(app);
 
         app.add_systems(PostUpdate, item_view::sync_item_views);

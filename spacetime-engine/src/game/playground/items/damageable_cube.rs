@@ -21,7 +21,7 @@ use crate::{
 
 use super::super::{
     PlaygroundCatalog, PlaygroundItem, PlaygroundItemAction, PlaygroundItemId, PlaygroundPickable,
-    PlaygroundRoot, ShowHealthInPlaygroundHud, UsePlaygroundItem,
+    PlaygroundRoot, UsePlaygroundItem,
 };
 
 pub const DAMAGEABLE_CUBE: PlaygroundItemId = PlaygroundItemId::new("damageable_cube");
@@ -134,7 +134,6 @@ fn use_cube_items(
             .spawn((
                 Name::new(logical_name),
                 PlaygroundRoot,
-                ShowHealthInPlaygroundHud,
                 UsfEntity,
                 Health::new(MAXIMUM_HEALTH),
                 ThermalBody::ambient(thermal_capacity, 0.0),

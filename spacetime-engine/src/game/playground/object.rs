@@ -3,9 +3,6 @@ use bevy::prelude::*;
 #[derive(Component, Debug)]
 pub struct PlaygroundRoot;
 
-#[derive(Component, Debug)]
-pub struct ShowHealthInPlaygroundHud;
-
 #[derive(Component, Debug, Clone, Copy)]
 pub struct PlaygroundPickable {
     pub root: Entity,

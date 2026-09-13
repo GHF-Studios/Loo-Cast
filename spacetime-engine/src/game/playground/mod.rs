@@ -21,7 +21,7 @@ pub use action::{
 };
 pub use catalog::{PlaygroundCatalog, PlaygroundItem, PlaygroundItemId};
 pub use inventory::{CreativeMenuState, CursorItem, Hotbar};
-pub use object::{PlaygroundPickable, PlaygroundRoot, ShowHealthInPlaygroundHud};
+pub use object::{PlaygroundPickable, PlaygroundRoot};
 
 use bevy::prelude::*;
 
