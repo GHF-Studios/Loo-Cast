@@ -10,6 +10,7 @@
 //! while flame geometry/light is derived presentation only.
 
 mod coupling;
+pub(crate) mod devtools;
 pub(crate) mod observability;
 mod domain;
 mod presentation;

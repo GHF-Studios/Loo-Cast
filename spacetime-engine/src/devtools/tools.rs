@@ -34,6 +34,11 @@ impl DeveloperTools {
         self.enabled = enabled;
     }
 
+    pub fn toggle_enabled(&mut self) -> bool {
+        self.enabled = !self.enabled;
+        self.enabled
+    }
+
     pub fn visualization_enabled(&self, id: VisualizationId) -> bool {
         self.enabled && self.visualizations.contains(&id)
     }

@@ -1,6 +1,7 @@
 //! Small test game used to pressure-test Spacetime Engine semantics.
 
 pub mod combat;
+mod devtools;
 mod observability;
 pub mod player;
 pub mod playground;
@@ -11,6 +12,7 @@ use bevy::prelude::*;
 
 use combat::{Damage, Died, FireWeapon, Hit};
 
+pub use devtools::TestGameDeveloperToolsPlugin;
 pub use observability::TestGameObservabilityPlugin;
 
 /// Stable top-level extension points.

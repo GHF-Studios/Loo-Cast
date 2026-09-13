@@ -7,6 +7,7 @@
 mod focus;
 mod inspect;
 mod tools;
+mod ui;
 
 pub use focus::{DeveloperFocus, FocusHit, FocusTarget};
 pub use inspect::{
@@ -15,7 +16,14 @@ pub use inspect::{
 };
 pub use tools::{DeveloperTools, VisualizationId};
 
-use bevy::prelude::*;
+use bevy::{prelude::*, transform::TransformSystems};
+
+/// Presentation-only entities owned by developer tooling.
+///
+/// During migration the new UI also carries the legacy `DebugArtifact` marker
+/// so old telemetry keeps excluding it. Stage 5 removes that bridge.
+#[derive(Component, Debug, Default)]
+pub struct DeveloperArtifact;
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DeveloperSet {
@@ -35,6 +43,10 @@ impl Plugin for DeveloperToolsPlugin {
             .init_resource::<DeveloperTools>()
             .configure_sets(
                 PostUpdate,
+                DeveloperSet::ResolveFocus.after(TransformSystems::Propagate),
+            )
+            .configure_sets(
+                PostUpdate,
                 (
                     DeveloperSet::ResolveFocus,
                     DeveloperSet::CollectInspection,
@@ -47,6 +59,21 @@ impl Plugin for DeveloperToolsPlugin {
             .add_systems(
                 PostUpdate,
                 inspect::clear_inspection_frame.in_set(DeveloperSet::ResolveFocus),
-            );
+            )
+            .add_systems(PreUpdate, toggle_developer_tools);
+
+        ui::configure(app);
+    }
+}
+
+fn toggle_developer_tools(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut tools: ResMut<DeveloperTools>,
+) {
+    // F3 is also the legacy observability master during migration. Both start
+    // enabled and intentionally follow the same key until Stage 4 deletes the
+    // old control graph.
+    if keyboard.just_pressed(KeyCode::F3) {
+        tools.toggle_enabled();
     }
 }

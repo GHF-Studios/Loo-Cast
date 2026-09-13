@@ -1,6 +1,6 @@
 # Developer tools / UI redesign migration
 
-Status: **Stage 1 complete in this patch; Stage 2 is next.**
+Status: **Stage 2 implemented in `devtools-redesign-stage-2.patch`; local compile/run validation is the next checkpoint before Stage 3.**
 
 This document is the durable hand-off point for the debugging / visualization / UI / text redesign. Update it at the end of every migration stage so the work can resume from the repository alone, even if chat context is lost.
 
@@ -133,26 +133,32 @@ Adds, without changing current debug behavior:
 
 Legacy observability remains authoritative during this stage. The new resources are inert foundations except for per-frame inspection-frame clearing.
 
-Validation for this checkpoint: the generated patch passed normal `git apply --check` and `git diff --check` against a clean reconstruction of the current `main` versions of the touched existing files. The assistant sandbox does not contain Cargo/Rust, so Rust compilation must be verified locally before Stage 2 is stacked on top.
+Validation for this checkpoint: the generated patch passed normal `git apply --check` and `git diff --check` against a clean reconstruction of the current `main` versions of the touched existing files. The user then confirmed Stage 1 compiles and runs locally.
 
 ### Stage 2 — Focus + Inspector cutover
 
-**Status: NEXT**
+**Status: IMPLEMENTED in `devtools-redesign-stage-2.patch`; awaiting local compile/run validation**
 
 Goal: make the new focus/inspection path useful before touching world visualization.
 
-Planned work:
+Implemented:
 
-- Move current local-player look selection into `DeveloperFocus`.
-- Preserve both concrete manifestation and semantic entity identity.
-- Add pin/unpin behavior.
-- Replace the current observability Inspector with Developer UI Inspector.
-- Move scientific formatting responsibility behind structured `InspectValue` rendering.
-- Migrate Thermal inspection first as the pressure-test domain.
-- Migrate identity / manifestation inspection needed to explain split entities.
-- Keep a temporary compatibility bridge to old `DebugContext.selection` only if old world labels still require it until Stage 3.
+- `game::devtools` now owns the local-player look ray and writes `DeveloperFocus`.
+- Focus preserves concrete/spatial entity, resolved semantic entity, world hit position and distance.
+- Portal apertures remain directly focusable even though they are not ordinary solid colliders.
+- `P` pins the current hover focus; `P` again unpins. Hover continues updating underneath a pin.
+- A compact persistent Developer Inspector UI now consumes `InspectionFrame` directly. It is screen-space UI only, has no world-text path, and updates text in place rather than rebuilding an entity tree every frame.
+- Structured `InspectValue` formatting now owns scientific-number presentation for the new Inspector.
+- USF identity inspection reports semantic/spatial identity, manifestation count, authority, and split-peer relationships.
+- Thermal inspection moved to `thermal::devtools` and is independent of all Thermal visualization toggles. It reports aggregate temperature, burning state, internal range/energy/grid, and structured material properties.
+- The old observability Inspector renderer is disabled. `DebugInspector` remains temporarily as a cleared data sink because unmigrated legacy collectors still submit to it.
+- Old world visualization still receives selection through a one-way `DeveloperFocus -> DebugContext` compatibility bridge. The look ray itself is no longer duplicated in observability.
+- F3 temporarily toggles both the new `DeveloperTools` master and the legacy observability master. This bridge disappears with the old control graph in Stage 4.
+- New Developer UI entities carry both `DeveloperArtifact` and legacy `DebugArtifact` while old telemetry only knows how to exclude the latter. Stage 5 removes this compatibility marker.
 
 Exit condition: looking at a thermal/split object produces a clean structured Inspector even with all world visualizations disabled.
+
+Validation in the assistant workspace: normal `git diff --check` passes and the Stage 2 patch is generated relative to the user-validated Stage 1 checkpoint. The assistant environment still has no Rust toolchain, so `cargo fmt/check/test` is the required local gate before Stage 3.
 
 ### Stage 3 — World Draw cutover and text removal
 
@@ -218,17 +224,20 @@ This stage is deliberately late: shared UI should be extracted from proven use, 
 
 ## Current checkpoint / resume here
 
-**Current checkpoint:** Stage 1 foundations introduced beside the existing observability stack.
+**Current checkpoint:** Stage 2 focus + Inspector cutover is implemented on top of the user-validated Stage 1 foundations.
 
-**Do next:** Stage 2 — move look focus and Inspector to `src/devtools`, starting with Thermal + USF manifestation identity. Do not begin World Draw deletion until the new Inspector is demonstrably useful.
+**Required gate now:** apply `devtools-redesign-stage-2.patch`, then run `cargo fmt --all`, `cargo check -p spacetime-engine`, `cargo test -p spacetime-engine`, and verify in-game that looking at a thermal/split object shows the new compact Inspector. Turn legacy Thermal visualization off while testing; inspection must remain populated. Verify `P` pin/unpin and F3 visibility as well.
+
+**If that gate passes, do next:** Stage 3 — cut world visualization over to the text-free World Draw model. Start by extracting the geometric/field portion of `DebugFrame`; do not carry `DebugLabel`, `DebugTextFacing`, gizmo text, field-legend text, or the old focused-label renderer into the replacement.
 
 **Temporary legacy systems intentionally still present:**
 
-- `src/observability/*`
-- `ObservabilityPlugin`
-- `TestGameObservabilityPlugin`
-- old Debug Control Graph / menu
-- old DebugFrame/world labels
-- old observability Inspector/scientific formatter
+- `src/observability/*` overall and `ObservabilityPlugin`
+- old Debug Control Graph / F4 menu
+- old `DebugFrame` geometric rendering and world/focused labels
+- old scientific formatter used by legacy visualization
+- `DebugInspector` as an invisible cleared compatibility sink only
+- `TestGameObservabilityPlugin` as observer selection + `DeveloperFocus -> DebugContext` bridge
+- legacy `DebugArtifact` marker on new Developer UI solely for current telemetry exclusion
 
-These are not forgotten cleanup; they are the compatibility bridge until their corresponding migration stages complete.
+These are explicit migration bridges, not forgotten cleanup. Remove each only in the stage that replaces its remaining responsibility.

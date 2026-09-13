@@ -84,15 +84,13 @@ impl DebugInspector {
 struct DebugInspectorRoot;
 
 pub(super) fn configure(app: &mut App) {
-    app.init_resource::<DebugInspector>()
-        .add_systems(
-            PostUpdate,
-            clear_debug_inspector.in_set(ObservabilitySet::Prepare),
-        )
-        .add_systems(
-            PostUpdate,
-            rebuild_inspector.in_set(ObservabilitySet::Render),
-        );
+    // Stage 2 migration bridge: legacy domain collectors may still submit
+    // sections here, but presentation has moved to `devtools::ui`. Keep clearing
+    // the sink so those collectors cannot accumulate duplicate section IDs.
+    app.init_resource::<DebugInspector>().add_systems(
+        PostUpdate,
+        clear_debug_inspector.in_set(ObservabilitySet::Prepare),
+    );
 }
 
 fn clear_debug_inspector(inspector: Res<DebugInspector>) {

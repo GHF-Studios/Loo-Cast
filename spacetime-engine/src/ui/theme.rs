@@ -50,23 +50,23 @@ impl UiTheme {
     pub fn text(&self, role: UiTextRole) -> UiTextStyle {
         match role {
             UiTextRole::Heading => UiTextStyle {
-                font_size_px: 18.0,
+                font_size_px: 14.0,
                 color: self.text_primary,
             },
             UiTextRole::Body => UiTextStyle {
-                font_size_px: 12.0,
+                font_size_px: 10.5,
                 color: self.text_primary,
             },
             UiTextRole::Data => UiTextStyle {
-                font_size_px: 12.0,
+                font_size_px: 10.5,
                 color: self.text_accent,
             },
             UiTextRole::Secondary => UiTextStyle {
-                font_size_px: 11.0,
+                font_size_px: 9.5,
                 color: self.text_secondary,
             },
             UiTextRole::Tiny => UiTextStyle {
-                font_size_px: 10.0,
+                font_size_px: 8.5,
                 color: self.text_secondary,
             },
         }
