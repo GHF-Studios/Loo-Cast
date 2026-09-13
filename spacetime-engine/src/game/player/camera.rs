@@ -20,7 +20,9 @@ use bevy::{
 
 use crate::{
     ecs::{UsfManifestationOf, UsfManifestations},
-    game::portal::DERIVED_VIEW_LAYER,
+    game::portal::{
+        DERIVED_VIEW_LAYER, Portal, PortalActive, crossed_aperture_fraction, map_through_portal,
+    },
     physics::character::{CharacterControlFrame, CharacterDimensions},
 };
 
@@ -53,7 +55,7 @@ pub struct ThirdPersonCamera {
     pub collision_radius: f32,
     /// Extra clearance kept in front of a camera obstruction.
     pub collision_padding: f32,
-    /// Collision-constrained distance from the most recent presentation pass.
+    /// Collision-constrained path distance from the most recent presentation pass.
     /// This is output/diagnostic state; input never uses it as its zoom base.
     pub resolved_distance: f32,
 }
@@ -174,11 +176,27 @@ pub fn zoom_third_person(
     camera.third_person.add_zoom_steps(-scroll.delta.y.signum());
 }
 
+const MAX_CAMERA_PORTAL_HOPS: usize = 8;
+const CAMERA_PORTAL_EPSILON: f32 = 0.01;
+
+struct ResolvedThirdPersonBoom {
+    transform: Transform,
+    distance: f32,
+}
+
+struct CameraPortalCrossing {
+    distance: f32,
+    source: Transform,
+    destination: Transform,
+}
+
 /// Resolves camera presentation after simulation/topology.
 ///
-/// Third person uses a sphere cast instead of a thin ray so walls and corners
-/// cannot pass through the near plane merely because the camera center itself
-/// had a clear line.
+/// Third person treats the boom as a short path through portal topology rather
+/// than one Euclidean segment. The camera can therefore cross a portal before
+/// the player, or remain through the portal behind the player after the player
+/// crosses. Each path segment still uses a sphere cast so ordinary walls and
+/// corners push the camera inward.
 pub fn sync_player_camera(
     spatial_query: SpatialQuery,
     player: Single<
@@ -194,6 +212,10 @@ pub fn sync_player_camera(
     >,
     camera: Single<(&mut PlayerCamera, &mut Transform), (With<PlayerCamera>, Without<Player>)>,
     semantic_entities: Query<&UsfManifestations>,
+    portals: Query<
+        (Entity, &Portal, &PortalActive, &Transform),
+        (With<Portal>, Without<PlayerCamera>),
+    >,
 ) {
     let (player_entity, body, control, aim, stance, manifestation) = player.into_inner();
     let (mut camera, mut camera_transform) = camera.into_inner();
@@ -201,56 +223,182 @@ pub fn sync_player_camera(
     let view_rotation = camera.view_rotation(control, aim);
     let eye = camera.eye_position(body, control, stance);
 
-    let translation = match camera.mode {
-        CameraMode::FirstPerson => eye,
+    *camera_transform = match camera.mode {
+        CameraMode::FirstPerson => Transform {
+            translation: eye,
+            rotation: view_rotation,
+            ..default()
+        },
         CameraMode::ThirdPerson => {
             let pivot = eye + control.rotation() * Vec3::Y * camera.third_person.pivot_height;
-            let back = view_rotation * Vec3::Z;
-            let desired_distance = camera.third_person.desired_distance();
-
-            let resolved_distance = if let Ok(direction) = Dir3::new(back) {
-                let shape = Collider::sphere(camera.third_person.collision_radius.max(0.001));
-                let cast_config = ShapeCastConfig {
-                    max_distance: desired_distance,
-                    ignore_origin_penetration: true,
-                    ..default()
-                };
-                let filter = semantic_entities
-                    .get(manifestation.0)
-                    .map(|manifestations| {
-                        SpatialQueryFilter::from_excluded_entities(manifestations.iter())
-                    })
-                    .unwrap_or_else(|_| {
-                        SpatialQueryFilter::from_excluded_entities([player_entity])
-                    });
-
-                spatial_query
-                    .cast_shape(
-                        &shape,
-                        pivot,
-                        Quat::IDENTITY,
-                        direction,
-                        &cast_config,
-                        &filter,
-                    )
-                    .map_or(desired_distance, |hit| {
-                        (hit.distance - camera.third_person.collision_padding.max(0.0))
-                            .clamp(0.0, desired_distance)
-                    })
-            } else {
-                desired_distance
-            };
-
-            camera.third_person.resolved_distance = resolved_distance;
-            pivot + back * resolved_distance
+            let resolved = resolve_third_person_boom(
+                &spatial_query,
+                &semantic_entities,
+                &portals,
+                player_entity,
+                manifestation,
+                pivot,
+                view_rotation,
+                &camera.third_person,
+            );
+            camera.third_person.resolved_distance = resolved.distance;
+            resolved.transform
         }
     };
+}
 
-    *camera_transform = Transform {
-        translation,
+fn resolve_third_person_boom(
+    spatial_query: &SpatialQuery,
+    semantic_entities: &Query<&UsfManifestations>,
+    portals: &Query<
+        (Entity, &Portal, &PortalActive, &Transform),
+        (With<Portal>, Without<PlayerCamera>),
+    >,
+    player_entity: Entity,
+    manifestation: &UsfManifestationOf,
+    pivot: Vec3,
+    view_rotation: Quat,
+    settings: &ThirdPersonCamera,
+) -> ResolvedThirdPersonBoom {
+    let desired_distance = settings.desired_distance();
+    let shape = Collider::sphere(settings.collision_radius.max(0.001));
+    let filter = semantic_entities
+        .get(manifestation.0)
+        .map(|manifestations| SpatialQueryFilter::from_excluded_entities(manifestations.iter()))
+        .unwrap_or_else(|_| SpatialQueryFilter::from_excluded_entities([player_entity]));
+
+    let mut transform = Transform {
+        translation: pivot,
         rotation: view_rotation,
         ..default()
     };
+    let mut remaining = desired_distance;
+    let mut resolved_distance = 0.0;
+
+    for _ in 0..MAX_CAMERA_PORTAL_HOPS {
+        if remaining <= f32::EPSILON {
+            break;
+        }
+
+        let back = transform.rotation * Vec3::Z;
+        let Ok(direction) = Dir3::new(back) else {
+            break;
+        };
+        let end = transform.translation + back * remaining;
+        let crossing = nearest_camera_portal_crossing(portals, transform.translation, end);
+        let segment_distance = crossing
+            .as_ref()
+            .map_or(remaining, |crossing| crossing.distance);
+
+        let cast_config = ShapeCastConfig {
+            max_distance: segment_distance,
+            ignore_origin_penetration: true,
+            ..default()
+        };
+
+        if let Some(hit) = spatial_query.cast_shape(
+            &shape,
+            transform.translation,
+            Quat::IDENTITY,
+            direction,
+            &cast_config,
+            &filter,
+        ) {
+            let travel = (hit.distance - settings.collision_padding.max(0.0))
+                .clamp(0.0, segment_distance);
+            transform.translation += back * travel;
+            resolved_distance += travel;
+            return ResolvedThirdPersonBoom {
+                transform,
+                distance: resolved_distance,
+            };
+        }
+
+        let Some(crossing) = crossing else {
+            transform.translation = end;
+            resolved_distance += remaining;
+            remaining = 0.0;
+            break;
+        };
+
+        transform.translation += back * crossing.distance;
+        transform = map_through_portal(&transform, &crossing.source, &crossing.destination);
+        resolved_distance += crossing.distance;
+        remaining = (remaining - crossing.distance).max(0.0);
+
+        // Nudge the mapped camera center off the destination plane so the next
+        // segment cannot immediately rediscover the same crossing at t ~= 0.
+        let advance = CAMERA_PORTAL_EPSILON.min(remaining);
+        if advance > 0.0 {
+            let mapped_back = transform.rotation * Vec3::Z;
+            transform.translation += mapped_back * advance;
+            resolved_distance += advance;
+            remaining -= advance;
+        }
+    }
+
+    // Hitting the hop bound is a malformed/degenerate topology case. Preserve
+    // the last valid camera transform rather than walking indefinitely.
+    ResolvedThirdPersonBoom {
+        transform,
+        distance: resolved_distance.min(desired_distance),
+    }
+}
+
+fn nearest_camera_portal_crossing(
+    portals: &Query<
+        (Entity, &Portal, &PortalActive, &Transform),
+        (With<Portal>, Without<PlayerCamera>),
+    >,
+    start: Vec3,
+    end: Vec3,
+) -> Option<CameraPortalCrossing> {
+    let segment_length = start.distance(end);
+    if segment_length <= f32::EPSILON {
+        return None;
+    }
+
+    let mut nearest: Option<CameraPortalCrossing> = None;
+
+    for (_, portal, active, source) in portals.iter() {
+        if !active.0 {
+            continue;
+        }
+        let Some(fraction) = crossed_aperture_fraction(
+            source,
+            portal.half_size,
+            portal.sidedness,
+            start,
+            end,
+        ) else {
+            continue;
+        };
+        let Ok((_, _, destination_active, destination)) = portals.get(portal.destination) else {
+            continue;
+        };
+        if !destination_active.0 {
+            continue;
+        }
+
+        let distance = segment_length * fraction;
+        if distance <= f32::EPSILON {
+            continue;
+        }
+
+        let replace = match nearest.as_ref() {
+            None => true,
+            Some(current) => distance < current.distance,
+        };
+        if replace {
+            nearest = Some(CameraPortalCrossing {
+                distance,
+                source: *source,
+                destination: *destination,
+            });
+        }
+    }
+
+    nearest
 }
 
 /// Bevy stores perspective FOV vertically. Keep the requested gameplay FOV

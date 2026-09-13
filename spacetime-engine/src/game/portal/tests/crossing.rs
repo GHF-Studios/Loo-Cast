@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use super::super::{
     domain::{PortalSide, PortalSidedness},
-    topology::crossing::crossed_aperture,
+    topology::crossing::{crossed_aperture, crossed_aperture_fraction},
 };
 
 #[test]
@@ -47,5 +47,21 @@ fn one_sided_rejects_back_to_front() {
             Vec3::new(0.0, 0.0, 1.0),
         ),
         None,
+    );
+}
+
+#[test]
+fn crossing_fraction_tracks_segment_position() {
+    let portal = Transform::IDENTITY;
+
+    assert_eq!(
+        crossed_aperture_fraction(
+            &portal,
+            Vec2::ONE,
+            PortalSidedness::TwoSided,
+            Vec3::new(0.0, 0.0, 3.0),
+            Vec3::new(0.0, 0.0, -1.0),
+        ),
+        Some(0.75),
     );
 }

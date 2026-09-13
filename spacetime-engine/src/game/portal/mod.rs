@@ -28,6 +28,11 @@ pub use domain::{
 
 pub use rendering::{DERIVED_VIEW_LAYER, MAIN_PORTAL_LAYER, PortalSplitVisual};
 
+pub(crate) use topology::{
+    crossing::crossed_aperture_fraction,
+    mapping::map_transform as map_through_portal,
+};
+
 use avian3d::{
     dynamics::{
         integrator::IntegrationSystems,
