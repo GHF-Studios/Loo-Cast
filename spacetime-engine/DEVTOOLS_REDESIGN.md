@@ -1,6 +1,6 @@
 # Developer tools / UI redesign migration
 
-Status: **Stage 3 is locally validated. Stage 4 tool-control simplification is implemented in `devtools-redesign-stage-4.patch`; local compile/run validation is the next checkpoint before Stage 5.**
+Status: **Stages 0–4 are locally validated. Stage 5 diagnostics extraction is implemented in `devtools-redesign-stage-5.patch`; local compile/run validation is the next checkpoint before Stage 6.**
 
 This document is the durable hand-off point for the debugging / visualization / UI / text redesign. Update it at the end of every migration stage so the work can resume from the repository alone, even if chat context is lost.
 
@@ -200,7 +200,7 @@ Exit condition: World Draw has no text concept, the old world-text implementatio
 
 ### Stage 4 — Tool-control simplification
 
-**Status: IMPLEMENTED in `devtools-redesign-stage-4.patch`; awaiting local validation**
+**Status: COMPLETE and locally validated**
 
 Implemented:
 
@@ -218,13 +218,25 @@ Implemented:
 
 Exit condition: no generic runtime control language participates in the build or runtime.
 
-### Stage 5 — Telemetry extraction
+### Stage 5 — Diagnostics extraction
 
-**Status: PLANNED**
+**Status: IMPLEMENTED in `devtools-redesign-stage-5.patch`; awaiting local validation**
 
-- Move telemetry conceptually out of observability into diagnostics.
-- Preserve useful metric sampling/history behavior.
-- Make developer diagnostics UI a consumer, not the owner, of telemetry.
+Implemented:
+
+- Added `crate::diagnostics` with `RuntimeDiagnosticsPlugin` and a typed `RuntimeDiagnostics` snapshot resource. Diagnostics data no longer lives under the developer-tool/observability namespace.
+- Removed the generic `DebugId` / `DebugMetricSpec` / `DebugMetrics` string-keyed registry rather than carrying another generic metadata layer forward.
+- Kept the runtime metrics that currently earn their cost:
+  - frame FPS, current frame time, average frame time, and 1% low FPS;
+  - world entity count, component-instance count, and archetype count;
+  - process/system CPU, process memory in GiB, and system memory percentage.
+- Pruned frame min/max, 0.1% low FPS, registered component-type count, and resource count. They were either noisy, weakly actionable, or required extra bookkeeping without a current consumer.
+- Frame-time history is bounded to 600 Bevy diagnostic samples, which is enough to derive a useful 1% low without retaining the previous 3,600-sample history by inertia.
+- Diagnostics sample their public snapshot at a conservative 1 Hz cadence and own no HUD, Inspector section, Developer Tools toggle, or World Draw output.
+- World structural metrics now exclude `DeveloperArtifact` directly. Removed the temporary legacy `DebugArtifact` marker from Developer UI and retained scalar-field entities.
+- `lib.rs` no longer declares `observability`; `main.rs` installs `RuntimeDiagnosticsPlugin` instead of `ObservabilityPlugin`. The old `src/observability/*` files are now completely orphaned historical source pending physical deletion in Stage 7.
+
+Exit condition: diagnostics data has no developer-control/UI ownership, no compiled `crate::observability` dependency remains, and Developer UI/World Draw need only `DeveloperArtifact`.
 
 ### Stage 6 — Shared UI consolidation
 
@@ -240,10 +252,10 @@ This stage is deliberately late: shared UI should be extracted from proven use, 
 
 **Status: PLANNED**
 
-- Delete the remaining `observability` umbrella once all surviving responsibilities have migrated.
+- Physically delete the orphaned `src/observability/` migration sources and other dead debug files.
 - Rename/move domain adapters to `devtools.rs` where appropriate.
 - Update architecture docs and module comments.
-- Remove temporary bridges and duplicate resources.
+- Remove any remaining stale naming/comments and duplicate resources.
 - Audit debug artifacts so they cannot affect simulation semantics.
 
 ## Migration rules
@@ -259,16 +271,16 @@ This stage is deliberately late: shared UI should be extracted from proven use, 
 
 ## Current checkpoint / resume here
 
-**Current checkpoint:** Stage 3 is user-validated and pushed. Stage 4 is implemented on top of that pushed tree and replaces the live generic control graph/menu with the flat Developer Tools palette while pruning controls that did not earn continued existence.
+**Current checkpoint:** Stages 0–4 are user-validated and pushed. Stage 5 is implemented on top of that pushed tree: telemetry is now a typed diagnostics subsystem, the compiled `observability` umbrella is gone, and the `DebugArtifact` compatibility bridge has been removed.
 
-**Required gate now:** apply `devtools-redesign-stage-4.patch`, run `cargo fmt --all`, `cargo check -p spacetime-engine`, `cargo test -p spacetime-engine`, then smoke-test: F4 opens the small palette; each retained visualization toggles independently; F3 hides Inspector/Focus Badge/World Draw while preserving selections; P still pins focus; Thermal bodies/cells and coupling field both work; USF/Portal/Character remain functional.
+**Required gate now:** apply `devtools-redesign-stage-5.patch`, run `cargo fmt --all`, `cargo check -p spacetime-engine`, `cargo test -p spacetime-engine`, then smoke-test the existing Developer Tools/Inspector paths. No diagnostics UI exists in this stage, so runtime validation is primarily that ordinary gameplay/devtools behavior is unchanged while the new `RuntimeDiagnostics` resource samples successfully.
 
-**If that gate passes, do next:** Stage 5 — move telemetry out of `observability` into a diagnostics-owned data subsystem, decide which metrics actually deserve to survive, and remove the temporary `DebugArtifact` compatibility marker from Developer UI / World Draw.
+**If that gate passes, do next:** Stage 6 — consolidate proven shared UI presentation policy. In particular, address explicit Unicode-capable font ownership and remove duplicated typography/panel styling only where the current Game UI and Developer UI actually overlap.
 
-**Temporary legacy systems intentionally still present:**
+**Temporary legacy source intentionally still present but no longer compiled:**
 
-- `src/observability/telemetry.rs`, `ObservabilityPlugin`, `DebugId`, and `DebugArtifact` solely for the Stage-5 telemetry extraction
-- orphaned source files `src/observability/control.rs`, `src/observability/menu.rs`, and `src/physics/observability.rs`; they are no longer declared modules or compiled and can be physically deleted during final cleanup
-- legacy `DebugArtifact` marker on new Developer UI / retained World Draw entities solely for current telemetry exclusion
+- `src/observability/*` is now wholly orphaned historical migration source and can be physically deleted in Stage 7.
+- `src/physics/observability.rs` is likewise orphaned after the Stage-4 Avian adapter removal.
+- domain files still named `observability.rs` under ECS/Portal/Thermal/Character are live Developer Tools adapters; Stage 7 may rename them to `devtools.rs` for naming clarity after the architecture is settled.
 
-The old control graph/menu, Avian developer-control adapter, world renderer/text model, context mirror, Inspector sink, scientific formatter, gravity visualizer, and sampled vector-field path no longer participate in the build/runtime.
+There are no remaining runtime bridges between the old observability architecture and Developer Tools/diagnostics.

@@ -2,9 +2,9 @@
 //!
 //!
 
+pub mod diagnostics;
 pub mod devtools;
 pub mod input_focus;
-pub mod observability;
 pub mod ecs;
 pub mod game;
 pub mod geometry;

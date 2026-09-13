@@ -6,8 +6,6 @@ use bevy::{
     prelude::*,
 };
 
-use crate::observability::DebugArtifact;
-
 use super::{DrawDepth, DrawId, ScalarFieldMode, WorldDrawFrame, WorldPrimitive, WorldScalarField};
 use crate::devtools::{DeveloperArtifact, DeveloperSet};
 
@@ -173,8 +171,6 @@ fn sync_scalar_field_visuals(
                 .spawn((
                     Name::new(format!("Developer scalar field {}", field.id)),
                     DeveloperArtifact,
-                    // Temporary Stage-5 telemetry compatibility marker.
-                    DebugArtifact,
                     WorldScalarFieldVisual,
                     Mesh3d(mesh.clone()),
                     MeshMaterial3d(assets.scalar_material.clone()),

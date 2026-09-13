@@ -5,10 +5,7 @@
 
 use bevy::{prelude::*, text::FontSize};
 
-use crate::{
-    observability::DebugArtifact,
-    ui::{UiTextRole, UiTheme},
-};
+use crate::ui::{UiTextRole, UiTheme};
 
 use super::super::{
     AppDeveloperToolsExt, DeveloperArtifact, DeveloperFocus, DeveloperSet, DeveloperTools,
@@ -44,7 +41,6 @@ fn spawn_focus_badge(mut commands: Commands, theme: Res<UiTheme>) {
         .spawn((
             Name::new("Developer Focus Badge"),
             DeveloperArtifact,
-            DebugArtifact,
             FocusBadgeRoot,
             Node {
                 display: Display::None,
@@ -61,7 +57,6 @@ fn spawn_focus_badge(mut commands: Commands, theme: Res<UiTheme>) {
         .with_children(|parent| {
             parent.spawn((
                 DeveloperArtifact,
-                DebugArtifact,
                 FocusBadgeText,
                 Text::new(""),
                 TextFont {

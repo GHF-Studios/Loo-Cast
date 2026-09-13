@@ -6,10 +6,7 @@
 
 use bevy::{prelude::*, text::FontSize};
 
-use crate::{
-    observability::DebugArtifact,
-    ui::{UiTextRole, UiTheme},
-};
+use crate::ui::{UiTextRole, UiTheme};
 
 use super::super::{
     DeveloperArtifact, DeveloperFocus, DeveloperSet, DeveloperTools, InspectNumberFormat,
@@ -40,9 +37,6 @@ fn spawn_inspector(mut commands: Commands, theme: Res<UiTheme>) {
         .spawn((
             Name::new("Developer Inspector"),
             DeveloperArtifact,
-            // Temporary Stage 2 compatibility: legacy telemetry currently only
-            // knows this marker when excluding presentation artifacts.
-            DebugArtifact,
             DeveloperInspectorRoot,
             Node {
                 display: Display::None,
@@ -65,7 +59,6 @@ fn spawn_inspector(mut commands: Commands, theme: Res<UiTheme>) {
         .with_children(|parent| {
             parent.spawn((
                 DeveloperArtifact,
-                DebugArtifact,
                 DeveloperInspectorTitle,
                 Text::new("INSPECTOR"),
                 TextFont {
@@ -76,7 +69,6 @@ fn spawn_inspector(mut commands: Commands, theme: Res<UiTheme>) {
             ));
             parent.spawn((
                 DeveloperArtifact,
-                DebugArtifact,
                 DeveloperInspectorBody,
                 Text::new(""),
                 TextFont {

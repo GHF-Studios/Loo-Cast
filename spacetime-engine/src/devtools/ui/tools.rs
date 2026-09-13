@@ -7,7 +7,6 @@ use bevy::{prelude::*, text::FontSize};
 
 use crate::{
     input_focus::{InputFocus, InputFocusSet},
-    observability::DebugArtifact,
     ui::{UiTextRole, UiTheme},
 };
 
@@ -63,7 +62,6 @@ fn spawn_tools_palette(
         .spawn((
             Name::new("Developer Tools Palette"),
             DeveloperArtifact,
-            DebugArtifact,
             DeveloperToolsPaletteRoot,
             Node {
                 display: Display::None,
@@ -84,7 +82,6 @@ fn spawn_tools_palette(
         .with_children(|parent| {
             parent.spawn((
                 DeveloperArtifact,
-                DebugArtifact,
                 Text::new("DEVELOPER TOOLS"),
                 TextFont {
                     font_size: FontSize::Px(heading.font_size_px),
@@ -94,7 +91,6 @@ fn spawn_tools_palette(
             ));
             parent.spawn((
                 DeveloperArtifact,
-                DebugArtifact,
                 DeveloperMasterLabel,
                 Text::new(""),
                 TextFont {
@@ -108,7 +104,6 @@ fn spawn_tools_palette(
                 parent
                     .spawn((
                         DeveloperArtifact,
-                        DebugArtifact,
                         Button,
                         VisualizationButton(spec.id),
                         Node {
@@ -121,7 +116,6 @@ fn spawn_tools_palette(
                     .with_children(|parent| {
                         parent.spawn((
                             DeveloperArtifact,
-                            DebugArtifact,
                             VisualizationLabel(spec.id),
                             Text::new(spec.label),
                             TextFont {

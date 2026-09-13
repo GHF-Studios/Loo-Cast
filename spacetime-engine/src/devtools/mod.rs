@@ -29,8 +29,7 @@ use bevy::{prelude::*, transform::TransformSystems};
 
 /// Presentation-only entities owned by developer tooling.
 ///
-/// During migration the new UI also carries the legacy `DebugArtifact` marker
-/// so old telemetry keeps excluding it. Stage 5 removes that bridge.
+/// Runtime diagnostics exclude these entities from world/ECS structural counts.
 #[derive(Component, Debug, Default)]
 pub struct DeveloperArtifact;
 
