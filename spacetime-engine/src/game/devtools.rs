@@ -5,7 +5,7 @@ use bevy::prelude::*;
 
 use crate::{
     devtools::{
-        DeveloperFocus, DeveloperSet, DeveloperTools, FocusHit, FocusTarget, InspectField,
+        DeveloperFocus, DeveloperSet, DeveloperTools, DeveloperView, FocusHit, FocusTarget, InspectField,
         InspectSection, InspectSectionId, InspectValue, InspectionFrame,
     },
     ecs::{UsfManifestationAuthority, UsfManifestationOf, UsfManifestations},
@@ -13,6 +13,7 @@ use crate::{
 };
 
 use super::{
+    player::PlayerCamera,
     playground::{AimRay, PlaygroundAim},
     portal::{Portal, PortalActive},
 };
@@ -28,7 +29,7 @@ impl Plugin for TestGameDeveloperToolsPlugin {
 
         app.add_systems(
             PostUpdate,
-            (resolve_player_focus, handle_focus_pin)
+            (resolve_developer_view, resolve_player_focus, handle_focus_pin)
                 .chain()
                 .in_set(DeveloperSet::ResolveFocus),
         )
@@ -37,6 +38,13 @@ impl Plugin for TestGameDeveloperToolsPlugin {
             collect_identity_inspection.in_set(DeveloperSet::CollectInspection),
         );
     }
+}
+
+fn resolve_developer_view(
+    cameras: Query<Entity, With<PlayerCamera>>,
+    mut view: ResMut<DeveloperView>,
+) {
+    view.set_observer(cameras.iter().next());
 }
 
 fn resolve_player_focus(

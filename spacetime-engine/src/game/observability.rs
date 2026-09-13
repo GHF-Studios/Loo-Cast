@@ -1,16 +1,15 @@
 //! Compatibility composition for test-game legacy observability.
 //!
-//! Look selection is now owned by `game::devtools`; this module only mirrors the
-//! new focus into `DebugContext` until Stage 3 migrates old world visualization.
+//! Focus and observer ownership now live in `game::devtools`. This module only
+//! mirrors the new developer context into `DebugContext` for legacy subsystems
+//! that have not reached their migration stage yet.
 
 use bevy::prelude::*;
 
 use crate::{
-    devtools::{DeveloperFocus, DeveloperSet},
+    devtools::{DeveloperFocus, DeveloperSet, DeveloperView},
     observability::{DebugContext, DebugSelection, ObservabilitySet},
 };
-
-use super::player::PlayerCamera;
 
 pub struct TestGameObservabilityPlugin;
 
@@ -21,25 +20,20 @@ impl Plugin for TestGameObservabilityPlugin {
 
         app.add_systems(
             PostUpdate,
-            (choose_player_debug_observer, sync_legacy_debug_selection)
-                .chain()
+            sync_legacy_debug_context
                 .in_set(ObservabilitySet::Prepare)
                 .after(DeveloperSet::ResolveFocus),
         );
     }
 }
 
-fn choose_player_debug_observer(
-    cameras: Query<Entity, With<PlayerCamera>>,
-    mut context: ResMut<DebugContext>,
-) {
-    context.observer = cameras.iter().next();
-}
-
-fn sync_legacy_debug_selection(
+fn sync_legacy_debug_context(
     focus: Res<DeveloperFocus>,
+    view: Res<DeveloperView>,
     mut context: ResMut<DebugContext>,
 ) {
+    context.observer = view.observer();
+
     let Some(target) = focus.current() else {
         context.clear_selection();
         return;

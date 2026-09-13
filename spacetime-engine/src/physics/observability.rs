@@ -6,10 +6,15 @@ use avian3d::{
 };
 use bevy::prelude::*;
 
-use crate::observability::{
-    AppObservabilityExt, DebugColorRamp, DebugContext, DebugControlSpec, DebugControls,
-    DebugFrame, DebugFrameBatch, DebugId, DebugScalarRange, DebugVectorField, DebugVectorSpace,
-    ObservabilitySet, CATEGORY_PHYSICS,
+use crate::{
+    devtools::{
+        ColorRamp, DeveloperSet, DeveloperView, DrawId, ScalarRange, VectorSpace, WorldDrawBatch,
+        WorldDrawFrame, WorldVectorField,
+    },
+    observability::{
+        AppObservabilityExt, DebugControlSpec, DebugControls, DebugId, ObservabilitySet,
+        CATEGORY_PHYSICS,
+    },
 };
 
 const AVIAN_TOOL: DebugId = DebugId("physics.avian");
@@ -36,7 +41,7 @@ const GRAVITY_SIZE: DebugId = DebugId("physics.gravity_field.size");
 const GRAVITY_RESOLUTION: DebugId = DebugId("physics.gravity_field.resolution");
 const GRAVITY_SCALE: DebugId = DebugId("physics.gravity_field.arrow_scale");
 
-const GRAVITY_OBSERVATION: DebugId = DebugId("observation.physics.gravity");
+const GRAVITY_OBSERVATION: DrawId = DrawId("observation.physics.gravity");
 
 pub(crate) fn configure(app: &mut App) {
     app.register_debug_control(
@@ -212,7 +217,7 @@ pub(crate) fn configure(app: &mut App) {
     )
     .add_systems(
         PostUpdate,
-        collect_gravity_field.in_set(ObservabilitySet::Collect),
+        collect_gravity_field.in_set(DeveloperSet::CollectWorldDraw),
     );
 }
 
@@ -272,17 +277,17 @@ fn sync_avian_debug(
 
 fn collect_gravity_field(
     controls: Res<DebugControls>,
-    context: Res<DebugContext>,
+    view: Res<DeveloperView>,
     gravity: Res<Gravity>,
     transforms: Query<&GlobalTransform>,
-    frame: Res<DebugFrame>,
+    frame: Res<WorldDrawFrame>,
 ) {
     if !controls.active(GRAVITY_FIELD) {
         return;
     }
 
-    let Some(observer) = context
-        .observer
+    let Some(observer) = view
+        .observer()
         .and_then(|entity| transforms.get(entity).ok())
         .map(|global| global.translation())
     else {
@@ -294,8 +299,8 @@ fn collect_gravity_field(
     let resolution = UVec2::splat(resolution.max(2));
     let gravity_vector = gravity.0;
 
-    let mut batch = DebugFrameBatch::default();
-    batch.vector_field(DebugVectorField {
+    let mut batch = WorldDrawBatch::default();
+    batch.vector_field(WorldVectorField {
         id: GRAVITY_OBSERVATION,
         transform: Transform {
             translation: Vec3::new(observer.x, 0.06, observer.z),
@@ -305,18 +310,15 @@ fn collect_gravity_field(
         size: Vec2::splat(size),
         resolution,
         vectors: vec![gravity_vector; (resolution.x * resolution.y) as usize],
-        vector_space: DebugVectorSpace::World,
+        vector_space: VectorSpace::World,
         vector_scale: controls.scalar_value(GRAVITY_SCALE).unwrap_or(0.12),
         maximum_arrow_length: 1.5,
         color: Color::WHITE,
-        magnitude_range: Some(DebugScalarRange::new(
+        magnitude_range: Some(ScalarRange::new(
             0.0,
             gravity_vector.length().max(1.0),
         )),
-        magnitude_ramp: DebugColorRamp::METRIC,
-        title: "Gravity".to_owned(),
-        unit: "m/s^2",
-        legend: true,
+        magnitude_ramp: ColorRamp::METRIC,
     });
     frame.submit(batch);
 }

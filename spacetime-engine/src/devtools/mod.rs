@@ -4,17 +4,24 @@
 //! Migration is staged; legacy observability remains active until individual
 //! responsibilities have working replacements.
 
+mod draw;
 mod focus;
 mod inspect;
 mod tools;
 mod ui;
+mod view;
 
+pub use draw::{
+    ColorRamp, ColorStop, DrawDepth, DrawId, ScalarFieldMode, ScalarRange, VectorSpace,
+    WorldDrawBatch, WorldDrawFrame, WorldPrimitive, WorldScalarField, WorldVectorField,
+};
 pub use focus::{DeveloperFocus, FocusHit, FocusTarget};
 pub use inspect::{
     InspectField, InspectNumberFormat, InspectSection, InspectSectionId, InspectUnit,
     InspectValue, InspectionFrame,
 };
 pub use tools::{DeveloperTools, VisualizationId};
+pub use view::DeveloperView;
 
 use bevy::{prelude::*, transform::TransformSystems};
 
@@ -39,6 +46,7 @@ pub struct DeveloperToolsPlugin;
 impl Plugin for DeveloperToolsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<DeveloperFocus>()
+            .init_resource::<DeveloperView>()
             .init_resource::<InspectionFrame>()
             .init_resource::<DeveloperTools>()
             .configure_sets(
@@ -62,6 +70,7 @@ impl Plugin for DeveloperToolsPlugin {
             )
             .add_systems(PreUpdate, toggle_developer_tools);
 
+        draw::configure(app);
         ui::configure(app);
     }
 }

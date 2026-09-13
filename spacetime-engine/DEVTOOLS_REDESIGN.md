@@ -1,6 +1,6 @@
 # Developer tools / UI redesign migration
 
-Status: **Stage 2 implemented in `devtools-redesign-stage-2.patch`; local compile/run validation is the next checkpoint before Stage 3.**
+Status: **Stage 2 is locally validated. Stage 3A World Draw cutover is implemented in `devtools-redesign-stage-3a.patch`; local compile/run validation is the next checkpoint before destructive Stage 3B cleanup.**
 
 This document is the durable hand-off point for the debugging / visualization / UI / text redesign. Update it at the end of every migration stage so the work can resume from the repository alone, even if chat context is lost.
 
@@ -137,7 +137,7 @@ Validation for this checkpoint: the generated patch passed normal `git apply --c
 
 ### Stage 2 — Focus + Inspector cutover
 
-**Status: IMPLEMENTED in `devtools-redesign-stage-2.patch`; awaiting local compile/run validation**
+**Status: COMPLETE and locally validated**
 
 Goal: make the new focus/inspection path useful before touching world visualization.
 
@@ -158,19 +158,40 @@ Implemented:
 
 Exit condition: looking at a thermal/split object produces a clean structured Inspector even with all world visualizations disabled.
 
-Validation in the assistant workspace: normal `git diff --check` passes and the Stage 2 patch is generated relative to the user-validated Stage 1 checkpoint. The assistant environment still has no Rust toolchain, so `cargo fmt/check/test` is the required local gate before Stage 3.
+Validation in the assistant workspace: normal `git diff --check` passes and the Stage 2 patch is generated relative to the user-validated Stage 1 checkpoint. The user then confirmed Stage 2 compiles, runs, and behaves correctly in-game.
 
 ### Stage 3 — World Draw cutover and text removal
 
-**Status: PLANNED**
+**Status: IN PROGRESS — Stage 3A implemented in `devtools-redesign-stage-3a.patch`**
 
-- Extract/rename the useful geometric core of `DebugFrame` into World Draw.
-- Delete `DebugLabel`, `DebugTextFacing`, `.label()` and gizmo text rendering.
-- Move any surviving field legends to Developer UI rather than World Draw.
-- Add the optional single Focus Badge as projected screen-space UI.
-- Migrate Thermal, Portal, USF identity and character geometric visualizations.
+Stage 3 is split at the destructive-cleanup boundary.
 
-Exit condition: World Draw has no text concept in its public model.
+#### Stage 3A — Independent World Draw path
+
+Implemented:
+
+- Added `devtools::draw` as the independent text-free spatial visualization model and renderer.
+- `WorldDrawFrame` / `WorldDrawBatch` support geometry, scalar fields and vector fields only. Their public data model contains no strings, labels, titles, units, legends or font concepts.
+- Added `DeveloperView` as the observer/viewpoint counterpart to `DeveloperFocus`: focus answers "what thing?", view answers "from where?".
+- Migrated USF manifestation markers/links, Portal apertures/frames/pair links/split links, Thermal samples/internal cells/heat-coupling scalar field, Character vectors and the Gravity vector field to `DeveloperSet::CollectWorldDraw`.
+- Removed label controls and label production from those migrated adapters.
+- Scalar/vector field title/unit/legend metadata is deliberately absent from the new model. Linguistic descriptions belong to Developer UI if they are useful.
+- Avian's native `PhysicsDebugPlugin` remains a direct geometry-only backend controlled by the temporary legacy controls; wrapping it would add no useful semantic boundary.
+- New retained scalar-field entities carry `DeveloperArtifact` plus the temporary legacy `DebugArtifact` telemetry marker until Stage 5.
+- Legacy `DebugFrame` / render code remains physically present but should now be inert for migrated domains, providing a clean compile/run parity gate before deletion.
+
+Required local gate: compile/run and verify migrated geometry/fields still render, F3 hides them, and no migrated world labels or field legends remain.
+
+#### Stage 3B — Destructive cleanup
+
+After 3A validation:
+
+- Delete the now-unused legacy `DebugFrame`, `DebugLabel`, `DebugTextFacing`, old color model and old render backend.
+- Remove old frame/color/render exports and compatibility code that no longer has consumers.
+- Add the optional single projected Focus Badge as Developer UI, name-only by default.
+- Audit for any remaining gizmo/debug world text.
+
+Exit condition: World Draw has no text concept and the old world-text implementation no longer exists.
 
 ### Stage 4 — Tool-control simplification
 
@@ -224,20 +245,20 @@ This stage is deliberately late: shared UI should be extracted from proven use, 
 
 ## Current checkpoint / resume here
 
-**Current checkpoint:** Stage 2 focus + Inspector cutover is implemented on top of the user-validated Stage 1 foundations.
+**Current checkpoint:** Stage 2 is user-validated. Stage 3A has migrated active domain world visualization onto the independent text-free `devtools::draw` path while leaving the old frame/render implementation physically present for one final parity checkpoint.
 
-**Required gate now:** apply `devtools-redesign-stage-2.patch`, then run `cargo fmt --all`, `cargo check -p spacetime-engine`, `cargo test -p spacetime-engine`, and verify in-game that looking at a thermal/split object shows the new compact Inspector. Turn legacy Thermal visualization off while testing; inspection must remain populated. Verify `P` pin/unpin and F3 visibility as well.
+**Required gate now:** apply `devtools-redesign-stage-3a.patch`, run `cargo fmt --all`, `cargo check -p spacetime-engine`, `cargo test -p spacetime-engine`, then exercise USF, Portal, Thermal, Character and Gravity visualizations. Confirm geometry/fields still appear, F3 hides output, Thermal scalar surfaces still work, and no migrated object labels or scalar/vector field legends appear.
 
-**If that gate passes, do next:** Stage 3 — cut world visualization over to the text-free World Draw model. Start by extracting the geometric/field portion of `DebugFrame`; do not carry `DebugLabel`, `DebugTextFacing`, gizmo text, field-legend text, or the old focused-label renderer into the replacement.
+**If that gate passes, do next:** Stage 3B — delete the now-unused legacy frame/render/color world-text machinery and add the optional single projected Focus Badge. Do not reintroduce strings into `devtools::draw`.
 
 **Temporary legacy systems intentionally still present:**
 
 - `src/observability/*` overall and `ObservabilityPlugin`
-- old Debug Control Graph / F4 menu
-- old `DebugFrame` geometric rendering and world/focused labels
-- old scientific formatter used by legacy visualization
+- old Debug Control Graph / F4 menu, still temporarily controlling migrated World Draw producers
+- old `DebugFrame` / color / render implementation, expected to be inert and scheduled for deletion in Stage 3B
+- old scientific formatter used by remaining legacy UI/telemetry paths
 - `DebugInspector` as an invisible cleared compatibility sink only
-- `TestGameObservabilityPlugin` as observer selection + `DeveloperFocus -> DebugContext` bridge
-- legacy `DebugArtifact` marker on new Developer UI solely for current telemetry exclusion
+- `TestGameObservabilityPlugin` as `DeveloperFocus` / `DeveloperView` -> `DebugContext` bridge for not-yet-migrated legacy consumers
+- legacy `DebugArtifact` marker on new Developer UI / retained World Draw entities solely for current telemetry exclusion
 
 These are explicit migration bridges, not forgotten cleanup. Remove each only in the stage that replaces its remaining responsibility.
