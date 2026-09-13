@@ -2,12 +2,14 @@
 //!
 //!
 
+pub mod devtools;
 pub mod input_focus;
 pub mod observability;
 pub mod ecs;
 pub mod game;
 pub mod geometry;
 pub mod physics;
+pub mod ui;
 
 use bevy::prelude::*;
 use spacetime_engine_macros::*;
