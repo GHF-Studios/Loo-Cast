@@ -9,8 +9,8 @@ mod render;
 
 pub use color::{ColorRamp, ColorStop, ScalarRange};
 pub use frame::{
-    DrawDepth, DrawId, ScalarFieldMode, VectorSpace, WorldDrawBatch, WorldDrawFrame,
-    WorldPrimitive, WorldScalarField, WorldVectorField,
+    DrawDepth, DrawId, ScalarFieldMode, WorldDrawBatch, WorldDrawFrame, WorldPrimitive,
+    WorldScalarField,
 };
 
 use bevy::prelude::*;

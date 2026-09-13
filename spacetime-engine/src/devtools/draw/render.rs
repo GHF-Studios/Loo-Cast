@@ -8,10 +8,7 @@ use bevy::{
 
 use crate::observability::DebugArtifact;
 
-use super::{
-    DrawDepth, DrawId, ScalarFieldMode, VectorSpace, WorldDrawFrame, WorldPrimitive,
-    WorldScalarField, WorldVectorField,
-};
+use super::{DrawDepth, DrawId, ScalarFieldMode, WorldDrawFrame, WorldPrimitive, WorldScalarField};
 use crate::devtools::{DeveloperArtifact, DeveloperSet};
 
 #[derive(Default, Reflect, GizmoConfigGroup)]
@@ -42,7 +39,7 @@ pub(super) fn configure(app: &mut App) {
         .add_systems(Startup, setup_world_draw_backend)
         .add_systems(
             PostUpdate,
-            (render_primitives_and_vectors, sync_scalar_field_visuals)
+            (render_primitives, sync_scalar_field_visuals)
                 .in_set(DeveloperSet::RenderWorldDraw),
         );
 }
@@ -70,7 +67,7 @@ fn setup_world_draw_backend(
     });
 }
 
-fn render_primitives_and_vectors(
+fn render_primitives(
     frame: Res<WorldDrawFrame>,
     mut world: Gizmos<DeveloperWorldGizmos>,
     mut overlay: Gizmos<DeveloperOverlayGizmos>,
@@ -82,10 +79,6 @@ fn render_primitives_and_vectors(
             DrawDepth::World => draw_world_primitive(&mut world, primitive),
             DrawDepth::Overlay => draw_overlay_primitive(&mut overlay, primitive),
         }
-    }
-
-    for field in &frame.vector_fields {
-        draw_vector_field(&mut world, field);
     }
 }
 
@@ -153,60 +146,6 @@ fn draw_overlay_primitive(
             gizmos
                 .sphere(*isometry, *radius, *color)
                 .resolution(*resolution);
-        }
-    }
-}
-
-fn draw_vector_field(gizmos: &mut Gizmos<DeveloperWorldGizmos>, field: &WorldVectorField) {
-    let resolution = field.resolution;
-    let expected = (resolution.x * resolution.y) as usize;
-    if resolution.x < 2 || resolution.y < 2 || field.vectors.len() != expected {
-        gizmos.rect(
-            Isometry3d::new(field.transform.translation, field.transform.rotation),
-            field.size,
-            Color::srgb(1.0, 0.0, 1.0),
-        );
-        return;
-    }
-
-    let minimum = -field.size * 0.5;
-    let denominator = (resolution - UVec2::ONE).as_vec2();
-
-    for y in 0..resolution.y {
-        for x in 0..resolution.x {
-            let index = (x + y * resolution.x) as usize;
-            let mut vector = field.vectors[index];
-            if !vector.is_finite() {
-                continue;
-            }
-
-            let uv = Vec2::new(x as f32, y as f32) / denominator;
-            let local_xy = minimum + field.size * uv;
-            let local = Vec3::new(local_xy.x, local_xy.y, 0.03);
-            let origin = field.transform.transform_point(local);
-
-            if field.vector_space == VectorSpace::Local {
-                vector = field.transform.rotation * vector;
-            }
-
-            let magnitude = vector.length();
-            if magnitude <= f32::EPSILON {
-                continue;
-            }
-
-            let mut rendered = vector * field.vector_scale;
-            if field.maximum_arrow_length.is_finite() {
-                rendered = rendered.clamp_length_max(field.maximum_arrow_length);
-            }
-            if rendered.length_squared() <= f32::EPSILON {
-                continue;
-            }
-
-            let color = field
-                .magnitude_range
-                .map(|range| field.magnitude_ramp.sample_scalar(range, magnitude))
-                .unwrap_or(field.color);
-            gizmos.arrow(origin, origin + rendered, color);
         }
     }
 }

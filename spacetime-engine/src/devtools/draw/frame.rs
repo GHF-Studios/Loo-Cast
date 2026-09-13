@@ -83,32 +83,10 @@ pub struct WorldScalarField {
     pub height_scale: f32,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum VectorSpace {
-    World,
-    Local,
-}
-
-#[derive(Debug, Clone)]
-pub struct WorldVectorField {
-    pub id: DrawId,
-    pub transform: Transform,
-    pub size: Vec2,
-    pub resolution: UVec2,
-    pub vectors: Vec<Vec3>,
-    pub vector_space: VectorSpace,
-    pub vector_scale: f32,
-    pub maximum_arrow_length: f32,
-    pub color: Color,
-    pub magnitude_range: Option<ScalarRange>,
-    pub magnitude_ramp: ColorRamp,
-}
-
 #[derive(Debug, Default)]
 pub struct WorldDrawBatch {
     pub primitives: Vec<WorldPrimitive>,
     pub scalar_fields: Vec<WorldScalarField>,
-    pub vector_fields: Vec<WorldVectorField>,
 }
 
 impl WorldDrawBatch {
@@ -188,10 +166,6 @@ impl WorldDrawBatch {
     pub fn scalar_field(&mut self, field: WorldScalarField) {
         self.scalar_fields.push(field);
     }
-
-    pub fn vector_field(&mut self, field: WorldVectorField) {
-        self.vector_fields.push(field);
-    }
 }
 
 #[derive(Resource, Debug, Default)]
@@ -207,27 +181,19 @@ impl WorldDrawFrame {
             .scalar_fields
             .iter()
             .map(|field| field.id)
-            .chain(frame.vector_fields.iter().map(|field| field.id))
             .collect::<HashSet<_>>();
-        for id in batch
-            .scalar_fields
-            .iter()
-            .map(|field| field.id)
-            .chain(batch.vector_fields.iter().map(|field| field.id))
-        {
+        for id in batch.scalar_fields.iter().map(|field| field.id) {
             assert!(ids.insert(id), "duplicate world draw field id {id}");
         }
 
         frame.primitives.append(&mut batch.primitives);
         frame.scalar_fields.append(&mut batch.scalar_fields);
-        frame.vector_fields.append(&mut batch.vector_fields);
     }
 
     fn clear(&self) {
         let mut frame = self.inner.write().expect("world draw frame lock poisoned");
         frame.primitives.clear();
         frame.scalar_fields.clear();
-        frame.vector_fields.clear();
     }
 
     pub(super) fn read(&self) -> RwLockReadGuard<'_, WorldDrawBatch> {

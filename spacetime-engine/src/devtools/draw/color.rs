@@ -36,16 +36,6 @@ pub struct ColorRamp {
 }
 
 impl ColorRamp {
-    pub const METRIC: Self = Self {
-        stops: &[
-            ColorStop { position: 0.0, color: LinearRgba::rgb(0.05, 0.10, 0.45) },
-            ColorStop { position: 0.25, color: LinearRgba::rgb(0.0, 0.75, 1.0) },
-            ColorStop { position: 0.5, color: LinearRgba::rgb(0.10, 0.90, 0.25) },
-            ColorStop { position: 0.75, color: LinearRgba::rgb(1.0, 0.85, 0.05) },
-            ColorStop { position: 1.0, color: LinearRgba::rgb(1.0, 0.08, 0.02) },
-        ],
-    };
-
     pub const THERMAL: Self = Self {
         stops: &[
             ColorStop { position: 0.0, color: LinearRgba::rgb(0.02, 0.05, 0.35) },

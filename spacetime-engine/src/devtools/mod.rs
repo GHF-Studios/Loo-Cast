@@ -12,8 +12,8 @@ mod ui;
 mod view;
 
 pub use draw::{
-    ColorRamp, ColorStop, DrawDepth, DrawId, ScalarFieldMode, ScalarRange, VectorSpace,
-    WorldDrawBatch, WorldDrawFrame, WorldPrimitive, WorldScalarField, WorldVectorField,
+    ColorRamp, ColorStop, DrawDepth, DrawId, ScalarFieldMode, ScalarRange, WorldDrawBatch,
+    WorldDrawFrame, WorldPrimitive, WorldScalarField,
 };
 pub use focus::{DeveloperFocus, FocusHit, FocusTarget};
 pub use inspect::{

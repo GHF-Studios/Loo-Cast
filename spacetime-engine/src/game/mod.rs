@@ -2,7 +2,6 @@
 
 pub mod combat;
 mod devtools;
-mod observability;
 pub mod player;
 pub mod playground;
 pub mod portal;
@@ -13,7 +12,6 @@ use bevy::prelude::*;
 use combat::{Damage, Died, FireWeapon, Hit};
 
 pub use devtools::TestGameDeveloperToolsPlugin;
-pub use observability::TestGameObservabilityPlugin;
 
 /// Stable top-level extension points.
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]

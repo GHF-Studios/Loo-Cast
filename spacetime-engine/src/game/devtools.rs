@@ -5,8 +5,8 @@ use bevy::prelude::*;
 
 use crate::{
     devtools::{
-        DeveloperFocus, DeveloperSet, DeveloperTools, DeveloperView, FocusHit, FocusTarget, InspectField,
-        InspectSection, InspectSectionId, InspectValue, InspectionFrame,
+        DeveloperFocus, DeveloperSet, DeveloperTools, DeveloperView, FocusHit, FocusTarget,
+        InspectField, InspectSection, InspectSectionId, InspectValue, InspectionFrame,
     },
     ecs::{UsfManifestationAuthority, UsfManifestationOf, UsfManifestations},
     physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive},
@@ -25,6 +25,10 @@ pub struct TestGameDeveloperToolsPlugin;
 
 impl Plugin for TestGameDeveloperToolsPlugin {
     fn build(&self, app: &mut App) {
+        // Stage 3B: game-side world-draw adapters are composed here now that
+        // the legacy TestGameObservabilityPlugin compatibility layer is gone.
+        super::portal::observability::configure(app);
+        super::thermal::observability::configure(app);
         super::thermal::devtools::configure(app);
 
         app.add_systems(

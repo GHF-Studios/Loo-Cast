@@ -1,6 +1,6 @@
 # Developer tools / UI redesign migration
 
-Status: **Stage 2 is locally validated. Stage 3A World Draw cutover is implemented in `devtools-redesign-stage-3a.patch`; local compile/run validation is the next checkpoint before destructive Stage 3B cleanup.**
+Status: **Stage 3A is locally validated. Stage 3B destructive cleanup is implemented in `devtools-redesign-stage-3b.patch`; local compile/run validation is the next checkpoint before Stage 4.**
 
 This document is the durable hand-off point for the debugging / visualization / UI / text redesign. Update it at the end of every migration stage so the work can resume from the repository alone, even if chat context is lost.
 
@@ -59,7 +59,7 @@ Inspector, Focus Badge, developer tool palette and any per-tool settings panels.
 
 ### World Draw
 
-Spatial developer rendering only: lines, arrows, axes, wire geometry, cells, scalar surfaces, vector fields, contact points, portal topology, etc. **No text API exists here.**
+Spatial developer rendering only: lines, arrows, axes, wire geometry, cells, scalar surfaces, contact points, portal topology, etc. **No text API exists here.**
 
 ### Telemetry
 
@@ -162,7 +162,7 @@ Validation in the assistant workspace: normal `git diff --check` passes and the 
 
 ### Stage 3 — World Draw cutover and text removal
 
-**Status: IN PROGRESS — Stage 3A implemented in `devtools-redesign-stage-3a.patch`**
+**Status: Stage 3B implemented in `devtools-redesign-stage-3b.patch`; awaiting local validation**
 
 Stage 3 is split at the destructive-cleanup boundary.
 
@@ -171,7 +171,7 @@ Stage 3 is split at the destructive-cleanup boundary.
 Implemented:
 
 - Added `devtools::draw` as the independent text-free spatial visualization model and renderer.
-- `WorldDrawFrame` / `WorldDrawBatch` support geometry, scalar fields and vector fields only. Their public data model contains no strings, labels, titles, units, legends or font concepts.
+- `WorldDrawFrame` / `WorldDrawBatch` initially supported geometry, scalar fields and vector fields only. Their public data model contains no strings, labels, titles, units, legends or font concepts.
 - Added `DeveloperView` as the observer/viewpoint counterpart to `DeveloperFocus`: focus answers "what thing?", view answers "from where?".
 - Migrated USF manifestation markers/links, Portal apertures/frames/pair links/split links, Thermal samples/internal cells/heat-coupling scalar field, Character vectors and the Gravity vector field to `DeveloperSet::CollectWorldDraw`.
 - Removed label controls and label production from those migrated adapters.
@@ -180,18 +180,23 @@ Implemented:
 - New retained scalar-field entities carry `DeveloperArtifact` plus the temporary legacy `DebugArtifact` telemetry marker until Stage 5.
 - Legacy `DebugFrame` / render code remains physically present but should now be inert for migrated domains, providing a clean compile/run parity gate before deletion.
 
-Required local gate: compile/run and verify migrated geometry/fields still render, F3 hides them, and no migrated world labels or field legends remain.
+Validation: the user confirmed Stage 3A compiles, runs, and shows no apparent regressions. The user also explicitly noted that preservation of the existing debug-feature set is not a goal: much of it is unnecessary, oddly designed, or not useful enough to justify maintenance.
 
 #### Stage 3B — Destructive cleanup
 
-After 3A validation:
+Implemented:
 
-- Delete the now-unused legacy `DebugFrame`, `DebugLabel`, `DebugTextFacing`, old color model and old render backend.
-- Remove old frame/color/render exports and compatibility code that no longer has consumers.
-- Add the optional single projected Focus Badge as Developer UI, name-only by default.
-- Audit for any remaining gizmo/debug world text.
+- Deleted legacy `DebugFrame`, `DebugLabel`, `DebugTextFacing`, legacy scalar/vector-field model, old color ramp, old render backend, legacy `DebugContext`, legacy `DebugInspector`, and the old scientific-text helper.
+- Removed `TestGameObservabilityPlugin` and its `DeveloperFocus`/`DeveloperView` -> `DebugContext` compatibility mirror. Portal/Thermal world-draw adapters are now composed directly by `TestGameDeveloperToolsPlugin`.
+- Reduced `observability` to the temporary control/menu/telemetry shell that remains for Stages 4-5.
+- Deleted the gravity vector-field visualization. It had no real debugging pressure justifying it.
+- Because gravity was the only real consumer, deleted the generic sampled `WorldVectorField` / `VectorSpace` model and renderer as well. Character-controller diagnostics remain simple arrow primitives and therefore do not require that abstraction.
+- Retained Thermal, USF manifestation/topology, Portal topology, and provisionally Character-controller arrows as the small useful World Draw set.
+- Retained Avian's native geometry debug temporarily because it is cheap/backend-native and can still help diagnose collision/topology; Stage 4 will decide what controls, if any, it deserves.
+- Deferred the Focus Badge to Stage 4. After the user's anti-clutter feedback, it should only be introduced together with an explicit Tools-palette toggle rather than becoming another always-on text layer.
+- World Draw therefore remains text-free by construction and now has less unused generic surface area than the Stage 3A version.
 
-Exit condition: World Draw has no text concept and the old world-text implementation no longer exists.
+Exit condition: World Draw has no text concept, the old world-text implementation no longer exists, and no generic sampled-vector-field abstraction remains without a real consumer.
 
 ### Stage 4 — Tool-control simplification
 
@@ -245,20 +250,17 @@ This stage is deliberately late: shared UI should be extracted from proven use, 
 
 ## Current checkpoint / resume here
 
-**Current checkpoint:** Stage 2 is user-validated. Stage 3A has migrated active domain world visualization onto the independent text-free `devtools::draw` path while leaving the old frame/render implementation physically present for one final parity checkpoint.
+**Current checkpoint:** Stage 3A is user-validated. Stage 3B is implemented on top of the pushed Stage 3A tree and removes the dead legacy presentation half plus the unused gravity/vector-field path.
 
-**Required gate now:** apply `devtools-redesign-stage-3a.patch`, run `cargo fmt --all`, `cargo check -p spacetime-engine`, `cargo test -p spacetime-engine`, then exercise USF, Portal, Thermal, Character and Gravity visualizations. Confirm geometry/fields still appear, F3 hides output, Thermal scalar surfaces still work, and no migrated object labels or scalar/vector field legends appear.
+**Required gate now:** apply `devtools-redesign-stage-3b.patch`, run `cargo fmt --all`, `cargo check -p spacetime-engine`, `cargo test -p spacetime-engine`, then smoke-test the retained Thermal, USF, Portal and Character world-draw paths plus the Inspector. Confirm the F4 legacy menu still controls the retained visualizations for this one migration stage and F3 still gates output.
 
-**If that gate passes, do next:** Stage 3B — delete the now-unused legacy frame/render/color world-text machinery and add the optional single projected Focus Badge. Do not reintroduce strings into `devtools::draw`.
+**If that gate passes, do next:** Stage 4 — replace the generic control graph/F4 renderer with the tiny Developer Tools palette and typed per-domain settings. Use the user's pruning feedback as a feature-selection rule: do not recreate controls or visualizers unless a current mechanic actually benefits from them. Add the Focus Badge only as an explicit optional palette feature.
 
 **Temporary legacy systems intentionally still present:**
 
-- `src/observability/*` overall and `ObservabilityPlugin`
-- old Debug Control Graph / F4 menu, still temporarily controlling migrated World Draw producers
-- old `DebugFrame` / color / render implementation, expected to be inert and scheduled for deletion in Stage 3B
-- old scientific formatter used by remaining legacy UI/telemetry paths
-- `DebugInspector` as an invisible cleared compatibility sink only
-- `TestGameObservabilityPlugin` as `DeveloperFocus` / `DeveloperView` -> `DebugContext` bridge for not-yet-migrated legacy consumers
+- `src/observability/control.rs`, `menu.rs`, `telemetry.rs`, `ObservabilityPlugin`, and the old F4 control graph shell
+- temporary legacy controls still deciding whether retained Thermal/USF/Portal/Character world-draw producers run
+- Avian's native physics debug controls/backend, pending a Stage-4 keep/delete decision
 - legacy `DebugArtifact` marker on new Developer UI / retained World Draw entities solely for current telemetry exclusion
 
-These are explicit migration bridges, not forgotten cleanup. Remove each only in the stage that replaces its remaining responsibility.
+The legacy world renderer, text model, context mirror, Inspector sink, scientific formatter, and sampled gravity/vector-field path are no longer migration bridges: Stage 3B deletes them.
