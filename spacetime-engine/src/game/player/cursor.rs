@@ -1,4 +1,8 @@
 //! Focus-aware mouse capture.
+//!
+//! `requested` is the player's capture intent. `blocked` is a temporary claim
+//! made by another interface surface. Keeping those separate means modal UI can
+//! borrow the pointer without destroying the intent it should restore afterward.
 
 use bevy::{
     prelude::*,
@@ -16,6 +20,7 @@ pub struct CursorCapture {
     active: bool,
     just_captured: bool,
     blocked: bool,
+    just_unblocked: bool,
 }
 
 impl Default for CursorCapture {
@@ -25,6 +30,7 @@ impl Default for CursorCapture {
             active: false,
             just_captured: false,
             blocked: false,
+            just_unblocked: false,
         }
     }
 }
@@ -43,17 +49,20 @@ impl CursorCapture {
         self.active = false;
     }
 
+    /// Requests gameplay capture as persistent user intent.
+    ///
+    /// A temporary [`InputFocus`] claim may prevent the request from becoming
+    /// active immediately, but it must not erase the request itself.
     pub fn request(&mut self) {
-        if !self.blocked {
-            self.requested = true;
-        }
+        self.requested = true;
     }
 
     pub fn set_blocked(&mut self, blocked: bool) {
+        self.just_unblocked = self.blocked && !blocked;
         self.blocked = blocked;
 
         if blocked {
-            self.release();
+            self.active = false;
         }
     }
 }
@@ -79,6 +88,9 @@ pub fn update_cursor_capture(
 
     if *previous_presentation != *presentation {
         if presentation.is_embedded() {
+            // Entering the editor is an explicit mode transition, not a
+            // temporary focus claim: leave gameplay capture off until the Game
+            // view is clicked (or the editor is closed again).
             capture.release();
         } else {
             capture.request();
@@ -86,8 +98,17 @@ pub fn update_cursor_capture(
         *previous_presentation = *presentation;
     }
 
-    if keyboard.just_pressed(KeyCode::Escape) {
-        capture.release();
+    // Escape is the direct capture toggle. If Escape just dismissed a modal UI
+    // (for example the F4 palette), that UI already returned its temporary focus
+    // claim this frame; preserve the prior capture request instead of toggling it
+    // a second time.
+    if keyboard.just_pressed(KeyCode::Escape) && !capture.just_unblocked {
+        if capture.requested {
+            capture.release();
+        } else if !capture.blocked {
+            capture.request();
+            capture.just_captured = true;
+        }
     }
 
     let pointer_inside_game_view = window.cursor_position().is_some_and(|position| {
@@ -100,17 +121,18 @@ pub fn update_cursor_capture(
         && !capture.requested
         && !capture.blocked
     {
-        capture.requested = true;
+        capture.request();
         capture.just_captured = true;
     }
 
     capture.active = capture.requested && window.focused && !capture.blocked;
 
     cursor.visible = !capture.active;
-
     cursor.grab_mode = if capture.active {
         CursorGrabMode::Locked
     } else {
         CursorGrabMode::None
     };
+
+    capture.just_unblocked = false;
 }
