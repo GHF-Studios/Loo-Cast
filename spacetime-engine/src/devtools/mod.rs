@@ -1,8 +1,8 @@
-//! Developer-facing inspection, UI and spatial visualization.
+//! Developer-facing inspection, UI, editor interaction and spatial visualization.
 //!
-//! Developer tools deliberately separate structured inspection, screen-space UI,
-//! and text-free World Draw. Domain-specific adapters live beside the domains they
-//! inspect or visualize rather than under a second cross-cutting framework.
+//! The editor is one consumer of semantic tooling rather than the owner of domain
+//! meaning. Raw ECS reflection, semantic inspection, contextual gizmos and World
+//! Draw deliberately remain separate mechanisms that can be composed together.
 
 mod draw;
 mod editor;
@@ -18,12 +18,10 @@ pub use draw::{
     WorldDrawFrame, WorldPrimitive, WorldScalarField,
 };
 pub use focus::{DeveloperFocus, FocusHit, FocusTarget};
-pub use gizmo::{
-    EditorSelection, EditorTool, EditorToolState, EditorTransformSpace, EditorTransformWritable,
-};
+pub use gizmo::{EditorTransformGizmoSettings, EditorTransformSpace, EditorTransformWritable};
 pub use inspect::{
-    InspectField, InspectNumberFormat, InspectSection, InspectSectionId, InspectUnit,
-    InspectValue, InspectionFrame,
+    InspectAccess, InspectField, InspectNumberFormat, InspectSection, InspectSectionId, InspectUnit,
+    InspectValue, InspectionFrame, SemanticInspectionSelection,
 };
 pub use tools::{
     AppDeveloperToolsExt, DeveloperTools, VisualizationId, VisualizationSpec,
@@ -55,6 +53,7 @@ impl Plugin for DeveloperToolsPlugin {
         app.init_resource::<DeveloperFocus>()
             .init_resource::<DeveloperView>()
             .init_resource::<InspectionFrame>()
+            .init_resource::<SemanticInspectionSelection>()
             .init_resource::<DeveloperTools>()
             .configure_sets(
                 PostUpdate,
@@ -77,7 +76,7 @@ impl Plugin for DeveloperToolsPlugin {
                 PostUpdate,
                 inspect::clear_inspection_frame.in_set(DeveloperSet::ResolveFocus),
             )
-            .add_systems(PreUpdate, toggle_developer_tools);
+            .add_systems(PreUpdate, (toggle_developer_tools, focus::prune_focus));
 
         crate::ecs::devtools::configure(app);
         crate::physics::character::devtools::configure(app);

@@ -85,6 +85,12 @@ fn sync_focus_badge(
         hide(&mut roots);
         return;
     };
+    let Some(hit) = target.hit else {
+        // Hierarchy/Structure selection is valid focus but has no honest world
+        // projection point. The semantic Inspector/Gizmos still consume it.
+        hide(&mut roots);
+        return;
+    };
     let Some(observer) = view.observer() else {
         hide(&mut roots);
         return;
@@ -94,7 +100,7 @@ fn sync_focus_badge(
         return;
     };
     let Some(viewport_position) =
-        ViewportSpace::new(camera).world_to_local(camera_transform, target.hit.position)
+        ViewportSpace::new(camera).world_to_local(camera_transform, hit.position)
     else {
         hide(&mut roots);
         return;

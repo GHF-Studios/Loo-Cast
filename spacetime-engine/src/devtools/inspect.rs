@@ -3,6 +3,52 @@ use bevy::prelude::*;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct InspectSectionId(pub &'static str);
 
+/// How an inspected value may be changed.
+///
+/// This is intentionally richer than a `read_only: bool`: presentation consumes
+/// authority supplied by the domain; it never creates authority merely because
+/// `&mut T` happens to be technically obtainable.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum InspectAccess {
+    #[default]
+    ReadOnly,
+    /// The inspected value itself is authoritative and may be mutated directly.
+    Direct,
+    /// Changes must pass through validation/setter logic.
+    Validated,
+    /// Changes belong to an authoring transaction/undo history.
+    Transactional,
+    /// Changes are requests/commands to the owning domain rather than field writes.
+    Command,
+}
+
+#[derive(Resource, Debug, Default, Clone, Copy)]
+pub struct SemanticInspectionSelection {
+    owner: Option<Entity>,
+    section: Option<InspectSectionId>,
+}
+
+impl SemanticInspectionSelection {
+    pub fn section_for(&self, owner: Entity) -> Option<InspectSectionId> {
+        (self.owner == Some(owner)).then_some(self.section).flatten()
+    }
+
+    pub fn select(&mut self, owner: Entity, section: InspectSectionId) {
+        self.owner = Some(owner);
+        self.section = Some(section);
+    }
+
+    pub fn clear_for(&mut self, owner: Entity) {
+        self.owner = Some(owner);
+        self.section = None;
+    }
+
+    pub fn clear(&mut self) {
+        self.owner = None;
+        self.section = None;
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct InspectUnit(pub &'static str);
 
@@ -93,6 +139,7 @@ pub struct InspectField {
     pub label: String,
     pub symbol: Option<&'static str>,
     pub value: InspectValue,
+    pub access: InspectAccess,
 }
 
 impl InspectField {
@@ -101,11 +148,17 @@ impl InspectField {
             label: label.into(),
             symbol: None,
             value,
+            access: InspectAccess::ReadOnly,
         }
     }
 
     pub fn symbol(mut self, symbol: &'static str) -> Self {
         self.symbol = Some(symbol);
+        self
+    }
+
+    pub fn access(mut self, access: InspectAccess) -> Self {
+        self.access = access;
         self
     }
 }
@@ -134,11 +187,7 @@ impl InspectSection {
     }
 }
 
-/// One frame of structured Inspector data for the current developer focus.
-///
-/// This deliberately uses ordinary `ResMut` collection. Only one focus target is
-/// inspected, so parallel append machinery would add complexity without useful
-/// throughput.
+/// One frame of structured semantic inspection data for the canonical focus.
 #[derive(Resource, Debug, Default)]
 pub struct InspectionFrame {
     sections: Vec<InspectSection>,
@@ -158,8 +207,23 @@ impl InspectionFrame {
         &self.sections
     }
 
+    pub fn section(&self, id: InspectSectionId) -> Option<&InspectSection> {
+        self.sections.iter().find(|section| section.id == id)
+    }
+
     pub fn sorted_sections(&self) -> Vec<&InspectSection> {
-        let mut sections = self.sections.iter().collect::<Vec<_>>();
+        self.sorted_sections_matching(None)
+    }
+
+    pub fn sorted_sections_matching(
+        &self,
+        selected: Option<InspectSectionId>,
+    ) -> Vec<&InspectSection> {
+        let mut sections = self
+            .sections
+            .iter()
+            .filter(|section| selected.map_or(true, |selected| section.id == selected))
+            .collect::<Vec<_>>();
         sections.sort_by(|a, b| {
             a.order
                 .cmp(&b.order)

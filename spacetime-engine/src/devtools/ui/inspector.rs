@@ -1,8 +1,9 @@
-//! Compact screen-space Inspector for the current [`DeveloperFocus`].
+//! Compact semantic Inspector for the canonical [`DeveloperFocus`].
 //!
-//! The data model is structured, but the first renderer is deliberately boring:
-//! one persistent panel with a title and one text body updated in place. That is
-//! enough to make inspection useful without inventing another widget framework.
+//! The same structured inspection frame feeds immersive developer UI and the
+//! embedded editor. Structure selection may refine the editor to one semantic
+//! section without changing the concrete ECS entity inspected by the raw ECS
+//! Inspector.
 
 use bevy::prelude::*;
 
@@ -12,8 +13,8 @@ use crate::{
 };
 
 use super::super::{
-    DeveloperArtifact, DeveloperFocus, DeveloperSet, DeveloperTools, InspectNumberFormat,
-    InspectValue, InspectionFrame,
+    DeveloperArtifact, DeveloperFocus, DeveloperSet, DeveloperTools, InspectAccess,
+    InspectNumberFormat, InspectSectionId, InspectValue, InspectionFrame,
 };
 
 #[derive(Component)]
@@ -91,8 +92,7 @@ fn sync_inspector(
     )>,
 ) {
     // The compact Bevy-UI inspector remains useful as an immersive debug
-    // surface, but once the editor shell is open its canonical renderer moves
-    // outside the game viewport.
+    // surface. Embedded presentation uses the docked semantic Inspector instead.
     let target = (!presentation.is_embedded() && tools.enabled())
         .then(|| focus.current())
         .flatten();
@@ -121,7 +121,12 @@ fn sync_inspector(
     } else {
         semantic_name.to_owned()
     };
-    let body = render_body(focus.pinned().is_some(), target.hit.distance_meters, &frame);
+    let body = render_body(
+        focus.pinned().is_some(),
+        target.hit.map(|hit| hit.distance_meters),
+        &frame,
+        None,
+    );
 
     for (mut text, title_marker, body_marker) in &mut texts {
         if title_marker.is_some() {
@@ -134,22 +139,27 @@ fn sync_inspector(
 
 pub(super) fn render_body(
     pinned: bool,
-    distance_meters: f32,
+    distance_meters: Option<f32>,
     frame: &InspectionFrame,
+    selected_section: Option<InspectSectionId>,
 ) -> String {
     let mut lines = Vec::<String>::new();
+    let focus_kind = if pinned { "pinned" } else { "focus" };
+    let distance = distance_meters
+        .map(|distance| {
+            format_quantity(
+                distance as f64,
+                "m",
+                InspectNumberFormat::significant_digits(4),
+            )
+        })
+        .unwrap_or_else(|| "non-spatial selection".to_owned());
     lines.push(format!(
-        "{}  ·  {}  ·  P {}",
-        if pinned { "pinned" } else { "look focus" },
-        format_quantity(
-            distance_meters as f64,
-            "m",
-            InspectNumberFormat::significant_digits(4),
-        ),
+        "{focus_kind}  ·  {distance}  ·  P {}",
         if pinned { "unpin" } else { "pin" },
     ));
 
-    for section in frame.sorted_sections() {
+    for section in frame.sorted_sections_matching(selected_section) {
         lines.push(String::new());
         lines.push(section.title.to_uppercase());
         for field in &section.fields {
@@ -157,8 +167,17 @@ pub(super) fn render_body(
                 .symbol
                 .map(|symbol| format!("{} ({symbol})", field.label))
                 .unwrap_or_else(|| field.label.clone());
-            lines.push(format!("{label}: {}", format_value(&field.value)));
+            lines.push(format!(
+                "{label}: {}{}",
+                format_value(&field.value),
+                access_suffix(field.access),
+            ));
         }
+    }
+
+    if selected_section.is_some() && lines.len() == 1 {
+        lines.push(String::new());
+        lines.push("Selected Structure item has no inspection output this frame.".to_owned());
     }
 
     lines.join("\n")
@@ -171,6 +190,7 @@ pub(in crate::devtools) fn draw_editor_inspector(
     focus_name: &str,
     pinned: bool,
     frame: &InspectionFrame,
+    selected_section: Option<InspectSectionId>,
 ) {
     ui.heading(focus_name);
 
@@ -181,15 +201,26 @@ pub(in crate::devtools) fn draw_editor_inspector(
 
     let Some(target) = target else {
         ui.weak("No inspectable focus.");
-        ui.label("Hover the Game view, or click it to recapture the player view.");
+        ui.label("Select an entity in Hierarchy or click one in the Game view.");
         return;
     };
 
     ui.monospace(render_body(
         pinned,
-        target.hit.distance_meters,
+        target.hit.map(|hit| hit.distance_meters),
         frame,
+        selected_section,
     ));
+}
+
+fn access_suffix(access: InspectAccess) -> &'static str {
+    match access {
+        InspectAccess::ReadOnly => "",
+        InspectAccess::Direct => "  [direct]",
+        InspectAccess::Validated => "  [validated]",
+        InspectAccess::Transactional => "  [transactional]",
+        InspectAccess::Command => "  [command]",
+    }
 }
 
 fn format_value(value: &InspectValue) -> String {

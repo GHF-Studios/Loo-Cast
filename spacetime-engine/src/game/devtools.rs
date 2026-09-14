@@ -134,15 +134,15 @@ fn resolve_player_focus(
         .map(|manifestation| manifestation.0)
         .unwrap_or(hit.0);
 
-    focus.set_hovered(Some(FocusTarget {
-        spatial_entity: hit.0,
+    focus.set_hovered(Some(FocusTarget::hit(
+        hit.0,
         semantic_entity,
-        hit: FocusHit {
+        FocusHit {
             position: ray.point_at(hit.1),
             normal: None,
             distance_meters: hit.1,
         },
-    }));
+    )));
 }
 
 fn handle_focus_pin(
@@ -157,7 +157,7 @@ fn handle_focus_pin(
     if focus.pinned().is_some() {
         focus.clear_pin();
     } else {
-        focus.pin_hovered();
+        focus.pin_current();
     }
 }
 
@@ -183,15 +183,19 @@ fn collect_identity_inspection(
     } else {
         "Semantic entity"
     };
-    let mut section = InspectSection::new(IDENTITY_SECTION, "Identity", 0)
-        .field(InspectField::new(
+    let mut section = InspectSection::new(IDENTITY_SECTION, "Identity", 0).field(
+        InspectField::new(
             identity_label,
             InspectValue::Entity(target.semantic_entity),
-        ))
-        .field(InspectField::new(
+        ),
+    );
+
+    if let Some(hit) = target.hit {
+        section = section.field(InspectField::new(
             "Hit position",
-            InspectValue::Vec3(target.hit.position),
+            InspectValue::Vec3(hit.position),
         ));
+    }
 
     if target.spatial_entity != target.semantic_entity {
         section = section

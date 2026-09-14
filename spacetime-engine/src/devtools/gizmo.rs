@@ -1,20 +1,11 @@
-//! Editor interaction state and gizmo backends.
+//! Contextual editor gizmos.
 //!
-//! The generic layer owns selection and tool intent. It does **not** own domain
-//! authoring state. A gizmo backend may directly mutate a component only when a
-//! domain has explicitly declared that component authoritative for that edit.
-//!
-//! The first backend uses Bevy's transform gizmo. Keeping the adapter here means
-//! future portal, light, collider, USF, or other domain handles can share editor
-//! selection/view/input policy without pretending every gizmo is a transform.
+//! A gizmo is broader than a viewport handle: it may expose rich state, drawing,
+//! interaction and actions. This module contains the first concrete gizmo: a
+//! unified Transform gizmo whose translate, rotate and scale affordances are all
+//! visible at once. Visibility and edit authority are deliberately separate.
 
 use bevy::{
-    camera::visibility::RenderLayers,
-    gizmos::transform_gizmo::{
-        TransformGizmoCamera, TransformGizmoFocus, TransformGizmoMeshMarker,
-        TransformGizmoMode, TransformGizmoPlugin, TransformGizmoRoot, TransformGizmoSettings,
-        TransformGizmoSpace, TransformGizmoState, TransformGizmoSystems,
-    },
     prelude::*,
     window::{CursorGrabMode, CursorOptions, PrimaryWindow},
 };
@@ -24,74 +15,16 @@ use crate::{
     view::{PrimaryGameView, PrimaryViewPresentation, ViewportSpace},
 };
 
-use super::{DeveloperArtifact, DeveloperFocus, DeveloperSet};
+use super::{
+    DeveloperFocus, DeveloperSet, DeveloperTools, DrawDepth, InspectAccess, InspectField,
+    InspectSection, InspectSectionId, InspectValue, InspectionFrame, SemanticInspectionSelection,
+    WorldDrawBatch, WorldDrawFrame,
+};
 
 const INPUT_FOCUS_OWNER: &str = "editor_gizmo";
-
-// Bevy 0.19's mesh transform-gizmo renderer uses a private overlay-camera marker
-// and this dedicated layer. The adapter keeps that implementation detail in one
-// place so the rest of the editor never needs to know it. Re-check this constant
-// when upgrading Bevy.
-const BEVY_TRANSFORM_GIZMO_RENDER_LAYER: usize = 15;
-
-/// Durable ECS selection owned by the editor shell.
-///
-/// This is intentionally different from [`DeveloperFocus`]: focus is the live
-/// semantic thing under the developer pointer/look ray, while editor selection is
-/// explicit UI state that survives pointer movement and drives authoring tools.
-#[derive(Resource, Debug, Default, Clone)]
-pub struct EditorSelection {
-    entities: Vec<Entity>,
-}
-
-impl EditorSelection {
-    pub fn as_slice(&self) -> &[Entity] {
-        &self.entities
-    }
-
-    pub fn single(&self) -> Option<Entity> {
-        match self.entities.as_slice() {
-            [entity] => Some(*entity),
-            _ => None,
-        }
-    }
-
-    pub fn clear(&mut self) {
-        self.entities.clear();
-    }
-
-    pub fn replace(&mut self, entity: Entity) {
-        if self.entities.len() != 1 || self.entities[0] != entity {
-            self.entities.clear();
-            self.entities.push(entity);
-        }
-    }
-
-    pub fn replace_many(&mut self, entities: impl IntoIterator<Item = Entity>) {
-        let mut next = Vec::new();
-        for entity in entities {
-            if !next.contains(&entity) {
-                next.push(entity);
-            }
-        }
-        if self.entities != next {
-            self.entities = next;
-        }
-    }
-}
-
-/// High-level editor manipulation intent.
-///
-/// Backends translate this into their own implementation-specific modes. Domain
-/// gizmos may ignore transform-specific variants when they are not relevant.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub enum EditorTool {
-    #[default]
-    Select,
-    Translate,
-    Rotate,
-    Scale,
-}
+pub(in crate::devtools) const TRANSFORM_SECTION: InspectSectionId = InspectSectionId("transform");
+const HANDLE_PICK_PIXELS: f32 = 9.0;
+const RING_SEGMENTS: usize = 40;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum EditorTransformSpace {
@@ -101,20 +34,11 @@ pub enum EditorTransformSpace {
 }
 
 #[derive(Resource, Debug, Default, Clone, Copy)]
-pub struct EditorToolState {
-    tool: EditorTool,
+pub struct EditorTransformGizmoSettings {
     transform_space: EditorTransformSpace,
 }
 
-impl EditorToolState {
-    pub fn tool(&self) -> EditorTool {
-        self.tool
-    }
-
-    pub fn set_tool(&mut self, tool: EditorTool) {
-        self.tool = tool;
-    }
-
+impl EditorTransformGizmoSettings {
     pub fn transform_space(&self) -> EditorTransformSpace {
         self.transform_space
     }
@@ -124,168 +48,442 @@ impl EditorToolState {
     }
 }
 
-/// Grants the generic transform-gizmo backend permission to mutate this entity's
-/// [`Transform`] directly.
+/// Explicit permission for the generic gizmo to mutate this runtime Transform.
 ///
-/// This marker is deliberately opt-in. A `Transform` can be presentation output,
-/// physics state, generated map output, a portal manifestation, or other derived
-/// state. Those entities must not become editor-authoritative just because they
-/// happen to carry `Transform`.
-///
-/// Persistent/domain-authored objects should normally expose an adapter that
-/// commits edits to their real source of truth (potentially through an editor-only
-/// proxy entity) rather than attaching this marker to generated runtime output.
+/// Mere presence of [`Transform`] grants observation, never authority. Generated,
+/// simulated, asset-authored or otherwise derived transforms should instead gain
+/// domain-specific authoring adapters that commit to their real source of truth.
 #[derive(Component, Debug, Default, Clone, Copy)]
 pub struct EditorTransformWritable;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum TransformOperation {
+    Translate,
+    Rotate,
+    Scale,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum TransformAxis {
+    X,
+    Y,
+    Z,
+}
+
+impl TransformAxis {
+    const ALL: [Self; 3] = [Self::X, Self::Y, Self::Z];
+
+    fn vector(self) -> Vec3 {
+        match self {
+            Self::X => Vec3::X,
+            Self::Y => Vec3::Y,
+            Self::Z => Vec3::Z,
+        }
+    }
+
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct TransformHandle {
+    operation: TransformOperation,
+    axis: TransformAxis,
+}
+
+#[derive(Debug, Clone)]
+struct TransformDrag {
+    entity: Entity,
+    handle: TransformHandle,
+    start_transform: Transform,
+    start_cursor: Vec2,
+    origin_screen: Vec2,
+    axis_screen: Vec2,
+    pixels_per_world: f32,
+    axis_pixels: f32,
+    world_axis: Vec3,
+    space: EditorTransformSpace,
+}
+
+#[derive(Resource, Debug, Default)]
+struct TransformGizmoInteraction {
+    hovered: Option<TransformHandle>,
+    drag: Option<TransformDrag>,
+}
+
+impl TransformGizmoInteraction {
+    fn active(&self) -> bool {
+        self.drag.is_some()
+    }
+}
+
 pub(super) fn configure(app: &mut App) {
-    app.add_plugins(TransformGizmoPlugin)
-        .init_resource::<InputFocus>()
+    app.init_resource::<InputFocus>()
         .init_resource::<PrimaryViewPresentation>()
-        .init_resource::<EditorSelection>()
-        .init_resource::<EditorToolState>()
-        .configure_sets(
-            PostUpdate,
-            DeveloperSet::Interact.after(TransformGizmoSystems),
-        )
+        .init_resource::<EditorTransformGizmoSettings>()
+        .init_resource::<TransformGizmoInteraction>()
         .add_systems(
             PreUpdate,
             claim_gizmo_input.before(InputFocusSet::Resolve),
         )
+        // Direct Transform editing happens in Update so Bevy's normal
+        // PostUpdate transform propagation sees it in the same frame. Running
+        // this after propagation would create a visible one-frame GlobalTransform lag.
+        .add_systems(Update, update_transform_gizmo)
         .add_systems(
-            Update,
-            (
-                prune_selection,
-                sync_backend_camera,
-                sync_backend_settings,
-                sync_backend_target,
-            )
-                .chain(),
+            PostUpdate,
+            select_from_primary_view.in_set(DeveloperSet::Interact),
         )
         .add_systems(
             PostUpdate,
-            (
-                select_from_primary_view,
-                sync_backend_overlay_camera,
-                tag_backend_artifacts,
-            )
-                .chain()
-                .in_set(DeveloperSet::Interact),
+            collect_transform_inspection.in_set(DeveloperSet::CollectInspection),
+        )
+        .add_systems(
+            PostUpdate,
+            collect_transform_gizmo.in_set(DeveloperSet::CollectWorldDraw),
         );
 }
 
 fn claim_gizmo_input(
     presentation: Res<PrimaryViewPresentation>,
-    state: Res<TransformGizmoState>,
+    state: Res<TransformGizmoInteraction>,
     mut input_focus: ResMut<InputFocus>,
 ) {
     input_focus.set_modal_claim(
         INPUT_FOCUS_OWNER,
-        presentation.is_embedded() && state.active,
+        presentation.is_embedded() && state.active(),
     );
 }
 
-
-fn prune_selection(
-    mut selection: ResMut<EditorSelection>,
-    entities: Query<Entity>,
+fn collect_transform_inspection(
+    tools: Res<DeveloperTools>,
+    focus: Res<DeveloperFocus>,
+    transforms: Query<&Transform>,
+    writable: Query<(), With<EditorTransformWritable>>,
+    parented: Query<(), With<ChildOf>>,
+    mut frame: ResMut<InspectionFrame>,
 ) {
-    if selection
-        .entities
-        .iter()
-        .any(|entity| !entities.contains(*entity))
-    {
-        selection.entities.retain(|entity| entities.contains(*entity));
+    if !tools.enabled() {
+        return;
     }
-}
-
-fn sync_backend_camera(
-    mut commands: Commands,
-    primary: Query<(Entity, Option<&TransformGizmoCamera>), With<PrimaryGameView>>,
-    other_marked: Query<Entity, (With<TransformGizmoCamera>, Without<PrimaryGameView>)>,
-) {
-    let Ok((primary, marker)) = primary.single() else {
+    let Some(target) = focus.current() else {
+        return;
+    };
+    let Ok(transform) = transforms.get(target.spatial_entity) else {
         return;
     };
 
-    for entity in &other_marked {
-        commands.entity(entity).remove::<TransformGizmoCamera>();
-    }
-
-    if marker.is_none() {
-        commands.entity(primary).insert(TransformGizmoCamera);
-    }
-}
-
-fn sync_backend_settings(
-    tools: Res<EditorToolState>,
-    mut settings: ResMut<TransformGizmoSettings>,
-) {
-    settings.mode = match tools.tool() {
-        EditorTool::Select | EditorTool::Translate => TransformGizmoMode::Translate,
-        EditorTool::Rotate => TransformGizmoMode::Rotate,
-        EditorTool::Scale => TransformGizmoMode::Scale,
-    };
-    settings.space = match tools.transform_space() {
-        EditorTransformSpace::World => TransformGizmoSpace::World,
-        EditorTransformSpace::Local => TransformGizmoSpace::Local,
-    };
-
-    // The editor already owns pointer/capture policy. Letting the backend confine
-    // the OS cursor would make a handle drag another hidden source of window-level
-    // input state and works poorly with a sub-viewport.
-    settings.confine_cursor = false;
-}
-
-fn sync_backend_target(
-    mut commands: Commands,
-    presentation: Res<PrimaryViewPresentation>,
-    tools: Res<EditorToolState>,
-    selection: Res<EditorSelection>,
-    writable: Query<(), (With<EditorTransformWritable>, With<Transform>)>,
-    focused: Query<Entity, With<TransformGizmoFocus>>,
-) {
-    let desired = if presentation.is_embedded() && tools.tool() != EditorTool::Select {
-        selection.single().filter(|entity| writable.contains(*entity))
+    let access = if writable.contains(target.spatial_entity)
+        && !parented.contains(target.spatial_entity)
+    {
+        InspectAccess::Direct
     } else {
-        None
+        InspectAccess::ReadOnly
     };
+    let (rx, ry, rz) = transform.rotation.to_euler(EulerRot::XYZ);
 
-    for entity in &focused {
-        if Some(entity) != desired {
-            commands.entity(entity).remove::<TransformGizmoFocus>();
-        }
+    frame.submit(
+        InspectSection::new(TRANSFORM_SECTION, "Transform", 10)
+            .field(
+                InspectField::new("Translation", InspectValue::Vec3(transform.translation))
+                    .access(access),
+            )
+            .field(
+                InspectField::new(
+                    "Rotation (degrees)",
+                    InspectValue::Vec3(Vec3::new(rx.to_degrees(), ry.to_degrees(), rz.to_degrees())),
+                )
+                .access(access),
+            )
+            .field(
+                InspectField::new("Scale", InspectValue::Vec3(transform.scale)).access(access),
+            ),
+    );
+}
+
+fn update_transform_gizmo(
+    mouse: Res<ButtonInput<MouseButton>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    presentation: Res<PrimaryViewPresentation>,
+    window: Single<(&Window, &CursorOptions), With<PrimaryWindow>>,
+    camera: Single<(&Camera, &GlobalTransform), With<PrimaryGameView>>,
+    focus: Res<DeveloperFocus>,
+    semantic_selection: Res<SemanticInspectionSelection>,
+    settings: Res<EditorTransformGizmoSettings>,
+    globals: Query<&GlobalTransform>,
+    parented: Query<(), With<ChildOf>>,
+    mut transforms: Query<&mut Transform, With<EditorTransformWritable>>,
+    mut state: ResMut<TransformGizmoInteraction>,
+) {
+    if !presentation.is_embedded() {
+        state.hovered = None;
+        state.drag = None;
+        return;
     }
 
-    if let Some(entity) = desired {
-        if !focused.contains(entity) {
-            commands.entity(entity).insert(TransformGizmoFocus);
+    let (window, cursor_options) = window.into_inner();
+    let (camera, camera_transform) = camera.into_inner();
+    let Some(cursor) = window.cursor_position() else {
+        state.hovered = None;
+        return;
+    };
+    if cursor_options.grab_mode != CursorGrabMode::None
+        || !ViewportSpace::new(camera).contains_target_position(cursor)
+    {
+        state.hovered = None;
+        return;
+    }
+
+    if keyboard.just_pressed(KeyCode::Escape) {
+        if let Some(drag) = state.drag.take()
+            && let Ok(mut transform) = transforms.get_mut(drag.entity)
+        {
+            *transform = drag.start_transform;
+        }
+        return;
+    }
+
+    if mouse.just_released(MouseButton::Left) {
+        state.drag = None;
+    }
+
+    if let Some(drag) = state.drag.clone() {
+        if !mouse.pressed(MouseButton::Left) {
+            state.drag = None;
+            return;
+        }
+        let Ok(mut transform) = transforms.get_mut(drag.entity) else {
+            state.drag = None;
+            return;
+        };
+        apply_drag(&mut transform, &drag, cursor);
+        state.hovered = Some(drag.handle);
+        return;
+    }
+
+    let Some(target) = focus.current() else {
+        state.hovered = None;
+        return;
+    };
+    if !transform_context_visible(target.spatial_entity, &semantic_selection) {
+        state.hovered = None;
+        return;
+    }
+    let Ok(global) = globals.get(target.spatial_entity) else {
+        state.hovered = None;
+        return;
+    };
+
+    state.hovered = hit_test(
+        camera,
+        camera_transform,
+        global,
+        settings.transform_space(),
+        cursor,
+    );
+
+    if !mouse.just_pressed(MouseButton::Left)
+        || state.hovered.is_none()
+        || parented.contains(target.spatial_entity)
+    {
+        return;
+    }
+    let Ok(transform) = transforms.get_mut(target.spatial_entity) else {
+        return;
+    };
+    let handle = state.hovered.unwrap();
+    let transform_snapshot = (*transform).clone();
+    drop(transform);
+
+    let world = global.compute_transform();
+    let origin = world.translation;
+    let size = gizmo_world_size(camera_transform, origin);
+    let world_axis = handle_world_axis(handle, settings.transform_space(), world.rotation);
+    let Some(origin_screen) = project(camera, camera_transform, origin) else {
+        return;
+    };
+    let (axis_screen, pixels_per_world, axis_pixels) = if handle.operation == TransformOperation::Rotate {
+        // Rotation uses cursor angle around the projected origin. A rotation
+        // axis pointing toward the camera has almost no screen projection but
+        // its ring is maximally useful, so it must not fail drag initialization.
+        (Vec2::ZERO, 1.0, 1.0)
+    } else {
+        let Some(axis_end) = project(camera, camera_transform, origin + world_axis * size) else {
+            return;
+        };
+        let axis_delta = axis_end - origin_screen;
+        let axis_pixels = axis_delta.length();
+        if axis_pixels <= 1.0 {
+            return;
+        }
+        (
+            axis_delta / axis_pixels,
+            axis_pixels / size.max(1.0e-5),
+            axis_pixels,
+        )
+    };
+
+    state.drag = Some(TransformDrag {
+        entity: target.spatial_entity,
+        handle,
+        start_transform: transform_snapshot,
+        start_cursor: cursor,
+        origin_screen,
+        axis_screen,
+        pixels_per_world,
+        axis_pixels,
+        world_axis,
+        space: settings.transform_space(),
+    });
+}
+
+fn apply_drag(transform: &mut Transform, drag: &TransformDrag, cursor: Vec2) {
+    *transform = drag.start_transform.clone();
+
+    match drag.handle.operation {
+        TransformOperation::Translate => {
+            let pixels = (cursor - drag.start_cursor).dot(drag.axis_screen);
+            let distance = pixels / drag.pixels_per_world.max(1.0e-5);
+            transform.translation += drag.world_axis * distance;
+        }
+        TransformOperation::Rotate => {
+            let start = (drag.start_cursor - drag.origin_screen).normalize_or_zero();
+            let current = (cursor - drag.origin_screen).normalize_or_zero();
+            if start == Vec2::ZERO || current == Vec2::ZERO {
+                return;
+            }
+            let cross = start.x * current.y - start.y * current.x;
+            let angle = -cross.atan2(start.dot(current));
+            let local_axis = drag.handle.axis.vector();
+            transform.rotation = match drag.space {
+                EditorTransformSpace::World => {
+                    Quat::from_axis_angle(drag.world_axis, angle) * drag.start_transform.rotation
+                }
+                EditorTransformSpace::Local => {
+                    drag.start_transform.rotation * Quat::from_axis_angle(local_axis, angle)
+                }
+            };
+        }
+        TransformOperation::Scale => {
+            let pixels = (cursor - drag.start_cursor).dot(drag.axis_screen);
+            let factor = (1.0 + pixels / drag.axis_pixels.max(1.0)).max(0.01);
+            let start = drag.start_transform.scale;
+            match drag.handle.axis {
+                TransformAxis::X => transform.scale.x = start.x * factor,
+                TransformAxis::Y => transform.scale.y = start.y * factor,
+                TransformAxis::Z => transform.scale.z = start.z * factor,
+            }
         }
     }
 }
 
-/// Turns a free-pointer click in the embedded Game view into editor selection.
-///
-/// The developer focus resolver already owns ray/world hit policy, including
-/// portal apertures and semantic manifestation mapping. Reusing its hovered
-/// *spatial* entity avoids a second editor-only picking implementation.
+fn collect_transform_gizmo(
+    presentation: Res<PrimaryViewPresentation>,
+    focus: Res<DeveloperFocus>,
+    semantic_selection: Res<SemanticInspectionSelection>,
+    settings: Res<EditorTransformGizmoSettings>,
+    state: Res<TransformGizmoInteraction>,
+    camera: Single<&GlobalTransform, With<PrimaryGameView>>,
+    globals: Query<&GlobalTransform>,
+    writable: Query<(), With<EditorTransformWritable>>,
+    parented: Query<(), With<ChildOf>>,
+    frame: Res<WorldDrawFrame>,
+) {
+    if !presentation.is_embedded() {
+        return;
+    }
+    let Some(target) = focus.current() else {
+        return;
+    };
+    if !transform_context_visible(target.spatial_entity, &semantic_selection) {
+        return;
+    }
+    let Ok(global) = globals.get(target.spatial_entity) else {
+        return;
+    };
+
+    let camera_transform = camera.into_inner();
+    let transform = global.compute_transform();
+    let origin = transform.translation;
+    let size = gizmo_world_size(camera_transform, origin);
+    let editable = writable.contains(target.spatial_entity) && !parented.contains(target.spatial_entity);
+    let mut batch = WorldDrawBatch::default();
+
+    for axis in TransformAxis::ALL {
+        let translate = TransformHandle {
+            operation: TransformOperation::Translate,
+            axis,
+        };
+        let scale = TransformHandle {
+            operation: TransformOperation::Scale,
+            axis,
+        };
+        let rotate = TransformHandle {
+            operation: TransformOperation::Rotate,
+            axis,
+        };
+        let translate_direction =
+            handle_world_axis(translate, settings.transform_space(), transform.rotation);
+        let scale_direction =
+            handle_world_axis(scale, settings.transform_space(), transform.rotation);
+
+        batch.arrow(
+            origin + translate_direction * size * 0.68,
+            origin + translate_direction * size * 1.12,
+            handle_color(axis, state.hovered == Some(translate), editable),
+            DrawDepth::Overlay,
+        );
+        batch.line(
+            origin,
+            origin + scale_direction * size * 0.58,
+            handle_color(axis, state.hovered == Some(scale), editable),
+            DrawDepth::Overlay,
+        );
+        batch.cross(
+            Isometry3d::new(origin + scale_direction * size * 0.58, Quat::IDENTITY),
+            size * 0.055,
+            handle_color(axis, state.hovered == Some(scale), editable),
+            DrawDepth::Overlay,
+        );
+
+        let ring_color = handle_color(axis, state.hovered == Some(rotate), editable);
+        let (basis_a, basis_b) = ring_basis(axis, settings.transform_space(), transform.rotation);
+        let radius = size * 0.82;
+        let mut previous = origin + basis_a * radius;
+        for segment in 1..=RING_SEGMENTS {
+            let angle = std::f32::consts::TAU * segment as f32 / RING_SEGMENTS as f32;
+            let point = origin + (basis_a * angle.cos() + basis_b * angle.sin()) * radius;
+            batch.line(previous, point, ring_color, DrawDepth::Overlay);
+            previous = point;
+        }
+    }
+
+    batch.cross(
+        Isometry3d::new(origin, Quat::IDENTITY),
+        size * 0.07,
+        if editable {
+            Color::srgb(0.95, 0.95, 0.95)
+        } else {
+            Color::srgb(0.45, 0.45, 0.45)
+        },
+        DrawDepth::Overlay,
+    );
+    frame.submit(batch);
+}
+
 fn select_from_primary_view(
     mouse: Res<ButtonInput<MouseButton>>,
     presentation: Res<PrimaryViewPresentation>,
     window: Single<(&Window, &CursorOptions), With<PrimaryWindow>>,
     camera: Single<&Camera, With<PrimaryGameView>>,
-    focus: Res<DeveloperFocus>,
-    gizmo: Res<TransformGizmoState>,
-    mut selection: ResMut<EditorSelection>,
+    mut focus: ResMut<DeveloperFocus>,
+    gizmo: Res<TransformGizmoInteraction>,
+    mut semantic_selection: ResMut<SemanticInspectionSelection>,
 ) {
     if !presentation.is_embedded() || !mouse.just_pressed(MouseButton::Left) {
         return;
     }
 
-    // A locked cursor means gameplay owns the pointer. Also avoid replacing the
-    // selected object when the same click started a gizmo drag.
     let (window, cursor) = window.into_inner();
-    if cursor.grab_mode != CursorGrabMode::None || gizmo.active || gizmo.hovered_axis.is_some() {
+    if cursor.grab_mode != CursorGrabMode::None || gizmo.active() || gizmo.hovered.is_some() {
         return;
     }
 
@@ -296,70 +494,201 @@ fn select_from_primary_view(
         return;
     }
 
+    focus.clear_pin();
     if let Some(target) = focus.hovered() {
-        selection.replace(target.spatial_entity);
+        focus.select(target);
+        semantic_selection.clear_for(target.spatial_entity);
     } else {
-        selection.clear();
+        focus.clear_selection();
+        semantic_selection.clear();
     }
 }
 
-/// Bevy's 0.19 gizmo renderer mirrors the selected camera transform/viewport but
-/// its private overlay camera keeps a default projection. Our primary view has a
-/// custom horizontal-FOV-derived perspective, so copy the projection here to keep
-/// rendered handles and Bevy's own hit-testing in the same screen space.
-fn sync_backend_overlay_camera(
-    primary: Query<(&Projection, &Camera), With<PrimaryGameView>>,
-    focused: Query<(), With<TransformGizmoFocus>>,
-    mut cameras: Query<
-        (&mut Projection, &mut Camera, &RenderLayers),
-        (With<Camera3d>, Without<PrimaryGameView>),
-    >,
+fn transform_context_visible(
+    owner: Entity,
+    semantic_selection: &SemanticInspectionSelection,
+) -> bool {
+    semantic_selection
+        .section_for(owner)
+        .map_or(true, |section| section == TRANSFORM_SECTION)
+}
+
+fn hit_test(
+    camera: &Camera,
+    camera_transform: &GlobalTransform,
+    global: &GlobalTransform,
+    space: EditorTransformSpace,
+    cursor: Vec2,
+) -> Option<TransformHandle> {
+    let transform = global.compute_transform();
+    let origin = transform.translation;
+    let size = gizmo_world_size(camera_transform, origin);
+    let origin_screen = project(camera, camera_transform, origin)?;
+    let mut best: Option<(f32, TransformHandle)> = None;
+
+    for axis in TransformAxis::ALL {
+        let scale_handle = TransformHandle {
+            operation: TransformOperation::Scale,
+            axis,
+        };
+        let scale_direction = handle_world_axis(scale_handle, space, transform.rotation);
+        if let Some(point) = project(
+            camera,
+            camera_transform,
+            origin + scale_direction * size * 0.58,
+        ) {
+            consider_handle(&mut best, cursor.distance(point), HANDLE_PICK_PIXELS + 2.0, scale_handle);
+        }
+
+        let translate_handle = TransformHandle {
+            operation: TransformOperation::Translate,
+            axis,
+        };
+        let translate_direction = handle_world_axis(translate_handle, space, transform.rotation);
+        if let (Some(a), Some(b)) = (
+            project(
+                camera,
+                camera_transform,
+                origin + translate_direction * size * 0.68,
+            ),
+            project(
+                camera,
+                camera_transform,
+                origin + translate_direction * size * 1.12,
+            ),
+        ) {
+            consider_handle(
+                &mut best,
+                point_segment_distance(cursor, a, b),
+                HANDLE_PICK_PIXELS,
+                translate_handle,
+            );
+        }
+
+        let rotate_handle = TransformHandle {
+            operation: TransformOperation::Rotate,
+            axis,
+        };
+        let (basis_a, basis_b) = ring_basis(axis, space, transform.rotation);
+        let radius = size * 0.82;
+        let mut previous = project(camera, camera_transform, origin + basis_a * radius);
+        let mut ring_distance = f32::INFINITY;
+        for segment in 1..=RING_SEGMENTS {
+            let angle = std::f32::consts::TAU * segment as f32 / RING_SEGMENTS as f32;
+            let point = origin + (basis_a * angle.cos() + basis_b * angle.sin()) * radius;
+            let current = project(camera, camera_transform, point);
+            if let (Some(a), Some(b)) = (previous, current) {
+                ring_distance = ring_distance.min(point_segment_distance(cursor, a, b));
+            }
+            previous = current;
+        }
+        consider_handle(
+            &mut best,
+            ring_distance,
+            HANDLE_PICK_PIXELS,
+            rotate_handle,
+        );
+    }
+
+    // Avoid selecting an almost edge-on gizmo merely because its projected
+    // geometry collapsed onto the origin.
+    best.filter(|(distance, _)| *distance <= HANDLE_PICK_PIXELS + 2.0)
+        .map(|(_, handle)| handle)
+        .filter(|_| origin_screen.is_finite())
+}
+
+fn consider_handle(
+    best: &mut Option<(f32, TransformHandle)>,
+    distance: f32,
+    threshold: f32,
+    handle: TransformHandle,
 ) {
-    let Ok((primary_projection, primary_camera)) = primary.single() else {
+    if !distance.is_finite() || distance > threshold {
         return;
-    };
-    let layer = RenderLayers::layer(BEVY_TRANSFORM_GIZMO_RENDER_LAYER);
-    let has_focus = focused.iter().next().is_some();
-
-    for (mut projection, mut camera, layers) in &mut cameras {
-        if camera.order != 1 || *layers != layer {
-            continue;
-        }
-
-        *projection = primary_projection.clone();
-        camera.viewport = primary_camera.viewport.clone();
-        camera.is_active = primary_camera.is_active && has_focus;
+    }
+    if best
+        .as_ref()
+        .map_or(true, |(best_distance, _)| distance < *best_distance)
+    {
+        *best = Some((distance, handle));
     }
 }
 
-/// Keep implementation-detail entities out of hierarchy and structural runtime
-/// diagnostics just like our own retained developer presentation artifacts.
-fn tag_backend_artifacts(
-    mut commands: Commands,
-    gizmo_entities: Query<
-        Entity,
-        (
-            Or<(With<TransformGizmoRoot>, With<TransformGizmoMeshMarker>)>,
-            Without<DeveloperArtifact>,
-        ),
-    >,
-    cameras: Query<
-        (Entity, &Camera, &RenderLayers),
-        (
-            With<Camera3d>,
-            Without<PrimaryGameView>,
-            Without<DeveloperArtifact>,
-        ),
-    >,
-) {
-    for entity in &gizmo_entities {
-        commands.entity(entity).insert(DeveloperArtifact);
+fn point_segment_distance(point: Vec2, a: Vec2, b: Vec2) -> f32 {
+    let ab = b - a;
+    let length_squared = ab.length_squared();
+    if length_squared <= 1.0e-5 {
+        return point.distance(a);
+    }
+    let t = ((point - a).dot(ab) / length_squared).clamp(0.0, 1.0);
+    point.distance(a + ab * t)
+}
+
+fn project(
+    camera: &Camera,
+    camera_transform: &GlobalTransform,
+    point: Vec3,
+) -> Option<Vec2> {
+    camera.world_to_viewport(camera_transform, point).ok()
+}
+
+fn gizmo_world_size(camera_transform: &GlobalTransform, origin: Vec3) -> f32 {
+    camera_transform
+        .translation()
+        .distance(origin)
+        .mul_add(0.12, 0.0)
+        .clamp(0.25, 12.0)
+}
+
+fn world_axis(axis: TransformAxis, space: EditorTransformSpace, rotation: Quat) -> Vec3 {
+    match space {
+        EditorTransformSpace::World => axis.vector(),
+        EditorTransformSpace::Local => rotation * axis.vector(),
+    }
+}
+
+fn handle_world_axis(
+    handle: TransformHandle,
+    space: EditorTransformSpace,
+    rotation: Quat,
+) -> Vec3 {
+    // `Transform::scale` is local-axis data. A true world-space scale operation
+    // on a rotated transform would need decomposition/authority semantics beyond
+    // this generic direct-runtime adapter, so scale handles deliberately remain
+    // local even while translation/rotation are shown in World space.
+    let effective_space = if handle.operation == TransformOperation::Scale {
+        EditorTransformSpace::Local
+    } else {
+        space
+    };
+    world_axis(handle.axis, effective_space, rotation)
+}
+
+fn ring_basis(
+    axis: TransformAxis,
+    space: EditorTransformSpace,
+    rotation: Quat,
+) -> (Vec3, Vec3) {
+    let (a, b) = match axis {
+        TransformAxis::X => (Vec3::Y, Vec3::Z),
+        TransformAxis::Y => (Vec3::Z, Vec3::X),
+        TransformAxis::Z => (Vec3::X, Vec3::Y),
+    };
+    match space {
+        EditorTransformSpace::World => (a, b),
+        EditorTransformSpace::Local => (rotation * a, rotation * b),
+    }
+}
+
+fn handle_color(axis: TransformAxis, highlighted: bool, editable: bool) -> Color {
+    if highlighted && editable {
+        return Color::srgb(1.0, 1.0, 1.0);
     }
 
-    let layer = RenderLayers::layer(BEVY_TRANSFORM_GIZMO_RENDER_LAYER);
-    for (entity, camera, layers) in &cameras {
-        if camera.order == 1 && *layers == layer {
-            commands.entity(entity).insert(DeveloperArtifact);
-        }
+    let strength = if editable { 1.0 } else { 0.45 };
+    match axis {
+        TransformAxis::X => Color::srgb(strength, 0.12 * strength, 0.12 * strength),
+        TransformAxis::Y => Color::srgb(0.12 * strength, strength, 0.18 * strength),
+        TransformAxis::Z => Color::srgb(0.16 * strength, 0.42 * strength, strength),
     }
 }
