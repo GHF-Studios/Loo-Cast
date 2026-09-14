@@ -15,7 +15,6 @@ use bevy::{
     camera::visibility::RenderLayers,
     input::mouse::AccumulatedMouseScroll,
     prelude::*,
-    window::PrimaryWindow,
 };
 
 use crate::{
@@ -402,22 +401,27 @@ fn nearest_camera_portal_crossing(
 }
 
 /// Bevy stores perspective FOV vertically. Keep the requested gameplay FOV
-/// horizontal and derive the vertical value from the current window aspect.
+/// horizontal and derive the vertical value from the logical game-view aspect,
+/// not from the containing window. This remains correct when the game is embedded.
 pub fn sync_player_fov(
-    window: Single<&Window, With<PrimaryWindow>>,
-    settings: Single<&PlayerCamera>,
-    mut projection: Single<&mut Projection, With<PlayerCamera>>,
+    camera: Single<(&PlayerCamera, &Camera, &mut Projection)>,
 ) {
+    let (settings, camera, mut projection) = camera.into_inner();
     let Projection::Perspective(perspective) = projection.as_mut() else {
         return;
     };
 
-    let height = window.height();
-    if height <= 0.0 {
+    let Some(size) = camera
+        .logical_viewport_size()
+        .or_else(|| camera.logical_target_size())
+    else {
+        return;
+    };
+    if size.y <= 0.0 {
         return;
     }
 
-    let aspect = window.width() / height;
+    let aspect = size.x / size.y;
     if aspect <= 0.0 {
         return;
     }

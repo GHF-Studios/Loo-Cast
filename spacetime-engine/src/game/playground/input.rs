@@ -47,6 +47,12 @@ fn toggle_creative_menu(
         return;
     }
 
+    // When embedded in a host/editor, keyboard input belongs to the shell until
+    // the game view has explicitly recaptured the local player.
+    if !state.open && !capture.active() {
+        return;
+    }
+
     state.open = !state.open;
 
     if state.open {

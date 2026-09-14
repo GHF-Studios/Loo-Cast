@@ -4,7 +4,7 @@
 //! and never feeds strings back into world-draw primitives.
 
 mod focus_badge;
-mod inspector;
+pub(super) mod inspector;
 mod tools;
 
 use bevy::prelude::*;

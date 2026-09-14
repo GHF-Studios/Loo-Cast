@@ -10,6 +10,7 @@ pub mod game;
 pub mod geometry;
 pub mod physics;
 pub mod ui;
+pub mod view;
 
 use bevy::prelude::*;
 use spacetime_engine_macros::*;

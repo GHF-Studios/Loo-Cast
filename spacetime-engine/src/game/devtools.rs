@@ -1,7 +1,7 @@
 //! Test-game adapters for developer focus, inspection and domain tooling.
 
 use avian3d::prelude::{SpatialQuery, SpatialQueryFilter};
-use bevy::prelude::*;
+use bevy::{prelude::*, window::PrimaryWindow};
 
 use crate::{
     devtools::{
@@ -10,11 +10,11 @@ use crate::{
     },
     ecs::{UsfManifestationAuthority, UsfManifestationOf, UsfManifestations},
     physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive},
+    view::{PrimaryGameView, ViewRay, ViewportSpace},
 };
 
 use super::{
-    player::PlayerCamera,
-    playground::{AimRay, PlaygroundAim},
+    player::{Player, cursor::CursorCapture},
     portal::{Portal, PortalActive},
 };
 
@@ -43,39 +43,57 @@ impl Plugin for TestGameDeveloperToolsPlugin {
 }
 
 fn resolve_developer_view(
-    cameras: Query<Entity, With<PlayerCamera>>,
+    window: Single<&Window, With<PrimaryWindow>>,
+    camera: Single<(Entity, &Camera, &GlobalTransform), With<PrimaryGameView>>,
+    capture: Res<CursorCapture>,
     mut view: ResMut<DeveloperView>,
 ) {
-    view.set_observer(cameras.iter().next());
+    let (entity, camera, camera_transform) = camera.into_inner();
+    view.set_observer(Some(entity));
+
+    let space = ViewportSpace::new(camera);
+    let target_position = if capture.active() {
+        space.target_center()
+    } else {
+        window
+            .cursor_position()
+            .filter(|position| space.contains_target_position(*position))
+    };
+
+    view.set_interaction_ray(
+        target_position.and_then(|position| {
+            space.target_to_world_ray(camera_transform, position)
+        }),
+    );
 }
 
 fn resolve_player_focus(
-    aim: Res<PlaygroundAim>,
+    view: Res<DeveloperView>,
+    player: Single<(Entity, &UsfManifestationOf), With<Player>>,
     manifestations: Query<&UsfManifestationOf>,
     semantic_entities: Query<&UsfManifestations>,
     portals: Query<(Entity, &Portal, &PortalActive, &GlobalTransform)>,
     spatial_query: SpatialQuery,
     mut focus: ResMut<DeveloperFocus>,
 ) {
-    let Some(aim) = aim.current() else {
+    let Some(ray) = view.interaction_ray() else {
         focus.set_hovered(None);
         return;
     };
-    let Ok(direction) = Dir3::new(aim.ray.direction) else {
+    let Ok(direction) = Dir3::new(ray.direction) else {
         focus.set_hovered(None);
         return;
     };
 
-    let filter = manifestations
-        .get(aim.actor)
-        .ok()
-        .and_then(|manifestation| semantic_entities.get(manifestation.0).ok())
+    let (actor, manifestation) = player.into_inner();
+    let filter = semantic_entities
+        .get(manifestation.0)
         .map(|manifestations| SpatialQueryFilter::from_excluded_entities(manifestations.iter()))
-        .unwrap_or_else(|| SpatialQueryFilter::from_excluded_entities([aim.actor]));
+        .unwrap_or_else(|_| SpatialQueryFilter::from_excluded_entities([actor]));
 
     let spatial_hit = spatial_query
         .cast_ray(
-            aim.ray.origin,
+            ray.origin,
             direction,
             FOCUS_RANGE_METERS,
             false,
@@ -89,7 +107,7 @@ fn resolve_player_focus(
         .iter()
         .filter(|(_, _, active, _)| active.0)
         .filter_map(|(entity, portal, _, transform)| {
-            portal_aperture_distance(aim.ray, transform, portal.half_size)
+            portal_aperture_distance(ray, transform, portal.half_size)
                 .filter(|distance| *distance <= FOCUS_RANGE_METERS)
                 .map(|distance| (entity, distance))
         })
@@ -120,7 +138,7 @@ fn resolve_player_focus(
         spatial_entity: hit.0,
         semantic_entity,
         hit: FocusHit {
-            position: aim.ray.origin + aim.ray.direction * hit.1,
+            position: ray.point_at(hit.1),
             normal: None,
             distance_meters: hit.1,
         },
@@ -232,7 +250,7 @@ fn collect_identity_inspection(
 }
 
 fn portal_aperture_distance(
-    ray: AimRay,
+    ray: ViewRay,
     transform: &GlobalTransform,
     half_size: Vec2,
 ) -> Option<f32> {

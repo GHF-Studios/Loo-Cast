@@ -6,7 +6,10 @@
 
 use bevy::prelude::*;
 
-use crate::ui::{UiTextRole, UiTheme};
+use crate::{
+    ui::{UiTextRole, UiTheme},
+    view::PrimaryViewPresentation,
+};
 
 use super::super::{
     DeveloperArtifact, DeveloperFocus, DeveloperSet, DeveloperTools, InspectNumberFormat,
@@ -76,6 +79,7 @@ fn spawn_inspector(mut commands: Commands, theme: Res<UiTheme>) {
 
 fn sync_inspector(
     tools: Res<DeveloperTools>,
+    presentation: Res<PrimaryViewPresentation>,
     focus: Res<DeveloperFocus>,
     frame: Res<InspectionFrame>,
     names: Query<&Name>,
@@ -86,7 +90,12 @@ fn sync_inspector(
         Option<&DeveloperInspectorBody>,
     )>,
 ) {
-    let target = tools.enabled().then(|| focus.current()).flatten();
+    // The compact Bevy-UI inspector remains useful as an immersive debug
+    // surface, but once the editor shell is open its canonical renderer moves
+    // outside the game viewport.
+    let target = (!presentation.is_embedded() && tools.enabled())
+        .then(|| focus.current())
+        .flatten();
     let visible = target.is_some();
 
     for mut node in &mut roots {
@@ -123,7 +132,11 @@ fn sync_inspector(
     }
 }
 
-fn render_body(pinned: bool, distance_meters: f32, frame: &InspectionFrame) -> String {
+pub(super) fn render_body(
+    pinned: bool,
+    distance_meters: f32,
+    frame: &InspectionFrame,
+) -> String {
     let mut lines = Vec::<String>::new();
     lines.push(format!(
         "{}  ·  {}  ·  P {}",
@@ -149,6 +162,34 @@ fn render_body(pinned: bool, distance_meters: f32, frame: &InspectionFrame) -> S
     }
 
     lines.join("\n")
+}
+
+pub(in crate::devtools) fn draw_editor_inspector(
+    ui: &mut bevy_egui::egui::Ui,
+    tools: &DeveloperTools,
+    target: Option<super::super::FocusTarget>,
+    focus_name: &str,
+    pinned: bool,
+    frame: &InspectionFrame,
+) {
+    ui.heading(focus_name);
+
+    if !tools.enabled() {
+        ui.weak("Developer output is disabled. Enable it here or press F3.");
+        return;
+    }
+
+    let Some(target) = target else {
+        ui.weak("No inspectable focus.");
+        ui.label("Hover the Game view, or click it to recapture the player view.");
+        return;
+    };
+
+    ui.monospace(render_body(
+        pinned,
+        target.hit.distance_meters,
+        frame,
+    ));
 }
 
 fn format_value(value: &InspectValue) -> String {

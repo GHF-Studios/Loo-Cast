@@ -2,12 +2,14 @@
 
 Developer tooling is split into small surfaces with hard ownership boundaries.
 This is the steady-state architecture after the staged developer-tools redesign;
-migration history remains in `../../DEVTOOLS_REDESIGN.md`.
+migration history remains in `../../historic_documents/DEVTOOLS_REDESIGN.md`.
 
 ## Surfaces
 
-- **Developer UI** (`devtools::ui`) owns screen-space tools: Inspector, optional
-  Focus Badge, and the flat F4 visualization palette.
+- **Developer UI** (`devtools::ui`) owns game-local screen-space tooling. The
+  lightweight immersive Inspector/F4 palette remain available without opening the
+  editor; when embedded, the Inspector and visualization controls are rendered by
+  the editor shell instead of inside the game view.
 - **Inspection** (`InspectionFrame`) carries structured semantic values. Domains
   submit meaning/data; UI owns formatting and typography.
 - **World Draw** (`devtools::draw`) carries spatial geometry and scalar fields.
@@ -23,6 +25,30 @@ migration history remains in `../../DEVTOOLS_REDESIGN.md`.
   not a Developer UI or World Draw subsystem.
 - **Shared UI** (`crate::ui`) owns presentation policy shared by game and developer
   UI; it does not own either surface's application state.
+
+## View and editor shell
+
+`crate::view` is the boundary between a logical view and wherever that view is
+presented. `PrimaryGameView` marks the running game's primary camera;
+`ViewportSpace` owns target-space ↔ viewport-local ↔ world conversion. Gameplay
+and developer systems consume world rays or local view coordinates rather than
+recomputing window offsets.
+
+F2 toggles `PrimaryViewPresentation` between:
+
+- **Immersive** — the game camera owns the whole target.
+- **Embedded** — the same live game camera is constrained to the `Game` dock tab
+  while a separate transparent egui camera renders the surrounding editor shell.
+
+The initial implementation deliberately uses a native camera viewport rather than
+forcing the game through a render texture. Render-to-image, split-screen or remote
+presentation can later change the backing implementation without changing
+consumers of the view contract.
+
+Game-local Bevy UI remains targeted at the game camera, so HUD/debug overlays stay
+inside the embedded viewport automatically. Editor-owned surfaces (Inspector,
+visualization controls, later hierarchy/assets/composition) live outside it and
+consume the same semantic resources as their lightweight immersive counterparts.
 
 ## Domain adapters
 
@@ -50,8 +76,10 @@ ResolveFocus
   -> RenderWorldDraw
 ```
 
-F3 gates developer output. F4 opens the flat visualization palette. Inspector
-visibility depends on developer mode + focus, not visualization selection.
+F2 toggles the editor shell. F3 gates developer output. In immersive mode, F4
+opens the lightweight flat visualization palette. In embedded mode those controls
+live in the editor shell. Inspector data remains independent of presentation and
+visualization selection.
 
 ## Presentation artifacts
 
@@ -69,6 +97,8 @@ queries or semantics. Gizmo primitives do not require ECS artifact entities.
 4. Domain tooling must not become simulation authority.
 5. Shared UI centralizes presentation policy, not screen/application state.
 6. Runtime diagnostics remains consumable without Developer UI.
+7. Window/viewport coordinate conversion belongs to `crate::view`, never to
+   simulation/domain adapters or individual debug widgets.
 
 ## Known open item
 

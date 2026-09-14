@@ -5,7 +5,10 @@
 
 use bevy::prelude::*;
 
-use crate::ui::{UiTextRole, UiTheme};
+use crate::{
+    ui::{UiTextRole, UiTheme},
+    view::ViewportSpace,
+};
 
 use super::super::{
     AppDeveloperToolsExt, DeveloperArtifact, DeveloperFocus, DeveloperSet, DeveloperTools,
@@ -90,7 +93,9 @@ fn sync_focus_badge(
         hide(&mut roots);
         return;
     };
-    let Ok(viewport_position) = camera.world_to_viewport(camera_transform, target.hit.position) else {
+    let Some(viewport_position) =
+        ViewportSpace::new(camera).world_to_local(camera_transform, target.hit.position)
+    else {
         hide(&mut roots);
         return;
     };

@@ -8,6 +8,7 @@ use bevy::prelude::*;
 use crate::{
     input_focus::{InputFocus, InputFocusSet},
     ui::{UiTextRole, UiTheme},
+    view::PrimaryViewPresentation,
 };
 
 use super::super::{DeveloperArtifact, DeveloperSet, DeveloperTools, VisualizationId};
@@ -122,9 +123,16 @@ fn spawn_tools_palette(
 
 fn handle_palette_keyboard(
     keyboard: Res<ButtonInput<KeyCode>>,
+    presentation: Res<PrimaryViewPresentation>,
     mut state: ResMut<DeveloperToolsPaletteState>,
     mut focus: ResMut<InputFocus>,
 ) {
+    if presentation.is_embedded() {
+        state.open = false;
+        focus.set_modal_claim(PALETTE_FOCUS_OWNER, false);
+        return;
+    }
+
     if keyboard.just_pressed(KeyCode::F4) {
         state.open = !state.open;
     } else if state.open && keyboard.just_pressed(KeyCode::Escape) {
@@ -150,6 +158,7 @@ fn handle_palette_buttons(
 
 fn sync_tools_palette(
     state: Res<DeveloperToolsPaletteState>,
+    presentation: Res<PrimaryViewPresentation>,
     tools: Res<DeveloperTools>,
     mut roots: Query<&mut Node, With<DeveloperToolsPaletteRoot>>,
     mut buttons: Query<(&VisualizationButton, &mut BackgroundColor)>,
@@ -160,7 +169,7 @@ fn sync_tools_palette(
     )>,
 ) {
     for mut node in &mut roots {
-        node.display = if state.open {
+        node.display = if state.open && !presentation.is_embedded() {
             Display::Flex
         } else {
             Display::None

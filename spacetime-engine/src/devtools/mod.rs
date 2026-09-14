@@ -5,6 +5,7 @@
 //! inspect or visualize rather than under a second cross-cutting framework.
 
 mod draw;
+mod editor;
 mod focus;
 mod inspect;
 mod tools;
@@ -63,7 +64,8 @@ impl Plugin for DeveloperToolsPlugin {
                     DeveloperSet::RenderUi,
                     DeveloperSet::RenderWorldDraw,
                 )
-                    .chain(),
+                    .chain()
+                    .before(bevy_egui::EguiPostUpdateSet::EndPass),
             )
             .add_systems(
                 PostUpdate,
@@ -76,6 +78,7 @@ impl Plugin for DeveloperToolsPlugin {
 
         draw::configure(app);
         ui::configure(app);
+        editor::configure(app);
     }
 }
 

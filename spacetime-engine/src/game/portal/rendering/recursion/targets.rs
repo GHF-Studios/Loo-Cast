@@ -1,12 +1,14 @@
 use bevy::{
     prelude::*,
     render::render_resource::{Extent3d, TextureFormat},
-    window::{PrimaryWindow, WindowResized},
 };
 
-use crate::game::portal::domain::PortalConfig;
+use crate::{
+    game::portal::domain::PortalConfig,
+    view::PrimaryGameView,
+};
 
-use super::super::render_size;
+use super::super::scaled_render_size;
 
 #[derive(Resource)]
 pub struct PortalRenderTargets(pub Vec<Handle<Image>>);
@@ -20,22 +22,30 @@ pub fn create_render_target(images: &mut Assets<Image>, size: UVec2) -> Handle<I
     ))
 }
 
+/// Keeps derived portal targets aligned with the primary *view*, not its host.
+///
+/// In immersive mode that happens to be the full primary window. In embedded
+/// mode it is the editor's game viewport, which can change size without any
+/// `WindowResized` event (for example while dragging a dock split).
 pub fn resize_render_targets(
-    mut events: MessageReader<WindowResized>,
-    window: Single<&Window, With<PrimaryWindow>>,
+    primary_view: Single<&Camera, With<PrimaryGameView>>,
     config: Res<PortalConfig>,
     targets: Option<Res<PortalRenderTargets>>,
     mut images: ResMut<Assets<Image>>,
+    mut previous_size: Local<UVec2>,
 ) {
-    if events.read().next().is_none() {
-        return;
-    }
-
     let Some(targets) = targets else {
         return;
     };
+    let Some(primary_size) = primary_view.physical_viewport_size() else {
+        return;
+    };
 
-    let size = render_size(&window, config.render_scale);
+    let size = scaled_render_size(primary_size, config.render_scale);
+    if size == *previous_size {
+        return;
+    }
+    *previous_size = size;
 
     let extent = Extent3d {
         width: size.x,

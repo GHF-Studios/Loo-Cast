@@ -33,6 +33,7 @@ use crate::{
         character::{CharacterDimensions, CharacterGroundState, CharacterMotor, CharacterMovementInput},
         topology::{KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeer},
     },
+    view::{PrimaryGameView, PrimaryViewPresentation},
 };
 
 use super::{
@@ -48,6 +49,7 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<cursor::CursorCapture>()
             .init_resource::<InputFocus>()
+            .init_resource::<PrimaryViewPresentation>()
             .register_type::<Player>()
             .register_type::<PlayerController>()
             .register_type::<PlayerDead>()
@@ -176,6 +178,7 @@ fn spawn_player(
     commands.spawn((
         Name::new("Player Camera"),
         PlayerCamera::default(),
+        PrimaryGameView,
         PortalView,
         Camera3d::default(),
         IsDefaultUiCamera,

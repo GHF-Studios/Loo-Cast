@@ -56,11 +56,18 @@ impl Plugin for PortalRenderingPlugin {
 }
 
 pub fn render_size(window: &Window, scale: f32) -> UVec2 {
+    scaled_render_size(
+        UVec2::new(window.physical_width(), window.physical_height()),
+        scale,
+    )
+}
+
+/// Scales a concrete view's physical render size for derived portal views.
+///
+/// This is intentionally independent from `Window`: embedded, split-screen or
+/// image-backed primary views can all drive the same derived-view sizing path.
+pub fn scaled_render_size(size: UVec2, scale: f32) -> UVec2 {
     let scale = scale.clamp(0.1, 1.0);
 
-    UVec2::new(
-        (window.physical_width() as f32 * scale).round() as u32,
-        (window.physical_height() as f32 * scale).round() as u32,
-    )
-    .max(UVec2::ONE)
+    (size.as_vec2() * scale).round().as_uvec2().max(UVec2::ONE)
 }
