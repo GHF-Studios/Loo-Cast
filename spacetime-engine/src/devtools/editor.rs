@@ -36,7 +36,8 @@ use crate::{
 };
 
 use super::{
-    DeveloperArtifact, DeveloperFocus, DeveloperTools, FocusTarget, InspectionFrame, ui::inspector,
+    DeveloperArtifact, DeveloperFocus, DeveloperTools, EditorSelection, EditorTool, EditorToolState,
+    EditorTransformSpace, EditorTransformWritable, FocusTarget, InspectionFrame, ui::inspector,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -168,6 +169,9 @@ fn draw_editor_shell(world: &mut World) {
     let mut game_rect = None;
 
     world.resource_scope(|world, mut shell: Mut<EditorShell>| {
+        let editor_selection = world.resource::<EditorSelection>().as_slice().to_vec();
+        sync_hierarchy_selection(&mut shell.selected_entities, &editor_selection);
+
         draw_toolbar(ctx, world);
 
         egui::CentralPanel::default()
@@ -187,6 +191,11 @@ fn draw_editor_shell(world: &mut World) {
                     .style(Style::from_egui(ui.style().as_ref()))
                     .show_inside(ui, &mut viewer);
             });
+
+        let selected = shell.selected_entities.as_slice().to_vec();
+        world
+            .resource_mut::<EditorSelection>()
+            .replace_many(selected);
     });
 
     let window_metrics = {
@@ -230,9 +239,57 @@ fn draw_toolbar(ctx: &egui::Context, world: &mut World) {
             }
 
             ui.separator();
-            ui.weak("Game remains live; click its viewport to recapture gameplay input.");
+            draw_manipulation_toolbar(ui, world);
+
+            ui.separator();
+            ui.weak("Esc toggles gameplay capture; with the pointer free, click Game to select.");
         });
     });
+}
+
+fn draw_manipulation_toolbar(ui: &mut egui::Ui, world: &mut World) {
+    let current = world.resource::<EditorToolState>().tool();
+    for (tool, label) in [
+        (EditorTool::Select, "Select"),
+        (EditorTool::Translate, "Move"),
+        (EditorTool::Rotate, "Rotate"),
+        (EditorTool::Scale, "Scale"),
+    ] {
+        if ui.selectable_label(current == tool, label).clicked() {
+            world.resource_mut::<EditorToolState>().set_tool(tool);
+        }
+    }
+
+    ui.separator();
+    let space = world.resource::<EditorToolState>().transform_space();
+    let label = match space {
+        EditorTransformSpace::World => "World",
+        EditorTransformSpace::Local => "Local",
+    };
+    if ui.button(label).clicked() {
+        let next = match space {
+            EditorTransformSpace::World => EditorTransformSpace::Local,
+            EditorTransformSpace::Local => EditorTransformSpace::World,
+        };
+        world
+            .resource_mut::<EditorToolState>()
+            .set_transform_space(next);
+    }
+}
+
+fn sync_hierarchy_selection(selected: &mut SelectedEntities, editor_selection: &[Entity]) {
+    if selected.as_slice() == editor_selection {
+        return;
+    }
+
+    selected.clear();
+    for (index, entity) in editor_selection.iter().copied().enumerate() {
+        if index == 0 {
+            selected.select_replace(entity);
+        } else {
+            selected.select_maybe_add(entity, true);
+        }
+    }
 }
 
 fn egui_rect_to_viewport(
@@ -376,12 +433,40 @@ impl EditorTabViewer<'_> {
             }
             [entity] => {
                 bevy_inspector::ui_for_entity_with_children(self.world, *entity, ui);
+                draw_transform_editing(ui, self.world, *entity);
             }
             entities => {
                 bevy_inspector::ui_for_entities_shared_components(self.world, entities, ui);
             }
         }
     }
+}
+
+fn draw_transform_editing(ui: &mut egui::Ui, world: &mut World, entity: Entity) {
+    if world.get::<Transform>(entity).is_none() {
+        return;
+    }
+
+    ui.add_space(8.0);
+    ui.separator();
+    ui.add_space(4.0);
+    ui.heading("Transform authoring");
+
+    let mut writable = world.get::<EditorTransformWritable>(entity).is_some();
+    if ui
+        .checkbox(&mut writable, "Allow direct runtime transform gizmo")
+        .changed()
+    {
+        if writable {
+            world.entity_mut(entity).insert(EditorTransformWritable);
+        } else {
+            world.entity_mut(entity).remove::<EditorTransformWritable>();
+        }
+    }
+
+    ui.weak(
+        "Runtime-only opt-in. Generated, simulated, or asset-authored state may overwrite this Transform; persistent authoring belongs in a domain adapter.",
+    );
 }
 
 fn focus_name(target: Option<FocusTarget>, world: &World) -> String {

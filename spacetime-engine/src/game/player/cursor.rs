@@ -89,8 +89,8 @@ pub fn update_cursor_capture(
     if *previous_presentation != *presentation {
         if presentation.is_embedded() {
             // Entering the editor is an explicit mode transition, not a
-            // temporary focus claim: leave gameplay capture off until the Game
-            // view is clicked (or the editor is closed again).
+            // temporary focus claim: leave gameplay capture off. Escape is the
+            // explicit gameplay/editor pointer toggle while embedded.
             capture.release();
         } else {
             capture.request();
@@ -115,7 +115,8 @@ pub fn update_cursor_capture(
         ViewportSpace::new(&game_camera).contains_target_position(position)
     });
 
-    if mouse.just_pressed(MouseButton::Left)
+    if !presentation.is_embedded()
+        && mouse.just_pressed(MouseButton::Left)
         && window.focused
         && pointer_inside_game_view
         && !capture.requested

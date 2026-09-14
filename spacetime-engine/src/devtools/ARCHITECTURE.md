@@ -21,6 +21,9 @@ migration history remains in `../../historic_documents/DEVTOOLS_REDESIGN.md`.
 - **Tool selection** (`DeveloperTools`) is a flat catalog of visualization IDs.
   Domain-specific settings, if eventually justified, belong to typed domain
   resources rather than a generic runtime control language.
+- **Editor manipulation** (`EditorSelection`, `EditorToolState`) owns explicit
+  editor selection/tool intent. Transform and future domain gizmo integration is
+  documented in [`GIZMOS.md`](GIZMOS.md).
 - **Runtime diagnostics** (`crate::diagnostics`) is independent data collection,
   not a Developer UI or World Draw subsystem.
 - **Shared UI** (`crate::ui`) owns presentation policy shared by game and developer
@@ -70,6 +73,7 @@ The `PostUpdate` developer pipeline is ordered:
 
 ```text
 ResolveFocus
+  -> Interact
   -> CollectInspection
   -> CollectWorldDraw
   -> RenderUi
@@ -87,7 +91,8 @@ visualization selection.
 (for example Developer UI entities and retained scalar-field meshes). Runtime
 diagnostics exclude archetypes carrying this marker from world/ECS structural
 counts. The marker is presentation-only and must never participate in simulation
-queries or semantics. Gizmo primitives do not require ECS artifact entities.
+queries or semantics. Backend-created gizmo meshes/cameras are artifacts too and
+are classified accordingly by the editor adapter.
 
 ## Non-negotiable boundaries
 
@@ -99,6 +104,8 @@ queries or semantics. Gizmo primitives do not require ECS artifact entities.
 6. Runtime diagnostics remains consumable without Developer UI.
 7. Window/viewport coordinate conversion belongs to `crate::view`, never to
    simulation/domain adapters or individual debug widgets.
+8. Editor selection/tool intent never implies mutation authority; domains must
+   explicitly expose writable state or an authoring adapter.
 
 ## Known open item
 

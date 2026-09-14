@@ -7,6 +7,7 @@
 mod draw;
 mod editor;
 mod focus;
+mod gizmo;
 mod inspect;
 mod tools;
 mod ui;
@@ -17,6 +18,9 @@ pub use draw::{
     WorldDrawFrame, WorldPrimitive, WorldScalarField,
 };
 pub use focus::{DeveloperFocus, FocusHit, FocusTarget};
+pub use gizmo::{
+    EditorSelection, EditorTool, EditorToolState, EditorTransformSpace, EditorTransformWritable,
+};
 pub use inspect::{
     InspectField, InspectNumberFormat, InspectSection, InspectSectionId, InspectUnit,
     InspectValue, InspectionFrame,
@@ -37,6 +41,7 @@ pub struct DeveloperArtifact;
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DeveloperSet {
     ResolveFocus,
+    Interact,
     CollectInspection,
     CollectWorldDraw,
     RenderUi,
@@ -59,6 +64,7 @@ impl Plugin for DeveloperToolsPlugin {
                 PostUpdate,
                 (
                     DeveloperSet::ResolveFocus,
+                    DeveloperSet::Interact,
                     DeveloperSet::CollectInspection,
                     DeveloperSet::CollectWorldDraw,
                     DeveloperSet::RenderUi,
@@ -76,6 +82,7 @@ impl Plugin for DeveloperToolsPlugin {
         crate::ecs::devtools::configure(app);
         crate::physics::character::devtools::configure(app);
 
+        gizmo::configure(app);
         draw::configure(app);
         ui::configure(app);
         editor::configure(app);
