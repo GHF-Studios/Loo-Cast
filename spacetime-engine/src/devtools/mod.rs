@@ -22,10 +22,13 @@ pub use draw::{
 pub use focus::{DeveloperFocus, FocusHit, FocusTarget};
 pub use gizmo::{EditorTransformGizmoSettings, EditorTransformSpace, EditorTransformWritable};
 pub use inspect::{
-    InspectAccess, InspectAction, InspectActionId, InspectActionRequest, InspectEditRequest,
-    InspectField, InspectFieldId, InspectNumberFormat, InspectNumberInput, InspectSection,
-    InspectSectionId, InspectUnit, InspectValue, InspectionFrame,
+    AppInspectExt, Inspect, InspectAccess, InspectAction, InspectActionId, InspectActionRequest,
+    InspectEditRequest, InspectField, InspectFieldId, InspectFieldMetadata, InspectFieldVisitor,
+    InspectFieldVisitorMut, InspectNumberFormat, InspectNumberInput, InspectSection,
+    InspectSectionId, InspectTypeMetadata, InspectTypeRegistration, InspectTypeRegistry, InspectUnit,
+    InspectValue, InspectWidgetId, InspectionFrame,
 };
+pub use inspect_ui::{AppInspectorWidgetsExt, InspectorWidgetRegistry};
 pub use structure::{StructureFrame, StructureItem, StructureItemId, StructureSelection};
 pub use tools::{
     AppDeveloperToolsExt, DeveloperTools, VisualizationId, VisualizationSpec,
@@ -98,6 +101,7 @@ impl Plugin for DeveloperToolsPlugin {
         crate::ecs::devtools::configure(app);
         crate::physics::character::devtools::configure(app);
 
+        inspect_ui::configure(app);
         gizmo::configure(app);
         draw::configure(app);
         ui::configure(app);

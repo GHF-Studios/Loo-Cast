@@ -69,7 +69,17 @@ The first two vertical slices now cover the front of the roadmap with real runti
 - the unified simultaneous Translate + Rotate + Scale Transform gizmo works;
 - Thermal is the second proof case with rich inspection, validated edits, actions and viewport gizmo visualization.
 
-The next pressure points are **external/type registration + derive ergonomics**, then **editing lifecycle/undo transactions**, followed by more real domain adapters (Portal/light/collider/map/USF) to earn the provider layer.
+The third slice now adds **external/type registration + derive ergonomics**:
+
+- `InspectTypeRegistry` provides explicit type-erased discovery of inspectable Rust types;
+- `InspectorWidgetRegistry` supports default and named per-type widgets, including deterministic external overrides;
+- `#[derive(Inspect)]` generates UI-agnostic static metadata + field visitation for concrete named-field structs;
+- `#[inspect(...)]` supports skip/ID/label/symbol/unit/hint/role/widget/numeric-affordance/access metadata;
+- derived fields default to read-only, and only explicit `direct` fields expose mutable data to the generic visitor;
+- validated/transactional/command metadata remains adapter-backed rather than turning into accidental `&mut` authority;
+- Transform-gizmo settings exercise the complete type-erased derive + named-widget registration path in the live editor.
+
+The next pressure point is therefore **editing lifecycle/undo transactions and validation feedback**, plus broader value-widget coverage, followed by more real domain adapters (Portal/light/collider/map/USF) to earn any provider layer.
 
 ---
 
@@ -129,17 +139,15 @@ The inspection design must account for these from the beginning rather than trea
 The original first queue is now implemented through the Transform + Thermal proof slices. Continue in this order:
 
 ```text
-stabilize Transform + Thermal inspection/widget contracts in real use
-    ↓
-external value-widget/type registration
-    ↓
-#[derive(Inspect)] / #[inspect(...)] metadata ergonomics
+stabilize the derived inspection + external widget/type registration contracts in real use
     ↓
 editing lifecycle: transactions, undo/redo, preview/commit, validation feedback
     ↓
+broaden value widgets only where real content needs them (collections / Option / Color / handles / etc.)
+    ↓
 Portal / light / collider / map / USF domain adapters
     ↓
-extract only the provider/registration abstractions those real domains actually share
+extract only the provider abstractions those real domains actually share
 ```
 
 This keeps the architecture pressure-tested by real game/editor functionality rather than disappearing into speculative framework work.

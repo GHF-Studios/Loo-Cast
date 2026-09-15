@@ -71,11 +71,27 @@ Generic snapshot editing never receives domain state mutably. It edits a proposa
 and emits `InspectEditRequest`; domains validate/commit that request. Contextual
 operations are `InspectActionRequest`s rather than fake mutable fields.
 
-The initial built-ins cover numbers, bools, strings, `Vec3` and `Transform`. More
-core/std/Bevy/third-party widgets and external registration will be added as real
-content demands them. `#[derive(Inspect)]` / `#[inspect(...)]` remains the planned
-ergonomic layer, heavily inspired by `egui_field_editor` without depending on it.
-The derive will describe inspection metadata; it will not generate an egui panel.
+The initial built-ins cover numbers, bools, strings, `Vec3`, `Quat` and
+`Transform`. `InspectorWidgetRegistry` adds explicit external registration by Rust
+`TypeId`; a field may request a named `InspectWidgetId`, with the default widget for
+that Rust type as fallback. Registering the same key later intentionally replaces
+it, so games/packages can override engine presentation without modifying engine
+source.
+
+`Inspect` is the UI-agnostic type contract. `#[derive(Inspect)]` generates static
+type/field metadata plus field visitation; it never generates egui. Fields default
+to read-only. Only `#[inspect(direct)]` exposes mutable field data to the generic
+mutable visitor. `validated`, `transactional`, and `command` remain observable
+metadata and still require a domain-owned adapter/request path. Supported metadata
+includes stable field IDs, labels/symbols/units/hints, semantic roles, named widget
+overrides, numeric speed/range/slider hints, skipping, and access mode.
+
+`InspectTypeRegistry` is a separate explicit runtime catalog for type-erased
+inspection. Deriving `Inspect` describes a type; registering it opts that type into
+discovery. Neither type registration nor widget registration grants mutation
+authority. The Transform-gizmo settings are the first end-to-end proof: the editor
+finds the settings through the type registry and resolves their transform-space
+field through a separately registered named widget.
 
 ## Domain adapters
 

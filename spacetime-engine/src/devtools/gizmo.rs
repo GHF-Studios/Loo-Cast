@@ -16,13 +16,15 @@ use crate::{
 };
 
 use super::{
-    DeveloperFocus, DeveloperSet, DrawDepth, InspectAccess, InspectEditRequest, InspectField,
-    InspectFieldId, InspectNumberInput, InspectSection, InspectSectionId, InspectValue,
-    InspectionFrame, StructureFrame, StructureItem, StructureItemId, StructureSelection,
-    WorldDrawBatch, WorldDrawFrame,
+    AppInspectExt, AppInspectorWidgetsExt, DeveloperFocus, DeveloperSet, DrawDepth, InspectAccess,
+    InspectEditRequest, InspectField, InspectFieldId, InspectNumberInput, InspectSection,
+    InspectSectionId, InspectValue, InspectWidgetId, InspectionFrame, StructureFrame, StructureItem,
+    StructureItemId, StructureSelection, WorldDrawBatch, WorldDrawFrame,
+    inspect_ui::{InspectWidgetContext, InspectorWidget, egui},
 };
 
 const INPUT_FOCUS_OWNER: &str = "editor_gizmo";
+const TRANSFORM_SPACE_WIDGET: InspectWidgetId = InspectWidgetId("editor.transform_space");
 pub(in crate::devtools) const TRANSFORM_SECTION: InspectSectionId = InspectSectionId("transform");
 pub(in crate::devtools) const TRANSFORM_STRUCTURE: StructureItemId = StructureItemId("core.transform");
 pub(in crate::devtools) const TRANSLATION_FIELD: InspectFieldId = InspectFieldId("transform.translation");
@@ -38,8 +40,15 @@ pub enum EditorTransformSpace {
     Local,
 }
 
-#[derive(Resource, Debug, Default, Clone, Copy)]
+#[derive(Resource, Debug, Default, Clone, Copy, spacetime_engine_macros::Inspect)]
+#[inspect(label = "Transform gizmo")]
 pub struct EditorTransformGizmoSettings {
+    #[inspect(
+        label = "Space",
+        direct,
+        role = "transform_space",
+        widget = "editor.transform_space"
+    )]
     transform_space: EditorTransformSpace,
 }
 
@@ -50,6 +59,47 @@ impl EditorTransformGizmoSettings {
 
     pub fn set_transform_space(&mut self, space: EditorTransformSpace) {
         self.transform_space = space;
+    }
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+struct EditorTransformSpaceWidget;
+
+impl InspectorWidget<EditorTransformSpace> for EditorTransformSpaceWidget {
+    fn show(
+        &self,
+        ui: &mut egui::Ui,
+        value: &EditorTransformSpace,
+        context: &InspectWidgetContext<'_>,
+    ) {
+        ui.horizontal(|ui| {
+            ui.label(context.label);
+            ui.monospace(match value {
+                EditorTransformSpace::World => "World",
+                EditorTransformSpace::Local => "Local",
+            });
+        });
+    }
+
+    fn edit(
+        &self,
+        ui: &mut egui::Ui,
+        value: &mut EditorTransformSpace,
+        context: &InspectWidgetContext<'_>,
+    ) -> bool {
+        let before = *value;
+        ui.horizontal(|ui| {
+            ui.label(context.label);
+            for (candidate, label) in [
+                (EditorTransformSpace::World, "World"),
+                (EditorTransformSpace::Local, "Local"),
+            ] {
+                if ui.selectable_label(*value == candidate, label).clicked() {
+                    *value = candidate;
+                }
+            }
+        });
+        *value != before
     }
 }
 
@@ -121,7 +171,12 @@ impl TransformGizmoInteraction {
 }
 
 pub(super) fn configure(app: &mut App) {
-    app.init_resource::<InputFocus>()
+    app.register_inspectable::<EditorTransformGizmoSettings>()
+        .register_named_inspector_widget::<EditorTransformSpace, _>(
+            TRANSFORM_SPACE_WIDGET,
+            EditorTransformSpaceWidget,
+        )
+        .init_resource::<InputFocus>()
         .init_resource::<PrimaryViewPresentation>()
         .init_resource::<EditorTransformGizmoSettings>()
         .init_resource::<TransformGizmoInteraction>()

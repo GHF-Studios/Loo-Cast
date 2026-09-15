@@ -13,7 +13,7 @@ pub mod ui;
 pub mod view;
 
 use bevy::prelude::*;
-use spacetime_engine_macros::*;
+pub use spacetime_engine_macros::{Inspect, conflict};
 
 ///
 pub enum UsfEntity {

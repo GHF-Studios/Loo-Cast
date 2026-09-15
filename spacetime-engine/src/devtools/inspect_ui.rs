@@ -10,18 +10,28 @@
 //! read-only and editable entry points so presentation is only handed `&mut T`
 //! when the host already possesses a real edit capability.
 
+use std::{
+    any::{Any, TypeId},
+    collections::HashMap,
+    marker::PhantomData,
+};
+
 use bevy::prelude::*;
 pub use bevy_egui::egui;
 
 use super::{
-    FocusTarget, InspectActionRequest, InspectEditRequest, InspectField, InspectNumberFormat,
-    InspectNumberInput, InspectSection, InspectUnit, InspectValue, InspectionFrame, StructureItemId,
+    FocusTarget, Inspect, InspectActionRequest, InspectEditRequest, InspectField, InspectFieldMetadata,
+    InspectFieldVisitor, InspectFieldVisitorMut, InspectNumberFormat, InspectNumberInput, InspectSection,
+    InspectTypeRegistration, InspectUnit, InspectValue, InspectWidgetId, InspectionFrame, StructureItemId,
 };
 
 pub struct InspectWidgetContext<'a> {
     pub label: &'a str,
     pub unit: Option<InspectUnit>,
     pub hint: Option<&'a str>,
+    /// Semantic role for context-sensitive presentation of otherwise identical
+    /// Rust types, e.g. `Vec3` as position vs velocity vs scale.
+    pub role: Option<&'a str>,
     pub number_input: Option<InspectNumberInput>,
 }
 
@@ -31,7 +41,18 @@ impl<'a> InspectWidgetContext<'a> {
             label,
             unit: None,
             hint: None,
+            role: None,
             number_input: None,
+        }
+    }
+
+    pub fn from_metadata(metadata: &'a InspectFieldMetadata) -> Self {
+        Self {
+            label: metadata.label,
+            unit: metadata.unit,
+            hint: metadata.hint,
+            role: metadata.role,
+            number_input: metadata.number_input,
         }
     }
 }
@@ -48,6 +69,220 @@ pub trait InspectorWidget<T: ?Sized> {
         value: &mut T,
         context: &InspectWidgetContext<'_>,
     ) -> bool;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+struct InspectorWidgetKey {
+    type_id: TypeId,
+    widget: Option<InspectWidgetId>,
+}
+
+trait ErasedInspectorWidget: Send + Sync {
+    fn show(&self, ui: &mut egui::Ui, value: &dyn Any, context: &InspectWidgetContext<'_>) -> bool;
+    fn edit(
+        &self,
+        ui: &mut egui::Ui,
+        value: &mut dyn Any,
+        context: &InspectWidgetContext<'_>,
+    ) -> Option<bool>;
+}
+
+struct TypedInspectorWidget<T, W> {
+    widget: W,
+    marker: PhantomData<fn() -> T>,
+}
+
+impl<T, W> ErasedInspectorWidget for TypedInspectorWidget<T, W>
+where
+    T: 'static,
+    W: InspectorWidget<T> + Send + Sync + 'static,
+{
+    fn show(&self, ui: &mut egui::Ui, value: &dyn Any, context: &InspectWidgetContext<'_>) -> bool {
+        let Some(value) = value.downcast_ref::<T>() else {
+            return false;
+        };
+        self.widget.show(ui, value, context);
+        true
+    }
+
+    fn edit(
+        &self,
+        ui: &mut egui::Ui,
+        value: &mut dyn Any,
+        context: &InspectWidgetContext<'_>,
+    ) -> Option<bool> {
+        let value = value.downcast_mut::<T>()?;
+        Some(self.widget.edit(ui, value, context))
+    }
+}
+
+/// Reusable registry for value widgets supplied by the engine, a game, a mod, or
+/// another package. Widget registration is separate from [`Inspect`] metadata:
+/// types describe meaning; UI hosts decide how concrete Rust values are rendered.
+#[derive(Resource, Default)]
+pub struct InspectorWidgetRegistry {
+    widgets: HashMap<InspectorWidgetKey, Box<dyn ErasedInspectorWidget>>,
+}
+
+impl InspectorWidgetRegistry {
+    pub fn register<T, W>(&mut self, widget: W)
+    where
+        T: 'static,
+        W: InspectorWidget<T> + Send + Sync + 'static,
+    {
+        self.insert::<T, W>(None, widget);
+    }
+
+    pub fn register_named<T, W>(&mut self, id: InspectWidgetId, widget: W)
+    where
+        T: 'static,
+        W: InspectorWidget<T> + Send + Sync + 'static,
+    {
+        self.insert::<T, W>(Some(id), widget);
+    }
+
+    fn insert<T, W>(&mut self, id: Option<InspectWidgetId>, widget: W)
+    where
+        T: 'static,
+        W: InspectorWidget<T> + Send + Sync + 'static,
+    {
+        let key = InspectorWidgetKey {
+            type_id: TypeId::of::<T>(),
+            widget: id,
+        };
+        // Registration order is the explicit override policy: later registrations
+        // replace the same `(Rust type, optional widget ID)` key. A named widget
+        // remains independent from the default widget for that Rust type.
+        self.widgets.insert(
+            key,
+            Box::new(TypedInspectorWidget::<T, W> {
+                widget,
+                marker: PhantomData,
+            }),
+        );
+    }
+
+    fn resolve(
+        &self,
+        type_id: TypeId,
+        requested: Option<InspectWidgetId>,
+    ) -> Option<&dyn ErasedInspectorWidget> {
+        requested
+            .and_then(|widget| {
+                self.widgets
+                    .get(&InspectorWidgetKey {
+                        type_id,
+                        widget: Some(widget),
+                    })
+                    .map(Box::as_ref)
+            })
+            .or_else(|| {
+                self.widgets
+                    .get(&InspectorWidgetKey {
+                        type_id,
+                        widget: None,
+                    })
+                    .map(Box::as_ref)
+            })
+    }
+
+    pub fn show<T: 'static>(
+        &self,
+        ui: &mut egui::Ui,
+        value: &T,
+        context: &InspectWidgetContext<'_>,
+        widget: Option<InspectWidgetId>,
+    ) -> bool {
+        self.show_erased(ui, value, context, widget)
+    }
+
+    pub fn edit<T: 'static>(
+        &self,
+        ui: &mut egui::Ui,
+        value: &mut T,
+        context: &InspectWidgetContext<'_>,
+        widget: Option<InspectWidgetId>,
+    ) -> Option<bool> {
+        self.edit_erased(ui, value, context, widget)
+    }
+
+    pub fn show_erased(
+        &self,
+        ui: &mut egui::Ui,
+        value: &dyn Any,
+        context: &InspectWidgetContext<'_>,
+        widget: Option<InspectWidgetId>,
+    ) -> bool {
+        self.resolve(value.type_id(), widget)
+            .is_some_and(|renderer| renderer.show(ui, value, context))
+    }
+
+    pub fn edit_erased(
+        &self,
+        ui: &mut egui::Ui,
+        value: &mut dyn Any,
+        context: &InspectWidgetContext<'_>,
+        widget: Option<InspectWidgetId>,
+    ) -> Option<bool> {
+        self.resolve((&*value).type_id(), widget)
+            .and_then(|renderer| renderer.edit(ui, value, context))
+    }
+}
+
+pub trait AppInspectorWidgetsExt {
+    fn register_inspector_widget<T, W>(&mut self, widget: W) -> &mut Self
+    where
+        T: 'static,
+        W: InspectorWidget<T> + Send + Sync + 'static;
+
+    fn register_named_inspector_widget<T, W>(
+        &mut self,
+        id: InspectWidgetId,
+        widget: W,
+    ) -> &mut Self
+    where
+        T: 'static,
+        W: InspectorWidget<T> + Send + Sync + 'static;
+}
+
+impl AppInspectorWidgetsExt for App {
+    fn register_inspector_widget<T, W>(&mut self, widget: W) -> &mut Self
+    where
+        T: 'static,
+        W: InspectorWidget<T> + Send + Sync + 'static,
+    {
+        self.init_resource::<InspectorWidgetRegistry>();
+        self.world_mut()
+            .resource_mut::<InspectorWidgetRegistry>()
+            .register::<T, W>(widget);
+        self
+    }
+
+    fn register_named_inspector_widget<T, W>(
+        &mut self,
+        id: InspectWidgetId,
+        widget: W,
+    ) -> &mut Self
+    where
+        T: 'static,
+        W: InspectorWidget<T> + Send + Sync + 'static,
+    {
+        self.init_resource::<InspectorWidgetRegistry>();
+        self.world_mut()
+            .resource_mut::<InspectorWidgetRegistry>()
+            .register_named::<T, W>(id, widget);
+        self
+    }
+}
+
+pub(super) fn configure(app: &mut App) {
+    app.register_inspector_widget::<f32, _>(NumberWidget)
+        .register_inspector_widget::<f64, _>(NumberWidget)
+        .register_inspector_widget::<bool, _>(BoolWidget)
+        .register_inspector_widget::<String, _>(StringWidget)
+        .register_inspector_widget::<Vec3, _>(Vec3Widget)
+        .register_inspector_widget::<Quat, _>(QuatWidget)
+        .register_inspector_widget::<Transform, _>(TransformWidget);
 }
 
 #[derive(Debug, Default, Clone, Copy)]
@@ -189,6 +424,7 @@ impl InspectorWidget<Quat> for QuatWidget {
                 label: context.label,
                 unit: context.unit,
                 hint: context.hint,
+                role: context.role,
                 number_input: context.number_input,
             },
         );
@@ -260,6 +496,139 @@ impl InspectorWidget<Transform> for TransformWidget {
         changed |= Vec3Widget.edit(ui, &mut value.scale, &scale_context);
 
         changed
+    }
+}
+
+struct ShowInspectableVisitor<'ui, 'registry> {
+    ui: &'ui mut egui::Ui,
+    widgets: &'registry InspectorWidgetRegistry,
+}
+
+impl InspectFieldVisitor for ShowInspectableVisitor<'_, '_> {
+    fn field(&mut self, metadata: &'static InspectFieldMetadata, value: &dyn Any) {
+        show_registered_field(self.ui, self.widgets, metadata, value);
+    }
+}
+
+struct EditInspectableVisitor<'ui, 'registry> {
+    ui: &'ui mut egui::Ui,
+    widgets: &'registry InspectorWidgetRegistry,
+    changed: bool,
+}
+
+impl InspectFieldVisitorMut for EditInspectableVisitor<'_, '_> {
+    fn read_only(&mut self, metadata: &'static InspectFieldMetadata, value: &dyn Any) {
+        show_registered_field(self.ui, self.widgets, metadata, value);
+    }
+
+    fn direct(&mut self, metadata: &'static InspectFieldMetadata, value: &mut dyn Any) {
+        let context = InspectWidgetContext::from_metadata(metadata);
+        match self
+            .widgets
+            .edit_erased(self.ui, value, &context, metadata.widget)
+        {
+            Some(changed) => self.changed |= changed,
+            None => draw_missing_registered_widget(self.ui, metadata),
+        }
+        draw_metadata_annotations(self.ui, metadata);
+    }
+}
+
+/// Renders fields produced by an [`Inspect`] implementation through the external
+/// value-widget registry. This is reusable by editor panels and technical game UI.
+pub fn show_inspectable<T: Inspect>(
+    ui: &mut egui::Ui,
+    value: &T,
+    widgets: &InspectorWidgetRegistry,
+) {
+    let mut visitor = ShowInspectableVisitor { ui, widgets };
+    value.visit_inspect_fields(&mut visitor);
+}
+
+/// Direct-edits only fields that the type metadata marks [`super::InspectAccess::Direct`].
+/// Other access modes remain observable and require explicit domain adapters.
+pub fn edit_inspectable<T: Inspect>(
+    ui: &mut egui::Ui,
+    value: &mut T,
+    widgets: &InspectorWidgetRegistry,
+) -> bool {
+    let mut visitor = EditInspectableVisitor {
+        ui,
+        widgets,
+        changed: false,
+    };
+    value.visit_inspect_fields_mut(&mut visitor);
+    visitor.changed
+}
+
+/// Type-erased counterpart used when a host discovers a type through
+/// [`super::InspectTypeRegistry`].
+pub fn show_registered_inspectable(
+    ui: &mut egui::Ui,
+    registration: InspectTypeRegistration,
+    value: &dyn Any,
+    widgets: &InspectorWidgetRegistry,
+) -> bool {
+    let mut visitor = ShowInspectableVisitor { ui, widgets };
+    registration.visit(value, &mut visitor)
+}
+
+pub fn edit_registered_inspectable(
+    ui: &mut egui::Ui,
+    registration: InspectTypeRegistration,
+    value: &mut dyn Any,
+    widgets: &InspectorWidgetRegistry,
+) -> Option<bool> {
+    let mut visitor = EditInspectableVisitor {
+        ui,
+        widgets,
+        changed: false,
+    };
+    registration
+        .visit_mut(value, &mut visitor)
+        .then_some(visitor.changed)
+}
+
+fn show_registered_field(
+    ui: &mut egui::Ui,
+    widgets: &InspectorWidgetRegistry,
+    metadata: &'static InspectFieldMetadata,
+    value: &dyn Any,
+) {
+    let context = InspectWidgetContext::from_metadata(metadata);
+    if !widgets.show_erased(ui, value, &context, metadata.widget) {
+        draw_missing_registered_widget(ui, metadata);
+    }
+    draw_metadata_annotations(ui, metadata);
+}
+
+fn draw_missing_registered_widget(ui: &mut egui::Ui, metadata: &InspectFieldMetadata) {
+    ui.horizontal(|ui| {
+        ui.label(metadata.label);
+        ui.weak(format!(
+            "<no inspector widget for {}>",
+            metadata.rust_type_name
+        ));
+    });
+}
+
+fn draw_metadata_annotations(ui: &mut egui::Ui, metadata: &InspectFieldMetadata) {
+    if metadata.access != super::InspectAccess::ReadOnly
+        && metadata.access != super::InspectAccess::Direct
+    {
+        ui.horizontal(|ui| {
+            ui.add_space(12.0);
+            ui.weak(format!(
+                "authority: {} · requires adapter",
+                metadata.access.label()
+            ));
+        });
+    }
+    if let Some(hint) = metadata.hint {
+        ui.horizontal(|ui| {
+            ui.add_space(12.0);
+            ui.weak(hint);
+        });
     }
 }
 
@@ -414,6 +783,7 @@ fn show_inspect_value(ui: &mut egui::Ui, label: &str, value: &InspectValue, fiel
                 label,
                 unit: None,
                 hint: field.hint.as_deref(),
+                role: None,
                 number_input: field.number_input,
             },
         ),
@@ -440,6 +810,7 @@ fn edit_inspect_value(
                 label,
                 unit: None,
                 hint: field.hint.as_deref(),
+                role: None,
                 number_input: field.number_input,
             },
         ),
@@ -450,6 +821,7 @@ fn edit_inspect_value(
                 label,
                 unit: None,
                 hint: field.hint.as_deref(),
+                role: None,
                 number_input: field.number_input,
             },
         ),
@@ -464,6 +836,7 @@ fn edit_inspect_value(
                 label,
                 unit: None,
                 hint: field.hint.as_deref(),
+                role: None,
                 number_input: field.number_input,
             },
         ),
@@ -474,6 +847,7 @@ fn edit_inspect_value(
                 label,
                 unit: Some(*unit),
                 hint: field.hint.as_deref(),
+                role: None,
                 number_input: field.number_input,
             },
         ),
@@ -484,6 +858,7 @@ fn edit_inspect_value(
                 label,
                 unit: None,
                 hint: field.hint.as_deref(),
+                role: None,
                 number_input: field.number_input,
             },
         ),
@@ -500,9 +875,19 @@ fn edit_f64(ui: &mut egui::Ui, value: &mut f64, context: &InspectWidgetContext<'
     let mut changed = false;
     ui.horizontal(|ui| {
         ui.label(context.label);
-        changed = ui
-            .add(egui::DragValue::new(value).speed(input.speed))
-            .changed();
+        changed = if input.slider {
+            match (input.minimum, input.maximum) {
+                (Some(minimum), Some(maximum)) => ui
+                    .add(egui::Slider::new(value, minimum..=maximum))
+                    .changed(),
+                _ => ui
+                    .add(egui::DragValue::new(value).speed(input.speed))
+                    .changed(),
+            }
+        } else {
+            ui.add(egui::DragValue::new(value).speed(input.speed))
+                .changed()
+        };
         if let Some(unit) = context.unit {
             ui.weak(unit.0);
         }

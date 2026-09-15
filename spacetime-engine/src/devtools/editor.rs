@@ -32,9 +32,11 @@ use crate::{
 
 use super::{
     DeveloperArtifact, DeveloperFocus, DeveloperTools, EditorTransformGizmoSettings,
-    EditorTransformSpace, EditorTransformWritable, FocusTarget, InspectEditRequest, InspectValue,
+    EditorTransformWritable, FocusTarget, InspectEditRequest, InspectTypeRegistry, InspectValue,
     InspectionFrame, StructureFrame, StructureSelection,
-    inspect_ui::{self, InspectWidgetContext, InspectorWidget, TransformWidget},
+    inspect_ui::{
+        self, InspectWidgetContext, InspectorWidget, InspectorWidgetRegistry, TransformWidget,
+    },
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -270,19 +272,19 @@ fn draw_toolbar(ctx: &egui::Context, world: &mut World) {
 
 fn draw_transform_space_control(ui: &mut egui::Ui, world: &mut World) {
     ui.label("Transform");
-    let space = world
-        .resource::<EditorTransformGizmoSettings>()
-        .transform_space();
-    for (candidate, label) in [
-        (EditorTransformSpace::World, "World"),
-        (EditorTransformSpace::Local, "Local"),
-    ] {
-        if ui.selectable_label(space == candidate, label).clicked() {
-            world
-                .resource_mut::<EditorTransformGizmoSettings>()
-                .set_transform_space(candidate);
-        }
-    }
+    world.resource_scope(|world, mut settings: Mut<EditorTransformGizmoSettings>| {
+        let registration = world
+            .resource::<InspectTypeRegistry>()
+            .get::<EditorTransformGizmoSettings>()
+            .expect("Transform gizmo settings must be registered for inspection");
+        let widgets = world.resource::<InspectorWidgetRegistry>();
+        let _ = inspect_ui::edit_registered_inspectable(
+            ui,
+            registration,
+            &mut *settings,
+            widgets,
+        );
+    });
 }
 
 fn sync_hierarchy_selection(selected: &mut SelectedEntities, entity: Option<Entity>) {
