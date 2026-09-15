@@ -162,7 +162,6 @@ fn handle_focus_pin(
 }
 
 fn collect_identity_inspection(
-    tools: Res<DeveloperTools>,
     focus: Res<DeveloperFocus>,
     manifestations: Query<&UsfManifestationOf>,
     semantic_entities: Query<&UsfManifestations>,
@@ -171,9 +170,6 @@ fn collect_identity_inspection(
     active_split_peers: Query<(), With<SpatialSplitPeerActive>>,
     mut frame: ResMut<InspectionFrame>,
 ) {
-    if !tools.enabled() {
-        return;
-    }
     let Some(target) = focus.current() else {
         return;
     };

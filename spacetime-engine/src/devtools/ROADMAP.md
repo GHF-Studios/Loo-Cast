@@ -56,6 +56,23 @@ Hover, pinning, Game-view picking, Hierarchy selection, and Structure selection 
 
 ---
 
+## Current implementation status — 2026-09-15
+
+The first two vertical slices now cover the front of the roadmap with real runtime use:
+
+- canonical hover / pin / Game-view / Hierarchy focus works;
+- Structure is a real semantic selection surface independent from Inspector sections;
+- Semantic Inspector and raw ECS Inspector are separate;
+- `InspectAccess` distinguishes observation from direct/validated/transactional/command authority;
+- `InspectorWidget<T>` provides the first public advanced value-widget path;
+- generic editable inspection emits domain-owned edit requests instead of mutating snapshots;
+- the unified simultaneous Translate + Rotate + Scale Transform gizmo works;
+- Thermal is the second proof case with rich inspection, validated edits, actions and viewport gizmo visualization.
+
+The next pressure points are **external/type registration + derive ergonomics**, then **editing lifecycle/undo transactions**, followed by more real domain adapters (Portal/light/collider/map/USF) to earn the provider layer.
+
+---
+
 ## Architectural rules
 
 1. **Hierarchy answers “which ECS Entity?”**
@@ -109,22 +126,20 @@ The inspection design must account for these from the beginning rather than trea
 
 ## Immediate implementation queue
 
-The next concrete execution order is:
+The original first queue is now implemented through the Transform + Thermal proof slices. Continue in this order:
 
 ```text
-repair current gizmo/focus slice
+stabilize Transform + Thermal inspection/widget contracts in real use
     ↓
-canonicalize focus / selection acquisition
+external value-widget/type registration
     ↓
-split Hierarchy / Structure / Semantic Inspector / ECS Inspector
+#[derive(Inspect)] / #[inspect(...)] metadata ergonomics
     ↓
-establish reusable inspection + access capability model
+editing lifecycle: transactions, undo/redo, preview/commit, validation feedback
     ↓
-establish value-widget/custom-inspector ergonomics
+Portal / light / collider / map / USF domain adapters
     ↓
-implement unified Transform gizmo
-    ↓
-implement Thermal gizmo as the second proof case
+extract only the provider/registration abstractions those real domains actually share
 ```
 
-This sequence keeps the architecture pressure-tested by real game/editor functionality rather than disappearing into speculative framework work.
+This keeps the architecture pressure-tested by real game/editor functionality rather than disappearing into speculative framework work.

@@ -9,7 +9,7 @@ viewport interaction and value editing.
 
 There is one canonical `DeveloperFocus` target model. Hover, editor selection and
 pinning are acquisition modes for the same concrete/semantic entity pair.
-`SemanticInspectionSelection` then refines that entity focus to a Structure item.
+`StructureSelection` then refines that entity focus to a stable `StructureItemId`.
 
 Consequences:
 
@@ -76,12 +76,23 @@ A gizmo must never manufacture mutation authority. If a domain requires commands
 validated setters, transactions, asset edits or another persistence route, its
 gizmo writes through that mechanism.
 
+## Thermal gizmo
+
+Thermal is the deliberately different second concrete gizmo. Selecting the
+`Thermal` Structure item exposes aggregate/material/combustion state, validated
+runtime parameters, explicit heat/cool/reset actions, and a viewport visualization
+of active thermal samples plus combustible heat-transfer radius. Runtime facts
+such as temperature, fuel and current combustion remain observational.
+
+The actions route through `ThermalImpulse`; the editor never inserts derived
+`Combustion` state or writes temperature directly.
+
 ## Why there is still no universal gizmo/provider registry
 
-The project intentionally does not introduce a catch-all `EditorModule` or giant
-gizmo callback registry before multiple real domains exercise the contracts.
-Transform is the first concrete implementation; Thermal is the deliberately
-different next proof case. The provider/registration layer will be extracted from
-what those implementations actually share.
+Transform + Thermal now exercise the shared focus, Structure, inspection, action
+and value-widget contracts. That is enough to stabilize those concrete APIs, but
+still not enough evidence for one catch-all `EditorModule` or giant callback
+registry. Registration/provider ergonomics should be extracted narrowly from the
+next few domains rather than invented wholesale.
 
 See [`ROADMAP.md`](ROADMAP.md) for the broader work queue.

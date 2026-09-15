@@ -10,13 +10,14 @@ simulation truth. The current work queue is frozen in [`ROADMAP.md`](ROADMAP.md)
   semantic owner. Hover, persistent editor selection and pinning are acquisition
   modes of that same model. `FocusHit` is optional because UI-originated selection
   has no honest ray-hit position.
-- **Structure** refines the canonical entity focus to a meaningful semantic part.
-  The first slice exposes real `InspectionFrame` sections and USF relationships;
-  deeper provider-based composition will be extracted from additional domains.
+- **Structure** (`StructureFrame` / `StructureSelection`) refines the canonical
+  entity focus to a meaningful semantic part. Structure identity is deliberately
+  independent from Inspector sections: one semantic item may contribute multiple
+  sections and one contextual gizmo.
 - **Semantic inspection** (`InspectionFrame`) carries structured meaning/data.
   `InspectAccess` records whether an observed field is read-only, directly
-  writable, validated, transactional or command-backed; presentation never grants
-  authority merely because mutable Rust access exists.
+  writable, validated, transactional or command-backed. Editable snapshot fields
+  emit `InspectEditRequest`s; the owning domain re-validates and commits them.
 - **ECS Inspector** is intentionally raw reflected whole-entity state. It is a
   different surface from semantic inspection, not a fallback source of meaning.
 - **Gizmos** are rich contextual tools: state, UI, viewport visualization,
@@ -57,21 +58,24 @@ ECS Inspector      -> raw reflected whole-entity state
 
 Gizmos consume the same canonical focus/Structure refinement as Semantic Inspector.
 
-## Inspection direction
+## Inspection / value-widget layer
 
-The current `InspectionFrame` is the existing snapshot transport, not the final
-widget architecture. The intended lower-level model is reusable outside the
-editor and eventually supports derive/attribute ergonomics heavily inspired by
-`egui_field_editor` without depending on it:
+`InspectionFrame` remains UI-agnostic snapshot transport. `devtools::inspect_ui`
+is the first reusable egui presentation layer over it and exposes the public
+`InspectorWidget<T>` advanced path. Its contract deliberately separates:
 
-- `#[derive(Inspect)]` / `#[inspect(...)]` convenience for owned types;
-- read-only/hidden/range/tooltip/custom-widget field metadata;
-- reusable value widgets for core/std/Bevy/third-party types;
-- a first-class manual `InspectorWidget<T>`-style advanced path;
-- nested/partial mutability, validation, commands, transactions and provenance.
+- `show(&T)` for observation;
+- `edit(&mut T)` only when a host already owns real mutation authority.
 
-The derive path is convenience, not the ceiling, and egui is a host rather than
-the semantic authority model.
+Generic snapshot editing never receives domain state mutably. It edits a proposal
+and emits `InspectEditRequest`; domains validate/commit that request. Contextual
+operations are `InspectActionRequest`s rather than fake mutable fields.
+
+The initial built-ins cover numbers, bools, strings, `Vec3` and `Transform`. More
+core/std/Bevy/third-party widgets and external registration will be added as real
+content demands them. `#[derive(Inspect)]` / `#[inspect(...)]` remains the planned
+ergonomic layer, heavily inspired by `egui_field_editor` without depending on it.
+The derive will describe inspection metadata; it will not generate an egui panel.
 
 ## Domain adapters
 
@@ -84,9 +88,10 @@ Domain-specific tooling remains beside the domain. Existing examples include:
 - `game::thermal::world_draw` — thermal bodies/cells and coupling fields;
 - `game::devtools` — test-game focus resolution and identity inspection.
 
-Thermal already acts as a second semantic Structure/Inspector proof because its
-real domain inspection sections flow through the same focus/refinement path. A
-richer Thermal gizmo is the next deliberately non-Transform implementation.
+Thermal is now the deliberately different second proof case: one `Thermal`
+Structure item contributes aggregate/material/combustion inspection sections, a
+contextual gizmo panel, viewport visualization, validated parameter edits, and
+explicit heat/cool/reset actions routed through `ThermalImpulse`.
 
 ## Scheduling
 
@@ -95,6 +100,7 @@ The semantic PostUpdate pipeline remains:
 ```text
 ResolveFocus
   -> Interact
+  -> CollectStructure
   -> CollectInspection
   -> CollectWorldDraw
   -> RenderUi

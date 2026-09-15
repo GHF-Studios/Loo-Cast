@@ -32,8 +32,9 @@ use crate::{
 
 use super::{
     DeveloperArtifact, DeveloperFocus, DeveloperTools, EditorTransformGizmoSettings,
-    EditorTransformSpace, EditorTransformWritable, FocusTarget, InspectionFrame,
-    SemanticInspectionSelection, ui::inspector,
+    EditorTransformSpace, EditorTransformWritable, FocusTarget, InspectEditRequest, InspectValue,
+    InspectionFrame, StructureFrame, StructureSelection,
+    inspect_ui::{self, InspectWidgetContext, InspectorWidget, TransformWidget},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -141,7 +142,7 @@ fn toggle_editor_shell(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut presentation: ResMut<PrimaryViewPresentation>,
     mut focus: ResMut<DeveloperFocus>,
-    mut semantic_selection: ResMut<SemanticInspectionSelection>,
+    mut structure: ResMut<StructureSelection>,
 ) {
     if !keyboard.just_pressed(KeyCode::F2) {
         return;
@@ -153,12 +154,13 @@ fn toggle_editor_shell(
                 && let Some(target) = focus.current()
             {
                 focus.select(target);
+                structure.select_entity(target);
             }
             *presentation = PrimaryViewPresentation::Embedded;
         }
         PrimaryViewPresentation::Embedded => {
             focus.clear_selection();
-            semantic_selection.clear();
+            structure.clear();
             *presentation = PrimaryViewPresentation::Immersive;
         }
     }
@@ -296,7 +298,7 @@ fn sync_hierarchy_selection(selected: &mut SelectedEntities, entity: Option<Enti
 }
 
 fn apply_hierarchy_selection(world: &mut World, selected: &[Entity]) {
-    world.resource_mut::<SemanticInspectionSelection>().clear();
+    world.resource_mut::<StructureSelection>().clear();
     let mut focus = world.resource_mut::<DeveloperFocus>();
     focus.clear_pin();
 
@@ -309,6 +311,7 @@ fn apply_hierarchy_selection(world: &mut World, selected: &[Entity]) {
 
     let target = focus_target_for_entity(world, entity);
     world.resource_mut::<DeveloperFocus>().select(target);
+    world.resource_mut::<StructureSelection>().select_entity(target);
 }
 
 fn focus_target_for_entity(world: &World, entity: Entity) -> FocusTarget {
@@ -450,41 +453,45 @@ impl EditorTabViewer<'_> {
 
 fn draw_structure(ui: &mut egui::Ui, world: &mut World) {
     let Some(target) = world.resource::<DeveloperFocus>().current() else {
-        ui.weak("Select an entity to inspect its semantic structure.");
+        ui.weak("Select or focus an entity to inspect its semantic structure.");
         return;
     };
 
     ui.heading(focus_name(Some(target), world));
     ui.weak(format!("ECS {:?}", target.spatial_entity));
+    if target.semantic_entity != target.spatial_entity {
+        ui.weak(format!("Semantic {:?}", target.semantic_entity));
+    }
     ui.add_space(4.0);
 
-    let selected_section = world
-        .resource::<SemanticInspectionSelection>()
-        .section_for(target.spatial_entity);
-    if ui
-        .selectable_label(selected_section.is_none(), "Entity")
-        .clicked()
-    {
-        world
-            .resource_mut::<SemanticInspectionSelection>()
-            .clear_for(target.spatial_entity);
+    let selected_item = world.resource::<StructureSelection>().item_for(target);
+    if ui.selectable_label(selected_item.is_none(), "Entity").clicked() {
+        world.resource_mut::<DeveloperFocus>().select(target);
+        world.resource_mut::<StructureSelection>().select_entity(target);
     }
 
-    let sections = world
-        .resource::<InspectionFrame>()
-        .sorted_sections()
+    let items = world
+        .resource::<StructureFrame>()
+        .sorted_items()
         .into_iter()
-        .map(|section| (section.id, section.title.clone()))
+        .cloned()
         .collect::<Vec<_>>();
-    for (id, title) in sections {
-        if ui
-            .selectable_label(selected_section == Some(id), format!("  {title}"))
-            .clicked()
-        {
-            world
-                .resource_mut::<SemanticInspectionSelection>()
-                .select(target.spatial_entity, id);
-        }
+    for item in items {
+        ui.horizontal(|ui| {
+            ui.add_space(12.0);
+            let clicked = ui
+                .selectable_label(selected_item == Some(item.id), &item.label)
+                .clicked();
+            if let Some(detail) = &item.detail {
+                ui.weak(detail);
+            }
+            if clicked {
+                world.resource_mut::<DeveloperFocus>().select(target);
+                world
+                    .resource_mut::<StructureSelection>()
+                    .select_item(target, item.id);
+            }
+        });
     }
 
     let manifestations = world
@@ -526,56 +533,80 @@ fn select_related_entity(world: &mut World, entity: Entity) {
     let target = focus_target_for_entity(world, entity);
     world.resource_mut::<DeveloperFocus>().clear_pin();
     world.resource_mut::<DeveloperFocus>().select(target);
-    world.resource_mut::<SemanticInspectionSelection>().clear();
+    world.resource_mut::<StructureSelection>().select_entity(target);
 }
 
-fn draw_semantic_inspector(ui: &mut egui::Ui, world: &World) {
-    let tools = world.resource::<DeveloperTools>();
-    let focus = world.resource::<DeveloperFocus>();
-    let frame = world.resource::<InspectionFrame>();
-    let target = focus.current();
-    let focus_name = focus_name(target, world);
-    let selected_section = target.and_then(|target| {
-        world
-            .resource::<SemanticInspectionSelection>()
-            .section_for(target.spatial_entity)
-    });
+fn draw_semantic_inspector(ui: &mut egui::Ui, world: &mut World) {
+    let focus = *world.resource::<DeveloperFocus>();
+    let Some(target) = focus.current() else {
+        ui.weak("No semantic focus.");
+        ui.label("Hover the Game view or select an entity in Hierarchy.");
+        return;
+    };
 
-    inspector::draw_editor_inspector(
-        ui,
-        tools,
-        target,
-        &focus_name,
-        focus.pinned().is_some(),
-        frame,
-        selected_section,
-    );
+    let scope = world.resource::<StructureSelection>().item_for(target);
+    ui.heading(focus_name(Some(target), world));
+    if focus.selected().is_some() {
+        ui.weak("selected");
+    } else if let Some(hit) = target.hit {
+        ui.weak(format!("hover focus · {:.3} m", hit.distance_meters));
+    } else {
+        ui.weak("focus");
+    }
+    ui.separator();
+
+    let output = {
+        let frame = world.resource::<InspectionFrame>();
+        inspect_ui::draw_sections(ui, frame, target, scope, true)
+    };
+    dispatch_inspection_ui_output(world, output);
 }
 
 fn draw_gizmos(ui: &mut egui::Ui, world: &mut World) {
     let Some(target) = world.resource::<DeveloperFocus>().current() else {
-        ui.weak("Select an entity to discover contextual gizmos.");
+        ui.weak("Select or focus an entity to discover contextual gizmos.");
         return;
     };
-    let entity = target.spatial_entity;
-    let selected_section = world
-        .resource::<SemanticInspectionSelection>()
-        .section_for(entity);
-    if selected_section.is_some() && selected_section != Some(super::gizmo::TRANSFORM_SECTION) {
-        ui.weak("No contextual gizmo is implemented for the selected Structure item yet.");
-        return;
+    let scope = world.resource::<StructureSelection>().item_for(target);
+
+    if scope == Some(super::gizmo::TRANSFORM_STRUCTURE) || scope.is_none() {
+        if world.get::<Transform>(target.spatial_entity).is_some() {
+            draw_transform_gizmo_panel(ui, world, target);
+            return;
+        }
     }
 
-    let Some(transform) = world.get::<Transform>(entity).cloned() else {
-        ui.weak("No contextual gizmo is registered for the current Structure selection yet.");
+    let Some(scope) = scope else {
+        ui.weak("Select a Structure item to open its contextual gizmo.");
+        return;
+    };
+
+    ui.heading("Context gizmo");
+    ui.weak("Rich domain context for the selected Structure item. Observation is independent from edit authority.");
+    ui.separator();
+    let output = {
+        let frame = world.resource::<InspectionFrame>();
+        inspect_ui::draw_contextual_gizmo(ui, frame, target, scope)
+    };
+    dispatch_inspection_ui_output(world, output);
+}
+
+fn draw_transform_gizmo_panel(ui: &mut egui::Ui, world: &mut World, target: FocusTarget) {
+    let entity = target.spatial_entity;
+    let Some(transform) = world.get::<Transform>(entity).copied() else {
+        ui.weak("No Transform gizmo applies to this focus.");
         return;
     };
 
     ui.heading("Transform");
+    ui.weak(
+        "Combined translate + rotate + scale viewport gizmo. Translate/Rotate honor World/Local; Scale remains local to match Transform.scale.",
+    );
     ui.horizontal(|ui| {
         ui.label("Space");
         draw_transform_space_control(ui, world);
     });
+    ui.separator();
 
     let parented = world.get::<ChildOf>(entity).is_some();
     let mut writable = world.get::<EditorTransformWritable>(entity).is_some();
@@ -592,13 +623,56 @@ fn draw_gizmos(ui: &mut egui::Ui, world: &mut World) {
     }
 
     if parented {
-        ui.weak("Generic direct editing is disabled for parented Transforms: local/world authority needs a domain-aware adapter.");
+        ui.weak(
+            "Read-only generic gizmo: parented transforms need a parent-aware/domain authoring adapter before direct mutation is safe.",
+        );
+    } else if !writable {
+        ui.weak("Read-only. Inspectability does not grant mutation authority.");
     } else {
-        ui.weak("Runtime-only authority grant. Generated/simulated/asset-authored state should use a domain adapter instead.");
+        ui.weak("Runtime-direct authority only; generated or authored sources may still overwrite this value.");
     }
 
+    ui.add_space(6.0);
     let editable = writable && !parented;
-    draw_transform_values(ui, world, entity, transform, editable);
+    if editable {
+        let mut proposed = transform;
+        if TransformWidget.edit(ui, &mut proposed, &InspectWidgetContext::new("Transform")) {
+            let mut edits = Vec::new();
+            if proposed.translation != transform.translation {
+                edits.push((
+                    super::gizmo::TRANSLATION_FIELD,
+                    InspectValue::Vec3(proposed.translation),
+                ));
+            }
+            if proposed.rotation != transform.rotation {
+                let (rx, ry, rz) = proposed.rotation.to_euler(EulerRot::XYZ);
+                edits.push((
+                    super::gizmo::ROTATION_FIELD,
+                    InspectValue::Vec3(Vec3::new(
+                        rx.to_degrees(),
+                        ry.to_degrees(),
+                        rz.to_degrees(),
+                    )),
+                ));
+            }
+            if proposed.scale != transform.scale {
+                edits.push((
+                    super::gizmo::SCALE_FIELD,
+                    InspectValue::Vec3(proposed.scale),
+                ));
+            }
+            for (field, value) in edits {
+                world.write_message(InspectEditRequest {
+                    target,
+                    section: super::gizmo::TRANSFORM_SECTION,
+                    field,
+                    value,
+                });
+            }
+        }
+    } else {
+        TransformWidget.show(ui, &transform, &InspectWidgetContext::new("Transform"));
+    }
 
     ui.add_space(6.0);
     ui.separator();
@@ -608,68 +682,16 @@ fn draw_gizmos(ui: &mut egui::Ui, world: &mut World) {
     }
 }
 
-fn draw_transform_values(
-    ui: &mut egui::Ui,
+fn dispatch_inspection_ui_output(
     world: &mut World,
-    entity: Entity,
-    transform: Transform,
-    editable: bool,
+    output: inspect_ui::InspectionUiOutput,
 ) {
-    let mut translation = transform.translation;
-    let (rx, ry, rz) = transform.rotation.to_euler(EulerRot::XYZ);
-    let mut rotation_degrees = Vec3::new(rx.to_degrees(), ry.to_degrees(), rz.to_degrees());
-    let mut scale = transform.scale;
-
-    let translation_changed = vec3_editor(ui, "Position", &mut translation, editable, 0.02);
-    let rotation_changed = vec3_editor(ui, "Rotation °", &mut rotation_degrees, editable, 0.2);
-    let scale_changed = vec3_editor(ui, "Scale", &mut scale, editable, 0.01);
-
-    if !editable || !(translation_changed || rotation_changed || scale_changed) {
-        return;
+    for edit in output.edits {
+        world.write_message(edit);
     }
-    let Some(mut target) = world.get_mut::<Transform>(entity) else {
-        return;
-    };
-    if translation_changed {
-        target.translation = translation;
+    for action in output.actions {
+        world.write_message(action);
     }
-    if rotation_changed {
-        target.rotation = Quat::from_euler(
-            EulerRot::XYZ,
-            rotation_degrees.x.to_radians(),
-            rotation_degrees.y.to_radians(),
-            rotation_degrees.z.to_radians(),
-        );
-    }
-    if scale_changed {
-        // `Direct` really means direct here: do not silently impose domain
-        // validation such as forbidding negative/mirrored scale. Validated
-        // authoring belongs to an explicit validated/domain adapter.
-        target.scale = scale;
-    }
-}
-
-fn vec3_editor(
-    ui: &mut egui::Ui,
-    label: &str,
-    value: &mut Vec3,
-    editable: bool,
-    speed: f64,
-) -> bool {
-    let mut changed = false;
-    ui.horizontal(|ui| {
-        ui.label(label);
-        for component in [&mut value.x, &mut value.y, &mut value.z] {
-            if editable {
-                changed |= ui
-                    .add(egui::DragValue::new(component).speed(speed))
-                    .changed();
-            } else {
-                ui.monospace(format!("{component:.3}"));
-            }
-        }
-    });
-    changed
 }
 
 fn focus_name(target: Option<FocusTarget>, world: &World) -> String {

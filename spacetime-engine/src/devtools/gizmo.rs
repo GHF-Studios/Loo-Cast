@@ -16,13 +16,18 @@ use crate::{
 };
 
 use super::{
-    DeveloperFocus, DeveloperSet, DeveloperTools, DrawDepth, InspectAccess, InspectField,
-    InspectSection, InspectSectionId, InspectValue, InspectionFrame, SemanticInspectionSelection,
+    DeveloperFocus, DeveloperSet, DrawDepth, InspectAccess, InspectEditRequest, InspectField,
+    InspectFieldId, InspectNumberInput, InspectSection, InspectSectionId, InspectValue,
+    InspectionFrame, StructureFrame, StructureItem, StructureItemId, StructureSelection,
     WorldDrawBatch, WorldDrawFrame,
 };
 
 const INPUT_FOCUS_OWNER: &str = "editor_gizmo";
 pub(in crate::devtools) const TRANSFORM_SECTION: InspectSectionId = InspectSectionId("transform");
+pub(in crate::devtools) const TRANSFORM_STRUCTURE: StructureItemId = StructureItemId("core.transform");
+pub(in crate::devtools) const TRANSLATION_FIELD: InspectFieldId = InspectFieldId("transform.translation");
+pub(in crate::devtools) const ROTATION_FIELD: InspectFieldId = InspectFieldId("transform.rotation");
+pub(in crate::devtools) const SCALE_FIELD: InspectFieldId = InspectFieldId("transform.scale");
 const HANDLE_PICK_PIXELS: f32 = 9.0;
 const RING_SEGMENTS: usize = 40;
 
@@ -124,13 +129,18 @@ pub(super) fn configure(app: &mut App) {
             PreUpdate,
             claim_gizmo_input.before(InputFocusSet::Resolve),
         )
-        // Direct Transform editing happens in Update so Bevy's normal
-        // PostUpdate transform propagation sees it in the same frame. Running
-        // this after propagation would create a visible one-frame GlobalTransform lag.
+        // Inspection UI writes proposals after gameplay update; commit them in
+        // the next PreUpdate, still safely before Bevy's normal PostUpdate
+        // transform propagation. Viewport dragging remains immediate in Update.
+        .add_systems(PreUpdate, apply_transform_inspection_edits)
         .add_systems(Update, update_transform_gizmo)
         .add_systems(
             PostUpdate,
             select_from_primary_view.in_set(DeveloperSet::Interact),
+        )
+        .add_systems(
+            PostUpdate,
+            collect_transform_structure.in_set(DeveloperSet::CollectStructure),
         )
         .add_systems(
             PostUpdate,
@@ -153,17 +163,31 @@ fn claim_gizmo_input(
     );
 }
 
+fn collect_transform_structure(
+    focus: Res<DeveloperFocus>,
+    transforms: Query<(), With<Transform>>,
+    mut frame: ResMut<StructureFrame>,
+) {
+    let Some(target) = focus.current() else {
+        return;
+    };
+    if !transforms.contains(target.spatial_entity) {
+        return;
+    }
+
+    frame.submit(
+        StructureItem::new(TRANSFORM_STRUCTURE, "Transform", 10)
+            .detail("position, orientation and scale"),
+    );
+}
+
 fn collect_transform_inspection(
-    tools: Res<DeveloperTools>,
     focus: Res<DeveloperFocus>,
     transforms: Query<&Transform>,
     writable: Query<(), With<EditorTransformWritable>>,
     parented: Query<(), With<ChildOf>>,
     mut frame: ResMut<InspectionFrame>,
 ) {
-    if !tools.enabled() {
-        return;
-    }
     let Some(target) = focus.current() else {
         return;
     };
@@ -180,23 +204,65 @@ fn collect_transform_inspection(
     };
     let (rx, ry, rz) = transform.rotation.to_euler(EulerRot::XYZ);
 
+    let translation = InspectField::new("Translation", InspectValue::Vec3(transform.translation))
+        .number_input(InspectNumberInput::speed(0.02));
+    let rotation = InspectField::new(
+        "Rotation (degrees)",
+        InspectValue::Vec3(Vec3::new(rx.to_degrees(), ry.to_degrees(), rz.to_degrees())),
+    )
+    .number_input(InspectNumberInput::speed(0.2));
+    let scale = InspectField::new("Scale", InspectValue::Vec3(transform.scale))
+        .number_input(InspectNumberInput::speed(0.01));
+    let (translation, rotation, scale) = if access.editable() {
+        (
+            translation.editable(TRANSLATION_FIELD, access),
+            rotation.editable(ROTATION_FIELD, access),
+            scale.editable(SCALE_FIELD, access),
+        )
+    } else {
+        (translation, rotation, scale)
+    };
+
     frame.submit(
         InspectSection::new(TRANSFORM_SECTION, "Transform", 10)
-            .field(
-                InspectField::new("Translation", InspectValue::Vec3(transform.translation))
-                    .access(access),
-            )
-            .field(
-                InspectField::new(
-                    "Rotation (degrees)",
-                    InspectValue::Vec3(Vec3::new(rx.to_degrees(), ry.to_degrees(), rz.to_degrees())),
-                )
-                .access(access),
-            )
-            .field(
-                InspectField::new("Scale", InspectValue::Vec3(transform.scale)).access(access),
-            ),
+            .for_structure(TRANSFORM_STRUCTURE)
+            .contextual_gizmo()
+            .field(translation)
+            .field(rotation)
+            .field(scale),
     );
+}
+
+fn apply_transform_inspection_edits(
+    mut requests: MessageReader<InspectEditRequest>,
+    parented: Query<(), With<ChildOf>>,
+    mut transforms: Query<&mut Transform, With<EditorTransformWritable>>,
+) {
+    for request in requests.read() {
+        if request.section != TRANSFORM_SECTION || parented.contains(request.target.spatial_entity) {
+            continue;
+        }
+        let Ok(mut transform) = transforms.get_mut(request.target.spatial_entity) else {
+            continue;
+        };
+        let InspectValue::Vec3(value) = request.value else {
+            continue;
+        };
+
+        match request.field {
+            TRANSLATION_FIELD => transform.translation = value,
+            ROTATION_FIELD => {
+                transform.rotation = Quat::from_euler(
+                    EulerRot::XYZ,
+                    value.x.to_radians(),
+                    value.y.to_radians(),
+                    value.z.to_radians(),
+                );
+            }
+            SCALE_FIELD => transform.scale = value,
+            _ => {}
+        }
+    }
 }
 
 fn update_transform_gizmo(
@@ -206,7 +272,7 @@ fn update_transform_gizmo(
     window: Single<(&Window, &CursorOptions), With<PrimaryWindow>>,
     camera: Single<(&Camera, &GlobalTransform), With<PrimaryGameView>>,
     focus: Res<DeveloperFocus>,
-    semantic_selection: Res<SemanticInspectionSelection>,
+    structure: Res<StructureSelection>,
     settings: Res<EditorTransformGizmoSettings>,
     globals: Query<&GlobalTransform>,
     parented: Query<(), With<ChildOf>>,
@@ -263,7 +329,7 @@ fn update_transform_gizmo(
         state.hovered = None;
         return;
     };
-    if !transform_context_visible(target.spatial_entity, &semantic_selection) {
+    if !transform_context_visible(target, &structure) {
         state.hovered = None;
         return;
     }
@@ -378,7 +444,7 @@ fn apply_drag(transform: &mut Transform, drag: &TransformDrag, cursor: Vec2) {
 fn collect_transform_gizmo(
     presentation: Res<PrimaryViewPresentation>,
     focus: Res<DeveloperFocus>,
-    semantic_selection: Res<SemanticInspectionSelection>,
+    structure: Res<StructureSelection>,
     settings: Res<EditorTransformGizmoSettings>,
     state: Res<TransformGizmoInteraction>,
     camera: Single<&GlobalTransform, With<PrimaryGameView>>,
@@ -393,7 +459,7 @@ fn collect_transform_gizmo(
     let Some(target) = focus.current() else {
         return;
     };
-    if !transform_context_visible(target.spatial_entity, &semantic_selection) {
+    if !transform_context_visible(target, &structure) {
         return;
     }
     let Ok(global) = globals.get(target.spatial_entity) else {
@@ -476,7 +542,7 @@ fn select_from_primary_view(
     camera: Single<&Camera, With<PrimaryGameView>>,
     mut focus: ResMut<DeveloperFocus>,
     gizmo: Res<TransformGizmoInteraction>,
-    mut semantic_selection: ResMut<SemanticInspectionSelection>,
+    mut structure: ResMut<StructureSelection>,
 ) {
     if !presentation.is_embedded() || !mouse.just_pressed(MouseButton::Left) {
         return;
@@ -497,20 +563,20 @@ fn select_from_primary_view(
     focus.clear_pin();
     if let Some(target) = focus.hovered() {
         focus.select(target);
-        semantic_selection.clear_for(target.spatial_entity);
+        structure.select_entity(target);
     } else {
         focus.clear_selection();
-        semantic_selection.clear();
+        structure.clear();
     }
 }
 
 fn transform_context_visible(
-    owner: Entity,
-    semantic_selection: &SemanticInspectionSelection,
+    target: super::FocusTarget,
+    structure: &StructureSelection,
 ) -> bool {
-    semantic_selection
-        .section_for(owner)
-        .map_or(true, |section| section == TRANSFORM_SECTION)
+    structure
+        .item_for(target)
+        .map_or(true, |item| item == TRANSFORM_STRUCTURE)
 }
 
 fn hit_test(

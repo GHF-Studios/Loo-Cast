@@ -9,6 +9,8 @@ mod editor;
 mod focus;
 mod gizmo;
 mod inspect;
+pub mod inspect_ui;
+mod structure;
 mod tools;
 mod ui;
 mod view;
@@ -20,9 +22,11 @@ pub use draw::{
 pub use focus::{DeveloperFocus, FocusHit, FocusTarget};
 pub use gizmo::{EditorTransformGizmoSettings, EditorTransformSpace, EditorTransformWritable};
 pub use inspect::{
-    InspectAccess, InspectField, InspectNumberFormat, InspectSection, InspectSectionId, InspectUnit,
-    InspectValue, InspectionFrame, SemanticInspectionSelection,
+    InspectAccess, InspectAction, InspectActionId, InspectActionRequest, InspectEditRequest,
+    InspectField, InspectFieldId, InspectNumberFormat, InspectNumberInput, InspectSection,
+    InspectSectionId, InspectUnit, InspectValue, InspectionFrame,
 };
+pub use structure::{StructureFrame, StructureItem, StructureItemId, StructureSelection};
 pub use tools::{
     AppDeveloperToolsExt, DeveloperTools, VisualizationId, VisualizationSpec,
 };
@@ -40,6 +44,7 @@ pub struct DeveloperArtifact;
 pub enum DeveloperSet {
     ResolveFocus,
     Interact,
+    CollectStructure,
     CollectInspection,
     CollectWorldDraw,
     RenderUi,
@@ -52,9 +57,12 @@ impl Plugin for DeveloperToolsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<DeveloperFocus>()
             .init_resource::<DeveloperView>()
+            .init_resource::<StructureFrame>()
+            .init_resource::<StructureSelection>()
             .init_resource::<InspectionFrame>()
-            .init_resource::<SemanticInspectionSelection>()
             .init_resource::<DeveloperTools>()
+            .add_message::<InspectEditRequest>()
+            .add_message::<InspectActionRequest>()
             .configure_sets(
                 PostUpdate,
                 DeveloperSet::ResolveFocus.after(TransformSystems::Propagate),
@@ -64,6 +72,7 @@ impl Plugin for DeveloperToolsPlugin {
                 (
                     DeveloperSet::ResolveFocus,
                     DeveloperSet::Interact,
+                    DeveloperSet::CollectStructure,
                     DeveloperSet::CollectInspection,
                     DeveloperSet::CollectWorldDraw,
                     DeveloperSet::RenderUi,
@@ -74,7 +83,15 @@ impl Plugin for DeveloperToolsPlugin {
             )
             .add_systems(
                 PostUpdate,
-                inspect::clear_inspection_frame.in_set(DeveloperSet::ResolveFocus),
+                (
+                    structure::clear_structure_frame,
+                    inspect::clear_inspection_frame,
+                )
+                    .in_set(DeveloperSet::ResolveFocus),
+            )
+            .add_systems(
+                PostUpdate,
+                structure::prune_structure_selection.in_set(DeveloperSet::CollectInspection),
             )
             .add_systems(PreUpdate, (toggle_developer_tools, focus::prune_focus));
 

@@ -1,9 +1,7 @@
-//! Compact semantic Inspector for the canonical [`DeveloperFocus`].
+//! Compact Bevy-UI semantic Inspector for the canonical tooling focus.
 //!
-//! The same structured inspection frame feeds immersive developer UI and the
-//! embedded editor. Structure selection may refine the editor to one semantic
-//! section without changing the concrete ECS entity inspected by the raw ECS
-//! Inspector.
+//! The embedded editor uses the richer egui widgets from `inspect_ui`; this
+//! retained surface intentionally stays text-only for immersive developer use.
 
 use bevy::prelude::*;
 
@@ -13,8 +11,8 @@ use crate::{
 };
 
 use super::super::{
-    DeveloperArtifact, DeveloperFocus, DeveloperSet, DeveloperTools, InspectAccess,
-    InspectNumberFormat, InspectSectionId, InspectValue, InspectionFrame,
+    inspect_ui, DeveloperArtifact, DeveloperFocus, DeveloperSet, DeveloperTools, InspectAccess,
+    InspectNumberFormat, InspectionFrame, StructureItemId, StructureSelection,
 };
 
 #[derive(Component)]
@@ -82,6 +80,7 @@ fn sync_inspector(
     tools: Res<DeveloperTools>,
     presentation: Res<PrimaryViewPresentation>,
     focus: Res<DeveloperFocus>,
+    structure: Res<StructureSelection>,
     frame: Res<InspectionFrame>,
     names: Query<&Name>,
     mut roots: Query<&mut Node, With<DeveloperInspectorRoot>>,
@@ -91,8 +90,6 @@ fn sync_inspector(
         Option<&DeveloperInspectorBody>,
     )>,
 ) {
-    // The compact Bevy-UI inspector remains useful as an immersive debug
-    // surface. Embedded presentation uses the docked semantic Inspector instead.
     let target = (!presentation.is_embedded() && tools.enabled())
         .then(|| focus.current())
         .flatten();
@@ -116,16 +113,17 @@ fn sync_inspector(
         .or_else(|_| names.get(target.spatial_entity).map(Name::as_str))
         .unwrap_or("Unnamed entity");
 
-    let title = if focus.pinned().is_some() {
-        format!("{semantic_name}  ·  PINNED")
+    let title = if focus.selected().is_some() {
+        format!("{semantic_name}  ·  SELECTED")
     } else {
         semantic_name.to_owned()
     };
     let body = render_body(
-        focus.pinned().is_some(),
-        target.hit.map(|hit| hit.distance_meters),
+        focus.selected().is_some(),
+        target.hit,
+        structure.item_for(target),
+        true,
         &frame,
-        None,
     );
 
     for (mut text, title_marker, body_marker) in &mut texts {
@@ -138,28 +136,41 @@ fn sync_inspector(
 }
 
 pub(super) fn render_body(
-    pinned: bool,
-    distance_meters: Option<f32>,
+    selected: bool,
+    hit: Option<super::super::FocusHit>,
+    scope: Option<StructureItemId>,
+    show_pin_hint: bool,
     frame: &InspectionFrame,
-    selected_section: Option<InspectSectionId>,
 ) -> String {
     let mut lines = Vec::<String>::new();
-    let focus_kind = if pinned { "pinned" } else { "focus" };
-    let distance = distance_meters
-        .map(|distance| {
-            format_quantity(
-                distance as f64,
-                "m",
-                InspectNumberFormat::significant_digits(4),
-            )
-        })
-        .unwrap_or_else(|| "non-spatial selection".to_owned());
-    lines.push(format!(
-        "{focus_kind}  ·  {distance}  ·  P {}",
-        if pinned { "unpin" } else { "pin" },
-    ));
+    let source = if selected { "selected" } else { "hover focus" };
+    if let Some(hit) = hit {
+        let distance = inspect_ui::format_quantity(
+            hit.distance_meters as f64,
+            "m",
+            InspectNumberFormat::significant_digits(4),
+        );
+        if show_pin_hint {
+            lines.push(format!(
+                "{source}  ·  {distance}  ·  P {}",
+                if selected { "clear selection" } else { "select" },
+            ));
+        } else {
+            lines.push(format!("{source}  ·  {distance}"));
+        }
+    } else if show_pin_hint && selected {
+        lines.push(format!("{source}  ·  P clear selection"));
+    } else {
+        lines.push(source.to_owned());
+    }
 
-    for section in frame.sorted_sections_matching(selected_section) {
+    let sections = frame.sorted_sections_for(scope);
+    if sections.is_empty() {
+        lines.push(String::new());
+        lines.push("No semantic inspection data for this Structure item.".to_owned());
+    }
+
+    for section in sections {
         lines.push(String::new());
         lines.push(section.title.to_uppercase());
         for field in &section.fields {
@@ -167,169 +178,17 @@ pub(super) fn render_body(
                 .symbol
                 .map(|symbol| format!("{} ({symbol})", field.label))
                 .unwrap_or_else(|| field.label.clone());
+            let access = if field.access == InspectAccess::ReadOnly {
+                String::new()
+            } else {
+                format!("  [{}]", field.access.label())
+            };
             lines.push(format!(
-                "{label}: {}{}",
-                format_value(&field.value),
-                access_suffix(field.access),
+                "{label}: {}{access}",
+                inspect_ui::format_value(&field.value)
             ));
         }
     }
 
-    if selected_section.is_some() && lines.len() == 1 {
-        lines.push(String::new());
-        lines.push("Selected Structure item has no inspection output this frame.".to_owned());
-    }
-
     lines.join("\n")
-}
-
-pub(in crate::devtools) fn draw_editor_inspector(
-    ui: &mut bevy_egui::egui::Ui,
-    tools: &DeveloperTools,
-    target: Option<super::super::FocusTarget>,
-    focus_name: &str,
-    pinned: bool,
-    frame: &InspectionFrame,
-    selected_section: Option<InspectSectionId>,
-) {
-    ui.heading(focus_name);
-
-    if !tools.enabled() {
-        ui.weak("Developer output is disabled. Enable it here or press F3.");
-        return;
-    }
-
-    let Some(target) = target else {
-        ui.weak("No inspectable focus.");
-        ui.label("Select an entity in Hierarchy or click one in the Game view.");
-        return;
-    };
-
-    ui.monospace(render_body(
-        pinned,
-        target.hit.map(|hit| hit.distance_meters),
-        frame,
-        selected_section,
-    ));
-}
-
-fn access_suffix(access: InspectAccess) -> &'static str {
-    match access {
-        InspectAccess::ReadOnly => "",
-        InspectAccess::Direct => "  [direct]",
-        InspectAccess::Validated => "  [validated]",
-        InspectAccess::Transactional => "  [transactional]",
-        InspectAccess::Command => "  [command]",
-    }
-}
-
-fn format_value(value: &InspectValue) -> String {
-    match value {
-        InspectValue::Text(value) => value.clone(),
-        InspectValue::Bool(value) => (if *value { "yes" } else { "no" }).to_owned(),
-        InspectValue::Integer(value) => value.to_string(),
-        InspectValue::Number { value, format } => format_number(*value, *format),
-        InspectValue::Quantity {
-            value,
-            unit,
-            format,
-        } => format_quantity(*value, unit.0, *format),
-        InspectValue::Range {
-            minimum,
-            maximum,
-            unit,
-            format,
-        } => format!(
-            "{} … {}",
-            format_quantity(*minimum, unit.0, *format),
-            format_quantity(*maximum, unit.0, *format),
-        ),
-        InspectValue::Entity(entity) => format!("{entity:?}"),
-        InspectValue::Vec3(value) => format!("({:.3}, {:.3}, {:.3})", value.x, value.y, value.z),
-    }
-}
-
-fn format_quantity(value: f64, unit: &str, format: InspectNumberFormat) -> String {
-    format!("{} {unit}", format_number(value, format))
-}
-
-fn format_number(value: f64, format: InspectNumberFormat) -> String {
-    if !value.is_finite() {
-        return "—".to_owned();
-    }
-    if value == 0.0 {
-        return "0".to_owned();
-    }
-
-    let significant_digits = usize::from(format.significant_digits.clamp(1, 12));
-    let magnitude = value.abs();
-    let exponent = magnitude.log10().floor() as i32;
-
-    if exponent >= 6 || exponent <= -4 {
-        let engineering_exponent = exponent.div_euclid(3) * 3;
-        let scaled = value / 10.0_f64.powi(engineering_exponent);
-        let scaled_exponent = scaled.abs().log10().floor() as i32;
-        let decimals = (significant_digits as i32 - 1 - scaled_exponent).clamp(0, 10) as usize;
-        return format!(
-            "{} × 10{}",
-            trim_decimal_zeros(format!("{scaled:.decimals$}")),
-            superscript_integer(engineering_exponent),
-        );
-    }
-
-    let decimals = (significant_digits as i32 - 1 - exponent).clamp(0, 10) as usize;
-    trim_decimal_zeros(format!("{value:.decimals$}"))
-}
-
-fn trim_decimal_zeros(mut value: String) -> String {
-    if !value.contains('.') {
-        return value;
-    }
-    while value.ends_with('0') {
-        value.pop();
-    }
-    if value.ends_with('.') {
-        value.pop();
-    }
-    value
-}
-
-fn superscript_integer(value: i32) -> String {
-    let mut result = String::new();
-    if value < 0 {
-        result.push('⁻');
-    }
-    for character in value.unsigned_abs().to_string().chars() {
-        result.push(match character {
-            '0' => '⁰',
-            '1' => '¹',
-            '2' => '²',
-            '3' => '³',
-            '4' => '⁴',
-            '5' => '⁵',
-            '6' => '⁶',
-            '7' => '⁷',
-            '8' => '⁸',
-            '9' => '⁹',
-            _ => unreachable!(),
-        });
-    }
-    result
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn quantities_use_compact_engineering_notation() {
-        assert_eq!(
-            format_quantity(
-                0.000_012_3,
-                "m²/s",
-                InspectNumberFormat::significant_digits(3),
-            ),
-            "12.3 × 10⁻⁶ m²/s",
-        );
-    }
 }
