@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use avian3d::{
     character_controller::move_and_slide::{
-        DepenetrationConfig, MoveAndSlide, MoveAndSlideConfig, MoveAndSlideHitResponse, MoveAndSlideOutput,
+        MoveAndSlide, MoveAndSlideConfig, MoveAndSlideHitResponse, MoveAndSlideOutput,
     },
     prelude::*,
 };
@@ -89,31 +89,6 @@ pub(super) fn simulate_character_motors(
             |exclusions| exclusions.filter_for(entity),
         );
         let move_config = MoveAndSlideConfig::default();
-
-        // Collision geometry is allowed to change around a kinematic character
-        // (notably editable voxel terrain). Reconcile an invalid pose before
-        // ground classification or commanded movement. This makes placing
-        // terrain under the player's feet push the body out of the new surface
-        // instead of leaving it embedded until a later movement happens.
-        let depenetration = move_and_slide.depenetrate(
-            collider,
-            transform.translation,
-            transform.rotation,
-            &DepenetrationConfig::default(),
-            &filter,
-        );
-        if depenetration.length_squared() > 1.0e-10 {
-            transform.translation += depenetration;
-
-            // Do not retain velocity into the surface that just displaced us.
-            // Preserve tangential/outward motion so terrain edits do not feel
-            // like an arbitrary full velocity reset.
-            let normal = depenetration.normalize_or_zero();
-            let inward_speed = velocity.0.dot(normal);
-            if inward_speed < 0.0 {
-                velocity.0 -= normal * inward_speed;
-            }
-        }
 
         let was_grounded = ground.grounded;
         let initial_ground = probe_ground(
