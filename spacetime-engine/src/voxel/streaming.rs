@@ -2,15 +2,26 @@
 //!
 //! Streaming is optional per [`VoxelWorld`]. The authoritative world remains
 //! procedural base + sparse modifications; this module only decides which dense
-//! chunk caches should currently exist around a viewer.
+//! chunk caches should currently exist around a viewer. Expensive field
+//! generation runs on Bevy's async compute pool and is published later.
 
 use std::collections::HashSet;
 
-use bevy::{camera::visibility::NoFrustumCulling, prelude::*};
+use bevy::{
+    camera::visibility::NoFrustumCulling,
+    prelude::*,
+    tasks::{AsyncComputeTaskPool, Task, futures::check_ready},
+};
 
 use super::{
-    VoxelChunkCoord, VoxelChunkOf, VoxelWorld, empty_voxel_mesh,
+    VoxelChunk, VoxelChunkCoord, VoxelChunkOf, VoxelWorld, empty_voxel_mesh,
+    world::VoxelChunkRecipe,
 };
+
+/// Maximum number of finished generation tasks published into ECS in one frame.
+/// Task execution itself is already parallel; this caps main-thread structural
+/// work when many chunks happen to complete together.
+const GENERATION_PUBLISH_BUDGET_PER_FRAME: usize = 8;
 
 /// Opt-in policy for keeping chunks materialized around one viewer.
 #[derive(Component, Debug, Clone)]
@@ -49,6 +60,57 @@ impl VoxelStreaming {
     }
 }
 
+/// Background construction of one dense chunk from an immutable procedural/edit
+/// snapshot. `applied_edit_count` lets completion catch up with edits recorded
+/// while the task was running instead of invalidating and restarting the work.
+#[derive(Component)]
+pub(crate) struct VoxelChunkGenerationTask {
+    applied_edit_count: usize,
+    task: Task<VoxelChunk>,
+}
+
+impl VoxelChunkGenerationTask {
+    fn spawn(recipe: VoxelChunkRecipe) -> Self {
+        let applied_edit_count = recipe.applied_edit_count();
+        let task = AsyncComputeTaskPool::get().spawn(async move { recipe.materialize() });
+        Self {
+            applied_edit_count,
+            task,
+        }
+    }
+}
+
+pub(crate) fn finish_chunk_generation(
+    mut commands: Commands,
+    worlds: Query<&VoxelWorld>,
+    mut tasks: Query<(Entity, &VoxelChunkOf, &mut VoxelChunkGenerationTask)>,
+) {
+    let mut published = 0;
+
+    for (entity, chunk_of, mut generation) in &mut tasks {
+        if published >= GENERATION_PUBLISH_BUDGET_PER_FRAME {
+            break;
+        }
+
+        let Some(mut chunk) = check_ready(&mut generation.task) else {
+            continue;
+        };
+
+        let Ok(world) = worlds.get(chunk_of.world) else {
+            // The owning world disappeared while background work was running.
+            commands.entity(entity).despawn();
+            continue;
+        };
+
+        catch_up_generated_chunk(world, generation.applied_edit_count, &mut chunk);
+        commands
+            .entity(entity)
+            .insert(chunk)
+            .remove::<VoxelChunkGenerationTask>();
+        published += 1;
+    }
+}
+
 pub(crate) fn stream_voxel_chunks(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -64,9 +126,9 @@ pub(crate) fn stream_voxel_chunks(
         let desired = desired_chunk_coords(center, streaming.radius);
         let desired_set = desired.iter().copied().collect::<HashSet<_>>();
 
-        // Dense chunks are disposable. Drop caches that left the active window;
-        // authoritative edits remain in VoxelWorld and will be replayed if the
-        // chunk is materialized again later.
+        // Dense chunks and in-flight chunk tasks are disposable. Drop either
+        // when they leave the active window; authoritative edits remain in the
+        // VoxelWorld and will be replayed if that coordinate returns later.
         let stale = world
             .chunk_entries()
             .filter(|(coord, _)| !desired_set.contains(coord))
@@ -77,16 +139,17 @@ pub(crate) fn stream_voxel_chunks(
             commands.entity(entity).despawn();
         }
 
-        // Materialize nearest missing chunks first and cap work per frame. Mesh
-        // extraction happens later in PostUpdate, so the same budget naturally
-        // bounds fresh remesh work as the window expands.
-        let mut loaded = 0;
+        // Reserve nearest missing coordinates first, but only start a bounded
+        // number of expensive generation tasks each frame. The returned Task is
+        // retained on the placeholder entity; dropping that entity cancels work
+        // that streamed out before completion.
+        let mut requested = 0;
         for coord in desired {
             if world.chunk_entity(coord).is_some() {
                 continue;
             }
 
-            let chunk = world.materialize_chunk(coord);
+            let generation = VoxelChunkGenerationTask::spawn(world.chunk_recipe(coord));
             let value = coord.0;
             let chunk_entity = commands
                 .spawn((
@@ -95,7 +158,7 @@ pub(crate) fn stream_voxel_chunks(
                         value.x, value.y, value.z
                     )),
                     VoxelChunkOf::new(world_entity, coord),
-                    chunk,
+                    generation,
                     Mesh3d(meshes.add(empty_voxel_mesh())),
                     MeshMaterial3d(streaming.material.clone()),
                     NoFrustumCulling,
@@ -103,13 +166,33 @@ pub(crate) fn stream_voxel_chunks(
                 ))
                 .id();
 
+            // Generation is asynchronous, so the old attribute-less placeholder
+            // could otherwise survive into render extraction for several frames.
+            commands.entity(chunk_entity).remove::<Mesh3d>();
+
             commands.entity(world_entity).add_child(chunk_entity);
             assert!(world.insert_chunk(coord, chunk_entity).is_none());
 
-            loaded += 1;
-            if loaded >= streaming.load_budget_per_frame {
+            requested += 1;
+            if requested >= streaming.load_budget_per_frame {
                 break;
             }
+        }
+    }
+}
+
+/// Applies edits appended after a generation task took its immutable snapshot.
+/// This preserves ordered edit semantics without throwing away completed work.
+fn catch_up_generated_chunk(world: &VoxelWorld, applied_edit_count: usize, chunk: &mut VoxelChunk) {
+    for edit in world
+        .modifications()
+        .edits()
+        .iter()
+        .skip(applied_edit_count)
+        .copied()
+    {
+        if chunk.sample_bounds().intersects(edit.influence_bounds()) {
+            chunk.apply_edit(edit);
         }
     }
 }
@@ -143,6 +226,7 @@ fn chunk_distance_squared(a: VoxelChunkCoord, b: VoxelChunkCoord) -> i64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::voxel::{VoxelBase, VoxelBrush, VoxelEdit, VoxelMaterialId};
 
     #[test]
     fn streaming_window_is_centered_unique_and_nearest_first() {
@@ -156,5 +240,26 @@ mod tests {
             let delta = coord.0 - center.0;
             delta.x.abs() <= 2 && delta.y.abs() <= 1 && delta.z.abs() <= 2
         }));
+    }
+
+    #[test]
+    fn generation_completion_replays_edits_recorded_while_task_was_running() {
+        let coord = VoxelChunkCoord::new(IVec3::ZERO);
+        let center = Vec3::splat(8.0);
+        let mut world = VoxelWorld::new(VoxelBase::Empty);
+        let recipe = world.chunk_recipe(coord);
+        let applied_edit_count = recipe.applied_edit_count();
+
+        world.record_edit(VoxelEdit::Add {
+            brush: VoxelBrush::sphere(center, 2.0),
+            material: VoxelMaterialId::ROCK,
+        });
+
+        // Pretend this value arrived from the background worker after the edit.
+        let mut chunk = recipe.materialize();
+        assert!(chunk.sample(center.as_ivec3()).unwrap().distance.is_empty());
+
+        catch_up_generated_chunk(&world, applied_edit_count, &mut chunk);
+        assert!(chunk.sample(center.as_ivec3()).unwrap().distance.is_solid());
     }
 }

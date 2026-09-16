@@ -40,11 +40,48 @@ impl VoxelChunkCoord {
     }
 }
 
+/// Immutable background-generation recipe for one dense chunk.
+///
+/// The recipe owns exactly the edits that existed when it was created. The
+/// completion path can then replay edits appended after `applied_edit_count`
+/// before publishing the generated chunk.
+#[derive(Debug, Clone)]
+pub(crate) struct VoxelChunkRecipe {
+    coord: VoxelChunkCoord,
+    base: VoxelBase,
+    edits: Vec<VoxelEdit>,
+    applied_edit_count: usize,
+}
+
+impl VoxelChunkRecipe {
+    pub(crate) const fn applied_edit_count(&self) -> usize {
+        self.applied_edit_count
+    }
+
+    pub(crate) fn materialize(self) -> VoxelChunk {
+        let Self {
+            coord,
+            base,
+            edits,
+            ..
+        } = self;
+
+        VoxelChunk::generate(coord.origin(), move |point| {
+            let mut sample = base.sample(point);
+            for edit in &edits {
+                sample = edit.apply_to_sample(point, sample);
+            }
+            sample
+        })
+    }
+}
+
 /// Semantic voxel-world root.
 ///
 /// The authoritative state is `base + modifications`. `chunks` only indexes
-/// currently materialized dense working caches used by rendering/query code.
-/// Destroying every chunk therefore does not destroy the world.
+/// currently reserved chunk-coordinate entities: some may still be generating,
+/// while others hold dense working caches for rendering/query code. Destroying
+/// every one of them therefore does not destroy the world.
 #[derive(Component, Debug)]
 pub struct VoxelWorld {
     base: VoxelBase,
@@ -84,21 +121,26 @@ impl VoxelWorld {
         self.modifications.push(edit);
     }
 
-    /// Reconstructs one dense working chunk from procedural base + sparse edits.
-    pub fn materialize_chunk(&self, coord: VoxelChunkCoord) -> VoxelChunk {
-        let base = self.base;
-        let edits = self
-            .modifications
-            .intersecting(coord.sample_bounds())
-            .collect::<Vec<_>>();
+    /// Captures immutable generation input for one chunk. This is deliberately
+    /// cheap relative to dense generation: procedural bases are compact and only
+    /// edits intersecting the chunk's padded sample domain are copied.
+    pub(crate) fn chunk_recipe(&self, coord: VoxelChunkCoord) -> VoxelChunkRecipe {
+        VoxelChunkRecipe {
+            coord,
+            base: self.base,
+            edits: self
+                .modifications
+                .intersecting(coord.sample_bounds())
+                .collect(),
+            applied_edit_count: self.modifications.len(),
+        }
+    }
 
-        VoxelChunk::generate(coord.origin(), move |point| {
-            let mut sample = base.sample(point);
-            for edit in &edits {
-                sample = edit.apply_to_sample(point, sample);
-            }
-            sample
-        })
+    /// Reconstructs one dense working chunk from procedural base + sparse edits.
+    /// Synchronous callers (currently the small authored playground fixture and
+    /// tests) share exactly the same recipe used by streaming background tasks.
+    pub fn materialize_chunk(&self, coord: VoxelChunkCoord) -> VoxelChunk {
+        self.chunk_recipe(coord).materialize()
     }
 
     /// Resolves one arbitrary sample without requiring a materialized chunk.
@@ -132,8 +174,9 @@ impl VoxelWorld {
         self.chunks.iter().map(|(&coord, &entity)| (coord, entity))
     }
 
-    /// Returns only materialized chunks whose stored sample domains intersect
-    /// the finite influence bounds of an edit.
+    /// Returns reserved chunk entities whose stored sample domains would
+    /// intersect the finite influence bounds of an edit. Callers that require a
+    /// dense cache can simply query for [`VoxelChunk`] and skip pending entities.
     pub fn chunks_intersecting(&self, bounds: VoxelBounds) -> Vec<Entity> {
         let (minimum, maximum) = chunk_coord_range(bounds);
         let mut entities = Vec::new();
@@ -177,7 +220,7 @@ fn chunk_coord_range(bounds: VoxelBounds) -> (IVec3, IVec3) {
     (minimum, maximum)
 }
 
-/// Identifies a materialized chunk as belonging to a particular voxel world.
+/// Identifies a reserved/materialized chunk coordinate belonging to a voxel world.
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct VoxelChunkOf {
     pub world: Entity,
