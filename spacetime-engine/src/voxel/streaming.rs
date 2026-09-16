@@ -9,7 +9,7 @@ use std::collections::HashSet;
 use bevy::{camera::visibility::NoFrustumCulling, prelude::*};
 
 use super::{
-    VoxelChunkCoord, VoxelChunkOf, VoxelWorld, empty_voxel_mesh,
+    VoxelChunkCoord, VoxelChunkOf, VoxelRenderMesh, VoxelWorld,
 };
 
 /// Opt-in policy for keeping chunks materialized around one viewer.
@@ -96,7 +96,7 @@ pub(crate) fn stream_voxel_chunks(
                     )),
                     VoxelChunkOf::new(world_entity, coord),
                     chunk,
-                    Mesh3d(meshes.add(empty_voxel_mesh())),
+                    VoxelRenderMesh::new(&mut meshes),
                     MeshMaterial3d(streaming.material.clone()),
                     NoFrustumCulling,
                     Transform::IDENTITY,

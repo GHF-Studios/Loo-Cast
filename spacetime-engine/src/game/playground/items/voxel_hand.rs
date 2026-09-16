@@ -15,6 +15,7 @@ pub const VOXEL_HAND: PlaygroundItemId = PlaygroundItemId::new("voxel_hand");
 
 const TOOL_RANGE: f32 = 64.0;
 const BRUSH_RADIUS: f32 = 2.0;
+const REPEAT_INTERVAL_SECONDS: f32 = 0.05;
 
 pub struct VoxelHandItemPlugin;
 
@@ -34,6 +35,8 @@ fn register_item(mut catalog: ResMut<PlaygroundCatalog>) {
 }
 
 fn use_voxel_hand(
+    time: Res<Time>,
+    mut repeat_timer: Local<Option<Timer>>,
     mut uses: MessageReader<UsePlaygroundItem>,
     mut worlds: ParamSet<(
         Query<(Entity, &VoxelWorld)>,
@@ -41,12 +44,29 @@ fn use_voxel_hand(
     )>,
     mut chunks: ParamSet<(Query<&VoxelChunk>, Query<&mut VoxelChunk>)>,
 ) {
+    let timer = repeat_timer.get_or_insert_with(|| {
+        Timer::from_seconds(REPEAT_INTERVAL_SECONDS, TimerMode::Repeating)
+    });
+    let repeat_ready = timer.tick(time.delta()).just_finished();
+
     for request in uses.read() {
-        if request.item != VOXEL_HAND
-            || (request.action != PlaygroundItemAction::PRIMARY
-                && request.action != PlaygroundItemAction::SECONDARY)
-        {
+        if request.item != VOXEL_HAND {
             continue;
+        }
+
+        let (remove, held) = match request.action {
+            PlaygroundItemAction::PRIMARY => (true, false),
+            PlaygroundItemAction::SECONDARY => (false, false),
+            PlaygroundItemAction::PRIMARY_HELD => (true, true),
+            PlaygroundItemAction::SECONDARY_HELD => (false, true),
+            _ => continue,
+        };
+
+        if held && !repeat_ready {
+            continue;
+        }
+        if !held {
+            timer.reset();
         }
 
         let mut nearest: Option<(Entity, VoxelRayHit)> = None;
@@ -81,14 +101,14 @@ fn use_voxel_hand(
         };
 
         let direction = request.aim.direction.normalize_or_zero();
-        let center = if request.action == PlaygroundItemAction::PRIMARY {
+        let center = if remove {
             position + direction * (BRUSH_RADIUS * 0.35)
         } else {
             position - direction * (BRUSH_RADIUS * 0.35)
         };
         let brush = VoxelBrush::sphere(center, BRUSH_RADIUS);
 
-        let edit = if request.action == PlaygroundItemAction::PRIMARY {
+        let edit = if remove {
             VoxelEdit::Remove { brush }
         } else {
             VoxelEdit::Add {
