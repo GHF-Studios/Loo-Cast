@@ -8,6 +8,7 @@ use spacetime_engine::{
     geometry::AuthoredGeometryPlugin,
     physics::SpacetimePhysicsPlugin,
     ui::UiFoundationPlugin,
+    voxel::VoxelPlugin,
 };
 
 fn main() {
@@ -17,6 +18,7 @@ fn main() {
             ComponentConflictPlugin,
             AuthoredGeometryPlugin,
             SpacetimePhysicsPlugin,
+            VoxelPlugin,
             TestGamePlugin,
             UiFoundationPlugin,
             RuntimeDiagnosticsPlugin,

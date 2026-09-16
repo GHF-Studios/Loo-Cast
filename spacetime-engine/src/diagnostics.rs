@@ -176,7 +176,7 @@ mod tests {
     fn one_percent_low_uses_slowest_frame_times() {
         let mut frame_times = vec![10.0; 99];
         frame_times.push(50.0);
-        frame_times.sort_by(|a, b| b.total_cmp(a));
+        frame_times.sort_by(|a, b| b.partial_cmp(a).unwrap());
 
         assert_eq!(low_fps_sorted(&frame_times, 0.01), Some(20.0));
     }

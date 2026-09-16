@@ -18,6 +18,7 @@ impl Default for Hotbar {
         let mut slots = [None; HOTBAR_SIZE];
         slots[0] = Some(PlaygroundItemId::new("portal_gun"));
         slots[1] = Some(PlaygroundItemId::new("projectile_gun"));
+        slots[2] = Some(PlaygroundItemId::new("voxel_hand"));
 
         Self { slots, selected: 0 }
     }

@@ -18,6 +18,7 @@ bevy = {
     ],
 }
 avian3d = "0.7.0"
+fast-surface-nets = "0.2.1"
 # Keep the editor stack on one egui generation. bevy-inspector-egui 0.37 is
 # Bevy 0.19's inspector release and uses bevy_egui 0.40 / egui 0.34.
 bevy_egui = { version = "0.40.0", default-features = false, features = ["default_fonts", "render"] }

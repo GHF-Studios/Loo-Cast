@@ -8,6 +8,7 @@ mod damageable_cube;
 mod heat_ray;
 mod portal_gun;
 mod projectile_gun;
+mod voxel_hand;
 
 use bevy::prelude::*;
 
@@ -20,6 +21,7 @@ impl Plugin for PlaygroundItemsPlugin {
             projectile_gun::ProjectileGunItemPlugin,
             damageable_cube::DamageableCubeItemPlugin,
             heat_ray::HeatRayItemPlugin,
+            voxel_hand::VoxelHandItemPlugin,
         ));
     }
 }
