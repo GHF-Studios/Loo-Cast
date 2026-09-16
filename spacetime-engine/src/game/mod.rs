@@ -2,6 +2,7 @@
 
 pub mod combat;
 mod devtools;
+mod environment;
 pub mod map_selection;
 pub mod player;
 mod procedural_world;
@@ -95,6 +96,7 @@ impl Plugin for TestGamePlugin {
                     .in_set(GameSet::Presentation),
             )
             .add_plugins((
+                environment::EnvironmentLightingPlugin,
                 map_selection::MapSelectionPlugin,
                 combat::CombatPlugin,
                 player::PlayerPlugin,

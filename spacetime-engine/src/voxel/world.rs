@@ -23,6 +23,12 @@ impl VoxelChunkCoord {
         self.0 * CHUNK_SIZE as i32
     }
 
+    /// Chunk containing one world-space position. Uses floor semantics so
+    /// negative coordinates map to the expected Euclidean grid cell.
+    pub fn containing(point: Vec3) -> Self {
+        Self((point / CHUNK_SIZE as f32).floor().as_ivec3())
+    }
+
     /// Bounds of the physical sample allocation belonging to this chunk,
     /// including the one-sample neighbor border.
     pub fn sample_bounds(self) -> VoxelBounds {
@@ -122,6 +128,10 @@ impl VoxelWorld {
         self.chunks.values().copied()
     }
 
+    pub fn chunk_entries(&self) -> impl Iterator<Item = (VoxelChunkCoord, Entity)> + '_ {
+        self.chunks.iter().map(|(&coord, &entity)| (coord, entity))
+    }
+
     /// Returns only materialized chunks whose stored sample domains intersect
     /// the finite influence bounds of an edit.
     pub fn chunks_intersecting(&self, bounds: VoxelBounds) -> Vec<Entity> {
@@ -190,6 +200,14 @@ mod tests {
         assert_eq!(
             VoxelChunkCoord::new(IVec3::new(-1, 2, 0)).origin(),
             IVec3::new(-(CHUNK_SIZE as i32), 2 * CHUNK_SIZE as i32, 0)
+        );
+        assert_eq!(
+            VoxelChunkCoord::containing(Vec3::new(-0.01, 0.0, 31.99)),
+            VoxelChunkCoord::new(IVec3::new(-1, 0, 0))
+        );
+        assert_eq!(
+            VoxelChunkCoord::containing(Vec3::new(32.0, 0.0, 32.0)),
+            VoxelChunkCoord::new(IVec3::new(1, 0, 1))
         );
     }
 
