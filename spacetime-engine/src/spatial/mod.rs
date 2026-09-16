@@ -122,15 +122,21 @@ fn sync_semantic_positions(
 
 fn rebase_local_frame(
     mut frame: ResMut<UsfSpatialFrame>,
-    anchors: Query<&Transform, With<UsfSpatialAnchor>>,
-    mut root_transforms: Query<&mut Transform, Without<ChildOf>>,
+    mut transforms: ParamSet<(
+        Query<&Transform, With<UsfSpatialAnchor>>,
+        Query<&mut Transform, Without<ChildOf>>,
+    )>,
     mut physics_positions: Query<&mut Position>,
     mut rebased: MessageWriter<UsfOriginRebased>,
 ) {
-    let Some(anchor) = anchors.iter().next() else {
-        return;
+    let anchor_translation = {
+        let anchors = transforms.p0();
+        let Some(anchor) = anchors.iter().next() else {
+            return;
+        };
+        anchor.translation
     };
-    let shift = rebase_shift(anchor.translation);
+    let shift = rebase_shift(anchor_translation);
     if shift == Vec3::ZERO {
         return;
     }
@@ -145,7 +151,7 @@ fn rebase_local_frame(
     frame.last_shift = shift;
 
     // Transform hierarchy roots move; children inherit the same chart shift.
-    for mut transform in &mut root_transforms {
+    for mut transform in &mut transforms.p1() {
         transform.translation -= shift;
     }
 
