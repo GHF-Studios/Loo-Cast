@@ -1,8 +1,8 @@
-//! Dense working chunk for the first editable-rock vertical slice.
+//! Dense working chunk used by the editable voxel world.
 
 use bevy::prelude::{Component, IVec3, UVec3, Vec3};
 
-use super::{SignedDistance, VoxelEdit, VoxelMaterialId, VoxelSample};
+use super::{SignedDistance, VoxelBounds, VoxelEdit, VoxelMaterialId, VoxelSample};
 
 /// Number of logical samples owned by one chunk axis.
 pub const CHUNK_SIZE: u32 = 32;
@@ -33,7 +33,7 @@ pub struct VoxelRayHit {
     pub distance: f32,
 }
 
-/// Dense sampled volume used by M0.
+/// Dense sampled volume used as the active working representation.
 ///
 /// `origin` is the world-space integer coordinate of the first logical sample.
 /// Stored samples additionally cover one neighboring coordinate on every side.
@@ -105,6 +105,16 @@ impl VoxelChunk {
 
     pub fn materials(&self) -> &[VoxelMaterialId] {
         &self.materials
+    }
+
+    /// World-space bounds of every lattice sample physically stored by this chunk,
+    /// including the copied neighbor padding used for seamless meshing.
+    pub fn sample_bounds(&self) -> VoxelBounds {
+        let padding = Vec3::splat(SAMPLE_PADDING as f32);
+        VoxelBounds::new(
+            self.origin.as_vec3() - padding,
+            self.origin.as_vec3() + Vec3::splat(CHUNK_SIZE as f32),
+        )
     }
 
     pub fn sample(&self, world: IVec3) -> Option<VoxelSample> {
@@ -184,12 +194,27 @@ impl VoxelChunk {
     }
 
     pub fn apply_edit(&mut self, edit: VoxelEdit) -> VoxelChunkEditResult {
-        let mut changed_samples = 0;
         let padding = IVec3::splat(SAMPLE_PADDING as i32);
+        let stored_min = self.origin - padding;
+        let stored_max = self.origin + IVec3::splat(CHUNK_SIZE as i32);
+        let bounds = edit.influence_bounds();
+        let edit_min = bounds.min.ceil().as_ivec3().max(stored_min);
+        let edit_max = bounds.max.floor().as_ivec3().min(stored_max);
 
-        for z in 0..SAMPLE_SIZE {
-            for y in 0..SAMPLE_SIZE {
-                for x in 0..SAMPLE_SIZE {
+        if edit_min.cmpgt(edit_max).any() {
+            return VoxelChunkEditResult {
+                changed_samples: 0,
+                revision: self.revision,
+            };
+        }
+
+        let storage_min = (edit_min - self.origin + padding).as_uvec3();
+        let storage_max = (edit_max - self.origin + padding).as_uvec3();
+        let mut changed_samples = 0;
+
+        for z in storage_min.z..=storage_max.z {
+            for y in storage_min.y..=storage_max.y {
+                for x in storage_min.x..=storage_max.x {
                     let storage = UVec3::new(x, y, z);
                     let world = self.origin + storage.as_ivec3() - padding;
                     let index = Self::index(storage);

@@ -1,12 +1,12 @@
-//! Space-Engineers-style voxel hand for the editable-rock vertical slice.
+//! Space-Engineers-style voxel hand backed by the multi-chunk voxel world.
 
 use bevy::{camera::visibility::NoFrustumCulling, prelude::*};
 
 use crate::{
     game::GameSet,
     voxel::{
-        CHUNK_SIZE, VoxelBrush, VoxelChunk, VoxelEdit, VoxelMaterialId, VoxelRayHit, VoxelSample,
-        empty_voxel_mesh,
+        VoxelBrush, VoxelChunk, VoxelChunkCoord, VoxelChunkOf, VoxelEdit, VoxelMaterialId,
+        VoxelRayHit, VoxelSample, VoxelWorld, empty_voxel_mesh,
     },
 };
 
@@ -45,47 +45,71 @@ fn spawn_editable_rock(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let center = Vec3::new(0.0, 4.0, -5.0);
-    let radius = 4.0;
-    let origin = center.floor().as_ivec3() - IVec3::splat((CHUNK_SIZE / 2) as i32);
-
-    let chunk = VoxelChunk::generate(origin, |point| {
-        let distance = point.distance(center) - radius;
-        VoxelSample::new(
-            distance,
-            if distance < 0.0 {
-                VoxelMaterialId::ROCK
-            } else {
-                VoxelMaterialId::VOID
-            },
-        )
-    });
+    // Deliberately straddle both the X=0 and Y=0 chunk planes so the initial
+    // rock immediately exercises seamless neighboring chunk extraction.
+    let center = Vec3::new(0.0, 4.0, -8.0);
+    let radius = 6.0;
+    let world_entity = commands
+        .spawn((
+            Name::new("Editable Voxel Rock"),
+            EditableRock,
+            Transform::IDENTITY,
+        ))
+        .id();
 
     let material = materials.add(StandardMaterial {
         base_color: Color::srgb(0.34, 0.31, 0.27),
         perceptual_roughness: 1.0,
         ..default()
     });
+    let mut world = VoxelWorld::default();
 
-    commands.spawn((
-        Name::new("Editable Voxel Rock"),
-        EditableRock,
-        chunk,
-        Mesh3d(meshes.add(empty_voxel_mesh())),
-        MeshMaterial3d(material),
-        // The mesh changes in-place. M0 opts out of stale automatic bounds;
-        // chunk-level bounds/culling belongs with the later storage hierarchy.
-        NoFrustumCulling,
-        Transform::IDENTITY,
-    ));
+    // Four logical chunks are enough for the first world-level test: the rock
+    // occupies X {-1, 0}, Y {-1, 0}, Z {-1} on the 32-unit chunk grid.
+    for y in -1..=0 {
+        for x in -1..=0 {
+            let coord = VoxelChunkCoord::new(IVec3::new(x, y, -1));
+            let chunk = VoxelChunk::generate(coord.origin(), |point| {
+                let distance = point.distance(center) - radius;
+                VoxelSample::new(
+                    distance,
+                    if distance < 0.0 {
+                        VoxelMaterialId::ROCK
+                    } else {
+                        VoxelMaterialId::VOID
+                    },
+                )
+            });
+
+            let chunk_entity = commands
+                .spawn((
+                    Name::new(format!("Voxel Chunk ({x}, {y}, -1)")),
+                    VoxelChunkOf::new(world_entity, coord),
+                    chunk,
+                    Mesh3d(meshes.add(empty_voxel_mesh())),
+                    MeshMaterial3d(material.clone()),
+                    // Mesh bounds become stale after in-place remeshing. Proper
+                    // chunk bounds/culling arrive with the storage hierarchy.
+                    NoFrustumCulling,
+                    Transform::IDENTITY,
+                ))
+                .id();
+
+            commands.entity(world_entity).add_child(chunk_entity);
+            assert!(
+                world.insert_chunk(coord, chunk_entity).is_none(),
+                "duplicate voxel chunk coordinate {coord:?}"
+            );
+        }
+    }
+
+    commands.entity(world_entity).insert(world);
 }
 
 fn use_voxel_hand(
     mut uses: MessageReader<UsePlaygroundItem>,
-    mut chunks: ParamSet<(
-        Query<(Entity, &VoxelChunk), With<EditableRock>>,
-        Query<&mut VoxelChunk, With<EditableRock>>,
-    )>,
+    world: Single<&VoxelWorld, With<EditableRock>>,
+    mut chunks: ParamSet<(Query<&VoxelChunk>, Query<&mut VoxelChunk>)>,
 ) {
     for request in uses.read() {
         if request.item != VOXEL_HAND
@@ -97,17 +121,18 @@ fn use_voxel_hand(
 
         let nearest = {
             let chunks = chunks.p0();
-            chunks
-                .iter()
-                .filter_map(|(entity, chunk)| {
-                    chunk
+            world
+                .chunk_entities()
+                .filter_map(|entity| {
+                    chunks
+                        .get(entity)
+                        .ok()?
                         .raycast(request.aim.origin, request.aim.direction, TOOL_RANGE)
-                        .map(|hit| (entity, hit))
                 })
-                .min_by(|(_, left), (_, right)| left.distance.total_cmp(&right.distance))
+                .min_by(|left, right| left.distance.total_cmp(&right.distance))
         };
 
-        let Some((entity, VoxelRayHit { position, .. })) = nearest else {
+        let Some(VoxelRayHit { position, .. }) = nearest else {
             continue;
         };
 
@@ -130,8 +155,15 @@ fn use_voxel_hand(
             }
         };
 
-        if let Ok(mut chunk) = chunks.p1().get_mut(entity) {
-            chunk.apply_edit(edit);
+        // Every chunk that physically stores samples in the edit's finite
+        // influence volume receives the exact same edit. This is what keeps
+        // duplicated one-sample borders bit-identical across chunk seams.
+        let affected = world.chunks_intersecting(edit.influence_bounds());
+        let mut chunks = chunks.p1();
+        for entity in affected {
+            if let Ok(mut chunk) = chunks.get_mut(entity) {
+                chunk.apply_edit(edit);
+            }
         }
     }
 }

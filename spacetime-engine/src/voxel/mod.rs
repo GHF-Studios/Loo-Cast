@@ -1,20 +1,22 @@
 //! Editable volumetric world primitives.
 //!
-//! M0 intentionally starts with one dense sampled chunk. Storage hierarchy,
-//! streaming, LOD, persistence and physics can grow around these field/edit
-//! semantics without being baked into them.
+//! M1 connects dense sampled chunks into one addressed world and keeps edits
+//! finite/local. Storage hierarchy, streaming, LOD, persistence and physics can
+//! now grow around these field/edit semantics without becoming part of them.
 
 mod chunk;
 mod edit;
 mod field;
 mod mesh;
+mod world;
 
 pub use chunk::{
     CHUNK_SIZE, SAMPLE_COUNT, SAMPLE_PADDING, SAMPLE_SIZE, VoxelChunk, VoxelChunkEditResult,
     VoxelRayHit,
 };
-pub use edit::{VoxelBrush, VoxelEdit};
+pub use edit::{EDIT_INFLUENCE_MARGIN, VoxelBounds, VoxelBrush, VoxelEdit};
 pub use field::{SignedDistance, VoxelMaterialId, VoxelSample};
+pub use world::{VoxelChunkCoord, VoxelChunkOf, VoxelWorld};
 
 use bevy::prelude::*;
 
