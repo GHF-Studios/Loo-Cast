@@ -170,14 +170,8 @@ fn use_selected_item(
     if accepts_click && mouse.just_pressed(MouseButton::Left) {
         send_action(PlaygroundItemAction::PRIMARY);
     }
-    if accepts_click && mouse.pressed(MouseButton::Left) && !mouse.just_pressed(MouseButton::Left) {
-        send_action(PlaygroundItemAction::PRIMARY_HELD);
-    }
     if accepts_click && mouse.just_pressed(MouseButton::Right) {
         send_action(PlaygroundItemAction::SECONDARY);
-    }
-    if accepts_click && mouse.pressed(MouseButton::Right) && !mouse.just_pressed(MouseButton::Right) {
-        send_action(PlaygroundItemAction::SECONDARY_HELD);
     }
     if keyboard.just_pressed(KeyCode::KeyR) {
         send_action(PlaygroundItemAction::RELOAD);

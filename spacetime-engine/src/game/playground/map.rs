@@ -17,7 +17,7 @@ use crate::{
     },
     geometry::{AuthoredMap, AuthoredMapMarker, AuthoredMapScene},
     voxel::{
-        VoxelBase, VoxelChunkCoord, VoxelChunkOf, VoxelMaterialId, VoxelRenderMesh, VoxelWorld,
+        VoxelBase, VoxelChunkCoord, VoxelChunkOf, VoxelMaterialId, VoxelWorld, empty_voxel_mesh,
     },
 };
 
@@ -84,7 +84,7 @@ fn spawn_voxel_test_rock(
                     Name::new(format!("Playground Voxel Chunk ({x}, {y}, -1)")),
                     VoxelChunkOf::new(world_entity, coord),
                     chunk,
-                    VoxelRenderMesh::new(&mut meshes),
+                    Mesh3d(meshes.add(empty_voxel_mesh())),
                     MeshMaterial3d(material.clone()),
                     NoFrustumCulling,
                     Transform::IDENTITY,

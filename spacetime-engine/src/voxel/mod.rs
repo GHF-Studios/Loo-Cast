@@ -11,7 +11,6 @@ mod field;
 mod mesh;
 mod modification;
 mod physics;
-mod reconcile;
 mod streaming;
 mod world;
 
@@ -22,24 +21,23 @@ pub use chunk::{
 };
 pub use edit::{EDIT_INFLUENCE_MARGIN, VoxelBounds, VoxelBrush, VoxelEdit};
 pub use field::{SignedDistance, VoxelMaterialId, VoxelSample};
-pub use mesh::VoxelRenderMesh;
 pub use modification::VoxelModificationLayer;
 pub use streaming::VoxelStreaming;
 pub use world::{VoxelChunkCoord, VoxelChunkOf, VoxelWorld};
 
 use bevy::prelude::*;
 
-use crate::physics::character::CharacterMovementSet;
-
 pub struct VoxelPlugin;
 
 impl Plugin for VoxelPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Update, streaming::stream_voxel_chunks)
-            .add_systems(
-                FixedUpdate,
-                reconcile::reconcile_voxel_characters.after(CharacterMovementSet::Simulate),
-            )
             .add_systems(PostUpdate, mesh::rebuild_dirty_chunks);
     }
+}
+
+/// Creates an empty mesh asset suitable for a [`VoxelChunk`] render entity.
+/// The voxel plugin will populate it during `PostUpdate`.
+pub fn empty_voxel_mesh() -> Mesh {
+    mesh::empty_mesh()
 }

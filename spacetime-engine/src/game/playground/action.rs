@@ -1,6 +1,6 @@
 //! Device-agnostic playground action messages.
 //!
-//! Local input produces semantic item actions. Individual item plugins consume
+//! Local input produces these messages once. Individual item plugins consume
 //! only actions addressed to their item ID, which keeps item semantics usable
 //! from keyboard/mouse, AI, replay, networking or mods without duplicating
 //! device handling.
@@ -40,7 +40,7 @@ impl AimRay {
 
 /// Extensible logical action ID for an equipped playground item.
 ///
-/// The built-in local input adapter emits press and held variants for primary/secondary use.
+/// The built-in local input adapter emits the three conventional actions below.
 /// Mods can define additional IDs and produce them from their own input systems.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PlaygroundItemAction(pub &'static str);
@@ -48,8 +48,6 @@ pub struct PlaygroundItemAction(pub &'static str);
 impl PlaygroundItemAction {
     pub const PRIMARY: Self = Self("primary");
     pub const SECONDARY: Self = Self("secondary");
-    pub const PRIMARY_HELD: Self = Self("primary_held");
-    pub const SECONDARY_HELD: Self = Self("secondary_held");
     pub const RELOAD: Self = Self("reload");
 
     pub const fn new(value: &'static str) -> Self {
