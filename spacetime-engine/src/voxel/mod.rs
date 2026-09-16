@@ -1,21 +1,25 @@
 //! Editable volumetric world primitives.
 //!
-//! M1 connects dense sampled chunks into one addressed world and keeps edits
-//! finite/local. Storage hierarchy, streaming, LOD, persistence and physics can
-//! now grow around these field/edit semantics without becoming part of them.
+//! M2 makes procedural base + sparse modifications authoritative. Dense chunks
+//! are only materialized working caches for rendering/queries, which means an
+//! untouched world can remain almost entirely implicit.
 
+mod base;
 mod chunk;
 mod edit;
 mod field;
 mod mesh;
+mod modification;
 mod world;
 
+pub use base::{ProceduralTerrain, VoxelBase};
 pub use chunk::{
     CHUNK_SIZE, SAMPLE_COUNT, SAMPLE_PADDING, SAMPLE_SIZE, VoxelChunk, VoxelChunkEditResult,
     VoxelRayHit,
 };
 pub use edit::{EDIT_INFLUENCE_MARGIN, VoxelBounds, VoxelBrush, VoxelEdit};
 pub use field::{SignedDistance, VoxelMaterialId, VoxelSample};
+pub use modification::VoxelModificationLayer;
 pub use world::{VoxelChunkCoord, VoxelChunkOf, VoxelWorld};
 
 use bevy::prelude::*;

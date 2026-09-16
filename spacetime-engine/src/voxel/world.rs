@@ -1,10 +1,13 @@
-//! Spatial index connecting dense working chunks into one editable voxel world.
+//! Sparse authoritative voxel world with dense materialized chunk caches.
 
 use std::collections::HashMap;
 
 use bevy::prelude::{Component, Entity, IVec3, Vec3};
 
-use super::{CHUNK_SIZE, SAMPLE_PADDING, VoxelBounds};
+use super::{
+    CHUNK_SIZE, SAMPLE_PADDING, VoxelBase, VoxelBounds, VoxelChunk, VoxelEdit,
+    VoxelModificationLayer, VoxelSample,
+};
 
 /// Integer coordinate of a logical chunk in the voxel-world grid.
 #[repr(transparent)]
@@ -33,17 +36,82 @@ impl VoxelChunkCoord {
 
 /// Semantic voxel-world root.
 ///
-/// M1 only indexes already-materialized dense chunks. Sparse allocation,
-/// procedural backing storage, streaming and LOD can replace this index without
-/// changing edit semantics or chunk-local meshing.
-#[derive(Component, Debug, Default)]
+/// The authoritative state is `base + modifications`. `chunks` only indexes
+/// currently materialized dense working caches used by rendering/query code.
+/// Destroying every chunk therefore does not destroy the world.
+#[derive(Component, Debug)]
 pub struct VoxelWorld {
+    base: VoxelBase,
+    modifications: VoxelModificationLayer,
     chunks: HashMap<VoxelChunkCoord, Entity>,
 }
 
+impl Default for VoxelWorld {
+    fn default() -> Self {
+        Self::new(VoxelBase::default())
+    }
+}
+
 impl VoxelWorld {
+    pub fn new(base: VoxelBase) -> Self {
+        Self {
+            base,
+            modifications: VoxelModificationLayer::default(),
+            chunks: HashMap::new(),
+        }
+    }
+
+    pub const fn base(&self) -> VoxelBase {
+        self.base
+    }
+
+    pub fn modifications(&self) -> &VoxelModificationLayer {
+        &self.modifications
+    }
+
+    /// Records one authoritative world edit.
+    ///
+    /// Callers should also apply it to intersecting materialized chunks so the
+    /// active cache reflects the new state immediately. Future rematerialization
+    /// will replay this record automatically.
+    pub fn record_edit(&mut self, edit: VoxelEdit) {
+        self.modifications.push(edit);
+    }
+
+    /// Reconstructs one dense working chunk from procedural base + sparse edits.
+    pub fn materialize_chunk(&self, coord: VoxelChunkCoord) -> VoxelChunk {
+        let base = self.base;
+        let edits = self
+            .modifications
+            .intersecting(coord.sample_bounds())
+            .collect::<Vec<_>>();
+
+        VoxelChunk::generate(coord.origin(), move |point| {
+            let mut sample = base.sample(point);
+            for edit in &edits {
+                sample = edit.apply_to_sample(point, sample);
+            }
+            sample
+        })
+    }
+
+    /// Resolves one arbitrary sample without requiring a materialized chunk.
+    pub fn resolve_sample(&self, point: Vec3) -> VoxelSample {
+        let mut sample = self.base.sample(point);
+        for edit in self.modifications.edits() {
+            if edit.influence_bounds().contains(point) {
+                sample = edit.apply_to_sample(point, sample);
+            }
+        }
+        sample
+    }
+
     pub fn insert_chunk(&mut self, coord: VoxelChunkCoord, entity: Entity) -> Option<Entity> {
         self.chunks.insert(coord, entity)
+    }
+
+    pub fn remove_chunk(&mut self, coord: VoxelChunkCoord) -> Option<Entity> {
+        self.chunks.remove(&coord)
     }
 
     pub fn chunk_entity(&self, coord: VoxelChunkCoord) -> Option<Entity> {
@@ -56,9 +124,6 @@ impl VoxelWorld {
 
     /// Returns only materialized chunks whose stored sample domains intersect
     /// the finite influence bounds of an edit.
-    ///
-    /// This is addressed directly through chunk coordinates rather than by
-    /// scanning every materialized chunk in the world.
     pub fn chunks_intersecting(&self, bounds: VoxelBounds) -> Vec<Entity> {
         let (minimum, maximum) = chunk_coord_range(bounds);
         let mut entities = Vec::new();
@@ -118,7 +183,7 @@ impl VoxelChunkOf {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::voxel::{VoxelBrush, VoxelChunk, VoxelEdit, VoxelMaterialId, VoxelSample};
+    use crate::voxel::{VoxelBrush, VoxelMaterialId, VoxelSample};
 
     #[test]
     fn chunk_coordinates_are_euclidean_grid_coordinates() {
@@ -147,10 +212,7 @@ mod tests {
             VoxelSample::empty(100.0)
         });
         let edit = VoxelEdit::Add {
-            brush: VoxelBrush::sphere(
-                Vec3::new(CHUNK_SIZE as f32, 16.0, 16.0),
-                3.0,
-            ),
+            brush: VoxelBrush::sphere(Vec3::new(CHUNK_SIZE as f32, 16.0, 16.0), 3.0),
             material: VoxelMaterialId::ROCK,
         };
 
@@ -159,8 +221,6 @@ mod tests {
         left.apply_edit(edit);
         right.apply_edit(edit);
 
-        // The two allocations overlap at x = 31 and x = 32 because each keeps
-        // one sample of neighbor padding. Those copies must stay bit-identical.
         for x in [CHUNK_SIZE as i32 - 1, CHUNK_SIZE as i32] {
             for y in 13..=19 {
                 for z in 13..=19 {
@@ -169,5 +229,28 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn sparse_edits_survive_chunk_rematerialization() {
+        let coord = VoxelChunkCoord::new(IVec3::ZERO);
+        let mut world = VoxelWorld::new(VoxelBase::sphere(
+            Vec3::splat(8.0),
+            6.0,
+            VoxelMaterialId::ROCK,
+        ));
+        let point = IVec3::splat(8);
+
+        assert!(world.materialize_chunk(coord).sample(point).unwrap().distance.is_solid());
+
+        world.record_edit(VoxelEdit::Remove {
+            brush: VoxelBrush::sphere(point.as_vec3(), 2.0),
+        });
+
+        // No old chunk state participates in this reconstruction. The edit is
+        // authoritative independently from materialized dense storage.
+        let rebuilt = world.materialize_chunk(coord);
+        assert!(rebuilt.sample(point).unwrap().distance.is_empty());
+        assert_eq!(world.modifications().len(), 1);
     }
 }

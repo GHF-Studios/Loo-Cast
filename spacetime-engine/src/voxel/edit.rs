@@ -36,6 +36,10 @@ impl VoxelBounds {
     pub fn intersects(self, other: Self) -> bool {
         self.min.cmple(other.max).all() && self.max.cmpge(other.min).all()
     }
+
+    pub fn contains(self, point: Vec3) -> bool {
+        point.cmpge(self.min).all() && point.cmple(self.max).all()
+    }
 }
 
 /// Analytic shape used by a voxel edit.

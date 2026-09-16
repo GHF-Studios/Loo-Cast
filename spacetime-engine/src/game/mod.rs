@@ -2,7 +2,9 @@
 
 pub mod combat;
 mod devtools;
+pub mod map_selection;
 pub mod player;
+mod procedural_world;
 pub mod playground;
 pub mod portal;
 pub mod thermal;
@@ -93,10 +95,12 @@ impl Plugin for TestGamePlugin {
                     .in_set(GameSet::Presentation),
             )
             .add_plugins((
+                map_selection::MapSelectionPlugin,
                 combat::CombatPlugin,
                 player::PlayerPlugin,
                 portal::PortalPlugin,
                 thermal::ThermalPlugin,
+                procedural_world::ProceduralWorldPlugin,
                 playground::PlaygroundPlugin,
             ))
             .add_systems(Startup, setup_scene);
