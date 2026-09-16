@@ -18,7 +18,7 @@ pub(crate) fn build_chunk_collider(
     chunk: &VoxelChunk,
     surface: &VoxelSurface,
 ) -> Option<Collider> {
-    let triangles = owned_triangles(chunk, surface);
+    let triangles = owned_triangles(surface);
     if triangles.is_empty() {
         return None;
     }
@@ -51,9 +51,9 @@ pub(crate) fn build_chunk_collider(
 /// adjacent chunks overlap slightly. Rendering tolerates that, physics should
 /// not: duplicated triangles make contacts at chunk seams considerably noisier.
 ///
-/// Assign each triangle to exactly one chunk by its world-space centroid. A
-/// triangle may cross the chunk boundary, but only one collider owns it.
-fn owned_triangles(chunk: &VoxelChunk, surface: &VoxelSurface) -> Vec<[u32; 3]> {
+/// Assign each triangle to exactly one brick by its brick-local centroid. A
+/// triangle may cross the brick boundary, but only one collider owns it.
+fn owned_triangles(surface: &VoxelSurface) -> Vec<[u32; 3]> {
     surface
         .indices
         .chunks_exact(3)
@@ -64,16 +64,14 @@ fn owned_triangles(chunk: &VoxelChunk, surface: &VoxelSurface) -> Vec<[u32; 3]> 
             let c = Vec3::from_array(surface.positions[indices[2] as usize]);
             let centroid = (a + b + c) / 3.0;
 
-            owns_point(chunk.origin(), centroid).then_some(indices)
+            owns_point(centroid).then_some(indices)
         })
         .collect()
 }
 
-fn owns_point(origin: IVec3, point: Vec3) -> bool {
-    let minimum = origin.as_vec3();
-    let maximum = minimum + Vec3::splat(CHUNK_SIZE as f32);
-
-    point.cmpge(minimum).all() && point.cmplt(maximum).all()
+fn owns_point(point: Vec3) -> bool {
+    let maximum = Vec3::splat(CHUNK_SIZE as f32);
+    point.cmpge(Vec3::ZERO).all() && point.cmplt(maximum).all()
 }
 
 #[cfg(test)]
@@ -83,11 +81,8 @@ mod tests {
     #[test]
     fn chunk_ownership_is_half_open_and_unambiguous_at_seams() {
         let size = CHUNK_SIZE as f32;
-        assert!(owns_point(IVec3::ZERO, Vec3::new(size - 0.001, 1.0, 1.0)));
-        assert!(!owns_point(IVec3::ZERO, Vec3::new(size, 1.0, 1.0)));
-        assert!(owns_point(
-            IVec3::X * CHUNK_SIZE as i32,
-            Vec3::new(size, 1.0, 1.0)
-        ));
+        assert!(owns_point(Vec3::new(size - 0.001, 1.0, 1.0)));
+        assert!(!owns_point(Vec3::new(size, 1.0, 1.0)));
+        assert!(owns_point(Vec3::ZERO));
     }
 }

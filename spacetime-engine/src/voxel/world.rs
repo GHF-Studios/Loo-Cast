@@ -4,6 +4,8 @@ use std::collections::HashMap;
 
 use bevy::prelude::{Component, Entity, IVec3, Vec3};
 
+use crate::spatial::{UsfPosition, UsfPositionError};
+
 use super::{
     CHUNK_SIZE, SAMPLE_PADDING, VoxelBase, VoxelBounds, VoxelChunk, VoxelEdit,
     VoxelModificationLayer, VoxelSample,
@@ -37,6 +39,27 @@ impl VoxelChunkCoord {
             origin - Vec3::splat(SAMPLE_PADDING as f32),
             origin + Vec3::splat(CHUNK_SIZE as f32),
         )
+    }
+}
+
+
+/// Canonical semantic origin of one dense voxel brick.
+///
+/// The current [`VoxelChunkCoord`] remains a small world-local cache key. This
+/// component gives the materialized brick an origin in USF semantic space so
+/// projection can evolve independently from the storage lattice.
+#[derive(Component, Debug, Clone, Copy, PartialEq)]
+pub struct VoxelChunkAddress {
+    origin: UsfPosition,
+}
+
+impl VoxelChunkAddress {
+    pub const fn new(origin: UsfPosition) -> Self {
+        Self { origin }
+    }
+
+    pub const fn origin(&self) -> &UsfPosition {
+        &self.origin
     }
 }
 
@@ -84,6 +107,7 @@ impl VoxelChunkRecipe {
 /// every one of them therefore does not destroy the world.
 #[derive(Component, Debug)]
 pub struct VoxelWorld {
+    origin: UsfPosition,
     base: VoxelBase,
     modifications: VoxelModificationLayer,
     chunks: HashMap<VoxelChunkCoord, Entity>,
@@ -97,11 +121,29 @@ impl Default for VoxelWorld {
 
 impl VoxelWorld {
     pub fn new(base: VoxelBase) -> Self {
+        Self::new_at(base, UsfPosition::default())
+    }
+
+    pub fn new_at(base: VoxelBase, origin: UsfPosition) -> Self {
         Self {
+            origin,
             base,
             modifications: VoxelModificationLayer::default(),
             chunks: HashMap::new(),
         }
+    }
+
+    pub const fn origin(&self) -> &UsfPosition {
+        &self.origin
+    }
+
+    pub fn chunk_address(
+        &self,
+        coord: VoxelChunkCoord,
+    ) -> Result<VoxelChunkAddress, UsfPositionError> {
+        self.origin
+            .translated_native(coord.origin().as_vec3())
+            .map(VoxelChunkAddress::new)
     }
 
     pub const fn base(&self) -> VoxelBase {
@@ -234,7 +276,10 @@ impl VoxelChunkOf {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::voxel::{VoxelBrush, VoxelMaterialId, VoxelSample};
+    use crate::{
+        spatial::SpatialScale,
+        voxel::{VoxelBrush, VoxelMaterialId, VoxelSample},
+    };
 
     #[test]
     fn chunk_coordinates_are_euclidean_grid_coordinates() {
@@ -250,6 +295,19 @@ mod tests {
             VoxelChunkCoord::containing(Vec3::new(32.0, 0.0, 32.0)),
             VoxelChunkCoord::new(IVec3::new(1, 0, 1))
         );
+    }
+
+    #[test]
+    fn brick_address_is_canonical_across_semantic_region_boundaries() {
+        let world = VoxelWorld::new(VoxelBase::Empty);
+        let address = world
+            .chunk_address(VoxelChunkCoord::new(IVec3::new(40, 0, 0)))
+            .unwrap();
+
+        // 40 * 32 m = 1280 m, represented canonically as one S0 chunk digit
+        // plus a bounded +280 m leaf offset rather than a giant runtime Vec3.
+        assert_eq!(address.origin().digit(SpatialScale::ZERO).x, 1);
+        assert_eq!(address.origin().offset().x, 280.0);
     }
 
     #[test]

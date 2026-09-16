@@ -55,7 +55,10 @@ pub(crate) fn extract_chunk_surface(chunk: &VoxelChunk) -> VoxelSurface {
         &mut output,
     );
 
-    let offset = (chunk.origin() - IVec3::splat(SAMPLE_PADDING as i32)).as_vec3();
+    // Surface Nets coordinates start at the padded sample allocation. Keep the
+    // derived surface local to the logical brick origin; the brick entity's
+    // Transform performs runtime projection into the current local chart.
+    let offset = Vec3::splat(-(SAMPLE_PADDING as f32));
     for position in &mut output.positions {
         position[0] += offset.x;
         position[1] += offset.y;

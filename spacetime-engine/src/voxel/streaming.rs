@@ -158,6 +158,13 @@ pub(crate) fn stream_voxel_chunks(
                 continue;
             }
 
+            let address = match world.chunk_address(coord) {
+                Ok(address) => address,
+                Err(error) => {
+                    error!(?coord, ?error, "voxel brick address overflow");
+                    continue;
+                }
+            };
             let generation = VoxelChunkGenerationTask::spawn(world.chunk_recipe(coord));
             let value = coord.0;
             let chunk_entity = commands
@@ -167,11 +174,12 @@ pub(crate) fn stream_voxel_chunks(
                         value.x, value.y, value.z
                     )),
                     VoxelChunkOf::new(world_entity, coord),
+                    address,
                     generation,
                     Mesh3d(meshes.add(empty_voxel_mesh())),
                     MeshMaterial3d(streaming.material.clone()),
                     NoFrustumCulling,
-                    Transform::IDENTITY,
+                    Transform::from_translation(coord.origin().as_vec3()),
                 ))
                 .id();
 

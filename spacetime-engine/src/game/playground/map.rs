@@ -78,16 +78,20 @@ fn spawn_voxel_test_rock(
     for y in -1..=0 {
         for x in -1..=0 {
             let coord = VoxelChunkCoord::new(IVec3::new(x, y, -1));
+            let address = world
+                .chunk_address(coord)
+                .expect("playground voxel brick must fit USF root");
             let chunk = world.materialize_chunk(coord);
             let chunk_entity = commands
                 .spawn((
                     Name::new(format!("Playground Voxel Chunk ({x}, {y}, -1)")),
                     VoxelChunkOf::new(world_entity, coord),
+                    address,
                     chunk,
                     Mesh3d(meshes.add(empty_voxel_mesh())),
                     MeshMaterial3d(material.clone()),
                     NoFrustumCulling,
-                    Transform::IDENTITY,
+                    Transform::from_translation(coord.origin().as_vec3()),
                 ))
                 .id();
 

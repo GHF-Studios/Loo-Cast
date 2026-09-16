@@ -24,7 +24,7 @@ pub use edit::{EDIT_INFLUENCE_MARGIN, VoxelBounds, VoxelBrush, VoxelEdit};
 pub use field::{SignedDistance, VoxelMaterialId, VoxelSample};
 pub use modification::VoxelModificationLayer;
 pub use streaming::VoxelStreaming;
-pub use world::{VoxelChunkCoord, VoxelChunkOf, VoxelWorld};
+pub use world::{VoxelChunkAddress, VoxelChunkCoord, VoxelChunkOf, VoxelWorld};
 
 use bevy::prelude::*;
 
