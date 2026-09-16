@@ -23,6 +23,12 @@ impl PortalTraveler {
     pub(crate) fn commit_position(&mut self, position: Vec3) {
         self.previous_position = Some(position);
     }
+
+    pub(crate) fn rebase_local_origin(&mut self, shift: Vec3) {
+        if let Some(previous) = &mut self.previous_position {
+            *previous -= shift;
+        }
+    }
 }
 
 /// Opts one spatial manifestation into portal-aware partitioning.
@@ -52,6 +58,10 @@ impl PortalSplitTraveler {
 
     pub fn peer(&self) -> Entity {
         self.peer
+    }
+
+    pub(crate) fn rebase_local_origin(&mut self, shift: Vec3) {
+        self.tick_start.translation -= shift;
     }
 }
 

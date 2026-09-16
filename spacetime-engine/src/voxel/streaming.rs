@@ -120,14 +120,18 @@ pub(crate) fn stream_voxel_chunks(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     viewers: Query<&Transform>,
-    mut worlds: Query<(Entity, &mut VoxelWorld, &VoxelStreaming)>,
+    mut worlds: Query<(Entity, &mut VoxelWorld, &VoxelStreaming, &Transform)>,
 ) {
-    for (world_entity, mut world, streaming) in &mut worlds {
+    for (world_entity, mut world, streaming, world_transform) in &mut worlds {
         let Ok(viewer) = viewers.get(streaming.viewer) else {
             continue;
         };
 
-        let center = VoxelChunkCoord::containing(viewer.translation);
+        // Voxel coordinates remain local to the VoxelWorld root during M7.
+        // Floating-origin rebases move both viewer and world root, so convert the
+        // viewer back into that stable world-local chart before addressing bricks.
+        let viewer_in_world = viewer.translation - world_transform.translation;
+        let center = VoxelChunkCoord::containing(viewer_in_world);
         let desired = desired_chunk_coords(center, streaming.radius);
         let desired_set = desired.iter().copied().collect::<HashSet<_>>();
 

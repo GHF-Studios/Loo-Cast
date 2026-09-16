@@ -36,7 +36,7 @@ fn register_item(mut catalog: ResMut<PlaygroundCatalog>) {
 fn use_voxel_hand(
     mut uses: MessageReader<UsePlaygroundItem>,
     mut worlds: ParamSet<(
-        Query<(Entity, &VoxelWorld)>,
+        Query<(Entity, &VoxelWorld, &Transform)>,
         Query<&mut VoxelWorld>,
     )>,
     mut chunks: ParamSet<(Query<&VoxelChunk>, Query<&mut VoxelChunk>)>,
@@ -54,13 +54,17 @@ fn use_voxel_hand(
             let worlds = worlds.p0();
             let chunks = chunks.p0();
 
-            for (world_entity, world) in &worlds {
+            for (world_entity, world, world_transform) in &worlds {
                 for chunk_entity in world.chunk_entities() {
                     let Ok(chunk) = chunks.get(chunk_entity) else {
                         continue;
                     };
+                    // M7 keeps current voxel authority in VoxelWorld-local space.
+                    // Convert the runtime ray through the world-root translation so
+                    // edits and queries remain stable when the local origin rebases.
+                    let world_local_origin = request.aim.origin - world_transform.translation;
                     let Some(hit) = chunk.raycast(
-                        request.aim.origin,
+                        world_local_origin,
                         request.aim.direction,
                         TOOL_RANGE,
                     ) else {

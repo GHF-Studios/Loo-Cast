@@ -99,6 +99,7 @@ impl Plugin for TestGamePlugin {
                 environment::EnvironmentLightingPlugin,
                 map_selection::MapSelectionPlugin,
                 combat::CombatPlugin,
+                crate::spatial::UsfSpatialPlugin,
                 player::PlayerPlugin,
                 portal::PortalPlugin,
                 thermal::ThermalPlugin,

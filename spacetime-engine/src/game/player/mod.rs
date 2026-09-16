@@ -33,6 +33,7 @@ use crate::{
         character::{CharacterDimensions, CharacterGroundState, CharacterMotor, CharacterMovementInput},
         topology::{KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeer},
     },
+    spatial::{UsfPosition, UsfSpatialAnchor},
     view::{PrimaryGameView, PrimaryViewPresentation},
 };
 
@@ -108,14 +109,16 @@ fn spawn_player(
     // Player Transform is the physical standing-hull center, not the eye.
     let position = Vec3::new(0.0, CharacterDimensions::HALF_HEIGHT + 0.01, 8.0);
 
-    // Semantic identity is deliberately non-spatial. The ordinary controlled
-    // body and the reserved portal peer are two manifestations of this one USF
-    // entity, which lets the split prototype be real ECS state instead of a
-    // render-only clone.
+    // Semantic identity carries canonical USF position but no local Transform.
+    // The ordinary controlled body and reserved portal peer are spatial
+    // manifestations of this one entity; local runtime coordinates remain on
+    // those manifestations.
     let semantic_player = commands
         .spawn((
             Name::new("Player Entity"),
             UsfEntity,
+            UsfPosition::from_scale0_local(position)
+                .expect("initial player position must fit USF spatial root"),
             Health::new(100.0),
             ThermalBody::ambient(8_000.0, 25.0),
             ThermalInjury::human_like(),
@@ -124,25 +127,29 @@ fn spawn_player(
 
     let player = commands
         .spawn((
-            Name::new("Player Manifestation"),
-            Player,
-            UsfManifestationOf(semantic_player),
-            UsfManifestationAuthority,
-            ThermalSpatialSample,
-            PlayerController::default(),
-            PlayerAim::default(),
-            PlayerStance::default(),
-            PlayerNoclip::default(),
-            CharacterMotor,
-            CharacterDimensions::standing_collider(),
-            SpatialSplitBox::from_size(Vec3::new(
-                CharacterDimensions::HULL_WIDTH,
-                CharacterDimensions::HULL_HEIGHT,
-                CharacterDimensions::HULL_WIDTH,
-            )),
-            Weapon::default(),
-            PortalTraveler::new(position),
-            Transform::from_translation(position),
+            (
+                Name::new("Player Manifestation"),
+                Player,
+                UsfManifestationOf(semantic_player),
+                UsfManifestationAuthority,
+                UsfSpatialAnchor,
+                ThermalSpatialSample,
+                PlayerController::default(),
+                PlayerAim::default(),
+            ), (
+                PlayerStance::default(),
+                PlayerNoclip::default(),
+                CharacterMotor,
+                CharacterDimensions::standing_collider(),
+                SpatialSplitBox::from_size(Vec3::new(
+                    CharacterDimensions::HULL_WIDTH,
+                    CharacterDimensions::HULL_HEIGHT,
+                    CharacterDimensions::HULL_WIDTH,
+                )),
+                Weapon::default(),
+                PortalTraveler::new(position),
+                Transform::from_translation(position),
+            )
         ))
         .id();
 
