@@ -102,7 +102,12 @@ pub(crate) fn finish_chunk_generation(
             continue;
         };
 
-        catch_up_generated_chunk(world, generation.applied_edit_count, &mut chunk);
+        catch_up_generated_chunk(
+            world,
+            chunk_of.coord,
+            generation.applied_edit_count,
+            &mut chunk,
+        );
         commands
             .entity(entity)
             .insert(chunk)
@@ -183,17 +188,17 @@ pub(crate) fn stream_voxel_chunks(
 
 /// Applies edits appended after a generation task took its immutable snapshot.
 /// This preserves ordered edit semantics without throwing away completed work.
-fn catch_up_generated_chunk(world: &VoxelWorld, applied_edit_count: usize, chunk: &mut VoxelChunk) {
+fn catch_up_generated_chunk(
+    world: &VoxelWorld,
+    coord: VoxelChunkCoord,
+    applied_edit_count: usize,
+    chunk: &mut VoxelChunk,
+) {
     for edit in world
         .modifications()
-        .edits()
-        .iter()
-        .skip(applied_edit_count)
-        .copied()
+        .for_chunk_since(coord, applied_edit_count)
     {
-        if chunk.sample_bounds().intersects(edit.influence_bounds()) {
-            chunk.apply_edit(edit);
-        }
+        chunk.apply_edit(edit);
     }
 }
 
@@ -250,6 +255,12 @@ mod tests {
         let recipe = world.chunk_recipe(coord);
         let applied_edit_count = recipe.applied_edit_count();
 
+        // A distant post-snapshot edit consumes a global edit index but should
+        // never be considered while catching this chunk up.
+        world.record_edit(VoxelEdit::Add {
+            brush: VoxelBrush::sphere(Vec3::splat(1000.0), 2.0),
+            material: VoxelMaterialId::ROCK,
+        });
         world.record_edit(VoxelEdit::Add {
             brush: VoxelBrush::sphere(center, 2.0),
             material: VoxelMaterialId::ROCK,
@@ -259,7 +270,7 @@ mod tests {
         let mut chunk = recipe.materialize();
         assert!(chunk.sample(center.as_ivec3()).unwrap().distance.is_empty());
 
-        catch_up_generated_chunk(&world, applied_edit_count, &mut chunk);
+        catch_up_generated_chunk(&world, coord, applied_edit_count, &mut chunk);
         assert!(chunk.sample(center.as_ivec3()).unwrap().distance.is_solid());
     }
 }

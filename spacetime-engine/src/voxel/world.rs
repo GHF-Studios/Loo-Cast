@@ -128,10 +128,7 @@ impl VoxelWorld {
         VoxelChunkRecipe {
             coord,
             base: self.base,
-            edits: self
-                .modifications
-                .intersecting(coord.sample_bounds())
-                .collect(),
+            edits: self.modifications.for_chunk(coord).collect(),
             applied_edit_count: self.modifications.len(),
         }
     }
@@ -146,7 +143,8 @@ impl VoxelWorld {
     /// Resolves one arbitrary sample without requiring a materialized chunk.
     pub fn resolve_sample(&self, point: Vec3) -> VoxelSample {
         let mut sample = self.base.sample(point);
-        for edit in self.modifications.edits() {
+        let coord = VoxelChunkCoord::containing(point);
+        for edit in self.modifications.for_chunk(coord) {
             if edit.influence_bounds().contains(point) {
                 sample = edit.apply_to_sample(point, sample);
             }
@@ -204,7 +202,7 @@ impl VoxelWorld {
     }
 }
 
-fn chunk_coord_range(bounds: VoxelBounds) -> (IVec3, IVec3) {
+pub(crate) fn chunk_coord_range(bounds: VoxelBounds) -> (IVec3, IVec3) {
     let size = CHUNK_SIZE as f32;
     let padding = SAMPLE_PADDING as f32;
 
