@@ -1,8 +1,8 @@
 //! Editable volumetric world primitives.
 //!
 //! Procedural base + sparse modifications are authoritative. Dense chunks are
-//! only materialized working caches for rendering/queries, and M3 can stream
-//! those caches around a viewer without changing world state.
+//! only materialized working caches; rendering and physics are disposable
+//! representations rebuilt from those chunks as the active window streams.
 
 mod base;
 mod chunk;
@@ -10,6 +10,7 @@ mod edit;
 mod field;
 mod mesh;
 mod modification;
+mod physics;
 mod streaming;
 mod world;
 
@@ -31,7 +32,7 @@ pub struct VoxelPlugin;
 impl Plugin for VoxelPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Update, streaming::stream_voxel_chunks)
-            .add_systems(PostUpdate, mesh::remesh_dirty_chunks);
+            .add_systems(PostUpdate, mesh::rebuild_dirty_chunks);
     }
 }
 

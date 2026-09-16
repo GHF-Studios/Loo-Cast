@@ -1,5 +1,6 @@
-//! Disposable render-mesh extraction from authoritative voxel fields.
+//! Disposable render-mesh and collision-surface extraction from voxel fields.
 
+use avian3d::prelude::{Collider, CollisionMargin, RigidBody};
 use bevy::{
     asset::RenderAssetUsages,
     mesh::{Indices, PrimitiveTopology},
@@ -11,9 +12,29 @@ use fast_surface_nets::{
     surface_nets,
 };
 
-use super::{SAMPLE_PADDING, SAMPLE_SIZE, VoxelChunk};
+use super::{SAMPLE_PADDING, SAMPLE_SIZE, VoxelChunk, physics};
 
 type ChunkShape = ConstShape3u32<34, 34, 34>;
+
+/// One extracted surface shared only as an intermediate between independently
+/// owned render and physics caches.
+pub(crate) struct VoxelSurface {
+    pub(crate) positions: Vec<[f32; 3]>,
+    pub(crate) normals: Vec<[f32; 3]>,
+    pub(crate) indices: Vec<u32>,
+}
+
+impl VoxelSurface {
+    fn into_mesh(self) -> Mesh {
+        Mesh::new(
+            PrimitiveTopology::TriangleList,
+            RenderAssetUsages::default(),
+        )
+        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, self.positions)
+        .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, self.normals)
+        .with_inserted_indices(Indices::U32(self.indices))
+    }
+}
 
 pub(crate) fn empty_mesh() -> Mesh {
     Mesh::new(
@@ -22,7 +43,7 @@ pub(crate) fn empty_mesh() -> Mesh {
     )
 }
 
-pub(crate) fn build_chunk_mesh(chunk: &VoxelChunk) -> Mesh {
+pub(crate) fn extract_chunk_surface(chunk: &VoxelChunk) -> VoxelSurface {
     debug_assert_eq!(SAMPLE_SIZE, 34);
 
     let mut output = SurfaceNetsBuffer::default();
@@ -41,20 +62,19 @@ pub(crate) fn build_chunk_mesh(chunk: &VoxelChunk) -> Mesh {
         position[2] += offset.z;
     }
 
-    Mesh::new(
-        PrimitiveTopology::TriangleList,
-        RenderAssetUsages::default(),
-    )
-    .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, output.positions)
-    .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, output.normals)
-    .with_inserted_indices(Indices::U32(output.indices))
+    VoxelSurface {
+        positions: output.positions,
+        normals: output.normals,
+        indices: output.indices,
+    }
 }
 
-pub(crate) fn remesh_dirty_chunks(
+pub(crate) fn rebuild_dirty_chunks(
+    mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut chunks: Query<(&mut VoxelChunk, &Mesh3d)>,
+    mut chunks: Query<(Entity, &mut VoxelChunk, &Mesh3d)>,
 ) {
-    for (mut chunk, mesh) in &mut chunks {
+    for (entity, mut chunk, mesh) in &mut chunks {
         if !chunk.needs_remesh() {
             continue;
         }
@@ -63,7 +83,23 @@ pub(crate) fn remesh_dirty_chunks(
             continue;
         };
 
-        *asset = build_chunk_mesh(&chunk);
+        // Extract once from authoritative voxel data, then materialize two
+        // independent disposable caches from that intermediate surface.
+        let surface = extract_chunk_surface(&chunk);
+        let collider = physics::build_chunk_collider(&chunk, &surface);
+        *asset = surface.into_mesh();
+
+        let mut entity_commands = commands.entity(entity);
+        if let Some(collider) = collider {
+            entity_commands.insert((
+                RigidBody::Static,
+                collider,
+                CollisionMargin(physics::VOXEL_COLLISION_MARGIN),
+            ));
+        } else {
+            entity_commands.remove::<Collider>();
+        }
+
         chunk.mark_meshed();
     }
 }
