@@ -1,8 +1,8 @@
 //! USF semantic spatial identity projected into bounded local runtime coordinates.
 //!
 //! M7 deliberately implements only fixed-scale (S0) translation and floating
-//! origin rebasing. Scale transitions, observer-relative scale views and
-//! canonical voxel addressing are separate milestones.
+//! origin rebasing. The finite canonical stack wraps on root carry/borrow;
+//! scale transitions and observer-relative scale views remain later milestones.
 
 mod devtools;
 mod position;
@@ -112,7 +112,7 @@ fn sync_semantic_positions(
         let Ok(position) = (*frame.origin()).translated_native(transform.translation) else {
             error!(
                 local_position = ?transform.translation,
-                "USF semantic position overflow while projecting local anchor"
+                "USF semantic position translation failed while projecting local anchor"
             );
             continue;
         };
@@ -142,7 +142,7 @@ fn rebase_local_frame(
     }
 
     let Ok(new_origin) = frame.origin.translated_native(shift) else {
-        error!(?shift, "USF root overflow prevented local-origin rebase");
+        error!(?shift, "USF canonical translation failed during local-origin rebase");
         return;
     };
 

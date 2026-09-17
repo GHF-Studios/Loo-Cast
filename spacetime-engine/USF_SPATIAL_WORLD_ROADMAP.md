@@ -1,8 +1,8 @@
 # USF Spatial / World Generation Roadmap
 
 **Status:** continuity-grade architectural working plan<br>
-**Current implementation baseline:** `GHF-Studios/Loo-Cast` commit `64e93af51410237d5b89b48a41c45dcfe554c1ea`<br>
-**Current phase:** M7 complete; M7.1a complete; M7.1b Pass A decimal materialization core complete; Pass B canonical voxel queries/edits is next. Spatial demand remains deferred to M7.2 / Pass D.
+**Current implementation baseline:** `GHF-Studios/Loo-Cast` commit `64e93af51410237d5b89b48a41c45dcfe554c1ea` plus the applied M7.1b Passes A-B patches<br>
+**Current phase:** M7 complete; M7.1a complete; M7.1b Passes A-B complete; Pass C aggregate processing is next. Spatial demand remains deferred to M7.2 / Pass D.
 
 This document is intentionally narrower than a complete Universal Simulation Framework specification. Its purpose is to preserve the spatial, realization, generation, and near-term implementation decisions that must survive context loss, handoff to another agent, or future refactoring.
 
@@ -80,9 +80,11 @@ The preferred semantic model remains the legacy balanced decimal position stack:
 - digit coordinates in `[-5, 5)` on each axis,
 - a bounded local offset in `[-500, 500)` native leaf-scale units,
 - explicit carry/borrow between levels,
-- explicit root overflow behavior.
+- root carry/borrow wraps across the finite semantic universe boundary.
 
 The semantic model matters more than the final Rust storage layout. It may later be packed or optimized without changing its meaning.
+
+Root wrap is semantic position topology, not runtime projection. Near the wrap seam, later manifestation/projection work may realize the same semantic neighborhood in multiple local places so rendering/physics remain continuous without duplicating canonical identity.
 
 A canonical `UsfPosition` is **not a giant `Vec3`**. It should expose deliberate operations such as:
 
@@ -574,7 +576,7 @@ Purpose: remove the remaining flat/local-coordinate assumptions from voxel mater
 - brick-local render/collision geometry,
 - local entity Transform as runtime projection.
 
-### M7.1b — Decimal voxel/materialization skeleton — IN PROGRESS (PASS A COMPLETE)
+### M7.1b — Decimal voxel/materialization skeleton — IN PROGRESS (PASSES A-B COMPLETE)
 
 Ambitious pass:
 
@@ -608,8 +610,22 @@ Pass A implementation state:
 - `VoxelWorld`'s sparse reserved/materialized registry is keyed by canonical materialization address rather than `VoxelChunkCoord`,
 - canonical addresses are derived with exact whole-native-unit carry and do not round-trip large lattice displacements through one `f32 Vec3`,
 - async field generation, dense chunks, Surface Nets, local render meshes, local colliders, and existing streaming machinery remain intact,
-- `VoxelChunkCoord`, flat `VoxelBounds`, brush centers, edit indexing, and generation sampling are explicitly transitional `VoxelWorld`-local compatibility seams for Pass B,
+- at the Pass A handoff, `VoxelChunkCoord`, flat `VoxelBounds`, brush centers, edit indexing, and generation sampling were the explicit transitional seams scheduled for Pass B; the Pass B state below removes them from semantic authority,
 - aggregate processing and spatial demand have **not** been pulled forward.
+
+Pass B implementation state:
+
+- `VoxelQueryPosition` carries canonical `UsfPosition` identity for voxel queries and edits; it is not a runtime `Transform` coordinate or a flat voxel index,
+- canonical root carry/borrow wraps the finite USF world and bounded relative voxel projection respects adjacency across that wrap seam; duplicated local manifestations near the seam remain later projection work,
+- `VoxelBounds` now carries one canonical semantic anchor plus bounded local min/max offsets; brush centers are canonical while radii remain bounded local shape parameters,
+- the authoritative edit log remains globally ordered, while its sparse acceleration index is keyed by canonical `VoxelMaterializationChunkAddress`,
+- dense `VoxelChunk` storage/sampling/raycasting is strictly chunk-local; canonical edits are projected into that bounded chart only while applying them,
+- background generation recipes snapshot canonical materialization address, canonical world origin, procedural base, and semantic edits; no frame-relative chunk position survives into worker generation,
+- streaming converts the bounded runtime viewer position through `UsfSpatialFrame` into a canonical query position, then derives nearby canonical materialization addresses without a global `VoxelChunkCoord`,
+- materialization entities carry direct bounded runtime projection transforms and explicit `VoxelChunkOf` ownership; origin rebasing moves only that projection, not the canonical address,
+- `VoxelChunkCoord` remains only as a hidden compatibility adapter for nearby authored/test offsets and is no longer query/edit/streaming/generation authority,
+- the existing procedural terrain field is preserved in the ordinary bounded gameplay region; a temporary canonical semantic fallback avoids giant float coordinates during extreme fixed-scale travel,
+- aggregate processing and spatial demand are still **not** pulled forward.
 
 ## M7.2 — Spatial demand / chunkloading test harness
 
@@ -698,7 +714,7 @@ Then stop and reassess before attempting the full universe simulation roadmap.
 
 If this conversation/context disappears, resume here.
 
-**Baseline:** `64e93af51410237d5b89b48a41c45dcfe554c1ea`.
+**Baseline:** `64e93af51410237d5b89b48a41c45dcfe554c1ea` with the M7.1b Passes A-B patches applied.
 
 ### Pass A — finish decimal materialization core — COMPLETE
 
@@ -711,16 +727,19 @@ Implemented in this pass:
 5. Sparse canonical materialization registry; no eager decimal hierarchy allocation.
 6. Existing async generation / dense-field / Surface Nets / render / collider pipeline preserved.
 
-### Pass B — canonical voxel queries/edits — NEXT
+### Pass B — canonical voxel queries/edits — COMPLETE
 
-1. Introduce semantic/canonical voxel query position.
-2. Make brushes/edit centers canonical + bounded local shape parameters.
-3. Replace flat `VoxelBounds` authority with a canonical scoped/bounded representation.
-4. Rebuild the sparse edit index around canonical chunk/scope keys.
-5. Preserve global edit ordering semantics.
-6. Ensure background generation snapshots contain semantic addresses, not frame-relative positions.
+Implemented in this pass:
 
-### Pass C — aggregate processing
+1. Canonical `VoxelQueryPosition` over `UsfPosition` with bounded relative projection only, including finite-root wrap adjacency.
+2. Canonical brush/edit centers and semantic-anchor + bounded-offset `VoxelBounds`.
+3. Canonical sparse edit indexing while preserving one globally ordered authoritative edit log.
+4. Chunk-local dense sampling/edit/raycast coordinates; canonical semantic state never becomes one giant local lattice.
+5. Semantic background-generation snapshots and canonical catch-up of edits recorded while workers run.
+6. Canonical viewer-to-materialization streaming path; `VoxelChunkCoord` removed from the authoritative streaming/query/edit path.
+7. Direct runtime projection of materialization entities, preserving canonical address identity across origin rebases.
+
+### Pass C — aggregate processing — NEXT
 
 1. Let work scheduling group many `10³` chunks into an aligned aggregate.
 2. Working decimal aggregate sizes begin with `100³` and `1000³`.

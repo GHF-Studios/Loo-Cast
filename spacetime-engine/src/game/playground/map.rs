@@ -16,8 +16,10 @@ use crate::{
         portal::{PortalCommand, PortalEndpoint, PortalPair, PortalTraveler},
     },
     geometry::{AuthoredMap, AuthoredMapMarker, AuthoredMapScene},
+    spatial::UsfSpatialFrame,
     voxel::{
-        VoxelBase, VoxelChunkCoord, VoxelChunkOf, VoxelMaterialId, VoxelWorld, empty_voxel_mesh,
+        VoxelBase, VoxelChunkCoord, VoxelChunkOf, VoxelMaterialId, VoxelQueryPosition, VoxelWorld,
+        empty_voxel_mesh,
     },
 };
 
@@ -59,8 +61,13 @@ fn spawn_voxel_test_rock(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    frame: Res<UsfSpatialFrame>,
 ) {
     let center = Vec3::new(0.0, 4.0, -8.0);
+    let world_origin = *frame.origin();
+    let semantic_center = VoxelQueryPosition::new(world_origin)
+        .translated(center)
+        .expect("playground voxel center must be a valid canonical translation");
     let world_entity = commands
         .spawn((Name::new("Playground Voxel Rock"), Transform::IDENTITY))
         .id();
@@ -69,11 +76,10 @@ fn spawn_voxel_test_rock(
         perceptual_roughness: 1.0,
         ..default()
     });
-    let mut world = VoxelWorld::new(VoxelBase::sphere(
-        center,
-        6.0,
-        VoxelMaterialId::ROCK,
-    ));
+    let mut world = VoxelWorld::new_at(
+        VoxelBase::sphere(semantic_center, 6.0, VoxelMaterialId::ROCK),
+        world_origin,
+    );
 
     for z in -2..=-1 {
         for y in -1..=0 {
@@ -81,24 +87,27 @@ fn spawn_voxel_test_rock(
                 let coord = VoxelChunkCoord::new(IVec3::new(x, y, z));
                 let address = world
                     .chunk_address(coord)
-                    .expect("playground voxel materialization must fit USF root");
-                let chunk = world.materialize_chunk(coord);
+                    .expect("playground voxel materialization must translate canonically");
+                let chunk = world.materialize_chunk(address);
+                let local_translation = address
+                    .query_origin()
+                    .relative_to(VoxelQueryPosition::new(*frame.origin()), 64.0)
+                    .expect("playground voxel materialization must project locally");
                 let chunk_entity = commands
                     .spawn((
                         Name::new(format!(
                             "Playground Voxel Materialization Chunk ({x}, {y}, {z})"
                         )),
-                        VoxelChunkOf::new(world_entity, coord),
+                        VoxelChunkOf::new(world_entity),
                         address,
                         chunk,
                         Mesh3d(meshes.add(empty_voxel_mesh())),
                         MeshMaterial3d(material.clone()),
                         NoFrustumCulling,
-                        Transform::from_translation(coord.origin().as_vec3()),
+                        Transform::from_translation(local_translation),
                     ))
                     .id();
 
-                commands.entity(world_entity).add_child(chunk_entity);
                 assert!(world.insert_chunk(address, chunk_entity).is_none());
             }
         }

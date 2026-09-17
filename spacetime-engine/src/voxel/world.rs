@@ -8,14 +8,17 @@ use crate::spatial::{UsfPosition, UsfPositionError};
 
 use super::{
     MATERIALIZATION_CHUNK_SIZE, VoxelBase, VoxelBounds, VoxelChunk, VoxelEdit,
-    VoxelModificationLayer, VoxelSample, chunk::SAMPLE_PADDING,
+    VoxelModificationLayer, VoxelQueryPosition, VoxelSample,
+    chunk::SAMPLE_PADDING,
 };
 
-/// Transitional coordinate in the current `VoxelWorld`-local sampling lattice.
+/// Transitional coordinate in the original `VoxelWorld`-local sampling lattice.
 ///
-/// This is intentionally *not* canonical USF identity. Pass B still uses it for
-/// the procedural base/edit/query compatibility seam; materialization registries
-/// and entity identity are keyed by [`VoxelMaterializationChunkAddress`] instead.
+/// Pass B no longer uses this as semantic identity, edit/query authority,
+/// streaming identity, or generation input. It remains only as a compact
+/// compatibility adapter for authored/tests that still describe a nearby grid
+/// offset from [`VoxelWorld::origin`].
+#[doc(hidden)]
 #[repr(transparent)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct VoxelChunkCoord(pub IVec3);
@@ -30,8 +33,8 @@ impl VoxelChunkCoord {
     }
 
     /// Exact displacement from this voxel world's canonical origin in whole
-    /// leaf-native units. Unlike [`Self::origin`], this path does not squeeze the
-    /// displacement through a bounded `IVec3` or floating-point vector.
+    /// leaf-native units. This compatibility path never squeezes the semantic
+    /// address through one large floating-point vector.
     pub fn native_offset(self) -> [i64; 3] {
         let size = i64::from(MATERIALIZATION_CHUNK_SIZE);
         [
@@ -41,20 +44,9 @@ impl VoxelChunkCoord {
         ]
     }
 
-    /// Local compatibility chunk containing one `VoxelWorld`-local position.
-    /// Uses floor semantics so negative coordinates map to the expected cell.
+    /// Local compatibility chunk containing one nearby scale-0 point.
     pub fn containing(point: Vec3) -> Self {
         Self((point / MATERIALIZATION_CHUNK_SIZE as f32).floor().as_ivec3())
-    }
-
-    /// Bounds of the physical sample allocation belonging to this chunk,
-    /// including the one-sample neighbor border.
-    pub fn sample_bounds(self) -> VoxelBounds {
-        let origin = self.origin().as_vec3();
-        VoxelBounds::new(
-            origin - Vec3::splat(SAMPLE_PADDING as f32),
-            origin + Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32),
-        )
     }
 }
 
@@ -76,20 +68,46 @@ impl VoxelMaterializationChunkAddress {
     pub const fn origin(&self) -> &UsfPosition {
         &self.origin
     }
+
+    pub const fn query_origin(self) -> VoxelQueryPosition {
+        VoxelQueryPosition::new(self.origin)
+    }
+
+    pub fn translated_chunks(self, delta: IVec3) -> Result<Self, UsfPositionError> {
+        let size = i64::from(MATERIALIZATION_CHUNK_SIZE);
+        self.origin
+            .translated_whole_native([
+                i64::from(delta.x) * size,
+                i64::from(delta.y) * size,
+                i64::from(delta.z) * size,
+            ])
+            .map(Self::new)
+    }
+
+    /// Canonical scope of every lattice sample physically stored by this base
+    /// materialization, including private Surface Nets neighbor padding.
+    pub fn sample_bounds(self) -> VoxelBounds {
+        VoxelBounds::new(
+            self.query_origin(),
+            Vec3::splat(-(SAMPLE_PADDING as f32)),
+            Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32),
+        )
+    }
 }
 
 /// Compatibility alias for the M7.1a name.
 #[doc(hidden)]
 pub type VoxelChunkAddress = VoxelMaterializationChunkAddress;
 
-/// Immutable background-generation recipe for one dense chunk.
+/// Immutable background-generation recipe for one dense local chunk.
 ///
-/// The recipe owns exactly the edits that existed when it was created. The
-/// completion path can then replay edits appended after `applied_edit_count`
-/// before publishing the generated chunk.
+/// The recipe contains canonical semantic address + semantic edits only. No
+/// runtime frame coordinate or giant flat voxel lattice survives into worker
+/// generation.
 #[derive(Debug, Clone)]
 pub(crate) struct VoxelChunkRecipe {
-    coord: VoxelChunkCoord,
+    address: VoxelMaterializationChunkAddress,
+    world_origin: VoxelQueryPosition,
     base: VoxelBase,
     edits: Vec<VoxelEdit>,
     applied_edit_count: usize,
@@ -102,16 +120,26 @@ impl VoxelChunkRecipe {
 
     pub(crate) fn materialize(self) -> VoxelChunk {
         let Self {
-            coord,
+            address,
+            world_origin,
             base,
             edits,
             ..
         } = self;
+        let anchor = address.query_origin();
+        let extra_extent = MATERIALIZATION_CHUNK_SIZE as f32 + SAMPLE_PADDING as f32;
+        let local_edits = edits
+            .into_iter()
+            .filter_map(|edit| edit.localized(anchor, extra_extent))
+            .collect::<Vec<_>>();
 
-        VoxelChunk::generate(coord.origin(), move |point| {
-            let mut sample = base.sample(point);
-            for edit in &edits {
-                sample = edit.apply_to_sample(point, sample);
+        VoxelChunk::generate(move |local_point| {
+            let Ok(point) = anchor.translated(local_point) else {
+                return VoxelSample::empty(f32::INFINITY);
+            };
+            let mut sample = base.sample_in_world(world_origin, point);
+            for edit in &local_edits {
+                sample = edit.apply_to_sample(local_point, sample);
             }
             sample
         })
@@ -122,8 +150,8 @@ impl VoxelChunkRecipe {
 ///
 /// The authoritative state is `base + modifications`. `chunks` only indexes
 /// currently reserved canonical materialization addresses: some may still be
-/// generating, while others hold dense working caches for rendering/query code.
-/// Destroying every one of them therefore does not destroy the world.
+/// generating, while others hold dense disposable working caches. Destroying
+/// every dense cache therefore does not destroy the world.
 #[derive(Component, Debug)]
 pub struct VoxelWorld {
     origin: UsfPosition,
@@ -156,6 +184,8 @@ impl VoxelWorld {
         &self.origin
     }
 
+    /// Compatibility adapter from a nearby bounded lattice offset. Core Pass-B
+    /// code addresses materializations directly with canonical addresses.
     pub fn chunk_address(
         &self,
         coord: VoxelChunkCoord,
@@ -163,6 +193,31 @@ impl VoxelWorld {
         self.origin
             .translated_whole_native(coord.native_offset())
             .map(VoxelMaterializationChunkAddress::new)
+    }
+
+    /// Returns the decimal base materialization containing a canonical point.
+    ///
+    /// Materialization alignment is relative to this world's canonical origin.
+    /// USF digits represent multiples of 1000 leaf-native units, so for a 10-unit
+    /// base extent only the bounded leaf offsets are needed to recover grid phase.
+    pub fn materialization_address_containing(
+        &self,
+        point: VoxelQueryPosition,
+    ) -> Result<VoxelMaterializationChunkAddress, UsfPositionError> {
+        if point.usf().leaf_scale() != self.origin.leaf_scale() {
+            return Err(UsfPositionError::IncompatibleLeafScale);
+        }
+
+        let size = MATERIALIZATION_CHUNK_SIZE as f32;
+        let delta = point.usf().offset() - self.origin.offset();
+        let remainder = Vec3::new(
+            delta.x.rem_euclid(size),
+            delta.y.rem_euclid(size),
+            delta.z.rem_euclid(size),
+        );
+        point
+            .translated(-remainder)
+            .map(|origin| VoxelMaterializationChunkAddress::new(origin.usf()))
     }
 
     pub const fn base(&self) -> VoxelBase {
@@ -173,44 +228,52 @@ impl VoxelWorld {
         &self.modifications
     }
 
-    /// Records one authoritative world edit.
-    ///
-    /// Callers should also apply it to intersecting materialized chunks so the
-    /// active cache reflects the new state immediately. Future rematerialization
-    /// will replay this record automatically.
-    pub fn record_edit(&mut self, edit: VoxelEdit) {
-        self.modifications.push(edit);
+    /// Records one authoritative semantic edit and indexes it by the canonical
+    /// base materialization scopes whose padded sample domains it can affect.
+    pub fn record_edit(&mut self, edit: VoxelEdit) -> Result<(), UsfPositionError> {
+        let addresses = self.materialization_addresses_intersecting(edit.influence_bounds())?;
+        self.modifications.push(edit, addresses);
+        Ok(())
     }
 
-    /// Captures immutable generation input for one chunk. This is deliberately
-    /// cheap relative to dense generation: procedural bases are compact and only
-    /// edits intersecting the chunk's padded sample domain are copied.
-    pub(crate) fn chunk_recipe(&self, coord: VoxelChunkCoord) -> VoxelChunkRecipe {
+    /// Captures immutable canonical generation input for one chunk. This is
+    /// deliberately cheap relative to dense generation: procedural bases are
+    /// compact and only edits indexed for this semantic address are copied.
+    pub(crate) fn chunk_recipe(
+        &self,
+        address: VoxelMaterializationChunkAddress,
+    ) -> VoxelChunkRecipe {
         VoxelChunkRecipe {
-            coord,
+            address,
+            world_origin: VoxelQueryPosition::new(self.origin),
             base: self.base,
-            edits: self.modifications.for_chunk(coord).collect(),
+            edits: self.modifications.for_chunk(address).collect(),
             applied_edit_count: self.modifications.len(),
         }
     }
 
-    /// Reconstructs one dense working chunk from procedural base + sparse edits.
-    /// Synchronous callers (currently the small authored playground fixture and
-    /// tests) share exactly the same recipe used by streaming background tasks.
-    pub fn materialize_chunk(&self, coord: VoxelChunkCoord) -> VoxelChunk {
-        self.chunk_recipe(coord).materialize()
+    /// Reconstructs one dense chunk-local working cache from canonical semantic
+    /// base + sparse edits.
+    pub fn materialize_chunk(&self, address: VoxelMaterializationChunkAddress) -> VoxelChunk {
+        self.chunk_recipe(address).materialize()
     }
 
-    /// Resolves one arbitrary sample without requiring a materialized chunk.
-    pub fn resolve_sample(&self, point: Vec3) -> VoxelSample {
-        let mut sample = self.base.sample(point);
-        let coord = VoxelChunkCoord::containing(point);
-        for edit in self.modifications.for_chunk(coord) {
+    /// Resolves one arbitrary canonical sample without requiring a materialized
+    /// dense chunk.
+    pub fn resolve_sample(
+        &self,
+        point: VoxelQueryPosition,
+    ) -> Result<VoxelSample, UsfPositionError> {
+        let mut sample = self
+            .base
+            .sample_in_world(VoxelQueryPosition::new(self.origin), point);
+        let address = self.materialization_address_containing(point)?;
+        for edit in self.modifications.for_chunk(address) {
             if edit.influence_bounds().contains(point) {
                 sample = edit.apply_to_sample(point, sample);
             }
         }
-        sample
+        Ok(sample)
     }
 
     pub fn insert_chunk(
@@ -241,28 +304,60 @@ impl VoxelWorld {
             .map(|(&address, &entity)| (address, entity))
     }
 
-    /// Returns reserved chunk entities whose stored sample domains would
-    /// intersect the finite influence bounds of an edit. Callers that require a
-    /// dense cache can simply query for [`VoxelChunk`] and skip pending entities.
-    pub fn chunks_intersecting(&self, bounds: VoxelBounds) -> Vec<Entity> {
-        let (minimum, maximum) = chunk_coord_range(bounds);
-        let mut entities = Vec::new();
+    /// Canonical base materialization addresses whose padded sample domains
+    /// intersect a finite semantic voxel scope.
+    pub fn materialization_addresses_intersecting(
+        &self,
+        bounds: VoxelBounds,
+    ) -> Result<Vec<VoxelMaterializationChunkAddress>, UsfPositionError> {
+        let reference = self.materialization_address_containing(bounds.anchor())?;
+        let size = MATERIALIZATION_CHUNK_SIZE as f32;
+        let padding = SAMPLE_PADDING as f32;
+        let anchor_local = bounds
+            .anchor()
+            .relative_to(reference.query_origin(), size + 0.01)?;
+        let local_min = anchor_local + bounds.min_offset();
+        let local_max = anchor_local + bounds.max_offset();
+
+        // A chunk at local offset O stores samples in [O-padding, O+size].
+        // Solve that bounded interval intersection without ever constructing a
+        // universe-wide chunk coordinate.
+        let minimum = checked_ivec3(((local_min - Vec3::splat(size)) / size).ceil())?;
+        let maximum = checked_ivec3(((local_max + Vec3::splat(padding)) / size).floor())?;
+        if minimum.cmpgt(maximum).any() {
+            return Ok(Vec::new());
+        }
+        let extent_x = i64::from(maximum.x) - i64::from(minimum.x) + 1;
+        let extent_y = i64::from(maximum.y) - i64::from(minimum.y) + 1;
+        let extent_z = i64::from(maximum.z) - i64::from(minimum.z) + 1;
+        let capacity = extent_x
+            .checked_mul(extent_y)
+            .and_then(|value| value.checked_mul(extent_z))
+            .and_then(|value| usize::try_from(value).ok())
+            .ok_or(UsfPositionError::TranslationTooLarge)?;
+        let mut addresses = Vec::with_capacity(capacity);
 
         for z in minimum.z..=maximum.z {
             for y in minimum.y..=maximum.y {
                 for x in minimum.x..=maximum.x {
-                    let coord = VoxelChunkCoord::new(IVec3::new(x, y, z));
-                    let Ok(address) = self.chunk_address(coord) else {
-                        continue;
-                    };
-                    if let Some(entity) = self.chunk_entity(address) {
-                        entities.push(entity);
-                    }
+                    addresses.push(reference.translated_chunks(IVec3::new(x, y, z))?);
                 }
             }
         }
 
-        entities
+        Ok(addresses)
+    }
+
+    /// Reserved dense-cache entities intersecting a canonical semantic scope.
+    pub fn chunks_intersecting(
+        &self,
+        bounds: VoxelBounds,
+    ) -> Result<Vec<Entity>, UsfPositionError> {
+        Ok(self
+            .materialization_addresses_intersecting(bounds)?
+            .into_iter()
+            .filter_map(|address| self.chunk_entity(address))
+            .collect())
     }
 
     pub fn len(&self) -> usize {
@@ -274,34 +369,34 @@ impl VoxelWorld {
     }
 }
 
-pub(crate) fn chunk_coord_range(bounds: VoxelBounds) -> (IVec3, IVec3) {
-    let size = MATERIALIZATION_CHUNK_SIZE as f32;
-    let padding = SAMPLE_PADDING as f32;
+fn checked_ivec3(value: Vec3) -> Result<IVec3, UsfPositionError> {
+    fn component(value: f32) -> Result<i32, UsfPositionError> {
+        let value64 = f64::from(value);
+        if !value.is_finite() || value64 < i32::MIN as f64 || value64 > i32::MAX as f64 {
+            Err(UsfPositionError::TranslationTooLarge)
+        } else {
+            Ok(value as i32)
+        }
+    }
 
-    // A chunk at origin O physically stores lattice samples in
-    // [O - padding, O + MATERIALIZATION_CHUNK_SIZE]. Solve that interval
-    // intersection against the edit bounds to obtain the inclusive range.
-    let minimum = ((bounds.min - Vec3::splat(size)) / size)
-        .ceil()
-        .as_ivec3();
-    let maximum = ((bounds.max + Vec3::splat(padding)) / size)
-        .floor()
-        .as_ivec3();
-    (minimum, maximum)
+    Ok(IVec3::new(
+        component(value.x)?,
+        component(value.y)?,
+        component(value.z)?,
+    ))
 }
 
-/// Keeps the transitional `VoxelWorld`-local generation/query coordinate on a
-/// reserved materialization entity. Canonical identity lives in the separate
-/// [`VoxelMaterializationChunkAddress`] component.
+/// Identifies the semantic voxel world owning one root-level materialization
+/// entity. Canonical location lives in the separate address component; dense
+/// voxel samples and render/physics geometry remain chunk-local.
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct VoxelChunkOf {
     pub world: Entity,
-    pub coord: VoxelChunkCoord,
 }
 
 impl VoxelChunkOf {
-    pub const fn new(world: Entity, coord: VoxelChunkCoord) -> Self {
-        Self { world, coord }
+    pub const fn new(world: Entity) -> Self {
+        Self { world }
     }
 }
 
@@ -313,8 +408,12 @@ mod tests {
         voxel::{VoxelBrush, VoxelMaterialId, VoxelSample},
     };
 
+    fn query(local: Vec3) -> VoxelQueryPosition {
+        VoxelQueryPosition::from_scale0_local(local).unwrap()
+    }
+
     #[test]
-    fn chunk_coordinates_are_euclidean_grid_coordinates() {
+    fn compatibility_chunk_coordinates_are_euclidean_grid_offsets() {
         assert_eq!(
             VoxelChunkCoord::new(IVec3::new(-1, 2, 0)).origin(),
             IVec3::new(
@@ -327,23 +426,34 @@ mod tests {
             VoxelChunkCoord::containing(Vec3::new(-0.01, 0.0, 9.99)),
             VoxelChunkCoord::new(IVec3::new(-1, 0, 0))
         );
-        assert_eq!(
-            VoxelChunkCoord::containing(Vec3::new(10.0, 0.0, 10.0)),
-            VoxelChunkCoord::new(IVec3::new(1, 0, 1))
-        );
     }
 
     #[test]
-    fn brick_address_is_canonical_across_semantic_region_boundaries() {
+    fn materialization_address_is_canonical_across_semantic_region_boundaries() {
         let world = VoxelWorld::new(VoxelBase::Empty);
         let address = world
             .chunk_address(VoxelChunkCoord::new(IVec3::new(128, 0, 0)))
             .unwrap();
 
-        // 128 * 10 m = 1280 m, represented canonically as one S0 chunk digit
-        // plus a bounded +280 m leaf offset rather than a giant runtime Vec3.
         assert_eq!(address.origin().digit(SpatialScale::ZERO).x, 1);
         assert_eq!(address.origin().offset().x, 280.0);
+    }
+
+    #[test]
+    fn containing_address_crosses_usf_carry_without_flat_grid_identity() {
+        let origin = UsfPosition::from_scale0_local(Vec3::new(499.0, 0.0, 0.0)).unwrap();
+        let world = VoxelWorld::new_at(VoxelBase::Empty, origin);
+        let point = VoxelQueryPosition::new(
+            origin
+                .translated_native(Vec3::new(12.0, 0.0, 0.0))
+                .unwrap(),
+        );
+        let address = world.materialization_address_containing(point).unwrap();
+
+        assert_eq!(
+            point.relative_to(address.query_origin(), 10.0).unwrap(),
+            Vec3::new(2.0, 0.0, 0.0)
+        );
     }
 
     #[test]
@@ -356,52 +466,61 @@ mod tests {
             .chunk_address(VoxelChunkCoord::new(IVec3::new(2_000_000_001, 0, 0)))
             .unwrap();
 
-        // At this magnitude a single f32 metre coordinate cannot distinguish
-        // adjacent 10 m chunks. Canonical identity must still distinguish them.
         assert_eq!(20_000_000_000_i64 as f32, 20_000_000_010_i64 as f32);
         assert_ne!(left, right);
     }
 
     #[test]
-    fn edit_bounds_address_both_chunks_at_a_seam() {
-        let bounds = VoxelBounds::new(
-            Vec3::new(MATERIALIZATION_CHUNK_SIZE as f32 - 0.5, 8.0, 8.0),
-            Vec3::new(MATERIALIZATION_CHUNK_SIZE as f32 + 0.5, 9.0, 9.0),
-        );
-        let (minimum, maximum) = chunk_coord_range(bounds);
+    fn edit_bounds_address_both_padded_chunks_at_a_seam() {
+        let world = VoxelWorld::new(VoxelBase::Empty);
+        let center = query(Vec3::new(MATERIALIZATION_CHUNK_SIZE as f32, 5.0, 5.0));
+        let edit = VoxelEdit::Add {
+            brush: VoxelBrush::sphere(center, 0.5),
+            material: VoxelMaterialId::ROCK,
+        };
+        let addresses = world
+            .materialization_addresses_intersecting(edit.influence_bounds())
+            .unwrap();
+        let left = world.chunk_address(VoxelChunkCoord::new(IVec3::ZERO)).unwrap();
+        let right = world.chunk_address(VoxelChunkCoord::new(IVec3::X)).unwrap();
 
-        assert_eq!(minimum.x, 0);
-        assert_eq!(maximum.x, 1);
+        assert!(addresses.contains(&left));
+        assert!(addresses.contains(&right));
     }
 
     #[test]
     fn neighbor_chunks_store_identical_overlap_after_cross_boundary_edit() {
-        let mut left = VoxelChunk::generate(IVec3::ZERO, |_| VoxelSample::empty(100.0));
-        let mut right = VoxelChunk::generate(
-            IVec3::X * MATERIALIZATION_CHUNK_SIZE as i32,
-            |_| VoxelSample::empty(100.0),
-        );
+        let world = VoxelWorld::new(VoxelBase::Empty);
+        let left_address = world.chunk_address(VoxelChunkCoord::new(IVec3::ZERO)).unwrap();
+        let right_address = world.chunk_address(VoxelChunkCoord::new(IVec3::X)).unwrap();
+        let mut left = VoxelChunk::generate(|_| VoxelSample::empty(100.0));
+        let mut right = VoxelChunk::generate(|_| VoxelSample::empty(100.0));
         let edit = VoxelEdit::Add {
             brush: VoxelBrush::sphere(
-                Vec3::new(MATERIALIZATION_CHUNK_SIZE as f32, 5.0, 5.0),
+                query(Vec3::new(MATERIALIZATION_CHUNK_SIZE as f32, 5.0, 5.0)),
                 3.0,
             ),
             material: VoxelMaterialId::ROCK,
         };
 
-        assert!(left.sample_bounds().intersects(edit.influence_bounds()));
-        assert!(right.sample_bounds().intersects(edit.influence_bounds()));
-        left.apply_edit(edit);
-        right.apply_edit(edit);
+        assert!(left_address.sample_bounds().intersects(edit.influence_bounds()));
+        assert!(right_address.sample_bounds().intersects(edit.influence_bounds()));
+        left.apply_edit(left_address, edit);
+        right.apply_edit(right_address, edit);
 
-        for x in [
+        for world_x in [
             MATERIALIZATION_CHUNK_SIZE as i32 - 1,
             MATERIALIZATION_CHUNK_SIZE as i32,
         ] {
             for y in 2..=8 {
                 for z in 2..=8 {
-                    let point = IVec3::new(x, y, z);
-                    assert_eq!(left.sample(point), right.sample(point));
+                    let left_point = IVec3::new(world_x, y, z);
+                    let right_point = IVec3::new(
+                        world_x - MATERIALIZATION_CHUNK_SIZE as i32,
+                        y,
+                        z,
+                    );
+                    assert_eq!(left.sample(left_point), right.sample(right_point));
                 }
             }
         }
@@ -409,23 +528,24 @@ mod tests {
 
     #[test]
     fn sparse_edits_survive_chunk_rematerialization() {
-        let coord = VoxelChunkCoord::new(IVec3::ZERO);
-        let mut world = VoxelWorld::new(VoxelBase::sphere(
-            Vec3::splat(8.0),
-            6.0,
-            VoxelMaterialId::ROCK,
-        ));
+        let world_origin = UsfPosition::default();
+        let center = query(Vec3::splat(8.0));
+        let mut world = VoxelWorld::new_at(
+            VoxelBase::sphere(center, 6.0, VoxelMaterialId::ROCK),
+            world_origin,
+        );
+        let address = world.chunk_address(VoxelChunkCoord::new(IVec3::ZERO)).unwrap();
         let point = IVec3::splat(8);
 
-        assert!(world.materialize_chunk(coord).sample(point).unwrap().distance.is_solid());
+        assert!(world.materialize_chunk(address).sample(point).unwrap().distance.is_solid());
 
-        world.record_edit(VoxelEdit::Remove {
-            brush: VoxelBrush::sphere(point.as_vec3(), 2.0),
-        });
+        world
+            .record_edit(VoxelEdit::Remove {
+                brush: VoxelBrush::sphere(center, 2.0),
+            })
+            .unwrap();
 
-        // No old chunk state participates in this reconstruction. The edit is
-        // authoritative independently from materialized dense storage.
-        let rebuilt = world.materialize_chunk(coord);
+        let rebuilt = world.materialize_chunk(address);
         assert!(rebuilt.sample(point).unwrap().distance.is_empty());
         assert_eq!(world.modifications().len(), 1);
     }

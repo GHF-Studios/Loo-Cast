@@ -4,7 +4,10 @@ use bevy::prelude::*;
 
 use crate::{
     game::GameSet,
-    voxel::{VoxelBrush, VoxelChunk, VoxelEdit, VoxelMaterialId, VoxelRayHit, VoxelWorld},
+    voxel::{
+        VoxelBrush, VoxelChunk, VoxelEdit, VoxelMaterialId, VoxelMaterializationChunkAddress,
+        VoxelQueryPosition, VoxelRayHit, VoxelWorld,
+    },
 };
 
 use super::super::{
@@ -35,11 +38,15 @@ fn register_item(mut catalog: ResMut<PlaygroundCatalog>) {
 
 fn use_voxel_hand(
     mut uses: MessageReader<UsePlaygroundItem>,
-    mut worlds: ParamSet<(
-        Query<(Entity, &VoxelWorld, &Transform)>,
-        Query<&mut VoxelWorld>,
+    mut worlds: ParamSet<(Query<(Entity, &VoxelWorld)>, Query<&mut VoxelWorld>)>,
+    mut chunks: ParamSet<(
+        Query<(
+            &VoxelChunk,
+            &Transform,
+            &VoxelMaterializationChunkAddress,
+        )>,
+        Query<(&mut VoxelChunk, &VoxelMaterializationChunkAddress)>,
     )>,
-    mut chunks: ParamSet<(Query<&VoxelChunk>, Query<&mut VoxelChunk>)>,
 ) {
     for request in uses.read() {
         if request.item != VOXEL_HAND
@@ -49,46 +56,51 @@ fn use_voxel_hand(
             continue;
         }
 
-        let mut nearest: Option<(Entity, VoxelRayHit)> = None;
+        let mut nearest: Option<(Entity, VoxelQueryPosition, f32)> = None;
         {
             let worlds = worlds.p0();
             let chunks = chunks.p0();
 
-            for (world_entity, world, world_transform) in &worlds {
+            for (world_entity, world) in &worlds {
                 for chunk_entity in world.chunk_entities() {
-                    let Ok(chunk) = chunks.get(chunk_entity) else {
+                    let Ok((chunk, transform, address)) = chunks.get(chunk_entity) else {
                         continue;
                     };
-                    // M7 keeps current voxel authority in VoxelWorld-local space.
-                    // Convert the runtime ray through the world-root translation so
-                    // edits and queries remain stable when the local origin rebases.
-                    let world_local_origin = request.aim.origin - world_transform.translation;
-                    let Some(hit) = chunk.raycast(
-                        world_local_origin,
+
+                    // Dense chunk queries are strictly local to the projected
+                    // materialization entity. Convert only the final local hit
+                    // back into canonical USF space.
+                    let chunk_local_origin = request.aim.origin - transform.translation;
+                    let Some(VoxelRayHit { position, distance }) = chunk.raycast(
+                        chunk_local_origin,
                         request.aim.direction,
                         TOOL_RANGE,
                     ) else {
                         continue;
                     };
+                    let Ok(semantic_hit) = address.query_origin().translated(position) else {
+                        continue;
+                    };
 
-                    if nearest
-                        .is_none_or(|(_, current)| hit.distance < current.distance)
-                    {
-                        nearest = Some((world_entity, hit));
+                    if nearest.is_none_or(|(_, _, current)| distance < current) {
+                        nearest = Some((world_entity, semantic_hit, distance));
                     }
                 }
             }
         }
 
-        let Some((world_entity, VoxelRayHit { position, .. })) = nearest else {
+        let Some((world_entity, hit, _)) = nearest else {
             continue;
         };
 
         let direction = request.aim.direction.normalize_or_zero();
-        let center = if request.action == PlaygroundItemAction::PRIMARY {
-            position + direction * (BRUSH_RADIUS * 0.35)
+        let offset = if request.action == PlaygroundItemAction::PRIMARY {
+            direction * (BRUSH_RADIUS * 0.35)
         } else {
-            position - direction * (BRUSH_RADIUS * 0.35)
+            -direction * (BRUSH_RADIUS * 0.35)
+        };
+        let Ok(center) = hit.translated(offset) else {
+            continue;
         };
         let brush = VoxelBrush::sphere(center, BRUSH_RADIUS);
 
@@ -101,21 +113,27 @@ fn use_voxel_hand(
             }
         };
 
-        // First record the semantic edit independently of any currently loaded
-        // dense chunk. Then update intersecting caches immediately.
+        // Record the canonical edit independently from dense caches, then patch
+        // only currently materialized representations that intersect its scope.
         let affected = {
             let mut worlds = worlds.p1();
             let Ok(mut world) = worlds.get_mut(world_entity) else {
                 continue;
             };
-            world.record_edit(edit);
-            world.chunks_intersecting(edit.influence_bounds())
+            let Ok(affected) = world.chunks_intersecting(edit.influence_bounds()) else {
+                continue;
+            };
+            if let Err(error) = world.record_edit(edit) {
+                error!(?error, "voxel edit scope could not be indexed canonically");
+                continue;
+            }
+            affected
         };
 
         let mut chunks = chunks.p1();
         for entity in affected {
-            if let Ok(mut chunk) = chunks.get_mut(entity) {
-                chunk.apply_edit(edit);
+            if let Ok((mut chunk, address)) = chunks.get_mut(entity) {
+                chunk.apply_edit(*address, edit);
             }
         }
     }

@@ -52,7 +52,8 @@ impl Display for SpatialScale {
 pub enum UsfPositionError {
     NonFiniteTranslation,
     TranslationTooLarge,
-    RootOverflow,
+    IncompatibleLeafScale,
+    RelativePositionOutsideBound,
 }
 
 /// Canonical decimal USF spatial position.
@@ -136,6 +137,121 @@ impl UsfPosition {
 
         self.normalize()?;
         Ok(self)
+    }
+
+    /// Measures this position from `origin` in units native to the shared leaf
+    /// scale, but only when every resulting axis lies inside `max_abs`.
+    ///
+    /// This is the deliberate inverse of projecting canonical space into a
+    /// bounded local chart. It never constructs one universe-wide float
+    /// coordinate: decimal digits are subtracted and normalized exactly before
+    /// the result is projected into the requested bounded float chart.
+    pub fn relative_native_bounded(
+        &self,
+        origin: &Self,
+        max_abs: f32,
+    ) -> Result<Vec3, UsfPositionError> {
+        let mut delta = Vec3::ZERO;
+        for axis in 0..3 {
+            set_axis_f32(
+                &mut delta,
+                axis,
+                self.relative_native_axis_bounded(origin, axis, max_abs)?,
+            );
+        }
+        Ok(delta)
+    }
+
+    /// Axis-local form used by bounded algorithms that intentionally do not
+    /// require the other two coordinates to fit the same local chart.
+    pub(crate) fn relative_native_axis_bounded(
+        &self,
+        origin: &Self,
+        axis: usize,
+        max_abs: f32,
+    ) -> Result<f32, UsfPositionError> {
+        if self.leaf_scale != origin.leaf_scale {
+            return Err(UsfPositionError::IncompatibleLeafScale);
+        }
+        if !max_abs.is_finite() {
+            return Err(UsfPositionError::NonFiniteTranslation);
+        }
+
+        // Subtract then re-normalize the balanced decimal stack from low to
+        // high before accumulating it. This is important for nearby positions
+        // separated by a very long carry chain: their raw high-to-low digit
+        // difference can look enormous until the low digits cancel the carry.
+        //
+        // The carry beyond the root is deliberately discarded. The finite USF
+        // stack wraps there, so opposite root edges are adjacent in canonical
+        // space rather than separated by a fatal overflow boundary.
+        let (normalized, count) = self.normalized_axis_difference(origin, axis)?;
+
+        let mut chunk_delta = 0_i128;
+        for &digit in normalized[..count].iter().rev() {
+            chunk_delta = chunk_delta
+                .checked_mul(i128::from(USF_CHILD_CHUNKS_PER_AXIS))
+                .and_then(|value| value.checked_add(i128::from(digit)))
+                .ok_or(UsfPositionError::RelativePositionOutsideBound)?;
+        }
+
+        let component = chunk_delta as f64 * USF_CHUNK_NATIVE_SIZE as f64
+            + f64::from(axis_f32(self.offset, axis) - axis_f32(origin.offset, axis));
+        if component.abs() > f64::from(max_abs.max(0.0)) {
+            return Err(UsfPositionError::RelativePositionOutsideBound);
+        }
+        Ok(component as f32)
+    }
+
+    /// Returns whether the wrapped canonical displacement on one axis is on
+    /// the negative side of the origin. This is useful for bounded algorithms
+    /// that need an orientation even when the magnitude is intentionally not
+    /// projected into `f32`.
+    pub(crate) fn relative_native_axis_is_negative(
+        &self,
+        origin: &Self,
+        axis: usize,
+    ) -> Result<bool, UsfPositionError> {
+        let (normalized, count) = self.normalized_axis_difference(origin, axis)?;
+        for &digit in normalized[..count].iter().rev() {
+            if digit != 0 {
+                return Ok(digit < 0);
+            }
+        }
+
+        Ok(axis_f32(self.offset, axis) < axis_f32(origin.offset, axis))
+    }
+
+    fn normalized_axis_difference(
+        &self,
+        origin: &Self,
+        axis: usize,
+    ) -> Result<([i8; SPATIAL_SCALE_COUNT], usize), UsfPositionError> {
+        if self.leaf_scale != origin.leaf_scale {
+            return Err(UsfPositionError::IncompatibleLeafScale);
+        }
+
+        let mut normalized = [0_i8; SPATIAL_SCALE_COUNT];
+        let mut count = 0_usize;
+        let mut carry = 0_i32;
+        for raw_scale in self.leaf_scale.exponent()..=SPATIAL_SCALE_MAX {
+            let scale = SpatialScale::new(raw_scale).expect("range is validated");
+            let total = axis_i32(self.digit(scale), axis)
+                - axis_i32(origin.digit(scale), axis)
+                + carry;
+            let parent_carry = (total + 5).div_euclid(USF_CHILD_CHUNKS_PER_AXIS);
+            let digit = total - parent_carry * USF_CHILD_CHUNKS_PER_AXIS;
+            debug_assert!(digit >= USF_BALANCED_DIGIT_MIN);
+            debug_assert!(digit < USF_BALANCED_DIGIT_MAX_EXCLUSIVE);
+            normalized[count] = digit as i8;
+            count += 1;
+            carry = parent_carry;
+        }
+
+        // `carry` is the winding number across the finite root. Canonical USF
+        // position arithmetic intentionally wraps, so it is not another digit.
+        let _winding = carry;
+        Ok((normalized, count))
     }
 
     pub fn nonzero_digits(&self) -> impl Iterator<Item = (SpatialScale, IVec3)> + '_ {
@@ -227,11 +343,10 @@ impl UsfPosition {
             set_axis_i32(&mut self.digits[index], axis, digit as i32);
 
             if raw_scale == SPATIAL_SCALE_MAX {
-                return if parent_carry == 0 {
-                    Ok(())
-                } else {
-                    Err(UsfPositionError::RootOverflow)
-                };
+                // The root is the finite-universe wrap seam. Carry/borrow beyond
+                // it is intentionally discarded, producing canonical world wrap
+                // instead of a terminal arithmetic error.
+                return Ok(());
             }
 
             carry = parent_carry;
@@ -342,6 +457,92 @@ mod tests {
             .unwrap();
 
         assert_eq!(exact, bounded);
+    }
+
+    #[test]
+    fn bounded_relative_position_crosses_balanced_digit_carry_exactly() {
+        let origin = UsfPosition::from_scale0_local(Vec3::new(499.0, 0.0, 0.0)).unwrap();
+        let point = origin.translated_native(Vec3::new(4.0, -3.0, 2.0)).unwrap();
+
+        assert_eq!(
+            point.relative_native_bounded(&origin, 8.0).unwrap(),
+            Vec3::new(4.0, -3.0, 2.0)
+        );
+    }
+
+    #[test]
+    fn bounded_relative_position_rejects_far_semantic_points() {
+        let origin = UsfPosition::default();
+        let far = origin.translated_whole_native([20_000, 0, 0]).unwrap();
+
+        assert_eq!(
+            far.relative_native_bounded(&origin, 512.0),
+            Err(UsfPositionError::RelativePositionOutsideBound)
+        );
+    }
+
+    #[test]
+    fn bounded_relative_position_survives_a_long_decimal_carry_chain() {
+        let mut origin = UsfPosition::default();
+        let mut point = UsfPosition::default();
+
+        // 0444...444 + one scale-0 USF chunk = 1(-5)(-5)...(-5)
+        // in balanced decimal representation. Difference normalization must
+        // happen before bounded float projection; a raw prefix accumulator would
+        // grow enormous before the low digit differences cancel back to +1.
+        for raw_scale in SpatialScale::ZERO.exponent()..SPATIAL_SCALE_MAX {
+            let scale = SpatialScale::new(raw_scale).unwrap();
+            origin.digits[scale.index_from_top()] = IVec3::new(4, 0, 0);
+            point.digits[scale.index_from_top()] = IVec3::new(-5, 0, 0);
+        }
+        point.digits[SpatialScale::MAX.index_from_top()] = IVec3::new(1, 0, 0);
+
+        assert_eq!(
+            point.relative_native_bounded(&origin, 2_000.0).unwrap(),
+            Vec3::new(1_000.0, 0.0, 0.0)
+        );
+    }
+
+    #[test]
+    fn root_carry_wraps_to_the_opposite_world_edge() {
+        let mut before = UsfPosition::default();
+        before.offset.x = 499.0;
+        for raw_scale in SpatialScale::ZERO.exponent()..=SPATIAL_SCALE_MAX {
+            let scale = SpatialScale::new(raw_scale).unwrap();
+            before.digits[scale.index_from_top()].x = 4;
+        }
+
+        let after = before.translated_native(Vec3::new(2.0, 0.0, 0.0)).unwrap();
+        assert_eq!(after.offset.x, -499.0);
+        for raw_scale in SpatialScale::ZERO.exponent()..=SPATIAL_SCALE_MAX {
+            let scale = SpatialScale::new(raw_scale).unwrap();
+            assert_eq!(after.digit(scale).x, -5);
+        }
+        assert_eq!(
+            after.relative_native_bounded(&before, 4.0).unwrap(),
+            Vec3::new(2.0, 0.0, 0.0)
+        );
+    }
+
+    #[test]
+    fn root_borrow_wraps_to_the_opposite_world_edge() {
+        let mut before = UsfPosition::default();
+        before.offset.x = -499.0;
+        for raw_scale in SpatialScale::ZERO.exponent()..=SPATIAL_SCALE_MAX {
+            let scale = SpatialScale::new(raw_scale).unwrap();
+            before.digits[scale.index_from_top()].x = -5;
+        }
+
+        let after = before.translated_native(Vec3::new(-2.0, 0.0, 0.0)).unwrap();
+        assert_eq!(after.offset.x, 499.0);
+        for raw_scale in SpatialScale::ZERO.exponent()..=SPATIAL_SCALE_MAX {
+            let scale = SpatialScale::new(raw_scale).unwrap();
+            assert_eq!(after.digit(scale).x, 4);
+        }
+        assert_eq!(
+            after.relative_native_bounded(&before, 4.0).unwrap(),
+            Vec3::new(-2.0, 0.0, 0.0)
+        );
     }
 
     #[test]

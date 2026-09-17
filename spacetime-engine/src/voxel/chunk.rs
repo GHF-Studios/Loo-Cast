@@ -1,8 +1,10 @@
-//! Dense working chunk used by the editable voxel world.
+//! Dense chunk-local working representation used by the editable voxel world.
 
 use bevy::prelude::{Component, IVec3, UVec3, Vec3};
 
-use super::{SignedDistance, VoxelBounds, VoxelEdit, VoxelMaterialId, VoxelSample};
+use super::{
+    SignedDistance, VoxelEdit, VoxelMaterialId, VoxelMaterializationChunkAddress, VoxelSample,
+};
 
 /// Logical cell extent of one base voxel materialization chunk axis.
 ///
@@ -37,6 +39,7 @@ impl VoxelChunkEditResult {
     }
 }
 
+/// Ray hit expressed in the dense chunk's bounded local chart.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct VoxelRayHit {
     pub position: Vec3,
@@ -45,15 +48,12 @@ pub struct VoxelRayHit {
 
 /// Dense sampled volume used as the active working representation.
 ///
-/// `origin` is the transitional `VoxelWorld`-local integer coordinate of the
-/// first logical sample. Stored samples additionally cover one neighboring
-/// coordinate on every side; that `12³` storage shape is an extraction detail,
-/// while this chunk owns the half-open logical extent `[0, 10)³`.
-/// Distance and material fields are kept separate so meshing can stream the SDF
-/// without touching material data or repacking interleaved samples.
+/// Every coordinate stored here is chunk-local. Samples cover `[-1, 10]` on
+/// each axis because Surface Nets keeps one copied neighbor sample around the
+/// logical half-open `[0, 10)³` ownership extent. Canonical semantic location
+/// lives on the materialization entity's address component, never in this data.
 #[derive(Component, Debug, Clone)]
 pub struct VoxelChunk {
-    origin: IVec3,
     distances: Box<[f32]>,
     materials: Box<[VoxelMaterialId]>,
     revision: u64,
@@ -61,7 +61,7 @@ pub struct VoxelChunk {
 }
 
 impl VoxelChunk {
-    pub fn generate(origin: IVec3, mut generator: impl FnMut(Vec3) -> VoxelSample) -> Self {
+    pub fn generate(mut generator: impl FnMut(Vec3) -> VoxelSample) -> Self {
         let mut distances = Vec::with_capacity(SAMPLE_COUNT);
         let mut materials = Vec::with_capacity(SAMPLE_COUNT);
         let padding = IVec3::splat(SAMPLE_PADDING as i32);
@@ -70,8 +70,8 @@ impl VoxelChunk {
             for y in 0..SAMPLE_SIZE {
                 for x in 0..SAMPLE_SIZE {
                     let storage = IVec3::new(x as i32, y as i32, z as i32);
-                    let world = origin + storage - padding;
-                    let sample = generator(world.as_vec3());
+                    let local = storage - padding;
+                    let sample = generator(local.as_vec3());
                     distances.push(sample.distance.0);
                     materials.push(sample.material);
                 }
@@ -79,7 +79,6 @@ impl VoxelChunk {
         }
 
         Self {
-            origin,
             distances: distances.into_boxed_slice(),
             materials: materials.into_boxed_slice(),
             revision: 0,
@@ -87,12 +86,8 @@ impl VoxelChunk {
         }
     }
 
-    pub fn filled(origin: IVec3, sample: VoxelSample) -> Self {
-        Self::generate(origin, |_| sample)
-    }
-
-    pub const fn origin(&self) -> IVec3 {
-        self.origin
+    pub fn filled(sample: VoxelSample) -> Self {
+        Self::generate(|_| sample)
     }
 
     pub const fn revision(&self) -> u64 {
@@ -119,25 +114,15 @@ impl VoxelChunk {
         &self.materials
     }
 
-    /// World-space bounds of every lattice sample physically stored by this chunk,
-    /// including the copied neighbor padding used for seamless meshing.
-    pub fn sample_bounds(&self) -> VoxelBounds {
-        let padding = Vec3::splat(SAMPLE_PADDING as f32);
-        VoxelBounds::new(
-            self.origin.as_vec3() - padding,
-            self.origin.as_vec3() + Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32),
-        )
-    }
-
-    pub fn sample(&self, world: IVec3) -> Option<VoxelSample> {
-        let index = Self::index(self.storage_coord(world)?);
+    pub fn sample(&self, local: IVec3) -> Option<VoxelSample> {
+        let index = Self::index(self.storage_coord(local)?);
         Some(self.sample_at_index(index))
     }
 
-    /// Trilinearly samples the scalar field at an arbitrary `VoxelWorld`-local point.
-    pub fn sample_distance(&self, world: Vec3) -> Option<f32> {
-        let base = world.floor().as_ivec3();
-        let fraction = world - base.as_vec3();
+    /// Trilinearly samples the scalar field at an arbitrary chunk-local point.
+    pub fn sample_distance(&self, local: Vec3) -> Option<f32> {
+        let base = local.floor().as_ivec3();
+        let fraction = local - base.as_vec3();
 
         let d000 = self.sample(base)?.distance.0;
         let d100 = self.sample(base + IVec3::X)?.distance.0;
@@ -160,11 +145,7 @@ impl VoxelChunk {
         Some(y0 + (y1 - y0) * fraction.z)
     }
 
-    /// Finds the first empty-to-solid crossing along a ray.
-    ///
-    /// M0 deliberately uses a conservative fixed step. It is simple, stable on
-    /// edited sampled fields, and entirely replaceable by an accelerated query
-    /// once chunk hierarchy and physics arrive.
+    /// Finds the first empty-to-solid crossing along a chunk-local ray.
     pub fn raycast(&self, origin: Vec3, direction: Vec3, max_distance: f32) -> Option<VoxelRayHit> {
         let direction = direction.normalize_or_zero();
         if direction == Vec3::ZERO || max_distance <= 0.0 {
@@ -205,10 +186,24 @@ impl VoxelChunk {
         None
     }
 
-    pub fn apply_edit(&mut self, edit: VoxelEdit) -> VoxelChunkEditResult {
+    /// Applies one canonical semantic edit by projecting it into this chunk's
+    /// bounded local chart. The canonical edit remains the authoritative state.
+    pub fn apply_edit(
+        &mut self,
+        address: VoxelMaterializationChunkAddress,
+        edit: VoxelEdit,
+    ) -> VoxelChunkEditResult {
+        let extra_extent = MATERIALIZATION_CHUNK_SIZE as f32 + SAMPLE_PADDING as f32;
+        let Some(edit) = edit.localized(address.query_origin(), extra_extent) else {
+            return VoxelChunkEditResult {
+                changed_samples: 0,
+                revision: self.revision,
+            };
+        };
+
         let padding = IVec3::splat(SAMPLE_PADDING as i32);
-        let stored_min = self.origin - padding;
-        let stored_max = self.origin + IVec3::splat(MATERIALIZATION_CHUNK_SIZE as i32);
+        let stored_min = -padding;
+        let stored_max = IVec3::splat(MATERIALIZATION_CHUNK_SIZE as i32);
         let bounds = edit.influence_bounds();
         let edit_min = bounds.min.ceil().as_ivec3().max(stored_min);
         let edit_max = bounds.max.floor().as_ivec3().min(stored_max);
@@ -220,18 +215,18 @@ impl VoxelChunk {
             };
         }
 
-        let storage_min = (edit_min - self.origin + padding).as_uvec3();
-        let storage_max = (edit_max - self.origin + padding).as_uvec3();
+        let storage_min = (edit_min + padding).as_uvec3();
+        let storage_max = (edit_max + padding).as_uvec3();
         let mut changed_samples = 0;
 
         for z in storage_min.z..=storage_max.z {
             for y in storage_min.y..=storage_max.y {
                 for x in storage_min.x..=storage_max.x {
                     let storage = UVec3::new(x, y, z);
-                    let world = self.origin + storage.as_ivec3() - padding;
+                    let local = storage.as_ivec3() - padding;
                     let index = Self::index(storage);
                     let before = self.sample_at_index(index);
-                    let after = edit.apply_to_sample(world.as_vec3(), before);
+                    let after = edit.apply_to_sample(local.as_vec3(), before);
 
                     if after != before {
                         self.distances[index] = after.distance.0;
@@ -280,8 +275,8 @@ impl VoxelChunk {
         }
     }
 
-    fn storage_coord(&self, world: IVec3) -> Option<UVec3> {
-        let storage = world - self.origin + IVec3::splat(SAMPLE_PADDING as i32);
+    fn storage_coord(&self, local: IVec3) -> Option<UVec3> {
+        let storage = local + IVec3::splat(SAMPLE_PADDING as i32);
         let upper = IVec3::splat(SAMPLE_SIZE as i32);
 
         if storage.cmplt(IVec3::ZERO).any() || storage.cmpge(upper).any() {
@@ -302,11 +297,19 @@ mod tests {
     use bevy::prelude::Vec3;
 
     use super::*;
-    use crate::voxel::{VoxelBrush, VoxelMaterialId};
+    use crate::voxel::{VoxelBrush, VoxelQueryPosition};
+
+    fn address() -> VoxelMaterializationChunkAddress {
+        VoxelMaterializationChunkAddress::new(crate::spatial::UsfPosition::default())
+    }
+
+    fn query(local: Vec3) -> VoxelQueryPosition {
+        address().query_origin().translated(local).unwrap()
+    }
 
     #[test]
     fn new_chunk_needs_initial_mesh() {
-        let chunk = VoxelChunk::filled(IVec3::ZERO, VoxelSample::empty(100.0));
+        let chunk = VoxelChunk::filled(VoxelSample::empty(100.0));
         assert_eq!(chunk.revision(), 0);
         assert_eq!(chunk.meshed_revision(), None);
         assert!(chunk.needs_remesh());
@@ -314,14 +317,17 @@ mod tests {
 
     #[test]
     fn meshed_revision_tracks_authoritative_revision() {
-        let mut chunk = VoxelChunk::filled(IVec3::ZERO, VoxelSample::empty(100.0));
+        let mut chunk = VoxelChunk::filled(VoxelSample::empty(100.0));
         chunk.mark_meshed();
         assert!(!chunk.needs_remesh());
 
-        let result = chunk.apply_edit(VoxelEdit::Add {
-            brush: VoxelBrush::sphere(Vec3::splat(8.0), 2.0),
-            material: VoxelMaterialId::ROCK,
-        });
+        let result = chunk.apply_edit(
+            address(),
+            VoxelEdit::Add {
+                brush: VoxelBrush::sphere(query(Vec3::splat(8.0)), 2.0),
+                material: VoxelMaterialId::ROCK,
+            },
+        );
 
         assert!(result.changed());
         assert_eq!(chunk.revision(), 1);
@@ -331,19 +337,25 @@ mod tests {
     #[test]
     fn add_then_remove_changes_the_authoritative_field() {
         let center = IVec3::splat(8);
-        let mut chunk = VoxelChunk::filled(IVec3::ZERO, VoxelSample::empty(100.0));
+        let mut chunk = VoxelChunk::filled(VoxelSample::empty(100.0));
 
-        chunk.apply_edit(VoxelEdit::Add {
-            brush: VoxelBrush::sphere(center.as_vec3(), 2.0),
-            material: VoxelMaterialId::ROCK,
-        });
+        chunk.apply_edit(
+            address(),
+            VoxelEdit::Add {
+                brush: VoxelBrush::sphere(query(center.as_vec3()), 2.0),
+                material: VoxelMaterialId::ROCK,
+            },
+        );
         let added = chunk.sample(center).expect("center sample must exist");
         assert!(added.distance.is_solid());
         assert_eq!(added.material, VoxelMaterialId::ROCK);
 
-        chunk.apply_edit(VoxelEdit::Remove {
-            brush: VoxelBrush::sphere(center.as_vec3(), 2.0),
-        });
+        chunk.apply_edit(
+            address(),
+            VoxelEdit::Remove {
+                brush: VoxelBrush::sphere(query(center.as_vec3()), 2.0),
+            },
+        );
         let removed = chunk.sample(center).expect("center sample must exist");
         assert!(removed.distance.is_empty());
         assert_eq!(removed.material, VoxelMaterialId::VOID);
@@ -351,7 +363,7 @@ mod tests {
 
     #[test]
     fn padded_neighbor_samples_are_addressable() {
-        let chunk = VoxelChunk::generate(IVec3::ZERO, |point| {
+        let chunk = VoxelChunk::generate(|point| {
             VoxelSample::empty(point.x + point.y * 100.0 + point.z * 10_000.0)
         });
 
@@ -366,7 +378,7 @@ mod tests {
     #[test]
     fn raycast_finds_a_generated_sphere() {
         let center = Vec3::splat(8.0);
-        let chunk = VoxelChunk::generate(IVec3::ZERO, |point| {
+        let chunk = VoxelChunk::generate(|point| {
             let distance = point.distance(center) - 3.0;
             VoxelSample::new(
                 distance,

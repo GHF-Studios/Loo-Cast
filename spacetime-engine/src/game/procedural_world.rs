@@ -6,7 +6,8 @@ use bevy::prelude::*;
 use crate::{
     game::{player::{Player, PlayerNoclip}, portal::PortalTraveler},
     physics::character::{CharacterDimensions, CharacterMotor},
-    voxel::{ProceduralTerrain, VoxelBase, VoxelStreaming, VoxelWorld},
+    spatial::UsfSpatialFrame,
+    voxel::{ProceduralTerrain, VoxelBase, VoxelQueryPosition, VoxelStreaming, VoxelWorld},
 };
 
 use super::map_selection::GameMap;
@@ -30,6 +31,7 @@ impl Plugin for ProceduralWorldPlugin {
 fn spawn_procedural_world(
     mut commands: Commands,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    frame: Res<UsfSpatialFrame>,
     player: Single<Entity, With<Player>>,
 ) {
     let material = materials.add(StandardMaterial {
@@ -41,7 +43,7 @@ fn spawn_procedural_world(
     commands.spawn((
         Name::new("Procedural World"),
         ProceduralWorldRoot,
-        VoxelWorld::new(VoxelBase::terrain(WORLD_SEED)),
+        VoxelWorld::new_at(VoxelBase::terrain(WORLD_SEED), *frame.origin()),
         // Keep this as a deliberately small chunk-count window while the decimal
         // base materialization skeleton lands. Restoring a particular metric
         // radius belongs to aggregate processing / spatial-demand policy rather
@@ -61,6 +63,7 @@ fn spawn_procedural_world(
 /// immediately below the player receives collision before distant chunks.
 fn prepare_player(
     mut commands: Commands,
+    frame: Res<UsfSpatialFrame>,
     player: Single<(
         Entity,
         &mut Transform,
@@ -72,7 +75,11 @@ fn prepare_player(
     let (entity, mut transform, mut traveler, mut velocity, mut noclip) = player.into_inner();
     let x = 0.0;
     let z = 8.0;
-    let ground = ProceduralTerrain::new(WORLD_SEED).height(x, z);
+    let world_origin = VoxelQueryPosition::new(*frame.origin());
+    let terrain_query = world_origin
+        .translated(Vec3::new(x, 0.0, z))
+        .expect("procedural spawn query must translate canonically");
+    let ground = ProceduralTerrain::new(WORLD_SEED).height_at(world_origin, terrain_query);
     let position = Vec3::new(x, ground + CharacterDimensions::HALF_HEIGHT + 0.20, z);
 
     transform.translation = position;

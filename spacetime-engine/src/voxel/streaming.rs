@@ -1,9 +1,8 @@
-//! Player-centered materialization of dense voxel chunk caches.
+//! Viewer-centered materialization of dense voxel chunk caches.
 //!
 //! Streaming is optional per [`VoxelWorld`]. The authoritative world remains
-//! procedural base + sparse modifications; this module only decides which dense
-//! chunk caches should currently exist around a viewer. Expensive field
-//! generation runs on Bevy's async compute pool and is published later.
+//! procedural base + sparse semantic modifications; this module only decides
+//! which disposable dense base materializations should exist around a viewer.
 
 use std::collections::HashSet;
 
@@ -13,17 +12,21 @@ use bevy::{
     tasks::{AsyncComputeTaskPool, Task, futures::check_ready},
 };
 
+use crate::spatial::UsfSpatialFrame;
+
 use super::{
-    VoxelChunk, VoxelChunkCoord, VoxelChunkOf, VoxelWorld, empty_voxel_mesh,
-    world::VoxelChunkRecipe,
+    MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelChunkOf, VoxelMaterializationChunkAddress,
+    VoxelQueryPosition, VoxelWorld, empty_voxel_mesh, world::VoxelChunkRecipe,
 };
 
 /// Maximum number of finished generation tasks published into ECS in one frame.
-/// Task execution itself is already parallel; this caps main-thread structural
-/// work when many chunks happen to complete together.
 const GENERATION_PUBLISH_BUDGET_PER_FRAME: usize = 8;
 
-/// Opt-in policy for keeping chunks materialized around one viewer.
+/// Opt-in policy for keeping base materializations around one viewer.
+///
+/// `radius` is a bounded count of nearby `10³` base chunks, not a global chunk
+/// coordinate and not spatial-demand authority. M7.2 will replace the hard-coded
+/// viewer policy with merged canonical demand sources.
 #[derive(Component, Debug, Clone)]
 pub struct VoxelStreaming {
     viewer: Entity,
@@ -60,7 +63,7 @@ impl VoxelStreaming {
     }
 }
 
-/// Background construction of one dense chunk from an immutable procedural/edit
+/// Background construction of one dense chunk from an immutable semantic
 /// snapshot. `applied_edit_count` lets completion catch up with edits recorded
 /// while the task was running instead of invalidating and restarting the work.
 #[derive(Component)]
@@ -83,11 +86,16 @@ impl VoxelChunkGenerationTask {
 pub(crate) fn finish_chunk_generation(
     mut commands: Commands,
     worlds: Query<&VoxelWorld>,
-    mut tasks: Query<(Entity, &VoxelChunkOf, &mut VoxelChunkGenerationTask)>,
+    mut tasks: Query<(
+        Entity,
+        &VoxelChunkOf,
+        &VoxelMaterializationChunkAddress,
+        &mut VoxelChunkGenerationTask,
+    )>,
 ) {
     let mut published = 0;
 
-    for (entity, chunk_of, mut generation) in &mut tasks {
+    for (entity, chunk_of, address, mut generation) in &mut tasks {
         if published >= GENERATION_PUBLISH_BUDGET_PER_FRAME {
             break;
         }
@@ -97,14 +105,13 @@ pub(crate) fn finish_chunk_generation(
         };
 
         let Ok(world) = worlds.get(chunk_of.world) else {
-            // The owning world disappeared while background work was running.
             commands.entity(entity).despawn();
             continue;
         };
 
         catch_up_generated_chunk(
             world,
-            chunk_of.coord,
+            *address,
             generation.applied_edit_count,
             &mut chunk,
         );
@@ -116,42 +123,53 @@ pub(crate) fn finish_chunk_generation(
     }
 }
 
+/// Materialization entities are roots so their Transform is directly projected
+/// into the bounded runtime frame. This cleanup supplies lifecycle ownership
+/// without reintroducing transform inheritance from a potentially far-away
+/// `VoxelWorld` root.
+pub(crate) fn retire_orphaned_chunks(
+    mut commands: Commands,
+    worlds: Query<(), With<VoxelWorld>>,
+    chunks: Query<(Entity, &VoxelChunkOf)>,
+) {
+    for (entity, chunk_of) in &chunks {
+        if worlds.get(chunk_of.world).is_err() {
+            commands.entity(entity).despawn();
+        }
+    }
+}
+
 pub(crate) fn stream_voxel_chunks(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    viewers: Query<&Transform>,
-    mut worlds: Query<(Entity, &mut VoxelWorld, &VoxelStreaming, &Transform)>,
+    frame: Res<UsfSpatialFrame>,
+    viewers: Query<&GlobalTransform>,
+    mut worlds: Query<(Entity, &mut VoxelWorld, &VoxelStreaming)>,
 ) {
-    for (world_entity, mut world, streaming, world_transform) in &mut worlds {
+    let frame_origin = VoxelQueryPosition::new(*frame.origin());
+
+    for (world_entity, mut world, streaming) in &mut worlds {
         let Ok(viewer) = viewers.get(streaming.viewer) else {
             continue;
         };
-
-        // Query/generation coordinates remain local to the VoxelWorld root during
-        // M7.1 Pass A; canonical materialization identity is resolved separately.
-        // Floating-origin rebases move both viewer and world root, so convert the
-        // viewer back into that stable world-local chart before addressing bricks.
-        let viewer_in_world = viewer.translation - world_transform.translation;
-        let center = VoxelChunkCoord::containing(viewer_in_world);
-        let desired = desired_chunk_coords(center, streaming.radius)
-            .into_iter()
-            .filter_map(|coord| match world.chunk_address(coord) {
-                Ok(address) => Some((coord, address)),
-                Err(error) => {
-                    error!(?coord, ?error, "voxel materialization address overflow");
-                    None
-                }
-            })
-            .collect::<Vec<_>>();
+        let viewer_local = viewer.translation();
+        let Ok(viewer_semantic) = frame_origin.translated(viewer_local) else {
+            error!(?viewer_local, "voxel viewer semantic projection failed");
+            continue;
+        };
+        let Ok(center) = world.materialization_address_containing(viewer_semantic) else {
+            error!("voxel viewer uses an incompatible semantic leaf scale");
+            continue;
+        };
+        let Ok(desired) = desired_chunk_addresses(center, streaming.radius) else {
+            error!("voxel streaming window could not be represented canonically");
+            continue;
+        };
         let desired_set = desired
             .iter()
             .map(|(_, address)| *address)
             .collect::<HashSet<_>>();
 
-        // Dense chunks and in-flight chunk tasks are disposable. Drop either
-        // when their canonical materialization address leaves the active window;
-        // authoritative edits remain in the VoxelWorld and will be replayed if
-        // that address returns later.
         let stale = world
             .chunk_entries()
             .filter(|(address, _)| !desired_set.contains(address))
@@ -162,41 +180,44 @@ pub(crate) fn stream_voxel_chunks(
             commands.entity(entity).despawn();
         }
 
-        // Reserve nearest missing coordinates first, but only start a bounded
-        // number of expensive generation tasks each frame. The returned Task is
-        // retained on the placeholder entity; dropping that entity cancels work
-        // that streamed out before completion. The local coordinate remains only
-        // the Pass-B compatibility input to generation/projection; reservation
-        // identity is already canonical.
+        let radius_max = streaming.radius.max(IVec3::ZERO).max_element() as f32;
+        let projection_bound = viewer_local.abs().max_element()
+            + (radius_max + 2.0) * MATERIALIZATION_CHUNK_SIZE as f32
+            + 1.0;
+
         let mut requested = 0;
-        for (coord, address) in desired {
+        for (offset, address) in desired {
             if world.chunk_entity(address).is_some() {
                 continue;
             }
 
-            let generation = VoxelChunkGenerationTask::spawn(world.chunk_recipe(coord));
-            let value = coord.0;
+            let Ok(local_translation) = address
+                .query_origin()
+                .relative_to(frame_origin, projection_bound)
+            else {
+                error!(?address, "nearby voxel materialization could not project into local frame");
+                continue;
+            };
+            let generation = VoxelChunkGenerationTask::spawn(world.chunk_recipe(address));
             let chunk_entity = commands
                 .spawn((
                     Name::new(format!(
-                        "Voxel Materialization Chunk ({}, {}, {})",
-                        value.x, value.y, value.z
+                        "Voxel Materialization Chunk [{:+}, {:+}, {:+}]",
+                        offset.x, offset.y, offset.z
                     )),
-                    VoxelChunkOf::new(world_entity, coord),
+                    VoxelChunkOf::new(world_entity),
                     address,
                     generation,
                     Mesh3d(meshes.add(empty_voxel_mesh())),
                     MeshMaterial3d(streaming.material.clone()),
                     NoFrustumCulling,
-                    Transform::from_translation(coord.origin().as_vec3()),
+                    Transform::from_translation(local_translation),
                 ))
                 .id();
 
             // Generation is asynchronous, so the old attribute-less placeholder
             // could otherwise survive into render extraction for several frames.
             commands.entity(chunk_entity).remove::<Mesh3d>();
-
-            commands.entity(world_entity).add_child(chunk_entity);
             assert!(world.insert_chunk(address, chunk_entity).is_none());
 
             requested += 1;
@@ -208,90 +229,110 @@ pub(crate) fn stream_voxel_chunks(
 }
 
 /// Applies edits appended after a generation task took its immutable snapshot.
-/// This preserves ordered edit semantics without throwing away completed work.
 fn catch_up_generated_chunk(
     world: &VoxelWorld,
-    coord: VoxelChunkCoord,
+    address: VoxelMaterializationChunkAddress,
     applied_edit_count: usize,
     chunk: &mut VoxelChunk,
 ) {
     for edit in world
         .modifications()
-        .for_chunk_since(coord, applied_edit_count)
+        .for_chunk_since(address, applied_edit_count)
     {
-        chunk.apply_edit(edit);
+        chunk.apply_edit(address, edit);
     }
 }
 
-fn desired_chunk_coords(center: VoxelChunkCoord, radius: IVec3) -> Vec<VoxelChunkCoord> {
+fn desired_chunk_addresses(
+    center: VoxelMaterializationChunkAddress,
+    radius: IVec3,
+) -> Result<Vec<(IVec3, VoxelMaterializationChunkAddress)>, crate::spatial::UsfPositionError> {
     let radius = radius.max(IVec3::ZERO);
-    let mut result = Vec::with_capacity(
-        ((radius.x * 2 + 1) * (radius.y * 2 + 1) * (radius.z * 2 + 1)) as usize,
-    );
+    // The radius is policy input rather than semantic identity. Avoid doing its
+    // capacity arithmetic in i32 so even malformed/extreme policy values cannot
+    // overflow before the bounded-neighborhood iteration itself is considered.
+    let mut offsets = Vec::new();
 
     for z in -radius.z..=radius.z {
         for y in -radius.y..=radius.y {
             for x in -radius.x..=radius.x {
-                result.push(VoxelChunkCoord::new(center.0 + IVec3::new(x, y, z)));
+                offsets.push(IVec3::new(x, y, z));
             }
         }
     }
+    offsets.sort_by_key(|offset| chunk_distance_squared(*offset));
 
-    result.sort_by_key(|coord| chunk_distance_squared(center, *coord));
-    result
+    offsets
+        .into_iter()
+        .map(|offset| center.translated_chunks(offset).map(|address| (offset, address)))
+        .collect()
 }
 
-fn chunk_distance_squared(a: VoxelChunkCoord, b: VoxelChunkCoord) -> i64 {
-    let delta = b.0 - a.0;
-    let x = delta.x as i64;
-    let y = delta.y as i64;
-    let z = delta.z as i64;
+fn chunk_distance_squared(delta: IVec3) -> i128 {
+    let x = i128::from(delta.x);
+    let y = i128::from(delta.y);
+    let z = i128::from(delta.z);
     x * x + y * y + z * z
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::voxel::{VoxelBase, VoxelBrush, VoxelEdit, VoxelMaterialId};
+    use crate::voxel::{
+        VoxelBase, VoxelBrush, VoxelEdit, VoxelMaterialId, VoxelQueryPosition,
+    };
+
+    fn query(local: Vec3) -> VoxelQueryPosition {
+        VoxelQueryPosition::from_scale0_local(local).unwrap()
+    }
 
     #[test]
     fn streaming_window_is_centered_unique_and_nearest_first() {
-        let center = VoxelChunkCoord::new(IVec3::new(7, -3, 12));
-        let coords = desired_chunk_coords(center, IVec3::new(2, 1, 2));
+        let center = VoxelMaterializationChunkAddress::new(crate::spatial::UsfPosition::default());
+        let addresses = desired_chunk_addresses(center, IVec3::new(2, 1, 2)).unwrap();
 
-        assert_eq!(coords.len(), 75);
-        assert_eq!(coords[0], center);
-        assert_eq!(coords.iter().copied().collect::<HashSet<_>>().len(), 75);
-        assert!(coords.iter().all(|coord| {
-            let delta = coord.0 - center.0;
-            delta.x.abs() <= 2 && delta.y.abs() <= 1 && delta.z.abs() <= 2
+        assert_eq!(addresses.len(), 75);
+        assert_eq!(addresses[0], (IVec3::ZERO, center));
+        assert_eq!(
+            addresses
+                .iter()
+                .map(|(_, address)| *address)
+                .collect::<HashSet<_>>()
+                .len(),
+            75
+        );
+        assert!(addresses.iter().all(|(offset, _)| {
+            offset.x.abs() <= 2 && offset.y.abs() <= 1 && offset.z.abs() <= 2
         }));
     }
 
     #[test]
     fn generation_completion_replays_edits_recorded_while_task_was_running() {
-        let coord = VoxelChunkCoord::new(IVec3::ZERO);
-        let center = Vec3::splat(8.0);
         let mut world = VoxelWorld::new(VoxelBase::Empty);
-        let recipe = world.chunk_recipe(coord);
+        let address = world
+            .materialization_address_containing(query(Vec3::splat(8.0)))
+            .unwrap();
+        let center = query(Vec3::splat(8.0));
+        let recipe = world.chunk_recipe(address);
         let applied_edit_count = recipe.applied_edit_count();
 
-        // A distant post-snapshot edit consumes a global edit index but should
-        // never be considered while catching this chunk up.
-        world.record_edit(VoxelEdit::Add {
-            brush: VoxelBrush::sphere(Vec3::splat(1000.0), 2.0),
-            material: VoxelMaterialId::ROCK,
-        });
-        world.record_edit(VoxelEdit::Add {
-            brush: VoxelBrush::sphere(center, 2.0),
-            material: VoxelMaterialId::ROCK,
-        });
+        world
+            .record_edit(VoxelEdit::Add {
+                brush: VoxelBrush::sphere(query(Vec3::splat(1000.0)), 2.0),
+                material: VoxelMaterialId::ROCK,
+            })
+            .unwrap();
+        world
+            .record_edit(VoxelEdit::Add {
+                brush: VoxelBrush::sphere(center, 2.0),
+                material: VoxelMaterialId::ROCK,
+            })
+            .unwrap();
 
-        // Pretend this value arrived from the background worker after the edit.
         let mut chunk = recipe.materialize();
-        assert!(chunk.sample(center.as_ivec3()).unwrap().distance.is_empty());
+        assert!(chunk.sample(IVec3::splat(8)).unwrap().distance.is_empty());
 
-        catch_up_generated_chunk(&world, coord, applied_edit_count, &mut chunk);
-        assert!(chunk.sample(center.as_ivec3()).unwrap().distance.is_solid());
+        catch_up_generated_chunk(&world, address, applied_edit_count, &mut chunk);
+        assert!(chunk.sample(IVec3::splat(8)).unwrap().distance.is_solid());
     }
 }

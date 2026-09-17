@@ -15,7 +15,7 @@ use super::{MATERIALIZATION_CHUNK_SIZE, VoxelChunk, mesh::VoxelSurface};
 pub const VOXEL_COLLISION_MARGIN: f32 = 0.02;
 
 pub(crate) fn build_chunk_collider(
-    chunk: &VoxelChunk,
+    _chunk: &VoxelChunk,
     surface: &VoxelSurface,
 ) -> Option<Collider> {
     let triangles = owned_triangles(surface);
@@ -37,11 +37,7 @@ pub(crate) fn build_chunk_collider(
     ) {
         Ok(collider) => Some(collider),
         Err(error) => {
-            warn!(
-                ?error,
-                origin = ?chunk.origin(),
-                "failed to build voxel chunk collider"
-            );
+            warn!(?error, "failed to build voxel chunk collider");
             None
         }
     }

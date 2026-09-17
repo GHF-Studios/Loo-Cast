@@ -19,7 +19,9 @@ pub use base::{ProceduralTerrain, VoxelBase};
 pub use chunk::{
     CHUNK_SIZE, MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelChunkEditResult, VoxelRayHit,
 };
-pub use edit::{EDIT_INFLUENCE_MARGIN, VoxelBounds, VoxelBrush, VoxelEdit};
+pub use edit::{
+    EDIT_INFLUENCE_MARGIN, VoxelBounds, VoxelBrush, VoxelEdit, VoxelQueryPosition,
+};
 pub use field::{SignedDistance, VoxelMaterialId, VoxelSample};
 pub use modification::VoxelModificationLayer;
 pub use streaming::VoxelStreaming;
@@ -33,7 +35,14 @@ pub struct VoxelPlugin;
 
 impl Plugin for VoxelPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, streaming::stream_voxel_chunks)
+        app.add_systems(
+            Update,
+            (
+                streaming::retire_orphaned_chunks,
+                streaming::stream_voxel_chunks,
+            )
+                .chain(),
+        )
             .add_systems(
                 PostUpdate,
                 (
