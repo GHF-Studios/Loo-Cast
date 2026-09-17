@@ -9,6 +9,7 @@ pub mod ecs;
 pub mod game;
 pub mod geometry;
 pub mod physics;
+pub mod procedural_assets;
 pub mod spatial;
 pub mod ui;
 pub mod view;

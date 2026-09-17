@@ -99,6 +99,7 @@ impl Plugin for TestGamePlugin {
                 environment::EnvironmentLightingPlugin,
                 map_selection::MapSelectionPlugin,
                 combat::CombatPlugin,
+                crate::procedural_assets::ProceduralAssetsPlugin,
                 crate::spatial::UsfSpatialPlugin,
                 player::PlayerPlugin,
                 portal::PortalPlugin,
@@ -121,9 +122,10 @@ fn setup_scene(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    procedural_assets: Res<crate::procedural_assets::ProceduralAssetLibrary>,
 ) {
     commands.insert_resource(GameAssets {
-        damageable_cube_material: materials.add(Color::srgb(0.8, 0.2, 0.2)),
+        damageable_cube_material: procedural_assets.cracked_clay.material.clone(),
         projectile_mesh: meshes.add(Sphere::new(0.1)),
         projectile_material: materials.add(Color::WHITE),
     });
