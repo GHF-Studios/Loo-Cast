@@ -116,13 +116,7 @@ impl WorldDrawBatch {
         });
     }
 
-    pub fn rect(
-        &mut self,
-        isometry: Isometry3d,
-        size: Vec2,
-        color: Color,
-        depth: DrawDepth,
-    ) {
+    pub fn rect(&mut self, isometry: Isometry3d, size: Vec2, color: Color, depth: DrawDepth) {
         self.primitives.push(WorldPrimitive::Rect {
             isometry,
             size,
@@ -131,13 +125,7 @@ impl WorldDrawBatch {
         });
     }
 
-    pub fn cross(
-        &mut self,
-        isometry: Isometry3d,
-        size: f32,
-        color: Color,
-        depth: DrawDepth,
-    ) {
+    pub fn cross(&mut self, isometry: Isometry3d, size: f32, color: Color, depth: DrawDepth) {
         self.primitives.push(WorldPrimitive::Cross {
             isometry,
             size,

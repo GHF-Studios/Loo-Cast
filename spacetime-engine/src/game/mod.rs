@@ -5,9 +5,10 @@ mod devtools;
 mod environment;
 pub mod map_selection;
 pub mod player;
-mod procedural_world;
 pub mod playground;
 pub mod portal;
+mod procedural_world;
+mod scale_stack;
 pub mod thermal;
 
 use bevy::prelude::*;

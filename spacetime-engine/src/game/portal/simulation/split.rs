@@ -24,8 +24,7 @@ use crate::{
         character::{CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame},
         topology::{
             KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeer, SpatialSplitPeerActive,
-            SplitPlane,
-            partition_box_by_plane,
+            SplitPlane, partition_box_by_plane,
         },
     },
 };
@@ -62,10 +61,7 @@ pub(crate) enum PortalSplitSet {
 /// one-frame ground contact before traversal gets a chance to happen.
 pub(crate) fn prepare_portal_splits(
     time: Res<Time<Fixed>>,
-    portals: Query<
-        (Entity, &Portal, &PortalActive, &Transform),
-        With<Portal>,
-    >,
+    portals: Query<(Entity, &Portal, &PortalActive, &Transform), With<Portal>>,
     mut travelers: Query<
         (
             &mut Transform,
@@ -84,14 +80,8 @@ pub(crate) fn prepare_portal_splits(
 ) {
     let dt = time.delta_secs().max(0.0);
 
-    for (
-        mut body,
-        locomotion_frame,
-        velocity,
-        split_box,
-        mut split,
-        mut exclusions,
-    ) in &mut travelers
+    for (mut body, locomotion_frame, velocity, split_box, mut split, mut exclusions) in
+        &mut travelers
     {
         let peer = split.peer();
 
@@ -130,10 +120,7 @@ pub(crate) fn prepare_portal_splits(
 /// mapped through the portal. Outside the overlap interval the peer is disabled.
 pub(crate) fn materialize_portal_splits(
     mut commands: Commands,
-    portals: Query<
-        (&Portal, &PortalActive, &Transform),
-        With<Portal>,
-    >,
+    portals: Query<(&Portal, &PortalActive, &Transform), With<Portal>>,
     mut authorities: Query<
         (
             Entity,
@@ -159,9 +146,7 @@ pub(crate) fn materialize_portal_splits(
         ),
     >,
 ) {
-    for (_authority, body, velocity, split_box, split, mut authority_collider) in
-        &mut authorities
-    {
+    for (_authority, body, velocity, split_box, split, mut authority_collider) in &mut authorities {
         let peer_entity = split.peer();
         let Ok((mut peer_transform, mut peer_velocity, mut peer_collider)) =
             peers.get_mut(peer_entity)
@@ -254,10 +239,7 @@ pub(crate) fn materialize_portal_splits(
 pub(crate) fn resolve_portal_splits(
     time: Res<Time<Fixed>>,
     move_and_slide: MoveAndSlide,
-    portals: Query<
-        (Entity, &Portal, &PortalActive, &Transform),
-        With<Portal>,
-    >,
+    portals: Query<(Entity, &Portal, &PortalActive, &Transform), With<Portal>>,
     mut travelers: Query<
         (
             Entity,
@@ -352,8 +334,9 @@ pub(crate) fn resolve_portal_splits(
                         destination,
                     )
                     .rotation;
-                    let target = locomotion_frame
-                        .map_or(mapped_control, |frame| frame.aligned_rotation(mapped_control));
+                    let target = locomotion_frame.map_or(mapped_control, |frame| {
+                        frame.aligned_rotation(mapped_control)
+                    });
                     control.begin_settle(
                         mapped_control,
                         target,
@@ -425,10 +408,7 @@ fn finish_character_split(
 
 fn active_pair_is_valid(
     split: ActivePortalSplit,
-    portals: &Query<
-        (Entity, &Portal, &PortalActive, &Transform),
-        With<Portal>,
-    >,
+    portals: &Query<(Entity, &Portal, &PortalActive, &Transform), With<Portal>>,
 ) -> bool {
     portals
         .get(split.source)
@@ -443,10 +423,7 @@ fn find_split_candidate(
     body: &Transform,
     velocity: Vec3,
     dt: f32,
-    portals: &Query<
-        (Entity, &Portal, &PortalActive, &Transform),
-        With<Portal>,
-    >,
+    portals: &Query<(Entity, &Portal, &PortalActive, &Transform), With<Portal>>,
 ) -> Option<ActivePortalSplit> {
     let mut best: Option<(f32, ActivePortalSplit)> = None;
 
@@ -519,10 +496,7 @@ fn box_reaches_portal_this_tick(
     velocity: Vec3,
     dt: f32,
     source_entity: Entity,
-    portals: &Query<
-        (Entity, &Portal, &PortalActive, &Transform),
-        With<Portal>,
-    >,
+    portals: &Query<(Entity, &Portal, &PortalActive, &Transform), With<Portal>>,
 ) -> bool {
     let Ok((_, portal, active, source)) = portals.get(source_entity) else {
         return false;
@@ -553,7 +527,11 @@ fn box_reaches_portal_this_tick(
         )
 }
 
-pub(super) fn candidate_side(distance: f32, normal_speed: f32, support_radius: f32) -> Option<PortalSide> {
+pub(super) fn candidate_side(
+    distance: f32,
+    normal_speed: f32,
+    support_radius: f32,
+) -> Option<PortalSide> {
     // If the hull already touches/straddles the portal, allow a stationary or
     // inward-moving body to open the host surface. This covers placing a floor
     // portal beneath a standing player. An outward-moving body must not
@@ -581,7 +559,12 @@ pub(super) fn candidate_side(distance: f32, normal_speed: f32, support_radius: f
     }
 }
 
-pub(super) fn projected_crossing_center(center: Vec3, velocity: Vec3, dt: f32, plane: SplitPlane) -> Vec3 {
+pub(super) fn projected_crossing_center(
+    center: Vec3,
+    velocity: Vec3,
+    dt: f32,
+    plane: SplitPlane,
+) -> Vec3 {
     let distance = plane.signed_distance(center);
     let normal_speed = velocity.dot(plane.normal);
     if normal_speed.abs() > CROSSING_EPSILON {

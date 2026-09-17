@@ -8,8 +8,7 @@ use crate::spatial::{UsfPosition, UsfPositionError};
 
 use super::{
     MATERIALIZATION_CHUNK_SIZE, VoxelBase, VoxelBounds, VoxelChunk, VoxelEdit,
-    VoxelModificationLayer, VoxelQueryPosition, VoxelSample,
-    chunk::SAMPLE_PADDING,
+    VoxelModificationLayer, VoxelQueryPosition, VoxelSample, chunk::SAMPLE_PADDING,
 };
 
 /// Transitional coordinate in the original `VoxelWorld`-local sampling lattice.
@@ -46,7 +45,11 @@ impl VoxelChunkCoord {
 
     /// Local compatibility chunk containing one nearby scale-0 point.
     pub fn containing(point: Vec3) -> Self {
-        Self((point / MATERIALIZATION_CHUNK_SIZE as f32).floor().as_ivec3())
+        Self(
+            (point / MATERIALIZATION_CHUNK_SIZE as f32)
+                .floor()
+                .as_ivec3(),
+        )
     }
 }
 
@@ -443,11 +446,8 @@ mod tests {
     fn containing_address_crosses_usf_carry_without_flat_grid_identity() {
         let origin = UsfPosition::from_scale0_local(Vec3::new(499.0, 0.0, 0.0)).unwrap();
         let world = VoxelWorld::new_at(VoxelBase::Empty, origin);
-        let point = VoxelQueryPosition::new(
-            origin
-                .translated_native(Vec3::new(12.0, 0.0, 0.0))
-                .unwrap(),
-        );
+        let point =
+            VoxelQueryPosition::new(origin.translated_native(Vec3::new(12.0, 0.0, 0.0)).unwrap());
         let address = world.materialization_address_containing(point).unwrap();
 
         assert_eq!(
@@ -481,7 +481,9 @@ mod tests {
         let addresses = world
             .materialization_addresses_intersecting(edit.influence_bounds())
             .unwrap();
-        let left = world.chunk_address(VoxelChunkCoord::new(IVec3::ZERO)).unwrap();
+        let left = world
+            .chunk_address(VoxelChunkCoord::new(IVec3::ZERO))
+            .unwrap();
         let right = world.chunk_address(VoxelChunkCoord::new(IVec3::X)).unwrap();
 
         assert!(addresses.contains(&left));
@@ -491,7 +493,9 @@ mod tests {
     #[test]
     fn neighbor_chunks_store_identical_overlap_after_cross_boundary_edit() {
         let world = VoxelWorld::new(VoxelBase::Empty);
-        let left_address = world.chunk_address(VoxelChunkCoord::new(IVec3::ZERO)).unwrap();
+        let left_address = world
+            .chunk_address(VoxelChunkCoord::new(IVec3::ZERO))
+            .unwrap();
         let right_address = world.chunk_address(VoxelChunkCoord::new(IVec3::X)).unwrap();
         let mut left = VoxelChunk::generate(|_| VoxelSample::empty(100.0));
         let mut right = VoxelChunk::generate(|_| VoxelSample::empty(100.0));
@@ -503,8 +507,16 @@ mod tests {
             material: VoxelMaterialId::ROCK,
         };
 
-        assert!(left_address.sample_bounds().intersects(edit.influence_bounds()));
-        assert!(right_address.sample_bounds().intersects(edit.influence_bounds()));
+        assert!(
+            left_address
+                .sample_bounds()
+                .intersects(edit.influence_bounds())
+        );
+        assert!(
+            right_address
+                .sample_bounds()
+                .intersects(edit.influence_bounds())
+        );
         left.apply_edit(left_address, edit);
         right.apply_edit(right_address, edit);
 
@@ -515,11 +527,7 @@ mod tests {
             for y in 2..=8 {
                 for z in 2..=8 {
                     let left_point = IVec3::new(world_x, y, z);
-                    let right_point = IVec3::new(
-                        world_x - MATERIALIZATION_CHUNK_SIZE as i32,
-                        y,
-                        z,
-                    );
+                    let right_point = IVec3::new(world_x - MATERIALIZATION_CHUNK_SIZE as i32, y, z);
                     assert_eq!(left.sample(left_point), right.sample(right_point));
                 }
             }
@@ -534,10 +542,19 @@ mod tests {
             VoxelBase::sphere(center, 6.0, VoxelMaterialId::ROCK),
             world_origin,
         );
-        let address = world.chunk_address(VoxelChunkCoord::new(IVec3::ZERO)).unwrap();
+        let address = world
+            .chunk_address(VoxelChunkCoord::new(IVec3::ZERO))
+            .unwrap();
         let point = IVec3::splat(8);
 
-        assert!(world.materialize_chunk(address).sample(point).unwrap().distance.is_solid());
+        assert!(
+            world
+                .materialize_chunk(address)
+                .sample(point)
+                .unwrap()
+                .distance
+                .is_solid()
+        );
 
         world
             .record_edit(VoxelEdit::Remove {

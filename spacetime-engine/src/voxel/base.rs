@@ -32,11 +32,7 @@ impl Default for VoxelBase {
 }
 
 impl VoxelBase {
-    pub fn sphere(
-        center: VoxelQueryPosition,
-        radius: f32,
-        material: VoxelMaterialId,
-    ) -> Self {
+    pub fn sphere(center: VoxelQueryPosition, radius: f32, material: VoxelMaterialId) -> Self {
         Self::Sphere {
             center,
             radius: radius.max(0.0),
@@ -112,12 +108,7 @@ impl ProceduralTerrain {
     /// This keeps the current voxel generator replaceable: geology/worldgen owns
     /// the semantic parameters while `ProceduralTerrain` only turns them into a
     /// reconstructible field until the richer volumetric realizer replaces it.
-    pub const fn configured(
-        seed: u32,
-        base_height: f32,
-        amplitude: f32,
-        frequency: f32,
-    ) -> Self {
+    pub const fn configured(seed: u32, base_height: f32, amplitude: f32, frequency: f32) -> Self {
         Self {
             seed,
             base_height,
@@ -137,11 +128,7 @@ impl ProceduralTerrain {
     }
 
     /// Terrain height in bounded units relative to `world_origin`.
-    pub fn height_at(
-        self,
-        world_origin: VoxelQueryPosition,
-        point: VoxelQueryPosition,
-    ) -> f32 {
+    pub fn height_at(self, world_origin: VoxelQueryPosition, point: VoxelQueryPosition) -> f32 {
         // Keep the existing terrain bit-for-bit in the ordinary gameplay region.
         // The bound is policy for this temporary generator, not semantic space.
         if let Ok(local) = point.relative_to(world_origin, TERRAIN_DIRECT_LOCAL_LIMIT) {
@@ -149,11 +136,7 @@ impl ProceduralTerrain {
         }
 
         let frequency = self.frequency.max(f32::EPSILON);
-        let broad = semantic_value_noise(
-            point,
-            canonical_cell_size(1.0 / frequency),
-            self.seed,
-        );
+        let broad = semantic_value_noise(point, canonical_cell_size(1.0 / frequency), self.seed);
         let medium = semantic_value_noise(
             point,
             canonical_cell_size(1.0 / (frequency * 2.13)),
@@ -223,9 +206,8 @@ fn value_noise(point: Vec2, seed: u32) -> f32 {
 }
 
 fn hash_noise(x: i32, y: i32, seed: u32) -> f32 {
-    let mut value = seed
-        ^ (x as u32).wrapping_mul(0x9E37_79B9)
-        ^ (y as u32).wrapping_mul(0x85EB_CA6B);
+    let mut value =
+        seed ^ (x as u32).wrapping_mul(0x9E37_79B9) ^ (y as u32).wrapping_mul(0x85EB_CA6B);
     value ^= value >> 16;
     value = value.wrapping_mul(0x7FEB_352D);
     value ^= value >> 15;
@@ -329,8 +311,14 @@ mod tests {
         let origin = query(Vec3::ZERO);
         let point = query(Vec3::new(123.5, 0.0, -87.25));
 
-        assert_eq!(terrain.height_at(origin, point), terrain.height(123.5, -87.25));
-        assert_eq!(terrain.sample_at(origin, point), terrain.sample_at(origin, point));
+        assert_eq!(
+            terrain.height_at(origin, point),
+            terrain.height(123.5, -87.25)
+        );
+        assert_eq!(
+            terrain.sample_at(origin, point),
+            terrain.sample_at(origin, point)
+        );
         assert_ne!(
             terrain.height_at(origin, point),
             ProceduralTerrain::new(43).height_at(origin, point)

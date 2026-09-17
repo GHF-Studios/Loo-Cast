@@ -1,5 +1,5 @@
-use proc_macro2::{Span, TokenStream};
 use proc_macro_crate::{FoundCrate, crate_name};
+use proc_macro2::{Span, TokenStream};
 use quote::{quote, quote_spanned};
 use syn::{
     Ident, Item, Result, Token, Type,
@@ -19,13 +19,10 @@ struct ConflictArguments {
 
 impl Parse for ConflictArguments {
     fn parse(input: ParseStream) -> Result<Self> {
-        let components =
-            Punctuated::<Type, Token![,]>::parse_terminated(input)?;
+        let components = Punctuated::<Type, Token![,]>::parse_terminated(input)?;
 
         if components.is_empty() {
-            return Err(input.error(
-                "expected at least one conflicting component type",
-            ));
+            return Err(input.error("expected at least one conflicting component type"));
         }
 
         Ok(Self { components })
@@ -44,10 +41,7 @@ pub struct Conflict {
 }
 
 impl Conflict {
-    pub fn parse(
-        attr: TokenStream,
-        item: TokenStream,
-    ) -> Result<Self> {
+    pub fn parse(attr: TokenStream, item: TokenStream) -> Result<Self> {
         let arguments = syn::parse2::<ConflictArguments>(attr)?;
         let item = syn::parse2::<Item>(item)?;
 
@@ -73,8 +67,7 @@ impl Conflict {
         Ok(Self {
             item,
             component_ident,
-            conflicting_components:
-            arguments.components.into_iter().collect(),
+            conflicting_components: arguments.components.into_iter().collect(),
         })
     }
 
@@ -112,9 +105,7 @@ impl Conflict {
     }
 }
 
-fn ensure_non_generic(
-    generics: &syn::Generics,
-) -> Result<()> {
+fn ensure_non_generic(generics: &syn::Generics) -> Result<()> {
     if generics.params.is_empty() {
         return Ok(());
     }
@@ -141,9 +132,7 @@ fn spacetime_engine_path() -> Result<TokenStream> {
 
         Err(error) => Err(syn::Error::new(
             Span::call_site(),
-            format!(
-                "could not resolve runtime crate `{SPACETIME_ENGINE_CRATE}`: {error}"
-            ),
+            format!("could not resolve runtime crate `{SPACETIME_ENGINE_CRATE}`: {error}"),
         )),
     }
 }

@@ -143,7 +143,10 @@ fn sanitize_extent(value: f32) -> f32 {
 pub(super) fn configure(app: &mut App) {
     app.init_resource::<SpatialDemandSnapshot>()
         .configure_sets(Update, SpatialDemandSet::Collect)
-        .add_systems(Update, collect_spatial_demand.in_set(SpatialDemandSet::Collect));
+        .add_systems(
+            Update,
+            collect_spatial_demand.in_set(SpatialDemandSet::Collect),
+        );
 }
 
 fn collect_spatial_demand(

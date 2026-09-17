@@ -11,9 +11,7 @@ use crate::{
     game::{
         GameAssets, GameSet,
         combat::{Health, Hitbox},
-        portal::{
-            PortalRigidSplitBody, PortalSplitTraveler, PortalSplitVisual, PortalTraveler,
-        },
+        portal::{PortalRigidSplitBody, PortalSplitTraveler, PortalSplitVisual, PortalTraveler},
         thermal::{
             CombustibleMaterial, Fuel, ThermalBody, ThermalField, ThermalMaterial,
             ThermalSpatialSample,
@@ -125,11 +123,8 @@ fn use_cube_items(
         };
 
         let thermal_material = ThermalMaterial::dry_wood();
-        let thermal_field = ThermalField::ambient_box(
-            Vec3::splat(CUBE_SIZE),
-            UVec3::splat(6),
-            &thermal_material,
-        );
+        let thermal_field =
+            ThermalField::ambient_box(Vec3::splat(CUBE_SIZE), UVec3::splat(6), &thermal_material);
         let thermal_capacity =
             thermal_field.total_heat_capacity_joules_per_kelvin(&thermal_material);
 

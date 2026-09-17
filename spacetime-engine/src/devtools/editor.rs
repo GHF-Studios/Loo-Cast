@@ -6,8 +6,8 @@
 //! reflection surface.
 
 use bevy::{
-    camera::{CameraOutputMode, ClearColorConfig, Viewport},
     camera::visibility::RenderLayers,
+    camera::{CameraOutputMode, ClearColorConfig, Viewport},
     prelude::*,
     render::render_resource::BlendState,
     window::PrimaryWindow,
@@ -169,10 +169,7 @@ fn toggle_editor_shell(
 }
 
 fn draw_editor_shell(world: &mut World) {
-    if !world
-        .resource::<PrimaryViewPresentation>()
-        .is_embedded()
-    {
+    if !world.resource::<PrimaryViewPresentation>().is_embedded() {
         set_primary_game_viewport(world, None, true);
         return;
     }
@@ -278,12 +275,7 @@ fn draw_transform_space_control(ui: &mut egui::Ui, world: &mut World) {
             .get::<EditorTransformGizmoSettings>()
             .expect("Transform gizmo settings must be registered for inspection");
         let widgets = world.resource::<InspectorWidgetRegistry>();
-        let _ = inspect_ui::edit_registered_inspectable(
-            ui,
-            registration,
-            &mut *settings,
-            widgets,
-        );
+        let _ = inspect_ui::edit_registered_inspectable(ui, registration, &mut *settings, widgets);
     });
 }
 
@@ -313,7 +305,9 @@ fn apply_hierarchy_selection(world: &mut World, selected: &[Entity]) {
 
     let target = focus_target_for_entity(world, entity);
     world.resource_mut::<DeveloperFocus>().select(target);
-    world.resource_mut::<StructureSelection>().select_entity(target);
+    world
+        .resource_mut::<StructureSelection>()
+        .select_entity(target);
 }
 
 fn focus_target_for_entity(world: &World, entity: Entity) -> FocusTarget {
@@ -340,10 +334,7 @@ fn egui_rect_to_viewport(
     max.x = max.x.min(target_size.x);
     max.y = max.y.min(target_size.y);
 
-    let size = UVec2::new(
-        max.x.saturating_sub(min.x),
-        max.y.saturating_sub(min.y),
-    );
+    let size = UVec2::new(max.x.saturating_sub(min.x), max.y.saturating_sub(min.y));
     if size.x < 2 || size.y < 2 {
         return None;
     }
@@ -467,9 +458,14 @@ fn draw_structure(ui: &mut egui::Ui, world: &mut World) {
     ui.add_space(4.0);
 
     let selected_item = world.resource::<StructureSelection>().item_for(target);
-    if ui.selectable_label(selected_item.is_none(), "Entity").clicked() {
+    if ui
+        .selectable_label(selected_item.is_none(), "Entity")
+        .clicked()
+    {
         world.resource_mut::<DeveloperFocus>().select(target);
-        world.resource_mut::<StructureSelection>().select_entity(target);
+        world
+            .resource_mut::<StructureSelection>()
+            .select_entity(target);
     }
 
     let items = world
@@ -535,7 +531,9 @@ fn select_related_entity(world: &mut World, entity: Entity) {
     let target = focus_target_for_entity(world, entity);
     world.resource_mut::<DeveloperFocus>().clear_pin();
     world.resource_mut::<DeveloperFocus>().select(target);
-    world.resource_mut::<StructureSelection>().select_entity(target);
+    world
+        .resource_mut::<StructureSelection>()
+        .select_entity(target);
 }
 
 fn draw_semantic_inspector(ui: &mut egui::Ui, world: &mut World) {
@@ -678,16 +676,15 @@ fn draw_transform_gizmo_panel(ui: &mut egui::Ui, world: &mut World, target: Focu
 
     ui.add_space(6.0);
     ui.separator();
-    ui.label("Viewport: translation arrows + rotation rings + scale handles are active simultaneously.");
+    ui.label(
+        "Viewport: translation arrows + rotation rings + scale handles are active simultaneously.",
+    );
     if !editable {
         ui.weak("The viewport gizmo remains visible for observation, but dragging is read-only.");
     }
 }
 
-fn dispatch_inspection_ui_output(
-    world: &mut World,
-    output: inspect_ui::InspectionUiOutput,
-) {
+fn dispatch_inspection_ui_output(world: &mut World, output: inspect_ui::InspectionUiOutput) {
     for edit in output.edits {
         world.write_message(edit);
     }
@@ -723,7 +720,10 @@ fn draw_visualizations(ui: &mut egui::Ui, world: &mut World) {
 
     let mut tools = world.resource_mut::<DeveloperTools>();
     let mut enabled = tools.enabled();
-    if ui.checkbox(&mut enabled, "Master developer output").changed() {
+    if ui
+        .checkbox(&mut enabled, "Master developer output")
+        .changed()
+    {
         tools.set_enabled(enabled);
     }
 
@@ -758,12 +758,7 @@ fn draw_runtime_diagnostics(ui: &mut egui::Ui, world: &World) {
                 diagnostics.frame.average_frame_time_ms,
                 " ms",
             );
-            diagnostic_row(
-                ui,
-                "1% low FPS",
-                diagnostics.frame.one_percent_low_fps,
-                "",
-            );
+            diagnostic_row(ui, "1% low FPS", diagnostics.frame.one_percent_low_fps, "");
             ui.label("Entities");
             ui.monospace(diagnostics.world.entities.to_string());
             ui.end_row();
@@ -779,12 +774,7 @@ fn draw_runtime_diagnostics(ui: &mut egui::Ui, world: &World) {
                 diagnostics.system.process_cpu_percent,
                 "%",
             );
-            diagnostic_row(
-                ui,
-                "System CPU",
-                diagnostics.system.system_cpu_percent,
-                "%",
-            );
+            diagnostic_row(ui, "System CPU", diagnostics.system.system_cpu_percent, "%");
             diagnostic_row(
                 ui,
                 "Process memory",

@@ -41,7 +41,11 @@ fn collect_manifestations(
             .iter()
             .filter_map(|entity| manifestations.get(entity).ok())
             .find(|(_, authority)| *authority)
-            .or_else(|| linked.iter().find_map(|entity| manifestations.get(entity).ok()))
+            .or_else(|| {
+                linked
+                    .iter()
+                    .find_map(|entity| manifestations.get(entity).ok())
+            })
             .map(|(transform, _)| transform.translation())
         else {
             continue;

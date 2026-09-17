@@ -1,6 +1,9 @@
 use bevy::{input::mouse::AccumulatedMouseScroll, prelude::*, window::PrimaryWindow};
 
-use crate::{game::InputSet, ui::{UiTextRole, UiTheme}};
+use crate::{
+    game::InputSet,
+    ui::{UiTextRole, UiTheme},
+};
 
 use super::super::{
     catalog::{PlaygroundCatalog, PlaygroundItemId},
@@ -92,11 +95,7 @@ fn spawn_creative_menu(mut commands: Commands, theme: Res<UiTheme>) {
                     BorderColor::all(theme.panel_border),
                 ))
                 .with_children(|panel| {
-                    panel.spawn((
-                        Text::new("Creative Items"),
-                        title.font(),
-                        title.color(),
-                    ));
+                    panel.spawn((Text::new("Creative Items"), title.font(), title.color()));
 
                     panel.spawn((
                         CreativePageText,
@@ -134,11 +133,7 @@ fn spawn_creative_menu(mut commands: Commands, theme: Res<UiTheme>) {
                             }
                         });
 
-                    panel.spawn((
-                        Text::new("Hotbar"),
-                        heading.font(),
-                        heading.color(),
-                    ));
+                    panel.spawn((Text::new("Hotbar"), heading.font(), heading.color()));
 
                     panel
                         .spawn(Node {

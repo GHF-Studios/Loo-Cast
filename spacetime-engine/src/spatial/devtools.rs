@@ -10,9 +10,7 @@ use crate::{
     ui::{UiTextRole, UiTheme},
 };
 
-use super::{
-    SpatialDemandSnapshot, UsfPosition, UsfSpatialAnchor, UsfSpatialFrame, UsfSpatialSet,
-};
+use super::{SpatialDemandSnapshot, UsfPosition, UsfSpatialAnchor, UsfSpatialFrame, UsfSpatialSet};
 
 const USF_SPATIAL_VISUALIZATION: VisualizationId = VisualizationId("usf_spatial");
 pub(crate) const SPATIAL_DEMAND_VISUALIZATION: VisualizationId =
@@ -96,14 +94,21 @@ fn spawn_debug_panel(mut commands: Commands, theme: Res<UiTheme>) {
 fn update_debug_panel(
     tools: Res<DeveloperTools>,
     frame: Res<UsfSpatialFrame>,
-    anchors: Query<(&Transform, Option<&LinearVelocity>, &UsfManifestationOf), With<UsfSpatialAnchor>>,
+    anchors: Query<
+        (&Transform, Option<&LinearVelocity>, &UsfManifestationOf),
+        With<UsfSpatialAnchor>,
+    >,
     semantic_positions: Query<&UsfPosition>,
     mut roots: Query<&mut Node, With<UsfSpatialDebugRoot>>,
     mut texts: Query<&mut Text, With<UsfSpatialDebugText>>,
 ) {
     let enabled = tools.visualization_enabled(USF_SPATIAL_VISUALIZATION);
     for mut node in &mut roots {
-        node.display = if enabled { Display::Flex } else { Display::None };
+        node.display = if enabled {
+            Display::Flex
+        } else {
+            Display::None
+        };
     }
     if !enabled {
         return;
@@ -149,7 +154,6 @@ Rebases: {}  last shift=({:.1}, {:.1}, {:.1}) m",
     }
 }
 
-
 fn collect_spatial_demand_world_draw(
     tools: Res<DeveloperTools>,
     spatial_frame: Res<UsfSpatialFrame>,
@@ -183,12 +187,7 @@ fn collect_spatial_demand_world_draw(
     frame.submit(batch);
 }
 
-fn draw_wire_box(
-    batch: &mut WorldDrawBatch,
-    min: Vec3,
-    max: Vec3,
-    color: Color,
-) {
+fn draw_wire_box(batch: &mut WorldDrawBatch, min: Vec3, max: Vec3, color: Color) {
     let corners = [
         Vec3::new(min.x, min.y, min.z),
         Vec3::new(max.x, min.y, min.z),
@@ -200,9 +199,18 @@ fn draw_wire_box(
         Vec3::new(max.x, max.y, max.z),
     ];
     for (a, b) in [
-        (0, 1), (0, 2), (1, 3), (2, 3),
-        (4, 5), (4, 6), (5, 7), (6, 7),
-        (0, 4), (1, 5), (2, 6), (3, 7),
+        (0, 1),
+        (0, 2),
+        (1, 3),
+        (2, 3),
+        (4, 5),
+        (4, 6),
+        (5, 7),
+        (6, 7),
+        (0, 4),
+        (1, 5),
+        (2, 6),
+        (3, 7),
     ] {
         batch.line(corners[a], corners[b], color, DrawDepth::Overlay);
     }

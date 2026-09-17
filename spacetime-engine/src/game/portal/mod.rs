@@ -22,15 +22,14 @@ mod tests;
 
 pub use domain::{
     Portal, PortalActive, PortalCommand, PortalConfig, PortalEndpoint, PortalEndpointConfig,
-    PortalPair, PortalRigidSplitBody, PortalSidedness, PortalSplitTraveler,
-    PortalTraveler, PortalVelocity, PortalView,
+    PortalPair, PortalRigidSplitBody, PortalSidedness, PortalSplitTraveler, PortalTraveler,
+    PortalVelocity, PortalView,
 };
 
 pub use rendering::{DERIVED_VIEW_LAYER, MAIN_PORTAL_LAYER, PortalSplitVisual};
 
 pub(crate) use topology::{
-    crossing::crossed_aperture_fraction,
-    mapping::map_transform as map_through_portal,
+    crossing::crossed_aperture_fraction, mapping::map_transform as map_through_portal,
 };
 
 use avian3d::{

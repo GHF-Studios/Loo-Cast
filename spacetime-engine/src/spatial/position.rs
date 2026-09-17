@@ -120,10 +120,7 @@ impl UsfPosition {
     /// potentially huge displacement into one floating-point vector. It is used
     /// when canonical identities are derived from integer-aligned representation
     /// addresses such as decimal voxel materialization chunks.
-    pub fn translated_whole_native(
-        mut self,
-        delta: [i64; 3],
-    ) -> Result<Self, UsfPositionError> {
+    pub fn translated_whole_native(mut self, delta: [i64; 3]) -> Result<Self, UsfPositionError> {
         let chunk_size = USF_CHUNK_NATIVE_SIZE as i64;
 
         for (axis, delta) in delta.into_iter().enumerate() {
@@ -157,6 +154,28 @@ impl UsfPosition {
                 &mut delta,
                 axis,
                 self.relative_native_axis_bounded(origin, axis, max_abs)?,
+            );
+        }
+        Ok(delta)
+    }
+
+    /// Measures this position from `origin` in units native to `scale`.
+    ///
+    /// Unlike measuring in leaf units and dividing afterward, this accumulates
+    /// the balanced-decimal hierarchy directly at the requested scale. A galaxy-
+    /// scale view therefore never constructs a galaxy-sized metre coordinate.
+    pub fn relative_at_scale_bounded(
+        &self,
+        origin: &Self,
+        scale: SpatialScale,
+        max_abs: f32,
+    ) -> Result<Vec3, UsfPositionError> {
+        let mut delta = Vec3::ZERO;
+        for axis in 0..3 {
+            set_axis_f32(
+                &mut delta,
+                axis,
+                self.relative_axis_at_scale_bounded(origin, scale, axis, max_abs)?,
             );
         }
         Ok(delta)
@@ -203,6 +222,50 @@ impl UsfPosition {
         Ok(component as f32)
     }
 
+    fn relative_axis_at_scale_bounded(
+        &self,
+        origin: &Self,
+        scale: SpatialScale,
+        axis: usize,
+        max_abs: f32,
+    ) -> Result<f32, UsfPositionError> {
+        if self.leaf_scale != origin.leaf_scale || scale < self.leaf_scale {
+            return Err(UsfPositionError::IncompatibleLeafScale);
+        }
+        if !max_abs.is_finite() {
+            return Err(UsfPositionError::NonFiniteTranslation);
+        }
+
+        let (normalized, count) = self.normalized_axis_difference(origin, axis)?;
+        let requested_index = (scale.exponent() - self.leaf_scale.exponent()) as usize;
+        debug_assert!(requested_index < count);
+
+        let mut chunk_delta = 0_i128;
+        for &digit in normalized[requested_index..count].iter().rev() {
+            chunk_delta = chunk_delta
+                .checked_mul(i128::from(USF_CHILD_CHUNKS_PER_AXIS))
+                .and_then(|value| value.checked_add(i128::from(digit)))
+                .ok_or(UsfPositionError::RelativePositionOutsideBound)?;
+        }
+
+        let mut component = chunk_delta as f64 * USF_CHUNK_NATIVE_SIZE as f64;
+        let mut weight = USF_CHUNK_NATIVE_SIZE as f64 / f64::from(USF_CHILD_CHUNKS_PER_AXIS);
+        for index in (0..requested_index).rev() {
+            component += f64::from(normalized[index]) * weight;
+            weight /= f64::from(USF_CHILD_CHUNKS_PER_AXIS);
+        }
+
+        let leaf_units_per_requested =
+            f64::from(USF_CHILD_CHUNKS_PER_AXIS).powi(requested_index as i32);
+        component += f64::from(axis_f32(self.offset, axis) - axis_f32(origin.offset, axis))
+            / leaf_units_per_requested;
+
+        if component.abs() > f64::from(max_abs.max(0.0)) {
+            return Err(UsfPositionError::RelativePositionOutsideBound);
+        }
+        Ok(component as f32)
+    }
+
     /// Returns whether the wrapped canonical displacement on one axis is on
     /// the negative side of the origin. This is useful for bounded algorithms
     /// that need an orientation even when the magnitude is intentionally not
@@ -236,9 +299,8 @@ impl UsfPosition {
         let mut carry = 0_i32;
         for raw_scale in self.leaf_scale.exponent()..=SPATIAL_SCALE_MAX {
             let scale = SpatialScale::new(raw_scale).expect("range is validated");
-            let total = axis_i32(self.digit(scale), axis)
-                - axis_i32(origin.digit(scale), axis)
-                + carry;
+            let total =
+                axis_i32(self.digit(scale), axis) - axis_i32(origin.digit(scale), axis) + carry;
             let parent_carry = (total + 5).div_euclid(USF_CHILD_CHUNKS_PER_AXIS);
             let digit = total - parent_carry * USF_CHILD_CHUNKS_PER_AXIS;
             debug_assert!(digit >= USF_BALANCED_DIGIT_MIN);
@@ -267,12 +329,7 @@ impl UsfPosition {
     pub fn format_stack(&self) -> String {
         let mut parts = self
             .nonzero_digits()
-            .map(|(scale, digit)| {
-                format!(
-                    "S{}=({}, {}, {})",
-                    scale, digit.x, digit.y, digit.z
-                )
-            })
+            .map(|(scale, digit)| format!("S{}=({}, {}, {})", scale, digit.x, digit.y, digit.z))
             .collect::<Vec<_>>();
 
         if parts.is_empty() {
@@ -433,11 +490,7 @@ impl UsfChunkAddress {
 }
 
 fn canonical_f32_bits(value: f32) -> u32 {
-    if value == 0.0 {
-        0
-    } else {
-        value.to_bits()
-    }
+    if value == 0.0 { 0 } else { value.to_bits() }
 }
 
 fn axis_f32(value: Vec3, axis: usize) -> f32 {
@@ -512,6 +565,22 @@ mod tests {
             .unwrap();
 
         assert_eq!(exact, bounded);
+    }
+
+    #[test]
+    fn scale_relative_projection_does_not_require_a_giant_leaf_coordinate() {
+        let origin = UsfPosition::default();
+        let point = origin
+            .translated_whole_native([12_345, -6_780, 50])
+            .unwrap();
+        let s1 = SpatialScale::new(1).unwrap();
+
+        let delta = point
+            .relative_at_scale_bounded(&origin, s1, 2_000.0)
+            .unwrap();
+        assert!((delta.x - 1_234.5).abs() < 1.0e-4);
+        assert!((delta.y + 678.0).abs() < 1.0e-4);
+        assert!((delta.z - 5.0).abs() < 1.0e-4);
     }
 
     #[test]

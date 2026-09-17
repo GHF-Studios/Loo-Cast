@@ -30,11 +30,7 @@ pub(crate) fn build_chunk_collider(
         .map(Vec3::from_array)
         .collect::<Vec<_>>();
 
-    match Collider::try_trimesh_with_config(
-        vertices,
-        triangles,
-        TrimeshFlags::FIX_INTERNAL_EDGES,
-    ) {
+    match Collider::try_trimesh_with_config(vertices, triangles, TrimeshFlags::FIX_INTERNAL_EDGES) {
         Ok(collider) => Some(collider),
         Err(error) => {
             warn!(?error, "failed to build voxel chunk collider");

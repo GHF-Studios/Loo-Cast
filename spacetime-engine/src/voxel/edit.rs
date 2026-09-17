@@ -41,11 +41,7 @@ impl VoxelQueryPosition {
         self.0.translated_native(delta).map(Self)
     }
 
-    pub fn relative_to(
-        self,
-        origin: Self,
-        max_abs: f32,
-    ) -> Result<Vec3, UsfPositionError> {
+    pub fn relative_to(self, origin: Self, max_abs: f32) -> Result<Vec3, UsfPositionError> {
         self.0.relative_native_bounded(&origin.0, max_abs)
     }
 }
@@ -344,10 +340,7 @@ mod tests {
         let edit = VoxelEdit::Remove {
             brush: VoxelBrush::sphere(center, 2.0),
         };
-        let sample = edit.apply_to_sample(
-            center,
-            VoxelSample::new(-10.0, VoxelMaterialId::ROCK),
-        );
+        let sample = edit.apply_to_sample(center, VoxelSample::new(-10.0, VoxelMaterialId::ROCK));
 
         assert_eq!(sample.distance.0, 2.0);
         assert_eq!(sample.material, VoxelMaterialId::VOID);

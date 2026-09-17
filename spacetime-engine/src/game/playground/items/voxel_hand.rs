@@ -40,11 +40,7 @@ fn use_voxel_hand(
     mut uses: MessageReader<UsePlaygroundItem>,
     mut worlds: ParamSet<(Query<(Entity, &VoxelWorld)>, Query<&mut VoxelWorld>)>,
     mut chunks: ParamSet<(
-        Query<(
-            &VoxelChunk,
-            &Transform,
-            &VoxelMaterializationChunkAddress,
-        )>,
+        Query<(&VoxelChunk, &Transform, &VoxelMaterializationChunkAddress)>,
         Query<(&mut VoxelChunk, &VoxelMaterializationChunkAddress)>,
     )>,
 ) {
@@ -71,11 +67,9 @@ fn use_voxel_hand(
                     // materialization entity. Convert only the final local hit
                     // back into canonical USF space.
                     let chunk_local_origin = request.aim.origin - transform.translation;
-                    let Some(VoxelRayHit { position, distance }) = chunk.raycast(
-                        chunk_local_origin,
-                        request.aim.direction,
-                        TOOL_RANGE,
-                    ) else {
+                    let Some(VoxelRayHit { position, distance }) =
+                        chunk.raycast(chunk_local_origin, request.aim.direction, TOOL_RANGE)
+                    else {
                         continue;
                     };
                     let Ok(semantic_hit) = address.query_origin().translated(position) else {

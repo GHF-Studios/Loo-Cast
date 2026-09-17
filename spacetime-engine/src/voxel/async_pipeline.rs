@@ -15,13 +15,13 @@ use bevy::{
 };
 
 use super::{
-    VoxelChunk,
+    VoxelChunk, VoxelChunkPresentation,
     mesh::{self, VoxelSurface},
     physics,
 };
 
-const DERIVED_TASK_START_BUDGET_PER_FRAME: usize = 8;
-const DERIVED_PUBLISH_BUDGET_PER_FRAME: usize = 8;
+const DERIVED_TASK_START_BUDGET_PER_FRAME: usize = 24;
+const DERIVED_PUBLISH_BUDGET_PER_FRAME: usize = 24;
 
 struct VoxelDerivedOutput {
     surface: VoxelSurface,
@@ -40,11 +40,16 @@ pub(crate) struct VoxelDerivedTask {
 pub(crate) fn publish_completed_chunk_builds(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut chunks: Query<(Entity, &mut VoxelChunk, &mut VoxelDerivedTask)>,
+    mut chunks: Query<(
+        Entity,
+        &mut VoxelChunk,
+        &mut VoxelDerivedTask,
+        &VoxelChunkPresentation,
+    )>,
 ) {
     let mut published = 0;
 
-    for (entity, mut chunk, mut build) in &mut chunks {
+    for (entity, mut chunk, mut build, presentation) in &mut chunks {
         if published >= DERIVED_PUBLISH_BUDGET_PER_FRAME {
             break;
         }
@@ -64,17 +69,16 @@ pub(crate) fn publish_completed_chunk_builds(
 
         let VoxelDerivedOutput { surface, collider } = output;
         let has_surface = !surface.positions.is_empty() && !surface.indices.is_empty();
-        let mut entity_commands = commands.entity(entity);
 
         if has_surface {
-            entity_commands.insert(Mesh3d(meshes.add(surface_into_mesh(surface))));
+            commands
+                .entity(presentation.0)
+                .insert(Mesh3d(meshes.add(surface_into_mesh(surface))));
         } else {
-            // Avoid exposing a completely empty render mesh. The material stays
-            // on the entity and Mesh3d will simply be restored by a later build
-            // if an edit creates surface again.
-            entity_commands.remove::<Mesh3d>();
+            commands.entity(presentation.0).remove::<Mesh3d>();
         }
 
+        let mut entity_commands = commands.entity(entity);
         if let Some(collider) = collider {
             entity_commands.insert((
                 RigidBody::Static,
@@ -96,12 +100,12 @@ pub(crate) fn publish_completed_chunk_builds(
 /// computed in the background.
 pub(crate) fn queue_dirty_chunk_builds(
     mut commands: Commands,
-    chunks: Query<(Entity, &VoxelChunk), Without<VoxelDerivedTask>>,
+    chunks: Query<(Entity, &VoxelChunk, &VoxelChunkPresentation), Without<VoxelDerivedTask>>,
 ) {
     let pool = AsyncComputeTaskPool::get();
     let mut started = 0;
 
-    for (entity, chunk) in &chunks {
+    for (entity, chunk, presentation) in &chunks {
         if started >= DERIVED_TASK_START_BUDGET_PER_FRAME {
             break;
         }
@@ -113,7 +117,7 @@ pub(crate) fn queue_dirty_chunk_builds(
         // asynchronous derived build is in flight. Existing valid meshes stay
         // visible during later revision rebuilds.
         if chunk.meshed_revision().is_none() {
-            commands.entity(entity).remove::<Mesh3d>();
+            commands.entity(presentation.0).remove::<Mesh3d>();
         }
 
         let revision = chunk.revision();
@@ -137,11 +141,21 @@ pub(crate) fn queue_dirty_chunk_builds(
 }
 
 fn surface_into_mesh(surface: VoxelSurface) -> Mesh {
+    let VoxelSurface {
+        positions,
+        normals,
+        uvs,
+        tangents,
+        indices,
+    } = surface;
+
     Mesh::new(
         PrimitiveTopology::TriangleList,
         RenderAssetUsages::default(),
     )
-    .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, surface.positions)
-    .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, surface.normals)
-    .with_inserted_indices(Indices::U32(surface.indices))
+    .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
+    .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, normals)
+    .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, uvs)
+    .with_inserted_attribute(Mesh::ATTRIBUTE_TANGENT, tangents)
+    .with_inserted_indices(Indices::U32(indices))
 }

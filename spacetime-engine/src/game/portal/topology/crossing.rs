@@ -15,8 +15,14 @@ pub(crate) fn crossed_aperture(
     previous_world: Vec3,
     current_world: Vec3,
 ) -> Option<PortalSide> {
-    aperture_crossing(portal_transform, half_size, sidedness, previous_world, current_world)
-        .map(|(_, side)| side)
+    aperture_crossing(
+        portal_transform,
+        half_size,
+        sidedness,
+        previous_world,
+        current_world,
+    )
+    .map(|(_, side)| side)
 }
 
 pub(crate) fn crossed_aperture_fraction(
@@ -26,8 +32,14 @@ pub(crate) fn crossed_aperture_fraction(
     previous_world: Vec3,
     current_world: Vec3,
 ) -> Option<f32> {
-    aperture_crossing(portal_transform, half_size, sidedness, previous_world, current_world)
-        .map(|(fraction, _)| fraction)
+    aperture_crossing(
+        portal_transform,
+        half_size,
+        sidedness,
+        previous_world,
+        current_world,
+    )
+    .map(|(fraction, _)| fraction)
 }
 
 fn aperture_crossing(

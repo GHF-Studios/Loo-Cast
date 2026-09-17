@@ -74,7 +74,6 @@ pub(crate) struct ActivePortalSplit {
     pub destination: Entity,
 }
 
-
 /// Runtime bridge that lets a dynamic rigid body remain one physical object
 /// while its collision geometry is represented by two portal-linked solver bodies.
 ///

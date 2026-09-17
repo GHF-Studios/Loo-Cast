@@ -23,9 +23,6 @@ impl Plugin for SpacetimePhysicsPlugin {
                     .with_collision_hooks::<topology::SpatialTopologyCollisionHooks>(),
             )
             .add_plugins(CharacterMovementPlugin)
-            .add_systems(
-                PostUpdate,
-                collision_topology::rebuild_clipped_colliders,
-            );
+            .add_systems(PostUpdate, collision_topology::rebuild_clipped_colliders);
     }
 }

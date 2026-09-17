@@ -44,11 +44,7 @@ impl Plugin for MapSelectionPlugin {
     }
 }
 
-fn enter_selection(
-    mut commands: Commands,
-    theme: Res<UiTheme>,
-    mut focus: ResMut<InputFocus>,
-) {
+fn enter_selection(mut commands: Commands, theme: Res<UiTheme>, mut focus: ResMut<InputFocus>) {
     focus.set_modal_claim(FOCUS_OWNER, true);
 
     let title = theme.text(UiTextRole::Title);
@@ -136,11 +132,7 @@ fn spawn_choice(
         ))
         .with_children(|button| {
             button.spawn((Text::new(name), heading.font(), heading.color()));
-            button.spawn((
-                Text::new(description),
-                secondary.font(),
-                secondary.color(),
-            ));
+            button.spawn((Text::new(description), secondary.font(), secondary.color()));
         });
 }
 

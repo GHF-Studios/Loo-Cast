@@ -8,10 +8,7 @@
 //! solver impulses are inverse-mapped back into the authority after each
 //! substep. Both halves therefore participate as one effective rigid body.
 
-use avian3d::{
-    dynamics::solver::solver_body::SolverBody,
-    prelude::*,
-};
+use avian3d::{dynamics::solver::solver_body::SolverBody, prelude::*};
 use bevy::prelude::*;
 
 use crate::{
@@ -52,12 +49,15 @@ pub(crate) fn apply_peer_character_pushes(
     mut pushes: MessageReader<CharacterPush>,
     portals: Query<(Entity, &Portal, &PortalActive, &Transform), With<Portal>>,
     peers: Query<&SpatialSplitPeer, With<SpatialSplitPeerActive>>,
-    mut authorities: Query<(
-        &PortalSplitTraveler,
-        &PortalRigidSplitBody,
-        Forces,
-        &RigidBody,
-    ), Without<SpatialSplitPeer>>,
+    mut authorities: Query<
+        (
+            &PortalSplitTraveler,
+            &PortalRigidSplitBody,
+            Forces,
+            &RigidBody,
+        ),
+        Without<SpatialSplitPeer>,
+    >,
 ) {
     for push in pushes.read() {
         let Ok(peer) = peers.get(push.target) else {
@@ -104,14 +104,15 @@ pub(crate) fn apply_peer_character_pushes(
 pub(crate) fn receive_peer_dynamic_contact_pushes(
     collisions: Collisions,
     portals: Query<(Entity, &Portal, &PortalActive, &Transform), With<Portal>>,
-    peers: Query<
-        (Entity, &SpatialSplitPeer),
-        (With<SpatialSplitPeerActive>, Without<Portal>),
-    >,
+    peers: Query<(Entity, &SpatialSplitPeer), (With<SpatialSplitPeerActive>, Without<Portal>)>,
     bodies: Query<&RigidBody>,
     mut authorities: Query<
         (&PortalSplitTraveler, &mut LinearVelocity),
-        (With<CharacterMotor>, Without<SpatialSplitPeer>, Without<Portal>),
+        (
+            With<CharacterMotor>,
+            Without<SpatialSplitPeer>,
+            Without<Portal>,
+        ),
     >,
 ) {
     for (peer_entity, peer) in &peers {
@@ -139,7 +140,8 @@ pub(crate) fn receive_peer_dynamic_contact_pushes(
         let mut delta_velocity = Vec3::ZERO;
 
         for pair in collisions.collisions_with(peer_entity) {
-            let peer_is_first = if pair.body1 == Some(peer_entity) || pair.collider1 == peer_entity {
+            let peer_is_first = if pair.body1 == Some(peer_entity) || pair.collider1 == peer_entity
+            {
                 true
             } else if pair.body2 == Some(peer_entity) || pair.collider2 == peer_entity {
                 false
@@ -147,7 +149,11 @@ pub(crate) fn receive_peer_dynamic_contact_pushes(
                 continue;
             };
 
-            let other_body = if peer_is_first { pair.body2 } else { pair.body1 };
+            let other_body = if peer_is_first {
+                pair.body2
+            } else {
+                pair.body1
+            };
             let Some(other_body) = other_body else {
                 continue;
             };
@@ -199,7 +205,11 @@ pub(crate) fn prepare_rigid_splits(
             &mut PortalRigidSplitBody,
             &mut Collider,
         ),
-        (Without<SpatialSplitPeer>, Without<Portal>, Without<CharacterMotor>),
+        (
+            Without<SpatialSplitPeer>,
+            Without<Portal>,
+            Without<CharacterMotor>,
+        ),
     >,
     mut peers: Query<
         (
@@ -401,7 +411,11 @@ pub(crate) fn sync_rigid_split_solver_peers(
     portals: Query<(Entity, &Portal, &PortalActive, &Transform), With<Portal>>,
     mut authorities: Query<
         (&PortalSplitTraveler, &mut PortalRigidSplitBody, &SolverBody),
-        (Without<SpatialSplitPeer>, Without<Portal>, Without<CharacterMotor>),
+        (
+            Without<SpatialSplitPeer>,
+            Without<Portal>,
+            Without<CharacterMotor>,
+        ),
     >,
     mut peers: Query<
         (Entity, &SpatialSplitPeer, &mut SolverBody),
@@ -453,8 +467,16 @@ pub(crate) fn couple_rigid_split_solver_peers(
         (With<SpatialSplitPeerActive>, Without<Portal>),
     >,
     mut authorities: Query<
-        (&PortalSplitTraveler, &mut PortalRigidSplitBody, &mut SolverBody),
-        (Without<SpatialSplitPeer>, Without<Portal>, Without<CharacterMotor>),
+        (
+            &PortalSplitTraveler,
+            &mut PortalRigidSplitBody,
+            &mut SolverBody,
+        ),
+        (
+            Without<SpatialSplitPeer>,
+            Without<Portal>,
+            Without<CharacterMotor>,
+        ),
     >,
 ) {
     for (peer_entity, peer, mut peer_solver) in &mut peers {
@@ -517,7 +539,11 @@ pub(crate) fn reconcile_rigid_splits(
             &mut PortalSplitTraveler,
             &mut PortalRigidSplitBody,
         ),
-        (Without<SpatialSplitPeer>, Without<Portal>, Without<CharacterMotor>),
+        (
+            Without<SpatialSplitPeer>,
+            Without<Portal>,
+            Without<CharacterMotor>,
+        ),
     >,
     mut peers: Query<
         (
@@ -553,8 +579,10 @@ pub(crate) fn reconcile_rigid_splits(
         };
 
         if let Some(active) = split.active {
-            if let (Ok((_, source_portal, source_active, source)), Ok((_, _, destination_active, destination))) =
-                (portals.get(active.source), portals.get(active.destination))
+            if let (
+                Ok((_, source_portal, source_active, source)),
+                Ok((_, _, destination_active, destination)),
+            ) = (portals.get(active.source), portals.get(active.destination))
             {
                 if source_active.0 && destination_active.0 {
                     let start = split.tick_start.translation;

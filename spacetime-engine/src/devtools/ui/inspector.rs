@@ -11,8 +11,8 @@ use crate::{
 };
 
 use super::super::{
-    inspect_ui, DeveloperArtifact, DeveloperFocus, DeveloperSet, DeveloperTools, InspectAccess,
-    InspectNumberFormat, InspectionFrame, StructureItemId, StructureSelection,
+    DeveloperArtifact, DeveloperFocus, DeveloperSet, DeveloperTools, InspectAccess,
+    InspectNumberFormat, InspectionFrame, StructureItemId, StructureSelection, inspect_ui,
 };
 
 #[derive(Component)]
@@ -25,10 +25,8 @@ struct DeveloperInspectorTitle;
 struct DeveloperInspectorBody;
 
 pub(super) fn configure(app: &mut App) {
-    app.add_systems(Startup, spawn_inspector).add_systems(
-        PostUpdate,
-        sync_inspector.in_set(DeveloperSet::RenderUi),
-    );
+    app.add_systems(Startup, spawn_inspector)
+        .add_systems(PostUpdate, sync_inspector.in_set(DeveloperSet::RenderUi));
 }
 
 fn spawn_inspector(mut commands: Commands, theme: Res<UiTheme>) {
@@ -153,7 +151,11 @@ pub(super) fn render_body(
         if show_pin_hint {
             lines.push(format!(
                 "{source}  ·  {distance}  ·  P {}",
-                if selected { "clear selection" } else { "select" },
+                if selected {
+                    "clear selection"
+                } else {
+                    "select"
+                },
             ));
         } else {
             lines.push(format!("{source}  ·  {distance}"));

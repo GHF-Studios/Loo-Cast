@@ -87,19 +87,16 @@ impl PhenomenonId {
     }
 }
 
-pub const COSMOLOGICAL_BACKGROUND: PhenomenonId =
-    PhenomenonId::new("cosmological_background");
+pub const COSMOLOGICAL_BACKGROUND: PhenomenonId = PhenomenonId::new("cosmological_background");
 pub const COSMIC_MATTER_DISTRIBUTION: PhenomenonId =
     PhenomenonId::new("cosmic_matter_distribution");
-pub const HALO_GALAXY_ENVIRONMENT: PhenomenonId =
-    PhenomenonId::new("halo_galaxy_environment");
+pub const HALO_GALAXY_ENVIRONMENT: PhenomenonId = PhenomenonId::new("halo_galaxy_environment");
 pub const GALAXY_INTERSTELLAR_MEDIUM: PhenomenonId =
     PhenomenonId::new("galaxy_interstellar_medium");
 pub const STELLAR_SYSTEM_ENVIRONMENT: PhenomenonId =
     PhenomenonId::new("stellar_system_environment");
 pub const PLANETARY_BODY: PhenomenonId = PhenomenonId::new("planetary_body");
-pub const GEOLOGY_CLIMATE_HYDROLOGY: PhenomenonId =
-    PhenomenonId::new("geology_climate_hydrology");
+pub const GEOLOGY_CLIMATE_HYDROLOGY: PhenomenonId = PhenomenonId::new("geology_climate_hydrology");
 pub const ECOLOGY: PhenomenonId = PhenomenonId::new("ecology");
 pub const MATERIAL_SUBSTRATE: PhenomenonId = PhenomenonId::new("material_substrate");
 
@@ -540,10 +537,8 @@ impl PhenomenonRule for CosmologicalBackgroundRule {
                 tidal_bias: signed_noise(context, 0xC05A_0002) * 1.0e-5,
             }
         } else {
-            let parent = parent_state::<CosmologicalBackgroundState>(
-                parent,
-                COSMOLOGICAL_BACKGROUND,
-            )?;
+            let parent =
+                parent_state::<CosmologicalBackgroundState>(parent, COSMOLOGICAL_BACKGROUND)?;
             let depth = (35 - scale) as i32;
             let band_amplitude = 1.0e-5 * 1.55_f32.powi(depth);
             CosmologicalBackgroundState {
@@ -586,28 +581,25 @@ impl PhenomenonRule for CosmicMatterDistributionRule {
         }
 
         let state = if scale == 24 {
-            let cosmology = current_state::<CosmologicalBackgroundState>(
-                current,
-                COSMOLOGICAL_BACKGROUND,
-            )?;
+            let cosmology =
+                current_state::<CosmologicalBackgroundState>(current, COSMOLOGICAL_BACKGROUND)?;
             let contrast = cosmology.density_contrast * 80.0;
             CosmicMatterDistributionState {
                 density_contrast: contrast,
-                filament_strength: (0.30 + contrast.abs() * 4.0
+                filament_strength: (0.30
+                    + contrast.abs() * 4.0
                     + signed_noise(context, 0xC05C_0001) * 0.08)
                     .clamp(0.0, 1.0),
-                collapse_potential: (0.45 + contrast * 3.0
+                collapse_potential: (0.45
+                    + contrast * 3.0
                     + signed_noise(context, 0xC05C_0002) * 0.12)
                     .clamp(0.0, 1.0),
-                void_strength: (0.45 - contrast * 2.0
-                    + signed_noise(context, 0xC05C_0003) * 0.12)
+                void_strength: (0.45 - contrast * 2.0 + signed_noise(context, 0xC05C_0003) * 0.12)
                     .clamp(0.0, 1.0),
             }
         } else {
-            let parent = parent_state::<CosmicMatterDistributionState>(
-                parent,
-                COSMIC_MATTER_DISTRIBUTION,
-            )?;
+            let parent =
+                parent_state::<CosmicMatterDistributionState>(parent, COSMIC_MATTER_DISTRIBUTION)?;
             CosmicMatterDistributionState {
                 density_contrast: parent.density_contrast
                     + signed_noise(context, 0xC05C_1001) * 0.08,
@@ -618,8 +610,7 @@ impl PhenomenonRule for CosmicMatterDistributionRule {
                 collapse_potential: (parent.collapse_potential
                     + signed_noise(context, 0xC05C_1003) * 0.11)
                     .clamp(0.0, 1.0),
-                void_strength: (parent.void_strength
-                    + signed_noise(context, 0xC05C_1004) * 0.09)
+                void_strength: (parent.void_strength + signed_noise(context, 0xC05C_1004) * 0.09)
                     .clamp(0.0, 1.0),
             }
         };
@@ -669,13 +660,10 @@ impl PhenomenonRule for HaloGalaxyEnvironmentRule {
                 metallicity: (0.006 + cosmic.collapse_potential * 0.010).clamp(0.001, 0.03),
             }
         } else {
-            let parent = parent_state::<HaloGalaxyEnvironmentState>(
-                parent,
-                HALO_GALAXY_ENVIRONMENT,
-            )?;
+            let parent =
+                parent_state::<HaloGalaxyEnvironmentState>(parent, HALO_GALAXY_ENVIRONMENT)?;
             HaloGalaxyEnvironmentState {
-                halo_mass_bias: (parent.halo_mass_bias
-                    + signed_noise(context, 0xA110_1001) * 0.12)
+                halo_mass_bias: (parent.halo_mass_bias + signed_noise(context, 0xA110_1001) * 0.12)
                     .clamp(0.0, 1.0),
                 angular_momentum: (parent.angular_momentum * 0.8
                     + unit_noise(context, 0xA110_1002) * 0.2)
@@ -683,8 +671,7 @@ impl PhenomenonRule for HaloGalaxyEnvironmentRule {
                 baryon_retention: (parent.baryon_retention
                     + signed_noise(context, 0xA110_1003) * 0.06)
                     .clamp(0.1, 1.0),
-                metallicity: (parent.metallicity
-                    + signed_noise(context, 0xA110_1004) * 0.0015)
+                metallicity: (parent.metallicity + signed_noise(context, 0xA110_1004) * 0.0015)
                     .clamp(0.001, 0.04),
             }
         };
@@ -717,17 +704,17 @@ impl PhenomenonRule for GalaxyInterstellarMediumRule {
         }
 
         let state = if scale == 18 {
-            let halo = current_state::<HaloGalaxyEnvironmentState>(
-                current,
-                HALO_GALAXY_ENVIRONMENT,
-            )?;
+            let halo =
+                current_state::<HaloGalaxyEnvironmentState>(current, HALO_GALAXY_ENVIRONMENT)?;
             GalaxyInterstellarMediumState {
                 stellar_density: (0.25 + halo.halo_mass_bias * 0.65).clamp(0.0, 1.0),
-                gas_fraction: (0.50 + halo.baryon_retention * 0.25
+                gas_fraction: (0.50
+                    + halo.baryon_retention * 0.25
                     + signed_noise(context, 0x6A1A_0001) * 0.10)
                     .clamp(0.05, 0.9),
                 metallicity: halo.metallicity,
-                turbulence: (0.35 + halo.angular_momentum * 0.35
+                turbulence: (0.35
+                    + halo.angular_momentum * 0.35
                     + signed_noise(context, 0x6A1A_0002) * 0.12)
                     .clamp(0.0, 1.0),
                 star_formation_potential: (0.30
@@ -736,22 +723,17 @@ impl PhenomenonRule for GalaxyInterstellarMediumRule {
                     .clamp(0.0, 1.0),
             }
         } else {
-            let parent = parent_state::<GalaxyInterstellarMediumState>(
-                parent,
-                GALAXY_INTERSTELLAR_MEDIUM,
-            )?;
+            let parent =
+                parent_state::<GalaxyInterstellarMediumState>(parent, GALAXY_INTERSTELLAR_MEDIUM)?;
             GalaxyInterstellarMediumState {
                 stellar_density: (parent.stellar_density
                     + signed_noise(context, 0x6A1A_1001) * 0.13)
                     .clamp(0.0, 1.0),
-                gas_fraction: (parent.gas_fraction
-                    + signed_noise(context, 0x6A1A_1002) * 0.10)
+                gas_fraction: (parent.gas_fraction + signed_noise(context, 0x6A1A_1002) * 0.10)
                     .clamp(0.02, 0.95),
-                metallicity: (parent.metallicity
-                    + signed_noise(context, 0x6A1A_1003) * 0.001)
+                metallicity: (parent.metallicity + signed_noise(context, 0x6A1A_1003) * 0.001)
                     .clamp(0.001, 0.04),
-                turbulence: (parent.turbulence
-                    + signed_noise(context, 0x6A1A_1004) * 0.12)
+                turbulence: (parent.turbulence + signed_noise(context, 0x6A1A_1004) * 0.12)
                     .clamp(0.0, 1.0),
                 star_formation_potential: (parent.star_formation_potential
                     + signed_noise(context, 0x6A1A_1005) * 0.13)
@@ -798,10 +780,8 @@ impl PhenomenonRule for StellarSystemEnvironmentRule {
                 // Deliberately Solar-ish bootstrap bias for the first playable branch.
                 host_mass_solar: (0.95 + signed_noise(context, 0x57E1_0001) * 0.18)
                     .clamp(0.55, 1.45),
-                metallicity: (galaxy.metallicity * 0.55 + 0.007)
-                    .clamp(0.004, 0.03),
-                system_age_gyr: (4.6 + signed_noise(context, 0x57E1_0002) * 1.3)
-                    .clamp(1.0, 10.0),
+                metallicity: (galaxy.metallicity * 0.55 + 0.007).clamp(0.004, 0.03),
+                system_age_gyr: (4.6 + signed_noise(context, 0x57E1_0002) * 1.3).clamp(1.0, 10.0),
                 disk_mass_fraction: (0.025
                     + galaxy.gas_fraction * 0.035
                     + signed_noise(context, 0x57E1_0003) * 0.01)
@@ -809,10 +789,8 @@ impl PhenomenonRule for StellarSystemEnvironmentRule {
                 heavy_element_budget: (galaxy.metallicity / 0.02).clamp(0.1, 2.0),
             }
         } else {
-            let parent = parent_state::<StellarSystemEnvironmentState>(
-                parent,
-                STELLAR_SYSTEM_ENVIRONMENT,
-            )?;
+            let parent =
+                parent_state::<StellarSystemEnvironmentState>(parent, STELLAR_SYSTEM_ENVIRONMENT)?;
             StellarSystemEnvironmentState {
                 host_mass_solar: parent.host_mass_solar,
                 metallicity: parent.metallicity,
@@ -860,20 +838,16 @@ impl PhenomenonRule for PlanetaryBodyRule {
             )?;
             PlanetaryBodyState {
                 // First branch intentionally biases toward an Earth-like playable body.
-                body_mass_earth: (1.0 + signed_noise(context, 0xB0D1_0001) * 0.22)
-                    .clamp(0.55, 1.8),
-                radius_earth: (1.0 + signed_noise(context, 0xB0D1_0002) * 0.11)
-                    .clamp(0.7, 1.35),
+                body_mass_earth: (1.0 + signed_noise(context, 0xB0D1_0001) * 0.22).clamp(0.55, 1.8),
+                radius_earth: (1.0 + signed_noise(context, 0xB0D1_0002) * 0.11).clamp(0.7, 1.35),
                 volatile_fraction: (0.35
                     + system.heavy_element_budget * 0.12
                     + signed_noise(context, 0xB0D1_0003) * 0.10)
                     .clamp(0.05, 0.8),
                 water_inventory: (0.55 + signed_noise(context, 0xB0D1_0004) * 0.20)
                     .clamp(0.05, 0.95),
-                internal_heat: (0.55 + signed_noise(context, 0xB0D1_0005) * 0.15)
-                    .clamp(0.1, 1.0),
-                insolation: (1.0 + signed_noise(context, 0xB0D1_0006) * 0.10)
-                    .clamp(0.75, 1.25),
+                internal_heat: (0.55 + signed_noise(context, 0xB0D1_0005) * 0.15).clamp(0.1, 1.0),
+                insolation: (1.0 + signed_noise(context, 0xB0D1_0006) * 0.10).clamp(0.75, 1.25),
             }
         } else {
             let parent = parent_state::<PlanetaryBodyState>(parent, PLANETARY_BODY)?;
@@ -886,11 +860,9 @@ impl PhenomenonRule for PlanetaryBodyRule {
                 water_inventory: (parent.water_inventory
                     + signed_noise(context, 0xB0D1_1002) * 0.035)
                     .clamp(0.0, 1.0),
-                internal_heat: (parent.internal_heat
-                    + signed_noise(context, 0xB0D1_1003) * 0.025)
+                internal_heat: (parent.internal_heat + signed_noise(context, 0xB0D1_1003) * 0.025)
                     .clamp(0.0, 1.0),
-                insolation: (parent.insolation
-                    + signed_noise(context, 0xB0D1_1004) * 0.02)
+                insolation: (parent.insolation + signed_noise(context, 0xB0D1_1004) * 0.02)
                     .clamp(0.2, 2.0),
             }
         };
@@ -927,14 +899,12 @@ impl PhenomenonRule for GeologyClimateHydrologyRule {
 
         let state = if scale == 4 {
             let body = current_state::<PlanetaryBodyState>(current, PLANETARY_BODY)?;
-            let tectonic = (0.35
-                + body.internal_heat * 0.5
-                + signed_noise(context, 0x6E01_0001) * 0.10)
-                .clamp(0.0, 1.0);
-            let moisture = (0.20
-                + body.water_inventory * 0.65
-                + signed_noise(context, 0x6E01_0002) * 0.12)
-                .clamp(0.0, 1.0);
+            let tectonic =
+                (0.35 + body.internal_heat * 0.5 + signed_noise(context, 0x6E01_0001) * 0.10)
+                    .clamp(0.0, 1.0);
+            let moisture =
+                (0.20 + body.water_inventory * 0.65 + signed_noise(context, 0x6E01_0002) * 0.12)
+                    .clamp(0.0, 1.0);
             GeologyClimateHydrologyState {
                 terrain_seed: context.seed() as u32,
                 tectonic_activity: tectonic,
@@ -943,21 +913,17 @@ impl PhenomenonRule for GeologyClimateHydrologyRule {
                     + (body.insolation - 1.0) * 22.0
                     + signed_noise(context, 0x6E01_0003) * 4.0,
                 moisture,
-                rockiness: (0.35 + tectonic * 0.4
-                    + signed_noise(context, 0x6E01_0004) * 0.12)
+                rockiness: (0.35 + tectonic * 0.4 + signed_noise(context, 0x6E01_0004) * 0.12)
                     .clamp(0.0, 1.0),
                 cave_potential: (0.25 + moisture * 0.25 + tectonic * 0.15).clamp(0.0, 1.0),
-                clay_fraction: (0.20 + moisture * 0.35
-                    + signed_noise(context, 0x6E01_0005) * 0.10)
+                clay_fraction: (0.20 + moisture * 0.35 + signed_noise(context, 0x6E01_0005) * 0.10)
                     .clamp(0.0, 1.0),
                 local_relief_m: 6.0 + tectonic * 6.0,
                 terrain_frequency: 0.025,
             }
         } else {
-            let parent = parent_state::<GeologyClimateHydrologyState>(
-                parent,
-                GEOLOGY_CLIMATE_HYDROLOGY,
-            )?;
+            let parent =
+                parent_state::<GeologyClimateHydrologyState>(parent, GEOLOGY_CLIMATE_HYDROLOGY)?;
             GeologyClimateHydrologyState {
                 terrain_seed: context.seed() as u32,
                 tectonic_activity: (parent.tectonic_activity
@@ -968,17 +934,13 @@ impl PhenomenonRule for GeologyClimateHydrologyRule {
                     .clamp(0.0, 1.0),
                 mean_temperature_c: parent.mean_temperature_c
                     + signed_noise(context, 0x6E01_1003) * 1.5,
-                moisture: (parent.moisture
-                    + signed_noise(context, 0x6E01_1004) * 0.08)
+                moisture: (parent.moisture + signed_noise(context, 0x6E01_1004) * 0.08)
                     .clamp(0.0, 1.0),
-                rockiness: (parent.rockiness
-                    + signed_noise(context, 0x6E01_1005) * 0.08)
+                rockiness: (parent.rockiness + signed_noise(context, 0x6E01_1005) * 0.08)
                     .clamp(0.0, 1.0),
-                cave_potential: (parent.cave_potential
-                    + signed_noise(context, 0x6E01_1006) * 0.08)
+                cave_potential: (parent.cave_potential + signed_noise(context, 0x6E01_1006) * 0.08)
                     .clamp(0.0, 1.0),
-                clay_fraction: (parent.clay_fraction
-                    + signed_noise(context, 0x6E01_1007) * 0.08)
+                clay_fraction: (parent.clay_fraction + signed_noise(context, 0x6E01_1007) * 0.08)
                     .clamp(0.0, 1.0),
                 local_relief_m: (parent.local_relief_m * 0.88
                     + 2.0
@@ -1019,12 +981,10 @@ impl PhenomenonRule for EcologyRule {
             return None;
         }
 
-        let geology = current_state::<GeologyClimateHydrologyState>(
-            current,
-            GEOLOGY_CLIMATE_HYDROLOGY,
-        )?;
-        let temperature_fit = (1.0 - ((geology.mean_temperature_c - 16.0) / 28.0).abs())
-            .clamp(0.0, 1.0);
+        let geology =
+            current_state::<GeologyClimateHydrologyState>(current, GEOLOGY_CLIMATE_HYDROLOGY)?;
+        let temperature_fit =
+            (1.0 - ((geology.mean_temperature_c - 16.0) / 28.0).abs()).clamp(0.0, 1.0);
         let base_productivity = geology.moisture * temperature_fit;
         let parent_ecology = parent_state::<EcologyState>(parent, ECOLOGY);
         let inherited = parent_ecology.map_or(base_productivity, |state| state.productivity);
@@ -1032,22 +992,17 @@ impl PhenomenonRule for EcologyRule {
             + base_productivity * 0.45
             + signed_noise(context, 0xEC01_0001) * 0.08)
             .clamp(0.0, 1.0);
-        let disturbance = (0.18
-            + geology.tectonic_activity * 0.12
-            + signed_noise(context, 0xEC01_0002) * 0.12)
-            .clamp(0.0, 1.0);
+        let disturbance =
+            (0.18 + geology.tectonic_activity * 0.12 + signed_noise(context, 0xEC01_0002) * 0.12)
+                .clamp(0.0, 1.0);
         let state = EcologyState {
             productivity,
-            forest_affinity: (productivity * 0.75
-                + geology.moisture * 0.25
-                - disturbance * 0.20)
+            forest_affinity: (productivity * 0.75 + geology.moisture * 0.25 - disturbance * 0.20)
                 .clamp(0.0, 1.0),
-            grass_affinity: (0.45 + productivity * 0.30
-                - geology.moisture * 0.12
+            grass_affinity: (0.45 + productivity * 0.30 - geology.moisture * 0.12
                 + disturbance * 0.12)
                 .clamp(0.0, 1.0),
-            wetland_affinity: (geology.moisture * 0.80
-                + (1.0 - geology.rockiness) * 0.20)
+            wetland_affinity: (geology.moisture * 0.80 + (1.0 - geology.rockiness) * 0.20)
                 .clamp(0.0, 1.0),
             disturbance,
         };
@@ -1082,23 +1037,23 @@ impl PhenomenonRule for MaterialSubstrateRule {
             return None;
         }
 
-        let geology = current_state::<GeologyClimateHydrologyState>(
-            current,
-            GEOLOGY_CLIMATE_HYDROLOGY,
-        )?;
+        let geology =
+            current_state::<GeologyClimateHydrologyState>(current, GEOLOGY_CLIMATE_HYDROLOGY)?;
         let state = MaterialSubstrateState {
             clay_fraction: geology.clay_fraction,
-            water_content: (geology.moisture * 0.72
-                + signed_noise(context, 0xAA71_0001) * 0.08)
+            water_content: (geology.moisture * 0.72 + signed_noise(context, 0xAA71_0001) * 0.08)
                 .clamp(0.0, 1.0),
-            porosity: (0.28 + geology.clay_fraction * 0.22
+            porosity: (0.28
+                + geology.clay_fraction * 0.22
                 + signed_noise(context, 0xAA71_0002) * 0.06)
                 .clamp(0.08, 0.75),
-            compaction: (0.62 + geology.rockiness * 0.18
+            compaction: (0.62
+                + geology.rockiness * 0.18
                 + signed_noise(context, 0xAA71_0003) * 0.08)
                 .clamp(0.0, 1.0),
             temperature_c: geology.mean_temperature_c,
-            fracture: (0.18 + geology.tectonic_activity * 0.35
+            fracture: (0.18
+                + geology.tectonic_activity * 0.35
                 + signed_noise(context, 0xAA71_0004) * 0.10)
                 .clamp(0.0, 1.0),
         };
@@ -1114,18 +1069,12 @@ impl PhenomenonRule for MaterialSubstrateRule {
     }
 }
 
-fn current_state<'a, T: Any>(
-    current: &'a [PhenomenonSnapshot],
-    id: PhenomenonId,
-) -> Option<&'a T> {
+fn current_state<'a, T: Any>(current: &'a [PhenomenonSnapshot], id: PhenomenonId) -> Option<&'a T> {
     let snapshot = current.iter().find(|snapshot| snapshot.id() == id)?;
     snapshot.state::<T>()
 }
 
-fn parent_state<'a, T: Any>(
-    parent: Option<&'a WorldgenNode>,
-    id: PhenomenonId,
-) -> Option<&'a T> {
+fn parent_state<'a, T: Any>(parent: Option<&'a WorldgenNode>, id: PhenomenonId) -> Option<&'a T> {
     parent?.state::<T>(id)
 }
 
@@ -1183,18 +1132,26 @@ mod tests {
 
         let lineage = store.lineage(leaf);
         assert_eq!(lineage.len(), 36);
-        assert_eq!(lineage.first().unwrap().context().spatial_scale(), SpatialScale::ZERO);
-        assert_eq!(lineage.last().unwrap().context().spatial_scale(), SpatialScale::MAX);
+        assert_eq!(
+            lineage.first().unwrap().context().spatial_scale(),
+            SpatialScale::ZERO
+        );
+        assert_eq!(
+            lineage.last().unwrap().context().spatial_scale(),
+            SpatialScale::MAX
+        );
         assert!(lineage.iter().all(|node| node.phenomena().len() > 0));
-        assert!(store
-            .state::<GeologyClimateHydrologyState>(leaf, GEOLOGY_CLIMATE_HYDROLOGY)
-            .is_some());
-        assert!(store
-            .state::<EcologyState>(leaf, ECOLOGY)
-            .is_some());
-        assert!(store
-            .state::<MaterialSubstrateState>(leaf, MATERIAL_SUBSTRATE)
-            .is_some());
+        assert!(
+            store
+                .state::<GeologyClimateHydrologyState>(leaf, GEOLOGY_CLIMATE_HYDROLOGY)
+                .is_some()
+        );
+        assert!(store.state::<EcologyState>(leaf, ECOLOGY).is_some());
+        assert!(
+            store
+                .state::<MaterialSubstrateState>(leaf, MATERIAL_SUBSTRATE)
+                .is_some()
+        );
     }
 
     #[test]

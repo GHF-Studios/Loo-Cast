@@ -15,8 +15,9 @@ use crate::{
 };
 
 use super::{
-    coupling::{combustion_heat_coupling, radial_heat_weight}, CombustibleMaterial, Combustion,
-    ThermalBody, ThermalField, ThermalMaterial, ThermalSpatialSample,
+    CombustibleMaterial, Combustion, ThermalBody, ThermalField, ThermalMaterial,
+    ThermalSpatialSample,
+    coupling::{combustion_heat_coupling, radial_heat_weight},
 };
 
 const CELLS_VISUALIZATION: VisualizationId = VisualizationId("world.thermal.cells");
@@ -104,8 +105,8 @@ fn collect_thermal_world_draw(
 
                 for cell in field.cell_samples(material) {
                     let cell_position = transform.affine().transform_point3(cell.local_center);
-                    let cell_color = ColorRamp::THERMAL
-                        .sample_scalar(cell_range, cell.temperature_kelvin);
+                    let cell_color =
+                        ColorRamp::THERMAL.sample_scalar(cell_range, cell.temperature_kelvin);
                     batch.sphere(
                         Isometry3d::new(cell_position, Quat::IDENTITY),
                         radius,

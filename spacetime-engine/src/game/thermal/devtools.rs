@@ -9,10 +9,10 @@ use bevy::prelude::*;
 use crate::{
     devtools::{
         DeveloperFocus, DeveloperSet, DrawDepth, InspectAccess, InspectAction, InspectActionId,
-        InspectActionRequest, InspectEditRequest, InspectField, InspectFieldId, InspectNumberFormat,
-        InspectNumberInput, InspectSection, InspectSectionId, InspectUnit, InspectValue,
-        InspectionFrame, StructureFrame, StructureItem, StructureItemId, StructureSelection,
-        WorldDrawBatch, WorldDrawFrame,
+        InspectActionRequest, InspectEditRequest, InspectField, InspectFieldId,
+        InspectNumberFormat, InspectNumberInput, InspectSection, InspectSectionId, InspectUnit,
+        InspectValue, InspectionFrame, StructureFrame, StructureItem, StructureItemId,
+        StructureSelection, WorldDrawBatch, WorldDrawFrame,
     },
     ecs::UsfManifestations,
     view::PrimaryViewPresentation,
@@ -46,7 +46,10 @@ const THERMAL_NUDGE_JOULES: f32 = 10_000.0;
 pub(crate) fn configure(app: &mut App) {
     app.add_systems(
         PreUpdate,
-        (apply_thermal_inspection_edits, apply_thermal_inspection_actions),
+        (
+            apply_thermal_inspection_edits,
+            apply_thermal_inspection_actions,
+        ),
     )
     .add_systems(
         PostUpdate,
@@ -360,10 +363,14 @@ fn apply_thermal_inspection_edits(
                     continue;
                 };
                 match field {
-                    IGNITION_FIELD if value >= 1.0 && value >= material.extinction_temperature_kelvin => {
+                    IGNITION_FIELD
+                        if value >= 1.0 && value >= material.extinction_temperature_kelvin =>
+                    {
                         material.ignition_temperature_kelvin = value;
                     }
-                    EXTINCTION_FIELD if value >= 1.0 && value <= material.ignition_temperature_kelvin => {
+                    EXTINCTION_FIELD
+                        if value >= 1.0 && value <= material.ignition_temperature_kelvin =>
+                    {
                         material.extinction_temperature_kelvin = value;
                     }
                     BURN_POWER_FIELD if value >= 0.0 => material.burn_power_watts = value,
@@ -462,9 +469,7 @@ fn collect_focused_thermal_gizmo(
         }
     }
 
-    if !drew_sample
-        && let Ok(transform) = transforms.get(target.spatial_entity)
-    {
+    if !drew_sample && let Ok(transform) = transforms.get(target.spatial_entity) {
         draw_thermal_sample(&mut batch, transform.translation(), radius, color);
     }
 

@@ -21,13 +21,16 @@ pub fn apply_portal_commands(
     supports: Query<(Entity, &CollisionClipSource, &Transform), Without<Portal>>,
     mut portals: ParamSet<(
         Query<(Entity, &Portal, &PortalActive, &Transform, &PortalSupport), With<Portal>>,
-        Query<(
-            &Portal,
-            &mut Transform,
-            &mut PortalActive,
-            &mut PortalSupport,
-            &mut CollisionStencil,
-        ), With<Portal>>,
+        Query<
+            (
+                &Portal,
+                &mut Transform,
+                &mut PortalActive,
+                &mut PortalSupport,
+                &mut CollisionStencil,
+            ),
+            With<Portal>,
+        >,
     )>,
 ) {
     let Some(pair) = pair else {
@@ -57,8 +60,7 @@ pub fn apply_portal_commands(
                     portal.half_size
                 };
 
-                let Some(placement) =
-                    resolve_portal_placement(*transform, half_size, &supports)
+                let Some(placement) = resolve_portal_placement(*transform, half_size, &supports)
                 else {
                     continue;
                 };
@@ -96,16 +98,14 @@ pub fn apply_portal_commands(
                 }
             }
             PortalCommand::Remove { endpoint } => {
+                let mut write = portals.p1();
+                if let Ok((_, _, mut active, mut support, mut stencil)) =
+                    write.get_mut(pair.entity(*endpoint))
                 {
-                    let mut write = portals.p1();
-                    if let Ok((_, _, mut active, mut support, mut stencil)) =
-                        write.get_mut(pair.entity(*endpoint))
-                    {
-                        active.0 = false;
-                        support.0 = None;
-                        stencil.enabled = false;
-                        stencil.target = None;
-                    }
+                    active.0 = false;
+                    support.0 = None;
+                    stencil.enabled = false;
+                    stencil.target = None;
                 }
             }
             PortalCommand::RemovePair => {

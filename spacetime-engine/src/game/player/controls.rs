@@ -5,18 +5,22 @@
 //! or movement tuning.
 
 use avian3d::prelude::LinearVelocity;
-use bevy::{input::mouse::AccumulatedMouseMotion, prelude::*};
+use bevy::{
+    input::mouse::{AccumulatedMouseMotion, AccumulatedMouseScroll},
+    prelude::*,
+};
 
 use crate::{
     physics::character::{
         CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame, CharacterMotor,
         CharacterMovementInput,
     },
-    spatial::SpatialDemandSource,
+    spatial::{SpatialDemandSource, SpatialScale, UsfViewFrame},
 };
 
 use super::{
-    Player, PlayerAim, PlayerController, PlayerDead, PlayerNoclip, PlayerStance, cursor::CursorCapture,
+    Player, PlayerAim, PlayerController, PlayerDead, PlayerNoclip, PlayerStance,
+    cursor::CursorCapture,
 };
 
 pub(super) fn gameplay_suppressed(
@@ -83,7 +87,6 @@ pub fn toggle_noclip(
     }
 }
 
-
 /// `L` toggles the player's contribution to generic spatial demand. Other
 /// sources (for example Chunkloading Cubes) remain completely independent.
 pub fn toggle_spatial_demand(
@@ -97,6 +100,36 @@ pub fn toggle_spatial_demand(
 
     let enabled = player.toggle();
     info!("player spatial demand toggled: {enabled}");
+}
+
+/// Alt + mouse wheel changes the observer's semantic presentation scale.
+pub fn zoom_spatial_view(
+    scroll: Res<AccumulatedMouseScroll>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    capture: Res<CursorCapture>,
+    mut view: ResMut<UsfViewFrame>,
+) {
+    if gameplay_suppressed(&keyboard, &capture) || scroll.delta.y == 0.0 {
+        return;
+    }
+    let alt = keyboard.pressed(KeyCode::AltLeft) || keyboard.pressed(KeyCode::AltRight);
+    if !alt {
+        return;
+    }
+
+    let fast = keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
+    let step = if fast { 1.0 } else { 0.1 };
+    view.add_zoom(
+        -scroll.delta.y.signum() * step,
+        SpatialScale::ZERO,
+        SpatialScale::MAX,
+    );
+    info!(
+        scale = %view.scale(),
+        fractional_zoom = view.zoom(),
+        continuous_scale = view.continuous_exponent(),
+        "USF observer scale changed"
+    );
 }
 
 /// Samples local controls once per render frame immediately before the fixed

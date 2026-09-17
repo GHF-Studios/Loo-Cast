@@ -18,16 +18,18 @@ use crate::{
 use super::{
     AppInspectExt, AppInspectorWidgetsExt, DeveloperFocus, DeveloperSet, DrawDepth, InspectAccess,
     InspectEditRequest, InspectField, InspectFieldId, InspectNumberInput, InspectSection,
-    InspectSectionId, InspectValue, InspectWidgetId, InspectionFrame, StructureFrame, StructureItem,
-    StructureItemId, StructureSelection, WorldDrawBatch, WorldDrawFrame,
+    InspectSectionId, InspectValue, InspectWidgetId, InspectionFrame, StructureFrame,
+    StructureItem, StructureItemId, StructureSelection, WorldDrawBatch, WorldDrawFrame,
     inspect_ui::{InspectWidgetContext, InspectorWidget, egui},
 };
 
 const INPUT_FOCUS_OWNER: &str = "editor_gizmo";
 const TRANSFORM_SPACE_WIDGET: InspectWidgetId = InspectWidgetId("editor.transform_space");
 pub(in crate::devtools) const TRANSFORM_SECTION: InspectSectionId = InspectSectionId("transform");
-pub(in crate::devtools) const TRANSFORM_STRUCTURE: StructureItemId = StructureItemId("core.transform");
-pub(in crate::devtools) const TRANSLATION_FIELD: InspectFieldId = InspectFieldId("transform.translation");
+pub(in crate::devtools) const TRANSFORM_STRUCTURE: StructureItemId =
+    StructureItemId("core.transform");
+pub(in crate::devtools) const TRANSLATION_FIELD: InspectFieldId =
+    InspectFieldId("transform.translation");
 pub(in crate::devtools) const ROTATION_FIELD: InspectFieldId = InspectFieldId("transform.rotation");
 pub(in crate::devtools) const SCALE_FIELD: InspectFieldId = InspectFieldId("transform.scale");
 const HANDLE_PICK_PIXELS: f32 = 9.0;
@@ -135,7 +137,6 @@ impl TransformAxis {
             Self::Z => Vec3::Z,
         }
     }
-
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -180,10 +181,7 @@ pub(super) fn configure(app: &mut App) {
         .init_resource::<PrimaryViewPresentation>()
         .init_resource::<EditorTransformGizmoSettings>()
         .init_resource::<TransformGizmoInteraction>()
-        .add_systems(
-            PreUpdate,
-            claim_gizmo_input.before(InputFocusSet::Resolve),
-        )
+        .add_systems(PreUpdate, claim_gizmo_input.before(InputFocusSet::Resolve))
         // Inspection UI writes proposals after gameplay update; commit them in
         // the next PreUpdate, still safely before Bevy's normal PostUpdate
         // transform propagation. Viewport dragging remains immediate in Update.
@@ -250,13 +248,12 @@ fn collect_transform_inspection(
         return;
     };
 
-    let access = if writable.contains(target.spatial_entity)
-        && !parented.contains(target.spatial_entity)
-    {
-        InspectAccess::Direct
-    } else {
-        InspectAccess::ReadOnly
-    };
+    let access =
+        if writable.contains(target.spatial_entity) && !parented.contains(target.spatial_entity) {
+            InspectAccess::Direct
+        } else {
+            InspectAccess::ReadOnly
+        };
     let (rx, ry, rz) = transform.rotation.to_euler(EulerRot::XYZ);
 
     let translation = InspectField::new("Translation", InspectValue::Vec3(transform.translation))
@@ -294,7 +291,8 @@ fn apply_transform_inspection_edits(
     mut transforms: Query<&mut Transform, With<EditorTransformWritable>>,
 ) {
     for request in requests.read() {
-        if request.section != TRANSFORM_SECTION || parented.contains(request.target.spatial_entity) {
+        if request.section != TRANSFORM_SECTION || parented.contains(request.target.spatial_entity)
+        {
             continue;
         }
         let Ok(mut transform) = transforms.get_mut(request.target.spatial_entity) else {
@@ -421,7 +419,9 @@ fn update_transform_gizmo(
     let Some(origin_screen) = project(camera, camera_transform, origin) else {
         return;
     };
-    let (axis_screen, pixels_per_world, axis_pixels) = if handle.operation == TransformOperation::Rotate {
+    let (axis_screen, pixels_per_world, axis_pixels) = if handle.operation
+        == TransformOperation::Rotate
+    {
         // Rotation uses cursor angle around the projected origin. A rotation
         // axis pointing toward the camera has almost no screen projection but
         // its ring is maximally useful, so it must not fail drag initialization.
@@ -525,7 +525,8 @@ fn collect_transform_gizmo(
     let transform = global.compute_transform();
     let origin = transform.translation;
     let size = gizmo_world_size(camera_transform, origin);
-    let editable = writable.contains(target.spatial_entity) && !parented.contains(target.spatial_entity);
+    let editable =
+        writable.contains(target.spatial_entity) && !parented.contains(target.spatial_entity);
     let mut batch = WorldDrawBatch::default();
 
     for axis in TransformAxis::ALL {
@@ -625,10 +626,7 @@ fn select_from_primary_view(
     }
 }
 
-fn transform_context_visible(
-    target: super::FocusTarget,
-    structure: &StructureSelection,
-) -> bool {
+fn transform_context_visible(target: super::FocusTarget, structure: &StructureSelection) -> bool {
     structure
         .item_for(target)
         .map_or(true, |item| item == TRANSFORM_STRUCTURE)
@@ -658,7 +656,12 @@ fn hit_test(
             camera_transform,
             origin + scale_direction * size * 0.58,
         ) {
-            consider_handle(&mut best, cursor.distance(point), HANDLE_PICK_PIXELS + 2.0, scale_handle);
+            consider_handle(
+                &mut best,
+                cursor.distance(point),
+                HANDLE_PICK_PIXELS + 2.0,
+                scale_handle,
+            );
         }
 
         let translate_handle = TransformHandle {
@@ -703,12 +706,7 @@ fn hit_test(
             }
             previous = current;
         }
-        consider_handle(
-            &mut best,
-            ring_distance,
-            HANDLE_PICK_PIXELS,
-            rotate_handle,
-        );
+        consider_handle(&mut best, ring_distance, HANDLE_PICK_PIXELS, rotate_handle);
     }
 
     // Avoid selecting an almost edge-on gizmo merely because its projected
@@ -745,11 +743,7 @@ fn point_segment_distance(point: Vec2, a: Vec2, b: Vec2) -> f32 {
     point.distance(a + ab * t)
 }
 
-fn project(
-    camera: &Camera,
-    camera_transform: &GlobalTransform,
-    point: Vec3,
-) -> Option<Vec2> {
+fn project(camera: &Camera, camera_transform: &GlobalTransform, point: Vec3) -> Option<Vec2> {
     camera.world_to_viewport(camera_transform, point).ok()
 }
 
@@ -768,11 +762,7 @@ fn world_axis(axis: TransformAxis, space: EditorTransformSpace, rotation: Quat) 
     }
 }
 
-fn handle_world_axis(
-    handle: TransformHandle,
-    space: EditorTransformSpace,
-    rotation: Quat,
-) -> Vec3 {
+fn handle_world_axis(handle: TransformHandle, space: EditorTransformSpace, rotation: Quat) -> Vec3 {
     // `Transform::scale` is local-axis data. A true world-space scale operation
     // on a rotated transform would need decomposition/authority semantics beyond
     // this generic direct-runtime adapter, so scale handles deliberately remain
@@ -785,11 +775,7 @@ fn handle_world_axis(
     world_axis(handle.axis, effective_space, rotation)
 }
 
-fn ring_basis(
-    axis: TransformAxis,
-    space: EditorTransformSpace,
-    rotation: Quat,
-) -> (Vec3, Vec3) {
+fn ring_basis(axis: TransformAxis, space: EditorTransformSpace, rotation: Quat) -> (Vec3, Vec3) {
     let (a, b) = match axis {
         TransformAxis::X => (Vec3::Y, Vec3::Z),
         TransformAxis::Y => (Vec3::Z, Vec3::X),

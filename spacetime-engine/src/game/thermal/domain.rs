@@ -31,8 +31,7 @@ impl ThermalBody {
     ) -> Self {
         assert!(temperature_kelvin.is_finite() && temperature_kelvin > 0.0);
         assert!(
-            heat_capacity_joules_per_kelvin.is_finite()
-                && heat_capacity_joules_per_kelvin > 0.0
+            heat_capacity_joules_per_kelvin.is_finite() && heat_capacity_joules_per_kelvin > 0.0
         );
         assert!(cooling_watts_per_kelvin.is_finite() && cooling_watts_per_kelvin >= 0.0);
 
@@ -43,10 +42,7 @@ impl ThermalBody {
         }
     }
 
-    pub fn ambient(
-        heat_capacity_joules_per_kelvin: f32,
-        cooling_watts_per_kelvin: f32,
-    ) -> Self {
+    pub fn ambient(heat_capacity_joules_per_kelvin: f32, cooling_watts_per_kelvin: f32) -> Self {
         Self::new(
             AMBIENT_TEMPERATURE_KELVIN,
             heat_capacity_joules_per_kelvin,
@@ -91,7 +87,6 @@ impl ThermalBody {
         self.add_energy_joules(applied);
     }
 }
-
 
 /// Marks a concrete manifestation whose transform participates in spatial
 /// thermal interactions for its semantic entity.
@@ -216,7 +211,6 @@ pub struct ThermalImpulse {
     pub target: Entity,
     pub energy_joules: f32,
 }
-
 
 #[cfg(test)]
 mod tests {

@@ -119,10 +119,7 @@ mod tests {
             half_size,
         ));
         assert!(!coplanar_apertures_overlap(
-            &first,
-            half_size,
-            &touching,
-            half_size,
+            &first, half_size, &touching, half_size,
         ));
     }
 }

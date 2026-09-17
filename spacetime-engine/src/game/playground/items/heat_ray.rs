@@ -8,10 +8,7 @@ use bevy::prelude::*;
 
 use crate::{
     ecs::{UsfManifestationOf, UsfManifestations},
-    game::{
-        GameSet,
-        thermal::ThermalPointImpulse,
-    },
+    game::{GameSet, thermal::ThermalPointImpulse},
 };
 
 use super::super::{
@@ -72,13 +69,9 @@ fn use_heat_ray(
             .map(|manifestations| SpatialQueryFilter::from_excluded_entities(manifestations.iter()))
             .unwrap_or_else(|| SpatialQueryFilter::from_excluded_entities([request.actor]));
 
-        let Some(hit) = spatial_query.cast_ray(
-            request.aim.origin,
-            direction,
-            RANGE,
-            false,
-            &filter,
-        ) else {
+        let Some(hit) =
+            spatial_query.cast_ray(request.aim.origin, direction, RANGE, false, &filter)
+        else {
             continue;
         };
 

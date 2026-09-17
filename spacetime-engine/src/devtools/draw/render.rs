@@ -1,10 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use bevy::{
-    asset::RenderAssetUsages,
-    mesh::PrimitiveTopology,
-    prelude::*,
-};
+use bevy::{asset::RenderAssetUsages, mesh::PrimitiveTopology, prelude::*};
 
 use super::{DrawDepth, DrawId, ScalarFieldMode, WorldDrawFrame, WorldPrimitive, WorldScalarField};
 use crate::devtools::{DeveloperArtifact, DeveloperSet};
@@ -37,8 +33,7 @@ pub(super) fn configure(app: &mut App) {
         .add_systems(Startup, setup_world_draw_backend)
         .add_systems(
             PostUpdate,
-            (render_primitives, sync_scalar_field_visuals)
-                .in_set(DeveloperSet::RenderWorldDraw),
+            (render_primitives, sync_scalar_field_visuals).in_set(DeveloperSet::RenderWorldDraw),
         );
 }
 
@@ -93,15 +88,31 @@ fn primitive_depth(primitive: &WorldPrimitive) -> DrawDepth {
 
 fn draw_world_primitive(gizmos: &mut Gizmos<DeveloperWorldGizmos>, primitive: &WorldPrimitive) {
     match primitive {
-        WorldPrimitive::Line { start, end, color, .. } => gizmos.line(*start, *end, *color),
-        WorldPrimitive::Arrow { start, end, color, .. } => {
+        WorldPrimitive::Line {
+            start, end, color, ..
+        } => gizmos.line(*start, *end, *color),
+        WorldPrimitive::Arrow {
+            start, end, color, ..
+        } => {
             gizmos.arrow(*start, *end, *color);
         }
-        WorldPrimitive::Axes { transform, length, .. } => gizmos.axes(*transform, *length),
-        WorldPrimitive::Rect { isometry, size, color, .. } => {
+        WorldPrimitive::Axes {
+            transform, length, ..
+        } => gizmos.axes(*transform, *length),
+        WorldPrimitive::Rect {
+            isometry,
+            size,
+            color,
+            ..
+        } => {
             gizmos.rect(*isometry, *size, *color);
         }
-        WorldPrimitive::Cross { isometry, size, color, .. } => {
+        WorldPrimitive::Cross {
+            isometry,
+            size,
+            color,
+            ..
+        } => {
             gizmos.cross(*isometry, *size, *color);
         }
         WorldPrimitive::Sphere {
@@ -118,20 +129,33 @@ fn draw_world_primitive(gizmos: &mut Gizmos<DeveloperWorldGizmos>, primitive: &W
     }
 }
 
-fn draw_overlay_primitive(
-    gizmos: &mut Gizmos<DeveloperOverlayGizmos>,
-    primitive: &WorldPrimitive,
-) {
+fn draw_overlay_primitive(gizmos: &mut Gizmos<DeveloperOverlayGizmos>, primitive: &WorldPrimitive) {
     match primitive {
-        WorldPrimitive::Line { start, end, color, .. } => gizmos.line(*start, *end, *color),
-        WorldPrimitive::Arrow { start, end, color, .. } => {
+        WorldPrimitive::Line {
+            start, end, color, ..
+        } => gizmos.line(*start, *end, *color),
+        WorldPrimitive::Arrow {
+            start, end, color, ..
+        } => {
             gizmos.arrow(*start, *end, *color);
         }
-        WorldPrimitive::Axes { transform, length, .. } => gizmos.axes(*transform, *length),
-        WorldPrimitive::Rect { isometry, size, color, .. } => {
+        WorldPrimitive::Axes {
+            transform, length, ..
+        } => gizmos.axes(*transform, *length),
+        WorldPrimitive::Rect {
+            isometry,
+            size,
+            color,
+            ..
+        } => {
             gizmos.rect(*isometry, *size, *color);
         }
-        WorldPrimitive::Cross { isometry, size, color, .. } => {
+        WorldPrimitive::Cross {
+            isometry,
+            size,
+            color,
+            ..
+        } => {
             gizmos.cross(*isometry, *size, *color);
         }
         WorldPrimitive::Sphere {

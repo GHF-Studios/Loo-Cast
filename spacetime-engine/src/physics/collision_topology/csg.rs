@@ -195,8 +195,12 @@ impl ConvexPolyhedron {
         }
 
         (
-            (!inside_faces.is_empty()).then_some(Self { faces: inside_faces }),
-            (!outside_faces.is_empty()).then_some(Self { faces: outside_faces }),
+            (!inside_faces.is_empty()).then_some(Self {
+                faces: inside_faces,
+            }),
+            (!outside_faces.is_empty()).then_some(Self {
+                faces: outside_faces,
+            }),
         )
     }
 
@@ -254,7 +258,11 @@ fn clip_polygon(face: &[Vec3], plane: ClipPlane, keep_inside: bool) -> (Vec<Vec3
 
 fn sorted_cap(mut points: Vec<Vec3>, normal: Vec3) -> Vec<Vec3> {
     let center = points.iter().copied().sum::<Vec3>() / points.len() as f32;
-    let reference = if normal.x.abs() < 0.8 { Vec3::X } else { Vec3::Y };
+    let reference = if normal.x.abs() < 0.8 {
+        Vec3::X
+    } else {
+        Vec3::Y
+    };
     let tangent = normal.cross(reference).normalize_or_zero();
     let bitangent = normal.cross(tangent).normalize_or_zero();
 

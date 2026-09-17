@@ -75,7 +75,10 @@ pub(crate) fn rebuild_clipped_colliders(
         let Some(target) = stencil.target else {
             continue;
         };
-        by_target.entry(target).or_default().push((entity, *stencil));
+        by_target
+            .entry(target)
+            .or_default()
+            .push((entity, *stencil));
     }
 
     for (entity, source, transform, mut collider, applied) in &mut hosts {

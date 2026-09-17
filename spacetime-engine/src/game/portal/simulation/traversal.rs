@@ -95,8 +95,9 @@ pub(in super::super) fn teleport_travelers(
                     &destination,
                 )
                 .rotation;
-                let target = locomotion_frame
-                    .map_or(mapped_control, |frame| frame.aligned_rotation(mapped_control));
+                let target = locomotion_frame.map_or(mapped_control, |frame| {
+                    frame.aligned_rotation(mapped_control)
+                });
                 control.begin_settle(
                     mapped_control,
                     target,

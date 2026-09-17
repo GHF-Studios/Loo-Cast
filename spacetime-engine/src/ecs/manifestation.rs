@@ -115,12 +115,13 @@ mod tests {
         let manifestation = world
             .spawn((UsfManifestationOf(semantic), UsfLogicalProjection))
             .id();
-        let presentation = world
-            .spawn(UsfPresentationProjectionOf(manifestation))
-            .id();
+        let presentation = world.spawn(UsfPresentationProjectionOf(manifestation)).id();
 
         let manifestations = world.get::<UsfManifestations>(semantic).unwrap();
-        assert_eq!(manifestations.iter().collect::<Vec<_>>(), vec![manifestation]);
+        assert_eq!(
+            manifestations.iter().collect::<Vec<_>>(),
+            vec![manifestation]
+        );
 
         let presentations = world
             .get::<UsfPresentationProjections>(manifestation)

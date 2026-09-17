@@ -63,10 +63,7 @@ pub(super) fn configure(app: &mut App) {
             Startup,
             (spawn_player_health_bar, setup_world_health_bar_assets),
         )
-        .add_systems(
-            Update,
-            sync_player_health_bar.in_set(GameSet::Presentation),
-        )
+        .add_systems(Update, sync_player_health_bar.in_set(GameSet::Presentation))
         .add_systems(
             PostUpdate,
             sync_world_health_bars.after(TransformSystems::Propagate),
@@ -153,7 +150,12 @@ fn sync_world_health_bars(
     player: Query<&UsfManifestationOf, With<Player>>,
     health: Query<&Health>,
     manifestations: Query<
-        (Entity, &UsfManifestationOf, &GlobalTransform, Option<&Hitbox>),
+        (
+            Entity,
+            &UsfManifestationOf,
+            &GlobalTransform,
+            Option<&Hitbox>,
+        ),
         (
             Or<(Without<SpatialSplitPeer>, With<SpatialSplitPeerActive>)>,
             Without<WorldHealthBarVisual>,
@@ -306,8 +308,7 @@ fn world_bar_transforms(
     let fill_width = inner_width * fraction;
     let rendered_fill_width = fill_width.max(0.001);
     let local_x = -(inner_width - fill_width) * 0.5;
-    let fill_center = center
-        + camera_rotation * Vec3::new(local_x, 0.0, WORLD_BAR_FILL_Z_OFFSET);
+    let fill_center = center + camera_rotation * Vec3::new(local_x, 0.0, WORLD_BAR_FILL_Z_OFFSET);
     let fill = Transform {
         translation: fill_center,
         rotation: camera_rotation,

@@ -248,11 +248,7 @@ impl InspectTypeRegistration {
         (self.visit)(value, visitor)
     }
 
-    pub fn visit_mut(
-        self,
-        value: &mut dyn Any,
-        visitor: &mut dyn InspectFieldVisitorMut,
-    ) -> bool {
+    pub fn visit_mut(self, value: &mut dyn Any, visitor: &mut dyn InspectFieldVisitorMut) -> bool {
         (self.visit_mut)(value, visitor)
     }
 }
@@ -531,7 +527,10 @@ pub struct InspectionFrame {
 impl InspectionFrame {
     pub fn submit(&mut self, section: InspectSection) {
         assert!(
-            !self.sections.iter().any(|existing| existing.id == section.id),
+            !self
+                .sections
+                .iter()
+                .any(|existing| existing.id == section.id),
             "duplicate inspection section id {}",
             section.id.0,
         );
@@ -551,19 +550,16 @@ impl InspectionFrame {
     }
 
     /// `None` means whole-entity inspection and therefore returns all sections.
-    pub fn sorted_sections_for(&self, structure_item: Option<StructureItemId>) -> Vec<&InspectSection> {
+    pub fn sorted_sections_for(
+        &self,
+        structure_item: Option<StructureItemId>,
+    ) -> Vec<&InspectSection> {
         let mut sections = self
             .sections
             .iter()
-            .filter(|section| {
-                structure_item.is_none() || section.structure_item == structure_item
-            })
+            .filter(|section| structure_item.is_none() || section.structure_item == structure_item)
             .collect::<Vec<_>>();
-        sections.sort_by(|a, b| {
-            a.order
-                .cmp(&b.order)
-                .then_with(|| a.title.cmp(&b.title))
-        });
+        sections.sort_by(|a, b| a.order.cmp(&b.order).then_with(|| a.title.cmp(&b.title)));
         sections
     }
 
@@ -595,7 +591,11 @@ mod inspect_derive_tests {
             slider
         )]
         opacity: f32,
-        #[inspect(validated, unit = "K", hint = "Validation belongs to the domain adapter.")]
+        #[inspect(
+            validated,
+            unit = "K",
+            hint = "Validation belongs to the domain adapter."
+        )]
         temperature_kelvin: f32,
         #[inspect(skip)]
         cache: u32,

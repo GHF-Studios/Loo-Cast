@@ -119,7 +119,9 @@ pub trait AppDeveloperToolsExt {
 impl AppDeveloperToolsExt for App {
     fn register_developer_visualization(&mut self, spec: VisualizationSpec) -> &mut Self {
         self.init_resource::<DeveloperTools>();
-        self.world_mut().resource_mut::<DeveloperTools>().register(spec);
+        self.world_mut()
+            .resource_mut::<DeveloperTools>()
+            .register(spec);
         self
     }
 }

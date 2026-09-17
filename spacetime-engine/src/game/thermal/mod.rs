@@ -46,12 +46,12 @@ impl Plugin for ThermalPlugin {
                 .in_set(SimulationSet::Phenomena),
         )
         .add_message::<ThermalImpulse>()
-            .register_type::<ThermalBody>()
-            .register_type::<ThermalSpatialSample>()
-            .register_type::<CombustibleMaterial>()
-            .register_type::<Fuel>()
-            .register_type::<Combustion>()
-            .register_type::<ThermalInjury>();
+        .register_type::<ThermalBody>()
+        .register_type::<ThermalSpatialSample>()
+        .register_type::<CombustibleMaterial>()
+        .register_type::<Fuel>()
+        .register_type::<Combustion>()
+        .register_type::<ThermalInjury>();
 
         spatial::configure(app);
         simulation::configure(app);

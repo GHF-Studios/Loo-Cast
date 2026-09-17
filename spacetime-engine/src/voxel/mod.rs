@@ -21,9 +21,7 @@ pub use base::{ProceduralTerrain, VoxelBase};
 pub use chunk::{
     CHUNK_SIZE, MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelChunkEditResult, VoxelRayHit,
 };
-pub use edit::{
-    EDIT_INFLUENCE_MARGIN, VoxelBounds, VoxelBrush, VoxelEdit, VoxelQueryPosition,
-};
+pub use edit::{EDIT_INFLUENCE_MARGIN, VoxelBounds, VoxelBrush, VoxelEdit, VoxelQueryPosition};
 pub use field::{SignedDistance, VoxelMaterialId, VoxelSample};
 pub use modification::VoxelModificationLayer;
 pub use streaming::{VoxelMaterializationDemand, VoxelStreaming};
@@ -35,6 +33,9 @@ use bevy::prelude::*;
 
 use crate::spatial::SpatialDemandSet;
 
+#[derive(Component, Debug, Clone, Copy)]
+pub(crate) struct VoxelChunkPresentation(pub Entity);
+
 pub struct VoxelPlugin;
 
 impl Plugin for VoxelPlugin {
@@ -43,21 +44,21 @@ impl Plugin for VoxelPlugin {
             Update,
             streaming::retire_orphaned_chunks.before(streaming::stream_voxel_chunks),
         )
-            .add_systems(
-                Update,
-                streaming::stream_voxel_chunks.after(SpatialDemandSet::Collect),
+        .add_systems(
+            Update,
+            streaming::stream_voxel_chunks.after(SpatialDemandSet::Collect),
+        )
+        .add_systems(
+            PostUpdate,
+            (
+                // Finish field generation after ordinary Update gameplay
+                // edits, then publish/queue revision-checked derived caches.
+                streaming::finish_chunk_generation,
+                async_pipeline::publish_completed_chunk_builds,
+                async_pipeline::queue_dirty_chunk_builds,
             )
-            .add_systems(
-                PostUpdate,
-                (
-                    // Finish field generation after ordinary Update gameplay
-                    // edits, then publish/queue revision-checked derived caches.
-                    streaming::finish_chunk_generation,
-                    async_pipeline::publish_completed_chunk_builds,
-                    async_pipeline::queue_dirty_chunk_builds,
-                )
-                    .chain(),
-            );
+                .chain(),
+        );
 
         devtools::configure(app);
     }

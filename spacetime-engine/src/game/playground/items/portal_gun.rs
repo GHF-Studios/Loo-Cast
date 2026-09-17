@@ -9,7 +9,10 @@ use bevy::prelude::*;
 
 use crate::{
     ecs::{UsfManifestationOf, UsfManifestations},
-    game::{GameSet, portal::{PortalCommand, PortalEndpoint}},
+    game::{
+        GameSet,
+        portal::{PortalCommand, PortalEndpoint},
+    },
 };
 
 use super::super::{

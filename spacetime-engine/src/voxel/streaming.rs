@@ -12,17 +12,19 @@ use bevy::{
     tasks::{AsyncComputeTaskPool, Task, futures::check_ready},
 };
 
-use crate::spatial::{SpatialDemandScope, SpatialDemandSnapshot, UsfSpatialFrame};
+use crate::spatial::{
+    SpatialDemandScope, SpatialDemandSnapshot, SpatialScale, UsfScalePresentation, UsfSpatialFrame,
+};
 
 use super::{
-    MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelChunkOf, VoxelMaterializationChunkAddress,
-    VoxelQueryPosition, VoxelWorld,
+    MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelChunkOf, VoxelChunkPresentation,
+    VoxelMaterializationChunkAddress, VoxelQueryPosition, VoxelWorld,
     aggregate::{VoxelMaterializationAggregateExtent, VoxelMaterializationAggregateScope},
-    empty_voxel_mesh, world::VoxelChunkRecipe,
+    world::VoxelChunkRecipe,
 };
 
 /// Maximum number of finished base materializations published into ECS in one frame.
-const GENERATION_PUBLISH_BUDGET_PER_FRAME: usize = 8;
+const GENERATION_PUBLISH_BUDGET_PER_FRAME: usize = 24;
 
 /// Current voxel-field generation work scope. This is deliberately a scheduler
 /// choice, not materialization identity; `1000³` alignment is supported by the
@@ -109,8 +111,7 @@ impl VoxelAggregateGenerationTask {
     ) -> Self {
         debug_assert!(!jobs.is_empty());
         let task = AsyncComputeTaskPool::get().spawn(async move {
-            jobs
-                .into_iter()
+            jobs.into_iter()
                 .map(|job| {
                     let applied_edit_count = job.recipe.applied_edit_count();
                     VoxelGeneratedChunk {
@@ -215,7 +216,6 @@ pub(crate) fn retire_orphaned_chunks(
 
 pub(crate) fn stream_voxel_chunks(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
     frame: Res<UsfSpatialFrame>,
     demand_snapshot: Res<SpatialDemandSnapshot>,
     voxel_demand_sources: Query<(), With<VoxelMaterializationDemand>>,
@@ -286,7 +286,10 @@ pub(crate) fn stream_voxel_chunks(
                 address,
                 FIELD_GENERATION_AGGREGATE_EXTENT,
             ) else {
-                error!(?address, "voxel aggregate scope could not be derived canonically");
+                error!(
+                    ?address,
+                    "voxel aggregate scope could not be derived canonically"
+                );
                 continue;
             };
             let recipe = world.chunk_recipe(address);
@@ -299,16 +302,25 @@ pub(crate) fn stream_voxel_chunks(
                     )),
                     VoxelChunkOf::new(world_entity),
                     address,
-                    Mesh3d(meshes.add(empty_voxel_mesh())),
-                    MeshMaterial3d(streaming.material.clone()),
-                    NoFrustumCulling,
                     Transform::from_translation(local_translation),
                 ))
                 .id();
 
-            // Generation is asynchronous, so the old attribute-less placeholder
-            // could otherwise survive into render extraction for several frames.
-            commands.entity(chunk_entity).remove::<Mesh3d>();
+            let presentation_entity = commands
+                .spawn((
+                    Name::new("Voxel Chunk S0 Presentation"),
+                    ChildOf(chunk_entity),
+                    UsfScalePresentation::new(address.query_origin().usf(), SpatialScale::ZERO),
+                    MeshMaterial3d(streaming.material.clone()),
+                    NoFrustumCulling,
+                    Transform::IDENTITY,
+                    Visibility::Inherited,
+                ))
+                .id();
+            commands
+                .entity(chunk_entity)
+                .insert(VoxelChunkPresentation(presentation_entity));
+
             assert!(world.insert_chunk(address, chunk_entity).is_none());
             push_generation_job(
                 &mut aggregate_batches,
@@ -333,11 +345,7 @@ pub(crate) fn stream_voxel_chunks(
                     "Voxel Aggregate Generation {native_extent}³ ({} chunks)",
                     batch.jobs.len()
                 )),
-                VoxelAggregateGenerationTask::spawn(
-                    world_entity,
-                    batch.scope,
-                    batch.jobs,
-                ),
+                VoxelAggregateGenerationTask::spawn(world_entity, batch.scope, batch.jobs),
             ));
         }
     }
@@ -449,9 +457,7 @@ fn catch_up_generated_chunk(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::voxel::{
-        VoxelBase, VoxelBrush, VoxelEdit, VoxelMaterialId, VoxelQueryPosition,
-    };
+    use crate::voxel::{VoxelBase, VoxelBrush, VoxelEdit, VoxelMaterialId, VoxelQueryPosition};
 
     fn query(local: Vec3) -> VoxelQueryPosition {
         VoxelQueryPosition::from_scale0_local(local).unwrap()
@@ -480,7 +486,11 @@ mod tests {
             .collect::<HashSet<_>>();
 
         assert_eq!(unique.len(), desired.len());
-        assert!(desired.windows(2).all(|pair| pair[0].priority >= pair[1].priority));
+        assert!(
+            desired
+                .windows(2)
+                .all(|pair| pair[0].priority >= pair[1].priority)
+        );
         assert!(desired.iter().any(|chunk| chunk.priority == 5));
     }
 
@@ -529,12 +539,7 @@ mod tests {
         let mut ecs = World::new();
         let source = ecs.spawn_empty().id();
         let half_extent = Vec3::splat(12.0);
-        let before = SpatialDemandScope::new(
-            source,
-            query(Vec3::ZERO).usf(),
-            half_extent,
-            1,
-        );
+        let before = SpatialDemandScope::new(source, query(Vec3::ZERO).usf(), half_extent, 1);
         let after = SpatialDemandScope::new(
             source,
             query(Vec3::new(40.0, 0.0, 0.0)).usf(),
@@ -560,17 +565,13 @@ mod tests {
 
     #[test]
     fn demand_crosses_canonical_digit_carry_without_flat_coordinates() {
-        let origin = crate::spatial::UsfPosition::from_scale0_local(Vec3::new(499.0, 0.0, 0.0))
-            .unwrap();
+        let origin =
+            crate::spatial::UsfPosition::from_scale0_local(Vec3::new(499.0, 0.0, 0.0)).unwrap();
         let world = VoxelWorld::new_at(VoxelBase::Empty, origin);
         let mut ecs = World::new();
         let center = origin.translated_native(Vec3::new(8.0, 0.0, 0.0)).unwrap();
-        let demand = SpatialDemandScope::new(
-            ecs.spawn_empty().id(),
-            center,
-            Vec3::new(20.0, 5.0, 5.0),
-            1,
-        );
+        let demand =
+            SpatialDemandScope::new(ecs.spawn_empty().id(), center, Vec3::new(20.0, 5.0, 5.0), 1);
 
         let desired = demanded_chunk_addresses(&world, &[demand]).unwrap();
         let unique = desired

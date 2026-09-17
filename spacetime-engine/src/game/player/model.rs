@@ -5,6 +5,7 @@ use bevy::{camera::visibility::RenderLayers, prelude::*};
 use crate::{
     game::portal::{DERIVED_VIEW_LAYER, PortalSplitVisual},
     physics::character::CharacterDimensions,
+    spatial::{SpatialScale, UsfLocalScalePresentation},
 };
 
 /// Marks presentation geometry belonging to the player.
@@ -23,6 +24,7 @@ pub fn create_model(
         Name::new("Player Model"),
         PlayerModel,
         PortalSplitVisual,
+        UsfLocalScalePresentation::new(SpatialScale::ZERO),
         Mesh3d(meshes.add(Cuboid::new(
             CharacterDimensions::HULL_WIDTH,
             CharacterDimensions::HULL_HEIGHT,

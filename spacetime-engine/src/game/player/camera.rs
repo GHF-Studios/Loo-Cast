@@ -11,11 +11,7 @@
 //! to `base_distance + zoom_offset`.
 
 use avian3d::prelude::{Collider, ShapeCastConfig, SpatialQuery, SpatialQueryFilter};
-use bevy::{
-    camera::visibility::RenderLayers,
-    input::mouse::AccumulatedMouseScroll,
-    prelude::*,
-};
+use bevy::{camera::visibility::RenderLayers, input::mouse::AccumulatedMouseScroll, prelude::*};
 
 use crate::{
     ecs::{UsfLogicalProjection, UsfManifestationOf, UsfManifestations},
@@ -165,10 +161,16 @@ pub fn toggle_camera_mode(
 /// distance. Wheel-up moves the desired third-person camera inward.
 pub fn zoom_third_person(
     scroll: Res<AccumulatedMouseScroll>,
+    keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
     mut camera: Single<&mut PlayerCamera>,
 ) {
-    if !capture.active() || camera.mode != CameraMode::ThirdPerson || scroll.delta.y == 0.0 {
+    let spatial_zoom = keyboard.pressed(KeyCode::AltLeft) || keyboard.pressed(KeyCode::AltRight);
+    if spatial_zoom
+        || !capture.active()
+        || camera.mode != CameraMode::ThirdPerson
+        || scroll.delta.y == 0.0
+    {
         return;
     }
 
@@ -307,8 +309,8 @@ fn resolve_third_person_boom(
             &cast_config,
             &filter,
         ) {
-            let travel = (hit.distance - settings.collision_padding.max(0.0))
-                .clamp(0.0, segment_distance);
+            let travel =
+                (hit.distance - settings.collision_padding.max(0.0)).clamp(0.0, segment_distance);
             transform.translation += back * travel;
             resolved_distance += travel;
             return ResolvedThirdPersonBoom {
@@ -367,13 +369,9 @@ fn nearest_camera_portal_crossing(
         if !active.0 {
             continue;
         }
-        let Some(fraction) = crossed_aperture_fraction(
-            source,
-            portal.half_size,
-            portal.sidedness,
-            start,
-            end,
-        ) else {
+        let Some(fraction) =
+            crossed_aperture_fraction(source, portal.half_size, portal.sidedness, start, end)
+        else {
             continue;
         };
         let Ok((_, _, destination_active, destination)) = portals.get(portal.destination) else {
@@ -407,13 +405,14 @@ fn nearest_camera_portal_crossing(
 /// Bevy stores perspective FOV vertically. Keep the requested gameplay FOV
 /// horizontal and derive the vertical value from the logical game-view aspect,
 /// not from the containing window. This remains correct when the game is embedded.
-pub fn sync_player_fov(
-    camera: Single<(&PlayerCamera, &Camera, &mut Projection)>,
-) {
+pub fn sync_player_fov(camera: Single<(&PlayerCamera, &Camera, &mut Projection)>) {
     let (settings, camera, mut projection) = camera.into_inner();
     let Projection::Perspective(perspective) = projection.as_mut() else {
         return;
     };
+
+    perspective.near = 0.001;
+    perspective.far = 100_000.0;
 
     let Some(size) = camera
         .logical_viewport_size()

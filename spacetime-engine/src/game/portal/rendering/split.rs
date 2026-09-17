@@ -4,18 +4,11 @@
 //! used for split physics colliders. For reference box geometry this keeps the
 //! rendered cut and physical cut identical, including the portal-plane cap.
 
-use bevy::{
-    asset::RenderAssetUsages,
-    mesh::PrimitiveTopology,
-    prelude::*,
-};
+use bevy::{asset::RenderAssetUsages, mesh::PrimitiveTopology, prelude::*};
 
 use crate::{
     ecs::UsfPresentationProjectionOf,
-    game::portal::{
-        Portal, PortalActive, PortalSplitTraveler,
-        topology::mapping::portal_plane,
-    },
+    game::portal::{Portal, PortalActive, PortalSplitTraveler, topology::mapping::portal_plane},
     physics::topology::{
         SpatialSplitBox, SpatialSplitPeer, SpatialSplitPeerActive, partition_box_by_plane,
     },
@@ -131,16 +124,19 @@ pub(super) fn sync_split_visuals(
 
 fn full_box_mesh(split_box: SpatialSplitBox) -> Mesh {
     let h = split_box.half_extents;
-    convex_polyhedron_mesh(&[
-        Vec3::new(-h.x, -h.y, -h.z),
-        Vec3::new(h.x, -h.y, -h.z),
-        Vec3::new(-h.x, h.y, -h.z),
-        Vec3::new(h.x, h.y, -h.z),
-        Vec3::new(-h.x, -h.y, h.z),
-        Vec3::new(h.x, -h.y, h.z),
-        Vec3::new(-h.x, h.y, h.z),
-        Vec3::new(h.x, h.y, h.z),
-    ], None)
+    convex_polyhedron_mesh(
+        &[
+            Vec3::new(-h.x, -h.y, -h.z),
+            Vec3::new(h.x, -h.y, -h.z),
+            Vec3::new(-h.x, h.y, -h.z),
+            Vec3::new(h.x, h.y, -h.z),
+            Vec3::new(-h.x, -h.y, h.z),
+            Vec3::new(h.x, -h.y, h.z),
+            Vec3::new(-h.x, h.y, h.z),
+            Vec3::new(h.x, h.y, h.z),
+        ],
+        None,
+    )
 }
 
 #[derive(Clone, Copy)]
@@ -195,8 +191,7 @@ fn convex_polyhedron_mesh(points: &[Vec3], excluded_face: Option<LocalFacePlane>
                     .iter()
                     .enumerate()
                     .filter_map(|(index, point)| {
-                        ((normal.dot(*point) - distance).abs() <= FACE_EPSILON)
-                            .then_some(index)
+                        ((normal.dot(*point) - distance).abs() <= FACE_EPSILON).then_some(index)
                     })
                     .collect();
 
@@ -223,7 +218,11 @@ fn convex_polyhedron_mesh(points: &[Vec3], excluded_face: Option<LocalFacePlane>
             .fold(Vec3::ZERO, |sum, point| sum + point)
             / face.len() as f32;
 
-        let seed = if normal.x.abs() < 0.8 { Vec3::X } else { Vec3::Y };
+        let seed = if normal.x.abs() < 0.8 {
+            Vec3::X
+        } else {
+            Vec3::Y
+        };
         let right = (seed - normal * seed.dot(normal)).normalize_or_zero();
         if right == Vec3::ZERO {
             continue;

@@ -38,12 +38,7 @@ pub(crate) struct SpatialTopologyCollisionHooks<'w, 's> {
 }
 
 impl CollisionHooks for SpatialTopologyCollisionHooks<'_, '_> {
-    fn filter_pairs(
-        &self,
-        collider1: Entity,
-        collider2: Entity,
-        _commands: &mut Commands,
-    ) -> bool {
+    fn filter_pairs(&self, collider1: Entity, collider2: Entity, _commands: &mut Commands) -> bool {
         let first_is_peer_of_second = self
             .peers
             .get(collider1)

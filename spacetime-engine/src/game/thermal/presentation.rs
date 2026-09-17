@@ -26,12 +26,13 @@ struct FlameVisual {
 }
 
 pub(super) fn configure(app: &mut App) {
-    app.add_systems(Startup, setup_fire_presentation).add_systems(
-        Update,
-        (sync_flame_visuals, animate_flame_visuals)
-            .chain()
-            .in_set(GameSet::Presentation),
-    );
+    app.add_systems(Startup, setup_fire_presentation)
+        .add_systems(
+            Update,
+            (sync_flame_visuals, animate_flame_visuals)
+                .chain()
+                .in_set(GameSet::Presentation),
+        );
 }
 
 fn setup_fire_presentation(
@@ -76,8 +77,7 @@ fn sync_flame_visuals(
             continue;
         }
 
-        let phase = (manifestation.to_bits() as f32 * 0.000_001).fract()
-            * std::f32::consts::TAU;
+        let phase = (manifestation.to_bits() as f32 * 0.000_001).fract() * std::f32::consts::TAU;
 
         commands.spawn((
             Name::new("Combustion Flame"),
@@ -128,8 +128,8 @@ fn animate_flame_visuals(
         let slow = (t * 5.3 + visual.phase * 1.7).sin();
         let flicker = (0.88 + fast * 0.08 + slow * 0.04).max(0.65);
 
-        transform.translation = source.translation
-            + Vec3::new(slow * 0.035, 0.72 + fast * 0.06, fast * 0.025);
+        transform.translation =
+            source.translation + Vec3::new(slow * 0.035, 0.72 + fast * 0.06, fast * 0.025);
         transform.scale = Vec3::new(0.52, 1.12, 0.52) * flicker;
         light.intensity = 850.0 * (0.9 + 0.15 * fast);
     }

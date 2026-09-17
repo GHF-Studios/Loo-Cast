@@ -31,7 +31,11 @@ impl Plugin for TestGameDeveloperToolsPlugin {
 
         app.add_systems(
             PostUpdate,
-            (resolve_developer_view, resolve_player_focus, handle_focus_pin)
+            (
+                resolve_developer_view,
+                resolve_player_focus,
+                handle_focus_pin,
+            )
                 .chain()
                 .in_set(DeveloperSet::ResolveFocus),
         )
@@ -61,9 +65,7 @@ fn resolve_developer_view(
     };
 
     view.set_interaction_ray(
-        target_position.and_then(|position| {
-            space.target_to_world_ray(camera_transform, position)
-        }),
+        target_position.and_then(|position| space.target_to_world_ray(camera_transform, position)),
     );
 }
 
@@ -92,13 +94,7 @@ fn resolve_player_focus(
         .unwrap_or_else(|_| SpatialQueryFilter::from_excluded_entities([actor]));
 
     let spatial_hit = spatial_query
-        .cast_ray(
-            ray.origin,
-            direction,
-            FOCUS_RANGE_METERS,
-            false,
-            &filter,
-        )
+        .cast_ray(ray.origin, direction, FOCUS_RANGE_METERS, false, &filter)
         .map(|hit| (hit.entity, hit.distance));
 
     // Portals are apertures in supporting collision rather than ordinary solid
@@ -180,10 +176,7 @@ fn collect_identity_inspection(
         "Semantic entity"
     };
     let mut section = InspectSection::new(IDENTITY_SECTION, "Identity", 0).field(
-        InspectField::new(
-            identity_label,
-            InspectValue::Entity(target.semantic_entity),
-        ),
+        InspectField::new(identity_label, InspectValue::Entity(target.semantic_entity)),
     );
 
     if let Some(hit) = target.hit {

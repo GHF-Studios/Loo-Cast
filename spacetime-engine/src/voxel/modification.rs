@@ -87,7 +87,9 @@ mod tests {
     #[test]
     fn canonical_chunk_index_returns_only_local_edits_in_global_order() {
         let mut world = VoxelWorld::new(VoxelBase::Empty);
-        let local_address = world.chunk_address(VoxelChunkCoord::new(IVec3::ZERO)).unwrap();
+        let local_address = world
+            .chunk_address(VoxelChunkCoord::new(IVec3::ZERO))
+            .unwrap();
         let first = VoxelEdit::Add {
             brush: VoxelBrush::sphere(query(Vec3::splat(8.0)), 2.0),
             material: VoxelMaterialId::ROCK,
@@ -105,7 +107,10 @@ mod tests {
         world.record_edit(second).unwrap();
 
         assert_eq!(
-            world.modifications().for_chunk(local_address).collect::<Vec<_>>(),
+            world
+                .modifications()
+                .for_chunk(local_address)
+                .collect::<Vec<_>>(),
             vec![first, second]
         );
         assert_eq!(world.modifications().edits(), &[first, distant, second]);
@@ -114,7 +119,9 @@ mod tests {
     #[test]
     fn canonical_chunk_index_can_replay_only_edits_after_a_snapshot() {
         let mut world = VoxelWorld::new(VoxelBase::Empty);
-        let address = world.chunk_address(VoxelChunkCoord::new(IVec3::ZERO)).unwrap();
+        let address = world
+            .chunk_address(VoxelChunkCoord::new(IVec3::ZERO))
+            .unwrap();
 
         world
             .record_edit(VoxelEdit::Add {
@@ -156,7 +163,9 @@ mod tests {
         };
         world.record_edit(edit).unwrap();
 
-        let left = world.chunk_address(VoxelChunkCoord::new(IVec3::ZERO)).unwrap();
+        let left = world
+            .chunk_address(VoxelChunkCoord::new(IVec3::ZERO))
+            .unwrap();
         let right = world.chunk_address(VoxelChunkCoord::new(IVec3::X)).unwrap();
         assert_eq!(
             world.modifications().for_chunk(left).collect::<Vec<_>>(),

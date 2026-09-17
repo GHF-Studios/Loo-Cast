@@ -152,7 +152,9 @@ fn diagnostic_value(
     diagnostics: &DiagnosticsStore,
     path: &bevy::diagnostic::DiagnosticPath,
 ) -> Option<f64> {
-    diagnostics.get(path).and_then(|diagnostic| diagnostic.value())
+    diagnostics
+        .get(path)
+        .and_then(|diagnostic| diagnostic.value())
 }
 
 fn low_fps_sorted(frame_times_descending: &[f64], fraction: f64) -> Option<f64> {
@@ -162,8 +164,7 @@ fn low_fps_sorted(frame_times_descending: &[f64], fraction: f64) -> Option<f64> 
 
     let count = ((frame_times_descending.len() as f64 * fraction).ceil() as usize)
         .clamp(1, frame_times_descending.len());
-    let average_ms =
-        frame_times_descending[..count].iter().sum::<f64>() / count as f64;
+    let average_ms = frame_times_descending[..count].iter().sum::<f64>() / count as f64;
 
     (average_ms > 0.0).then_some(1_000.0 / average_ms)
 }

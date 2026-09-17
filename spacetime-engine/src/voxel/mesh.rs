@@ -6,11 +6,7 @@ use bevy::{
     mesh::{Indices, PrimitiveTopology},
     prelude::*,
 };
-use fast_surface_nets::{
-    SurfaceNetsBuffer,
-    ndshape::ConstShape3u32,
-    surface_nets,
-};
+use fast_surface_nets::{SurfaceNetsBuffer, ndshape::ConstShape3u32, surface_nets};
 
 use super::{
     VoxelChunk,

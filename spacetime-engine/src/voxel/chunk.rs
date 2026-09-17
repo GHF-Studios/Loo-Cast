@@ -160,14 +160,13 @@ impl VoxelChunk {
             if let Some(value) = self.sample_distance(point) {
                 if value < 0.0 {
                     let refined = match previous {
-                        Some((previous_distance, previous_value)) if previous_value >= 0.0 => {
-                            self.refine_surface_crossing(
+                        Some((previous_distance, previous_value)) if previous_value >= 0.0 => self
+                            .refine_surface_crossing(
                                 origin,
                                 direction,
                                 previous_distance,
                                 distance,
-                            )
-                        }
+                            ),
                         _ => distance,
                     };
                     return Some(VoxelRayHit {
@@ -368,11 +367,17 @@ mod tests {
         });
 
         assert!(chunk.sample(IVec3::splat(-1)).is_some());
-        assert!(chunk.sample(IVec3::splat(MATERIALIZATION_CHUNK_SIZE as i32)).is_some());
+        assert!(
+            chunk
+                .sample(IVec3::splat(MATERIALIZATION_CHUNK_SIZE as i32))
+                .is_some()
+        );
         assert!(chunk.sample(IVec3::splat(-2)).is_none());
-        assert!(chunk
-            .sample(IVec3::splat(MATERIALIZATION_CHUNK_SIZE as i32 + 1))
-            .is_none());
+        assert!(
+            chunk
+                .sample(IVec3::splat(MATERIALIZATION_CHUNK_SIZE as i32 + 1))
+                .is_none()
+        );
     }
 
     #[test]

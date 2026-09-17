@@ -9,7 +9,9 @@ use bevy::{input::mouse::AccumulatedMouseScroll, prelude::*};
 use crate::{
     game::{
         InputSet,
-        player::{CameraMode, Player, PlayerAim, PlayerCamera, PlayerStance, cursor::CursorCapture},
+        player::{
+            CameraMode, Player, PlayerAim, PlayerCamera, PlayerStance, cursor::CursorCapture,
+        },
     },
     physics::character::CharacterControlFrame,
 };

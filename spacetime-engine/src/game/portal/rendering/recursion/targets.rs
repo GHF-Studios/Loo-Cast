@@ -3,10 +3,7 @@ use bevy::{
     render::render_resource::{Extent3d, TextureFormat},
 };
 
-use crate::{
-    game::portal::domain::PortalConfig,
-    view::PrimaryGameView,
-};
+use crate::{game::portal::domain::PortalConfig, view::PrimaryGameView};
 
 use super::super::{material::PortalMaterial, scaled_render_size};
 

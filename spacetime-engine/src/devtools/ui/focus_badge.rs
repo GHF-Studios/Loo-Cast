@@ -31,10 +31,7 @@ pub(super) fn configure(app: &mut App) {
         false,
     ))
     .add_systems(Startup, spawn_focus_badge)
-    .add_systems(
-        PostUpdate,
-        sync_focus_badge.in_set(DeveloperSet::RenderUi),
-    );
+    .add_systems(PostUpdate, sync_focus_badge.in_set(DeveloperSet::RenderUi));
 }
 
 fn spawn_focus_badge(mut commands: Commands, theme: Res<UiTheme>) {

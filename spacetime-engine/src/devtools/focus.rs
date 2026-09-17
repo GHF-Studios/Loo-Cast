@@ -31,11 +31,7 @@ impl FocusTarget {
         }
     }
 
-    pub const fn hit(
-        spatial_entity: Entity,
-        semantic_entity: Entity,
-        hit: FocusHit,
-    ) -> Self {
+    pub const fn hit(spatial_entity: Entity, semantic_entity: Entity, hit: FocusHit) -> Self {
         Self {
             spatial_entity,
             semantic_entity,

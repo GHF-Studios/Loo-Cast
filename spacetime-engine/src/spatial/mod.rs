@@ -7,13 +7,17 @@
 mod demand;
 mod devtools;
 mod position;
+mod view;
 
-pub(crate) use devtools::SPATIAL_DEMAND_VISUALIZATION;
-pub use demand::{SpatialDemandScope, SpatialDemandSet, SpatialDemandSnapshot, SpatialDemandSource};
-pub use position::{
-    SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale, UsfPosition,
-    UsfPositionError, UsfChunkAddress,
+pub use demand::{
+    SpatialDemandScope, SpatialDemandSet, SpatialDemandSnapshot, SpatialDemandSource,
 };
+pub(crate) use devtools::SPATIAL_DEMAND_VISUALIZATION;
+pub use position::{
+    SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale, UsfChunkAddress,
+    UsfPosition, UsfPositionError,
+};
+pub use view::{UsfLocalScalePresentation, UsfScalePresentation, UsfViewAnchor, UsfViewFrame};
 
 use avian3d::prelude::Position;
 use bevy::{prelude::*, transform::TransformSystems};
@@ -75,6 +79,8 @@ pub struct UsfOriginRebased {
 pub enum UsfSpatialSet {
     SyncSemantic,
     Rebase,
+    ViewAnchor,
+    ViewProjection,
 }
 
 pub struct UsfSpatialPlugin;
@@ -85,23 +91,39 @@ impl Plugin for UsfSpatialPlugin {
             .add_message::<UsfOriginRebased>()
             .configure_sets(
                 PostUpdate,
-                UsfSpatialSet::SyncSemantic.before(UsfSpatialSet::Rebase),
+                (
+                    UsfSpatialSet::SyncSemantic,
+                    UsfSpatialSet::Rebase,
+                    UsfSpatialSet::ViewAnchor,
+                    UsfSpatialSet::ViewProjection,
+                )
+                    .chain(),
             )
             .configure_sets(
                 PostUpdate,
-                UsfSpatialSet::Rebase.before(TransformSystems::Propagate),
+                UsfSpatialSet::ViewProjection.before(TransformSystems::Propagate),
             )
             .add_systems(
                 PostUpdate,
                 sync_semantic_positions.in_set(UsfSpatialSet::SyncSemantic),
             )
+            .add_systems(PostUpdate, rebase_local_frame.in_set(UsfSpatialSet::Rebase))
             .add_systems(
                 PostUpdate,
-                rebase_local_frame.in_set(UsfSpatialSet::Rebase),
+                view::sync_view_anchor.in_set(UsfSpatialSet::ViewAnchor),
+            )
+            .add_systems(
+                PostUpdate,
+                (
+                    view::project_local_scale_presentations,
+                    view::project_scale_presentations,
+                )
+                    .in_set(UsfSpatialSet::ViewProjection),
             );
 
         demand::configure(app);
         devtools::configure(app);
+        view::configure(app);
     }
 }
 
@@ -150,7 +172,10 @@ fn rebase_local_frame(
     }
 
     let Ok(new_origin) = frame.origin.translated_native(shift) else {
-        error!(?shift, "USF canonical translation failed during local-origin rebase");
+        error!(
+            ?shift,
+            "USF canonical translation failed during local-origin rebase"
+        );
         return;
     };
 
@@ -234,6 +259,9 @@ mod tests {
         let displacement = expected
             .relative_native_bounded(&UsfPosition::default(), 20_000_000.0)
             .unwrap();
-        assert_eq!(displacement, Vec3::new(14_000_017.0, -10_300_019.0, 6_660_023.0));
+        assert_eq!(
+            displacement,
+            Vec3::new(14_000_017.0, -10_300_019.0, 6_660_023.0)
+        );
     }
 }

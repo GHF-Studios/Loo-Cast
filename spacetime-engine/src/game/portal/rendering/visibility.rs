@@ -42,11 +42,7 @@ pub fn sync_derived_view_lights(
     mut commands: Commands,
     lights: Query<
         (Entity, Option<&RenderLayers>),
-        Or<(
-            With<PointLight>,
-            With<DirectionalLight>,
-            With<SpotLight>,
-        )>,
+        Or<(With<PointLight>, With<DirectionalLight>, With<SpotLight>)>,
     >,
 ) {
     let world = RenderLayers::default();
@@ -55,7 +51,9 @@ pub fn sync_derived_view_lights(
     for (entity, layers) in &lights {
         let current = layers.cloned().unwrap_or_default();
         if current.intersects(&world) && !current.intersects(&derived) {
-            commands.entity(entity).insert(current.with(DERIVED_VIEW_LAYER));
+            commands
+                .entity(entity)
+                .insert(current.with(DERIVED_VIEW_LAYER));
         }
     }
 }

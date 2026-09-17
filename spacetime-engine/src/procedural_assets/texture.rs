@@ -116,11 +116,7 @@ pub(crate) fn generate_cracked_clay(recipe: &CrackedClayRecipe) -> GeneratedPbrT
 fn sample_surface(recipe: &CrackedClayRecipe, uv: Vec2) -> SurfaceSample {
     let uv = Vec2::new(uv.x.rem_euclid(1.0), uv.y.rem_euclid(1.0));
     let macro_v = periodic_voronoi(uv, recipe.macro_cells.max(1), recipe.seed);
-    let micro_v = periodic_voronoi(
-        uv,
-        recipe.micro_cells.max(1),
-        recipe.seed ^ 0x9E37_79B9,
-    );
+    let micro_v = periodic_voronoi(uv, recipe.micro_cells.max(1), recipe.seed ^ 0x9E37_79B9);
 
     let macro_crack = crack_mask(macro_v.edge, recipe.macro_crack_width);
     let micro_crack = crack_mask(micro_v.edge, recipe.micro_crack_width);
@@ -131,22 +127,19 @@ fn sample_surface(recipe: &CrackedClayRecipe, uv: Vec2) -> SurfaceSample {
     // differentiated for the normal map below.
     let dome = (1.0 - macro_v.nearest / 0.9).clamp(0.0, 1.0);
     let micro_relief = (1.0 - micro_v.nearest / 0.8).clamp(0.0, 1.0);
-    let height = (
-        0.60
-            + dome * 0.12
-            + micro_relief * 0.025
-            - macro_crack * recipe.macro_crack_depth.max(0.0)
-            - micro_crack * recipe.micro_crack_depth.max(0.0)
-    )
+    let height = (0.60 + dome * 0.12 + micro_relief * 0.025
+        - macro_crack * recipe.macro_crack_depth.max(0.0)
+        - micro_crack * recipe.micro_crack_depth.max(0.0))
     .clamp(0.0, 1.0);
 
-    let plate_tone = (0.22 + macro_v.cell_value * 0.58 + micro_v.cell_value * 0.20)
-        .clamp(0.0, 1.0);
+    let plate_tone = (0.22 + macro_v.cell_value * 0.58 + micro_v.cell_value * 0.20).clamp(0.0, 1.0);
     let clay = recipe
         .dark_clay_srgb
         .lerp(recipe.light_clay_srgb, plate_tone);
     let crack_mix = (0.25 + crack * 0.72).clamp(0.0, 1.0);
-    let color_srgb = clay.lerp(recipe.crack_srgb, crack * crack_mix).clamp(Vec3::ZERO, Vec3::ONE);
+    let color_srgb = clay
+        .lerp(recipe.crack_srgb, crack * crack_mix)
+        .clamp(Vec3::ZERO, Vec3::ONE);
     let roughness = (0.72 + crack * 0.27 + (1.0 - height) * 0.08).clamp(0.0, 1.0);
     let occlusion = (1.0 - crack * 0.55 - (1.0 - height) * 0.10).clamp(0.0, 1.0);
 
@@ -193,7 +186,10 @@ fn periodic_voronoi(uv: Vec2, cells: u32, seed: u32) -> VoronoiSample {
 
 fn feature_point(cell: IVec2, seed: u32) -> Vec2 {
     let h = hash_cell(cell, seed);
-    Vec2::new(hash01(hash32(h ^ 0x68BC_21EB)), hash01(hash32(h ^ 0x02E5_BE93)))
+    Vec2::new(
+        hash01(hash32(h ^ 0x68BC_21EB)),
+        hash01(hash32(h ^ 0x02E5_BE93)),
+    )
 }
 
 fn hash_cell(cell: IVec2, seed: u32) -> u32 {
@@ -278,8 +274,7 @@ mod tests {
         let a = sample_surface(&a, uv);
         let b = sample_surface(&b, uv);
         assert!(
-            (a.height - b.height).abs() > 1.0e-5
-                || (a.color_srgb - b.color_srgb).length() > 1.0e-5
+            (a.height - b.height).abs() > 1.0e-5 || (a.color_srgb - b.color_srgb).length() > 1.0e-5
         );
     }
 }

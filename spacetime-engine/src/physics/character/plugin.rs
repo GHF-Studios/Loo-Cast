@@ -2,8 +2,8 @@ use avian3d::prelude::*;
 use bevy::prelude::*;
 
 use super::{
-    CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame,
-    CharacterMovementConfig, CharacterMovementInput,
+    CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame, CharacterMovementConfig,
+    CharacterMovementInput,
     controller::{
         CharacterPush, apply_character_pushes, receive_dynamic_contact_pushes,
         simulate_character_motors,

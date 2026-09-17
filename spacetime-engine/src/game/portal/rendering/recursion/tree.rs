@@ -139,7 +139,9 @@ fn build_render_node(
             Projection::Perspective(PerspectiveProjection::default()),
             Transform::default(),
             // Ordinary world + surfaces belonging to the child context.
-            RenderLayers::layer(WORLD_LAYER).with(DERIVED_VIEW_LAYER).with(child),
+            RenderLayers::layer(WORLD_LAYER)
+                .with(DERIVED_VIEW_LAYER)
+                .with(child),
             PortalRenderCamera {
                 path: child_path.clone(),
             },

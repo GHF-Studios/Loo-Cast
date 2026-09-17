@@ -20,9 +20,10 @@ use bevy::prelude::*;
 pub use bevy_egui::egui;
 
 use super::{
-    FocusTarget, Inspect, InspectActionRequest, InspectEditRequest, InspectField, InspectFieldMetadata,
-    InspectFieldVisitor, InspectFieldVisitorMut, InspectNumberFormat, InspectNumberInput, InspectSection,
-    InspectTypeRegistration, InspectUnit, InspectValue, InspectWidgetId, InspectionFrame, StructureItemId,
+    FocusTarget, Inspect, InspectActionRequest, InspectEditRequest, InspectField,
+    InspectFieldMetadata, InspectFieldVisitor, InspectFieldVisitorMut, InspectNumberFormat,
+    InspectNumberInput, InspectSection, InspectTypeRegistration, InspectUnit, InspectValue,
+    InspectWidgetId, InspectionFrame, StructureItemId,
 };
 
 pub struct InspectWidgetContext<'a> {
@@ -63,12 +64,7 @@ impl<'a> InspectWidgetContext<'a> {
 /// `show`; a host with actual authority may call `edit` and provide mutable data.
 pub trait InspectorWidget<T: ?Sized> {
     fn show(&self, ui: &mut egui::Ui, value: &T, context: &InspectWidgetContext<'_>);
-    fn edit(
-        &self,
-        ui: &mut egui::Ui,
-        value: &mut T,
-        context: &InspectWidgetContext<'_>,
-    ) -> bool;
+    fn edit(&self, ui: &mut egui::Ui, value: &mut T, context: &InspectWidgetContext<'_>) -> bool;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -258,11 +254,7 @@ impl AppInspectorWidgetsExt for App {
         self
     }
 
-    fn register_named_inspector_widget<T, W>(
-        &mut self,
-        id: InspectWidgetId,
-        widget: W,
-    ) -> &mut Self
+    fn register_named_inspector_widget<T, W>(&mut self, id: InspectWidgetId, widget: W) -> &mut Self
     where
         T: 'static,
         W: InspectorWidget<T> + Send + Sync + 'static,
@@ -293,12 +285,7 @@ impl InspectorWidget<f32> for NumberWidget {
         draw_number_text(ui, *value as f64, context);
     }
 
-    fn edit(
-        &self,
-        ui: &mut egui::Ui,
-        value: &mut f32,
-        context: &InspectWidgetContext<'_>,
-    ) -> bool {
+    fn edit(&self, ui: &mut egui::Ui, value: &mut f32, context: &InspectWidgetContext<'_>) -> bool {
         let mut value64 = *value as f64;
         let changed = edit_f64(ui, &mut value64, context);
         if changed && value64.is_finite() {
@@ -313,12 +300,7 @@ impl InspectorWidget<f64> for NumberWidget {
         draw_number_text(ui, *value, context);
     }
 
-    fn edit(
-        &self,
-        ui: &mut egui::Ui,
-        value: &mut f64,
-        context: &InspectWidgetContext<'_>,
-    ) -> bool {
+    fn edit(&self, ui: &mut egui::Ui, value: &mut f64, context: &InspectWidgetContext<'_>) -> bool {
         edit_f64(ui, value, context)
     }
 }
@@ -458,7 +440,11 @@ pub struct TransformWidget;
 
 impl InspectorWidget<Transform> for TransformWidget {
     fn show(&self, ui: &mut egui::Ui, value: &Transform, _context: &InspectWidgetContext<'_>) {
-        Vec3Widget.show(ui, &value.translation, &InspectWidgetContext::new("Position"));
+        Vec3Widget.show(
+            ui,
+            &value.translation,
+            &InspectWidgetContext::new("Position"),
+        );
         QuatWidget.show(
             ui,
             &value.rotation,
@@ -825,10 +811,13 @@ fn edit_inspect_value(
                 number_input: field.number_input,
             },
         ),
-        InspectValue::Integer(value) => ui.horizontal(|ui| {
-            ui.label(label);
-            ui.add(egui::DragValue::new(value)).changed()
-        }).inner,
+        InspectValue::Integer(value) => {
+            ui.horizontal(|ui| {
+                ui.label(label);
+                ui.add(egui::DragValue::new(value)).changed()
+            })
+            .inner
+        }
         InspectValue::Number { value, .. } => NumberWidget.edit(
             ui,
             value,
@@ -1008,7 +997,6 @@ fn superscript_integer(value: i32) -> String {
     }
     result
 }
-
 
 #[cfg(test)]
 mod tests {

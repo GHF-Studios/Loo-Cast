@@ -17,8 +17,8 @@ pub use components::{Player, PlayerAim, PlayerController, PlayerDead, PlayerNocl
 pub use model::PlayerModel;
 
 use avian3d::prelude::{
-    ActiveCollisionHooks, CollisionLayers, CustomPositionIntegration, CustomVelocityIntegration, LinearVelocity,
-    RigidBody,
+    ActiveCollisionHooks, CollisionLayers, CustomPositionIntegration, CustomVelocityIntegration,
+    LinearVelocity, RigidBody,
 };
 use bevy::{
     app::{RunFixedMainLoop, RunFixedMainLoopSystems},
@@ -33,10 +33,12 @@ use crate::{
     },
     input_focus::{InputFocus, InputFocusSet},
     physics::{
-        character::{CharacterDimensions, CharacterGroundState, CharacterMotor, CharacterMovementInput},
+        character::{
+            CharacterDimensions, CharacterGroundState, CharacterMotor, CharacterMovementInput,
+        },
         topology::{KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeer},
     },
-    spatial::{SpatialDemandSource, UsfPosition, UsfSpatialAnchor},
+    spatial::{SpatialDemandSource, UsfPosition, UsfSpatialAnchor, UsfViewAnchor},
     view::{PrimaryGameView, PrimaryViewPresentation},
     voxel::VoxelMaterializationDemand,
 };
@@ -48,7 +50,7 @@ use super::{
     thermal::{ThermalBody, ThermalInjury, ThermalSpatialSample},
 };
 
-const PLAYER_SPATIAL_DEMAND_HALF_EXTENT: Vec3 = Vec3::new(20.0, 10.0, 20.0);
+const PLAYER_SPATIAL_DEMAND_HALF_EXTENT: Vec3 = Vec3::splat(96.0);
 const PLAYER_SPATIAL_DEMAND_PRIORITY: i32 = 100;
 
 pub struct PlayerPlugin;
@@ -92,6 +94,7 @@ impl Plugin for PlayerPlugin {
                 Update,
                 (
                     controls::toggle_spatial_demand,
+                    controls::zoom_spatial_view,
                     camera::toggle_camera_mode,
                     camera::zoom_third_person,
                 )
@@ -151,7 +154,8 @@ fn spawn_player(
                 VoxelMaterializationDemand,
                 PlayerController::default(),
                 PlayerAim::default(),
-            ), (
+            ),
+            (
                 PlayerStance::default(),
                 PlayerNoclip::default(),
                 CharacterMotor,
@@ -164,7 +168,7 @@ fn spawn_player(
                 Weapon::default(),
                 PortalTraveler::new(position),
                 Transform::from_translation(position),
-            )
+            ),
         ))
         .id();
 
@@ -197,16 +201,19 @@ fn spawn_player(
             UsfPresentationProjectionOf(player),
         ));
     });
-    commands.entity(split_manifestation).with_children(|parent| {
-        parent.spawn((
-            model::create_model(&mut meshes, &mut materials),
-            UsfPresentationProjectionOf(split_manifestation),
-        ));
-    });
+    commands
+        .entity(split_manifestation)
+        .with_children(|parent| {
+            parent.spawn((
+                model::create_model(&mut meshes, &mut materials),
+                UsfPresentationProjectionOf(split_manifestation),
+            ));
+        });
 
     commands.spawn((
         Name::new("Player Camera"),
         PlayerCamera::default(),
+        UsfViewAnchor,
         PrimaryGameView,
         PortalView,
         Camera3d::default(),
@@ -216,7 +223,6 @@ fn spawn_player(
     ));
 }
 
-
 /// Adapts generic semantic death into local-player control state.
 ///
 /// Respawning is intentionally a separate lifecycle mechanic; death cannot be
@@ -225,14 +231,17 @@ fn spawn_player(
 fn handle_player_death(
     mut commands: Commands,
     mut deaths: MessageReader<Died>,
-    player: Single<(
-        Entity,
-        &UsfManifestationOf,
-        &mut PlayerNoclip,
-        &mut CharacterMovementInput,
-        &mut CharacterGroundState,
-        &mut LinearVelocity,
-    ), With<Player>>,
+    player: Single<
+        (
+            Entity,
+            &UsfManifestationOf,
+            &mut PlayerNoclip,
+            &mut CharacterMovementInput,
+            &mut CharacterGroundState,
+            &mut LinearVelocity,
+        ),
+        With<Player>,
+    >,
 ) {
     let (entity, manifestation, mut noclip, mut input, mut ground, mut velocity) =
         player.into_inner();
@@ -247,5 +256,8 @@ fn handle_player_death(
     ground.ground_entity = None;
     velocity.0 = Vec3::ZERO;
 
-    commands.entity(entity).remove::<CharacterMotor>().insert(PlayerDead);
+    commands
+        .entity(entity)
+        .remove::<CharacterMotor>()
+        .insert(PlayerDead);
 }

@@ -1,5 +1,5 @@
-use proc_macro2::{Span, TokenStream};
 use proc_macro_crate::{FoundCrate, crate_name};
+use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
     Attribute, Data, DeriveInput, Expr, ExprRange, Fields, Generics, Ident, LitStr, Result, Type,
@@ -140,9 +140,9 @@ impl Inspect {
             .filter(|field| !field.attributes.skip)
             .collect::<Vec<_>>();
 
-        let metadata = visible_fields.iter().map(|field| {
-            field_metadata(field, &spacetime_engine)
-        });
+        let metadata = visible_fields
+            .iter()
+            .map(|field| field_metadata(field, &spacetime_engine));
 
         let immutable_visits = visible_fields.iter().enumerate().map(|(index, field)| {
             let field_ident = &field.ident;
@@ -267,14 +267,14 @@ fn number_input(attributes: &FieldAttributes, spacetime_engine: &TokenStream) ->
     let (minimum, maximum) = attributes.range.as_ref().map_or_else(
         || (quote!(None), quote!(None)),
         |range| {
-            let minimum = range.start.as_ref().map_or_else(
-                || quote!(None),
-                |value| quote!(Some((#value) as f64)),
-            );
-            let maximum = range.end.as_ref().map_or_else(
-                || quote!(None),
-                |value| quote!(Some((#value) as f64)),
-            );
+            let minimum = range
+                .start
+                .as_ref()
+                .map_or_else(|| quote!(None), |value| quote!(Some((#value) as f64)));
+            let maximum = range
+                .end
+                .as_ref()
+                .map_or_else(|| quote!(None), |value| quote!(Some((#value) as f64)));
             (minimum, maximum)
         },
     );
@@ -292,12 +292,21 @@ fn number_input(attributes: &FieldAttributes, spacetime_engine: &TokenStream) ->
 
 fn parse_type_attributes(attributes: &[Attribute]) -> Result<TypeAttributes> {
     let mut result = TypeAttributes::default();
-    for attribute in attributes.iter().filter(|attribute| attribute.path().is_ident("inspect")) {
+    for attribute in attributes
+        .iter()
+        .filter(|attribute| attribute.path().is_ident("inspect"))
+    {
         attribute.parse_nested_meta(|meta| {
             if meta.path.is_ident("label") {
-                set_once(&mut result.label, meta.value()?.parse()?, meta.path.span(), "label")
+                set_once(
+                    &mut result.label,
+                    meta.value()?.parse()?,
+                    meta.path.span(),
+                    "label",
+                )
             } else {
-                Err(meta.error("unsupported #[inspect(...)] type option; expected `label = \"...\"`"))
+                Err(meta
+                    .error("unsupported #[inspect(...)] type option; expected `label = \"...\"`"))
             }
         })?;
     }
@@ -307,7 +316,10 @@ fn parse_type_attributes(attributes: &[Attribute]) -> Result<TypeAttributes> {
 fn parse_field_attributes(attributes: &[Attribute]) -> Result<FieldAttributes> {
     let mut result = FieldAttributes::default();
 
-    for attribute in attributes.iter().filter(|attribute| attribute.path().is_ident("inspect")) {
+    for attribute in attributes
+        .iter()
+        .filter(|attribute| attribute.path().is_ident("inspect"))
+    {
         attribute.parse_nested_meta(|meta| {
             if meta.path.is_ident("skip") {
                 result.skip = true;
@@ -328,7 +340,9 @@ fn parse_field_attributes(attributes: &[Attribute]) -> Result<FieldAttributes> {
                 if meta.path.is_ident(name) {
                     if let Some(previous) = result.access {
                         if previous != mode {
-                            return Err(meta.error("only one inspection access mode may be specified"));
+                            return Err(
+                                meta.error("only one inspection access mode may be specified")
+                            );
                         }
                     }
                     result.access = Some(mode);
@@ -427,9 +441,7 @@ fn spacetime_engine_path() -> Result<TokenStream> {
         }
         Err(error) => Err(syn::Error::new(
             Span::call_site(),
-            format!(
-                "could not resolve runtime crate `{SPACETIME_ENGINE_CRATE}`: {error}"
-            ),
+            format!("could not resolve runtime crate `{SPACETIME_ENGINE_CRATE}`: {error}"),
         )),
     }
 }

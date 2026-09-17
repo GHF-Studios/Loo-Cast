@@ -67,10 +67,7 @@ impl CursorCapture {
     }
 }
 
-pub fn apply_input_focus(
-    focus: Res<InputFocus>,
-    mut capture: ResMut<CursorCapture>,
-) {
+pub fn apply_input_focus(focus: Res<InputFocus>, mut capture: ResMut<CursorCapture>) {
     capture.set_blocked(focus.pointer_claimed() || focus.gameplay_claimed());
 }
 

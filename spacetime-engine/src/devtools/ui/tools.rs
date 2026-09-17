@@ -47,11 +47,7 @@ pub(super) fn configure(app: &mut App) {
         );
 }
 
-fn spawn_tools_palette(
-    mut commands: Commands,
-    theme: Res<UiTheme>,
-    tools: Res<DeveloperTools>,
-) {
+fn spawn_tools_palette(mut commands: Commands, theme: Res<UiTheme>, tools: Res<DeveloperTools>) {
     let heading = theme.text(UiTextRole::Heading);
     let body = theme.text(UiTextRole::Compact);
     let secondary = theme.text(UiTextRole::Secondary);
@@ -143,10 +139,7 @@ fn handle_palette_keyboard(
 }
 
 fn handle_palette_buttons(
-    interactions: Query<
-        (&Interaction, &VisualizationButton),
-        (Changed<Interaction>, With<Button>),
-    >,
+    interactions: Query<(&Interaction, &VisualizationButton), (Changed<Interaction>, With<Button>)>,
     mut tools: ResMut<DeveloperTools>,
 ) {
     for (interaction, button) in &interactions {

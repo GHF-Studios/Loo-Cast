@@ -1,9 +1,9 @@
 mod conflict;
 mod inspect;
 
-use proc_macro::TokenStream;
 use conflict::Conflict;
 use inspect::Inspect;
+use proc_macro::TokenStream;
 
 // ECS
 

@@ -86,20 +86,15 @@ impl ThermalMaterial {
 
     pub fn thermal_diffusivity_square_meters_per_second(&self) -> f32 {
         self.thermal_conductivity_watts_per_meter_kelvin
-            / (self.density_kg_per_cubic_meter
-                * self.specific_heat_capacity_joules_per_kg_kelvin)
+            / (self.density_kg_per_cubic_meter * self.specific_heat_capacity_joules_per_kg_kelvin)
     }
 
     fn is_valid(&self) -> bool {
         self.density_kg_per_cubic_meter.is_finite()
             && self.density_kg_per_cubic_meter > 0.0
-            && self
-                .specific_heat_capacity_joules_per_kg_kelvin
-                .is_finite()
+            && self.specific_heat_capacity_joules_per_kg_kelvin.is_finite()
             && self.specific_heat_capacity_joules_per_kg_kelvin > 0.0
-            && self
-                .thermal_conductivity_watts_per_meter_kelvin
-                .is_finite()
+            && self.thermal_conductivity_watts_per_meter_kelvin.is_finite()
             && self.thermal_conductivity_watts_per_meter_kelvin >= 0.0
     }
 }
@@ -153,11 +148,7 @@ impl ThermalField {
         }
     }
 
-    pub fn ambient_box(
-        size_meters: Vec3,
-        resolution: UVec3,
-        material: &ThermalMaterial,
-    ) -> Self {
+    pub fn ambient_box(size_meters: Vec3, resolution: UVec3, material: &ThermalMaterial) -> Self {
         Self::uniform_box(
             size_meters,
             resolution,
@@ -206,11 +197,7 @@ impl ThermalField {
             .fold(f32::NEG_INFINITY, f32::max)
     }
 
-    pub fn cell_temperature_kelvin(
-        &self,
-        index: UVec3,
-        material: &ThermalMaterial,
-    ) -> Option<f32> {
+    pub fn cell_temperature_kelvin(&self, index: UVec3, material: &ThermalMaterial) -> Option<f32> {
         self.linear_index(index).map(|linear| {
             self.cell_energy_joules[linear] / self.cell_heat_capacity_joules_per_kelvin(material)
         })
@@ -253,11 +240,7 @@ impl ThermalField {
 
     /// Applies energy evenly to all cells. This is used to reconcile older
     /// lumped-only thermal mechanisms with the spatial refinement.
-    pub fn add_energy_uniform(
-        &mut self,
-        material: &ThermalMaterial,
-        energy_joules: f32,
-    ) -> f32 {
+    pub fn add_energy_uniform(&mut self, material: &ThermalMaterial, energy_joules: f32) -> f32 {
         if !energy_joules.is_finite() || energy_joules == 0.0 {
             return 0.0;
         }
@@ -282,11 +265,7 @@ impl ThermalField {
     /// interval to satisfy the 3D diffusion stability bound. Every face exchange
     /// is accumulated as equal-and-opposite energy deltas, preserving total
     /// energy up to floating-point roundoff.
-    pub fn conduct_internal(
-        &mut self,
-        material: &ThermalMaterial,
-        delta_seconds: f32,
-    ) {
+    pub fn conduct_internal(&mut self, material: &ThermalMaterial, delta_seconds: f32) {
         if !delta_seconds.is_finite()
             || delta_seconds <= 0.0
             || material.thermal_conductivity_watts_per_meter_kelvin <= 0.0
@@ -366,9 +345,8 @@ impl ThermalField {
         }
 
         let cell = self.cell_size_meters();
-        let inverse_square_sum = 1.0 / (cell.x * cell.x)
-            + 1.0 / (cell.y * cell.y)
-            + 1.0 / (cell.z * cell.z);
+        let inverse_square_sum =
+            1.0 / (cell.x * cell.x) + 1.0 / (cell.y * cell.y) + 1.0 / (cell.z * cell.z);
         STABILITY_SAFETY_FACTOR / (diffusivity * inverse_square_sum)
     }
 
@@ -412,9 +390,7 @@ impl ThermalField {
     }
 
     fn linear_index(&self, index: UVec3) -> Option<usize> {
-        (index.x < self.resolution.x
-            && index.y < self.resolution.y
-            && index.z < self.resolution.z)
+        (index.x < self.resolution.x && index.y < self.resolution.y && index.z < self.resolution.z)
             .then(|| self.linear_index_unchecked(index))
     }
 
@@ -473,24 +449,22 @@ fn apply_point_impulses(
     mut bodies: Query<(&mut ThermalBody, &ThermalMaterial, &mut ThermalField)>,
 ) {
     for impulse in impulses.read() {
-        let (semantic, local_position) = if let Ok((relation, transform)) = manifestations.get(impulse.target) {
-            (
-                relation.0,
-                world_to_local_point(transform, impulse.world_position),
-            )
-        } else {
-            (impulse.target, Vec3::ZERO)
-        };
+        let (semantic, local_position) =
+            if let Ok((relation, transform)) = manifestations.get(impulse.target) {
+                (
+                    relation.0,
+                    world_to_local_point(transform, impulse.world_position),
+                )
+            } else {
+                (impulse.target, Vec3::ZERO)
+            };
 
         let Ok((mut body, material, mut field)) = bodies.get_mut(semantic) else {
             continue;
         };
 
-        let applied = field.add_energy_at_local_position(
-            material,
-            local_position,
-            impulse.energy_joules,
-        );
+        let applied =
+            field.add_energy_at_local_position(material, local_position, impulse.energy_joules);
         body.add_energy_joules(applied);
     }
 }
@@ -501,8 +475,7 @@ fn advance_internal_conduction(
     mut fields: Query<(&ThermalMaterial, &mut ThermalField)>,
 ) {
     let elapsed = time.delta_secs().max(0.0).min(MAX_ACCUMULATED_SECONDS);
-    clock.accumulator_seconds =
-        (clock.accumulator_seconds + elapsed).min(MAX_ACCUMULATED_SECONDS);
+    clock.accumulator_seconds = (clock.accumulator_seconds + elapsed).min(MAX_ACCUMULATED_SECONDS);
 
     let steps = (clock.accumulator_seconds / CONDUCTION_STEP_SECONDS).floor() as usize;
     if steps == 0 {
@@ -526,8 +499,8 @@ fn reconcile_aggregate_energy(
     mut fields: Query<(&ThermalBody, &ThermalMaterial, &mut ThermalField)>,
 ) {
     for (body, material, mut field) in &mut fields {
-        let desired_energy = field.total_heat_capacity_joules_per_kelvin(material)
-            * body.temperature_kelvin();
+        let desired_energy =
+            field.total_heat_capacity_joules_per_kelvin(material) * body.temperature_kelvin();
         let difference = desired_energy - field.total_energy_joules();
         let tolerance = desired_energy.abs().max(1.0) * 1.0e-5;
         if difference.abs() > tolerance {
@@ -589,13 +562,12 @@ mod tests {
             &material,
         );
 
-        let applied = field.add_energy_at_local_position(
-            &material,
-            Vec3::new(-0.149, 0.0, 0.0),
-            50_000.0,
-        );
+        let applied =
+            field.add_energy_at_local_position(&material, Vec3::new(-0.149, 0.0, 0.0), 50_000.0);
         let energy_before_conduction = field.total_energy_joules();
-        let hot_before = field.cell_temperature_kelvin(UVec3::ZERO, &material).unwrap();
+        let hot_before = field
+            .cell_temperature_kelvin(UVec3::ZERO, &material)
+            .unwrap();
         let far_before = field
             .cell_temperature_kelvin(UVec3::new(2, 0, 0), &material)
             .unwrap();
@@ -607,7 +579,9 @@ mod tests {
             field.conduct_internal(&material, 1.0 / 60.0);
         }
 
-        let hot_after = field.cell_temperature_kelvin(UVec3::ZERO, &material).unwrap();
+        let hot_after = field
+            .cell_temperature_kelvin(UVec3::ZERO, &material)
+            .unwrap();
         let middle_after = field
             .cell_temperature_kelvin(UVec3::new(1, 0, 0), &material)
             .unwrap();

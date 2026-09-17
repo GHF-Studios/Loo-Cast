@@ -109,27 +109,28 @@ fn use_chunkloading_cube(
         let inertia = AngularInertia::from_shape(&collider, CUBE_MASS_KG);
         let manifestation = commands
             .spawn((
-            (
-                Name::new(format!("Chunkloading Cube Manifestation {}", counter.0)),
-                UsfManifestationOf(root),
-                UsfManifestationAuthority,
-                UsfLogicalProjection,
-                PlaygroundPickable::cube(root, CUBE_SIZE),
-                Hitbox::cube(CUBE_SIZE),
-                SpatialDemandSource::cuboid(DEMAND_HALF_EXTENT).with_priority(DEMAND_PRIORITY),
-                VoxelMaterializationDemand,
-                RigidBody::Dynamic,
-                SleepingDisabled,
-                Mass(CUBE_MASS_KG),
-                inertia,
-                CenterOfMass::ZERO,
-            ), (
-                LinearVelocity::ZERO,
-                AngularVelocity::ZERO,
-                collider,
-                Transform::from_translation(position),
-            )
-        ))
+                (
+                    Name::new(format!("Chunkloading Cube Manifestation {}", counter.0)),
+                    UsfManifestationOf(root),
+                    UsfManifestationAuthority,
+                    UsfLogicalProjection,
+                    PlaygroundPickable::cube(root, CUBE_SIZE),
+                    Hitbox::cube(CUBE_SIZE),
+                    SpatialDemandSource::cuboid(DEMAND_HALF_EXTENT).with_priority(DEMAND_PRIORITY),
+                    VoxelMaterializationDemand,
+                    RigidBody::Dynamic,
+                    SleepingDisabled,
+                    Mass(CUBE_MASS_KG),
+                    inertia,
+                    CenterOfMass::ZERO,
+                ),
+                (
+                    LinearVelocity::ZERO,
+                    AngularVelocity::ZERO,
+                    collider,
+                    Transform::from_translation(position),
+                ),
+            ))
             .id();
 
         commands.entity(manifestation).with_children(|parent| {

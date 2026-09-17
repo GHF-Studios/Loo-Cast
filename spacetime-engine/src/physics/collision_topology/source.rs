@@ -116,8 +116,7 @@ fn fit_rectangle_to_cuboid_face(
     let inverse_rotation = host.rotation.inverse();
     let mut center = inverse_rotation * (requested.translation - host.translation);
     let normal = (inverse_rotation * (requested.rotation * Vec3::Z)).normalize_or_zero();
-    let requested_right =
-        (inverse_rotation * (requested.rotation * Vec3::X)).normalize_or_zero();
+    let requested_right = (inverse_rotation * (requested.rotation * Vec3::X)).normalize_or_zero();
     let requested_up = (inverse_rotation * (requested.rotation * Vec3::Y)).normalize_or_zero();
     if normal == Vec3::ZERO || requested_right == Vec3::ZERO || requested_up == Vec3::ZERO {
         return None;
@@ -361,8 +360,8 @@ mod tests {
         let source = CollisionClipSource::cuboid(Vec3::new(8.0, 0.4, 8.0));
         let host = Transform::from_xyz(0.0, -0.2, 0.0);
         let base = Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2);
-        let requested = Transform::from_xyz(0.0, 0.0, 0.0)
-            .with_rotation(Quat::from_rotation_y(0.04) * base);
+        let requested =
+            Transform::from_xyz(0.0, 0.0, 0.0).with_rotation(Quat::from_rotation_y(0.04) * base);
 
         let fit = fit_rectangular_stencil(
             source,

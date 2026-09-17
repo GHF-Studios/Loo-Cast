@@ -2,7 +2,8 @@ use std::time::Duration;
 
 use avian3d::{
     character_controller::move_and_slide::{
-        DepenetrationConfig, MoveAndSlide, MoveAndSlideConfig, MoveAndSlideHitResponse, MoveAndSlideOutput,
+        DepenetrationConfig, MoveAndSlide, MoveAndSlideConfig, MoveAndSlideHitResponse,
+        MoveAndSlideOutput,
     },
     prelude::*,
 };
@@ -12,8 +13,7 @@ use crate::physics::topology::{KinematicQueryExclusions, SpatialSplitPeer};
 
 use super::{
     CharacterGroundState, CharacterLocomotionFrame, CharacterMotor, CharacterMovementConfig,
-    CharacterMovementInput,
-    accelerate, air_accelerate, apply_friction, reject,
+    CharacterMovementInput, accelerate, air_accelerate, apply_friction, reject,
 };
 
 const CHARACTER_PUSH_EFFECTIVE_MASS: f32 = 80.0;
@@ -313,7 +313,6 @@ pub(super) fn apply_character_pushes(
     }
 }
 
-
 pub(super) fn receive_dynamic_contact_pushes(
     collisions: Collisions,
     bodies: Query<&RigidBody>,
@@ -331,7 +330,11 @@ pub(super) fn receive_dynamic_contact_pushes(
                 continue;
             };
 
-            let other_body = if character_is_first { pair.body2 } else { pair.body1 };
+            let other_body = if character_is_first {
+                pair.body2
+            } else {
+                pair.body1
+            };
             let Some(other_body) = other_body else {
                 continue;
             };

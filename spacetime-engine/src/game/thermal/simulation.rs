@@ -185,10 +185,7 @@ fn propagate_combustion_heat(
             }
 
             let distance = minimum_distance_squared.sqrt();
-            let weight = super::coupling::radial_heat_weight(
-                distance,
-                emission.radius_meters,
-            );
+            let weight = super::coupling::radial_heat_weight(distance, emission.radius_meters);
             if weight > 0.0 {
                 weights.push((target, weight));
                 total_weight += weight;

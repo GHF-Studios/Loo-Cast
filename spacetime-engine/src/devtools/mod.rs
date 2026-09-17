@@ -25,14 +25,12 @@ pub use inspect::{
     AppInspectExt, Inspect, InspectAccess, InspectAction, InspectActionId, InspectActionRequest,
     InspectEditRequest, InspectField, InspectFieldId, InspectFieldMetadata, InspectFieldVisitor,
     InspectFieldVisitorMut, InspectNumberFormat, InspectNumberInput, InspectSection,
-    InspectSectionId, InspectTypeMetadata, InspectTypeRegistration, InspectTypeRegistry, InspectUnit,
-    InspectValue, InspectWidgetId, InspectionFrame,
+    InspectSectionId, InspectTypeMetadata, InspectTypeRegistration, InspectTypeRegistry,
+    InspectUnit, InspectValue, InspectWidgetId, InspectionFrame,
 };
 pub use inspect_ui::{AppInspectorWidgetsExt, InspectorWidgetRegistry};
 pub use structure::{StructureFrame, StructureItem, StructureItemId, StructureSelection};
-pub use tools::{
-    AppDeveloperToolsExt, DeveloperTools, VisualizationId, VisualizationSpec,
-};
+pub use tools::{AppDeveloperToolsExt, DeveloperTools, VisualizationId, VisualizationSpec};
 pub use view::DeveloperView;
 
 use bevy::{prelude::*, transform::TransformSystems};
@@ -109,10 +107,7 @@ impl Plugin for DeveloperToolsPlugin {
     }
 }
 
-fn toggle_developer_tools(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    mut tools: ResMut<DeveloperTools>,
-) {
+fn toggle_developer_tools(keyboard: Res<ButtonInput<KeyCode>>, mut tools: ResMut<DeveloperTools>) {
     if keyboard.just_pressed(KeyCode::F3) {
         tools.toggle_enabled();
     }

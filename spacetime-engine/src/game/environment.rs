@@ -11,10 +11,7 @@ impl Plugin for EnvironmentLightingPlugin {
     }
 }
 
-fn setup_environment_lighting(
-    mut commands: Commands,
-    mut ambient: ResMut<GlobalAmbientLight>,
-) {
+fn setup_environment_lighting(mut commands: Commands, mut ambient: ResMut<GlobalAmbientLight>) {
     ambient.color = Color::srgb(0.72, 0.80, 1.0);
     ambient.brightness = 140.0;
 
@@ -26,11 +23,6 @@ fn setup_environment_lighting(
             shadow_maps_enabled: true,
             ..default()
         },
-        Transform::from_rotation(Quat::from_euler(
-            EulerRot::XYZ,
-            -0.90,
-            -0.65,
-            0.0,
-        )),
+        Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -0.90, -0.65, 0.0)),
     ));
 }
