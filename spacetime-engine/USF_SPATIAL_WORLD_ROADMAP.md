@@ -1,8 +1,8 @@
 # USF Spatial / World Generation Roadmap
 
 **Status:** continuity-grade architectural working plan<br>
-**Current implementation baseline:** `GHF-Studios/Loo-Cast` commit `94127a606362849cc3d35012fbc728620991d7c2` plus the applied M7.1b Pass C patch<br>
-**Current phase:** M7 complete; M7.1 complete; M7.2 / Pass D spatial demand is next.
+**Current implementation baseline:** `GHF-Studios/Loo-Cast` commit `66197a7372df1842d73a0507819f2ad496c01497` plus the applied M7.2 Pass D patch<br>
+**Current phase:** M7 complete; M7.1 complete; M7.2 complete; Pass E fixed-scale torture is next.
 
 This document is intentionally narrower than a complete Universal Simulation Framework specification. Its purpose is to preserve the spatial, realization, generation, and near-term implementation decisions that must survive context loss, handoff to another agent, or future refactoring.
 
@@ -638,7 +638,7 @@ Pass C implementation state:
 - sparse materialization identity, dense chunk storage, Surface Nets meshes, and colliders remain per base materialization,
 - spatial demand remains deferred to M7.2 / Pass D.
 
-## M7.2 — Spatial demand / chunkloading test harness — NEXT
+## M7.2 — Spatial demand / chunkloading test harness — COMPLETE
 
 Purpose: prove that realization is demand-driven and independent from Phenomenon authority.
 
@@ -654,6 +654,17 @@ Implement:
 - overlapping-source tests.
 
 Do not overbuild global scheduling/budget policy yet; create the minimum clean contract that future policies can extend.
+
+Implementation state:
+
+- `SpatialDemandSource` is a generic bounded cuboid request carrying extent, priority and enabled state; `SpatialDemandSnapshot` projects enabled source manifestations through the current `UsfSpatialFrame` into canonical `UsfPosition` scopes each frame,
+- representation capability remains subsystem-local: `VoxelMaterializationDemand` opts a source into voxel realization without putting voxel knowledge into the generic spatial-demand layer,
+- `VoxelStreaming` no longer owns a viewer or radius; it keeps only voxel realization throughput/material policy and consumes the merged canonical demand snapshot,
+- canonical `10³` base addresses de-duplicate overlapping requests; priority orders missing work against the existing load budget, and addresses leave the registry when no source still requests them,
+- the player contributes enabled voxel demand by default and `L` toggles only that contribution, leaving every other demand source independent,
+- the Chunkloading Cube is a movable, damageable physical demand source; several can coexist and linked manifestation lifetime makes removal/death retire its request automatically,
+- F4 `Spatial demand / materialization` visualization draws requested generic scopes in cyan and currently reserved/materialized `10³` voxel chunks in green,
+- demand-center projection has an explicit rebase-invariance regression test; portal/world-wrap multi-manifestation demand remains deferred to M8 rather than being hidden inside this pass, and no global scheduler/budget framework was introduced.
 
 ## M8 — Manifestation / projection generalization
 
@@ -725,7 +736,7 @@ Then stop and reassess before attempting the full universe simulation roadmap.
 
 If this conversation/context disappears, resume here.
 
-**Baseline:** `94127a606362849cc3d35012fbc728620991d7c2` with the M7.1b Pass C patch applied.
+**Baseline:** `66197a7372df1842d73a0507819f2ad496c01497` with the M7.2 Pass D patch applied.
 
 ### Pass A — finish decimal materialization core — COMPLETE
 
@@ -761,15 +772,19 @@ Implemented in this pass:
 5. Preserved per-base-chunk dense data, Surface Nets, render meshes, colliders, edit catch-up, and canonical registry identity.
 6. Left aggregate extent/batch-size selection as representation policy rather than freezing `Megachunk` / `Hyperchunk` as universal semantic types.
 
-### Pass D — spatial demand — NEXT
+### Pass D — spatial demand — COMPLETE
 
-1. Add generic demand-source component/API.
-2. Add player-toggleable demand.
-3. Duplicate/adapt Damageable Cube into Chunkloading Cube.
-4. Convert voxel streaming from hard-coded viewer logic toward merged demand.
-5. Add F4 visualization of source scopes and materialized attachments.
+Implemented in this pass:
 
-### Pass E — fixed-scale torture
+1. Added generic `SpatialDemandSource` plus a per-frame canonical `SpatialDemandSnapshot` independent of realization subsystem.
+2. Added subsystem opt-in through `VoxelMaterializationDemand` rather than a voxel-specific field in the generic source.
+3. Added default player voxel demand with `L` as a temporary direct toggle for the player's contribution.
+4. Added a movable, damageable Chunkloading Cube playground item carrying its own independent demand source.
+5. Converted voxel streaming from one hard-coded viewer/radius to the canonical union of opted-in demand scopes, including unload/retire when demand disappears.
+6. De-duplicated overlapping demand by canonical base address and use source priority only to order new work against the existing per-world load budget.
+7. Added F4 visualization of requested demand scopes versus reserved/materialized voxel attachments.
+
+### Pass E — fixed-scale torture — NEXT
 
 Test:
 

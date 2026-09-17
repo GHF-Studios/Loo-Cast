@@ -1,10 +1,10 @@
-//! Viewer-centered materialization of dense voxel chunk caches.
+//! Demand-driven materialization of dense voxel chunk caches.
 //!
 //! Streaming is optional per [`VoxelWorld`]. The authoritative world remains
-//! procedural base + sparse semantic modifications; this module only decides
-//! which disposable dense base materializations should exist around a viewer.
+//! procedural base + sparse semantic modifications; this module realizes the
+//! union of generic canonical spatial demand that opted into voxel materialization.
 
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use bevy::{
     camera::visibility::NoFrustumCulling,
@@ -12,7 +12,7 @@ use bevy::{
     tasks::{AsyncComputeTaskPool, Task, futures::check_ready},
 };
 
-use crate::spatial::UsfSpatialFrame;
+use crate::spatial::{SpatialDemandScope, SpatialDemandSnapshot, UsfSpatialFrame};
 
 use super::{
     MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelChunkOf, VoxelMaterializationChunkAddress,
@@ -35,45 +35,41 @@ const FIELD_GENERATION_AGGREGATE_EXTENT: VoxelMaterializationAggregateExtent =
 /// batches remain a future policy/performance choice.
 const MAX_CHUNKS_PER_AGGREGATE_GENERATION_TASK: usize = 4;
 
-/// Opt-in policy for keeping base materializations around one viewer.
+/// Opt-in voxel realization configuration for one [`VoxelWorld`].
 ///
-/// `radius` is a bounded count of nearby `10³` base chunks, not a global chunk
-/// coordinate and not spatial-demand authority. M7.2 will replace the hard-coded
-/// viewer policy with merged canonical demand sources.
+/// Spatial extent no longer lives here: generic [`SpatialDemandScope`] values
+/// decide *where* realization is requested. This component only owns
+/// representation-specific policy/assets for satisfying that demand.
 #[derive(Component, Debug, Clone)]
 pub struct VoxelStreaming {
-    viewer: Entity,
-    radius: IVec3,
     load_budget_per_frame: usize,
     material: Handle<StandardMaterial>,
 }
 
 impl VoxelStreaming {
-    pub fn new(
-        viewer: Entity,
-        radius: IVec3,
-        load_budget_per_frame: usize,
-        material: Handle<StandardMaterial>,
-    ) -> Self {
+    pub fn new(load_budget_per_frame: usize, material: Handle<StandardMaterial>) -> Self {
         Self {
-            viewer,
-            radius: radius.max(IVec3::ZERO),
             load_budget_per_frame: load_budget_per_frame.max(1),
             material,
         }
     }
 
-    pub const fn viewer(&self) -> Entity {
-        self.viewer
-    }
-
-    pub const fn radius(&self) -> IVec3 {
-        self.radius
-    }
-
     pub const fn load_budget_per_frame(&self) -> usize {
         self.load_budget_per_frame
     }
+}
+
+/// Marks a generic [`crate::spatial::SpatialDemandSource`] as requesting voxel
+/// materialization. Other realization subsystems can define their own opt-in
+/// markers without making the generic spatial-demand layer know about them.
+#[derive(Component, Debug, Default, Clone, Copy)]
+pub struct VoxelMaterializationDemand;
+
+#[derive(Debug, Clone, Copy)]
+struct DemandedChunk {
+    address: VoxelMaterializationChunkAddress,
+    priority: i32,
+    distance_squared: f32,
 }
 
 struct VoxelGenerationJob {
@@ -169,7 +165,7 @@ pub(crate) fn finish_chunk_generation(
                 break;
             };
 
-            // The viewer can move while aggregate work is in flight. Never
+            // Demand can migrate or disappear while aggregate work is in flight. Never
             // resurrect a base chunk whose canonical reservation was retired.
             if world.chunk_entity(output.address) != Some(output.entity) {
                 continue;
@@ -221,31 +217,24 @@ pub(crate) fn stream_voxel_chunks(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     frame: Res<UsfSpatialFrame>,
-    viewers: Query<&GlobalTransform>,
+    demand_snapshot: Res<SpatialDemandSnapshot>,
+    voxel_demand_sources: Query<(), With<VoxelMaterializationDemand>>,
     mut worlds: Query<(Entity, &mut VoxelWorld, &VoxelStreaming)>,
 ) {
     let frame_origin = VoxelQueryPosition::new(*frame.origin());
+    let voxel_demands = demand_snapshot
+        .iter()
+        .filter(|scope| voxel_demand_sources.contains(scope.source()))
+        .collect::<Vec<_>>();
 
     for (world_entity, mut world, streaming) in &mut worlds {
-        let Ok(viewer) = viewers.get(streaming.viewer) else {
-            continue;
-        };
-        let viewer_local = viewer.translation();
-        let Ok(viewer_semantic) = frame_origin.translated(viewer_local) else {
-            error!(?viewer_local, "voxel viewer semantic projection failed");
-            continue;
-        };
-        let Ok(center) = world.materialization_address_containing(viewer_semantic) else {
-            error!("voxel viewer uses an incompatible semantic leaf scale");
-            continue;
-        };
-        let Ok(desired) = desired_chunk_addresses(center, streaming.radius) else {
-            error!("voxel streaming window could not be represented canonically");
+        let Ok(desired) = demanded_chunk_addresses(&world, &voxel_demands) else {
+            error!("voxel spatial demand could not be represented canonically");
             continue;
         };
         let desired_set = desired
             .iter()
-            .map(|(_, address)| *address)
+            .map(|chunk| chunk.address)
             .collect::<HashSet<_>>();
 
         let stale = world
@@ -258,14 +247,26 @@ pub(crate) fn stream_voxel_chunks(
             commands.entity(entity).despawn();
         }
 
-        let radius_max = streaming.radius.max(IVec3::ZERO).max_element() as f32;
-        let projection_bound = viewer_local.abs().max_element()
-            + (radius_max + 2.0) * MATERIALIZATION_CHUNK_SIZE as f32
-            + 1.0;
+        let projection_bound = voxel_demands
+            .iter()
+            .filter_map(|demand| {
+                demand
+                    .center()
+                    .relative_native_bounded(frame.origin(), 1_000_000.0)
+                    .ok()
+                    .map(|local| {
+                        local.abs().max_element()
+                            + demand.half_extent_native().max_element()
+                            + MATERIALIZATION_CHUNK_SIZE as f32 * 2.0
+                            + 1.0
+                    })
+            })
+            .fold(512.0_f32, f32::max);
 
         let mut requested = 0;
         let mut aggregate_batches = Vec::<PendingAggregateGeneration>::new();
-        for (offset, address) in desired {
+        for demanded in desired {
+            let address = demanded.address;
             if world.chunk_entity(address).is_some() {
                 continue;
             }
@@ -274,7 +275,10 @@ pub(crate) fn stream_voxel_chunks(
                 .query_origin()
                 .relative_to(frame_origin, projection_bound)
             else {
-                error!(?address, "nearby voxel materialization could not project into local frame");
+                // Demand remains semantic even if this first fixed-scale runtime
+                // projection cannot comfortably represent it. M8 generalizes
+                // simultaneous manifestations/projections rather than turning
+                // canonical demand into a giant runtime coordinate.
                 continue;
             };
             let Ok(scope) = VoxelMaterializationAggregateScope::containing(
@@ -289,8 +293,9 @@ pub(crate) fn stream_voxel_chunks(
             let chunk_entity = commands
                 .spawn((
                     Name::new(format!(
-                        "Voxel Materialization Chunk [{:+}, {:+}, {:+}]",
-                        offset.x, offset.y, offset.z
+                        "Voxel Materialization Chunk [priority {}, distance {:.1}]",
+                        demanded.priority,
+                        demanded.distance_squared.sqrt(),
                     )),
                     VoxelChunkOf::new(world_entity),
                     address,
@@ -338,6 +343,76 @@ pub(crate) fn stream_voxel_chunks(
     }
 }
 
+fn demanded_chunk_addresses(
+    world: &VoxelWorld,
+    demands: &[SpatialDemandScope],
+) -> Result<Vec<DemandedChunk>, crate::spatial::UsfPositionError> {
+    let mut merged = HashMap::<VoxelMaterializationChunkAddress, DemandedChunk>::new();
+
+    for demand in demands {
+        let center = VoxelQueryPosition::new(demand.center());
+        let center_address = world.materialization_address_containing(center)?;
+        let size = MATERIALIZATION_CHUNK_SIZE as f32;
+        let local_center = center.relative_to(center_address.query_origin(), size + 0.01)?;
+        let half = demand.half_extent_native();
+        let minimum = checked_ivec3(((local_center - half) / size).floor())?;
+        let maximum = checked_ivec3(((local_center + half) / size).floor())?;
+
+        for z in minimum.z..=maximum.z {
+            for y in minimum.y..=maximum.y {
+                for x in minimum.x..=maximum.x {
+                    let offset = IVec3::new(x, y, z);
+                    let address = center_address.translated_chunks(offset)?;
+                    let chunk_center = offset.as_vec3() * size + Vec3::splat(size * 0.5);
+                    let distance_squared = (chunk_center - local_center).length_squared();
+                    let candidate = DemandedChunk {
+                        address,
+                        priority: demand.priority(),
+                        distance_squared,
+                    };
+
+                    merged
+                        .entry(address)
+                        .and_modify(|current| {
+                            if candidate.priority > current.priority
+                                || (candidate.priority == current.priority
+                                    && candidate.distance_squared < current.distance_squared)
+                            {
+                                *current = candidate;
+                            }
+                        })
+                        .or_insert(candidate);
+                }
+            }
+        }
+    }
+
+    let mut desired = merged.into_values().collect::<Vec<_>>();
+    desired.sort_by(|a, b| {
+        b.priority
+            .cmp(&a.priority)
+            .then_with(|| a.distance_squared.total_cmp(&b.distance_squared))
+    });
+    Ok(desired)
+}
+
+fn checked_ivec3(value: Vec3) -> Result<IVec3, crate::spatial::UsfPositionError> {
+    fn component(value: f32) -> Result<i32, crate::spatial::UsfPositionError> {
+        let value64 = f64::from(value);
+        if !value.is_finite() || value64 < i32::MIN as f64 || value64 > i32::MAX as f64 {
+            Err(crate::spatial::UsfPositionError::TranslationTooLarge)
+        } else {
+            Ok(value as i32)
+        }
+    }
+
+    Ok(IVec3::new(
+        component(value.x)?,
+        component(value.y)?,
+        component(value.z)?,
+    ))
+}
+
 fn push_generation_job(
     batches: &mut Vec<PendingAggregateGeneration>,
     scope: VoxelMaterializationAggregateScope,
@@ -371,38 +446,6 @@ fn catch_up_generated_chunk(
     }
 }
 
-fn desired_chunk_addresses(
-    center: VoxelMaterializationChunkAddress,
-    radius: IVec3,
-) -> Result<Vec<(IVec3, VoxelMaterializationChunkAddress)>, crate::spatial::UsfPositionError> {
-    let radius = radius.max(IVec3::ZERO);
-    // The radius is policy input rather than semantic identity. Avoid doing its
-    // capacity arithmetic in i32 so even malformed/extreme policy values cannot
-    // overflow before the bounded-neighborhood iteration itself is considered.
-    let mut offsets = Vec::new();
-
-    for z in -radius.z..=radius.z {
-        for y in -radius.y..=radius.y {
-            for x in -radius.x..=radius.x {
-                offsets.push(IVec3::new(x, y, z));
-            }
-        }
-    }
-    offsets.sort_by_key(|offset| chunk_distance_squared(*offset));
-
-    offsets
-        .into_iter()
-        .map(|offset| center.translated_chunks(offset).map(|address| (offset, address)))
-        .collect()
-}
-
-fn chunk_distance_squared(delta: IVec3) -> i128 {
-    let x = i128::from(delta.x);
-    let y = i128::from(delta.y);
-    let z = i128::from(delta.z);
-    x * x + y * y + z * z
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -415,23 +458,30 @@ mod tests {
     }
 
     #[test]
-    fn streaming_window_is_centered_unique_and_nearest_first() {
-        let center = VoxelMaterializationChunkAddress::new(crate::spatial::UsfPosition::default());
-        let addresses = desired_chunk_addresses(center, IVec3::new(2, 1, 2)).unwrap();
-
-        assert_eq!(addresses.len(), 75);
-        assert_eq!(addresses[0], (IVec3::ZERO, center));
-        assert_eq!(
-            addresses
-                .iter()
-                .map(|(_, address)| *address)
-                .collect::<HashSet<_>>()
-                .len(),
-            75
+    fn overlapping_spatial_demands_merge_without_duplicate_materialization_identity() {
+        let world = VoxelWorld::new(VoxelBase::Empty);
+        let mut ecs = World::new();
+        let first = SpatialDemandScope::new(
+            ecs.spawn_empty().id(),
+            query(Vec3::ZERO).usf(),
+            Vec3::splat(12.0),
+            1,
         );
-        assert!(addresses.iter().all(|(offset, _)| {
-            offset.x.abs() <= 2 && offset.y.abs() <= 1 && offset.z.abs() <= 2
-        }));
+        let second = SpatialDemandScope::new(
+            ecs.spawn_empty().id(),
+            query(Vec3::new(5.0, 0.0, 0.0)).usf(),
+            Vec3::splat(12.0),
+            5,
+        );
+        let desired = demanded_chunk_addresses(&world, &[first, second]).unwrap();
+        let unique = desired
+            .iter()
+            .map(|chunk| chunk.address)
+            .collect::<HashSet<_>>();
+
+        assert_eq!(unique.len(), desired.len());
+        assert!(desired.windows(2).all(|pair| pair[0].priority >= pair[1].priority));
+        assert!(desired.iter().any(|chunk| chunk.priority == 5));
     }
 
     #[test]

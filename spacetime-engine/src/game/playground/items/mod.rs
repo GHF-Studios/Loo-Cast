@@ -4,6 +4,7 @@
 //! expected from statically composed Vapor/mod content: register metadata, then
 //! consume semantic playground actions and/or emit domain messages.
 
+mod chunkloading_cube;
 mod damageable_cube;
 mod heat_ray;
 mod portal_gun;
@@ -20,6 +21,7 @@ impl Plugin for PlaygroundItemsPlugin {
             portal_gun::PortalGunItemPlugin,
             projectile_gun::ProjectileGunItemPlugin,
             damageable_cube::DamageableCubeItemPlugin,
+            chunkloading_cube::ChunkloadingCubeItemPlugin,
             heat_ray::HeatRayItemPlugin,
             voxel_hand::VoxelHandItemPlugin,
         ));

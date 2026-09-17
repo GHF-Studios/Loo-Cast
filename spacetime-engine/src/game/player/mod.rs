@@ -33,8 +33,9 @@ use crate::{
         character::{CharacterDimensions, CharacterGroundState, CharacterMotor, CharacterMovementInput},
         topology::{KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeer},
     },
-    spatial::{UsfPosition, UsfSpatialAnchor},
+    spatial::{SpatialDemandSource, UsfPosition, UsfSpatialAnchor},
     view::{PrimaryGameView, PrimaryViewPresentation},
+    voxel::VoxelMaterializationDemand,
 };
 
 use super::{
@@ -43,6 +44,9 @@ use super::{
     portal::{MAIN_PORTAL_LAYER, PortalSplitTraveler, PortalTraveler, PortalView},
     thermal::{ThermalBody, ThermalInjury, ThermalSpatialSample},
 };
+
+const PLAYER_SPATIAL_DEMAND_HALF_EXTENT: Vec3 = Vec3::new(20.0, 10.0, 20.0);
+const PLAYER_SPATIAL_DEMAND_PRIORITY: i32 = 100;
 
 pub struct PlayerPlugin;
 
@@ -83,7 +87,11 @@ impl Plugin for PlayerPlugin {
             )
             .add_systems(
                 Update,
-                (camera::toggle_camera_mode, camera::zoom_third_person)
+                (
+                    controls::toggle_spatial_demand,
+                    camera::toggle_camera_mode,
+                    camera::zoom_third_person,
+                )
                     .chain()
                     .in_set(InputSet::Gameplay),
             )
@@ -134,6 +142,9 @@ fn spawn_player(
                 UsfManifestationAuthority,
                 UsfSpatialAnchor,
                 ThermalSpatialSample,
+                SpatialDemandSource::cuboid(PLAYER_SPATIAL_DEMAND_HALF_EXTENT)
+                    .with_priority(PLAYER_SPATIAL_DEMAND_PRIORITY),
+                VoxelMaterializationDemand,
                 PlayerController::default(),
                 PlayerAim::default(),
             ), (

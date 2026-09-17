@@ -7,9 +7,12 @@
 use avian3d::prelude::LinearVelocity;
 use bevy::{input::mouse::AccumulatedMouseMotion, prelude::*};
 
-use crate::physics::character::{
-    CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame, CharacterMotor,
-    CharacterMovementInput,
+use crate::{
+    physics::character::{
+        CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame, CharacterMotor,
+        CharacterMovementInput,
+    },
+    spatial::SpatialDemandSource,
 };
 
 use super::{
@@ -78,6 +81,22 @@ pub fn toggle_noclip(
     } else {
         commands.entity(entity).insert(CharacterMotor);
     }
+}
+
+
+/// `L` toggles the player's contribution to generic spatial demand. Other
+/// sources (for example Chunkloading Cubes) remain completely independent.
+pub fn toggle_spatial_demand(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    capture: Res<CursorCapture>,
+    mut player: Single<&mut SpatialDemandSource, With<Player>>,
+) {
+    if gameplay_suppressed(&keyboard, &capture) || !keyboard.just_pressed(KeyCode::KeyL) {
+        return;
+    }
+
+    let enabled = player.toggle();
+    info!("player spatial demand toggled: {enabled}");
 }
 
 /// Samples local controls once per render frame immediately before the fixed

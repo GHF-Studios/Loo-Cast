@@ -4,9 +4,12 @@
 //! origin rebasing. The finite canonical stack wraps on root carry/borrow;
 //! scale transitions and observer-relative scale views remain later milestones.
 
+mod demand;
 mod devtools;
 mod position;
 
+pub(crate) use devtools::SPATIAL_DEMAND_VISUALIZATION;
+pub use demand::{SpatialDemandScope, SpatialDemandSet, SpatialDemandSnapshot, SpatialDemandSource};
 pub use position::{
     SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale, UsfPosition,
     UsfPositionError,
@@ -96,6 +99,7 @@ impl Plugin for UsfSpatialPlugin {
                 rebase_local_frame.in_set(UsfSpatialSet::Rebase),
             );
 
+        demand::configure(app);
         devtools::configure(app);
     }
 }

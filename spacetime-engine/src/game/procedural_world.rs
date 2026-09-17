@@ -32,7 +32,6 @@ fn spawn_procedural_world(
     mut commands: Commands,
     mut materials: ResMut<Assets<StandardMaterial>>,
     frame: Res<UsfSpatialFrame>,
-    player: Single<Entity, With<Player>>,
 ) {
     let material = materials.add(StandardMaterial {
         base_color: Color::srgb(0.30, 0.27, 0.23),
@@ -44,15 +43,10 @@ fn spawn_procedural_world(
         Name::new("Procedural World"),
         ProceduralWorldRoot,
         VoxelWorld::new_at(VoxelBase::terrain(WORLD_SEED), *frame.origin()),
-        // Keep this as a deliberately small chunk-count window. Aggregate
-        // processing changes work granularity, not requested spatial extent; a
-        // larger/metric realization window belongs to M7.2 spatial-demand policy.
-        VoxelStreaming::new(
-            player.into_inner(),
-            IVec3::new(2, 1, 2),
-            8,
-            material,
-        ),
+        // Spatial extent now comes entirely from generic canonical demand
+        // sources. This component only configures voxel realization throughput
+        // and representation assets for satisfying that merged demand.
+        VoxelStreaming::new(8, material),
         Transform::IDENTITY,
     ));
 }

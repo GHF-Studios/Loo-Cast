@@ -8,6 +8,7 @@ mod aggregate;
 mod async_pipeline;
 mod base;
 mod chunk;
+mod devtools;
 mod edit;
 mod field;
 mod mesh;
@@ -25,12 +26,14 @@ pub use edit::{
 };
 pub use field::{SignedDistance, VoxelMaterialId, VoxelSample};
 pub use modification::VoxelModificationLayer;
-pub use streaming::VoxelStreaming;
+pub use streaming::{VoxelMaterializationDemand, VoxelStreaming};
 pub use world::{
     VoxelChunkAddress, VoxelChunkCoord, VoxelChunkOf, VoxelMaterializationChunkAddress, VoxelWorld,
 };
 
 use bevy::prelude::*;
+
+use crate::spatial::SpatialDemandSet;
 
 pub struct VoxelPlugin;
 
@@ -38,12 +41,12 @@ impl Plugin for VoxelPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (
-                streaming::retire_orphaned_chunks,
-                streaming::stream_voxel_chunks,
-            )
-                .chain(),
+            streaming::retire_orphaned_chunks.before(streaming::stream_voxel_chunks),
         )
+            .add_systems(
+                Update,
+                streaming::stream_voxel_chunks.after(SpatialDemandSet::Collect),
+            )
             .add_systems(
                 PostUpdate,
                 (
@@ -55,6 +58,8 @@ impl Plugin for VoxelPlugin {
                 )
                     .chain(),
             );
+
+        devtools::configure(app);
     }
 }
 

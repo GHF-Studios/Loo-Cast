@@ -3,16 +3,21 @@ use bevy::prelude::*;
 
 use crate::{
     devtools::{
-        AppDeveloperToolsExt, DeveloperArtifact, DeveloperSet, DeveloperTools, VisualizationId,
-        VisualizationSpec,
+        AppDeveloperToolsExt, DeveloperArtifact, DeveloperSet, DeveloperTools, DrawDepth,
+        VisualizationId, VisualizationSpec, WorldDrawBatch, WorldDrawFrame,
     },
     ecs::UsfManifestationOf,
     ui::{UiTextRole, UiTheme},
 };
 
-use super::{UsfPosition, UsfSpatialAnchor, UsfSpatialFrame, UsfSpatialSet};
+use super::{
+    SpatialDemandSnapshot, UsfPosition, UsfSpatialAnchor, UsfSpatialFrame, UsfSpatialSet,
+};
 
 const USF_SPATIAL_VISUALIZATION: VisualizationId = VisualizationId("usf_spatial");
+pub(crate) const SPATIAL_DEMAND_VISUALIZATION: VisualizationId =
+    VisualizationId("usf_spatial_demand");
+const DEMAND_DEBUG_PROJECTION_BOUND: f32 = 1_000_000.0;
 
 #[derive(Component)]
 struct UsfSpatialDebugRoot;
@@ -27,12 +32,22 @@ pub(super) fn configure(app: &mut App) {
         25,
         false,
     ))
+    .register_developer_visualization(VisualizationSpec::new(
+        SPATIAL_DEMAND_VISUALIZATION,
+        "Spatial demand / materialization",
+        26,
+        false,
+    ))
     .add_systems(Startup, spawn_debug_panel)
     .add_systems(
         PostUpdate,
         update_debug_panel
             .after(UsfSpatialSet::Rebase)
             .in_set(DeveloperSet::RenderUi),
+    )
+    .add_systems(
+        PostUpdate,
+        collect_spatial_demand_world_draw.in_set(DeveloperSet::CollectWorldDraw),
     );
 }
 
@@ -131,5 +146,64 @@ Rebases: {}  last shift=({:.1}, {:.1}, {:.1}) m",
 
     for mut text in &mut texts {
         text.0 = output.clone();
+    }
+}
+
+
+fn collect_spatial_demand_world_draw(
+    tools: Res<DeveloperTools>,
+    spatial_frame: Res<UsfSpatialFrame>,
+    demands: Res<SpatialDemandSnapshot>,
+    frame: Res<WorldDrawFrame>,
+) {
+    if !tools.visualization_enabled(SPATIAL_DEMAND_VISUALIZATION) {
+        return;
+    }
+
+    let mut batch = WorldDrawBatch::default();
+    let color = Color::srgba(0.20, 0.82, 1.0, 0.92);
+
+    for demand in demands.iter() {
+        let Ok(center) = demand
+            .center()
+            .relative_native_bounded(spatial_frame.origin(), DEMAND_DEBUG_PROJECTION_BOUND)
+        else {
+            continue;
+        };
+        let half = demand.half_extent_native();
+        draw_wire_box(&mut batch, center - half, center + half, color);
+        batch.cross(
+            Isometry3d::new(center, Quat::IDENTITY),
+            0.45,
+            color,
+            DrawDepth::Overlay,
+        );
+    }
+
+    frame.submit(batch);
+}
+
+fn draw_wire_box(
+    batch: &mut WorldDrawBatch,
+    min: Vec3,
+    max: Vec3,
+    color: Color,
+) {
+    let corners = [
+        Vec3::new(min.x, min.y, min.z),
+        Vec3::new(max.x, min.y, min.z),
+        Vec3::new(min.x, max.y, min.z),
+        Vec3::new(max.x, max.y, min.z),
+        Vec3::new(min.x, min.y, max.z),
+        Vec3::new(max.x, min.y, max.z),
+        Vec3::new(min.x, max.y, max.z),
+        Vec3::new(max.x, max.y, max.z),
+    ];
+    for (a, b) in [
+        (0, 1), (0, 2), (1, 3), (2, 3),
+        (4, 5), (4, 6), (5, 7), (6, 7),
+        (0, 4), (1, 5), (2, 6), (3, 7),
+    ] {
+        batch.line(corners[a], corners[b], color, DrawDepth::Overlay);
     }
 }
