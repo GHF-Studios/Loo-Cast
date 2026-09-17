@@ -22,6 +22,9 @@ pub enum VoxelBase {
         radius: f32,
         material: VoxelMaterialId,
     },
+    /// Active local-world base: genuine 3D density/material field.
+    Volume(ProceduralVolume),
+    /// Legacy/reference heightfield retained for tests and compatibility.
     Terrain(ProceduralTerrain),
 }
 
@@ -73,6 +76,7 @@ impl VoxelBase {
                     },
                 )
             }
+            Self::Volume(volume) => volume.sample_at(world_origin, point),
             Self::Terrain(terrain) => terrain.sample_at(world_origin, point),
         }
     }
@@ -188,6 +192,224 @@ impl ProceduralTerrain {
             },
         )
     }
+}
+
+/// Reconstructible three-dimensional local matter field.
+///
+/// A planetary/reference surface is one contextual input, not the authority.
+/// 3D structural noise and cave fields participate directly in the signed scalar
+/// field, so caves, arches and overhangs are first-class local geometry.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ProceduralVolume {
+    surface: ProceduralTerrain,
+    cave_strength: f32,
+    structure_strength: f32,
+}
+
+impl ProceduralVolume {
+    pub fn configured(
+        seed: u32,
+        base_height: f32,
+        amplitude: f32,
+        frequency: f32,
+        cave_strength: f32,
+        structure_strength: f32,
+    ) -> Self {
+        Self {
+            surface: ProceduralTerrain::configured(seed, base_height, amplitude, frequency),
+            cave_strength: cave_strength.clamp(0.0, 1.0),
+            structure_strength: structure_strength.clamp(0.0, 1.0),
+        }
+    }
+
+    pub const fn reference_surface(self) -> ProceduralTerrain {
+        self.surface
+    }
+
+    /// Approximate exterior surface used only for spawn placement and coarse
+    /// surface presentation. It is not the volumetric matter authority.
+    pub fn reference_surface_height_at(
+        self,
+        world_origin: VoxelQueryPosition,
+        point: VoxelQueryPosition,
+    ) -> f32 {
+        self.surface.height_at(world_origin, point)
+    }
+
+    pub fn sample(self, point: VoxelQueryPosition) -> VoxelSample {
+        self.sample_at(VoxelQueryPosition::new(UsfPosition::default()), point)
+    }
+
+    pub(crate) fn sample_at(
+        self,
+        world_origin: VoxelQueryPosition,
+        point: VoxelQueryPosition,
+    ) -> VoxelSample {
+        let surface_height = self.reference_surface_height_at(world_origin, point);
+        let Some(y) = point
+            .usf()
+            .relative_native_axis_bounded(&world_origin.usf(), 1, TERRAIN_VERTICAL_QUERY_LIMIT)
+            .ok()
+        else {
+            return if point
+                .usf()
+                .relative_native_axis_is_negative(&world_origin.usf(), 1)
+                .unwrap_or(false)
+            {
+                VoxelSample::new(-EMPTY_DISTANCE, VoxelMaterialId::ROCK)
+            } else {
+                VoxelSample::empty(EMPTY_DISTANCE)
+            };
+        };
+
+        let base_frequency = self.surface.frequency.max(f32::EPSILON);
+        let structure = volumetric_noise(
+            world_origin,
+            point,
+            base_frequency * 0.72,
+            self.surface.seed ^ 0x31D0_6A5B,
+        );
+        let relief = self.surface.amplitude.max(1.0);
+        let structure_offset = structure * relief * (0.18 + self.structure_strength * 0.82);
+
+        // Negative is matter. Since `structure` varies with x/y/z, the local
+        // boundary cannot be represented as y = h(x,z).
+        let exterior_distance = y - surface_height + structure_offset;
+
+        // Carve connected 3D cave bands inside the body. `max` performs signed
+        // field subtraction here: positive cave field wins over negative solid.
+        let cave_frequency = base_frequency * (1.65 + self.cave_strength * 1.35);
+        let cave_noise = volumetric_noise(
+            world_origin,
+            point,
+            cave_frequency,
+            self.surface.seed ^ 0xCA7E_5EED,
+        );
+        let cave_half_width = 0.045 + self.cave_strength * 0.18;
+        let depth = (surface_height - y).max(0.0);
+        let underground_gate = (depth / 3.0).clamp(0.0, 1.0);
+        let cave_distance =
+            (cave_half_width - cave_noise.abs()) * (4.0 + relief * 0.35) * underground_gate;
+
+        let distance = exterior_distance.max(cave_distance);
+        VoxelSample::new(
+            distance,
+            if distance < 0.0 {
+                VoxelMaterialId::ROCK
+            } else {
+                VoxelMaterialId::VOID
+            },
+        )
+    }
+}
+
+fn volumetric_noise(
+    world_origin: VoxelQueryPosition,
+    point: VoxelQueryPosition,
+    frequency: f32,
+    seed: u32,
+) -> f32 {
+    let frequency = frequency.max(f32::EPSILON);
+    if let Ok(local) = point.relative_to(world_origin, TERRAIN_DIRECT_LOCAL_LIMIT) {
+        value_noise_3d(local * frequency, seed)
+    } else {
+        semantic_value_noise_3d(point, canonical_cell_size(1.0 / frequency), seed)
+    }
+}
+
+fn value_noise_3d(point: Vec3, seed: u32) -> f32 {
+    let cell = point.floor().as_ivec3();
+    let fraction = point - cell.as_vec3();
+    let smooth = fraction * fraction * (Vec3::splat(3.0) - fraction * 2.0);
+    let corner =
+        |dx: i32, dy: i32, dz: i32| hash_noise_3d(cell.x + dx, cell.y + dy, cell.z + dz, seed);
+
+    let c000 = corner(0, 0, 0);
+    let c100 = corner(1, 0, 0);
+    let c010 = corner(0, 1, 0);
+    let c110 = corner(1, 1, 0);
+    let c001 = corner(0, 0, 1);
+    let c101 = corner(1, 0, 1);
+    let c011 = corner(0, 1, 1);
+    let c111 = corner(1, 1, 1);
+    let x00 = c000 + (c100 - c000) * smooth.x;
+    let x10 = c010 + (c110 - c010) * smooth.x;
+    let x01 = c001 + (c101 - c001) * smooth.x;
+    let x11 = c011 + (c111 - c011) * smooth.x;
+    let y0 = x00 + (x10 - x00) * smooth.y;
+    let y1 = x01 + (x11 - x01) * smooth.y;
+    y0 + (y1 - y0) * smooth.z
+}
+
+fn hash_noise_3d(x: i32, y: i32, z: i32, seed: u32) -> f32 {
+    let mut value = seed
+        ^ (x as u32).wrapping_mul(0x9E37_79B9)
+        ^ (y as u32).wrapping_mul(0x85EB_CA6B)
+        ^ (z as u32).wrapping_mul(0xC2B2_AE35);
+    value ^= value >> 16;
+    value = value.wrapping_mul(0x7FEB_352D);
+    value ^= value >> 15;
+    value = value.wrapping_mul(0x846C_A68B);
+    value ^= value >> 16;
+    (value as f32 / u32::MAX as f32) * 2.0 - 1.0
+}
+
+fn semantic_value_noise_3d(point: VoxelQueryPosition, cell_size: i64, seed: u32) -> f32 {
+    let size = cell_size as f32;
+    let offset = point.usf().offset();
+    let remainder = Vec3::new(
+        offset.x.rem_euclid(size),
+        offset.y.rem_euclid(size),
+        offset.z.rem_euclid(size),
+    );
+    let fraction = remainder / size;
+    let smooth = fraction * fraction * (Vec3::splat(3.0) - fraction * 2.0);
+    let lower = point
+        .translated(-remainder)
+        .expect("bounded semantic 3D noise-lattice translation");
+
+    let corner = |dx: i64, dy: i64, dz: i64| {
+        let p = VoxelQueryPosition::new(
+            lower
+                .usf()
+                .translated_whole_native([dx * cell_size, dy * cell_size, dz * cell_size])
+                .expect("bounded semantic 3D noise-lattice translation"),
+        );
+        semantic_corner_noise_3d(p, seed)
+    };
+
+    let c000 = corner(0, 0, 0);
+    let c100 = corner(1, 0, 0);
+    let c010 = corner(0, 1, 0);
+    let c110 = corner(1, 1, 0);
+    let c001 = corner(0, 0, 1);
+    let c101 = corner(1, 0, 1);
+    let c011 = corner(0, 1, 1);
+    let c111 = corner(1, 1, 1);
+    let x00 = c000 + (c100 - c000) * smooth.x;
+    let x10 = c010 + (c110 - c010) * smooth.x;
+    let x01 = c001 + (c101 - c001) * smooth.x;
+    let x11 = c011 + (c111 - c011) * smooth.x;
+    let y0 = x00 + (x10 - x00) * smooth.y;
+    let y1 = x01 + (x11 - x01) * smooth.y;
+    y0 + (y1 - y0) * smooth.z
+}
+
+fn semantic_corner_noise_3d(point: VoxelQueryPosition, seed: u32) -> f32 {
+    let position = point.usf();
+    let mut value = seed ^ 0x517C_C1B7;
+    for raw_scale in (position.leaf_scale().exponent()..=SPATIAL_SCALE_MAX).rev() {
+        let scale = SpatialScale::new(raw_scale).expect("range is validated");
+        let digit = position.digit(scale);
+        value = mix(value, digit.x as u32);
+        value = mix(value, digit.y as u32);
+        value = mix(value, digit.z as u32);
+    }
+    let offset = position.offset();
+    value = mix(value, canonical_f32_bits(offset.x));
+    value = mix(value, canonical_f32_bits(offset.y));
+    value = mix(value, canonical_f32_bits(offset.z));
+    (value as f32 / u32::MAX as f32) * 2.0 - 1.0
 }
 
 fn value_noise(point: Vec2, seed: u32) -> f32 {
@@ -323,6 +545,16 @@ mod tests {
             terrain.height_at(origin, point),
             ProceduralTerrain::new(43).height_at(origin, point)
         );
+    }
+
+    #[test]
+    fn procedural_volume_structure_is_genuinely_three_dimensional() {
+        let origin = query(Vec3::ZERO);
+        let a = query(Vec3::new(17.0, -8.0, 23.0));
+        let b = query(Vec3::new(17.0, 11.0, 23.0));
+        let av = volumetric_noise(origin, a, 0.041, 77);
+        let bv = volumetric_noise(origin, b, 0.041, 77);
+        assert_ne!(av, bv);
     }
 
     #[test]

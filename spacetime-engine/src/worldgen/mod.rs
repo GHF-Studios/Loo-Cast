@@ -329,9 +329,116 @@ impl WorldgenStore {
         })
     }
 
-    /// Ensures one exact canonical branch exists from Scale +35 through
-    /// `target_scale`. Existing ancestors/siblings are reused rather than
-    /// regenerated or eagerly expanding the full hierarchy.
+    /// Bootstraps exactly one root context at Scale +35.
+    /// Lower scales remain virtual until context is refined downward.
+    pub fn bootstrap_root(
+        &mut self,
+        target: UsfPosition,
+        temporal_scale: TemporalScale,
+        epoch: WorldgenEpoch,
+        registry: &PhenomenonRegistry,
+    ) -> Result<WorldgenEvaluationKey, UsfPositionError> {
+        let scope = UsfChunkAddress::containing(target, SpatialScale::MAX)?;
+        let key = WorldgenEvaluationKey {
+            scope,
+            temporal_scale,
+            epoch: epoch.id(),
+        };
+        if self.nodes.contains_key(&key) {
+            return Ok(key);
+        }
+
+        let seed = scope_seed(self.universe_seed, scope);
+        let context = PhenomenonEvaluationContext { key, epoch, seed };
+        let phenomena = registry.evaluate(&context, None);
+        debug_assert!(
+            !phenomena.is_empty(),
+            "root context must be semantically interpreted"
+        );
+        self.nodes.insert(
+            key,
+            WorldgenNode {
+                context,
+                parent: None,
+                phenomena,
+            },
+        );
+        Ok(key)
+    }
+
+    /// Contextualizes exactly one finer child containing `target`.
+    /// The parent supplies inherited conditions; child rules still specialize
+    /// and contribute genuinely local emergence.
+    pub fn contextualize_child(
+        &mut self,
+        parent: WorldgenEvaluationKey,
+        target: UsfPosition,
+        registry: &PhenomenonRegistry,
+    ) -> Result<Option<WorldgenEvaluationKey>, UsfPositionError> {
+        let Some(parent_node) = self.nodes.get(&parent) else {
+            return Ok(None);
+        };
+        let parent_scope = parent_node.context().spatial_scope();
+        let parent_scale = parent_scope.scale();
+        if parent_scale == SpatialScale::MIN {
+            return Ok(None);
+        }
+
+        let child_scale =
+            SpatialScale::new(parent_scale.exponent() - 1).expect("non-minimum scale has child");
+        let child_scope = UsfChunkAddress::containing(target, child_scale)?;
+        if child_scope.parent() != Some(parent_scope) {
+            return Ok(None);
+        }
+
+        let key = WorldgenEvaluationKey {
+            scope: child_scope,
+            temporal_scale: parent.temporal_scale(),
+            epoch: parent.epoch(),
+        };
+        if self.nodes.contains_key(&key) {
+            return Ok(Some(key));
+        }
+
+        let epoch = parent_node.context().epoch();
+        let seed = scope_seed(self.universe_seed, child_scope);
+        let context = PhenomenonEvaluationContext { key, epoch, seed };
+        let phenomena = registry.evaluate(&context, Some(parent_node));
+        debug_assert!(
+            !phenomena.is_empty(),
+            "every currently modeled +35 -> 0 scale should be semantically interpreted"
+        );
+        self.nodes.insert(
+            key,
+            WorldgenNode {
+                context,
+                parent: Some(parent),
+                phenomena,
+            },
+        );
+        Ok(Some(key))
+    }
+
+    /// Refines an already bootstrapped root downward until `target_scale`.
+    pub fn contextualize_to(
+        &mut self,
+        root: WorldgenEvaluationKey,
+        target: UsfPosition,
+        target_scale: SpatialScale,
+        registry: &PhenomenonRegistry,
+    ) -> Result<Option<WorldgenEvaluationKey>, UsfPositionError> {
+        let mut current = root;
+        while current.scope().scale() > target_scale {
+            let Some(child) = self.contextualize_child(current, target, registry)? else {
+                return Ok(None);
+            };
+            current = child;
+        }
+        Ok((current.scope().scale() == target_scale).then_some(current))
+    }
+
+    /// Compatibility convenience implemented in terms of coarse bootstrap and
+    /// explicit downward contextual refinement.
     pub fn ensure_branch(
         &mut self,
         target: UsfPosition,
@@ -340,45 +447,10 @@ impl WorldgenStore {
         epoch: WorldgenEpoch,
         registry: &PhenomenonRegistry,
     ) -> Result<WorldgenEvaluationKey, UsfPositionError> {
-        for raw_scale in (target_scale.exponent()..=SPATIAL_SCALE_MAX).rev() {
-            let scale = SpatialScale::new(raw_scale).expect("validated spatial scale range");
-            let scope = UsfChunkAddress::containing(target, scale)?;
-            let key = WorldgenEvaluationKey {
-                scope,
-                temporal_scale,
-                epoch: epoch.id(),
-            };
-            if self.nodes.contains_key(&key) {
-                continue;
-            }
-
-            let parent = scope.parent().map(|parent_scope| WorldgenEvaluationKey {
-                scope: parent_scope,
-                temporal_scale,
-                epoch: epoch.id(),
-            });
-            let seed = scope_seed(self.universe_seed, scope);
-            let context = PhenomenonEvaluationContext { key, epoch, seed };
-            let phenomena = {
-                let parent_node = parent.and_then(|parent_key| self.nodes.get(&parent_key));
-                registry.evaluate(&context, parent_node)
-            };
-            debug_assert!(
-                !phenomena.is_empty(),
-                "every atlas scale in the first +35 -> 0 path should be semantically interpreted"
-            );
-
-            self.nodes.insert(
-                key,
-                WorldgenNode {
-                    context,
-                    parent,
-                    phenomena,
-                },
-            );
-        }
-
-        self.key_for(target, target_scale, temporal_scale, epoch)
+        let root = self.bootstrap_root(target, temporal_scale, epoch, registry)?;
+        Ok(self
+            .contextualize_to(root, target, target_scale, registry)?
+            .expect("root and target define one canonical refinement branch"))
     }
 
     pub fn node(&self, key: WorldgenEvaluationKey) -> Option<&WorldgenNode> {
@@ -1114,6 +1186,27 @@ fn mix64(mut value: u64) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn root_exists_before_any_finer_context_is_allocated() {
+        let registry = PhenomenonRegistry::default();
+        let mut store = WorldgenStore::new(5);
+        let epoch = WorldgenEpoch::present_day_bootstrap();
+        let target = UsfPosition::default();
+
+        let root = store
+            .bootstrap_root(target, TemporalScale::WORLDGEN_SNAPSHOT, epoch, &registry)
+            .unwrap();
+        assert_eq!(store.len(), 1);
+        assert_eq!(root.scope().scale(), SpatialScale::MAX);
+
+        let leaf = store
+            .contextualize_to(root, target, SpatialScale::ZERO, &registry)
+            .unwrap()
+            .unwrap();
+        assert_eq!(store.len(), 36);
+        assert_eq!(leaf.scope().scale(), SpatialScale::ZERO);
+    }
 
     #[test]
     fn one_scale_zero_request_builds_every_nonnegative_scale() {

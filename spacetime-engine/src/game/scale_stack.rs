@@ -15,7 +15,7 @@ use bevy::{
 
 use crate::{
     spatial::{SpatialScale, UsfPosition, UsfScalePresentation, UsfViewFrame},
-    voxel::{ProceduralTerrain, VoxelQueryPosition},
+    voxel::{ProceduralVolume, VoxelQueryPosition},
 };
 
 const EARTH_RADIUS_M: f64 = 6_371_000.0;
@@ -40,16 +40,16 @@ struct ScaleStackAssets {
 #[derive(Component)]
 pub(super) struct ProceduralScaleStack {
     anchor: UsfPosition,
-    terrain: ProceduralTerrain,
+    volume: ProceduralVolume,
     active: HashMap<SpatialScale, Entity>,
     assets: Option<ScaleStackAssets>,
 }
 
 impl ProceduralScaleStack {
-    pub(super) fn new(anchor: UsfPosition, terrain: ProceduralTerrain) -> Self {
+    pub(super) fn new(anchor: UsfPosition, volume: ProceduralVolume) -> Self {
         Self {
             anchor,
-            terrain,
+            volume,
             active: HashMap::new(),
             assets: None,
         }
@@ -99,9 +99,12 @@ pub(super) fn sync_scale_stack(
                 &mut meshes,
                 world_entity,
                 stack.anchor,
-                stack.terrain,
+                stack.volume,
                 scale,
-                stack.assets.as_ref().expect("scale stack assets initialized"),
+                stack
+                    .assets
+                    .as_ref()
+                    .expect("scale stack assets initialized"),
             );
             stack.active.insert(scale, root);
         }
@@ -115,7 +118,7 @@ fn create_assets(
     ScaleStackAssets {
         unit_sphere: meshes.add(Sphere::new(1.0)),
         landscape_material: materials.add(StandardMaterial {
-            base_color: Color::srgb(0.18, 0.31, 0.16),
+            base_color: Color::WHITE,
             perceptual_roughness: 1.0,
             ..default()
         }),
@@ -147,7 +150,7 @@ fn spawn_scale_representation(
     meshes: &mut Assets<Mesh>,
     parent: Entity,
     anchor: UsfPosition,
-    terrain: ProceduralTerrain,
+    volume: ProceduralVolume,
     scale: SpatialScale,
     assets: &ScaleStackAssets,
 ) -> Entity {
@@ -163,7 +166,7 @@ fn spawn_scale_representation(
 
     match scale.exponent() {
         1..=3 => {
-            let mesh = coarse_landscape_mesh(terrain, anchor, scale);
+            let mesh = coarse_landscape_mesh(volume, anchor, scale);
             commands.spawn((
                 Name::new(format!("S{scale} Landscape")),
                 ChildOf(root),
@@ -438,7 +441,7 @@ fn spawn_cosmological_field(
 }
 
 fn coarse_landscape_mesh(
-    terrain: ProceduralTerrain,
+    volume: ProceduralVolume,
     anchor: UsfPosition,
     scale: SpatialScale,
 ) -> Mesh {
@@ -457,13 +460,9 @@ fn coarse_landscape_mesh(
             let sx = -HALF_EXTENT_NATIVE + x as f32 * step;
             let sz = -HALF_EXTENT_NATIVE + z as f32 * step;
             let query = world_origin
-                .translated(Vec3::new(
-                    sx * units_in_meters,
-                    0.0,
-                    sz * units_in_meters,
-                ))
+                .translated(Vec3::new(sx * units_in_meters, 0.0, sz * units_in_meters))
                 .expect("bounded regional sample must translate canonically");
-            let sy = terrain.height_at(world_origin, query) / units_in_meters;
+            let sy = volume.reference_surface_height_at(world_origin, query) / units_in_meters;
             heights.push(sy);
             positions.push([sx, sy, sz]);
         }
@@ -471,15 +470,36 @@ fn coarse_landscape_mesh(
 
     let index = |x: u32, z: u32| -> usize { (z * side + x) as usize };
     let mut normals = Vec::with_capacity(positions.len());
+    let mut colors = Vec::with_capacity(positions.len());
     for z in 0..side {
         for x in 0..side {
             let left = heights[index(x.saturating_sub(1), z)];
             let right = heights[index((x + 1).min(CELLS), z)];
             let down = heights[index(x, z.saturating_sub(1))];
             let up = heights[index(x, (z + 1).min(CELLS))];
-            let dx = (right - left) / if x == 0 || x == CELLS { step } else { step * 2.0 };
-            let dz = (up - down) / if z == 0 || z == CELLS { step } else { step * 2.0 };
-            normals.push(Vec3::new(-dx, 1.0, -dz).normalize().to_array());
+            let dx = (right - left)
+                / if x == 0 || x == CELLS {
+                    step
+                } else {
+                    step * 2.0
+                };
+            let dz = (up - down)
+                / if z == 0 || z == CELLS {
+                    step
+                } else {
+                    step * 2.0
+                };
+            let normal = Vec3::new(-dx, 1.0, -dz).normalize();
+            normals.push(normal.to_array());
+            let h = heights[index(x, z)];
+            let slope = 1.0 - normal.y.abs();
+            let macro_variation =
+                ((x as f32 * 0.37).sin() * (z as f32 * 0.23).cos() * 0.5 + 0.5) * 0.12;
+            let elevation = (h * 0.08).tanh() * 0.08;
+            let r = (0.22 + slope * 0.28 + elevation + macro_variation).clamp(0.0, 1.0);
+            let g = (0.38 - slope * 0.18 + elevation * 0.5 + macro_variation).clamp(0.0, 1.0);
+            let b = (0.17 + slope * 0.10 - elevation * 0.4).clamp(0.0, 1.0);
+            colors.push([r, g, b, 1.0]);
         }
     }
 
@@ -494,8 +514,12 @@ fn coarse_landscape_mesh(
         }
     }
 
-    Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default())
-        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
-        .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, normals)
-        .with_inserted_indices(Indices::U32(indices))
+    Mesh::new(
+        PrimitiveTopology::TriangleList,
+        RenderAssetUsages::default(),
+    )
+    .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
+    .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, normals)
+    .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, colors)
+    .with_inserted_indices(Indices::U32(indices))
 }

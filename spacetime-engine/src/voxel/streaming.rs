@@ -7,7 +7,6 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use bevy::{
-    camera::visibility::NoFrustumCulling,
     prelude::*,
     tasks::{AsyncComputeTaskPool, Task, futures::check_ready},
 };
@@ -17,14 +16,14 @@ use crate::spatial::{
 };
 
 use super::{
-    MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelChunkOf, VoxelChunkPresentation,
-    VoxelMaterializationChunkAddress, VoxelQueryPosition, VoxelWorld,
+    MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelChunkOf, VoxelChunkPhysicsLod,
+    VoxelChunkPresentation, VoxelMaterializationChunkAddress, VoxelQueryPosition, VoxelWorld,
     aggregate::{VoxelMaterializationAggregateExtent, VoxelMaterializationAggregateScope},
     world::VoxelChunkRecipe,
 };
 
 /// Maximum number of finished base materializations published into ECS in one frame.
-const GENERATION_PUBLISH_BUDGET_PER_FRAME: usize = 24;
+const GENERATION_PUBLISH_BUDGET_PER_FRAME: usize = 16;
 
 /// Current voxel-field generation work scope. This is deliberately a scheduler
 /// choice, not materialization identity; `1000³` alignment is supported by the
@@ -302,7 +301,9 @@ pub(crate) fn stream_voxel_chunks(
                     )),
                     VoxelChunkOf::new(world_entity),
                     address,
+                    VoxelChunkPhysicsLod::default(),
                     Transform::from_translation(local_translation),
+                    Visibility::Inherited,
                 ))
                 .id();
 
@@ -312,7 +313,6 @@ pub(crate) fn stream_voxel_chunks(
                     ChildOf(chunk_entity),
                     UsfScalePresentation::new(address.query_origin().usf(), SpatialScale::ZERO),
                     MeshMaterial3d(streaming.material.clone()),
-                    NoFrustumCulling,
                     Transform::IDENTITY,
                     Visibility::Inherited,
                 ))

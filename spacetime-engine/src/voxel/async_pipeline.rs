@@ -14,18 +14,22 @@ use bevy::{
     tasks::{AsyncComputeTaskPool, Task, futures::check_ready},
 };
 
+use crate::spatial::UsfViewFrame;
+
 use super::{
-    VoxelChunk, VoxelChunkPresentation,
+    VoxelChunk, VoxelChunkPhysicsLod, VoxelChunkPresentation, VoxelMaterializationChunkAddress,
     mesh::{self, VoxelSurface},
     physics,
 };
 
-const DERIVED_TASK_START_BUDGET_PER_FRAME: usize = 24;
-const DERIVED_PUBLISH_BUDGET_PER_FRAME: usize = 24;
+const DERIVED_TASK_START_BUDGET_PER_FRAME: usize = 16;
+const DERIVED_PUBLISH_BUDGET_PER_FRAME: usize = 8;
+const PHYSICS_LOD_RADIUS_NATIVE: f32 = 48.0;
 
 struct VoxelDerivedOutput {
     surface: VoxelSurface,
     collider: Option<Collider>,
+    collider_requested: bool,
 }
 
 /// One in-flight render/physics reconstruction for a particular chunk revision.
@@ -45,11 +49,12 @@ pub(crate) fn publish_completed_chunk_builds(
         &mut VoxelChunk,
         &mut VoxelDerivedTask,
         &VoxelChunkPresentation,
+        &mut VoxelChunkPhysicsLod,
     )>,
 ) {
     let mut published = 0;
 
-    for (entity, mut chunk, mut build, presentation) in &mut chunks {
+    for (entity, mut chunk, mut build, presentation, mut physics_lod) in &mut chunks {
         if published >= DERIVED_PUBLISH_BUDGET_PER_FRAME {
             break;
         }
@@ -67,7 +72,11 @@ pub(crate) fn publish_completed_chunk_builds(
             continue;
         }
 
-        let VoxelDerivedOutput { surface, collider } = output;
+        let VoxelDerivedOutput {
+            surface,
+            collider,
+            collider_requested,
+        } = output;
         let has_surface = !surface.positions.is_empty() && !surface.indices.is_empty();
 
         if has_surface {
@@ -86,8 +95,11 @@ pub(crate) fn publish_completed_chunk_builds(
                 CollisionMargin(physics::VOXEL_COLLISION_MARGIN),
             ));
         } else {
+            entity_commands.remove::<RigidBody>();
             entity_commands.remove::<Collider>();
+            entity_commands.remove::<CollisionMargin>();
         }
+        physics_lod.0 = collider_requested;
 
         entity_commands.remove::<VoxelDerivedTask>();
         chunk.mark_meshed();
@@ -100,16 +112,36 @@ pub(crate) fn publish_completed_chunk_builds(
 /// computed in the background.
 pub(crate) fn queue_dirty_chunk_builds(
     mut commands: Commands,
-    chunks: Query<(Entity, &VoxelChunk, &VoxelChunkPresentation), Without<VoxelDerivedTask>>,
+    view: Res<UsfViewFrame>,
+    chunks: Query<
+        (
+            Entity,
+            &VoxelChunk,
+            &VoxelChunkPresentation,
+            &VoxelMaterializationChunkAddress,
+            &VoxelChunkPhysicsLod,
+        ),
+        Without<VoxelDerivedTask>,
+    >,
 ) {
     let pool = AsyncComputeTaskPool::get();
     let mut started = 0;
 
-    for (entity, chunk, presentation) in &chunks {
+    for (entity, chunk, presentation, address, physics_lod) in &chunks {
         if started >= DERIVED_TASK_START_BUDGET_PER_FRAME {
             break;
         }
-        if !chunk.needs_remesh() {
+
+        let wants_collider = address
+            .origin()
+            .relative_native_bounded(view.anchor(), PHYSICS_LOD_RADIUS_NATIVE + 24.0)
+            .map(|delta| {
+                let center = delta + Vec3::splat(super::MATERIALIZATION_CHUNK_SIZE as f32 * 0.5);
+                center.length() <= PHYSICS_LOD_RADIUS_NATIVE
+            })
+            .unwrap_or(false);
+
+        if !chunk.needs_remesh() && physics_lod.0 == wants_collider {
             continue;
         }
 
@@ -129,8 +161,16 @@ pub(crate) fn queue_dirty_chunk_builds(
         let snapshot = chunk.clone();
         let task = pool.spawn(async move {
             let surface = mesh::extract_chunk_surface(&snapshot);
-            let collider = physics::build_chunk_collider(&snapshot, &surface);
-            VoxelDerivedOutput { surface, collider }
+            let collider = if wants_collider {
+                physics::build_chunk_collider(&snapshot, &surface)
+            } else {
+                None
+            };
+            VoxelDerivedOutput {
+                surface,
+                collider,
+                collider_requested: wants_collider,
+            }
         });
 
         commands

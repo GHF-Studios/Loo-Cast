@@ -17,7 +17,7 @@ mod physics;
 mod streaming;
 mod world;
 
-pub use base::{ProceduralTerrain, VoxelBase};
+pub use base::{ProceduralTerrain, ProceduralVolume, VoxelBase};
 pub use chunk::{
     CHUNK_SIZE, MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelChunkEditResult, VoxelRayHit,
 };
@@ -35,6 +35,11 @@ use crate::spatial::SpatialDemandSet;
 
 #[derive(Component, Debug, Clone, Copy)]
 pub(crate) struct VoxelChunkPresentation(pub Entity);
+
+/// Physics representation LOD for one dense chunk. Rendering and semantic
+/// materialization are independent from whether a local collider is needed.
+#[derive(Component, Debug, Clone, Copy, Default)]
+pub(crate) struct VoxelChunkPhysicsLod(pub bool);
 
 pub struct VoxelPlugin;
 

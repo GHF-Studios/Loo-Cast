@@ -197,6 +197,14 @@ impl UsfViewFrame {
     pub fn projection_factor(&self, scale: SpatialScale) -> f32 {
         10.0_f32.powf(scale.exponent() as f32 - self.continuous_exponent())
     }
+
+    /// Temporary bridge while physical interaction remains an S0 manifestation.
+    /// One decade of observer zoom receives matching physical traversal speed.
+    /// Beyond S+1, navigation needs scale-specific/semantic manifestations rather
+    /// than multiplying one local collider into absurd velocities.
+    pub fn scale0_physical_navigation_factor(&self) -> f32 {
+        10.0_f32.powf(self.continuous_exponent().clamp(0.0, 1.0))
+    }
 }
 
 pub(super) fn configure(app: &mut App) {
@@ -234,10 +242,19 @@ pub(super) fn sync_view_anchor(
 /// representation frames can later promote this to an explicit projection frame.
 pub(super) fn project_local_scale_presentations(
     view: Res<UsfViewFrame>,
-    mut presentations: Query<(&UsfLocalScalePresentation, &mut Transform)>,
+    parents: Query<&Transform, Without<UsfLocalScalePresentation>>,
+    mut presentations: Query<(&UsfLocalScalePresentation, &ChildOf, &mut Transform)>,
 ) {
-    for (presentation, mut transform) in &mut presentations {
-        transform.scale = Vec3::splat(view.projection_factor(presentation.scale()));
+    for (presentation, parent, mut transform) in &mut presentations {
+        let Ok(parent_transform) = parents.get(parent.0) else {
+            continue;
+        };
+        let factor = view.projection_factor(presentation.scale());
+        let desired_global =
+            view.runtime_anchor() + (parent_transform.translation - view.runtime_anchor()) * factor;
+        let delta = desired_global - parent_transform.translation;
+        transform.translation = parent_transform.rotation.inverse() * delta;
+        transform.scale = Vec3::splat(factor);
     }
 }
 

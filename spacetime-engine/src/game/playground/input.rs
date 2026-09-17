@@ -13,8 +13,11 @@ use crate::{
             CameraMode, Player, PlayerAim, PlayerCamera, PlayerStance, cursor::CursorCapture,
         },
     },
+    input_focus::InputFocus,
     physics::character::CharacterControlFrame,
 };
+
+const CREATIVE_MENU_FOCUS_OWNER: &str = "creative_menu";
 
 use super::{
     AimRay, ErasePlaygroundObject, PlaygroundAim, PlaygroundAimContext, PlaygroundCatalog,
@@ -43,6 +46,7 @@ fn toggle_creative_menu(
     mut state: ResMut<CreativeMenuState>,
     mut cursor_item: ResMut<CursorItem>,
     mut capture: ResMut<CursorCapture>,
+    mut focus: ResMut<InputFocus>,
     mut menu: Query<&mut Node, With<CreativeMenuRoot>>,
 ) {
     if !keyboard.just_pressed(KeyCode::Tab) {
@@ -58,9 +62,11 @@ fn toggle_creative_menu(
     state.open = !state.open;
 
     if state.open {
+        focus.set_modal_claim(CREATIVE_MENU_FOCUS_OWNER, true);
         capture.set_blocked(true);
     } else {
         cursor_item.item = None;
+        focus.set_modal_claim(CREATIVE_MENU_FOCUS_OWNER, false);
         capture.set_blocked(false);
         capture.request();
     }

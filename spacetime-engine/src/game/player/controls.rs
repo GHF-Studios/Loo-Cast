@@ -137,6 +137,7 @@ pub fn zoom_spatial_view(
 pub fn movement(
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
+    view: Res<UsfViewFrame>,
     player: Single<
         (
             &CharacterLocomotionFrame,
@@ -186,7 +187,7 @@ pub fn movement(
 
     let input_scale = control.movement_input_scale();
     input.set_wish(world_wish, axis.length() * input_scale);
-    input.set_speed_multiplier(speed_multiplier);
+    input.set_speed_multiplier(speed_multiplier * view.scale0_physical_navigation_factor());
     let jump_enabled = input_scale >= 0.5;
     input.jump_held = jump_enabled && keyboard.pressed(KeyCode::Space);
     input.jump_pressed |= jump_enabled && keyboard.just_pressed(KeyCode::Space);
@@ -196,6 +197,7 @@ pub fn noclip_movement(
     time: Res<Time>,
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
+    view: Res<UsfViewFrame>,
     player: Single<
         (
             &mut Transform,
@@ -236,6 +238,10 @@ pub fn noclip_movement(
         1.0
     };
 
-    body.translation += wish * controller.noclip_speed.max(0.0) * boost * time.delta_secs();
+    body.translation += wish
+        * controller.noclip_speed.max(0.0)
+        * boost
+        * view.scale0_physical_navigation_factor()
+        * time.delta_secs();
     velocity.0 = Vec3::ZERO;
 }

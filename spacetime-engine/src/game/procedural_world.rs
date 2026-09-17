@@ -11,10 +11,10 @@ use crate::{
     physics::character::{CharacterDimensions, CharacterMotor},
     procedural_assets::ProceduralAssetLibrary,
     spatial::{SpatialScale, UsfSpatialFrame},
-    voxel::{ProceduralTerrain, VoxelBase, VoxelQueryPosition, VoxelStreaming, VoxelWorld},
+    voxel::{ProceduralVolume, VoxelBase, VoxelQueryPosition, VoxelStreaming, VoxelWorld},
     worldgen::{
-        GEOLOGY_CLIMATE_HYDROLOGY, GeologyClimateHydrologyState, PhenomenonRegistry,
-        TemporalScale, WorldgenEpoch, WorldgenEvaluationKey, WorldgenStore,
+        GEOLOGY_CLIMATE_HYDROLOGY, GeologyClimateHydrologyState, PhenomenonRegistry, TemporalScale,
+        WorldgenEpoch, WorldgenEvaluationKey, WorldgenStore,
     },
 };
 
@@ -44,17 +44,20 @@ fn spawn_procedural_world(
 ) {
     let epoch = WorldgenEpoch::present_day_bootstrap();
     let before = worldgen.len();
-    let leaf = worldgen
-        .ensure_branch(
+    let root = worldgen
+        .bootstrap_root(
             *frame.origin(),
-            SpatialScale::ZERO,
             TemporalScale::WORLDGEN_SNAPSHOT,
             epoch,
             &registry,
         )
-        .expect("present-day worldgen branch must be canonically addressable");
+        .expect("present-day root context must be canonically addressable");
+    let leaf = worldgen
+        .contextualize_to(root, *frame.origin(), SpatialScale::ZERO, &registry)
+        .expect("present-day refinement must be canonically addressable")
+        .expect("Scale +35 root must contextualize the playable Scale 0 branch");
     let generated = worldgen.len() - before;
-    let terrain = terrain_for_branch(&worldgen, leaf);
+    let volume = volume_for_branch(&worldgen, leaf);
     let lineage = worldgen.lineage(leaf);
 
     info!(
@@ -80,23 +83,25 @@ fn spawn_procedural_world(
     commands.spawn((
         Name::new("Procedural World"),
         ProceduralWorldRoot,
-        VoxelWorld::new_at(VoxelBase::Terrain(terrain), *frame.origin()),
+        VoxelWorld::new_at(VoxelBase::Volume(volume), *frame.origin()),
         VoxelStreaming::new(24, procedural_assets.cracked_clay.material.clone()),
-        ProceduralScaleStack::new(*frame.origin(), terrain),
+        ProceduralScaleStack::new(*frame.origin(), volume),
         Transform::IDENTITY,
     ));
 }
 
-fn terrain_for_branch(worldgen: &WorldgenStore, leaf: WorldgenEvaluationKey) -> ProceduralTerrain {
+fn volume_for_branch(worldgen: &WorldgenStore, leaf: WorldgenEvaluationKey) -> ProceduralVolume {
     let geology = worldgen
         .state::<GeologyClimateHydrologyState>(leaf, GEOLOGY_CLIMATE_HYDROLOGY)
         .expect("worldgen branch must carry geology/climate/hydrology state");
 
-    ProceduralTerrain::configured(
+    ProceduralVolume::configured(
         geology.terrain_seed,
         -4.0,
         geology.local_relief_m,
         geology.terrain_frequency,
+        geology.cave_potential,
+        (geology.tectonic_activity * 0.65 + geology.rockiness * 0.35).clamp(0.0, 1.0),
     )
 }
 
@@ -104,13 +109,16 @@ fn prepare_player(
     mut commands: Commands,
     frame: Res<UsfSpatialFrame>,
     worldgen: Res<WorldgenStore>,
-    player: Single<(
-        Entity,
-        &mut Transform,
-        &mut PortalTraveler,
-        &mut LinearVelocity,
-        &mut PlayerNoclip,
-    ), With<Player>>,
+    player: Single<
+        (
+            Entity,
+            &mut Transform,
+            &mut PortalTraveler,
+            &mut LinearVelocity,
+            &mut PlayerNoclip,
+        ),
+        With<Player>,
+    >,
 ) {
     let epoch = WorldgenEpoch::present_day_bootstrap();
     let leaf = worldgen
@@ -121,7 +129,7 @@ fn prepare_player(
             epoch,
         )
         .expect("player worldgen branch must be canonically addressable");
-    let terrain = terrain_for_branch(&worldgen, leaf);
+    let volume = volume_for_branch(&worldgen, leaf);
 
     let (entity, mut transform, mut traveler, mut velocity, mut noclip) = player.into_inner();
     let x = 0.0;
@@ -130,7 +138,9 @@ fn prepare_player(
     let terrain_query = world_origin
         .translated(Vec3::new(x, 0.0, z))
         .expect("procedural spawn query must translate canonically");
-    let ground = terrain.height_at(world_origin, terrain_query);
+    // Spawn placement uses the exterior reference surface only; actual
+    // world matter/collision is governed by the full 3D volume.
+    let ground = volume.reference_surface_height_at(world_origin, terrain_query);
     let position = Vec3::new(x, ground + CharacterDimensions::HALF_HEIGHT + 0.20, z);
 
     transform.translation = position;
