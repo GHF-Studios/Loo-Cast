@@ -27,7 +27,7 @@ use super::{
 
 const DERIVED_TASK_START_BUDGET_PER_FRAME: usize = 8;
 const DERIVED_PUBLISH_BUDGET_PER_FRAME: usize = 8;
-const PHYSICS_LOD_RADIUS_NATIVE: f32 = 48.0;
+const PHYSICS_LOD_RADIUS_NATIVE: f32 = 9.0;
 
 struct VoxelDerivedOutput {
     surface: VoxelSurface,

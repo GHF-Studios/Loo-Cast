@@ -3,7 +3,10 @@ use bevy::prelude::*;
 use std::num::NonZeroUsize;
 
 use super::{
-    VoxelChunk, async_pipeline::VoxelDerivedTask, streaming::VoxelAggregateGenerationTask,
+    VoxelChunk,
+    async_pipeline::VoxelDerivedTask,
+    coarse::{VoxelCoarseChunk, VoxelCoarseTask},
+    streaming::VoxelAggregateGenerationTask,
 };
 
 pub(crate) fn per_stage_in_flight_limit() -> usize {
@@ -24,6 +27,9 @@ pub(crate) struct VoxelPerfStats {
     derived_max_us: u64,
     uniform_shortcuts: u64,
     demand_rebuilds: u64,
+    coarse_built: u64,
+    coarse_us: u64,
+    coarse_max_us: u64,
 }
 
 impl VoxelPerfStats {
@@ -46,6 +52,12 @@ impl VoxelPerfStats {
     pub(crate) fn record_demand_rebuild(&mut self) {
         self.demand_rebuilds += 1;
     }
+
+    pub(crate) fn record_coarse(&mut self, us: u64) {
+        self.coarse_built += 1;
+        self.coarse_us = self.coarse_us.saturating_add(us);
+        self.coarse_max_us = self.coarse_max_us.max(us);
+    }
 }
 
 pub(crate) fn report_voxel_perf(
@@ -54,6 +66,8 @@ pub(crate) fn report_voxel_perf(
     chunks: Query<(), With<VoxelChunk>>,
     generation: Query<(), With<VoxelAggregateGenerationTask>>,
     derived: Query<(), With<VoxelDerivedTask>>,
+    coarse_chunks: Query<(), With<VoxelCoarseChunk>>,
+    coarse_tasks: Query<(), With<VoxelCoarseTask>>,
 ) {
     stats.elapsed += time.delta_secs();
     if stats.elapsed < 1.0 {
@@ -70,6 +84,11 @@ pub(crate) fn report_voxel_perf(
     } else {
         stats.derived_us as f64 / stats.derived as f64 / 1000.0
     };
+    let coarse_avg_ms = if stats.coarse_built == 0 {
+        0.0
+    } else {
+        stats.coarse_us as f64 / stats.coarse_built as f64 / 1000.0
+    };
 
     info!(
         loaded_chunks = chunks.iter().count(),
@@ -83,6 +102,11 @@ pub(crate) fn report_voxel_perf(
         derived_max_ms = stats.derived_max_us as f64 / 1000.0,
         uniform_shortcuts = stats.uniform_shortcuts,
         demand_rebuilds = stats.demand_rebuilds,
+        coarse_loaded = coarse_chunks.iter().count(),
+        coarse_in_flight = coarse_tasks.iter().count(),
+        coarse_built = stats.coarse_built,
+        coarse_avg_ms,
+        coarse_max_ms = stats.coarse_max_us as f64 / 1000.0,
         worker_limit_per_stage = per_stage_in_flight_limit(),
         "voxel perf"
     );

@@ -8,6 +8,7 @@ mod aggregate;
 mod async_pipeline;
 mod base;
 mod chunk;
+mod coarse;
 mod devtools;
 mod edit;
 mod field;
@@ -53,7 +54,13 @@ impl Plugin for VoxelPlugin {
             )
             .add_systems(
                 Update,
-                streaming::stream_voxel_chunks.after(SpatialDemandSet::Collect),
+                (
+                    coarse::ensure_coarse_states,
+                    streaming::stream_voxel_chunks,
+                    coarse::stream_coarse_chunks,
+                )
+                    .chain()
+                    .after(SpatialDemandSet::Collect),
             )
             .add_systems(
                 PostUpdate,
@@ -61,6 +68,7 @@ impl Plugin for VoxelPlugin {
                     // Finish field generation after ordinary Update gameplay
                     // edits, then publish/queue revision-checked derived caches.
                     streaming::finish_chunk_generation,
+                    coarse::publish_coarse_chunks,
                     async_pipeline::publish_completed_chunk_builds,
                     async_pipeline::queue_dirty_chunk_builds,
                 )

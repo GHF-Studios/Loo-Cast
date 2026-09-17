@@ -27,7 +27,7 @@ pub(crate) struct VoxelSurface {
 }
 
 impl VoxelSurface {
-    fn into_mesh(self) -> Mesh {
+    pub(crate) fn into_mesh(self) -> Mesh {
         Mesh::new(
             PrimitiveTopology::TriangleList,
             RenderAssetUsages::default(),
