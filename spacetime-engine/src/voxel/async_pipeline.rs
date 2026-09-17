@@ -6,6 +6,8 @@
 //! construction on Bevy's async compute pool, then publishes the result only if
 //! that revision is still current.
 
+use std::time::Instant;
+
 use avian3d::prelude::{Collider, CollisionMargin, RigidBody};
 use bevy::{
     asset::RenderAssetUsages,
@@ -19,10 +21,11 @@ use crate::spatial::UsfViewFrame;
 use super::{
     VoxelChunk, VoxelChunkPhysicsLod, VoxelChunkPresentation, VoxelMaterializationChunkAddress,
     mesh::{self, VoxelSurface},
+    perf::{VoxelPerfStats, per_stage_in_flight_limit},
     physics,
 };
 
-const DERIVED_TASK_START_BUDGET_PER_FRAME: usize = 16;
+const DERIVED_TASK_START_BUDGET_PER_FRAME: usize = 8;
 const DERIVED_PUBLISH_BUDGET_PER_FRAME: usize = 8;
 const PHYSICS_LOD_RADIUS_NATIVE: f32 = 48.0;
 
@@ -30,6 +33,7 @@ struct VoxelDerivedOutput {
     surface: VoxelSurface,
     collider: Option<Collider>,
     collider_requested: bool,
+    build_micros: u64,
 }
 
 /// One in-flight render/physics reconstruction for a particular chunk revision.
@@ -51,6 +55,7 @@ pub(crate) fn publish_completed_chunk_builds(
         &VoxelChunkPresentation,
         &mut VoxelChunkPhysicsLod,
     )>,
+    mut perf: ResMut<VoxelPerfStats>,
 ) {
     let mut published = 0;
 
@@ -76,7 +81,9 @@ pub(crate) fn publish_completed_chunk_builds(
             surface,
             collider,
             collider_requested,
+            build_micros,
         } = output;
+        perf.record_derived(build_micros);
         let has_surface = !surface.positions.is_empty() && !surface.indices.is_empty();
 
         if has_surface {
@@ -113,22 +120,28 @@ pub(crate) fn publish_completed_chunk_builds(
 pub(crate) fn queue_dirty_chunk_builds(
     mut commands: Commands,
     view: Res<UsfViewFrame>,
-    chunks: Query<
+    mut chunks: Query<
         (
             Entity,
-            &VoxelChunk,
+            &mut VoxelChunk,
             &VoxelChunkPresentation,
             &VoxelMaterializationChunkAddress,
-            &VoxelChunkPhysicsLod,
+            &mut VoxelChunkPhysicsLod,
         ),
         Without<VoxelDerivedTask>,
     >,
+    in_flight: Query<(), With<VoxelDerivedTask>>,
+    mut perf: ResMut<VoxelPerfStats>,
 ) {
     let pool = AsyncComputeTaskPool::get();
     let mut started = 0;
+    let available = per_stage_in_flight_limit().saturating_sub(in_flight.iter().count());
+    if available == 0 {
+        return;
+    }
 
-    for (entity, chunk, presentation, address, physics_lod) in &chunks {
-        if started >= DERIVED_TASK_START_BUDGET_PER_FRAME {
+    for (entity, mut chunk, presentation, address, mut physics_lod) in &mut chunks {
+        if started >= DERIVED_TASK_START_BUDGET_PER_FRAME || started >= available {
             break;
         }
 
@@ -141,7 +154,30 @@ pub(crate) fn queue_dirty_chunk_builds(
             })
             .unwrap_or(false);
 
+        if !wants_collider && physics_lod.0 {
+            let mut entity_commands = commands.entity(entity);
+            entity_commands.remove::<RigidBody>();
+            entity_commands.remove::<Collider>();
+            entity_commands.remove::<CollisionMargin>();
+            physics_lod.0 = false;
+            if !chunk.needs_remesh() {
+                continue;
+            }
+        }
+
         if !chunk.needs_remesh() && physics_lod.0 == wants_collider {
+            continue;
+        }
+
+        if !chunk.has_surface_transition() {
+            commands.entity(presentation.0).remove::<Mesh3d>();
+            let mut entity_commands = commands.entity(entity);
+            entity_commands.remove::<RigidBody>();
+            entity_commands.remove::<Collider>();
+            entity_commands.remove::<CollisionMargin>();
+            chunk.mark_meshed();
+            physics_lod.0 = wants_collider;
+            perf.record_uniform_shortcut();
             continue;
         }
 
@@ -160,6 +196,7 @@ pub(crate) fn queue_dirty_chunk_builds(
         // the fields each worker stage consumes.
         let snapshot = chunk.clone();
         let task = pool.spawn(async move {
+            let started_at = Instant::now();
             let surface = mesh::extract_chunk_surface(&snapshot);
             let collider = if wants_collider {
                 physics::build_chunk_collider(&snapshot, &surface)
@@ -170,6 +207,7 @@ pub(crate) fn queue_dirty_chunk_builds(
                 surface,
                 collider,
                 collider_requested: wants_collider,
+                build_micros: started_at.elapsed().as_micros() as u64,
             }
         });
 

@@ -80,6 +80,57 @@ impl VoxelBase {
             Self::Terrain(terrain) => terrain.sample_at(world_origin, point),
         }
     }
+
+    pub(crate) fn prepare_chunk_sampler(
+        self,
+        world_origin: VoxelQueryPosition,
+        chunk_origin: VoxelQueryPosition,
+    ) -> PreparedVoxelBase {
+        match self {
+            Self::Volume(volume) => volume
+                .prepare_local_sampler(world_origin, chunk_origin)
+                .map(PreparedVoxelBase::LocalVolume)
+                .unwrap_or(PreparedVoxelBase::Canonical {
+                    base: self,
+                    world_origin,
+                    chunk_origin,
+                }),
+            _ => PreparedVoxelBase::Canonical {
+                base: self,
+                world_origin,
+                chunk_origin,
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum PreparedVoxelBase {
+    LocalVolume(PreparedProceduralVolume),
+    Canonical {
+        base: VoxelBase,
+        world_origin: VoxelQueryPosition,
+        chunk_origin: VoxelQueryPosition,
+    },
+}
+
+impl PreparedVoxelBase {
+    #[inline]
+    pub(crate) fn sample(self, local: Vec3) -> VoxelSample {
+        match self {
+            Self::LocalVolume(volume) => volume.sample(local),
+            Self::Canonical {
+                base,
+                world_origin,
+                chunk_origin,
+            } => {
+                let Ok(point) = chunk_origin.translated(local) else {
+                    return VoxelSample::empty(f32::INFINITY);
+                };
+                base.sample_in_world(world_origin, point)
+            }
+        }
+    }
 }
 
 /// Small dependency-free terrain field for the first procedural-world map.
@@ -206,6 +257,20 @@ pub struct ProceduralVolume {
     structure_strength: f32,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct PreparedProceduralVolume {
+    volume: ProceduralVolume,
+    chunk_origin_from_world: Vec3,
+}
+
+impl PreparedProceduralVolume {
+    #[inline]
+    pub(crate) fn sample(self, chunk_local: Vec3) -> VoxelSample {
+        self.volume
+            .sample_local(self.chunk_origin_from_world + chunk_local)
+    }
+}
+
 impl ProceduralVolume {
     pub fn configured(
         seed: u32,
@@ -224,6 +289,55 @@ impl ProceduralVolume {
 
     pub const fn reference_surface(self) -> ProceduralTerrain {
         self.surface
+    }
+
+    pub(crate) fn prepare_local_sampler(
+        self,
+        world_origin: VoxelQueryPosition,
+        chunk_origin: VoxelQueryPosition,
+    ) -> Option<PreparedProceduralVolume> {
+        let local = chunk_origin
+            .relative_to(world_origin, TERRAIN_DIRECT_LOCAL_LIMIT - 64.0)
+            .ok()?;
+        if local.y.abs() > TERRAIN_VERTICAL_QUERY_LIMIT - 64.0 {
+            return None;
+        }
+        Some(PreparedProceduralVolume {
+            volume: self,
+            chunk_origin_from_world: local,
+        })
+    }
+
+    #[inline]
+    fn sample_local(self, local: Vec3) -> VoxelSample {
+        let surface_height = self.surface.height(local.x, local.z);
+        let base_frequency = self.surface.frequency.max(f32::EPSILON);
+        let relief = self.surface.amplitude.max(1.0);
+
+        let structure = value_noise_3d(
+            local * (base_frequency * 0.72),
+            self.surface.seed ^ 0x31D0_6A5B,
+        );
+        let structure_offset = structure * relief * (0.18 + self.structure_strength * 0.82);
+        let exterior_distance = local.y - surface_height + structure_offset;
+
+        let cave_frequency = base_frequency * (1.65 + self.cave_strength * 1.35);
+        let cave_noise = value_noise_3d(local * cave_frequency, self.surface.seed ^ 0xCA7E_5EED);
+        let cave_half_width = 0.045 + self.cave_strength * 0.18;
+        let depth = (surface_height - local.y).max(0.0);
+        let underground_gate = (depth / 3.0).clamp(0.0, 1.0);
+        let cave_distance =
+            (cave_half_width - cave_noise.abs()) * (4.0 + relief * 0.35) * underground_gate;
+
+        let distance = exterior_distance.max(cave_distance);
+        VoxelSample::new(
+            distance,
+            if distance < 0.0 {
+                VoxelMaterialId::ROCK
+            } else {
+                VoxelMaterialId::VOID
+            },
+        )
     }
 
     /// Approximate exterior surface used only for spawn placement and coarse

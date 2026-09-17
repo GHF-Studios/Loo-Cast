@@ -130,6 +130,7 @@ impl VoxelChunkRecipe {
             ..
         } = self;
         let anchor = address.query_origin();
+        let sampler = base.prepare_chunk_sampler(world_origin, anchor);
         let extra_extent = MATERIALIZATION_CHUNK_SIZE as f32 + SAMPLE_PADDING as f32;
         let local_edits = edits
             .into_iter()
@@ -137,10 +138,7 @@ impl VoxelChunkRecipe {
             .collect::<Vec<_>>();
 
         VoxelChunk::generate(move |local_point| {
-            let Ok(point) = anchor.translated(local_point) else {
-                return VoxelSample::empty(f32::INFINITY);
-            };
-            let mut sample = base.sample_in_world(world_origin, point);
+            let mut sample = sampler.sample(local_point);
             for edit in &local_edits {
                 sample = edit.apply_to_sample(local_point, sample);
             }

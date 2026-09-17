@@ -4,7 +4,10 @@
 //! procedural base + sparse semantic modifications; this module realizes the
 //! union of generic canonical spatial demand that opted into voxel materialization.
 
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::{
+    collections::{HashMap, HashSet, VecDeque},
+    time::Instant,
+};
 
 use bevy::{
     prelude::*,
@@ -19,6 +22,7 @@ use super::{
     MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelChunkOf, VoxelChunkPhysicsLod,
     VoxelChunkPresentation, VoxelMaterializationChunkAddress, VoxelQueryPosition, VoxelWorld,
     aggregate::{VoxelMaterializationAggregateExtent, VoxelMaterializationAggregateScope},
+    perf::{VoxelPerfStats, per_stage_in_flight_limit},
     world::VoxelChunkRecipe,
 };
 
@@ -45,6 +49,9 @@ const MAX_CHUNKS_PER_AGGREGATE_GENERATION_TASK: usize = 4;
 pub struct VoxelStreaming {
     load_budget_per_frame: usize,
     material: Handle<StandardMaterial>,
+    demand_key: Vec<VoxelDemandPlanKey>,
+    pending_desired: VecDeque<DemandedChunk>,
+    cached_desired_set: HashSet<VoxelMaterializationChunkAddress>,
 }
 
 impl VoxelStreaming {
@@ -52,6 +59,9 @@ impl VoxelStreaming {
         Self {
             load_budget_per_frame: load_budget_per_frame.max(1),
             material,
+            demand_key: Vec::new(),
+            pending_desired: VecDeque::new(),
+            cached_desired_set: HashSet::new(),
         }
     }
 
@@ -73,6 +83,15 @@ struct DemandedChunk {
     distance_squared: f32,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct VoxelDemandPlanKey {
+    source: Entity,
+    center_address: VoxelMaterializationChunkAddress,
+    minimum: IVec3,
+    maximum: IVec3,
+    priority: i32,
+}
+
 struct VoxelGenerationJob {
     entity: Entity,
     address: VoxelMaterializationChunkAddress,
@@ -83,6 +102,7 @@ struct VoxelGeneratedChunk {
     entity: Entity,
     address: VoxelMaterializationChunkAddress,
     applied_edit_count: usize,
+    generation_micros: u64,
     chunk: VoxelChunk,
 }
 
@@ -113,11 +133,14 @@ impl VoxelAggregateGenerationTask {
             jobs.into_iter()
                 .map(|job| {
                     let applied_edit_count = job.recipe.applied_edit_count();
+                    let started = Instant::now();
+                    let chunk = job.recipe.materialize();
                     VoxelGeneratedChunk {
                         entity: job.entity,
                         address: job.address,
                         applied_edit_count,
-                        chunk: job.recipe.materialize(),
+                        generation_micros: started.elapsed().as_micros() as u64,
+                        chunk,
                     }
                 })
                 .collect()
@@ -135,6 +158,7 @@ pub(crate) fn finish_chunk_generation(
     mut commands: Commands,
     worlds: Query<&VoxelWorld>,
     mut tasks: Query<(Entity, &mut VoxelAggregateGenerationTask)>,
+    mut perf: ResMut<VoxelPerfStats>,
 ) {
     let mut published = 0;
 
@@ -177,6 +201,7 @@ pub(crate) fn finish_chunk_generation(
                 output.applied_edit_count,
                 &mut output.chunk,
             );
+            perf.record_generation(output.generation_micros);
             commands.entity(output.entity).insert(output.chunk);
             published += 1;
         }
@@ -218,7 +243,9 @@ pub(crate) fn stream_voxel_chunks(
     frame: Res<UsfSpatialFrame>,
     demand_snapshot: Res<SpatialDemandSnapshot>,
     voxel_demand_sources: Query<(), With<VoxelMaterializationDemand>>,
-    mut worlds: Query<(Entity, &mut VoxelWorld, &VoxelStreaming)>,
+    mut worlds: Query<(Entity, &mut VoxelWorld, &mut VoxelStreaming)>,
+    generation_tasks: Query<(), With<VoxelAggregateGenerationTask>>,
+    mut perf: ResMut<VoxelPerfStats>,
 ) {
     let frame_origin = VoxelQueryPosition::new(*frame.origin());
     let voxel_demands = demand_snapshot
@@ -226,24 +253,27 @@ pub(crate) fn stream_voxel_chunks(
         .filter(|scope| voxel_demand_sources.contains(scope.source()))
         .collect::<Vec<_>>();
 
-    for (world_entity, mut world, streaming) in &mut worlds {
-        let Ok(desired) = demanded_chunk_addresses(&world, &voxel_demands) else {
-            error!("voxel spatial demand could not be represented canonically");
-            continue;
+    let mut generation_slots =
+        per_stage_in_flight_limit().saturating_sub(generation_tasks.iter().count());
+
+    for (world_entity, mut world, mut streaming) in &mut worlds {
+        let changed = match refresh_demand_plan(&world, &voxel_demands, &mut streaming, &mut perf) {
+            Ok(changed) => changed,
+            Err(_) => {
+                error!("voxel spatial demand could not be represented canonically");
+                continue;
+            }
         };
-        let desired_set = desired
-            .iter()
-            .map(|chunk| chunk.address)
-            .collect::<HashSet<_>>();
 
-        let stale = world
-            .chunk_entries()
-            .filter(|(address, _)| !desired_set.contains(address))
-            .collect::<Vec<_>>();
-
-        for (address, entity) in stale {
-            world.remove_chunk(address);
-            commands.entity(entity).despawn();
+        if changed {
+            let stale = world
+                .chunk_entries()
+                .filter(|(address, _)| !streaming.cached_desired_set.contains(address))
+                .collect::<Vec<_>>();
+            for (address, entity) in stale {
+                world.remove_chunk(address);
+                commands.entity(entity).despawn();
+            }
         }
 
         let projection_bound = voxel_demands
@@ -262,9 +292,14 @@ pub(crate) fn stream_voxel_chunks(
             })
             .fold(512.0_f32, f32::max);
 
+        let load_budget = streaming.load_budget_per_frame;
+        let material = streaming.material.clone();
         let mut requested = 0;
         let mut aggregate_batches = Vec::<PendingAggregateGeneration>::new();
-        for demanded in desired {
+        while requested < load_budget && generation_slots > 0 {
+            let Some(demanded) = streaming.pending_desired.pop_front() else {
+                break;
+            };
             let address = demanded.address;
             if world.chunk_entity(address).is_some() {
                 continue;
@@ -291,6 +326,11 @@ pub(crate) fn stream_voxel_chunks(
                 );
                 continue;
             };
+            if !generation_batch_can_accept(&aggregate_batches, scope, generation_slots) {
+                streaming.pending_desired.push_front(demanded);
+                break;
+            }
+
             let recipe = world.chunk_recipe(address);
             let chunk_entity = commands
                 .spawn((
@@ -312,7 +352,7 @@ pub(crate) fn stream_voxel_chunks(
                     Name::new("Voxel Chunk S0 Presentation"),
                     ChildOf(chunk_entity),
                     UsfScalePresentation::new(address.query_origin().usf(), SpatialScale::ZERO),
-                    MeshMaterial3d(streaming.material.clone()),
+                    MeshMaterial3d(material.clone()),
                     Transform::IDENTITY,
                     Visibility::Inherited,
                 ))
@@ -333,9 +373,6 @@ pub(crate) fn stream_voxel_chunks(
             );
 
             requested += 1;
-            if requested >= streaming.load_budget_per_frame {
-                break;
-            }
         }
 
         for batch in aggregate_batches {
@@ -347,8 +384,57 @@ pub(crate) fn stream_voxel_chunks(
                 )),
                 VoxelAggregateGenerationTask::spawn(world_entity, batch.scope, batch.jobs),
             ));
+            generation_slots = generation_slots.saturating_sub(1);
         }
     }
+}
+
+fn refresh_demand_plan(
+    world: &VoxelWorld,
+    demands: &[SpatialDemandScope],
+    streaming: &mut VoxelStreaming,
+    perf: &mut VoxelPerfStats,
+) -> Result<bool, crate::spatial::UsfPositionError> {
+    let key = demand_plan_key(world, demands)?;
+    if key == streaming.demand_key {
+        return Ok(false);
+    }
+
+    let desired = demanded_chunk_addresses(world, demands)?;
+    streaming.cached_desired_set.clear();
+    streaming
+        .cached_desired_set
+        .extend(desired.iter().map(|chunk| chunk.address));
+    streaming.pending_desired = desired
+        .iter()
+        .copied()
+        .filter(|chunk| world.chunk_entity(chunk.address).is_none())
+        .collect();
+    streaming.demand_key = key;
+    perf.record_demand_rebuild();
+    Ok(true)
+}
+
+fn demand_plan_key(
+    world: &VoxelWorld,
+    demands: &[SpatialDemandScope],
+) -> Result<Vec<VoxelDemandPlanKey>, crate::spatial::UsfPositionError> {
+    let mut result = Vec::with_capacity(demands.len());
+    let size = MATERIALIZATION_CHUNK_SIZE as f32;
+    for demand in demands {
+        let center = VoxelQueryPosition::new(demand.center());
+        let center_address = world.materialization_address_containing(center)?;
+        let local = center.relative_to(center_address.query_origin(), size + 0.01)?;
+        let half = demand.half_extent_native();
+        result.push(VoxelDemandPlanKey {
+            source: demand.source(),
+            center_address,
+            minimum: checked_ivec3(((local - half) / size).floor())?,
+            maximum: checked_ivec3(((local + half) / size).floor())?,
+            priority: demand.priority(),
+        });
+    }
+    Ok(result)
 }
 
 fn demanded_chunk_addresses(
@@ -419,6 +505,16 @@ fn checked_ivec3(value: Vec3) -> Result<IVec3, crate::spatial::UsfPositionError>
         component(value.y)?,
         component(value.z)?,
     ))
+}
+
+fn generation_batch_can_accept(
+    batches: &[PendingAggregateGeneration],
+    scope: VoxelMaterializationAggregateScope,
+    max_batches: usize,
+) -> bool {
+    batches.iter().any(|batch| {
+        batch.scope == scope && batch.jobs.len() < MAX_CHUNKS_PER_AGGREGATE_GENERATION_TASK
+    }) || batches.len() < max_batches
 }
 
 fn push_generation_job(

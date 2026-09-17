@@ -114,6 +114,15 @@ impl VoxelChunk {
         &self.materials
     }
 
+    #[inline]
+    pub fn has_surface_transition(&self) -> bool {
+        let Some((&first, rest)) = self.distances.split_first() else {
+            return false;
+        };
+        let first_solid = first < 0.0;
+        rest.iter().any(|&distance| (distance < 0.0) != first_solid)
+    }
+
     pub fn sample(&self, local: IVec3) -> Option<VoxelSample> {
         let index = Self::index(self.storage_coord(local)?);
         Some(self.sample_at_index(index))

@@ -13,6 +13,7 @@ mod edit;
 mod field;
 mod mesh;
 mod modification;
+mod perf;
 mod physics;
 mod streaming;
 mod world;
@@ -45,25 +46,27 @@ pub struct VoxelPlugin;
 
 impl Plugin for VoxelPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            Update,
-            streaming::retire_orphaned_chunks.before(streaming::stream_voxel_chunks),
-        )
-        .add_systems(
-            Update,
-            streaming::stream_voxel_chunks.after(SpatialDemandSet::Collect),
-        )
-        .add_systems(
-            PostUpdate,
-            (
-                // Finish field generation after ordinary Update gameplay
-                // edits, then publish/queue revision-checked derived caches.
-                streaming::finish_chunk_generation,
-                async_pipeline::publish_completed_chunk_builds,
-                async_pipeline::queue_dirty_chunk_builds,
+        app.init_resource::<perf::VoxelPerfStats>()
+            .add_systems(
+                Update,
+                streaming::retire_orphaned_chunks.before(streaming::stream_voxel_chunks),
             )
-                .chain(),
-        );
+            .add_systems(
+                Update,
+                streaming::stream_voxel_chunks.after(SpatialDemandSet::Collect),
+            )
+            .add_systems(
+                PostUpdate,
+                (
+                    // Finish field generation after ordinary Update gameplay
+                    // edits, then publish/queue revision-checked derived caches.
+                    streaming::finish_chunk_generation,
+                    async_pipeline::publish_completed_chunk_builds,
+                    async_pipeline::queue_dirty_chunk_builds,
+                )
+                    .chain(),
+            )
+            .add_systems(Update, perf::report_voxel_perf);
 
         devtools::configure(app);
     }
