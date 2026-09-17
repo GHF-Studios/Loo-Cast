@@ -18,16 +18,17 @@ pub use position::{
 use avian3d::prelude::Position;
 use bevy::{prelude::*, transform::TransformSystems};
 
-use crate::ecs::UsfManifestationOf;
+use crate::ecs::{UsfLogicalProjection, UsfManifestationOf};
 
 const REBASE_THRESHOLD_METERS: f32 = 256.0;
 const REBASE_QUANTUM_METERS: f32 = 256.0;
 
-/// Marks the concrete manifestation used to anchor the current local runtime chart.
+/// Marks the logical projection used to anchor the current local runtime chart.
 ///
-/// This is intentionally independent from manifestation authority. M8 must keep
-/// portal/world-wrap spatial multiplicity orthogonal to logical/presentation
-/// projection, so the current chart anchor is its own explicit role.
+/// This is intentionally independent from manifestation authority and from
+/// presentation projection. Portal/world-wrap spatial multiplicity may provide
+/// other simultaneous logical projections without changing which one anchors
+/// this chart.
 #[derive(Component, Debug, Default)]
 pub struct UsfSpatialAnchor;
 
@@ -106,7 +107,10 @@ impl Plugin for UsfSpatialPlugin {
 
 fn sync_semantic_positions(
     frame: Res<UsfSpatialFrame>,
-    anchors: Query<(&Transform, &UsfManifestationOf), With<UsfSpatialAnchor>>,
+    anchors: Query<
+        (&Transform, &UsfManifestationOf),
+        (With<UsfSpatialAnchor>, With<UsfLogicalProjection>),
+    >,
     mut semantic_positions: Query<&mut UsfPosition>,
 ) {
     for (transform, manifestation) in &anchors {
@@ -127,7 +131,7 @@ fn sync_semantic_positions(
 fn rebase_local_frame(
     mut frame: ResMut<UsfSpatialFrame>,
     mut transforms: ParamSet<(
-        Query<&Transform, With<UsfSpatialAnchor>>,
+        Query<&Transform, (With<UsfSpatialAnchor>, With<UsfLogicalProjection>)>,
         Query<&mut Transform, Without<ChildOf>>,
     )>,
     mut physics_positions: Query<&mut Position>,

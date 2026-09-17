@@ -3,5 +3,6 @@ pub(crate) mod devtools;
 pub mod manifestation;
 
 pub use manifestation::{
-    UsfEntity, UsfManifestationAuthority, UsfManifestationOf, UsfManifestations,
+    UsfEntity, UsfLogicalProjection, UsfManifestationAuthority, UsfManifestationOf,
+    UsfManifestations, UsfPresentationProjectionOf, UsfPresentationProjections,
 };

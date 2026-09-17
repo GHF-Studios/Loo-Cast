@@ -5,8 +5,8 @@
 //! - box/plane partitioning and query exclusions in `physics::topology`.
 //!
 //! This module is only the portal adapter. It currently supports one active
-//! split per opted-in authoritative manifestation and uses a reserved peer
-//! manifestation for the opposite side.
+//! split per opted-in primary logical projection and uses a reserved peer
+//! logical projection for the opposite side.
 
 use std::time::Duration;
 
@@ -19,11 +19,12 @@ use avian3d::{
 use bevy::prelude::*;
 
 use crate::{
-    ecs::UsfManifestationAuthority,
+    ecs::UsfLogicalProjection,
     physics::{
         character::{CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame},
         topology::{
-            KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeerActive, SplitPlane,
+            KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeer, SpatialSplitPeerActive,
+            SplitPlane,
             partition_box_by_plane,
         },
     },
@@ -63,7 +64,7 @@ pub(crate) fn prepare_portal_splits(
     time: Res<Time<Fixed>>,
     portals: Query<
         (Entity, &Portal, &PortalActive, &Transform),
-        (With<Portal>, Without<UsfManifestationAuthority>),
+        With<Portal>,
     >,
     mut travelers: Query<
         (
@@ -74,7 +75,11 @@ pub(crate) fn prepare_portal_splits(
             &mut PortalSplitTraveler,
             &mut KinematicQueryExclusions,
         ),
-        (With<UsfManifestationAuthority>, Without<Portal>),
+        (
+            With<UsfLogicalProjection>,
+            Without<SpatialSplitPeer>,
+            Without<Portal>,
+        ),
     >,
 ) {
     let dt = time.delta_secs().max(0.0);
@@ -120,14 +125,14 @@ pub(crate) fn prepare_portal_splits(
 
 /// Rebuilds the two physical manifestation colliders from the same rigid box.
 ///
-/// While the box intersects the portal plane, the authoritative manifestation
+/// While the box intersects the portal plane, the primary logical projection
 /// owns the half on its current side and the peer owns the complementary half
 /// mapped through the portal. Outside the overlap interval the peer is disabled.
 pub(crate) fn materialize_portal_splits(
     mut commands: Commands,
     portals: Query<
         (&Portal, &PortalActive, &Transform),
-        (With<Portal>, Without<UsfManifestationAuthority>),
+        With<Portal>,
     >,
     mut authorities: Query<
         (
@@ -138,11 +143,20 @@ pub(crate) fn materialize_portal_splits(
             &PortalSplitTraveler,
             &mut Collider,
         ),
-        (With<UsfManifestationAuthority>, Without<Portal>),
+        (
+            With<UsfLogicalProjection>,
+            With<KinematicQueryExclusions>,
+            Without<SpatialSplitPeer>,
+            Without<Portal>,
+        ),
     >,
     mut peers: Query<
         (&mut Transform, &mut LinearVelocity, &mut Collider),
-        (Without<Portal>, Without<UsfManifestationAuthority>),
+        (
+            With<UsfLogicalProjection>,
+            With<SpatialSplitPeer>,
+            Without<Portal>,
+        ),
     >,
 ) {
     for (_authority, body, velocity, split_box, split, mut authority_collider) in
@@ -233,7 +247,7 @@ pub(crate) fn materialize_portal_splits(
 
 /// Resolves center-plane crossings after ordinary character movement.
 ///
-/// The authoritative body is moved exactly to the crossing, rigidly mapped,
+/// The primary logical projection is moved exactly to the crossing, rigidly mapped,
 /// and then spends the remaining fraction of the same fixed tick moving in the
 /// destination space. The peer remains alive until the trailing box extent
 /// clears the new source plane.
@@ -242,7 +256,7 @@ pub(crate) fn resolve_portal_splits(
     move_and_slide: MoveAndSlide,
     portals: Query<
         (Entity, &Portal, &PortalActive, &Transform),
-        (With<Portal>, Without<UsfManifestationAuthority>),
+        With<Portal>,
     >,
     mut travelers: Query<
         (
@@ -257,7 +271,11 @@ pub(crate) fn resolve_portal_splits(
             &mut PortalSplitTraveler,
             &mut KinematicQueryExclusions,
         ),
-        (With<UsfManifestationAuthority>, Without<Portal>),
+        (
+            With<UsfLogicalProjection>,
+            Without<SpatialSplitPeer>,
+            Without<Portal>,
+        ),
     >,
 ) {
     let dt = time.delta_secs().max(0.0);
@@ -365,8 +383,8 @@ pub(crate) fn resolve_portal_splits(
                 ground.just_landed = false;
                 ground.just_left_ground = true;
 
-                // Authority now lives in the former destination space. Keeping
-                // the split active means reversing direction while still
+                // The primary logical projection now lives in the former destination
+                // space. Keeping the split active means reversing direction while still
                 // straddling naturally crosses back through the same pair.
                 split.active = Some(ActivePortalSplit {
                     source: active.destination,
@@ -409,7 +427,7 @@ fn active_pair_is_valid(
     split: ActivePortalSplit,
     portals: &Query<
         (Entity, &Portal, &PortalActive, &Transform),
-        (With<Portal>, Without<UsfManifestationAuthority>),
+        With<Portal>,
     >,
 ) -> bool {
     portals
@@ -427,7 +445,7 @@ fn find_split_candidate(
     dt: f32,
     portals: &Query<
         (Entity, &Portal, &PortalActive, &Transform),
-        (With<Portal>, Without<UsfManifestationAuthority>),
+        With<Portal>,
     >,
 ) -> Option<ActivePortalSplit> {
     let mut best: Option<(f32, ActivePortalSplit)> = None;
@@ -503,7 +521,7 @@ fn box_reaches_portal_this_tick(
     source_entity: Entity,
     portals: &Query<
         (Entity, &Portal, &PortalActive, &Transform),
-        (With<Portal>, Without<UsfManifestationAuthority>),
+        With<Portal>,
     >,
 ) -> bool {
     let Ok((_, portal, active, source)) = portals.get(source_entity) else {

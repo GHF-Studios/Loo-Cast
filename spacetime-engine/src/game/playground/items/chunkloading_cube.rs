@@ -4,7 +4,10 @@ use avian3d::prelude::*;
 use bevy::prelude::*;
 
 use crate::{
-    ecs::{UsfEntity, UsfManifestationAuthority, UsfManifestationOf, UsfManifestations},
+    ecs::{
+        UsfEntity, UsfLogicalProjection, UsfManifestationAuthority, UsfManifestationOf,
+        UsfManifestations, UsfPresentationProjectionOf,
+    },
     game::{
         GameAssets, GameSet,
         combat::{Health, Hitbox},
@@ -104,11 +107,13 @@ fn use_chunkloading_cube(
 
         let collider = Collider::cuboid(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
         let inertia = AngularInertia::from_shape(&collider, CUBE_MASS_KG);
-        commands.spawn((
+        let manifestation = commands
+            .spawn((
             (
                 Name::new(format!("Chunkloading Cube Manifestation {}", counter.0)),
                 UsfManifestationOf(root),
                 UsfManifestationAuthority,
+                UsfLogicalProjection,
                 PlaygroundPickable::cube(root, CUBE_SIZE),
                 Hitbox::cube(CUBE_SIZE),
                 SpatialDemandSource::cuboid(DEMAND_HALF_EXTENT).with_priority(DEMAND_PRIORITY),
@@ -122,10 +127,19 @@ fn use_chunkloading_cube(
                 LinearVelocity::ZERO,
                 AngularVelocity::ZERO,
                 collider,
-                Mesh3d(meshes.add(Cuboid::from_length(CUBE_SIZE))),
-                MeshMaterial3d(assets.damageable_cube_material.clone()),
                 Transform::from_translation(position),
             )
-        ));
+        ))
+            .id();
+
+        commands.entity(manifestation).with_children(|parent| {
+            parent.spawn((
+                Name::new("Chunkloading Cube Presentation"),
+                UsfPresentationProjectionOf(manifestation),
+                Mesh3d(meshes.add(Cuboid::from_length(CUBE_SIZE))),
+                MeshMaterial3d(assets.damageable_cube_material.clone()),
+                Transform::IDENTITY,
+            ));
+        });
     }
 }

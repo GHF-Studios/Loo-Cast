@@ -27,7 +27,10 @@ use bevy::{
 };
 
 use crate::{
-    ecs::{UsfEntity, UsfManifestationAuthority, UsfManifestationOf},
+    ecs::{
+        UsfEntity, UsfLogicalProjection, UsfManifestationAuthority, UsfManifestationOf,
+        UsfPresentationProjectionOf,
+    },
     input_focus::{InputFocus, InputFocusSet},
     physics::{
         character::{CharacterDimensions, CharacterGroundState, CharacterMotor, CharacterMovementInput},
@@ -140,6 +143,7 @@ fn spawn_player(
                 Player,
                 UsfManifestationOf(semantic_player),
                 UsfManifestationAuthority,
+                UsfLogicalProjection,
                 UsfSpatialAnchor,
                 ThermalSpatialSample,
                 SpatialDemandSource::cuboid(PLAYER_SPATIAL_DEMAND_HALF_EXTENT)
@@ -168,6 +172,7 @@ fn spawn_player(
         .spawn((
             Name::new("Player Split Manifestation"),
             UsfManifestationOf(semantic_player),
+            UsfLogicalProjection,
             SpatialSplitPeer { authority: player },
             ActiveCollisionHooks::FILTER_PAIRS,
             ThermalSpatialSample,
@@ -187,10 +192,16 @@ fn spawn_player(
     ));
 
     commands.entity(player).with_children(|parent| {
-        parent.spawn(model::create_model(&mut meshes, &mut materials));
+        parent.spawn((
+            model::create_model(&mut meshes, &mut materials),
+            UsfPresentationProjectionOf(player),
+        ));
     });
     commands.entity(split_manifestation).with_children(|parent| {
-        parent.spawn(model::create_model(&mut meshes, &mut materials));
+        parent.spawn((
+            model::create_model(&mut meshes, &mut materials),
+            UsfPresentationProjectionOf(split_manifestation),
+        ));
     });
 
     commands.spawn((

@@ -33,9 +33,10 @@ impl PortalTraveler {
 
 /// Opts one spatial manifestation into portal-aware partitioning.
 ///
-/// `peer` is the reserved physical/presentation proxy for the opposite side of
-/// the active portal. Keeping this relation explicit lets semantic entities have
-/// any number of other manifestations without confusing them with split peers.
+/// `peer` is the reserved logical/physics projection for the opposite side of
+/// the active portal. Presentation projections are associated independently, so
+/// semantic entities can have any number of other manifestations without
+/// confusing topology peers with presentation copies.
 #[derive(Component, Debug)]
 pub struct PortalSplitTraveler {
     pub(crate) active: Option<ActivePortalSplit>,

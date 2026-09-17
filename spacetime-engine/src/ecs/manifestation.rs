@@ -31,6 +31,17 @@ pub struct UsfManifestationOf(pub Entity);
 #[derive(Component, Debug, Default)]
 pub struct UsfManifestationAuthority;
 
+/// Marks the local logical/physics projection carried by one spatial
+/// manifestation.
+///
+/// This role is orthogonal to both semantic manifestation identity and mutable
+/// manifestation authority. A semantic entity may have several simultaneous
+/// spatial manifestations (portal/world-wrap topology), and each manifestation
+/// may independently own a logical projection plus one or more presentation
+/// projections.
+#[derive(Component, Debug, Default, Clone, Copy)]
+pub struct UsfLogicalProjection;
+
 /// All concrete manifestations of a [`UsfEntity`].
 ///
 /// `linked_spawn` gives the semantic entity ownership of its manifestations:
@@ -54,5 +65,67 @@ impl UsfManifestations {
 
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
+    }
+}
+
+/// Declares that this concrete presentation entity presents one spatial
+/// manifestation.
+///
+/// Presentation association is deliberately explicit rather than inferred from
+/// Bevy hierarchy. `ChildOf` remains useful for transform/lifetime layout, but a
+/// renderer or alternate observer may later present the same manifestation
+/// through a different hierarchy or several projections at once.
+#[derive(Component, Debug)]
+#[relationship(relationship_target = UsfPresentationProjections)]
+pub struct UsfPresentationProjectionOf(pub Entity);
+
+/// Presentation projections currently associated with one spatial
+/// manifestation.
+///
+/// This relationship does not use `linked_spawn`: current presentation
+/// entities are already owned by their ordinary Bevy hierarchy, while the USF
+/// relation records semantic association rather than imposing storage/lifetime
+/// policy.
+#[derive(Component, Debug)]
+#[relationship_target(relationship = UsfPresentationProjectionOf)]
+pub struct UsfPresentationProjections(Vec<Entity>);
+
+impl UsfPresentationProjections {
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = Entity> + '_ {
+        self.0.iter().copied()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn presentation_projection_is_orthogonal_to_spatial_manifestation() {
+        let mut world = World::new();
+        let semantic = world.spawn(UsfEntity).id();
+        let manifestation = world
+            .spawn((UsfManifestationOf(semantic), UsfLogicalProjection))
+            .id();
+        let presentation = world
+            .spawn(UsfPresentationProjectionOf(manifestation))
+            .id();
+
+        let manifestations = world.get::<UsfManifestations>(semantic).unwrap();
+        assert_eq!(manifestations.iter().collect::<Vec<_>>(), vec![manifestation]);
+
+        let presentations = world
+            .get::<UsfPresentationProjections>(manifestation)
+            .unwrap();
+        assert_eq!(presentations.iter().collect::<Vec<_>>(), vec![presentation]);
+        assert!(world.get::<UsfManifestationOf>(presentation).is_none());
     }
 }

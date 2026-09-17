@@ -4,7 +4,10 @@ use avian3d::prelude::*;
 use bevy::prelude::*;
 
 use crate::{
-    ecs::{UsfEntity, UsfManifestationOf, UsfManifestations},
+    ecs::{
+        UsfEntity, UsfLogicalProjection, UsfManifestationOf, UsfManifestations,
+        UsfPresentationProjectionOf,
+    },
     game::{
         GameAssets, GameSet,
         combat::{Health, Hitbox},
@@ -187,6 +190,7 @@ fn spawn_dynamic_manifestation(
         .spawn((
             Name::new(format!("Cube Manifestation {index}")),
             UsfManifestationOf(semantic),
+            UsfLogicalProjection,
             ThermalSpatialSample,
             PlaygroundPickable::cube(semantic, CUBE_SIZE),
             Hitbox::cube(CUBE_SIZE),
@@ -211,6 +215,7 @@ fn spawn_dynamic_manifestation(
         .spawn((
             Name::new(format!("Cube Portal Peer {index}")),
             UsfManifestationOf(semantic),
+            UsfLogicalProjection,
             SpatialSplitPeer { authority },
             ThermalSpatialSample,
             PlaygroundPickable::cube(semantic, CUBE_SIZE),
@@ -240,6 +245,7 @@ fn spawn_dynamic_manifestation(
         commands.entity(body).with_children(|parent| {
             parent.spawn((
                 Name::new("Cube Model"),
+                UsfPresentationProjectionOf(body),
                 PortalSplitVisual,
                 Mesh3d(meshes.add(Cuboid::from_length(CUBE_SIZE))),
                 MeshMaterial3d(assets.damageable_cube_material.clone()),

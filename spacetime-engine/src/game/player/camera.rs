@@ -18,7 +18,7 @@ use bevy::{
 };
 
 use crate::{
-    ecs::{UsfManifestationOf, UsfManifestations},
+    ecs::{UsfLogicalProjection, UsfManifestationOf, UsfManifestations},
     game::portal::{
         DERIVED_VIEW_LAYER, Portal, PortalActive, crossed_aperture_fraction, map_through_portal,
     },
@@ -207,7 +207,11 @@ pub fn sync_player_camera(
             &PlayerStance,
             &UsfManifestationOf,
         ),
-        (With<Player>, Without<PlayerCamera>),
+        (
+            With<Player>,
+            With<UsfLogicalProjection>,
+            Without<PlayerCamera>,
+        ),
     >,
     camera: Single<(&mut PlayerCamera, &mut Transform), (With<PlayerCamera>, Without<Player>)>,
     semantic_entities: Query<&UsfManifestations>,

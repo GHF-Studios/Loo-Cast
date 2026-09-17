@@ -11,6 +11,7 @@ use bevy::{
 };
 
 use crate::{
+    ecs::UsfPresentationProjectionOf,
     game::portal::{
         Portal, PortalActive, PortalSplitTraveler,
         topology::mapping::portal_plane,
@@ -33,11 +34,14 @@ pub(super) fn sync_split_visuals(
         (Without<SpatialSplitPeer>, Without<Portal>),
     >,
     peers: Query<(&SpatialSplitPeer, Option<&SpatialSplitPeerActive>)>,
-    mut visuals: Query<(&ChildOf, &mut Mesh3d, &mut Visibility), With<PortalSplitVisual>>,
+    mut visuals: Query<
+        (&UsfPresentationProjectionOf, &mut Mesh3d, &mut Visibility),
+        With<PortalSplitVisual>,
+    >,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    for (child_of, mesh, mut visibility) in &mut visuals {
-        let parent = child_of.parent();
+    for (projection, mesh, mut visibility) in &mut visuals {
+        let parent = projection.0;
         let (authority, is_peer) = if authorities.get(parent).is_ok() {
             (parent, false)
         } else if let Ok((peer, active)) = peers.get(parent) {
