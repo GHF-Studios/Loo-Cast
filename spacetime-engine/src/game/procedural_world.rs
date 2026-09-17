@@ -1,12 +1,7 @@
 //! Bootstrap for the actual top-down procedural game-world path.
 
 use avian3d::prelude::LinearVelocity;
-use bevy::{
-    asset::RenderAssetUsages,
-    camera::visibility::NoFrustumCulling,
-    mesh::{Indices, PrimitiveTopology},
-    prelude::*,
-};
+use bevy::prelude::*;
 
 use crate::{
     game::{
@@ -15,15 +10,15 @@ use crate::{
     },
     physics::character::{CharacterDimensions, CharacterMotor},
     procedural_assets::ProceduralAssetLibrary,
-    spatial::{SpatialScale, UsfPosition, UsfScalePresentation, UsfSpatialFrame},
+    spatial::{SpatialScale, UsfSpatialFrame},
     voxel::{ProceduralTerrain, VoxelBase, VoxelQueryPosition, VoxelStreaming, VoxelWorld},
     worldgen::{
-        GEOLOGY_CLIMATE_HYDROLOGY, GeologyClimateHydrologyState, PhenomenonRegistry, TemporalScale,
-        WorldgenEpoch, WorldgenEvaluationKey, WorldgenStore,
+        GEOLOGY_CLIMATE_HYDROLOGY, GeologyClimateHydrologyState, PhenomenonRegistry,
+        TemporalScale, WorldgenEpoch, WorldgenEvaluationKey, WorldgenStore,
     },
 };
 
-use super::map_selection::GameMap;
+use super::{map_selection::GameMap, scale_stack::ProceduralScaleStack};
 
 #[derive(Component)]
 struct ProceduralWorldRoot;
@@ -35,14 +30,13 @@ impl Plugin for ProceduralWorldPlugin {
         app.add_systems(
             OnEnter(GameMap::ProceduralWorld),
             (spawn_procedural_world, prepare_player).chain(),
-        );
+        )
+        .add_systems(Update, super::scale_stack::sync_scale_stack);
     }
 }
 
 fn spawn_procedural_world(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
     frame: Res<UsfSpatialFrame>,
     procedural_assets: Res<ProceduralAssetLibrary>,
     registry: Res<PhenomenonRegistry>,
@@ -83,47 +77,14 @@ fn spawn_procedural_world(
         );
     }
 
-    let world_entity = commands
-        .spawn((
-            Name::new("Procedural World"),
-            ProceduralWorldRoot,
-            VoxelWorld::new_at(VoxelBase::Terrain(terrain), *frame.origin()),
-            VoxelStreaming::new(24, procedural_assets.cracked_clay.material.clone()),
-            Transform::IDENTITY,
-        ))
-        .id();
-
-    let s1 = SpatialScale::new(1).expect("S+1 exists");
-    let s1_key = worldgen
-        .key_for(*frame.origin(), s1, TemporalScale::WORLDGEN_SNAPSHOT, epoch)
-        .expect("S+1 worldgen scope must be addressable");
-    let s1_terrain = terrain_for_branch(&worldgen, s1_key);
-    let landscape_mesh = coarse_landscape_mesh(s1_terrain, *frame.origin());
-    let landscape_material = materials.add(StandardMaterial {
-        base_color: Color::srgb(0.24, 0.29, 0.18),
-        perceptual_roughness: 1.0,
-        ..default()
-    });
-
     commands.spawn((
-        Name::new("Scale +1 Landscape Presentation"),
-        ChildOf(world_entity),
-        UsfScalePresentation::new(*frame.origin(), s1),
-        Mesh3d(meshes.add(landscape_mesh)),
-        MeshMaterial3d(landscape_material),
-        NoFrustumCulling,
+        Name::new("Procedural World"),
+        ProceduralWorldRoot,
+        VoxelWorld::new_at(VoxelBase::Terrain(terrain), *frame.origin()),
+        VoxelStreaming::new(24, procedural_assets.cracked_clay.material.clone()),
+        ProceduralScaleStack::new(*frame.origin(), terrain),
         Transform::IDENTITY,
-        Visibility::Hidden,
     ));
-
-    super::scale_stack::spawn_higher_scale_stack(
-        &mut commands,
-        &mut meshes,
-        &mut materials,
-        world_entity,
-        *frame.origin(),
-        terrain,
-    );
 }
 
 fn terrain_for_branch(worldgen: &WorldgenStore, leaf: WorldgenEvaluationKey) -> ProceduralTerrain {
@@ -139,101 +100,17 @@ fn terrain_for_branch(worldgen: &WorldgenStore, leaf: WorldgenEvaluationKey) -> 
     )
 }
 
-fn coarse_landscape_mesh(terrain: ProceduralTerrain, anchor: UsfPosition) -> Mesh {
-    const CELLS: u32 = 128;
-    const HALF_EXTENT_S1: f32 = 2_000.0;
-    const METERS_PER_S1_UNIT: f32 = 10.0;
-
-    let side = CELLS + 1;
-    let step = HALF_EXTENT_S1 * 2.0 / CELLS as f32;
-    let world_origin = VoxelQueryPosition::new(anchor);
-    let mut positions = Vec::with_capacity((side * side) as usize);
-    let mut heights = Vec::with_capacity((side * side) as usize);
-    let mut uvs = Vec::with_capacity((side * side) as usize);
-
-    for z in 0..side {
-        for x in 0..side {
-            let sx = -HALF_EXTENT_S1 + x as f32 * step;
-            let sz = -HALF_EXTENT_S1 + z as f32 * step;
-            let query = world_origin
-                .translated(Vec3::new(
-                    sx * METERS_PER_S1_UNIT,
-                    0.0,
-                    sz * METERS_PER_S1_UNIT,
-                ))
-                .expect("bounded S+1 landscape sample must translate canonically");
-            let sy = terrain.height_at(world_origin, query) / METERS_PER_S1_UNIT;
-            heights.push(sy);
-            positions.push([sx, sy, sz]);
-            uvs.push([
-                (sx + HALF_EXTENT_S1) / (HALF_EXTENT_S1 * 2.0),
-                (sz + HALF_EXTENT_S1) / (HALF_EXTENT_S1 * 2.0),
-            ]);
-        }
-    }
-
-    let index = |x: u32, z: u32| -> usize { (z * side + x) as usize };
-    let mut normals = Vec::with_capacity(positions.len());
-    for z in 0..side {
-        for x in 0..side {
-            let left = heights[index(x.saturating_sub(1), z)];
-            let right = heights[index((x + 1).min(CELLS), z)];
-            let down = heights[index(x, z.saturating_sub(1))];
-            let up = heights[index(x, (z + 1).min(CELLS))];
-            let dx = (right - left)
-                / if x == 0 || x == CELLS {
-                    step
-                } else {
-                    step * 2.0
-                };
-            let dz = (up - down)
-                / if z == 0 || z == CELLS {
-                    step
-                } else {
-                    step * 2.0
-                };
-            normals.push(Vec3::new(-dx, 1.0, -dz).normalize().to_array());
-        }
-    }
-
-    let mut indices = Vec::with_capacity((CELLS * CELLS * 6) as usize);
-    for z in 0..CELLS {
-        for x in 0..CELLS {
-            let a = z * side + x;
-            let b = a + 1;
-            let c = a + side;
-            let d = c + 1;
-            indices.extend_from_slice(&[a, c, b, b, c, d]);
-        }
-    }
-
-    Mesh::new(
-        PrimitiveTopology::TriangleList,
-        RenderAssetUsages::default(),
-    )
-    .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
-    .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, normals)
-    .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, uvs)
-    .with_inserted_indices(Indices::U32(indices))
-}
-
-/// Places the player above the first streamed terrain window with ordinary
-/// character physics enabled. The terrain parameters come from the exact same
-/// Scale-0 semantic branch used to create the voxel realization.
 fn prepare_player(
     mut commands: Commands,
     frame: Res<UsfSpatialFrame>,
     worldgen: Res<WorldgenStore>,
-    player: Single<
-        (
-            Entity,
-            &mut Transform,
-            &mut PortalTraveler,
-            &mut LinearVelocity,
-            &mut PlayerNoclip,
-        ),
-        With<Player>,
-    >,
+    player: Single<(
+        Entity,
+        &mut Transform,
+        &mut PortalTraveler,
+        &mut LinearVelocity,
+        &mut PlayerNoclip,
+    ), With<Player>>,
 ) {
     let epoch = WorldgenEpoch::present_day_bootstrap();
     let leaf = worldgen

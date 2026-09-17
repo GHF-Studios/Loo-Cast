@@ -74,6 +74,23 @@ pub struct UsfViewFrame {
     zoom: f32,
 }
 
+/// One scale requested by the observer's continuous transition window.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct UsfViewScaleDemand {
+    scale: SpatialScale,
+    contribution: f32,
+}
+
+impl UsfViewScaleDemand {
+    pub const fn scale(self) -> SpatialScale {
+        self.scale
+    }
+
+    pub const fn contribution(self) -> f32 {
+        self.contribution
+    }
+}
+
 impl Default for UsfViewFrame {
     fn default() -> Self {
         Self {
@@ -148,6 +165,32 @@ impl UsfViewFrame {
         } else {
             0.0
         }
+    }
+
+    /// The adjacent spatial scales whose representations are currently needed
+    /// to realize the continuous observer view.
+    ///
+    /// This is *transition demand*, not distance LOD demand. A later visibility
+    /// policy may request additional coarser representations at the same view
+    /// scale for distant detail without changing this two-slot contract.
+    pub fn active_scale_demands(&self) -> [Option<UsfViewScaleDemand>; 2] {
+        let lower = UsfViewScaleDemand {
+            scale: self.scale,
+            contribution: self.contribution(self.scale),
+        };
+
+        let upper = if self.zoom > CONTRIBUTION_EPSILON && self.scale != SpatialScale::MAX {
+            let scale = SpatialScale::new(self.scale.exponent() + 1)
+                .expect("non-maximum view scale has an adjacent upper scale");
+            Some(UsfViewScaleDemand {
+                scale,
+                contribution: self.contribution(scale),
+            })
+        } else {
+            None
+        };
+
+        [Some(lower), upper]
     }
 
     /// Converts geometry authored in `scale`-native units into current view units.

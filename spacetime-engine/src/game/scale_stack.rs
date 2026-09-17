@@ -1,8 +1,10 @@
-//! Lightweight visible realizations for every positive USF spatial scale.
+//! Demand-driven visible realization of positive USF spatial scales.
 //!
-//! These are deliberately cheap domain-aware placeholders. Their purpose is to
-//! exercise the real scale-view/projection stack continuously from S+1 to S+35
-//! while semantic worldgen models deepen independently.
+//! The observer owns transition demand; this realizer owns only the disposable
+//! presentation entities needed to satisfy that demand. Semantic state remains
+//! in worldgen. Distance LOD is intentionally a separate future demand source.
+
+use std::collections::{HashMap, HashSet};
 
 use bevy::{
     asset::RenderAssetUsages,
@@ -12,7 +14,7 @@ use bevy::{
 };
 
 use crate::{
-    spatial::{SpatialScale, UsfPosition, UsfScalePresentation},
+    spatial::{SpatialScale, UsfPosition, UsfScalePresentation, UsfViewFrame},
     voxel::{ProceduralTerrain, VoxelQueryPosition},
 };
 
@@ -22,87 +24,203 @@ const SUN_RADIUS_M: f64 = 696_340_000.0;
 const GALACTIC_CENTER_DISTANCE_M: f64 = 2.46e20;
 const MILKY_WAY_RADIUS_M: f64 = 4.75e20;
 
-pub(super) fn spawn_higher_scale_stack(
-    commands: &mut Commands,
+#[derive(Debug, Clone)]
+struct ScaleStackAssets {
+    unit_sphere: Handle<Mesh>,
+    landscape_material: Handle<StandardMaterial>,
+    planet_material: Handle<StandardMaterial>,
+    star_material: Handle<StandardMaterial>,
+    galaxy_material: Handle<StandardMaterial>,
+    cosmic_material: Handle<StandardMaterial>,
+}
+
+/// One semantic source capable of realizing observer-scale presentations.
+///
+/// `active` is cache/lifecycle state only. It is never semantic identity.
+#[derive(Component)]
+pub(super) struct ProceduralScaleStack {
+    anchor: UsfPosition,
+    terrain: ProceduralTerrain,
+    active: HashMap<SpatialScale, Entity>,
+    assets: Option<ScaleStackAssets>,
+}
+
+impl ProceduralScaleStack {
+    pub(super) fn new(anchor: UsfPosition, terrain: ProceduralTerrain) -> Self {
+        Self {
+            anchor,
+            terrain,
+            active: HashMap::new(),
+            assets: None,
+        }
+    }
+}
+
+pub(super) fn sync_scale_stack(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    view: Res<UsfViewFrame>,
+    mut stacks: Query<(Entity, &mut ProceduralScaleStack)>,
+) {
+    for (world_entity, mut stack) in &mut stacks {
+        if stack.assets.is_none() {
+            stack.assets = Some(create_assets(&mut meshes, &mut materials));
+        }
+
+        // S0 is realized by the voxel system. This realizer owns only positive
+        // authored scales currently participating in the observer transition.
+        let desired = view
+            .active_scale_demands()
+            .into_iter()
+            .flatten()
+            .filter(|demand| demand.scale() > SpatialScale::ZERO && demand.contribution() > 0.001)
+            .map(|demand| demand.scale())
+            .collect::<HashSet<_>>();
+
+        let stale = stack
+            .active
+            .iter()
+            .filter_map(|(scale, entity)| (!desired.contains(scale)).then_some((*scale, *entity)))
+            .collect::<Vec<_>>();
+        for (scale, entity) in stale {
+            stack.active.remove(&scale);
+            commands.entity(entity).despawn();
+        }
+
+        let missing = desired
+            .iter()
+            .copied()
+            .filter(|scale| !stack.active.contains_key(scale))
+            .collect::<Vec<_>>();
+        for scale in missing {
+            let root = spawn_scale_representation(
+                &mut commands,
+                &mut meshes,
+                world_entity,
+                stack.anchor,
+                stack.terrain,
+                scale,
+                stack.assets.as_ref().expect("scale stack assets initialized"),
+            );
+            stack.active.insert(scale, root);
+        }
+    }
+}
+
+fn create_assets(
     meshes: &mut Assets<Mesh>,
     materials: &mut Assets<StandardMaterial>,
+) -> ScaleStackAssets {
+    ScaleStackAssets {
+        unit_sphere: meshes.add(Sphere::new(1.0)),
+        landscape_material: materials.add(StandardMaterial {
+            base_color: Color::srgb(0.18, 0.31, 0.16),
+            perceptual_roughness: 1.0,
+            ..default()
+        }),
+        planet_material: materials.add(StandardMaterial {
+            base_color: Color::srgb(0.16, 0.27, 0.48),
+            perceptual_roughness: 0.8,
+            ..default()
+        }),
+        star_material: materials.add(StandardMaterial {
+            base_color: Color::srgb(1.0, 0.82, 0.48),
+            perceptual_roughness: 0.6,
+            ..default()
+        }),
+        galaxy_material: materials.add(StandardMaterial {
+            base_color: Color::srgb(0.55, 0.62, 0.86),
+            perceptual_roughness: 0.9,
+            ..default()
+        }),
+        cosmic_material: materials.add(StandardMaterial {
+            base_color: Color::srgb(0.38, 0.30, 0.58),
+            perceptual_roughness: 1.0,
+            ..default()
+        }),
+    }
+}
+
+fn spawn_scale_representation(
+    commands: &mut Commands,
+    meshes: &mut Assets<Mesh>,
     parent: Entity,
     anchor: UsfPosition,
     terrain: ProceduralTerrain,
-) {
-    let unit_sphere = meshes.add(Sphere::new(1.0));
+    scale: SpatialScale,
+    assets: &ScaleStackAssets,
+) -> Entity {
+    let root = commands
+        .spawn((
+            Name::new(format!("USF S{scale} Active Presentation")),
+            ChildOf(parent),
+            UsfScalePresentation::new(anchor, scale),
+            Transform::IDENTITY,
+            Visibility::Inherited,
+        ))
+        .id();
 
-    let landscape_material = materials.add(StandardMaterial {
-        base_color: Color::srgb(0.18, 0.31, 0.16),
-        perceptual_roughness: 1.0,
-        ..default()
-    });
-    let planet_material = materials.add(StandardMaterial {
-        base_color: Color::srgb(0.16, 0.27, 0.48),
-        perceptual_roughness: 0.8,
-        ..default()
-    });
-    let star_material = materials.add(StandardMaterial {
-        base_color: Color::srgb(1.0, 0.82, 0.48),
-        perceptual_roughness: 0.6,
-        ..default()
-    });
-    let galaxy_material = materials.add(StandardMaterial {
-        base_color: Color::srgb(0.55, 0.62, 0.86),
-        perceptual_roughness: 0.9,
-        ..default()
-    });
-    let cosmic_material = materials.add(StandardMaterial {
-        base_color: Color::srgb(0.38, 0.30, 0.58),
-        perceptual_roughness: 1.0,
-        ..default()
-    });
-
-    for exponent in 2..=35 {
-        let scale = SpatialScale::new(exponent).expect("positive scale exists");
-        let root = commands
-            .spawn((
-                Name::new(format!("USF S{scale} Presentation Root")),
-                ChildOf(parent),
-                UsfScalePresentation::new(anchor, scale),
+    match scale.exponent() {
+        1..=3 => {
+            let mesh = coarse_landscape_mesh(terrain, anchor, scale);
+            commands.spawn((
+                Name::new(format!("S{scale} Landscape")),
+                ChildOf(root),
+                Mesh3d(meshes.add(mesh)),
+                MeshMaterial3d(assets.landscape_material.clone()),
+                NoFrustumCulling,
                 Transform::IDENTITY,
-                Visibility::Hidden,
-            ))
-            .id();
-
-        match exponent {
-            2..=3 => {
-                let mesh = coarse_landscape_mesh(terrain, anchor, scale);
-                commands.spawn((
-                    Name::new(format!("S{scale} Regional Landscape")),
-                    ChildOf(root),
-                    Mesh3d(meshes.add(mesh)),
-                    MeshMaterial3d(landscape_material.clone()),
-                    NoFrustumCulling,
-                    Transform::IDENTITY,
-                    Visibility::Inherited,
-                ));
-            }
-            4..=9 => spawn_planetary_body(commands, root, &unit_sphere, &planet_material, scale),
-            10..=13 => spawn_planetary_system(
-                commands,
-                root,
-                &unit_sphere,
-                &star_material,
-                &planet_material,
-                scale,
-            ),
-            14..=17 => {
-                spawn_stellar_neighborhood(commands, root, &unit_sphere, &star_material, scale)
-            }
-            18..=19 => spawn_galaxy(commands, root, &unit_sphere, &galaxy_material, scale),
-            20..=24 => spawn_cosmic_web(commands, root, &unit_sphere, &cosmic_material, scale),
-            25..=35 => {
-                spawn_cosmological_field(commands, root, &unit_sphere, &cosmic_material, scale)
-            }
-            _ => unreachable!(),
+                Visibility::Inherited,
+            ));
         }
+        4..=9 => spawn_planetary_body(
+            commands,
+            root,
+            &assets.unit_sphere,
+            &assets.planet_material,
+            scale,
+        ),
+        10..=13 => spawn_planetary_system(
+            commands,
+            root,
+            &assets.unit_sphere,
+            &assets.star_material,
+            &assets.planet_material,
+            scale,
+        ),
+        14..=17 => spawn_stellar_neighborhood(
+            commands,
+            root,
+            &assets.unit_sphere,
+            &assets.star_material,
+            scale,
+        ),
+        18..=19 => spawn_galaxy(
+            commands,
+            root,
+            &assets.unit_sphere,
+            &assets.galaxy_material,
+            scale,
+        ),
+        20..=24 => spawn_cosmic_web(
+            commands,
+            root,
+            &assets.unit_sphere,
+            &assets.cosmic_material,
+            scale,
+        ),
+        25..=35 => spawn_cosmological_field(
+            commands,
+            root,
+            &assets.unit_sphere,
+            &assets.cosmic_material,
+            scale,
+        ),
+        _ => {}
     }
+
+    root
 }
 
 fn native_units(meters: f64, scale: SpatialScale) -> f32 {
@@ -339,7 +457,11 @@ fn coarse_landscape_mesh(
             let sx = -HALF_EXTENT_NATIVE + x as f32 * step;
             let sz = -HALF_EXTENT_NATIVE + z as f32 * step;
             let query = world_origin
-                .translated(Vec3::new(sx * units_in_meters, 0.0, sz * units_in_meters))
+                .translated(Vec3::new(
+                    sx * units_in_meters,
+                    0.0,
+                    sz * units_in_meters,
+                ))
                 .expect("bounded regional sample must translate canonically");
             let sy = terrain.height_at(world_origin, query) / units_in_meters;
             heights.push(sy);
@@ -355,18 +477,8 @@ fn coarse_landscape_mesh(
             let right = heights[index((x + 1).min(CELLS), z)];
             let down = heights[index(x, z.saturating_sub(1))];
             let up = heights[index(x, (z + 1).min(CELLS))];
-            let dx = (right - left)
-                / if x == 0 || x == CELLS {
-                    step
-                } else {
-                    step * 2.0
-                };
-            let dz = (up - down)
-                / if z == 0 || z == CELLS {
-                    step
-                } else {
-                    step * 2.0
-                };
+            let dx = (right - left) / if x == 0 || x == CELLS { step } else { step * 2.0 };
+            let dz = (up - down) / if z == 0 || z == CELLS { step } else { step * 2.0 };
             normals.push(Vec3::new(-dx, 1.0, -dz).normalize().to_array());
         }
     }
@@ -382,11 +494,8 @@ fn coarse_landscape_mesh(
         }
     }
 
-    Mesh::new(
-        PrimitiveTopology::TriangleList,
-        RenderAssetUsages::default(),
-    )
-    .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
-    .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, normals)
-    .with_inserted_indices(Indices::U32(indices))
+    Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default())
+        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
+        .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, normals)
+        .with_inserted_indices(Indices::U32(indices))
 }
