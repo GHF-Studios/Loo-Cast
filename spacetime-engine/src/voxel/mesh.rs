@@ -25,6 +25,8 @@ type ChunkShape = ConstShape3u32<SAMPLE_SIZE, SAMPLE_SIZE, SAMPLE_SIZE>;
 pub(crate) struct VoxelSurface {
     pub(crate) positions: Vec<[f32; 3]>,
     pub(crate) normals: Vec<[f32; 3]>,
+    pub(crate) uvs: Vec<[f32; 2]>,
+    pub(crate) tangents: Vec<[f32; 4]>,
     pub(crate) indices: Vec<u32>,
 }
 
@@ -36,6 +38,8 @@ impl VoxelSurface {
         )
         .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, self.positions)
         .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, self.normals)
+        .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, self.uvs)
+        .with_inserted_attribute(Mesh::ATTRIBUTE_TANGENT, self.tangents)
         .with_inserted_indices(Indices::U32(self.indices))
     }
 }
@@ -67,11 +71,62 @@ pub(crate) fn extract_chunk_surface(chunk: &VoxelChunk) -> VoxelSurface {
         position[2] += offset.z;
     }
 
+    let (uvs, tangents) = surface_projection_attributes(&output.positions, &output.normals);
+
     VoxelSurface {
         positions: output.positions,
         normals: output.normals,
+        uvs,
+        tangents,
         indices: output.indices,
     }
+}
+
+/// Immediate world-aligned texture projection for arbitrary Surface Nets geometry.
+///
+/// This is intentionally simpler than the eventual shader-side triplanar path,
+/// but unlike the old attribute-less mesh it makes generated PBR textures usable
+/// on voxel terrain now. A 2-metre repeat divides the decimal 10-metre base
+/// materialization extent exactly, keeping adjacent chunk phases aligned.
+fn surface_projection_attributes(
+    positions: &[[f32; 3]],
+    normals: &[[f32; 3]],
+) -> (Vec<[f32; 2]>, Vec<[f32; 4]>) {
+    const TILES_PER_METER: f32 = 0.5;
+
+    let mut uvs = Vec::with_capacity(positions.len());
+    let mut tangents = Vec::with_capacity(positions.len());
+    for (position, normal) in positions.iter().zip(normals) {
+        let position = Vec3::from_array(*position);
+        let normal = Vec3::from_array(*normal).normalize_or_zero();
+        let axis = normal.abs();
+
+        let (uv, tangent_axis, handedness) = if axis.x >= axis.y && axis.x >= axis.z {
+            (
+                Vec2::new(position.z, position.y),
+                Vec3::Z,
+                if normal.x >= 0.0 { -1.0 } else { 1.0 },
+            )
+        } else if axis.y >= axis.z {
+            (
+                Vec2::new(position.x, position.z),
+                Vec3::X,
+                if normal.y >= 0.0 { -1.0 } else { 1.0 },
+            )
+        } else {
+            (
+                Vec2::new(position.x, position.y),
+                Vec3::X,
+                if normal.z >= 0.0 { 1.0 } else { -1.0 },
+            )
+        };
+
+        let tangent = (tangent_axis - normal * normal.dot(tangent_axis)).normalize_or_zero();
+        uvs.push((uv * TILES_PER_METER).to_array());
+        tangents.push([tangent.x, tangent.y, tangent.z, handedness]);
+    }
+
+    (uvs, tangents)
 }
 
 pub(crate) fn rebuild_dirty_chunks(

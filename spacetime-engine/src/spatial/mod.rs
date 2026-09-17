@@ -12,7 +12,7 @@ pub(crate) use devtools::SPATIAL_DEMAND_VISUALIZATION;
 pub use demand::{SpatialDemandScope, SpatialDemandSet, SpatialDemandSnapshot, SpatialDemandSource};
 pub use position::{
     SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale, UsfPosition,
-    UsfPositionError,
+    UsfPositionError, UsfChunkAddress,
 };
 
 use avian3d::prelude::Position;

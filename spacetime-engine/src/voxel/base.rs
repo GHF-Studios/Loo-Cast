@@ -107,6 +107,25 @@ impl ProceduralTerrain {
         }
     }
 
+    /// Temporary realization profile derived from Scale-0 semantic world state.
+    ///
+    /// This keeps the current voxel generator replaceable: geology/worldgen owns
+    /// the semantic parameters while `ProceduralTerrain` only turns them into a
+    /// reconstructible field until the richer volumetric realizer replaces it.
+    pub const fn configured(
+        seed: u32,
+        base_height: f32,
+        amplitude: f32,
+        frequency: f32,
+    ) -> Self {
+        Self {
+            seed,
+            base_height,
+            amplitude,
+            frequency,
+        }
+    }
+
     /// Existing bounded/local prototype terrain function.
     pub fn height(self, x: f32, z: f32) -> f32 {
         let p = Vec2::new(x, z) * self.frequency.max(f32::EPSILON);

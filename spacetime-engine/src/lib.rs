@@ -14,6 +14,7 @@ pub mod spatial;
 pub mod ui;
 pub mod view;
 pub mod voxel;
+pub mod worldgen;
 
 use bevy::prelude::*;
 pub use spacetime_engine_macros::{Inspect, conflict};
