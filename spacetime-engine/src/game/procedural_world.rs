@@ -1,4 +1,4 @@
-//! Bootstrap for the top-down scale-layer procedural-world test.
+//! Bootstrap for the top-down hierarchical scale-layer procedural-world test.
 
 use avian3d::prelude::LinearVelocity;
 use bevy::prelude::*;
@@ -10,8 +10,8 @@ use crate::{
     },
     physics::character::{CharacterDimensions, CharacterMotor},
     procedural_assets::ProceduralAssetLibrary,
-    spatial::{SpatialScale, UsfPosition},
-    voxel::VoxelQueryPosition,
+    spatial::{SpatialScale, UsfPosition, UsfScaleLayer},
+    voxel::{VoxelBase, VoxelQueryPosition, VoxelStreaming, VoxelWorld},
     worldgen::{PhenomenonRegistry, TemporalScale, WorldgenEpoch, WorldgenStore},
 };
 
@@ -47,28 +47,48 @@ fn spawn_procedural_world(
 ) {
     let epoch = WorldgenEpoch::present_day_bootstrap();
     let target = semantic_test_target();
-    let before = worldgen.len();
     let root = worldgen
         .bootstrap_root(target, TemporalScale::WORLDGEN_SNAPSHOT, epoch, &registry)
-        .expect("present-day root context must be addressable");
+        .expect("present-day root context must be canonically addressable");
+    let volume = volume_for_scale_context(&worldgen, root);
 
-    info!(
-        generated_scopes = worldgen.len() - before,
-        epoch_gyr = epoch.age_gyr(),
-        "bootstrapped Scale +35 USF context; finer contexts remain demand-driven"
-    );
+    let stack_entity = commands
+        .spawn((
+            Name::new("Procedural Hierarchical Scale Stack"),
+            ProceduralWorldRoot,
+            Transform::IDENTITY,
+            Visibility::Inherited,
+        ))
+        .id();
 
-    commands.spawn((
-        Name::new("Procedural Scale-Layer World Stack"),
-        ProceduralWorldRoot,
-        ProceduralScaleStack::new(
+    let root_world = commands
+        .spawn((
+            Name::new("USF Scale +35 Root Voxel World"),
+            ChildOf(stack_entity),
+            UsfScaleLayer::new(SpatialScale::MAX),
+            VoxelWorld::new_at(
+                VoxelBase::Volume(volume),
+                UsfPosition::zero(SpatialScale::MAX),
+            ),
+            VoxelStreaming::new(24, procedural_assets.cracked_clay.material.clone()),
+            Transform::IDENTITY,
+            Visibility::Inherited,
+        ))
+        .id();
+
+    commands
+        .entity(stack_entity)
+        .insert(ProceduralScaleStack::new(
             target,
             root,
             procedural_assets.cracked_clay.material.clone(),
-        ),
-        Transform::IDENTITY,
-        Visibility::Inherited,
-    ));
+            root_world,
+        ));
+
+    info!(
+        epoch_gyr = epoch.age_gyr(),
+        "bootstrapped visible Scale +35 voxel root; finer scales remain contextual refinements"
+    );
 }
 
 fn prepare_player(
@@ -104,7 +124,8 @@ fn prepare_player(
         .translated(Vec3::new(x, 0.0, z))
         .expect("root-layer spawn query must stay local");
     let ground = volume.reference_surface_height_at(world_origin, query);
-    let position = Vec3::new(x, ground + CharacterDimensions::HALF_HEIGHT + 0.20, z);
+
+    let position = Vec3::new(x, ground + CharacterDimensions::HALF_HEIGHT + 12.0, z);
 
     let (entity, mut transform, mut traveler, mut velocity, mut noclip) = player.into_inner();
     transform.translation = position;

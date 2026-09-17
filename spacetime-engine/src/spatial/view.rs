@@ -130,13 +130,17 @@ impl UsfViewFrame {
         self.scale.exponent() as f32 + self.zoom
     }
 
-    pub fn dominant_scale(&self) -> SpatialScale {
-        if self.scale == SpatialScale::MAX || self.zoom <= 0.5 {
+    pub fn interaction_scale(&self) -> SpatialScale {
+        if self.scale == SpatialScale::MAX || self.zoom <= CONTRIBUTION_EPSILON {
             self.scale
         } else {
             SpatialScale::new(self.scale.exponent() + 1)
-                .expect("non-maximum view scale has an upper neighbor")
+                .expect("fractional transition has a coarser interaction scale")
         }
+    }
+
+    pub fn dominant_scale(&self) -> SpatialScale {
+        self.interaction_scale()
     }
 
     /// Changes observer scale without changing canonical observer position.

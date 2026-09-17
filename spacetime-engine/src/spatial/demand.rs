@@ -1,10 +1,15 @@
-//! Generic spatial demand interpreted through USF simulation layers.
+//! Hierarchical multi-scale spatial demand.
+//!
+//! One source produces a sparse vertical spine of realization demand:
+//! the current interaction scale gets the full local window, every coarser
+//! ancestor remains resident with 10x less native extent per scale, and the
+//! next-finer scale grows as a refinement patch during a continuous transition.
 
 use bevy::prelude::*;
 
 use super::{
-    SpatialScale, UsfActiveScaleLayer, UsfPosition, UsfScaleLayer, UsfScaleLayerFrames,
-    UsfViewFrame,
+    SPATIAL_SCALE_MAX, SpatialScale, UsfActiveScaleLayer, UsfPosition, UsfScaleLayer,
+    UsfScaleLayerFrames, UsfViewFrame,
 };
 
 #[derive(Component, Debug, Clone, Copy, PartialEq)]
@@ -26,6 +31,7 @@ impl SpatialDemandSource {
             enabled: true,
         }
     }
+
     pub const fn half_extent_native(&self) -> Vec3 {
         self.half_extent_native
     }
@@ -35,13 +41,16 @@ impl SpatialDemandSource {
     pub const fn enabled(&self) -> bool {
         self.enabled
     }
+
     pub fn with_priority(mut self, priority: i32) -> Self {
         self.priority = priority;
         self
     }
+
     pub fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
+
     pub fn toggle(&mut self) -> bool {
         self.enabled = !self.enabled;
         self.enabled
@@ -72,6 +81,7 @@ impl SpatialDemandScope {
             priority,
         )
     }
+
     pub(crate) const fn at_scale(
         source: Entity,
         scale: SpatialScale,
@@ -87,6 +97,7 @@ impl SpatialDemandScope {
             priority,
         }
     }
+
     pub const fn source(self) -> Entity {
         self.source
     }
@@ -108,10 +119,12 @@ impl SpatialDemandScope {
 pub struct SpatialDemandSnapshot {
     scopes: Vec<SpatialDemandScope>,
 }
+
 impl SpatialDemandSnapshot {
     pub fn iter(&self) -> impl ExactSizeIterator<Item = SpatialDemandScope> + '_ {
         self.scopes.iter().copied()
     }
+
     pub fn len(&self) -> usize {
         self.scopes.len()
     }
@@ -155,54 +168,100 @@ fn collect_spatial_demand(
     mut snapshot: ResMut<SpatialDemandSnapshot>,
 ) {
     snapshot.scopes.clear();
+
+    let interaction_scale = view.interaction_scale();
     let active_scale = active.scale();
 
     for (entity, transform, source, source_layer) in &sources {
         if !source.enabled() {
             continue;
         }
+
         let source_scale = source_layer.map_or(active_scale, |layer| layer.scale());
         let source_absolute = frames.absolute(source_scale, transform.translation());
 
-        for demand in view.active_scale_demands().into_iter().flatten() {
-            let target_scale = demand.scale();
-            if target_scale < SpatialScale::ZERO || demand.contribution() <= 0.001 {
-                continue;
-            }
-
-            let target_absolute =
-                frames.convert_absolute(source_absolute, source_scale, target_scale);
-            let local = Vec3::new(
-                target_absolute.x as f32,
-                target_absolute.y as f32,
-                target_absolute.z as f32,
-            );
-            if !local.is_finite() {
-                continue;
-            }
-            let Ok(center) = UsfPosition::zero(target_scale).translated_native(local) else {
-                continue;
-            };
-
-            let half_extent = if target_scale == active_scale {
-                source.half_extent_native()
-            } else {
-                source.half_extent_native() * 0.5
-            };
-            snapshot.scopes.push(SpatialDemandScope::at_scale(
+        for raw_scale in interaction_scale.exponent()..=SPATIAL_SCALE_MAX {
+            let scale = SpatialScale::new(raw_scale).expect("validated USF scale");
+            let exponent_delta = interaction_scale.exponent() as i32 - raw_scale as i32;
+            let factor = 10.0_f32.powi(exponent_delta);
+            push_scope(
+                &mut snapshot,
                 entity,
-                target_scale,
-                center,
-                half_extent,
-                source.priority(),
-            ));
+                source,
+                source_absolute,
+                source_scale,
+                scale,
+                source.half_extent_native() * factor,
+                &frames,
+            );
+        }
+
+        let refinement_scale = view.scale();
+        if refinement_scale < interaction_scale {
+            let contribution = view.contribution(refinement_scale);
+            if contribution > 0.001 {
+                push_scope(
+                    &mut snapshot,
+                    entity,
+                    source,
+                    source_absolute,
+                    source_scale,
+                    refinement_scale,
+                    source.half_extent_native() * contribution,
+                    &frames,
+                );
+            }
         }
     }
+}
+
+fn push_scope(
+    snapshot: &mut SpatialDemandSnapshot,
+    entity: Entity,
+    source: &SpatialDemandSource,
+    source_absolute: bevy::math::DVec3,
+    source_scale: SpatialScale,
+    target_scale: SpatialScale,
+    half_extent_native: Vec3,
+    frames: &UsfScaleLayerFrames,
+) {
+    if half_extent_native.max_element() <= 0.001 {
+        return;
+    }
+
+    let target_absolute = frames.convert_absolute(source_absolute, source_scale, target_scale);
+    let local = Vec3::new(
+        target_absolute.x as f32,
+        target_absolute.y as f32,
+        target_absolute.z as f32,
+    );
+    if !local.is_finite() {
+        return;
+    }
+
+    let Ok(center) = UsfPosition::zero(target_scale).translated_native(local) else {
+        error!(
+            ?entity,
+            scale = %target_scale,
+            ?local,
+            "hierarchical spatial demand could not enter target scale chart"
+        );
+        return;
+    };
+
+    snapshot.scopes.push(SpatialDemandScope::at_scale(
+        entity,
+        target_scale,
+        center,
+        half_extent_native,
+        source.priority(),
+    ));
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn source_extent_is_bounded_and_toggleable() {
         let mut source = SpatialDemandSource::cuboid(Vec3::new(-5.0, 12.0, 20.0)).with_priority(7);
@@ -211,5 +270,12 @@ mod tests {
         assert!(source.enabled());
         assert!(!source.toggle());
         assert!(!source.enabled());
+    }
+
+    #[test]
+    fn ancestor_extent_drops_by_one_decade_per_scale() {
+        let half = Vec3::splat(96.0);
+        assert_eq!(half * 10.0_f32.powi(-1), Vec3::splat(9.6));
+        assert!((half.x * 10.0_f32.powi(-2) - 0.96).abs() < 1.0e-6);
     }
 }
