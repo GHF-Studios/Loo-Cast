@@ -15,7 +15,8 @@ use bevy::{
 };
 
 use crate::spatial::{
-    SpatialDemandScope, SpatialDemandSnapshot, SpatialScale, UsfScalePresentation, UsfSpatialFrame,
+    SpatialDemandScope, SpatialDemandSnapshot, UsfLocalScalePresentation, UsfScaleLayer,
+    UsfScaleLayerFrames,
 };
 
 use super::{
@@ -240,15 +241,14 @@ pub(crate) fn retire_orphaned_chunks(
 
 pub(crate) fn stream_voxel_chunks(
     mut commands: Commands,
-    frame: Res<UsfSpatialFrame>,
+    layer_frames: Res<UsfScaleLayerFrames>,
     demand_snapshot: Res<SpatialDemandSnapshot>,
     voxel_demand_sources: Query<(), With<VoxelMaterializationDemand>>,
-    mut worlds: Query<(Entity, &mut VoxelWorld, &mut VoxelStreaming)>,
+    mut worlds: Query<(Entity, &mut VoxelWorld, &mut VoxelStreaming, &UsfScaleLayer)>,
     generation_tasks: Query<(), With<VoxelAggregateGenerationTask>>,
     mut perf: ResMut<VoxelPerfStats>,
 ) {
-    let frame_origin = VoxelQueryPosition::new(*frame.origin());
-    let voxel_demands = demand_snapshot
+    let all_voxel_demands = demand_snapshot
         .iter()
         .filter(|scope| voxel_demand_sources.contains(scope.source()))
         .collect::<Vec<_>>();
@@ -256,7 +256,12 @@ pub(crate) fn stream_voxel_chunks(
     let mut generation_slots =
         per_stage_in_flight_limit().saturating_sub(generation_tasks.iter().count());
 
-    for (world_entity, mut world, mut streaming) in &mut worlds {
+    for (world_entity, mut world, mut streaming, layer) in &mut worlds {
+        let voxel_demands = all_voxel_demands
+            .iter()
+            .copied()
+            .filter(|demand| demand.scale() == layer.scale())
+            .collect::<Vec<_>>();
         let changed = match refresh_demand_plan(&world, &voxel_demands, &mut streaming, &mut perf) {
             Ok(changed) => changed,
             Err(_) => {
@@ -281,7 +286,7 @@ pub(crate) fn stream_voxel_chunks(
             .filter_map(|demand| {
                 demand
                     .center()
-                    .relative_native_bounded(frame.origin(), 1_000_000.0)
+                    .relative_native_bounded(world.origin(), 1_000_000.0)
                     .ok()
                     .map(|local| {
                         local.abs().max_element()
@@ -305,9 +310,10 @@ pub(crate) fn stream_voxel_chunks(
                 continue;
             }
 
-            let Ok(local_translation) = address
+            let world_origin = VoxelQueryPosition::new(*world.origin());
+            let Ok(absolute_translation) = address
                 .query_origin()
-                .relative_to(frame_origin, projection_bound)
+                .relative_to(world_origin, projection_bound)
             else {
                 // Demand remains semantic even if this first fixed-scale runtime
                 // projection cannot comfortably represent it. M8 generalizes
@@ -315,6 +321,14 @@ pub(crate) fn stream_voxel_chunks(
                 // canonical demand into a giant runtime coordinate.
                 continue;
             };
+            let absolute_translation = bevy::math::DVec3::new(
+                absolute_translation.x as f64,
+                absolute_translation.y as f64,
+                absolute_translation.z as f64,
+            );
+            let local_translation =
+                layer_frames.runtime_from_absolute(layer.scale(), absolute_translation);
+
             let Ok(scope) = VoxelMaterializationAggregateScope::containing(
                 &world,
                 address,
@@ -341,6 +355,7 @@ pub(crate) fn stream_voxel_chunks(
                     )),
                     VoxelChunkOf::new(world_entity),
                     address,
+                    *layer,
                     VoxelChunkPhysicsLod::default(),
                     Transform::from_translation(local_translation),
                     Visibility::Inherited,
@@ -349,9 +364,9 @@ pub(crate) fn stream_voxel_chunks(
 
             let presentation_entity = commands
                 .spawn((
-                    Name::new("Voxel Chunk S0 Presentation"),
+                    Name::new(format!("Voxel Chunk {} Presentation", layer.scale())),
                     ChildOf(chunk_entity),
-                    UsfScalePresentation::new(address.query_origin().usf(), SpatialScale::ZERO),
+                    UsfLocalScalePresentation::new(layer.scale()),
                     MeshMaterial3d(material.clone()),
                     Transform::IDENTITY,
                     Visibility::Inherited,

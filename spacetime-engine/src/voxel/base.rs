@@ -255,6 +255,8 @@ pub struct ProceduralVolume {
     surface: ProceduralTerrain,
     cave_strength: f32,
     structure_strength: f32,
+    parent_macro_seed: Option<u32>,
+    parent_macro_origin: f32,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -284,6 +286,35 @@ impl ProceduralVolume {
             surface: ProceduralTerrain::configured(seed, base_height, amplitude, frequency),
             cave_strength: cave_strength.clamp(0.0, 1.0),
             structure_strength: structure_strength.clamp(0.0, 1.0),
+            parent_macro_seed: None,
+            parent_macro_origin: 0.0,
+        }
+    }
+
+    pub fn scale_layer(universe_seed: u64, context_seed: u64, scale: SpatialScale) -> Self {
+        let hierarchy_seed = (universe_seed as u32) ^ ((universe_seed >> 32) as u32);
+        let detail_seed = scale_layer_seed(hierarchy_seed, scale);
+        let context = mix(
+            (context_seed as u32) ^ ((context_seed >> 32) as u32),
+            scale.exponent() as i32 as u32,
+        );
+        let unit = context as f32 / u32::MAX as f32;
+        let parent_macro_seed = if scale < SpatialScale::MAX {
+            Some(scale_layer_seed(
+                hierarchy_seed,
+                SpatialScale::new(scale.exponent() + 1).expect("non-root scale has a parent"),
+            ))
+        } else {
+            None
+        };
+        let parent_macro_origin =
+            parent_macro_seed.map_or(0.0, |seed| value_noise(Vec2::ZERO, seed));
+        Self {
+            surface: ProceduralTerrain::configured(detail_seed, -4.0, 3.0, 0.035),
+            cave_strength: 0.10 + unit * 0.24,
+            structure_strength: 0.35 + unit * 0.50,
+            parent_macro_seed,
+            parent_macro_origin,
         }
     }
 
@@ -310,7 +341,7 @@ impl ProceduralVolume {
 
     #[inline]
     fn sample_local(self, local: Vec3) -> VoxelSample {
-        let surface_height = self.surface.height(local.x, local.z);
+        let surface_height = self.surface_height_local(local.x, local.z);
         let base_frequency = self.surface.frequency.max(f32::EPSILON);
         let relief = self.surface.amplitude.max(1.0);
 
@@ -340,6 +371,16 @@ impl ProceduralVolume {
         )
     }
 
+    fn surface_height_local(self, x: f32, z: f32) -> f32 {
+        let mut height = self.surface.height(x, z);
+        if let Some(parent_seed) = self.parent_macro_seed {
+            let parent_point = Vec2::new(x, z) * (self.surface.frequency.max(f32::EPSILON) / 10.0);
+            let inherited = value_noise(parent_point, parent_seed) - self.parent_macro_origin;
+            height += self.surface.amplitude * 4.0 * inherited;
+        }
+        height
+    }
+
     /// Approximate exterior surface used only for spawn placement and coarse
     /// surface presentation. It is not the volumetric matter authority.
     pub fn reference_surface_height_at(
@@ -347,7 +388,11 @@ impl ProceduralVolume {
         world_origin: VoxelQueryPosition,
         point: VoxelQueryPosition,
     ) -> f32 {
-        self.surface.height_at(world_origin, point)
+        if let Ok(local) = point.relative_to(world_origin, TERRAIN_DIRECT_LOCAL_LIMIT) {
+            self.surface_height_local(local.x, local.z)
+        } else {
+            self.surface.height_at(world_origin, point)
+        }
     }
 
     pub fn sample(self, point: VoxelQueryPosition) -> VoxelSample {
@@ -619,6 +664,13 @@ fn semantic_corner_noise(point: VoxelQueryPosition, seed: u32) -> f32 {
     value = mix(value, canonical_f32_bits(position.offset().x));
     value = mix(value, canonical_f32_bits(position.offset().z));
     (value as f32 / u32::MAX as f32) * 2.0 - 1.0
+}
+
+fn scale_layer_seed(seed: u32, scale: SpatialScale) -> u32 {
+    mix(
+        seed ^ 0xA17E_5CA1,
+        (scale.exponent() as i32 - crate::spatial::SPATIAL_SCALE_MIN as i32) as u32,
+    )
 }
 
 fn mix(mut state: u32, input: u32) -> u32 {

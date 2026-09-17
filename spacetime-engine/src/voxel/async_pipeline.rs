@@ -16,7 +16,7 @@ use bevy::{
     tasks::{AsyncComputeTaskPool, Task, futures::check_ready},
 };
 
-use crate::spatial::UsfViewFrame;
+use crate::spatial::{UsfScaleLayer, UsfViewFrame};
 
 use super::{
     VoxelChunk, VoxelChunkPhysicsLod, VoxelChunkPresentation, VoxelMaterializationChunkAddress,
@@ -126,6 +126,7 @@ pub(crate) fn queue_dirty_chunk_builds(
             &mut VoxelChunk,
             &VoxelChunkPresentation,
             &VoxelMaterializationChunkAddress,
+            &UsfScaleLayer,
             &mut VoxelChunkPhysicsLod,
         ),
         Without<VoxelDerivedTask>,
@@ -140,19 +141,21 @@ pub(crate) fn queue_dirty_chunk_builds(
         return;
     }
 
-    for (entity, mut chunk, presentation, address, mut physics_lod) in &mut chunks {
+    for (entity, mut chunk, presentation, address, layer, mut physics_lod) in &mut chunks {
         if started >= DERIVED_TASK_START_BUDGET_PER_FRAME || started >= available {
             break;
         }
 
-        let wants_collider = address
-            .origin()
-            .relative_native_bounded(view.anchor(), PHYSICS_LOD_RADIUS_NATIVE + 24.0)
-            .map(|delta| {
-                let center = delta + Vec3::splat(super::MATERIALIZATION_CHUNK_SIZE as f32 * 0.5);
-                center.length() <= PHYSICS_LOD_RADIUS_NATIVE
-            })
-            .unwrap_or(false);
+        let wants_collider = layer.scale() == view.dominant_scale()
+            && address
+                .origin()
+                .relative_native_bounded(view.anchor(), PHYSICS_LOD_RADIUS_NATIVE + 24.0)
+                .map(|delta| {
+                    let center =
+                        delta + Vec3::splat(super::MATERIALIZATION_CHUNK_SIZE as f32 * 0.5);
+                    center.length() <= PHYSICS_LOD_RADIUS_NATIVE
+                })
+                .unwrap_or(false);
 
         if !wants_collider && physics_lod.0 {
             let mut entity_commands = commands.entity(entity);

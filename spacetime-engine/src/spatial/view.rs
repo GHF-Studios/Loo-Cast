@@ -7,7 +7,10 @@
 
 use bevy::prelude::*;
 
-use crate::spatial::{SpatialScale, UsfPosition, UsfSpatialFrame};
+use crate::spatial::{
+    SpatialScale, UsfActiveScaleLayer, UsfFollowsActiveScale, UsfPosition, UsfScaleLayer,
+    UsfScaleLayerFrames, UsfSpatialFrame,
+};
 
 const PRESENTATION_RELATIVE_BOUND: f32 = 1_000_000.0;
 const CONTRIBUTION_EPSILON: f32 = 0.001;
@@ -45,6 +48,10 @@ impl UsfLocalScalePresentation {
 
     pub const fn scale(self) -> SpatialScale {
         self.scale
+    }
+
+    pub(crate) fn set_scale(&mut self, scale: SpatialScale) {
+        self.scale = scale;
     }
 }
 
@@ -94,9 +101,9 @@ impl UsfViewScaleDemand {
 impl Default for UsfViewFrame {
     fn default() -> Self {
         Self {
-            anchor: UsfPosition::default(),
+            anchor: UsfPosition::zero(SpatialScale::MAX),
             runtime_anchor: Vec3::ZERO,
-            scale: SpatialScale::ZERO,
+            scale: SpatialScale::MAX,
             zoom: 0.0,
         }
     }
@@ -121,6 +128,15 @@ impl UsfViewFrame {
 
     pub fn continuous_exponent(&self) -> f32 {
         self.scale.exponent() as f32 + self.zoom
+    }
+
+    pub fn dominant_scale(&self) -> SpatialScale {
+        if self.scale == SpatialScale::MAX || self.zoom <= 0.5 {
+            self.scale
+        } else {
+            SpatialScale::new(self.scale.exponent() + 1)
+                .expect("non-maximum view scale has an upper neighbor")
+        }
     }
 
     /// Changes observer scale without changing canonical observer position.
@@ -242,16 +258,33 @@ pub(super) fn sync_view_anchor(
 /// representation frames can later promote this to an explicit projection frame.
 pub(super) fn project_local_scale_presentations(
     view: Res<UsfViewFrame>,
-    parents: Query<&Transform, Without<UsfLocalScalePresentation>>,
-    mut presentations: Query<(&UsfLocalScalePresentation, &ChildOf, &mut Transform)>,
+    active: Res<UsfActiveScaleLayer>,
+    frames: Res<UsfScaleLayerFrames>,
+    parents: Query<
+        (&Transform, &UsfScaleLayer, Option<&UsfFollowsActiveScale>),
+        Without<UsfLocalScalePresentation>,
+    >,
+    mut presentations: Query<(&mut UsfLocalScalePresentation, &ChildOf, &mut Transform)>,
 ) {
-    for (presentation, parent, mut transform) in &mut presentations {
-        let Ok(parent_transform) = parents.get(parent.0) else {
+    let active_scale = active.scale();
+    let observer_absolute = frames.absolute(active_scale, view.runtime_anchor());
+
+    for (mut presentation, parent, mut transform) in &mut presentations {
+        let Ok((parent_transform, layer, follows_active)) = parents.get(parent.0) else {
             continue;
         };
-        let factor = view.projection_factor(presentation.scale());
-        let desired_global =
-            view.runtime_anchor() + (parent_transform.translation - view.runtime_anchor()) * factor;
+        presentation.set_scale(layer.scale());
+
+        let observer_in_parent_chart = if follows_active.is_some() {
+            view.runtime_anchor()
+        } else {
+            let converted = frames.convert_absolute(observer_absolute, active_scale, layer.scale());
+            frames.runtime_from_absolute(layer.scale(), converted)
+        };
+
+        let factor = view.projection_factor(layer.scale());
+        let desired_global = view.runtime_anchor()
+            + (parent_transform.translation - observer_in_parent_chart) * factor;
         let delta = desired_global - parent_transform.translation;
         transform.translation = parent_transform.rotation.inverse() * delta;
         transform.scale = Vec3::splat(factor);

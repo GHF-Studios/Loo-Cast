@@ -533,6 +533,37 @@ mod tests {
     }
 
     #[test]
+    fn procedural_scale_layer_neighbors_share_identical_overlap_samples() {
+        let scale = crate::spatial::SpatialScale::MAX;
+        let origin = crate::spatial::UsfPosition::zero(scale);
+        let volume = crate::voxel::ProceduralVolume::scale_layer(
+            0x10_0CA57_5EED_2026,
+            0x1234_5678_9ABC_DEF0,
+            scale,
+        );
+        let world = VoxelWorld::new_at(VoxelBase::Volume(volume), origin);
+        let left_address = world
+            .chunk_address(VoxelChunkCoord::new(IVec3::ZERO))
+            .unwrap();
+        let right_address = world.chunk_address(VoxelChunkCoord::new(IVec3::X)).unwrap();
+        let left = world.materialize_chunk(left_address);
+        let right = world.materialize_chunk(right_address);
+
+        for world_x in [
+            MATERIALIZATION_CHUNK_SIZE as i32 - 1,
+            MATERIALIZATION_CHUNK_SIZE as i32,
+        ] {
+            for y in -1..=MATERIALIZATION_CHUNK_SIZE as i32 {
+                for z in -1..=MATERIALIZATION_CHUNK_SIZE as i32 {
+                    let left_local = IVec3::new(world_x, y, z);
+                    let right_local = IVec3::new(world_x - MATERIALIZATION_CHUNK_SIZE as i32, y, z);
+                    assert_eq!(left.sample(left_local), right.sample(right_local));
+                }
+            }
+        }
+    }
+
+    #[test]
     fn sparse_edits_survive_chunk_rematerialization() {
         let world_origin = UsfPosition::default();
         let center = query(Vec3::splat(8.0));

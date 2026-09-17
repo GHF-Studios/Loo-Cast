@@ -6,6 +6,7 @@
 
 mod demand;
 mod devtools;
+mod layer;
 mod position;
 mod view;
 
@@ -13,13 +14,14 @@ pub use demand::{
     SpatialDemandScope, SpatialDemandSet, SpatialDemandSnapshot, SpatialDemandSource,
 };
 pub(crate) use devtools::SPATIAL_DEMAND_VISUALIZATION;
+pub use layer::{UsfActiveScaleLayer, UsfFollowsActiveScale, UsfScaleLayer, UsfScaleLayerFrames};
 pub use position::{
     SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale, UsfChunkAddress,
     UsfPosition, UsfPositionError,
 };
 pub use view::{UsfLocalScalePresentation, UsfScalePresentation, UsfViewAnchor, UsfViewFrame};
 
-use avian3d::prelude::Position;
+use avian3d::prelude::{LinearVelocity, Position};
 use bevy::{prelude::*, transform::TransformSystems};
 
 use crate::ecs::{UsfLogicalProjection, UsfManifestationOf};
@@ -47,7 +49,7 @@ pub struct UsfSpatialFrame {
 impl Default for UsfSpatialFrame {
     fn default() -> Self {
         Self {
-            origin: UsfPosition::default(),
+            origin: UsfPosition::zero(SpatialScale::MAX),
             rebase_count: 0,
             last_shift: Vec3::ZERO,
         }
@@ -88,6 +90,8 @@ pub struct UsfSpatialPlugin;
 impl Plugin for UsfSpatialPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<UsfSpatialFrame>()
+            .init_resource::<UsfActiveScaleLayer>()
+            .init_resource::<UsfScaleLayerFrames>()
             .add_message::<UsfOriginRebased>()
             .configure_sets(
                 PostUpdate,
@@ -105,7 +109,9 @@ impl Plugin for UsfSpatialPlugin {
             )
             .add_systems(
                 PostUpdate,
-                sync_semantic_positions.in_set(UsfSpatialSet::SyncSemantic),
+                (sync_active_scale_layer, sync_semantic_positions)
+                    .chain()
+                    .in_set(UsfSpatialSet::SyncSemantic),
             )
             .add_systems(PostUpdate, rebase_local_frame.in_set(UsfSpatialSet::Rebase))
             .add_systems(
@@ -125,6 +131,57 @@ impl Plugin for UsfSpatialPlugin {
         devtools::configure(app);
         view::configure(app);
     }
+}
+
+fn sync_active_scale_layer(
+    view: Res<UsfViewFrame>,
+    mut active: ResMut<UsfActiveScaleLayer>,
+    frames: Res<UsfScaleLayerFrames>,
+    mut frame: ResMut<UsfSpatialFrame>,
+    mut participants: Query<
+        (
+            &mut Transform,
+            &mut UsfScaleLayer,
+            Option<&mut Position>,
+            Option<&mut LinearVelocity>,
+        ),
+        (With<UsfFollowsActiveScale>, Without<ChildOf>),
+    >,
+) {
+    let target = view.dominant_scale();
+    let previous = active.scale();
+    if target == previous {
+        return;
+    }
+
+    for (mut transform, mut layer, position, velocity) in &mut participants {
+        let from = layer.scale();
+        let translated = frames.reinterpret_runtime(transform.translation, from, target);
+        transform.translation = translated;
+        layer.set_scale(target);
+
+        if let Some(mut position) = position {
+            position.0 = translated;
+        }
+        if let Some(mut velocity) = velocity {
+            let factor = 10.0_f32.powi(from.exponent() as i32 - target.exponent() as i32);
+            velocity.0 *= factor;
+        }
+    }
+
+    let origin = frames.origin(target);
+    let origin = Vec3::new(origin.x as f32, origin.y as f32, origin.z as f32);
+    frame.origin = UsfPosition::zero(target)
+        .translated_native(origin)
+        .expect("scale-layer chart origin must remain representable");
+    frame.last_shift = Vec3::ZERO;
+    active.set_scale(target);
+
+    info!(
+        previous_scale = %previous,
+        active_scale = %target,
+        "USF active simulation layer changed"
+    );
 }
 
 fn sync_semantic_positions(
@@ -151,12 +208,14 @@ fn sync_semantic_positions(
 }
 
 fn rebase_local_frame(
+    active: Res<UsfActiveScaleLayer>,
+    mut layer_frames: ResMut<UsfScaleLayerFrames>,
     mut frame: ResMut<UsfSpatialFrame>,
     mut transforms: ParamSet<(
         Query<&Transform, (With<UsfSpatialAnchor>, With<UsfLogicalProjection>)>,
-        Query<&mut Transform, Without<ChildOf>>,
+        Query<(&mut Transform, Option<&UsfScaleLayer>), Without<ChildOf>>,
     )>,
-    mut physics_positions: Query<&mut Position>,
+    mut physics_positions: Query<(&mut Position, Option<&UsfScaleLayer>)>,
     mut rebased: MessageWriter<UsfOriginRebased>,
 ) {
     let anchor_translation = {
@@ -183,17 +242,21 @@ fn rebase_local_frame(
     frame.rebase_count = frame.rebase_count.wrapping_add(1);
     frame.last_shift = shift;
 
-    // Transform hierarchy roots move; children inherit the same chart shift.
-    for mut transform in &mut transforms.p1() {
-        transform.translation -= shift;
+    let active_scale = active.scale();
+
+    for (mut transform, layer) in &mut transforms.p1() {
+        if layer.is_none_or(|layer| layer.scale() == active_scale) {
+            transform.translation -= shift;
+        }
     }
 
-    // Avian stores global physics positions separately from Bevy Transform.
-    // Shift every physics position exactly once regardless of hierarchy.
-    for mut position in &mut physics_positions {
-        position.0 -= shift;
+    for (mut position, layer) in &mut physics_positions {
+        if layer.is_none_or(|layer| layer.scale() == active_scale) {
+            position.0 -= shift;
+        }
     }
 
+    layer_frames.apply_rebase(active_scale, shift);
     rebased.write(UsfOriginRebased { local_shift: shift });
 }
 

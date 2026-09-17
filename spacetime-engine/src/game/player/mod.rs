@@ -38,7 +38,10 @@ use crate::{
         },
         topology::{KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeer},
     },
-    spatial::{SpatialDemandSource, UsfPosition, UsfSpatialAnchor, UsfViewAnchor},
+    spatial::{
+        SpatialDemandSource, SpatialScale, UsfFollowsActiveScale, UsfPosition, UsfScaleLayer,
+        UsfSpatialAnchor, UsfViewAnchor,
+    },
     view::{PrimaryGameView, PrimaryViewPresentation},
     voxel::VoxelMaterializationDemand,
 };
@@ -131,8 +134,9 @@ fn spawn_player(
         .spawn((
             Name::new("Player Entity"),
             UsfEntity,
-            UsfPosition::from_scale0_local(position)
-                .expect("initial player position must fit USF spatial root"),
+            UsfPosition::zero(SpatialScale::MAX)
+                .translated_native(position)
+                .expect("initial player position must fit the root simulation layer"),
             Health::new(100.0),
             ThermalBody::ambient(8_000.0, 25.0),
             ThermalInjury::human_like(),
@@ -148,6 +152,8 @@ fn spawn_player(
                 UsfManifestationAuthority,
                 UsfLogicalProjection,
                 UsfSpatialAnchor,
+                UsfScaleLayer::new(SpatialScale::MAX),
+                UsfFollowsActiveScale,
                 ThermalSpatialSample,
                 SpatialDemandSource::cuboid(PLAYER_SPATIAL_DEMAND_HALF_EXTENT)
                     .with_priority(PLAYER_SPATIAL_DEMAND_PRIORITY),
@@ -177,6 +183,8 @@ fn spawn_player(
             Name::new("Player Split Manifestation"),
             UsfManifestationOf(semantic_player),
             UsfLogicalProjection,
+            UsfScaleLayer::new(SpatialScale::MAX),
+            UsfFollowsActiveScale,
             SpatialSplitPeer { authority: player },
             ActiveCollisionHooks::FILTER_PAIRS,
             ThermalSpatialSample,
@@ -214,6 +222,8 @@ fn spawn_player(
         Name::new("Player Camera"),
         PlayerCamera::default(),
         UsfViewAnchor,
+        UsfScaleLayer::new(SpatialScale::MAX),
+        UsfFollowsActiveScale,
         PrimaryGameView,
         PortalView,
         Camera3d::default(),
