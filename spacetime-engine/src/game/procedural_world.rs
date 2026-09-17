@@ -42,10 +42,10 @@ fn spawn_procedural_world(
         Name::new("Procedural World"),
         ProceduralWorldRoot,
         VoxelWorld::new(VoxelBase::terrain(WORLD_SEED)),
-        // Two chunks horizontally cover the Voxel Hand's 64 m reach. Keep one
-        // chunk vertically above/below the viewer so terrain remains available
-        // while noclipping over modest elevation changes. Fresh work is spread
-        // across frames rather than generating the full window at once.
+        // Keep this as a deliberately small chunk-count window while the decimal
+        // base materialization skeleton lands. Restoring a particular metric
+        // radius belongs to aggregate processing / spatial-demand policy rather
+        // than making each new 10³ base chunk carry that responsibility.
         VoxelStreaming::new(
             player.into_inner(),
             IVec3::new(2, 1, 2),

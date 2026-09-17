@@ -4,12 +4,22 @@ use bevy::prelude::{Component, IVec3, UVec3, Vec3};
 
 use super::{SignedDistance, VoxelBounds, VoxelEdit, VoxelMaterialId, VoxelSample};
 
-/// Number of logical samples owned by one chunk axis.
-pub const CHUNK_SIZE: u32 = 32;
+/// Logical cell extent of one base voxel materialization chunk axis.
+///
+/// This decimal `10³` extent is representation structure, not a USF Chunk.
+pub const MATERIALIZATION_CHUNK_SIZE: u32 = 10;
+
+/// Transitional compatibility name for code that has not yet adopted the
+/// materialization-specific terminology. New code should use
+/// [`MATERIALIZATION_CHUNK_SIZE`].
+#[doc(hidden)]
+pub const CHUNK_SIZE: u32 = MATERIALIZATION_CHUNK_SIZE;
+
 /// Neighbor samples retained around the logical chunk for seamless extraction.
-pub const SAMPLE_PADDING: u32 = 1;
-pub const SAMPLE_SIZE: u32 = CHUNK_SIZE + SAMPLE_PADDING * 2;
-pub const SAMPLE_COUNT: usize = (SAMPLE_SIZE * SAMPLE_SIZE * SAMPLE_SIZE) as usize;
+/// Padding is private representation storage and is not part of chunk identity.
+pub(crate) const SAMPLE_PADDING: u32 = 1;
+pub(crate) const SAMPLE_SIZE: u32 = MATERIALIZATION_CHUNK_SIZE + SAMPLE_PADDING * 2;
+const SAMPLE_COUNT: usize = (SAMPLE_SIZE * SAMPLE_SIZE * SAMPLE_SIZE) as usize;
 
 const RAY_STEP: f32 = 0.25;
 const RAY_REFINEMENT_STEPS: usize = 6;
@@ -35,8 +45,10 @@ pub struct VoxelRayHit {
 
 /// Dense sampled volume used as the active working representation.
 ///
-/// `origin` is the world-space integer coordinate of the first logical sample.
-/// Stored samples additionally cover one neighboring coordinate on every side.
+/// `origin` is the transitional `VoxelWorld`-local integer coordinate of the
+/// first logical sample. Stored samples additionally cover one neighboring
+/// coordinate on every side; that `12³` storage shape is an extraction detail,
+/// while this chunk owns the half-open logical extent `[0, 10)³`.
 /// Distance and material fields are kept separate so meshing can stream the SDF
 /// without touching material data or repacking interleaved samples.
 #[derive(Component, Debug, Clone)]
@@ -113,7 +125,7 @@ impl VoxelChunk {
         let padding = Vec3::splat(SAMPLE_PADDING as f32);
         VoxelBounds::new(
             self.origin.as_vec3() - padding,
-            self.origin.as_vec3() + Vec3::splat(CHUNK_SIZE as f32),
+            self.origin.as_vec3() + Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32),
         )
     }
 
@@ -122,7 +134,7 @@ impl VoxelChunk {
         Some(self.sample_at_index(index))
     }
 
-    /// Trilinearly samples the scalar field at an arbitrary world-space point.
+    /// Trilinearly samples the scalar field at an arbitrary `VoxelWorld`-local point.
     pub fn sample_distance(&self, world: Vec3) -> Option<f32> {
         let base = world.floor().as_ivec3();
         let fraction = world - base.as_vec3();
@@ -196,7 +208,7 @@ impl VoxelChunk {
     pub fn apply_edit(&mut self, edit: VoxelEdit) -> VoxelChunkEditResult {
         let padding = IVec3::splat(SAMPLE_PADDING as i32);
         let stored_min = self.origin - padding;
-        let stored_max = self.origin + IVec3::splat(CHUNK_SIZE as i32);
+        let stored_max = self.origin + IVec3::splat(MATERIALIZATION_CHUNK_SIZE as i32);
         let bounds = edit.influence_bounds();
         let edit_min = bounds.min.ceil().as_ivec3().max(stored_min);
         let edit_max = bounds.max.floor().as_ivec3().min(stored_max);
@@ -344,10 +356,10 @@ mod tests {
         });
 
         assert!(chunk.sample(IVec3::splat(-1)).is_some());
-        assert!(chunk.sample(IVec3::splat(CHUNK_SIZE as i32)).is_some());
+        assert!(chunk.sample(IVec3::splat(MATERIALIZATION_CHUNK_SIZE as i32)).is_some());
         assert!(chunk.sample(IVec3::splat(-2)).is_none());
         assert!(chunk
-            .sample(IVec3::splat(CHUNK_SIZE as i32 + 1))
+            .sample(IVec3::splat(MATERIALIZATION_CHUNK_SIZE as i32 + 1))
             .is_none());
     }
 

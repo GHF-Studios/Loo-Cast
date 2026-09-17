@@ -1,4 +1,7 @@
-use std::fmt::{Display, Formatter};
+use std::{
+    fmt::{Display, Formatter},
+    hash::{Hash, Hasher},
+};
 
 use bevy::prelude::*;
 
@@ -110,6 +113,31 @@ impl UsfPosition {
         Ok(self)
     }
 
+    /// Translates by exact whole units native to the current leaf scale.
+    ///
+    /// Unlike [`Self::translated_native`], this path never first collapses a
+    /// potentially huge displacement into one floating-point vector. It is used
+    /// when canonical identities are derived from integer-aligned representation
+    /// addresses such as decimal voxel materialization chunks.
+    pub fn translated_whole_native(
+        mut self,
+        delta: [i64; 3],
+    ) -> Result<Self, UsfPositionError> {
+        let chunk_size = USF_CHUNK_NATIVE_SIZE as i64;
+
+        for (axis, delta) in delta.into_iter().enumerate() {
+            let chunk_carry = delta.div_euclid(chunk_size);
+            let local_delta = delta.rem_euclid(chunk_size) as f32;
+
+            self.add_chunk_carry(axis, chunk_carry)?;
+            let offset = axis_f32(self.offset, axis) + local_delta;
+            set_axis_f32(&mut self.offset, axis, offset);
+        }
+
+        self.normalize()?;
+        Ok(self)
+    }
+
     pub fn nonzero_digits(&self) -> impl Iterator<Item = (SpatialScale, IVec3)> + '_ {
         (self.leaf_scale.exponent()..=SPATIAL_SCALE_MAX)
             .rev()
@@ -185,8 +213,13 @@ impl UsfPosition {
             let scale = SpatialScale::new(raw_scale).expect("leaf scale is valid");
             let index = scale.index_from_top();
             let current = axis_i32(self.digits[index], axis) as i64;
-            let total = current + carry;
-            let parent_carry = (total + 5).div_euclid(USF_CHILD_CHUNKS_PER_AXIS as i64);
+            let total = current
+                .checked_add(carry)
+                .ok_or(UsfPositionError::TranslationTooLarge)?;
+            let parent_carry = total
+                .checked_add(5)
+                .ok_or(UsfPositionError::TranslationTooLarge)?
+                .div_euclid(USF_CHILD_CHUNKS_PER_AXIS as i64);
             let digit = total - parent_carry * USF_CHILD_CHUNKS_PER_AXIS as i64;
 
             debug_assert!(digit >= USF_BALANCED_DIGIT_MIN as i64);
@@ -207,6 +240,33 @@ impl UsfPosition {
             }
             raw_scale += 1;
         }
+    }
+}
+
+// `UsfPosition` constructors and translation APIs reject non-finite offsets and
+// normalize them into one canonical range, so semantic positions have a valid
+// equivalence relation even though their bounded leaf offset is stored as f32.
+impl Eq for UsfPosition {}
+
+impl Hash for UsfPosition {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for digit in &self.digits {
+            digit.x.hash(state);
+            digit.y.hash(state);
+            digit.z.hash(state);
+        }
+        self.leaf_scale.exponent().hash(state);
+        canonical_f32_bits(self.offset.x).hash(state);
+        canonical_f32_bits(self.offset.y).hash(state);
+        canonical_f32_bits(self.offset.z).hash(state);
+    }
+}
+
+fn canonical_f32_bits(value: f32) -> u32 {
+    if value == 0.0 {
+        0
+    } else {
+        value.to_bits()
     }
 }
 
@@ -270,6 +330,18 @@ mod tests {
         assert_eq!(position.offset().x, 0.0);
         assert_eq!(position.digit(SpatialScale::ZERO).x, 0);
         assert_eq!(position.digit(SpatialScale::new(1).unwrap()).x, 1);
+    }
+
+    #[test]
+    fn whole_native_translation_matches_bounded_float_translation() {
+        let exact = UsfPosition::default()
+            .translated_whole_native([1_280, -600, 42])
+            .unwrap();
+        let bounded = UsfPosition::default()
+            .translated_native(Vec3::new(1_280.0, -600.0, 42.0))
+            .unwrap();
+
+        assert_eq!(exact, bounded);
     }
 
     #[test]

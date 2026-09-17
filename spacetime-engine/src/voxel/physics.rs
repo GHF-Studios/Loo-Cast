@@ -8,7 +8,7 @@
 use avian3d::{collision::collider::TrimeshFlags, prelude::Collider};
 use bevy::prelude::*;
 
-use super::{CHUNK_SIZE, VoxelChunk, mesh::VoxelSurface};
+use super::{MATERIALIZATION_CHUNK_SIZE, VoxelChunk, mesh::VoxelSurface};
 
 /// Small thickness around the otherwise hollow terrain trimesh. This reduces
 /// tunnelling and visible/contact jitter for character and rigid-body motion.
@@ -70,7 +70,7 @@ fn owned_triangles(surface: &VoxelSurface) -> Vec<[u32; 3]> {
 }
 
 fn owns_point(point: Vec3) -> bool {
-    let maximum = Vec3::splat(CHUNK_SIZE as f32);
+    let maximum = Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32);
     point.cmpge(Vec3::ZERO).all() && point.cmplt(maximum).all()
 }
 
@@ -80,7 +80,7 @@ mod tests {
 
     #[test]
     fn chunk_ownership_is_half_open_and_unambiguous_at_seams() {
-        let size = CHUNK_SIZE as f32;
+        let size = MATERIALIZATION_CHUNK_SIZE as f32;
         assert!(owns_point(Vec3::new(size - 0.001, 1.0, 1.0)));
         assert!(!owns_point(Vec3::new(size, 1.0, 1.0)));
         assert!(owns_point(Vec3::ZERO));

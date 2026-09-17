@@ -13,7 +13,11 @@ use super::{VoxelMaterialId, VoxelSample};
 /// distance data for smooth extraction while giving each edit finite bounds.
 pub const EDIT_INFLUENCE_MARGIN: f32 = 2.0;
 
-/// Axis-aligned world-space bounds used to address voxel storage.
+/// Axis-aligned bounds in the current `VoxelWorld`-local compatibility chart.
+///
+/// Pass B replaces this flat addressing authority with a canonical semantic
+/// scope; keeping it explicit here prevents this bounded local type from being
+/// mistaken for universe-wide identity during Pass A.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct VoxelBounds {
     pub min: Vec3,
@@ -42,7 +46,8 @@ impl VoxelBounds {
     }
 }
 
-/// Analytic shape used by a voxel edit.
+/// Analytic shape used by a voxel edit. Brush centers are likewise expressed
+/// in the current bounded `VoxelWorld`-local compatibility chart until Pass B.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum VoxelBrush {
     Sphere { center: Vec3, radius: f32 },

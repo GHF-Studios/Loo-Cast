@@ -12,9 +12,13 @@ use fast_surface_nets::{
     surface_nets,
 };
 
-use super::{SAMPLE_PADDING, SAMPLE_SIZE, VoxelChunk, physics};
+use super::{
+    VoxelChunk,
+    chunk::{SAMPLE_PADDING, SAMPLE_SIZE},
+    physics,
+};
 
-type ChunkShape = ConstShape3u32<34, 34, 34>;
+type ChunkShape = ConstShape3u32<SAMPLE_SIZE, SAMPLE_SIZE, SAMPLE_SIZE>;
 
 /// One extracted surface shared only as an intermediate between independently
 /// owned render and physics caches.
@@ -44,8 +48,6 @@ pub(crate) fn empty_mesh() -> Mesh {
 }
 
 pub(crate) fn extract_chunk_surface(chunk: &VoxelChunk) -> VoxelSurface {
-    debug_assert_eq!(SAMPLE_SIZE, 34);
-
     let mut output = SurfaceNetsBuffer::default();
     surface_nets(
         chunk.distances(),

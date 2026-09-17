@@ -127,50 +127,59 @@ pub(crate) fn stream_voxel_chunks(
             continue;
         };
 
-        // Voxel coordinates remain local to the VoxelWorld root during M7.
+        // Query/generation coordinates remain local to the VoxelWorld root during
+        // M7.1 Pass A; canonical materialization identity is resolved separately.
         // Floating-origin rebases move both viewer and world root, so convert the
         // viewer back into that stable world-local chart before addressing bricks.
         let viewer_in_world = viewer.translation - world_transform.translation;
         let center = VoxelChunkCoord::containing(viewer_in_world);
-        let desired = desired_chunk_coords(center, streaming.radius);
-        let desired_set = desired.iter().copied().collect::<HashSet<_>>();
+        let desired = desired_chunk_coords(center, streaming.radius)
+            .into_iter()
+            .filter_map(|coord| match world.chunk_address(coord) {
+                Ok(address) => Some((coord, address)),
+                Err(error) => {
+                    error!(?coord, ?error, "voxel materialization address overflow");
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+        let desired_set = desired
+            .iter()
+            .map(|(_, address)| *address)
+            .collect::<HashSet<_>>();
 
         // Dense chunks and in-flight chunk tasks are disposable. Drop either
-        // when they leave the active window; authoritative edits remain in the
-        // VoxelWorld and will be replayed if that coordinate returns later.
+        // when their canonical materialization address leaves the active window;
+        // authoritative edits remain in the VoxelWorld and will be replayed if
+        // that address returns later.
         let stale = world
             .chunk_entries()
-            .filter(|(coord, _)| !desired_set.contains(coord))
+            .filter(|(address, _)| !desired_set.contains(address))
             .collect::<Vec<_>>();
 
-        for (coord, entity) in stale {
-            world.remove_chunk(coord);
+        for (address, entity) in stale {
+            world.remove_chunk(address);
             commands.entity(entity).despawn();
         }
 
         // Reserve nearest missing coordinates first, but only start a bounded
         // number of expensive generation tasks each frame. The returned Task is
         // retained on the placeholder entity; dropping that entity cancels work
-        // that streamed out before completion.
+        // that streamed out before completion. The local coordinate remains only
+        // the Pass-B compatibility input to generation/projection; reservation
+        // identity is already canonical.
         let mut requested = 0;
-        for coord in desired {
-            if world.chunk_entity(coord).is_some() {
+        for (coord, address) in desired {
+            if world.chunk_entity(address).is_some() {
                 continue;
             }
 
-            let address = match world.chunk_address(coord) {
-                Ok(address) => address,
-                Err(error) => {
-                    error!(?coord, ?error, "voxel brick address overflow");
-                    continue;
-                }
-            };
             let generation = VoxelChunkGenerationTask::spawn(world.chunk_recipe(coord));
             let value = coord.0;
             let chunk_entity = commands
                 .spawn((
                     Name::new(format!(
-                        "Voxel Chunk ({}, {}, {})",
+                        "Voxel Materialization Chunk ({}, {}, {})",
                         value.x, value.y, value.z
                     )),
                     VoxelChunkOf::new(world_entity, coord),
@@ -188,7 +197,7 @@ pub(crate) fn stream_voxel_chunks(
             commands.entity(chunk_entity).remove::<Mesh3d>();
 
             commands.entity(world_entity).add_child(chunk_entity);
-            assert!(world.insert_chunk(coord, chunk_entity).is_none());
+            assert!(world.insert_chunk(address, chunk_entity).is_none());
 
             requested += 1;
             if requested >= streaming.load_budget_per_frame {

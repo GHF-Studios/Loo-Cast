@@ -1,8 +1,8 @@
 # USF Spatial / World Generation Roadmap
 
-**Status:** continuity-grade architectural working plan  
-**Current implementation baseline:** `GHF-Studios/Loo-Cast` commit `1bff71b4f1a10d246bce948408815d6cba23da0b`  
-**Current phase:** M7 complete; M7.1a canonical voxel-brick projection proof complete; next pass should ambitiously finish the canonical decimal materialization + spatial-demand substrate.
+**Status:** continuity-grade architectural working plan<br>
+**Current implementation baseline:** `GHF-Studios/Loo-Cast` commit `64e93af51410237d5b89b48a41c45dcfe554c1ea`<br>
+**Current phase:** M7 complete; M7.1a complete; M7.1b Pass A decimal materialization core complete; Pass B canonical voxel queries/edits is next. Spatial demand remains deferred to M7.2 / Pass D.
 
 This document is intentionally narrower than a complete Universal Simulation Framework specification. Its purpose is to preserve the spatial, realization, generation, and near-term implementation decisions that must survive context loss, handoff to another agent, or future refactoring.
 
@@ -185,17 +185,16 @@ Problems:
 
 The replacement should preserve the useful dense-field machinery while moving the structural skeleton to decimal boundaries.
 
-## 3.2 Exact sample/cell convention is still an implementation question
+## 3.2 Current base materialization sample/cell convention
 
-Do not silently conflate:
+Pass A resolves the near-term convention without making padding semantic:
 
-- `10³` logical cells,
-- `10³` lattice samples,
-- padded storage required by Surface Nets.
+- one base materialization chunk owns the half-open logical cell extent `[0, 10)³`,
+- the current dense Surface Nets working allocation copies one neighboring lattice sample on every side,
+- the current private storage shape is therefore `12 × 12 × 12` samples,
+- that `12³` allocation is an extraction/cache detail and is **not** materialization identity.
 
-For example, a logical `10³` cell/chunk may need copied neighbor samples around it. The padding/storage shape is private implementation detail and may be larger than `10³`.
-
-The semantic/materialization address remains decimal regardless of padding.
+The canonical materialization address remains decimal `10³` regardless of padding. Future representations may choose different private working storage without changing that address.
 
 ---
 
@@ -575,7 +574,7 @@ Purpose: remove the remaining flat/local-coordinate assumptions from voxel mater
 - brick-local render/collision geometry,
 - local entity Transform as runtime projection.
 
-### M7.1b — Decimal voxel/materialization skeleton — NEXT
+### M7.1b — Decimal voxel/materialization skeleton — IN PROGRESS (PASS A COMPLETE)
 
 Ambitious pass:
 
@@ -600,6 +599,17 @@ Acceptance:
 - base `10³` chunks are individually addressable without requiring one runtime object per possible address,
 - aggregate blocks can process many chunks as one work unit,
 - no `32`-based semantic assumption remains.
+
+Pass A implementation state:
+
+- `MATERIALIZATION_CHUNK_SIZE = 10` is the logical base extent; the old `CHUNK_SIZE` name remains only as a hidden compatibility alias,
+- Surface Nets padding/storage is private (`1` copied sample each side, currently `12³` storage),
+- `VoxelMaterializationChunkAddress` is canonical USF identity for one base materialization chunk,
+- `VoxelWorld`'s sparse reserved/materialized registry is keyed by canonical materialization address rather than `VoxelChunkCoord`,
+- canonical addresses are derived with exact whole-native-unit carry and do not round-trip large lattice displacements through one `f32 Vec3`,
+- async field generation, dense chunks, Surface Nets, local render meshes, local colliders, and existing streaming machinery remain intact,
+- `VoxelChunkCoord`, flat `VoxelBounds`, brush centers, edit indexing, and generation sampling are explicitly transitional `VoxelWorld`-local compatibility seams for Pass B,
+- aggregate processing and spatial demand have **not** been pulled forward.
 
 ## M7.2 — Spatial demand / chunkloading test harness
 
@@ -688,17 +698,20 @@ Then stop and reassess before attempting the full universe simulation roadmap.
 
 If this conversation/context disappears, resume here.
 
-**Baseline:** `1bff71b4f1a10d246bce948408815d6cba23da0b`.
+**Baseline:** `64e93af51410237d5b89b48a41c45dcfe554c1ea`.
 
-### Pass A — finish decimal materialization core
+### Pass A — finish decimal materialization core — COMPLETE
 
-1. Replace `CHUNK_SIZE = 32` structural semantics with logical decimal `10`.
-2. Rename/clarify types where necessary so `UsfChunk` and voxel/materialization chunk cannot be confused.
-3. Keep Surface Nets padding private.
-4. Introduce canonical materialization-chunk address derived from USF spatial identity.
-5. Do not allocate the entire decimal hierarchy.
+Implemented in this pass:
 
-### Pass B — canonical voxel queries/edits
+1. Logical decimal `10³` base materialization extent.
+2. Explicit materialization terminology distinct from USF Chunk identity.
+3. Private Surface Nets padding/storage (`12³` currently).
+4. Canonical `VoxelMaterializationChunkAddress` derived from USF spatial identity without a large-float round trip.
+5. Sparse canonical materialization registry; no eager decimal hierarchy allocation.
+6. Existing async generation / dense-field / Surface Nets / render / collider pipeline preserved.
+
+### Pass B — canonical voxel queries/edits — NEXT
 
 1. Introduce semantic/canonical voxel query position.
 2. Make brushes/edit centers canonical + bounded local shape parameters.
@@ -776,7 +789,7 @@ These should be answered by implementation pressure, not speculative framework-b
 
 1. Final Rust name/API for generic spatial attachment scope.
 2. Final Rust name: `SpatialInterestSource` vs `SpatialDemandSource` or another term.
-3. Exact logical cell/sample convention for the decimal voxel `10³` chunk.
+3. Whether future voxel representations need alternate private sampling/storage conventions beyond the current `10³` logical-cell + padded-lattice base representation.
 4. Whether `Megachunk` / `Hyperchunk` are useful public concepts or merely debug/working names for generic aggregate extents.
 5. How realization planners choose aggregation extent from CPU/GPU/memory/activity constraints.
 6. How many representation classes the initial demand API should distinguish.

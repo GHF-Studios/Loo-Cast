@@ -9,11 +9,12 @@ use super::{
     world::{VoxelChunkCoord, chunk_coord_range},
 };
 
-/// Ordered authoritative edit log plus a derived chunk-addressed acceleration index.
+/// Ordered authoritative edit log plus a transitional local-chunk acceleration index.
 ///
 /// `edits` remains the canonical ordering for persistence and edit semantics.
-/// `by_chunk` stores only indices into that log, so spatial lookup can evolve or
-/// be rebuilt without changing the authoritative representation.
+/// `by_chunk` stores only indices into that log and is explicitly Pass-B debt:
+/// it can be rebuilt around canonical materialization/scope keys without changing
+/// authoritative edit ordering or the dense materialization machinery.
 #[derive(Debug, Clone, Default)]
 pub struct VoxelModificationLayer {
     edits: Vec<VoxelEdit>,
@@ -82,7 +83,7 @@ mod tests {
     use bevy::prelude::{IVec3, Vec3};
 
     use super::*;
-    use crate::voxel::{CHUNK_SIZE, VoxelBrush, VoxelMaterialId};
+    use crate::voxel::{MATERIALIZATION_CHUNK_SIZE, VoxelBrush, VoxelMaterialId};
 
     #[test]
     fn chunk_index_returns_only_local_edits_in_global_order() {
@@ -145,7 +146,10 @@ mod tests {
     fn seam_edit_is_indexed_for_both_padded_chunk_domains() {
         let mut layer = VoxelModificationLayer::default();
         let edit = VoxelEdit::Add {
-            brush: VoxelBrush::sphere(Vec3::new(CHUNK_SIZE as f32, 8.0, 8.0), 1.0),
+            brush: VoxelBrush::sphere(
+                Vec3::new(MATERIALIZATION_CHUNK_SIZE as f32, 8.0, 8.0),
+                1.0,
+            ),
             material: VoxelMaterialId::ROCK,
         };
         layer.push(edit);

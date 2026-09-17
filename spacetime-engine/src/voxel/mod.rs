@@ -17,14 +17,15 @@ mod world;
 
 pub use base::{ProceduralTerrain, VoxelBase};
 pub use chunk::{
-    CHUNK_SIZE, SAMPLE_COUNT, SAMPLE_PADDING, SAMPLE_SIZE, VoxelChunk, VoxelChunkEditResult,
-    VoxelRayHit,
+    CHUNK_SIZE, MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelChunkEditResult, VoxelRayHit,
 };
 pub use edit::{EDIT_INFLUENCE_MARGIN, VoxelBounds, VoxelBrush, VoxelEdit};
 pub use field::{SignedDistance, VoxelMaterialId, VoxelSample};
 pub use modification::VoxelModificationLayer;
 pub use streaming::VoxelStreaming;
-pub use world::{VoxelChunkAddress, VoxelChunkCoord, VoxelChunkOf, VoxelWorld};
+pub use world::{
+    VoxelChunkAddress, VoxelChunkCoord, VoxelChunkOf, VoxelMaterializationChunkAddress, VoxelWorld,
+};
 
 use bevy::prelude::*;
 
