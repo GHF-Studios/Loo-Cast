@@ -377,7 +377,10 @@ mod tests {
 
     #[test]
     fn raycast_finds_a_generated_sphere() {
-        let center = Vec3::splat(8.0);
+        // Keep the analytic surface inside this chunk's sampled/interpolatable
+        // domain. With the decimal 10³ base chunk, a radius-3 sphere centered
+        // at 8 would have its front surface at z=11, outside local storage.
+        let center = Vec3::splat(5.0);
         let chunk = VoxelChunk::generate(|point| {
             let distance = point.distance(center) - 3.0;
             VoxelSample::new(
@@ -391,8 +394,8 @@ mod tests {
         });
 
         let hit = chunk
-            .raycast(Vec3::new(8.0, 8.0, 16.0), Vec3::NEG_Z, 20.0)
+            .raycast(Vec3::new(5.0, 5.0, 9.0), Vec3::NEG_Z, 20.0)
             .expect("ray should hit sphere");
-        assert!((hit.position.z - 11.0).abs() < 0.1);
+        assert!((hit.position.z - 8.0).abs() < 0.1);
     }
 }
