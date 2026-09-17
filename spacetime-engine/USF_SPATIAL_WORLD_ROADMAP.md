@@ -1,8 +1,8 @@
 # USF Spatial / World Generation Roadmap
 
 **Status:** continuity-grade architectural working plan<br>
-**Current implementation baseline:** `GHF-Studios/Loo-Cast` commit `64e93af51410237d5b89b48a41c45dcfe554c1ea` plus the applied M7.1b Passes A-B patches<br>
-**Current phase:** M7 complete; M7.1a complete; M7.1b Passes A-B complete; Pass C aggregate processing is next. Spatial demand remains deferred to M7.2 / Pass D.
+**Current implementation baseline:** `GHF-Studios/Loo-Cast` commit `94127a606362849cc3d35012fbc728620991d7c2` plus the applied M7.1b Pass C patch<br>
+**Current phase:** M7 complete; M7.1 complete; M7.2 / Pass D spatial demand is next.
 
 This document is intentionally narrower than a complete Universal Simulation Framework specification. Its purpose is to preserve the spatial, realization, generation, and near-term implementation decisions that must survive context loss, handoff to another agent, or future refactoring.
 
@@ -565,7 +565,7 @@ Non-goals remain:
 - cross-scale generation,
 - final persistence.
 
-## M7.1 — Canonical decimal materialization
+## M7.1 — Canonical decimal materialization — COMPLETE
 
 Purpose: remove the remaining flat/local-coordinate assumptions from voxel materialization and establish the spatial attachment substrate.
 
@@ -576,7 +576,7 @@ Purpose: remove the remaining flat/local-coordinate assumptions from voxel mater
 - brick-local render/collision geometry,
 - local entity Transform as runtime projection.
 
-### M7.1b — Decimal voxel/materialization skeleton — IN PROGRESS (PASSES A-B COMPLETE)
+### M7.1b — Decimal voxel/materialization skeleton — COMPLETE
 
 Ambitious pass:
 
@@ -625,9 +625,20 @@ Pass B implementation state:
 - materialization entities carry direct bounded runtime projection transforms and explicit `VoxelChunkOf` ownership; origin rebasing moves only that projection, not the canonical address,
 - `VoxelChunkCoord` remains only as a hidden compatibility adapter for nearby authored/test offsets and is no longer query/edit/streaming/generation authority,
 - the existing procedural terrain field is preserved in the ordinary bounded gameplay region; a temporary canonical semantic fallback avoids giant float coordinates during extreme fixed-scale travel,
-- aggregate processing and spatial demand are still **not** pulled forward.
+- at the Pass B handoff, aggregate processing and spatial demand were still **not** pulled forward.
 
-## M7.2 — Spatial demand / chunkloading test harness
+Pass C implementation state:
+
+- `VoxelMaterializationAggregateScope` is a voxel-representation-local aligned processing scope, not canonical USF identity and not a persistent registry object,
+- decimal extents currently prove `100³` (10 base chunks per axis) and `1000³` (100 base chunks per axis), aligned relative to each `VoxelWorld` materialization grid,
+- field generation currently groups only already-requested base chunks sharing a `100³` scope; deriving a scope never expands it into all possible contained chunks,
+- one aggregate generation task can process several immutable per-chunk semantic recipes and publishes each result back to its original canonical `10³` address,
+- aggregate generation batches are currently capped at four base chunks to retain useful worker parallelism and first-load latency; both that cap and the current `100³` choice are processing policy rather than spatial law,
+- `1000³` support is currently an alignment/composition proof, not a giant dense allocation and not a public `Hyperchunk` hierarchy,
+- sparse materialization identity, dense chunk storage, Surface Nets meshes, and colliders remain per base materialization,
+- spatial demand remains deferred to M7.2 / Pass D.
+
+## M7.2 — Spatial demand / chunkloading test harness — NEXT
 
 Purpose: prove that realization is demand-driven and independent from Phenomenon authority.
 
@@ -714,7 +725,7 @@ Then stop and reassess before attempting the full universe simulation roadmap.
 
 If this conversation/context disappears, resume here.
 
-**Baseline:** `64e93af51410237d5b89b48a41c45dcfe554c1ea` with the M7.1b Passes A-B patches applied.
+**Baseline:** `94127a606362849cc3d35012fbc728620991d7c2` with the M7.1b Pass C patch applied.
 
 ### Pass A — finish decimal materialization core — COMPLETE
 
@@ -739,14 +750,18 @@ Implemented in this pass:
 6. Canonical viewer-to-materialization streaming path; `VoxelChunkCoord` removed from the authoritative streaming/query/edit path.
 7. Direct runtime projection of materialization entities, preserving canonical address identity across origin rebases.
 
-### Pass C — aggregate processing — NEXT
+### Pass C — aggregate processing — COMPLETE
 
-1. Let work scheduling group many `10³` chunks into an aligned aggregate.
-2. Working decimal aggregate sizes begin with `100³` and `1000³`.
-3. Aggregation is a work/cache choice, not semantic identity.
-4. Different subsystems may use different overlapping aggregation extents.
+Implemented in this pass:
 
-### Pass D — spatial demand
+1. Added voxel-local aligned aggregate processing scopes without creating another semantic chunk hierarchy.
+2. Proved decimal `100³` and `1000³` scope alignment/composition over canonical base materialization addresses.
+3. Changed async field-generation scheduling so one work item can process several requested `10³` chunks while each result keeps independent canonical identity/storage.
+4. Kept aggregation sparse: a work scope batches only chunks already requested by the current realization policy and never materializes the full aggregate implicitly.
+5. Preserved per-base-chunk dense data, Surface Nets, render meshes, colliders, edit catch-up, and canonical registry identity.
+6. Left aggregate extent/batch-size selection as representation policy rather than freezing `Megachunk` / `Hyperchunk` as universal semantic types.
+
+### Pass D — spatial demand — NEXT
 
 1. Add generic demand-source component/API.
 2. Add player-toggleable demand.

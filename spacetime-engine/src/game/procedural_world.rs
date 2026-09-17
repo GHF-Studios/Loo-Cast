@@ -44,10 +44,9 @@ fn spawn_procedural_world(
         Name::new("Procedural World"),
         ProceduralWorldRoot,
         VoxelWorld::new_at(VoxelBase::terrain(WORLD_SEED), *frame.origin()),
-        // Keep this as a deliberately small chunk-count window while the decimal
-        // base materialization skeleton lands. Restoring a particular metric
-        // radius belongs to aggregate processing / spatial-demand policy rather
-        // than making each new 10³ base chunk carry that responsibility.
+        // Keep this as a deliberately small chunk-count window. Aggregate
+        // processing changes work granularity, not requested spatial extent; a
+        // larger/metric realization window belongs to M7.2 spatial-demand policy.
         VoxelStreaming::new(
             player.into_inner(),
             IVec3::new(2, 1, 2),

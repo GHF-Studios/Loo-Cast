@@ -4,6 +4,7 @@
 //! only materialized working caches; rendering and physics are disposable
 //! representations rebuilt from those chunks as the active window streams.
 
+mod aggregate;
 mod async_pipeline;
 mod base;
 mod chunk;
