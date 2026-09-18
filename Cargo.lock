@@ -5508,7 +5508,9 @@ dependencies = [
  "inventory",
  "ron",
  "serde",
+ "serde_json",
  "spacetime-engine-macros",
+ "vapor_telemetry",
 ]
 
 [[package]]
@@ -6051,6 +6053,15 @@ name = "valuable"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65"
+
+[[package]]
+name = "vapor_telemetry"
+version = "0.5.0"
+source = "git+https://github.com/GHF-Studios/Vapor#b6e02fc776ad9a1bcba33dbaedc35dc3a817ec05"
+dependencies = [
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "variadics_please"
