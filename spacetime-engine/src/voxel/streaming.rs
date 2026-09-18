@@ -21,7 +21,8 @@ use crate::spatial::{
 
 use super::{
     MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelChunkOf, VoxelChunkPhysicsLod,
-    VoxelChunkPresentation, VoxelMaterializationChunkAddress, VoxelQueryPosition, VoxelWorld,
+    VoxelChunkPresentation, VoxelFineCacheOnly, VoxelMaterializationChunkAddress,
+    VoxelQueryPosition, VoxelWorld,
     aggregate::{VoxelMaterializationAggregateExtent, VoxelMaterializationAggregateScope},
     perf::{VoxelPerfStats, per_stage_in_flight_limit},
     world::VoxelChunkRecipe,
@@ -186,9 +187,7 @@ pub(crate) fn finish_chunk_generation(
         }
 
         let Ok(world) = worlds.get(generation.world) else {
-            for output in generation.ready.drain(..) {
-                commands.entity(output.entity).despawn();
-            }
+            generation.ready.clear();
             commands.entity(task_entity).despawn();
             continue;
         };
@@ -380,6 +379,7 @@ pub(crate) fn stream_voxel_chunks(
                     VoxelChunkOf::new(world_entity),
                     address,
                     *layer,
+                    VoxelFineCacheOnly,
                     VoxelChunkPhysicsLod::default(),
                     Transform::from_translation(local_translation),
                     Visibility::Inherited,
@@ -393,7 +393,7 @@ pub(crate) fn stream_voxel_chunks(
                     UsfLocalScalePresentation::new(layer.scale()),
                     MeshMaterial3d(material.clone()),
                     Transform::IDENTITY,
-                    Visibility::Inherited,
+                    Visibility::Hidden,
                 ))
                 .id();
             commands

@@ -38,6 +38,11 @@ use crate::spatial::SpatialDemandSet;
 #[derive(Component, Debug, Clone, Copy)]
 pub(crate) struct VoxelChunkPresentation(pub Entity);
 
+/// Dense 1-native-unit working cache. Until a real fine/coarse stitcher exists,
+/// the coarse tier owns visible geometry and collision.
+#[derive(Component, Debug, Clone, Copy, Default)]
+pub(crate) struct VoxelFineCacheOnly;
+
 /// Physics representation LOD for one dense chunk. Rendering and semantic
 /// materialization are independent from whether a local collider is needed.
 #[derive(Component, Debug, Clone, Copy, Default)]

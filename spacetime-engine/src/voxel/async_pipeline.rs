@@ -19,7 +19,8 @@ use bevy::{
 use crate::spatial::{UsfScaleLayer, UsfViewFrame};
 
 use super::{
-    VoxelChunk, VoxelChunkPhysicsLod, VoxelChunkPresentation, VoxelMaterializationChunkAddress,
+    VoxelChunk, VoxelChunkPhysicsLod, VoxelChunkPresentation, VoxelFineCacheOnly,
+    VoxelMaterializationChunkAddress,
     mesh::{self, VoxelSurface},
     perf::{VoxelPerfStats, per_stage_in_flight_limit},
     physics,
@@ -129,7 +130,7 @@ pub(crate) fn queue_dirty_chunk_builds(
             &UsfScaleLayer,
             &mut VoxelChunkPhysicsLod,
         ),
-        Without<VoxelDerivedTask>,
+        (Without<VoxelDerivedTask>, Without<VoxelFineCacheOnly>),
     >,
     in_flight: Query<(), With<VoxelDerivedTask>>,
     mut perf: ResMut<VoxelPerfStats>,

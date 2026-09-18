@@ -11,21 +11,24 @@ use std::{
     time::Instant,
 };
 
+use avian3d::prelude::{Collider, CollisionMargin, RigidBody};
 use bevy::{
     prelude::*,
     tasks::{AsyncComputeTaskPool, Task, futures::check_ready},
 };
 
 use crate::spatial::{
-    SpatialDemandScope, SpatialDemandSnapshot, UsfLocalScalePresentation, UsfPosition,
-    UsfScaleLayer, UsfScaleLayerFrames,
+    SpatialDemandScope, SpatialDemandSnapshot, UsfActiveScaleLayer, UsfLocalScalePresentation,
+    UsfPosition, UsfScaleLayer, UsfScaleLayerFrames,
 };
 
 use super::{
-    MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelChunkOf, VoxelMaterializationDemand,
-    VoxelQueryPosition, VoxelStreaming, VoxelWorld,
+    MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelChunkOf, VoxelMaterialId,
+    VoxelMaterializationDemand, VoxelQueryPosition, VoxelSample, VoxelStreaming, VoxelWorld,
+    base::PreparedVoxelBase,
     mesh::{self, VoxelSurface},
     perf::{VoxelPerfStats, per_stage_in_flight_limit},
+    physics,
 };
 
 const COARSE_SAMPLE_SPACING: f32 = 10.0;
@@ -51,10 +54,12 @@ struct CoarseDemand {
 pub(crate) struct VoxelCoarseState {
     resident: HashMap<CoarseKey, Entity>,
     material: Option<Handle<StandardMaterial>>,
+    collision_authority: bool,
 }
 
 struct CoarseOutput {
     surface: Option<VoxelSurface>,
+    collider: Option<Collider>,
     build_micros: u64,
 }
 
@@ -68,25 +73,20 @@ pub(crate) struct VoxelCoarseTask {
 
 pub(crate) fn ensure_coarse_states(
     mut commands: Commands,
-    mut materials: ResMut<Assets<StandardMaterial>>,
     worlds: Query<(Entity, &VoxelStreaming), (With<VoxelWorld>, Without<VoxelCoarseState>)>,
 ) {
     for (entity, streaming) in &worlds {
-        let mut material = materials
-            .get(streaming.material())
-            .cloned()
-            .unwrap_or_default();
-        material.depth_bias = -64.0;
-
         commands.entity(entity).insert(VoxelCoarseState {
             resident: HashMap::new(),
-            material: Some(materials.add(material)),
+            material: Some(streaming.material().clone()),
+            collision_authority: false,
         });
     }
 }
 
 pub(crate) fn stream_coarse_chunks(
     mut commands: Commands,
+    active: Res<UsfActiveScaleLayer>,
     layer_frames: Res<UsfScaleLayerFrames>,
     demands: Res<SpatialDemandSnapshot>,
     voxel_sources: Query<(), With<VoxelMaterializationDemand>>,
@@ -103,6 +103,14 @@ pub(crate) fn stream_coarse_chunks(
         .saturating_sub(in_flight.iter().count());
 
     for (world_entity, world, layer, mut state) in &mut worlds {
+        let collision_authority = layer.scale() == active.scale();
+        if state.collision_authority != collision_authority {
+            for (_, entity) in state.resident.drain() {
+                commands.entity(entity).despawn();
+            }
+            state.collision_authority = collision_authority;
+        }
+
         let layer_demands = all_demands
             .iter()
             .copied()
@@ -176,13 +184,21 @@ pub(crate) fn stream_coarse_chunks(
             let task = AsyncComputeTaskPool::get().spawn(async move {
                 let started = Instant::now();
                 let chunk = VoxelChunk::generate(|sample_point| {
-                    sampler.sample(sample_point * COARSE_SAMPLE_SPACING)
+                    filtered_coarse_sample(sampler, sample_point * COARSE_SAMPLE_SPACING)
                 });
                 let surface = chunk
                     .has_surface_transition()
                     .then(|| mesh::extract_chunk_surface(&chunk));
+                let collider = if collision_authority {
+                    surface.as_ref().and_then(|surface| {
+                        physics::build_scaled_surface_collider(surface, COARSE_SAMPLE_SPACING)
+                    })
+                } else {
+                    None
+                };
                 CoarseOutput {
                     surface,
+                    collider,
                     build_micros: started.elapsed().as_micros() as u64,
                 }
             });
@@ -221,21 +237,45 @@ pub(crate) fn publish_coarse_chunks(
         };
 
         let Ok((state, layer)) = worlds.get(build.world) else {
-            commands.entity(build.chunk_entity).despawn();
             commands.entity(task_entity).despawn();
             continue;
         };
 
         if state.resident.get(&build.key).copied() != Some(build.chunk_entity) {
-            commands.entity(build.chunk_entity).despawn();
             commands.entity(task_entity).despawn();
             continue;
         }
 
         perf.record_coarse(output.build_micros);
 
-        if let (Some(surface), Some(material)) = (output.surface, state.material.as_ref()) {
+        {
+            let mut chunk_commands = commands.entity(build.chunk_entity);
+            if state.collision_authority {
+                if let Some(collider) = output.collider {
+                    chunk_commands.insert((
+                        RigidBody::Static,
+                        collider,
+                        CollisionMargin(physics::VOXEL_COLLISION_MARGIN * COARSE_SAMPLE_SPACING),
+                    ));
+                } else {
+                    chunk_commands.remove::<RigidBody>();
+                    chunk_commands.remove::<Collider>();
+                    chunk_commands.remove::<CollisionMargin>();
+                }
+            } else {
+                chunk_commands.remove::<RigidBody>();
+                chunk_commands.remove::<Collider>();
+                chunk_commands.remove::<CollisionMargin>();
+            }
+        }
+
+        if let (Some(mut surface), Some(material)) = (output.surface, state.material.as_ref()) {
             if !surface.positions.is_empty() && !surface.indices.is_empty() {
+                for uv in &mut surface.uvs {
+                    uv[0] *= COARSE_SAMPLE_SPACING;
+                    uv[1] *= COARSE_SAMPLE_SPACING;
+                }
+
                 commands.spawn((
                     Name::new(format!("Voxel Coarse {} Presentation", layer.scale())),
                     ChildOf(build.chunk_entity),
@@ -254,6 +294,35 @@ pub(crate) fn publish_coarse_chunks(
         commands.entity(task_entity).despawn();
         published += 1;
     }
+}
+
+fn filtered_coarse_sample(sampler: PreparedVoxelBase, point: Vec3) -> VoxelSample {
+    const CENTER_WEIGHT: f32 = 0.40;
+    const NEIGHBOR_WEIGHT: f32 = 0.10;
+    const FILTER_RADIUS: f32 = COARSE_SAMPLE_SPACING * 0.30;
+
+    let center = sampler.sample(point);
+    let mut distance = center.distance.0 * CENTER_WEIGHT;
+
+    for offset in [
+        Vec3::X * FILTER_RADIUS,
+        Vec3::NEG_X * FILTER_RADIUS,
+        Vec3::Y * FILTER_RADIUS,
+        Vec3::NEG_Y * FILTER_RADIUS,
+        Vec3::Z * FILTER_RADIUS,
+        Vec3::NEG_Z * FILTER_RADIUS,
+    ] {
+        distance += sampler.sample(point + offset).distance.0 * NEIGHBOR_WEIGHT;
+    }
+
+    VoxelSample::new(
+        distance,
+        if distance < 0.0 {
+            VoxelMaterialId::ROCK
+        } else {
+            VoxelMaterialId::VOID
+        },
+    )
 }
 
 fn desired_coarse_chunks(
