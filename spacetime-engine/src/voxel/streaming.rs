@@ -233,13 +233,17 @@ pub(crate) fn retire_orphaned_tasks(
     }
 }
 
-pub(crate) fn stream_voxel_chunks(
+
+/// Reconciles active voxel materialization residency with the latest spatial
+/// demand snapshot.
+///
+/// This stage owns demand interpretation and hot/warm residency transitions. It
+/// does not spawn asynchronous generation work.
+pub(crate) fn refresh_voxel_residency(
     config: Res<EngineConfig>,
-    mut commands: Commands,
     demand_snapshot: Res<SpatialDemandSnapshot>,
     voxel_demand_sources: Query<(), With<VoxelMaterializationDemand>>,
-    mut worlds: Query<(Entity, &mut VoxelWorld, &mut VoxelStreaming, &UsfScaleLayer)>,
-    generation_tasks: Query<(), With<VoxelAggregateGenerationTask>>,
+    mut worlds: Query<(&mut VoxelWorld, &mut VoxelStreaming, &UsfScaleLayer)>,
     mut perf: ResMut<VoxelPerfStats>,
     mut all_voxel_demands: Local<Vec<SpatialDemandScope>>,
     mut voxel_demands: Local<Vec<SpatialDemandScope>>,
@@ -251,15 +255,9 @@ pub(crate) fn stream_voxel_chunks(
             .filter(|scope| voxel_demand_sources.contains(scope.source())),
     );
 
-    let mut generation_slots =
-        per_stage_in_flight_limit().saturating_sub(generation_tasks.iter().count());
-    let streaming_config = config.voxel.streaming;
-    let generation_extent = VoxelMaterializationAggregateExtent::from_base_chunks_per_axis(
-        streaming_config.generation_group_base_chunks_per_axis,
-    )
-    .expect("validated engine config must produce a generation grouping extent");
+    let warm_limit = config.voxel.streaming.warm_inactive_materialization_limit;
 
-    for (world_entity, mut world, mut streaming, layer) in &mut worlds {
+    for (mut world, mut streaming, layer) in &mut worlds {
         voxel_demands.clear();
         voxel_demands.extend(
             all_voxel_demands
@@ -277,93 +275,148 @@ pub(crate) fn stream_voxel_chunks(
         };
 
         if changed {
-            let stale = world
-                .materializations()
-                .active_addresses()
-                .filter(|address| !streaming.cached_desired_set.contains(address))
-                .collect::<Vec<_>>();
-            for address in stale {
-                world.materializations_mut().deactivate(address);
-            }
+            reconcile_materialization_residency(&mut world, &mut streaming, warm_limit);
+        }
+    }
+}
 
-            // Warm dense entries become active immediately and avoid generation.
-            let desired = streaming
-                .cached_desired_set
-                .iter()
-                .copied()
-                .collect::<Vec<_>>();
-            for address in desired {
-                world.materializations_mut().reactivate(address);
-            }
+/// Schedules asynchronous generation for demanded addresses that are not already
+/// backed by warm resident data.
+///
+/// Global worker-slot accounting remains shared across voxel worlds so one world
+/// cannot independently saturate the compute pool.
+pub(crate) fn schedule_voxel_generation(
+    config: Res<EngineConfig>,
+    mut commands: Commands,
+    mut worlds: Query<(Entity, &mut VoxelWorld, &mut VoxelStreaming)>,
+    generation_tasks: Query<(), With<VoxelAggregateGenerationTask>>,
+) {
+    let streaming_config = config.voxel.streaming;
+    let generation_extent = VoxelMaterializationAggregateExtent::from_base_chunks_per_axis(
+        streaming_config.generation_group_base_chunks_per_axis,
+    )
+    .expect("validated engine config must produce a generation grouping extent");
 
-            world
-                .materializations_mut()
-                .trim_inactive(streaming_config.warm_inactive_materialization_limit);
+    let mut generation_slots =
+        per_stage_in_flight_limit().saturating_sub(generation_tasks.iter().count());
 
-            streaming
-                .pending_desired
-                .retain(|demanded| !world.materializations().is_active(demanded.address));
+    for (world_entity, mut world, mut streaming) in &mut worlds {
+        if generation_slots == 0 {
+            break;
         }
 
-        let load_budget = streaming.load_budget_per_frame;
-        let mut requested = 0;
-        let mut aggregate_batches = Vec::<PendingAggregateGeneration>::new();
+        let batches = plan_generation_batches(
+            &mut world,
+            &mut streaming,
+            generation_extent,
+            generation_slots,
+            streaming_config.max_chunks_per_generation_task,
+        );
+        let scheduled = batches.len();
 
-        while requested < load_budget && generation_slots > 0 {
-            let Some(demanded) = streaming.pending_desired.pop_front() else {
-                break;
-            };
-            let address = demanded.address;
-
-            if world.materializations().is_active(address) {
-                continue;
-            }
-
-            let Ok(scope) =
-                VoxelMaterializationAggregateScope::containing(&world, address, generation_extent)
-            else {
-                error!(
-                    ?address,
-                    "voxel aggregate scope could not be derived canonically"
-                );
-                continue;
-            };
-
-            if !generation_batch_can_accept(
-                &aggregate_batches,
-                scope,
-                generation_slots,
-                streaming_config.max_chunks_per_generation_task,
-            ) {
-                streaming.pending_desired.push_front(demanded);
-                break;
-            }
-
-            let Some(token) = world.materializations_mut().reserve_generation(address) else {
-                continue;
-            };
-            let recipe = world.chunk_recipe(address);
-            push_generation_job(
-                &mut aggregate_batches,
-                scope,
-                streaming_config.max_chunks_per_generation_task,
-                VoxelGenerationJob {
-                    address,
-                    token,
-                    recipe,
-                },
-            );
-            requested += 1;
-        }
-
-        for batch in aggregate_batches {
+        for batch in batches {
             commands.spawn((
                 Name::new("Voxel Aggregate Generation"),
                 VoxelAggregateGenerationTask::spawn(world_entity, batch.scope, batch.jobs),
             ));
-            generation_slots = generation_slots.saturating_sub(1);
         }
+
+        generation_slots = generation_slots.saturating_sub(scheduled);
     }
+}
+
+fn reconcile_materialization_residency(
+    world: &mut VoxelWorld,
+    streaming: &mut VoxelStreaming,
+    warm_inactive_materialization_limit: usize,
+) {
+    let stale = world
+        .materializations()
+        .active_addresses()
+        .filter(|address| !streaming.cached_desired_set.contains(address))
+        .collect::<Vec<_>>();
+    for address in stale {
+        world.materializations_mut().deactivate(address);
+    }
+
+    // Warm dense entries become active immediately and avoid regeneration.
+    let desired = streaming
+        .cached_desired_set
+        .iter()
+        .copied()
+        .collect::<Vec<_>>();
+    for address in desired {
+        world.materializations_mut().reactivate(address);
+    }
+
+    world
+        .materializations_mut()
+        .trim_inactive(warm_inactive_materialization_limit);
+
+    streaming
+        .pending_desired
+        .retain(|demanded| !world.materializations().is_active(demanded.address));
+}
+
+fn plan_generation_batches(
+    world: &mut VoxelWorld,
+    streaming: &mut VoxelStreaming,
+    generation_extent: VoxelMaterializationAggregateExtent,
+    max_batches: usize,
+    max_chunks_per_batch: usize,
+) -> Vec<PendingAggregateGeneration> {
+    let load_budget = streaming.load_budget_per_frame;
+    let mut requested = 0;
+    let mut batches = Vec::<PendingAggregateGeneration>::new();
+
+    while requested < load_budget && max_batches > 0 {
+        let Some(demanded) = streaming.pending_desired.pop_front() else {
+            break;
+        };
+        let address = demanded.address;
+
+        if world.materializations().is_active(address) {
+            continue;
+        }
+
+        let Ok(scope) =
+            VoxelMaterializationAggregateScope::containing(world, address, generation_extent)
+        else {
+            error!(
+                ?address,
+                "voxel aggregate generation scope could not be derived canonically"
+            );
+            continue;
+        };
+
+        if !generation_batch_can_accept(
+            &batches,
+            scope,
+            max_batches,
+            max_chunks_per_batch,
+        ) {
+            streaming.pending_desired.push_front(demanded);
+            break;
+        }
+
+        let Some(token) = world.materializations_mut().reserve_generation(address) else {
+            continue;
+        };
+        let recipe = world.chunk_recipe(address);
+        push_generation_job(
+            &mut batches,
+            scope,
+            max_chunks_per_batch,
+            VoxelGenerationJob {
+                address,
+                token,
+                recipe,
+            },
+        );
+        requested += 1;
+    }
+
+    batches
 }
 
 fn refresh_demand_plan(

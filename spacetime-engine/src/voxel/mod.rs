@@ -15,7 +15,7 @@ mod mesh;
 mod modification;
 mod perf;
 mod physics;
-mod render_aggregate;
+mod manifestation;
 mod store;
 mod streaming;
 mod world;
@@ -40,14 +40,16 @@ impl Plugin for VoxelPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<perf::VoxelPerfStats>()
             .init_resource::<perf::FixedStepProbe>()
-            .init_resource::<render_aggregate::VoxelRenderAggregateRegistry>()
+            .init_resource::<manifestation::VoxelRenderAggregateRegistry>()
             .add_systems(
                 Update,
-                streaming::retire_orphaned_tasks.before(streaming::stream_voxel_chunks),
-            )
-            .add_systems(
-                Update,
-                streaming::stream_voxel_chunks.after(SpatialDemandSet::Collect),
+                (
+                    streaming::retire_orphaned_tasks,
+                    streaming::refresh_voxel_residency,
+                    streaming::schedule_voxel_generation,
+                )
+                    .chain()
+                    .after(SpatialDemandSet::Collect),
             )
             .add_systems(FixedUpdate, perf::count_fixed_step)
             .add_systems(
@@ -58,7 +60,11 @@ impl Plugin for VoxelPlugin {
                     streaming::finish_chunk_generation,
                     async_pipeline::publish_completed_chunk_builds,
                     async_pipeline::queue_dirty_chunk_builds,
-                    render_aggregate::sync_render_aggregates,
+                    manifestation::retire_removed_world_manifestations,
+                    manifestation::sync_manifestation_grouping_policy,
+                    manifestation::sync_manifestation_membership,
+                    manifestation::rebuild_dirty_manifestations,
+                    manifestation::sync_manifestation_collision_residency,
                     perf::sample_fixed_steps,
                     perf::report_voxel_perf,
                 )

@@ -1,8 +1,10 @@
-//! Same-resolution aggregate voxel presentation and collision manifestations.
+//! Runtime manifestations derived from store-owned voxel surface caches.
 //!
 //! The 10-native-unit materialization atom remains independently addressable in
 //! the [`VoxelWorld`] store. This module groups cached atom surfaces into a much
-//! smaller number of Bevy/Avian manifestations. No semantic LOD is introduced.
+//! smaller number of Bevy/Avian manifestations. Rendering and collision are
+//! consumers of the same grouping membership, but remain separate lifecycle
+//! stages. No semantic LOD is introduced.
 
 use std::{
     collections::{HashMap, HashSet},
@@ -93,77 +95,96 @@ pub(crate) struct VoxelRenderAggregateRegistry {
     aggregate_entities: HashMap<AggregateKey, Entity>,
 }
 
-pub(crate) fn sync_render_aggregates(
-    config: Res<EngineConfig>,
+
+/// Retires all disposable manifestations owned by voxel worlds that disappeared.
+///
+/// This stage owns world-lifetime cleanup only. It does not derive membership,
+/// build meshes, or make collision-residency decisions.
+pub(crate) fn retire_removed_world_manifestations(
     mut commands: Commands,
-    view: Res<UsfViewFrame>,
-    layer_frames: Res<UsfScaleLayerFrames>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut worlds: Query<(
-        Entity,
-        &mut VoxelWorld,
-        &VoxelPresentationMaterial,
-        &UsfScaleLayer,
-    )>,
     mut removed_worlds: RemovedComponents<VoxelWorld>,
-    mut aggregates: Query<&mut VoxelRenderAggregate>,
-    aggregate_presentations: Query<Option<&Mesh3d>, With<VoxelRenderAggregatePresentation>>,
-    aggregate_roots: Query<(Option<&Collider>, Option<&RigidBody>), With<VoxelRenderAggregate>>,
     mut registry: ResMut<VoxelRenderAggregateRegistry>,
-    mut perf: ResMut<VoxelPerfStats>,
 ) {
     let removed = removed_worlds.read().collect::<HashSet<_>>();
-    if !removed.is_empty() {
-        let dead_keys = registry
-            .aggregate_entities
-            .keys()
-            .copied()
-            .filter(|key| removed.contains(&key.world))
-            .collect::<Vec<_>>();
-        for key in dead_keys {
-            if let Some(entity) = registry.aggregate_entities.remove(&key) {
-                commands.entity(entity).despawn();
-            }
-            registry.groups.remove(&key);
-            registry.dirty.remove(&key);
-        }
-        registry
-            .address_keys
-            .retain(|(world, _), _| !removed.contains(world));
+    if removed.is_empty() {
+        return;
     }
 
+    let dead_keys = registry
+        .aggregate_entities
+        .keys()
+        .copied()
+        .filter(|key| removed.contains(&key.world))
+        .collect::<Vec<_>>();
+
+    for key in dead_keys {
+        if let Some(entity) = registry.aggregate_entities.remove(&key) {
+            commands.entity(entity).despawn();
+        }
+        registry.groups.remove(&key);
+        registry.dirty.remove(&key);
+    }
+
+    registry
+        .address_keys
+        .retain(|(world, _), _| !removed.contains(world));
+}
+
+/// Applies manifestation-grouping policy changes.
+///
+/// Regrouping invalidates only disposable manifestation state. Store-owned dense
+/// materializations and semantic voxel state remain untouched.
+pub(crate) fn sync_manifestation_grouping_policy(
+    config: Res<EngineConfig>,
+    mut commands: Commands,
+    mut worlds: Query<&mut VoxelWorld>,
+    mut registry: ResMut<VoxelRenderAggregateRegistry>,
+) {
     let grouping_policy =
         VoxelManifestationGroupingPolicy::from_config(config.voxel.manifestation.grouping)
             .expect("validated engine config must produce a manifestation grouping policy");
 
-    if registry.grouping_policy != Some(grouping_policy) {
-        for (_, entity) in registry.aggregate_entities.drain() {
-            commands.entity(entity).despawn();
-        }
-        registry.groups.clear();
-        registry.address_keys.clear();
-        registry.dirty.clear();
-        registry.grouping_policy = Some(grouping_policy);
-
-        for (_, mut world, _, _) in &mut worlds {
-            world.materializations_mut().mark_all_active_render_dirty();
-        }
-
-        info!(
-            base_chunks_per_axis = grouping_policy.extent.base_chunks_per_axis(),
-            native_units_per_axis = grouping_policy.extent.native_units_per_axis(),
-            "reconfigured voxel physical manifestation grouping"
-        );
+    if registry.grouping_policy == Some(grouping_policy) {
+        return;
     }
 
-    // Consume store-side membership changes. This is O(changes), not O(resident).
-    for (world_entity, mut world, _, _) in &mut worlds {
+    for (_, entity) in registry.aggregate_entities.drain() {
+        commands.entity(entity).despawn();
+    }
+    registry.groups.clear();
+    registry.address_keys.clear();
+    registry.dirty.clear();
+    registry.grouping_policy = Some(grouping_policy);
+
+    for mut world in &mut worlds {
+        world.materializations_mut().mark_all_active_render_dirty();
+    }
+
+    info!(
+        base_chunks_per_axis = grouping_policy.extent.base_chunks_per_axis(),
+        native_units_per_axis = grouping_policy.extent.native_units_per_axis(),
+        "reconfigured voxel physical manifestation grouping"
+    );
+}
+
+/// Consumes store-side surface changes into manifestation membership.
+///
+/// This stage is proportional to changed surface caches rather than resident
+/// world size.
+pub(crate) fn sync_manifestation_membership(
+    mut worlds: Query<(Entity, &mut VoxelWorld)>,
+    mut registry: ResMut<VoxelRenderAggregateRegistry>,
+) {
+    let Some(grouping_policy) = registry.grouping_policy else {
+        return;
+    };
+
+    for (world_entity, mut world) in &mut worlds {
         while let Some(address) = world.materializations_mut().pop_dirty_render() {
             let current = world
                 .materializations()
                 .active_surface(address)
                 .map(|surface| surface.revision);
-
             let previous = registry.address_keys.get(&(world_entity, address)).copied();
 
             match current {
@@ -175,7 +196,7 @@ pub(crate) fn sync_render_aggregates(
                     ) else {
                         warn!(
                             ?address,
-                            "voxel render aggregate scope could not be derived canonically"
+                            "voxel manifestation scope could not be derived canonically"
                         );
                         continue;
                     };
@@ -189,6 +210,7 @@ pub(crate) fn sync_render_aggregates(
                     {
                         remove_member(&mut registry, previous, address);
                     }
+
                     registry.address_keys.insert((world_entity, address), key);
                     registry
                         .groups
@@ -205,9 +227,29 @@ pub(crate) fn sync_render_aggregates(
             }
         }
     }
+}
 
-    let mut rebuilt_keys = HashSet::new();
-
+/// Rebuilds dirty physical manifestations within the configured frame budget.
+///
+/// Mesh construction and publication live here. Collision data for a rebuilt
+/// manifestation is produced only when that manifestation is currently inside
+/// the physics interaction region.
+pub(crate) fn rebuild_dirty_manifestations(
+    config: Res<EngineConfig>,
+    mut commands: Commands,
+    layer_frames: Res<UsfScaleLayerFrames>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    worlds: Query<(
+        Entity,
+        &VoxelWorld,
+        &VoxelPresentationMaterial,
+        &UsfScaleLayer,
+    )>,
+    mut aggregates: Query<&mut VoxelRenderAggregate>,
+    aggregate_presentations: Query<Option<&Mesh3d>, With<VoxelRenderAggregatePresentation>>,
+    mut registry: ResMut<VoxelRenderAggregateRegistry>,
+    mut perf: ResMut<VoxelPerfStats>,
+) {
     for _ in 0..config.voxel.manifestation.rebuild_budget_per_frame {
         let Some(key) = registry.dirty.iter().next().copied() else {
             break;
@@ -226,7 +268,7 @@ pub(crate) fn sync_render_aggregates(
             continue;
         }
 
-        let Ok((_, world, material, layer)) = worlds.get_mut(key.world) else {
+        let Ok((_, world, material, layer)) = worlds.get(key.world) else {
             registry.groups.remove(&key);
             registry
                 .address_keys
@@ -238,21 +280,10 @@ pub(crate) fn sync_render_aggregates(
         };
 
         let started = Instant::now();
-        let Some(mesh) = build_aggregate_mesh(key.scope, members, &world) else {
+        let Some(mesh) = build_aggregate_mesh(key.scope, members, world) else {
             registry.dirty.insert(key);
             continue;
         };
-
-        let wants_collider = aggregate_collider_proximity_squared(
-            &view,
-            key.scope,
-            layer,
-            config.voxel.manifestation.physics_interaction_radius_native,
-        )
-        .is_some();
-        let collider = wants_collider
-            .then(|| build_aggregate_collider(key.scope, members, &world))
-            .flatten();
 
         let member_count = members.len();
         let mut mesh = Some(mesh);
@@ -294,7 +325,7 @@ pub(crate) fn sync_render_aggregates(
             root
         } else {
             let Some(local_translation) =
-                aggregate_runtime_translation(&world, layer, &layer_frames, key.scope)
+                aggregate_runtime_translation(world, layer, &layer_frames, key.scope)
             else {
                 registry.dirty.insert(key);
                 continue;
@@ -330,31 +361,37 @@ pub(crate) fn sync_render_aggregates(
             root
         };
 
-        publish_collider_manifestation(&mut commands, root, wants_collider, collider);
-        rebuilt_keys.insert(key);
+        // Any previous collider was derived from the old surface. Invalidate it
+        // here; the following collision-residency stage independently decides
+        // whether this manifestation currently needs a fresh collider.
+        publish_collider_manifestation(&mut commands, root, false, None);
         perf.record_render_aggregate_rebuild(started.elapsed().as_micros() as u64);
     }
+}
 
-    // Physics residency follows the observer at aggregate granularity. Scanning
-    // aggregate roots is intentionally cheap: there are orders of magnitude fewer
-    // of them than materialization atoms.
-    let aggregate_entries = registry
-        .aggregate_entities
-        .iter()
-        .map(|(&key, &entity)| (key, entity))
-        .collect::<Vec<_>>();
-
-    for (key, entity) in aggregate_entries {
-        if rebuilt_keys.contains(&key) {
-            continue;
-        }
+/// Keeps collision manifestations resident only around the active interaction
+/// region.
+///
+/// This stage is deliberately separate from mesh rebuilds. An unchanged visual
+/// manifestation can gain or lose its Avian collider without rebuilding its
+/// render mesh.
+pub(crate) fn sync_manifestation_collision_residency(
+    config: Res<EngineConfig>,
+    mut commands: Commands,
+    view: Res<UsfViewFrame>,
+    worlds: Query<(&VoxelWorld, &UsfScaleLayer)>,
+    aggregate_roots: Query<Option<&Collider>, With<VoxelRenderAggregate>>,
+    registry: Res<VoxelRenderAggregateRegistry>,
+) {
+    for (&key, &entity) in &registry.aggregate_entities {
         let Some(members) = registry.groups.get(&key) else {
             continue;
         };
-        let Ok((_, world, _, layer)) = worlds.get_mut(key.world) else {
+        let Ok((world, layer)) = worlds.get(key.world) else {
             continue;
         };
-        let wants = aggregate_collider_proximity_squared(
+
+        let wants_collider = aggregate_collider_proximity_squared(
             &view,
             key.scope,
             layer,
@@ -364,13 +401,18 @@ pub(crate) fn sync_render_aggregates(
         let has_collider = aggregate_roots
             .get(entity)
             .ok()
-            .is_some_and(|(collider, _)| collider.is_some());
+            .flatten()
+            .is_some();
 
-        if wants && !has_collider {
-            let collider = build_aggregate_collider(key.scope, members, &world);
-            publish_collider_manifestation(&mut commands, entity, true, collider);
-        } else if !wants && has_collider {
-            publish_collider_manifestation(&mut commands, entity, false, None);
+        match (wants_collider, has_collider) {
+            (true, false) => {
+                let collider = build_aggregate_collider(key.scope, members, world);
+                publish_collider_manifestation(&mut commands, entity, true, collider);
+            }
+            (false, true) => {
+                publish_collider_manifestation(&mut commands, entity, false, None);
+            }
+            _ => {}
         }
     }
 }

@@ -17,7 +17,7 @@ use crate::{
 use super::{
     VoxelWorld,
     async_pipeline::VoxelDerivedTask,
-    render_aggregate::{
+    manifestation::{
         VoxelRenderAggregate, VoxelRenderAggregatePresentation,
         aggregate_collider_proximity_squared,
     },
