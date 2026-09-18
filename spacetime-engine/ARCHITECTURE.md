@@ -34,6 +34,14 @@ names such as `types`, `systems`, `components`, `resources`, or `functions`
 are support files inside a meaningful domain, not architectural domains of
 their own and not dumping grounds for unrelated code.
 
+Every semantically meaningful Rust module is represented by a directory with
+a `mod.rs`, even when it currently contains only one source file. Role/support
+files such as `components.rs`, `types.rs`, `systems.rs`, `resources.rs`,
+`functions.rs`, `model.rs`, `state.rs`, `config.rs`, `plugin.rs`,
+`registration.rs`, `tests.rs`, `input.rs`, `math.rs`, and `source.rs` may
+remain plain files inside that semantic module. These names describe
+implementation roles, not standalone architectural domains.
+
 ## ECS systems
 
 Bevy systems are orchestration boundaries. A system should normally read its ECS
