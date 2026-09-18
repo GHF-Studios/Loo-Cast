@@ -4,7 +4,7 @@
 //! collider presence are separate derived-cache concerns: collider-only changes
 //! may re-extract a surface for Avian, but they must never churn the render mesh.
 
-use std::time::Instant;
+use std::{cmp::Ordering, time::Instant};
 
 use avian3d::prelude::{Collider, CollisionMargin, RigidBody};
 use bevy::{
@@ -52,12 +52,18 @@ pub(crate) struct VoxelDerivedTask {
 }
 
 #[derive(Debug, Clone, Copy)]
-struct BuildCandidate {
+pub struct BuildCandidate {
     entity: Entity,
     wants_collider: bool,
     geometry_dirty: bool,
     distance_squared: f32,
     priority: u8,
+}
+
+fn compare_build_candidates(left: &BuildCandidate, right: &BuildCandidate) -> Ordering {
+    left.priority
+        .cmp(&right.priority)
+        .then_with(|| left.distance_squared.total_cmp(&right.distance_squared))
 }
 
 /// Returns the squared distance from the observer to the nearest point on this
@@ -196,12 +202,19 @@ pub(crate) fn queue_dirty_chunk_builds(
     >,
     in_flight: Query<(), With<VoxelDerivedTask>>,
     mut perf: ResMut<VoxelPerfStats>,
+    mut candidates: Local<Vec<BuildCandidate>>,
 ) {
     let pool = AsyncComputeTaskPool::get();
-    let mut candidates = Vec::<BuildCandidate>::new();
+    let available = per_stage_in_flight_limit().saturating_sub(in_flight.iter().count());
 
-    // First perform cheap synchronous state cleanup and collect all expensive
-    // candidates. Collision-critical work is explicitly prioritized below.
+    if available == 0 && !view.is_changed() {
+        return;
+    }
+
+    let candidate_limit = DERIVED_TASK_START_BUDGET_PER_FRAME.min(available);
+    candidates.clear();
+
+    // Perform synchronous cleanup, but retain only work that can actually start.
     for (entity, mut chunk, address, layer, mut physics_lod, collider) in &mut chunks {
         let proximity = collider_proximity_squared(&view, address, layer);
         let wants_collider = proximity.is_some();
@@ -248,28 +261,29 @@ pub(crate) fn queue_dirty_chunk_builds(
         } else {
             2
         };
-        candidates.push(BuildCandidate {
-            entity,
-            wants_collider,
-            geometry_dirty,
-            distance_squared: proximity.unwrap_or(f32::INFINITY),
-            priority,
-        });
+        if candidate_limit > 0 {
+            candidates.push(BuildCandidate {
+                entity,
+                wants_collider,
+                geometry_dirty,
+                distance_squared: proximity.unwrap_or(f32::INFINITY),
+                priority,
+            });
+        }
     }
 
-    let available = per_stage_in_flight_limit().saturating_sub(in_flight.iter().count());
-    if available == 0 || candidates.is_empty() {
+    if candidate_limit == 0 || candidates.is_empty() {
         return;
     }
 
-    candidates.sort_by(|a, b| {
-        a.priority
-            .cmp(&b.priority)
-            .then_with(|| a.distance_squared.total_cmp(&b.distance_squared))
-    });
+    if candidates.len() > candidate_limit {
+        candidates.select_nth_unstable_by(candidate_limit, compare_build_candidates);
+        candidates.truncate(candidate_limit);
+    }
+    candidates.sort_unstable_by(compare_build_candidates);
 
     let mut started = 0;
-    for candidate in candidates {
+    for candidate in candidates.drain(..) {
         if started >= DERIVED_TASK_START_BUDGET_PER_FRAME || started >= available {
             break;
         }

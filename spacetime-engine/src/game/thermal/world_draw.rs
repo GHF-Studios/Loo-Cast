@@ -144,14 +144,14 @@ fn collect_thermal_world_draw(
     let influence_sources = sources
         .iter()
         .filter_map(|(entity, combustion, material)| {
-            let positions = positions_by_semantic.get(&entity)?.clone();
+            let positions = positions_by_semantic.get(&entity)?;
             let coupling = combustion_heat_coupling(combustion, material);
 
             (!positions.is_empty()
                 && coupling.environmental_power_watts > 0.0
                 && coupling.radius_meters > 0.0)
                 .then_some((
-                    positions,
+                    positions.as_slice(),
                     coupling.environmental_power_watts,
                     coupling.radius_meters,
                 ))

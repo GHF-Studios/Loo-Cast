@@ -147,26 +147,15 @@ pub(crate) fn sync_render_aggregates(
         remove_member(&mut registry, key, entity);
     }
 
-    let dirty = registry
-        .dirty
-        .iter()
-        .copied()
-        .take(RENDER_AGGREGATE_REBUILD_BUDGET_PER_FRAME)
-        .collect::<Vec<_>>();
-
-    for key in dirty {
+    for _ in 0..RENDER_AGGREGATE_REBUILD_BUDGET_PER_FRAME {
+        let Some(key) = registry.dirty.iter().next().copied() else {
+            break;
+        };
         registry.dirty.remove(&key);
 
-        let members = registry
-            .groups
-            .get(&key)
-            .map(|members| {
-                members
-                    .iter()
-                    .map(|(&entity, &revision)| (entity, revision))
-                    .collect::<Vec<_>>()
-            })
-            .unwrap_or_default();
+        let Some(members) = registry.groups.get(&key) else {
+            continue;
+        };
 
         if members.is_empty() {
             registry.groups.remove(&key);
@@ -188,7 +177,7 @@ pub(crate) fn sync_render_aggregates(
         };
 
         let started = Instant::now();
-        let Some(mesh) = build_aggregate_mesh(key.scope, &members, &surface_caches) else {
+        let Some(mesh) = build_aggregate_mesh(key.scope, members, &surface_caches) else {
             // A removal/change may have raced this dirty key. Keep it dirty;
             // the membership event will settle before the next attempt.
             registry.dirty.insert(key);
@@ -240,10 +229,7 @@ pub(crate) fn sync_render_aggregates(
             let mesh_handle = meshes.add(mesh.expect("aggregate mesh is still available"));
             let root = commands
                 .spawn((
-                    Name::new(format!(
-                        "Voxel Render Aggregate {}³",
-                        key.scope.extent().native_units_per_axis()
-                    )),
+                    Name::new("Voxel Render Aggregate"),
                     *layer,
                     Transform::from_translation(local_translation),
                     Visibility::Inherited,
@@ -251,10 +237,7 @@ pub(crate) fn sync_render_aggregates(
                 .id();
             let presentation = commands
                 .spawn((
-                    Name::new(format!(
-                        "Voxel Render Aggregate {} Presentation",
-                        layer.scale()
-                    )),
+                    Name::new("Voxel Render Aggregate Presentation"),
                     ChildOf(root),
                     VoxelRenderAggregatePresentation,
                     UsfLocalScalePresentation::new(layer.scale()),
@@ -300,7 +283,7 @@ fn aggregate_runtime_translation(
 
 fn build_aggregate_mesh(
     scope: VoxelMaterializationAggregateScope,
-    members: &[(Entity, u64)],
+    members: &HashMap<Entity, u64>,
     surfaces: &Query<(&VoxelMaterializationChunkAddress, &VoxelChunkRenderSurface)>,
 ) -> Option<Mesh> {
     let mut positions = Vec::<[f32; 3]>::new();
@@ -313,7 +296,7 @@ fn build_aggregate_mesh(
     let bound =
         scope.extent().native_units_per_axis() as f32 + MATERIALIZATION_CHUNK_SIZE as f32 * 2.0;
 
-    for &(entity, expected_revision) in members {
+    for (&entity, &expected_revision) in members {
         let Ok((address, cache)) = surfaces.get(entity) else {
             return None;
         };

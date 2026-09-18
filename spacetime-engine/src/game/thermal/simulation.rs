@@ -1,5 +1,7 @@
 //! Thermal evolution and combustion propagation.
 
+use std::collections::HashMap;
+
 use bevy::prelude::*;
 
 use crate::{
@@ -91,13 +93,11 @@ fn update_combustion(
     }
 }
 
-#[derive(Debug)]
-struct HeatEmission {
-    source: Entity,
-    positions: Vec<Vec3>,
-    self_heating_power_watts: f32,
-    environmental_power_watts: f32,
-    radius_meters: f32,
+#[derive(Default)]
+struct HeatScratch {
+    positions_by_semantic: HashMap<Entity, Vec<Vec3>>,
+    weights: Vec<(Entity, f32)>,
+    energy_by_target: HashMap<Entity, f32>,
 }
 
 /// Transfers combustion heat through registered manifestation-space samples.
@@ -117,94 +117,83 @@ fn propagate_combustion_heat(
     >,
     sources: Query<(Entity, &Combustion, &CombustibleMaterial)>,
     mut targets: Query<&mut ThermalBody>,
+    mut scratch: Local<HeatScratch>,
 ) {
     let dt = time.delta_secs().max(0.0);
     if dt <= 0.0 {
         return;
     }
 
-    let mut positions_by_semantic = std::collections::HashMap::<Entity, Vec<Vec3>>::new();
+    let HeatScratch {
+        positions_by_semantic,
+        weights,
+        energy_by_target,
+    } = &mut *scratch;
+
+    for positions in positions_by_semantic.values_mut() {
+        positions.clear();
+    }
     for (relation, transform) in &samples {
         positions_by_semantic
             .entry(relation.0)
             .or_default()
             .push(transform.translation);
     }
+    positions_by_semantic.retain(|_, positions| !positions.is_empty());
+    energy_by_target.clear();
 
-    let emissions: Vec<HeatEmission> = sources
-        .iter()
-        .map(|(source, combustion, material)| {
-            let coupling = super::coupling::combustion_heat_coupling(combustion, material);
-            HeatEmission {
-                source,
-                positions: positions_by_semantic
-                    .get(&source)
-                    .cloned()
-                    .unwrap_or_default(),
-                self_heating_power_watts: coupling.self_heating_power_watts,
-                environmental_power_watts: coupling.environmental_power_watts,
-                radius_meters: coupling.radius_meters,
-            }
-        })
-        .collect();
+    for (source, combustion, material) in &sources {
+        let coupling = super::coupling::combustion_heat_coupling(combustion, material);
+        *energy_by_target.entry(source).or_default() += coupling.self_heating_power_watts * dt;
 
-    let mut energy_by_target = std::collections::HashMap::<Entity, f32>::new();
-
-    for emission in &emissions {
-        *energy_by_target.entry(emission.source).or_default() +=
-            emission.self_heating_power_watts * dt;
-
-        if emission.positions.is_empty()
-            || emission.radius_meters <= 0.0
-            || emission.environmental_power_watts <= 0.0
-        {
+        let Some(source_positions) = positions_by_semantic.get(&source) else {
+            continue;
+        };
+        if coupling.radius_meters <= 0.0 || coupling.environmental_power_watts <= 0.0 {
             continue;
         }
 
-        let mut weights = Vec::new();
+        weights.clear();
         let mut total_weight = 0.0;
+        let radius_squared = coupling.radius_meters * coupling.radius_meters;
 
-        for (&target, target_positions) in &positions_by_semantic {
-            if target == emission.source || target_positions.is_empty() {
+        for (&target, target_positions) in positions_by_semantic.iter() {
+            if target == source {
                 continue;
             }
 
-            let minimum_distance_squared = emission
-                .positions
+            let minimum_distance_squared = source_positions
                 .iter()
-                .flat_map(|source| {
+                .flat_map(|source_position| {
                     target_positions
                         .iter()
-                        .map(move |target| source.distance_squared(*target))
+                        .map(move |target_position| source_position.distance_squared(*target_position))
                 })
                 .fold(f32::INFINITY, f32::min);
 
-            let radius_squared = emission.radius_meters * emission.radius_meters;
             if minimum_distance_squared >= radius_squared {
                 continue;
             }
 
-            let distance = minimum_distance_squared.sqrt();
-            let weight = super::coupling::radial_heat_weight(distance, emission.radius_meters);
+            let weight = super::coupling::radial_heat_weight(
+                minimum_distance_squared.sqrt(),
+                coupling.radius_meters,
+            );
             if weight > 0.0 {
                 weights.push((target, weight));
                 total_weight += weight;
             }
         }
 
-        // Distance attenuates each coupling, while normalization only kicks in
-        // when the combined weights would otherwise exceed the source's finite
-        // environmental heat budget.
         let normalization = total_weight.max(1.0);
-        let environmental_energy = emission.environmental_power_watts * dt;
-
-        for (target, weight) in weights {
+        let environmental_energy = coupling.environmental_power_watts * dt;
+        for &(target, weight) in weights.iter() {
             *energy_by_target.entry(target).or_default() +=
                 environmental_energy * weight / normalization;
         }
     }
 
-    for (target, energy_joules) in energy_by_target {
+    for (&target, &energy_joules) in energy_by_target.iter() {
         if let Ok(mut thermal) = targets.get_mut(target) {
             thermal.add_energy_joules(energy_joules);
         }

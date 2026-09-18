@@ -120,6 +120,10 @@ pub struct ThermalField {
     size_meters: Vec3,
     resolution: UVec3,
     cell_energy_joules: Vec<f32>,
+    #[reflect(ignore)]
+    temperature_scratch: Vec<f32>,
+    #[reflect(ignore)]
+    energy_delta_scratch: Vec<f32>,
 }
 
 impl ThermalField {
@@ -145,6 +149,8 @@ impl ThermalField {
             size_meters,
             resolution,
             cell_energy_joules: vec![cell_capacity * temperature_kelvin; cell_count],
+            temperature_scratch: Vec::with_capacity(cell_count),
+            energy_delta_scratch: vec![0.0; cell_count],
         }
     }
 
@@ -288,14 +294,9 @@ impl ThermalField {
 
     fn conduct_substep(&mut self, material: &ThermalMaterial, delta_seconds: f32) {
         let capacity = self.cell_heat_capacity_joules_per_kelvin(material);
-        let temperatures = self
-            .cell_energy_joules
-            .iter()
-            .map(|energy| *energy / capacity)
-            .collect::<Vec<_>>();
-        let mut energy_delta = vec![0.0_f32; self.cell_energy_joules.len()];
         let cell_size = self.cell_size_meters();
         let conductivity = material.thermal_conductivity_watts_per_meter_kelvin;
+        let resolution = self.resolution;
 
         let conductance = Vec3::new(
             conductivity * cell_size.y * cell_size.z / cell_size.x,
@@ -303,25 +304,38 @@ impl ThermalField {
             conductivity * cell_size.x * cell_size.y / cell_size.z,
         );
 
-        for z in 0..self.resolution.z {
-            for y in 0..self.resolution.y {
-                for x in 0..self.resolution.x {
+        self.temperature_scratch.clear();
+        self.temperature_scratch
+            .extend(self.cell_energy_joules.iter().map(|energy| *energy / capacity));
+        self.energy_delta_scratch
+            .resize(self.cell_energy_joules.len(), 0.0);
+        self.energy_delta_scratch.fill(0.0);
+
+        let linear_index = |index: UVec3| {
+            (index.x + resolution.x * (index.y + resolution.y * index.z)) as usize
+        };
+        let temperatures = &self.temperature_scratch;
+        let energy_delta = &mut self.energy_delta_scratch;
+
+        for z in 0..resolution.z {
+            for y in 0..resolution.y {
+                for x in 0..resolution.x {
                     let cell = UVec3::new(x, y, z);
-                    let source = self.linear_index_unchecked(cell);
+                    let source = linear_index(cell);
 
                     for (neighbor, face_conductance) in [
                         (UVec3::new(x + 1, y, z), conductance.x),
                         (UVec3::new(x, y + 1, z), conductance.y),
                         (UVec3::new(x, y, z + 1), conductance.z),
                     ] {
-                        if neighbor.x >= self.resolution.x
-                            || neighbor.y >= self.resolution.y
-                            || neighbor.z >= self.resolution.z
+                        if neighbor.x >= resolution.x
+                            || neighbor.y >= resolution.y
+                            || neighbor.z >= resolution.z
                         {
                             continue;
                         }
 
-                        let target = self.linear_index_unchecked(neighbor);
+                        let target = linear_index(neighbor);
                         let transferred = face_conductance
                             * (temperatures[source] - temperatures[target])
                             * delta_seconds;
@@ -333,7 +347,11 @@ impl ThermalField {
         }
 
         let minimum_energy = capacity * MINIMUM_TEMPERATURE_KELVIN;
-        for (energy, delta) in self.cell_energy_joules.iter_mut().zip(energy_delta) {
+        for (energy, delta) in self
+            .cell_energy_joules
+            .iter_mut()
+            .zip(self.energy_delta_scratch.iter().copied())
+        {
             *energy = (*energy + delta).max(minimum_energy);
         }
     }

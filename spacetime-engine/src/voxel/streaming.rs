@@ -10,6 +10,7 @@ use std::{
 };
 
 use bevy::{
+    ecs::lifecycle::RemovedComponents,
     prelude::*,
     tasks::{AsyncComputeTaskPool, Task, futures::check_ready},
 };
@@ -224,17 +225,24 @@ pub(crate) fn finish_chunk_generation(
 /// `VoxelWorld` root.
 pub(crate) fn retire_orphaned_chunks(
     mut commands: Commands,
-    worlds: Query<(), With<VoxelWorld>>,
+    mut removed_worlds: RemovedComponents<VoxelWorld>,
     chunks: Query<(Entity, &VoxelChunkOf)>,
     aggregate_tasks: Query<(Entity, &VoxelAggregateGenerationTask)>,
+    mut removed: Local<Vec<Entity>>,
 ) {
+    removed.clear();
+    removed.extend(removed_worlds.read());
+    if removed.is_empty() {
+        return;
+    }
+
     for (entity, chunk_of) in &chunks {
-        if worlds.get(chunk_of.world).is_err() {
+        if removed.contains(&chunk_of.world) {
             commands.entity(entity).despawn();
         }
     }
     for (entity, task) in &aggregate_tasks {
-        if worlds.get(task.world).is_err() {
+        if removed.contains(&task.world) {
             commands.entity(entity).despawn();
         }
     }
@@ -248,21 +256,27 @@ pub(crate) fn stream_voxel_chunks(
     mut worlds: Query<(Entity, &mut VoxelWorld, &mut VoxelStreaming, &UsfScaleLayer)>,
     generation_tasks: Query<(), With<VoxelAggregateGenerationTask>>,
     mut perf: ResMut<VoxelPerfStats>,
+    mut all_voxel_demands: Local<Vec<SpatialDemandScope>>,
+    mut voxel_demands: Local<Vec<SpatialDemandScope>>,
 ) {
-    let all_voxel_demands = demand_snapshot
-        .iter()
-        .filter(|scope| voxel_demand_sources.contains(scope.source()))
-        .collect::<Vec<_>>();
+    all_voxel_demands.clear();
+    all_voxel_demands.extend(
+        demand_snapshot
+            .iter()
+            .filter(|scope| voxel_demand_sources.contains(scope.source())),
+    );
 
     let mut generation_slots =
         per_stage_in_flight_limit().saturating_sub(generation_tasks.iter().count());
 
     for (world_entity, mut world, mut streaming, layer) in &mut worlds {
-        let voxel_demands = all_voxel_demands
-            .iter()
-            .copied()
-            .filter(|demand| demand.scale() == layer.scale())
-            .collect::<Vec<_>>();
+        voxel_demands.clear();
+        voxel_demands.extend(
+            all_voxel_demands
+                .iter()
+                .copied()
+                .filter(|demand| demand.scale() == layer.scale()),
+        );
         let changed = match refresh_demand_plan(&world, &voxel_demands, &mut streaming, &mut perf) {
             Ok(changed) => changed,
             Err(_) => {
@@ -348,11 +362,7 @@ pub(crate) fn stream_voxel_chunks(
             let recipe = world.chunk_recipe(address);
             let chunk_entity = commands
                 .spawn((
-                    Name::new(format!(
-                        "Voxel Materialization Chunk [priority {}, distance {:.1}]",
-                        demanded.priority,
-                        demanded.distance_squared.sqrt(),
-                    )),
+                    Name::new("Voxel Materialization Chunk"),
                     VoxelChunkOf::new(world_entity),
                     address,
                     *layer,
@@ -377,12 +387,8 @@ pub(crate) fn stream_voxel_chunks(
         }
 
         for batch in aggregate_batches {
-            let native_extent = batch.scope.extent().native_units_per_axis();
             commands.spawn((
-                Name::new(format!(
-                    "Voxel Aggregate Generation {native_extent}³ ({} chunks)",
-                    batch.jobs.len()
-                )),
+                Name::new("Voxel Aggregate Generation"),
                 VoxelAggregateGenerationTask::spawn(world_entity, batch.scope, batch.jobs),
             ));
             generation_slots = generation_slots.saturating_sub(1);

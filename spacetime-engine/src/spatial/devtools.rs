@@ -150,7 +150,7 @@ Rebases: {}  last shift=({:.1}, {:.1}, {:.1}) m",
     );
 
     for mut text in &mut texts {
-        text.0 = output.clone();
+        text.0.clone_from(&output);
     }
 }
 

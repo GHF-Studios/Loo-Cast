@@ -1,5 +1,7 @@
 //! Dense chunk-local working representation used by the editable voxel world.
 
+use std::sync::Arc;
+
 use bevy::prelude::{Component, IVec3, UVec3, Vec3};
 
 use super::{
@@ -25,6 +27,14 @@ const SAMPLE_COUNT: usize = (SAMPLE_SIZE * SAMPLE_SIZE * SAMPLE_SIZE) as usize;
 
 const RAY_STEP: f32 = 0.25;
 const RAY_REFINEMENT_STEPS: usize = 6;
+
+fn detect_surface_transition(distances: &[f32]) -> bool {
+    let Some((&first, rest)) = distances.split_first() else {
+        return false;
+    };
+    let first_solid = first < 0.0;
+    rest.iter().any(|&distance| (distance < 0.0) != first_solid)
+}
 
 /// Result of applying one semantic edit to a chunk.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -54,8 +64,11 @@ pub struct VoxelRayHit {
 /// lives on the materialization entity's address component, never in this data.
 #[derive(Component, Debug, Clone)]
 pub struct VoxelChunk {
-    distances: Box<[f32]>,
-    materials: Box<[VoxelMaterialId]>,
+    // Worker snapshots share dense arrays. Edits use copy-on-write, making
+    // queue/handoff clones O(1) while mutation remains locally owned.
+    distances: Arc<[f32]>,
+    materials: Arc<[VoxelMaterialId]>,
+    surface_transition: bool,
     revision: u64,
     meshed_revision: Option<u64>,
 }
@@ -65,6 +78,8 @@ impl VoxelChunk {
         let mut distances = Vec::with_capacity(SAMPLE_COUNT);
         let mut materials = Vec::with_capacity(SAMPLE_COUNT);
         let padding = IVec3::splat(SAMPLE_PADDING as i32);
+        let mut first_solid = None;
+        let mut surface_transition = false;
 
         for z in 0..SAMPLE_SIZE {
             for y in 0..SAMPLE_SIZE {
@@ -72,6 +87,11 @@ impl VoxelChunk {
                     let storage = IVec3::new(x as i32, y as i32, z as i32);
                     let local = storage - padding;
                     let sample = generator(local.as_vec3());
+                    let solid = sample.distance.0 < 0.0;
+                    match first_solid {
+                        Some(first) => surface_transition |= first != solid,
+                        None => first_solid = Some(solid),
+                    }
                     distances.push(sample.distance.0);
                     materials.push(sample.material);
                 }
@@ -79,15 +99,22 @@ impl VoxelChunk {
         }
 
         Self {
-            distances: distances.into_boxed_slice(),
-            materials: materials.into_boxed_slice(),
+            distances: Arc::from(distances),
+            materials: Arc::from(materials),
+            surface_transition,
             revision: 0,
             meshed_revision: None,
         }
     }
 
     pub fn filled(sample: VoxelSample) -> Self {
-        Self::generate(|_| sample)
+        Self {
+            distances: Arc::from(vec![sample.distance.0; SAMPLE_COUNT]),
+            materials: Arc::from(vec![sample.material; SAMPLE_COUNT]),
+            surface_transition: false,
+            revision: 0,
+            meshed_revision: None,
+        }
     }
 
     pub const fn revision(&self) -> u64 {
@@ -116,11 +143,7 @@ impl VoxelChunk {
 
     #[inline]
     pub fn has_surface_transition(&self) -> bool {
-        let Some((&first, rest)) = self.distances.split_first() else {
-            return false;
-        };
-        let first_solid = first < 0.0;
-        rest.iter().any(|&distance| (distance < 0.0) != first_solid)
+        self.surface_transition
     }
 
     pub fn sample(&self, local: IVec3) -> Option<VoxelSample> {
@@ -227,19 +250,27 @@ impl VoxelChunk {
         let storage_max = (edit_max + padding).as_uvec3();
         let mut changed_samples = 0;
 
-        for z in storage_min.z..=storage_max.z {
-            for y in storage_min.y..=storage_max.y {
-                for x in storage_min.x..=storage_max.x {
-                    let storage = UVec3::new(x, y, z);
-                    let local = storage.as_ivec3() - padding;
-                    let index = Self::index(storage);
-                    let before = self.sample_at_index(index);
-                    let after = edit.apply_to_sample(local.as_vec3(), before);
+        {
+            let distances = Arc::make_mut(&mut self.distances);
+            let materials = Arc::make_mut(&mut self.materials);
 
-                    if after != before {
-                        self.distances[index] = after.distance.0;
-                        self.materials[index] = after.material;
-                        changed_samples += 1;
+            for z in storage_min.z..=storage_max.z {
+                for y in storage_min.y..=storage_max.y {
+                    for x in storage_min.x..=storage_max.x {
+                        let storage = UVec3::new(x, y, z);
+                        let local = storage.as_ivec3() - padding;
+                        let index = Self::index(storage);
+                        let before = VoxelSample {
+                            distance: SignedDistance(distances[index]),
+                            material: materials[index],
+                        };
+                        let after = edit.apply_to_sample(local.as_vec3(), before);
+
+                        if after != before {
+                            distances[index] = after.distance.0;
+                            materials[index] = after.material;
+                            changed_samples += 1;
+                        }
                     }
                 }
             }
@@ -247,6 +278,7 @@ impl VoxelChunk {
 
         if changed_samples != 0 {
             self.revision = self.revision.wrapping_add(1);
+            self.surface_transition = detect_surface_transition(&self.distances);
         }
 
         VoxelChunkEditResult {

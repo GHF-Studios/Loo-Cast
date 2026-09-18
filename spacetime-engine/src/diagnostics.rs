@@ -16,7 +16,8 @@ use bevy::{
 use crate::devtools::DeveloperArtifact;
 use vapor_telemetry::TelemetryEmitter;
 
-const SAMPLE_INTERVAL_SECONDS: f32 = 1.0;
+const RUNTIME_SAMPLE_INTERVAL_SECONDS: f32 = 0.25;
+const WORLD_SAMPLE_INTERVAL_SECONDS: f32 = 5.0;
 const FRAME_HISTORY_LENGTH: usize = 600;
 const TOP_COMPONENT_MEMORY_ENTRIES: usize = 24;
 
@@ -108,12 +109,13 @@ fn collect_runtime_diagnostics(
     diagnostics: Res<DiagnosticsStore>,
     mut cadence: ResMut<DiagnosticsCadence>,
     mut snapshot: ResMut<RuntimeDiagnostics>,
+    telemetry: Option<Res<VaporTelemetry>>,
 ) {
     cadence.runtime_elapsed += time.delta_secs();
-    if cadence.runtime_elapsed < SAMPLE_INTERVAL_SECONDS {
+    if cadence.runtime_elapsed < RUNTIME_SAMPLE_INTERVAL_SECONDS {
         return;
     }
-    cadence.runtime_elapsed %= SAMPLE_INTERVAL_SECONDS;
+    cadence.runtime_elapsed %= RUNTIME_SAMPLE_INTERVAL_SECONDS;
 
     let frame_time = diagnostics.get(&FrameTimeDiagnosticsPlugin::FRAME_TIME);
     snapshot.frame.fps = diagnostics
@@ -127,8 +129,7 @@ fn collect_runtime_diagnostics(
         .flat_map(|diagnostic| diagnostic.values().copied())
         .filter(|value| value.is_finite() && *value > 0.0)
         .collect::<Vec<_>>();
-    frame_times.sort_by(|a, b| b.total_cmp(a));
-    snapshot.frame.one_percent_low_fps = low_fps_sorted(&frame_times, 0.01);
+    snapshot.frame.one_percent_low_fps = low_fps(&mut frame_times, 0.01);
 
     snapshot.system.process_cpu_percent = diagnostic_value(
         &diagnostics,
@@ -146,6 +147,10 @@ fn collect_runtime_diagnostics(
         &diagnostics,
         &SystemInformationDiagnosticsPlugin::SYSTEM_MEM_USAGE,
     );
+
+    if let Some(telemetry) = telemetry {
+        publish_runtime_telemetry(&telemetry, &snapshot);
+    }
 }
 
 fn collect_world_diagnostics(world: &mut World) {
@@ -153,10 +158,10 @@ fn collect_world_diagnostics(world: &mut World) {
     {
         let mut cadence = world.resource_mut::<DiagnosticsCadence>();
         cadence.world_elapsed += dt;
-        if cadence.world_elapsed < SAMPLE_INTERVAL_SECONDS {
+        if cadence.world_elapsed < WORLD_SAMPLE_INTERVAL_SECONDS {
             return;
         }
-        cadence.world_elapsed %= SAMPLE_INTERVAL_SECONDS;
+        cadence.world_elapsed %= WORLD_SAMPLE_INTERVAL_SECONDS;
     }
 
     let developer_artifact = world.components().component_id::<DeveloperArtifact>();
@@ -218,23 +223,13 @@ fn collect_world_diagnostics(world: &mut World) {
         largest_components,
     };
 
-    publish_vapor_telemetry(world);
+    publish_world_telemetry(world);
 }
 
-fn publish_vapor_telemetry(world: &World) {
-    let Some(telemetry) = world.get_resource::<VaporTelemetry>() else {
-        return;
-    };
-    let runtime = world.resource::<RuntimeDiagnostics>();
-    let memory = world.resource::<EcsMemoryDiagnostics>();
+fn publish_runtime_telemetry(telemetry: &VaporTelemetry, runtime: &RuntimeDiagnostics) {
     let mut metrics = BTreeMap::new();
-
     insert_metric(&mut metrics, "frame.fps", runtime.frame.fps);
-    insert_metric(
-        &mut metrics,
-        "frame.time-ms",
-        runtime.frame.frame_time_ms,
-    );
+    insert_metric(&mut metrics, "frame.time-ms", runtime.frame.frame_time_ms);
     insert_metric(
         &mut metrics,
         "frame.average-time-ms",
@@ -244,15 +239,6 @@ fn publish_vapor_telemetry(world: &World) {
         &mut metrics,
         "frame.one-percent-low-fps",
         runtime.frame.one_percent_low_fps,
-    );
-    metrics.insert("world.entities".to_owned(), runtime.world.entities as f64);
-    metrics.insert(
-        "world.component-instances".to_owned(),
-        runtime.world.component_instances as f64,
-    );
-    metrics.insert(
-        "world.archetypes".to_owned(),
-        runtime.world.archetypes as f64,
     );
     insert_metric(
         &mut metrics,
@@ -273,6 +259,26 @@ fn publish_vapor_telemetry(world: &World) {
         &mut metrics,
         "system.memory-percent",
         runtime.system.system_memory_percent,
+    );
+    telemetry.0.publish_metrics(metrics);
+}
+
+fn publish_world_telemetry(world: &World) {
+    let Some(telemetry) = world.get_resource::<VaporTelemetry>() else {
+        return;
+    };
+    let runtime = world.resource::<RuntimeDiagnostics>();
+    let memory = world.resource::<EcsMemoryDiagnostics>();
+    let mut metrics = BTreeMap::new();
+
+    metrics.insert("world.entities".to_owned(), runtime.world.entities as f64);
+    metrics.insert(
+        "world.component-instances".to_owned(),
+        runtime.world.component_instances as f64,
+    );
+    metrics.insert(
+        "world.archetypes".to_owned(),
+        runtime.world.archetypes as f64,
     );
     metrics.insert(
         "ecs.inline-component-bytes".to_owned(),
@@ -312,14 +318,17 @@ fn diagnostic_value(
         .and_then(|diagnostic| diagnostic.value())
 }
 
-fn low_fps_sorted(frame_times_descending: &[f64], fraction: f64) -> Option<f64> {
-    if frame_times_descending.is_empty() {
+fn low_fps(frame_times: &mut [f64], fraction: f64) -> Option<f64> {
+    if frame_times.is_empty() {
         return None;
     }
 
-    let count = ((frame_times_descending.len() as f64 * fraction).ceil() as usize)
-        .clamp(1, frame_times_descending.len());
-    let average_ms = frame_times_descending[..count].iter().sum::<f64>() / count as f64;
+    let count =
+        ((frame_times.len() as f64 * fraction).ceil() as usize).clamp(1, frame_times.len());
+    if count < frame_times.len() {
+        frame_times.select_nth_unstable_by(count - 1, |left, right| right.total_cmp(left));
+    }
+    let average_ms = frame_times[..count].iter().sum::<f64>() / count as f64;
 
     (average_ms > 0.0).then_some(1_000.0 / average_ms)
 }
@@ -332,8 +341,6 @@ mod tests {
     fn one_percent_low_uses_slowest_frame_times() {
         let mut frame_times = vec![10.0; 99];
         frame_times.push(50.0);
-        frame_times.sort_by(|a, b| b.partial_cmp(a).unwrap());
-
-        assert_eq!(low_fps_sorted(&frame_times, 0.01), Some(20.0));
+        assert_eq!(low_fps(&mut frame_times, 0.01), Some(20.0));
     }
 }

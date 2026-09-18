@@ -49,7 +49,7 @@ pub struct DeveloperTools {
 impl Default for DeveloperTools {
     fn default() -> Self {
         Self {
-            enabled: true,
+            enabled: false,
             specs: Vec::new(),
             visualizations: HashSet::new(),
         }
