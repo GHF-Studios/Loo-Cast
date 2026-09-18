@@ -37,10 +37,14 @@ use crate::spatial::SpatialDemandSet;
 #[derive(Component, Debug, Clone, Copy)]
 pub(crate) struct VoxelChunkPresentation(pub Entity);
 
-/// Physics representation LOD for one dense chunk. Rendering and semantic
-/// materialization are independent from whether a local collider is needed.
+/// Tracks completion of the collider-presence request for one dense chunk.
+/// Rendering and semantic materialization remain independent.
 #[derive(Component, Debug, Clone, Copy, Default)]
-pub(crate) struct VoxelChunkPhysicsLod(pub bool);
+pub(crate) struct VoxelChunkPhysicsLod {
+    pub(crate) requested: bool,
+    pub(crate) built_revision: Option<u64>,
+    pub(crate) collider_ready: bool,
+}
 
 pub struct VoxelPlugin;
 
@@ -66,7 +70,10 @@ impl Plugin for VoxelPlugin {
                 )
                     .chain(),
             )
-            .add_systems(Update, perf::report_voxel_perf);
+            .add_systems(
+                PostUpdate,
+                perf::report_voxel_perf.after(async_pipeline::queue_dirty_chunk_builds),
+            );
 
         devtools::configure(app);
     }
