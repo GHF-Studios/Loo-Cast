@@ -1,6 +1,12 @@
-//! Minimal USF manifestation experiment.
+//! Spacetime Engine.
 //!
+//! The engine owns reusable simulation, spatial, physics, rendering-adjacent,
+//! diagnostics, developer-tooling, and world-generation infrastructure used by
+//! Loo Cast. Game-specific orchestration lives under [`game`]; reusable engine
+//! domains should not depend on it unless they are explicit adapters.
 //!
+//! ECS entities are runtime storage and manifestation machinery. They are not
+//! automatically the semantic identity of every simulated value.
 
 pub mod config;
 pub mod devtools;
@@ -17,35 +23,4 @@ pub mod view;
 pub mod voxel;
 pub mod worldgen;
 
-use bevy::prelude::*;
 pub use spacetime_engine_macros::{Inspect, conflict};
-
-///
-pub enum UsfEntity {
-    Original(OriginalUsfEntity),
-    ProxyImmutable(ProxyImmutableUsfEntity),
-    ProxyMutable(ProxyMutableUsfEntity),
-}
-
-/// A marker component describing the state authority of a `UsfEntity`.
-#[derive(Component, Default)]
-#[conflict(ProxyImmutableUsfEntity, ProxyMutableUsfEntity)]
-pub enum OriginalUsfEntity {
-    #[default]
-    Uninitialized,
-
-    Initialized {
-        entity: Entity,
-    },
-}
-
-/// This is a pure/side-effect-less read-only relay to the state authority.
-#[derive(Component, Default)]
-pub struct ProxyImmutableUsfEntity {
-    original: OriginalUsfEntity,
-}
-
-/// This is a pure/side-effect-less read-and-write relay from and to the state authority.
-#[derive(Component)]
-#[require(ProxyImmutableUsfEntity)]
-pub struct ProxyMutableUsfEntity;
