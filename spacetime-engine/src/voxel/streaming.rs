@@ -15,14 +15,13 @@ use bevy::{
 };
 
 use crate::spatial::{
-    SpatialDemandScope, SpatialDemandSnapshot, UsfActiveScaleLayer, UsfLocalScalePresentation,
-    UsfScaleLayer, UsfScaleLayerFrames,
+    SpatialDemandScope, SpatialDemandSnapshot, UsfLocalScalePresentation, UsfScaleLayer,
+    UsfScaleLayerFrames,
 };
 
 use super::{
     MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelChunkOf, VoxelChunkPhysicsLod,
-    VoxelChunkPresentation, VoxelFineCacheOnly, VoxelMaterializationChunkAddress,
-    VoxelQueryPosition, VoxelWorld,
+    VoxelChunkPresentation, VoxelMaterializationChunkAddress, VoxelQueryPosition, VoxelWorld,
     aggregate::{VoxelMaterializationAggregateExtent, VoxelMaterializationAggregateScope},
     perf::{VoxelPerfStats, per_stage_in_flight_limit},
     world::VoxelChunkRecipe,
@@ -41,10 +40,6 @@ const FIELD_GENERATION_AGGREGATE_EXTENT: VoxelMaterializationAggregateExtent =
 /// worker item can process several individually addressable base chunks. Larger
 /// batches remain a future policy/performance choice.
 const MAX_CHUNKS_PER_AGGREGATE_GENERATION_TASK: usize = 4;
-
-/// Dense editable/physical detail radius. This is not render distance:
-/// `coarse` keeps the entire requested visible extent represented.
-const FINE_HALF_EXTENT_NATIVE: f32 = 10.0;
 
 /// Opt-in voxel realization configuration for one [`VoxelWorld`].
 ///
@@ -248,7 +243,6 @@ pub(crate) fn retire_orphaned_chunks(
 
 pub(crate) fn stream_voxel_chunks(
     mut commands: Commands,
-    active: Res<UsfActiveScaleLayer>,
     layer_frames: Res<UsfScaleLayerFrames>,
     demand_snapshot: Res<SpatialDemandSnapshot>,
     voxel_demand_sources: Query<(), With<VoxelMaterializationDemand>>,
@@ -265,26 +259,11 @@ pub(crate) fn stream_voxel_chunks(
         per_stage_in_flight_limit().saturating_sub(generation_tasks.iter().count());
 
     for (world_entity, mut world, mut streaming, layer) in &mut worlds {
-        let voxel_demands = if layer.scale() == active.scale() {
-            all_voxel_demands
-                .iter()
-                .copied()
-                .filter(|demand| demand.scale() == layer.scale())
-                .map(|demand| {
-                    SpatialDemandScope::at_scale(
-                        demand.source(),
-                        demand.scale(),
-                        demand.center(),
-                        demand
-                            .half_extent_native()
-                            .min(Vec3::splat(FINE_HALF_EXTENT_NATIVE)),
-                        demand.priority(),
-                    )
-                })
-                .collect::<Vec<_>>()
-        } else {
-            Vec::new()
-        };
+        let voxel_demands = all_voxel_demands
+            .iter()
+            .copied()
+            .filter(|demand| demand.scale() == layer.scale())
+            .collect::<Vec<_>>();
         let changed = match refresh_demand_plan(&world, &voxel_demands, &mut streaming, &mut perf) {
             Ok(changed) => changed,
             Err(_) => {
@@ -379,7 +358,6 @@ pub(crate) fn stream_voxel_chunks(
                     VoxelChunkOf::new(world_entity),
                     address,
                     *layer,
-                    VoxelFineCacheOnly,
                     VoxelChunkPhysicsLod::default(),
                     Transform::from_translation(local_translation),
                     Visibility::Inherited,
@@ -393,7 +371,7 @@ pub(crate) fn stream_voxel_chunks(
                     UsfLocalScalePresentation::new(layer.scale()),
                     MeshMaterial3d(material.clone()),
                     Transform::IDENTITY,
-                    Visibility::Hidden,
+                    Visibility::Inherited,
                 ))
                 .id();
             commands

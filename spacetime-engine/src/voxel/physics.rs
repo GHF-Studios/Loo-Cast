@@ -18,25 +18,16 @@ pub(crate) fn build_chunk_collider(
     _chunk: &VoxelChunk,
     surface: &VoxelSurface,
 ) -> Option<Collider> {
-    build_scaled_surface_collider(surface, 1.0)
-}
-
-pub(crate) fn build_scaled_surface_collider(
-    surface: &VoxelSurface,
-    position_scale: f32,
-) -> Option<Collider> {
     let triangles = owned_triangles(surface);
     if triangles.is_empty() {
         return None;
     }
 
-    let position_scale = position_scale.max(f32::EPSILON);
     let vertices = surface
         .positions
         .iter()
         .copied()
         .map(Vec3::from_array)
-        .map(|position| position * position_scale)
         .collect::<Vec<_>>();
 
     match Collider::try_trimesh_with_config(vertices, triangles, TrimeshFlags::FIX_INTERNAL_EDGES) {

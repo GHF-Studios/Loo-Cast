@@ -39,30 +39,15 @@ pub struct UsfScalePresentation {
 #[derive(Component, Debug, Clone, Copy)]
 pub struct UsfLocalScalePresentation {
     scale: SpatialScale,
-    authored_scale: Vec3,
 }
 
 impl UsfLocalScalePresentation {
     pub const fn new(scale: SpatialScale) -> Self {
-        Self {
-            scale,
-            authored_scale: Vec3::ONE,
-        }
-    }
-
-    pub const fn with_authored_scale(scale: SpatialScale, authored_scale: Vec3) -> Self {
-        Self {
-            scale,
-            authored_scale,
-        }
+        Self { scale }
     }
 
     pub const fn scale(self) -> SpatialScale {
         self.scale
-    }
-
-    pub const fn authored_scale(self) -> Vec3 {
-        self.authored_scale
     }
 
     pub(crate) fn set_scale(&mut self, scale: SpatialScale) {
@@ -306,7 +291,7 @@ pub(super) fn project_local_scale_presentations(
             + (parent_transform.translation - observer_in_parent_chart) * factor;
         let delta = desired_global - parent_transform.translation;
         transform.translation = parent_transform.rotation.inverse() * delta;
-        transform.scale = presentation.authored_scale() * factor;
+        transform.scale = Vec3::splat(factor);
     }
 }
 

@@ -19,8 +19,7 @@ use bevy::{
 use crate::spatial::{UsfScaleLayer, UsfViewFrame};
 
 use super::{
-    VoxelChunk, VoxelChunkPhysicsLod, VoxelChunkPresentation, VoxelFineCacheOnly,
-    VoxelMaterializationChunkAddress,
+    VoxelChunk, VoxelChunkPhysicsLod, VoxelChunkPresentation, VoxelMaterializationChunkAddress,
     mesh::{self, VoxelSurface},
     perf::{VoxelPerfStats, per_stage_in_flight_limit},
     physics,
@@ -28,7 +27,9 @@ use super::{
 
 const DERIVED_TASK_START_BUDGET_PER_FRAME: usize = 8;
 const DERIVED_PUBLISH_BUDGET_PER_FRAME: usize = 8;
-const PHYSICS_LOD_RADIUS_NATIVE: f32 = 9.0;
+/// Physics activation is independent of visual resolution. This is only a
+/// local interaction bubble over the exact same scale-native geometry.
+const PHYSICS_INTERACTION_RADIUS_NATIVE: f32 = 32.0;
 
 struct VoxelDerivedOutput {
     surface: VoxelSurface,
@@ -130,7 +131,7 @@ pub(crate) fn queue_dirty_chunk_builds(
             &UsfScaleLayer,
             &mut VoxelChunkPhysicsLod,
         ),
-        (Without<VoxelDerivedTask>, Without<VoxelFineCacheOnly>),
+        Without<VoxelDerivedTask>,
     >,
     in_flight: Query<(), With<VoxelDerivedTask>>,
     mut perf: ResMut<VoxelPerfStats>,
@@ -150,11 +151,20 @@ pub(crate) fn queue_dirty_chunk_builds(
         let wants_collider = layer.scale() == view.dominant_scale()
             && address
                 .origin()
-                .relative_native_bounded(view.anchor(), PHYSICS_LOD_RADIUS_NATIVE + 24.0)
-                .map(|delta| {
-                    let center =
-                        delta + Vec3::splat(super::MATERIALIZATION_CHUNK_SIZE as f32 * 0.5);
-                    center.length() <= PHYSICS_LOD_RADIUS_NATIVE
+                .relative_native_bounded(
+                    view.anchor(),
+                    PHYSICS_INTERACTION_RADIUS_NATIVE
+                        + super::MATERIALIZATION_CHUNK_SIZE as f32 * 2.0,
+                )
+                .map(|minimum| {
+                    let maximum = minimum + Vec3::splat(super::MATERIALIZATION_CHUNK_SIZE as f32);
+                    let nearest = Vec3::new(
+                        0.0_f32.clamp(minimum.x, maximum.x),
+                        0.0_f32.clamp(minimum.y, maximum.y),
+                        0.0_f32.clamp(minimum.z, maximum.z),
+                    );
+                    nearest.length_squared()
+                        <= PHYSICS_INTERACTION_RADIUS_NATIVE * PHYSICS_INTERACTION_RADIUS_NATIVE
                 })
                 .unwrap_or(false);
 

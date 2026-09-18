@@ -8,7 +8,6 @@ mod aggregate;
 mod async_pipeline;
 mod base;
 mod chunk;
-mod coarse;
 mod devtools;
 mod edit;
 mod field;
@@ -38,11 +37,6 @@ use crate::spatial::SpatialDemandSet;
 #[derive(Component, Debug, Clone, Copy)]
 pub(crate) struct VoxelChunkPresentation(pub Entity);
 
-/// Dense 1-native-unit working cache. Until a real fine/coarse stitcher exists,
-/// the coarse tier owns visible geometry and collision.
-#[derive(Component, Debug, Clone, Copy, Default)]
-pub(crate) struct VoxelFineCacheOnly;
-
 /// Physics representation LOD for one dense chunk. Rendering and semantic
 /// materialization are independent from whether a local collider is needed.
 #[derive(Component, Debug, Clone, Copy, Default)]
@@ -59,13 +53,7 @@ impl Plugin for VoxelPlugin {
             )
             .add_systems(
                 Update,
-                (
-                    coarse::ensure_coarse_states,
-                    streaming::stream_voxel_chunks,
-                    coarse::stream_coarse_chunks,
-                )
-                    .chain()
-                    .after(SpatialDemandSet::Collect),
+                streaming::stream_voxel_chunks.after(SpatialDemandSet::Collect),
             )
             .add_systems(
                 PostUpdate,
@@ -73,7 +61,6 @@ impl Plugin for VoxelPlugin {
                     // Finish field generation after ordinary Update gameplay
                     // edits, then publish/queue revision-checked derived caches.
                     streaming::finish_chunk_generation,
-                    coarse::publish_coarse_chunks,
                     async_pipeline::publish_completed_chunk_builds,
                     async_pipeline::queue_dirty_chunk_builds,
                 )
