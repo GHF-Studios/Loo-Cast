@@ -3,6 +3,13 @@ name = "spacetime-engine"
 version.workspace = true
 edition.workspace = true
 
+[features]
+default = []
+profiling-tracy = ["bevy/trace_tracy"]
+profiling-tracy-memory = ["profiling-tracy", "bevy/trace_tracy_memory"]
+profiling-chrome = ["bevy/trace_chrome"]
+profiling-detailed = ["bevy/detailed_trace"]
+
 [dependencies]
 spacetime-engine-macros = { path = "../spacetime-engine-macros" }
 bevy = {

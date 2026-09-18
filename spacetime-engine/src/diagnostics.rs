@@ -3,11 +3,13 @@
 //! Diagnostics sample runtime/world state and expose a typed snapshot resource.
 //! They do not own developer controls, HUDs, Inspector sections, or World Draw.
 
+use std::collections::HashMap;
+
 use bevy::{
     diagnostic::{
         DiagnosticsStore, FrameTimeDiagnosticsPlugin, SystemInformationDiagnosticsPlugin,
     },
-    ecs::resource::IS_RESOURCE,
+    ecs::{component::ComponentId, resource::IS_RESOURCE},
     prelude::*,
 };
 
@@ -15,6 +17,7 @@ use crate::devtools::DeveloperArtifact;
 
 const SAMPLE_INTERVAL_SECONDS: f32 = 1.0;
 const FRAME_HISTORY_LENGTH: usize = 600;
+const TOP_COMPONENT_MEMORY_ENTRIES: usize = 24;
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct FrameRuntimeDiagnostics {
@@ -29,6 +32,25 @@ pub struct WorldRuntimeDiagnostics {
     pub entities: usize,
     pub component_instances: usize,
     pub archetypes: usize,
+}
+
+/// Logical live ECS payload for one component type.
+///
+/// `inline_bytes` is the component's registered in-ECS layout size multiplied by
+/// its live instance count. It deliberately does not attempt to include heap-owned
+/// allocations inside values such as `Vec`, `String`, maps, or custom allocators.
+#[derive(Debug, Clone)]
+pub struct ComponentMemoryDiagnostics {
+    pub name: String,
+    pub instances: usize,
+    pub inline_size_bytes: usize,
+    pub inline_bytes: usize,
+}
+
+#[derive(Resource, Debug, Default, Clone)]
+pub struct EcsMemoryDiagnostics {
+    pub inline_component_bytes: usize,
+    pub largest_components: Vec<ComponentMemoryDiagnostics>,
 }
 
 #[derive(Debug, Default, Clone, Copy)]
@@ -62,6 +84,7 @@ pub struct RuntimeDiagnosticsPlugin;
 impl Plugin for RuntimeDiagnosticsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<RuntimeDiagnostics>()
+            .init_resource::<EcsMemoryDiagnostics>()
             .init_resource::<DiagnosticsCadence>()
             .add_plugins((
                 FrameTimeDiagnosticsPlugin::new(FRAME_HISTORY_LENGTH),
@@ -130,6 +153,7 @@ fn collect_world_diagnostics(world: &mut World) {
 
     let developer_artifact = world.components().component_id::<DeveloperArtifact>();
     let mut result = WorldRuntimeDiagnostics::default();
+    let mut component_instances = vec![0usize; world.components().len()];
 
     for archetype in world.archetypes().iter() {
         if archetype.contains(IS_RESOURCE)
@@ -142,10 +166,49 @@ fn collect_world_diagnostics(world: &mut World) {
         let entity_count = archetype.len() as usize;
         result.archetypes += 1;
         result.entities += entity_count;
-        result.component_instances += entity_count * archetype.components().iter().count();
+        result.component_instances += entity_count * archetype.component_count();
+
+        for component_id in archetype.iter_components() {
+            component_instances[component_id.index()] += entity_count;
+        }
     }
 
     world.resource_mut::<RuntimeDiagnostics>().world = result;
+
+    let mut inline_component_bytes = 0usize;
+    let mut largest_components = component_instances
+        .into_iter()
+        .enumerate()
+        .filter_map(|(index, instances)| {
+            if instances == 0 {
+                return None;
+            }
+            let info = world.components().get_info(ComponentId::new(index))?;
+            let inline_size_bytes = info.layout().size();
+            let inline_bytes = inline_size_bytes.saturating_mul(instances);
+            inline_component_bytes = inline_component_bytes.saturating_add(inline_bytes);
+
+            Some(ComponentMemoryDiagnostics {
+                name: info.name().to_string(),
+                instances,
+                inline_size_bytes,
+                inline_bytes,
+            })
+        })
+        .collect::<Vec<_>>();
+
+    largest_components.sort_by(|a, b| {
+        b.inline_bytes
+            .cmp(&a.inline_bytes)
+            .then_with(|| b.instances.cmp(&a.instances))
+            .then_with(|| a.name.cmp(&b.name))
+    });
+    largest_components.truncate(TOP_COMPONENT_MEMORY_ENTRIES);
+
+    *world.resource_mut::<EcsMemoryDiagnostics>() = EcsMemoryDiagnostics {
+        inline_component_bytes,
+        largest_components,
+    };
 }
 
 fn diagnostic_value(

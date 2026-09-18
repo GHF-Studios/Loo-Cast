@@ -25,7 +25,7 @@ use bevy_inspector_egui::{
 use egui_dock::{DockArea, DockState, NodeIndex, Style, TabViewer};
 
 use crate::{
-    diagnostics::RuntimeDiagnostics,
+    diagnostics::{EcsMemoryDiagnostics, RuntimeDiagnostics},
     ecs::{UsfManifestationAuthority, UsfManifestationOf, UsfManifestations},
     view::{PrimaryGameView, PrimaryViewPresentation},
 };
@@ -742,6 +742,7 @@ fn draw_visualizations(ui: &mut egui::Ui, world: &mut World) {
 
 fn draw_runtime_diagnostics(ui: &mut egui::Ui, world: &World) {
     let diagnostics = world.resource::<RuntimeDiagnostics>();
+    let ecs_memory = world.resource::<EcsMemoryDiagnostics>();
 
     ui.heading("Runtime diagnostics");
     ui.add_space(4.0);
@@ -787,7 +788,85 @@ fn draw_runtime_diagnostics(ui: &mut egui::Ui, world: &World) {
                 diagnostics.system.system_memory_percent,
                 "%",
             );
+            ui.label("ECS inline payload");
+            ui.monospace(format_bytes(ecs_memory.inline_component_bytes));
+            ui.end_row();
         });
+
+    ui.add_space(8.0);
+    ui.separator();
+    ui.strong("Largest ECS component payloads");
+    ui.weak(
+        "Logical live payload = registered component layout size × live instances. \
+         This excludes heap allocations owned by component values, ECS spare capacity/metadata, \
+         resources/assets, allocator overhead, and GPU memory.",
+    );
+    ui.add_space(4.0);
+
+    egui::Grid::new("ecs_component_memory_grid")
+        .num_columns(4)
+        .striped(true)
+        .show(ui, |ui| {
+            ui.strong("Component");
+            ui.strong("Instances");
+            ui.strong("Inline each");
+            ui.strong("Inline total");
+            ui.end_row();
+
+            for component in &ecs_memory.largest_components {
+                ui.label(&component.name);
+                ui.monospace(component.instances.to_string());
+                ui.monospace(format_bytes(component.inline_size_bytes));
+                ui.monospace(format_bytes(component.inline_bytes));
+                ui.end_row();
+            }
+        });
+
+    ui.add_space(8.0);
+    ui.separator();
+    ui.strong("Deep profiler");
+    ui.horizontal(|ui| {
+        ui.label("Build:");
+        ui.monospace(profiling_backend_label());
+    });
+    ui.weak(
+        "Bevy's tracing backends capture ECS-system, render, engine, and custom spans without \
+         manually wrapping every system. Use Tracy for the primary timeline/allocation workflow \
+         or Chrome tracing for Perfetto. See spacetime-engine/PROFILING.md.",
+    );
+
+    if cfg!(feature = "profiling-detailed") {
+        ui.weak("Detailed trace events are compiled in; expect materially higher profiling overhead.");
+    }
+}
+
+fn profiling_backend_label() -> &'static str {
+    if cfg!(feature = "profiling-tracy-memory") {
+        "Tracy + allocations"
+    } else if cfg!(feature = "profiling-tracy") {
+        "Tracy"
+    } else if cfg!(feature = "profiling-chrome") {
+        "Chrome / Perfetto"
+    } else {
+        "runtime diagnostics only"
+    }
+}
+
+fn format_bytes(bytes: usize) -> String {
+    const UNITS: [&str; 4] = ["B", "KiB", "MiB", "GiB"];
+
+    let mut value = bytes as f64;
+    let mut unit = 0;
+    while value >= 1024.0 && unit < UNITS.len() - 1 {
+        value /= 1024.0;
+        unit += 1;
+    }
+
+    if unit == 0 {
+        format!("{bytes} {}", UNITS[unit])
+    } else {
+        format!("{value:.2} {}", UNITS[unit])
+    }
 }
 
 fn diagnostic_row(ui: &mut egui::Ui, label: &str, value: Option<f64>, suffix: &str) {
