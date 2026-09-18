@@ -12,6 +12,11 @@ debug = true
 incremental = true
 lto = false
 
+[profile.profiling]
+inherits = "release"
+debug = 1
+strip = "none"
+
 [workspace.dependencies]
 proc-macro2 = "1.0.107"
 proc-macro-crate = "3.5.0"

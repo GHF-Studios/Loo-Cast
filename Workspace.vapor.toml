@@ -14,3 +14,21 @@ date = "2026-07-09"
 [[project]]
 name = "loo-cast"
 path = "."
+
+[[run]]
+name = "default"
+project = "loo-cast"
+package = "spacetime-engine"
+binary = "spacetime-engine"
+telemetry = true
+
+[[run]]
+name = "profiling"
+extends = "default"
+profile = "profiling"
+features = ["profiling-tracy"]
+
+[[run]]
+name = "profiling-memory"
+extends = "profiling"
+features = ["profiling-tracy-memory"]

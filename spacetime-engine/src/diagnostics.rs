@@ -3,7 +3,7 @@
 //! Diagnostics sample runtime/world state and expose a typed snapshot resource.
 //! They do not own developer controls, HUDs, Inspector sections, or World Draw.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use bevy::{
     diagnostic::{
@@ -14,6 +14,7 @@ use bevy::{
 };
 
 use crate::devtools::DeveloperArtifact;
+use vapor_telemetry::TelemetryEmitter;
 
 const SAMPLE_INTERVAL_SECONDS: f32 = 1.0;
 const FRAME_HISTORY_LENGTH: usize = 600;
@@ -79,10 +80,17 @@ struct DiagnosticsCadence {
     world_elapsed: f32,
 }
 
+#[derive(Resource)]
+struct VaporTelemetry(TelemetryEmitter);
+
 pub struct RuntimeDiagnosticsPlugin;
 
 impl Plugin for RuntimeDiagnosticsPlugin {
     fn build(&self, app: &mut App) {
+        if let Some(telemetry) = TelemetryEmitter::from_env("spacetime-engine") {
+            app.insert_resource(VaporTelemetry(telemetry));
+        }
+
         app.init_resource::<RuntimeDiagnostics>()
             .init_resource::<EcsMemoryDiagnostics>()
             .init_resource::<DiagnosticsCadence>()
@@ -209,6 +217,90 @@ fn collect_world_diagnostics(world: &mut World) {
         inline_component_bytes,
         largest_components,
     };
+
+    publish_vapor_telemetry(world);
+}
+
+fn publish_vapor_telemetry(world: &World) {
+    let Some(telemetry) = world.get_resource::<VaporTelemetry>() else {
+        return;
+    };
+    let runtime = world.resource::<RuntimeDiagnostics>();
+    let memory = world.resource::<EcsMemoryDiagnostics>();
+    let mut metrics = BTreeMap::new();
+
+    insert_metric(&mut metrics, "frame.fps", runtime.frame.fps);
+    insert_metric(
+        &mut metrics,
+        "frame.time-ms",
+        runtime.frame.frame_time_ms,
+    );
+    insert_metric(
+        &mut metrics,
+        "frame.average-time-ms",
+        runtime.frame.average_frame_time_ms,
+    );
+    insert_metric(
+        &mut metrics,
+        "frame.one-percent-low-fps",
+        runtime.frame.one_percent_low_fps,
+    );
+    metrics.insert("world.entities".to_owned(), runtime.world.entities as f64);
+    metrics.insert(
+        "world.component-instances".to_owned(),
+        runtime.world.component_instances as f64,
+    );
+    metrics.insert(
+        "world.archetypes".to_owned(),
+        runtime.world.archetypes as f64,
+    );
+    insert_metric(
+        &mut metrics,
+        "system.process-cpu-percent",
+        runtime.system.process_cpu_percent,
+    );
+    insert_metric(
+        &mut metrics,
+        "system.cpu-percent",
+        runtime.system.system_cpu_percent,
+    );
+    insert_metric(
+        &mut metrics,
+        "system.process-memory-gib",
+        runtime.system.process_memory_gib,
+    );
+    insert_metric(
+        &mut metrics,
+        "system.memory-percent",
+        runtime.system.system_memory_percent,
+    );
+    metrics.insert(
+        "ecs.inline-component-bytes".to_owned(),
+        memory.inline_component_bytes as f64,
+    );
+    telemetry.0.publish_metrics(metrics);
+
+    let components = memory
+        .largest_components
+        .iter()
+        .map(|component| {
+            serde_json::json!({
+                "name": &component.name,
+                "instances": component.instances,
+                "inline_size_bytes": component.inline_size_bytes,
+                "inline_bytes": component.inline_bytes,
+            })
+        })
+        .collect();
+    telemetry
+        .0
+        .publish_snapshot("ecs.component-memory", serde_json::Value::Array(components));
+}
+
+fn insert_metric(metrics: &mut BTreeMap<String, f64>, name: &str, value: Option<f64>) {
+    if let Some(value) = value {
+        metrics.insert(name.to_owned(), value);
+    }
 }
 
 fn diagnostic_value(

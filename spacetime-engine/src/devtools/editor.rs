@@ -25,7 +25,6 @@ use bevy_inspector_egui::{
 use egui_dock::{DockArea, DockState, NodeIndex, Style, TabViewer};
 
 use crate::{
-    diagnostics::{EcsMemoryDiagnostics, RuntimeDiagnostics},
     ecs::{UsfManifestationAuthority, UsfManifestationOf, UsfManifestations},
     view::{PrimaryGameView, PrimaryViewPresentation},
 };
@@ -50,7 +49,6 @@ enum EditorTab {
     Resources,
     Assets,
     Visualizations,
-    Diagnostics,
     ChunkManager,
     IntentBuffer,
     IntentCommit,
@@ -89,7 +87,6 @@ impl Default for EditorShell {
                 EditorTab::Resources,
                 EditorTab::Assets,
                 EditorTab::Visualizations,
-                EditorTab::Diagnostics,
                 EditorTab::ChunkManager,
                 EditorTab::IntentBuffer,
                 EditorTab::IntentCommit,
@@ -370,7 +367,6 @@ impl TabViewer for EditorTabViewer<'_> {
             EditorTab::Resources => "Resources",
             EditorTab::Assets => "Assets",
             EditorTab::Visualizations => "Visualizations",
-            EditorTab::Diagnostics => "Diagnostics",
             EditorTab::ChunkManager => "Chunk Manager",
             EditorTab::IntentBuffer => "Intent Buffer",
             EditorTab::IntentCommit => "Intent Commit",
@@ -400,7 +396,6 @@ impl TabViewer for EditorTabViewer<'_> {
             EditorTab::Resources => bevy_inspector::ui_for_resources(self.world, ui),
             EditorTab::Assets => bevy_inspector::ui_for_all_assets(self.world, ui),
             EditorTab::Visualizations => draw_visualizations(ui, self.world),
-            EditorTab::Diagnostics => draw_runtime_diagnostics(ui, self.world),
             EditorTab::ChunkManager => draw_legacy_slot(ui, "Chunk Manager"),
             EditorTab::IntentBuffer => draw_legacy_slot(ui, "Intent Buffer"),
             EditorTab::IntentCommit => draw_legacy_slot(ui, "Intent Commit"),
@@ -738,144 +733,6 @@ fn draw_visualizations(ui: &mut egui::Ui, world: &mut World) {
             tools.set_visualization_enabled(spec.id, selected);
         }
     }
-}
-
-fn draw_runtime_diagnostics(ui: &mut egui::Ui, world: &World) {
-    let diagnostics = world.resource::<RuntimeDiagnostics>();
-    let ecs_memory = world.resource::<EcsMemoryDiagnostics>();
-
-    ui.heading("Runtime diagnostics");
-    ui.add_space(4.0);
-
-    egui::Grid::new("runtime_diagnostics_grid")
-        .num_columns(2)
-        .striped(true)
-        .show(ui, |ui| {
-            diagnostic_row(ui, "FPS", diagnostics.frame.fps, "");
-            diagnostic_row(ui, "Frame time", diagnostics.frame.frame_time_ms, " ms");
-            diagnostic_row(
-                ui,
-                "Average frame time",
-                diagnostics.frame.average_frame_time_ms,
-                " ms",
-            );
-            diagnostic_row(ui, "1% low FPS", diagnostics.frame.one_percent_low_fps, "");
-            ui.label("Entities");
-            ui.monospace(diagnostics.world.entities.to_string());
-            ui.end_row();
-            ui.label("Component instances");
-            ui.monospace(diagnostics.world.component_instances.to_string());
-            ui.end_row();
-            ui.label("Archetypes");
-            ui.monospace(diagnostics.world.archetypes.to_string());
-            ui.end_row();
-            diagnostic_row(
-                ui,
-                "Process CPU",
-                diagnostics.system.process_cpu_percent,
-                "%",
-            );
-            diagnostic_row(ui, "System CPU", diagnostics.system.system_cpu_percent, "%");
-            diagnostic_row(
-                ui,
-                "Process memory",
-                diagnostics.system.process_memory_gib,
-                " GiB",
-            );
-            diagnostic_row(
-                ui,
-                "System memory",
-                diagnostics.system.system_memory_percent,
-                "%",
-            );
-            ui.label("ECS inline payload");
-            ui.monospace(format_bytes(ecs_memory.inline_component_bytes));
-            ui.end_row();
-        });
-
-    ui.add_space(8.0);
-    ui.separator();
-    ui.strong("Largest ECS component payloads");
-    ui.weak(
-        "Logical live payload = registered component layout size × live instances. \
-         This excludes heap allocations owned by component values, ECS spare capacity/metadata, \
-         resources/assets, allocator overhead, and GPU memory.",
-    );
-    ui.add_space(4.0);
-
-    egui::Grid::new("ecs_component_memory_grid")
-        .num_columns(4)
-        .striped(true)
-        .show(ui, |ui| {
-            ui.strong("Component");
-            ui.strong("Instances");
-            ui.strong("Inline each");
-            ui.strong("Inline total");
-            ui.end_row();
-
-            for component in &ecs_memory.largest_components {
-                ui.label(&component.name);
-                ui.monospace(component.instances.to_string());
-                ui.monospace(format_bytes(component.inline_size_bytes));
-                ui.monospace(format_bytes(component.inline_bytes));
-                ui.end_row();
-            }
-        });
-
-    ui.add_space(8.0);
-    ui.separator();
-    ui.strong("Deep profiler");
-    ui.horizontal(|ui| {
-        ui.label("Build:");
-        ui.monospace(profiling_backend_label());
-    });
-    ui.weak(
-        "Bevy's tracing backends capture ECS-system, render, engine, and custom spans without \
-         manually wrapping every system. Use Tracy for the primary timeline/allocation workflow \
-         or Chrome tracing for Perfetto. See spacetime-engine/PROFILING.md.",
-    );
-
-    if cfg!(feature = "profiling-detailed") {
-        ui.weak("Detailed trace events are compiled in; expect materially higher profiling overhead.");
-    }
-}
-
-fn profiling_backend_label() -> &'static str {
-    if cfg!(feature = "profiling-tracy-memory") {
-        "Tracy + allocations"
-    } else if cfg!(feature = "profiling-tracy") {
-        "Tracy"
-    } else if cfg!(feature = "profiling-chrome") {
-        "Chrome / Perfetto"
-    } else {
-        "runtime diagnostics only"
-    }
-}
-
-fn format_bytes(bytes: usize) -> String {
-    const UNITS: [&str; 4] = ["B", "KiB", "MiB", "GiB"];
-
-    let mut value = bytes as f64;
-    let mut unit = 0;
-    while value >= 1024.0 && unit < UNITS.len() - 1 {
-        value /= 1024.0;
-        unit += 1;
-    }
-
-    if unit == 0 {
-        format!("{bytes} {}", UNITS[unit])
-    } else {
-        format!("{value:.2} {}", UNITS[unit])
-    }
-}
-
-fn diagnostic_row(ui: &mut egui::Ui, label: &str, value: Option<f64>, suffix: &str) {
-    ui.label(label);
-    match value {
-        Some(value) => ui.monospace(format!("{value:.2}{suffix}")),
-        None => ui.monospace("—"),
-    };
-    ui.end_row();
 }
 
 fn draw_legacy_slot(ui: &mut egui::Ui, title: &str) {
