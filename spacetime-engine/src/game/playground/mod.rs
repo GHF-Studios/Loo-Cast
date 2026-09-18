@@ -12,7 +12,6 @@ mod items;
 mod lifecycle;
 mod map;
 mod object;
-mod picking;
 mod ui;
 
 pub use action::{

@@ -16,7 +16,7 @@ use bevy::{
     render::render_resource::{Extent3d, TextureDimension, TextureFormat},
 };
 
-use texture::{GeneratedPbrTextures, generate_cracked_clay};
+use texture::generate_cracked_clay;
 
 /// Stable handles for one generated PBR material set.
 ///

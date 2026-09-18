@@ -115,7 +115,7 @@ pub(super) fn volume_for_scale_context(
     worldgen: &WorldgenStore,
     key: WorldgenEvaluationKey,
 ) -> ProceduralVolume {
-    let node = worldgen
+    worldgen
         .node(key)
         .expect("requested scale context must already exist");
     let lineage = worldgen

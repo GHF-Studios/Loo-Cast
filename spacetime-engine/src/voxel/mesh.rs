@@ -2,7 +2,7 @@
 
 use bevy::{
     asset::RenderAssetUsages,
-    mesh::{Indices, PrimitiveTopology},
+    mesh::PrimitiveTopology,
     prelude::*,
 };
 use fast_surface_nets::{SurfaceNetsBuffer, ndshape::ConstShape3u32, surface_nets};
@@ -23,20 +23,6 @@ pub(crate) struct VoxelSurface {
     pub(crate) uvs: Vec<[f32; 2]>,
     pub(crate) tangents: Vec<[f32; 4]>,
     pub(crate) indices: Vec<u32>,
-}
-
-impl VoxelSurface {
-    pub(crate) fn into_mesh(self) -> Mesh {
-        Mesh::new(
-            PrimitiveTopology::TriangleList,
-            RenderAssetUsages::default(),
-        )
-        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, self.positions)
-        .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, self.normals)
-        .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, self.uvs)
-        .with_inserted_attribute(Mesh::ATTRIBUTE_TANGENT, self.tangents)
-        .with_inserted_indices(Indices::U32(self.indices))
-    }
 }
 
 pub(crate) fn empty_mesh() -> Mesh {

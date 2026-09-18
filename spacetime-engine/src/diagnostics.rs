@@ -3,7 +3,7 @@
 //! Diagnostics sample runtime/world state and expose a typed snapshot resource.
 //! They do not own developer controls, HUDs, Inspector sections, or World Draw.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 use bevy::{
     diagnostic::{

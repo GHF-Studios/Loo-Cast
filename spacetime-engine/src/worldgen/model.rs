@@ -137,6 +137,18 @@ pub struct WorldgenEvaluationKey {
 }
 
 impl WorldgenEvaluationKey {
+    pub(super) const fn new(
+        scope: UsfChunkAddress,
+        temporal_scale: TemporalScale,
+        epoch: WorldgenEpochId,
+    ) -> Self {
+        Self {
+            scope,
+            temporal_scale,
+            epoch,
+        }
+    }
+
     pub const fn scope(self) -> UsfChunkAddress {
         self.scope
     }
@@ -158,6 +170,14 @@ pub struct PhenomenonEvaluationContext {
 }
 
 impl PhenomenonEvaluationContext {
+    pub(super) const fn new(
+        key: WorldgenEvaluationKey,
+        epoch: WorldgenEpoch,
+        seed: u64,
+    ) -> Self {
+        Self { key, epoch, seed }
+    }
+
     pub const fn key(self) -> WorldgenEvaluationKey {
         self.key
     }
@@ -191,6 +211,18 @@ pub struct WorldgenNode {
 }
 
 impl WorldgenNode {
+    pub(super) fn new(
+        context: PhenomenonEvaluationContext,
+        parent: Option<WorldgenEvaluationKey>,
+        phenomena: Vec<PhenomenonSnapshot>,
+    ) -> Self {
+        Self {
+            context,
+            parent,
+            phenomena,
+        }
+    }
+
     pub const fn context(&self) -> PhenomenonEvaluationContext {
         self.context
     }

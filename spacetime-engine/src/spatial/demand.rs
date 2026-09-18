@@ -67,6 +67,7 @@ pub struct SpatialDemandScope {
 }
 
 impl SpatialDemandScope {
+    #[cfg(test)]
     pub(crate) const fn new(
         source: Entity,
         center: UsfPosition,

@@ -54,7 +54,6 @@ pub(crate) struct GeneratedPbrTextures {
 #[derive(Debug, Clone, Copy)]
 struct SurfaceSample {
     height: f32,
-    crack: f32,
     color_srgb: Vec3,
     roughness: f32,
     occlusion: f32,
@@ -145,7 +144,6 @@ fn sample_surface(recipe: &CrackedClayRecipe, uv: Vec2) -> SurfaceSample {
 
     SurfaceSample {
         height,
-        crack,
         color_srgb,
         roughness,
         occlusion,

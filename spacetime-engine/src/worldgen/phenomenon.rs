@@ -37,7 +37,7 @@ impl PhenomenonRegistry {
         self.rules.push(Box::new(rule));
     }
 
-    fn evaluate(
+    pub(super) fn evaluate(
         &self,
         context: &PhenomenonEvaluationContext,
         parent: Option<&WorldgenNode>,

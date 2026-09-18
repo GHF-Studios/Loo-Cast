@@ -13,7 +13,7 @@ use super::{
         WorldgenNode,
     },
     phenomenon::{PhenomenonRegistry, PhenomenonRule},
-    seed::signed_noise,
+    seed::{signed_noise, unit_noise},
 };
 
 pub(super) fn register_builtin_rules(registry: &mut PhenomenonRegistry) {

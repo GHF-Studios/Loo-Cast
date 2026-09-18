@@ -28,6 +28,12 @@ independent concerns such as:
 `mod.rs` should primarily document, compose, and re-export a subsystem. It
 should not become the subsystem implementation.
 
+Meaningful domain/concept modules get explicit named module boundaries: for
+example `physics`, `worldgen`, `player`, `portal`, or `voxel`. Generic role
+names such as `types`, `systems`, `components`, `resources`, or `functions`
+are support files inside a meaningful domain, not architectural domains of
+their own and not dumping grounds for unrelated code.
+
 ## ECS systems
 
 Bevy systems are orchestration boundaries. A system should normally read its ECS

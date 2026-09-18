@@ -8,30 +8,11 @@
 use avian3d::{collision::collider::TrimeshFlags, prelude::Collider};
 use bevy::prelude::*;
 
-use super::{MATERIALIZATION_CHUNK_SIZE, VoxelChunk, mesh::VoxelSurface};
+use super::{MATERIALIZATION_CHUNK_SIZE, mesh::VoxelSurface};
 
 /// Small thickness around the otherwise hollow terrain trimesh. This reduces
 /// tunnelling and visible/contact jitter for character and rigid-body motion.
 pub const VOXEL_COLLISION_MARGIN: f32 = 0.02;
-
-pub(crate) fn build_chunk_collider(
-    _chunk: &VoxelChunk,
-    surface: &VoxelSurface,
-) -> Option<Collider> {
-    let triangles = owned_triangles(surface);
-    if triangles.is_empty() {
-        return None;
-    }
-
-    let vertices = surface
-        .positions
-        .iter()
-        .copied()
-        .map(Vec3::from_array)
-        .collect::<Vec<_>>();
-
-    build_trimesh_collider(vertices, triangles, "voxel chunk")
-}
 
 pub(crate) fn build_trimesh_collider(
     vertices: Vec<Vec3>,
@@ -83,7 +64,7 @@ mod tests {
     use std::collections::BTreeSet;
 
     use super::*;
-    use crate::voxel::{VoxelMaterialId, VoxelSample, mesh::extract_chunk_surface};
+    use crate::voxel::{VoxelChunk, VoxelMaterialId, VoxelSample, mesh::extract_chunk_surface};
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
     struct QuantizedPoint(i32, i32, i32);

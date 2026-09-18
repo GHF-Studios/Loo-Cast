@@ -18,7 +18,7 @@ pub(super) fn scope_seed(universe_seed: u64, scope: UsfChunkAddress) -> u64 {
     state
 }
 
-fn unit_noise(context: &PhenomenonEvaluationContext, salt: u64) -> f32 {
+pub(super) fn unit_noise(context: &PhenomenonEvaluationContext, salt: u64) -> f32 {
     let value = mix64(context.seed() ^ salt);
     let unit = (value >> 11) as f64 / ((1_u64 << 53) - 1) as f64;
     unit as f32

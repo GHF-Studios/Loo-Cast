@@ -37,20 +37,6 @@ impl VoxelMaterializationAggregateExtent {
             })
     }
 
-    /// Same-resolution render-cache scope: 4 base chunks = 40 native units.
-    pub(crate) const FORTY: Self = Self {
-        base_chunks_per_axis: 4,
-    };
-
-    pub(crate) const HUNDRED: Self = Self {
-        base_chunks_per_axis: 10,
-    };
-
-    #[allow(dead_code)]
-    pub(crate) const THOUSAND: Self = Self {
-        base_chunks_per_axis: 100,
-    };
-
     pub(crate) const fn base_chunks_per_axis(self) -> i32 {
         self.base_chunks_per_axis
     }
@@ -134,6 +120,11 @@ mod tests {
 
     use super::*;
 
+    fn extent(base_chunks_per_axis: i32) -> VoxelMaterializationAggregateExtent {
+        VoxelMaterializationAggregateExtent::from_base_chunks_per_axis(base_chunks_per_axis)
+            .expect("test extent must satisfy canonical aggregate alignment")
+    }
+
     #[test]
     fn runtime_group_extent_accepts_current_alignment_period_divisors() {
         assert_eq!(
@@ -157,13 +148,13 @@ mod tests {
         let hundred = VoxelMaterializationAggregateScope::containing(
             &world,
             address,
-            VoxelMaterializationAggregateExtent::HUNDRED,
+            extent(10),
         )
         .unwrap();
         let thousand = VoxelMaterializationAggregateScope::containing(
             &world,
             address,
-            VoxelMaterializationAggregateExtent::THOUSAND,
+            extent(100),
         )
         .unwrap();
 
@@ -190,7 +181,7 @@ mod tests {
         let scope = VoxelMaterializationAggregateScope::containing(
             &world,
             address,
-            VoxelMaterializationAggregateExtent::FORTY,
+            extent(4),
         )
         .unwrap();
 
@@ -212,19 +203,19 @@ mod tests {
         let hundred = VoxelMaterializationAggregateScope::containing(
             &world,
             address,
-            VoxelMaterializationAggregateExtent::HUNDRED,
+            extent(10),
         )
         .unwrap();
         let thousand = VoxelMaterializationAggregateScope::containing(
             &world,
             address,
-            VoxelMaterializationAggregateExtent::THOUSAND,
+            extent(100),
         )
         .unwrap();
         let hundred_parent = VoxelMaterializationAggregateScope::containing(
             &world,
             hundred.origin,
-            VoxelMaterializationAggregateExtent::THOUSAND,
+            extent(100),
         )
         .unwrap();
 

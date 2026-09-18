@@ -59,11 +59,11 @@ impl WorldgenStore {
         temporal_scale: TemporalScale,
         epoch: WorldgenEpoch,
     ) -> Result<WorldgenEvaluationKey, UsfPositionError> {
-        Ok(WorldgenEvaluationKey {
-            scope: UsfChunkAddress::containing(position, scale)?,
+        Ok(WorldgenEvaluationKey::new(
+            UsfChunkAddress::containing(position, scale)?,
             temporal_scale,
-            epoch: epoch.id(),
-        })
+            epoch.id(),
+        ))
     }
 
     /// Bootstraps exactly one root context at Scale +35.
@@ -76,17 +76,13 @@ impl WorldgenStore {
         registry: &PhenomenonRegistry,
     ) -> Result<WorldgenEvaluationKey, UsfPositionError> {
         let scope = UsfChunkAddress::containing(target, SpatialScale::MAX)?;
-        let key = WorldgenEvaluationKey {
-            scope,
-            temporal_scale,
-            epoch: epoch.id(),
-        };
+        let key = WorldgenEvaluationKey::new(scope, temporal_scale, epoch.id());
         if self.nodes.contains_key(&key) {
             return Ok(key);
         }
 
         let seed = scope_seed(self.universe_seed, scope);
-        let context = PhenomenonEvaluationContext { key, epoch, seed };
+        let context = PhenomenonEvaluationContext::new(key, epoch, seed);
         let phenomena = registry.evaluate(&context, None);
         debug_assert!(
             !phenomena.is_empty(),
@@ -94,11 +90,7 @@ impl WorldgenStore {
         );
         self.nodes.insert(
             key,
-            WorldgenNode {
-                context,
-                parent: None,
-                phenomena,
-            },
+            WorldgenNode::new(context, None, phenomena),
         );
         Ok(key)
     }
@@ -128,18 +120,18 @@ impl WorldgenStore {
             return Ok(None);
         }
 
-        let key = WorldgenEvaluationKey {
-            scope: child_scope,
-            temporal_scale: parent.temporal_scale(),
-            epoch: parent.epoch(),
-        };
+        let key = WorldgenEvaluationKey::new(
+            child_scope,
+            parent.temporal_scale(),
+            parent.epoch(),
+        );
         if self.nodes.contains_key(&key) {
             return Ok(Some(key));
         }
 
         let epoch = parent_node.context().epoch();
         let seed = scope_seed(self.universe_seed, child_scope);
-        let context = PhenomenonEvaluationContext { key, epoch, seed };
+        let context = PhenomenonEvaluationContext::new(key, epoch, seed);
         let phenomena = registry.evaluate(&context, Some(parent_node));
         debug_assert!(
             !phenomena.is_empty(),
@@ -147,11 +139,7 @@ impl WorldgenStore {
         );
         self.nodes.insert(
             key,
-            WorldgenNode {
-                context,
-                parent: Some(parent),
-                phenomena,
-            },
+            WorldgenNode::new(context, Some(parent), phenomena),
         );
         Ok(Some(key))
     }
@@ -203,7 +191,7 @@ impl WorldgenStore {
         let mut lineage = Vec::new();
         while let Some(node) = self.nodes.get(&key) {
             lineage.push(node);
-            let Some(parent) = node.parent else {
+            let Some(parent) = node.parent() else {
                 break;
             };
             key = parent;

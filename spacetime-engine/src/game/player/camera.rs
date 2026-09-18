@@ -322,7 +322,6 @@ fn resolve_third_person_boom(
         let Some(crossing) = crossing else {
             transform.translation = end;
             resolved_distance += remaining;
-            remaining = 0.0;
             break;
         };
 

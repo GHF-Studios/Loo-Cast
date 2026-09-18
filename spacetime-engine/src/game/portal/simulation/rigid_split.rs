@@ -34,7 +34,6 @@ use super::split::{
 
 const PREOPEN_MARGIN: f32 = 0.04;
 const CLEAR_MARGIN: f32 = 0.02;
-const CROSSING_EPSILON: f32 = 1.0e-5;
 
 /// Maps character impulses that strike the destination-side proxy back onto the
 /// one authoritative rigid body before portal peers are synchronized for this

@@ -165,6 +165,10 @@ fn toggle_editor_shell(
     }
 }
 
+#[expect(
+    deprecated,
+    reason = "egui 0.34 deprecated root Context panel entry points before bevy_egui exposes a root Ui"
+)]
 fn draw_editor_shell(world: &mut World) {
     if !world.resource::<PrimaryViewPresentation>().is_embedded() {
         set_primary_game_viewport(world, None, true);
@@ -242,8 +246,12 @@ fn set_primary_game_viewport(world: &mut World, viewport: Option<Viewport>, acti
     camera.is_active = active;
 }
 
+#[expect(
+    deprecated,
+    reason = "egui 0.34 deprecated root Context panel entry points before bevy_egui exposes a root Ui"
+)]
 fn draw_toolbar(ctx: &egui::Context, world: &mut World) {
-    egui::TopBottomPanel::top("spacetime_editor_toolbar").show(ctx, |ui| {
+    egui::Panel::top("spacetime_editor_toolbar").show(ctx, |ui| {
         ui.horizontal(|ui| {
             ui.strong("SPACETIME");
             ui.separator();
