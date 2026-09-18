@@ -1,9 +1,13 @@
 //! Temporary aggregate counters until full profiling is integrated.
+use avian3d::prelude::Collider;
 use bevy::prelude::*;
 use std::num::NonZeroUsize;
 
+use crate::spatial::UsfLocalScalePresentation;
+
 use super::{
-    VoxelChunk, async_pipeline::VoxelDerivedTask, streaming::VoxelAggregateGenerationTask,
+    VoxelChunk, VoxelChunkOf, async_pipeline::VoxelDerivedTask,
+    streaming::VoxelAggregateGenerationTask,
 };
 
 pub(crate) fn per_stage_in_flight_limit() -> usize {
@@ -52,6 +56,9 @@ pub(crate) fn report_voxel_perf(
     time: Res<Time>,
     mut stats: ResMut<VoxelPerfStats>,
     chunks: Query<(), With<VoxelChunk>>,
+    reserved_chunks: Query<(), With<VoxelChunkOf>>,
+    voxel_meshes: Query<(), (With<Mesh3d>, With<UsfLocalScalePresentation>)>,
+    voxel_colliders: Query<(), (With<Collider>, With<VoxelChunkOf>)>,
     generation: Query<(), With<VoxelAggregateGenerationTask>>,
     derived: Query<(), With<VoxelDerivedTask>>,
 ) {
@@ -72,6 +79,9 @@ pub(crate) fn report_voxel_perf(
     };
     info!(
         loaded_chunks = chunks.iter().count(),
+        reserved_chunks = reserved_chunks.iter().count(),
+        voxel_meshes = voxel_meshes.iter().count(),
+        voxel_colliders = voxel_colliders.iter().count(),
         generation_in_flight = generation.iter().count(),
         derived_in_flight = derived.iter().count(),
         generated = stats.generated,

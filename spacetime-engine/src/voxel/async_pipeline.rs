@@ -16,7 +16,7 @@ use bevy::{
     tasks::{AsyncComputeTaskPool, Task, futures::check_ready},
 };
 
-use crate::spatial::{UsfScaleLayer, UsfViewFrame};
+use crate::spatial::{SPATIAL_SCALE_MAX, SpatialScale, UsfPosition, UsfScaleLayer, UsfViewFrame};
 
 use super::{
     VoxelChunk, VoxelChunkPhysicsLod, VoxelChunkPresentation, VoxelMaterializationChunkAddress,
@@ -32,9 +32,10 @@ const DERIVED_PUBLISH_BUDGET_PER_FRAME: usize = 8;
 const PHYSICS_INTERACTION_RADIUS_NATIVE: f32 = 32.0;
 
 struct VoxelDerivedOutput {
-    surface: VoxelSurface,
+    surface: Option<VoxelSurface>,
     collider: Option<Collider>,
     collider_requested: bool,
+    debug_color: [f32; 4],
     build_micros: u64,
 }
 
@@ -83,17 +84,21 @@ pub(crate) fn publish_completed_chunk_builds(
             surface,
             collider,
             collider_requested,
+            debug_color,
             build_micros,
         } = output;
         perf.record_derived(build_micros);
-        let has_surface = !surface.positions.is_empty() && !surface.indices.is_empty();
 
-        if has_surface {
-            commands
-                .entity(presentation.0)
-                .insert(Mesh3d(meshes.add(surface_into_mesh(surface))));
-        } else {
-            commands.entity(presentation.0).remove::<Mesh3d>();
+        if let Some(surface) = surface {
+            let has_surface = !surface.positions.is_empty() && !surface.indices.is_empty();
+            if has_surface {
+                commands
+                    .entity(presentation.0)
+                    .insert(Mesh3d(meshes.add(surface_into_mesh(surface, debug_color))));
+            } else {
+                commands.entity(presentation.0).remove::<Mesh3d>();
+            }
+            chunk.mark_meshed();
         }
 
         let mut entity_commands = commands.entity(entity);
@@ -111,7 +116,6 @@ pub(crate) fn publish_completed_chunk_builds(
         physics_lod.0 = collider_requested;
 
         entity_commands.remove::<VoxelDerivedTask>();
-        chunk.mark_meshed();
         published += 1;
     }
 }
@@ -203,6 +207,8 @@ pub(crate) fn queue_dirty_chunk_builds(
         }
 
         let revision = chunk.revision();
+        let mesh_requested = chunk.needs_remesh();
+        let debug_color = debug_chunk_color(*address, layer.scale());
 
         // M5 intentionally pays for a simple immutable snapshot instead of
         // introducing shared/COW voxel storage prematurely. This clones distance
@@ -218,9 +224,10 @@ pub(crate) fn queue_dirty_chunk_builds(
                 None
             };
             VoxelDerivedOutput {
-                surface,
+                surface: mesh_requested.then_some(surface),
                 collider,
                 collider_requested: wants_collider,
+                debug_color,
                 build_micros: started_at.elapsed().as_micros() as u64,
             }
         });
@@ -232,7 +239,48 @@ pub(crate) fn queue_dirty_chunk_builds(
     }
 }
 
-fn surface_into_mesh(surface: VoxelSurface) -> Mesh {
+fn debug_chunk_color(address: VoxelMaterializationChunkAddress, scale: SpatialScale) -> [f32; 4] {
+    let origin = *address.origin();
+    let chart_zero = UsfPosition::zero(scale);
+    let mut color = Vec3::splat(0.72);
+    let mut initialized = false;
+
+    for raw in (scale.exponent()..=SPATIAL_SCALE_MAX).rev() {
+        let level = SpatialScale::new(raw).expect("validated debug color scale");
+        let relative = origin
+            .relative_at_scale_bounded(&chart_zero, level, 1_000_000.0)
+            .unwrap_or(Vec3::ZERO);
+        let cell = (relative / 10.0).floor().as_ivec3();
+        let hash = debug_hash(cell, level);
+        let candidate = Vec3::new(
+            0.32 + ((hash & 0xFF) as f32 / 255.0) * 0.62,
+            0.32 + (((hash >> 8) & 0xFF) as f32 / 255.0) * 0.62,
+            0.32 + (((hash >> 16) & 0xFF) as f32 / 255.0) * 0.62,
+        );
+
+        if initialized {
+            color = color.lerp(candidate, 0.20);
+        } else {
+            color = candidate;
+            initialized = true;
+        }
+    }
+
+    [color.x, color.y, color.z, 1.0]
+}
+
+fn debug_hash(cell: IVec3, scale: SpatialScale) -> u32 {
+    let mut value = (scale.exponent() as i32 as u32).wrapping_mul(0x9E37_79B9);
+    for component in [cell.x, cell.y, cell.z] {
+        value ^= (component as u32).wrapping_mul(0x85EB_CA6B);
+        value ^= value >> 16;
+        value = value.wrapping_mul(0x7FEB_352D);
+        value ^= value >> 15;
+    }
+    value
+}
+
+fn surface_into_mesh(surface: VoxelSurface, debug_color: [f32; 4]) -> Mesh {
     let VoxelSurface {
         positions,
         normals,
@@ -240,6 +288,7 @@ fn surface_into_mesh(surface: VoxelSurface) -> Mesh {
         tangents,
         indices,
     } = surface;
+    let colors = vec![debug_color; positions.len()];
 
     Mesh::new(
         PrimitiveTopology::TriangleList,
@@ -247,6 +296,7 @@ fn surface_into_mesh(surface: VoxelSurface) -> Mesh {
     )
     .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
     .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, normals)
+    .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, colors)
     .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, uvs)
     .with_inserted_attribute(Mesh::ATTRIBUTE_TANGENT, tangents)
     .with_inserted_indices(Indices::U32(indices))

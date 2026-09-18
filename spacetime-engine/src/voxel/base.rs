@@ -5,7 +5,9 @@
 
 use bevy::prelude::{Vec2, Vec3};
 
-use crate::spatial::{SPATIAL_SCALE_MAX, SpatialScale, UsfPosition};
+use crate::spatial::{
+    SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale, UsfPosition,
+};
 
 use super::{VoxelMaterialId, VoxelQueryPosition, VoxelSample};
 
@@ -257,6 +259,13 @@ pub struct ProceduralVolume {
     structure_strength: f32,
     parent_macro_seed: Option<u32>,
     parent_macro_origin: f32,
+    hierarchy: Option<ScaleRefinementHierarchy>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct ScaleRefinementHierarchy {
+    current_scale: SpatialScale,
+    seeds: [u32; SPATIAL_SCALE_COUNT],
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -288,33 +297,50 @@ impl ProceduralVolume {
             structure_strength: structure_strength.clamp(0.0, 1.0),
             parent_macro_seed: None,
             parent_macro_origin: 0.0,
+            hierarchy: None,
         }
     }
 
     pub fn scale_layer(universe_seed: u64, context_seed: u64, scale: SpatialScale) -> Self {
+        Self::scale_refinement(universe_seed, scale, &[(scale, context_seed)])
+    }
+
+    /// Testing realizer for the USF refinement spine.
+    ///
+    /// Every finer scale reproduces the entire already-resolved coarser field in
+    /// its own native units, then adds only detail native to newly-entered scales.
+    /// One +35 unit therefore becomes ten +34 units with the same broad geometry.
+    pub fn scale_refinement(
+        universe_seed: u64,
+        scale: SpatialScale,
+        lineage: &[(SpatialScale, u64)],
+    ) -> Self {
         let hierarchy_seed = (universe_seed as u32) ^ ((universe_seed >> 32) as u32);
-        let detail_seed = scale_layer_seed(hierarchy_seed, scale);
-        let context = mix(
-            (context_seed as u32) ^ ((context_seed >> 32) as u32),
-            scale.exponent() as i32 as u32,
-        );
-        let unit = context as f32 / u32::MAX as f32;
-        let parent_macro_seed = if scale < SpatialScale::MAX {
-            Some(scale_layer_seed(
-                hierarchy_seed,
-                SpatialScale::new(scale.exponent() + 1).expect("non-root scale has a parent"),
-            ))
-        } else {
-            None
-        };
-        let parent_macro_origin =
-            parent_macro_seed.map_or(0.0, |seed| value_noise(Vec2::ZERO, seed));
+        let mut seeds = [0_u32; SPATIAL_SCALE_COUNT];
+
+        for raw in SPATIAL_SCALE_MIN..=SPATIAL_SCALE_MAX {
+            let level = SpatialScale::new(raw).expect("validated spatial scale");
+            seeds[level.index_from_top()] = scale_layer_seed(hierarchy_seed, level);
+        }
+
+        for &(level, context_seed) in lineage {
+            let folded = (context_seed as u32) ^ ((context_seed >> 32) as u32);
+            seeds[level.index_from_top()] = mix(seeds[level.index_from_top()], folded);
+        }
+
+        let detail_seed = seeds[scale.index_from_top()];
+        let unit = detail_seed as f32 / u32::MAX as f32;
+
         Self {
             surface: ProceduralTerrain::configured(detail_seed, -4.0, 3.0, 0.035),
             cave_strength: 0.10 + unit * 0.24,
             structure_strength: 0.35 + unit * 0.50,
-            parent_macro_seed,
-            parent_macro_origin,
+            parent_macro_seed: None,
+            parent_macro_origin: 0.0,
+            hierarchy: Some(ScaleRefinementHierarchy {
+                current_scale: scale,
+                seeds,
+            }),
         }
     }
 
@@ -341,6 +367,10 @@ impl ProceduralVolume {
 
     #[inline]
     fn sample_local(self, local: Vec3) -> VoxelSample {
+        if let Some(hierarchy) = self.hierarchy {
+            return sample_refinement_hierarchy(local, hierarchy);
+        }
+
         let surface_height = self.surface_height_local(local.x, local.z);
         let base_frequency = self.surface.frequency.max(f32::EPSILON);
         let relief = self.surface.amplitude.max(1.0);
@@ -372,6 +402,10 @@ impl ProceduralVolume {
     }
 
     fn surface_height_local(self, x: f32, z: f32) -> f32 {
+        if let Some(hierarchy) = self.hierarchy {
+            return refinement_surface_height(Vec2::new(x, z), hierarchy);
+        }
+
         let mut height = self.surface.height(x, z);
         if let Some(parent_seed) = self.parent_macro_seed {
             let parent_point = Vec2::new(x, z) * (self.surface.frequency.max(f32::EPSILON) / 10.0);
@@ -404,6 +438,12 @@ impl ProceduralVolume {
         world_origin: VoxelQueryPosition,
         point: VoxelQueryPosition,
     ) -> VoxelSample {
+        if self.hierarchy.is_some() {
+            if let Ok(local) = point.relative_to(world_origin, TERRAIN_DIRECT_LOCAL_LIMIT) {
+                return self.sample_local(local);
+            }
+        }
+
         let surface_height = self.reference_surface_height_at(world_origin, point);
         let Some(y) = point
             .usf()
@@ -460,6 +500,90 @@ impl ProceduralVolume {
             },
         )
     }
+}
+
+fn sample_refinement_hierarchy(local: Vec3, hierarchy: ScaleRefinementHierarchy) -> VoxelSample {
+    let current = hierarchy.current_scale;
+    let mut distance = 0.0_f64;
+
+    for raw in (current.exponent()..=SPATIAL_SCALE_MAX).rev() {
+        let level = SpatialScale::new(raw).expect("validated refinement scale");
+        let exponent_delta = i32::from(level.exponent() - current.exponent());
+        let factor = 10.0_f64.powi(exponent_delta);
+        let level_local = Vec3::new(
+            (local.x as f64 / factor) as f32,
+            (local.y as f64 / factor) as f32,
+            (local.z as f64 / factor) as f32,
+        );
+        let seed = hierarchy.seeds[level.index_from_top()];
+
+        if level == SpatialScale::MAX {
+            distance = f64::from(root_scale_distance(level_local, seed)) * factor;
+        } else {
+            distance += f64::from(refinement_detail_offset(level_local, seed)) * factor;
+        }
+    }
+
+    let distance = distance.clamp(-(EMPTY_DISTANCE as f64), EMPTY_DISTANCE as f64) as f32;
+    VoxelSample::new(
+        distance,
+        if distance < 0.0 {
+            VoxelMaterialId::ROCK
+        } else {
+            VoxelMaterialId::VOID
+        },
+    )
+}
+
+fn refinement_surface_height(local: Vec2, hierarchy: ScaleRefinementHierarchy) -> f32 {
+    let current = hierarchy.current_scale;
+    let mut height = 0.0_f64;
+
+    for raw in (current.exponent()..=SPATIAL_SCALE_MAX).rev() {
+        let level = SpatialScale::new(raw).expect("validated refinement scale");
+        let exponent_delta = i32::from(level.exponent() - current.exponent());
+        let factor = 10.0_f64.powi(exponent_delta);
+        let level_local = Vec2::new(
+            (local.x as f64 / factor) as f32,
+            (local.y as f64 / factor) as f32,
+        );
+        let seed = hierarchy.seeds[level.index_from_top()];
+
+        let contribution = if level == SpatialScale::MAX {
+            root_surface_height(level_local, seed)
+        } else {
+            refinement_height_detail(level_local, seed)
+        };
+        height += f64::from(contribution) * factor;
+    }
+
+    height.clamp(-(EMPTY_DISTANCE as f64), EMPTY_DISTANCE as f64) as f32
+}
+
+fn root_surface_height(local: Vec2, seed: u32) -> f32 {
+    ProceduralTerrain::configured(seed, -4.0, 3.0, 0.035).height(local.x, local.y)
+}
+
+fn root_scale_distance(local: Vec3, seed: u32) -> f32 {
+    let surface_height = root_surface_height(Vec2::new(local.x, local.z), seed);
+    let structure = value_noise_3d(local * (0.035 * 0.72), seed ^ 0x31D0_6A5B);
+    let exterior = local.y - surface_height + structure * 1.45;
+
+    let cave_noise = value_noise_3d(local * 0.072, seed ^ 0xCA7E_5EED);
+    let depth = (surface_height - local.y).max(0.0);
+    let underground_gate = (depth / 3.0).clamp(0.0, 1.0);
+    let cave = (0.10 - cave_noise.abs()) * 5.0 * underground_gate;
+    exterior.max(cave)
+}
+
+fn refinement_height_detail(local: Vec2, seed: u32) -> f32 {
+    value_noise(local * 0.10, seed ^ 0xB16B_00B5) * 0.32
+}
+
+fn refinement_detail_offset(local: Vec3, seed: u32) -> f32 {
+    let volumetric = value_noise_3d(local * 0.11, seed ^ 0x5CA1_E123) * 0.30;
+    let surface = refinement_height_detail(Vec2::new(local.x, local.z), seed);
+    volumetric - surface
 }
 
 fn volumetric_noise(
@@ -721,6 +845,35 @@ mod tests {
         let av = volumetric_noise(origin, a, 0.041, 77);
         let bv = volumetric_noise(origin, b, 0.041, 77);
         assert_ne!(av, bv);
+    }
+
+    #[test]
+    fn child_scale_refines_parent_instead_of_regenerating_it() {
+        let root_seed = 0x1234_5678_9ABC_DEF0_u64;
+        let child_seed = 0x0FED_CBA9_8765_4321_u64;
+        let parent_scale = SpatialScale::MAX;
+        let child_scale = SpatialScale::new(SPATIAL_SCALE_MAX - 1).unwrap();
+
+        let parent = ProceduralVolume::scale_refinement(
+            0x10_0CA57_5EED_2026,
+            parent_scale,
+            &[(parent_scale, root_seed)],
+        );
+        let child = ProceduralVolume::scale_refinement(
+            0x10_0CA57_5EED_2026,
+            child_scale,
+            &[(child_scale, child_seed), (parent_scale, root_seed)],
+        );
+
+        let parent_point = Vec3::new(7.25, -1.5, -3.75);
+        let child_point = parent_point * 10.0;
+        let parent_distance = parent.sample_local(parent_point).distance.0;
+        let child_distance_in_parent_units = child.sample_local(child_point).distance.0 / 10.0;
+
+        assert!(
+            (parent_distance - child_distance_in_parent_units).abs() < 0.08,
+            "parent={parent_distance}, child-as-parent={child_distance_in_parent_units}"
+        );
     }
 
     #[test]

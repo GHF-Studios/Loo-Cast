@@ -70,7 +70,7 @@ fn spawn_procedural_world(
                 VoxelBase::Volume(volume),
                 UsfPosition::zero(SpatialScale::MAX),
             ),
-            VoxelStreaming::new(24, procedural_assets.cracked_clay.material.clone()),
+            VoxelStreaming::new(24, procedural_assets.debug_grid.clone()),
             Transform::IDENTITY,
             Visibility::Inherited,
         ))
@@ -81,7 +81,7 @@ fn spawn_procedural_world(
         .insert(ProceduralScaleStack::new(
             target,
             root,
-            procedural_assets.cracked_clay.material.clone(),
+            procedural_assets.debug_grid.clone(),
             root_world,
         ));
 

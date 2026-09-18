@@ -115,9 +115,11 @@ pub(super) fn volume_for_scale_context(
     let node = worldgen
         .node(key)
         .expect("requested scale context must already exist");
-    ProceduralVolume::scale_layer(
-        worldgen.universe_seed(),
-        node.context().seed(),
-        key.scope().scale(),
-    )
+    let lineage = worldgen
+        .lineage(key)
+        .into_iter()
+        .map(|node| (node.context().spatial_scale(), node.context().seed()))
+        .collect::<Vec<_>>();
+
+    ProceduralVolume::scale_refinement(worldgen.universe_seed(), key.scope().scale(), &lineage)
 }
