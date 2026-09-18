@@ -49,6 +49,7 @@ pub struct VoxelPlugin;
 impl Plugin for VoxelPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<perf::VoxelPerfStats>()
+            .init_resource::<perf::FixedStepProbe>()
             .init_resource::<render_aggregate::VoxelRenderAggregateRegistry>()
             .add_systems(
                 Update,
@@ -58,6 +59,7 @@ impl Plugin for VoxelPlugin {
                 Update,
                 streaming::stream_voxel_chunks.after(SpatialDemandSet::Collect),
             )
+            .add_systems(FixedUpdate, perf::count_fixed_step)
             .add_systems(
                 PostUpdate,
                 (
@@ -67,6 +69,7 @@ impl Plugin for VoxelPlugin {
                     async_pipeline::publish_completed_chunk_builds,
                     async_pipeline::queue_dirty_chunk_builds,
                     render_aggregate::sync_render_aggregates,
+                    perf::sample_fixed_steps,
                     perf::report_voxel_perf,
                 )
                     .chain(),

@@ -7,7 +7,7 @@ use std::{
 };
 
 use avian3d::prelude::{Collider, RigidBody};
-use bevy::prelude::*;
+use bevy::{prelude::*, time::Virtual};
 
 use crate::spatial::{UsfScaleLayer, UsfViewFrame};
 
@@ -45,6 +45,14 @@ pub(crate) struct VoxelPerfStats {
     frames: u64,
     frame_us: u64,
     frame_max_us: u64,
+    fixed_step_samples: u64,
+    fixed_steps_total: u64,
+    fixed_steps_max: u32,
+}
+
+#[derive(Resource, Debug, Default)]
+pub(crate) struct FixedStepProbe {
+    steps_this_frame: u32,
 }
 
 impl VoxelPerfStats {
@@ -75,6 +83,23 @@ impl VoxelPerfStats {
     }
 }
 
+/// Runs once for every FixedMain iteration, not once per rendered frame.
+pub(crate) fn count_fixed_step(mut probe: ResMut<FixedStepProbe>) {
+    probe.steps_this_frame = probe.steps_this_frame.saturating_add(1);
+}
+
+/// Samples and resets the number of fixed steps that ran for this rendered frame.
+pub(crate) fn sample_fixed_steps(
+    mut probe: ResMut<FixedStepProbe>,
+    mut stats: ResMut<VoxelPerfStats>,
+) {
+    let steps = probe.steps_this_frame;
+    probe.steps_this_frame = 0;
+    stats.fixed_step_samples += 1;
+    stats.fixed_steps_total = stats.fixed_steps_total.saturating_add(u64::from(steps));
+    stats.fixed_steps_max = stats.fixed_steps_max.max(steps);
+}
+
 #[derive(Debug, Default)]
 struct ScaleLiveCounts {
     reserved: usize,
@@ -89,6 +114,8 @@ struct ScaleLiveCounts {
 }
 
 pub(crate) fn report_voxel_perf(
+    fixed_time: Res<Time<Fixed>>,
+    virtual_time: Res<Time<Virtual>>,
     view: Res<UsfViewFrame>,
     meshes: Res<Assets<Mesh>>,
     mut stats: ResMut<VoxelPerfStats>,
@@ -222,6 +249,11 @@ pub(crate) fn report_voxel_perf(
     } else {
         stats.frame_us as f64 / stats.frames as f64 / 1000.0
     };
+    let fixed_steps_avg = if stats.fixed_step_samples == 0 {
+        0.0
+    } else {
+        stats.fixed_steps_total as f64 / stats.fixed_step_samples as f64
+    };
     let generation_avg_ms = if stats.generated == 0 {
         0.0
     } else {
@@ -264,6 +296,12 @@ pub(crate) fn report_voxel_perf(
         collider_missing_visible,
         frame_avg_ms,
         frame_max_ms = stats.frame_max_us as f64 / 1000.0,
+        fixed_steps_avg,
+        fixed_steps_max = stats.fixed_steps_max,
+        fixed_timestep_ms = fixed_time.timestep().as_secs_f64() * 1000.0,
+        fixed_overstep_ms = fixed_time.overstep().as_secs_f64() * 1000.0,
+        virtual_delta_ms = virtual_time.delta_secs_f64() * 1000.0,
+        virtual_max_delta_ms = virtual_time.max_delta().as_secs_f64() * 1000.0,
         generated = stats.generated,
         generation_avg_ms,
         generation_max_ms = stats.generation_max_us as f64 / 1000.0,
