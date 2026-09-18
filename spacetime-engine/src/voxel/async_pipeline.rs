@@ -8,8 +8,6 @@ use std::time::Instant;
 
 use avian3d::prelude::{Collider, CollisionMargin, RigidBody};
 use bevy::{
-    asset::RenderAssetUsages,
-    mesh::{Indices, PrimitiveTopology},
     prelude::*,
     tasks::{AsyncComputeTaskPool, Task, futures::check_ready},
 };
@@ -17,10 +15,11 @@ use bevy::{
 use crate::spatial::{SPATIAL_SCALE_MAX, SpatialScale, UsfPosition, UsfScaleLayer, UsfViewFrame};
 
 use super::{
-    VoxelChunk, VoxelChunkPhysicsLod, VoxelChunkPresentation, VoxelMaterializationChunkAddress,
+    VoxelChunk, VoxelChunkPhysicsLod, VoxelMaterializationChunkAddress,
     mesh::{self, VoxelSurface},
     perf::{VoxelPerfStats, per_stage_in_flight_limit},
     physics,
+    render_aggregate::VoxelChunkRenderSurface,
 };
 
 const DERIVED_TASK_START_BUDGET_PER_FRAME: usize = 8;
@@ -96,20 +95,17 @@ pub(crate) fn collider_proximity_squared(
 /// to the authoritative chunk revision.
 pub(crate) fn publish_completed_chunk_builds(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    presentation_meshes: Query<&Mesh3d>,
     mut chunks: Query<(
         Entity,
         &mut VoxelChunk,
         &mut VoxelDerivedTask,
-        &VoxelChunkPresentation,
         &mut VoxelChunkPhysicsLod,
     )>,
     mut perf: ResMut<VoxelPerfStats>,
 ) {
     let mut published = 0;
 
-    for (entity, mut chunk, mut build, presentation, mut physics_lod) in &mut chunks {
+    for (entity, mut chunk, mut build, mut physics_lod) in &mut chunks {
         if published >= DERIVED_PUBLISH_BUDGET_PER_FRAME {
             break;
         }
@@ -137,24 +133,19 @@ pub(crate) fn publish_completed_chunk_builds(
         } = output;
         perf.record_derived(build_micros);
 
-        // Collider-only eligibility changes must preserve render mesh identity.
-        // For genuine geometry rebuilds, mutate the existing Mesh asset in place
-        // whenever possible instead of allocating a fresh handle every time.
+        // Chunk-local Surface Nets output is retained only as a disposable CPU
+        // cache. Same-resolution aggregate presentation consumes these caches
+        // and owns the actual Mesh3d objects.
         if let Some(surface) = render_surface {
             let has_surface = !surface.positions.is_empty() && !surface.indices.is_empty();
             if has_surface {
-                let replacement = surface_into_mesh(surface, debug_color);
-                if let Ok(mesh) = presentation_meshes.get(presentation.0)
-                    && let Some(mut existing) = meshes.get_mut(&mesh.0)
-                {
-                    *existing = replacement;
-                } else {
-                    commands
-                        .entity(presentation.0)
-                        .insert(Mesh3d(meshes.add(replacement)));
-                }
+                commands.entity(entity).insert(VoxelChunkRenderSurface::new(
+                    built_revision,
+                    surface,
+                    debug_color,
+                ));
             } else {
-                commands.entity(presentation.0).remove::<Mesh3d>();
+                commands.entity(entity).remove::<VoxelChunkRenderSurface>();
             }
         }
 
@@ -171,9 +162,6 @@ pub(crate) fn publish_completed_chunk_builds(
             entity_commands.remove::<Collider>();
             entity_commands.remove::<CollisionMargin>();
         }
-        // Preserve enough state to distinguish pending work, a completed build
-        // that produced no collider, and a collider component that disappeared
-        // after a successful build.
         physics_lod.requested = collider_requested;
         physics_lod.built_revision = collider_requested.then_some(built_revision);
         physics_lod.collider_ready = collider_requested && collider_ready;
@@ -199,7 +187,6 @@ pub(crate) fn queue_dirty_chunk_builds(
         (
             Entity,
             &mut VoxelChunk,
-            &VoxelChunkPresentation,
             &VoxelMaterializationChunkAddress,
             &UsfScaleLayer,
             &mut VoxelChunkPhysicsLod,
@@ -214,10 +201,8 @@ pub(crate) fn queue_dirty_chunk_builds(
     let mut candidates = Vec::<BuildCandidate>::new();
 
     // First perform cheap synchronous state cleanup and collect all expensive
-    // candidates. This still runs even when worker capacity is saturated, so
-    // leaving the physics bubble removes stale colliders promptly.
-    for (entity, mut chunk, presentation, address, layer, mut physics_lod, collider) in &mut chunks
-    {
+    // candidates. Collision-critical work is explicitly prioritized below.
+    for (entity, mut chunk, address, layer, mut physics_lod, collider) in &mut chunks {
         let proximity = collider_proximity_squared(&view, address, layer);
         let wants_collider = proximity.is_some();
 
@@ -242,7 +227,7 @@ pub(crate) fn queue_dirty_chunk_builds(
 
         if !chunk.has_surface_transition() {
             if geometry_dirty {
-                commands.entity(presentation.0).remove::<Mesh3d>();
+                commands.entity(entity).remove::<VoxelChunkRenderSurface>();
                 chunk.mark_meshed();
             }
             let mut entity_commands = commands.entity(entity);
@@ -289,18 +274,11 @@ pub(crate) fn queue_dirty_chunk_builds(
             break;
         }
 
-        let Ok((entity, chunk, presentation, address, layer, _physics_lod, _collider)) =
+        let Ok((entity, chunk, address, layer, _physics_lod, _collider)) =
             chunks.get_mut(candidate.entity)
         else {
             continue;
         };
-
-        // Never expose an attribute-less placeholder mesh while the first
-        // asynchronous geometry build is in flight. Existing valid meshes stay
-        // visible during later revision rebuilds and all collider-only rebuilds.
-        if candidate.geometry_dirty && chunk.meshed_revision().is_none() {
-            commands.entity(presentation.0).remove::<Mesh3d>();
-        }
 
         let revision = chunk.revision();
         let debug_color = debug_chunk_color(*address, layer.scale());
@@ -379,26 +357,4 @@ fn debug_hash(cell: IVec3, scale: SpatialScale) -> u32 {
         value ^= value >> 15;
     }
     value
-}
-
-fn surface_into_mesh(surface: VoxelSurface, debug_color: [f32; 4]) -> Mesh {
-    let VoxelSurface {
-        positions,
-        normals,
-        uvs,
-        tangents,
-        indices,
-    } = surface;
-    let colors = vec![debug_color; positions.len()];
-
-    Mesh::new(
-        PrimitiveTopology::TriangleList,
-        RenderAssetUsages::default(),
-    )
-    .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
-    .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, normals)
-    .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, colors)
-    .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, uvs)
-    .with_inserted_attribute(Mesh::ATTRIBUTE_TANGENT, tangents)
-    .with_inserted_indices(Indices::U32(indices))
 }

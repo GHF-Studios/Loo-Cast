@@ -21,6 +21,11 @@ pub(crate) struct VoxelMaterializationAggregateExtent {
 }
 
 impl VoxelMaterializationAggregateExtent {
+    /// Same-resolution render-cache scope: 4 base chunks = 40 native units.
+    pub(crate) const FORTY: Self = Self {
+        base_chunks_per_axis: 4,
+    };
+
     pub(crate) const HUNDRED: Self = Self {
         base_chunks_per_axis: 10,
     };
@@ -82,6 +87,10 @@ impl VoxelMaterializationAggregateScope {
         })
     }
 
+    pub(crate) const fn origin(self) -> VoxelMaterializationChunkAddress {
+        self.origin
+    }
+
     pub(crate) const fn extent(self) -> VoxelMaterializationAggregateExtent {
         self.extent
     }
@@ -90,7 +99,7 @@ impl VoxelMaterializationAggregateScope {
 fn phase_chunks(delta_native: f32, chunk_size: f32) -> i32 {
     // Every canonical base address is separated from its VoxelWorld origin by
     // whole base chunks. Normalization may move multiples of 1000 native units
-    // into USF digits, but both supported aggregate extents divide 1000 exactly;
+    // into USF digits, but all supported aggregate extents divide 1000 exactly;
     // therefore the bounded leaf-offset difference contains all alignment phase
     // information needed here.
     let chunks = delta_native / chunk_size;
@@ -142,6 +151,28 @@ mod tests {
                 .chunk_address(VoxelChunkCoord::new(IVec3::new(100, -300, 0)))
                 .unwrap()
         );
+    }
+
+    #[test]
+    fn forty_native_render_scope_preserves_phase_across_usf_digits() {
+        let world = VoxelWorld::new(VoxelBase::Empty);
+        let address = world
+            .chunk_address(VoxelChunkCoord::new(IVec3::new(137, -204, 99)))
+            .unwrap();
+        let scope = VoxelMaterializationAggregateScope::containing(
+            &world,
+            address,
+            VoxelMaterializationAggregateExtent::FORTY,
+        )
+        .unwrap();
+
+        assert_eq!(
+            scope.origin,
+            world
+                .chunk_address(VoxelChunkCoord::new(IVec3::new(136, -204, 96)))
+                .unwrap()
+        );
+        assert_eq!(scope.extent().native_units_per_axis(), 40);
     }
 
     #[test]

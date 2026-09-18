@@ -15,6 +15,7 @@ mod mesh;
 mod modification;
 mod perf;
 mod physics;
+mod render_aggregate;
 mod streaming;
 mod world;
 
@@ -34,9 +35,6 @@ use bevy::prelude::*;
 
 use crate::spatial::SpatialDemandSet;
 
-#[derive(Component, Debug, Clone, Copy)]
-pub(crate) struct VoxelChunkPresentation(pub Entity);
-
 /// Tracks completion of the collider-presence request for one dense chunk.
 /// Rendering and semantic materialization remain independent.
 #[derive(Component, Debug, Clone, Copy, Default)]
@@ -51,6 +49,7 @@ pub struct VoxelPlugin;
 impl Plugin for VoxelPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<perf::VoxelPerfStats>()
+            .init_resource::<render_aggregate::VoxelRenderAggregateRegistry>()
             .add_systems(
                 Update,
                 streaming::retire_orphaned_chunks.before(streaming::stream_voxel_chunks),
@@ -62,17 +61,15 @@ impl Plugin for VoxelPlugin {
             .add_systems(
                 PostUpdate,
                 (
-                    // Finish field generation after ordinary Update gameplay
-                    // edits, then publish/queue revision-checked derived caches.
+                    // Finish field generation, publish chunk-local derived caches,
+                    // then rebuild only the dirty same-resolution render aggregates.
                     streaming::finish_chunk_generation,
                     async_pipeline::publish_completed_chunk_builds,
                     async_pipeline::queue_dirty_chunk_builds,
+                    render_aggregate::sync_render_aggregates,
+                    perf::report_voxel_perf,
                 )
                     .chain(),
-            )
-            .add_systems(
-                PostUpdate,
-                perf::report_voxel_perf.after(async_pipeline::queue_dirty_chunk_builds),
             );
 
         devtools::configure(app);

@@ -1,6 +1,10 @@
 //! Temporary aggregate counters until full profiling is integrated.
 
-use std::{collections::BTreeMap, num::NonZeroUsize};
+use std::{
+    collections::BTreeMap,
+    num::NonZeroUsize,
+    time::{Duration, Instant},
+};
 
 use avian3d::prelude::{Collider, RigidBody};
 use bevy::prelude::*;
@@ -8,9 +12,11 @@ use bevy::prelude::*;
 use crate::spatial::{UsfScaleLayer, UsfViewFrame};
 
 use super::{
-    VoxelChunk, VoxelChunkPhysicsLod, VoxelChunkPresentation, VoxelMaterializationChunkAddress,
-    VoxelWorld,
+    VoxelChunk, VoxelChunkPhysicsLod, VoxelMaterializationChunkAddress, VoxelWorld,
     async_pipeline::{VoxelDerivedPurpose, VoxelDerivedTask, collider_proximity_squared},
+    render_aggregate::{
+        VoxelChunkRenderSurface, VoxelRenderAggregate, VoxelRenderAggregatePresentation,
+    },
     streaming::VoxelAggregateGenerationTask,
 };
 
@@ -23,13 +29,17 @@ pub(crate) fn per_stage_in_flight_limit() -> usize {
 
 #[derive(Resource, Debug, Default)]
 pub(crate) struct VoxelPerfStats {
-    elapsed: f32,
+    report_started_at: Option<Instant>,
+    last_frame_at: Option<Instant>,
     generated: u64,
     generation_us: u64,
     generation_max_us: u64,
     derived: u64,
     derived_us: u64,
     derived_max_us: u64,
+    render_aggregate_rebuilds: u64,
+    render_aggregate_rebuild_us: u64,
+    render_aggregate_rebuild_max_us: u64,
     uniform_shortcuts: u64,
     demand_rebuilds: u64,
     frames: u64,
@@ -50,6 +60,12 @@ impl VoxelPerfStats {
         self.derived_max_us = self.derived_max_us.max(us);
     }
 
+    pub(crate) fn record_render_aggregate_rebuild(&mut self, us: u64) {
+        self.render_aggregate_rebuilds += 1;
+        self.render_aggregate_rebuild_us = self.render_aggregate_rebuild_us.saturating_add(us);
+        self.render_aggregate_rebuild_max_us = self.render_aggregate_rebuild_max_us.max(us);
+    }
+
     pub(crate) fn record_uniform_shortcut(&mut self) {
         self.uniform_shortcuts += 1;
     }
@@ -63,7 +79,8 @@ impl VoxelPerfStats {
 struct ScaleLiveCounts {
     reserved: usize,
     generated: usize,
-    mesh_presentations: usize,
+    surface_chunks: usize,
+    render_aggregates: usize,
     colliders: usize,
     collider_wanted: usize,
     collider_pending: usize,
@@ -72,7 +89,6 @@ struct ScaleLiveCounts {
 }
 
 pub(crate) fn report_voxel_perf(
-    time: Res<Time>,
     view: Res<UsfViewFrame>,
     meshes: Res<Assets<Mesh>>,
     mut stats: ResMut<VoxelPerfStats>,
@@ -80,22 +96,30 @@ pub(crate) fn report_voxel_perf(
     chunks: Query<(
         &UsfScaleLayer,
         &VoxelChunk,
-        &VoxelChunkPresentation,
         &VoxelChunkPhysicsLod,
         &VoxelMaterializationChunkAddress,
+        Option<&VoxelChunkRenderSurface>,
         Option<&VoxelDerivedTask>,
         Option<&Collider>,
         Option<&RigidBody>,
     )>,
-    presentation_meshes: Query<(), With<Mesh3d>>,
+    render_aggregates: Query<(&UsfScaleLayer, &VoxelRenderAggregate)>,
+    aggregate_mesh_presentations: Query<(), (With<Mesh3d>, With<VoxelRenderAggregatePresentation>)>,
     generation: Query<(), With<VoxelAggregateGenerationTask>>,
 ) {
-    let frame_us = (time.delta_secs() * 1_000_000.0) as u64;
-    stats.frames += 1;
-    stats.frame_us = stats.frame_us.saturating_add(frame_us);
-    stats.frame_max_us = stats.frame_max_us.max(frame_us);
-    stats.elapsed += time.delta_secs();
-    if stats.elapsed < 1.0 {
+    let now = Instant::now();
+    if let Some(previous) = stats.last_frame_at.replace(now) {
+        let frame_us = now
+            .duration_since(previous)
+            .as_micros()
+            .min(u128::from(u64::MAX)) as u64;
+        stats.frames += 1;
+        stats.frame_us = stats.frame_us.saturating_add(frame_us);
+        stats.frame_max_us = stats.frame_max_us.max(frame_us);
+    }
+
+    let report_started_at = *stats.report_started_at.get_or_insert(now);
+    if now.duration_since(report_started_at) < Duration::from_secs(1) {
         return;
     }
 
@@ -111,7 +135,7 @@ pub(crate) fn report_voxel_perf(
     }
 
     let mut loaded_chunks = 0usize;
-    let mut mesh_presentations = 0usize;
+    let mut surface_chunks = 0usize;
     let mut colliders = 0usize;
     let mut rigid_bodies = 0usize;
     let mut dirty_chunks = 0usize;
@@ -124,7 +148,7 @@ pub(crate) fn report_voxel_perf(
     let mut collider_waiting = 0usize;
     let mut collider_missing_visible = 0usize;
 
-    for (layer, chunk, presentation, physics_lod, address, task, collider, rigid_body) in &chunks {
+    for (layer, chunk, physics_lod, address, surface, task, collider, rigid_body) in &chunks {
         loaded_chunks += 1;
         let scale = per_scale.entry(layer.scale().exponent()).or_default();
         scale.generated += 1;
@@ -133,10 +157,10 @@ pub(crate) fn report_voxel_perf(
             dirty_chunks += 1;
         }
 
-        let has_mesh = presentation_meshes.get(presentation.0).is_ok();
-        if has_mesh {
-            mesh_presentations += 1;
-            scale.mesh_presentations += 1;
+        let has_surface = surface.is_some();
+        if has_surface {
+            surface_chunks += 1;
+            scale.surface_chunks += 1;
         }
         if collider.is_some() {
             colliders += 1;
@@ -164,10 +188,7 @@ pub(crate) fn report_voxel_perf(
                 scale.collider_pending += 1;
             } else if physics_lod.requested && physics_lod.built_revision == Some(chunk.revision())
             {
-                // A completed request at the current geometry revision with a
-                // visible render surface but no Collider means collider creation
-                // returned None. This is distinct from queue starvation.
-                if has_mesh {
+                if has_surface {
                     collider_missing_visible += 1;
                     scale.collider_missing_visible += 1;
                 }
@@ -177,6 +198,24 @@ pub(crate) fn report_voxel_perf(
             }
         }
     }
+
+    let mut aggregate_members = 0usize;
+    let mut aggregate_max_members = 0usize;
+    for (layer, aggregate) in &render_aggregates {
+        let member_count = aggregate.member_count();
+        aggregate_members += member_count;
+        aggregate_max_members = aggregate_max_members.max(member_count);
+        per_scale
+            .entry(layer.scale().exponent())
+            .or_default()
+            .render_aggregates += 1;
+    }
+    let render_aggregate_count = render_aggregates.iter().count();
+    let aggregate_avg_members = if render_aggregate_count == 0 {
+        0.0
+    } else {
+        aggregate_members as f64 / render_aggregate_count as f64
+    };
 
     let frame_avg_ms = if stats.frames == 0 {
         0.0
@@ -193,11 +232,22 @@ pub(crate) fn report_voxel_perf(
     } else {
         stats.derived_us as f64 / stats.derived as f64 / 1000.0
     };
+    let aggregate_rebuild_avg_ms = if stats.render_aggregate_rebuilds == 0 {
+        0.0
+    } else {
+        stats.render_aggregate_rebuild_us as f64 / stats.render_aggregate_rebuilds as f64 / 1000.0
+    };
+
     info!(
         reserved_chunks,
         reserved_not_generated = reserved_chunks.saturating_sub(loaded_chunks),
         loaded_chunks,
-        mesh_presentations,
+        surface_chunks,
+        render_aggregates = render_aggregate_count,
+        aggregate_mesh_presentations = aggregate_mesh_presentations.iter().count(),
+        aggregate_members,
+        aggregate_avg_members,
+        aggregate_max_members,
         mesh_assets = meshes.len(),
         colliders,
         rigid_bodies,
@@ -220,6 +270,9 @@ pub(crate) fn report_voxel_perf(
         derived = stats.derived,
         derived_avg_ms,
         derived_max_ms = stats.derived_max_us as f64 / 1000.0,
+        render_aggregate_rebuilds = stats.render_aggregate_rebuilds,
+        aggregate_rebuild_avg_ms,
+        aggregate_rebuild_max_ms = stats.render_aggregate_rebuild_max_us as f64 / 1000.0,
         uniform_shortcuts = stats.uniform_shortcuts,
         demand_rebuilds = stats.demand_rebuilds,
         worker_limit_per_stage = per_stage_in_flight_limit(),
@@ -227,5 +280,9 @@ pub(crate) fn report_voxel_perf(
         "voxel perf"
     );
 
-    *stats = VoxelPerfStats::default();
+    *stats = VoxelPerfStats {
+        report_started_at: Some(now),
+        last_frame_at: Some(now),
+        ..default()
+    };
 }

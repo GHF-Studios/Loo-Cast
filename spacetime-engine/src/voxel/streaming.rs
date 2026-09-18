@@ -15,13 +15,12 @@ use bevy::{
 };
 
 use crate::spatial::{
-    SpatialDemandScope, SpatialDemandSnapshot, UsfLocalScalePresentation, UsfScaleLayer,
-    UsfScaleLayerFrames,
+    SpatialDemandScope, SpatialDemandSnapshot, UsfScaleLayer, UsfScaleLayerFrames,
 };
 
 use super::{
     MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelChunkOf, VoxelChunkPhysicsLod,
-    VoxelChunkPresentation, VoxelMaterializationChunkAddress, VoxelQueryPosition, VoxelWorld,
+    VoxelMaterializationChunkAddress, VoxelQueryPosition, VoxelWorld,
     aggregate::{VoxelMaterializationAggregateExtent, VoxelMaterializationAggregateScope},
     perf::{VoxelPerfStats, per_stage_in_flight_limit},
     world::VoxelChunkRecipe,
@@ -300,7 +299,6 @@ pub(crate) fn stream_voxel_chunks(
             .fold(512.0_f32, f32::max);
 
         let load_budget = streaming.load_budget_per_frame;
-        let material = streaming.material.clone();
         let mut requested = 0;
         let mut aggregate_batches = Vec::<PendingAggregateGeneration>::new();
         while requested < load_budget && generation_slots > 0 {
@@ -363,20 +361,6 @@ pub(crate) fn stream_voxel_chunks(
                     Visibility::Inherited,
                 ))
                 .id();
-
-            let presentation_entity = commands
-                .spawn((
-                    Name::new(format!("Voxel Chunk {} Presentation", layer.scale())),
-                    ChildOf(chunk_entity),
-                    UsfLocalScalePresentation::new(layer.scale()),
-                    MeshMaterial3d(material.clone()),
-                    Transform::IDENTITY,
-                    Visibility::Inherited,
-                ))
-                .id();
-            commands
-                .entity(chunk_entity)
-                .insert(VoxelChunkPresentation(presentation_entity));
 
             assert!(world.insert_chunk(address, chunk_entity).is_none());
             push_generation_job(
