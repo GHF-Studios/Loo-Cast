@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 
 use crate::{
+    config::EngineConfig,
     spatial::{SPATIAL_SCALE_MAX, SpatialScale, UsfPosition, UsfScaleLayer, UsfViewFrame},
     voxel::{ProceduralVolume, VoxelBase, VoxelPresentationMaterial, VoxelStreaming, VoxelWorld},
     worldgen::{PhenomenonRegistry, WorldgenEvaluationKey, WorldgenStore},
@@ -42,6 +43,7 @@ impl ProceduralScaleStack {
 }
 
 pub(super) fn sync_scale_stack(
+    config: Res<EngineConfig>,
     mut commands: Commands,
     view: Res<UsfViewFrame>,
     registry: Res<PhenomenonRegistry>,
@@ -78,7 +80,7 @@ pub(super) fn sync_scale_stack(
                     ChildOf(stack_entity),
                     UsfScaleLayer::new(scale),
                     VoxelWorld::new_at(VoxelBase::Volume(volume), UsfPosition::zero(scale)),
-                    VoxelStreaming::new(24),
+                    VoxelStreaming::new(config.voxel.streaming.default_load_budget_per_frame),
                     VoxelPresentationMaterial::new(stack.material.clone()),
                     Transform::IDENTITY,
                     Visibility::Inherited,

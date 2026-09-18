@@ -2,6 +2,7 @@
 //!
 //!
 
+pub mod config;
 pub mod devtools;
 pub mod diagnostics;
 pub mod ecs;

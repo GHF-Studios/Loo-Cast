@@ -9,7 +9,10 @@ use std::{
 use avian3d::prelude::{Collider, RigidBody};
 use bevy::{prelude::*, time::Virtual};
 
-use crate::spatial::{UsfScaleLayer, UsfViewFrame};
+use crate::{
+    config::EngineConfig,
+    spatial::{UsfScaleLayer, UsfViewFrame},
+};
 
 use super::{
     VoxelWorld,
@@ -104,6 +107,7 @@ struct ScaleLiveCounts {
 }
 
 pub(crate) fn report_voxel_perf(
+    config: Res<EngineConfig>,
     fixed_time: Res<Time<Fixed>>,
     virtual_time: Res<Time<Virtual>>,
     view: Res<UsfViewFrame>,
@@ -188,7 +192,14 @@ pub(crate) fn report_voxel_perf(
             rigid_bodies += 1;
         }
 
-        if aggregate_collider_proximity_squared(&view, aggregate.scope(), layer).is_some() {
+        if aggregate_collider_proximity_squared(
+            &view,
+            aggregate.scope(),
+            layer,
+            config.voxel.manifestation.physics_interaction_radius_native,
+        )
+        .is_some()
+        {
             collider_wanted += 1;
             if collider.is_none() {
                 collider_missing_visible += 1;
@@ -253,6 +264,15 @@ pub(crate) fn report_voxel_perf(
         rigid_bodies,
         collider_wanted,
         collider_missing_visible,
+        manifestation_group_base_chunks_per_axis =
+            config.voxel.manifestation.grouping.base_chunks_per_axis,
+        manifestation_group_native_units_per_axis =
+            config.voxel.manifestation.grouping.base_chunks_per_axis as f32
+                * super::MATERIALIZATION_CHUNK_SIZE as f32,
+        manifestation_rebuild_budget_per_frame =
+            config.voxel.manifestation.rebuild_budget_per_frame,
+        physics_interaction_radius_native =
+            config.voxel.manifestation.physics_interaction_radius_native,
         generation_in_flight = generation.iter().count(),
         derived_in_flight = derived.iter().count(),
         frame_avg_ms,

@@ -1,0 +1,20 @@
+(
+    voxel: (
+        streaming: (
+            default_load_budget_per_frame: 24,
+            generation_publish_budget_per_frame: 16,
+            warm_inactive_materialization_limit: 4096,
+            generation_group_base_chunks_per_axis: 10,
+            max_chunks_per_generation_task: 4,
+        ),
+        manifestation: (
+            grouping: (
+                strategy: AlignedRegions,
+                // 10 virtual 10-unit atoms per axis => physical groups up to 100³ native units.
+                base_chunks_per_axis: 10,
+            ),
+            rebuild_budget_per_frame: 8,
+            physics_interaction_radius_native: 32.0,
+        ),
+    ),
+)

@@ -303,6 +303,24 @@ impl VoxelMaterializationStore {
         None
     }
 
+    /// Re-enqueues every active surface after manifestation policy changes.
+    ///
+    /// This is intentionally O(active surfaces), but only runs when runtime
+    /// configuration changes grouping topology. Steady state stays change-driven.
+    pub(crate) fn mark_all_active_render_dirty(&mut self) {
+        let addresses = self
+            .entries
+            .iter()
+            .filter_map(|(&address, entry)| {
+                (entry.active && entry.surface.is_some()).then_some(address)
+            })
+            .collect::<Vec<_>>();
+
+        for address in addresses {
+            self.mark_render_dirty(address);
+        }
+    }
+
     pub(crate) fn active_surface(
         &self,
         address: VoxelMaterializationChunkAddress,

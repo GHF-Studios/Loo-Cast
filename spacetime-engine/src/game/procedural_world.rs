@@ -4,6 +4,7 @@ use avian3d::prelude::LinearVelocity;
 use bevy::prelude::*;
 
 use crate::{
+    config::EngineConfig,
     game::{
         player::{Player, PlayerNoclip},
         portal::PortalTraveler,
@@ -40,6 +41,7 @@ fn semantic_test_target() -> UsfPosition {
 }
 
 fn spawn_procedural_world(
+    config: Res<EngineConfig>,
     mut commands: Commands,
     procedural_assets: Res<ProceduralAssetLibrary>,
     registry: Res<PhenomenonRegistry>,
@@ -70,7 +72,7 @@ fn spawn_procedural_world(
                 VoxelBase::Volume(volume),
                 UsfPosition::zero(SpatialScale::MAX),
             ),
-            VoxelStreaming::new(24),
+            VoxelStreaming::new(config.voxel.streaming.default_load_budget_per_frame),
             VoxelPresentationMaterial::new(procedural_assets.debug_grid.clone()),
             Transform::IDENTITY,
             Visibility::Inherited,

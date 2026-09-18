@@ -21,6 +21,22 @@ pub(crate) struct VoxelMaterializationAggregateExtent {
 }
 
 impl VoxelMaterializationAggregateExtent {
+    /// Constructs an aligned processing extent from runtime policy.
+    ///
+    /// The current canonical phase calculation uses the 100 base atoms contained
+    /// in one 1000-native-unit USF digit. Config validation therefore restricts
+    /// this policy to positive divisors of 100 until arbitrary region alignment
+    /// becomes first-class.
+    pub(crate) fn from_base_chunks_per_axis(base_chunks_per_axis: i32) -> Option<Self> {
+        let chunks_per_usf_digit = 1000 / MATERIALIZATION_CHUNK_SIZE as i32;
+        (base_chunks_per_axis > 0
+            && base_chunks_per_axis <= chunks_per_usf_digit
+            && chunks_per_usf_digit % base_chunks_per_axis == 0)
+            .then_some(Self {
+                base_chunks_per_axis,
+            })
+    }
+
     /// Same-resolution render-cache scope: 4 base chunks = 40 native units.
     pub(crate) const FORTY: Self = Self {
         base_chunks_per_axis: 4,
@@ -117,6 +133,18 @@ mod tests {
     };
 
     use super::*;
+
+    #[test]
+    fn runtime_group_extent_accepts_current_alignment_period_divisors() {
+        assert_eq!(
+            VoxelMaterializationAggregateExtent::from_base_chunks_per_axis(20)
+                .unwrap()
+                .base_chunks_per_axis(),
+            20
+        );
+        assert!(VoxelMaterializationAggregateExtent::from_base_chunks_per_axis(3).is_none());
+        assert!(VoxelMaterializationAggregateExtent::from_base_chunks_per_axis(101).is_none());
+    }
 
     #[test]
     fn decimal_aggregate_alignment_is_relative_to_the_voxel_world_grid() {

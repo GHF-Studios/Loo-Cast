@@ -17,7 +17,10 @@ use bevy::{
     prelude::*,
 };
 
-use crate::spatial::{UsfLocalScalePresentation, UsfScaleLayer, UsfScaleLayerFrames, UsfViewFrame};
+use crate::{
+    config::{EngineConfig, VoxelGroupingStrategy, VoxelManifestationGroupingConfig},
+    spatial::{UsfLocalScalePresentation, UsfScaleLayer, UsfScaleLayerFrames, UsfViewFrame},
+};
 
 use super::{
     MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationChunkAddress, VoxelQueryPosition, VoxelWorld,
@@ -27,15 +30,32 @@ use super::{
     streaming::VoxelPresentationMaterial,
 };
 
-const RENDER_AGGREGATE_EXTENT: VoxelMaterializationAggregateExtent =
-    VoxelMaterializationAggregateExtent::FORTY;
-const RENDER_AGGREGATE_REBUILD_BUDGET_PER_FRAME: usize = 8;
-const PHYSICS_INTERACTION_RADIUS_NATIVE: f32 = 32.0;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct AggregateKey {
     world: Entity,
     scope: VoxelMaterializationAggregateScope,
+}
+
+/// Maps virtual atom surfaces to physical mesh manifestations.
+///
+/// Semantic voxel identity never depends on this policy. Future adaptive/cost
+/// partitioners can replace `AlignedRegions` behind this boundary.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct VoxelManifestationGroupingPolicy {
+    extent: VoxelMaterializationAggregateExtent,
+}
+
+impl VoxelManifestationGroupingPolicy {
+    fn from_config(config: VoxelManifestationGroupingConfig) -> Option<Self> {
+        match config.strategy {
+            VoxelGroupingStrategy::AlignedRegions => {
+                VoxelMaterializationAggregateExtent::from_base_chunks_per_axis(
+                    config.base_chunks_per_axis,
+                )
+                .map(|extent| Self { extent })
+            }
+        }
+    }
 }
 
 /// Root entity for one disposable same-resolution render/collision manifestation.
@@ -66,6 +86,7 @@ pub(crate) struct VoxelRenderAggregatePresentation;
 /// queues update only aggregates whose membership or cached surface changed.
 #[derive(Resource, Default)]
 pub(crate) struct VoxelRenderAggregateRegistry {
+    grouping_policy: Option<VoxelManifestationGroupingPolicy>,
     groups: HashMap<AggregateKey, HashMap<VoxelMaterializationChunkAddress, u64>>,
     address_keys: HashMap<(Entity, VoxelMaterializationChunkAddress), AggregateKey>,
     dirty: HashSet<AggregateKey>,
@@ -73,6 +94,7 @@ pub(crate) struct VoxelRenderAggregateRegistry {
 }
 
 pub(crate) fn sync_render_aggregates(
+    config: Res<EngineConfig>,
     mut commands: Commands,
     view: Res<UsfViewFrame>,
     layer_frames: Res<UsfScaleLayerFrames>,
@@ -110,6 +132,30 @@ pub(crate) fn sync_render_aggregates(
             .retain(|(world, _), _| !removed.contains(world));
     }
 
+    let grouping_policy =
+        VoxelManifestationGroupingPolicy::from_config(config.voxel.manifestation.grouping)
+            .expect("validated engine config must produce a manifestation grouping policy");
+
+    if registry.grouping_policy != Some(grouping_policy) {
+        for (_, entity) in registry.aggregate_entities.drain() {
+            commands.entity(entity).despawn();
+        }
+        registry.groups.clear();
+        registry.address_keys.clear();
+        registry.dirty.clear();
+        registry.grouping_policy = Some(grouping_policy);
+
+        for (_, mut world, _, _) in &mut worlds {
+            world.materializations_mut().mark_all_active_render_dirty();
+        }
+
+        info!(
+            base_chunks_per_axis = grouping_policy.extent.base_chunks_per_axis(),
+            native_units_per_axis = grouping_policy.extent.native_units_per_axis(),
+            "reconfigured voxel physical manifestation grouping"
+        );
+    }
+
     // Consume store-side membership changes. This is O(changes), not O(resident).
     for (world_entity, mut world, _, _) in &mut worlds {
         while let Some(address) = world.materializations_mut().pop_dirty_render() {
@@ -125,7 +171,7 @@ pub(crate) fn sync_render_aggregates(
                     let Ok(scope) = VoxelMaterializationAggregateScope::containing(
                         &world,
                         address,
-                        RENDER_AGGREGATE_EXTENT,
+                        grouping_policy.extent,
                     ) else {
                         warn!(
                             ?address,
@@ -162,7 +208,7 @@ pub(crate) fn sync_render_aggregates(
 
     let mut rebuilt_keys = HashSet::new();
 
-    for _ in 0..RENDER_AGGREGATE_REBUILD_BUDGET_PER_FRAME {
+    for _ in 0..config.voxel.manifestation.rebuild_budget_per_frame {
         let Some(key) = registry.dirty.iter().next().copied() else {
             break;
         };
@@ -197,8 +243,13 @@ pub(crate) fn sync_render_aggregates(
             continue;
         };
 
-        let wants_collider =
-            aggregate_collider_proximity_squared(&view, key.scope, layer).is_some();
+        let wants_collider = aggregate_collider_proximity_squared(
+            &view,
+            key.scope,
+            layer,
+            config.voxel.manifestation.physics_interaction_radius_native,
+        )
+        .is_some();
         let collider = wants_collider
             .then(|| build_aggregate_collider(key.scope, members, &world))
             .flatten();
@@ -303,7 +354,13 @@ pub(crate) fn sync_render_aggregates(
         let Ok((_, world, _, layer)) = worlds.get_mut(key.world) else {
             continue;
         };
-        let wants = aggregate_collider_proximity_squared(&view, key.scope, layer).is_some();
+        let wants = aggregate_collider_proximity_squared(
+            &view,
+            key.scope,
+            layer,
+            config.voxel.manifestation.physics_interaction_radius_native,
+        )
+        .is_some();
         let has_collider = aggregate_roots
             .get(entity)
             .ok()
@@ -359,6 +416,7 @@ pub(crate) fn aggregate_collider_proximity_squared(
     view: &UsfViewFrame,
     scope: VoxelMaterializationAggregateScope,
     layer: &UsfScaleLayer,
+    interaction_radius_native: f32,
 ) -> Option<f32> {
     if layer.scale() != view.dominant_scale() {
         return None;
@@ -368,10 +426,7 @@ pub(crate) fn aggregate_collider_proximity_squared(
     let minimum = scope
         .origin()
         .origin()
-        .relative_native_bounded(
-            view.anchor(),
-            PHYSICS_INTERACTION_RADIUS_NATIVE + extent * 2.0,
-        )
+        .relative_native_bounded(view.anchor(), interaction_radius_native + extent * 2.0)
         .ok()?;
     let maximum = minimum + Vec3::splat(extent);
     let nearest = Vec3::new(
@@ -380,7 +435,7 @@ pub(crate) fn aggregate_collider_proximity_squared(
         0.0_f32.clamp(minimum.z, maximum.z),
     );
     let distance_squared = nearest.length_squared();
-    (distance_squared <= PHYSICS_INTERACTION_RADIUS_NATIVE * PHYSICS_INTERACTION_RADIUS_NATIVE)
+    (distance_squared <= interaction_radius_native * interaction_radius_native)
         .then_some(distance_squared)
 }
 

@@ -15,7 +15,10 @@ use bevy::{
     tasks::{AsyncComputeTaskPool, Task, futures::check_ready},
 };
 
-use crate::spatial::{SpatialDemandScope, SpatialDemandSnapshot, UsfScaleLayer};
+use crate::{
+    config::EngineConfig,
+    spatial::{SpatialDemandScope, SpatialDemandSnapshot, UsfScaleLayer},
+};
 
 use super::{
     MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelMaterializationChunkAddress, VoxelWorld,
@@ -23,14 +26,6 @@ use super::{
     perf::{VoxelPerfStats, per_stage_in_flight_limit},
     world::VoxelChunkRecipe,
 };
-
-const GENERATION_PUBLISH_BUDGET_PER_FRAME: usize = 16;
-const WARM_INACTIVE_MATERIALIZATION_LIMIT: usize = 4096;
-
-const FIELD_GENERATION_AGGREGATE_EXTENT: VoxelMaterializationAggregateExtent =
-    VoxelMaterializationAggregateExtent::HUNDRED;
-
-const MAX_CHUNKS_PER_AGGREGATE_GENERATION_TASK: usize = 4;
 
 /// Demand-streaming policy for one [`VoxelWorld`].
 ///
@@ -156,15 +151,17 @@ impl VoxelAggregateGenerationTask {
 }
 
 pub(crate) fn finish_chunk_generation(
+    config: Res<EngineConfig>,
     mut commands: Commands,
     mut worlds: Query<&mut VoxelWorld>,
     mut tasks: Query<(Entity, &mut VoxelAggregateGenerationTask)>,
     mut perf: ResMut<VoxelPerfStats>,
 ) {
+    let publish_budget = config.voxel.streaming.generation_publish_budget_per_frame;
     let mut published = 0;
 
     for (task_entity, mut generation) in &mut tasks {
-        if published >= GENERATION_PUBLISH_BUDGET_PER_FRAME {
+        if published >= publish_budget {
             break;
         }
 
@@ -183,7 +180,7 @@ pub(crate) fn finish_chunk_generation(
             continue;
         };
 
-        while published < GENERATION_PUBLISH_BUDGET_PER_FRAME {
+        while published < publish_budget {
             let Some(mut output) = generation.ready.pop_front() else {
                 break;
             };
@@ -237,6 +234,7 @@ pub(crate) fn retire_orphaned_tasks(
 }
 
 pub(crate) fn stream_voxel_chunks(
+    config: Res<EngineConfig>,
     mut commands: Commands,
     demand_snapshot: Res<SpatialDemandSnapshot>,
     voxel_demand_sources: Query<(), With<VoxelMaterializationDemand>>,
@@ -255,6 +253,11 @@ pub(crate) fn stream_voxel_chunks(
 
     let mut generation_slots =
         per_stage_in_flight_limit().saturating_sub(generation_tasks.iter().count());
+    let streaming_config = config.voxel.streaming;
+    let generation_extent = VoxelMaterializationAggregateExtent::from_base_chunks_per_axis(
+        streaming_config.generation_group_base_chunks_per_axis,
+    )
+    .expect("validated engine config must produce a generation grouping extent");
 
     for (world_entity, mut world, mut streaming, layer) in &mut worlds {
         voxel_demands.clear();
@@ -295,7 +298,7 @@ pub(crate) fn stream_voxel_chunks(
 
             world
                 .materializations_mut()
-                .trim_inactive(WARM_INACTIVE_MATERIALIZATION_LIMIT);
+                .trim_inactive(streaming_config.warm_inactive_materialization_limit);
 
             streaming
                 .pending_desired
@@ -316,11 +319,9 @@ pub(crate) fn stream_voxel_chunks(
                 continue;
             }
 
-            let Ok(scope) = VoxelMaterializationAggregateScope::containing(
-                &world,
-                address,
-                FIELD_GENERATION_AGGREGATE_EXTENT,
-            ) else {
+            let Ok(scope) =
+                VoxelMaterializationAggregateScope::containing(&world, address, generation_extent)
+            else {
                 error!(
                     ?address,
                     "voxel aggregate scope could not be derived canonically"
@@ -328,7 +329,12 @@ pub(crate) fn stream_voxel_chunks(
                 continue;
             };
 
-            if !generation_batch_can_accept(&aggregate_batches, scope, generation_slots) {
+            if !generation_batch_can_accept(
+                &aggregate_batches,
+                scope,
+                generation_slots,
+                streaming_config.max_chunks_per_generation_task,
+            ) {
                 streaming.pending_desired.push_front(demanded);
                 break;
             }
@@ -340,6 +346,7 @@ pub(crate) fn stream_voxel_chunks(
             push_generation_job(
                 &mut aggregate_batches,
                 scope,
+                streaming_config.max_chunks_per_generation_task,
                 VoxelGenerationJob {
                     address,
                     token,
@@ -481,20 +488,24 @@ fn generation_batch_can_accept(
     batches: &[PendingAggregateGeneration],
     scope: VoxelMaterializationAggregateScope,
     max_batches: usize,
+    max_chunks_per_batch: usize,
 ) -> bool {
-    batches.iter().any(|batch| {
-        batch.scope == scope && batch.jobs.len() < MAX_CHUNKS_PER_AGGREGATE_GENERATION_TASK
-    }) || batches.len() < max_batches
+    batches
+        .iter()
+        .any(|batch| batch.scope == scope && batch.jobs.len() < max_chunks_per_batch)
+        || batches.len() < max_batches
 }
 
 fn push_generation_job(
     batches: &mut Vec<PendingAggregateGeneration>,
     scope: VoxelMaterializationAggregateScope,
+    max_chunks_per_batch: usize,
     job: VoxelGenerationJob,
 ) {
-    if let Some(batch) = batches.iter_mut().find(|batch| {
-        batch.scope == scope && batch.jobs.len() < MAX_CHUNKS_PER_AGGREGATE_GENERATION_TASK
-    }) {
+    if let Some(batch) = batches
+        .iter_mut()
+        .find(|batch| batch.scope == scope && batch.jobs.len() < max_chunks_per_batch)
+    {
         batch.jobs.push(job);
         return;
     }
