@@ -1,15 +1,15 @@
-//! Same-resolution aggregate voxel presentation.
+//! Same-resolution aggregate voxel presentation and collision manifestations.
 //!
-//! Authoritative materialization remains the 10-native-unit [`VoxelChunk`].
-//! This module only groups already-extracted chunk surfaces into fewer disposable
-//! render meshes. It does not change sample density, semantic identity, USF scale,
-//! or physics ownership.
+//! The 10-native-unit materialization atom remains independently addressable in
+//! the [`VoxelWorld`] store. This module groups cached atom surfaces into a much
+//! smaller number of Bevy/Avian manifestations. No semantic LOD is introduced.
 
 use std::{
     collections::{HashMap, HashSet},
     time::Instant,
 };
 
+use avian3d::prelude::{Collider, CollisionMargin, RigidBody};
 use bevy::{
     asset::RenderAssetUsages,
     ecs::lifecycle::RemovedComponents,
@@ -17,37 +17,20 @@ use bevy::{
     prelude::*,
 };
 
-use crate::spatial::{UsfLocalScalePresentation, UsfScaleLayer, UsfScaleLayerFrames};
+use crate::spatial::{UsfLocalScalePresentation, UsfScaleLayer, UsfScaleLayerFrames, UsfViewFrame};
 
 use super::{
-    MATERIALIZATION_CHUNK_SIZE, VoxelChunkOf, VoxelMaterializationChunkAddress, VoxelQueryPosition,
-    VoxelWorld,
+    MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationChunkAddress, VoxelQueryPosition, VoxelWorld,
     aggregate::{VoxelMaterializationAggregateExtent, VoxelMaterializationAggregateScope},
-    mesh::VoxelSurface,
     perf::VoxelPerfStats,
-    streaming::VoxelStreaming,
+    physics,
+    streaming::VoxelPresentationMaterial,
 };
 
 const RENDER_AGGREGATE_EXTENT: VoxelMaterializationAggregateExtent =
     VoxelMaterializationAggregateExtent::FORTY;
 const RENDER_AGGREGATE_REBUILD_BUDGET_PER_FRAME: usize = 8;
-
-#[derive(Component)]
-pub(crate) struct VoxelChunkRenderSurface {
-    pub(crate) revision: u64,
-    surface: VoxelSurface,
-    debug_color: [f32; 4],
-}
-
-impl VoxelChunkRenderSurface {
-    pub(crate) fn new(revision: u64, surface: VoxelSurface, debug_color: [f32; 4]) -> Self {
-        Self {
-            revision,
-            surface,
-            debug_color,
-        }
-    }
-}
+const PHYSICS_INTERACTION_RADIUS_NATIVE: f32 = 32.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct AggregateKey {
@@ -55,16 +38,21 @@ struct AggregateKey {
     scope: VoxelMaterializationAggregateScope,
 }
 
-/// Root entity for one disposable same-resolution render cache.
+/// Root entity for one disposable same-resolution render/collision manifestation.
 #[derive(Component)]
 pub(crate) struct VoxelRenderAggregate {
     presentation: Entity,
     member_count: usize,
+    scope: VoxelMaterializationAggregateScope,
 }
 
 impl VoxelRenderAggregate {
     pub(crate) const fn member_count(&self) -> usize {
         self.member_count
+    }
+
+    pub(crate) const fn scope(&self) -> VoxelMaterializationAggregateScope {
+        self.scope
     }
 }
 
@@ -72,80 +60,107 @@ impl VoxelRenderAggregate {
 #[derive(Component, Debug, Default, Clone, Copy)]
 pub(crate) struct VoxelRenderAggregatePresentation;
 
-/// Incremental membership/dirty registry.
+/// Incremental aggregate membership registry keyed by canonical atom addresses.
 ///
-/// This deliberately avoids scanning every resident chunk just to discover that
-/// almost nothing changed. Surface insert/replace/remove events update the
-/// relevant aggregate only.
+/// Quiet resident atoms never participate in this system. Store-side dirty
+/// queues update only aggregates whose membership or cached surface changed.
 #[derive(Resource, Default)]
 pub(crate) struct VoxelRenderAggregateRegistry {
-    groups: HashMap<AggregateKey, HashMap<Entity, u64>>,
-    entity_keys: HashMap<Entity, AggregateKey>,
+    groups: HashMap<AggregateKey, HashMap<VoxelMaterializationChunkAddress, u64>>,
+    address_keys: HashMap<(Entity, VoxelMaterializationChunkAddress), AggregateKey>,
     dirty: HashSet<AggregateKey>,
     aggregate_entities: HashMap<AggregateKey, Entity>,
 }
 
 pub(crate) fn sync_render_aggregates(
     mut commands: Commands,
+    view: Res<UsfViewFrame>,
     layer_frames: Res<UsfScaleLayerFrames>,
     mut meshes: ResMut<Assets<Mesh>>,
-    worlds: Query<(&VoxelWorld, &VoxelStreaming, &UsfScaleLayer)>,
-    changed_surfaces: Query<
-        (
-            Entity,
-            &VoxelChunkOf,
-            &VoxelMaterializationChunkAddress,
-            &VoxelChunkRenderSurface,
-        ),
-        Changed<VoxelChunkRenderSurface>,
-    >,
-    surface_caches: Query<(&VoxelMaterializationChunkAddress, &VoxelChunkRenderSurface)>,
-    mut removed_surfaces: RemovedComponents<VoxelChunkRenderSurface>,
+    mut worlds: Query<(
+        Entity,
+        &mut VoxelWorld,
+        &VoxelPresentationMaterial,
+        &UsfScaleLayer,
+    )>,
+    mut removed_worlds: RemovedComponents<VoxelWorld>,
     mut aggregates: Query<&mut VoxelRenderAggregate>,
     aggregate_presentations: Query<Option<&Mesh3d>, With<VoxelRenderAggregatePresentation>>,
+    aggregate_roots: Query<(Option<&Collider>, Option<&RigidBody>), With<VoxelRenderAggregate>>,
     mut registry: ResMut<VoxelRenderAggregateRegistry>,
     mut perf: ResMut<VoxelPerfStats>,
 ) {
-    for (entity, chunk_of, address, surface) in &changed_surfaces {
-        let Ok((world, _, _)) = worlds.get(chunk_of.world) else {
-            continue;
-        };
-        let Ok(scope) = VoxelMaterializationAggregateScope::containing(
-            world,
-            *address,
-            RENDER_AGGREGATE_EXTENT,
-        ) else {
-            warn!(
-                ?address,
-                "voxel render aggregate scope could not be derived canonically"
-            );
-            continue;
-        };
-        let key = AggregateKey {
-            world: chunk_of.world,
-            scope,
-        };
-
-        if let Some(previous) = registry.entity_keys.insert(entity, key)
-            && previous != key
-        {
-            remove_member(&mut registry, previous, entity);
+    let removed = removed_worlds.read().collect::<HashSet<_>>();
+    if !removed.is_empty() {
+        let dead_keys = registry
+            .aggregate_entities
+            .keys()
+            .copied()
+            .filter(|key| removed.contains(&key.world))
+            .collect::<Vec<_>>();
+        for key in dead_keys {
+            if let Some(entity) = registry.aggregate_entities.remove(&key) {
+                commands.entity(entity).despawn();
+            }
+            registry.groups.remove(&key);
+            registry.dirty.remove(&key);
         }
-
         registry
-            .groups
-            .entry(key)
-            .or_default()
-            .insert(entity, surface.revision);
-        registry.dirty.insert(key);
+            .address_keys
+            .retain(|(world, _), _| !removed.contains(world));
     }
 
-    for entity in removed_surfaces.read() {
-        let Some(key) = registry.entity_keys.remove(&entity) else {
-            continue;
-        };
-        remove_member(&mut registry, key, entity);
+    // Consume store-side membership changes. This is O(changes), not O(resident).
+    for (world_entity, mut world, _, _) in &mut worlds {
+        while let Some(address) = world.materializations_mut().pop_dirty_render() {
+            let current = world
+                .materializations()
+                .active_surface(address)
+                .map(|surface| surface.revision);
+
+            let previous = registry.address_keys.get(&(world_entity, address)).copied();
+
+            match current {
+                Some(revision) => {
+                    let Ok(scope) = VoxelMaterializationAggregateScope::containing(
+                        &world,
+                        address,
+                        RENDER_AGGREGATE_EXTENT,
+                    ) else {
+                        warn!(
+                            ?address,
+                            "voxel render aggregate scope could not be derived canonically"
+                        );
+                        continue;
+                    };
+                    let key = AggregateKey {
+                        world: world_entity,
+                        scope,
+                    };
+
+                    if let Some(previous) = previous
+                        && previous != key
+                    {
+                        remove_member(&mut registry, previous, address);
+                    }
+                    registry.address_keys.insert((world_entity, address), key);
+                    registry
+                        .groups
+                        .entry(key)
+                        .or_default()
+                        .insert(address, revision);
+                    registry.dirty.insert(key);
+                }
+                None => {
+                    if let Some(previous) = registry.address_keys.remove(&(world_entity, address)) {
+                        remove_member(&mut registry, previous, address);
+                    }
+                }
+            }
+        }
     }
+
+    let mut rebuilt_keys = HashSet::new();
 
     for _ in 0..RENDER_AGGREGATE_REBUILD_BUDGET_PER_FRAME {
         let Some(key) = registry.dirty.iter().next().copied() else {
@@ -165,11 +180,11 @@ pub(crate) fn sync_render_aggregates(
             continue;
         }
 
-        let Ok((world, streaming, layer)) = worlds.get(key.world) else {
+        let Ok((_, world, material, layer)) = worlds.get_mut(key.world) else {
             registry.groups.remove(&key);
             registry
-                .entity_keys
-                .retain(|_, member_key| *member_key != key);
+                .address_keys
+                .retain(|(world, _), member_key| *world != key.world && *member_key != key);
             if let Some(entity) = registry.aggregate_entities.remove(&key) {
                 commands.entity(entity).despawn();
             }
@@ -177,17 +192,22 @@ pub(crate) fn sync_render_aggregates(
         };
 
         let started = Instant::now();
-        let Some(mesh) = build_aggregate_mesh(key.scope, members, &surface_caches) else {
-            // A removal/change may have raced this dirty key. Keep it dirty;
-            // the membership event will settle before the next attempt.
+        let Some(mesh) = build_aggregate_mesh(key.scope, members, &world) else {
             registry.dirty.insert(key);
             continue;
         };
 
+        let wants_collider =
+            aggregate_collider_proximity_squared(&view, key.scope, layer).is_some();
+        let collider = wants_collider
+            .then(|| build_aggregate_collider(key.scope, members, &world))
+            .flatten();
+
         let member_count = members.len();
         let mut mesh = Some(mesh);
-        let mut existing_published = false;
-        if let Some(aggregate_entity) = registry.aggregate_entities.get(&key).copied()
+        let mut root_entity = registry.aggregate_entities.get(&key).copied();
+
+        if let Some(aggregate_entity) = root_entity
             && let Ok(mut aggregate) = aggregates.get_mut(aggregate_entity)
         {
             match aggregate_presentations.get(aggregate.presentation) {
@@ -201,7 +221,6 @@ pub(crate) fn sync_render_aggregates(
                             .insert(Mesh3d(meshes.add(replacement)));
                     }
                     aggregate.member_count = member_count;
-                    existing_published = true;
                 }
                 Ok(None) => {
                     let replacement = mesh.take().expect("aggregate mesh is published once");
@@ -209,18 +228,22 @@ pub(crate) fn sync_render_aggregates(
                         .entity(aggregate.presentation)
                         .insert(Mesh3d(meshes.add(replacement)));
                     aggregate.member_count = member_count;
-                    existing_published = true;
                 }
                 Err(_) => {
                     commands.entity(aggregate_entity).despawn();
                     registry.aggregate_entities.remove(&key);
+                    root_entity = None;
                 }
             }
+        } else {
+            root_entity = None;
         }
 
-        if !existing_published {
+        let root = if let Some(root) = root_entity {
+            root
+        } else {
             let Some(local_translation) =
-                aggregate_runtime_translation(world, layer, &layer_frames, key.scope)
+                aggregate_runtime_translation(&world, layer, &layer_frames, key.scope)
             else {
                 registry.dirty.insert(key);
                 continue;
@@ -242,7 +265,7 @@ pub(crate) fn sync_render_aggregates(
                     VoxelRenderAggregatePresentation,
                     UsfLocalScalePresentation::new(layer.scale()),
                     Mesh3d(mesh_handle),
-                    MeshMaterial3d(streaming.material().clone()),
+                    MeshMaterial3d(material.handle().clone()),
                     Transform::IDENTITY,
                     Visibility::Inherited,
                 ))
@@ -250,19 +273,115 @@ pub(crate) fn sync_render_aggregates(
             commands.entity(root).insert(VoxelRenderAggregate {
                 presentation,
                 member_count,
+                scope: key.scope,
             });
             registry.aggregate_entities.insert(key, root);
-        }
+            root
+        };
 
+        publish_collider_manifestation(&mut commands, root, wants_collider, collider);
+        rebuilt_keys.insert(key);
         perf.record_render_aggregate_rebuild(started.elapsed().as_micros() as u64);
+    }
+
+    // Physics residency follows the observer at aggregate granularity. Scanning
+    // aggregate roots is intentionally cheap: there are orders of magnitude fewer
+    // of them than materialization atoms.
+    let aggregate_entries = registry
+        .aggregate_entities
+        .iter()
+        .map(|(&key, &entity)| (key, entity))
+        .collect::<Vec<_>>();
+
+    for (key, entity) in aggregate_entries {
+        if rebuilt_keys.contains(&key) {
+            continue;
+        }
+        let Some(members) = registry.groups.get(&key) else {
+            continue;
+        };
+        let Ok((_, world, _, layer)) = worlds.get_mut(key.world) else {
+            continue;
+        };
+        let wants = aggregate_collider_proximity_squared(&view, key.scope, layer).is_some();
+        let has_collider = aggregate_roots
+            .get(entity)
+            .ok()
+            .is_some_and(|(collider, _)| collider.is_some());
+
+        if wants && !has_collider {
+            let collider = build_aggregate_collider(key.scope, members, &world);
+            publish_collider_manifestation(&mut commands, entity, true, collider);
+        } else if !wants && has_collider {
+            publish_collider_manifestation(&mut commands, entity, false, None);
+        }
     }
 }
 
-fn remove_member(registry: &mut VoxelRenderAggregateRegistry, key: AggregateKey, entity: Entity) {
+fn publish_collider_manifestation(
+    commands: &mut Commands,
+    entity: Entity,
+    requested: bool,
+    collider: Option<Collider>,
+) {
+    let mut entity_commands = commands.entity(entity);
+    if requested {
+        if let Some(collider) = collider {
+            entity_commands.insert((
+                RigidBody::Static,
+                collider,
+                CollisionMargin(physics::VOXEL_COLLISION_MARGIN),
+            ));
+        } else {
+            entity_commands.remove::<RigidBody>();
+            entity_commands.remove::<Collider>();
+            entity_commands.remove::<CollisionMargin>();
+        }
+    } else {
+        entity_commands.remove::<RigidBody>();
+        entity_commands.remove::<Collider>();
+        entity_commands.remove::<CollisionMargin>();
+    }
+}
+
+fn remove_member(
+    registry: &mut VoxelRenderAggregateRegistry,
+    key: AggregateKey,
+    address: VoxelMaterializationChunkAddress,
+) {
     if let Some(group) = registry.groups.get_mut(&key) {
-        group.remove(&entity);
+        group.remove(&address);
     }
     registry.dirty.insert(key);
+}
+
+pub(crate) fn aggregate_collider_proximity_squared(
+    view: &UsfViewFrame,
+    scope: VoxelMaterializationAggregateScope,
+    layer: &UsfScaleLayer,
+) -> Option<f32> {
+    if layer.scale() != view.dominant_scale() {
+        return None;
+    }
+
+    let extent = scope.extent().native_units_per_axis() as f32;
+    let minimum = scope
+        .origin()
+        .origin()
+        .relative_native_bounded(
+            view.anchor(),
+            PHYSICS_INTERACTION_RADIUS_NATIVE + extent * 2.0,
+        )
+        .ok()?;
+    let maximum = minimum + Vec3::splat(extent);
+    let nearest = Vec3::new(
+        0.0_f32.clamp(minimum.x, maximum.x),
+        0.0_f32.clamp(minimum.y, maximum.y),
+        0.0_f32.clamp(minimum.z, maximum.z),
+    );
+    let distance_squared = nearest.length_squared();
+    (distance_squared <= PHYSICS_INTERACTION_RADIUS_NATIVE * PHYSICS_INTERACTION_RADIUS_NATIVE)
+        .then_some(distance_squared)
 }
 
 fn aggregate_runtime_translation(
@@ -283,8 +402,8 @@ fn aggregate_runtime_translation(
 
 fn build_aggregate_mesh(
     scope: VoxelMaterializationAggregateScope,
-    members: &HashMap<Entity, u64>,
-    surfaces: &Query<(&VoxelMaterializationChunkAddress, &VoxelChunkRenderSurface)>,
+    members: &HashMap<VoxelMaterializationChunkAddress, u64>,
+    world: &VoxelWorld,
 ) -> Option<Mesh> {
     let mut positions = Vec::<[f32; 3]>::new();
     let mut normals = Vec::<[f32; 3]>::new();
@@ -296,10 +415,8 @@ fn build_aggregate_mesh(
     let bound =
         scope.extent().native_units_per_axis() as f32 + MATERIALIZATION_CHUNK_SIZE as f32 * 2.0;
 
-    for (&entity, &expected_revision) in members {
-        let Ok((address, cache)) = surfaces.get(entity) else {
-            return None;
-        };
+    for (&address, &expected_revision) in members {
+        let cache = world.materializations().surface(address)?;
         if cache.revision != expected_revision {
             return None;
         }
@@ -343,4 +460,45 @@ fn build_aggregate_mesh(
         .with_inserted_attribute(Mesh::ATTRIBUTE_TANGENT, tangents)
         .with_inserted_indices(Indices::U32(indices)),
     )
+}
+
+fn build_aggregate_collider(
+    scope: VoxelMaterializationAggregateScope,
+    members: &HashMap<VoxelMaterializationChunkAddress, u64>,
+    world: &VoxelWorld,
+) -> Option<Collider> {
+    let mut vertices = Vec::<Vec3>::new();
+    let mut triangles = Vec::<[u32; 3]>::new();
+    let bound =
+        scope.extent().native_units_per_axis() as f32 + MATERIALIZATION_CHUNK_SIZE as f32 * 2.0;
+
+    for (&address, &expected_revision) in members {
+        let cache = world.materializations().surface(address)?;
+        if cache.revision != expected_revision {
+            return None;
+        }
+
+        let offset = address
+            .origin()
+            .relative_native_bounded(scope.origin().origin(), bound)
+            .ok()?;
+        let vertex_base = u32::try_from(vertices.len()).ok()?;
+        vertices.extend(
+            cache
+                .surface
+                .positions
+                .iter()
+                .map(|position| Vec3::from_array(*position) + offset),
+        );
+
+        for triangle in physics::owned_triangles(&cache.surface) {
+            triangles.push([
+                vertex_base.checked_add(triangle[0])?,
+                vertex_base.checked_add(triangle[1])?,
+                vertex_base.checked_add(triangle[2])?,
+            ]);
+        }
+    }
+
+    physics::build_trimesh_collider(vertices, triangles, "voxel aggregate")
 }

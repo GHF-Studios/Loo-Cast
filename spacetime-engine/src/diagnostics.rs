@@ -323,8 +323,7 @@ fn low_fps(frame_times: &mut [f64], fraction: f64) -> Option<f64> {
         return None;
     }
 
-    let count =
-        ((frame_times.len() as f64 * fraction).ceil() as usize).clamp(1, frame_times.len());
+    let count = ((frame_times.len() as f64 * fraction).ceil() as usize).clamp(1, frame_times.len());
     if count < frame_times.len() {
         frame_times.select_nth_unstable_by(count - 1, |left, right| right.total_cmp(left));
     }

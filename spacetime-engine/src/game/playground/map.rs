@@ -2,11 +2,10 @@
 //!
 //! The authored map supplies generic marker kinds. This adapter interprets a
 //! small built-in vocabulary once after the map loads; it does not retain
-//! authority over the player or portals afterward. Tools/mods can therefore
-//! move them without being overwritten every frame.
+//! authority over the player or portals afterward.
 
 use avian3d::prelude::LinearVelocity;
-use bevy::{camera::visibility::NoFrustumCulling, prelude::*};
+use bevy::prelude::*;
 
 use crate::{
     game::{
@@ -16,10 +15,10 @@ use crate::{
         portal::{PortalCommand, PortalEndpoint, PortalPair, PortalTraveler},
     },
     geometry::{AuthoredMap, AuthoredMapMarker, AuthoredMapScene},
-    spatial::UsfSpatialFrame,
+    spatial::{UsfScaleLayer, UsfSpatialFrame},
     voxel::{
-        VoxelBase, VoxelChunkCoord, VoxelChunkOf, VoxelMaterialId, VoxelQueryPosition, VoxelWorld,
-        empty_voxel_mesh,
+        VoxelBase, VoxelChunkCoord, VoxelMaterialId, VoxelPresentationMaterial, VoxelQueryPosition,
+        VoxelWorld,
     },
 };
 
@@ -51,15 +50,13 @@ impl Plugin for PlaygroundMapPlugin {
 
 fn load_campus(mut commands: Commands, asset_server: Res<AssetServer>) {
     let handle: Handle<AuthoredMap> = asset_server.load(CAMPUS_MAP);
-
     commands.spawn((Name::new("Physics Campus"), AuthoredMapScene::new(handle)));
 }
 
-/// Keeps voxel mechanics immediately testable in the authored playground while
-/// leaving ownership of world setup out of the voxel-hand item itself.
+/// Keeps voxel mechanics immediately testable while using the same store-owned
+/// materialization path as streamed procedural terrain.
 fn spawn_voxel_test_rock(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     frame: Res<UsfSpatialFrame>,
 ) {
@@ -68,9 +65,6 @@ fn spawn_voxel_test_rock(
     let semantic_center = VoxelQueryPosition::new(world_origin)
         .translated(center)
         .expect("playground voxel center must be a valid canonical translation");
-    let world_entity = commands
-        .spawn((Name::new("Playground Voxel Rock"), Transform::IDENTITY))
-        .id();
     let material = materials.add(StandardMaterial {
         base_color: Color::srgb(0.34, 0.31, 0.27),
         perceptual_roughness: 1.0,
@@ -89,35 +83,23 @@ fn spawn_voxel_test_rock(
                     .chunk_address(coord)
                     .expect("playground voxel materialization must translate canonically");
                 let chunk = world.materialize_chunk(address);
-                let local_translation = address
-                    .query_origin()
-                    .relative_to(VoxelQueryPosition::new(*frame.origin()), 64.0)
-                    .expect("playground voxel materialization must project locally");
-                let chunk_entity = commands
-                    .spawn((
-                        Name::new(format!(
-                            "Playground Voxel Materialization Chunk ({x}, {y}, {z})"
-                        )),
-                        VoxelChunkOf::new(world_entity),
-                        address,
-                        chunk,
-                        Mesh3d(meshes.add(empty_voxel_mesh())),
-                        MeshMaterial3d(material.clone()),
-                        NoFrustumCulling,
-                        Transform::from_translation(local_translation),
-                    ))
-                    .id();
-
-                assert!(world.insert_chunk(address, chunk_entity).is_none());
+                world
+                    .materializations_mut()
+                    .insert_dense_active(address, chunk);
             }
         }
     }
 
-    commands.entity(world_entity).insert(world);
+    commands.spawn((
+        Name::new("Playground Voxel Rock"),
+        UsfScaleLayer::new(world_origin.leaf_scale()),
+        VoxelPresentationMaterial::new(material),
+        world,
+        Transform::IDENTITY,
+        Visibility::Inherited,
+    ));
 }
 
-/// Applies the authored player spawn once. Hot-reloading the map never yanks
-/// the player out of their current experiment.
 fn place_player_at_spawn_marker(
     mut placed: Local<bool>,
     markers: Query<(&AuthoredMapMarker, &Transform), Without<Player>>,
@@ -141,7 +123,6 @@ fn place_player_at_spawn_marker(
     *placed = true;
 }
 
-/// Seeds the persistent demo pair from authored markers exactly once.
 fn initialize_demo_portals_from_markers(
     mut initialized: Local<bool>,
     pair: Option<Res<PortalPair>>,

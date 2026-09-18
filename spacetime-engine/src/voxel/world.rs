@@ -1,14 +1,13 @@
-//! Sparse authoritative voxel world with dense materialized chunk caches.
+//! Sparse authoritative voxel world with store-owned materialization caches.
 
-use std::collections::HashMap;
-
-use bevy::prelude::{Component, Entity, IVec3, Vec3};
+use bevy::prelude::{Component, IVec3, Vec3};
 
 use crate::spatial::{UsfPosition, UsfPositionError};
 
 use super::{
     MATERIALIZATION_CHUNK_SIZE, VoxelBase, VoxelBounds, VoxelChunk, VoxelEdit,
     VoxelModificationLayer, VoxelQueryPosition, VoxelSample, chunk::SAMPLE_PADDING,
+    store::VoxelMaterializationStore,
 };
 
 /// Transitional coordinate in the original `VoxelWorld`-local sampling lattice.
@@ -149,16 +148,15 @@ impl VoxelChunkRecipe {
 
 /// Semantic voxel-world root.
 ///
-/// The authoritative state is `base + modifications`. `chunks` only indexes
-/// currently reserved canonical materialization addresses: some may still be
-/// generating, while others hold dense disposable working caches. Destroying
-/// every dense cache therefore does not destroy the world.
+/// The authoritative state is `base + modifications`. Materialization residency
+/// is compact ordinary Rust data owned by this world; a canonical atom does not
+/// need an ECS entity, transform, collider, or mesh to be resident.
 #[derive(Component, Debug)]
 pub struct VoxelWorld {
     origin: UsfPosition,
     base: VoxelBase,
     modifications: VoxelModificationLayer,
-    chunks: HashMap<VoxelMaterializationChunkAddress, Entity>,
+    materializations: VoxelMaterializationStore,
 }
 
 impl Default for VoxelWorld {
@@ -177,7 +175,7 @@ impl VoxelWorld {
             origin,
             base,
             modifications: VoxelModificationLayer::default(),
-            chunks: HashMap::new(),
+            materializations: VoxelMaterializationStore::default(),
         }
     }
 
@@ -233,7 +231,10 @@ impl VoxelWorld {
     /// base materialization scopes whose padded sample domains it can affect.
     pub fn record_edit(&mut self, edit: VoxelEdit) -> Result<(), UsfPositionError> {
         let addresses = self.materialization_addresses_intersecting(edit.influence_bounds())?;
-        self.modifications.push(edit, addresses);
+        self.modifications.push(edit, addresses.iter().copied());
+        for address in addresses {
+            self.materializations.apply_edit(address, edit);
+        }
         Ok(())
     }
 
@@ -277,32 +278,20 @@ impl VoxelWorld {
         Ok(sample)
     }
 
-    pub fn insert_chunk(
-        &mut self,
-        address: VoxelMaterializationChunkAddress,
-        entity: Entity,
-    ) -> Option<Entity> {
-        self.chunks.insert(address, entity)
+    pub(crate) const fn materializations(&self) -> &VoxelMaterializationStore {
+        &self.materializations
     }
 
-    pub fn remove_chunk(&mut self, address: VoxelMaterializationChunkAddress) -> Option<Entity> {
-        self.chunks.remove(&address)
+    pub(crate) fn materializations_mut(&mut self) -> &mut VoxelMaterializationStore {
+        &mut self.materializations
     }
 
-    pub fn chunk_entity(&self, address: VoxelMaterializationChunkAddress) -> Option<Entity> {
-        self.chunks.get(&address).copied()
+    pub fn len(&self) -> usize {
+        self.materializations.active_count()
     }
 
-    pub fn chunk_entities(&self) -> impl Iterator<Item = Entity> + '_ {
-        self.chunks.values().copied()
-    }
-
-    pub fn chunk_entries(
-        &self,
-    ) -> impl Iterator<Item = (VoxelMaterializationChunkAddress, Entity)> + '_ {
-        self.chunks
-            .iter()
-            .map(|(&address, &entity)| (address, entity))
+    pub fn is_empty(&self) -> bool {
+        self.materializations.active_count() == 0
     }
 
     /// Canonical base materialization addresses whose padded sample domains
@@ -348,26 +337,6 @@ impl VoxelWorld {
 
         Ok(addresses)
     }
-
-    /// Reserved dense-cache entities intersecting a canonical semantic scope.
-    pub fn chunks_intersecting(
-        &self,
-        bounds: VoxelBounds,
-    ) -> Result<Vec<Entity>, UsfPositionError> {
-        Ok(self
-            .materialization_addresses_intersecting(bounds)?
-            .into_iter()
-            .filter_map(|address| self.chunk_entity(address))
-            .collect())
-    }
-
-    pub fn len(&self) -> usize {
-        self.chunks.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.chunks.is_empty()
-    }
 }
 
 fn checked_ivec3(value: Vec3) -> Result<IVec3, UsfPositionError> {
@@ -385,20 +354,6 @@ fn checked_ivec3(value: Vec3) -> Result<IVec3, UsfPositionError> {
         component(value.y)?,
         component(value.z)?,
     ))
-}
-
-/// Identifies the semantic voxel world owning one root-level materialization
-/// entity. Canonical location lives in the separate address component; dense
-/// voxel samples and render/physics geometry remain chunk-local.
-#[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
-pub struct VoxelChunkOf {
-    pub world: Entity,
-}
-
-impl VoxelChunkOf {
-    pub const fn new(world: Entity) -> Self {
-        Self { world }
-    }
 }
 
 #[cfg(test)]

@@ -165,9 +165,9 @@ fn propagate_combustion_heat(
             let minimum_distance_squared = source_positions
                 .iter()
                 .flat_map(|source_position| {
-                    target_positions
-                        .iter()
-                        .map(move |target_position| source_position.distance_squared(*target_position))
+                    target_positions.iter().map(move |target_position| {
+                        source_position.distance_squared(*target_position)
+                    })
                 })
                 .fold(f32::INFINITY, f32::min);
 

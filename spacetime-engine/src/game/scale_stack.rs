@@ -11,7 +11,7 @@ use bevy::prelude::*;
 
 use crate::{
     spatial::{SPATIAL_SCALE_MAX, SpatialScale, UsfPosition, UsfScaleLayer, UsfViewFrame},
-    voxel::{ProceduralVolume, VoxelBase, VoxelStreaming, VoxelWorld},
+    voxel::{ProceduralVolume, VoxelBase, VoxelPresentationMaterial, VoxelStreaming, VoxelWorld},
     worldgen::{PhenomenonRegistry, WorldgenEvaluationKey, WorldgenStore},
 };
 
@@ -78,7 +78,8 @@ pub(super) fn sync_scale_stack(
                     ChildOf(stack_entity),
                     UsfScaleLayer::new(scale),
                     VoxelWorld::new_at(VoxelBase::Volume(volume), UsfPosition::zero(scale)),
-                    VoxelStreaming::new(24, stack.material.clone()),
+                    VoxelStreaming::new(24),
+                    VoxelPresentationMaterial::new(stack.material.clone()),
                     Transform::IDENTITY,
                     Visibility::Inherited,
                 ))

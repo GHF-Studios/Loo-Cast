@@ -4,10 +4,8 @@ use bevy::prelude::*;
 
 use crate::{
     game::GameSet,
-    voxel::{
-        VoxelBrush, VoxelChunk, VoxelEdit, VoxelMaterialId, VoxelMaterializationChunkAddress,
-        VoxelQueryPosition, VoxelRayHit, VoxelWorld,
-    },
+    spatial::{UsfScaleLayer, UsfScaleLayerFrames},
+    voxel::{VoxelBrush, VoxelEdit, VoxelMaterialId, VoxelQueryPosition, VoxelRayHit, VoxelWorld},
 };
 
 use super::super::{
@@ -38,10 +36,10 @@ fn register_item(mut catalog: ResMut<PlaygroundCatalog>) {
 
 fn use_voxel_hand(
     mut uses: MessageReader<UsePlaygroundItem>,
-    mut worlds: ParamSet<(Query<(Entity, &VoxelWorld)>, Query<&mut VoxelWorld>)>,
-    mut chunks: ParamSet<(
-        Query<(&VoxelChunk, &Transform, &VoxelMaterializationChunkAddress)>,
-        Query<(&mut VoxelChunk, &VoxelMaterializationChunkAddress)>,
+    frames: Res<UsfScaleLayerFrames>,
+    mut worlds: ParamSet<(
+        Query<(Entity, &VoxelWorld, &UsfScaleLayer)>,
+        Query<&mut VoxelWorld>,
     )>,
 ) {
     for request in uses.read() {
@@ -55,18 +53,25 @@ fn use_voxel_hand(
         let mut nearest: Option<(Entity, VoxelQueryPosition, f32)> = None;
         {
             let worlds = worlds.p0();
-            let chunks = chunks.p0();
 
-            for (world_entity, world) in &worlds {
-                for chunk_entity in world.chunk_entities() {
-                    let Ok((chunk, transform, address)) = chunks.get(chunk_entity) else {
+            for (world_entity, world, layer) in &worlds {
+                let world_origin = VoxelQueryPosition::new(*world.origin());
+
+                for (address, chunk) in world.materializations().active_dense_entries() {
+                    let Ok(relative) = address
+                        .query_origin()
+                        .relative_to(world_origin, 1_000_000.0)
+                    else {
                         continue;
                     };
+                    let absolute = bevy::math::DVec3::new(
+                        relative.x as f64,
+                        relative.y as f64,
+                        relative.z as f64,
+                    );
+                    let chunk_translation = frames.runtime_from_absolute(layer.scale(), absolute);
+                    let chunk_local_origin = request.aim.origin - chunk_translation;
 
-                    // Dense chunk queries are strictly local to the projected
-                    // materialization entity. Convert only the final local hit
-                    // back into canonical USF space.
-                    let chunk_local_origin = request.aim.origin - transform.translation;
                     let Some(VoxelRayHit { position, distance }) =
                         chunk.raycast(chunk_local_origin, request.aim.direction, TOOL_RANGE)
                     else {
@@ -107,28 +112,12 @@ fn use_voxel_hand(
             }
         };
 
-        // Record the canonical edit independently from dense caches, then patch
-        // only currently materialized representations that intersect its scope.
-        let affected = {
-            let mut worlds = worlds.p1();
-            let Ok(mut world) = worlds.get_mut(world_entity) else {
-                continue;
-            };
-            let Ok(affected) = world.chunks_intersecting(edit.influence_bounds()) else {
-                continue;
-            };
-            if let Err(error) = world.record_edit(edit) {
-                error!(?error, "voxel edit scope could not be indexed canonically");
-                continue;
-            }
-            affected
+        let mut worlds = worlds.p1();
+        let Ok(mut world) = worlds.get_mut(world_entity) else {
+            continue;
         };
-
-        let mut chunks = chunks.p1();
-        for entity in affected {
-            if let Ok((mut chunk, address)) = chunks.get_mut(entity) {
-                chunk.apply_edit(*address, edit);
-            }
+        if let Err(error) = world.record_edit(edit) {
+            error!(?error, "voxel edit scope could not be indexed canonically");
         }
     }
 }

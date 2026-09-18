@@ -30,10 +30,22 @@ pub(crate) fn build_chunk_collider(
         .map(Vec3::from_array)
         .collect::<Vec<_>>();
 
+    build_trimesh_collider(vertices, triangles, "voxel chunk")
+}
+
+pub(crate) fn build_trimesh_collider(
+    vertices: Vec<Vec3>,
+    triangles: Vec<[u32; 3]>,
+    context: &'static str,
+) -> Option<Collider> {
+    if triangles.is_empty() {
+        return None;
+    }
+
     match Collider::try_trimesh_with_config(vertices, triangles, TrimeshFlags::FIX_INTERNAL_EDGES) {
         Ok(collider) => Some(collider),
         Err(error) => {
-            warn!(?error, "failed to build voxel chunk collider");
+            warn!(?error, context, "failed to build voxel trimesh collider");
             None
         }
     }
@@ -45,7 +57,7 @@ pub(crate) fn build_chunk_collider(
 ///
 /// Assign each triangle to exactly one brick by its brick-local centroid. A
 /// triangle may cross the brick boundary, but only one collider owns it.
-fn owned_triangles(surface: &VoxelSurface) -> Vec<[u32; 3]> {
+pub(crate) fn owned_triangles(surface: &VoxelSurface) -> Vec<[u32; 3]> {
     surface
         .indices
         .chunks_exact(3)

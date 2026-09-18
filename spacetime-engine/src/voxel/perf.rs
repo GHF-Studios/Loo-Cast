@@ -1,4 +1,4 @@
-//! Temporary aggregate counters until full profiling is integrated.
+//! Lightweight voxel realization counters used alongside Tracy/Vapor diagnostics.
 
 use std::{
     collections::BTreeMap,
@@ -12,10 +12,11 @@ use bevy::{prelude::*, time::Virtual};
 use crate::spatial::{UsfScaleLayer, UsfViewFrame};
 
 use super::{
-    VoxelChunk, VoxelChunkPhysicsLod, VoxelMaterializationChunkAddress, VoxelWorld,
-    async_pipeline::{VoxelDerivedPurpose, VoxelDerivedTask, collider_proximity_squared},
+    VoxelWorld,
+    async_pipeline::VoxelDerivedTask,
     render_aggregate::{
-        VoxelChunkRenderSurface, VoxelRenderAggregate, VoxelRenderAggregatePresentation,
+        VoxelRenderAggregate, VoxelRenderAggregatePresentation,
+        aggregate_collider_proximity_squared,
     },
     streaming::VoxelAggregateGenerationTask,
 };
@@ -40,7 +41,6 @@ pub(crate) struct VoxelPerfStats {
     render_aggregate_rebuilds: u64,
     render_aggregate_rebuild_us: u64,
     render_aggregate_rebuild_max_us: u64,
-    uniform_shortcuts: u64,
     demand_rebuilds: u64,
     frames: u64,
     frame_us: u64,
@@ -74,21 +74,15 @@ impl VoxelPerfStats {
         self.render_aggregate_rebuild_max_us = self.render_aggregate_rebuild_max_us.max(us);
     }
 
-    pub(crate) fn record_uniform_shortcut(&mut self) {
-        self.uniform_shortcuts += 1;
-    }
-
     pub(crate) fn record_demand_rebuild(&mut self) {
         self.demand_rebuilds += 1;
     }
 }
 
-/// Runs once for every FixedMain iteration, not once per rendered frame.
 pub(crate) fn count_fixed_step(mut probe: ResMut<FixedStepProbe>) {
     probe.steps_this_frame = probe.steps_this_frame.saturating_add(1);
 }
 
-/// Samples and resets the number of fixed steps that ran for this rendered frame.
 pub(crate) fn sample_fixed_steps(
     mut probe: ResMut<FixedStepProbe>,
     mut stats: ResMut<VoxelPerfStats>,
@@ -102,15 +96,11 @@ pub(crate) fn sample_fixed_steps(
 
 #[derive(Debug, Default)]
 struct ScaleLiveCounts {
-    reserved: usize,
-    generated: usize,
-    surface_chunks: usize,
+    active: usize,
+    dense: usize,
+    surfaces: usize,
     render_aggregates: usize,
     colliders: usize,
-    collider_wanted: usize,
-    collider_pending: usize,
-    collider_waiting: usize,
-    collider_missing_visible: usize,
 }
 
 pub(crate) fn report_voxel_perf(
@@ -120,19 +110,15 @@ pub(crate) fn report_voxel_perf(
     meshes: Res<Assets<Mesh>>,
     mut stats: ResMut<VoxelPerfStats>,
     worlds: Query<(&UsfScaleLayer, &VoxelWorld)>,
-    chunks: Query<(
+    render_aggregates: Query<(
         &UsfScaleLayer,
-        &VoxelChunk,
-        &VoxelChunkPhysicsLod,
-        &VoxelMaterializationChunkAddress,
-        Option<&VoxelChunkRenderSurface>,
-        Option<&VoxelDerivedTask>,
+        &VoxelRenderAggregate,
         Option<&Collider>,
         Option<&RigidBody>,
     )>,
-    render_aggregates: Query<(&UsfScaleLayer, &VoxelRenderAggregate)>,
     aggregate_mesh_presentations: Query<(), (With<Mesh3d>, With<VoxelRenderAggregatePresentation>)>,
     generation: Query<(), With<VoxelAggregateGenerationTask>>,
+    derived: Query<(), With<VoxelDerivedTask>>,
 ) {
     let now = Instant::now();
     if let Some(previous) = stats.last_frame_at.replace(now) {
@@ -151,44 +137,49 @@ pub(crate) fn report_voxel_perf(
     }
 
     let mut per_scale = BTreeMap::<i8, ScaleLiveCounts>::new();
-    let mut reserved_chunks = 0usize;
+    let mut resident_materializations = 0usize;
+    let mut active_materializations = 0usize;
+    let mut inactive_cached = 0usize;
+    let mut pending_materializations = 0usize;
+    let mut dense_materializations = 0usize;
+    let mut active_dense_materializations = 0usize;
+    let mut surface_caches = 0usize;
+    let mut active_surface_caches = 0usize;
+    let mut dirty_materializations = 0usize;
+
     for (layer, world) in &worlds {
-        let reserved = world.len();
-        reserved_chunks += reserved;
-        per_scale
-            .entry(layer.scale().exponent())
-            .or_default()
-            .reserved += reserved;
+        let store = world.materializations();
+        resident_materializations += store.resident_count();
+        active_materializations += store.active_count();
+        inactive_cached += store.inactive_count();
+        pending_materializations += store.pending_count();
+        dense_materializations += store.dense_count();
+        active_dense_materializations += store.active_dense_count();
+        surface_caches += store.surface_cache_count();
+        active_surface_caches += store.active_surface_count();
+        dirty_materializations += store.dirty_derived_count();
+
+        let scale = per_scale.entry(layer.scale().exponent()).or_default();
+        scale.active += store.active_count();
+        scale.dense += store.active_dense_count();
+        scale.surfaces += store.active_surface_count();
     }
 
-    let mut loaded_chunks = 0usize;
-    let mut surface_chunks = 0usize;
+    let mut aggregate_members = 0usize;
+    let mut aggregate_max_members = 0usize;
     let mut colliders = 0usize;
     let mut rigid_bodies = 0usize;
-    let mut dirty_chunks = 0usize;
-    let mut derived_in_flight = 0usize;
-    let mut geometry_in_flight = 0usize;
-    let mut collider_only_in_flight = 0usize;
     let mut collider_wanted = 0usize;
-    let mut collider_ready = 0usize;
-    let mut collider_pending = 0usize;
-    let mut collider_waiting = 0usize;
     let mut collider_missing_visible = 0usize;
 
-    for (layer, chunk, physics_lod, address, surface, task, collider, rigid_body) in &chunks {
-        loaded_chunks += 1;
+    for (layer, aggregate, collider, rigid_body) in &render_aggregates {
+        let member_count = aggregate.member_count();
+        aggregate_members += member_count;
+        aggregate_max_members = aggregate_max_members.max(member_count);
+
         let scale = per_scale.entry(layer.scale().exponent()).or_default();
-        scale.generated += 1;
+        scale.render_aggregates += 1;
 
-        if chunk.needs_remesh() {
-            dirty_chunks += 1;
-        }
-
-        let has_surface = surface.is_some();
-        if has_surface {
-            surface_chunks += 1;
-            scale.surface_chunks += 1;
-        }
         if collider.is_some() {
             colliders += 1;
             scale.colliders += 1;
@@ -197,46 +188,14 @@ pub(crate) fn report_voxel_perf(
             rigid_bodies += 1;
         }
 
-        if let Some(task) = task {
-            derived_in_flight += 1;
-            match task.purpose {
-                VoxelDerivedPurpose::Geometry => geometry_in_flight += 1,
-                VoxelDerivedPurpose::ColliderOnly => collider_only_in_flight += 1,
-            }
-        }
-
-        if collider_proximity_squared(&view, address, layer).is_some() {
+        if aggregate_collider_proximity_squared(&view, aggregate.scope(), layer).is_some() {
             collider_wanted += 1;
-            scale.collider_wanted += 1;
-            if collider.is_some() {
-                collider_ready += 1;
-            } else if task.is_some() {
-                collider_pending += 1;
-                scale.collider_pending += 1;
-            } else if physics_lod.requested && physics_lod.built_revision == Some(chunk.revision())
-            {
-                if has_surface {
-                    collider_missing_visible += 1;
-                    scale.collider_missing_visible += 1;
-                }
-            } else {
-                collider_waiting += 1;
-                scale.collider_waiting += 1;
+            if collider.is_none() {
+                collider_missing_visible += 1;
             }
         }
     }
 
-    let mut aggregate_members = 0usize;
-    let mut aggregate_max_members = 0usize;
-    for (layer, aggregate) in &render_aggregates {
-        let member_count = aggregate.member_count();
-        aggregate_members += member_count;
-        aggregate_max_members = aggregate_max_members.max(member_count);
-        per_scale
-            .entry(layer.scale().exponent())
-            .or_default()
-            .render_aggregates += 1;
-    }
     let render_aggregate_count = render_aggregates.iter().count();
     let aggregate_avg_members = if render_aggregate_count == 0 {
         0.0
@@ -271,10 +230,19 @@ pub(crate) fn report_voxel_perf(
     };
 
     info!(
-        reserved_chunks,
-        reserved_not_generated = reserved_chunks.saturating_sub(loaded_chunks),
-        loaded_chunks,
-        surface_chunks,
+        resident_materializations,
+        active_materializations,
+        inactive_cached,
+        pending_materializations,
+        dense_materializations,
+        active_dense_materializations,
+        surface_caches,
+        active_surface_caches,
+        dirty_materializations,
+        // Compatibility names retained in logs while the monitor transitions.
+        reserved_chunks = active_materializations,
+        loaded_chunks = active_dense_materializations,
+        surface_chunks = active_surface_caches,
         render_aggregates = render_aggregate_count,
         aggregate_mesh_presentations = aggregate_mesh_presentations.iter().count(),
         aggregate_members,
@@ -283,17 +251,10 @@ pub(crate) fn report_voxel_perf(
         mesh_assets = meshes.len(),
         colliders,
         rigid_bodies,
-        dirty_chunks,
-        generation_in_flight = generation.iter().count(),
-        derived_in_flight,
-        geometry_in_flight,
-        collider_only_in_flight,
-        collider_outside = loaded_chunks.saturating_sub(collider_wanted),
         collider_wanted,
-        collider_ready,
-        collider_pending,
-        collider_waiting,
         collider_missing_visible,
+        generation_in_flight = generation.iter().count(),
+        derived_in_flight = derived.iter().count(),
         frame_avg_ms,
         frame_max_ms = stats.frame_max_us as f64 / 1000.0,
         fixed_steps_avg,
@@ -311,7 +272,6 @@ pub(crate) fn report_voxel_perf(
         render_aggregate_rebuilds = stats.render_aggregate_rebuilds,
         aggregate_rebuild_avg_ms,
         aggregate_rebuild_max_ms = stats.render_aggregate_rebuild_max_us as f64 / 1000.0,
-        uniform_shortcuts = stats.uniform_shortcuts,
         demand_rebuilds = stats.demand_rebuilds,
         worker_limit_per_stage = per_stage_in_flight_limit(),
         ?per_scale,

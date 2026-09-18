@@ -1,8 +1,8 @@
-//! Demand-driven materialization of dense voxel chunk caches.
+//! Demand-driven residency of voxel materialization caches.
 //!
-//! Streaming is optional per [`VoxelWorld`]. The authoritative world remains
-//! procedural base + sparse semantic modifications; this module realizes the
-//! union of generic canonical spatial demand that opted into voxel materialization.
+//! Streaming owns *which canonical addresses are active*. Dense voxel data lives
+//! in [`VoxelWorld`]'s compact materialization store rather than in one ECS entity
+//! per address. Generation jobs are transient ECS participants only.
 
 use std::{
     collections::{HashMap, HashSet, VecDeque},
@@ -15,51 +15,40 @@ use bevy::{
     tasks::{AsyncComputeTaskPool, Task, futures::check_ready},
 };
 
-use crate::spatial::{
-    SpatialDemandScope, SpatialDemandSnapshot, UsfScaleLayer, UsfScaleLayerFrames,
-};
+use crate::spatial::{SpatialDemandScope, SpatialDemandSnapshot, UsfScaleLayer};
 
 use super::{
-    MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelChunkOf, VoxelChunkPhysicsLod,
-    VoxelMaterializationChunkAddress, VoxelQueryPosition, VoxelWorld,
+    MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelMaterializationChunkAddress, VoxelWorld,
     aggregate::{VoxelMaterializationAggregateExtent, VoxelMaterializationAggregateScope},
     perf::{VoxelPerfStats, per_stage_in_flight_limit},
     world::VoxelChunkRecipe,
 };
 
-/// Maximum number of finished base materializations published into ECS in one frame.
 const GENERATION_PUBLISH_BUDGET_PER_FRAME: usize = 16;
+const WARM_INACTIVE_MATERIALIZATION_LIMIT: usize = 4096;
 
-/// Current voxel-field generation work scope. This is deliberately a scheduler
-/// choice, not materialization identity; `1000³` alignment is supported by the
-/// same aggregate-scope primitive without forcing this subsystem to use it.
 const FIELD_GENERATION_AGGREGATE_EXTENT: VoxelMaterializationAggregateExtent =
     VoxelMaterializationAggregateExtent::HUNDRED;
 
-/// Keep first-materialization latency reasonable while still proving that one
-/// worker item can process several individually addressable base chunks. Larger
-/// batches remain a future policy/performance choice.
 const MAX_CHUNKS_PER_AGGREGATE_GENERATION_TASK: usize = 4;
 
-/// Opt-in voxel realization configuration for one [`VoxelWorld`].
+/// Demand-streaming policy for one [`VoxelWorld`].
 ///
-/// Spatial extent no longer lives here: generic [`SpatialDemandScope`] values
-/// decide *where* realization is requested. This component only owns
-/// representation-specific policy/assets for satisfying that demand.
+/// Presentation material is intentionally separate: residency policy should not
+/// own renderer state, and manually resident worlds can use the same realization
+/// pipeline without pretending to be streamed.
 #[derive(Component, Debug, Clone)]
 pub struct VoxelStreaming {
     load_budget_per_frame: usize,
-    material: Handle<StandardMaterial>,
     demand_key: Vec<VoxelDemandPlanKey>,
     pending_desired: VecDeque<DemandedChunk>,
     cached_desired_set: HashSet<VoxelMaterializationChunkAddress>,
 }
 
 impl VoxelStreaming {
-    pub fn new(load_budget_per_frame: usize, material: Handle<StandardMaterial>) -> Self {
+    pub fn new(load_budget_per_frame: usize) -> Self {
         Self {
             load_budget_per_frame: load_budget_per_frame.max(1),
-            material,
             demand_key: Vec::new(),
             pending_desired: VecDeque::new(),
             cached_desired_set: HashSet::new(),
@@ -69,15 +58,24 @@ impl VoxelStreaming {
     pub const fn load_budget_per_frame(&self) -> usize {
         self.load_budget_per_frame
     }
+}
 
-    pub(crate) fn material(&self) -> &Handle<StandardMaterial> {
-        &self.material
+/// Render material used by disposable voxel manifestations.
+#[derive(Component, Debug, Clone)]
+pub struct VoxelPresentationMaterial(Handle<StandardMaterial>);
+
+impl VoxelPresentationMaterial {
+    pub fn new(material: Handle<StandardMaterial>) -> Self {
+        Self(material)
+    }
+
+    pub(crate) fn handle(&self) -> &Handle<StandardMaterial> {
+        &self.0
     }
 }
 
 /// Marks a generic [`crate::spatial::SpatialDemandSource`] as requesting voxel
-/// materialization. Other realization subsystems can define their own opt-in
-/// markers without making the generic spatial-demand layer know about them.
+/// materialization.
 #[derive(Component, Debug, Default, Clone, Copy)]
 pub struct VoxelMaterializationDemand;
 
@@ -98,14 +96,14 @@ struct VoxelDemandPlanKey {
 }
 
 struct VoxelGenerationJob {
-    entity: Entity,
     address: VoxelMaterializationChunkAddress,
+    token: u64,
     recipe: VoxelChunkRecipe,
 }
 
 struct VoxelGeneratedChunk {
-    entity: Entity,
     address: VoxelMaterializationChunkAddress,
+    token: u64,
     applied_edit_count: usize,
     generation_micros: u64,
     chunk: VoxelChunk,
@@ -116,9 +114,7 @@ struct PendingAggregateGeneration {
     jobs: Vec<VoxelGenerationJob>,
 }
 
-/// One asynchronous processing item over several individually addressable base
-/// materializations. The aggregate scope groups work only: every result remains
-/// a separate `VoxelChunk` cache registered by its canonical base address.
+/// One asynchronous work item over several independently addressable atoms.
 #[derive(Component)]
 pub(crate) struct VoxelAggregateGenerationTask {
     world: Entity,
@@ -141,8 +137,8 @@ impl VoxelAggregateGenerationTask {
                     let started = Instant::now();
                     let chunk = job.recipe.materialize();
                     VoxelGeneratedChunk {
-                        entity: job.entity,
                         address: job.address,
+                        token: job.token,
                         applied_edit_count,
                         generation_micros: started.elapsed().as_micros() as u64,
                         chunk,
@@ -161,7 +157,7 @@ impl VoxelAggregateGenerationTask {
 
 pub(crate) fn finish_chunk_generation(
     mut commands: Commands,
-    worlds: Query<&VoxelWorld>,
+    mut worlds: Query<&mut VoxelWorld>,
     mut tasks: Query<(Entity, &mut VoxelAggregateGenerationTask)>,
     mut perf: ResMut<VoxelPerfStats>,
 ) {
@@ -181,7 +177,7 @@ pub(crate) fn finish_chunk_generation(
             generation.ready = completed.into();
         }
 
-        let Ok(world) = worlds.get(generation.world) else {
+        let Ok(mut world) = worlds.get_mut(generation.world) else {
             generation.ready.clear();
             commands.entity(task_entity).despawn();
             continue;
@@ -192,21 +188,21 @@ pub(crate) fn finish_chunk_generation(
                 break;
             };
 
-            // Demand can migrate or disappear while aggregate work is in flight. Never
-            // resurrect a base chunk whose canonical reservation was retired.
-            if world.chunk_entity(output.address) != Some(output.entity) {
-                continue;
-            }
-
             catch_up_generated_chunk(
-                world,
+                &world,
                 output.address,
                 output.applied_edit_count,
                 &mut output.chunk,
             );
-            perf.record_generation(output.generation_micros);
-            commands.entity(output.entity).insert(output.chunk);
-            published += 1;
+
+            if world.materializations_mut().publish_generated(
+                output.address,
+                output.token,
+                output.chunk,
+            ) {
+                perf.record_generation(output.generation_micros);
+                published += 1;
+            }
         }
 
         if generation.task.is_none() && generation.ready.is_empty() {
@@ -219,14 +215,11 @@ pub(crate) fn finish_chunk_generation(
     }
 }
 
-/// Materialization entities are roots so their Transform is directly projected
-/// into the bounded runtime frame. This cleanup supplies lifecycle ownership
-/// without reintroducing transform inheritance from a potentially far-away
-/// `VoxelWorld` root.
-pub(crate) fn retire_orphaned_chunks(
+/// Generation jobs are the only per-materialization ECS objects left in this
+/// stage. If their semantic world disappears, retire them immediately.
+pub(crate) fn retire_orphaned_tasks(
     mut commands: Commands,
     mut removed_worlds: RemovedComponents<VoxelWorld>,
-    chunks: Query<(Entity, &VoxelChunkOf)>,
     aggregate_tasks: Query<(Entity, &VoxelAggregateGenerationTask)>,
     mut removed: Local<Vec<Entity>>,
 ) {
@@ -236,11 +229,6 @@ pub(crate) fn retire_orphaned_chunks(
         return;
     }
 
-    for (entity, chunk_of) in &chunks {
-        if removed.contains(&chunk_of.world) {
-            commands.entity(entity).despawn();
-        }
-    }
     for (entity, task) in &aggregate_tasks {
         if removed.contains(&task.world) {
             commands.entity(entity).despawn();
@@ -250,7 +238,6 @@ pub(crate) fn retire_orphaned_chunks(
 
 pub(crate) fn stream_voxel_chunks(
     mut commands: Commands,
-    layer_frames: Res<UsfScaleLayerFrames>,
     demand_snapshot: Res<SpatialDemandSnapshot>,
     voxel_demand_sources: Query<(), With<VoxelMaterializationDemand>>,
     mut worlds: Query<(Entity, &mut VoxelWorld, &mut VoxelStreaming, &UsfScaleLayer)>,
@@ -277,6 +264,7 @@ pub(crate) fn stream_voxel_chunks(
                 .copied()
                 .filter(|demand| demand.scale() == layer.scale()),
         );
+
         let changed = match refresh_demand_plan(&world, &voxel_demands, &mut streaming, &mut perf) {
             Ok(changed) => changed,
             Err(_) => {
@@ -287,61 +275,46 @@ pub(crate) fn stream_voxel_chunks(
 
         if changed {
             let stale = world
-                .chunk_entries()
-                .filter(|(address, _)| !streaming.cached_desired_set.contains(address))
+                .materializations()
+                .active_addresses()
+                .filter(|address| !streaming.cached_desired_set.contains(address))
                 .collect::<Vec<_>>();
-            for (address, entity) in stale {
-                world.remove_chunk(address);
-                commands.entity(entity).despawn();
+            for address in stale {
+                world.materializations_mut().deactivate(address);
             }
-        }
 
-        let projection_bound = voxel_demands
-            .iter()
-            .filter_map(|demand| {
-                demand
-                    .center()
-                    .relative_native_bounded(world.origin(), 1_000_000.0)
-                    .ok()
-                    .map(|local| {
-                        local.abs().max_element()
-                            + demand.half_extent_native().max_element()
-                            + MATERIALIZATION_CHUNK_SIZE as f32 * 2.0
-                            + 1.0
-                    })
-            })
-            .fold(512.0_f32, f32::max);
+            // Warm dense entries become active immediately and avoid generation.
+            let desired = streaming
+                .cached_desired_set
+                .iter()
+                .copied()
+                .collect::<Vec<_>>();
+            for address in desired {
+                world.materializations_mut().reactivate(address);
+            }
+
+            world
+                .materializations_mut()
+                .trim_inactive(WARM_INACTIVE_MATERIALIZATION_LIMIT);
+
+            streaming
+                .pending_desired
+                .retain(|demanded| !world.materializations().is_active(demanded.address));
+        }
 
         let load_budget = streaming.load_budget_per_frame;
         let mut requested = 0;
         let mut aggregate_batches = Vec::<PendingAggregateGeneration>::new();
+
         while requested < load_budget && generation_slots > 0 {
             let Some(demanded) = streaming.pending_desired.pop_front() else {
                 break;
             };
             let address = demanded.address;
-            if world.chunk_entity(address).is_some() {
+
+            if world.materializations().is_active(address) {
                 continue;
             }
-
-            let world_origin = VoxelQueryPosition::new(*world.origin());
-            let Ok(absolute_translation) = address
-                .query_origin()
-                .relative_to(world_origin, projection_bound)
-            else {
-                // Demand remains semantic even if this first fixed-scale runtime
-                // projection cannot comfortably represent it. M8 generalizes
-                // simultaneous manifestations/projections rather than turning
-                // canonical demand into a giant runtime coordinate.
-                continue;
-            };
-            let absolute_translation = bevy::math::DVec3::new(
-                absolute_translation.x as f64,
-                absolute_translation.y as f64,
-                absolute_translation.z as f64,
-            );
-            let local_translation =
-                layer_frames.runtime_from_absolute(layer.scale(), absolute_translation);
 
             let Ok(scope) = VoxelMaterializationAggregateScope::containing(
                 &world,
@@ -354,35 +327,25 @@ pub(crate) fn stream_voxel_chunks(
                 );
                 continue;
             };
+
             if !generation_batch_can_accept(&aggregate_batches, scope, generation_slots) {
                 streaming.pending_desired.push_front(demanded);
                 break;
             }
 
+            let Some(token) = world.materializations_mut().reserve_generation(address) else {
+                continue;
+            };
             let recipe = world.chunk_recipe(address);
-            let chunk_entity = commands
-                .spawn((
-                    Name::new("Voxel Materialization Chunk"),
-                    VoxelChunkOf::new(world_entity),
-                    address,
-                    *layer,
-                    VoxelChunkPhysicsLod::default(),
-                    Transform::from_translation(local_translation),
-                    Visibility::Inherited,
-                ))
-                .id();
-
-            assert!(world.insert_chunk(address, chunk_entity).is_none());
             push_generation_job(
                 &mut aggregate_batches,
                 scope,
                 VoxelGenerationJob {
-                    entity: chunk_entity,
                     address,
+                    token,
                     recipe,
                 },
             );
-
             requested += 1;
         }
 
@@ -415,7 +378,7 @@ fn refresh_demand_plan(
     streaming.pending_desired = desired
         .iter()
         .copied()
-        .filter(|chunk| world.chunk_entity(chunk.address).is_none())
+        .filter(|chunk| !world.materializations().is_active(chunk.address))
         .collect();
     streaming.demand_key = key;
     perf.record_demand_rebuild();
@@ -429,7 +392,7 @@ fn demand_plan_key(
     let mut result = Vec::with_capacity(demands.len());
     let size = MATERIALIZATION_CHUNK_SIZE as f32;
     for demand in demands {
-        let center = VoxelQueryPosition::new(demand.center());
+        let center = super::VoxelQueryPosition::new(demand.center());
         let center_address = world.materialization_address_containing(center)?;
         let local = center.relative_to(center_address.query_origin(), size + 0.01)?;
         let half = demand.half_extent_native();
@@ -451,7 +414,7 @@ fn demanded_chunk_addresses(
     let mut merged = HashMap::<VoxelMaterializationChunkAddress, DemandedChunk>::new();
 
     for demand in demands {
-        let center = VoxelQueryPosition::new(demand.center());
+        let center = super::VoxelQueryPosition::new(demand.center());
         let center_address = world.materialization_address_containing(center)?;
         let size = MATERIALIZATION_CHUNK_SIZE as f32;
         let local_center = center.relative_to(center_address.query_origin(), size + 0.01)?;

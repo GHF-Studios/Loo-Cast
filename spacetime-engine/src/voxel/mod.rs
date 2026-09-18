@@ -16,6 +16,7 @@ mod modification;
 mod perf;
 mod physics;
 mod render_aggregate;
+mod store;
 mod streaming;
 mod world;
 
@@ -26,23 +27,12 @@ pub use chunk::{
 pub use edit::{EDIT_INFLUENCE_MARGIN, VoxelBounds, VoxelBrush, VoxelEdit, VoxelQueryPosition};
 pub use field::{SignedDistance, VoxelMaterialId, VoxelSample};
 pub use modification::VoxelModificationLayer;
-pub use streaming::{VoxelMaterializationDemand, VoxelStreaming};
-pub use world::{
-    VoxelChunkAddress, VoxelChunkCoord, VoxelChunkOf, VoxelMaterializationChunkAddress, VoxelWorld,
-};
+pub use streaming::{VoxelMaterializationDemand, VoxelPresentationMaterial, VoxelStreaming};
+pub use world::{VoxelChunkAddress, VoxelChunkCoord, VoxelMaterializationChunkAddress, VoxelWorld};
 
 use bevy::prelude::*;
 
 use crate::spatial::SpatialDemandSet;
-
-/// Tracks completion of the collider-presence request for one dense chunk.
-/// Rendering and semantic materialization remain independent.
-#[derive(Component, Debug, Clone, Copy, Default)]
-pub(crate) struct VoxelChunkPhysicsLod {
-    pub(crate) requested: bool,
-    pub(crate) built_revision: Option<u64>,
-    pub(crate) collider_ready: bool,
-}
 
 pub struct VoxelPlugin;
 
@@ -52,7 +42,7 @@ impl Plugin for VoxelPlugin {
             .init_resource::<render_aggregate::VoxelRenderAggregateRegistry>()
             .add_systems(
                 Update,
-                streaming::retire_orphaned_chunks.before(streaming::stream_voxel_chunks),
+                streaming::retire_orphaned_tasks.before(streaming::stream_voxel_chunks),
             )
             .add_systems(
                 Update,
@@ -61,8 +51,8 @@ impl Plugin for VoxelPlugin {
             .add_systems(
                 PostUpdate,
                 (
-                    // Finish field generation, publish chunk-local derived caches,
-                    // then rebuild only the dirty same-resolution render aggregates.
+                    // Finish field generation, publish store-owned derived caches,
+                    // then rebuild only dirty aggregate runtime manifestations.
                     streaming::finish_chunk_generation,
                     async_pipeline::publish_completed_chunk_builds,
                     async_pipeline::queue_dirty_chunk_builds,

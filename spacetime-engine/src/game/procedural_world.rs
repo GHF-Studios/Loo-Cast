@@ -11,7 +11,7 @@ use crate::{
     physics::character::{CharacterDimensions, CharacterMotor},
     procedural_assets::ProceduralAssetLibrary,
     spatial::{SpatialScale, UsfPosition, UsfScaleLayer},
-    voxel::{VoxelBase, VoxelQueryPosition, VoxelStreaming, VoxelWorld},
+    voxel::{VoxelBase, VoxelPresentationMaterial, VoxelQueryPosition, VoxelStreaming, VoxelWorld},
     worldgen::{PhenomenonRegistry, TemporalScale, WorldgenEpoch, WorldgenStore},
 };
 
@@ -70,7 +70,8 @@ fn spawn_procedural_world(
                 VoxelBase::Volume(volume),
                 UsfPosition::zero(SpatialScale::MAX),
             ),
-            VoxelStreaming::new(24, procedural_assets.debug_grid.clone()),
+            VoxelStreaming::new(24),
+            VoxelPresentationMaterial::new(procedural_assets.debug_grid.clone()),
             Transform::IDENTITY,
             Visibility::Inherited,
         ))

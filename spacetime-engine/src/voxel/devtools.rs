@@ -4,10 +4,10 @@ use bevy::prelude::*;
 
 use crate::{
     devtools::{DeveloperSet, DeveloperTools, DrawDepth, WorldDrawBatch, WorldDrawFrame},
-    spatial::SPATIAL_DEMAND_VISUALIZATION,
+    spatial::{SPATIAL_DEMAND_VISUALIZATION, UsfScaleLayer, UsfScaleLayerFrames},
 };
 
-use super::{MATERIALIZATION_CHUNK_SIZE, VoxelChunkOf};
+use super::{MATERIALIZATION_CHUNK_SIZE, VoxelQueryPosition, VoxelWorld};
 
 pub(crate) fn configure(app: &mut App) {
     app.add_systems(
@@ -18,7 +18,8 @@ pub(crate) fn configure(app: &mut App) {
 
 fn collect_voxel_materialization_world_draw(
     tools: Res<DeveloperTools>,
-    chunks: Query<&Transform, With<VoxelChunkOf>>,
+    frames: Res<UsfScaleLayerFrames>,
+    worlds: Query<(&VoxelWorld, &UsfScaleLayer)>,
     frame: Res<WorldDrawFrame>,
 ) {
     if !tools.visualization_enabled(SPATIAL_DEMAND_VISUALIZATION) {
@@ -30,13 +31,20 @@ fn collect_voxel_materialization_world_draw(
     let extent = Vec3::splat(size);
     let color = Color::srgba(0.35, 1.0, 0.38, 0.82);
 
-    for transform in &chunks {
-        draw_wire_box(
-            &mut batch,
-            transform.translation,
-            transform.translation + extent,
-            color,
-        );
+    for (world, layer) in &worlds {
+        let world_origin = VoxelQueryPosition::new(*world.origin());
+        for address in world.materializations().active_addresses() {
+            let Ok(relative) = address
+                .query_origin()
+                .relative_to(world_origin, 1_000_000.0)
+            else {
+                continue;
+            };
+            let absolute =
+                bevy::math::DVec3::new(relative.x as f64, relative.y as f64, relative.z as f64);
+            let translation = frames.runtime_from_absolute(layer.scale(), absolute);
+            draw_wire_box(&mut batch, translation, translation + extent, color);
+        }
     }
 
     frame.submit(batch);

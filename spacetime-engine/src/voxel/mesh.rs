@@ -1,6 +1,5 @@
 //! Disposable render-mesh and collision-surface extraction from voxel fields.
 
-use avian3d::prelude::{Collider, CollisionMargin, RigidBody};
 use bevy::{
     asset::RenderAssetUsages,
     mesh::{Indices, PrimitiveTopology},
@@ -11,13 +10,13 @@ use fast_surface_nets::{SurfaceNetsBuffer, ndshape::ConstShape3u32, surface_nets
 use super::{
     VoxelChunk,
     chunk::{SAMPLE_PADDING, SAMPLE_SIZE},
-    physics,
 };
 
 type ChunkShape = ConstShape3u32<SAMPLE_SIZE, SAMPLE_SIZE, SAMPLE_SIZE>;
 
 /// One extracted surface shared only as an intermediate between independently
 /// owned render and physics caches.
+#[derive(Debug)]
 pub(crate) struct VoxelSurface {
     pub(crate) positions: Vec<[f32; 3]>,
     pub(crate) normals: Vec<[f32; 3]>,
@@ -123,39 +122,4 @@ fn surface_projection_attributes(
     }
 
     (uvs, tangents)
-}
-
-pub(crate) fn rebuild_dirty_chunks(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut chunks: Query<(Entity, &mut VoxelChunk, &Mesh3d)>,
-) {
-    for (entity, mut chunk, mesh) in &mut chunks {
-        if !chunk.needs_remesh() {
-            continue;
-        }
-
-        let Some(mut asset) = meshes.get_mut(&mesh.0) else {
-            continue;
-        };
-
-        // Extract once from authoritative voxel data, then materialize two
-        // independent disposable caches from that intermediate surface.
-        let surface = extract_chunk_surface(&chunk);
-        let collider = physics::build_chunk_collider(&chunk, &surface);
-        *asset = surface.into_mesh();
-
-        let mut entity_commands = commands.entity(entity);
-        if let Some(collider) = collider {
-            entity_commands.insert((
-                RigidBody::Static,
-                collider,
-                CollisionMargin(physics::VOXEL_COLLISION_MARGIN),
-            ));
-        } else {
-            entity_commands.remove::<Collider>();
-        }
-
-        chunk.mark_meshed();
-    }
 }

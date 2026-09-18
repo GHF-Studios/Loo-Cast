@@ -305,15 +305,17 @@ impl ThermalField {
         );
 
         self.temperature_scratch.clear();
-        self.temperature_scratch
-            .extend(self.cell_energy_joules.iter().map(|energy| *energy / capacity));
+        self.temperature_scratch.extend(
+            self.cell_energy_joules
+                .iter()
+                .map(|energy| *energy / capacity),
+        );
         self.energy_delta_scratch
             .resize(self.cell_energy_joules.len(), 0.0);
         self.energy_delta_scratch.fill(0.0);
 
-        let linear_index = |index: UVec3| {
-            (index.x + resolution.x * (index.y + resolution.y * index.z)) as usize
-        };
+        let linear_index =
+            |index: UVec3| (index.x + resolution.x * (index.y + resolution.y * index.z)) as usize;
         let temperatures = &self.temperature_scratch;
         let energy_delta = &mut self.energy_delta_scratch;
 

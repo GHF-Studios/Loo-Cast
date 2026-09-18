@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use bevy::prelude::{Component, IVec3, UVec3, Vec3};
+use bevy::prelude::{IVec3, UVec3, Vec3};
 
 use super::{
     SignedDistance, VoxelEdit, VoxelMaterialId, VoxelMaterializationChunkAddress, VoxelSample,
@@ -61,8 +61,8 @@ pub struct VoxelRayHit {
 /// Every coordinate stored here is chunk-local. Samples cover `[-1, 10]` on
 /// each axis because Surface Nets keeps one copied neighbor sample around the
 /// logical half-open `[0, 10)³` ownership extent. Canonical semantic location
-/// lives on the materialization entity's address component, never in this data.
-#[derive(Component, Debug, Clone)]
+/// lives in the materialization store's canonical address key, never in this data.
+#[derive(Debug, Clone)]
 pub struct VoxelChunk {
     // Worker snapshots share dense arrays. Edits use copy-on-write, making
     // queue/handoff clones O(1) while mutation remains locally owned.
