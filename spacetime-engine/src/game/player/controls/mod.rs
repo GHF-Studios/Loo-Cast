@@ -15,11 +15,11 @@ use crate::{
         CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame, CharacterMotor,
         CharacterMovementInput,
     },
-    spatial::{SpatialDemandSource, SpatialScale, UsfViewFrame},
+    spatial::{SpatialDemandSource, SpatialScale, UsfActiveScaleLayer, UsfViewFrame},
 };
 
 use super::{
-    Player, PlayerAim, PlayerController, PlayerDead, PlayerNoclip, PlayerStance,
+    Player, PlayerAim, PlayerController, PlayerDead, PlayerNoclip, PlayerScaleNavigationNoclip, PlayerStance,
     cursor::CursorCapture,
 };
 
@@ -36,6 +36,6 @@ mod modes;
 mod movement;
 mod view;
 
-pub(super) use modes::{toggle_noclip, toggle_spatial_demand};
+pub(super) use modes::{sync_scale_navigation_mode, toggle_noclip, toggle_spatial_demand};
 pub(super) use movement::{movement, noclip_movement};
 pub(super) use view::{look, zoom_spatial_view};

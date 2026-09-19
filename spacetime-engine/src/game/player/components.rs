@@ -59,6 +59,14 @@ pub struct PlayerNoclip {
     pub active: bool,
 }
 
+/// Marks noclip that was forced because the current USF interaction scale is
+/// outside the validity range of the metre-authored character motor.
+///
+/// This is separate from [`PlayerNoclip`] so returning to a local scale can
+/// restore the motor without overriding a user's deliberate manual noclip.
+#[derive(Component, Debug, Default, Clone, Copy)]
+pub(crate) struct PlayerScaleNavigationNoclip;
+
 /// Live yaw/pitch offset relative to the character control frame.
 ///
 /// Portal/topology transitions may rotate that base control frame underneath

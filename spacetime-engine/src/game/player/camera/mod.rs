@@ -19,6 +19,7 @@ use crate::{
         DERIVED_VIEW_LAYER, Portal, PortalActive, crossed_aperture_fraction, map_through_portal,
     },
     physics::character::{CharacterControlFrame, CharacterDimensions},
+    spatial::UsfScaleLayer,
 };
 
 use super::{Player, PlayerAim, PlayerStance, cursor::CursorCapture, model::PlayerModel};

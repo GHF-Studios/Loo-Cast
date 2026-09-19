@@ -3,7 +3,7 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use bevy::prelude::*;
+use bevy::{math::DVec3, prelude::*};
 
 mod chunk_address;
 pub use chunk_address::UsfChunkAddress;
@@ -101,6 +101,72 @@ impl UsfPosition {
 
     pub const fn offset(&self) -> Vec3 {
         self.offset
+    }
+
+    /// Re-expresses the same canonical location with a different finest
+    /// resolved scale.
+    ///
+    /// This changes representation precision, not semantic position. Refining
+    /// distributes the old leaf offset into newly-visible decimal child digits;
+    /// coarsening folds child digits back into the parent-scale offset.
+    pub fn reexpressed_at(mut self, target: SpatialScale) -> Result<Self, UsfPositionError> {
+        while self.leaf_scale > target {
+            let next = SpatialScale::new(self.leaf_scale.exponent() - 1)
+                .expect("target scale bounds refinement");
+            self.leaf_scale = next;
+            self.digits[next.index_from_top()] = IVec3::ZERO;
+            self.offset *= USF_CHILD_CHUNKS_PER_AXIS as f32;
+            self.normalize()?;
+        }
+
+        while self.leaf_scale < target {
+            let child = self.leaf_scale;
+            let parent = SpatialScale::new(child.exponent() + 1)
+                .expect("target scale bounds coarsening");
+            let digit = self.digit(child).as_vec3();
+            self.digits[child.index_from_top()] = IVec3::ZERO;
+            self.offset = digit
+                * (USF_CHUNK_NATIVE_SIZE / USF_CHILD_CHUNKS_PER_AXIS as f32)
+                + self.offset / USF_CHILD_CHUNKS_PER_AXIS as f32;
+            self.leaf_scale = parent;
+            self.normalize()?;
+        }
+
+        Ok(self)
+    }
+
+    /// Approximate absolute coordinates in units native to `scale`.
+    ///
+    /// Canonical identity remains the balanced hierarchical digit stack. This
+    /// projection exists only for bounded runtime-chart metadata such as one
+    /// scale layer's floating origin; it is never semantic authority.
+    pub fn coordinate_at_scale_f64(
+        &self,
+        scale: SpatialScale,
+    ) -> Result<DVec3, UsfPositionError> {
+        let expressed = self.reexpressed_at(scale)?;
+        let mut result = DVec3::ZERO;
+
+        for axis in 0..3 {
+            let mut chunk_coordinate = 0.0_f64;
+            for raw_scale in (scale.exponent()..=SPATIAL_SCALE_MAX).rev() {
+                let digit_scale =
+                    SpatialScale::new(raw_scale).expect("validated spatial scale range");
+                chunk_coordinate = chunk_coordinate * USF_CHILD_CHUNKS_PER_AXIS as f64
+                    + axis_i32(expressed.digit(digit_scale), axis) as f64;
+            }
+
+            let component = chunk_coordinate * USF_CHUNK_NATIVE_SIZE as f64
+                + axis_f32(expressed.offset, axis) as f64;
+            match axis {
+                0 => result.x = component,
+                1 => result.y = component,
+                2 => result.z = component,
+                _ => unreachable!(),
+            }
+        }
+
+        Ok(result)
     }
 
     pub fn digit(&self, scale: SpatialScale) -> IVec3 {

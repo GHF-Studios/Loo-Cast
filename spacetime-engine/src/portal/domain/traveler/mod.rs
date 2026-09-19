@@ -29,6 +29,11 @@ impl PortalTraveler {
             *previous -= shift;
         }
     }
+
+    pub(crate) fn reset_spatial_transition(&mut self, position: Vec3) {
+        self.previous_position = Some(position);
+    }
+
 }
 
 /// Opts one spatial manifestation into portal-aware partitioning.
@@ -64,6 +69,12 @@ impl PortalSplitTraveler {
     pub(crate) fn rebase_local_origin(&mut self, shift: Vec3) {
         self.tick_start.translation -= shift;
     }
+
+    pub(crate) fn reset_spatial_transition(&mut self, transform: Transform) {
+        self.active = None;
+        self.tick_start = transform;
+    }
+
 }
 
 #[derive(Debug, Clone, Copy)]

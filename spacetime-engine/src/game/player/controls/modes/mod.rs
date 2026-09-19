@@ -12,6 +12,7 @@ pub(in crate::game::player) fn toggle_noclip(
             Entity,
             Option<&PlayerDead>,
             &mut PlayerNoclip,
+            Option<&PlayerScaleNavigationNoclip>,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
             &mut LinearVelocity,
@@ -23,8 +24,9 @@ pub(in crate::game::player) fn toggle_noclip(
         return;
     }
 
-    let (entity, dead, mut noclip, mut input, mut ground, mut velocity) = player.into_inner();
-    if dead.is_some() {
+    let (entity, dead, mut noclip, scale_forced, mut input, mut ground, mut velocity) =
+        player.into_inner();
+    if dead.is_some() || scale_forced.is_some() {
         return;
     }
 
@@ -53,4 +55,41 @@ pub(in crate::game::player) fn toggle_spatial_demand(
     }
 
     player.toggle();
+}
+
+/// Enforces the validity domain of the metre-authored character motor.
+///
+/// Above Scale +4 the local character controller is not a meaningful physical
+/// model, so the player enters scale-navigation noclip. The marker records
+/// whether noclip was forced here or was already a user choice.
+pub(in crate::game::player) fn sync_scale_navigation_mode(
+    mut commands: Commands,
+    active: Res<UsfActiveScaleLayer>,
+    player: Single<
+        (
+            Entity,
+            &mut PlayerNoclip,
+            Option<&PlayerScaleNavigationNoclip>,
+        ),
+        With<Player>,
+    >,
+) {
+    let (entity, mut noclip, scale_forced) = player.into_inner();
+    let outside_character_domain = active.scale().exponent() > 4;
+
+    if outside_character_domain {
+        if !noclip.active {
+            noclip.active = true;
+            commands
+                .entity(entity)
+                .insert(PlayerScaleNavigationNoclip);
+        }
+        commands.entity(entity).remove::<CharacterMotor>();
+    } else if scale_forced.is_some() {
+        noclip.active = false;
+        commands
+            .entity(entity)
+            .remove::<PlayerScaleNavigationNoclip>()
+            .insert(CharacterMotor);
+    }
 }
