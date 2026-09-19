@@ -277,7 +277,7 @@ fn teleport_command(
         }
     }
 
-    ConsoleCommandResult::success_and_return_to_gameplay(format!(
+    ConsoleCommandResult::success(format!(
         "spatial transition requested: {label} @ S{scale} ({:.3}, {:.3}, {:.3}), view {view_exponent:+.1}",
         arrival.x, arrival.y, arrival.z,
     ))

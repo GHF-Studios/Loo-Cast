@@ -15,10 +15,8 @@ mod model;
 mod stance;
 
 pub use camera::{CameraMode, PlayerCamera, ThirdPersonCamera};
-pub use components::{
-    Player, PlayerAim, PlayerController, PlayerDead, PlayerNoclip, PlayerScaleNavigation,
-    PlayerStance,
-};
+pub use components::{Player, PlayerAim, PlayerController, PlayerDead, PlayerNoclip, PlayerStance};
+use components::PlayerScaleNavigationNoclip;
 
 use avian3d::prelude::{
     ActiveCollisionHooks, CollisionLayers, CustomPositionIntegration, CustomVelocityIntegration,
@@ -96,7 +94,6 @@ impl Plugin for PlayerPlugin {
                     stance::update_stance,
                     controls::movement,
                     controls::noclip_movement,
-                    controls::scale_navigation_movement,
                 )
                     .chain()
                     .in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
@@ -110,7 +107,6 @@ impl Plugin for PlayerPlugin {
                 (
                     controls::toggle_spatial_demand,
                     controls::zoom_spatial_view,
-                    controls::adjust_scale_navigation_speed,
                     camera::toggle_camera_mode,
                     camera::zoom_third_person,
                 )

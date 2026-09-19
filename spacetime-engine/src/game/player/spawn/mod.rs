@@ -54,8 +54,8 @@ pub(super) fn spawn_player(
             ),
             (
                 PlayerStance::default(),
-                PlayerNoclip::default(),
-                PlayerScaleNavigation::default(),
+                PlayerNoclip { active: true },
+                PlayerScaleNavigationNoclip,
                 CharacterDimensions::standing_collider(),
                 SpatialSplitBox::from_size(Vec3::new(
                     CharacterDimensions::HULL_WIDTH,
