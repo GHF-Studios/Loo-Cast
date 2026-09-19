@@ -5,6 +5,7 @@
 
 use std::collections::BTreeMap;
 
+use avian3d::prelude::{Collider, ContactGraph, PhysicsSchedule, PhysicsStepSystems, RigidBody, Sleeping};
 use bevy::{
     diagnostic::{
         DiagnosticsStore, FrameTimeDiagnosticsPlugin, SystemInformationDiagnosticsPlugin,
@@ -34,6 +35,51 @@ pub struct WorldRuntimeDiagnostics {
     pub entities: usize,
     pub component_instances: usize,
     pub archetypes: usize,
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+pub struct PhysicsRuntimeDiagnostics {
+    pub physics_steps_window: u64,
+    pub render_frames_window: u64,
+    pub steps_per_frame_last: u32,
+    pub steps_per_frame_max: u32,
+    pub steps_per_frame_average: f64,
+
+    pub broad_phase_step_average_ms: f64,
+    pub broad_phase_step_max_ms: f64,
+    pub broad_phase_step_last_ms: f64,
+    pub broad_phase_frame_average_ms: f64,
+    pub broad_phase_frame_max_ms: f64,
+    pub broad_phase_frame_last_ms: f64,
+
+    pub narrow_phase_step_average_ms: f64,
+    pub narrow_phase_step_max_ms: f64,
+    pub narrow_phase_step_last_ms: f64,
+    pub narrow_phase_frame_average_ms: f64,
+    pub narrow_phase_frame_max_ms: f64,
+    pub narrow_phase_frame_last_ms: f64,
+
+    pub contact_count_step_average: f64,
+    pub contact_count_step_max: u32,
+    pub contact_count_step_last: u32,
+
+    pub solver_step_average_ms: f64,
+    pub solver_step_max_ms: f64,
+    pub solver_step_last_ms: f64,
+    pub solver_constraint_count_step_average: f64,
+    pub solver_constraint_count_step_max: u32,
+    pub solver_constraint_count_step_last: u32,
+
+    pub active_contact_pairs: usize,
+    pub active_touching_pairs: usize,
+    pub sleeping_contact_pairs: usize,
+    pub sleeping_touching_pairs: usize,
+
+    pub dynamic_bodies: usize,
+    pub kinematic_bodies: usize,
+    pub static_bodies: usize,
+    pub sleeping_bodies: usize,
+    pub collider_count: usize,
 }
 
 /// Logical live ECS payload for one component type.
@@ -72,6 +118,7 @@ pub struct SystemRuntimeDiagnostics {
 pub struct RuntimeDiagnostics {
     pub frame: FrameRuntimeDiagnostics,
     pub world: WorldRuntimeDiagnostics,
+    pub physics: PhysicsRuntimeDiagnostics,
     pub system: SystemRuntimeDiagnostics,
 }
 
@@ -79,6 +126,7 @@ pub struct RuntimeDiagnostics {
 struct DiagnosticsCadence {
     runtime_elapsed: f32,
     world_elapsed: f32,
+    physics_detail_elapsed: f32,
 }
 
 #[derive(Resource)]
@@ -86,6 +134,7 @@ struct VaporTelemetry(TelemetryEmitter);
 
 pub struct RuntimeDiagnosticsPlugin;
 
+mod physics;
 mod runtime;
 mod telemetry;
 mod world;
@@ -103,11 +152,24 @@ impl Plugin for RuntimeDiagnosticsPlugin {
         app.init_resource::<RuntimeDiagnostics>()
             .init_resource::<EcsMemoryDiagnostics>()
             .init_resource::<DiagnosticsCadence>()
+            .init_resource::<physics::PhysicsTelemetryAccumulator>()
             .add_plugins((
                 FrameTimeDiagnosticsPlugin::new(FRAME_HISTORY_LENGTH),
                 SystemInformationDiagnosticsPlugin,
             ))
-            .add_systems(Update, collect_runtime_diagnostics)
+            .add_systems(
+                PhysicsSchedule,
+                physics::record_physics_step.after(PhysicsStepSystems::Last),
+            )
+            .add_systems(
+                Update,
+                (
+                    physics::finalize_physics_frame,
+                    collect_runtime_diagnostics,
+                    physics::collect_physics_detail_diagnostics,
+                )
+                    .chain(),
+            )
             .add_systems(Last, collect_world_diagnostics);
     }
 }

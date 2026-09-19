@@ -7,6 +7,10 @@ pub(super) fn collect_runtime_diagnostics(
     diagnostics: Res<DiagnosticsStore>,
     mut cadence: ResMut<DiagnosticsCadence>,
     mut snapshot: ResMut<RuntimeDiagnostics>,
+    mut physics_accumulator: ResMut<physics::PhysicsTelemetryAccumulator>,
+    contact_graph: Res<ContactGraph>,
+    bodies: Query<(&RigidBody, Has<Sleeping>)>,
+    colliders: Query<(), With<Collider>>,
     telemetry: Option<Res<VaporTelemetry>>,
 ) {
     cadence.runtime_elapsed += time.delta_secs();
@@ -28,6 +32,13 @@ pub(super) fn collect_runtime_diagnostics(
         .filter(|value| value.is_finite() && *value > 0.0)
         .collect::<Vec<_>>();
     snapshot.frame.one_percent_low_fps = low_fps(&mut frame_times, 0.01);
+
+    snapshot.physics = physics::sample_runtime(
+        &mut physics_accumulator,
+        &contact_graph,
+        bodies.iter().map(|(body, sleeping)| (*body, sleeping)),
+        colliders.iter().count(),
+    );
 
     snapshot.system.process_cpu_percent = diagnostic_value(
         &diagnostics,
