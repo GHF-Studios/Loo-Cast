@@ -10,13 +10,11 @@ use crate::{
     },
     ecs::{UsfManifestationAuthority, UsfManifestationOf, UsfManifestations},
     physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive},
+    portal::{Portal, PortalActive},
     view::{PrimaryGameView, PrimaryViewPresentation, ViewRay, ViewportSpace},
 };
 
-use super::{
-    player::{Player, cursor::CursorCapture},
-    portal::{Portal, PortalActive},
-};
+use super::player::{Player, cursor::CursorCapture};
 
 const FOCUS_RANGE_METERS: f32 = 250.0;
 const IDENTITY_SECTION: InspectSectionId = InspectSectionId("identity");
@@ -33,7 +31,7 @@ pub struct TestGameDeveloperToolsPlugin;
 
 impl Plugin for TestGameDeveloperToolsPlugin {
     fn build(&self, app: &mut App) {
-        super::portal::devtools::configure(app);
+        crate::portal::devtools::configure(app);
         crate::thermal::devtools::configure(app);
         crate::thermal::world_draw::configure(app);
 

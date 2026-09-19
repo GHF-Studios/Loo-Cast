@@ -8,9 +8,7 @@ pub mod item;
 pub mod map_selection;
 pub mod player;
 pub mod playground;
-pub mod portal;
 mod procedural_world;
-mod scale_stack;
 pub mod thermal;
 
 use bevy::prelude::*;
@@ -98,6 +96,19 @@ impl Plugin for TestGamePlugin {
                     .chain()
                     .in_set(GameSet::Presentation),
             )
+            .configure_sets(
+                Update,
+                crate::portal::PortalUpdateSet::Topology.in_set(SimulationSet::Topology),
+            )
+            .configure_sets(
+                Update,
+                crate::portal::PortalUpdateSet::DerivedViews
+                    .in_set(PresentationSet::DerivedViews),
+            )
+            .configure_sets(
+                Update,
+                crate::portal::PortalUpdateSet::Presentation.in_set(GameSet::Presentation),
+            )
             .add_plugins((
                 environment::EnvironmentLightingPlugin,
                 inventory::InventoryPlugin,
@@ -108,7 +119,7 @@ impl Plugin for TestGamePlugin {
                 crate::spatial::UsfSpatialPlugin,
                 crate::worldgen::WorldGenerationPlugin,
                 player::PlayerPlugin,
-                portal::PortalPlugin,
+                crate::portal::PortalPlugin,
                 thermal::ThermalPlugin,
                 procedural_world::ProceduralWorldPlugin,
                 playground::PlaygroundPlugin,

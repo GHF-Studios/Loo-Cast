@@ -16,6 +16,7 @@ pub mod game;
 pub mod geometry;
 pub mod input_focus;
 pub mod physics;
+pub mod portal;
 pub mod procedural_assets;
 pub mod spatial;
 pub mod thermal;

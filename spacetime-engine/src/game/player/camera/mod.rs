@@ -15,7 +15,7 @@ use bevy::{camera::visibility::RenderLayers, input::mouse::AccumulatedMouseScrol
 
 use crate::{
     ecs::{UsfLogicalProjection, UsfManifestationOf, UsfManifestations},
-    game::portal::{
+    portal::{
         DERIVED_VIEW_LAYER, Portal, PortalActive, crossed_aperture_fraction, map_through_portal,
     },
     physics::character::{CharacterControlFrame, CharacterDimensions},

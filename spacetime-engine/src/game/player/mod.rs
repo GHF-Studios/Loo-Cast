@@ -34,6 +34,7 @@ use crate::{
         UsfPresentationProjectionOf,
     },
     input_focus::{InputFocus, InputFocusSet},
+    portal::{MAIN_PORTAL_LAYER, PortalSplitTraveler, PortalTraveler, PortalView},
     physics::{
         character::{
             CharacterDimensions, CharacterGroundState, CharacterMotor, CharacterMovementInput,
@@ -44,6 +45,7 @@ use crate::{
         SpatialDemandSource, SpatialScale, UsfFollowsActiveScale, UsfPosition, UsfScaleLayer,
         UsfSpatialAnchor, UsfViewAnchor,
     },
+    thermal::{ThermalBody, ThermalInjury, ThermalSpatialSample},
     view::{PrimaryGameView, PrimaryViewPresentation},
     voxel::VoxelMaterializationDemand,
 };
@@ -51,8 +53,6 @@ use crate::{
 use super::{
     GameSet, InputSet, PresentationSet,
     combat::{Died, Health, Weapon},
-    portal::{MAIN_PORTAL_LAYER, PortalSplitTraveler, PortalTraveler, PortalView},
-    thermal::{ThermalBody, ThermalInjury, ThermalSpatialSample},
 };
 
 const PLAYER_SPATIAL_DEMAND_HALF_EXTENT: Vec3 = Vec3::splat(96.0);

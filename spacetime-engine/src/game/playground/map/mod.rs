@@ -12,9 +12,9 @@ use crate::{
         GameSet,
         map_selection::GameMap,
         player::Player,
-        portal::{PortalCommand, PortalEndpoint, PortalPair, PortalTraveler},
     },
     geometry::{AuthoredMap, AuthoredMapMarker, AuthoredMapScene},
+    portal::{PortalCommand, PortalEndpoint, PortalPair, PortalTraveler},
     spatial::{UsfScaleLayer, UsfSpatialFrame},
     voxel::{
         VoxelBase, VoxelChunkCoord, VoxelMaterialId, VoxelPresentationMaterial, VoxelQueryPosition,

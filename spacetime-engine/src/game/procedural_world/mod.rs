@@ -5,10 +5,8 @@ use bevy::prelude::*;
 
 use crate::{
     config::EngineConfig,
-    game::{
-        player::{Player, PlayerNoclip},
-        portal::PortalTraveler,
-    },
+    game::player::{Player, PlayerNoclip},
+    portal::PortalTraveler,
     physics::character::{CharacterDimensions, CharacterMotor},
     procedural_assets::ProceduralAssetLibrary,
     spatial::{SpatialScale, UsfPosition, UsfScaleLayer},
@@ -16,10 +14,10 @@ use crate::{
     worldgen::{PhenomenonRegistry, TemporalScale, WorldgenEpoch, WorldgenStore},
 };
 
-use super::{
-    map_selection::GameMap,
-    scale_stack::{ProceduralScaleStack, volume_for_scale_context},
-};
+mod scale_stack;
+
+use scale_stack::{ProceduralScaleStack, volume_for_scale_context};
+use super::map_selection::GameMap;
 
 #[derive(Component)]
 struct ProceduralWorldRoot;
@@ -32,7 +30,7 @@ impl Plugin for ProceduralWorldPlugin {
             OnEnter(GameMap::ProceduralWorld),
             (spawn_procedural_world, prepare_player).chain(),
         )
-        .add_systems(Update, super::scale_stack::sync_scale_stack);
+        .add_systems(Update, scale_stack::sync_scale_stack);
     }
 }
 

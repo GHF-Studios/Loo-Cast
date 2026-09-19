@@ -8,7 +8,7 @@ use avian3d::prelude::{Collider, SpatialQuery, SpatialQueryFilter};
 use bevy::prelude::*;
 
 use crate::{
-    game::portal::PortalTraveler,
+    portal::PortalTraveler,
     physics::{
         character::CharacterDimensions,
         topology::{KinematicQueryExclusions, SpatialSplitBox},

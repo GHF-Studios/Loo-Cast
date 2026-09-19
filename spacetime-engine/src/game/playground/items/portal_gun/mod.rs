@@ -13,8 +13,8 @@ use crate::{
         GameSet,
         inventory::Hotbar,
         item::{ItemAction, ItemAim, ItemCatalog, ItemDefinition, ItemId, UseItem},
-        portal::{PortalCommand, PortalEndpoint},
     },
+    portal::{PortalCommand, PortalEndpoint},
 };
 
 pub const PORTAL_GUN: ItemId = ItemId::new("portal_gun");

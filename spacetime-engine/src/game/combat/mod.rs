@@ -8,12 +8,10 @@ use bevy::prelude::*;
 use crate::{
     ecs::UsfManifestationOf,
     physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive},
-};
-
-use super::{
-    GameSet, SimulationSet,
     portal::{PortalTraveler, PortalVelocity},
 };
+
+use super::{GameSet, SimulationSet};
 
 #[derive(Component, Debug, Clone, Copy)]
 pub struct Health {

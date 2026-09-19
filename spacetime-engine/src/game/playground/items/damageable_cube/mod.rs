@@ -12,9 +12,9 @@ use crate::{
         GameSet,
         combat::{Health, Hitbox},
         item::{ItemAction, ItemCatalog, ItemDefinition, ItemId, UseItem},
-        portal::{PortalRigidSplitBody, PortalSplitTraveler, PortalSplitVisual, PortalTraveler},
     },
     physics::topology::{SpatialSplitBox, SpatialSplitPeer},
+    portal::{PortalRigidSplitBody, PortalSplitTraveler, PortalSplitVisual, PortalTraveler},
     thermal::{
         CombustibleMaterial, Fuel, ThermalBody, ThermalField, ThermalMaterial,
         ThermalSpatialSample,
