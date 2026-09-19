@@ -73,7 +73,7 @@ pub(super) fn propagate_combustion_heat(
     mut scratch: Local<HeatScratch>,
 ) {
     let dt = time.delta_secs().max(0.0);
-    if dt <= 0.0 {
+    if dt <= 0.0 || sources.is_empty() {
         return;
     }
 

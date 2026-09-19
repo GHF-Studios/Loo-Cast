@@ -147,6 +147,32 @@ impl VoxelMaterializationStore {
             .filter_map(|(&address, entry)| entry.active.then_some(address))
     }
 
+    /// Reconciles the store with one complete desired active-address set.
+    ///
+    /// Streaming owns *what* is desired; the store owns the state transitions
+    /// required to realize that policy. Keeping deactivate/reactivate/trim
+    /// orchestration here prevents callers from reaching through residency
+    /// internals and duplicating lifecycle rules.
+    pub(crate) fn reconcile_residency(
+        &mut self,
+        desired: &HashSet<VoxelMaterializationChunkAddress>,
+        maximum_inactive: usize,
+    ) {
+        let stale = self
+            .active_addresses()
+            .filter(|address| !desired.contains(address))
+            .collect::<Vec<_>>();
+        for address in stale {
+            self.deactivate(address);
+        }
+
+        for &address in desired {
+            self.reactivate(address);
+        }
+
+        self.trim_inactive(maximum_inactive);
+    }
+
     pub(crate) fn active_dense_entries(
         &self,
     ) -> impl Iterator<Item = (VoxelMaterializationChunkAddress, &VoxelChunk)> + '_ {

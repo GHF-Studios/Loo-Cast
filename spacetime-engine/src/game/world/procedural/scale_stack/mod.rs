@@ -51,19 +51,16 @@ pub(super) fn sync_scale_stack(
     mut stacks: Query<(Entity, &mut ProceduralScaleStack)>,
 ) {
     for (stack_entity, mut stack) in &mut stacks {
-        let desired = desired_scales(&view);
+        stack.active.retain(|scale, entity| {
+            if scale_is_desired(&view, *scale) {
+                true
+            } else {
+                commands.entity(*entity).despawn();
+                false
+            }
+        });
 
-        let stale = stack
-            .active
-            .iter()
-            .filter_map(|(scale, entity)| (!desired.contains(scale)).then_some((*scale, *entity)))
-            .collect::<Vec<_>>();
-        for (scale, entity) in stale {
-            stack.active.remove(&scale);
-            commands.entity(entity).despawn();
-        }
-
-        for scale in desired {
+        for scale in desired_scales(&view) {
             if stack.active.contains_key(&scale) {
                 continue;
             }
@@ -97,18 +94,23 @@ pub(super) fn sync_scale_stack(
     }
 }
 
-fn desired_scales(view: &UsfViewFrame) -> Vec<SpatialScale> {
+fn desired_scales(view: &UsfViewFrame) -> impl Iterator<Item = SpatialScale> + '_ {
     let interaction = view.interaction_scale();
-    let mut desired = (interaction.exponent()..=SPATIAL_SCALE_MAX)
+    let ancestors = (interaction.exponent()..=SPATIAL_SCALE_MAX)
         .rev()
-        .map(|raw| SpatialScale::new(raw).expect("validated scale"))
-        .collect::<Vec<_>>();
+        .map(|raw| SpatialScale::new(raw).expect("validated scale"));
+    let refinement = (view.scale() < interaction && view.contribution(view.scale()) > 0.001)
+        .then_some(view.scale());
 
-    if view.scale() < interaction && view.contribution(view.scale()) > 0.001 {
-        desired.push(view.scale());
-    }
+    ancestors.chain(refinement)
+}
 
-    desired
+fn scale_is_desired(view: &UsfViewFrame, scale: SpatialScale) -> bool {
+    let interaction = view.interaction_scale();
+    scale >= interaction
+        || (scale == view.scale()
+            && view.scale() < interaction
+            && view.contribution(view.scale()) > 0.001)
 }
 
 pub(super) fn volume_for_scale_context(

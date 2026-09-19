@@ -8,10 +8,10 @@ mod csg;
 mod source;
 mod stencil_fit;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use avian3d::prelude::Collider;
-use bevy::prelude::*;
+use bevy::{ecs::lifecycle::RemovedComponents, prelude::*};
 
 use csg::{RectangularCut, subtract_rectangular_cuts_from_cuboid};
 
@@ -52,6 +52,69 @@ pub struct AppliedCollisionTopology {
     fingerprint: u64,
 }
 
+/// Change-driven index of the currently effective stencil topology.
+///
+/// Stencils are authored gameplay state. Rebuilding this index from every
+/// stencil and scanning every clip host each frame made unchanged topology pay
+/// a permanent polling cost. The index instead records component changes and
+/// marks only affected hosts dirty.
+#[derive(Default)]
+struct CollisionTopologyState {
+    stencil_targets: HashMap<Entity, Option<Entity>>,
+    stencils_by_target: HashMap<Entity, HashMap<Entity, CollisionStencil>>,
+    dirty_hosts: HashSet<Entity>,
+}
+
+impl CollisionTopologyState {
+    fn update_stencil(&mut self, entity: Entity, stencil: CollisionStencil) {
+        let target = if stencil.enabled { stencil.target } else { None };
+
+        if let Some(previous) = self.stencil_targets.insert(entity, target).flatten() {
+            self.remove_from_target(previous, entity);
+        }
+
+        if let Some(target) = target {
+            self.stencils_by_target
+                .entry(target)
+                .or_default()
+                .insert(entity, stencil);
+            self.dirty_hosts.insert(target);
+        }
+    }
+
+    fn remove_stencil(&mut self, entity: Entity) {
+        if let Some(target) = self.stencil_targets.remove(&entity).flatten() {
+            self.remove_from_target(target, entity);
+        }
+    }
+
+    fn remove_from_target(&mut self, target: Entity, stencil: Entity) {
+        let remove_bucket = if let Some(bucket) = self.stencils_by_target.get_mut(&target) {
+            bucket.remove(&stencil);
+            bucket.is_empty()
+        } else {
+            false
+        };
+        if remove_bucket {
+            self.stencils_by_target.remove(&target);
+        }
+        self.dirty_hosts.insert(target);
+    }
+
+    fn effective_stencils(&self, target: Entity) -> Vec<(Entity, CollisionStencil)> {
+        let Some(stencils) = self.stencils_by_target.get(&target) else {
+            return Vec::new();
+        };
+
+        let mut effective = stencils
+            .iter()
+            .map(|(&entity, &stencil)| (entity, stencil))
+            .collect::<Vec<_>>();
+        effective.sort_unstable_by_key(|(entity, _)| entity.to_bits());
+        effective
+    }
+}
+
 /// Rebuilds only hosts whose effective stencil set changed.
 ///
 /// The collider presented to Avian is the real collision topology: character
@@ -59,7 +122,15 @@ pub struct AppliedCollisionTopology {
 /// observe the same hole without portal-specific filters.
 pub(crate) fn rebuild_clipped_colliders(
     mut commands: Commands,
-    stencils: Query<(Entity, &CollisionStencil)>,
+    mut removed_stencils: RemovedComponents<CollisionStencil>,
+    changed_stencils: Query<(Entity, &CollisionStencil), Changed<CollisionStencil>>,
+    changed_hosts: Query<
+        Entity,
+        (
+            With<CollisionClipSource>,
+            Or<(Changed<CollisionClipSource>, Changed<Transform>)>,
+        ),
+    >,
     mut hosts: Query<(
         Entity,
         &CollisionClipSource,
@@ -67,25 +138,24 @@ pub(crate) fn rebuild_clipped_colliders(
         &mut Collider,
         Option<&mut AppliedCollisionTopology>,
     )>,
+    mut topology: Local<CollisionTopologyState>,
 ) {
-    let mut by_target: HashMap<Entity, Vec<(Entity, CollisionStencil)>> = HashMap::new();
-    for (entity, stencil) in &stencils {
-        if !stencil.enabled {
-            continue;
-        }
-        let Some(target) = stencil.target else {
+    for entity in removed_stencils.read() {
+        topology.remove_stencil(entity);
+    }
+    for (entity, stencil) in &changed_stencils {
+        topology.update_stencil(entity, *stencil);
+    }
+    topology.dirty_hosts.extend(changed_hosts.iter());
+
+    let dirty_hosts = std::mem::take(&mut topology.dirty_hosts);
+    for entity in dirty_hosts {
+        let Ok((_, source, transform, mut collider, applied)) = hosts.get_mut(entity) else {
             continue;
         };
-        by_target
-            .entry(target)
-            .or_default()
-            .push((entity, *stencil));
-    }
 
-    for (entity, source, transform, mut collider, applied) in &mut hosts {
-        let mut effective = by_target.remove(&entity).unwrap_or_default();
-        effective.sort_by_key(|(stencil, _)| stencil.to_bits());
-        let fingerprint = topology_fingerprint(&effective);
+        let effective = topology.effective_stencils(entity);
+        let fingerprint = topology_fingerprint(transform, &effective);
 
         if applied
             .as_ref()
@@ -129,8 +199,31 @@ fn clipped_collider(
     }
 }
 
-fn topology_fingerprint(stencils: &[(Entity, CollisionStencil)]) -> u64 {
+fn topology_fingerprint(
+    host: &Transform,
+    stencils: &[(Entity, CollisionStencil)],
+) -> u64 {
     let mut hash = 0xcbf29ce484222325_u64;
+
+    // World-space stencil geometry is converted relative to the host transform,
+    // so a moving host is itself a topology change while a stencil is active.
+    if !stencils.is_empty() {
+        for value in [
+            host.translation.x,
+            host.translation.y,
+            host.translation.z,
+            host.rotation.x,
+            host.rotation.y,
+            host.rotation.z,
+            host.rotation.w,
+            host.scale.x,
+            host.scale.y,
+            host.scale.z,
+        ] {
+            hash_value(&mut hash, value.to_bits() as u64);
+        }
+    }
+
     for (entity, stencil) in stencils {
         hash_value(&mut hash, entity.to_bits());
         for value in [

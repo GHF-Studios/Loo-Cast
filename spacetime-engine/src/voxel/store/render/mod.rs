@@ -17,16 +17,17 @@ impl VoxelMaterializationStore {
     /// This is intentionally O(active surfaces), but only runs when runtime
     /// configuration changes grouping topology. Steady state stays change-driven.
     pub(crate) fn mark_all_active_render_dirty(&mut self) {
-        let addresses = self
-            .entries
-            .iter()
-            .filter_map(|(&address, entry)| {
-                (entry.active && entry.surface.is_some()).then_some(address)
-            })
-            .collect::<Vec<_>>();
+        let entries = &self.entries;
+        let dirty_render = &mut self.dirty_render;
+        let dirty_render_set = &mut self.dirty_render_set;
 
-        for address in addresses {
-            self.mark_render_dirty(address);
+        for (&address, entry) in entries {
+            if entry.active
+                && entry.surface.is_some()
+                && dirty_render_set.insert(address)
+            {
+                dirty_render.push_back(address);
+            }
         }
     }
 

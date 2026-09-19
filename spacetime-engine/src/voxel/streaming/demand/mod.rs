@@ -83,28 +83,10 @@ fn reconcile_materialization_residency(
     streaming: &mut VoxelStreaming,
     warm_inactive_materialization_limit: usize,
 ) {
-    let stale = world
-        .materializations()
-        .active_addresses()
-        .filter(|address| !streaming.cached_desired_set.contains(address))
-        .collect::<Vec<_>>();
-    for address in stale {
-        world.materializations_mut().deactivate(address);
-    }
-
-    // Warm dense entries become active immediately and avoid regeneration.
-    let desired = streaming
-        .cached_desired_set
-        .iter()
-        .copied()
-        .collect::<Vec<_>>();
-    for address in desired {
-        world.materializations_mut().reactivate(address);
-    }
-
-    world
-        .materializations_mut()
-        .trim_inactive(warm_inactive_materialization_limit);
+    world.materializations_mut().reconcile_residency(
+        &streaming.cached_desired_set,
+        warm_inactive_materialization_limit,
+    );
 
     streaming
         .pending_desired
