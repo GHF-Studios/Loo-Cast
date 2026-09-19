@@ -4,7 +4,7 @@
 //! `PhysicsSchedule`. More expensive body/contact/AABB inventories are sampled
 //! at low frequency and only when a Vapor telemetry consumer is connected.
 
-use std::time::Duration;
+use std::{collections::{BTreeMap, HashMap}, time::Duration};
 
 use avian3d::{
     collision::CollisionDiagnostics,
@@ -241,6 +241,10 @@ pub(super) fn collect_physics_detail_diagnostics(
         "physics.contact-pairs",
         contact_pair_snapshot(&contact_graph, &colliders, &entity_meta),
     );
+    telemetry.0.publish_snapshot(
+        "physics.contact-pair-breakdown",
+        contact_pair_breakdown_snapshot(&contact_graph, &colliders, &entity_meta),
+    );
 }
 
 fn body_inventory_snapshot(
@@ -463,6 +467,242 @@ fn collider_summary(
         volume: size.x.abs() * size.y.abs() * size.z.abs(),
     }
 }
+
+
+#[derive(Default)]
+struct PairBucket {
+    total: usize,
+    touching: usize,
+    constraints: usize,
+}
+
+#[derive(Default)]
+struct EndpointStats {
+    pairs: usize,
+    touching: usize,
+    constraints: usize,
+    name: String,
+    body_kind: &'static str,
+    aabb_volume: f32,
+}
+
+fn contact_pair_breakdown_snapshot(
+    contact_graph: &ContactGraph,
+    colliders: &Query<(Entity, Option<&Name>, &ColliderAabb, Option<&ColliderOf>)>,
+    entity_meta: &Query<(Option<&Name>, Option<&RigidBody>)>,
+) -> Value {
+    let mut body_kind_pairs = BTreeMap::<String, PairBucket>::new();
+    let mut name_pairs = BTreeMap::<String, PairBucket>::new();
+    let mut endpoints = HashMap::<Entity, EndpointStats>::new();
+
+    let mut active = 0usize;
+    let mut sleeping = 0usize;
+    let mut touching = 0usize;
+    let mut constraints = 0usize;
+    let mut missing_collider_rows = 0usize;
+
+    for (state, pair) in contact_graph
+        .active_pairs()
+        .iter()
+        .map(|pair| ("active", pair))
+        .chain(
+            contact_graph
+                .sleeping_pairs()
+                .iter()
+                .map(|pair| ("sleeping", pair)),
+        )
+    {
+        match state {
+            "active" => active += 1,
+            "sleeping" => sleeping += 1,
+            _ => {}
+        }
+
+        let is_touching = pair.is_touching();
+        let generates_constraints = pair.generates_constraints();
+        touching += usize::from(is_touching);
+        constraints += usize::from(generates_constraints);
+
+        let c1 = collider_summary(pair.collider1, colliders, entity_meta);
+        let c2 = collider_summary(pair.collider2, colliders, entity_meta);
+
+        if c1.body_kind == "unknown" {
+            missing_collider_rows += 1;
+        }
+        if c2.body_kind == "unknown" {
+            missing_collider_rows += 1;
+        }
+
+        let kind_key = ordered_pair_key(c1.body_kind, c2.body_kind);
+        add_pair_bucket(
+            body_kind_pairs.entry(kind_key).or_default(),
+            is_touching,
+            generates_constraints,
+        );
+
+        let name1 = if c1.name.is_empty() { "<unnamed>" } else { &c1.name };
+        let name2 = if c2.name.is_empty() { "<unnamed>" } else { &c2.name };
+        let name_key = ordered_pair_key(name1, name2);
+        add_pair_bucket(
+            name_pairs.entry(name_key).or_default(),
+            is_touching,
+            generates_constraints,
+        );
+
+        add_endpoint(
+            &mut endpoints,
+            pair.collider1,
+            &c1,
+            is_touching,
+            generates_constraints,
+        );
+        add_endpoint(
+            &mut endpoints,
+            pair.collider2,
+            &c2,
+            is_touching,
+            generates_constraints,
+        );
+    }
+
+    let mut kind_rows = body_kind_pairs
+        .into_iter()
+        .map(|(pair_kind, bucket)| {
+            json!({
+                "pair_kind": pair_kind,
+                "pairs": bucket.total,
+                "touching": bucket.touching,
+                "constraints": bucket.constraints,
+            })
+        })
+        .collect::<Vec<_>>();
+    kind_rows.sort_by(|left, right| {
+        json_u64(right, "pairs")
+            .cmp(&json_u64(left, "pairs"))
+            .then_with(|| {
+                left.get("pair_kind")
+                    .and_then(Value::as_str)
+                    .cmp(&right.get("pair_kind").and_then(Value::as_str))
+            })
+    });
+
+    let mut name_rows = name_pairs
+        .into_iter()
+        .map(|(pair_names, bucket)| {
+            json!({
+                "pair_names": pair_names,
+                "pairs": bucket.total,
+                "touching": bucket.touching,
+                "constraints": bucket.constraints,
+            })
+        })
+        .collect::<Vec<_>>();
+    name_rows.sort_by(|left, right| {
+        json_u64(right, "pairs")
+            .cmp(&json_u64(left, "pairs"))
+            .then_with(|| {
+                left.get("pair_names")
+                    .and_then(Value::as_str)
+                    .cmp(&right.get("pair_names").and_then(Value::as_str))
+            })
+    });
+    name_rows.truncate(32);
+
+    let unique_endpoint_count = endpoints.len();
+    let mut endpoint_rows = endpoints
+        .into_iter()
+        .map(|(entity, stats)| {
+            json!({
+                "entity": entity_label(entity),
+                "name": stats.name,
+                "body_kind": stats.body_kind,
+                "pairs": stats.pairs,
+                "touching": stats.touching,
+                "constraints": stats.constraints,
+                "aabb_volume": finite_f32(stats.aabb_volume),
+            })
+        })
+        .collect::<Vec<_>>();
+    endpoint_rows.sort_by(|left, right| {
+        json_u64(right, "pairs")
+            .cmp(&json_u64(left, "pairs"))
+            .then_with(|| json_u64(right, "touching").cmp(&json_u64(left, "touching")))
+            .then_with(|| {
+                json_f64(right, "aabb_volume")
+                    .total_cmp(&json_f64(left, "aabb_volume"))
+            })
+    });
+    endpoint_rows.truncate(32);
+
+    let mut collider_population = BTreeMap::<&'static str, usize>::new();
+    for (_, _, _, collider_of) in colliders.iter() {
+        let kind = collider_of
+            .and_then(|owner| entity_meta.get(owner.body).ok())
+            .and_then(|(_, body)| body)
+            .map(|body| rigid_body_kind(*body))
+            .unwrap_or("none");
+        *collider_population.entry(kind).or_default() += 1;
+    }
+    let collider_population = collider_population
+        .into_iter()
+        .map(|(body_kind, count)| {
+            json!({
+                "body_kind": body_kind,
+                "colliders": count,
+            })
+        })
+        .collect::<Vec<_>>();
+
+    json!({
+        "summary": {
+            "active_pairs": active,
+            "sleeping_pairs": sleeping,
+            "total_pairs": active + sleeping,
+            "touching_pairs": touching,
+            "constraint_pairs": constraints,
+            "missing_collider_endpoints": missing_collider_rows,
+            "unique_pair_endpoints": unique_endpoint_count,
+        },
+        "collider_population": collider_population,
+        "pair_kinds": kind_rows,
+        "top_name_pairs": name_rows,
+        "top_endpoints": endpoint_rows,
+    })
+}
+
+fn add_pair_bucket(bucket: &mut PairBucket, touching: bool, constraints: bool) {
+    bucket.total += 1;
+    bucket.touching += usize::from(touching);
+    bucket.constraints += usize::from(constraints);
+}
+
+fn add_endpoint(
+    endpoints: &mut HashMap<Entity, EndpointStats>,
+    entity: Entity,
+    summary: &ColliderSummary,
+    touching: bool,
+    constraints: bool,
+) {
+    let stats = endpoints.entry(entity).or_insert_with(|| EndpointStats {
+        name: summary.name.clone(),
+        body_kind: summary.body_kind,
+        aabb_volume: summary.volume,
+        ..default()
+    });
+    stats.pairs += 1;
+    stats.touching += usize::from(touching);
+    stats.constraints += usize::from(constraints);
+    stats.aabb_volume = stats.aabb_volume.max(summary.volume);
+}
+
+fn ordered_pair_key(left: &str, right: &str) -> String {
+    if left <= right {
+        format!("{left} <-> {right}")
+    } else {
+        format!("{right} <-> {left}")
+    }
+}
+
 
 fn bounded_rows(mut rows: Vec<Value>, limit: usize) -> Value {
     let total = rows.len();
