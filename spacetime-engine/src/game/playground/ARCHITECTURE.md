@@ -1,6 +1,6 @@
-# Playground architecture
+# Playground, item and inventory architecture
 
-The playground is a reusable test surface, not a special-case game mode. Its
+The playground is a reusable test composition, not the owner of generic game contracts. Its
 extension points are ordinary Bevy plugins, systems, resources, components and
 messages so built-in content and Vapor-provided content use the same mechanisms.
 
@@ -12,7 +12,7 @@ local devices / UI
         v
 playground input adapter
         |
-        | UsePlaygroundItem { item, action, actor, aim }
+        | UseItem { item, action, actor, aim }
         v
 item plugin / action semantics
         |
@@ -31,27 +31,42 @@ Dependencies should point downward through this diagram. In particular:
 - Local input does not mutate portal entities or execute item mechanics.
 - Presentation state is derived from gameplay state instead of being mutated by
   unrelated gameplay systems.
-- Stable logical IDs (`PlaygroundItemId`, `PlaygroundItemAction`) are the seam
+- Stable logical IDs (`ItemId`, `ItemAction`) are the seam
   where static Vapor content can register additional behavior.
+
+## Ownership
+
+Reusable item and inventory contracts are no longer owned by the playground.
+
+- `game::item` owns stable item IDs, metadata/catalog registration, item actions,
+  shared aim state and generic item-view presentation.
+- `game::inventory` owns Hotbar selection state and conventional numeric-slot
+  input helpers. Its defaults contain no knowledge of built-in content.
+- `game::playground` owns concrete test items, the starting sandbox loadout,
+  creative-menu/cursor state, erase semantics, map composition and demo UI.
+- Combat owns Health presentation and projectile presentation assets.
+
+This keeps generic contracts usable by other game compositions without making
+them depend on the test sandbox that happened to exercise them first.
 
 ## Items and actions
 
-`PlaygroundCatalog` contains item metadata only. Behavior lives in ordinary
-plugins which consume `UsePlaygroundItem` messages addressed to their logical
+`ItemCatalog` contains item metadata only. Behavior lives in ordinary
+plugins which consume `UseItem` messages addressed to their logical
 item ID.
 
 The built-in input adapter maps:
 
-- left mouse -> `PlaygroundItemAction::PRIMARY`;
-- right mouse -> `PlaygroundItemAction::SECONDARY`;
-- `R` -> `PlaygroundItemAction::RELOAD`;
+- left mouse -> `ItemAction::PRIMARY`;
+- right mouse -> `ItemAction::SECONDARY`;
+- `R` -> `ItemAction::RELOAD`;
 - middle mouse -> the playground-global erase tool.
 
-`PlaygroundItemAction` is an extensible string ID rather than a closed enum.
+`ItemAction` is an extensible string ID rather than a closed enum.
 Mods can define additional logical actions and produce the same messages from
 other devices, AI, replay or network input.
 
-`PlaygroundAim` is a shared per-frame actor + aim snapshot. Presentation helpers
+`ItemAim` is a shared per-frame actor + aim snapshot. Presentation helpers
 such as laser sights can consume it without coupling themselves to a particular
 player camera implementation.
 
@@ -90,9 +105,9 @@ Static Vapor mods can add a plugin which registers catalog entries and systems
 using the same public resources/messages as built-in content. A new item usually
 needs only:
 
-1. a stable `PlaygroundItemId`;
+1. a stable `ItemId`;
 2. a startup system registering its metadata;
-3. one or more systems consuming `UsePlaygroundItem` for that ID;
+3. one or more systems consuming `UseItem` for that ID;
 4. domain-specific messages/components for the actual mechanic.
 
 Runtime-loaded scripting/registries may be layered on later, but built-in code

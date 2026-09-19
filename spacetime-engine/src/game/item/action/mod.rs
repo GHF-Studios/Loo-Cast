@@ -1,4 +1,4 @@
-//! Device-agnostic playground action messages.
+//! Device-agnostic semantic item actions.
 //!
 //! Local input produces these messages once. Individual item plugins consume
 //! only actions addressed to their item ID, which keeps item semantics usable
@@ -7,7 +7,7 @@
 
 use bevy::prelude::*;
 
-use super::PlaygroundItemId;
+use super::ItemId;
 
 /// World-space origin and direction used by playground tools.
 #[derive(Debug, Clone, Copy)]
@@ -38,14 +38,14 @@ impl AimRay {
     }
 }
 
-/// Extensible logical action ID for an equipped playground item.
+/// Extensible logical action ID for an equipped item.
 ///
 /// The built-in local input adapter emits the three conventional actions below.
 /// Mods can define additional IDs and produce them from their own input systems.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct PlaygroundItemAction(pub &'static str);
+pub struct ItemAction(pub &'static str);
 
-impl PlaygroundItemAction {
+impl ItemAction {
     pub const PRIMARY: Self = Self("primary");
     pub const SECONDARY: Self = Self("secondary");
     pub const RELOAD: Self = Self("reload");
@@ -55,9 +55,9 @@ impl PlaygroundItemAction {
     }
 }
 
-/// One frame's actor + aim snapshot for the built-in local playground user.
+/// One frame's actor + aim snapshot for the built-in local item user.
 #[derive(Debug, Clone, Copy)]
-pub struct PlaygroundAimContext {
+pub struct ItemAimContext {
     pub actor: Entity,
     pub ray: AimRay,
 }
@@ -67,32 +67,25 @@ pub struct PlaygroundAimContext {
 /// Presentation helpers (laser sights, previews, highlights) can read this
 /// resource without depending on the concrete player camera or input devices.
 #[derive(Resource, Debug, Default, Clone, Copy)]
-pub struct PlaygroundAim {
-    current: Option<PlaygroundAimContext>,
+pub struct ItemAim {
+    current: Option<ItemAimContext>,
 }
 
-impl PlaygroundAim {
-    pub fn current(&self) -> Option<PlaygroundAimContext> {
+impl ItemAim {
+    pub fn current(&self) -> Option<ItemAimContext> {
         self.current
     }
 
-    pub(crate) fn set(&mut self, current: Option<PlaygroundAimContext>) {
+    pub(crate) fn set(&mut self, current: Option<ItemAimContext>) {
         self.current = current;
     }
 }
 
 /// One semantic use of an equipped item.
 #[derive(Message, Debug, Clone, Copy)]
-pub struct UsePlaygroundItem {
-    pub item: PlaygroundItemId,
-    pub action: PlaygroundItemAction,
+pub struct UseItem {
+    pub item: ItemId,
+    pub action: ItemAction,
     pub actor: Entity,
-    pub aim: AimRay,
-}
-
-/// Global sandbox deletion request. This intentionally remains separate from
-/// item actions; the built-in mouse adapter maps it to middle-click.
-#[derive(Message, Debug, Clone, Copy)]
-pub struct ErasePlaygroundObject {
     pub aim: AimRay,
 }

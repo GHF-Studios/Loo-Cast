@@ -11,7 +11,7 @@ use crate::{
 };
 
 use super::{
-    GameAssets, GameSet, SimulationSet,
+    GameSet, SimulationSet,
     portal::{PortalTraveler, PortalVelocity},
 };
 
@@ -120,10 +120,13 @@ pub struct Died {
     pub instigator: Option<Entity>,
 }
 
+mod assets;
 mod damage;
+mod presentation;
 mod projectile;
 mod weapon;
 
+use assets::{CombatPresentationAssets, setup_combat_assets};
 use damage::{apply_damage, hits_to_damage};
 use projectile::{detect_projectile_hits, move_projectiles};
 use weapon::fire_weapons;
@@ -132,7 +135,8 @@ pub struct CombatPlugin;
 
 impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, fire_weapons.in_set(GameSet::Action))
+        app.add_systems(Startup, setup_combat_assets)
+            .add_systems(Update, fire_weapons.in_set(GameSet::Action))
             .add_systems(Update, move_projectiles.in_set(SimulationSet::Motion))
             .add_systems(
                 Update,
@@ -144,5 +148,7 @@ impl Plugin for CombatPlugin {
                     .chain()
                     .in_set(GameSet::Consequence),
             );
+
+        presentation::configure(app);
     }
 }

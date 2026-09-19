@@ -2,9 +2,13 @@
 
 use super::*;
 
+fn creative_page_count(catalog: &ItemCatalog) -> usize {
+    catalog.items().len().div_ceil(CREATIVE_PAGE_SIZE).max(1)
+}
+
 pub(super) fn scroll_pages(
     scroll: Res<AccumulatedMouseScroll>,
-    catalog: Res<PlaygroundCatalog>,
+    catalog: Res<ItemCatalog>,
     mut state: ResMut<CreativeMenuState>,
 ) {
     if !state.open || scroll.delta.y == 0.0 {
@@ -21,7 +25,7 @@ pub(super) fn scroll_pages(
 }
 
 pub(super) fn sync_catalog_slots(
-    catalog: Res<PlaygroundCatalog>,
+    catalog: Res<ItemCatalog>,
     mut state: ResMut<CreativeMenuState>,
     mut slots: Query<(
         &Interaction,

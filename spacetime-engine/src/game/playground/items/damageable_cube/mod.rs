@@ -9,8 +9,9 @@ use crate::{
         UsfPresentationProjectionOf,
     },
     game::{
-        GameAssets, GameSet,
+        GameSet,
         combat::{Health, Hitbox},
+        item::{ItemAction, ItemCatalog, ItemDefinition, ItemId, UseItem},
         portal::{PortalRigidSplitBody, PortalSplitTraveler, PortalSplitVisual, PortalTraveler},
         thermal::{
             CombustibleMaterial, Fuel, ThermalBody, ThermalField, ThermalMaterial,
@@ -20,13 +21,11 @@ use crate::{
     physics::topology::{SpatialSplitBox, SpatialSplitPeer},
 };
 
-use super::super::{
-    PlaygroundCatalog, PlaygroundItem, PlaygroundItemAction, PlaygroundItemId, PlaygroundPickable,
-    PlaygroundRoot, UsePlaygroundItem,
-};
+use super::assets::PlaygroundItemPresentationAssets;
+use super::super::{PlaygroundPickable, PlaygroundRoot};
 
-pub const DAMAGEABLE_CUBE: PlaygroundItemId = PlaygroundItemId::new("damageable_cube");
-pub const SPLIT_DAMAGEABLE_CUBE: PlaygroundItemId = PlaygroundItemId::new("split_damageable_cube");
+pub const DAMAGEABLE_CUBE: ItemId = ItemId::new("damageable_cube");
+pub const SPLIT_DAMAGEABLE_CUBE: ItemId = ItemId::new("split_damageable_cube");
 
 const CUBE_SIZE: f32 = 1.0;
 const CUBE_MASS_KG: f32 = 20.0;
@@ -47,14 +46,14 @@ impl Plugin for DamageableCubeItemPlugin {
     }
 }
 
-fn register_items(mut catalog: ResMut<PlaygroundCatalog>) {
-    catalog.register(PlaygroundItem {
+fn register_items(mut catalog: ResMut<ItemCatalog>) {
+    catalog.register(ItemDefinition {
         id: DAMAGEABLE_CUBE,
         name: "Damageable Cube",
         description: "Dynamic rigid cube with Health, finite fuel and an internal thermal-energy field.",
     });
 
-    catalog.register(PlaygroundItem {
+    catalog.register(ItemDefinition {
         id: SPLIT_DAMAGEABLE_CUBE,
         name: "Split Damageable Cube",
         description: "One semantic state with two independently dynamic spatial manifestations.",
@@ -63,8 +62,8 @@ fn register_items(mut catalog: ResMut<PlaygroundCatalog>) {
 
 fn use_cube_items(
     mut commands: Commands,
-    mut uses: MessageReader<UsePlaygroundItem>,
-    assets: Res<GameAssets>,
+    mut uses: MessageReader<UseItem>,
+    assets: Res<PlaygroundItemPresentationAssets>,
     mut meshes: ResMut<Assets<Mesh>>,
     manifestations: Query<&UsfManifestationOf>,
     semantic_entities: Query<&UsfManifestations>,
@@ -72,7 +71,7 @@ fn use_cube_items(
     mut counter: ResMut<CubeCounter>,
 ) {
     for request in uses.read() {
-        if request.action != PlaygroundItemAction::PRIMARY {
+        if request.action != ItemAction::PRIMARY {
             continue;
         }
 
@@ -172,7 +171,7 @@ fn surface_tangent(normal: Vec3) -> Vec3 {
 fn spawn_dynamic_manifestation(
     commands: &mut Commands,
     meshes: &mut Assets<Mesh>,
-    assets: &GameAssets,
+    assets: &PlaygroundItemPresentationAssets,
     semantic: Entity,
     index: usize,
     position: Vec3,
@@ -243,7 +242,7 @@ fn spawn_dynamic_manifestation(
                 UsfPresentationProjectionOf(body),
                 PortalSplitVisual,
                 Mesh3d(meshes.add(Cuboid::from_length(CUBE_SIZE))),
-                MeshMaterial3d(assets.damageable_cube_material.clone()),
+                MeshMaterial3d(assets.cube_material.clone()),
                 Transform::IDENTITY,
             ));
         });

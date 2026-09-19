@@ -6,7 +6,7 @@ pub(super) fn fire_weapons(
     mut commands: Commands,
     mut requests: MessageReader<FireWeapon>,
     weapons: Query<&Weapon>,
-    assets: Res<GameAssets>,
+    assets: Res<CombatPresentationAssets>,
 ) {
     for request in requests.read() {
         let Ok(weapon) = weapons.get(request.wielder) else {

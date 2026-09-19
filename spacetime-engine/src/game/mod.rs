@@ -3,6 +3,8 @@
 pub mod combat;
 mod devtools;
 mod environment;
+pub mod inventory;
+pub mod item;
 pub mod map_selection;
 pub mod player;
 pub mod playground;
@@ -98,6 +100,8 @@ impl Plugin for TestGamePlugin {
             )
             .add_plugins((
                 environment::EnvironmentLightingPlugin,
+                inventory::InventoryPlugin,
+                item::ItemPlugin,
                 map_selection::MapSelectionPlugin,
                 combat::CombatPlugin,
                 crate::procedural_assets::ProceduralAssetsPlugin,
@@ -108,26 +112,6 @@ impl Plugin for TestGamePlugin {
                 thermal::ThermalPlugin,
                 procedural_world::ProceduralWorldPlugin,
                 playground::PlaygroundPlugin,
-            ))
-            .add_systems(Startup, setup_scene);
+            ));
     }
-}
-
-#[derive(Resource)]
-pub(crate) struct GameAssets {
-    pub damageable_cube_material: Handle<StandardMaterial>,
-    pub projectile_mesh: Handle<Mesh>,
-    pub projectile_material: Handle<StandardMaterial>,
-}
-
-fn setup_scene(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    commands.insert_resource(GameAssets {
-        damageable_cube_material: materials.add(Color::srgb(0.8, 0.2, 0.2)),
-        projectile_mesh: meshes.add(Sphere::new(0.1)),
-        projectile_material: materials.add(Color::WHITE),
-    });
 }

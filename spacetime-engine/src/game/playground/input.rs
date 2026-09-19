@@ -1,7 +1,7 @@
 //! Built-in local input adapter for playground actions.
 //!
 //! This is the only playground layer that knows the default mouse/keyboard
-//! bindings. Item plugins receive semantic [`UsePlaygroundItem`] messages and
+//! bindings. Item plugins receive semantic [`UseItem`] messages and
 //! remain independent from devices, hotbar UI and cursor capture.
 
 use bevy::{input::mouse::AccumulatedMouseScroll, prelude::*};
@@ -9,6 +9,8 @@ use bevy::{input::mouse::AccumulatedMouseScroll, prelude::*};
 use crate::{
     game::{
         InputSet,
+        inventory::{Hotbar, pressed_hotbar_slot},
+        item::{AimRay, ItemAction, ItemAim, ItemAimContext, UseItem},
         player::{
             CameraMode, Player, PlayerAim, PlayerCamera, PlayerStance, cursor::CursorCapture,
         },
@@ -20,10 +22,8 @@ use crate::{
 const CREATIVE_MENU_FOCUS_OWNER: &str = "creative_menu";
 
 use super::{
-    AimRay, ErasePlaygroundObject, PlaygroundAim, PlaygroundAimContext, PlaygroundCatalog,
-    PlaygroundItemAction, UsePlaygroundItem,
-    inventory::{CreativeMenuState, CursorItem, HOTBAR_SIZE, Hotbar},
-    ui::creative_menu::CreativeMenuRoot,
+    ErasePlaygroundObject,
+    ui::creative_menu::{CreativeMenuRoot, CreativeMenuState, CursorItem},
 };
 
 pub fn configure(app: &mut App) {
@@ -124,7 +124,7 @@ fn update_aim(
         With<Player>,
     >,
     camera: Single<&PlayerCamera>,
-    mut aim: ResMut<PlaygroundAim>,
+    mut aim: ResMut<ItemAim>,
 ) {
     if menu.open || !capture.active() {
         aim.set(None);
@@ -135,7 +135,7 @@ fn update_aim(
     let view_rotation = camera.view_rotation(control, player_aim);
     let origin = camera.eye_position(body, control, stance);
 
-    aim.set(Some(PlaygroundAimContext {
+    aim.set(Some(ItemAimContext {
         actor,
         ray: AimRay::new(origin, view_rotation * Vec3::NEG_Z),
     }));
@@ -147,8 +147,8 @@ fn use_selected_item(
     menu: Res<CreativeMenuState>,
     hotbar: Res<Hotbar>,
     capture: Res<CursorCapture>,
-    aim: Res<PlaygroundAim>,
-    mut use_item: MessageWriter<UsePlaygroundItem>,
+    aim: Res<ItemAim>,
+    mut use_item: MessageWriter<UseItem>,
     mut erase: MessageWriter<ErasePlaygroundObject>,
 ) {
     if menu.open || !capture.active() {
@@ -166,7 +166,7 @@ fn use_selected_item(
 
     let mut send_action = |action| {
         if let Some(item) = selected {
-            use_item.write(UsePlaygroundItem {
+            use_item.write(UseItem {
                 item,
                 action,
                 actor,
@@ -176,13 +176,13 @@ fn use_selected_item(
     };
 
     if accepts_click && mouse.just_pressed(MouseButton::Left) {
-        send_action(PlaygroundItemAction::PRIMARY);
+        send_action(ItemAction::PRIMARY);
     }
     if accepts_click && mouse.just_pressed(MouseButton::Right) {
-        send_action(PlaygroundItemAction::SECONDARY);
+        send_action(ItemAction::SECONDARY);
     }
     if keyboard.just_pressed(KeyCode::KeyR) {
-        send_action(PlaygroundItemAction::RELOAD);
+        send_action(ItemAction::RELOAD);
     }
 
     // Keep global sandbox deletion out of item semantics so secondary fire is
@@ -190,28 +190,4 @@ fn use_selected_item(
     if accepts_click && mouse.just_pressed(MouseButton::Middle) {
         erase.write(ErasePlaygroundObject { aim });
     }
-}
-
-pub(crate) fn pressed_hotbar_slot(keyboard: &ButtonInput<KeyCode>) -> Option<usize> {
-    const KEYS: [KeyCode; HOTBAR_SIZE] = [
-        KeyCode::Digit1,
-        KeyCode::Digit2,
-        KeyCode::Digit3,
-        KeyCode::Digit4,
-        KeyCode::Digit5,
-        KeyCode::Digit6,
-        KeyCode::Digit7,
-        KeyCode::Digit8,
-        KeyCode::Digit9,
-    ];
-
-    KEYS.into_iter().position(|key| keyboard.just_pressed(key))
-}
-
-pub(crate) fn creative_page_count(catalog: &PlaygroundCatalog) -> usize {
-    catalog
-        .items()
-        .len()
-        .div_ceil(super::inventory::CREATIVE_PAGE_SIZE)
-        .max(1)
 }

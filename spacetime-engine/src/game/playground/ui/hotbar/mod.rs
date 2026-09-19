@@ -1,10 +1,14 @@
 use bevy::prelude::*;
 
-use crate::ui::UiTextStyle;
+use crate::{
+    game::{
+        inventory::{HOTBAR_SIZE, Hotbar},
+        item::presentation::{ItemView, spawn_item_view},
+    },
+    ui::UiTextStyle,
+};
 
-use super::super::inventory::{CreativeMenuState, HOTBAR_SIZE, Hotbar};
-
-use super::item_view::{ItemView, spawn_item_view};
+use super::creative_menu::CreativeMenuState;
 
 const SLOT_SIZE: f32 = 58.0;
 const SLOT_GAP: f32 = 4.0;

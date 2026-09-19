@@ -9,19 +9,18 @@ use crate::{
         UsfManifestations, UsfPresentationProjectionOf,
     },
     game::{
-        GameAssets, GameSet,
+        GameSet,
         combat::{Health, Hitbox},
+        item::{ItemAction, ItemCatalog, ItemDefinition, ItemId, UseItem},
     },
     spatial::SpatialDemandSource,
     voxel::VoxelMaterializationDemand,
 };
 
-use super::super::{
-    PlaygroundCatalog, PlaygroundItem, PlaygroundItemAction, PlaygroundItemId, PlaygroundPickable,
-    PlaygroundRoot, UsePlaygroundItem,
-};
+use super::assets::PlaygroundItemPresentationAssets;
+use super::super::{PlaygroundPickable, PlaygroundRoot};
 
-pub const CHUNKLOADING_CUBE: PlaygroundItemId = PlaygroundItemId::new("chunkloading_cube");
+pub const CHUNKLOADING_CUBE: ItemId = ItemId::new("chunkloading_cube");
 
 const CUBE_SIZE: f32 = 1.0;
 const CUBE_MASS_KG: f32 = 20.0;
@@ -44,8 +43,8 @@ impl Plugin for ChunkloadingCubeItemPlugin {
     }
 }
 
-fn register_item(mut catalog: ResMut<PlaygroundCatalog>) {
-    catalog.register(PlaygroundItem {
+fn register_item(mut catalog: ResMut<ItemCatalog>) {
+    catalog.register(ItemDefinition {
         id: CHUNKLOADING_CUBE,
         name: "Chunkloading Cube",
         description: "Movable spatial-demand source that keeps nearby voxel materialization realized.",
@@ -54,8 +53,8 @@ fn register_item(mut catalog: ResMut<PlaygroundCatalog>) {
 
 fn use_chunkloading_cube(
     mut commands: Commands,
-    mut uses: MessageReader<UsePlaygroundItem>,
-    assets: Res<GameAssets>,
+    mut uses: MessageReader<UseItem>,
+    assets: Res<PlaygroundItemPresentationAssets>,
     mut meshes: ResMut<Assets<Mesh>>,
     manifestations: Query<&UsfManifestationOf>,
     semantic_entities: Query<&UsfManifestations>,
@@ -63,7 +62,7 @@ fn use_chunkloading_cube(
     mut counter: ResMut<ChunkloadingCubeCounter>,
 ) {
     for request in uses.read() {
-        if request.item != CHUNKLOADING_CUBE || request.action != PlaygroundItemAction::PRIMARY {
+        if request.item != CHUNKLOADING_CUBE || request.action != ItemAction::PRIMARY {
             continue;
         }
 
@@ -138,7 +137,7 @@ fn use_chunkloading_cube(
                 Name::new("Chunkloading Cube Presentation"),
                 UsfPresentationProjectionOf(manifestation),
                 Mesh3d(meshes.add(Cuboid::from_length(CUBE_SIZE))),
-                MeshMaterial3d(assets.damageable_cube_material.clone()),
+                MeshMaterial3d(assets.cube_material.clone()),
                 Transform::IDENTITY,
             ));
         });

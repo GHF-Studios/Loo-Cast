@@ -11,16 +11,13 @@ use crate::{
     ecs::{UsfManifestationOf, UsfManifestations},
     game::{
         GameSet,
+        inventory::Hotbar,
+        item::{ItemAction, ItemAim, ItemCatalog, ItemDefinition, ItemId, UseItem},
         portal::{PortalCommand, PortalEndpoint},
     },
 };
 
-use super::super::{
-    Hotbar, PlaygroundAim, PlaygroundCatalog, PlaygroundItem, PlaygroundItemAction,
-    PlaygroundItemId, UsePlaygroundItem,
-};
-
-pub const PORTAL_GUN: PlaygroundItemId = PlaygroundItemId::new("portal_gun");
+pub const PORTAL_GUN: ItemId = ItemId::new("portal_gun");
 
 const PORTAL_RANGE: f32 = 250.0;
 
@@ -34,8 +31,8 @@ impl Plugin for PortalGunItemPlugin {
     }
 }
 
-fn register_item(mut catalog: ResMut<PlaygroundCatalog>) {
-    catalog.register(PlaygroundItem {
+fn register_item(mut catalog: ResMut<ItemCatalog>) {
+    catalog.register(ItemDefinition {
         id: PORTAL_GUN,
         name: "Portal Gun",
         description: "LMB places A, RMB places B, R removes both. The laser previews the aim ray.",
@@ -48,7 +45,7 @@ fn register_item(mut catalog: ResMut<PlaygroundCatalog>) {
 /// portal simulation layer owns authoritative fit/support/overlap validation,
 /// which keeps future snapping policy out of the item implementation.
 fn use_portal_gun(
-    mut uses: MessageReader<UsePlaygroundItem>,
+    mut uses: MessageReader<UseItem>,
     actors: Query<(&Transform, Option<&UsfManifestationOf>)>,
     semantic_entities: Query<&UsfManifestations>,
     spatial_query: SpatialQuery,
@@ -59,14 +56,14 @@ fn use_portal_gun(
             continue;
         }
 
-        if request.action == PlaygroundItemAction::RELOAD {
+        if request.action == ItemAction::RELOAD {
             portal_commands.write(PortalCommand::RemovePair);
             continue;
         }
 
-        let endpoint = if request.action == PlaygroundItemAction::PRIMARY {
+        let endpoint = if request.action == ItemAction::PRIMARY {
             PortalEndpoint::First
-        } else if request.action == PlaygroundItemAction::SECONDARY {
+        } else if request.action == ItemAction::SECONDARY {
             PortalEndpoint::Second
         } else {
             continue;
@@ -163,7 +160,7 @@ fn reject(vector: Vec3, axis: Vec3) -> Vec3 {
 /// not player camera/input internals.
 fn draw_laser_pointer(
     hotbar: Res<Hotbar>,
-    aim: Res<PlaygroundAim>,
+    aim: Res<ItemAim>,
     manifestations: Query<&UsfManifestationOf>,
     semantic_entities: Query<&UsfManifestations>,
     spatial_query: SpatialQuery,

@@ -5,7 +5,7 @@ use crate::{
     ui::{UiTextRole, UiTheme},
 };
 
-use super::super::inventory::CreativeMenuState;
+use super::creative_menu::CreativeMenuState;
 
 use super::hotbar::{spawn_hud_hotbar, sync_hud_hotbar};
 

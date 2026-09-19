@@ -3,16 +3,15 @@
 use bevy::prelude::*;
 
 use crate::{
-    game::GameSet,
+    game::{
+        GameSet,
+        item::{ItemAction, ItemCatalog, ItemDefinition, ItemId, UseItem},
+    },
     spatial::{UsfScaleLayer, UsfScaleLayerFrames},
     voxel::{VoxelBrush, VoxelEdit, VoxelMaterialId, VoxelQueryPosition, VoxelRayHit, VoxelWorld},
 };
 
-use super::super::{
-    PlaygroundCatalog, PlaygroundItem, PlaygroundItemAction, PlaygroundItemId, UsePlaygroundItem,
-};
-
-pub const VOXEL_HAND: PlaygroundItemId = PlaygroundItemId::new("voxel_hand");
+pub const VOXEL_HAND: ItemId = ItemId::new("voxel_hand");
 
 const TOOL_RANGE: f32 = 64.0;
 const BRUSH_RADIUS: f32 = 2.0;
@@ -26,8 +25,8 @@ impl Plugin for VoxelHandItemPlugin {
     }
 }
 
-fn register_item(mut catalog: ResMut<PlaygroundCatalog>) {
-    catalog.register(PlaygroundItem {
+fn register_item(mut catalog: ResMut<ItemCatalog>) {
+    catalog.register(ItemDefinition {
         id: VOXEL_HAND,
         name: "Voxel Hand",
         description: "Remove or add smooth volumetric matter.",
@@ -35,7 +34,7 @@ fn register_item(mut catalog: ResMut<PlaygroundCatalog>) {
 }
 
 fn use_voxel_hand(
-    mut uses: MessageReader<UsePlaygroundItem>,
+    mut uses: MessageReader<UseItem>,
     frames: Res<UsfScaleLayerFrames>,
     mut worlds: ParamSet<(
         Query<(Entity, &VoxelWorld, &UsfScaleLayer)>,
@@ -44,8 +43,8 @@ fn use_voxel_hand(
 ) {
     for request in uses.read() {
         if request.item != VOXEL_HAND
-            || (request.action != PlaygroundItemAction::PRIMARY
-                && request.action != PlaygroundItemAction::SECONDARY)
+            || (request.action != ItemAction::PRIMARY
+                && request.action != ItemAction::SECONDARY)
         {
             continue;
         }
@@ -93,7 +92,7 @@ fn use_voxel_hand(
         };
 
         let direction = request.aim.direction.normalize_or_zero();
-        let offset = if request.action == PlaygroundItemAction::PRIMARY {
+        let offset = if request.action == ItemAction::PRIMARY {
             direction * (BRUSH_RADIUS * 0.35)
         } else {
             -direction * (BRUSH_RADIUS * 0.35)
@@ -103,7 +102,7 @@ fn use_voxel_hand(
         };
         let brush = VoxelBrush::sphere(center, BRUSH_RADIUS);
 
-        let edit = if request.action == PlaygroundItemAction::PRIMARY {
+        let edit = if request.action == ItemAction::PRIMARY {
             VoxelEdit::Remove { brush }
         } else {
             VoxelEdit::Add {

@@ -8,14 +8,14 @@ use bevy::prelude::*;
 
 use crate::{
     ecs::{UsfManifestationOf, UsfManifestations},
-    game::{GameSet, thermal::ThermalPointImpulse},
+    game::{
+        GameSet,
+        item::{ItemAction, ItemCatalog, ItemDefinition, ItemId, UseItem},
+        thermal::ThermalPointImpulse,
+    },
 };
 
-use super::super::{
-    PlaygroundCatalog, PlaygroundItem, PlaygroundItemAction, PlaygroundItemId, UsePlaygroundItem,
-};
-
-pub const HEAT_RAY: PlaygroundItemId = PlaygroundItemId::new("heat_ray");
+pub const HEAT_RAY: ItemId = ItemId::new("heat_ray");
 
 const RANGE: f32 = 100.0;
 const HEAT_ENERGY_JOULES: f32 = 220_000.0;
@@ -30,8 +30,8 @@ impl Plugin for HeatRayItemPlugin {
     }
 }
 
-fn register_item(mut catalog: ResMut<PlaygroundCatalog>) {
-    catalog.register(PlaygroundItem {
+fn register_item(mut catalog: ResMut<ItemCatalog>) {
+    catalog.register(ItemDefinition {
         id: HEAT_RAY,
         name: "Heat Ray",
         description: "LMB injects heat at the hit point; RMB removes it. Internal gradients are systemic.",
@@ -39,7 +39,7 @@ fn register_item(mut catalog: ResMut<PlaygroundCatalog>) {
 }
 
 fn use_heat_ray(
-    mut uses: MessageReader<UsePlaygroundItem>,
+    mut uses: MessageReader<UseItem>,
     manifestations: Query<&UsfManifestationOf>,
     semantic_entities: Query<&UsfManifestations>,
     spatial_query: SpatialQuery,
@@ -50,9 +50,9 @@ fn use_heat_ray(
             continue;
         }
 
-        let energy_joules = if request.action == PlaygroundItemAction::PRIMARY {
+        let energy_joules = if request.action == ItemAction::PRIMARY {
             HEAT_ENERGY_JOULES
-        } else if request.action == PlaygroundItemAction::SECONDARY {
+        } else if request.action == ItemAction::SECONDARY {
             COOL_ENERGY_JOULES
         } else {
             continue;

@@ -2,13 +2,13 @@
 
 use bevy::prelude::*;
 
-use crate::game::{GameSet, combat::FireWeapon};
-
-use super::super::{
-    PlaygroundCatalog, PlaygroundItem, PlaygroundItemAction, PlaygroundItemId, UsePlaygroundItem,
+use crate::game::{
+    GameSet,
+    combat::FireWeapon,
+    item::{ItemAction, ItemCatalog, ItemDefinition, ItemId, UseItem},
 };
 
-pub const PROJECTILE_GUN: PlaygroundItemId = PlaygroundItemId::new("projectile_gun");
+pub const PROJECTILE_GUN: ItemId = ItemId::new("projectile_gun");
 
 pub struct ProjectileGunItemPlugin;
 
@@ -19,8 +19,8 @@ impl Plugin for ProjectileGunItemPlugin {
     }
 }
 
-fn register_item(mut catalog: ResMut<PlaygroundCatalog>) {
-    catalog.register(PlaygroundItem {
+fn register_item(mut catalog: ResMut<ItemCatalog>) {
+    catalog.register(ItemDefinition {
         id: PROJECTILE_GUN,
         name: "Projectile Gun",
         description: "Fire ordinary damage projectiles.",
@@ -28,11 +28,11 @@ fn register_item(mut catalog: ResMut<PlaygroundCatalog>) {
 }
 
 fn use_projectile_gun(
-    mut uses: MessageReader<UsePlaygroundItem>,
+    mut uses: MessageReader<UseItem>,
     mut fire: MessageWriter<FireWeapon>,
 ) {
     for request in uses.read() {
-        if request.item != PROJECTILE_GUN || request.action != PlaygroundItemAction::PRIMARY {
+        if request.item != PROJECTILE_GUN || request.action != ItemAction::PRIMARY {
             continue;
         }
 

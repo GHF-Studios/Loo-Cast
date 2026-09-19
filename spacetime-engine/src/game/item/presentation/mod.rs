@@ -1,12 +1,18 @@
+//! Generic UI presentation of item definitions.
+
 use bevy::prelude::*;
 
 use crate::ui::UiTextStyle;
 
-use super::super::catalog::{PlaygroundCatalog, PlaygroundItemId};
+use super::{ItemCatalog, ItemId};
+
+pub(super) fn configure(app: &mut App) {
+    app.add_systems(PostUpdate, sync_item_views);
+}
 
 #[derive(Component, Debug, Clone, Copy, Default)]
 pub struct ItemView {
-    pub item: Option<PlaygroundItemId>,
+    pub item: Option<ItemId>,
 }
 
 #[derive(Component)]
@@ -14,7 +20,7 @@ pub struct ItemViewLabel;
 
 pub fn spawn_item_view(
     parent: &mut ChildSpawnerCommands,
-    item: Option<PlaygroundItemId>,
+    item: Option<ItemId>,
     text_style: &UiTextStyle,
 ) {
     parent
@@ -41,7 +47,7 @@ pub fn spawn_item_view(
 }
 
 pub fn sync_item_views(
-    catalog: Res<PlaygroundCatalog>,
+    catalog: Res<ItemCatalog>,
     views: Query<(&ItemView, &Children), Changed<ItemView>>,
     mut labels: Query<&mut Text, With<ItemViewLabel>>,
 ) {
