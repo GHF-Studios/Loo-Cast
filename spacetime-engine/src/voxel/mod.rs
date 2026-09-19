@@ -51,14 +51,11 @@ enum VoxelPostUpdateSet {
     Membership,
     Rebuild,
     Collision,
-    Diagnostics,
 }
 
 impl Plugin for VoxelPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<perf::VoxelPerfStats>()
-            .init_resource::<perf::FixedStepProbe>()
-            .init_resource::<manifestation::VoxelRenderAggregateRegistry>()
+        app.init_resource::<manifestation::VoxelRenderAggregateRegistry>()
             .configure_sets(
                 Update,
                 (
@@ -77,7 +74,6 @@ impl Plugin for VoxelPlugin {
             // Orphan retirement is independent of demand planning and should not
             // serialize the normal residency -> generation path.
             .add_systems(Update, streaming::retire_orphaned_tasks)
-            .add_systems(FixedUpdate, perf::count_fixed_step)
             .configure_sets(
                 PostUpdate,
                 (
@@ -89,11 +85,6 @@ impl Plugin for VoxelPlugin {
                         .after(VoxelPostUpdateSet::ManifestationCleanup),
                     VoxelPostUpdateSet::Rebuild.after(VoxelPostUpdateSet::Membership),
                     VoxelPostUpdateSet::Collision.after(VoxelPostUpdateSet::Rebuild),
-                    VoxelPostUpdateSet::Diagnostics
-                        .after(VoxelPostUpdateSet::DensePublication)
-                        .after(VoxelPostUpdateSet::SurfacePublication)
-                        .after(VoxelPostUpdateSet::SurfaceScheduling)
-                        .after(VoxelPostUpdateSet::Collision),
                 ),
             )
             .add_systems(
@@ -134,12 +125,6 @@ impl Plugin for VoxelPlugin {
                 PostUpdate,
                 manifestation::sync_manifestation_collision_residency
                     .in_set(VoxelPostUpdateSet::Collision),
-            )
-            .add_systems(
-                PostUpdate,
-                (perf::sample_fixed_steps, perf::report_voxel_perf)
-                    .chain()
-                    .in_set(VoxelPostUpdateSet::Diagnostics),
             );
 
         devtools::configure(app);

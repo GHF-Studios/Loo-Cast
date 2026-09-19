@@ -1,6 +1,6 @@
 //! Mesh manifestation construction and publication.
 
-use std::{collections::HashMap, time::Instant};
+use std::collections::HashMap;
 
 use bevy::{
     asset::RenderAssetUsages,
@@ -21,7 +21,6 @@ use super::super::{
     MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationChunkAddress, VoxelQueryPosition,
     VoxelWorld,
     aggregate::VoxelMaterializationAggregateScope,
-    perf::VoxelPerfStats,
     streaming::VoxelPresentationMaterial,
 };
 
@@ -44,7 +43,6 @@ pub(crate) fn rebuild_dirty_manifestations(
     mut aggregates: Query<&mut VoxelRenderAggregate>,
     aggregate_presentations: Query<Option<&Mesh3d>, With<VoxelRenderAggregatePresentation>>,
     mut registry: ResMut<VoxelRenderAggregateRegistry>,
-    mut perf: ResMut<VoxelPerfStats>,
 ) {
     for _ in 0..config.voxel.manifestation.rebuild_budget_per_frame {
         let Some(key) = registry.dirty.iter().next().copied() else {
@@ -75,7 +73,6 @@ pub(crate) fn rebuild_dirty_manifestations(
             continue;
         };
 
-        let started = Instant::now();
         let Some(mesh) = build_aggregate_mesh(key.scope, members, world) else {
             registry.dirty.insert(key);
             continue;
@@ -161,7 +158,6 @@ pub(crate) fn rebuild_dirty_manifestations(
         // here; the following collision-residency stage independently decides
         // whether this manifestation currently needs a fresh collider.
         publish_collider_manifestation(&mut commands, root, false, None);
-        perf.record_render_aggregate_rebuild(started.elapsed().as_micros() as u64);
     }
 }
 

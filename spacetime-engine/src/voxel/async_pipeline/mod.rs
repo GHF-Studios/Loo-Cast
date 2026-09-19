@@ -4,8 +4,6 @@
 //! entities only while work is in flight; finished surface caches return to the
 //! store. Rendering and physics consume those caches at aggregate granularity.
 
-use std::time::Instant;
-
 use bevy::{
     prelude::*,
     tasks::{AsyncComputeTaskPool, Task, futures::check_ready},
@@ -16,7 +14,7 @@ use crate::spatial::{SPATIAL_SCALE_MAX, SpatialScale, UsfPosition, UsfScaleLayer
 use super::{
     VoxelMaterializationChunkAddress, VoxelWorld,
     mesh::{self, VoxelSurface},
-    perf::{VoxelPerfStats, per_stage_in_flight_limit},
+    perf::per_stage_in_flight_limit,
     store::VoxelSurfaceCache,
 };
 
@@ -26,7 +24,6 @@ const DERIVED_PUBLISH_BUDGET_PER_FRAME: usize = 8;
 struct VoxelDerivedOutput {
     surface: VoxelSurface,
     debug_color: [f32; 4],
-    build_micros: u64,
 }
 
 /// One in-flight surface extraction for one materialization revision.
@@ -44,7 +41,6 @@ pub(crate) fn publish_completed_chunk_builds(
     mut commands: Commands,
     mut worlds: Query<&mut VoxelWorld>,
     mut tasks: Query<(Entity, &mut VoxelDerivedTask)>,
-    mut perf: ResMut<VoxelPerfStats>,
 ) {
     let mut published = 0;
 
@@ -66,7 +62,6 @@ pub(crate) fn publish_completed_chunk_builds(
             world
                 .materializations_mut()
                 .publish_surface(build.address, build.revision, cache);
-            perf.record_derived(output.build_micros);
         }
 
         commands.entity(task_entity).despawn();
@@ -105,12 +100,10 @@ pub(crate) fn queue_dirty_chunk_builds(
 
             let debug_color = debug_chunk_color(address, layer.scale());
             let task = pool.spawn(async move {
-                let started_at = Instant::now();
                 let surface = mesh::extract_chunk_surface(&snapshot);
                 VoxelDerivedOutput {
                     surface,
                     debug_color,
-                    build_micros: started_at.elapsed().as_micros() as u64,
                 }
             });
 

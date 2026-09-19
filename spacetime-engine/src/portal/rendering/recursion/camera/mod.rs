@@ -6,7 +6,7 @@
 use bevy::prelude::*;
 
 use crate::portal::{
-    domain::{Portal, PortalFace, PortalPair, PortalView},
+    domain::{Portal, PortalActive, PortalFace, PortalPair, PortalView},
     topology::mapping::map_transform,
 };
 
@@ -33,8 +33,16 @@ pub fn update_portal_cameras(
         >,
     )>,
     pair: Res<PortalPair>,
+    active: Query<&PortalActive, With<Portal>>,
     portals: Query<&Transform, With<Portal>>,
 ) {
+    let pair_active = [pair.first, pair.second]
+        .into_iter()
+        .all(|entity| active.get(entity).is_ok_and(|active| active.0));
+    if !pair_active {
+        return;
+    }
+
     let (primary_transform, primary_projection, primary_clear_color) = {
         let primary = cameras.p0();
 

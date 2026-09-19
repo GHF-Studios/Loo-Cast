@@ -13,7 +13,6 @@ use super::{VoxelMaterializationDemand, VoxelStreaming};
 use super::super::{
     MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationChunkAddress, VoxelQueryPosition,
     VoxelWorld,
-    perf::VoxelPerfStats,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -42,7 +41,6 @@ pub(crate) fn refresh_voxel_residency(
     demand_snapshot: Res<SpatialDemandSnapshot>,
     voxel_demand_sources: Query<(), With<VoxelMaterializationDemand>>,
     mut worlds: Query<(&mut VoxelWorld, &mut VoxelStreaming, &UsfScaleLayer)>,
-    mut perf: ResMut<VoxelPerfStats>,
     mut all_voxel_demands: Local<Vec<SpatialDemandScope>>,
     mut voxel_demands: Local<Vec<SpatialDemandScope>>,
 ) {
@@ -64,7 +62,7 @@ pub(crate) fn refresh_voxel_residency(
                 .filter(|demand| demand.scale() == layer.scale()),
         );
 
-        let changed = match refresh_demand_plan(&world, &voxel_demands, &mut streaming, &mut perf) {
+        let changed = match refresh_demand_plan(&world, &voxel_demands, &mut streaming) {
             Ok(changed) => changed,
             Err(_) => {
                 error!("voxel spatial demand could not be represented canonically");
@@ -97,7 +95,6 @@ fn refresh_demand_plan(
     world: &VoxelWorld,
     demands: &[SpatialDemandScope],
     streaming: &mut VoxelStreaming,
-    perf: &mut VoxelPerfStats,
 ) -> Result<bool, crate::spatial::UsfPositionError> {
     let key = demand_plan_key(world, demands)?;
     if key == streaming.demand_key {
@@ -115,7 +112,6 @@ fn refresh_demand_plan(
         .filter(|chunk| !world.materializations().is_active(chunk.address))
         .collect();
     streaming.demand_key = key;
-    perf.record_demand_rebuild();
     Ok(true)
 }
 

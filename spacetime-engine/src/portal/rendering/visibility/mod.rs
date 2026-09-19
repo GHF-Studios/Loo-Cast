@@ -8,13 +8,14 @@ use bevy::{
 
 use crate::portal::{Portal, PortalActive, PortalPair};
 
-use super::DERIVED_VIEW_LAYER;
+use super::{DERIVED_VIEW_LAYER, recursion::path::PortalRenderCamera};
 
 /// Recursive rendering represents a complete pair, so a lone active endpoint
 /// remains logically placed but visually hidden until its partner exists too.
 pub fn sync_portal_visibility(
     pair: Res<PortalPair>,
     mut portals: Query<(Ref<PortalActive>, &mut Visibility), With<Portal>>,
+    mut portal_cameras: Query<&mut Camera, With<PortalRenderCamera>>,
 ) {
     let changed = pair.is_changed()
         || [pair.first, pair.second].into_iter().any(|entity| {
@@ -41,6 +42,12 @@ pub fn sync_portal_visibility(
         };
         if *visibility != desired {
             *visibility = desired;
+        }
+    }
+
+    for mut camera in &mut portal_cameras {
+        if camera.is_active != pair_ready {
+            camera.is_active = pair_ready;
         }
     }
 }

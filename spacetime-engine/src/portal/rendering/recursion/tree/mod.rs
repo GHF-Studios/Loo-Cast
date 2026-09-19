@@ -130,6 +130,9 @@ fn build_render_node(
             Name::new(format!("Portal Camera {:?}", child_path,)),
             Camera3d::default(),
             Camera {
+                // Derived views are dormant until both physical endpoints are
+                // active. A hidden portal must not cost a full render pass.
+                is_active: false,
                 // Deeper dependencies render first, exactly as before.
                 order: -(child_path.len() as isize),
 

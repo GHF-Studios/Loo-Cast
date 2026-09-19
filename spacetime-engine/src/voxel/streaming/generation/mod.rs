@@ -1,6 +1,6 @@
 //! Async dense-materialization generation lifecycle.
 
-use std::{collections::VecDeque, time::Instant};
+use std::collections::VecDeque;
 
 use bevy::{
     ecs::lifecycle::RemovedComponents,
@@ -14,7 +14,7 @@ use super::VoxelStreaming;
 use super::super::{
     VoxelChunk, VoxelMaterializationChunkAddress, VoxelWorld,
     aggregate::{VoxelMaterializationAggregateExtent, VoxelMaterializationAggregateScope},
-    perf::{VoxelPerfStats, per_stage_in_flight_limit},
+    perf::per_stage_in_flight_limit,
 };
 
 mod batching;
@@ -25,7 +25,6 @@ struct VoxelGeneratedChunk {
     address: VoxelMaterializationChunkAddress,
     token: u64,
     applied_edit_count: usize,
-    generation_micros: u64,
     chunk: VoxelChunk,
 }
 
@@ -49,13 +48,11 @@ impl VoxelAggregateGenerationTask {
             jobs.into_iter()
                 .map(|job| {
                     let applied_edit_count = job.recipe.applied_edit_count();
-                    let started = Instant::now();
                     let chunk = job.recipe.materialize();
                     VoxelGeneratedChunk {
                         address: job.address,
                         token: job.token,
                         applied_edit_count,
-                        generation_micros: started.elapsed().as_micros() as u64,
                         chunk,
                     }
                 })
@@ -75,7 +72,6 @@ pub(crate) fn finish_chunk_generation(
     mut commands: Commands,
     mut worlds: Query<&mut VoxelWorld>,
     mut tasks: Query<(Entity, &mut VoxelAggregateGenerationTask)>,
-    mut perf: ResMut<VoxelPerfStats>,
 ) {
     let publish_budget = config.voxel.streaming.generation_publish_budget_per_frame;
     let mut published = 0;
@@ -117,7 +113,6 @@ pub(crate) fn finish_chunk_generation(
                 output.token,
                 output.chunk,
             ) {
-                perf.record_generation(output.generation_micros);
                 published += 1;
             }
         }
