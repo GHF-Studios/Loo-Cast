@@ -25,8 +25,10 @@ pub(in crate::spatial) fn sync_view_anchor(
         return;
     };
 
-    view.anchor = canonical;
-    view.runtime_anchor = anchor.translation;
+    if view.anchor != canonical || view.runtime_anchor != anchor.translation {
+        view.anchor = canonical;
+        view.runtime_anchor = anchor.translation;
+    }
 }
 
 /// Projects scale-authored presentation geometry around the observer without
@@ -52,7 +54,9 @@ pub(in crate::spatial) fn project_local_scale_presentations(
         let Ok((parent_transform, layer, follows_active)) = parents.get(parent.0) else {
             continue;
         };
-        presentation.set_scale(layer.scale());
+        if presentation.scale() != layer.scale() {
+            presentation.set_scale(layer.scale());
+        }
 
         let observer_in_parent_chart = if follows_active.is_some() {
             view.runtime_anchor()
@@ -65,8 +69,15 @@ pub(in crate::spatial) fn project_local_scale_presentations(
         let desired_global = view.runtime_anchor()
             + (parent_transform.translation - observer_in_parent_chart) * factor;
         let delta = desired_global - parent_transform.translation;
-        transform.translation = parent_transform.rotation.inverse() * delta;
-        transform.scale = Vec3::splat(factor);
+        let desired_translation = parent_transform.rotation.inverse() * delta;
+        let desired_scale = Vec3::splat(factor);
+
+        if transform.translation != desired_translation {
+            transform.translation = desired_translation;
+        }
+        if transform.scale != desired_scale {
+            transform.scale = desired_scale;
+        }
     }
 }
 
@@ -83,7 +94,9 @@ pub(in crate::spatial) fn project_scale_presentations(
     for (presentation, parent, mut transform, mut visibility) in &mut presentations {
         let contribution = view.contribution(presentation.scale());
         if contribution <= CONTRIBUTION_EPSILON {
-            *visibility = Visibility::Hidden;
+            if !matches!(*visibility, Visibility::Hidden) {
+                *visibility = Visibility::Hidden;
+            }
             continue;
         }
 
@@ -92,23 +105,35 @@ pub(in crate::spatial) fn project_scale_presentations(
             presentation.scale(),
             PRESENTATION_RELATIVE_BOUND,
         ) else {
-            *visibility = Visibility::Hidden;
+            if !matches!(*visibility, Visibility::Hidden) {
+                *visibility = Visibility::Hidden;
+            }
             continue;
         };
 
         let factor = view.projection_factor(presentation.scale());
         let desired_global = view.runtime_anchor() + relative * factor;
 
-        transform.translation = if let Some(parent) = parent {
+        let desired_translation = if let Some(parent) = parent {
             let Ok(parent_transform) = parents.get(parent.0) else {
-                *visibility = Visibility::Hidden;
+                if !matches!(*visibility, Visibility::Hidden) {
+                    *visibility = Visibility::Hidden;
+                }
                 continue;
             };
             desired_global - parent_transform.translation
         } else {
             desired_global
         };
-        transform.scale = Vec3::splat(factor);
-        *visibility = Visibility::Inherited;
+        if transform.translation != desired_translation {
+            transform.translation = desired_translation;
+        }
+        let desired_scale = Vec3::splat(factor);
+        if transform.scale != desired_scale {
+            transform.scale = desired_scale;
+        }
+        if !matches!(*visibility, Visibility::Inherited) {
+            *visibility = Visibility::Inherited;
+        }
     }
 }

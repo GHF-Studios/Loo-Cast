@@ -16,12 +16,32 @@ use crate::{
     worldgen::{PhenomenonRegistry, WorldgenEvaluationKey, WorldgenStore},
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct ScaleStackDemandKey {
+    interaction: SpatialScale,
+    refinement: Option<SpatialScale>,
+}
+
+impl ScaleStackDemandKey {
+    fn from_view(view: &UsfViewFrame) -> Self {
+        let interaction = view.interaction_scale();
+        let refinement = (view.scale() < interaction && view.contribution(view.scale()) > 0.001)
+            .then_some(view.scale());
+
+        Self {
+            interaction,
+            refinement,
+        }
+    }
+}
+
 #[derive(Component)]
 pub(super) struct ProceduralScaleStack {
     semantic_target: UsfPosition,
     root: WorldgenEvaluationKey,
     material: Handle<StandardMaterial>,
     active: HashMap<SpatialScale, Entity>,
+    last_demand: Option<ScaleStackDemandKey>,
 }
 
 impl ProceduralScaleStack {
@@ -38,6 +58,7 @@ impl ProceduralScaleStack {
             root,
             material,
             active,
+            last_demand: None,
         }
     }
 }
@@ -50,9 +71,15 @@ pub(super) fn sync_scale_stack(
     mut worldgen: ResMut<WorldgenStore>,
     mut stacks: Query<(Entity, &mut ProceduralScaleStack)>,
 ) {
+    let demand = ScaleStackDemandKey::from_view(&view);
+
     for (stack_entity, mut stack) in &mut stacks {
+        if stack.last_demand == Some(demand) {
+            continue;
+        }
+
         stack.active.retain(|scale, entity| {
-            if scale_is_desired(&view, *scale) {
+            if scale_is_desired(demand, *scale) {
                 true
             } else {
                 commands.entity(*entity).despawn();
@@ -60,7 +87,7 @@ pub(super) fn sync_scale_stack(
             }
         });
 
-        for scale in desired_scales(&view) {
+        for scale in desired_scales(demand) {
             if stack.active.contains_key(&scale) {
                 continue;
             }
@@ -91,26 +118,21 @@ pub(super) fn sync_scale_stack(
                 "extended hierarchical USF voxel realization spine"
             );
         }
+
+        stack.last_demand = Some(demand);
     }
 }
 
-fn desired_scales(view: &UsfViewFrame) -> impl Iterator<Item = SpatialScale> + '_ {
-    let interaction = view.interaction_scale();
-    let ancestors = (interaction.exponent()..=SPATIAL_SCALE_MAX)
+fn desired_scales(demand: ScaleStackDemandKey) -> impl Iterator<Item = SpatialScale> {
+    let ancestors = (demand.interaction.exponent()..=SPATIAL_SCALE_MAX)
         .rev()
         .map(|raw| SpatialScale::new(raw).expect("validated scale"));
-    let refinement = (view.scale() < interaction && view.contribution(view.scale()) > 0.001)
-        .then_some(view.scale());
 
-    ancestors.chain(refinement)
+    ancestors.chain(demand.refinement)
 }
 
-fn scale_is_desired(view: &UsfViewFrame, scale: SpatialScale) -> bool {
-    let interaction = view.interaction_scale();
-    scale >= interaction
-        || (scale == view.scale()
-            && view.scale() < interaction
-            && view.contribution(view.scale()) > 0.001)
+fn scale_is_desired(demand: ScaleStackDemandKey, scale: SpatialScale) -> bool {
+    scale >= demand.interaction || demand.refinement == Some(scale)
 }
 
 pub(super) fn volume_for_scale_context(

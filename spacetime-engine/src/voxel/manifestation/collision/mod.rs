@@ -31,6 +31,10 @@ pub(crate) fn sync_manifestation_collision_residency(
     aggregate_roots: Query<Option<&Collider>, With<VoxelRenderAggregate>>,
     registry: Res<VoxelRenderAggregateRegistry>,
 ) {
+    if !config.is_changed() && !view.is_changed() && !registry.is_changed() {
+        return;
+    }
+
     for (&key, &entity) in &registry.aggregate_entities {
         let Some(members) = registry.groups.get(&key) else {
             continue;

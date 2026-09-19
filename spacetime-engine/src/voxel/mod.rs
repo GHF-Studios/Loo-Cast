@@ -36,39 +36,110 @@ use crate::spatial::SpatialDemandSet;
 
 pub struct VoxelPlugin;
 
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum VoxelUpdateSet {
+    Residency,
+    Generation,
+}
+
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum VoxelPostUpdateSet {
+    DensePublication,
+    SurfacePublication,
+    SurfaceScheduling,
+    ManifestationCleanup,
+    Membership,
+    Rebuild,
+    Collision,
+    Diagnostics,
+}
+
 impl Plugin for VoxelPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<perf::VoxelPerfStats>()
             .init_resource::<perf::FixedStepProbe>()
             .init_resource::<manifestation::VoxelRenderAggregateRegistry>()
-            .add_systems(
+            .configure_sets(
                 Update,
                 (
-                    streaming::retire_orphaned_tasks,
-                    streaming::refresh_voxel_residency,
-                    streaming::schedule_voxel_generation,
-                )
-                    .chain()
-                    .after(SpatialDemandSet::Collect),
+                    VoxelUpdateSet::Residency.after(SpatialDemandSet::Collect),
+                    VoxelUpdateSet::Generation.after(VoxelUpdateSet::Residency),
+                ),
             )
+            .add_systems(
+                Update,
+                streaming::refresh_voxel_residency.in_set(VoxelUpdateSet::Residency),
+            )
+            .add_systems(
+                Update,
+                streaming::schedule_voxel_generation.in_set(VoxelUpdateSet::Generation),
+            )
+            // Orphan retirement is independent of demand planning and should not
+            // serialize the normal residency -> generation path.
+            .add_systems(Update, streaming::retire_orphaned_tasks)
             .add_systems(FixedUpdate, perf::count_fixed_step)
+            .configure_sets(
+                PostUpdate,
+                (
+                    VoxelPostUpdateSet::SurfaceScheduling
+                        .after(VoxelPostUpdateSet::DensePublication)
+                        .after(VoxelPostUpdateSet::SurfacePublication),
+                    VoxelPostUpdateSet::Membership
+                        .after(VoxelPostUpdateSet::SurfacePublication)
+                        .after(VoxelPostUpdateSet::ManifestationCleanup),
+                    VoxelPostUpdateSet::Rebuild.after(VoxelPostUpdateSet::Membership),
+                    VoxelPostUpdateSet::Collision.after(VoxelPostUpdateSet::Rebuild),
+                    VoxelPostUpdateSet::Diagnostics
+                        .after(VoxelPostUpdateSet::DensePublication)
+                        .after(VoxelPostUpdateSet::SurfacePublication)
+                        .after(VoxelPostUpdateSet::SurfaceScheduling)
+                        .after(VoxelPostUpdateSet::Collision),
+                ),
+            )
+            .add_systems(
+                PostUpdate,
+                streaming::finish_chunk_generation
+                    .in_set(VoxelPostUpdateSet::DensePublication),
+            )
+            .add_systems(
+                PostUpdate,
+                async_pipeline::publish_completed_chunk_builds
+                    .in_set(VoxelPostUpdateSet::SurfacePublication),
+            )
+            .add_systems(
+                PostUpdate,
+                async_pipeline::queue_dirty_chunk_builds
+                    .in_set(VoxelPostUpdateSet::SurfaceScheduling),
+            )
+            .add_systems(
+                PostUpdate,
+                manifestation::retire_removed_world_manifestations
+                    .in_set(VoxelPostUpdateSet::ManifestationCleanup),
+            )
             .add_systems(
                 PostUpdate,
                 (
-                    // Finish field generation, publish store-owned derived caches,
-                    // then rebuild only dirty aggregate runtime manifestations.
-                    streaming::finish_chunk_generation,
-                    async_pipeline::publish_completed_chunk_builds,
-                    async_pipeline::queue_dirty_chunk_builds,
-                    manifestation::retire_removed_world_manifestations,
                     manifestation::sync_manifestation_grouping_policy,
                     manifestation::sync_manifestation_membership,
-                    manifestation::rebuild_dirty_manifestations,
-                    manifestation::sync_manifestation_collision_residency,
-                    perf::sample_fixed_steps,
-                    perf::report_voxel_perf,
                 )
-                    .chain(),
+                    .chain()
+                    .in_set(VoxelPostUpdateSet::Membership),
+            )
+            .add_systems(
+                PostUpdate,
+                manifestation::rebuild_dirty_manifestations
+                    .in_set(VoxelPostUpdateSet::Rebuild),
+            )
+            .add_systems(
+                PostUpdate,
+                manifestation::sync_manifestation_collision_residency
+                    .in_set(VoxelPostUpdateSet::Collision),
+            )
+            .add_systems(
+                PostUpdate,
+                (perf::sample_fixed_steps, perf::report_voxel_perf)
+                    .chain()
+                    .in_set(VoxelPostUpdateSet::Diagnostics),
             );
 
         devtools::configure(app);

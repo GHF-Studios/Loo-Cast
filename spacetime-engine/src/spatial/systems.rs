@@ -56,12 +56,17 @@ pub(super) fn sync_active_scale_layer(
 pub(super) fn sync_semantic_positions(
     frame: Res<UsfSpatialFrame>,
     anchors: Query<
-        (&Transform, &UsfManifestationOf),
+        (Ref<Transform>, Ref<UsfManifestationOf>),
         (With<UsfSpatialAnchor>, With<UsfLogicalProjection>),
     >,
     mut semantic_positions: Query<&mut UsfPosition>,
 ) {
+    let frame_changed = frame.is_changed();
+
     for (transform, manifestation) in &anchors {
+        if !frame_changed && !transform.is_changed() && !manifestation.is_changed() {
+            continue;
+        }
         let Ok(mut semantic) = semantic_positions.get_mut(manifestation.0) else {
             continue;
         };
@@ -72,6 +77,8 @@ pub(super) fn sync_semantic_positions(
             );
             continue;
         };
-        *semantic = position;
+        if *semantic != position {
+            *semantic = position;
+        }
     }
 }
