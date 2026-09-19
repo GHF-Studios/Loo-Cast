@@ -26,7 +26,10 @@ use super::{
 #[derive(Debug, Clone)]
 struct ConsoleTeleport {
     label: String,
+    /// Native coordinate chart for arrival/look-at coordinates.
     scale: SpatialScale,
+    /// Observer exponent requested before applying the bounded teleport.
+    view_exponent: f32,
     arrival: DVec3,
     look_at: Option<DVec3>,
 }
@@ -60,6 +63,15 @@ pub(super) fn configure(app: &mut App) {
             summary: "Locate generated structures in scale-local coordinates.",
         },
         locate_command,
+    )
+    .register_console_command(
+        ConsoleCommandSpec {
+            name: "zoom",
+            aliases: &["scale"],
+            usage: "zoom <scale|continuous-exponent>",
+            summary: "Change observer scale without changing canonical position.",
+        },
+        zoom_command,
     )
     .register_console_command(
         ConsoleCommandSpec {
@@ -131,6 +143,48 @@ fn locate_command(world: &mut World, invocation: &ConsoleCommandInvocation) -> C
     }))
 }
 
+fn zoom_command(
+    world: &mut World,
+    invocation: &ConsoleCommandInvocation,
+) -> ConsoleCommandResult {
+    let Some(value) = invocation.args().first() else {
+        let view = world.resource::<UsfViewFrame>();
+        return ConsoleCommandResult::success(format!(
+            "observer scale = {:+.3} (interaction S{})",
+            view.continuous_exponent(),
+            view.interaction_scale(),
+        ));
+    };
+
+    let raw = value
+        .trim()
+        .trim_start_matches('S')
+        .trim_start_matches('s')
+        .trim_start_matches('+');
+    let Ok(exponent) = raw.parse::<f32>() else {
+        return ConsoleCommandResult::error(format!("invalid observer scale `{value}`"));
+    };
+    if !exponent.is_finite() {
+        return ConsoleCommandResult::error("observer scale must be finite");
+    }
+
+    world
+        .resource_mut::<UsfViewFrame>()
+        .set_continuous_exponent(exponent);
+    let view = world.resource::<UsfViewFrame>();
+    ConsoleCommandResult::success(format!(
+        "observer scale -> {:+.3} (interaction S{})",
+        view.continuous_exponent(),
+        view.interaction_scale(),
+    ))
+}
+
+fn interaction_scale_for_exponent(exponent: f32) -> SpatialScale {
+    let mut view = UsfViewFrame::default();
+    view.set_continuous_exponent(exponent);
+    view.interaction_scale()
+}
+
 fn teleport_command(
     world: &mut World,
     invocation: &ConsoleCommandInvocation,
@@ -184,6 +238,7 @@ fn teleport_command(
         ConsoleTeleport {
             label: format!("S{scale} coordinate"),
             scale,
+            view_exponent: scale.exponent() as f32,
             arrival: DVec3::new(coordinates[0], coordinates[1], coordinates[2]),
             look_at: None,
         }
@@ -195,16 +250,17 @@ fn teleport_command(
 
     world
         .resource_mut::<UsfViewFrame>()
-        .set_continuous_exponent(target.scale.exponent() as f32);
+        .set_continuous_exponent(target.view_exponent);
     world.resource_mut::<PendingConsoleTeleport>().0 = Some(target.clone());
 
     ConsoleCommandResult::success(format!(
-        "teleport queued: {} @ S{} ({:.3}, {:.3}, {:.3})",
+        "teleport queued: {} @ S{} ({:.3}, {:.3}, {:.3}), view {:+.1}",
         target.label,
         target.scale,
         target.arrival.x,
         target.arrival.y,
-        target.arrival.z
+        target.arrival.z,
+        target.view_exponent
     ))
 }
 
@@ -212,6 +268,7 @@ fn target_from_landmark(landmark: &UniverseLandmark) -> ConsoleTeleport {
     ConsoleTeleport {
         label: landmark.id.to_string(),
         scale: landmark.scale,
+        view_exponent: landmark.view_exponent,
         arrival: landmark.arrival,
         look_at: Some(landmark.look_at),
     }
@@ -250,7 +307,8 @@ fn apply_pending_teleport(
     let Some(request) = pending.0.as_ref() else {
         return;
     };
-    if active.scale() != request.scale {
+    let expected_interaction_scale = interaction_scale_for_exponent(request.view_exponent);
+    if active.scale() != expected_interaction_scale {
         return;
     }
     let request = pending.0.take().expect("pending teleport still exists");

@@ -432,17 +432,30 @@ fn draw_console(
                 console.opened_this_frame = false;
             }
 
-            if response.has_focus() {
-                if ui.input(|input| input.key_pressed(egui::Key::ArrowUp)) {
+            // A single-line egui TextEdit surrenders focus when Enter is
+            // pressed. Handle keyboard actions for both the focused and
+            // just-lost-focus response, then immediately reclaim the prompt.
+            let prompt_active = response.has_focus() || response.lost_focus();
+            if prompt_active {
+                let history_up = ui.input(|input| input.key_pressed(egui::Key::ArrowUp));
+                let history_down =
+                    ui.input(|input| input.key_pressed(egui::Key::ArrowDown));
+                let complete = ui.input(|input| input.key_pressed(egui::Key::Tab));
+                let submit = ui.input(|input| input.key_pressed(egui::Key::Enter));
+
+                if history_up {
                     console.history_up();
+                    response.request_focus();
                 }
-                if ui.input(|input| input.key_pressed(egui::Key::ArrowDown)) {
+                if history_down {
                     console.history_down();
+                    response.request_focus();
                 }
-                if ui.input(|input| input.key_pressed(egui::Key::Tab)) {
+                if complete {
                     complete_command_input(&mut console.input, &registry);
+                    response.request_focus();
                 }
-                if ui.input(|input| input.key_pressed(egui::Key::Enter)) {
+                if submit {
                     console.submit();
                     response.request_focus();
                 }

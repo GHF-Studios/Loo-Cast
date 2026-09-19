@@ -9,7 +9,14 @@ pub(in crate::game) struct UniverseLandmark {
     pub id: &'static str,
     pub kind: &'static str,
     pub aliases: &'static [&'static str],
+    /// Coordinate/interaction chart used for this landmark.
     pub scale: SpatialScale,
+    /// Recommended continuous observer exponent when visiting this landmark.
+    ///
+    /// This is deliberately distinct from coordinate scale: future landmarks
+    /// may be authored in one chart but look best from a neighboring/fractional
+    /// observer scale.
+    pub view_exponent: f32,
     pub center: DVec3,
     pub arrival: DVec3,
     pub look_at: DVec3,
@@ -27,8 +34,12 @@ impl UniverseLandmark {
 
     pub(in crate::game) fn coordinate_label(&self) -> String {
         format!(
-            "S{} ({:.3}, {:.3}, {:.3})",
-            self.scale, self.center.x, self.center.y, self.center.z
+            "S{} ({:.3}, {:.3}, {:.3}) | view {:+.1}",
+            self.scale,
+            self.center.x,
+            self.center.y,
+            self.center.z,
+            self.view_exponent,
         )
     }
 }
@@ -57,6 +68,7 @@ impl Default for UniverseLandmarkIndex {
                     kind: "cosmic_web",
                     aliases: &["web", "filament", "cosmic"],
                     scale: s24,
+                    view_exponent: 24.0,
                     center: cosmic,
                     arrival: cosmic + DVec3::new(0.0, 6.0, 55.0),
                     look_at: cosmic,
@@ -67,6 +79,7 @@ impl Default for UniverseLandmarkIndex {
                     kind: "galaxy",
                     aliases: &["galaxy", "host", "spiral"],
                     scale: s18,
+                    view_exponent: 18.0,
                     center: galaxy,
                     arrival: galaxy + DVec3::new(0.0, 190.0, 430.0),
                     look_at: galaxy,
@@ -77,6 +90,7 @@ impl Default for UniverseLandmarkIndex {
                     kind: "star",
                     aliases: &["star", "sol"],
                     scale: s8,
+                    view_exponent: 8.0,
                     center: sun,
                     arrival: sun + DVec3::new(0.0, 0.0, 70.0),
                     look_at: sun,
@@ -87,6 +101,7 @@ impl Default for UniverseLandmarkIndex {
                     kind: "planet",
                     aliases: &["planet", "world"],
                     scale: s8,
+                    view_exponent: 8.0,
                     center: earth,
                     arrival: earth + DVec3::new(0.0, 0.0, 0.55),
                     look_at: earth,
@@ -97,6 +112,7 @@ impl Default for UniverseLandmarkIndex {
                     kind: "moon",
                     aliases: &["luna", "satellite"],
                     scale: s8,
+                    view_exponent: 8.0,
                     center: moon,
                     arrival: moon + DVec3::new(0.0, 0.0, 0.16),
                     look_at: moon,
@@ -107,6 +123,7 @@ impl Default for UniverseLandmarkIndex {
                     kind: "surface",
                     aliases: &["surface", "spawn", "local"],
                     scale: SpatialScale::ZERO,
+                    view_exponent: 0.0,
                     center: DVec3::ZERO,
                     arrival: DVec3::new(0.0, 3.0, 8.0),
                     look_at: DVec3::new(0.0, 2.0, -8.0),
