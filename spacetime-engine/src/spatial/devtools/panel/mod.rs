@@ -3,10 +3,10 @@
 use super::*;
 
 #[derive(Component)]
-struct UsfSpatialDebugRoot;
+pub(super) struct UsfSpatialDebugRoot;
 
 #[derive(Component)]
-struct UsfSpatialDebugText;
+pub(super) struct UsfSpatialDebugText;
 
 pub(super) fn spawn_debug_panel(mut commands: Commands, theme: Res<UiTheme>) {
     let heading = theme.text(UiTextRole::Heading);

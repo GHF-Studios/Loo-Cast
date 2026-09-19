@@ -24,7 +24,6 @@ pub use bounds::VoxelBounds;
 pub use brush::VoxelBrush;
 pub use operation::VoxelEdit;
 pub use position::VoxelQueryPosition;
-pub(crate) use operation::{VoxelLocalBounds, VoxelLocalEdit};
 
 #[cfg(test)]
 mod tests;

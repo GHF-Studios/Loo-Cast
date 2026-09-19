@@ -3,10 +3,10 @@
 use super::*;
 
 #[derive(Component)]
-struct WorldHealthBarVisual;
+pub(super) struct WorldHealthBarVisual;
 
 #[derive(Resource)]
-struct WorldHealthBarAssets {
+pub(super) struct WorldHealthBarAssets {
     mesh: Handle<Mesh>,
     frame_material: Handle<StandardMaterial>,
     fill_material: Handle<StandardMaterial>,

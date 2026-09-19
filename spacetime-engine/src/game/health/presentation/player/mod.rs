@@ -3,7 +3,7 @@
 use super::*;
 
 #[derive(Component)]
-struct PlayerHealthFill;
+pub(super) struct PlayerHealthFill;
 
 pub(super) fn spawn_player_health_bar(mut commands: Commands) {
     commands

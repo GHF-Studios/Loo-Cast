@@ -17,7 +17,7 @@ use super::{
     FocusTarget, Inspect, InspectAccess, InspectActionRequest, InspectEditRequest,
     InspectField, InspectFieldMetadata, InspectFieldVisitor, InspectFieldVisitorMut,
     InspectNumberFormat, InspectNumberInput, InspectSection, InspectTypeRegistration,
-    InspectTypeRegistry, InspectUnit, InspectValue, InspectWidgetId, InspectionFrame,
+    InspectUnit, InspectValue, InspectWidgetId, InspectionFrame,
     StructureItemId,
 };
 

@@ -3,7 +3,7 @@
 use super::*;
 
 #[derive(Resource)]
-struct WorldDrawAssets {
+pub(super) struct WorldDrawAssets {
     scalar_material: Handle<StandardMaterial>,
 }
 
@@ -98,7 +98,7 @@ pub(super) fn sync_scalar_field_visuals(
 }
 
 #[derive(Component)]
-struct WorldScalarFieldVisual;
+pub(super) struct WorldScalarFieldVisual;
 
 fn scalar_field_mesh(field: &WorldScalarField) -> Mesh {
     let resolution = field.resolution;

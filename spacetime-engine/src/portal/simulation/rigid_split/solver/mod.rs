@@ -4,7 +4,7 @@
 //! canonical velocity before constraints; solver-only deltas are inverse-mapped
 //! back afterward, then the peer is resynchronized from the combined authority.
 
-use avian3d::{dynamics::solver::solver_body::SolverBody, prelude::*};
+use avian3d::dynamics::solver::solver_body::SolverBody;
 use bevy::prelude::*;
 
 use crate::{

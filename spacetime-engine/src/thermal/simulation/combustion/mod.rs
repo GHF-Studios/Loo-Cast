@@ -47,7 +47,7 @@ pub(super) fn update_combustion(
 }
 
 #[derive(Default)]
-struct HeatScratch {
+pub(super) struct HeatScratch {
     positions_by_semantic: HashMap<Entity, Vec<Vec3>>,
     weights: Vec<(Entity, f32)>,
     energy_by_target: HashMap<Entity, f32>,

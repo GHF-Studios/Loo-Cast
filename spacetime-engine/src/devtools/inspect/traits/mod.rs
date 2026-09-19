@@ -2,7 +2,7 @@
 
 use std::any::Any;
 
-use super::metadata::{InspectAccess, InspectFieldMetadata, InspectTypeMetadata};
+use super::metadata::{InspectFieldMetadata, InspectTypeMetadata};
 
 /// UI-agnostic field traversal for inspectable values.
 ///
@@ -13,7 +13,7 @@ pub trait InspectFieldVisitor {
 }
 
 /// Mutable traversal deliberately exposes `&mut` only for fields whose metadata
-/// declares [`InspectAccess::Direct`]. Validated/transactional/command fields are
+/// declares `InspectAccess::Direct`. Validated/transactional/command fields are
 /// visited through `read_only` and require an explicit adapter/request path.
 pub trait InspectFieldVisitorMut {
     fn read_only(&mut self, metadata: &'static InspectFieldMetadata, value: &dyn Any);
