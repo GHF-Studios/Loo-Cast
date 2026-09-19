@@ -2,7 +2,7 @@
 //!
 //! Dense voxel atoms live in [`VoxelWorld`]'s compact store. Worker jobs are ECS
 //! entities only while work is in flight; finished surface caches return to the
-//! store. Rendering and physics consume those caches at aggregate granularity.
+//! store. Rendering and physics consume each materialization cache independently.
 
 use bevy::{
     prelude::*,
@@ -28,16 +28,16 @@ struct VoxelDerivedOutput {
 
 /// One in-flight surface extraction for one materialization revision.
 #[derive(Component)]
-pub(crate) struct VoxelDerivedTask {
-    pub(crate) world: Entity,
-    pub(crate) address: VoxelMaterializationChunkAddress,
-    pub(crate) revision: u64,
+pub(super) struct VoxelDerivedTask {
+    world: Entity,
+    address: VoxelMaterializationChunkAddress,
+    revision: u64,
     task: Task<VoxelDerivedOutput>,
 }
 
 /// Polls completed worker jobs and returns derived caches to the materialization
 /// store. Stale results never overwrite a newer edit revision.
-pub(crate) fn publish_completed_chunk_builds(
+pub(super) fn publish_completed_chunk_builds(
     mut commands: Commands,
     mut worlds: Query<&mut VoxelWorld>,
     mut tasks: Query<(Entity, &mut VoxelDerivedTask)>,
@@ -73,7 +73,7 @@ pub(crate) fn publish_completed_chunk_builds(
 ///
 /// This is deliberately O(changes), not O(resident materializations). Quiet
 /// cached terrain does no per-frame geometry scheduling work.
-pub(crate) fn queue_dirty_chunk_builds(
+pub(super) fn queue_dirty_chunk_builds(
     mut commands: Commands,
     mut worlds: Query<(Entity, &mut VoxelWorld, &UsfScaleLayer)>,
     worker_tasks: Query<(), With<VoxelWorkerTask>>,

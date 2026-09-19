@@ -126,7 +126,6 @@ pub struct RuntimeDiagnostics {
 struct DiagnosticsCadence {
     runtime_elapsed: f32,
     world_elapsed: f32,
-    physics_detail_elapsed: f32,
 }
 
 #[derive(Resource)]
@@ -152,7 +151,7 @@ impl Plugin for RuntimeDiagnosticsPlugin {
         app.init_resource::<RuntimeDiagnostics>()
             .init_resource::<EcsMemoryDiagnostics>()
             .init_resource::<DiagnosticsCadence>()
-            .init_resource::<physics::PhysicsTelemetryAccumulator>()
+            .init_resource::<physics::PhysicsDiagnosticsAccumulator>()
             .add_plugins((
                 FrameTimeDiagnosticsPlugin::new(FRAME_HISTORY_LENGTH),
                 SystemInformationDiagnosticsPlugin,
@@ -166,7 +165,6 @@ impl Plugin for RuntimeDiagnosticsPlugin {
                 (
                     physics::finalize_physics_frame,
                     collect_runtime_diagnostics,
-                    physics::collect_physics_detail_diagnostics,
                 )
                     .chain(),
             )

@@ -8,7 +8,7 @@ use super::*;
 /// runtime frame coordinate or giant flat voxel lattice survives into worker
 /// generation.
 #[derive(Debug, Clone)]
-pub(crate) struct VoxelChunkRecipe {
+pub(in crate::voxel) struct VoxelChunkRecipe {
     pub(super) address: VoxelMaterializationChunkAddress,
     pub(super) world_origin: VoxelQueryPosition,
     pub(super) base: VoxelBase,
@@ -17,11 +17,11 @@ pub(crate) struct VoxelChunkRecipe {
 }
 
 impl VoxelChunkRecipe {
-    pub(crate) const fn applied_edit_count(&self) -> usize {
+    pub(in crate::voxel) const fn applied_edit_count(&self) -> usize {
         self.applied_edit_count
     }
 
-    pub(crate) fn materialize(self) -> VoxelChunk {
+    pub(in crate::voxel) fn materialize(self) -> VoxelChunk {
         let Self {
             address,
             world_origin,

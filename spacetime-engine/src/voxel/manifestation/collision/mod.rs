@@ -13,7 +13,7 @@ use super::super::{
     MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationChunkAddress, VoxelWorld, physics,
 };
 
-pub(crate) fn sync_manifestation_collision_residency(
+pub(in crate::voxel) fn sync_manifestation_collision_residency(
     config: Res<EngineConfig>,
     mut commands: Commands,
     view: Res<UsfViewFrame>,
@@ -69,10 +69,8 @@ pub(super) fn publish_collider_manifestation(
     let mut entity_commands = commands.entity(entity);
 
     // A voxel manifestation is static world geometry for its entire lifetime.
-    // Physics residency controls only the derived collider representation.
-    // Toggling RigidBody together with Collider can transiently detach ColliderOf,
-    // move the collider through Avian's standalone tree, and leave invalid
-    // contact pairs behind across body-classification changes.
+    // Physics residency controls only the derived collider representation;
+    // body identity remains stable across residency transitions.
     if requested {
         if let Some(collider) = collider {
             entity_commands.insert((
@@ -89,7 +87,7 @@ pub(super) fn publish_collider_manifestation(
     }
 }
 
-pub(crate) fn manifestation_collider_proximity_squared(
+fn manifestation_collider_proximity_squared(
     view: &UsfViewFrame,
     address: VoxelMaterializationChunkAddress,
     layer: &UsfScaleLayer,

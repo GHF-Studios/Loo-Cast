@@ -9,7 +9,7 @@ use super::*;
 /// the player, or remain through the portal behind the player after the player
 /// crosses. Each path segment still uses a sphere cast so ordinary walls and
 /// corners push the camera inward.
-pub fn sync_player_camera(
+pub(in crate::game::player) fn sync_player_camera(
     spatial_query: SpatialQuery,
     player: Single<
         (
@@ -66,7 +66,7 @@ pub fn sync_player_camera(
 /// Bevy stores perspective FOV vertically. Keep the requested gameplay FOV
 /// horizontal and derive the vertical value from the logical game-view aspect,
 /// not from the containing window. This remains correct when the game is embedded.
-pub fn sync_player_fov(camera: Single<(&PlayerCamera, &Camera, &mut Projection)>) {
+pub(in crate::game::player) fn sync_player_fov(camera: Single<(&PlayerCamera, &Camera, &mut Projection)>) {
     let (settings, camera, mut projection) = camera.into_inner();
     let Projection::Perspective(perspective) = projection.as_mut() else {
         return;
@@ -98,7 +98,7 @@ pub fn sync_player_fov(camera: Single<(&PlayerCamera, &Camera, &mut Projection)>
     perspective.fov = 2.0 * ((horizontal * 0.5).tan() / aspect).atan();
 }
 
-pub fn sync_player_model(
+pub(in crate::game::player) fn sync_player_model(
     camera: Single<&PlayerCamera>,
     mut models: Query<&mut RenderLayers, With<PlayerModel>>,
 ) {

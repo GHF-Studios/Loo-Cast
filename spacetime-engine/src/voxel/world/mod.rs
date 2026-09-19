@@ -16,7 +16,7 @@ mod recipe;
 pub use address::{
     VoxelChunkAddress, VoxelChunkCoord, VoxelMaterializationChunkAddress,
 };
-pub(crate) use recipe::VoxelChunkRecipe;
+pub(in crate::voxel) use recipe::VoxelChunkRecipe;
 
 /// Semantic voxel-world root.
 ///
@@ -113,7 +113,7 @@ impl VoxelWorld {
     /// Captures immutable canonical generation input for one chunk. This is
     /// deliberately cheap relative to dense generation: procedural bases are
     /// compact and only edits indexed for this semantic address are copied.
-    pub(crate) fn chunk_recipe(
+    pub(in crate::voxel) fn chunk_recipe(
         &self,
         address: VoxelMaterializationChunkAddress,
     ) -> VoxelChunkRecipe {
@@ -150,11 +150,11 @@ impl VoxelWorld {
         Ok(sample)
     }
 
-    pub(crate) const fn materializations(&self) -> &VoxelMaterializationStore {
+    pub(in crate::voxel) const fn materializations(&self) -> &VoxelMaterializationStore {
         &self.materializations
     }
 
-    pub(crate) fn materializations_mut(&mut self) -> &mut VoxelMaterializationStore {
+    pub(in crate::voxel) fn materializations_mut(&mut self) -> &mut VoxelMaterializationStore {
         &mut self.materializations
     }
 
@@ -164,6 +164,26 @@ impl VoxelWorld {
 
     pub fn is_empty(&self) -> bool {
         self.materializations.active_count() == 0
+    }
+
+    /// Active dense materializations exposed for gameplay adapters that need
+    /// direct access to currently realized voxel data.
+    pub fn active_dense_materializations(
+        &self,
+    ) -> impl Iterator<Item = (VoxelMaterializationChunkAddress, &VoxelChunk)> + '_ {
+        self.materializations.active_dense_entries()
+    }
+
+    /// Inserts one already-materialized active chunk.
+    ///
+    /// This is primarily useful for authored/test worlds that construct a
+    /// bounded voxel realization synchronously instead of using streaming.
+    pub fn insert_active_materialization(
+        &mut self,
+        address: VoxelMaterializationChunkAddress,
+        chunk: VoxelChunk,
+    ) {
+        self.materializations.insert_dense_active(address, chunk);
     }
 
     /// Canonical base materialization addresses whose padded sample domains

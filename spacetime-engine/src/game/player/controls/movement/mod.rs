@@ -4,7 +4,7 @@ use super::*;
 
 /// Samples local controls once per render frame immediately before the fixed
 /// loop. The fixed character motor consumes this intent deterministically.
-pub fn movement(
+pub(in crate::game::player) fn movement(
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
     player: Single<
@@ -62,7 +62,7 @@ pub fn movement(
     input.jump_pressed |= jump_enabled && keyboard.just_pressed(KeyCode::Space);
 }
 
-pub fn noclip_movement(
+pub(in crate::game::player) fn noclip_movement(
     time: Res<Time>,
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,

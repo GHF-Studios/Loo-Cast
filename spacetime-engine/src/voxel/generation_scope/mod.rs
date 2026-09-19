@@ -12,12 +12,12 @@ use super::{MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationChunkAddress, VoxelW
 
 /// Decimal edge length for one generation processing scope.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) struct VoxelMaterializationAggregateExtent {
+pub(super) struct VoxelGenerationScopeExtent {
     base_chunks_per_axis: i32,
 }
 
-impl VoxelMaterializationAggregateExtent {
-    pub(crate) fn from_base_chunks_per_axis(base_chunks_per_axis: i32) -> Option<Self> {
+impl VoxelGenerationScopeExtent {
+    pub(super) fn from_base_chunks_per_axis(base_chunks_per_axis: i32) -> Option<Self> {
         let chunks_per_usf_digit = 1000 / MATERIALIZATION_CHUNK_SIZE as i32;
         (base_chunks_per_axis > 0
             && base_chunks_per_axis <= chunks_per_usf_digit
@@ -27,28 +27,20 @@ impl VoxelMaterializationAggregateExtent {
             })
     }
 
-    pub(crate) const fn base_chunks_per_axis(self) -> i32 {
-        self.base_chunks_per_axis
-    }
-
-    pub(crate) const fn native_units_per_axis(self) -> u32 {
-        self.base_chunks_per_axis as u32 * MATERIALIZATION_CHUNK_SIZE
-    }
 }
 
 /// One aligned generation-processing scope over canonical materialization
 /// addresses.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) struct VoxelMaterializationAggregateScope {
+pub(super) struct VoxelGenerationScope {
     origin: VoxelMaterializationChunkAddress,
-    extent: VoxelMaterializationAggregateExtent,
 }
 
-impl VoxelMaterializationAggregateScope {
-    pub(crate) fn containing(
+impl VoxelGenerationScope {
+    pub(super) fn containing(
         world: &VoxelWorld,
         address: VoxelMaterializationChunkAddress,
-        extent: VoxelMaterializationAggregateExtent,
+        extent: VoxelGenerationScopeExtent,
     ) -> Result<Self, UsfPositionError> {
         if address.origin().leaf_scale() != world.origin().leaf_scale() {
             return Err(UsfPositionError::IncompatibleLeafScale);
@@ -61,7 +53,7 @@ impl VoxelMaterializationAggregateScope {
             phase_chunks(offset_delta.y, chunk_size),
             phase_chunks(offset_delta.z, chunk_size),
         );
-        let edge = extent.base_chunks_per_axis();
+        let edge = extent.base_chunks_per_axis;
         let remainder = IVec3::new(
             phase.x.rem_euclid(edge),
             phase.y.rem_euclid(edge),
@@ -70,17 +62,9 @@ impl VoxelMaterializationAggregateScope {
 
         Ok(Self {
             origin: address.translated_chunks(-remainder)?,
-            extent,
         })
     }
 
-    pub(crate) const fn origin(self) -> VoxelMaterializationChunkAddress {
-        self.origin
-    }
-
-    pub(crate) const fn extent(self) -> VoxelMaterializationAggregateExtent {
-        self.extent
-    }
 }
 
 fn phase_chunks(delta_native: f32, chunk_size: f32) -> i32 {
@@ -100,21 +84,21 @@ mod tests {
 
     use super::*;
 
-    fn extent(base_chunks_per_axis: i32) -> VoxelMaterializationAggregateExtent {
-        VoxelMaterializationAggregateExtent::from_base_chunks_per_axis(base_chunks_per_axis)
-            .expect("test extent must satisfy canonical aggregate alignment")
+    fn extent(base_chunks_per_axis: i32) -> VoxelGenerationScopeExtent {
+        VoxelGenerationScopeExtent::from_base_chunks_per_axis(base_chunks_per_axis)
+            .expect("test extent must satisfy canonical generation-scope alignment")
     }
 
     #[test]
     fn generation_extent_accepts_current_alignment_period_divisors() {
         assert_eq!(
-            VoxelMaterializationAggregateExtent::from_base_chunks_per_axis(20)
+            VoxelGenerationScopeExtent::from_base_chunks_per_axis(20)
                 .unwrap()
-                .base_chunks_per_axis(),
+                .base_chunks_per_axis,
             20
         );
-        assert!(VoxelMaterializationAggregateExtent::from_base_chunks_per_axis(3).is_none());
-        assert!(VoxelMaterializationAggregateExtent::from_base_chunks_per_axis(101).is_none());
+        assert!(VoxelGenerationScopeExtent::from_base_chunks_per_axis(3).is_none());
+        assert!(VoxelGenerationScopeExtent::from_base_chunks_per_axis(101).is_none());
     }
 
     #[test]
@@ -125,10 +109,11 @@ mod tests {
             .chunk_address(VoxelChunkCoord::new(IVec3::new(137, -204, 99)))
             .unwrap();
 
-        let hundred = VoxelMaterializationAggregateScope::containing(
+        let hundred_extent = extent(10);
+        let hundred = VoxelGenerationScope::containing(
             &world,
             address,
-            extent(10),
+            hundred_extent,
         )
         .unwrap();
 
@@ -138,6 +123,9 @@ mod tests {
                 .chunk_address(VoxelChunkCoord::new(IVec3::new(130, -210, 90)))
                 .unwrap()
         );
-        assert_eq!(hundred.extent().native_units_per_axis(), 100);
+        assert_eq!(
+            hundred_extent.base_chunks_per_axis * MATERIALIZATION_CHUNK_SIZE as i32,
+            100
+        );
     }
 }

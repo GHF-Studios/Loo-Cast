@@ -21,7 +21,7 @@ use crate::{
     physics::character::{CharacterControlFrame, CharacterDimensions},
 };
 
-use super::{Player, PlayerAim, PlayerModel, PlayerStance, cursor::CursorCapture};
+use super::{Player, PlayerAim, PlayerStance, cursor::CursorCapture, model::PlayerModel};
 
 /// Available local-player camera presentations.
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -147,8 +147,8 @@ mod input;
 mod presentation;
 mod third_person;
 
-pub use input::{toggle_camera_mode, zoom_third_person};
-pub use presentation::{sync_player_camera, sync_player_fov, sync_player_model};
+pub(super) use input::{toggle_camera_mode, zoom_third_person};
+pub(super) use presentation::{sync_player_camera, sync_player_fov, sync_player_model};
 
 use third_person::resolve_third_person_boom;
 

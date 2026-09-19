@@ -24,10 +24,6 @@ const MAX_VIRTUAL_FRAME_DELTA: Duration = Duration::from_millis(50);
 
 fn configure_overload_guard(mut virtual_time: ResMut<Time<Virtual>>) {
     virtual_time.set_max_delta(MAX_VIRTUAL_FRAME_DELTA);
-    info!(
-        max_virtual_delta_ms = MAX_VIRTUAL_FRAME_DELTA.as_secs_f64() * 1000.0,
-        "configured fixed-timestep overload guard"
-    );
 }
 
 impl Plugin for SpacetimePhysicsPlugin {

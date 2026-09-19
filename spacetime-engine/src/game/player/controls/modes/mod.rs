@@ -3,7 +3,7 @@
 use super::*;
 
 /// `V` is the temporary direct binding for the developer `noclip` command.
-pub fn toggle_noclip(
+pub(in crate::game::player) fn toggle_noclip(
     mut commands: Commands,
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
@@ -43,7 +43,7 @@ pub fn toggle_noclip(
 
 /// `L` toggles the player's contribution to generic spatial demand. Other
 /// sources (for example Chunkloading Cubes) remain completely independent.
-pub fn toggle_spatial_demand(
+pub(in crate::game::player) fn toggle_spatial_demand(
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
     mut player: Single<&mut SpatialDemandSource, With<Player>>,
@@ -52,6 +52,5 @@ pub fn toggle_spatial_demand(
         return;
     }
 
-    let enabled = player.toggle();
-    info!("player spatial demand toggled: {enabled}");
+    player.toggle();
 }

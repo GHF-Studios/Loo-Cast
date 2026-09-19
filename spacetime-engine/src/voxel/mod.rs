@@ -4,7 +4,7 @@
 //! only materialized working caches; rendering and physics are disposable
 //! representations rebuilt from those chunks as the active window streams.
 
-mod aggregate;
+mod generation_scope;
 mod async_pipeline;
 mod base;
 mod chunk;
@@ -127,7 +127,3 @@ impl Plugin for VoxelPlugin {
     }
 }
 
-/// Creates an empty mesh asset suitable for a [`VoxelChunk`] render entity.
-pub fn empty_voxel_mesh() -> Mesh {
-    mesh::empty_mesh()
-}

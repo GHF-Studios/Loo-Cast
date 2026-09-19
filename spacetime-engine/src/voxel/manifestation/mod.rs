@@ -16,10 +16,10 @@ mod lifecycle;
 mod membership;
 mod rebuild;
 
-pub(crate) use collision::sync_manifestation_collision_residency;
-pub(crate) use lifecycle::retire_removed_world_manifestations;
-pub(crate) use membership::sync_manifestation_membership;
-pub(crate) use rebuild::rebuild_dirty_manifestations;
+pub(super) use collision::sync_manifestation_collision_residency;
+pub(super) use lifecycle::retire_removed_world_manifestations;
+pub(super) use membership::sync_manifestation_membership;
+pub(super) use rebuild::rebuild_dirty_manifestations;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct ManifestationKey {
@@ -29,18 +29,18 @@ struct ManifestationKey {
 
 /// Root entity for one disposable same-resolution render/collision manifestation.
 #[derive(Component)]
-pub(crate) struct VoxelManifestation {
+pub(super) struct VoxelManifestation {
     presentation: Entity,
 }
 
 /// Marks the only `Mesh3d` entity created for one voxel manifestation.
 #[derive(Component, Debug, Default, Clone, Copy)]
-pub(crate) struct VoxelManifestationPresentation;
+pub(super) struct VoxelManifestationPresentation;
 
 /// Incremental one-to-one mapping from canonical materialization surfaces to
 /// disposable runtime entities.
 #[derive(Resource, Default)]
-pub(crate) struct VoxelManifestationRegistry {
+pub(super) struct VoxelManifestationRegistry {
     revisions: HashMap<ManifestationKey, u64>,
     dirty: HashSet<ManifestationKey>,
     entities: HashMap<ManifestationKey, Entity>,

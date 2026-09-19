@@ -7,7 +7,7 @@ pub(super) fn collect_runtime_diagnostics(
     diagnostics: Res<DiagnosticsStore>,
     mut cadence: ResMut<DiagnosticsCadence>,
     mut snapshot: ResMut<RuntimeDiagnostics>,
-    mut physics_accumulator: ResMut<physics::PhysicsTelemetryAccumulator>,
+    mut physics_accumulator: ResMut<physics::PhysicsDiagnosticsAccumulator>,
     contact_graph: Res<ContactGraph>,
     bodies: Query<(&RigidBody, Has<Sleeping>)>,
     colliders: Query<(), With<Collider>>,

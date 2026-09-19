@@ -13,7 +13,7 @@ use crate::config::EngineConfig;
 use super::VoxelStreaming;
 use super::super::{
     VoxelChunk, VoxelMaterializationChunkAddress, VoxelWorld,
-    aggregate::{VoxelMaterializationAggregateExtent, VoxelMaterializationAggregateScope},
+    generation_scope::{VoxelGenerationScopeExtent, VoxelGenerationScope},
     worker::{VoxelWorkerTask, available_slots},
 };
 
@@ -30,19 +30,14 @@ struct VoxelGeneratedChunk {
 
 /// One asynchronous work item over several independently addressable atoms.
 #[derive(Component)]
-pub(crate) struct VoxelAggregateGenerationTask {
+pub(in crate::voxel) struct VoxelGenerationTask {
     world: Entity,
-    scope: VoxelMaterializationAggregateScope,
     task: Option<Task<Vec<VoxelGeneratedChunk>>>,
     ready: VecDeque<VoxelGeneratedChunk>,
 }
 
-impl VoxelAggregateGenerationTask {
-    fn spawn(
-        world: Entity,
-        scope: VoxelMaterializationAggregateScope,
-        jobs: Vec<VoxelGenerationJob>,
-    ) -> Self {
+impl VoxelGenerationTask {
+    fn spawn(world: Entity, jobs: Vec<VoxelGenerationJob>) -> Self {
         debug_assert!(!jobs.is_empty());
         let task = AsyncComputeTaskPool::get().spawn(async move {
             jobs.into_iter()
@@ -60,18 +55,17 @@ impl VoxelAggregateGenerationTask {
         });
         Self {
             world,
-            scope,
             task: Some(task),
             ready: VecDeque::new(),
         }
     }
 }
 
-pub(crate) fn finish_chunk_generation(
+pub(in crate::voxel) fn finish_chunk_generation(
     config: Res<EngineConfig>,
     mut commands: Commands,
     mut worlds: Query<&mut VoxelWorld>,
-    mut tasks: Query<(Entity, &mut VoxelAggregateGenerationTask)>,
+    mut tasks: Query<(Entity, &mut VoxelGenerationTask)>,
 ) {
     let publish_budget = config.voxel.streaming.generation_publish_budget_per_frame;
     let mut published = 0;
@@ -118,10 +112,6 @@ pub(crate) fn finish_chunk_generation(
         }
 
         if generation.task.is_none() && generation.ready.is_empty() {
-            trace!(
-                scope = ?generation.scope,
-                "voxel aggregate generation work item completed"
-            );
             commands.entity(task_entity).despawn();
         }
     }
@@ -129,10 +119,10 @@ pub(crate) fn finish_chunk_generation(
 
 /// Generation jobs are the only per-materialization ECS objects left in this
 /// stage. If their semantic world disappears, retire them immediately.
-pub(crate) fn retire_orphaned_tasks(
+pub(in crate::voxel) fn retire_orphaned_tasks(
     mut commands: Commands,
     mut removed_worlds: RemovedComponents<VoxelWorld>,
-    aggregate_tasks: Query<(Entity, &VoxelAggregateGenerationTask)>,
+    generation_tasks: Query<(Entity, &VoxelGenerationTask)>,
     mut removed: Local<Vec<Entity>>,
 ) {
     removed.clear();
@@ -141,7 +131,7 @@ pub(crate) fn retire_orphaned_tasks(
         return;
     }
 
-    for (entity, task) in &aggregate_tasks {
+    for (entity, task) in &generation_tasks {
         if removed.contains(&task.world) {
             commands.entity(entity).despawn();
         }
@@ -153,14 +143,14 @@ pub(crate) fn retire_orphaned_tasks(
 ///
 /// Global worker-slot accounting remains shared across voxel worlds so one world
 /// cannot independently saturate the compute pool.
-pub(crate) fn schedule_voxel_generation(
+pub(in crate::voxel) fn schedule_voxel_generation(
     config: Res<EngineConfig>,
     mut commands: Commands,
     mut worlds: Query<(Entity, &mut VoxelWorld, &mut VoxelStreaming)>,
     worker_tasks: Query<(), With<VoxelWorkerTask>>,
 ) {
     let streaming_config = config.voxel.streaming;
-    let generation_extent = VoxelMaterializationAggregateExtent::from_base_chunks_per_axis(
+    let generation_scope_extent = VoxelGenerationScopeExtent::from_base_chunks_per_axis(
         streaming_config.generation_group_base_chunks_per_axis,
     )
     .expect("validated engine config must produce a generation grouping extent");
@@ -175,7 +165,7 @@ pub(crate) fn schedule_voxel_generation(
         let batches = plan_generation_batches(
             &mut world,
             &mut streaming,
-            generation_extent,
+            generation_scope_extent,
             generation_slots,
             streaming_config.max_chunks_per_generation_task,
         );
@@ -183,9 +173,9 @@ pub(crate) fn schedule_voxel_generation(
 
         for batch in batches {
             commands.spawn((
-                Name::new("Voxel Aggregate Generation"),
+                Name::new("Voxel Generation Task"),
                 VoxelWorkerTask,
-                VoxelAggregateGenerationTask::spawn(world_entity, batch.scope, batch.jobs),
+                VoxelGenerationTask::spawn(world_entity, batch.jobs),
             ));
         }
 

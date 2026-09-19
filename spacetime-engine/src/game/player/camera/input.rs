@@ -2,7 +2,7 @@
 
 use super::*;
 
-pub fn toggle_camera_mode(
+pub(in crate::game::player) fn toggle_camera_mode(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut camera: Single<&mut PlayerCamera>,
 ) {
@@ -18,7 +18,7 @@ pub fn toggle_camera_mode(
 
 /// Scroll changes persistent zoom intent, never the collision-constrained
 /// distance. Wheel-up moves the desired third-person camera inward.
-pub fn zoom_third_person(
+pub(in crate::game::player) fn zoom_third_person(
     scroll: Res<AccumulatedMouseScroll>,
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,

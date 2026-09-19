@@ -8,7 +8,7 @@ mod hooks;
 mod query;
 mod split;
 
-pub(crate) use hooks::SpatialTopologyCollisionHooks;
+pub(super) use hooks::SpatialTopologyCollisionHooks;
 pub use hooks::{SpatialSplitPeer, SpatialSplitPeerActive};
 pub use query::KinematicQueryExclusions;
 pub use split::{BoxPlanePartition, SpatialSplitBox, SplitPlane, partition_box_by_plane};

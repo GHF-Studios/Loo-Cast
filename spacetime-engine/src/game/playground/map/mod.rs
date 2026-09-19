@@ -79,9 +79,7 @@ fn spawn_voxel_test_rock(
                     .chunk_address(coord)
                     .expect("playground voxel materialization must translate canonically");
                 let chunk = world.materialize_chunk(address);
-                world
-                    .materializations_mut()
-                    .insert_dense_active(address, chunk);
+                world.insert_active_materialization(address, chunk);
             }
         }
     }

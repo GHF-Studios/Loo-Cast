@@ -1,10 +1,6 @@
 //! Disposable render-mesh and collision-surface extraction from voxel fields.
 
-use bevy::{
-    asset::RenderAssetUsages,
-    mesh::PrimitiveTopology,
-    prelude::*,
-};
+use bevy::prelude::{Vec2, Vec3};
 use fast_surface_nets::{SurfaceNetsBuffer, ndshape::ConstShape3u32, surface_nets};
 
 use super::{
@@ -17,22 +13,15 @@ type ChunkShape = ConstShape3u32<SAMPLE_SIZE, SAMPLE_SIZE, SAMPLE_SIZE>;
 /// One extracted surface shared only as an intermediate between independently
 /// owned render and physics caches.
 #[derive(Debug)]
-pub(crate) struct VoxelSurface {
-    pub(crate) positions: Vec<[f32; 3]>,
-    pub(crate) normals: Vec<[f32; 3]>,
-    pub(crate) uvs: Vec<[f32; 2]>,
-    pub(crate) tangents: Vec<[f32; 4]>,
-    pub(crate) indices: Vec<u32>,
+pub(super) struct VoxelSurface {
+    pub(super) positions: Vec<[f32; 3]>,
+    pub(super) normals: Vec<[f32; 3]>,
+    pub(super) uvs: Vec<[f32; 2]>,
+    pub(super) tangents: Vec<[f32; 4]>,
+    pub(super) indices: Vec<u32>,
 }
 
-pub(crate) fn empty_mesh() -> Mesh {
-    Mesh::new(
-        PrimitiveTopology::TriangleList,
-        RenderAssetUsages::default(),
-    )
-}
-
-pub(crate) fn extract_chunk_surface(chunk: &VoxelChunk) -> VoxelSurface {
+pub(super) fn extract_chunk_surface(chunk: &VoxelChunk) -> VoxelSurface {
     let mut output = SurfaceNetsBuffer::default();
     surface_nets(
         chunk.distances(),

@@ -14,8 +14,8 @@ use demand::{DemandedChunk, VoxelDemandPlanKey};
 mod demand;
 mod generation;
 
-pub(crate) use demand::refresh_voxel_residency;
-pub(crate) use generation::{
+pub(super) use demand::refresh_voxel_residency;
+pub(super) use generation::{
     finish_chunk_generation, retire_orphaned_tasks, schedule_voxel_generation,
 };
 
@@ -56,7 +56,7 @@ impl VoxelPresentationMaterial {
         Self(material)
     }
 
-    pub(crate) fn handle(&self) -> &Handle<StandardMaterial> {
+    pub(super) fn handle(&self) -> &Handle<StandardMaterial> {
         &self.0
     }
 }

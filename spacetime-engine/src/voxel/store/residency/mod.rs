@@ -3,7 +3,7 @@
 use super::*;
 
 impl VoxelMaterializationStore {
-    pub(crate) fn reserve_generation(
+    pub(in crate::voxel) fn reserve_generation(
         &mut self,
         address: VoxelMaterializationChunkAddress,
     ) -> Option<u64> {
@@ -28,7 +28,7 @@ impl VoxelMaterializationStore {
 
     /// Reactivates a warm dense entry. Returns whether the address already had
     /// resident data and therefore needs no generation reservation.
-    pub(crate) fn reactivate(&mut self, address: VoxelMaterializationChunkAddress) -> bool {
+    pub(in crate::voxel) fn reactivate(&mut self, address: VoxelMaterializationChunkAddress) -> bool {
         let mut render_dirty = false;
         let mut derived_dirty = false;
         let found = match self.entries.get_mut(&address) {
@@ -55,7 +55,7 @@ impl VoxelMaterializationStore {
         found
     }
 
-    pub(crate) fn deactivate(&mut self, address: VoxelMaterializationChunkAddress) {
+    pub(in crate::voxel) fn deactivate(&mut self, address: VoxelMaterializationChunkAddress) {
         let mut remove_pending = false;
         let mut became_inactive = false;
 
@@ -84,7 +84,7 @@ impl VoxelMaterializationStore {
     }
 
     /// Inserts already-generated dense data, used by manually resident worlds.
-    pub(crate) fn insert_dense_active(
+    pub(in crate::voxel) fn insert_dense_active(
         &mut self,
         address: VoxelMaterializationChunkAddress,
         chunk: VoxelChunk,
@@ -105,7 +105,7 @@ impl VoxelMaterializationStore {
 
     /// Publishes a worker generation result only if its reservation is still
     /// current. Demand migration therefore cannot resurrect retired work.
-    pub(crate) fn publish_generated(
+    pub(in crate::voxel) fn publish_generated(
         &mut self,
         address: VoxelMaterializationChunkAddress,
         token: u64,
@@ -135,11 +135,11 @@ impl VoxelMaterializationStore {
         true
     }
 
-    pub(crate) fn is_active(&self, address: VoxelMaterializationChunkAddress) -> bool {
+    pub(in crate::voxel) fn is_active(&self, address: VoxelMaterializationChunkAddress) -> bool {
         self.entries.get(&address).is_some_and(|entry| entry.active)
     }
 
-    pub(crate) fn active_addresses(
+    pub(in crate::voxel) fn active_addresses(
         &self,
     ) -> impl Iterator<Item = VoxelMaterializationChunkAddress> + '_ {
         self.entries
@@ -153,7 +153,7 @@ impl VoxelMaterializationStore {
     /// required to realize that policy. Keeping deactivate/reactivate/trim
     /// orchestration here prevents callers from reaching through residency
     /// internals and duplicating lifecycle rules.
-    pub(crate) fn reconcile_residency(
+    pub(in crate::voxel) fn reconcile_residency(
         &mut self,
         desired: &HashSet<VoxelMaterializationChunkAddress>,
         maximum_inactive: usize,
@@ -173,7 +173,7 @@ impl VoxelMaterializationStore {
         self.trim_inactive(maximum_inactive);
     }
 
-    pub(crate) fn active_dense_entries(
+    pub(in crate::voxel) fn active_dense_entries(
         &self,
     ) -> impl Iterator<Item = (VoxelMaterializationChunkAddress, &VoxelChunk)> + '_ {
         self.entries.iter().filter_map(|(&address, entry)| {
@@ -186,7 +186,7 @@ impl VoxelMaterializationStore {
 
     /// Keep inactive dense data warm up to a bounded count. Eviction changes
     /// only disposable cache state; semantic base + modifications stay intact.
-    pub(crate) fn trim_inactive(&mut self, maximum_inactive: usize) {
+    pub(in crate::voxel) fn trim_inactive(&mut self, maximum_inactive: usize) {
         let mut inactive = self.entries.values().filter(|entry| !entry.active).count();
         while inactive > maximum_inactive {
             let Some(address) = self.inactive_lru.pop_front() else {

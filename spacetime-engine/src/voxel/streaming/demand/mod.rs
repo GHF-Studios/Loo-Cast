@@ -36,7 +36,7 @@ pub(super) struct VoxelDemandPlanKey {
 ///
 /// This stage owns demand interpretation and hot/warm residency transitions. It
 /// does not spawn asynchronous generation work.
-pub(crate) fn refresh_voxel_residency(
+pub(in crate::voxel) fn refresh_voxel_residency(
     config: Res<EngineConfig>,
     demand_snapshot: Res<SpatialDemandSnapshot>,
     voxel_demand_sources: Query<(), With<VoxelMaterializationDemand>>,

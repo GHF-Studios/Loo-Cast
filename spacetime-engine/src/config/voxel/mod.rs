@@ -48,16 +48,15 @@ fn require_positive(value: usize, field: &str) -> Result<(), String> {
     }
 }
 
-fn validate_aligned_group_edge(value: i32, field: &str) -> Result<(), String> {
-    const MATERIALIZATION_ATOMS_PER_USF_DIGIT: i32 = 100;
+fn validate_generation_group_edge(value: i32, field: &str) -> Result<(), String> {
+    const MATERIALIZATION_CHUNKS_PER_USF_DIGIT: i32 = 100;
 
     if value <= 0
-        || value > MATERIALIZATION_ATOMS_PER_USF_DIGIT
-        || MATERIALIZATION_ATOMS_PER_USF_DIGIT % value != 0
+        || value > MATERIALIZATION_CHUNKS_PER_USF_DIGIT
+        || MATERIALIZATION_CHUNKS_PER_USF_DIGIT % value != 0
     {
         return Err(format!(
-            "{field} must be one of the positive divisors of 100 \\
-             (for example 1, 2, 4, 5, 10, 20, 25, 50, 100); got {value}"
+            "{field} must be a positive divisor of {MATERIALIZATION_CHUNKS_PER_USF_DIGIT}; got {value}"
         ));
     }
     Ok(())

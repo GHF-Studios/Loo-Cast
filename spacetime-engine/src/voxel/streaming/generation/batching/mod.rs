@@ -1,11 +1,11 @@
-//! Grouping and reservation policy for dense voxel generation jobs.
+//! Batching and reservation policy for dense voxel generation jobs.
 
 use bevy::prelude::*;
 
 use super::super::VoxelStreaming;
 use super::super::super::{
     VoxelMaterializationChunkAddress, VoxelWorld,
-    aggregate::{VoxelMaterializationAggregateExtent, VoxelMaterializationAggregateScope},
+    generation_scope::{VoxelGenerationScopeExtent, VoxelGenerationScope},
     world::VoxelChunkRecipe,
 };
 
@@ -15,21 +15,21 @@ pub(super) struct VoxelGenerationJob {
     pub(super) recipe: VoxelChunkRecipe,
 }
 
-pub(super) struct PendingAggregateGeneration {
-    pub(super) scope: VoxelMaterializationAggregateScope,
+pub(super) struct PendingGenerationBatch {
+    pub(super) scope: VoxelGenerationScope,
     pub(super) jobs: Vec<VoxelGenerationJob>,
 }
 
 pub(super) fn plan_generation_batches(
     world: &mut VoxelWorld,
     streaming: &mut VoxelStreaming,
-    generation_extent: VoxelMaterializationAggregateExtent,
+    generation_extent: VoxelGenerationScopeExtent,
     max_batches: usize,
     max_chunks_per_batch: usize,
-) -> Vec<PendingAggregateGeneration> {
+) -> Vec<PendingGenerationBatch> {
     let load_budget = streaming.load_budget_per_frame;
     let mut requested = 0;
-    let mut batches = Vec::<PendingAggregateGeneration>::new();
+    let mut batches = Vec::<PendingGenerationBatch>::new();
 
     while requested < load_budget && max_batches > 0 {
         let Some(demanded) = streaming.pending_desired.pop_front() else {
@@ -42,11 +42,11 @@ pub(super) fn plan_generation_batches(
         }
 
         let Ok(scope) =
-            VoxelMaterializationAggregateScope::containing(world, address, generation_extent)
+            VoxelGenerationScope::containing(world, address, generation_extent)
         else {
             error!(
                 ?address,
-                "voxel aggregate generation scope could not be derived canonically"
+                "voxel generation scope could not be derived canonically"
             );
             continue;
         };
@@ -82,8 +82,8 @@ pub(super) fn plan_generation_batches(
 }
 
 fn generation_batch_can_accept(
-    batches: &[PendingAggregateGeneration],
-    scope: VoxelMaterializationAggregateScope,
+    batches: &[PendingGenerationBatch],
+    scope: VoxelGenerationScope,
     max_batches: usize,
     max_chunks_per_batch: usize,
 ) -> bool {
@@ -94,8 +94,8 @@ fn generation_batch_can_accept(
 }
 
 fn push_generation_job(
-    batches: &mut Vec<PendingAggregateGeneration>,
-    scope: VoxelMaterializationAggregateScope,
+    batches: &mut Vec<PendingGenerationBatch>,
+    scope: VoxelGenerationScope,
     max_chunks_per_batch: usize,
     job: VoxelGenerationJob,
 ) {
@@ -107,7 +107,7 @@ fn push_generation_job(
         return;
     }
 
-    batches.push(PendingAggregateGeneration {
+    batches.push(PendingGenerationBatch {
         scope,
         jobs: vec![job],
     });

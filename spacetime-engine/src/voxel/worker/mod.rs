@@ -6,13 +6,13 @@ use bevy::prelude::*;
 
 /// Marks any long-running voxel background job, regardless of pipeline stage.
 #[derive(Component, Debug, Default, Clone, Copy)]
-pub(crate) struct VoxelWorkerTask;
+pub(super) struct VoxelWorkerTask;
 
 /// Remaining shared voxel worker capacity.
 ///
 /// Generation and surface derivation deliberately consume the same budget so
 /// they cannot each reserve half the machine and collectively saturate it.
-pub(crate) fn available_slots(in_flight: usize) -> usize {
+pub(super) fn available_slots(in_flight: usize) -> usize {
     let threads = std::thread::available_parallelism()
         .unwrap_or(NonZeroUsize::new(4).unwrap())
         .get();

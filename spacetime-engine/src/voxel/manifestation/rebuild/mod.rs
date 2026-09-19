@@ -28,7 +28,7 @@ use super::super::{
 /// A dirty surface rebuild affects only its own materialization. Collision data
 /// is invalidated independently and recreated only when this manifestation is
 /// inside the physics interaction region.
-pub(crate) fn rebuild_dirty_manifestations(
+pub(in crate::voxel) fn rebuild_dirty_manifestations(
     config: Res<EngineConfig>,
     mut commands: Commands,
     layer_frames: Res<UsfScaleLayerFrames>,

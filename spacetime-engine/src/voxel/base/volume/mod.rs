@@ -9,7 +9,7 @@ use crate::spatial::{
 
 use super::{
     EMPTY_DISTANCE, TERRAIN_DIRECT_LOCAL_LIMIT, TERRAIN_VERTICAL_QUERY_LIMIT,
-    noise::{mix, scale_layer_seed, value_noise, value_noise_3d, volumetric_noise},
+    noise::{mix, scale_layer_seed, value_noise_3d, volumetric_noise},
     terrain::ProceduralTerrain,
 };
 use super::super::{VoxelMaterialId, VoxelQueryPosition, VoxelSample};
@@ -30,8 +30,6 @@ pub struct ProceduralVolume {
     surface: ProceduralTerrain,
     cave_strength: f32,
     structure_strength: f32,
-    parent_macro_seed: Option<u32>,
-    parent_macro_origin: f32,
     hierarchy: Option<ScaleRefinementHierarchy>,
 }
 
@@ -62,8 +60,6 @@ impl ProceduralVolume {
             surface: ProceduralTerrain::configured(seed, base_height, amplitude, frequency),
             cave_strength: cave_strength.clamp(0.0, 1.0),
             structure_strength: structure_strength.clamp(0.0, 1.0),
-            parent_macro_seed: None,
-            parent_macro_origin: 0.0,
             hierarchy: None,
         }
     }
@@ -102,8 +98,6 @@ impl ProceduralVolume {
             surface: ProceduralTerrain::configured(detail_seed, -4.0, 3.0, 0.035),
             cave_strength: 0.10 + unit * 0.24,
             structure_strength: 0.35 + unit * 0.50,
-            parent_macro_seed: None,
-            parent_macro_origin: 0.0,
             hierarchy: Some(ScaleRefinementHierarchy {
                 current_scale: scale,
                 seeds,
@@ -173,12 +167,7 @@ impl ProceduralVolume {
             return refinement_surface_height(Vec2::new(x, z), hierarchy);
         }
 
-        let mut height = self.surface.height(x, z);
-        if let Some(parent_seed) = self.parent_macro_seed {
-            let parent_point = Vec2::new(x, z) * (self.surface.frequency.max(f32::EPSILON) / 10.0);
-            let inherited = value_noise(parent_point, parent_seed) - self.parent_macro_origin;
-            height += self.surface.amplitude * 4.0 * inherited;
-        }
+        let height = self.surface.height(x, z);
         height
     }
 

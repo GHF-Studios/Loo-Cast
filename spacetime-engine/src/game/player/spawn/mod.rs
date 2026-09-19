@@ -31,6 +31,7 @@ pub(super) fn spawn_player(
         .spawn((
             (
                 Name::new("Player Manifestation"),
+                Visibility::Inherited,
                 Player,
                 UsfManifestationOf(semantic_player),
                 UsfManifestationAuthority,
@@ -64,21 +65,26 @@ pub(super) fn spawn_player(
 
     let split_manifestation = commands
         .spawn((
-            Name::new("Player Split Manifestation"),
-            UsfManifestationOf(semantic_player),
-            UsfLogicalProjection,
-            UsfScaleLayer::new(SpatialScale::MAX),
-            UsfFollowsActiveScale,
-            SpatialSplitPeer { authority: player },
-            ActiveCollisionHooks::FILTER_PAIRS,
-            ThermalSpatialSample,
-            RigidBody::Kinematic,
-            CustomPositionIntegration,
-            CustomVelocityIntegration,
-            LinearVelocity::ZERO,
-            CharacterDimensions::standing_collider(),
-            CollisionLayers::NONE,
-            Transform::from_translation(position),
+            (
+                Name::new("Player Split Manifestation"),
+                Visibility::Inherited,
+                UsfManifestationOf(semantic_player),
+                UsfLogicalProjection,
+                UsfScaleLayer::new(SpatialScale::MAX),
+                UsfFollowsActiveScale,
+                SpatialSplitPeer { authority: player },
+                ActiveCollisionHooks::FILTER_PAIRS,
+            ),
+            (
+                ThermalSpatialSample,
+                RigidBody::Kinematic,
+                CustomPositionIntegration,
+                CustomVelocityIntegration,
+                LinearVelocity::ZERO,
+                CharacterDimensions::standing_collider(),
+                CollisionLayers::NONE,
+                Transform::from_translation(position),
+            ),
         ))
         .id();
 

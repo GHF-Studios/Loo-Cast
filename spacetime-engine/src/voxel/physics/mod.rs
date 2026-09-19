@@ -12,9 +12,9 @@ use super::{MATERIALIZATION_CHUNK_SIZE, mesh::VoxelSurface};
 
 /// Small thickness around the otherwise hollow terrain trimesh. This reduces
 /// tunnelling and visible/contact jitter for character and rigid-body motion.
-pub const VOXEL_COLLISION_MARGIN: f32 = 0.02;
+pub(super) const VOXEL_COLLISION_MARGIN: f32 = 0.02;
 
-pub(crate) fn build_trimesh_collider(
+pub(super) fn build_trimesh_collider(
     vertices: Vec<Vec3>,
     triangles: Vec<[u32; 3]>,
     context: &'static str,
@@ -38,7 +38,7 @@ pub(crate) fn build_trimesh_collider(
 ///
 /// Assign each triangle to exactly one brick by its brick-local centroid. A
 /// triangle may cross the brick boundary, but only one collider owns it.
-pub(crate) fn owned_triangles(surface: &VoxelSurface) -> Vec<[u32; 3]> {
+pub(super) fn owned_triangles(surface: &VoxelSurface) -> Vec<[u32; 3]> {
     surface
         .indices
         .chunks_exact(3)
@@ -102,8 +102,8 @@ mod tests {
         let left_surface = extract_chunk_surface(&left);
         let right_surface = extract_chunk_surface(&right);
 
-        assert!(build_chunk_collider(&left, &left_surface).is_some());
-        assert!(build_chunk_collider(&right, &right_surface).is_some());
+        assert!(build_test_surface_collider(&left_surface).is_some());
+        assert!(build_test_surface_collider(&right_surface).is_some());
 
         let mut visible_seam = BTreeSet::<TriangleKey>::new();
         let mut owned_seam = BTreeSet::<TriangleKey>::new();
@@ -124,6 +124,20 @@ mod tests {
             uncovered.is_empty(),
             "visible seam triangles without collision ownership: {uncovered:?}"
         );
+    }
+
+    fn build_test_surface_collider(surface: &VoxelSurface) -> Option<Collider> {
+        let vertices = surface
+            .positions
+            .iter()
+            .copied()
+            .map(Vec3::from_array)
+            .collect();
+        build_trimesh_collider(
+            vertices,
+            owned_triangles(surface),
+            "voxel physics seam test",
+        )
     }
 
     fn collect_visible_seam_triangles(

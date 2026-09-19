@@ -16,7 +16,6 @@ mod stance;
 
 pub use camera::{CameraMode, PlayerCamera, ThirdPersonCamera};
 pub use components::{Player, PlayerAim, PlayerController, PlayerDead, PlayerNoclip, PlayerStance};
-pub use model::PlayerModel;
 
 use avian3d::prelude::{
     ActiveCollisionHooks, CollisionLayers, CustomPositionIntegration, CustomVelocityIntegration,

@@ -7,7 +7,7 @@ use bevy::{ecs::lifecycle::RemovedComponents, prelude::*};
 use super::VoxelManifestationRegistry;
 use super::super::VoxelWorld;
 
-pub(crate) fn retire_removed_world_manifestations(
+pub(in crate::voxel) fn retire_removed_world_manifestations(
     mut commands: Commands,
     mut removed_worlds: RemovedComponents<VoxelWorld>,
     mut registry: ResMut<VoxelManifestationRegistry>,

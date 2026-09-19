@@ -2,7 +2,7 @@
 
 use serde::Deserialize;
 
-use super::{require_positive, validate_aligned_group_edge};
+use super::{require_positive, validate_generation_group_edge};
 use super::overrides::VoxelStreamingConfigOverrides;
 
 /// Demand/residency and background-generation policy.
@@ -60,7 +60,7 @@ impl VoxelStreamingConfig {
             self.max_chunks_per_generation_task,
             "voxel.streaming.max_chunks_per_generation_task",
         )?;
-        validate_aligned_group_edge(
+        validate_generation_group_edge(
             self.generation_group_base_chunks_per_axis,
             "voxel.streaming.generation_group_base_chunks_per_axis",
         )

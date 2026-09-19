@@ -10,7 +10,7 @@ use crate::{
 
 /// Marks presentation geometry belonging to the player.
 #[derive(Component)]
-pub struct PlayerModel;
+pub(super) struct PlayerModel;
 
 /// Creates the deliberately boring reference model.
 ///

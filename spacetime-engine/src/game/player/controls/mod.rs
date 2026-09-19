@@ -36,6 +36,6 @@ mod modes;
 mod movement;
 mod view;
 
-pub use modes::{toggle_noclip, toggle_spatial_demand};
-pub use movement::{movement, noclip_movement};
-pub use view::{look, zoom_spatial_view};
+pub(super) use modes::{toggle_noclip, toggle_spatial_demand};
+pub(super) use movement::{movement, noclip_movement};
+pub(super) use view::{look, zoom_spatial_view};

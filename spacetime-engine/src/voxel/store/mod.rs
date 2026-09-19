@@ -13,14 +13,14 @@ use super::{VoxelChunk, VoxelEdit, VoxelMaterializationChunkAddress, mesh::Voxel
 /// The cache may remain warm in RAM while the materialization is inactive.
 /// Runtime render/physics manifestations are built separately.
 #[derive(Debug)]
-pub(crate) struct VoxelSurfaceCache {
-    pub(crate) revision: u64,
-    pub(crate) surface: VoxelSurface,
-    pub(crate) debug_color: [f32; 4],
+pub(super) struct VoxelSurfaceCache {
+    pub(super) revision: u64,
+    pub(super) surface: VoxelSurface,
+    pub(super) debug_color: [f32; 4],
 }
 
 impl VoxelSurfaceCache {
-    pub(crate) fn new(revision: u64, surface: VoxelSurface, debug_color: [f32; 4]) -> Self {
+    pub(super) fn new(revision: u64, surface: VoxelSurface, debug_color: [f32; 4]) -> Self {
         Self {
             revision,
             surface,
@@ -66,7 +66,7 @@ impl VoxelMaterializationEntry {
 /// entries are warm RAM cache: they cost no ECS/render/physics participation and
 /// can be reactivated without regenerating the semantic field.
 #[derive(Debug, Default)]
-pub(crate) struct VoxelMaterializationStore {
+pub(super) struct VoxelMaterializationStore {
     entries: HashMap<VoxelMaterializationChunkAddress, VoxelMaterializationEntry>,
     next_generation_token: u64,
     dirty_derived: VecDeque<VoxelMaterializationChunkAddress>,

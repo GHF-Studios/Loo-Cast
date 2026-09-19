@@ -56,7 +56,7 @@ fn use_voxel_hand(
             for (world_entity, world, layer) in &worlds {
                 let world_origin = VoxelQueryPosition::new(*world.origin());
 
-                for (address, chunk) in world.materializations().active_dense_entries() {
+                for (address, chunk) in world.active_dense_materializations() {
                     let Ok(relative) = address
                         .query_origin()
                         .relative_to(world_origin, 1_000_000.0)

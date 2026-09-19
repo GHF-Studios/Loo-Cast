@@ -9,7 +9,7 @@ use crate::{
 
 use super::{MATERIALIZATION_CHUNK_SIZE, VoxelQueryPosition, VoxelWorld};
 
-pub(crate) fn configure(app: &mut App) {
+pub(super) fn configure(app: &mut App) {
     app.add_systems(
         PostUpdate,
         collect_voxel_materialization_world_draw.in_set(DeveloperSet::CollectWorldDraw),

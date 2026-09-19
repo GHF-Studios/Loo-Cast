@@ -14,10 +14,7 @@
             terrain.height_at(origin, point),
             terrain.height(123.5, -87.25)
         );
-        assert_eq!(
-            terrain.sample_at(origin, point),
-            terrain.sample_at(origin, point)
-        );
+        assert_eq!(terrain.sample_at(origin, point), terrain.sample(point));
         assert_ne!(
             terrain.height_at(origin, point),
             ProceduralTerrain::new(43).height_at(origin, point)

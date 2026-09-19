@@ -3,7 +3,7 @@
 use super::*;
 
 impl VoxelMaterializationStore {
-    pub(crate) fn apply_edit(
+    pub(in crate::voxel) fn apply_edit(
         &mut self,
         address: VoxelMaterializationChunkAddress,
         edit: VoxelEdit,
@@ -23,7 +23,7 @@ impl VoxelMaterializationStore {
         changed
     }
 
-    pub(crate) fn pop_dirty_derived(&mut self) -> Option<VoxelMaterializationChunkAddress> {
+    pub(in crate::voxel) fn pop_dirty_derived(&mut self) -> Option<VoxelMaterializationChunkAddress> {
         while let Some(address) = self.dirty_derived.pop_front() {
             if self.dirty_derived_set.remove(&address) {
                 return Some(address);
@@ -32,7 +32,7 @@ impl VoxelMaterializationStore {
         None
     }
 
-    pub(crate) fn begin_surface_build(
+    pub(in crate::voxel) fn begin_surface_build(
         &mut self,
         address: VoxelMaterializationChunkAddress,
     ) -> Option<(u64, VoxelChunk)> {
@@ -53,7 +53,7 @@ impl VoxelMaterializationStore {
 
     /// Publishes one derived surface cache. Empty surfaces are represented by
     /// `None` while `derived_revision` records that the revision was processed.
-    pub(crate) fn publish_surface(
+    pub(in crate::voxel) fn publish_surface(
         &mut self,
         address: VoxelMaterializationChunkAddress,
         revision: u64,

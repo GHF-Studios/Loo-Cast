@@ -2,7 +2,7 @@
 
 use super::*;
 
-pub fn look(
+pub(in crate::game::player) fn look(
     mouse: Res<AccumulatedMouseMotion>,
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
@@ -19,7 +19,7 @@ pub fn look(
 }
 
 /// Alt + mouse wheel changes the observer's semantic presentation scale.
-pub fn zoom_spatial_view(
+pub(in crate::game::player) fn zoom_spatial_view(
     scroll: Res<AccumulatedMouseScroll>,
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
@@ -39,11 +39,5 @@ pub fn zoom_spatial_view(
         -scroll.delta.y.signum() * step,
         SpatialScale::ZERO,
         SpatialScale::MAX,
-    );
-    info!(
-        scale = %view.scale(),
-        fractional_zoom = view.zoom(),
-        continuous_scale = view.continuous_exponent(),
-        "USF observer scale changed"
     );
 }
