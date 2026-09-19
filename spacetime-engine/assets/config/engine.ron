@@ -10,8 +10,7 @@
         manifestation: (
             grouping: (
                 strategy: AlignedRegions,
-                // 10 virtual 10-unit atoms per axis => physical groups up to 100³ native units.
-                base_chunks_per_axis: 2,
+                base_chunks_per_axis: 1,
             ),
             rebuild_budget_per_frame: 8,
             physics_interaction_radius_native: 32.0,
