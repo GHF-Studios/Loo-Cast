@@ -120,6 +120,14 @@ pub struct Died {
     pub instigator: Option<Entity>,
 }
 
+mod damage;
+mod projectile;
+mod weapon;
+
+use damage::{apply_damage, hits_to_damage};
+use projectile::{detect_projectile_hits, move_projectiles};
+use weapon::fire_weapons;
+
 pub struct CombatPlugin;
 
 impl Plugin for CombatPlugin {
@@ -136,148 +144,5 @@ impl Plugin for CombatPlugin {
                     .chain()
                     .in_set(GameSet::Consequence),
             );
-    }
-}
-
-fn fire_weapons(
-    mut commands: Commands,
-    mut requests: MessageReader<FireWeapon>,
-    weapons: Query<&Weapon>,
-    assets: Res<GameAssets>,
-) {
-    for request in requests.read() {
-        let Ok(weapon) = weapons.get(request.wielder) else {
-            continue;
-        };
-
-        let forward = request.direction.normalize_or_zero();
-
-        if forward == Vec3::ZERO {
-            continue;
-        }
-
-        let position = request.origin + forward * 0.5;
-
-        commands.spawn((
-            Name::new("Projectile"),
-            Projectile {
-                instigator: request.wielder,
-                remaining_lifetime: weapon.projectile_lifetime,
-                damage: weapon.damage,
-            },
-            PortalVelocity(forward * weapon.projectile_speed),
-            PortalTraveler::new(position),
-            Mesh3d(assets.projectile_mesh.clone()),
-            MeshMaterial3d(assets.projectile_material.clone()),
-            Transform::from_translation(position),
-        ));
-    }
-}
-
-fn move_projectiles(
-    mut commands: Commands,
-    time: Res<Time>,
-    mut projectiles: Query<(Entity, &mut Projectile, &PortalVelocity, &mut Transform)>,
-) {
-    let delta = time.delta_secs();
-
-    for (entity, mut projectile, velocity, mut transform) in &mut projectiles {
-        transform.translation += velocity.0 * delta;
-
-        projectile.remaining_lifetime -= delta;
-
-        if projectile.remaining_lifetime <= 0.0 {
-            commands.entity(entity).despawn();
-        }
-    }
-}
-
-fn detect_projectile_hits(
-    mut commands: Commands,
-    mut hits: MessageWriter<Hit>,
-    projectiles: Query<(Entity, &Projectile, &Transform)>,
-    hitboxes: Query<
-        (Entity, &Hitbox, &Collider, &Transform),
-        (
-            Without<Projectile>,
-            Or<(Without<SpatialSplitPeer>, With<SpatialSplitPeerActive>)>,
-        ),
-    >,
-) {
-    for (entity, projectile, transform) in &projectiles {
-        if projectile.remaining_lifetime <= 0.0 {
-            continue;
-        }
-
-        let impact = hitboxes
-            .iter()
-            .filter(|(target, _, _, _)| *target != projectile.instigator)
-            .filter_map(|(target, _hitbox, collider, target_transform)| {
-                collider
-                    .contains_point(
-                        target_transform.translation,
-                        target_transform.rotation,
-                        transform.translation,
-                    )
-                    .then_some((
-                        target,
-                        transform
-                            .translation
-                            .distance_squared(target_transform.translation),
-                    ))
-            })
-            .min_by(|a, b| a.1.total_cmp(&b.1));
-
-        let Some((target, _)) = impact else {
-            continue;
-        };
-
-        hits.write(Hit {
-            projectile: entity,
-            instigator: projectile.instigator,
-            target,
-            position: transform.translation,
-            damage: projectile.damage,
-        });
-
-        commands.entity(entity).despawn();
-    }
-}
-
-fn hits_to_damage(
-    mut hits: MessageReader<Hit>,
-    manifestations: Query<&UsfManifestationOf>,
-    mut damage: MessageWriter<Damage>,
-) {
-    for hit in hits.read() {
-        let target = manifestations
-            .get(hit.target)
-            .map(|manifestation| manifestation.0)
-            .unwrap_or(hit.target);
-
-        damage.write(Damage {
-            target,
-            instigator: Some(hit.instigator),
-            amount: hit.damage,
-        });
-    }
-}
-
-fn apply_damage(
-    mut damage: MessageReader<Damage>,
-    mut health: Query<&mut Health>,
-    mut died: MessageWriter<Died>,
-) {
-    for damage in damage.read() {
-        let Ok(mut health) = health.get_mut(damage.target) else {
-            continue;
-        };
-
-        if health.damage(damage.amount) {
-            died.write(Died {
-                entity: damage.target,
-                instigator: damage.instigator,
-            });
-        }
     }
 }

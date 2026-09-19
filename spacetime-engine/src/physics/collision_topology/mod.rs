@@ -6,6 +6,7 @@
 
 mod csg;
 mod source;
+mod stencil_fit;
 
 use std::collections::HashMap;
 
@@ -14,9 +15,9 @@ use bevy::prelude::*;
 
 use csg::{RectangularCut, subtract_rectangular_cuts_from_cuboid};
 
-pub use source::{
-    CollisionClipSource, RectangularStencilFit, fit_rectangular_stencil,
-    supports_rectangular_stencil,
+pub use source::CollisionClipSource;
+pub use stencil_fit::{
+    RectangularStencilFit, fit_rectangular_stencil, supports_rectangular_stencil,
 };
 
 /// A bounded subtractive region in collision space.
