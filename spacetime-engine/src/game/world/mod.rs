@@ -6,6 +6,8 @@ mod selection;
 
 use bevy::prelude::*;
 
+pub(in crate::game) use procedural::landmarks::{UniverseLandmark, UniverseLandmarkIndex};
+
 #[derive(States, Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum GameWorld {
     #[default]

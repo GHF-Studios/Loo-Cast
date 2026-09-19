@@ -8,6 +8,7 @@
 //! ECS entities are runtime storage and manifestation machinery. They are not
 //! automatically the semantic identity of every simulated value.
 
+pub mod console;
 pub mod config;
 pub mod devtools;
 pub mod diagnostics;
@@ -53,6 +54,7 @@ pub fn run(install_game: impl FnOnce(&mut EngineApp)) {
             ui::UiFoundationPlugin,
             diagnostics::RuntimeDiagnosticsPlugin,
             devtools::DeveloperToolsPlugin,
+            console::DeveloperConsolePlugin,
         ));
 
     install_game(&mut app);

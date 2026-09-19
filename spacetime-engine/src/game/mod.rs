@@ -1,6 +1,7 @@
 //! Loo Cast game composition built on Spacetime Engine domains.
 
 pub mod combat;
+mod console_commands;
 mod devtools;
 pub mod health;
 pub mod inventory;
@@ -54,6 +55,8 @@ pub struct LooCastPlugin;
 
 impl Plugin for LooCastPlugin {
     fn build(&self, app: &mut App) {
+        console_commands::configure(app);
+
         app.configure_sets(
                 Update,
                 (

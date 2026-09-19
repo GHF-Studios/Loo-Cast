@@ -12,7 +12,7 @@ use bevy::prelude::*;
 use crate::{
     config::EngineConfig,
     spatial::{
-        SPATIAL_SCALE_MAX, SpatialScale, UsfActiveScaleLayer, UsfChunkAddress, UsfPosition,
+        SpatialScale, UsfActiveScaleLayer, UsfChunkAddress, UsfPosition,
         UsfScaleLayer, UsfScaleLayerFrames, UsfViewFrame,
     },
     voxel::{ProceduralVolume, VoxelBase, VoxelPresentationMaterial, VoxelStreaming, VoxelWorld},
@@ -59,19 +59,12 @@ impl ProceduralScaleStack {
     pub(super) fn new(
         root: WorldgenEvaluationKey,
         base_material: Handle<StandardMaterial>,
-        root_material: Handle<StandardMaterial>,
-        root_world: Entity,
     ) -> Self {
-        let mut active = HashMap::new();
-        active.insert(SpatialScale::MAX, root_world);
-        let mut scale_materials = HashMap::new();
-        scale_materials.insert(SpatialScale::MAX, root_material);
-
         Self {
             root,
             base_material,
-            scale_materials,
-            active,
+            scale_materials: HashMap::new(),
+            active: HashMap::new(),
             last_demand: None,
         }
     }
@@ -187,6 +180,7 @@ pub(super) fn sync_scale_stack(
     }
 }
 
+const MAX_VOXEL_REALIZER_SCALE: i8 = 4;
 const MULTISCALE_DEPTH_BIAS_PER_DECADE: f32 = 32.0;
 
 fn scale_depth_bias(scale: SpatialScale, view_scale: SpatialScale) -> f32 {
@@ -224,15 +218,20 @@ fn view_target_at_scale(
 }
 
 fn desired_scales(demand: ScaleStackDemandKey) -> impl Iterator<Item = SpatialScale> {
-    let ancestors = (demand.interaction.exponent()..=SPATIAL_SCALE_MAX)
+    let ancestors = (demand.interaction.exponent()..=MAX_VOXEL_REALIZER_SCALE)
         .rev()
-        .map(|raw| SpatialScale::new(raw).expect("validated scale"));
+        .filter_map(SpatialScale::new);
 
-    ancestors.chain(demand.refinement)
+    ancestors.chain(
+        demand
+            .refinement
+            .filter(|scale| scale.exponent() <= MAX_VOXEL_REALIZER_SCALE),
+    )
 }
 
 fn scale_is_desired(demand: ScaleStackDemandKey, scale: SpatialScale) -> bool {
-    scale >= demand.interaction || demand.refinement == Some(scale)
+    scale.exponent() <= MAX_VOXEL_REALIZER_SCALE
+        && (scale >= demand.interaction || demand.refinement == Some(scale))
 }
 
 pub(super) fn volume_for_scale_context(

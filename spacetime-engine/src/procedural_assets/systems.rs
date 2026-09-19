@@ -49,6 +49,8 @@ pub(super) fn initialize_procedural_assets(
         base_color_texture: Some(planet_surface_texture),
         perceptual_roughness: 0.96,
         metallic: 0.0,
+        // Surface views intentionally sit on/inside the coarse planetary proxy.
+        double_sided: true,
         ..default()
     });
 

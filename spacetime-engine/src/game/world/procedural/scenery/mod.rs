@@ -31,7 +31,7 @@ struct RiggedUniverseScenery;
 
 pub(super) fn spawn_universe_scenery(
     mut commands: Commands,
-    stacks: Query<(Entity, &ProceduralScaleStack), Added<ProceduralScaleStack>>,
+    stacks: Query<(Entity, &ProceduralScaleStack)>,
     registry: Res<PhenomenonRegistry>,
     mut worldgen: ResMut<WorldgenStore>,
     assets: Res<ProceduralAssetLibrary>,
