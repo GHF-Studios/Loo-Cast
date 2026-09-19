@@ -19,7 +19,6 @@ use crate::{
         DERIVED_VIEW_LAYER, Portal, PortalActive, crossed_aperture_fraction, map_through_portal,
     },
     physics::character::{CharacterControlFrame, CharacterDimensions},
-    spatial::UsfScaleLayer,
 };
 
 use super::{Player, PlayerAim, PlayerStance, cursor::CursorCapture, model::PlayerModel};
@@ -35,7 +34,7 @@ pub enum CameraMode {
 /// Persistent intent and transient collision result for a third-person boom.
 #[derive(Reflect, Debug, Clone, Copy)]
 pub struct ThirdPersonCamera {
-    /// Normal authored distance behind the pivot, in metres.
+    /// Normal authored distance behind the pivot, in active scale-native units.
     pub base_distance: f32,
     /// Persistent user adjustment relative to [`Self::base_distance`].
     pub zoom_offset: f32,
@@ -43,7 +42,7 @@ pub struct ThirdPersonCamera {
     pub minimum_distance: f32,
     /// Maximum distance the user can request through zoom input.
     pub maximum_distance: f32,
-    /// Metres added or removed for one scroll step.
+    /// Native units added or removed for one scroll step.
     pub zoom_step: f32,
     /// Control-frame-up offset from the eye to the third-person orbit pivot.
     pub pivot_height: f32,

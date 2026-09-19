@@ -15,7 +15,7 @@ use crate::{
         CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame, CharacterMotor,
         CharacterMovementInput,
     },
-    spatial::{SpatialDemandSource, SpatialScale, UsfActiveScaleLayer, UsfViewFrame},
+    spatial::{SpatialDemandSource, SpatialScale, UsfViewFrame},
 };
 
 use super::{
@@ -36,7 +36,7 @@ mod modes;
 mod movement;
 mod view;
 
-pub(super) use modes::{sync_scale_navigation_mode, toggle_noclip, toggle_spatial_demand};
+pub(super) use modes::{sync_locomotion_mode, toggle_noclip, toggle_spatial_demand};
 pub(super) use movement::{
     adjust_scale_navigation_speed, movement, noclip_movement, scale_navigation_movement,
 };

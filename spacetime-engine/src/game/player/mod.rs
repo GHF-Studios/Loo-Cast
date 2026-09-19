@@ -121,7 +121,7 @@ impl Plugin for PlayerPlugin {
             )
             .add_systems(
                 PostUpdate,
-                controls::sync_scale_navigation_mode.after(UsfSpatialSet::SyncSemantic),
+                controls::sync_locomotion_mode.after(UsfSpatialSet::SyncSemantic),
             )
             .add_systems(Update, handle_player_death.in_set(GameSet::Cleanup))
             .add_systems(

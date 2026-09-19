@@ -30,7 +30,7 @@ pub struct PlayerController {
     pub sprint_multiplier: f32,
     /// Multiplier applied while crouched.
     pub crouch_speed_multiplier: f32,
-    /// Free-flight speed used by developer noclip, in m/s.
+    /// Free-flight speed used by developer noclip, in active scale-native units/s.
     pub noclip_speed: f32,
 }
 

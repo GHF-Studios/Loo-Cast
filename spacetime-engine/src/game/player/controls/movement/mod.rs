@@ -147,12 +147,12 @@ pub(in crate::game::player) fn scale_navigation_movement(
             Option<&PlayerDead>,
             &PlayerAim,
             &PlayerScaleNavigation,
-            &mut LinearVelocity,
+            Option<&mut LinearVelocity>,
         ),
         With<Player>,
     >,
 ) {
-    let (mut body, control, dead, aim, navigation, mut velocity) = player.into_inner();
+    let (mut body, control, dead, aim, navigation, velocity) = player.into_inner();
 
     if dead.is_some() || gameplay_suppressed(&keyboard, &capture) {
         return;
@@ -181,7 +181,9 @@ pub(in crate::game::player) fn scale_navigation_movement(
 
     body.translation +=
         wish * navigation.speed_native.max(0.0) * boost * time.delta_secs();
-    velocity.0 = Vec3::ZERO;
+    if let Some(mut velocity) = velocity {
+        velocity.0 = Vec3::ZERO;
+    }
 }
 
 /// Adjusts scale-navigation speed by quarter-decades.

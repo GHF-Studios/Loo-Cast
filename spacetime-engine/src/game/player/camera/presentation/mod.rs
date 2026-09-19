@@ -19,7 +19,6 @@ pub(in crate::game::player) fn sync_player_camera(
             &PlayerAim,
             &PlayerStance,
             &UsfManifestationOf,
-            &UsfScaleLayer,
         ),
         (
             With<Player>,
@@ -34,15 +33,13 @@ pub(in crate::game::player) fn sync_player_camera(
         (With<Portal>, Without<PlayerCamera>),
     >,
 ) {
-    let (player_entity, body, control, aim, stance, manifestation, layer) =
-        player.into_inner();
+    let (player_entity, body, control, aim, stance, manifestation) = player.into_inner();
     let (mut camera, mut camera_transform) = camera.into_inner();
 
-    let scale0_to_native =
-        10.0_f32.powi(-(layer.scale().exponent() as i32));
+    // Camera dimensions use the same native local units as the active physics
+    // chart. At S+8, `1.0` means one S+8 unit for both collider and camera.
     let view_rotation = camera.view_rotation(control, aim);
-    let eye = body.translation
-        + control.rotation() * camera.eye_offset(stance) * scale0_to_native;
+    let eye = camera.eye_position(body, control, stance);
 
     *camera_transform = match camera.mode {
         CameraMode::FirstPerson => Transform {
@@ -51,22 +48,8 @@ pub(in crate::game::player) fn sync_player_camera(
             ..default()
         },
         CameraMode::ThirdPerson => {
-            let pivot = eye
-                + control.rotation()
-                    * Vec3::Y
-                    * camera.third_person.pivot_height
-                    * scale0_to_native;
-            let mut scaled = camera.third_person;
-            scaled.base_distance *= scale0_to_native;
-            scaled.zoom_offset *= scale0_to_native;
-            scaled.minimum_distance *= scale0_to_native;
-            scaled.maximum_distance *= scale0_to_native;
-            scaled.zoom_step *= scale0_to_native;
-            scaled.pivot_height *= scale0_to_native;
-            scaled.collision_radius *= scale0_to_native;
-            scaled.collision_padding *= scale0_to_native;
-            scaled.resolved_distance *= scale0_to_native;
-
+            let pivot =
+                eye + control.rotation() * Vec3::Y * camera.third_person.pivot_height;
             let resolved = resolve_third_person_boom(
                 &spatial_query,
                 &semantic_entities,
@@ -75,10 +58,9 @@ pub(in crate::game::player) fn sync_player_camera(
                 manifestation,
                 pivot,
                 view_rotation,
-                &scaled,
+                &camera.third_person,
             );
-            camera.third_person.resolved_distance =
-                resolved.distance / scale0_to_native.max(f32::MIN_POSITIVE);
+            camera.third_person.resolved_distance = resolved.distance;
             resolved.transform
         }
     };

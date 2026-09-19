@@ -57,41 +57,34 @@ pub(in crate::game::player) fn toggle_spatial_demand(
     player.toggle();
 }
 
-/// Selects the player locomotion model valid for the active USF scale.
+/// Keeps exactly one player locomotion implementation authoritative.
 ///
-/// Character physics and developer noclip are local-scale mechanics. Coarser
-/// interaction charts use [`PlayerScaleNavigation`] without overloading noclip
-/// state or making the character motor own view/control state.
-pub(in crate::game::player) fn sync_scale_navigation_mode(
+/// Scale does not disable physics: `CharacterMotor` uses ordinary numeric local
+/// units in whatever [`UsfScaleLayer`] currently owns the player. Developer
+/// noclip and explicit [`PlayerScaleNavigation`] are alternative locomotion
+/// modes, not automatic consequences of entering a coarse scale.
+pub(in crate::game::player) fn sync_locomotion_mode(
     mut commands: Commands,
-    active: Res<UsfActiveScaleLayer>,
     player: Single<
         (
             Entity,
             &PlayerNoclip,
             Option<&PlayerScaleNavigation>,
+            Option<&CharacterMotor>,
         ),
         With<Player>,
     >,
 ) {
-    let (entity, noclip, scale_navigation) = player.into_inner();
-    let outside_character_domain = active.scale().exponent() > 4;
+    let (entity, noclip, scale_navigation, motor) = player.into_inner();
+    let wants_character_motor = !noclip.active && scale_navigation.is_none();
 
-    if outside_character_domain {
-        if scale_navigation.is_none() {
-            commands.entity(entity).insert(PlayerScaleNavigation::default());
+    match (wants_character_motor, motor.is_some()) {
+        (true, false) => {
+            commands.entity(entity).insert(CharacterMotor);
         }
-        commands.entity(entity).remove::<CharacterMotor>();
-        return;
-    }
-
-    if scale_navigation.is_some() {
-        commands.entity(entity).remove::<PlayerScaleNavigation>();
-    }
-
-    if noclip.active {
-        commands.entity(entity).remove::<CharacterMotor>();
-    } else {
-        commands.entity(entity).insert(CharacterMotor);
+        (false, true) => {
+            commands.entity(entity).remove::<CharacterMotor>();
+        }
+        _ => {}
     }
 }

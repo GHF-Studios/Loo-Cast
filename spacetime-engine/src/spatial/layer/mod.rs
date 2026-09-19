@@ -55,10 +55,15 @@ impl UsfActiveScaleLayer {
     }
 }
 
-/// Runtime chart origin for every possible scale-local world.
+/// Runtime origin stack for every scale-local world.
 ///
-/// These are simulation/presentation chart coordinates, not semantic authority.
-/// Keeping one origin per scale means rebasing S+35 never shifts S+34 geometry.
+/// Each scale is an ordinary bounded floating-point chart with its own origin.
+/// Physics, rendering and other local engine subsystems may interpret the same
+/// numeric coordinates in that scale's native units without ever constructing
+/// universe-wide floats.
+///
+/// These origins are projection context, never semantic authority. Rebasing one
+/// scale therefore never shifts another scale's local world.
 #[derive(Resource, Debug, Clone)]
 pub struct UsfScaleLayerFrames {
     origins: [DVec3; SPATIAL_SCALE_COUNT],

@@ -19,7 +19,14 @@ use super::{
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UsfTransitionVelocity {
-    Preserve,
+    /// Preserve the numeric velocity vector while changing scale-local charts.
+    ///
+    /// `6.0` therefore remains `6.0`, but those units are reinterpreted in the
+    /// destination scale. This is the default for scale-local physics.
+    PreserveNative,
+    /// Preserve canonical physical velocity across a chart change by rescaling
+    /// the numeric vector between native-unit systems.
+    PreserveCanonical,
     Zero,
 }
 
@@ -37,7 +44,7 @@ impl UsfSpatialTransition {
             subject,
             position,
             view_exponent: None,
-            velocity: UsfTransitionVelocity::Preserve,
+            velocity: UsfTransitionVelocity::PreserveNative,
         }
     }
 
@@ -212,7 +219,7 @@ pub(super) fn apply_spatial_transitions(
 
     let velocity_policy = request
         .as_ref()
-        .map_or(UsfTransitionVelocity::Preserve, |request| request.velocity);
+        .map_or(UsfTransitionVelocity::PreserveNative, |request| request.velocity);
 
     for (_entity, mut transform, mut layer, position, velocity, manifestation) in
         &mut participants.p1()
@@ -232,14 +239,17 @@ pub(super) fn apply_spatial_transitions(
         if let Some(mut velocity) = velocity {
             let belongs_to_subject =
                 manifestation.is_some_and(|manifestation| manifestation.0 == subject);
+
             if requested_relocation
                 && belongs_to_subject
                 && velocity_policy == UsfTransitionVelocity::Zero
             {
                 velocity.0 = Vec3::ZERO;
-            } else {
+            } else if velocity_policy == UsfTransitionVelocity::PreserveCanonical {
                 velocity.0 *= transition_factor;
             }
+            // PreserveNative deliberately leaves the numeric vector untouched:
+            // the destination UsfScaleLayer changes what one local unit means.
         }
     }
 

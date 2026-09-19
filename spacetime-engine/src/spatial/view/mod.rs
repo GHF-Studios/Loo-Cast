@@ -266,13 +266,6 @@ impl UsfViewFrame {
         10.0_f32.powf(scale.exponent() as f32 - self.continuous_exponent())
     }
 
-    /// Temporary bridge while physical interaction remains an S0 manifestation.
-    /// One decade of observer zoom receives matching physical traversal speed.
-    /// Beyond S+1, navigation needs scale-specific/semantic manifestations rather
-    /// than multiplying one local collider into absurd velocities.
-    pub fn scale0_physical_navigation_factor(&self) -> f32 {
-        10.0_f32.powf(self.continuous_exponent().clamp(0.0, 1.0))
-    }
 }
 
 mod systems;

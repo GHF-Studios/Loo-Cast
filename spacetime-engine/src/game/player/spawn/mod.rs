@@ -55,11 +55,11 @@ pub(super) fn spawn_player(
             (
                 PlayerStance::default(),
                 PlayerNoclip::default(),
-                PlayerScaleNavigation::default(),
-                // View/control state belongs to the player. CharacterMotor may
-                // consume these frames, but does not own their lifecycle.
+                // View/control state belongs to the player independently, while
+                // CharacterMotor remains legal at every USF scale.
                 CharacterControlFrame::default(),
                 CharacterLocomotionFrame::default(),
+                CharacterMotor,
                 CharacterDimensions::standing_collider(),
                 SpatialSplitBox::from_size(Vec3::new(
                     CharacterDimensions::HULL_WIDTH,
