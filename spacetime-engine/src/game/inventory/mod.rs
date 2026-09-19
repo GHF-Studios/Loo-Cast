@@ -2,7 +2,7 @@
 
 mod input;
 
-pub(crate) use input::pressed_hotbar_slot;
+pub(super) use input::pressed_hotbar_slot;
 
 use bevy::prelude::*;
 

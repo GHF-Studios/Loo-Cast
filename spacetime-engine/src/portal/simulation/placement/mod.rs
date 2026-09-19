@@ -2,8 +2,8 @@
 //!
 //! Tools propose rigid portal transforms. This module decides whether a proposal
 //! is physically meaningful and which clip-capable collider owns the surface.
-//! The same boundary is where snapping can be added without coupling tools to
-//! collision reconstruction or traversal.
+//! Snapping, support fitting and overlap policy stay here so tools remain
+//! decoupled from collision reconstruction and traversal.
 
 use bevy::prelude::*;
 

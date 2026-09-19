@@ -13,7 +13,7 @@ use crate::config::EngineConfig;
 use super::VoxelStreaming;
 use super::super::{
     VoxelChunk, VoxelMaterializationChunkAddress, VoxelWorld,
-    generation_scope::{VoxelGenerationScopeExtent, VoxelGenerationScope},
+    generation_scope::VoxelGenerationScopeExtent,
     worker::{VoxelWorkerTask, available_slots},
 };
 

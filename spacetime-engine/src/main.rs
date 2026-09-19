@@ -1,10 +1,10 @@
 use spacetime_engine::{
-    game::{TestGameDeveloperToolsPlugin, TestGamePlugin},
+    game::{LooCastDeveloperToolsPlugin, LooCastPlugin},
     run,
 };
 
 fn main() {
     run(|app| {
-        app.add_plugins((TestGamePlugin, TestGameDeveloperToolsPlugin));
+        app.add_plugins((LooCastPlugin, LooCastDeveloperToolsPlugin));
     });
 }

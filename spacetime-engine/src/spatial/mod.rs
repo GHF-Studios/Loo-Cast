@@ -1,8 +1,8 @@
 //! USF semantic spatial identity projected into bounded local runtime coordinates.
 //!
-//! M7 deliberately implements only fixed-scale (S0) translation and floating
-//! origin rebasing. The finite canonical stack wraps on root carry/borrow;
-//! scale transitions and observer-relative scale views remain later milestones.
+//! Canonical positions remain independent from the local runtime chart. Active
+//! scale layers, floating-origin rebasing, observer-relative scale presentation,
+//! and spatial demand are explicit projections over that semantic space.
 
 mod demand;
 mod devtools;

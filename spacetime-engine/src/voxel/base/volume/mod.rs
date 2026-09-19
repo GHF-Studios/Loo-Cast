@@ -68,7 +68,7 @@ impl ProceduralVolume {
         Self::scale_refinement(universe_seed, scale, &[(scale, context_seed)])
     }
 
-    /// Testing realizer for the USF refinement spine.
+    /// Scale-refinement realizer for the USF hierarchy.
     ///
     /// Every finer scale reproduces the entire already-resolved coarser field in
     /// its own native units, then adds only detail native to newly-entered scales.

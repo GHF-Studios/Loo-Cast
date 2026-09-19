@@ -1,4 +1,4 @@
-//! Test-game adapters for developer focus, inspection and domain tooling.
+//! Loo Cast adapters for developer focus, inspection and domain tooling.
 
 use avian3d::prelude::{SpatialQuery, SpatialQueryFilter};
 use bevy::{prelude::*, window::PrimaryWindow};
@@ -27,9 +27,9 @@ use focus::{handle_focus_pin, resolve_player_focus};
 use inspection::collect_identity_inspection;
 use view::resolve_developer_view;
 
-pub struct TestGameDeveloperToolsPlugin;
+pub struct LooCastDeveloperToolsPlugin;
 
-impl Plugin for TestGameDeveloperToolsPlugin {
+impl Plugin for LooCastDeveloperToolsPlugin {
     fn build(&self, app: &mut App) {
         crate::portal::devtools::configure(app);
         crate::thermal::devtools::configure(app);

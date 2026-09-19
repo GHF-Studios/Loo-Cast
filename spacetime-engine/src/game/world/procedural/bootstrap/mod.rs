@@ -10,10 +10,7 @@ use crate::{
     worldgen::{PhenomenonRegistry, TemporalScale, WorldgenEpoch, WorldgenStore},
 };
 
-use super::{
-    semantic_test_target,
-    scale_stack::{ProceduralScaleStack, volume_for_scale_context},
-};
+use super::scale_stack::{ProceduralScaleStack, volume_for_scale_context};
 
 #[derive(Component)]
 struct ProceduralWorldRoot;
@@ -26,7 +23,7 @@ pub(super) fn spawn_procedural_world(
     mut worldgen: ResMut<WorldgenStore>,
 ) {
     let epoch = WorldgenEpoch::present_day_bootstrap();
-    let target = semantic_test_target();
+    let target = UsfPosition::default();
     let root = worldgen
         .bootstrap_root(target, TemporalScale::WORLDGEN_SNAPSHOT, epoch, &registry)
         .expect("present-day root context must be canonically addressable");
@@ -66,7 +63,7 @@ pub(super) fn spawn_procedural_world(
             root_world,
         ));
 
-    info!(
+    debug!(
         epoch_gyr = epoch.age_gyr(),
         "bootstrapped visible Scale +35 voxel root; finer scales remain contextual refinements"
     );

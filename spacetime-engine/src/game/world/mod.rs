@@ -1,4 +1,4 @@
-//! Test-game world bootstrap and environment composition.
+//! Loo Cast world bootstrap and environment composition.
 
 mod lighting;
 mod procedural;

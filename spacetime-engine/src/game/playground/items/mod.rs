@@ -16,7 +16,7 @@ use bevy::prelude::*;
 
 use crate::game::inventory::Hotbar;
 
-pub struct PlaygroundItemsPlugin;
+pub(super) struct PlaygroundItemsPlugin;
 
 impl Plugin for PlaygroundItemsPlugin {
     fn build(&self, app: &mut App) {

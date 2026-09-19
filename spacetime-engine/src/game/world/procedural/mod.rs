@@ -6,8 +6,6 @@ mod scale_stack;
 
 use bevy::prelude::*;
 
-use crate::spatial::UsfPosition;
-
 use super::GameWorld;
 
 pub(super) fn configure(app: &mut App) {
@@ -18,6 +16,3 @@ pub(super) fn configure(app: &mut App) {
     .add_systems(Update, scale_stack::sync_scale_stack);
 }
 
-pub(super) fn semantic_test_target() -> UsfPosition {
-    UsfPosition::default()
-}

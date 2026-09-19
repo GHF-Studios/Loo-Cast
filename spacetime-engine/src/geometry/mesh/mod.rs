@@ -4,8 +4,8 @@ use bevy::{asset::RenderAssetUsages, prelude::*, render::render_resource::Primit
 ///
 /// The cross-section is expected to be convex and listed in winding order. We duplicate
 /// vertices per triangle so each face gets an unambiguous flat normal; this keeps the
-/// authoring/runtime code simple and predictable for test geometry.
-pub(crate) fn convex_prism_mesh(cross_section: &[Vec2], depth: f32) -> Mesh {
+/// authoring/runtime code simple and predictable for generated geometry.
+pub(super) fn convex_prism_mesh(cross_section: &[Vec2], depth: f32) -> Mesh {
     let mut cross_section = cross_section.to_vec();
     if signed_area(&cross_section) < 0.0 {
         cross_section.reverse();
@@ -75,7 +75,7 @@ fn signed_area(points: &[Vec2]) -> f32 {
     area * 0.5
 }
 
-pub(crate) fn convex_prism_points(cross_section: &[Vec2], depth: f32) -> Vec<Vec3> {
+pub(super) fn convex_prism_points(cross_section: &[Vec2], depth: f32) -> Vec<Vec3> {
     let half_depth = depth * 0.5;
     let mut points = Vec::with_capacity(cross_section.len() * 2);
 

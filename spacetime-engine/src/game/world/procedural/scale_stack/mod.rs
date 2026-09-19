@@ -2,8 +2,8 @@
 //!
 //! Higher scales remain resident when finer scales are introduced. The result is
 //! a vertical multi-scale realization spine rather than mutually exclusive worlds.
-//! Voxels at every scale are intentionally a testing realizer; semantic worldgen
-//! remains authoritative and contextualizes every finer level.
+//! Voxels are the current scale-local realizer; semantic worldgen remains
+//! authoritative and contextualizes every finer level.
 
 use std::collections::HashMap;
 
@@ -112,7 +112,7 @@ pub(super) fn sync_scale_stack(
                 .id();
 
             stack.active.insert(scale, entity);
-            info!(
+            debug!(
                 scale = %scale,
                 resident_scale_worlds = stack.active.len(),
                 "extended hierarchical USF voxel realization spine"

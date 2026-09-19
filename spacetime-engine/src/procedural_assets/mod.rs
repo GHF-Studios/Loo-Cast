@@ -52,7 +52,7 @@ impl Plugin for ProceduralAssetsPlugin {
     }
 }
 
-pub(crate) fn rgba_image(size: UVec2, data: Vec<u8>, srgb: bool) -> Image {
+fn rgba_image(size: UVec2, data: Vec<u8>, srgb: bool) -> Image {
     let format = if srgb {
         TextureFormat::Rgba8UnormSrgb
     } else {

@@ -4,7 +4,7 @@ use bevy::prelude::*;
 
 use super::HOTBAR_SIZE;
 
-pub(crate) fn pressed_hotbar_slot(keyboard: &ButtonInput<KeyCode>) -> Option<usize> {
+pub(in crate::game) fn pressed_hotbar_slot(keyboard: &ButtonInput<KeyCode>) -> Option<usize> {
     const KEYS: [KeyCode; HOTBAR_SIZE] = [
         KeyCode::Digit1,
         KeyCode::Digit2,

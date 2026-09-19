@@ -27,7 +27,7 @@ pub(super) fn motion_state(motion: &AuthoredMotion) -> (Vec3, Vec3) {
     )
 }
 
-pub(crate) fn animate_authored_movers(
+pub(in crate::geometry) fn animate_authored_movers(
     time: Res<Time<Fixed>>,
     mut movers: Query<(&mut Transform, &mut LinearVelocity, &mut AuthoredMotion)>,
 ) {

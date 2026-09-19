@@ -89,7 +89,7 @@ fn enter_selection(mut commands: Commands, theme: Res<UiTheme>, mut focus: ResMu
                         panel,
                         GameWorld::Procedural,
                         "Procedural World",
-                        "The actual game-world path: procedural voxels now, persistence and streaming later.",
+                        "The main game-world path: procedural voxels, demand-driven streaming and hierarchical scale refinement.",
                         &heading,
                         &secondary,
                     );

@@ -1,4 +1,4 @@
-//! Prepare the local test player for the procedural root world.
+//! Prepare the local player for the procedural root world.
 
 use avian3d::prelude::LinearVelocity;
 use bevy::prelude::*;
@@ -12,7 +12,7 @@ use crate::{
     worldgen::{TemporalScale, WorldgenEpoch, WorldgenStore},
 };
 
-use super::{semantic_test_target, scale_stack::volume_for_scale_context};
+use super::scale_stack::volume_for_scale_context;
 
 pub(super) fn prepare_player(
     mut commands: Commands,
@@ -29,7 +29,7 @@ pub(super) fn prepare_player(
     >,
 ) {
     let epoch = WorldgenEpoch::present_day_bootstrap();
-    let target = semantic_test_target();
+    let target = UsfPosition::default();
     let root = worldgen
         .key_for(
             target,

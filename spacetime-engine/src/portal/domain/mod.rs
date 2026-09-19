@@ -12,6 +12,6 @@ pub use face::PortalSidedness;
 pub use portal::{Portal, PortalActive, PortalEndpoint, PortalPair, PortalView};
 pub use traveler::{PortalRigidSplitBody, PortalSplitTraveler, PortalTraveler, PortalVelocity};
 
-pub(crate) use face::{PortalFace, PortalSide};
-pub(crate) use portal::PortalSupport;
-pub(crate) use traveler::ActivePortalSplit;
+pub(super) use face::{PortalFace, PortalSide};
+pub(super) use portal::PortalSupport;
+pub(super) use traveler::ActivePortalSplit;

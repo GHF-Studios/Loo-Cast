@@ -1,4 +1,4 @@
-//! Small test game used to pressure-test Spacetime Engine semantics.
+//! Loo Cast game composition built on Spacetime Engine domains.
 
 pub mod combat;
 mod devtools;
@@ -11,7 +11,7 @@ mod world;
 
 use bevy::prelude::*;
 
-pub use devtools::TestGameDeveloperToolsPlugin;
+pub use devtools::LooCastDeveloperToolsPlugin;
 pub use world::GameWorld;
 
 /// Stable top-level extension points.
@@ -50,9 +50,9 @@ pub enum PresentationSet {
     DerivedViews,
 }
 
-pub struct TestGamePlugin;
+pub struct LooCastPlugin;
 
-impl Plugin for TestGamePlugin {
+impl Plugin for LooCastPlugin {
     fn build(&self, app: &mut App) {
         app.configure_sets(
                 Update,

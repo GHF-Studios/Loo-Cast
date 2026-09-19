@@ -26,7 +26,7 @@ use super::{
     ui::creative_menu::{CreativeMenuRoot, CreativeMenuState, CursorItem},
 };
 
-pub fn configure(app: &mut App) {
+pub(super) fn configure(app: &mut App) {
     app.add_systems(Update, toggle_creative_menu.in_set(InputSet::Interface))
         .add_systems(
             Update,

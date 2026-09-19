@@ -49,12 +49,12 @@ pub struct AuthoredMapMarker {
 }
 
 #[derive(Component, Debug, Clone, Copy)]
-pub struct GeneratedFromMap {
+pub(super) struct GeneratedFromMap {
     source: Entity,
 }
 
 #[derive(Component, Debug, Clone, Copy)]
-pub struct AuthoredMotion {
+pub(super) struct AuthoredMotion {
     base: Transform,
     travel: Vec3,
     period_seconds: f32,
@@ -66,8 +66,8 @@ mod motion;
 mod rebuild;
 mod spawning;
 
-pub(crate) use motion::animate_authored_movers;
-pub(crate) use rebuild::rebuild_authored_maps;
+pub(super) use motion::animate_authored_movers;
+pub(super) use rebuild::rebuild_authored_maps;
 
 use motion::{authored_motion, motion_state};
 use spawning::spawn_geometry;

@@ -2,7 +2,7 @@
 
 use super::*;
 
-pub(crate) fn rebuild_authored_maps(
+pub(in crate::geometry) fn rebuild_authored_maps(
     mut commands: Commands,
     mut events: MessageReader<AssetEvent<AuthoredMap>>,
     maps: Res<Assets<AuthoredMap>>,
@@ -126,7 +126,7 @@ pub(crate) fn rebuild_authored_maps(
             }
         }
 
-        info!("rebuilt authored map {:?}", map.name);
+        debug!("rebuilt authored map {:?}", map.name);
         scene.dirty = false;
     }
 }

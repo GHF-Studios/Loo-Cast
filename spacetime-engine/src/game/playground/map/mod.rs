@@ -23,7 +23,7 @@ const PLAYER_SPAWN_MARKER: &str = "player_spawn";
 const PORTAL_A_MARKER: &str = "portal_a";
 const PORTAL_B_MARKER: &str = "portal_b";
 
-pub struct PlaygroundMapPlugin;
+pub(super) struct PlaygroundMapPlugin;
 
 impl Plugin for PlaygroundMapPlugin {
     fn build(&self, app: &mut App) {

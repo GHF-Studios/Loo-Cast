@@ -7,7 +7,7 @@ use super::asset::{
 };
 
 #[derive(Debug, Clone)]
-pub(crate) enum CompiledNode {
+pub(super) enum CompiledNode {
     Geometry(CompiledGeometry),
     Marker(CompiledMarker),
     PointLight(CompiledPointLight),
@@ -15,7 +15,7 @@ pub(crate) enum CompiledNode {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct CompiledGeometry {
+pub(super) struct CompiledGeometry {
     pub id: String,
     pub zone: String,
     pub tags: Vec<String>,
@@ -27,7 +27,7 @@ pub(crate) struct CompiledGeometry {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) enum CompiledShape {
+pub(super) enum CompiledShape {
     Box {
         size: Vec3,
     },
@@ -49,14 +49,14 @@ pub(crate) enum CompiledShape {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct CompiledMotion {
+pub(super) struct CompiledMotion {
     pub travel: Vec3,
     pub period_seconds: f32,
     pub phase: f32,
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct CompiledMarker {
+pub(super) struct CompiledMarker {
     pub id: String,
     pub zone: String,
     pub kind: String,
@@ -65,7 +65,7 @@ pub(crate) struct CompiledMarker {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct CompiledPointLight {
+pub(super) struct CompiledPointLight {
     pub id: String,
     pub zone: String,
     pub position: Vec3,
@@ -76,7 +76,7 @@ pub(crate) struct CompiledPointLight {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct CompiledDirectionalLight {
+pub(super) struct CompiledDirectionalLight {
     pub id: String,
     pub zone: String,
     pub rotation: Quat,
@@ -98,7 +98,7 @@ use primitives::{
     compile_moving_box, compile_ramp, compile_sphere,
 };
 
-pub(crate) fn compile_map(map: &AuthoredMap) -> Vec<CompiledNode> {
+pub(super) fn compile_map(map: &AuthoredMap) -> Vec<CompiledNode> {
     let mut output = Vec::new();
 
     for object in &map.objects {

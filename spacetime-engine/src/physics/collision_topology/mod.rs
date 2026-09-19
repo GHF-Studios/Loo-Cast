@@ -48,7 +48,7 @@ impl CollisionStencil {
 }
 
 #[derive(Component, Debug, Clone, Copy, Default)]
-pub struct AppliedCollisionTopology {
+pub(super) struct AppliedCollisionTopology {
     fingerprint: u64,
 }
 

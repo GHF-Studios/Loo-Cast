@@ -1,4 +1,4 @@
-//! Shared outdoor lighting for the test-game world compositions.
+//! Shared outdoor lighting for Loo Cast world compositions.
 
 use bevy::prelude::*;
 

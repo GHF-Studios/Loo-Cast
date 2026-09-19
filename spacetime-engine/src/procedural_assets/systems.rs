@@ -52,10 +52,9 @@ pub(super) fn initialize_procedural_assets(
 
 /// Regenerates changed recipes in-place.
 ///
-/// This is the first deliberately small piece of the continuous procedural-asset
-/// path: recipe mutation changes already-instantiated users because their asset
-/// handles stay stable. Async scheduling/cache policy can grow around this seam
-/// without changing the recipe/output contract.
+/// Recipe mutation updates already-instantiated users in place because asset
+/// handles remain stable. Scheduling/cache policy can evolve independently of
+/// the recipe/output contract.
 pub(super) fn regenerate_changed_procedural_assets(
     recipe: Res<CrackedClayRecipe>,
     library: Option<Res<ProceduralAssetLibrary>>,

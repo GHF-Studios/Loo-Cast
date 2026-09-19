@@ -4,7 +4,7 @@ mod hud;
 
 use bevy::prelude::*;
 
-pub struct PlaygroundUiPlugin;
+pub(super) struct PlaygroundUiPlugin;
 
 impl Plugin for PlaygroundUiPlugin {
     fn build(&self, app: &mut App) {

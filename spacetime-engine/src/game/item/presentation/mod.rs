@@ -16,7 +16,7 @@ pub struct ItemView {
 }
 
 #[derive(Component)]
-pub struct ItemViewLabel;
+struct ItemViewLabel;
 
 pub fn spawn_item_view(
     parent: &mut ChildSpawnerCommands,
@@ -46,7 +46,7 @@ pub fn spawn_item_view(
         });
 }
 
-pub fn sync_item_views(
+fn sync_item_views(
     catalog: Res<ItemCatalog>,
     views: Query<(&ItemView, &Children), Changed<ItemView>>,
     mut labels: Query<&mut Text, With<ItemViewLabel>>,

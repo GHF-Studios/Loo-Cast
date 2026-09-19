@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use super::rgba_image;
 
-/// Editable recipe for the first procedural material vertical slice.
+/// Editable recipe for the generated cracked-clay material.
 ///
 /// Two independent periodic Voronoi fields create large clay plates and a finer
 /// secondary fracture network. The same scalar surface drives color, height,
@@ -44,11 +44,11 @@ impl Default for CrackedClayRecipe {
     }
 }
 
-pub(crate) struct GeneratedPbrTextures {
-    pub(crate) albedo: Image,
-    pub(crate) normal: Image,
-    pub(crate) height: Image,
-    pub(crate) orm: Image,
+pub(super) struct GeneratedPbrTextures {
+    pub(super) albedo: Image,
+    pub(super) normal: Image,
+    pub(super) height: Image,
+    pub(super) orm: Image,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -66,7 +66,7 @@ struct VoronoiSample {
     cell_value: f32,
 }
 
-pub(crate) fn generate_cracked_clay(recipe: &CrackedClayRecipe) -> GeneratedPbrTextures {
+pub(super) fn generate_cracked_clay(recipe: &CrackedClayRecipe) -> GeneratedPbrTextures {
     let size = recipe.resolution.max(UVec2::ONE);
     let pixel_count = (size.x as usize) * (size.y as usize);
     let mut albedo = Vec::with_capacity(pixel_count * 4);
@@ -257,7 +257,8 @@ mod tests {
 
         for other in [x, y] {
             assert!((base.height - other.height).abs() < 1.0e-5);
-            assert!((base.crack - other.crack).abs() < 1.0e-5);
+            assert!((base.roughness - other.roughness).abs() < 1.0e-5);
+            assert!((base.occlusion - other.occlusion).abs() < 1.0e-5);
             assert!((base.color_srgb - other.color_srgb).length() < 1.0e-5);
         }
     }
