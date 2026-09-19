@@ -56,7 +56,10 @@ use super::{
     health::{Died, Health},
 };
 
-const PLAYER_SPATIAL_DEMAND_HALF_EXTENT: Vec3 = Vec3::splat(96.0);
+// Keep a generous horizontal terrain window without materializing a
+// 192-metre vertical cube around the player. Semantic voxel resolution stays
+// unchanged; this controls only the hot realization working set.
+const PLAYER_SPATIAL_DEMAND_HALF_EXTENT: Vec3 = Vec3::new(64.0, 32.0, 64.0);
 const PLAYER_SPATIAL_DEMAND_PRIORITY: i32 = 100;
 
 use lifecycle::handle_player_death;

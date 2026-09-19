@@ -14,7 +14,7 @@ use super::VoxelStreaming;
 use super::super::{
     VoxelChunk, VoxelMaterializationChunkAddress, VoxelWorld,
     aggregate::{VoxelMaterializationAggregateExtent, VoxelMaterializationAggregateScope},
-    perf::per_stage_in_flight_limit,
+    worker::{VoxelWorkerTask, available_slots},
 };
 
 mod batching;
@@ -157,7 +157,7 @@ pub(crate) fn schedule_voxel_generation(
     config: Res<EngineConfig>,
     mut commands: Commands,
     mut worlds: Query<(Entity, &mut VoxelWorld, &mut VoxelStreaming)>,
-    generation_tasks: Query<(), With<VoxelAggregateGenerationTask>>,
+    worker_tasks: Query<(), With<VoxelWorkerTask>>,
 ) {
     let streaming_config = config.voxel.streaming;
     let generation_extent = VoxelMaterializationAggregateExtent::from_base_chunks_per_axis(
@@ -165,8 +165,7 @@ pub(crate) fn schedule_voxel_generation(
     )
     .expect("validated engine config must produce a generation grouping extent");
 
-    let mut generation_slots =
-        per_stage_in_flight_limit().saturating_sub(generation_tasks.iter().count());
+    let mut generation_slots = available_slots(worker_tasks.iter().count());
 
     for (world_entity, mut world, mut streaming) in &mut worlds {
         if generation_slots == 0 {
@@ -185,6 +184,7 @@ pub(crate) fn schedule_voxel_generation(
         for batch in batches {
             commands.spawn((
                 Name::new("Voxel Aggregate Generation"),
+                VoxelWorkerTask,
                 VoxelAggregateGenerationTask::spawn(world_entity, batch.scope, batch.jobs),
             ));
         }

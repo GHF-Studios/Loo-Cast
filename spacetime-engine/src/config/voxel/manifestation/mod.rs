@@ -72,7 +72,11 @@ impl Default for VoxelManifestationGroupingConfig {
     fn default() -> Self {
         Self {
             strategy: VoxelGroupingStrategy::AlignedRegions,
-            base_chunks_per_axis: 10,
+            // Cap incremental mesh/collider rebuild amplification. 4^3 keeps
+            // each manifestation at at most 64 independently arriving atoms;
+            // 10^3 allowed one growing manifestation to repeatedly rebuild up
+            // to a thousand members while streaming.
+            base_chunks_per_axis: 4,
         }
     }
 }

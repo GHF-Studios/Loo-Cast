@@ -14,8 +14,8 @@ use crate::spatial::{SPATIAL_SCALE_MAX, SpatialScale, UsfPosition, UsfScaleLayer
 use super::{
     VoxelMaterializationChunkAddress, VoxelWorld,
     mesh::{self, VoxelSurface},
-    perf::per_stage_in_flight_limit,
     store::VoxelSurfaceCache,
+    worker::{VoxelWorkerTask, available_slots},
 };
 
 const DERIVED_TASK_START_BUDGET_PER_FRAME: usize = 8;
@@ -76,10 +76,10 @@ pub(crate) fn publish_completed_chunk_builds(
 pub(crate) fn queue_dirty_chunk_builds(
     mut commands: Commands,
     mut worlds: Query<(Entity, &mut VoxelWorld, &UsfScaleLayer)>,
-    in_flight: Query<(), With<VoxelDerivedTask>>,
+    worker_tasks: Query<(), With<VoxelWorkerTask>>,
 ) {
     let pool = AsyncComputeTaskPool::get();
-    let available = per_stage_in_flight_limit().saturating_sub(in_flight.iter().count());
+    let available = available_slots(worker_tasks.iter().count());
     if available == 0 {
         return;
     }
@@ -109,6 +109,7 @@ pub(crate) fn queue_dirty_chunk_builds(
 
             commands.spawn((
                 Name::new("Voxel Surface Derivation"),
+                VoxelWorkerTask,
                 VoxelDerivedTask {
                     world: world_entity,
                     address,

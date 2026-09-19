@@ -13,7 +13,7 @@ mod edit;
 mod field;
 mod mesh;
 mod modification;
-mod perf;
+mod worker;
 mod physics;
 mod manifestation;
 mod store;
