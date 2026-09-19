@@ -19,6 +19,7 @@ pub(super) fn spawn_procedural_world(
     config: Res<EngineConfig>,
     mut commands: Commands,
     procedural_assets: Res<ProceduralAssetLibrary>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     registry: Res<PhenomenonRegistry>,
     mut worldgen: ResMut<WorldgenStore>,
 ) {
@@ -28,6 +29,18 @@ pub(super) fn spawn_procedural_world(
         .bootstrap_root(target, TemporalScale::WORLDGEN_SNAPSHOT, epoch, &registry)
         .expect("present-day root context must be canonically addressable");
     let volume = volume_for_scale_context(&worldgen, root);
+
+    // Keep scale-compositor depth policy local to these terrain realizers rather
+    // than mutating the shared procedural asset-library material.
+    let base_material = procedural_assets.debug_grid.clone();
+    let root_material = materials
+        .get(&base_material)
+        .cloned()
+        .map(|mut material| {
+            material.depth_bias = 0.0;
+            materials.add(material)
+        })
+        .expect("procedural debug-grid material must exist before world bootstrap");
 
     let stack_entity = commands
         .spawn((
@@ -48,7 +61,7 @@ pub(super) fn spawn_procedural_world(
                 UsfPosition::zero(SpatialScale::MAX),
             ),
             VoxelStreaming::new(config.voxel.streaming.default_load_budget_per_frame),
-            VoxelPresentationMaterial::new(procedural_assets.debug_grid.clone()),
+            VoxelPresentationMaterial::new(root_material.clone()),
             Transform::IDENTITY,
             Visibility::Inherited,
         ))
@@ -57,9 +70,9 @@ pub(super) fn spawn_procedural_world(
     commands
         .entity(stack_entity)
         .insert(ProceduralScaleStack::new(
-            target,
             root,
-            procedural_assets.debug_grid.clone(),
+            base_material,
+            root_material,
             root_world,
         ));
 

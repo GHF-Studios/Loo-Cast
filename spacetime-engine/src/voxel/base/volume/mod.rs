@@ -73,22 +73,29 @@ impl ProceduralVolume {
     /// Every finer scale reproduces the entire already-resolved coarser field in
     /// its own native units, then adds only detail native to newly-entered scales.
     /// One +35 unit therefore becomes ten +34 units with the same broad geometry.
+    ///
+    /// The geometric random field is seeded once from universe/root identity.
+    /// Child worldgen contexts must not reseed an already-established scale band:
+    /// that would turn semantic refinement into unrelated replacement geometry.
+    /// Finer Phenomena can later modulate explicit terrain parameters without
+    /// breaking this inherited geometric field.
     pub fn scale_refinement(
         universe_seed: u64,
         scale: SpatialScale,
         lineage: &[(SpatialScale, u64)],
     ) -> Self {
-        let hierarchy_seed = (universe_seed as u32) ^ ((universe_seed >> 32) as u32);
+        let universe_seed = (universe_seed as u32) ^ ((universe_seed >> 32) as u32);
+        let root_context_seed = lineage
+            .iter()
+            .find(|(level, _)| *level == SpatialScale::MAX)
+            .or_else(|| lineage.last())
+            .map(|(_, seed)| (*seed as u32) ^ ((*seed >> 32) as u32));
+        let hierarchy_seed = root_context_seed.map_or(universe_seed, |seed| mix(universe_seed, seed));
         let mut seeds = [0_u32; SPATIAL_SCALE_COUNT];
 
         for raw in SPATIAL_SCALE_MIN..=SPATIAL_SCALE_MAX {
             let level = SpatialScale::new(raw).expect("validated spatial scale");
             seeds[level.index_from_top()] = scale_layer_seed(hierarchy_seed, level);
-        }
-
-        for &(level, context_seed) in lineage {
-            let folded = (context_seed as u32) ^ ((context_seed >> 32) as u32);
-            seeds[level.index_from_top()] = mix(seeds[level.index_from_top()], folded);
         }
 
         let detail_seed = seeds[scale.index_from_top()];

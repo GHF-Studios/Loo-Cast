@@ -61,6 +61,41 @@
     }
 
     #[test]
+    fn child_context_identity_does_not_replace_the_geometric_field() {
+        let root_seed = 0x1234_5678_9ABC_DEF0_u64;
+        let child_scale = SpatialScale::new(SPATIAL_SCALE_MAX - 1).unwrap();
+
+        let first = ProceduralVolume::scale_refinement(
+            0x10_0CA57_5EED_2026,
+            child_scale,
+            &[
+                (child_scale, 0x1111_2222_3333_4444),
+                (SpatialScale::MAX, root_seed),
+            ],
+        );
+        let second = ProceduralVolume::scale_refinement(
+            0x10_0CA57_5EED_2026,
+            child_scale,
+            &[
+                (child_scale, 0xAAAA_BBBB_CCCC_DDDD),
+                (SpatialScale::MAX, root_seed),
+            ],
+        );
+
+        for point in [
+            Vec3::new(12.0, -6.0, 7.0),
+            Vec3::new(-43.0, 3.0, 19.0),
+            Vec3::new(2.5, 11.0, -31.0),
+        ] {
+            assert_eq!(
+                first.sample_local(point),
+                second.sample_local(point),
+                "child semantic context must not swap the inherited terrain field"
+            );
+        }
+    }
+
+    #[test]
     fn sphere_base_is_reconstructible_without_stored_voxels() {
         let origin = query(Vec3::ZERO);
         let base = VoxelBase::sphere(origin, 2.0, VoxelMaterialId::ROCK);
