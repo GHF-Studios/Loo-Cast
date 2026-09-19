@@ -24,8 +24,8 @@ pub(super) fn detect_projectile_hits(
     mut commands: Commands,
     mut hits: MessageWriter<Hit>,
     projectiles: Query<(Entity, &Projectile, &Transform)>,
-    hitboxes: Query<
-        (Entity, &Hitbox, &Collider, &Transform),
+    damageables: Query<
+        (Entity, &DamageableBounds, &Collider, &Transform),
         (
             Without<Projectile>,
             Or<(Without<SpatialSplitPeer>, With<SpatialSplitPeerActive>)>,
@@ -37,10 +37,10 @@ pub(super) fn detect_projectile_hits(
             continue;
         }
 
-        let impact = hitboxes
+        let impact = damageables
             .iter()
             .filter(|(target, _, _, _)| *target != projectile.instigator)
-            .filter_map(|(target, _hitbox, collider, target_transform)| {
+            .filter_map(|(target, _bounds, collider, target_transform)| {
                 collider
                     .contains_point(
                         target_transform.translation,

@@ -2,18 +2,17 @@
 
 pub mod combat;
 mod devtools;
-mod environment;
 pub mod health;
 pub mod inventory;
 pub mod item;
-pub mod map_selection;
 pub mod player;
 pub mod playground;
-mod procedural_world;
+mod world;
 
 use bevy::prelude::*;
 
 pub use devtools::TestGameDeveloperToolsPlugin;
+pub use world::GameWorld;
 
 /// Stable top-level extension points.
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -119,10 +118,8 @@ impl Plugin for TestGamePlugin {
                     .in_set(GameSet::Presentation),
             )
             .add_plugins((
-                environment::EnvironmentLightingPlugin,
                 inventory::InventoryPlugin,
                 item::ItemPlugin,
-                map_selection::MapSelectionPlugin,
                 health::HealthPlugin,
                 combat::CombatPlugin,
                 crate::procedural_assets::ProceduralAssetsPlugin,
@@ -132,7 +129,7 @@ impl Plugin for TestGamePlugin {
                 crate::portal::PortalPlugin,
                 crate::thermal::ThermalCorePlugin,
                 crate::thermal::ThermalPresentationPlugin,
-                procedural_world::ProceduralWorldPlugin,
+                world::GameWorldPlugin,
                 playground::PlaygroundPlugin,
             ));
     }

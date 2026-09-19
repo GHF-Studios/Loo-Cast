@@ -46,12 +46,13 @@ impl Health {
     }
 }
 
+/// Damageable manifestation bounds used for targeting eligibility and presentation.
 #[derive(Component, Debug, Clone, Copy)]
-pub struct Hitbox {
+pub struct DamageableBounds {
     pub half_extents: Vec3,
 }
 
-impl Hitbox {
+impl DamageableBounds {
     pub fn cube(size: f32) -> Self {
         Self {
             half_extents: Vec3::splat(size / 2.0),

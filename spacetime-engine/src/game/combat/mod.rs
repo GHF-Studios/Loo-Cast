@@ -13,7 +13,7 @@ use crate::{
 
 use super::{
     GameSet, SimulationSet,
-    health::{Damage, HealthSet, Hitbox},
+    health::{Damage, DamageableBounds, HealthSet},
 };
 
 #[derive(Component, Debug, Clone, Copy)]

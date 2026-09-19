@@ -43,8 +43,8 @@ Reusable item and inventory contracts are no longer owned by the playground.
 - `game::inventory` owns Hotbar selection state and conventional numeric-slot
   input helpers. Its defaults contain no knowledge of built-in content.
 - `game::playground` owns concrete test items, the starting sandbox loadout,
-  creative-menu/cursor state, erase semantics, map composition and demo UI.
-- Combat owns Health presentation and projectile presentation assets.
+  creative-menu/cursor state, erase semantics, authored playground bootstrap and demo UI.
+- `game::health` owns damage/health/death semantics and health presentation; combat owns projectile presentation and emits generic `Damage`.
 
 This keeps generic contracts usable by other game compositions without making
 them depend on the test sandbox that happened to exercise them first.

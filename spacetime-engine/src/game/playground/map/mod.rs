@@ -8,11 +8,7 @@ use avian3d::prelude::LinearVelocity;
 use bevy::prelude::*;
 
 use crate::{
-    game::{
-        GameSet,
-        map_selection::GameMap,
-        player::Player,
-    },
+    game::{GameSet, GameWorld, player::Player},
     geometry::{AuthoredMap, AuthoredMapMarker, AuthoredMapScene},
     portal::{PortalCommand, PortalEndpoint, PortalPair, PortalTraveler},
     spatial::{UsfScaleLayer, UsfSpatialFrame},
@@ -32,18 +28,18 @@ pub struct PlaygroundMapPlugin;
 impl Plugin for PlaygroundMapPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
-            OnEnter(GameMap::Playground),
+            OnEnter(GameWorld::Playground),
             (load_campus, spawn_voxel_test_rock),
         )
         .add_systems(
             Update,
-            place_player_at_spawn_marker.run_if(in_state(GameMap::Playground)),
+            place_player_at_spawn_marker.run_if(in_state(GameWorld::Playground)),
         )
         .add_systems(
             Update,
             initialize_demo_portals_from_markers
                 .in_set(GameSet::Action)
-                .run_if(in_state(GameMap::Playground)),
+                .run_if(in_state(GameWorld::Playground)),
         );
     }
 }

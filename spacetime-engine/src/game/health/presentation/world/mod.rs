@@ -61,7 +61,7 @@ pub(super) fn sync_world_health_bars(
             Entity,
             &UsfManifestationOf,
             &GlobalTransform,
-            Option<&Hitbox>,
+            Option<&DamageableBounds>,
         ),
         (
             Or<(Without<SpatialSplitPeer>, With<SpatialSplitPeerActive>)>,
@@ -86,7 +86,7 @@ pub(super) fn sync_world_health_bars(
 
     // Health is semantic state. Render one bar for each currently active
     // spatial manifestation rather than copying Health onto presentation entities.
-    for (entity, manifestation, transform, hitbox) in &manifestations {
+    for (entity, manifestation, transform, bounds) in &manifestations {
         if Some(manifestation.0) == player_semantic {
             continue;
         }
@@ -98,7 +98,7 @@ pub(super) fn sync_world_health_bars(
         let fraction = health_fraction(health);
         let (frame_transform, fill_transform) = world_bar_transforms(
             transform.compute_transform(),
-            hitbox.map(|hitbox| hitbox.half_extents),
+            bounds.map(|bounds| bounds.half_extents),
             fraction,
             camera_rotation,
         );

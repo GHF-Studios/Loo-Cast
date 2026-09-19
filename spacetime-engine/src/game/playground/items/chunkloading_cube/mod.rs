@@ -10,7 +10,7 @@ use crate::{
     },
     game::{
         GameSet,
-        health::{Health, Hitbox},
+        health::{Health, DamageableBounds},
         item::{ItemAction, ItemCatalog, ItemDefinition, ItemId, UseItem},
     },
     spatial::SpatialDemandSource,
@@ -114,7 +114,7 @@ fn use_chunkloading_cube(
                     UsfManifestationAuthority,
                     UsfLogicalProjection,
                     PlaygroundPickable::cube(root, CUBE_SIZE),
-                    Hitbox::cube(CUBE_SIZE),
+                    DamageableBounds::cube(CUBE_SIZE),
                     SpatialDemandSource::cuboid(DEMAND_HALF_EXTENT).with_priority(DEMAND_PRIORITY),
                     VoxelMaterializationDemand,
                     RigidBody::Dynamic,

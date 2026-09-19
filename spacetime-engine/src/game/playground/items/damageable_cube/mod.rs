@@ -10,7 +10,7 @@ use crate::{
     },
     game::{
         GameSet,
-        health::{Health, Hitbox},
+        health::{Health, DamageableBounds},
         item::{ItemAction, ItemCatalog, ItemDefinition, ItemId, UseItem},
     },
     physics::topology::{SpatialSplitBox, SpatialSplitPeer},
@@ -187,7 +187,7 @@ fn spawn_dynamic_manifestation(
             UsfLogicalProjection,
             ThermalSpatialSample,
             PlaygroundPickable::cube(semantic, CUBE_SIZE),
-            Hitbox::cube(CUBE_SIZE),
+            DamageableBounds::cube(CUBE_SIZE),
             SpatialSplitBox::from_size(Vec3::splat(CUBE_SIZE)),
             PortalTraveler::new(position),
             PortalRigidSplitBody::default(),
@@ -213,7 +213,7 @@ fn spawn_dynamic_manifestation(
             SpatialSplitPeer { authority },
             ThermalSpatialSample,
             PlaygroundPickable::cube(semantic, CUBE_SIZE),
-            Hitbox::cube(CUBE_SIZE),
+            DamageableBounds::cube(CUBE_SIZE),
             transform,
         ))
         .insert((

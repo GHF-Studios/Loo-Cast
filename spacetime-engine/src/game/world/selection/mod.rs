@@ -1,7 +1,7 @@
-//! Minimal startup map selector.
+//! Startup world-bootstrap selector.
 //!
-//! This chooses environment bootstrap only. Gameplay mechanics/plugins remain
-//! active regardless of which map is selected.
+//! This chooses world composition only. Gameplay mechanics/plugins remain
+//! active regardless of which world bootstrap is selected.
 
 use bevy::prelude::*;
 
@@ -10,38 +10,27 @@ use crate::{
     ui::{UiTextRole, UiTheme},
 };
 
-const FOCUS_OWNER: &str = "map_selection";
+use super::GameWorld;
+
+const FOCUS_OWNER: &str = "world_selection";
 const BUTTON_NORMAL: Color = Color::srgba(0.16, 0.16, 0.19, 0.98);
 const BUTTON_HOVERED: Color = Color::srgba(0.28, 0.28, 0.34, 0.98);
 const BUTTON_PRESSED: Color = Color::srgba(0.38, 0.38, 0.46, 0.98);
 
-#[derive(States, Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum GameMap {
-    #[default]
-    Selection,
-    Playground,
-    ProceduralWorld,
-}
-
 #[derive(Component)]
-struct MapSelectionRoot;
+struct WorldSelectionRoot;
 
 #[derive(Component, Debug, Clone, Copy)]
-struct SelectMap(GameMap);
+struct SelectWorld(GameWorld);
 
-pub struct MapSelectionPlugin;
-
-impl Plugin for MapSelectionPlugin {
-    fn build(&self, app: &mut App) {
-        app.init_state::<GameMap>()
-            .init_resource::<InputFocus>()
-            .add_systems(OnEnter(GameMap::Selection), enter_selection)
-            .add_systems(
-                Update,
-                handle_selection.run_if(in_state(GameMap::Selection)),
-            )
-            .add_systems(OnExit(GameMap::Selection), exit_selection);
-    }
+pub(super) fn configure(app: &mut App) {
+    app.init_resource::<InputFocus>()
+        .add_systems(OnEnter(GameWorld::Selection), enter_selection)
+        .add_systems(
+            Update,
+            handle_selection.run_if(in_state(GameWorld::Selection)),
+        )
+        .add_systems(OnExit(GameWorld::Selection), exit_selection);
 }
 
 fn enter_selection(mut commands: Commands, theme: Res<UiTheme>, mut focus: ResMut<InputFocus>) {
@@ -53,8 +42,8 @@ fn enter_selection(mut commands: Commands, theme: Res<UiTheme>, mut focus: ResMu
 
     commands
         .spawn((
-            Name::new("Map Selection"),
-            MapSelectionRoot,
+            Name::new("World Selection"),
+            WorldSelectionRoot,
             Node {
                 position_type: PositionType::Absolute,
                 width: percent(100.0),
@@ -81,16 +70,16 @@ fn enter_selection(mut commands: Commands, theme: Res<UiTheme>, mut focus: ResMu
                     BorderColor::all(theme.panel_border),
                 ))
                 .with_children(|panel| {
-                    panel.spawn((Text::new("Select Map"), title.font(), title.color()));
+                    panel.spawn((Text::new("Select World"), title.font(), title.color()));
                     panel.spawn((
-                        Text::new("Choose the environment to bootstrap. Mechanics are shared between maps."),
+                        Text::new("Choose the world to bootstrap. Gameplay mechanics are shared between worlds."),
                         secondary.font(),
                         secondary.color(),
                     ));
 
                     spawn_choice(
                         panel,
-                        GameMap::Playground,
+                        GameWorld::Playground,
                         "Physics Playground",
                         "Authored test campus for portals, physics and gameplay experiments.",
                         &heading,
@@ -98,7 +87,7 @@ fn enter_selection(mut commands: Commands, theme: Res<UiTheme>, mut focus: ResMu
                     );
                     spawn_choice(
                         panel,
-                        GameMap::ProceduralWorld,
+                        GameWorld::Procedural,
                         "Procedural World",
                         "The actual game-world path: procedural voxels now, persistence and streaming later.",
                         &heading,
@@ -110,7 +99,7 @@ fn enter_selection(mut commands: Commands, theme: Res<UiTheme>, mut focus: ResMu
 
 fn spawn_choice(
     parent: &mut ChildSpawnerCommands,
-    map: GameMap,
+    world: GameWorld,
     name: &'static str,
     description: &'static str,
     heading: &crate::ui::UiTextStyle,
@@ -119,7 +108,7 @@ fn spawn_choice(
     parent
         .spawn((
             Button,
-            SelectMap(map),
+            SelectWorld(world),
             Node {
                 width: percent(100.0),
                 padding: UiRect::all(px(16.0)),
@@ -137,15 +126,15 @@ fn spawn_choice(
 }
 
 fn handle_selection(
-    mut buttons: Query<(&Interaction, &SelectMap, &mut BackgroundColor), Changed<Interaction>>,
-    mut next_map: ResMut<NextState<GameMap>>,
+    mut buttons: Query<(&Interaction, &SelectWorld, &mut BackgroundColor), Changed<Interaction>>,
+    mut next_world: ResMut<NextState<GameWorld>>,
 ) {
     for (interaction, choice, mut background) in &mut buttons {
         background.0 = match interaction {
             Interaction::None => BUTTON_NORMAL,
             Interaction::Hovered => BUTTON_HOVERED,
             Interaction::Pressed => {
-                next_map.set(choice.0);
+                next_world.set(choice.0);
                 BUTTON_PRESSED
             }
         };
@@ -154,7 +143,7 @@ fn handle_selection(
 
 fn exit_selection(
     mut commands: Commands,
-    root: Query<Entity, With<MapSelectionRoot>>,
+    root: Query<Entity, With<WorldSelectionRoot>>,
     mut focus: ResMut<InputFocus>,
 ) {
     focus.set_modal_claim(FOCUS_OWNER, false);

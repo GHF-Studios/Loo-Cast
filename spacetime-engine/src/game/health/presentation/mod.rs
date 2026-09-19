@@ -15,7 +15,7 @@ use crate::{
     physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive},
 };
 
-use super::{Health, Hitbox};
+use super::{DamageableBounds, Health};
 
 const PLAYER_BAR_WIDTH_PX: f32 = 320.0;
 const PLAYER_BAR_HEIGHT_PX: f32 = 16.0;

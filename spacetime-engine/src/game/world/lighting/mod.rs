@@ -1,14 +1,10 @@
-//! Small shared outdoor lighting setup used by the test game maps.
+//! Shared outdoor lighting for the test-game world compositions.
 
 use bevy::prelude::*;
 
-pub struct EnvironmentLightingPlugin;
-
-impl Plugin for EnvironmentLightingPlugin {
-    fn build(&self, app: &mut App) {
-        app.insert_resource(ClearColor(Color::srgb(0.34, 0.50, 0.76)))
-            .add_systems(Startup, setup_environment_lighting);
-    }
+pub(super) fn configure(app: &mut App) {
+    app.insert_resource(ClearColor(Color::srgb(0.34, 0.50, 0.76)))
+        .add_systems(Startup, setup_environment_lighting);
 }
 
 fn setup_environment_lighting(mut commands: Commands, mut ambient: ResMut<GlobalAmbientLight>) {
