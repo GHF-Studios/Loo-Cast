@@ -10,7 +10,7 @@ use crate::{
     },
     game::{
         GameSet,
-        combat::{Health, Hitbox},
+        health::{Health, Hitbox},
         item::{ItemAction, ItemCatalog, ItemDefinition, ItemId, UseItem},
     },
     physics::topology::{SpatialSplitBox, SpatialSplitPeer},

@@ -3,6 +3,7 @@
 pub mod combat;
 mod devtools;
 mod environment;
+pub mod health;
 pub mod inventory;
 pub mod item;
 pub mod map_selection;
@@ -11,8 +12,6 @@ pub mod playground;
 mod procedural_world;
 
 use bevy::prelude::*;
-
-use combat::{Damage, Died, FireWeapon, Hit};
 
 pub use devtools::TestGameDeveloperToolsPlugin;
 
@@ -56,11 +55,7 @@ pub struct TestGamePlugin;
 
 impl Plugin for TestGamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_message::<FireWeapon>()
-            .add_message::<Hit>()
-            .add_message::<Damage>()
-            .add_message::<Died>()
-            .configure_sets(
+        app.configure_sets(
                 Update,
                 (
                     GameSet::Input,
@@ -128,6 +123,7 @@ impl Plugin for TestGamePlugin {
                 inventory::InventoryPlugin,
                 item::ItemPlugin,
                 map_selection::MapSelectionPlugin,
+                health::HealthPlugin,
                 combat::CombatPlugin,
                 crate::procedural_assets::ProceduralAssetsPlugin,
                 crate::spatial::UsfSpatialPlugin,

@@ -1,4 +1,4 @@
-//! Test-game adaptation of dangerous temperature into generic combat damage.
+//! Test-game adaptation of dangerous temperature into generic health damage.
 
 use bevy::prelude::*;
 
@@ -19,7 +19,7 @@ pub(super) fn configure(app: &mut App) {
     );
 }
 
-/// Converts dangerous biological temperature into the generic combat Damage
+/// Converts dangerous biological temperature into generic Damage
 /// protocol. Inanimate degradation gets its own adapter rather than pretending
 /// every material has biology-style Health response.
 fn emit_thermal_injury_damage(

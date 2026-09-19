@@ -2,7 +2,7 @@ use avian3d::prelude::{SpatialQuery, SpatialQueryFilter};
 use bevy::prelude::*;
 
 use crate::{
-    game::{GameSet, combat::Died, playground::ErasePlaygroundObject},
+    game::{GameSet, health::Died, playground::ErasePlaygroundObject},
     physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive},
 };
 

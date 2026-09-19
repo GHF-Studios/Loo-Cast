@@ -52,7 +52,8 @@ use crate::{
 
 use super::{
     GameSet, InputSet, PresentationSet,
-    combat::{Died, Health, Weapon},
+    combat::Weapon,
+    health::{Died, Health},
 };
 
 const PLAYER_SPATIAL_DEMAND_HALF_EXTENT: Vec3 = Vec3::splat(96.0);

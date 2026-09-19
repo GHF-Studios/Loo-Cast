@@ -10,11 +10,12 @@ use crate::{
     ecs::UsfManifestationOf,
     game::{
         GameSet,
-        combat::{Health, Hitbox},
         player::{Player, PlayerCamera},
     },
     physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive},
 };
+
+use super::{Health, Hitbox};
 
 const PLAYER_BAR_WIDTH_PX: f32 = 320.0;
 const PLAYER_BAR_HEIGHT_PX: f32 = 16.0;
