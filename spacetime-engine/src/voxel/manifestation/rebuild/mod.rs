@@ -1,5 +1,6 @@
 //! Per-materialization mesh construction and publication.
 
+use avian3d::prelude::RigidBody;
 use bevy::{
     asset::RenderAssetUsages,
     mesh::{Indices, PrimitiveTopology},
@@ -125,6 +126,7 @@ pub(crate) fn rebuild_dirty_manifestations(
                 .spawn((
                     Name::new("Voxel Manifestation"),
                     *layer,
+                    RigidBody::Static,
                     Transform::from_translation(local_translation),
                     Visibility::Inherited,
                 ))

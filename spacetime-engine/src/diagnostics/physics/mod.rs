@@ -226,6 +226,8 @@ pub(super) fn collect_physics_detail_diagnostics(
     }
     cadence.physics_detail_elapsed %= DETAIL_SAMPLE_INTERVAL_SECONDS;
 
+    log_active_contact_pair_composition(&contact_graph, &colliders, &entity_meta);
+
     let Some(telemetry) = telemetry else {
         return;
     };
@@ -246,6 +248,78 @@ pub(super) fn collect_physics_detail_diagnostics(
         contact_pair_breakdown_snapshot(&contact_graph, &colliders, &entity_meta),
     );
 }
+
+
+fn log_active_contact_pair_composition(
+    contact_graph: &ContactGraph,
+    colliders: &Query<(Entity, Option<&Name>, &ColliderAabb, Option<&ColliderOf>)>,
+    entity_meta: &Query<(Option<&Name>, Option<&RigidBody>)>,
+) {
+    let mut pair_kinds = BTreeMap::<String, usize>::new();
+    let mut endpoint_degree = HashMap::<Entity, usize>::new();
+    let mut endpoint_labels = HashMap::<Entity, (String, &'static str, f32)>::new();
+
+    for pair in contact_graph.active_pairs() {
+        let first = collider_summary(pair.collider1, colliders, entity_meta);
+        let second = collider_summary(pair.collider2, colliders, entity_meta);
+
+        *pair_kinds
+            .entry(ordered_pair_key(first.body_kind, second.body_kind))
+            .or_default() += 1;
+
+        for (entity, summary) in [
+            (pair.collider1, &first),
+            (pair.collider2, &second),
+        ] {
+            *endpoint_degree.entry(entity).or_default() += 1;
+            endpoint_labels.entry(entity).or_insert_with(|| {
+                (
+                    if summary.name.is_empty() {
+                        "<unnamed>".to_owned()
+                    } else {
+                        summary.name.clone()
+                    },
+                    summary.body_kind,
+                    summary.volume,
+                )
+            });
+        }
+    }
+
+    let mut kinds = pair_kinds.into_iter().collect::<Vec<_>>();
+    kinds.sort_by(|left, right| {
+        right.1.cmp(&left.1).then_with(|| left.0.cmp(&right.0))
+    });
+
+    let kind_text = kinds
+        .iter()
+        .take(6)
+        .map(|(kind, count)| format!("{kind}={count}"))
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    let top = endpoint_degree
+        .into_iter()
+        .max_by_key(|(_, degree)| *degree)
+        .and_then(|(entity, degree)| {
+            endpoint_labels.get(&entity).map(|(name, kind, volume)| {
+                format!(
+                    "{name} ({kind}, {entity:?}, degree={degree}, aabb_vol={volume:.2})"
+                )
+            })
+        })
+        .unwrap_or_else(|| "<none>".to_owned());
+
+    info!(
+        active_pairs = contact_graph.active_pairs().len(),
+        active_touching = contact_graph.iter_active_touching().count(),
+        sleeping_pairs = contact_graph.sleeping_pairs().len(),
+        pair_kinds = %kind_text,
+        top_endpoint = %top,
+        "physics contact-pair composition"
+    );
+}
+
 
 fn body_inventory_snapshot(
     bodies: &Query<(

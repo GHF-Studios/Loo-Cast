@@ -1,6 +1,6 @@
 //! Collision residency and collider construction for one-to-one voxel manifestations.
 
-use avian3d::prelude::{Collider, CollisionMargin, RigidBody};
+use avian3d::prelude::{Collider, CollisionMargin};
 use bevy::prelude::*;
 
 use crate::{
@@ -67,20 +67,23 @@ pub(super) fn publish_collider_manifestation(
     collider: Option<Collider>,
 ) {
     let mut entity_commands = commands.entity(entity);
+
+    // A voxel manifestation is static world geometry for its entire lifetime.
+    // Physics residency controls only the derived collider representation.
+    // Toggling RigidBody together with Collider can transiently detach ColliderOf,
+    // move the collider through Avian's standalone tree, and leave invalid
+    // contact pairs behind across body-classification changes.
     if requested {
         if let Some(collider) = collider {
             entity_commands.insert((
-                RigidBody::Static,
                 collider,
                 CollisionMargin(physics::VOXEL_COLLISION_MARGIN),
             ));
         } else {
-            entity_commands.remove::<RigidBody>();
             entity_commands.remove::<Collider>();
             entity_commands.remove::<CollisionMargin>();
         }
     } else {
-        entity_commands.remove::<RigidBody>();
         entity_commands.remove::<Collider>();
         entity_commands.remove::<CollisionMargin>();
     }
