@@ -59,7 +59,7 @@ pub struct AppliedCollisionTopology {
 /// a permanent polling cost. The index instead records component changes and
 /// marks only affected hosts dirty.
 #[derive(Default)]
-struct CollisionTopologyState {
+pub(super) struct CollisionTopologyState {
     stencil_targets: HashMap<Entity, Option<Entity>>,
     stencils_by_target: HashMap<Entity, HashMap<Entity, CollisionStencil>>,
     dirty_hosts: HashSet<Entity>,
@@ -120,7 +120,7 @@ impl CollisionTopologyState {
 /// The collider presented to Avian is the real collision topology: character
 /// casts, ground probing, rigid-body contacts and ordinary spatial queries all
 /// observe the same hole without portal-specific filters.
-pub(crate) fn rebuild_clipped_colliders(
+pub(super) fn rebuild_clipped_colliders(
     mut commands: Commands,
     mut removed_stencils: RemovedComponents<CollisionStencil>,
     changed_stencils: Query<(Entity, &CollisionStencil), Changed<CollisionStencil>>,
