@@ -34,8 +34,8 @@ pub struct TestGameDeveloperToolsPlugin;
 impl Plugin for TestGameDeveloperToolsPlugin {
     fn build(&self, app: &mut App) {
         super::portal::devtools::configure(app);
-        super::thermal::devtools::configure(app);
-        super::thermal::world_draw::configure(app);
+        crate::thermal::devtools::configure(app);
+        crate::thermal::world_draw::configure(app);
 
         app.add_systems(
             PostUpdate,

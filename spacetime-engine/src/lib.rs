@@ -18,6 +18,7 @@ pub mod input_focus;
 pub mod physics;
 pub mod procedural_assets;
 pub mod spatial;
+pub mod thermal;
 pub mod ui;
 pub mod view;
 pub mod voxel;

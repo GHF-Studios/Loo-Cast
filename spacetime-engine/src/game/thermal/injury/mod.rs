@@ -1,11 +1,26 @@
-//! Adaptation of dangerous temperature into generic combat damage.
+//! Test-game adaptation of dangerous temperature into generic combat damage.
 
-use super::*;
+use bevy::prelude::*;
+
+use crate::{
+    game::{SimulationSet, combat::Damage},
+    thermal::{ThermalBody, ThermalInjury, ThermalSet},
+};
+
+pub(super) fn configure(app: &mut App) {
+    app.add_systems(
+        Update,
+        emit_thermal_injury_damage
+            .in_set(SimulationSet::Phenomena)
+            .after(ThermalSet::Lumped)
+            .before(ThermalSet::SpatialOutput),
+    );
+}
 
 /// Converts dangerous biological temperature into the generic combat Damage
 /// protocol. Inanimate degradation gets its own adapter rather than pretending
 /// every material has biology-style Health response.
-pub(super) fn emit_thermal_injury_damage(
+fn emit_thermal_injury_damage(
     time: Res<Time>,
     bodies: Query<(Entity, &ThermalBody, &ThermalInjury)>,
     mut damage: MessageWriter<Damage>,

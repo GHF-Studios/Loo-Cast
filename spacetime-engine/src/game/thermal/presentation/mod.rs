@@ -8,9 +8,8 @@ use crate::{
     ecs::UsfManifestationOf,
     game::GameSet,
     physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive},
+    thermal::{Combustion, ThermalSpatialSample},
 };
-
-use super::{Combustion, ThermalSpatialSample};
 
 #[derive(Resource)]
 struct FirePresentationAssets {

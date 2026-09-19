@@ -11,8 +11,8 @@ use crate::{
     game::{
         GameSet,
         item::{ItemAction, ItemCatalog, ItemDefinition, ItemId, UseItem},
-        thermal::ThermalPointImpulse,
     },
+    thermal::ThermalPointImpulse,
 };
 
 pub const HEAT_RAY: ItemId = ItemId::new("heat_ray");

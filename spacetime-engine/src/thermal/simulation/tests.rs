@@ -1,5 +1,5 @@
 use super::*;
-use crate::game::thermal::AMBIENT_TEMPERATURE_KELVIN;
+use crate::thermal::AMBIENT_TEMPERATURE_KELVIN;
 
 #[test]
 fn thermal_energy_changes_temperature_by_heat_capacity() {

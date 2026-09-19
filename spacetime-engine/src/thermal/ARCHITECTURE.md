@@ -1,4 +1,4 @@
-# Thermal / combustion vertical slice
+# Thermal / combustion engine domain
 
 This module is the first deliberately systemic environmental phenomenon in the
 playground. The goal is not material-science fidelity yet; the goal is to keep
@@ -78,3 +78,12 @@ field's minimum/maximum temperature, energy and SI material properties.
 combustion-coupling scalar field through the engine's text-free World Draw API.
 Neither path owns thermal simulation state, and inspection remains available even
 when every thermal visualization is disabled.
+
+## Engine/game ownership
+
+Reusable thermal state, spatial refinement, combustion, coupling and
+developer observability live in `crate::thermal`. The test-game adapter at
+`crate::game::thermal` only nests the reusable ThermalSet sequence into the
+game schedule, converts ThermalInjury into combat Damage, and owns flame
+presentation. Another game can replace those adapters without changing the
+thermal domain.

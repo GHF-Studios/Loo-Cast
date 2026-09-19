@@ -13,12 +13,12 @@ use crate::{
         combat::{Health, Hitbox},
         item::{ItemAction, ItemCatalog, ItemDefinition, ItemId, UseItem},
         portal::{PortalRigidSplitBody, PortalSplitTraveler, PortalSplitVisual, PortalTraveler},
-        thermal::{
-            CombustibleMaterial, Fuel, ThermalBody, ThermalField, ThermalMaterial,
-            ThermalSpatialSample,
-        },
     },
     physics::topology::{SpatialSplitBox, SpatialSplitPeer},
+    thermal::{
+        CombustibleMaterial, Fuel, ThermalBody, ThermalField, ThermalMaterial,
+        ThermalSpatialSample,
+    },
 };
 
 use super::assets::PlaygroundItemPresentationAssets;
