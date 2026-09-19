@@ -1,6 +1,8 @@
 //! Loo Cast commands layered on the generic developer console.
+//!
+//! Navigation resolves destinations into canonical USF transitions. The console
+//! never mutates runtime Transform coordinates directly.
 
-use avian3d::prelude::LinearVelocity;
 use bevy::{math::DVec3, prelude::*};
 
 use crate::{
@@ -8,43 +10,27 @@ use crate::{
         AppConsoleExt, ConsoleCommandInvocation, ConsoleCommandResult, ConsoleCommandSpec,
     },
     ecs::UsfManifestationOf,
-    physics::character::{
-        CharacterGroundState, CharacterMotor, CharacterMovementInput,
-    },
-    portal::PortalTraveler,
+    physics::character::{CharacterGroundState, CharacterMovementInput},
+    portal::{PortalSplitTraveler, PortalTraveler},
     spatial::{
-        SpatialScale, UsfActiveScaleLayer, UsfPosition, UsfScaleLayer, UsfScaleLayerFrames,
-        UsfSpatialSet, UsfViewFrame,
+        SpatialScale, UsfPosition, UsfScaleLayer, UsfSpatialSet, UsfSpatialTransition,
+        UsfSpatialTransitionApplied, UsfSpatialTransitionQueue,
+        UsfTransitionVelocity, UsfViewFrame,
     },
 };
 
 use super::{
-    player::{Player, PlayerAim, PlayerNoclip},
-    world::{UniverseLandmark, UniverseLandmarkIndex},
+    player::{Player, PlayerAim},
+    world::UniverseLandmarkIndex,
 };
 
-#[derive(Debug, Clone)]
-struct ConsoleTeleport {
-    label: String,
-    /// Native coordinate chart for arrival/look-at coordinates.
-    scale: SpatialScale,
-    /// Observer exponent requested before applying the bounded teleport.
-    view_exponent: f32,
-    arrival: DVec3,
-    look_at: Option<DVec3>,
-}
-
-#[derive(Resource, Default)]
-struct PendingConsoleTeleport(Option<ConsoleTeleport>);
-
 pub(super) fn configure(app: &mut App) {
-    app.init_resource::<PendingConsoleTeleport>()
-        .add_systems(
-            PostUpdate,
-            apply_pending_teleport
-                .after(UsfSpatialSet::SyncSemantic)
-                .before(UsfSpatialSet::ViewAnchor),
-        );
+    app.add_systems(
+        PostUpdate,
+        reconcile_player_spatial_transition
+            .after(UsfSpatialSet::SyncSemantic)
+            .before(UsfSpatialSet::Rebase),
+    );
 
     app.register_console_command(
         ConsoleCommandSpec {
@@ -78,10 +64,15 @@ pub(super) fn configure(app: &mut App) {
             name: "teleport",
             aliases: &["tp", "goto"],
             usage: "teleport <landmark> | teleport <scale> <x> <y> <z>",
-            summary: "Teleport across USF scale layers using bounded native coordinates.",
+            summary: "Request a canonical USF relocation and matching observer scale.",
         },
         teleport_command,
     );
+}
+
+fn player_semantic_entity(world: &mut World) -> Option<Entity> {
+    let mut query = world.query_filtered::<&UsfManifestationOf, With<Player>>();
+    query.iter(world).next().map(|manifestation| manifestation.0)
 }
 
 fn where_command(world: &mut World, _: &ConsoleCommandInvocation) -> ConsoleCommandResult {
@@ -114,10 +105,11 @@ fn where_command(world: &mut World, _: &ConsoleCommandInvocation) -> ConsoleComm
             scale, runtime.x, runtime.y, runtime.z
         ),
         format!(
-            "observer = {:+.3} (lower S{}, transition {:.3})",
+            "observer = {:+.3} (lower S{}, transition {:.3}, interaction S{})",
             view.continuous_exponent(),
             view.scale(),
-            view.zoom()
+            view.zoom(),
+            view.interaction_scale(),
         ),
         format!("canonical = {semantic}"),
     ])
@@ -173,22 +165,20 @@ fn zoom_command(
         .set_continuous_exponent(exponent);
     let view = world.resource::<UsfViewFrame>();
     ConsoleCommandResult::success(format!(
-        "observer scale -> {:+.3} (interaction S{})",
+        "observer scale requested -> {:+.3} (interaction S{})",
         view.continuous_exponent(),
         view.interaction_scale(),
     ))
-}
-
-fn interaction_scale_for_exponent(exponent: f32) -> SpatialScale {
-    let mut view = UsfViewFrame::default();
-    view.set_continuous_exponent(exponent);
-    view.interaction_scale()
 }
 
 fn teleport_command(
     world: &mut World,
     invocation: &ConsoleCommandInvocation,
 ) -> ConsoleCommandResult {
+    let Some(subject) = player_semantic_entity(world) else {
+        return ConsoleCommandResult::error("player semantic entity is unavailable");
+    };
+
     let args = invocation.args();
     if args.is_empty() {
         return ConsoleCommandResult::error(
@@ -196,7 +186,7 @@ fn teleport_command(
         );
     }
 
-    let target = if args.len() == 1 {
+    let (label, scale, view_exponent, arrival, look_at) = if args.len() == 1 {
         let landmark = {
             let index = world.resource::<UniverseLandmarkIndex>();
             let matches = index.find(&args[0]);
@@ -219,7 +209,13 @@ fn teleport_command(
             }
             (*matches[0]).clone()
         };
-        target_from_landmark(&landmark)
+        (
+            landmark.id.to_string(),
+            landmark.scale,
+            landmark.view_exponent,
+            landmark.arrival,
+            Some(landmark.look_at),
+        )
     } else if args.len() == 4 {
         let Some(scale) = parse_scale(&args[0]) else {
             return ConsoleCommandResult::error(format!("invalid USF scale `{}`", args[0]));
@@ -235,43 +231,56 @@ fn teleport_command(
             return ConsoleCommandResult::error("teleport coordinates must be finite numbers");
         }
 
-        ConsoleTeleport {
-            label: format!("S{scale} coordinate"),
+        (
+            format!("S{scale} coordinate"),
             scale,
-            view_exponent: scale.exponent() as f32,
-            arrival: DVec3::new(coordinates[0], coordinates[1], coordinates[2]),
-            look_at: None,
-        }
+            scale.exponent() as f32,
+            DVec3::new(coordinates[0], coordinates[1], coordinates[2]),
+            None,
+        )
     } else {
         return ConsoleCommandResult::error(
             "usage: teleport <landmark> | teleport <scale> <x> <y> <z>",
         );
     };
 
-    world
-        .resource_mut::<UsfViewFrame>()
-        .set_continuous_exponent(target.view_exponent);
-    world.resource_mut::<PendingConsoleTeleport>().0 = Some(target.clone());
-
-    ConsoleCommandResult::success(format!(
-        "teleport queued: {} @ S{} ({:.3}, {:.3}, {:.3}), view {:+.1}",
-        target.label,
-        target.scale,
-        target.arrival.x,
-        target.arrival.y,
-        target.arrival.z,
-        target.view_exponent
-    ))
-}
-
-fn target_from_landmark(landmark: &UniverseLandmark) -> ConsoleTeleport {
-    ConsoleTeleport {
-        label: landmark.id.to_string(),
-        scale: landmark.scale,
-        view_exponent: landmark.view_exponent,
-        arrival: landmark.arrival,
-        look_at: Some(landmark.look_at),
+    let arrival_f32 = Vec3::new(arrival.x as f32, arrival.y as f32, arrival.z as f32);
+    if !arrival_f32.is_finite() {
+        return ConsoleCommandResult::error("destination is not representable in its native chart");
     }
+    let Ok(position) = UsfPosition::zero(scale).translated_native(arrival_f32) else {
+        return ConsoleCommandResult::error("destination could not become a canonical USF position");
+    };
+
+    world
+        .resource_mut::<UsfSpatialTransitionQueue>()
+        .request(
+            UsfSpatialTransition::new(subject, position)
+                .with_view_exponent(view_exponent)
+                .with_velocity(UsfTransitionVelocity::Zero),
+        );
+
+    if let Some(look_at) = look_at {
+        let direction = Vec3::new(
+            (look_at.x - arrival.x) as f32,
+            (look_at.y - arrival.y) as f32,
+            (look_at.z - arrival.z) as f32,
+        )
+        .normalize_or_zero();
+
+        if direction != Vec3::ZERO {
+            let mut query = world.query_filtered::<&mut PlayerAim, With<Player>>();
+            if let Some(mut aim) = query.iter_mut(world).next() {
+                aim.yaw = (-direction.x).atan2(-direction.z);
+                aim.pitch = direction.y.asin().clamp(aim.min_pitch, aim.max_pitch);
+            }
+        }
+    }
+
+    ConsoleCommandResult::success_and_return_to_gameplay(format!(
+        "spatial transition requested: {label} @ S{scale} ({:.3}, {:.3}, {:.3}), view {view_exponent:+.1}",
+        arrival.x, arrival.y, arrival.z,
+    ))
 }
 
 fn parse_scale(value: &str) -> Option<SpatialScale> {
@@ -283,85 +292,39 @@ fn parse_scale(value: &str) -> Option<SpatialScale> {
     SpatialScale::new(value.parse().ok()?)
 }
 
-fn apply_pending_teleport(
-    mut commands: Commands,
-    mut pending: ResMut<PendingConsoleTeleport>,
-    active: Res<UsfActiveScaleLayer>,
-    frames: Res<UsfScaleLayerFrames>,
-    mut player: Single<
+fn reconcile_player_spatial_transition(
+    mut transitions: MessageReader<UsfSpatialTransitionApplied>,
+    mut players: Query<
         (
-            Entity,
-            &mut Transform,
-            &mut LinearVelocity,
-            &mut PortalTraveler,
+            &Transform,
             &UsfManifestationOf,
-            &mut PlayerAim,
-            &mut PlayerNoclip,
+            &mut PortalTraveler,
+            &mut PortalSplitTraveler,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
         ),
         With<Player>,
     >,
-    mut semantic_positions: Query<&mut UsfPosition>,
 ) {
-    let Some(request) = pending.0.as_ref() else {
-        return;
-    };
-    let expected_interaction_scale = interaction_scale_for_exponent(request.view_exponent);
-    if active.scale() != expected_interaction_scale {
-        return;
-    }
-    let request = pending.0.take().expect("pending teleport still exists");
+    for transition in transitions.read() {
+        for (
+            transform,
+            manifestation,
+            mut traveler,
+            mut split,
+            mut input,
+            mut ground,
+        ) in &mut players
+        {
+            if manifestation.0 != transition.subject {
+                continue;
+            }
 
-    let active_scale = active.scale();
-    let arrival_absolute =
-        frames.convert_absolute(request.arrival, request.scale, active_scale);
-    let arrival_runtime = frames.runtime_from_absolute(active_scale, arrival_absolute);
-
-    let (
-        entity,
-        mut transform,
-        mut velocity,
-        mut traveler,
-        manifestation,
-        mut aim,
-        mut noclip,
-        mut input,
-        mut ground,
-    ) = player.into_inner();
-
-    transform.translation = arrival_runtime;
-    velocity.0 = Vec3::ZERO;
-    traveler.commit_position(arrival_runtime);
-    input.clear();
-    ground.grounded = false;
-    ground.ground_entity = None;
-
-    if active_scale.exponent() > 4 {
-        noclip.active = true;
-        commands.entity(entity).remove::<CharacterMotor>();
-    }
-
-    if let Some(look_at) = request.look_at {
-        let look_absolute = frames.convert_absolute(look_at, request.scale, active_scale);
-        let look_runtime = frames.runtime_from_absolute(active_scale, look_absolute);
-        let direction = (look_runtime - arrival_runtime).normalize_or_zero();
-        if direction != Vec3::ZERO {
-            aim.yaw = (-direction.x).atan2(-direction.z);
-            aim.pitch = direction.y.asin().clamp(aim.min_pitch, aim.max_pitch);
+            traveler.reset_spatial_transition(transform.translation);
+            split.reset_spatial_transition(*transform);
+            input.clear();
+            ground.grounded = false;
+            ground.ground_entity = None;
         }
-    }
-
-    let canonical_absolute = Vec3::new(
-        arrival_absolute.x as f32,
-        arrival_absolute.y as f32,
-        arrival_absolute.z as f32,
-    );
-    if canonical_absolute.is_finite()
-        && let Ok(canonical) =
-            UsfPosition::zero(active_scale).translated_native(canonical_absolute)
-        && let Ok(mut semantic) = semantic_positions.get_mut(manifestation.0)
-    {
-        *semantic = canonical;
     }
 }

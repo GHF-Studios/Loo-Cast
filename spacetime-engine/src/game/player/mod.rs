@@ -15,7 +15,10 @@ mod model;
 mod stance;
 
 pub use camera::{CameraMode, PlayerCamera, ThirdPersonCamera};
-pub use components::{Player, PlayerAim, PlayerController, PlayerDead, PlayerNoclip, PlayerStance};
+pub use components::{
+    Player, PlayerAim, PlayerController, PlayerDead, PlayerNoclip, PlayerScaleNavigation,
+    PlayerStance,
+};
 
 use avian3d::prelude::{
     ActiveCollisionHooks, CollisionLayers, CustomPositionIntegration, CustomVelocityIntegration,
@@ -42,7 +45,7 @@ use crate::{
     },
     spatial::{
         SpatialDemandSource, SpatialScale, UsfFollowsActiveScale, UsfPosition, UsfScaleLayer,
-        UsfSpatialAnchor, UsfViewAnchor,
+        UsfSpatialAnchor, UsfSpatialSet, UsfViewAnchor,
     },
     thermal::{ThermalBody, ThermalInjury, ThermalSpatialSample},
     view::{PrimaryGameView, PrimaryViewPresentation},
@@ -93,6 +96,7 @@ impl Plugin for PlayerPlugin {
                     stance::update_stance,
                     controls::movement,
                     controls::noclip_movement,
+                    controls::scale_navigation_movement,
                 )
                     .chain()
                     .in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
@@ -106,11 +110,16 @@ impl Plugin for PlayerPlugin {
                 (
                     controls::toggle_spatial_demand,
                     controls::zoom_spatial_view,
+                    controls::adjust_scale_navigation_speed,
                     camera::toggle_camera_mode,
                     camera::zoom_third_person,
                 )
                     .chain()
                     .in_set(InputSet::Gameplay),
+            )
+            .add_systems(
+                PostUpdate,
+                controls::sync_scale_navigation_mode.after(UsfSpatialSet::SyncSemantic),
             )
             .add_systems(Update, handle_player_death.in_set(GameSet::Cleanup))
             .add_systems(

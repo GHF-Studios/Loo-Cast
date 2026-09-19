@@ -59,6 +59,44 @@ pub struct PlayerNoclip {
     pub active: bool,
 }
 
+/// Free-flight navigation for USF charts outside the local character domain.
+///
+/// This is not developer noclip. It is the ordinary navigation model used when
+/// a metre-authored character motor has no meaningful physical interpretation.
+///
+/// `speed_native` is expressed in units native to the active USF scale. The
+/// logarithmic speed controls let the same mechanic inspect moons, systems,
+/// galaxies and cosmic structure without hard-coded per-domain movement logic.
+#[derive(Component, Reflect, Debug, Clone, Copy)]
+#[reflect(Component)]
+pub struct PlayerScaleNavigation {
+    pub speed_native: f32,
+}
+
+impl Default for PlayerScaleNavigation {
+    fn default() -> Self {
+        Self { speed_native: 0.05 }
+    }
+}
+
+impl PlayerScaleNavigation {
+    const MIN_SPEED_NATIVE: f32 = 1.0e-7;
+    const MAX_SPEED_NATIVE: f32 = 1.0e4;
+    const SPEED_DECADES_PER_SCROLL_STEP: f32 = 0.25;
+
+    pub fn adjust_speed(&mut self, scroll_steps: f32) {
+        if scroll_steps == 0.0 {
+            return;
+        }
+
+        let factor = 10.0_f32.powf(
+            scroll_steps.signum() * Self::SPEED_DECADES_PER_SCROLL_STEP,
+        );
+        self.speed_native = (self.speed_native * factor)
+            .clamp(Self::MIN_SPEED_NATIVE, Self::MAX_SPEED_NATIVE);
+    }
+}
+
 /// Live yaw/pitch offset relative to the character control frame.
 ///
 /// Portal/topology transitions may rotate that base control frame underneath

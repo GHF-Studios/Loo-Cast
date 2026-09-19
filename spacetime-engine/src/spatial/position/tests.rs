@@ -143,3 +143,30 @@ fn negative_translation_uses_balanced_decimal_carry() {
     assert_eq!(position.digit(SpatialScale::ZERO).x, -1);
 }
 }
+
+#[test]
+fn reexpressing_position_across_scales_preserves_location() {
+    let s8 = SpatialScale::new(8).unwrap();
+    let original = UsfPosition::from_scale0_local(Vec3::new(12.25, -3.5, 8.0)).unwrap();
+
+    let coarse = original.reexpressed_at(s8).unwrap();
+    let round_trip = coarse.reexpressed_at(SpatialScale::ZERO).unwrap();
+
+    let delta = round_trip
+        .relative_native_bounded(&original, 0.001)
+        .unwrap();
+    assert!(delta.length() < 1.0e-4);
+}
+
+#[test]
+fn scale_coordinate_projection_uses_requested_native_units() {
+    let s8 = SpatialScale::new(8).unwrap();
+    let position = UsfPosition::zero(s8)
+        .translated_native(Vec3::new(3.844, 0.18, 0.22))
+        .unwrap();
+
+    let coordinate = position.coordinate_at_scale_f64(s8).unwrap();
+    assert!((coordinate.x - 3.844).abs() < 1.0e-5);
+    assert!((coordinate.y - 0.18).abs() < 1.0e-5);
+    assert!((coordinate.z - 0.22).abs() < 1.0e-5);
+}

@@ -10,17 +10,23 @@ pub(super) fn spawn_player(
     // Player Transform is the physical standing-hull center, not the eye.
     let position = Vec3::new(0.0, CharacterDimensions::HALF_HEIGHT + 0.01, 8.0);
 
-    // Semantic identity carries canonical USF position but no local Transform.
-    // The ordinary controlled body and reserved portal peer are spatial
-    // manifestations of this one entity; local runtime coordinates remain on
-    // those manifestations.
+    // Semantic metres are independent from the current +35 observer chart.
+    // Runtime coordinates are only the bounded projection of this identity.
+    let semantic_position = UsfPosition::from_scale0_local(position)
+        .expect("initial player semantic position must be canonical");
+    let runtime_position = semantic_position
+        .relative_at_scale_bounded(
+            &UsfPosition::zero(SpatialScale::ZERO),
+            SpatialScale::MAX,
+            1.0,
+        )
+        .expect("initial player position must project into the root runtime chart");
+
     let semantic_player = commands
         .spawn((
             Name::new("Player Entity"),
             UsfEntity,
-            UsfPosition::zero(SpatialScale::MAX)
-                .translated_native(position)
-                .expect("initial player position must fit the root simulation layer"),
+            semantic_position,
             Health::new(100.0),
             ThermalBody::ambient(8_000.0, 25.0),
             ThermalInjury::human_like(),
@@ -49,7 +55,7 @@ pub(super) fn spawn_player(
             (
                 PlayerStance::default(),
                 PlayerNoclip::default(),
-                CharacterMotor,
+                PlayerScaleNavigation::default(),
                 CharacterDimensions::standing_collider(),
                 SpatialSplitBox::from_size(Vec3::new(
                     CharacterDimensions::HULL_WIDTH,
@@ -57,8 +63,8 @@ pub(super) fn spawn_player(
                     CharacterDimensions::HULL_WIDTH,
                 )),
                 Weapon::default(),
-                PortalTraveler::new(position),
-                Transform::from_translation(position),
+                PortalTraveler::new(runtime_position),
+                Transform::from_translation(runtime_position),
             ),
         ))
         .id();
@@ -83,13 +89,13 @@ pub(super) fn spawn_player(
                 LinearVelocity::ZERO,
                 CharacterDimensions::standing_collider(),
                 CollisionLayers::NONE,
-                Transform::from_translation(position),
+                Transform::from_translation(runtime_position),
             ),
         ))
         .id();
 
     commands.entity(player).insert((
-        PortalSplitTraveler::new(Transform::from_translation(position), split_manifestation),
+        PortalSplitTraveler::new(Transform::from_translation(runtime_position), split_manifestation),
         KinematicQueryExclusions::from_entities([split_manifestation]),
     ));
 
@@ -119,6 +125,6 @@ pub(super) fn spawn_player(
         Camera3d::default(),
         IsDefaultUiCamera,
         RenderLayers::layer(0).with(MAIN_PORTAL_LAYER),
-        Transform::from_translation(position),
+        Transform::from_translation(runtime_position),
     ));
 }

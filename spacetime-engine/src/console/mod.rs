@@ -124,20 +124,42 @@ impl ConsoleCommandInvocation {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConsoleFocusDisposition {
+    KeepConsole,
+    ReturnToGameplay,
+}
+
 #[derive(Debug)]
 pub enum ConsoleCommandResult {
     Silent,
-    Success(Vec<String>),
+    Success {
+        lines: Vec<String>,
+        focus: ConsoleFocusDisposition,
+    },
     Error(String),
 }
 
 impl ConsoleCommandResult {
     pub fn success(line: impl Into<String>) -> Self {
-        Self::Success(vec![line.into()])
+        Self::Success {
+            lines: vec![line.into()],
+            focus: ConsoleFocusDisposition::KeepConsole,
+        }
+    }
+
+    pub fn success_and_return_to_gameplay(line: impl Into<String>) -> Self {
+        Self::Success {
+            lines: vec![line.into()],
+            focus: ConsoleFocusDisposition::ReturnToGameplay,
+        }
     }
 
     pub fn lines(lines: impl IntoIterator<Item = impl Into<String>>) -> Self {
-        Self::Success(lines.into_iter().map(Into::into).collect())
+        Self::Success {
+            lines: lines.into_iter().map(Into::into).collect(),
+            focus: ConsoleFocusDisposition::KeepConsole,
+        }
     }
 
     pub fn error(message: impl Into<String>) -> Self {
@@ -339,10 +361,14 @@ fn dispatch_console_commands(world: &mut World) {
 
         match (command.handler)(world, &invocation) {
             ConsoleCommandResult::Silent => {}
-            ConsoleCommandResult::Success(lines) => {
+            ConsoleCommandResult::Success { lines, focus } => {
                 let mut console = world.resource_mut::<DeveloperConsole>();
                 for line in lines {
                     console.push(ConsoleLineKind::Info, line);
+                }
+                if focus == ConsoleFocusDisposition::ReturnToGameplay {
+                    console.open = false;
+                    console.history_cursor = None;
                 }
             }
             ConsoleCommandResult::Error(error) => {
@@ -367,111 +393,135 @@ fn draw_console(
         return;
     };
     let ctx = context.get_mut();
-    let screen_height = ctx.input(|input| input.content_rect().height());
-    let console_height = (screen_height * 0.46).clamp(220.0, 560.0);
+    let content_rect = ctx.input(|input| input.content_rect());
+    let console_height = (content_rect.height() * 0.46).clamp(220.0, 560.0);
+    let console_width = content_rect.width();
 
-    egui::TopBottomPanel::top("spacetime_developer_console")
-        .exact_height(console_height)
-        .frame(
+    // Use an ordinary foreground Area rather than egui's deprecated top-level
+    // panel compatibility API. The console still owns a fixed Source-like strip
+    // at the top of the viewport, independent of the editor's dock layout.
+    egui::Area::new(egui::Id::new("spacetime_developer_console"))
+        .order(egui::Order::Foreground)
+        .fixed_pos(content_rect.left_top())
+        .default_size(egui::vec2(console_width, console_height))
+        .show(ctx, |ui| {
+            ui.set_width(console_width);
+            ui.set_height(console_height);
+
             egui::Frame::new()
                 .fill(egui::Color32::from_rgba_unmultiplied(10, 12, 14, 248))
                 .stroke(egui::Stroke::new(
-                    1.0,
+                    1.0_f32,
                     egui::Color32::from_rgb(72, 82, 92),
-                )),
-        )
-        .show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                ui.label(
-                    egui::RichText::new("SPACETIME CONSOLE")
-                        .monospace()
-                        .strong()
-                        .color(egui::Color32::from_rgb(220, 224, 228)),
-                );
-                ui.separator();
-                ui.label(
-                    egui::RichText::new("` toggle   ↑/↓ history   Tab complete   Esc close")
-                        .monospace()
-                        .small()
-                        .color(egui::Color32::from_rgb(130, 140, 150)),
-                );
-            });
-            ui.separator();
-
-            egui::ScrollArea::vertical()
-                .stick_to_bottom(true)
-                .auto_shrink([false, false])
-                .max_height((console_height - 62.0).max(80.0))
+                ))
                 .show(ui, |ui| {
-                    for line in &console.scrollback {
-                        let color = match line.kind {
-                            ConsoleLineKind::Command => egui::Color32::from_rgb(185, 195, 205),
-                            ConsoleLineKind::Info => egui::Color32::from_rgb(205, 210, 214),
-                            ConsoleLineKind::Error => egui::Color32::from_rgb(255, 118, 105),
-                        };
+                    ui.set_width(console_width);
+                    ui.set_height(console_height);
+
+                    ui.horizontal(|ui| {
                         ui.label(
-                            egui::RichText::new(&line.text)
+                            egui::RichText::new("SPACETIME CONSOLE")
                                 .monospace()
-                                .color(color),
+                                .strong()
+                                .color(egui::Color32::from_rgb(220, 224, 228)),
+                        );
+                        ui.separator();
+                        ui.label(
+                            egui::RichText::new(
+                                "` toggle   ↑/↓ history   Tab complete   Esc close",
+                            )
+                            .monospace()
+                            .small()
+                            .color(egui::Color32::from_rgb(130, 140, 150)),
+                        );
+                    });
+                    ui.separator();
+
+                    egui::ScrollArea::vertical()
+                        .stick_to_bottom(true)
+                        .auto_shrink([false, false])
+                        .max_height((console_height - 62.0).max(80.0))
+                        .show(ui, |ui| {
+                            for line in &console.scrollback {
+                                let color = match line.kind {
+                                    ConsoleLineKind::Command => {
+                                        egui::Color32::from_rgb(185, 195, 205)
+                                    }
+                                    ConsoleLineKind::Info => {
+                                        egui::Color32::from_rgb(205, 210, 214)
+                                    }
+                                    ConsoleLineKind::Error => {
+                                        egui::Color32::from_rgb(255, 118, 105)
+                                    }
+                                };
+                                ui.label(
+                                    egui::RichText::new(&line.text)
+                                        .monospace()
+                                        .color(color),
+                                );
+                            }
+                        });
+
+                    ui.separator();
+
+                    let response = ui.add(
+                        egui::TextEdit::singleline(&mut console.input)
+                            .font(egui::TextStyle::Monospace)
+                            .desired_width(f32::INFINITY)
+                            .hint_text("command"),
+                    );
+
+                    if console.opened_this_frame {
+                        console.input.clear();
+                        response.request_focus();
+                        console.opened_this_frame = false;
+                    }
+
+                    let prompt_active = response.has_focus() || response.lost_focus();
+                    if prompt_active {
+                        let history_up =
+                            ui.input(|input| input.key_pressed(egui::Key::ArrowUp));
+                        let history_down =
+                            ui.input(|input| input.key_pressed(egui::Key::ArrowDown));
+                        let complete =
+                            ui.input(|input| input.key_pressed(egui::Key::Tab));
+                        let submit =
+                            ui.input(|input| input.key_pressed(egui::Key::Enter));
+
+                        if history_up {
+                            console.history_up();
+                            response.request_focus();
+                        }
+                        if history_down {
+                            console.history_down();
+                            response.request_focus();
+                        }
+                        if complete {
+                            complete_command_input(&mut console.input, &registry);
+                            response.request_focus();
+                        }
+                        if submit {
+                            console.submit();
+                            response.request_focus();
+                        }
+                    }
+
+                    let prefix = command_prefix(&console.input);
+                    let completions = registry.completions(prefix);
+                    if !prefix.is_empty() && !completions.is_empty() {
+                        let preview = completions
+                            .into_iter()
+                            .take(8)
+                            .collect::<Vec<_>>()
+                            .join("  ");
+                        ui.label(
+                            egui::RichText::new(preview)
+                                .monospace()
+                                .small()
+                                .color(egui::Color32::from_rgb(108, 136, 160)),
                         );
                     }
                 });
-
-            ui.separator();
-
-            let response = ui.add(
-                egui::TextEdit::singleline(&mut console.input)
-                    .font(egui::TextStyle::Monospace)
-                    .desired_width(f32::INFINITY)
-                    .hint_text("command"),
-            );
-
-            if console.opened_this_frame {
-                console.input.clear();
-                response.request_focus();
-                console.opened_this_frame = false;
-            }
-
-            // A single-line egui TextEdit surrenders focus when Enter is
-            // pressed. Handle keyboard actions for both the focused and
-            // just-lost-focus response, then immediately reclaim the prompt.
-            let prompt_active = response.has_focus() || response.lost_focus();
-            if prompt_active {
-                let history_up = ui.input(|input| input.key_pressed(egui::Key::ArrowUp));
-                let history_down =
-                    ui.input(|input| input.key_pressed(egui::Key::ArrowDown));
-                let complete = ui.input(|input| input.key_pressed(egui::Key::Tab));
-                let submit = ui.input(|input| input.key_pressed(egui::Key::Enter));
-
-                if history_up {
-                    console.history_up();
-                    response.request_focus();
-                }
-                if history_down {
-                    console.history_down();
-                    response.request_focus();
-                }
-                if complete {
-                    complete_command_input(&mut console.input, &registry);
-                    response.request_focus();
-                }
-                if submit {
-                    console.submit();
-                    response.request_focus();
-                }
-            }
-
-            let prefix = command_prefix(&console.input);
-            let completions = registry.completions(prefix);
-            if !prefix.is_empty() && !completions.is_empty() {
-                let preview = completions.into_iter().take(8).collect::<Vec<_>>().join("  ");
-                ui.label(
-                    egui::RichText::new(preview)
-                        .monospace()
-                        .small()
-                        .color(egui::Color32::from_rgb(108, 136, 160)),
-                );
-            }
         });
 }
 
@@ -539,7 +589,10 @@ fn help_command(world: &mut World, invocation: &ConsoleCommandInvocation) -> Con
         if !command.spec.aliases.is_empty() {
             lines.push(format!("aliases: {}", command.spec.aliases.join(", ")));
         }
-        return ConsoleCommandResult::Success(lines);
+        return ConsoleCommandResult::Success {
+            lines,
+            focus: ConsoleFocusDisposition::KeepConsole,
+        };
     }
 
     ConsoleCommandResult::lines(registry.commands.values().map(|command| {

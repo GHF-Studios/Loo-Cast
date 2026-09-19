@@ -8,6 +8,7 @@ mod demand;
 mod devtools;
 mod layer;
 mod position;
+mod transition;
 mod view;
 
 pub use demand::{
@@ -19,12 +20,16 @@ pub use position::{
     SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale, UsfChunkAddress,
     UsfPosition, UsfPositionError,
 };
+pub use transition::{
+    UsfSpatialTransition, UsfSpatialTransitionApplied, UsfSpatialTransitionCause,
+    UsfSpatialTransitionQueue, UsfTransitionVelocity,
+};
 pub use view::{
     UsfLocalScalePresentation, UsfScalePresentation, UsfSceneryPresentation, UsfViewAnchor,
     UsfViewFrame,
 };
 
-use avian3d::prelude::{LinearVelocity, Position};
+use avian3d::prelude::Position;
 use bevy::{prelude::*, transform::TransformSystems};
 
 use crate::ecs::{UsfLogicalProjection, UsfManifestationOf};
@@ -92,7 +97,7 @@ mod rebase;
 mod systems;
 
 use rebase::rebase_local_frame;
-use systems::{sync_active_scale_layer, sync_semantic_positions};
+use systems::sync_semantic_positions;
 
 pub struct UsfSpatialPlugin;
 
@@ -101,7 +106,9 @@ impl Plugin for UsfSpatialPlugin {
         app.init_resource::<UsfSpatialFrame>()
             .init_resource::<UsfActiveScaleLayer>()
             .init_resource::<UsfScaleLayerFrames>()
+            .init_resource::<UsfSpatialTransitionQueue>()
             .add_message::<UsfOriginRebased>()
+            .add_message::<UsfSpatialTransitionApplied>()
             .configure_sets(
                 PostUpdate,
                 (
@@ -118,7 +125,10 @@ impl Plugin for UsfSpatialPlugin {
             )
             .add_systems(
                 PostUpdate,
-                (sync_active_scale_layer, sync_semantic_positions)
+                (
+                    sync_semantic_positions,
+                    transition::apply_spatial_transitions,
+                )
                     .chain()
                     .in_set(UsfSpatialSet::SyncSemantic),
             )

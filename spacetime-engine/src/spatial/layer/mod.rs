@@ -90,6 +90,10 @@ impl UsfScaleLayerFrames {
         to_vec3(absolute - self.origin(scale))
     }
 
+    pub(crate) fn set_origin(&mut self, scale: SpatialScale, origin: DVec3) {
+        self.origins[scale.index_from_top()] = origin;
+    }
+
     pub fn reinterpret_runtime(&self, runtime: Vec3, from: SpatialScale, to: SpatialScale) -> Vec3 {
         let absolute = self.absolute(from, runtime);
         let converted = self.convert_absolute(absolute, from, to);
