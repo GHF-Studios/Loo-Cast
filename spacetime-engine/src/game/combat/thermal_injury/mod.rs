@@ -3,9 +3,11 @@
 use bevy::prelude::*;
 
 use crate::{
-    game::{SimulationSet, combat::Damage},
+    game::SimulationSet,
     thermal::{ThermalBody, ThermalInjury, ThermalSet},
 };
+
+use super::Damage;
 
 pub(super) fn configure(app: &mut App) {
     app.add_systems(

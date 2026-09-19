@@ -6,6 +6,7 @@
 mod coupling;
 pub(crate) mod devtools;
 mod domain;
+mod presentation;
 mod simulation;
 mod spatial;
 pub(crate) mod world_draw;
@@ -14,6 +15,11 @@ pub use domain::*;
 pub use spatial::*;
 
 use bevy::prelude::*;
+
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ThermalPresentationSet {
+    Derived,
+}
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ThermalSet {
@@ -45,5 +51,13 @@ impl Plugin for ThermalCorePlugin {
 
         spatial::configure(app);
         simulation::configure(app);
+    }
+}
+
+pub struct ThermalPresentationPlugin;
+
+impl Plugin for ThermalPresentationPlugin {
+    fn build(&self, app: &mut App) {
+        presentation::configure(app);
     }
 }

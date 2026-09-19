@@ -81,9 +81,11 @@ when every thermal visualization is disabled.
 
 ## Engine/game ownership
 
-Reusable thermal state, spatial refinement, combustion, coupling and
-developer observability live in `crate::thermal`. The test-game adapter at
-`crate::game::thermal` only nests the reusable ThermalSet sequence into the
-game schedule, converts ThermalInjury into combat Damage, and owns flame
-presentation. Another game can replace those adapters without changing the
-thermal domain.
+The reusable domain owns both thermal simulation and generic combustion
+presentation. `ThermalPresentationPlugin` exposes that presentation through
+`ThermalPresentationSet::Derived`, allowing a host to place it in its own
+presentation schedule without introducing a game dependency.
+
+The test game nests `ThermalSet` and `ThermalPresentationSet` directly into its
+schedule. Biological thermal injury is adapted to generic combat `Damage` under
+`game::combat::thermal_injury`; there is no parallel `game::thermal` namespace.

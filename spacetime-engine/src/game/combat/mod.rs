@@ -122,6 +122,7 @@ mod assets;
 mod damage;
 mod presentation;
 mod projectile;
+mod thermal_injury;
 mod weapon;
 
 use assets::{CombatPresentationAssets, setup_combat_assets};
@@ -148,5 +149,6 @@ impl Plugin for CombatPlugin {
             );
 
         presentation::configure(app);
+        thermal_injury::configure(app);
     }
 }

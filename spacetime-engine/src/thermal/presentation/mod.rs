@@ -6,10 +6,10 @@ use bevy::{color::LinearRgba, prelude::*};
 
 use crate::{
     ecs::UsfManifestationOf,
-    game::GameSet,
     physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive},
-    thermal::{Combustion, ThermalSpatialSample},
 };
+
+use super::{Combustion, ThermalPresentationSet, ThermalSpatialSample};
 
 #[derive(Resource)]
 struct FirePresentationAssets {
@@ -30,7 +30,7 @@ pub(super) fn configure(app: &mut App) {
             Update,
             (sync_flame_visuals, animate_flame_visuals)
                 .chain()
-                .in_set(GameSet::Presentation),
+                .in_set(ThermalPresentationSet::Derived),
         );
 }
 
