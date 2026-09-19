@@ -23,7 +23,7 @@ use crate::portal::simulation::{
     CONTROL_INPUT_BLEND_DURATION, CONTROL_SETTLE_DURATION,
 };
 
-pub(super) struct CrossingContext<'a> {
+pub(super) struct CrossingContext<'a, 'w, 's> {
     pub entity: Entity,
     pub peer: Entity,
     pub split_box: SpatialSplitBox,
@@ -32,7 +32,7 @@ pub(super) struct CrossingContext<'a> {
     pub destination: &'a Transform,
     pub fraction: f32,
     pub dt: f32,
-    pub move_and_slide: &'a MoveAndSlide,
+    pub move_and_slide: &'a MoveAndSlide<'w, 's>,
 }
 
 pub(super) struct CrossingState<'a> {
@@ -46,7 +46,7 @@ pub(super) struct CrossingState<'a> {
 }
 
 pub(super) fn resolve_crossing(
-    context: CrossingContext<'_>,
+    context: CrossingContext<'_, '_, '_>,
     state: CrossingState<'_>,
 ) {
     let start = state.split.tick_start.translation;

@@ -17,7 +17,7 @@ use super::aperture::{
 
 const PREOPEN_MARGIN: f32 = 0.04;
 
-pub(super) fn active_pair_is_valid(
+pub(in crate::portal::simulation) fn active_pair_is_valid(
     split: ActivePortalSplit,
     portals: &Query<(Entity, &Portal, &PortalActive, &Transform), With<Portal>>,
 ) -> bool {
@@ -29,7 +29,7 @@ pub(super) fn active_pair_is_valid(
             .is_ok_and(|(_, _, active, _)| active.0)
 }
 
-pub(super) fn find_split_candidate(
+pub(in crate::portal::simulation) fn find_split_candidate(
     split_box: SpatialSplitBox,
     body: &Transform,
     velocity: Vec3,
@@ -96,7 +96,7 @@ pub(super) fn find_split_candidate(
     best.map(|(_, candidate)| candidate)
 }
 
-pub(super) fn box_reaches_portal_this_tick(
+pub(in crate::portal::simulation) fn box_reaches_portal_this_tick(
     split_box: SpatialSplitBox,
     body: &Transform,
     velocity: Vec3,

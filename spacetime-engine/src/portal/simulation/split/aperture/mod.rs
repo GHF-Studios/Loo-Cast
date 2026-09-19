@@ -32,7 +32,7 @@ pub(super) fn projected_crossing_center(
     }
 }
 
-pub(super) fn box_fits_aperture_at(
+pub(in crate::portal::simulation) fn box_fits_aperture_at(
     split_box: SpatialSplitBox,
     body_rotation: Quat,
     center: Vec3,
@@ -49,7 +49,7 @@ pub(super) fn box_fits_aperture_at(
         && local.y.abs() + radius_y <= half_size.y + APERTURE_FIT_TOLERANCE
 }
 
-pub(super) fn center_crossing_fraction(
+pub(in crate::portal::simulation) fn center_crossing_fraction(
     portal: &Transform,
     start: Vec3,
     end: Vec3,

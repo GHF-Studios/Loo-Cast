@@ -16,7 +16,7 @@ use super::grounding::probe_ground;
 use super::super::{CharacterMovementConfig, reject};
 
 pub(super) fn move_with_step_selection(
-    collision: &CollisionContext<'_>,
+    collision: &CollisionContext<'_, '_, '_>,
     start: Vec3,
     velocity: Vec3,
     duration: Duration,
@@ -40,7 +40,7 @@ pub(super) fn move_with_step_selection(
 }
 
 fn slide(
-    collision: &CollisionContext<'_>,
+    collision: &CollisionContext<'_, '_, '_>,
     position: Vec3,
     velocity: Vec3,
     duration: Duration,
@@ -58,7 +58,7 @@ fn slide(
 }
 
 fn step_route(
-    collision: &CollisionContext<'_>,
+    collision: &CollisionContext<'_, '_, '_>,
     start: Vec3,
     velocity: Vec3,
     duration: Duration,

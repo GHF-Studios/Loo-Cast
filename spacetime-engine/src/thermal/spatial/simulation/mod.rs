@@ -27,7 +27,7 @@ struct ThermalConductionClock {
     accumulator_seconds: f32,
 }
 
-pub(super) fn configure(app: &mut App) {
+pub(in crate::thermal) fn configure(app: &mut App) {
     app.add_message::<ThermalPointImpulse>()
         .register_type::<ThermalMaterial>()
         .register_type::<ThermalField>()

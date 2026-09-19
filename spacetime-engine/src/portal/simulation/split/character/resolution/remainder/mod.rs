@@ -18,7 +18,7 @@ use crate::{
 const DESTINATION_REMAINDER_SUBSTEPS: usize = 4;
 
 pub(super) fn simulate_destination_remainder(
-    move_and_slide: &MoveAndSlide,
+    move_and_slide: &MoveAndSlide<'_, '_>,
     split_box: SpatialSplitBox,
     mut body: Transform,
     mut velocity: Vec3,

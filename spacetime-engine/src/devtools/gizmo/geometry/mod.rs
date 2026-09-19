@@ -1,8 +1,9 @@
 //! Projection, axis mapping and handle hit-testing for Transform gizmos.
 
 use super::*;
+use crate::devtools::FocusTarget;
 
-pub(super) fn transform_context_visible(target: super::FocusTarget, structure: &StructureSelection) -> bool {
+pub(super) fn transform_context_visible(target: FocusTarget, structure: &StructureSelection) -> bool {
     structure
         .item_for(target)
         .map_or(true, |item| item == TRANSFORM_STRUCTURE)

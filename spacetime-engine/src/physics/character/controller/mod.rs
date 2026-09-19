@@ -34,8 +34,8 @@ pub(super) use pushing::{apply_character_pushes, receive_dynamic_contact_pushes}
 ///
 /// This deliberately contains only immutable query mechanism. Character
 /// semantic state remains explicit in [`MotorTick`].
-struct CollisionContext<'a> {
-    move_and_slide: &'a MoveAndSlide,
+struct CollisionContext<'a, 'w, 's> {
+    move_and_slide: &'a MoveAndSlide<'w, 's>,
     collider: &'a Collider,
     rotation: Quat,
     move_config: &'a MoveAndSlideConfig,
@@ -119,7 +119,7 @@ pub(super) fn simulate_character_motors(
 }
 
 fn simulate_character_motor(
-    collision: &CollisionContext<'_>,
+    collision: &CollisionContext<'_, '_, '_>,
     tick: MotorTick<'_>,
     dt: f32,
     duration: Duration,

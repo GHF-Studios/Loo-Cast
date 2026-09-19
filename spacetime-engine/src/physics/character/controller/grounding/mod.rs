@@ -22,7 +22,7 @@ pub(super) struct GroundHit {
 /// Resolve that invalid pose before classifying ground or applying commanded
 /// movement, while preserving tangential and outward velocity.
 pub(super) fn reconcile_penetration(
-    collision: &CollisionContext<'_>,
+    collision: &CollisionContext<'_, '_, '_>,
     transform: &mut Transform,
     velocity: &mut LinearVelocity,
 ) {
@@ -48,7 +48,7 @@ pub(super) fn reconcile_penetration(
 }
 
 pub(super) fn refresh_ground_state(
-    collision: &CollisionContext<'_>,
+    collision: &CollisionContext<'_, '_, '_>,
     position: Vec3,
     up: Vec3,
     config: &CharacterMovementConfig,
@@ -69,7 +69,7 @@ pub(super) fn refresh_ground_state(
 /// Characters that started grounded may descend by one configured step without
 /// becoming airborne. A jump explicitly suppresses snap for the tick.
 pub(super) fn finalize_grounding(
-    collision: &CollisionContext<'_>,
+    collision: &CollisionContext<'_, '_, '_>,
     transform: &mut Transform,
     velocity: &mut LinearVelocity,
     ground: &mut CharacterGroundState,
@@ -106,7 +106,7 @@ pub(super) fn finalize_grounding(
 }
 
 pub(super) fn probe_ground(
-    collision: &CollisionContext<'_>,
+    collision: &CollisionContext<'_, '_, '_>,
     position: Vec3,
     up: Vec3,
     max_distance: f32,

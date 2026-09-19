@@ -16,7 +16,8 @@ mod generation;
 
 pub(crate) use demand::refresh_voxel_residency;
 pub(crate) use generation::{
-    finish_chunk_generation, retire_orphaned_tasks, schedule_voxel_generation,
+    VoxelAggregateGenerationTask, finish_chunk_generation, retire_orphaned_tasks,
+    schedule_voxel_generation,
 };
 
 /// Demand-streaming policy for one [`super::VoxelWorld`].

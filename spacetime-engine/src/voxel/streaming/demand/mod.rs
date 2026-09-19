@@ -11,7 +11,8 @@ use crate::{
 
 use super::{VoxelMaterializationDemand, VoxelStreaming};
 use super::super::{
-    MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationChunkAddress, VoxelWorld,
+    MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationChunkAddress, VoxelQueryPosition,
+    VoxelWorld,
     perf::VoxelPerfStats,
 };
 
@@ -143,7 +144,7 @@ fn demand_plan_key(
     let mut result = Vec::with_capacity(demands.len());
     let size = MATERIALIZATION_CHUNK_SIZE as f32;
     for demand in demands {
-        let center = super::VoxelQueryPosition::new(demand.center());
+        let center = VoxelQueryPosition::new(demand.center());
         let center_address = world.materialization_address_containing(center)?;
         let local = center.relative_to(center_address.query_origin(), size + 0.01)?;
         let half = demand.half_extent_native();
@@ -165,7 +166,7 @@ pub(super) fn demanded_chunk_addresses(
     let mut merged = HashMap::<VoxelMaterializationChunkAddress, DemandedChunk>::new();
 
     for demand in demands {
-        let center = super::VoxelQueryPosition::new(demand.center());
+        let center = VoxelQueryPosition::new(demand.center());
         let center_address = world.materialization_address_containing(center)?;
         let size = MATERIALIZATION_CHUNK_SIZE as f32;
         let local_center = center.relative_to(center_address.query_origin(), size + 0.01)?;

@@ -28,7 +28,7 @@ pub(crate) struct CharacterPush {
 }
 
 pub(super) fn detect_outgoing_push(
-    collision: &CollisionContext<'_>,
+    collision: &CollisionContext<'_, '_, '_>,
     start: Vec3,
     velocity: Vec3,
     dt: f32,
