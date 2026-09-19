@@ -1,0 +1,12 @@
+[content]
+id = "ghf-studios/loo-cast/loo-cast-packagepack"
+version = "0.5.0"
+kind = "packagepack"
+
+[dependencies.engine]
+id = "ghf-studios/loo-cast/spacetime-engine"
+version = "=0.5.0"
+
+[dependencies.game]
+id = "ghf-studios/loo-cast/loo-cast-game"
+version = "=0.5.0"

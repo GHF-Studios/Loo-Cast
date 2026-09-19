@@ -5,3 +5,6 @@ edition.workspace = true
 
 [lib]
 crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+spacetime-engine = { path = "../spacetime-engine" }
