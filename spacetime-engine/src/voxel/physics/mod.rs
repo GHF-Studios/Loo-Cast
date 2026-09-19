@@ -42,7 +42,12 @@ pub(super) fn owned_triangles(surface: &VoxelSurface) -> Vec<[u32; 3]> {
     surface
         .indices
         .chunks_exact(3)
-        .filter_map(|triangle| {
+        .zip(&surface.triangle_materials)
+        .filter_map(|(triangle, material)| {
+            if !material.behavior().is_rigid() {
+                return None;
+            }
+
             let indices = [triangle[0], triangle[1], triangle[2]];
             let a = Vec3::from_array(surface.positions[indices[0] as usize]);
             let b = Vec3::from_array(surface.positions[indices[1] as usize]);
@@ -77,6 +82,25 @@ mod tests {
         assert!(owns_point(Vec3::new(size - 0.001, 1.0, 1.0)));
         assert!(!owns_point(Vec3::new(size, 1.0, 1.0)));
         assert!(owns_point(Vec3::ZERO));
+    }
+
+    #[test]
+    fn collisionless_nebula_has_no_owned_collision_triangles() {
+        let center = Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32 * 0.5);
+        let chunk = VoxelChunk::generate(|local| {
+            let distance = local.distance(center) - 3.0;
+            VoxelSample::new(
+                distance,
+                if distance < 0.0 {
+                    VoxelMaterialId::NEBULA
+                } else {
+                    VoxelMaterialId::VOID
+                },
+            )
+        });
+        let surface = extract_chunk_surface(&chunk);
+        assert!(!surface.positions.is_empty());
+        assert!(owned_triangles(&surface).is_empty());
     }
 
     #[test]

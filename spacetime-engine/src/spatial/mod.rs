@@ -19,7 +19,10 @@ pub use position::{
     SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale, UsfChunkAddress,
     UsfPosition, UsfPositionError,
 };
-pub use view::{UsfLocalScalePresentation, UsfScalePresentation, UsfViewAnchor, UsfViewFrame};
+pub use view::{
+    UsfLocalScalePresentation, UsfScalePresentation, UsfSceneryPresentation, UsfViewAnchor,
+    UsfViewFrame,
+};
 
 use avian3d::prelude::{LinearVelocity, Position};
 use bevy::{prelude::*, transform::TransformSystems};
@@ -129,6 +132,7 @@ impl Plugin for UsfSpatialPlugin {
                 (
                     view::project_local_scale_presentations,
                     view::project_scale_presentations,
+                    view::project_scenery_presentations,
                 )
                     .in_set(UsfSpatialSet::ViewProjection),
             );

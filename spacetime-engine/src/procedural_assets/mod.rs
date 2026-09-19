@@ -37,6 +37,10 @@ pub struct ProceduralAssetLibrary {
     pub cracked_clay: ProceduralPbrMaterial,
     /// High-contrast development grid. Vertex colors encode 3D chunk lineage.
     pub debug_grid: Handle<StandardMaterial>,
+    /// Generated emissive Voronoi-like stellar granulation.
+    pub star_surface: Handle<StandardMaterial>,
+    /// Generated fake tectonic/biome surface used by the first planetary realizer.
+    pub planet_surface: Handle<StandardMaterial>,
 }
 
 use systems::{initialize_procedural_assets, regenerate_changed_procedural_assets};

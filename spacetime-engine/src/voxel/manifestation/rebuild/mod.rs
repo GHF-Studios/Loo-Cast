@@ -17,29 +17,47 @@ use super::{
     collision::publish_collider_manifestation,
 };
 use super::super::{
-    VoxelMaterializationChunkAddress, VoxelQueryPosition, VoxelWorld,
+    VoxelMaterialId, VoxelMaterializationChunkAddress, VoxelQueryPosition, VoxelWorld,
     mesh::VoxelSurface,
     streaming::VoxelPresentationMaterial,
 };
 
+#[derive(Resource)]
+pub(in crate::voxel) struct TranslucentVoxelMaterial(Handle<StandardMaterial>);
+
+pub(in crate::voxel) fn initialize_translucent_voxel_material(
+    mut commands: Commands,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    let material = materials.add(StandardMaterial {
+        base_color: Color::WHITE,
+        alpha_mode: AlphaMode::Blend,
+        perceptual_roughness: 0.18,
+        metallic: 0.0,
+        double_sided: true,
+        ..default()
+    });
+    commands.insert_resource(TranslucentVoxelMaterial(material));
+}
+
 /// Rebuilds dirty one-to-one runtime manifestations within the configured frame
 /// budget.
 ///
-/// A dirty surface rebuild affects only its own materialization. Collision data
-/// is invalidated independently and recreated only when this manifestation is
-/// inside the physics interaction region.
+/// One manifestation root can own an opaque and a translucent presentation.
+/// Collision remains an independent derived representation of the same surface.
 pub(in crate::voxel) fn rebuild_dirty_manifestations(
     config: Res<EngineConfig>,
     mut commands: Commands,
     layer_frames: Res<UsfScaleLayerFrames>,
     mut meshes: ResMut<Assets<Mesh>>,
+    translucent_material: Res<TranslucentVoxelMaterial>,
     worlds: Query<(
         Entity,
         &VoxelWorld,
         &VoxelPresentationMaterial,
         &UsfScaleLayer,
     )>,
-    manifestations: Query<&VoxelManifestation>,
+    mut manifestations: Query<&mut VoxelManifestation>,
     presentations: Query<Option<&Mesh3d>, With<VoxelManifestationPresentation>>,
     mut registry: ResMut<VoxelManifestationRegistry>,
 ) {
@@ -73,33 +91,54 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
             continue;
         }
 
-        let Some(mesh) = build_manifestation_mesh(&cache.surface, cache.debug_color) else {
-            registry.dirty.insert(key);
-            continue;
-        };
-
-        let mut mesh = Some(mesh);
+        let mut opaque_mesh = build_opaque_mesh(&cache.surface, cache.debug_color);
         let mut root_entity = registry.entities.get(&key).copied();
 
-        if let Some(entity) = root_entity
-            && let Ok(manifestation) = manifestations.get(entity)
-        {
-            match presentations.get(manifestation.presentation) {
-                Ok(Some(mesh3d)) => {
-                    let replacement = mesh.take().expect("manifestation mesh is published once");
-                    if let Some(mut existing) = meshes.get_mut(&mesh3d.0) {
-                        *existing = replacement;
-                    } else {
-                        commands
-                            .entity(manifestation.presentation)
-                            .insert(Mesh3d(meshes.add(replacement)));
+        if let Some(entity) = root_entity {
+            match manifestations.get_mut(entity) {
+                Ok(mut manifestation) => {
+                    match presentations.get(manifestation.presentation) {
+                        Ok(Some(mesh3d)) => {
+                            if let Some(replacement) = opaque_mesh.take() {
+                                if let Some(mut existing) = meshes.get_mut(&mesh3d.0) {
+                                    *existing = replacement;
+                                } else {
+                                    commands
+                                        .entity(manifestation.presentation)
+                                        .insert(Mesh3d(meshes.add(replacement)));
+                                }
+                            } else {
+                                commands
+                                    .entity(manifestation.presentation)
+                                    .remove::<Mesh3d>();
+                            }
+                        }
+                        Ok(None) => {
+                            if let Some(replacement) = opaque_mesh.take() {
+                                commands
+                                    .entity(manifestation.presentation)
+                                    .insert(Mesh3d(meshes.add(replacement)));
+                            }
+                        }
+                        Err(_) => {
+                            commands.entity(entity).despawn();
+                            registry.entities.remove(&key);
+                            root_entity = None;
+                        }
                     }
-                }
-                Ok(None) => {
-                    let replacement = mesh.take().expect("manifestation mesh is published once");
-                    commands
-                        .entity(manifestation.presentation)
-                        .insert(Mesh3d(meshes.add(replacement)));
+
+                    if root_entity.is_some() {
+                        sync_translucent_presentation(
+                            &mut commands,
+                            entity,
+                            layer,
+                            &cache.surface,
+                            &translucent_material.0,
+                            &mut meshes,
+                            &presentations,
+                            &mut manifestation,
+                        );
+                    }
                 }
                 Err(_) => {
                     commands.entity(entity).despawn();
@@ -107,8 +146,6 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
                     root_entity = None;
                 }
             }
-        } else {
-            root_entity = None;
         }
 
         let root = if let Some(root) = root_entity {
@@ -121,7 +158,6 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
                 continue;
             };
 
-            let mesh_handle = meshes.add(mesh.expect("manifestation mesh is still available"));
             let root = commands
                 .spawn((
                     Name::new("Voxel Manifestation"),
@@ -131,21 +167,35 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
                     Visibility::Inherited,
                 ))
                 .id();
+
             let presentation = commands
                 .spawn((
-                    Name::new("Voxel Manifestation Presentation"),
+                    Name::new("Voxel Opaque Presentation"),
                     ChildOf(root),
                     VoxelManifestationPresentation,
                     UsfLocalScalePresentation::new(layer.scale()),
-                    Mesh3d(mesh_handle),
                     MeshMaterial3d(material.handle().clone()),
                     Transform::IDENTITY,
                     Visibility::Inherited,
                 ))
                 .id();
-            commands
-                .entity(root)
-                .insert(VoxelManifestation { presentation });
+            if let Some(mesh) = opaque_mesh.take() {
+                commands.entity(presentation).insert(Mesh3d(meshes.add(mesh)));
+            }
+
+            let translucent_presentation = spawn_translucent_presentation(
+                &mut commands,
+                root,
+                layer,
+                &cache.surface,
+                &translucent_material.0,
+                &mut meshes,
+            );
+
+            commands.entity(root).insert(VoxelManifestation {
+                presentation,
+                translucent_presentation,
+            });
             registry.entities.insert(key, root);
             root
         };
@@ -154,23 +204,116 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
     }
 }
 
-fn manifestation_runtime_translation(
-    world: &VoxelWorld,
+fn sync_translucent_presentation(
+    commands: &mut Commands,
+    root: Entity,
     layer: &UsfScaleLayer,
-    frames: &UsfScaleLayerFrames,
-    address: VoxelMaterializationChunkAddress,
-) -> Option<Vec3> {
-    let world_origin = VoxelQueryPosition::new(*world.origin());
-    let relative = address
-        .query_origin()
-        .relative_to(world_origin, 1_000_000.0)
-        .ok()?;
-    let absolute = bevy::math::DVec3::new(relative.x as f64, relative.y as f64, relative.z as f64);
-    Some(frames.runtime_from_absolute(layer.scale(), absolute))
+    surface: &VoxelSurface,
+    material: &Handle<StandardMaterial>,
+    meshes: &mut Assets<Mesh>,
+    presentations: &Query<Option<&Mesh3d>, With<VoxelManifestationPresentation>>,
+    manifestation: &mut VoxelManifestation,
+) {
+    let Some(mesh) = build_translucent_mesh(surface) else {
+        if let Some(entity) = manifestation.translucent_presentation.take() {
+            commands.entity(entity).despawn();
+        }
+        return;
+    };
+
+    if let Some(entity) = manifestation.translucent_presentation {
+        match presentations.get(entity) {
+            Ok(Some(mesh3d)) => {
+                if let Some(mut existing) = meshes.get_mut(&mesh3d.0) {
+                    *existing = mesh;
+                } else {
+                    commands.entity(entity).insert(Mesh3d(meshes.add(mesh)));
+                }
+                return;
+            }
+            Ok(None) => {
+                commands.entity(entity).insert(Mesh3d(meshes.add(mesh)));
+                return;
+            }
+            Err(_) => {
+                manifestation.translucent_presentation = None;
+            }
+        }
+    }
+
+    manifestation.translucent_presentation = spawn_translucent_presentation(
+        commands,
+        root,
+        layer,
+        surface,
+        material,
+        meshes,
+    );
 }
 
-fn build_manifestation_mesh(surface: &VoxelSurface, debug_color: [f32; 4]) -> Option<Mesh> {
-    if surface.positions.is_empty() || surface.indices.is_empty() {
+fn spawn_translucent_presentation(
+    commands: &mut Commands,
+    root: Entity,
+    layer: &UsfScaleLayer,
+    surface: &VoxelSurface,
+    material: &Handle<StandardMaterial>,
+    meshes: &mut Assets<Mesh>,
+) -> Option<Entity> {
+    let mesh = build_translucent_mesh(surface)?;
+    Some(
+        commands
+            .spawn((
+                Name::new("Voxel Translucent Presentation"),
+                ChildOf(root),
+                VoxelManifestationPresentation,
+                UsfLocalScalePresentation::new(layer.scale()),
+                Mesh3d(meshes.add(mesh)),
+                MeshMaterial3d(material.clone()),
+                Transform::IDENTITY,
+                Visibility::Inherited,
+            ))
+            .id(),
+    )
+}
+
+fn material_vertex_color(material: VoxelMaterialId) -> [f32; 4] {
+    match material {
+        VoxelMaterialId::GLASS => [0.62, 0.86, 1.0, material.behavior().opacity],
+        VoxelMaterialId::NEBULA => [0.48, 0.16, 0.78, material.behavior().opacity],
+        _ => [1.0, 1.0, 1.0, material.behavior().opacity],
+    }
+}
+
+fn build_translucent_mesh(surface: &VoxelSurface) -> Option<Mesh> {
+    let indices = surface.translucent_indices();
+    if surface.positions.is_empty() || indices.is_empty() {
+        return None;
+    }
+
+    let colors = surface
+        .vertex_materials
+        .iter()
+        .copied()
+        .map(material_vertex_color)
+        .collect::<Vec<_>>();
+
+    Some(
+        Mesh::new(
+            PrimitiveTopology::TriangleList,
+            RenderAssetUsages::default(),
+        )
+        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, surface.positions.clone())
+        .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, surface.normals.clone())
+        .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, colors)
+        .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, surface.uvs.clone())
+        .with_inserted_attribute(Mesh::ATTRIBUTE_TANGENT, surface.tangents.clone())
+        .with_inserted_indices(Indices::U32(indices)),
+    )
+}
+
+fn build_opaque_mesh(surface: &VoxelSurface, debug_color: [f32; 4]) -> Option<Mesh> {
+    let indices = surface.opaque_indices();
+    if surface.positions.is_empty() || indices.is_empty() {
         return None;
     }
 
@@ -185,6 +328,22 @@ fn build_manifestation_mesh(surface: &VoxelSurface, debug_color: [f32; 4]) -> Op
         .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, colors)
         .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, surface.uvs.clone())
         .with_inserted_attribute(Mesh::ATTRIBUTE_TANGENT, surface.tangents.clone())
-        .with_inserted_indices(Indices::U32(surface.indices.clone())),
+        .with_inserted_indices(Indices::U32(indices)),
     )
+}
+
+fn manifestation_runtime_translation(
+    world: &VoxelWorld,
+    layer: &UsfScaleLayer,
+    frames: &UsfScaleLayerFrames,
+    address: VoxelMaterializationChunkAddress,
+) -> Option<Vec3> {
+    let world_origin = VoxelQueryPosition::new(*world.origin());
+    let relative = address
+        .query_origin()
+        .relative_to(world_origin, 1_000_000.0)
+        .ok()?;
+    let absolute =
+        bevy::math::DVec3::new(relative.x as f64, relative.y as f64, relative.z as f64);
+    Some(frames.runtime_from_absolute(layer.scale(), absolute))
 }

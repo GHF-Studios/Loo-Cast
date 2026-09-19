@@ -76,6 +76,10 @@ impl ProceduralScaleStack {
         }
     }
 
+    pub(super) const fn root(&self) -> WorldgenEvaluationKey {
+        self.root
+    }
+
     fn material_for_scale(
         &mut self,
         scale: SpatialScale,

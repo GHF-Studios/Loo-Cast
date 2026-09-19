@@ -1,9 +1,12 @@
 //! Initialization and in-place regeneration of procedural presentation assets.
 
-use bevy::prelude::*;
+use bevy::{color::LinearRgba, prelude::*};
 
 use super::{ProceduralAssetLibrary, ProceduralPbrMaterial};
-use super::texture::{CrackedClayRecipe, generate_cracked_clay};
+use super::texture::{
+    CrackedClayRecipe, generate_cracked_clay, generate_planet_surface_image,
+    generate_star_surface_image,
+};
 
 pub(super) fn initialize_procedural_assets(
     mut commands: Commands,
@@ -29,6 +32,26 @@ pub(super) fn initialize_procedural_assets(
         ..default()
     });
 
+    let star_surface_texture = images.add(generate_star_surface_image());
+    let star_surface = materials.add(StandardMaterial {
+        base_color: Color::WHITE,
+        base_color_texture: Some(star_surface_texture),
+        emissive: LinearRgba::rgb(8.0, 2.8, 0.55),
+        emissive_exposure_weight: 0.0,
+        perceptual_roughness: 0.9,
+        metallic: 0.0,
+        ..default()
+    });
+
+    let planet_surface_texture = images.add(generate_planet_surface_image());
+    let planet_surface = materials.add(StandardMaterial {
+        base_color: Color::WHITE,
+        base_color_texture: Some(planet_surface_texture),
+        perceptual_roughness: 0.96,
+        metallic: 0.0,
+        ..default()
+    });
+
     let debug_grid_texture = images.add(super::debug_grid::generate_debug_grid_image());
     let debug_grid = materials.add(StandardMaterial {
         base_color: Color::WHITE,
@@ -47,6 +70,8 @@ pub(super) fn initialize_procedural_assets(
             orm,
         },
         debug_grid,
+        star_surface,
+        planet_surface,
     });
 }
 

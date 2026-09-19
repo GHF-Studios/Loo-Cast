@@ -4,7 +4,7 @@ use bevy::prelude::{Vec2, Vec3};
 use fast_surface_nets::{SurfaceNetsBuffer, ndshape::ConstShape3u32, surface_nets};
 
 use super::{
-    VoxelChunk,
+    VoxelChunk, VoxelMaterialId,
     chunk::{SAMPLE_PADDING, SAMPLE_SIZE},
 };
 
@@ -19,6 +19,34 @@ pub(super) struct VoxelSurface {
     pub(super) uvs: Vec<[f32; 2]>,
     pub(super) tangents: Vec<[f32; 4]>,
     pub(super) indices: Vec<u32>,
+    pub(super) vertex_materials: Vec<VoxelMaterialId>,
+    pub(super) triangle_materials: Vec<VoxelMaterialId>,
+}
+
+impl VoxelSurface {
+    pub(super) fn opaque_indices(&self) -> Vec<u32> {
+        self.indices
+            .chunks_exact(3)
+            .zip(&self.triangle_materials)
+            .filter(|(_, material)| !material.behavior().is_translucent())
+            .flat_map(|(triangle, _)| triangle.iter().copied())
+            .collect()
+    }
+
+    pub(super) fn translucent_indices(&self) -> Vec<u32> {
+        self.indices
+            .chunks_exact(3)
+            .zip(&self.triangle_materials)
+            .filter(|(_, material)| material.behavior().is_translucent())
+            .flat_map(|(triangle, _)| triangle.iter().copied())
+            .collect()
+    }
+
+    pub(super) fn has_rigid_triangles(&self) -> bool {
+        self.triangle_materials
+            .iter()
+            .any(|material| material.behavior().is_rigid())
+    }
 }
 
 pub(super) fn extract_chunk_surface(chunk: &VoxelChunk) -> VoxelSurface {
@@ -42,6 +70,21 @@ pub(super) fn extract_chunk_surface(chunk: &VoxelChunk) -> VoxelSurface {
     }
 
     let (uvs, tangents) = surface_projection_attributes(&output.positions, &output.normals);
+    let vertex_materials = output
+        .positions
+        .iter()
+        .map(|position| surface_material_near(chunk, Vec3::from_array(*position)))
+        .collect::<Vec<_>>();
+    let triangle_materials = output
+        .indices
+        .chunks_exact(3)
+        .map(|triangle| {
+            let a = Vec3::from_array(output.positions[triangle[0] as usize]);
+            let b = Vec3::from_array(output.positions[triangle[1] as usize]);
+            let c = Vec3::from_array(output.positions[triangle[2] as usize]);
+            surface_material_near(chunk, (a + b + c) / 3.0)
+        })
+        .collect();
 
     VoxelSurface {
         positions: output.positions,
@@ -49,7 +92,33 @@ pub(super) fn extract_chunk_surface(chunk: &VoxelChunk) -> VoxelSurface {
         uvs,
         tangents,
         indices: output.indices,
+        vertex_materials,
+        triangle_materials,
     }
+}
+
+fn surface_material_near(chunk: &VoxelChunk, point: Vec3) -> VoxelMaterialId {
+    let center = point.floor().as_ivec3();
+    let mut best = None::<(f32, VoxelMaterialId)>;
+
+    for z in -1..=1 {
+        for y in -1..=1 {
+            for x in -1..=1 {
+                let Some(sample) = chunk.sample(center + bevy::prelude::IVec3::new(x, y, z)) else {
+                    continue;
+                };
+                if !sample.distance.is_solid() || sample.material == VoxelMaterialId::VOID {
+                    continue;
+                }
+                let score = sample.distance.0.abs();
+                if best.is_none_or(|(current, _)| score < current) {
+                    best = Some((score, sample.material));
+                }
+            }
+        }
+    }
+
+    best.map_or(VoxelMaterialId::ROCK, |(_, material)| material)
 }
 
 /// Immediate world-aligned texture projection for arbitrary Surface Nets geometry.

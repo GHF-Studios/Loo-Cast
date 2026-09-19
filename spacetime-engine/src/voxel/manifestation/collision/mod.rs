@@ -33,13 +33,20 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
             continue;
         };
 
-        let wants_collider = manifestation_collider_proximity_squared(
-            &view,
-            key.address,
-            layer,
-            config.voxel.manifestation.physics_interaction_radius_native,
-        )
-        .is_some();
+        let has_rigid_surface = world
+            .materializations()
+            .surface(key.address)
+            .is_some_and(|cache| {
+                cache.revision == expected_revision && cache.surface.has_rigid_triangles()
+            });
+        let wants_collider = has_rigid_surface
+            && manifestation_collider_proximity_squared(
+                &view,
+                key.address,
+                layer,
+                config.voxel.manifestation.physics_interaction_radius_native,
+            )
+            .is_some();
         let has_collider = manifestation_roots
             .get(entity)
             .ok()

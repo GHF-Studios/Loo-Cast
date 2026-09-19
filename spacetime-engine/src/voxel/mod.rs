@@ -12,6 +12,7 @@ mod devtools;
 mod edit;
 mod field;
 mod mesh;
+mod medium;
 mod modification;
 mod worker;
 mod physics;
@@ -25,14 +26,19 @@ pub use chunk::{
     CHUNK_SIZE, MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelChunkEditResult, VoxelRayHit,
 };
 pub use edit::{EDIT_INFLUENCE_MARGIN, VoxelBounds, VoxelBrush, VoxelEdit, VoxelQueryPosition};
-pub use field::{SignedDistance, VoxelMaterialId, VoxelSample};
+pub use field::{
+    SignedDistance, VoxelCollisionMode, VoxelMaterialBehavior, VoxelMaterialId, VoxelSample,
+};
 pub use modification::VoxelModificationLayer;
 pub use streaming::{VoxelMaterializationDemand, VoxelPresentationMaterial, VoxelStreaming};
 pub use world::{VoxelChunkAddress, VoxelChunkCoord, VoxelMaterializationChunkAddress, VoxelWorld};
 
 use bevy::prelude::*;
 
-use crate::spatial::SpatialDemandSet;
+use crate::{
+    physics::character::CharacterMovementSet,
+    spatial::SpatialDemandSet,
+};
 
 pub struct VoxelPlugin;
 
@@ -56,6 +62,7 @@ enum VoxelPostUpdateSet {
 impl Plugin for VoxelPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<manifestation::VoxelManifestationRegistry>()
+            .add_systems(Startup, manifestation::initialize_translucent_voxel_material)
             .configure_sets(
                 Update,
                 (
@@ -70,6 +77,10 @@ impl Plugin for VoxelPlugin {
             .add_systems(
                 Update,
                 streaming::schedule_voxel_generation.in_set(VoxelUpdateSet::Generation),
+            )
+            .add_systems(
+                FixedUpdate,
+                medium::apply_voxel_medium_drag.after(CharacterMovementSet::Simulate),
             )
             // Orphan retirement is independent of demand planning and should not
             // serialize the normal residency -> generation path.

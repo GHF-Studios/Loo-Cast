@@ -29,12 +29,13 @@ fn register_item(mut catalog: ResMut<ItemCatalog>) {
     catalog.register(ItemDefinition {
         id: VOXEL_HAND,
         name: "Voxel Hand",
-        description: "Remove or add smooth volumetric matter.",
+        description: "Remove/add voxels. Secondary rock; Shift glass; Ctrl nebula.",
     });
 }
 
 fn use_voxel_hand(
     mut uses: MessageReader<UseItem>,
+    keyboard: Res<ButtonInput<KeyCode>>,
     frames: Res<UsfScaleLayerFrames>,
     mut worlds: ParamSet<(
         Query<(Entity, &VoxelWorld, &UsfScaleLayer)>,
@@ -105,10 +106,18 @@ fn use_voxel_hand(
         let edit = if request.action == ItemAction::PRIMARY {
             VoxelEdit::Remove { brush }
         } else {
-            VoxelEdit::Add {
-                brush,
-                material: VoxelMaterialId::ROCK,
-            }
+            let control =
+                keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight);
+            let shift =
+                keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
+            let material = if control {
+                VoxelMaterialId::NEBULA
+            } else if shift {
+                VoxelMaterialId::GLASS
+            } else {
+                VoxelMaterialId::ROCK
+            };
+            VoxelEdit::Add { brush, material }
         };
 
         let mut worlds = worlds.p1();

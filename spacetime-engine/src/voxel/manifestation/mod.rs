@@ -19,7 +19,9 @@ mod rebuild;
 pub(super) use collision::sync_manifestation_collision_residency;
 pub(super) use lifecycle::retire_removed_world_manifestations;
 pub(super) use membership::sync_manifestation_membership;
-pub(super) use rebuild::rebuild_dirty_manifestations;
+pub(super) use rebuild::{
+    initialize_translucent_voxel_material, rebuild_dirty_manifestations,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct ManifestationKey {
@@ -31,6 +33,7 @@ struct ManifestationKey {
 #[derive(Component)]
 pub(super) struct VoxelManifestation {
     presentation: Entity,
+    translucent_presentation: Option<Entity>,
 }
 
 /// Marks the only `Mesh3d` entity created for one voxel manifestation.

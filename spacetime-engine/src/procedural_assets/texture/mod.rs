@@ -66,6 +66,79 @@ struct VoronoiSample {
     cell_value: f32,
 }
 
+pub(super) fn generate_star_surface_image() -> Image {
+    let size = UVec2::new(256, 128);
+    let mut data = Vec::with_capacity((size.x * size.y * 4) as usize);
+
+    for y in 0..size.y {
+        for x in 0..size.x {
+            let uv = Vec2::new(
+                (x as f32 + 0.5) / size.x as f32,
+                (y as f32 + 0.5) / size.y as f32,
+            );
+            let macro_v = periodic_voronoi(uv, 18, 0x51A2_2026);
+            let micro_v = periodic_voronoi(uv, 53, 0xF1A4_E001);
+            let lane = 1.0 - smoothstep(0.025, 0.12, macro_v.edge);
+            let granule = 0.55 + macro_v.cell_value * 0.30 + micro_v.cell_value * 0.15;
+            let heat = (granule + lane * 0.25).clamp(0.0, 1.0);
+            let color = Vec3::new(
+                1.0,
+                0.38 + heat * 0.52,
+                0.055 + heat * 0.20,
+            );
+            push_rgba(&mut data, color, 1.0);
+        }
+    }
+
+    rgba_image(size, data, true)
+}
+
+pub(super) fn generate_planet_surface_image() -> Image {
+    let size = UVec2::new(256, 128);
+    let mut data = Vec::with_capacity((size.x * size.y * 4) as usize);
+
+    for y in 0..size.y {
+        for x in 0..size.x {
+            let uv = Vec2::new(
+                (x as f32 + 0.5) / size.x as f32,
+                (y as f32 + 0.5) / size.y as f32,
+            );
+            let plates = periodic_voronoi(uv, 11, 0x7EC7_0A1C);
+            let detail = periodic_voronoi(uv, 37, 0xB10E_2026);
+            let latitude = ((uv.y - 0.5).abs() * 2.0).clamp(0.0, 1.0);
+            let boundary = 1.0 - smoothstep(0.018, 0.075, plates.edge);
+            let continent = plates.cell_value > 0.46;
+
+            let ocean = Vec3::new(
+                0.025,
+                0.14 + detail.cell_value * 0.08,
+                0.34 + detail.cell_value * 0.18,
+            );
+            let lowland = Vec3::new(0.10, 0.30 + detail.cell_value * 0.16, 0.075);
+            let dryland = Vec3::new(0.42, 0.29, 0.12);
+            let mut color = if continent {
+                lowland.lerp(
+                    dryland,
+                    (latitude * 0.55 + detail.cell_value * 0.25).clamp(0.0, 1.0),
+                )
+            } else {
+                ocean
+            };
+
+            if continent {
+                let mountain = boundary * (0.35 + detail.cell_value * 0.65);
+                color = color.lerp(Vec3::new(0.52, 0.48, 0.38), mountain * 0.75);
+            }
+
+            let ice = smoothstep(0.76, 0.96, latitude);
+            color = color.lerp(Vec3::splat(0.92), ice);
+            push_rgba(&mut data, color.clamp(Vec3::ZERO, Vec3::ONE), 1.0);
+        }
+    }
+
+    rgba_image(size, data, true)
+}
+
 pub(super) fn generate_cracked_clay(recipe: &CrackedClayRecipe) -> GeneratedPbrTextures {
     let size = recipe.resolution.max(UVec2::ONE);
     let pixel_count = (size.x as usize) * (size.y as usize);

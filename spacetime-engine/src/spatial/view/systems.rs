@@ -81,6 +81,66 @@ pub(in crate::spatial) fn project_local_scale_presentations(
     }
 }
 
+/// Projects persistent multiscale scenery into one bounded render scene.
+///
+/// For a raw observer-relative distance `d`, the rendered radius is
+/// `R * d / (R + d)`. The same compression is applied to object scale, preserving
+/// angular size while keeping arbitrarily distant representations inside `R`.
+pub(in crate::spatial) fn project_scenery_presentations(
+    view: Res<UsfViewFrame>,
+    active: Res<UsfActiveScaleLayer>,
+    frames: Res<UsfScaleLayerFrames>,
+    mut presentations: Query<(
+        &UsfSceneryPresentation,
+        &mut Transform,
+        &mut Visibility,
+    )>,
+) {
+    let active_scale = active.scale();
+    let observer_absolute = frames.absolute(active_scale, view.runtime_anchor());
+
+    for (presentation, mut transform, mut visibility) in &mut presentations {
+        let observer_in_scale =
+            frames.convert_absolute(observer_absolute, active_scale, presentation.scale());
+        let relative = presentation.absolute() - observer_in_scale;
+
+        let exponent_delta =
+            f64::from(presentation.scale().exponent()) - f64::from(view.continuous_exponent());
+        let native_to_view = 10.0_f64.powf(exponent_delta);
+        let raw_relative = relative * native_to_view;
+        let raw_distance = raw_relative.length();
+
+        if !raw_distance.is_finite() || !native_to_view.is_finite() {
+            *visibility = Visibility::Hidden;
+            continue;
+        }
+
+        let shell = presentation.render_shell_radius();
+        let compression = if raw_distance > f64::EPSILON {
+            shell / (shell + raw_distance)
+        } else {
+            1.0
+        };
+        let projected_scale = (native_to_view * compression) as f32;
+
+        if !projected_scale.is_finite() || projected_scale <= f32::EPSILON {
+            *visibility = Visibility::Hidden;
+            continue;
+        }
+
+        let projected = raw_relative * compression;
+        let projected = Vec3::new(projected.x as f32, projected.y as f32, projected.z as f32);
+        if !projected.is_finite() {
+            *visibility = Visibility::Hidden;
+            continue;
+        }
+
+        transform.translation = view.runtime_anchor() + projected;
+        transform.scale = Vec3::splat(projected_scale);
+        *visibility = Visibility::Inherited;
+    }
+}
+
 pub(in crate::spatial) fn project_scale_presentations(
     view: Res<UsfViewFrame>,
     parents: Query<&Transform, Without<UsfScalePresentation>>,

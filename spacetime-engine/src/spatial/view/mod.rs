@@ -5,7 +5,7 @@
 //! A representation authored at scale S stores bounded S-native geometry and a
 //! canonical anchor; it never needs a universe-wide float position.
 
-use bevy::prelude::*;
+use bevy::{math::DVec3, prelude::*};
 
 use crate::spatial::{
     SpatialScale, UsfActiveScaleLayer, UsfFollowsActiveScale, UsfPosition, UsfScaleLayer,
@@ -30,6 +30,54 @@ pub struct UsfViewAnchor;
 pub struct UsfScalePresentation {
     anchor: UsfPosition,
     scale: SpatialScale,
+}
+
+/// Persistent scenery authored in one scale-local chart.
+///
+/// Unlike adjacent-scale transition representations, scenery may remain visible
+/// across arbitrarily distant observer scales. `absolute` is representation
+/// metadata in `scale`-native units, not semantic world identity.
+///
+/// Rendering preserves direction and angular size while monotonically
+/// compressing extreme radial distance into a bounded render shell. This is the
+/// core illusion that lets local terrain, planets, stars and galaxies coexist in
+/// one ordinary floating-point render scene.
+#[derive(Component, Debug, Clone, Copy)]
+pub struct UsfSceneryPresentation {
+    absolute: DVec3,
+    scale: SpatialScale,
+    render_shell_radius: f64,
+}
+
+impl UsfSceneryPresentation {
+    pub const DEFAULT_RENDER_SHELL_RADIUS: f64 = 750.0;
+
+    pub const fn new(absolute: DVec3, scale: SpatialScale) -> Self {
+        Self {
+            absolute,
+            scale,
+            render_shell_radius: Self::DEFAULT_RENDER_SHELL_RADIUS,
+        }
+    }
+
+    pub const fn absolute(self) -> DVec3 {
+        self.absolute
+    }
+
+    pub const fn scale(self) -> SpatialScale {
+        self.scale
+    }
+
+    pub const fn render_shell_radius(self) -> f64 {
+        self.render_shell_radius
+    }
+
+    pub fn with_render_shell_radius(mut self, radius: f64) -> Self {
+        if radius.is_finite() && radius > 1.0 {
+            self.render_shell_radius = radius;
+        }
+        self
+    }
 }
 
 /// Presentation geometry whose parent already owns the correct runtime position.
@@ -231,7 +279,7 @@ mod systems;
 
 pub(super) use systems::{
     configure, project_local_scale_presentations, project_scale_presentations,
-    sync_view_anchor,
+    project_scenery_presentations, sync_view_anchor,
 };
 
 #[cfg(test)]
