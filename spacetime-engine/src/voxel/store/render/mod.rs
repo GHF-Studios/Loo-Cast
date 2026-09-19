@@ -12,25 +12,6 @@ impl VoxelMaterializationStore {
         None
     }
 
-    /// Re-enqueues every active surface after manifestation policy changes.
-    ///
-    /// This is intentionally O(active surfaces), but only runs when runtime
-    /// configuration changes grouping topology. Steady state stays change-driven.
-    pub(crate) fn mark_all_active_render_dirty(&mut self) {
-        let entries = &self.entries;
-        let dirty_render = &mut self.dirty_render;
-        let dirty_render_set = &mut self.dirty_render_set;
-
-        for (&address, entry) in entries {
-            if entry.active
-                && entry.surface.is_some()
-                && dirty_render_set.insert(address)
-            {
-                dirty_render.push_back(address);
-            }
-        }
-    }
-
     pub(crate) fn active_surface(
         &self,
         address: VoxelMaterializationChunkAddress,

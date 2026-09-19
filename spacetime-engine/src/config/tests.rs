@@ -11,25 +11,26 @@ fn partial_ron_inherits_structured_defaults() {
         r#"(
             voxel: (
                 manifestation: (
-                    grouping: (
-                        base_chunks_per_axis: 20,
-                    ),
+                    rebuild_budget_per_frame: 12,
                 ),
             ),
         )"#,
     )
     .unwrap();
 
-    assert_eq!(config.voxel.manifestation.grouping.base_chunks_per_axis, 20);
-    assert_eq!(config.voxel.manifestation.rebuild_budget_per_frame, 8);
+    assert_eq!(config.voxel.manifestation.rebuild_budget_per_frame, 12);
+    assert_eq!(
+        config.voxel.manifestation.physics_interaction_radius_native,
+        32.0
+    );
     assert_eq!(config.voxel.streaming.default_load_budget_per_frame, 24);
     config.validate().unwrap();
 }
 
 #[test]
-fn invalid_alignment_is_rejected() {
+fn invalid_manifestation_budget_is_rejected() {
     let mut config = EngineConfig::default();
-    config.voxel.manifestation.grouping.base_chunks_per_axis = 3;
+    config.voxel.manifestation.rebuild_budget_per_frame = 0;
     assert!(config.validate().is_err());
 }
 
@@ -37,8 +38,8 @@ fn invalid_alignment_is_rejected() {
 fn runtime_overrides_are_highest_priority() {
     let mut config = EngineConfig::default();
     let mut overrides = EngineConfigOverrides::default();
-    overrides.voxel.manifestation.grouping.base_chunks_per_axis = Some(20);
+    overrides.voxel.manifestation.rebuild_budget_per_frame = Some(13);
 
     config.apply_overrides(&overrides);
-    assert_eq!(config.voxel.manifestation.grouping.base_chunks_per_axis, 20);
+    assert_eq!(config.voxel.manifestation.rebuild_budget_per_frame, 13);
 }

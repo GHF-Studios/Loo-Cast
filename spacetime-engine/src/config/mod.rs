@@ -11,9 +11,8 @@ mod voxel;
 pub use model::{EngineConfig, EngineConfigOverrides};
 pub use source::EngineConfigPlugin;
 pub use voxel::{
-    VoxelConfig, VoxelConfigOverrides, VoxelGroupingStrategy, VoxelManifestationConfig,
-    VoxelManifestationConfigOverrides, VoxelManifestationGroupingConfig,
-    VoxelManifestationGroupingConfigOverrides, VoxelStreamingConfig, VoxelStreamingConfigOverrides,
+    VoxelConfig, VoxelConfigOverrides, VoxelManifestationConfig,
+    VoxelManifestationConfigOverrides, VoxelStreamingConfig, VoxelStreamingConfigOverrides,
 };
 
 #[cfg(test)]

@@ -8,10 +8,6 @@
             max_chunks_per_generation_task: 4,
         ),
         manifestation: (
-            grouping: (
-                strategy: AlignedRegions,
-                base_chunks_per_axis: 1,
-            ),
             rebuild_budget_per_frame: 8,
             physics_interaction_radius_native: 32.0,
         ),

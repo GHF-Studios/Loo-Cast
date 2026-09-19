@@ -55,7 +55,7 @@ enum VoxelPostUpdateSet {
 
 impl Plugin for VoxelPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<manifestation::VoxelRenderAggregateRegistry>()
+        app.init_resource::<manifestation::VoxelManifestationRegistry>()
             .configure_sets(
                 Update,
                 (
@@ -109,11 +109,7 @@ impl Plugin for VoxelPlugin {
             )
             .add_systems(
                 PostUpdate,
-                (
-                    manifestation::sync_manifestation_grouping_policy,
-                    manifestation::sync_manifestation_membership,
-                )
-                    .chain()
+                manifestation::sync_manifestation_membership
                     .in_set(VoxelPostUpdateSet::Membership),
             )
             .add_systems(
@@ -132,7 +128,6 @@ impl Plugin for VoxelPlugin {
 }
 
 /// Creates an empty mesh asset suitable for a [`VoxelChunk`] render entity.
-/// The voxel plugin will populate it during `PostUpdate`.
 pub fn empty_voxel_mesh() -> Mesh {
     mesh::empty_mesh()
 }

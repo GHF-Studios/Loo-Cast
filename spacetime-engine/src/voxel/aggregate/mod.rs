@@ -1,9 +1,8 @@
-//! Decimal processing scopes over canonical voxel materialization addresses.
+//! Decimal processing scopes for voxel generation batching.
 //!
-//! These scopes are deliberately representation-local. They group already
-//! requested `10³` base materializations into useful work/cache neighborhoods;
-//! they do not create another semantic chunk hierarchy and do not imply that the
-//! whole scope is allocated.
+//! These scopes group independently addressable 10-cubed materialization chunks
+//! only for background generation work scheduling. Runtime render and collision
+//! manifestations are deliberately one-to-one with materialization chunks.
 
 use bevy::prelude::IVec3;
 
@@ -11,22 +10,13 @@ use crate::spatial::UsfPositionError;
 
 use super::{MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationChunkAddress, VoxelWorld};
 
-/// Decimal edge length for one materialization processing scope.
-///
-/// The stored value is a count of `10³` base chunks per axis. Consequently `10`
-/// means a `100³` native-unit scope and `100` means a `1000³` scope.
+/// Decimal edge length for one generation processing scope.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct VoxelMaterializationAggregateExtent {
     base_chunks_per_axis: i32,
 }
 
 impl VoxelMaterializationAggregateExtent {
-    /// Constructs an aligned processing extent from runtime policy.
-    ///
-    /// The current canonical phase calculation uses the 100 base atoms contained
-    /// in one 1000-native-unit USF digit. Config validation therefore restricts
-    /// this policy to positive divisors of 100 until arbitrary region alignment
-    /// becomes first-class.
     pub(crate) fn from_base_chunks_per_axis(base_chunks_per_axis: i32) -> Option<Self> {
         let chunks_per_usf_digit = 1000 / MATERIALIZATION_CHUNK_SIZE as i32;
         (base_chunks_per_axis > 0
@@ -46,10 +36,8 @@ impl VoxelMaterializationAggregateExtent {
     }
 }
 
-/// One aligned aggregate processing scope over canonical base materializations.
-///
-/// The origin is still an ordinary base-chunk address. No registry entry or
-/// dense allocation is created merely because this value exists.
+/// One aligned generation-processing scope over canonical materialization
+/// addresses.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct VoxelMaterializationAggregateScope {
     origin: VoxelMaterializationChunkAddress,
@@ -57,9 +45,6 @@ pub(crate) struct VoxelMaterializationAggregateScope {
 }
 
 impl VoxelMaterializationAggregateScope {
-    /// Finds the decimal aggregate containing `address`, aligned to this voxel
-    /// world's materialization grid rather than to a universe-wide integer
-    /// lattice.
     pub(crate) fn containing(
         world: &VoxelWorld,
         address: VoxelMaterializationChunkAddress,
@@ -99,11 +84,6 @@ impl VoxelMaterializationAggregateScope {
 }
 
 fn phase_chunks(delta_native: f32, chunk_size: f32) -> i32 {
-    // Every canonical base address is separated from its VoxelWorld origin by
-    // whole base chunks. Normalization may move multiples of 1000 native units
-    // into USF digits, but all supported aggregate extents divide 1000 exactly;
-    // therefore the bounded leaf-offset difference contains all alignment phase
-    // information needed here.
     let chunks = delta_native / chunk_size;
     debug_assert!((chunks - chunks.round()).abs() < 0.001);
     chunks.round() as i32
@@ -126,7 +106,7 @@ mod tests {
     }
 
     #[test]
-    fn runtime_group_extent_accepts_current_alignment_period_divisors() {
+    fn generation_extent_accepts_current_alignment_period_divisors() {
         assert_eq!(
             VoxelMaterializationAggregateExtent::from_base_chunks_per_axis(20)
                 .unwrap()
@@ -138,7 +118,7 @@ mod tests {
     }
 
     #[test]
-    fn decimal_aggregate_alignment_is_relative_to_the_voxel_world_grid() {
+    fn generation_scope_alignment_is_relative_to_the_voxel_world_grid() {
         let origin = UsfPosition::from_scale0_local(Vec3::new(499.25, -123.5, 17.75)).unwrap();
         let world = VoxelWorld::new_at(VoxelBase::Empty, origin);
         let address = world
@@ -151,12 +131,6 @@ mod tests {
             extent(10),
         )
         .unwrap();
-        let thousand = VoxelMaterializationAggregateScope::containing(
-            &world,
-            address,
-            extent(100),
-        )
-        .unwrap();
 
         assert_eq!(
             hundred.origin,
@@ -164,63 +138,6 @@ mod tests {
                 .chunk_address(VoxelChunkCoord::new(IVec3::new(130, -210, 90)))
                 .unwrap()
         );
-        assert_eq!(
-            thousand.origin,
-            world
-                .chunk_address(VoxelChunkCoord::new(IVec3::new(100, -300, 0)))
-                .unwrap()
-        );
-    }
-
-    #[test]
-    fn forty_native_render_scope_preserves_phase_across_usf_digits() {
-        let world = VoxelWorld::new(VoxelBase::Empty);
-        let address = world
-            .chunk_address(VoxelChunkCoord::new(IVec3::new(137, -204, 99)))
-            .unwrap();
-        let scope = VoxelMaterializationAggregateScope::containing(
-            &world,
-            address,
-            extent(4),
-        )
-        .unwrap();
-
-        assert_eq!(
-            scope.origin,
-            world
-                .chunk_address(VoxelChunkCoord::new(IVec3::new(136, -204, 96)))
-                .unwrap()
-        );
-        assert_eq!(scope.extent().native_units_per_axis(), 40);
-    }
-
-    #[test]
-    fn hundred_scopes_compose_inside_thousand_scopes() {
-        let world = VoxelWorld::new(VoxelBase::Empty);
-        let address = world
-            .chunk_address(VoxelChunkCoord::new(IVec3::new(-137, 204, 99)))
-            .unwrap();
-        let hundred = VoxelMaterializationAggregateScope::containing(
-            &world,
-            address,
-            extent(10),
-        )
-        .unwrap();
-        let thousand = VoxelMaterializationAggregateScope::containing(
-            &world,
-            address,
-            extent(100),
-        )
-        .unwrap();
-        let hundred_parent = VoxelMaterializationAggregateScope::containing(
-            &world,
-            hundred.origin,
-            extent(100),
-        )
-        .unwrap();
-
-        assert_eq!(hundred_parent, thousand);
         assert_eq!(hundred.extent().native_units_per_axis(), 100);
-        assert_eq!(thousand.extent().native_units_per_axis(), 1000);
     }
 }

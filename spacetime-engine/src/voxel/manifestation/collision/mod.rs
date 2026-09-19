@@ -1,6 +1,4 @@
-//! Collision manifestation residency and collider construction.
-
-use std::collections::HashMap;
+//! Collision residency and collider construction for one-to-one voxel manifestations.
 
 use avian3d::prelude::{Collider, CollisionMargin, RigidBody};
 use bevy::prelude::*;
@@ -10,47 +8,39 @@ use crate::{
     spatial::{UsfScaleLayer, UsfViewFrame},
 };
 
-use super::{VoxelRenderAggregate, VoxelRenderAggregateRegistry};
+use super::{VoxelManifestation, VoxelManifestationRegistry};
 use super::super::{
-    MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationChunkAddress, VoxelWorld,
-    aggregate::VoxelMaterializationAggregateScope,
-    physics,
+    MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationChunkAddress, VoxelWorld, physics,
 };
 
-/// Keeps collision manifestations resident only around the active interaction
-/// region.
-///
-/// This stage is deliberately separate from mesh rebuilds. An unchanged visual
-/// manifestation can gain or lose its Avian collider without rebuilding its
-/// render mesh.
 pub(crate) fn sync_manifestation_collision_residency(
     config: Res<EngineConfig>,
     mut commands: Commands,
     view: Res<UsfViewFrame>,
     worlds: Query<(&VoxelWorld, &UsfScaleLayer)>,
-    aggregate_roots: Query<Option<&Collider>, With<VoxelRenderAggregate>>,
-    registry: Res<VoxelRenderAggregateRegistry>,
+    manifestation_roots: Query<Option<&Collider>, With<VoxelManifestation>>,
+    registry: Res<VoxelManifestationRegistry>,
 ) {
     if !config.is_changed() && !view.is_changed() && !registry.is_changed() {
         return;
     }
 
-    for (&key, &entity) in &registry.aggregate_entities {
-        let Some(members) = registry.groups.get(&key) else {
+    for (&key, &entity) in &registry.entities {
+        let Some(&expected_revision) = registry.revisions.get(&key) else {
             continue;
         };
         let Ok((world, layer)) = worlds.get(key.world) else {
             continue;
         };
 
-        let wants_collider = aggregate_collider_proximity_squared(
+        let wants_collider = manifestation_collider_proximity_squared(
             &view,
-            key.scope,
+            key.address,
             layer,
             config.voxel.manifestation.physics_interaction_radius_native,
         )
         .is_some();
-        let has_collider = aggregate_roots
+        let has_collider = manifestation_roots
             .get(entity)
             .ok()
             .flatten()
@@ -58,7 +48,8 @@ pub(crate) fn sync_manifestation_collision_residency(
 
         match (wants_collider, has_collider) {
             (true, false) => {
-                let collider = build_aggregate_collider(key.scope, members, world);
+                let collider =
+                    build_manifestation_collider(key.address, expected_revision, world);
                 publish_collider_manifestation(&mut commands, entity, true, collider);
             }
             (false, true) => {
@@ -95,9 +86,9 @@ pub(super) fn publish_collider_manifestation(
     }
 }
 
-pub(crate) fn aggregate_collider_proximity_squared(
+pub(crate) fn manifestation_collider_proximity_squared(
     view: &UsfViewFrame,
-    scope: VoxelMaterializationAggregateScope,
+    address: VoxelMaterializationChunkAddress,
     layer: &UsfScaleLayer,
     interaction_radius_native: f32,
 ) -> Option<f32> {
@@ -105,9 +96,8 @@ pub(crate) fn aggregate_collider_proximity_squared(
         return None;
     }
 
-    let extent = scope.extent().native_units_per_axis() as f32;
-    let minimum = scope
-        .origin()
+    let extent = MATERIALIZATION_CHUNK_SIZE as f32;
+    let minimum = address
         .origin()
         .relative_native_bounded(view.anchor(), interaction_radius_native + extent * 2.0)
         .ok()?;
@@ -122,43 +112,24 @@ pub(crate) fn aggregate_collider_proximity_squared(
         .then_some(distance_squared)
 }
 
-fn build_aggregate_collider(
-    scope: VoxelMaterializationAggregateScope,
-    members: &HashMap<VoxelMaterializationChunkAddress, u64>,
+fn build_manifestation_collider(
+    address: VoxelMaterializationChunkAddress,
+    expected_revision: u64,
     world: &VoxelWorld,
 ) -> Option<Collider> {
-    let mut vertices = Vec::<Vec3>::new();
-    let mut triangles = Vec::<[u32; 3]>::new();
-    let bound =
-        scope.extent().native_units_per_axis() as f32 + MATERIALIZATION_CHUNK_SIZE as f32 * 2.0;
-
-    for (&address, &expected_revision) in members {
-        let cache = world.materializations().surface(address)?;
-        if cache.revision != expected_revision {
-            return None;
-        }
-
-        let offset = address
-            .origin()
-            .relative_native_bounded(scope.origin().origin(), bound)
-            .ok()?;
-        let vertex_base = u32::try_from(vertices.len()).ok()?;
-        vertices.extend(
-            cache
-                .surface
-                .positions
-                .iter()
-                .map(|position| Vec3::from_array(*position) + offset),
-        );
-
-        for triangle in physics::owned_triangles(&cache.surface) {
-            triangles.push([
-                vertex_base.checked_add(triangle[0])?,
-                vertex_base.checked_add(triangle[1])?,
-                vertex_base.checked_add(triangle[2])?,
-            ]);
-        }
+    let cache = world.materializations().surface(address)?;
+    if cache.revision != expected_revision {
+        return None;
     }
 
-    physics::build_trimesh_collider(vertices, triangles, "voxel aggregate")
+    let vertices = cache
+        .surface
+        .positions
+        .iter()
+        .copied()
+        .map(Vec3::from_array)
+        .collect();
+    let triangles = physics::owned_triangles(&cache.surface);
+
+    physics::build_trimesh_collider(vertices, triangles, "voxel manifestation")
 }

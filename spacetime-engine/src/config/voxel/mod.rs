@@ -6,12 +6,9 @@ mod manifestation;
 mod overrides;
 mod streaming;
 
-pub use manifestation::{
-    VoxelGroupingStrategy, VoxelManifestationConfig, VoxelManifestationGroupingConfig,
-};
+pub use manifestation::VoxelManifestationConfig;
 pub use overrides::{
-    VoxelConfigOverrides, VoxelManifestationConfigOverrides,
-    VoxelManifestationGroupingConfigOverrides, VoxelStreamingConfigOverrides,
+    VoxelConfigOverrides, VoxelManifestationConfigOverrides, VoxelStreamingConfigOverrides,
 };
 pub use streaming::VoxelStreamingConfig;
 
@@ -59,7 +56,7 @@ fn validate_aligned_group_edge(value: i32, field: &str) -> Result<(), String> {
         || MATERIALIZATION_ATOMS_PER_USF_DIGIT % value != 0
     {
         return Err(format!(
-            "{field} must be one of the positive divisors of 100 \
+            "{field} must be one of the positive divisors of 100 \\
              (for example 1, 2, 4, 5, 10, 20, 25, 50, 100); got {value}"
         ));
     }
