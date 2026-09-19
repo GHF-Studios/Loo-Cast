@@ -15,8 +15,10 @@ mod model;
 mod stance;
 
 pub use camera::{CameraMode, PlayerCamera, ThirdPersonCamera};
-pub use components::{Player, PlayerAim, PlayerController, PlayerDead, PlayerNoclip, PlayerStance};
-use components::PlayerScaleNavigationNoclip;
+pub use components::{
+    Player, PlayerAim, PlayerController, PlayerDead, PlayerNoclip, PlayerScaleNavigation,
+    PlayerStance,
+};
 
 use avian3d::prelude::{
     ActiveCollisionHooks, CollisionLayers, CustomPositionIntegration, CustomVelocityIntegration,
@@ -37,7 +39,8 @@ use crate::{
     portal::{MAIN_PORTAL_LAYER, PortalSplitTraveler, PortalTraveler, PortalView},
     physics::{
         character::{
-            CharacterDimensions, CharacterGroundState, CharacterMotor, CharacterMovementInput,
+            CharacterControlFrame, CharacterDimensions, CharacterGroundState,
+            CharacterLocomotionFrame, CharacterMotor, CharacterMovementInput,
         },
         topology::{KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeer},
     },
@@ -78,6 +81,7 @@ impl Plugin for PlayerPlugin {
             .register_type::<PlayerAim>()
             .register_type::<PlayerStance>()
             .register_type::<PlayerNoclip>()
+            .register_type::<PlayerScaleNavigation>()
             .register_type::<PlayerCamera>()
             .register_type::<ThirdPersonCamera>()
             .register_type::<CameraMode>()
@@ -94,6 +98,7 @@ impl Plugin for PlayerPlugin {
                     stance::update_stance,
                     controls::movement,
                     controls::noclip_movement,
+                    controls::scale_navigation_movement,
                 )
                     .chain()
                     .in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
@@ -107,6 +112,7 @@ impl Plugin for PlayerPlugin {
                 (
                     controls::toggle_spatial_demand,
                     controls::zoom_spatial_view,
+                    controls::adjust_scale_navigation_speed,
                     camera::toggle_camera_mode,
                     camera::zoom_third_person,
                 )

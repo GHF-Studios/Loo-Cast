@@ -20,6 +20,8 @@ pub enum InputFocusSet {
 pub struct InputFocus {
     pointer_claims: HashSet<InputFocusOwner>,
     gameplay_claims: HashSet<InputFocusOwner>,
+    /// Monotonic return-to-gameplay intent observed by concrete input adapters.
+    gameplay_resume_epoch: u64,
 }
 
 impl InputFocus {
@@ -43,6 +45,15 @@ impl InputFocus {
     pub fn gameplay_claimed(&self) -> bool {
         !self.gameplay_claims.is_empty()
     }
+
+    pub fn request_gameplay_resume(&mut self) {
+        self.gameplay_resume_epoch = self.gameplay_resume_epoch.wrapping_add(1);
+    }
+
+    pub fn gameplay_resume_epoch(&self) -> u64 {
+        self.gameplay_resume_epoch
+    }
+
 }
 
 fn set_claim(claims: &mut HashSet<InputFocusOwner>, owner: InputFocusOwner, claimed: bool) {

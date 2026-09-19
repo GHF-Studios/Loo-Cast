@@ -12,7 +12,7 @@ pub(in crate::game::player) fn toggle_noclip(
             Entity,
             Option<&PlayerDead>,
             &mut PlayerNoclip,
-            Option<&PlayerScaleNavigationNoclip>,
+            Option<&PlayerScaleNavigation>,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
             &mut LinearVelocity,
@@ -24,9 +24,9 @@ pub(in crate::game::player) fn toggle_noclip(
         return;
     }
 
-    let (entity, dead, mut noclip, scale_forced, mut input, mut ground, mut velocity) =
+    let (entity, dead, mut noclip, scale_navigation, mut input, mut ground, mut velocity) =
         player.into_inner();
-    if dead.is_some() || scale_forced.is_some() {
+    if dead.is_some() || scale_navigation.is_some() {
         return;
     }
 
@@ -57,39 +57,41 @@ pub(in crate::game::player) fn toggle_spatial_demand(
     player.toggle();
 }
 
-/// Enforces the validity domain of the metre-authored character motor.
+/// Selects the player locomotion model valid for the active USF scale.
 ///
-/// Above Scale +4 the local character controller is not a meaningful physical
-/// model, so the player enters scale-navigation noclip. The marker records
-/// whether noclip was forced here or was already a user choice.
+/// Character physics and developer noclip are local-scale mechanics. Coarser
+/// interaction charts use [`PlayerScaleNavigation`] without overloading noclip
+/// state or making the character motor own view/control state.
 pub(in crate::game::player) fn sync_scale_navigation_mode(
     mut commands: Commands,
     active: Res<UsfActiveScaleLayer>,
     player: Single<
         (
             Entity,
-            &mut PlayerNoclip,
-            Option<&PlayerScaleNavigationNoclip>,
+            &PlayerNoclip,
+            Option<&PlayerScaleNavigation>,
         ),
         With<Player>,
     >,
 ) {
-    let (entity, mut noclip, scale_forced) = player.into_inner();
+    let (entity, noclip, scale_navigation) = player.into_inner();
     let outside_character_domain = active.scale().exponent() > 4;
 
     if outside_character_domain {
-        if !noclip.active {
-            noclip.active = true;
-            commands
-                .entity(entity)
-                .insert(PlayerScaleNavigationNoclip);
+        if scale_navigation.is_none() {
+            commands.entity(entity).insert(PlayerScaleNavigation::default());
         }
         commands.entity(entity).remove::<CharacterMotor>();
-    } else if scale_forced.is_some() {
-        noclip.active = false;
-        commands
-            .entity(entity)
-            .remove::<PlayerScaleNavigationNoclip>()
-            .insert(CharacterMotor);
+        return;
+    }
+
+    if scale_navigation.is_some() {
+        commands.entity(entity).remove::<PlayerScaleNavigation>();
+    }
+
+    if noclip.active {
+        commands.entity(entity).remove::<CharacterMotor>();
+    } else {
+        commands.entity(entity).insert(CharacterMotor);
     }
 }

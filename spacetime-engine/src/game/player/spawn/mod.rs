@@ -54,8 +54,12 @@ pub(super) fn spawn_player(
             ),
             (
                 PlayerStance::default(),
-                PlayerNoclip { active: true },
-                PlayerScaleNavigationNoclip,
+                PlayerNoclip::default(),
+                PlayerScaleNavigation::default(),
+                // View/control state belongs to the player. CharacterMotor may
+                // consume these frames, but does not own their lifecycle.
+                CharacterControlFrame::default(),
+                CharacterLocomotionFrame::default(),
                 CharacterDimensions::standing_collider(),
                 SpatialSplitBox::from_size(Vec3::new(
                     CharacterDimensions::HULL_WIDTH,

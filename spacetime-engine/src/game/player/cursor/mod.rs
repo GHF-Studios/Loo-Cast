@@ -21,6 +21,7 @@ pub struct CursorCapture {
     just_captured: bool,
     blocked: bool,
     just_unblocked: bool,
+    observed_gameplay_resume_epoch: u64,
 }
 
 impl Default for CursorCapture {
@@ -31,6 +32,7 @@ impl Default for CursorCapture {
             just_captured: false,
             blocked: false,
             just_unblocked: false,
+            observed_gameplay_resume_epoch: 0,
         }
     }
 }
@@ -68,6 +70,12 @@ impl CursorCapture {
 }
 
 pub fn apply_input_focus(focus: Res<InputFocus>, mut capture: ResMut<CursorCapture>) {
+    let resume_epoch = focus.gameplay_resume_epoch();
+    if capture.observed_gameplay_resume_epoch != resume_epoch {
+        capture.observed_gameplay_resume_epoch = resume_epoch;
+        capture.request();
+    }
+
     capture.set_blocked(focus.pointer_claimed() || focus.gameplay_claimed());
 }
 

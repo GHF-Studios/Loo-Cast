@@ -362,13 +362,21 @@ fn dispatch_console_commands(world: &mut World) {
         match (command.handler)(world, &invocation) {
             ConsoleCommandResult::Silent => {}
             ConsoleCommandResult::Success { lines, focus } => {
-                let mut console = world.resource_mut::<DeveloperConsole>();
-                for line in lines {
-                    console.push(ConsoleLineKind::Info, line);
+                {
+                    let mut console = world.resource_mut::<DeveloperConsole>();
+                    for line in lines {
+                        console.push(ConsoleLineKind::Info, line);
+                    }
+                    if focus == ConsoleFocusDisposition::ReturnToGameplay {
+                        console.open = false;
+                        console.history_cursor = None;
+                    }
                 }
+
                 if focus == ConsoleFocusDisposition::ReturnToGameplay {
-                    console.open = false;
-                    console.history_cursor = None;
+                    let mut input_focus = world.resource_mut::<InputFocus>();
+                    input_focus.set_modal_claim(CONSOLE_FOCUS_OWNER, false);
+                    input_focus.request_gameplay_resume();
                 }
             }
             ConsoleCommandResult::Error(error) => {

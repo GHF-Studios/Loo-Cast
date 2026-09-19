@@ -277,7 +277,7 @@ fn teleport_command(
         }
     }
 
-    ConsoleCommandResult::success(format!(
+    ConsoleCommandResult::success_and_return_to_gameplay(format!(
         "spatial transition requested: {label} @ S{scale} ({:.3}, {:.3}, {:.3}), view {view_exponent:+.1}",
         arrival.x, arrival.y, arrival.z,
     ))
@@ -300,8 +300,8 @@ fn reconcile_player_spatial_transition(
             &UsfManifestationOf,
             &mut PortalTraveler,
             &mut PortalSplitTraveler,
-            &mut CharacterMovementInput,
-            &mut CharacterGroundState,
+            Option<&mut CharacterMovementInput>,
+            Option<&mut CharacterGroundState>,
         ),
         With<Player>,
     >,
@@ -312,8 +312,8 @@ fn reconcile_player_spatial_transition(
             manifestation,
             mut traveler,
             mut split,
-            mut input,
-            mut ground,
+            input,
+            ground,
         ) in &mut players
         {
             if manifestation.0 != transition.subject {
@@ -322,9 +322,14 @@ fn reconcile_player_spatial_transition(
 
             traveler.reset_spatial_transition(transform.translation);
             split.reset_spatial_transition(*transform);
-            input.clear();
-            ground.grounded = false;
-            ground.ground_entity = None;
+
+            if let Some(mut input) = input {
+                input.clear();
+            }
+            if let Some(mut ground) = ground {
+                ground.grounded = false;
+                ground.ground_entity = None;
+            }
         }
     }
 }
