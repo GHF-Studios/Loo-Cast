@@ -15,12 +15,24 @@ use crate::spatial::{
 const PRESENTATION_RELATIVE_BOUND: f32 = 1_000_000.0;
 const CONTRIBUTION_EPSILON: f32 = 0.001;
 
-/// Marks the runtime transform used as the primary observer/view anchor.
+/// Marks the runtime transform whose universe position is the semantic origin
+/// of the current primary view.
 ///
-/// This is deliberately a view concern rather than player ownership. Editors,
-/// portal views and other observers can later provide independent view frames.
+/// This is normally the locally controlled spatial anchor. It answers
+/// "where in the universe are we observing from?" and deliberately does NOT
+/// move just because a presentation camera uses a third-person boom.
 #[derive(Component, Debug, Default)]
 pub struct UsfViewAnchor;
+
+/// Marks the render-space transform around which the current primary USF
+/// presentation is drawn.
+///
+/// Keeping this separate from [`UsfViewAnchor`] prevents camera-rig offsets from
+/// becoming fake semantic motion. The current projection pipeline supports one
+/// such primary render anchor; simultaneous independent views will need separate
+/// presentation realizations/render layers.
+#[derive(Component, Debug, Default)]
+pub struct UsfViewRenderAnchor;
 
 /// One disposable visual representation authored in units native to `scale`.
 ///
@@ -123,8 +135,12 @@ impl UsfScalePresentation {
 /// `scale + 1`. The observer's canonical identity never changes when zooming.
 #[derive(Resource, Debug, Clone)]
 pub struct UsfViewFrame {
+    /// Canonical universe position of the semantic observer anchor.
     anchor: UsfPosition,
+    /// Runtime-chart position of that same semantic observer anchor.
     runtime_anchor: Vec3,
+    /// Render-space position of the active primary camera.
+    render_anchor: Vec3,
     scale: SpatialScale,
     zoom: f32,
 }
@@ -151,6 +167,7 @@ impl Default for UsfViewFrame {
         Self {
             anchor: UsfPosition::zero(SpatialScale::MAX),
             runtime_anchor: Vec3::ZERO,
+            render_anchor: Vec3::ZERO,
             scale: SpatialScale::MAX,
             zoom: 0.0,
         }
@@ -162,8 +179,14 @@ impl UsfViewFrame {
         &self.anchor
     }
 
+    /// Runtime-chart position of the semantic observer anchor.
     pub const fn runtime_anchor(&self) -> Vec3 {
         self.runtime_anchor
+    }
+
+    /// Render-space position of the active primary camera.
+    pub const fn render_anchor(&self) -> Vec3 {
+        self.render_anchor
     }
 
     pub const fn scale(&self) -> SpatialScale {

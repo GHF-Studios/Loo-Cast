@@ -34,7 +34,7 @@ pub use transition::{
 };
 pub use view::{
     UsfDistanceMeshLod, UsfLocalScalePresentation, UsfScalePresentation,
-    UsfSceneryPresentation, UsfViewAnchor, UsfViewFrame,
+    UsfSceneryPresentation, UsfViewAnchor, UsfViewFrame, UsfViewRenderAnchor,
 };
 
 use avian3d::prelude::Position;

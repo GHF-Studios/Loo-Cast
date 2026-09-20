@@ -10,24 +10,46 @@ pub(in crate::spatial) fn configure(app: &mut App) {
 /// deriving its semantic position through the current local physical frame.
 pub(in crate::spatial) fn sync_view_anchor(
     frame: Res<UsfSpatialFrame>,
-    anchors: Query<&Transform, With<UsfViewAnchor>>,
+    semantic_anchors: Query<&Transform, With<UsfViewAnchor>>,
+    render_anchors: Query<&Transform, With<UsfViewRenderAnchor>>,
     mut view: ResMut<UsfViewFrame>,
 ) {
-    let Some(anchor) = anchors.iter().next() else {
+    let mut semantic_anchors = semantic_anchors.iter();
+    let Some(semantic_anchor) = semantic_anchors.next() else {
         return;
     };
+    if semantic_anchors.next().is_some() {
+        error!("primary USF view has multiple semantic anchors");
+        return;
+    }
 
-    let Ok(canonical) = frame.origin().translated_native(anchor.translation) else {
+    let mut render_anchors = render_anchors.iter();
+    let Some(render_anchor) = render_anchors.next() else {
+        return;
+    };
+    if render_anchors.next().is_some() {
+        error!("primary USF view has multiple render anchors");
+        return;
+    }
+
+    let Ok(canonical) = frame
+        .origin()
+        .translated_native(semantic_anchor.translation)
+    else {
         error!(
-            local_anchor = ?anchor.translation,
-            "USF view anchor could not project into canonical space"
+            local_anchor = ?semantic_anchor.translation,
+            "USF semantic view anchor could not project into canonical space"
         );
         return;
     };
 
-    if view.anchor != canonical || view.runtime_anchor != anchor.translation {
+    if view.anchor != canonical
+        || view.runtime_anchor != semantic_anchor.translation
+        || view.render_anchor != render_anchor.translation
+    {
         view.anchor = canonical;
-        view.runtime_anchor = anchor.translation;
+        view.runtime_anchor = semantic_anchor.translation;
+        view.render_anchor = render_anchor.translation;
     }
 }
 
@@ -135,7 +157,7 @@ pub(in crate::spatial) fn project_scenery_presentations(
             continue;
         }
 
-        transform.translation = view.runtime_anchor() + projected;
+        transform.translation = view.render_anchor() + projected;
         transform.scale = Vec3::splat(projected_scale);
         *visibility = Visibility::Inherited;
     }
@@ -172,7 +194,7 @@ pub(in crate::spatial) fn project_scale_presentations(
         };
 
         let factor = view.projection_factor(presentation.scale());
-        let desired_global = view.runtime_anchor() + relative * factor;
+        let desired_global = view.render_anchor() + relative * factor;
 
         let desired_translation = if let Some(parent) = parent {
             let Ok(parent_transform) = parents.get(parent.0) else {

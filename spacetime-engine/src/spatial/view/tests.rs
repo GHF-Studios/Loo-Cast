@@ -20,3 +20,14 @@ fn crossing_an_integer_zoom_boundary_normalizes_to_the_next_scale() {
     assert_eq!(view.scale(), SpatialScale::new(1).unwrap());
     assert_eq!(view.zoom(), 0.0);
 }
+
+
+#[test]
+fn semantic_and_render_anchors_are_independent() {
+    let mut view = UsfViewFrame::default();
+    view.runtime_anchor = Vec3::new(1.0, 2.0, 3.0);
+    view.render_anchor = Vec3::new(10.0, 20.0, 30.0);
+
+    assert_eq!(view.runtime_anchor(), Vec3::new(1.0, 2.0, 3.0));
+    assert_eq!(view.render_anchor(), Vec3::new(10.0, 20.0, 30.0));
+}
