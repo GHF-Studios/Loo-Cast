@@ -9,7 +9,6 @@ use super::*;
 
 const THROTTLE_RATE_PER_SECOND: f32 = 0.45;
 const SPEED_RESPONSE: f64 = 1.4;
-const VIEW_SCALE_RESPONSE: f32 = 1.6;
 
 // Temporary global pacing knob while we tune the qualitative Cruise model.
 // Keep all environment-relative speed relationships intact, but make the
@@ -40,10 +39,10 @@ const FALLBACK_DEFAULT_NATIVE_PER_SECOND: f64 = 0.25;
 const FALLBACK_MIN_MAX_SPEED_SCALE0: f64 = 30_000.0;
 const FALLBACK_MIN_DEFAULT_SPEED_SCALE0: f64 = 10_000.0;
 
-// Canonical speed may lead the continuous view scale, but only by this many
-// decades. This prevents Cruise crossing enormous distances in a fine runtime
-// chart while presentation/interaction scale catches up.
-const VIEW_SPEED_HEADROOM_DECADES: f32 = 2.0;
+// Canonical speed may lead the *actual runtime chart* by only this many
+// decades. This guards numeric/runtime displacement without coupling movement
+// speed to presentation zoom or forcing a chart transition.
+const CHART_SPEED_HEADROOM_DECADES: i32 = 2;
 
 #[derive(Debug, Clone, Copy)]
 struct CruiseSpeedEnvelope {
@@ -72,7 +71,6 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
     presentation: Res<PrimaryViewPresentation>,
     frames: Res<UsfScaleLayerFrames>,
     influences: Query<(Entity, &UsfTravelInfluence)>,
-    mut view: ResMut<UsfViewFrame>,
     mut was_active: Local<bool>,
     player: Single<
         (
@@ -153,7 +151,7 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
 
     let requested_environmental =
         envelope.max_speed_scale0 * f64::from(cruise.throttle.powf(2.0));
-    let chart_safe_cap = chart_safe_speed_cap(view.continuous_exponent());
+    let chart_safe_cap = chart_safe_speed_cap(player_scale);
     let requested = requested_environmental.min(chart_safe_cap);
     cruise.speed_scale0 = smooth_log_value(cruise.speed_scale0, requested, dt, SPEED_RESPONSE);
 
@@ -167,12 +165,9 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
         velocity.0 = Vec3::ZERO;
     }
 
-    if cruise.speed_scale0 > 0.01 {
-        let target_exponent = cruise.speed_scale0.log10().clamp(0.0, 35.0) as f32;
-        let alpha = 1.0 - (-VIEW_SCALE_RESPONSE * dt).exp();
-        let current = view.continuous_exponent();
-        view.set_continuous_exponent(current + (target_exponent - current) * alpha);
-    }
+    // Deliberately do not mutate UsfViewFrame here. Travel speed and
+    // presentation/interaction scale are separate concerns. Automatic scale
+    // following can return later once chart transitions are independently solid.
 }
 
 fn cruise_speed_envelope(
@@ -317,8 +312,8 @@ fn throttle_for_speed(speed_scale0: f64, max_speed_scale0: f64) -> f32 {
     (speed_scale0 / max_speed_scale0).clamp(0.0, 1.0).sqrt() as f32
 }
 
-fn chart_safe_speed_cap(view_exponent: f32) -> f64 {
-    10.0_f64.powf(f64::from(view_exponent + VIEW_SPEED_HEADROOM_DECADES))
+fn chart_safe_speed_cap(scale: SpatialScale) -> f64 {
+    10.0_f64.powi(scale.exponent() as i32 + CHART_SPEED_HEADROOM_DECADES)
 }
 
 fn smooth_log_value(current: f64, target: f64, dt: f32, response: f64) -> f64 {

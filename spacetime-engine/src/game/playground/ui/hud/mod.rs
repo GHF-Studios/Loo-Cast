@@ -177,7 +177,7 @@ fn update_player_status(
             .map(|value| format!("{value:.2e}"))
             .unwrap_or_else(|| "--".to_string());
         text.0 = format!(
-            "HEALTH {health}\nCRUISE {:>3.0}%  {:.2e} S0/s\nDEF {:.2e}  CAP {:.2e}\nHARD {}  MED {}  NBR {:>2}  VIEW {:+.2}",
+            "HEALTH {health}\nCRUISE {:>3.0}%  {:.2e} S0/s\nDEF {:.2e}  CAP {:.2e}\nHARD {}  MED {}  NBR {:>2}\nLAYER S{}  VIEW {:+.2}",
             cruise.throttle * 100.0,
             cruise.speed_scale0,
             cruise.default_speed_scale0,
@@ -185,6 +185,7 @@ fn update_player_status(
             hard_clearance,
             medium_cap,
             neighborhood.len(),
+            layer.scale(),
             view.continuous_exponent(),
         );
     } else {

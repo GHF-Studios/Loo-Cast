@@ -7,7 +7,7 @@ pub mod topology;
 
 use std::time::Duration;
 
-use avian3d::prelude::PhysicsPlugins;
+use avian3d::prelude::{Gravity, PhysicsPlugins};
 use bevy::{prelude::*, time::Virtual};
 
 use character::CharacterMovementPlugin;
@@ -35,6 +35,9 @@ impl Plugin for SpacetimePhysicsPlugin {
                 PhysicsPlugins::default()
                     .with_collision_hooks::<topology::SpatialTopologyCollisionHooks>(),
             )
+            // Flat global gravity is intentionally disabled. Gravity eventually
+            // belongs to spatially varying USF fields/background metrics.
+            .insert_resource(Gravity::ZERO)
             .add_plugins(CharacterMovementPlugin)
             .add_systems(PreUpdate, chart::prepare_usf_physics_charts)
             .add_systems(PostUpdate, collision_topology::rebuild_clipped_colliders);

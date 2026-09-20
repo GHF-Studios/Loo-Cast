@@ -80,7 +80,9 @@ impl CharacterMovementConfig {
             friction: 8.0,
             stop_speed: 2.54,
             surface_friction: 1.0,
-            gravity: 20.32,
+            // Temporary: flat locomotion-down gravity is not a valid
+            // universe-scale model. Future gravity comes from USF spatial fields.
+            gravity: 0.0,
             jump_speed: 9.144,
             air_wish_speed_cap: Some(0.762),
             step_height: 0.4572,
