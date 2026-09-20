@@ -13,14 +13,15 @@ use bevy::{
 use crate::{
     physics::character::{
         CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame, CharacterMotor,
-        CharacterMovementInput,
+        CharacterMovementConfig, CharacterMovementInput,
     },
     spatial::{SpatialDemandSource, SpatialScale, UsfViewFrame},
+    view::PrimaryViewPresentation,
 };
 
 use super::{
     Player, PlayerAim, PlayerController, PlayerDead, PlayerNoclip, PlayerScaleNavigation,
-    PlayerStance, cursor::CursorCapture,
+    PlayerStance, PlayerTravelSpeed, cursor::CursorCapture,
 };
 
 pub(super) fn gameplay_suppressed(
@@ -37,7 +38,5 @@ mod movement;
 mod view;
 
 pub(super) use modes::{sync_locomotion_mode, toggle_noclip, toggle_spatial_demand};
-pub(super) use movement::{
-    adjust_scale_navigation_speed, movement, noclip_movement, scale_navigation_movement,
-};
+pub(super) use movement::{movement, noclip_movement, scale_navigation_movement};
 pub(super) use view::{look, zoom_spatial_view};

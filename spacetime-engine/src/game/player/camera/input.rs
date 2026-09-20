@@ -22,10 +22,12 @@ pub(in crate::game::player) fn zoom_third_person(
     scroll: Res<AccumulatedMouseScroll>,
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
+    presentation: Res<crate::view::PrimaryViewPresentation>,
     mut camera: Single<&mut PlayerCamera>,
 ) {
     let spatial_zoom = keyboard.pressed(KeyCode::AltLeft) || keyboard.pressed(KeyCode::AltRight);
-    if spatial_zoom
+    if presentation.is_embedded()
+        || spatial_zoom
         || !capture.active()
         || camera.mode != CameraMode::ThirdPerson
         || scroll.delta.y == 0.0

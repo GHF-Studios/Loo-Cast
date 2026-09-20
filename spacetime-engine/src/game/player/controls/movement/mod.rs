@@ -16,14 +16,27 @@ pub(in crate::game::player) fn movement(
             &PlayerController,
             &PlayerStance,
             &PlayerNoclip,
+            &PlayerTravelSpeed,
+            &CharacterMovementConfig,
             Option<&PlayerScaleNavigation>,
             &mut CharacterMovementInput,
         ),
         With<Player>,
     >,
 ) {
-    let (frame, control, dead, aim, controller, stance, noclip, scale_navigation, mut input) =
-        player.into_inner();
+    let (
+        frame,
+        control,
+        dead,
+        aim,
+        controller,
+        stance,
+        noclip,
+        travel_speed,
+        movement_config,
+        scale_navigation,
+        mut input,
+    ) = player.into_inner();
 
     if dead.is_some()
         || gameplay_suppressed(&keyboard, &capture)
@@ -37,12 +50,18 @@ pub(in crate::game::player) fn movement(
     let sprinting = !stance.crouched
         && (keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight));
 
-    let speed_multiplier = if stance.crouched {
+    let stance_multiplier = if stance.crouched {
         controller.crouch_speed_multiplier
     } else if sprinting {
         controller.sprint_multiplier
     } else {
         1.0
+    };
+    let base_speed = travel_speed.native_units_per_second.max(0.0);
+    let speed_multiplier = if movement_config.max_ground_speed > f32::EPSILON {
+        stance_multiplier * base_speed / movement_config.max_ground_speed
+    } else {
+        0.0
     };
 
     let horizontal = keyboard.pressed(KeyCode::KeyD) as i8 - keyboard.pressed(KeyCode::KeyA) as i8;
@@ -81,6 +100,7 @@ pub(in crate::game::player) fn noclip_movement(
             &PlayerAim,
             &PlayerController,
             &PlayerNoclip,
+            &PlayerTravelSpeed,
             Option<&PlayerScaleNavigation>,
             &mut LinearVelocity,
         ),
@@ -95,6 +115,7 @@ pub(in crate::game::player) fn noclip_movement(
         aim,
         controller,
         noclip,
+        travel_speed,
         scale_navigation,
         mut velocity,
     ) = player.into_inner();
@@ -126,7 +147,8 @@ pub(in crate::game::player) fn noclip_movement(
         1.0
     };
 
-    body.translation += wish * controller.noclip_speed.max(0.0) * boost * time.delta_secs();
+    body.translation +=
+        wish * travel_speed.native_units_per_second.max(0.0) * boost * time.delta_secs();
     velocity.0 = Vec3::ZERO;
 }
 
@@ -147,12 +169,14 @@ pub(in crate::game::player) fn scale_navigation_movement(
             Option<&PlayerDead>,
             &PlayerAim,
             &PlayerScaleNavigation,
+            &PlayerTravelSpeed,
             Option<&mut LinearVelocity>,
         ),
         With<Player>,
     >,
 ) {
-    let (mut body, control, dead, aim, navigation, velocity) = player.into_inner();
+    let (mut body, control, dead, aim, _navigation, travel_speed, velocity) =
+        player.into_inner();
 
     if dead.is_some() || gameplay_suppressed(&keyboard, &capture) {
         return;
@@ -180,31 +204,8 @@ pub(in crate::game::player) fn scale_navigation_movement(
     };
 
     body.translation +=
-        wish * navigation.speed_native.max(0.0) * boost * time.delta_secs();
+        wish * travel_speed.native_units_per_second.max(0.0) * boost * time.delta_secs();
     if let Some(mut velocity) = velocity {
         velocity.0 = Vec3::ZERO;
     }
-}
-
-/// Adjusts scale-navigation speed by quarter-decades.
-///
-/// Ordinary wheel input changes travel speed while scale navigation is active.
-/// Alt+wheel remains reserved for observer-scale zoom.
-pub(in crate::game::player) fn adjust_scale_navigation_speed(
-    scroll: Res<AccumulatedMouseScroll>,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    capture: Res<CursorCapture>,
-    mut player: Single<Option<&mut PlayerScaleNavigation>, With<Player>>,
-) {
-    if gameplay_suppressed(&keyboard, &capture) || scroll.delta.y == 0.0 {
-        return;
-    }
-    if keyboard.pressed(KeyCode::AltLeft) || keyboard.pressed(KeyCode::AltRight) {
-        return;
-    }
-
-    let Some(navigation) = player.as_deref_mut() else {
-        return;
-    };
-    navigation.adjust_speed(scroll.delta.y);
 }

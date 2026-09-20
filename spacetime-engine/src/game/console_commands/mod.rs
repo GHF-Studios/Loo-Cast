@@ -13,14 +13,15 @@ use crate::{
     physics::character::{CharacterGroundState, CharacterMovementInput},
     portal::{PortalSplitTraveler, PortalTraveler},
     spatial::{
-        SpatialScale, UsfPosition, UsfScaleLayer, UsfSpatialSet, UsfSpatialTransition,
+        SpatialScale, UsfPosition, UsfScaleLayer, UsfSpatialFrame, UsfSpatialSet,
+        UsfSpatialTransition,
         UsfSpatialTransitionApplied, UsfSpatialTransitionQueue,
         UsfTransitionVelocity, UsfViewFrame,
     },
 };
 
 use super::{
-    player::{Player, PlayerAim},
+    player::{Player, PlayerAim, PlayerTravelSpeed},
     world::UniverseLandmarkIndex,
 };
 
@@ -58,6 +59,15 @@ pub(super) fn configure(app: &mut App) {
             summary: "Change observer scale without changing canonical position.",
         },
         zoom_command,
+    )
+    .register_console_command(
+        ConsoleCommandSpec {
+            name: "speed",
+            aliases: &["movespeed", "travel-speed"],
+            usage: "speed [<native-units-per-second>|reset]",
+            summary: "Show or set player travel speed in the current USF chart; scientific notation is accepted.",
+        },
+        speed_command,
     )
     .register_console_command(
         ConsoleCommandSpec {
@@ -112,6 +122,16 @@ fn where_command(world: &mut World, _: &ConsoleCommandInvocation) -> ConsoleComm
             view.interaction_scale(),
         ),
         format!("canonical = {semantic}"),
+        {
+            let frame = world.resource::<UsfSpatialFrame>();
+            format!(
+                "rebases = {} | last local shift = ({:.3}, {:.3}, {:.3})",
+                frame.rebase_count(),
+                frame.last_shift().x,
+                frame.last_shift().y,
+                frame.last_shift().z,
+            )
+        },
     ])
 }
 
@@ -168,6 +188,62 @@ fn zoom_command(
         "observer scale requested -> {:+.3} (interaction S{})",
         view.continuous_exponent(),
         view.interaction_scale(),
+    ))
+}
+
+
+fn speed_command(
+    world: &mut World,
+    invocation: &ConsoleCommandInvocation,
+) -> ConsoleCommandResult {
+    let requested = invocation.args().first().map(String::as_str);
+
+    let mut query = world.query_filtered::<
+        (&mut PlayerTravelSpeed, &UsfScaleLayer),
+        With<Player>,
+    >();
+    let Some((mut speed, layer)) = query.iter_mut(world).next() else {
+        return ConsoleCommandResult::error("player travel-speed state is unavailable");
+    };
+    let scale = layer.scale();
+
+    if invocation.args().len() > 1 {
+        return ConsoleCommandResult::error(
+            "usage: speed [<native-units-per-second>|reset]",
+        );
+    }
+
+    if let Some(raw) = requested {
+        if raw.eq_ignore_ascii_case("reset") {
+            *speed = PlayerTravelSpeed::default_for_scale(scale);
+        } else {
+            let Ok(parsed) = raw.parse::<f64>() else {
+                return ConsoleCommandResult::error(format!(
+                    "invalid speed `{raw}`; scientific notation such as 1e-3 or 2.5e4 is accepted"
+                ));
+            };
+            if !parsed.is_finite() || parsed < 0.0 || parsed > f32::MAX as f64 {
+                return ConsoleCommandResult::error(
+                    "speed must be a finite non-negative f32-range value",
+                );
+            }
+
+            let native = parsed as f32;
+            if parsed > 0.0 && native == 0.0 {
+                return ConsoleCommandResult::error(
+                    "speed is smaller than the runtime chart can represent",
+                );
+            }
+            speed.native_units_per_second = native;
+        }
+    }
+
+    let native = speed.native_units_per_second;
+    let scale0_equivalent =
+        f64::from(native) * 10.0_f64.powi(scale.exponent() as i32);
+
+    ConsoleCommandResult::success_and_return_to_gameplay(format!(
+        "travel speed = {native:.6e} S{scale} units/s (~{scale0_equivalent:.6e} S0 units/s)"
     ))
 }
 

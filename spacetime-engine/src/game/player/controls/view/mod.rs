@@ -23,9 +23,13 @@ pub(in crate::game::player) fn zoom_spatial_view(
     scroll: Res<AccumulatedMouseScroll>,
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
+    presentation: Res<PrimaryViewPresentation>,
     mut view: ResMut<UsfViewFrame>,
 ) {
-    if gameplay_suppressed(&keyboard, &capture) || scroll.delta.y == 0.0 {
+    if presentation.is_embedded()
+        || gameplay_suppressed(&keyboard, &capture)
+        || scroll.delta.y == 0.0
+    {
         return;
     }
     let alt = keyboard.pressed(KeyCode::AltLeft) || keyboard.pressed(KeyCode::AltRight);

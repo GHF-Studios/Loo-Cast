@@ -59,6 +59,40 @@ pub struct PlayerNoclip {
     pub active: bool,
 }
 
+/// Player-commanded base travel speed in the active USF chart's native units.
+///
+/// This is input intent, not a physics material/configuration value. Character
+/// acceleration/friction/gravity remain owned by CharacterMovementConfig while
+/// noclip and other travel adapters consume the same requested base speed.
+#[derive(Component, Reflect, Debug, Clone, Copy)]
+#[reflect(Component)]
+pub struct PlayerTravelSpeed {
+    pub native_units_per_second: f32,
+}
+
+impl PlayerTravelSpeed {
+    pub fn default_for_scale(scale: crate::spatial::SpatialScale) -> Self {
+        // Local character scales start with the Source-like walking speed.
+        // Coarser charts default to a controllable inspection/travel speed.
+        let native_units_per_second = if scale.exponent() <= 4 {
+            8.128
+        } else {
+            0.05
+        };
+        Self {
+            native_units_per_second,
+        }
+    }
+}
+
+impl Default for PlayerTravelSpeed {
+    fn default() -> Self {
+        Self {
+            native_units_per_second: 8.128,
+        }
+    }
+}
+
 /// Free-flight navigation for USF charts outside the local character domain.
 ///
 /// This is ordinary coarse-scale navigation, not developer noclip. Speed is in
