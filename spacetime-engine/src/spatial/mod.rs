@@ -17,8 +17,9 @@ pub use demand::{
 };
 pub(crate) use devtools::SPATIAL_DEMAND_VISUALIZATION;
 pub use navigation::{
-    UsfTravelInfluence, UsfTravelInfluenceKind, UsfTravelInfluenceMeasure,
-    UsfTravelMedium, UsfTravelNeighborhood,
+    UsfNavigationContext, UsfNavigationContextKind, UsfTravelInfluence,
+    UsfTravelInfluenceKind, UsfTravelInfluenceMeasure, UsfTravelMedium,
+    UsfTravelNeighborhood,
 };
 pub use layer::{
     UsfActiveScaleLayer, UsfChartMask, UsfFollowsActiveScale, UsfScaleLayer,

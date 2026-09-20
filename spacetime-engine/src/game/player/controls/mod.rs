@@ -16,7 +16,7 @@ use crate::{
         CharacterLocomotionFrame, CharacterMotor, CharacterMovementConfig, CharacterMovementInput,
     },
     spatial::{
-        SpatialDemandSource, SpatialScale, UsfScaleLayer, UsfScaleLayerFrames, UsfTravelInfluence,
+        SpatialDemandSource, SpatialScale, UsfNavigationContext, UsfScaleLayer, UsfScaleLayerFrames, UsfTravelInfluence,
         UsfTravelInfluenceKind, UsfTravelNeighborhood, UsfViewContext, UsfViewRenderAnchor,
     },
     view::PrimaryViewPresentation,
@@ -39,6 +39,7 @@ pub(super) fn gameplay_suppressed(
 mod cruise;
 mod modes;
 mod movement;
+mod navigation;
 mod view;
 
 pub(super) use cruise::adaptive_cruise_movement;
@@ -46,4 +47,5 @@ pub(super) use modes::{
     sync_locomotion_mode, toggle_adaptive_cruise, toggle_noclip, toggle_spatial_demand,
 };
 pub(super) use movement::{movement, noclip_movement, scale_navigation_movement};
+pub(super) use navigation::sync_navigation_context;
 pub(super) use view::{look, zoom_spatial_view};

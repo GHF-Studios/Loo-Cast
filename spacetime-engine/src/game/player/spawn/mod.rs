@@ -2,6 +2,8 @@
 
 use super::*;
 
+use crate::spatial::UsfNavigationContext;
+
 pub(super) fn spawn_player(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -59,6 +61,7 @@ pub(super) fn spawn_player(
                 PlayerTravelSpeed::default(),
                 PlayerAdaptiveCruise::default(),
                 UsfTravelNeighborhood::default(),
+                UsfNavigationContext::default(),
                 // View/control state belongs to the player independently, while
                 // CharacterMotor remains legal at every USF scale.
                 CharacterControlFrame::default(),

@@ -54,7 +54,6 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
     capture: Res<CursorCapture>,
     presentation: Res<PrimaryViewPresentation>,
     frames: Res<UsfScaleLayerFrames>,
-    influences: Query<(Entity, &UsfTravelInfluence)>,
     mut was_active: Local<bool>,
     player: Single<
         (
@@ -64,7 +63,7 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
             Option<&PlayerDead>,
             &PlayerAim,
             &mut PlayerAdaptiveCruise,
-            &mut UsfTravelNeighborhood,
+            &UsfTravelNeighborhood,
             Option<&mut LinearVelocity>,
         ),
         With<Player>,
@@ -77,7 +76,7 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
         dead,
         aim,
         mut cruise,
-        mut neighborhood,
+        neighborhood,
         velocity,
     ) = player.into_inner();
 
@@ -102,16 +101,6 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
 
     let player_scale = layer.scale();
     let player_absolute = frames.absolute(player_scale, body.translation);
-    neighborhood.advance(dt);
-    if just_engaged || neighborhood.needs_refresh(player_absolute, player_scale) {
-        neighborhood.refresh(
-            player_absolute,
-            player_scale,
-            &frames,
-            influences.iter().map(|(entity, influence)| (entity, *influence)),
-        );
-    }
-
     let envelope =
         cruise_speed_envelope(player_absolute, player_scale, &frames, &neighborhood);
     cruise.speed_cap_scale0 = envelope.max_speed_scale0;

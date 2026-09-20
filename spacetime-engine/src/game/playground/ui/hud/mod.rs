@@ -8,7 +8,7 @@ use crate::{
         health::Health,
         player::{Player, PlayerAdaptiveCruise, PlayerTravelSpeed},
     },
-    spatial::{UsfScaleLayer, UsfTravelNeighborhood, UsfViewContext, UsfViewRenderAnchor},
+    spatial::{UsfNavigationContext, UsfScaleLayer, UsfTravelNeighborhood, UsfViewContext, UsfViewRenderAnchor},
     ui::{UiTextRole, UiTheme},
 };
 
@@ -150,6 +150,7 @@ fn update_player_status(
             &PlayerTravelSpeed,
             &PlayerAdaptiveCruise,
             &UsfTravelNeighborhood,
+            &UsfNavigationContext,
         ),
         With<Player>,
     >,
@@ -157,7 +158,8 @@ fn update_player_status(
     roots: Query<&Children, With<PlayerStatus>>,
     mut texts: Query<&mut Text>,
 ) {
-    let (manifestation, layer, manual_speed, cruise, neighborhood) = player.into_inner();
+    let (manifestation, layer, manual_speed, cruise, neighborhood, navigation) =
+        player.into_inner();
     let Some(children) = roots.iter().next() else { return; };
     let Some(child) = children.iter().next() else { return; };
     let Ok(mut text) = texts.get_mut(child) else { return; };
@@ -194,11 +196,16 @@ fn update_player_status(
             view.continuous_exponent(),
         );
     } else {
+        let navigation_speed =
+            navigation.manual_native_units_per_second(layer.scale()) * manual_speed.multiplier;
+        let navigation_length = navigation.characteristic_length_native(layer.scale());
         text.0 = format!(
-            "HEALTH {health}\nMANUAL {:.3}x\nCOARSE S{} {:.3} u/s  VIEW {:+.2}",
+            "HEALTH {health}\nMANUAL {:.3}x  S{} {:.3e} u/s\nNAV {}  LEN {:.3e}u  VIEW {:+.2}",
             manual_speed.multiplier,
             layer.scale(),
-            manual_speed.free_flight_native_units_per_second(),
+            navigation_speed,
+            navigation.kind().label(),
+            navigation_length,
             view.continuous_exponent(),
         );
     }

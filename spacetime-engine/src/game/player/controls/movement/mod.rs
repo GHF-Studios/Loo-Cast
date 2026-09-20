@@ -177,6 +177,7 @@ pub(in crate::game::player) fn scale_navigation_movement(
             &PlayerAim,
             &UsfScaleLayer,
             &PlayerTravelSpeed,
+            &UsfNavigationContext,
             &PlayerAdaptiveCruise,
             Option<&mut LinearVelocity>,
         ),
@@ -190,6 +191,7 @@ pub(in crate::game::player) fn scale_navigation_movement(
         aim,
         layer,
         travel_speed,
+        navigation,
         cruise,
         velocity,
     ) = player.into_inner();
@@ -223,8 +225,10 @@ pub(in crate::game::player) fn scale_navigation_movement(
         1.0
     };
 
+    let context_speed = navigation.manual_native_units_per_second(layer.scale());
     body.translation += wish
-        * travel_speed.free_flight_native_units_per_second()
+        * context_speed
+        * travel_speed.multiplier
         * boost
         * time.delta_secs();
     if let Some(mut velocity) = velocity {

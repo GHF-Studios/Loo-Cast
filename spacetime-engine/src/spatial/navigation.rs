@@ -93,6 +93,203 @@ impl UsfTravelMedium {
     }
 }
 
+const NAVIGATION_TARGET_TRAVERSAL_SECONDS: f64 = 20.0;
+const NAVIGATION_LOCAL_STRUCTURE_RADIUS_LIMIT: f64 = 12.0;
+
+/// What kind of semantic structure currently sets coarse manual travel pace.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UsfNavigationContextKind {
+    Fallback,
+    HardBody,
+    Medium,
+    Region,
+}
+
+impl UsfNavigationContextKind {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Fallback => "fallback",
+            Self::HardBody => "body",
+            Self::Medium => "medium",
+            Self::Region => "region",
+        }
+    }
+}
+
+/// Observer-local navigation scale derived from semantic spatial structure.
+///
+/// This is not a physics state and it is not a presentation LOD. It answers:
+/// "what spatial length are we currently navigating?" Coarse manual movement
+/// uses that length to choose a useful pace, while S0 character movement keeps
+/// its ordinary physical locomotion.
+///
+/// The first implementation deliberately derives context only from travel
+/// influences already available in [`UsfTravelNeighborhood`]. Future terrain,
+/// topology and worldgen realizers can contribute finer context without changing
+/// the consumer contract.
+#[derive(Component, Debug, Clone, Copy, PartialEq)]
+pub struct UsfNavigationContext {
+    kind: UsfNavigationContextKind,
+    interaction_scale: SpatialScale,
+    source_scale: Option<SpatialScale>,
+    characteristic_length_scale0: f64,
+}
+
+impl Default for UsfNavigationContext {
+    fn default() -> Self {
+        Self::fallback(SpatialScale::MAX)
+    }
+}
+
+impl UsfNavigationContext {
+    pub fn fallback(interaction_scale: SpatialScale) -> Self {
+        let scale0_per_native = 10.0_f64.powi(interaction_scale.exponent() as i32);
+        Self {
+            kind: UsfNavigationContextKind::Fallback,
+            interaction_scale,
+            source_scale: None,
+            characteristic_length_scale0:
+                scale0_per_native * NAVIGATION_TARGET_TRAVERSAL_SECONDS,
+        }
+    }
+
+    pub fn resolve(
+        observer_absolute: DVec3,
+        observer_scale: SpatialScale,
+        frames: &UsfScaleLayerFrames,
+        neighborhood: &UsfTravelNeighborhood,
+    ) -> Self {
+        #[derive(Clone, Copy)]
+        struct Candidate {
+            kind: UsfNavigationContextKind,
+            source_scale: SpatialScale,
+            relative_proximity: f64,
+            characteristic_length_scale0: f64,
+        }
+
+        let mut local = None::<Candidate>;
+        let mut region = None::<Candidate>;
+        let mut any_structure = None::<Candidate>;
+
+        for influence in neighborhood.influences() {
+            let Some(measurement) =
+                influence.measure_from(observer_absolute, observer_scale, frames)
+            else {
+                continue;
+            };
+
+            let kind = match influence.kind() {
+                UsfTravelInfluenceKind::HardBody => UsfNavigationContextKind::HardBody,
+                UsfTravelInfluenceKind::Medium(_) => UsfNavigationContextKind::Medium,
+                UsfTravelInfluenceKind::Region => UsfNavigationContextKind::Region,
+            };
+
+            let characteristic_length_scale0 =
+                navigation_length_scale0(influence.kind(), measurement);
+            if !characteristic_length_scale0.is_finite()
+                || characteristic_length_scale0 <= 0.0
+            {
+                continue;
+            }
+
+            let candidate = Candidate {
+                kind,
+                source_scale: influence.scale(),
+                relative_proximity: measurement.relative_proximity(),
+                characteristic_length_scale0,
+            };
+
+            let should_replace = |current: Option<Candidate>| {
+                current.is_none_or(|current| {
+                    candidate.relative_proximity < current.relative_proximity
+                })
+            };
+
+            if should_replace(any_structure) {
+                any_structure = Some(candidate);
+            }
+
+            match kind {
+                UsfNavigationContextKind::HardBody | UsfNavigationContextKind::Medium
+                    if measurement.inside()
+                        || measurement.relative_proximity()
+                            <= NAVIGATION_LOCAL_STRUCTURE_RADIUS_LIMIT =>
+                {
+                    if should_replace(local) {
+                        local = Some(candidate);
+                    }
+                }
+                UsfNavigationContextKind::Region => {
+                    if should_replace(region) {
+                        region = Some(candidate);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        let selected = local.or(region).or(any_structure);
+        let Some(selected) = selected else {
+            return Self::fallback(observer_scale);
+        };
+
+        Self {
+            kind: selected.kind,
+            interaction_scale: observer_scale,
+            source_scale: Some(selected.source_scale),
+            characteristic_length_scale0: selected.characteristic_length_scale0,
+        }
+    }
+
+    pub const fn kind(self) -> UsfNavigationContextKind {
+        self.kind
+    }
+
+    pub const fn interaction_scale(self) -> SpatialScale {
+        self.interaction_scale
+    }
+
+    pub const fn source_scale(self) -> Option<SpatialScale> {
+        self.source_scale
+    }
+
+    pub const fn characteristic_length_scale0(self) -> f64 {
+        self.characteristic_length_scale0
+    }
+
+    pub fn characteristic_length_native(self, scale: SpatialScale) -> f64 {
+        self.characteristic_length_scale0
+            / 10.0_f64.powi(scale.exponent() as i32)
+    }
+
+    /// Baseline coarse manual speed for this navigation context.
+    ///
+    /// A characteristic length should take roughly twenty seconds to traverse.
+    /// User `speed` remains a dimensionless multiplier applied on top.
+    pub fn manual_native_units_per_second(self, scale: SpatialScale) -> f32 {
+        let native = self.characteristic_length_native(scale)
+            / NAVIGATION_TARGET_TRAVERSAL_SECONDS;
+        native.clamp(0.0, f32::MAX as f64) as f32
+    }
+}
+
+fn navigation_length_scale0(
+    kind: UsfTravelInfluenceKind,
+    measurement: UsfTravelInfluenceMeasure,
+) -> f64 {
+    match kind {
+        UsfTravelInfluenceKind::HardBody => measurement
+            .boundary_clearance_scale0()
+            .max(measurement.extent_radius_scale0() * 2.0),
+        UsfTravelInfluenceKind::Medium(_) => measurement
+            .boundary_clearance_scale0()
+            .max(measurement.characteristic_scale0()),
+        UsfTravelInfluenceKind::Region => measurement
+            .boundary_clearance_scale0()
+            .max(measurement.extent_radius_scale0() * 2.0),
+    }
+}
+
 #[derive(Component, Debug, Clone, Copy)]
 pub struct UsfTravelInfluence {
     absolute: DVec3,
@@ -511,6 +708,38 @@ mod tests {
         assert_eq!(medium.turbulence(), 0.0);
         assert_eq!(medium.hazard(), 0.5);
         assert!((0.0..=1.0).contains(&medium.traversal_resistance()));
+    }
+
+    #[test]
+    fn navigation_fallback_is_one_native_unit_per_second() {
+        let scale = SpatialScale::new(18).unwrap();
+        let context = UsfNavigationContext::fallback(scale);
+        assert!((context.manual_native_units_per_second(scale) - 1.0).abs() < 1.0e-6);
+    }
+
+    #[test]
+    fn navigation_length_uses_approach_distance_until_object_scale_takes_over() {
+        let measure = UsfTravelInfluenceMeasure {
+            center_distance_scale0: 160.0,
+            boundary_clearance_scale0: 143.0,
+            penetration_depth_scale0: 0.0,
+            extent_radius_scale0: 17.0,
+            characteristic_scale0: 17.0,
+            inside: false,
+        };
+        assert_eq!(
+            navigation_length_scale0(UsfTravelInfluenceKind::HardBody, measure),
+            143.0,
+        );
+
+        let close = UsfTravelInfluenceMeasure {
+            boundary_clearance_scale0: 2.0,
+            ..measure
+        };
+        assert_eq!(
+            navigation_length_scale0(UsfTravelInfluenceKind::HardBody, close),
+            34.0,
+        );
     }
 
     #[test]
