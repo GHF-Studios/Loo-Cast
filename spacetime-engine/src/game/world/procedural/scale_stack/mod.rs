@@ -13,7 +13,7 @@ use crate::{
     config::EngineConfig,
     spatial::{
         SpatialScale, UsfActiveScaleLayer, UsfChunkAddress, UsfPosition,
-        UsfScaleLayer, UsfScaleLayerFrames, UsfViewFrame,
+        UsfScaleLayer, UsfScaleLayerFrames, UsfViewContext, UsfViewRenderAnchor,
     },
     voxel::{ProceduralVolume, VoxelBase, VoxelPresentationMaterial, VoxelStreaming, VoxelWorld},
     worldgen::{PhenomenonRegistry, WorldgenEvaluationKey, WorldgenStore},
@@ -28,7 +28,7 @@ struct ScaleStackDemandKey {
 
 impl ScaleStackDemandKey {
     fn from_view(
-        view: &UsfViewFrame,
+        view: &UsfViewContext,
         active: UsfActiveScaleLayer,
         frames: &UsfScaleLayerFrames,
     ) -> Option<Self> {
@@ -106,7 +106,7 @@ impl ProceduralScaleStack {
 pub(super) fn sync_scale_stack(
     config: Res<EngineConfig>,
     mut commands: Commands,
-    view: Res<UsfViewFrame>,
+    view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     active_layer: Res<UsfActiveScaleLayer>,
     frames: Res<UsfScaleLayerFrames>,
     registry: Res<PhenomenonRegistry>,
@@ -195,7 +195,7 @@ fn scale_depth_bias(scale: SpatialScale, view_scale: SpatialScale) -> f32 {
 /// actual +34 region the observer is approaching even though +35 still owns
 /// physical interaction.
 fn view_target_at_scale(
-    view: &UsfViewFrame,
+    view: &UsfViewContext,
     active: UsfActiveScaleLayer,
     frames: &UsfScaleLayerFrames,
     target_scale: SpatialScale,

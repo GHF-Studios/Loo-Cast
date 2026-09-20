@@ -14,7 +14,7 @@ use crate::ecs::{UsfLogicalProjection, UsfManifestationOf};
 
 use super::{
     SpatialScale, UsfActiveScaleLayer, UsfFollowsActiveScale, UsfPosition, UsfScaleLayer,
-    UsfScaleLayerFrames, UsfSpatialAnchor, UsfSpatialFrame, UsfViewFrame,
+    UsfScaleLayerFrames, UsfSpatialAnchor, UsfSpatialFrame, UsfViewContext, UsfViewRenderAnchor,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -114,7 +114,7 @@ pub struct UsfSpatialTransitionApplied {
 }
 
 pub(super) fn apply_spatial_transitions(
-    mut view: ResMut<UsfViewFrame>,
+    mut view: Single<&mut UsfViewContext, With<UsfViewRenderAnchor>>,
     mut active: ResMut<UsfActiveScaleLayer>,
     mut layer_frames: ResMut<UsfScaleLayerFrames>,
     mut frame: ResMut<UsfSpatialFrame>,

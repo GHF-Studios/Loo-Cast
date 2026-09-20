@@ -129,6 +129,7 @@ pub(super) fn spawn_player(
         UsfFollowsActiveScale,
         PrimaryGameView,
         UsfViewRenderAnchor,
+        UsfViewContext::default(),
         PortalView,
         Camera3d::default(),
         IsDefaultUiCamera,

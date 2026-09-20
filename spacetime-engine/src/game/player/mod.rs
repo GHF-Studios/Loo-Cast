@@ -47,7 +47,7 @@ use crate::{
     spatial::{
         SpatialDemandSource, SpatialScale, UsfFollowsActiveScale, UsfPosition, UsfScaleLayer,
         UsfSpatialAnchor, UsfSpatialSet, UsfTravelNeighborhood, UsfViewAnchor,
-        UsfViewRenderAnchor,
+        UsfViewContext, UsfViewRenderAnchor,
     },
     thermal::{ThermalBody, ThermalInjury, ThermalSpatialSample},
     view::{PrimaryGameView, PrimaryViewPresentation},

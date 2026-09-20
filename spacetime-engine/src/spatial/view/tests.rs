@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn midpoint_between_s0_and_s1_has_reciprocal_adjacent_projection_factors() {
-    let mut view = UsfViewFrame::default();
+    let mut view = UsfViewContext::default();
     view.set_continuous_exponent(0.5);
 
     let s1 = SpatialScale::new(1).unwrap();
@@ -14,7 +14,7 @@ fn midpoint_between_s0_and_s1_has_reciprocal_adjacent_projection_factors() {
 
 #[test]
 fn crossing_an_integer_zoom_boundary_normalizes_to_the_next_scale() {
-    let mut view = UsfViewFrame::default();
+    let mut view = UsfViewContext::default();
     view.add_zoom(1.0, SpatialScale::ZERO, SpatialScale::new(1).unwrap());
 
     assert_eq!(view.scale(), SpatialScale::new(1).unwrap());
@@ -24,7 +24,7 @@ fn crossing_an_integer_zoom_boundary_normalizes_to_the_next_scale() {
 
 #[test]
 fn semantic_and_render_anchors_are_independent() {
-    let mut view = UsfViewFrame::default();
+    let mut view = UsfViewContext::default();
     view.runtime_anchor = Vec3::new(1.0, 2.0, 3.0);
     view.render_anchor = Vec3::new(10.0, 20.0, 30.0);
 

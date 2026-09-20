@@ -34,7 +34,7 @@ pub use transition::{
 };
 pub use view::{
     UsfDistanceMeshLod, UsfLocalScalePresentation, UsfScalePresentation,
-    UsfSceneryPresentation, UsfViewAnchor, UsfViewFrame, UsfViewRenderAnchor,
+    UsfSceneryPresentation, UsfViewAnchor, UsfViewContext, UsfViewRenderAnchor,
 };
 
 use avian3d::prelude::Position;
@@ -143,7 +143,7 @@ impl Plugin for UsfSpatialPlugin {
             .add_systems(PostUpdate, rebase_local_frame.in_set(UsfSpatialSet::Rebase))
             .add_systems(
                 PostUpdate,
-                view::sync_view_anchor.in_set(UsfSpatialSet::ViewAnchor),
+                view::sync_view_context.in_set(UsfSpatialSet::ViewAnchor),
             )
             .add_systems(
                 PostUpdate,
@@ -159,7 +159,6 @@ impl Plugin for UsfSpatialPlugin {
 
         demand::configure(app);
         devtools::configure(app);
-        view::configure(app);
     }
 }
 

@@ -17,7 +17,7 @@ use crate::{
     },
     spatial::{
         SpatialDemandSource, SpatialScale, UsfScaleLayer, UsfScaleLayerFrames, UsfTravelInfluence,
-        UsfTravelInfluenceKind, UsfTravelNeighborhood, UsfViewFrame,
+        UsfTravelInfluenceKind, UsfTravelNeighborhood, UsfViewContext, UsfViewRenderAnchor,
     },
     view::PrimaryViewPresentation,
 };

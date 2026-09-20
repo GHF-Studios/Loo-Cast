@@ -16,7 +16,7 @@ use crate::{
         SpatialScale, UsfPosition, UsfScaleLayer, UsfSpatialFrame, UsfSpatialSet,
         UsfSpatialTransition,
         UsfSpatialTransitionApplied, UsfSpatialTransitionQueue,
-        UsfTransitionVelocity, UsfViewFrame,
+        UsfTransitionVelocity, UsfViewContext, UsfViewRenderAnchor,
     },
 };
 
@@ -89,6 +89,12 @@ pub(super) fn configure(app: &mut App) {
     );
 }
 
+fn primary_view_context(world: &mut World) -> Option<UsfViewContext> {
+    let mut query =
+        world.query_filtered::<&UsfViewContext, With<UsfViewRenderAnchor>>();
+    query.iter(world).next().cloned()
+}
+
 fn player_semantic_entity(world: &mut World) -> Option<Entity> {
     let mut query = world.query_filtered::<&UsfManifestationOf, With<Player>>();
     query.iter(world).next().map(|manifestation| manifestation.0)
@@ -116,7 +122,9 @@ fn where_command(world: &mut World, _: &ConsoleCommandInvocation) -> ConsoleComm
         .get::<UsfPosition>(semantic_entity)
         .map(UsfPosition::format_stack)
         .unwrap_or_else(|| "<semantic position unavailable>".to_string());
-    let view = world.resource::<UsfViewFrame>();
+    let Some(view) = primary_view_context(world) else {
+        return ConsoleCommandResult::error("primary USF view context is unavailable");
+    };
 
     ConsoleCommandResult::lines([
         format!(
@@ -169,7 +177,9 @@ fn zoom_command(
     invocation: &ConsoleCommandInvocation,
 ) -> ConsoleCommandResult {
     let Some(value) = invocation.args().first() else {
-        let view = world.resource::<UsfViewFrame>();
+        let Some(view) = primary_view_context(world) else {
+            return ConsoleCommandResult::error("primary USF view context is unavailable");
+        };
         return ConsoleCommandResult::success(format!(
             "observer scale = {:+.3} (interaction S{})",
             view.continuous_exponent(),
@@ -189,10 +199,17 @@ fn zoom_command(
         return ConsoleCommandResult::error("observer scale must be finite");
     }
 
-    world
-        .resource_mut::<UsfViewFrame>()
-        .set_continuous_exponent(exponent);
-    let view = world.resource::<UsfViewFrame>();
+    {
+        let mut query =
+            world.query_filtered::<&mut UsfViewContext, With<UsfViewRenderAnchor>>();
+        let Some(mut view) = query.iter_mut(world).next() else {
+            return ConsoleCommandResult::error("primary USF view context is unavailable");
+        };
+        view.set_continuous_exponent(exponent);
+    }
+    let Some(view) = primary_view_context(world) else {
+        return ConsoleCommandResult::error("primary USF view context is unavailable");
+    };
     ConsoleCommandResult::success(format!(
         "observer scale requested -> {:+.3} (interaction S{})",
         view.continuous_exponent(),

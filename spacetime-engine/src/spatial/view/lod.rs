@@ -8,7 +8,7 @@
 use bevy::prelude::*;
 
 use crate::spatial::{
-    UsfActiveScaleLayer, UsfScaleLayerFrames, UsfSceneryPresentation, UsfViewFrame,
+    UsfActiveScaleLayer, UsfScaleLayerFrames, UsfSceneryPresentation, UsfViewContext, UsfViewRenderAnchor,
 };
 
 #[derive(Debug, Clone)]
@@ -67,7 +67,7 @@ impl UsfDistanceMeshLod {
 }
 
 pub(in crate::spatial) fn select_distance_mesh_lods(
-    view: Res<UsfViewFrame>,
+    view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     active: Res<UsfActiveScaleLayer>,
     frames: Res<UsfScaleLayerFrames>,
     mut presentations: Query<(

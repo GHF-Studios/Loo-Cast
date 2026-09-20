@@ -12,7 +12,7 @@ pub(in crate::spatial) fn configure(app: &mut App) {
 }
 
 fn collect_spatial_demand(
-    view: Res<UsfViewFrame>,
+    view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     active: Res<UsfActiveScaleLayer>,
     frames: Res<UsfScaleLayerFrames>,
     sources: Query<(

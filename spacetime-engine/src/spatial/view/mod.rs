@@ -129,12 +129,14 @@ impl UsfScalePresentation {
     }
 }
 
-/// Primary observer-relative spatial presentation frame.
+/// Observer-relative USF presentation state.
 ///
-/// `scale` is the lower integer scale and `zoom` is fractional progress toward
-/// `scale + 1`. The observer's canonical identity never changes when zooming.
-#[derive(Resource, Debug, Clone)]
-pub struct UsfViewFrame {
+/// A view context belongs to an observer/view entity rather than to the universe
+/// globally. The current game owns one primary context on the active gameplay
+/// camera; future portal/spectator/split-screen views can own additional
+/// contexts without making semantic entities observer-aware.
+#[derive(Component, Debug, Clone)]
+pub struct UsfViewContext {
     /// Canonical universe position of the semantic observer anchor.
     anchor: UsfPosition,
     /// Runtime-chart position of that same semantic observer anchor.
@@ -162,7 +164,7 @@ impl UsfViewScaleDemand {
     }
 }
 
-impl Default for UsfViewFrame {
+impl Default for UsfViewContext {
     fn default() -> Self {
         Self {
             anchor: UsfPosition::zero(SpatialScale::MAX),
@@ -174,7 +176,7 @@ impl Default for UsfViewFrame {
     }
 }
 
-impl UsfViewFrame {
+impl UsfViewContext {
     pub const fn anchor(&self) -> &UsfPosition {
         &self.anchor
     }
@@ -298,8 +300,8 @@ pub use lod::UsfDistanceMeshLod;
 
 pub(super) use lod::select_distance_mesh_lods;
 pub(super) use systems::{
-    configure, project_local_scale_presentations, project_scale_presentations,
-    project_scenery_presentations, sync_view_anchor,
+    project_local_scale_presentations, project_scale_presentations,
+    project_scenery_presentations, sync_view_context,
 };
 
 #[cfg(test)]

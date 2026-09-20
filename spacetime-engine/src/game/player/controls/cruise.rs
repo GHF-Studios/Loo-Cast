@@ -165,7 +165,7 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
         velocity.0 = Vec3::ZERO;
     }
 
-    // Deliberately do not mutate UsfViewFrame here. Travel speed and
+    // Deliberately do not mutate the observer's UsfViewContext here. Travel speed and
     // presentation/interaction scale are separate concerns. Automatic scale
     // following can return later once chart transitions are independently solid.
 }

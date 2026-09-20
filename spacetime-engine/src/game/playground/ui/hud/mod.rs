@@ -8,7 +8,7 @@ use crate::{
         health::Health,
         player::{Player, PlayerAdaptiveCruise, PlayerTravelSpeed},
     },
-    spatial::{UsfScaleLayer, UsfTravelNeighborhood, UsfViewFrame},
+    spatial::{UsfScaleLayer, UsfTravelNeighborhood, UsfViewContext, UsfViewRenderAnchor},
     ui::{UiTextRole, UiTheme},
 };
 
@@ -142,7 +142,7 @@ fn update_fps_counter(
 }
 
 fn update_player_status(
-    view: Res<UsfViewFrame>,
+    view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     player: Single<
         (
             &UsfManifestationOf,

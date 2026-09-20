@@ -25,7 +25,7 @@ pub(in crate::game::player) fn zoom_spatial_view(
     capture: Res<CursorCapture>,
     presentation: Res<PrimaryViewPresentation>,
     cruise: Single<&PlayerAdaptiveCruise, With<Player>>,
-    mut view: ResMut<UsfViewFrame>,
+    mut view: Single<&mut UsfViewContext, With<UsfViewRenderAnchor>>,
 ) {
     if cruise.active
         || presentation.is_embedded()

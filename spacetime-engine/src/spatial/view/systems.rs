@@ -2,17 +2,15 @@
 
 use super::*;
 
-pub(in crate::spatial) fn configure(app: &mut App) {
-    app.init_resource::<UsfViewFrame>();
-}
-
 /// Keeps the view anchored to an ordinary bounded runtime transform while
 /// deriving its semantic position through the current local physical frame.
-pub(in crate::spatial) fn sync_view_anchor(
+pub(in crate::spatial) fn sync_view_context(
     frame: Res<UsfSpatialFrame>,
     semantic_anchors: Query<&Transform, With<UsfViewAnchor>>,
-    render_anchors: Query<&Transform, With<UsfViewRenderAnchor>>,
-    mut view: ResMut<UsfViewFrame>,
+    mut observer: Single<
+        (&Transform, &mut UsfViewContext),
+        With<UsfViewRenderAnchor>,
+    >,
 ) {
     let mut semantic_anchors = semantic_anchors.iter();
     let Some(semantic_anchor) = semantic_anchors.next() else {
@@ -23,14 +21,7 @@ pub(in crate::spatial) fn sync_view_anchor(
         return;
     }
 
-    let mut render_anchors = render_anchors.iter();
-    let Some(render_anchor) = render_anchors.next() else {
-        return;
-    };
-    if render_anchors.next().is_some() {
-        error!("primary USF view has multiple render anchors");
-        return;
-    }
+    let (render_anchor, mut view) = observer.into_inner();
 
     let Ok(canonical) = frame
         .origin()
@@ -60,7 +51,7 @@ pub(in crate::spatial) fn sync_view_anchor(
 /// rotation/scale, so child compensation is translation-only. General rotated
 /// representation frames can later promote this to an explicit projection frame.
 pub(in crate::spatial) fn project_local_scale_presentations(
-    view: Res<UsfViewFrame>,
+    view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     active: Res<UsfActiveScaleLayer>,
     frames: Res<UsfScaleLayerFrames>,
     parents: Query<
@@ -109,7 +100,7 @@ pub(in crate::spatial) fn project_local_scale_presentations(
 /// `R * d / (R + d)`. The same compression is applied to object scale, preserving
 /// angular size while keeping arbitrarily distant representations inside `R`.
 pub(in crate::spatial) fn project_scenery_presentations(
-    view: Res<UsfViewFrame>,
+    view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     active: Res<UsfActiveScaleLayer>,
     frames: Res<UsfScaleLayerFrames>,
     mut presentations: Query<(
@@ -164,7 +155,7 @@ pub(in crate::spatial) fn project_scenery_presentations(
 }
 
 pub(in crate::spatial) fn project_scale_presentations(
-    view: Res<UsfViewFrame>,
+    view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     parents: Query<&Transform, Without<UsfScalePresentation>>,
     mut presentations: Query<(
         &UsfScalePresentation,

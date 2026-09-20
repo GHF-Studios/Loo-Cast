@@ -5,7 +5,7 @@ use bevy::prelude::*;
 
 use crate::{
     config::EngineConfig,
-    spatial::{UsfScaleLayer, UsfViewFrame},
+    spatial::{UsfScaleLayer, UsfViewContext, UsfViewRenderAnchor},
 };
 
 use super::{VoxelManifestation, VoxelManifestationRegistry};
@@ -16,7 +16,7 @@ use super::super::{
 pub(in crate::voxel) fn sync_manifestation_collision_residency(
     config: Res<EngineConfig>,
     mut commands: Commands,
-    view: Res<UsfViewFrame>,
+    view: Single<Ref<UsfViewContext>, With<UsfViewRenderAnchor>>,
     worlds: Query<(&VoxelWorld, &UsfScaleLayer)>,
     manifestation_roots: Query<Option<&Collider>, With<VoxelManifestation>>,
     registry: Res<VoxelManifestationRegistry>,
@@ -95,7 +95,7 @@ pub(super) fn publish_collider_manifestation(
 }
 
 fn manifestation_collider_proximity_squared(
-    view: &UsfViewFrame,
+    view: &UsfViewContext,
     address: VoxelMaterializationChunkAddress,
     layer: &UsfScaleLayer,
     interaction_radius_native: f32,
