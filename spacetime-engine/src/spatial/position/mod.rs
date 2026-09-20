@@ -438,23 +438,44 @@ impl UsfPosition {
     }
 
     fn normalize(&mut self) -> Result<(), UsfPositionError> {
+        // Do quotient/remainder arithmetic in f64 even though the stored local
+        // offset is f32. A large chunk carry cannot in general be represented
+        // exactly as f32; converting that integer carry back to f32 before
+        // subtraction can leave a bogus remainder outside [-500, 500).
+        let chunk_size = f64::from(USF_CHUNK_NATIVE_SIZE);
+        let half_chunk = chunk_size * 0.5;
+
         for axis in 0..3 {
             let offset = axis_f32(self.offset, axis);
             if !offset.is_finite() {
                 return Err(UsfPositionError::NonFiniteTranslation);
             }
 
-            let carry_f = ((offset + USF_CHUNK_NATIVE_SIZE * 0.5) / USF_CHUNK_NATIVE_SIZE).floor();
-            if carry_f < i64::MIN as f32 || carry_f > i64::MAX as f32 {
+            let offset_f64 = f64::from(offset);
+            let carry_f = ((offset_f64 + half_chunk) / chunk_size).floor();
+            if carry_f < i64::MIN as f64 || carry_f > i64::MAX as f64 {
                 return Err(UsfPositionError::TranslationTooLarge);
             }
-            let carry = carry_f as i64;
-            set_axis_f32(
-                &mut self.offset,
-                axis,
-                offset - carry as f32 * USF_CHUNK_NATIVE_SIZE,
-            );
 
+            let mut carry = carry_f as i64;
+            let mut local = (offset_f64 - carry as f64 * chunk_size) as f32;
+
+            // The exact f64 remainder is in [-500, 500), but the final f32 cast
+            // may round a value immediately below +500 to exactly +500. Repair
+            // the half-open canonical interval and keep the digit carry in sync.
+            if local >= USF_LOCAL_MAX_EXCLUSIVE {
+                local -= USF_CHUNK_NATIVE_SIZE;
+                carry = carry
+                    .checked_add(1)
+                    .ok_or(UsfPositionError::TranslationTooLarge)?;
+            } else if local < USF_LOCAL_MIN {
+                local += USF_CHUNK_NATIVE_SIZE;
+                carry = carry
+                    .checked_sub(1)
+                    .ok_or(UsfPositionError::TranslationTooLarge)?;
+            }
+
+            set_axis_f32(&mut self.offset, axis, local);
             self.add_chunk_carry(axis, carry)?;
         }
 

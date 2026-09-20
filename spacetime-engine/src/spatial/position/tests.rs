@@ -169,3 +169,45 @@ fn scale_coordinate_projection_uses_requested_native_units() {
     assert!((coordinate.y - 0.18).abs() < 1.0e-5);
     assert!((coordinate.z - 0.22).abs() < 1.0e-5);
 }
+
+
+#[test]
+fn large_float_translation_keeps_local_offset_canonical() {
+    // Large enough that an integer chunk carry is no longer exactly
+    // representable as f32. The old normalize() converted the carry back to
+    // f32 before subtracting it, which could manufacture an invalid remainder.
+    let translations = [
+        16_777_216_000.0_f32,
+        67_108_864_000.0_f32,
+        -16_777_216_000.0_f32,
+        -67_108_864_000.0_f32,
+    ];
+
+    for x in translations {
+        let position = UsfPosition::default()
+            .translated_native(Vec3::new(x, 0.0, 0.0))
+            .unwrap();
+
+        assert!(
+            position.offset().x >= USF_LOCAL_MIN,
+            "x={x:e}, local={}",
+            position.offset().x,
+        );
+        assert!(
+            position.offset().x < USF_LOCAL_MAX_EXCLUSIVE,
+            "x={x:e}, local={}",
+            position.offset().x,
+        );
+    }
+}
+
+#[test]
+fn normalization_keeps_positive_boundary_half_open() {
+    let just_below = f32::from_bits(500.0_f32.to_bits() - 1);
+    let position = UsfPosition::default()
+        .translated_native(Vec3::new(1_000.0 + just_below, 0.0, 0.0))
+        .unwrap();
+
+    assert!(position.offset().x >= USF_LOCAL_MIN);
+    assert!(position.offset().x < USF_LOCAL_MAX_EXCLUSIVE);
+}
