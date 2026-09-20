@@ -64,8 +64,8 @@ pub(super) fn configure(app: &mut App) {
         ConsoleCommandSpec {
             name: "speed",
             aliases: &["movespeed", "travel-speed"],
-            usage: "speed [<native-units-per-second>|reset]",
-            summary: "Show or set player travel speed in the current USF chart; scientific notation is accepted.",
+            usage: "speed [<S0-units-per-second>|reset]",
+            summary: "Show or set canonical player travel speed in S0 units/s; scientific notation is accepted.",
         },
         speed_command,
     )
@@ -207,55 +207,43 @@ fn speed_command(
 ) -> ConsoleCommandResult {
     let requested = invocation.args().first().map(String::as_str);
 
-    let mut query = world.query_filtered::<
-        (&mut PlayerTravelSpeed, &UsfScaleLayer),
-        With<Player>,
-    >();
+    let mut query =
+        world.query_filtered::<(&mut PlayerTravelSpeed, &UsfScaleLayer), With<Player>>();
     let Some((mut speed, layer)) = query.iter_mut(world).next() else {
         return ConsoleCommandResult::error("player travel-speed state is unavailable");
     };
     let scale = layer.scale();
 
     if invocation.args().len() > 1 {
-        return ConsoleCommandResult::error(
-            "usage: speed [<native-units-per-second>|reset]",
-        );
+        return ConsoleCommandResult::error("usage: speed [<S0-units-per-second>|reset]");
     }
 
     if let Some(raw) = requested {
         if raw.eq_ignore_ascii_case("reset") {
-            *speed = PlayerTravelSpeed::default_for_scale(scale);
+            *speed = PlayerTravelSpeed::default();
         } else {
             let Ok(parsed) = raw.parse::<f64>() else {
                 return ConsoleCommandResult::error(format!(
                     "invalid speed `{raw}`; scientific notation such as 1e-3 or 2.5e4 is accepted"
                 ));
             };
-            if !parsed.is_finite() || parsed < 0.0 || parsed > f32::MAX as f64 {
+            if !parsed.is_finite() || parsed < 0.0 {
                 return ConsoleCommandResult::error(
-                    "speed must be a finite non-negative f32-range value",
+                    "speed must be a finite non-negative S0 units/s value",
                 );
             }
 
-            let native = parsed as f32;
-            if parsed > 0.0 && native == 0.0 {
-                return ConsoleCommandResult::error(
-                    "speed is smaller than the runtime chart can represent",
-                );
-            }
-            speed.native_units_per_second = native;
+            speed.scale0_units_per_second = parsed;
         }
     }
 
-    let native = speed.native_units_per_second;
-    let scale0_equivalent =
-        f64::from(native) * 10.0_f64.powi(scale.exponent() as i32);
+    let scale0 = speed.scale0_units_per_second;
+    let native = speed.native_units_per_second(scale);
 
     ConsoleCommandResult::success_and_return_to_gameplay(format!(
-        "travel speed = {native:.6e} S{scale} units/s (~{scale0_equivalent:.6e} S0 units/s)"
+        "travel speed = {scale0:.6e} S0 units/s (~{native:.6e} S{scale} units/s)"
     ))
 }
-
 
 fn cruise_command(
     world: &mut World,

@@ -59,36 +59,31 @@ pub struct PlayerNoclip {
     pub active: bool,
 }
 
-/// Player-commanded base travel speed in the active USF chart's native units.
+/// Player-commanded canonical travel speed.
 ///
-/// This is input intent, not a physics material/configuration value. Character
-/// acceleration/friction/gravity remain owned by CharacterMovementConfig while
-/// noclip and other travel adapters consume the same requested base speed.
+/// The value is always stored in S0 units/s. Runtime movement adapters project
+/// it into the currently active USF chart only when applying movement, so a
+/// representation/scale change cannot change the effective commanded velocity.
 #[derive(Component, Reflect, Debug, Clone, Copy)]
 #[reflect(Component)]
 pub struct PlayerTravelSpeed {
-    pub native_units_per_second: f32,
+    pub scale0_units_per_second: f64,
 }
 
 impl PlayerTravelSpeed {
-    pub fn default_for_scale(scale: crate::spatial::SpatialScale) -> Self {
-        // Local character scales start with the Source-like walking speed.
-        // Coarser charts default to a controllable inspection/travel speed.
-        let native_units_per_second = if scale.exponent() <= 4 {
-            8.128
-        } else {
-            0.05
-        };
-        Self {
-            native_units_per_second,
-        }
+    pub const DEFAULT_SCALE0_UNITS_PER_SECOND: f64 = 8.128;
+
+    pub fn native_units_per_second(self, scale: crate::spatial::SpatialScale) -> f32 {
+        let native =
+            self.scale0_units_per_second / 10.0_f64.powi(scale.exponent() as i32);
+        native.clamp(0.0, f32::MAX as f64) as f32
     }
 }
 
 impl Default for PlayerTravelSpeed {
     fn default() -> Self {
         Self {
-            native_units_per_second: 8.128,
+            scale0_units_per_second: Self::DEFAULT_SCALE0_UNITS_PER_SECOND,
         }
     }
 }
@@ -104,7 +99,9 @@ pub struct PlayerAdaptiveCruise {
     pub throttle: f32,
     pub speed_scale0: f64,
     pub speed_cap_scale0: f64,
-    pub nearest_clearance_scale0: Option<f64>,
+    pub default_speed_scale0: f64,
+    pub nearest_hard_clearance_scale0: Option<f64>,
+    pub medium_speed_cap_scale0: Option<f64>,
 }
 
 impl Default for PlayerAdaptiveCruise {
@@ -114,7 +111,9 @@ impl Default for PlayerAdaptiveCruise {
             throttle: 0.0,
             speed_scale0: 0.0,
             speed_cap_scale0: 0.0,
-            nearest_clearance_scale0: None,
+            default_speed_scale0: 0.0,
+            nearest_hard_clearance_scale0: None,
+            medium_speed_cap_scale0: None,
         }
     }
 }

@@ -265,7 +265,10 @@ fn spawn_galaxy(
         center,
         Quat::from_euler(EulerRot::XYZ, 0.10, 0.0, -0.28),
     );
-    commands.entity(galaxy_disk).insert(UsfTravelInfluence::new(
+    // A galaxy is broad semantic/discovery context, not a solid body.
+    // Finer contents (clouds, systems, stars...) provide the actual travel
+    // constraints as they become locally relevant.
+    commands.entity(galaxy_disk).insert(UsfTravelInfluence::region(
         center,
         scale(GALAXY_SCALE),
         310.0,
@@ -281,7 +284,8 @@ fn spawn_galaxy(
         Quat::IDENTITY,
     );
 
-    let cloud_mesh = meshes.add(Sphere::new(5.0 + density * 4.0));
+    let cloud_radius = 5.0 + density * 4.0;
+    let cloud_mesh = meshes.add(Sphere::new(cloud_radius));
     for arm in 0..3 {
         for step in 0..12 {
             let t = step as f64 / 11.0;
@@ -293,7 +297,7 @@ fn spawn_galaxy(
                     ((step * 17 + arm * 11) as f64).sin() * 3.5,
                     angle.sin() * radius,
                 );
-            scenery_entity(
+            let cloud = scenery_entity(
                 commands,
                 parent,
                 format!("Galaxy Arm {arm} Cloud {step}"),
@@ -303,6 +307,18 @@ fn spawn_galaxy(
                 absolute,
                 Quat::IDENTITY,
             );
+            // Nebula-like material is traversable. Its enclosing sphere only
+            // tells navigation where the medium exists; speed inside is derived
+            // from local feature size plus gas/turbulence/hazard proxies.
+            commands.entity(cloud).insert(UsfTravelInfluence::medium(
+                absolute,
+                scale(GALAXY_SCALE),
+                cloud_radius as f64,
+                cloud_radius as f64 * 0.25,
+                state.gas_fraction,
+                state.turbulence,
+                state.star_formation_potential * 0.35,
+            ));
         }
     }
 }
@@ -341,7 +357,7 @@ fn spawn_stellar_system(
         sun_center,
         Quat::IDENTITY,
     );
-    commands.entity(sun).insert(UsfTravelInfluence::new(
+    commands.entity(sun).insert(UsfTravelInfluence::hard_body(
         sun_center,
         system_scale,
         sun_radius as f64,
@@ -356,7 +372,7 @@ fn spawn_stellar_system(
         earth_center,
         Quat::from_rotation_y(0.45),
     );
-    commands.entity(earth).insert(UsfTravelInfluence::new(
+    commands.entity(earth).insert(UsfTravelInfluence::hard_body(
         earth_center,
         system_scale,
         earth_radius as f64,
@@ -402,7 +418,7 @@ fn spawn_stellar_system(
         Name::new("Rigged Moon"),
         ChildOf(parent),
         UsfSceneryPresentation::new(moon_center, system_scale),
-        UsfTravelInfluence::new(moon_center, system_scale, MOON_RADIUS as f64),
+        UsfTravelInfluence::hard_body(moon_center, system_scale, MOON_RADIUS as f64),
         UsfDistanceMeshLod::new(
             MOON_RADIUS as f64,
             [

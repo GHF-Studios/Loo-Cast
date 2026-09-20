@@ -142,7 +142,6 @@ fn negative_translation_uses_balanced_decimal_carry() {
     assert_eq!(position.offset().x, 400.0);
     assert_eq!(position.digit(SpatialScale::ZERO).x, -1);
 }
-}
 
 #[test]
 fn reexpressing_position_across_scales_preserves_location() {

@@ -8,7 +8,7 @@ use crate::{
         health::Health,
         player::{Player, PlayerAdaptiveCruise, PlayerTravelSpeed},
     },
-    spatial::{UsfScaleLayer, UsfViewFrame},
+    spatial::{UsfScaleLayer, UsfTravelNeighborhood, UsfViewFrame},
     ui::{UiTextRole, UiTheme},
 };
 
@@ -149,6 +149,7 @@ fn update_player_status(
             &UsfScaleLayer,
             &PlayerTravelSpeed,
             &PlayerAdaptiveCruise,
+            &UsfTravelNeighborhood,
         ),
         With<Player>,
     >,
@@ -156,7 +157,7 @@ fn update_player_status(
     roots: Query<&Children, With<PlayerStatus>>,
     mut texts: Query<&mut Text>,
 ) {
-    let (manifestation, layer, manual_speed, cruise) = player.into_inner();
+    let (manifestation, layer, manual_speed, cruise, neighborhood) = player.into_inner();
     let Some(children) = roots.iter().next() else { return; };
     let Some(child) = children.iter().next() else { return; };
     let Ok(mut text) = texts.get_mut(child) else { return; };
@@ -167,23 +168,32 @@ fn update_player_status(
         .unwrap_or_else(|_| "--".to_string());
 
     if cruise.active {
-        let clearance = cruise
-            .nearest_clearance_scale0
+        let hard_clearance = cruise
+            .nearest_hard_clearance_scale0
             .map(|value| format!("{value:.2e}"))
             .unwrap_or_else(|| "INF".to_string());
+        let medium_cap = cruise
+            .medium_speed_cap_scale0
+            .map(|value| format!("{value:.2e}"))
+            .unwrap_or_else(|| "--".to_string());
         text.0 = format!(
-            "HEALTH {health}\nCRUISE {:>3.0}%  {:.2e} S0/s\nCAP {:.2e}  CLR {}  VIEW {:+.2}",
+            "HEALTH {health}\nCRUISE {:>3.0}%  {:.2e} S0/s\nDEF {:.2e}  CAP {:.2e}\nHARD {}  MED {}  NBR {:>2}  VIEW {:+.2}",
             cruise.throttle * 100.0,
             cruise.speed_scale0,
+            cruise.default_speed_scale0,
             cruise.speed_cap_scale0,
-            clearance,
+            hard_clearance,
+            medium_cap,
+            neighborhood.len(),
             view.continuous_exponent(),
         );
     } else {
+        let native_speed = manual_speed.native_units_per_second(layer.scale());
         text.0 = format!(
-            "HEALTH {health}\nMANUAL  S{}  {:.3e} u/s  VIEW {:+.2}",
+            "HEALTH {health}\nMANUAL {:.3e} S0/s\nNATIVE S{} {:.3e} u/s  VIEW {:+.2}",
+            manual_speed.scale0_units_per_second,
             layer.scale(),
-            manual_speed.native_units_per_second,
+            native_speed,
             view.continuous_exponent(),
         );
     }

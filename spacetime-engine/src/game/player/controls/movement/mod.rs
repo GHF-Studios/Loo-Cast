@@ -16,6 +16,7 @@ pub(in crate::game::player) fn movement(
             &PlayerController,
             &PlayerStance,
             &PlayerNoclip,
+            &UsfScaleLayer,
             &PlayerTravelSpeed,
             &PlayerAdaptiveCruise,
             &CharacterMovementConfig,
@@ -33,6 +34,7 @@ pub(in crate::game::player) fn movement(
         controller,
         stance,
         noclip,
+        layer,
         travel_speed,
         cruise,
         movement_config,
@@ -60,7 +62,7 @@ pub(in crate::game::player) fn movement(
     } else {
         1.0
     };
-    let base_speed = travel_speed.native_units_per_second.max(0.0);
+    let base_speed = travel_speed.native_units_per_second(layer.scale());
     let speed_multiplier = if movement_config.max_ground_speed > f32::EPSILON {
         stance_multiplier * base_speed / movement_config.max_ground_speed
     } else {
@@ -103,6 +105,7 @@ pub(in crate::game::player) fn noclip_movement(
             &PlayerAim,
             &PlayerController,
             &PlayerNoclip,
+            &UsfScaleLayer,
             &PlayerTravelSpeed,
             &PlayerAdaptiveCruise,
             Option<&PlayerScaleNavigation>,
@@ -119,6 +122,7 @@ pub(in crate::game::player) fn noclip_movement(
         aim,
         controller,
         noclip,
+        layer,
         travel_speed,
         cruise,
         scale_navigation,
@@ -153,8 +157,10 @@ pub(in crate::game::player) fn noclip_movement(
         1.0
     };
 
-    body.translation +=
-        wish * travel_speed.native_units_per_second.max(0.0) * boost * time.delta_secs();
+    body.translation += wish
+        * travel_speed.native_units_per_second(layer.scale())
+        * boost
+        * time.delta_secs();
     velocity.0 = Vec3::ZERO;
 }
 
@@ -175,6 +181,7 @@ pub(in crate::game::player) fn scale_navigation_movement(
             Option<&PlayerDead>,
             &PlayerAim,
             &PlayerScaleNavigation,
+            &UsfScaleLayer,
             &PlayerTravelSpeed,
             &PlayerAdaptiveCruise,
             Option<&mut LinearVelocity>,
@@ -182,8 +189,17 @@ pub(in crate::game::player) fn scale_navigation_movement(
         With<Player>,
     >,
 ) {
-    let (mut body, control, dead, aim, _navigation, travel_speed, cruise, velocity) =
-        player.into_inner();
+    let (
+        mut body,
+        control,
+        dead,
+        aim,
+        _navigation,
+        layer,
+        travel_speed,
+        cruise,
+        velocity,
+    ) = player.into_inner();
 
     if dead.is_some() || cruise.active || gameplay_suppressed(&keyboard, &capture) {
         return;
@@ -210,8 +226,10 @@ pub(in crate::game::player) fn scale_navigation_movement(
         1.0
     };
 
-    body.translation +=
-        wish * travel_speed.native_units_per_second.max(0.0) * boost * time.delta_secs();
+    body.translation += wish
+        * travel_speed.native_units_per_second(layer.scale())
+        * boost
+        * time.delta_secs();
     if let Some(mut velocity) = velocity {
         velocity.0 = Vec3::ZERO;
     }

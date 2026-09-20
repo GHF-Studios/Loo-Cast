@@ -56,8 +56,9 @@ pub(super) fn spawn_player(
             (
                 PlayerStance::default(),
                 PlayerNoclip::default(),
-                PlayerTravelSpeed::default_for_scale(SpatialScale::MAX),
+                PlayerTravelSpeed::default(),
                 PlayerAdaptiveCruise::default(),
+                UsfTravelNeighborhood::default(),
                 // View/control state belongs to the player independently, while
                 // CharacterMotor remains legal at every USF scale.
                 CharacterControlFrame::default(),

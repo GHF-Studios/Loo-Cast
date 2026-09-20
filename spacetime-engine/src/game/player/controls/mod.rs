@@ -15,7 +15,10 @@ use crate::{
         CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame, CharacterMotor,
         CharacterMovementConfig, CharacterMovementInput,
     },
-    spatial::{SpatialDemandSource, SpatialScale, UsfScaleLayer, UsfScaleLayerFrames, UsfTravelInfluence, UsfViewFrame},
+    spatial::{
+        SpatialDemandSource, SpatialScale, UsfScaleLayer, UsfScaleLayerFrames, UsfTravelInfluence,
+        UsfTravelInfluenceKind, UsfTravelNeighborhood, UsfViewFrame,
+    },
     view::PrimaryViewPresentation,
 };
 

@@ -78,4 +78,3 @@ fn derive_describes_fields_without_leaking_non_direct_mutability() {
     assert_eq!(value.temperature_kelvin, 350.0);
     assert_eq!(value.cache, 7);
 }
-}

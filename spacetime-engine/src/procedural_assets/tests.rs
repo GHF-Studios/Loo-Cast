@@ -18,4 +18,4 @@ fn regenerated_texture_set_keeps_expected_pixel_storage() {
         assert_eq!(image.data.as_ref().unwrap().len(), expected);
     }
 }
-}
+
