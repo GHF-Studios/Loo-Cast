@@ -6,11 +6,11 @@
 
 use std::any::Any;
 
-use bevy::{color::LinearRgba, math::DVec3, prelude::*};
+use bevy::{color::LinearRgba, math::DVec3, mesh::VertexAttributeValues, prelude::*};
 
 use crate::{
     procedural_assets::ProceduralAssetLibrary,
-    spatial::{SpatialScale, UsfPosition, UsfSceneryPresentation},
+    spatial::{SpatialScale, UsfDistanceMeshLod, UsfPosition, UsfSceneryPresentation},
     voxel::VoxelQueryPosition,
     worldgen::{
         COSMIC_MATTER_DISTRIBUTION, ECOLOGY, GALAXY_INTERSTELLAR_MEDIUM, PLANETARY_BODY,
@@ -373,16 +373,116 @@ fn spawn_stellar_system(
         metallic: 0.0,
         ..default()
     });
-    scenery_entity(
-        commands,
-        parent,
-        "Rigged Moon",
-        meshes.add(Sphere::new(MOON_RADIUS)),
-        moon_material,
-        system_scale,
-        moon_center,
-        Quat::from_rotation_y(-0.8),
-    );
+    // One semantic Moon, several disposable geometric representations.
+    //
+    // Every level samples the same deterministic macro surface. Finer levels
+    // increase tessellation and add higher-frequency relief, so approach reveals
+    // actual structure rather than merely swapping one smooth sphere for another.
+    let moon_far = meshes.add(lunar_surface_mesh(MOON_RADIUS, 2, 0));
+    let moon_low = meshes.add(lunar_surface_mesh(MOON_RADIUS, 3, 1));
+    let moon_medium = meshes.add(lunar_surface_mesh(MOON_RADIUS, 4, 2));
+    let moon_high = meshes.add(lunar_surface_mesh(MOON_RADIUS, 5, 3));
+
+    commands.spawn((
+        Name::new("Rigged Moon"),
+        ChildOf(parent),
+        UsfSceneryPresentation::new(moon_center, system_scale),
+        UsfDistanceMeshLod::new(
+            MOON_RADIUS as f64,
+            [
+                (14.0, moon_high.clone()),
+                (45.0, moon_medium),
+                (140.0, moon_low),
+                (f64::INFINITY, moon_far.clone()),
+            ],
+        ),
+        Mesh3d(moon_far),
+        MeshMaterial3d(moon_material),
+        Transform::from_rotation(Quat::from_rotation_y(-0.8)),
+        Visibility::Inherited,
+    ));
+}
+
+fn lunar_surface_mesh(radius: f32, subdivisions: u32, detail: u8) -> Mesh {
+    let mut mesh = Sphere::new(radius)
+        .mesh()
+        .ico(subdivisions)
+        .expect("lunar icosphere subdivision is valid");
+
+    let Some(VertexAttributeValues::Float32x3(positions)) =
+        mesh.attribute_mut(Mesh::ATTRIBUTE_POSITION)
+    else {
+        panic!("lunar icosphere positions must be Float32x3");
+    };
+
+    for position in positions {
+        let direction = Vec3::from_array(*position).normalize_or_zero();
+        if direction == Vec3::ZERO {
+            continue;
+        }
+
+        let relief = lunar_relative_relief(direction, detail);
+        *position = (direction * radius * (1.0 + relief)).to_array();
+    }
+
+    mesh.compute_smooth_normals();
+    mesh
+}
+
+/// Deterministic lunar-looking radial displacement.
+///
+/// This is a presentation recipe, not authoritative geology. Large features are
+/// shared by every LOD; progressively finer bands become available as mesh
+/// tessellation can actually represent them.
+fn lunar_relative_relief(direction: Vec3, detail: u8) -> f32 {
+    let mut height =
+        (direction.dot(Vec3::new(1.7, -2.3, 0.9)) * 5.0).sin() * 0.0014
+        + (direction.dot(Vec3::new(-3.1, 0.7, 2.4)) * 8.0).sin() * 0.0008;
+
+    let craters = [
+        (Vec3::new(0.82, 0.21, 0.53), 0.36_f32, 0.0100_f32),
+        (Vec3::new(-0.51, 0.70, 0.49), 0.27, 0.0070),
+        (Vec3::new(0.18, -0.88, 0.44), 0.23, 0.0060),
+        (Vec3::new(-0.77, -0.23, -0.59), 0.19, 0.0048),
+        (Vec3::new(0.39, 0.48, -0.79), 0.16, 0.0040),
+        (Vec3::new(-0.08, -0.35, 0.93), 0.13, 0.0034),
+        (Vec3::new(0.63, -0.66, -0.40), 0.11, 0.0028),
+        (Vec3::new(-0.33, 0.14, -0.93), 0.095, 0.0024),
+    ];
+
+    for (raw_center, crater_radius, depth) in craters {
+        let center = raw_center.normalize();
+        let distance = direction.distance(center);
+        let q = distance / crater_radius;
+
+        if q < 1.0 {
+            let bowl = 1.0 - q * q;
+            height -= depth * bowl * bowl;
+        }
+
+        let rim_distance = ((q - 1.0) / 0.22).abs();
+        if rim_distance < 1.0 {
+            let rim = 1.0 - rim_distance;
+            height += depth * 0.28 * rim * rim;
+        }
+    }
+
+    if detail >= 1 {
+        height +=
+            (direction.dot(Vec3::new(4.3, 7.1, -5.2)) * 18.0).sin() * 0.00055
+            + (direction.dot(Vec3::new(-6.7, 2.9, 5.6)) * 23.0).cos() * 0.00035;
+    }
+    if detail >= 2 {
+        height +=
+            (direction.dot(Vec3::new(11.1, -8.7, 6.3)) * 41.0).sin() * 0.00020
+            + (direction.dot(Vec3::new(-9.4, 12.6, 7.8)) * 53.0).cos() * 0.00014;
+    }
+    if detail >= 3 {
+        height +=
+            (direction.dot(Vec3::new(17.0, 13.0, -19.0)) * 83.0).sin() * 0.00008;
+    }
+
+    height
 }
 
 fn spawn_local_ecology(

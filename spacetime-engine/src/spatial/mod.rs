@@ -28,8 +28,8 @@ pub use transition::{
     UsfSpatialTransitionQueue, UsfTransitionVelocity,
 };
 pub use view::{
-    UsfLocalScalePresentation, UsfScalePresentation, UsfSceneryPresentation, UsfViewAnchor,
-    UsfViewFrame,
+    UsfDistanceMeshLod, UsfLocalScalePresentation, UsfScalePresentation,
+    UsfSceneryPresentation, UsfViewAnchor, UsfViewFrame,
 };
 
 use avian3d::prelude::Position;
@@ -146,7 +146,9 @@ impl Plugin for UsfSpatialPlugin {
                     view::project_local_scale_presentations,
                     view::project_scale_presentations,
                     view::project_scenery_presentations,
+                    view::select_distance_mesh_lods,
                 )
+                    .chain()
                     .in_set(UsfSpatialSet::ViewProjection),
             );
 

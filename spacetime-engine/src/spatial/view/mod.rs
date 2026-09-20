@@ -268,8 +268,12 @@ impl UsfViewFrame {
 
 }
 
+mod lod;
 mod systems;
 
+pub use lod::UsfDistanceMeshLod;
+
+pub(super) use lod::select_distance_mesh_lods;
 pub(super) use systems::{
     configure, project_local_scale_presentations, project_scale_presentations,
     project_scenery_presentations, sync_view_anchor,
