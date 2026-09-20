@@ -7,6 +7,7 @@
 mod demand;
 mod devtools;
 mod layer;
+mod navigation;
 mod position;
 mod transition;
 mod view;
@@ -15,6 +16,7 @@ pub use demand::{
     SpatialDemandScope, SpatialDemandSet, SpatialDemandSnapshot, SpatialDemandSource,
 };
 pub(crate) use devtools::SPATIAL_DEMAND_VISUALIZATION;
+pub use navigation::UsfTravelInfluence;
 pub use layer::{
     UsfActiveScaleLayer, UsfChartMask, UsfFollowsActiveScale, UsfScaleLayer,
     UsfScaleLayerFrames,

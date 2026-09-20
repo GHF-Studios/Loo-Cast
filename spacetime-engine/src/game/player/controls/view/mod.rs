@@ -24,9 +24,11 @@ pub(in crate::game::player) fn zoom_spatial_view(
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
     presentation: Res<PrimaryViewPresentation>,
+    cruise: Single<&PlayerAdaptiveCruise, With<Player>>,
     mut view: ResMut<UsfViewFrame>,
 ) {
-    if presentation.is_embedded()
+    if cruise.active
+        || presentation.is_embedded()
         || gameplay_suppressed(&keyboard, &capture)
         || scroll.delta.y == 0.0
     {

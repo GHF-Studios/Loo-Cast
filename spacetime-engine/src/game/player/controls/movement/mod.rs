@@ -17,6 +17,7 @@ pub(in crate::game::player) fn movement(
             &PlayerStance,
             &PlayerNoclip,
             &PlayerTravelSpeed,
+            &PlayerAdaptiveCruise,
             &CharacterMovementConfig,
             Option<&PlayerScaleNavigation>,
             &mut CharacterMovementInput,
@@ -33,6 +34,7 @@ pub(in crate::game::player) fn movement(
         stance,
         noclip,
         travel_speed,
+        cruise,
         movement_config,
         scale_navigation,
         mut input,
@@ -41,6 +43,7 @@ pub(in crate::game::player) fn movement(
     if dead.is_some()
         || gameplay_suppressed(&keyboard, &capture)
         || noclip.active
+        || cruise.active
         || scale_navigation.is_some()
     {
         input.clear();
@@ -101,6 +104,7 @@ pub(in crate::game::player) fn noclip_movement(
             &PlayerController,
             &PlayerNoclip,
             &PlayerTravelSpeed,
+            &PlayerAdaptiveCruise,
             Option<&PlayerScaleNavigation>,
             &mut LinearVelocity,
         ),
@@ -116,12 +120,14 @@ pub(in crate::game::player) fn noclip_movement(
         controller,
         noclip,
         travel_speed,
+        cruise,
         scale_navigation,
         mut velocity,
     ) = player.into_inner();
 
     if dead.is_some()
         || !noclip.active
+        || cruise.active
         || scale_navigation.is_some()
         || gameplay_suppressed(&keyboard, &capture)
     {
@@ -170,15 +176,16 @@ pub(in crate::game::player) fn scale_navigation_movement(
             &PlayerAim,
             &PlayerScaleNavigation,
             &PlayerTravelSpeed,
+            &PlayerAdaptiveCruise,
             Option<&mut LinearVelocity>,
         ),
         With<Player>,
     >,
 ) {
-    let (mut body, control, dead, aim, _navigation, travel_speed, velocity) =
+    let (mut body, control, dead, aim, _navigation, travel_speed, cruise, velocity) =
         player.into_inner();
 
-    if dead.is_some() || gameplay_suppressed(&keyboard, &capture) {
+    if dead.is_some() || cruise.active || gameplay_suppressed(&keyboard, &capture) {
         return;
     }
 

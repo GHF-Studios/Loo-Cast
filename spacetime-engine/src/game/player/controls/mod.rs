@@ -15,13 +15,13 @@ use crate::{
         CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame, CharacterMotor,
         CharacterMovementConfig, CharacterMovementInput,
     },
-    spatial::{SpatialDemandSource, SpatialScale, UsfViewFrame},
+    spatial::{SpatialDemandSource, SpatialScale, UsfScaleLayer, UsfScaleLayerFrames, UsfTravelInfluence, UsfViewFrame},
     view::PrimaryViewPresentation,
 };
 
 use super::{
-    Player, PlayerAim, PlayerController, PlayerDead, PlayerNoclip, PlayerScaleNavigation,
-    PlayerStance, PlayerTravelSpeed, cursor::CursorCapture,
+    Player, PlayerAdaptiveCruise, PlayerAim, PlayerController, PlayerDead, PlayerNoclip,
+    PlayerScaleNavigation, PlayerStance, PlayerTravelSpeed, cursor::CursorCapture,
 };
 
 pub(super) fn gameplay_suppressed(
@@ -33,10 +33,14 @@ pub(super) fn gameplay_suppressed(
         || keyboard.just_pressed(KeyCode::Escape)
 }
 
+mod cruise;
 mod modes;
 mod movement;
 mod view;
 
-pub(super) use modes::{sync_locomotion_mode, toggle_noclip, toggle_spatial_demand};
+pub(super) use cruise::adaptive_cruise_movement;
+pub(super) use modes::{
+    sync_locomotion_mode, toggle_adaptive_cruise, toggle_noclip, toggle_spatial_demand,
+};
 pub(super) use movement::{movement, noclip_movement, scale_navigation_movement};
 pub(super) use view::{look, zoom_spatial_view};

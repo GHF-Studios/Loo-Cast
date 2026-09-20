@@ -12,6 +12,7 @@ pub(in crate::game::player) fn toggle_noclip(
             Entity,
             Option<&PlayerDead>,
             &mut PlayerNoclip,
+            &mut PlayerAdaptiveCruise,
             Option<&PlayerScaleNavigation>,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
@@ -24,19 +25,75 @@ pub(in crate::game::player) fn toggle_noclip(
         return;
     }
 
-    let (entity, dead, mut noclip, scale_navigation, mut input, mut ground, mut velocity) =
-        player.into_inner();
+    let (
+        entity,
+        dead,
+        mut noclip,
+        mut cruise,
+        scale_navigation,
+        mut input,
+        mut ground,
+        mut velocity,
+    ) = player.into_inner();
     if dead.is_some() || scale_navigation.is_some() {
         return;
     }
 
     noclip.active = !noclip.active;
+    if noclip.active {
+        cruise.active = false;
+        cruise.speed_scale0 = 0.0;
+    }
     input.clear();
     velocity.0 = Vec3::ZERO;
     ground.grounded = false;
     ground.ground_entity = None;
 
     if noclip.active {
+        commands.entity(entity).remove::<CharacterMotor>();
+    } else {
+        commands.entity(entity).insert(CharacterMotor);
+    }
+}
+
+/// `C` toggles adaptive long-distance Cruise.
+pub(in crate::game::player) fn toggle_adaptive_cruise(
+    mut commands: Commands,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    capture: Res<CursorCapture>,
+    player: Single<
+        (
+            Entity,
+            Option<&PlayerDead>,
+            &mut PlayerAdaptiveCruise,
+            &mut PlayerNoclip,
+            &mut CharacterMovementInput,
+            &mut CharacterGroundState,
+            &mut LinearVelocity,
+        ),
+        With<Player>,
+    >,
+) {
+    if gameplay_suppressed(&keyboard, &capture) || !keyboard.just_pressed(KeyCode::KeyC) {
+        return;
+    }
+
+    let (entity, dead, mut cruise, mut noclip, mut input, mut ground, mut velocity) =
+        player.into_inner();
+    if dead.is_some() {
+        return;
+    }
+
+    cruise.active = !cruise.active;
+    cruise.throttle = 0.0;
+    cruise.speed_scale0 = 0.0;
+    noclip.active = false;
+    input.clear();
+    velocity.0 = Vec3::ZERO;
+    ground.grounded = false;
+    ground.ground_entity = None;
+
+    if cruise.active {
         commands.entity(entity).remove::<CharacterMotor>();
     } else {
         commands.entity(entity).insert(CharacterMotor);
@@ -69,14 +126,15 @@ pub(in crate::game::player) fn sync_locomotion_mode(
         (
             Entity,
             &PlayerNoclip,
+            &PlayerAdaptiveCruise,
             Option<&PlayerScaleNavigation>,
             Option<&CharacterMotor>,
         ),
         With<Player>,
     >,
 ) {
-    let (entity, noclip, scale_navigation, motor) = player.into_inner();
-    let wants_character_motor = !noclip.active && scale_navigation.is_none();
+    let (entity, noclip, cruise, scale_navigation, motor) = player.into_inner();
+    let wants_character_motor = !noclip.active && !cruise.active && scale_navigation.is_none();
 
     match (wants_character_motor, motor.is_some()) {
         (true, false) => {

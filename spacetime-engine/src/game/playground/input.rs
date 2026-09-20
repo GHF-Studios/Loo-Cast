@@ -17,6 +17,7 @@ use crate::{
     },
     input_focus::InputFocus,
     physics::character::CharacterControlFrame,
+    view::PrimaryViewPresentation,
 };
 
 const CREATIVE_MENU_FOCUS_OWNER: &str = "creative_menu";
@@ -83,9 +84,11 @@ fn toggle_creative_menu(
 fn select_hotbar_slot(
     keyboard: Res<ButtonInput<KeyCode>>,
     menu: Res<CreativeMenuState>,
+    presentation: Res<PrimaryViewPresentation>,
+    capture: Res<CursorCapture>,
     mut hotbar: ResMut<Hotbar>,
 ) {
-    if menu.open {
+    if menu.open || presentation.is_embedded() || !capture.active() {
         return;
     }
 
@@ -99,10 +102,17 @@ fn select_hotbar_slot(
 fn scroll_hotbar(
     scroll: Res<AccumulatedMouseScroll>,
     menu: Res<CreativeMenuState>,
+    presentation: Res<PrimaryViewPresentation>,
+    capture: Res<CursorCapture>,
     camera: Single<&PlayerCamera>,
     mut hotbar: ResMut<Hotbar>,
 ) {
-    if menu.open || camera.mode == CameraMode::ThirdPerson || scroll.delta.y == 0.0 {
+    if menu.open
+        || presentation.is_embedded()
+        || !capture.active()
+        || camera.mode == CameraMode::ThirdPerson
+        || scroll.delta.y == 0.0
+    {
         return;
     }
 

@@ -21,7 +21,7 @@ use crate::{
 };
 
 use super::{
-    player::{Player, PlayerAim, PlayerTravelSpeed},
+    player::{Player, PlayerAdaptiveCruise, PlayerAim, PlayerNoclip, PlayerTravelSpeed},
     world::UniverseLandmarkIndex,
 };
 
@@ -68,6 +68,15 @@ pub(super) fn configure(app: &mut App) {
             summary: "Show or set player travel speed in the current USF chart; scientific notation is accepted.",
         },
         speed_command,
+    )
+    .register_console_command(
+        ConsoleCommandSpec {
+            name: "cruise",
+            aliases: &["supercruise"],
+            usage: "cruise [on|off]",
+            summary: "Toggle adaptive long-distance travel; W/S control throttle and scale follows automatically.",
+        },
+        cruise_command,
     )
     .register_console_command(
         ConsoleCommandSpec {
@@ -245,6 +254,48 @@ fn speed_command(
     ConsoleCommandResult::success_and_return_to_gameplay(format!(
         "travel speed = {native:.6e} S{scale} units/s (~{scale0_equivalent:.6e} S0 units/s)"
     ))
+}
+
+
+fn cruise_command(
+    world: &mut World,
+    invocation: &ConsoleCommandInvocation,
+) -> ConsoleCommandResult {
+    if invocation.args().len() > 1 {
+        return ConsoleCommandResult::error("usage: cruise [on|off]");
+    }
+
+    let mut query = world.query_filtered::<
+        (&mut PlayerAdaptiveCruise, &mut PlayerNoclip),
+        With<Player>,
+    >();
+    let Some((mut cruise, mut noclip)) = query.iter_mut(world).next() else {
+        return ConsoleCommandResult::error("player Cruise state is unavailable");
+    };
+
+    let active = match invocation.args().first().map(String::as_str) {
+        None => !cruise.active,
+        Some(value) if value.eq_ignore_ascii_case("on") => true,
+        Some(value) if value.eq_ignore_ascii_case("off") => false,
+        Some(value) => {
+            return ConsoleCommandResult::error(format!(
+                "invalid Cruise state `{value}`; expected on or off"
+            ));
+        }
+    };
+
+    cruise.active = active;
+    cruise.throttle = 0.0;
+    cruise.speed_scale0 = 0.0;
+    if active {
+        noclip.active = false;
+    }
+
+    ConsoleCommandResult::success_and_return_to_gameplay(if active {
+        "adaptive Cruise enabled — W/S throttle, mouse steers, scale is automatic"
+    } else {
+        "adaptive Cruise disabled"
+    })
 }
 
 fn teleport_command(

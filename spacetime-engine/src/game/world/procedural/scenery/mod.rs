@@ -10,7 +10,7 @@ use bevy::{color::LinearRgba, math::DVec3, mesh::VertexAttributeValues, prelude:
 
 use crate::{
     procedural_assets::ProceduralAssetLibrary,
-    spatial::{SpatialScale, UsfDistanceMeshLod, UsfPosition, UsfSceneryPresentation},
+    spatial::{SpatialScale, UsfDistanceMeshLod, UsfPosition, UsfSceneryPresentation, UsfTravelInfluence},
     voxel::VoxelQueryPosition,
     worldgen::{
         COSMIC_MATTER_DISTRIBUTION, ECOLOGY, GALAXY_INTERSTELLAR_MEDIUM, PLANETARY_BODY,
@@ -131,7 +131,7 @@ fn scenery_entity(
     scale: SpatialScale,
     absolute: DVec3,
     rotation: Quat,
-) {
+) -> Entity {
     commands.spawn((
         Name::new(name.into()),
         ChildOf(parent),
@@ -140,7 +140,7 @@ fn scenery_entity(
         MeshMaterial3d(material),
         Transform::from_rotation(rotation),
         Visibility::Inherited,
-    ));
+    )).id()
 }
 
 fn spawn_cosmic_web(
@@ -255,7 +255,7 @@ fn spawn_galaxy(
     });
 
     let center = DVec3::new(220.0, -8.0, -70.0);
-    scenery_entity(
+    let galaxy_disk = scenery_entity(
         commands,
         parent,
         "Host Galaxy Disk",
@@ -265,6 +265,11 @@ fn spawn_galaxy(
         center,
         Quat::from_euler(EulerRot::XYZ, 0.10, 0.0, -0.28),
     );
+    commands.entity(galaxy_disk).insert(UsfTravelInfluence::new(
+        center,
+        scale(GALAXY_SCALE),
+        310.0,
+    ));
     scenery_entity(
         commands,
         parent,
@@ -326,7 +331,7 @@ fn spawn_stellar_system(
     let sun_center = DVec3::new(-EARTH_ORBIT, 0.0, 0.0);
     let moon_center = earth_center + DVec3::new(MOON_ORBIT, 0.18, 0.22);
 
-    scenery_entity(
+    let sun = scenery_entity(
         commands,
         parent,
         "Rigged Sun",
@@ -336,7 +341,12 @@ fn spawn_stellar_system(
         sun_center,
         Quat::IDENTITY,
     );
-    scenery_entity(
+    commands.entity(sun).insert(UsfTravelInfluence::new(
+        sun_center,
+        system_scale,
+        sun_radius as f64,
+    ));
+    let earth = scenery_entity(
         commands,
         parent,
         "Rigged Earth",
@@ -346,6 +356,11 @@ fn spawn_stellar_system(
         earth_center,
         Quat::from_rotation_y(0.45),
     );
+    commands.entity(earth).insert(UsfTravelInfluence::new(
+        earth_center,
+        system_scale,
+        earth_radius as f64,
+    ));
 
     let atmosphere_material = materials.add(StandardMaterial {
         base_color: Color::srgba(0.22, 0.48, 1.0, 0.10 + planet.water_inventory * 0.06),
@@ -387,6 +402,7 @@ fn spawn_stellar_system(
         Name::new("Rigged Moon"),
         ChildOf(parent),
         UsfSceneryPresentation::new(moon_center, system_scale),
+        UsfTravelInfluence::new(moon_center, system_scale, MOON_RADIUS as f64),
         UsfDistanceMeshLod::new(
             MOON_RADIUS as f64,
             [

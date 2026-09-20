@@ -43,6 +43,7 @@ pub(super) fn spawn_player(
                 UsfManifestationAuthority,
                 UsfLogicalProjection,
                 UsfSpatialAnchor,
+                UsfViewAnchor,
                 UsfScaleLayer::new(SpatialScale::MAX),
                 UsfFollowsActiveScale,
                 ThermalSpatialSample,
@@ -56,6 +57,7 @@ pub(super) fn spawn_player(
                 PlayerStance::default(),
                 PlayerNoclip::default(),
                 PlayerTravelSpeed::default_for_scale(SpatialScale::MAX),
+                PlayerAdaptiveCruise::default(),
                 // View/control state belongs to the player independently, while
                 // CharacterMotor remains legal at every USF scale.
                 CharacterControlFrame::default(),
@@ -122,7 +124,6 @@ pub(super) fn spawn_player(
     commands.spawn((
         Name::new("Player Camera"),
         PlayerCamera::default(),
-        UsfViewAnchor,
         UsfScaleLayer::new(SpatialScale::MAX),
         UsfFollowsActiveScale,
         PrimaryGameView,

@@ -93,6 +93,32 @@ impl Default for PlayerTravelSpeed {
     }
 }
 
+/// Adaptive long-distance travel mode.
+///
+/// Cruise stores speed in canonical S0 units so changing runtime charts cannot
+/// change the actual travel rate.
+#[derive(Component, Reflect, Debug, Clone, Copy)]
+#[reflect(Component)]
+pub struct PlayerAdaptiveCruise {
+    pub active: bool,
+    pub throttle: f32,
+    pub speed_scale0: f64,
+    pub speed_cap_scale0: f64,
+    pub nearest_clearance_scale0: Option<f64>,
+}
+
+impl Default for PlayerAdaptiveCruise {
+    fn default() -> Self {
+        Self {
+            active: false,
+            throttle: 0.0,
+            speed_scale0: 0.0,
+            speed_cap_scale0: 0.0,
+            nearest_clearance_scale0: None,
+        }
+    }
+}
+
 /// Free-flight navigation for USF charts outside the local character domain.
 ///
 /// This is ordinary coarse-scale navigation, not developer noclip. Speed is in
