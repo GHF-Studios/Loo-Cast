@@ -15,7 +15,10 @@ pub use demand::{
     SpatialDemandScope, SpatialDemandSet, SpatialDemandSnapshot, SpatialDemandSource,
 };
 pub(crate) use devtools::SPATIAL_DEMAND_VISUALIZATION;
-pub use layer::{UsfActiveScaleLayer, UsfFollowsActiveScale, UsfScaleLayer, UsfScaleLayerFrames};
+pub use layer::{
+    UsfActiveScaleLayer, UsfChartMask, UsfFollowsActiveScale, UsfScaleLayer,
+    UsfScaleLayerFrames,
+};
 pub use position::{
     SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale, UsfChunkAddress,
     UsfPosition, UsfPositionError,

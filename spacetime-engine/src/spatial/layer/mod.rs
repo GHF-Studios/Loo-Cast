@@ -6,7 +6,7 @@
 
 use bevy::{math::DVec3, prelude::*};
 
-use super::{SPATIAL_SCALE_COUNT, SpatialScale};
+use super::{SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MIN, SpatialScale};
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct UsfScaleLayer {
@@ -22,8 +22,45 @@ impl UsfScaleLayer {
         self.scale
     }
 
+    pub const fn chart_mask(self) -> UsfChartMask {
+        UsfChartMask::from_scale(self.scale)
+    }
+
     pub(crate) fn set_scale(&mut self, scale: SpatialScale) {
         self.scale = scale;
+    }
+}
+
+/// A set of USF simulation charts.
+///
+/// There are 71 spatial scales, so one `u128` contains the entire chart set
+/// without borrowing Avian's finite collision-category layer mask.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct UsfChartMask(u128);
+
+impl UsfChartMask {
+    pub const NONE: Self = Self(0);
+    pub const ALL: Self = Self((1_u128 << SPATIAL_SCALE_COUNT) - 1);
+
+    pub const fn from_scale(scale: SpatialScale) -> Self {
+        let bit = (scale.exponent() as i16 - SPATIAL_SCALE_MIN as i16) as u32;
+        Self(1_u128 << bit)
+    }
+
+    pub const fn bits(self) -> u128 {
+        self.0
+    }
+
+    pub const fn contains(self, scale: SpatialScale) -> bool {
+        (self.0 & Self::from_scale(scale).0) != 0
+    }
+
+    pub const fn union(self, other: Self) -> Self {
+        Self(self.0 | other.0)
+    }
+
+    pub const fn intersects(self, other: Self) -> bool {
+        (self.0 & other.0) != 0
     }
 }
 
@@ -116,4 +153,23 @@ fn to_dvec3(value: Vec3) -> DVec3 {
 
 fn to_vec3(value: DVec3) -> Vec3 {
     Vec3::new(value.x as f32, value.y as f32, value.z as f32)
+}
+
+
+#[cfg(test)]
+mod chart_mask_tests {
+    use super::*;
+
+    #[test]
+    fn chart_mask_covers_every_spatial_scale_once() {
+        let mut accumulated = UsfChartMask::NONE;
+        for raw in super::super::SPATIAL_SCALE_MIN..=super::super::SPATIAL_SCALE_MAX {
+            let scale = SpatialScale::new(raw).unwrap();
+            let mask = UsfChartMask::from_scale(scale);
+            assert_ne!(mask.bits(), 0);
+            assert!(!accumulated.intersects(mask));
+            accumulated = accumulated.union(mask);
+        }
+        assert_eq!(accumulated, UsfChartMask::ALL);
+    }
 }

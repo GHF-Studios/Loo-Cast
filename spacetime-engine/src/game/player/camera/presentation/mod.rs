@@ -11,6 +11,7 @@ use super::*;
 /// corners push the camera inward.
 pub(in crate::game::player) fn sync_player_camera(
     spatial_query: SpatialQuery,
+    physics_charts: UsfPhysicsCharts,
     player: Single<
         (
             Entity,
@@ -19,6 +20,7 @@ pub(in crate::game::player) fn sync_player_camera(
             &PlayerAim,
             &PlayerStance,
             &UsfManifestationOf,
+            &UsfScaleLayer,
         ),
         (
             With<Player>,
@@ -33,7 +35,8 @@ pub(in crate::game::player) fn sync_player_camera(
         (With<Portal>, Without<PlayerCamera>),
     >,
 ) {
-    let (player_entity, body, control, aim, stance, manifestation) = player.into_inner();
+    let (player_entity, body, control, aim, stance, manifestation, layer) =
+        player.into_inner();
     let (mut camera, mut camera_transform) = camera.into_inner();
 
     // Camera dimensions use the same native local units as the active physics
@@ -52,10 +55,12 @@ pub(in crate::game::player) fn sync_player_camera(
                 eye + control.rotation() * Vec3::Y * camera.third_person.pivot_height;
             let resolved = resolve_third_person_boom(
                 &spatial_query,
+                &physics_charts,
                 &semantic_entities,
                 &portals,
                 player_entity,
                 manifestation,
+                layer.scale(),
                 pivot,
                 view_rotation,
                 &camera.third_person,

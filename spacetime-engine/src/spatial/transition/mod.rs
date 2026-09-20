@@ -228,7 +228,10 @@ pub(super) fn apply_spatial_transitions(
         // their bounded offset from the primary anchor; never reinterpret an old
         // absolute runtime coordinate as a new-scale universe coordinate.
         let local_offset = transform.translation - old_anchor_runtime;
-        let translated = local_offset * transition_factor;
+
+        // Preserve the numeric local offset while reinterpreting the chart.
+        // 0.78 local units stays 0.78; only UsfScaleLayer changes what it means.
+        let translated = local_offset;
         transform.translation = translated;
         layer.set_scale(target_scale);
 

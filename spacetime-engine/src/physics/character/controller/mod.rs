@@ -13,7 +13,10 @@ use avian3d::{
 };
 use bevy::prelude::*;
 
-use crate::physics::topology::KinematicQueryExclusions;
+use crate::{
+    physics::{chart::UsfPhysicsCharts, topology::KinematicQueryExclusions},
+    spatial::UsfScaleLayer,
+};
 
 use super::{
     CharacterGroundState, CharacterLocomotionFrame, CharacterMotor, CharacterMovementConfig,
@@ -55,10 +58,12 @@ struct MotorTick<'a> {
 pub(super) fn simulate_character_motors(
     time: Res<Time<Fixed>>,
     move_and_slide: MoveAndSlide,
+    physics_charts: UsfPhysicsCharts,
     mut pushes: MessageWriter<CharacterPush>,
     mut query: Query<
         (
             Entity,
+            &UsfScaleLayer,
             &Collider,
             &CharacterMovementConfig,
             &CharacterLocomotionFrame,
@@ -81,6 +86,7 @@ pub(super) fn simulate_character_motors(
 
     for (
         entity,
+        layer,
         collider,
         config,
         frame,
@@ -91,10 +97,9 @@ pub(super) fn simulate_character_motors(
         exclusions,
     ) in &mut query
     {
-        let filter = exclusions.map_or_else(
-            || SpatialQueryFilter::from_excluded_entities([entity]),
-            |exclusions| exclusions.filter_for(entity),
-        );
+        let excluded = std::iter::once(entity)
+            .chain(exclusions.into_iter().flat_map(|exclusions| exclusions.iter()));
+        let filter = physics_charts.filter_for_scale(layer.scale(), excluded);
 
         let collision = CollisionContext {
             move_and_slide: &move_and_slide,

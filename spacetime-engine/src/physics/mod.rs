@@ -1,5 +1,6 @@
 //! Physics integration owned by Spacetime Engine.
 
+pub mod chart;
 pub mod character;
 pub mod collision_topology;
 pub mod topology;
@@ -35,6 +36,7 @@ impl Plugin for SpacetimePhysicsPlugin {
                     .with_collision_hooks::<topology::SpatialTopologyCollisionHooks>(),
             )
             .add_plugins(CharacterMovementPlugin)
+            .add_systems(PreUpdate, chart::prepare_usf_physics_charts)
             .add_systems(PostUpdate, collision_topology::rebuild_clipped_colliders);
     }
 }

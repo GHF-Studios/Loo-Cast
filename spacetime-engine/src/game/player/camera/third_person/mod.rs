@@ -18,6 +18,7 @@ struct CameraPortalCrossing {
 
 pub(super) fn resolve_third_person_boom(
     spatial_query: &SpatialQuery,
+    physics_charts: &UsfPhysicsCharts<'_, '_>,
     semantic_entities: &Query<&UsfManifestations>,
     portals: &Query<
         (Entity, &Portal, &PortalActive, &Transform),
@@ -25,16 +26,18 @@ pub(super) fn resolve_third_person_boom(
     >,
     player_entity: Entity,
     manifestation: &UsfManifestationOf,
+    scale: SpatialScale,
     pivot: Vec3,
     view_rotation: Quat,
     settings: &ThirdPersonCamera,
 ) -> ResolvedThirdPersonBoom {
     let desired_distance = settings.desired_distance();
     let shape = Collider::sphere(settings.collision_radius.max(0.001));
-    let filter = semantic_entities
+    let excluded = semantic_entities
         .get(manifestation.0)
-        .map(|manifestations| SpatialQueryFilter::from_excluded_entities(manifestations.iter()))
-        .unwrap_or_else(|_| SpatialQueryFilter::from_excluded_entities([player_entity]));
+        .map(|manifestations| manifestations.iter().collect::<Vec<_>>())
+        .unwrap_or_else(|_| vec![player_entity]);
+    let filter = physics_charts.filter_for_scale(scale, excluded);
 
     let mut transform = Transform {
         translation: pivot,

@@ -1,4 +1,4 @@
-//! Collision-pipeline integration for split manifestations.
+//! Collision-pipeline integration for USF charts and split manifestations.
 //!
 //! Registering [`SpatialTopologyCollisionHooks`] with Avian does not execute the
 //! filter for every collider. A collider must explicitly opt into
@@ -6,6 +6,8 @@
 
 use avian3d::collision::hooks::CollisionHooks;
 use bevy::{ecs::system::SystemParam, prelude::*};
+
+use crate::physics::chart::UsfPhysicsCharts;
 
 /// Reserved proxy manifestation used while one authoritative spatial body is
 /// partitioned across topology.
@@ -30,10 +32,19 @@ pub struct SpatialSplitPeerActive;
 #[derive(SystemParam)]
 pub(crate) struct SpatialTopologyCollisionHooks<'w, 's> {
     peers: Query<'w, 's, &'static SpatialSplitPeer>,
+    charts: UsfPhysicsCharts<'w, 's>,
 }
 
 impl CollisionHooks for SpatialTopologyCollisionHooks<'_, '_> {
     fn filter_pairs(&self, collider1: Entity, collider2: Entity, _commands: &mut Commands) -> bool {
+        if let (Some(first), Some(second)) = (
+            self.charts.collider_scale(collider1),
+            self.charts.collider_scale(collider2),
+        ) && first != second
+        {
+            return false;
+        }
+
         let first_is_peer_of_second = self
             .peers
             .get(collider1)
