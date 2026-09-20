@@ -3,7 +3,7 @@
 use bevy::prelude::*;
 
 pub(super) fn configure(app: &mut App) {
-    app.insert_resource(ClearColor(Color::srgb(0.34, 0.50, 0.76)))
+    app.insert_resource(ClearColor(Color::BLACK))
         .add_systems(Startup, setup_environment_lighting);
 }
 

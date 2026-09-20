@@ -20,7 +20,6 @@ pub(in crate::game::player) fn movement(
             &PlayerTravelSpeed,
             &PlayerAdaptiveCruise,
             &CharacterMovementConfig,
-            Option<&PlayerScaleNavigation>,
             &mut CharacterMovementInput,
         ),
         With<Player>,
@@ -38,7 +37,6 @@ pub(in crate::game::player) fn movement(
         travel_speed,
         cruise,
         movement_config,
-        scale_navigation,
         mut input,
     ) = player.into_inner();
 
@@ -46,7 +44,7 @@ pub(in crate::game::player) fn movement(
         || gameplay_suppressed(&keyboard, &capture)
         || noclip.active
         || cruise.active
-        || scale_navigation.is_some()
+        || layer.scale() != SpatialScale::ZERO
     {
         input.clear();
         return;
@@ -62,7 +60,8 @@ pub(in crate::game::player) fn movement(
     } else {
         1.0
     };
-    let base_speed = travel_speed.native_units_per_second(layer.scale());
+    let base_speed =
+        travel_speed.character_units_per_second(movement_config.max_ground_speed);
     let speed_multiplier = if movement_config.max_ground_speed > f32::EPSILON {
         stance_multiplier * base_speed / movement_config.max_ground_speed
     } else {
@@ -108,7 +107,6 @@ pub(in crate::game::player) fn noclip_movement(
             &UsfScaleLayer,
             &PlayerTravelSpeed,
             &PlayerAdaptiveCruise,
-            Option<&PlayerScaleNavigation>,
             &mut LinearVelocity,
         ),
         With<Player>,
@@ -125,14 +123,12 @@ pub(in crate::game::player) fn noclip_movement(
         layer,
         travel_speed,
         cruise,
-        scale_navigation,
         mut velocity,
     ) = player.into_inner();
 
     if dead.is_some()
         || !noclip.active
         || cruise.active
-        || scale_navigation.is_some()
         || gameplay_suppressed(&keyboard, &capture)
     {
         return;
@@ -158,18 +154,17 @@ pub(in crate::game::player) fn noclip_movement(
     };
 
     body.translation += wish
-        * travel_speed.native_units_per_second(layer.scale())
+        * travel_speed.free_flight_native_units_per_second()
         * boost
         * time.delta_secs();
     velocity.0 = Vec3::ZERO;
 }
 
 
-/// Free-flight through a non-character-scale USF chart.
+/// Collisionless manual navigation outside the canonical human-physics chart.
 ///
-/// Movement is view-relative and collisionless. Speed is chart-native rather
-/// than metre-authored; scroll changes it logarithmically so the same mechanic
-/// remains useful from satellite inspection through galactic navigation.
+/// Speed still comes from [`PlayerTravelSpeed`] in canonical S0 units/s and is
+/// projected into the active chart only at the final runtime adapter.
 pub(in crate::game::player) fn scale_navigation_movement(
     time: Res<Time>,
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -180,7 +175,6 @@ pub(in crate::game::player) fn scale_navigation_movement(
             &CharacterControlFrame,
             Option<&PlayerDead>,
             &PlayerAim,
-            &PlayerScaleNavigation,
             &UsfScaleLayer,
             &PlayerTravelSpeed,
             &PlayerAdaptiveCruise,
@@ -194,14 +188,17 @@ pub(in crate::game::player) fn scale_navigation_movement(
         control,
         dead,
         aim,
-        _navigation,
         layer,
         travel_speed,
         cruise,
         velocity,
     ) = player.into_inner();
 
-    if dead.is_some() || cruise.active || gameplay_suppressed(&keyboard, &capture) {
+    if dead.is_some()
+        || cruise.active
+        || layer.scale() == SpatialScale::ZERO
+        || gameplay_suppressed(&keyboard, &capture)
+    {
         return;
     }
 
@@ -227,7 +224,7 @@ pub(in crate::game::player) fn scale_navigation_movement(
     };
 
     body.translation += wish
-        * travel_speed.native_units_per_second(layer.scale())
+        * travel_speed.free_flight_native_units_per_second()
         * boost
         * time.delta_secs();
     if let Some(mut velocity) = velocity {

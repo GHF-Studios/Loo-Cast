@@ -7,7 +7,7 @@ use super::*;
 pub(in crate::spatial) fn sync_view_context(
     frame: Res<UsfSpatialFrame>,
     semantic_anchors: Query<&Transform, With<UsfViewAnchor>>,
-    mut observer: Single<
+    observer: Single<
         (&Transform, &mut UsfViewContext),
         With<UsfViewRenderAnchor>,
     >,

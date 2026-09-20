@@ -10,7 +10,7 @@
 //! user's intended zoom. When the obstruction disappears, the camera returns
 //! to `base_distance + zoom_offset`.
 
-use avian3d::prelude::{Collider, ShapeCastConfig, SpatialQuery, SpatialQueryFilter};
+use avian3d::prelude::{Collider, ShapeCastConfig, SpatialQuery};
 use bevy::{camera::visibility::RenderLayers, input::mouse::AccumulatedMouseScroll, prelude::*};
 
 use crate::{
@@ -22,7 +22,7 @@ use crate::{
         chart::UsfPhysicsCharts,
         character::{CharacterControlFrame, CharacterDimensions},
     },
-    spatial::{SpatialScale, UsfScaleLayer},
+    spatial::UsfScaleLayer,
 };
 
 use super::{Player, PlayerAim, PlayerStance, cursor::CursorCapture, model::PlayerModel};
@@ -38,7 +38,7 @@ pub enum CameraMode {
 /// Persistent intent and transient collision result for a third-person boom.
 #[derive(Reflect, Debug, Clone, Copy)]
 pub struct ThirdPersonCamera {
-    /// Normal authored distance behind the pivot, in active scale-native units.
+    /// Normal authored distance behind the pivot, in current presentation/runtime units.
     pub base_distance: f32,
     /// Persistent user adjustment relative to [`Self::base_distance`].
     pub zoom_offset: f32,
@@ -46,7 +46,7 @@ pub struct ThirdPersonCamera {
     pub minimum_distance: f32,
     /// Maximum distance the user can request through zoom input.
     pub maximum_distance: f32,
-    /// Native units added or removed for one scroll step.
+    /// Presentation/runtime units added or removed for one scroll step.
     pub zoom_step: f32,
     /// Control-frame-up offset from the eye to the third-person orbit pivot.
     pub pivot_height: f32,
@@ -80,6 +80,8 @@ impl ThirdPersonCamera {
             (self.desired_distance() + steps * self.zoom_step.abs()).clamp(minimum, maximum);
         self.zoom_offset = desired - self.base_distance;
     }
+
+
 }
 
 impl Default for ThirdPersonCamera {

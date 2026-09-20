@@ -176,25 +176,29 @@ fn update_player_status(
             .medium_speed_cap_scale0
             .map(|value| format!("{value:.2e}"))
             .unwrap_or_else(|| "--".to_string());
+        let scale0_per_native = 10.0_f64.powi(layer.scale().exponent() as i32);
+        let native_speed = cruise.speed_scale0 / scale0_per_native;
+        let native_default = cruise.default_speed_scale0 / scale0_per_native;
+        let native_cap = cruise.speed_cap_scale0 / scale0_per_native;
         text.0 = format!(
-            "HEALTH {health}\nCRUISE {:>3.0}%  {:.2e} S0/s\nDEF {:.2e}  CAP {:.2e}\nHARD {}  MED {}  NBR {:>2}\nLAYER S{}  VIEW {:+.2}",
+            "HEALTH {health}\nCRUISE {:>3.0}%  S{} {:.3e} u/s\nS0 {:.3e}/s  DEF {:.3e}u  CAP {:.3e}u\nHARD {}  MED {}  NBR {:>2}\nVIEW {:+.2}",
             cruise.throttle * 100.0,
+            layer.scale(),
+            native_speed,
             cruise.speed_scale0,
-            cruise.default_speed_scale0,
-            cruise.speed_cap_scale0,
+            native_default,
+            native_cap,
             hard_clearance,
             medium_cap,
             neighborhood.len(),
-            layer.scale(),
             view.continuous_exponent(),
         );
     } else {
-        let native_speed = manual_speed.native_units_per_second(layer.scale());
         text.0 = format!(
-            "HEALTH {health}\nMANUAL {:.3e} S0/s\nNATIVE S{} {:.3e} u/s  VIEW {:+.2}",
-            manual_speed.scale0_units_per_second,
+            "HEALTH {health}\nMANUAL {:.3}x\nCOARSE S{} {:.3} u/s  VIEW {:+.2}",
+            manual_speed.multiplier,
             layer.scale(),
-            native_speed,
+            manual_speed.free_flight_native_units_per_second(),
             view.continuous_exponent(),
         );
     }

@@ -39,8 +39,9 @@ pub(in crate::game::player) fn sync_player_camera(
         player.into_inner();
     let (mut camera, mut camera_transform) = camera.into_inner();
 
-    // Camera dimensions use the same native local units as the active physics
-    // chart. At S+8, `1.0` means one S+8 unit for both collider and camera.
+    // Camera rig dimensions are presentation-space values. They remain
+    // visually useful across scale changes while USF projection keeps
+    // scenery observer-relative to the actual camera.
     let view_rotation = camera.view_rotation(control, aim);
     let eye = camera.eye_position(body, control, stance);
 

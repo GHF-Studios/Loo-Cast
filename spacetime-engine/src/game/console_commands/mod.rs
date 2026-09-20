@@ -64,8 +64,8 @@ pub(super) fn configure(app: &mut App) {
         ConsoleCommandSpec {
             name: "speed",
             aliases: &["movespeed", "travel-speed"],
-            usage: "speed [<S0-units-per-second>|reset]",
-            summary: "Show or set canonical player travel speed in S0 units/s; scientific notation is accepted.",
+            usage: "speed [<multiplier>|reset]",
+            summary: "Show or set manual locomotion pace; 1.0 is the natural baseline for the active locomotion mode.",
         },
         speed_command,
     )
@@ -229,36 +229,34 @@ fn speed_command(
     let Some((mut speed, layer)) = query.iter_mut(world).next() else {
         return ConsoleCommandResult::error("player travel-speed state is unavailable");
     };
-    let scale = layer.scale();
 
     if invocation.args().len() > 1 {
-        return ConsoleCommandResult::error("usage: speed [<S0-units-per-second>|reset]");
+        return ConsoleCommandResult::error("usage: speed [<multiplier>|reset]");
     }
 
     if let Some(raw) = requested {
         if raw.eq_ignore_ascii_case("reset") {
             *speed = PlayerTravelSpeed::default();
         } else {
-            let Ok(parsed) = raw.parse::<f64>() else {
+            let Ok(parsed) = raw.parse::<f32>() else {
                 return ConsoleCommandResult::error(format!(
-                    "invalid speed `{raw}`; scientific notation such as 1e-3 or 2.5e4 is accepted"
+                    "invalid speed multiplier `{raw}`"
                 ));
             };
             if !parsed.is_finite() || parsed < 0.0 {
                 return ConsoleCommandResult::error(
-                    "speed must be a finite non-negative S0 units/s value",
+                    "speed multiplier must be finite and non-negative",
                 );
             }
-
-            speed.scale0_units_per_second = parsed;
+            speed.multiplier = parsed;
         }
     }
 
-    let scale0 = speed.scale0_units_per_second;
-    let native = speed.native_units_per_second(scale);
-
     ConsoleCommandResult::success_and_return_to_gameplay(format!(
-        "travel speed = {scale0:.6e} S0 units/s (~{native:.6e} S{scale} units/s)"
+        "manual pace = {:.3}x | coarse/noclip = {:.3} S{} units/s",
+        speed.multiplier,
+        speed.free_flight_native_units_per_second(),
+        layer.scale(),
     ))
 }
 
@@ -297,7 +295,7 @@ fn cruise_command(
     }
 
     ConsoleCommandResult::success_and_return_to_gameplay(if active {
-        "adaptive Cruise enabled — W/S throttle, mouse steers, scale is automatic"
+        "adaptive Cruise enabled — W/S throttle, mouse steers"
     } else {
         "adaptive Cruise disabled"
     })

@@ -30,8 +30,6 @@ pub struct PlayerController {
     pub sprint_multiplier: f32,
     /// Multiplier applied while crouched.
     pub crouch_speed_multiplier: f32,
-    /// Free-flight speed used by developer noclip, in active scale-native units/s.
-    pub noclip_speed: f32,
 }
 
 impl Default for PlayerController {
@@ -40,7 +38,6 @@ impl Default for PlayerController {
             look_sensitivity: 0.002,
             sprint_multiplier: 2.0,
             crouch_speed_multiplier: 0.45,
-            noclip_speed: 20.0,
         }
     }
 }
@@ -59,31 +56,39 @@ pub struct PlayerNoclip {
     pub active: bool,
 }
 
-/// Player-commanded canonical travel speed.
+/// Player-commanded manual locomotion pace.
 ///
-/// The value is always stored in S0 units/s. Runtime movement adapters project
-/// it into the currently active USF chart only when applying movement, so a
-/// representation/scale change cannot change the effective commanded velocity.
+/// This is deliberately dimensionless. `1.0` means the natural baseline of the
+/// current locomotion manifestation:
+///
+/// - human character at S0: `CharacterMovementConfig::max_ground_speed`;
+/// - collisionless coarse/noclip flight: 1 active-chart native unit/s.
+///
+/// Manual control therefore remains usable after a scale rechart without
+/// pretending one fixed canonical velocity is appropriate at every scale.
+/// Cruise is separate: it computes environment-aware canonical velocity.
 #[derive(Component, Reflect, Debug, Clone, Copy)]
 #[reflect(Component)]
 pub struct PlayerTravelSpeed {
-    pub scale0_units_per_second: f64,
+    pub multiplier: f32,
 }
 
 impl PlayerTravelSpeed {
-    pub const DEFAULT_SCALE0_UNITS_PER_SECOND: f64 = 8.128;
+    pub const DEFAULT_MULTIPLIER: f32 = 1.0;
 
-    pub fn native_units_per_second(self, scale: crate::spatial::SpatialScale) -> f32 {
-        let native =
-            self.scale0_units_per_second / 10.0_f64.powi(scale.exponent() as i32);
-        native.clamp(0.0, f32::MAX as f64) as f32
+    pub fn character_units_per_second(self, base_speed: f32) -> f32 {
+        base_speed.max(0.0) * self.multiplier.max(0.0)
+    }
+
+    pub fn free_flight_native_units_per_second(self) -> f32 {
+        self.multiplier.max(0.0)
     }
 }
 
 impl Default for PlayerTravelSpeed {
     fn default() -> Self {
         Self {
-            scale0_units_per_second: Self::DEFAULT_SCALE0_UNITS_PER_SECOND,
+            multiplier: Self::DEFAULT_MULTIPLIER,
         }
     }
 }
@@ -115,39 +120,6 @@ impl Default for PlayerAdaptiveCruise {
             nearest_hard_clearance_scale0: None,
             medium_speed_cap_scale0: None,
         }
-    }
-}
-
-/// Free-flight navigation for USF charts outside the local character domain.
-///
-/// This is ordinary coarse-scale navigation, not developer noclip. Speed is in
-/// units native to the active scale and is adjustable over many orders of magnitude.
-#[derive(Component, Reflect, Debug, Clone, Copy)]
-#[reflect(Component)]
-pub struct PlayerScaleNavigation {
-    pub speed_native: f32,
-}
-
-impl Default for PlayerScaleNavigation {
-    fn default() -> Self {
-        Self { speed_native: 0.05 }
-    }
-}
-
-impl PlayerScaleNavigation {
-    const MIN_SPEED_NATIVE: f32 = 1.0e-7;
-    const MAX_SPEED_NATIVE: f32 = 1.0e4;
-    const SPEED_DECADES_PER_SCROLL_STEP: f32 = 0.25;
-
-    pub fn adjust_speed(&mut self, scroll_steps: f32) {
-        if scroll_steps == 0.0 {
-            return;
-        }
-
-        let factor =
-            10.0_f32.powf(scroll_steps.signum() * Self::SPEED_DECADES_PER_SCROLL_STEP);
-        self.speed_native =
-            (self.speed_native * factor).clamp(Self::MIN_SPEED_NATIVE, Self::MAX_SPEED_NATIVE);
     }
 }
 

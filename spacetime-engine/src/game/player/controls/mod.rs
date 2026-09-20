@@ -4,7 +4,7 @@
 //! simulation. They intentionally do not own camera collision, item semantics
 //! or movement tuning.
 
-use avian3d::prelude::LinearVelocity;
+use avian3d::prelude::{Collider, LinearVelocity};
 use bevy::{
     input::mouse::{AccumulatedMouseMotion, AccumulatedMouseScroll},
     prelude::*,
@@ -12,8 +12,8 @@ use bevy::{
 
 use crate::{
     physics::character::{
-        CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame, CharacterMotor,
-        CharacterMovementConfig, CharacterMovementInput,
+        CharacterControlFrame, CharacterDimensions, CharacterGroundState,
+        CharacterLocomotionFrame, CharacterMotor, CharacterMovementConfig, CharacterMovementInput,
     },
     spatial::{
         SpatialDemandSource, SpatialScale, UsfScaleLayer, UsfScaleLayerFrames, UsfTravelInfluence,
@@ -24,7 +24,7 @@ use crate::{
 
 use super::{
     Player, PlayerAdaptiveCruise, PlayerAim, PlayerController, PlayerDead, PlayerNoclip,
-    PlayerScaleNavigation, PlayerStance, PlayerTravelSpeed, cursor::CursorCapture,
+    PlayerStance, PlayerTravelSpeed, cursor::CursorCapture,
 };
 
 pub(super) fn gameplay_suppressed(

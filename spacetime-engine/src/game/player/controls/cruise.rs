@@ -10,11 +10,6 @@ use super::*;
 const THROTTLE_RATE_PER_SECOND: f32 = 0.45;
 const SPEED_RESPONSE: f64 = 1.4;
 
-// Temporary global pacing knob while we tune the qualitative Cruise model.
-// Keep all environment-relative speed relationships intact, but make the
-// resulting effective movement human-observable during development.
-const CRUISE_PACING_FACTOR: f64 = 1.0e-4;
-
 // Hard boundaries are object-relative. The maximum envelope is deliberately
 // more aggressive than the engagement default.
 const MAX_HARD_APPROACH_HORIZON_SECONDS: f64 = 4.0;
@@ -52,17 +47,6 @@ struct CruiseSpeedEnvelope {
     medium_speed_cap_scale0: Option<f64>,
 }
 
-impl CruiseSpeedEnvelope {
-    fn scaled(self, factor: f64) -> Self {
-        debug_assert!(factor.is_finite() && factor >= 0.0);
-        Self {
-            max_speed_scale0: self.max_speed_scale0 * factor,
-            default_speed_scale0: self.default_speed_scale0 * factor,
-            nearest_hard_clearance_scale0: self.nearest_hard_clearance_scale0,
-            medium_speed_cap_scale0: self.medium_speed_cap_scale0.map(|speed| speed * factor),
-        }
-    }
-}
 
 pub(in crate::game::player) fn adaptive_cruise_movement(
     time: Res<Time>,
@@ -129,8 +113,7 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
     }
 
     let envelope =
-        cruise_speed_envelope(player_absolute, player_scale, &frames, &neighborhood)
-            .scaled(CRUISE_PACING_FACTOR);
+        cruise_speed_envelope(player_absolute, player_scale, &frames, &neighborhood);
     cruise.speed_cap_scale0 = envelope.max_speed_scale0;
     cruise.default_speed_scale0 = envelope.default_speed_scale0;
     cruise.nearest_hard_clearance_scale0 = envelope.nearest_hard_clearance_scale0;
@@ -141,6 +124,7 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
             envelope.default_speed_scale0,
             envelope.max_speed_scale0,
         );
+        cruise.speed_scale0 = envelope.default_speed_scale0;
     }
 
     let throttle_delta =

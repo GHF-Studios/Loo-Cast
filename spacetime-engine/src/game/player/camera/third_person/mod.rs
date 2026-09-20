@@ -1,5 +1,7 @@
 //! Collision- and portal-aware third-person boom resolution.
 
+use crate::spatial::SpatialScale;
+
 use super::*;
 
 const MAX_CAMERA_PORTAL_HOPS: usize = 8;

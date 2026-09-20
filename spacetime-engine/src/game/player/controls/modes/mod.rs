@@ -13,7 +13,6 @@ pub(in crate::game::player) fn toggle_noclip(
             Option<&PlayerDead>,
             &mut PlayerNoclip,
             &mut PlayerAdaptiveCruise,
-            Option<&PlayerScaleNavigation>,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
             &mut LinearVelocity,
@@ -30,12 +29,11 @@ pub(in crate::game::player) fn toggle_noclip(
         dead,
         mut noclip,
         mut cruise,
-        scale_navigation,
         mut input,
         mut ground,
         mut velocity,
     ) = player.into_inner();
-    if dead.is_some() || scale_navigation.is_some() {
+    if dead.is_some() {
         return;
     }
 
@@ -51,8 +49,7 @@ pub(in crate::game::player) fn toggle_noclip(
 
     if noclip.active {
         commands.entity(entity).remove::<CharacterMotor>();
-    } else {
-        commands.entity(entity).insert(CharacterMotor);
+        commands.entity(entity).remove::<Collider>();
     }
 }
 
@@ -95,8 +92,7 @@ pub(in crate::game::player) fn toggle_adaptive_cruise(
 
     if cruise.active {
         commands.entity(entity).remove::<CharacterMotor>();
-    } else {
-        commands.entity(entity).insert(CharacterMotor);
+        commands.entity(entity).remove::<Collider>();
     }
 }
 
@@ -116,33 +112,47 @@ pub(in crate::game::player) fn toggle_spatial_demand(
 
 /// Keeps exactly one player locomotion implementation authoritative.
 ///
-/// Scale does not disable physics: `CharacterMotor` uses ordinary numeric local
-/// units in whatever [`UsfScaleLayer`] currently owns the player. Developer
-/// noclip and explicit [`PlayerScaleNavigation`] are alternative locomotion
-/// modes, not automatic consequences of entering a coarse scale.
+/// S0 owns the human-scale character controller and collider. Any other active
+/// chart uses collisionless scale navigation. Noclip and Cruise also suppress
+/// the local character body. Re-entering S0 reconstructs the correct stance
+/// collider from canonical human dimensions.
 pub(in crate::game::player) fn sync_locomotion_mode(
     mut commands: Commands,
     player: Single<
         (
             Entity,
+            &UsfScaleLayer,
+            &PlayerStance,
             &PlayerNoclip,
             &PlayerAdaptiveCruise,
-            Option<&PlayerScaleNavigation>,
             Option<&CharacterMotor>,
+            Option<&Collider>,
         ),
         With<Player>,
     >,
 ) {
-    let (entity, noclip, cruise, scale_navigation, motor) = player.into_inner();
-    let wants_character_motor = !noclip.active && !cruise.active && scale_navigation.is_none();
+    let (entity, layer, stance, noclip, cruise, motor, collider) = player.into_inner();
+    let wants_character_body =
+        layer.scale() == SpatialScale::ZERO && !noclip.active && !cruise.active;
 
-    match (wants_character_motor, motor.is_some()) {
-        (true, false) => {
+    if wants_character_body {
+        if motor.is_none() {
             commands.entity(entity).insert(CharacterMotor);
         }
-        (false, true) => {
+        if collider.is_none() {
+            let collider = if stance.crouched {
+                CharacterDimensions::crouching_collider()
+            } else {
+                CharacterDimensions::standing_collider()
+            };
+            commands.entity(entity).insert(collider);
+        }
+    } else {
+        if motor.is_some() {
             commands.entity(entity).remove::<CharacterMotor>();
         }
-        _ => {}
+        if collider.is_some() {
+            commands.entity(entity).remove::<Collider>();
+        }
     }
 }

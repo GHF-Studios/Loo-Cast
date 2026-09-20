@@ -43,6 +43,28 @@ impl SpatialScale {
     pub const fn index_from_top(self) -> usize {
         (SPATIAL_SCALE_MAX - self.0) as usize
     }
+
+    /// Number of canonical S0 units represented by one native unit at this scale.
+    pub fn scale0_units_per_native(self) -> f64 {
+        10.0_f64.powi(self.exponent() as i32)
+    }
+
+    /// Projects a canonical S0 distance/speed into this scale's native units.
+    pub fn scale0_to_native_f64(self, value: f64) -> f64 {
+        value / self.scale0_units_per_native()
+    }
+
+    /// f32 adapter for runtime APIs that operate in bounded chart-local space.
+    pub fn scale0_to_native_f32(self, value: f32) -> f32 {
+        self.scale0_to_native_f64(f64::from(value))
+            .clamp(-(f32::MAX as f64), f32::MAX as f64) as f32
+    }
+
+    /// Converts one chart-native runtime value back to canonical S0 units.
+    pub fn native_to_scale0_f32(self, value: f32) -> f32 {
+        (f64::from(value) * self.scale0_units_per_native())
+            .clamp(-(f32::MAX as f64), f32::MAX as f64) as f32
+    }
 }
 
 impl Display for SpatialScale {
