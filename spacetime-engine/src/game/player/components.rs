@@ -158,6 +158,9 @@ pub struct PlayerAdaptiveCruise {
     pub default_speed_scale0: f64,
     pub nearest_hard_clearance_scale0: Option<f64>,
     pub medium_speed_cap_scale0: Option<f64>,
+    pub planetary_handoff_clearance_scale0: Option<f64>,
+    pub planetary_handoff_available: bool,
+    pub critical_dropout: bool,
 }
 
 impl Default for PlayerAdaptiveCruise {
@@ -170,6 +173,9 @@ impl Default for PlayerAdaptiveCruise {
             default_speed_scale0: 0.0,
             nearest_hard_clearance_scale0: None,
             medium_speed_cap_scale0: None,
+            planetary_handoff_clearance_scale0: None,
+            planetary_handoff_available: false,
+            critical_dropout: false,
         }
     }
 }
