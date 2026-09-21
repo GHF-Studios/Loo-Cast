@@ -1,4 +1,6 @@
 //! Asynchronous derivation of disposable CPU geometry caches.
+
+use std::collections::HashSet;
 //!
 //! Dense voxel atoms live in [`VoxelWorld`]'s compact store. Worker jobs are ECS
 //! entities only while work is in flight; finished surface caches return to the
@@ -12,7 +14,7 @@ use bevy::{
 use crate::spatial::{SPATIAL_SCALE_MAX, SpatialScale, UsfPosition, UsfScaleLayer};
 
 use super::{
-    VoxelMaterializationChunkAddress, VoxelWorld,
+    VoxelBase, VoxelMaterializationChunkAddress, VoxelWorld,
     mesh::{self, VoxelSurface},
     store::VoxelSurfaceCache,
     worker::{VoxelWorkerTask, available_slots},
@@ -39,8 +41,9 @@ pub(super) struct VoxelDerivedTask {
 /// store. Stale results never overwrite a newer edit revision.
 pub(super) fn publish_completed_chunk_builds(
     mut commands: Commands,
-    mut worlds: Query<&mut VoxelWorld>,
+    mut worlds: Query<(Option<&Name>, &mut VoxelWorld)>,
     mut tasks: Query<(Entity, &mut VoxelDerivedTask)>,
+    mut announced_celestial_surfaces: Local<HashSet<Entity>>,
 ) {
     let mut published = 0;
 
@@ -53,9 +56,23 @@ pub(super) fn publish_completed_chunk_builds(
             continue;
         };
 
-        if let Ok(mut world) = worlds.get_mut(build.world) {
+        if let Ok((name, mut world)) = worlds.get_mut(build.world) {
             let has_surface =
                 !output.surface.positions.is_empty() && !output.surface.indices.is_empty();
+
+            if has_surface
+                && matches!(world.base(), VoxelBase::CelestialBody(_))
+                && announced_celestial_surfaces.insert(build.world)
+            {
+                info!(
+                    world = %name.map_or("<unnamed celestial voxel world>", Name::as_str),
+                    address = ?build.address,
+                    vertices = output.surface.positions.len(),
+                    triangles = output.surface.indices.len() / 3,
+                    "celestial voxel world published its first non-empty terrain surface"
+                );
+            }
+
             let cache = has_surface.then(|| {
                 VoxelSurfaceCache::new(build.revision, output.surface, output.debug_color)
             });

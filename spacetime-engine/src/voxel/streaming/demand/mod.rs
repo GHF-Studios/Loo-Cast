@@ -77,13 +77,18 @@ pub(in crate::voxel) fn refresh_voxel_residency(
             ));
         }
 
-        let changed = match refresh_demand_plan(&world, &voxel_demands, &mut streaming) {
-            Ok(changed) => changed,
-            Err(_) => {
-                error!("voxel spatial demand could not be represented canonically");
-                continue;
-            }
-        };
+        let pinned_shell = pinned
+            .and_then(|pinned| pinned.surface_radius_native())
+            .map(|radius| (world_entity, radius));
+
+        let changed =
+            match refresh_demand_plan(&world, &voxel_demands, &mut streaming, pinned_shell) {
+                Ok(changed) => changed,
+                Err(_) => {
+                    error!("voxel spatial demand could not be represented canonically");
+                    continue;
+                }
+            };
 
         if changed {
             if let Some(surface_radius_native) =
@@ -128,13 +133,14 @@ fn refresh_demand_plan(
     world: &VoxelWorld,
     demands: &[SpatialDemandScope],
     streaming: &mut VoxelStreaming,
+    pinned_shell: Option<(Entity, f32)>,
 ) -> Result<bool, crate::spatial::UsfPositionError> {
     let key = demand_plan_key(world, demands)?;
     if key == streaming.demand_key {
         return Ok(false);
     }
 
-    let desired = demanded_chunk_addresses(world, demands)?;
+    let desired = demanded_chunk_addresses(world, demands, pinned_shell)?;
     streaming.cached_desired_set.clear();
     streaming
         .cached_desired_set
@@ -173,6 +179,7 @@ fn demand_plan_key(
 pub(super) fn demanded_chunk_addresses(
     world: &VoxelWorld,
     demands: &[SpatialDemandScope],
+    pinned_shell: Option<(Entity, f32)>,
 ) -> Result<Vec<DemandedChunk>, crate::spatial::UsfPositionError> {
     let mut merged = HashMap::<VoxelMaterializationChunkAddress, DemandedChunk>::new();
 
@@ -191,7 +198,22 @@ pub(super) fn demanded_chunk_addresses(
                     let offset = IVec3::new(x, y, z);
                     let address = center_address.translated_chunks(offset)?;
                     let chunk_center = offset.as_vec3() * size + Vec3::splat(size * 0.5);
-                    let distance_squared = (chunk_center - local_center).length_squared();
+                    let from_demand_center = chunk_center - local_center;
+                    let distance_squared = from_demand_center.length_squared();
+
+                    // A pinned celestial body's far realization is a sparse
+                    // surface shell, not a solid enclosing cube.
+                    if let Some((pinned_source, radius_native)) = pinned_shell {
+                        if demand.source() == pinned_source {
+                            let chunk_half_diagonal = Vec3::splat(size * 0.5).length();
+                            let surface_margin = chunk_half_diagonal + 1.5;
+                            let distance = distance_squared.sqrt();
+                            if (distance - radius_native).abs() > surface_margin {
+                                continue;
+                            }
+                        }
+                    }
+
                     let candidate = DemandedChunk {
                         address,
                         priority: demand.priority(),
