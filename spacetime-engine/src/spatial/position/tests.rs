@@ -345,3 +345,19 @@ fn scale_relative_projection_accepts_different_leaf_precisions() {
     assert!((relative.y + 0.00678).abs() < 1.0e-5);
     assert!((relative.z - 0.00090).abs() < 1.0e-5);
 }
+
+
+#[test]
+fn authored_s8_f64_refines_without_source_f32_quantization() {
+    let s8 = SpatialScale::new(8).unwrap();
+    let authored = DVec3::new(3.844, 0.11629, 0.22);
+
+    let precise =
+        UsfPosition::from_scale_native_f64(authored, s8, SpatialScale::ZERO).unwrap();
+
+    let expected = UsfPosition::zero(SpatialScale::ZERO)
+        .translated_whole_native([384_400_000, 11_629_000, 22_000_000])
+        .unwrap();
+
+    assert_eq!(precise, expected);
+}

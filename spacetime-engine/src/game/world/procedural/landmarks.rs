@@ -135,6 +135,36 @@ impl Default for UniverseLandmarkIndex {
 }
 
 impl UniverseLandmarkIndex {
+    /// Generated stellar-system state replaces bootstrap placeholder coordinates.
+    pub(in crate::game) fn update_stellar_system(
+        &mut self,
+        sun_center: DVec3,
+        sun_radius: f64,
+        earth_center: DVec3,
+        earth_radius: f64,
+        moon_center: DVec3,
+        moon_radius: f64,
+    ) {
+        self.update_body_landmark("sun", sun_center, sun_radius * 10.0);
+        self.update_body_landmark("earth", earth_center, earth_radius * 9.0);
+        self.update_body_landmark("moon", moon_center, moon_radius * 9.0);
+    }
+
+    fn update_body_landmark(
+        &mut self,
+        id: &str,
+        center: DVec3,
+        arrival_distance_native: f64,
+    ) {
+        let Some(landmark) = self.entries.iter_mut().find(|landmark| landmark.id == id) else {
+            return;
+        };
+
+        landmark.center = center;
+        landmark.arrival = center + DVec3::new(0.0, 0.0, arrival_distance_native);
+        landmark.look_at = center;
+    }
+
     pub(in crate::game) fn find(&self, query: &str) -> Vec<&UniverseLandmark> {
         let query = query.trim().to_ascii_lowercase();
         if query.is_empty() {

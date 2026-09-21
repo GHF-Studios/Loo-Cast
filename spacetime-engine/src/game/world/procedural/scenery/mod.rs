@@ -28,7 +28,10 @@ use crate::{
     },
 };
 
-use super::scale_stack::{ProceduralScaleStack, volume_for_scale_context};
+use super::{
+    landmarks::UniverseLandmarkIndex,
+    scale_stack::{ProceduralScaleStack, volume_for_scale_context},
+};
 
 const COSMIC_SCALE: i8 = 24;
 const GALAXY_SCALE: i8 = 18;
@@ -43,6 +46,7 @@ pub(super) fn spawn_universe_scenery(
     stacks: Query<(Entity, &ProceduralScaleStack)>,
     registry: Res<PhenomenonRegistry>,
     mut worldgen: ResMut<WorldgenStore>,
+    mut landmarks: ResMut<UniverseLandmarkIndex>,
     assets: Res<ProceduralAssetLibrary>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -97,6 +101,7 @@ pub(super) fn spawn_universe_scenery(
             planet,
             &assets,
             &config,
+            &mut landmarks,
             &mut meshes,
             &mut materials,
         );
@@ -340,6 +345,7 @@ fn spawn_stellar_system(
     planet: PlanetaryBodyState,
     assets: &ProceduralAssetLibrary,
     config: &EngineConfig,
+    landmarks: &mut UniverseLandmarkIndex,
     meshes: &mut Assets<Mesh>,
     materials: &mut Assets<StandardMaterial>,
 ) {
@@ -357,6 +363,15 @@ fn spawn_stellar_system(
     let earth_center = DVec3::new(0.0, -earth_radius, 0.0);
     let sun_center = DVec3::new(-EARTH_ORBIT, 0.0, 0.0);
     let moon_center = earth_center + DVec3::new(MOON_ORBIT, 0.18, 0.22);
+
+    landmarks.update_stellar_system(
+        sun_center,
+        sun_radius,
+        earth_center,
+        earth_radius,
+        moon_center,
+        MOON_RADIUS,
+    );
 
     spawn_celestial_body_realizations(
         commands,
@@ -438,13 +453,7 @@ const CELESTIAL_FINEST_SCALE: i8 = 0;
 const CELESTIAL_COARSE_TARGET_RADIUS_NATIVE: f64 = 32.0;
 
 fn canonical_center_from_native(center: DVec3, source_scale: SpatialScale) -> UsfPosition {
-    let scale0 = center * source_scale.scale0_units_per_native();
-    UsfPosition::zero(SpatialScale::ZERO)
-        .translated_whole_native([
-            scale0.x.round() as i64,
-            scale0.y.round() as i64,
-            scale0.z.round() as i64,
-        ])
+    UsfPosition::from_scale_native_f64(center, source_scale, SpatialScale::ZERO)
         .expect("rigged celestial center must be canonically addressable")
 }
 

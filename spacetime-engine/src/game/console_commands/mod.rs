@@ -374,11 +374,8 @@ fn teleport_command(
         );
     };
 
-    let arrival_f32 = Vec3::new(arrival.x as f32, arrival.y as f32, arrival.z as f32);
-    if !arrival_f32.is_finite() {
-        return ConsoleCommandResult::error("destination is not representable in its native chart");
-    }
-    let Ok(position) = UsfPosition::zero(scale).translated_native(arrival_f32) else {
+    let leaf_scale = scale.min(SpatialScale::ZERO);
+    let Ok(position) = UsfPosition::from_scale_native_f64(arrival, scale, leaf_scale) else {
         return ConsoleCommandResult::error("destination could not become a canonical USF position");
     };
 
