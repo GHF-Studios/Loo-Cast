@@ -9,7 +9,7 @@
         ),
         manifestation: (
             rebuild_budget_per_frame: 8,
-            physics_interaction_radius_native: 32.0,
+            physics_interaction_radius_native: 64.0,
         ),
     ),
 )

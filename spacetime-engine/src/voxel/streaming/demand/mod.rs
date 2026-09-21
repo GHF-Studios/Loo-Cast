@@ -6,10 +6,14 @@ use bevy::prelude::*;
 
 use crate::{
     config::EngineConfig,
-    spatial::{SpatialDemandScope, SpatialDemandSnapshot, UsfScaleLayer},
+    spatial::{
+        SpatialDemandScope, SpatialDemandSnapshot, SpatialScale, UsfScaleLayer,
+    },
 };
 
 use super::{VoxelMaterializationDemand, VoxelPinnedDemand, VoxelStreaming};
+const CELESTIAL_SURFACE_PREFETCH_ALTITUDE_SCALE0: f64 = 32_000.0;
+
 use super::super::{
     MATERIALIZATION_CHUNK_SIZE, VoxelBase, VoxelMaterializationChunkAddress, VoxelQueryPosition,
     VoxelWorld,
@@ -66,7 +70,7 @@ pub(in crate::voxel) fn refresh_voxel_residency(
                 .iter()
                 .copied()
                 .filter(|demand| demand.scale() == layer.scale())
-                .filter(|demand| demand_intersects_world_support(&world, layer.scale(), *demand)),
+                .filter_map(|demand| demand_for_world(&world, layer.scale(), demand)),
         );
         if let Some(pinned) = pinned {
             voxel_demands.push(SpatialDemandScope::at_scale(
@@ -110,9 +114,63 @@ pub(in crate::voxel) fn refresh_voxel_residency(
 /// VoxelWorld at the same scale should materialize there. Celestial fields are
 /// spatially bounded, so unrelated bodies reject demand that cannot intersect
 /// their shell.
+fn demand_for_world(
+    world: &VoxelWorld,
+    layer_scale: SpatialScale,
+    demand: SpatialDemandScope,
+) -> Option<SpatialDemandScope> {
+    if demand_intersects_world_support(world, layer_scale, demand) {
+        return Some(demand);
+    }
+
+    if layer_scale != SpatialScale::ZERO {
+        return None;
+    }
+
+    let VoxelBase::CelestialBody(body) = world.base() else {
+        return None;
+    };
+
+    let prefetch_native =
+        layer_scale.scale0_to_native_f64(CELESTIAL_SURFACE_PREFETCH_ALTITUDE_SCALE0) as f32;
+    let half_diagonal = demand.half_extent_native().length();
+    let max_distance =
+        body.radius_native() + prefetch_native + half_diagonal + MATERIALIZATION_CHUNK_SIZE as f32;
+
+    let relative = demand
+        .center()
+        .relative_at_scale_bounded(&body.center(), layer_scale, max_distance)
+        .ok()?;
+    let radial = relative.length();
+    if radial <= f32::EPSILON {
+        return None;
+    }
+
+    let direction = relative / radial;
+    let surface_radius = body.surface_radius_native(direction);
+    let clearance = radial - surface_radius;
+
+    if clearance < -half_diagonal || clearance > prefetch_native {
+        return None;
+    }
+
+    let surface_center = body
+        .center()
+        .translated_at_scale(layer_scale, direction * surface_radius)
+        .ok()?;
+
+    Some(SpatialDemandScope::at_scale(
+        demand.source(),
+        layer_scale,
+        surface_center,
+        demand.half_extent_native(),
+        demand.priority(),
+    ))
+}
+
 fn demand_intersects_world_support(
     world: &VoxelWorld,
-    layer_scale: crate::spatial::SpatialScale,
+    layer_scale: SpatialScale,
     demand: SpatialDemandScope,
 ) -> bool {
     let VoxelBase::CelestialBody(body) = world.base() else {
@@ -123,7 +181,11 @@ fn demand_intersects_world_support(
     let materialization_margin =
         Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32 * 0.5).length() + 2.0;
     let shell_margin = half_diagonal + materialization_margin;
-    let max_distance = body.radius_native() + shell_margin;
+
+    let max_distance = body.radius_native()
+        + body.radius_native() * 0.05
+        + CELESTIAL_SURFACE_PREFETCH_ALTITUDE_SCALE0 as f32
+        + shell_margin;
 
     let Ok(relative) = demand.center().relative_at_scale_bounded(
         &body.center(),
@@ -133,7 +195,51 @@ fn demand_intersects_world_support(
         return false;
     };
 
-    (relative.length() - body.radius_native()).abs() <= shell_margin
+    let radial = relative.length();
+    if radial <= f32::EPSILON {
+        return false;
+    }
+
+    let surface_radius = body.surface_radius_native(relative / radial);
+    (radial - surface_radius).abs() <= shell_margin
+}
+
+fn chunk_intersects_world_support(
+    world: &VoxelWorld,
+    address: VoxelMaterializationChunkAddress,
+) -> bool {
+    let VoxelBase::CelestialBody(body) = world.base() else {
+        return true;
+    };
+
+    let size = MATERIALIZATION_CHUNK_SIZE as f32;
+    let chunk_half_diagonal = Vec3::splat(size * 0.5).length();
+    let Ok(center) = address
+        .query_origin()
+        .translated(Vec3::splat(size * 0.5))
+    else {
+        return false;
+    };
+
+    let scale = world.origin().leaf_scale();
+    let max_distance =
+        body.radius_native() + body.radius_native() * 0.05 + chunk_half_diagonal + 4.0;
+
+    let Ok(relative) = center.usf().relative_at_scale_bounded(
+        &body.center(),
+        scale,
+        max_distance,
+    ) else {
+        return false;
+    };
+
+    let radial = relative.length();
+    if radial <= f32::EPSILON {
+        return false;
+    }
+
+    let surface_radius = body.surface_radius_native(relative / radial);
+    (radial - surface_radius).abs() <= chunk_half_diagonal + 3.0
 }
 
 
@@ -247,6 +353,10 @@ pub(super) fn demanded_chunk_addresses(
                                 continue;
                             }
                         }
+                    }
+
+                    if !chunk_intersects_world_support(world, address) {
+                        continue;
                     }
 
                     let candidate = DemandedChunk {

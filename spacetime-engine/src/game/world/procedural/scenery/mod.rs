@@ -541,13 +541,12 @@ fn spawn_celestial_body_realizations(
             VoxelWorld::new_at(VoxelBase::celestial_body(base), grid_origin),
             VoxelStreaming::new(config.voxel.streaming.default_load_budget_per_frame),
             VoxelPresentationMaterial::new(assets.debug_grid.clone()),
-            VoxelEditingDisabled,
             Transform::IDENTITY,
             Visibility::Inherited,
         ));
 
         if terrain_scale != SpatialScale::ZERO {
-            entity.insert(VoxelCollisionDisabled);
+            entity.insert((VoxelCollisionDisabled, VoxelEditingDisabled));
         }
 
         if terrain_scale == realization_coarsest {

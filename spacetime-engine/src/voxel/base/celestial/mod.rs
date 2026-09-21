@@ -15,6 +15,7 @@ use super::{
 use super::super::{VoxelMaterialId, VoxelQueryPosition, VoxelSample};
 
 const LOCAL_SAMPLE_MARGIN_NATIVE: f32 = 8192.0;
+const LOCAL_SAMPLE_RELIEF_MARGIN_FRACTION: f32 = 0.05;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CelestialBodyProfile {
@@ -94,7 +95,7 @@ impl ProceduralCelestialBody {
         _world_origin: VoxelQueryPosition,
         chunk_origin: VoxelQueryPosition,
     ) -> Option<PreparedProceduralCelestialBody> {
-        let bound = self.radius_native + LOCAL_SAMPLE_MARGIN_NATIVE;
+        let bound = self.local_sample_bound_native();
         let chunk_origin_from_center = chunk_origin
             .usf()
             .relative_at_scale_bounded(&self.center, self.current_scale, bound)
@@ -110,7 +111,7 @@ impl ProceduralCelestialBody {
         _world_origin: VoxelQueryPosition,
         point: VoxelQueryPosition,
     ) -> VoxelSample {
-        let bound = self.radius_native + LOCAL_SAMPLE_MARGIN_NATIVE;
+        let bound = self.local_sample_bound_native();
         let Ok(local) = point
             .usf()
             .relative_at_scale_bounded(&self.center, self.current_scale, bound)
@@ -118,6 +119,23 @@ impl ProceduralCelestialBody {
             return VoxelSample::empty(EMPTY_DISTANCE);
         };
         self.sample_local(local)
+    }
+
+    fn local_sample_bound_native(self) -> f32 {
+        self.radius_native
+            + LOCAL_SAMPLE_MARGIN_NATIVE
+            + self.radius_native * LOCAL_SAMPLE_RELIEF_MARGIN_FRACTION
+    }
+
+    /// Actual procedural surface radius in this direction, in current-scale units.
+    pub(crate) fn surface_radius_native(self, direction: Vec3) -> f32 {
+        let direction = direction.normalize_or_zero();
+        let direction = if direction == Vec3::ZERO {
+            Vec3::Y
+        } else {
+            direction
+        };
+        self.surface_radius_native_impl(direction)
     }
 
     #[inline]
@@ -133,7 +151,7 @@ impl ProceduralCelestialBody {
             Vec3::Y
         };
 
-        let surface_radius = self.surface_radius_native(direction);
+        let surface_radius = self.surface_radius_native_impl(direction);
         let distance = (radial - surface_radius).clamp(-EMPTY_DISTANCE, EMPTY_DISTANCE);
 
         VoxelSample::new(
@@ -146,7 +164,7 @@ impl ProceduralCelestialBody {
         )
     }
 
-    fn surface_radius_native(self, direction: Vec3) -> f32 {
+    fn surface_radius_native_impl(self, direction: Vec3) -> f32 {
         let macro_relief = match self.profile {
             CelestialBodyProfile::Lunar => lunar_macro_relative_relief(direction),
             CelestialBodyProfile::Rocky => rocky_macro_relative_relief(direction, self.seed),
