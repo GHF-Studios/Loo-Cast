@@ -10,7 +10,7 @@ use bevy::{color::LinearRgba, math::DVec3, mesh::VertexAttributeValues, prelude:
 
 use crate::{
     procedural_assets::ProceduralAssetLibrary,
-    spatial::{SpatialScale, UsfDistanceMeshLod, UsfPosition, UsfSceneryPresentation, UsfTravelInfluence},
+    spatial::{SpatialScale, UsfApproachRefinement, UsfDistanceMeshLod, UsfPosition, UsfSceneryPresentation, UsfTravelInfluence},
     voxel::VoxelQueryPosition,
     worldgen::{
         COSMIC_MATTER_DISTRIBUTION, ECOLOGY, GALAXY_INTERSTELLAR_MEDIUM, PLANETARY_BODY,
@@ -398,12 +398,27 @@ fn spawn_stellar_system(
         Quat::IDENTITY,
     );
 
-    let moon_material = materials.add(StandardMaterial {
-        base_color: Color::srgb(0.42, 0.43, 0.45),
-        perceptual_roughness: 1.0,
-        metallic: 0.0,
-        ..default()
-    });
+    // Deliberately ugly diagnostic materials: every Moon detail level uses
+    // the old procedural debug grid plus a distinct tint. This makes it obvious
+    // whether distance/refinement selection is actually changing.
+    let moon_debug_material = |tint: Color, materials: &mut Assets<StandardMaterial>| {
+        let mut material = materials
+            .get(&assets.debug_grid)
+            .expect("procedural debug grid material must exist")
+            .clone();
+        material.base_color = tint;
+        material.unlit = true;
+        material.double_sided = true;
+        materials.add(material)
+    };
+    let moon_far_material =
+        moon_debug_material(Color::srgb(0.38, 0.52, 1.00), materials);
+    let moon_low_material =
+        moon_debug_material(Color::srgb(0.35, 1.00, 0.55), materials);
+    let moon_medium_material =
+        moon_debug_material(Color::srgb(1.00, 0.80, 0.30), materials);
+    let moon_high_material =
+        moon_debug_material(Color::srgb(1.00, 0.35, 0.65), materials);
     // One semantic Moon, several disposable geometric representations.
     //
     // Every level samples the same deterministic macro surface. Finer levels
@@ -419,17 +434,22 @@ fn spawn_stellar_system(
         ChildOf(parent),
         UsfSceneryPresentation::new(moon_center, system_scale),
         UsfTravelInfluence::hard_body(moon_center, system_scale, MOON_RADIUS as f64),
-        UsfDistanceMeshLod::new(
+        UsfApproachRefinement::new(SpatialScale::ZERO),
+        UsfDistanceMeshLod::with_materials(
             MOON_RADIUS as f64,
             [
-                (14.0, moon_high.clone()),
-                (45.0, moon_medium),
-                (140.0, moon_low),
-                (f64::INFINITY, moon_far.clone()),
+                (14.0, moon_high.clone(), moon_high_material.clone()),
+                (45.0, moon_medium, moon_medium_material),
+                (140.0, moon_low, moon_low_material),
+                (
+                    f64::INFINITY,
+                    moon_far.clone(),
+                    moon_far_material.clone(),
+                ),
             ],
         ),
         Mesh3d(moon_far),
-        MeshMaterial3d(moon_material),
+        MeshMaterial3d(moon_far_material),
         Transform::from_rotation(Quat::from_rotation_y(-0.8)),
         Visibility::Inherited,
     ));
@@ -447,16 +467,23 @@ fn lunar_surface_mesh(radius: f32, subdivisions: u32, detail: u8) -> Mesh {
         panic!("lunar icosphere positions must be Float32x3");
     };
 
+    let mut uvs = Vec::with_capacity(positions.len());
     for position in positions {
         let direction = Vec3::from_array(*position).normalize_or_zero();
         if direction == Vec3::ZERO {
+            uvs.push([0.5, 0.5]);
             continue;
         }
+
+        let u = 0.5 + direction.z.atan2(direction.x) / std::f32::consts::TAU;
+        let v = 0.5 - direction.y.asin() / std::f32::consts::PI;
+        uvs.push([u, v]);
 
         let relief = lunar_relative_relief(direction, detail);
         *position = (direction * radius * (1.0 + relief)).to_array();
     }
 
+    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
     mesh.compute_smooth_normals();
     mesh
 }

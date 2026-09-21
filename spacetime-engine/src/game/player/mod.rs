@@ -100,6 +100,7 @@ impl Plugin for PlayerPlugin {
                     controls::toggle_adaptive_cruise,
                     stance::update_stance,
                     controls::sync_navigation_context,
+                    controls::sync_approach_refinement_view,
                     controls::movement,
                     controls::noclip_movement,
                     controls::scale_navigation_movement,

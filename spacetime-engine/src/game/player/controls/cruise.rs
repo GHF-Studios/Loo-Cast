@@ -14,8 +14,6 @@ const SPEED_RESPONSE: f64 = 1.4;
 // more aggressive than the engagement default.
 const MAX_HARD_APPROACH_HORIZON_SECONDS: f64 = 4.0;
 const DEFAULT_HARD_APPROACH_HORIZON_SECONDS: f64 = 12.0;
-const MAX_HARD_RADIUS_SPEED_FLOOR: f64 = 0.005;
-const DEFAULT_HARD_RADIUS_SPEED_FLOOR: f64 = 0.001;
 
 // Traversable media are feature-relative instead. Their *outer radius is not a
 // wall*. Cruise only needs to slow enough to resolve meaningful structure as it
@@ -164,21 +162,16 @@ fn cruise_speed_envelope(
             UsfTravelInfluenceKind::HardBody => {
                 constrained = true;
                 let clearance = measurement.boundary_clearance_scale0();
-                let radius = measurement.extent_radius_scale0();
                 nearest_hard_clearance = Some(
                     nearest_hard_clearance.map_or(clearance, |current| current.min(clearance)),
                 );
                 max_speed = max_speed.min(hard_body_speed_limit(
                     clearance,
-                    radius,
                     MAX_HARD_APPROACH_HORIZON_SECONDS,
-                    MAX_HARD_RADIUS_SPEED_FLOOR,
                 ));
                 default_speed = default_speed.min(hard_body_speed_limit(
                     clearance,
-                    radius,
                     DEFAULT_HARD_APPROACH_HORIZON_SECONDS,
-                    DEFAULT_HARD_RADIUS_SPEED_FLOOR,
                 ));
             }
             UsfTravelInfluenceKind::Medium(medium) => {
@@ -231,11 +224,9 @@ fn cruise_speed_envelope(
 
 fn hard_body_speed_limit(
     clearance_scale0: f64,
-    radius_scale0: f64,
     approach_horizon_seconds: f64,
-    radius_speed_floor: f64,
 ) -> f64 {
-    (clearance_scale0 / approach_horizon_seconds).max(radius_scale0 * radius_speed_floor)
+    clearance_scale0 / approach_horizon_seconds
 }
 
 /// Speed limit for a traversable volume.
@@ -301,25 +292,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn hard_body_envelope_scales_with_object_size() {
-        let earth_radius = 6_371_000.0;
-        let moon_radius = 1_737_000.0;
-
-        let earth = hard_body_speed_limit(
-            0.0,
-            earth_radius,
-            MAX_HARD_APPROACH_HORIZON_SECONDS,
-            MAX_HARD_RADIUS_SPEED_FLOOR,
-        );
-        let moon = hard_body_speed_limit(
-            0.0,
-            moon_radius,
-            MAX_HARD_APPROACH_HORIZON_SECONDS,
-            MAX_HARD_RADIUS_SPEED_FLOOR,
-        );
-
-        assert!(earth > moon);
-        assert!((earth / moon - earth_radius / moon_radius).abs() < 1.0e-9);
+    fn hard_body_approach_speed_tracks_surface_clearance() {
+        assert_eq!(hard_body_speed_limit(1_000_000.0, 10.0), 100_000.0);
+        assert_eq!(hard_body_speed_limit(1_000.0, 10.0), 100.0);
+        assert_eq!(hard_body_speed_limit(0.0, 10.0), 0.0);
     }
 
     #[test]

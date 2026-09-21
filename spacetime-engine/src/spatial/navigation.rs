@@ -116,6 +116,18 @@ impl UsfNavigationContextKind {
     }
 }
 
+/// Marks a travel influence whose approach should automatically refine the
+/// observer/runtime chart. Moon-only for the first proof.
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
+pub struct UsfApproachRefinement {
+    minimum_scale: SpatialScale,
+}
+
+impl UsfApproachRefinement {
+    pub const fn new(minimum_scale: SpatialScale) -> Self { Self { minimum_scale } }
+    pub const fn minimum_scale(self) -> SpatialScale { self.minimum_scale }
+}
+
 /// Observer-local navigation scale derived from semantic spatial structure.
 ///
 /// This is not a physics state and it is not a presentation LOD. It answers:
@@ -278,9 +290,9 @@ fn navigation_length_scale0(
     measurement: UsfTravelInfluenceMeasure,
 ) -> f64 {
     match kind {
-        UsfTravelInfluenceKind::HardBody => measurement
-            .boundary_clearance_scale0()
-            .max(measurement.extent_radius_scale0() * 2.0),
+        UsfTravelInfluenceKind::HardBody => {
+            measurement.boundary_clearance_scale0().max(1.0)
+        }
         UsfTravelInfluenceKind::Medium(_) => measurement
             .boundary_clearance_scale0()
             .max(measurement.characteristic_scale0()),
