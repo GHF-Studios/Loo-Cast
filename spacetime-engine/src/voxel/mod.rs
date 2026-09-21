@@ -21,7 +21,9 @@ mod store;
 mod streaming;
 mod world;
 
-pub use base::{ProceduralCelestialBody, ProceduralTerrain, ProceduralVolume, VoxelBase};
+pub use base::{
+    CelestialBodyProfile, ProceduralCelestialBody, ProceduralTerrain, ProceduralVolume, VoxelBase,
+};
 pub use chunk::{
     CHUNK_SIZE, MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelChunkEditResult, VoxelRayHit,
 };
@@ -30,7 +32,9 @@ pub use field::{
     SignedDistance, VoxelCollisionMode, VoxelMaterialBehavior, VoxelMaterialId, VoxelSample,
 };
 pub use modification::VoxelModificationLayer;
-pub use streaming::{VoxelMaterializationDemand, VoxelPresentationMaterial, VoxelStreaming};
+pub use streaming::{
+    VoxelMaterializationDemand, VoxelPinnedDemand, VoxelPresentationMaterial, VoxelStreaming,
+};
 pub use world::{VoxelChunkAddress, VoxelChunkCoord, VoxelMaterializationChunkAddress, VoxelWorld};
 
 use bevy::prelude::*;

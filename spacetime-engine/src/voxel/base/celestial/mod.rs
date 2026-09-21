@@ -1,13 +1,12 @@
-//! Spherical procedural voxel baselines for celestial bodies.
+//! Procedural voxel baselines for generic celestial bodies.
 //!
-//! This is deliberately a `VoxelBase`: streaming, dense materialization,
-//! Surface Nets, rendering, collision and edits remain the ordinary voxel
-//! pipeline. The only body-specific concern here is the reconstructible scalar
-//! field sampled by that pipeline.
+//! A celestial body is one semantic field realized repeatedly at different USF
+//! scales. Coarse whole-body views and fine local terrain therefore use the same
+//! VoxelWorld -> dense materialization -> Surface Nets -> manifestation path.
 
 use bevy::prelude::Vec3;
 
-use crate::spatial::SpatialScale;
+use crate::spatial::{SpatialScale, UsfPosition};
 
 use super::{
     EMPTY_DISTANCE,
@@ -17,17 +16,26 @@ use super::super::{VoxelMaterialId, VoxelQueryPosition, VoxelSample};
 
 const LOCAL_SAMPLE_MARGIN_NATIVE: f32 = 8192.0;
 
-/// Reconstructible spherical rocky-body field.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CelestialBodyProfile {
+    Lunar,
+    Rocky,
+    Stellar,
+}
+
+/// Reconstructible spherical celestial-body field.
 ///
-/// `current_scale` is the native chart of the owning voxel world. Coarser
-/// terrain bands are reproduced in every finer realization and each newly
-/// entered scale adds only another deterministic detail band.
+/// `center` remains canonical and independent of the owning voxel world's grid
+/// origin. `current_scale` only selects the bounded realization chart and which
+/// detail bands are allowed to appear there.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ProceduralCelestialBody {
+    center: UsfPosition,
     radius_native: f32,
     current_scale: SpatialScale,
     coarsest_detail_scale: SpatialScale,
     seed: u32,
+    profile: CelestialBodyProfile,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -39,50 +47,60 @@ pub(crate) struct PreparedProceduralCelestialBody {
 impl PreparedProceduralCelestialBody {
     #[inline]
     pub(crate) fn sample(self, chunk_local: Vec3) -> VoxelSample {
-        self.body
-            .sample_local(self.chunk_origin_from_center + chunk_local)
+        self.body.sample_local(self.chunk_origin_from_center + chunk_local)
     }
 }
 
 impl ProceduralCelestialBody {
-    /// First lunar profile used by the Moon vertical slice.
-    ///
-    /// Scale +5 is intentionally the first voxelized scale: one native unit is
-    /// 100 km there, giving the 1737-km Moon a useful ~35-cell diameter while
-    /// leaving farther views to the cheap whole-body proxy.
-    pub fn lunar(radius_scale0: f64, current_scale: SpatialScale, seed: u32) -> Self {
-        let coarsest_detail_scale =
-            SpatialScale::new(5).expect("Scale +5 is a valid lunar refinement scale");
+    pub fn new(
+        center: UsfPosition,
+        radius_scale0: f64,
+        current_scale: SpatialScale,
+        coarsest_detail_scale: SpatialScale,
+        seed: u32,
+        profile: CelestialBodyProfile,
+    ) -> Self {
         assert!(
             current_scale <= coarsest_detail_scale,
-            "lunar voxel realization is only intended for S+5 and finer"
+            "celestial realization must not be coarser than its ladder root"
         );
-
         let radius_native = current_scale.scale0_to_native_f64(radius_scale0) as f32;
         assert!(
             radius_native.is_finite() && radius_native > 0.0,
-            "lunar radius must remain finite and positive in the realization chart"
+            "celestial radius must remain finite and positive in its realization chart"
         );
-
         Self {
+            center,
             radius_native,
             current_scale,
             coarsest_detail_scale,
             seed,
+            profile,
         }
+    }
+
+    pub const fn center(self) -> UsfPosition {
+        self.center
     }
 
     pub const fn radius_native(self) -> f32 {
         self.radius_native
     }
 
+    pub const fn profile(self) -> CelestialBodyProfile {
+        self.profile
+    }
+
     pub(crate) fn prepare_local_sampler(
         self,
-        world_origin: VoxelQueryPosition,
+        _world_origin: VoxelQueryPosition,
         chunk_origin: VoxelQueryPosition,
     ) -> Option<PreparedProceduralCelestialBody> {
         let bound = self.radius_native + LOCAL_SAMPLE_MARGIN_NATIVE;
-        let chunk_origin_from_center = chunk_origin.relative_to(world_origin, bound).ok()?;
+        let chunk_origin_from_center = chunk_origin
+            .usf()
+            .relative_at_scale_bounded(&self.center, self.current_scale, bound)
+            .ok()?;
         Some(PreparedProceduralCelestialBody {
             body: self,
             chunk_origin_from_center,
@@ -91,11 +109,14 @@ impl ProceduralCelestialBody {
 
     pub(crate) fn sample_at(
         self,
-        world_origin: VoxelQueryPosition,
+        _world_origin: VoxelQueryPosition,
         point: VoxelQueryPosition,
     ) -> VoxelSample {
         let bound = self.radius_native + LOCAL_SAMPLE_MARGIN_NATIVE;
-        let Ok(local) = point.relative_to(world_origin, bound) else {
+        let Ok(local) = point
+            .usf()
+            .relative_at_scale_bounded(&self.center, self.current_scale, bound)
+        else {
             return VoxelSample::empty(EMPTY_DISTANCE);
         };
         self.sample_local(local)
@@ -128,41 +149,45 @@ impl ProceduralCelestialBody {
     }
 
     fn surface_radius_native(self, direction: Vec3) -> f32 {
-        let macro_relief = lunar_macro_relative_relief(direction) * self.radius_native;
+        let macro_relief = match self.profile {
+            CelestialBodyProfile::Lunar => lunar_macro_relative_relief(direction),
+            CelestialBodyProfile::Rocky => rocky_macro_relative_relief(direction, self.seed),
+            CelestialBodyProfile::Stellar => stellar_macro_relative_relief(direction, self.seed),
+        } * self.radius_native;
+
         self.radius_native + macro_relief + self.hierarchical_detail_native(direction)
     }
 
-    /// Adds scale-native detail bands while preserving every coarser band.
-    ///
-    /// At S0 the approximate physical amplitudes are:
-    /// S+5 ~4 km, S+4 ~0.7 km, S+3 ~0.12 km, S+2 ~20 m,
-    /// S+1 ~3 m, S0 ~0.6 m.
+    /// Every finer realization reproduces all already-entered coarser bands and
+    /// adds only detail belonging to newly entered scales.
     fn hierarchical_detail_native(self, direction: Vec3) -> f32 {
         let mut result = 0.0_f64;
 
         for raw in (self.current_scale.exponent()..=self.coarsest_detail_scale.exponent()).rev() {
-            let level = SpatialScale::new(raw).expect("validated lunar detail scale");
+            let level = SpatialScale::new(raw).expect("validated celestial detail scale");
             let exponent_delta = i32::from(level.exponent() - self.current_scale.exponent());
             let current_units_per_level_unit = 10.0_f64.powi(exponent_delta);
-
             let radius_at_level = f64::from(self.radius_native) / current_units_per_level_unit;
-            let angular_frequency = (radius_at_level * 0.82).max(4.0) as f32;
 
+            let (frequency_factor, amplitude, growth, salt): (f64, f64, f64, u32) =
+                match self.profile {
+                CelestialBodyProfile::Lunar => (0.82, 0.040, 1.70, 0x4C55_4E41),
+                CelestialBodyProfile::Rocky => (0.63, 0.025, 1.55, 0x524F_434B),
+                CelestialBodyProfile::Stellar => (0.48, 0.008, 1.30, 0x5354_4152),
+            };
+
+            let angular_frequency = (radius_at_level * frequency_factor).max(4.0) as f32;
             let depth = i32::from(self.coarsest_detail_scale.exponent() - level.exponent());
-            let amplitude_level_native = 0.04_f64 * 1.70_f64.powi(depth);
-            let seed = scale_layer_seed(self.seed, level);
+            let amplitude_level_native = amplitude * growth.powi(depth);
+            let seed = scale_layer_seed(self.seed ^ salt, level);
 
             let p = direction * angular_frequency;
-            let broad = value_noise_3d(
-                p + Vec3::new(13.7, -7.1, 3.9),
-                seed ^ 0x4C55_4E41,
-            );
+            let broad = value_noise_3d(p + Vec3::new(13.7, -7.1, 3.9), seed ^ 0xA341_316C);
             let fine = value_noise_3d(
                 p * 2.31 + Vec3::new(-5.3, 11.9, 17.2),
-                seed ^ 0x5245_474F,
+                seed ^ 0xC801_3EA4,
             );
             let band = f64::from(broad * 0.72 + fine * 0.28);
-
             result += band * amplitude_level_native * current_units_per_level_unit;
         }
 
@@ -170,7 +195,18 @@ impl ProceduralCelestialBody {
     }
 }
 
-/// Large lunar features shared identically by every voxel refinement level.
+fn rocky_macro_relative_relief(direction: Vec3, seed: u32) -> f32 {
+    let phase = (seed as f32 / u32::MAX as f32) * std::f32::consts::TAU;
+    (direction.dot(Vec3::new(1.1, -1.7, 0.6)) * 4.0 + phase).sin() * 0.0012
+        + (direction.dot(Vec3::new(-2.2, 0.4, 1.8)) * 7.0 - phase).sin() * 0.0007
+}
+
+fn stellar_macro_relative_relief(direction: Vec3, seed: u32) -> f32 {
+    let phase = (seed as f32 / u32::MAX as f32) * std::f32::consts::TAU;
+    (direction.dot(Vec3::new(0.7, 1.3, -1.1)) * 5.0 + phase).sin() * 0.00035
+}
+
+/// Large lunar features shared identically by every lunar refinement level.
 fn lunar_macro_relative_relief(direction: Vec3) -> f32 {
     let mut height =
         (direction.dot(Vec3::new(1.7, -2.3, 0.9)) * 5.0).sin() * 0.0014
@@ -211,36 +247,44 @@ fn lunar_macro_relative_relief(direction: Vec3) -> f32 {
 mod tests {
     use super::*;
 
+    fn center() -> UsfPosition {
+        UsfPosition::zero(SpatialScale::ZERO)
+            .translated_whole_native([384_400_000, 18_000_000, 22_000_000])
+            .unwrap()
+    }
+
     #[test]
     fn lunar_field_changes_sign_across_surface() {
-        let body = ProceduralCelestialBody::lunar(1_737_000.0, SpatialScale::ZERO, 0x4D4F_4F4E);
+        let body = ProceduralCelestialBody::new(
+            center(),
+            1_737_000.0,
+            SpatialScale::ZERO,
+            SpatialScale::new(5).unwrap(),
+            0x4D4F_4F4E,
+            CelestialBodyProfile::Lunar,
+        );
         let direction = Vec3::new(0.3, 0.4, 0.8660254).normalize();
         let surface = body.surface_radius_native(direction);
-
         assert!(body.sample_local(direction * (surface - 4.0)).distance.is_solid());
         assert!(body.sample_local(direction * (surface + 4.0)).distance.is_empty());
     }
 
     #[test]
-    fn lunar_radius_projects_consistently_across_scales() {
+    fn body_radius_projects_consistently_across_scales() {
         let radius_scale0 = 1_737_000.0;
+        let coarsest = SpatialScale::new(5).unwrap();
         for raw in 0..=5 {
             let scale = SpatialScale::new(raw).unwrap();
-            let body = ProceduralCelestialBody::lunar(radius_scale0, scale, 7);
+            let body = ProceduralCelestialBody::new(
+                center(),
+                radius_scale0,
+                scale,
+                coarsest,
+                7,
+                CelestialBodyProfile::Lunar,
+            );
             let reconstructed = f64::from(body.radius_native()) * scale.scale0_units_per_native();
             assert!((reconstructed - radius_scale0).abs() < 1.0);
         }
-    }
-
-    #[test]
-    fn finer_realizations_keep_the_same_macro_moon() {
-        let direction = Vec3::new(-0.42, 0.81, 0.40).normalize();
-        let s5 = SpatialScale::new(5).unwrap();
-        let coarse = ProceduralCelestialBody::lunar(1_737_000.0, s5, 0x4D4F_4F4E);
-        let fine = ProceduralCelestialBody::lunar(1_737_000.0, SpatialScale::ZERO, 0x4D4F_4F4E);
-
-        let coarse_scale0 = f64::from(coarse.surface_radius_native(direction)) * s5.scale0_units_per_native();
-        let fine_scale0 = f64::from(fine.surface_radius_native(direction));
-        assert!((coarse_scale0 - fine_scale0).abs() < 20_000.0);
     }
 }

@@ -34,7 +34,7 @@ pub use transition::{
     UsfSpatialTransitionQueue, UsfTransitionVelocity,
 };
 pub use view::{
-    UsfDistanceMeshLod, UsfLocalScalePresentation, UsfScalePresentation,
+    UsfDistanceMeshLod, UsfLocalScalePresentation, UsfScaleFallbackPresentation, UsfScalePresentation,
     UsfSceneryPresentation, UsfViewAnchor, UsfViewContext, UsfViewRenderAnchor,
 };
 

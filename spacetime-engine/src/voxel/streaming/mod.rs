@@ -66,5 +66,39 @@ impl VoxelPresentationMaterial {
 #[derive(Component, Debug, Default, Clone, Copy)]
 pub struct VoxelMaterializationDemand;
 
+/// Adds one persistent scale-local materialization scope to a voxel world.
+///
+/// This is used by the coarsest realization of a celestial body: even when the
+/// observer is far away, a small whole-body shell remains materialized using the
+/// same voxel/Surface-Nets pipeline as every finer local terrain patch.
+#[derive(Component, Debug, Clone, Copy, PartialEq)]
+pub struct VoxelPinnedDemand {
+    center: crate::spatial::UsfPosition,
+    half_extent_native: Vec3,
+    priority: i32,
+}
+
+impl VoxelPinnedDemand {
+    pub fn cuboid(center: crate::spatial::UsfPosition, half_extent_native: Vec3) -> Self {
+        Self {
+            center,
+            half_extent_native: half_extent_native.abs(),
+            priority: 1_000,
+        }
+    }
+
+    pub const fn center(self) -> crate::spatial::UsfPosition {
+        self.center
+    }
+
+    pub const fn half_extent_native(self) -> Vec3 {
+        self.half_extent_native
+    }
+
+    pub const fn priority(self) -> i32 {
+        self.priority
+    }
+}
+
 #[cfg(test)]
 mod tests;

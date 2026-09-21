@@ -8,7 +8,6 @@ mod scale_stack;
 
 use bevy::prelude::*;
 
-use crate::spatial::UsfSpatialSet;
 
 use super::GameWorld;
 
@@ -23,10 +22,6 @@ pub(super) fn configure(app: &mut App) {
         )
             .chain(),
     )
-    .add_systems(Update, scale_stack::sync_scale_stack)
-    .add_systems(
-        PostUpdate,
-        scenery::sync_moon_coarse_proxy_visibility.after(UsfSpatialSet::ViewProjection),
-    );
+    .add_systems(Update, scale_stack::sync_scale_stack);
 }
 

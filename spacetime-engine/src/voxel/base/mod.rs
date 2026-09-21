@@ -14,7 +14,7 @@ mod terrain;
 mod celestial;
 mod volume;
 
-pub use celestial::ProceduralCelestialBody;
+pub use celestial::{CelestialBodyProfile, ProceduralCelestialBody};
 pub use terrain::ProceduralTerrain;
 pub use volume::ProceduralVolume;
 

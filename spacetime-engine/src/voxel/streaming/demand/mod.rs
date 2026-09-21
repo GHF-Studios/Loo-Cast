@@ -9,7 +9,7 @@ use crate::{
     spatial::{SpatialDemandScope, SpatialDemandSnapshot, UsfScaleLayer},
 };
 
-use super::{VoxelMaterializationDemand, VoxelStreaming};
+use super::{VoxelMaterializationDemand, VoxelPinnedDemand, VoxelStreaming};
 use super::super::{
     MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationChunkAddress, VoxelQueryPosition,
     VoxelWorld,
@@ -40,7 +40,13 @@ pub(in crate::voxel) fn refresh_voxel_residency(
     config: Res<EngineConfig>,
     demand_snapshot: Res<SpatialDemandSnapshot>,
     voxel_demand_sources: Query<(), With<VoxelMaterializationDemand>>,
-    mut worlds: Query<(&mut VoxelWorld, &mut VoxelStreaming, &UsfScaleLayer)>,
+    mut worlds: Query<(
+        Entity,
+        &mut VoxelWorld,
+        &mut VoxelStreaming,
+        &UsfScaleLayer,
+        Option<&VoxelPinnedDemand>,
+    )>,
     mut all_voxel_demands: Local<Vec<SpatialDemandScope>>,
     mut voxel_demands: Local<Vec<SpatialDemandScope>>,
 ) {
@@ -53,7 +59,7 @@ pub(in crate::voxel) fn refresh_voxel_residency(
 
     let warm_limit = config.voxel.streaming.warm_inactive_materialization_limit;
 
-    for (mut world, mut streaming, layer) in &mut worlds {
+    for (world_entity, mut world, mut streaming, layer, pinned) in &mut worlds {
         voxel_demands.clear();
         voxel_demands.extend(
             all_voxel_demands
@@ -61,6 +67,15 @@ pub(in crate::voxel) fn refresh_voxel_residency(
                 .copied()
                 .filter(|demand| demand.scale() == layer.scale()),
         );
+        if let Some(pinned) = pinned {
+            voxel_demands.push(SpatialDemandScope::at_scale(
+                world_entity,
+                layer.scale(),
+                pinned.center(),
+                pinned.half_extent_native(),
+                pinned.priority(),
+            ));
+        }
 
         let changed = match refresh_demand_plan(&world, &voxel_demands, &mut streaming) {
             Ok(changed) => changed,

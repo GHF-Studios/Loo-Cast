@@ -55,7 +55,12 @@ pub(in crate::spatial) fn project_local_scale_presentations(
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     frame: Res<UsfSpatialFrame>,
     parents: Query<
-        (&Transform, &UsfScaleLayer, Option<&UsfFollowsActiveScale>),
+        (
+            &Transform,
+            &UsfScaleLayer,
+            Option<&UsfFollowsActiveScale>,
+            Option<&UsfScaleFallbackPresentation>,
+        ),
         Without<UsfLocalScalePresentation>,
     >,
     mut presentations: Query<(
@@ -68,7 +73,7 @@ pub(in crate::spatial) fn project_local_scale_presentations(
     let render_scale = view.render_scale();
 
     for (mut presentation, parent, mut transform, mut visibility) in &mut presentations {
-        let Ok((parent_transform, layer, follows_active)) = parents.get(parent.0) else {
+        let Ok((parent_transform, layer, follows_active, fallback)) = parents.get(parent.0) else {
             continue;
         };
         if presentation.scale() != layer.scale() {
@@ -78,7 +83,11 @@ pub(in crate::spatial) fn project_local_scale_presentations(
         // Active-chart followers (player model, etc.) remain visible. Persistent
         // scale-local worlds get exactly one opaque depth owner. Resident
         // adjacent worlds stay hot for handoff but are not drawn simultaneously.
-        if follows_active.is_none() && layer.scale() != render_scale {
+        let owns_render_lane = layer.scale() == render_scale
+            || fallback.is_some_and(|fallback| {
+                layer.scale() == fallback.scale() && render_scale > fallback.scale()
+            });
+        if follows_active.is_none() && !owns_render_lane {
             if !matches!(*visibility, Visibility::Hidden) {
                 *visibility = Visibility::Hidden;
             }

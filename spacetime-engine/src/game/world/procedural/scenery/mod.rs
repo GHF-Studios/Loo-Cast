@@ -6,18 +6,19 @@
 
 use std::any::Any;
 
-use bevy::{color::LinearRgba, math::DVec3, mesh::VertexAttributeValues, prelude::*};
+use bevy::{color::LinearRgba, math::DVec3, prelude::*};
 
 use crate::{
     config::EngineConfig,
     procedural_assets::ProceduralAssetLibrary,
     spatial::{
-        SpatialScale, UsfApproachRefinement, UsfDistanceMeshLod, UsfPosition,
-        UsfScaleLayer, UsfSceneryPresentation, UsfTravelInfluence,
+        SpatialScale, UsfApproachRefinement, UsfPosition,
+        UsfScaleFallbackPresentation, UsfScaleLayer, UsfSceneryPresentation, UsfTravelInfluence,
     },
     voxel::{
-        ProceduralCelestialBody, VoxelBase, VoxelCollisionDisabled, VoxelEditingDisabled,
-        VoxelPresentationMaterial, VoxelQueryPosition, VoxelStreaming, VoxelWorld,
+        CelestialBodyProfile, MATERIALIZATION_CHUNK_SIZE, ProceduralCelestialBody, VoxelBase,
+        VoxelCollisionDisabled, VoxelEditingDisabled, VoxelPinnedDemand, VoxelPresentationMaterial,
+        VoxelQueryPosition, VoxelStreaming, VoxelWorld,
     },
     worldgen::{
         COSMIC_MATTER_DISTRIBUTION, ECOLOGY, GALAXY_INTERSTELLAR_MEDIUM, PLANETARY_BODY,
@@ -35,9 +36,6 @@ const SYSTEM_SCALE: i8 = 8;
 
 #[derive(Component)]
 struct RiggedUniverseScenery;
-
-#[derive(Component)]
-pub(super) struct RiggedMoonCoarseProxy;
 
 pub(super) fn spawn_universe_scenery(
     config: Res<EngineConfig>,
@@ -347,50 +345,74 @@ fn spawn_stellar_system(
 ) {
     let system_scale = scale(SYSTEM_SCALE);
 
-    const SUN_RADIUS: f32 = 6.957;
-    const EARTH_RADIUS: f32 = 0.06371;
+    const SUN_RADIUS: f64 = 6.957;
+    const EARTH_RADIUS: f64 = 0.06371;
     const EARTH_ORBIT: f64 = 1496.0;
-    const MOON_RADIUS: f32 = 0.01737;
+    const MOON_RADIUS: f64 = 0.01737;
     const MOON_ORBIT: f64 = 3.844;
 
-    let earth_radius = EARTH_RADIUS * planet.radius_earth.clamp(0.7, 1.35);
-    let sun_radius = SUN_RADIUS * system.host_mass_solar.clamp(0.7, 1.3).powf(0.7);
+    let earth_radius = EARTH_RADIUS * f64::from(planet.radius_earth.clamp(0.7, 1.35));
+    let sun_radius = SUN_RADIUS * f64::from(system.host_mass_solar.clamp(0.7, 1.3).powf(0.7));
 
-    let earth_center = DVec3::new(0.0, -(earth_radius as f64), 0.0);
+    let earth_center = DVec3::new(0.0, -earth_radius, 0.0);
     let sun_center = DVec3::new(-EARTH_ORBIT, 0.0, 0.0);
     let moon_center = earth_center + DVec3::new(MOON_ORBIT, 0.18, 0.22);
 
-    let sun = scenery_entity(
+    spawn_celestial_body_realizations(
         commands,
         parent,
-        "Rigged Sun",
-        meshes.add(Sphere::new(sun_radius)),
-        assets.star_surface.clone(),
-        system_scale,
+        "Sun",
         sun_center,
-        Quat::IDENTITY,
+        sun_radius,
+        CelestialBodyProfile::Stellar,
+        0x5355_4E21,
+        assets,
+        config,
     );
-    commands.entity(sun).insert(UsfTravelInfluence::hard_body(
-        sun_center,
-        system_scale,
-        sun_radius as f64,
+    spawn_celestial_body_realizations(
+        commands,
+        parent,
+        "Earth",
+        earth_center,
+        earth_radius,
+        CelestialBodyProfile::Rocky,
+        0x4541_5254,
+        assets,
+        config,
+    );
+    spawn_celestial_body_realizations(
+        commands,
+        parent,
+        "Moon",
+        moon_center,
+        MOON_RADIUS,
+        CelestialBodyProfile::Lunar,
+        0x4D4F_4F4E,
+        assets,
+        config,
+    );
+
+    // Travel/refinement semantics remain separate from render realization for
+    // now; Pass 3 canonicalizes these influence centers themselves.
+    commands.spawn((
+        Name::new("Sun Travel Influence"),
+        ChildOf(parent),
+        UsfTravelInfluence::hard_body(sun_center, system_scale, sun_radius),
     ));
-    let earth = scenery_entity(
-        commands,
-        parent,
-        "Rigged Earth",
-        meshes.add(Sphere::new(earth_radius)),
-        assets.planet_surface.clone(),
-        system_scale,
-        earth_center,
-        Quat::from_rotation_y(0.45),
-    );
-    commands.entity(earth).insert(UsfTravelInfluence::hard_body(
-        earth_center,
-        system_scale,
-        earth_radius as f64,
+    commands.spawn((
+        Name::new("Earth Travel Influence"),
+        ChildOf(parent),
+        UsfTravelInfluence::hard_body(earth_center, system_scale, earth_radius),
+    ));
+    commands.spawn((
+        Name::new("Moon Travel Influence"),
+        ChildOf(parent),
+        UsfTravelInfluence::hard_body(moon_center, system_scale, MOON_RADIUS),
+        UsfApproachRefinement::new(SpatialScale::ZERO),
     ));
 
+    // Atmosphere is intentionally a different phenomenon from the solid body,
+    // so it remains a separate transparent presentation.
     let atmosphere_material = materials.add(StandardMaterial {
         base_color: Color::srgba(0.22, 0.48, 1.0, 0.10 + planet.water_inventory * 0.06),
         emissive: LinearRgba::rgb(0.02, 0.06, 0.18),
@@ -404,122 +426,78 @@ fn spawn_stellar_system(
         commands,
         parent,
         "Rigged Earth Atmosphere",
-        meshes.add(Sphere::new(earth_radius * 1.025)),
+        meshes.add(Sphere::new(earth_radius as f32 * 1.025)),
         atmosphere_material,
         system_scale,
         earth_center,
         Quat::IDENTITY,
     );
-
-    // Deliberately ugly diagnostic materials: every Moon detail level uses
-    // the old procedural debug grid plus a distinct tint. This makes it obvious
-    // whether distance/refinement selection is actually changing.
-    let moon_debug_material = |tint: Color, materials: &mut Assets<StandardMaterial>| {
-        let mut material = materials
-            .get(&assets.debug_grid)
-            .expect("procedural debug grid material must exist")
-            .clone();
-        material.base_color = tint;
-        material.unlit = true;
-        material.double_sided = true;
-        materials.add(material)
-    };
-    let moon_far_material =
-        moon_debug_material(Color::srgb(0.38, 0.52, 1.00), materials);
-    let moon_low_material =
-        moon_debug_material(Color::srgb(0.35, 1.00, 0.55), materials);
-    let moon_medium_material =
-        moon_debug_material(Color::srgb(1.00, 0.80, 0.30), materials);
-    let moon_high_material =
-        moon_debug_material(Color::srgb(1.00, 0.35, 0.65), materials);
-    // One semantic Moon, several disposable geometric representations.
-    //
-    // Every level samples the same deterministic macro surface. Finer levels
-    // increase tessellation and add higher-frequency relief, so approach reveals
-    // actual structure rather than merely swapping one smooth sphere for another.
-    let moon_far = meshes.add(lunar_surface_mesh(MOON_RADIUS, 2, 0));
-    let moon_low = meshes.add(lunar_surface_mesh(MOON_RADIUS, 3, 1));
-    let moon_medium = meshes.add(lunar_surface_mesh(MOON_RADIUS, 4, 2));
-    let moon_high = meshes.add(lunar_surface_mesh(MOON_RADIUS, 5, 3));
-
-    commands.spawn((
-        Name::new("Rigged Moon"),
-        RiggedMoonCoarseProxy,
-        ChildOf(parent),
-        UsfSceneryPresentation::new(moon_center, system_scale),
-        UsfTravelInfluence::hard_body(moon_center, system_scale, MOON_RADIUS as f64),
-        UsfApproachRefinement::new(SpatialScale::ZERO),
-        UsfDistanceMeshLod::with_materials(
-            MOON_RADIUS as f64,
-            [
-                (14.0, moon_high.clone(), moon_high_material.clone()),
-                (45.0, moon_medium, moon_medium_material),
-                (140.0, moon_low, moon_low_material),
-                (
-                    f64::INFINITY,
-                    moon_far.clone(),
-                    moon_far_material.clone(),
-                ),
-            ],
-        ),
-        Mesh3d(moon_far),
-        MeshMaterial3d(moon_far_material),
-        Transform::from_rotation(Quat::from_rotation_y(-0.8)),
-        Visibility::Inherited,
-    ));
-
-    spawn_moon_voxel_worlds(
-        commands,
-        parent,
-        moon_center,
-        MOON_RADIUS as f64,
-        assets,
-        config,
-    );
 }
 
+const CELESTIAL_FINEST_SCALE: i8 = 0;
+const CELESTIAL_COARSE_TARGET_RADIUS_NATIVE: f64 = 32.0;
 
-const MOON_VOXEL_MAX_SCALE: i8 = 5;
-const MOON_TERRAIN_SEED: u32 = 0x4D4F_4F4E; // "MOON"
+fn canonical_center_from_native(center: DVec3, source_scale: SpatialScale) -> UsfPosition {
+    let scale0 = center * source_scale.scale0_units_per_native();
+    UsfPosition::zero(SpatialScale::ZERO)
+        .translated_whole_native([
+            scale0.x.round() as i64,
+            scale0.y.round() as i64,
+            scale0.z.round() as i64,
+        ])
+        .expect("rigged celestial center must be canonically addressable")
+}
 
-fn spawn_moon_voxel_worlds(
+fn celestial_coarsest_scale(radius_scale0: f64) -> SpatialScale {
+    let raw = (radius_scale0 / CELESTIAL_COARSE_TARGET_RADIUS_NATIVE)
+        .max(1.0)
+        .log10()
+        .ceil()
+        .clamp(
+            f64::from(CELESTIAL_FINEST_SCALE),
+            f64::from(SpatialScale::MAX.exponent()),
+        ) as i8;
+    scale(raw)
+}
+
+fn spawn_celestial_body_realizations(
     commands: &mut Commands,
     parent: Entity,
-    moon_center_system_native: DVec3,
-    moon_radius_system_native: f64,
+    name: &str,
+    center_system_native: DVec3,
+    radius_system_native: f64,
+    profile: CelestialBodyProfile,
+    seed: u32,
     assets: &ProceduralAssetLibrary,
     config: &EngineConfig,
 ) {
     let system_scale = scale(SYSTEM_SCALE);
-    let scale0_per_system_native = system_scale.scale0_units_per_native();
+    let center = canonical_center_from_native(center_system_native, system_scale);
+    let radius_scale0 = radius_system_native * system_scale.scale0_units_per_native();
+    let coarsest = celestial_coarsest_scale(radius_scale0);
 
-    let center_scale0 = moon_center_system_native * scale0_per_system_native;
-    let center_scale0 = UsfPosition::zero(SpatialScale::ZERO)
-        .translated_whole_native([
-            center_scale0.x.round() as i64,
-            center_scale0.y.round() as i64,
-            center_scale0.z.round() as i64,
-        ])
-        .expect("rigged Moon center must be canonically addressable");
-
-    let radius_scale0 = moon_radius_system_native * scale0_per_system_native;
-
-    for raw in 0..=MOON_VOXEL_MAX_SCALE {
+    for raw in CELESTIAL_FINEST_SCALE..=coarsest.exponent() {
         let terrain_scale = scale(raw);
-        let origin = center_scale0
+
+        // Grid origin is representation-local and may be quantized to the scale;
+        // the procedural body field itself retains the exact canonical center.
+        let grid_origin = center
             .reexpressed_at(terrain_scale)
-            .expect("Moon center must re-express at every terrain scale");
-        let base = ProceduralCelestialBody::lunar(
+            .expect("celestial representation origin must re-express at its scale");
+        let base = ProceduralCelestialBody::new(
+            center,
             radius_scale0,
             terrain_scale,
-            MOON_TERRAIN_SEED,
+            coarsest,
+            seed,
+            profile,
         );
 
-        commands.spawn((
-            Name::new(format!("Rigged Moon S{terrain_scale} Voxel Terrain")),
+        let mut entity = commands.spawn((
+            Name::new(format!("{name} S{terrain_scale} Celestial Terrain")),
             ChildOf(parent),
             UsfScaleLayer::new(terrain_scale),
-            VoxelWorld::new_at(VoxelBase::celestial_body(base), origin),
+            VoxelWorld::new_at(VoxelBase::celestial_body(base), grid_origin),
             VoxelStreaming::new(config.voxel.streaming.default_load_budget_per_frame),
             VoxelPresentationMaterial::new(assets.debug_grid.clone()),
             VoxelCollisionDisabled,
@@ -527,112 +505,24 @@ fn spawn_moon_voxel_worlds(
             Transform::IDENTITY,
             Visibility::Inherited,
         ));
-    }
-}
 
-/// Once the observer has fully entered the first voxelized lunar scale, retire
-/// the whole-body proxy so it cannot obscure the streamed surface.
-pub(super) fn sync_moon_coarse_proxy_visibility(
-    view: Single<&crate::spatial::UsfViewContext, With<crate::spatial::UsfViewRenderAnchor>>,
-    mut proxies: Query<&mut Visibility, With<RiggedMoonCoarseProxy>>,
-) {
-    let show_proxy = view.continuous_exponent() > MOON_VOXEL_MAX_SCALE as f32;
-    for mut visibility in &mut proxies {
-        *visibility = if show_proxy {
-            Visibility::Inherited
-        } else {
-            Visibility::Hidden
-        };
-    }
-}
-
-fn lunar_surface_mesh(radius: f32, subdivisions: u32, detail: u8) -> Mesh {
-    let mut mesh = Sphere::new(radius)
-        .mesh()
-        .ico(subdivisions)
-        .expect("lunar icosphere subdivision is valid");
-
-    let Some(VertexAttributeValues::Float32x3(positions)) =
-        mesh.attribute_mut(Mesh::ATTRIBUTE_POSITION)
-    else {
-        panic!("lunar icosphere positions must be Float32x3");
-    };
-
-    let mut uvs = Vec::with_capacity(positions.len());
-    for position in positions {
-        let direction = Vec3::from_array(*position).normalize_or_zero();
-        if direction == Vec3::ZERO {
-            uvs.push([0.5, 0.5]);
-            continue;
-        }
-
-        let u = 0.5 + direction.z.atan2(direction.x) / std::f32::consts::TAU;
-        let v = 0.5 - direction.y.asin() / std::f32::consts::PI;
-        uvs.push([u, v]);
-
-        let relief = lunar_relative_relief(direction, detail);
-        *position = (direction * radius * (1.0 + relief)).to_array();
-    }
-
-    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
-    mesh.compute_smooth_normals();
-    mesh
-}
-
-/// Deterministic lunar-looking radial displacement.
-///
-/// This is a presentation recipe, not authoritative geology. Large features are
-/// shared by every LOD; progressively finer bands become available as mesh
-/// tessellation can actually represent them.
-fn lunar_relative_relief(direction: Vec3, detail: u8) -> f32 {
-    let mut height =
-        (direction.dot(Vec3::new(1.7, -2.3, 0.9)) * 5.0).sin() * 0.0014
-        + (direction.dot(Vec3::new(-3.1, 0.7, 2.4)) * 8.0).sin() * 0.0008;
-
-    let craters = [
-        (Vec3::new(0.82, 0.21, 0.53), 0.36_f32, 0.0100_f32),
-        (Vec3::new(-0.51, 0.70, 0.49), 0.27, 0.0070),
-        (Vec3::new(0.18, -0.88, 0.44), 0.23, 0.0060),
-        (Vec3::new(-0.77, -0.23, -0.59), 0.19, 0.0048),
-        (Vec3::new(0.39, 0.48, -0.79), 0.16, 0.0040),
-        (Vec3::new(-0.08, -0.35, 0.93), 0.13, 0.0034),
-        (Vec3::new(0.63, -0.66, -0.40), 0.11, 0.0028),
-        (Vec3::new(-0.33, 0.14, -0.93), 0.095, 0.0024),
-    ];
-
-    for (raw_center, crater_radius, depth) in craters {
-        let center = raw_center.normalize();
-        let distance = direction.distance(center);
-        let q = distance / crater_radius;
-
-        if q < 1.0 {
-            let bowl = 1.0 - q * q;
-            height -= depth * bowl * bowl;
-        }
-
-        let rim_distance = ((q - 1.0) / 0.22).abs();
-        if rim_distance < 1.0 {
-            let rim = 1.0 - rim_distance;
-            height += depth * 0.28 * rim * rim;
+        if terrain_scale == coarsest {
+            // Keep only the coarsest whole-body shell resident at arbitrary
+            // observer distance. Finer levels remain observer-demanded patches.
+            let radius_native = terrain_scale.scale0_to_native_f64(radius_scale0) as f32;
+            let pinned_center = center
+                .reexpressed_at(terrain_scale)
+                .expect("pinned body center must match its representation scale");
+            let margin = MATERIALIZATION_CHUNK_SIZE as f32 * 1.5;
+            entity.insert((
+                VoxelPinnedDemand::cuboid(
+                    pinned_center,
+                    Vec3::splat(radius_native + margin),
+                ),
+                UsfScaleFallbackPresentation::new(coarsest),
+            ));
         }
     }
-
-    if detail >= 1 {
-        height +=
-            (direction.dot(Vec3::new(4.3, 7.1, -5.2)) * 18.0).sin() * 0.00055
-            + (direction.dot(Vec3::new(-6.7, 2.9, 5.6)) * 23.0).cos() * 0.00035;
-    }
-    if detail >= 2 {
-        height +=
-            (direction.dot(Vec3::new(11.1, -8.7, 6.3)) * 41.0).sin() * 0.00020
-            + (direction.dot(Vec3::new(-9.4, 12.6, 7.8)) * 53.0).cos() * 0.00014;
-    }
-    if detail >= 3 {
-        height +=
-            (direction.dot(Vec3::new(17.0, 13.0, -19.0)) * 83.0).sin() * 0.00008;
-    }
-
-    height
 }
 
 fn spawn_local_ecology(

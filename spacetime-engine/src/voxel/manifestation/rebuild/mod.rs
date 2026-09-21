@@ -9,7 +9,9 @@ use bevy::{
 
 use crate::{
     config::EngineConfig,
-    spatial::{UsfLocalScalePresentation, UsfScaleLayer, UsfSpatialFrame},
+    spatial::{
+        UsfLocalScalePresentation, UsfScaleFallbackPresentation, UsfScaleLayer, UsfSpatialFrame,
+    },
 };
 
 use super::{
@@ -56,6 +58,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
         &VoxelWorld,
         &VoxelPresentationMaterial,
         &UsfScaleLayer,
+        Option<&UsfScaleFallbackPresentation>,
     )>,
     mut manifestations: Query<&mut VoxelManifestation>,
     presentations: Query<Option<&Mesh3d>, With<VoxelManifestationPresentation>>,
@@ -74,7 +77,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
             continue;
         };
 
-        let Ok((_, world, material, layer)) = worlds.get(key.world) else {
+        let Ok((_, world, material, layer, fallback)) = worlds.get(key.world) else {
             registry.revisions.remove(&key);
             if let Some(entity) = registry.entities.remove(&key) {
                 commands.entity(entity).despawn();
@@ -167,6 +170,10 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
                     Visibility::Inherited,
                 ))
                 .id();
+
+            if let Some(fallback) = fallback {
+                commands.entity(root).insert(*fallback);
+            }
 
             let presentation = commands
                 .spawn((

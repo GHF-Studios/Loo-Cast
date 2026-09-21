@@ -115,6 +115,27 @@ impl UsfLocalScalePresentation {
     }
 }
 
+/// Marks the coarsest member of a persistent multi-scale realization ladder.
+///
+/// When the view is coarser than this scale there is no still-coarser terrain
+/// realization to own the render lane, so this representation remains the far
+/// fallback. As soon as an exact finer scale exists, normal single-lane depth
+/// ownership takes over.
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
+pub struct UsfScaleFallbackPresentation {
+    scale: SpatialScale,
+}
+
+impl UsfScaleFallbackPresentation {
+    pub const fn new(scale: SpatialScale) -> Self {
+        Self { scale }
+    }
+
+    pub const fn scale(self) -> SpatialScale {
+        self.scale
+    }
+}
+
 impl UsfScalePresentation {
     pub const fn new(anchor: UsfPosition, scale: SpatialScale) -> Self {
         Self { anchor, scale }
