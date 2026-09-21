@@ -8,11 +8,12 @@ use bevy::{
     tasks::{AsyncComputeTaskPool, Task, futures::check_ready},
 };
 
-use crate::config::EngineConfig;
+use crate::{config::EngineConfig, spatial::SpatialScale};
 
 use super::VoxelStreaming;
 use super::super::{
-    VoxelChunk, VoxelMaterializationChunkAddress, VoxelWorld,
+    VoxelAuthority, VoxelChunk, VoxelMaterializationChunkAddress, VoxelRealizationOf,
+    VoxelWorld,
     generation_scope::VoxelGenerationScopeExtent,
     worker::{VoxelWorkerTask, available_slots},
 };
@@ -64,7 +65,8 @@ impl VoxelGenerationTask {
 pub(in crate::voxel) fn finish_chunk_generation(
     config: Res<EngineConfig>,
     mut commands: Commands,
-    mut worlds: Query<&mut VoxelWorld>,
+    mut worlds: Query<(&mut VoxelWorld, Option<&VoxelRealizationOf>)>,
+    authorities: Query<&VoxelAuthority>,
     mut tasks: Query<(Entity, &mut VoxelGenerationTask)>,
 ) {
     let publish_budget = config.voxel.streaming.generation_publish_budget_per_frame;
@@ -84,19 +86,22 @@ pub(in crate::voxel) fn finish_chunk_generation(
             generation.ready = completed.into();
         }
 
-        let Ok(mut world) = worlds.get_mut(generation.world) else {
+        let Ok((mut world, realization)) = worlds.get_mut(generation.world) else {
             generation.ready.clear();
             commands.entity(task_entity).despawn();
             continue;
         };
+        let authority = realization
+            .and_then(|realization| authorities.get(realization.authority()).ok());
 
         while published < publish_budget {
             let Some(mut output) = generation.ready.pop_front() else {
                 break;
             };
 
-            catch_up_generated_chunk(
+            catch_up_generated_chunk_with_authority(
                 &world,
+                authority,
                 output.address,
                 output.applied_edit_count,
                 &mut output.chunk,
@@ -146,7 +151,13 @@ pub(in crate::voxel) fn retire_orphaned_tasks(
 pub(in crate::voxel) fn schedule_voxel_generation(
     config: Res<EngineConfig>,
     mut commands: Commands,
-    mut worlds: Query<(Entity, &mut VoxelWorld, &mut VoxelStreaming)>,
+    mut worlds: Query<(
+        Entity,
+        &mut VoxelWorld,
+        &mut VoxelStreaming,
+        Option<&VoxelRealizationOf>,
+    )>,
+    authorities: Query<&VoxelAuthority>,
     worker_tasks: Query<(), With<VoxelWorkerTask>>,
     mut round_robin_cursor: Local<usize>,
 ) {
@@ -166,7 +177,7 @@ pub(in crate::voxel) fn schedule_voxel_generation(
     // per world per pass.
     let world_entities = worlds
         .iter_mut()
-        .map(|(entity, _, _)| entity)
+        .map(|(entity, _, _, _)| entity)
         .collect::<Vec<_>>();
     if world_entities.is_empty() {
         return;
@@ -179,13 +190,16 @@ pub(in crate::voxel) fn schedule_voxel_generation(
         }
 
         let entity = world_entities[(start + offset) % world_entities.len()];
-        let Ok((world_entity, mut world, mut streaming)) = worlds.get_mut(entity) else {
+        let Ok((world_entity, mut world, mut streaming, realization)) = worlds.get_mut(entity) else {
             continue;
         };
 
+        let authority = realization
+            .and_then(|realization| authorities.get(realization.authority()).ok());
         let batches = plan_generation_batches(
             &mut world,
             &mut streaming,
+            authority,
             generation_scope_extent,
             1,
             streaming_config.max_chunks_per_generation_task,
@@ -213,6 +227,31 @@ pub(super) fn catch_up_generated_chunk(
     applied_edit_count: usize,
     chunk: &mut VoxelChunk,
 ) {
+    catch_up_generated_chunk_with_authority(
+        world,
+        None,
+        address,
+        applied_edit_count,
+        chunk,
+    );
+}
+
+fn catch_up_generated_chunk_with_authority(
+    world: &VoxelWorld,
+    authority: Option<&VoxelAuthority>,
+    address: VoxelMaterializationChunkAddress,
+    applied_edit_count: usize,
+    chunk: &mut VoxelChunk,
+) {
+    if let Some(authority) = authority {
+        if world.origin().leaf_scale() == SpatialScale::ZERO {
+            for edit in authority.edits_since(applied_edit_count) {
+                chunk.apply_edit(address, edit);
+            }
+        }
+        return;
+    }
+
     for edit in world
         .modifications()
         .for_chunk_since(address, applied_edit_count)

@@ -2,10 +2,11 @@
 
 use bevy::prelude::{Component, IVec3, Vec3};
 
-use crate::spatial::{UsfPosition, UsfPositionError};
+use crate::spatial::{SpatialScale, UsfPosition, UsfPositionError};
 
 use super::{
-    MATERIALIZATION_CHUNK_SIZE, VoxelBase, VoxelBounds, VoxelChunk, VoxelEdit,
+    MATERIALIZATION_CHUNK_SIZE, VoxelAuthority, VoxelBase, VoxelBounds, VoxelChunk,
+    VoxelEdit,
     VoxelModificationLayer, VoxelQueryPosition, VoxelSample, chunk::SAMPLE_PADDING,
     store::VoxelMaterializationStore,
 };
@@ -124,6 +125,57 @@ impl VoxelWorld {
             edits: self.modifications.for_chunk(address).collect(),
             applied_edit_count: self.modifications.len(),
         }
+    }
+
+    /// Captures generation input from one shared semantic authority.
+    ///
+    /// Canonical edits are currently authored at S0. Fine S0 realizations localize
+    /// those edits directly. Coarser realizations intentionally ignore them until
+    /// a real coarse edit-aggregation policy exists.
+    pub(in crate::voxel) fn chunk_recipe_from_authority(
+        &self,
+        address: VoxelMaterializationChunkAddress,
+        authority: &VoxelAuthority,
+    ) -> VoxelChunkRecipe {
+        let edits = if self.origin.leaf_scale() == SpatialScale::ZERO {
+            let extra_extent = MATERIALIZATION_CHUNK_SIZE as f32 + SAMPLE_PADDING as f32;
+            authority
+                .edits()
+                .iter()
+                .copied()
+                .filter(|edit| {
+                    edit.localized(address.query_origin(), extra_extent)
+                        .is_some()
+                })
+                .collect()
+        } else {
+            Vec::new()
+        };
+
+        VoxelChunkRecipe {
+            address,
+            world_origin: VoxelQueryPosition::new(self.origin),
+            base: self.base,
+            edits,
+            applied_edit_count: authority.len(),
+        }
+    }
+
+    /// Applies a newly-recorded shared-authority edit to resident caches without
+    /// duplicating it in this realization's inline modification log.
+    pub(crate) fn apply_authority_edit(
+        &mut self,
+        edit: VoxelEdit,
+    ) -> Result<(), UsfPositionError> {
+        if edit.influence_bounds().anchor().usf().leaf_scale() != self.origin.leaf_scale() {
+            return Ok(());
+        }
+
+        let addresses = self.materialization_addresses_intersecting(edit.influence_bounds())?;
+        for address in addresses {
+            self.materializations.apply_edit(address, edit);
+        }
+        Ok(())
     }
 
     /// Reconstructs one dense chunk-local working cache from canonical semantic

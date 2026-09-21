@@ -52,7 +52,6 @@ pub(in crate::game::player) fn toggle_noclip(
 
     if noclip.active {
         commands.entity(entity).remove::<CharacterMotor>();
-        commands.entity(entity).remove::<Collider>();
     }
 }
 
@@ -96,7 +95,6 @@ pub(in crate::game::player) fn toggle_thrusters(
 
     if thrusters.enabled {
         commands.entity(entity).remove::<CharacterMotor>();
-        commands.entity(entity).remove::<Collider>();
     } else {
         let collider = if stance.crouched {
             CharacterDimensions::crouching_collider()
@@ -193,29 +191,27 @@ pub(in crate::game::player) fn sync_locomotion_mode(
         With<Player>,
     >,
 ) {
-    let (entity, layer, stance, noclip, thrusters, cruise, motor, collider) = player.into_inner();
-    let wants_character_body = layer.scale() == SpatialScale::ZERO
-        && !cruise.active
-        && (!noclip.active || !thrusters.enabled);
+    let (entity, layer, stance, noclip, thrusters, cruise, motor, collider) =
+        player.into_inner();
 
-    if wants_character_body {
-        if motor.is_none() {
-            commands.entity(entity).insert(CharacterMotor);
-        }
-        if collider.is_none() {
-            let collider = if stance.crouched {
-                CharacterDimensions::crouching_collider()
-            } else {
-                CharacterDimensions::standing_collider()
-            };
-            commands.entity(entity).insert(collider);
-        }
-    } else {
-        if motor.is_some() {
-            commands.entity(entity).remove::<CharacterMotor>();
-        }
-        if collider.is_some() {
-            commands.entity(entity).remove::<Collider>();
-        }
+    let wants_collider = layer.scale() == SpatialScale::ZERO && !cruise.active;
+    let wants_character_motor =
+        wants_collider && (!noclip.active || !thrusters.enabled);
+
+    if wants_collider && collider.is_none() {
+        let collider = if stance.crouched {
+            CharacterDimensions::crouching_collider()
+        } else {
+            CharacterDimensions::standing_collider()
+        };
+        commands.entity(entity).insert(collider);
+    } else if !wants_collider && collider.is_some() {
+        commands.entity(entity).remove::<Collider>();
+    }
+
+    if wants_character_motor && motor.is_none() {
+        commands.entity(entity).insert(CharacterMotor);
+    } else if !wants_character_motor && motor.is_some() {
+        commands.entity(entity).remove::<CharacterMotor>();
     }
 }

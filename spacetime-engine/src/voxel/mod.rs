@@ -6,6 +6,7 @@
 
 mod generation_scope;
 mod async_pipeline;
+mod authority;
 mod base;
 mod chunk;
 mod devtools;
@@ -21,6 +22,7 @@ mod store;
 mod streaming;
 mod world;
 
+pub use authority::{CelestialVoxelField, VoxelAuthority, VoxelRealizationOf};
 pub use base::{
     CelestialBodyProfile, ProceduralCelestialBody, ProceduralTerrain, ProceduralVolume, VoxelBase,
 };

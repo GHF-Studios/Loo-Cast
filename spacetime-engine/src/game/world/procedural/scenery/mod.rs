@@ -16,7 +16,7 @@ use crate::{
         UsfScaleFallbackPresentation, UsfScaleLayer, UsfSceneryPresentation, UsfTravelInfluence,
     },
     voxel::{
-        CelestialBodyProfile, MATERIALIZATION_CHUNK_SIZE, ProceduralCelestialBody, VoxelBase,
+        CelestialBodyProfile, CelestialVoxelField, MATERIALIZATION_CHUNK_SIZE, VoxelAuthority, VoxelBase, VoxelRealizationOf,
         VoxelCollisionDisabled, VoxelEditingDisabled, VoxelPinnedDemand, VoxelPresentationMaterial,
         VoxelQueryPosition, VoxelStreaming, VoxelWorld,
     },
@@ -516,6 +516,22 @@ fn spawn_celestial_body_realizations(
     // body still has coarser whole-body realizations through the system chart.
     let detail_root = celestial_coarsest_scale(radius_scale0);
     let realization_coarsest = system_scale.max(detail_root);
+    let field = CelestialVoxelField::new(
+        center,
+        radius_scale0,
+        detail_root,
+        seed,
+        profile,
+    );
+    let authority = commands
+        .spawn((
+            Name::new(format!("{name} Voxel Authority")),
+            ChildOf(parent),
+            field,
+            VoxelAuthority::default(),
+        ))
+        .id();
+
 
     for raw in CELESTIAL_FINEST_SCALE..=realization_coarsest.exponent() {
         let terrain_scale = scale(raw);
@@ -525,19 +541,13 @@ fn spawn_celestial_body_realizations(
         let grid_origin = center
             .reexpressed_at(terrain_scale)
             .expect("celestial representation origin must re-express at its scale");
-        let base = ProceduralCelestialBody::new(
-            center,
-            radius_scale0,
-            terrain_scale,
-            detail_root,
-            seed,
-            profile,
-        );
+        let base = field.realization(terrain_scale);
 
         let mut entity = commands.spawn((
             Name::new(format!("{name} S{terrain_scale} Celestial Terrain")),
             ChildOf(parent),
             UsfScaleLayer::new(terrain_scale),
+            VoxelRealizationOf::new(authority),
             VoxelWorld::new_at(VoxelBase::celestial_body(base), grid_origin),
             VoxelStreaming::new(config.voxel.streaming.default_load_budget_per_frame),
             VoxelPresentationMaterial::new(assets.debug_grid.clone()),

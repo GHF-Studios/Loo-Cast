@@ -112,8 +112,11 @@ pub(in crate::game::player) fn noclip_movement(
     time: Res<Time>,
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
+    move_and_slide: MoveAndSlide,
+    physics_charts: UsfPhysicsCharts,
     player: Single<
         (
+            Entity,
             &mut Transform,
             &CharacterLocomotionFrame,
             &CharacterControlFrame,
@@ -122,6 +125,9 @@ pub(in crate::game::player) fn noclip_movement(
             &PlayerController,
             &PlayerNoclip,
             &PlayerThrusters,
+            &UsfScaleLayer,
+            &Collider,
+            Option<&KinematicQueryExclusions>,
             &PlayerTravelSpeed,
             &PlayerAdaptiveCruise,
             &mut LinearVelocity,
@@ -130,6 +136,7 @@ pub(in crate::game::player) fn noclip_movement(
     >,
 ) {
     let (
+        entity,
         mut body,
         frame,
         control,
@@ -138,6 +145,9 @@ pub(in crate::game::player) fn noclip_movement(
         controller,
         noclip,
         thrusters,
+        layer,
+        collider,
+        exclusions,
         travel_speed,
         cruise,
         mut velocity,
@@ -172,11 +182,25 @@ pub(in crate::game::player) fn noclip_movement(
         1.0
     };
 
-    body.translation += wish
-        * travel_speed.free_flight_native_units_per_second()
-        * boost
-        * time.delta_secs();
-    velocity.0 = Vec3::ZERO;
+    let desired_velocity =
+        wish * travel_speed.free_flight_native_units_per_second() * boost;
+    let excluded = std::iter::once(entity)
+        .chain(exclusions.into_iter().flat_map(|exclusions| exclusions.iter()));
+    let filter = physics_charts.filter_for_scale(layer.scale(), excluded);
+    let move_config = MoveAndSlideConfig::default();
+    let moved = move_and_slide.move_and_slide(
+        collider,
+        body.translation,
+        body.rotation,
+        desired_velocity,
+        time.delta(),
+        &move_config,
+        &filter,
+        |_| MoveAndSlideHitResponse::Accept,
+    );
+
+    body.translation = moved.position;
+    velocity.0 = moved.projected_velocity;
 }
 
 

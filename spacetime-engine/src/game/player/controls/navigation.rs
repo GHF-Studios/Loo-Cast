@@ -49,6 +49,7 @@ pub(in crate::game::player) fn sync_navigation_context(
 
 
 const APPROACH_TARGET_CLEARANCE_NATIVE: f64 = 4.0;
+const SURFACE_S0_CAPTURE_CLEARANCE_SCALE0: f64 = 32_000.0;
 const APPROACH_REFINEMENT_ACTIVATION_RADII: f64 = 256.0;
 const APPROACH_REFINEMENT_RATE_DECADES_PER_SECOND: f32 = 6.0;
 
@@ -58,11 +59,11 @@ const APPROACH_REFINEMENT_RATE_DECADES_PER_SECOND: f32 = 6.0;
 pub(in crate::game::player) fn sync_approach_refinement_view(
     time: Res<Time>,
     frame: Res<UsfSpatialFrame>,
-    player: Single<(&Transform, &UsfScaleLayer), With<Player>>,
+    player: Single<(&Transform, &UsfScaleLayer, &PlayerAdaptiveCruise), With<Player>>,
     refinable: Query<(&UsfTravelInfluence, &UsfApproachRefinement)>,
     mut view: Single<&mut UsfViewContext, With<UsfViewRenderAnchor>>,
 ) {
-    let (body, layer) = player.into_inner();
+    let (body, layer, cruise) = player.into_inner();
     let observer_scale = layer.scale();
     let Ok(observer) = frame
         .origin()
@@ -85,12 +86,18 @@ pub(in crate::game::player) fn sync_approach_refinement_view(
     let Some(measurement) = influence.measure_from(&observer) else { return; };
 
     let clearance_scale0 = measurement.boundary_clearance_scale0().max(1.0);
-    let target = (clearance_scale0 / APPROACH_TARGET_CLEARANCE_NATIVE)
-        .log10()
-        .clamp(
-            refinement.minimum_scale().exponent() as f64,
-            influence.scale().exponent() as f64,
-        ) as f32;
+    let target = if !cruise.active
+        && clearance_scale0 <= SURFACE_S0_CAPTURE_CLEARANCE_SCALE0
+    {
+        refinement.minimum_scale().exponent() as f32
+    } else {
+        (clearance_scale0 / APPROACH_TARGET_CLEARANCE_NATIVE)
+            .log10()
+            .clamp(
+                refinement.minimum_scale().exponent() as f64,
+                influence.scale().exponent() as f64,
+            ) as f32
+    };
 
     let current = view.continuous_exponent();
     let max_step = APPROACH_REFINEMENT_RATE_DECADES_PER_SECOND * time.delta_secs().max(0.0);

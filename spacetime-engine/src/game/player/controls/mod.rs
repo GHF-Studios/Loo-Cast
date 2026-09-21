@@ -4,12 +4,7 @@
 //! simulation. They intentionally do not own camera collision, item semantics
 //! or movement tuning.
 
-use avian3d::{
-    character_controller::move_and_slide::{
-        MoveAndSlide, MoveAndSlideConfig, MoveAndSlideHitResponse,
-    },
-    prelude::{Collider, LinearVelocity},
-};
+use avian3d::prelude::{Collider, LinearVelocity};
 use bevy::{
     input::mouse::{AccumulatedMouseMotion, AccumulatedMouseScroll},
     prelude::*,
@@ -17,12 +12,10 @@ use bevy::{
 
 use crate::{
     physics::{
-        chart::UsfPhysicsCharts,
         character::{
         CharacterControlFrame, CharacterDimensions, CharacterGroundState,
         CharacterLocomotionFrame, CharacterMotor, CharacterMovementConfig, CharacterMovementInput,
         },
-        topology::KinematicQueryExclusions,
     },
     spatial::{
         SpatialDemandSource, SpatialScale, UsfApproachRefinement, UsfNavigationContext,

@@ -5,7 +5,7 @@ use bevy::prelude::*;
 
 use crate::{
     config::EngineConfig,
-    spatial::{UsfScaleLayer, UsfViewContext, UsfViewRenderAnchor},
+    spatial::{UsfActiveScaleLayer, UsfScaleLayer, UsfViewContext, UsfViewRenderAnchor},
 };
 
 use super::{VoxelManifestation, VoxelManifestationRegistry};
@@ -17,11 +17,12 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
     config: Res<EngineConfig>,
     mut commands: Commands,
     view: Single<Ref<UsfViewContext>, With<UsfViewRenderAnchor>>,
+    active: Res<UsfActiveScaleLayer>,
     worlds: Query<(&VoxelWorld, &UsfScaleLayer, Option<&VoxelCollisionDisabled>)>,
     manifestation_roots: Query<Option<&Collider>, With<VoxelManifestation>>,
     registry: Res<VoxelManifestationRegistry>,
 ) {
-    if !config.is_changed() && !view.is_changed() && !registry.is_changed() {
+    if !config.is_changed() && !view.is_changed() && !active.is_changed() && !registry.is_changed() {
         return;
     }
 
@@ -40,11 +41,11 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
                 cache.revision == expected_revision && cache.surface.has_rigid_triangles()
             });
         let wants_collider = collision_disabled.is_none()
+            && layer.scale() == active.scale()
             && has_rigid_surface
             && manifestation_collider_proximity_squared(
                 &view,
                 key.address,
-                layer,
                 config.voxel.manifestation.physics_interaction_radius_native,
             )
             .is_some();
@@ -98,13 +99,8 @@ pub(super) fn publish_collider_manifestation(
 fn manifestation_collider_proximity_squared(
     view: &UsfViewContext,
     address: VoxelMaterializationChunkAddress,
-    layer: &UsfScaleLayer,
     interaction_radius_native: f32,
 ) -> Option<f32> {
-    if layer.scale() != view.dominant_scale() {
-        return None;
-    }
-
     let extent = MATERIALIZATION_CHUNK_SIZE as f32;
     let minimum = address
         .origin()

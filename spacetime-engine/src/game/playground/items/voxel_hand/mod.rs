@@ -7,8 +7,8 @@ use crate::{
         GameSet,
         item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItem},
     },
-    spatial::{UsfActiveScaleLayer, UsfScaleLayer, UsfSpatialFrame},
-    voxel::{VoxelBrush, VoxelEdit, VoxelEditingDisabled, VoxelMaterialId, VoxelQueryPosition, VoxelRayHit, VoxelWorld},
+    spatial::{SpatialScale, UsfActiveScaleLayer, UsfScaleLayer, UsfSpatialFrame},
+    voxel::{VoxelAuthority, VoxelBrush, VoxelEdit, VoxelEditingDisabled, VoxelMaterialId, VoxelQueryPosition, VoxelRayHit, VoxelRealizationOf, VoxelWorld},
 };
 
 pub const VOXEL_HAND: ItemId = ItemId::new("voxel_hand");
@@ -43,9 +43,26 @@ fn use_voxel_hand(
     active: Res<UsfActiveScaleLayer>,
     spatial_frame: Res<UsfSpatialFrame>,
     mut worlds: ParamSet<(
-        Query<(Entity, &VoxelWorld, &UsfScaleLayer), Without<VoxelEditingDisabled>>,
-        Query<&mut VoxelWorld, Without<VoxelEditingDisabled>>,
+        Query<
+            (
+                Entity,
+                &VoxelWorld,
+                &UsfScaleLayer,
+                Option<&VoxelRealizationOf>,
+            ),
+            Without<VoxelEditingDisabled>,
+        >,
+        Query<
+            (
+                Entity,
+                &mut VoxelWorld,
+                &UsfScaleLayer,
+                Option<&VoxelRealizationOf>,
+            ),
+            Without<VoxelEditingDisabled>,
+        >,
     )>,
+    mut authorities: Query<&mut VoxelAuthority>,
 ) {
     for request in uses.read() {
         if request.item != VOXEL_HAND
@@ -55,14 +72,11 @@ fn use_voxel_hand(
             continue;
         }
 
-        let mut nearest: Option<(Entity, VoxelQueryPosition, f32)> = None;
+        let mut nearest: Option<(Entity, Option<Entity>, VoxelQueryPosition, f32)> = None;
         {
             let worlds = worlds.p0();
 
-            for (world_entity, world, layer) in &worlds {
-                // Gameplay aim exists in exactly one active scale-local world.
-                // Never compare its Vec3 against materializations from another
-                // scale by numerically reinterpreting the coordinates.
+            for (world_entity, world, layer, realization) in &worlds {
                 if layer.scale() != active.scale() {
                     continue;
                 }
@@ -90,14 +104,19 @@ fn use_voxel_hand(
                         continue;
                     };
 
-                    if nearest.is_none_or(|(_, _, current)| distance < current) {
-                        nearest = Some((world_entity, semantic_hit, distance));
+                    if nearest.is_none_or(|(_, _, _, current)| distance < current) {
+                        nearest = Some((
+                            world_entity,
+                            realization.map(|realization| realization.authority()),
+                            semantic_hit,
+                            distance,
+                        ));
                     }
                 }
             }
         }
 
-        let Some((world_entity, hit, _)) = nearest else {
+        let Some((world_entity, authority_entity, hit, _)) = nearest else {
             continue;
         };
 
@@ -129,8 +148,39 @@ fn use_voxel_hand(
             VoxelEdit::Add { brush, material }
         };
 
-        let mut worlds = worlds.p1();
-        let Ok(mut world) = worlds.get_mut(world_entity) else {
+        if let Some(authority_entity) = authority_entity {
+            let Ok(mut authority) = authorities.get_mut(authority_entity) else {
+                error!(
+                    ?authority_entity,
+                    "voxel realization points at a missing semantic authority"
+                );
+                continue;
+            };
+            authority.record_edit(edit);
+            drop(authority);
+
+            let mut realization_worlds = worlds.p1();
+            for (_, mut world, layer, realization) in &mut realization_worlds {
+                if layer.scale() != SpatialScale::ZERO
+                    || realization
+                        .is_none_or(|realization| realization.authority() != authority_entity)
+                {
+                    continue;
+                }
+
+                if let Err(error) = world.apply_authority_edit(edit) {
+                    error!(
+                        ?error,
+                        ?authority_entity,
+                        "shared voxel edit could not update S0 realization caches"
+                    );
+                }
+            }
+            continue;
+        }
+
+        let mut writable_worlds = worlds.p1();
+        let Ok((_, mut world, _, _)) = writable_worlds.get_mut(world_entity) else {
             continue;
         };
         if let Err(error) = world.record_edit(edit) {
@@ -138,3 +188,4 @@ fn use_voxel_hand(
         }
     }
 }
+

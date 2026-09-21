@@ -1,13 +1,13 @@
 //! Spatial-demand interpretation and voxel residency reconciliation.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use bevy::prelude::*;
 
 use crate::{
     config::EngineConfig,
     spatial::{
-        SpatialDemandScope, SpatialDemandSnapshot, SpatialScale, UsfScaleLayer,
+        SpatialDemandScope, SpatialDemandSnapshot, SpatialDemandSource, SpatialScale, UsfScaleLayer,
     },
 };
 
@@ -43,7 +43,7 @@ pub(super) struct VoxelDemandPlanKey {
 pub(in crate::voxel) fn refresh_voxel_residency(
     config: Res<EngineConfig>,
     demand_snapshot: Res<SpatialDemandSnapshot>,
-    voxel_demand_sources: Query<(), With<VoxelMaterializationDemand>>,
+    voxel_demand_sources: Query<&SpatialDemandSource, With<VoxelMaterializationDemand>>,
     mut worlds: Query<(
         Entity,
         &mut VoxelWorld,
@@ -70,8 +70,30 @@ pub(in crate::voxel) fn refresh_voxel_residency(
                 .iter()
                 .copied()
                 .filter(|demand| demand.scale() == layer.scale())
-                .filter_map(|demand| demand_for_world(&world, layer.scale(), demand)),
+                .filter(|demand| demand_intersects_world_support(&world, layer.scale(), *demand)),
         );
+
+        // Surface residency must lead the scale handoff, not depend on it.
+        if layer.scale() == SpatialScale::ZERO
+            && matches!(world.base(), VoxelBase::CelestialBody(_))
+        {
+            let mut projected_sources = HashSet::new();
+            for demand in all_voxel_demands.iter().copied() {
+                if !projected_sources.insert(demand.source()) {
+                    continue;
+                }
+                let Ok(source) = voxel_demand_sources.get(demand.source()) else {
+                    continue;
+                };
+                if let Some(surface_demand) = celestial_surface_prefetch_demand(
+                    &world,
+                    demand,
+                    source.half_extent_native(),
+                ) {
+                    voxel_demands.push(surface_demand);
+                }
+            }
+        }
         if let Some(pinned) = pinned {
             voxel_demands.push(SpatialDemandScope::at_scale(
                 world_entity,
@@ -114,32 +136,23 @@ pub(in crate::voxel) fn refresh_voxel_residency(
 /// VoxelWorld at the same scale should materialize there. Celestial fields are
 /// spatially bounded, so unrelated bodies reject demand that cannot intersect
 /// their shell.
-fn demand_for_world(
+fn celestial_surface_prefetch_demand(
     world: &VoxelWorld,
-    layer_scale: SpatialScale,
     demand: SpatialDemandScope,
+    source_half_extent_scale0: Vec3,
 ) -> Option<SpatialDemandScope> {
-    if demand_intersects_world_support(world, layer_scale, demand) {
-        return Some(demand);
-    }
-
-    if layer_scale != SpatialScale::ZERO {
-        return None;
-    }
-
     let VoxelBase::CelestialBody(body) = world.base() else {
         return None;
     };
 
-    let prefetch_native =
-        layer_scale.scale0_to_native_f64(CELESTIAL_SURFACE_PREFETCH_ALTITUDE_SCALE0) as f32;
-    let half_diagonal = demand.half_extent_native().length();
+    let observer = demand.center().reexpressed_at(SpatialScale::ZERO).ok()?;
+    let half_diagonal = source_half_extent_scale0.length();
+    let prefetch = CELESTIAL_SURFACE_PREFETCH_ALTITUDE_SCALE0 as f32;
     let max_distance =
-        body.radius_native() + prefetch_native + half_diagonal + MATERIALIZATION_CHUNK_SIZE as f32;
+        body.radius_native() + prefetch + half_diagonal + MATERIALIZATION_CHUNK_SIZE as f32;
 
-    let relative = demand
-        .center()
-        .relative_at_scale_bounded(&body.center(), layer_scale, max_distance)
+    let relative = observer
+        .relative_at_scale_bounded(&body.center(), SpatialScale::ZERO, max_distance)
         .ok()?;
     let radial = relative.length();
     if radial <= f32::EPSILON {
@@ -149,22 +162,22 @@ fn demand_for_world(
     let direction = relative / radial;
     let surface_radius = body.surface_radius_native(direction);
     let clearance = radial - surface_radius;
-
-    if clearance < -half_diagonal || clearance > prefetch_native {
+    if clearance < -half_diagonal || clearance > prefetch {
         return None;
     }
 
     let surface_center = body
         .center()
-        .translated_at_scale(layer_scale, direction * surface_radius)
+        .translated_at_scale(SpatialScale::ZERO, direction * surface_radius)
         .ok()?;
 
+    let extent = source_half_extent_scale0.max_element().max(16.0);
     Some(SpatialDemandScope::at_scale(
         demand.source(),
-        layer_scale,
+        SpatialScale::ZERO,
         surface_center,
-        demand.half_extent_native(),
-        demand.priority(),
+        Vec3::splat(extent),
+        demand.priority() + 1_000,
     ))
 }
 
@@ -208,12 +221,12 @@ fn chunk_intersects_world_support(
     world: &VoxelWorld,
     address: VoxelMaterializationChunkAddress,
 ) -> bool {
-    let VoxelBase::CelestialBody(body) = world.base() else {
+    if !matches!(world.base(), VoxelBase::CelestialBody(_)) {
         return true;
-    };
+    }
 
     let size = MATERIALIZATION_CHUNK_SIZE as f32;
-    let chunk_half_diagonal = Vec3::splat(size * 0.5).length();
+    let half_diagonal = Vec3::splat(size * 0.5).length();
     let Ok(center) = address
         .query_origin()
         .translated(Vec3::splat(size * 0.5))
@@ -221,25 +234,12 @@ fn chunk_intersects_world_support(
         return false;
     };
 
-    let scale = world.origin().leaf_scale();
-    let max_distance =
-        body.radius_native() + body.radius_native() * 0.05 + chunk_half_diagonal + 4.0;
+    let sample = world.base().sample_in_world(
+        VoxelQueryPosition::new(*world.origin()),
+        center,
+    );
 
-    let Ok(relative) = center.usf().relative_at_scale_bounded(
-        &body.center(),
-        scale,
-        max_distance,
-    ) else {
-        return false;
-    };
-
-    let radial = relative.length();
-    if radial <= f32::EPSILON {
-        return false;
-    }
-
-    let surface_radius = body.surface_radius_native(relative / radial);
-    (radial - surface_radius).abs() <= chunk_half_diagonal + 3.0
+    sample.distance.0.abs() <= half_diagonal + 4.0
 }
 
 
