@@ -7,7 +7,7 @@ use crate::{
         GameSet,
         item::{ItemAction, ItemCatalog, ItemDefinition, ItemId, UseItem},
     },
-    spatial::{UsfScaleLayer, UsfScaleLayerFrames},
+    spatial::{UsfActiveScaleLayer, UsfScaleLayer, UsfSpatialFrame},
     voxel::{VoxelBrush, VoxelEdit, VoxelEditingDisabled, VoxelMaterialId, VoxelQueryPosition, VoxelRayHit, VoxelWorld},
 };
 
@@ -36,7 +36,8 @@ fn register_item(mut catalog: ResMut<ItemCatalog>) {
 fn use_voxel_hand(
     mut uses: MessageReader<UseItem>,
     keyboard: Res<ButtonInput<KeyCode>>,
-    frames: Res<UsfScaleLayerFrames>,
+    active: Res<UsfActiveScaleLayer>,
+    spatial_frame: Res<UsfSpatialFrame>,
     mut worlds: ParamSet<(
         Query<(Entity, &VoxelWorld, &UsfScaleLayer), Without<VoxelEditingDisabled>>,
         Query<&mut VoxelWorld, Without<VoxelEditingDisabled>>,
@@ -55,15 +56,25 @@ fn use_voxel_hand(
             let worlds = worlds.p0();
 
             for (world_entity, world, layer) in &worlds {
+                // Gameplay aim exists in exactly one active scale-local world.
+                // Never compare its Vec3 against materializations from another
+                // scale by numerically reinterpreting the coordinates.
+                if layer.scale() != active.scale() {
+                    continue;
+                }
+
+                let Ok(local_origin) = spatial_frame.origin().reexpressed_at(layer.scale()) else {
+                    continue;
+                };
+
                 for (address, chunk) in world.active_dense_materializations() {
-                    let Ok(absolute) = address
+                    let Ok(chunk_translation) = address
                         .query_origin()
                         .usf()
-                        .coordinate_at_scale_f64(layer.scale())
+                        .relative_native_bounded(&local_origin, 1_000_000.0)
                     else {
                         continue;
                     };
-                    let chunk_translation = frames.runtime_from_absolute(layer.scale(), absolute);
                     let chunk_local_origin = request.aim.origin - chunk_translation;
 
                     let Some(VoxelRayHit { position, distance }) =

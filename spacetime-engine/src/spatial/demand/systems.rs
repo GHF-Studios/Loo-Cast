@@ -14,7 +14,7 @@ pub(in crate::spatial) fn configure(app: &mut App) {
 fn collect_spatial_demand(
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     active: Res<UsfActiveScaleLayer>,
-    frames: Res<UsfScaleLayerFrames>,
+    frame: Res<UsfSpatialFrame>,
     sources: Query<(
         Entity,
         &GlobalTransform,
@@ -34,7 +34,27 @@ fn collect_spatial_demand(
         }
 
         let source_scale = source_layer.map_or(active_scale, |layer| layer.scale());
-        let source_absolute = frames.absolute(source_scale, transform.translation());
+
+        // A demand source is first resolved inside its own bounded scale-local
+        // chart, then represented canonically. No floating position crosses a
+        // scale boundary.
+        let Ok(source_origin) = frame.origin().reexpressed_at(source_scale) else {
+            error!(
+                ?entity,
+                scale = %source_scale,
+                "spatial demand source frame could not re-express canonically"
+            );
+            continue;
+        };
+        let Ok(source_position) = source_origin.translated_native(transform.translation()) else {
+            error!(
+                ?entity,
+                scale = %source_scale,
+                local = ?transform.translation(),
+                "spatial demand source could not enter canonical USF space"
+            );
+            continue;
+        };
 
         for raw_scale in interaction_scale.exponent()..=SPATIAL_SCALE_MAX {
             let scale = SpatialScale::new(raw_scale).expect("validated USF scale");
@@ -44,11 +64,9 @@ fn collect_spatial_demand(
                 &mut snapshot,
                 entity,
                 source,
-                source_absolute,
-                source_scale,
+                source_position,
                 scale,
                 source.half_extent_native() * factor,
-                &frames,
             );
         }
 
@@ -60,12 +78,10 @@ fn collect_spatial_demand(
                     &mut snapshot,
                     entity,
                     source,
-                    source_absolute,
-                    source_scale,
+                    source_position,
                     refinement_scale,
                     source.half_extent_native() * contribution,
-                    &frames,
-                );
+                    );
             }
         }
     }
@@ -75,32 +91,21 @@ fn push_scope(
     snapshot: &mut SpatialDemandSnapshot,
     entity: Entity,
     source: &SpatialDemandSource,
-    source_absolute: bevy::math::DVec3,
-    source_scale: SpatialScale,
+    source_position: UsfPosition,
     target_scale: SpatialScale,
     half_extent_native: Vec3,
-    frames: &UsfScaleLayerFrames,
 ) {
     if half_extent_native.max_element() <= 0.001 {
         return;
     }
 
-    let target_absolute = frames.convert_absolute(source_absolute, source_scale, target_scale);
-    let local = Vec3::new(
-        target_absolute.x as f32,
-        target_absolute.y as f32,
-        target_absolute.z as f32,
-    );
-    if !local.is_finite() {
-        return;
-    }
-
-    let Ok(center) = UsfPosition::zero(target_scale).translated_native(local) else {
+    // Cross-scale transfer is exact canonical re-expression. The only floats
+    // left here are the bounded extent of the destination scale-local window.
+    let Ok(center) = source_position.reexpressed_at(target_scale) else {
         error!(
             ?entity,
             scale = %target_scale,
-            ?local,
-            "hierarchical spatial demand could not enter target scale chart"
+            "hierarchical spatial demand could not re-express canonical center"
         );
         return;
     };

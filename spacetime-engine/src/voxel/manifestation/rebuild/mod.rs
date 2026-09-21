@@ -9,7 +9,7 @@ use bevy::{
 
 use crate::{
     config::EngineConfig,
-    spatial::{UsfLocalScalePresentation, UsfScaleLayer, UsfScaleLayerFrames},
+    spatial::{UsfLocalScalePresentation, UsfScaleLayer, UsfSpatialFrame},
 };
 
 use super::{
@@ -48,7 +48,7 @@ pub(in crate::voxel) fn initialize_translucent_voxel_material(
 pub(in crate::voxel) fn rebuild_dirty_manifestations(
     config: Res<EngineConfig>,
     mut commands: Commands,
-    layer_frames: Res<UsfScaleLayerFrames>,
+    spatial_frame: Res<UsfSpatialFrame>,
     mut meshes: ResMut<Assets<Mesh>>,
     translucent_material: Res<TranslucentVoxelMaterial>,
     worlds: Query<(
@@ -152,7 +152,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
             root
         } else {
             let Some(local_translation) =
-                manifestation_runtime_translation(world, layer, &layer_frames, key.address)
+                manifestation_runtime_translation(world, layer, &spatial_frame, key.address)
             else {
                 registry.dirty.insert(key);
                 continue;
@@ -335,15 +335,15 @@ fn build_opaque_mesh(surface: &VoxelSurface, debug_color: [f32; 4]) -> Option<Me
 fn manifestation_runtime_translation(
     _world: &VoxelWorld,
     layer: &UsfScaleLayer,
-    frames: &UsfScaleLayerFrames,
+    frame: &UsfSpatialFrame,
     address: VoxelMaterializationChunkAddress,
 ) -> Option<Vec3> {
-    // The address is already canonical. Project it directly instead of throwing
-    // away a non-zero VoxelWorld origin.
-    let absolute = address
+    // Both ends stay canonical until the final bounded scale-local projection.
+    // No huge float absolute is ever constructed or subtracted.
+    let local_origin = frame.origin().reexpressed_at(layer.scale()).ok()?;
+    address
         .query_origin()
         .usf()
-        .coordinate_at_scale_f64(layer.scale())
-        .ok()?;
-    Some(frames.runtime_from_absolute(layer.scale(), absolute))
+        .relative_native_bounded(&local_origin, 1_000_000.0)
+        .ok()
 }

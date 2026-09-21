@@ -9,7 +9,7 @@ use bevy::prelude::*;
 
 use super::{
     SPATIAL_SCALE_MAX, SpatialScale, UsfActiveScaleLayer, UsfPosition, UsfScaleLayer,
-    UsfScaleLayerFrames, UsfViewContext, UsfViewRenderAnchor,
+    UsfSpatialFrame, UsfViewContext, UsfViewRenderAnchor,
 };
 
 #[derive(Component, Debug, Clone, Copy, PartialEq)]

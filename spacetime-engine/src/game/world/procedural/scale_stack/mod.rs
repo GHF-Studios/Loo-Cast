@@ -12,8 +12,8 @@ use bevy::prelude::*;
 use crate::{
     config::EngineConfig,
     spatial::{
-        SpatialScale, UsfActiveScaleLayer, UsfChunkAddress, UsfPosition,
-        UsfScaleLayer, UsfScaleLayerFrames, UsfViewContext, UsfViewRenderAnchor,
+        SpatialScale, UsfChunkAddress, UsfPosition, UsfScaleLayer, UsfViewContext,
+        UsfViewRenderAnchor,
     },
     voxel::{ProceduralVolume, VoxelBase, VoxelPresentationMaterial, VoxelStreaming, VoxelWorld},
     worldgen::{PhenomenonRegistry, WorldgenEvaluationKey, WorldgenStore},
@@ -27,15 +27,11 @@ struct ScaleStackDemandKey {
 }
 
 impl ScaleStackDemandKey {
-    fn from_view(
-        view: &UsfViewContext,
-        active: UsfActiveScaleLayer,
-        frames: &UsfScaleLayerFrames,
-    ) -> Option<Self> {
+    fn from_view(view: &UsfViewContext) -> Option<Self> {
         let interaction = view.interaction_scale();
         let refinement = (view.scale() < interaction && view.contribution(view.scale()) > 0.001)
             .then_some(view.scale());
-        let target = view_target_at_scale(view, active, frames, view.scale())?;
+        let target = view_target_at_scale(view, view.scale())?;
         let target_scope = UsfChunkAddress::containing(target, view.scale()).ok()?;
 
         Some(Self {
@@ -107,14 +103,12 @@ pub(super) fn sync_scale_stack(
     config: Res<EngineConfig>,
     mut commands: Commands,
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
-    active_layer: Res<UsfActiveScaleLayer>,
-    frames: Res<UsfScaleLayerFrames>,
     registry: Res<PhenomenonRegistry>,
     mut worldgen: ResMut<WorldgenStore>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut stacks: Query<(Entity, &mut ProceduralScaleStack)>,
 ) {
-    let Some(demand) = ScaleStackDemandKey::from_view(&view, *active_layer, &frames) else {
+    let Some(demand) = ScaleStackDemandKey::from_view(&view) else {
         error!("observer position could not be represented in the requested refinement scale");
         return;
     };
@@ -136,8 +130,8 @@ pub(super) fn sync_scale_stack(
         });
 
         for scale in desired_scales(demand) {
-            let target = view_target_at_scale(&view, *active_layer, &frames, scale)
-                .expect("requested scale must remain representable near the observer");
+            let target = view_target_at_scale(&view, scale)
+                .expect("requested scale must remain canonically representable");
             let key = worldgen
                 .contextualize_to(stack.root, target, scale, &registry)
                 .expect("scale-local refinement must remain canonically addressable")
@@ -196,25 +190,11 @@ fn scale_depth_bias(scale: SpatialScale, view_scale: SpatialScale) -> f32 {
 /// physical interaction.
 fn view_target_at_scale(
     view: &UsfViewContext,
-    active: UsfActiveScaleLayer,
-    frames: &UsfScaleLayerFrames,
     target_scale: SpatialScale,
 ) -> Option<UsfPosition> {
-    let active_scale = active.scale();
-    let active_absolute = frames.absolute(active_scale, view.runtime_anchor());
-    let target_absolute = frames.convert_absolute(active_absolute, active_scale, target_scale);
-    let target_local = Vec3::new(
-        target_absolute.x as f32,
-        target_absolute.y as f32,
-        target_absolute.z as f32,
-    );
-    if !target_local.is_finite() {
-        return None;
-    }
-
-    UsfPosition::zero(target_scale)
-        .translated_native(target_local)
-        .ok()
+    // The observer already has canonical identity. Refinement targeting must
+    // never reconstruct that identity from an intermediate floating coordinate.
+    view.anchor().reexpressed_at(target_scale).ok()
 }
 
 fn desired_scales(demand: ScaleStackDemandKey) -> impl Iterator<Item = SpatialScale> {
