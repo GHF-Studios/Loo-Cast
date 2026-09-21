@@ -8,7 +8,7 @@
 use bevy::prelude::*;
 
 use crate::spatial::{
-    UsfActiveScaleLayer, UsfScaleLayerFrames, UsfSceneryPresentation, UsfViewContext, UsfViewRenderAnchor,
+    UsfSceneryPresentation, UsfViewContext, UsfViewRenderAnchor,
 };
 
 #[derive(Debug, Clone)]
@@ -100,8 +100,6 @@ impl UsfDistanceMeshLod {
 
 pub(in crate::spatial) fn select_distance_mesh_lods(
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
-    active: Res<UsfActiveScaleLayer>,
-    frames: Res<UsfScaleLayerFrames>,
     mut presentations: Query<(
         &UsfSceneryPresentation,
         &mut UsfDistanceMeshLod,
@@ -109,13 +107,15 @@ pub(in crate::spatial) fn select_distance_mesh_lods(
         Option<&mut MeshMaterial3d<StandardMaterial>>,
     )>,
 ) {
-    let active_scale = active.scale();
-    let observer_absolute = frames.absolute(active_scale, view.runtime_anchor());
-
     for (presentation, mut lod, mut mesh, material) in &mut presentations {
-        let observer_in_scale =
-            frames.convert_absolute(observer_absolute, active_scale, presentation.scale());
-        let distance_native = (presentation.absolute() - observer_in_scale).length();
+        let Ok(relative) = presentation.anchor().relative_at_scale_bounded(
+            view.anchor(),
+            presentation.scale(),
+            1_000_000.0,
+        ) else {
+            continue;
+        };
+        let distance_native = f64::from(relative.length());
         if !distance_native.is_finite() {
             continue;
         }

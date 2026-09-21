@@ -86,9 +86,27 @@ pub(in crate::voxel) fn refresh_voxel_residency(
         };
 
         if changed {
+            if let Some(surface_radius_native) =
+                pinned.and_then(|pinned| pinned.surface_radius_native())
+            {
+                prioritize_surface_shell(&mut streaming, surface_radius_native);
+            }
             reconcile_materialization_residency(&mut world, &mut streaming, warm_limit);
         }
     }
+}
+
+
+fn prioritize_surface_shell(streaming: &mut VoxelStreaming, radius_native: f32) {
+    let mut pending = streaming.pending_desired.drain(..).collect::<Vec<_>>();
+    pending.sort_by(|a, b| {
+        b.priority.cmp(&a.priority).then_with(|| {
+            let a_error = (a.distance_squared.sqrt() - radius_native).abs();
+            let b_error = (b.distance_squared.sqrt() - radius_native).abs();
+            a_error.total_cmp(&b_error)
+        })
+    });
+    streaming.pending_desired = pending.into();
 }
 
 fn reconcile_materialization_residency(

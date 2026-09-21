@@ -515,9 +515,10 @@ fn spawn_celestial_body_realizations(
                 .expect("pinned body center must match its representation scale");
             let margin = MATERIALIZATION_CHUNK_SIZE as f32 * 1.5;
             entity.insert((
-                VoxelPinnedDemand::cuboid(
+                VoxelPinnedDemand::shell(
                     pinned_center,
-                    Vec3::splat(radius_native + margin),
+                    radius_native,
+                    margin,
                 ),
                 UsfScaleFallbackPresentation::new(coarsest),
             ));

@@ -13,6 +13,7 @@ use crate::spatial::{
 };
 
 const PRESENTATION_RELATIVE_BOUND: f32 = 16_384.0;
+const SCENERY_RELATIVE_BOUND: f32 = 1_000_000.0;
 const CONTRIBUTION_EPSILON: f32 = 0.001;
 
 /// Marks the runtime transform whose universe position is the semantic origin
@@ -56,7 +57,7 @@ pub struct UsfScalePresentation {
 /// one ordinary floating-point render scene.
 #[derive(Component, Debug, Clone, Copy)]
 pub struct UsfSceneryPresentation {
-    absolute: DVec3,
+    anchor: UsfPosition,
     scale: SpatialScale,
     render_shell_radius: f64,
 }
@@ -64,16 +65,20 @@ pub struct UsfSceneryPresentation {
 impl UsfSceneryPresentation {
     pub const DEFAULT_RENDER_SHELL_RADIUS: f64 = 750.0;
 
-    pub const fn new(absolute: DVec3, scale: SpatialScale) -> Self {
+    pub fn new(absolute: DVec3, scale: SpatialScale) -> Self {
+        let local = Vec3::new(absolute.x as f32, absolute.y as f32, absolute.z as f32);
+        let anchor = UsfPosition::zero(scale)
+            .translated_native(local)
+            .expect("finite authored scenery coordinate must be canonically representable");
         Self {
-            absolute,
+            anchor,
             scale,
             render_shell_radius: Self::DEFAULT_RENDER_SHELL_RADIUS,
         }
     }
 
-    pub const fn absolute(self) -> DVec3 {
-        self.absolute
+    pub const fn anchor(self) -> UsfPosition {
+        self.anchor
     }
 
     pub const fn scale(self) -> SpatialScale {

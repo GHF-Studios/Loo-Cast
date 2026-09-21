@@ -139,26 +139,30 @@ pub(in crate::spatial) fn project_local_scale_presentations(
 /// angular size while keeping arbitrarily distant representations inside `R`.
 pub(in crate::spatial) fn project_scenery_presentations(
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
-    active: Res<UsfActiveScaleLayer>,
-    frames: Res<UsfScaleLayerFrames>,
     mut presentations: Query<(
         &UsfSceneryPresentation,
         &mut Transform,
         &mut Visibility,
     )>,
 ) {
-    let active_scale = active.scale();
-    let observer_absolute = frames.absolute(active_scale, view.runtime_anchor());
-
     for (presentation, mut transform, mut visibility) in &mut presentations {
-        let observer_in_scale =
-            frames.convert_absolute(observer_absolute, active_scale, presentation.scale());
-        let relative = presentation.absolute() - observer_in_scale;
+        let Ok(relative) = presentation.anchor().relative_at_scale_bounded(
+            view.anchor(),
+            presentation.scale(),
+            SCENERY_RELATIVE_BOUND,
+        ) else {
+            *visibility = Visibility::Hidden;
+            continue;
+        };
 
         let exponent_delta =
             f64::from(presentation.scale().exponent()) - f64::from(view.continuous_exponent());
         let native_to_view = 10.0_f64.powf(exponent_delta);
-        let raw_relative = relative * native_to_view;
+        let raw_relative = DVec3::new(
+            f64::from(relative.x) * native_to_view,
+            f64::from(relative.y) * native_to_view,
+            f64::from(relative.z) * native_to_view,
+        );
         let raw_distance = raw_relative.length();
 
         if !raw_distance.is_finite() || !native_to_view.is_finite() {
