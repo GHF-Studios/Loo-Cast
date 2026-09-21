@@ -10,7 +10,7 @@ use crate::{
         item::{ItemAction, ItemCatalog},
         player::{
             CameraMode, Player, PlayerAdaptiveCruise, PlayerCamera, PlayerNoclip,
-            PlayerTravelMode, PlayerTravelSpeed, PlayerTravelState,
+            PlayerThrusters, PlayerTravelMode, PlayerTravelSpeed, PlayerTravelState,
         },
     },
     spatial::{
@@ -262,6 +262,7 @@ fn update_context_actions(
             &PlayerTravelState,
             &PlayerAdaptiveCruise,
             &PlayerNoclip,
+            &PlayerThrusters,
             &SpatialDemandSource,
         ),
         With<Player>,
@@ -273,7 +274,7 @@ fn update_context_actions(
         return;
     }
 
-    let (travel, cruise, noclip, demand) = player.into_inner();
+    let (travel, cruise, noclip, thrusters, demand) = player.into_inner();
     let mut lines = Vec::<String>::with_capacity(10);
 
     if let Some(item) = hotbar.selected_item().and_then(|item| catalog.find(item)) {
@@ -290,6 +291,12 @@ fn update_context_actions(
 
     match travel.mode {
         PlayerTravelMode::OnFoot => {
+            lines.push("WASD      Move".to_string());
+            lines.push("SPACE     Jump".to_string());
+            lines.push("SHIFT     Sprint".to_string());
+            lines.push("CTRL      Crouch".to_string());
+        }
+        PlayerTravelMode::LocalFlight if noclip.active && !thrusters.enabled => {
             lines.push("WASD      Move".to_string());
             lines.push("SPACE     Jump".to_string());
             lines.push("SHIFT     Sprint".to_string());
@@ -320,6 +327,13 @@ fn update_context_actions(
     } else {
         "V         Local flight".to_string()
     });
+
+    if noclip.active {
+        lines.push(format!(
+            "X         Thrusters {}",
+            if thrusters.enabled { "off" } else { "on" }
+        ));
+    }
 
     lines.push(format!(
         "L         Spatial demand {}",

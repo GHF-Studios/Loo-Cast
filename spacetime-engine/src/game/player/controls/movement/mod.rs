@@ -16,6 +16,7 @@ pub(in crate::game::player) fn movement(
             &PlayerController,
             &PlayerStance,
             &PlayerNoclip,
+            &PlayerThrusters,
             &UsfScaleLayer,
             &PlayerTravelSpeed,
             &PlayerAdaptiveCruise,
@@ -33,6 +34,7 @@ pub(in crate::game::player) fn movement(
         controller,
         stance,
         noclip,
+        thrusters,
         layer,
         travel_speed,
         cruise,
@@ -42,7 +44,7 @@ pub(in crate::game::player) fn movement(
 
     if dead.is_some()
         || gameplay_suppressed(&keyboard, &capture)
-        || noclip.active
+        || (noclip.active && thrusters.enabled)
         || cruise.active
         || layer.scale() != SpatialScale::ZERO
     {
@@ -119,6 +121,7 @@ pub(in crate::game::player) fn noclip_movement(
             &PlayerAim,
             &PlayerController,
             &PlayerNoclip,
+            &PlayerThrusters,
             &PlayerTravelSpeed,
             &PlayerAdaptiveCruise,
             &mut LinearVelocity,
@@ -134,6 +137,7 @@ pub(in crate::game::player) fn noclip_movement(
         aim,
         controller,
         noclip,
+        thrusters,
         travel_speed,
         cruise,
         mut velocity,
@@ -141,6 +145,7 @@ pub(in crate::game::player) fn noclip_movement(
 
     if dead.is_some()
         || !noclip.active
+        || !thrusters.enabled
         || cruise.active
         || gameplay_suppressed(&keyboard, &capture)
     {

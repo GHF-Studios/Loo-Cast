@@ -18,7 +18,7 @@ mod stance;
 pub use camera::{CameraMode, PlayerCamera, ThirdPersonCamera};
 pub use components::{
     Player, PlayerAdaptiveCruise, PlayerAim, PlayerController, PlayerDead, PlayerNoclip,
-    PlayerStance, PlayerTravelMode, PlayerTravelSpeed, PlayerTravelState,
+    PlayerStance, PlayerThrusters, PlayerTravelMode, PlayerTravelSpeed, PlayerTravelState,
 };
 
 use avian3d::prelude::{
@@ -83,6 +83,7 @@ impl Plugin for PlayerPlugin {
             .register_type::<PlayerAim>()
             .register_type::<PlayerStance>()
             .register_type::<PlayerNoclip>()
+            .register_type::<PlayerThrusters>()
             .register_type::<PlayerTravelSpeed>()
             .register_type::<PlayerTravelMode>()
             .register_type::<PlayerTravelState>()
@@ -100,6 +101,7 @@ impl Plugin for PlayerPlugin {
                 (
                     controls::look,
                     controls::toggle_noclip,
+                    controls::toggle_thrusters,
                     controls::toggle_adaptive_cruise,
                     stance::update_stance,
                     controls::sync_navigation_context,

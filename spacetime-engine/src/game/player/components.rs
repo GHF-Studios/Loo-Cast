@@ -56,6 +56,17 @@ pub struct PlayerNoclip {
     pub active: bool,
 }
 
+/// S0 Local Flight translational-thruster state.
+///
+/// Local Flight may remain the active control regime while thrust is disabled;
+/// then the ordinary CharacterMotor, collider and body-relative gravity own
+/// movement again.
+#[derive(Component, Reflect, Debug, Default, Clone, Copy)]
+#[reflect(Component)]
+pub struct PlayerThrusters {
+    pub enabled: bool,
+}
+
 /// Player-commanded manual locomotion pace.
 ///
 /// This is deliberately dimensionless. `1.0` means the natural baseline of the

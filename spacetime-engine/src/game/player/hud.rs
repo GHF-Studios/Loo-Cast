@@ -6,7 +6,7 @@
 
 use bevy::prelude::*;
 
-use super::{Player, PlayerAdaptiveCruise, PlayerTravelMode, PlayerTravelState};
+use super::{Player, PlayerAdaptiveCruise, PlayerThrusters, PlayerTravelMode, PlayerTravelState};
 use crate::spatial::{SpatialScale, UsfScaleLayer, UsfViewContext, UsfViewRenderAnchor};
 
 const HUD_TEXT: Color = Color::srgb(0.72, 0.95, 0.88);
@@ -107,7 +107,7 @@ pub(super) fn spawn_flight_hud(mut commands: Commands) {
 
 pub(super) fn update_flight_hud(
     player: Single<
-        (&PlayerTravelState, &PlayerAdaptiveCruise, &UsfScaleLayer),
+        (&PlayerTravelState, &PlayerAdaptiveCruise, &PlayerThrusters, &UsfScaleLayer),
         With<Player>,
     >,
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
@@ -117,7 +117,7 @@ pub(super) fn update_flight_hud(
         Single<(&mut Text, &mut Node), With<FlightHudAlert>>,
     )>,
 ) {
-    let (travel, cruise, layer) = player.into_inner();
+    let (travel, cruise, thrusters, layer) = player.into_inner();
     let flying = travel.mode != PlayerTravelMode::OnFoot;
 
     {
@@ -149,10 +149,11 @@ pub(super) fn update_flight_hud(
     {
         let mut left = hud.p0();
         left.0.0 = format!(
-            "{}\nSPD  {}\nTHR  {}\nCHART S{} • VIEW {:+.2}",
+            "{}\nSPD  {}\nTHR  {} • RCS {}\nCHART S{} • VIEW {:+.2}",
             travel.mode.label(),
             speed,
             throttle,
+            if thrusters.enabled { "ON" } else { "OFF" },
             layer.scale(),
             view.continuous_exponent(),
         );

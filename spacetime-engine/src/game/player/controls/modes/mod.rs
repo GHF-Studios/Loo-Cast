@@ -12,6 +12,7 @@ pub(in crate::game::player) fn toggle_noclip(
             Entity,
             Option<&PlayerDead>,
             &mut PlayerNoclip,
+            &mut PlayerThrusters,
             &mut PlayerAdaptiveCruise,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
@@ -28,6 +29,7 @@ pub(in crate::game::player) fn toggle_noclip(
         entity,
         dead,
         mut noclip,
+        mut thrusters,
         mut cruise,
         mut input,
         mut ground,
@@ -38,6 +40,7 @@ pub(in crate::game::player) fn toggle_noclip(
     }
 
     noclip.active = !noclip.active;
+    thrusters.enabled = noclip.active;
     if noclip.active {
         cruise.active = false;
         cruise.speed_scale0 = 0.0;
@@ -53,6 +56,57 @@ pub(in crate::game::player) fn toggle_noclip(
     }
 }
 
+/// `X` toggles thrusters while S0 Local Flight retains control.
+pub(in crate::game::player) fn toggle_thrusters(
+    mut commands: Commands,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    capture: Res<CursorCapture>,
+    player: Single<
+        (
+            Entity,
+            Option<&PlayerDead>,
+            &UsfScaleLayer,
+            &PlayerNoclip,
+            &mut PlayerThrusters,
+            &PlayerStance,
+            &PlayerAdaptiveCruise,
+            &mut CharacterMovementInput,
+            &mut CharacterGroundState,
+            &mut LinearVelocity,
+        ),
+        With<Player>,
+    >,
+) {
+    if gameplay_suppressed(&keyboard, &capture) || !keyboard.just_pressed(KeyCode::KeyX) {
+        return;
+    }
+
+    let (entity, dead, layer, noclip, mut thrusters, stance, cruise, mut input, mut ground, mut velocity) =
+        player.into_inner();
+
+    if dead.is_some() || cruise.active || !noclip.active || layer.scale() != SpatialScale::ZERO {
+        return;
+    }
+
+    thrusters.enabled = !thrusters.enabled;
+    input.clear();
+    velocity.0 = Vec3::ZERO;
+    ground.grounded = false;
+    ground.ground_entity = None;
+
+    if thrusters.enabled {
+        commands.entity(entity).remove::<CharacterMotor>();
+        commands.entity(entity).remove::<Collider>();
+    } else {
+        let collider = if stance.crouched {
+            CharacterDimensions::crouching_collider()
+        } else {
+            CharacterDimensions::standing_collider()
+        };
+        commands.entity(entity).insert((CharacterMotor, collider));
+    }
+}
+
 /// `C` toggles adaptive long-distance Cruise.
 pub(in crate::game::player) fn toggle_adaptive_cruise(
     mut commands: Commands,
@@ -64,6 +118,7 @@ pub(in crate::game::player) fn toggle_adaptive_cruise(
             Option<&PlayerDead>,
             &mut PlayerAdaptiveCruise,
             &mut PlayerNoclip,
+            &mut PlayerThrusters,
             &PlayerTravelState,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
@@ -76,7 +131,7 @@ pub(in crate::game::player) fn toggle_adaptive_cruise(
         return;
     }
 
-    let (entity, dead, mut cruise, mut noclip, travel, mut input, mut ground, mut velocity) =
+    let (entity, dead, mut cruise, mut noclip, mut thrusters, travel, mut input, mut ground, mut velocity) =
         player.into_inner();
     if dead.is_some() {
         return;
@@ -90,6 +145,7 @@ pub(in crate::game::player) fn toggle_adaptive_cruise(
     cruise.throttle = 0.0;
     cruise.speed_scale0 = 0.0;
     noclip.active = false;
+    thrusters.enabled = false;
     input.clear();
     velocity.0 = Vec3::ZERO;
     ground.grounded = false;
@@ -129,6 +185,7 @@ pub(in crate::game::player) fn sync_locomotion_mode(
             &UsfScaleLayer,
             &PlayerStance,
             &PlayerNoclip,
+            &PlayerThrusters,
             &PlayerAdaptiveCruise,
             Option<&CharacterMotor>,
             Option<&Collider>,
@@ -136,9 +193,10 @@ pub(in crate::game::player) fn sync_locomotion_mode(
         With<Player>,
     >,
 ) {
-    let (entity, layer, stance, noclip, cruise, motor, collider) = player.into_inner();
-    let wants_character_body =
-        layer.scale() == SpatialScale::ZERO && !noclip.active && !cruise.active;
+    let (entity, layer, stance, noclip, thrusters, cruise, motor, collider) = player.into_inner();
+    let wants_character_body = layer.scale() == SpatialScale::ZERO
+        && !cruise.active
+        && (!noclip.active || !thrusters.enabled);
 
     if wants_character_body {
         if motor.is_none() {

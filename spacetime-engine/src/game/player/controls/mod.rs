@@ -25,7 +25,8 @@ use crate::{
 
 use super::{
     Player, PlayerAdaptiveCruise, PlayerAim, PlayerController, PlayerDead, PlayerNoclip,
-    PlayerStance, PlayerTravelMode, PlayerTravelSpeed, PlayerTravelState, cursor::CursorCapture,
+    PlayerStance, PlayerThrusters, PlayerTravelMode, PlayerTravelSpeed, PlayerTravelState,
+    cursor::CursorCapture,
 };
 
 pub(super) fn gameplay_suppressed(
@@ -46,6 +47,7 @@ mod view;
 pub(super) use cruise::adaptive_cruise_movement;
 pub(super) use modes::{
     sync_locomotion_mode, toggle_adaptive_cruise, toggle_noclip, toggle_spatial_demand,
+    toggle_thrusters,
 };
 pub(super) use movement::{movement, noclip_movement, scale_navigation_movement};
 pub(super) use navigation::{

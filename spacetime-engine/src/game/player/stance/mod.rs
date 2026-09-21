@@ -17,7 +17,8 @@ use crate::{
 };
 
 use super::{
-    Player, PlayerDead, PlayerNoclip, PlayerStance, controls::gameplay_suppressed,
+    Player, PlayerDead, PlayerNoclip, PlayerStance, PlayerThrusters,
+    controls::gameplay_suppressed,
     cursor::CursorCapture,
 };
 
@@ -36,6 +37,7 @@ pub fn update_stance(
                 &UsfScaleLayer,
                 &mut PlayerStance,
                 &PlayerNoclip,
+                &PlayerThrusters,
                 Option<&PlayerDead>,
                 &mut PortalTraveler,
                 &mut SpatialSplitBox,
@@ -51,14 +53,19 @@ pub fn update_stance(
 
     let wants_crouch = keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::KeyC);
 
-    let (noclip_active, dead, crouched, scale) = {
+    let (free_flight_active, dead, crouched, scale) = {
         let player = params.p1();
-        let (_, _, _, layer, stance, noclip, dead, _, _, _) = player.into_inner();
-        (noclip.active, dead.is_some(), stance.crouched, layer.scale())
+        let (_, _, _, layer, stance, noclip, thrusters, dead, _, _, _) = player.into_inner();
+        (
+            noclip.active && thrusters.enabled,
+            dead.is_some(),
+            stance.crouched,
+            layer.scale(),
+        )
     };
 
     if dead
-        || noclip_active
+        || free_flight_active
         || scale != SpatialScale::ZERO
         || wants_crouch == crouched
     {
@@ -69,7 +76,7 @@ pub fn update_stance(
 
     if wants_crouch {
         let player = params.p1();
-        let (_, mut body, collider, _, mut stance, _, _, mut traveler, mut split_box, _) =
+        let (_, mut body, collider, _, mut stance, _, _, _, mut traveler, mut split_box, _) =
             player.into_inner();
         let Some(mut collider) = collider else {
             return;
@@ -90,7 +97,7 @@ pub fn update_stance(
 
     let (entity, target_center, rotation, excluded) = {
         let player = params.p1();
-        let (entity, body, _, _, _, _, _, _, _, exclusions) = player.into_inner();
+        let (entity, body, _, _, _, _, _, _, _, _, exclusions) = player.into_inner();
         (
             entity,
             body.translation + physical_up(&body) * center_delta,
@@ -114,7 +121,7 @@ pub fn update_stance(
     }
 
     let player = params.p1();
-    let (_, mut body, collider, _, mut stance, _, _, mut traveler, mut split_box, _) =
+    let (_, mut body, collider, _, mut stance, _, _, _, mut traveler, mut split_box, _) =
         player.into_inner();
     let Some(mut collider) = collider else {
         return;
