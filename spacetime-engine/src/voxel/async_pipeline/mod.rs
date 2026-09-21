@@ -1,10 +1,11 @@
 //! Asynchronous derivation of disposable CPU geometry caches.
 
-use std::collections::HashSet;
 //!
 //! Dense voxel atoms live in [`VoxelWorld`]'s compact store. Worker jobs are ECS
 //! entities only while work is in flight; finished surface caches return to the
 //! store. Rendering and physics consume each materialization cache independently.
+
+use std::collections::HashSet;
 
 use bevy::{
     prelude::*,
