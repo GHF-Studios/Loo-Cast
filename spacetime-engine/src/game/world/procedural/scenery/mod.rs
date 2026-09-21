@@ -483,9 +483,14 @@ fn spawn_celestial_body_realizations(
     let system_scale = scale(SYSTEM_SCALE);
     let center = canonical_center_from_native(center_system_native, system_scale);
     let radius_scale0 = radius_system_native * system_scale.scale0_units_per_native();
-    let coarsest = celestial_coarsest_scale(radius_scale0);
 
-    for raw in CELESTIAL_FINEST_SCALE..=coarsest.exponent() {
+    // Detail-root scale and existence/top-of-ladder scale are different ideas.
+    // For the Moon, S+5 is where terrain detail becomes meaningful, but the same
+    // body still has coarser whole-body realizations through the system chart.
+    let detail_root = celestial_coarsest_scale(radius_scale0);
+    let realization_coarsest = system_scale.max(detail_root);
+
+    for raw in CELESTIAL_FINEST_SCALE..=realization_coarsest.exponent() {
         let terrain_scale = scale(raw);
 
         // Grid origin is representation-local and may be quantized to the scale;
@@ -497,7 +502,7 @@ fn spawn_celestial_body_realizations(
             center,
             radius_scale0,
             terrain_scale,
-            coarsest,
+            detail_root,
             seed,
             profile,
         );
@@ -515,9 +520,9 @@ fn spawn_celestial_body_realizations(
             Visibility::Inherited,
         ));
 
-        if terrain_scale == coarsest {
+        if terrain_scale == realization_coarsest {
             // Keep only the coarsest whole-body shell resident at arbitrary
-            // observer distance. Finer levels remain observer-demanded patches.
+            // observer distance. Finer levels are observer-demanded.
             let radius_native = terrain_scale.scale0_to_native_f64(radius_scale0) as f32;
             let pinned_center = center
                 .reexpressed_at(terrain_scale)
@@ -529,7 +534,7 @@ fn spawn_celestial_body_realizations(
                     radius_native,
                     margin,
                 ),
-                UsfScaleFallbackPresentation::new(coarsest),
+                UsfScaleFallbackPresentation::new(realization_coarsest),
             ));
         }
     }

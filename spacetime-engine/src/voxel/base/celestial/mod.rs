@@ -60,10 +60,8 @@ impl ProceduralCelestialBody {
         seed: u32,
         profile: CelestialBodyProfile,
     ) -> Self {
-        assert!(
-            current_scale <= coarsest_detail_scale,
-            "celestial realization must not be coarser than its ladder root"
-        );
+        // `coarsest_detail_scale` marks where terrain detail bands begin.
+        // A body may still have whole-body realizations at coarser scales.
         let radius_native = current_scale.scale0_to_native_f64(radius_scale0) as f32;
         assert!(
             radius_native.is_finite() && radius_native > 0.0,
@@ -162,6 +160,10 @@ impl ProceduralCelestialBody {
     /// adds only detail belonging to newly entered scales.
     fn hierarchical_detail_native(self, direction: Vec3) -> f32 {
         let mut result = 0.0_f64;
+
+        if self.current_scale > self.coarsest_detail_scale {
+            return 0.0;
+        }
 
         for raw in (self.current_scale.exponent()..=self.coarsest_detail_scale.exponent()).rev() {
             let level = SpatialScale::new(raw).expect("validated celestial detail scale");
@@ -287,4 +289,21 @@ mod tests {
             assert!((reconstructed - radius_scale0).abs() < 1.0);
         }
     }
+
+    #[test]
+    fn coarser_whole_body_realization_can_exist_above_detail_root() {
+        let body = ProceduralCelestialBody::new(
+            center(),
+            1_737_000.0,
+            SpatialScale::new(6).unwrap(),
+            SpatialScale::new(5).unwrap(),
+            0x4D4F_4F4E,
+            CelestialBodyProfile::Lunar,
+        );
+
+        assert!((body.radius_native() - 1.737).abs() < 0.001);
+        assert!(body.sample_local(Vec3::ZERO).distance.is_solid());
+        assert!(body.sample_local(Vec3::splat(4.0)).distance.is_empty());
+    }
+
 }

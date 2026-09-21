@@ -148,6 +148,7 @@ pub(in crate::voxel) fn schedule_voxel_generation(
     mut commands: Commands,
     mut worlds: Query<(Entity, &mut VoxelWorld, &mut VoxelStreaming)>,
     worker_tasks: Query<(), With<VoxelWorkerTask>>,
+    mut round_robin_cursor: Local<usize>,
 ) {
     let streaming_config = config.voxel.streaming;
     let generation_scope_extent = VoxelGenerationScopeExtent::from_base_chunks_per_axis(
@@ -156,17 +157,37 @@ pub(in crate::voxel) fn schedule_voxel_generation(
     .expect("validated engine config must produce a generation grouping extent");
 
     let mut generation_slots = available_slots(worker_tasks.iter().count());
+    if generation_slots == 0 {
+        return;
+    }
 
-    for (world_entity, mut world, mut streaming) in &mut worlds {
+    // One busy world must never consume every global worker slot forever.
+    // Rotate the first world every frame and admit at most one generation batch
+    // per world per pass.
+    let world_entities = worlds
+        .iter_mut()
+        .map(|(entity, _, _)| entity)
+        .collect::<Vec<_>>();
+    if world_entities.is_empty() {
+        return;
+    }
+
+    let start = *round_robin_cursor % world_entities.len();
+    for offset in 0..world_entities.len() {
         if generation_slots == 0 {
             break;
         }
+
+        let entity = world_entities[(start + offset) % world_entities.len()];
+        let Ok((world_entity, mut world, mut streaming)) = worlds.get_mut(entity) else {
+            continue;
+        };
 
         let batches = plan_generation_batches(
             &mut world,
             &mut streaming,
             generation_scope_extent,
-            generation_slots,
+            1,
             streaming_config.max_chunks_per_generation_task,
         );
         let scheduled = batches.len();
@@ -181,6 +202,8 @@ pub(in crate::voxel) fn schedule_voxel_generation(
 
         generation_slots = generation_slots.saturating_sub(scheduled);
     }
+
+    *round_robin_cursor = (start + 1) % world_entities.len();
 }
 
 /// Applies edits appended after a generation task took its immutable snapshot.

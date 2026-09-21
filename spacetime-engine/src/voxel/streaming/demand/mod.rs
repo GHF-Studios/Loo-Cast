@@ -11,7 +11,7 @@ use crate::{
 
 use super::{VoxelMaterializationDemand, VoxelPinnedDemand, VoxelStreaming};
 use super::super::{
-    MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationChunkAddress, VoxelQueryPosition,
+    MATERIALIZATION_CHUNK_SIZE, VoxelBase, VoxelMaterializationChunkAddress, VoxelQueryPosition,
     VoxelWorld,
 };
 
@@ -65,7 +65,8 @@ pub(in crate::voxel) fn refresh_voxel_residency(
             all_voxel_demands
                 .iter()
                 .copied()
-                .filter(|demand| demand.scale() == layer.scale()),
+                .filter(|demand| demand.scale() == layer.scale())
+                .filter(|demand| demand_intersects_world_support(&world, layer.scale(), *demand)),
         );
         if let Some(pinned) = pinned {
             voxel_demands.push(SpatialDemandScope::at_scale(
@@ -99,6 +100,40 @@ pub(in crate::voxel) fn refresh_voxel_residency(
             reconcile_materialization_residency(&mut world, &mut streaming, warm_limit);
         }
     }
+}
+
+
+
+/// Whether one generic spatial demand can actually affect this semantic voxel world.
+///
+/// A demand asks for reality near one canonical place; it does NOT mean every
+/// VoxelWorld at the same scale should materialize there. Celestial fields are
+/// spatially bounded, so unrelated bodies reject demand that cannot intersect
+/// their shell.
+fn demand_intersects_world_support(
+    world: &VoxelWorld,
+    layer_scale: crate::spatial::SpatialScale,
+    demand: SpatialDemandScope,
+) -> bool {
+    let VoxelBase::CelestialBody(body) = world.base() else {
+        return true;
+    };
+
+    let half_diagonal = demand.half_extent_native().length();
+    let materialization_margin =
+        Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32 * 0.5).length() + 2.0;
+    let shell_margin = half_diagonal + materialization_margin;
+    let max_distance = body.radius_native() + shell_margin;
+
+    let Ok(relative) = demand.center().relative_at_scale_bounded(
+        &body.center(),
+        layer_scale,
+        max_distance.max(1.0),
+    ) else {
+        return false;
+    };
+
+    (relative.length() - body.radius_native()).abs() <= shell_margin
 }
 
 
