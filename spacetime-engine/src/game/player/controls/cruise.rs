@@ -8,10 +8,8 @@ use super::*;
 const THROTTLE_RATE_PER_SECOND: f32 = 0.45;
 const SPEED_RESPONSE: f64 = 1.4;
 
-// Hard boundaries are object-relative. The maximum envelope is deliberately
-// more aggressive than the engagement default.
-const MAX_HARD_APPROACH_HORIZON_SECONDS: f64 = 4.0;
-const DEFAULT_HARD_APPROACH_HORIZON_SECONDS: f64 = 12.0;
+// Hard-body approach uses a braking envelope with a nonzero
+// planetary-flight handoff speed rather than a time-to-surface horizon.
 
 // Traversable media are feature-relative instead. Their *outer radius is not a
 // wall*. Cruise only needs to slow enough to resolve meaningful structure as it

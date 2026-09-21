@@ -11,7 +11,7 @@ use crate::{
     game::{
         GameSet,
         health::{Health, DamageableBounds},
-        item::{ItemAction, ItemCatalog, ItemDefinition, ItemId, UseItem},
+        item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItem},
     },
     physics::topology::{SpatialSplitBox, SpatialSplitPeer},
     portal::{PortalRigidSplitBody, PortalSplitTraveler, PortalSplitVisual, PortalTraveler},
@@ -51,12 +51,18 @@ fn register_items(mut catalog: ResMut<ItemCatalog>) {
         id: DAMAGEABLE_CUBE,
         name: "Damageable Cube",
         description: "Dynamic rigid cube with Health, finite fuel and an internal thermal-energy field.",
+        action_hints: vec![
+            ItemActionHint::new(ItemAction::PRIMARY, "Place cube"),
+        ],
     });
 
     catalog.register(ItemDefinition {
         id: SPLIT_DAMAGEABLE_CUBE,
         name: "Split Damageable Cube",
         description: "One semantic state with two independently dynamic spatial manifestations.",
+        action_hints: vec![
+            ItemActionHint::new(ItemAction::PRIMARY, "Place split cube"),
+        ],
     });
 }
 

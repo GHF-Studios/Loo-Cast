@@ -11,7 +11,7 @@ use crate::{
     game::{
         GameSet,
         health::{Health, DamageableBounds},
-        item::{ItemAction, ItemCatalog, ItemDefinition, ItemId, UseItem},
+        item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItem},
     },
     spatial::SpatialDemandSource,
     voxel::VoxelMaterializationDemand,
@@ -48,6 +48,9 @@ fn register_item(mut catalog: ResMut<ItemCatalog>) {
         id: CHUNKLOADING_CUBE,
         name: "Chunkloading Cube",
         description: "Movable spatial-demand source that keeps nearby voxel materialization realized.",
+        action_hints: vec![
+            ItemActionHint::new(ItemAction::PRIMARY, "Place probe"),
+        ],
     });
 }
 

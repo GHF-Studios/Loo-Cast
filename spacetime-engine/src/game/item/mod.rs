@@ -5,7 +5,7 @@ mod catalog;
 pub mod presentation;
 
 pub use action::{AimRay, ItemAction, ItemAim, ItemAimContext, UseItem};
-pub use catalog::{ItemCatalog, ItemDefinition, ItemId};
+pub use catalog::{ItemActionHint, ItemCatalog, ItemDefinition, ItemId};
 
 use bevy::prelude::*;
 

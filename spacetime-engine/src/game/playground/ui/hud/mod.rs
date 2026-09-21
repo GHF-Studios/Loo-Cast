@@ -6,9 +6,17 @@ use crate::{
     game::{
         GameSet,
         health::Health,
-        player::{Player, PlayerAdaptiveCruise, PlayerTravelSpeed},
+        inventory::Hotbar,
+        item::{ItemAction, ItemCatalog},
+        player::{
+            CameraMode, Player, PlayerAdaptiveCruise, PlayerCamera, PlayerNoclip,
+            PlayerTravelMode, PlayerTravelSpeed, PlayerTravelState,
+        },
     },
-    spatial::{UsfNavigationContext, UsfScaleLayer, UsfTravelNeighborhood, UsfViewContext, UsfViewRenderAnchor},
+    spatial::{
+        SpatialDemandSource, UsfNavigationContext, UsfScaleLayer, UsfTravelNeighborhood,
+        UsfViewContext, UsfViewRenderAnchor,
+    },
     ui::{UiTextRole, UiTheme},
 };
 
@@ -21,6 +29,10 @@ struct Crosshair;
 struct FpsCounter;
 #[derive(Component)]
 struct PlayerStatus;
+#[derive(Component)]
+struct ContextActionPanel;
+#[derive(Component)]
+struct ContextActionText;
 
 pub fn configure(app: &mut App) {
     app.add_systems(Startup, spawn_hud).add_systems(
@@ -30,28 +42,16 @@ pub fn configure(app: &mut App) {
             sync_hud_hotbar,
             update_fps_counter,
             update_player_status,
+            update_context_actions,
         )
             .in_set(GameSet::Presentation),
     );
 }
 
 fn spawn_hud(mut commands: Commands, theme: Res<UiTheme>) {
-    let secondary = theme.text(UiTextRole::Secondary);
     let crosshair = theme.text(UiTextRole::Heading).with_size(20.0);
     let item_text = theme.text(UiTextRole::Compact);
     let data = theme.text(UiTextRole::Data);
-
-    commands.spawn((
-        Text::new("Tab creative | 1-9/wheel hotbar | C Cruise | V noclip | Alt+wheel manual scale | F5 camera"),
-        secondary.font(),
-        secondary.color(),
-        Node {
-            position_type: PositionType::Absolute,
-            bottom: px(102.0),
-            left: px(12.0),
-            ..default()
-        },
-    ));
 
     commands.spawn((
         Crosshair,
@@ -86,6 +86,34 @@ fn spawn_hud(mut commands: Commands, theme: Res<UiTheme>) {
                 Text::new("HEALTH --\nMANUAL  S+0  0.000e0 u/s"),
                 data.font(),
                 data.color(),
+            ));
+        });
+
+    // Compact contextual action surface. It sits above/right of the hotbar
+    // instead of occupying a world-view corner.
+    commands
+        .spawn((
+            Name::new("Context Actions"),
+            ContextActionPanel,
+            Node {
+                position_type: PositionType::Absolute,
+                left: percent(50.0),
+                bottom: px(82.0),
+                margin: UiRect::left(px(288.0)),
+                width: px(292.0),
+                padding: UiRect::axes(px(8.0), px(6.0)),
+                border: UiRect::left(px(2.0)),
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.015, 0.035, 0.045, 0.80)),
+            BorderColor::all(Color::srgba(0.34, 0.78, 0.82, 0.78)),
+        ))
+        .with_children(|panel| {
+            panel.spawn((
+                ContextActionText,
+                Text::new("ACTIONS"),
+                item_text.font(),
+                item_text.color(),
             ));
         });
 
@@ -209,4 +237,114 @@ fn update_player_status(
             view.continuous_exponent(),
         );
     }
+}
+
+
+fn action_binding(action: ItemAction) -> Option<&'static str> {
+    if action == ItemAction::PRIMARY {
+        Some("LMB")
+    } else if action == ItemAction::SECONDARY {
+        Some("RMB")
+    } else if action == ItemAction::RELOAD {
+        Some("R")
+    } else {
+        None
+    }
+}
+
+fn update_context_actions(
+    menu: Res<CreativeMenuState>,
+    hotbar: Res<Hotbar>,
+    catalog: Res<ItemCatalog>,
+    camera: Single<&PlayerCamera>,
+    player: Single<
+        (
+            &PlayerTravelState,
+            &PlayerAdaptiveCruise,
+            &PlayerNoclip,
+            &SpatialDemandSource,
+        ),
+        With<Player>,
+    >,
+    mut text: Single<&mut Text, With<ContextActionText>>,
+) {
+    if menu.open {
+        text.0 = "CREATIVE\nTAB       Close menu".to_string();
+        return;
+    }
+
+    let (travel, cruise, noclip, demand) = player.into_inner();
+    let mut lines = Vec::<String>::with_capacity(10);
+
+    if let Some(item) = hotbar.selected_item().and_then(|item| catalog.find(item)) {
+        lines.push(item.name.to_ascii_uppercase());
+        for hint in &item.action_hints {
+            if let Some(binding) = action_binding(hint.action) {
+                lines.push(format!("{binding:<10}{}", hint.label));
+            }
+        }
+        lines.push("MMB       Erase object".to_string());
+    } else {
+        lines.push(travel.mode.label().to_string());
+    }
+
+    match travel.mode {
+        PlayerTravelMode::OnFoot => {
+            lines.push("WASD      Move".to_string());
+            lines.push("SPACE     Jump".to_string());
+            lines.push("SHIFT     Sprint".to_string());
+            lines.push("CTRL      Crouch".to_string());
+        }
+        PlayerTravelMode::LocalFlight | PlayerTravelMode::PlanetaryFlight => {
+            lines.push("WASD      Flight".to_string());
+            lines.push("SPACE/CTRL Vertical".to_string());
+            lines.push("SHIFT     Boost".to_string());
+        }
+        PlayerTravelMode::Cruise => {
+            lines.push("W / S     Throttle".to_string());
+        }
+    }
+
+    if cruise.active {
+        if travel.planetary_handoff_available {
+            lines.push("C         Drop to planetary".to_string());
+        } else {
+            lines.push("C         Disengage cruise".to_string());
+        }
+    } else if !travel.critical_dropout {
+        lines.push("C         Engage cruise".to_string());
+    }
+
+    lines.push(if noclip.active {
+        "V         Exit local flight".to_string()
+    } else {
+        "V         Local flight".to_string()
+    });
+
+    lines.push(format!(
+        "L         Spatial demand {}",
+        if demand.enabled() { "off" } else { "on" }
+    ));
+
+    lines.push(match camera.mode {
+        CameraMode::FirstPerson => "F5        Third-person view".to_string(),
+        CameraMode::ThirdPerson => "F5        First-person view".to_string(),
+    });
+
+    if !cruise.active {
+        lines.push("ALT+WHEEL View scale".to_string());
+    }
+
+    lines.push(match camera.mode {
+        CameraMode::FirstPerson => "1-9/WHEEL Hotbar".to_string(),
+        CameraMode::ThirdPerson => "1-9       Hotbar • WHEEL camera".to_string(),
+    });
+    lines.push("TAB       Creative".to_string());
+
+    const MAX_LINES: usize = 10;
+    if lines.len() > MAX_LINES {
+        lines.truncate(MAX_LINES);
+    }
+
+    text.0 = lines.join("\n");
 }

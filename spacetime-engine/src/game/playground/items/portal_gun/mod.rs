@@ -12,7 +12,7 @@ use crate::{
     game::{
         GameSet,
         inventory::Hotbar,
-        item::{ItemAction, ItemAim, ItemCatalog, ItemDefinition, ItemId, UseItem},
+        item::{ItemAction, ItemActionHint, ItemAim, ItemCatalog, ItemDefinition, ItemId, UseItem},
     },
     portal::{PortalCommand, PortalEndpoint},
 };
@@ -36,6 +36,11 @@ fn register_item(mut catalog: ResMut<ItemCatalog>) {
         id: PORTAL_GUN,
         name: "Portal Gun",
         description: "LMB places A, RMB places B, R removes both. The laser previews the aim ray.",
+        action_hints: vec![
+            ItemActionHint::new(ItemAction::PRIMARY, "Place portal A"),
+            ItemActionHint::new(ItemAction::SECONDARY, "Place portal B"),
+            ItemActionHint::new(ItemAction::RELOAD, "Remove portals"),
+        ],
     });
 }
 

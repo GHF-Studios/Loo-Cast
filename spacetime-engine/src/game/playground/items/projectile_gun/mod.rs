@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use crate::game::{
     GameSet,
     combat::FireWeapon,
-    item::{ItemAction, ItemCatalog, ItemDefinition, ItemId, UseItem},
+    item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItem},
 };
 
 pub const PROJECTILE_GUN: ItemId = ItemId::new("projectile_gun");
@@ -24,6 +24,9 @@ fn register_item(mut catalog: ResMut<ItemCatalog>) {
         id: PROJECTILE_GUN,
         name: "Projectile Gun",
         description: "Fire ordinary damage projectiles.",
+        action_hints: vec![
+            ItemActionHint::new(ItemAction::PRIMARY, "Fire"),
+        ],
     });
 }
 

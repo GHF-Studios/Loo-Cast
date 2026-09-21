@@ -1,29 +1,107 @@
-//! Minimal travel/flight instrumentation backed by real simulation state.
+//! Center-relative travel instrumentation.
+//!
+//! Flight data lives in opposing "wings" around the reticle. These are compact
+//! instruments, not permanent sci-fi decoration: ordinary on-foot play hides
+//! them completely.
 
 use bevy::prelude::*;
 
 use super::{Player, PlayerAdaptiveCruise, PlayerTravelMode, PlayerTravelState};
 use crate::spatial::{SpatialScale, UsfScaleLayer, UsfViewContext, UsfViewRenderAnchor};
 
+const HUD_TEXT: Color = Color::srgb(0.72, 0.95, 0.88);
+const HUD_ACCENT: Color = Color::srgba(0.30, 0.84, 0.88, 0.84);
+const HUD_PANEL: Color = Color::srgba(0.01, 0.035, 0.045, 0.68);
+const HUD_WARNING: Color = Color::srgb(1.0, 0.72, 0.28);
+const WING_CENTER_GAP_PX: f32 = 104.0;
+const WING_TOP_OFFSET_PX: f32 = -72.0;
+const WING_WIDTH_PX: f32 = 224.0;
+
 #[derive(Component)]
-pub(super) struct PlayerFlightHudText;
+pub(super) struct FlightHudLeft;
+#[derive(Component)]
+pub(super) struct FlightHudRight;
+#[derive(Component)]
+pub(super) struct FlightHudAlert;
 
 pub(super) fn spawn_flight_hud(mut commands: Commands) {
     commands.spawn((
-        Name::new("Flight HUD"),
-        PlayerFlightHudText,
+        Name::new("Flight HUD Left Wing"),
+        FlightHudLeft,
         Text::new(""),
         TextFont {
-            font_size: FontSize::Px(16.0),
+            font_size: FontSize::Px(15.0),
             ..default()
         },
-        TextColor(Color::srgb(0.72, 0.95, 0.88)),
+        TextColor(HUD_TEXT),
+        TextLayout::justify(Justify::Right),
         Node {
             position_type: PositionType::Absolute,
-            left: Val::Px(18.0),
-            bottom: Val::Px(18.0),
+            right: percent(50.0),
+            top: percent(50.0),
+            margin: UiRect {
+                right: px(WING_CENTER_GAP_PX),
+                top: px(WING_TOP_OFFSET_PX),
+                ..default()
+            },
+            width: px(WING_WIDTH_PX),
+            padding: UiRect::axes(px(9.0), px(6.0)),
+            border: UiRect::right(px(2.0)),
             ..default()
         },
+        BackgroundColor(HUD_PANEL),
+        BorderColor::all(HUD_ACCENT),
+    ));
+
+    commands.spawn((
+        Name::new("Flight HUD Right Wing"),
+        FlightHudRight,
+        Text::new(""),
+        TextFont {
+            font_size: FontSize::Px(15.0),
+            ..default()
+        },
+        TextColor(HUD_TEXT),
+        TextLayout::justify(Justify::Left),
+        Node {
+            position_type: PositionType::Absolute,
+            left: percent(50.0),
+            top: percent(50.0),
+            margin: UiRect {
+                left: px(WING_CENTER_GAP_PX),
+                top: px(WING_TOP_OFFSET_PX),
+                ..default()
+            },
+            width: px(WING_WIDTH_PX),
+            padding: UiRect::axes(px(9.0), px(6.0)),
+            border: UiRect::left(px(2.0)),
+            ..default()
+        },
+        BackgroundColor(HUD_PANEL),
+        BorderColor::all(HUD_ACCENT),
+    ));
+
+    commands.spawn((
+        Name::new("Flight HUD Center Alert"),
+        FlightHudAlert,
+        Text::new(""),
+        TextFont {
+            font_size: FontSize::Px(14.0),
+            ..default()
+        },
+        TextColor(HUD_WARNING),
+        TextLayout::justify(Justify::Center),
+        Node {
+            position_type: PositionType::Absolute,
+            left: percent(50.0),
+            top: percent(50.0),
+            margin: UiRect {
+                top: px(78.0),
+                ..default()
+            },
+            ..default()
+        },
+        UiTransform::from_translation(Val2::percent(-50.0, 0.0)),
     ));
 }
 
@@ -33,15 +111,53 @@ pub(super) fn update_flight_hud(
         With<Player>,
     >,
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
-    mut text: Single<&mut Text, With<PlayerFlightHudText>>,
+    mut hud: ParamSet<(
+        Single<(&mut Text, &mut Node), With<FlightHudLeft>>,
+        Single<(&mut Text, &mut Node), With<FlightHudRight>>,
+        Single<(&mut Text, &mut Node), With<FlightHudAlert>>,
+    )>,
 ) {
     let (travel, cruise, layer) = player.into_inner();
+    let flying = travel.mode != PlayerTravelMode::OnFoot;
+
+    {
+        let mut left = hud.p0();
+        left.1.display = if flying { Display::Flex } else { Display::None };
+    }
+    {
+        let mut right = hud.p1();
+        right.1.display = if flying { Display::Flex } else { Display::None };
+    }
+
+    if !flying {
+        let mut alert = hud.p2();
+        alert.1.display = Display::None;
+        return;
+    }
 
     let speed = if cruise.active {
         format_speed(cruise.speed_scale0)
     } else {
         "MANUAL".to_string()
     };
+    let throttle = if cruise.active {
+        format!("{:>3.0}%", cruise.throttle * 100.0)
+    } else {
+        "--".to_string()
+    };
+
+    {
+        let mut left = hud.p0();
+        left.0.0 = format!(
+            "{}\nSPD  {}\nTHR  {}\nCHART S{} • VIEW {:+.2}",
+            travel.mode.label(),
+            speed,
+            throttle,
+            layer.scale(),
+            view.continuous_exponent(),
+        );
+    }
+
     let clearance = travel
         .nearest_body_clearance_scale0
         .map(format_distance)
@@ -51,31 +167,44 @@ pub(super) fn update_flight_hud(
     } else {
         "--".to_string()
     };
+    let handoff = travel
+        .planetary_handoff_clearance_scale0
+        .map(format_distance)
+        .unwrap_or_else(|| "--".to_string());
 
-    let transition = if cruise.active && travel.critical_dropout {
-        "CRITICAL DROPOUT"
+    {
+        let mut right = hud.p1();
+        right.0.0 = format!(
+            "BODY ENVIRONMENT\nCLR  {}\nGRV  {}\nHANDOFF {}",
+            clearance, gravity, handoff,
+        );
+    }
+
+    let warning = if travel.critical_dropout {
+        Some("CRITICAL DROPOUT")
     } else if cruise.active && travel.planetary_handoff_available {
-        "[C] DROP TO PLANETARY"
+        Some("[C] PLANETARY FLIGHT AVAILABLE")
     } else if travel.mode == PlayerTravelMode::LocalFlight
         && layer.scale() == SpatialScale::ZERO
     {
-        "[V] RETURN ON FOOT"
-    } else if travel.mode == PlayerTravelMode::OnFoot {
-        "[V] LOCAL FLIGHT (DEV)"
+        Some("[V] RETURN ON FOOT")
     } else {
-        ""
+        None
     };
 
-    **text = Text::new(format!(
-        "{}\nSPD {:>12}   CLR {:>12}\nGRV {:>12}   CHART S{}\nVIEW {:+.2}\n{}",
-        travel.mode.label(),
-        speed,
-        clearance,
-        gravity,
-        layer.scale(),
-        view.continuous_exponent(),
-        transition,
-    ));
+    {
+        let mut alert = hud.p2();
+        match warning {
+            Some(warning) => {
+                alert.0.0 = warning.to_string();
+                alert.1.display = Display::Flex;
+            }
+            None => {
+                alert.0.0.clear();
+                alert.1.display = Display::None;
+            }
+        }
+    }
 }
 
 fn format_speed(value: f64) -> String {

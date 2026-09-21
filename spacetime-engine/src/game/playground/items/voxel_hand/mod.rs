@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use crate::{
     game::{
         GameSet,
-        item::{ItemAction, ItemCatalog, ItemDefinition, ItemId, UseItem},
+        item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItem},
     },
     spatial::{UsfActiveScaleLayer, UsfScaleLayer, UsfSpatialFrame},
     voxel::{VoxelBrush, VoxelEdit, VoxelEditingDisabled, VoxelMaterialId, VoxelQueryPosition, VoxelRayHit, VoxelWorld},
@@ -30,6 +30,10 @@ fn register_item(mut catalog: ResMut<ItemCatalog>) {
         id: VOXEL_HAND,
         name: "Voxel Hand",
         description: "Remove/add voxels. Secondary rock; Shift glass; Ctrl nebula.",
+        action_hints: vec![
+            ItemActionHint::new(ItemAction::PRIMARY, "Remove voxels"),
+            ItemActionHint::new(ItemAction::SECONDARY, "Add voxels"),
+        ],
     });
 }
 

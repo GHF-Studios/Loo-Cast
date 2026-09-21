@@ -10,7 +10,7 @@ use crate::{
     ecs::{UsfManifestationOf, UsfManifestations},
     game::{
         GameSet,
-        item::{ItemAction, ItemCatalog, ItemDefinition, ItemId, UseItem},
+        item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItem},
     },
     thermal::ThermalPointImpulse,
 };
@@ -35,6 +35,10 @@ fn register_item(mut catalog: ResMut<ItemCatalog>) {
         id: HEAT_RAY,
         name: "Heat Ray",
         description: "LMB injects heat at the hit point; RMB removes it. Internal gradients are systemic.",
+        action_hints: vec![
+            ItemActionHint::new(ItemAction::PRIMARY, "Heat target"),
+            ItemActionHint::new(ItemAction::SECONDARY, "Cool target"),
+        ],
     });
 }
 
