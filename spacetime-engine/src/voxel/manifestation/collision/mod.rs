@@ -10,14 +10,14 @@ use crate::{
 
 use super::{VoxelManifestation, VoxelManifestationRegistry};
 use super::super::{
-    MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationChunkAddress, VoxelWorld, physics,
+    MATERIALIZATION_CHUNK_SIZE, VoxelCollisionDisabled, VoxelMaterializationChunkAddress, VoxelWorld, physics,
 };
 
 pub(in crate::voxel) fn sync_manifestation_collision_residency(
     config: Res<EngineConfig>,
     mut commands: Commands,
     view: Single<Ref<UsfViewContext>, With<UsfViewRenderAnchor>>,
-    worlds: Query<(&VoxelWorld, &UsfScaleLayer)>,
+    worlds: Query<(&VoxelWorld, &UsfScaleLayer, Option<&VoxelCollisionDisabled>)>,
     manifestation_roots: Query<Option<&Collider>, With<VoxelManifestation>>,
     registry: Res<VoxelManifestationRegistry>,
 ) {
@@ -29,7 +29,7 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
         let Some(&expected_revision) = registry.revisions.get(&key) else {
             continue;
         };
-        let Ok((world, layer)) = worlds.get(key.world) else {
+        let Ok((world, layer, collision_disabled)) = worlds.get(key.world) else {
             continue;
         };
 
@@ -39,7 +39,8 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
             .is_some_and(|cache| {
                 cache.revision == expected_revision && cache.surface.has_rigid_triangles()
             });
-        let wants_collider = has_rigid_surface
+        let wants_collider = collision_disabled.is_none()
+            && has_rigid_surface
             && manifestation_collider_proximity_squared(
                 &view,
                 key.address,

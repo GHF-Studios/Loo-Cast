@@ -9,9 +9,16 @@ use std::any::Any;
 use bevy::{color::LinearRgba, math::DVec3, mesh::VertexAttributeValues, prelude::*};
 
 use crate::{
+    config::EngineConfig,
     procedural_assets::ProceduralAssetLibrary,
-    spatial::{SpatialScale, UsfApproachRefinement, UsfDistanceMeshLod, UsfPosition, UsfSceneryPresentation, UsfTravelInfluence},
-    voxel::VoxelQueryPosition,
+    spatial::{
+        SpatialScale, UsfApproachRefinement, UsfDistanceMeshLod, UsfPosition,
+        UsfScaleLayer, UsfSceneryPresentation, UsfTravelInfluence,
+    },
+    voxel::{
+        ProceduralCelestialBody, VoxelBase, VoxelCollisionDisabled, VoxelEditingDisabled,
+        VoxelPresentationMaterial, VoxelQueryPosition, VoxelStreaming, VoxelWorld,
+    },
     worldgen::{
         COSMIC_MATTER_DISTRIBUTION, ECOLOGY, GALAXY_INTERSTELLAR_MEDIUM, PLANETARY_BODY,
         STELLAR_SYSTEM_ENVIRONMENT, CosmicMatterDistributionState, EcologyState,
@@ -29,7 +36,11 @@ const SYSTEM_SCALE: i8 = 8;
 #[derive(Component)]
 struct RiggedUniverseScenery;
 
+#[derive(Component)]
+pub(super) struct RiggedMoonCoarseProxy;
+
 pub(super) fn spawn_universe_scenery(
+    config: Res<EngineConfig>,
     mut commands: Commands,
     stacks: Query<(Entity, &ProceduralScaleStack)>,
     registry: Res<PhenomenonRegistry>,
@@ -87,6 +98,7 @@ pub(super) fn spawn_universe_scenery(
             system,
             planet,
             &assets,
+            &config,
             &mut meshes,
             &mut materials,
         );
@@ -329,6 +341,7 @@ fn spawn_stellar_system(
     system: StellarSystemEnvironmentState,
     planet: PlanetaryBodyState,
     assets: &ProceduralAssetLibrary,
+    config: &EngineConfig,
     meshes: &mut Assets<Mesh>,
     materials: &mut Assets<StandardMaterial>,
 ) {
@@ -431,6 +444,7 @@ fn spawn_stellar_system(
 
     commands.spawn((
         Name::new("Rigged Moon"),
+        RiggedMoonCoarseProxy,
         ChildOf(parent),
         UsfSceneryPresentation::new(moon_center, system_scale),
         UsfTravelInfluence::hard_body(moon_center, system_scale, MOON_RADIUS as f64),
@@ -453,6 +467,83 @@ fn spawn_stellar_system(
         Transform::from_rotation(Quat::from_rotation_y(-0.8)),
         Visibility::Inherited,
     ));
+
+    spawn_moon_voxel_worlds(
+        commands,
+        parent,
+        moon_center,
+        MOON_RADIUS as f64,
+        assets,
+        config,
+    );
+}
+
+
+const MOON_VOXEL_MAX_SCALE: i8 = 5;
+const MOON_TERRAIN_SEED: u32 = 0x4D4F_4F4E; // "MOON"
+
+fn spawn_moon_voxel_worlds(
+    commands: &mut Commands,
+    parent: Entity,
+    moon_center_system_native: DVec3,
+    moon_radius_system_native: f64,
+    assets: &ProceduralAssetLibrary,
+    config: &EngineConfig,
+) {
+    let system_scale = scale(SYSTEM_SCALE);
+    let scale0_per_system_native = system_scale.scale0_units_per_native();
+
+    let center_scale0 = moon_center_system_native * scale0_per_system_native;
+    let center_scale0 = UsfPosition::zero(SpatialScale::ZERO)
+        .translated_whole_native([
+            center_scale0.x.round() as i64,
+            center_scale0.y.round() as i64,
+            center_scale0.z.round() as i64,
+        ])
+        .expect("rigged Moon center must be canonically addressable");
+
+    let radius_scale0 = moon_radius_system_native * scale0_per_system_native;
+
+    for raw in 0..=MOON_VOXEL_MAX_SCALE {
+        let terrain_scale = scale(raw);
+        let origin = center_scale0
+            .reexpressed_at(terrain_scale)
+            .expect("Moon center must re-express at every terrain scale");
+        let base = ProceduralCelestialBody::lunar(
+            radius_scale0,
+            terrain_scale,
+            MOON_TERRAIN_SEED,
+        );
+
+        commands.spawn((
+            Name::new(format!("Rigged Moon S{terrain_scale} Voxel Terrain")),
+            ChildOf(parent),
+            UsfScaleLayer::new(terrain_scale),
+            VoxelWorld::new_at(VoxelBase::celestial_body(base), origin),
+            VoxelStreaming::new(config.voxel.streaming.default_load_budget_per_frame),
+            VoxelPresentationMaterial::new(assets.debug_grid.clone()),
+            VoxelCollisionDisabled,
+            VoxelEditingDisabled,
+            Transform::IDENTITY,
+            Visibility::Inherited,
+        ));
+    }
+}
+
+/// Once the observer has fully entered the first voxelized lunar scale, retire
+/// the whole-body proxy so it cannot obscure the streamed surface.
+pub(super) fn sync_moon_coarse_proxy_visibility(
+    view: Single<&crate::spatial::UsfViewContext, With<crate::spatial::UsfViewRenderAnchor>>,
+    mut proxies: Query<&mut Visibility, With<RiggedMoonCoarseProxy>>,
+) {
+    let show_proxy = view.continuous_exponent() > MOON_VOXEL_MAX_SCALE as f32;
+    for mut visibility in &mut proxies {
+        *visibility = if show_proxy {
+            Visibility::Inherited
+        } else {
+            Visibility::Hidden
+        };
+    }
 }
 
 fn lunar_surface_mesh(radius: f32, subdivisions: u32, detail: u8) -> Mesh {

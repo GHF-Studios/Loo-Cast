@@ -21,7 +21,7 @@ mod store;
 mod streaming;
 mod world;
 
-pub use base::{ProceduralTerrain, ProceduralVolume, VoxelBase};
+pub use base::{ProceduralCelestialBody, ProceduralTerrain, ProceduralVolume, VoxelBase};
 pub use chunk::{
     CHUNK_SIZE, MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelChunkEditResult, VoxelRayHit,
 };
@@ -39,6 +39,15 @@ use crate::{
     physics::character::CharacterMovementSet,
     spatial::SpatialDemandSet,
 };
+
+/// Suppresses derived physics colliders for a voxel world.
+#[derive(Component, Debug, Default, Clone, Copy)]
+pub struct VoxelCollisionDisabled;
+
+/// Suppresses gameplay edits for a voxel world while retaining the normal
+/// reconstructible-base/materialization pipeline.
+#[derive(Component, Debug, Default, Clone, Copy)]
+pub struct VoxelEditingDisabled;
 
 pub struct VoxelPlugin;
 

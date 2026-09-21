@@ -8,7 +8,7 @@ use crate::{
         item::{ItemAction, ItemCatalog, ItemDefinition, ItemId, UseItem},
     },
     spatial::{UsfScaleLayer, UsfScaleLayerFrames},
-    voxel::{VoxelBrush, VoxelEdit, VoxelMaterialId, VoxelQueryPosition, VoxelRayHit, VoxelWorld},
+    voxel::{VoxelBrush, VoxelEdit, VoxelEditingDisabled, VoxelMaterialId, VoxelQueryPosition, VoxelRayHit, VoxelWorld},
 };
 
 pub const VOXEL_HAND: ItemId = ItemId::new("voxel_hand");
@@ -38,8 +38,8 @@ fn use_voxel_hand(
     keyboard: Res<ButtonInput<KeyCode>>,
     frames: Res<UsfScaleLayerFrames>,
     mut worlds: ParamSet<(
-        Query<(Entity, &VoxelWorld, &UsfScaleLayer)>,
-        Query<&mut VoxelWorld>,
+        Query<(Entity, &VoxelWorld, &UsfScaleLayer), Without<VoxelEditingDisabled>>,
+        Query<&mut VoxelWorld, Without<VoxelEditingDisabled>>,
     )>,
 ) {
     for request in uses.read() {
@@ -55,20 +55,14 @@ fn use_voxel_hand(
             let worlds = worlds.p0();
 
             for (world_entity, world, layer) in &worlds {
-                let world_origin = VoxelQueryPosition::new(*world.origin());
-
                 for (address, chunk) in world.active_dense_materializations() {
-                    let Ok(relative) = address
+                    let Ok(absolute) = address
                         .query_origin()
-                        .relative_to(world_origin, 1_000_000.0)
+                        .usf()
+                        .coordinate_at_scale_f64(layer.scale())
                     else {
                         continue;
                     };
-                    let absolute = bevy::math::DVec3::new(
-                        relative.x as f64,
-                        relative.y as f64,
-                        relative.z as f64,
-                    );
                     let chunk_translation = frames.runtime_from_absolute(layer.scale(), absolute);
                     let chunk_local_origin = request.aim.origin - chunk_translation;
 

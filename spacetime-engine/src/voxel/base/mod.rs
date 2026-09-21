@@ -11,8 +11,10 @@ use super::{VoxelMaterialId, VoxelQueryPosition, VoxelSample};
 
 mod noise;
 mod terrain;
+mod celestial;
 mod volume;
 
+pub use celestial::ProceduralCelestialBody;
 pub use terrain::ProceduralTerrain;
 pub use volume::ProceduralVolume;
 
@@ -31,6 +33,8 @@ pub enum VoxelBase {
         radius: f32,
         material: VoxelMaterialId,
     },
+    /// Spherical celestial-body baseline sampled by the ordinary voxel pipeline.
+    CelestialBody(ProceduralCelestialBody),
     /// Active local-world base: genuine 3D density/material field.
     Volume(ProceduralVolume),
     /// Legacy/reference heightfield retained for tests and compatibility.
@@ -54,6 +58,10 @@ impl VoxelBase {
 
     pub const fn terrain(seed: u32) -> Self {
         Self::Terrain(ProceduralTerrain::new(seed))
+    }
+
+    pub const fn celestial_body(body: ProceduralCelestialBody) -> Self {
+        Self::CelestialBody(body)
     }
 
     pub fn sample(self, point: VoxelQueryPosition) -> VoxelSample {
@@ -85,6 +93,7 @@ impl VoxelBase {
                     },
                 )
             }
+            Self::CelestialBody(body) => body.sample_at(world_origin, point),
             Self::Volume(volume) => volume.sample_at(world_origin, point),
             Self::Terrain(terrain) => terrain.sample_at(world_origin, point),
         }
@@ -96,6 +105,14 @@ impl VoxelBase {
         chunk_origin: VoxelQueryPosition,
     ) -> PreparedVoxelBase {
         match self {
+            Self::CelestialBody(body) => body
+                .prepare_local_sampler(world_origin, chunk_origin)
+                .map(PreparedVoxelBase::CelestialBody)
+                .unwrap_or(PreparedVoxelBase::Canonical {
+                    base: self,
+                    world_origin,
+                    chunk_origin,
+                }),
             Self::Volume(volume) => volume
                 .prepare_local_sampler(world_origin, chunk_origin)
                 .map(PreparedVoxelBase::LocalVolume)
@@ -115,6 +132,7 @@ impl VoxelBase {
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum PreparedVoxelBase {
+    CelestialBody(celestial::PreparedProceduralCelestialBody),
     LocalVolume(PreparedProceduralVolume),
     Canonical {
         base: VoxelBase,
@@ -127,6 +145,7 @@ impl PreparedVoxelBase {
     #[inline]
     pub(crate) fn sample(self, local: Vec3) -> VoxelSample {
         match self {
+            Self::CelestialBody(body) => body.sample(local),
             Self::LocalVolume(volume) => volume.sample(local),
             Self::Canonical {
                 base,

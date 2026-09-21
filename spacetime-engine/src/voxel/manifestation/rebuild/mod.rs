@@ -17,7 +17,7 @@ use super::{
     collision::publish_collider_manifestation,
 };
 use super::super::{
-    VoxelMaterialId, VoxelMaterializationChunkAddress, VoxelQueryPosition, VoxelWorld,
+    VoxelMaterialId, VoxelMaterializationChunkAddress, VoxelWorld,
     mesh::VoxelSurface,
     streaming::VoxelPresentationMaterial,
 };
@@ -333,17 +333,17 @@ fn build_opaque_mesh(surface: &VoxelSurface, debug_color: [f32; 4]) -> Option<Me
 }
 
 fn manifestation_runtime_translation(
-    world: &VoxelWorld,
+    _world: &VoxelWorld,
     layer: &UsfScaleLayer,
     frames: &UsfScaleLayerFrames,
     address: VoxelMaterializationChunkAddress,
 ) -> Option<Vec3> {
-    let world_origin = VoxelQueryPosition::new(*world.origin());
-    let relative = address
+    // The address is already canonical. Project it directly instead of throwing
+    // away a non-zero VoxelWorld origin.
+    let absolute = address
         .query_origin()
-        .relative_to(world_origin, 1_000_000.0)
+        .usf()
+        .coordinate_at_scale_f64(layer.scale())
         .ok()?;
-    let absolute =
-        bevy::math::DVec3::new(relative.x as f64, relative.y as f64, relative.z as f64);
     Some(frames.runtime_from_absolute(layer.scale(), absolute))
 }
