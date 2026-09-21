@@ -93,6 +93,57 @@ impl Default for PlayerTravelSpeed {
     }
 }
 
+/// Current control regime of the locally controlled subject.
+///
+/// This is not spatial scale and not the semantic identity of the human player.
+/// The current player manifestation temporarily carries every regime; later
+/// control authority can move to a ship/mothership without changing this API.
+#[derive(Reflect, Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum PlayerTravelMode {
+    #[default]
+    OnFoot,
+    LocalFlight,
+    PlanetaryFlight,
+    Cruise,
+}
+
+impl PlayerTravelMode {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::OnFoot => "ON FOOT",
+            Self::LocalFlight => "LOCAL FLIGHT",
+            Self::PlanetaryFlight => "PLANETARY FLIGHT",
+            Self::Cruise => "CRUISE",
+        }
+    }
+}
+
+#[derive(Component, Reflect, Debug, Clone, Copy)]
+#[reflect(Component)]
+pub struct PlayerTravelState {
+    pub mode: PlayerTravelMode,
+    pub nearest_body_clearance_scale0: Option<f64>,
+    pub nearest_body_radius_scale0: Option<f64>,
+    pub planetary_handoff_clearance_scale0: Option<f64>,
+    pub planetary_handoff_available: bool,
+    pub critical_dropout: bool,
+    pub local_gravity: f32,
+}
+
+impl Default for PlayerTravelState {
+    fn default() -> Self {
+        Self {
+            mode: PlayerTravelMode::OnFoot,
+            nearest_body_clearance_scale0: None,
+            nearest_body_radius_scale0: None,
+            planetary_handoff_clearance_scale0: None,
+            planetary_handoff_available: false,
+            critical_dropout: false,
+            local_gravity: 0.0,
+        }
+    }
+}
+
 /// Adaptive long-distance travel mode.
 ///
 /// Cruise stores speed in canonical S0 units so changing runtime charts cannot

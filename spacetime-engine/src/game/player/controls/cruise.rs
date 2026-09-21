@@ -3,8 +3,6 @@
 //! Cruise speed is canonical (S0 units/s), while runtime displacement is
 //! projected into whichever USF chart currently owns interaction.
 
-use bevy::math::DVec3;
-
 use super::*;
 
 const THROTTLE_RATE_PER_SECOND: f32 = 0.45;
@@ -37,12 +35,24 @@ const FALLBACK_MIN_DEFAULT_SPEED_SCALE0: f64 = 10_000.0;
 // speed to presentation zoom or forcing a chart transition.
 const CHART_SPEED_HEADROOM_DECADES: i32 = 2;
 
+const PLANETARY_HANDOFF_RADIUS_FRACTION: f64 = 0.12;
+const PLANETARY_HANDOFF_MIN_SCALE0: f64 = 20_000.0;
+const PLANETARY_HANDOFF_MAX_SCALE0: f64 = 750_000.0;
+const PLANETARY_HANDOFF_SPEED_MIN_SCALE0: f64 = 750.0;
+const PLANETARY_HANDOFF_SPEED_MAX_SCALE0: f64 = 7_500.0;
+const CRUISE_BRAKING_ACCELERATION_SCALE0: f64 = 120.0;
+const CRITICAL_DROPOUT_FRACTION: f64 = 0.25;
+
+
 #[derive(Debug, Clone, Copy)]
 struct CruiseSpeedEnvelope {
     max_speed_scale0: f64,
     default_speed_scale0: f64,
     nearest_hard_clearance_scale0: Option<f64>,
     medium_speed_cap_scale0: Option<f64>,
+    planetary_handoff_clearance_scale0: Option<f64>,
+    planetary_handoff_available: bool,
+    critical_dropout: bool,
 }
 
 
@@ -51,7 +61,7 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
     presentation: Res<PrimaryViewPresentation>,
-    frames: Res<UsfScaleLayerFrames>,
+    frame: Res<UsfSpatialFrame>,
     mut was_active: Local<bool>,
     player: Single<
         (
@@ -98,13 +108,32 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
     *was_active = true;
 
     let player_scale = layer.scale();
-    let player_absolute = frames.absolute(player_scale, body.translation);
-    let envelope =
-        cruise_speed_envelope(player_absolute, player_scale, &frames, &neighborhood);
+    let Ok(player_position) = frame
+        .origin()
+        .translated_at_scale(player_scale, body.translation)
+    else {
+        return;
+    };
+    let envelope = cruise_speed_envelope(&player_position, player_scale, &neighborhood);
     cruise.speed_cap_scale0 = envelope.max_speed_scale0;
     cruise.default_speed_scale0 = envelope.default_speed_scale0;
     cruise.nearest_hard_clearance_scale0 = envelope.nearest_hard_clearance_scale0;
     cruise.medium_speed_cap_scale0 = envelope.medium_speed_cap_scale0;
+    cruise.planetary_handoff_clearance_scale0 = envelope.planetary_handoff_clearance_scale0;
+    cruise.planetary_handoff_available = envelope.planetary_handoff_available;
+    cruise.critical_dropout = envelope.critical_dropout;
+
+    // Critical planetary dropout: Cruise cannot remain authoritative after
+    // crossing deeply into the body-relative flight envelope.
+    if envelope.critical_dropout {
+        cruise.active = false;
+        cruise.throttle = 0.0;
+        cruise.speed_scale0 = envelope.default_speed_scale0;
+        if let Some(mut velocity) = velocity {
+            velocity.0 = Vec3::ZERO;
+        }
+        return;
+    }
 
     if just_engaged {
         cruise.throttle = throttle_for_speed(
@@ -142,19 +171,21 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
 }
 
 fn cruise_speed_envelope(
-    player_absolute: DVec3,
+    player_position: &crate::spatial::UsfPosition,
     player_scale: SpatialScale,
-    frames: &UsfScaleLayerFrames,
     neighborhood: &UsfTravelNeighborhood,
 ) -> CruiseSpeedEnvelope {
     let mut max_speed = f64::INFINITY;
     let mut default_speed = f64::INFINITY;
     let mut nearest_hard_clearance = None::<f64>;
     let mut medium_speed_cap = None::<f64>;
+    let mut planetary_handoff_clearance_value = None::<f64>;
+    let mut planetary_handoff_available = false;
+    let mut critical_dropout = false;
     let mut constrained = false;
 
     for influence in neighborhood.influences() {
-        let Some(measurement) = influence.measure_from(player_absolute, player_scale, frames) else {
+        let Some(measurement) = influence.measure_from(player_position) else {
             continue;
         };
 
@@ -165,13 +196,28 @@ fn cruise_speed_envelope(
                 nearest_hard_clearance = Some(
                     nearest_hard_clearance.map_or(clearance, |current| current.min(clearance)),
                 );
+                let handoff =
+                    planetary_handoff_clearance(measurement.extent_radius_scale0());
+                let handoff_speed =
+                    planetary_handoff_speed(measurement.extent_radius_scale0());
+                planetary_handoff_clearance_value = Some(
+                    planetary_handoff_clearance_value
+                        .map_or(handoff, |current| current.min(handoff)),
+                );
+                planetary_handoff_available |= clearance <= handoff;
+                critical_dropout |= clearance <= handoff * CRITICAL_DROPOUT_FRACTION;
+
                 max_speed = max_speed.min(hard_body_speed_limit(
                     clearance,
-                    MAX_HARD_APPROACH_HORIZON_SECONDS,
+                    handoff,
+                    handoff_speed,
+                    CRUISE_BRAKING_ACCELERATION_SCALE0,
                 ));
                 default_speed = default_speed.min(hard_body_speed_limit(
                     clearance,
-                    DEFAULT_HARD_APPROACH_HORIZON_SECONDS,
+                    handoff,
+                    handoff_speed * 0.65,
+                    CRUISE_BRAKING_ACCELERATION_SCALE0 * 0.55,
                 ));
             }
             UsfTravelInfluenceKind::Medium(medium) => {
@@ -219,14 +265,33 @@ fn cruise_speed_envelope(
         default_speed_scale0: default_speed.min(max_speed),
         nearest_hard_clearance_scale0: nearest_hard_clearance,
         medium_speed_cap_scale0: medium_speed_cap,
+        planetary_handoff_clearance_scale0: planetary_handoff_clearance_value,
+        planetary_handoff_available,
+        critical_dropout,
     }
+}
+
+fn planetary_handoff_clearance(radius_scale0: f64) -> f64 {
+    (radius_scale0 * PLANETARY_HANDOFF_RADIUS_FRACTION)
+        .clamp(PLANETARY_HANDOFF_MIN_SCALE0, PLANETARY_HANDOFF_MAX_SCALE0)
+}
+
+fn planetary_handoff_speed(radius_scale0: f64) -> f64 {
+    radius_scale0
+        .sqrt()
+        .clamp(PLANETARY_HANDOFF_SPEED_MIN_SCALE0, PLANETARY_HANDOFF_SPEED_MAX_SCALE0)
 }
 
 fn hard_body_speed_limit(
     clearance_scale0: f64,
-    approach_horizon_seconds: f64,
+    handoff_clearance_scale0: f64,
+    handoff_speed_scale0: f64,
+    braking_acceleration_scale0: f64,
 ) -> f64 {
-    clearance_scale0 / approach_horizon_seconds
+    let braking_distance = (clearance_scale0 - handoff_clearance_scale0).max(0.0);
+    (handoff_speed_scale0 * handoff_speed_scale0
+        + 2.0 * braking_acceleration_scale0.max(0.0) * braking_distance)
+        .sqrt()
 }
 
 /// Speed limit for a traversable volume.
@@ -266,6 +331,9 @@ fn fallback_speed_envelope(scale: SpatialScale) -> CruiseSpeedEnvelope {
         default_speed_scale0: default_speed,
         nearest_hard_clearance_scale0: None,
         medium_speed_cap_scale0: None,
+        planetary_handoff_clearance_scale0: None,
+        planetary_handoff_available: false,
+        critical_dropout: false,
     }
 }
 
@@ -293,9 +361,13 @@ mod tests {
 
     #[test]
     fn hard_body_approach_speed_tracks_surface_clearance() {
-        assert_eq!(hard_body_speed_limit(1_000_000.0, 10.0), 100_000.0);
-        assert_eq!(hard_body_speed_limit(1_000.0, 10.0), 100.0);
-        assert_eq!(hard_body_speed_limit(0.0, 10.0), 0.0);
+        let at_handoff = hard_body_speed_limit(100_000.0, 100_000.0, 1_500.0, 120.0);
+        let farther = hard_body_speed_limit(1_000_000.0, 100_000.0, 1_500.0, 120.0);
+        let inside = hard_body_speed_limit(1_000.0, 100_000.0, 1_500.0, 120.0);
+
+        assert!((at_handoff - 1_500.0).abs() < 1.0e-6);
+        assert!(farther > at_handoff);
+        assert!((inside - 1_500.0).abs() < 1.0e-6);
     }
 
     #[test]

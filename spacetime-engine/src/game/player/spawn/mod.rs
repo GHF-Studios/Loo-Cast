@@ -60,6 +60,7 @@ pub(super) fn spawn_player(
                 PlayerNoclip::default(),
                 PlayerTravelSpeed::default(),
                 PlayerAdaptiveCruise::default(),
+                PlayerTravelState::default(),
                 UsfTravelNeighborhood::default(),
                 UsfNavigationContext::default(),
                 // View/control state belongs to the player independently, while

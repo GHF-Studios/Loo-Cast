@@ -16,7 +16,8 @@ use crate::{
         CharacterLocomotionFrame, CharacterMotor, CharacterMovementConfig, CharacterMovementInput,
     },
     spatial::{
-        SpatialDemandSource, SpatialScale, UsfApproachRefinement, UsfNavigationContext, UsfScaleLayer, UsfScaleLayerFrames, UsfTravelInfluence,
+        SpatialDemandSource, SpatialScale, UsfApproachRefinement, UsfNavigationContext,
+        UsfRadialGravitySource, UsfScaleLayer, UsfSpatialFrame, UsfTravelInfluence,
         UsfTravelInfluenceKind, UsfTravelNeighborhood, UsfViewContext, UsfViewRenderAnchor,
     },
     view::PrimaryViewPresentation,
@@ -24,7 +25,7 @@ use crate::{
 
 use super::{
     Player, PlayerAdaptiveCruise, PlayerAim, PlayerController, PlayerDead, PlayerNoclip,
-    PlayerStance, PlayerTravelSpeed, cursor::CursorCapture,
+    PlayerStance, PlayerTravelMode, PlayerTravelSpeed, PlayerTravelState, cursor::CursorCapture,
 };
 
 pub(super) fn gameplay_suppressed(
@@ -47,5 +48,8 @@ pub(super) use modes::{
     sync_locomotion_mode, toggle_adaptive_cruise, toggle_noclip, toggle_spatial_demand,
 };
 pub(super) use movement::{movement, noclip_movement, scale_navigation_movement};
-pub(super) use navigation::{sync_approach_refinement_view, sync_navigation_context};
+pub(super) use navigation::{
+    sync_approach_refinement_view, sync_navigation_context, sync_planetary_gravity,
+    sync_travel_state,
+};
 pub(super) use view::{look, zoom_spatial_view};

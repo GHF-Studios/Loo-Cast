@@ -6,7 +6,7 @@
 
 use bevy::{math::DVec3, prelude::*};
 
-use super::{SpatialScale, UsfScaleLayerFrames};
+use super::{SpatialScale, UsfPosition};
 
 const NEIGHBORHOOD_HARD_BY_RELATIVE_PROXIMITY: usize = 6;
 const NEIGHBORHOOD_HARD_BY_ABSOLUTE_PROXIMITY: usize = 4;
@@ -166,9 +166,8 @@ impl UsfNavigationContext {
     }
 
     pub fn resolve(
-        observer_absolute: DVec3,
+        observer: &UsfPosition,
         observer_scale: SpatialScale,
-        frames: &UsfScaleLayerFrames,
         neighborhood: &UsfTravelNeighborhood,
     ) -> Self {
         #[derive(Clone, Copy)]
@@ -184,9 +183,7 @@ impl UsfNavigationContext {
         let mut any_structure = None::<Candidate>;
 
         for influence in neighborhood.influences() {
-            let Some(measurement) =
-                influence.measure_from(observer_absolute, observer_scale, frames)
-            else {
+            let Some(measurement) = influence.measure_from(observer) else {
                 continue;
             };
 
@@ -302,9 +299,41 @@ fn navigation_length_scale0(
     }
 }
 
+/// Canonical radial-gravity source used by local physical regimes.
+#[derive(Component, Debug, Clone, Copy)]
+pub struct UsfRadialGravitySource {
+    center: UsfPosition,
+    radius_scale0: f64,
+    field_scale: SpatialScale,
+    surface_gravity: f32,
+}
+
+impl UsfRadialGravitySource {
+    pub fn new(
+        center: UsfPosition,
+        radius_scale0: f64,
+        field_scale: SpatialScale,
+        surface_gravity: f32,
+    ) -> Self {
+        assert!(radius_scale0.is_finite() && radius_scale0 > 0.0);
+        assert!(surface_gravity.is_finite() && surface_gravity >= 0.0);
+        Self {
+            center,
+            radius_scale0,
+            field_scale,
+            surface_gravity,
+        }
+    }
+
+    pub const fn center(self) -> UsfPosition { self.center }
+    pub const fn radius_scale0(self) -> f64 { self.radius_scale0 }
+    pub const fn field_scale(self) -> SpatialScale { self.field_scale }
+    pub const fn surface_gravity(self) -> f32 { self.surface_gravity }
+}
+
 #[derive(Component, Debug, Clone, Copy)]
 pub struct UsfTravelInfluence {
-    absolute: DVec3,
+    anchor: UsfPosition,
     scale: SpatialScale,
     extent_radius_native: f64,
     kind: UsfTravelInfluenceKind,
@@ -312,12 +341,11 @@ pub struct UsfTravelInfluence {
 
 impl UsfTravelInfluence {
     pub fn hard_body(absolute: DVec3, scale: SpatialScale, radius_native: f64) -> Self {
-        Self::with_kind(
-            absolute,
-            scale,
-            radius_native,
-            UsfTravelInfluenceKind::HardBody,
-        )
+        Self::hard_body_at(canonical_authored_position(absolute, scale), scale, radius_native)
+    }
+
+    pub fn hard_body_at(anchor: UsfPosition, scale: SpatialScale, radius_native: f64) -> Self {
+        Self::with_kind(anchor, scale, radius_native, UsfTravelInfluenceKind::HardBody)
     }
 
     pub fn medium(
@@ -330,7 +358,7 @@ impl UsfTravelInfluence {
         hazard: f32,
     ) -> Self {
         Self::with_kind(
-            absolute,
+            canonical_authored_position(absolute, scale),
             scale,
             extent_radius_native,
             UsfTravelInfluenceKind::Medium(UsfTravelMedium::new(
@@ -344,7 +372,7 @@ impl UsfTravelInfluence {
 
     pub fn region(absolute: DVec3, scale: SpatialScale, extent_radius_native: f64) -> Self {
         Self::with_kind(
-            absolute,
+            canonical_authored_position(absolute, scale),
             scale,
             extent_radius_native,
             UsfTravelInfluenceKind::Region,
@@ -352,22 +380,22 @@ impl UsfTravelInfluence {
     }
 
     fn with_kind(
-        absolute: DVec3,
+        anchor: UsfPosition,
         scale: SpatialScale,
         extent_radius_native: f64,
         kind: UsfTravelInfluenceKind,
     ) -> Self {
         assert!(extent_radius_native.is_finite() && extent_radius_native > 0.0);
         Self {
-            absolute,
+            anchor,
             scale,
             extent_radius_native,
             kind,
         }
     }
 
-    pub const fn absolute(self) -> DVec3 {
-        self.absolute
+    pub const fn anchor(self) -> UsfPosition {
+        self.anchor
     }
 
     pub const fn scale(self) -> SpatialScale {
@@ -393,22 +421,20 @@ impl UsfTravelInfluence {
         }
     }
 
-    /// Measures this influence from an observer without flattening either point
-    /// into one universe-wide float chart first.
-    pub fn measure_from(
-        self,
-        observer_absolute: DVec3,
-        observer_scale: SpatialScale,
-        frames: &UsfScaleLayerFrames,
-    ) -> Option<UsfTravelInfluenceMeasure> {
-        let observer_in_scale =
-            frames.convert_absolute(observer_absolute, observer_scale, self.scale);
-        let center_distance_native = (self.absolute - observer_in_scale).length();
-        if !center_distance_native.is_finite() {
-            return None;
-        }
+    /// Canonical subtraction first; bounded float projection only in the
+    /// influence's own scale-local chart.
+    pub fn measure_from(self, observer: &UsfPosition) -> Option<UsfTravelInfluenceMeasure> {
+        const RELATIVE_BOUND_NATIVE: f32 = 1_000_000.0;
 
-        let to_scale0 = 10.0_f64.powi(self.scale.exponent() as i32);
+        let relative = observer
+            .relative_at_scale_bounded(&self.anchor, self.scale, RELATIVE_BOUND_NATIVE)
+            .ok()?;
+        let center_distance_native = (f64::from(relative.x).powi(2)
+            + f64::from(relative.y).powi(2)
+            + f64::from(relative.z).powi(2))
+        .sqrt();
+
+        let to_scale0 = self.scale.scale0_units_per_native();
         let center_distance_scale0 = center_distance_native * to_scale0;
         let extent_radius_scale0 = self.extent_radius_native * to_scale0;
         let characteristic_scale0 = self.characteristic_scale_native() * to_scale0;
@@ -437,6 +463,13 @@ impl UsfTravelInfluence {
         })
     }
 }
+
+fn canonical_authored_position(absolute: DVec3, scale: SpatialScale) -> UsfPosition {
+    let leaf = scale.min(SpatialScale::ZERO);
+    UsfPosition::from_scale_native_f64(absolute, scale, leaf)
+        .expect("finite authored travel influence must be canonically representable")
+}
+
 
 #[derive(Debug, Clone, Copy)]
 pub struct UsfTravelInfluenceMeasure {
@@ -539,7 +572,7 @@ fn append_nearest(
 /// replace that refresh source without changing consumers of this component.
 #[derive(Component, Debug, Default)]
 pub struct UsfTravelNeighborhood {
-    sampled_absolute: Option<DVec3>,
+    sampled_position: Option<UsfPosition>,
     sampled_scale: Option<SpatialScale>,
     refresh_distance_scale0: f64,
     age_seconds: f32,
@@ -561,11 +594,11 @@ impl UsfTravelNeighborhood {
 
     pub fn needs_refresh(
         &self,
-        observer_absolute: DVec3,
+        observer: &UsfPosition,
         observer_scale: SpatialScale,
     ) -> bool {
-        let (Some(sampled_absolute), Some(sampled_scale)) =
-            (self.sampled_absolute, self.sampled_scale)
+        let (Some(sampled), Some(sampled_scale)) =
+            (self.sampled_position, self.sampled_scale)
         else {
             return true;
         };
@@ -573,20 +606,28 @@ impl UsfTravelNeighborhood {
         if sampled_scale != observer_scale || self.age_seconds >= NEIGHBORHOOD_MAX_AGE_SECONDS {
             return true;
         }
-
-        let moved_native = (observer_absolute - sampled_absolute).length();
-        if !moved_native.is_finite() {
-            return true;
+        if !self.refresh_distance_scale0.is_finite() {
+            return false;
         }
-        let moved_scale0 = moved_native * 10.0_f64.powi(observer_scale.exponent() as i32);
+
+        let bound_native = (self.refresh_distance_scale0
+            / observer_scale.scale0_units_per_native())
+            .max(1.0)
+            .min(f64::from(f32::MAX)) as f32;
+        let Ok(delta) =
+            observer.relative_at_scale_bounded(&sampled, observer_scale, bound_native)
+        else {
+            return true;
+        };
+        let moved_scale0 =
+            f64::from(delta.length()) * observer_scale.scale0_units_per_native();
         moved_scale0 >= self.refresh_distance_scale0
     }
 
     pub fn refresh<I>(
         &mut self,
-        observer_absolute: DVec3,
+        observer: UsfPosition,
         observer_scale: SpatialScale,
-        frames: &UsfScaleLayerFrames,
         influences: I,
     ) where
         I: IntoIterator<Item = (Entity, UsfTravelInfluence)>,
@@ -595,7 +636,7 @@ impl UsfTravelNeighborhood {
             .into_iter()
             .filter_map(|(entity, influence)| {
                 influence
-                    .measure_from(observer_absolute, observer_scale, frames)
+                    .measure_from(&observer)
                     .map(|measurement| TravelInfluenceCandidate {
                         cached: CachedTravelInfluence { entity, influence },
                         measurement,
@@ -699,7 +740,7 @@ impl UsfTravelNeighborhood {
                 )
                 .max(NEIGHBORHOOD_MIN_REFRESH_DISTANCE_SCALE0)
         });
-        self.sampled_absolute = Some(observer_absolute);
+        self.sampled_position = Some(observer);
         self.sampled_scale = Some(observer_scale);
         self.age_seconds = 0.0;
     }
@@ -761,6 +802,7 @@ mod tests {
         let medium = UsfTravelInfluence::medium(DVec3::ZERO, scale, 8.0, 1.0, 0.4, 0.2, 0.1);
         let region = UsfTravelInfluence::region(DVec3::ZERO, scale, 20.0);
 
+        assert_eq!(hard.anchor(), UsfPosition::zero(SpatialScale::ZERO));
         assert!(matches!(hard.kind(), UsfTravelInfluenceKind::HardBody));
         assert!(matches!(medium.kind(), UsfTravelInfluenceKind::Medium(_)));
         assert!(matches!(region.kind(), UsfTravelInfluenceKind::Region));

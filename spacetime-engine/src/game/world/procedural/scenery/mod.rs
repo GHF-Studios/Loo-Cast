@@ -12,7 +12,7 @@ use crate::{
     config::EngineConfig,
     procedural_assets::ProceduralAssetLibrary,
     spatial::{
-        SpatialScale, UsfApproachRefinement, UsfPosition,
+        SpatialScale, UsfApproachRefinement, UsfPosition, UsfRadialGravitySource,
         UsfScaleFallbackPresentation, UsfScaleLayer, UsfSceneryPresentation, UsfTravelInfluence,
     },
     voxel::{
@@ -407,22 +407,49 @@ fn spawn_stellar_system(
         config,
     );
 
-    // Travel/refinement semantics remain separate from render realization for
-    // now; Pass 3 canonicalizes these influence centers themselves.
+    // Terrain, navigation and gravity share the exact same canonical body centers.
+    // Each body measures approach in a scale-local chart appropriate to its size.
+    let sun_radius_scale0 = sun_radius * system_scale.scale0_units_per_native();
+    let earth_radius_scale0 = earth_radius * system_scale.scale0_units_per_native();
+    let moon_radius_scale0 = MOON_RADIUS * system_scale.scale0_units_per_native();
+
+    let sun_nav_scale = celestial_coarsest_scale(sun_radius_scale0);
+    let earth_nav_scale = celestial_coarsest_scale(earth_radius_scale0);
+    let moon_nav_scale = celestial_coarsest_scale(moon_radius_scale0);
+
+    let sun_anchor = canonical_center_from_native(sun_center, system_scale);
+    let earth_anchor = canonical_center_from_native(earth_center, system_scale);
+    let moon_anchor = canonical_center_from_native(moon_center, system_scale);
+
     commands.spawn((
         Name::new("Sun Travel Influence"),
         ChildOf(parent),
-        UsfTravelInfluence::hard_body(sun_center, system_scale, sun_radius),
+        UsfTravelInfluence::hard_body_at(
+            sun_anchor,
+            sun_nav_scale,
+            sun_nav_scale.scale0_to_native_f64(sun_radius_scale0),
+        ),
+        UsfRadialGravitySource::new(sun_anchor, sun_radius_scale0, sun_nav_scale, 274.0),
     ));
     commands.spawn((
         Name::new("Earth Travel Influence"),
         ChildOf(parent),
-        UsfTravelInfluence::hard_body(earth_center, system_scale, earth_radius),
+        UsfTravelInfluence::hard_body_at(
+            earth_anchor,
+            earth_nav_scale,
+            earth_nav_scale.scale0_to_native_f64(earth_radius_scale0),
+        ),
+        UsfRadialGravitySource::new(earth_anchor, earth_radius_scale0, earth_nav_scale, 9.80665),
     ));
     commands.spawn((
         Name::new("Moon Travel Influence"),
         ChildOf(parent),
-        UsfTravelInfluence::hard_body(moon_center, system_scale, MOON_RADIUS),
+        UsfTravelInfluence::hard_body_at(
+            moon_anchor,
+            moon_nav_scale,
+            moon_nav_scale.scale0_to_native_f64(moon_radius_scale0),
+        ),
+        UsfRadialGravitySource::new(moon_anchor, moon_radius_scale0, moon_nav_scale, 1.62),
         UsfApproachRefinement::new(SpatialScale::ZERO),
     ));
 
@@ -514,11 +541,14 @@ fn spawn_celestial_body_realizations(
             VoxelWorld::new_at(VoxelBase::celestial_body(base), grid_origin),
             VoxelStreaming::new(config.voxel.streaming.default_load_budget_per_frame),
             VoxelPresentationMaterial::new(assets.debug_grid.clone()),
-            VoxelCollisionDisabled,
             VoxelEditingDisabled,
             Transform::IDENTITY,
             Visibility::Inherited,
         ));
+
+        if terrain_scale != SpatialScale::ZERO {
+            entity.insert(VoxelCollisionDisabled);
+        }
 
         if terrain_scale == realization_coarsest {
             // Keep only the coarsest whole-body shell resident at arbitrary

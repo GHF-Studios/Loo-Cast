@@ -64,6 +64,7 @@ pub(in crate::game::player) fn toggle_adaptive_cruise(
             Option<&PlayerDead>,
             &mut PlayerAdaptiveCruise,
             &mut PlayerNoclip,
+            &PlayerTravelState,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
             &mut LinearVelocity,
@@ -75,13 +76,17 @@ pub(in crate::game::player) fn toggle_adaptive_cruise(
         return;
     }
 
-    let (entity, dead, mut cruise, mut noclip, mut input, mut ground, mut velocity) =
+    let (entity, dead, mut cruise, mut noclip, travel, mut input, mut ground, mut velocity) =
         player.into_inner();
     if dead.is_some() {
         return;
     }
 
-    cruise.active = !cruise.active;
+    let requested = !cruise.active;
+    if requested && travel.critical_dropout {
+        return;
+    }
+    cruise.active = requested;
     cruise.throttle = 0.0;
     cruise.speed_scale0 = 0.0;
     noclip.active = false;

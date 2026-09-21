@@ -8,6 +8,7 @@
 mod camera;
 mod components;
 mod controls;
+mod hud;
 mod lifecycle;
 mod spawn;
 pub mod cursor;
@@ -17,7 +18,7 @@ mod stance;
 pub use camera::{CameraMode, PlayerCamera, ThirdPersonCamera};
 pub use components::{
     Player, PlayerAdaptiveCruise, PlayerAim, PlayerController, PlayerDead, PlayerNoclip,
-    PlayerStance, PlayerTravelSpeed,
+    PlayerStance, PlayerTravelMode, PlayerTravelSpeed, PlayerTravelState,
 };
 
 use avian3d::prelude::{
@@ -83,11 +84,13 @@ impl Plugin for PlayerPlugin {
             .register_type::<PlayerStance>()
             .register_type::<PlayerNoclip>()
             .register_type::<PlayerTravelSpeed>()
+            .register_type::<PlayerTravelMode>()
+            .register_type::<PlayerTravelState>()
             .register_type::<PlayerAdaptiveCruise>()
             .register_type::<PlayerCamera>()
             .register_type::<ThirdPersonCamera>()
             .register_type::<CameraMode>()
-            .add_systems(Startup, spawn_player)
+            .add_systems(Startup, (spawn_player, hud::spawn_flight_hud))
             .add_systems(
                 PreUpdate,
                 cursor::apply_input_focus.in_set(InputFocusSet::Resolve),
@@ -100,6 +103,8 @@ impl Plugin for PlayerPlugin {
                     controls::toggle_adaptive_cruise,
                     stance::update_stance,
                     controls::sync_navigation_context,
+                    controls::sync_planetary_gravity,
+                    controls::sync_travel_state,
                     controls::sync_approach_refinement_view,
                     controls::movement,
                     controls::noclip_movement,
@@ -135,6 +140,7 @@ impl Plugin for PlayerPlugin {
                     camera::sync_player_camera,
                     camera::sync_player_fov,
                     camera::sync_player_model,
+                    hud::update_flight_hud,
                 )
                     .chain()
                     .in_set(PresentationSet::PrimaryView),

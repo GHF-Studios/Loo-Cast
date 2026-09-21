@@ -91,6 +91,21 @@ pub(in crate::game::player) fn movement(
     input.jump_pressed |= jump_enabled && keyboard.just_pressed(KeyCode::Space);
 }
 
+fn free_flight_wish(
+    control: &CharacterControlFrame,
+    aim: &PlayerAim,
+    physical_up: Vec3,
+    horizontal: f32,
+    forward: f32,
+    vertical: f32,
+) -> Vec3 {
+    let view_rotation = control.rotation() * aim.local_rotation();
+    (view_rotation * Vec3::X * horizontal
+        + view_rotation * Vec3::NEG_Z * forward
+        + physical_up * vertical)
+        .normalize_or_zero()
+}
+
 pub(in crate::game::player) fn noclip_movement(
     time: Res<Time>,
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -139,13 +154,14 @@ pub(in crate::game::player) fn noclip_movement(
     let vertical =
         keyboard.pressed(KeyCode::Space) as i8 - keyboard.pressed(KeyCode::ControlLeft) as i8;
 
-    let view_rotation = control.rotation() * aim.local_rotation();
-    let physical_up = frame.up();
-    let mut wish = view_rotation * Vec3::X * horizontal as f32
-        + view_rotation * Vec3::NEG_Z * forward as f32
-        + physical_up * vertical as f32;
-
-    wish = wish.normalize_or_zero();
+    let wish = free_flight_wish(
+        control,
+        aim,
+        frame.up(),
+        horizontal as f32,
+        forward as f32,
+        vertical as f32,
+    );
 
     let boost = if keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight) {
         controller.sprint_multiplier
@@ -172,6 +188,7 @@ pub(in crate::game::player) fn scale_navigation_movement(
     player: Single<
         (
             &mut Transform,
+            &CharacterLocomotionFrame,
             &CharacterControlFrame,
             Option<&PlayerDead>,
             &PlayerAim,
@@ -186,6 +203,7 @@ pub(in crate::game::player) fn scale_navigation_movement(
 ) {
     let (
         mut body,
+        frame,
         control,
         dead,
         aim,
@@ -211,11 +229,14 @@ pub(in crate::game::player) fn scale_navigation_movement(
     let vertical =
         keyboard.pressed(KeyCode::Space) as i8 - keyboard.pressed(KeyCode::ControlLeft) as i8;
 
-    let view_rotation = control.rotation() * aim.local_rotation();
-    let mut wish = view_rotation * Vec3::X * horizontal as f32
-        + view_rotation * Vec3::NEG_Z * forward as f32
-        + view_rotation * Vec3::Y * vertical as f32;
-    wish = wish.normalize_or_zero();
+    let wish = free_flight_wish(
+        control,
+        aim,
+        frame.up(),
+        horizontal as f32,
+        forward as f32,
+        vertical as f32,
+    );
 
     let boost = if keyboard.pressed(KeyCode::ShiftLeft)
         || keyboard.pressed(KeyCode::ShiftRight)
