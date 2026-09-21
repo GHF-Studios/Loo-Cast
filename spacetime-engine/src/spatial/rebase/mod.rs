@@ -25,7 +25,7 @@ pub(super) fn rebase_local_frame(
         return;
     }
 
-    let Ok(new_origin) = frame.origin.translated_native(shift) else {
+    let Ok(new_origin) = frame.origin.translated_at_scale(active.scale(), shift) else {
         error!(
             ?shift,
             "USF canonical translation failed during local-origin rebase"

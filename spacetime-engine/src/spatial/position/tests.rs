@@ -211,3 +211,110 @@ fn normalization_keeps_positive_boundary_half_open() {
     assert!(position.offset().x >= USF_LOCAL_MIN);
     assert!(position.offset().x < USF_LOCAL_MAX_EXCLUSIVE);
 }
+
+
+#[test]
+fn coarse_runtime_translation_preserves_existing_fine_identity() {
+    let s8 = SpatialScale::new(8).unwrap();
+
+    let original = UsfPosition::default()
+        .translated_whole_native([384_400_000, 18_000_000, 22_000_000])
+        .unwrap()
+        .translated_native(Vec3::new(12.25, -3.5, 8.125))
+        .unwrap();
+
+    let expected = original
+        .translated_whole_native([100_000_000, 0, 0])
+        .unwrap();
+
+    let translated = original
+        .translated_at_scale(s8, Vec3::new(1.0, 0.0, 0.0))
+        .unwrap();
+
+    assert_eq!(translated, expected);
+}
+
+#[test]
+fn fractional_coarse_runtime_translation_preserves_existing_fine_identity() {
+    let s8 = SpatialScale::new(8).unwrap();
+
+    let original = UsfPosition::default()
+        .translated_whole_native([384_400_000, 18_000_000, 22_000_000])
+        .unwrap()
+        .translated_native(Vec3::new(12.25, -3.5, 8.125))
+        .unwrap();
+
+    let expected = original
+        .translated_whole_native([50_000_000, -25_000_000, 12_500_000])
+        .unwrap();
+
+    let translated = original
+        .translated_at_scale(s8, Vec3::new(0.5, -0.25, 0.125))
+        .unwrap();
+
+    assert_eq!(translated, expected);
+}
+
+#[test]
+fn zero_translation_at_any_coarser_scale_is_exact_identity() {
+    let original = UsfPosition::default()
+        .translated_whole_native([384_400_000, 18_000_000, 22_000_000])
+        .unwrap()
+        .translated_native(Vec3::new(12.25, -3.5, 8.125))
+        .unwrap();
+
+    for raw in SpatialScale::ZERO.exponent()..=SpatialScale::MAX.exponent() {
+        let scale = SpatialScale::new(raw).unwrap();
+        assert_eq!(
+            original.translated_at_scale(scale, Vec3::ZERO).unwrap(),
+            original
+        );
+    }
+}
+
+
+#[test]
+fn finer_scale_zero_translation_refines_without_moving() {
+    let s8 = SpatialScale::new(8).unwrap();
+    let s7 = SpatialScale::new(7).unwrap();
+
+    let coarse = UsfPosition::zero(s8)
+        .translated_native(Vec3::new(3.844, 0.18, 0.22))
+        .unwrap();
+
+    let refined = coarse
+        .translated_at_scale(s7, Vec3::ZERO)
+        .unwrap();
+
+    assert_eq!(refined.leaf_scale(), s7);
+
+    let coarse_again = refined.reexpressed_at(s8).unwrap();
+    let delta = coarse_again
+        .relative_native_bounded(&coarse, 0.001)
+        .unwrap();
+    assert!(delta.length() < 1.0e-4);
+}
+
+#[test]
+fn finer_scale_translation_refines_then_moves_without_coarsening() {
+    let s8 = SpatialScale::new(8).unwrap();
+    let s7 = SpatialScale::new(7).unwrap();
+
+    let coarse = UsfPosition::zero(s8)
+        .translated_native(Vec3::new(3.844, 0.18, 0.22))
+        .unwrap();
+
+    let moved = coarse
+        .translated_at_scale(s7, Vec3::new(1.0, 0.0, 0.0))
+        .unwrap();
+
+    assert_eq!(moved.leaf_scale(), s7);
+
+    let expected = coarse
+        .reexpressed_at(s7)
+        .unwrap()
+        .translated_native(Vec3::new(1.0, 0.0, 0.0))
+        .unwrap();
+
+    assert_eq!(moved, expected);
+}

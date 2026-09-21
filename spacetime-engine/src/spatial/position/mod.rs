@@ -205,6 +205,106 @@ impl UsfPosition {
         Ok(self)
     }
 
+    /// Translates this canonical position by a bounded displacement expressed
+    /// in units native to `scale` WITHOUT coarsening the position itself.
+    ///
+    /// Runtime physics/render coordinates are allowed to be floats inside one
+    /// bounded scale-local chart. What is forbidden is routing the existing
+    /// semantic identity through that coarser float representation.
+    ///
+    /// Only the displacement is expanded down to this position's leaf scale;
+    /// all previously resolved finer digits remain intact.
+    pub fn translated_at_scale(
+        mut self,
+        scale: SpatialScale,
+        delta: Vec3,
+    ) -> Result<Self, UsfPositionError> {
+        if !delta.is_finite() {
+            return Err(UsfPositionError::NonFiniteTranslation);
+        }
+        // Refining semantic precision is exact: it introduces finer decimal
+        // slots without discarding any existing information. Coarsening the
+        // semantic position is the operation we must never do implicitly.
+        if scale < self.leaf_scale {
+            self = self.reexpressed_at(scale)?;
+        }
+        if delta == Vec3::ZERO {
+            return Ok(self);
+        }
+
+        let encoded_delta = UsfPosition::zero(scale)
+            .translated_native(delta)?
+            .reexpressed_at(self.leaf_scale)?;
+
+        self.add_same_leaf_delta(encoded_delta)?;
+        Ok(self)
+    }
+
+    /// Adds a canonical displacement with the same leaf scale directly over
+    /// the balanced-decimal hierarchy.
+    fn add_same_leaf_delta(&mut self, delta: Self) -> Result<(), UsfPositionError> {
+        if self.leaf_scale != delta.leaf_scale {
+            return Err(UsfPositionError::IncompatibleLeafScale);
+        }
+
+        let chunk_size = f64::from(USF_CHUNK_NATIVE_SIZE);
+        let half_chunk = chunk_size * 0.5;
+
+        for axis in 0..3 {
+            let offset_sum = f64::from(axis_f32(self.offset, axis))
+                + f64::from(axis_f32(delta.offset, axis));
+
+            let carry_f = ((offset_sum + half_chunk) / chunk_size).floor();
+            if carry_f < i64::MIN as f64 || carry_f > i64::MAX as f64 {
+                return Err(UsfPositionError::TranslationTooLarge);
+            }
+
+            let mut carry = carry_f as i64;
+            let mut local = (offset_sum - carry as f64 * chunk_size) as f32;
+
+            if local >= USF_LOCAL_MAX_EXCLUSIVE {
+                local -= USF_CHUNK_NATIVE_SIZE;
+                carry = carry
+                    .checked_add(1)
+                    .ok_or(UsfPositionError::TranslationTooLarge)?;
+            } else if local < USF_LOCAL_MIN {
+                local += USF_CHUNK_NATIVE_SIZE;
+                carry = carry
+                    .checked_sub(1)
+                    .ok_or(UsfPositionError::TranslationTooLarge)?;
+            }
+
+            set_axis_f32(&mut self.offset, axis, local);
+
+            for raw_scale in self.leaf_scale.exponent()..=SPATIAL_SCALE_MAX {
+                let scale = SpatialScale::new(raw_scale).expect("validated spatial scale");
+                let index = scale.index_from_top();
+
+                let total = i64::from(axis_i32(self.digits[index], axis))
+                    .checked_add(i64::from(axis_i32(delta.digits[index], axis)))
+                    .and_then(|value| value.checked_add(carry))
+                    .ok_or(UsfPositionError::TranslationTooLarge)?;
+
+                let parent_carry = total
+                    .checked_add(5)
+                    .ok_or(UsfPositionError::TranslationTooLarge)?
+                    .div_euclid(i64::from(USF_CHILD_CHUNKS_PER_AXIS));
+                let digit =
+                    total - parent_carry * i64::from(USF_CHILD_CHUNKS_PER_AXIS);
+
+                debug_assert!(digit >= i64::from(USF_BALANCED_DIGIT_MIN));
+                debug_assert!(digit < i64::from(USF_BALANCED_DIGIT_MAX_EXCLUSIVE));
+                set_axis_i32(&mut self.digits[index], axis, digit as i32);
+
+                carry = parent_carry;
+            }
+
+            let _winding = carry;
+        }
+
+        Ok(())
+    }
+
     /// Translates by exact whole units native to the current leaf scale.
     ///
     /// Unlike [`Self::translated_native`], this path never first collapses a

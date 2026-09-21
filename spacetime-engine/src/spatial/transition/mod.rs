@@ -175,33 +175,15 @@ pub(super) fn apply_spatial_transitions(
         *semantic = request.position;
     }
 
-    // Entering a finer chart increases resolved semantic precision. Zooming back
-    // out never coarsens the semantic identity.
-    if target_scale < semantic.leaf_scale() {
-        let Ok(refined) = semantic.reexpressed_at(target_scale) else {
-            error!(
-                subject = ?subject,
-                scale = %target_scale,
-                "USF semantic position could not refine for spatial transition"
-            );
-            return;
-        };
-        *semantic = refined;
-    }
-
-    let Ok(chart_origin) = semantic.reexpressed_at(target_scale) else {
+    // Changing the runtime chart must never change semantic precision.
+    // The exact canonical subject position becomes the frame origin. Pass 2
+    // removes the remaining DVec3 projection used only by legacy frame metadata.
+    let chart_origin = *semantic;
+    let Ok(chart_absolute) = semantic.coordinate_at_scale_f64(target_scale) else {
         error!(
             subject = ?subject,
             scale = %target_scale,
-            "USF semantic position could not enter target runtime chart"
-        );
-        return;
-    };
-    let Ok(chart_absolute) = chart_origin.coordinate_at_scale_f64(target_scale) else {
-        error!(
-            subject = ?subject,
-            scale = %target_scale,
-            "USF target runtime chart origin could not be projected"
+            "USF target runtime chart origin could not be projected for legacy frame metadata"
         );
         return;
     };

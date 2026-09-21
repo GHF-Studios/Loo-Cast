@@ -3,6 +3,7 @@
 use super::*;
 
 pub(super) fn sync_semantic_positions(
+    active: Res<UsfActiveScaleLayer>,
     frame: Res<UsfSpatialFrame>,
     anchors: Query<
         (Ref<Transform>, Ref<UsfManifestationOf>),
@@ -20,18 +21,13 @@ pub(super) fn sync_semantic_positions(
             continue;
         };
 
-        let precision = semantic.leaf_scale();
-        let Ok(chart_position) = (*frame.origin()).translated_native(transform.translation) else {
+        let Ok(position) = (*frame.origin())
+            .translated_at_scale(active.scale(), transform.translation)
+        else {
             error!(
+                scale = %active.scale(),
                 local_position = ?transform.translation,
                 "USF semantic position translation failed while projecting local anchor"
-            );
-            continue;
-        };
-        let Ok(position) = chart_position.reexpressed_at(precision) else {
-            error!(
-                precision = %precision,
-                "USF semantic position could not preserve resolved precision"
             );
             continue;
         };
