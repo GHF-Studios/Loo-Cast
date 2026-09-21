@@ -70,8 +70,6 @@ pub(in crate::spatial) fn project_local_scale_presentations(
         &mut Visibility,
     )>,
 ) {
-    let render_scale = view.render_scale();
-
     for (mut presentation, parent, mut transform, mut visibility) in &mut presentations {
         let Ok((parent_transform, layer, follows_active, fallback)) = parents.get(parent.0) else {
             continue;
@@ -80,14 +78,26 @@ pub(in crate::spatial) fn project_local_scale_presentations(
             presentation.set_scale(layer.scale());
         }
 
-        // Active-chart followers (player model, etc.) remain visible. Persistent
-        // scale-local worlds get exactly one opaque depth owner. Resident
-        // adjacent worlds stay hot for handoff but are not drawn simultaneously.
-        let owns_render_lane = layer.scale() == render_scale
-            || fallback.is_some_and(|fallback| {
-                layer.scale() == fallback.scale() && render_scale > fallback.scale()
-            });
-        if follows_active.is_none() && !owns_render_lane {
+        // Active-chart followers (player model, etc.) remain visible.
+        //
+        // Persistent scale-local worlds are fundamentally NOT mutually-exclusive
+        // LOD levels. The visible world is an additive nested stack:
+        //
+        //   coarse domain
+        //     minus finer refinement aperture
+        //       plus finer domain
+        //
+        // Until the aperture compositor is in place, keep every requested stack
+        // layer visible so refinement can never create a global terrain void.
+        // Coarse/fine overlap is preferable to deleting the parent world.
+        let far_fallback = fallback.is_some_and(|fallback| {
+            layer.scale() == fallback.scale()
+                && view.continuous_exponent() >= f32::from(fallback.scale().exponent())
+        });
+        let participates_in_stack =
+            view.requests_scale_stack_layer(layer.scale()) || far_fallback;
+
+        if follows_active.is_none() && !participates_in_stack {
             if !matches!(*visibility, Visibility::Hidden) {
                 *visibility = Visibility::Hidden;
             }

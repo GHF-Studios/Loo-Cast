@@ -242,11 +242,12 @@ impl UsfViewContext {
         self.interaction_scale()
     }
 
-    /// Single scale that owns opaque local-world rendering right now.
+    /// Discrete convenience scale for presentation systems that genuinely need
+    /// one representative scale.
     ///
-    /// Adjacent scale realizations may both remain resident, but independently
-    /// generated surfaces must not compete in one depth buffer. A later
-    /// compositor can blend separately rendered scale lanes.
+    /// IMPORTANT: persistent USF terrain must NOT use this to choose one global
+    /// owner. Terrain is an additive nested scale stack; see
+    /// [`Self::requests_scale_stack_layer`].
     pub fn render_scale(&self) -> SpatialScale {
         if self.scale == SpatialScale::MAX || self.zoom < 0.5 {
             self.scale
@@ -254,6 +255,21 @@ impl UsfViewContext {
             SpatialScale::new(self.scale.exponent() + 1)
                 .expect("non-maximum view scale has a coarser adjacent scale")
         }
+    }
+
+    /// Whether a persistent scale-local world belongs to the currently visible
+    /// additive USF scale stack.
+    ///
+    /// Persistent worlds are not ordinary mutually-exclusive LODs. Coarser
+    /// worlds remain present while a bounded finer refinement world comes in.
+    /// The eventual refinement-aperture compositor clips only the subdomain
+    /// owned by the finer world; it does not globally retire the coarser one.
+    pub fn requests_scale_stack_layer(&self, scale: SpatialScale) -> bool {
+        if scale >= self.interaction_scale() {
+            return true;
+        }
+
+        scale == self.scale && self.contribution(scale) > CONTRIBUTION_EPSILON
     }
 
     /// Changes observer scale without changing canonical observer position.
