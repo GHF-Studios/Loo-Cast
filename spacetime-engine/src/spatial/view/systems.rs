@@ -52,18 +52,19 @@ pub(in crate::spatial) fn sync_view_context(
 /// representation frames can later promote this to an explicit projection frame.
 pub(in crate::spatial) fn project_local_scale_presentations(
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
-    active: Res<UsfActiveScaleLayer>,
-    frames: Res<UsfScaleLayerFrames>,
+    frame: Res<UsfSpatialFrame>,
     parents: Query<
         (&Transform, &UsfScaleLayer, Option<&UsfFollowsActiveScale>),
         Without<UsfLocalScalePresentation>,
     >,
-    mut presentations: Query<(&mut UsfLocalScalePresentation, &ChildOf, &mut Transform)>,
+    mut presentations: Query<(
+        &mut UsfLocalScalePresentation,
+        &ChildOf,
+        &mut Transform,
+        &mut Visibility,
+    )>,
 ) {
-    let active_scale = active.scale();
-    let observer_absolute = frames.absolute(active_scale, view.runtime_anchor());
-
-    for (mut presentation, parent, mut transform) in &mut presentations {
+    for (mut presentation, parent, mut transform, mut visibility) in &mut presentations {
         let Ok((parent_transform, layer, follows_active)) = parents.get(parent.0) else {
             continue;
         };
@@ -71,11 +72,40 @@ pub(in crate::spatial) fn project_local_scale_presentations(
             presentation.set_scale(layer.scale());
         }
 
+        // Active-chart followers such as the local player remain visible.
+        // Persistent scale-local realizations such as voxel terrain only belong
+        // to the observer's current adjacent scale window. Without this gate,
+        // every resident Moon world (S+5..S0) is drawn simultaneously.
+        if follows_active.is_none() && view.contribution(layer.scale()) <= CONTRIBUTION_EPSILON {
+            if !matches!(*visibility, Visibility::Hidden) {
+                *visibility = Visibility::Hidden;
+            }
+            continue;
+        }
+        if !matches!(*visibility, Visibility::Inherited) {
+            *visibility = Visibility::Inherited;
+        }
+
         let observer_in_parent_chart = if follows_active.is_some() {
             view.runtime_anchor()
         } else {
-            let converted = frames.convert_absolute(observer_absolute, active_scale, layer.scale());
-            frames.runtime_from_absolute(layer.scale(), converted)
+            // Resolve the observer inside the parent's isolated scale-local
+            // chart using canonical identity only. No DVec3 crosses scales.
+            let Ok(local_origin) = frame.origin().reexpressed_at(layer.scale()) else {
+                *visibility = Visibility::Hidden;
+                continue;
+            };
+            let Ok(observer) = view.anchor().reexpressed_at(layer.scale()) else {
+                *visibility = Visibility::Hidden;
+                continue;
+            };
+            let Ok(relative) =
+                observer.relative_native_bounded(&local_origin, PRESENTATION_RELATIVE_BOUND)
+            else {
+                *visibility = Visibility::Hidden;
+                continue;
+            };
+            relative
         };
 
         let factor = view.projection_factor(layer.scale());

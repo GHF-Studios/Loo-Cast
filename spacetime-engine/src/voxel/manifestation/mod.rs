@@ -21,6 +21,7 @@ pub(super) use lifecycle::retire_removed_world_manifestations;
 pub(super) use membership::sync_manifestation_membership;
 pub(super) use rebuild::{
     initialize_translucent_voxel_material, rebuild_dirty_manifestations,
+    sync_manifestation_runtime_transforms,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

@@ -152,7 +152,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
             root
         } else {
             let Some(local_translation) =
-                manifestation_runtime_translation(world, layer, &spatial_frame, key.address)
+                manifestation_runtime_translation(layer, &spatial_frame, key.address)
             else {
                 registry.dirty.insert(key);
                 continue;
@@ -333,17 +333,46 @@ fn build_opaque_mesh(surface: &VoxelSurface, debug_color: [f32; 4]) -> Option<Me
 }
 
 fn manifestation_runtime_translation(
-    _world: &VoxelWorld,
     layer: &UsfScaleLayer,
     frame: &UsfSpatialFrame,
     address: VoxelMaterializationChunkAddress,
 ) -> Option<Vec3> {
-    // Both ends stay canonical until the final bounded scale-local projection.
-    // No huge float absolute is ever constructed or subtracted.
     let local_origin = frame.origin().reexpressed_at(layer.scale()).ok()?;
     address
         .query_origin()
         .usf()
         .relative_native_bounded(&local_origin, 1_000_000.0)
         .ok()
+}
+
+/// Reprojects every resident voxel root whenever the canonical local frame
+/// changes. Runtime Transforms are disposable coordinates inside one isolated
+/// scale-local world; canonical materialization addresses remain authoritative.
+pub(in crate::voxel) fn sync_manifestation_runtime_transforms(
+    frame: Res<UsfSpatialFrame>,
+    registry: Res<VoxelManifestationRegistry>,
+    layers: Query<&UsfScaleLayer, With<VoxelManifestation>>,
+    mut transforms: Query<&mut Transform, With<VoxelManifestation>>,
+) {
+    if !frame.is_changed() && !registry.is_changed() {
+        return;
+    }
+
+    for (key, &entity) in &registry.entities {
+        let Ok(layer) = layers.get(entity) else {
+            continue;
+        };
+        let Some(translation) =
+            manifestation_runtime_translation(layer, &frame, key.address)
+        else {
+            continue;
+        };
+        let Ok(mut transform) = transforms.get_mut(entity) else {
+            continue;
+        };
+
+        if transform.translation != translation {
+            transform.translation = translation;
+        }
+    }
 }
