@@ -337,11 +337,12 @@ fn manifestation_runtime_translation(
     frame: &UsfSpatialFrame,
     address: VoxelMaterializationChunkAddress,
 ) -> Option<Vec3> {
-    let local_origin = frame.origin().reexpressed_at(layer.scale()).ok()?;
+    // Keep each scale-world root tightly centered around the canonical frame.
+    // No coarsened absolute origin and no million-unit render chart.
     address
         .query_origin()
         .usf()
-        .relative_native_bounded(&local_origin, 1_000_000.0)
+        .relative_at_scale_bounded(frame.origin(), layer.scale(), 16_384.0)
         .ok()
 }
 

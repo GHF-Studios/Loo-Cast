@@ -318,3 +318,30 @@ fn finer_scale_translation_refines_then_moves_without_coarsening() {
 
     assert_eq!(moved, expected);
 }
+
+
+#[test]
+fn scale_relative_projection_accepts_different_leaf_precisions() {
+    let s8 = SpatialScale::new(8).unwrap();
+    let s5 = SpatialScale::new(5).unwrap();
+    let s0 = SpatialScale::ZERO;
+
+    let center = UsfPosition::zero(s8)
+        .translated_native(Vec3::new(3.844, 0.18, 0.22))
+        .unwrap();
+
+    let observer = center
+        .reexpressed_at(s0)
+        .unwrap()
+        .translated_whole_native([12_345, -678, 90])
+        .unwrap();
+
+    let coarse_center = center.reexpressed_at(s5).unwrap();
+    let relative = observer
+        .relative_at_scale_bounded(&coarse_center, s5, 16_384.0)
+        .unwrap();
+
+    assert!((relative.x - 0.12345).abs() < 1.0e-5);
+    assert!((relative.y + 0.00678).abs() < 1.0e-5);
+    assert!((relative.z - 0.00090).abs() < 1.0e-5);
+}

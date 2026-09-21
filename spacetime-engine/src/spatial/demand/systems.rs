@@ -38,15 +38,10 @@ fn collect_spatial_demand(
         // A demand source is first resolved inside its own bounded scale-local
         // chart, then represented canonically. No floating position crosses a
         // scale boundary.
-        let Ok(source_origin) = frame.origin().reexpressed_at(source_scale) else {
-            error!(
-                ?entity,
-                scale = %source_scale,
-                "spatial demand source frame could not re-express canonically"
-            );
-            continue;
-        };
-        let Ok(source_position) = source_origin.translated_native(transform.translation()) else {
+        let Ok(source_position) = frame
+            .origin()
+            .translated_at_scale(source_scale, transform.translation())
+        else {
             error!(
                 ?entity,
                 scale = %source_scale,

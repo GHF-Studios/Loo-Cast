@@ -12,7 +12,7 @@ use crate::spatial::{
     UsfScaleLayerFrames, UsfSpatialFrame,
 };
 
-const PRESENTATION_RELATIVE_BOUND: f32 = 1_000_000.0;
+const PRESENTATION_RELATIVE_BOUND: f32 = 16_384.0;
 const CONTRIBUTION_EPSILON: f32 = 0.001;
 
 /// Marks the runtime transform whose universe position is the semantic origin
@@ -214,6 +214,20 @@ impl UsfViewContext {
 
     pub fn dominant_scale(&self) -> SpatialScale {
         self.interaction_scale()
+    }
+
+    /// Single scale that owns opaque local-world rendering right now.
+    ///
+    /// Adjacent scale realizations may both remain resident, but independently
+    /// generated surfaces must not compete in one depth buffer. A later
+    /// compositor can blend separately rendered scale lanes.
+    pub fn render_scale(&self) -> SpatialScale {
+        if self.scale == SpatialScale::MAX || self.zoom < 0.5 {
+            self.scale
+        } else {
+            SpatialScale::new(self.scale.exponent() + 1)
+                .expect("non-maximum view scale has a coarser adjacent scale")
+        }
     }
 
     /// Changes observer scale without changing canonical observer position.

@@ -5,6 +5,7 @@ use super::*;
 /// Keeps the view anchored to an ordinary bounded runtime transform while
 /// deriving its semantic position through the current local physical frame.
 pub(in crate::spatial) fn sync_view_context(
+    active: Res<UsfActiveScaleLayer>,
     frame: Res<UsfSpatialFrame>,
     semantic_anchors: Query<&Transform, With<UsfViewAnchor>>,
     observer: Single<
@@ -25,7 +26,7 @@ pub(in crate::spatial) fn sync_view_context(
 
     let Ok(canonical) = frame
         .origin()
-        .translated_native(semantic_anchor.translation)
+        .translated_at_scale(active.scale(), semantic_anchor.translation)
     else {
         error!(
             local_anchor = ?semantic_anchor.translation,
@@ -64,6 +65,8 @@ pub(in crate::spatial) fn project_local_scale_presentations(
         &mut Visibility,
     )>,
 ) {
+    let render_scale = view.render_scale();
+
     for (mut presentation, parent, mut transform, mut visibility) in &mut presentations {
         let Ok((parent_transform, layer, follows_active)) = parents.get(parent.0) else {
             continue;
@@ -72,36 +75,25 @@ pub(in crate::spatial) fn project_local_scale_presentations(
             presentation.set_scale(layer.scale());
         }
 
-        // Active-chart followers such as the local player remain visible.
-        // Persistent scale-local realizations such as voxel terrain only belong
-        // to the observer's current adjacent scale window. Without this gate,
-        // every resident Moon world (S+5..S0) is drawn simultaneously.
-        if follows_active.is_none() && view.contribution(layer.scale()) <= CONTRIBUTION_EPSILON {
+        // Active-chart followers (player model, etc.) remain visible. Persistent
+        // scale-local worlds get exactly one opaque depth owner. Resident
+        // adjacent worlds stay hot for handoff but are not drawn simultaneously.
+        if follows_active.is_none() && layer.scale() != render_scale {
             if !matches!(*visibility, Visibility::Hidden) {
                 *visibility = Visibility::Hidden;
             }
             continue;
         }
-        if !matches!(*visibility, Visibility::Inherited) {
-            *visibility = Visibility::Inherited;
-        }
 
         let observer_in_parent_chart = if follows_active.is_some() {
             view.runtime_anchor()
         } else {
-            // Resolve the observer inside the parent's isolated scale-local
-            // chart using canonical identity only. No DVec3 crosses scales.
-            let Ok(local_origin) = frame.origin().reexpressed_at(layer.scale()) else {
-                *visibility = Visibility::Hidden;
-                continue;
-            };
-            let Ok(observer) = view.anchor().reexpressed_at(layer.scale()) else {
-                *visibility = Visibility::Hidden;
-                continue;
-            };
-            let Ok(relative) =
-                observer.relative_native_bounded(&local_origin, PRESENTATION_RELATIVE_BOUND)
-            else {
+            // Canonical subtraction first, float projection last.
+            let Ok(relative) = view.anchor().relative_at_scale_bounded(
+                frame.origin(),
+                layer.scale(),
+                PRESENTATION_RELATIVE_BOUND,
+            ) else {
                 *visibility = Visibility::Hidden;
                 continue;
             };
@@ -109,7 +101,11 @@ pub(in crate::spatial) fn project_local_scale_presentations(
         };
 
         let factor = view.projection_factor(layer.scale());
-        let desired_global = view.runtime_anchor()
+
+        // Semantic distance is measured from the semantic observer, but visual
+        // placement is centered around the actual render camera. Camera boom
+        // offsets therefore remain presentation-only.
+        let desired_global = view.render_anchor()
             + (parent_transform.translation - observer_in_parent_chart) * factor;
         let delta = desired_global - parent_transform.translation;
         let desired_translation = parent_transform.rotation.inverse() * delta;
@@ -120,6 +116,9 @@ pub(in crate::spatial) fn project_local_scale_presentations(
         }
         if transform.scale != desired_scale {
             transform.scale = desired_scale;
+        }
+        if !matches!(*visibility, Visibility::Inherited) {
+            *visibility = Visibility::Inherited;
         }
     }
 }

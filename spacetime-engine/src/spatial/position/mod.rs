@@ -361,12 +361,32 @@ impl UsfPosition {
         scale: SpatialScale,
         max_abs: f32,
     ) -> Result<Vec3, UsfPositionError> {
+        // Canonical points may carry different resolved leaf scales. For an
+        // explicitly requested coarser/equal projection scale, refine the
+        // coarser operand to the finer leaf first. Refinement is exact in the
+        // USF hierarchy; it never discards semantic information.
+        let common_leaf = self.leaf_scale.min(origin.leaf_scale);
+        if scale < common_leaf {
+            return Err(UsfPositionError::IncompatibleLeafScale);
+        }
+
+        let lhs = if self.leaf_scale == common_leaf {
+            *self
+        } else {
+            self.reexpressed_at(common_leaf)?
+        };
+        let rhs = if origin.leaf_scale == common_leaf {
+            *origin
+        } else {
+            origin.reexpressed_at(common_leaf)?
+        };
+
         let mut delta = Vec3::ZERO;
         for axis in 0..3 {
             set_axis_f32(
                 &mut delta,
                 axis,
-                self.relative_axis_at_scale_bounded(origin, scale, axis, max_abs)?,
+                lhs.relative_axis_at_scale_bounded(&rhs, scale, axis, max_abs)?,
             );
         }
         Ok(delta)
