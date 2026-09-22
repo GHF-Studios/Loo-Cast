@@ -55,7 +55,7 @@ impl PreparedProceduralCelestialBody {
 impl ProceduralCelestialBody {
     pub fn new(
         center: UsfPosition,
-        radius_scale0: f64,
+        radius_metres: f64,
         current_scale: SpatialScale,
         coarsest_detail_scale: SpatialScale,
         seed: u32,
@@ -63,7 +63,7 @@ impl ProceduralCelestialBody {
     ) -> Self {
         // `coarsest_detail_scale` marks where terrain detail bands begin.
         // A body may still have whole-body realizations at coarser scales.
-        let radius_native = current_scale.scale0_to_native_f64(radius_scale0) as f32;
+        let radius_native = current_scale.metres_to_native_f64(radius_metres) as f32;
         assert!(
             radius_native.is_finite() && radius_native > 0.0,
             "celestial radius must remain finite and positive in its realization chart"
@@ -291,20 +291,20 @@ mod tests {
 
     #[test]
     fn body_radius_projects_consistently_across_scales() {
-        let radius_scale0 = 1_737_000.0;
+        let radius_metres = 1_737_000.0;
         let coarsest = SpatialScale::new(5).unwrap();
         for raw in 0..=5 {
             let scale = SpatialScale::new(raw).unwrap();
             let body = ProceduralCelestialBody::new(
                 center(),
-                radius_scale0,
+                radius_metres,
                 scale,
                 coarsest,
                 7,
                 CelestialBodyProfile::Lunar,
             );
-            let reconstructed = f64::from(body.radius_native()) * scale.scale0_units_per_native();
-            assert!((reconstructed - radius_scale0).abs() < 1.0);
+            let reconstructed = f64::from(body.radius_native()) * scale.metres_per_native();
+            assert!((reconstructed - radius_metres).abs() < 1.0);
         }
     }
 

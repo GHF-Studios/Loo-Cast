@@ -5,7 +5,7 @@ use bevy::prelude::*;
 
 use crate::{
     config::EngineConfig,
-    spatial::{UsfActiveScaleLayer, UsfScaleLayer, UsfViewContext, UsfViewRenderAnchor},
+    spatial::{UsfViewContext, UsfViewRenderAnchor},
 };
 
 use super::{VoxelManifestation, VoxelManifestationRegistry};
@@ -17,12 +17,11 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
     config: Res<EngineConfig>,
     mut commands: Commands,
     view: Single<Ref<UsfViewContext>, With<UsfViewRenderAnchor>>,
-    active: Res<UsfActiveScaleLayer>,
-    worlds: Query<(&VoxelWorld, &UsfScaleLayer, Option<&VoxelCollisionDisabled>)>,
+    worlds: Query<(&VoxelWorld, Option<&VoxelCollisionDisabled>)>,
     manifestation_roots: Query<Option<&Collider>, With<VoxelManifestation>>,
     registry: Res<VoxelManifestationRegistry>,
 ) {
-    if !config.is_changed() && !view.is_changed() && !active.is_changed() && !registry.is_changed() {
+    if !config.is_changed() && !view.is_changed() && !registry.is_changed() {
         return;
     }
 
@@ -30,7 +29,7 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
         let Some(&expected_revision) = registry.revisions.get(&key) else {
             continue;
         };
-        let Ok((world, layer, collision_disabled)) = worlds.get(key.world) else {
+        let Ok((world, collision_disabled)) = worlds.get(key.world) else {
             continue;
         };
 
@@ -40,8 +39,9 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
             .is_some_and(|cache| {
                 cache.revision == expected_revision && cache.surface.has_rigid_triangles()
             });
+        // Physics slices coexist. Collision residency is bounded by local
+        // proximity and mechanism policy, not one global active-world scale.
         let wants_collider = collision_disabled.is_none()
-            && layer.scale() == active.scale()
             && has_rigid_surface
             && manifestation_collider_proximity_squared(
                 &view,

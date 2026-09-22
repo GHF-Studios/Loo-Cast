@@ -8,8 +8,8 @@ use crate::{
         GameSet,
         item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItem},
     },
-    spatial::{SpatialScale, UsfActiveScaleLayer, UsfScaleLayer, UsfSpatialFrame},
-    voxel::{VoxelAuthority, VoxelBrush, VoxelEdit, VoxelEditingDisabled, VoxelMaterialId, VoxelQueryPosition, VoxelRayHit, VoxelWorld},
+    spatial::{UsfPrimaryInteractionSlice, UsfScaleLayer, UsfSpatialFrame},
+    voxel::{VoxelAuthority, VoxelBrush, VoxelEdit, VoxelEditingDisabled, VoxelMaterialId, VoxelQueryPosition, VoxelRayHit, VoxelScaleDomain, VoxelWorld},
 };
 
 pub const VOXEL_HAND: ItemId = ItemId::new("voxel_hand");
@@ -41,7 +41,7 @@ fn register_item(mut catalog: ResMut<ItemCatalog>) {
 fn use_voxel_hand(
     mut uses: MessageReader<UseItem>,
     keyboard: Res<ButtonInput<KeyCode>>,
-    active: Res<UsfActiveScaleLayer>,
+    active: Res<UsfPrimaryInteractionSlice>,
     spatial_frame: Res<UsfSpatialFrame>,
     mut worlds: ParamSet<(
         Query<
@@ -63,7 +63,7 @@ fn use_voxel_hand(
             Without<VoxelEditingDisabled>,
         >,
     )>,
-    mut authorities: Query<&mut VoxelAuthority>,
+    mut authorities: Query<(&mut VoxelAuthority, &VoxelScaleDomain)>,
 ) {
     for request in uses.read() {
         if request.item != VOXEL_HAND
@@ -150,19 +150,20 @@ fn use_voxel_hand(
         };
 
         if let Some(authority_entity) = authority_entity {
-            let Ok(mut authority) = authorities.get_mut(authority_entity) else {
+            let Ok((mut authority, domain)) = authorities.get_mut(authority_entity) else {
                 error!(
                     ?authority_entity,
                     "voxel realization points at a missing semantic authority"
                 );
                 continue;
             };
+            let domain = *domain;
             authority.record_edit(edit);
             drop(authority);
 
             let mut realization_worlds = worlds.p1();
             for (_, mut world, layer, realization) in &mut realization_worlds {
-                if layer.scale() != SpatialScale::ZERO
+                if !domain.editable(layer.scale())
                     || realization
                         .is_none_or(|realization| realization.0 != authority_entity)
                 {
@@ -173,7 +174,8 @@ fn use_voxel_hand(
                     error!(
                         ?error,
                         ?authority_entity,
-                        "shared voxel edit could not update S0 realization caches"
+                        scale = %layer.scale(),
+                        "shared voxel edit could not update editable realization caches"
                     );
                 }
             }

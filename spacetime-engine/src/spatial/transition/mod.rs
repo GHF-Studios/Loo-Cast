@@ -13,8 +13,9 @@ use bevy::prelude::*;
 use crate::ecs::{UsfLogicalProjection, UsfManifestationOf};
 
 use super::{
-    SpatialScale, UsfActiveScaleLayer, UsfFollowsActiveScale, UsfPosition, UsfScaleLayer,
-    UsfScaleLayerFrames, UsfSpatialAnchor, UsfSpatialFrame, UsfViewContext, UsfViewRenderAnchor,
+    SpatialScale, UsfPrimaryInteractionSlice, UsfInteractionProjection, UsfPosition,
+    UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScaleLayerFrames, UsfScaleRoleMask,
+    UsfSpatialAnchor, UsfSpatialFrame, UsfViewContext, UsfViewRenderAnchor,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -37,6 +38,8 @@ pub struct UsfSpatialTransition {
     target_scale: Option<SpatialScale>,
     view_exponent: Option<f32>,
     velocity: UsfTransitionVelocity,
+    required_coverage: UsfScaleRoleMask,
+    coverage_radius_native: f32,
 }
 
 impl UsfSpatialTransition {
@@ -47,6 +50,8 @@ impl UsfSpatialTransition {
             target_scale: None,
             view_exponent: None,
             velocity: UsfTransitionVelocity::PreserveNative,
+            required_coverage: UsfScaleRoleMask::NONE,
+            coverage_radius_native: 0.0,
         }
     }
 
@@ -54,6 +59,16 @@ impl UsfSpatialTransition {
     /// View zoom never selects this implicitly.
     pub const fn with_scale(mut self, scale: SpatialScale) -> Self {
         self.target_scale = Some(scale);
+        self
+    }
+
+    pub fn requiring_coverage(
+        mut self,
+        roles: UsfScaleRoleMask,
+        radius_native: f32,
+    ) -> Self {
+        self.required_coverage = roles;
+        self.coverage_radius_native = radius_native.max(0.0);
         self
     }
 
@@ -124,17 +139,18 @@ pub struct UsfSpatialTransitionApplied {
 
 pub(super) fn apply_spatial_transitions(
     mut view: Single<&mut UsfViewContext, With<UsfViewRenderAnchor>>,
-    mut active: ResMut<UsfActiveScaleLayer>,
+    mut active: ResMut<UsfPrimaryInteractionSlice>,
     mut layer_frames: ResMut<UsfScaleLayerFrames>,
     mut frame: ResMut<UsfSpatialFrame>,
     mut queue: ResMut<UsfSpatialTransitionQueue>,
+    coverage: Res<UsfScaleCoverageSnapshot>,
     mut participants: ParamSet<(
         Query<
             (Entity, &Transform, &UsfScaleLayer, &UsfManifestationOf),
             (
                 With<UsfSpatialAnchor>,
                 With<UsfLogicalProjection>,
-                With<UsfFollowsActiveScale>,
+                With<UsfInteractionProjection>,
                 Without<ChildOf>,
             ),
         >,
@@ -147,7 +163,7 @@ pub(super) fn apply_spatial_transitions(
                 Option<&mut LinearVelocity>,
                 Option<&UsfManifestationOf>,
             ),
-            (With<UsfFollowsActiveScale>, Without<ChildOf>),
+            (With<UsfInteractionProjection>, Without<ChildOf>),
         >,
     )>,
     mut semantic_positions: Query<&mut UsfPosition>,
@@ -170,6 +186,20 @@ pub(super) fn apply_spatial_transitions(
 
     let target_scale = request.target_scale.unwrap_or(previous_scale);
     let requested_relocation = true;
+
+    // A finer handoff remains only intent until required mechanism coverage
+    // actually exists. Keep the request queued instead of creating a hole.
+    if !request.required_coverage.is_empty()
+        && !coverage.has_near(
+            target_scale,
+            &request.position,
+            request.required_coverage,
+            request.coverage_radius_native,
+        )
+    {
+        queue.request(request);
+        return;
+    }
 
     let Ok(mut semantic) = semantic_positions.get_mut(subject) else {
         return;

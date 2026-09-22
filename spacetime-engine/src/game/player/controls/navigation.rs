@@ -122,10 +122,19 @@ pub(in crate::game::player) fn sync_approach_refinement_view(
     if let Some(interaction_scale) = SpatialScale::new(interaction_raw)
         && interaction_scale != layer.scale()
     {
-        transitions.request(
-            UsfSpatialTransition::new(manifestation.0, observer)
-                .with_scale(interaction_scale),
-        );
+        let transition = UsfSpatialTransition::new(manifestation.0, observer)
+            .with_scale(interaction_scale);
+
+        // Only the final fine interaction handoff requires demonstrated fine
+        // realization. Coarser scale navigation is allowed without inventing
+        // terrain/collision requirements that do not belong there.
+        let transition = if interaction_scale == refinement.minimum_scale() {
+            transition.requiring_coverage(UsfScaleRoleMask::REALIZATION, 8_192.0)
+        } else {
+            transition
+        };
+
+        transitions.request(transition);
     }
 }
 
@@ -193,9 +202,7 @@ pub(in crate::game::player) fn sync_planetary_gravity(
 
     let Some((_, relative, source)) = selected else {
         travel.local_gravity = 0.0;
-        if layer.scale() == SpatialScale::ZERO {
-            movement.gravity = 0.0;
-        }
+        movement.gravity = 0.0;
         return;
     };
 
@@ -213,9 +220,9 @@ pub(in crate::game::player) fn sync_planetary_gravity(
         .clamp(0.0, f64::from(f32::MAX)) as f32;
 
     travel.local_gravity = gravity;
-    if layer.scale() == SpatialScale::ZERO {
-        movement.gravity = gravity;
-    }
+    // Preserve canonical acceleration while expressing the kernel in the
+    // current Scale Slice's bounded native units.
+    movement.gravity = layer.scale().metres_to_native_f32(gravity);
 }
 
 pub(in crate::game::player) fn sync_travel_state(

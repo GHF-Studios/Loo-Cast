@@ -6,6 +6,8 @@
 
 use bevy::prelude::*;
 
+use crate::spatial::SpatialScale;
+
 /// The locally controlled gameplay entity.
 #[derive(Component, Reflect, Debug, Default)]
 #[reflect(Component)]
@@ -56,7 +58,7 @@ pub struct PlayerNoclip {
     pub active: bool,
 }
 
-/// S0 Local Flight translational-thruster state.
+/// Local Flight translational-thruster state for the configured detailed-body slice.
 ///
 /// Local Flight may remain the active control regime while thrust is disabled;
 /// then the ordinary CharacterMotor, collider and body-relative gravity own
@@ -67,12 +69,47 @@ pub struct PlayerThrusters {
     pub enabled: bool,
 }
 
+/// Bounded collision envelope for coarse Scale-Slice interaction.
+///
+/// This is deliberately not the semantic physical size of the human/ship. At a
+/// coarse slice it represents the uncertainty/interaction footprint resolved by
+/// that slice's physics kernel. Finer slices replace it with more exact geometry.
+#[derive(Component, Reflect, Debug, Clone, Copy)]
+#[reflect(Component)]
+pub struct PlayerScaleInteractionProxy {
+    pub radius_native: f32,
+}
+
+/// Scale Slice where the authored human-body controller/hull is the appropriate
+/// interaction kernel. This is gameplay policy, not an architectural USF center.
+#[derive(Component, Reflect, Debug, Clone, Copy)]
+#[reflect(Component)]
+pub struct PlayerDetailedPhysicsScale(pub SpatialScale);
+
+impl Default for PlayerDetailedPhysicsScale {
+    fn default() -> Self {
+        Self(SpatialScale::ZERO)
+    }
+}
+
+impl PlayerScaleInteractionProxy {
+    pub const DEFAULT_RADIUS_NATIVE: f32 = 0.05;
+}
+
+impl Default for PlayerScaleInteractionProxy {
+    fn default() -> Self {
+        Self {
+            radius_native: Self::DEFAULT_RADIUS_NATIVE,
+        }
+    }
+}
+
 /// Player-commanded manual locomotion pace.
 ///
 /// This is deliberately dimensionless. `1.0` means the natural baseline of the
 /// current locomotion manifestation:
 ///
-/// - human character at S0: `CharacterMovementConfig::max_ground_speed`;
+/// - detailed character kernel: `CharacterMovementConfig::max_ground_speed`;
 /// - collisionless coarse/noclip flight: 1 active-chart native unit/s.
 ///
 /// Manual control therefore remains usable after a scale rechart without

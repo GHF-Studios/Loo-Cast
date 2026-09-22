@@ -1,14 +1,16 @@
 //! USF semantic spatial identity projected into bounded local runtime coordinates.
 //!
-//! Canonical positions remain independent from the local runtime chart. Active
-//! scale layers, floating-origin rebasing, observer-relative scale presentation,
-//! and spatial demand are explicit projections over that semantic space.
+//! Canonical positions remain independent from bounded local runtime charts.
+//! All 71 Scale Slices from S-35 through S+35 coexist as explicit runtime
+//! partitions; interaction focus, floating-origin rebasing, presentation and
+//! demand are projections over that stack rather than one privileged scale.
 
 mod demand;
 mod devtools;
 mod layer;
 mod navigation;
 mod position;
+mod refinement;
 mod transition;
 mod view;
 
@@ -22,12 +24,16 @@ pub use navigation::{
     UsfTravelNeighborhood,
 };
 pub use layer::{
-    UsfActiveScaleLayer, UsfChartMask, UsfFollowsActiveScale, UsfScaleLayer,
-    UsfScaleLayerFrames, UsfScaleSlice, UsfScaleSlices,
+    UsfPrimaryInteractionSlice, UsfChartMask, UsfInteractionProjection, UsfScaleLayer,
+    UsfScaleLayerFrames, UsfScaleSlice, UsfScaleSliceMemberOf, UsfScaleSliceMembers,
+    UsfScaleSlices,
 };
 pub use position::{
     SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale, UsfChunkAddress,
     UsfPosition, UsfPositionError,
+};
+pub use refinement::{
+    UsfRefinementAperture, UsfScaleCoverage, UsfScaleCoverageSnapshot, UsfScaleRoleMask,
 };
 pub use transition::{
     UsfSpatialTransition, UsfSpatialTransitionApplied, UsfSpatialTransitionCause,
@@ -113,13 +119,15 @@ pub struct UsfSpatialPlugin;
 impl Plugin for UsfSpatialPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<UsfSpatialFrame>()
-            .init_resource::<UsfActiveScaleLayer>()
+            .init_resource::<UsfPrimaryInteractionSlice>()
             .init_resource::<UsfScaleLayerFrames>()
             .init_resource::<UsfScaleSlices>()
+            .init_resource::<UsfScaleCoverageSnapshot>()
             .init_resource::<UsfSpatialTransitionQueue>()
             .add_message::<UsfOriginRebased>()
             .add_message::<UsfSpatialTransitionApplied>()
             .add_systems(Startup, layer::spawn_scale_slices)
+            .add_systems(PreUpdate, refinement::clear_scale_coverage)
             .configure_sets(
                 PostUpdate,
                 (
@@ -139,6 +147,7 @@ impl Plugin for UsfSpatialPlugin {
                 (
                     sync_semantic_positions,
                     transition::apply_spatial_transitions,
+                    layer::sync_scale_slice_membership,
                 )
                     .chain()
                     .in_set(UsfSpatialSet::SyncSemantic),

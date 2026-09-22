@@ -76,6 +76,7 @@ enum VoxelPostUpdateSet {
     Membership,
     Rebuild,
     Collision,
+    Coverage,
 }
 
 impl Plugin for VoxelPlugin {
@@ -122,6 +123,9 @@ impl Plugin for VoxelPlugin {
                         .after(VoxelPostUpdateSet::ManifestationCleanup),
                     VoxelPostUpdateSet::Rebuild.after(VoxelPostUpdateSet::Membership),
                     VoxelPostUpdateSet::Collision.after(VoxelPostUpdateSet::Rebuild),
+                    VoxelPostUpdateSet::Coverage
+                        .after(VoxelPostUpdateSet::Collision)
+                        .before(UsfSpatialSet::SyncSemantic),
                 ),
             )
             .add_systems(
@@ -165,6 +169,11 @@ impl Plugin for VoxelPlugin {
                 PostUpdate,
                 manifestation::sync_manifestation_collision_residency
                     .in_set(VoxelPostUpdateSet::Collision),
+            )
+            .add_systems(
+                PostUpdate,
+                manifestation::publish_scale_coverage
+                    .in_set(VoxelPostUpdateSet::Coverage),
             );
 
         devtools::configure(app);

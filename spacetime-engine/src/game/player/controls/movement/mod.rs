@@ -26,6 +26,7 @@ pub(in crate::game::player) fn movement(
             &PlayerNoclip,
             &PlayerThrusters,
             &UsfScaleLayer,
+            &PlayerDetailedPhysicsScale,
             &PlayerTravelSpeed,
             &PlayerAdaptiveCruise,
             &CharacterMovementConfig,
@@ -44,6 +45,7 @@ pub(in crate::game::player) fn movement(
         noclip,
         thrusters,
         layer,
+        detailed_physics,
         travel_speed,
         cruise,
         movement_config,
@@ -54,7 +56,7 @@ pub(in crate::game::player) fn movement(
         || gameplay_suppressed(&keyboard, &capture)
         || (noclip.active && thrusters.enabled)
         || cruise.active
-        || layer.scale() != SpatialScale::ZERO
+        || layer.scale() != detailed_physics.0
     {
         input.clear();
         return;
@@ -212,46 +214,59 @@ pub(in crate::game::player) fn noclip_movement(
 }
 
 
-/// Collisionless manual navigation outside the canonical human-physics chart.
+/// Coarse manual navigation through the physics kernel of the current
+/// Scale Slice.
 ///
-/// Speed still comes from [`PlayerTravelSpeed`] in canonical S0 units/s and is
-/// projected into the active chart only at the final runtime adapter.
+/// The controlled manifestation uses a bounded interaction proxy and collides
+/// only with geometry published into the same Scale Slice.
 pub(in crate::game::player) fn scale_navigation_movement(
     time: Res<Time>,
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
+    move_and_slide: MoveAndSlide,
+    physics_charts: UsfPhysicsCharts,
     player: Single<
         (
+            Entity,
             &mut Transform,
             &CharacterLocomotionFrame,
             &CharacterControlFrame,
             Option<&PlayerDead>,
             &PlayerAim,
             &UsfScaleLayer,
+            &PlayerDetailedPhysicsScale,
+            &Collider,
+            Option<&KinematicQueryExclusions>,
             &PlayerTravelSpeed,
             &UsfNavigationContext,
+            &PlayerTravelState,
             &PlayerAdaptiveCruise,
-            Option<&mut LinearVelocity>,
+            &mut LinearVelocity,
         ),
         With<Player>,
     >,
 ) {
     let (
+        entity,
         mut body,
         frame,
         control,
         dead,
         aim,
         layer,
+        detailed_physics,
+        collider,
+        exclusions,
         travel_speed,
         navigation,
+        travel,
         cruise,
-        velocity,
+        mut velocity,
     ) = player.into_inner();
 
     if dead.is_some()
         || cruise.active
-        || layer.scale() == SpatialScale::ZERO
+        || layer.scale() == detailed_physics.0
         || gameplay_suppressed(&keyboard, &capture)
     {
         return;
@@ -282,12 +297,30 @@ pub(in crate::game::player) fn scale_navigation_movement(
     };
 
     let context_speed = navigation.manual_native_units_per_second(layer.scale());
-    body.translation += wish
-        * context_speed
-        * travel_speed.multiplier
-        * boost
-        * time.delta_secs();
-    if let Some(mut velocity) = velocity {
-        velocity.0 = Vec3::ZERO;
-    }
+    let gravity_native = layer.scale().metres_to_native_f32(travel.local_gravity);
+    let free_fall = if gravity_native > 0.0 {
+        frame.up() * velocity.0.dot(frame.up())
+            - frame.up() * gravity_native * time.delta_secs()
+    } else {
+        Vec3::ZERO
+    };
+    let desired_velocity =
+        wish * context_speed * travel_speed.multiplier * boost + free_fall;
+    let excluded = std::iter::once(entity)
+        .chain(exclusions.into_iter().flat_map(|exclusions| exclusions.iter()));
+    let filter = physics_charts.filter_for_scale(layer.scale(), excluded);
+    let move_config = MoveAndSlideConfig::default();
+    let moved = move_and_slide.move_and_slide(
+        collider,
+        body.translation,
+        body.rotation,
+        desired_velocity,
+        time.delta(),
+        &move_config,
+        &filter,
+        |_| MoveAndSlideHitResponse::Accept,
+    );
+
+    body.translation = moved.position;
+    velocity.0 = moved.projected_velocity;
 }

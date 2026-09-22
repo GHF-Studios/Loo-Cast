@@ -20,7 +20,7 @@ pub const USF_BALANCED_DIGIT_MAX_EXCLUSIVE: i32 = 5;
 pub const USF_LOCAL_MIN: f32 = -USF_CHUNK_NATIVE_SIZE * 0.5;
 pub const USF_LOCAL_MAX_EXCLUSIVE: f32 = USF_CHUNK_NATIVE_SIZE * 0.5;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct SpatialScale(i8);
 
 impl SpatialScale {
@@ -44,26 +44,48 @@ impl SpatialScale {
         (SPATIAL_SCALE_MAX - self.0) as usize
     }
 
-    /// Number of canonical S0 units represented by one native unit at this scale.
-    pub fn scale0_units_per_native(self) -> f64 {
+    /// SI metres represented by one native unit in this Scale Slice.
+    ///
+    /// The fact that S0's native spatial unit equals one metre is a unit-system
+    /// convention only. S0 is not an architectural origin, center, minimum, or
+    /// otherwise privileged Scale Slice.
+    pub fn metres_per_native(self) -> f64 {
         10.0_f64.powi(self.exponent() as i32)
     }
 
-    /// Projects a canonical S0 distance/speed into this scale's native units.
+    /// Projects an SI-metre distance/speed/acceleration into this slice's native units.
+    pub fn metres_to_native_f64(self, value: f64) -> f64 {
+        value / self.metres_per_native()
+    }
+
+    /// f32 adapter for bounded chart-local runtime APIs.
+    pub fn metres_to_native_f32(self, value: f32) -> f32 {
+        self.metres_to_native_f64(f64::from(value))
+            .clamp(-(f32::MAX as f64), f32::MAX as f64) as f32
+    }
+
+    /// Converts one chart-native runtime value back to SI metres.
+    pub fn native_to_metres_f32(self, value: f32) -> f32 {
+        (f64::from(value) * self.metres_per_native())
+            .clamp(-(f32::MAX as f64), f32::MAX as f64) as f32
+    }
+
+    // Compatibility aliases while older code migrates. They describe the same
+    // metre-unit convention; they do not establish S0 as USF's origin.
+    pub fn scale0_units_per_native(self) -> f64 {
+        self.metres_per_native()
+    }
+
     pub fn scale0_to_native_f64(self, value: f64) -> f64 {
-        value / self.scale0_units_per_native()
+        self.metres_to_native_f64(value)
     }
 
-    /// f32 adapter for runtime APIs that operate in bounded chart-local space.
     pub fn scale0_to_native_f32(self, value: f32) -> f32 {
-        self.scale0_to_native_f64(f64::from(value))
-            .clamp(-(f32::MAX as f64), f32::MAX as f64) as f32
+        self.metres_to_native_f32(value)
     }
 
-    /// Converts one chart-native runtime value back to canonical S0 units.
     pub fn native_to_scale0_f32(self, value: f32) -> f32 {
-        (f64::from(value) * self.scale0_units_per_native())
-            .clamp(-(f32::MAX as f64), f32::MAX as f64) as f32
+        self.native_to_metres_f32(value)
     }
 }
 
@@ -88,9 +110,9 @@ pub enum UsfPositionError {
 /// final `offset` is measured in units native to `leaf_scale` and is normalized
 /// into `[-500, 500)` on every axis.
 ///
-/// M7 fixes `leaf_scale` to scale 0 for runtime movement. The full 71-slot stack
-/// is present now so later scale transitions do not need to replace the spatial
-/// identity representation.
+/// `leaf_scale` is the finest currently resolved digit of this particular
+/// canonical position. It may be anywhere in the full S-35..S+35 range; S0 has
+/// no special positional-authority meaning.
 #[derive(Component, Debug, Clone, Copy, PartialEq)]
 pub struct UsfPosition {
     digits: [IVec3; SPATIAL_SCALE_COUNT],
@@ -100,6 +122,8 @@ pub struct UsfPosition {
 
 impl Default for UsfPosition {
     fn default() -> Self {
+        // Compatibility convenience only. Semantic systems should choose their
+        // required leaf scale explicitly rather than treating this as a world origin.
         Self::zero(SpatialScale::ZERO)
     }
 }
@@ -113,8 +137,15 @@ impl UsfPosition {
         }
     }
 
-    pub fn from_scale0_local(local_meters: Vec3) -> Result<Self, UsfPositionError> {
-        Self::zero(SpatialScale::ZERO).translated_native(local_meters)
+    /// Convenience constructor for metre-authored local content.
+    /// This is a unit adapter, not the canonical USF origin.
+    pub fn from_metres_local(local_metres: Vec3) -> Result<Self, UsfPositionError> {
+        Self::zero(SpatialScale::ZERO).translated_native(local_metres)
+    }
+
+    /// Legacy metre-adapter spelling retained for existing callers.
+    pub fn from_scale0_local(local_metres: Vec3) -> Result<Self, UsfPositionError> {
+        Self::from_metres_local(local_metres)
     }
 
     /// Builds one canonical hierarchical position from a bounded coordinate

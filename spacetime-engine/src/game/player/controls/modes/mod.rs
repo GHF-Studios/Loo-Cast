@@ -65,6 +65,7 @@ pub(in crate::game::player) fn toggle_thrusters(
             Entity,
             Option<&PlayerDead>,
             &UsfScaleLayer,
+            &PlayerDetailedPhysicsScale,
             &PlayerNoclip,
             &mut PlayerThrusters,
             &PlayerStance,
@@ -80,10 +81,21 @@ pub(in crate::game::player) fn toggle_thrusters(
         return;
     }
 
-    let (entity, dead, layer, noclip, mut thrusters, stance, cruise, mut input, mut ground, mut velocity) =
-        player.into_inner();
+    let (
+        entity,
+        dead,
+        layer,
+        detailed_physics,
+        noclip,
+        mut thrusters,
+        stance,
+        cruise,
+        mut input,
+        mut ground,
+        mut velocity,
+    ) = player.into_inner();
 
-    if dead.is_some() || cruise.active || !noclip.active || layer.scale() != SpatialScale::ZERO {
+    if dead.is_some() || cruise.active || !noclip.active || layer.scale() != detailed_physics.0 {
         return;
     }
 
@@ -180,10 +192,12 @@ pub(in crate::game::player) fn sync_locomotion_mode(
     player: Single<
         (
             Entity,
-            &UsfScaleLayer,
+            Ref<UsfScaleLayer>,
             &PlayerStance,
             &PlayerNoclip,
             &PlayerThrusters,
+            &PlayerScaleInteractionProxy,
+            &PlayerDetailedPhysicsScale,
             &PlayerAdaptiveCruise,
             Option<&CharacterMotor>,
             Option<&Collider>,
@@ -191,18 +205,35 @@ pub(in crate::game::player) fn sync_locomotion_mode(
         With<Player>,
     >,
 ) {
-    let (entity, layer, stance, noclip, thrusters, cruise, motor, collider) =
-        player.into_inner();
+    let (
+        entity,
+        layer,
+        stance,
+        noclip,
+        thrusters,
+        proxy,
+        detailed_physics,
+        cruise,
+        motor,
+        collider,
+    ) = player.into_inner();
 
-    let wants_collider = layer.scale() == SpatialScale::ZERO && !cruise.active;
-    let wants_character_motor =
-        wants_collider && (!noclip.active || !thrusters.enabled);
+    let wants_collider = !cruise.active;
+    let wants_character_motor = layer.scale() == detailed_physics.0
+        && wants_collider
+        && (!noclip.active || !thrusters.enabled);
 
-    if wants_collider && collider.is_none() {
-        let collider = if stance.crouched {
-            CharacterDimensions::crouching_collider()
+    if wants_collider && (collider.is_none() || layer.is_changed()) {
+        let collider = if layer.scale() == detailed_physics.0 {
+            if stance.crouched {
+                CharacterDimensions::crouching_collider()
+            } else {
+                CharacterDimensions::standing_collider()
+            }
         } else {
-            CharacterDimensions::standing_collider()
+            // Coarse physics owns a bounded interaction envelope, not a
+            // magically enlarged copy of the semantic body's detailed hull.
+            Collider::sphere(proxy.radius_native.max(0.001))
         };
         commands.entity(entity).insert(collider);
     } else if !wants_collider && collider.is_some() {

@@ -53,7 +53,7 @@ impl VoxelAuthority {
 #[derive(Component, Debug, Clone, Copy, PartialEq)]
 pub struct CelestialVoxelField {
     center: UsfPosition,
-    radius_scale0: f64,
+    radius_metres: f64,
     coarsest_detail_scale: SpatialScale,
     seed: u32,
     profile: CelestialBodyProfile,
@@ -62,18 +62,18 @@ pub struct CelestialVoxelField {
 impl CelestialVoxelField {
     pub fn new(
         center: UsfPosition,
-        radius_scale0: f64,
+        radius_metres: f64,
         coarsest_detail_scale: SpatialScale,
         seed: u32,
         profile: CelestialBodyProfile,
     ) -> Self {
         assert!(
-            radius_scale0.is_finite() && radius_scale0 > 0.0,
+            radius_metres.is_finite() && radius_metres > 0.0,
             "celestial authority radius must be finite and positive"
         );
         Self {
             center,
-            radius_scale0,
+            radius_metres,
             coarsest_detail_scale,
             seed,
             profile,
@@ -84,8 +84,8 @@ impl CelestialVoxelField {
         self.center
     }
 
-    pub const fn radius_scale0(self) -> f64 {
-        self.radius_scale0
+    pub const fn radius_metres(self) -> f64 {
+        self.radius_metres
     }
 
     pub const fn coarsest_detail_scale(self) -> SpatialScale {
@@ -99,7 +99,7 @@ impl CelestialVoxelField {
     pub fn realization(self, scale: SpatialScale) -> ProceduralCelestialBody {
         ProceduralCelestialBody::new(
             self.center,
-            self.radius_scale0,
+            self.radius_metres,
             scale,
             self.coarsest_detail_scale,
             self.seed,
@@ -150,8 +150,8 @@ mod tests {
             let scale = SpatialScale::new(raw).unwrap();
             let realization = field.realization(scale);
             let reconstructed =
-                f64::from(realization.radius_native()) * scale.scale0_units_per_native();
-            assert!((reconstructed - field.radius_scale0()).abs() < 1.0);
+                f64::from(realization.radius_native()) * scale.metres_per_native();
+            assert!((reconstructed - field.radius_metres()).abs() < 1.0);
         }
     }
 }

@@ -9,11 +9,11 @@ use bevy::{
 };
 
 use crate::{
-    ecs::UsfManifestationOf,config::EngineConfig, spatial::SpatialScale};
+    ecs::UsfManifestationOf,config::EngineConfig};
 
 use super::VoxelStreaming;
 use super::super::{
-    VoxelAuthority, VoxelChunk, VoxelMaterializationChunkAddress, VoxelWorld,
+    VoxelAuthority, VoxelChunk, VoxelMaterializationChunkAddress, VoxelScaleDomain, VoxelWorld,
     generation_scope::VoxelGenerationScopeExtent,
     worker::{VoxelWorkerTask, available_slots},
 };
@@ -66,7 +66,7 @@ pub(in crate::voxel) fn finish_chunk_generation(
     config: Res<EngineConfig>,
     mut commands: Commands,
     mut worlds: Query<(&mut VoxelWorld, Option<&UsfManifestationOf>)>,
-    authorities: Query<&VoxelAuthority>,
+    authorities: Query<(&VoxelAuthority, &VoxelScaleDomain)>,
     mut tasks: Query<(Entity, &mut VoxelGenerationTask)>,
 ) {
     let publish_budget = config.voxel.streaming.generation_publish_budget_per_frame;
@@ -157,7 +157,7 @@ pub(in crate::voxel) fn schedule_voxel_generation(
         &mut VoxelStreaming,
         Option<&UsfManifestationOf>,
     )>,
-    authorities: Query<&VoxelAuthority>,
+    authorities: Query<(&VoxelAuthority, &VoxelScaleDomain)>,
     worker_tasks: Query<(), With<VoxelWorkerTask>>,
     mut round_robin_cursor: Local<usize>,
 ) {
@@ -238,13 +238,13 @@ pub(super) fn catch_up_generated_chunk(
 
 fn catch_up_generated_chunk_with_authority(
     world: &VoxelWorld,
-    authority: Option<&VoxelAuthority>,
+    authority: Option<(&VoxelAuthority, &VoxelScaleDomain)>,
     address: VoxelMaterializationChunkAddress,
     applied_edit_count: usize,
     chunk: &mut VoxelChunk,
 ) {
-    if let Some(authority) = authority {
-        if world.origin().leaf_scale() == SpatialScale::ZERO {
+    if let Some((authority, domain)) = authority {
+        if domain.editable(world.origin().leaf_scale()) {
             for edit in authority.edits_since(applied_edit_count) {
                 chunk.apply_edit(address, edit);
             }

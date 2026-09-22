@@ -32,9 +32,9 @@ pub struct VoxelScaleDomain {
 }
 
 impl VoxelScaleDomain {
-    pub fn contiguous(finest: SpatialScale, coarsest: SpatialScale) -> Self {
+    pub fn contiguous(lower: SpatialScale, upper: SpatialScale) -> Self {
         Self {
-            realization_slices: UsfChartMask::inclusive_range(finest, coarsest),
+            realization_slices: UsfChartMask::inclusive_range(lower, upper),
             collision_slices: UsfChartMask::NONE,
             editing_slices: UsfChartMask::NONE,
             refinement_activation_native: DEFAULT_REFINEMENT_ACTIVATION_NATIVE,
@@ -208,9 +208,16 @@ fn celestial_surface_demand(
         return None;
     }
 
+    // This is a realization-local demand address, not semantic identity.
+    // Intentionally project the authority center into the target Scale Slice
+    // before applying the target-native surface displacement. Keeping the
+    // authority's finer leaf here would violate VoxelWorld's scale-local
+    // materialization-address invariant.
     let center = field
         .center()
-        .translated_at_scale(target_scale, direction * surface_radius)
+        .reexpressed_at(target_scale)
+        .ok()?
+        .translated_native(direction * surface_radius)
         .ok()?;
 
     Some(SpatialDemandScope::at_scale(

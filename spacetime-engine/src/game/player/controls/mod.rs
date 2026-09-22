@@ -20,7 +20,7 @@ use crate::{
     },
     spatial::{
         SpatialDemandSource, SpatialScale, UsfApproachRefinement, UsfNavigationContext,
-        UsfRadialGravitySource, UsfScaleLayer, UsfSpatialFrame, UsfSpatialTransition, UsfSpatialTransitionQueue, UsfTravelInfluence,
+        UsfRadialGravitySource, UsfScaleLayer, UsfScaleRoleMask, UsfSpatialFrame, UsfSpatialTransition, UsfSpatialTransitionQueue, UsfTravelInfluence,
         UsfTravelInfluenceKind, UsfTravelNeighborhood, UsfViewContext, UsfViewRenderAnchor,
     },
     view::PrimaryViewPresentation,
@@ -28,7 +28,7 @@ use crate::{
 
 use super::{
     Player, PlayerAdaptiveCruise, PlayerAim, PlayerController, PlayerDead, PlayerNoclip,
-    PlayerStance, PlayerThrusters, PlayerTravelMode, PlayerTravelSpeed, PlayerTravelState,
+    PlayerDetailedPhysicsScale, PlayerScaleInteractionProxy, PlayerStance, PlayerThrusters, PlayerTravelMode, PlayerTravelSpeed, PlayerTravelState,
     cursor::CursorCapture,
 };
 

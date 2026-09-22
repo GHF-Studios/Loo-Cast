@@ -410,13 +410,13 @@ fn spawn_stellar_system(
 
     // Terrain, navigation and gravity share the exact same canonical body centers.
     // Each body measures approach in a scale-local chart appropriate to its size.
-    let sun_radius_scale0 = sun_radius * system_scale.scale0_units_per_native();
-    let earth_radius_scale0 = earth_radius * system_scale.scale0_units_per_native();
-    let moon_radius_scale0 = MOON_RADIUS * system_scale.scale0_units_per_native();
+    let sun_radius_metres = sun_radius * system_scale.metres_per_native();
+    let earth_radius_metres = earth_radius * system_scale.metres_per_native();
+    let moon_radius_metres = MOON_RADIUS * system_scale.metres_per_native();
 
-    let sun_nav_scale = celestial_coarsest_scale(sun_radius_scale0);
-    let earth_nav_scale = celestial_coarsest_scale(earth_radius_scale0);
-    let moon_nav_scale = celestial_coarsest_scale(moon_radius_scale0);
+    let sun_nav_scale = celestial_coarsest_scale(sun_radius_metres);
+    let earth_nav_scale = celestial_coarsest_scale(earth_radius_metres);
+    let moon_nav_scale = celestial_coarsest_scale(moon_radius_metres);
 
     let sun_anchor = canonical_center_from_native(sun_center, system_scale);
     let earth_anchor = canonical_center_from_native(earth_center, system_scale);
@@ -428,9 +428,9 @@ fn spawn_stellar_system(
         UsfTravelInfluence::hard_body_at(
             sun_anchor,
             sun_nav_scale,
-            sun_nav_scale.scale0_to_native_f64(sun_radius_scale0),
+            sun_nav_scale.metres_to_native_f64(sun_radius_metres),
         ),
-        UsfRadialGravitySource::new(sun_anchor, sun_radius_scale0, sun_nav_scale, 274.0),
+        UsfRadialGravitySource::new(sun_anchor, sun_radius_metres, sun_nav_scale, 274.0),
     ));
     commands.spawn((
         Name::new("Earth Travel Influence"),
@@ -438,9 +438,9 @@ fn spawn_stellar_system(
         UsfTravelInfluence::hard_body_at(
             earth_anchor,
             earth_nav_scale,
-            earth_nav_scale.scale0_to_native_f64(earth_radius_scale0),
+            earth_nav_scale.metres_to_native_f64(earth_radius_metres),
         ),
-        UsfRadialGravitySource::new(earth_anchor, earth_radius_scale0, earth_nav_scale, 9.80665),
+        UsfRadialGravitySource::new(earth_anchor, earth_radius_metres, earth_nav_scale, 9.80665),
     ));
     commands.spawn((
         Name::new("Moon Travel Influence"),
@@ -448,10 +448,10 @@ fn spawn_stellar_system(
         UsfTravelInfluence::hard_body_at(
             moon_anchor,
             moon_nav_scale,
-            moon_nav_scale.scale0_to_native_f64(moon_radius_scale0),
+            moon_nav_scale.metres_to_native_f64(moon_radius_metres),
         ),
-        UsfRadialGravitySource::new(moon_anchor, moon_radius_scale0, moon_nav_scale, 1.62),
-        UsfApproachRefinement::new(SpatialScale::ZERO),
+        UsfRadialGravitySource::new(moon_anchor, moon_radius_metres, moon_nav_scale, 1.62),
+        UsfApproachRefinement::new(scale(HUMAN_SURFACE_INTERACTION_SCALE)),
     ));
 
     // Atmosphere is intentionally a different phenomenon from the solid body,
@@ -477,21 +477,29 @@ fn spawn_stellar_system(
     );
 }
 
-const CELESTIAL_FINEST_SCALE: i8 = 0;
+// Current macro-terrain voxel kernel support bound. This is NOT the USF
+// minimum: the Scale Stack continues through S-35, where smaller-scale material
+// mechanisms/realizers can take responsibility without changing the substrate.
+const CELESTIAL_MACRO_VOXEL_MIN_SCALE: i8 = 0;
+
+// Current human-surface interaction/tool policy. S0 is chosen because one native
+// unit is one metre and the present character/tool kernel is authored there,
+// not because S0 is the center or floor of USF.
+const HUMAN_SURFACE_INTERACTION_SCALE: i8 = 0;
 const CELESTIAL_COARSE_TARGET_RADIUS_NATIVE: f64 = 32.0;
 
 fn canonical_center_from_native(center: DVec3, source_scale: SpatialScale) -> UsfPosition {
-    UsfPosition::from_scale_native_f64(center, source_scale, SpatialScale::ZERO)
+    UsfPosition::from_scale_native_f64(center, source_scale, SpatialScale::MIN)
         .expect("rigged celestial center must be canonically addressable")
 }
 
-fn celestial_coarsest_scale(radius_scale0: f64) -> SpatialScale {
-    let raw = (radius_scale0 / CELESTIAL_COARSE_TARGET_RADIUS_NATIVE)
+fn celestial_coarsest_scale(radius_metres: f64) -> SpatialScale {
+    let raw = (radius_metres / CELESTIAL_COARSE_TARGET_RADIUS_NATIVE)
         .max(1.0)
         .log10()
         .ceil()
         .clamp(
-            f64::from(CELESTIAL_FINEST_SCALE),
+            f64::from(CELESTIAL_MACRO_VOXEL_MIN_SCALE),
             f64::from(SpatialScale::MAX.exponent()),
         ) as i8;
     scale(raw)
@@ -510,26 +518,29 @@ fn spawn_celestial_body_realizations(
 ) {
     let system_scale = scale(SYSTEM_SCALE);
     let center = canonical_center_from_native(center_system_native, system_scale);
-    let radius_scale0 = radius_system_native * system_scale.scale0_units_per_native();
+    let radius_metres = radius_system_native * system_scale.metres_per_native();
 
     // Detail-root scale and existence/top-of-ladder scale are different ideas.
     // For the Moon, S+5 is where terrain detail becomes meaningful, but the same
     // body still has coarser whole-body realizations through the system chart.
-    let detail_root = celestial_coarsest_scale(radius_scale0);
+    let detail_root = celestial_coarsest_scale(radius_metres);
     let realization_coarsest = system_scale.max(detail_root);
     let field = CelestialVoxelField::new(
         center,
-        radius_scale0,
+        radius_metres,
         detail_root,
         seed,
         profile,
     );
     let scale_domain = VoxelScaleDomain::contiguous(
-        SpatialScale::ZERO,
+        scale(CELESTIAL_MACRO_VOXEL_MIN_SCALE),
         realization_coarsest,
-    )
-    .with_collision_slices(UsfChartMask::from_scale(SpatialScale::ZERO))
-    .with_editing_slices(UsfChartMask::from_scale(SpatialScale::ZERO));
+    );
+    let scale_domain = scale_domain
+        .with_collision_slices(scale_domain.realization_slices())
+        .with_editing_slices(UsfChartMask::from_scale(scale(
+            HUMAN_SURFACE_INTERACTION_SCALE,
+        )));
     let authority = commands
         .spawn((
             Name::new(format!("{name} Voxel Authority")),
@@ -542,7 +553,7 @@ fn spawn_celestial_body_realizations(
         .id();
 
 
-    for raw in CELESTIAL_FINEST_SCALE..=realization_coarsest.exponent() {
+    for raw in CELESTIAL_MACRO_VOXEL_MIN_SCALE..=realization_coarsest.exponent() {
         let terrain_scale = scale(raw);
 
         // Grid origin is representation-local and may be quantized to the scale;
@@ -574,7 +585,7 @@ fn spawn_celestial_body_realizations(
         if terrain_scale == realization_coarsest {
             // Keep only the coarsest whole-body shell resident at arbitrary
             // observer distance. Finer levels are observer-demanded.
-            let radius_native = terrain_scale.scale0_to_native_f64(radius_scale0) as f32;
+            let radius_native = terrain_scale.metres_to_native_f64(radius_metres) as f32;
             let pinned_center = center
                 .reexpressed_at(terrain_scale)
                 .expect("pinned body center must match its representation scale");

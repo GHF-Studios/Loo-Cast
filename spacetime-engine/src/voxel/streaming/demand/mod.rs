@@ -12,7 +12,7 @@ use crate::{
 use super::{VoxelPinnedDemand, VoxelStreaming};
 
 use super::super::{
-    MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationChunkAddress,
+    MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationChunkAddress, VoxelQueryPosition,
     VoxelRealizationDemandSnapshot, VoxelWorld,
 };
 
@@ -71,8 +71,14 @@ pub(in crate::voxel) fn refresh_voxel_residency(
         let changed =
             match refresh_demand_plan(&world, &voxel_demands, &mut streaming, pinned_shell) {
                 Ok(changed) => changed,
-                Err(_) => {
-                    error!("voxel spatial demand could not be represented canonically");
+                Err(error) => {
+                    error!(
+                        ?error,
+                        world = ?world_entity,
+                        scale = %layer.scale(),
+                        world_leaf = %world.origin().leaf_scale(),
+                        "voxel spatial demand could not be represented canonically"
+                    );
                     continue;
                 }
             };

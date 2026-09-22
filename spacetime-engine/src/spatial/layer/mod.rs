@@ -57,6 +57,27 @@ pub(in crate::spatial) fn spawn_scale_slices(
     }
 }
 
+/// Explicit ECS membership in one of the 71 Scale Slice roots.
+///
+/// `UsfScaleLayer` remains the compact local chart identity used by hot systems;
+/// this relationship makes the same partition navigable as actual ECS structure.
+#[derive(Component, Debug)]
+#[relationship(relationship_target = UsfScaleSliceMembers)]
+pub struct UsfScaleSliceMemberOf(pub Entity);
+
+#[derive(Component, Debug)]
+#[relationship_target(relationship = UsfScaleSliceMemberOf)]
+pub struct UsfScaleSliceMembers(Vec<Entity>);
+
+impl UsfScaleSliceMembers {
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = Entity> + '_ {
+        self.0.iter().copied()
+    }
+
+    pub fn len(&self) -> usize { self.0.len() }
+    pub fn is_empty(&self) -> bool { self.0.is_empty() }
+}
+
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct UsfScaleLayer {
     scale: SpatialScale,
@@ -136,22 +157,23 @@ impl UsfChartMask {
     }
 }
 
-/// Transitional compatibility marker for manifestations whose primary
-/// interaction slice may be explicitly rechosen.
+/// Marks a runtime projection whose slice follows explicit interaction
+/// handoffs for one controlled semantic subject.
 ///
-/// IMPORTANT: this does not mean only one Scale Slice exists.
+/// This is per-projection control state, not global universe state.
 #[derive(Component, Debug, Default, Clone, Copy)]
-pub struct UsfFollowsActiveScale;
+pub struct UsfInteractionProjection;
 
-/// Compatibility resource naming the primary controlled interaction slice.
+/// Primary local controlled-subject interaction slice.
 ///
-/// It is not "the active world". All 71 slices exist simultaneously.
+/// This may guide input/control adapters, but it has no authority over which
+/// other Scale Slices exist, simulate, render, stream, or publish physics.
 #[derive(Resource, Debug, Clone, Copy)]
-pub struct UsfActiveScaleLayer {
+pub struct UsfPrimaryInteractionSlice {
     scale: SpatialScale,
 }
 
-impl Default for UsfActiveScaleLayer {
+impl Default for UsfPrimaryInteractionSlice {
     fn default() -> Self {
         Self {
             scale: SpatialScale::MAX,
@@ -159,7 +181,7 @@ impl Default for UsfActiveScaleLayer {
     }
 }
 
-impl UsfActiveScaleLayer {
+impl UsfPrimaryInteractionSlice {
     pub const fn scale(self) -> SpatialScale {
         self.scale
     }
@@ -232,6 +254,32 @@ fn to_vec3(value: DVec3) -> Vec3 {
     Vec3::new(value.x as f32, value.y as f32, value.z as f32)
 }
 
+
+/// Keeps scale-local ECS entities structurally partitioned beneath the
+/// corresponding one of the 71 Scale Slice roots.
+pub(in crate::spatial) fn sync_scale_slice_membership(
+    mut commands: Commands,
+    slices: Res<UsfScaleSlices>,
+    members: Query<
+        (Entity, Ref<UsfScaleLayer>, Option<&UsfScaleSliceMemberOf>),
+        Without<UsfScaleSlice>,
+    >,
+) {
+    for (entity, layer, current) in &members {
+        if !layer.is_changed() && current.is_some() {
+            continue;
+        }
+
+        let Some(root) = slices.root(layer.scale()) else {
+            continue;
+        };
+        if current.is_some_and(|current| current.0 == root) {
+            continue;
+        }
+
+        commands.entity(entity).insert(UsfScaleSliceMemberOf(root));
+    }
+}
 
 #[cfg(test)]
 mod chart_mask_tests {

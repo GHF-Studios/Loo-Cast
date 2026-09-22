@@ -12,11 +12,13 @@ use bevy::prelude::*;
 use super::VoxelMaterializationChunkAddress;
 
 mod collision;
+mod coverage;
 mod lifecycle;
 mod membership;
 mod rebuild;
 
 pub(super) use collision::sync_manifestation_collision_residency;
+pub(super) use coverage::publish_scale_coverage;
 pub(super) use lifecycle::retire_removed_world_manifestations;
 pub(super) use membership::sync_manifestation_membership;
 pub(super) use rebuild::{

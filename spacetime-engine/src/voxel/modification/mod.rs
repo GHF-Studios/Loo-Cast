@@ -1,4 +1,4 @@
-//! Sparse authoritative modifications layered over a reconstructible base.
+//! Sparse inline modifications layered over a reconstructible base. Semantic authority-backed worlds use VoxelAuthority instead.
 
 use std::collections::HashMap;
 

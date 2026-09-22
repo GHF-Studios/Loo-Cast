@@ -18,11 +18,11 @@ mod stance;
 pub use camera::{CameraMode, PlayerCamera, ThirdPersonCamera};
 pub use components::{
     Player, PlayerAdaptiveCruise, PlayerAim, PlayerController, PlayerDead, PlayerNoclip,
-    PlayerStance, PlayerThrusters, PlayerTravelMode, PlayerTravelSpeed, PlayerTravelState,
+    PlayerDetailedPhysicsScale, PlayerScaleInteractionProxy, PlayerStance, PlayerThrusters, PlayerTravelMode, PlayerTravelSpeed, PlayerTravelState,
 };
 
 use avian3d::prelude::{
-    ActiveCollisionHooks, CollisionLayers, CustomPositionIntegration, CustomVelocityIntegration,
+    ActiveCollisionHooks, Collider, CollisionLayers, CustomPositionIntegration, CustomVelocityIntegration,
     LinearVelocity, RigidBody,
 };
 use bevy::{
@@ -46,7 +46,7 @@ use crate::{
         topology::{KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeer},
     },
     spatial::{
-        SpatialDemandSource, SpatialScale, UsfFollowsActiveScale, UsfPosition, UsfScaleLayer,
+        SpatialDemandSource, SpatialScale, UsfInteractionProjection, UsfPosition, UsfScaleLayer,
         UsfSpatialAnchor, UsfSpatialSet, UsfTravelNeighborhood, UsfViewAnchor,
         UsfViewContext, UsfViewRenderAnchor,
     },
@@ -84,6 +84,8 @@ impl Plugin for PlayerPlugin {
             .register_type::<PlayerStance>()
             .register_type::<PlayerNoclip>()
             .register_type::<PlayerThrusters>()
+            .register_type::<PlayerScaleInteractionProxy>()
+            .register_type::<PlayerDetailedPhysicsScale>()
             .register_type::<PlayerTravelSpeed>()
             .register_type::<PlayerTravelMode>()
             .register_type::<PlayerTravelState>()

@@ -57,7 +57,7 @@ pub(in crate::spatial) fn project_local_scale_presentations(
         (
             &Transform,
             &UsfScaleLayer,
-            Option<&UsfFollowsActiveScale>,
+            Option<&UsfInteractionProjection>,
             Option<&UsfScaleFallbackPresentation>,
         ),
         Without<UsfLocalScalePresentation>,

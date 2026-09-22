@@ -1,13 +1,13 @@
-//! Sparse authoritative voxel world with store-owned materialization caches.
+//! Scale-local voxel realization with store-owned materialization caches.
 
 use bevy::prelude::{Component, IVec3, Vec3};
 
-use crate::spatial::{SpatialScale, UsfPosition, UsfPositionError};
+use crate::spatial::{UsfPosition, UsfPositionError};
 
 use super::{
     MATERIALIZATION_CHUNK_SIZE, VoxelAuthority, VoxelBase, VoxelBounds, VoxelChunk,
     VoxelEdit,
-    VoxelModificationLayer, VoxelQueryPosition, VoxelSample, chunk::SAMPLE_PADDING,
+    VoxelModificationLayer, VoxelQueryPosition, VoxelSample, VoxelScaleDomain, chunk::SAMPLE_PADDING,
     store::VoxelMaterializationStore,
 };
 
@@ -19,11 +19,12 @@ pub use address::{
 };
 pub(in crate::voxel) use recipe::VoxelChunkRecipe;
 
-/// Semantic voxel-world root.
+/// One scale-local voxel realization container.
 ///
-/// The authoritative state is `base + modifications`. Materialization residency
-/// is compact ordinary Rust data owned by this world; a canonical atom does not
-/// need an ECS entity, transform, collider, or mesh to be resident.
+/// Standalone/authored worlds may own `base + modifications` directly. When this
+/// entity is a [`crate::ecs::UsfManifestationOf`] a semantic voxel authority,
+/// `base` is a derived sampler and the shared authority owns persistent edits.
+/// Dense materializations/render/collision remain disposable local state.
 #[derive(Component, Debug)]
 pub struct VoxelWorld {
     origin: UsfPosition,
@@ -129,15 +130,16 @@ impl VoxelWorld {
 
     /// Captures generation input from one shared semantic authority.
     ///
-    /// Canonical edits are currently authored at S0. Fine S0 realizations localize
-    /// those edits directly. Coarser realizations intentionally ignore them until
-    /// a real coarse edit-aggregation policy exists.
+    /// Only realizations declared editable by the semantic mechanism consume
+    /// the raw canonical edit stream directly. Other slices intentionally ignore
+    /// fine edits until a real cross-scale edit aggregation policy exists.
     pub(in crate::voxel) fn chunk_recipe_from_authority(
         &self,
         address: VoxelMaterializationChunkAddress,
         authority: &VoxelAuthority,
+        domain: &VoxelScaleDomain,
     ) -> VoxelChunkRecipe {
-        let edits = if self.origin.leaf_scale() == SpatialScale::ZERO {
+        let edits = if domain.editable(self.origin.leaf_scale()) {
             let extra_extent = MATERIALIZATION_CHUNK_SIZE as f32 + SAMPLE_PADDING as f32;
             authority
                 .edits()
