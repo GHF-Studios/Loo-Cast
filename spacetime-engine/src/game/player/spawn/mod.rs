@@ -57,8 +57,7 @@ pub(super) fn spawn_player(
             ),
             (
                 PlayerStance::default(),
-                PlayerNoclip::default(),
-                PlayerThrusters::default(),
+                ControlledSubjectLocomotion::default(),
                 PlayerScaleInteractionProxy::default(),
                 PlayerDetailedPhysicsScale::default(),
                 PlayerTravelSpeed::default(),

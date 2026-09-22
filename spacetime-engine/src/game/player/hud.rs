@@ -6,8 +6,11 @@
 
 use bevy::prelude::*;
 
-use super::{Player, PlayerAdaptiveCruise, PlayerThrusters, PlayerTravelMode, PlayerTravelState};
-use crate::spatial::{SpatialScale, UsfScaleLayer, UsfViewContext, UsfViewRenderAnchor};
+use super::{
+    ControlledSubjectLocomotion, Player, PlayerAdaptiveCruise, PlayerDetailedPhysicsScale,
+    PlayerLocomotionRegime, PlayerMotionKernel, PlayerTravelState,
+};
+use crate::spatial::{UsfScaleLayer, UsfViewContext, UsfViewRenderAnchor};
 
 const HUD_TEXT: Color = Color::srgb(0.72, 0.95, 0.88);
 const HUD_ACCENT: Color = Color::srgba(0.30, 0.84, 0.88, 0.84);
@@ -107,7 +110,13 @@ pub(super) fn spawn_flight_hud(mut commands: Commands) {
 
 pub(super) fn update_flight_hud(
     player: Single<
-        (&PlayerTravelState, &PlayerAdaptiveCruise, &PlayerThrusters, &UsfScaleLayer),
+        (
+            &PlayerTravelState,
+            &PlayerAdaptiveCruise,
+            &ControlledSubjectLocomotion,
+            &PlayerDetailedPhysicsScale,
+            &UsfScaleLayer,
+        ),
         With<Player>,
     >,
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
@@ -117,8 +126,8 @@ pub(super) fn update_flight_hud(
         Single<(&mut Text, &mut Node), With<FlightHudAlert>>,
     )>,
 ) {
-    let (travel, cruise, thrusters, layer) = player.into_inner();
-    let flying = travel.mode != PlayerTravelMode::OnFoot;
+    let (travel, cruise, locomotion, detailed, layer) = player.into_inner();
+    let flying = locomotion.regime() != PlayerLocomotionRegime::OnFoot;
 
     {
         let mut left = hud.p0();
@@ -135,12 +144,13 @@ pub(super) fn update_flight_hud(
         return;
     }
 
-    let speed = if cruise.active {
+    let cruising = locomotion.kernel() == PlayerMotionKernel::Cruise;
+    let speed = if cruising {
         format_speed(cruise.speed_scale0)
     } else {
         "MANUAL".to_string()
     };
-    let throttle = if cruise.active {
+    let throttle = if cruising {
         format!("{:>3.0}%", cruise.throttle * 100.0)
     } else {
         "--".to_string()
@@ -150,10 +160,10 @@ pub(super) fn update_flight_hud(
         let mut left = hud.p0();
         left.0.0 = format!(
             "{}\nSPD  {}\nTHR  {} • RCS {}\nCHART S{} • VIEW {:+.2}",
-            travel.mode.label(),
+            locomotion.regime().label(),
             speed,
             throttle,
-            if thrusters.enabled { "ON" } else { "OFF" },
+            if locomotion.thrusters_enabled() { "ON" } else { "OFF" },
             layer.scale(),
             view.continuous_exponent(),
         );
@@ -183,10 +193,10 @@ pub(super) fn update_flight_hud(
 
     let warning = if travel.critical_dropout {
         Some("CRITICAL DROPOUT")
-    } else if cruise.active && travel.planetary_handoff_available {
+    } else if cruising && travel.planetary_handoff_available {
         Some("[C] PLANETARY FLIGHT AVAILABLE")
-    } else if travel.mode == PlayerTravelMode::LocalFlight
-        && layer.scale() == SpatialScale::ZERO
+    } else if locomotion.regime() == PlayerLocomotionRegime::LocalFlight
+        && layer.scale() == detailed.0
     {
         Some("[V] RETURN ON FOOT")
     } else {

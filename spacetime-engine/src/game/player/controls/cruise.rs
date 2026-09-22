@@ -68,6 +68,7 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
             &CharacterControlFrame,
             Option<&PlayerDead>,
             &PlayerAim,
+            &mut ControlledSubjectLocomotion,
             &mut PlayerAdaptiveCruise,
             &UsfTravelNeighborhood,
             Option<&mut LinearVelocity>,
@@ -81,12 +82,13 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
         control,
         dead,
         aim,
+        mut locomotion,
         mut cruise,
         neighborhood,
         velocity,
     ) = player.into_inner();
 
-    if !cruise.active {
+    if locomotion.kernel() != PlayerMotionKernel::Cruise {
         *was_active = false;
         return;
     }
@@ -124,7 +126,7 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
     // Critical planetary dropout: Cruise cannot remain authoritative after
     // crossing deeply into the body-relative flight envelope.
     if envelope.critical_dropout {
-        cruise.active = false;
+        locomotion.request_automatic();
         cruise.throttle = 0.0;
         cruise.speed_scale0 = envelope.default_speed_scale0;
         if let Some(mut velocity) = velocity {

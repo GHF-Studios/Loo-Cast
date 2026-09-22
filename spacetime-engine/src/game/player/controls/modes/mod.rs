@@ -1,19 +1,29 @@
-//! Local gameplay-mode and spatial-demand toggles.
+//! Controlled-subject locomotion requests, resolution and runtime realization.
 
 use super::*;
 
-/// `V` is the temporary direct binding for the developer `noclip` command.
-pub(in crate::game::player) fn toggle_noclip(
-    mut commands: Commands,
+fn reset_motion_state(
+    input: &mut CharacterMovementInput,
+    ground: &mut CharacterGroundState,
+    velocity: &mut LinearVelocity,
+) {
+    input.clear();
+    velocity.0 = Vec3::ZERO;
+    ground.grounded = false;
+    ground.ground_entity = None;
+}
+
+/// `V` toggles an explicit Local Flight request.
+///
+/// Local Flight is now a proper locomotion regime rather than a side flag
+/// that happens to suppress or enable unrelated movement systems.
+pub(in crate::game::player) fn toggle_local_flight(
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
     player: Single<
         (
-            Entity,
             Option<&PlayerDead>,
-            &mut PlayerNoclip,
-            &mut PlayerThrusters,
-            &mut PlayerAdaptiveCruise,
+            &mut ControlledSubjectLocomotion,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
             &mut LinearVelocity,
@@ -25,51 +35,37 @@ pub(in crate::game::player) fn toggle_noclip(
         return;
     }
 
-    let (
-        entity,
-        dead,
-        mut noclip,
-        mut thrusters,
-        mut cruise,
-        mut input,
-        mut ground,
-        mut velocity,
-    ) = player.into_inner();
+    let (dead, mut locomotion, mut input, mut ground, mut velocity) = player.into_inner();
     if dead.is_some() {
         return;
     }
 
-    noclip.active = !noclip.active;
-    thrusters.enabled = noclip.active;
-    if noclip.active {
-        cruise.active = false;
-        cruise.speed_scale0 = 0.0;
+    if locomotion.request()
+        == PlayerLocomotionRequest::Regime(PlayerLocomotionRegime::LocalFlight)
+    {
+        locomotion.request_automatic();
+        locomotion.set_thrusters_enabled(false);
+    } else {
+        locomotion.request_regime(PlayerLocomotionRegime::LocalFlight);
+        locomotion.set_thrusters_enabled(true);
     }
-    input.clear();
-    velocity.0 = Vec3::ZERO;
-    ground.grounded = false;
-    ground.ground_entity = None;
 
-    if noclip.active {
-        commands.entity(entity).remove::<CharacterMotor>();
-    }
+    reset_motion_state(&mut input, &mut ground, &mut velocity);
 }
 
-/// `X` toggles thrusters while S0 Local Flight retains control.
-pub(in crate::game::player) fn toggle_thrusters(
-    mut commands: Commands,
+/// `X` toggles translational thrusters inside detailed-slice Local Flight.
+///
+/// Turning thrust off does not leave the Local Flight regime; it lets the
+/// detailed character/gravity kernel own motion again until thrust is re-enabled.
+pub(in crate::game::player) fn toggle_local_flight_thrusters(
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
     player: Single<
         (
-            Entity,
             Option<&PlayerDead>,
             &UsfScaleLayer,
             &PlayerDetailedPhysicsScale,
-            &PlayerNoclip,
-            &mut PlayerThrusters,
-            &PlayerStance,
-            &PlayerAdaptiveCruise,
+            &mut ControlledSubjectLocomotion,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
             &mut LinearVelocity,
@@ -81,55 +77,33 @@ pub(in crate::game::player) fn toggle_thrusters(
         return;
     }
 
-    let (
-        entity,
-        dead,
-        layer,
-        detailed_physics,
-        noclip,
-        mut thrusters,
-        stance,
-        cruise,
-        mut input,
-        mut ground,
-        mut velocity,
-    ) = player.into_inner();
+    let (dead, layer, detailed, mut locomotion, mut input, mut ground, mut velocity) =
+        player.into_inner();
 
-    if dead.is_some() || cruise.active || !noclip.active || layer.scale() != detailed_physics.0 {
+    if dead.is_some()
+        || layer.scale() != detailed.0
+        || (locomotion.regime() != PlayerLocomotionRegime::LocalFlight
+            && locomotion.request()
+                != PlayerLocomotionRequest::Regime(PlayerLocomotionRegime::LocalFlight))
+    {
         return;
     }
 
-    thrusters.enabled = !thrusters.enabled;
-    input.clear();
-    velocity.0 = Vec3::ZERO;
-    ground.grounded = false;
-    ground.ground_entity = None;
-
-    if thrusters.enabled {
-        commands.entity(entity).remove::<CharacterMotor>();
-    } else {
-        let collider = if stance.crouched {
-            CharacterDimensions::crouching_collider()
-        } else {
-            CharacterDimensions::standing_collider()
-        };
-        commands.entity(entity).insert((CharacterMotor, collider));
-    }
+    let enabled = !locomotion.thrusters_enabled();
+    locomotion.set_thrusters_enabled(enabled);
+    reset_motion_state(&mut input, &mut ground, &mut velocity);
 }
 
-/// `C` toggles adaptive long-distance Cruise.
+/// `C` toggles an explicit adaptive Cruise request.
 pub(in crate::game::player) fn toggle_adaptive_cruise(
-    mut commands: Commands,
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
     player: Single<
         (
-            Entity,
             Option<&PlayerDead>,
-            &mut PlayerAdaptiveCruise,
-            &mut PlayerNoclip,
-            &mut PlayerThrusters,
             &PlayerTravelState,
+            &mut ControlledSubjectLocomotion,
+            &mut PlayerAdaptiveCruise,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
             &mut LinearVelocity,
@@ -141,30 +115,28 @@ pub(in crate::game::player) fn toggle_adaptive_cruise(
         return;
     }
 
-    let (entity, dead, mut cruise, mut noclip, mut thrusters, travel, mut input, mut ground, mut velocity) =
+    let (dead, travel, mut locomotion, mut cruise, mut input, mut ground, mut velocity) =
         player.into_inner();
     if dead.is_some() {
         return;
     }
 
-    let requested = !cruise.active;
-    if requested && travel.critical_dropout {
-        return;
+    let disabling = locomotion.request()
+        == PlayerLocomotionRequest::Regime(PlayerLocomotionRegime::Cruise);
+
+    if disabling {
+        locomotion.request_automatic();
+    } else {
+        if travel.critical_dropout {
+            return;
+        }
+        locomotion.request_regime(PlayerLocomotionRegime::Cruise);
     }
-    cruise.active = requested;
+
+    locomotion.set_thrusters_enabled(false);
     cruise.throttle = 0.0;
     cruise.speed_scale0 = 0.0;
-    noclip.active = false;
-    thrusters.enabled = false;
-    input.clear();
-    velocity.0 = Vec3::ZERO;
-    ground.grounded = false;
-    ground.ground_entity = None;
-
-    if cruise.active {
-        commands.entity(entity).remove::<CharacterMotor>();
-        commands.entity(entity).remove::<Collider>();
-    }
+    reset_motion_state(&mut input, &mut ground, &mut velocity);
 }
 
 /// `L` toggles the player's contribution to generic spatial demand. Other
@@ -181,26 +153,144 @@ pub(in crate::game::player) fn toggle_spatial_demand(
     player.toggle();
 }
 
-/// Keeps exactly one player locomotion implementation authoritative.
+fn automatic_regime(
+    layer: SpatialScale,
+    detailed: SpatialScale,
+    travel: &PlayerTravelState,
+) -> PlayerLocomotionRegime {
+    if layer == detailed {
+        PlayerLocomotionRegime::OnFoot
+    } else if travel.planetary_context {
+        PlayerLocomotionRegime::PlanetaryFlight
+    } else {
+        PlayerLocomotionRegime::LocalFlight
+    }
+}
+
+/// Resolves control intent into exactly one authoritative motion kernel.
 ///
-/// S0 owns the human-scale character controller and collider. Any other active
-/// chart uses collisionless scale navigation. Noclip and Cruise also suppress
-/// the local character body. Re-entering S0 reconstructs the correct stance
-/// collider from canonical human dimensions.
-pub(in crate::game::player) fn sync_locomotion_mode(
+/// Scale is an input to this policy, not the state machine itself. No movement
+/// implementation is allowed to independently infer authority from scale,
+/// Cruise flags, thruster flags, etc.
+pub(in crate::game::player) fn resolve_locomotion_state(
+    mut transitions: MessageWriter<ControlledSubjectLocomotionChanged>,
+    player: Single<
+        (
+            Entity,
+            Option<&PlayerDead>,
+            &UsfScaleLayer,
+            &PlayerDetailedPhysicsScale,
+            &PlayerTravelState,
+            &mut ControlledSubjectLocomotion,
+        ),
+        With<Player>,
+    >,
+) {
+    let (entity, dead, layer, detailed, travel, mut locomotion) = player.into_inner();
+
+    let previous_regime = locomotion.regime();
+    let previous_kernel = locomotion.kernel();
+
+    if dead.is_some() {
+        let collision_policy = locomotion.collision_policy();
+        if locomotion.resolve(
+            previous_regime,
+            PlayerMotionKernel::Disabled,
+            collision_policy,
+            PlayerVelocitySemantics::Zero,
+        ) {
+            transitions.write(ControlledSubjectLocomotionChanged {
+                entity,
+                previous_regime,
+                regime: locomotion.regime(),
+                previous_kernel,
+                kernel: locomotion.kernel(),
+            });
+        }
+        return;
+    }
+
+    if travel.critical_dropout
+        && locomotion.request()
+            == PlayerLocomotionRequest::Regime(PlayerLocomotionRegime::Cruise)
+    {
+        locomotion.request_automatic();
+    }
+
+    let automatic = automatic_regime(layer.scale(), detailed.0, travel);
+    let regime = match locomotion.request() {
+        PlayerLocomotionRequest::Automatic => automatic,
+        PlayerLocomotionRequest::Regime(PlayerLocomotionRegime::OnFoot)
+            if layer.scale() != detailed.0 =>
+        {
+            automatic
+        }
+        PlayerLocomotionRequest::Regime(PlayerLocomotionRegime::PlanetaryFlight)
+            if layer.scale() == detailed.0 =>
+        {
+            automatic
+        }
+        PlayerLocomotionRequest::Regime(regime) => regime,
+    };
+
+    let (kernel, collision_policy, velocity_semantics) =
+        if regime == PlayerLocomotionRegime::Cruise {
+            (
+                PlayerMotionKernel::Cruise,
+                PlayerCollisionPolicy::Disabled,
+                PlayerVelocitySemantics::Zero,
+            )
+        } else if layer.scale() == detailed.0 {
+            let kernel = if regime == PlayerLocomotionRegime::LocalFlight
+                && locomotion.thrusters_enabled()
+            {
+                PlayerMotionKernel::ThrusterFlight
+            } else {
+                PlayerMotionKernel::Character
+            };
+            (
+                kernel,
+                PlayerCollisionPolicy::DetailedBody,
+                PlayerVelocitySemantics::PreserveCanonical,
+            )
+        } else {
+            (
+                PlayerMotionKernel::ScaleNavigation,
+                PlayerCollisionPolicy::ScaleProxy,
+                PlayerVelocitySemantics::PreserveCanonical,
+            )
+        };
+
+    if locomotion.resolve(regime, kernel, collision_policy, velocity_semantics) {
+        transitions.write(ControlledSubjectLocomotionChanged {
+            entity,
+            previous_regime,
+            regime: locomotion.regime(),
+            previous_kernel,
+            kernel: locomotion.kernel(),
+        });
+    }
+}
+
+/// Realizes the resolved locomotion state as concrete physics components.
+///
+/// This is the only system that owns CharacterMotor/collider presence for the
+/// controlled manifestation. Mode input systems never add/remove those
+/// components directly.
+pub(in crate::game::player) fn sync_locomotion_runtime(
     mut commands: Commands,
     player: Single<
         (
             Entity,
             Ref<UsfScaleLayer>,
             &PlayerStance,
-            &PlayerNoclip,
-            &PlayerThrusters,
             &PlayerScaleInteractionProxy,
-            &PlayerDetailedPhysicsScale,
-            &PlayerAdaptiveCruise,
+            &ControlledSubjectLocomotion,
             Option<&CharacterMotor>,
             Option<&Collider>,
+            Option<&PlayerDead>,
+            &mut CharacterMovementInput,
+            &mut CharacterGroundState,
         ),
         With<Player>,
     >,
@@ -209,37 +299,54 @@ pub(in crate::game::player) fn sync_locomotion_mode(
         entity,
         layer,
         stance,
-        noclip,
-        thrusters,
         proxy,
-        detailed_physics,
-        cruise,
+        locomotion,
         motor,
         collider,
+        dead,
+        mut input,
+        mut ground,
     ) = player.into_inner();
 
-    let wants_collider = !cruise.active;
-    let wants_character_motor = layer.scale() == detailed_physics.0
-        && wants_collider
-        && (!noclip.active || !thrusters.enabled);
-
-    if wants_collider && (collider.is_none() || layer.is_changed()) {
-        let collider = if layer.scale() == detailed_physics.0 {
-            if stance.crouched {
-                CharacterDimensions::crouching_collider()
-            } else {
-                CharacterDimensions::standing_collider()
-            }
-        } else {
-            // Coarse physics owns a bounded interaction envelope, not a
-            // magically enlarged copy of the semantic body's detailed hull.
-            Collider::sphere(proxy.radius_native.max(0.001))
-        };
-        commands.entity(entity).insert(collider);
-    } else if !wants_collider && collider.is_some() {
-        commands.entity(entity).remove::<Collider>();
+    if dead.is_some() {
+        if motor.is_some() {
+            commands.entity(entity).remove::<CharacterMotor>();
+        }
+        return;
     }
 
+    if layer.is_changed() {
+        input.clear();
+        ground.grounded = false;
+        ground.ground_entity = None;
+    }
+
+    match locomotion.collision_policy() {
+        PlayerCollisionPolicy::Disabled => {
+            if collider.is_some() {
+                commands.entity(entity).remove::<Collider>();
+            }
+        }
+        PlayerCollisionPolicy::DetailedBody => {
+            if collider.is_none() || layer.is_changed() {
+                let collider = if stance.crouched {
+                    CharacterDimensions::crouching_collider()
+                } else {
+                    CharacterDimensions::standing_collider()
+                };
+                commands.entity(entity).insert(collider);
+            }
+        }
+        PlayerCollisionPolicy::ScaleProxy => {
+            if collider.is_none() || layer.is_changed() {
+                commands
+                    .entity(entity)
+                    .insert(Collider::sphere(proxy.radius_native.max(0.001)));
+            }
+        }
+    }
+
+    let wants_character_motor = locomotion.kernel() == PlayerMotionKernel::Character;
     if wants_character_motor && motor.is_none() {
         commands.entity(entity).insert(CharacterMotor);
     } else if !wants_character_motor && motor.is_some() {

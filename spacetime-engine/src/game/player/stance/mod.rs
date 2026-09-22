@@ -8,16 +8,17 @@ use avian3d::prelude::{Collider, SpatialQuery, SpatialQueryFilter};
 use bevy::prelude::*;
 
 use crate::{
-    portal::PortalTraveler,
-    spatial::{SpatialScale, UsfScaleLayer},
     physics::{
         character::CharacterDimensions,
         topology::{KinematicQueryExclusions, SpatialSplitBox},
     },
+    portal::PortalTraveler,
+    spatial::UsfScaleLayer,
 };
 
 use super::{
-    Player, PlayerDead, PlayerNoclip, PlayerStance, PlayerThrusters,
+    ControlledSubjectLocomotion, Player, PlayerDead, PlayerDetailedPhysicsScale,
+    PlayerMotionKernel, PlayerStance,
     controls::gameplay_suppressed,
     cursor::CursorCapture,
 };
@@ -35,9 +36,9 @@ pub fn update_stance(
                 &mut Transform,
                 Option<&mut Collider>,
                 &UsfScaleLayer,
+                &PlayerDetailedPhysicsScale,
                 &mut PlayerStance,
-                &PlayerNoclip,
-                &PlayerThrusters,
+                &ControlledSubjectLocomotion,
                 Option<&PlayerDead>,
                 &mut PortalTraveler,
                 &mut SpatialSplitBox,
@@ -51,22 +52,25 @@ pub fn update_stance(
         return;
     }
 
-    let wants_crouch = keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::KeyC);
+    // C belongs exclusively to Cruise. Crouch remains Ctrl.
+    let wants_crouch = keyboard.pressed(KeyCode::ControlLeft);
 
-    let (free_flight_active, dead, crouched, scale) = {
+    let (character_kernel, dead, crouched, detailed_slice) = {
         let player = params.p1();
-        let (_, _, _, layer, stance, noclip, thrusters, dead, _, _, _) = player.into_inner();
+        let (_, _, _, layer, detailed, stance, locomotion, dead, _, _, _) =
+            player.into_inner();
         (
-            noclip.active && thrusters.enabled,
+            locomotion.kernel() == PlayerMotionKernel::Character
+                && layer.scale() == detailed.0,
             dead.is_some(),
             stance.crouched,
-            layer.scale(),
+            layer.scale() == detailed.0,
         )
     };
 
     if dead
-        || free_flight_active
-        || scale != SpatialScale::ZERO
+        || !character_kernel
+        || !detailed_slice
         || wants_crouch == crouched
     {
         return;
@@ -76,8 +80,19 @@ pub fn update_stance(
 
     if wants_crouch {
         let player = params.p1();
-        let (_, mut body, collider, _, mut stance, _, _, _, mut traveler, mut split_box, _) =
-            player.into_inner();
+        let (
+            _,
+            mut body,
+            collider,
+            _,
+            _,
+            mut stance,
+            _,
+            _,
+            mut traveler,
+            mut split_box,
+            _,
+        ) = player.into_inner();
         let Some(mut collider) = collider else {
             return;
         };
@@ -121,8 +136,19 @@ pub fn update_stance(
     }
 
     let player = params.p1();
-    let (_, mut body, collider, _, mut stance, _, _, _, mut traveler, mut split_box, _) =
-        player.into_inner();
+    let (
+        _,
+        mut body,
+        collider,
+        _,
+        _,
+        mut stance,
+        _,
+        _,
+        mut traveler,
+        mut split_box,
+        _,
+    ) = player.into_inner();
     let Some(mut collider) = collider else {
         return;
     };

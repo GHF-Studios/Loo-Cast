@@ -1,8 +1,8 @@
 //! Local input adapters for the player body.
 //!
-//! These systems translate devices into components understood by lower-level
-//! simulation. They intentionally do not own camera collision, item semantics
-//! or movement tuning.
+//! Device input requests locomotion state. One resolver then selects the active
+//! motion kernel/collision policy; movement systems never infer authority from
+//! independent mode flags.
 
 use avian3d::prelude::{Collider, LinearVelocity};
 use bevy::{
@@ -14,21 +14,27 @@ use crate::{
     ecs::UsfManifestationOf,
     physics::{
         character::{
-        CharacterControlFrame, CharacterDimensions, CharacterGroundState,
-        CharacterLocomotionFrame, CharacterMotor, CharacterMovementConfig, CharacterMovementInput,
+            CharacterControlFrame, CharacterDimensions, CharacterGroundState,
+            CharacterLocomotionFrame, CharacterMotor, CharacterMovementConfig,
+            CharacterMovementInput,
         },
     },
     spatial::{
         SpatialDemandSource, SpatialScale, UsfApproachRefinement, UsfNavigationContext,
-        UsfRadialGravitySource, UsfScaleLayer, UsfScaleRoleMask, UsfSpatialFrame, UsfSpatialTransition, UsfSpatialTransitionQueue, UsfTravelInfluence,
-        UsfTravelInfluenceKind, UsfTravelNeighborhood, UsfViewContext, UsfViewRenderAnchor,
+        UsfRadialGravitySource, UsfScaleLayer, UsfScaleRoleMask, UsfSpatialFrame,
+        UsfSpatialTransition, UsfSpatialTransitionQueue, UsfTransitionVelocity,
+        UsfTravelInfluence, UsfTravelInfluenceKind, UsfTravelNeighborhood, UsfViewContext,
+        UsfViewRenderAnchor,
     },
     view::PrimaryViewPresentation,
 };
 
 use super::{
-    Player, PlayerAdaptiveCruise, PlayerAim, PlayerController, PlayerDead, PlayerNoclip,
-    PlayerDetailedPhysicsScale, PlayerScaleInteractionProxy, PlayerStance, PlayerThrusters, PlayerTravelMode, PlayerTravelSpeed, PlayerTravelState,
+    ControlledSubjectLocomotion, ControlledSubjectLocomotionChanged, Player,
+    PlayerAdaptiveCruise, PlayerAim, PlayerCollisionPolicy, PlayerController, PlayerDead,
+    PlayerDetailedPhysicsScale, PlayerLocomotionRegime, PlayerLocomotionRequest,
+    PlayerMotionKernel, PlayerScaleInteractionProxy, PlayerStance, PlayerTravelSpeed,
+    PlayerTravelState, PlayerVelocitySemantics,
     cursor::CursorCapture,
 };
 
@@ -49,10 +55,10 @@ mod view;
 
 pub(super) use cruise::adaptive_cruise_movement;
 pub(super) use modes::{
-    sync_locomotion_mode, toggle_adaptive_cruise, toggle_noclip, toggle_spatial_demand,
-    toggle_thrusters,
+    resolve_locomotion_state, sync_locomotion_runtime, toggle_adaptive_cruise,
+    toggle_local_flight, toggle_local_flight_thrusters, toggle_spatial_demand,
 };
-pub(super) use movement::{movement, noclip_movement, scale_navigation_movement};
+pub(super) use movement::{local_flight_movement, movement, scale_navigation_movement};
 pub(super) use navigation::{
     sync_approach_refinement_view, sync_navigation_context, sync_planetary_gravity,
     sync_travel_state,

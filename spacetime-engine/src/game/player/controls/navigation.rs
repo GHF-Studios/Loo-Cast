@@ -64,7 +64,7 @@ pub(in crate::game::player) fn sync_approach_refinement_view(
             &Transform,
             &UsfScaleLayer,
             &UsfManifestationOf,
-            &PlayerAdaptiveCruise,
+            &ControlledSubjectLocomotion,
         ),
         With<Player>,
     >,
@@ -72,7 +72,7 @@ pub(in crate::game::player) fn sync_approach_refinement_view(
     mut view: Single<&mut UsfViewContext, With<UsfViewRenderAnchor>>,
     mut transitions: ResMut<UsfSpatialTransitionQueue>,
 ) {
-    let (body, layer, manifestation, cruise) = player.into_inner();
+    let (body, layer, manifestation, locomotion) = player.into_inner();
     let observer_scale = layer.scale();
     let Ok(observer) = frame
         .origin()
@@ -95,7 +95,7 @@ pub(in crate::game::player) fn sync_approach_refinement_view(
     let Some(measurement) = influence.measure_from(&observer) else { return; };
 
     let clearance_scale0 = measurement.boundary_clearance_scale0().max(1.0);
-    let target = if !cruise.active
+    let target = if locomotion.regime() != PlayerLocomotionRegime::Cruise
         && clearance_scale0 <= SURFACE_S0_CAPTURE_CLEARANCE_SCALE0
     {
         refinement.minimum_scale().exponent() as f32
@@ -123,7 +123,14 @@ pub(in crate::game::player) fn sync_approach_refinement_view(
         && interaction_scale != layer.scale()
     {
         let transition = UsfSpatialTransition::new(manifestation.0, observer)
-            .with_scale(interaction_scale);
+            .with_scale(interaction_scale)
+            .with_velocity(match locomotion.velocity_semantics() {
+                PlayerVelocitySemantics::PreserveNative => UsfTransitionVelocity::PreserveNative,
+                PlayerVelocitySemantics::PreserveCanonical => {
+                    UsfTransitionVelocity::PreserveCanonical
+                }
+                PlayerVelocitySemantics::Zero => UsfTransitionVelocity::Zero,
+            });
 
         // Only the final fine interaction handoff requires demonstrated fine
         // realization. Coarser scale navigation is allowed without inventing
@@ -242,15 +249,13 @@ pub(in crate::game::player) fn sync_travel_state(
         (
             &Transform,
             &UsfScaleLayer,
-            &PlayerNoclip,
-            &PlayerAdaptiveCruise,
             &UsfTravelNeighborhood,
             &mut PlayerTravelState,
         ),
         With<Player>,
     >,
 ) {
-    let (body, layer, noclip, cruise, neighborhood, mut state) = player.into_inner();
+    let (body, layer, neighborhood, mut state) = player.into_inner();
     let Ok(position) = frame
         .origin()
         .translated_at_scale(layer.scale(), body.translation)
@@ -277,23 +282,13 @@ pub(in crate::game::player) fn sync_travel_state(
         measurement.boundary_clearance_scale0()
             <= handoff_clearance(measurement.extent_radius_scale0())
     });
+    state.planetary_context = nearest.is_some_and(|measurement| {
+        measurement.relative_proximity() <= APPROACH_REFINEMENT_ACTIVATION_RADII
+    });
     state.critical_dropout = nearest.is_some_and(|measurement| {
         measurement.boundary_clearance_scale0()
             <= handoff_clearance(measurement.extent_radius_scale0())
                 * CRITICAL_DROPOUT_FRACTION
     });
 
-    state.mode = if cruise.active {
-        PlayerTravelMode::Cruise
-    } else if noclip.active {
-        PlayerTravelMode::LocalFlight
-    } else if layer.scale() == SpatialScale::ZERO {
-        PlayerTravelMode::OnFoot
-    } else if nearest.is_some_and(|measurement| {
-        measurement.relative_proximity() <= APPROACH_REFINEMENT_ACTIVATION_RADII
-    }) {
-        PlayerTravelMode::PlanetaryFlight
-    } else {
-        PlayerTravelMode::LocalFlight
-    };
 }

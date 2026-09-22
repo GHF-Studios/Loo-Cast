@@ -21,7 +21,10 @@ use crate::{
 };
 
 use super::{
-    player::{Player, PlayerAdaptiveCruise, PlayerAim, PlayerNoclip, PlayerTravelSpeed},
+    player::{
+        ControlledSubjectLocomotion, Player, PlayerAdaptiveCruise, PlayerAim,
+        PlayerLocomotionRegime, PlayerLocomotionRequest, PlayerTravelSpeed,
+    },
     world::UniverseLandmarkIndex,
 };
 
@@ -269,15 +272,18 @@ fn cruise_command(
     }
 
     let mut query = world.query_filtered::<
-        (&mut PlayerAdaptiveCruise, &mut PlayerNoclip),
+        (&mut ControlledSubjectLocomotion, &mut PlayerAdaptiveCruise),
         With<Player>,
     >();
-    let Some((mut cruise, mut noclip)) = query.iter_mut(world).next() else {
-        return ConsoleCommandResult::error("player Cruise state is unavailable");
+    let Some((mut locomotion, mut cruise)) = query.iter_mut(world).next() else {
+        return ConsoleCommandResult::error("player locomotion state is unavailable");
     };
 
     let active = match invocation.args().first().map(String::as_str) {
-        None => !cruise.active,
+        None => {
+            locomotion.request()
+                != PlayerLocomotionRequest::Regime(PlayerLocomotionRegime::Cruise)
+        }
         Some(value) if value.eq_ignore_ascii_case("on") => true,
         Some(value) if value.eq_ignore_ascii_case("off") => false,
         Some(value) => {
@@ -287,12 +293,14 @@ fn cruise_command(
         }
     };
 
-    cruise.active = active;
+    if active {
+        locomotion.request_regime(PlayerLocomotionRegime::Cruise);
+        locomotion.set_thrusters_enabled(false);
+    } else {
+        locomotion.request_automatic();
+    }
     cruise.throttle = 0.0;
     cruise.speed_scale0 = 0.0;
-    if active {
-        noclip.active = false;
-    }
 
     ConsoleCommandResult::success_and_return_to_gameplay(if active {
         "adaptive Cruise enabled — W/S throttle, mouse steers"

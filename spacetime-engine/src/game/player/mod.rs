@@ -17,8 +17,11 @@ mod stance;
 
 pub use camera::{CameraMode, PlayerCamera, ThirdPersonCamera};
 pub use components::{
-    Player, PlayerAdaptiveCruise, PlayerAim, PlayerController, PlayerDead, PlayerNoclip,
-    PlayerDetailedPhysicsScale, PlayerScaleInteractionProxy, PlayerStance, PlayerThrusters, PlayerTravelMode, PlayerTravelSpeed, PlayerTravelState,
+    ControlledSubjectLocomotion, ControlledSubjectLocomotionChanged, Player,
+    PlayerAdaptiveCruise, PlayerAim, PlayerCollisionPolicy, PlayerController, PlayerDead,
+    PlayerDetailedPhysicsScale, PlayerLocomotionRegime, PlayerLocomotionRequest,
+    PlayerMotionKernel, PlayerScaleInteractionProxy, PlayerStance, PlayerTravelSpeed,
+    PlayerTravelState, PlayerVelocitySemantics,
 };
 
 use avian3d::prelude::{
@@ -83,14 +86,18 @@ impl Plugin for PlayerPlugin {
             .register_type::<PlayerDead>()
             .register_type::<PlayerAim>()
             .register_type::<PlayerStance>()
-            .register_type::<PlayerNoclip>()
-            .register_type::<PlayerThrusters>()
+            .register_type::<ControlledSubjectLocomotion>()
+            .register_type::<PlayerLocomotionRegime>()
+            .register_type::<PlayerLocomotionRequest>()
+            .register_type::<PlayerMotionKernel>()
+            .register_type::<PlayerCollisionPolicy>()
+            .register_type::<PlayerVelocitySemantics>()
             .register_type::<PlayerScaleInteractionProxy>()
             .register_type::<PlayerDetailedPhysicsScale>()
             .register_type::<PlayerTravelSpeed>()
-            .register_type::<PlayerTravelMode>()
             .register_type::<PlayerTravelState>()
             .register_type::<PlayerAdaptiveCruise>()
+            .add_message::<ControlledSubjectLocomotionChanged>()
             .register_type::<PlayerCamera>()
             .register_type::<ThirdPersonCamera>()
             .register_type::<CameraMode>()
@@ -103,16 +110,18 @@ impl Plugin for PlayerPlugin {
                 RunFixedMainLoop,
                 (
                     controls::look,
-                    controls::toggle_noclip,
-                    controls::toggle_thrusters,
+                    controls::toggle_local_flight,
+                    controls::toggle_local_flight_thrusters,
                     controls::toggle_adaptive_cruise,
-                    stance::update_stance,
                     controls::sync_navigation_context,
                     controls::sync_planetary_gravity,
                     controls::sync_travel_state,
+                    controls::resolve_locomotion_state,
+                    controls::sync_locomotion_runtime,
+                    stance::update_stance,
                     controls::sync_approach_refinement_view,
                     controls::movement,
-                    controls::noclip_movement,
+                    controls::local_flight_movement,
                     controls::scale_navigation_movement,
                     controls::adaptive_cruise_movement,
                 )
@@ -136,7 +145,12 @@ impl Plugin for PlayerPlugin {
             )
             .add_systems(
                 PostUpdate,
-                controls::sync_locomotion_mode.after(UsfSpatialSet::SyncSemantic),
+                (
+                    controls::resolve_locomotion_state,
+                    controls::sync_locomotion_runtime,
+                )
+                    .chain()
+                    .after(UsfSpatialSet::SyncSemantic),
             )
             .add_systems(Update, handle_player_death.in_set(GameSet::Cleanup))
             .add_systems(

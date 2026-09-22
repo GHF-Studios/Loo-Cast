@@ -1,4 +1,7 @@
-//! Character-motor and noclip movement input adapters.
+//! Motion-kernel input adapters.
+//!
+//! Every writer is gated by [`ControlledSubjectLocomotion::kernel`]. Exactly one
+//! controlled-subject motion implementation may therefore own a frame.
 
 use super::*;
 
@@ -23,12 +26,8 @@ pub(in crate::game::player) fn movement(
             &PlayerAim,
             &PlayerController,
             &PlayerStance,
-            &PlayerNoclip,
-            &PlayerThrusters,
-            &UsfScaleLayer,
-            &PlayerDetailedPhysicsScale,
             &PlayerTravelSpeed,
-            &PlayerAdaptiveCruise,
+            &ControlledSubjectLocomotion,
             &CharacterMovementConfig,
             &mut CharacterMovementInput,
         ),
@@ -42,21 +41,15 @@ pub(in crate::game::player) fn movement(
         aim,
         controller,
         stance,
-        noclip,
-        thrusters,
-        layer,
-        detailed_physics,
         travel_speed,
-        cruise,
+        locomotion,
         movement_config,
         mut input,
     ) = player.into_inner();
 
     if dead.is_some()
         || gameplay_suppressed(&keyboard, &capture)
-        || (noclip.active && thrusters.enabled)
-        || cruise.active
-        || layer.scale() != detailed_physics.0
+        || locomotion.kernel() != PlayerMotionKernel::Character
     {
         input.clear();
         return;
@@ -118,7 +111,11 @@ fn free_flight_wish(
         .normalize_or_zero()
 }
 
-pub(in crate::game::player) fn noclip_movement(
+/// Detailed-slice Local Flight kernel.
+///
+/// Unlike the old "noclip" path this is explicitly a collision-aware thruster
+/// kernel, selected by the locomotion state machine.
+pub(in crate::game::player) fn local_flight_movement(
     time: Res<Time>,
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
@@ -133,13 +130,11 @@ pub(in crate::game::player) fn noclip_movement(
             Option<&PlayerDead>,
             &PlayerAim,
             &PlayerController,
-            &PlayerNoclip,
-            &PlayerThrusters,
+            &ControlledSubjectLocomotion,
             &UsfScaleLayer,
             &Collider,
             Option<&KinematicQueryExclusions>,
             &PlayerTravelSpeed,
-            &PlayerAdaptiveCruise,
             &mut LinearVelocity,
         ),
         With<Player>,
@@ -153,20 +148,16 @@ pub(in crate::game::player) fn noclip_movement(
         dead,
         aim,
         controller,
-        noclip,
-        thrusters,
+        locomotion,
         layer,
         collider,
         exclusions,
         travel_speed,
-        cruise,
         mut velocity,
     ) = player.into_inner();
 
     if dead.is_some()
-        || !noclip.active
-        || !thrusters.enabled
-        || cruise.active
+        || locomotion.kernel() != PlayerMotionKernel::ThrusterFlight
         || gameplay_suppressed(&keyboard, &capture)
     {
         return;
@@ -213,7 +204,6 @@ pub(in crate::game::player) fn noclip_movement(
     velocity.0 = moved.projected_velocity;
 }
 
-
 /// Coarse manual navigation through the physics kernel of the current
 /// Scale Slice.
 ///
@@ -233,14 +223,13 @@ pub(in crate::game::player) fn scale_navigation_movement(
             &CharacterControlFrame,
             Option<&PlayerDead>,
             &PlayerAim,
+            &ControlledSubjectLocomotion,
             &UsfScaleLayer,
-            &PlayerDetailedPhysicsScale,
             &Collider,
             Option<&KinematicQueryExclusions>,
             &PlayerTravelSpeed,
             &UsfNavigationContext,
             &PlayerTravelState,
-            &PlayerAdaptiveCruise,
             &mut LinearVelocity,
         ),
         With<Player>,
@@ -253,20 +242,18 @@ pub(in crate::game::player) fn scale_navigation_movement(
         control,
         dead,
         aim,
+        locomotion,
         layer,
-        detailed_physics,
         collider,
         exclusions,
         travel_speed,
         navigation,
         travel,
-        cruise,
         mut velocity,
     ) = player.into_inner();
 
     if dead.is_some()
-        || cruise.active
-        || layer.scale() == detailed_physics.0
+        || locomotion.kernel() != PlayerMotionKernel::ScaleNavigation
         || gameplay_suppressed(&keyboard, &capture)
     {
         return;

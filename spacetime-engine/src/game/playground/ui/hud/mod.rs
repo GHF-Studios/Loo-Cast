@@ -9,8 +9,9 @@ use crate::{
         inventory::Hotbar,
         item::{ItemAction, ItemCatalog},
         player::{
-            CameraMode, Player, PlayerAdaptiveCruise, PlayerCamera, PlayerNoclip,
-            PlayerThrusters, PlayerTravelMode, PlayerTravelSpeed, PlayerTravelState,
+            CameraMode, ControlledSubjectLocomotion, Player, PlayerAdaptiveCruise,
+            PlayerCamera, PlayerLocomotionRegime, PlayerLocomotionRequest,
+            PlayerMotionKernel, PlayerTravelSpeed, PlayerTravelState,
         },
     },
     spatial::{
@@ -177,6 +178,7 @@ fn update_player_status(
             &UsfScaleLayer,
             &PlayerTravelSpeed,
             &PlayerAdaptiveCruise,
+            &ControlledSubjectLocomotion,
             &UsfTravelNeighborhood,
             &UsfNavigationContext,
         ),
@@ -186,8 +188,15 @@ fn update_player_status(
     roots: Query<&Children, With<PlayerStatus>>,
     mut texts: Query<&mut Text>,
 ) {
-    let (manifestation, layer, manual_speed, cruise, neighborhood, navigation) =
-        player.into_inner();
+    let (
+        manifestation,
+        layer,
+        manual_speed,
+        cruise,
+        locomotion,
+        neighborhood,
+        navigation,
+    ) = player.into_inner();
     let Some(children) = roots.iter().next() else { return; };
     let Some(child) = children.iter().next() else { return; };
     let Ok(mut text) = texts.get_mut(child) else { return; };
@@ -197,7 +206,7 @@ fn update_player_status(
         .map(|health| format!("{:.0}", health.current()))
         .unwrap_or_else(|_| "--".to_string());
 
-    if cruise.active {
+    if locomotion.kernel() == PlayerMotionKernel::Cruise {
         let hard_clearance = cruise
             .nearest_hard_clearance_scale0
             .map(|value| format!("{value:.2e}"))
@@ -260,9 +269,7 @@ fn update_context_actions(
     player: Single<
         (
             &PlayerTravelState,
-            &PlayerAdaptiveCruise,
-            &PlayerNoclip,
-            &PlayerThrusters,
+            &ControlledSubjectLocomotion,
             &SpatialDemandSource,
         ),
         With<Player>,
@@ -274,7 +281,7 @@ fn update_context_actions(
         return;
     }
 
-    let (travel, cruise, noclip, thrusters, demand) = player.into_inner();
+    let (travel, locomotion, demand) = player.into_inner();
     let mut lines = Vec::<String>::with_capacity(10);
 
     if let Some(item) = hotbar.selected_item().and_then(|item| catalog.find(item)) {
@@ -286,33 +293,29 @@ fn update_context_actions(
         }
         lines.push("MMB       Erase object".to_string());
     } else {
-        lines.push(travel.mode.label().to_string());
+        lines.push(locomotion.regime().label().to_string());
     }
 
-    match travel.mode {
-        PlayerTravelMode::OnFoot => {
+    match locomotion.kernel() {
+        PlayerMotionKernel::Character => {
             lines.push("WASD      Move".to_string());
             lines.push("SPACE     Jump".to_string());
             lines.push("SHIFT     Sprint".to_string());
             lines.push("CTRL      Crouch".to_string());
         }
-        PlayerTravelMode::LocalFlight if noclip.active && !thrusters.enabled => {
-            lines.push("WASD      Move".to_string());
-            lines.push("SPACE     Jump".to_string());
-            lines.push("SHIFT     Sprint".to_string());
-            lines.push("CTRL      Crouch".to_string());
-        }
-        PlayerTravelMode::LocalFlight | PlayerTravelMode::PlanetaryFlight => {
+        PlayerMotionKernel::ThrusterFlight | PlayerMotionKernel::ScaleNavigation => {
             lines.push("WASD      Flight".to_string());
             lines.push("SPACE/CTRL Vertical".to_string());
             lines.push("SHIFT     Boost".to_string());
         }
-        PlayerTravelMode::Cruise => {
+        PlayerMotionKernel::Cruise => {
             lines.push("W / S     Throttle".to_string());
         }
+        PlayerMotionKernel::Disabled => {}
     }
 
-    if cruise.active {
+    let cruising = locomotion.kernel() == PlayerMotionKernel::Cruise;
+    if cruising {
         if travel.planetary_handoff_available {
             lines.push("C         Drop to planetary".to_string());
         } else {
@@ -322,16 +325,18 @@ fn update_context_actions(
         lines.push("C         Engage cruise".to_string());
     }
 
-    lines.push(if noclip.active {
+    let explicit_local_flight = locomotion.request()
+        == PlayerLocomotionRequest::Regime(PlayerLocomotionRegime::LocalFlight);
+    lines.push(if explicit_local_flight {
         "V         Exit local flight".to_string()
     } else {
         "V         Local flight".to_string()
     });
 
-    if noclip.active {
+    if explicit_local_flight && locomotion.regime() == PlayerLocomotionRegime::LocalFlight {
         lines.push(format!(
             "X         Thrusters {}",
-            if thrusters.enabled { "off" } else { "on" }
+            if locomotion.thrusters_enabled() { "off" } else { "on" }
         ));
     }
 
@@ -345,7 +350,7 @@ fn update_context_actions(
         CameraMode::ThirdPerson => "F5        First-person view".to_string(),
     });
 
-    if !cruise.active {
+    if locomotion.kernel() != PlayerMotionKernel::Cruise {
         lines.push("ALT+WHEEL View scale".to_string());
     }
 

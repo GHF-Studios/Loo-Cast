@@ -4,8 +4,8 @@ use avian3d::prelude::LinearVelocity;
 use bevy::prelude::*;
 
 use crate::{
-    game::player::{Player, PlayerNoclip},
-    physics::character::{CharacterDimensions, CharacterMotor},
+    game::player::{ControlledSubjectLocomotion, Player},
+    physics::character::CharacterDimensions,
     portal::PortalTraveler,
     spatial::{SpatialScale, UsfPosition},
     voxel::VoxelQueryPosition,
@@ -15,15 +15,13 @@ use crate::{
 use super::scale_stack::volume_for_scale_context;
 
 pub(super) fn prepare_player(
-    mut commands: Commands,
     worldgen: Res<WorldgenStore>,
     player: Single<
         (
-            Entity,
             &mut Transform,
             &mut PortalTraveler,
             &mut LinearVelocity,
-            &mut PlayerNoclip,
+            &mut ControlledSubjectLocomotion,
         ),
         With<Player>,
     >,
@@ -50,10 +48,10 @@ pub(super) fn prepare_player(
 
     let position = Vec3::new(x, ground + CharacterDimensions::HALF_HEIGHT + 12.0, z);
 
-    let (entity, mut transform, mut traveler, mut velocity, mut noclip) = player.into_inner();
+    let (mut transform, mut traveler, mut velocity, mut locomotion) = player.into_inner();
     transform.translation = position;
     traveler.commit_position(position);
     velocity.0 = Vec3::ZERO;
-    noclip.active = false;
-    commands.entity(entity).insert(CharacterMotor);
+    locomotion.request_automatic();
+    locomotion.set_thrusters_enabled(false);
 }

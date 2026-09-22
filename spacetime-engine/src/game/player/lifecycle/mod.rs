@@ -5,8 +5,7 @@ use super::*;
 /// Adapts generic semantic death into local-player control state.
 ///
 /// Respawning is intentionally a separate lifecycle mechanic; death cannot be
-/// undone by toggling noclip or by another input adapter accidentally restoring
-/// the character motor.
+/// undone by another locomotion request accidentally restoring motion.
 pub(super) fn handle_player_death(
     mut commands: Commands,
     mut deaths: MessageReader<Died>,
@@ -14,7 +13,7 @@ pub(super) fn handle_player_death(
         (
             Entity,
             &UsfManifestationOf,
-            &mut PlayerNoclip,
+            &mut ControlledSubjectLocomotion,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
             &mut LinearVelocity,
@@ -22,14 +21,21 @@ pub(super) fn handle_player_death(
         With<Player>,
     >,
 ) {
-    let (entity, manifestation, mut noclip, mut input, mut ground, mut velocity) =
-        player.into_inner();
+    let (
+        entity,
+        manifestation,
+        mut locomotion,
+        mut input,
+        mut ground,
+        mut velocity,
+    ) = player.into_inner();
 
     if !deaths.read().any(|death| death.entity == manifestation.0) {
         return;
     }
 
-    noclip.active = false;
+    locomotion.request_automatic();
+    locomotion.set_thrusters_enabled(false);
     input.clear();
     ground.grounded = false;
     ground.ground_entity = None;
