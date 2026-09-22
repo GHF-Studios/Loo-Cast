@@ -21,7 +21,6 @@ fn crossing_an_integer_zoom_boundary_normalizes_to_the_next_scale() {
     assert_eq!(view.zoom(), 0.0);
 }
 
-
 #[test]
 fn semantic_and_render_anchors_are_independent() {
     let mut view = UsfViewContext::default();
@@ -32,38 +31,21 @@ fn semantic_and_render_anchors_are_independent() {
     assert_eq!(view.render_anchor(), Vec3::new(10.0, 20.0, 30.0));
 }
 
-
 #[test]
-fn persistent_scale_stack_does_not_hard_switch_at_half_zoom() {
+fn continuous_view_demand_keeps_both_adjacent_presentations_across_half_zoom() {
     let s4 = SpatialScale::new(4).unwrap();
     let s5 = SpatialScale::new(5).unwrap();
-    let s3 = SpatialScale::new(3).unwrap();
-
     let mut view = UsfViewContext::default();
 
-    view.set_continuous_exponent(4.51);
-    assert!(view.requests_scale_stack_layer(s5));
-    assert!(view.requests_scale_stack_layer(s4));
-    assert!(!view.requests_scale_stack_layer(s3));
+    for exponent in [4.49, 4.51] {
+        view.set_continuous_exponent(exponent);
+        let demands = view.active_scale_demands();
+        let lower = demands[0].expect("lower presentation demand");
+        let upper = demands[1].expect("upper presentation demand");
 
-    view.set_continuous_exponent(4.49);
-    assert!(view.requests_scale_stack_layer(s5));
-    assert!(view.requests_scale_stack_layer(s4));
-    assert!(!view.requests_scale_stack_layer(s3));
-}
-
-#[test]
-fn persistent_stack_keeps_all_coarser_layers_when_refined() {
-    let mut view = UsfViewContext::default();
-    view.set_continuous_exponent(2.25);
-
-    for raw in 3..=5 {
-        assert!(
-            view.requests_scale_stack_layer(SpatialScale::new(raw).unwrap()),
-            "S+{raw} should remain part of the additive stack"
-        );
+        assert_eq!(lower.scale(), s4);
+        assert_eq!(upper.scale(), s5);
+        assert!(lower.contribution() > 0.0);
+        assert!(upper.contribution() > 0.0);
     }
-
-    assert!(view.requests_scale_stack_layer(SpatialScale::new(2).unwrap()));
-    assert!(!view.requests_scale_stack_layer(SpatialScale::new(1).unwrap()));
 }

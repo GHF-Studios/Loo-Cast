@@ -61,6 +61,7 @@ pub(super) fn spawn_player(
                 PlayerScaleInteractionProxy::default(),
                 PlayerDetailedPhysicsScale::default(),
                 PlayerTravelSpeed::default(),
+                PlayerApproachRefinementState::default(),
                 PlayerAdaptiveCruise::default(),
                 PlayerTravelState::default(),
                 UsfTravelNeighborhood::default(),

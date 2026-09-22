@@ -49,14 +49,15 @@ pub(in crate::game::player) fn sync_navigation_context(
 
 
 const APPROACH_TARGET_CLEARANCE_NATIVE: f64 = 4.0;
-const SURFACE_S0_CAPTURE_CLEARANCE_SCALE0: f64 = 32_000.0;
+const SURFACE_CAPTURE_CLEARANCE_METRES: f64 = 32_000.0;
 const APPROACH_REFINEMENT_ACTIVATION_RADII: f64 = 256.0;
 const APPROACH_REFINEMENT_RATE_DECADES_PER_SECOND: f32 = 6.0;
 
-/// Automatically refines/coarsens the primary observer while approaching an
-/// explicitly refinable semantic body. Ordinary USF transition machinery still
-/// performs the actual rechart when the dominant scale crosses a boundary.
-pub(in crate::game::player) fn sync_approach_refinement_view(
+/// Advances semantic approach-refinement policy, then projects that policy into
+/// independent presentation and interaction outputs.
+///
+/// Changing `UsfViewContext` can no longer rechart physics by itself.
+pub(in crate::game::player) fn sync_approach_refinement(
     time: Res<Time>,
     frame: Res<UsfSpatialFrame>,
     player: Single<
@@ -65,6 +66,7 @@ pub(in crate::game::player) fn sync_approach_refinement_view(
             &UsfScaleLayer,
             &UsfManifestationOf,
             &ControlledSubjectLocomotion,
+            &mut PlayerApproachRefinementState,
         ),
         With<Player>,
     >,
@@ -72,7 +74,7 @@ pub(in crate::game::player) fn sync_approach_refinement_view(
     mut view: Single<&mut UsfViewContext, With<UsfViewRenderAnchor>>,
     mut transitions: ResMut<UsfSpatialTransitionQueue>,
 ) {
-    let (body, layer, manifestation, locomotion) = player.into_inner();
+    let (body, layer, manifestation, locomotion, mut refinement_state) = player.into_inner();
     let observer_scale = layer.scale();
     let Ok(observer) = frame
         .origin()
@@ -83,24 +85,39 @@ pub(in crate::game::player) fn sync_approach_refinement_view(
 
     let mut selected = None::<(UsfTravelInfluence, UsfApproachRefinement, f64)>;
     for (influence, refinement) in &refinable {
-        let Some(measurement) = influence.measure_from(&observer) else { continue; };
+        let Some(measurement) = influence.measure_from(&observer) else {
+            continue;
+        };
         let relative = measurement.relative_proximity();
-        if relative > APPROACH_REFINEMENT_ACTIVATION_RADII { continue; }
-        if selected.is_none_or(|(_,_,current)| relative < current) {
+        if relative > APPROACH_REFINEMENT_ACTIVATION_RADII {
+            continue;
+        }
+        if selected.is_none_or(|(_, _, current)| relative < current) {
             selected = Some((*influence, *refinement, relative));
         }
     }
 
-    let Some((influence, refinement, _)) = selected else { return; };
-    let Some(measurement) = influence.measure_from(&observer) else { return; };
+    let Some((influence, refinement, _)) = selected else {
+        refinement_state.active = false;
+        return;
+    };
+    let Some(measurement) = influence.measure_from(&observer) else {
+        refinement_state.active = false;
+        return;
+    };
 
-    let clearance_scale0 = measurement.boundary_clearance_scale0().max(1.0);
-    let target = if locomotion.regime() != PlayerLocomotionRegime::Cruise
-        && clearance_scale0 <= SURFACE_S0_CAPTURE_CLEARANCE_SCALE0
+    if !refinement_state.active {
+        refinement_state.active = true;
+        refinement_state.continuous_exponent = view.continuous_exponent();
+    }
+
+    let clearance_metres = measurement.boundary_clearance_scale0().max(1.0);
+    let target_exponent = if locomotion.regime() != PlayerLocomotionRegime::Cruise
+        && clearance_metres <= SURFACE_CAPTURE_CLEARANCE_METRES
     {
         refinement.minimum_scale().exponent() as f32
     } else {
-        (clearance_scale0 / APPROACH_TARGET_CLEARANCE_NATIVE)
+        (clearance_metres / APPROACH_TARGET_CLEARANCE_NATIVE)
             .log10()
             .clamp(
                 refinement.minimum_scale().exponent() as f64,
@@ -108,44 +125,46 @@ pub(in crate::game::player) fn sync_approach_refinement_view(
             ) as f32
     };
 
-    let current = view.continuous_exponent();
+    let current = refinement_state.continuous_exponent;
     let max_step = APPROACH_REFINEMENT_RATE_DECADES_PER_SECOND * time.delta_secs().max(0.0);
-    let next = if target < current { (current-max_step).max(target) } else { (current+max_step).min(target) };
-    if (next - current).abs() > 1.0e-4 {
+    let next = if target_exponent < current {
+        (current - max_step).max(target_exponent)
+    } else {
+        (current + max_step).min(target_exponent)
+    };
+    refinement_state.continuous_exponent = next;
+
+    // Presentation consumes policy progress.
+    if (view.continuous_exponent() - next).abs() > 1.0e-4 {
         view.set_continuous_exponent(next);
     }
 
-    // Interaction-slice selection is explicit semantic state. Presentation may
-    // currently follow the same approach policy, but view state no longer owns
-    // or implicitly recharts physics.
-    let interaction_raw = next.ceil() as i8;
-    if let Some(interaction_scale) = SpatialScale::new(interaction_raw)
-        && interaction_scale != layer.scale()
-    {
-        let transition = UsfSpatialTransition::new(manifestation.0, observer)
-            .with_scale(interaction_scale)
-            .with_velocity(match locomotion.velocity_semantics() {
-                PlayerVelocitySemantics::PreserveNative => UsfTransitionVelocity::PreserveNative,
-                PlayerVelocitySemantics::PreserveCanonical => {
-                    UsfTransitionVelocity::PreserveCanonical
-                }
-                PlayerVelocitySemantics::Zero => UsfTransitionVelocity::Zero,
-            });
-
-        // Only the final fine interaction handoff requires demonstrated fine
-        // realization. Coarser scale navigation is allowed without inventing
-        // terrain/collision requirements that do not belong there.
-        let transition = if interaction_scale == refinement.minimum_scale() {
-            transition.requiring_coverage(
-                UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::COLLISION),
-                8_192.0,
-            )
-        } else {
-            transition
-        };
-
-        transitions.request(transition);
+    // Interaction independently consumes the same policy progress.
+    let Some(interaction_scale) = SpatialScale::new(next.ceil() as i8) else {
+        return;
+    };
+    if interaction_scale == layer.scale() {
+        return;
     }
+
+    let velocity = match locomotion.velocity_semantics() {
+        PlayerVelocitySemantics::PreserveNative => UsfTransitionVelocity::PreserveNative,
+        PlayerVelocitySemantics::PreserveCanonical => UsfTransitionVelocity::PreserveCanonical,
+        PlayerVelocitySemantics::Zero => UsfTransitionVelocity::Zero,
+    };
+    let transition =
+        UsfSpatialTransition::new(manifestation.0, observer, velocity).with_scale(interaction_scale);
+
+    let transition = if interaction_scale == refinement.minimum_scale() {
+        transition.requiring_coverage(
+            UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::COLLISION),
+            8_192.0,
+        )
+    } else {
+        transition
+    };
+
+    transitions.request(transition);
 }
 
 

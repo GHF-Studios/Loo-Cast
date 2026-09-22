@@ -4,6 +4,10 @@
 //! a vertical multi-scale realization spine rather than mutually exclusive worlds.
 //! Voxels are the current scale-local realizer; semantic worldgen remains
 //! authoritative and contextualizes every finer level.
+//!
+//! Materialization consumes interaction demand and presentation refinement as
+//! independent inputs. A view transition never implicitly becomes physical
+//! interaction authority.
 
 use std::collections::HashMap;
 
@@ -12,8 +16,8 @@ use bevy::prelude::*;
 use crate::{
     config::EngineConfig,
     spatial::{
-        SpatialScale, UsfChunkAddress, UsfPosition, UsfScaleLayer, UsfViewContext,
-        UsfViewRenderAnchor,
+        SpatialScale, UsfChunkAddress, UsfPosition, UsfPrimaryInteractionSlice, UsfScaleLayer,
+        UsfViewContext, UsfViewRenderAnchor,
     },
     voxel::{ProceduralVolume, VoxelBase, VoxelPresentationMaterial, VoxelStreaming, VoxelWorld},
     worldgen::{PhenomenonRegistry, WorldgenEvaluationKey, WorldgenStore},
@@ -21,22 +25,36 @@ use crate::{
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct ScaleStackDemandKey {
-    interaction: SpatialScale,
-    refinement: Option<SpatialScale>,
+    interaction_target: SpatialScale,
+    presentation_refinement: Option<SpatialScale>,
     target_scope: UsfChunkAddress,
 }
 
 impl ScaleStackDemandKey {
-    fn from_view(view: &UsfViewContext) -> Option<Self> {
-        let interaction = view.interaction_scale();
-        let refinement = (view.scale() < interaction && view.contribution(view.scale()) > 0.001)
-            .then_some(view.scale());
-        let target = view_target_at_scale(view, view.scale())?;
-        let target_scope = UsfChunkAddress::containing(target, view.scale()).ok()?;
+    fn from_context(
+        view: &UsfViewContext,
+        interaction: UsfPrimaryInteractionSlice,
+    ) -> Option<Self> {
+        // A pending interaction target is materialization demand, not current
+        // interaction ownership. Realizing it can eventually make the handoff legal.
+        let interaction_target = interaction.target_scale();
+
+        let presentation_refinement = view
+            .active_scale_demands()
+            .into_iter()
+            .flatten()
+            .filter(|demand| demand.contribution() > 0.001)
+            .map(|demand| demand.scale())
+            .filter(|scale| *scale < interaction_target)
+            .min();
+
+        let scope_scale = presentation_refinement.unwrap_or(interaction_target);
+        let target = target_at_scale(view, scope_scale)?;
+        let target_scope = UsfChunkAddress::containing(target, scope_scale).ok()?;
 
         Some(Self {
-            interaction,
-            refinement,
+            interaction_target,
+            presentation_refinement,
             target_scope,
         })
     }
@@ -92,7 +110,7 @@ impl ProceduralScaleStack {
         materials: &mut Assets<StandardMaterial>,
     ) {
         for (&scale, handle) in &self.scale_materials {
-            if let Some(mut material) = materials.get_mut(handle) {
+            if let Some(material) = materials.get_mut(handle) {
                 material.depth_bias = scale_depth_bias(scale, view_scale);
             }
         }
@@ -103,13 +121,14 @@ pub(super) fn sync_scale_stack(
     config: Res<EngineConfig>,
     mut commands: Commands,
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
+    interaction: Res<UsfPrimaryInteractionSlice>,
     registry: Res<PhenomenonRegistry>,
     mut worldgen: ResMut<WorldgenStore>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut stacks: Query<(Entity, &mut ProceduralScaleStack)>,
 ) {
-    let Some(demand) = ScaleStackDemandKey::from_view(&view) else {
-        error!("observer position could not be represented in the requested refinement scale");
+    let Some(demand) = ScaleStackDemandKey::from_context(&view, *interaction) else {
+        error!("observer position could not be represented in requested scale-stack demand");
         return;
     };
 
@@ -130,16 +149,13 @@ pub(super) fn sync_scale_stack(
         });
 
         for scale in desired_scales(demand) {
-            let target = view_target_at_scale(&view, scale)
+            let target = target_at_scale(&view, scale)
                 .expect("requested scale must remain canonically representable");
             let key = worldgen
                 .contextualize_to(stack.root, target, scale, &registry)
                 .expect("scale-local refinement must remain canonically addressable")
                 .expect("root context must refine to requested scale");
 
-            // Refresh semantic refinement even when this scale-local realizer
-            // already exists. A voxel realizer spans many semantic scopes and
-            // must not be owned by one child's context identity.
             if stack.active.contains_key(&scale) {
                 continue;
             }
@@ -183,35 +199,29 @@ fn scale_depth_bias(scale: SpatialScale, view_scale: SpatialScale) -> f32 {
     -coarser_decades * MULTISCALE_DEPTH_BIAS_PER_DECADE
 }
 
-/// Re-expresses the bounded observer position in any requested scale chart.
-///
-/// During a +35 -> +34 transition, +34 worldgen therefore already receives the
-/// actual +34 region the observer is approaching even though +35 still owns
-/// physical interaction.
-fn view_target_at_scale(
+fn target_at_scale(
     view: &UsfViewContext,
     target_scale: SpatialScale,
 ) -> Option<UsfPosition> {
-    // The observer already has canonical identity. Refinement targeting must
-    // never reconstruct that identity from an intermediate floating coordinate.
     view.anchor().reexpressed_at(target_scale).ok()
 }
 
 fn desired_scales(demand: ScaleStackDemandKey) -> impl Iterator<Item = SpatialScale> {
-    let ancestors = (demand.interaction.exponent()..=MAX_VOXEL_REALIZER_SCALE)
+    let ancestors = (demand.interaction_target.exponent()..=MAX_VOXEL_REALIZER_SCALE)
         .rev()
         .filter_map(SpatialScale::new);
 
     ancestors.chain(
         demand
-            .refinement
+            .presentation_refinement
             .filter(|scale| scale.exponent() <= MAX_VOXEL_REALIZER_SCALE),
     )
 }
 
 fn scale_is_desired(demand: ScaleStackDemandKey, scale: SpatialScale) -> bool {
     scale.exponent() <= MAX_VOXEL_REALIZER_SCALE
-        && (scale >= demand.interaction || demand.refinement == Some(scale))
+        && (scale >= demand.interaction_target
+            || demand.presentation_refinement == Some(scale))
 }
 
 pub(super) fn volume_for_scale_context(

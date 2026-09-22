@@ -13,8 +13,8 @@ use crate::{
     physics::character::{CharacterGroundState, CharacterMovementInput},
     portal::{PortalSplitTraveler, PortalTraveler},
     spatial::{
-        SpatialScale, UsfPosition, UsfScaleLayer, UsfSpatialFrame, UsfSpatialSet,
-        UsfSpatialTransition,
+        SpatialScale, UsfPosition, UsfPrimaryInteractionSlice, UsfScaleLayer,
+        UsfSpatialFrame, UsfSpatialSet, UsfSpatialTransition,
         UsfSpatialTransitionApplied, UsfSpatialTransitionQueue,
         UsfTransitionVelocity, UsfViewContext, UsfViewRenderAnchor,
     },
@@ -135,12 +135,22 @@ fn where_command(world: &mut World, _: &ConsoleCommandInvocation) -> ConsoleComm
             scale, runtime.x, runtime.y, runtime.z
         ),
         format!(
-            "observer = {:+.3} (lower S{}, transition {:.3}, interaction S{})",
+            "observer = {:+.3} (lower S{}, transition {:.3})",
             view.continuous_exponent(),
             view.scale(),
             view.zoom(),
-            view.interaction_scale(),
         ),
+        {
+            let interaction = *world.resource::<UsfPrimaryInteractionSlice>();
+            match interaction.requested_scale() {
+                Some(requested) => format!(
+                    "interaction = S{} -> S{} (pending)",
+                    interaction.scale(),
+                    requested,
+                ),
+                None => format!("interaction = S{}", interaction.scale()),
+            }
+        },
         format!("canonical = {semantic}"),
         {
             let frame = world.resource::<UsfSpatialFrame>();
@@ -183,10 +193,12 @@ fn zoom_command(
         let Some(view) = primary_view_context(world) else {
             return ConsoleCommandResult::error("primary USF view context is unavailable");
         };
+        let interaction = *world.resource::<UsfPrimaryInteractionSlice>();
         return ConsoleCommandResult::success(format!(
-            "observer scale = {:+.3} (interaction S{})",
+            "observer scale = {:+.3} | interaction S{}{}",
             view.continuous_exponent(),
-            view.interaction_scale(),
+            interaction.scale(),
+            if interaction.handoff_pending() { " (handoff pending)" } else { "" },
         ));
     };
 
@@ -213,10 +225,12 @@ fn zoom_command(
     let Some(view) = primary_view_context(world) else {
         return ConsoleCommandResult::error("primary USF view context is unavailable");
     };
+    let interaction = *world.resource::<UsfPrimaryInteractionSlice>();
     ConsoleCommandResult::success(format!(
-        "observer scale requested -> {:+.3} (interaction S{})",
+        "observer scale requested -> {:+.3} | interaction remains S{}{}",
         view.continuous_exponent(),
-        view.interaction_scale(),
+        interaction.scale(),
+        if interaction.handoff_pending() { " (handoff pending)" } else { "" },
     ))
 }
 
@@ -390,9 +404,8 @@ fn teleport_command(
     world
         .resource_mut::<UsfSpatialTransitionQueue>()
         .request(
-            UsfSpatialTransition::new(subject, position)
-                .with_view_exponent(view_exponent)
-                .with_velocity(UsfTransitionVelocity::Zero),
+            UsfSpatialTransition::new(subject, position, UsfTransitionVelocity::Zero)
+                .with_view_exponent(view_exponent),
         );
 
     if let Some(look_at) = look_at {

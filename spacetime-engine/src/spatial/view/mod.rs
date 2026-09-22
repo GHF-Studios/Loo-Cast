@@ -1,15 +1,15 @@
 //! Observer-relative presentation scale over canonical USF space.
 //!
-//! The physical/runtime chart can remain fixed at S0 while presentation is
-//! projected into units appropriate to the observer's current spatial scale.
+//! Presentation scale is independent from whichever bounded Scale Slice
+//! currently owns physical interaction for the controlled subject.
 //! A representation authored at scale S stores bounded S-native geometry and a
 //! canonical anchor; it never needs a universe-wide float position.
 
 use bevy::{math::DVec3, prelude::*};
 
 use crate::spatial::{
-    SpatialScale, UsfInteractionProjection, UsfPosition, UsfScaleLayer,
-    UsfSpatialFrame,
+    SpatialScale, UsfInteractionProjection, UsfPosition, UsfPrimaryInteractionSlice,
+    UsfScaleLayer, UsfSpatialFrame,
 };
 
 const PRESENTATION_RELATIVE_BOUND: f32 = 16_384.0;
@@ -99,8 +99,8 @@ impl UsfSceneryPresentation {
 
 /// Presentation geometry whose parent already owns the correct runtime position.
 ///
-/// This is useful for actors such as the local player: physics remains S0 while
-/// the visible child shrinks as the observer zooms outward.
+/// This is useful for actors such as the local player: physical interaction
+/// remains in its own Scale Slice while the visible child follows view scale.
 #[derive(Component, Debug, Clone, Copy)]
 pub struct UsfLocalScalePresentation {
     scale: SpatialScale,
@@ -229,25 +229,12 @@ impl UsfViewContext {
         self.scale.exponent() as f32 + self.zoom
     }
 
-    pub fn interaction_scale(&self) -> SpatialScale {
-        if self.scale == SpatialScale::MAX || self.zoom <= CONTRIBUTION_EPSILON {
-            self.scale
-        } else {
-            SpatialScale::new(self.scale.exponent() + 1)
-                .expect("fractional transition has a coarser interaction scale")
-        }
-    }
-
-    pub fn dominant_scale(&self) -> SpatialScale {
-        self.interaction_scale()
-    }
-
     /// Discrete convenience scale for presentation systems that genuinely need
     /// one representative scale.
     ///
     /// IMPORTANT: persistent USF terrain must NOT use this to choose one global
-    /// owner. Terrain is an additive nested scale stack; see
-    /// [`Self::requests_scale_stack_layer`].
+    /// owner. Materialization and visibility combine independent interaction
+    /// and presentation demand outside the view context.
     pub fn render_scale(&self) -> SpatialScale {
         if self.scale == SpatialScale::MAX || self.zoom < 0.5 {
             self.scale
@@ -255,21 +242,6 @@ impl UsfViewContext {
             SpatialScale::new(self.scale.exponent() + 1)
                 .expect("non-maximum view scale has a coarser adjacent scale")
         }
-    }
-
-    /// Whether a persistent scale-local world belongs to the currently visible
-    /// additive USF scale stack.
-    ///
-    /// Persistent worlds are not ordinary mutually-exclusive LODs. Coarser
-    /// worlds remain present while a bounded finer refinement world comes in.
-    /// The eventual refinement-aperture compositor clips only the subdomain
-    /// owned by the finer world; it does not globally retire the coarser one.
-    pub fn requests_scale_stack_layer(&self, scale: SpatialScale) -> bool {
-        if scale >= self.interaction_scale() {
-            return true;
-        }
-
-        scale == self.scale && self.contribution(scale) > CONTRIBUTION_EPSILON
     }
 
     /// Changes observer scale without changing canonical observer position.

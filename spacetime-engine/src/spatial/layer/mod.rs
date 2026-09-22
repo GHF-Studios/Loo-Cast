@@ -164,30 +164,64 @@ impl UsfChartMask {
 #[derive(Component, Debug, Default, Clone, Copy)]
 pub struct UsfInteractionProjection;
 
-/// Primary local controlled-subject interaction slice.
+/// Primary local controlled-subject interaction handoff state.
 ///
-/// This may guide input/control adapters, but it has no authority over which
-/// other Scale Slices exist, simulate, render, stream, or publish physics.
+/// `current` is the Scale Slice that owns interaction now. `requested` is a
+/// desired destination that has not necessarily acquired required realization
+/// or collision coverage yet. Requesting a finer slice therefore never claims
+/// that the finer mechanism already exists.
+///
+/// This is controlled-subject focus only; it has no authority over which other
+/// Scale Slices exist, simulate, render, stream, or publish physics.
 #[derive(Resource, Debug, Clone, Copy)]
 pub struct UsfPrimaryInteractionSlice {
-    scale: SpatialScale,
+    current: SpatialScale,
+    requested: Option<SpatialScale>,
 }
 
 impl Default for UsfPrimaryInteractionSlice {
     fn default() -> Self {
         Self {
-            scale: SpatialScale::MAX,
+            current: SpatialScale::MAX,
+            requested: None,
         }
     }
 }
 
 impl UsfPrimaryInteractionSlice {
+    /// Scale Slice that currently owns controlled-subject interaction.
     pub const fn scale(self) -> SpatialScale {
-        self.scale
+        self.current
     }
 
-    pub(crate) fn set_scale(&mut self, scale: SpatialScale) {
-        self.scale = scale;
+    /// Destination currently requested but not yet necessarily realized.
+    pub const fn requested_scale(self) -> Option<SpatialScale> {
+        self.requested
+    }
+
+    /// Scale whose mechanisms should be prepared now.
+    pub const fn target_scale(self) -> SpatialScale {
+        match self.requested {
+            Some(scale) => scale,
+            None => self.current,
+        }
+    }
+
+    pub const fn handoff_pending(self) -> bool {
+        self.requested.is_some()
+    }
+
+    pub(crate) fn request_handoff(&mut self, scale: SpatialScale) {
+        self.requested = (scale != self.current).then_some(scale);
+    }
+
+    pub(crate) fn cancel_handoff(&mut self) {
+        self.requested = None;
+    }
+
+    pub(crate) fn complete_handoff(&mut self, scale: SpatialScale) {
+        self.current = scale;
+        self.requested = None;
     }
 }
 

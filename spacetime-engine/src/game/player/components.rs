@@ -224,6 +224,27 @@ pub struct ControlledSubjectLocomotionChanged {
     pub kernel: PlayerMotionKernel,
 }
 
+/// Controlled-subject progress through semantic approach refinement.
+///
+/// This is policy state, not view state and not interaction ownership. The
+/// approach policy advances this continuous exponent; presentation and
+/// interaction handoff consume it independently.
+#[derive(Component, Reflect, Debug, Clone, Copy)]
+#[reflect(Component)]
+pub struct PlayerApproachRefinementState {
+    pub active: bool,
+    pub continuous_exponent: f32,
+}
+
+impl Default for PlayerApproachRefinementState {
+    fn default() -> Self {
+        Self {
+            active: false,
+            continuous_exponent: SpatialScale::MAX.exponent() as f32,
+        }
+    }
+}
+
 /// Bounded collision envelope for coarse Scale-Slice interaction.
 ///
 /// This is deliberately not the semantic physical size of the human/ship. At a

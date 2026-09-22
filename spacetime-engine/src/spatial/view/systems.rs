@@ -52,6 +52,7 @@ pub(in crate::spatial) fn sync_view_context(
 /// representation frames can later promote this to an explicit projection frame.
 pub(in crate::spatial) fn project_local_scale_presentations(
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
+    interaction: Res<UsfPrimaryInteractionSlice>,
     frame: Res<UsfSpatialFrame>,
     parents: Query<
         (
@@ -93,8 +94,17 @@ pub(in crate::spatial) fn project_local_scale_presentations(
             layer.scale() == fallback.scale()
                 && view.continuous_exponent() >= f32::from(fallback.scale().exponent())
         });
-        let participates_in_stack =
-            view.requests_scale_stack_layer(layer.scale()) || far_fallback;
+        let presentation_demands_scale = view
+            .active_scale_demands()
+            .into_iter()
+            .flatten()
+            .any(|demand| {
+                demand.scale() == layer.scale()
+                    && demand.contribution() > CONTRIBUTION_EPSILON
+            });
+        let participates_in_stack = layer.scale() >= interaction.target_scale()
+            || presentation_demands_scale
+            || far_fallback;
 
         if follows_active.is_none() && !participates_in_stack {
             if !matches!(*visibility, Visibility::Hidden) {

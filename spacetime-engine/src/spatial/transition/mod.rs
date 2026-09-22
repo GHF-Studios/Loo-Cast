@@ -23,7 +23,7 @@ pub enum UsfTransitionVelocity {
     /// Preserve the numeric velocity vector while changing scale-local charts.
     ///
     /// `6.0` therefore remains `6.0`, but those units are reinterpreted in the
-    /// destination scale. This is the default for scale-local physics.
+    /// destination scale.
     PreserveNative,
     /// Preserve canonical physical velocity across a chart change by rescaling
     /// the numeric vector between native-unit systems.
@@ -43,13 +43,22 @@ pub struct UsfSpatialTransition {
 }
 
 impl UsfSpatialTransition {
-    pub const fn new(subject: Entity, position: UsfPosition) -> Self {
+    /// Constructs a canonical relocation/rechart request.
+    ///
+    /// Velocity semantics are mandatory at construction time. A chart handoff
+    /// must never silently reinterpret physical velocity because a caller
+    /// forgot an optional builder method.
+    pub const fn new(
+        subject: Entity,
+        position: UsfPosition,
+        velocity: UsfTransitionVelocity,
+    ) -> Self {
         Self {
             subject,
             position,
             target_scale: None,
             view_exponent: None,
-            velocity: UsfTransitionVelocity::PreserveNative,
+            velocity,
             required_coverage: UsfScaleRoleMask::NONE,
             coverage_radius_native: 0.0,
         }
@@ -74,11 +83,6 @@ impl UsfSpatialTransition {
 
     pub fn with_view_exponent(mut self, exponent: f32) -> Self {
         self.view_exponent = Some(exponent);
-        self
-    }
-
-    pub const fn with_velocity(mut self, velocity: UsfTransitionVelocity) -> Self {
-        self.velocity = velocity;
         self
     }
 
@@ -187,6 +191,14 @@ pub(super) fn apply_spatial_transitions(
     let target_scale = request.target_scale.unwrap_or(previous_scale);
     let requested_relocation = true;
 
+    if request.target_scale.is_some() {
+        active.request_handoff(target_scale);
+    } else {
+        // A newer relocation without an interaction rechart supersedes any
+        // older queued handoff for this same controlled subject.
+        active.cancel_handoff();
+    }
+
     // A finer handoff remains only intent until required mechanism coverage
     // actually exists. Keep the request queued instead of creating a hole.
     if !request.required_coverage.is_empty()
@@ -275,7 +287,7 @@ pub(super) fn apply_spatial_transitions(
     layer_frames.set_origin(target_scale, chart_absolute);
     frame.origin = chart_origin;
     frame.last_shift = Vec3::ZERO;
-    active.set_scale(target_scale);
+    active.complete_handoff(target_scale);
 
     applied.write(UsfSpatialTransitionApplied {
         subject,

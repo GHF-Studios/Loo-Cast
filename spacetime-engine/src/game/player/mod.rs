@@ -18,7 +18,8 @@ mod stance;
 pub use camera::{CameraMode, PlayerCamera, ThirdPersonCamera};
 pub use components::{
     ControlledSubjectLocomotion, ControlledSubjectLocomotionChanged, Player,
-    PlayerAdaptiveCruise, PlayerAim, PlayerCollisionPolicy, PlayerController, PlayerDead,
+    PlayerAdaptiveCruise, PlayerAim, PlayerApproachRefinementState, PlayerCollisionPolicy,
+    PlayerController, PlayerDead,
     PlayerDetailedPhysicsScale, PlayerLocomotionRegime, PlayerLocomotionRequest,
     PlayerMotionKernel, PlayerScaleInteractionProxy, PlayerStance, PlayerTravelSpeed,
     PlayerTravelState, PlayerVelocitySemantics,
@@ -95,6 +96,7 @@ impl Plugin for PlayerPlugin {
             .register_type::<PlayerScaleInteractionProxy>()
             .register_type::<PlayerDetailedPhysicsScale>()
             .register_type::<PlayerTravelSpeed>()
+            .register_type::<PlayerApproachRefinementState>()
             .register_type::<PlayerTravelState>()
             .register_type::<PlayerAdaptiveCruise>()
             .add_message::<ControlledSubjectLocomotionChanged>()
@@ -119,7 +121,7 @@ impl Plugin for PlayerPlugin {
                     controls::resolve_locomotion_state,
                     controls::sync_locomotion_runtime,
                     stance::update_stance,
-                    controls::sync_approach_refinement_view,
+                    controls::sync_approach_refinement,
                     controls::movement,
                     controls::local_flight_movement,
                     controls::scale_navigation_movement,

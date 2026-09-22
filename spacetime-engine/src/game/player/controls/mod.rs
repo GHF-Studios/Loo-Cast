@@ -31,7 +31,8 @@ use crate::{
 
 use super::{
     ControlledSubjectLocomotion, ControlledSubjectLocomotionChanged, Player,
-    PlayerAdaptiveCruise, PlayerAim, PlayerCollisionPolicy, PlayerController, PlayerDead,
+    PlayerAdaptiveCruise, PlayerAim, PlayerApproachRefinementState, PlayerCollisionPolicy,
+    PlayerController, PlayerDead,
     PlayerDetailedPhysicsScale, PlayerLocomotionRegime, PlayerLocomotionRequest,
     PlayerMotionKernel, PlayerScaleInteractionProxy, PlayerStance, PlayerTravelSpeed,
     PlayerTravelState, PlayerVelocitySemantics,
@@ -60,7 +61,7 @@ pub(super) use modes::{
 };
 pub(super) use movement::{local_flight_movement, movement, scale_navigation_movement};
 pub(super) use navigation::{
-    sync_approach_refinement_view, sync_navigation_context, sync_planetary_gravity,
+    sync_approach_refinement, sync_navigation_context, sync_planetary_gravity,
     sync_travel_state,
 };
 pub(super) use view::{look, zoom_spatial_view};
