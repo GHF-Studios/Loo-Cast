@@ -46,7 +46,7 @@ use crate::{
         character::{
             CharacterControlFrame, CharacterDimensions, CharacterGroundState,
             CharacterLocomotionFrame, CharacterMotor, CharacterMovementConfig,
-            CharacterMovementInput,
+            CharacterMovementInput, CharacterMovementSet,
         },
         topology::{KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeer},
     },
@@ -123,12 +123,19 @@ impl Plugin for PlayerPlugin {
                     stance::update_stance,
                     controls::sync_approach_refinement,
                     controls::movement,
+                )
+                    .chain()
+                    .in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
+            )
+            .add_systems(
+                FixedUpdate,
+                (
                     controls::local_flight_movement,
                     controls::scale_navigation_movement,
                     controls::adaptive_cruise_movement,
                 )
                     .chain()
-                    .in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
+                    .after(CharacterMovementSet::Simulate),
             )
             .add_systems(
                 Update,

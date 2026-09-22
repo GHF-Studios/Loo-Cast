@@ -2,6 +2,12 @@
 
 use super::*;
 
+// The current procedural whole-body realizer is authored down through metre
+// scale. This is a content capability boundary, not a privileged USF center.
+// Sub-metre views should be unlocked by local refinement realizers instead of
+// extending an entire planetary body to S-35.
+const MIN_CURRENT_PROCEDURAL_VIEW_SCALE: SpatialScale = SpatialScale::ZERO;
+
 pub(in crate::game::player) fn look(
     mouse: Res<AccumulatedMouseMotion>,
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -43,7 +49,7 @@ pub(in crate::game::player) fn zoom_spatial_view(
     let step = if fast { 1.0 } else { 0.1 };
     view.add_zoom(
         -scroll.delta.y.signum() * step,
-        SpatialScale::ZERO,
+        MIN_CURRENT_PROCEDURAL_VIEW_SCALE,
         SpatialScale::MAX,
     );
 }

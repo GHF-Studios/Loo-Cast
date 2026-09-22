@@ -116,7 +116,7 @@ fn free_flight_wish(
 /// Unlike the old "noclip" path this is explicitly a collision-aware thruster
 /// kernel, selected by the locomotion state machine.
 pub(in crate::game::player) fn local_flight_movement(
-    time: Res<Time>,
+    time: Res<Time<Fixed>>,
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
     move_and_slide: MoveAndSlide,
@@ -210,7 +210,7 @@ pub(in crate::game::player) fn local_flight_movement(
 /// The controlled manifestation uses a bounded interaction proxy and collides
 /// only with geometry published into the same Scale Slice.
 pub(in crate::game::player) fn scale_navigation_movement(
-    time: Res<Time>,
+    time: Res<Time<Fixed>>,
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
     move_and_slide: MoveAndSlide,

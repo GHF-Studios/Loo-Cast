@@ -1,6 +1,6 @@
 //! Adaptive long-distance free-flight.
 //!
-//! Cruise speed is canonical (S0 units/s), while runtime displacement is
+//! Cruise speed is canonical (metres/s), while runtime displacement is
 //! projected into whichever USF chart currently owns interaction.
 
 use super::*;
@@ -33,13 +33,9 @@ const FALLBACK_MIN_DEFAULT_SPEED_SCALE0: f64 = 10_000.0;
 // speed to presentation zoom or forcing a chart transition.
 const CHART_SPEED_HEADROOM_DECADES: i32 = 2;
 
-const PLANETARY_HANDOFF_RADIUS_FRACTION: f64 = 0.12;
-const PLANETARY_HANDOFF_MIN_SCALE0: f64 = 20_000.0;
-const PLANETARY_HANDOFF_MAX_SCALE0: f64 = 750_000.0;
 const PLANETARY_HANDOFF_SPEED_MIN_SCALE0: f64 = 750.0;
 const PLANETARY_HANDOFF_SPEED_MAX_SCALE0: f64 = 7_500.0;
 const CRUISE_BRAKING_ACCELERATION_SCALE0: f64 = 120.0;
-const CRITICAL_DROPOUT_FRACTION: f64 = 0.25;
 
 
 #[derive(Debug, Clone, Copy)]
@@ -48,14 +44,12 @@ struct CruiseSpeedEnvelope {
     default_speed_scale0: f64,
     nearest_hard_clearance_scale0: Option<f64>,
     medium_speed_cap_scale0: Option<f64>,
-    planetary_handoff_clearance_scale0: Option<f64>,
-    planetary_handoff_available: bool,
     critical_dropout: bool,
 }
 
 
 pub(in crate::game::player) fn adaptive_cruise_movement(
-    time: Res<Time>,
+    time: Res<Time<Fixed>>,
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
     presentation: Res<PrimaryViewPresentation>,
@@ -119,9 +113,6 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
     cruise.default_speed_scale0 = envelope.default_speed_scale0;
     cruise.nearest_hard_clearance_scale0 = envelope.nearest_hard_clearance_scale0;
     cruise.medium_speed_cap_scale0 = envelope.medium_speed_cap_scale0;
-    cruise.planetary_handoff_clearance_scale0 = envelope.planetary_handoff_clearance_scale0;
-    cruise.planetary_handoff_available = envelope.planetary_handoff_available;
-    cruise.critical_dropout = envelope.critical_dropout;
 
     // Critical planetary dropout: Cruise cannot remain authoritative after
     // crossing deeply into the body-relative flight envelope.
@@ -179,8 +170,6 @@ fn cruise_speed_envelope(
     let mut default_speed = f64::INFINITY;
     let mut nearest_hard_clearance = None::<f64>;
     let mut medium_speed_cap = None::<f64>;
-    let mut planetary_handoff_clearance_value = None::<f64>;
-    let mut planetary_handoff_available = false;
     let mut critical_dropout = false;
     let mut constrained = false;
 
@@ -200,12 +189,8 @@ fn cruise_speed_envelope(
                     planetary_handoff_clearance(measurement.extent_radius_scale0());
                 let handoff_speed =
                     planetary_handoff_speed(measurement.extent_radius_scale0());
-                planetary_handoff_clearance_value = Some(
-                    planetary_handoff_clearance_value
-                        .map_or(handoff, |current| current.min(handoff)),
-                );
-                planetary_handoff_available |= clearance <= handoff;
-                critical_dropout |= clearance <= handoff * CRITICAL_DROPOUT_FRACTION;
+                critical_dropout |=
+                    clearance <= critical_dropout_clearance(measurement.extent_radius_scale0());
 
                 max_speed = max_speed.min(hard_body_speed_limit(
                     clearance,
@@ -265,15 +250,8 @@ fn cruise_speed_envelope(
         default_speed_scale0: default_speed.min(max_speed),
         nearest_hard_clearance_scale0: nearest_hard_clearance,
         medium_speed_cap_scale0: medium_speed_cap,
-        planetary_handoff_clearance_scale0: planetary_handoff_clearance_value,
-        planetary_handoff_available,
         critical_dropout,
     }
-}
-
-fn planetary_handoff_clearance(radius_scale0: f64) -> f64 {
-    (radius_scale0 * PLANETARY_HANDOFF_RADIUS_FRACTION)
-        .clamp(PLANETARY_HANDOFF_MIN_SCALE0, PLANETARY_HANDOFF_MAX_SCALE0)
 }
 
 fn planetary_handoff_speed(radius_scale0: f64) -> f64 {
@@ -331,8 +309,6 @@ fn fallback_speed_envelope(scale: SpatialScale) -> CruiseSpeedEnvelope {
         default_speed_scale0: default_speed,
         nearest_hard_clearance_scale0: None,
         medium_speed_cap_scale0: None,
-        planetary_handoff_clearance_scale0: None,
-        planetary_handoff_available: false,
         critical_dropout: false,
     }
 }

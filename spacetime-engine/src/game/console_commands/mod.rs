@@ -77,7 +77,7 @@ pub(super) fn configure(app: &mut App) {
             name: "cruise",
             aliases: &["supercruise"],
             usage: "cruise [on|off]",
-            summary: "Toggle adaptive long-distance travel; W/S control throttle and scale follows automatically.",
+            summary: "Toggle adaptive long-distance travel; W/S control throttle.",
         },
         cruise_command,
     )
@@ -270,7 +270,7 @@ fn speed_command(
     }
 
     ConsoleCommandResult::success_and_return_to_gameplay(format!(
-        "manual pace = {:.3}x | coarse/noclip = {:.3} S{} units/s",
+        "manual pace = {:.3}x | free-flight baseline = {:.3} S{} units/s",
         speed.multiplier,
         speed.free_flight_native_units_per_second(),
         layer.scale(),

@@ -52,6 +52,7 @@ mod cruise;
 mod modes;
 mod movement;
 mod navigation;
+mod travel;
 mod view;
 
 pub(super) use cruise::adaptive_cruise_movement;
@@ -64,4 +65,5 @@ pub(super) use navigation::{
     sync_approach_refinement, sync_navigation_context, sync_planetary_gravity,
     sync_travel_state,
 };
+pub(super) use travel::{critical_dropout_clearance, planetary_handoff_clearance};
 pub(super) use view::{look, zoom_spatial_view};

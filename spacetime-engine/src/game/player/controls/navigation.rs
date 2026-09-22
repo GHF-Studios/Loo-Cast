@@ -169,15 +169,6 @@ pub(in crate::game::player) fn sync_approach_refinement(
 
 
 const GRAVITY_FIELD_RADIUS_MULTIPLIER: f64 = 8.0;
-const PLANETARY_HANDOFF_RADIUS_FRACTION: f64 = 0.12;
-const PLANETARY_HANDOFF_MIN_SCALE0: f64 = 20_000.0;
-const PLANETARY_HANDOFF_MAX_SCALE0: f64 = 750_000.0;
-const CRITICAL_DROPOUT_FRACTION: f64 = 0.25;
-
-fn handoff_clearance(radius_scale0: f64) -> f64 {
-    (radius_scale0 * PLANETARY_HANDOFF_RADIUS_FRACTION)
-        .clamp(PLANETARY_HANDOFF_MIN_SCALE0, PLANETARY_HANDOFF_MAX_SCALE0)
-}
 
 pub(in crate::game::player) fn sync_planetary_gravity(
     frame: Res<UsfSpatialFrame>,
@@ -296,18 +287,17 @@ pub(in crate::game::player) fn sync_travel_state(
     state.nearest_body_radius_scale0 =
         nearest.map(|measurement| measurement.extent_radius_scale0());
     state.planetary_handoff_clearance_scale0 =
-        nearest.map(|measurement| handoff_clearance(measurement.extent_radius_scale0()));
+        nearest.map(|measurement| planetary_handoff_clearance(measurement.extent_radius_scale0()));
     state.planetary_handoff_available = nearest.is_some_and(|measurement| {
         measurement.boundary_clearance_scale0()
-            <= handoff_clearance(measurement.extent_radius_scale0())
+            <= planetary_handoff_clearance(measurement.extent_radius_scale0())
     });
     state.planetary_context = nearest.is_some_and(|measurement| {
         measurement.relative_proximity() <= APPROACH_REFINEMENT_ACTIVATION_RADII
     });
     state.critical_dropout = nearest.is_some_and(|measurement| {
         measurement.boundary_clearance_scale0()
-            <= handoff_clearance(measurement.extent_radius_scale0())
-                * CRITICAL_DROPOUT_FRACTION
+            <= critical_dropout_clearance(measurement.extent_radius_scale0())
     });
 
 }

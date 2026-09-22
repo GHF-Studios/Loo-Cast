@@ -42,6 +42,7 @@ pub use transition::{
 pub use view::{
     UsfDistanceMeshLod, UsfLocalScalePresentation, UsfScaleFallbackPresentation, UsfScalePresentation,
     UsfSceneryPresentation, UsfViewAnchor, UsfViewContext, UsfViewRenderAnchor,
+    UsfViewScaleDemand,
 };
 
 use avian3d::prelude::Position;
