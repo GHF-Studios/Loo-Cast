@@ -12,7 +12,7 @@ pub(in crate::game::player) fn look(
     mouse: Res<AccumulatedMouseMotion>,
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
-    player: Single<(&PlayerController, &mut PlayerAim), With<LocalControlSubject>>,
+    player: Single<(&PlayerController, &mut PlayerAim), With<Player>>,
 ) {
     if gameplay_suppressed(&keyboard, &capture) {
         return;

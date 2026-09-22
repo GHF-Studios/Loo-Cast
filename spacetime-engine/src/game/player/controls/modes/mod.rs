@@ -2,13 +2,11 @@
 
 use super::*;
 
-fn reset_motion_state(
+fn reset_control_state(
     input: &mut CharacterMovementInput,
     ground: &mut CharacterGroundState,
-    velocity: &mut LinearVelocity,
 ) {
     input.clear();
-    velocity.0 = Vec3::ZERO;
     ground.grounded = false;
     ground.ground_entity = None;
 }
@@ -20,13 +18,12 @@ fn reset_motion_state(
 pub(in crate::game::player) fn toggle_local_flight(
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
-    player: Single<
+    dead: Single<Option<&PlayerDead>, With<Player>>,
+    subject: Single<
         (
-            Option<&PlayerDead>,
             &mut ControlledSubjectLocomotion,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
-            &mut LinearVelocity,
         ),
         With<LocalControlSubject>,
     >,
@@ -35,8 +32,8 @@ pub(in crate::game::player) fn toggle_local_flight(
         return;
     }
 
-    let (dead, mut locomotion, mut input, mut ground, mut velocity) = player.into_inner();
-    if dead.is_some() {
+    let (mut locomotion, mut input, mut ground) = subject.into_inner();
+    if dead.into_inner().is_some() {
         return;
     }
 
@@ -50,7 +47,7 @@ pub(in crate::game::player) fn toggle_local_flight(
         locomotion.set_thrusters_enabled(true);
     }
 
-    reset_motion_state(&mut input, &mut ground, &mut velocity);
+    reset_control_state(&mut input, &mut ground);
 }
 
 /// `X` toggles translational thrusters inside detailed-slice Local Flight.
@@ -60,15 +57,14 @@ pub(in crate::game::player) fn toggle_local_flight(
 pub(in crate::game::player) fn toggle_local_flight_thrusters(
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
-    player: Single<
+    dead: Single<Option<&PlayerDead>, With<Player>>,
+    subject: Single<
         (
-            Option<&PlayerDead>,
             &UsfScaleLayer,
             &PlayerDetailedPhysicsScale,
             &mut ControlledSubjectLocomotion,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
-            &mut LinearVelocity,
         ),
         With<LocalControlSubject>,
     >,
@@ -77,10 +73,10 @@ pub(in crate::game::player) fn toggle_local_flight_thrusters(
         return;
     }
 
-    let (dead, layer, detailed, mut locomotion, mut input, mut ground, mut velocity) =
-        player.into_inner();
+    let (layer, detailed, mut locomotion, mut input, mut ground) =
+        subject.into_inner();
 
-    if dead.is_some()
+    if dead.into_inner().is_some()
         || layer.scale() != detailed.0
         || (locomotion.regime() != PlayerLocomotionRegime::LocalFlight
             && locomotion.request()
@@ -91,7 +87,7 @@ pub(in crate::game::player) fn toggle_local_flight_thrusters(
 
     let enabled = !locomotion.thrusters_enabled();
     locomotion.set_thrusters_enabled(enabled);
-    reset_motion_state(&mut input, &mut ground, &mut velocity);
+    reset_control_state(&mut input, &mut ground);
 }
 
 /// `C` toggles an explicit adaptive Cruise request.
@@ -101,9 +97,9 @@ pub(in crate::game::player) fn toggle_local_flight_thrusters(
 pub(in crate::game::player) fn toggle_adaptive_cruise(
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
-    player: Single<
+    dead: Single<Option<&PlayerDead>, With<Player>>,
+    subject: Single<
         (
-            Option<&PlayerDead>,
             &PlayerTravelState,
             &mut ControlledSubjectLocomotion,
             &mut PlayerAdaptiveCruise,
@@ -117,9 +113,9 @@ pub(in crate::game::player) fn toggle_adaptive_cruise(
         return;
     }
 
-    let (dead, travel, mut locomotion, mut cruise, mut input, mut ground) =
-        player.into_inner();
-    if dead.is_some() {
+    let (travel, mut locomotion, mut cruise, mut input, mut ground) =
+        subject.into_inner();
+    if dead.into_inner().is_some() {
         return;
     }
 
@@ -272,10 +268,10 @@ fn automatic_regime(
 /// hysteresis preventing boundary chatter.
 pub(in crate::game::player) fn resolve_locomotion_state(
     mut transitions: MessageWriter<ControlledSubjectLocomotionChanged>,
-    player: Single<
+    dead: Single<Option<&PlayerDead>, With<Player>>,
+    subject: Single<
         (
             Entity,
-            Option<&PlayerDead>,
             &UsfScaleLayer,
             &PlayerDetailedPhysicsScale,
             &PlayerTravelState,
@@ -286,8 +282,9 @@ pub(in crate::game::player) fn resolve_locomotion_state(
         With<LocalControlSubject>,
     >,
 ) {
-    let (entity, dead, layer, detailed, travel, capabilities, enabled, mut locomotion) =
-        player.into_inner();
+    let (entity, layer, detailed, travel, capabilities, enabled, mut locomotion) =
+        subject.into_inner();
+    let dead = dead.into_inner();
 
     let previous_regime = locomotion.regime();
     let previous_kernel = locomotion.kernel();
@@ -402,17 +399,18 @@ pub(in crate::game::player) fn resolve_locomotion_state(
 /// components directly.
 pub(in crate::game::player) fn sync_locomotion_runtime(
     mut commands: Commands,
-    player: Single<
+    dead: Single<Option<&PlayerDead>, With<Player>>,
+    subject: Single<
         (
             Entity,
             Ref<UsfScaleLayer>,
-            &PlayerStance,
-            &PlayerScaleInteractionProxy,
+            Option<&PlayerStance>,
+            Option<&PlayerScaleInteractionProxy>,
             Option<&ControlledSubjectHull>,
             &ControlledSubjectLocomotion,
+            &LocomotionEnabled,
             Option<&CharacterMotor>,
             Option<&Collider>,
-            Option<&PlayerDead>,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
         ),
@@ -426,14 +424,14 @@ pub(in crate::game::player) fn sync_locomotion_runtime(
         proxy,
         hull,
         locomotion,
+        enabled,
         motor,
         collider,
-        dead,
         mut input,
         mut ground,
-    ) = player.into_inner();
+    ) = subject.into_inner();
 
-    if dead.is_some() {
+    if dead.into_inner().is_some() || !enabled.0 {
         if motor.is_some() {
             commands.entity(entity).remove::<CharacterMotor>();
         }
@@ -457,7 +455,7 @@ pub(in crate::game::player) fn sync_locomotion_runtime(
                 let collider = if let Some(hull) = hull {
                     let size = hull.size();
                     Collider::cuboid(size.x, size.y, size.z)
-                } else if stance.crouched {
+                } else if stance.is_some_and(|stance| stance.crouched) {
                     CharacterDimensions::crouching_collider()
                 } else {
                     CharacterDimensions::standing_collider()
@@ -470,7 +468,9 @@ pub(in crate::game::player) fn sync_locomotion_runtime(
                 commands
                     .entity(entity)
                     .insert(Collider::sphere(
-                        hull.map_or(proxy.radius_native, |hull| hull.proxy_radius_native())
+                        hull.map(|hull| hull.proxy_radius_native())
+                            .or_else(|| proxy.map(|proxy| proxy.radius_native))
+                            .unwrap_or(PlayerScaleInteractionProxy::DEFAULT_RADIUS_NATIVE)
                             .max(0.001),
                     ));
             }

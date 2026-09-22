@@ -61,10 +61,7 @@ use crate::{
     voxel::VoxelMaterializationDemand,
 };
 
-use crate::game::{
-    control::LocalControlSubject,
-    locomotion::{LocomotionCapabilities, LocomotionEnabled},
-};
+use crate::game::locomotion::{LocomotionCapabilities, LocomotionEnabled};
 
 use super::{
     GameSet, InputSet, PresentationSet,

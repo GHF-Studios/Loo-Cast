@@ -7,7 +7,7 @@
 use bevy::prelude::*;
 
 use super::{
-    ControlledSubjectLocomotion, Player, PlayerAdaptiveCruise, PlayerDetailedPhysicsScale,
+    ControlledSubjectLocomotion, PlayerAdaptiveCruise, PlayerDetailedPhysicsScale,
     PlayerLocomotionRegime, PlayerMotionKernel, PlayerTravelEnvelope, PlayerTravelState,
 };
 use crate::{

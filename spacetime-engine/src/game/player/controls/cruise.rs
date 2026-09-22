@@ -15,13 +15,12 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
     presentation: Res<PrimaryViewPresentation>,
     mut was_active: Local<bool>,
     mut was_explicit: Local<bool>,
-    player: Single<
+    controller: Single<(&PlayerAim, Option<&PlayerDead>), With<Player>>,
+    subject: Single<
         (
             &mut Transform,
             &UsfScaleLayer,
             &CharacterControlFrame,
-            Option<&PlayerDead>,
-            &PlayerAim,
             &ControlledSubjectLocomotion,
             &mut PlayerAdaptiveCruise,
             &PlayerTravelEnvelope,
@@ -31,18 +30,17 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
         With<LocalControlSubject>,
     >,
 ) {
+    let (aim, dead) = controller.into_inner();
     let (
         mut body,
         layer,
         control,
-        dead,
-        aim,
         locomotion,
         mut cruise,
         envelope,
         travel,
         velocity,
-    ) = player.into_inner();
+    ) = subject.into_inner();
 
     if locomotion.kernel() != PlayerMotionKernel::Cruise {
         *was_active = false;

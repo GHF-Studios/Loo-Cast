@@ -12,13 +12,13 @@ use super::*;
 pub(in crate::game::player) fn sync_player_camera(
     spatial_query: SpatialQuery,
     physics_charts: UsfPhysicsCharts,
-    player: Single<
+    controller: Single<(&PlayerAim, &PlayerStance), With<Player>>,
+    subject: Single<
         (
             Entity,
             &Transform,
             &CharacterControlFrame,
-            &PlayerAim,
-            &PlayerStance,
+            Option<&ControlledSubjectHull>,
             &UsfManifestationOf,
             &UsfScaleLayer,
         ),
@@ -38,15 +38,21 @@ pub(in crate::game::player) fn sync_player_camera(
         (With<Portal>, Without<PlayerCamera>),
     >,
 ) {
-    let (player_entity, body, control, aim, stance, manifestation, layer) =
-        player.into_inner();
+    let (aim, stance) = controller.into_inner();
+    let (subject_entity, body, control, hull, manifestation, layer) =
+        subject.into_inner();
     let (mut camera, mut camera_transform) = camera.into_inner();
 
     // Camera rig dimensions are presentation-space values. They remain
     // visually useful across scale changes while USF projection keeps
     // scenery observer-relative to the actual camera.
     let view_rotation = camera.view_rotation(control, aim);
-    let eye = camera.eye_position(body, control, stance);
+    let eye = if let Some(hull) = hull {
+        body.translation
+            + control.rotation() * Vec3::Y * (hull.size().y * 0.5 + 0.5)
+    } else {
+        camera.eye_position(body, control, stance)
+    };
 
     *camera_transform = match camera.mode {
         CameraMode::FirstPerson => Transform {
@@ -62,7 +68,7 @@ pub(in crate::game::player) fn sync_player_camera(
                 &physics_charts,
                 &semantic_entities,
                 &portals,
-                player_entity,
+                subject_entity,
                 manifestation,
                 layer.scale(),
                 pivot,

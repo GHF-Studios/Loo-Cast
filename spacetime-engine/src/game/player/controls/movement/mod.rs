@@ -18,15 +18,20 @@ use crate::physics::{
 pub(in crate::game::player) fn movement(
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
-    player: Single<
+    controller: Single<
+        (
+            &PlayerController,
+            &PlayerAim,
+            &PlayerTravelSpeed,
+            Option<&PlayerDead>,
+        ),
+        With<Player>,
+    >,
+    subject: Single<
         (
             &CharacterLocomotionFrame,
             &CharacterControlFrame,
-            Option<&PlayerDead>,
-            &PlayerAim,
-            &PlayerController,
-            &PlayerStance,
-            &PlayerTravelSpeed,
+            Option<&PlayerStance>,
             &ControlledSubjectLocomotion,
             &CharacterMovementConfig,
             &mut CharacterMovementInput,
@@ -34,18 +39,10 @@ pub(in crate::game::player) fn movement(
         With<LocalControlSubject>,
     >,
 ) {
-    let (
-        frame,
-        control,
-        dead,
-        aim,
-        controller,
-        stance,
-        travel_speed,
-        locomotion,
-        movement_config,
-        mut input,
-    ) = player.into_inner();
+    let (controller, aim, travel_speed, dead) = controller.into_inner();
+    let (frame, control, stance, locomotion, movement_config, mut input) =
+        subject.into_inner();
+    let crouched = stance.is_some_and(|stance| stance.crouched);
 
     if dead.is_some()
         || gameplay_suppressed(&keyboard, &capture)
@@ -55,10 +52,10 @@ pub(in crate::game::player) fn movement(
         return;
     }
 
-    let sprinting = !stance.crouched
+    let sprinting = !crouched
         && (keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight));
 
-    let stance_multiplier = if stance.crouched {
+    let stance_multiplier = if crouched {
         controller.crouch_speed_multiplier
     } else if sprinting {
         controller.sprint_multiplier
@@ -127,42 +124,44 @@ pub(in crate::game::player) fn local_flight_movement(
     capture: Res<CursorCapture>,
     move_and_slide: MoveAndSlide,
     physics_charts: UsfPhysicsCharts,
-    player: Single<
+    controller: Single<
+        (
+            &PlayerController,
+            &PlayerAim,
+            &PlayerTravelSpeed,
+            Option<&PlayerDead>,
+        ),
+        With<Player>,
+    >,
+    subject: Single<
         (
             Entity,
             &mut Transform,
             &CharacterLocomotionFrame,
             &CharacterControlFrame,
-            Option<&PlayerDead>,
-            &PlayerAim,
-            &PlayerController,
             &ControlledSubjectLocomotion,
             &UsfScaleLayer,
             &Collider,
             Option<&KinematicQueryExclusions>,
-            &PlayerTravelSpeed,
             &PlayerTravelEnvelope,
             &mut LinearVelocity,
         ),
         With<LocalControlSubject>,
     >,
 ) {
+    let (controller, aim, travel_speed, dead) = controller.into_inner();
     let (
         entity,
         mut body,
         frame,
         control,
-        dead,
-        aim,
-        controller,
         locomotion,
         layer,
         collider,
         exclusions,
-        travel_speed,
         envelope,
         mut velocity,
-    ) = player.into_inner();
+    ) = subject.into_inner();
 
     if dead.is_some()
         || locomotion.kernel() != PlayerMotionKernel::ThrusterFlight
@@ -228,19 +227,17 @@ pub(in crate::game::player) fn scale_navigation_movement(
     capture: Res<CursorCapture>,
     move_and_slide: MoveAndSlide,
     physics_charts: UsfPhysicsCharts,
-    player: Single<
+    controller: Single<(&PlayerAim, &PlayerTravelSpeed, Option<&PlayerDead>), With<Player>>,
+    subject: Single<
         (
             Entity,
             &mut Transform,
             &CharacterLocomotionFrame,
             &CharacterControlFrame,
-            Option<&PlayerDead>,
-            &PlayerAim,
             &ControlledSubjectLocomotion,
             &UsfScaleLayer,
             &Collider,
             Option<&KinematicQueryExclusions>,
-            &PlayerTravelSpeed,
             &PlayerTravelEnvelope,
             &PlayerTravelState,
             &mut LinearVelocity,
@@ -248,22 +245,20 @@ pub(in crate::game::player) fn scale_navigation_movement(
         With<LocalControlSubject>,
     >,
 ) {
+    let (aim, travel_speed, dead) = controller.into_inner();
     let (
         entity,
         mut body,
         frame,
         control,
-        dead,
-        aim,
         locomotion,
         layer,
         collider,
         exclusions,
-        travel_speed,
         envelope,
         travel,
         mut velocity,
-    ) = player.into_inner();
+    ) = subject.into_inner();
 
     if dead.is_some()
         || locomotion.kernel() != PlayerMotionKernel::ScaleNavigation
@@ -363,13 +358,13 @@ pub(in crate::game::player) fn inertial_flight_movement(
     capture: Res<CursorCapture>,
     move_and_slide: MoveAndSlide,
     physics_charts: UsfPhysicsCharts,
+    controller: Single<(&PlayerAim, Option<&PlayerDead>), With<Player>>,
     subject: Single<
         (
             Entity,
             &mut Transform,
             &CharacterLocomotionFrame,
             &CharacterControlFrame,
-            &PlayerAim,
             &ControlledSubjectLocomotion,
             &UsfScaleLayer,
             &Collider,
@@ -380,12 +375,12 @@ pub(in crate::game::player) fn inertial_flight_movement(
         With<LocalControlSubject>,
     >,
 ) {
+    let (aim, dead) = controller.into_inner();
     let (
         entity,
         mut body,
         frame,
         control,
-        aim,
         locomotion,
         layer,
         collider,
@@ -394,7 +389,8 @@ pub(in crate::game::player) fn inertial_flight_movement(
         mut velocity,
     ) = subject.into_inner();
 
-    if locomotion.kernel() != PlayerMotionKernel::InertialFlight
+    if dead.is_some()
+        || locomotion.kernel() != PlayerMotionKernel::InertialFlight
         || gameplay_suppressed(&keyboard, &capture)
     {
         return;
@@ -440,12 +436,12 @@ pub(in crate::game::player) fn orbital_flight_movement(
     time: Res<Time<Fixed>>,
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
+    controller: Single<(&PlayerAim, Option<&PlayerDead>), With<Player>>,
     subject: Single<
         (
             &mut Transform,
             &CharacterLocomotionFrame,
             &CharacterControlFrame,
-            &PlayerAim,
             &ControlledSubjectLocomotion,
             &UsfScaleLayer,
             &PlayerTravelState,
@@ -454,18 +450,19 @@ pub(in crate::game::player) fn orbital_flight_movement(
         With<LocalControlSubject>,
     >,
 ) {
+    let (aim, dead) = controller.into_inner();
     let (
         mut body,
         frame,
         control,
-        aim,
         locomotion,
         layer,
         travel,
         mut velocity,
     ) = subject.into_inner();
 
-    if locomotion.kernel() != PlayerMotionKernel::OrbitalFlight
+    if dead.is_some()
+        || locomotion.kernel() != PlayerMotionKernel::OrbitalFlight
         || gameplay_suppressed(&keyboard, &capture)
     {
         return;

@@ -10,7 +10,7 @@ use crate::{
         item::{ItemAction, ItemCatalog},
         control::LocalControlSubject,
         player::{
-            CameraMode, ControlledSubjectLocomotion, Player, PlayerAdaptiveCruise,
+            CameraMode, ControlledSubjectLocomotion, PlayerAdaptiveCruise,
             PlayerCamera, PlayerLocomotionRegime, PlayerLocomotionRequest,
             PlayerMotionKernel, PlayerTravelEnvelope, PlayerTravelSpeed, PlayerTravelState,
         },
