@@ -69,6 +69,8 @@ pub(super) use navigation::{
     sync_travel_state,
 };
 pub(super) use travel::{
-    critical_dropout_clearance, planetary_handoff_clearance, sync_travel_envelope,
+    critical_dropout_clearance, local_flight_capture_clearance,
+    local_flight_release_clearance, planetary_handoff_clearance,
+    planetary_release_clearance, sync_travel_envelope,
 };
 pub(super) use view::{look, zoom_spatial_view};

@@ -15,9 +15,14 @@ const MANUAL_MIN_METRES_PER_SECOND: f64 = 8.0;
 const MANUAL_MAX_METRES_PER_SECOND: f64 = 2_500.0;
 const MANUAL_CHARACTERISTIC_TRAVERSAL_SECONDS: f64 = 90.0;
 
-const CRUISE_FALLBACK_DEFAULT_METRES_PER_SECOND: f64 = 10_000_000.0;
-const CRUISE_FALLBACK_MAX_METRES_PER_SECOND: f64 = 1_000_000_000.0;
-const CRUISE_BRAKING_ACCELERATION_METRES_PER_SECOND2: f64 = 120.0;
+const CRUISE_FALLBACK_DEFAULT_METRES_PER_SECOND: f64 = 250_000_000.0;
+const CRUISE_FALLBACK_MAX_METRES_PER_SECOND: f64 = 10_000_000_000.0;
+
+// Cruise is a game-scale travel regime, not a conventional rocket simulation.
+// High canonical deceleration capability lets it remain genuinely fast until
+// semantic structure becomes relevant while still converging smoothly into the
+// body-relative capture envelope.
+const CRUISE_BRAKING_ACCELERATION_METRES_PER_SECOND2: f64 = 60_000.0;
 const PLANETARY_CAPTURE_SPEED_MIN_METRES_PER_SECOND: f64 = 250.0;
 const PLANETARY_CAPTURE_SPEED_MAX_METRES_PER_SECOND: f64 = 2_500.0;
 
@@ -30,6 +35,12 @@ const MEDIUM_MIN_RESISTANCE: f64 = 0.01;
 const LOOKAHEAD_SECONDS: f64 = 8.0;
 const APPROACH_RESOLUTION_DIVISOR: f64 = 4.0;
 
+const PLANETARY_RELEASE_MULTIPLIER: f64 = 1.75;
+const LOCAL_FLIGHT_RADIUS_FRACTION: f64 = 0.02;
+const LOCAL_FLIGHT_MIN_METRES: f64 = 10_000.0;
+const LOCAL_FLIGHT_MAX_METRES: f64 = 75_000.0;
+const LOCAL_FLIGHT_RELEASE_MULTIPLIER: f64 = 2.0;
+
 pub(in crate::game::player) fn planetary_handoff_clearance(radius_metres: f64) -> f64 {
     (radius_metres * PLANETARY_HANDOFF_RADIUS_FRACTION)
         .clamp(PLANETARY_HANDOFF_MIN_METRES, PLANETARY_HANDOFF_MAX_METRES)
@@ -39,6 +50,25 @@ pub(in crate::game::player) fn planetary_handoff_clearance(radius_metres: f64) -
 /// This is a state transition, not an emergency stop.
 pub(in crate::game::player) fn critical_dropout_clearance(radius_metres: f64) -> f64 {
     planetary_handoff_clearance(radius_metres)
+}
+
+/// Outer hysteresis boundary for leaving body-relative flight.
+pub(in crate::game::player) fn planetary_release_clearance(radius_metres: f64) -> f64 {
+    planetary_handoff_clearance(radius_metres) * PLANETARY_RELEASE_MULTIPLIER
+}
+
+/// Local maneuvering becomes meaningful only near the body's surface/structure.
+///
+/// This is canonical gameplay policy. It is deliberately unrelated to the
+/// current Scale Slice.
+pub(in crate::game::player) fn local_flight_capture_clearance(radius_metres: f64) -> f64 {
+    (radius_metres * LOCAL_FLIGHT_RADIUS_FRACTION)
+        .clamp(LOCAL_FLIGHT_MIN_METRES, LOCAL_FLIGHT_MAX_METRES)
+}
+
+/// Outer hysteresis boundary for remaining in Local Flight after capture.
+pub(in crate::game::player) fn local_flight_release_clearance(radius_metres: f64) -> f64 {
+    local_flight_capture_clearance(radius_metres) * LOCAL_FLIGHT_RELEASE_MULTIPLIER
 }
 
 pub(in crate::game::player) fn sync_travel_envelope(

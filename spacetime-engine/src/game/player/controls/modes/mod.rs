@@ -157,25 +157,103 @@ pub(in crate::game::player) fn toggle_spatial_demand(
     player.toggle();
 }
 
+fn nearest_body_clearance_and_radius(
+    travel: &PlayerTravelState,
+) -> Option<(f64, f64)> {
+    Some((
+        travel.nearest_body_clearance_scale0?,
+        travel.nearest_body_radius_scale0?,
+    ))
+}
+
+fn regime_allowed(
+    requested: PlayerLocomotionRegime,
+    previous: PlayerLocomotionRegime,
+    layer: SpatialScale,
+    detailed: SpatialScale,
+    travel: &PlayerTravelState,
+) -> bool {
+    if requested == PlayerLocomotionRegime::OnFoot {
+        return layer == detailed;
+    }
+
+    let Some((clearance, radius)) = nearest_body_clearance_and_radius(travel) else {
+        return requested == PlayerLocomotionRegime::Cruise;
+    };
+
+    match requested {
+        PlayerLocomotionRegime::OnFoot => layer == detailed,
+        PlayerLocomotionRegime::LocalFlight => {
+            let limit = if previous == PlayerLocomotionRegime::LocalFlight {
+                local_flight_release_clearance(radius)
+            } else {
+                local_flight_capture_clearance(radius)
+            };
+            clearance <= limit
+        }
+        PlayerLocomotionRegime::PlanetaryFlight => {
+            let limit = if previous == PlayerLocomotionRegime::PlanetaryFlight
+                || previous == PlayerLocomotionRegime::LocalFlight
+            {
+                planetary_release_clearance(radius)
+            } else {
+                planetary_handoff_clearance(radius)
+            };
+            clearance <= limit
+        }
+        PlayerLocomotionRegime::Cruise => {
+            let limit = if previous == PlayerLocomotionRegime::Cruise {
+                planetary_handoff_clearance(radius)
+            } else {
+                planetary_release_clearance(radius)
+            };
+            clearance > limit
+        }
+    }
+}
+
 fn automatic_regime(
+    previous: PlayerLocomotionRegime,
     layer: SpatialScale,
     detailed: SpatialScale,
     travel: &PlayerTravelState,
 ) -> PlayerLocomotionRegime {
     if layer == detailed {
-        PlayerLocomotionRegime::OnFoot
-    } else if travel.planetary_context {
-        PlayerLocomotionRegime::PlanetaryFlight
+        return PlayerLocomotionRegime::OnFoot;
+    }
+
+    let Some((clearance, radius)) = nearest_body_clearance_and_radius(travel) else {
+        return PlayerLocomotionRegime::Cruise;
+    };
+
+    let planetary_limit = if previous == PlayerLocomotionRegime::Cruise {
+        planetary_handoff_clearance(radius)
     } else {
+        planetary_release_clearance(radius)
+    };
+
+    if clearance > planetary_limit {
+        return PlayerLocomotionRegime::Cruise;
+    }
+
+    let local_limit = if previous == PlayerLocomotionRegime::LocalFlight {
+        local_flight_release_clearance(radius)
+    } else {
+        local_flight_capture_clearance(radius)
+    };
+
+    if clearance <= local_limit {
         PlayerLocomotionRegime::LocalFlight
+    } else {
+        PlayerLocomotionRegime::PlanetaryFlight
     }
 }
 
 /// Resolves control intent into exactly one authoritative motion kernel.
 ///
-/// Scale is an input to this policy, not the state machine itself. No movement
-/// implementation is allowed to independently infer authority from scale,
-/// Cruise flags, thruster flags, etc.
+/// Scale is a numerical chart input, not a locomotion domain. Semantic body
+/// proximity determines which regimes are valid, with capture/release
+/// hysteresis preventing boundary chatter.
 pub(in crate::game::player) fn resolve_locomotion_state(
     mut transitions: MessageWriter<ControlledSubjectLocomotionChanged>,
     player: Single<
@@ -214,27 +292,28 @@ pub(in crate::game::player) fn resolve_locomotion_state(
         return;
     }
 
-    if travel.critical_dropout
-        && locomotion.request()
-            == PlayerLocomotionRequest::Regime(PlayerLocomotionRegime::Cruise)
-    {
-        locomotion.request_automatic();
-    }
+    let automatic =
+        automatic_regime(previous_regime, layer.scale(), detailed.0, travel);
 
-    let automatic = automatic_regime(layer.scale(), detailed.0, travel);
     let regime = match locomotion.request() {
         PlayerLocomotionRequest::Automatic => automatic,
-        PlayerLocomotionRequest::Regime(PlayerLocomotionRegime::OnFoot)
-            if layer.scale() != detailed.0 =>
+        PlayerLocomotionRequest::Regime(requested)
+            if regime_allowed(
+                requested,
+                previous_regime,
+                layer.scale(),
+                detailed.0,
+                travel,
+            ) =>
         {
+            requested
+        }
+        PlayerLocomotionRequest::Regime(_) => {
+            // Invalid explicit requests are rejected rather than left latent to
+            // surprise-activate when the player later enters that domain.
+            locomotion.request_automatic();
             automatic
         }
-        PlayerLocomotionRequest::Regime(PlayerLocomotionRegime::PlanetaryFlight)
-            if layer.scale() == detailed.0 =>
-        {
-            automatic
-        }
-        PlayerLocomotionRequest::Regime(regime) => regime,
     };
 
     let (kernel, collision_policy, velocity_semantics) =

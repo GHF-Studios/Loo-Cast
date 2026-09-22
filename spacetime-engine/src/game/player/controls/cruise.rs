@@ -14,6 +14,7 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
     capture: Res<CursorCapture>,
     presentation: Res<PrimaryViewPresentation>,
     mut was_active: Local<bool>,
+    mut was_explicit: Local<bool>,
     player: Single<
         (
             &mut Transform,
@@ -45,6 +46,7 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
 
     if locomotion.kernel() != PlayerMotionKernel::Cruise {
         *was_active = false;
+        *was_explicit = false;
         return;
     }
 
@@ -60,20 +62,29 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
         return;
     }
 
+    let explicit =
+        locomotion.request() == PlayerLocomotionRequest::Regime(PlayerLocomotionRegime::Cruise);
     let just_engaged = !*was_active;
+    let just_explicitly_engaged = explicit && !*was_explicit;
     *was_active = true;
+    *was_explicit = explicit;
 
     cruise.speed_cap_scale0 = envelope.cruise_max_speed_metres_per_second;
     cruise.default_speed_scale0 = envelope.cruise_default_speed_metres_per_second;
     cruise.nearest_hard_clearance_scale0 = travel.nearest_body_clearance_scale0;
     cruise.medium_speed_cap_scale0 = envelope.medium_speed_cap_metres_per_second;
 
-    if just_engaged {
+    if just_explicitly_engaged {
         cruise.throttle = throttle_for_speed(
             envelope.cruise_default_speed_metres_per_second,
             envelope.cruise_max_speed_metres_per_second,
         );
         cruise.speed_scale0 = envelope.cruise_default_speed_metres_per_second;
+    } else if just_engaged {
+        // Automatic deep-space Cruise is a semantic domain, not an instruction
+        // to launch forward. It begins idle until the player supplies throttle.
+        cruise.throttle = 0.0;
+        cruise.speed_scale0 = 0.0;
     }
 
     let throttle_delta =
