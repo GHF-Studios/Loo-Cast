@@ -5,7 +5,7 @@ use bevy::prelude::*;
 
 use crate::{
     config::EngineConfig,
-    spatial::{UsfViewContext, UsfViewRenderAnchor},
+    spatial::{UsfScaleLayer, UsfViewContext, UsfViewRenderAnchor},
 };
 
 use super::{VoxelManifestation, VoxelManifestationRegistry};
@@ -17,7 +17,7 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
     config: Res<EngineConfig>,
     mut commands: Commands,
     view: Single<Ref<UsfViewContext>, With<UsfViewRenderAnchor>>,
-    worlds: Query<(&VoxelWorld, Option<&VoxelCollisionDisabled>)>,
+    worlds: Query<(&VoxelWorld, &UsfScaleLayer, Option<&VoxelCollisionDisabled>)>,
     manifestation_roots: Query<Option<&Collider>, With<VoxelManifestation>>,
     registry: Res<VoxelManifestationRegistry>,
 ) {
@@ -29,7 +29,7 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
         let Some(&expected_revision) = registry.revisions.get(&key) else {
             continue;
         };
-        let Ok((world, collision_disabled)) = worlds.get(key.world) else {
+        let Ok((world, layer, collision_disabled)) = worlds.get(key.world) else {
             continue;
         };
 
@@ -46,6 +46,7 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
             && manifestation_collider_proximity_squared(
                 &view,
                 key.address,
+                layer.scale(),
                 config.voxel.manifestation.physics_interaction_radius_native,
             )
             .is_some();
@@ -99,12 +100,22 @@ pub(super) fn publish_collider_manifestation(
 fn manifestation_collider_proximity_squared(
     view: &UsfViewContext,
     address: VoxelMaterializationChunkAddress,
+    scale: crate::spatial::SpatialScale,
     interaction_radius_native: f32,
 ) -> Option<f32> {
     let extent = MATERIALIZATION_CHUNK_SIZE as f32;
+
+    // The semantic observer may retain a much finer leaf (for example S-35)
+    // than this concrete voxel realization. Collider residency is a slice-local
+    // question, so compare canonically at the realization's Scale Slice rather
+    // than requiring identical leaf scales.
     let minimum = address
         .origin()
-        .relative_native_bounded(view.anchor(), interaction_radius_native + extent * 2.0)
+        .relative_at_scale_bounded(
+            view.anchor(),
+            scale,
+            interaction_radius_native + extent * 2.0,
+        )
         .ok()?;
     let maximum = minimum + Vec3::splat(extent);
     let nearest = Vec3::new(

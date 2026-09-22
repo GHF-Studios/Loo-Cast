@@ -129,7 +129,10 @@ pub(in crate::game::player) fn sync_approach_refinement_view(
         // realization. Coarser scale navigation is allowed without inventing
         // terrain/collision requirements that do not belong there.
         let transition = if interaction_scale == refinement.minimum_scale() {
-            transition.requiring_coverage(UsfScaleRoleMask::REALIZATION, 8_192.0)
+            transition.requiring_coverage(
+                UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::COLLISION),
+                8_192.0,
+            )
         } else {
             transition
         };
@@ -213,10 +216,18 @@ pub(in crate::game::player) fn sync_planetary_gravity(
 
     let distance_scale0 =
         f64::from(relative.length()) * source.field_scale().scale0_units_per_native();
-    let ratio = (source.radius_scale0()
-        / distance_scale0.max(source.radius_scale0() * 0.25))
-        .powi(2);
-    let gravity = (f64::from(source.surface_gravity()) * ratio)
+    let radius = source.radius_scale0();
+    let gravity_factor = if distance_scale0 >= radius {
+        // Outside a spherical source: ordinary inverse-square falloff.
+        (radius / distance_scale0.max(f64::EPSILON)).powi(2)
+    } else {
+        // Inside a uniform spherical source, enclosed mass falls with r^3,
+        // therefore gravitational acceleration falls linearly toward zero at
+        // the center. This is also a sane penetration fallback: missing/tunneling
+        // collision must never turn a planet or moon into an artificial black hole.
+        (distance_scale0 / radius).clamp(0.0, 1.0)
+    };
+    let gravity = (f64::from(source.surface_gravity()) * gravity_factor)
         .clamp(0.0, f64::from(f32::MAX)) as f32;
 
     travel.local_gravity = gravity;
