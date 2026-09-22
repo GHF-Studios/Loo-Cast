@@ -96,6 +96,29 @@ impl UsfChartMask {
         Self(1_u128 << bit)
     }
 
+    /// Inclusive mask over a contiguous band of Scale Slices.
+    ///
+    /// Ordering of the arguments is irrelevant: S0..S+8 and S+8..S0 produce
+    /// the same mask. This is the common mechanism-support primitive for the
+    /// 71-slice runtime.
+    pub fn inclusive_range(a: SpatialScale, b: SpatialScale) -> Self {
+        let minimum = a.exponent().min(b.exponent());
+        let maximum = a.exponent().max(b.exponent());
+        let mut mask = Self::NONE;
+        for raw in minimum..=maximum {
+            let scale = SpatialScale::new(raw).expect("range is bounded by valid scales");
+            mask = mask.union(Self::from_scale(scale));
+        }
+        mask
+    }
+
+    pub fn iter(self) -> impl Iterator<Item = SpatialScale> {
+        (SPATIAL_SCALE_MIN..=super::SPATIAL_SCALE_MAX).filter_map(move |raw| {
+            let scale = SpatialScale::new(raw)?;
+            self.contains(scale).then_some(scale)
+        })
+    }
+
     pub const fn bits(self) -> u128 {
         self.0
     }
@@ -225,5 +248,19 @@ mod chart_mask_tests {
             accumulated = accumulated.union(mask);
         }
         assert_eq!(accumulated, UsfChartMask::ALL);
+    }
+
+    #[test]
+    fn chart_mask_inclusive_range_is_order_independent() {
+        let zero = SpatialScale::ZERO;
+        let eight = SpatialScale::new(8).unwrap();
+        let forward = UsfChartMask::inclusive_range(zero, eight);
+        let backward = UsfChartMask::inclusive_range(eight, zero);
+
+        assert_eq!(forward, backward);
+        assert!(forward.contains(zero));
+        assert!(forward.contains(eight));
+        assert!(!forward.contains(SpatialScale::new(-1).unwrap()));
+        assert_eq!(forward.iter().count(), 9);
     }
 }

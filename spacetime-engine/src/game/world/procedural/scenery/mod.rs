@@ -13,13 +13,13 @@ use crate::{
     config::EngineConfig,
     procedural_assets::ProceduralAssetLibrary,
     spatial::{
-        SpatialScale, UsfApproachRefinement, UsfPosition, UsfRadialGravitySource,
+        SpatialScale, UsfApproachRefinement, UsfChartMask, UsfPosition, UsfRadialGravitySource,
         UsfScaleFallbackPresentation, UsfScaleLayer, UsfSceneryPresentation, UsfTravelInfluence,
     },
     voxel::{
         CelestialBodyProfile, CelestialVoxelField, MATERIALIZATION_CHUNK_SIZE, VoxelAuthority, VoxelBase,
         VoxelCollisionDisabled, VoxelEditingDisabled, VoxelPinnedDemand, VoxelPresentationMaterial,
-        VoxelQueryPosition, VoxelStreaming, VoxelWorld,
+        VoxelQueryPosition, VoxelScaleDomain, VoxelStreaming, VoxelWorld,
     },
     worldgen::{
         COSMIC_MATTER_DISTRIBUTION, ECOLOGY, GALAXY_INTERSTELLAR_MEDIUM, PLANETARY_BODY,
@@ -524,12 +524,19 @@ fn spawn_celestial_body_realizations(
         seed,
         profile,
     );
+    let scale_domain = VoxelScaleDomain::contiguous(
+        SpatialScale::ZERO,
+        realization_coarsest,
+    )
+    .with_collision_slices(UsfChartMask::from_scale(SpatialScale::ZERO))
+    .with_editing_slices(UsfChartMask::from_scale(SpatialScale::ZERO));
     let authority = commands
         .spawn((
             Name::new(format!("{name} Voxel Authority")),
             ChildOf(parent),
             UsfEntity,
             field,
+            scale_domain,
             VoxelAuthority::default(),
         ))
         .id();
@@ -557,8 +564,11 @@ fn spawn_celestial_body_realizations(
             Visibility::Inherited,
         ));
 
-        if terrain_scale != SpatialScale::ZERO {
-            entity.insert((VoxelCollisionDisabled, VoxelEditingDisabled));
+        if !scale_domain.collides(terrain_scale) {
+            entity.insert(VoxelCollisionDisabled);
+        }
+        if !scale_domain.editable(terrain_scale) {
+            entity.insert(VoxelEditingDisabled);
         }
 
         if terrain_scale == realization_coarsest {

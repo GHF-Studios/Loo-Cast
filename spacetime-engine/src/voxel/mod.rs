@@ -17,6 +17,7 @@ mod medium;
 mod modification;
 mod worker;
 mod physics;
+mod realization;
 mod manifestation;
 mod store;
 mod streaming;
@@ -34,6 +35,8 @@ pub use field::{
     SignedDistance, VoxelCollisionMode, VoxelMaterialBehavior, VoxelMaterialId, VoxelSample,
 };
 pub use modification::VoxelModificationLayer;
+pub use realization::VoxelScaleDomain;
+pub(in crate::voxel) use realization::VoxelRealizationDemandSnapshot;
 pub use streaming::{
     VoxelMaterializationDemand, VoxelPinnedDemand, VoxelPresentationMaterial, VoxelStreaming,
 };
@@ -59,6 +62,7 @@ pub struct VoxelPlugin;
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum VoxelUpdateSet {
+    RealizationDemand,
     Residency,
     Generation,
 }
@@ -77,13 +81,20 @@ enum VoxelPostUpdateSet {
 impl Plugin for VoxelPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<manifestation::VoxelManifestationRegistry>()
+            .init_resource::<VoxelRealizationDemandSnapshot>()
             .add_systems(Startup, manifestation::initialize_translucent_voxel_material)
             .configure_sets(
                 Update,
                 (
-                    VoxelUpdateSet::Residency.after(SpatialDemandSet::Collect),
+                    VoxelUpdateSet::RealizationDemand.after(SpatialDemandSet::Collect),
+                    VoxelUpdateSet::Residency.after(VoxelUpdateSet::RealizationDemand),
                     VoxelUpdateSet::Generation.after(VoxelUpdateSet::Residency),
                 ),
+            )
+            .add_systems(
+                Update,
+                realization::collect_voxel_realization_demand
+                    .in_set(VoxelUpdateSet::RealizationDemand),
             )
             .add_systems(
                 Update,
