@@ -1,0 +1,407 @@
+//! Controlled-subject semantic navigation adapters.
+
+use bevy::prelude::*;
+
+use crate::{
+    ecs::UsfManifestationOf,
+    game::{
+        control::LocalControlSubject,
+        locomotion::{ControlledSubjectLocomotion, VelocitySemantics},
+    },
+    physics::character::{CharacterLocomotionFrame, CharacterMovementConfig},
+    spatial::{
+        SpatialRefinementDemand, SpatialScale, UsfApproachRefinement,
+        UsfInteractionRequirement, UsfNavigationContext, UsfRadialGravitySource,
+        UsfScaleLayer, UsfScaleRoleMask, UsfSpatialFrame, UsfSpatialTransitionQueue,
+        UsfTransitionVelocity, UsfTravelInfluence, UsfTravelInfluenceKind,
+        UsfTravelNeighborhood, UsfViewContext, UsfViewRenderAnchor,
+    },
+};
+
+use super::{
+    ApproachRefinementState, PrimaryBodyContext, TravelEnvelope, TravelProfile, TravelState,
+};
+
+/// Refreshes the sparse travel neighborhood and derives the characteristic
+/// spatial length currently being navigated.
+pub(super) fn sync_navigation_context(
+    time: Res<Time>,
+    frame: Res<UsfSpatialFrame>,
+    influences: Query<(Entity, &UsfTravelInfluence)>,
+    subject: Single<
+        (
+            &Transform,
+            &UsfScaleLayer,
+            &mut UsfTravelNeighborhood,
+            &mut UsfNavigationContext,
+        ),
+        With<LocalControlSubject>,
+    >,
+) {
+    let (body, layer, mut neighborhood, mut navigation) = subject.into_inner();
+    let scale = layer.scale();
+    let Ok(position) = frame
+        .origin()
+        .translated_at_scale(scale, body.translation)
+    else {
+        return;
+    };
+
+    neighborhood.advance(time.delta_secs().max(0.0));
+    if neighborhood.needs_refresh(&position, scale) {
+        neighborhood.refresh(
+            position,
+            scale,
+            influences
+                .iter()
+                .map(|(entity, influence)| (entity, *influence)),
+        );
+    }
+
+    let resolved = UsfNavigationContext::resolve(&position, scale, &neighborhood);
+    if *navigation != resolved {
+        *navigation = resolved;
+    }
+}
+
+fn scale_for_resolution(
+    resolution_metres: f64,
+    minimum: SpatialScale,
+    maximum: SpatialScale,
+) -> SpatialScale {
+    let exponent = resolution_metres
+        .max(1.0e-35)
+        .log10()
+        .ceil()
+        .clamp(
+            f64::from(minimum.exponent()),
+            f64::from(maximum.exponent()),
+        ) as i8;
+    SpatialScale::new(exponent).expect("clamped USF resolution scale")
+}
+
+/// Semantic planner for approaching refinable structure.
+///
+/// It owns neither rendering nor interaction. It determines how much spatial
+/// resolution is needed and how much finer reality should be realized ahead of
+/// the moving subject.
+pub(super) fn plan_approach_refinement(
+    time: Res<Time>,
+    frame: Res<UsfSpatialFrame>,
+    subject: Single<
+        (
+            &Transform,
+            &UsfScaleLayer,
+            &TravelProfile,
+            &TravelEnvelope,
+            &mut ApproachRefinementState,
+            &mut SpatialRefinementDemand,
+        ),
+        With<LocalControlSubject>,
+    >,
+    refinable: Query<(&UsfTravelInfluence, &UsfApproachRefinement)>,
+) {
+    let (
+        body,
+        layer,
+        profile,
+        envelope,
+        mut state,
+        mut realization_demand,
+    ) = subject.into_inner();
+
+    let observer_scale = layer.scale();
+    let Ok(observer) = frame
+        .origin()
+        .translated_at_scale(observer_scale, body.translation)
+    else {
+        return;
+    };
+
+    let mut selected = None::<(UsfTravelInfluence, UsfApproachRefinement, f64)>;
+    for (influence, refinement) in &refinable {
+        let Some(measurement) = influence.measure_from(&observer) else {
+            continue;
+        };
+        let relative = measurement.relative_proximity();
+        if relative > profile.approach.activation_radii {
+            continue;
+        }
+        if selected.is_none_or(|(_, _, current)| relative < current) {
+            selected = Some((*influence, *refinement, relative));
+        }
+    }
+
+    let Some((influence, refinement, _)) = selected else {
+        state.active = false;
+        state.interaction_target_scale = layer.scale();
+        state.realization_target_scale = layer.scale();
+        realization_demand.clear();
+        return;
+    };
+    let Some(measurement) = influence.measure_from(&observer) else {
+        state.active = false;
+        state.interaction_target_scale = layer.scale();
+        state.realization_target_scale = layer.scale();
+        realization_demand.clear();
+        return;
+    };
+
+    if !state.active {
+        state.active = true;
+        state.continuous_exponent = f32::from(layer.scale().exponent());
+    }
+
+    state.minimum_scale = refinement.minimum_scale();
+
+    let target_exponent = envelope
+        .required_resolution_metres
+        .max(1.0e-35)
+        .log10()
+        .clamp(
+            f64::from(refinement.minimum_scale().exponent()),
+            f64::from(influence.scale().exponent()),
+        ) as f32;
+
+    let current = state.continuous_exponent;
+    let max_step = profile.approach.refinement_rate_decades_per_second
+        * time.delta_secs().max(0.0);
+    state.continuous_exponent = if target_exponent < current {
+        (current - max_step).max(target_exponent)
+    } else {
+        (current + max_step).min(target_exponent)
+    };
+
+    state.interaction_target_scale = scale_for_resolution(
+        10.0_f64.powf(f64::from(state.continuous_exponent)),
+        refinement.minimum_scale(),
+        influence.scale(),
+    );
+
+    // Realization leads interaction by the current travel lookahead horizon.
+    let future_clearance =
+        (measurement.boundary_clearance_scale0() - envelope.lookahead_metres).max(1.0);
+    let divisor = profile.approach.resolution_divisor.max(f64::EPSILON);
+    let future_resolution = (future_clearance / divisor).max(1.0);
+    state.realization_target_scale = scale_for_resolution(
+        future_resolution,
+        refinement.minimum_scale(),
+        influence.scale(),
+    );
+
+    realization_demand.request_through(state.realization_target_scale);
+}
+
+/// Presentation consumes approach-planner state but does not own interaction.
+pub(super) fn sync_approach_presentation(
+    state: Single<&ApproachRefinementState, With<LocalControlSubject>>,
+    mut view: Single<&mut UsfViewContext, With<UsfViewRenderAnchor>>,
+) {
+    if !state.active {
+        return;
+    }
+
+    if (view.continuous_exponent() - state.continuous_exponent).abs() > 1.0e-4 {
+        view.set_continuous_exponent(state.continuous_exponent);
+    }
+}
+
+/// Publishes the current continuous interaction requirement.
+///
+/// This is intentionally not a one-shot transition command. Publishing the
+/// current Scale Slice is meaningful: it explicitly supersedes/cancels an older
+/// finer requirement that may still be waiting for coverage.
+pub(super) fn sync_approach_interaction_requirement(
+    subject: Single<
+        (
+            &UsfScaleLayer,
+            &UsfManifestationOf,
+            &ControlledSubjectLocomotion,
+            &TravelProfile,
+            &ApproachRefinementState,
+        ),
+        With<LocalControlSubject>,
+    >,
+    mut transitions: ResMut<UsfSpatialTransitionQueue>,
+) {
+    let (layer, manifestation, locomotion, profile, state) = subject.into_inner();
+
+    let velocity = match locomotion.velocity_semantics() {
+        VelocitySemantics::PreserveNative => UsfTransitionVelocity::PreserveNative,
+        VelocitySemantics::PreserveCanonical => UsfTransitionVelocity::PreserveCanonical,
+        VelocitySemantics::Zero => UsfTransitionVelocity::Zero,
+    };
+
+    let target_scale = if state.active {
+        state.interaction_target_scale
+    } else {
+        layer.scale()
+    };
+
+    let mut requirement =
+        UsfInteractionRequirement::new(manifestation.0, target_scale, velocity);
+
+    if state.active && target_scale == state.minimum_scale {
+        requirement = requirement.requiring_coverage(
+            UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::COLLISION),
+            profile.approach.final_handoff_coverage_radius_native,
+        );
+    }
+
+    transitions.set_interaction_requirement(requirement);
+}
+
+const GRAVITY_FIELD_RADIUS_MULTIPLIER: f64 = 8.0;
+
+/// Projects the already-resolved primary body into the subject's local physical
+/// frame. Body selection itself is centralized in [`sync_travel_state`].
+pub(super) fn sync_planetary_gravity(
+    frame: Res<UsfSpatialFrame>,
+    subject: Single<
+        (
+            &Transform,
+            &UsfScaleLayer,
+            &PrimaryBodyContext,
+            &mut CharacterLocomotionFrame,
+            &mut CharacterMovementConfig,
+            &mut TravelState,
+        ),
+        With<LocalControlSubject>,
+    >,
+) {
+    let (body, layer, primary, mut locomotion, mut movement, mut travel) =
+        subject.into_inner();
+
+    if !primary.is_resolved() || primary.surface_gravity_metres_per_second2() <= 0.0 {
+        travel.local_gravity = 0.0;
+        movement.gravity = 0.0;
+        return;
+    }
+
+    let Ok(position) = frame
+        .origin()
+        .translated_at_scale(layer.scale(), body.translation)
+    else {
+        return;
+    };
+
+    let radius = primary.radius_metres();
+    let field_scale = primary.field_scale();
+    let radius_native = field_scale.scale0_to_native_f64(radius);
+    let bound_native = (radius_native * GRAVITY_FIELD_RADIUS_MULTIPLIER)
+        .max(radius_native + 1.0)
+        .min(f64::from(f32::MAX)) as f32;
+
+    let Ok(relative) = position.relative_at_scale_bounded(
+        &primary.center(),
+        field_scale,
+        bound_native,
+    ) else {
+        travel.local_gravity = 0.0;
+        movement.gravity = 0.0;
+        return;
+    };
+
+    let distance_scale0 =
+        f64::from(relative.length()) * field_scale.scale0_units_per_native();
+    if distance_scale0 > radius * GRAVITY_FIELD_RADIUS_MULTIPLIER {
+        travel.local_gravity = 0.0;
+        movement.gravity = 0.0;
+        return;
+    }
+
+    let up = relative.normalize_or_zero();
+    if up != Vec3::ZERO {
+        locomotion.up = up;
+    }
+
+    let gravity_factor = if distance_scale0 >= radius {
+        (radius / distance_scale0.max(f64::EPSILON)).powi(2)
+    } else {
+        // Uniform-sphere fallback prevents missing collision from becoming an
+        // artificial black-hole acceleration toward the center.
+        (distance_scale0 / radius).clamp(0.0, 1.0)
+    };
+    let gravity = (f64::from(primary.surface_gravity_metres_per_second2()) * gravity_factor)
+        .clamp(0.0, f64::from(f32::MAX)) as f32;
+
+    travel.local_gravity = gravity;
+    movement.gravity = layer.scale().metres_to_native_f32(gravity);
+}
+
+/// Resolves one primary hard body and derives travel telemetry from that same
+/// context. Gravity/orbit consumers no longer perform independent body scans.
+pub(super) fn sync_travel_state(
+    frame: Res<UsfSpatialFrame>,
+    gravity_sources: Query<&UsfRadialGravitySource>,
+    subject: Single<
+        (
+            &Transform,
+            &UsfScaleLayer,
+            &UsfTravelNeighborhood,
+            &TravelProfile,
+            &mut TravelState,
+            &mut PrimaryBodyContext,
+        ),
+        With<LocalControlSubject>,
+    >,
+) {
+    let (body, layer, neighborhood, profile, mut state, mut primary) =
+        subject.into_inner();
+
+    let Ok(position) = frame
+        .origin()
+        .translated_at_scale(layer.scale(), body.translation)
+    else {
+        return;
+    };
+
+    let nearest = neighborhood
+        .influences_with_entities()
+        .filter(|(_, influence)| matches!(influence.kind(), UsfTravelInfluenceKind::HardBody))
+        .filter_map(|(entity, influence)| {
+            influence
+                .measure_from(&position)
+                .map(|measurement| (entity, influence, measurement))
+        })
+        .min_by(|(_, _, a), (_, _, b)| {
+            a.boundary_clearance_scale0()
+                .total_cmp(&b.boundary_clearance_scale0())
+        });
+
+    let Some((entity, influence, measurement)) = nearest else {
+        *state = TravelState::default();
+        *primary = PrimaryBodyContext::default();
+        return;
+    };
+
+    let radius = measurement.extent_radius_scale0();
+    let clearance = measurement.boundary_clearance_scale0();
+    let handoff = profile.planetary_handoff_clearance(radius);
+
+    state.nearest_body_clearance_scale0 = Some(clearance);
+    state.nearest_body_radius_scale0 = Some(radius);
+    state.planetary_handoff_clearance_scale0 = Some(handoff);
+    state.planetary_handoff_available = clearance <= handoff;
+    state.planetary_context =
+        measurement.relative_proximity() <= profile.approach.activation_radii;
+    state.critical_dropout = clearance <= handoff;
+
+    let gravity = gravity_sources.get(entity).ok().copied();
+    let center = gravity.map_or(influence.anchor(), UsfRadialGravitySource::center);
+    let field_scale = gravity.map_or(influence.scale(), UsfRadialGravitySource::field_scale);
+    let surface_gravity =
+        gravity.map_or(0.0, UsfRadialGravitySource::surface_gravity);
+    let gravity_radius =
+        gravity.map_or(radius, UsfRadialGravitySource::radius_scale0);
+
+    *primary = PrimaryBodyContext::resolved(
+        entity,
+        center,
+        gravity_radius,
+        field_scale,
+        surface_gravity,
+        measurement.center_distance_scale0(),
+        clearance,
+    );
+}

@@ -27,10 +27,10 @@ use crate::{
 
 use crate::game::{
     control::LocalControlSubject,
-    locomotion::ControlledSubjectHull,
+    locomotion::{CharacterStance, ControlledSubjectHull},
 };
 
-use super::{Player, PlayerAim, PlayerStance, cursor::CursorCapture, model::PlayerModel};
+use super::{Player, PlayerAim, cursor::CursorCapture, model::PlayerModel};
 
 /// Available local-player camera presentations.
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -120,7 +120,7 @@ pub struct PlayerCamera {
 }
 
 impl PlayerCamera {
-    pub fn eye_offset(&self, stance: &PlayerStance) -> Vec3 {
+    pub fn eye_offset(&self, stance: &CharacterStance) -> Vec3 {
         if stance.crouched {
             self.crouched_eye_offset
         } else {
@@ -136,7 +136,7 @@ impl PlayerCamera {
         &self,
         body: &Transform,
         control: &CharacterControlFrame,
-        stance: &PlayerStance,
+        stance: &CharacterStance,
     ) -> Vec3 {
         body.translation + control.rotation() * self.eye_offset(stance)
     }

@@ -12,7 +12,7 @@ use super::*;
 pub(in crate::game::player) fn sync_player_camera(
     spatial_query: SpatialQuery,
     physics_charts: UsfPhysicsCharts,
-    controller: Single<(&PlayerAim, &PlayerStance), With<Player>>,
+    controller: Single<(&PlayerAim, &CharacterStance), With<Player>>,
     subject: Single<
         (
             Entity,

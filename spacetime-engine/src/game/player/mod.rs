@@ -16,7 +16,7 @@ mod model;
 mod stance;
 
 pub use camera::{CameraMode, PlayerCamera, ThirdPersonCamera};
-pub use components::{Player, PlayerAim, PlayerController, PlayerDead, PlayerStance};
+pub use components::{Player, PlayerAim, PlayerController, PlayerDead};
 
 
 use avian3d::prelude::{
@@ -24,7 +24,7 @@ use avian3d::prelude::{
     LinearVelocity, RigidBody,
 };
 use bevy::{
-    app::{RunFixedMainLoop, RunFixedMainLoopSystems},
+    app::RunFixedMainLoop,
     camera::visibility::RenderLayers,
     prelude::*,
 };
@@ -40,14 +40,14 @@ use crate::{
         character::{
             CharacterControlFrame, CharacterDimensions, CharacterGroundState,
             CharacterLocomotionFrame, CharacterMotor, CharacterMovementConfig,
-            CharacterMovementInput, CharacterMovementSet,
+            CharacterMovementInput,
         },
         topology::{KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeer},
     },
     spatial::{
         SpatialDemandSource, SpatialRefinementDemand, SpatialScale, UsfInteractionProjection,
         UsfPosition, UsfScaleLayer,
-        UsfSpatialAnchor, UsfSpatialSet, UsfTravelNeighborhood, UsfViewAnchor,
+        UsfSpatialAnchor, UsfTravelNeighborhood, UsfViewAnchor,
         UsfViewContext, UsfViewRenderAnchor,
     },
     thermal::{ThermalBody, ThermalInjury, ThermalSpatialSample},
@@ -55,17 +55,7 @@ use crate::{
     voxel::VoxelMaterializationDemand,
 };
 
-use crate::game::{
-    locomotion::{
-        CollisionPolicy, ControlledSubjectLocomotion, ControlledSubjectLocomotionChanged,
-        DetailedInteractionScale, LocomotionCapabilities, LocomotionEnabled,
-        LocomotionRegime, LocomotionRequest, MotionKernel, ScaleInteractionProxy,
-        VelocitySemantics,
-    },
-    navigation::{
-        AdaptiveCruise, ApproachRefinementState, TravelEnvelope, TravelPace, TravelState,
-    },
-};
+use crate::game::control::ControlSet;
 
 use super::{
     GameSet, InputSet, PresentationSet,
@@ -93,7 +83,6 @@ impl Plugin for PlayerPlugin {
             .register_type::<PlayerController>()
             .register_type::<PlayerDead>()
             .register_type::<PlayerAim>()
-            .register_type::<PlayerStance>()
             .register_type::<PlayerCamera>()
             .register_type::<ThirdPersonCamera>()
             .register_type::<CameraMode>()
@@ -104,38 +93,25 @@ impl Plugin for PlayerPlugin {
             )
             .add_systems(
                 RunFixedMainLoop,
+                (controls::look, controls::sample_flight_control_intent)
+                    .chain()
+                    .in_set(ControlSet::Sample),
+            )
+            .add_systems(
+                RunFixedMainLoop,
                 (
-                    controls::look,
                     controls::toggle_local_flight,
                     controls::toggle_local_flight_thrusters,
                     controls::toggle_adaptive_cruise,
-                    controls::sync_navigation_context,
-                    controls::sync_planetary_gravity,
-                    controls::sync_travel_state,
-                    controls::sync_travel_envelope,
-                    controls::resolve_locomotion_state,
-                    controls::sync_locomotion_runtime,
-                    stance::update_stance,
-                    controls::plan_approach_refinement,
-                    controls::sync_approach_presentation,
-                    controls::request_approach_interaction_handoff,
-                    controls::movement,
                 )
                     .chain()
-                    .in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
+                    .in_set(ControlSet::Request),
             )
             .add_systems(
-                FixedUpdate,
-                (
-                    controls::local_flight_movement,
-                    controls::scale_navigation_movement,
-                    controls::inertial_flight_movement,
-                    controls::orbital_flight_movement,
-                    controls::adaptive_cruise_movement,
-                    crate::game::spacecraft::detect_landing,
-                )
+                RunFixedMainLoop,
+                (stance::update_stance, controls::movement)
                     .chain()
-                    .after(CharacterMovementSet::Simulate),
+                    .in_set(ControlSet::CharacterIntent),
             )
             .add_systems(
                 Update,
@@ -151,15 +127,6 @@ impl Plugin for PlayerPlugin {
                 )
                     .chain()
                     .in_set(InputSet::Gameplay),
-            )
-            .add_systems(
-                PostUpdate,
-                (
-                    controls::resolve_locomotion_state,
-                    controls::sync_locomotion_runtime,
-                )
-                    .chain()
-                    .after(UsfSpatialSet::SyncSemantic),
             )
             .add_systems(Update, handle_player_death.in_set(GameSet::Cleanup))
             .add_systems(

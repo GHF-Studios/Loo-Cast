@@ -14,7 +14,10 @@ pub mod player;
 pub mod playground;
 mod world;
 
-use bevy::prelude::*;
+use bevy::{
+    app::{RunFixedMainLoop, RunFixedMainLoopSystems},
+    prelude::*,
+};
 
 pub use devtools::LooCastDeveloperToolsPlugin;
 pub use world::GameWorld;
@@ -60,6 +63,22 @@ pub struct LooCastPlugin;
 impl Plugin for LooCastPlugin {
     fn build(&self, app: &mut App) {
         console_commands::configure(app);
+
+        app.configure_sets(
+                RunFixedMainLoop,
+                (
+                    control::ControlSet::Sample,
+                    navigation::NavigationSet::Observe,
+                    control::ControlSet::Request,
+                    navigation::NavigationSet::Plan,
+                    locomotion::LocomotionSet::Resolve,
+                    locomotion::LocomotionSet::Realize,
+                    control::ControlSet::CharacterIntent,
+                    navigation::NavigationSet::Publish,
+                )
+                    .chain()
+                    .in_set(RunFixedMainLoopSystems::BeforeFixedMainLoop),
+            );
 
         app.configure_sets(
                 Update,

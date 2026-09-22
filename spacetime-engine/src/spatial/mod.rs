@@ -37,8 +37,8 @@ pub use refinement::{
     UsfRefinementAperture, UsfScaleCoverage, UsfScaleCoverageSnapshot, UsfScaleRoleMask,
 };
 pub use transition::{
-    UsfSpatialTransition, UsfSpatialTransitionApplied, UsfSpatialTransitionCause,
-    UsfSpatialTransitionQueue, UsfTransitionVelocity,
+    UsfInteractionRequirement, UsfSpatialTransition, UsfSpatialTransitionApplied,
+    UsfSpatialTransitionCause, UsfSpatialTransitionQueue, UsfTransitionVelocity,
 };
 pub use view::{
     UsfDistanceMeshLod, UsfLocalScalePresentation, UsfScaleFallbackPresentation, UsfScalePresentation,

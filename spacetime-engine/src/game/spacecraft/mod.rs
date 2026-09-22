@@ -16,13 +16,15 @@ use crate::{
     },
     game::{
         GameSet,
-        control::{LocalControlState, LocalControlSubject},
+        control::{ControlledBy, LocalControlSubject},
         locomotion::{
             ControlledSubjectHull, ControlledSubjectLocomotion, DetailedInteractionScale,
-            LocomotionCapabilities, LocomotionEnabled, LocomotionRegime,
+            FlightControlIntent, LocomotionCapabilities, LocomotionEnabled, LocomotionRegime,
+            LocomotionSet,
         },
         navigation::{
-            AdaptiveCruise, ApproachRefinementState, TravelEnvelope, TravelState,
+            AdaptiveCruise, ApproachRefinementState, PrimaryBodyContext, TravelEnvelope,
+            TravelProfile, TravelState,
         },
         player::{
             CameraMode, Player,
@@ -41,7 +43,7 @@ use crate::{
     spatial::{
         SpatialDemandSource, SpatialRefinementDemand, SpatialScale,
         UsfInteractionProjection, UsfLocalScalePresentation, UsfPosition,
-        UsfRadialGravitySource, UsfScaleLayer, UsfSpatialAnchor, UsfSpatialFrame,
+        UsfScaleLayer, UsfSpatialAnchor, UsfSpatialFrame, UsfSpatialTransitionQueue,
         UsfTravelNeighborhood, UsfViewAnchor,
     },
     voxel::VoxelMaterializationDemand,
@@ -142,6 +144,10 @@ impl Plugin for SpacecraftPlugin {
             .add_systems(PostStartup, spawn_reference_spacecraft)
             .add_systems(Update, handle_spacecraft_actions.in_set(GameSet::Action))
             .add_systems(
+                FixedUpdate,
+                detect_landing.after(LocomotionSet::Motion),
+            )
+            .add_systems(
                 Update,
                 (sync_spacecraft_flight_state, sync_spacecraft_orbit)
                     .chain()
@@ -152,7 +158,6 @@ impl Plugin for SpacecraftPlugin {
 
 fn spawn_reference_spacecraft(
     mut commands: Commands,
-    mut control: ResMut<LocalControlState>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut camera: Single<&mut PlayerCamera>,
@@ -190,6 +195,7 @@ fn spawn_reference_spacecraft(
             Name::new("Reference Spacecraft"),
             UsfEntity,
             Spacecraft,
+            ControlledBy(player_semantic),
             semantic_position,
         ))
         .id();
@@ -221,12 +227,15 @@ fn spawn_reference_spacecraft(
                 LocomotionCapabilities::spacecraft(),
                 LocomotionEnabled(true),
                 ControlledSubjectHull::cuboid(SHIP_SIZE, SHIP_PROXY_RADIUS_NATIVE),
+                FlightControlIntent::default(),
                 locomotion,
                 DetailedInteractionScale::default(),
+                TravelProfile::spacecraft(),
                 TravelEnvelope::default(),
                 ApproachRefinementState::default(),
                 AdaptiveCruise::default(),
                 TravelState::default(),
+                PrimaryBodyContext::default(),
             ),
             (
                 UsfTravelNeighborhood::default(),
@@ -277,8 +286,6 @@ fn spawn_reference_spacecraft(
     body_demand.set_enabled(false);
     body_enabled.0 = false;
     *body_visibility = Visibility::Hidden;
-
-    control.set(player_semantic, semantic_ship, ship);
 
     camera.mode = CameraMode::ThirdPerson;
     camera.third_person.base_distance = 14.0;
@@ -396,7 +403,7 @@ fn handle_spacecraft_actions(
     keyboard: Res<ButtonInput<KeyCode>>,
     frame: Res<UsfSpatialFrame>,
     mut commands: Commands,
-    mut control: ResMut<LocalControlState>,
+    mut spatial_transitions: ResMut<UsfSpatialTransitionQueue>,
     mut camera: Single<&mut PlayerCamera>,
     mut player: Single<
         (
@@ -428,6 +435,7 @@ fn handle_spacecraft_actions(
         ),
         (With<SpacecraftManifestation>, With<LocalControlSubject>, Without<Player>),
     >,
+    player_controlled: Query<(), (With<Player>, With<LocalControlSubject>)>,
     mut ships: Query<
         (
             Entity,
@@ -443,7 +451,7 @@ fn handle_spacecraft_actions(
 ) {
     if let Ok((
         ship_entity,
-        _,
+        ship_manifestation,
         ship_transform,
         ship_layer,
         ship_frame,
@@ -523,11 +531,10 @@ fn handle_spacecraft_actions(
             .entity(player_manifestation.0)
             .remove::<UsfConstituentOf>();
 
-        control.set(
-            player_manifestation.0,
-            player_manifestation.0,
-            player_entity,
-        );
+        spatial_transitions.clear_interaction_requirement(ship_manifestation.0);
+        commands
+            .entity(ship_manifestation.0)
+            .remove::<ControlledBy>();
         camera.mode = CameraMode::FirstPerson;
         return;
     }
@@ -548,7 +555,7 @@ fn handle_spacecraft_actions(
         _,
     ) = player.into_inner();
 
-    if control.manifestation() != Some(player_entity) {
+    if !player_controlled.contains(player_entity) {
         return;
     }
 
@@ -599,11 +606,10 @@ fn handle_spacecraft_actions(
             .entity(player_manifestation.0)
             .insert(UsfConstituentOf(ship_manifestation.0));
 
-        control.set(
-            player_manifestation.0,
-            ship_manifestation.0,
-            ship_entity,
-        );
+        spatial_transitions.clear_interaction_requirement(player_manifestation.0);
+        commands
+            .entity(ship_manifestation.0)
+            .insert(ControlledBy(player_manifestation.0));
         camera.mode = CameraMode::ThirdPerson;
         camera.third_person.base_distance = 14.0;
         return;
@@ -612,14 +618,22 @@ fn handle_spacecraft_actions(
 
 fn sync_spacecraft_orbit(
     frame: Res<UsfSpatialFrame>,
-    gravity_sources: Query<&UsfRadialGravitySource>,
     mut ships: Query<
-        (&Transform, &UsfScaleLayer, &LinearVelocity, &mut SpacecraftOrbit),
+        (
+            &Transform,
+            &UsfScaleLayer,
+            &LinearVelocity,
+            &PrimaryBodyContext,
+            &mut SpacecraftOrbit,
+        ),
         With<SpacecraftManifestation>,
     >,
 ) {
-    for (transform, layer, velocity, mut orbit) in &mut ships {
+    for (transform, layer, velocity, primary, mut orbit) in &mut ships {
         orbit.valid = false;
+        if !primary.is_resolved() || primary.surface_gravity_metres_per_second2() <= 0.0 {
+            continue;
+        }
 
         let Ok(position) = frame
             .origin()
@@ -628,34 +642,26 @@ fn sync_spacecraft_orbit(
             continue;
         };
 
-        let mut selected = None::<(f64, DVec3, UsfRadialGravitySource)>;
-        for source in &gravity_sources {
-            let bound = source.radius_scale0() * 16.0;
-            let bound_native = source.field_scale().scale0_to_native_f64(bound)
-                .min(f64::from(f32::MAX)) as f32;
-            let Ok(relative) = position.relative_at_scale_bounded(
-                &source.center(),
-                source.field_scale(),
-                bound_native,
-            ) else {
-                continue;
-            };
-
-            let metres_per_native = source.field_scale().scale0_units_per_native();
-            let r = DVec3::new(
-                f64::from(relative.x),
-                f64::from(relative.y),
-                f64::from(relative.z),
-            ) * metres_per_native;
-            let distance = r.length();
-            if selected.is_none_or(|(current, _, _)| distance < current) {
-                selected = Some((distance, r, *source));
-            }
-        }
-
-        let Some((radius_from_center, r, source)) = selected else {
+        let field_scale = primary.field_scale();
+        let bound = primary.radius_metres() * 16.0;
+        let bound_native = field_scale
+            .scale0_to_native_f64(bound)
+            .min(f64::from(f32::MAX)) as f32;
+        let Ok(relative) = position.relative_at_scale_bounded(
+            &primary.center(),
+            field_scale,
+            bound_native,
+        ) else {
             continue;
         };
+
+        let field_metres_per_native = field_scale.scale0_units_per_native();
+        let r = DVec3::new(
+            f64::from(relative.x),
+            f64::from(relative.y),
+            f64::from(relative.z),
+        ) * field_metres_per_native;
+        let radius_from_center = r.length();
         if radius_from_center <= f64::EPSILON {
             continue;
         }
@@ -667,7 +673,8 @@ fn sync_spacecraft_orbit(
             f64::from(velocity.0.z),
         ) * metres_per_native;
 
-        let mu = f64::from(source.surface_gravity()) * source.radius_scale0().powi(2);
+        let body_radius = primary.radius_metres();
+        let mu = f64::from(primary.surface_gravity_metres_per_second2()) * body_radius.powi(2);
         if !mu.is_finite() || mu <= f64::EPSILON {
             continue;
         }
@@ -737,7 +744,7 @@ fn sync_spacecraft_orbit(
         *orbit = SpacecraftOrbit {
             valid: true,
             bound,
-            altitude_metres: radius_from_center - source.radius_scale0(),
+            altitude_metres: radius_from_center - body_radius,
             speed_metres_per_second: v.length(),
             semi_major_axis_metres: semi_major_axis,
             eccentricity,
@@ -745,9 +752,9 @@ fn sync_spacecraft_orbit(
             longitude_ascending_node_radians: longitude_ascending_node,
             argument_periapsis_radians: argument_periapsis,
             true_anomaly_radians: true_anomaly,
-            periapsis_altitude_metres: periapsis_radius - source.radius_scale0(),
+            periapsis_altitude_metres: periapsis_radius - body_radius,
             apoapsis_altitude_metres: if apoapsis_radius.is_finite() {
-                apoapsis_radius - source.radius_scale0()
+                apoapsis_radius - body_radius
             } else {
                 f64::INFINITY
             },

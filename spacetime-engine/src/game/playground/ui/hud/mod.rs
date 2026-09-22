@@ -10,7 +10,7 @@ use crate::{
         item::{ItemAction, ItemCatalog},
         control::LocalControlSubject,
         locomotion::{
-            ControlledSubjectLocomotion, DetailedInteractionScale, LocomotionRegime,
+            ControlledSubjectLocomotion, LocomotionRegime,
             LocomotionRequest, MotionKernel,
         },
         navigation::{AdaptiveCruise, TravelEnvelope, TravelPace, TravelState},

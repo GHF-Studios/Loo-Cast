@@ -5,7 +5,7 @@
 //! canonical [`UsfPosition`] first; scale changes and discontinuous relocation
 //! then rebuild the runtime chart from canonical state.
 
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 
 use avian3d::prelude::{LinearVelocity, Position};
 use bevy::prelude::*;
@@ -99,17 +99,82 @@ impl UsfSpatialTransition {
     }
 }
 
+/// Continuously published physical interaction requirement.
+///
+/// Unlike [`UsfSpatialTransition`], this is not a command. Re-publishing the
+/// current Scale Slice explicitly cancels an older pending finer handoff.
+#[derive(Debug, Clone, Copy)]
+pub struct UsfInteractionRequirement {
+    subject: Entity,
+    target_scale: SpatialScale,
+    velocity: UsfTransitionVelocity,
+    required_coverage: UsfScaleRoleMask,
+    coverage_radius_native: f32,
+}
+
+impl UsfInteractionRequirement {
+    pub const fn new(
+        subject: Entity,
+        target_scale: SpatialScale,
+        velocity: UsfTransitionVelocity,
+    ) -> Self {
+        Self {
+            subject,
+            target_scale,
+            velocity,
+            required_coverage: UsfScaleRoleMask::NONE,
+            coverage_radius_native: 0.0,
+        }
+    }
+
+    pub fn requiring_coverage(
+        mut self,
+        roles: UsfScaleRoleMask,
+        radius_native: f32,
+    ) -> Self {
+        self.required_coverage = roles;
+        self.coverage_radius_native = radius_native.max(0.0);
+        self
+    }
+
+    pub const fn subject(self) -> Entity {
+        self.subject
+    }
+
+    pub const fn target_scale(self) -> SpatialScale {
+        self.target_scale
+    }
+}
+
 #[derive(Resource, Default)]
 pub struct UsfSpatialTransitionQueue {
     pending: VecDeque<UsfSpatialTransition>,
+    interaction_requirements: HashMap<Entity, UsfInteractionRequirement>,
 }
 
 impl UsfSpatialTransitionQueue {
+    /// Queues a one-shot canonical relocation/rechart command.
+    ///
+    /// A discontinuous command invalidates any continuous requirement sampled
+    /// at the old location. The planner publishes a fresh one afterward.
     pub fn request(&mut self, transition: UsfSpatialTransition) {
+        self.interaction_requirements.remove(&transition.subject);
         self.pending.push_back(transition);
     }
 
-    fn take_latest_for(&mut self, subject: Entity) -> Option<UsfSpatialTransition> {
+    pub fn set_interaction_requirement(&mut self, requirement: UsfInteractionRequirement) {
+        self.interaction_requirements
+            .insert(requirement.subject, requirement);
+    }
+
+    pub fn clear_interaction_requirement(&mut self, subject: Entity) {
+        self.interaction_requirements.remove(&subject);
+    }
+
+    fn take_latest_relocation_for(
+        &mut self,
+        subject: Entity,
+    ) -> Option<UsfSpatialTransition> {
         let mut latest = None;
         let mut retained = VecDeque::with_capacity(self.pending.len());
 
@@ -124,12 +189,20 @@ impl UsfSpatialTransitionQueue {
         self.pending = retained;
         latest
     }
+
+    fn interaction_requirement_for(
+        &self,
+        subject: Entity,
+    ) -> Option<UsfInteractionRequirement> {
+        self.interaction_requirements.get(&subject).copied()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UsfSpatialTransitionCause {
     ViewScale,
     Requested,
+    InteractionRequirement,
 }
 
 #[derive(Message, Debug, Clone, Copy)]
@@ -181,35 +254,78 @@ pub(super) fn apply_spatial_transitions(
         (entity, transform.translation, layer.scale(), manifestation.0)
     };
 
-    let Some(request) = queue.take_latest_for(subject) else {
+    let Ok(current_position) = frame
+        .origin()
+        .translated_at_scale(previous_scale, old_anchor_runtime)
+    else {
         return;
     };
-    if let Some(exponent) = request.view_exponent {
+
+    let relocation = queue.take_latest_relocation_for(subject);
+
+    let (
+        position,
+        target_scale,
+        view_exponent,
+        velocity_policy,
+        required_coverage,
+        coverage_radius_native,
+        cause,
+        requeue,
+    ) = if let Some(request) = relocation {
+        (
+            request.position,
+            request.target_scale.unwrap_or(previous_scale),
+            request.view_exponent,
+            request.velocity,
+            request.required_coverage,
+            request.coverage_radius_native,
+            UsfSpatialTransitionCause::Requested,
+            Some(request),
+        )
+    } else if let Some(requirement) = queue.interaction_requirement_for(subject) {
+        (
+            current_position,
+            requirement.target_scale,
+            None,
+            requirement.velocity,
+            requirement.required_coverage,
+            requirement.coverage_radius_native,
+            UsfSpatialTransitionCause::InteractionRequirement,
+            None,
+        )
+    } else {
+        return;
+    };
+
+    if let Some(exponent) = view_exponent {
         view.set_continuous_exponent(exponent);
     }
 
-    let target_scale = request.target_scale.unwrap_or(previous_scale);
-    let requested_relocation = true;
+    if cause == UsfSpatialTransitionCause::InteractionRequirement
+        && target_scale == previous_scale
+    {
+        active.cancel_handoff();
+        return;
+    }
 
-    if request.target_scale.is_some() {
+    if target_scale != previous_scale {
         active.request_handoff(target_scale);
     } else {
-        // A newer relocation without an interaction rechart supersedes any
-        // older queued handoff for this same controlled subject.
         active.cancel_handoff();
     }
 
-    // A finer handoff remains only intent until required mechanism coverage
-    // actually exists. Keep the request queued instead of creating a hole.
-    if !request.required_coverage.is_empty()
+    if !required_coverage.is_empty()
         && !coverage.has_near(
             target_scale,
-            &request.position,
-            request.required_coverage,
-            request.coverage_radius_native,
+            &position,
+            required_coverage,
+            coverage_radius_native,
         )
     {
-        queue.request(request);
+        if let Some(request) = requeue {
+            queue.request(request);
+        }
         return;
     }
 
@@ -217,7 +333,7 @@ pub(super) fn apply_spatial_transitions(
         return;
     };
 
-    *semantic = request.position;
+    *semantic = position;
 
     // Changing the runtime chart must never change semantic precision.
     // The exact canonical subject position becomes the frame origin. Pass 2
@@ -242,8 +358,6 @@ pub(super) fn apply_spatial_transitions(
         );
         return;
     }
-
-    let velocity_policy = request.velocity;
 
     for (_entity, mut transform, mut layer, position, velocity, manifestation) in
         &mut participants.p1()
@@ -271,8 +385,7 @@ pub(super) fn apply_spatial_transitions(
             let belongs_to_subject =
                 manifestation.is_some_and(|manifestation| manifestation.0 == subject);
 
-            if requested_relocation
-                && belongs_to_subject
+            if belongs_to_subject
                 && velocity_policy == UsfTransitionVelocity::Zero
             {
                 velocity.0 = Vec3::ZERO;
@@ -294,14 +407,14 @@ pub(super) fn apply_spatial_transitions(
         anchor: anchor_entity,
         previous_scale,
         active_scale: target_scale,
-        cause: UsfSpatialTransitionCause::Requested,
+        cause,
     });
 
     debug!(
         subject = ?subject,
         previous_scale = %previous_scale,
         active_scale = %target_scale,
-        requested = requested_relocation,
+        cause = ?cause,
         "applied canonical USF spatial transition"
     );
 }

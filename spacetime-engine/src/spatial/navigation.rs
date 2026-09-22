@@ -732,6 +732,14 @@ impl UsfTravelNeighborhood {
     pub fn influences(&self) -> impl Iterator<Item = UsfTravelInfluence> + '_ {
         self.influences.iter().map(|cached| cached.influence)
     }
+
+    pub fn influences_with_entities(
+        &self,
+    ) -> impl Iterator<Item = (Entity, UsfTravelInfluence)> + '_ {
+        self.influences
+            .iter()
+            .map(|cached| (cached.entity, cached.influence))
+    }
 }
 
 #[cfg(test)]

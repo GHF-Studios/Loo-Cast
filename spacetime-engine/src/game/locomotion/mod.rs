@@ -4,9 +4,14 @@
 //! vehicles, NPCs or modded subjects can expose capabilities and participate in
 //! the same request -> resolve -> one authoritative motion-kernel contract.
 
-use bevy::prelude::*;
+use bevy::{app::RunFixedMainLoop, prelude::*};
 
-use crate::spatial::SpatialScale;
+use crate::{
+    physics::character::CharacterMovementSet,
+    spatial::{SpatialScale, UsfSpatialSet},
+};
+
+mod runtime;
 
 /// High-level locomotion regime of a controlled semantic subject.
 ///
@@ -264,6 +269,77 @@ impl Default for DetailedInteractionScale {
     }
 }
 
+/// Detailed character-body stance. This is body locomotion state, not player identity.
+#[derive(Component, Reflect, Debug, Default, Clone, Copy)]
+#[reflect(Component)]
+pub struct CharacterStance {
+    pub crouched: bool,
+}
+
+/// Device/controller-agnostic flight control intent.
+///
+/// `translation_axes` uses +X right, +Y up, +Z forward in controller-local
+/// coordinates. The runtime consumes this component without knowing whether it
+/// came from a human, AI, network authority, replay or autopilot.
+#[derive(Component, Reflect, Debug, Clone, Copy)]
+#[reflect(Component)]
+pub struct FlightControlIntent {
+    translation_axes: Vec3,
+    view_rotation: Quat,
+    pace_multiplier: f32,
+    boost: bool,
+    active: bool,
+}
+
+impl Default for FlightControlIntent {
+    fn default() -> Self {
+        Self {
+            translation_axes: Vec3::ZERO,
+            view_rotation: Quat::IDENTITY,
+            pace_multiplier: 1.0,
+            boost: false,
+            active: false,
+        }
+    }
+}
+
+impl FlightControlIntent {
+    pub fn set(
+        &mut self,
+        translation_axes: Vec3,
+        view_rotation: Quat,
+        pace_multiplier: f32,
+        boost: bool,
+    ) {
+        self.translation_axes = translation_axes.clamp_length_max(1.0);
+        self.view_rotation = view_rotation.normalize();
+        self.pace_multiplier = pace_multiplier.max(0.0);
+        self.boost = boost;
+        self.active = true;
+    }
+
+    pub fn clear(&mut self) {
+        self.translation_axes = Vec3::ZERO;
+        self.boost = false;
+        self.active = false;
+    }
+
+    pub const fn translation_axes(self) -> Vec3 { self.translation_axes }
+    pub const fn view_rotation(self) -> Quat { self.view_rotation }
+    pub const fn pace_multiplier(self) -> f32 { self.pace_multiplier }
+    pub const fn boost(self) -> bool { self.boost }
+    pub const fn active(self) -> bool { self.active }
+    pub const fn forward_axis(self) -> f32 { self.translation_axes.z }
+}
+
+/// Stable generic locomotion runtime extension points.
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum LocomotionSet {
+    Resolve,
+    Realize,
+    Motion,
+}
+
 pub struct LocomotionPlugin;
 
 impl Plugin for LocomotionPlugin {
@@ -277,8 +353,40 @@ impl Plugin for LocomotionPlugin {
             .register_type::<LocomotionCapabilities>()
             .register_type::<LocomotionEnabled>()
             .register_type::<ControlledSubjectHull>()
+            .register_type::<CharacterStance>()
+            .register_type::<FlightControlIntent>()
             .register_type::<ScaleInteractionProxy>()
             .register_type::<DetailedInteractionScale>()
-            .add_message::<ControlledSubjectLocomotionChanged>();
+            .add_message::<ControlledSubjectLocomotionChanged>()
+            .add_systems(
+                RunFixedMainLoop,
+                runtime::resolve_locomotion_state.in_set(LocomotionSet::Resolve),
+            )
+            .add_systems(
+                RunFixedMainLoop,
+                runtime::sync_locomotion_runtime.in_set(LocomotionSet::Realize),
+            )
+            .add_systems(
+                FixedUpdate,
+                (
+                    runtime::thruster_flight_movement,
+                    runtime::scale_navigation_movement,
+                    runtime::inertial_flight_movement,
+                    runtime::orbital_flight_movement,
+                    runtime::adaptive_cruise_movement,
+                )
+                    .chain()
+                    .in_set(LocomotionSet::Motion)
+                    .after(CharacterMovementSet::Simulate),
+            )
+            .add_systems(
+                PostUpdate,
+                (
+                    runtime::resolve_locomotion_state,
+                    runtime::sync_locomotion_runtime,
+                )
+                    .chain()
+                    .after(UsfSpatialSet::SyncSemantic),
+            );
     }
 }

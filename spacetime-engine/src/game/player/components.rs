@@ -39,13 +39,6 @@ impl Default for PlayerController {
     }
 }
 
-/// Current physical stance of the human player body.
-#[derive(Component, Reflect, Debug, Default, Clone, Copy)]
-#[reflect(Component)]
-pub struct PlayerStance {
-    pub crouched: bool,
-}
-
 /// Live yaw/pitch intent owned by the human controller.
 ///
 /// The controlled subject supplies the physical/control frame; this component

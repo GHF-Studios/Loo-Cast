@@ -2,7 +2,7 @@
 //!
 //! This module changes only body-facing state: transform, collider, stance and
 //! portal-traveler history. Camera presentation derives its eye offset from
-//! [`PlayerStance`](super::PlayerStance) instead of being mutated here.
+//! [`CharacterStance`](super::CharacterStance) instead of being mutated here.
 
 use avian3d::prelude::{Collider, SpatialQuery, SpatialQueryFilter};
 use bevy::prelude::*;
@@ -18,11 +18,12 @@ use crate::{
 
 use crate::game::control::LocalControlSubject;
 
-use crate::game::locomotion::{ControlledSubjectLocomotion, DetailedInteractionScale, MotionKernel};
+use crate::game::locomotion::{
+    CharacterStance, ControlledSubjectLocomotion, DetailedInteractionScale, MotionKernel,
+};
 
 use super::{
     Player, PlayerDead,
-    PlayerStance,
     controls::gameplay_suppressed,
     cursor::CursorCapture,
 };
@@ -41,7 +42,7 @@ pub fn update_stance(
                 Option<&mut Collider>,
                 &UsfScaleLayer,
                 &DetailedInteractionScale,
-                &mut PlayerStance,
+                &mut CharacterStance,
                 &ControlledSubjectLocomotion,
                 Option<&PlayerDead>,
                 &mut PortalTraveler,

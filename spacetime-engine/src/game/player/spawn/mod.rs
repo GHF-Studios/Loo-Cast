@@ -4,12 +4,15 @@ use super::*;
 
 use crate::{
     game::{
+        control::LocalController,
         locomotion::{
-            ControlledSubjectLocomotion, DetailedInteractionScale, LocomotionCapabilities,
-            LocomotionEnabled, ScaleInteractionProxy,
+            CharacterStance, ControlledSubjectLocomotion, DetailedInteractionScale,
+            FlightControlIntent, LocomotionCapabilities, LocomotionEnabled,
+            ScaleInteractionProxy,
         },
         navigation::{
-            AdaptiveCruise, ApproachRefinementState, TravelEnvelope, TravelPace, TravelState,
+            AdaptiveCruise, ApproachRefinementState, PrimaryBodyContext, TravelEnvelope,
+            TravelPace, TravelProfile, TravelState,
         },
     },
     spatial::UsfNavigationContext,
@@ -43,6 +46,7 @@ pub(super) fn spawn_player(
             Health::new(100.0),
             ThermalBody::ambient(8_000.0, 25.0),
             ThermalInjury::human_like(),
+            LocalController,
         ))
         .id();
 
@@ -70,15 +74,20 @@ pub(super) fn spawn_player(
                 SpatialRefinementDemand::cuboid(PLAYER_SPATIAL_DEMAND_HALF_EXTENT),
                 LocomotionCapabilities::character(),
                 LocomotionEnabled(true),
-                PlayerStance::default(),
+                CharacterStance::default(),
                 ControlledSubjectLocomotion::default(),
+                FlightControlIntent::default(),
                 ScaleInteractionProxy::default(),
                 DetailedInteractionScale::default(),
                 TravelPace::default(),
+                TravelProfile::character(),
                 TravelEnvelope::default(),
                 ApproachRefinementState::default(),
                 AdaptiveCruise::default(),
                 TravelState::default(),
+                PrimaryBodyContext::default(),
+            ),
+            (
                 UsfTravelNeighborhood::default(),
                 UsfNavigationContext::default(),
             ),
