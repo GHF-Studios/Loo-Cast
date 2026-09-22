@@ -12,6 +12,12 @@ use bevy::{
 
 use crate::{
     ecs::UsfManifestationOf,
+    game::{
+        control::LocalControlSubject,
+        locomotion::{
+            ControlledSubjectHull, LocomotionCapabilities, LocomotionEnabled,
+        },
+    },
     physics::{
         character::{
             CharacterControlFrame, CharacterDimensions, CharacterGroundState,
@@ -62,7 +68,10 @@ pub(super) use modes::{
     resolve_locomotion_state, sync_locomotion_runtime, toggle_adaptive_cruise,
     toggle_local_flight, toggle_local_flight_thrusters, toggle_spatial_demand,
 };
-pub(super) use movement::{local_flight_movement, movement, scale_navigation_movement};
+pub(super) use movement::{
+    inertial_flight_movement, local_flight_movement, movement,
+    orbital_flight_movement, scale_navigation_movement,
+};
 pub(super) use navigation::{
     plan_approach_refinement, request_approach_interaction_handoff,
     sync_approach_presentation, sync_navigation_context, sync_planetary_gravity,

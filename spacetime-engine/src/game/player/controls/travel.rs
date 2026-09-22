@@ -82,7 +82,7 @@ pub(in crate::game::player) fn sync_travel_envelope(
             &PlayerAdaptiveCruise,
             &mut PlayerTravelEnvelope,
         ),
-        With<Player>,
+        With<LocalControlSubject>,
     >,
 ) {
     let (body, layer, navigation, neighborhood, cruise, mut envelope) = player.into_inner();

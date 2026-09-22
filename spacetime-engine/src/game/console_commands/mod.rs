@@ -21,6 +21,7 @@ use crate::{
 };
 
 use super::{
+    control::LocalControlSubject,
     player::{
         ControlledSubjectLocomotion, Player, PlayerAdaptiveCruise, PlayerAim,
         PlayerLocomotionRegime, PlayerLocomotionRequest, PlayerTravelSpeed,
@@ -241,7 +242,7 @@ fn speed_command(
 ) -> ConsoleCommandResult {
     let requested = invocation.args().first().map(String::as_str);
 
-    let mut query = world.query_filtered::<&mut PlayerTravelSpeed, With<Player>>();
+    let mut query = world.query_filtered::<&mut PlayerTravelSpeed, With<LocalControlSubject>>();
     let Some(mut speed) = query.iter_mut(world).next() else {
         return ConsoleCommandResult::error("player travel-speed state is unavailable");
     };
@@ -284,7 +285,7 @@ fn cruise_command(
 
     let mut query = world.query_filtered::<
         (&mut ControlledSubjectLocomotion, &mut PlayerAdaptiveCruise),
-        With<Player>,
+        With<LocalControlSubject>,
     >();
     let Some((mut locomotion, mut cruise)) = query.iter_mut(world).next() else {
         return ConsoleCommandResult::error("player locomotion state is unavailable");

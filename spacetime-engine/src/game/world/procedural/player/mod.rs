@@ -4,7 +4,11 @@ use avian3d::prelude::LinearVelocity;
 use bevy::prelude::*;
 
 use crate::{
-    game::player::{ControlledSubjectLocomotion, Player},
+    game::{
+        control::LocalControlSubject,
+        locomotion::ControlledSubjectHull,
+        player::ControlledSubjectLocomotion,
+    },
     physics::character::CharacterDimensions,
     portal::PortalTraveler,
     spatial::{SpatialScale, UsfPosition},
@@ -22,8 +26,9 @@ pub(super) fn prepare_player(
             &mut PortalTraveler,
             &mut LinearVelocity,
             &mut ControlledSubjectLocomotion,
+            Option<&ControlledSubjectHull>,
         ),
-        With<Player>,
+        With<LocalControlSubject>,
     >,
 ) {
     let epoch = WorldgenEpoch::present_day_bootstrap();
@@ -46,9 +51,12 @@ pub(super) fn prepare_player(
         .expect("root-layer spawn query must stay local");
     let ground = volume.reference_surface_height_at(world_origin, query);
 
-    let position = Vec3::new(x, ground + CharacterDimensions::HALF_HEIGHT + 12.0, z);
-
-    let (mut transform, mut traveler, mut velocity, mut locomotion) = player.into_inner();
+    let (mut transform, mut traveler, mut velocity, mut locomotion, hull) =
+        player.into_inner();
+    let half_height = hull
+        .map(|hull| hull.size().y * 0.5)
+        .unwrap_or(CharacterDimensions::HALF_HEIGHT);
+    let position = Vec3::new(x, ground + half_height + 12.0, z);
     transform.translation = position;
     traveler.commit_position(position);
     velocity.0 = Vec3::ZERO;

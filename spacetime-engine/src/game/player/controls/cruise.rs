@@ -28,7 +28,7 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
             &PlayerTravelState,
             Option<&mut LinearVelocity>,
         ),
-        With<Player>,
+        With<LocalControlSubject>,
     >,
 ) {
     let (

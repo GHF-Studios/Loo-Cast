@@ -23,12 +23,15 @@ pub(in crate::game::player) fn sync_player_camera(
             &UsfScaleLayer,
         ),
         (
-            With<Player>,
+            With<LocalControlSubject>,
             With<UsfLogicalProjection>,
             Without<PlayerCamera>,
         ),
     >,
-    camera: Single<(&mut PlayerCamera, &mut Transform), (With<PlayerCamera>, Without<Player>)>,
+    camera: Single<
+        (&mut PlayerCamera, &mut Transform),
+        (With<PlayerCamera>, Without<LocalControlSubject>),
+    >,
     semantic_entities: Query<&UsfManifestations>,
     portals: Query<
         (Entity, &Portal, &PortalActive, &Transform),

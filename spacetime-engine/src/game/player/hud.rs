@@ -10,7 +10,10 @@ use super::{
     ControlledSubjectLocomotion, Player, PlayerAdaptiveCruise, PlayerDetailedPhysicsScale,
     PlayerLocomotionRegime, PlayerMotionKernel, PlayerTravelEnvelope, PlayerTravelState,
 };
-use crate::spatial::{UsfScaleLayer, UsfViewContext, UsfViewRenderAnchor};
+use crate::{
+    game::control::LocalControlSubject,
+    spatial::{UsfScaleLayer, UsfViewContext, UsfViewRenderAnchor},
+};
 
 const HUD_TEXT: Color = Color::srgb(0.72, 0.95, 0.88);
 const HUD_ACCENT: Color = Color::srgba(0.30, 0.84, 0.88, 0.84);
@@ -118,7 +121,7 @@ pub(super) fn update_flight_hud(
             &PlayerDetailedPhysicsScale,
             &UsfScaleLayer,
         ),
-        With<Player>,
+        With<LocalControlSubject>,
     >,
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     mut hud: ParamSet<(

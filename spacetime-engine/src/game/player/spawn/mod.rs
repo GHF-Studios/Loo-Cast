@@ -57,6 +57,8 @@ pub(super) fn spawn_player(
             ),
             (
                 SpatialRefinementDemand::cuboid(PLAYER_SPATIAL_DEMAND_HALF_EXTENT),
+                LocomotionCapabilities::character(),
+                LocomotionEnabled(true),
                 PlayerStance::default(),
                 ControlledSubjectLocomotion::default(),
                 PlayerScaleInteractionProxy::default(),

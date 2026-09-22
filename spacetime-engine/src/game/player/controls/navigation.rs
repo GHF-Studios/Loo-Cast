@@ -18,7 +18,7 @@ pub(in crate::game::player) fn sync_navigation_context(
             &mut UsfTravelNeighborhood,
             &mut UsfNavigationContext,
         ),
-        With<Player>,
+        With<LocalControlSubject>,
     >,
 ) {
     let (body, layer, mut neighborhood, mut navigation) = player.into_inner();
@@ -85,7 +85,7 @@ pub(in crate::game::player) fn plan_approach_refinement(
             &mut PlayerApproachRefinementState,
             &mut SpatialRefinementDemand,
         ),
-        With<Player>,
+        With<LocalControlSubject>,
     >,
     refinable: Query<(&UsfTravelInfluence, &UsfApproachRefinement)>,
 ) {
@@ -173,7 +173,7 @@ pub(in crate::game::player) fn plan_approach_refinement(
 /// It consumes planner state. Camera/view state has no authority over physical
 /// interaction or materialization.
 pub(in crate::game::player) fn sync_approach_presentation(
-    state: Single<&PlayerApproachRefinementState, With<Player>>,
+    state: Single<&PlayerApproachRefinementState, With<LocalControlSubject>>,
     mut view: Single<&mut UsfViewContext, With<UsfViewRenderAnchor>>,
 ) {
     if !state.active {
@@ -199,7 +199,7 @@ pub(in crate::game::player) fn request_approach_interaction_handoff(
             &ControlledSubjectLocomotion,
             &PlayerApproachRefinementState,
         ),
-        With<Player>,
+        With<LocalControlSubject>,
     >,
     mut transitions: ResMut<UsfSpatialTransitionQueue>,
 ) {
@@ -250,7 +250,7 @@ pub(in crate::game::player) fn sync_planetary_gravity(
             &mut CharacterMovementConfig,
             &mut PlayerTravelState,
         ),
-        With<Player>,
+        With<LocalControlSubject>,
     >,
 ) {
     let (body, layer, mut locomotion, mut movement, mut travel) = player.into_inner();
@@ -331,7 +331,7 @@ pub(in crate::game::player) fn sync_travel_state(
             &UsfTravelNeighborhood,
             &mut PlayerTravelState,
         ),
-        With<Player>,
+        With<LocalControlSubject>,
     >,
 ) {
     let (body, layer, neighborhood, mut state) = player.into_inner();

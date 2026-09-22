@@ -31,7 +31,7 @@ pub(in crate::game::player) fn movement(
             &CharacterMovementConfig,
             &mut CharacterMovementInput,
         ),
-        With<Player>,
+        With<LocalControlSubject>,
     >,
 ) {
     let (
@@ -144,7 +144,7 @@ pub(in crate::game::player) fn local_flight_movement(
             &PlayerTravelEnvelope,
             &mut LinearVelocity,
         ),
-        With<Player>,
+        With<LocalControlSubject>,
     >,
 ) {
     let (
@@ -245,7 +245,7 @@ pub(in crate::game::player) fn scale_navigation_movement(
             &PlayerTravelState,
             &mut LinearVelocity,
         ),
-        With<Player>,
+        With<LocalControlSubject>,
     >,
 ) {
     let (
@@ -328,4 +328,164 @@ pub(in crate::game::player) fn scale_navigation_movement(
 
     body.translation = moved.position;
     velocity.0 = moved.projected_velocity;
+}
+
+
+const INERTIAL_FLIGHT_ACCELERATION_METRES_PER_SECOND2: f32 = 35.0;
+const ORBITAL_FLIGHT_ACCELERATION_METRES_PER_SECOND2: f32 = 20.0;
+const FLIGHT_BOOST_MULTIPLIER: f32 = 4.0;
+
+fn acceleration_input(
+    keyboard: &ButtonInput<KeyCode>,
+    control: &CharacterControlFrame,
+    aim: &PlayerAim,
+    up: Vec3,
+) -> Vec3 {
+    let horizontal =
+        keyboard.pressed(KeyCode::KeyD) as i8 - keyboard.pressed(KeyCode::KeyA) as i8;
+    let forward =
+        keyboard.pressed(KeyCode::KeyW) as i8 - keyboard.pressed(KeyCode::KeyS) as i8;
+    let vertical =
+        keyboard.pressed(KeyCode::Space) as i8 - keyboard.pressed(KeyCode::ControlLeft) as i8;
+    free_flight_wish(
+        control,
+        aim,
+        up,
+        horizontal as f32,
+        forward as f32,
+        vertical as f32,
+    )
+}
+
+pub(in crate::game::player) fn inertial_flight_movement(
+    time: Res<Time<Fixed>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    capture: Res<CursorCapture>,
+    move_and_slide: MoveAndSlide,
+    physics_charts: UsfPhysicsCharts,
+    subject: Single<
+        (
+            Entity,
+            &mut Transform,
+            &CharacterLocomotionFrame,
+            &CharacterControlFrame,
+            &PlayerAim,
+            &ControlledSubjectLocomotion,
+            &UsfScaleLayer,
+            &Collider,
+            Option<&KinematicQueryExclusions>,
+            &PlayerTravelState,
+            &mut LinearVelocity,
+        ),
+        With<LocalControlSubject>,
+    >,
+) {
+    let (
+        entity,
+        mut body,
+        frame,
+        control,
+        aim,
+        locomotion,
+        layer,
+        collider,
+        exclusions,
+        travel,
+        mut velocity,
+    ) = subject.into_inner();
+
+    if locomotion.kernel() != PlayerMotionKernel::InertialFlight
+        || gameplay_suppressed(&keyboard, &capture)
+    {
+        return;
+    }
+
+    let boost = if keyboard.pressed(KeyCode::ShiftLeft)
+        || keyboard.pressed(KeyCode::ShiftRight)
+    {
+        FLIGHT_BOOST_MULTIPLIER
+    } else {
+        1.0
+    };
+
+    let wish = acceleration_input(&keyboard, control, aim, frame.up());
+    let thrust_native = layer.scale().metres_to_native_f32(
+        INERTIAL_FLIGHT_ACCELERATION_METRES_PER_SECOND2 * boost,
+    );
+    let gravity_native = layer.scale().metres_to_native_f32(travel.local_gravity);
+    let acceleration = wish * thrust_native - frame.up() * gravity_native;
+    let desired_velocity = velocity.0 + acceleration * time.delta_secs();
+
+    let filter = physics_charts.filter_for_scale(
+        layer.scale(),
+        std::iter::once(entity)
+            .chain(exclusions.into_iter().flat_map(|items| items.iter())),
+    );
+    let moved = move_and_slide.move_and_slide(
+        collider,
+        body.translation,
+        body.rotation,
+        desired_velocity,
+        time.delta(),
+        &MoveAndSlideConfig::default(),
+        &filter,
+        |_| MoveAndSlideHitResponse::Accept,
+    );
+
+    body.translation = moved.position;
+    velocity.0 = moved.projected_velocity;
+}
+
+pub(in crate::game::player) fn orbital_flight_movement(
+    time: Res<Time<Fixed>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    capture: Res<CursorCapture>,
+    subject: Single<
+        (
+            &mut Transform,
+            &CharacterLocomotionFrame,
+            &CharacterControlFrame,
+            &PlayerAim,
+            &ControlledSubjectLocomotion,
+            &UsfScaleLayer,
+            &PlayerTravelState,
+            &mut LinearVelocity,
+        ),
+        With<LocalControlSubject>,
+    >,
+) {
+    let (
+        mut body,
+        frame,
+        control,
+        aim,
+        locomotion,
+        layer,
+        travel,
+        mut velocity,
+    ) = subject.into_inner();
+
+    if locomotion.kernel() != PlayerMotionKernel::OrbitalFlight
+        || gameplay_suppressed(&keyboard, &capture)
+    {
+        return;
+    }
+
+    let boost = if keyboard.pressed(KeyCode::ShiftLeft)
+        || keyboard.pressed(KeyCode::ShiftRight)
+    {
+        FLIGHT_BOOST_MULTIPLIER
+    } else {
+        1.0
+    };
+
+    let wish = acceleration_input(&keyboard, control, aim, frame.up());
+    let thrust_native = layer.scale().metres_to_native_f32(
+        ORBITAL_FLIGHT_ACCELERATION_METRES_PER_SECOND2 * boost,
+    );
+    let gravity_native = layer.scale().metres_to_native_f32(travel.local_gravity);
+    let acceleration = wish * thrust_native - frame.up() * gravity_native;
+
+    velocity.0 += acceleration * time.delta_secs();
+    body.translation += velocity.0 * time.delta_secs();
 }

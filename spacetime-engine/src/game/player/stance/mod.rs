@@ -16,6 +16,8 @@ use crate::{
     spatial::UsfScaleLayer,
 };
 
+use crate::game::control::LocalControlSubject;
+
 use super::{
     ControlledSubjectLocomotion, Player, PlayerDead, PlayerDetailedPhysicsScale,
     PlayerMotionKernel, PlayerStance,
@@ -44,7 +46,7 @@ pub fn update_stance(
                 &mut SpatialSplitBox,
                 Option<&KinematicQueryExclusions>,
             ),
-            With<Player>,
+            (With<Player>, With<LocalControlSubject>),
         >,
     )>,
 ) {

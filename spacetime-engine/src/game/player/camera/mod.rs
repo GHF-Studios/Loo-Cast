@@ -25,7 +25,9 @@ use crate::{
     spatial::UsfScaleLayer,
 };
 
-use super::{Player, PlayerAim, PlayerStance, cursor::CursorCapture, model::PlayerModel};
+use crate::game::control::LocalControlSubject;
+
+use super::{PlayerAim, PlayerStance, cursor::CursorCapture, model::PlayerModel};
 
 /// Available local-player camera presentations.
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Default)]

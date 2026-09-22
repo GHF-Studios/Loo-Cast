@@ -1,6 +1,9 @@
 //! Loo Cast game composition built on Spacetime Engine domains.
 
 pub mod combat;
+pub mod control;
+pub mod locomotion;
+pub mod spacecraft;
 mod console_commands;
 mod devtools;
 pub mod health;
@@ -128,7 +131,12 @@ impl Plugin for LooCastPlugin {
                 crate::procedural_assets::ProceduralAssetsPlugin,
                 crate::spatial::UsfSpatialPlugin,
                 crate::worldgen::WorldGenerationPlugin,
+                control::ControlPlugin,
+            ))
+            .add_plugins((
+                locomotion::LocomotionPlugin,
                 player::PlayerPlugin,
+                spacecraft::SpacecraftPlugin,
                 crate::portal::PortalPlugin,
                 crate::thermal::ThermalCorePlugin,
                 crate::thermal::ThermalPresentationPlugin,

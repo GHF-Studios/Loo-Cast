@@ -92,6 +92,8 @@ pub enum PlayerMotionKernel {
     #[default]
     Character,
     ThrusterFlight,
+    InertialFlight,
+    OrbitalFlight,
     ScaleNavigation,
     Cruise,
     Disabled,

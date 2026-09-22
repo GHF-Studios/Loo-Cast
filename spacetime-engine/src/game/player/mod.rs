@@ -61,6 +61,11 @@ use crate::{
     voxel::VoxelMaterializationDemand,
 };
 
+use crate::game::{
+    control::LocalControlSubject,
+    locomotion::{LocomotionCapabilities, LocomotionEnabled},
+};
+
 use super::{
     GameSet, InputSet, PresentationSet,
     combat::Weapon,
@@ -137,7 +142,10 @@ impl Plugin for PlayerPlugin {
                 (
                     controls::local_flight_movement,
                     controls::scale_navigation_movement,
+                    controls::inertial_flight_movement,
+                    controls::orbital_flight_movement,
                     controls::adaptive_cruise_movement,
+                    crate::game::spacecraft::detect_landing,
                 )
                     .chain()
                     .after(CharacterMovementSet::Simulate),

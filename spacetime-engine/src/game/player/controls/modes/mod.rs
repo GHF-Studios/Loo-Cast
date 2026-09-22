@@ -28,7 +28,7 @@ pub(in crate::game::player) fn toggle_local_flight(
             &mut CharacterGroundState,
             &mut LinearVelocity,
         ),
-        With<Player>,
+        With<LocalControlSubject>,
     >,
 ) {
     if gameplay_suppressed(&keyboard, &capture) || !keyboard.just_pressed(KeyCode::KeyV) {
@@ -70,7 +70,7 @@ pub(in crate::game::player) fn toggle_local_flight_thrusters(
             &mut CharacterGroundState,
             &mut LinearVelocity,
         ),
-        With<Player>,
+        With<LocalControlSubject>,
     >,
 ) {
     if gameplay_suppressed(&keyboard, &capture) || !keyboard.just_pressed(KeyCode::KeyX) {
@@ -110,7 +110,7 @@ pub(in crate::game::player) fn toggle_adaptive_cruise(
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
         ),
-        With<Player>,
+        With<LocalControlSubject>,
     >,
 ) {
     if gameplay_suppressed(&keyboard, &capture) || !keyboard.just_pressed(KeyCode::KeyC) {
@@ -148,7 +148,7 @@ pub(in crate::game::player) fn toggle_adaptive_cruise(
 pub(in crate::game::player) fn toggle_spatial_demand(
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
-    mut player: Single<&mut SpatialDemandSource, With<Player>>,
+    mut player: Single<&mut SpatialDemandSource, With<LocalControlSubject>>,
 ) {
     if gameplay_suppressed(&keyboard, &capture) || !keyboard.just_pressed(KeyCode::KeyL) {
         return;
@@ -172,17 +172,24 @@ fn regime_allowed(
     layer: SpatialScale,
     detailed: SpatialScale,
     travel: &PlayerTravelState,
+    capabilities: LocomotionCapabilities,
 ) -> bool {
-    if requested == PlayerLocomotionRegime::OnFoot {
-        return layer == detailed;
+    match requested {
+        PlayerLocomotionRegime::OnFoot => {
+            return capabilities.character_enabled() && layer == detailed;
+        }
+        PlayerLocomotionRegime::LocalFlight if !capabilities.local_flight() => return false,
+        PlayerLocomotionRegime::PlanetaryFlight if !capabilities.orbital_flight() => return false,
+        PlayerLocomotionRegime::Cruise if !capabilities.cruise() => return false,
+        _ => {}
     }
 
     let Some((clearance, radius)) = nearest_body_clearance_and_radius(travel) else {
-        return requested == PlayerLocomotionRegime::Cruise;
+        return requested == PlayerLocomotionRegime::Cruise && capabilities.cruise();
     };
 
     match requested {
-        PlayerLocomotionRegime::OnFoot => layer == detailed,
+        PlayerLocomotionRegime::OnFoot => capabilities.character_enabled() && layer == detailed,
         PlayerLocomotionRegime::LocalFlight => {
             let limit = if previous == PlayerLocomotionRegime::LocalFlight {
                 local_flight_release_clearance(radius)
@@ -217,13 +224,18 @@ fn automatic_regime(
     layer: SpatialScale,
     detailed: SpatialScale,
     travel: &PlayerTravelState,
+    capabilities: LocomotionCapabilities,
 ) -> PlayerLocomotionRegime {
-    if layer == detailed {
+    if capabilities.character_enabled() && layer == detailed {
         return PlayerLocomotionRegime::OnFoot;
     }
 
     let Some((clearance, radius)) = nearest_body_clearance_and_radius(travel) else {
-        return PlayerLocomotionRegime::Cruise;
+        return if capabilities.cruise() {
+            PlayerLocomotionRegime::Cruise
+        } else {
+            PlayerLocomotionRegime::OnFoot
+        };
     };
 
     let planetary_limit = if previous == PlayerLocomotionRegime::Cruise {
@@ -242,10 +254,14 @@ fn automatic_regime(
         local_flight_capture_clearance(radius)
     };
 
-    if clearance <= local_limit {
+    if capabilities.local_flight() && clearance <= local_limit {
         PlayerLocomotionRegime::LocalFlight
-    } else {
+    } else if capabilities.orbital_flight() {
         PlayerLocomotionRegime::PlanetaryFlight
+    } else if capabilities.cruise() {
+        PlayerLocomotionRegime::Cruise
+    } else {
+        PlayerLocomotionRegime::OnFoot
     }
 }
 
@@ -263,17 +279,20 @@ pub(in crate::game::player) fn resolve_locomotion_state(
             &UsfScaleLayer,
             &PlayerDetailedPhysicsScale,
             &PlayerTravelState,
+            &LocomotionCapabilities,
+            &LocomotionEnabled,
             &mut ControlledSubjectLocomotion,
         ),
-        With<Player>,
+        With<LocalControlSubject>,
     >,
 ) {
-    let (entity, dead, layer, detailed, travel, mut locomotion) = player.into_inner();
+    let (entity, dead, layer, detailed, travel, capabilities, enabled, mut locomotion) =
+        player.into_inner();
 
     let previous_regime = locomotion.regime();
     let previous_kernel = locomotion.kernel();
 
-    if dead.is_some() {
+    if dead.is_some() || !enabled.0 {
         let collision_policy = locomotion.collision_policy();
         if locomotion.resolve(
             previous_regime,
@@ -293,7 +312,7 @@ pub(in crate::game::player) fn resolve_locomotion_state(
     }
 
     let automatic =
-        automatic_regime(previous_regime, layer.scale(), detailed.0, travel);
+        automatic_regime(previous_regime, layer.scale(), detailed.0, travel, *capabilities);
 
     let regime = match locomotion.request() {
         PlayerLocomotionRequest::Automatic => automatic,
@@ -304,6 +323,7 @@ pub(in crate::game::player) fn resolve_locomotion_state(
                 layer.scale(),
                 detailed.0,
                 travel,
+                *capabilities,
             ) =>
         {
             requested
@@ -321,6 +341,26 @@ pub(in crate::game::player) fn resolve_locomotion_state(
             (
                 PlayerMotionKernel::Cruise,
                 PlayerCollisionPolicy::Disabled,
+                PlayerVelocitySemantics::PreserveCanonical,
+            )
+        } else if regime == PlayerLocomotionRegime::PlanetaryFlight
+            && capabilities.orbital_flight()
+        {
+            (
+                PlayerMotionKernel::OrbitalFlight,
+                PlayerCollisionPolicy::Disabled,
+                PlayerVelocitySemantics::PreserveCanonical,
+            )
+        } else if regime == PlayerLocomotionRegime::LocalFlight
+            && capabilities.inertial_flight()
+        {
+            (
+                PlayerMotionKernel::InertialFlight,
+                if layer.scale() == detailed.0 {
+                    PlayerCollisionPolicy::DetailedBody
+                } else {
+                    PlayerCollisionPolicy::ScaleProxy
+                },
                 PlayerVelocitySemantics::PreserveCanonical,
             )
         } else if layer.scale() == detailed.0 {
@@ -368,6 +408,7 @@ pub(in crate::game::player) fn sync_locomotion_runtime(
             Ref<UsfScaleLayer>,
             &PlayerStance,
             &PlayerScaleInteractionProxy,
+            Option<&ControlledSubjectHull>,
             &ControlledSubjectLocomotion,
             Option<&CharacterMotor>,
             Option<&Collider>,
@@ -375,7 +416,7 @@ pub(in crate::game::player) fn sync_locomotion_runtime(
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
         ),
-        With<Player>,
+        With<LocalControlSubject>,
     >,
 ) {
     let (
@@ -383,6 +424,7 @@ pub(in crate::game::player) fn sync_locomotion_runtime(
         layer,
         stance,
         proxy,
+        hull,
         locomotion,
         motor,
         collider,
@@ -412,7 +454,10 @@ pub(in crate::game::player) fn sync_locomotion_runtime(
         }
         PlayerCollisionPolicy::DetailedBody => {
             if collider.is_none() || layer.is_changed() {
-                let collider = if stance.crouched {
+                let collider = if let Some(hull) = hull {
+                    let size = hull.size();
+                    Collider::cuboid(size.x, size.y, size.z)
+                } else if stance.crouched {
                     CharacterDimensions::crouching_collider()
                 } else {
                     CharacterDimensions::standing_collider()
@@ -424,7 +469,10 @@ pub(in crate::game::player) fn sync_locomotion_runtime(
             if collider.is_none() || layer.is_changed() {
                 commands
                     .entity(entity)
-                    .insert(Collider::sphere(proxy.radius_native.max(0.001)));
+                    .insert(Collider::sphere(
+                        hull.map_or(proxy.radius_native, |hull| hull.proxy_radius_native())
+                            .max(0.001),
+                    ));
             }
         }
     }

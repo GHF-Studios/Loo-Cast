@@ -12,7 +12,7 @@ pub(in crate::game::player) fn look(
     mouse: Res<AccumulatedMouseMotion>,
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
-    player: Single<(&PlayerController, &mut PlayerAim), With<Player>>,
+    player: Single<(&PlayerController, &mut PlayerAim), With<LocalControlSubject>>,
 ) {
     if gameplay_suppressed(&keyboard, &capture) {
         return;
@@ -30,7 +30,7 @@ pub(in crate::game::player) fn zoom_spatial_view(
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
     presentation: Res<PrimaryViewPresentation>,
-    locomotion: Single<&ControlledSubjectLocomotion, With<Player>>,
+    locomotion: Single<&ControlledSubjectLocomotion, With<LocalControlSubject>>,
     mut view: Single<&mut UsfViewContext, With<UsfViewRenderAnchor>>,
 ) {
     if locomotion.regime() == PlayerLocomotionRegime::Cruise

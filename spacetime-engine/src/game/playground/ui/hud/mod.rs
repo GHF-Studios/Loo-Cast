@@ -8,6 +8,7 @@ use crate::{
         health::Health,
         inventory::Hotbar,
         item::{ItemAction, ItemCatalog},
+        control::LocalControlSubject,
         player::{
             CameraMode, ControlledSubjectLocomotion, Player, PlayerAdaptiveCruise,
             PlayerCamera, PlayerLocomotionRegime, PlayerLocomotionRequest,
@@ -183,7 +184,7 @@ fn update_player_status(
             &UsfTravelNeighborhood,
             &UsfNavigationContext,
         ),
-        With<Player>,
+        With<LocalControlSubject>,
     >,
     health: Query<&Health>,
     roots: Query<&Children, With<PlayerStatus>>,
@@ -268,7 +269,7 @@ fn update_context_actions(
             &ControlledSubjectLocomotion,
             &SpatialDemandSource,
         ),
-        With<Player>,
+        With<LocalControlSubject>,
     >,
     mut text: Single<&mut Text, With<ContextActionText>>,
 ) {
@@ -299,10 +300,16 @@ fn update_context_actions(
             lines.push("SHIFT     Sprint".to_string());
             lines.push("CTRL      Crouch".to_string());
         }
-        PlayerMotionKernel::ThrusterFlight | PlayerMotionKernel::ScaleNavigation => {
+        PlayerMotionKernel::ThrusterFlight
+        | PlayerMotionKernel::InertialFlight
+        | PlayerMotionKernel::ScaleNavigation => {
             lines.push("WASD      Flight".to_string());
             lines.push("SPACE/CTRL Vertical".to_string());
             lines.push("SHIFT     Boost".to_string());
+        }
+        PlayerMotionKernel::OrbitalFlight => {
+            lines.push("WASD      Orbital thrust".to_string());
+            lines.push("SPACE/CTRL Radial thrust".to_string());
         }
         PlayerMotionKernel::Cruise => {
             lines.push("W / S     Throttle".to_string());
