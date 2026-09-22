@@ -111,10 +111,16 @@ fn free_flight_wish(
         .normalize_or_zero()
 }
 
+fn canonical_speed_to_native(scale: SpatialScale, metres_per_second: f64) -> f32 {
+    scale
+        .scale0_to_native_f64(metres_per_second.max(0.0))
+        .clamp(0.0, f64::from(f32::MAX)) as f32
+}
+
 /// Detailed-slice Local Flight kernel.
 ///
-/// Unlike the old "noclip" path this is explicitly a collision-aware thruster
-/// kernel, selected by the locomotion state machine.
+/// The travel policy is canonical. This kernel performs the one required
+/// conversion into the current Scale Slice immediately before physics.
 pub(in crate::game::player) fn local_flight_movement(
     time: Res<Time<Fixed>>,
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -135,6 +141,7 @@ pub(in crate::game::player) fn local_flight_movement(
             &Collider,
             Option<&KinematicQueryExclusions>,
             &PlayerTravelSpeed,
+            &PlayerTravelEnvelope,
             &mut LinearVelocity,
         ),
         With<Player>,
@@ -153,6 +160,7 @@ pub(in crate::game::player) fn local_flight_movement(
         collider,
         exclusions,
         travel_speed,
+        envelope,
         mut velocity,
     ) = player.into_inner();
 
@@ -163,8 +171,10 @@ pub(in crate::game::player) fn local_flight_movement(
         return;
     }
 
-    let horizontal = keyboard.pressed(KeyCode::KeyD) as i8 - keyboard.pressed(KeyCode::KeyA) as i8;
-    let forward = keyboard.pressed(KeyCode::KeyW) as i8 - keyboard.pressed(KeyCode::KeyS) as i8;
+    let horizontal =
+        keyboard.pressed(KeyCode::KeyD) as i8 - keyboard.pressed(KeyCode::KeyA) as i8;
+    let forward =
+        keyboard.pressed(KeyCode::KeyW) as i8 - keyboard.pressed(KeyCode::KeyS) as i8;
     let vertical =
         keyboard.pressed(KeyCode::Space) as i8 - keyboard.pressed(KeyCode::ControlLeft) as i8;
 
@@ -177,14 +187,20 @@ pub(in crate::game::player) fn local_flight_movement(
         vertical as f32,
     );
 
-    let boost = if keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight) {
+    let boost = if keyboard.pressed(KeyCode::ShiftLeft)
+        || keyboard.pressed(KeyCode::ShiftRight)
+    {
         controller.sprint_multiplier
     } else {
         1.0
     };
 
+    let canonical_speed =
+        envelope.manual_speed_metres_per_second * f64::from(travel_speed.multiplier.max(0.0))
+            * f64::from(boost.max(0.0));
     let desired_velocity =
-        wish * travel_speed.free_flight_native_units_per_second() * boost;
+        wish * canonical_speed_to_native(layer.scale(), canonical_speed);
+
     let excluded = std::iter::once(entity)
         .chain(exclusions.into_iter().flat_map(|exclusions| exclusions.iter()));
     let filter = physics_charts.filter_for_scale(layer.scale(), excluded);
@@ -204,11 +220,8 @@ pub(in crate::game::player) fn local_flight_movement(
     velocity.0 = moved.projected_velocity;
 }
 
-/// Coarse manual navigation through the physics kernel of the current
-/// Scale Slice.
-///
-/// The controlled manifestation uses a bounded interaction proxy and collides
-/// only with geometry published into the same Scale Slice.
+/// Coarse manual navigation through the physics kernel of the current Scale
+/// Slice. The movement policy remains canonical and chart-independent.
 pub(in crate::game::player) fn scale_navigation_movement(
     time: Res<Time<Fixed>>,
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -228,7 +241,7 @@ pub(in crate::game::player) fn scale_navigation_movement(
             &Collider,
             Option<&KinematicQueryExclusions>,
             &PlayerTravelSpeed,
-            &UsfNavigationContext,
+            &PlayerTravelEnvelope,
             &PlayerTravelState,
             &mut LinearVelocity,
         ),
@@ -247,7 +260,7 @@ pub(in crate::game::player) fn scale_navigation_movement(
         collider,
         exclusions,
         travel_speed,
-        navigation,
+        envelope,
         travel,
         mut velocity,
     ) = player.into_inner();
@@ -278,12 +291,17 @@ pub(in crate::game::player) fn scale_navigation_movement(
     let boost = if keyboard.pressed(KeyCode::ShiftLeft)
         || keyboard.pressed(KeyCode::ShiftRight)
     {
-        10.0
+        4.0_f64
     } else {
-        1.0
+        1.0_f64
     };
 
-    let context_speed = navigation.manual_native_units_per_second(layer.scale());
+    let canonical_speed =
+        envelope.manual_speed_metres_per_second * f64::from(travel_speed.multiplier.max(0.0))
+            * boost;
+    let desired_thrust =
+        wish * canonical_speed_to_native(layer.scale(), canonical_speed);
+
     let gravity_native = layer.scale().metres_to_native_f32(travel.local_gravity);
     let free_fall = if gravity_native > 0.0 {
         frame.up() * velocity.0.dot(frame.up())
@@ -291,8 +309,8 @@ pub(in crate::game::player) fn scale_navigation_movement(
     } else {
         Vec3::ZERO
     };
-    let desired_velocity =
-        wish * context_speed * travel_speed.multiplier * boost + free_fall;
+    let desired_velocity = desired_thrust + free_fall;
+
     let excluded = std::iter::once(entity)
         .chain(exclusions.into_iter().flat_map(|exclusions| exclusions.iter()));
     let filter = physics_charts.filter_for_scale(layer.scale(), excluded);

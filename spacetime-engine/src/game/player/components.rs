@@ -234,6 +234,9 @@ pub struct ControlledSubjectLocomotionChanged {
 pub struct PlayerApproachRefinementState {
     pub active: bool,
     pub continuous_exponent: f32,
+    pub minimum_scale: SpatialScale,
+    pub interaction_target_scale: SpatialScale,
+    pub realization_target_scale: SpatialScale,
 }
 
 impl Default for PlayerApproachRefinementState {
@@ -241,6 +244,9 @@ impl Default for PlayerApproachRefinementState {
         Self {
             active: false,
             continuous_exponent: SpatialScale::MAX.exponent() as f32,
+            minimum_scale: SpatialScale::MAX,
+            interaction_target_scale: SpatialScale::MAX,
+            realization_target_scale: SpatialScale::MAX,
         }
     }
 }
@@ -304,15 +310,41 @@ impl PlayerTravelSpeed {
         base_speed.max(0.0) * self.multiplier.max(0.0)
     }
 
-    pub fn free_flight_native_units_per_second(self) -> f32 {
-        self.multiplier.max(0.0)
-    }
 }
 
 impl Default for PlayerTravelSpeed {
     fn default() -> Self {
         Self {
             multiplier: Self::DEFAULT_MULTIPLIER,
+        }
+    }
+}
+
+/// Canonical movement policy derived from semantic navigation context.
+///
+/// Every speed and distance here is expressed in SI metres / seconds. Scale
+/// Slice native units are deliberately absent: chart conversion happens only
+/// inside the active motion kernel.
+#[derive(Component, Reflect, Debug, Clone, Copy)]
+#[reflect(Component)]
+pub struct PlayerTravelEnvelope {
+    pub manual_speed_metres_per_second: f64,
+    pub cruise_default_speed_metres_per_second: f64,
+    pub cruise_max_speed_metres_per_second: f64,
+    pub medium_speed_cap_metres_per_second: Option<f64>,
+    pub lookahead_metres: f64,
+    pub required_resolution_metres: f64,
+}
+
+impl Default for PlayerTravelEnvelope {
+    fn default() -> Self {
+        Self {
+            manual_speed_metres_per_second: 100.0,
+            cruise_default_speed_metres_per_second: 10_000_000.0,
+            cruise_max_speed_metres_per_second: 1_000_000_000.0,
+            medium_speed_cap_metres_per_second: None,
+            lookahead_metres: 1_000.0,
+            required_resolution_metres: 1_000.0,
         }
     }
 }

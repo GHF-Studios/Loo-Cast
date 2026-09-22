@@ -56,11 +56,13 @@ pub(super) fn spawn_player(
                 PlayerAim::default(),
             ),
             (
+                SpatialRefinementDemand::cuboid(PLAYER_SPATIAL_DEMAND_HALF_EXTENT),
                 PlayerStance::default(),
                 ControlledSubjectLocomotion::default(),
                 PlayerScaleInteractionProxy::default(),
                 PlayerDetailedPhysicsScale::default(),
                 PlayerTravelSpeed::default(),
+                PlayerTravelEnvelope::default(),
                 PlayerApproachRefinementState::default(),
                 PlayerAdaptiveCruise::default(),
                 PlayerTravelState::default(),

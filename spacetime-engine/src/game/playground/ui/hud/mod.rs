@@ -11,7 +11,7 @@ use crate::{
         player::{
             CameraMode, ControlledSubjectLocomotion, Player, PlayerAdaptiveCruise,
             PlayerCamera, PlayerLocomotionRegime, PlayerLocomotionRequest,
-            PlayerMotionKernel, PlayerTravelSpeed, PlayerTravelState,
+            PlayerMotionKernel, PlayerTravelEnvelope, PlayerTravelSpeed, PlayerTravelState,
         },
     },
     spatial::{
@@ -84,7 +84,7 @@ fn spawn_hud(mut commands: Commands, theme: Res<UiTheme>) {
         ))
         .with_children(|parent| {
             parent.spawn((
-                Text::new("HEALTH --\nMANUAL  S+0  0.000e0 u/s"),
+                Text::new("HEALTH --\nMANUAL  S+0  0.000e0 m/s"),
                 data.font(),
                 data.color(),
             ));
@@ -177,6 +177,7 @@ fn update_player_status(
             &UsfManifestationOf,
             &UsfScaleLayer,
             &PlayerTravelSpeed,
+            &PlayerTravelEnvelope,
             &PlayerAdaptiveCruise,
             &ControlledSubjectLocomotion,
             &UsfTravelNeighborhood,
@@ -192,6 +193,7 @@ fn update_player_status(
         manifestation,
         layer,
         manual_speed,
+        envelope,
         cruise,
         locomotion,
         neighborhood,
@@ -215,18 +217,13 @@ fn update_player_status(
             .medium_speed_cap_scale0
             .map(|value| format!("{value:.2e}"))
             .unwrap_or_else(|| "--".to_string());
-        let scale0_per_native = 10.0_f64.powi(layer.scale().exponent() as i32);
-        let native_speed = cruise.speed_scale0 / scale0_per_native;
-        let native_default = cruise.default_speed_scale0 / scale0_per_native;
-        let native_cap = cruise.speed_cap_scale0 / scale0_per_native;
         text.0 = format!(
-            "HEALTH {health}\nCRUISE {:>3.0}%  S{} {:.3e} u/s\nS0 {:.3e}/s  DEF {:.3e}u  CAP {:.3e}u\nHARD {}  MED {}  NBR {:>2}\nVIEW {:+.2}",
+            "HEALTH {health}\nCRUISE {:>3.0}%  S{}  SPD {:.3e} m/s\nDEF {:.3e} m/s  CAP {:.3e} m/s\nHARD {}  MED {}  NBR {:>2}\nVIEW {:+.2}",
             cruise.throttle * 100.0,
             layer.scale(),
-            native_speed,
             cruise.speed_scale0,
-            native_default,
-            native_cap,
+            cruise.default_speed_scale0,
+            cruise.speed_cap_scale0,
             hard_clearance,
             medium_cap,
             neighborhood.len(),
@@ -234,15 +231,14 @@ fn update_player_status(
         );
     } else {
         let navigation_speed =
-            navigation.manual_native_units_per_second(layer.scale()) * manual_speed.multiplier;
-        let navigation_length = navigation.characteristic_length_native(layer.scale());
+            envelope.manual_speed_metres_per_second * f64::from(manual_speed.multiplier.max(0.0));
         text.0 = format!(
-            "HEALTH {health}\nMANUAL {:.3}x  S{} {:.3e} u/s\nNAV {}  LEN {:.3e}u  VIEW {:+.2}",
+            "HEALTH {health}\nMANUAL {:.3}x  S{}  SPD {:.3e} m/s\nNAV {}  LEN {:.3e} m  VIEW {:+.2}",
             manual_speed.multiplier,
             layer.scale(),
             navigation_speed,
             navigation.kind().label(),
-            navigation_length,
+            navigation.characteristic_length_scale0(),
             view.continuous_exponent(),
         );
     }

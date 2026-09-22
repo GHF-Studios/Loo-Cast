@@ -20,8 +20,10 @@ use crate::{
         },
     },
     spatial::{
-        SpatialDemandSource, SpatialScale, UsfApproachRefinement, UsfNavigationContext,
-        UsfRadialGravitySource, UsfScaleLayer, UsfScaleRoleMask, UsfSpatialFrame,
+        SpatialDemandSource, SpatialRefinementDemand, SpatialScale, UsfApproachRefinement,
+        UsfNavigationContext,
+        UsfNavigationContextKind, UsfRadialGravitySource, UsfScaleLayer, UsfScaleRoleMask,
+        UsfSpatialFrame,
         UsfSpatialTransition, UsfSpatialTransitionQueue, UsfTransitionVelocity,
         UsfTravelInfluence, UsfTravelInfluenceKind, UsfTravelNeighborhood, UsfViewContext,
         UsfViewRenderAnchor,
@@ -34,8 +36,8 @@ use super::{
     PlayerAdaptiveCruise, PlayerAim, PlayerApproachRefinementState, PlayerCollisionPolicy,
     PlayerController, PlayerDead,
     PlayerDetailedPhysicsScale, PlayerLocomotionRegime, PlayerLocomotionRequest,
-    PlayerMotionKernel, PlayerScaleInteractionProxy, PlayerStance, PlayerTravelSpeed,
-    PlayerTravelState, PlayerVelocitySemantics,
+    PlayerMotionKernel, PlayerScaleInteractionProxy, PlayerStance, PlayerTravelEnvelope,
+    PlayerTravelSpeed, PlayerTravelState, PlayerVelocitySemantics,
     cursor::CursorCapture,
 };
 
@@ -62,8 +64,11 @@ pub(super) use modes::{
 };
 pub(super) use movement::{local_flight_movement, movement, scale_navigation_movement};
 pub(super) use navigation::{
-    sync_approach_refinement, sync_navigation_context, sync_planetary_gravity,
+    plan_approach_refinement, request_approach_interaction_handoff,
+    sync_approach_presentation, sync_navigation_context, sync_planetary_gravity,
     sync_travel_state,
 };
-pub(super) use travel::{critical_dropout_clearance, planetary_handoff_clearance};
+pub(super) use travel::{
+    critical_dropout_clearance, planetary_handoff_clearance, sync_travel_envelope,
+};
 pub(super) use view::{look, zoom_spatial_view};

@@ -21,8 +21,8 @@ pub use components::{
     PlayerAdaptiveCruise, PlayerAim, PlayerApproachRefinementState, PlayerCollisionPolicy,
     PlayerController, PlayerDead,
     PlayerDetailedPhysicsScale, PlayerLocomotionRegime, PlayerLocomotionRequest,
-    PlayerMotionKernel, PlayerScaleInteractionProxy, PlayerStance, PlayerTravelSpeed,
-    PlayerTravelState, PlayerVelocitySemantics,
+    PlayerMotionKernel, PlayerScaleInteractionProxy, PlayerStance, PlayerTravelEnvelope,
+    PlayerTravelSpeed, PlayerTravelState, PlayerVelocitySemantics,
 };
 
 use avian3d::prelude::{
@@ -51,7 +51,8 @@ use crate::{
         topology::{KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeer},
     },
     spatial::{
-        SpatialDemandSource, SpatialScale, UsfInteractionProjection, UsfPosition, UsfScaleLayer,
+        SpatialDemandSource, SpatialRefinementDemand, SpatialScale, UsfInteractionProjection,
+        UsfPosition, UsfScaleLayer,
         UsfSpatialAnchor, UsfSpatialSet, UsfTravelNeighborhood, UsfViewAnchor,
         UsfViewContext, UsfViewRenderAnchor,
     },
@@ -96,6 +97,7 @@ impl Plugin for PlayerPlugin {
             .register_type::<PlayerScaleInteractionProxy>()
             .register_type::<PlayerDetailedPhysicsScale>()
             .register_type::<PlayerTravelSpeed>()
+            .register_type::<PlayerTravelEnvelope>()
             .register_type::<PlayerApproachRefinementState>()
             .register_type::<PlayerTravelState>()
             .register_type::<PlayerAdaptiveCruise>()
@@ -118,10 +120,13 @@ impl Plugin for PlayerPlugin {
                     controls::sync_navigation_context,
                     controls::sync_planetary_gravity,
                     controls::sync_travel_state,
+                    controls::sync_travel_envelope,
                     controls::resolve_locomotion_state,
                     controls::sync_locomotion_runtime,
                     stance::update_stance,
-                    controls::sync_approach_refinement,
+                    controls::plan_approach_refinement,
+                    controls::sync_approach_presentation,
+                    controls::request_approach_interaction_handoff,
                     controls::movement,
                 )
                     .chain()

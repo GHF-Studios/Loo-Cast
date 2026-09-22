@@ -93,7 +93,7 @@ impl UsfTravelMedium {
     }
 }
 
-const NAVIGATION_TARGET_TRAVERSAL_SECONDS: f64 = 20.0;
+const NAVIGATION_FALLBACK_CHARACTERISTIC_METRES: f64 = 10_000.0;
 const NAVIGATION_LOCAL_STRUCTURE_RADIUS_LIMIT: f64 = 12.0;
 
 /// What kind of semantic structure currently sets coarse manual travel pace.
@@ -155,13 +155,11 @@ impl Default for UsfNavigationContext {
 
 impl UsfNavigationContext {
     pub fn fallback(interaction_scale: SpatialScale) -> Self {
-        let scale0_per_native = 10.0_f64.powi(interaction_scale.exponent() as i32);
         Self {
             kind: UsfNavigationContextKind::Fallback,
             interaction_scale,
             source_scale: None,
-            characteristic_length_scale0:
-                scale0_per_native * NAVIGATION_TARGET_TRAVERSAL_SECONDS,
+            characteristic_length_scale0: NAVIGATION_FALLBACK_CHARACTERISTIC_METRES,
         }
     }
 
@@ -266,20 +264,6 @@ impl UsfNavigationContext {
         self.characteristic_length_scale0
     }
 
-    pub fn characteristic_length_native(self, scale: SpatialScale) -> f64 {
-        self.characteristic_length_scale0
-            / 10.0_f64.powi(scale.exponent() as i32)
-    }
-
-    /// Baseline coarse manual speed for this navigation context.
-    ///
-    /// A characteristic length should take roughly twenty seconds to traverse.
-    /// User `speed` remains a dimensionless multiplier applied on top.
-    pub fn manual_native_units_per_second(self, scale: SpatialScale) -> f32 {
-        let native = self.characteristic_length_native(scale)
-            / NAVIGATION_TARGET_TRAVERSAL_SECONDS;
-        native.clamp(0.0, f32::MAX as f64) as f32
-    }
 }
 
 fn navigation_length_scale0(
@@ -764,10 +748,15 @@ mod tests {
     }
 
     #[test]
-    fn navigation_fallback_is_one_native_unit_per_second() {
-        let scale = SpatialScale::new(18).unwrap();
-        let context = UsfNavigationContext::fallback(scale);
-        assert!((context.manual_native_units_per_second(scale) - 1.0).abs() < 1.0e-6);
+    fn navigation_fallback_is_canonical_and_chart_independent() {
+        let coarse = UsfNavigationContext::fallback(SpatialScale::new(18).unwrap());
+        let fine = UsfNavigationContext::fallback(SpatialScale::new(-6).unwrap());
+
+        assert_eq!(coarse.characteristic_length_scale0(), 10_000.0);
+        assert_eq!(
+            coarse.characteristic_length_scale0(),
+            fine.characteristic_length_scale0(),
+        );
     }
 
     #[test]

@@ -95,6 +95,9 @@ pub(in crate::game::player) fn toggle_local_flight_thrusters(
 }
 
 /// `C` toggles an explicit adaptive Cruise request.
+///
+/// Entering or leaving Cruise preserves physical velocity. The new kernel may
+/// subsequently accelerate/decelerate through the canonical travel envelope.
 pub(in crate::game::player) fn toggle_adaptive_cruise(
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
@@ -106,7 +109,6 @@ pub(in crate::game::player) fn toggle_adaptive_cruise(
             &mut PlayerAdaptiveCruise,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
-            &mut LinearVelocity,
         ),
         With<Player>,
     >,
@@ -115,7 +117,7 @@ pub(in crate::game::player) fn toggle_adaptive_cruise(
         return;
     }
 
-    let (dead, travel, mut locomotion, mut cruise, mut input, mut ground, mut velocity) =
+    let (dead, travel, mut locomotion, mut cruise, mut input, mut ground) =
         player.into_inner();
     if dead.is_some() {
         return;
@@ -136,7 +138,9 @@ pub(in crate::game::player) fn toggle_adaptive_cruise(
     locomotion.set_thrusters_enabled(false);
     cruise.throttle = 0.0;
     cruise.speed_scale0 = 0.0;
-    reset_motion_state(&mut input, &mut ground, &mut velocity);
+    input.clear();
+    ground.grounded = false;
+    ground.ground_entity = None;
 }
 
 /// `L` toggles the player's contribution to generic spatial demand. Other
@@ -238,7 +242,7 @@ pub(in crate::game::player) fn resolve_locomotion_state(
             (
                 PlayerMotionKernel::Cruise,
                 PlayerCollisionPolicy::Disabled,
-                PlayerVelocitySemantics::Zero,
+                PlayerVelocitySemantics::PreserveCanonical,
             )
         } else if layer.scale() == detailed.0 {
             let kernel = if regime == PlayerLocomotionRegime::LocalFlight

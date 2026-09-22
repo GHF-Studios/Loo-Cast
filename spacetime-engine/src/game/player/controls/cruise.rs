@@ -1,59 +1,18 @@
-//! Adaptive long-distance free-flight.
+//! Adaptive long-distance travel kernel.
 //!
-//! Cruise speed is canonical (metres/s), while runtime displacement is
-//! projected into whichever USF chart currently owns interaction.
+//! Cruise consumes the same canonical travel envelope as ordinary flight.
+//! Scale Slice conversion happens only at the final displacement boundary.
 
 use super::*;
 
 const THROTTLE_RATE_PER_SECOND: f32 = 0.45;
 const SPEED_RESPONSE: f64 = 1.4;
 
-// Hard-body approach uses a braking envelope with a nonzero
-// planetary-flight handoff speed rather than a time-to-surface horizon.
-
-// Traversable media are feature-relative instead. Their *outer radius is not a
-// wall*. Cruise only needs to slow enough to resolve meaningful structure as it
-// approaches/enters the volume, and can remain extremely fast inside a huge,
-// smooth, sparse nebula.
-const MAX_MEDIUM_ENTRY_HORIZON_SECONDS: f64 = 4.0;
-const DEFAULT_MEDIUM_ENTRY_HORIZON_SECONDS: f64 = 12.0;
-const MAX_MEDIUM_FEATURE_HORIZON_SECONDS: f64 = 1.5;
-const DEFAULT_MEDIUM_FEATURE_HORIZON_SECONDS: f64 = 5.0;
-const MEDIUM_MIN_RESISTANCE: f64 = 0.01;
-
-// If no speed-constraining semantic influence is available yet, remain useful
-// without reverting to an effectively unbounded 1e30 S0/s target.
-const FALLBACK_MAX_NATIVE_PER_SECOND: f64 = 2.0;
-const FALLBACK_DEFAULT_NATIVE_PER_SECOND: f64 = 0.25;
-const FALLBACK_MIN_MAX_SPEED_SCALE0: f64 = 30_000.0;
-const FALLBACK_MIN_DEFAULT_SPEED_SCALE0: f64 = 10_000.0;
-
-// Canonical speed may lead the *actual runtime chart* by only this many
-// decades. This guards numeric/runtime displacement without coupling movement
-// speed to presentation zoom or forcing a chart transition.
-const CHART_SPEED_HEADROOM_DECADES: i32 = 2;
-
-const PLANETARY_HANDOFF_SPEED_MIN_SCALE0: f64 = 750.0;
-const PLANETARY_HANDOFF_SPEED_MAX_SCALE0: f64 = 7_500.0;
-const CRUISE_BRAKING_ACCELERATION_SCALE0: f64 = 120.0;
-
-
-#[derive(Debug, Clone, Copy)]
-struct CruiseSpeedEnvelope {
-    max_speed_scale0: f64,
-    default_speed_scale0: f64,
-    nearest_hard_clearance_scale0: Option<f64>,
-    medium_speed_cap_scale0: Option<f64>,
-    critical_dropout: bool,
-}
-
-
 pub(in crate::game::player) fn adaptive_cruise_movement(
     time: Res<Time<Fixed>>,
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
     presentation: Res<PrimaryViewPresentation>,
-    frame: Res<UsfSpatialFrame>,
     mut was_active: Local<bool>,
     player: Single<
         (
@@ -62,9 +21,10 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
             &CharacterControlFrame,
             Option<&PlayerDead>,
             &PlayerAim,
-            &mut ControlledSubjectLocomotion,
+            &ControlledSubjectLocomotion,
             &mut PlayerAdaptiveCruise,
-            &UsfTravelNeighborhood,
+            &PlayerTravelEnvelope,
+            &PlayerTravelState,
             Option<&mut LinearVelocity>,
         ),
         With<Player>,
@@ -76,9 +36,10 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
         control,
         dead,
         aim,
-        mut locomotion,
+        locomotion,
         mut cruise,
-        neighborhood,
+        envelope,
+        travel,
         velocity,
     ) = player.into_inner();
 
@@ -86,6 +47,7 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
         *was_active = false;
         return;
     }
+
     if dead.is_some() || presentation.is_embedded() || gameplay_suppressed(&keyboard, &capture) {
         if let Some(mut velocity) = velocity {
             velocity.0 = Vec3::ZERO;
@@ -101,37 +63,17 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
     let just_engaged = !*was_active;
     *was_active = true;
 
-    let player_scale = layer.scale();
-    let Ok(player_position) = frame
-        .origin()
-        .translated_at_scale(player_scale, body.translation)
-    else {
-        return;
-    };
-    let envelope = cruise_speed_envelope(&player_position, player_scale, &neighborhood);
-    cruise.speed_cap_scale0 = envelope.max_speed_scale0;
-    cruise.default_speed_scale0 = envelope.default_speed_scale0;
-    cruise.nearest_hard_clearance_scale0 = envelope.nearest_hard_clearance_scale0;
-    cruise.medium_speed_cap_scale0 = envelope.medium_speed_cap_scale0;
-
-    // Critical planetary dropout: Cruise cannot remain authoritative after
-    // crossing deeply into the body-relative flight envelope.
-    if envelope.critical_dropout {
-        locomotion.request_automatic();
-        cruise.throttle = 0.0;
-        cruise.speed_scale0 = envelope.default_speed_scale0;
-        if let Some(mut velocity) = velocity {
-            velocity.0 = Vec3::ZERO;
-        }
-        return;
-    }
+    cruise.speed_cap_scale0 = envelope.cruise_max_speed_metres_per_second;
+    cruise.default_speed_scale0 = envelope.cruise_default_speed_metres_per_second;
+    cruise.nearest_hard_clearance_scale0 = travel.nearest_body_clearance_scale0;
+    cruise.medium_speed_cap_scale0 = envelope.medium_speed_cap_metres_per_second;
 
     if just_engaged {
         cruise.throttle = throttle_for_speed(
-            envelope.default_speed_scale0,
-            envelope.max_speed_scale0,
+            envelope.cruise_default_speed_metres_per_second,
+            envelope.cruise_max_speed_metres_per_second,
         );
-        cruise.speed_scale0 = envelope.default_speed_scale0;
+        cruise.speed_scale0 = envelope.cruise_default_speed_metres_per_second;
     }
 
     let throttle_delta =
@@ -140,188 +82,35 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
         (cruise.throttle + throttle_delta as f32 * THROTTLE_RATE_PER_SECOND * dt)
             .clamp(0.0, 1.0);
 
-    let requested_environmental =
-        envelope.max_speed_scale0 * f64::from(cruise.throttle.powf(2.0));
-    let chart_safe_cap = chart_safe_speed_cap(player_scale);
-    let requested = requested_environmental.min(chart_safe_cap);
-    cruise.speed_scale0 = smooth_log_value(cruise.speed_scale0, requested, dt, SPEED_RESPONSE);
+    let requested = envelope.cruise_max_speed_metres_per_second
+        * f64::from(cruise.throttle.powf(2.0));
+    cruise.speed_scale0 =
+        smooth_log_value(cruise.speed_scale0, requested, dt, SPEED_RESPONSE);
 
-    let native_denominator = 10.0_f64.powi(player_scale.exponent() as i32);
-    let native_speed = (cruise.speed_scale0 / native_denominator)
-        .clamp(0.0, f32::MAX as f64) as f32;
-    let direction = (control.rotation() * aim.local_rotation() * Vec3::NEG_Z).normalize_or_zero();
+    let native_speed = layer
+        .scale()
+        .scale0_to_native_f64(cruise.speed_scale0.max(0.0))
+        .clamp(0.0, f64::from(f32::MAX)) as f32;
+    let direction =
+        (control.rotation() * aim.local_rotation() * Vec3::NEG_Z).normalize_or_zero();
+
     body.translation += direction * native_speed * dt;
 
     if let Some(mut velocity) = velocity {
-        velocity.0 = Vec3::ZERO;
-    }
-
-    // Deliberately do not mutate the observer's UsfViewContext here. Travel speed and
-    // presentation/interaction scale are separate concerns. Automatic scale
-    // following can return later once chart transitions are independently solid.
-}
-
-fn cruise_speed_envelope(
-    player_position: &crate::spatial::UsfPosition,
-    player_scale: SpatialScale,
-    neighborhood: &UsfTravelNeighborhood,
-) -> CruiseSpeedEnvelope {
-    let mut max_speed = f64::INFINITY;
-    let mut default_speed = f64::INFINITY;
-    let mut nearest_hard_clearance = None::<f64>;
-    let mut medium_speed_cap = None::<f64>;
-    let mut critical_dropout = false;
-    let mut constrained = false;
-
-    for influence in neighborhood.influences() {
-        let Some(measurement) = influence.measure_from(player_position) else {
-            continue;
-        };
-
-        match influence.kind() {
-            UsfTravelInfluenceKind::HardBody => {
-                constrained = true;
-                let clearance = measurement.boundary_clearance_scale0();
-                nearest_hard_clearance = Some(
-                    nearest_hard_clearance.map_or(clearance, |current| current.min(clearance)),
-                );
-                let handoff =
-                    planetary_handoff_clearance(measurement.extent_radius_scale0());
-                let handoff_speed =
-                    planetary_handoff_speed(measurement.extent_radius_scale0());
-                critical_dropout |=
-                    clearance <= critical_dropout_clearance(measurement.extent_radius_scale0());
-
-                max_speed = max_speed.min(hard_body_speed_limit(
-                    clearance,
-                    handoff,
-                    handoff_speed,
-                    CRUISE_BRAKING_ACCELERATION_SCALE0,
-                ));
-                default_speed = default_speed.min(hard_body_speed_limit(
-                    clearance,
-                    handoff,
-                    handoff_speed * 0.65,
-                    CRUISE_BRAKING_ACCELERATION_SCALE0 * 0.55,
-                ));
-            }
-            UsfTravelInfluenceKind::Medium(medium) => {
-                let resistance = medium.traversal_resistance();
-                if resistance < MEDIUM_MIN_RESISTANCE {
-                    continue;
-                }
-                constrained = true;
-                let maximum = medium_speed_limit(
-                    measurement.boundary_clearance_scale0(),
-                    measurement.characteristic_scale0(),
-                    measurement.inside(),
-                    resistance,
-                    MAX_MEDIUM_ENTRY_HORIZON_SECONDS,
-                    MAX_MEDIUM_FEATURE_HORIZON_SECONDS,
-                );
-                let default = medium_speed_limit(
-                    measurement.boundary_clearance_scale0(),
-                    measurement.characteristic_scale0(),
-                    measurement.inside(),
-                    resistance,
-                    DEFAULT_MEDIUM_ENTRY_HORIZON_SECONDS,
-                    DEFAULT_MEDIUM_FEATURE_HORIZON_SECONDS,
-                );
-                medium_speed_cap = Some(
-                    medium_speed_cap.map_or(maximum, |current| current.min(maximum)),
-                );
-                max_speed = max_speed.min(maximum);
-                default_speed = default_speed.min(default);
-            }
-            UsfTravelInfluenceKind::Region => {
-                // Regions are discovery/query context, not obstacles. Future
-                // neighbourhood refresh can use them to request finer child
-                // structure from worldgen/spatial indices.
-            }
-        }
-    }
-
-    if !constrained {
-        return fallback_speed_envelope(player_scale);
-    }
-
-    CruiseSpeedEnvelope {
-        max_speed_scale0: max_speed,
-        default_speed_scale0: default_speed.min(max_speed),
-        nearest_hard_clearance_scale0: nearest_hard_clearance,
-        medium_speed_cap_scale0: medium_speed_cap,
-        critical_dropout,
+        velocity.0 = direction * native_speed;
     }
 }
 
-fn planetary_handoff_speed(radius_scale0: f64) -> f64 {
-    radius_scale0
-        .sqrt()
-        .clamp(PLANETARY_HANDOFF_SPEED_MIN_SCALE0, PLANETARY_HANDOFF_SPEED_MAX_SCALE0)
-}
-
-fn hard_body_speed_limit(
-    clearance_scale0: f64,
-    handoff_clearance_scale0: f64,
-    handoff_speed_scale0: f64,
-    braking_acceleration_scale0: f64,
-) -> f64 {
-    let braking_distance = (clearance_scale0 - handoff_clearance_scale0).max(0.0);
-    (handoff_speed_scale0 * handoff_speed_scale0
-        + 2.0 * braking_acceleration_scale0.max(0.0) * braking_distance)
-        .sqrt()
-}
-
-/// Speed limit for a traversable volume.
-///
-/// Inside the medium, the limit depends on its local feature size and traversal
-/// resistance. Outside it, boundary clearance adds progressively more headroom
-/// so Cruise begins decelerating before entry rather than treating the boundary
-/// as a collision surface.
-fn medium_speed_limit(
-    boundary_clearance_scale0: f64,
-    characteristic_scale0: f64,
-    inside: bool,
-    resistance: f64,
-    entry_horizon_seconds: f64,
-    feature_horizon_seconds: f64,
-) -> f64 {
-    let resistance_factor = 0.25 + resistance.clamp(0.0, 1.0) * 3.75;
-    let interior_limit = characteristic_scale0 / (feature_horizon_seconds * resistance_factor);
-
-    if inside {
-        interior_limit
-    } else {
-        interior_limit + boundary_clearance_scale0 / entry_horizon_seconds
-    }
-}
-
-fn fallback_speed_envelope(scale: SpatialScale) -> CruiseSpeedEnvelope {
-    let scale0_per_native = 10.0_f64.powi(scale.exponent() as i32);
-    let max_speed =
-        (scale0_per_native * FALLBACK_MAX_NATIVE_PER_SECOND).max(FALLBACK_MIN_MAX_SPEED_SCALE0);
-    let default_speed = (scale0_per_native * FALLBACK_DEFAULT_NATIVE_PER_SECOND)
-        .max(FALLBACK_MIN_DEFAULT_SPEED_SCALE0)
-        .min(max_speed);
-
-    CruiseSpeedEnvelope {
-        max_speed_scale0: max_speed,
-        default_speed_scale0: default_speed,
-        nearest_hard_clearance_scale0: None,
-        medium_speed_cap_scale0: None,
-        critical_dropout: false,
-    }
-}
-
-fn throttle_for_speed(speed_scale0: f64, max_speed_scale0: f64) -> f32 {
-    if !speed_scale0.is_finite() || !max_speed_scale0.is_finite() || max_speed_scale0 <= 0.0 {
+fn throttle_for_speed(speed_metres_per_second: f64, max_metres_per_second: f64) -> f32 {
+    if !speed_metres_per_second.is_finite()
+        || !max_metres_per_second.is_finite()
+        || max_metres_per_second <= 0.0
+    {
         return 0.0;
     }
-    (speed_scale0 / max_speed_scale0).clamp(0.0, 1.0).sqrt() as f32
-}
-
-fn chart_safe_speed_cap(scale: SpatialScale) -> f64 {
-    10.0_f64.powi(scale.exponent() as i32 + CHART_SPEED_HEADROOM_DECADES)
+    (speed_metres_per_second / max_metres_per_second)
+        .clamp(0.0, 1.0)
+        .sqrt() as f32
 }
 
 fn smooth_log_value(current: f64, target: f64, dt: f32, response: f64) -> f64 {
@@ -336,53 +125,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn hard_body_approach_speed_tracks_surface_clearance() {
-        let at_handoff = hard_body_speed_limit(100_000.0, 100_000.0, 1_500.0, 120.0);
-        let farther = hard_body_speed_limit(1_000_000.0, 100_000.0, 1_500.0, 120.0);
-        let inside = hard_body_speed_limit(1_000.0, 100_000.0, 1_500.0, 120.0);
-
-        assert!((at_handoff - 1_500.0).abs() < 1.0e-6);
-        assert!(farther > at_handoff);
-        assert!((inside - 1_500.0).abs() < 1.0e-6);
-    }
-
-    #[test]
-    fn medium_boundary_is_not_a_wall() {
-        let outside_limit = medium_speed_limit(20.0, 10.0, false, 0.5, 4.0, 1.5);
-        let inside_limit = medium_speed_limit(0.0, 10.0, true, 0.5, 4.0, 1.5);
-
-        assert!(outside_limit > inside_limit);
-        assert!(inside_limit > 0.0);
-    }
-
-    #[test]
-    fn medium_speed_is_independent_of_enclosing_extent() {
-        // The medium speed function deliberately receives boundary proximity and
-        // local feature size, not the enclosing volume radius. A nebula can be
-        // enormous without that fact alone making traversal slow.
-        let a = medium_speed_limit(0.0, 5.0, true, 0.5, 4.0, 1.5);
-        let b = medium_speed_limit(0.0, 5.0, true, 0.5, 4.0, 1.5);
-        assert_eq!(a, b);
-    }
-
-    #[test]
-    fn engagement_throttle_requests_default_speed() {
+    fn engagement_throttle_reconstructs_default_speed() {
         let maximum = 80_000.0;
         let default = 20_000.0;
         let throttle = throttle_for_speed(default, maximum);
         let requested = maximum * f64::from(throttle.powf(2.0));
-
         assert!((requested - default).abs() < 1.0);
-    }
-
-    #[test]
-    fn fallback_is_finite_and_scale_sensitive() {
-        let local = fallback_speed_envelope(SpatialScale::ZERO);
-        let system = fallback_speed_envelope(SpatialScale::new(8).unwrap());
-
-        assert!(local.max_speed_scale0.is_finite());
-        assert!(local.default_speed_scale0 <= local.max_speed_scale0);
-        assert!(system.max_speed_scale0 > local.max_speed_scale0);
-        assert!(system.default_speed_scale0 <= system.max_speed_scale0);
     }
 }

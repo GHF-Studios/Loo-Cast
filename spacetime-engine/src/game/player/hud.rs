@@ -8,7 +8,7 @@ use bevy::prelude::*;
 
 use super::{
     ControlledSubjectLocomotion, Player, PlayerAdaptiveCruise, PlayerDetailedPhysicsScale,
-    PlayerLocomotionRegime, PlayerMotionKernel, PlayerTravelState,
+    PlayerLocomotionRegime, PlayerMotionKernel, PlayerTravelEnvelope, PlayerTravelState,
 };
 use crate::spatial::{UsfScaleLayer, UsfViewContext, UsfViewRenderAnchor};
 
@@ -112,6 +112,7 @@ pub(super) fn update_flight_hud(
     player: Single<
         (
             &PlayerTravelState,
+            &PlayerTravelEnvelope,
             &PlayerAdaptiveCruise,
             &ControlledSubjectLocomotion,
             &PlayerDetailedPhysicsScale,
@@ -126,7 +127,7 @@ pub(super) fn update_flight_hud(
         Single<(&mut Text, &mut Node), With<FlightHudAlert>>,
     )>,
 ) {
-    let (travel, cruise, locomotion, detailed, layer) = player.into_inner();
+    let (travel, envelope, cruise, locomotion, detailed, layer) = player.into_inner();
     let flying = locomotion.regime() != PlayerLocomotionRegime::OnFoot;
 
     {
@@ -148,7 +149,7 @@ pub(super) fn update_flight_hud(
     let speed = if cruising {
         format_speed(cruise.speed_scale0)
     } else {
-        "MANUAL".to_string()
+        format_speed(envelope.manual_speed_metres_per_second)
     };
     let throttle = if cruising {
         format!("{:>3.0}%", cruise.throttle * 100.0)

@@ -17,13 +17,14 @@ fn collect_spatial_demand(
         Entity,
         &GlobalTransform,
         &SpatialDemandSource,
+        Option<&SpatialRefinementDemand>,
         Option<&UsfScaleLayer>,
     )>,
     mut snapshot: ResMut<SpatialDemandSnapshot>,
 ) {
     snapshot.scopes.clear();
 
-    for (entity, transform, source, source_layer) in &sources {
+    for (entity, transform, source, refinement, source_layer) in &sources {
         if !source.enabled() {
             continue;
         }
@@ -60,6 +61,23 @@ fn collect_spatial_demand(
             );
         }
 
+        if let Some(refinement) = refinement
+            && let Some(minimum_scale) = refinement.minimum_scale()
+            && minimum_scale < source_scale
+        {
+            for raw_scale in minimum_scale.exponent()..source_scale.exponent() {
+                let scale = SpatialScale::new(raw_scale).expect("validated USF scale");
+                push_scope_with_extent(
+                    &mut snapshot,
+                    entity,
+                    source.priority(),
+                    source_position,
+                    scale,
+                    refinement.half_extent_native(),
+                );
+            }
+        }
+
     }
 }
 
@@ -67,6 +85,24 @@ fn push_scope(
     snapshot: &mut SpatialDemandSnapshot,
     entity: Entity,
     source: &SpatialDemandSource,
+    source_position: UsfPosition,
+    target_scale: SpatialScale,
+    half_extent_native: Vec3,
+) {
+    push_scope_with_extent(
+        snapshot,
+        entity,
+        source.priority(),
+        source_position,
+        target_scale,
+        half_extent_native,
+    );
+}
+
+fn push_scope_with_extent(
+    snapshot: &mut SpatialDemandSnapshot,
+    entity: Entity,
+    priority: i32,
     source_position: UsfPosition,
     target_scale: SpatialScale,
     half_extent_native: Vec3,
@@ -91,6 +127,6 @@ fn push_scope(
         target_scale,
         center,
         half_extent_native,
-        source.priority(),
+        priority,
     ));
 }

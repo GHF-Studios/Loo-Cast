@@ -48,33 +48,48 @@ pub(in crate::game::player) fn sync_navigation_context(
 }
 
 
-const APPROACH_TARGET_CLEARANCE_NATIVE: f64 = 4.0;
-const SURFACE_CAPTURE_CLEARANCE_METRES: f64 = 32_000.0;
 const APPROACH_REFINEMENT_ACTIVATION_RADII: f64 = 256.0;
 const APPROACH_REFINEMENT_RATE_DECADES_PER_SECOND: f32 = 6.0;
+const APPROACH_RESOLUTION_DIVISOR: f64 = 4.0;
+const FINAL_HANDOFF_COVERAGE_RADIUS_NATIVE: f32 = 32.0;
 
-/// Advances semantic approach-refinement policy, then projects that policy into
-/// independent presentation and interaction outputs.
+fn scale_for_resolution(
+    resolution_metres: f64,
+    minimum: SpatialScale,
+    maximum: SpatialScale,
+) -> SpatialScale {
+    let exponent = resolution_metres
+        .max(1.0e-35)
+        .log10()
+        .ceil()
+        .clamp(
+            f64::from(minimum.exponent()),
+            f64::from(maximum.exponent()),
+        ) as i8;
+    SpatialScale::new(exponent).expect("clamped USF resolution scale")
+}
+
+/// Semantic planner for approaching refinable structure.
 ///
-/// Changing `UsfViewContext` can no longer rechart physics by itself.
-pub(in crate::game::player) fn sync_approach_refinement(
+/// It owns neither rendering nor interaction. It only determines how much
+/// spatial resolution is needed now and how much finer reality should be
+/// realized ahead of the moving subject.
+pub(in crate::game::player) fn plan_approach_refinement(
     time: Res<Time>,
     frame: Res<UsfSpatialFrame>,
     player: Single<
         (
             &Transform,
             &UsfScaleLayer,
-            &UsfManifestationOf,
-            &ControlledSubjectLocomotion,
+            &PlayerTravelEnvelope,
             &mut PlayerApproachRefinementState,
+            &mut SpatialRefinementDemand,
         ),
         With<Player>,
     >,
     refinable: Query<(&UsfTravelInfluence, &UsfApproachRefinement)>,
-    mut view: Single<&mut UsfViewContext, With<UsfViewRenderAnchor>>,
-    mut transitions: ResMut<UsfSpatialTransitionQueue>,
 ) {
-    let (body, layer, manifestation, locomotion, mut refinement_state) = player.into_inner();
+    let (body, layer, envelope, mut state, mut realization_demand) = player.into_inner();
     let observer_scale = layer.scale();
     let Ok(observer) = frame
         .origin()
@@ -98,67 +113,121 @@ pub(in crate::game::player) fn sync_approach_refinement(
     }
 
     let Some((influence, refinement, _)) = selected else {
-        refinement_state.active = false;
+        state.active = false;
+        realization_demand.clear();
         return;
     };
     let Some(measurement) = influence.measure_from(&observer) else {
-        refinement_state.active = false;
+        state.active = false;
+        realization_demand.clear();
         return;
     };
 
-    if !refinement_state.active {
-        refinement_state.active = true;
-        refinement_state.continuous_exponent = view.continuous_exponent();
+    if !state.active {
+        state.active = true;
+        state.continuous_exponent = f32::from(layer.scale().exponent());
     }
 
-    let clearance_metres = measurement.boundary_clearance_scale0().max(1.0);
-    let target_exponent = if locomotion.regime() != PlayerLocomotionRegime::Cruise
-        && clearance_metres <= SURFACE_CAPTURE_CLEARANCE_METRES
-    {
-        refinement.minimum_scale().exponent() as f32
-    } else {
-        (clearance_metres / APPROACH_TARGET_CLEARANCE_NATIVE)
-            .log10()
-            .clamp(
-                refinement.minimum_scale().exponent() as f64,
-                influence.scale().exponent() as f64,
-            ) as f32
-    };
+    state.minimum_scale = refinement.minimum_scale();
 
-    let current = refinement_state.continuous_exponent;
-    let max_step = APPROACH_REFINEMENT_RATE_DECADES_PER_SECOND * time.delta_secs().max(0.0);
-    let next = if target_exponent < current {
+    let target_exponent = envelope
+        .required_resolution_metres
+        .max(1.0e-35)
+        .log10()
+        .clamp(
+            f64::from(refinement.minimum_scale().exponent()),
+            f64::from(influence.scale().exponent()),
+        ) as f32;
+
+    let current = state.continuous_exponent;
+    let max_step =
+        APPROACH_REFINEMENT_RATE_DECADES_PER_SECOND * time.delta_secs().max(0.0);
+    state.continuous_exponent = if target_exponent < current {
         (current - max_step).max(target_exponent)
     } else {
         (current + max_step).min(target_exponent)
     };
-    refinement_state.continuous_exponent = next;
 
-    // Presentation consumes policy progress.
-    if (view.continuous_exponent() - next).abs() > 1.0e-4 {
-        view.set_continuous_exponent(next);
+    state.interaction_target_scale = scale_for_resolution(
+        10.0_f64.powf(f64::from(state.continuous_exponent)),
+        refinement.minimum_scale(),
+        influence.scale(),
+    );
+
+    // Realization leads interaction by the current braking/lookahead horizon.
+    let future_clearance = (measurement.boundary_clearance_scale0()
+        - envelope.lookahead_metres)
+        .max(1.0);
+    let future_resolution = (future_clearance / APPROACH_RESOLUTION_DIVISOR).max(1.0);
+    state.realization_target_scale = scale_for_resolution(
+        future_resolution,
+        refinement.minimum_scale(),
+        influence.scale(),
+    );
+
+    realization_demand.request_through(state.realization_target_scale);
+}
+
+/// Presentation adapter for approach refinement.
+///
+/// It consumes planner state. Camera/view state has no authority over physical
+/// interaction or materialization.
+pub(in crate::game::player) fn sync_approach_presentation(
+    state: Single<&PlayerApproachRefinementState, With<Player>>,
+    mut view: Single<&mut UsfViewContext, With<UsfViewRenderAnchor>>,
+) {
+    if !state.active {
+        return;
     }
 
-    // Interaction independently consumes the same policy progress.
-    let Some(interaction_scale) = SpatialScale::new(next.ceil() as i8) else {
+    if (view.continuous_exponent() - state.continuous_exponent).abs() > 1.0e-4 {
+        view.set_continuous_exponent(state.continuous_exponent);
+    }
+}
+
+/// Interaction adapter for approach refinement.
+///
+/// A requested Scale Slice remains pending intent until required realized
+/// coverage exists. Velocity semantics come from the locomotion state machine.
+pub(in crate::game::player) fn request_approach_interaction_handoff(
+    frame: Res<UsfSpatialFrame>,
+    player: Single<
+        (
+            &Transform,
+            &UsfScaleLayer,
+            &UsfManifestationOf,
+            &ControlledSubjectLocomotion,
+            &PlayerApproachRefinementState,
+        ),
+        With<Player>,
+    >,
+    mut transitions: ResMut<UsfSpatialTransitionQueue>,
+) {
+    let (body, layer, manifestation, locomotion, state) = player.into_inner();
+    if !state.active || state.interaction_target_scale == layer.scale() {
+        return;
+    }
+
+    let Ok(observer) = frame
+        .origin()
+        .translated_at_scale(layer.scale(), body.translation)
+    else {
         return;
     };
-    if interaction_scale == layer.scale() {
-        return;
-    }
 
     let velocity = match locomotion.velocity_semantics() {
         PlayerVelocitySemantics::PreserveNative => UsfTransitionVelocity::PreserveNative,
         PlayerVelocitySemantics::PreserveCanonical => UsfTransitionVelocity::PreserveCanonical,
         PlayerVelocitySemantics::Zero => UsfTransitionVelocity::Zero,
     };
-    let transition =
-        UsfSpatialTransition::new(manifestation.0, observer, velocity).with_scale(interaction_scale);
 
-    let transition = if interaction_scale == refinement.minimum_scale() {
+    let transition = UsfSpatialTransition::new(manifestation.0, observer, velocity)
+        .with_scale(state.interaction_target_scale);
+
+    let transition = if state.interaction_target_scale == state.minimum_scale {
         transition.requiring_coverage(
             UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::COLLISION),
-            8_192.0,
+            FINAL_HANDOFF_COVERAGE_RADIUS_NATIVE,
         )
     } else {
         transition

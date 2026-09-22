@@ -241,9 +241,8 @@ fn speed_command(
 ) -> ConsoleCommandResult {
     let requested = invocation.args().first().map(String::as_str);
 
-    let mut query =
-        world.query_filtered::<(&mut PlayerTravelSpeed, &UsfScaleLayer), With<Player>>();
-    let Some((mut speed, layer)) = query.iter_mut(world).next() else {
+    let mut query = world.query_filtered::<&mut PlayerTravelSpeed, With<Player>>();
+    let Some(mut speed) = query.iter_mut(world).next() else {
         return ConsoleCommandResult::error("player travel-speed state is unavailable");
     };
 
@@ -270,10 +269,8 @@ fn speed_command(
     }
 
     ConsoleCommandResult::success_and_return_to_gameplay(format!(
-        "manual pace = {:.3}x | free-flight baseline = {:.3} S{} units/s",
+        "manual locomotion pace = {:.3}x",
         speed.multiplier,
-        speed.free_flight_native_units_per_second(),
-        layer.scale(),
     ))
 }
 
