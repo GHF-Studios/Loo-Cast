@@ -110,7 +110,7 @@ impl ProceduralScaleStack {
         materials: &mut Assets<StandardMaterial>,
     ) {
         for (&scale, handle) in &self.scale_materials {
-            if let Some(material) = materials.get_mut(handle) {
+            if let Some(mut material) = materials.get_mut(handle) {
                 material.depth_bias = scale_depth_bias(scale, view_scale);
             }
         }
