@@ -16,14 +16,16 @@ use crate::{
             CharacterStance, ControlledSubjectLocomotion, DetailedInteractionScale, FlightControlIntent,
             LocomotionRegime, LocomotionRequest, MotionKernel,
         },
-        navigation::{AdaptiveCruise, TravelPace, TravelState},
+        navigation::{
+            AdaptiveCruise, NavigationPresentationState, TravelPace, TravelState,
+        },
     },
     physics::character::{
         CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame,
         CharacterMovementConfig, CharacterMovementInput,
     },
     spatial::{
-        SpatialDemandSource, SpatialScale, UsfScaleLayer, UsfViewContext, UsfViewRenderAnchor,
+        SpatialDemandSource, UsfScaleLayer, UsfViewRenderAnchor,
     },
     view::PrimaryViewPresentation,
 };

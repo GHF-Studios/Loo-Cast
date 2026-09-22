@@ -19,7 +19,8 @@ use crate::{
 };
 
 use super::{
-    ApproachRefinementState, PrimaryBodyContext, TravelEnvelope, TravelProfile, TravelState,
+    ApproachRefinementState, NavigationAudit, NavigationPresentationProfile,
+    NavigationPresentationState, PrimaryBodyContext, TravelEnvelope, TravelProfile, TravelState,
 };
 
 /// Refreshes the sparse travel neighborhood and derives the characteristic
@@ -192,17 +193,81 @@ pub(super) fn plan_approach_refinement(
     realization_demand.request_through(state.realization_target_scale);
 }
 
-/// Presentation consumes approach-planner state but does not own interaction.
-pub(super) fn sync_approach_presentation(
-    state: Single<&ApproachRefinementState, With<LocalControlSubject>>,
-    mut view: Single<&mut UsfViewContext, With<UsfViewRenderAnchor>>,
+fn presentation_exponent_for_characteristic(
+    characteristic_metres: f64,
+    profile: &NavigationPresentationProfile,
+) -> f32 {
+    let raw = characteristic_metres.max(1.0e-35).log10() as f32;
+    raw.clamp(
+        profile.minimum_scale.exponent() as f32,
+        profile.maximum_scale.exponent() as f32,
+    )
+}
+
+/// Default primary-view presentation planner.
+///
+/// Presentation consumes semantic navigation context but remains independent
+/// from interaction ownership/refinement. The first structured context snaps
+/// out of the meaningless S35 bootstrap immediately; later changes are smooth.
+pub(super) fn sync_navigation_presentation(
+    time: Res<Time>,
+    navigation: Single<&UsfNavigationContext, With<LocalControlSubject>>,
+    view: Single<
+        (
+            &NavigationPresentationProfile,
+            &mut NavigationPresentationState,
+            &mut UsfViewContext,
+        ),
+        With<UsfViewRenderAnchor>,
+    >,
 ) {
-    if !state.active {
+    let navigation = navigation.into_inner();
+    let (profile, mut state, mut view) = view.into_inner();
+
+    // Fallback has no semantic structure from which to choose a meaningful
+    // presentation scale. Keep the bootstrap unresolved until structure exists.
+    let Some(source_scale) = navigation.source_scale() else {
+        return;
+    };
+
+    let automatic = presentation_exponent_for_characteristic(
+        navigation.characteristic_length_scale0(),
+        profile,
+    );
+    state.automatic_target_exponent = automatic;
+
+    let bias_limit = profile.maximum_manual_bias_decades.max(0.0);
+    state.manual_bias_decades = state.manual_bias_decades.clamp(-bias_limit, bias_limit);
+
+    let effective = (automatic + state.manual_bias_decades).clamp(
+        profile.minimum_scale.exponent() as f32,
+        profile.maximum_scale.exponent() as f32,
+    );
+    state.effective_target_exponent = effective;
+
+    if !state.initialized {
+        view.set_continuous_exponent(effective);
+        state.initialized = true;
+        info!(
+            source_scale = %source_scale,
+            characteristic_metres = navigation.characteristic_length_scale0(),
+            target_exponent = effective,
+            "resolved initial USF presentation scale from semantic navigation context"
+        );
         return;
     }
 
-    if (view.continuous_exponent() - state.continuous_exponent).abs() > 1.0e-4 {
-        view.set_continuous_exponent(state.continuous_exponent);
+    let current = view.continuous_exponent();
+    let max_step =
+        profile.response_decades_per_second.max(0.0) * time.delta_secs().max(0.0);
+    let next = if effective < current {
+        (current - max_step).max(effective)
+    } else {
+        (current + max_step).min(effective)
+    };
+
+    if (next - current).abs() > 1.0e-4 {
+        view.set_continuous_exponent(next);
     }
 }
 
@@ -249,6 +314,65 @@ pub(super) fn sync_approach_interaction_requirement(
     }
 
     transitions.set_interaction_requirement(requirement);
+}
+
+/// Publishes one compact end-to-end contract snapshot for diagnostics.
+///
+/// This observes already-resolved state; it owns no navigation or view policy.
+pub(super) fn audit_navigation_contract(
+    subject: Single<
+        (
+            Entity,
+            &UsfScaleLayer,
+            &UsfNavigationContext,
+            &PrimaryBodyContext,
+            &ApproachRefinementState,
+        ),
+        With<LocalControlSubject>,
+    >,
+    view: Single<
+        (&UsfViewContext, &NavigationPresentationState),
+        With<UsfViewRenderAnchor>,
+    >,
+    mut audit: ResMut<NavigationAudit>,
+    mut was_unhealthy: Local<bool>,
+) {
+    let (entity, layer, navigation, primary, approach) = subject.into_inner();
+    let (view, presentation) = view.into_inner();
+
+    let characteristic = navigation.characteristic_length_scale0();
+    let view_exponent = view.continuous_exponent();
+    let target_exponent = presentation.effective_target_exponent();
+
+    let structured = navigation.source_scale().is_some();
+    let healthy = characteristic.is_finite()
+        && characteristic > 0.0
+        && view_exponent.is_finite()
+        && target_exponent.is_finite()
+        && (!structured || presentation.initialized());
+
+    let next = NavigationAudit {
+        healthy,
+        subject: Some(entity),
+        subject_scale: Some(layer.scale()),
+        primary_body: primary.entity(),
+        primary_clearance_metres: primary
+            .is_resolved()
+            .then_some(primary.clearance_metres()),
+        navigation_source_scale: navigation.source_scale(),
+        characteristic_length_metres: characteristic,
+        approach_active: approach.active,
+        interaction_target_scale: approach.active.then_some(approach.interaction_target_scale),
+        realization_target_scale: approach.active.then_some(approach.realization_target_scale),
+        view_exponent,
+        presentation_target_exponent: target_exponent,
+    };
+
+    if !healthy && !*was_unhealthy {
+        error!(?next, "navigation/presentation contract became unhealthy");
+    }
+    *was_unhealthy = !healthy;
+    *audit = next;
 }
 
 const GRAVITY_FIELD_RADIUS_MULTIPLIER: f64 = 8.0;
@@ -404,4 +528,33 @@ pub(super) fn sync_travel_state(
         measurement.center_distance_scale0(),
         clearance,
     );
+}
+
+#[cfg(test)]
+mod presentation_tests {
+    use super::*;
+
+    #[test]
+    fn presentation_scale_tracks_canonical_navigation_length() {
+        let profile = NavigationPresentationProfile::default();
+
+        assert_eq!(presentation_exponent_for_characteristic(1.0, &profile), 0.0);
+        assert_eq!(
+            presentation_exponent_for_characteristic(1_000_000.0, &profile),
+            6.0,
+        );
+        assert_eq!(
+            presentation_exponent_for_characteristic(1.0e30, &profile),
+            30.0,
+        );
+    }
+
+    #[test]
+    fn presentation_scale_respects_current_content_floor() {
+        let profile = NavigationPresentationProfile::default();
+        assert_eq!(
+            presentation_exponent_for_characteristic(1.0e-12, &profile),
+            SpatialScale::ZERO.exponent() as f32,
+        );
+    }
 }

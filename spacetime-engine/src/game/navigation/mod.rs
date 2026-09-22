@@ -376,6 +376,105 @@ impl Default for ApproachRefinementState {
     }
 }
 
+
+/// View-owned automatic presentation policy for semantic navigation.
+///
+/// The minimum is a content/realizer capability boundary for this view profile,
+/// not a privileged USF floor. The current game defaults to S0 because the
+/// present macro terrain and human-scale content are authored through metres.
+#[derive(Component, Reflect, Debug, Clone, Copy)]
+#[reflect(Component)]
+pub struct NavigationPresentationProfile {
+    pub minimum_scale: SpatialScale,
+    pub maximum_scale: SpatialScale,
+    pub response_decades_per_second: f32,
+    pub maximum_manual_bias_decades: f32,
+}
+
+impl Default for NavigationPresentationProfile {
+    fn default() -> Self {
+        Self {
+            minimum_scale: SpatialScale::ZERO,
+            maximum_scale: SpatialScale::MAX,
+            response_decades_per_second: 10.0,
+            maximum_manual_bias_decades: 8.0,
+        }
+    }
+}
+
+/// Persistent state of the automatic presentation planner.
+///
+/// `manual_bias_decades` is an offset on semantic automatic scale, so manual
+/// zoom and automatic navigation compose instead of racing over view state.
+#[derive(Component, Reflect, Debug, Clone, Copy)]
+#[reflect(Component)]
+pub struct NavigationPresentationState {
+    initialized: bool,
+    automatic_target_exponent: f32,
+    effective_target_exponent: f32,
+    manual_bias_decades: f32,
+}
+
+impl Default for NavigationPresentationState {
+    fn default() -> Self {
+        Self {
+            initialized: false,
+            automatic_target_exponent: SpatialScale::MAX.exponent() as f32,
+            effective_target_exponent: SpatialScale::MAX.exponent() as f32,
+            manual_bias_decades: 0.0,
+        }
+    }
+}
+
+impl NavigationPresentationState {
+    pub const fn initialized(self) -> bool { self.initialized }
+    pub const fn automatic_target_exponent(self) -> f32 { self.automatic_target_exponent }
+    pub const fn effective_target_exponent(self) -> f32 { self.effective_target_exponent }
+    pub const fn manual_bias_decades(self) -> f32 { self.manual_bias_decades }
+
+    pub fn add_manual_bias(&mut self, delta: f32) {
+        if delta.is_finite() {
+            self.manual_bias_decades += delta;
+        }
+    }
+}
+
+/// Compact end-to-end navigation/presentation telemetry.
+#[derive(Resource, Debug, Clone, Copy)]
+pub struct NavigationAudit {
+    pub healthy: bool,
+    pub subject: Option<Entity>,
+    pub subject_scale: Option<SpatialScale>,
+    pub primary_body: Option<Entity>,
+    pub primary_clearance_metres: Option<f64>,
+    pub navigation_source_scale: Option<SpatialScale>,
+    pub characteristic_length_metres: f64,
+    pub approach_active: bool,
+    pub interaction_target_scale: Option<SpatialScale>,
+    pub realization_target_scale: Option<SpatialScale>,
+    pub view_exponent: f32,
+    pub presentation_target_exponent: f32,
+}
+
+impl Default for NavigationAudit {
+    fn default() -> Self {
+        Self {
+            healthy: false,
+            subject: None,
+            subject_scale: None,
+            primary_body: None,
+            primary_clearance_metres: None,
+            navigation_source_scale: None,
+            characteristic_length_metres: 0.0,
+            approach_active: false,
+            interaction_target_scale: None,
+            realization_target_scale: None,
+            view_exponent: SpatialScale::MAX.exponent() as f32,
+            presentation_target_exponent: SpatialScale::MAX.exponent() as f32,
+        }
+    }
+}
+
 /// Stable semantic navigation runtime extension points.
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NavigationSet {
@@ -388,7 +487,8 @@ pub struct NavigationPlugin;
 
 impl Plugin for NavigationPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<ManualTravelProfile>()
+        app.init_resource::<NavigationAudit>()
+            .register_type::<ManualTravelProfile>()
             .register_type::<CruiseTravelProfile>()
             .register_type::<PlanetaryTravelProfile>()
             .register_type::<ApproachTravelProfile>()
@@ -399,6 +499,8 @@ impl Plugin for NavigationPlugin {
             .register_type::<TravelState>()
             .register_type::<AdaptiveCruise>()
             .register_type::<ApproachRefinementState>()
+            .register_type::<NavigationPresentationProfile>()
+            .register_type::<NavigationPresentationState>()
             .add_systems(
                 RunFixedMainLoop,
                 (
@@ -414,14 +516,18 @@ impl Plugin for NavigationPlugin {
                 RunFixedMainLoop,
                 (
                     runtime::plan_approach_refinement,
-                    runtime::sync_approach_presentation,
+                    runtime::sync_navigation_presentation,
                 )
                     .chain()
                     .in_set(NavigationSet::Plan),
             )
             .add_systems(
                 RunFixedMainLoop,
-                runtime::sync_approach_interaction_requirement
+                (
+                    runtime::sync_approach_interaction_requirement,
+                    runtime::audit_navigation_contract,
+                )
+                    .chain()
                     .in_set(NavigationSet::Publish),
             );
     }

@@ -422,6 +422,11 @@ fn spawn_stellar_system(
     let earth_anchor = canonical_center_from_native(earth_center, system_scale);
     let moon_anchor = canonical_center_from_native(moon_center, system_scale);
 
+    // Advertise exactly the finest macro Scale Slice the celestial voxel
+    // realizer supports below. This is shared capability, not Moon special-case.
+    let macro_refinement =
+        UsfApproachRefinement::new(scale(CELESTIAL_MACRO_VOXEL_MIN_SCALE));
+
     commands.spawn((
         Name::new("Sun Travel Influence"),
         ChildOf(parent),
@@ -431,6 +436,7 @@ fn spawn_stellar_system(
             sun_nav_scale.metres_to_native_f64(sun_radius_metres),
         ),
         UsfRadialGravitySource::new(sun_anchor, sun_radius_metres, sun_nav_scale, 274.0),
+        macro_refinement,
     ));
     commands.spawn((
         Name::new("Earth Travel Influence"),
@@ -441,6 +447,7 @@ fn spawn_stellar_system(
             earth_nav_scale.metres_to_native_f64(earth_radius_metres),
         ),
         UsfRadialGravitySource::new(earth_anchor, earth_radius_metres, earth_nav_scale, 9.80665),
+        macro_refinement,
     ));
     commands.spawn((
         Name::new("Moon Travel Influence"),
@@ -451,7 +458,7 @@ fn spawn_stellar_system(
             moon_nav_scale.metres_to_native_f64(moon_radius_metres),
         ),
         UsfRadialGravitySource::new(moon_anchor, moon_radius_metres, moon_nav_scale, 1.62),
-        UsfApproachRefinement::new(scale(HUMAN_SURFACE_INTERACTION_SCALE)),
+        macro_refinement,
     ));
 
     // Atmosphere is intentionally a different phenomenon from the solid body,

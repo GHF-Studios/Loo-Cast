@@ -116,8 +116,10 @@ impl UsfNavigationContextKind {
     }
 }
 
-/// Marks a travel influence whose approach should automatically refine the
-/// observer/runtime chart. Moon-only for the first proof.
+/// Marks a travel influence whose realized structure can take responsibility
+/// at finer Scale Slices during approach.
+///
+/// This is a realization-capability contract, not body-specific gameplay data.
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UsfApproachRefinement {
     minimum_scale: SpatialScale,
