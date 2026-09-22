@@ -31,7 +31,7 @@ use super::{
 pub(super) fn configure(app: &mut App) {
     app.add_systems(
         PostUpdate,
-        reconcile_player_spatial_transition
+        reconcile_controlled_spatial_transition
             .after(UsfSpatialSet::SyncSemantic)
             .before(UsfSpatialSet::Rebase),
     );
@@ -98,16 +98,17 @@ fn primary_view_context(world: &mut World) -> Option<UsfViewContext> {
     query.iter(world).next().cloned()
 }
 
-fn player_semantic_entity(world: &mut World) -> Option<Entity> {
-    let mut query = world.query_filtered::<&UsfManifestationOf, With<Player>>();
+fn controlled_semantic_entity(world: &mut World) -> Option<Entity> {
+    let mut query =
+        world.query_filtered::<&UsfManifestationOf, With<LocalControlSubject>>();
     query.iter(world).next().map(|manifestation| manifestation.0)
 }
 
 fn where_command(world: &mut World, _: &ConsoleCommandInvocation) -> ConsoleCommandResult {
-    let player = {
+    let controlled = {
         let mut query = world.query_filtered::<
             (&Transform, &UsfScaleLayer, &UsfManifestationOf),
-            With<Player>,
+            With<LocalControlSubject>,
         >();
         query
             .iter(world)
@@ -117,8 +118,8 @@ fn where_command(world: &mut World, _: &ConsoleCommandInvocation) -> ConsoleComm
             })
     };
 
-    let Some((runtime, scale, semantic_entity)) = player else {
-        return ConsoleCommandResult::error("player manifestation is unavailable");
+    let Some((runtime, scale, semantic_entity)) = controlled else {
+        return ConsoleCommandResult::error("controlled manifestation is unavailable");
     };
 
     let semantic = world
@@ -324,8 +325,8 @@ fn teleport_command(
     world: &mut World,
     invocation: &ConsoleCommandInvocation,
 ) -> ConsoleCommandResult {
-    let Some(subject) = player_semantic_entity(world) else {
-        return ConsoleCommandResult::error("player semantic entity is unavailable");
+    let Some(subject) = controlled_semantic_entity(world) else {
+        return ConsoleCommandResult::error("controlled semantic entity is unavailable");
     };
 
     let args = invocation.args();
@@ -437,18 +438,18 @@ fn parse_scale(value: &str) -> Option<SpatialScale> {
     SpatialScale::new(value.parse().ok()?)
 }
 
-fn reconcile_player_spatial_transition(
+fn reconcile_controlled_spatial_transition(
     mut transitions: MessageReader<UsfSpatialTransitionApplied>,
-    mut players: Query<
+    mut subjects: Query<
         (
             &Transform,
             &UsfManifestationOf,
             &mut PortalTraveler,
-            &mut PortalSplitTraveler,
+            Option<&mut PortalSplitTraveler>,
             Option<&mut CharacterMovementInput>,
             Option<&mut CharacterGroundState>,
         ),
-        With<Player>,
+        With<LocalControlSubject>,
     >,
 ) {
     for transition in transitions.read() {
@@ -456,17 +457,19 @@ fn reconcile_player_spatial_transition(
             transform,
             manifestation,
             mut traveler,
-            mut split,
+            split,
             input,
             ground,
-        ) in &mut players
+        ) in &mut subjects
         {
             if manifestation.0 != transition.subject {
                 continue;
             }
 
             traveler.reset_spatial_transition(transform.translation);
-            split.reset_spatial_transition(*transform);
+            if let Some(mut split) = split {
+                split.reset_spatial_transition(*transform);
+            }
 
             if let Some(mut input) = input {
                 input.clear();

@@ -18,7 +18,7 @@ pub(super) fn configure(app: &mut App) {
         (
             bootstrap::spawn_procedural_world,
             scenery::spawn_universe_scenery,
-            player::prepare_player,
+            player::prepare_controlled_subject,
         )
             .chain(),
     )

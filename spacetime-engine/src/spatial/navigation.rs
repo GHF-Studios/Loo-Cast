@@ -592,6 +592,14 @@ impl UsfTravelNeighborhood {
         if sampled_scale != observer_scale || self.age_seconds >= NEIGHBORHOOD_MAX_AGE_SECONDS {
             return true;
         }
+
+        // "No structure was present when sampled" is not stable world knowledge:
+        // world/bootstrap streaming may publish influences after this cache was
+        // first evaluated. Keep probing until at least one influence exists.
+        if self.influences.is_empty() {
+            return true;
+        }
+
         if !self.refresh_distance_scale0.is_finite() {
             return false;
         }
