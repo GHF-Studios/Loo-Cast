@@ -16,7 +16,9 @@ use crate::{
     },
     game::{
         GameSet,
-        control::{ControlledBy, LocalControlSubject},
+        control::{
+            ControlActionSet, ControlledBy, LocalControlSubject, LocalControlTransferRequest,
+        },
         locomotion::{
             ControlledSubjectHull, ControlledSubjectLocomotion, DetailedInteractionScale,
             FlightControlIntent, LocomotionCapabilities, LocomotionEnabled, LocomotionRegime,
@@ -43,7 +45,7 @@ use crate::{
     spatial::{
         SpatialDemandSource, SpatialRefinementDemand, SpatialScale,
         UsfInteractionProjection, UsfLocalScalePresentation, UsfPosition,
-        UsfScaleLayer, UsfSpatialAnchor, UsfSpatialFrame, UsfSpatialTransitionQueue,
+        UsfScaleLayer, UsfSpatialAnchor, UsfSpatialFrame,
         UsfTravelNeighborhood, UsfViewAnchor,
     },
     voxel::VoxelMaterializationDemand,
@@ -142,7 +144,7 @@ impl Plugin for SpacecraftPlugin {
             .register_type::<SpacecraftFlightState>()
             .register_type::<SpacecraftOrbit>()
             .add_systems(PostStartup, spawn_reference_spacecraft)
-            .add_systems(Update, handle_spacecraft_actions.in_set(GameSet::Action))
+            .add_systems(Update, handle_spacecraft_actions.in_set(ControlActionSet::Request))
             .add_systems(
                 FixedUpdate,
                 detect_landing.after(LocomotionSet::Motion),
@@ -403,7 +405,7 @@ fn handle_spacecraft_actions(
     keyboard: Res<ButtonInput<KeyCode>>,
     frame: Res<UsfSpatialFrame>,
     mut commands: Commands,
-    mut spatial_transitions: ResMut<UsfSpatialTransitionQueue>,
+    mut control_transfers: MessageWriter<LocalControlTransferRequest>,
     mut camera: Single<&mut PlayerCamera>,
     mut player: Single<
         (
@@ -518,23 +520,13 @@ fn handle_spacecraft_actions(
         ship_demand.set_enabled(false);
 
         commands
-            .entity(ship_entity)
-            .remove::<LocalControlSubject>()
-            .remove::<UsfViewAnchor>()
-            .remove::<UsfInteractionProjection>();
-        commands.entity(player_entity).insert((
-            LocalControlSubject,
-            UsfViewAnchor,
-            UsfInteractionProjection,
-        ));
-        commands
             .entity(player_manifestation.0)
             .remove::<UsfConstituentOf>();
 
-        spatial_transitions.clear_interaction_requirement(ship_manifestation.0);
-        commands
-            .entity(ship_manifestation.0)
-            .remove::<ControlledBy>();
+        control_transfers.write(LocalControlTransferRequest::new(
+            player_manifestation.0,
+            player_entity,
+        ));
         camera.mode = CameraMode::FirstPerson;
         return;
     }
@@ -592,24 +584,16 @@ fn handle_spacecraft_actions(
 
         commands
             .entity(player_entity)
-            .remove::<LocalControlSubject>()
-            .remove::<UsfViewAnchor>()
-            .remove::<UsfInteractionProjection>()
             .remove::<Collider>()
             .remove::<CharacterMotor>();
-        commands.entity(ship_entity).insert((
-            LocalControlSubject,
-            UsfViewAnchor,
-            UsfInteractionProjection,
-        ));
         commands
             .entity(player_manifestation.0)
             .insert(UsfConstituentOf(ship_manifestation.0));
 
-        spatial_transitions.clear_interaction_requirement(player_manifestation.0);
-        commands
-            .entity(ship_manifestation.0)
-            .insert(ControlledBy(player_manifestation.0));
+        control_transfers.write(LocalControlTransferRequest::new(
+            player_manifestation.0,
+            ship_entity,
+        ));
         camera.mode = CameraMode::ThirdPerson;
         camera.third_person.base_distance = 14.0;
         return;
