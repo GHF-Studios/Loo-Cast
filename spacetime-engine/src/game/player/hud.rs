@@ -6,9 +6,11 @@
 
 use bevy::prelude::*;
 
-use super::{
-    ControlledSubjectLocomotion, PlayerAdaptiveCruise, PlayerDetailedPhysicsScale,
-    PlayerLocomotionRegime, PlayerMotionKernel, PlayerTravelEnvelope, PlayerTravelState,
+use crate::game::{
+    locomotion::{
+        ControlledSubjectLocomotion, DetailedInteractionScale, LocomotionRegime, MotionKernel,
+    },
+    navigation::{AdaptiveCruise, TravelEnvelope, TravelState},
 };
 use crate::{
     game::control::LocalControlSubject,
@@ -114,11 +116,11 @@ pub(super) fn spawn_flight_hud(mut commands: Commands) {
 pub(super) fn update_flight_hud(
     player: Single<
         (
-            &PlayerTravelState,
-            &PlayerTravelEnvelope,
-            &PlayerAdaptiveCruise,
+            &TravelState,
+            &TravelEnvelope,
+            &AdaptiveCruise,
             &ControlledSubjectLocomotion,
-            &PlayerDetailedPhysicsScale,
+            &DetailedInteractionScale,
             &UsfScaleLayer,
         ),
         With<LocalControlSubject>,
@@ -131,7 +133,7 @@ pub(super) fn update_flight_hud(
     )>,
 ) {
     let (travel, envelope, cruise, locomotion, detailed, layer) = player.into_inner();
-    let flying = locomotion.regime() != PlayerLocomotionRegime::OnFoot;
+    let flying = locomotion.regime() != LocomotionRegime::OnFoot;
 
     {
         let mut left = hud.p0();
@@ -148,7 +150,7 @@ pub(super) fn update_flight_hud(
         return;
     }
 
-    let cruising = locomotion.kernel() == PlayerMotionKernel::Cruise;
+    let cruising = locomotion.kernel() == MotionKernel::Cruise;
     let speed = if cruising {
         format_speed(cruise.speed_scale0)
     } else {
@@ -199,7 +201,7 @@ pub(super) fn update_flight_hud(
         Some("CRITICAL DROPOUT")
     } else if cruising && travel.planetary_handoff_available {
         Some("[C] PLANETARY FLIGHT AVAILABLE")
-    } else if locomotion.regime() == PlayerLocomotionRegime::LocalFlight
+    } else if locomotion.regime() == LocomotionRegime::LocalFlight
         && layer.scale() == detailed.0
     {
         Some("[V] RETURN ON FOOT")

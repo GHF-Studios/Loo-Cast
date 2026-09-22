@@ -22,7 +22,7 @@ pub(in crate::game::player) fn movement(
         (
             &PlayerController,
             &PlayerAim,
-            &PlayerTravelSpeed,
+            &TravelPace,
             Option<&PlayerDead>,
         ),
         With<Player>,
@@ -46,7 +46,7 @@ pub(in crate::game::player) fn movement(
 
     if dead.is_some()
         || gameplay_suppressed(&keyboard, &capture)
-        || locomotion.kernel() != PlayerMotionKernel::Character
+        || locomotion.kernel() != MotionKernel::Character
     {
         input.clear();
         return;
@@ -128,7 +128,7 @@ pub(in crate::game::player) fn local_flight_movement(
         (
             &PlayerController,
             &PlayerAim,
-            &PlayerTravelSpeed,
+            &TravelPace,
             Option<&PlayerDead>,
         ),
         With<Player>,
@@ -143,7 +143,7 @@ pub(in crate::game::player) fn local_flight_movement(
             &UsfScaleLayer,
             &Collider,
             Option<&KinematicQueryExclusions>,
-            &PlayerTravelEnvelope,
+            &TravelEnvelope,
             &mut LinearVelocity,
         ),
         With<LocalControlSubject>,
@@ -164,7 +164,7 @@ pub(in crate::game::player) fn local_flight_movement(
     ) = subject.into_inner();
 
     if dead.is_some()
-        || locomotion.kernel() != PlayerMotionKernel::ThrusterFlight
+        || locomotion.kernel() != MotionKernel::ThrusterFlight
         || gameplay_suppressed(&keyboard, &capture)
     {
         return;
@@ -227,7 +227,7 @@ pub(in crate::game::player) fn scale_navigation_movement(
     capture: Res<CursorCapture>,
     move_and_slide: MoveAndSlide,
     physics_charts: UsfPhysicsCharts,
-    controller: Single<(&PlayerAim, &PlayerTravelSpeed, Option<&PlayerDead>), With<Player>>,
+    controller: Single<(&PlayerAim, &TravelPace, Option<&PlayerDead>), With<Player>>,
     subject: Single<
         (
             Entity,
@@ -238,8 +238,8 @@ pub(in crate::game::player) fn scale_navigation_movement(
             &UsfScaleLayer,
             &Collider,
             Option<&KinematicQueryExclusions>,
-            &PlayerTravelEnvelope,
-            &PlayerTravelState,
+            &TravelEnvelope,
+            &TravelState,
             &mut LinearVelocity,
         ),
         With<LocalControlSubject>,
@@ -261,7 +261,7 @@ pub(in crate::game::player) fn scale_navigation_movement(
     ) = subject.into_inner();
 
     if dead.is_some()
-        || locomotion.kernel() != PlayerMotionKernel::ScaleNavigation
+        || locomotion.kernel() != MotionKernel::ScaleNavigation
         || gameplay_suppressed(&keyboard, &capture)
     {
         return;
@@ -369,7 +369,7 @@ pub(in crate::game::player) fn inertial_flight_movement(
             &UsfScaleLayer,
             &Collider,
             Option<&KinematicQueryExclusions>,
-            &PlayerTravelState,
+            &TravelState,
             &mut LinearVelocity,
         ),
         With<LocalControlSubject>,
@@ -390,7 +390,7 @@ pub(in crate::game::player) fn inertial_flight_movement(
     ) = subject.into_inner();
 
     if dead.is_some()
-        || locomotion.kernel() != PlayerMotionKernel::InertialFlight
+        || locomotion.kernel() != MotionKernel::InertialFlight
         || gameplay_suppressed(&keyboard, &capture)
     {
         return;
@@ -444,7 +444,7 @@ pub(in crate::game::player) fn orbital_flight_movement(
             &CharacterControlFrame,
             &ControlledSubjectLocomotion,
             &UsfScaleLayer,
-            &PlayerTravelState,
+            &TravelState,
             &mut LinearVelocity,
         ),
         With<LocalControlSubject>,
@@ -462,7 +462,7 @@ pub(in crate::game::player) fn orbital_flight_movement(
     ) = subject.into_inner();
 
     if dead.is_some()
-        || locomotion.kernel() != PlayerMotionKernel::OrbitalFlight
+        || locomotion.kernel() != MotionKernel::OrbitalFlight
         || gameplay_suppressed(&keyboard, &capture)
     {
         return;

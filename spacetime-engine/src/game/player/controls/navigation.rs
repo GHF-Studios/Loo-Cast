@@ -81,8 +81,8 @@ pub(in crate::game::player) fn plan_approach_refinement(
         (
             &Transform,
             &UsfScaleLayer,
-            &PlayerTravelEnvelope,
-            &mut PlayerApproachRefinementState,
+            &TravelEnvelope,
+            &mut ApproachRefinementState,
             &mut SpatialRefinementDemand,
         ),
         With<LocalControlSubject>,
@@ -173,7 +173,7 @@ pub(in crate::game::player) fn plan_approach_refinement(
 /// It consumes planner state. Camera/view state has no authority over physical
 /// interaction or materialization.
 pub(in crate::game::player) fn sync_approach_presentation(
-    state: Single<&PlayerApproachRefinementState, With<LocalControlSubject>>,
+    state: Single<&ApproachRefinementState, With<LocalControlSubject>>,
     mut view: Single<&mut UsfViewContext, With<UsfViewRenderAnchor>>,
 ) {
     if !state.active {
@@ -197,7 +197,7 @@ pub(in crate::game::player) fn request_approach_interaction_handoff(
             &UsfScaleLayer,
             &UsfManifestationOf,
             &ControlledSubjectLocomotion,
-            &PlayerApproachRefinementState,
+            &ApproachRefinementState,
         ),
         With<LocalControlSubject>,
     >,
@@ -216,9 +216,9 @@ pub(in crate::game::player) fn request_approach_interaction_handoff(
     };
 
     let velocity = match locomotion.velocity_semantics() {
-        PlayerVelocitySemantics::PreserveNative => UsfTransitionVelocity::PreserveNative,
-        PlayerVelocitySemantics::PreserveCanonical => UsfTransitionVelocity::PreserveCanonical,
-        PlayerVelocitySemantics::Zero => UsfTransitionVelocity::Zero,
+        VelocitySemantics::PreserveNative => UsfTransitionVelocity::PreserveNative,
+        VelocitySemantics::PreserveCanonical => UsfTransitionVelocity::PreserveCanonical,
+        VelocitySemantics::Zero => UsfTransitionVelocity::Zero,
     };
 
     let transition = UsfSpatialTransition::new(manifestation.0, observer, velocity)
@@ -248,7 +248,7 @@ pub(in crate::game::player) fn sync_planetary_gravity(
             &UsfScaleLayer,
             &mut CharacterLocomotionFrame,
             &mut CharacterMovementConfig,
-            &mut PlayerTravelState,
+            &mut TravelState,
         ),
         With<LocalControlSubject>,
     >,
@@ -329,7 +329,7 @@ pub(in crate::game::player) fn sync_travel_state(
             &Transform,
             &UsfScaleLayer,
             &UsfTravelNeighborhood,
-            &mut PlayerTravelState,
+            &mut TravelState,
         ),
         With<LocalControlSubject>,
     >,

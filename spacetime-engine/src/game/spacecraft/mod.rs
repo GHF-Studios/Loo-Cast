@@ -18,12 +18,15 @@ use crate::{
         GameSet,
         control::{LocalControlState, LocalControlSubject},
         locomotion::{
-            ControlledSubjectHull, LocomotionCapabilities, LocomotionEnabled,
+            ControlledSubjectHull, ControlledSubjectLocomotion, DetailedInteractionScale,
+            LocomotionCapabilities, LocomotionEnabled, LocomotionRegime,
+        },
+        navigation::{
+            AdaptiveCruise, ApproachRefinementState, TravelEnvelope, TravelState,
         },
         player::{
-            CameraMode, ControlledSubjectLocomotion, Player, PlayerAdaptiveCruise,
-            PlayerApproachRefinementState, PlayerCamera, PlayerDetailedPhysicsScale,
-            PlayerLocomotionRegime, PlayerTravelEnvelope, PlayerTravelState,
+            CameraMode, Player,
+            PlayerCamera,
         },
     },
     physics::{
@@ -219,11 +222,11 @@ fn spawn_reference_spacecraft(
                 LocomotionEnabled(true),
                 ControlledSubjectHull::cuboid(SHIP_SIZE, SHIP_PROXY_RADIUS_NATIVE),
                 locomotion,
-                PlayerDetailedPhysicsScale::default(),
-                PlayerTravelEnvelope::default(),
-                PlayerApproachRefinementState::default(),
-                PlayerAdaptiveCruise::default(),
-                PlayerTravelState::default(),
+                DetailedInteractionScale::default(),
+                TravelEnvelope::default(),
+                ApproachRefinementState::default(),
+                AdaptiveCruise::default(),
+                TravelState::default(),
             ),
             (
                 UsfTravelNeighborhood::default(),
@@ -290,7 +293,7 @@ pub(crate) fn detect_landing(
             Entity,
             &Transform,
             &UsfScaleLayer,
-            &PlayerDetailedPhysicsScale,
+            &DetailedInteractionScale,
             &CharacterLocomotionFrame,
             &Collider,
             Option<&KinematicQueryExclusions>,
@@ -321,7 +324,7 @@ pub(crate) fn detect_landing(
 
     if !enabled.0
         || layer.scale() != detailed.0
-        || locomotion.regime() != PlayerLocomotionRegime::LocalFlight
+        || locomotion.regime() != LocomotionRegime::LocalFlight
     {
         return;
     }
@@ -380,9 +383,9 @@ fn sync_spacecraft_flight_state(
             continue;
         }
         state.regime = match locomotion.regime() {
-            PlayerLocomotionRegime::Cruise => SpacecraftFlightRegime::Cruise,
-            PlayerLocomotionRegime::PlanetaryFlight => SpacecraftFlightRegime::Orbital,
-            PlayerLocomotionRegime::LocalFlight | PlayerLocomotionRegime::OnFoot => {
+            LocomotionRegime::Cruise => SpacecraftFlightRegime::Cruise,
+            LocomotionRegime::PlanetaryFlight => SpacecraftFlightRegime::Orbital,
+            LocomotionRegime::LocalFlight | LocomotionRegime::OnFoot => {
                 SpacecraftFlightRegime::Local
             }
         };
@@ -456,7 +459,7 @@ fn handle_spacecraft_actions(
         {
             ship_enabled.0 = true;
             ship_state.regime = SpacecraftFlightRegime::Local;
-            ship_locomotion.request_regime(PlayerLocomotionRegime::LocalFlight);
+            ship_locomotion.request_regime(LocomotionRegime::LocalFlight);
             ship_locomotion.set_thrusters_enabled(true);
             ship_velocity.0 =
                 ship_frame.up() * ship_layer.scale().metres_to_native_f32(5.0);

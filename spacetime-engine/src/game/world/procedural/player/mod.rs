@@ -6,8 +6,7 @@ use bevy::prelude::*;
 use crate::{
     game::{
         control::LocalControlSubject,
-        locomotion::ControlledSubjectHull,
-        player::ControlledSubjectLocomotion,
+        locomotion::{ControlledSubjectHull, ControlledSubjectLocomotion},
     },
     physics::character::CharacterDimensions,
     portal::PortalTraveler,

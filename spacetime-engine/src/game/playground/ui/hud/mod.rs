@@ -9,10 +9,14 @@ use crate::{
         inventory::Hotbar,
         item::{ItemAction, ItemCatalog},
         control::LocalControlSubject,
+        locomotion::{
+            ControlledSubjectLocomotion, DetailedInteractionScale, LocomotionRegime,
+            LocomotionRequest, MotionKernel,
+        },
+        navigation::{AdaptiveCruise, TravelEnvelope, TravelPace, TravelState},
         player::{
-            CameraMode, ControlledSubjectLocomotion, PlayerAdaptiveCruise,
-            PlayerCamera, PlayerLocomotionRegime, PlayerLocomotionRequest,
-            PlayerMotionKernel, PlayerTravelEnvelope, PlayerTravelSpeed, PlayerTravelState,
+            CameraMode,
+            PlayerCamera,
         },
     },
     spatial::{
@@ -177,9 +181,9 @@ fn update_player_status(
         (
             &UsfManifestationOf,
             &UsfScaleLayer,
-            &PlayerTravelSpeed,
-            &PlayerTravelEnvelope,
-            &PlayerAdaptiveCruise,
+            &TravelPace,
+            &TravelEnvelope,
+            &AdaptiveCruise,
             &ControlledSubjectLocomotion,
             &UsfTravelNeighborhood,
             &UsfNavigationContext,
@@ -209,7 +213,7 @@ fn update_player_status(
         .map(|health| format!("{:.0}", health.current()))
         .unwrap_or_else(|_| "--".to_string());
 
-    if locomotion.kernel() == PlayerMotionKernel::Cruise {
+    if locomotion.kernel() == MotionKernel::Cruise {
         let hard_clearance = cruise
             .nearest_hard_clearance_scale0
             .map(|value| format!("{value:.2e}"))
@@ -265,7 +269,7 @@ fn update_context_actions(
     camera: Single<&PlayerCamera>,
     player: Single<
         (
-            &PlayerTravelState,
+            &TravelState,
             &ControlledSubjectLocomotion,
             &SpatialDemandSource,
         ),
@@ -294,30 +298,30 @@ fn update_context_actions(
     }
 
     match locomotion.kernel() {
-        PlayerMotionKernel::Character => {
+        MotionKernel::Character => {
             lines.push("WASD      Move".to_string());
             lines.push("SPACE     Jump".to_string());
             lines.push("SHIFT     Sprint".to_string());
             lines.push("CTRL      Crouch".to_string());
         }
-        PlayerMotionKernel::ThrusterFlight
-        | PlayerMotionKernel::InertialFlight
-        | PlayerMotionKernel::ScaleNavigation => {
+        MotionKernel::ThrusterFlight
+        | MotionKernel::InertialFlight
+        | MotionKernel::ScaleNavigation => {
             lines.push("WASD      Flight".to_string());
             lines.push("SPACE/CTRL Vertical".to_string());
             lines.push("SHIFT     Boost".to_string());
         }
-        PlayerMotionKernel::OrbitalFlight => {
+        MotionKernel::OrbitalFlight => {
             lines.push("WASD      Orbital thrust".to_string());
             lines.push("SPACE/CTRL Radial thrust".to_string());
         }
-        PlayerMotionKernel::Cruise => {
+        MotionKernel::Cruise => {
             lines.push("W / S     Throttle".to_string());
         }
-        PlayerMotionKernel::Disabled => {}
+        MotionKernel::Disabled => {}
     }
 
-    let cruising = locomotion.kernel() == PlayerMotionKernel::Cruise;
+    let cruising = locomotion.kernel() == MotionKernel::Cruise;
     if cruising {
         if travel.planetary_handoff_available {
             lines.push("C         Drop to planetary".to_string());
@@ -329,14 +333,14 @@ fn update_context_actions(
     }
 
     let explicit_local_flight = locomotion.request()
-        == PlayerLocomotionRequest::Regime(PlayerLocomotionRegime::LocalFlight);
+        == LocomotionRequest::Regime(LocomotionRegime::LocalFlight);
     lines.push(if explicit_local_flight {
         "V         Exit local flight".to_string()
     } else {
         "V         Local flight".to_string()
     });
 
-    if explicit_local_flight && locomotion.regime() == PlayerLocomotionRegime::LocalFlight {
+    if explicit_local_flight && locomotion.regime() == LocomotionRegime::LocalFlight {
         lines.push(format!(
             "X         Thrusters {}",
             if locomotion.thrusters_enabled() { "off" } else { "on" }
@@ -353,7 +357,7 @@ fn update_context_actions(
         CameraMode::ThirdPerson => "F5        First-person view".to_string(),
     });
 
-    if locomotion.kernel() != PlayerMotionKernel::Cruise {
+    if locomotion.kernel() != MotionKernel::Cruise {
         lines.push("ALT+WHEEL View scale".to_string());
     }
 

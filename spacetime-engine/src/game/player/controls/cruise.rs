@@ -22,9 +22,9 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
             &UsfScaleLayer,
             &CharacterControlFrame,
             &ControlledSubjectLocomotion,
-            &mut PlayerAdaptiveCruise,
-            &PlayerTravelEnvelope,
-            &PlayerTravelState,
+            &mut AdaptiveCruise,
+            &TravelEnvelope,
+            &TravelState,
             Option<&mut LinearVelocity>,
         ),
         With<LocalControlSubject>,
@@ -42,7 +42,7 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
         velocity,
     ) = subject.into_inner();
 
-    if locomotion.kernel() != PlayerMotionKernel::Cruise {
+    if locomotion.kernel() != MotionKernel::Cruise {
         *was_active = false;
         *was_explicit = false;
         return;
@@ -61,7 +61,7 @@ pub(in crate::game::player) fn adaptive_cruise_movement(
     }
 
     let explicit =
-        locomotion.request() == PlayerLocomotionRequest::Regime(PlayerLocomotionRegime::Cruise);
+        locomotion.request() == LocomotionRequest::Regime(LocomotionRegime::Cruise);
     let just_engaged = !*was_active;
     let just_explicitly_engaged = explicit && !*was_explicit;
     *was_active = true;

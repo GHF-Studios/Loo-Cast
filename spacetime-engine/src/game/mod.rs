@@ -3,6 +3,7 @@
 pub mod combat;
 pub mod control;
 pub mod locomotion;
+pub mod navigation;
 pub mod spacecraft;
 mod console_commands;
 mod devtools;
@@ -135,6 +136,7 @@ impl Plugin for LooCastPlugin {
             ))
             .add_plugins((
                 locomotion::LocomotionPlugin,
+                navigation::NavigationPlugin,
                 player::PlayerPlugin,
                 spacecraft::SpacecraftPlugin,
                 crate::portal::PortalPlugin,

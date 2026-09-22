@@ -15,7 +15,14 @@ use crate::{
     game::{
         control::LocalControlSubject,
         locomotion::{
-            ControlledSubjectHull, LocomotionCapabilities, LocomotionEnabled,
+            CollisionPolicy, ControlledSubjectHull, ControlledSubjectLocomotion,
+            ControlledSubjectLocomotionChanged, DetailedInteractionScale,
+            LocomotionCapabilities, LocomotionEnabled, LocomotionRegime,
+            LocomotionRequest, MotionKernel, ScaleInteractionProxy, VelocitySemantics,
+        },
+        navigation::{
+            AdaptiveCruise, ApproachRefinementState, TravelEnvelope, TravelPace,
+            TravelState,
         },
     },
     physics::{
@@ -38,12 +45,10 @@ use crate::{
 };
 
 use super::{
-    ControlledSubjectLocomotion, ControlledSubjectLocomotionChanged, Player,
-    PlayerAdaptiveCruise, PlayerAim, PlayerApproachRefinementState, PlayerCollisionPolicy,
+    Player,
+    PlayerAim,
     PlayerController, PlayerDead,
-    PlayerDetailedPhysicsScale, PlayerLocomotionRegime, PlayerLocomotionRequest,
-    PlayerMotionKernel, PlayerScaleInteractionProxy, PlayerStance, PlayerTravelEnvelope,
-    PlayerTravelSpeed, PlayerTravelState, PlayerVelocitySemantics,
+    PlayerStance,
     cursor::CursorCapture,
 };
 

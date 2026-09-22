@@ -1,5 +1,7 @@
 //! Adaptation of semantic player death into local control/runtime state.
 
+use crate::game::locomotion::ControlledSubjectLocomotion;
+
 use super::*;
 
 /// Adapts generic semantic death into local-player control state.

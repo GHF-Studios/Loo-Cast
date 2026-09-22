@@ -2,7 +2,18 @@
 
 use super::*;
 
-use crate::spatial::UsfNavigationContext;
+use crate::{
+    game::{
+        locomotion::{
+            ControlledSubjectLocomotion, DetailedInteractionScale, LocomotionCapabilities,
+            LocomotionEnabled, ScaleInteractionProxy,
+        },
+        navigation::{
+            AdaptiveCruise, ApproachRefinementState, TravelEnvelope, TravelPace, TravelState,
+        },
+    },
+    spatial::UsfNavigationContext,
+};
 
 pub(super) fn spawn_player(
     mut commands: Commands,
@@ -61,13 +72,13 @@ pub(super) fn spawn_player(
                 LocomotionEnabled(true),
                 PlayerStance::default(),
                 ControlledSubjectLocomotion::default(),
-                PlayerScaleInteractionProxy::default(),
-                PlayerDetailedPhysicsScale::default(),
-                PlayerTravelSpeed::default(),
-                PlayerTravelEnvelope::default(),
-                PlayerApproachRefinementState::default(),
-                PlayerAdaptiveCruise::default(),
-                PlayerTravelState::default(),
+                ScaleInteractionProxy::default(),
+                DetailedInteractionScale::default(),
+                TravelPace::default(),
+                TravelEnvelope::default(),
+                ApproachRefinementState::default(),
+                AdaptiveCruise::default(),
+                TravelState::default(),
                 UsfTravelNeighborhood::default(),
                 UsfNavigationContext::default(),
             ),
@@ -85,7 +96,7 @@ pub(super) fn spawn_player(
                 CustomPositionIntegration,
                 CustomVelocityIntegration,
                 LinearVelocity::ZERO,
-                Collider::sphere(PlayerScaleInteractionProxy::DEFAULT_RADIUS_NATIVE),
+                Collider::sphere(ScaleInteractionProxy::DEFAULT_RADIUS_NATIVE),
                 SpatialSplitBox::from_size(Vec3::new(
                     CharacterDimensions::HULL_WIDTH,
                     CharacterDimensions::HULL_HEIGHT,
@@ -116,7 +127,7 @@ pub(super) fn spawn_player(
                 CustomPositionIntegration,
                 CustomVelocityIntegration,
                 LinearVelocity::ZERO,
-                Collider::sphere(PlayerScaleInteractionProxy::DEFAULT_RADIUS_NATIVE),
+                Collider::sphere(ScaleInteractionProxy::DEFAULT_RADIUS_NATIVE),
                 CollisionLayers::NONE,
                 Transform::from_translation(runtime_position),
             ),

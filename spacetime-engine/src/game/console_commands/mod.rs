@@ -22,10 +22,9 @@ use crate::{
 
 use super::{
     control::LocalControlSubject,
-    player::{
-        ControlledSubjectLocomotion, Player, PlayerAdaptiveCruise, PlayerAim,
-        PlayerLocomotionRegime, PlayerLocomotionRequest, PlayerTravelSpeed,
-    },
+    locomotion::{ControlledSubjectLocomotion, LocomotionRegime, LocomotionRequest},
+    navigation::{AdaptiveCruise, TravelPace},
+    player::{Player, PlayerAim},
     world::UniverseLandmarkIndex,
 };
 
@@ -242,7 +241,7 @@ fn speed_command(
 ) -> ConsoleCommandResult {
     let requested = invocation.args().first().map(String::as_str);
 
-    let mut query = world.query_filtered::<&mut PlayerTravelSpeed, With<LocalControlSubject>>();
+    let mut query = world.query_filtered::<&mut TravelPace, With<LocalControlSubject>>();
     let Some(mut speed) = query.iter_mut(world).next() else {
         return ConsoleCommandResult::error("player travel-speed state is unavailable");
     };
@@ -253,7 +252,7 @@ fn speed_command(
 
     if let Some(raw) = requested {
         if raw.eq_ignore_ascii_case("reset") {
-            *speed = PlayerTravelSpeed::default();
+            *speed = TravelPace::default();
         } else {
             let Ok(parsed) = raw.parse::<f32>() else {
                 return ConsoleCommandResult::error(format!(
@@ -284,7 +283,7 @@ fn cruise_command(
     }
 
     let mut query = world.query_filtered::<
-        (&mut ControlledSubjectLocomotion, &mut PlayerAdaptiveCruise),
+        (&mut ControlledSubjectLocomotion, &mut AdaptiveCruise),
         With<LocalControlSubject>,
     >();
     let Some((mut locomotion, mut cruise)) = query.iter_mut(world).next() else {
@@ -294,7 +293,7 @@ fn cruise_command(
     let active = match invocation.args().first().map(String::as_str) {
         None => {
             locomotion.request()
-                != PlayerLocomotionRequest::Regime(PlayerLocomotionRegime::Cruise)
+                != LocomotionRequest::Regime(LocomotionRegime::Cruise)
         }
         Some(value) if value.eq_ignore_ascii_case("on") => true,
         Some(value) if value.eq_ignore_ascii_case("off") => false,
@@ -306,7 +305,7 @@ fn cruise_command(
     };
 
     if active {
-        locomotion.request_regime(PlayerLocomotionRegime::Cruise);
+        locomotion.request_regime(LocomotionRegime::Cruise);
         locomotion.set_thrusters_enabled(false);
     } else {
         locomotion.request_automatic();

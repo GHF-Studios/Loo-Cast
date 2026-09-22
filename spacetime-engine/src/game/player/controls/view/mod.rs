@@ -33,7 +33,7 @@ pub(in crate::game::player) fn zoom_spatial_view(
     locomotion: Single<&ControlledSubjectLocomotion, With<LocalControlSubject>>,
     mut view: Single<&mut UsfViewContext, With<UsfViewRenderAnchor>>,
 ) {
-    if locomotion.regime() == PlayerLocomotionRegime::Cruise
+    if locomotion.regime() == LocomotionRegime::Cruise
         || presentation.is_embedded()
         || gameplay_suppressed(&keyboard, &capture)
         || scroll.delta.y == 0.0

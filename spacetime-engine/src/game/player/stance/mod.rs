@@ -18,9 +18,11 @@ use crate::{
 
 use crate::game::control::LocalControlSubject;
 
+use crate::game::locomotion::{ControlledSubjectLocomotion, DetailedInteractionScale, MotionKernel};
+
 use super::{
-    ControlledSubjectLocomotion, Player, PlayerDead, PlayerDetailedPhysicsScale,
-    PlayerMotionKernel, PlayerStance,
+    Player, PlayerDead,
+    PlayerStance,
     controls::gameplay_suppressed,
     cursor::CursorCapture,
 };
@@ -38,7 +40,7 @@ pub fn update_stance(
                 &mut Transform,
                 Option<&mut Collider>,
                 &UsfScaleLayer,
-                &PlayerDetailedPhysicsScale,
+                &DetailedInteractionScale,
                 &mut PlayerStance,
                 &ControlledSubjectLocomotion,
                 Option<&PlayerDead>,
@@ -62,7 +64,7 @@ pub fn update_stance(
         let (_, _, _, layer, detailed, stance, locomotion, dead, _, _, _) =
             player.into_inner();
         (
-            locomotion.kernel() == PlayerMotionKernel::Character
+            locomotion.kernel() == MotionKernel::Character
                 && layer.scale() == detailed.0,
             dead.is_some(),
             stance.crouched,

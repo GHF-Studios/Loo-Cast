@@ -16,14 +16,8 @@ mod model;
 mod stance;
 
 pub use camera::{CameraMode, PlayerCamera, ThirdPersonCamera};
-pub use components::{
-    ControlledSubjectLocomotion, ControlledSubjectLocomotionChanged, Player,
-    PlayerAdaptiveCruise, PlayerAim, PlayerApproachRefinementState, PlayerCollisionPolicy,
-    PlayerController, PlayerDead,
-    PlayerDetailedPhysicsScale, PlayerLocomotionRegime, PlayerLocomotionRequest,
-    PlayerMotionKernel, PlayerScaleInteractionProxy, PlayerStance, PlayerTravelEnvelope,
-    PlayerTravelSpeed, PlayerTravelState, PlayerVelocitySemantics,
-};
+pub use components::{Player, PlayerAim, PlayerController, PlayerDead, PlayerStance};
+
 
 use avian3d::prelude::{
     ActiveCollisionHooks, Collider, CollisionLayers, CustomPositionIntegration, CustomVelocityIntegration,
@@ -61,7 +55,17 @@ use crate::{
     voxel::VoxelMaterializationDemand,
 };
 
-use crate::game::locomotion::{LocomotionCapabilities, LocomotionEnabled};
+use crate::game::{
+    locomotion::{
+        CollisionPolicy, ControlledSubjectLocomotion, ControlledSubjectLocomotionChanged,
+        DetailedInteractionScale, LocomotionCapabilities, LocomotionEnabled,
+        LocomotionRegime, LocomotionRequest, MotionKernel, ScaleInteractionProxy,
+        VelocitySemantics,
+    },
+    navigation::{
+        AdaptiveCruise, ApproachRefinementState, TravelEnvelope, TravelPace, TravelState,
+    },
+};
 
 use super::{
     GameSet, InputSet, PresentationSet,
@@ -90,20 +94,6 @@ impl Plugin for PlayerPlugin {
             .register_type::<PlayerDead>()
             .register_type::<PlayerAim>()
             .register_type::<PlayerStance>()
-            .register_type::<ControlledSubjectLocomotion>()
-            .register_type::<PlayerLocomotionRegime>()
-            .register_type::<PlayerLocomotionRequest>()
-            .register_type::<PlayerMotionKernel>()
-            .register_type::<PlayerCollisionPolicy>()
-            .register_type::<PlayerVelocitySemantics>()
-            .register_type::<PlayerScaleInteractionProxy>()
-            .register_type::<PlayerDetailedPhysicsScale>()
-            .register_type::<PlayerTravelSpeed>()
-            .register_type::<PlayerTravelEnvelope>()
-            .register_type::<PlayerApproachRefinementState>()
-            .register_type::<PlayerTravelState>()
-            .register_type::<PlayerAdaptiveCruise>()
-            .add_message::<ControlledSubjectLocomotionChanged>()
             .register_type::<PlayerCamera>()
             .register_type::<ThirdPersonCamera>()
             .register_type::<CameraMode>()
