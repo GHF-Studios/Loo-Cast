@@ -41,7 +41,8 @@ use crate::{
     physics::{
         character::{
             CharacterControlFrame, CharacterDimensions, CharacterGroundState,
-            CharacterLocomotionFrame, CharacterMotor, CharacterMovementInput,
+            CharacterLocomotionFrame, CharacterMotor, CharacterMovementConfig,
+            CharacterMovementInput,
         },
         topology::{KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeer},
     },

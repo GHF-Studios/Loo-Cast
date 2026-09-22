@@ -68,10 +68,19 @@ pub(super) fn spawn_player(
                 UsfNavigationContext::default(),
             ),
             (
-                // View/control state belongs to the player independently, while
-                // CharacterMotor remains legal at every USF scale.
+                // Controlled-manifestation motion state persists across Scale
+                // Slices. CharacterMotor is only one detailed-body solver and
+                // must not be the component that implicitly creates the state
+                // needed by coarse navigation, cruise or input adapters.
                 CharacterControlFrame::default(),
                 CharacterLocomotionFrame::default(),
+                CharacterMovementConfig::default(),
+                CharacterMovementInput::default(),
+                CharacterGroundState::default(),
+                RigidBody::Kinematic,
+                CustomPositionIntegration,
+                CustomVelocityIntegration,
+                LinearVelocity::ZERO,
                 Collider::sphere(PlayerScaleInteractionProxy::DEFAULT_RADIUS_NATIVE),
                 SpatialSplitBox::from_size(Vec3::new(
                     CharacterDimensions::HULL_WIDTH,
