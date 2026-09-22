@@ -34,6 +34,7 @@ pub enum UsfTransitionVelocity {
 pub struct UsfSpatialTransition {
     subject: Entity,
     position: UsfPosition,
+    target_scale: Option<SpatialScale>,
     view_exponent: Option<f32>,
     velocity: UsfTransitionVelocity,
 }
@@ -43,9 +44,17 @@ impl UsfSpatialTransition {
         Self {
             subject,
             position,
+            target_scale: None,
             view_exponent: None,
             velocity: UsfTransitionVelocity::PreserveNative,
         }
+    }
+
+    /// Explicitly selects the destination interaction Scale Slice.
+    /// View zoom never selects this implicitly.
+    pub const fn with_scale(mut self, scale: SpatialScale) -> Self {
+        self.target_scale = Some(scale);
+        self
     }
 
     pub fn with_view_exponent(mut self, exponent: f32) -> Self {
@@ -121,7 +130,7 @@ pub(super) fn apply_spatial_transitions(
     mut queue: ResMut<UsfSpatialTransitionQueue>,
     mut participants: ParamSet<(
         Query<
-            (Entity, &Transform, &UsfManifestationOf),
+            (Entity, &Transform, &UsfScaleLayer, &UsfManifestationOf),
             (
                 With<UsfSpatialAnchor>,
                 With<UsfLogicalProjection>,
@@ -144,36 +153,29 @@ pub(super) fn apply_spatial_transitions(
     mut semantic_positions: Query<&mut UsfPosition>,
     mut applied: MessageWriter<UsfSpatialTransitionApplied>,
 ) {
-    let (anchor_entity, old_anchor_runtime, subject) = {
+    let (anchor_entity, old_anchor_runtime, previous_scale, subject) = {
         let anchors = participants.p0();
-        let Some((entity, transform, manifestation)) = anchors.iter().next() else {
+        let Some((entity, transform, layer, manifestation)) = anchors.iter().next() else {
             return;
         };
-        (entity, transform.translation, manifestation.0)
+        (entity, transform.translation, layer.scale(), manifestation.0)
     };
 
-    let request = queue.take_latest_for(subject);
-    if let Some(request) = &request
-        && let Some(exponent) = request.view_exponent
-    {
+    let Some(request) = queue.take_latest_for(subject) else {
+        return;
+    };
+    if let Some(exponent) = request.view_exponent {
         view.set_continuous_exponent(exponent);
     }
 
-    let previous_scale = active.scale();
-    let target_scale = view.dominant_scale();
-    let requested_relocation = request.is_some();
-
-    if !requested_relocation && target_scale == previous_scale {
-        return;
-    }
+    let target_scale = request.target_scale.unwrap_or(previous_scale);
+    let requested_relocation = true;
 
     let Ok(mut semantic) = semantic_positions.get_mut(subject) else {
         return;
     };
 
-    if let Some(request) = &request {
-        *semantic = request.position;
-    }
+    *semantic = request.position;
 
     // Changing the runtime chart must never change semantic precision.
     // The exact canonical subject position becomes the frame origin. Pass 2
@@ -199,13 +201,15 @@ pub(super) fn apply_spatial_transitions(
         return;
     }
 
-    let velocity_policy = request
-        .as_ref()
-        .map_or(UsfTransitionVelocity::PreserveNative, |request| request.velocity);
+    let velocity_policy = request.velocity;
 
     for (_entity, mut transform, mut layer, position, velocity, manifestation) in
         &mut participants.p1()
     {
+        if manifestation.is_none_or(|manifestation| manifestation.0 != subject) {
+            continue;
+        }
+
         // Followers belong to the current observer-local chart. Preserve only
         // their bounded offset from the primary anchor; never reinterpret an old
         // absolute runtime coordinate as a new-scale universe coordinate.
@@ -248,11 +252,7 @@ pub(super) fn apply_spatial_transitions(
         anchor: anchor_entity,
         previous_scale,
         active_scale: target_scale,
-        cause: if requested_relocation {
-            UsfSpatialTransitionCause::Requested
-        } else {
-            UsfSpatialTransitionCause::ViewScale
-        },
+        cause: UsfSpatialTransitionCause::Requested,
     });
 
     debug!(

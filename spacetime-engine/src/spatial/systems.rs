@@ -3,18 +3,21 @@
 use super::*;
 
 pub(super) fn sync_semantic_positions(
-    active: Res<UsfActiveScaleLayer>,
     frame: Res<UsfSpatialFrame>,
     anchors: Query<
-        (Ref<Transform>, Ref<UsfManifestationOf>),
+        (Ref<Transform>, Ref<UsfManifestationOf>, Ref<UsfScaleLayer>),
         (With<UsfSpatialAnchor>, With<UsfLogicalProjection>),
     >,
     mut semantic_positions: Query<&mut UsfPosition>,
 ) {
     let frame_changed = frame.is_changed();
 
-    for (transform, manifestation) in &anchors {
-        if !frame_changed && !transform.is_changed() && !manifestation.is_changed() {
+    for (transform, manifestation, layer) in &anchors {
+        if !frame_changed
+            && !transform.is_changed()
+            && !manifestation.is_changed()
+            && !layer.is_changed()
+        {
             continue;
         }
         let Ok(mut semantic) = semantic_positions.get_mut(manifestation.0) else {
@@ -22,10 +25,10 @@ pub(super) fn sync_semantic_positions(
         };
 
         let Ok(position) = (*frame.origin())
-            .translated_at_scale(active.scale(), transform.translation)
+            .translated_at_scale(layer.scale(), transform.translation)
         else {
             error!(
-                scale = %active.scale(),
+                scale = %layer.scale(),
                 local_position = ?transform.translation,
                 "USF semantic position translation failed while projecting local anchor"
             );

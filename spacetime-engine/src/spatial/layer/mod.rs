@@ -1,4 +1,4 @@
-//! Scale-local simulation layers.
+//! The 71 explicit USF Scale Slices and scale-local runtime membership.
 //!
 //! Each layer lets ordinary engine coordinates mean "native units at this USF
 //! scale". Physics/render/audio/etc. adapters can share this identity without
@@ -7,6 +7,55 @@
 use bevy::{math::DVec3, prelude::*};
 
 use super::{SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MIN, SpatialScale};
+
+
+/// One of the 71 fundamental spatial Scale Slices.
+///
+/// A slice is not an LOD level and not a separate universe. It is one
+/// scale-local runtime partition of the same canonical game world.
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct UsfScaleSlice {
+    scale: SpatialScale,
+}
+impl UsfScaleSlice {
+    pub const fn new(scale: SpatialScale) -> Self { Self { scale } }
+    pub const fn scale(self) -> SpatialScale { self.scale }
+}
+
+/// Runtime registry of the 71 Scale Slice roots.
+#[derive(Resource, Debug)]
+pub struct UsfScaleSlices {
+    roots: [Option<Entity>; SPATIAL_SCALE_COUNT],
+}
+impl Default for UsfScaleSlices {
+    fn default() -> Self { Self { roots: [None; SPATIAL_SCALE_COUNT] } }
+}
+impl UsfScaleSlices {
+    pub fn root(&self, scale: SpatialScale) -> Option<Entity> {
+        self.roots[scale.index_from_top()]
+    }
+    pub fn iter(&self) -> impl Iterator<Item=(SpatialScale, Entity)> + '_ {
+        (SPATIAL_SCALE_MIN..=super::SPATIAL_SCALE_MAX).filter_map(|raw| {
+            let scale=SpatialScale::new(raw)?;
+            self.root(scale).map(|entity|(scale,entity))
+        })
+    }
+}
+pub(in crate::spatial) fn spawn_scale_slices(
+    mut commands: Commands,
+    mut slices: ResMut<UsfScaleSlices>,
+) {
+    for raw in SPATIAL_SCALE_MIN..=super::SPATIAL_SCALE_MAX {
+        let scale=SpatialScale::new(raw).expect("validated USF scale");
+        let index=scale.index_from_top();
+        if slices.roots[index].is_some() { continue; }
+        let entity=commands.spawn((
+            Name::new(format!("USF Scale Slice S{scale}")),
+            UsfScaleSlice::new(scale),
+        )).id();
+        slices.roots[index]=Some(entity);
+    }
+}
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct UsfScaleLayer {
@@ -64,11 +113,16 @@ impl UsfChartMask {
     }
 }
 
-/// Marks a runtime manifestation that should move from one simulation layer to
-/// another when the observer changes the dominant interactive scale.
+/// Transitional compatibility marker for manifestations whose primary
+/// interaction slice may be explicitly rechosen.
+///
+/// IMPORTANT: this does not mean only one Scale Slice exists.
 #[derive(Component, Debug, Default, Clone, Copy)]
 pub struct UsfFollowsActiveScale;
 
+/// Compatibility resource naming the primary controlled interaction slice.
+///
+/// It is not "the active world". All 71 slices exist simultaneously.
 #[derive(Resource, Debug, Clone, Copy)]
 pub struct UsfActiveScaleLayer {
     scale: SpatialScale,

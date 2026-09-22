@@ -23,7 +23,7 @@ pub use navigation::{
 };
 pub use layer::{
     UsfActiveScaleLayer, UsfChartMask, UsfFollowsActiveScale, UsfScaleLayer,
-    UsfScaleLayerFrames,
+    UsfScaleLayerFrames, UsfScaleSlice, UsfScaleSlices,
 };
 pub use position::{
     SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale, UsfChunkAddress,
@@ -115,9 +115,11 @@ impl Plugin for UsfSpatialPlugin {
         app.init_resource::<UsfSpatialFrame>()
             .init_resource::<UsfActiveScaleLayer>()
             .init_resource::<UsfScaleLayerFrames>()
+            .init_resource::<UsfScaleSlices>()
             .init_resource::<UsfSpatialTransitionQueue>()
             .add_message::<UsfOriginRebased>()
             .add_message::<UsfSpatialTransitionApplied>()
+            .add_systems(Startup, layer::spawn_scale_slices)
             .configure_sets(
                 PostUpdate,
                 (

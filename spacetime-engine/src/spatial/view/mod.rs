@@ -8,7 +8,7 @@
 use bevy::{math::DVec3, prelude::*};
 
 use crate::spatial::{
-    SpatialScale, UsfActiveScaleLayer, UsfFollowsActiveScale, UsfPosition, UsfScaleLayer,
+    SpatialScale, UsfFollowsActiveScale, UsfPosition, UsfScaleLayer,
     UsfSpatialFrame,
 };
 

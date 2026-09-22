@@ -2,6 +2,14 @@
 
 use super::*;
 
+use avian3d::character_controller::move_and_slide::{
+    MoveAndSlide, MoveAndSlideConfig, MoveAndSlideHitResponse,
+};
+use crate::physics::{
+    chart::UsfPhysicsCharts,
+    topology::KinematicQueryExclusions,
+};
+
 /// Samples local controls once per render frame immediately before the fixed
 /// loop. The fixed character motor consumes this intent deterministically.
 pub(in crate::game::player) fn movement(

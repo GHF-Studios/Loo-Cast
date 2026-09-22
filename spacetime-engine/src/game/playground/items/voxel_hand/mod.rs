@@ -3,12 +3,13 @@
 use bevy::prelude::*;
 
 use crate::{
+    ecs::UsfManifestationOf,
     game::{
         GameSet,
         item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItem},
     },
     spatial::{SpatialScale, UsfActiveScaleLayer, UsfScaleLayer, UsfSpatialFrame},
-    voxel::{VoxelAuthority, VoxelBrush, VoxelEdit, VoxelEditingDisabled, VoxelMaterialId, VoxelQueryPosition, VoxelRayHit, VoxelRealizationOf, VoxelWorld},
+    voxel::{VoxelAuthority, VoxelBrush, VoxelEdit, VoxelEditingDisabled, VoxelMaterialId, VoxelQueryPosition, VoxelRayHit, VoxelWorld},
 };
 
 pub const VOXEL_HAND: ItemId = ItemId::new("voxel_hand");
@@ -48,7 +49,7 @@ fn use_voxel_hand(
                 Entity,
                 &VoxelWorld,
                 &UsfScaleLayer,
-                Option<&VoxelRealizationOf>,
+                Option<&UsfManifestationOf>,
             ),
             Without<VoxelEditingDisabled>,
         >,
@@ -57,7 +58,7 @@ fn use_voxel_hand(
                 Entity,
                 &mut VoxelWorld,
                 &UsfScaleLayer,
-                Option<&VoxelRealizationOf>,
+                Option<&UsfManifestationOf>,
             ),
             Without<VoxelEditingDisabled>,
         >,
@@ -107,7 +108,7 @@ fn use_voxel_hand(
                     if nearest.is_none_or(|(_, _, _, current)| distance < current) {
                         nearest = Some((
                             world_entity,
-                            realization.map(|realization| realization.authority()),
+                            realization.map(|realization| realization.0),
                             semantic_hit,
                             distance,
                         ));
@@ -163,7 +164,7 @@ fn use_voxel_hand(
             for (_, mut world, layer, realization) in &mut realization_worlds {
                 if layer.scale() != SpatialScale::ZERO
                     || realization
-                        .is_none_or(|realization| realization.authority() != authority_entity)
+                        .is_none_or(|realization| realization.0 != authority_entity)
                 {
                     continue;
                 }

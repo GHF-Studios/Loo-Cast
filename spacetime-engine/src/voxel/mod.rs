@@ -22,7 +22,7 @@ mod store;
 mod streaming;
 mod world;
 
-pub use authority::{CelestialVoxelField, VoxelAuthority, VoxelRealizationOf};
+pub use authority::{CelestialVoxelField, VoxelAuthority};
 pub use base::{
     CelestialBodyProfile, ProceduralCelestialBody, ProceduralTerrain, ProceduralVolume, VoxelBase,
 };

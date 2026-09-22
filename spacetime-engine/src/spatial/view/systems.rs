@@ -5,16 +5,15 @@ use super::*;
 /// Keeps the view anchored to an ordinary bounded runtime transform while
 /// deriving its semantic position through the current local physical frame.
 pub(in crate::spatial) fn sync_view_context(
-    active: Res<UsfActiveScaleLayer>,
     frame: Res<UsfSpatialFrame>,
-    semantic_anchors: Query<&Transform, With<UsfViewAnchor>>,
+    semantic_anchors: Query<(&Transform, &UsfScaleLayer), With<UsfViewAnchor>>,
     observer: Single<
         (&Transform, &mut UsfViewContext),
         With<UsfViewRenderAnchor>,
     >,
 ) {
     let mut semantic_anchors = semantic_anchors.iter();
-    let Some(semantic_anchor) = semantic_anchors.next() else {
+    let Some((semantic_anchor, anchor_layer)) = semantic_anchors.next() else {
         return;
     };
     if semantic_anchors.next().is_some() {
@@ -26,7 +25,7 @@ pub(in crate::spatial) fn sync_view_context(
 
     let Ok(canonical) = frame
         .origin()
-        .translated_at_scale(active.scale(), semantic_anchor.translation)
+        .translated_at_scale(anchor_layer.scale(), semantic_anchor.translation)
     else {
         error!(
             local_anchor = ?semantic_anchor.translation,

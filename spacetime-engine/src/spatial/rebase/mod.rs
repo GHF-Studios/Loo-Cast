@@ -3,29 +3,28 @@
 use super::*;
 
 pub(super) fn rebase_local_frame(
-    active: Res<UsfActiveScaleLayer>,
     mut layer_frames: ResMut<UsfScaleLayerFrames>,
     mut frame: ResMut<UsfSpatialFrame>,
     mut transforms: ParamSet<(
-        Query<&Transform, (With<UsfSpatialAnchor>, With<UsfLogicalProjection>)>,
+        Query<(&Transform, &UsfScaleLayer), (With<UsfSpatialAnchor>, With<UsfLogicalProjection>)>,
         Query<(&mut Transform, Option<&UsfScaleLayer>), Without<ChildOf>>,
     )>,
     mut physics_positions: Query<(&mut Position, Option<&UsfScaleLayer>)>,
     mut rebased: MessageWriter<UsfOriginRebased>,
 ) {
-    let anchor_translation = {
+    let (anchor_translation, anchor_scale) = {
         let anchors = transforms.p0();
-        let Some(anchor) = anchors.iter().next() else {
+        let Some((anchor, layer)) = anchors.iter().next() else {
             return;
         };
-        anchor.translation
+        (anchor.translation, layer.scale())
     };
     let shift = rebase_shift(anchor_translation);
     if shift == Vec3::ZERO {
         return;
     }
 
-    let Ok(new_origin) = frame.origin.translated_at_scale(active.scale(), shift) else {
+    let Ok(new_origin) = frame.origin.translated_at_scale(anchor_scale, shift) else {
         error!(
             ?shift,
             "USF canonical translation failed during local-origin rebase"
@@ -37,7 +36,7 @@ pub(super) fn rebase_local_frame(
     frame.rebase_count = frame.rebase_count.wrapping_add(1);
     frame.last_shift = shift;
 
-    let active_scale = active.scale();
+    let active_scale = anchor_scale;
 
     for (mut transform, layer) in &mut transforms.p1() {
         if layer.is_none_or(|layer| layer.scale() == active_scale) {

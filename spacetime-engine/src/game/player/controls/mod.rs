@@ -11,6 +11,7 @@ use bevy::{
 };
 
 use crate::{
+    ecs::UsfManifestationOf,
     physics::{
         character::{
         CharacterControlFrame, CharacterDimensions, CharacterGroundState,
@@ -19,7 +20,7 @@ use crate::{
     },
     spatial::{
         SpatialDemandSource, SpatialScale, UsfApproachRefinement, UsfNavigationContext,
-        UsfRadialGravitySource, UsfScaleLayer, UsfSpatialFrame, UsfTravelInfluence,
+        UsfRadialGravitySource, UsfScaleLayer, UsfSpatialFrame, UsfSpatialTransition, UsfSpatialTransitionQueue, UsfTravelInfluence,
         UsfTravelInfluenceKind, UsfTravelNeighborhood, UsfViewContext, UsfViewRenderAnchor,
     },
     view::PrimaryViewPresentation,

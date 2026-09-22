@@ -8,12 +8,12 @@ use bevy::{
     tasks::{AsyncComputeTaskPool, Task, futures::check_ready},
 };
 
-use crate::{config::EngineConfig, spatial::SpatialScale};
+use crate::{
+    ecs::UsfManifestationOf,config::EngineConfig, spatial::SpatialScale};
 
 use super::VoxelStreaming;
 use super::super::{
-    VoxelAuthority, VoxelChunk, VoxelMaterializationChunkAddress, VoxelRealizationOf,
-    VoxelWorld,
+    VoxelAuthority, VoxelChunk, VoxelMaterializationChunkAddress, VoxelWorld,
     generation_scope::VoxelGenerationScopeExtent,
     worker::{VoxelWorkerTask, available_slots},
 };
@@ -65,7 +65,7 @@ impl VoxelGenerationTask {
 pub(in crate::voxel) fn finish_chunk_generation(
     config: Res<EngineConfig>,
     mut commands: Commands,
-    mut worlds: Query<(&mut VoxelWorld, Option<&VoxelRealizationOf>)>,
+    mut worlds: Query<(&mut VoxelWorld, Option<&UsfManifestationOf>)>,
     authorities: Query<&VoxelAuthority>,
     mut tasks: Query<(Entity, &mut VoxelGenerationTask)>,
 ) {
@@ -92,7 +92,7 @@ pub(in crate::voxel) fn finish_chunk_generation(
             continue;
         };
         let authority = realization
-            .and_then(|realization| authorities.get(realization.authority()).ok());
+            .and_then(|realization| authorities.get(realization.0).ok());
 
         while published < publish_budget {
             let Some(mut output) = generation.ready.pop_front() else {
@@ -155,7 +155,7 @@ pub(in crate::voxel) fn schedule_voxel_generation(
         Entity,
         &mut VoxelWorld,
         &mut VoxelStreaming,
-        Option<&VoxelRealizationOf>,
+        Option<&UsfManifestationOf>,
     )>,
     authorities: Query<&VoxelAuthority>,
     worker_tasks: Query<(), With<VoxelWorkerTask>>,
@@ -195,7 +195,7 @@ pub(in crate::voxel) fn schedule_voxel_generation(
         };
 
         let authority = realization
-            .and_then(|realization| authorities.get(realization.authority()).ok());
+            .and_then(|realization| authorities.get(realization.0).ok());
         let batches = plan_generation_batches(
             &mut world,
             &mut streaming,

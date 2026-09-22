@@ -1,15 +1,13 @@
 //! Hierarchical multi-scale spatial demand.
 //!
-//! One source produces a sparse vertical spine of realization demand:
-//! the current interaction scale gets the full local window, every coarser
-//! ancestor remains resident with 10x less native extent per scale, and the
-//! next-finer scale grows as a refinement patch during a continuous transition.
+//! One source produces a sparse vertical spine of realization demand from
+//! the source manifestation's own Scale Slice. Presentation/view scale is not
+//! realization authority.
 
 use bevy::prelude::*;
 
 use super::{
-    SPATIAL_SCALE_MAX, SpatialScale, UsfActiveScaleLayer, UsfPosition, UsfScaleLayer,
-    UsfSpatialFrame, UsfViewContext, UsfViewRenderAnchor,
+    SPATIAL_SCALE_MAX, SpatialScale, UsfPosition, UsfScaleLayer, UsfSpatialFrame,
 };
 
 #[derive(Component, Debug, Clone, Copy, PartialEq)]

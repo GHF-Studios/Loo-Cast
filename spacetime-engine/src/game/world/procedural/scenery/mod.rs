@@ -9,6 +9,7 @@ use std::any::Any;
 use bevy::{color::LinearRgba, math::DVec3, prelude::*};
 
 use crate::{
+    ecs::{UsfEntity, UsfManifestationOf},
     config::EngineConfig,
     procedural_assets::ProceduralAssetLibrary,
     spatial::{
@@ -16,7 +17,7 @@ use crate::{
         UsfScaleFallbackPresentation, UsfScaleLayer, UsfSceneryPresentation, UsfTravelInfluence,
     },
     voxel::{
-        CelestialBodyProfile, CelestialVoxelField, MATERIALIZATION_CHUNK_SIZE, VoxelAuthority, VoxelBase, VoxelRealizationOf,
+        CelestialBodyProfile, CelestialVoxelField, MATERIALIZATION_CHUNK_SIZE, VoxelAuthority, VoxelBase,
         VoxelCollisionDisabled, VoxelEditingDisabled, VoxelPinnedDemand, VoxelPresentationMaterial,
         VoxelQueryPosition, VoxelStreaming, VoxelWorld,
     },
@@ -527,6 +528,7 @@ fn spawn_celestial_body_realizations(
         .spawn((
             Name::new(format!("{name} Voxel Authority")),
             ChildOf(parent),
+            UsfEntity,
             field,
             VoxelAuthority::default(),
         ))
@@ -547,7 +549,7 @@ fn spawn_celestial_body_realizations(
             Name::new(format!("{name} S{terrain_scale} Celestial Terrain")),
             ChildOf(parent),
             UsfScaleLayer::new(terrain_scale),
-            VoxelRealizationOf::new(authority),
+            UsfManifestationOf(authority),
             VoxelWorld::new_at(VoxelBase::celestial_body(base), grid_origin),
             VoxelStreaming::new(config.voxel.streaming.default_load_budget_per_frame),
             VoxelPresentationMaterial::new(assets.debug_grid.clone()),

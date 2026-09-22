@@ -59,11 +59,20 @@ const APPROACH_REFINEMENT_RATE_DECADES_PER_SECOND: f32 = 6.0;
 pub(in crate::game::player) fn sync_approach_refinement_view(
     time: Res<Time>,
     frame: Res<UsfSpatialFrame>,
-    player: Single<(&Transform, &UsfScaleLayer, &PlayerAdaptiveCruise), With<Player>>,
+    player: Single<
+        (
+            &Transform,
+            &UsfScaleLayer,
+            &UsfManifestationOf,
+            &PlayerAdaptiveCruise,
+        ),
+        With<Player>,
+    >,
     refinable: Query<(&UsfTravelInfluence, &UsfApproachRefinement)>,
     mut view: Single<&mut UsfViewContext, With<UsfViewRenderAnchor>>,
+    mut transitions: ResMut<UsfSpatialTransitionQueue>,
 ) {
-    let (body, layer, cruise) = player.into_inner();
+    let (body, layer, manifestation, cruise) = player.into_inner();
     let observer_scale = layer.scale();
     let Ok(observer) = frame
         .origin()
@@ -102,7 +111,22 @@ pub(in crate::game::player) fn sync_approach_refinement_view(
     let current = view.continuous_exponent();
     let max_step = APPROACH_REFINEMENT_RATE_DECADES_PER_SECOND * time.delta_secs().max(0.0);
     let next = if target < current { (current-max_step).max(target) } else { (current+max_step).min(target) };
-    if (next-current).abs() > 1.0e-4 { view.set_continuous_exponent(next); }
+    if (next - current).abs() > 1.0e-4 {
+        view.set_continuous_exponent(next);
+    }
+
+    // Interaction-slice selection is explicit semantic state. Presentation may
+    // currently follow the same approach policy, but view state no longer owns
+    // or implicitly recharts physics.
+    let interaction_raw = next.ceil() as i8;
+    if let Some(interaction_scale) = SpatialScale::new(interaction_raw)
+        && interaction_scale != layer.scale()
+    {
+        transitions.request(
+            UsfSpatialTransition::new(manifestation.0, observer)
+                .with_scale(interaction_scale),
+        );
+    }
 }
 
 

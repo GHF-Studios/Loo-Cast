@@ -45,19 +45,6 @@ impl VoxelAuthority {
     }
 }
 
-/// Marks a disposable scale-local voxel realization of one semantic authority.
-#[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
-pub struct VoxelRealizationOf(Entity);
-
-impl VoxelRealizationOf {
-    pub const fn new(authority: Entity) -> Self {
-        Self(authority)
-    }
-
-    pub const fn authority(self) -> Entity {
-        self.0
-    }
-}
 
 /// One semantic celestial field definition.
 ///
