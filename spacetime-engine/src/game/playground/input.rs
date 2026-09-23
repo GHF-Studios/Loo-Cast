@@ -54,7 +54,7 @@ fn toggle_creative_menu(
     bindings: Res<PlayerInputBindings>,
     mut state: ResMut<CreativeMenuState>,
     mut cursor_item: ResMut<CursorItem>,
-    mut capture: ResMut<CursorCapture>,
+    capture: Res<CursorCapture>,
     mut focus: ResMut<InputFocus>,
     mut menu: Query<&mut Node, With<CreativeMenuRoot>>,
 ) {

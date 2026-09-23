@@ -15,7 +15,7 @@ use super::VoxelMaterializationRuntime;
 
 /// Surface-cache revision currently encoded by this runtime's physics collider.
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
-struct VoxelMaterializationColliderRevision(u64);
+pub(in crate::voxel) struct VoxelMaterializationColliderRevision(u64);
 use super::super::{
     VoxelCollisionDisabled, VoxelMaterializationChunkAddress,
     VoxelRealizationDemandSnapshot, VoxelWorld, physics,

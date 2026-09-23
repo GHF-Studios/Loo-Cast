@@ -215,7 +215,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
             root
         };
 
-        publish_collider_manifestation(&mut commands, root, false, None);
+        publish_collider_manifestation(&mut commands, root, false, None, None);
     }
 }
 
