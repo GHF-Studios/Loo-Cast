@@ -136,6 +136,7 @@ impl Plugin for PlayerPlugin {
                     camera::sync_view_camera_profile,
                     camera::sync_player_camera,
                     camera::sync_player_fov,
+                    camera::sync_usf_projection_camera,
                     camera::sync_view_subject_presentations,
                     hud::update_flight_hud,
                 )

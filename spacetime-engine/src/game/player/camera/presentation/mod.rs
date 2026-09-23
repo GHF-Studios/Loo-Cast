@@ -75,7 +75,8 @@ pub(in crate::game::player) fn sync_player_camera(
     let (camera, mut camera_transform) = camera.into_inner();
 
     let view_rotation = camera.view_rotation(control, aim);
-    let eye = body.translation + control.rotation() * profile.eye_offset(stance);
+    let eye = body.translation
+        + control.rotation() * profile.eye_offset_native(stance, layer.scale());
 
     *camera_transform = match camera.mode {
         CameraMode::FirstPerson => Transform {
@@ -84,8 +85,12 @@ pub(in crate::game::player) fn sync_player_camera(
             ..default()
         },
         CameraMode::ThirdPerson => {
-            let pivot =
-                eye + control.rotation() * Vec3::Y * profile.third_person.pivot_height;
+            let pivot = eye
+                + control.rotation()
+                    * Vec3::Y
+                    * layer
+                        .scale()
+                        .metres_to_native_f32(profile.third_person.pivot_height_metres);
             let resolved = resolve_third_person_boom(
                 &spatial_query,
                 &physics_charts,
@@ -98,10 +103,55 @@ pub(in crate::game::player) fn sync_player_camera(
                 view_rotation,
                 &profile.third_person,
             );
-            profile.third_person.resolved_distance = resolved.distance;
+            profile.third_person.resolved_distance_metres =
+                (f64::from(resolved.distance) * layer.scale().scale0_units_per_native()) as f32;
             resolved.transform
         }
     };
+}
+
+/// Mirrors local view orientation/projection into the dedicated USF pass while
+/// pinning translation to the semantic subject anchor.
+///
+/// The local camera may move through cockpit/third-person rig space. The USF
+/// projection camera may NOT: translating it would make presentation-scale
+/// compression observable as fake geometry.
+pub(in crate::game::player) fn sync_usf_projection_camera(
+    target: Single<
+        &Transform,
+        (
+            With<LocalViewTarget>,
+            Without<PlayerCamera>,
+            Without<UsfProjectionCamera>,
+        ),
+    >,
+    local: Single<
+        (&Transform, &Projection, &Camera, &bevy::camera::RenderTarget),
+        (With<PlayerCamera>, Without<UsfProjectionCamera>),
+    >,
+    far: Single<
+        (
+            &mut Transform,
+            &mut Projection,
+            &mut Camera,
+            &mut bevy::camera::RenderTarget,
+        ),
+        (With<UsfProjectionCamera>, Without<PlayerCamera>),
+    >,
+) {
+    let target = target.into_inner();
+    let (local_transform, local_projection, local_camera, local_target) = local.into_inner();
+    let (mut far_transform, mut far_projection, mut far_camera, mut far_target) =
+        far.into_inner();
+
+    far_transform.translation = target.translation;
+    far_transform.rotation = local_transform.rotation;
+    far_transform.scale = Vec3::ONE;
+
+    *far_projection = local_projection.clone();
+    far_camera.viewport = local_camera.viewport.clone();
+    far_camera.is_active = local_camera.is_active;
+    *far_target = local_target.clone();
 }
 
 /// Self-visibility is primary-view policy, not model identity or portal policy.

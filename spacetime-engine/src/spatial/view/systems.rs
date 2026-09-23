@@ -1,7 +1,11 @@
 //! ECS realization of observer-relative USF presentation state.
 
 use super::*;
-use crate::ecs::UsfManifestationOf;
+use bevy::camera::visibility::RenderLayers;
+use crate::{
+    ecs::UsfManifestationOf,
+    view::USF_PRESENTATION_LAYER,
+};
 
 /// Keeps the view anchored to an ordinary bounded runtime transform while
 /// deriving its semantic position through the current local physical frame.
@@ -48,6 +52,7 @@ pub(in crate::spatial) fn sync_view_context(
 /// rotation/scale, so child compensation is translation-only. General rotated
 /// representation frames can later promote this to an explicit projection frame.
 pub(in crate::spatial) fn project_local_scale_presentations(
+    mut commands: Commands,
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     interaction: Res<UsfPrimaryInteractionSlice>,
     frame: Res<UsfSpatialFrame>,
@@ -61,18 +66,38 @@ pub(in crate::spatial) fn project_local_scale_presentations(
         Without<UsfLocalScalePresentation>,
     >,
     mut presentations: Query<(
+        Entity,
         &mut UsfLocalScalePresentation,
         &ChildOf,
         &mut Transform,
         &mut Visibility,
+        Option<&RenderLayers>,
     )>,
 ) {
-    for (mut presentation, parent, mut transform, mut visibility) in &mut presentations {
+    for (entity, mut presentation, parent, mut transform, mut visibility, render_layers) in
+        &mut presentations
+    {
         let Ok((parent_transform, layer, follows_active, fallback)) = parents.get(parent.0) else {
             continue;
         };
         if presentation.scale() != layer.scale() {
             presentation.set_scale(layer.scale());
+        }
+
+        // Subject-local presentations keep their dedicated self-visibility
+        // policy. Persistent scale-world geometry is split by responsibility:
+        // the active physical interaction slice is rendered by the local camera;
+        // non-active/coarser stack members are rendered by the semantic-origin
+        // USF projection camera.
+        if follows_active.is_none() {
+            let desired_layers = if layer.scale() == interaction.scale() {
+                RenderLayers::default()
+            } else {
+                RenderLayers::layer(USF_PRESENTATION_LAYER)
+            };
+            if render_layers.is_none_or(|current| *current != desired_layers) {
+                commands.entity(entity).insert(desired_layers);
+            }
         }
 
         // Active-chart followers (player model, etc.) remain visible.
@@ -154,14 +179,23 @@ pub(in crate::spatial) fn project_local_scale_presentations(
 /// `R * d / (R + d)`. The same compression is applied to object scale, preserving
 /// angular size while keeping arbitrarily distant representations inside `R`.
 pub(in crate::spatial) fn project_scenery_presentations(
+    mut commands: Commands,
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     mut presentations: Query<(
+        Entity,
         &UsfSceneryPresentation,
         &mut Transform,
         &mut Visibility,
+        Option<&RenderLayers>,
     )>,
 ) {
-    for (presentation, mut transform, mut visibility) in &mut presentations {
+    for (entity, presentation, mut transform, mut visibility, render_layers) in
+        &mut presentations
+    {
+        let desired_layers = RenderLayers::layer(USF_PRESENTATION_LAYER);
+        if render_layers.is_none_or(|current| *current != desired_layers) {
+            commands.entity(entity).insert(desired_layers);
+        }
         let Ok(relative) = presentation.anchor().relative_at_scale_bounded(
             view.anchor(),
             presentation.scale(),
@@ -213,16 +247,25 @@ pub(in crate::spatial) fn project_scenery_presentations(
 }
 
 pub(in crate::spatial) fn project_scale_presentations(
+    mut commands: Commands,
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     parents: Query<&Transform, Without<UsfScalePresentation>>,
     mut presentations: Query<(
+        Entity,
         &UsfScalePresentation,
         Option<&ChildOf>,
         &mut Transform,
         &mut Visibility,
+        Option<&RenderLayers>,
     )>,
 ) {
-    for (presentation, parent, mut transform, mut visibility) in &mut presentations {
+    for (entity, presentation, parent, mut transform, mut visibility, render_layers) in
+        &mut presentations
+    {
+        let desired_layers = RenderLayers::layer(USF_PRESENTATION_LAYER);
+        if render_layers.is_none_or(|current| *current != desired_layers) {
+            commands.entity(entity).insert(desired_layers);
+        }
         let contribution = view.contribution(presentation.scale());
         if contribution <= CONTRIBUTION_EPSILON {
             if !matches!(*visibility, Visibility::Hidden) {

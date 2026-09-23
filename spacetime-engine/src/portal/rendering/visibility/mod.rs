@@ -6,7 +6,10 @@ use bevy::{
     prelude::*,
 };
 
-use crate::portal::{Portal, PortalActive, PortalPair};
+use crate::{
+    portal::{Portal, PortalActive, PortalPair},
+    view::USF_PRESENTATION_LAYER,
+};
 
 use super::{DERIVED_VIEW_LAYER, recursion::path::PortalRenderCamera};
 
@@ -73,14 +76,19 @@ pub fn sync_derived_view_lights(
     >,
 ) {
     let world = RenderLayers::default();
-    let derived = RenderLayers::layer(DERIVED_VIEW_LAYER);
 
     for (entity, layers) in &lights {
         let current = layers.cloned().unwrap_or_default();
-        if current.intersects(&world) && !current.intersects(&derived) {
-            commands
-                .entity(entity)
-                .insert(current.with(DERIVED_VIEW_LAYER));
+        if !current.intersects(&world) {
+            continue;
+        }
+
+        let desired = current
+            .clone()
+            .with(DERIVED_VIEW_LAYER)
+            .with(USF_PRESENTATION_LAYER);
+        if desired != current {
+            commands.entity(entity).insert(desired);
         }
     }
 }

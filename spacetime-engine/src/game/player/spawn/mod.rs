@@ -177,19 +177,34 @@ pub(super) fn spawn_player(
         });
 
     commands.spawn((
-        Name::new("Player Camera"),
+        Name::new("Player Local Camera"),
         PlayerCamera::default(),
-        UsfScaleLayer::new(SpatialScale::MAX),
-        UsfInteractionProjection,
         PrimaryGameView,
+        PortalView,
+        Camera3d::default(),
+        Camera {
+            order: 1,
+            clear_color: bevy::camera::ClearColorConfig::None,
+            ..default()
+        },
+        IsDefaultUiCamera,
+        RenderLayers::layer(0).with(MAIN_PORTAL_LAYER),
+        Transform::from_translation(runtime_position),
+    ));
+
+    commands.spawn((
+        Name::new("USF Projection Camera"),
+        camera::UsfProjectionCamera,
         UsfViewRenderAnchor,
         UsfViewContext::default(),
         NavigationPresentationProfile::default(),
         NavigationPresentationState::default(),
-        PortalView,
         Camera3d::default(),
-        IsDefaultUiCamera,
-        RenderLayers::layer(0).with(MAIN_PORTAL_LAYER),
+        Camera {
+            order: 0,
+            ..default()
+        },
+        RenderLayers::layer(crate::view::USF_PRESENTATION_LAYER),
         Transform::from_translation(runtime_position),
     ));
 }

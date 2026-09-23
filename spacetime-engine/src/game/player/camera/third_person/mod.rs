@@ -5,7 +5,7 @@ use crate::spatial::SpatialScale;
 use super::*;
 
 const MAX_CAMERA_PORTAL_HOPS: usize = 8;
-const CAMERA_PORTAL_EPSILON: f32 = 0.01;
+const CAMERA_PORTAL_EPSILON_METRES: f32 = 0.01;
 
 pub(super) struct ResolvedThirdPersonBoom {
     pub(super) transform: Transform,
@@ -33,8 +33,14 @@ pub(super) fn resolve_third_person_boom(
     view_rotation: Quat,
     settings: &ThirdPersonCamera,
 ) -> ResolvedThirdPersonBoom {
-    let desired_distance = settings.desired_distance();
-    let shape = Collider::sphere(settings.collision_radius.max(0.001));
+    let desired_distance = settings.desired_distance_native(scale);
+    let shape = Collider::sphere(
+        settings
+            .collision_radius_native(scale)
+            .max(scale.metres_to_native_f32(0.001)),
+    );
+    let collision_padding = settings.collision_padding_native(scale);
+    let portal_epsilon = scale.metres_to_native_f32(CAMERA_PORTAL_EPSILON_METRES);
     let excluded = semantic_entities
         .get(manifestation.0)
         .map(|manifestations| manifestations.iter().collect::<Vec<_>>())
@@ -79,7 +85,7 @@ pub(super) fn resolve_third_person_boom(
             &filter,
         ) {
             let travel =
-                (hit.distance - settings.collision_padding.max(0.0)).clamp(0.0, segment_distance);
+                (hit.distance - collision_padding).clamp(0.0, segment_distance);
             transform.translation += back * travel;
             resolved_distance += travel;
             return ResolvedThirdPersonBoom {
@@ -101,7 +107,7 @@ pub(super) fn resolve_third_person_boom(
 
         // Nudge the mapped camera center off the destination plane so the next
         // segment cannot immediately rediscover the same crossing at t ~= 0.
-        let advance = CAMERA_PORTAL_EPSILON.min(remaining);
+        let advance = portal_epsilon.min(remaining);
         if advance > 0.0 {
             let mapped_back = transform.rotation * Vec3::Z;
             transform.translation += mapped_back * advance;

@@ -32,6 +32,10 @@ pub(in crate::game::player) fn sample_flight_control_intent(
     let boost =
         keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
 
+    // Default human flight control couples mouse aim to desired subject
+    // attitude. This is an INPUT ADAPTER policy; generic flight execution only
+    // consumes the resulting command frame, so free-look/autopilot/AI can write
+    // different command rotations without changing physics.
     intent.set(
         Vec3::new(horizontal as f32, vertical as f32, forward as f32),
         control.rotation() * aim.local_rotation(),

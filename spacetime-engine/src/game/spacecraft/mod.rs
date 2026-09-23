@@ -190,7 +190,7 @@ fn spawn_reference_spacecraft(
                 VoxelMaterializationDemand,
             ),
             (
-                ViewCameraProfile::external_hull(SHIP_SIZE, 14.0),
+                ViewCameraProfile::spacecraft(14.0),
                 LocomotionCapabilities::spacecraft(),
                 LocomotionEnabled(true),
                 ControlledSubjectHull::cuboid(SHIP_SIZE, SHIP_PROXY_RADIUS_NATIVE),

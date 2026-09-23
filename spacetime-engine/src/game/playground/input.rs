@@ -19,6 +19,7 @@ use crate::{
     },
     input_focus::InputFocus,
     physics::character::CharacterControlFrame,
+    spatial::UsfScaleLayer,
     view::PrimaryViewPresentation,
 };
 
@@ -133,6 +134,7 @@ fn update_aim(
             &PlayerAim,
             &CharacterStance,
             &ViewCameraProfile,
+            &UsfScaleLayer,
         ),
         With<Player>,
     >,
@@ -144,10 +146,11 @@ fn update_aim(
         return;
     }
 
-    let (actor, body, control, player_aim, stance, profile) = player.into_inner();
+    let (actor, body, control, player_aim, stance, profile, layer) =
+        player.into_inner();
     let view_rotation = camera.view_rotation(control, player_aim);
-    let origin =
-        body.translation + control.rotation() * profile.eye_offset(Some(stance));
+    let origin = body.translation
+        + control.rotation() * profile.eye_offset_native(Some(stance), layer.scale());
 
     aim.set(Some(ItemAimContext {
         actor,

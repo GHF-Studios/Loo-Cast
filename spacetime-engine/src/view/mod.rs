@@ -7,6 +7,21 @@
 
 use bevy::prelude::*;
 
+/// Dedicated render layer for observer-relative USF multiscale presentation.
+///
+/// Layer ownership:
+/// - 0: ordinary local/physical world
+/// - 1: primary portal surfaces
+/// - 2: derived-view-only self geometry
+/// - 3: USF multiscale projection
+/// - 4+: recursive portal contexts
+///
+/// The multiscale layer deliberately uses a separate camera-position contract:
+/// it is rendered from the semantic observer origin, never from a local cockpit
+/// eye or third-person boom.
+pub const USF_PRESENTATION_LAYER: usize = 3;
+
+
 /// Marks the logical primary game view.
 ///
 /// This is deliberately presentation-neutral: the same view may occupy the whole

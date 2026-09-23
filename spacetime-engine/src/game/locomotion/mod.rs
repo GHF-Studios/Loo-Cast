@@ -335,7 +335,7 @@ pub struct CharacterStance {
 #[reflect(Component)]
 pub struct FlightControlIntent {
     translation_axes: Vec3,
-    view_rotation: Quat,
+    command_rotation: Quat,
     pace_multiplier: f32,
     boost: bool,
     active: bool,
@@ -345,7 +345,7 @@ impl Default for FlightControlIntent {
     fn default() -> Self {
         Self {
             translation_axes: Vec3::ZERO,
-            view_rotation: Quat::IDENTITY,
+            command_rotation: Quat::IDENTITY,
             pace_multiplier: 1.0,
             boost: false,
             active: false,
@@ -357,12 +357,12 @@ impl FlightControlIntent {
     pub fn set(
         &mut self,
         translation_axes: Vec3,
-        view_rotation: Quat,
+        command_rotation: Quat,
         pace_multiplier: f32,
         boost: bool,
     ) {
         self.translation_axes = translation_axes.clamp_length_max(1.0);
-        self.view_rotation = view_rotation.normalize();
+        self.command_rotation = command_rotation.normalize();
         self.pace_multiplier = pace_multiplier.max(0.0);
         self.boost = boost;
         self.active = true;
@@ -375,7 +375,7 @@ impl FlightControlIntent {
     }
 
     pub const fn translation_axes(self) -> Vec3 { self.translation_axes }
-    pub const fn view_rotation(self) -> Quat { self.view_rotation }
+    pub const fn command_rotation(self) -> Quat { self.command_rotation }
     pub const fn pace_multiplier(self) -> f32 { self.pace_multiplier }
     pub const fn boost(self) -> bool { self.boost }
     pub const fn active(self) -> bool { self.active }

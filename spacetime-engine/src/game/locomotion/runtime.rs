@@ -409,10 +409,10 @@ fn vec3_to_dvec3(value: Vec3) -> DVec3 {
 
 fn flight_wish(intent: &FlightControlIntent, physical_up: Vec3) -> DVec3 {
     let axes = intent.translation_axes();
-    let view_rotation = intent.view_rotation();
+    let command_rotation = intent.command_rotation();
     vec3_to_dvec3(
-        (view_rotation * Vec3::X * axes.x
-            + view_rotation * Vec3::NEG_Z * axes.z
+        (command_rotation * Vec3::X * axes.x
+            + command_rotation * Vec3::NEG_Z * axes.z
             + physical_up * axes.y)
             .normalize_or_zero(),
     )
@@ -515,7 +515,6 @@ pub(super) fn flight_movement(
             &mut Transform,
             &UsfManifestationOf,
             &UsfScaleLayer,
-            &DetailedInteractionScale,
             &ControlledSubjectLocomotion,
             &mut UsfCanonicalMotion,
             &mut LinearVelocity,
@@ -539,7 +538,6 @@ pub(super) fn flight_movement(
         mut body,
         manifestation,
         layer,
-        detailed,
         locomotion,
         mut motion,
         mut linear_velocity,
@@ -569,6 +567,10 @@ pub(super) fn flight_movement(
     let dt = time.delta().as_secs_f64();
     if dt <= 0.0 {
         return;
+    }
+
+    if intent.active() {
+        body.rotation = intent.command_rotation();
     }
 
     let up = vec3_to_dvec3(locomotion_frame.up()).normalize_or_zero();
@@ -650,7 +652,7 @@ pub(super) fn flight_movement(
             );
 
             let direction =
-                vec3_to_dvec3(intent.view_rotation() * Vec3::NEG_Z).normalize_or_zero();
+                vec3_to_dvec3(intent.command_rotation() * Vec3::NEG_Z).normalize_or_zero();
             cruise_velocity(
                 motion.velocity_metres_per_second(),
                 direction,
