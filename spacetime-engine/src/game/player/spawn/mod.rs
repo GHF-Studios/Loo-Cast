@@ -16,6 +16,7 @@ use crate::{
             NavigationPresentationState, PrimaryBodyContext, TravelEnvelope, TravelPace,
             TravelProfile, TravelState,
         },
+        surface::SurfaceContext,
     },
     spatial::{UsfCanonicalMotion, UsfNavigationContext},
 };
@@ -96,6 +97,7 @@ pub(super) fn spawn_player(
             (
                 TravelState::default(),
                 PrimaryBodyContext::default(),
+                SurfaceContext::default(),
                 UsfTravelNeighborhood::default(),
                 UsfNavigationContext::default(),
             ),

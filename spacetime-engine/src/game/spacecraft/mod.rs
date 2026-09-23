@@ -33,6 +33,7 @@ use crate::{
             TravelProfile, TravelState,
         },
         player::{Player, PlayerAction, PlayerInputFrame, ViewCameraProfile},
+        surface::SurfaceContext,
     },
     physics::{
         chart::UsfPhysicsCharts,
@@ -204,6 +205,7 @@ fn spawn_reference_spacecraft(
                 AdaptiveCruise::default(),
                 TravelState::default(),
                 PrimaryBodyContext::default(),
+                SurfaceContext::default(),
             ),
             (
                 UsfTravelNeighborhood::default(),

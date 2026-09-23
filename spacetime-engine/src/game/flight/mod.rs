@@ -18,6 +18,7 @@ use crate::{
             ControlledSubjectLocomotion, DetailedInteractionScale, LocomotionRegime,
         },
         navigation::{AdaptiveCruise, PrimaryBodyContext, TravelState},
+        surface::SurfaceContext,
     },
     spatial::{SpatialScale, UsfCanonicalMotion, UsfScaleLayer},
 };
@@ -201,7 +202,8 @@ pub struct FlightTelemetry {
     interaction_scale: SpatialScale,
     detailed_interaction: bool,
     primary_body: Option<Entity>,
-    clearance_metres: Option<f64>,
+    surface_clearance_metres: Option<f64>,
+    surface_collision_ready: bool,
     local_gravity_metres_per_second2: f32,
     planetary_handoff_clearance_metres: Option<f64>,
     planetary_handoff_available: bool,
@@ -224,7 +226,8 @@ impl Default for FlightTelemetry {
             interaction_scale: SpatialScale::MAX,
             detailed_interaction: false,
             primary_body: None,
-            clearance_metres: None,
+            surface_clearance_metres: None,
+            surface_collision_ready: false,
             local_gravity_metres_per_second2: 0.0,
             planetary_handoff_clearance_metres: None,
             planetary_handoff_available: false,
@@ -277,8 +280,12 @@ impl FlightTelemetry {
         self.primary_body
     }
 
-    pub const fn clearance_metres(self) -> Option<f64> {
-        self.clearance_metres
+    pub const fn surface_clearance_metres(self) -> Option<f64> {
+        self.surface_clearance_metres
+    }
+
+    pub const fn surface_collision_ready(self) -> bool {
+        self.surface_collision_ready
     }
 
     pub const fn local_gravity_metres_per_second2(self) -> f32 {
@@ -357,6 +364,7 @@ fn sync_flight_telemetry(
             &AdaptiveCruise,
             &TravelState,
             &PrimaryBodyContext,
+            &SurfaceContext,
             Option<&FlightContactState>,
             Option<&FlightSafetyState>,
             &mut FlightTelemetry,
@@ -372,6 +380,7 @@ fn sync_flight_telemetry(
         cruise,
         travel,
         primary,
+        surface,
         contact,
         safety,
         mut telemetry,
@@ -394,8 +403,9 @@ fn sync_flight_telemetry(
         telemetry.thrusters_enabled = locomotion.thrusters_enabled();
         telemetry.interaction_scale = layer.scale();
         telemetry.detailed_interaction = layer.scale() == detailed.0;
-        telemetry.primary_body = primary.entity();
-        telemetry.clearance_metres = travel.nearest_body_clearance_scale0;
+        telemetry.primary_body = surface.body().or(primary.entity());
+        telemetry.surface_clearance_metres = surface.clearance_metres();
+        telemetry.surface_collision_ready = surface.collision_ready();
         telemetry.local_gravity_metres_per_second2 = travel.local_gravity;
         telemetry.planetary_handoff_clearance_metres =
             travel.planetary_handoff_clearance_scale0;

@@ -13,7 +13,6 @@ use crate::{
         control::LocalControlSubject,
         flight::{FlightMode, FlightTelemetry},
     },
-    spatial::{UsfViewContext, UsfViewRenderAnchor},
 };
 
 const HUD_TEXT: Color = Color::srgb(0.72, 0.95, 0.88);
@@ -116,7 +115,6 @@ pub(super) fn update_flight_hud(
     bindings: Res<PlayerInputBindings>,
     telemetry: Single<&FlightTelemetry, With<LocalControlSubject>>,
     body_names: Query<&Name>,
-    view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     mut hud: ParamSet<(
         Single<(&mut Text, &mut Node), With<FlightHudLeft>>,
         Single<(&mut Text, &mut Node), With<FlightHudRight>>,
@@ -125,8 +123,6 @@ pub(super) fn update_flight_hud(
 ) {
     let telemetry = telemetry.into_inner();
     let flying = telemetry.active();
-    let primary_body = telemetry.primary_body();
-    let show_environment = primary_body.is_some();
 
     {
         let mut left = hud.p0();
@@ -134,11 +130,14 @@ pub(super) fn update_flight_hud(
     }
     {
         let mut right = hud.p1();
-        right.1.display = if flying || show_environment {
-            Display::Flex
-        } else {
-            Display::None
-        };
+        right.1.display = if flying { Display::Flex } else { Display::None };
+    }
+
+    if !flying {
+        let mut alert = hud.p2();
+        alert.0.0.clear();
+        alert.1.display = Display::None;
+        return;
     }
 
     let cruising = telemetry.mode() == Some(FlightMode::Cruise);
@@ -149,64 +148,67 @@ pub(super) fn update_flight_hud(
         "--".to_string()
     };
 
-    if flying {
+    {
         let mut left = hud.p0();
         left.0.0 = format!(
-            "{}\nSPD  {}\nTHR  {} • RCS {}\nCHART S{} • VIEW {:+.2}",
+            "{}\nSPD  {}\nTHR  {} • RCS {}",
             telemetry.display_mode_label(),
             speed,
             throttle,
             if telemetry.thrusters_enabled() { "ON" } else { "OFF" },
-            telemetry.interaction_scale(),
-            view.continuous_exponent(),
         );
     }
 
-    let body_name = primary_body
+    let body_name = telemetry
+        .primary_body()
         .and_then(|entity| body_names.get(entity).ok())
         .map(Name::as_str)
-        .unwrap_or("UNRESOLVED");
+        .unwrap_or("DEEP SPACE");
 
-    let clearance = telemetry
-        .clearance_metres()
+    let agl = telemetry
+        .surface_clearance_metres()
         .map(format_distance)
         .unwrap_or_else(|| "--".to_string());
     let gravity = if telemetry.local_gravity_metres_per_second2() > 0.001 {
-        format!(
-            "{:.2} m/s²",
-            telemetry.local_gravity_metres_per_second2()
-        )
+        format!("{:.2} m/s²", telemetry.local_gravity_metres_per_second2())
     } else {
         "--".to_string()
     };
-    let handoff = telemetry
-        .planetary_handoff_clearance_metres()
-        .map(format_distance)
-        .unwrap_or_else(|| "--".to_string());
+    let surface_state = if telemetry.detailed_interaction() {
+        if telemetry.surface_collision_ready() {
+            "READY"
+        } else {
+            "LOADING"
+        }
+    } else {
+        "REMOTE"
+    };
 
     {
         let mut right = hud.p1();
         right.0.0 = format!(
-            "BODY  {}\nCLR   {}\nGRV   {}\nHANDOFF {}",
-            body_name, clearance, gravity, handoff,
+            "{}\nAGL  {}\nGRV  {}\nSURF {}",
+            body_name, agl, gravity, surface_state,
         );
     }
 
-    let warning = if !flying {
-        None
+    let warning = if telemetry.contact().is_landed() {
+        Some(format!(
+            "[{}] TAKE OFF   [{}] EXIT SHIP",
+            bindings.label(PlayerAction::TakeOff),
+            bindings.label(PlayerAction::Interact),
+        ))
+    } else if telemetry.mode() == Some(FlightMode::Local)
+        && telemetry.detailed_interaction()
+        && !telemetry.surface_collision_ready()
+    {
+        Some("SURFACE COLLISION LOADING".to_string())
     } else if telemetry.dropout_required() {
         Some("CRITICAL DROPOUT".to_string())
     } else if cruising && telemetry.planetary_handoff_available() {
         Some(format!(
             "[{}] PLANETARY FLIGHT AVAILABLE",
             bindings.label(PlayerAction::ToggleCruise)
-        ))
-    } else if telemetry.mode() == Some(FlightMode::Local)
-        && telemetry.detailed_interaction()
-    {
-        Some(format!(
-            "[{}] RETURN ON FOOT",
-            bindings.label(PlayerAction::ToggleLocalFlight)
         ))
     } else {
         None
@@ -240,11 +242,12 @@ fn format_speed(value: f64) -> String {
 }
 
 fn format_distance(value: f64) -> String {
-    if value >= 1.0e9 {
+    let magnitude = value.abs();
+    if magnitude >= 1.0e9 {
         format!("{:.2} Gm", value / 1.0e9)
-    } else if value >= 1.0e6 {
+    } else if magnitude >= 1.0e6 {
         format!("{:.2} Mm", value / 1.0e6)
-    } else if value >= 1.0e3 {
+    } else if magnitude >= 1.0e3 {
         format!("{:.2} km", value / 1.0e3)
     } else {
         format!("{:.1} m", value)

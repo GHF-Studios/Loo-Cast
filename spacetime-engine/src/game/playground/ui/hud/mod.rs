@@ -10,18 +10,17 @@ use crate::{
         item::{ItemAction, ItemCatalog},
         control::LocalControlSubject,
         locomotion::{
-            ControlledSubjectLocomotion, LocomotionRegime,
+            ControlledSubjectLocomotion, LocomotionCapabilities, LocomotionRegime,
             LocomotionRequest, MotionKernel,
         },
-        navigation::{AdaptiveCruise, TravelEnvelope, TravelPace, TravelState},
+        navigation::TravelState,
         player::{
             CameraMode, PlayerAction, PlayerCamera, PlayerInputBindings,
         },
+        surface::SurfaceContext,
     },
-    spatial::{
-        SpatialDemandSource, UsfCanonicalMotion, UsfNavigationContext, UsfScaleLayer, UsfTravelNeighborhood,
-        UsfViewContext, UsfViewRenderAnchor,
-    },
+    physics::character::CharacterGroundState,
+    spatial::UsfCanonicalMotion,
     ui::{UiTextRole, UiTheme},
 };
 
@@ -175,79 +174,81 @@ fn update_fps_counter(
 }
 
 fn update_player_status(
-    view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     player: Single<
         (
             &UsfManifestationOf,
-            &UsfScaleLayer,
-            &TravelPace,
-            &TravelEnvelope,
-            &AdaptiveCruise,
             &ControlledSubjectLocomotion,
             &UsfCanonicalMotion,
-            &UsfTravelNeighborhood,
-            &UsfNavigationContext,
+            &SurfaceContext,
+            &CharacterGroundState,
         ),
         With<LocalControlSubject>,
     >,
+    body_names: Query<&Name>,
     health: Query<&Health>,
-    roots: Query<&Children, With<PlayerStatus>>,
+    mut roots: Query<(&Children, &mut Node), With<PlayerStatus>>,
     mut texts: Query<&mut Text>,
 ) {
-    let (
-        manifestation,
-        layer,
-        manual_speed,
-        envelope,
-        cruise,
-        locomotion,
-        motion,
-        neighborhood,
-        navigation,
-    ) = player.into_inner();
-    let Some(children) = roots.iter().next() else { return; };
-    let Some(child) = children.iter().next() else { return; };
-    let Ok(mut text) = texts.get_mut(child) else { return; };
+    let (manifestation, locomotion, motion, surface, ground) = player.into_inner();
+
+    let Some((children, mut root)) = roots.iter_mut().next() else {
+        return;
+    };
+
+    if locomotion.kernel() != MotionKernel::Character {
+        root.display = Display::None;
+        return;
+    }
+    root.display = Display::Flex;
+
+    let Some(child) = children.iter().next() else {
+        return;
+    };
+    let Ok(mut text) = texts.get_mut(child) else {
+        return;
+    };
 
     let health = health
         .get(manifestation.0)
         .map(|health| format!("{:.0}", health.current()))
         .unwrap_or_else(|_| "--".to_string());
 
-    if locomotion.kernel() == MotionKernel::Cruise {
-        let hard_clearance = cruise
-            .nearest_hard_clearance_scale0
-            .map(|value| format!("{value:.2e}"))
-            .unwrap_or_else(|| "INF".to_string());
-        let medium_cap = cruise
-            .medium_speed_cap_scale0
-            .map(|value| format!("{value:.2e}"))
-            .unwrap_or_else(|| "--".to_string());
-        text.0 = format!(
-            "HEALTH {health}\nCRUISE {:>3.0}%  S{}  SPD {:.3e} m/s\nDEF {:.3e} m/s  CAP {:.3e} m/s\nHARD {}  MED {}  NBR {:>2}\nVIEW {:+.2}",
-            cruise.throttle * 100.0,
-            layer.scale(),
-            motion.speed_metres_per_second(),
-            cruise.default_speed_scale0,
-            cruise.speed_cap_scale0,
-            hard_clearance,
-            medium_cap,
-            neighborhood.len(),
-            view.continuous_exponent(),
-        );
+    let body = surface
+        .body()
+        .and_then(|entity| body_names.get(entity).ok())
+        .map(Name::as_str)
+        .unwrap_or("DEEP SPACE");
+
+    let agl = surface
+        .clearance_metres()
+        .map(format_hud_distance)
+        .unwrap_or_else(|| "--".to_string());
+
+    let contact = if ground.grounded { "GROUNDED" } else { "AIRBORNE" };
+    let surface_state = if surface.collision_ready() { "SOLID" } else { "STREAMING" };
+
+    text.0 = format!(
+        "HEALTH {health}\nON FOOT • {contact}\n{body} • AGL {agl}\nSPD {} • SURFACE {surface_state}",
+        format_hud_speed(motion.speed_metres_per_second()),
+    );
+}
+
+fn format_hud_speed(value: f64) -> String {
+    if value.abs() >= 1_000.0 {
+        format!("{:.2} km/s", value / 1_000.0)
     } else {
-        let navigation_speed =
-            envelope.manual_speed_metres_per_second * f64::from(manual_speed.multiplier.max(0.0));
-        text.0 = format!(
-            "HEALTH {health}\nMANUAL {:.3}x  S{}  SPD {:.3e} m/s  CMD {:.3e} m/s\nNAV {}  LEN {:.3e} m  VIEW {:+.2}",
-            manual_speed.multiplier,
-            layer.scale(),
-            motion.speed_metres_per_second(),
-            navigation_speed,
-            navigation.kind().label(),
-            navigation.characteristic_length_scale0(),
-            view.continuous_exponent(),
-        );
+        format!("{:.1} m/s", value)
+    }
+}
+
+fn format_hud_distance(value: f64) -> String {
+    let magnitude = value.abs();
+    if magnitude >= 1_000_000.0 {
+        format!("{:.2} Mm", value / 1_000_000.0)
+    } else if magnitude >= 1_000.0 {
+        format!("{:.2} km", value / 1_000.0)
+    } else {
+        format!("{:.1} m", value)
     }
 }
 
@@ -264,20 +265,6 @@ fn action_binding(action: ItemAction) -> Option<PlayerAction> {
     }
 }
 
-fn locomotion_status(locomotion: &ControlledSubjectLocomotion) -> String {
-    match locomotion.request() {
-        LocomotionRequest::Automatic => format!("{} • AUTO", locomotion.regime().label()),
-        LocomotionRequest::Regime(requested) if requested == locomotion.regime() => {
-            format!("{} • HELD", locomotion.regime().label())
-        }
-        LocomotionRequest::Regime(requested) => format!(
-            "{} → REQ {}",
-            locomotion.regime().label(),
-            requested.label(),
-        ),
-    }
-}
-
 fn update_context_actions(
     bindings: Res<PlayerInputBindings>,
     menu: Res<CreativeMenuState>,
@@ -288,7 +275,7 @@ fn update_context_actions(
         (
             &TravelState,
             &ControlledSubjectLocomotion,
-            &SpatialDemandSource,
+            &LocomotionCapabilities,
         ),
         With<LocalControlSubject>,
     >,
@@ -302,9 +289,8 @@ fn update_context_actions(
         return;
     }
 
-    let (travel, locomotion, demand) = player.into_inner();
-    let mut lines = Vec::<String>::with_capacity(12);
-    lines.push(locomotion_status(locomotion));
+    let (travel, locomotion, capabilities) = player.into_inner();
+    let mut lines = Vec::<String>::with_capacity(10);
 
     if let Some(item) = hotbar.selected_item().and_then(|item| catalog.find(item)) {
         lines.push(item.name.to_ascii_uppercase());
@@ -313,10 +299,6 @@ fn update_context_actions(
                 lines.push(format!("{:<10}{}", bindings.label(action), hint.label));
             }
         }
-        lines.push(format!(
-            "{:<10}Erase object",
-            bindings.label(PlayerAction::EraseObject),
-        ));
     }
 
     let movement = bindings.movement_cluster_label();
@@ -355,46 +337,48 @@ fn update_context_actions(
     }
 
     let cruising = locomotion.kernel() == MotionKernel::Cruise;
-    if cruising {
-        if travel.planetary_handoff_available {
+    if capabilities.cruise() {
+        if cruising {
+            if travel.planetary_handoff_available {
+                lines.push(format!(
+                    "{:<10}Drop to planetary",
+                    bindings.label(PlayerAction::ToggleCruise),
+                ));
+            } else {
+                lines.push(format!(
+                    "{:<10}Disengage cruise",
+                    bindings.label(PlayerAction::ToggleCruise),
+                ));
+            }
+        } else if !travel.critical_dropout {
             lines.push(format!(
-                "{:<10}Drop to planetary",
-                bindings.label(PlayerAction::ToggleCruise),
-            ));
-        } else {
-            lines.push(format!(
-                "{:<10}Disengage cruise",
+                "{:<10}Engage cruise",
                 bindings.label(PlayerAction::ToggleCruise),
             ));
         }
-    } else if !travel.critical_dropout {
-        lines.push(format!(
-            "{:<10}Engage cruise",
-            bindings.label(PlayerAction::ToggleCruise),
-        ));
     }
 
-    let explicit_local_flight = locomotion.request()
-        == LocomotionRequest::Regime(LocomotionRegime::LocalFlight);
-    lines.push(format!(
-        "{:<10}{}",
-        bindings.label(PlayerAction::ToggleLocalFlight),
-        if explicit_local_flight { "Exit local flight" } else { "Local flight" },
-    ));
-
-    if explicit_local_flight && locomotion.regime() == LocomotionRegime::LocalFlight {
+    if capabilities.local_flight() {
+        let explicit_local_flight = locomotion.request()
+            == LocomotionRequest::Regime(LocomotionRegime::LocalFlight);
         lines.push(format!(
-            "{:<10}Thrusters {}",
-            bindings.label(PlayerAction::ToggleThrusters),
-            if locomotion.thrusters_enabled() { "off" } else { "on" }
+            "{:<10}{}",
+            bindings.label(PlayerAction::ToggleLocalFlight),
+            if explicit_local_flight {
+                "Release local mode"
+            } else {
+                "Local flight"
+            },
         ));
-    }
 
-    lines.push(format!(
-        "{:<10}Spatial demand {}",
-        bindings.label(PlayerAction::ToggleSpatialDemand),
-        if demand.enabled() { "off" } else { "on" }
-    ));
+        if explicit_local_flight && locomotion.regime() == LocomotionRegime::LocalFlight {
+            lines.push(format!(
+                "{:<10}Thrusters {}",
+                bindings.label(PlayerAction::ToggleThrusters),
+                if locomotion.thrusters_enabled() { "off" } else { "on" }
+            ));
+        }
+    }
 
     lines.push(format!(
         "{:<10}{}",
@@ -404,13 +388,6 @@ fn update_context_actions(
             CameraMode::ThirdPerson => "First-person view",
         },
     ));
-
-    if locomotion.kernel() != MotionKernel::Cruise {
-        lines.push(format!(
-            "{}+WHEEL  View scale",
-            bindings.label(PlayerAction::ViewScaleModifier),
-        ));
-    }
 
     let hotbar = bindings.hotbar_range_label();
     lines.push(match camera.mode {

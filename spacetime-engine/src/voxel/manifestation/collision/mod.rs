@@ -12,6 +12,10 @@ use crate::{
 };
 
 use super::VoxelMaterializationRuntime;
+
+/// Surface-cache revision currently encoded by this runtime's physics collider.
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
+struct VoxelMaterializationColliderRevision(u64);
 use super::super::{
     VoxelCollisionDisabled, VoxelMaterializationChunkAddress,
     VoxelRealizationDemandSnapshot, VoxelWorld, physics,
@@ -26,9 +30,12 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
         Entity,
         Ref<VoxelMaterializationRuntime>,
         Option<&Collider>,
+        Option<&VoxelMaterializationColliderRevision>,
     )>,
 ) {
-    let runtime_changed = runtimes.iter().any(|(_, runtime, _)| runtime.is_changed());
+    let runtime_changed = runtimes
+        .iter()
+        .any(|(_, runtime, _, _)| runtime.is_changed());
     if !config.is_changed() && !realization_demand.is_changed() && !runtime_changed {
         return;
     }
@@ -36,7 +43,7 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
     let interaction_padding =
         config.voxel.manifestation.physics_interaction_radius_native.max(0.0);
 
-    for (entity, runtime, collider) in &runtimes {
+    for (entity, runtime, collider, collider_revision) in &runtimes {
         let Ok((world, layer, collision_disabled)) = worlds.get(runtime.world()) else {
             continue;
         };
@@ -66,21 +73,25 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
 
         let wants_collider =
             collision_disabled.is_none() && has_rigid_surface && has_collision_demand;
-        let has_collider = collider.is_some();
+        let collider_current = collider.is_some()
+            && collider_revision
+                .is_some_and(|revision| revision.0 == runtime.revision());
 
-        match (wants_collider, has_collider) {
-            (true, false) => {
-                let collider = build_materialization_collider(
-                    runtime.address(),
-                    runtime.revision(),
-                    world,
-                );
-                publish_collider_manifestation(&mut commands, entity, true, collider);
-            }
-            (false, true) => {
-                publish_collider_manifestation(&mut commands, entity, false, None);
-            }
-            _ => {}
+        if wants_collider && !collider_current {
+            let collider = build_materialization_collider(
+                runtime.address(),
+                runtime.revision(),
+                world,
+            );
+            publish_collider_manifestation(
+                &mut commands,
+                entity,
+                true,
+                collider,
+                Some(runtime.revision()),
+            );
+        } else if !wants_collider && (collider.is_some() || collider_revision.is_some()) {
+            publish_collider_manifestation(&mut commands, entity, false, None, None);
         }
     }
 }
@@ -90,22 +101,26 @@ pub(super) fn publish_collider_manifestation(
     entity: Entity,
     requested: bool,
     collider: Option<Collider>,
+    revision: Option<u64>,
 ) {
     let mut entity_commands = commands.entity(entity);
 
     if requested {
-        if let Some(collider) = collider {
+        if let (Some(collider), Some(revision)) = (collider, revision) {
             entity_commands.insert((
                 collider,
                 CollisionMargin(physics::VOXEL_COLLISION_MARGIN),
+                VoxelMaterializationColliderRevision(revision),
             ));
         } else {
             entity_commands.remove::<Collider>();
             entity_commands.remove::<CollisionMargin>();
+            entity_commands.remove::<VoxelMaterializationColliderRevision>();
         }
     } else {
         entity_commands.remove::<Collider>();
         entity_commands.remove::<CollisionMargin>();
+        entity_commands.remove::<VoxelMaterializationColliderRevision>();
     }
 }
 

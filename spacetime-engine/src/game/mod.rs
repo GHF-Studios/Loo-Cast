@@ -6,6 +6,7 @@ pub mod flight;
 pub mod locomotion;
 pub mod navigation;
 pub mod spacecraft;
+pub mod surface;
 mod console_commands;
 mod devtools;
 pub mod health;
@@ -157,6 +158,7 @@ impl Plugin for LooCastPlugin {
             .add_plugins((
                 locomotion::LocomotionPlugin,
                 navigation::NavigationPlugin,
+                surface::SurfacePlugin,
                 flight::FlightPlugin,
                 player::PlayerPlugin,
                 spacecraft::SpacecraftPlugin,
