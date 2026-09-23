@@ -147,6 +147,25 @@ impl UsfScaleCoverageSnapshot {
         })
     }
 
+    /// Tests realized coverage from one semantic authority only.
+    ///
+    /// Physical handoff must never be satisfied by an unrelated mechanism that
+    /// merely happens to publish coverage at the same Scale Slice nearby.
+    pub fn has_near_for_authority(
+        &self,
+        authority: Entity,
+        scale: SpatialScale,
+        point: &UsfPosition,
+        required: UsfScaleRoleMask,
+        radius_native: f32,
+    ) -> bool {
+        self.entries.iter().copied().any(|coverage| {
+            coverage.authority() == authority
+                && coverage.scale() == scale
+                && coverage.is_within(point, required, radius_native)
+        })
+    }
+
     pub(crate) fn publish(&mut self, coverage: UsfScaleCoverage) {
         self.entries.push(coverage);
     }

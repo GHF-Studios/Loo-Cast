@@ -53,7 +53,7 @@ pub struct ApproachTravelProfile {
     pub activation_radii: f64,
     pub refinement_rate_decades_per_second: f32,
     pub resolution_divisor: f64,
-    pub final_handoff_coverage_radius_native: f32,
+    pub interaction_handoff_coverage_radius_native: f32,
 }
 
 #[derive(Reflect, Debug, Clone, Copy)]
@@ -116,7 +116,7 @@ impl TravelProfile {
                 activation_radii: 256.0,
                 refinement_rate_decades_per_second: 6.0,
                 resolution_divisor: 4.0,
-                final_handoff_coverage_radius_native: 32.0,
+                interaction_handoff_coverage_radius_native: 32.0,
             },
             flight: FlightDynamicsProfile {
                 local_acceleration_metres_per_second2: 35.0,

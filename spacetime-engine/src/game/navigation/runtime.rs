@@ -89,6 +89,29 @@ fn scale_for_resolution(
     SpatialScale::new(exponent).expect("clamped USF resolution scale")
 }
 
+/// Resolves the next physical interaction chart.
+///
+/// Scales coarser than `maximum` contain no meaningful body-local interaction
+/// representation, so entry may jump directly to that envelope boundary.
+/// Inside the envelope, every scale is one decimal digit of responsibility and
+/// handoff proceeds exactly one adjacent digit at a time.
+fn next_interaction_digit(
+    current: SpatialScale,
+    desired: SpatialScale,
+    maximum: SpatialScale,
+) -> SpatialScale {
+    if current > maximum {
+        return maximum;
+    }
+    if desired == current {
+        return current;
+    }
+
+    let step = if desired < current { -1 } else { 1 };
+    SpatialScale::new(current.exponent() + step)
+        .expect("adjacent interaction digit remains inside USF scale bounds")
+}
+
 /// Semantic planner for approaching refinable structure.
 ///
 /// It owns neither rendering nor interaction. It determines how much spatial
@@ -181,9 +204,14 @@ pub(super) fn plan_approach_refinement(
         (current + max_step).min(target_exponent)
     };
 
-    state.interaction_target_scale = scale_for_resolution(
+    let desired_interaction_scale = scale_for_resolution(
         10.0_f64.powf(f64::from(state.continuous_exponent)),
         refinement.minimum_scale(),
+        influence.scale(),
+    );
+    state.interaction_target_scale = next_interaction_digit(
+        layer.scale(),
+        desired_interaction_scale,
         influence.scale(),
     );
 
@@ -291,13 +319,15 @@ pub(super) fn sync_approach_interaction_requirement(
             &UsfManifestationOf,
             &ControlledSubjectLocomotion,
             &TravelProfile,
+            &PrimaryBodyContext,
             &ApproachRefinementState,
         ),
         With<LocalControlSubject>,
     >,
     mut transitions: ResMut<UsfSpatialTransitionQueue>,
 ) {
-    let (layer, manifestation, locomotion, profile, state) = subject.into_inner();
+    let (layer, manifestation, locomotion, profile, primary, state) =
+        subject.into_inner();
 
     let velocity = match locomotion.velocity_semantics() {
         VelocitySemantics::PreserveNative => UsfTransitionVelocity::PreserveNative,
@@ -314,10 +344,14 @@ pub(super) fn sync_approach_interaction_requirement(
     let mut requirement =
         UsfInteractionRequirement::new(manifestation.0, target_scale, velocity);
 
-    if state.active && target_scale == state.minimum_scale {
-        requirement = requirement.requiring_coverage(
+    if state.active
+        && target_scale != layer.scale()
+        && let Some(authority) = primary.entity()
+    {
+        requirement = requirement.requiring_coverage_from(
+            authority,
             UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::COLLISION),
-            profile.approach.final_handoff_coverage_radius_native,
+            profile.approach.interaction_handoff_coverage_radius_native,
         );
     }
 
@@ -536,6 +570,35 @@ pub(super) fn sync_travel_state(
         measurement.center_distance_scale0(),
         clearance,
     );
+}
+
+#[cfg(test)]
+mod interaction_digit_tests {
+    use super::*;
+
+    #[test]
+    fn entry_jumps_to_coarsest_physical_body_digit() {
+        let s35 = SpatialScale::new(35).unwrap();
+        let s6 = SpatialScale::new(6).unwrap();
+        let s0 = SpatialScale::ZERO;
+        assert_eq!(next_interaction_digit(s35, s0, s6), s6);
+    }
+
+    #[test]
+    fn physical_body_dropout_advances_one_digit_at_a_time() {
+        let s6 = SpatialScale::new(6).unwrap();
+        let s5 = SpatialScale::new(5).unwrap();
+        let s0 = SpatialScale::ZERO;
+        assert_eq!(next_interaction_digit(s6, s0, s6), s5);
+    }
+
+    #[test]
+    fn physical_body_dropout_coarsens_one_digit_at_a_time() {
+        let s3 = SpatialScale::new(3).unwrap();
+        let s4 = SpatialScale::new(4).unwrap();
+        let s6 = SpatialScale::new(6).unwrap();
+        assert_eq!(next_interaction_digit(s3, s6, s6), s4);
+    }
 }
 
 #[cfg(test)]

@@ -154,13 +154,16 @@ fn automatic_regime(
 
 fn canonical_motion_authoritative(
     kernel: MotionKernel,
-    layer: SpatialScale,
-    detailed: SpatialScale,
+    _layer: SpatialScale,
+    _detailed: SpatialScale,
 ) -> bool {
     match kernel {
         MotionKernel::Cruise | MotionKernel::OrbitalFlight => true,
-        MotionKernel::InertialFlight => layer != detailed,
-        MotionKernel::Character
+        // Local inertial flight is physically authoritative in every active
+        // interaction Scale Slice. ScaleProxy collision is not decorative:
+        // it is the coarse digit of the same collision ladder.
+        MotionKernel::InertialFlight
+        | MotionKernel::Character
         | MotionKernel::ThrusterFlight
         | MotionKernel::ScaleNavigation
         | MotionKernel::Disabled => false,
@@ -684,8 +687,13 @@ pub(super) fn flight_movement(
     motion.set_from_native_velocity(layer.scale(), projected);
 
     debug_assert!(
-        layer.scale() == detailed.0 || kernel == MotionKernel::ScaleNavigation,
-        "runtime-authoritative flight should be detailed or explicit scale navigation"
+        matches!(
+            kernel,
+            MotionKernel::InertialFlight
+                | MotionKernel::ThrusterFlight
+                | MotionKernel::ScaleNavigation
+        ),
+        "runtime-authoritative flight must use a collision-capable local motion kernel"
     );
 }
 
@@ -763,8 +771,8 @@ mod tests {
     }
 
     #[test]
-    fn coarse_inertial_flight_is_canonical_authority() {
-        assert!(canonical_motion_authoritative(
+    fn inertial_flight_uses_active_slice_collision_at_every_digit() {
+        assert!(!canonical_motion_authoritative(
             MotionKernel::InertialFlight,
             SpatialScale::MAX,
             SpatialScale::ZERO,

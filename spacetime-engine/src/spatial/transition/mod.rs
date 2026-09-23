@@ -109,6 +109,7 @@ pub struct UsfInteractionRequirement {
     target_scale: SpatialScale,
     velocity: UsfTransitionVelocity,
     required_coverage: UsfScaleRoleMask,
+    required_coverage_authority: Option<Entity>,
     coverage_radius_native: f32,
 }
 
@@ -123,6 +124,7 @@ impl UsfInteractionRequirement {
             target_scale,
             velocity,
             required_coverage: UsfScaleRoleMask::NONE,
+            required_coverage_authority: None,
             coverage_radius_native: 0.0,
         }
     }
@@ -133,6 +135,20 @@ impl UsfInteractionRequirement {
         radius_native: f32,
     ) -> Self {
         self.required_coverage = roles;
+        self.required_coverage_authority = None;
+        self.coverage_radius_native = radius_native.max(0.0);
+        self
+    }
+
+    /// Requires handoff coverage published by one semantic authority.
+    pub fn requiring_coverage_from(
+        mut self,
+        authority: Entity,
+        roles: UsfScaleRoleMask,
+        radius_native: f32,
+    ) -> Self {
+        self.required_coverage = roles;
+        self.required_coverage_authority = Some(authority);
         self.coverage_radius_native = radius_native.max(0.0);
         self
     }
@@ -270,6 +286,7 @@ pub(super) fn apply_spatial_transitions(
         view_exponent,
         velocity_policy,
         required_coverage,
+        required_coverage_authority,
         coverage_radius_native,
         cause,
         requeue,
@@ -280,6 +297,7 @@ pub(super) fn apply_spatial_transitions(
             request.view_exponent,
             request.velocity,
             request.required_coverage,
+            None,
             request.coverage_radius_native,
             UsfSpatialTransitionCause::Requested,
             Some(request),
@@ -291,6 +309,7 @@ pub(super) fn apply_spatial_transitions(
             None,
             requirement.velocity,
             requirement.required_coverage,
+            requirement.required_coverage_authority,
             requirement.coverage_radius_native,
             UsfSpatialTransitionCause::InteractionRequirement,
             None,
@@ -316,14 +335,26 @@ pub(super) fn apply_spatial_transitions(
         active.cancel_handoff();
     }
 
-    if !required_coverage.is_empty()
-        && !coverage.has_near(
+    let coverage_ready = if required_coverage.is_empty() {
+        true
+    } else if let Some(authority) = required_coverage_authority {
+        coverage.has_near_for_authority(
+            authority,
             target_scale,
             &position,
             required_coverage,
             coverage_radius_native,
         )
-    {
+    } else {
+        coverage.has_near(
+            target_scale,
+            &position,
+            required_coverage,
+            coverage_radius_native,
+        )
+    };
+
+    if !coverage_ready {
         if let Some(request) = requeue {
             queue.request(request);
         }
