@@ -61,3 +61,16 @@ fn local_presentation_authoring_units_are_explicit_across_scale_slices() {
     assert_eq!(native.authored_to_native_scale(), 1.0);
     assert!((metres.authored_to_native_scale() - 1.0e-6).abs() < 1.0e-12);
 }
+
+
+#[test]
+fn scale_fallback_owns_only_views_beyond_realization_ladder() {
+    let s6 = SpatialScale::new(6).unwrap();
+    let s7 = SpatialScale::new(7).unwrap();
+    let fallback = UsfScaleFallbackPresentation::new(s6);
+
+    assert!(!fallback.owns_view_scale(SpatialScale::ZERO));
+    assert!(!fallback.owns_view_scale(s6));
+    assert!(fallback.owns_view_scale(s7));
+    assert!(fallback.owns_view_scale(SpatialScale::MAX));
+}

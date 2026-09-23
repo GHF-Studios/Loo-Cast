@@ -15,9 +15,9 @@ use crate::{
         UsfScaleFallbackPresentation, UsfScaleLayer, UsfSceneryPresentation, UsfTravelInfluence,
     },
     voxel::{
-        CelestialBodyProfile, CelestialVoxelField, MATERIALIZATION_CHUNK_SIZE, VoxelAuthority,
-        VoxelBase, VoxelCollisionDisabled, VoxelEditingDisabled, VoxelPinnedDemand,
-        VoxelPresentationMaterial, VoxelScaleDomain, VoxelStreaming, VoxelWorld,
+        CelestialBodyProfile, CelestialVoxelField, VoxelAuthority, VoxelBase,
+        VoxelCollisionDisabled, VoxelEditingDisabled, VoxelPresentationMaterial,
+        VoxelScaleDomain, VoxelStreaming, VoxelWorld,
     },
     worldgen::{EcologyState, PlanetaryBodyState, StellarSystemEnvironmentState},
 };
@@ -42,6 +42,7 @@ struct SpawnedCelestialBody {
     field: CelestialVoxelField,
     surface_manifestation: Entity,
     coarse_manifestation: Entity,
+    coarsest_voxel_scale: SpatialScale,
 }
 
 pub(super) fn spawn_stellar_system(
@@ -93,6 +94,7 @@ pub(super) fn spawn_stellar_system(
         274.0,
         0x5355_4E21,
         assets,
+        meshes,
         config,
     );
     let earth = spawn_celestial_body(
@@ -105,6 +107,7 @@ pub(super) fn spawn_stellar_system(
         9.80665,
         0x4541_5254,
         assets,
+        meshes,
         config,
     );
     let _moon = spawn_celestial_body(
@@ -117,6 +120,7 @@ pub(super) fn spawn_stellar_system(
         1.62,
         0x4D4F_4F4E,
         assets,
+        meshes,
         config,
     );
 
@@ -130,16 +134,20 @@ pub(super) fn spawn_stellar_system(
         double_sided: true,
         ..default()
     });
+    // The simple global atmosphere shell is also a FAR presentation.
+    // Near a surface it is not a local atmosphere model and must disappear
+    // before it can masquerade as ground/geometry around the observer.
     spawn_body_projection(
         commands,
         parent,
         earth.coarse_manifestation,
-        "Earth Atmosphere",
+        "Earth Far Atmosphere",
         earth.center,
         system_scale,
         meshes.add(Sphere::new(earth_radius as f32 * 1.025)),
         atmosphere_material,
         Quat::IDENTITY,
+        Some(earth.coarsest_voxel_scale),
     );
 
     // Spawn/local landmark and ecology are derived from the SAME Earth field as
@@ -175,6 +183,7 @@ fn spawn_celestial_body(
     surface_gravity_metres_per_second2: f32,
     seed: u32,
     assets: &ProceduralAssetLibrary,
+    meshes: &mut Assets<Mesh>,
     config: &EngineConfig,
 ) -> SpawnedCelestialBody {
     let system_scale = scale(SYSTEM_SCALE);
@@ -275,27 +284,46 @@ fn spawn_celestial_body(
         }
 
         if terrain_scale == realization_coarsest {
-            let radius_native = terrain_scale.metres_to_native_f64(radius_metres) as f32;
-            let pinned_center = center
-                .reexpressed_at(terrain_scale)
-                .expect("pinned body center must match its realization scale");
-            let margin = MATERIALIZATION_CHUNK_SIZE as f32 * 1.5;
-            terrain.insert((
-                VoxelPinnedDemand::shell(pinned_center, radius_native, margin),
-                UsfScaleFallbackPresentation::new(realization_coarsest),
-            ));
+            // Coarsest voxel terrain remains an ordinary demand-driven
+            // realization. It is NOT a permanent whole-body cache.
             coarse_manifestation = Some(terrain_entity);
         }
     }
+
+    let surface_manifestation = surface_manifestation
+        .expect("celestial macro domain must include S0 surface realization");
+    let coarse_manifestation = coarse_manifestation
+        .expect("celestial body must have a coarsest realization");
+
+    // Beyond the voxel ladder, whole-body appearance is a cheap presentation
+    // realizer tied to the same semantic authority. It does not materialize
+    // chunks, publish collision coverage, or survive as hidden terrain.
+    let far_material = match profile {
+        CelestialBodyProfile::Stellar => assets.star_surface.clone(),
+        CelestialBodyProfile::Lunar | CelestialBodyProfile::Rocky => {
+            assets.planet_surface.clone()
+        }
+    };
+    spawn_body_projection(
+        commands,
+        parent,
+        coarse_manifestation,
+        format!("{name} Far Body"),
+        center,
+        system_scale,
+        meshes.add(Sphere::new(radius_system_native as f32)),
+        far_material,
+        Quat::IDENTITY,
+        Some(realization_coarsest),
+    );
 
     SpawnedCelestialBody {
         semantic,
         center,
         field,
-        surface_manifestation: surface_manifestation
-            .expect("celestial macro domain must include S0 surface realization"),
-        coarse_manifestation: coarse_manifestation
-            .expect("celestial body must have a coarsest realization"),
+        surface_manifestation,
+        coarse_manifestation,
+        coarsest_voxel_scale: realization_coarsest,
     }
 }
 
@@ -303,15 +331,16 @@ fn spawn_body_projection(
     commands: &mut Commands,
     parent: Entity,
     manifestation: Entity,
-    name: &'static str,
+    name: impl Into<String>,
     anchor: UsfPosition,
     scale: SpatialScale,
     mesh: Handle<Mesh>,
     material: Handle<StandardMaterial>,
     rotation: Quat,
+    fallback_beyond: Option<SpatialScale>,
 ) {
-    commands.spawn((
-        Name::new(name),
+    let mut projection = commands.spawn((
+        Name::new(name.into()),
         ChildOf(parent),
         UsfPresentationProjectionOf(manifestation),
         UsfSceneryPresentation::from_anchor(anchor, scale),
@@ -320,6 +349,10 @@ fn spawn_body_projection(
         Transform::from_rotation(rotation),
         Visibility::Inherited,
     ));
+
+    if let Some(fallback_beyond) = fallback_beyond {
+        projection.insert(UsfScaleFallbackPresentation::new(fallback_beyond));
+    }
 }
 
 fn canonical_center_from_native(center: DVec3, source_scale: SpatialScale) -> UsfPosition {

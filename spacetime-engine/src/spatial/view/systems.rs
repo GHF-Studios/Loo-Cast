@@ -141,8 +141,7 @@ pub(in crate::spatial) fn project_local_scale_presentations(
         // ladder. Rendering every coarser terrain scale simultaneously was the
         // source of the near-surface slab/blob overlap.
         let far_fallback = fallback.is_some_and(|fallback| {
-            layer.scale() == fallback.scale()
-                && view.continuous_exponent() >= f32::from(fallback.scale().exponent())
+            layer.scale() == fallback.scale() && fallback.owns_view_scale(view.scale())
         });
         let presentation_demands_scale = view
             .active_scale_demands()
@@ -231,6 +230,7 @@ pub(in crate::spatial) fn project_scenery_presentations(
         Option<&RenderLayers>,
         Option<&NotShadowCaster>,
         Option<&NotShadowReceiver>,
+        Option<&UsfScaleFallbackPresentation>,
     )>,
 ) {
     for (
@@ -241,8 +241,15 @@ pub(in crate::spatial) fn project_scenery_presentations(
         render_layers,
         not_shadow_caster,
         not_shadow_receiver,
+        fallback,
     ) in &mut presentations
     {
+        if fallback.is_some_and(|fallback| !fallback.owns_view_scale(view.scale())) {
+            if !matches!(*visibility, Visibility::Hidden) {
+                *visibility = Visibility::Hidden;
+            }
+            continue;
+        }
         let desired_layers = RenderLayers::layer(USF_PRESENTATION_LAYER);
         if render_layers.is_none_or(|current| *current != desired_layers) {
             commands.entity(entity).insert(desired_layers);

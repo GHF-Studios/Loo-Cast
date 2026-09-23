@@ -167,12 +167,11 @@ impl UsfLocalScalePresentation {
     }
 }
 
-/// Marks the coarsest member of a persistent multi-scale realization ladder.
+/// Marks a presentation that owns views beyond one mechanism's coarsest
+/// meaningful realization Scale Slice.
 ///
-/// When the view is coarser than this scale there is no still-coarser terrain
-/// realization to own the render lane, so this representation remains the far
-/// fallback. As soon as an exact finer scale exists, normal single-lane depth
-/// ownership takes over.
+/// This is presentation policy only. It must never imply persistent
+/// materialization, collision, editing, or simulation residency.
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UsfScaleFallbackPresentation {
     scale: SpatialScale,
@@ -185,6 +184,12 @@ impl UsfScaleFallbackPresentation {
 
     pub const fn scale(self) -> SpatialScale {
         self.scale
+    }
+
+    /// The fallback owns presentation only after the observer has moved beyond
+    /// the available voxel-realization ladder on the coarse side.
+    pub fn owns_view_scale(self, view_scale: SpatialScale) -> bool {
+        view_scale > self.scale
     }
 }
 
