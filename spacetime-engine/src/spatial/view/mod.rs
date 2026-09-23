@@ -220,6 +220,14 @@ impl UsfViewContext {
         self.runtime_anchor
     }
 
+    /// Render-space origin corresponding to the semantic observer anchor.
+    ///
+    /// Camera eye height and third-person boom are presentation offsets from
+    /// this origin; they must never translate the projected universe.
+    pub const fn presentation_origin(&self) -> Vec3 {
+        self.runtime_anchor
+    }
+
     /// Render-space position of the active primary camera.
     pub const fn render_anchor(&self) -> Vec3 {
         self.render_anchor

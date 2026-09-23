@@ -61,13 +61,13 @@ pub(super) fn sync_navigation_context(
 
     let resolved = UsfNavigationContext::resolve(&position, scale, &neighborhood);
     if *navigation != resolved {
-        info!(
+        debug!(
             subject_scale = %scale,
             kind = ?resolved.kind(),
             source_scale = ?resolved.source_scale(),
             characteristic_metres = resolved.characteristic_length_scale0(),
             neighborhood_entries = neighborhood.len(),
-            "resolved controlled-subject navigation context"
+            "controlled-subject navigation context changed"
         );
         *navigation = resolved;
     }

@@ -651,9 +651,11 @@ pub(super) fn flight_movement(
 
             let direction =
                 vec3_to_dvec3(intent.view_rotation() * Vec3::NEG_Z).normalize_or_zero();
-            let current = motion.velocity_metres_per_second();
-            let lateral = current - direction * current.dot(direction);
-            lateral + direction * cruise.speed_scale0
+            cruise_velocity(
+                motion.velocity_metres_per_second(),
+                direction,
+                cruise.speed_scale0,
+            )
         }
         MotionKernel::Character | MotionKernel::Disabled => unreachable!(),
     };
@@ -698,6 +700,37 @@ pub(super) fn flight_movement(
         ),
         "runtime-authoritative flight must use a collision-capable local motion kernel"
     );
+}
+
+fn cruise_velocity(
+    current: DVec3,
+    desired_direction: DVec3,
+    commanded_speed_metres_per_second: f64,
+) -> DVec3 {
+    let speed = commanded_speed_metres_per_second.max(0.0);
+    if speed <= f64::EPSILON {
+        return DVec3::ZERO;
+    }
+
+    let direction = desired_direction.normalize_or_zero();
+    if direction == DVec3::ZERO {
+        let current_direction = current.normalize_or_zero();
+        return current_direction * speed;
+    }
+
+    // Preserve some directional inertia while steering, but NEVER preserve it
+    // as extra magnitude. The combined steering vector is normalized back to
+    // the commanded scalar speed, so merely rotating the look basis cannot
+    // accelerate or decelerate the craft.
+    let lateral = current - direction * current.dot(direction);
+    let steering = lateral + direction * speed;
+    let resolved_direction = steering.normalize_or_zero();
+
+    if resolved_direction == DVec3::ZERO {
+        direction * speed
+    } else {
+        resolved_direction * speed
+    }
 }
 
 fn throttle_for_speed(speed_metres_per_second: f64, max_metres_per_second: f64) -> f32 {
@@ -788,14 +821,27 @@ mod tests {
     }
 
     #[test]
-    fn cruise_lateral_velocity_is_not_destroyed() {
-        let forward = DVec3::NEG_Z;
+    fn cruise_speed_is_invariant_under_look_direction() {
+        let commanded = 1_000.0;
         let current = DVec3::new(42.0, 3.0, -100.0);
-        let lateral = current - forward * current.dot(forward);
-        let result = lateral + forward * 1_000.0;
-        assert_eq!(result.x, 42.0);
-        assert_eq!(result.y, 3.0);
-        assert_eq!(result.z, -1_000.0);
+
+        let forward = cruise_velocity(current, DVec3::NEG_Z, commanded);
+        let sideways = cruise_velocity(current, DVec3::X, commanded);
+        let upward = cruise_velocity(current, DVec3::Y, commanded);
+
+        assert!((forward.length() - commanded).abs() < 1.0e-9);
+        assert!((sideways.length() - commanded).abs() < 1.0e-9);
+        assert!((upward.length() - commanded).abs() < 1.0e-9);
+    }
+
+    #[test]
+    fn zero_cruise_command_stops_without_nan_direction() {
+        let result = cruise_velocity(
+            DVec3::new(42.0, 3.0, -100.0),
+            DVec3::ZERO,
+            0.0,
+        );
+        assert_eq!(result, DVec3::ZERO);
     }
 
     #[test]

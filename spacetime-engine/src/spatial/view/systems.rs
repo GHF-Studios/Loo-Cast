@@ -127,10 +127,10 @@ pub(in crate::spatial) fn project_local_scale_presentations(
 
         let factor = view.projection_factor(layer.scale());
 
-        // Semantic distance is measured from the semantic observer, but visual
-        // placement is centered around the actual render camera. Camera boom
-        // offsets therefore remain presentation-only.
-        let desired_global = view.render_anchor()
+        // Semantic distance is measured and rendered around the semantic view
+        // anchor. Camera eye/boom offsets remain presentation-only because the
+        // camera moves independently through this projected scene.
+        let desired_global = view.presentation_origin()
             + (parent_transform.translation - observer_in_parent_chart) * factor;
         let delta = desired_global - parent_transform.translation;
         let desired_translation = parent_transform.rotation.inverse() * delta;
@@ -206,7 +206,7 @@ pub(in crate::spatial) fn project_scenery_presentations(
             continue;
         }
 
-        transform.translation = view.render_anchor() + projected;
+        transform.translation = view.presentation_origin() + projected;
         transform.scale = Vec3::splat(projected_scale);
         *visibility = Visibility::Inherited;
     }
@@ -243,7 +243,7 @@ pub(in crate::spatial) fn project_scale_presentations(
         };
 
         let factor = view.projection_factor(presentation.scale());
-        let desired_global = view.render_anchor() + relative * factor;
+        let desired_global = view.presentation_origin() + relative * factor;
 
         let desired_translation = if let Some(parent) = parent {
             let Ok(parent_transform) = parents.get(parent.0) else {
