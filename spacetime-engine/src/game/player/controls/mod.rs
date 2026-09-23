@@ -11,10 +11,11 @@ use bevy::{
 
 use crate::{
     game::{
-        control::LocalControlSubject,
+        control::{LocalControlSubject, LocalViewTarget},
         locomotion::{
-            CharacterStance, ControlledSubjectLocomotion, DetailedInteractionScale, FlightControlIntent,
-            LocomotionRegime, LocomotionRequest, MotionKernel,
+            CharacterStance, ControlledSubjectLocomotion, DetailedInteractionScale,
+            FlightAttitudeCommand, FlightControlIntent, LocomotionRegime,
+            LocomotionRequest, MotionKernel,
         },
         navigation::{
             AdaptiveCruise, NavigationPresentationState, TravelPace, TravelState,
@@ -31,7 +32,7 @@ use crate::{
 };
 
 use super::{
-    Player, PlayerAim, PlayerController, PlayerDead,
+    Player, PlayerAim, PlayerController, PlayerDead, ViewCameraProfile,
     cursor::CursorCapture,
 };
 

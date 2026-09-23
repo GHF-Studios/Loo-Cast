@@ -61,6 +61,14 @@ pub struct FlightDynamicsProfile {
     pub local_acceleration_metres_per_second2: f32,
     pub orbital_acceleration_metres_per_second2: f32,
     pub boost_multiplier: f32,
+    /// Maximum manual local-axis pitch rate.
+    pub pitch_rate_radians_per_second: f32,
+    /// Maximum manual local-axis yaw rate.
+    pub yaw_rate_radians_per_second: f32,
+    /// Maximum manual local-axis roll rate.
+    pub roll_rate_radians_per_second: f32,
+    /// Slew limit used by target-orientation controllers such as autopilot.
+    pub target_attitude_response_radians_per_second: f32,
 }
 
 /// Subject-owned travel/navigation policy.
@@ -122,6 +130,10 @@ impl TravelProfile {
                 local_acceleration_metres_per_second2: 35.0,
                 orbital_acceleration_metres_per_second2: 20.0,
                 boost_multiplier: 4.0,
+                pitch_rate_radians_per_second: 1.4,
+                yaw_rate_radians_per_second: 1.1,
+                roll_rate_radians_per_second: 1.8,
+                target_attitude_response_radians_per_second: 2.0,
             },
         }
     }

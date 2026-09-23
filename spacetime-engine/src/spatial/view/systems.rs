@@ -84,24 +84,44 @@ pub(in crate::spatial) fn project_local_scale_presentations(
             presentation.set_scale(layer.scale());
         }
 
-        // Subject-local presentations keep their dedicated self-visibility
-        // policy. Persistent scale-world geometry is split by responsibility:
-        // the active physical interaction slice is rendered by the local camera;
-        // non-active/coarser stack members are rendered by the semantic-origin
-        // USF projection camera.
-        if follows_active.is_none() {
-            let desired_layers = if layer.scale() == interaction.scale() {
-                RenderLayers::default()
-            } else {
-                RenderLayers::layer(USF_PRESENTATION_LAYER)
-            };
-            if render_layers.is_none_or(|current| *current != desired_layers) {
-                commands.entity(entity).insert(desired_layers);
-            }
+        // Reaching this point means the presentation is a non-active member of
+        // the multiscale stack, so the semantic-origin USF camera owns it.
+        let desired_layers = RenderLayers::layer(USF_PRESENTATION_LAYER);
+        if render_layers.is_none_or(|current| *current != desired_layers) {
+            commands.entity(entity).insert(desired_layers);
         }
 
-        // Active-chart followers (player model, etc.) remain visible.
-        //
+        // The controlled subject and the terrain that currently owns physical
+        // interaction already live in the correct bounded runtime chart. They
+        // are rendered by the local camera and MUST NOT be presentation-scaled
+        // or observer-recentered. USF projection is only for non-active stack
+        // members.
+        let physical_local =
+            follows_active.is_some() || layer.scale() == interaction.scale();
+        if physical_local {
+            let desired_layers = if follows_active.is_some() {
+                render_layers.cloned().unwrap_or_default()
+            } else {
+                RenderLayers::default()
+            };
+            if follows_active.is_none()
+                && render_layers.is_none_or(|current| *current != desired_layers)
+            {
+                commands.entity(entity).insert(desired_layers);
+            }
+
+            if transform.translation != Vec3::ZERO {
+                transform.translation = Vec3::ZERO;
+            }
+            if transform.scale != Vec3::ONE {
+                transform.scale = Vec3::ONE;
+            }
+            if !matches!(*visibility, Visibility::Inherited) {
+                *visibility = Visibility::Inherited;
+            }
+            continue;
+        }
+
         // Persistent scale-local worlds are fundamentally NOT mutually-exclusive
         // LOD levels. The visible world is an additive nested stack:
         //

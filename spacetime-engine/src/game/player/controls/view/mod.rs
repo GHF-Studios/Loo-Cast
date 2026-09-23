@@ -6,9 +6,10 @@ pub(in crate::game::player) fn look(
     mouse: Res<AccumulatedMouseMotion>,
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
+    profile: Single<&ViewCameraProfile, With<LocalViewTarget>>,
     player: Single<(&PlayerController, &mut PlayerAim), With<Player>>,
 ) {
-    if gameplay_suppressed(&keyboard, &capture) {
+    if gameplay_suppressed(&keyboard, &capture) || !profile.uses_controller_look() {
         return;
     }
 

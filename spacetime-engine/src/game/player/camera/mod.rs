@@ -40,6 +40,16 @@ pub enum CameraMode {
     ThirdPerson,
 }
 
+/// Which orientation authority a target-owned camera rig follows.
+#[derive(Reflect, Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub(super) enum ViewOrientationPolicy {
+    /// Character-style accumulated controller look relative to the control frame.
+    #[default]
+    ControllerLook,
+    /// Vehicle-style camera locked to the resolved physical subject attitude.
+    SubjectAttitude,
+}
+
 /// Persistent intent and transient collision result for a third-person boom.
 #[derive(Reflect, Debug, Clone, Copy)]
 pub struct ThirdPersonCamera {
@@ -126,6 +136,7 @@ impl Default for ThirdPersonCamera {
 #[reflect(Component)]
 pub struct ViewCameraProfile {
     pub preferred_mode: CameraMode,
+    pub orientation_policy: ViewOrientationPolicy,
     pub standing_eye_offset_metres: Vec3,
     pub crouched_eye_offset_metres: Vec3,
     pub third_person: ThirdPersonCamera,
@@ -135,6 +146,7 @@ impl ViewCameraProfile {
     pub fn character() -> Self {
         Self {
             preferred_mode: CameraMode::FirstPerson,
+            orientation_policy: ViewOrientationPolicy::ControllerLook,
             standing_eye_offset_metres: Vec3::Y * CharacterDimensions::CENTER_TO_EYE,
             crouched_eye_offset_metres: Vec3::Y * CharacterDimensions::CROUCH_CENTER_TO_EYE,
             third_person: ThirdPersonCamera::default(),
@@ -159,9 +171,37 @@ impl ViewCameraProfile {
 
         Self {
             preferred_mode: CameraMode::ThirdPerson,
+            orientation_policy: ViewOrientationPolicy::SubjectAttitude,
             standing_eye_offset_metres: Vec3::ZERO,
             crouched_eye_offset_metres: Vec3::ZERO,
             third_person,
+        }
+    }
+
+    pub const fn uses_controller_look(&self) -> bool {
+        matches!(self.orientation_policy, ViewOrientationPolicy::ControllerLook)
+    }
+
+    pub fn rig_rotation(
+        &self,
+        body: &Transform,
+        control: &CharacterControlFrame,
+    ) -> Quat {
+        match self.orientation_policy {
+            ViewOrientationPolicy::ControllerLook => control.rotation(),
+            ViewOrientationPolicy::SubjectAttitude => body.rotation.normalize(),
+        }
+    }
+
+    pub fn view_rotation(
+        &self,
+        body: &Transform,
+        control: &CharacterControlFrame,
+        aim: &PlayerAim,
+    ) -> Quat {
+        match self.orientation_policy {
+            ViewOrientationPolicy::ControllerLook => control.rotation() * aim.local_rotation(),
+            ViewOrientationPolicy::SubjectAttitude => body.rotation.normalize(),
         }
     }
 
@@ -201,12 +241,6 @@ pub struct PlayerCamera {
     pub mode: CameraMode,
     /// Desired horizontal field of view in degrees.
     pub horizontal_fov_degrees: f32,
-}
-
-impl PlayerCamera {
-    pub fn view_rotation(&self, control: &CharacterControlFrame, aim: &PlayerAim) -> Quat {
-        control.rotation() * aim.local_rotation()
-    }
 }
 
 impl Default for PlayerCamera {

@@ -85,6 +85,7 @@ impl Plugin for PlayerPlugin {
             .register_type::<PlayerAim>()
             .register_type::<PlayerCamera>()
             .register_type::<ViewCameraProfile>()
+            .register_type::<camera::ViewOrientationPolicy>()
             .register_type::<ThirdPersonCamera>()
             .register_type::<CameraMode>()
             .add_systems(Startup, (spawn_player, hud::spawn_flight_hud))

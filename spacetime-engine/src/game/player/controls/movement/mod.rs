@@ -7,16 +7,18 @@ use super::*;
 /// AI/autopilot/network/replay controllers can write the same component without
 /// impersonating keyboard or mouse input.
 pub(in crate::game::player) fn sample_flight_control_intent(
+    time: Res<Time>,
+    mouse: Res<AccumulatedMouseMotion>,
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
-    controller: Single<(&PlayerAim, &TravelPace, Option<&PlayerDead>), With<Player>>,
+    controller: Single<(&PlayerController, &TravelPace, Option<&PlayerDead>), With<Player>>,
     subject: Single<
         (&CharacterControlFrame, &mut FlightControlIntent),
         With<LocalControlSubject>,
     >,
 ) {
-    let (aim, pace, dead) = controller.into_inner();
-    let (control, mut intent) = subject.into_inner();
+    let (controller, pace, dead) = controller.into_inner();
+    let (_control, mut intent) = subject.into_inner();
 
     if dead.is_some() || gameplay_suppressed(&keyboard, &capture) {
         intent.clear();
@@ -36,9 +38,16 @@ pub(in crate::game::player) fn sample_flight_control_intent(
     // attitude. This is an INPUT ADAPTER policy; generic flight execution only
     // consumes the resulting command frame, so free-look/autopilot/AI can write
     // different command rotations without changing physics.
+    let dt = time.delta_secs().max(1.0e-6);
+    let angular_velocity = Vec3::new(
+        -mouse.delta.y * controller.look_sensitivity / dt,
+        -mouse.delta.x * controller.look_sensitivity / dt,
+        0.0,
+    );
+
     intent.set(
         Vec3::new(horizontal as f32, vertical as f32, forward as f32),
-        control.rotation() * aim.local_rotation(),
+        FlightAttitudeCommand::AngularVelocityLocal(angular_velocity),
         pace.multiplier.max(0.0),
         boost,
     );

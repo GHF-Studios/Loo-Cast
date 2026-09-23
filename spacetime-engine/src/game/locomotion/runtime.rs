@@ -39,7 +39,7 @@ use crate::{
 
 use super::{
     CharacterStance, CollisionPolicy, ControlledSubjectHull, ControlledSubjectLocomotion,
-    ControlledSubjectLocomotionChanged, DetailedInteractionScale, FlightControlIntent,
+    ControlledSubjectLocomotionChanged, DetailedInteractionScale, FlightAttitudeCommand, FlightControlIntent,
     LocomotionCapabilities, LocomotionEnabled, LocomotionInhibition,
     LocomotionRegime, LocomotionRequest, MotionKernel, ScaleInteractionProxy,
     VelocitySemantics,
@@ -407,15 +407,59 @@ fn vec3_to_dvec3(value: Vec3) -> DVec3 {
     DVec3::new(f64::from(value.x), f64::from(value.y), f64::from(value.z))
 }
 
-fn flight_wish(intent: &FlightControlIntent, physical_up: Vec3) -> DVec3 {
+fn flight_wish(
+    intent: &FlightControlIntent,
+    attitude: Quat,
+    physical_up: Vec3,
+) -> DVec3 {
     let axes = intent.translation_axes();
-    let command_rotation = intent.command_rotation();
     vec3_to_dvec3(
-        (command_rotation * Vec3::X * axes.x
-            + command_rotation * Vec3::NEG_Z * axes.z
+        (attitude * Vec3::X * axes.x
+            + attitude * Vec3::NEG_Z * axes.z
             + physical_up * axes.y)
             .normalize_or_zero(),
     )
+}
+
+fn integrate_flight_attitude(
+    current: Quat,
+    command: FlightAttitudeCommand,
+    profile: &TravelProfile,
+    dt_seconds: f32,
+) -> Quat {
+    let current = current.normalize();
+    let dt = dt_seconds.max(0.0);
+
+    match command {
+        FlightAttitudeCommand::Hold => current,
+        FlightAttitudeCommand::AngularVelocityLocal(requested) => {
+            let limits = Vec3::new(
+                profile.flight.pitch_rate_radians_per_second.max(0.0),
+                profile.flight.yaw_rate_radians_per_second.max(0.0),
+                profile.flight.roll_rate_radians_per_second.max(0.0),
+            );
+            let rate = requested.clamp(-limits, limits);
+            let delta = Quat::from_rotation_x(rate.x * dt)
+                * Quat::from_rotation_y(rate.y * dt)
+                * Quat::from_rotation_z(rate.z * dt);
+            (current * delta).normalize()
+        }
+        FlightAttitudeCommand::TargetOrientation(target) => {
+            let mut target = target.normalize();
+            if current.dot(target) < 0.0 {
+                target = -target;
+            }
+
+            let angle = 2.0 * current.dot(target).clamp(-1.0, 1.0).acos();
+            let maximum_step =
+                profile.flight.target_attitude_response_radians_per_second.max(0.0) * dt;
+            if angle <= maximum_step || angle <= 1.0e-6 {
+                target
+            } else {
+                current.slerp(target, (maximum_step / angle).clamp(0.0, 1.0)).normalize()
+            }
+        }
+    }
 }
 
 fn boost_multiplier(intent: &FlightControlIntent, profile: &TravelProfile) -> f64 {
@@ -570,11 +614,16 @@ pub(super) fn flight_movement(
     }
 
     if intent.active() {
-        body.rotation = intent.command_rotation();
+        body.rotation = integrate_flight_attitude(
+            body.rotation,
+            intent.attitude(),
+            profile,
+            time.delta_secs(),
+        );
     }
 
     let up = vec3_to_dvec3(locomotion_frame.up()).normalize_or_zero();
-    let wish = flight_wish(intent, locomotion_frame.up());
+    let wish = flight_wish(intent, body.rotation, locomotion_frame.up());
     let boost = boost_multiplier(intent, profile);
     let pace = f64::from(intent.pace_multiplier().max(0.0));
     let gravity = up * -f64::from(travel.local_gravity.max(0.0));
@@ -652,7 +701,7 @@ pub(super) fn flight_movement(
             );
 
             let direction =
-                vec3_to_dvec3(intent.command_rotation() * Vec3::NEG_Z).normalize_or_zero();
+                vec3_to_dvec3(body.rotation * Vec3::NEG_Z).normalize_or_zero();
             cruise_velocity(
                 motion.velocity_metres_per_second(),
                 direction,
@@ -757,6 +806,36 @@ fn smooth_log_value(current: f64, target: f64, dt: f32, response: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn manual_attitude_rate_is_bounded_by_subject_profile() {
+        let profile = TravelProfile::spacecraft();
+        let current = Quat::IDENTITY;
+        let result = integrate_flight_attitude(
+            current,
+            FlightAttitudeCommand::AngularVelocityLocal(Vec3::splat(10_000.0)),
+            &profile,
+            0.1,
+        );
+
+        let forward = result * Vec3::NEG_Z;
+        assert!(forward.is_finite());
+        assert!(result.is_finite());
+        assert_ne!(result, Quat::IDENTITY);
+    }
+
+    #[test]
+    fn hold_attitude_does_not_rotate_subject() {
+        let profile = TravelProfile::spacecraft();
+        let current = Quat::from_rotation_y(0.7);
+        let result = integrate_flight_attitude(
+            current,
+            FlightAttitudeCommand::Hold,
+            &profile,
+            1.0,
+        );
+        assert!(result.dot(current).abs() > 0.999999);
+    }
 
     #[test]
     fn automatic_spacecraft_regime_moves_cruise_orbital_local() {

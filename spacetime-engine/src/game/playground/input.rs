@@ -138,7 +138,6 @@ fn update_aim(
         ),
         With<Player>,
     >,
-    camera: Single<&PlayerCamera>,
     mut aim: ResMut<ItemAim>,
 ) {
     if menu.open || !capture.active() {
@@ -148,9 +147,10 @@ fn update_aim(
 
     let (actor, body, control, player_aim, stance, profile, layer) =
         player.into_inner();
-    let view_rotation = camera.view_rotation(control, player_aim);
+    let rig_rotation = profile.rig_rotation(body, control);
+    let view_rotation = profile.view_rotation(body, control, player_aim);
     let origin = body.translation
-        + control.rotation() * profile.eye_offset_native(Some(stance), layer.scale());
+        + rig_rotation * profile.eye_offset_native(Some(stance), layer.scale());
 
     aim.set(Some(ItemAimContext {
         actor,
