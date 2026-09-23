@@ -1,21 +1,35 @@
-//! Spawn the root procedural world and hierarchical scale realization.
+//! Spawn the semantic procedural-universe root.
+//!
+//! The root owns worldgen identity only. It deliberately does NOT manufacture a
+//! generic voxel "world at origin": concrete realizers belong to concrete
+//! semantic structures such as celestial bodies.
 
 use bevy::prelude::*;
 
 use crate::{
-    procedural_assets::ProceduralAssetLibrary,
     spatial::UsfPosition,
-    worldgen::{PhenomenonRegistry, TemporalScale, WorldgenEpoch, WorldgenStore},
+    worldgen::{
+        PhenomenonRegistry, TemporalScale, WorldgenEpoch, WorldgenEvaluationKey, WorldgenStore,
+    },
 };
 
-use super::scale_stack::ProceduralScaleStack;
+#[derive(Component, Debug, Clone, Copy)]
+pub(super) struct ProceduralUniverseRoot {
+    root: WorldgenEvaluationKey,
+}
 
-#[derive(Component)]
-struct ProceduralWorldRoot;
+impl ProceduralUniverseRoot {
+    pub(super) const fn new(root: WorldgenEvaluationKey) -> Self {
+        Self { root }
+    }
+
+    pub(super) const fn root(self) -> WorldgenEvaluationKey {
+        self.root
+    }
+}
 
 pub(super) fn spawn_procedural_world(
     mut commands: Commands,
-    procedural_assets: Res<ProceduralAssetLibrary>,
     registry: Res<PhenomenonRegistry>,
     mut worldgen: ResMut<WorldgenStore>,
 ) {
@@ -24,26 +38,16 @@ pub(super) fn spawn_procedural_world(
     let root = worldgen
         .bootstrap_root(target, TemporalScale::WORLDGEN_SNAPSHOT, epoch, &registry)
         .expect("present-day root context must be canonically addressable");
-    // Voxels are a geological/local realizer, not the universal representation.
-    // The semantic universe exists at every scale; voxel terrain begins only
-    // when geology becomes meaningful at Scale +4.
-    let base_material = procedural_assets.debug_grid.clone();
 
-    let stack_entity = commands
-        .spawn((
-            Name::new("Procedural Hierarchical Scale Stack"),
-            ProceduralWorldRoot,
-            Transform::IDENTITY,
-            Visibility::Inherited,
-        ))
-        .id();
-
-    commands
-        .entity(stack_entity)
-        .insert(ProceduralScaleStack::new(root, base_material));
+    commands.spawn((
+        Name::new("Procedural Universe Root"),
+        ProceduralUniverseRoot::new(root),
+        Transform::IDENTITY,
+        Visibility::Inherited,
+    ));
 
     debug!(
         epoch_gyr = epoch.age_gyr(),
-        "bootstrapped semantic universe root; realizers activate in their domain scales"
+        "bootstrapped semantic universe root"
     );
 }

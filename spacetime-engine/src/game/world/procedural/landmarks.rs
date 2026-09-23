@@ -150,6 +150,24 @@ impl UniverseLandmarkIndex {
         self.update_body_landmark("moon", moon_center, moon_radius * 9.0);
     }
 
+    pub(in crate::game) fn update_surface_landmark(
+        &mut self,
+        surface: crate::spatial::UsfPosition,
+    ) {
+        let Some(landmark) = self.entries.iter_mut().find(|landmark| landmark.id == "earth-surface") else {
+            return;
+        };
+        let Ok(center) = surface.coordinate_at_scale_f64(SpatialScale::ZERO) else {
+            return;
+        };
+
+        landmark.scale = SpatialScale::ZERO;
+        landmark.view_exponent = 0.0;
+        landmark.center = center;
+        landmark.arrival = center + DVec3::new(0.0, 3.0, 8.0);
+        landmark.look_at = center + DVec3::new(0.0, 2.0, -8.0);
+    }
+
     fn update_body_landmark(
         &mut self,
         id: &str,

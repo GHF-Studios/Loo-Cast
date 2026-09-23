@@ -65,6 +65,14 @@ pub struct UsfSceneryPresentation {
 impl UsfSceneryPresentation {
     pub const DEFAULT_RENDER_SHELL_RADIUS: f64 = 750.0;
 
+    pub const fn from_anchor(anchor: UsfPosition, scale: SpatialScale) -> Self {
+        Self {
+            anchor,
+            scale,
+            render_shell_radius: Self::DEFAULT_RENDER_SHELL_RADIUS,
+        }
+    }
+
     pub fn new(absolute: DVec3, scale: SpatialScale) -> Self {
         let local = Vec3::new(absolute.x as f32, absolute.y as f32, absolute.z as f32);
         let anchor = UsfPosition::zero(scale)

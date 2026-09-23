@@ -1,15 +1,15 @@
 //! Procedural-world bootstrap composition.
 
 mod bootstrap;
-pub(in crate::game) mod landmarks;
+mod landmarks;
 mod player;
 mod scenery;
-mod scale_stack;
 
 use bevy::prelude::*;
 
-
 use super::GameWorld;
+
+pub(in crate::game) use landmarks::UniverseLandmarkIndex;
 
 pub(super) fn configure(app: &mut App) {
     app.init_resource::<landmarks::UniverseLandmarkIndex>();
@@ -22,6 +22,8 @@ pub(super) fn configure(app: &mut App) {
         )
             .chain(),
     )
-    .add_systems(Update, scale_stack::sync_scale_stack);
+    .add_systems(
+        Update,
+        scenery::audit_world_authority.run_if(in_state(GameWorld::Procedural)),
+    );
 }
-
