@@ -16,6 +16,45 @@ use super::VoxelMaterializationRuntime;
 /// Surface-cache revision currently encoded by this runtime's physics collider.
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::voxel) struct VoxelMaterializationColliderRevision(u64);
+
+impl VoxelMaterializationColliderRevision {
+    pub(in crate::voxel) const fn revision(self) -> u64 {
+        self.0
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ColliderResidencyAction {
+    Keep,
+    Replace,
+    Remove,
+}
+
+fn collider_residency_action(
+    wants_collider: bool,
+    runtime_revision: u64,
+    has_collider: bool,
+    collider_revision: Option<VoxelMaterializationColliderRevision>,
+) -> ColliderResidencyAction {
+    if !wants_collider {
+        return if has_collider || collider_revision.is_some() {
+            ColliderResidencyAction::Remove
+        } else {
+            ColliderResidencyAction::Keep
+        };
+    }
+
+    let current = has_collider
+        && collider_revision
+            .is_some_and(|revision| revision.revision() == runtime_revision);
+
+    if current {
+        ColliderResidencyAction::Keep
+    } else {
+        ColliderResidencyAction::Replace
+    }
+}
+
 use super::super::{
     VoxelCollisionDisabled, VoxelMaterializationChunkAddress,
     VoxelRealizationDemandSnapshot, VoxelWorld, physics,
@@ -33,13 +72,9 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
         Option<&VoxelMaterializationColliderRevision>,
     )>,
 ) {
-    let runtime_changed = runtimes
-        .iter()
-        .any(|(_, runtime, _, _)| runtime.is_changed());
-    if !config.is_changed() && !realization_demand.is_changed() && !runtime_changed {
-        return;
-    }
-
+    // Collision state is derived and reconciled every frame. This makes
+    // residency self-healing and independent from implicit ECS change ticks.
+    // If this becomes a hotspot, optimize with an explicit collision-dirty queue.
     let interaction_padding =
         config.voxel.manifestation.physics_interaction_radius_native.max(0.0);
 
@@ -73,30 +108,36 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
 
         let wants_collider =
             collision_disabled.is_none() && has_rigid_surface && has_collision_demand;
-        let collider_current = collider.is_some()
-            && collider_revision
-                .is_some_and(|revision| revision.0 == runtime.revision());
 
-        if wants_collider && !collider_current {
-            let collider = build_materialization_collider(
-                runtime.address(),
-                runtime.revision(),
-                world,
-            );
-            publish_collider_manifestation(
-                &mut commands,
-                entity,
-                true,
-                collider,
-                Some(runtime.revision()),
-            );
-        } else if !wants_collider && (collider.is_some() || collider_revision.is_some()) {
-            publish_collider_manifestation(&mut commands, entity, false, None, None);
+        match collider_residency_action(
+            wants_collider,
+            runtime.revision(),
+            collider.is_some(),
+            collider_revision.copied(),
+        ) {
+            ColliderResidencyAction::Keep => {}
+            ColliderResidencyAction::Replace => {
+                let collider = build_materialization_collider(
+                    runtime.address(),
+                    runtime.revision(),
+                    world,
+                );
+                publish_collider_manifestation(
+                    &mut commands,
+                    entity,
+                    true,
+                    collider,
+                    Some(runtime.revision()),
+                );
+            }
+            ColliderResidencyAction::Remove => {
+                publish_collider_manifestation(&mut commands, entity, false, None, None);
+            }
         }
     }
 }
 
-pub(super) fn publish_collider_manifestation(
+fn publish_collider_manifestation(
     commands: &mut Commands,
     entity: Entity,
     requested: bool,
@@ -144,4 +185,56 @@ fn build_materialization_collider(
     let triangles = physics::owned_triangles(&cache.surface);
 
     physics::build_trimesh_collider(vertices, triangles, "voxel materialization runtime")
+}
+
+#[cfg(test)]
+mod residency_tests {
+    use super::*;
+
+    #[test]
+    fn demanded_current_collider_is_kept() {
+        assert_eq!(
+            collider_residency_action(
+                true,
+                7,
+                true,
+                Some(VoxelMaterializationColliderRevision(7)),
+            ),
+            ColliderResidencyAction::Keep,
+        );
+    }
+
+    #[test]
+    fn demanded_missing_collider_is_replaced() {
+        assert_eq!(
+            collider_residency_action(true, 7, false, None),
+            ColliderResidencyAction::Replace,
+        );
+    }
+
+    #[test]
+    fn demanded_stale_collider_is_replaced() {
+        assert_eq!(
+            collider_residency_action(
+                true,
+                8,
+                true,
+                Some(VoxelMaterializationColliderRevision(7)),
+            ),
+            ColliderResidencyAction::Replace,
+        );
+    }
+
+    #[test]
+    fn undemanded_collider_is_removed() {
+        assert_eq!(
+            collider_residency_action(
+                false,
+                7,
+                true,
+                Some(VoxelMaterializationColliderRevision(7)),
+            ),
+            ColliderResidencyAction::Remove,
+        );
+    }
 }

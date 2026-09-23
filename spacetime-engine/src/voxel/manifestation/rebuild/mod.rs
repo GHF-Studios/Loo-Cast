@@ -16,8 +16,8 @@ use crate::{
 };
 
 use super::{
-    VoxelMaterializationRuntime, VoxelMaterializationPresentation, VoxelMaterializationRuntimeRegistry,
-    collision::publish_collider_manifestation,
+    VoxelMaterializationPresentation, VoxelMaterializationRuntime,
+    VoxelMaterializationRuntimeRegistry,
 };
 use super::super::{
     VoxelMaterialId, VoxelMaterializationChunkAddress, VoxelWorld,
@@ -215,7 +215,6 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
             root
         };
 
-        publish_collider_manifestation(&mut commands, root, false, None, None);
     }
 }
 

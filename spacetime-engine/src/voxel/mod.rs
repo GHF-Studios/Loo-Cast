@@ -128,6 +128,15 @@ impl Plugin for VoxelPlugin {
                         .before(UsfSpatialSet::SyncSemantic),
                 ),
             )
+            .configure_sets(
+                PostUpdate,
+                (
+                    VoxelPostUpdateSet::Rebuild,
+                    VoxelPostUpdateSet::Collision,
+                    VoxelPostUpdateSet::Coverage,
+                )
+                    .chain(),
+            )
             .add_systems(
                 PostUpdate,
                 streaming::finish_chunk_generation

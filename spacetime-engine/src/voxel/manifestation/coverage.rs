@@ -10,7 +10,10 @@ use crate::{
     },
 };
 
-use super::VoxelMaterializationRuntime;
+use super::{
+    VoxelMaterializationRuntime,
+    collision::VoxelMaterializationColliderRevision,
+};
 use super::super::{MATERIALIZATION_CHUNK_SIZE, VoxelEditingDisabled, VoxelWorld};
 
 pub(in crate::voxel) fn publish_scale_coverage(
@@ -21,13 +24,17 @@ pub(in crate::voxel) fn publish_scale_coverage(
         Option<&UsfManifestationOf>,
         Option<&VoxelEditingDisabled>,
     )>,
-    runtimes: Query<(&VoxelMaterializationRuntime, Option<&Collider>)>,
+    runtimes: Query<(
+        &VoxelMaterializationRuntime,
+        Option<&Collider>,
+        Option<&VoxelMaterializationColliderRevision>,
+    )>,
     mut coverage: ResMut<UsfScaleCoverageSnapshot>,
 ) {
     let extent = MATERIALIZATION_CHUNK_SIZE as f32;
     let half_extent = Vec3::splat(extent * 0.5);
 
-    for (runtime, collider) in &runtimes {
+    for (runtime, collider, collider_revision) in &runtimes {
         let Ok((world_entity, world, layer, manifestation, editing_disabled)) =
             worlds.get(runtime.world())
         else {
@@ -44,8 +51,12 @@ pub(in crate::voxel) fn publish_scale_coverage(
             continue;
         };
 
-        let mut roles = UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::PRESENTATION);
-        if collider.is_some() {
+        let mut roles =
+            UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::PRESENTATION);
+        let collision_current = collider.is_some()
+            && collider_revision
+                .is_some_and(|revision| revision.revision() == runtime.revision());
+        if collision_current {
             roles = roles.union(UsfScaleRoleMask::COLLISION);
         }
         if editing_disabled.is_none() {
