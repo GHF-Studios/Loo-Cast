@@ -19,12 +19,12 @@ use crate::{
         VoxelCollisionDisabled, VoxelEditingDisabled, VoxelPresentationMaterial,
         VoxelScaleDomain, VoxelStreaming, VoxelWorld,
     },
-    worldgen::{EcologyState, PlanetaryBodyState, StellarSystemEnvironmentState},
+    worldgen::{PlanetaryBodyState, StellarSystemEnvironmentState},
 };
 
-use super::{
-    ecology,
-    super::landmarks::UniverseLandmarkIndex,
+use super::super::{
+    BodySurfaceSite, ProceduralArrivalSite,
+    landmarks::UniverseLandmarkIndex,
 };
 
 const SYSTEM_SCALE: i8 = 8;
@@ -40,7 +40,6 @@ struct SpawnedCelestialBody {
     semantic: Entity,
     center: UsfPosition,
     field: CelestialVoxelField,
-    surface_manifestation: Entity,
     coarse_manifestation: Entity,
     coarsest_voxel_scale: SpatialScale,
 }
@@ -50,11 +49,10 @@ pub(super) fn spawn_stellar_system(
     parent: Entity,
     system: StellarSystemEnvironmentState,
     planet: PlanetaryBodyState,
-    ecology_state: EcologyState,
-    ecology_seed: u32,
     assets: &ProceduralAssetLibrary,
     config: &EngineConfig,
     landmarks: &mut UniverseLandmarkIndex,
+    arrival_site: &mut ProceduralArrivalSite,
     meshes: &mut Assets<Mesh>,
     materials: &mut Assets<StandardMaterial>,
 ) {
@@ -150,22 +148,19 @@ pub(super) fn spawn_stellar_system(
         Some(earth.coarsest_voxel_scale),
     );
 
-    // Spawn/local landmark and ecology are derived from the SAME Earth field as
-    // render and collision terrain. No parallel planar heightfield exists.
-    let surface = ecology::north_pole_surface(earth.center, earth.field);
-    landmarks.update_surface_landmark(surface);
-
-    ecology::spawn_surface_ecology(
-        commands,
-        parent,
-        earth.surface_manifestation,
+    // Fixture bootstrap policy currently chooses one Earth surface site.
+    // The site itself is generic body-relative navigation data resolved from the
+    // authoritative celestial field. Nothing about controlled-subject bootstrap
+    // knows the words "Earth", "north pole", or "tree".
+    let site = body_surface_site(
+        earth.semantic,
         earth.center,
         earth.field,
-        ecology_state,
-        ecology_seed,
-        meshes,
-        materials,
-    );
+        Vec3::Y,
+        SpatialScale::ZERO,
+    )
+    .expect("fixture arrival surface must be canonically representable");
+    arrival_site.set(site);
 
     debug!(
         earth = ?earth.semantic,
@@ -249,7 +244,6 @@ fn spawn_celestial_body(
         ))
         .id();
 
-    let mut surface_manifestation = None;
     let mut coarse_manifestation = None;
 
     for raw in CELESTIAL_MACRO_VOXEL_MIN_SCALE..=realization_coarsest.exponent() {
@@ -279,9 +273,6 @@ fn spawn_celestial_body(
         }
 
         let terrain_entity = terrain.id();
-        if terrain_scale == SpatialScale::ZERO {
-            surface_manifestation = Some(terrain_entity);
-        }
 
         if terrain_scale == realization_coarsest {
             // Coarsest voxel terrain remains an ordinary demand-driven
@@ -290,8 +281,6 @@ fn spawn_celestial_body(
         }
     }
 
-    let surface_manifestation = surface_manifestation
-        .expect("celestial macro domain must include S0 surface realization");
     let coarse_manifestation = coarse_manifestation
         .expect("celestial body must have a coarsest realization");
 
@@ -321,10 +310,30 @@ fn spawn_celestial_body(
         semantic,
         center,
         field,
-        surface_manifestation,
         coarse_manifestation,
         coarsest_voxel_scale: realization_coarsest,
     }
+}
+
+fn body_surface_site(
+    body: Entity,
+    center: UsfPosition,
+    field: CelestialVoxelField,
+    direction: Vec3,
+    scale: SpatialScale,
+) -> Option<BodySurfaceSite> {
+    let up = direction.normalize_or_zero();
+    if up == Vec3::ZERO {
+        return None;
+    }
+
+    let realization = field.realization(scale);
+    let surface_radius = realization.surface_radius_native(up);
+    let surface = center
+        .translated_at_scale(scale, up * surface_radius)
+        .ok()?;
+
+    BodySurfaceSite::new(body, surface, up, scale)
 }
 
 fn spawn_body_projection(

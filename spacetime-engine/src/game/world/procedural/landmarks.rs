@@ -149,17 +149,6 @@ impl Default for UniverseLandmarkIndex {
                     moon,
                     "Moon-like satellite",
                 ),
-                UniverseLandmark::authored(
-                    "earth-surface",
-                    "surface",
-                    &["surface", "spawn", "local"],
-                    SpatialScale::ZERO,
-                    0.0,
-                    DVec3::ZERO,
-                    DVec3::new(0.0, 3.0, 8.0),
-                    DVec3::new(0.0, 2.0, -8.0),
-                    "local geological/voxel surface branch",
-                ),
             ],
         }
     }
@@ -180,31 +169,6 @@ impl UniverseLandmarkIndex {
         self.update_body_landmark("sun", canonical(sun_center, scale), sun_radius * 10.0);
         self.update_body_landmark("earth", canonical(earth_center, scale), earth_radius * 9.0);
         self.update_body_landmark("moon", canonical(moon_center, scale), moon_radius * 9.0);
-    }
-
-    pub(in crate::game) fn update_surface_landmark(&mut self, surface: UsfPosition) {
-        let Some(landmark) = self.entries.iter_mut().find(|landmark| landmark.id == "earth-surface")
-        else {
-            return;
-        };
-
-        let scale = SpatialScale::ZERO;
-        let Ok(arrival) =
-            surface.translated_at_scale(scale, Vec3::new(0.0, 3.0, 8.0))
-        else {
-            return;
-        };
-        let Ok(look_at) =
-            surface.translated_at_scale(scale, Vec3::new(0.0, 2.0, -8.0))
-        else {
-            return;
-        };
-
-        landmark.display_scale = scale;
-        landmark.view_exponent = 0.0;
-        landmark.center = surface;
-        landmark.arrival = arrival;
-        landmark.look_at = look_at;
     }
 
     fn update_body_landmark(

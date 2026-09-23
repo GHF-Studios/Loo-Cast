@@ -112,6 +112,7 @@ pub(super) fn spawn_flight_hud(mut commands: Commands) {
 
 pub(super) fn update_flight_hud(
     telemetry: Single<&FlightTelemetry, With<LocalControlSubject>>,
+    body_names: Query<&Name>,
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     mut hud: ParamSet<(
         Single<(&mut Text, &mut Node), With<FlightHudLeft>>,
@@ -121,6 +122,8 @@ pub(super) fn update_flight_hud(
 ) {
     let telemetry = telemetry.into_inner();
     let flying = telemetry.active();
+    let primary_body = telemetry.primary_body();
+    let show_environment = primary_body.is_some();
 
     {
         let mut left = hud.p0();
@@ -128,13 +131,11 @@ pub(super) fn update_flight_hud(
     }
     {
         let mut right = hud.p1();
-        right.1.display = if flying { Display::Flex } else { Display::None };
-    }
-
-    if !flying {
-        let mut alert = hud.p2();
-        alert.1.display = Display::None;
-        return;
+        right.1.display = if flying || show_environment {
+            Display::Flex
+        } else {
+            Display::None
+        };
     }
 
     let cruising = telemetry.mode() == Some(FlightMode::Cruise);
@@ -145,7 +146,7 @@ pub(super) fn update_flight_hud(
         "--".to_string()
     };
 
-    {
+    if flying {
         let mut left = hud.p0();
         left.0.0 = format!(
             "{}\nSPD  {}\nTHR  {} • RCS {}\nCHART S{} • VIEW {:+.2}",
@@ -157,6 +158,11 @@ pub(super) fn update_flight_hud(
             view.continuous_exponent(),
         );
     }
+
+    let body_name = primary_body
+        .and_then(|entity| body_names.get(entity).ok())
+        .map(Name::as_str)
+        .unwrap_or("UNRESOLVED");
 
     let clearance = telemetry
         .clearance_metres()
@@ -178,12 +184,14 @@ pub(super) fn update_flight_hud(
     {
         let mut right = hud.p1();
         right.0.0 = format!(
-            "BODY ENVIRONMENT\nCLR  {}\nGRV  {}\nHANDOFF {}",
-            clearance, gravity, handoff,
+            "BODY  {}\nCLR   {}\nGRV   {}\nHANDOFF {}",
+            body_name, clearance, gravity, handoff,
         );
     }
 
-    let warning = if telemetry.dropout_required() {
+    let warning = if !flying {
+        None
+    } else if telemetry.dropout_required() {
         Some("CRITICAL DROPOUT")
     } else if cruising && telemetry.planetary_handoff_available() {
         Some("[C] PLANETARY FLIGHT AVAILABLE")

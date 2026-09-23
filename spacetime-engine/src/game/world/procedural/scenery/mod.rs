@@ -13,8 +13,8 @@ use crate::{
     procedural_assets::ProceduralAssetLibrary,
     spatial::{SpatialScale, UsfPosition},
     worldgen::{
-        ECOLOGY, GALAXY_INTERSTELLAR_MEDIUM, PLANETARY_BODY, STELLAR_SYSTEM_ENVIRONMENT,
-        EcologyState, GalaxyInterstellarMediumState, PhenomenonId, PhenomenonRegistry,
+        GALAXY_INTERSTELLAR_MEDIUM, PLANETARY_BODY, STELLAR_SYSTEM_ENVIRONMENT,
+        GalaxyInterstellarMediumState, PhenomenonId, PhenomenonRegistry,
         PlanetaryBodyState, StellarSystemEnvironmentState, WorldgenNode, WorldgenStore,
     },
 };
@@ -22,11 +22,11 @@ use crate::{
 use super::{
     bootstrap::ProceduralUniverseRoot,
     landmarks::UniverseLandmarkIndex,
+    ProceduralArrivalSite,
 };
 
 mod celestial;
 mod cosmic;
-mod ecology;
 
 const GALAXY_SCALE: i8 = 18;
 const SYSTEM_SCALE: i8 = 8;
@@ -38,6 +38,7 @@ pub(super) fn spawn_universe_scenery(
     registry: Res<PhenomenonRegistry>,
     mut worldgen: ResMut<WorldgenStore>,
     mut landmarks: ResMut<UniverseLandmarkIndex>,
+    mut arrival_site: ResMut<ProceduralArrivalSite>,
     assets: Res<ProceduralAssetLibrary>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -61,13 +62,11 @@ pub(super) fn spawn_universe_scenery(
             STELLAR_SYSTEM_ENVIRONMENT,
         );
         let planet = state_at::<PlanetaryBodyState>(&lineage, SYSTEM_SCALE, PLANETARY_BODY);
-        let ecology = state_at::<EcologyState>(&lineage, 0, ECOLOGY);
-        let leaf_seed = lineage
-            .first()
-            .expect("scale-zero branch has a leaf")
-            .context()
-            .seed() as u32;
 
+        // Ecology and finer Phenomena remain semantic worldgen state until a
+        // demand-driven realizer explicitly consumes them. Merely evaluating a
+        // Phenomenon never authorizes scene entities.
+        //
         // Broad structure remains semantic navigation data. The old debug/map
         // meshes no longer leak into the primary gameplay presentation.
         cosmic::spawn_navigation_structure(&mut commands, root_entity, galaxy);
@@ -77,11 +76,10 @@ pub(super) fn spawn_universe_scenery(
             root_entity,
             system,
             planet,
-            ecology,
-            leaf_seed,
             &assets,
             &config,
             &mut landmarks,
+            &mut arrival_site,
             &mut meshes,
             &mut materials,
         );

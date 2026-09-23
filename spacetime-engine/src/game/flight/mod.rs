@@ -17,7 +17,7 @@ use crate::{
         locomotion::{
             ControlledSubjectLocomotion, DetailedInteractionScale, LocomotionRegime,
         },
-        navigation::{AdaptiveCruise, TravelState},
+        navigation::{AdaptiveCruise, PrimaryBodyContext, TravelState},
     },
     spatial::{SpatialScale, UsfCanonicalMotion, UsfScaleLayer},
 };
@@ -200,6 +200,7 @@ pub struct FlightTelemetry {
     thrusters_enabled: bool,
     interaction_scale: SpatialScale,
     detailed_interaction: bool,
+    primary_body: Option<Entity>,
     clearance_metres: Option<f64>,
     local_gravity_metres_per_second2: f32,
     planetary_handoff_clearance_metres: Option<f64>,
@@ -222,6 +223,7 @@ impl Default for FlightTelemetry {
             thrusters_enabled: false,
             interaction_scale: SpatialScale::MAX,
             detailed_interaction: false,
+            primary_body: None,
             clearance_metres: None,
             local_gravity_metres_per_second2: 0.0,
             planetary_handoff_clearance_metres: None,
@@ -269,6 +271,10 @@ impl FlightTelemetry {
 
     pub const fn detailed_interaction(self) -> bool {
         self.detailed_interaction
+    }
+
+    pub const fn primary_body(self) -> Option<Entity> {
+        self.primary_body
     }
 
     pub const fn clearance_metres(self) -> Option<f64> {
@@ -350,6 +356,7 @@ fn sync_flight_telemetry(
             &UsfCanonicalMotion,
             &AdaptiveCruise,
             &TravelState,
+            &PrimaryBodyContext,
             Option<&FlightContactState>,
             Option<&FlightSafetyState>,
             &mut FlightTelemetry,
@@ -364,6 +371,7 @@ fn sync_flight_telemetry(
         motion,
         cruise,
         travel,
+        primary,
         contact,
         safety,
         mut telemetry,
@@ -386,6 +394,7 @@ fn sync_flight_telemetry(
         telemetry.thrusters_enabled = locomotion.thrusters_enabled();
         telemetry.interaction_scale = layer.scale();
         telemetry.detailed_interaction = layer.scale() == detailed.0;
+        telemetry.primary_body = primary.entity();
         telemetry.clearance_metres = travel.nearest_body_clearance_scale0;
         telemetry.local_gravity_metres_per_second2 = travel.local_gravity;
         telemetry.planetary_handoff_clearance_metres =
