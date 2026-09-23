@@ -42,7 +42,7 @@ use crate::{
         character::{
             CharacterControlFrame, CharacterDimensions, CharacterGroundState,
             CharacterLocomotionFrame, CharacterMotor, CharacterMovementConfig,
-            CharacterMovementInput,
+            CharacterMovementInput, GravityAlignedLocomotionFrame,
         },
         topology::{KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeer},
     },

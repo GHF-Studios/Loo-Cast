@@ -240,7 +240,6 @@ pub struct TravelState {
     pub planetary_handoff_available: bool,
     pub planetary_context: bool,
     pub critical_dropout: bool,
-    pub local_gravity: f32,
 }
 
 impl Default for TravelState {
@@ -252,22 +251,21 @@ impl Default for TravelState {
             planetary_handoff_available: false,
             planetary_context: false,
             critical_dropout: false,
-            local_gravity: 0.0,
         }
     }
 }
 
 /// One resolved primary hard body for the current navigation subject.
 ///
-/// Gravity, orbital telemetry and locomotion-domain selection consume this same
-/// context instead of independently rescanning celestial sources.
+/// This is travel geometry and identity only. Physical fields such as gravity
+/// are queried from their own domains and must not be smuggled through
+/// navigation state.
 #[derive(Component, Debug, Clone, Copy)]
 pub struct PrimaryBodyContext {
     entity: Option<Entity>,
     center: UsfPosition,
     radius_metres: f64,
-    field_scale: SpatialScale,
-    surface_gravity_metres_per_second2: f32,
+    reference_scale: SpatialScale,
     center_distance_metres: f64,
     clearance_metres: f64,
 }
@@ -278,8 +276,7 @@ impl Default for PrimaryBodyContext {
             entity: None,
             center: UsfPosition::zero(SpatialScale::MAX),
             radius_metres: 0.0,
-            field_scale: SpatialScale::MAX,
-            surface_gravity_metres_per_second2: 0.0,
+            reference_scale: SpatialScale::MAX,
             center_distance_metres: f64::INFINITY,
             clearance_metres: f64::INFINITY,
         }
@@ -291,8 +288,7 @@ impl PrimaryBodyContext {
         entity: Entity,
         center: UsfPosition,
         radius_metres: f64,
-        field_scale: SpatialScale,
-        surface_gravity_metres_per_second2: f32,
+        reference_scale: SpatialScale,
         center_distance_metres: f64,
         clearance_metres: f64,
     ) -> Self {
@@ -300,8 +296,7 @@ impl PrimaryBodyContext {
             entity: Some(entity),
             center,
             radius_metres,
-            field_scale,
-            surface_gravity_metres_per_second2,
+            reference_scale,
             center_distance_metres,
             clearance_metres,
         }
@@ -319,12 +314,8 @@ impl PrimaryBodyContext {
         self.radius_metres
     }
 
-    pub const fn field_scale(self) -> SpatialScale {
-        self.field_scale
-    }
-
-    pub const fn surface_gravity_metres_per_second2(self) -> f32 {
-        self.surface_gravity_metres_per_second2
+    pub const fn reference_scale(self) -> SpatialScale {
+        self.reference_scale
     }
 
     pub const fn center_distance_metres(self) -> f64 {
@@ -518,7 +509,6 @@ impl Plugin for NavigationPlugin {
                 (
                     runtime::sync_navigation_context,
                     runtime::sync_travel_state,
-                    runtime::sync_planetary_gravity,
                     policy::sync_travel_envelope,
                 )
                     .chain()

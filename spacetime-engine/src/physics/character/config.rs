@@ -1,5 +1,7 @@
 use avian3d::prelude::Collider;
-use bevy::prelude::*;
+use bevy::{math::DVec3, prelude::*};
+
+use crate::spatial::SpatialScale;
 
 /// Dimensions of the default character body, in metres.
 pub struct CharacterDimensions;
@@ -45,8 +47,13 @@ pub struct CharacterMovementConfig {
     /// Per-surface friction multiplier. Material integration can replace this.
     pub surface_friction: f32,
 
-    /// Downward gravitational acceleration magnitude, in m/s².
-    pub gravity: f32,
+    /// Dimensionless response multiplier applied to physical gravity.
+    ///
+    /// This is locomotion/game-feel policy, not environmental gravity. The
+    /// Source-derived default maps Earth gravity to the controller's historical
+    /// 20.32 m/s² fall response while preserving relative differences between
+    /// environments.
+    pub gravity_response_multiplier: f32,
     /// Instantaneous jump speed along locomotion-up, in m/s.
     pub jump_speed: f32,
 
@@ -80,9 +87,7 @@ impl CharacterMovementConfig {
             friction: 8.0,
             stop_speed: 2.54,
             surface_friction: 1.0,
-            // Temporary: flat locomotion-down gravity is not a valid
-            // universe-scale model. Future gravity comes from USF spatial fields.
-            gravity: 0.0,
+            gravity_response_multiplier: 2.072_063_4,
             jump_speed: 9.144,
             air_wish_speed_cap: Some(0.762),
             step_height: 0.4572,
@@ -96,5 +101,99 @@ impl CharacterMovementConfig {
 impl Default for CharacterMovementConfig {
     fn default() -> Self {
         Self::source_2013()
+    }
+}
+
+
+/// Chart-native parameters resolved for one character fixed tick.
+///
+/// This is intentionally not an ECS component. [`CharacterMovementConfig`]
+/// remains canonical SI policy; conversion happens exactly at the numerical
+/// motor boundary.
+#[derive(Clone, Copy, Debug)]
+pub(super) struct ResolvedCharacterMovementConfig {
+    pub max_ground_speed: f32,
+    pub ground_acceleration: f32,
+    pub air_acceleration: f32,
+    pub friction: f32,
+    pub stop_speed: f32,
+    pub surface_friction: f32,
+    pub gravity_acceleration_native: Vec3,
+    pub jump_speed: f32,
+    pub air_wish_speed_cap: Option<f32>,
+    pub step_height: f32,
+    pub ground_snap_distance: f32,
+    pub min_ground_dot: f32,
+    pub auto_bhop: bool,
+}
+
+impl CharacterMovementConfig {
+    pub(super) fn resolve_for_chart(
+        &self,
+        scale: SpatialScale,
+        gravity_metres_per_second2: DVec3,
+    ) -> ResolvedCharacterMovementConfig {
+        let gravity = gravity_metres_per_second2
+            * f64::from(self.gravity_response_multiplier.max(0.0));
+        let to_native = |value: f32| scale.metres_to_native_f32(value);
+        let component = |value: f64| {
+            scale
+                .metres_to_native_f64(value)
+                .clamp(-(f32::MAX as f64), f32::MAX as f64) as f32
+        };
+
+        ResolvedCharacterMovementConfig {
+            max_ground_speed: to_native(self.max_ground_speed),
+            ground_acceleration: self.ground_acceleration,
+            air_acceleration: self.air_acceleration,
+            friction: self.friction,
+            stop_speed: to_native(self.stop_speed),
+            surface_friction: self.surface_friction,
+            gravity_acceleration_native: Vec3::new(
+                component(gravity.x),
+                component(gravity.y),
+                component(gravity.z),
+            ),
+            jump_speed: to_native(self.jump_speed),
+            air_wish_speed_cap: self.air_wish_speed_cap.map(to_native),
+            step_height: to_native(self.step_height),
+            ground_snap_distance: to_native(self.ground_snap_distance),
+            min_ground_dot: self.min_ground_dot,
+            auto_bhop: self.auto_bhop,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn source_profile_preserves_historical_earth_fall_response() {
+        let resolved = CharacterMovementConfig::source_2013().resolve_for_chart(
+            SpatialScale::ZERO,
+            DVec3::NEG_Y * 9.80665,
+        );
+        assert!((resolved.gravity_acceleration_native.length() - 20.32).abs() < 1.0e-3);
+    }
+
+    #[test]
+    fn si_policy_resolves_equivalently_across_runtime_charts() {
+        let config = CharacterMovementConfig::source_2013();
+        let scale = SpatialScale::new(3).unwrap();
+        let resolved = config.resolve_for_chart(scale, DVec3::NEG_Y * 9.80665);
+
+        assert!(
+            (f64::from(resolved.max_ground_speed) * scale.metres_per_native()
+                - f64::from(config.max_ground_speed))
+                .abs()
+                < 1.0e-5
+        );
+        assert!(
+            (f64::from(resolved.jump_speed) * scale.metres_per_native()
+                - f64::from(config.jump_speed))
+                .abs()
+                < 1.0e-5
+        );
     }
 }

@@ -9,9 +9,10 @@ use bevy::{math::DVec3, prelude::*};
 use crate::{
     config::EngineConfig,
     ecs::{UsfEntity, UsfManifestationOf, UsfManifestations, UsfPresentationProjectionOf},
+    physics::gravity::RadialGravitySource,
     procedural_assets::ProceduralAssetLibrary,
     spatial::{
-        SpatialScale, UsfApproachRefinement, UsfChartMask, UsfPosition, UsfRadialGravitySource,
+        SpatialScale, UsfApproachRefinement, UsfChartMask, UsfPosition,
         UsfScaleFallbackPresentation, UsfScaleLayer, UsfSceneryPresentation, UsfTravelInfluence,
     },
     voxel::{
@@ -234,7 +235,7 @@ fn spawn_celestial_body(
                 nav_scale,
                 nav_scale.metres_to_native_f64(radius_metres),
             ),
-            UsfRadialGravitySource::new(
+            RadialGravitySource::new(
                 center,
                 radius_metres,
                 nav_scale,
@@ -399,7 +400,7 @@ pub(in crate::game::world::procedural) fn audit_world_authority(
             Option<&CelestialVoxelField>,
             Option<&VoxelAuthority>,
             Option<&UsfTravelInfluence>,
-            Option<&UsfRadialGravitySource>,
+            Option<&RadialGravitySource>,
             Option<&UsfApproachRefinement>,
             Option<&UsfManifestations>,
         ),

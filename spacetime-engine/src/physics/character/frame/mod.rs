@@ -1,5 +1,9 @@
 use bevy::prelude::*;
 
+use crate::physics::gravity::GravitySample;
+
+use super::{CharacterGroundState, CharacterMotor};
+
 const FRAME_EPSILON: f32 = 1.0e-6;
 
 /// Persistent locomotion/gravity reference frame for a character.
@@ -59,6 +63,59 @@ impl CharacterLocomotionFrame {
         let back = right.cross(up).normalize_or_zero();
 
         Quat::from_mat3(&Mat3::from_cols(right, up, back)).normalize()
+    }
+}
+
+
+/// Opts a locomotion frame into gravity-derived `up`.
+///
+/// The marker keeps the policy explicit: future magnetic boots, artificial
+/// decks or authored reference frames can omit it without changing gravity
+/// itself.
+#[derive(Component, Reflect, Clone, Copy, Debug, Default)]
+#[reflect(Component)]
+pub struct GravityAlignedLocomotionFrame;
+
+pub(super) fn sync_gravity_aligned_locomotion_frames(
+    mut frames: Query<
+        (&GravitySample, &mut CharacterLocomotionFrame),
+        With<GravityAlignedLocomotionFrame>,
+    >,
+) {
+    for (gravity, mut frame) in &mut frames {
+        let acceleration = gravity.acceleration_metres_per_second2();
+        if acceleration.length_squared() <= 1.0e-12 {
+            continue;
+        }
+
+        let down = Vec3::new(
+            acceleration.x as f32,
+            acceleration.y as f32,
+            acceleration.z as f32,
+        )
+        .normalize_or_zero();
+        if down != Vec3::ZERO {
+            frame.up = -down;
+        }
+    }
+}
+
+pub(super) fn sync_character_body_alignment(
+    mut characters: Query<
+        (
+            &CharacterLocomotionFrame,
+            &CharacterGroundState,
+            &mut CharacterControlFrame,
+            &mut Transform,
+        ),
+        With<CharacterMotor>,
+    >,
+) {
+    for (frame, ground, mut control, mut transform) in &mut characters {
+        control.follow_locomotion_frame(frame);
+        if ground.grounded {
+            transform.rotation = frame.aligned_rotation(transform.rotation);
+        }
     }
 }
 

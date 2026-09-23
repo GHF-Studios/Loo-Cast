@@ -18,6 +18,7 @@ use crate::{
         },
         surface::SurfaceContext,
     },
+    physics::gravity::GravitySample,
     spatial::{UsfCanonicalMotion, UsfNavigationContext},
 };
 
@@ -111,6 +112,10 @@ pub(super) fn spawn_player(
                 // Slices. CharacterMotor is only one detailed-body solver and
                 // must not be the component that implicitly creates the state
                 // needed by coarse navigation, cruise or input adapters.
+                (
+                    GravitySample::default(),
+                    GravityAlignedLocomotionFrame,
+                ),
                 CharacterControlFrame::default(),
                 CharacterLocomotionFrame::default(),
                 CharacterMovementConfig::default(),

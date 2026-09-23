@@ -1,14 +1,19 @@
 use avian3d::prelude::*;
-use bevy::prelude::*;
+use bevy::{app::RunFixedMainLoop, prelude::*};
+
+use crate::physics::gravity::GravitySample;
 
 use super::{
     CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame, CharacterMovementConfig,
-    CharacterMovementInput,
+    CharacterMovementInput, GravityAlignedLocomotionFrame,
     controller::{
         CharacterPush, apply_character_pushes, receive_dynamic_contact_pushes,
         simulate_character_motors,
     },
-    frame::settle_character_control_frames,
+    frame::{
+        settle_character_control_frames, sync_character_body_alignment,
+        sync_gravity_aligned_locomotion_frames,
+    },
 };
 
 /// Marker for an entity whose transform is integrated by the character motor.
@@ -28,7 +33,9 @@ use super::{
     CharacterMovementInput,
     CharacterGroundState,
     CharacterLocomotionFrame,
-    CharacterControlFrame
+    CharacterControlFrame,
+    GravitySample,
+    GravityAlignedLocomotionFrame
 )]
 pub struct CharacterMotor;
 
@@ -37,6 +44,12 @@ pub enum CharacterMovementSet {
     Simulate,
     PushDynamics,
     ReceiveDynamics,
+}
+
+/// Pre-fixed character environment/reference-frame resolution.
+#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
+pub enum CharacterEnvironmentSet {
+    ResolveReferenceFrame,
 }
 
 pub struct CharacterMovementPlugin;
@@ -50,6 +63,20 @@ impl Plugin for CharacterMovementPlugin {
             .register_type::<CharacterGroundState>()
             .register_type::<CharacterLocomotionFrame>()
             .register_type::<CharacterControlFrame>()
+            .register_type::<GravityAlignedLocomotionFrame>()
+            .configure_sets(
+                RunFixedMainLoop,
+                CharacterEnvironmentSet::ResolveReferenceFrame,
+            )
+            .add_systems(
+                RunFixedMainLoop,
+                (
+                    sync_gravity_aligned_locomotion_frames,
+                    sync_character_body_alignment,
+                )
+                    .chain()
+                    .in_set(CharacterEnvironmentSet::ResolveReferenceFrame),
+            )
             .add_systems(PreUpdate, settle_character_control_frames)
             .configure_sets(FixedUpdate, CharacterMovementSet::Simulate)
             .add_systems(

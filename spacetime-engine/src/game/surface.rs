@@ -1,8 +1,8 @@
 //! Gameplay-facing physical surface context.
 //!
-//! Navigation uses coarse semantic body bounds for regime selection, gravity
-//! and orbital policy. Player-facing altitude/contact instead references the
-//! actual procedural surface definition.
+//! Navigation supplies coarse semantic body geometry for regime selection.
+//! Player-facing altitude/contact instead references the actual procedural
+//! surface definition; physical fields are queried independently.
 
 use bevy::prelude::*;
 
@@ -109,7 +109,7 @@ fn sync_surface_contexts(
             continue;
         };
 
-        let reference_scale = primary.field_scale();
+        let reference_scale = primary.reference_scale();
         let bound_metres = (primary.center_distance_metres().max(primary.radius_metres())
             + primary.radius_metres())
             .max(1.0);

@@ -20,6 +20,7 @@ use crate::{
         navigation::{AdaptiveCruise, PrimaryBodyContext, TravelState},
         surface::SurfaceContext,
     },
+    physics::gravity::GravitySample,
     spatial::{SpatialScale, UsfCanonicalMotion, UsfScaleLayer},
 };
 
@@ -363,6 +364,7 @@ fn sync_flight_telemetry(
             &UsfCanonicalMotion,
             &AdaptiveCruise,
             &TravelState,
+            &GravitySample,
             &PrimaryBodyContext,
             &SurfaceContext,
             Option<&FlightContactState>,
@@ -379,6 +381,7 @@ fn sync_flight_telemetry(
         motion,
         cruise,
         travel,
+        gravity,
         primary,
         surface,
         contact,
@@ -406,7 +409,7 @@ fn sync_flight_telemetry(
         telemetry.primary_body = surface.body().or(primary.entity());
         telemetry.surface_clearance_metres = surface.clearance_metres();
         telemetry.surface_collision_ready = surface.collision_ready();
-        telemetry.local_gravity_metres_per_second2 = travel.local_gravity;
+        telemetry.local_gravity_metres_per_second2 = gravity.magnitude_metres_per_second2();
         telemetry.planetary_handoff_clearance_metres =
             travel.planetary_handoff_clearance_scale0;
         telemetry.planetary_handoff_available = travel.planetary_handoff_available;

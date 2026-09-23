@@ -26,6 +26,7 @@ use crate::{
     },
     physics::{
         chart::UsfPhysicsCharts,
+        gravity::GravitySample,
         character::{
             CharacterDimensions, CharacterGroundState, CharacterLocomotionFrame,
             CharacterMotor, CharacterMovementInput,
@@ -571,6 +572,7 @@ pub(super) fn flight_movement(
         &TravelProfile,
         &TravelEnvelope,
         &TravelState,
+        &GravitySample,
         &mut AdaptiveCruise,
         Option<&Collider>,
         Option<&KinematicQueryExclusions>,
@@ -593,6 +595,7 @@ pub(super) fn flight_movement(
         profile,
         envelope,
         travel,
+        gravity,
         mut cruise,
         collider,
         exclusions,
@@ -626,7 +629,7 @@ pub(super) fn flight_movement(
     let wish = flight_wish(intent, body.rotation, locomotion_frame.up());
     let boost = boost_multiplier(intent, profile);
     let pace = f64::from(intent.pace_multiplier().max(0.0));
-    let gravity = up * -f64::from(travel.local_gravity.max(0.0));
+    let gravity = gravity.acceleration_metres_per_second2();
 
     let next_velocity = match kernel {
         MotionKernel::ThrusterFlight => {
@@ -640,8 +643,8 @@ pub(super) fn flight_movement(
             *was_explicit_cruise = false;
             let speed = envelope.manual_speed_metres_per_second * pace * boost;
             let current = motion.velocity_metres_per_second();
-            let vertical = up * current.dot(up) + gravity * dt;
-            wish * speed + vertical
+            let vertical = up * current.dot(up);
+            wish * speed + vertical + gravity * dt
         }
         MotionKernel::InertialFlight => {
             *was_cruise_active = false;

@@ -37,9 +37,11 @@ use crate::{
     },
     physics::{
         chart::UsfPhysicsCharts,
+        gravity::{GravitySample, RadialGravitySource},
         character::{
             CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame,
             CharacterMovementConfig, CharacterMovementInput, CharacterMotor,
+            GravityAlignedLocomotionFrame,
         },
         topology::{KinematicQueryExclusions, SpatialSplitBox},
     },
@@ -209,6 +211,10 @@ fn spawn_reference_spacecraft(
             ),
             (
                 UsfTravelNeighborhood::default(),
+                (
+                    GravitySample::default(),
+                    GravityAlignedLocomotionFrame,
+                ),
                 UsfNavigationContext::default(),
                 CharacterControlFrame::default(),
                 CharacterLocomotionFrame::default(),
@@ -589,6 +595,7 @@ fn handle_spacecraft_actions(
 
 fn sync_spacecraft_orbit(
     semantic_positions: Query<&UsfPosition>,
+    gravity_sources: Query<&RadialGravitySource>,
     mut ships: Query<
         (
             &UsfManifestationOf,
@@ -601,7 +608,13 @@ fn sync_spacecraft_orbit(
 ) {
     for (manifestation, motion, primary, mut orbit) in &mut ships {
         orbit.valid = false;
-        if !primary.is_resolved() || primary.surface_gravity_metres_per_second2() <= 0.0 {
+        let Some(primary_entity) = primary.entity() else {
+            continue;
+        };
+        let Ok(gravity) = gravity_sources.get(primary_entity).copied() else {
+            continue;
+        };
+        if gravity.surface_gravity_metres_per_second2() <= 0.0 {
             continue;
         }
 
@@ -609,8 +622,8 @@ fn sync_spacecraft_orbit(
             continue;
         };
 
-        let field_scale = primary.field_scale();
-        let bound = primary.radius_metres() * 16.0;
+        let field_scale = gravity.field_scale();
+        let bound = gravity.radius_metres() * 16.0;
         let bound_native = field_scale
             .scale0_to_native_f64(bound)
             .min(f64::from(f32::MAX)) as f32;
@@ -634,8 +647,9 @@ fn sync_spacecraft_orbit(
         }
 
         let v = motion.velocity_metres_per_second();
-        let body_radius = primary.radius_metres();
-        let mu = f64::from(primary.surface_gravity_metres_per_second2()) * body_radius.powi(2);
+        let body_radius = gravity.radius_metres();
+        let mu =
+            f64::from(gravity.surface_gravity_metres_per_second2()) * body_radius.powi(2);
         if !mu.is_finite() || mu <= f64::EPSILON {
             continue;
         }

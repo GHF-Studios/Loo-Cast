@@ -3,7 +3,7 @@
 use bevy::prelude::*;
 
 use super::super::{
-    CharacterGroundState, CharacterMovementConfig, CharacterMovementInput, accelerate,
+    CharacterGroundState, CharacterMovementInput, ResolvedCharacterMovementConfig, accelerate,
     air_accelerate, apply_friction, reject,
 };
 
@@ -19,7 +19,7 @@ pub(super) fn reset_transition_flags(ground: &mut CharacterGroundState) {
 /// that classification immediately so subsequent route selection cannot treat a
 /// jump as grounded movement.
 pub(super) fn integrate_pre_move_velocity(
-    config: &CharacterMovementConfig,
+    config: &ResolvedCharacterMovementConfig,
     input: &CharacterMovementInput,
     ground: &mut CharacterGroundState,
     up: Vec3,
@@ -79,19 +79,18 @@ pub(super) fn integrate_pre_move_velocity(
         );
 
         // Split gravity: half before movement, half after.
-        *velocity -= up * (config.gravity * dt * 0.5);
+        *velocity += config.gravity_acceleration_native * (dt * 0.5);
     }
 }
 
 pub(super) fn apply_post_move_gravity(
-    config: &CharacterMovementConfig,
+    config: &ResolvedCharacterMovementConfig,
     grounded: bool,
-    up: Vec3,
     dt: f32,
     velocity: &mut Vec3,
 ) {
     if !grounded {
-        *velocity -= up * (config.gravity * dt * 0.5);
+        *velocity += config.gravity_acceleration_native * (dt * 0.5);
     }
 }
 

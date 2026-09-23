@@ -13,7 +13,7 @@ use bevy::prelude::*;
 
 use super::CollisionContext;
 use super::grounding::probe_ground;
-use super::super::{CharacterMovementConfig, reject};
+use super::super::{ResolvedCharacterMovementConfig, reject};
 
 pub(super) fn move_with_step_selection(
     collision: &CollisionContext<'_, '_, '_>,
@@ -22,7 +22,7 @@ pub(super) fn move_with_step_selection(
     duration: Duration,
     up: Vec3,
     moving_on_ground: bool,
-    config: &CharacterMovementConfig,
+    config: &ResolvedCharacterMovementConfig,
 ) -> MoveAndSlideOutput {
     let direct = slide(collision, start, velocity, duration);
 
@@ -63,7 +63,7 @@ fn step_route(
     velocity: Vec3,
     duration: Duration,
     up: Vec3,
-    config: &CharacterMovementConfig,
+    config: &ResolvedCharacterMovementConfig,
 ) -> Option<MoveAndSlideOutput> {
     let up_movement = up * config.step_height;
     let raised_distance = match collision.move_and_slide.cast_move(

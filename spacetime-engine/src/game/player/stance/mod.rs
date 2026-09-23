@@ -4,11 +4,12 @@
 //! portal-traveler history. Camera presentation derives its eye offset from
 //! [`CharacterStance`](super::CharacterStance) instead of being mutated here.
 
-use avian3d::prelude::{Collider, SpatialQuery, SpatialQueryFilter};
+use avian3d::prelude::{Collider, SpatialQuery};
 use bevy::prelude::*;
 
 use crate::{
     physics::{
+        chart::UsfPhysicsCharts,
         character::CharacterDimensions,
         topology::{KinematicQueryExclusions, SpatialSplitBox},
     },
@@ -33,6 +34,7 @@ pub fn update_stance(
     input: Res<PlayerInputFrame>,
     mut params: ParamSet<(
         SpatialQuery,
+        UsfPhysicsCharts,
         Single<
             (
                 Entity,
@@ -58,7 +60,7 @@ pub fn update_stance(
     let wants_crouch = input.pressed(PlayerAction::Crouch);
 
     let (character_kernel, dead, crouched, detailed_slice) = {
-        let player = params.p1();
+        let player = params.p2();
         let (_, _, _, layer, detailed, stance, locomotion, dead, _, _, _) =
             player.into_inner();
         (
@@ -81,7 +83,7 @@ pub fn update_stance(
     let center_delta = CharacterDimensions::HALF_HEIGHT - CharacterDimensions::CROUCH_HALF_HEIGHT;
 
     if wants_crouch {
-        let player = params.p1();
+        let player = params.p2();
         let (
             _,
             mut body,
@@ -112,13 +114,14 @@ pub fn update_stance(
         return;
     }
 
-    let (entity, target_center, rotation, excluded) = {
-        let player = params.p1();
-        let (entity, body, _, _, _, _, _, _, _, _, exclusions) = player.into_inner();
+    let (entity, target_center, rotation, scale, excluded) = {
+        let player = params.p2();
+        let (entity, body, _, layer, _, _, _, _, _, _, exclusions) = player.into_inner();
         (
             entity,
             body.translation + physical_up(&body) * center_delta,
             body.rotation,
+            layer.scale(),
             exclusions
                 .map(|exclusions| exclusions.iter().collect::<Vec<_>>())
                 .unwrap_or_default(),
@@ -126,8 +129,9 @@ pub fn update_stance(
     };
 
     let standing = CharacterDimensions::standing_collider();
-    let filter =
-        SpatialQueryFilter::from_excluded_entities(std::iter::once(entity).chain(excluded));
+    let filter = params
+        .p1()
+        .filter_for_scale(scale, std::iter::once(entity).chain(excluded));
 
     if !params
         .p0()
@@ -137,7 +141,7 @@ pub fn update_stance(
         return;
     }
 
-    let player = params.p1();
+    let player = params.p2();
     let (
         _,
         mut body,

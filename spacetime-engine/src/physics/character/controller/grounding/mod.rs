@@ -7,7 +7,7 @@ use avian3d::{
 use bevy::prelude::*;
 
 use super::CollisionContext;
-use super::super::{CharacterGroundState, CharacterMovementConfig, reject};
+use super::super::{CharacterGroundState, ResolvedCharacterMovementConfig, reject};
 
 #[derive(Clone, Copy, Debug)]
 pub(super) struct GroundHit {
@@ -51,7 +51,7 @@ pub(super) fn refresh_ground_state(
     collision: &CollisionContext<'_, '_, '_>,
     position: Vec3,
     up: Vec3,
-    config: &CharacterMovementConfig,
+    config: &ResolvedCharacterMovementConfig,
     state: &mut CharacterGroundState,
 ) {
     let hit = probe_ground(
@@ -75,7 +75,7 @@ pub(super) fn finalize_grounding(
     ground: &mut CharacterGroundState,
     up: Vec3,
     moving_from_ground: bool,
-    config: &CharacterMovementConfig,
+    config: &ResolvedCharacterMovementConfig,
 ) {
     let final_snap_distance = if moving_from_ground {
         config.ground_snap_distance.max(config.step_height)

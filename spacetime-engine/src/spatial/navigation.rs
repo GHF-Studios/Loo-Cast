@@ -285,38 +285,6 @@ fn navigation_length_scale0(
     }
 }
 
-/// Canonical radial-gravity source used by local physical regimes.
-#[derive(Component, Debug, Clone, Copy)]
-pub struct UsfRadialGravitySource {
-    center: UsfPosition,
-    radius_scale0: f64,
-    field_scale: SpatialScale,
-    surface_gravity: f32,
-}
-
-impl UsfRadialGravitySource {
-    pub fn new(
-        center: UsfPosition,
-        radius_scale0: f64,
-        field_scale: SpatialScale,
-        surface_gravity: f32,
-    ) -> Self {
-        assert!(radius_scale0.is_finite() && radius_scale0 > 0.0);
-        assert!(surface_gravity.is_finite() && surface_gravity >= 0.0);
-        Self {
-            center,
-            radius_scale0,
-            field_scale,
-            surface_gravity,
-        }
-    }
-
-    pub const fn center(self) -> UsfPosition { self.center }
-    pub const fn radius_scale0(self) -> f64 { self.radius_scale0 }
-    pub const fn field_scale(self) -> SpatialScale { self.field_scale }
-    pub const fn surface_gravity(self) -> f32 { self.surface_gravity }
-}
-
 #[derive(Component, Debug, Clone, Copy)]
 pub struct UsfTravelInfluence {
     anchor: UsfPosition,

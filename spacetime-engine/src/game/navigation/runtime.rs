@@ -6,15 +6,11 @@ use crate::{
     ecs::UsfManifestationOf,
     game::{
         control::LocalControlSubject,
-        locomotion::{ControlledSubjectLocomotion, LocomotionRegime, VelocitySemantics},
-    },
-    physics::character::{
-        CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame,
-        CharacterMovementConfig,
+        locomotion::{ControlledSubjectLocomotion, VelocitySemantics},
     },
     spatial::{
         SpatialRefinementDemand, SpatialScale, UsfApproachRefinement,
-        UsfInteractionRequirement, UsfNavigationContext, UsfRadialGravitySource,
+        UsfInteractionRequirement, UsfNavigationContext,
         UsfScaleLayer, UsfScaleRoleMask, UsfSpatialFrame, UsfSpatialTransitionQueue,
         UsfTransitionVelocity, UsfTravelInfluence, UsfTravelInfluenceKind,
         UsfTravelNeighborhood, UsfViewContext, UsfViewRenderAnchor,
@@ -420,114 +416,11 @@ pub(super) fn audit_navigation_contract(
     *audit = next;
 }
 
-const GRAVITY_FIELD_RADIUS_MULTIPLIER: f64 = 8.0;
-
-/// Projects the already-resolved primary body into the subject's local physical
-/// frame. Body selection itself is centralized in [`sync_travel_state`].
-pub(super) fn sync_planetary_gravity(
-    frame: Res<UsfSpatialFrame>,
-    subject: Single<
-        (
-            &mut Transform,
-            &UsfScaleLayer,
-            &PrimaryBodyContext,
-            &ControlledSubjectLocomotion,
-            &CharacterGroundState,
-            &mut CharacterControlFrame,
-            &mut CharacterLocomotionFrame,
-            &mut CharacterMovementConfig,
-            &mut TravelState,
-        ),
-        With<LocalControlSubject>,
-    >,
-) {
-    let (
-        mut body,
-        layer,
-        primary,
-        controlled,
-        ground,
-        mut control,
-        mut locomotion,
-        mut movement,
-        mut travel,
-    ) = subject.into_inner();
-
-    if !primary.is_resolved() || primary.surface_gravity_metres_per_second2() <= 0.0 {
-        travel.local_gravity = 0.0;
-        movement.gravity = 0.0;
-        return;
-    }
-
-    let Ok(position) = frame
-        .origin()
-        .translated_at_scale(layer.scale(), body.translation)
-    else {
-        return;
-    };
-
-    let radius = primary.radius_metres();
-    let field_scale = primary.field_scale();
-    let radius_native = field_scale.scale0_to_native_f64(radius);
-    let bound_native = (radius_native * GRAVITY_FIELD_RADIUS_MULTIPLIER)
-        .max(radius_native + 1.0)
-        .min(f64::from(f32::MAX)) as f32;
-
-    let Ok(relative) = position.relative_at_scale_bounded(
-        &primary.center(),
-        field_scale,
-        bound_native,
-    ) else {
-        travel.local_gravity = 0.0;
-        movement.gravity = 0.0;
-        return;
-    };
-
-    let distance_scale0 =
-        f64::from(relative.length()) * field_scale.scale0_units_per_native();
-    if distance_scale0 > radius * GRAVITY_FIELD_RADIUS_MULTIPLIER {
-        travel.local_gravity = 0.0;
-        movement.gravity = 0.0;
-        return;
-    }
-
-    let up = relative.normalize_or_zero();
-    if up != Vec3::ZERO {
-        locomotion.up = up;
-
-        if controlled.regime() == LocomotionRegime::OnFoot {
-            // View/input basis follows the continuously changing planetary
-            // tangent frame. The control-frame method deliberately preserves
-            // an active portal/topology settle.
-            control.follow_locomotion_frame(&locomotion);
-
-            // Once physically grounded, keep the visible/local body basis
-            // upright to the same radial frame as movement and camera control.
-            if ground.grounded {
-                body.rotation = locomotion.aligned_rotation(body.rotation);
-            }
-        }
-    }
-
-    let gravity_factor = if distance_scale0 >= radius {
-        (radius / distance_scale0.max(f64::EPSILON)).powi(2)
-    } else {
-        // Uniform-sphere fallback prevents missing collision from becoming an
-        // artificial black-hole acceleration toward the center.
-        (distance_scale0 / radius).clamp(0.0, 1.0)
-    };
-    let gravity = (f64::from(primary.surface_gravity_metres_per_second2()) * gravity_factor)
-        .clamp(0.0, f64::from(f32::MAX)) as f32;
-
-    travel.local_gravity = gravity;
-    movement.gravity = layer.scale().metres_to_native_f32(gravity);
-}
-
 /// Resolves one primary hard body and derives travel telemetry from that same
-/// context. Gravity/orbit consumers no longer perform independent body scans.
+/// context. Physical gravity is queried independently from the gravity-field
+/// subsystem; navigation owns only body-relative travel geometry.
 pub(super) fn sync_travel_state(
     frame: Res<UsfSpatialFrame>,
-    gravity_sources: Query<&UsfRadialGravitySource>,
     subject: Single<
         (
             &Transform,
@@ -581,20 +474,11 @@ pub(super) fn sync_travel_state(
         measurement.relative_proximity() <= profile.approach.activation_radii;
     state.critical_dropout = clearance <= handoff;
 
-    let gravity = gravity_sources.get(entity).ok().copied();
-    let center = gravity.map_or(influence.anchor(), UsfRadialGravitySource::center);
-    let field_scale = gravity.map_or(influence.scale(), UsfRadialGravitySource::field_scale);
-    let surface_gravity =
-        gravity.map_or(0.0, UsfRadialGravitySource::surface_gravity);
-    let gravity_radius =
-        gravity.map_or(radius, UsfRadialGravitySource::radius_scale0);
-
     *primary = PrimaryBodyContext::resolved(
         entity,
-        center,
-        gravity_radius,
-        field_scale,
-        surface_gravity,
+        influence.anchor(),
+        radius,
+        influence.scale(),
         measurement.center_distance_scale0(),
         clearance,
     );

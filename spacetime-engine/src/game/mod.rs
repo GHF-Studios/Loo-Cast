@@ -70,11 +70,13 @@ impl Plugin for LooCastPlugin {
                 RunFixedMainLoop,
                 (
                     control::ControlSet::Sample,
+                    crate::physics::gravity::GravitySet::Sample,
                     navigation::NavigationSet::Observe,
                     control::ControlSet::Request,
                     navigation::NavigationSet::Plan,
                     locomotion::LocomotionSet::Resolve,
                     locomotion::LocomotionSet::Realize,
+                    crate::physics::character::CharacterEnvironmentSet::ResolveReferenceFrame,
                     control::ControlSet::CharacterIntent,
                     navigation::NavigationSet::Publish,
                 )

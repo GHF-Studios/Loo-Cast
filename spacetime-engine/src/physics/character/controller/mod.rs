@@ -14,13 +14,17 @@ use avian3d::{
 use bevy::prelude::*;
 
 use crate::{
-    physics::{chart::UsfPhysicsCharts, topology::KinematicQueryExclusions},
+    physics::{
+        chart::UsfPhysicsCharts,
+        gravity::GravitySample,
+        topology::KinematicQueryExclusions,
+    },
     spatial::UsfScaleLayer,
 };
 
 use super::{
     CharacterGroundState, CharacterLocomotionFrame, CharacterMotor, CharacterMovementConfig,
-    CharacterMovementInput,
+    CharacterMovementInput, ResolvedCharacterMovementConfig,
 };
 
 mod grounding;
@@ -47,7 +51,7 @@ struct CollisionContext<'a, 'w, 's> {
 
 /// Mutable semantic state for one character during one fixed tick.
 struct MotorTick<'a> {
-    config: &'a CharacterMovementConfig,
+    config: &'a ResolvedCharacterMovementConfig,
     input: &'a mut CharacterMovementInput,
     ground: &'a mut CharacterGroundState,
     velocity: &'a mut LinearVelocity,
@@ -66,6 +70,7 @@ pub(super) fn simulate_character_motors(
             &UsfScaleLayer,
             &Collider,
             &CharacterMovementConfig,
+            &GravitySample,
             &CharacterLocomotionFrame,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
@@ -89,6 +94,7 @@ pub(super) fn simulate_character_motors(
         layer,
         collider,
         config,
+        gravity,
         frame,
         mut input,
         mut ground,
@@ -101,6 +107,9 @@ pub(super) fn simulate_character_motors(
             .chain(exclusions.into_iter().flat_map(|exclusions| exclusions.iter()));
         let filter = physics_charts.filter_for_scale(layer.scale(), excluded);
 
+        let resolved_config =
+            config.resolve_for_chart(layer.scale(), gravity.acceleration_metres_per_second2());
+
         let collision = CollisionContext {
             move_and_slide: &move_and_slide,
             collider,
@@ -109,7 +118,7 @@ pub(super) fn simulate_character_motors(
             filter: &filter,
         };
         let tick = MotorTick {
-            config,
+            config: &resolved_config,
             input: &mut input,
             ground: &mut ground,
             velocity: &mut velocity,
@@ -174,7 +183,6 @@ fn simulate_character_motor(
     movement::apply_post_move_gravity(
         tick.config,
         tick.ground.grounded,
-        tick.up,
         dt,
         &mut tick.velocity.0,
     );
