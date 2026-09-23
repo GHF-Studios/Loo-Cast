@@ -1,8 +1,14 @@
 //! Generic controlled-subject locomotion runtime.
 //!
-//! No device input and no Player identity live here. Runtime behavior consumes
-//! generic subject state, generic controller intent and canonical navigation
-//! policy.
+//! There is one physical-motion contract:
+//!
+//! controller intent -> locomotion policy -> canonical SI velocity/position
+//!     -> optional detailed collision solve -> runtime chart projection
+//!
+//! `Transform` and Avian `LinearVelocity` are projections. They are never the
+//! semantic definition of flight speed at arbitrary Scale Slices.
+
+use std::time::Duration;
 
 use avian3d::{
     character_controller::move_and_slide::{
@@ -10,9 +16,10 @@ use avian3d::{
     },
     prelude::{Collider, LinearVelocity},
 };
-use bevy::prelude::*;
+use bevy::{math::DVec3, prelude::*};
 
 use crate::{
+    ecs::UsfManifestationOf,
     game::{
         control::LocalControlSubject,
         navigation::{AdaptiveCruise, TravelEnvelope, TravelProfile, TravelState},
@@ -25,7 +32,9 @@ use crate::{
         },
         topology::KinematicQueryExclusions,
     },
-    spatial::{SpatialScale, UsfScaleLayer},
+    spatial::{
+        SpatialScale, UsfCanonicalMotion, UsfPosition, UsfScaleLayer, UsfSpatialFrame,
+    },
 };
 
 use super::{
@@ -143,6 +152,21 @@ fn automatic_regime(
     }
 }
 
+fn canonical_motion_authoritative(
+    kernel: MotionKernel,
+    layer: SpatialScale,
+    detailed: SpatialScale,
+) -> bool {
+    match kernel {
+        MotionKernel::Cruise | MotionKernel::OrbitalFlight => true,
+        MotionKernel::InertialFlight => layer != detailed,
+        MotionKernel::Character
+        | MotionKernel::ThrusterFlight
+        | MotionKernel::ScaleNavigation
+        | MotionKernel::Disabled => false,
+    }
+}
+
 pub(super) fn resolve_locomotion_state(
     mut transitions: MessageWriter<ControlledSubjectLocomotionChanged>,
     subject: Single<
@@ -155,12 +179,22 @@ pub(super) fn resolve_locomotion_state(
             &LocomotionCapabilities,
             &LocomotionEnabled,
             &mut ControlledSubjectLocomotion,
+            &mut UsfCanonicalMotion,
         ),
         With<LocalControlSubject>,
     >,
 ) {
-    let (entity, layer, detailed, travel, profile, capabilities, enabled, mut locomotion) =
-        subject.into_inner();
+    let (
+        entity,
+        layer,
+        detailed,
+        travel,
+        profile,
+        capabilities,
+        enabled,
+        mut locomotion,
+        mut motion,
+    ) = subject.into_inner();
 
     let previous_regime = locomotion.regime();
     let previous_kernel = locomotion.kernel();
@@ -181,6 +215,7 @@ pub(super) fn resolve_locomotion_state(
                 kernel: locomotion.kernel(),
             });
         }
+        motion.set_canonical_authority(false);
         return;
     }
 
@@ -204,10 +239,7 @@ pub(super) fn resolve_locomotion_state(
                 travel,
                 profile,
                 *capabilities,
-            ) =>
-        {
-            requested
-        }
+            ) => requested,
         LocomotionRequest::Regime(_) => {
             locomotion.request_automatic();
             automatic
@@ -262,7 +294,14 @@ pub(super) fn resolve_locomotion_state(
             )
         };
 
-    if locomotion.resolve(regime, kernel, collision_policy, velocity_semantics) {
+    let changed = locomotion.resolve(regime, kernel, collision_policy, velocity_semantics);
+    motion.set_canonical_authority(canonical_motion_authoritative(
+        kernel,
+        layer.scale(),
+        detailed.0,
+    ));
+
+    if changed {
         transitions.write(ControlledSubjectLocomotionChanged {
             entity,
             previous_regime,
@@ -358,388 +397,296 @@ pub(super) fn sync_locomotion_runtime(
     }
 }
 
-fn flight_wish(intent: &FlightControlIntent, physical_up: Vec3) -> Vec3 {
+fn vec3_to_dvec3(value: Vec3) -> DVec3 {
+    DVec3::new(f64::from(value.x), f64::from(value.y), f64::from(value.z))
+}
+
+fn flight_wish(intent: &FlightControlIntent, physical_up: Vec3) -> DVec3 {
     let axes = intent.translation_axes();
     let view_rotation = intent.view_rotation();
-    (view_rotation * Vec3::X * axes.x
-        + view_rotation * Vec3::NEG_Z * axes.z
-        + physical_up * axes.y)
-        .normalize_or_zero()
+    vec3_to_dvec3(
+        (view_rotation * Vec3::X * axes.x
+            + view_rotation * Vec3::NEG_Z * axes.z
+            + physical_up * axes.y)
+            .normalize_or_zero(),
+    )
 }
 
-fn canonical_speed_to_native(scale: SpatialScale, metres_per_second: f64) -> f32 {
-    scale
-        .scale0_to_native_f64(metres_per_second.max(0.0))
-        .clamp(0.0, f64::from(f32::MAX)) as f32
-}
-
-pub(super) fn thruster_flight_movement(
-    time: Res<Time<Fixed>>,
-    move_and_slide: MoveAndSlide,
-    physics_charts: UsfPhysicsCharts,
-    subject: Single<
-        (
-            Entity,
-            &mut Transform,
-            &CharacterLocomotionFrame,
-            &FlightControlIntent,
-            &ControlledSubjectLocomotion,
-            &TravelProfile,
-            &UsfScaleLayer,
-            &Collider,
-            Option<&KinematicQueryExclusions>,
-            &TravelEnvelope,
-            &mut LinearVelocity,
-        ),
-        With<LocalControlSubject>,
-    >,
-) {
-    let (
-        entity,
-        mut body,
-        frame,
-        intent,
-        locomotion,
-        profile,
-        layer,
-        collider,
-        exclusions,
-        envelope,
-        mut velocity,
-    ) = subject.into_inner();
-
-    if locomotion.kernel() != MotionKernel::ThrusterFlight {
-        return;
-    }
-
-    let wish = flight_wish(intent, frame.up());
-    let boost = if intent.boost() {
-        profile.flight.boost_multiplier
+fn boost_multiplier(intent: &FlightControlIntent, profile: &TravelProfile) -> f64 {
+    if intent.boost() {
+        f64::from(profile.flight.boost_multiplier.max(0.0))
     } else {
         1.0
+    }
+}
+
+fn commit_canonical_motion(
+    dt_seconds: f64,
+    frame: &UsfSpatialFrame,
+    manifestation: &UsfManifestationOf,
+    layer: SpatialScale,
+    body: &mut Transform,
+    velocity_cache: &mut LinearVelocity,
+    motion: &UsfCanonicalMotion,
+    semantic_positions: &mut Query<&mut UsfPosition>,
+) {
+    let Ok(mut semantic) = semantic_positions.get_mut(manifestation.0) else {
+        error!(
+            subject = ?manifestation.0,
+            "canonical flight subject has no semantic USF position"
+        );
+        return;
     };
-    let canonical_speed = envelope.manual_speed_metres_per_second
-        * f64::from(intent.pace_multiplier())
-        * f64::from(boost.max(0.0));
-    let desired_velocity =
-        wish * canonical_speed_to_native(layer.scale(), canonical_speed);
+
+    let delta_metres = motion.velocity_metres_per_second() * dt_seconds;
+    let Ok(next) = semantic.translated_metres_f64(delta_metres) else {
+        error!(
+            subject = ?manifestation.0,
+            delta_metres = ?delta_metres,
+            "canonical flight integration failed"
+        );
+        return;
+    };
+
+    let Ok(runtime) = next.relative_at_scale_bounded(frame.origin(), layer, f32::MAX) else {
+        error!(
+            subject = ?manifestation.0,
+            scale = %layer,
+            "canonical flight position could not project into runtime chart"
+        );
+        return;
+    };
+
+    *semantic = next;
+    body.translation = runtime;
+    velocity_cache.0 = motion.native_velocity(layer);
+}
+
+fn collide_runtime_motion(
+    entity: Entity,
+    dt: Duration,
+    layer: SpatialScale,
+    body: &mut Transform,
+    collider: Option<&Collider>,
+    exclusions: Option<&KinematicQueryExclusions>,
+    desired_native_velocity: Vec3,
+    move_and_slide: &MoveAndSlide,
+    physics_charts: &UsfPhysicsCharts,
+) -> Vec3 {
+    let Some(collider) = collider else {
+        body.translation += desired_native_velocity * dt.as_secs_f32();
+        return desired_native_velocity;
+    };
 
     let excluded = std::iter::once(entity)
         .chain(exclusions.into_iter().flat_map(|items| items.iter()));
-    let filter = physics_charts.filter_for_scale(layer.scale(), excluded);
+    let filter = physics_charts.filter_for_scale(layer, excluded);
     let moved = move_and_slide.move_and_slide(
         collider,
         body.translation,
         body.rotation,
-        desired_velocity,
-        time.delta(),
+        desired_native_velocity,
+        dt,
         &MoveAndSlideConfig::default(),
         &filter,
         |_| MoveAndSlideHitResponse::Accept,
     );
 
     body.translation = moved.position;
-    velocity.0 = moved.projected_velocity;
+    moved.projected_velocity
 }
 
-pub(super) fn scale_navigation_movement(
+pub(super) fn flight_movement(
     time: Res<Time<Fixed>>,
+    frame: Res<UsfSpatialFrame>,
     move_and_slide: MoveAndSlide,
     physics_charts: UsfPhysicsCharts,
+    mut was_cruise_active: Local<bool>,
+    mut was_explicit_cruise: Local<bool>,
     subject: Single<
         (
             Entity,
             &mut Transform,
-            &CharacterLocomotionFrame,
-            &FlightControlIntent,
-            &ControlledSubjectLocomotion,
-            &TravelProfile,
+            &UsfManifestationOf,
             &UsfScaleLayer,
-            &Collider,
-            Option<&KinematicQueryExclusions>,
-            &TravelEnvelope,
-            &TravelState,
+            &DetailedInteractionScale,
+            &ControlledSubjectLocomotion,
+            &mut UsfCanonicalMotion,
             &mut LinearVelocity,
         ),
         With<LocalControlSubject>,
     >,
+    mut policy: Query<(
+        &CharacterLocomotionFrame,
+        &FlightControlIntent,
+        &TravelProfile,
+        &TravelEnvelope,
+        &TravelState,
+        &mut AdaptiveCruise,
+        Option<&Collider>,
+        Option<&KinematicQueryExclusions>,
+    )>,
+    mut semantic_positions: Query<&mut UsfPosition>,
 ) {
     let (
         entity,
         mut body,
-        frame,
-        intent,
-        locomotion,
-        profile,
+        manifestation,
         layer,
-        collider,
-        exclusions,
+        detailed,
+        locomotion,
+        mut motion,
+        mut linear_velocity,
+    ) = subject.into_inner();
+
+    let Ok((
+        locomotion_frame,
+        intent,
+        profile,
         envelope,
         travel,
-        mut velocity,
-    ) = subject.into_inner();
-
-    if locomotion.kernel() != MotionKernel::ScaleNavigation {
-        return;
-    }
-
-    let wish = flight_wish(intent, frame.up());
-    let boost = if intent.boost() {
-        profile.flight.boost_multiplier
-    } else {
-        1.0
-    };
-    let canonical_speed = envelope.manual_speed_metres_per_second
-        * f64::from(intent.pace_multiplier())
-        * f64::from(boost.max(0.0));
-    let desired_thrust =
-        wish * canonical_speed_to_native(layer.scale(), canonical_speed);
-
-    let gravity_native = layer.scale().metres_to_native_f32(travel.local_gravity);
-    let free_fall = if gravity_native > 0.0 {
-        frame.up() * velocity.0.dot(frame.up())
-            - frame.up() * gravity_native * time.delta_secs()
-    } else {
-        Vec3::ZERO
-    };
-    let desired_velocity = desired_thrust + free_fall;
-
-    let excluded = std::iter::once(entity)
-        .chain(exclusions.into_iter().flat_map(|items| items.iter()));
-    let filter = physics_charts.filter_for_scale(layer.scale(), excluded);
-    let moved = move_and_slide.move_and_slide(
-        collider,
-        body.translation,
-        body.rotation,
-        desired_velocity,
-        time.delta(),
-        &MoveAndSlideConfig::default(),
-        &filter,
-        |_| MoveAndSlideHitResponse::Accept,
-    );
-
-    body.translation = moved.position;
-    velocity.0 = moved.projected_velocity;
-}
-
-pub(super) fn inertial_flight_movement(
-    time: Res<Time<Fixed>>,
-    move_and_slide: MoveAndSlide,
-    physics_charts: UsfPhysicsCharts,
-    subject: Single<
-        (
-            Entity,
-            &mut Transform,
-            &CharacterLocomotionFrame,
-            &FlightControlIntent,
-            &ControlledSubjectLocomotion,
-            &TravelProfile,
-            &UsfScaleLayer,
-            &Collider,
-            Option<&KinematicQueryExclusions>,
-            &TravelState,
-            &mut LinearVelocity,
-        ),
-        With<LocalControlSubject>,
-    >,
-) {
-    let (
-        entity,
-        mut body,
-        frame,
-        intent,
-        locomotion,
-        profile,
-        layer,
-        collider,
-        exclusions,
-        travel,
-        mut velocity,
-    ) = subject.into_inner();
-
-    if locomotion.kernel() != MotionKernel::InertialFlight {
-        return;
-    }
-
-    let boost = if intent.boost() {
-        profile.flight.boost_multiplier
-    } else {
-        1.0
-    };
-
-    let wish = flight_wish(intent, frame.up());
-    let thrust_native = layer.scale().metres_to_native_f32(
-        profile.flight.local_acceleration_metres_per_second2
-            * intent.pace_multiplier()
-            * boost,
-    );
-    let gravity_native = layer.scale().metres_to_native_f32(travel.local_gravity);
-    let acceleration = wish * thrust_native - frame.up() * gravity_native;
-    let desired_velocity = velocity.0 + acceleration * time.delta_secs();
-
-    let filter = physics_charts.filter_for_scale(
-        layer.scale(),
-        std::iter::once(entity)
-            .chain(exclusions.into_iter().flat_map(|items| items.iter())),
-    );
-    let moved = move_and_slide.move_and_slide(
-        collider,
-        body.translation,
-        body.rotation,
-        desired_velocity,
-        time.delta(),
-        &MoveAndSlideConfig::default(),
-        &filter,
-        |_| MoveAndSlideHitResponse::Accept,
-    );
-
-    body.translation = moved.position;
-    velocity.0 = moved.projected_velocity;
-}
-
-pub(super) fn orbital_flight_movement(
-    time: Res<Time<Fixed>>,
-    subject: Single<
-        (
-            &mut Transform,
-            &CharacterLocomotionFrame,
-            &FlightControlIntent,
-            &ControlledSubjectLocomotion,
-            &TravelProfile,
-            &UsfScaleLayer,
-            &TravelState,
-            &mut LinearVelocity,
-        ),
-        With<LocalControlSubject>,
-    >,
-) {
-    let (
-        mut body,
-        frame,
-        intent,
-        locomotion,
-        profile,
-        layer,
-        travel,
-        mut velocity,
-    ) = subject.into_inner();
-
-    if locomotion.kernel() != MotionKernel::OrbitalFlight {
-        return;
-    }
-
-    let boost = if intent.boost() {
-        profile.flight.boost_multiplier
-    } else {
-        1.0
-    };
-
-    let wish = flight_wish(intent, frame.up());
-    let thrust_native = layer.scale().metres_to_native_f32(
-        profile.flight.orbital_acceleration_metres_per_second2
-            * intent.pace_multiplier()
-            * boost,
-    );
-    let gravity_native = layer.scale().metres_to_native_f32(travel.local_gravity);
-    let acceleration = wish * thrust_native - frame.up() * gravity_native;
-
-    velocity.0 += acceleration * time.delta_secs();
-    body.translation += velocity.0 * time.delta_secs();
-}
-
-pub(super) fn adaptive_cruise_movement(
-    time: Res<Time<Fixed>>,
-    mut was_active: Local<bool>,
-    mut was_explicit: Local<bool>,
-    subject: Single<
-        (
-            &mut Transform,
-            &UsfScaleLayer,
-            &FlightControlIntent,
-            &ControlledSubjectLocomotion,
-            &TravelProfile,
-            &mut AdaptiveCruise,
-            &TravelEnvelope,
-            &TravelState,
-            Option<&mut LinearVelocity>,
-        ),
-        With<LocalControlSubject>,
-    >,
-) {
-    let (
-        mut body,
-        layer,
-        intent,
-        locomotion,
-        profile,
         mut cruise,
-        envelope,
-        travel,
-        velocity,
-    ) = subject.into_inner();
+        collider,
+        exclusions,
+    )) = policy.get_mut(entity)
+    else {
+        return;
+    };
 
-    if locomotion.kernel() != MotionKernel::Cruise {
-        *was_active = false;
-        *was_explicit = false;
+    let kernel = locomotion.kernel();
+    if matches!(kernel, MotionKernel::Character | MotionKernel::Disabled) {
+        *was_cruise_active = false;
+        *was_explicit_cruise = false;
         return;
     }
 
-    let dt = time.delta_secs().max(0.0);
+    let dt = time.delta().as_secs_f64();
     if dt <= 0.0 {
         return;
     }
 
-    let explicit =
-        locomotion.request() == LocomotionRequest::Regime(LocomotionRegime::Cruise);
-    let just_engaged = !*was_active;
-    let just_explicitly_engaged = explicit && !*was_explicit;
-    *was_active = true;
-    *was_explicit = explicit;
+    let up = vec3_to_dvec3(locomotion_frame.up()).normalize_or_zero();
+    let wish = flight_wish(intent, locomotion_frame.up());
+    let boost = boost_multiplier(intent, profile);
+    let pace = f64::from(intent.pace_multiplier().max(0.0));
+    let gravity = up * -f64::from(travel.local_gravity.max(0.0));
 
-    cruise.speed_cap_scale0 = envelope.cruise_max_speed_metres_per_second;
-    cruise.default_speed_scale0 = envelope.cruise_default_speed_metres_per_second;
-    cruise.nearest_hard_clearance_scale0 = travel.nearest_body_clearance_scale0;
-    cruise.medium_speed_cap_scale0 = envelope.medium_speed_cap_metres_per_second;
+    let next_velocity = match kernel {
+        MotionKernel::ThrusterFlight => {
+            *was_cruise_active = false;
+            *was_explicit_cruise = false;
+            let speed = envelope.manual_speed_metres_per_second * pace * boost;
+            wish * speed
+        }
+        MotionKernel::ScaleNavigation => {
+            *was_cruise_active = false;
+            *was_explicit_cruise = false;
+            let speed = envelope.manual_speed_metres_per_second * pace * boost;
+            let current = motion.velocity_metres_per_second();
+            let vertical = up * current.dot(up) + gravity * dt;
+            wish * speed + vertical
+        }
+        MotionKernel::InertialFlight => {
+            *was_cruise_active = false;
+            *was_explicit_cruise = false;
+            let thrust = f64::from(
+                profile.flight.local_acceleration_metres_per_second2.max(0.0),
+            ) * pace * boost;
+            motion.velocity_metres_per_second() + (wish * thrust + gravity) * dt
+        }
+        MotionKernel::OrbitalFlight => {
+            *was_cruise_active = false;
+            *was_explicit_cruise = false;
+            let thrust = f64::from(
+                profile.flight.orbital_acceleration_metres_per_second2.max(0.0),
+            ) * pace * boost;
+            motion.velocity_metres_per_second() + (wish * thrust + gravity) * dt
+        }
+        MotionKernel::Cruise => {
+            let explicit =
+                locomotion.request() == LocomotionRequest::Regime(LocomotionRegime::Cruise);
+            let just_engaged = !*was_cruise_active;
+            let just_explicitly_engaged = explicit && !*was_explicit_cruise;
+            *was_cruise_active = true;
+            *was_explicit_cruise = explicit;
 
-    if just_explicitly_engaged {
-        cruise.throttle = throttle_for_speed(
-            envelope.cruise_default_speed_metres_per_second,
-            envelope.cruise_max_speed_metres_per_second,
+            cruise.speed_cap_scale0 = envelope.cruise_max_speed_metres_per_second;
+            cruise.default_speed_scale0 = envelope.cruise_default_speed_metres_per_second;
+            cruise.nearest_hard_clearance_scale0 = travel.nearest_body_clearance_scale0;
+            cruise.medium_speed_cap_scale0 = envelope.medium_speed_cap_metres_per_second;
+
+            if just_explicitly_engaged {
+                cruise.throttle = throttle_for_speed(
+                    envelope.cruise_default_speed_metres_per_second,
+                    envelope.cruise_max_speed_metres_per_second,
+                );
+                cruise.speed_scale0 = envelope.cruise_default_speed_metres_per_second;
+            } else if just_engaged {
+                cruise.throttle = 0.0;
+                cruise.speed_scale0 = motion.speed_metres_per_second();
+            }
+
+            cruise.throttle = (
+                cruise.throttle
+                    + intent.forward_axis()
+                        * profile.cruise.throttle_rate_per_second
+                        * time.delta_secs()
+            )
+            .clamp(0.0, 1.0);
+
+            let requested = envelope.cruise_max_speed_metres_per_second
+                * f64::from(cruise.throttle.powf(2.0));
+            cruise.speed_scale0 = smooth_log_value(
+                cruise.speed_scale0,
+                requested,
+                time.delta_secs(),
+                profile.cruise.speed_response,
+            );
+
+            let direction =
+                vec3_to_dvec3(intent.view_rotation() * Vec3::NEG_Z).normalize_or_zero();
+            let current = motion.velocity_metres_per_second();
+            let lateral = current - direction * current.dot(direction);
+            lateral + direction * cruise.speed_scale0
+        }
+        MotionKernel::Character | MotionKernel::Disabled => unreachable!(),
+    };
+
+    motion.set_velocity_metres_per_second(next_velocity);
+
+    if motion.canonical_authority() {
+        commit_canonical_motion(
+            dt,
+            &frame,
+            manifestation,
+            layer.scale(),
+            &mut body,
+            &mut linear_velocity,
+            &motion,
+            &mut semantic_positions,
         );
-        cruise.speed_scale0 = envelope.cruise_default_speed_metres_per_second;
-    } else if just_engaged {
-        cruise.throttle = 0.0;
-        cruise.speed_scale0 = 0.0;
+        return;
     }
 
-    cruise.throttle = (
-        cruise.throttle
-            + intent.forward_axis()
-                * profile.cruise.throttle_rate_per_second
-                * dt
-    )
-    .clamp(0.0, 1.0);
-
-    let requested = envelope.cruise_max_speed_metres_per_second
-        * f64::from(cruise.throttle.powf(2.0));
-    cruise.speed_scale0 = smooth_log_value(
-        cruise.speed_scale0,
-        requested,
-        dt,
-        profile.cruise.speed_response,
+    let desired_native_velocity = motion.native_velocity(layer.scale());
+    let projected = collide_runtime_motion(
+        entity,
+        time.delta(),
+        layer.scale(),
+        &mut body,
+        collider,
+        exclusions,
+        desired_native_velocity,
+        &move_and_slide,
+        &physics_charts,
     );
+    linear_velocity.0 = projected;
+    motion.set_from_native_velocity(layer.scale(), projected);
 
-    let native_speed = layer
-        .scale()
-        .scale0_to_native_f64(cruise.speed_scale0.max(0.0))
-        .clamp(0.0, f64::from(f32::MAX)) as f32;
-    let direction = (intent.view_rotation() * Vec3::NEG_Z).normalize_or_zero();
-
-    body.translation += direction * native_speed * dt;
-
-    if let Some(mut velocity) = velocity {
-        velocity.0 = direction * native_speed;
-    }
+    debug_assert!(
+        layer.scale() == detailed.0 || kernel == MotionKernel::ScaleNavigation,
+        "runtime-authoritative flight should be detailed or explicit scale navigation"
+    );
 }
 
 fn throttle_for_speed(speed_metres_per_second: f64, max_metres_per_second: f64) -> f32 {
@@ -813,6 +760,31 @@ mod tests {
             ),
             LocomotionRegime::LocalFlight,
         );
+    }
+
+    #[test]
+    fn coarse_inertial_flight_is_canonical_authority() {
+        assert!(canonical_motion_authoritative(
+            MotionKernel::InertialFlight,
+            SpatialScale::MAX,
+            SpatialScale::ZERO,
+        ));
+        assert!(!canonical_motion_authoritative(
+            MotionKernel::InertialFlight,
+            SpatialScale::ZERO,
+            SpatialScale::ZERO,
+        ));
+    }
+
+    #[test]
+    fn cruise_lateral_velocity_is_not_destroyed() {
+        let forward = DVec3::NEG_Z;
+        let current = DVec3::new(42.0, 3.0, -100.0);
+        let lateral = current - forward * current.dot(forward);
+        let result = lateral + forward * 1_000.0;
+        assert_eq!(result.x, 42.0);
+        assert_eq!(result.y, 3.0);
+        assert_eq!(result.z, -1_000.0);
     }
 
     #[test]

@@ -13,7 +13,7 @@ use bevy::prelude::*;
 use crate::ecs::{UsfLogicalProjection, UsfManifestationOf};
 
 use super::{
-    SpatialScale, UsfPrimaryInteractionSlice, UsfInteractionProjection, UsfPosition,
+    SpatialScale, UsfCanonicalMotion, UsfPrimaryInteractionSlice, UsfInteractionProjection, UsfPosition,
     UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScaleLayerFrames, UsfScaleRoleMask,
     UsfSpatialAnchor, UsfSpatialFrame, UsfViewContext, UsfViewRenderAnchor,
 };
@@ -238,6 +238,7 @@ pub(super) fn apply_spatial_transitions(
                 &mut UsfScaleLayer,
                 Option<&mut Position>,
                 Option<&mut LinearVelocity>,
+                Option<&mut UsfCanonicalMotion>,
                 Option<&UsfManifestationOf>,
             ),
             (With<UsfInteractionProjection>, Without<ChildOf>),
@@ -359,7 +360,7 @@ pub(super) fn apply_spatial_transitions(
         return;
     }
 
-    for (_entity, mut transform, mut layer, position, velocity, manifestation) in
+    for (_entity, mut transform, mut layer, position, velocity, motion, manifestation) in
         &mut participants.p1()
     {
         if manifestation.is_none_or(|manifestation| manifestation.0 != subject) {
@@ -381,19 +382,37 @@ pub(super) fn apply_spatial_transitions(
             position.0 = translated;
         }
 
-        if let Some(mut velocity) = velocity {
-            let belongs_to_subject =
-                manifestation.is_some_and(|manifestation| manifestation.0 == subject);
+        let belongs_to_subject =
+            manifestation.is_some_and(|manifestation| manifestation.0 == subject);
 
-            if belongs_to_subject
-                && velocity_policy == UsfTransitionVelocity::Zero
-            {
-                velocity.0 = Vec3::ZERO;
-            } else if velocity_policy == UsfTransitionVelocity::PreserveCanonical {
-                velocity.0 *= transition_factor;
+        if belongs_to_subject {
+            match (motion, velocity) {
+                (Some(mut motion), Some(mut velocity)) => match velocity_policy {
+                    UsfTransitionVelocity::Zero => {
+                        motion.stop();
+                        velocity.0 = Vec3::ZERO;
+                    }
+                    UsfTransitionVelocity::PreserveCanonical => {
+                        velocity.0 = motion.native_velocity(target_scale);
+                    }
+                    UsfTransitionVelocity::PreserveNative => {
+                        motion.set_from_native_velocity(target_scale, velocity.0);
+                    }
+                },
+                (Some(mut motion), None) => {
+                    if velocity_policy == UsfTransitionVelocity::Zero {
+                        motion.stop();
+                    }
+                }
+                (None, Some(mut velocity)) => {
+                    if velocity_policy == UsfTransitionVelocity::Zero {
+                        velocity.0 = Vec3::ZERO;
+                    } else if velocity_policy == UsfTransitionVelocity::PreserveCanonical {
+                        velocity.0 *= transition_factor;
+                    }
+                }
+                (None, None) => {}
             }
-            // PreserveNative deliberately leaves the numeric vector untouched:
-            // the destination UsfScaleLayer changes what one local unit means.
         }
     }
 

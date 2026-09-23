@@ -8,6 +8,7 @@
 mod demand;
 mod devtools;
 mod layer;
+mod motion;
 mod navigation;
 mod position;
 mod refinement;
@@ -29,6 +30,7 @@ pub use layer::{
     UsfScaleLayerFrames, UsfScaleSlice, UsfScaleSliceMemberOf, UsfScaleSliceMembers,
     UsfScaleSlices,
 };
+pub use motion::UsfCanonicalMotion;
 pub use position::{
     SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale, UsfChunkAddress,
     UsfPosition, UsfPositionError,
@@ -147,6 +149,7 @@ impl Plugin for UsfSpatialPlugin {
             .add_systems(
                 PostUpdate,
                 (
+                    motion::sync_canonical_motion_from_runtime,
                     sync_semantic_positions,
                     transition::apply_spatial_transitions,
                     layer::sync_scale_slice_membership,

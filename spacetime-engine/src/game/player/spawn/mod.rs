@@ -16,7 +16,7 @@ use crate::{
             TravelProfile, TravelState,
         },
     },
-    spatial::UsfNavigationContext,
+    spatial::{UsfCanonicalMotion, UsfNavigationContext},
 };
 
 pub(super) fn spawn_player(
@@ -78,6 +78,7 @@ pub(super) fn spawn_player(
                 CharacterStance::default(),
                 ControlledSubjectLocomotion::default(),
                 FlightControlIntent::default(),
+                UsfCanonicalMotion::default(),
                 ScaleInteractionProxy::default(),
                 DetailedInteractionScale::default(),
                 TravelPace::default(),
@@ -86,9 +87,9 @@ pub(super) fn spawn_player(
                 ApproachRefinementState::default(),
                 AdaptiveCruise::default(),
                 TravelState::default(),
-                PrimaryBodyContext::default(),
             ),
             (
+                PrimaryBodyContext::default(),
                 UsfTravelNeighborhood::default(),
                 UsfNavigationContext::default(),
             ),

@@ -7,6 +7,8 @@ use crate::game::{
     },
 };
 
+use crate::spatial::UsfCanonicalMotion;
+
 use super::*;
 
 /// Adapts generic semantic death into the currently controlled runtime subject.
@@ -26,6 +28,7 @@ pub(super) fn handle_player_death(
             &mut FlightControlIntent,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
+            &mut UsfCanonicalMotion,
             Option<&mut LinearVelocity>,
         ),
         With<LocalControlSubject>,
@@ -44,6 +47,7 @@ pub(super) fn handle_player_death(
         mut flight_intent,
         mut input,
         mut ground,
+        mut motion,
         velocity,
     ) = subject.into_inner();
 
@@ -54,6 +58,7 @@ pub(super) fn handle_player_death(
     input.clear();
     ground.grounded = false;
     ground.ground_entity = None;
+    motion.stop();
 
     if let Some(mut velocity) = velocity {
         velocity.0 = Vec3::ZERO;

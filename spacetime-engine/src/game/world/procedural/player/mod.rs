@@ -13,7 +13,7 @@ use crate::{
         locomotion::{ControlledSubjectHull, ControlledSubjectLocomotion},
     },
     portal::PortalTraveler,
-    spatial::{SpatialScale, UsfPosition, UsfScaleLayer, UsfSpatialFrame},
+    spatial::{SpatialScale, UsfCanonicalMotion, UsfPosition, UsfScaleLayer, UsfSpatialFrame},
 };
 
 use super::landmarks::UniverseLandmarkIndex;
@@ -31,6 +31,7 @@ pub(super) fn prepare_controlled_subject(
             &mut Transform,
             &mut PortalTraveler,
             &mut LinearVelocity,
+            &mut UsfCanonicalMotion,
             &mut ControlledSubjectLocomotion,
             Option<&ControlledSubjectHull>,
         ),
@@ -43,6 +44,7 @@ pub(super) fn prepare_controlled_subject(
         mut transform,
         mut traveler,
         mut velocity,
+        mut motion,
         mut locomotion,
         hull,
     ) = subject.into_inner();
@@ -91,6 +93,7 @@ pub(super) fn prepare_controlled_subject(
     transform.translation = runtime_position;
     traveler.commit_position(runtime_position);
     velocity.0 = Vec3::ZERO;
+    motion.stop();
     locomotion.request_automatic();
     locomotion.set_thrusters_enabled(false);
 

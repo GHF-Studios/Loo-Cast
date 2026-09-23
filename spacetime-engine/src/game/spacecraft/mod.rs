@@ -44,7 +44,7 @@ use crate::{
     portal::PortalTraveler,
     spatial::{
         SpatialDemandSource, SpatialRefinementDemand, SpatialScale,
-        UsfInteractionProjection, UsfLocalScalePresentation, UsfPosition,
+        UsfCanonicalMotion, UsfInteractionProjection, UsfLocalScalePresentation, UsfPosition,
         UsfScaleLayer, UsfSpatialAnchor, UsfSpatialFrame,
         UsfTravelNeighborhood, UsfViewAnchor,
     },
@@ -163,7 +163,7 @@ fn spawn_reference_spacecraft(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut camera: Single<&mut PlayerCamera>,
-    mut body: Single<
+    body: Single<
         (
             Entity,
             &UsfManifestationOf,
@@ -230,6 +230,7 @@ fn spawn_reference_spacecraft(
                 LocomotionEnabled(true),
                 ControlledSubjectHull::cuboid(SHIP_SIZE, SHIP_PROXY_RADIUS_NATIVE),
                 FlightControlIntent::default(),
+                UsfCanonicalMotion::default(),
                 locomotion,
                 DetailedInteractionScale::default(),
                 TravelProfile::spacecraft(),
@@ -307,6 +308,7 @@ pub(crate) fn detect_landing(
             &Collider,
             Option<&KinematicQueryExclusions>,
             &mut LinearVelocity,
+            &mut UsfCanonicalMotion,
             &mut ControlledSubjectLocomotion,
             &mut LocomotionEnabled,
             &mut SpacecraftFlightState,
@@ -323,6 +325,7 @@ pub(crate) fn detect_landing(
         collider,
         exclusions,
         mut velocity,
+        mut motion,
         mut locomotion,
         mut enabled,
         mut state,
@@ -338,8 +341,7 @@ pub(crate) fn detect_landing(
         return;
     }
 
-    let speed_metres =
-        f64::from(velocity.0.length()) * layer.scale().scale0_units_per_native();
+    let speed_metres = motion.speed_metres_per_second();
     if speed_metres > f64::from(LANDING_MAX_SPEED_METRES_PER_SECOND) {
         return;
     }
@@ -374,6 +376,7 @@ pub(crate) fn detect_landing(
     }
 
     velocity.0 = Vec3::ZERO;
+    motion.stop();
     enabled.0 = false;
     state.regime = SpacecraftFlightRegime::Landed;
     locomotion.request_automatic();
@@ -407,7 +410,7 @@ fn handle_spacecraft_actions(
     mut commands: Commands,
     mut control_transfers: MessageWriter<LocalControlTransferRequest>,
     mut camera: Single<&mut PlayerCamera>,
-    mut player: Single<
+    player: Single<
         (
             Entity,
             &UsfManifestationOf,
@@ -433,6 +436,7 @@ fn handle_spacecraft_actions(
             &mut LocomotionEnabled,
             &mut ControlledSubjectLocomotion,
             &mut LinearVelocity,
+            &mut UsfCanonicalMotion,
             &mut SpacecraftFlightState,
         ),
         (With<SpacecraftManifestation>, With<LocalControlSubject>, Without<Player>),
@@ -452,8 +456,8 @@ fn handle_spacecraft_actions(
     >,
 ) {
     if let Ok((
-        ship_entity,
-        ship_manifestation,
+        _ship_entity,
+        _ship_manifestation,
         ship_transform,
         ship_layer,
         ship_frame,
@@ -461,6 +465,7 @@ fn handle_spacecraft_actions(
         mut ship_enabled,
         mut ship_locomotion,
         mut ship_velocity,
+        mut ship_motion,
         mut ship_state,
     )) = controlled_ship.single_mut()
     {
@@ -473,6 +478,7 @@ fn handle_spacecraft_actions(
             ship_locomotion.set_thrusters_enabled(true);
             ship_velocity.0 =
                 ship_frame.up() * ship_layer.scale().metres_to_native_f32(5.0);
+            ship_motion.set_from_native_velocity(ship_layer.scale(), ship_velocity.0);
             return;
         }
 
@@ -601,28 +607,24 @@ fn handle_spacecraft_actions(
 }
 
 fn sync_spacecraft_orbit(
-    frame: Res<UsfSpatialFrame>,
+    semantic_positions: Query<&UsfPosition>,
     mut ships: Query<
         (
-            &Transform,
-            &UsfScaleLayer,
-            &LinearVelocity,
+            &UsfManifestationOf,
+            &UsfCanonicalMotion,
             &PrimaryBodyContext,
             &mut SpacecraftOrbit,
         ),
         With<SpacecraftManifestation>,
     >,
 ) {
-    for (transform, layer, velocity, primary, mut orbit) in &mut ships {
+    for (manifestation, motion, primary, mut orbit) in &mut ships {
         orbit.valid = false;
         if !primary.is_resolved() || primary.surface_gravity_metres_per_second2() <= 0.0 {
             continue;
         }
 
-        let Ok(position) = frame
-            .origin()
-            .translated_at_scale(layer.scale(), transform.translation)
-        else {
+        let Ok(position) = semantic_positions.get(manifestation.0).copied() else {
             continue;
         };
 
@@ -650,13 +652,7 @@ fn sync_spacecraft_orbit(
             continue;
         }
 
-        let metres_per_native = layer.scale().scale0_units_per_native();
-        let v = DVec3::new(
-            f64::from(velocity.0.x),
-            f64::from(velocity.0.y),
-            f64::from(velocity.0.z),
-        ) * metres_per_native;
-
+        let v = motion.velocity_metres_per_second();
         let body_radius = primary.radius_metres();
         let mu = f64::from(primary.surface_gravity_metres_per_second2()) * body_radius.powi(2);
         if !mu.is_finite() || mu <= f64::EPSILON {

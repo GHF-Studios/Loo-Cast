@@ -339,6 +339,38 @@ impl UsfPosition {
         Ok(self)
     }
 
+    /// Translates by an f64 displacement authored in one Scale Slice without
+    /// routing physical motion through a chart-local f32 Transform.
+    pub fn translated_at_scale_f64(
+        mut self,
+        scale: SpatialScale,
+        delta: DVec3,
+    ) -> Result<Self, UsfPositionError> {
+        if !delta.is_finite() {
+            return Err(UsfPositionError::NonFiniteTranslation);
+        }
+        if scale < self.leaf_scale {
+            self = self.reexpressed_at(scale)?;
+        }
+        if delta == DVec3::ZERO {
+            return Ok(self);
+        }
+
+        let encoded_delta = UsfPosition::from_scale_native_f64(
+            delta,
+            scale,
+            self.leaf_scale,
+        )?;
+        self.add_same_leaf_delta(encoded_delta)?;
+        Ok(self)
+    }
+
+    /// Canonical SI-motion convenience: metres are S0 units by convention.
+    /// S0 is a unit adapter here, not an architectural center or floor.
+    pub fn translated_metres_f64(self, delta_metres: DVec3) -> Result<Self, UsfPositionError> {
+        self.translated_at_scale_f64(SpatialScale::ZERO, delta_metres)
+    }
+
     /// Adds a canonical displacement with the same leaf scale directly over
     /// the balanced-decimal hierarchy.
     fn add_same_leaf_delta(&mut self, delta: Self) -> Result<(), UsfPositionError> {

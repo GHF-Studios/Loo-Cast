@@ -1,19 +1,20 @@
 //! ECS realization of observer-relative USF presentation state.
 
 use super::*;
+use crate::ecs::UsfManifestationOf;
 
 /// Keeps the view anchored to an ordinary bounded runtime transform while
 /// deriving its semantic position through the current local physical frame.
 pub(in crate::spatial) fn sync_view_context(
-    frame: Res<UsfSpatialFrame>,
-    semantic_anchors: Query<(&Transform, &UsfScaleLayer), With<UsfViewAnchor>>,
+    semantic_anchors: Query<(&Transform, &UsfManifestationOf), With<UsfViewAnchor>>,
+    semantic_positions: Query<&UsfPosition>,
     observer: Single<
         (&Transform, &mut UsfViewContext),
         With<UsfViewRenderAnchor>,
     >,
 ) {
     let mut semantic_anchors = semantic_anchors.iter();
-    let Some((semantic_anchor, anchor_layer)) = semantic_anchors.next() else {
+    let Some((runtime_anchor, manifestation)) = semantic_anchors.next() else {
         return;
     };
     if semantic_anchors.next().is_some() {
@@ -21,25 +22,21 @@ pub(in crate::spatial) fn sync_view_context(
         return;
     }
 
-    let (render_anchor, mut view) = observer.into_inner();
-
-    let Ok(canonical) = frame
-        .origin()
-        .translated_at_scale(anchor_layer.scale(), semantic_anchor.translation)
-    else {
+    let Ok(&canonical) = semantic_positions.get(manifestation.0) else {
         error!(
-            local_anchor = ?semantic_anchor.translation,
-            "USF semantic view anchor could not project into canonical space"
+            subject = ?manifestation.0,
+            "USF semantic view anchor has no canonical position"
         );
         return;
     };
 
+    let (render_anchor, mut view) = observer.into_inner();
     if view.anchor != canonical
-        || view.runtime_anchor != semantic_anchor.translation
+        || view.runtime_anchor != runtime_anchor.translation
         || view.render_anchor != render_anchor.translation
     {
         view.anchor = canonical;
-        view.runtime_anchor = semantic_anchor.translation;
+        view.runtime_anchor = runtime_anchor.translation;
         view.render_anchor = render_anchor.translation;
     }
 }

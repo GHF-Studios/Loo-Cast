@@ -20,7 +20,7 @@ use crate::{
         },
     },
     spatial::{
-        SpatialDemandSource, UsfNavigationContext, UsfScaleLayer, UsfTravelNeighborhood,
+        SpatialDemandSource, UsfCanonicalMotion, UsfNavigationContext, UsfScaleLayer, UsfTravelNeighborhood,
         UsfViewContext, UsfViewRenderAnchor,
     },
     ui::{UiTextRole, UiTheme},
@@ -185,6 +185,7 @@ fn update_player_status(
             &TravelEnvelope,
             &AdaptiveCruise,
             &ControlledSubjectLocomotion,
+            &UsfCanonicalMotion,
             &UsfTravelNeighborhood,
             &UsfNavigationContext,
         ),
@@ -201,6 +202,7 @@ fn update_player_status(
         envelope,
         cruise,
         locomotion,
+        motion,
         neighborhood,
         navigation,
     ) = player.into_inner();
@@ -226,7 +228,7 @@ fn update_player_status(
             "HEALTH {health}\nCRUISE {:>3.0}%  S{}  SPD {:.3e} m/s\nDEF {:.3e} m/s  CAP {:.3e} m/s\nHARD {}  MED {}  NBR {:>2}\nVIEW {:+.2}",
             cruise.throttle * 100.0,
             layer.scale(),
-            cruise.speed_scale0,
+            motion.speed_metres_per_second(),
             cruise.default_speed_scale0,
             cruise.speed_cap_scale0,
             hard_clearance,
@@ -238,9 +240,10 @@ fn update_player_status(
         let navigation_speed =
             envelope.manual_speed_metres_per_second * f64::from(manual_speed.multiplier.max(0.0));
         text.0 = format!(
-            "HEALTH {health}\nMANUAL {:.3}x  S{}  SPD {:.3e} m/s\nNAV {}  LEN {:.3e} m  VIEW {:+.2}",
+            "HEALTH {health}\nMANUAL {:.3}x  S{}  SPD {:.3e} m/s  CMD {:.3e} m/s\nNAV {}  LEN {:.3e} m  VIEW {:+.2}",
             manual_speed.multiplier,
             layer.scale(),
+            motion.speed_metres_per_second(),
             navigation_speed,
             navigation.kind().label(),
             navigation.characteristic_length_scale0(),

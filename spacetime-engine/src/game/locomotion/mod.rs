@@ -368,14 +368,7 @@ impl Plugin for LocomotionPlugin {
             )
             .add_systems(
                 FixedUpdate,
-                (
-                    runtime::thruster_flight_movement,
-                    runtime::scale_navigation_movement,
-                    runtime::inertial_flight_movement,
-                    runtime::orbital_flight_movement,
-                    runtime::adaptive_cruise_movement,
-                )
-                    .chain()
+                runtime::flight_movement
                     .in_set(LocomotionSet::Motion)
                     .after(CharacterMovementSet::Simulate),
             )

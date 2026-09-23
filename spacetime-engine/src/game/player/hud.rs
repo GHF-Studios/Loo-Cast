@@ -10,11 +10,11 @@ use crate::game::{
     locomotion::{
         ControlledSubjectLocomotion, DetailedInteractionScale, LocomotionRegime, MotionKernel,
     },
-    navigation::{AdaptiveCruise, TravelEnvelope, TravelState},
+    navigation::{AdaptiveCruise, TravelState},
 };
 use crate::{
     game::control::LocalControlSubject,
-    spatial::{UsfScaleLayer, UsfViewContext, UsfViewRenderAnchor},
+    spatial::{UsfCanonicalMotion, UsfScaleLayer, UsfViewContext, UsfViewRenderAnchor},
 };
 
 const HUD_TEXT: Color = Color::srgb(0.72, 0.95, 0.88);
@@ -117,11 +117,11 @@ pub(super) fn update_flight_hud(
     player: Single<
         (
             &TravelState,
-            &TravelEnvelope,
             &AdaptiveCruise,
             &ControlledSubjectLocomotion,
             &DetailedInteractionScale,
             &UsfScaleLayer,
+            &UsfCanonicalMotion,
         ),
         With<LocalControlSubject>,
     >,
@@ -132,7 +132,7 @@ pub(super) fn update_flight_hud(
         Single<(&mut Text, &mut Node), With<FlightHudAlert>>,
     )>,
 ) {
-    let (travel, envelope, cruise, locomotion, detailed, layer) = player.into_inner();
+    let (travel, cruise, locomotion, detailed, layer, motion) = player.into_inner();
     let flying = locomotion.regime() != LocomotionRegime::OnFoot;
 
     {
@@ -151,11 +151,7 @@ pub(super) fn update_flight_hud(
     }
 
     let cruising = locomotion.kernel() == MotionKernel::Cruise;
-    let speed = if cruising {
-        format_speed(cruise.speed_scale0)
-    } else {
-        format_speed(envelope.manual_speed_metres_per_second)
-    };
+    let speed = format_speed(motion.speed_metres_per_second());
     let throttle = if cruising {
         format!("{:>3.0}%", cruise.throttle * 100.0)
     } else {
