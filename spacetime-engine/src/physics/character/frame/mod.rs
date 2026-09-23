@@ -98,6 +98,15 @@ impl CharacterControlFrame {
         self.rotation.normalize()
     }
 
+    /// Immediately adopts one resolved control basis and cancels any transient settle.
+    ///
+    /// Use this at explicit pose transactions (for example vehicle exit), not
+    /// for ordinary per-frame orientation response.
+    pub fn snap_to(&mut self, rotation: Quat) {
+        self.rotation = rotation.normalize();
+        self.settle = None;
+    }
+
     /// Starts a smooth basis transition without touching any local look state.
     pub fn begin_settle(
         &mut self,
@@ -112,8 +121,7 @@ impl CharacterControlFrame {
 
         self.rotation = start;
         if duration <= FRAME_EPSILON {
-            self.rotation = target;
-            self.settle = None;
+            self.snap_to(target);
             return;
         }
 

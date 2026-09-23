@@ -1,10 +1,13 @@
 //! ECS realization of observer-relative USF presentation state.
 
 use super::*;
-use bevy::camera::visibility::RenderLayers;
+use bevy::{
+    camera::visibility::RenderLayers,
+    light::{NotShadowCaster, NotShadowReceiver},
+};
 use crate::{
     ecs::UsfManifestationOf,
-    view::{USF_PRESENTATION_LAYER, ViewSubjectPresentation},
+    view::USF_PRESENTATION_LAYER,
 };
 
 /// Keeps the view anchored to an ordinary bounded runtime transform while
@@ -72,7 +75,8 @@ pub(in crate::spatial) fn project_local_scale_presentations(
         &mut Transform,
         &mut Visibility,
         Option<&RenderLayers>,
-        Option<&ViewSubjectPresentation>,
+        Option<&NotShadowCaster>,
+        Option<&NotShadowReceiver>,
     )>,
 ) {
     for (
@@ -82,7 +86,8 @@ pub(in crate::spatial) fn project_local_scale_presentations(
         mut transform,
         mut visibility,
         render_layers,
-        subject_presentation,
+        not_shadow_caster,
+        not_shadow_receiver,
     ) in &mut presentations
     {
         let Ok((parent_transform, layer, follows_active, fallback)) = parents.get(parent.0) else {
@@ -92,44 +97,35 @@ pub(in crate::spatial) fn project_local_scale_presentations(
             presentation.set_scale(layer.scale());
         }
 
-        // Reaching this point means the presentation is a non-active member of
-        // the multiscale stack, so the semantic-origin USF camera owns it.
-        let desired_layers = RenderLayers::layer(USF_PRESENTATION_LAYER);
-        if render_layers.is_none_or(|current| *current != desired_layers) {
-            commands.entity(entity).insert(desired_layers);
-        }
-
-        // The controlled subject and the terrain that currently owns physical
-        // interaction already live in the correct bounded runtime chart. They
-        // are rendered by the local camera and MUST NOT be presentation-scaled
-        // or observer-recentered. USF projection is only for non-active stack
-        // members.
+        // Physical/local ownership is decided BEFORE render-layer mutation.
+        //
+        // - controlled-subject followers belong to the local camera;
+        // - terrain on the current interaction slice belongs to the local camera;
+        // - only non-active representation lanes belong to the USF camera.
         let physical_local =
             follows_active.is_some() || layer.scale() == interaction.scale();
         if physical_local {
-            let desired_layers = if follows_active.is_some() {
-                render_layers.cloned().unwrap_or_default()
-            } else {
-                RenderLayers::default()
-            };
-            if follows_active.is_none()
-                && render_layers.is_none_or(|current| *current != desired_layers)
-            {
-                commands.entity(entity).insert(desired_layers);
+            // Subject self-visibility is owned by sync_view_subject_presentations
+            // (ordinary world vs derived-view-only). Do not overwrite it here.
+            if follows_active.is_none() {
+                let desired_layers = RenderLayers::default();
+                if render_layers.is_none_or(|current| *current != desired_layers) {
+                    commands.entity(entity).insert(desired_layers);
+                }
+            }
+
+            // A local physical chart must participate in ordinary local shadows.
+            if not_shadow_caster.is_some() {
+                commands.entity(entity).remove::<NotShadowCaster>();
+            }
+            if not_shadow_receiver.is_some() {
+                commands.entity(entity).remove::<NotShadowReceiver>();
             }
 
             if transform.translation != Vec3::ZERO {
                 transform.translation = Vec3::ZERO;
             }
-            let authored_scale = if subject_presentation.is_some() {
-                // Subject meshes are authored in physical metres. Convert one
-                // authored metre into the current interaction chart's native
-                // units (S0=1, S1=0.1, S2=0.01, ...).
-                Vec3::splat(layer.scale().metres_to_native_f32(1.0))
-            } else {
-                // Voxel/materialization vertices are already slice-native.
-                Vec3::ONE
-            };
+            let authored_scale = Vec3::splat(presentation.authored_to_native_scale());
             if transform.scale != authored_scale {
                 transform.scale = authored_scale;
             }
@@ -139,16 +135,11 @@ pub(in crate::spatial) fn project_local_scale_presentations(
             continue;
         }
 
-        // Persistent scale-local worlds are fundamentally NOT mutually-exclusive
-        // LOD levels. The visible world is an additive nested stack:
-        //
-        //   coarse domain
-        //     minus finer refinement aperture
-        //       plus finer domain
-        //
-        // Until the aperture compositor is in place, keep every requested stack
-        // layer visible so refinement can never create a global terrain void.
-        // Coarse/fine overlap is preferable to deleting the parent world.
+        // Non-active terrain is presentation only. The current compositor owns
+        // one continuous far lane (at most the two adjacent view-demand scales),
+        // plus the explicit coarsest fallback when the view is beyond the voxel
+        // ladder. Rendering every coarser terrain scale simultaneously was the
+        // source of the near-surface slab/blob overlap.
         let far_fallback = fallback.is_some_and(|fallback| {
             layer.scale() == fallback.scale()
                 && view.continuous_exponent() >= f32::from(fallback.scale().exponent())
@@ -161,15 +152,28 @@ pub(in crate::spatial) fn project_local_scale_presentations(
                 demand.scale() == layer.scale()
                     && demand.contribution() > CONTRIBUTION_EPSILON
             });
-        let participates_in_stack = layer.scale() >= interaction.target_scale()
-            || presentation_demands_scale
-            || far_fallback;
+        let participates_in_stack = presentation_demands_scale || far_fallback;
 
-        if follows_active.is_none() && !participates_in_stack {
+        if !participates_in_stack {
             if !matches!(*visibility, Visibility::Hidden) {
                 *visibility = Visibility::Hidden;
             }
             continue;
+        }
+
+        let desired_layers = RenderLayers::layer(USF_PRESENTATION_LAYER);
+        if render_layers.is_none_or(|current| *current != desired_layers) {
+            commands.entity(entity).insert(desired_layers);
+        }
+
+        // Far USF geometry is a compressed visual chart. It must not share a
+        // PBR shadow domain with the physically local chart: a local ship cannot
+        // cast a meaningful shadow onto a reprojected planet, and vice versa.
+        if not_shadow_caster.is_none() {
+            commands.entity(entity).insert(NotShadowCaster);
+        }
+        if not_shadow_receiver.is_none() {
+            commands.entity(entity).insert(NotShadowReceiver);
         }
 
         let observer_in_parent_chart = if follows_active.is_some() {
@@ -196,12 +200,8 @@ pub(in crate::spatial) fn project_local_scale_presentations(
             + (parent_transform.translation - observer_in_parent_chart) * factor;
         let delta = desired_global - parent_transform.translation;
         let desired_translation = parent_transform.rotation.inverse() * delta;
-        let authored_scale = if subject_presentation.is_some() {
-            layer.scale().metres_to_native_f32(1.0)
-        } else {
-            1.0
-        };
-        let desired_scale = Vec3::splat(factor * authored_scale);
+        let desired_scale =
+            Vec3::splat(factor * presentation.authored_to_native_scale());
 
         if transform.translation != desired_translation {
             transform.translation = desired_translation;
@@ -229,15 +229,31 @@ pub(in crate::spatial) fn project_scenery_presentations(
         &mut Transform,
         &mut Visibility,
         Option<&RenderLayers>,
+        Option<&NotShadowCaster>,
+        Option<&NotShadowReceiver>,
     )>,
 ) {
-    for (entity, presentation, mut transform, mut visibility, render_layers) in
-        &mut presentations
+    for (
+        entity,
+        presentation,
+        mut transform,
+        mut visibility,
+        render_layers,
+        not_shadow_caster,
+        not_shadow_receiver,
+    ) in &mut presentations
     {
         let desired_layers = RenderLayers::layer(USF_PRESENTATION_LAYER);
         if render_layers.is_none_or(|current| *current != desired_layers) {
             commands.entity(entity).insert(desired_layers);
         }
+        if not_shadow_caster.is_none() {
+            commands.entity(entity).insert(NotShadowCaster);
+        }
+        if not_shadow_receiver.is_none() {
+            commands.entity(entity).insert(NotShadowReceiver);
+        }
+
         let Ok(relative) = presentation.anchor().relative_at_scale_bounded(
             view.anchor(),
             presentation.scale(),
@@ -299,15 +315,32 @@ pub(in crate::spatial) fn project_scale_presentations(
         &mut Transform,
         &mut Visibility,
         Option<&RenderLayers>,
+        Option<&NotShadowCaster>,
+        Option<&NotShadowReceiver>,
     )>,
 ) {
-    for (entity, presentation, parent, mut transform, mut visibility, render_layers) in
-        &mut presentations
+    for (
+        entity,
+        presentation,
+        parent,
+        mut transform,
+        mut visibility,
+        render_layers,
+        not_shadow_caster,
+        not_shadow_receiver,
+    ) in &mut presentations
     {
         let desired_layers = RenderLayers::layer(USF_PRESENTATION_LAYER);
         if render_layers.is_none_or(|current| *current != desired_layers) {
             commands.entity(entity).insert(desired_layers);
         }
+        if not_shadow_caster.is_none() {
+            commands.entity(entity).insert(NotShadowCaster);
+        }
+        if not_shadow_receiver.is_none() {
+            commands.entity(entity).insert(NotShadowReceiver);
+        }
+
         let contribution = view.contribution(presentation.scale());
         if contribution <= CONTRIBUTION_EPSILON {
             if !matches!(*visibility, Visibility::Hidden) {

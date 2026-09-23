@@ -49,3 +49,15 @@ fn continuous_view_demand_keeps_both_adjacent_presentations_across_half_zoom() {
         assert!(upper.contribution() > 0.0);
     }
 }
+
+
+#[test]
+fn local_presentation_authoring_units_are_explicit_across_scale_slices() {
+    let s6 = SpatialScale::new(6).unwrap();
+
+    let native = UsfLocalScalePresentation::scale_native(s6);
+    let metres = UsfLocalScalePresentation::metres(s6);
+
+    assert_eq!(native.authored_to_native_scale(), 1.0);
+    assert!((metres.authored_to_native_scale() - 1.0e-6).abs() < 1.0e-12);
+}

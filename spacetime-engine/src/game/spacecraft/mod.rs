@@ -242,7 +242,7 @@ fn spawn_reference_spacecraft(
             Name::new("Reference Spacecraft Model"),
             ViewSubjectPresentation,
             UsfPresentationProjectionOf(ship),
-            UsfLocalScalePresentation::new(SpatialScale::MAX),
+            UsfLocalScalePresentation::metres(SpatialScale::MAX),
             Mesh3d(meshes.add(Cuboid::new(SHIP_SIZE.x, SHIP_SIZE.y, SHIP_SIZE.z))),
             MeshMaterial3d(materials.add(Color::srgb(0.68, 0.70, 0.76))),
             Transform::IDENTITY,
@@ -278,6 +278,7 @@ pub(crate) fn detect_landing(
             &mut Transform,
             &UsfScaleLayer,
             &DetailedInteractionScale,
+            &mut CharacterControlFrame,
             &CharacterLocomotionFrame,
             &Collider,
             Option<&KinematicQueryExclusions>,
@@ -296,6 +297,7 @@ pub(crate) fn detect_landing(
         mut transform,
         layer,
         detailed,
+        mut control,
         frame,
         collider,
         exclusions,
@@ -310,8 +312,14 @@ pub(crate) fn detect_landing(
         return;
     };
 
-    if contact.is_landed()
-        || layer.scale() != detailed.0
+    if contact.is_landed() {
+        let aligned = frame.aligned_rotation(transform.rotation);
+        transform.rotation = aligned;
+        control.snap_to(aligned);
+        return;
+    }
+
+    if layer.scale() != detailed.0
         || locomotion.regime() != LocomotionRegime::LocalFlight
     {
         return;
@@ -354,7 +362,9 @@ pub(crate) fn detect_landing(
     // Contact has been accepted: resolve the hull into the local surface
     // tangent frame once. This fixes landed camera/body orientation without
     // imposing auto-level behavior during free flight.
-    transform.rotation = frame.aligned_rotation(transform.rotation);
+    let aligned = frame.aligned_rotation(transform.rotation);
+    transform.rotation = aligned;
+    control.snap_to(aligned);
 
     velocity.0 = Vec3::ZERO;
     motion.stop();
@@ -379,6 +389,8 @@ fn handle_spacecraft_actions(
             &mut SpatialDemandSource,
             &mut LocomotionEnabled,
             &mut ControlledSubjectLocomotion,
+            &mut CharacterControlFrame,
+            &mut CharacterLocomotionFrame,
             &mut PortalTraveler,
         ),
         (With<Player>, Without<SpacecraftManifestation>),
@@ -452,6 +464,8 @@ fn handle_spacecraft_actions(
             mut player_demand,
             mut player_enabled,
             mut player_locomotion,
+            mut player_control,
+            mut player_frame,
             mut player_traveler,
         ) = player.into_inner();
 
@@ -469,7 +483,16 @@ fn handle_spacecraft_actions(
             *semantic = exit_semantic;
         }
         player_transform.translation = exit_local;
-        player_transform.rotation = ship_transform.rotation;
+
+        // Vehicle exit is a pose transaction. Seed the character's radial
+        // locomotion/control frame from the landed ship before control changes,
+        // otherwise grounding can start from a sideways collider and never
+        // reach the later "grounded => align" repair path.
+        player_frame.up = ship_frame.up();
+        let aligned_player = player_frame.aligned_rotation(ship_transform.rotation);
+        player_transform.rotation = aligned_player;
+        player_control.snap_to(aligned_player);
+
         *player_layer = UsfScaleLayer::new(ship_layer.scale());
         player_traveler.commit_position(exit_local);
         *player_visibility = Visibility::Inherited;
@@ -503,6 +526,8 @@ fn handle_spacecraft_actions(
         mut player_visibility,
         mut player_demand,
         mut player_enabled,
+        _,
+        _,
         _,
         _,
     ) = player.into_inner();

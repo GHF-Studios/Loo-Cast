@@ -105,22 +105,61 @@ impl UsfSceneryPresentation {
     }
 }
 
+/// Units in which one local presentation's mesh vertices were authored.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum UsfLocalPresentationUnits {
+    /// Vertices already use the owning Scale Slice's native units.
+    ScaleNative,
+    /// Vertices use physical metres and must be converted at the runtime-chart boundary.
+    Metres,
+}
+
 /// Presentation geometry whose parent already owns the correct runtime position.
 ///
-/// This is useful for actors such as the local player: physical interaction
-/// remains in its own Scale Slice while the visible child follows view scale.
+/// Position ownership and geometry authoring units are independent. Voxel
+/// materializations are slice-native; ordinary subject models are typically
+/// metre-authored. Keeping that distinction explicit prevents a Scale-Slice
+/// handoff from silently turning a 4-metre model into a 4-native-unit model.
 #[derive(Component, Debug, Clone, Copy)]
 pub struct UsfLocalScalePresentation {
     scale: SpatialScale,
+    units: UsfLocalPresentationUnits,
 }
 
 impl UsfLocalScalePresentation {
+    /// Slice-native geometry, used by scale-local mechanisms such as voxel meshes.
+    pub const fn scale_native(scale: SpatialScale) -> Self {
+        Self {
+            scale,
+            units: UsfLocalPresentationUnits::ScaleNative,
+        }
+    }
+
+    /// Physical-metre-authored geometry, used by ordinary actor/vehicle models.
+    pub const fn metres(scale: SpatialScale) -> Self {
+        Self {
+            scale,
+            units: UsfLocalPresentationUnits::Metres,
+        }
+    }
+
+    /// Backward-compatible constructor for scale-native representation geometry.
+    ///
+    /// New call sites should prefer [`Self::scale_native`] or [`Self::metres`]
+    /// so the authoring-space contract is visible at construction.
     pub const fn new(scale: SpatialScale) -> Self {
-        Self { scale }
+        Self::scale_native(scale)
     }
 
     pub const fn scale(self) -> SpatialScale {
         self.scale
+    }
+
+    pub(crate) fn authored_to_native_scale(self) -> f32 {
+        match self.units {
+            UsfLocalPresentationUnits::ScaleNative => 1.0,
+            UsfLocalPresentationUnits::Metres => self.scale.metres_to_native_f32(1.0),
+        }
     }
 
     pub(crate) fn set_scale(&mut self, scale: SpatialScale) {

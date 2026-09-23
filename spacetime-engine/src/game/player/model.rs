@@ -21,7 +21,7 @@ pub fn create_model(
         Name::new("Player Model"),
         ViewSubjectPresentation,
         PortalSplitVisual,
-        UsfLocalScalePresentation::new(SpatialScale::MAX),
+        UsfLocalScalePresentation::metres(SpatialScale::MAX),
         Mesh3d(meshes.add(Cuboid::new(
             CharacterDimensions::HULL_WIDTH,
             CharacterDimensions::HULL_HEIGHT,
