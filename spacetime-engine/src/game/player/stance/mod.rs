@@ -24,15 +24,13 @@ use crate::game::locomotion::{
 
 use super::{
     Player, PlayerDead,
-    controls::gameplay_suppressed,
-    cursor::CursorCapture,
+    input::{PlayerAction, PlayerInputFrame},
 };
 
 /// Changes the physical hull while keeping the feet fixed in body-local space.
 /// Standing back up is refused while the standing hull would intersect geometry.
 pub fn update_stance(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    capture: Res<CursorCapture>,
+    input: Res<PlayerInputFrame>,
     mut params: ParamSet<(
         SpatialQuery,
         Single<
@@ -53,12 +51,11 @@ pub fn update_stance(
         >,
     )>,
 ) {
-    if gameplay_suppressed(&keyboard, &capture) {
+    if !input.gameplay_active() {
         return;
     }
 
-    // C belongs exclusively to Cruise. Crouch remains Ctrl.
-    let wants_crouch = keyboard.pressed(KeyCode::ControlLeft);
+    let wants_crouch = input.pressed(PlayerAction::Crouch);
 
     let (character_kernel, dead, crouched, detailed_slice) = {
         let player = params.p1();

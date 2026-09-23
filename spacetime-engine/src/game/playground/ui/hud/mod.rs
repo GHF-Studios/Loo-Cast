@@ -15,8 +15,7 @@ use crate::{
         },
         navigation::{AdaptiveCruise, TravelEnvelope, TravelPace, TravelState},
         player::{
-            CameraMode,
-            PlayerCamera,
+            CameraMode, PlayerAction, PlayerCamera, PlayerInputBindings,
         },
     },
     spatial::{
@@ -253,19 +252,34 @@ fn update_player_status(
 }
 
 
-fn action_binding(action: ItemAction) -> Option<&'static str> {
+fn action_binding(action: ItemAction) -> Option<PlayerAction> {
     if action == ItemAction::PRIMARY {
-        Some("LMB")
+        Some(PlayerAction::ItemPrimary)
     } else if action == ItemAction::SECONDARY {
-        Some("RMB")
+        Some(PlayerAction::ItemSecondary)
     } else if action == ItemAction::RELOAD {
-        Some("R")
+        Some(PlayerAction::ItemReload)
     } else {
         None
     }
 }
 
+fn locomotion_status(locomotion: &ControlledSubjectLocomotion) -> String {
+    match locomotion.request() {
+        LocomotionRequest::Automatic => format!("{} • AUTO", locomotion.regime().label()),
+        LocomotionRequest::Regime(requested) if requested == locomotion.regime() => {
+            format!("{} • HELD", locomotion.regime().label())
+        }
+        LocomotionRequest::Regime(requested) => format!(
+            "{} → REQ {}",
+            locomotion.regime().label(),
+            requested.label(),
+        ),
+    }
+}
+
 fn update_context_actions(
+    bindings: Res<PlayerInputBindings>,
     menu: Res<CreativeMenuState>,
     hotbar: Res<Hotbar>,
     catalog: Res<ItemCatalog>,
@@ -281,45 +295,61 @@ fn update_context_actions(
     mut text: Single<&mut Text, With<ContextActionText>>,
 ) {
     if menu.open {
-        text.0 = "CREATIVE\nTAB       Close menu".to_string();
+        text.0 = format!(
+            "CREATIVE\n{:<10}Close menu",
+            bindings.label(PlayerAction::ToggleCreativeMenu),
+        );
         return;
     }
 
     let (travel, locomotion, demand) = player.into_inner();
-    let mut lines = Vec::<String>::with_capacity(10);
+    let mut lines = Vec::<String>::with_capacity(12);
+    lines.push(locomotion_status(locomotion));
 
     if let Some(item) = hotbar.selected_item().and_then(|item| catalog.find(item)) {
         lines.push(item.name.to_ascii_uppercase());
         for hint in &item.action_hints {
-            if let Some(binding) = action_binding(hint.action) {
-                lines.push(format!("{binding:<10}{}", hint.label));
+            if let Some(action) = action_binding(hint.action) {
+                lines.push(format!("{:<10}{}", bindings.label(action), hint.label));
             }
         }
-        lines.push("MMB       Erase object".to_string());
-    } else {
-        lines.push(locomotion.regime().label().to_string());
+        lines.push(format!(
+            "{:<10}Erase object",
+            bindings.label(PlayerAction::EraseObject),
+        ));
     }
+
+    let movement = bindings.movement_cluster_label();
+    let vertical = format!(
+        "{}/{}",
+        bindings.label(PlayerAction::Ascend),
+        bindings.label(PlayerAction::Descend),
+    );
 
     match locomotion.kernel() {
         MotionKernel::Character => {
-            lines.push("WASD      Move".to_string());
-            lines.push("SPACE     Jump".to_string());
-            lines.push("SHIFT     Sprint".to_string());
-            lines.push("CTRL      Crouch".to_string());
+            lines.push(format!("{movement:<10}Move"));
+            lines.push(format!("{:<10}Jump", bindings.label(PlayerAction::Jump)));
+            lines.push(format!("{:<10}Sprint", bindings.label(PlayerAction::Sprint)));
+            lines.push(format!("{:<10}Crouch", bindings.label(PlayerAction::Crouch)));
         }
         MotionKernel::ThrusterFlight
         | MotionKernel::InertialFlight
         | MotionKernel::ScaleNavigation => {
-            lines.push("WASD      Flight".to_string());
-            lines.push("SPACE/CTRL Vertical".to_string());
-            lines.push("SHIFT     Boost".to_string());
+            lines.push(format!("{movement:<10}Flight"));
+            lines.push(format!("{vertical:<10}Vertical"));
+            lines.push(format!("{:<10}Boost", bindings.label(PlayerAction::Boost)));
         }
         MotionKernel::OrbitalFlight => {
-            lines.push("WASD      Orbital thrust".to_string());
-            lines.push("SPACE/CTRL Radial thrust".to_string());
+            lines.push(format!("{movement:<10}Orbital thrust"));
+            lines.push(format!("{vertical:<10}Radial thrust"));
         }
         MotionKernel::Cruise => {
-            lines.push("W / S     Throttle".to_string());
+            lines.push(format!(
+                "{}/{}      Throttle",
+                bindings.label(PlayerAction::MoveForward),
+                bindings.label(PlayerAction::MoveBackward),
+            ));
         }
         MotionKernel::Disabled => {}
     }
@@ -327,48 +357,70 @@ fn update_context_actions(
     let cruising = locomotion.kernel() == MotionKernel::Cruise;
     if cruising {
         if travel.planetary_handoff_available {
-            lines.push("C         Drop to planetary".to_string());
+            lines.push(format!(
+                "{:<10}Drop to planetary",
+                bindings.label(PlayerAction::ToggleCruise),
+            ));
         } else {
-            lines.push("C         Disengage cruise".to_string());
+            lines.push(format!(
+                "{:<10}Disengage cruise",
+                bindings.label(PlayerAction::ToggleCruise),
+            ));
         }
     } else if !travel.critical_dropout {
-        lines.push("C         Engage cruise".to_string());
+        lines.push(format!(
+            "{:<10}Engage cruise",
+            bindings.label(PlayerAction::ToggleCruise),
+        ));
     }
 
     let explicit_local_flight = locomotion.request()
         == LocomotionRequest::Regime(LocomotionRegime::LocalFlight);
-    lines.push(if explicit_local_flight {
-        "V         Exit local flight".to_string()
-    } else {
-        "V         Local flight".to_string()
-    });
+    lines.push(format!(
+        "{:<10}{}",
+        bindings.label(PlayerAction::ToggleLocalFlight),
+        if explicit_local_flight { "Exit local flight" } else { "Local flight" },
+    ));
 
     if explicit_local_flight && locomotion.regime() == LocomotionRegime::LocalFlight {
         lines.push(format!(
-            "X         Thrusters {}",
+            "{:<10}Thrusters {}",
+            bindings.label(PlayerAction::ToggleThrusters),
             if locomotion.thrusters_enabled() { "off" } else { "on" }
         ));
     }
 
     lines.push(format!(
-        "L         Spatial demand {}",
+        "{:<10}Spatial demand {}",
+        bindings.label(PlayerAction::ToggleSpatialDemand),
         if demand.enabled() { "off" } else { "on" }
     ));
 
-    lines.push(match camera.mode {
-        CameraMode::FirstPerson => "F5        Third-person view".to_string(),
-        CameraMode::ThirdPerson => "F5        First-person view".to_string(),
-    });
+    lines.push(format!(
+        "{:<10}{}",
+        bindings.label(PlayerAction::ToggleCameraMode),
+        match camera.mode {
+            CameraMode::FirstPerson => "Third-person view",
+            CameraMode::ThirdPerson => "First-person view",
+        },
+    ));
 
     if locomotion.kernel() != MotionKernel::Cruise {
-        lines.push("ALT+WHEEL View scale".to_string());
+        lines.push(format!(
+            "{}+WHEEL  View scale",
+            bindings.label(PlayerAction::ViewScaleModifier),
+        ));
     }
 
+    let hotbar = bindings.hotbar_range_label();
     lines.push(match camera.mode {
-        CameraMode::FirstPerson => "1-9/WHEEL Hotbar".to_string(),
-        CameraMode::ThirdPerson => "1-9       Hotbar • WHEEL camera".to_string(),
+        CameraMode::FirstPerson => format!("{hotbar}/WHEEL Hotbar"),
+        CameraMode::ThirdPerson => format!("{hotbar:<10}Hotbar • WHEEL camera"),
     });
-    lines.push("TAB       Creative".to_string());
+    lines.push(format!(
+        "{:<10}Creative",
+        bindings.label(PlayerAction::ToggleCreativeMenu),
+    ));
 
     const MAX_LINES: usize = 10;
     if lines.len() > MAX_LINES {

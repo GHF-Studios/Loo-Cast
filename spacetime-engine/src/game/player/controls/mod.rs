@@ -4,10 +4,7 @@
 //! locomotion resolution, collision realization and motion kernels live in
 //! their generic domains.
 
-use bevy::{
-    input::mouse::{AccumulatedMouseMotion, AccumulatedMouseScroll},
-    prelude::*,
-};
+use bevy::prelude::*;
 
 use crate::{
     game::{
@@ -33,17 +30,8 @@ use crate::{
 
 use super::{
     Player, PlayerAim, PlayerController, PlayerDead, ViewCameraProfile,
-    cursor::CursorCapture,
+    input::{PlayerAction, PlayerInputFrame},
 };
-
-pub(super) fn gameplay_suppressed(
-    keyboard: &ButtonInput<KeyCode>,
-    capture: &CursorCapture,
-) -> bool {
-    !capture.active()
-        || keyboard.just_pressed(KeyCode::Tab)
-        || keyboard.just_pressed(KeyCode::Escape)
-}
 
 mod modes;
 mod movement;

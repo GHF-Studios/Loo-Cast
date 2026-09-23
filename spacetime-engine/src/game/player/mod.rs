@@ -9,6 +9,7 @@ mod camera;
 mod components;
 mod controls;
 mod hud;
+mod input;
 mod lifecycle;
 mod spawn;
 pub mod cursor;
@@ -18,6 +19,7 @@ mod stance;
 pub use camera::{CameraMode, PlayerCamera, ThirdPersonCamera, ViewCameraProfile};
 pub use components::{Player, PlayerAim, PlayerController, PlayerDead};
 
+pub(crate) use input::{PlayerAction, PlayerInputBindings, PlayerInputFrame};
 
 use avian3d::prelude::{
     ActiveCollisionHooks, Collider, CollisionLayers, CustomPositionIntegration, CustomVelocityIntegration,
@@ -78,6 +80,8 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<cursor::CursorCapture>()
             .init_resource::<InputFocus>()
+            .init_resource::<input::PlayerInputBindings>()
+            .init_resource::<input::PlayerInputFrame>()
             .init_resource::<PrimaryViewPresentation>()
             .register_type::<Player>()
             .register_type::<PlayerController>()
@@ -89,9 +93,26 @@ impl Plugin for PlayerPlugin {
             .register_type::<ThirdPersonCamera>()
             .register_type::<CameraMode>()
             .add_systems(Startup, (spawn_player, hud::spawn_flight_hud))
+            .configure_sets(
+                PreUpdate,
+                (
+                    InputFocusSet::Resolve,
+                    input::PlayerInputSet::Cursor,
+                    input::PlayerInputSet::Sample,
+                )
+                    .chain(),
+            )
             .add_systems(
                 PreUpdate,
                 cursor::apply_input_focus.in_set(InputFocusSet::Resolve),
+            )
+            .add_systems(
+                PreUpdate,
+                cursor::update_cursor_capture.in_set(input::PlayerInputSet::Cursor),
+            )
+            .add_systems(
+                PreUpdate,
+                input::sample_player_input.in_set(input::PlayerInputSet::Sample),
             )
             .add_systems(
                 RunFixedMainLoop,
@@ -114,10 +135,6 @@ impl Plugin for PlayerPlugin {
                 (stance::update_stance, controls::movement)
                     .chain()
                     .in_set(ControlSet::CharacterIntent),
-            )
-            .add_systems(
-                Update,
-                cursor::update_cursor_capture.in_set(InputSet::Cursor),
             )
             .add_systems(
                 Update,

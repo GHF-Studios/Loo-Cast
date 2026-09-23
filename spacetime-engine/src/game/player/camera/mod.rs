@@ -11,7 +11,7 @@
 //! to `base_distance_metres + zoom_offset_metres`.
 
 use avian3d::prelude::{Collider, ShapeCastConfig, SpatialQuery};
-use bevy::{input::mouse::AccumulatedMouseScroll, prelude::*};
+use bevy::prelude::*;
 
 use crate::{
     ecs::{UsfLogicalProjection, UsfManifestationOf, UsfManifestations},
@@ -30,7 +30,10 @@ use crate::game::{
     locomotion::CharacterStance,
 };
 
-use super::{Player, PlayerAim, cursor::CursorCapture};
+use super::{
+    Player, PlayerAim,
+    input::{PlayerAction, PlayerInputFrame},
+};
 
 /// Available local-player camera presentations.
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Default)]

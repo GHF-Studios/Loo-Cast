@@ -21,6 +21,8 @@ pub(super) fn handle_menu_hotbar_clicks(
 
 pub(super) fn handle_number_shortcuts(
     keyboard: Res<ButtonInput<KeyCode>>,
+    mouse: Res<ButtonInput<MouseButton>>,
+    bindings: Res<PlayerInputBindings>,
     state: Res<CreativeMenuState>,
     catalog_slots: Query<(&Interaction, &CreativeCatalogSlot)>,
     hotbar_slots: Query<(&Interaction, &CreativeHotbarSlot)>,
@@ -30,7 +32,7 @@ pub(super) fn handle_number_shortcuts(
         return;
     }
 
-    let Some(target) = pressed_hotbar_slot(&keyboard) else {
+    let Some(target) = bindings.hotbar_slot_just_pressed_raw(&keyboard, &mouse) else {
         return;
     };
 

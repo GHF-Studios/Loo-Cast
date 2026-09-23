@@ -32,7 +32,7 @@ use crate::{
             AdaptiveCruise, ApproachRefinementState, PrimaryBodyContext, TravelEnvelope,
             TravelProfile, TravelState,
         },
-        player::{Player, ViewCameraProfile},
+        player::{Player, PlayerAction, PlayerInputFrame, ViewCameraProfile},
     },
     physics::{
         chart::UsfPhysicsCharts,
@@ -375,7 +375,7 @@ pub(crate) fn detect_landing(
 }
 
 fn handle_spacecraft_actions(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    input: Res<PlayerInputFrame>,
     frame: Res<UsfSpatialFrame>,
     mut commands: Commands,
     mut control_transfers: MessageWriter<LocalControlTransferRequest>,
@@ -439,7 +439,10 @@ fn handle_spacecraft_actions(
         mut ship_contact,
     )) = controlled_ship.single_mut()
     {
-        if ship_contact.is_landed() && keyboard.just_pressed(KeyCode::Space) {
+        if ship_contact.is_landed()
+            && input.gameplay_active()
+            && input.just_pressed(PlayerAction::TakeOff)
+        {
             ship_contact.launch();
             ship_inhibition.set(LocomotionInhibitionReason::SurfaceContact, false);
             ship_locomotion.request_regime(LocomotionRegime::LocalFlight);
@@ -450,7 +453,9 @@ fn handle_spacecraft_actions(
             return;
         }
 
-        if !ship_contact.is_landed() || !keyboard.just_pressed(KeyCode::KeyE)
+        if !ship_contact.is_landed()
+            || !input.gameplay_active()
+            || !input.just_pressed(PlayerAction::Interact)
         {
             return;
         }
@@ -514,7 +519,7 @@ fn handle_spacecraft_actions(
         return;
     }
 
-    if !keyboard.just_pressed(KeyCode::KeyE) {
+    if !input.gameplay_active() || !input.just_pressed(PlayerAction::Interact) {
         return;
     }
 

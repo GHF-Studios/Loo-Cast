@@ -3,11 +3,12 @@ use bevy::{input::mouse::AccumulatedMouseScroll, prelude::*, window::PrimaryWind
 use crate::{
     game::{
         InputSet,
-        inventory::{HOTBAR_SIZE, Hotbar, pressed_hotbar_slot},
+        inventory::{HOTBAR_SIZE, Hotbar},
         item::{
             ItemCatalog, ItemId,
             presentation::{ItemView, spawn_item_view},
         },
+        player::PlayerInputBindings,
     },
     ui::{UiTextRole, UiTheme},
 };

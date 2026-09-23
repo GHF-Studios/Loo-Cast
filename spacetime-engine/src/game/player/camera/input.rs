@@ -3,10 +3,10 @@
 use super::*;
 
 pub(in crate::game::player) fn toggle_camera_mode(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    input: Res<PlayerInputFrame>,
     mut camera: Single<&mut PlayerCamera>,
 ) {
-    if !keyboard.just_pressed(KeyCode::F5) {
+    if !input.gameplay_active() || !input.just_pressed(PlayerAction::ToggleCameraMode) {
         return;
     }
 
@@ -19,24 +19,21 @@ pub(in crate::game::player) fn toggle_camera_mode(
 /// Scroll changes persistent zoom intent, never the collision-constrained
 /// distance. Wheel-up moves the desired third-person camera inward.
 pub(in crate::game::player) fn zoom_third_person(
-    scroll: Res<AccumulatedMouseScroll>,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    capture: Res<CursorCapture>,
+    input: Res<PlayerInputFrame>,
     presentation: Res<crate::view::PrimaryViewPresentation>,
     camera: Single<&PlayerCamera>,
     mut profile: Single<&mut ViewCameraProfile, With<LocalViewTarget>>,
 ) {
-    let spatial_zoom = keyboard.pressed(KeyCode::AltLeft) || keyboard.pressed(KeyCode::AltRight);
     if presentation.is_embedded()
-        || spatial_zoom
-        || !capture.active()
+        || input.pressed(PlayerAction::ViewScaleModifier)
+        || !input.gameplay_active()
         || camera.mode != CameraMode::ThirdPerson
-        || scroll.delta.y == 0.0
+        || input.scroll_y() == 0.0
     {
         return;
     }
 
     profile
         .third_person
-        .add_zoom_steps(-scroll.delta.y.signum());
+        .add_zoom_steps(-input.scroll_y().signum());
 }

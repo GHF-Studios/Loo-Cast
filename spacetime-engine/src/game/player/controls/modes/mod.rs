@@ -13,8 +13,7 @@ fn reset_control_state(
 
 /// `V` toggles an explicit Local Flight request.
 pub(in crate::game::player) fn toggle_local_flight(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    capture: Res<CursorCapture>,
+    input: Res<PlayerInputFrame>,
     dead: Single<Option<&PlayerDead>, With<Player>>,
     subject: Single<
         (
@@ -25,7 +24,7 @@ pub(in crate::game::player) fn toggle_local_flight(
         With<LocalControlSubject>,
     >,
 ) {
-    if gameplay_suppressed(&keyboard, &capture) || !keyboard.just_pressed(KeyCode::KeyV) {
+    if !input.gameplay_active() || !input.just_pressed(PlayerAction::ToggleLocalFlight) {
         return;
     }
 
@@ -47,8 +46,7 @@ pub(in crate::game::player) fn toggle_local_flight(
 
 /// `X` toggles translational thrusters inside detailed-slice Local Flight.
 pub(in crate::game::player) fn toggle_local_flight_thrusters(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    capture: Res<CursorCapture>,
+    input: Res<PlayerInputFrame>,
     dead: Single<Option<&PlayerDead>, With<Player>>,
     subject: Single<
         (
@@ -61,7 +59,7 @@ pub(in crate::game::player) fn toggle_local_flight_thrusters(
         With<LocalControlSubject>,
     >,
 ) {
-    if gameplay_suppressed(&keyboard, &capture) || !keyboard.just_pressed(KeyCode::KeyX) {
+    if !input.gameplay_active() || !input.just_pressed(PlayerAction::ToggleThrusters) {
         return;
     }
 
@@ -83,8 +81,7 @@ pub(in crate::game::player) fn toggle_local_flight_thrusters(
 
 /// `C` toggles an explicit Cruise request.
 pub(in crate::game::player) fn toggle_adaptive_cruise(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    capture: Res<CursorCapture>,
+    input: Res<PlayerInputFrame>,
     dead: Single<Option<&PlayerDead>, With<Player>>,
     subject: Single<
         (
@@ -97,7 +94,7 @@ pub(in crate::game::player) fn toggle_adaptive_cruise(
         With<LocalControlSubject>,
     >,
 ) {
-    if gameplay_suppressed(&keyboard, &capture) || !keyboard.just_pressed(KeyCode::KeyC) {
+    if !input.gameplay_active() || !input.just_pressed(PlayerAction::ToggleCruise) {
         return;
     }
 
@@ -126,11 +123,10 @@ pub(in crate::game::player) fn toggle_adaptive_cruise(
 
 /// `L` toggles the controlled subject's contribution to generic spatial demand.
 pub(in crate::game::player) fn toggle_spatial_demand(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    capture: Res<CursorCapture>,
+    input: Res<PlayerInputFrame>,
     mut subject: Single<&mut SpatialDemandSource, With<LocalControlSubject>>,
 ) {
-    if gameplay_suppressed(&keyboard, &capture) || !keyboard.just_pressed(KeyCode::KeyL) {
+    if !input.gameplay_active() || !input.just_pressed(PlayerAction::ToggleSpatialDemand) {
         return;
     }
 

@@ -1,9 +1,5 @@
 //! Generic local inventory-selection state.
 
-mod input;
-
-pub(super) use input::pressed_hotbar_slot;
-
 use bevy::prelude::*;
 
 use super::item::ItemId;

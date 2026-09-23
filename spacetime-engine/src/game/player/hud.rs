@@ -6,6 +6,8 @@
 
 use bevy::prelude::*;
 
+use super::input::{PlayerAction, PlayerInputBindings};
+
 use crate::{
     game::{
         control::LocalControlSubject,
@@ -111,6 +113,7 @@ pub(super) fn spawn_flight_hud(mut commands: Commands) {
 }
 
 pub(super) fn update_flight_hud(
+    bindings: Res<PlayerInputBindings>,
     telemetry: Single<&FlightTelemetry, With<LocalControlSubject>>,
     body_names: Query<&Name>,
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
@@ -192,13 +195,19 @@ pub(super) fn update_flight_hud(
     let warning = if !flying {
         None
     } else if telemetry.dropout_required() {
-        Some("CRITICAL DROPOUT")
+        Some("CRITICAL DROPOUT".to_string())
     } else if cruising && telemetry.planetary_handoff_available() {
-        Some("[C] PLANETARY FLIGHT AVAILABLE")
+        Some(format!(
+            "[{}] PLANETARY FLIGHT AVAILABLE",
+            bindings.label(PlayerAction::ToggleCruise)
+        ))
     } else if telemetry.mode() == Some(FlightMode::Local)
         && telemetry.detailed_interaction()
     {
-        Some("[V] RETURN ON FOOT")
+        Some(format!(
+            "[{}] RETURN ON FOOT",
+            bindings.label(PlayerAction::ToggleLocalFlight)
+        ))
     } else {
         None
     };
@@ -207,7 +216,7 @@ pub(super) fn update_flight_hud(
         let mut alert = hud.p2();
         match warning {
             Some(warning) => {
-                alert.0.0 = warning.to_string();
+                alert.0.0 = warning;
                 alert.1.display = Display::Flex;
             }
             None => {

@@ -3,19 +3,18 @@
 use super::*;
 
 pub(in crate::game::player) fn look(
-    mouse: Res<AccumulatedMouseMotion>,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    capture: Res<CursorCapture>,
+    input: Res<PlayerInputFrame>,
     profile: Single<&ViewCameraProfile, With<LocalViewTarget>>,
     player: Single<(&PlayerController, &mut PlayerAim), With<Player>>,
 ) {
-    if gameplay_suppressed(&keyboard, &capture) || !profile.uses_controller_look() {
+    if !input.gameplay_active() || !profile.uses_controller_look() {
         return;
     }
 
     let (controller, mut aim) = player.into_inner();
-    aim.yaw -= mouse.delta.x * controller.look_sensitivity;
-    aim.pitch -= mouse.delta.y * controller.look_sensitivity;
+    let look = input.look_delta();
+    aim.yaw -= look.x * controller.look_sensitivity;
+    aim.pitch -= look.y * controller.look_sensitivity;
     aim.pitch = aim.pitch.clamp(aim.min_pitch, aim.max_pitch);
 }
 
@@ -24,26 +23,26 @@ pub(in crate::game::player) fn look(
 /// The semantic planner remains authoritative, so manual inspection and
 /// automatic navigation compose instead of racing over `UsfViewContext`.
 pub(in crate::game::player) fn zoom_spatial_view(
-    scroll: Res<AccumulatedMouseScroll>,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    capture: Res<CursorCapture>,
+    input: Res<PlayerInputFrame>,
     presentation: Res<PrimaryViewPresentation>,
     locomotion: Single<&ControlledSubjectLocomotion, With<LocalControlSubject>>,
     mut state: Single<&mut NavigationPresentationState, With<UsfViewRenderAnchor>>,
 ) {
     if locomotion.regime() == LocomotionRegime::Cruise
         || presentation.is_embedded()
-        || gameplay_suppressed(&keyboard, &capture)
-        || scroll.delta.y == 0.0
+        || !input.gameplay_active()
+        || input.scroll_y() == 0.0
     {
         return;
     }
-    let alt = keyboard.pressed(KeyCode::AltLeft) || keyboard.pressed(KeyCode::AltRight);
-    if !alt {
+    if !input.pressed(PlayerAction::ViewScaleModifier) {
         return;
     }
 
-    let fast = keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
-    let step = if fast { 1.0 } else { 0.1 };
-    state.add_manual_bias(-scroll.delta.y.signum() * step);
+    let step = if input.pressed(PlayerAction::FastModifier) {
+        1.0
+    } else {
+        0.1
+    };
+    state.add_manual_bias(-input.scroll_y().signum() * step);
 }

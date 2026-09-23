@@ -77,7 +77,10 @@ pub(super) fn configure(app: &mut App) {
     app.init_resource::<EditorShell>()
         .init_resource::<PrimaryViewPresentation>()
         .add_systems(Startup, spawn_editor_camera)
-        .add_systems(PreUpdate, toggle_editor_shell)
+        .add_systems(
+            PreUpdate,
+            toggle_editor_shell.before(crate::input_focus::InputFocusSet::Resolve),
+        )
         .add_systems(EguiPrimaryContextPass, draw_editor_shell);
 }
 

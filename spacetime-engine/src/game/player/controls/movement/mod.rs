@@ -8,40 +8,31 @@ use super::*;
 /// impersonating keyboard or mouse input.
 pub(in crate::game::player) fn sample_flight_control_intent(
     time: Res<Time>,
-    mouse: Res<AccumulatedMouseMotion>,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    capture: Res<CursorCapture>,
+    input: Res<PlayerInputFrame>,
     controller: Single<(&PlayerController, &TravelPace, Option<&PlayerDead>), With<Player>>,
-    subject: Single<
-        (&CharacterControlFrame, &mut FlightControlIntent),
-        With<LocalControlSubject>,
-    >,
+    subject: Single<&mut FlightControlIntent, With<LocalControlSubject>>,
 ) {
     let (controller, pace, dead) = controller.into_inner();
-    let (_control, mut intent) = subject.into_inner();
+    let mut intent = subject.into_inner();
 
-    if dead.is_some() || gameplay_suppressed(&keyboard, &capture) {
+    if dead.is_some() || !input.gameplay_active() {
         intent.clear();
         return;
     }
 
-    let horizontal =
-        keyboard.pressed(KeyCode::KeyD) as i8 - keyboard.pressed(KeyCode::KeyA) as i8;
-    let forward =
-        keyboard.pressed(KeyCode::KeyW) as i8 - keyboard.pressed(KeyCode::KeyS) as i8;
-    let vertical =
-        keyboard.pressed(KeyCode::Space) as i8 - keyboard.pressed(KeyCode::ControlLeft) as i8;
-    let boost =
-        keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
+    let horizontal = input.digital_axis(PlayerAction::MoveLeft, PlayerAction::MoveRight);
+    let forward = input.digital_axis(PlayerAction::MoveBackward, PlayerAction::MoveForward);
+    let vertical = input.digital_axis(PlayerAction::Descend, PlayerAction::Ascend);
+    let boost = input.pressed(PlayerAction::Boost);
 
-    // Default human flight control couples mouse aim to desired subject
-    // attitude. This is an INPUT ADAPTER policy; generic flight execution only
-    // consumes the resulting command frame, so free-look/autopilot/AI can write
-    // different command rotations without changing physics.
+    // Current default manual-flight adapter: mouse delta requests local
+    // angular rate. Alternative Elite/KSP-style policies can replace this
+    // mapping without changing generic locomotion execution.
     let dt = time.delta_secs().max(1.0e-6);
+    let look = input.look_delta();
     let angular_velocity = Vec3::new(
-        -mouse.delta.y * controller.look_sensitivity / dt,
-        -mouse.delta.x * controller.look_sensitivity / dt,
+        -look.y * controller.look_sensitivity / dt,
+        -look.x * controller.look_sensitivity / dt,
         0.0,
     );
 
@@ -56,8 +47,7 @@ pub(in crate::game::player) fn sample_flight_control_intent(
 /// Samples local human controls once per render frame immediately before the
 /// fixed character motor loop.
 pub(in crate::game::player) fn movement(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    capture: Res<CursorCapture>,
+    controls: Res<PlayerInputFrame>,
     controller: Single<
         (
             &PlayerController,
@@ -85,15 +75,14 @@ pub(in crate::game::player) fn movement(
     let crouched = stance.is_some_and(|stance| stance.crouched);
 
     if dead.is_some()
-        || gameplay_suppressed(&keyboard, &capture)
+        || !controls.gameplay_active()
         || locomotion.kernel() != MotionKernel::Character
     {
         input.clear();
         return;
     }
 
-    let sprinting = !crouched
-        && (keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight));
+    let sprinting = !crouched && controls.pressed(PlayerAction::Sprint);
 
     let stance_multiplier = if crouched {
         controller.crouch_speed_multiplier
@@ -111,11 +100,11 @@ pub(in crate::game::player) fn movement(
     };
 
     let horizontal =
-        keyboard.pressed(KeyCode::KeyD) as i8 - keyboard.pressed(KeyCode::KeyA) as i8;
+        controls.digital_axis(PlayerAction::MoveLeft, PlayerAction::MoveRight);
     let forward =
-        keyboard.pressed(KeyCode::KeyW) as i8 - keyboard.pressed(KeyCode::KeyS) as i8;
+        controls.digital_axis(PlayerAction::MoveBackward, PlayerAction::MoveForward);
 
-    let axis = Vec2::new(horizontal as f32, forward as f32).clamp_length_max(1.0);
+    let axis = Vec2::new(horizontal, forward).clamp_length_max(1.0);
     let up = frame.up();
     let view_forward = control.rotation() * (aim.yaw_rotation() * Vec3::NEG_Z);
     let planar_forward = view_forward - up * view_forward.dot(up);
@@ -131,6 +120,6 @@ pub(in crate::game::player) fn movement(
     input.set_wish(world_wish, axis.length() * input_scale);
     input.set_speed_multiplier(speed_multiplier);
     let jump_enabled = input_scale >= 0.5;
-    input.jump_held = jump_enabled && keyboard.pressed(KeyCode::Space);
-    input.jump_pressed |= jump_enabled && keyboard.just_pressed(KeyCode::Space);
+    input.jump_held = jump_enabled && controls.pressed(PlayerAction::Jump);
+    input.jump_pressed |= jump_enabled && controls.just_pressed(PlayerAction::Jump);
 }
