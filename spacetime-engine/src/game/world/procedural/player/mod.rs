@@ -4,7 +4,7 @@
 //! always derived from canonical position plus the subject's current Scale Slice.
 
 use avian3d::prelude::LinearVelocity;
-use bevy::{math::DVec3, prelude::*};
+use bevy::prelude::*;
 
 use crate::{
     ecs::UsfManifestationOf,
@@ -13,7 +13,7 @@ use crate::{
         locomotion::{ControlledSubjectHull, ControlledSubjectLocomotion},
     },
     portal::PortalTraveler,
-    spatial::{SpatialScale, UsfCanonicalMotion, UsfPosition, UsfScaleLayer, UsfSpatialFrame},
+    spatial::{UsfCanonicalMotion, UsfPosition, UsfScaleLayer, UsfSpatialFrame},
 };
 
 use super::landmarks::UniverseLandmarkIndex;
@@ -57,15 +57,12 @@ pub(super) fn prepare_controlled_subject(
     let half_height = hull
         .map(|hull| hull.size().y * 0.5)
         .unwrap_or(0.0);
-    let authored = landmark.arrival
-        + DVec3::Y * f64::from(PROCEDURAL_SPAWN_CLEARANCE_METRES + half_height);
-
-    let Ok(canonical) = UsfPosition::from_scale_native_f64(
-        authored,
-        landmark.scale,
-        SpatialScale::MIN,
-    ) else {
-        error!("procedural bootstrap spawn could not become a canonical USF position");
+    let clearance = PROCEDURAL_SPAWN_CLEARANCE_METRES + half_height;
+    let Ok(canonical) = landmark
+        .arrival
+        .translated_at_scale(landmark.display_scale, Vec3::Y * clearance)
+    else {
+        error!("procedural bootstrap spawn could not offset its canonical landmark");
         return;
     };
 
@@ -100,10 +97,7 @@ pub(super) fn prepare_controlled_subject(
     info!(
         subject = ?manifestation.0,
         subject_scale = %layer.scale(),
-        authored_scale = %landmark.scale,
-        authored_x = authored.x,
-        authored_y = authored.y,
-        authored_z = authored.z,
+        authored_scale = %landmark.display_scale,
         runtime = ?runtime_position,
         "prepared controlled subject from canonical procedural spawn"
     );

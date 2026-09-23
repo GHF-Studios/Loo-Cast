@@ -361,7 +361,7 @@ fn teleport_command(
         };
         (
             landmark.id.to_string(),
-            landmark.scale,
+            landmark.display_scale,
             landmark.view_exponent,
             landmark.arrival,
             Some(landmark.look_at),
@@ -381,11 +381,19 @@ fn teleport_command(
             return ConsoleCommandResult::error("teleport coordinates must be finite numbers");
         }
 
+        let authored = DVec3::new(coordinates[0], coordinates[1], coordinates[2]);
+        let leaf_scale = scale.min(SpatialScale::ZERO);
+        let Ok(position) = UsfPosition::from_scale_native_f64(authored, scale, leaf_scale) else {
+            return ConsoleCommandResult::error(
+                "destination could not become a canonical USF position",
+            );
+        };
+
         (
             format!("S{scale} coordinate"),
             scale,
             scale.exponent() as f32,
-            DVec3::new(coordinates[0], coordinates[1], coordinates[2]),
+            position,
             None,
         )
     } else {
@@ -394,25 +402,18 @@ fn teleport_command(
         );
     };
 
-    let leaf_scale = scale.min(SpatialScale::ZERO);
-    let Ok(position) = UsfPosition::from_scale_native_f64(arrival, scale, leaf_scale) else {
-        return ConsoleCommandResult::error("destination could not become a canonical USF position");
-    };
-
     world
         .resource_mut::<UsfSpatialTransitionQueue>()
         .request(
-            UsfSpatialTransition::new(subject, position, UsfTransitionVelocity::Zero)
+            UsfSpatialTransition::new(subject, arrival, UsfTransitionVelocity::Zero)
                 .with_view_exponent(view_exponent),
         );
 
     if let Some(look_at) = look_at {
-        let direction = Vec3::new(
-            (look_at.x - arrival.x) as f32,
-            (look_at.y - arrival.y) as f32,
-            (look_at.z - arrival.z) as f32,
-        )
-        .normalize_or_zero();
+        let direction = look_at
+            .relative_at_scale_bounded(&arrival, scale, f32::MAX)
+            .unwrap_or(Vec3::ZERO)
+            .normalize_or_zero();
 
         if direction != Vec3::ZERO {
             let mut query = world.query_filtered::<&mut PlayerAim, With<Player>>();
@@ -423,9 +424,13 @@ fn teleport_command(
         }
     }
 
+    let coordinates = arrival
+        .coordinate_at_scale_f64(scale)
+        .unwrap_or(DVec3::splat(f64::NAN));
+
     ConsoleCommandResult::success_and_return_to_gameplay(format!(
         "spatial transition requested: {label} @ S{scale} ({:.3}, {:.3}, {:.3}), view {view_exponent:+.1}",
-        arrival.x, arrival.y, arrival.z,
+        coordinates.x, coordinates.y, coordinates.z,
     ))
 }
 
