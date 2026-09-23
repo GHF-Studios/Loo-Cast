@@ -181,13 +181,22 @@ fn spawn_celestial_body(
     let center = canonical_center_from_native(center_system_native, system_scale);
     let radius_metres = radius_system_native * system_scale.metres_per_native();
     let detail_root = celestial_coarsest_scale(radius_metres);
-    let realization_coarsest = system_scale.max(detail_root);
+
+    // Representation envelope: voxel terrain exists only through the body's
+    // own coarsest meaningful voxel scale. The stellar-system authoring scale
+    // describes placement; it must never force a sub-voxel planet realization.
+    let realization_coarsest = detail_root;
     let field = CelestialVoxelField::new(
         center,
         radius_metres,
         detail_root,
         seed,
         profile,
+    );
+
+    debug_assert!(
+        detail_root.metres_to_native_f64(radius_metres) >= 1.0,
+        "celestial voxel detail root must resolve the body by at least one native unit"
     );
 
     let scale_domain = VoxelScaleDomain::contiguous(

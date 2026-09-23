@@ -126,6 +126,17 @@ impl CharacterControlFrame {
         });
     }
 
+    /// Conforms the stable control basis to the current locomotion `up` while
+    /// preserving as much tangent heading as possible.
+    ///
+    /// An active topology/portal settle remains authoritative until it finishes;
+    /// planetary gravity therefore cannot stomp a transient mapped orientation.
+    pub fn follow_locomotion_frame(&mut self, frame: &CharacterLocomotionFrame) {
+        if self.settle.is_none() {
+            self.rotation = frame.aligned_rotation(self.rotation);
+        }
+    }
+
     /// Existing momentum is never changed by this factor; callers use it only
     /// to soften freshly commanded locomotion while orientation is changing.
     pub fn movement_input_scale(&self) -> f32 {
@@ -193,6 +204,16 @@ mod tests {
         let rebased = frame.aligned_rotation(Quat::IDENTITY);
 
         assert!((rebased * Vec3::Y - Vec3::Z).length() < 1.0e-5);
+    }
+
+    #[test]
+    fn control_frame_follows_planetary_up_when_not_settling() {
+        let frame = CharacterLocomotionFrame { up: Vec3::Z };
+        let mut control = CharacterControlFrame::default();
+
+        control.follow_locomotion_frame(&frame);
+
+        assert!((control.rotation() * Vec3::Y - Vec3::Z).length() < 1.0e-5);
     }
 
     #[test]

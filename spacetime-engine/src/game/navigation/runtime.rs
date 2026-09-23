@@ -6,9 +6,12 @@ use crate::{
     ecs::UsfManifestationOf,
     game::{
         control::LocalControlSubject,
-        locomotion::{ControlledSubjectLocomotion, VelocitySemantics},
+        locomotion::{ControlledSubjectLocomotion, LocomotionRegime, VelocitySemantics},
     },
-    physics::character::{CharacterLocomotionFrame, CharacterMovementConfig},
+    physics::character::{
+        CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame,
+        CharacterMovementConfig,
+    },
     spatial::{
         SpatialRefinementDemand, SpatialScale, UsfApproachRefinement,
         UsfInteractionRequirement, UsfNavigationContext, UsfRadialGravitySource,
@@ -425,9 +428,12 @@ pub(super) fn sync_planetary_gravity(
     frame: Res<UsfSpatialFrame>,
     subject: Single<
         (
-            &Transform,
+            &mut Transform,
             &UsfScaleLayer,
             &PrimaryBodyContext,
+            &ControlledSubjectLocomotion,
+            &CharacterGroundState,
+            &mut CharacterControlFrame,
             &mut CharacterLocomotionFrame,
             &mut CharacterMovementConfig,
             &mut TravelState,
@@ -435,8 +441,17 @@ pub(super) fn sync_planetary_gravity(
         With<LocalControlSubject>,
     >,
 ) {
-    let (body, layer, primary, mut locomotion, mut movement, mut travel) =
-        subject.into_inner();
+    let (
+        mut body,
+        layer,
+        primary,
+        controlled,
+        ground,
+        mut control,
+        mut locomotion,
+        mut movement,
+        mut travel,
+    ) = subject.into_inner();
 
     if !primary.is_resolved() || primary.surface_gravity_metres_per_second2() <= 0.0 {
         travel.local_gravity = 0.0;
@@ -479,6 +494,19 @@ pub(super) fn sync_planetary_gravity(
     let up = relative.normalize_or_zero();
     if up != Vec3::ZERO {
         locomotion.up = up;
+
+        if controlled.regime() == LocomotionRegime::OnFoot {
+            // View/input basis follows the continuously changing planetary
+            // tangent frame. The control-frame method deliberately preserves
+            // an active portal/topology settle.
+            control.follow_locomotion_frame(&locomotion);
+
+            // Once physically grounded, keep the visible/local body basis
+            // upright to the same radial frame as movement and camera control.
+            if ground.grounded {
+                body.rotation = locomotion.aligned_rotation(body.rotation);
+            }
+        }
     }
 
     let gravity_factor = if distance_scale0 >= radius {

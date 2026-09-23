@@ -4,7 +4,7 @@ use super::*;
 use bevy::camera::visibility::RenderLayers;
 use crate::{
     ecs::UsfManifestationOf,
-    view::USF_PRESENTATION_LAYER,
+    view::{USF_PRESENTATION_LAYER, ViewSubjectPresentation},
 };
 
 /// Keeps the view anchored to an ordinary bounded runtime transform while
@@ -72,10 +72,18 @@ pub(in crate::spatial) fn project_local_scale_presentations(
         &mut Transform,
         &mut Visibility,
         Option<&RenderLayers>,
+        Option<&ViewSubjectPresentation>,
     )>,
 ) {
-    for (entity, mut presentation, parent, mut transform, mut visibility, render_layers) in
-        &mut presentations
+    for (
+        entity,
+        mut presentation,
+        parent,
+        mut transform,
+        mut visibility,
+        render_layers,
+        subject_presentation,
+    ) in &mut presentations
     {
         let Ok((parent_transform, layer, follows_active, fallback)) = parents.get(parent.0) else {
             continue;
@@ -113,8 +121,17 @@ pub(in crate::spatial) fn project_local_scale_presentations(
             if transform.translation != Vec3::ZERO {
                 transform.translation = Vec3::ZERO;
             }
-            if transform.scale != Vec3::ONE {
-                transform.scale = Vec3::ONE;
+            let authored_scale = if subject_presentation.is_some() {
+                // Subject meshes are authored in physical metres. Convert one
+                // authored metre into the current interaction chart's native
+                // units (S0=1, S1=0.1, S2=0.01, ...).
+                Vec3::splat(layer.scale().metres_to_native_f32(1.0))
+            } else {
+                // Voxel/materialization vertices are already slice-native.
+                Vec3::ONE
+            };
+            if transform.scale != authored_scale {
+                transform.scale = authored_scale;
             }
             if !matches!(*visibility, Visibility::Inherited) {
                 *visibility = Visibility::Inherited;
@@ -179,7 +196,12 @@ pub(in crate::spatial) fn project_local_scale_presentations(
             + (parent_transform.translation - observer_in_parent_chart) * factor;
         let delta = desired_global - parent_transform.translation;
         let desired_translation = parent_transform.rotation.inverse() * delta;
-        let desired_scale = Vec3::splat(factor);
+        let authored_scale = if subject_presentation.is_some() {
+            layer.scale().metres_to_native_f32(1.0)
+        } else {
+            1.0
+        };
+        let desired_scale = Vec3::splat(factor * authored_scale);
 
         if transform.translation != desired_translation {
             transform.translation = desired_translation;

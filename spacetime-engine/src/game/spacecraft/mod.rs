@@ -275,7 +275,7 @@ pub(crate) fn detect_landing(
     mut ships: Query<
         (
             Entity,
-            &Transform,
+            &mut Transform,
             &UsfScaleLayer,
             &DetailedInteractionScale,
             &CharacterLocomotionFrame,
@@ -293,7 +293,7 @@ pub(crate) fn detect_landing(
 ) {
     let Ok((
         entity,
-        transform,
+        mut transform,
         layer,
         detailed,
         frame,
@@ -350,6 +350,11 @@ pub(crate) fn detect_landing(
     {
         return;
     }
+
+    // Contact has been accepted: resolve the hull into the local surface
+    // tangent frame once. This fixes landed camera/body orientation without
+    // imposing auto-level behavior during free flight.
+    transform.rotation = frame.aligned_rotation(transform.rotation);
 
     velocity.0 = Vec3::ZERO;
     motion.stop();
