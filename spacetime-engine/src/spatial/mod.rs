@@ -5,6 +5,7 @@
 //! partitions; interaction focus, floating-origin rebasing, presentation and
 //! demand are projections over that stack rather than one privileged scale.
 
+mod context;
 mod demand;
 mod devtools;
 mod layer;
@@ -15,6 +16,7 @@ mod refinement;
 mod transition;
 mod view;
 
+pub use context::{UsfContextNode, UsfContextSet, UsfContextTopology};
 pub use demand::{
     SpatialDemandScope, SpatialDemandSet, SpatialDemandSnapshot, SpatialDemandSource,
     SpatialRefinementDemand,
@@ -175,6 +177,7 @@ impl Plugin for UsfSpatialPlugin {
             );
 
         demand::configure(app);
+        context::configure(app);
         devtools::configure(app);
     }
 }

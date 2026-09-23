@@ -15,8 +15,11 @@ use super::{
     seed::scope_seed,
 };
 
-/// Sparse semantic generation cache. Addressability of the USF hierarchy does
-/// not imply entries here: only requested/refined scopes are allocated.
+/// Sparse semantic-generation capability cache over canonical USF context
+/// addresses. The parent relation comes from [`UsfChunkAddress`], the same
+/// topology used by runtime context residency; this store does not define a
+/// competing spatial tree. Addressability alone does not allocate semantic
+/// state: only requested/refined scopes are cached here.
 #[derive(Resource)]
 pub struct WorldgenStore {
     universe_seed: u64,

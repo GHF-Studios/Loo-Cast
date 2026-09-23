@@ -70,6 +70,7 @@ impl Plugin for LooCastPlugin {
                 RunFixedMainLoop,
                 (
                     control::ControlSet::Sample,
+                    crate::physics::gravity::GravitySet::PrepareCache,
                     crate::physics::gravity::GravitySet::Sample,
                     navigation::NavigationSet::Observe,
                     control::ControlSet::Request,

@@ -154,7 +154,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
             }
         }
 
-        let root = if let Some(root) = root_entity {
+        let _root = if let Some(root) = root_entity {
             root
         } else {
             let Some(local_translation) =
