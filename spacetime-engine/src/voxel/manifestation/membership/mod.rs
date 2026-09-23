@@ -2,13 +2,13 @@
 
 use bevy::prelude::*;
 
-use super::{ManifestationKey, VoxelManifestationRegistry};
+use super::{ManifestationKey, VoxelMaterializationRuntimeRegistry};
 use super::super::VoxelWorld;
 
 pub(in crate::voxel) fn sync_manifestation_membership(
     mut commands: Commands,
     mut worlds: Query<(Entity, &mut VoxelWorld)>,
-    mut registry: ResMut<VoxelManifestationRegistry>,
+    mut registry: ResMut<VoxelMaterializationRuntimeRegistry>,
 ) {
     for (world_entity, mut world) in &mut worlds {
         while let Some(address) = world.materializations_mut().pop_dirty_render() {

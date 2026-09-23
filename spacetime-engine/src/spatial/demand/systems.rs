@@ -22,7 +22,7 @@ fn collect_spatial_demand(
     )>,
     mut snapshot: ResMut<SpatialDemandSnapshot>,
 ) {
-    snapshot.scopes.clear();
+    let mut next = SpatialDemandSnapshot::default();
 
     for (entity, transform, source, refinement, source_layer) in &sources {
         if !source.enabled() {
@@ -31,9 +31,6 @@ fn collect_spatial_demand(
 
         let source_scale = source_layer.map_or(frame.origin().leaf_scale(), |layer| layer.scale());
 
-        // A demand source is first resolved inside its own bounded scale-local
-        // chart, then represented canonically. No floating position crosses a
-        // scale boundary.
         let Ok(source_position) = frame
             .origin()
             .translated_at_scale(source_scale, transform.translation())
@@ -52,7 +49,7 @@ fn collect_spatial_demand(
             let exponent_delta = source_scale.exponent() as i32 - raw_scale as i32;
             let factor = 10.0_f32.powi(exponent_delta);
             push_scope(
-                &mut snapshot,
+                &mut next,
                 entity,
                 source,
                 source_position,
@@ -68,7 +65,7 @@ fn collect_spatial_demand(
             for raw_scale in minimum_scale.exponent()..source_scale.exponent() {
                 let scale = SpatialScale::new(raw_scale).expect("validated USF scale");
                 push_scope_with_extent(
-                    &mut snapshot,
+                    &mut next,
                     entity,
                     source.priority(),
                     source_position,
@@ -77,7 +74,18 @@ fn collect_spatial_demand(
                 );
             }
         }
+    }
 
+    next.scopes.sort_by_key(|scope| {
+        (
+            scope.source().to_bits(),
+            scope.scale().exponent(),
+            scope.priority(),
+        )
+    });
+
+    if snapshot.scopes != next.scopes {
+        snapshot.scopes = next.scopes;
     }
 }
 
@@ -111,8 +119,6 @@ fn push_scope_with_extent(
         return;
     }
 
-    // Cross-scale transfer is exact canonical re-expression. The only floats
-    // left here are the bounded extent of the destination scale-local window.
     let Ok(center) = source_position.reexpressed_at(target_scale) else {
         error!(
             ?entity,

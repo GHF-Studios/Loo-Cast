@@ -91,7 +91,7 @@ impl VoxelScaleDomain {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 struct VoxelRealizationDemand {
     target_world: Entity,
     scope: SpatialDemandScope,
@@ -135,7 +135,7 @@ pub(super) fn collect_voxel_realization_demand(
     celestial_authorities: Query<(&CelestialVoxelField, &VoxelScaleDomain)>,
     mut output: ResMut<VoxelRealizationDemandSnapshot>,
 ) {
-    output.demands.clear();
+    let mut next = VoxelRealizationDemandSnapshot::default();
 
     let mut sources = HashMap::<Entity, SpatialDemandScope>::new();
     for scope in spatial.iter() {
@@ -167,7 +167,7 @@ pub(super) fn collect_voxel_realization_demand(
                 if let Some(scope) =
                     celestial_surface_demand(*field, *domain, source, scale)
                 {
-                    output.push(world_entity, scope);
+                    next.push(world_entity, scope);
                 }
             }
             continue;
@@ -175,9 +175,19 @@ pub(super) fn collect_voxel_realization_demand(
 
         for scope in spatial.iter() {
             if voxel_sources.contains(scope.source()) && scope.scale() == scale {
-                output.push(world_entity, scope);
+                next.push(world_entity, scope);
             }
         }
+    }
+    next.demands.sort_by_key(|demand| {
+        (
+            demand.target_world.to_bits(),
+            demand.scope.source().to_bits(),
+            demand.scope.scale().exponent(),
+        )
+    });
+    if output.demands != next.demands {
+        output.demands = next.demands;
     }
 }
 

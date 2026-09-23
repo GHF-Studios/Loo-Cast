@@ -4,13 +4,13 @@ use std::collections::HashSet;
 
 use bevy::{ecs::lifecycle::RemovedComponents, prelude::*};
 
-use super::VoxelManifestationRegistry;
+use super::VoxelMaterializationRuntimeRegistry;
 use super::super::VoxelWorld;
 
 pub(in crate::voxel) fn retire_removed_world_manifestations(
     mut commands: Commands,
     mut removed_worlds: RemovedComponents<VoxelWorld>,
-    mut registry: ResMut<VoxelManifestationRegistry>,
+    mut registry: ResMut<VoxelMaterializationRuntimeRegistry>,
 ) {
     let removed = removed_worlds.read().collect::<HashSet<_>>();
     if removed.is_empty() {

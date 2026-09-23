@@ -81,7 +81,7 @@ enum VoxelPostUpdateSet {
 
 impl Plugin for VoxelPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<manifestation::VoxelManifestationRegistry>()
+        app.init_resource::<manifestation::VoxelMaterializationRuntimeRegistry>()
             .init_resource::<VoxelRealizationDemandSnapshot>()
             .add_systems(Startup, manifestation::initialize_translucent_voxel_material)
             .configure_sets(

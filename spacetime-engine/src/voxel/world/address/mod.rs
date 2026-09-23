@@ -67,6 +67,60 @@ impl VoxelMaterializationChunkAddress {
         VoxelQueryPosition::new(self.origin)
     }
 
+    /// Canonical center of this materialization region.
+    pub fn center(self) -> Result<UsfPosition, UsfPositionError> {
+        self.origin
+            .translated_native(Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32 * 0.5))
+    }
+
+    /// Squared scale-local gap between this chunk AABB and a canonical region.
+    ///
+    /// Returns `None` when the region is farther away than the supplied padding
+    /// can possibly matter.
+    pub fn distance_squared_to_region(
+        self,
+        center: &UsfPosition,
+        half_extent_native: Vec3,
+        padding_native: f32,
+    ) -> Option<f32> {
+        let extent = MATERIALIZATION_CHUNK_SIZE as f32;
+        let half = half_extent_native.abs();
+        let padding = padding_native.max(0.0);
+        let bound = extent * 2.0 + half.length() + padding + 1.0;
+        let minimum = self
+            .origin
+            .relative_at_scale_bounded(center, self.origin.leaf_scale(), bound)
+            .ok()?;
+        let maximum = minimum + Vec3::splat(extent);
+        let region_min = -half;
+        let region_max = half;
+
+        let separation = Vec3::new(
+            if maximum.x < region_min.x {
+                region_min.x - maximum.x
+            } else if minimum.x > region_max.x {
+                minimum.x - region_max.x
+            } else {
+                0.0
+            },
+            if maximum.y < region_min.y {
+                region_min.y - maximum.y
+            } else if minimum.y > region_max.y {
+                minimum.y - region_max.y
+            } else {
+                0.0
+            },
+            if maximum.z < region_min.z {
+                region_min.z - maximum.z
+            } else if minimum.z > region_max.z {
+                minimum.z - region_max.z
+            } else {
+                0.0
+            },
+        );
+        Some(separation.length_squared())
+    }
+
     pub fn translated_chunks(self, delta: IVec3) -> Result<Self, UsfPositionError> {
         let size = i64::from(MATERIALIZATION_CHUNK_SIZE);
         self.origin

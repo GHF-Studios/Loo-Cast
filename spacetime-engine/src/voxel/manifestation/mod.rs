@@ -34,19 +34,36 @@ struct ManifestationKey {
 
 /// Root entity for one disposable same-resolution render/collision manifestation.
 #[derive(Component)]
-pub(super) struct VoxelManifestation {
+pub(super) struct VoxelMaterializationRuntime {
+    world: Entity,
+    address: VoxelMaterializationChunkAddress,
+    revision: u64,
     presentation: Entity,
     translucent_presentation: Option<Entity>,
 }
 
+impl VoxelMaterializationRuntime {
+    pub(super) const fn world(&self) -> Entity {
+        self.world
+    }
+
+    pub(super) const fn address(&self) -> VoxelMaterializationChunkAddress {
+        self.address
+    }
+
+    pub(super) const fn revision(&self) -> u64 {
+        self.revision
+    }
+}
+
 /// Marks the only `Mesh3d` entity created for one voxel manifestation.
 #[derive(Component, Debug, Default, Clone, Copy)]
-pub(super) struct VoxelManifestationPresentation;
+pub(super) struct VoxelMaterializationPresentation;
 
 /// Incremental one-to-one mapping from canonical materialization surfaces to
 /// disposable runtime entities.
 #[derive(Resource, Default)]
-pub(super) struct VoxelManifestationRegistry {
+pub(super) struct VoxelMaterializationRuntimeRegistry {
     revisions: HashMap<ManifestationKey, u64>,
     dirty: HashSet<ManifestationKey>,
     entities: HashMap<ManifestationKey, Entity>,
