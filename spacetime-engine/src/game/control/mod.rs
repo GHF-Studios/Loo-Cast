@@ -24,6 +24,15 @@ pub struct LocalController;
 #[reflect(Component)]
 pub struct LocalControlSubject;
 
+/// Runtime manifestation followed by the primary local view.
+///
+/// Current game policy follows local control, but this marker is deliberately
+/// independent so spectator cameras, remote observation and cinematic views do
+/// not need to counterfeit control authority later.
+#[derive(Component, Reflect, Debug, Default, Clone, Copy)]
+#[reflect(Component)]
+pub struct LocalViewTarget;
+
 /// Semantic control relationship. The relationship lives on the controlled
 /// semantic subject and points at the semantic controller.
 #[derive(Component, Debug)]
@@ -119,6 +128,7 @@ pub struct LocalControlAudit {
     pub healthy: bool,
     pub controller_count: usize,
     pub subject_count: usize,
+    pub view_target_count: usize,
     pub view_anchor_count: usize,
     pub semantic_authority_valid: bool,
     pub focus_valid: bool,
@@ -130,6 +140,7 @@ impl Default for LocalControlAudit {
             healthy: false,
             controller_count: 0,
             subject_count: 0,
+            view_target_count: 0,
             view_anchor_count: 0,
             semantic_authority_valid: false,
             focus_valid: false,
@@ -219,6 +230,7 @@ fn reconcile_local_control_focus(
     mut commands: Commands,
     mut applied: MessageReader<LocalControlTransferApplied>,
     view_anchors: Query<Entity, With<UsfViewAnchor>>,
+    view_targets: Query<Entity, With<LocalViewTarget>>,
     mut transitions: ResMut<UsfSpatialTransitionQueue>,
 ) {
     let Some(transfer) = applied.read().last().copied() else {
@@ -228,6 +240,11 @@ fn reconcile_local_control_focus(
     for anchor in &view_anchors {
         if anchor != transfer.manifestation {
             commands.entity(anchor).remove::<UsfViewAnchor>();
+        }
+    }
+    for target in &view_targets {
+        if target != transfer.manifestation {
+            commands.entity(target).remove::<LocalViewTarget>();
         }
     }
 
@@ -246,6 +263,7 @@ fn reconcile_local_control_focus(
     }
 
     commands.entity(transfer.manifestation).insert((
+        LocalViewTarget,
         UsfViewAnchor,
         UsfInteractionProjection,
     ));
@@ -255,12 +273,14 @@ fn audit_local_control_invariants(
     controllers: Query<Entity, With<LocalController>>,
     subjects: Query<(Entity, &UsfManifestationOf), With<LocalControlSubject>>,
     relationships: Query<&ControlledBy>,
+    view_targets: Query<Entity, With<LocalViewTarget>>,
     view_anchors: Query<Entity, With<UsfViewAnchor>>,
     mut audit: ResMut<LocalControlAudit>,
     mut previous: Local<Option<LocalControlAudit>>,
 ) {
     let controller_count = controllers.iter().count();
     let subject_count = subjects.iter().count();
+    let view_target_count = view_targets.iter().count();
     let view_anchor_count = view_anchors.iter().count();
 
     let controller = (controller_count == 1)
@@ -281,8 +301,9 @@ fn audit_local_control_invariants(
     };
 
     let focus_valid = match subject {
-        Some((manifestation, _)) if view_anchor_count == 1 => {
-            view_anchors.iter().next() == Some(manifestation)
+        Some((manifestation, _)) if view_target_count == 1 && view_anchor_count == 1 => {
+            view_targets.iter().next() == Some(manifestation)
+                && view_anchors.iter().next() == Some(manifestation)
         }
         _ => false,
     };
@@ -290,11 +311,13 @@ fn audit_local_control_invariants(
     let next = LocalControlAudit {
         healthy: controller_count == 1
             && subject_count == 1
+            && view_target_count == 1
             && view_anchor_count == 1
             && semantic_authority_valid
             && focus_valid,
         controller_count,
         subject_count,
+        view_target_count,
         view_anchor_count,
         semantic_authority_valid,
         focus_valid,
@@ -319,6 +342,7 @@ impl Plugin for ControlPlugin {
         app.init_resource::<LocalControlAudit>()
             .register_type::<LocalController>()
             .register_type::<LocalControlSubject>()
+            .register_type::<LocalViewTarget>()
             .add_message::<LocalControlTransferRequest>()
             .add_message::<LocalControlTransferApplied>()
             .add_message::<LocalControlTransferRejected>()

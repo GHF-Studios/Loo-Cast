@@ -6,11 +6,8 @@ use crate::{
     portal::{DERIVED_VIEW_LAYER, PortalSplitVisual},
     physics::character::CharacterDimensions,
     spatial::{SpatialScale, UsfLocalScalePresentation},
+    view::ViewSubjectPresentation,
 };
-
-/// Marks presentation geometry belonging to the player.
-#[derive(Component)]
-pub(super) struct PlayerModel;
 
 /// Creates the deliberately boring reference model.
 ///
@@ -22,7 +19,7 @@ pub fn create_model(
 ) -> impl Bundle {
     (
         Name::new("Player Model"),
-        PlayerModel,
+        ViewSubjectPresentation,
         PortalSplitVisual,
         UsfLocalScalePresentation::new(SpatialScale::MAX),
         Mesh3d(meshes.add(Cuboid::new(

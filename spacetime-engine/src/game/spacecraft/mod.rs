@@ -18,6 +18,7 @@ use crate::{
         GameSet,
         control::{
             ControlActionSet, ControlledBy, LocalControlSubject, LocalControlTransferRequest,
+            LocalViewTarget,
         },
         locomotion::{
             ControlledSubjectHull, ControlledSubjectLocomotion, DetailedInteractionScale,
@@ -28,10 +29,7 @@ use crate::{
             AdaptiveCruise, ApproachRefinementState, PrimaryBodyContext, TravelEnvelope,
             TravelProfile, TravelState,
         },
-        player::{
-            CameraMode, Player,
-            PlayerCamera,
-        },
+        player::{Player, ViewCameraProfile},
     },
     physics::{
         chart::UsfPhysicsCharts,
@@ -48,6 +46,7 @@ use crate::{
         UsfScaleLayer, UsfSpatialAnchor, UsfSpatialFrame,
         UsfTravelNeighborhood, UsfViewAnchor,
     },
+    view::ViewSubjectPresentation,
     voxel::VoxelMaterializationDemand,
 };
 
@@ -131,9 +130,6 @@ impl Default for SpacecraftOrbit {
     }
 }
 
-#[derive(Component)]
-struct SpacecraftModel;
-
 pub struct SpacecraftPlugin;
 
 impl Plugin for SpacecraftPlugin {
@@ -162,7 +158,6 @@ fn spawn_reference_spacecraft(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut camera: Single<&mut PlayerCamera>,
     body: Single<
         (
             Entity,
@@ -212,6 +207,7 @@ fn spawn_reference_spacecraft(
                 Name::new("Reference Spacecraft Manifestation"),
                 SpacecraftManifestation,
                 LocalControlSubject,
+                LocalViewTarget,
                 Visibility::Inherited,
                 UsfManifestationOf(semantic_ship),
                 UsfManifestationAuthority,
@@ -226,6 +222,7 @@ fn spawn_reference_spacecraft(
                 VoxelMaterializationDemand,
             ),
             (
+                ViewCameraProfile::external_hull(SHIP_SIZE, 14.0),
                 LocomotionCapabilities::spacecraft(),
                 LocomotionEnabled(true),
                 ControlledSubjectHull::cuboid(SHIP_SIZE, SHIP_PROXY_RADIUS_NATIVE),
@@ -268,7 +265,7 @@ fn spawn_reference_spacecraft(
     commands.entity(ship).with_children(|parent| {
         parent.spawn((
             Name::new("Reference Spacecraft Model"),
-            SpacecraftModel,
+            ViewSubjectPresentation,
             UsfPresentationProjectionOf(ship),
             UsfLocalScalePresentation::new(SpatialScale::MAX),
             Mesh3d(meshes.add(Cuboid::new(SHIP_SIZE.x, SHIP_SIZE.y, SHIP_SIZE.z))),
@@ -290,9 +287,6 @@ fn spawn_reference_spacecraft(
     body_enabled.0 = false;
     *body_visibility = Visibility::Hidden;
 
-    camera.mode = CameraMode::ThirdPerson;
-    camera.third_person.base_distance = 14.0;
-    camera.third_person.maximum_distance = 40.0;
 }
 
 pub(crate) fn detect_landing(
@@ -409,7 +403,6 @@ fn handle_spacecraft_actions(
     frame: Res<UsfSpatialFrame>,
     mut commands: Commands,
     mut control_transfers: MessageWriter<LocalControlTransferRequest>,
-    mut camera: Single<&mut PlayerCamera>,
     player: Single<
         (
             Entity,
@@ -533,7 +526,6 @@ fn handle_spacecraft_actions(
             player_manifestation.0,
             player_entity,
         ));
-        camera.mode = CameraMode::FirstPerson;
         return;
     }
 
@@ -600,8 +592,6 @@ fn handle_spacecraft_actions(
             player_manifestation.0,
             ship_entity,
         ));
-        camera.mode = CameraMode::ThirdPerson;
-        camera.third_person.base_distance = 14.0;
         return;
     }
 }

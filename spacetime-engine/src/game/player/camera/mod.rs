@@ -11,12 +11,12 @@
 //! to `base_distance + zoom_offset`.
 
 use avian3d::prelude::{Collider, ShapeCastConfig, SpatialQuery};
-use bevy::{camera::visibility::RenderLayers, input::mouse::AccumulatedMouseScroll, prelude::*};
+use bevy::{input::mouse::AccumulatedMouseScroll, prelude::*};
 
 use crate::{
     ecs::{UsfLogicalProjection, UsfManifestationOf, UsfManifestations},
     portal::{
-        DERIVED_VIEW_LAYER, Portal, PortalActive, crossed_aperture_fraction, map_through_portal,
+        Portal, PortalActive, crossed_aperture_fraction, map_through_portal,
     },
     physics::{
         chart::UsfPhysicsCharts,
@@ -26,11 +26,11 @@ use crate::{
 };
 
 use crate::game::{
-    control::LocalControlSubject,
-    locomotion::{CharacterStance, ControlledSubjectHull},
+    control::LocalViewTarget,
+    locomotion::CharacterStance,
 };
 
-use super::{Player, PlayerAim, cursor::CursorCapture, model::PlayerModel};
+use super::{Player, PlayerAim, cursor::CursorCapture};
 
 /// Available local-player camera presentations.
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -105,40 +105,68 @@ impl Default for ThirdPersonCamera {
     }
 }
 
-/// Presentation state for the local player's camera.
-#[derive(Component, Reflect, Debug)]
+/// Target-owned camera presentation profile.
+///
+/// Eye geometry and boom tuning belong to the viewed subject, not to the one
+/// global camera. Changing viewed subject cannot leak vehicle camera state into
+/// character third person (or vice versa).
+#[derive(Component, Reflect, Debug, Clone, Copy)]
 #[reflect(Component)]
-pub struct PlayerCamera {
-    pub mode: CameraMode,
-    /// Control-frame-local standing eye offset.
+pub struct ViewCameraProfile {
+    pub preferred_mode: CameraMode,
     pub standing_eye_offset: Vec3,
-    /// Control-frame-local crouched eye offset.
     pub crouched_eye_offset: Vec3,
     pub third_person: ThirdPersonCamera,
-    /// Desired horizontal field of view in degrees.
-    pub horizontal_fov_degrees: f32,
 }
 
-impl PlayerCamera {
-    pub fn eye_offset(&self, stance: &CharacterStance) -> Vec3 {
-        if stance.crouched {
+impl ViewCameraProfile {
+    pub fn character() -> Self {
+        Self {
+            preferred_mode: CameraMode::FirstPerson,
+            standing_eye_offset: Vec3::Y * CharacterDimensions::CENTER_TO_EYE,
+            crouched_eye_offset: Vec3::Y * CharacterDimensions::CROUCH_CENTER_TO_EYE,
+            third_person: ThirdPersonCamera::default(),
+        }
+    }
+
+    pub fn external_hull(size: Vec3, boom_distance: f32) -> Self {
+        let eye = Vec3::Y * (size.y * 0.5 + 0.5);
+        let mut third_person = ThirdPersonCamera::default();
+        third_person.base_distance = boom_distance.max(1.0);
+        third_person.maximum_distance = (boom_distance * 3.0).max(third_person.base_distance);
+        third_person.resolved_distance = third_person.base_distance;
+
+        Self {
+            preferred_mode: CameraMode::ThirdPerson,
+            standing_eye_offset: eye,
+            crouched_eye_offset: eye,
+            third_person,
+        }
+    }
+
+    pub fn eye_offset(&self, stance: Option<&CharacterStance>) -> Vec3 {
+        if stance.is_some_and(|stance| stance.crouched) {
             self.crouched_eye_offset
         } else {
             self.standing_eye_offset
         }
     }
+}
 
+/// State of the one primary local camera.
+///
+/// Subject-specific geometry/tuning lives on ViewCameraProfile.
+#[derive(Component, Reflect, Debug)]
+#[reflect(Component)]
+pub struct PlayerCamera {
+    pub mode: CameraMode,
+    /// Desired horizontal field of view in degrees.
+    pub horizontal_fov_degrees: f32,
+}
+
+impl PlayerCamera {
     pub fn view_rotation(&self, control: &CharacterControlFrame, aim: &PlayerAim) -> Quat {
         control.rotation() * aim.local_rotation()
-    }
-
-    pub fn eye_position(
-        &self,
-        body: &Transform,
-        control: &CharacterControlFrame,
-        stance: &CharacterStance,
-    ) -> Vec3 {
-        body.translation + control.rotation() * self.eye_offset(stance)
     }
 }
 
@@ -146,9 +174,6 @@ impl Default for PlayerCamera {
     fn default() -> Self {
         Self {
             mode: CameraMode::FirstPerson,
-            standing_eye_offset: Vec3::Y * CharacterDimensions::CENTER_TO_EYE,
-            crouched_eye_offset: Vec3::Y * CharacterDimensions::CROUCH_CENTER_TO_EYE,
-            third_person: ThirdPersonCamera::default(),
             horizontal_fov_degrees: 110.0,
         }
     }
@@ -159,7 +184,10 @@ mod presentation;
 mod third_person;
 
 pub(super) use input::{toggle_camera_mode, zoom_third_person};
-pub(super) use presentation::{sync_player_camera, sync_player_fov, sync_player_model};
+pub(super) use presentation::{
+    sync_player_camera, sync_player_fov, sync_view_camera_profile,
+    sync_view_subject_presentations,
+};
 
 use third_person::resolve_third_person_boom;
 

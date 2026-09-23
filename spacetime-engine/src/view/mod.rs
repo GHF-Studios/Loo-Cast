@@ -14,6 +14,13 @@ use bevy::prelude::*;
 #[derive(Component, Debug, Default)]
 pub struct PrimaryGameView;
 
+/// Marks body geometry that represents a possible local view subject.
+///
+/// Self-visibility is a view policy. It must not be encoded by changing portal
+/// semantics, model identity, or physical manifestation identity.
+#[derive(Component, Debug, Default, Clone, Copy)]
+pub struct ViewSubjectPresentation;
+
 /// How the primary game view is currently presented to the user.
 #[derive(Resource, Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum PrimaryViewPresentation {

@@ -1,36 +1,60 @@
-//! Runtime camera transform, FOV and player-model presentation.
+//! Runtime camera transform, FOV and self-presentation policy.
+
+use bevy::camera::visibility::RenderLayers;
+
+use crate::{
+    ecs::{UsfManifestationOf, UsfPresentationProjectionOf},
+    portal::DERIVED_VIEW_LAYER,
+    view::ViewSubjectPresentation,
+};
 
 use super::*;
 
+/// Applies the preferred mode only when the viewed manifestation changes.
+///
+/// User F5 intent is persistent while viewing one subject, but a control/view
+/// transfer starts from the new subject's authored camera policy.
+pub(in crate::game::player) fn sync_view_camera_profile(
+    target: Single<(Entity, &ViewCameraProfile), With<LocalViewTarget>>,
+    mut camera: Single<&mut PlayerCamera>,
+    mut previous: Local<Option<Entity>>,
+) {
+    let (entity, profile) = target.into_inner();
+    if *previous == Some(entity) {
+        return;
+    }
+
+    camera.mode = profile.preferred_mode;
+    *previous = Some(entity);
+}
+
 /// Resolves camera presentation after simulation/topology.
 ///
-/// Third person treats the boom as a short path through portal topology rather
-/// than one Euclidean segment. The camera can therefore cross a portal before
-/// the player, or remain through the portal behind the player after the player
-/// crosses. Each path segment still uses a sphere cast so ordinary walls and
-/// corners push the camera inward.
+/// Controller aim and viewed subject are intentionally independent. The local
+/// player supplies aim intent; LocalViewTarget supplies physical pose.
 pub(in crate::game::player) fn sync_player_camera(
     spatial_query: SpatialQuery,
     physics_charts: UsfPhysicsCharts,
-    controller: Single<(&PlayerAim, &CharacterStance), With<Player>>,
+    controller: Single<&PlayerAim, With<Player>>,
     subject: Single<
         (
             Entity,
             &Transform,
             &CharacterControlFrame,
-            Option<&ControlledSubjectHull>,
+            Option<&CharacterStance>,
             &UsfManifestationOf,
             &UsfScaleLayer,
+            &mut ViewCameraProfile,
         ),
         (
-            With<LocalControlSubject>,
+            With<LocalViewTarget>,
             With<UsfLogicalProjection>,
             Without<PlayerCamera>,
         ),
     >,
     camera: Single<
-        (&mut PlayerCamera, &mut Transform),
-        (With<PlayerCamera>, Without<LocalControlSubject>),
+        (&PlayerCamera, &mut Transform),
+        (With<PlayerCamera>, Without<LocalViewTarget>),
     >,
     semantic_entities: Query<&UsfManifestations>,
     portals: Query<
@@ -38,21 +62,20 @@ pub(in crate::game::player) fn sync_player_camera(
         (With<Portal>, Without<PlayerCamera>),
     >,
 ) {
-    let (aim, stance) = controller.into_inner();
-    let (subject_entity, body, control, hull, manifestation, layer) =
-        subject.into_inner();
-    let (mut camera, mut camera_transform) = camera.into_inner();
+    let aim = controller.into_inner();
+    let (
+        subject_entity,
+        body,
+        control,
+        stance,
+        manifestation,
+        layer,
+        mut profile,
+    ) = subject.into_inner();
+    let (camera, mut camera_transform) = camera.into_inner();
 
-    // Camera rig dimensions are presentation-space values. They remain
-    // visually useful across scale changes while USF projection keeps
-    // scenery observer-relative to the actual camera.
     let view_rotation = camera.view_rotation(control, aim);
-    let eye = if let Some(hull) = hull {
-        body.translation
-            + control.rotation() * Vec3::Y * (hull.size().y * 0.5 + 0.5)
-    } else {
-        camera.eye_position(body, control, stance)
-    };
+    let eye = body.translation + control.rotation() * profile.eye_offset(stance);
 
     *camera_transform = match camera.mode {
         CameraMode::FirstPerson => Transform {
@@ -62,7 +85,7 @@ pub(in crate::game::player) fn sync_player_camera(
         },
         CameraMode::ThirdPerson => {
             let pivot =
-                eye + control.rotation() * Vec3::Y * camera.third_person.pivot_height;
+                eye + control.rotation() * Vec3::Y * profile.third_person.pivot_height;
             let resolved = resolve_third_person_boom(
                 &spatial_query,
                 &physics_charts,
@@ -73,18 +96,53 @@ pub(in crate::game::player) fn sync_player_camera(
                 layer.scale(),
                 pivot,
                 view_rotation,
-                &camera.third_person,
+                &profile.third_person,
             );
-            camera.third_person.resolved_distance = resolved.distance;
+            profile.third_person.resolved_distance = resolved.distance;
             resolved.transform
         }
     };
 }
 
+/// Self-visibility is primary-view policy, not model identity or portal policy.
+///
+/// All manifestations of the viewed semantic subject are hidden from the
+/// primary first-person camera by moving body presentations onto the derived
+/// view layer. Portal cameras intentionally include that layer. Presentations
+/// of previous/unrelated view subjects are restored to ordinary world layers.
+pub(in crate::game::player) fn sync_view_subject_presentations(
+    camera: Single<&PlayerCamera>,
+    target: Single<&UsfManifestationOf, With<LocalViewTarget>>,
+    manifestations: Query<&UsfManifestationOf>,
+    mut presentations: Query<
+        (&UsfPresentationProjectionOf, &mut RenderLayers),
+        With<ViewSubjectPresentation>,
+    >,
+) {
+    let viewed_semantic = target.0;
+
+    for (projection, mut layers) in &mut presentations {
+        let is_self = manifestations
+            .get(projection.0)
+            .is_ok_and(|manifestation| manifestation.0 == viewed_semantic);
+
+        let desired = if is_self && camera.mode == CameraMode::FirstPerson {
+            RenderLayers::layer(DERIVED_VIEW_LAYER)
+        } else {
+            RenderLayers::default()
+        };
+
+        if *layers != desired {
+            *layers = desired;
+        }
+    }
+}
+
 /// Bevy stores perspective FOV vertically. Keep the requested gameplay FOV
-/// horizontal and derive the vertical value from the logical game-view aspect,
-/// not from the containing window. This remains correct when the game is embedded.
-pub(in crate::game::player) fn sync_player_fov(camera: Single<(&PlayerCamera, &Camera, &mut Projection)>) {
+/// horizontal and derive the vertical value from the logical game-view aspect.
+pub(in crate::game::player) fn sync_player_fov(
+    camera: Single<(&PlayerCamera, &Camera, &mut Projection)>,
+) {
     let (settings, camera, mut projection) = camera.into_inner();
     let Projection::Perspective(perspective) = projection.as_mut() else {
         return;
@@ -114,16 +172,4 @@ pub(in crate::game::player) fn sync_player_fov(camera: Single<(&PlayerCamera, &C
         .to_radians();
 
     perspective.fov = 2.0 * ((horizontal * 0.5).tan() / aspect).atan();
-}
-
-pub(in crate::game::player) fn sync_player_model(
-    camera: Single<&PlayerCamera>,
-    mut models: Query<&mut RenderLayers, With<PlayerModel>>,
-) {
-    for mut render_layers in &mut models {
-        *render_layers = match camera.mode {
-            CameraMode::FirstPerson => RenderLayers::layer(DERIVED_VIEW_LAYER),
-            CameraMode::ThirdPerson => RenderLayers::default(),
-        };
-    }
 }

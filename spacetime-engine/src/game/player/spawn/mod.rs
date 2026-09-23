@@ -72,6 +72,7 @@ pub(super) fn spawn_player(
                 PlayerAim::default(),
             ),
             (
+                ViewCameraProfile::character(),
                 SpatialRefinementDemand::cuboid(PLAYER_SPATIAL_DEMAND_HALF_EXTENT),
                 LocomotionCapabilities::character(),
                 LocomotionEnabled(true),
@@ -86,9 +87,9 @@ pub(super) fn spawn_player(
                 TravelEnvelope::default(),
                 ApproachRefinementState::default(),
                 AdaptiveCruise::default(),
-                TravelState::default(),
             ),
             (
+                TravelState::default(),
                 PrimaryBodyContext::default(),
                 UsfTravelNeighborhood::default(),
                 UsfNavigationContext::default(),

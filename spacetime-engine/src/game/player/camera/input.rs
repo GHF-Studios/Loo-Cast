@@ -23,7 +23,8 @@ pub(in crate::game::player) fn zoom_third_person(
     keyboard: Res<ButtonInput<KeyCode>>,
     capture: Res<CursorCapture>,
     presentation: Res<crate::view::PrimaryViewPresentation>,
-    mut camera: Single<&mut PlayerCamera>,
+    camera: Single<&PlayerCamera>,
+    mut profile: Single<&mut ViewCameraProfile, With<LocalViewTarget>>,
 ) {
     let spatial_zoom = keyboard.pressed(KeyCode::AltLeft) || keyboard.pressed(KeyCode::AltRight);
     if presentation.is_embedded()
@@ -35,5 +36,7 @@ pub(in crate::game::player) fn zoom_third_person(
         return;
     }
 
-    camera.third_person.add_zoom_steps(-scroll.delta.y.signum());
+    profile
+        .third_person
+        .add_zoom_steps(-scroll.delta.y.signum());
 }

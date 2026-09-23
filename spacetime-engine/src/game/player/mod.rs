@@ -15,7 +15,7 @@ pub mod cursor;
 mod model;
 mod stance;
 
-pub use camera::{CameraMode, PlayerCamera, ThirdPersonCamera};
+pub use camera::{CameraMode, PlayerCamera, ThirdPersonCamera, ViewCameraProfile};
 pub use components::{Player, PlayerAim, PlayerController, PlayerDead};
 
 
@@ -84,6 +84,7 @@ impl Plugin for PlayerPlugin {
             .register_type::<PlayerDead>()
             .register_type::<PlayerAim>()
             .register_type::<PlayerCamera>()
+            .register_type::<ViewCameraProfile>()
             .register_type::<ThirdPersonCamera>()
             .register_type::<CameraMode>()
             .add_systems(Startup, (spawn_player, hud::spawn_flight_hud))
@@ -132,9 +133,10 @@ impl Plugin for PlayerPlugin {
             .add_systems(
                 Update,
                 (
+                    camera::sync_view_camera_profile,
                     camera::sync_player_camera,
                     camera::sync_player_fov,
-                    camera::sync_player_model,
+                    camera::sync_view_subject_presentations,
                     hud::update_flight_hud,
                 )
                     .chain()

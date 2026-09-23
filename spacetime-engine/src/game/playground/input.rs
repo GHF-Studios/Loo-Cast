@@ -13,7 +13,8 @@ use crate::{
         item::{AimRay, ItemAction, ItemAim, ItemAimContext, UseItem},
         locomotion::CharacterStance,
         player::{
-            CameraMode, Player, PlayerAim, PlayerCamera, cursor::CursorCapture,
+            CameraMode, Player, PlayerAim, PlayerCamera, ViewCameraProfile,
+            cursor::CursorCapture,
         },
     },
     input_focus::InputFocus,
@@ -131,6 +132,7 @@ fn update_aim(
             &CharacterControlFrame,
             &PlayerAim,
             &CharacterStance,
+            &ViewCameraProfile,
         ),
         With<Player>,
     >,
@@ -142,9 +144,10 @@ fn update_aim(
         return;
     }
 
-    let (actor, body, control, player_aim, stance) = player.into_inner();
+    let (actor, body, control, player_aim, stance, profile) = player.into_inner();
     let view_rotation = camera.view_rotation(control, player_aim);
-    let origin = camera.eye_position(body, control, stance);
+    let origin =
+        body.translation + control.rotation() * profile.eye_offset(Some(stance));
 
     aim.set(Some(ItemAimContext {
         actor,
