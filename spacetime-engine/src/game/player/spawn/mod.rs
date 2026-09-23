@@ -4,7 +4,7 @@ use super::*;
 
 use crate::{
     game::{
-        control::LocalController,
+        control::{LocalController, LocalControlSubject, LocalViewTarget},
         flight::{FlightTelemetry, TraversalPolicy},
         locomotion::{
             CharacterStance, ControlledSubjectLocomotion, DetailedInteractionScale,
@@ -71,6 +71,10 @@ pub(super) fn spawn_player(
                 VoxelMaterializationDemand,
                 PlayerController::default(),
                 PlayerAim::default(),
+            ),
+            (
+                LocalControlSubject,
+                LocalViewTarget,
             ),
             (
                 ViewCameraProfile::character(),

@@ -22,7 +22,6 @@ use crate::{
         },
         control::{
             ControlActionSet, ControlledBy, LocalControlSubject, LocalControlTransferRequest,
-            LocalViewTarget,
         },
         locomotion::{
             ControlledSubjectHull, ControlledSubjectLocomotion, DetailedInteractionScale,
@@ -46,9 +45,8 @@ use crate::{
     portal::PortalTraveler,
     spatial::{
         SpatialDemandSource, SpatialRefinementDemand, SpatialScale,
-        UsfCanonicalMotion, UsfInteractionProjection, UsfLocalScalePresentation, UsfPosition,
-        UsfScaleLayer, UsfSpatialAnchor, UsfSpatialFrame,
-        UsfTravelNeighborhood, UsfViewAnchor,
+        UsfCanonicalMotion, UsfLocalScalePresentation, UsfPosition, UsfScaleLayer,
+        UsfSpatialAnchor, UsfSpatialFrame, UsfTravelNeighborhood,
     },
     view::ViewSubjectPresentation,
     voxel::VoxelMaterializationDemand,
@@ -129,6 +127,7 @@ impl Plugin for SpacecraftPlugin {
 
 fn spawn_reference_spacecraft(
     mut commands: Commands,
+    mut control_transfers: MessageWriter<LocalControlTransferRequest>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     body: Single<
@@ -179,15 +178,11 @@ fn spawn_reference_spacecraft(
             (
                 Name::new("Reference Spacecraft Manifestation"),
                 SpacecraftManifestation,
-                LocalControlSubject,
-                LocalViewTarget,
                 Visibility::Inherited,
                 UsfManifestationOf(semantic_ship),
                 UsfManifestationAuthority,
                 UsfLogicalProjection,
                 UsfSpatialAnchor,
-                UsfViewAnchor,
-                UsfInteractionProjection,
                 UsfScaleLayer::new(body_layer.scale()),
                 SpatialDemandSource::cuboid(SHIP_DEMAND_HALF_EXTENT)
                     .with_priority(SHIP_DEMAND_PRIORITY),
@@ -258,8 +253,6 @@ fn spawn_reference_spacecraft(
     commands.entity(player_semantic).insert(UsfConstituentOf(semantic_ship));
     commands
         .entity(body_entity)
-        .remove::<UsfViewAnchor>()
-        .remove::<UsfInteractionProjection>()
         .remove::<Collider>()
         .remove::<CharacterMotor>();
 
@@ -267,6 +260,13 @@ fn spawn_reference_spacecraft(
     body_enabled.0 = false;
     *body_visibility = Visibility::Hidden;
 
+    // Initial piloting is a normal control transaction. Vehicle code never
+    // mutates global LocalControlSubject / LocalViewTarget / UsfViewAnchor /
+    // UsfInteractionProjection ownership directly.
+    control_transfers.write(LocalControlTransferRequest::new(
+        player_semantic,
+        ship,
+    ));
 }
 
 pub(crate) fn detect_landing(
