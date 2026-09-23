@@ -5,10 +5,11 @@ use super::*;
 use crate::{
     game::{
         control::LocalController,
+        flight::{FlightTelemetry, TraversalPolicy},
         locomotion::{
             CharacterStance, ControlledSubjectLocomotion, DetailedInteractionScale,
             FlightControlIntent, LocomotionCapabilities, LocomotionEnabled,
-            ScaleInteractionProxy,
+            LocomotionInhibition, ScaleInteractionProxy,
         },
         navigation::{
             AdaptiveCruise, ApproachRefinementState, NavigationPresentationProfile,
@@ -93,6 +94,11 @@ pub(super) fn spawn_player(
                 PrimaryBodyContext::default(),
                 UsfTravelNeighborhood::default(),
                 UsfNavigationContext::default(),
+            ),
+            (
+                LocomotionInhibition::default(),
+                TraversalPolicy::Physical,
+                FlightTelemetry::default(),
             ),
             (
                 // Controlled-manifestation motion state persists across Scale

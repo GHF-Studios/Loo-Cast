@@ -16,14 +16,18 @@ use crate::{
     },
     game::{
         GameSet,
+        flight::{
+            FlightContactState, FlightSafetyProfile, FlightSafetyState, FlightTelemetry,
+            TraversalPolicy,
+        },
         control::{
             ControlActionSet, ControlledBy, LocalControlSubject, LocalControlTransferRequest,
             LocalViewTarget,
         },
         locomotion::{
             ControlledSubjectHull, ControlledSubjectLocomotion, DetailedInteractionScale,
-            FlightControlIntent, LocomotionCapabilities, LocomotionEnabled, LocomotionRegime,
-            LocomotionSet,
+            FlightControlIntent, LocomotionCapabilities, LocomotionEnabled,
+            LocomotionInhibition, LocomotionInhibitionReason, LocomotionRegime, LocomotionSet,
         },
         navigation::{
             AdaptiveCruise, ApproachRefinementState, PrimaryBodyContext, TravelEnvelope,
@@ -57,7 +61,6 @@ const SHIP_PROXY_RADIUS_NATIVE: f32 = 0.08;
 const SHIP_DEMAND_HALF_EXTENT: Vec3 = Vec3::new(96.0, 64.0, 96.0);
 const SHIP_DEMAND_PRIORITY: i32 = 120;
 const LANDING_PROBE_METRES: f32 = 2.0;
-const LANDING_MAX_SPEED_METRES_PER_SECOND: f32 = 8.0;
 const ENTER_DISTANCE_METRES: f32 = 12.0;
 
 #[derive(Component, Reflect, Debug, Default)]
@@ -67,32 +70,6 @@ pub struct Spacecraft;
 #[derive(Component, Reflect, Debug, Default)]
 #[reflect(Component)]
 pub struct SpacecraftManifestation;
-
-#[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum SpacecraftFlightRegime {
-    #[default]
-    Cruise,
-    Orbital,
-    Local,
-    Landed,
-}
-
-impl SpacecraftFlightRegime {
-    pub const fn label(self) -> &'static str {
-        match self {
-            Self::Cruise => "CRUISE",
-            Self::Orbital => "ORBITAL",
-            Self::Local => "LOCAL FLIGHT",
-            Self::Landed => "LANDED",
-        }
-    }
-}
-
-#[derive(Component, Reflect, Debug, Clone, Copy, Default)]
-#[reflect(Component)]
-pub struct SpacecraftFlightState {
-    pub regime: SpacecraftFlightRegime,
-}
 
 #[derive(Component, Reflect, Debug, Clone, Copy)]
 #[reflect(Component)]
@@ -136,8 +113,6 @@ impl Plugin for SpacecraftPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Spacecraft>()
             .register_type::<SpacecraftManifestation>()
-            .register_type::<SpacecraftFlightRegime>()
-            .register_type::<SpacecraftFlightState>()
             .register_type::<SpacecraftOrbit>()
             .add_systems(PostStartup, spawn_reference_spacecraft)
             .add_systems(Update, handle_spacecraft_actions.in_set(ControlActionSet::Request))
@@ -147,9 +122,7 @@ impl Plugin for SpacecraftPlugin {
             )
             .add_systems(
                 Update,
-                (sync_spacecraft_flight_state, sync_spacecraft_orbit)
-                    .chain()
-                    .in_set(GameSet::Presentation),
+                sync_spacecraft_orbit.in_set(GameSet::Presentation),
             );
     }
 }
@@ -245,7 +218,6 @@ fn spawn_reference_spacecraft(
                 CharacterMovementConfig::default(),
                 CharacterMovementInput::default(),
                 CharacterGroundState::default(),
-                SpacecraftFlightState::default(),
                 SpacecraftOrbit::default(),
                 RigidBody::Kinematic,
                 CustomPositionIntegration,
@@ -253,6 +225,14 @@ fn spawn_reference_spacecraft(
                 LinearVelocity::ZERO,
                 Collider::sphere(SHIP_PROXY_RADIUS_NATIVE),
                 SpatialSplitBox::from_size(SHIP_SIZE),
+            ),
+            (
+                LocomotionInhibition::default(),
+                FlightContactState::default(),
+                FlightSafetyProfile::spacecraft(),
+                FlightSafetyState::default(),
+                FlightTelemetry::default(),
+                TraversalPolicy::Physical,
             ),
             (
                 PortalTraveler::new(body_transform.translation),
@@ -304,8 +284,9 @@ pub(crate) fn detect_landing(
             &mut LinearVelocity,
             &mut UsfCanonicalMotion,
             &mut ControlledSubjectLocomotion,
-            &mut LocomotionEnabled,
-            &mut SpacecraftFlightState,
+            &FlightSafetyProfile,
+            &mut LocomotionInhibition,
+            &mut FlightContactState,
         ),
         (With<SpacecraftManifestation>, With<LocalControlSubject>, Without<Player>),
     >,
@@ -321,14 +302,15 @@ pub(crate) fn detect_landing(
         mut velocity,
         mut motion,
         mut locomotion,
-        mut enabled,
-        mut state,
+        safety,
+        mut inhibition,
+        mut contact,
     )) = ships.single_mut()
     else {
         return;
     };
 
-    if !enabled.0
+    if contact.is_landed()
         || layer.scale() != detailed.0
         || locomotion.regime() != LocomotionRegime::LocalFlight
     {
@@ -336,7 +318,7 @@ pub(crate) fn detect_landing(
     }
 
     let speed_metres = motion.speed_metres_per_second();
-    if speed_metres > f64::from(LANDING_MAX_SPEED_METRES_PER_SECOND) {
+    if speed_metres > safety.preferred_contact_speed_metres_per_second() {
         return;
     }
 
@@ -371,31 +353,10 @@ pub(crate) fn detect_landing(
 
     velocity.0 = Vec3::ZERO;
     motion.stop();
-    enabled.0 = false;
-    state.regime = SpacecraftFlightRegime::Landed;
+    contact.land();
+    inhibition.set(LocomotionInhibitionReason::SurfaceContact, true);
     locomotion.request_automatic();
     locomotion.set_thrusters_enabled(false);
-}
-
-fn sync_spacecraft_flight_state(
-    mut ships: Query<
-        (&LocomotionEnabled, &ControlledSubjectLocomotion, &mut SpacecraftFlightState),
-        With<SpacecraftManifestation>,
-    >,
-) {
-    for (enabled, locomotion, mut state) in &mut ships {
-        if !enabled.0 {
-            state.regime = SpacecraftFlightRegime::Landed;
-            continue;
-        }
-        state.regime = match locomotion.regime() {
-            LocomotionRegime::Cruise => SpacecraftFlightRegime::Cruise,
-            LocomotionRegime::PlanetaryFlight => SpacecraftFlightRegime::Orbital,
-            LocomotionRegime::LocalFlight | LocomotionRegime::OnFoot => {
-                SpacecraftFlightRegime::Local
-            }
-        };
-    }
 }
 
 fn handle_spacecraft_actions(
@@ -426,11 +387,11 @@ fn handle_spacecraft_actions(
             &UsfScaleLayer,
             &CharacterLocomotionFrame,
             &mut SpatialDemandSource,
-            &mut LocomotionEnabled,
             &mut ControlledSubjectLocomotion,
             &mut LinearVelocity,
             &mut UsfCanonicalMotion,
-            &mut SpacecraftFlightState,
+            &mut LocomotionInhibition,
+            &mut FlightContactState,
         ),
         (With<SpacecraftManifestation>, With<LocalControlSubject>, Without<Player>),
     >,
@@ -441,9 +402,8 @@ fn handle_spacecraft_actions(
             &UsfManifestationOf,
             &Transform,
             &UsfScaleLayer,
-            &SpacecraftFlightState,
+            &FlightContactState,
             &mut SpatialDemandSource,
-            &mut LocomotionEnabled,
         ),
         (With<SpacecraftManifestation>, Without<LocalControlSubject>, Without<Player>),
     >,
@@ -455,18 +415,16 @@ fn handle_spacecraft_actions(
         ship_layer,
         ship_frame,
         mut ship_demand,
-        mut ship_enabled,
         mut ship_locomotion,
         mut ship_velocity,
         mut ship_motion,
-        mut ship_state,
+        mut ship_inhibition,
+        mut ship_contact,
     )) = controlled_ship.single_mut()
     {
-        if ship_state.regime == SpacecraftFlightRegime::Landed
-            && keyboard.just_pressed(KeyCode::Space)
-        {
-            ship_enabled.0 = true;
-            ship_state.regime = SpacecraftFlightRegime::Local;
+        if ship_contact.is_landed() && keyboard.just_pressed(KeyCode::Space) {
+            ship_contact.launch();
+            ship_inhibition.set(LocomotionInhibitionReason::SurfaceContact, false);
             ship_locomotion.request_regime(LocomotionRegime::LocalFlight);
             ship_locomotion.set_thrusters_enabled(true);
             ship_velocity.0 =
@@ -475,8 +433,7 @@ fn handle_spacecraft_actions(
             return;
         }
 
-        if ship_state.regime != SpacecraftFlightRegime::Landed
-            || !keyboard.just_pressed(KeyCode::KeyE)
+        if !ship_contact.is_landed() || !keyboard.just_pressed(KeyCode::KeyE)
         {
             return;
         }
@@ -554,13 +511,11 @@ fn handle_spacecraft_actions(
         ship_manifestation,
         ship_transform,
         ship_layer,
-        ship_state,
+        ship_contact,
         mut ship_demand,
-        mut ship_enabled,
     ) in &mut ships
     {
-        if ship_state.regime != SpacecraftFlightRegime::Landed
-            || ship_layer.scale() != player_layer.scale()
+        if !ship_contact.is_landed() || ship_layer.scale() != player_layer.scale()
         {
             continue;
         }
@@ -578,7 +533,6 @@ fn handle_spacecraft_actions(
         player_demand.set_enabled(false);
         player_enabled.0 = false;
         ship_demand.set_enabled(true);
-        ship_enabled.0 = false;
 
         commands
             .entity(player_entity)

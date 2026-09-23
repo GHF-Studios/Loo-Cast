@@ -40,8 +40,9 @@ use crate::{
 use super::{
     CharacterStance, CollisionPolicy, ControlledSubjectHull, ControlledSubjectLocomotion,
     ControlledSubjectLocomotionChanged, DetailedInteractionScale, FlightControlIntent,
-    LocomotionCapabilities, LocomotionEnabled, LocomotionRegime, LocomotionRequest,
-    MotionKernel, ScaleInteractionProxy, VelocitySemantics,
+    LocomotionCapabilities, LocomotionEnabled, LocomotionInhibition,
+    LocomotionRegime, LocomotionRequest, MotionKernel, ScaleInteractionProxy,
+    VelocitySemantics,
 };
 
 fn nearest_body_clearance_and_radius(travel: &TravelState) -> Option<(f64, f64)> {
@@ -181,6 +182,7 @@ pub(super) fn resolve_locomotion_state(
             &TravelProfile,
             &LocomotionCapabilities,
             &LocomotionEnabled,
+            &LocomotionInhibition,
             &mut ControlledSubjectLocomotion,
             &mut UsfCanonicalMotion,
         ),
@@ -195,6 +197,7 @@ pub(super) fn resolve_locomotion_state(
         profile,
         capabilities,
         enabled,
+        inhibition,
         mut locomotion,
         mut motion,
     ) = subject.into_inner();
@@ -202,7 +205,7 @@ pub(super) fn resolve_locomotion_state(
     let previous_regime = locomotion.regime();
     let previous_kernel = locomotion.kernel();
 
-    if !enabled.0 {
+    if !enabled.0 || inhibition.is_inhibited() {
         let collision_policy = locomotion.collision_policy();
         if locomotion.resolve(
             previous_regime,

@@ -209,7 +209,57 @@ impl LocomotionCapabilities {
     pub const fn cruise(self) -> bool { self.cruise }
 }
 
-/// Whether the subject's locomotion runtime may currently own motion.
+/// Independent reasons that may temporarily inhibit locomotion execution.
+///
+/// These are resolver inputs, not alternate motion kernels. Multiple domains can
+/// therefore hold motion without racing over `LocomotionEnabled`.
+#[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LocomotionInhibitionReason {
+    SurfaceContact,
+    Scripted,
+}
+
+impl LocomotionInhibitionReason {
+    const fn bit(self) -> u32 {
+        1 << match self {
+            Self::SurfaceContact => 0,
+            Self::Scripted => 1,
+        }
+    }
+}
+
+/// Composable temporary motion holds.
+///
+/// `LocomotionEnabled` answers whether this runtime may own locomotion at all.
+/// Inhibition answers whether an otherwise valid subject is temporarily held.
+#[derive(Component, Reflect, Debug, Default, Clone, Copy)]
+#[reflect(Component)]
+pub struct LocomotionInhibition {
+    reasons: u32,
+}
+
+impl LocomotionInhibition {
+    pub const fn is_inhibited(self) -> bool {
+        self.reasons != 0
+    }
+
+    pub const fn contains(self, reason: LocomotionInhibitionReason) -> bool {
+        self.reasons & reason.bit() != 0
+    }
+
+    pub fn set(&mut self, reason: LocomotionInhibitionReason, inhibited: bool) {
+        if inhibited {
+            self.reasons |= reason.bit();
+        } else {
+            self.reasons &= !reason.bit();
+        }
+    }
+}
+
+/// Whether the subject's runtime is allowed to own locomotion at all.
+///
+/// This is lifecycle/control-ownership state. It must not encode temporary
+/// conditions such as "landed"; use [`LocomotionInhibition`] for those.
 #[derive(Component, Reflect, Debug, Clone, Copy)]
 #[reflect(Component)]
 pub struct LocomotionEnabled(pub bool);
@@ -351,6 +401,8 @@ impl Plugin for LocomotionPlugin {
             .register_type::<VelocitySemantics>()
             .register_type::<ControlledSubjectLocomotion>()
             .register_type::<LocomotionCapabilities>()
+            .register_type::<LocomotionInhibitionReason>()
+            .register_type::<LocomotionInhibition>()
             .register_type::<LocomotionEnabled>()
             .register_type::<ControlledSubjectHull>()
             .register_type::<CharacterStance>()

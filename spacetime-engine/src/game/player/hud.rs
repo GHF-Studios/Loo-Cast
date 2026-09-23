@@ -1,20 +1,17 @@
-//! Center-relative travel instrumentation.
+//! Center-relative flight instrumentation.
 //!
-//! Flight data lives in opposing "wings" around the reticle. These are compact
-//! instruments, not permanent sci-fi decoration: ordinary on-foot play hides
-//! them completely.
+//! The HUD consumes the stable flight-domain telemetry contract. It deliberately
+//! does not know which motion kernel, cruise implementation or collision policy
+//! produced that state.
 
 use bevy::prelude::*;
 
-use crate::game::{
-    locomotion::{
-        ControlledSubjectLocomotion, DetailedInteractionScale, LocomotionRegime, MotionKernel,
-    },
-    navigation::{AdaptiveCruise, TravelState},
-};
 use crate::{
-    game::control::LocalControlSubject,
-    spatial::{UsfCanonicalMotion, UsfScaleLayer, UsfViewContext, UsfViewRenderAnchor},
+    game::{
+        control::LocalControlSubject,
+        flight::{FlightMode, FlightTelemetry},
+    },
+    spatial::{UsfViewContext, UsfViewRenderAnchor},
 };
 
 const HUD_TEXT: Color = Color::srgb(0.72, 0.95, 0.88);
@@ -114,17 +111,7 @@ pub(super) fn spawn_flight_hud(mut commands: Commands) {
 }
 
 pub(super) fn update_flight_hud(
-    player: Single<
-        (
-            &TravelState,
-            &AdaptiveCruise,
-            &ControlledSubjectLocomotion,
-            &DetailedInteractionScale,
-            &UsfScaleLayer,
-            &UsfCanonicalMotion,
-        ),
-        With<LocalControlSubject>,
-    >,
+    telemetry: Single<&FlightTelemetry, With<LocalControlSubject>>,
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     mut hud: ParamSet<(
         Single<(&mut Text, &mut Node), With<FlightHudLeft>>,
@@ -132,8 +119,8 @@ pub(super) fn update_flight_hud(
         Single<(&mut Text, &mut Node), With<FlightHudAlert>>,
     )>,
 ) {
-    let (travel, cruise, locomotion, detailed, layer, motion) = player.into_inner();
-    let flying = locomotion.regime() != LocomotionRegime::OnFoot;
+    let telemetry = telemetry.into_inner();
+    let flying = telemetry.active();
 
     {
         let mut left = hud.p0();
@@ -150,10 +137,10 @@ pub(super) fn update_flight_hud(
         return;
     }
 
-    let cruising = locomotion.kernel() == MotionKernel::Cruise;
-    let speed = format_speed(motion.speed_metres_per_second());
+    let cruising = telemetry.mode() == Some(FlightMode::Cruise);
+    let speed = format_speed(telemetry.speed_metres_per_second());
     let throttle = if cruising {
-        format!("{:>3.0}%", cruise.throttle * 100.0)
+        format!("{:>3.0}%", telemetry.throttle() * 100.0)
     } else {
         "--".to_string()
     };
@@ -162,26 +149,29 @@ pub(super) fn update_flight_hud(
         let mut left = hud.p0();
         left.0.0 = format!(
             "{}\nSPD  {}\nTHR  {} • RCS {}\nCHART S{} • VIEW {:+.2}",
-            locomotion.regime().label(),
+            telemetry.display_mode_label(),
             speed,
             throttle,
-            if locomotion.thrusters_enabled() { "ON" } else { "OFF" },
-            layer.scale(),
+            if telemetry.thrusters_enabled() { "ON" } else { "OFF" },
+            telemetry.interaction_scale(),
             view.continuous_exponent(),
         );
     }
 
-    let clearance = travel
-        .nearest_body_clearance_scale0
+    let clearance = telemetry
+        .clearance_metres()
         .map(format_distance)
         .unwrap_or_else(|| "--".to_string());
-    let gravity = if travel.local_gravity > 0.001 {
-        format!("{:.2} m/s²", travel.local_gravity)
+    let gravity = if telemetry.local_gravity_metres_per_second2() > 0.001 {
+        format!(
+            "{:.2} m/s²",
+            telemetry.local_gravity_metres_per_second2()
+        )
     } else {
         "--".to_string()
     };
-    let handoff = travel
-        .planetary_handoff_clearance_scale0
+    let handoff = telemetry
+        .planetary_handoff_clearance_metres()
         .map(format_distance)
         .unwrap_or_else(|| "--".to_string());
 
@@ -193,12 +183,12 @@ pub(super) fn update_flight_hud(
         );
     }
 
-    let warning = if travel.critical_dropout {
+    let warning = if telemetry.dropout_required() {
         Some("CRITICAL DROPOUT")
-    } else if cruising && travel.planetary_handoff_available {
+    } else if cruising && telemetry.planetary_handoff_available() {
         Some("[C] PLANETARY FLIGHT AVAILABLE")
-    } else if locomotion.regime() == LocomotionRegime::LocalFlight
-        && layer.scale() == detailed.0
+    } else if telemetry.mode() == Some(FlightMode::Local)
+        && telemetry.detailed_interaction()
     {
         Some("[V] RETURN ON FOOT")
     } else {
