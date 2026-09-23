@@ -34,8 +34,7 @@ use super::{
     CharacterGroundState,
     CharacterLocomotionFrame,
     CharacterControlFrame,
-    GravitySample,
-    GravityAlignedLocomotionFrame
+    GravitySample
 )]
 pub struct CharacterMotor;
 

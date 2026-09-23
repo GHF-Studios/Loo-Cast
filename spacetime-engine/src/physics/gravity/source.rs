@@ -2,12 +2,8 @@
 
 use bevy::{math::DVec3, prelude::*};
 
-use crate::spatial::{SpatialScale, UsfPosition};
+use crate::spatial::{SpatialScale, UsfFieldSourceLocation, UsfPosition};
 
-/// Canonical spherical gravity source.
-///
-/// `field_scale` is only the numerically appropriate chart in which to measure
-/// source-relative displacement. It is not semantic ownership of gravity.
 #[derive(Component, Debug, Clone, Copy, PartialEq)]
 pub struct RadialGravitySource {
     center: UsfPosition,
@@ -72,15 +68,17 @@ impl RadialGravitySource {
         let factor = if distance_metres >= self.radius_metres {
             (self.radius_metres / distance_metres).powi(2)
         } else {
-            // Finite uniform-sphere interior approximation. This keeps the
-            // field continuous and prevents missing collision from becoming a
-            // singularity at the semantic body center.
             (distance_metres / self.radius_metres).clamp(0.0, 1.0)
         };
 
-        let magnitude =
-            f64::from(self.surface_gravity_metres_per_second2) * factor;
+        let magnitude = f64::from(self.surface_gravity_metres_per_second2) * factor;
         Some(-relative_metres / distance_metres * magnitude)
+    }
+}
+
+impl UsfFieldSourceLocation for RadialGravitySource {
+    fn field_position(&self) -> UsfPosition {
+        self.center
     }
 }
 

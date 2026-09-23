@@ -6,7 +6,10 @@ use bevy::prelude::*;
 
 use crate::{
     config::EngineConfig,
-    spatial::{SpatialDemandScope, UsfScaleLayer},
+    spatial::{
+        SpatialDemandScope, SpatialScale, UsfChunkAddress, UsfContextTopology, UsfPositionError,
+        UsfScaleLayer,
+    },
 };
 
 use super::{VoxelPinnedDemand, VoxelStreaming};
@@ -39,6 +42,7 @@ pub(super) struct VoxelDemandPlanKey {
 /// does not spawn asynchronous generation work.
 pub(in crate::voxel) fn refresh_voxel_residency(
     config: Res<EngineConfig>,
+    topology: Res<UsfContextTopology>,
     realization_demand: Res<VoxelRealizationDemandSnapshot>,
     mut worlds: Query<(
         Entity,
@@ -54,31 +58,33 @@ pub(in crate::voxel) fn refresh_voxel_residency(
     for (world_entity, mut world, mut streaming, layer, pinned) in &mut worlds {
         voxel_demands.clear();
         voxel_demands.extend(realization_demand.scopes_for(world_entity));
-        if let Some(pinned) = pinned {
-            voxel_demands.push(SpatialDemandScope::at_scale(
-                world_entity,
-                layer.scale(),
-                pinned.center(),
-                pinned.half_extent_native(),
-                pinned.priority(),
-            ));
-        }
-
         let pinned_shell = pinned
             .and_then(|pinned| pinned.surface_radius_native())
             .map(|radius| (world_entity, radius));
 
         let changed =
-            match refresh_demand_plan(&world, &voxel_demands, &mut streaming, pinned_shell) {
+            match refresh_demand_plan(
+                &world,
+                &voxel_demands,
+                &mut streaming,
+                pinned_shell,
+                &topology,
+                layer.scale(),
+            ) {
                 Ok(changed) => changed,
                 Err(error) => {
                     error!(
-                        ?error,
+                        error = %error,
                         world = ?world_entity,
                         scale = %layer.scale(),
                         world_leaf = %world.origin().leaf_scale(),
                         "voxel spatial demand could not be represented canonically"
                     );
+                    streaming.cached_desired_set.clear();
+                    streaming.pending_desired.clear();
+                    streaming.demand_key.clear();
+                    streaming.context_revision = topology.revision();
+                    reconcile_materialization_residency(&mut world, &mut streaming, warm_limit);
                     continue;
                 }
             };
@@ -123,18 +129,42 @@ fn reconcile_materialization_residency(
         .retain(|demanded| !world.materializations().is_active(demanded.address));
 }
 
+#[derive(Debug)]
+enum VoxelDemandPlanError {
+    Position(UsfPositionError),
+    MissingContext(UsfChunkAddress),
+}
+
+impl From<UsfPositionError> for VoxelDemandPlanError {
+    fn from(value: UsfPositionError) -> Self {
+        Self::Position(value)
+    }
+}
+
+impl std::fmt::Display for VoxelDemandPlanError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Position(error) => write!(formatter, "canonical position error: {error:?}"),
+            Self::MissingContext(context) => write!(formatter, "missing USF context: {context:?}"),
+        }
+    }
+}
+
 fn refresh_demand_plan(
     world: &VoxelWorld,
     demands: &[SpatialDemandScope],
     streaming: &mut VoxelStreaming,
     pinned_shell: Option<(Entity, f32)>,
-) -> Result<bool, crate::spatial::UsfPositionError> {
+    topology: &UsfContextTopology,
+    context_scale: SpatialScale,
+) -> Result<bool, VoxelDemandPlanError> {
     let key = demand_plan_key(world, demands)?;
-    if key == streaming.demand_key {
+    if key == streaming.demand_key && streaming.context_revision == topology.revision() {
         return Ok(false);
     }
 
     let desired = demanded_chunk_addresses(world, demands, pinned_shell)?;
+    validate_context_residency(&desired, topology, context_scale)?;
     streaming.cached_desired_set.clear();
     streaming
         .cached_desired_set
@@ -145,7 +175,23 @@ fn refresh_demand_plan(
         .filter(|chunk| !world.materializations().is_active(chunk.address))
         .collect();
     streaming.demand_key = key;
+    streaming.context_revision = topology.revision();
     Ok(true)
+}
+
+fn validate_context_residency(
+    desired: &[DemandedChunk],
+    topology: &UsfContextTopology,
+    context_scale: SpatialScale,
+) -> Result<(), VoxelDemandPlanError> {
+    for demanded in desired {
+        let center = demanded.address.center()?;
+        let context = UsfChunkAddress::containing(center, context_scale)?;
+        if !topology.contains(context) {
+            return Err(VoxelDemandPlanError::MissingContext(context));
+        }
+    }
+    Ok(())
 }
 
 fn demand_plan_key(

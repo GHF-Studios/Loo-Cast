@@ -46,7 +46,7 @@ use bevy::prelude::*;
 
 use crate::{
     physics::character::CharacterMovementSet,
-    spatial::{SpatialDemandSet, UsfSpatialSet},
+    spatial::{SpatialDemandSet, UsfContextSet, UsfSpatialSet},
 };
 
 /// Suppresses derived physics colliders for a voxel world.
@@ -88,14 +88,17 @@ impl Plugin for VoxelPlugin {
                 Update,
                 (
                     VoxelUpdateSet::RealizationDemand.after(SpatialDemandSet::Collect),
-                    VoxelUpdateSet::Residency.after(VoxelUpdateSet::RealizationDemand),
+                    VoxelUpdateSet::Residency
+                        .after(VoxelUpdateSet::RealizationDemand)
+                        .after(UsfContextSet::Reconcile),
                     VoxelUpdateSet::Generation.after(VoxelUpdateSet::Residency),
                 ),
             )
             .add_systems(
                 Update,
                 realization::collect_voxel_realization_demand
-                    .in_set(VoxelUpdateSet::RealizationDemand),
+                    .in_set(VoxelUpdateSet::RealizationDemand)
+                    .in_set(UsfContextSet::Collect),
             )
             .add_systems(
                 Update,
@@ -188,4 +191,3 @@ impl Plugin for VoxelPlugin {
         devtools::configure(app);
     }
 }
-

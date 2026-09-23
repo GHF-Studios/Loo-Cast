@@ -27,6 +27,7 @@ pub(super) use generation::{
 #[derive(Component, Debug, Clone)]
 pub struct VoxelStreaming {
     load_budget_per_frame: usize,
+    context_revision: u64,
     demand_key: Vec<VoxelDemandPlanKey>,
     pending_desired: VecDeque<DemandedChunk>,
     cached_desired_set: HashSet<VoxelMaterializationChunkAddress>,
@@ -36,6 +37,7 @@ impl VoxelStreaming {
     pub fn new(load_budget_per_frame: usize) -> Self {
         Self {
             load_budget_per_frame: load_budget_per_frame.max(1),
+            context_revision: 0,
             demand_key: Vec::new(),
             pending_desired: VecDeque::new(),
             cached_desired_set: HashSet::new(),

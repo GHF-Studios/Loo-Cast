@@ -8,6 +8,7 @@
 mod context;
 mod demand;
 mod devtools;
+mod field;
 mod layer;
 mod motion;
 mod navigation;
@@ -16,7 +17,11 @@ mod refinement;
 mod transition;
 mod view;
 
-pub use context::{UsfContextNode, UsfContextSet, UsfContextTopology};
+pub use context::{UsfContextDemandBuffer, UsfContextNode, UsfContextSet, UsfContextTopology};
+pub use field::{UsfFieldSampleMetadata, UsfFieldSampleQuality};
+pub(crate) use field::{
+    UsfFieldContext, UsfFieldSource, UsfFieldSourceLocation, UsfHierarchicalFieldCache,
+};
 pub use demand::{
     SpatialDemandScope, SpatialDemandSet, SpatialDemandSnapshot, SpatialDemandSource,
     SpatialRefinementDemand,

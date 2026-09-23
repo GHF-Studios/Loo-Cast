@@ -2,8 +2,9 @@
 //!
 //! Generic spatial demand says where gameplay cares about reality. This layer
 //! translates that demand into requests for concrete voxel manifestations in
-//! particular USF Scale Slices. Generic voxel streaming then only consumes those
-//! per-realization requests; it does not know what a moon or planet is.
+//! particular USF Scale Slices. Derived realization-local scopes are also
+//! published into the shared USF context-demand collection, so capability
+//! residency can never appear outside the ancestor-closed context topology.
 
 use std::collections::HashMap;
 
@@ -12,16 +13,19 @@ use bevy::prelude::*;
 use crate::{
     ecs::UsfManifestationOf,
     spatial::{
-        SpatialDemandScope, SpatialDemandSnapshot, SpatialScale, UsfChartMask, UsfScaleLayer,
+        SpatialDemandScope, SpatialDemandSnapshot, SpatialScale, UsfChartMask,
+        UsfContextDemandBuffer, UsfScaleLayer,
     },
 };
 
-use super::{CelestialVoxelField, VoxelMaterializationDemand, VoxelWorld};
+use super::{
+    CelestialVoxelField, MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationDemand,
+    VoxelPinnedDemand, VoxelWorld,
+};
 
 const DEFAULT_REFINEMENT_ACTIVATION_NATIVE: f32 = 8_192.0;
 const DEFAULT_LOCAL_PATCH_HALF_EXTENT_NATIVE: f32 = 32.0;
 
-/// Scale-Slice participation policy for one semantic voxel mechanism.
 #[derive(Component, Debug, Clone, Copy, PartialEq)]
 pub struct VoxelScaleDomain {
     realization_slices: UsfChartMask,
@@ -129,10 +133,12 @@ pub(super) fn collect_voxel_realization_demand(
             Entity,
             &UsfScaleLayer,
             Option<&UsfManifestationOf>,
+            Option<&VoxelPinnedDemand>,
         ),
         With<VoxelWorld>,
     >,
     celestial_authorities: Query<(&CelestialVoxelField, &VoxelScaleDomain)>,
+    mut context_demand: ResMut<UsfContextDemandBuffer>,
     mut output: ResMut<VoxelRealizationDemandSnapshot>,
 ) {
     let mut next = VoxelRealizationDemandSnapshot::default();
@@ -153,8 +159,21 @@ pub(super) fn collect_voxel_realization_demand(
             .or_insert(scope);
     }
 
-    for (world_entity, layer, manifestation) in &worlds {
+    for (world_entity, layer, manifestation, pinned) in &worlds {
         let scale = layer.scale();
+
+        if let Some(pinned) = pinned {
+            next.push(
+                world_entity,
+                SpatialDemandScope::at_scale(
+                    world_entity,
+                    scale,
+                    pinned.center(),
+                    pinned.half_extent_native(),
+                    pinned.priority(),
+                ),
+            );
+        }
 
         if let Some(manifestation) = manifestation
             && let Ok((field, domain)) = celestial_authorities.get(manifestation.0)
@@ -179,6 +198,7 @@ pub(super) fn collect_voxel_realization_demand(
             }
         }
     }
+
     next.demands.sort_by_key(|demand| {
         (
             demand.target_world.to_bits(),
@@ -186,6 +206,19 @@ pub(super) fn collect_voxel_realization_demand(
             demand.scope.scale().exponent(),
         )
     });
+
+    for demand in &next.demands {
+        let scope = demand.scope;
+        context_demand.request(SpatialDemandScope::at_scale(
+            scope.source(),
+            scope.scale(),
+            scope.center(),
+            scope.half_extent_native()
+                + Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32 * 0.5),
+            scope.priority(),
+        ));
+    }
+
     if output.demands != next.demands {
         output.demands = next.demands;
     }
@@ -218,11 +251,6 @@ fn celestial_surface_demand(
         return None;
     }
 
-    // This is a realization-local demand address, not semantic identity.
-    // Intentionally project the authority center into the target Scale Slice
-    // before applying the target-native surface displacement. Keeping the
-    // authority's finer leaf here would violate VoxelWorld's scale-local
-    // materialization-address invariant.
     let center = field
         .center()
         .reexpressed_at(target_scale)

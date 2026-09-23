@@ -1,17 +1,12 @@
 //! Canonical identity of one USF chunk at one spatial scale.
 
-use bevy::prelude::IVec3;
+use bevy::prelude::{IVec3, Vec3};
 
 use super::{
-    SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MAX, SpatialScale, UsfPosition, UsfPositionError,
+    SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MAX, SpatialScale, USF_CHUNK_NATIVE_SIZE, UsfPosition,
+    UsfPositionError,
 };
 
-/// Canonical identity of one USF Chunk at one spatial scale.
-///
-/// An address retains only the balanced-decimal digits that identify the chunk
-/// at `scale`; finer digits and the leaf-local offset are intentionally ignored.
-/// This makes the same type useful for sparse Phenomenon state, generation
-/// caches and later representation attachments without allocating the hierarchy.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct UsfChunkAddress {
     scale: SpatialScale,
@@ -46,6 +41,24 @@ impl UsfChunkAddress {
         } else {
             Some(self.digits[scale.index_from_top()])
         }
+    }
+
+    pub fn center(self) -> UsfPosition {
+        UsfPosition {
+            digits: self.digits,
+            leaf_scale: self.scale,
+            offset: Vec3::ZERO,
+        }
+    }
+
+    pub fn translated_chunks(self, delta: IVec3) -> Result<Self, UsfPositionError> {
+        let size = USF_CHUNK_NATIVE_SIZE as i64;
+        let position = self.center().translated_whole_native([
+            i64::from(delta.x) * size,
+            i64::from(delta.y) * size,
+            i64::from(delta.z) * size,
+        ])?;
+        Self::containing(position, self.scale)
     }
 
     pub fn parent(self) -> Option<Self> {

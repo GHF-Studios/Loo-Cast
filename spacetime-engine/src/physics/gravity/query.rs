@@ -6,34 +6,19 @@ use bevy::{
     prelude::*,
 };
 
-use crate::spatial::{SpatialScale, UsfChunkAddress, UsfContextTopology, UsfPosition};
+use crate::spatial::{
+    SpatialScale, UsfContextTopology, UsfFieldSampleMetadata, UsfFieldSampleQuality, UsfPosition,
+};
 
 use super::cache::{CachedGravitySource, GravityFieldCache};
 
-/// Provenance/quality of one gravity sample.
-///
-/// Both current variants are exact. The distinction tells diagnostics whether
-/// the sample used the ancestor-closed context stack or had to fall back to the
-/// global source set because no resident context path was available yet.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub enum GravitySampleQuality {
-    ExactHierarchical,
-    #[default]
-    ExactGlobalFallback,
-}
+pub type GravitySampleQuality = UsfFieldSampleQuality;
 
-/// Fixed-tick gravity sample attached to a runtime subject.
-///
-/// Acceleration is expressed in canonical USF axes and SI m/s². It is
-/// independent from the subject's current numerical Scale Slice.
 #[derive(Component, Debug, Clone, Copy)]
 pub struct GravitySample {
     acceleration_metres_per_second2: DVec3,
     strongest_source: Option<Entity>,
-    deepest_context: Option<UsfChunkAddress>,
-    context_depth: u8,
-    cache_revision: u64,
-    quality: GravitySampleQuality,
+    metadata: UsfFieldSampleMetadata,
 }
 
 impl Default for GravitySample {
@@ -41,10 +26,7 @@ impl Default for GravitySample {
         Self {
             acceleration_metres_per_second2: DVec3::ZERO,
             strongest_source: None,
-            deepest_context: None,
-            context_depth: 0,
-            cache_revision: 0,
-            quality: GravitySampleQuality::ExactGlobalFallback,
+            metadata: UsfFieldSampleMetadata::default(),
         }
     }
 }
@@ -58,20 +40,24 @@ impl GravitySample {
         self.strongest_source
     }
 
-    pub const fn deepest_context(self) -> Option<UsfChunkAddress> {
-        self.deepest_context
+    pub const fn deepest_context(self) -> Option<crate::spatial::UsfChunkAddress> {
+        self.metadata.deepest_context()
     }
 
     pub const fn context_depth(self) -> u8 {
-        self.context_depth
+        self.metadata.context_depth()
     }
 
     pub const fn cache_revision(self) -> u64 {
-        self.cache_revision
+        self.metadata.representation_revision()
     }
 
     pub const fn quality(self) -> GravitySampleQuality {
-        self.quality
+        self.metadata.quality()
+    }
+
+    pub const fn metadata(self) -> UsfFieldSampleMetadata {
+        self.metadata
     }
 
     pub fn magnitude_metres_per_second2(self) -> f32 {
@@ -91,7 +77,8 @@ struct GravityAccumulator {
 impl GravityAccumulator {
     fn add_sources(&mut self, position: &UsfPosition, sources: &[CachedGravitySource]) {
         for cached in sources.iter().copied() {
-            let Some(contribution) = cached.source().acceleration_at(position) else {
+            let source = cached.copied_source();
+            let Some(contribution) = source.acceleration_at(position) else {
                 continue;
             };
 
@@ -104,20 +91,11 @@ impl GravityAccumulator {
         }
     }
 
-    fn finish(
-        self,
-        deepest_context: Option<UsfChunkAddress>,
-        context_depth: usize,
-        cache_revision: u64,
-        quality: GravitySampleQuality,
-    ) -> GravitySample {
+    fn finish(self, metadata: UsfFieldSampleMetadata) -> GravitySample {
         GravitySample {
             acceleration_metres_per_second2: self.acceleration,
             strongest_source: self.strongest_source,
-            deepest_context,
-            context_depth: context_depth.min(u8::MAX as usize) as u8,
-            cache_revision,
-            quality,
+            metadata,
         }
     }
 }
@@ -132,12 +110,9 @@ impl GravityFieldCache {
         let fallback = || {
             let mut accumulator = GravityAccumulator::default();
             accumulator.add_sources(position, self.global_sources());
-            accumulator.finish(
-                None,
-                0,
+            accumulator.finish(UsfFieldSampleMetadata::exact_global_fallback(
                 self.revision(),
-                GravitySampleQuality::ExactGlobalFallback,
-            )
+            ))
         };
 
         if self.topology_revision() != topology.revision() {
@@ -161,26 +136,20 @@ impl GravityFieldCache {
 
         let mut accumulator = GravityAccumulator::default();
 
-        // Each child residual is exactly the portion of its parent's candidate
-        // set that the child did not inherit for further refinement.
         for context in contexts.iter().skip(1) {
             accumulator.add_sources(position, context.inherited_residual());
         }
 
-        // Whatever remains at the requested/deepest context is evaluated here.
         accumulator.add_sources(position, leaf.refinement_sources());
 
-        accumulator.finish(
-            path.last().copied(),
+        accumulator.finish(UsfFieldSampleMetadata::exact_hierarchical(
+            *path.last().expect("non-empty resident context path"),
             path.len(),
             self.revision(),
-            GravitySampleQuality::ExactHierarchical,
-        )
+        ))
     }
 }
 
-/// Typed gravity query. Consumers know only that they can ask for gravity at a
-/// canonical location and requested USF context depth.
 #[derive(SystemParam)]
 pub struct GravityFieldQuery<'w> {
     topology: Res<'w, UsfContextTopology>,
@@ -193,8 +162,7 @@ impl GravityFieldQuery<'_> {
         position: &UsfPosition,
         requested_finest: SpatialScale,
     ) -> GravitySample {
-        self.cache
-            .sample(&self.topology, position, requested_finest)
+        self.cache.sample(&self.topology, position, requested_finest)
     }
 }
 
@@ -227,13 +195,15 @@ mod tests {
 
         let sample_position = at_metres(Vec3::Y * 10.0);
         let mut topology = UsfContextTopology::default();
-        topology.reconcile_from_scopes([SpatialDemandScope::at_scale(
-            demand_source,
-            SpatialScale::ZERO,
-            sample_position,
-            Vec3::ONE,
-            0,
-        )]);
+        topology
+            .reconcile_from_scopes([SpatialDemandScope::at_scale(
+                demand_source,
+                SpatialScale::ZERO,
+                sample_position,
+                Vec3::ONE,
+                0,
+            )])
+            .unwrap();
 
         let local = RadialGravitySource::new(
             at_metres(Vec3::ZERO),
@@ -262,11 +232,7 @@ mod tests {
             &sample_position,
             SpatialScale::new(1).unwrap(),
         );
-        let detailed = cache.sample(
-            &topology,
-            &sample_position,
-            SpatialScale::ZERO,
-        );
+        let detailed = cache.sample(&topology, &sample_position, SpatialScale::ZERO);
 
         assert_eq!(coarse.quality(), GravitySampleQuality::ExactHierarchical);
         assert_eq!(detailed.quality(), GravitySampleQuality::ExactHierarchical);
