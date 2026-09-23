@@ -54,6 +54,13 @@ pub(super) fn initialize_procedural_assets(
         ..default()
     });
 
+    let lunar_surface = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.46, 0.47, 0.49),
+        perceptual_roughness: 1.0,
+        metallic: 0.0,
+        ..default()
+    });
+
     let debug_grid_texture = images.add(super::debug_grid::generate_debug_grid_image());
     let debug_grid = materials.add(StandardMaterial {
         base_color: Color::WHITE,
@@ -74,6 +81,7 @@ pub(super) fn initialize_procedural_assets(
         debug_grid,
         star_surface,
         planet_surface,
+        lunar_surface,
     });
 }
 

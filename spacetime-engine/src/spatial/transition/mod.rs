@@ -39,6 +39,7 @@ pub struct UsfSpatialTransition {
     view_exponent: Option<f32>,
     velocity: UsfTransitionVelocity,
     required_coverage: UsfScaleRoleMask,
+    required_coverage_authority: Option<Entity>,
     coverage_radius_native: f32,
 }
 
@@ -60,6 +61,7 @@ impl UsfSpatialTransition {
             view_exponent: None,
             velocity,
             required_coverage: UsfScaleRoleMask::NONE,
+            required_coverage_authority: None,
             coverage_radius_native: 0.0,
         }
     }
@@ -77,6 +79,20 @@ impl UsfSpatialTransition {
         radius_native: f32,
     ) -> Self {
         self.required_coverage = roles;
+        self.required_coverage_authority = None;
+        self.coverage_radius_native = radius_native.max(0.0);
+        self
+    }
+
+    /// Requires relocation/rechart coverage from one semantic authority.
+    pub fn requiring_coverage_from(
+        mut self,
+        authority: Entity,
+        roles: UsfScaleRoleMask,
+        radius_native: f32,
+    ) -> Self {
+        self.required_coverage = roles;
+        self.required_coverage_authority = Some(authority);
         self.coverage_radius_native = radius_native.max(0.0);
         self
     }
@@ -297,7 +313,7 @@ pub(super) fn apply_spatial_transitions(
             request.view_exponent,
             request.velocity,
             request.required_coverage,
-            None,
+            request.required_coverage_authority,
             request.coverage_radius_native,
             UsfSpatialTransitionCause::Requested,
             Some(request),

@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 
-use crate::spatial::UsfOriginRebased;
+use crate::spatial::{UsfOriginRebased, UsfSpatialTransitionApplied};
 use super::{PortalSplitTraveler, PortalTraveler};
 
 pub(super) fn rebase_portal_local_caches(
@@ -22,5 +22,22 @@ pub(super) fn rebase_portal_local_caches(
     }
     for mut traveler in &mut split_travelers {
         traveler.rebase_local_origin(shift);
+    }
+}
+
+
+/// A canonical relocation/rechart invalidates local-space portal crossing history.
+pub(super) fn reset_portal_spatial_transition_caches(
+    mut transitions: MessageReader<UsfSpatialTransitionApplied>,
+    mut travelers: Query<(&Transform, &mut PortalTraveler)>,
+    mut split_travelers: Query<(&Transform, &mut PortalSplitTraveler)>,
+) {
+    for transition in transitions.read() {
+        if let Ok((transform, mut traveler)) = travelers.get_mut(transition.anchor) {
+            traveler.reset_spatial_transition(transform.translation);
+        }
+        if let Ok((transform, mut traveler)) = split_travelers.get_mut(transition.anchor) {
+            traveler.reset_spatial_transition(*transform);
+        }
     }
 }

@@ -56,16 +56,9 @@ pub(in crate::spatial) fn sync_view_context(
 /// representation frames can later promote this to an explicit projection frame.
 pub(in crate::spatial) fn project_local_scale_presentations(
     mut commands: Commands,
-    view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     interaction: Res<UsfPrimaryInteractionSlice>,
-    frame: Res<UsfSpatialFrame>,
     parents: Query<
-        (
-            &Transform,
-            &UsfScaleLayer,
-            Option<&UsfInteractionProjection>,
-            Option<&UsfScaleFallbackPresentation>,
-        ),
+        (&UsfScaleLayer, Option<&UsfInteractionProjection>),
         Without<UsfLocalScalePresentation>,
     >,
     mut presentations: Query<(
@@ -90,124 +83,52 @@ pub(in crate::spatial) fn project_local_scale_presentations(
         not_shadow_receiver,
     ) in &mut presentations
     {
-        let Ok((parent_transform, layer, follows_active, fallback)) = parents.get(parent.0) else {
+        let Ok((layer, follows_active)) = parents.get(parent.0) else {
             continue;
         };
+
         if presentation.scale() != layer.scale() {
             presentation.set_scale(layer.scale());
         }
 
-        // Physical/local ownership is decided BEFORE render-layer mutation.
-        //
-        // - controlled-subject followers belong to the local camera;
-        // - terrain on the current interaction slice belongs to the local camera;
-        // - only non-active representation lanes belong to the USF camera.
         let physical_local =
             follows_active.is_some() || layer.scale() == interaction.scale();
-        if physical_local {
-            // Subject self-visibility is owned by sync_view_subject_presentations
-            // (ordinary world vs derived-view-only). Do not overwrite it here.
-            if follows_active.is_none() {
-                let desired_layers = RenderLayers::default();
-                if render_layers.is_none_or(|current| *current != desired_layers) {
-                    commands.entity(entity).insert(desired_layers);
-                }
-            }
 
-            // A local physical chart must participate in ordinary local shadows.
-            if not_shadow_caster.is_some() {
-                commands.entity(entity).remove::<NotShadowCaster>();
-            }
-            if not_shadow_receiver.is_some() {
-                commands.entity(entity).remove::<NotShadowReceiver>();
-            }
-
-            if transform.translation != Vec3::ZERO {
-                transform.translation = Vec3::ZERO;
-            }
-            let authored_scale = Vec3::splat(presentation.authored_to_native_scale());
-            if transform.scale != authored_scale {
-                transform.scale = authored_scale;
-            }
-            if !matches!(*visibility, Visibility::Inherited) {
-                *visibility = Visibility::Inherited;
-            }
-            continue;
-        }
-
-        // Non-active terrain is presentation only. The current compositor owns
-        // one continuous far lane (at most the two adjacent view-demand scales),
-        // plus the explicit coarsest fallback when the view is beyond the voxel
-        // ladder. Rendering every coarser terrain scale simultaneously was the
-        // source of the near-surface slab/blob overlap.
-        let far_fallback = fallback.is_some_and(|fallback| {
-            layer.scale() == fallback.scale() && fallback.owns_view_scale(view.scale())
-        });
-        let presentation_demands_scale = view
-            .active_scale_demands()
-            .into_iter()
-            .flatten()
-            .any(|demand| {
-                demand.scale() == layer.scale()
-                    && demand.contribution() > CONTRIBUTION_EPSILON
-            });
-        let participates_in_stack = presentation_demands_scale || far_fallback;
-
-        if !participates_in_stack {
+        if !physical_local {
+            // Non-active voxel realizations may remain resident for coverage,
+            // handoff readiness and cache locality, but they are not a second
+            // visual surface. Whole-body far appearance has a separate realizer.
             if !matches!(*visibility, Visibility::Hidden) {
                 *visibility = Visibility::Hidden;
             }
             continue;
         }
 
-        let desired_layers = RenderLayers::layer(USF_PRESENTATION_LAYER);
-        if render_layers.is_none_or(|current| *current != desired_layers) {
-            commands.entity(entity).insert(desired_layers);
+        // Subject self-visibility is owned by sync_view_subject_presentations.
+        // Physical voxel terrain belongs to the ordinary local render layer.
+        if follows_active.is_none() {
+            let desired_layers = RenderLayers::default();
+            if render_layers.is_none_or(|current| *current != desired_layers) {
+                commands.entity(entity).insert(desired_layers);
+            }
         }
 
-        // Far USF geometry is a compressed visual chart. It must not share a
-        // PBR shadow domain with the physically local chart: a local ship cannot
-        // cast a meaningful shadow onto a reprojected planet, and vice versa.
-        if not_shadow_caster.is_none() {
-            commands.entity(entity).insert(NotShadowCaster);
+        if not_shadow_caster.is_some() {
+            commands.entity(entity).remove::<NotShadowCaster>();
         }
-        if not_shadow_receiver.is_none() {
-            commands.entity(entity).insert(NotShadowReceiver);
+        if not_shadow_receiver.is_some() {
+            commands.entity(entity).remove::<NotShadowReceiver>();
         }
 
-        let observer_in_parent_chart = if follows_active.is_some() {
-            view.runtime_anchor()
-        } else {
-            // Canonical subtraction first, float projection last.
-            let Ok(relative) = view.anchor().relative_at_scale_bounded(
-                frame.origin(),
-                layer.scale(),
-                PRESENTATION_RELATIVE_BOUND,
-            ) else {
-                *visibility = Visibility::Hidden;
-                continue;
-            };
-            relative
-        };
-
-        let factor = view.projection_factor(layer.scale());
-
-        // Semantic distance is measured and rendered around the semantic view
-        // anchor. Camera eye/boom offsets remain presentation-only because the
-        // camera moves independently through this projected scene.
-        let desired_global = view.presentation_origin()
-            + (parent_transform.translation - observer_in_parent_chart) * factor;
-        let delta = desired_global - parent_transform.translation;
-        let desired_translation = parent_transform.rotation.inverse() * delta;
-        let desired_scale =
-            Vec3::splat(factor * presentation.authored_to_native_scale());
-
-        if transform.translation != desired_translation {
-            transform.translation = desired_translation;
+        if transform.translation != Vec3::ZERO {
+            transform.translation = Vec3::ZERO;
         }
+
+        let desired_scale = Vec3::splat(presentation.authored_to_native_scale());
         if transform.scale != desired_scale {
             transform.scale = desired_scale;
         }
+
         if !matches!(*visibility, Visibility::Inherited) {
             *visibility = Visibility::Inherited;
         }

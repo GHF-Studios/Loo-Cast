@@ -10,20 +10,28 @@ use crate::{
     ecs::UsfManifestationOf,
     game::{
         control::LocalControlSubject,
-        locomotion::{ControlledSubjectHull, ControlledSubjectLocomotion},
+        locomotion::ControlledSubjectLocomotion,
     },
-    physics::character::{CharacterControlFrame, CharacterLocomotionFrame},
+    physics::{
+        character::{CharacterControlFrame, CharacterLocomotionFrame},
+        topology::SpatialSplitBox,
+    },
     portal::PortalTraveler,
-    spatial::{UsfCanonicalMotion, UsfPosition, UsfScaleLayer, UsfSpatialFrame},
+    spatial::{
+        SpatialRefinementDemand, UsfCanonicalMotion, UsfPosition, UsfScaleLayer,
+        UsfScaleRoleMask, UsfSpatialFrame, UsfSpatialTransition,
+        UsfSpatialTransitionQueue, UsfTransitionVelocity,
+    },
 };
 
 use super::ProceduralArrivalSite;
 
-const PROCEDURAL_SPAWN_CLEARANCE_METRES: f32 = 12.0;
+const PROCEDURAL_SPAWN_GAP_METRES: f32 = 0.75;
 
 pub(super) fn prepare_controlled_subject(
     arrival_site: Res<ProceduralArrivalSite>,
     frame: Res<UsfSpatialFrame>,
+    mut transitions: ResMut<UsfSpatialTransitionQueue>,
     mut semantic_positions: Query<&mut UsfPosition>,
     subject: Single<
         (
@@ -36,7 +44,8 @@ pub(super) fn prepare_controlled_subject(
             &mut ControlledSubjectLocomotion,
             &mut CharacterControlFrame,
             &mut CharacterLocomotionFrame,
-            Option<&ControlledSubjectHull>,
+            &SpatialSplitBox,
+            &mut SpatialRefinementDemand,
         ),
         With<LocalControlSubject>,
     >,
@@ -51,7 +60,8 @@ pub(super) fn prepare_controlled_subject(
         mut locomotion,
         mut control,
         mut locomotion_frame,
-        hull,
+        split_box,
+        mut refinement,
     ) = subject.into_inner();
 
     let Some(site) = arrival_site.site() else {
@@ -59,11 +69,16 @@ pub(super) fn prepare_controlled_subject(
         return;
     };
 
-    let half_height = hull
-        .map(|hull| hull.size().y * 0.5)
-        .unwrap_or(0.0);
-    let clearance_metres = PROCEDURAL_SPAWN_CLEARANCE_METRES + half_height;
+    locomotion_frame.up = site.up();
+    let aligned = locomotion_frame.aligned_rotation(transform.rotation);
+    transform.rotation = aligned;
+    control.snap_to(aligned);
+
+    // Generic oriented-body support radius, in metres.
+    let support_metres = split_box.projection_radius(aligned, site.up());
+    let clearance_metres = support_metres + PROCEDURAL_SPAWN_GAP_METRES;
     let clearance_native = site.scale().metres_to_native_f32(clearance_metres);
+
     let Ok(canonical) = site
         .surface()
         .translated_at_scale(site.scale(), site.up() * clearance_native)
@@ -95,14 +110,35 @@ pub(super) fn prepare_controlled_subject(
     *semantic = canonical;
     transform.translation = runtime_position;
 
-    // Arrival is a physical pose transaction. Seed local gravity/control basis
-    // from the selected surface normal before the first movement/grounding tick.
-    locomotion_frame.up = site.up();
-    let aligned = locomotion_frame.aligned_rotation(transform.rotation);
-    transform.rotation = aligned;
-    control.snap_to(aligned);
-
+    // Relocate in the current bootstrap chart so demand is centered on the
+    // destination immediately. Interaction itself is coverage-gated below.
     traveler.commit_position(runtime_position);
+
+    // Bootstrap is not an interstellar approach. Realize the destination site
+    // immediately and jump directly to its physical interaction chart only when
+    // the selected body's own collision/realization coverage exists there.
+    refinement.request_through(site.scale());
+
+    let coverage_radius_metres =
+        split_box.half_extents.length() + PROCEDURAL_SPAWN_GAP_METRES;
+    let coverage_radius_native =
+        site.scale().metres_to_native_f32(coverage_radius_metres);
+
+    transitions.request(
+        UsfSpatialTransition::new(
+            manifestation.0,
+            canonical,
+            UsfTransitionVelocity::Zero,
+        )
+        .with_scale(site.scale())
+        .with_view_exponent(f32::from(site.scale().exponent()))
+        .requiring_coverage_from(
+            site.body(),
+            UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::COLLISION),
+            coverage_radius_native,
+        ),
+    );
+
     velocity.0 = Vec3::ZERO;
     motion.stop();
     locomotion.request_automatic();
@@ -111,9 +147,11 @@ pub(super) fn prepare_controlled_subject(
     info!(
         subject = ?manifestation.0,
         body = ?site.body(),
-        subject_scale = %layer.scale(),
+        bootstrap_scale = %layer.scale(),
         site_scale = %site.scale(),
+        support_metres,
+        gap_metres = PROCEDURAL_SPAWN_GAP_METRES,
         runtime = ?runtime_position,
-        "prepared controlled subject from canonical body-surface arrival site"
+        "prepared coverage-gated canonical body-surface arrival"
     );
 }

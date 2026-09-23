@@ -246,6 +246,12 @@ fn spawn_celestial_body(
 
     let mut coarse_manifestation = None;
 
+    let local_surface_material = match profile {
+        CelestialBodyProfile::Lunar => assets.lunar_surface.clone(),
+        CelestialBodyProfile::Rocky => assets.cracked_clay.material.clone(),
+        CelestialBodyProfile::Stellar => assets.star_surface.clone(),
+    };
+
     for raw in CELESTIAL_MACRO_VOXEL_MIN_SCALE..=realization_coarsest.exponent() {
         let terrain_scale = scale(raw);
         let grid_origin = center
@@ -260,7 +266,7 @@ fn spawn_celestial_body(
             UsfManifestationOf(semantic),
             VoxelWorld::new_at(VoxelBase::celestial_body(base), grid_origin),
             VoxelStreaming::new(config.voxel.streaming.default_load_budget_per_frame),
-            VoxelPresentationMaterial::new(assets.debug_grid.clone()),
+            VoxelPresentationMaterial::new(local_surface_material.clone()),
             Transform::IDENTITY,
             Visibility::Inherited,
         ));
@@ -289,9 +295,8 @@ fn spawn_celestial_body(
     // chunks, publish collision coverage, or survive as hidden terrain.
     let far_material = match profile {
         CelestialBodyProfile::Stellar => assets.star_surface.clone(),
-        CelestialBodyProfile::Lunar | CelestialBodyProfile::Rocky => {
-            assets.planet_surface.clone()
-        }
+        CelestialBodyProfile::Rocky => assets.planet_surface.clone(),
+        CelestialBodyProfile::Lunar => assets.lunar_surface.clone(),
     };
     spawn_body_projection(
         commands,

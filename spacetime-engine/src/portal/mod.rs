@@ -48,7 +48,10 @@ use crate::{
     spatial::UsfSpatialSet,
 };
 
-use systems::rebase_portal_local_caches;
+use systems::{
+    rebase_portal_local_caches,
+    reset_portal_spatial_transition_caches,
+};
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PortalUpdateSet {
@@ -148,6 +151,12 @@ impl Plugin for PortalPlugin {
                 )
                     .chain()
                     .after(CharacterMovementSet::ReceiveDynamics),
+            )
+            .add_systems(
+                PostUpdate,
+                reset_portal_spatial_transition_caches
+                    .after(UsfSpatialSet::SyncSemantic)
+                    .before(UsfSpatialSet::Rebase),
             )
             .add_systems(
                 PostUpdate,
