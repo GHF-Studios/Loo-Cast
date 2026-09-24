@@ -6,7 +6,8 @@ use bevy::{
     light::{NotShadowCaster, NotShadowReceiver},
 };
 use crate::{
-    ecs::UsfManifestationOf,
+    ecs::{UsfManifestationOf, UsfPresentationProjectionOf},
+    spatial::{UsfPrimaryInteractionSlice, UsfScaleCoverageSnapshot, UsfScaleRoleMask},
     view::USF_PRESENTATION_LAYER,
 };
 
@@ -135,6 +136,26 @@ pub(in crate::spatial) fn project_local_scale_presentations(
     }
 }
 
+fn fallback_should_render(
+    fallback: UsfScaleFallbackPresentation,
+    view_scale: SpatialScale,
+    interaction_scale: SpatialScale,
+    replacement_ready: bool,
+) -> bool {
+    if fallback.owns_view_scale(view_scale) {
+        return true;
+    }
+
+    // Presentation may move finer before physical interaction. Keep a visible
+    // whole-body representation until interaction itself enters the voxel
+    // ladder and its local presentation is actually published.
+    if interaction_scale > fallback.scale() {
+        return true;
+    }
+
+    !replacement_ready
+}
+
 /// Projects persistent multiscale scenery into one bounded render scene.
 ///
 /// For a raw observer-relative distance `d`, the rendered radius is
@@ -143,6 +164,9 @@ pub(in crate::spatial) fn project_local_scale_presentations(
 pub(in crate::spatial) fn project_scenery_presentations(
     mut commands: Commands,
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
+    interaction: Res<UsfPrimaryInteractionSlice>,
+    coverage: Res<UsfScaleCoverageSnapshot>,
+    manifestations: Query<&UsfManifestationOf>,
     mut presentations: Query<(
         Entity,
         &UsfSceneryPresentation,
@@ -152,6 +176,7 @@ pub(in crate::spatial) fn project_scenery_presentations(
         Option<&NotShadowCaster>,
         Option<&NotShadowReceiver>,
         Option<&UsfScaleFallbackPresentation>,
+        Option<&UsfPresentationProjectionOf>,
     )>,
 ) {
     for (
@@ -163,13 +188,33 @@ pub(in crate::spatial) fn project_scenery_presentations(
         not_shadow_caster,
         not_shadow_receiver,
         fallback,
+        projection,
     ) in &mut presentations
     {
-        if fallback.is_some_and(|fallback| !fallback.owns_view_scale(view.scale())) {
-            if !matches!(*visibility, Visibility::Hidden) {
-                *visibility = Visibility::Hidden;
+        if let Some(fallback) = fallback {
+            let replacement_ready = projection
+                .and_then(|projection| manifestations.get(projection.0).ok())
+                .is_some_and(|manifestation| {
+                    coverage.has_near_for_authority(
+                        manifestation.0,
+                        interaction.scale(),
+                        view.anchor(),
+                        UsfScaleRoleMask::PRESENTATION,
+                        0.0,
+                    )
+                });
+
+            if !fallback_should_render(
+                *fallback,
+                view.scale(),
+                interaction.scale(),
+                replacement_ready,
+            ) {
+                if !matches!(*visibility, Visibility::Hidden) {
+                    *visibility = Visibility::Hidden;
+                }
+                continue;
             }
-            continue;
         }
         let desired_layers = RenderLayers::layer(USF_PRESENTATION_LAYER);
         if render_layers.is_none_or(|current| *current != desired_layers) {
@@ -312,5 +357,28 @@ pub(in crate::spatial) fn project_scale_presentations(
         if !matches!(*visibility, Visibility::Inherited) {
             *visibility = Visibility::Inherited;
         }
+    }
+}
+#[cfg(test)]
+mod fallback_handoff_tests {
+    use super::*;
+
+    #[test]
+    fn fallback_survives_fine_view_until_replacement_is_ready() {
+        let fallback = UsfScaleFallbackPresentation::new(SpatialScale::new(5).unwrap());
+        let fine = SpatialScale::ZERO;
+        assert!(fallback_should_render(fallback, fine, fine, false));
+        assert!(!fallback_should_render(fallback, fine, fine, true));
+    }
+
+    #[test]
+    fn fallback_survives_when_interaction_has_not_entered_voxel_ladder() {
+        let fallback = UsfScaleFallbackPresentation::new(SpatialScale::new(5).unwrap());
+        assert!(fallback_should_render(
+            fallback,
+            SpatialScale::ZERO,
+            SpatialScale::new(35).unwrap(),
+            false,
+        ));
     }
 }

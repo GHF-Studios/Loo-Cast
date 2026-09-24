@@ -49,7 +49,7 @@ use crate::{
     },
     portal::PortalTraveler,
     spatial::{
-        SpatialDemandSource, SpatialRefinementDemand, SpatialScale,
+        SpatialDemandSet, SpatialDemandSource, SpatialRefinementDemand, SpatialScale,
         UsfCanonicalMotion, UsfLocalScalePresentation, UsfPosition, UsfScaleLayer,
         UsfSpatialAnchor, UsfSpatialFrame, UsfTravelNeighborhood,
     },
@@ -58,6 +58,7 @@ use crate::{
 };
 
 use crate::spatial::UsfNavigationContext;
+use crate::game::GameWorld;
 
 const SHIP_SIZE: Vec3 = Vec3::new(4.0, 2.0, 8.0);
 const SHIP_PROXY_RADIUS_NATIVE: f32 = 0.08;
@@ -117,8 +118,16 @@ impl Plugin for SpacecraftPlugin {
         app.register_type::<Spacecraft>()
             .register_type::<SpacecraftManifestation>()
             .register_type::<SpacecraftOrbit>()
-            .add_systems(PostStartup, spawn_reference_spacecraft)
-            .add_systems(Update, handle_spacecraft_actions.in_set(ControlActionSet::Request))
+            .add_systems(
+                Update,
+                (
+                    spawn_reference_spacecraft,
+                    handle_spacecraft_actions,
+                )
+                    .chain()
+                    .in_set(ControlActionSet::Request)
+                    .after(SpatialDemandSet::Collect),
+            )
             .add_systems(
                 FixedUpdate,
                 detect_landing.after(LocomotionSet::Motion),
@@ -131,6 +140,8 @@ impl Plugin for SpacecraftPlugin {
 }
 
 fn spawn_reference_spacecraft(
+    world: Res<State<GameWorld>>,
+    existing_ships: Query<(), With<SpacecraftManifestation>>,
     mut commands: Commands,
     mut control_transfers: MessageWriter<LocalControlTransferRequest>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -144,11 +155,17 @@ fn spawn_reference_spacecraft(
             &mut Visibility,
             &mut SpatialDemandSource,
             &mut LocomotionEnabled,
+            &DetailedBodyScale,
+            &SurfaceContext,
         ),
-        With<Player>,
+        (With<Player>, With<LocalControlSubject>),
     >,
     semantic_positions: Query<&UsfPosition>,
 ) {
+    if existing_ships.iter().next().is_some() {
+        return;
+    }
+
     let (
         body_entity,
         body_manifestation,
@@ -157,7 +174,18 @@ fn spawn_reference_spacecraft(
         mut body_visibility,
         mut body_demand,
         mut body_enabled,
+        detailed_body,
+        surface,
     ) = body.into_inner();
+
+    // Procedural bootstrap owns the arrival transaction. Do not steal local
+    // control or disable its spatial demand until the player's detailed chart
+    // and actual local collision realization are ready.
+    if *world.get() == GameWorld::Procedural
+        && (body_layer.scale() != detailed_body.0 || !surface.collision_ready())
+    {
+        return;
+    }
 
     let player_semantic = body_manifestation.0;
     let Ok(&semantic_position) = semantic_positions.get(player_semantic) else {

@@ -786,3 +786,31 @@ or explicitly reconciled against the physical facts they claim to summarize.
 The observed "landed while physically falling because collision realization is
 gone" symptom is a useful case study, but it does not require abandoning the
 completed roadmap or turning presentation/residency into physics authority.
+## 2026-09-24 celestial surface-persistence blocker
+
+Three independent handoff bugs could intentionally create a black/physics gap:
+
+1. A coverage-gated spatial transition applied its requested view exponent before
+   checking REALIZATION/COLLISION coverage.
+2. `UsfScaleFallbackPresentation` hid the far celestial body from view scale
+   alone, without checking whether the replacement local voxel presentation was
+   actually ready.
+3. The reference spacecraft spawned independently in `PostStartup`, took local
+   control, and disabled the player's spatial demand before the procedural
+   surface-arrival transaction necessarily had collision coverage.
+
+Corrections:
+
+- view mutation attached to a one-shot spatial transition commits only after its
+  coverage gate succeeds;
+- far celestial fallback stays visible until the active interaction slice has
+  PRESENTATION coverage from the same semantic celestial authority around the
+  observer;
+- procedural spacecraft acquisition waits until the controlled player is in the
+  detailed body slice and current local celestial collision coverage exists;
+- spacecraft acquisition runs after generic spatial-demand collection, so the
+  final player-demand frame and first ship-demand frame cannot create a
+  zero-demand gap.
+
+The broader state-claim coherence wave is intentionally postponed until the
+physical/visible world is stable enough to validate it.

@@ -334,10 +334,6 @@ pub(super) fn apply_spatial_transitions(
         return;
     };
 
-    if let Some(exponent) = view_exponent {
-        view.set_continuous_exponent(exponent);
-    }
-
     if cause == UsfSpatialTransitionCause::InteractionRequirement
         && target_scale == previous_scale
     {
@@ -466,6 +462,14 @@ pub(super) fn apply_spatial_transitions(
     layer_frames.set_origin(target_scale, chart_absolute);
     frame.origin = chart_origin;
     frame.last_shift = Vec3::ZERO;
+
+    // Presentation attached to a one-shot transition is part of the accepted
+    // transaction. A coverage-gated relocation must not visually jump into a
+    // representation that does not exist yet.
+    if let Some(exponent) = view_exponent {
+        view.set_continuous_exponent(exponent);
+    }
+
     active.complete_handoff(target_scale);
 
     applied.write(UsfSpatialTransitionApplied {
