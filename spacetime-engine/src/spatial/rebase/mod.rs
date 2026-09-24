@@ -6,7 +6,10 @@ pub(super) fn rebase_local_frame(
     mut layer_frames: ResMut<UsfScaleLayerFrames>,
     mut frame: ResMut<UsfSpatialFrame>,
     mut transforms: ParamSet<(
-        Query<(&Transform, &UsfScaleLayer), (With<UsfSpatialAnchor>, With<UsfLogicalProjection>)>,
+        Query<
+            (Entity, &Transform, &UsfScaleLayer),
+            (With<UsfSpatialAnchor>, With<UsfLogicalProjection>),
+        >,
         Query<(&mut Transform, Option<&UsfScaleLayer>), Without<ChildOf>>,
     )>,
     mut physics_positions: Query<(&mut Position, Option<&UsfScaleLayer>)>,
@@ -14,9 +17,18 @@ pub(super) fn rebase_local_frame(
 ) {
     let (anchor_translation, anchor_scale) = {
         let anchors = transforms.p0();
-        let Some((anchor, layer)) = anchors.iter().next() else {
+        let mut anchors = anchors.iter();
+        let Some((anchor_entity, anchor, layer)) = anchors.next() else {
             return;
         };
+        if let Some((other_entity, _, _)) = anchors.next() {
+            error!(
+                first = ?anchor_entity,
+                second = ?other_entity,
+                "USF local frame has multiple spatial anchors; refusing ambiguous rebase"
+            );
+            return;
+        }
         (anchor.translation, layer.scale())
     };
     let shift = rebase_shift(anchor_translation);
@@ -63,9 +75,9 @@ pub(super) fn rebase_shift(position: Vec3) -> Vec3 {
 }
 
 fn rebase_axis(value: f32) -> f32 {
-    if value.abs() < REBASE_THRESHOLD_METERS {
+    if value.abs() < REBASE_THRESHOLD_NATIVE {
         0.0
     } else {
-        (value / REBASE_QUANTUM_METERS).trunc() * REBASE_QUANTUM_METERS
+        (value / REBASE_QUANTUM_NATIVE).trunc() * REBASE_QUANTUM_NATIVE
     }
 }

@@ -247,11 +247,11 @@ fn spawn_celestial_body(
 
     let mut coarse_manifestation = None;
 
-    let local_surface_material = match profile {
-        CelestialBodyProfile::Lunar => assets.lunar_surface.clone(),
-        CelestialBodyProfile::Rocky => assets.cracked_clay.material.clone(),
-        CelestialBodyProfile::Stellar => assets.star_surface.clone(),
-    };
+    // Local voxel terrain is still under active representation debugging.
+    // Keep the high-contrast grid + per-chunk vertex colors here so chunk
+    // boundaries, seams and runtime motion remain immediately visible.
+    // Profile materials belong to the persistent macro-body presentation.
+    let local_surface_material = assets.debug_grid.clone();
 
     for raw in CELESTIAL_MACRO_VOXEL_MIN_SCALE..=realization_coarsest.exponent() {
         let terrain_scale = scale(raw);
@@ -291,9 +291,9 @@ fn spawn_celestial_body(
     let coarse_manifestation = coarse_manifestation
         .expect("celestial body must have a coarsest realization");
 
-    // Beyond the voxel ladder, whole-body appearance is a cheap presentation
-    // realizer tied to the same semantic authority. It does not materialize
-    // chunks, publish collision coverage, or survive as hidden terrain.
+    // Whole-body appearance is inherited macro context for the same semantic
+    // authority. Fine voxel terrain refines only bounded local apertures; it
+    // must never globally replace the rest of the planet/moon/star.
     let far_material = match profile {
         CelestialBodyProfile::Stellar => assets.star_surface.clone(),
         CelestialBodyProfile::Rocky => assets.planet_surface.clone(),
@@ -309,7 +309,7 @@ fn spawn_celestial_body(
         meshes.add(Sphere::new(radius_system_native as f32)),
         far_material,
         Quat::IDENTITY,
-        Some(realization_coarsest),
+        None,
     );
 
     SpawnedCelestialBody {

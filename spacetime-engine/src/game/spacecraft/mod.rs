@@ -51,7 +51,7 @@ use crate::{
     spatial::{
         SpatialDemandSet, SpatialDemandSource, SpatialRefinementDemand, SpatialScale,
         UsfCanonicalMotion, UsfLocalScalePresentation, UsfPosition, UsfScaleLayer,
-        UsfSpatialAnchor, UsfSpatialFrame, UsfTravelNeighborhood,
+        UsfSpatialFrame, UsfTravelNeighborhood,
     },
     view::ViewSubjectPresentation,
     voxel::VoxelMaterializationDemand,
@@ -215,7 +215,6 @@ fn spawn_reference_spacecraft(
                 UsfManifestationOf(semantic_ship),
                 UsfManifestationAuthority,
                 UsfLogicalProjection,
-                UsfSpatialAnchor,
                 UsfScaleLayer::new(body_layer.scale()),
                 SpatialDemandSource::cuboid(SHIP_DEMAND_HALF_EXTENT)
                     .with_priority(SHIP_DEMAND_PRIORITY),

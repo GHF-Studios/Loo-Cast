@@ -57,8 +57,8 @@ use bevy::{prelude::*, transform::TransformSystems};
 
 use crate::ecs::{UsfLogicalProjection, UsfManifestationOf};
 
-const REBASE_THRESHOLD_METERS: f32 = 256.0;
-const REBASE_QUANTUM_METERS: f32 = 256.0;
+const REBASE_THRESHOLD_NATIVE: f32 = 256.0;
+const REBASE_QUANTUM_NATIVE: f32 = 256.0;
 
 /// Marks the logical projection used to anchor the current local runtime chart.
 ///

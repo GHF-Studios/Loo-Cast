@@ -814,3 +814,76 @@ Corrections:
 
 The broader state-claim coherence wave is intentionally postponed until the
 physical/visible world is stable enough to validate it.
+## 2026-09-24 voxel representation-space / floating-origin correction
+
+The post-part-46 visual failure exposed three representation-contract bugs.
+
+### Small square moon
+
+The local voxel square is a bounded refinement patch. Its existence is normal.
+The bug was treating that patch as a global replacement for the whole-body
+presentation.
+
+USF composition is restored to:
+
+```text
+persistent macro body / inherited context
+                 +
+bounded local voxel refinement aperture
+```
+
+The far/macro celestial body no longer receives
+`UsfScaleFallbackPresentation`. Refinement does not delete ancestry.
+
+### White terrain
+
+Local celestial voxel terrain had been switched from the high-contrast
+development grid to profile materials (`lunar_surface`, cracked clay, etc.).
+That hid chunk lineage/seams precisely while the representation pipeline is
+being debugged.
+
+Local voxel terrain now uses `ProceduralAssetLibrary::debug_grid` again.
+Profile materials remain on macro-body presentation.
+
+### Massive wobble
+
+The canonical position subtraction path was audited and is not performing
+astronomical float subtraction: `UsfPosition::relative_at_scale_bounded`
+subtracts/normalizes the hierarchical decimal representation before emitting a
+bounded local `Vec3`. Bounded f32 remains the intended backend endpoint.
+
+Two authority bugs were found instead:
+
+1. both player and spacecraft could own `UsfSpatialAnchor` after control
+   transfer; `rebase_local_frame` then arbitrarily chose `anchors.iter().next()`;
+2. voxel manifestation roots are Avian static rigid bodies, but runtime
+   reprojection wrote only Bevy `Transform`, while Avian also owns/synchronizes
+   `Position`.
+
+Corrections:
+
+- `UsfSpatialAnchor` now follows the same local-control focus transaction as
+  `UsfViewAnchor`, `LocalViewTarget` and `UsfInteractionProjection`;
+- spacecraft does not pre-own the spatial anchor before control transfer;
+- local-control audit requires exactly one spatial anchor on the controlled
+  manifestation;
+- floating-origin rebase fails closed instead of choosing arbitrarily if
+  duplicate anchors ever reappear;
+- voxel manifestation creation and reprojection write identical bounded local
+  coordinates to both `Transform` and Avian `Position`;
+- rebase threshold/quantum names now say `NATIVE`, because Transform values are
+  Scale-Slice-native units, not universally metres.
+
+This preserves the intended precision model:
+
+```text
+canonical hierarchical position = authority
+        ↓ subtract canonically
+bounded Scale-Slice-local value
+        ↓
+f32 Transform / Avian Position = disposable backend representation
+```
+
+The next voxel robustness work should audit manifestation retirement and
+coverage publication, but only after this representation-space contract is
+runtime-stable.

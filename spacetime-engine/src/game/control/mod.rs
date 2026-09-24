@@ -10,7 +10,7 @@ use bevy::prelude::*;
 use crate::{
     ecs::UsfManifestationOf,
     spatial::{
-        UsfInteractionProjection, UsfSpatialTransitionQueue, UsfViewAnchor,
+        UsfInteractionProjection, UsfSpatialAnchor, UsfSpatialTransitionQueue, UsfViewAnchor,
     },
 };
 
@@ -230,6 +230,7 @@ fn reconcile_local_control_focus(
     mut commands: Commands,
     mut applied: MessageReader<LocalControlTransferApplied>,
     view_anchors: Query<Entity, With<UsfViewAnchor>>,
+    spatial_anchors: Query<Entity, With<UsfSpatialAnchor>>,
     view_targets: Query<Entity, With<LocalViewTarget>>,
     mut transitions: ResMut<UsfSpatialTransitionQueue>,
 ) {
@@ -245,6 +246,11 @@ fn reconcile_local_control_focus(
     for target in &view_targets {
         if target != transfer.manifestation {
             commands.entity(target).remove::<LocalViewTarget>();
+        }
+    }
+    for anchor in &spatial_anchors {
+        if anchor != transfer.manifestation {
+            commands.entity(anchor).remove::<UsfSpatialAnchor>();
         }
     }
 
@@ -265,6 +271,7 @@ fn reconcile_local_control_focus(
     commands.entity(transfer.manifestation).insert((
         LocalViewTarget,
         UsfViewAnchor,
+        UsfSpatialAnchor,
         UsfInteractionProjection,
     ));
 }
@@ -275,6 +282,7 @@ fn audit_local_control_invariants(
     relationships: Query<&ControlledBy>,
     view_targets: Query<Entity, With<LocalViewTarget>>,
     view_anchors: Query<Entity, With<UsfViewAnchor>>,
+    spatial_anchors: Query<Entity, With<UsfSpatialAnchor>>,
     mut audit: ResMut<LocalControlAudit>,
     mut previous: Local<Option<LocalControlAudit>>,
 ) {
@@ -282,6 +290,7 @@ fn audit_local_control_invariants(
     let subject_count = subjects.iter().count();
     let view_target_count = view_targets.iter().count();
     let view_anchor_count = view_anchors.iter().count();
+    let spatial_anchor_count = spatial_anchors.iter().count();
 
     let controller = (controller_count == 1)
         .then(|| controllers.iter().next())
@@ -301,9 +310,14 @@ fn audit_local_control_invariants(
     };
 
     let focus_valid = match subject {
-        Some((manifestation, _)) if view_target_count == 1 && view_anchor_count == 1 => {
+        Some((manifestation, _))
+            if view_target_count == 1
+                && view_anchor_count == 1
+                && spatial_anchor_count == 1 =>
+        {
             view_targets.iter().next() == Some(manifestation)
                 && view_anchors.iter().next() == Some(manifestation)
+                && spatial_anchors.iter().next() == Some(manifestation)
         }
         _ => false,
     };
@@ -313,6 +327,7 @@ fn audit_local_control_invariants(
             && subject_count == 1
             && view_target_count == 1
             && view_anchor_count == 1
+            && spatial_anchor_count == 1
             && semantic_authority_valid
             && focus_valid,
         controller_count,
