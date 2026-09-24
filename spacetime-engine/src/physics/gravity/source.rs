@@ -8,6 +8,11 @@ use crate::spatial::{SpatialScale, UsfPosition};
 ///
 /// `field_scale` is only the numerically appropriate chart in which to measure
 /// source-relative displacement. It is not semantic ownership of gravity.
+///
+/// Outside the authored spherical body the field is fully characterized by the
+/// standard gravitational parameter `μ = g_surface * radius²`. That quantity is
+/// intentionally exposed because it is also the physically meaningful weight a
+/// future far-field aggregate representation would compose.
 #[derive(Component, Debug, Clone, Copy, PartialEq)]
 pub struct RadialGravitySource {
     center: UsfPosition,
@@ -52,6 +57,10 @@ impl RadialGravitySource {
         self.surface_gravity_metres_per_second2
     }
 
+    pub fn gravitational_parameter_metres3_per_second2(self) -> f64 {
+        f64::from(self.surface_gravity_metres_per_second2) * self.radius_metres.powi(2)
+    }
+
     pub(super) fn acceleration_at(self, position: &UsfPosition) -> Option<DVec3> {
         let relative_native = position
             .relative_at_scale_bounded(&self.center, self.field_scale, f32::MAX)
@@ -69,17 +78,17 @@ impl RadialGravitySource {
             return Some(DVec3::ZERO);
         }
 
-        let factor = if distance_metres >= self.radius_metres {
-            (self.radius_metres / distance_metres).powi(2)
+        let magnitude = if distance_metres >= self.radius_metres {
+            self.gravitational_parameter_metres3_per_second2()
+                / distance_metres.powi(2)
         } else {
             // Finite uniform-sphere interior approximation. This keeps the
             // field continuous and prevents missing collision from becoming a
             // singularity at the semantic body center.
-            (distance_metres / self.radius_metres).clamp(0.0, 1.0)
+            f64::from(self.surface_gravity_metres_per_second2)
+                * (distance_metres / self.radius_metres).clamp(0.0, 1.0)
         };
 
-        let magnitude =
-            f64::from(self.surface_gravity_metres_per_second2) * factor;
         Some(-relative_metres / distance_metres * magnitude)
     }
 }
@@ -125,5 +134,11 @@ mod tests {
         let acceleration = source(8.0).acceleration_at(&sample_position).unwrap();
 
         assert!((acceleration.length() - 4.0).abs() < 1.0e-6);
+    }
+
+    #[test]
+    fn gravitational_parameter_matches_surface_authoring() {
+        let source = source(8.0);
+        assert!((source.gravitational_parameter_metres3_per_second2() - 800.0).abs() < 1.0e-9);
     }
 }

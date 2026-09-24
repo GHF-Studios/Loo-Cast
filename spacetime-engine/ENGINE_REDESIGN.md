@@ -645,3 +645,144 @@ a hierarchical gravity representation, establish concrete pressure:
    summary, hybrid, etc.).
 
 The typed `GravityFieldQuery` remains the consumer seam.
+
+## 2026-09-24 field representation / approximation checkpoint
+
+The original execution spine is now complete through its final item:
+
+```text
+NOW
+│
+├─ finish stabilizing tranche 3
+│
+├─ INTENT AUDIT of spatial/context/demand/coverage/field/voxel/locomotion
+│    ├─ What reality/concept is represented?
+│    ├─ Who owns truth?
+│    ├─ What is merely derived/cache?
+│    ├─ What invariants actually matter?
+│    ├─ Which current concepts are implementation accidents?
+│    └─ KEEP / REDEFINE / MERGE / DELETE
+│
+├─ correct the worst conceptual mistakes
+│
+├─ character/contact-state + hull-authority cleanup
+│
+└─ then advanced field representation / approximation
+```
+
+### Result: do not add an approximation backend yet
+
+The field audit compared actual current domains rather than designing from the
+word "field":
+
+- gravity is a long-range additive vector field;
+- voxel matter is a reconstructible signed-distance/material field with
+  capability-local chunk samplers;
+- thermal refinement is a finite-volume conserved-energy state attached to one
+  semantic body;
+- worldgen phenomena are sparse semantic contextual evaluation.
+
+They share hierarchical/contextual *principles*, but they do not share one
+runtime source/cache/query representation contract.
+
+The experiment-41 generic `UsfFieldSourceLocation` /
+`UsfHierarchicalFieldCache<S>` remains correctly deleted.
+
+### Gravity contract retained
+
+`GravityFieldQuery` remains the consumer seam.
+
+Current production evaluation is deliberately the exact reference backend:
+
+```text
+RadialGravitySource semantic facts
+           |
+           v
+GravityFieldQuery::sample()
+           |
+           +--> exact direct analytic superposition
+```
+
+`GravityFieldQuery::sample_exact()` is explicitly retained as the correctness
+oracle for any future optimized backend.
+
+`GravitySample` now records which evaluation class produced it and the number of
+authored sources evaluated. This is diagnostic metadata, not semantic gravity
+identity.
+
+`RadialGravitySource` exposes gravitational parameter:
+
+```text
+μ = surface_gravity * radius²
+```
+
+For a spherical source this is the exterior-field quantity a future aggregate
+representation should compose. Future approximation should not weight sources by
+arbitrary ECS or authoring-scale metadata.
+
+### Approximation acceptance contract
+
+A hierarchical gravity backend is not earned until at least one concrete
+pressure exists, such as measured fixed-tick cost or world generation producing
+enough simultaneously relevant sources that exact direct evaluation is no
+longer acceptable.
+
+Before such a backend may replace exact sampling for a query class, it must
+define:
+
+1. **query semantics** — acceleration only, or also potential/gradient/tidal
+   information if a real consumer needs them;
+2. **spatial validity** — which canonical region/context one summary represents;
+3. **opening/refinement rule** — when a coarse summary is acceptable and when a
+   child/local refinement is required;
+4. **error metric** — at minimum a bounded/estimated acceleration error useful
+   to the consumer;
+5. **currentness/version** — what semantic-source revision the representation
+   reflects;
+6. **composition** — no parent/child double counting; a fine query means inherited
+   coarse contribution plus local residual/refinement, or an equivalent
+   non-overlapping traversal;
+7. **reference validation** — automated comparisons against
+   `GravityFieldQuery::sample_exact()`.
+
+The canonical USF hierarchy may be an efficient index/representation substrate,
+but runtime `UsfContextResidency` must not define whether gravity physically
+exists. Residency is runtime responsibility, not field truth.
+
+### Important tranche-4 realization correction
+
+The intent audit also exposed a concrete regression in tranche 4.
+
+`SpatialRefinementDemand::None` was interpreted by celestial voxel realization as
+"realize no celestial surface at all". Navigation legitimately clears explicit
+approach refinement outside an active approach, so ordinary local spatial
+interest could lose every voxel realization while semantic celestial bodies,
+gravity and gameplay state continued to exist.
+
+That exactly permits symptoms such as:
+
+```text
+semantic body still exists
+gravity still exists
+"landed" / other gameplay state still exists
+voxel surface/collision/presentation disappears
+```
+
+Correct semantics are:
+
+- generic spatial interest still requests the capability's ordinary realization
+  in the source's current Scale Slice;
+- `SpatialRefinementDemand` only requests *additional multiscale refinement*;
+- absence of explicit refinement must never mean absence of ordinary
+  realization.
+
+This is corrected in the same batch.
+
+### Follow-on intent work
+
+The next high-value intent audit should focus on **simulation-state coherence**:
+states such as landed/grounded/inhibited/navigation-reference must be outputs of
+or explicitly reconciled against the physical facts they claim to summarize.
+The observed "landed while physically falling because collision realization is
+gone" symptom is a useful case study, but it does not require abandoning the
+completed roadmap or turning presentation/residency into physics authority.

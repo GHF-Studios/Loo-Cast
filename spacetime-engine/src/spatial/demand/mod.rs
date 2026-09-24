@@ -62,12 +62,16 @@ impl SpatialDemandSource {
     }
 }
 
-/// Requested finest spatial detail for capability-specific realization.
+/// Requested additional spatial detail for capability-specific realization.
 ///
 /// This is *not* another generic interest volume. A planner may request
 /// realization through `minimum_scale`, but each capability remains responsible
 /// for deciding what structures or intermediate Scale Slices satisfy that
 /// requirement.
+///
+/// `None` means "no additional refinement request". It must not mean "suppress
+/// the capability's ordinary realization for the generic spatial-interest
+/// scope".
 #[derive(Component, Debug, Clone, Copy, PartialEq)]
 pub struct SpatialRefinementDemand {
     minimum_scale: Option<SpatialScale>,

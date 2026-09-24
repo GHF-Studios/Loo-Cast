@@ -202,7 +202,11 @@ pub(super) fn collect_voxel_realization_demand(
             }
 
             for source in sources.values().copied() {
-                if !refinement_requests_scale(source.minimum_realization_scale, scale) {
+                if !realization_requests_scale(
+                    source.scope.scale(),
+                    source.minimum_realization_scale,
+                    scale,
+                ) {
                     continue;
                 }
 
@@ -253,13 +257,21 @@ pub(super) fn collect_voxel_realization_demand(
     }
 }
 
-fn refinement_requests_scale(
+fn realization_requests_scale(
+    source_scale: SpatialScale,
     minimum_scale: Option<SpatialScale>,
     target_scale: SpatialScale,
 ) -> bool {
-    // "Request through Sx" means Sx and every coarser supported realization
-    // may prepare context; finer slices stay absent until explicitly requested.
-    minimum_scale.is_some_and(|minimum| target_scale >= minimum)
+    match minimum_scale {
+        // "Request through Sx" means Sx and every coarser supported
+        // realization may prepare context; finer slices remain absent.
+        Some(minimum) => target_scale >= minimum,
+
+        // Generic spatial interest still deserves the capability's ordinary
+        // realization in the source's current numerical/interaction chart.
+        // Absence of approach refinement must never erase local reality.
+        None => target_scale == source_scale,
+    }
 }
 
 fn celestial_surface_demand(
@@ -310,14 +322,24 @@ mod tests {
     use super::*;
 
     #[test]
-    fn refinement_target_is_an_actual_realization_boundary() {
+    fn ordinary_interest_realizes_its_current_scale_without_refinement() {
         let s3 = SpatialScale::new(3).unwrap();
         let s4 = SpatialScale::new(4).unwrap();
         let s5 = SpatialScale::new(5).unwrap();
 
-        assert!(!refinement_requests_scale(None, s4));
-        assert!(!refinement_requests_scale(Some(s4), s3));
-        assert!(refinement_requests_scale(Some(s4), s4));
-        assert!(refinement_requests_scale(Some(s4), s5));
+        assert!(!realization_requests_scale(s4, None, s3));
+        assert!(realization_requests_scale(s4, None, s4));
+        assert!(!realization_requests_scale(s4, None, s5));
+    }
+
+    #[test]
+    fn explicit_refinement_requests_the_supported_multiscale_ladder() {
+        let s3 = SpatialScale::new(3).unwrap();
+        let s4 = SpatialScale::new(4).unwrap();
+        let s5 = SpatialScale::new(5).unwrap();
+
+        assert!(!realization_requests_scale(s5, Some(s4), s3));
+        assert!(realization_requests_scale(s5, Some(s4), s4));
+        assert!(realization_requests_scale(s5, Some(s4), s5));
     }
 }
