@@ -505,3 +505,143 @@ character/contact-state + hull-authority cleanup
 
 That next batch should also remove `SurfaceContext`'s dependency on navigation
 body selection and split radial/outward direction from gravity/contact normals.
+
+## 2026-09-24 character/contact/hull authority checkpoint
+
+The active USF intent-audit execution spine remains:
+
+```text
+NOW
+│
+├─ finish stabilizing tranche 3
+│
+├─ INTENT AUDIT of spatial/context/demand/coverage/field/voxel/locomotion
+│    ├─ What reality/concept is represented?
+│    ├─ Who owns truth?
+│    ├─ What is merely derived/cache?
+│    ├─ What invariants actually matter?
+│    ├─ Which current concepts are implementation accidents?
+│    └─ KEEP / REDEFINE / MERGE / DELETE
+│
+├─ correct the worst conceptual mistakes
+│
+├─ character/contact-state + hull-authority cleanup
+│
+└─ then advanced field representation / approximation
+```
+
+This checkpoint implements the fourth item. The fifth item remains next after
+compile/runtime validation.
+
+### Body-shape authority
+
+The previous runtime carried overlapping shape truths:
+
+- `ControlledSubjectHull`,
+- `SpatialSplitBox`,
+- character dimension constants,
+- backend `Collider`.
+
+The corrected ownership is:
+
+```text
+character/vehicle authoring profile
+             |
+             v
+      PhysicalBoxHull            canonical SI metres; authority
+             |
+       +-----+--------------------+
+       |                          |
+       v                          v
+ detailed backend Collider   SpatialSplitBox
+ (chart-local realization)   (plain chart-local topology value)
+```
+
+`ScaleInteractionProxy` remains intentionally separate. It is a coarse
+Scale-Slice collision representation, not a resized detailed body.
+
+`DetailedBodyCollision` is realized fact: it marks that the current backend
+collider is the detailed collider derived from `PhysicalBoxHull`. Portal split
+logic consumes this fact and therefore never partitions a coarse proxy as though
+it were the detailed box.
+
+`ControlledSubjectHull` is deleted. Its detailed size belonged to
+`PhysicalBoxHull`; its proxy radius belonged to `ScaleInteractionProxy`.
+
+`DetailedInteractionScale` is narrowed/renamed to `DetailedBodyScale`. It now
+answers only which Scale Slice currently hosts the subject's detailed authored
+body/solver representation. It no longer selects procedural-surface sampling.
+
+### Character support/contact authority
+
+`CharacterGroundState` previously encoded one fact redundantly as:
+
+```text
+grounded bool
++ optional ground entity
++ ground normal
+```
+
+Those values could disagree after jumps, recharting and portal transactions.
+
+Groundedness is now defined exactly once:
+
+```text
+CharacterGroundState.contact: Option<CharacterGroundContact>
+grounded := contact.is_some()
+```
+
+The contact records the collider actually hit and its walkable normal.
+`just_landed`, `just_left_ground` and `just_jumped` remain transient outputs,
+derived around contact changes rather than alternate contact authority.
+
+Portal crossing invalidates the contact through the character-state API instead
+of manually mutating multiple fields. Scale recharting clears the local contact
+snapshot as one operation.
+
+The Source/Quake acceleration, friction, air acceleration, stepping and split
+gravity math are intentionally unchanged.
+
+### Surface telemetry
+
+`SurfaceContext` survives because the flight HUD is a real current consumer, but
+its authority is narrowed:
+
+- it is read-only proximity/coverage telemetry;
+- it independently selects the nearest authored celestial surface;
+- it no longer inherits navigation's `PrimaryBodyContext` selection;
+- it no longer uses `DetailedBodyScale` to choose procedural surface detail;
+- its body-center direction is named `radial_outward`, not `up`;
+- physical contact remains collision-query authority.
+
+This preserves the distinction between:
+
+```text
+navigation reference body
+gravity-derived locomotion up
+body-center radial direction
+procedural surface geometry
+walkable/contact normal
+actual collision contact
+```
+
+### Next preserved step
+
+After this batch compiles/runs, resume the active spine at:
+
+```text
+advanced field representation / approximation
+```
+
+Do not resurrect the deleted generic field framework by default. Before adding
+a hierarchical gravity representation, establish concrete pressure:
+
+1. source-count/performance target,
+2. required query types (acceleration, gradient/potential if actually needed),
+3. acceptable spatial error,
+4. update/currentness requirements,
+5. how parent context and child residual/refinement compose,
+6. which representation earns implementation (multipole, grid/brick, analytic
+   summary, hybrid, etc.).
+
+The typed `GravityFieldQuery` remains the consumer seam.

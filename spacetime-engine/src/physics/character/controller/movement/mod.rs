@@ -8,9 +8,7 @@ use super::super::{
 };
 
 pub(super) fn reset_transition_flags(ground: &mut CharacterGroundState) {
-    ground.just_landed = false;
-    ground.just_left_ground = false;
-    ground.just_jumped = false;
+    ground.begin_tick();
 }
 
 /// Integrate player intent and the first half of airborne gravity.
@@ -26,7 +24,7 @@ pub(super) fn integrate_pre_move_velocity(
     dt: f32,
     velocity: &mut Vec3,
 ) {
-    if ground.grounded && velocity.dot(up) < 0.0 {
+    if ground.is_grounded() && velocity.dot(up) < 0.0 {
         *velocity = reject(*velocity, up);
     }
 
@@ -42,15 +40,12 @@ pub(super) fn integrate_pre_move_velocity(
         input.jump_pressed
     };
 
-    if ground.grounded && wants_jump {
+    if ground.is_grounded() && wants_jump {
         *velocity = reject(*velocity, up) + up * config.jump_speed;
-        ground.grounded = false;
-        ground.ground_entity = None;
-        ground.just_jumped = true;
-        ground.just_left_ground = true;
+        ground.jump_from_ground();
     }
 
-    if ground.grounded {
+    if ground.is_grounded() {
         let planar = apply_friction(
             reject(*velocity, up),
             config.friction,
@@ -98,10 +93,5 @@ pub(super) fn finish_transition_flags(
     ground: &mut CharacterGroundState,
     was_grounded: bool,
 ) {
-    if !was_grounded && ground.grounded {
-        ground.just_landed = true;
-    }
-    if was_grounded && !ground.grounded && !ground.just_jumped {
-        ground.just_left_ground = true;
-    }
+    ground.finish_tick(was_grounded);
 }

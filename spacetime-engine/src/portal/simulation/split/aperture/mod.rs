@@ -93,7 +93,7 @@ mod tests {
 
     #[test]
     fn character_box_fits_floor_portal() {
-        let split_box = SpatialSplitBox::from_size(Vec3::new(0.8128, 1.9, 0.8128));
+        let split_box = SpatialSplitBox::from_size_native(Vec3::new(0.8128, 1.9, 0.8128));
         let floor_portal =
             Transform::IDENTITY.with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2));
 

@@ -65,10 +65,10 @@ fn collect_character_state(
             DrawDepth::World,
         );
 
-        if ground.grounded {
+        if let Some(contact) = ground.contact() {
             batch.arrow(
                 position,
-                position + ground.ground_normal.normalize_or_zero() * 0.9,
+                position + contact.normal() * 0.9,
                 Color::srgb(0.2, 1.0, 0.35),
                 DrawDepth::World,
             );

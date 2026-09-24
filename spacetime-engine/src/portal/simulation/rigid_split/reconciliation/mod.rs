@@ -11,9 +11,11 @@ use crate::{
         Portal, PortalActive, PortalRigidSplitBody, PortalSplitTraveler, PortalTraveler,
     },
     physics::{
+        DetailedBodyCollision, PhysicalBoxHull,
         character::CharacterMotor,
         topology::{SpatialSplitBox, SpatialSplitPeer},
     },
+    spatial::{SpatialScale, UsfScaleLayer},
 };
 
 use super::peer::{
@@ -29,7 +31,8 @@ pub(crate) fn reconcile_rigid_splits(
     mut authorities: Query<
         (
             Entity,
-            &SpatialSplitBox,
+            &PhysicalBoxHull,
+            Option<&UsfScaleLayer>,
             &mut Transform,
             &mut LinearVelocity,
             &mut AngularVelocity,
@@ -42,6 +45,7 @@ pub(crate) fn reconcile_rigid_splits(
             Without<SpatialSplitPeer>,
             Without<Portal>,
             Without<CharacterMotor>,
+            With<DetailedBodyCollision>,
         ),
     >,
     mut peers: Query<
@@ -56,7 +60,8 @@ pub(crate) fn reconcile_rigid_splits(
 ) {
     for (
         _entity,
-        split_box,
+        hull,
+        layer,
         mut body,
         mut velocity,
         mut angular_velocity,
@@ -66,6 +71,8 @@ pub(crate) fn reconcile_rigid_splits(
         mut rigid_split,
     ) in &mut authorities
     {
+        let scale = layer.map_or(SpatialScale::ZERO, |layer| layer.scale());
+        let split_box = SpatialSplitBox::from_physical(*hull, scale);
         let peer_entity = split.peer();
         let Ok((mut peer_transform, mut peer_velocity, mut peer_angular, mut peer_collider)) =
             peers.get_mut(peer_entity)
@@ -78,7 +85,7 @@ pub(crate) fn reconcile_rigid_splits(
         };
 
         crossing::resolve_authority_crossing(
-            *split_box,
+            split_box,
             &mut body,
             &mut velocity,
             &mut angular_velocity,
@@ -86,12 +93,12 @@ pub(crate) fn reconcile_rigid_splits(
             &portals,
         );
 
-        if completion::split_should_finish(*split_box, &body, &split, &portals) {
+        if completion::split_should_finish(split_box, &body, &split, &portals) {
             split.active = None;
             deactivate_peer(
                 &mut commands,
                 peer_entity,
-                *split_box,
+                split_box,
                 &mut authority_collider,
                 &mut peer_velocity,
                 &mut peer_angular,
@@ -119,7 +126,7 @@ pub(crate) fn reconcile_rigid_splits(
                     },
                     PeerMaterialization {
                         entity: peer_entity,
-                        split_box: *split_box,
+                        split_box: split_box,
                         source,
                         destination,
                         authority_collider: &mut authority_collider,
@@ -139,7 +146,7 @@ pub(crate) fn reconcile_rigid_splits(
                 deactivate_peer(
                     &mut commands,
                     peer_entity,
-                    *split_box,
+                    split_box,
                     &mut authority_collider,
                     &mut peer_velocity,
                     &mut peer_angular,

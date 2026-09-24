@@ -56,8 +56,7 @@ pub(super) fn handle_player_death(
     locomotion.set_thrusters_enabled(false);
     flight_intent.clear();
     input.clear();
-    ground.grounded = false;
-    ground.ground_entity = None;
+    ground.clear_contact();
     motion.stop();
 
     if let Some(mut velocity) = velocity {

@@ -1,17 +1,18 @@
 //! Physical crouch/stand transitions.
 //!
-//! This module changes only body-facing state: transform, collider, stance and
-//! portal-traveler history. Camera presentation derives its eye offset from
-//! [`CharacterStance`](super::CharacterStance) instead of being mutated here.
+//! This module mutates the authoritative [`PhysicalBoxHull`] and immediately
+//! refreshes its detailed backend collider while keeping the feet fixed.
+//! Camera presentation derives eye offset from [`CharacterStance`] separately.
 
 use avian3d::prelude::{Collider, SpatialQuery};
 use bevy::prelude::*;
 
 use crate::{
     physics::{
+        PhysicalBoxHull,
         chart::UsfPhysicsCharts,
         character::CharacterDimensions,
-        topology::{KinematicQueryExclusions, SpatialSplitBox},
+        topology::KinematicQueryExclusions,
     },
     portal::PortalTraveler,
     spatial::UsfScaleLayer,
@@ -20,7 +21,7 @@ use crate::{
 use crate::game::control::LocalControlSubject;
 
 use crate::game::locomotion::{
-    CharacterStance, ControlledSubjectLocomotion, DetailedInteractionScale, MotionKernel,
+    CharacterStance, ControlledSubjectLocomotion, DetailedBodyScale, MotionKernel,
 };
 
 use super::{
@@ -28,8 +29,9 @@ use super::{
     input::{PlayerAction, PlayerInputFrame},
 };
 
-/// Changes the physical hull while keeping the feet fixed in body-local space.
-/// Standing back up is refused while the standing hull would intersect geometry.
+/// Changes the detailed physical hull while keeping the feet fixed in body-local
+/// space. Standing back up is refused while the standing hull would intersect
+/// geometry.
 pub fn update_stance(
     input: Res<PlayerInputFrame>,
     mut params: ParamSet<(
@@ -41,12 +43,12 @@ pub fn update_stance(
                 &mut Transform,
                 Option<&mut Collider>,
                 &UsfScaleLayer,
-                &DetailedInteractionScale,
+                &DetailedBodyScale,
                 &mut CharacterStance,
                 &ControlledSubjectLocomotion,
                 Option<&PlayerDead>,
                 &mut PortalTraveler,
-                &mut SpatialSplitBox,
+                &mut PhysicalBoxHull,
                 Option<&KinematicQueryExclusions>,
             ),
             (With<Player>, With<LocalControlSubject>),
@@ -80,7 +82,8 @@ pub fn update_stance(
         return;
     }
 
-    let center_delta = CharacterDimensions::HALF_HEIGHT - CharacterDimensions::CROUCH_HALF_HEIGHT;
+    let center_delta_metres =
+        CharacterDimensions::HALF_HEIGHT - CharacterDimensions::CROUCH_HALF_HEIGHT;
 
     if wants_crouch {
         let player = params.p2();
@@ -88,13 +91,13 @@ pub fn update_stance(
             _,
             mut body,
             collider,
-            _,
+            layer,
             _,
             mut stance,
             _,
             _,
             mut traveler,
-            mut split_box,
+            mut hull,
             _,
         ) = player.into_inner();
         let Some(mut collider) = collider else {
@@ -102,14 +105,14 @@ pub fn update_stance(
         };
 
         let up = physical_up(&body);
-        body.translation -= up * center_delta;
-        *collider = CharacterDimensions::crouching_collider();
+        let center_delta_native =
+            layer.scale().metres_to_native_f32(center_delta_metres);
+        body.translation -= up * center_delta_native;
+
+        let crouching = CharacterDimensions::crouching_hull();
+        *collider = crouching.collider(layer.scale());
+        *hull = crouching;
         stance.crouched = true;
-        split_box.half_extents = Vec3::new(
-            CharacterDimensions::HULL_WIDTH * 0.5,
-            CharacterDimensions::CROUCH_HALF_HEIGHT,
-            CharacterDimensions::HULL_WIDTH * 0.5,
-        );
         traveler.commit_position(body.translation);
         return;
     }
@@ -117,9 +120,11 @@ pub fn update_stance(
     let (entity, target_center, rotation, scale, excluded) = {
         let player = params.p2();
         let (entity, body, _, layer, _, _, _, _, _, _, exclusions) = player.into_inner();
+        let center_delta_native =
+            layer.scale().metres_to_native_f32(center_delta_metres);
         (
             entity,
-            body.translation + physical_up(&body) * center_delta,
+            body.translation + physical_up(&body) * center_delta_native,
             body.rotation,
             layer.scale(),
             exclusions
@@ -128,7 +133,8 @@ pub fn update_stance(
         )
     };
 
-    let standing = CharacterDimensions::standing_collider();
+    let standing_hull = CharacterDimensions::standing_hull();
+    let standing = standing_hull.collider(scale);
     let filter = params
         .p1()
         .filter_for_scale(scale, std::iter::once(entity).chain(excluded));
@@ -152,7 +158,7 @@ pub fn update_stance(
         _,
         _,
         mut traveler,
-        mut split_box,
+        mut hull,
         _,
     ) = player.into_inner();
     let Some(mut collider) = collider else {
@@ -161,12 +167,8 @@ pub fn update_stance(
 
     body.translation = target_center;
     *collider = standing;
+    *hull = standing_hull;
     stance.crouched = false;
-    split_box.half_extents = Vec3::new(
-        CharacterDimensions::HULL_WIDTH * 0.5,
-        CharacterDimensions::HALF_HEIGHT,
-        CharacterDimensions::HULL_WIDTH * 0.5,
-    );
     traveler.commit_position(body.translation);
 }
 

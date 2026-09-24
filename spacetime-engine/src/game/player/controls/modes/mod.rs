@@ -7,8 +7,7 @@ fn reset_control_state(
     ground: &mut CharacterGroundState,
 ) {
     input.clear();
-    ground.grounded = false;
-    ground.ground_entity = None;
+    ground.clear_contact();
 }
 
 /// `V` toggles an explicit Local Flight request.
@@ -51,7 +50,7 @@ pub(in crate::game::player) fn toggle_local_flight_thrusters(
     subject: Single<
         (
             &UsfScaleLayer,
-            &DetailedInteractionScale,
+            &DetailedBodyScale,
             &mut ControlledSubjectLocomotion,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,

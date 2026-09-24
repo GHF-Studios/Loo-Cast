@@ -24,9 +24,10 @@ use crate::{
             ControlActionSet, ControlledBy, LocalControlSubject, LocalControlTransferRequest,
         },
         locomotion::{
-            ControlledSubjectHull, ControlledSubjectLocomotion, DetailedInteractionScale,
-            FlightControlIntent, LocomotionCapabilities, LocomotionEnabled,
+            ControlledSubjectLocomotion, DetailedBodyScale, FlightControlIntent,
+            LocomotionCapabilities, LocomotionEnabled,
             LocomotionInhibition, LocomotionInhibitionReason, LocomotionRegime, LocomotionSet,
+            ScaleInteractionProxy,
         },
         navigation::{
             AdaptiveCruise, ApproachRefinementState, PrimaryBodyContext, TravelEnvelope,
@@ -36,6 +37,7 @@ use crate::{
         surface::SurfaceContext,
     },
     physics::{
+        PhysicalBoxHull,
         chart::UsfPhysicsCharts,
         gravity::{GravitySample, RadialGravitySource},
         character::{
@@ -43,7 +45,7 @@ use crate::{
             CharacterMovementConfig, CharacterMovementInput, CharacterMotor,
             GravityAlignedLocomotionFrame,
         },
-        topology::{KinematicQueryExclusions, SpatialSplitBox},
+        topology::KinematicQueryExclusions,
     },
     portal::PortalTraveler,
     spatial::{
@@ -196,11 +198,14 @@ fn spawn_reference_spacecraft(
                 ViewCameraProfile::spacecraft(14.0),
                 LocomotionCapabilities::spacecraft(),
                 LocomotionEnabled(true),
-                ControlledSubjectHull::cuboid(SHIP_SIZE, SHIP_PROXY_RADIUS_NATIVE),
+                (
+                    PhysicalBoxHull::from_size_metres(SHIP_SIZE),
+                    ScaleInteractionProxy::new(SHIP_PROXY_RADIUS_NATIVE),
+                ),
                 FlightControlIntent::default(),
                 UsfCanonicalMotion::default(),
                 locomotion,
-                DetailedInteractionScale::default(),
+                DetailedBodyScale::default(),
                 TravelProfile::spacecraft(),
                 TravelEnvelope::default(),
                 ApproachRefinementState::default(),
@@ -227,7 +232,6 @@ fn spawn_reference_spacecraft(
                 CustomVelocityIntegration,
                 LinearVelocity::ZERO,
                 Collider::sphere(SHIP_PROXY_RADIUS_NATIVE),
-                SpatialSplitBox::from_size(SHIP_SIZE),
             ),
             (
                 LocomotionInhibition::default(),
@@ -285,7 +289,7 @@ pub(crate) fn detect_landing(
             Entity,
             &mut Transform,
             &UsfScaleLayer,
-            &DetailedInteractionScale,
+            &DetailedBodyScale,
             &mut CharacterControlFrame,
             &CharacterLocomotionFrame,
             &Collider,

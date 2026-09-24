@@ -4,7 +4,8 @@ use bevy::{app::RunFixedMainLoop, prelude::*};
 use crate::physics::gravity::GravitySample;
 
 use super::{
-    CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame, CharacterMovementConfig,
+    CharacterControlFrame, CharacterGroundContact, CharacterGroundState, CharacterLocomotionFrame,
+    CharacterMovementConfig,
     CharacterMovementInput, GravityAlignedLocomotionFrame,
     controller::{
         CharacterPush, apply_character_pushes, receive_dynamic_contact_pushes,
@@ -59,6 +60,7 @@ impl Plugin for CharacterMovementPlugin {
             .register_type::<CharacterMotor>()
             .register_type::<CharacterMovementConfig>()
             .register_type::<CharacterMovementInput>()
+            .register_type::<CharacterGroundContact>()
             .register_type::<CharacterGroundState>()
             .register_type::<CharacterLocomotionFrame>()
             .register_type::<CharacterControlFrame>()

@@ -10,7 +10,7 @@ use crate::{
     game::{
         control::{LocalControlSubject, LocalViewTarget},
         locomotion::{
-            CharacterStance, ControlledSubjectLocomotion, DetailedInteractionScale,
+            CharacterStance, ControlledSubjectLocomotion, DetailedBodyScale,
             FlightAttitudeCommand, FlightControlIntent, LocomotionRegime,
             LocomotionRequest, MotionKernel,
         },

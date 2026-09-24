@@ -25,11 +25,12 @@ use crate::{
         navigation::{AdaptiveCruise, TravelEnvelope, TravelProfile, TravelState},
     },
     physics::{
+        DetailedBodyCollision, PhysicalBoxHull,
         chart::UsfPhysicsCharts,
         gravity::GravitySample,
         character::{
-            CharacterDimensions, CharacterGroundState, CharacterLocomotionFrame,
-            CharacterMotor, CharacterMovementInput,
+            CharacterGroundState, CharacterLocomotionFrame, CharacterMotor,
+            CharacterMovementInput,
         },
         topology::KinematicQueryExclusions,
     },
@@ -39,8 +40,8 @@ use crate::{
 };
 
 use super::{
-    CharacterStance, CollisionPolicy, ControlledSubjectHull, ControlledSubjectLocomotion,
-    ControlledSubjectLocomotionChanged, DetailedInteractionScale, FlightAttitudeCommand, FlightControlIntent,
+    CollisionPolicy, ControlledSubjectLocomotion, ControlledSubjectLocomotionChanged,
+    DetailedBodyScale, FlightAttitudeCommand, FlightControlIntent,
     LocomotionCapabilities, LocomotionEnabled, LocomotionInhibition,
     LocomotionRegime, LocomotionRequest, MotionKernel, ScaleInteractionProxy,
     VelocitySemantics,
@@ -178,7 +179,7 @@ pub(super) fn resolve_locomotion_state(
         (
             Entity,
             &UsfScaleLayer,
-            &DetailedInteractionScale,
+            &DetailedBodyScale,
             &TravelState,
             &TravelProfile,
             &LocomotionCapabilities,
@@ -325,13 +326,13 @@ pub(super) fn sync_locomotion_runtime(
         (
             Entity,
             Ref<UsfScaleLayer>,
-            Option<&CharacterStance>,
+            &PhysicalBoxHull,
             Option<&ScaleInteractionProxy>,
-            Option<&ControlledSubjectHull>,
             &ControlledSubjectLocomotion,
             &LocomotionEnabled,
             Option<&CharacterMotor>,
             Option<&Collider>,
+            Option<&DetailedBodyCollision>,
             &mut CharacterMovementInput,
             &mut CharacterGroundState,
         ),
@@ -341,13 +342,13 @@ pub(super) fn sync_locomotion_runtime(
     let (
         entity,
         layer,
-        stance,
-        proxy,
         hull,
+        proxy,
         locomotion,
         enabled,
         motor,
         collider,
+        detailed_collision,
         mut input,
         mut ground,
     ) = subject.into_inner();
@@ -361,37 +362,35 @@ pub(super) fn sync_locomotion_runtime(
 
     if layer.is_changed() {
         input.clear();
-        ground.grounded = false;
-        ground.ground_entity = None;
+        ground.clear_for_rechart();
     }
 
     match locomotion.collision_policy() {
         CollisionPolicy::Disabled => {
-            if collider.is_some() {
-                commands.entity(entity).remove::<Collider>();
+            if collider.is_some() || detailed_collision.is_some() {
+                commands
+                    .entity(entity)
+                    .remove::<Collider>()
+                    .remove::<DetailedBodyCollision>();
             }
         }
         CollisionPolicy::DetailedBody => {
-            if collider.is_none() || layer.is_changed() {
-                let collider = if let Some(hull) = hull {
-                    let size = hull.size();
-                    Collider::cuboid(size.x, size.y, size.z)
-                } else if stance.is_some_and(|stance| stance.crouched) {
-                    CharacterDimensions::crouching_collider()
-                } else {
-                    CharacterDimensions::standing_collider()
-                };
-                commands.entity(entity).insert(collider);
+            if collider.is_none() || layer.is_changed() || detailed_collision.is_none() {
+                commands
+                    .entity(entity)
+                    .insert((hull.collider(layer.scale()), DetailedBodyCollision));
             }
         }
         CollisionPolicy::ScaleProxy => {
-            if collider.is_none() || layer.is_changed() {
-                commands.entity(entity).insert(Collider::sphere(
-                    hull.map(|hull| hull.proxy_radius_native())
-                        .or_else(|| proxy.map(|proxy| proxy.radius_native))
-                        .unwrap_or(ScaleInteractionProxy::DEFAULT_RADIUS_NATIVE)
-                        .max(0.001),
-                ));
+            if collider.is_none() || layer.is_changed() || detailed_collision.is_some() {
+                let radius = proxy
+                    .map(|proxy| proxy.radius_native)
+                    .unwrap_or(ScaleInteractionProxy::DEFAULT_RADIUS_NATIVE)
+                    .max(0.001);
+                commands
+                    .entity(entity)
+                    .insert(Collider::sphere(radius))
+                    .remove::<DetailedBodyCollision>();
             }
         }
     }

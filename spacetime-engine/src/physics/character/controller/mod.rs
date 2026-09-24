@@ -141,7 +141,7 @@ fn simulate_character_motor(
     movement::reset_transition_flags(tick.ground);
     grounding::reconcile_penetration(collision, tick.transform, tick.velocity);
 
-    let was_grounded = tick.ground.grounded;
+    let was_grounded = tick.ground.is_grounded();
     grounding::refresh_ground_state(
         collision,
         tick.transform.translation,
@@ -160,7 +160,7 @@ fn simulate_character_motor(
     );
 
     let start = tick.transform.translation;
-    let moving_from_ground = tick.ground.grounded;
+    let moving_from_ground = tick.ground.is_grounded();
     let moving_on_ground =
         moving_from_ground && super::reject(tick.velocity.0, tick.up).length_squared() > 1.0e-8;
 
@@ -182,7 +182,7 @@ fn simulate_character_motor(
 
     movement::apply_post_move_gravity(
         tick.config,
-        tick.ground.grounded,
+        tick.ground.is_grounded(),
         dt,
         &mut tick.velocity.0,
     );

@@ -224,7 +224,7 @@ fn update_player_status(
         .map(format_hud_distance)
         .unwrap_or_else(|| "--".to_string());
 
-    let contact = if ground.grounded { "GROUNDED" } else { "AIRBORNE" };
+    let contact = if ground.is_grounded() { "GROUNDED" } else { "AIRBORNE" };
     let surface_state = if surface.collision_ready() { "SOLID" } else { "STREAMING" };
 
     text.0 = format!(

@@ -7,7 +7,9 @@ use avian3d::{
 use bevy::prelude::*;
 
 use super::CollisionContext;
-use super::super::{CharacterGroundState, ResolvedCharacterMovementConfig, reject};
+use super::super::{
+    CharacterGroundContact, CharacterGroundState, ResolvedCharacterMovementConfig, reject,
+};
 
 #[derive(Clone, Copy, Debug)]
 pub(super) struct GroundHit {
@@ -84,7 +86,7 @@ pub(super) fn finalize_grounding(
     };
 
     let final_ground =
-        if !ground.just_jumped && (moving_from_ground || velocity.0.dot(up) <= 0.0) {
+        if !ground.just_jumped() && (moving_from_ground || velocity.0.dot(up) <= 0.0) {
             probe_ground(
                 collision,
                 transform.translation,
@@ -100,7 +102,7 @@ pub(super) fn finalize_grounding(
         transform.translation -= up * hit.distance;
         set_ground_state(ground, Some(hit));
         velocity.0 = reject(velocity.0, up);
-    } else if !ground.just_jumped {
+    } else if !ground.just_jumped() {
         set_ground_state(ground, None);
     }
 }
@@ -162,12 +164,5 @@ pub(super) fn probe_ground(
 }
 
 fn set_ground_state(state: &mut CharacterGroundState, hit: Option<GroundHit>) {
-    if let Some(hit) = hit {
-        state.grounded = true;
-        state.ground_entity = Some(hit.entity);
-        state.ground_normal = hit.normal;
-    } else {
-        state.grounded = false;
-        state.ground_entity = None;
-    }
+    state.set_contact(hit.map(|hit| CharacterGroundContact::new(hit.entity, hit.normal)));
 }

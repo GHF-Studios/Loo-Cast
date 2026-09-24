@@ -268,23 +268,6 @@ impl Default for LocomotionEnabled {
     fn default() -> Self { Self(true) }
 }
 
-/// Detailed physical hull available when sufficiently fine interaction exists.
-#[derive(Component, Reflect, Debug, Clone, Copy)]
-#[reflect(Component)]
-pub struct ControlledSubjectHull {
-    size: Vec3,
-    proxy_radius_native: f32,
-}
-
-impl ControlledSubjectHull {
-    pub const fn cuboid(size: Vec3, proxy_radius_native: f32) -> Self {
-        Self { size, proxy_radius_native }
-    }
-
-    pub const fn size(self) -> Vec3 { self.size }
-    pub const fn proxy_radius_native(self) -> f32 { self.proxy_radius_native }
-}
-
 /// Bounded collision envelope used by coarse Scale-Slice interaction.
 #[derive(Component, Reflect, Debug, Clone, Copy)]
 #[reflect(Component)]
@@ -294,6 +277,16 @@ pub struct ScaleInteractionProxy {
 
 impl ScaleInteractionProxy {
     pub const DEFAULT_RADIUS_NATIVE: f32 = 0.05;
+
+    pub fn new(radius_native: f32) -> Self {
+        Self {
+            radius_native: if radius_native.is_finite() {
+                radius_native.max(0.001)
+            } else {
+                Self::DEFAULT_RADIUS_NATIVE
+            },
+        }
+    }
 }
 
 impl Default for ScaleInteractionProxy {
@@ -304,16 +297,16 @@ impl Default for ScaleInteractionProxy {
     }
 }
 
-/// Finest interaction Scale Slice at which this subject's detailed authored
-/// physical hull/controller is appropriate.
+/// Scale Slice at which this subject's detailed authored body/controller
+/// representation is currently appropriate.
 ///
-/// This is subject/content policy. S0 is only the default for current authored
-/// metre-scale subjects; it is not a USF architectural center.
+/// This is narrow representation policy, not generic "interaction scale".
+/// Surface sampling, view scale and semantic identity must not depend on it.
 #[derive(Component, Reflect, Debug, Clone, Copy)]
 #[reflect(Component)]
-pub struct DetailedInteractionScale(pub SpatialScale);
+pub struct DetailedBodyScale(pub SpatialScale);
 
-impl Default for DetailedInteractionScale {
+impl Default for DetailedBodyScale {
     fn default() -> Self {
         Self(SpatialScale::ZERO)
     }
@@ -418,12 +411,11 @@ impl Plugin for LocomotionPlugin {
             .register_type::<LocomotionInhibitionReason>()
             .register_type::<LocomotionInhibition>()
             .register_type::<LocomotionEnabled>()
-            .register_type::<ControlledSubjectHull>()
             .register_type::<CharacterStance>()
             .register_type::<FlightAttitudeCommand>()
             .register_type::<FlightControlIntent>()
             .register_type::<ScaleInteractionProxy>()
-            .register_type::<DetailedInteractionScale>()
+            .register_type::<DetailedBodyScale>()
             .add_message::<ControlledSubjectLocomotionChanged>()
             .add_systems(
                 RunFixedMainLoop,

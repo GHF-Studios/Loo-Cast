@@ -6,9 +6,11 @@ use bevy::prelude::*;
 use crate::{
     portal::{Portal, PortalActive, PortalRigidSplitBody, PortalSplitTraveler},
     physics::{
+        DetailedBodyCollision, PhysicalBoxHull,
         character::CharacterMotor,
         topology::{SpatialSplitBox, SpatialSplitPeer},
     },
+    spatial::{SpatialScale, UsfScaleLayer},
 };
 
 use super::peer::{AuthorityMotion, PeerComponents, PeerMaterialization, deactivate_peer, materialize_peer};
@@ -26,7 +28,8 @@ pub(crate) fn prepare_rigid_splits(
             &Transform,
             &LinearVelocity,
             &AngularVelocity,
-            &SpatialSplitBox,
+            &PhysicalBoxHull,
+            Option<&UsfScaleLayer>,
             &mut PortalSplitTraveler,
             &mut PortalRigidSplitBody,
             &mut Collider,
@@ -35,6 +38,7 @@ pub(crate) fn prepare_rigid_splits(
             Without<SpatialSplitPeer>,
             Without<Portal>,
             Without<CharacterMotor>,
+            With<DetailedBodyCollision>,
         ),
     >,
     mut peers: Query<
@@ -54,12 +58,15 @@ pub(crate) fn prepare_rigid_splits(
         body,
         velocity,
         angular_velocity,
-        split_box,
+        hull,
+        layer,
         mut split,
         mut rigid_split,
         mut authority_collider,
     ) in &mut authorities
     {
+        let scale = layer.map_or(SpatialScale::ZERO, |layer| layer.scale());
+        let split_box = SpatialSplitBox::from_physical(*hull, scale);
         let peer_entity = split.peer();
         let Ok((mut peer_transform, mut peer_velocity, mut peer_angular, mut peer_collider)) =
             peers.get_mut(peer_entity)
@@ -73,7 +80,7 @@ pub(crate) fn prepare_rigid_splits(
         if let Some(active) = split.active {
             if !active_pair_is_valid(active, &portals)
                 || !box_reaches_portal_this_tick(
-                    *split_box,
+                    split_box,
                     body,
                     velocity.0,
                     dt,
@@ -87,14 +94,14 @@ pub(crate) fn prepare_rigid_splits(
 
         split.tick_start = *body;
         if split.active.is_none() {
-            split.active = find_split_candidate(*split_box, body, velocity.0, dt, &portals);
+            split.active = find_split_candidate(split_box, body, velocity.0, dt, &portals);
         }
 
         let Some(active) = split.active else {
             deactivate_peer(
                 &mut commands,
                 peer_entity,
-                *split_box,
+                split_box,
                 &mut authority_collider,
                 &mut peer_velocity,
                 &mut peer_angular,
@@ -119,7 +126,7 @@ pub(crate) fn prepare_rigid_splits(
             deactivate_peer(
                 &mut commands,
                 peer_entity,
-                *split_box,
+                split_box,
                 &mut authority_collider,
                 &mut peer_velocity,
                 &mut peer_angular,
@@ -137,7 +144,7 @@ pub(crate) fn prepare_rigid_splits(
             },
             PeerMaterialization {
                 entity: peer_entity,
-                split_box: *split_box,
+                split_box: split_box,
                 source,
                 destination,
                 authority_collider: &mut authority_collider,
@@ -154,7 +161,7 @@ pub(crate) fn prepare_rigid_splits(
             deactivate_peer(
                 &mut commands,
                 peer_entity,
-                *split_box,
+                split_box,
                 &mut authority_collider,
                 &mut peer_velocity,
                 &mut peer_angular,

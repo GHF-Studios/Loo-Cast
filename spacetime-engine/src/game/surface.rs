@@ -1,22 +1,21 @@
-//! Gameplay-facing physical surface context.
+//! Read-only physical-surface proximity telemetry.
 //!
-//! Navigation supplies coarse semantic body geometry for regime selection.
-//! Player-facing altitude/contact instead references the actual procedural
-//! surface definition; physical fields are queried independently.
+//! This domain does not choose navigation targets, gravity frames or collision
+//! contacts. It independently observes the nearest authored celestial surface
+//! to a runtime subject for HUD/safety telemetry.
+//!
+//! Actual contact authority remains the collision system:
+//! character grounding and spacecraft landing use collision queries directly.
 
 use bevy::prelude::*;
 
 use crate::{
-    game::{
-        locomotion::DetailedInteractionScale,
-        navigation::PrimaryBodyContext,
-    },
-    physics::topology::SpatialSplitBox,
+    physics::PhysicalBoxHull,
     spatial::{
         UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScaleRoleMask, UsfSpatialFrame,
         UsfSpatialSet,
     },
-    voxel::CelestialVoxelField,
+    voxel::{CelestialVoxelField, VoxelScaleDomain},
 };
 
 #[derive(Reflect, Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -27,17 +26,21 @@ pub enum SurfaceReference {
     Nominal,
 }
 
-/// Stable gameplay-facing physical-surface snapshot.
+/// Nearest currently observable authored surface.
 ///
-/// `center_altitude_metres` measures the subject origin above terrain.
-/// `clearance_metres` subtracts the subject's oriented physical support radius,
-/// so a standing/landed hull approaches zero clearance at contact.
+/// `radial_outward` is body-center radial direction only. It is deliberately
+/// not called `up`: gravity-up, walkable contact normal and procedural surface
+/// normal are independent concepts.
+///
+/// `clearance_metres` subtracts this subject's oriented detailed physical-hull
+/// support radius from center altitude. It remains telemetry; a collision query
+/// decides whether physical contact actually exists.
 #[derive(Component, Reflect, Debug, Clone, Copy)]
 #[reflect(Component)]
 pub struct SurfaceContext {
     body: Option<Entity>,
     reference: SurfaceReference,
-    up: Vec3,
+    radial_outward: Vec3,
     center_altitude_metres: f64,
     clearance_metres: f64,
     collision_ready: bool,
@@ -48,7 +51,7 @@ impl Default for SurfaceContext {
         Self {
             body: None,
             reference: SurfaceReference::None,
-            up: Vec3::Y,
+            radial_outward: Vec3::ZERO,
             center_altitude_metres: f64::INFINITY,
             clearance_metres: f64::INFINITY,
             collision_ready: false,
@@ -65,8 +68,8 @@ impl SurfaceContext {
         self.reference
     }
 
-    pub const fn up(self) -> Vec3 {
-        self.up
+    pub const fn radial_outward(self) -> Vec3 {
+        self.radial_outward
     }
 
     pub fn center_altitude_metres(self) -> Option<f64> {
@@ -82,25 +85,65 @@ impl SurfaceContext {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+struct SurfaceCandidate {
+    body: Entity,
+    reference: SurfaceReference,
+    radial_outward: Vec3,
+    center_altitude_metres: f64,
+}
+
+fn sample_surface_candidate(
+    position: &crate::spatial::UsfPosition,
+    subject_scale: crate::spatial::SpatialScale,
+    body: Entity,
+    field: CelestialVoxelField,
+    domain: VoxelScaleDomain,
+) -> Option<SurfaceCandidate> {
+    let measurement_scale = field.coarsest_detail_scale().max(position.leaf_scale());
+    let relative = position
+        .relative_at_scale_bounded(&field.center(), measurement_scale, f32::MAX)
+        .ok()?;
+    let radial_outward = relative.normalize_or_zero();
+    if radial_outward == Vec3::ZERO {
+        return None;
+    }
+
+    let center_distance_metres =
+        f64::from(relative.length()) * measurement_scale.metres_per_native();
+
+    let (surface_radius_metres, reference) = if domain.realizes(subject_scale) {
+        let realization = field.realization(subject_scale);
+        (
+            f64::from(realization.surface_radius_native(radial_outward))
+                * subject_scale.metres_per_native(),
+            SurfaceReference::Procedural,
+        )
+    } else {
+        (field.radius_metres(), SurfaceReference::Nominal)
+    };
+
+    Some(SurfaceCandidate {
+        body,
+        reference,
+        radial_outward,
+        center_altitude_metres: center_distance_metres - surface_radius_metres,
+    })
+}
+
 fn sync_surface_contexts(
     frame: Res<UsfSpatialFrame>,
     coverage: Res<UsfScaleCoverageSnapshot>,
-    fields: Query<&CelestialVoxelField>,
+    fields: Query<(Entity, &CelestialVoxelField, &VoxelScaleDomain)>,
     mut subjects: Query<(
         &Transform,
         &UsfScaleLayer,
-        &DetailedInteractionScale,
-        &PrimaryBodyContext,
-        &SpatialSplitBox,
+        &PhysicalBoxHull,
         &mut SurfaceContext,
     )>,
 ) {
-    for (transform, layer, detailed, primary, hull, mut surface) in &mut subjects {
+    for (transform, layer, hull, mut surface) in &mut subjects {
         *surface = SurfaceContext::default();
-
-        let Some(body) = primary.entity() else {
-            continue;
-        };
 
         let Ok(position) = frame
             .origin()
@@ -109,51 +152,38 @@ fn sync_surface_contexts(
             continue;
         };
 
-        let reference_scale = primary.reference_scale();
-        let bound_metres = (primary.center_distance_metres().max(primary.radius_metres())
-            + primary.radius_metres())
-            .max(1.0);
-        let bound_native = reference_scale
-            .scale0_to_native_f64(bound_metres)
-            .min(f64::from(f32::MAX)) as f32;
+        let nearest = fields
+            .iter()
+            .filter_map(|(entity, field, domain)| {
+                sample_surface_candidate(
+                    &position,
+                    layer.scale(),
+                    entity,
+                    *field,
+                    *domain,
+                )
+            })
+            .min_by(|a, b| {
+                a.center_altitude_metres
+                    .abs()
+                    .total_cmp(&b.center_altitude_metres.abs())
+            });
 
-        let Ok(relative) = position.relative_at_scale_bounded(
-            &primary.center(),
-            reference_scale,
-            bound_native,
-        ) else {
+        let Some(candidate) = nearest else {
             continue;
         };
 
-        let up = relative.normalize_or_zero();
-        if up == Vec3::ZERO {
-            continue;
-        }
-
-        let center_distance_metres =
-            f64::from(relative.length()) * reference_scale.scale0_units_per_native();
-
-        let (surface_radius_metres, reference) = if let Ok(field) = fields.get(body) {
-            let realization = field.realization(detailed.0);
-            (
-                f64::from(realization.surface_radius_native(up))
-                    * detailed.0.scale0_units_per_native(),
-                SurfaceReference::Procedural,
-            )
-        } else {
-            (primary.radius_metres(), SurfaceReference::Nominal)
-        };
-
-        let center_altitude_metres = center_distance_metres - surface_radius_metres;
-        let support_metres = f64::from(hull.projection_radius(transform.rotation, up));
-        let clearance_metres = center_altitude_metres - support_metres;
+        let support_metres = f64::from(
+            hull.projection_radius_metres(transform.rotation, candidate.radial_outward),
+        );
+        let clearance_metres = candidate.center_altitude_metres - support_metres;
 
         let collision_probe_metres = (support_metres + 0.5).max(0.5);
         let collision_probe_native =
             layer.scale().metres_to_native_f32(collision_probe_metres as f32);
 
         let collision_ready = coverage.has_near_for_authority(
-            body,
+            candidate.body,
             layer.scale(),
             &position,
             UsfScaleRoleMask::COLLISION,
@@ -161,10 +191,10 @@ fn sync_surface_contexts(
         );
 
         *surface = SurfaceContext {
-            body: Some(body),
-            reference,
-            up,
-            center_altitude_metres,
+            body: Some(candidate.body),
+            reference: candidate.reference,
+            radial_outward: candidate.radial_outward,
+            center_altitude_metres: candidate.center_altitude_metres,
             clearance_metres,
             collision_ready,
         };
@@ -191,9 +221,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn physical_clearance_subtracts_body_support_from_center_altitude() {
-        let hull = SpatialSplitBox::from_size(Vec3::new(2.0, 4.0, 2.0));
-        let support = hull.projection_radius(Quat::IDENTITY, Vec3::Y);
+    fn physical_clearance_subtracts_canonical_hull_support() {
+        let hull = PhysicalBoxHull::from_size_metres(Vec3::new(2.0, 4.0, 2.0));
+        let support = hull.projection_radius_metres(Quat::IDENTITY, Vec3::Y);
         assert!((support - 2.0).abs() < 1.0e-6);
         assert!((3.0_f64 - f64::from(support) - 1.0).abs() < 1.0e-9);
     }

@@ -480,8 +480,7 @@ fn reconcile_controlled_spatial_transition(
                 input.clear();
             }
             if let Some(mut ground) = ground {
-                ground.grounded = false;
-                ground.ground_entity = None;
+                ground.clear_contact();
             }
         }
     }

@@ -1,7 +1,6 @@
-use avian3d::prelude::Collider;
 use bevy::{math::DVec3, prelude::*};
 
-use crate::spatial::SpatialScale;
+use crate::{physics::PhysicalBoxHull, spatial::SpatialScale};
 
 /// Dimensions of the default character body, in metres.
 pub struct CharacterDimensions;
@@ -18,12 +17,20 @@ impl CharacterDimensions {
     pub const CROUCH_EYE_HEIGHT: f32 = 1.05;
     pub const CROUCH_CENTER_TO_EYE: f32 = Self::CROUCH_EYE_HEIGHT - Self::CROUCH_HALF_HEIGHT;
 
-    pub fn standing_collider() -> Collider {
-        Collider::cuboid(Self::HULL_WIDTH, Self::HULL_HEIGHT, Self::HULL_WIDTH)
+    pub fn standing_hull() -> PhysicalBoxHull {
+        PhysicalBoxHull::from_size_metres(Vec3::new(
+            Self::HULL_WIDTH,
+            Self::HULL_HEIGHT,
+            Self::HULL_WIDTH,
+        ))
     }
 
-    pub fn crouching_collider() -> Collider {
-        Collider::cuboid(Self::HULL_WIDTH, Self::CROUCH_HEIGHT, Self::HULL_WIDTH)
+    pub fn crouching_hull() -> PhysicalBoxHull {
+        PhysicalBoxHull::from_size_metres(Vec3::new(
+            Self::HULL_WIDTH,
+            Self::CROUCH_HEIGHT,
+            Self::HULL_WIDTH,
+        ))
     }
 }
 

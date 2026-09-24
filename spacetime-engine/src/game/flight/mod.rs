@@ -15,7 +15,7 @@ use crate::{
         GameSet, PresentationSet,
         control::LocalControlSubject,
         locomotion::{
-            ControlledSubjectLocomotion, DetailedInteractionScale, LocomotionRegime,
+            ControlledSubjectLocomotion, DetailedBodyScale, LocomotionRegime,
         },
         navigation::{AdaptiveCruise, PrimaryBodyContext, TravelState},
         surface::SurfaceContext,
@@ -359,7 +359,7 @@ fn sync_flight_telemetry(
     mut subjects: Query<
         (
             &ControlledSubjectLocomotion,
-            &DetailedInteractionScale,
+            &DetailedBodyScale,
             &UsfScaleLayer,
             &UsfCanonicalMotion,
             &AdaptiveCruise,

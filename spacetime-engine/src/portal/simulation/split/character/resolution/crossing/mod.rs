@@ -98,10 +98,7 @@ pub(super) fn resolve_crossing(
     *state.body = resolved_body;
     state.velocity.0 = resolved_velocity;
 
-    state.ground.grounded = false;
-    state.ground.ground_entity = None;
-    state.ground.just_landed = false;
-    state.ground.just_left_ground = true;
+    state.ground.invalidate_contact();
 
     // The authority now lives in the former destination space. Reversing the
     // active pair lets a reversal while still straddling cross back naturally.

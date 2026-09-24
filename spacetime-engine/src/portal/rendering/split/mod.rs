@@ -9,9 +9,13 @@ use bevy::{asset::RenderAssetUsages, mesh::PrimitiveTopology, prelude::*};
 use crate::{
     ecs::UsfPresentationProjectionOf,
     portal::{Portal, PortalActive, PortalSplitTraveler, topology::mapping::portal_plane},
-    physics::topology::{
-        SpatialSplitBox, SpatialSplitPeer, SpatialSplitPeerActive, partition_box_by_plane,
+    physics::{
+        DetailedBodyCollision, PhysicalBoxHull,
+        topology::{
+            SpatialSplitBox, SpatialSplitPeer, SpatialSplitPeerActive, partition_box_by_plane,
+        },
     },
+    spatial::{SpatialScale, UsfScaleLayer},
 };
 
 const FACE_EPSILON: f32 = 1.0e-4;
@@ -23,8 +27,17 @@ pub struct PortalSplitVisual;
 pub(super) fn sync_split_visuals(
     portals: Query<(&PortalActive, &Transform), With<Portal>>,
     authorities: Query<
-        (&SpatialSplitBox, &Transform, &PortalSplitTraveler),
-        (Without<SpatialSplitPeer>, Without<Portal>),
+        (
+            &PhysicalBoxHull,
+            Option<&UsfScaleLayer>,
+            &Transform,
+            &PortalSplitTraveler,
+        ),
+        (
+            With<DetailedBodyCollision>,
+            Without<SpatialSplitPeer>,
+            Without<Portal>,
+        ),
     >,
     peers: Query<(&SpatialSplitPeer, Option<&SpatialSplitPeerActive>)>,
     mut visuals: Query<
@@ -47,9 +60,11 @@ pub(super) fn sync_split_visuals(
             continue;
         };
 
-        let Ok((split_box, body, split)) = authorities.get(authority) else {
+        let Ok((hull, layer, body, split)) = authorities.get(authority) else {
             continue;
         };
+        let scale = layer.map_or(SpatialScale::ZERO, |layer| layer.scale());
+        let split_box = SpatialSplitBox::from_physical(*hull, scale);
 
         let Some(mut mesh_asset) = meshes.get_mut(&mesh.0) else {
             continue;
@@ -60,7 +75,7 @@ pub(super) fn sync_split_visuals(
                 *visibility = Visibility::Hidden;
             } else {
                 *visibility = Visibility::Inherited;
-                *mesh_asset = full_box_mesh(*split_box);
+                *mesh_asset = full_box_mesh(split_box);
             }
             continue;
         };
@@ -70,7 +85,7 @@ pub(super) fn sync_split_visuals(
                 *visibility = Visibility::Hidden;
             } else {
                 *visibility = Visibility::Inherited;
-                *mesh_asset = full_box_mesh(*split_box);
+                *mesh_asset = full_box_mesh(split_box);
             }
             continue;
         };
@@ -79,7 +94,7 @@ pub(super) fn sync_split_visuals(
                 *visibility = Visibility::Hidden;
             } else {
                 *visibility = Visibility::Inherited;
-                *mesh_asset = full_box_mesh(*split_box);
+                *mesh_asset = full_box_mesh(split_box);
             }
             continue;
         }
@@ -89,17 +104,17 @@ pub(super) fn sync_split_visuals(
                 *visibility = Visibility::Hidden;
             } else {
                 *visibility = Visibility::Inherited;
-                *mesh_asset = full_box_mesh(*split_box);
+                *mesh_asset = full_box_mesh(split_box);
             }
             continue;
         };
-        let partition = partition_box_by_plane(*split_box, body, plane);
+        let partition = partition_box_by_plane(split_box, body, plane);
         if !partition.straddles() {
             if is_peer {
                 *visibility = Visibility::Hidden;
             } else {
                 *visibility = Visibility::Inherited;
-                *mesh_asset = full_box_mesh(*split_box);
+                *mesh_asset = full_box_mesh(split_box);
             }
             continue;
         }

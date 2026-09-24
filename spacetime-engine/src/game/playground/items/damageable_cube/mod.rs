@@ -13,7 +13,7 @@ use crate::{
         health::{Health, DamageableBounds},
         item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItem},
     },
-    physics::topology::{SpatialSplitBox, SpatialSplitPeer},
+    physics::{DetailedBodyCollision, PhysicalBoxHull, topology::SpatialSplitPeer},
     portal::{PortalRigidSplitBody, PortalSplitTraveler, PortalSplitVisual, PortalTraveler},
     thermal::{
         CombustibleMaterial, Fuel, ThermalBody, ThermalField, ThermalMaterial,
@@ -194,7 +194,8 @@ fn spawn_dynamic_manifestation(
             ThermalSpatialSample,
             PlaygroundPickable::cube(semantic, CUBE_SIZE),
             DamageableBounds::cube(CUBE_SIZE),
-            SpatialSplitBox::from_size(Vec3::splat(CUBE_SIZE)),
+            PhysicalBoxHull::from_size_metres(Vec3::splat(CUBE_SIZE)),
+            DetailedBodyCollision,
             PortalTraveler::new(position),
             PortalRigidSplitBody::default(),
             transform,

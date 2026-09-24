@@ -7,9 +7,11 @@ use crate::{
     ecs::UsfLogicalProjection,
     portal::{Portal, PortalActive, PortalSplitTraveler},
     physics::{
+        DetailedBodyCollision, PhysicalBoxHull,
         character::CharacterLocomotionFrame,
         topology::{KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeer},
     },
+    spatial::UsfScaleLayer,
 };
 
 use super::finish_character_split;
@@ -30,7 +32,8 @@ pub(crate) fn prepare_portal_splits(
             &mut Transform,
             Option<&CharacterLocomotionFrame>,
             &LinearVelocity,
-            &SpatialSplitBox,
+            &PhysicalBoxHull,
+            &UsfScaleLayer,
             &mut PortalSplitTraveler,
             &mut KinematicQueryExclusions,
         ),
@@ -38,20 +41,22 @@ pub(crate) fn prepare_portal_splits(
             With<UsfLogicalProjection>,
             Without<SpatialSplitPeer>,
             Without<Portal>,
+            With<DetailedBodyCollision>,
         ),
     >,
 ) {
     let dt = time.delta_secs().max(0.0);
 
-    for (mut body, locomotion_frame, velocity, split_box, mut split, mut exclusions) in
+    for (mut body, locomotion_frame, velocity, hull, layer, mut split, mut exclusions) in
         &mut travelers
     {
         let peer = split.peer();
+        let split_box = SpatialSplitBox::from_physical(*hull, layer.scale());
 
         if let Some(active) = split.active {
             if !active_pair_is_valid(active, &portals)
                 || !box_reaches_portal_this_tick(
-                    *split_box,
+                    split_box,
                     &body,
                     velocity.0,
                     dt,
@@ -66,7 +71,7 @@ pub(crate) fn prepare_portal_splits(
         split.tick_start = *body;
 
         if split.active.is_none() {
-            split.active = find_split_candidate(*split_box, &body, velocity.0, dt, &portals);
+            split.active = find_split_candidate(split_box, &body, velocity.0, dt, &portals);
         }
 
         // Whole-entity exclusions are reserved for the peer manifestation.

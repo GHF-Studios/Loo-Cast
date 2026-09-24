@@ -9,10 +9,14 @@ use crate::{
         Portal, PortalActive, PortalSplitTraveler,
         topology::mapping::{map_transform, portal_mapping, portal_plane},
     },
-    physics::topology::{
-        KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeer, SpatialSplitPeerActive,
-        partition_box_by_plane,
+    physics::{
+        DetailedBodyCollision, PhysicalBoxHull,
+        topology::{
+            KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeer, SpatialSplitPeerActive,
+            partition_box_by_plane,
+        },
     },
+    spatial::UsfScaleLayer,
 };
 
 /// Rebuilds the two physical manifestation colliders from the same rigid box.
@@ -28,13 +32,15 @@ pub(crate) fn materialize_portal_splits(
             Entity,
             &Transform,
             &LinearVelocity,
-            &SpatialSplitBox,
+            &PhysicalBoxHull,
+            &UsfScaleLayer,
             &PortalSplitTraveler,
             &mut Collider,
         ),
         (
             With<UsfLogicalProjection>,
             With<KinematicQueryExclusions>,
+            With<DetailedBodyCollision>,
             Without<SpatialSplitPeer>,
             Without<Portal>,
         ),
@@ -48,7 +54,8 @@ pub(crate) fn materialize_portal_splits(
         ),
     >,
 ) {
-    for (_authority, body, velocity, split_box, split, mut authority_collider) in &mut authorities {
+    for (_authority, body, velocity, hull, layer, split, mut authority_collider) in &mut authorities {
+        let split_box = SpatialSplitBox::from_physical(*hull, layer.scale());
         let peer_entity = split.peer();
         let Ok((mut peer_transform, mut peer_velocity, mut peer_collider)) =
             peers.get_mut(peer_entity)
@@ -60,7 +67,7 @@ pub(crate) fn materialize_portal_splits(
             restore_full_authority(
                 &mut commands,
                 peer_entity,
-                *split_box,
+                split_box,
                 &mut authority_collider,
             );
             peer_velocity.0 = Vec3::ZERO;
@@ -82,7 +89,7 @@ pub(crate) fn materialize_portal_splits(
             restore_full_authority(
                 &mut commands,
                 peer_entity,
-                *split_box,
+                split_box,
                 &mut authority_collider,
             );
             continue;
@@ -91,7 +98,7 @@ pub(crate) fn materialize_portal_splits(
         let Some(plane) = portal_plane(source) else {
             continue;
         };
-        let partition = partition_box_by_plane(*split_box, body, plane);
+        let partition = partition_box_by_plane(split_box, body, plane);
 
         *peer_transform = map_transform(body, source, destination);
         peer_velocity.0 = portal_mapping(source, destination).transform_vector3(velocity.0);
@@ -100,7 +107,7 @@ pub(crate) fn materialize_portal_splits(
             restore_full_authority(
                 &mut commands,
                 peer_entity,
-                *split_box,
+                split_box,
                 &mut authority_collider,
             );
             continue;
@@ -117,7 +124,7 @@ pub(crate) fn materialize_portal_splits(
             restore_full_authority(
                 &mut commands,
                 peer_entity,
-                *split_box,
+                split_box,
                 &mut authority_collider,
             );
             continue;

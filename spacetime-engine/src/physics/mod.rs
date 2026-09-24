@@ -4,7 +4,10 @@ pub mod chart;
 pub mod character;
 pub mod collision_topology;
 pub mod gravity;
+mod hull;
 pub mod topology;
+
+pub use hull::{DetailedBodyCollision, PhysicalBoxHull};
 
 use std::time::Duration;
 
@@ -31,7 +34,8 @@ fn configure_overload_guard(mut virtual_time: ResMut<Time<Virtual>>) {
 
 impl Plugin for SpacetimePhysicsPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<topology::SpatialSplitBox>()
+        app.register_type::<PhysicalBoxHull>()
+            .register_type::<DetailedBodyCollision>()
             .add_systems(PreStartup, configure_overload_guard)
             .add_plugins(
                 PhysicsPlugins::default()

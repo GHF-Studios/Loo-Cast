@@ -13,8 +13,8 @@ use crate::{
         locomotion::ControlledSubjectLocomotion,
     },
     physics::{
+        PhysicalBoxHull,
         character::{CharacterControlFrame, CharacterLocomotionFrame},
-        topology::SpatialSplitBox,
     },
     portal::PortalTraveler,
     spatial::{
@@ -44,7 +44,7 @@ pub(super) fn prepare_controlled_subject(
             &mut ControlledSubjectLocomotion,
             &mut CharacterControlFrame,
             &mut CharacterLocomotionFrame,
-            &SpatialSplitBox,
+            &PhysicalBoxHull,
             &mut SpatialRefinementDemand,
         ),
         With<LocalControlSubject>,
@@ -60,7 +60,7 @@ pub(super) fn prepare_controlled_subject(
         mut locomotion,
         mut control,
         mut locomotion_frame,
-        split_box,
+        hull,
         mut refinement,
     ) = subject.into_inner();
 
@@ -75,7 +75,7 @@ pub(super) fn prepare_controlled_subject(
     control.snap_to(aligned);
 
     // Generic oriented-body support radius, in metres.
-    let support_metres = split_box.projection_radius(aligned, site.up());
+    let support_metres = hull.projection_radius_metres(aligned, site.up());
     let clearance_metres = support_metres + PROCEDURAL_SPAWN_GAP_METRES;
     let clearance_native = site.scale().metres_to_native_f32(clearance_metres);
 
@@ -120,7 +120,7 @@ pub(super) fn prepare_controlled_subject(
     refinement.request_through(site.scale());
 
     let coverage_radius_metres =
-        split_box.half_extents.length() + PROCEDURAL_SPAWN_GAP_METRES;
+        hull.half_extents_metres().length() + PROCEDURAL_SPAWN_GAP_METRES;
     let coverage_radius_native =
         site.scale().metres_to_native_f32(coverage_radius_metres);
 

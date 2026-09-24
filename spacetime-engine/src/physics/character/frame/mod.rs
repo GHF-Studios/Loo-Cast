@@ -113,7 +113,7 @@ pub(super) fn sync_character_body_alignment(
 ) {
     for (frame, ground, mut control, mut transform) in &mut characters {
         control.follow_locomotion_frame(frame);
-        if ground.grounded {
+        if ground.is_grounded() {
             transform.rotation = frame.aligned_rotation(transform.rotation);
         }
     }

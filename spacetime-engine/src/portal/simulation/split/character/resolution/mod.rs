@@ -13,9 +13,11 @@ use crate::{
         topology::mapping::portal_plane,
     },
     physics::{
+        DetailedBodyCollision, PhysicalBoxHull,
         character::{CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame},
         topology::{KinematicQueryExclusions, SpatialSplitBox, SpatialSplitPeer},
     },
+    spatial::UsfScaleLayer,
 };
 
 use super::finish_character_split;
@@ -33,7 +35,8 @@ pub(crate) fn resolve_portal_splits(
     mut travelers: Query<
         (
             Entity,
-            &SpatialSplitBox,
+            &PhysicalBoxHull,
+            &UsfScaleLayer,
             &mut Transform,
             Option<&CharacterLocomotionFrame>,
             Option<&mut CharacterControlFrame>,
@@ -45,6 +48,7 @@ pub(crate) fn resolve_portal_splits(
         ),
         (
             With<UsfLogicalProjection>,
+            With<DetailedBodyCollision>,
             Without<SpatialSplitPeer>,
             Without<Portal>,
         ),
@@ -57,7 +61,8 @@ pub(crate) fn resolve_portal_splits(
 
     for (
         entity,
-        split_box,
+        hull,
+        layer,
         mut body,
         locomotion_frame,
         mut control_frame,
@@ -69,6 +74,7 @@ pub(crate) fn resolve_portal_splits(
     ) in &mut travelers
     {
         let peer = split.peer();
+        let split_box = SpatialSplitBox::from_physical(*hull, layer.scale());
 
         let Some(active) = split.active else {
             traveler.commit_position(body.translation);
@@ -101,7 +107,7 @@ pub(crate) fn resolve_portal_splits(
         if let Some((fraction, side)) = center_crossing_fraction(source, start, end) {
             if source_portal.sidedness.allows(side)
                 && box_fits_aperture_at(
-                    *split_box,
+                    split_box,
                     body.rotation,
                     start.lerp(end, fraction),
                     source,
@@ -112,7 +118,7 @@ pub(crate) fn resolve_portal_splits(
                     CrossingContext {
                         entity,
                         peer,
-                        split_box: *split_box,
+                        split_box: split_box,
                         active,
                         source,
                         destination,
@@ -133,7 +139,7 @@ pub(crate) fn resolve_portal_splits(
             }
         }
 
-        if split_cleared_portal(*split_box, &body, &split, &portals) {
+        if split_cleared_portal(split_box, &body, &split, &portals) {
             finish_character_split(&mut split, &mut body, locomotion_frame);
             exclusions.replace([peer]);
         }

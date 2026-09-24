@@ -1,25 +1,39 @@
-//! Generic convex box/plane partition geometry.
+//! Reusable chart-local box/plane partition geometry.
+//!
+//! [`SpatialSplitBox`] is a resolved numerical shape, not ECS/body authority.
+//! It is derived from [`PhysicalBoxHull`] at the current Scale Slice whenever
+//! topology code needs local coordinates.
 
 use avian3d::prelude::Collider;
 use bevy::prelude::*;
 
+use crate::{
+    physics::PhysicalBoxHull,
+    spatial::SpatialScale,
+};
+
 const PLANE_EPSILON: f32 = 1.0e-5;
 
-/// Declares that a rigid box manifestation may be spatially partitioned.
+/// Chart-local resolved box used by split/topology algorithms.
 ///
-/// The half-extents are body-local metres and are independent from any one
-/// splitting mechanism. Crouching, morphing, or other mechanics that change
-/// the physical box should update this component alongside the collider.
-#[derive(Component, Reflect, Debug, Clone, Copy)]
-#[reflect(Component)]
+/// Physical dimensions live in [`PhysicalBoxHull`]. Keeping this type as a
+/// plain value prevents portal materialization from becoming another body-shape
+/// authority.
+#[derive(Debug, Clone, Copy)]
 pub struct SpatialSplitBox {
     pub half_extents: Vec3,
 }
 
 impl SpatialSplitBox {
-    pub fn from_size(size: Vec3) -> Self {
+    pub fn from_physical(hull: PhysicalBoxHull, scale: SpatialScale) -> Self {
         Self {
-            half_extents: Vec3::new(size.x * 0.5, size.y * 0.5, size.z * 0.5),
+            half_extents: hull.half_extents_native(scale),
+        }
+    }
+
+    pub fn from_size_native(size: Vec3) -> Self {
+        Self {
+            half_extents: size.abs() * 0.5,
         }
     }
 
@@ -31,7 +45,7 @@ impl SpatialSplitBox {
         )
     }
 
-    /// Support radius of the oriented box along a world-space axis.
+    /// Support radius of the resolved box along a world-space axis.
     pub fn projection_radius(self, rotation: Quat, world_axis: Vec3) -> f32 {
         let axis = world_axis.normalize_or_zero();
         if axis == Vec3::ZERO {
@@ -63,7 +77,7 @@ impl SplitPlane {
     }
 }
 
-/// Convex partition of a rigid box by an arbitrary world plane.
+/// Convex partition of a resolved box by an arbitrary world plane.
 ///
 /// Points are body-local so either half can be attached to any rigidly mapped
 /// manifestation using the same local collider geometry.
@@ -92,7 +106,7 @@ impl BoxPlanePartition {
     }
 }
 
-/// Partition a rigid box manifestation into the positive and negative
+/// Partition a resolved local box manifestation into the positive and negative
 /// half-spaces of `plane`.
 pub fn partition_box_by_plane(
     split_box: SpatialSplitBox,
@@ -189,10 +203,11 @@ fn push_unique(points: &mut Vec<Vec3>, point: Vec3) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::physics::topology::KinematicQueryExclusions;
 
     #[test]
     fn centered_box_is_partitioned_into_two_volumes() {
-        let box_shape = SpatialSplitBox::from_size(Vec3::splat(2.0));
+        let box_shape = SpatialSplitBox::from_size_native(Vec3::splat(2.0));
         let plane = SplitPlane::new(Vec3::ZERO, Vec3::X).unwrap();
         let partition = partition_box_by_plane(box_shape, &Transform::IDENTITY, plane);
 
@@ -212,7 +227,7 @@ mod tests {
 
     #[test]
     fn box_outside_plane_does_not_straddle() {
-        let box_shape = SpatialSplitBox::from_size(Vec3::splat(2.0));
+        let box_shape = SpatialSplitBox::from_size_native(Vec3::splat(2.0));
         let plane = SplitPlane::new(Vec3::ZERO, Vec3::X).unwrap();
         let transform = Transform::from_xyz(3.0, 0.0, 0.0);
         let partition = partition_box_by_plane(box_shape, &transform, plane);
@@ -223,7 +238,7 @@ mod tests {
 
     #[test]
     fn projection_radius_respects_rotation() {
-        let box_shape = SpatialSplitBox::from_size(Vec3::new(2.0, 4.0, 6.0));
+        let box_shape = SpatialSplitBox::from_size_native(Vec3::new(2.0, 4.0, 6.0));
         let rotation = Quat::from_rotation_y(std::f32::consts::FRAC_PI_2);
         let radius = box_shape.projection_radius(rotation, Vec3::X);
         assert!((radius - 3.0).abs() < 1.0e-5);
