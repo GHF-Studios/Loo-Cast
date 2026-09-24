@@ -5,10 +5,9 @@
 //! partitions; interaction focus, floating-origin rebasing, presentation and
 //! demand are projections over that stack rather than one privileged scale.
 
-mod context;
+mod residency;
 mod demand;
 mod devtools;
-mod field;
 mod layer;
 mod motion;
 mod navigation;
@@ -17,10 +16,8 @@ mod refinement;
 mod transition;
 mod view;
 
-pub use context::{UsfContextDemandBuffer, UsfContextNode, UsfContextSet, UsfContextTopology};
-pub use field::{UsfFieldSampleMetadata, UsfFieldSampleQuality};
-pub(crate) use field::{
-    UsfFieldContext, UsfFieldSource, UsfFieldSourceLocation, UsfHierarchicalFieldCache,
+pub use residency::{
+    UsfContextResidency, UsfResidencyRequestBuffer, UsfResidencySet, UsfResidentContext,
 };
 pub use demand::{
     SpatialDemandScope, SpatialDemandSet, SpatialDemandSnapshot, SpatialDemandSource,
@@ -182,7 +179,7 @@ impl Plugin for UsfSpatialPlugin {
             );
 
         demand::configure(app);
-        context::configure(app);
+        residency::configure(app);
         devtools::configure(app);
     }
 }

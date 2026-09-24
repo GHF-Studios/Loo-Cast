@@ -118,4 +118,3 @@ fn temporal_parameterizations_have_distinct_cache_identity() {
 
     assert_eq!(store.len(), 72);
 }
-}

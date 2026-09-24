@@ -14,4 +14,3 @@ fn combustion_power_is_readable_without_mutating_simulation() {
     let combustion = Combustion::new(12_000.0);
     assert_eq!(combustion.power_watts(), 12_000.0);
 }
-}

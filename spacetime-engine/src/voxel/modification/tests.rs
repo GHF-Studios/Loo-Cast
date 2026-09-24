@@ -102,4 +102,3 @@ fn seam_edit_is_indexed_for_both_canonical_padded_chunk_domains() {
         vec![edit]
     );
 }
-}

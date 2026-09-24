@@ -11,8 +11,19 @@ fn source_extent_is_bounded_and_toggleable() {
 }
 
 #[test]
-fn ancestor_extent_drops_by_one_decade_per_scale() {
-    let half = Vec3::splat(96.0);
-    assert_eq!(half * 10.0_f32.powi(-1), Vec3::splat(9.6));
-    assert!((half.x * 10.0_f32.powi(-2) - 0.96).abs() < 1.0e-6);
+fn refinement_is_independent_from_generic_interest_extent() {
+    let source = SpatialDemandSource::cuboid(Vec3::splat(96.0));
+    let mut refinement = SpatialRefinementDemand::cuboid(Vec3::splat(32.0));
+    let s4 = SpatialScale::new(4).unwrap();
+
+    assert_eq!(source.half_extent_native(), Vec3::splat(96.0));
+    assert_eq!(refinement.half_extent_native(), Vec3::splat(32.0));
+    assert_eq!(refinement.minimum_scale(), None);
+
+    refinement.request_through(s4);
+    assert_eq!(refinement.minimum_scale(), Some(s4));
+    assert_eq!(source.half_extent_native(), Vec3::splat(96.0));
+
+    refinement.clear();
+    assert_eq!(refinement.minimum_scale(), None);
 }

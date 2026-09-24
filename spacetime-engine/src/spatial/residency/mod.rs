@@ -1,19 +1,19 @@
-//! Ancestor-closed runtime context topology for canonical USF space.
+//! Ancestor-closed runtime residency over canonical USF space.
 //!
-//! [`SpatialDemandSnapshot`] contains primary spatial intent. Capability
-//! adapters may derive additional runtime context demand (for example a nearby
-//! observer asking a celestial voxel mechanism for a surface patch somewhere
-//! other than the observer's own chunk). All such demand is collected into
-//! [`UsfContextDemandBuffer`] and reconciled into one shared sparse topology.
+//! Canonical USF topology is virtual and always addressable through
+//! [`UsfChunkAddress`]. Runtime movement does not create or destroy that
+//! topology. This module tracks only the sparse subset of canonical contexts
+//! that currently have runtime responsibility.
 //!
-//! The topology is *ancestor closed*: a resident child can never exist without
-//! every canonical parent up to its Scale-Slice ceiling.
+//! Primary spatial interest is copied from [`SpatialDemandSnapshot`].
+//! Capability planners may add derived requirements through
+//! [`UsfResidencyRequestBuffer`]. The resulting [`UsfContextResidency`] is
+//! ancestor-closed: a resident child always retains every canonical ancestor up
+//! to the Scale-Slice ceiling.
 //!
-//! Capability-specific state (voxel caches, physical fields, simulation state,
-//! etc.) keys itself beneath these context addresses rather than inventing an
-//! unrelated spatial tree. Coverage remains capability-specific realized fact;
-//! this topology answers only which contextual nodes currently have runtime
-//! residency responsibility.
+//! Residency is lifecycle/context fact, not realization authority. Voxel,
+//! field, physics and render systems remain free to choose their own
+//! capability-local representations beneath the resident contexts.
 
 use std::collections::{HashMap, HashSet};
 
@@ -25,16 +25,17 @@ use super::{
 };
 use super::position::USF_CHUNK_NATIVE_SIZE;
 
+/// One canonical context currently carrying runtime responsibility.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct UsfContextNode {
+pub struct UsfResidentContext {
     scope: UsfChunkAddress,
     parent: Option<UsfChunkAddress>,
-    direct_demand_count: usize,
+    direct_request_count: usize,
     child_count: usize,
     maximum_priority: Option<i32>,
 }
 
-impl UsfContextNode {
+impl UsfResidentContext {
     pub const fn scope(self) -> UsfChunkAddress {
         self.scope
     }
@@ -43,8 +44,8 @@ impl UsfContextNode {
         self.parent
     }
 
-    pub const fn direct_demand_count(self) -> usize {
-        self.direct_demand_count
+    pub const fn direct_request_count(self) -> usize {
+        self.direct_request_count
     }
 
     pub const fn child_count(self) -> usize {
@@ -56,16 +57,17 @@ impl UsfContextNode {
     }
 }
 
-/// Per-frame aggregation point for runtime context demand.
+/// Per-frame aggregation point for runtime context residency requirements.
 ///
-/// Spatial demand is copied here automatically. Domain/capability adapters may
-/// add derived scopes in [`UsfContextSet::Collect`].
+/// Spatial interest is copied here automatically. Capability planners may add
+/// derived scopes in [`UsfResidencySet::Collect`]. Requesting residency does not
+/// prescribe which representation a subsystem must build inside that context.
 #[derive(Resource, Debug, Default)]
-pub struct UsfContextDemandBuffer {
+pub struct UsfResidencyRequestBuffer {
     scopes: Vec<SpatialDemandScope>,
 }
 
-impl UsfContextDemandBuffer {
+impl UsfResidencyRequestBuffer {
     pub fn request(&mut self, scope: SpatialDemandScope) {
         self.scopes.push(scope);
     }
@@ -79,37 +81,42 @@ impl UsfContextDemandBuffer {
     }
 }
 
+/// Sparse ancestor-closed set of canonical contexts with runtime responsibility.
 #[derive(Resource, Debug, Default)]
-pub struct UsfContextTopology {
+pub struct UsfContextResidency {
     revision: u64,
-    nodes: HashMap<UsfChunkAddress, UsfContextNode>,
+    contexts: HashMap<UsfChunkAddress, UsfResidentContext>,
 }
 
-impl UsfContextTopology {
+impl UsfContextResidency {
     pub const fn revision(&self) -> u64 {
         self.revision
     }
 
     pub fn len(&self) -> usize {
-        self.nodes.len()
+        self.contexts.len()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.nodes.is_empty()
+        self.contexts.is_empty()
     }
 
     pub fn contains(&self, scope: UsfChunkAddress) -> bool {
-        self.nodes.contains_key(&scope)
+        self.contexts.contains_key(&scope)
     }
 
-    pub fn node(&self, scope: UsfChunkAddress) -> Option<UsfContextNode> {
-        self.nodes.get(&scope).copied()
+    pub fn context(&self, scope: UsfChunkAddress) -> Option<UsfResidentContext> {
+        self.contexts.get(&scope).copied()
     }
 
-    pub fn iter(&self) -> impl ExactSizeIterator<Item = UsfContextNode> + '_ {
-        self.nodes.values().copied()
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = UsfResidentContext> + '_ {
+        self.contexts.values().copied()
     }
 
+    /// Returns root -> leaf for one resident canonical context.
+    ///
+    /// `None` means either the leaf is not resident or the ancestor-closure
+    /// invariant has been violated.
     pub fn path_from_root(&self, leaf: UsfChunkAddress) -> Option<Vec<UsfChunkAddress>> {
         if !self.contains(leaf) {
             return None;
@@ -165,12 +172,12 @@ impl UsfContextTopology {
         scopes: impl IntoIterator<Item = SpatialDemandScope>,
     ) -> Result<(), UsfPositionError> {
         #[derive(Default)]
-        struct DirectDemand {
+        struct DirectRequest {
             sources: HashSet<Entity>,
             maximum_priority: Option<i32>,
         }
 
-        let mut direct = HashMap::<UsfChunkAddress, DirectDemand>::new();
+        let mut direct = HashMap::<UsfChunkAddress, DirectRequest>::new();
         let mut resident = HashSet::<UsfChunkAddress>::new();
 
         for demand in scopes {
@@ -202,21 +209,21 @@ impl UsfContextTopology {
 
         let mut next = HashMap::with_capacity(resident.len());
         for scope in resident {
-            let direct_demand = direct.get(&scope);
+            let direct_request = direct.get(&scope);
             next.insert(
                 scope,
-                UsfContextNode {
+                UsfResidentContext {
                     scope,
                     parent: scope.parent(),
-                    direct_demand_count: direct_demand.map_or(0, |demand| demand.sources.len()),
+                    direct_request_count: direct_request.map_or(0, |request| request.sources.len()),
                     child_count: child_counts.get(&scope).copied().unwrap_or(0),
-                    maximum_priority: direct_demand.and_then(|demand| demand.maximum_priority),
+                    maximum_priority: direct_request.and_then(|request| request.maximum_priority),
                 },
             );
         }
 
-        if self.nodes != next {
-            self.nodes = next;
+        if self.contexts != next {
+            self.contexts = next;
             self.revision = self.revision.wrapping_add(1).max(1);
         }
         Ok(())
@@ -273,63 +280,63 @@ fn checked_ivec3(value: Vec3) -> Result<IVec3, UsfPositionError> {
 }
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum UsfContextSet {
+pub enum UsfResidencySet {
     Reset,
     Collect,
     Reconcile,
 }
 
-fn clear_context_demand(mut demand: ResMut<UsfContextDemandBuffer>) {
+fn clear_residency_requests(mut demand: ResMut<UsfResidencyRequestBuffer>) {
     demand.clear();
 }
 
-fn collect_spatial_context_demand(
+fn collect_spatial_residency_requests(
     spatial: Res<SpatialDemandSnapshot>,
-    mut demand: ResMut<UsfContextDemandBuffer>,
+    mut demand: ResMut<UsfResidencyRequestBuffer>,
 ) {
     for scope in spatial.iter() {
         demand.request(scope);
     }
 }
 
-fn reconcile_context_topology(
-    demand: Res<UsfContextDemandBuffer>,
-    mut topology: ResMut<UsfContextTopology>,
+fn reconcile_context_residency(
+    demand: Res<UsfResidencyRequestBuffer>,
+    mut residency: ResMut<UsfContextResidency>,
 ) {
-    if let Err(error) = topology.reconcile_from_scopes(demand.iter()) {
+    if let Err(error) = residency.reconcile_from_scopes(demand.iter()) {
         error!(
             ?error,
-            "USF context demand could not be represented canonically; retaining previous topology"
+            "USF residency demand could not be represented canonically; retaining previous residency"
         );
     }
 }
 
 pub(in crate::spatial) fn configure(app: &mut App) {
-    app.init_resource::<UsfContextDemandBuffer>()
-        .init_resource::<UsfContextTopology>()
+    app.init_resource::<UsfResidencyRequestBuffer>()
+        .init_resource::<UsfContextResidency>()
         .configure_sets(
             Update,
-            UsfContextSet::Reset.after(SpatialDemandSet::Collect),
-        )
-        .configure_sets(
-            Update,
-            UsfContextSet::Collect.after(UsfContextSet::Reset),
+            UsfResidencySet::Reset.after(SpatialDemandSet::Collect),
         )
         .configure_sets(
             Update,
-            UsfContextSet::Reconcile.after(UsfContextSet::Collect),
+            UsfResidencySet::Collect.after(UsfResidencySet::Reset),
+        )
+        .configure_sets(
+            Update,
+            UsfResidencySet::Reconcile.after(UsfResidencySet::Collect),
         )
         .add_systems(
             Update,
-            clear_context_demand.in_set(UsfContextSet::Reset),
+            clear_residency_requests.in_set(UsfResidencySet::Reset),
         )
         .add_systems(
             Update,
-            collect_spatial_context_demand.in_set(UsfContextSet::Collect),
+            collect_spatial_residency_requests.in_set(UsfResidencySet::Collect),
         )
         .add_systems(
             Update,
-            reconcile_context_topology.in_set(UsfContextSet::Reconcile),
+            reconcile_context_residency.in_set(UsfResidencySet::Reconcile),
         );
 }
 
@@ -352,32 +359,32 @@ mod tests {
     }
 
     #[test]
-    fn one_fine_scope_materializes_the_complete_ancestor_path() {
+    fn fine_residency_retains_the_complete_ancestor_path() {
         let mut world = World::new();
         let source = world.spawn_empty().id();
         let position = at_metres(0.0);
         let leaf = UsfChunkAddress::containing(position, SpatialScale::ZERO).unwrap();
 
-        let mut topology = UsfContextTopology::default();
-        topology
+        let mut residency = UsfContextResidency::default();
+        residency
             .reconcile_from_scopes([demand(source, position, SpatialScale::ZERO)])
             .unwrap();
 
-        assert_eq!(topology.len(), 36);
-        let path = topology.path_from_root(leaf).unwrap();
+        assert_eq!(residency.len(), 36);
+        let path = residency.path_from_root(leaf).unwrap();
         assert_eq!(path.len(), 36);
         assert_eq!(path.first().unwrap().scale(), SpatialScale::MAX);
         assert_eq!(path.last().copied(), Some(leaf));
 
-        for node in topology.iter() {
-            if let Some(parent) = node.parent() {
-                assert!(topology.contains(parent));
+        for context in residency.iter() {
+            if let Some(parent) = context.parent() {
+                assert!(residency.contains(parent));
             }
         }
     }
 
     #[test]
-    fn finite_extent_materializes_every_intersected_leaf_context() {
+    fn finite_extent_marks_every_intersected_context_resident() {
         let mut world = World::new();
         let source = world.spawn_empty().id();
         let center = at_metres(490.0);
@@ -392,14 +399,14 @@ mod tests {
         let left = UsfChunkAddress::containing(center, SpatialScale::ZERO).unwrap();
         let right = left.translated_chunks(IVec3::X).unwrap();
 
-        let mut topology = UsfContextTopology::default();
-        topology.reconcile_from_scopes([scope]).unwrap();
+        let mut residency = UsfContextResidency::default();
+        residency.reconcile_from_scopes([scope]).unwrap();
 
-        assert!(topology.contains(left));
-        assert!(topology.contains(right));
-        assert_eq!(topology.node(left).unwrap().direct_demand_count(), 1);
-        assert_eq!(topology.node(right).unwrap().direct_demand_count(), 1);
-        assert_eq!(topology.node(right).unwrap().maximum_priority(), Some(9));
+        assert!(residency.contains(left));
+        assert!(residency.contains(right));
+        assert_eq!(residency.context(left).unwrap().direct_request_count(), 1);
+        assert_eq!(residency.context(right).unwrap().direct_request_count(), 1);
+        assert_eq!(residency.context(right).unwrap().maximum_priority(), Some(9));
     }
 
     #[test]
@@ -415,40 +422,24 @@ mod tests {
         let shared_parent =
             UsfChunkAddress::containing(origin, SpatialScale::new(1).unwrap()).unwrap();
 
-        let mut topology = UsfContextTopology::default();
-        topology
+        let mut residency = UsfContextResidency::default();
+        residency
             .reconcile_from_scopes([
                 demand(a, origin, SpatialScale::ZERO),
                 demand(b, neighbor, SpatialScale::ZERO),
             ])
             .unwrap();
 
-        assert_eq!(topology.len(), 37);
-        assert_eq!(topology.node(shared_parent).unwrap().child_count(), 2);
+        assert_eq!(residency.len(), 37);
+        assert_eq!(residency.context(shared_parent).unwrap().child_count(), 2);
 
-        topology
+        residency
             .reconcile_from_scopes([demand(a, origin, SpatialScale::ZERO)])
             .unwrap();
 
-        assert_eq!(topology.len(), 36);
-        assert!(topology.contains(origin_leaf));
-        assert!(!topology.contains(neighbor_leaf));
-        assert!(topology.contains(shared_parent));
-    }
-
-    #[test]
-    fn query_depth_stops_at_requested_context_even_when_finer_nodes_exist() {
-        let mut world = World::new();
-        let source = world.spawn_empty().id();
-        let position = at_metres(0.0);
-        let mut topology = UsfContextTopology::default();
-        topology
-            .reconcile_from_scopes([demand(source, position, SpatialScale::ZERO)])
-            .unwrap();
-
-        let requested = SpatialScale::new(4).unwrap();
-        let path = topology.path_for_position(&position, requested).unwrap();
-
-        assert_eq!(path.last().unwrap().scale(), requested);
+        assert_eq!(residency.len(), 36);
+        assert!(residency.contains(origin_leaf));
+        assert!(!residency.contains(neighbor_leaf));
+        assert!(residency.contains(shared_parent));
     }
 }

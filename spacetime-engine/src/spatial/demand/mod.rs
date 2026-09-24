@@ -1,15 +1,20 @@
-//! Hierarchical multi-scale spatial demand.
+//! Generic bounded spatial interest.
 //!
-//! One source produces a sparse vertical spine of realization demand from
-//! the source manifestation's own Scale Slice. Presentation/view scale is not
-//! realization authority.
+//! A [`SpatialDemandSource`] answers only: "what canonical region around this
+//! manifestation currently matters, and with what priority?" It does not choose
+//! representation scales, generate a multi-scale realization plan, or imply that
+//! any particular subsystem must materialize data.
+//!
+//! Capability planners consume the resulting [`SpatialDemandSnapshot`] and make
+//! their own realization decisions. [`SpatialRefinementDemand`] is a separate
+//! detail requirement consumed by those planners; it deliberately does not
+//! manufacture extra generic demand scopes.
 
 use bevy::prelude::*;
 
-use super::{
-    SPATIAL_SCALE_MAX, SpatialScale, UsfPosition, UsfScaleLayer, UsfSpatialFrame,
-};
+use super::{SpatialScale, UsfPosition, UsfScaleLayer, UsfSpatialFrame};
 
+/// One bounded source of generic spatial interest.
 #[derive(Component, Debug, Clone, Copy, PartialEq)]
 pub struct SpatialDemandSource {
     half_extent_native: Vec3,
@@ -33,9 +38,11 @@ impl SpatialDemandSource {
     pub const fn half_extent_native(&self) -> Vec3 {
         self.half_extent_native
     }
+
     pub const fn priority(&self) -> i32 {
         self.priority
     }
+
     pub const fn enabled(&self) -> bool {
         self.enabled
     }
@@ -55,11 +62,12 @@ impl SpatialDemandSource {
     }
 }
 
-/// Optional bounded refinement spine beneath a spatial demand source.
+/// Requested finest spatial detail for capability-specific realization.
 ///
-/// The source's ordinary extent continues to propagate to coarser Scale Slices.
-/// Finer slices instead receive this bounded scale-local aperture, preventing a
-/// coarse physical window from exploding into an enormous fine realization.
+/// This is *not* another generic interest volume. A planner may request
+/// realization through `minimum_scale`, but each capability remains responsible
+/// for deciding what structures or intermediate Scale Slices satisfy that
+/// requirement.
 #[derive(Component, Debug, Clone, Copy, PartialEq)]
 pub struct SpatialRefinementDemand {
     minimum_scale: Option<SpatialScale>,
@@ -95,6 +103,10 @@ impl SpatialRefinementDemand {
     }
 }
 
+/// One canonical bounded interest scope expressed in one runtime Scale Slice.
+///
+/// The scale records the source's current numerical/interaction chart. It does
+/// not imply that all coarser/finer representations should exist.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SpatialDemandScope {
     source: Entity,
@@ -140,15 +152,19 @@ impl SpatialDemandScope {
     pub const fn source(self) -> Entity {
         self.source
     }
+
     pub const fn scale(self) -> SpatialScale {
         self.scale
     }
+
     pub const fn center(self) -> UsfPosition {
         self.center
     }
+
     pub const fn half_extent_native(self) -> Vec3 {
         self.half_extent_native
     }
+
     pub const fn priority(self) -> i32 {
         self.priority
     }
@@ -167,6 +183,7 @@ impl SpatialDemandSnapshot {
     pub fn len(&self) -> usize {
         self.scopes.len()
     }
+
     pub fn is_empty(&self) -> bool {
         self.scopes.is_empty()
     }

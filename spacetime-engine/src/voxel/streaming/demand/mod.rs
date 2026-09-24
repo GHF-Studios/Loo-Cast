@@ -7,7 +7,7 @@ use bevy::prelude::*;
 use crate::{
     config::EngineConfig,
     spatial::{
-        SpatialDemandScope, SpatialScale, UsfChunkAddress, UsfContextTopology, UsfPositionError,
+        SpatialDemandScope, SpatialScale, UsfChunkAddress, UsfContextResidency, UsfPositionError,
         UsfScaleLayer,
     },
 };
@@ -42,7 +42,7 @@ pub(super) struct VoxelDemandPlanKey {
 /// does not spawn asynchronous generation work.
 pub(in crate::voxel) fn refresh_voxel_residency(
     config: Res<EngineConfig>,
-    topology: Res<UsfContextTopology>,
+    residency: Res<UsfContextResidency>,
     realization_demand: Res<VoxelRealizationDemandSnapshot>,
     mut worlds: Query<(
         Entity,
@@ -68,7 +68,7 @@ pub(in crate::voxel) fn refresh_voxel_residency(
                 &voxel_demands,
                 &mut streaming,
                 pinned_shell,
-                &topology,
+                &residency,
                 layer.scale(),
             ) {
                 Ok(changed) => changed,
@@ -83,7 +83,7 @@ pub(in crate::voxel) fn refresh_voxel_residency(
                     streaming.cached_desired_set.clear();
                     streaming.pending_desired.clear();
                     streaming.demand_key.clear();
-                    streaming.context_revision = topology.revision();
+                    streaming.residency_revision = residency.revision();
                     reconcile_materialization_residency(&mut world, &mut streaming, warm_limit);
                     continue;
                 }
@@ -132,7 +132,7 @@ fn reconcile_materialization_residency(
 #[derive(Debug)]
 enum VoxelDemandPlanError {
     Position(UsfPositionError),
-    MissingContext(UsfChunkAddress),
+    MissingResidentContext(UsfChunkAddress),
 }
 
 impl From<UsfPositionError> for VoxelDemandPlanError {
@@ -145,7 +145,7 @@ impl std::fmt::Display for VoxelDemandPlanError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Position(error) => write!(formatter, "canonical position error: {error:?}"),
-            Self::MissingContext(context) => write!(formatter, "missing USF context: {context:?}"),
+            Self::MissingResidentContext(context) => write!(formatter, "missing resident USF context: {context:?}"),
         }
     }
 }
@@ -155,16 +155,16 @@ fn refresh_demand_plan(
     demands: &[SpatialDemandScope],
     streaming: &mut VoxelStreaming,
     pinned_shell: Option<(Entity, f32)>,
-    topology: &UsfContextTopology,
+    residency: &UsfContextResidency,
     context_scale: SpatialScale,
 ) -> Result<bool, VoxelDemandPlanError> {
     let key = demand_plan_key(world, demands)?;
-    if key == streaming.demand_key && streaming.context_revision == topology.revision() {
+    if key == streaming.demand_key && streaming.residency_revision == residency.revision() {
         return Ok(false);
     }
 
     let desired = demanded_chunk_addresses(world, demands, pinned_shell)?;
-    validate_context_residency(&desired, topology, context_scale)?;
+    validate_context_residency(&desired, residency, context_scale)?;
     streaming.cached_desired_set.clear();
     streaming
         .cached_desired_set
@@ -175,20 +175,20 @@ fn refresh_demand_plan(
         .filter(|chunk| !world.materializations().is_active(chunk.address))
         .collect();
     streaming.demand_key = key;
-    streaming.context_revision = topology.revision();
+    streaming.residency_revision = residency.revision();
     Ok(true)
 }
 
 fn validate_context_residency(
     desired: &[DemandedChunk],
-    topology: &UsfContextTopology,
+    residency: &UsfContextResidency,
     context_scale: SpatialScale,
 ) -> Result<(), VoxelDemandPlanError> {
     for demanded in desired {
         let center = demanded.address.center()?;
         let context = UsfChunkAddress::containing(center, context_scale)?;
-        if !topology.contains(context) {
-            return Err(VoxelDemandPlanError::MissingContext(context));
+        if !residency.contains(context) {
+            return Err(VoxelDemandPlanError::MissingResidentContext(context));
         }
     }
     Ok(())

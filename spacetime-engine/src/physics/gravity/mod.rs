@@ -1,34 +1,27 @@
-//! Canonical USF gravity fields.
+//! Canonical USF gravity.
 //!
 //! Gravity sources are semantic physical facts. Consumers query the field at a
 //! canonical [`crate::spatial::UsfPosition`] and receive SI acceleration;
 //! navigation, cameras, locomotion regimes and runtime Scale Slices do not own
 //! gravity.
 //!
-//! Runtime evaluation is attached to the shared ancestor-closed
-//! [`crate::spatial::UsfContextTopology`]. The current backend is exact but
-//! hierarchical: child caches inherit sources inside their context and carry
-//! the remainder as parent residuals. That gives us a real cross-scale field
-//! stack now while leaving room to replace exact residual source lists with
-//! bounded-error multipoles/grids later.
+//! The current evaluator is deliberately exact and direct. The typed query
+//! boundary is retained; speculative generic cache/multipole machinery is not.
+//! A hierarchical representation can be added behind the same query once real
+//! source count, accuracy and performance requirements define that contract.
 
-mod cache;
 mod query;
 mod source;
 
-pub use query::{GravityFieldQuery, GravitySample, GravitySampleQuality};
+pub use query::{GravityFieldQuery, GravitySample};
 pub use source::RadialGravitySource;
 
 use bevy::{app::RunFixedMainLoop, prelude::*};
 
 use crate::spatial::{UsfScaleLayer, UsfSpatialFrame};
 
-use cache::{GravityFieldCache, prepare_gravity_field_cache};
-
-/// Stable gravity-field runtime extension points.
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum GravitySet {
-    PrepareCache,
     Sample,
 }
 
@@ -46,7 +39,7 @@ fn sample_gravity_receivers(
             continue;
         };
 
-        *sample = gravity.sample(&position, layer.scale());
+        *sample = gravity.sample(&position);
     }
 }
 
@@ -54,15 +47,7 @@ pub struct GravityPlugin;
 
 impl Plugin for GravityPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<GravityFieldCache>()
-            .configure_sets(
-                RunFixedMainLoop,
-                (GravitySet::PrepareCache, GravitySet::Sample).chain(),
-            )
-            .add_systems(
-                RunFixedMainLoop,
-                prepare_gravity_field_cache.in_set(GravitySet::PrepareCache),
-            )
+        app.configure_sets(RunFixedMainLoop, GravitySet::Sample)
             .add_systems(
                 RunFixedMainLoop,
                 sample_gravity_receivers.in_set(GravitySet::Sample),

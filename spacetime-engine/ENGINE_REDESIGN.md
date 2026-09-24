@@ -381,3 +381,127 @@ If conversation context is lost, resume here:
 The governing question for the entire effort is:
 
 > **What current pressure earns this abstraction's existence, and is the owning subsystem modeling reality once?**
+
+## 2026-09-23 USF intent audit checkpoint
+
+This checkpoint was added after USF experiments 38–41 exposed a pattern of
+bugs caused by incorrect ownership/intent rather than low-level implementation.
+
+### Active execution spine — preserved verbatim
+
+```text
+NOW
+│
+├─ finish stabilizing tranche 3
+│
+├─ INTENT AUDIT of spatial/context/demand/coverage/field/voxel/locomotion
+│    ├─ What reality/concept is represented?
+│    ├─ Who owns truth?
+│    ├─ What is merely derived/cache?
+│    ├─ What invariants actually matter?
+│    ├─ Which current concepts are implementation accidents?
+│    └─ KEEP / REDEFINE / MERGE / DELETE
+│
+├─ correct the worst conceptual mistakes
+│
+├─ character/contact-state + hull-authority cleanup
+│
+└─ then advanced field representation / approximation
+```
+
+The ordering remains active. Tranche 3 is stabilized; this audit checkpoint is
+the durable output of the second item. The next implementation batch corrects
+the worst spatial/demand/field mistakes. Character/contact/hull ownership stays
+next after that, followed by real field representation work.
+
+### Audit rule
+
+For this workstream the decision order is:
+
+```text
+intent -> authority/invariants -> architecture -> implementation -> optimization
+```
+
+Existing code is not evidence that an abstraction deserves to survive.
+
+### Target-domain classification
+
+| Concept | Classification | Current pressure / intent |
+| --- | --- | --- |
+| `SpatialScale`, `UsfPosition`, `UsfChunkAddress` | **KEEP** | Canonical semantic scale/address/position spine. Virtual identity is independent from allocation. |
+| `UsfScaleLayer` / Scale Slice runtime partition | **KEEP** | Numerical chart identity. It is not semantic entity identity or LOD. |
+| `SpatialDemandSource` | **REDEFINE** | One bounded source of generic spatial **interest**. It must not automatically choose a vertical stack of realization scales. |
+| `SpatialDemandSnapshot` | **REDEFINE** | Snapshot of canonical interest scopes, not a realization plan. Capability planners consume it. |
+| `SpatialRefinementDemand` | **REDEFINE** | Requested finest detail/fidelity for capability planners. It must not manufacture generic demand scopes. Naming can be revisited after more consumers exist. |
+| `UsfContextTopology` experiment | **REDEFINE / RENAME** | Canonical topology always exists virtually. Runtime demand changes an ancestor-closed **resident context set**, not topology itself. |
+| `UsfScaleCoverageSnapshot` | **KEEP** | Realized fact is correctly distinct from demand. Authority + scale + role coverage has multiple current consumers (handoff and physical-surface readiness). |
+| generic `spatial::field` source/cache framework from experiment 41 | **DELETE** | One real field consumer does not justify a source-at-one-position generic framework. It incorrectly assumes all future fields decompose like radial point/body sources. |
+| `GravityFieldQuery` semantic boundary | **KEEP / SIMPLIFY** | Consumers should ask gravity for physical acceleration. Current backend can evaluate authored sources exactly; representation stays private. |
+| hierarchical exact gravity source partition | **DELETE FOR NOW** | It adds representation machinery without changing answers or satisfying a measured performance/error requirement. Reintroduce hierarchy only with an explicit approximation/error contract. |
+| `VoxelRealizationDemandSnapshot` | **KEEP / REDEFINE INPUTS** | Correct subsystem-local realization plan. It should consume generic interest + voxel/detail policy instead of pretending generic demand already chose every Scale Slice. |
+| `VoxelMaterializationChunkAddress` / store | **KEEP** | Capability-local sparse 10-native-unit cache identity is correctly distinct from USF Chunk identity. |
+| `VoxelScaleDomain` | **REDESIGN LATER** | It currently mixes mechanism support masks with activation/patch realization heuristics. Real pressure exists, but these policy dimensions should not become semantic body identity. |
+| `PrimaryBodyContext` | **KEEP NARROW** | Navigation-relative hard-body identity/geometry only. It must not become gravity or physical-surface authority. |
+| `SurfaceContext` | **REDESIGN NEXT** | It currently uses navigation's selected body as physical-surface selection and calls a radial vector `up`. Surface relation must be independently physical and distinguish radial/outward, surface normal, contact normal, and gravity-up. |
+| `DetailedInteractionScale` | **REDESIGN / SPLIT NEXT** | It currently stands in for authored hull scale, solver eligibility and procedural-surface sampling scale. Those are separate policies. |
+| `ControlledSubjectHull` + `SpatialSplitBox` + stance dimensions | **MERGE NEXT** | They duplicate physical box truth. One engine-level physical hull description should feed collision realization, topology partitioning and support-radius queries. |
+| `CharacterGroundState` | **REDESIGN NEXT** | `grounded` + optional entity + normal can contradict. Contact should be one coherent optional value; transitions derive from state changes. |
+| `CharacterLocomotionFrame` + explicit gravity-alignment policy | **KEEP** | Correctly separates locomotion reference frame from gravity itself and from temporary topology/control orientation. |
+| `LocomotionRegime` vs numerical `MotionKernel` | **KEEP CONCEPTS / REDESIGN RESOLUTION** | Semantic/control mode and numerical solver are legitimately distinct, but current resolver maps them too directly and also owns collision representation choices. |
+| `CollisionPolicy` inside locomotion | **REDESIGN LATER** | Collision realization is physical representation policy and should ultimately be negotiated from subject/environment/coverage, not merely locomotion mode. |
+
+### Concrete design bugs identified
+
+1. **Generic interest became a realization plan.** `collect_spatial_demand`
+   automatically emitted a coarser vertical spine and a finer refinement spine.
+   That made a generic "I care about this region" component decide which
+   representations/scales should exist.
+
+2. **Approach refinement output did not actually govern celestial voxel detail.**
+   `plan_approach_refinement` computes `realization_target_scale` and updates
+   `SpatialRefinementDemand`, but celestial voxel realization selected the finest
+   generic demand scope and then requested surface patches from every supported
+   voxel world scale. The planner's central output was therefore effectively
+   bypassed.
+
+3. **Runtime residency was called topology.** Walking changes which canonical
+   contexts are resident; it does not change the canonical parent/child topology
+   of USF space.
+
+4. **Experiment 41 generalized one field too soon.** A generic field source was
+   required to have one `field_position()`, which already excludes extended,
+   distributed, analytic and context-produced fields. The typed gravity query is
+   the valuable boundary; the generic representation is not yet earned.
+
+5. **Physical hull has several truths.** `Collider`, `ControlledSubjectHull`,
+   `SpatialSplitBox` and character stance dimensions independently describe the
+   same body geometry. This is the next ownership cleanup after the spatial
+   correction batch.
+
+6. **Surface relation is selected through navigation.** `SurfaceContext`
+   currently accepts `PrimaryBodyContext` as the surface body. Navigation's
+   useful reference body and the physically relevant support surface are
+   correlated today, not identical by definition.
+
+### Immediate correction batch
+
+The first implementation batch after this audit is deliberately bounded:
+
+1. Rename runtime context topology to ancestor-closed **context residency**.
+2. Restore generic spatial demand to one bounded interest scope per source.
+3. Keep refinement/detail demand separate and make voxel realization actually
+   obey its requested finest scale.
+4. Remove the speculative generic field framework and exact hierarchical gravity
+   source partition.
+5. Keep the typed gravity query and exact multi-source vector summation.
+6. Keep realized coverage as independent fact.
+7. Do not change character movement math in this batch.
+
+After compile/runtime validation, resume the preserved execution spine at:
+
+```text
+character/contact-state + hull-authority cleanup
+```
+
+That next batch should also remove `SurfaceContext`'s dependency on navigation
+body selection and split radial/outward direction from gravity/contact normals.
