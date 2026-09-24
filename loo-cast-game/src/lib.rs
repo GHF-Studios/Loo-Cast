@@ -17,7 +17,7 @@ pub fn title() -> &'static str {
 /// surface consumed by Vapor's generated static composition.
 pub fn install(app: &mut spacetime_engine::EngineApp) {
     app.add_plugins((
-        spacetime_engine::game::TestGamePlugin,
-        spacetime_engine::game::TestGameDeveloperToolsPlugin,
+        spacetime_engine::game::LooCastPlugin,
+        spacetime_engine::game::LooCastDeveloperToolsPlugin,
     ));
 }

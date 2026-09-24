@@ -221,6 +221,9 @@ pub(in crate::voxel) fn schedule_voxel_generation(
 }
 
 /// Applies edits appended after a generation task took its immutable snapshot.
+///
+/// This direct no-authority path exists only to regression-test edit replay.
+#[cfg(test)]
 pub(super) fn catch_up_generated_chunk(
     world: &VoxelWorld,
     address: VoxelMaterializationChunkAddress,

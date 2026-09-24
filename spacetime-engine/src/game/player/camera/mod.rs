@@ -139,7 +139,7 @@ impl Default for ThirdPersonCamera {
 #[reflect(Component)]
 pub struct ViewCameraProfile {
     pub preferred_mode: CameraMode,
-    pub orientation_policy: ViewOrientationPolicy,
+    orientation_policy: ViewOrientationPolicy,
     pub standing_eye_offset_metres: Vec3,
     pub crouched_eye_offset_metres: Vec3,
     pub third_person: ThirdPersonCamera,
