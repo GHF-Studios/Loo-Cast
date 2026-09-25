@@ -1,6 +1,9 @@
 # USF World Generation Scale Atlas (+35 → 0)
 
-**Status:** design baseline for the first top-down world-generation implementation
+**Status:** historical proposal, not a description of the live world. The builtin
+rules produce descriptive snapshots and do not construct terrain or ecosystems.
+The game now uses an explicit celestial fixture; numerical scale membership is
+not evidence that a domain or physical process has been implemented.
 **Purpose:** define enough semantic meaning across all 36 non-negative spatial scales that Scale 0 can be generated as a consequence of higher-scale state instead of as an independent terrain generator.
 
 This document is intentionally broader than `USF_SPATIAL_WORLD_ROADMAP.md`. The spatial roadmap defines the addressing/realization skeleton. This atlas defines the **domain meaning carried through that skeleton**.

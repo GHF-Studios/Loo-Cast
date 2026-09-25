@@ -1,9 +1,13 @@
-//! Sparse, demand-driven semantic world generation across USF spatial scales.
+//! Experimental sparse rule evaluation across USF spatial scopes.
 //!
-//! `worldgen` owns semantic refinement, not runtime realization. It evaluates
+//! The current builtin catalogue produces descriptive snapshots; it does not
+//! construct celestial identities, voxel terrain, ecology, or material state.
+//! Loo Cast's authored celestial fixture does not install or consume it.
+//!
+//! This module evaluates
 //! typed [`PhenomenonRule`]s only for requested branches of the canonical USF
-//! hierarchy. Rendering, voxel caches, and other manifestations consume this
-//! semantic output but are not authoritative world-generation state.
+//! hierarchy. A future construction adapter must explicitly connect useful
+//! output to semantic objects before these snapshots can describe live reality.
 
 mod builtin;
 mod model;

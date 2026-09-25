@@ -1,4 +1,4 @@
-//! Prepare the locally controlled subject for the procedural root world.
+//! Prepare the locally controlled subject for the authored celestial fixture.
 //!
 //! World bootstrap authors semantic/canonical position. Runtime `Transform` is
 //! always derived from canonical position plus the subject's current Scale Slice.
@@ -24,12 +24,12 @@ use crate::{
     },
 };
 
-use super::ProceduralArrivalSite;
+use super::FixtureArrivalSite;
 
-const PROCEDURAL_SPAWN_GAP_METRES: f32 = 0.75;
+const FIXTURE_SPAWN_GAP_METRES: f32 = 0.75;
 
 pub(super) fn prepare_controlled_subject(
-    arrival_site: Res<ProceduralArrivalSite>,
+    arrival_site: Res<FixtureArrivalSite>,
     frame: Res<UsfSpatialFrame>,
     mut transitions: ResMut<UsfSpatialTransitionQueue>,
     mut semantic_positions: Query<&mut UsfPosition>,
@@ -65,7 +65,7 @@ pub(super) fn prepare_controlled_subject(
     ) = subject.into_inner();
 
     let Some(site) = arrival_site.site() else {
-        error!("procedural bootstrap has no resolved body-surface arrival site");
+        error!("fixture bootstrap has no resolved body-surface arrival site");
         return;
     };
 
@@ -76,14 +76,14 @@ pub(super) fn prepare_controlled_subject(
 
     // Generic oriented-body support radius, in metres.
     let support_metres = hull.projection_radius_metres(aligned, site.up());
-    let clearance_metres = support_metres + PROCEDURAL_SPAWN_GAP_METRES;
+    let clearance_metres = support_metres + FIXTURE_SPAWN_GAP_METRES;
     let clearance_native = site.scale().metres_to_native_f32(clearance_metres);
 
     let Ok(canonical) = site
         .surface()
         .translated_at_scale(site.scale(), site.up() * clearance_native)
     else {
-        error!("procedural bootstrap could not offset its body-surface arrival site");
+        error!("fixture bootstrap could not offset its body-surface arrival site");
         return;
     };
 
@@ -94,7 +94,7 @@ pub(super) fn prepare_controlled_subject(
     ) else {
         error!(
             subject_scale = %layer.scale(),
-            "canonical procedural bootstrap spawn could not project into subject runtime chart"
+            "canonical fixture bootstrap spawn could not project into subject runtime chart"
         );
         return;
     };
@@ -102,7 +102,7 @@ pub(super) fn prepare_controlled_subject(
     let Ok(mut semantic) = semantic_positions.get_mut(manifestation.0) else {
         error!(
             subject = ?manifestation.0,
-            "controlled subject semantic position is unavailable during procedural bootstrap"
+            "controlled subject semantic position is unavailable during fixture bootstrap"
         );
         return;
     };
@@ -120,7 +120,7 @@ pub(super) fn prepare_controlled_subject(
     refinement.request_through(site.scale());
 
     let coverage_radius_metres =
-        hull.half_extents_metres().length() + PROCEDURAL_SPAWN_GAP_METRES;
+        hull.half_extents_metres().length() + FIXTURE_SPAWN_GAP_METRES;
     let coverage_radius_native =
         site.scale().metres_to_native_f32(coverage_radius_metres);
 
@@ -150,7 +150,7 @@ pub(super) fn prepare_controlled_subject(
         bootstrap_scale = %layer.scale(),
         site_scale = %site.scale(),
         support_metres,
-        gap_metres = PROCEDURAL_SPAWN_GAP_METRES,
+        gap_metres = FIXTURE_SPAWN_GAP_METRES,
         runtime = ?runtime_position,
         "prepared coverage-gated canonical body-surface arrival"
     );

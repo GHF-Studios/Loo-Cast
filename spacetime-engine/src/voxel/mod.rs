@@ -24,6 +24,7 @@ mod streaming;
 mod world;
 
 pub use authority::{CelestialVoxelField, VoxelAuthority};
+pub(crate) use mesh::celestial_surface_mesh;
 pub use base::{
     CelestialBodyProfile, ProceduralCelestialBody, ProceduralTerrain, ProceduralVolume, VoxelBase,
 };

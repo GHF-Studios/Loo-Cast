@@ -4,7 +4,7 @@
 //! scale". Physics/render/audio/etc. adapters can share this identity without
 //! teaching every low-level engine about astronomical unit magnitudes.
 
-use bevy::{math::DVec3, prelude::*};
+use bevy::prelude::*;
 
 use super::{SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MIN, SpatialScale};
 
@@ -224,70 +224,6 @@ impl UsfPrimaryInteractionSlice {
         self.requested = None;
     }
 }
-
-/// Runtime origin stack for every scale-local world.
-///
-/// Each scale is an ordinary bounded floating-point chart with its own origin.
-/// Physics, rendering and other local engine subsystems may interpret the same
-/// numeric coordinates in that scale's native units without ever constructing
-/// universe-wide floats.
-///
-/// These origins are projection context, never semantic authority. Rebasing one
-/// scale therefore never shifts another scale's local world.
-#[derive(Resource, Debug, Clone)]
-pub struct UsfScaleLayerFrames {
-    origins: [DVec3; SPATIAL_SCALE_COUNT],
-}
-
-impl Default for UsfScaleLayerFrames {
-    fn default() -> Self {
-        Self {
-            origins: [DVec3::ZERO; SPATIAL_SCALE_COUNT],
-        }
-    }
-}
-
-impl UsfScaleLayerFrames {
-    pub fn origin(&self, scale: SpatialScale) -> DVec3 {
-        self.origins[scale.index_from_top()]
-    }
-
-    pub fn absolute(&self, scale: SpatialScale, runtime: Vec3) -> DVec3 {
-        self.origin(scale) + to_dvec3(runtime)
-    }
-
-    pub fn convert_absolute(&self, absolute: DVec3, from: SpatialScale, to: SpatialScale) -> DVec3 {
-        let factor = 10.0_f64.powi(from.exponent() as i32 - to.exponent() as i32);
-        absolute * factor
-    }
-
-    pub fn runtime_from_absolute(&self, scale: SpatialScale, absolute: DVec3) -> Vec3 {
-        to_vec3(absolute - self.origin(scale))
-    }
-
-    pub(crate) fn set_origin(&mut self, scale: SpatialScale, origin: DVec3) {
-        self.origins[scale.index_from_top()] = origin;
-    }
-
-    pub fn reinterpret_runtime(&self, runtime: Vec3, from: SpatialScale, to: SpatialScale) -> Vec3 {
-        let absolute = self.absolute(from, runtime);
-        let converted = self.convert_absolute(absolute, from, to);
-        self.runtime_from_absolute(to, converted)
-    }
-
-    pub(crate) fn apply_rebase(&mut self, scale: SpatialScale, shift: Vec3) {
-        self.origins[scale.index_from_top()] += to_dvec3(shift);
-    }
-}
-
-fn to_dvec3(value: Vec3) -> DVec3 {
-    DVec3::new(value.x as f64, value.y as f64, value.z as f64)
-}
-
-fn to_vec3(value: DVec3) -> Vec3 {
-    Vec3::new(value.x as f32, value.y as f32, value.z as f32)
-}
-
 
 /// Keeps scale-local ECS entities structurally partitioned beneath the
 /// corresponding one of the 71 Scale Slice roots.

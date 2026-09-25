@@ -87,9 +87,9 @@ fn enter_selection(mut commands: Commands, theme: Res<UiTheme>, mut focus: ResMu
                     );
                     spawn_choice(
                         panel,
-                        GameWorld::Procedural,
-                        "Procedural World",
-                        "The main game-world path: procedural voxels, demand-driven streaming and hierarchical scale refinement.",
+                        GameWorld::CelestialFixture,
+                        "Celestial Fixture",
+                        "Authored Sun, Earth and Moon with procedural surfaces and streamed voxel collision.",
                         &heading,
                         &secondary,
                     );

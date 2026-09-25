@@ -10,7 +10,7 @@ engine software rather than as a collection of prototypes.
 - `config`: typed runtime policy and project configuration.
 - `ecs`: reusable ECS relationships and engine-level ECS infrastructure.
 - `spatial`: canonical USF positions, scales, layers, view frames, and demand.
-- `worldgen`: sparse semantic generation and cross-scale refinement.
+- `worldgen`: experimental sparse rule evaluation; its descriptive catalogue is not live world construction.
 - `voxel`: volumetric semantic state, materialization caches, and manifestations.
 - `physics`: physics integration and topology-independent physics primitives.
 - `geometry`: authored geometry assets and runtime compilation.
@@ -18,6 +18,12 @@ engine software rather than as a collection of prototypes.
 - `game`: Loo Cast gameplay/test adapters built on reusable engine domains.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for dependency and code-shape rules.
+
+The Celestial Fixture is explicit Sun/Earth/Moon content. A body's canonical
+field supplies voxel baselines, the arrival surface, and a finite whole-body
+mesh approximation. The latter does not yet aggregate voxel edits or guarantee
+seamless local refinement. No generated galaxy, ecology, or atmosphere is
+claimed. World membership owns lifetime without inheriting runtime transforms.
 
 ## Runtime configuration
 

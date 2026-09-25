@@ -14,7 +14,7 @@ use crate::ecs::{UsfLogicalProjection, UsfManifestationOf};
 
 use super::{
     SpatialScale, UsfCanonicalMotion, UsfPrimaryInteractionSlice, UsfInteractionProjection, UsfPosition,
-    UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScaleLayerFrames, UsfScaleRoleMask,
+    UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScaleRoleMask,
     UsfSpatialAnchor, UsfSpatialFrame, UsfViewContext, UsfViewRenderAnchor,
 };
 
@@ -249,7 +249,6 @@ pub struct UsfSpatialTransitionApplied {
 pub(super) fn apply_spatial_transitions(
     mut view: Single<&mut UsfViewContext, With<UsfViewRenderAnchor>>,
     mut active: ResMut<UsfPrimaryInteractionSlice>,
-    mut layer_frames: ResMut<UsfScaleLayerFrames>,
     mut frame: ResMut<UsfSpatialFrame>,
     mut queue: ResMut<UsfSpatialTransitionQueue>,
     coverage: Res<UsfScaleCoverageSnapshot>,
@@ -380,17 +379,8 @@ pub(super) fn apply_spatial_transitions(
     *semantic = position;
 
     // Changing the runtime chart must never change semantic precision.
-    // The exact canonical subject position becomes the frame origin. Pass 2
-    // removes the remaining DVec3 projection used only by legacy frame metadata.
+    // The exact canonical subject position becomes the frame origin.
     let chart_origin = *semantic;
-    let Ok(chart_absolute) = semantic.coordinate_at_scale_f64(target_scale) else {
-        error!(
-            subject = ?subject,
-            scale = %target_scale,
-            "USF target runtime chart origin could not be projected for legacy frame metadata"
-        );
-        return;
-    };
 
     let transition_factor =
         10.0_f32.powi(previous_scale.exponent() as i32 - target_scale.exponent() as i32);
@@ -459,7 +449,6 @@ pub(super) fn apply_spatial_transitions(
         }
     }
 
-    layer_frames.set_origin(target_scale, chart_absolute);
     frame.origin = chart_origin;
     frame.last_shift = Vec3::ZERO;
 

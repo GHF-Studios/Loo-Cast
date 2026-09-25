@@ -50,7 +50,7 @@ pub(super) fn configure(app: &mut App) {
             name: "locate",
             aliases: &["find", "landmarks"],
             usage: "locate [name|kind]",
-            summary: "Locate generated structures in scale-local coordinates.",
+            summary: "Locate instantiated fixture bodies in scale-local coordinates.",
         },
         locate_command,
     )

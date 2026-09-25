@@ -1,5 +1,8 @@
 //! Disposable render-mesh and collision-surface extraction from voxel fields.
 
+mod celestial;
+pub(crate) use celestial::celestial_surface_mesh;
+
 use bevy::prelude::{Vec2, Vec3};
 use fast_surface_nets::{SurfaceNetsBuffer, ndshape::ConstShape3u32, surface_nets};
 

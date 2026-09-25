@@ -1,6 +1,6 @@
-//! Procedural-world bootstrap composition.
+//! Authored celestial fixture using shared semantic fields and voxel realization.
 
-mod bootstrap;
+mod definition;
 mod landmarks;
 mod player;
 mod scenery;
@@ -13,7 +13,7 @@ use super::GameWorld;
 
 pub(in crate::game) use landmarks::UniverseLandmarkIndex;
 
-/// One canonical body-surface location selected by procedural bootstrap policy.
+/// One canonical body-surface location selected by authored fixture policy.
 ///
 /// This is bootstrap/navigation data, not terrain identity. The surface is
 /// resolved from the same celestial field that owns voxel terrain; `up` is the
@@ -59,14 +59,14 @@ impl BodySurfaceSite {
     }
 }
 
-/// The procedural fixture's selected arrival location.
+/// The authored fixture's selected arrival location.
 ///
 /// The fixture may choose Earth today and another body tomorrow; controlled
 /// subject bootstrap consumes only this generic contract.
 #[derive(Resource, Debug, Default, Clone, Copy)]
-pub(super) struct ProceduralArrivalSite(Option<BodySurfaceSite>);
+pub(super) struct FixtureArrivalSite(Option<BodySurfaceSite>);
 
-impl ProceduralArrivalSite {
+impl FixtureArrivalSite {
     pub(super) fn set(&mut self, site: BodySurfaceSite) {
         self.0 = Some(site);
     }
@@ -78,18 +78,17 @@ impl ProceduralArrivalSite {
 
 pub(super) fn configure(app: &mut App) {
     app.init_resource::<landmarks::UniverseLandmarkIndex>()
-        .init_resource::<ProceduralArrivalSite>();
+        .init_resource::<FixtureArrivalSite>();
     app.add_systems(
-        OnEnter(GameWorld::Procedural),
+        OnEnter(GameWorld::CelestialFixture),
         (
-            bootstrap::spawn_procedural_world,
-            scenery::spawn_universe_scenery,
+            scenery::spawn_fixture,
             player::prepare_controlled_subject,
         )
             .chain(),
     )
     .add_systems(
         Update,
-        scenery::audit_world_authority.run_if(in_state(GameWorld::Procedural)),
+        scenery::audit_world_authority.run_if(in_state(GameWorld::CelestialFixture)),
     );
 }

@@ -4,10 +4,10 @@ use bevy::prelude::*;
 
 use crate::{
     devtools::{DeveloperSet, DeveloperTools, DrawDepth, WorldDrawBatch, WorldDrawFrame},
-    spatial::{SPATIAL_DEMAND_VISUALIZATION, UsfScaleLayer, UsfScaleLayerFrames},
+    spatial::{SPATIAL_DEMAND_VISUALIZATION, UsfPrimaryInteractionSlice, UsfScaleLayer, UsfSpatialFrame},
 };
 
-use super::{MATERIALIZATION_CHUNK_SIZE, VoxelQueryPosition, VoxelWorld};
+use super::{MATERIALIZATION_CHUNK_SIZE, VoxelWorld};
 
 pub(super) fn configure(app: &mut App) {
     app.add_systems(
@@ -18,7 +18,8 @@ pub(super) fn configure(app: &mut App) {
 
 fn collect_voxel_materialization_world_draw(
     tools: Res<DeveloperTools>,
-    frames: Res<UsfScaleLayerFrames>,
+    spatial_frame: Res<UsfSpatialFrame>,
+    interaction: Res<UsfPrimaryInteractionSlice>,
     worlds: Query<(&VoxelWorld, &UsfScaleLayer)>,
     frame: Res<WorldDrawFrame>,
 ) {
@@ -32,17 +33,18 @@ fn collect_voxel_materialization_world_draw(
     let color = Color::srgba(0.35, 1.0, 0.38, 0.82);
 
     for (world, layer) in &worlds {
-        let world_origin = VoxelQueryPosition::new(*world.origin());
+        // This overlay is drawn in the local physical view, not in all 71
+        // numerical charts superimposed on one another.
+        if layer.scale() != interaction.scale() {
+            continue;
+        }
         for address in world.materializations().active_addresses() {
-            let Ok(relative) = address
-                .query_origin()
-                .relative_to(world_origin, 1_000_000.0)
+            let Ok(translation) = address.origin().relative_at_scale_bounded(
+                spatial_frame.origin(), layer.scale(), 16_384.0,
+            )
             else {
                 continue;
             };
-            let absolute =
-                bevy::math::DVec3::new(relative.x as f64, relative.y as f64, relative.z as f64);
-            let translation = frames.runtime_from_absolute(layer.scale(), absolute);
             draw_wire_box(&mut batch, translation, translation + extent, color);
         }
     }

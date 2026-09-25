@@ -3,7 +3,6 @@
 use super::*;
 
 pub(super) fn rebase_local_frame(
-    mut layer_frames: ResMut<UsfScaleLayerFrames>,
     mut frame: ResMut<UsfSpatialFrame>,
     mut transforms: ParamSet<(
         Query<
@@ -62,7 +61,6 @@ pub(super) fn rebase_local_frame(
         }
     }
 
-    layer_frames.apply_rebase(active_scale, shift);
     rebased.write(UsfOriginRebased { local_shift: shift });
 }
 

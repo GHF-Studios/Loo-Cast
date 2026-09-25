@@ -31,7 +31,7 @@ pub use navigation::{
 };
 pub use layer::{
     UsfPrimaryInteractionSlice, UsfChartMask, UsfInteractionProjection, UsfScaleLayer,
-    UsfScaleLayerFrames, UsfScaleSlice, UsfScaleSliceMemberOf, UsfScaleSliceMembers,
+    UsfScaleSlice, UsfScaleSliceMemberOf, UsfScaleSliceMembers,
     UsfScaleSlices,
 };
 pub use motion::UsfCanonicalMotion;
@@ -128,7 +128,6 @@ impl Plugin for UsfSpatialPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<UsfSpatialFrame>()
             .init_resource::<UsfPrimaryInteractionSlice>()
-            .init_resource::<UsfScaleLayerFrames>()
             .init_resource::<UsfScaleSlices>()
             .init_resource::<UsfScaleCoverageSnapshot>()
             .init_resource::<UsfSpatialTransitionQueue>()

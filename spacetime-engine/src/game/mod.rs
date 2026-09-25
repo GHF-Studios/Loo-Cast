@@ -154,7 +154,6 @@ impl Plugin for LooCastPlugin {
                 combat::CombatPlugin,
                 crate::procedural_assets::ProceduralAssetsPlugin,
                 crate::spatial::UsfSpatialPlugin,
-                crate::worldgen::WorldGenerationPlugin,
                 control::ControlPlugin,
             ))
             .add_plugins((

@@ -178,10 +178,10 @@ fn spawn_reference_spacecraft(
         surface,
     ) = body.into_inner();
 
-    // Procedural bootstrap owns the arrival transaction. Do not steal local
+    // Fixture bootstrap owns the arrival transaction. Do not steal local
     // control or disable its spatial demand until the player's detailed chart
     // and actual local collision realization are ready.
-    if *world.get() == GameWorld::Procedural
+    if *world.get() == GameWorld::CelestialFixture
         && (body_layer.scale() != detailed_body.0 || !surface.collision_ready())
     {
         return;
