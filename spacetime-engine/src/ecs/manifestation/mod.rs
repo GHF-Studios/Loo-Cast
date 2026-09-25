@@ -1,9 +1,9 @@
 //! USF semantic-entity manifestation primitives.
 //!
-//! # Target ownership model
+//! # Ownership graph
 //!
-//! The engine treats semantic identity, topological authority, scale-local
-//! simulation, and presentation as separate dimensions:
+//! Semantic identity, topological authority, scale-local simulation, and
+//! presentation are separate runtime dimensions:
 //!
 //! ```text
 //! UsfEntity
@@ -12,53 +12,42 @@
 //!           -> presentation projection(s)
 //! ```
 //!
-//! [`UsfEntity`] is the single semantic identity for an object. It owns state
-//! whose meaning is independent of topology, scale-local runtime representation,
-//! and viewer count.
+//! [`UsfEntity`] is the single semantic identity for an object.
 //!
-//! An authority partition is a distinct ECS entity representing one authoritative
-//! topological portion of that semantic object. The ordinary unsplit case still
-//! has one partition; the semantic entity itself does not double as that
-//! partition. Partitions are peers: there is no permanent "original" partition.
+//! An entity carrying [`UsfAuthorityPartitionOf`] is one authoritative
+//! topological portion of exactly one semantic entity. Partitions are peers;
+//! there is no permanent "original" partition.
 //!
-//! A logical realization is a distinct ECS entity owned by exactly one authority
-//! partition. It carries one scale/backend-local simulation realization of that
-//! partition. A partition may temporarily have no materialized realization, or
-//! may own several simultaneous realizations when different Scale Slices or
-//! simulation backends are required.
+//! An entity carrying [`UsfLogicalRealizationOf`] is one scale/backend-local
+//! simulation realization of exactly one authority partition. Realizations are
+//! disposable runtime representations: rebuilding one must not change semantic
+//! or partition identity.
 //!
-//! Presentation is downstream of logical realization and never carries semantic
-//! or simulation authority. View/client ownership is intentionally deferred to
-//! the presentation work tracked separately from the generic ownership graph.
+//! An entity carrying [`UsfPresentationProjectionOf`] is presentation-only.
+//! New generic-graph users target a logical realization. Presentation lifetime
+//! and viewer count never manufacture semantic or simulation authority.
 //!
-//! # State ownership invariants
+//! The relationship components themselves identify authority partitions and
+//! logical realizations. Separate marker components would duplicate role state
+//! and could drift out of sync with the ownership relationship.
 //!
-//! - Semantic state belongs on [`UsfEntity`] only when it remains meaningful and
-//!   singular regardless of partition count or realization count.
-//! - Mutable state that may legitimately differ across a topological split
-//!   belongs to the authority partition.
-//! - Scale/backend-specific runtime state belongs to a logical realization and
-//!   must be rebuildable without changing semantic identity.
-//! - View-specific state belongs only to presentation.
-//! - Viewer count may multiply presentation entities, never semantic identities,
-//!   authority partitions, or physical authority.
-//! - Destroying a semantic entity destroys its authority partitions; destroying
-//!   a partition does not destroy the semantic entity or sibling partitions.
-//! - Destroying/rebuilding a logical realization does not destroy its partition.
-//! - Split/merge operations must explicitly reconcile partition-local mutable
-//!   state before retiring partitions.
+//! # Lifetime ownership
+//!
+//! - A semantic entity owns its authority partitions.
+//! - An authority partition owns its logical realizations.
+//! - Destroying a realization does not destroy its partition.
+//! - Destroying a partition does not destroy its semantic entity or siblings.
+//! - Presentation is not linked-spawn-owned by the logical realization.
 //!
 //! # Transitional compatibility
 //!
-//! The types currently defined in this module predate the target hierarchy.
-//! [`UsfManifestationOf`] / [`UsfManifestations`] flatten semantic ownership and
-//! runtime manifestation into one relation. [`UsfManifestationAuthority`] encodes
-//! a legacy single-authoritative-manifestation assumption. [`UsfLogicalProjection`]
-//! is a marker on those flattened manifestations rather than an ownership
-//! relation from a logical realization to an authority partition.
+//! [`UsfManifestationOf`] / [`UsfManifestations`] remain as the existing flat
+//! semantic-to-runtime relation while current systems migrate.
+//! [`UsfManifestationAuthority`] remains the legacy single-authority marker and
+//! [`UsfLogicalProjection`] remains the legacy flattened logical marker.
 //!
-//! These compatibility types remain until the generic graph is implemented.
-//! They must not be treated as the target ontology by new systems.
+//! New systems should use the generic ownership graph instead of extending the
+//! flattened manifestation ontology.
 
 use bevy::prelude::*;
 
@@ -66,50 +55,27 @@ use bevy::prelude::*;
 #[derive(Component, Debug)]
 pub struct UsfEntity;
 
-/// Transitional flat relation from a concrete runtime manifestation to a
+/// Declares this entity to be one authority partition of a semantic
 /// [`UsfEntity`].
 ///
-/// This relation currently collapses the target authority-partition and
-/// logical-realization layers. It remains for compatibility while existing
-/// systems migrate; it is not the target ownership model.
+/// The relationship is the partition's role identity: no separate partition
+/// marker is required.
 #[derive(Component, Debug)]
-#[relationship(relationship_target = UsfManifestations)]
-pub struct UsfManifestationOf(pub Entity);
+#[relationship(relationship_target = UsfAuthorityPartitions)]
+pub struct UsfAuthorityPartitionOf(pub Entity);
 
-/// Legacy marker for the single manifestation currently carrying mutable
-/// spatial authority for systems that have not yet migrated.
+/// Authority partitions currently owned by one semantic [`UsfEntity`].
 ///
-/// This is not an authority-partition component. The target model permits
-/// `1..N` peer authority partitions, with no permanent original and no
-/// requirement that exactly one runtime manifestation own all mutable state.
-#[derive(Component, Debug, Default)]
-pub struct UsfManifestationAuthority;
-
-/// Transitional marker identifying a flattened manifestation as a local
-/// logical/physics projection.
-///
-/// In the target model, a logical realization is its own ECS entity owned by
-/// exactly one authority partition. Several realizations may coexist for one
-/// partition when distinct Scale Slices or simulation backends are required.
-/// Rebuilding a realization must not change semantic or partition identity.
-#[derive(Component, Debug, Default, Clone, Copy)]
-pub struct UsfLogicalProjection;
-
-/// Transitional collection for the flat [`UsfManifestationOf`] relation.
-///
-/// `linked_spawn` currently gives the semantic entity lifetime ownership of
-/// these flattened manifestations. The target graph instead gives the semantic
-/// entity linked ownership of authority partitions, and each partition linked
-/// ownership of its logical realizations.
+/// `linked_spawn` makes semantic lifetime flow downstream into every partition.
 #[derive(Component, Debug)]
 #[relationship_target(
-    relationship = UsfManifestationOf,
+    relationship = UsfAuthorityPartitionOf,
     linked_spawn
 )]
-pub struct UsfManifestations(Vec<Entity>);
+pub struct UsfAuthorityPartitions(Vec<Entity>);
 
-impl UsfManifestations {
-    /// Iterate every currently linked manifestation.
+impl UsfAuthorityPartitions {
+    /// Iterate every currently linked authority partition.
     pub fn iter(&self) -> impl ExactSizeIterator<Item = Entity> + '_ {
         self.0.iter().copied()
     }
@@ -123,24 +89,58 @@ impl UsfManifestations {
     }
 }
 
-/// Declares that this concrete presentation entity presents one current runtime
-/// manifestation.
+/// Declares this entity to be one logical realization of an authority
+/// partition.
 ///
-/// This association is transitional because current manifestations flatten the
-/// partition/realization hierarchy. In the target graph, presentation is
-/// downstream of a logical realization. View/client ownership remains a
-/// separate concern and must never manufacture semantic or simulation authority.
+/// The relationship is the realization's role identity: no separate logical
+/// realization marker is required.
+#[derive(Component, Debug)]
+#[relationship(relationship_target = UsfLogicalRealizations)]
+pub struct UsfLogicalRealizationOf(pub Entity);
+
+/// Logical realizations currently owned by one authority partition.
+///
+/// `linked_spawn` makes partition lifetime flow downstream into every logical
+/// realization without making realization lifetime flow back upstream.
+#[derive(Component, Debug)]
+#[relationship_target(
+    relationship = UsfLogicalRealizationOf,
+    linked_spawn
+)]
+pub struct UsfLogicalRealizations(Vec<Entity>);
+
+impl UsfLogicalRealizations {
+    /// Iterate every currently linked logical realization.
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = Entity> + '_ {
+        self.0.iter().copied()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
+/// Declares that this concrete presentation entity presents one runtime target.
+///
+/// In the generic ownership graph the target is a logical realization. Existing
+/// legacy call sites may temporarily still target a flattened manifestation
+/// while their owning subsystem migrates.
+///
+/// Presentation association is explicit rather than inferred from Bevy
+/// hierarchy, and deliberately does not impose linked-spawn lifetime ownership.
 #[derive(Component, Debug)]
 #[relationship(relationship_target = UsfPresentationProjections)]
 pub struct UsfPresentationProjectionOf(pub Entity);
 
-/// Presentation projections currently associated with one spatial
-/// manifestation.
+/// Presentation projections currently associated with one runtime target.
 ///
-/// This relationship does not use `linked_spawn`: current presentation
-/// entities are already owned by their ordinary Bevy hierarchy, while the USF
-/// relation records semantic association rather than imposing storage/lifetime
-/// policy.
+/// Presentation is downstream and non-authoritative. This relationship does not
+/// use `linked_spawn`: presentation lifetime is owned by the relevant
+/// view/render hierarchy rather than by simulation authority.
 #[derive(Component, Debug)]
 #[relationship_target(relationship = UsfPresentationProjectionOf)]
 pub struct UsfPresentationProjections(Vec<Entity>);
@@ -159,12 +159,162 @@ impl UsfPresentationProjections {
     }
 }
 
+/// Transitional flat relation from a concrete runtime manifestation to a
+/// [`UsfEntity`].
+///
+/// This relation collapses authority partition and logical realization. It
+/// remains for compatibility while existing systems migrate; new systems
+/// should use [`UsfAuthorityPartitionOf`] and [`UsfLogicalRealizationOf`].
+#[derive(Component, Debug)]
+#[relationship(relationship_target = UsfManifestations)]
+pub struct UsfManifestationOf(pub Entity);
+
+/// Legacy marker for the single flattened manifestation currently carrying
+/// mutable spatial authority for systems that have not yet migrated.
+///
+/// This is not an authority-partition component.
+#[derive(Component, Debug, Default)]
+pub struct UsfManifestationAuthority;
+
+/// Legacy marker identifying a flattened manifestation as a local
+/// logical/physics projection.
+///
+/// New generic-graph code should identify a logical realization through
+/// [`UsfLogicalRealizationOf`] instead.
+#[derive(Component, Debug, Default, Clone, Copy)]
+pub struct UsfLogicalProjection;
+
+/// Transitional collection for the flat [`UsfManifestationOf`] relation.
+///
+/// `linked_spawn` preserves the existing semantic-to-flat-manifestation
+/// lifetime behavior until those consumers migrate onto authority partitions.
+#[derive(Component, Debug)]
+#[relationship_target(
+    relationship = UsfManifestationOf,
+    linked_spawn
+)]
+pub struct UsfManifestations(Vec<Entity>);
+
+impl UsfManifestations {
+    /// Iterate every currently linked legacy manifestation.
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = Entity> + '_ {
+        self.0.iter().copied()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn presentation_projection_is_orthogonal_to_spatial_manifestation() {
+    fn generic_graph_supports_peer_partitions_and_multiple_realizations() {
+        let mut world = World::new();
+        let semantic = world.spawn(UsfEntity).id();
+
+        let partition_a = world.spawn(UsfAuthorityPartitionOf(semantic)).id();
+        let partition_b = world.spawn(UsfAuthorityPartitionOf(semantic)).id();
+
+        let realization_a0 = world.spawn(UsfLogicalRealizationOf(partition_a)).id();
+        let realization_a1 = world.spawn(UsfLogicalRealizationOf(partition_a)).id();
+        let realization_b0 = world.spawn(UsfLogicalRealizationOf(partition_b)).id();
+
+        let presentation = world
+            .spawn(UsfPresentationProjectionOf(realization_a0))
+            .id();
+
+        let partitions = world.get::<UsfAuthorityPartitions>(semantic).unwrap();
+        assert_eq!(partitions.len(), 2);
+        assert!(partitions.iter().any(|entity| entity == partition_a));
+        assert!(partitions.iter().any(|entity| entity == partition_b));
+
+        let realizations_a = world.get::<UsfLogicalRealizations>(partition_a).unwrap();
+        assert_eq!(realizations_a.len(), 2);
+        assert!(realizations_a.iter().any(|entity| entity == realization_a0));
+        assert!(realizations_a.iter().any(|entity| entity == realization_a1));
+
+        let realizations_b = world.get::<UsfLogicalRealizations>(partition_b).unwrap();
+        assert_eq!(
+            realizations_b.iter().collect::<Vec<_>>(),
+            vec![realization_b0]
+        );
+
+        let presentations = world
+            .get::<UsfPresentationProjections>(realization_a0)
+            .unwrap();
+        assert_eq!(presentations.iter().collect::<Vec<_>>(), vec![presentation]);
+
+        assert!(world.get::<UsfAuthorityPartitionOf>(presentation).is_none());
+        assert!(world.get::<UsfLogicalRealizationOf>(presentation).is_none());
+        assert!(
+            world
+                .get::<UsfManifestationAuthority>(presentation)
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn generic_graph_lifetime_ownership_flows_downstream_only() {
+        let mut world = World::new();
+        let semantic = world.spawn(UsfEntity).id();
+        let partition_a = world.spawn(UsfAuthorityPartitionOf(semantic)).id();
+        let partition_b = world.spawn(UsfAuthorityPartitionOf(semantic)).id();
+        let realization_a = world.spawn(UsfLogicalRealizationOf(partition_a)).id();
+        let realization_b = world.spawn(UsfLogicalRealizationOf(partition_b)).id();
+
+        world.despawn(realization_a);
+
+        assert!(world.entities().contains(semantic));
+        assert!(world.entities().contains(partition_a));
+        assert!(world.entities().contains(partition_b));
+        assert!(!world.entities().contains(realization_a));
+        assert!(world.entities().contains(realization_b));
+
+        let replacement_a = world.spawn(UsfLogicalRealizationOf(partition_a)).id();
+
+        world.despawn(partition_a);
+
+        assert!(world.entities().contains(semantic));
+        assert!(!world.entities().contains(partition_a));
+        assert!(!world.entities().contains(replacement_a));
+        assert!(world.entities().contains(partition_b));
+        assert!(world.entities().contains(realization_b));
+
+        let partitions = world.get::<UsfAuthorityPartitions>(semantic).unwrap();
+        assert_eq!(partitions.iter().collect::<Vec<_>>(), vec![partition_b]);
+
+        world.despawn(semantic);
+
+        assert!(!world.entities().contains(semantic));
+        assert!(!world.entities().contains(partition_b));
+        assert!(!world.entities().contains(realization_b));
+    }
+
+    #[test]
+    fn presentation_lifetime_does_not_flow_authority_upstream() {
+        let mut world = World::new();
+        let semantic = world.spawn(UsfEntity).id();
+        let partition = world.spawn(UsfAuthorityPartitionOf(semantic)).id();
+        let realization = world.spawn(UsfLogicalRealizationOf(partition)).id();
+        let presentation = world.spawn(UsfPresentationProjectionOf(realization)).id();
+
+        world.despawn(presentation);
+
+        assert!(world.entities().contains(semantic));
+        assert!(world.entities().contains(partition));
+        assert!(world.entities().contains(realization));
+        assert!(!world.entities().contains(presentation));
+    }
+
+    #[test]
+    fn legacy_flat_manifestation_remains_compatible_during_migration() {
         let mut world = World::new();
         let semantic = world.spawn(UsfEntity).id();
         let manifestation = world
