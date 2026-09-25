@@ -33,8 +33,8 @@ use bevy::{
 
 use crate::{
     ecs::{
-        UsfEntity, UsfLogicalProjection, UsfManifestationAuthority, UsfManifestationOf,
-        UsfPresentationProjectionOf,
+        UsfAuthorityPartitionOf, UsfEntity, UsfLogicalProjection, UsfLogicalRealizationOf,
+        UsfManifestationAuthority, UsfManifestationOf, UsfPresentationProjectionOf,
     },
     input_focus::{InputFocus, InputFocusSet},
     portal::{MAIN_PORTAL_LAYER, PortalSplitTraveler, PortalTraveler, PortalView},

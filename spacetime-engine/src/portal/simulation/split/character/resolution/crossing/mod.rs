@@ -105,6 +105,7 @@ pub(super) fn resolve_crossing(
     state.split.active = Some(ActivePortalSplit {
         source: context.active.destination,
         destination: context.active.source,
+        partition: context.active.partition,
     });
     state.exclusions.replace([context.peer]);
 }

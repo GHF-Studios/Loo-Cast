@@ -5,8 +5,8 @@ use bevy::prelude::*;
 
 use crate::{
     ecs::{
-        UsfEntity, UsfLogicalProjection, UsfManifestationOf, UsfManifestations,
-        UsfPresentationProjectionOf,
+        UsfAuthorityPartitionOf, UsfEntity, UsfLogicalProjection, UsfLogicalRealizationOf,
+        UsfManifestationOf, UsfManifestations, UsfPresentationProjectionOf,
     },
     game::{
         GameSet,
@@ -186,11 +186,19 @@ fn spawn_dynamic_manifestation(
     let full_collider = Collider::cuboid(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
     let inertia = AngularInertia::from_shape(&full_collider, CUBE_MASS_KG);
 
+    let authority_partition = commands
+        .spawn((
+            Name::new(format!("Cube Authority Partition {index}")),
+            UsfAuthorityPartitionOf(semantic),
+        ))
+        .id();
+
     let authority = commands
         .spawn((
             Name::new(format!("Cube Manifestation {index}")),
             UsfManifestationOf(semantic),
             UsfLogicalProjection,
+            UsfLogicalRealizationOf(authority_partition),
             ThermalSpatialSample,
             PlaygroundPickable::cube(semantic, CUBE_SIZE),
             DamageableBounds::cube(CUBE_SIZE),

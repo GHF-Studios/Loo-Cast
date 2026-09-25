@@ -11,6 +11,8 @@ use crate::{
     physics::character::CharacterLocomotionFrame,
 };
 
+use super::retire_split_partition;
+
 mod materialization;
 mod preparation;
 mod resolution;
@@ -20,11 +22,12 @@ pub(crate) use preparation::prepare_portal_splits;
 pub(crate) use resolution::resolve_portal_splits;
 
 fn finish_character_split(
+    commands: &mut Commands,
     split: &mut PortalSplitTraveler,
     body: &mut Transform,
     locomotion_frame: Option<&CharacterLocomotionFrame>,
 ) {
-    if split.active.take().is_some() {
+    if retire_split_partition(commands, split).is_some() {
         if let Some(frame) = locomotion_frame {
             body.rotation = frame.aligned_rotation(body.rotation);
         }

@@ -38,10 +38,11 @@ impl PortalTraveler {
 
 /// Opts one spatial manifestation into portal-aware partitioning.
 ///
-/// `peer` is the reserved logical/physics projection for the opposite side of
-/// the active portal. Presentation projections are associated independently, so
-/// semantic entities can have any number of other manifestations without
-/// confusing topology peers with presentation copies.
+/// `peer` is a reserved pairwise solver proxy, not an authority partition.
+/// While a split is active the proxy is temporarily attached as a logical
+/// realization of a generic sibling authority partition. The reservation exists
+/// only to preserve the current portal solver adapter while authority ownership
+/// migrates to the generic USF graph.
 #[derive(Component, Debug)]
 pub struct PortalSplitTraveler {
     pub(crate) active: Option<ActivePortalSplit>,
@@ -79,18 +80,21 @@ impl PortalSplitTraveler {
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct ActivePortalSplit {
-    /// Portal whose local space currently contains the authoritative body.
+    /// Portal whose local space currently contains the primary solver realization.
     pub source: Entity,
-    /// Peer portal to which the other manifestation is rigidly mapped.
+    /// Peer portal to which the complementary realization is rigidly mapped.
     pub destination: Entity,
+    /// Generic authority partition temporarily owning the complementary realization.
+    pub partition: Entity,
 }
 
-/// Runtime bridge that lets a dynamic rigid body remain one physical object
-/// while its collision geometry is represented by two portal-linked solver bodies.
+/// Runtime bridge that lets one rigid object remain physically coherent while
+/// its collision geometry is represented by two portal-linked solver bodies.
 ///
-/// External forces, gravity, mass and inertia belong to the authoritative body.
-/// The peer receives only mapped baseline velocity plus solver contacts; the
-/// resulting contact delta is folded back into the authority after Avian solves.
+/// Generic semantic/topological authority is represented by USF authority
+/// partitions. This component is only the current pairwise Avian solver adapter:
+/// external forces, gravity, mass and inertia stay on the primary solver
+/// realization while peer contact deltas are folded back after solving.
 #[derive(Component, Debug, Clone, Copy)]
 pub struct PortalRigidSplitBody {
     pub(crate) peer_baseline_linear: Vec3,

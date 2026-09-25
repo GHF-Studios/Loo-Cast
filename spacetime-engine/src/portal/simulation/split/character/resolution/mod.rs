@@ -30,6 +30,7 @@ use crossing::{CrossingContext, CrossingState};
 
 pub(crate) fn resolve_portal_splits(
     time: Res<Time<Fixed>>,
+    mut commands: Commands,
     move_and_slide: MoveAndSlide,
     portals: Query<(Entity, &Portal, &PortalActive, &Transform), With<Portal>>,
     mut travelers: Query<
@@ -95,7 +96,7 @@ pub(crate) fn resolve_portal_splits(
         };
 
         let Some((source_portal, source, destination)) = pair else {
-            finish_character_split(&mut split, &mut body, locomotion_frame);
+            finish_character_split(&mut commands, &mut split, &mut body, locomotion_frame);
             exclusions.replace([peer]);
             traveler.commit_position(body.translation);
             continue;
@@ -140,7 +141,7 @@ pub(crate) fn resolve_portal_splits(
         }
 
         if split_cleared_portal(split_box, &body, &split, &portals) {
-            finish_character_split(&mut split, &mut body, locomotion_frame);
+            finish_character_split(&mut commands, &mut split, &mut body, locomotion_frame);
             exclusions.replace([peer]);
         }
 

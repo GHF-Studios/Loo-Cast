@@ -4,6 +4,7 @@ use avian3d::prelude::*;
 use bevy::prelude::*;
 
 use crate::{
+    ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf},
     portal::{Portal, PortalActive, PortalRigidSplitBody, PortalSplitTraveler},
     physics::{
         DetailedBodyCollision, PhysicalBoxHull,
@@ -15,16 +16,19 @@ use crate::{
 
 use super::peer::{AuthorityMotion, PeerComponents, PeerMaterialization, deactivate_peer, materialize_peer};
 use super::super::split::{
-    active_pair_is_valid, box_reaches_portal_this_tick, find_split_candidate,
+    activate_split_partition, active_pair_is_valid, box_reaches_portal_this_tick,
+    find_split_candidate, retire_split_partition,
 };
 
 pub(crate) fn prepare_rigid_splits(
     time: Res<Time<Fixed>>,
     mut commands: Commands,
     portals: Query<(Entity, &Portal, &PortalActive, &Transform), With<Portal>>,
+    partitions: Query<&UsfAuthorityPartitionOf>,
     mut authorities: Query<
         (
             Entity,
+            &UsfLogicalRealizationOf,
             &Transform,
             &LinearVelocity,
             &AngularVelocity,
@@ -55,6 +59,7 @@ pub(crate) fn prepare_rigid_splits(
 
     for (
         _entity,
+        primary,
         body,
         velocity,
         angular_velocity,
@@ -71,7 +76,7 @@ pub(crate) fn prepare_rigid_splits(
         let Ok((mut peer_transform, mut peer_velocity, mut peer_angular, mut peer_collider)) =
             peers.get_mut(peer_entity)
         else {
-            split.active = None;
+            retire_split_partition(&mut commands, &mut split);
             *authority_collider = split_box.full_collider();
             rigid_split.peer_solver_active = false;
             continue;
@@ -88,13 +93,23 @@ pub(crate) fn prepare_rigid_splits(
                     &portals,
                 )
             {
-                split.active = None;
+                retire_split_partition(&mut commands, &mut split);
             }
         }
 
         split.tick_start = *body;
-        if split.active.is_none() {
-            split.active = find_split_candidate(split_box, body, velocity.0, dt, &portals);
+        if split.active.is_none()
+            && let Some((source, destination)) =
+                find_split_candidate(split_box, body, velocity.0, dt, &portals)
+        {
+            split.active = activate_split_partition(
+                &mut commands,
+                primary,
+                &partitions,
+                peer_entity,
+                source,
+                destination,
+            );
         }
 
         let Some(active) = split.active else {
@@ -122,7 +137,7 @@ pub(crate) fn prepare_rigid_splits(
         };
 
         let Some((source, destination)) = pair else {
-            split.active = None;
+            retire_split_partition(&mut commands, &mut split);
             deactivate_peer(
                 &mut commands,
                 peer_entity,

@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use avian3d::prelude::LinearVelocity;
 
 use crate::{
-    ecs::UsfLogicalProjection,
+    ecs::{UsfAuthorityPartitionOf, UsfLogicalProjection, UsfLogicalRealizationOf},
     portal::{Portal, PortalActive, PortalSplitTraveler},
     physics::{
         DetailedBodyCollision, PhysicalBoxHull,
@@ -16,7 +16,8 @@ use crate::{
 
 use super::finish_character_split;
 use super::super::{
-    active_pair_is_valid, box_reaches_portal_this_tick, find_split_candidate,
+    activate_split_partition, active_pair_is_valid, box_reaches_portal_this_tick,
+    find_split_candidate,
 };
 
 /// Predictively opens portal-host collision before the character motor runs.
@@ -26,9 +27,13 @@ use super::super::{
 /// ground contact before traversal gets a chance to happen.
 pub(crate) fn prepare_portal_splits(
     time: Res<Time<Fixed>>,
+    mut commands: Commands,
     portals: Query<(Entity, &Portal, &PortalActive, &Transform), With<Portal>>,
+    partitions: Query<&UsfAuthorityPartitionOf>,
     mut travelers: Query<
         (
+            Entity,
+            &UsfLogicalRealizationOf,
             &mut Transform,
             Option<&CharacterLocomotionFrame>,
             &LinearVelocity,
@@ -47,8 +52,17 @@ pub(crate) fn prepare_portal_splits(
 ) {
     let dt = time.delta_secs().max(0.0);
 
-    for (mut body, locomotion_frame, velocity, hull, layer, mut split, mut exclusions) in
-        &mut travelers
+    for (
+        _entity,
+        primary,
+        mut body,
+        locomotion_frame,
+        velocity,
+        hull,
+        layer,
+        mut split,
+        mut exclusions,
+    ) in &mut travelers
     {
         let peer = split.peer();
         let split_box = SpatialSplitBox::from_physical(*hull, layer.scale());
@@ -64,14 +78,24 @@ pub(crate) fn prepare_portal_splits(
                     &portals,
                 )
             {
-                finish_character_split(&mut split, &mut body, locomotion_frame);
+                finish_character_split(&mut commands, &mut split, &mut body, locomotion_frame);
             }
         }
 
         split.tick_start = *body;
 
-        if split.active.is_none() {
-            split.active = find_split_candidate(split_box, &body, velocity.0, dt, &portals);
+        if split.active.is_none()
+            && let Some((source, destination)) =
+                find_split_candidate(split_box, &body, velocity.0, dt, &portals)
+        {
+            split.active = activate_split_partition(
+                &mut commands,
+                primary,
+                &partitions,
+                peer,
+                source,
+                destination,
+            );
         }
 
         // Whole-entity exclusions are reserved for the peer manifestation.

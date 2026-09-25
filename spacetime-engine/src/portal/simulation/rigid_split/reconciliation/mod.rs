@@ -21,6 +21,7 @@ use crate::{
 use super::peer::{
     AuthorityMotion, PeerComponents, PeerMaterialization, deactivate_peer, materialize_peer,
 };
+use super::super::split::retire_split_partition;
 
 mod completion;
 mod crossing;
@@ -77,7 +78,7 @@ pub(crate) fn reconcile_rigid_splits(
         let Ok((mut peer_transform, mut peer_velocity, mut peer_angular, mut peer_collider)) =
             peers.get_mut(peer_entity)
         else {
-            split.active = None;
+            retire_split_partition(&mut commands, &mut split);
             *authority_collider = split_box.full_collider();
             rigid_split.peer_solver_active = false;
             traveler.commit_position(body.translation);
@@ -94,7 +95,7 @@ pub(crate) fn reconcile_rigid_splits(
         );
 
         if completion::split_should_finish(split_box, &body, &split, &portals) {
-            split.active = None;
+            retire_split_partition(&mut commands, &mut split);
             deactivate_peer(
                 &mut commands,
                 peer_entity,

@@ -35,8 +35,8 @@ pub(in crate::portal::simulation) fn find_split_candidate(
     velocity: Vec3,
     dt: f32,
     portals: &Query<(Entity, &Portal, &PortalActive, &Transform), With<Portal>>,
-) -> Option<ActivePortalSplit> {
-    let mut best: Option<(f32, ActivePortalSplit)> = None;
+) -> Option<(Entity, Entity)> {
+    let mut best: Option<(f32, Entity, Entity)> = None;
 
     for (entity, portal, active, source) in portals {
         if !active.0 {
@@ -80,20 +80,16 @@ pub(in crate::portal::simulation) fn find_split_candidate(
         }
 
         let score = (distance.abs() - radius).max(0.0);
-        let candidate = ActivePortalSplit {
-            source: entity,
-            destination: portal.destination,
-        };
         let replace = match best {
             None => true,
-            Some((best_score, _)) => score < best_score,
+            Some((best_score, _, _)) => score < best_score,
         };
         if replace {
-            best = Some((score, candidate));
+            best = Some((score, entity, portal.destination));
         }
     }
 
-    best.map(|(_, candidate)| candidate)
+    best.map(|(_, source, destination)| (source, destination))
 }
 
 pub(in crate::portal::simulation) fn box_reaches_portal_this_tick(

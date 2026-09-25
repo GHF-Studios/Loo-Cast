@@ -67,5 +67,6 @@ pub(super) fn resolve_authority_crossing(
     split.active = Some(ActivePortalSplit {
         source: active.destination,
         destination: active.source,
+        partition: active.partition,
     });
 }

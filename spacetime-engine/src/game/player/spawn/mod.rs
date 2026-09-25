@@ -54,6 +54,13 @@ pub(super) fn spawn_player(
         ))
         .id();
 
+    let player_partition = commands
+        .spawn((
+            Name::new("Player Authority Partition"),
+            UsfAuthorityPartitionOf(semantic_player),
+        ))
+        .id();
+
     let player = commands
         .spawn((
             (
@@ -63,6 +70,9 @@ pub(super) fn spawn_player(
                 UsfManifestationOf(semantic_player),
                 UsfManifestationAuthority,
                 UsfLogicalProjection,
+                UsfLogicalRealizationOf(player_partition),
+            ),
+            (
                 UsfSpatialAnchor,
                 UsfViewAnchor,
                 UsfScaleLayer::new(SpatialScale::MAX),
