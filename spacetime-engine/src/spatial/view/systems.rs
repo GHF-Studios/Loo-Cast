@@ -156,6 +156,19 @@ fn fallback_should_render(
     !replacement_ready
 }
 
+/// Converts one desired runtime-global translation into a child-local
+/// translation while preserving the desired global pose.
+///
+/// Scenery projections are presentation state. Their parent hierarchy may move
+/// for runtime-chart reasons, but that movement must not be applied a second
+/// time to a projection that was already computed from canonical/view state.
+fn local_translation_from_global(
+    desired_global: Vec3,
+    parent_translation: Option<Vec3>,
+) -> Vec3 {
+    parent_translation.map_or(desired_global, |parent| desired_global - parent)
+}
+
 /// Projects persistent multiscale scenery into one bounded render scene.
 ///
 /// For a raw observer-relative distance `d`, the rendered radius is
@@ -167,9 +180,11 @@ pub(in crate::spatial) fn project_scenery_presentations(
     interaction: Res<UsfPrimaryInteractionSlice>,
     coverage: Res<UsfScaleCoverageSnapshot>,
     manifestations: Query<&UsfManifestationOf>,
+    parents: Query<&Transform, Without<UsfSceneryPresentation>>,
     mut presentations: Query<(
         Entity,
         &UsfSceneryPresentation,
+        Option<&ChildOf>,
         &mut Transform,
         &mut Visibility,
         Option<&RenderLayers>,
@@ -182,6 +197,7 @@ pub(in crate::spatial) fn project_scenery_presentations(
     for (
         entity,
         presentation,
+        parent,
         mut transform,
         mut visibility,
         render_layers,
@@ -271,7 +287,22 @@ pub(in crate::spatial) fn project_scenery_presentations(
             continue;
         }
 
-        transform.translation = view.presentation_origin() + projected;
+        let desired_global = view.presentation_origin() + projected;
+        let parent_translation = if let Some(parent) = parent {
+            let Ok(parent_transform) = parents.get(parent.0) else {
+                *visibility = Visibility::Hidden;
+                continue;
+            };
+            Some(parent_transform.translation)
+        } else {
+            None
+        };
+        let desired_translation =
+            local_translation_from_global(desired_global, parent_translation);
+
+        if transform.translation != desired_translation {
+            transform.translation = desired_translation;
+        }
         transform.scale = Vec3::splat(projected_scale);
         *visibility = Visibility::Inherited;
     }
@@ -380,5 +411,26 @@ mod fallback_handoff_tests {
             SpatialScale::new(35).unwrap(),
             false,
         ));
+    }
+
+    #[test]
+    fn child_scenery_preserves_global_pose_across_parent_rebase() {
+        let desired_global = Vec3::new(12.5, -33.0, 4.25);
+        let shift = Vec3::new(0.0, 256.0, 0.0);
+
+        let parent_before = Vec3::ZERO;
+        let local_before =
+            local_translation_from_global(desired_global, Some(parent_before));
+
+        // rebase_local_frame applies `translation -= shift` to this top-level,
+        // layerless parent. The child projection must compensate in local space
+        // so its runtime-global pose remains unchanged.
+        let parent_after = parent_before - shift;
+        let local_after =
+            local_translation_from_global(desired_global, Some(parent_after));
+
+        assert_eq!(parent_before + local_before, desired_global);
+        assert_eq!(parent_after + local_after, desired_global);
+        assert_eq!(local_after - local_before, shift);
     }
 }
