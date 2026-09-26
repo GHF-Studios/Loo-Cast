@@ -1,24 +1,23 @@
-//! One semantic authority per celestial body.
+//! One semantic Earth authority with an all-scale voxel realization ladder.
 //!
-//! The authority owns canonical identity, procedural field, navigation shape,
-//! gravity, refinement capability and edit history. Scale-local voxel worlds are
-//! manifestations of that authority; decorations are presentation projections.
+//! There is no separate whole-body Earth mesh. Every terrain surface comes from
+//! the same `CelestialVoxelField` through `VoxelWorld` materialization.
 
 use bevy::prelude::*;
 
 use crate::{
     config::EngineConfig,
-    ecs::{UsfEntity, UsfManifestationOf, UsfManifestations, UsfPresentationProjectionOf},
+    ecs::{UsfEntity, UsfManifestationOf, UsfManifestations},
     physics::gravity::RadialGravitySource,
     procedural_assets::ProceduralAssetLibrary,
     spatial::{
-        SpatialScale, UsfApproachRefinement, UsfChartMask, UsfPosition,
-        UsfScaleLayer, UsfSceneryPresentation, UsfTravelInfluence,
+        SPATIAL_SCALE_MIN, SpatialScale, UsfApproachRefinement, UsfChartMask,
+        UsfPosition, UsfScaleLayer, UsfTravelInfluence,
     },
     voxel::{
-        celestial_surface_mesh, CelestialBodyProfile, CelestialVoxelField, VoxelAuthority, VoxelBase,
-        VoxelCollisionDisabled, VoxelEditingDisabled, VoxelPresentationMaterial,
-        VoxelScaleDomain, VoxelStreaming, VoxelWorld,
+        CelestialVoxelField, VoxelAuthority, VoxelBase, VoxelCollisionDisabled,
+        VoxelEditingDisabled, VoxelPresentationMaterial, VoxelScaleDomain,
+        VoxelStreaming, VoxelWorld,
     },
 };
 use crate::game::world::WorldMemberOf;
@@ -29,55 +28,47 @@ use super::super::{
 };
 
 const SYSTEM_SCALE: i8 = 8;
-const CELESTIAL_MACRO_VOXEL_MIN_SCALE: i8 = 0;
+const CELESTIAL_VOXEL_MIN_SCALE: i8 = SPATIAL_SCALE_MIN;
 const HUMAN_SURFACE_INTERACTION_SCALE: i8 = 0;
 const CELESTIAL_COARSE_TARGET_RADIUS_NATIVE: f64 = 32.0;
 
 #[derive(Component, Debug, Clone, Copy)]
 pub(in crate::game::world::fixture) struct CelestialBodyAuthority;
 
-/// Construct one body once, then derive every consumer from its field.
 pub(super) fn spawn_body(
     commands: &mut Commands,
     parent: Entity,
     definition: &BodyDefinition,
     assets: &ProceduralAssetLibrary,
-    meshes: &mut Assets<Mesh>,
     config: &EngineConfig,
     landmarks: &mut UniverseLandmarkIndex,
     arrival_site: &mut FixtureArrivalSite,
 ) {
     let system_scale = scale(SYSTEM_SCALE);
     let center = UsfPosition::from_scale_native_f64(
-        definition.center_metres, SpatialScale::ZERO, SpatialScale::MIN,
-    ).expect("authored body center must be canonically addressable");
+        definition.center_metres,
+        SpatialScale::ZERO,
+        SpatialScale::MIN,
+    )
+    .expect("authored Earth center must be canonically addressable");
     let radius_metres = definition.radius_metres;
     let detail_root = celestial_coarsest_scale(radius_metres);
-    let realization_coarsest = detail_root;
     let field = CelestialVoxelField::new(
-        center, radius_metres, detail_root, definition.seed, definition.profile,
+        center,
+        radius_metres,
+        detail_root,
+        definition.seed,
+        definition.profile,
     );
     let name = definition.name;
 
-    debug_assert!(
-        detail_root.metres_to_native_f64(radius_metres) >= 1.0,
-        "celestial voxel detail root must resolve the body by at least one native unit"
-    );
-
-    let scale_domain = VoxelScaleDomain::contiguous(
-        scale(CELESTIAL_MACRO_VOXEL_MIN_SCALE),
-        realization_coarsest,
-    )
-    .with_collision_slices(
-        VoxelScaleDomain::contiguous(
-            scale(CELESTIAL_MACRO_VOXEL_MIN_SCALE),
-            realization_coarsest,
-        )
-        .realization_slices(),
-    )
-    .with_editing_slices(UsfChartMask::from_scale(scale(
-        HUMAN_SURFACE_INTERACTION_SCALE,
-    )));
+    let all_voxel_scales =
+        VoxelScaleDomain::contiguous(SpatialScale::MIN, detail_root).realization_slices();
+    let scale_domain = VoxelScaleDomain::contiguous(SpatialScale::MIN, detail_root)
+        .with_collision_slices(all_voxel_scales)
+        .with_editing_slices(UsfChartMask::from_scale(scale(
+            HUMAN_SURFACE_INTERACTION_SCALE,
+        )));
 
     let nav_scale = celestial_coarsest_scale(radius_metres);
     let semantic = commands
@@ -101,23 +92,17 @@ pub(super) fn spawn_body(
                 nav_scale,
                 definition.gravity_metres_per_second2,
             ),
-            UsfApproachRefinement::new(scale(CELESTIAL_MACRO_VOXEL_MIN_SCALE)),
+            UsfApproachRefinement::new(SpatialScale::MIN),
         ))
         .id();
 
-    let mut coarse_manifestation = None;
-
-    // Local voxel terrain is still under active representation debugging.
-    // Keep the high-contrast grid + per-chunk vertex colors here so chunk
-    // boundaries, seams and runtime motion remain immediately visible.
-    // Profile materials belong to the persistent macro-body presentation.
     let local_surface_material = assets.debug_grid.clone();
 
-    for raw in CELESTIAL_MACRO_VOXEL_MIN_SCALE..=realization_coarsest.exponent() {
+    for raw in CELESTIAL_VOXEL_MIN_SCALE..=detail_root.exponent() {
         let terrain_scale = scale(raw);
         let grid_origin = center
             .reexpressed_at(terrain_scale)
-            .expect("celestial representation origin must re-express at its scale");
+            .expect("Earth realization origin must re-express at its scale");
         let base = field.realization(terrain_scale);
 
         let mut terrain = commands.spawn((
@@ -138,63 +123,24 @@ pub(super) fn spawn_body(
         if !scale_domain.editable(terrain_scale) {
             terrain.insert(VoxelEditingDisabled);
         }
-
-        let terrain_entity = terrain.id();
-
-        if terrain_scale == realization_coarsest {
-            // Coarsest voxel terrain remains an ordinary demand-driven
-            // realization. It is NOT a permanent whole-body cache.
-            coarse_manifestation = Some(terrain_entity);
-        }
     }
 
-    let coarse_manifestation = coarse_manifestation
-        .expect("celestial body must have a coarsest realization");
-
-    // Whole-body appearance is inherited macro context for the same semantic
-    // authority. Fine voxel terrain refines only bounded local apertures; it
-    // must never globally replace the rest of the planet/moon/star.
-    let far_material = match field.profile() {
-        CelestialBodyProfile::Stellar => assets.star_surface.clone(),
-        CelestialBodyProfile::Rocky => assets.planet_surface.clone(),
-        CelestialBodyProfile::Lunar => assets.lunar_surface.clone(),
-    };
-    // Radially-compressed whole-body scenery is only a far-field realizer.
-    // Once the observer reaches the body's local refinement neighborhood it
-    // must not collapse the entire planet into a near-camera pseudo-surface.
-    let near_field_margin_metres = f64::from(scale_domain.refinement_activation_native())
-        * scale(HUMAN_SURFACE_INTERACTION_SCALE).metres_per_native();
-    let near_field_exclusion_radius_native =
-        system_scale.metres_to_native_f64(radius_metres + near_field_margin_metres);
-
-    spawn_body_projection(
-        commands,
-        parent,
-        coarse_manifestation,
-        format!("{name} Far Body"),
-        center,
-        system_scale,
-        near_field_exclusion_radius_native,
-        meshes.add(celestial_surface_mesh(
-            field,
-            scale(CELESTIAL_MACRO_VOXEL_MIN_SCALE),
-            system_scale,
-        )),
-        far_material,
-    );
-
+    // Intentionally no UsfSceneryPresentation / celestial_surface_mesh.
     landmarks.register_body(definition, center, system_scale);
     if let Some(direction) = definition.arrival_direction {
         let site = body_surface_site(
-            semantic, center, field, direction, scale(HUMAN_SURFACE_INTERACTION_SCALE),
-        ).expect("authored arrival direction must resolve a celestial surface");
+            semantic,
+            field,
+            direction,
+            scale(HUMAN_SURFACE_INTERACTION_SCALE),
+        )
+        .expect("authored Earth arrival direction must resolve a voxel surface");
         arrival_site.set(site);
     }
 }
 
 fn body_surface_site(
     body: Entity,
-    center: UsfPosition,
     field: CelestialVoxelField,
     direction: Vec3,
     scale: SpatialScale,
@@ -204,38 +150,8 @@ fn body_surface_site(
         return None;
     }
 
-    let realization = field.realization(scale);
-    let surface_radius = realization.surface_radius_native(up);
-    let surface = center
-        .translated_at_scale(scale, up * surface_radius)
-        .ok()?;
-
+    let surface = field.surface_position(up, scale).ok()?;
     BodySurfaceSite::new(body, surface, up, scale)
-}
-
-fn spawn_body_projection(
-    commands: &mut Commands,
-    parent: Entity,
-    manifestation: Entity,
-    name: impl Into<String>,
-    anchor: UsfPosition,
-    scale: SpatialScale,
-    near_field_exclusion_radius_native: f64,
-    mesh: Handle<Mesh>,
-    material: Handle<StandardMaterial>,
-) {
-    commands.spawn((
-        Name::new(name.into()),
-        WorldMemberOf(parent),
-        UsfPresentationProjectionOf(manifestation),
-        UsfSceneryPresentation::from_anchor(anchor, scale)
-            .with_near_field_exclusion_radius_native(near_field_exclusion_radius_native),
-        Mesh3d(mesh),
-        MeshMaterial3d(material),
-        Transform::IDENTITY,
-        Visibility::Inherited,
-    ));
-
 }
 
 fn celestial_coarsest_scale(radius_metres: f64) -> SpatialScale {
@@ -244,7 +160,7 @@ fn celestial_coarsest_scale(radius_metres: f64) -> SpatialScale {
         .log10()
         .ceil()
         .clamp(
-            f64::from(CELESTIAL_MACRO_VOXEL_MIN_SCALE),
+            f64::from(CELESTIAL_VOXEL_MIN_SCALE),
             f64::from(SpatialScale::MAX.exponent()),
         ) as i8;
     scale(raw)
@@ -313,7 +229,7 @@ pub(in crate::game::world::fixture) fn audit_world_authority(
                 has_gravity = gravity.is_some(),
                 has_refinement = refinement.is_some(),
                 manifestations = manifestations.map_or(0, UsfManifestations::len),
-                "celestial-body authority invariant violation"
+                "Earth authority invariant violation"
             );
         }
     }
@@ -321,7 +237,8 @@ pub(in crate::game::world::fixture) fn audit_world_authority(
     if invalid == 0 {
         info!(
             bodies = entries.len(),
-            "celestial-body authority invariants healthy"
+            minimum_voxel_scale = %SpatialScale::MIN,
+            "Earth-only voxel authority invariants healthy"
         );
         *completed = true;
     }

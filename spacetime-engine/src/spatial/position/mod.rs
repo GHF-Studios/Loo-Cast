@@ -523,6 +523,43 @@ impl UsfPosition {
         Ok(delta)
     }
 
+    /// Measures this position from `origin` directly into an f64 scale-local
+    /// chart without collapsing the canonical Scale Stack into one global float.
+    ///
+    /// This is a high-dynamic-range adapter for choosing a coarse direction or
+    /// anchor. Fine simulation still projects into a bounded local f32 chart.
+    pub fn relative_at_scale_bounded_f64(
+        &self,
+        origin: &Self,
+        scale: SpatialScale,
+        max_abs: f64,
+    ) -> Result<DVec3, UsfPositionError> {
+        let common_leaf = self.leaf_scale.min(origin.leaf_scale);
+        if scale < common_leaf {
+            return Err(UsfPositionError::IncompatibleLeafScale);
+        }
+        if !max_abs.is_finite() {
+            return Err(UsfPositionError::NonFiniteTranslation);
+        }
+
+        let lhs = if self.leaf_scale == common_leaf {
+            *self
+        } else {
+            self.reexpressed_at(common_leaf)?
+        };
+        let rhs = if origin.leaf_scale == common_leaf {
+            *origin
+        } else {
+            origin.reexpressed_at(common_leaf)?
+        };
+
+        Ok(DVec3::new(
+            lhs.relative_axis_at_scale_bounded_f64(&rhs, scale, 0, max_abs)?,
+            lhs.relative_axis_at_scale_bounded_f64(&rhs, scale, 1, max_abs)?,
+            lhs.relative_axis_at_scale_bounded_f64(&rhs, scale, 2, max_abs)?,
+        ))
+    }
+
     /// Axis-local form used by bounded algorithms that intentionally do not
     /// require the other two coordinates to fit the same local chart.
     pub(crate) fn relative_native_axis_bounded(
@@ -606,6 +643,48 @@ impl UsfPosition {
             return Err(UsfPositionError::RelativePositionOutsideBound);
         }
         Ok(component as f32)
+    }
+
+    fn relative_axis_at_scale_bounded_f64(
+        &self,
+        origin: &Self,
+        scale: SpatialScale,
+        axis: usize,
+        max_abs: f64,
+    ) -> Result<f64, UsfPositionError> {
+        if self.leaf_scale != origin.leaf_scale || scale < self.leaf_scale {
+            return Err(UsfPositionError::IncompatibleLeafScale);
+        }
+
+        let (normalized, count) = self.normalized_axis_difference(origin, axis)?;
+        let requested_index = (scale.exponent() - self.leaf_scale.exponent()) as usize;
+        debug_assert!(requested_index < count);
+
+        let mut chunk_delta = 0_i128;
+        for &digit in normalized[requested_index..count].iter().rev() {
+            chunk_delta = chunk_delta
+                .checked_mul(i128::from(USF_CHILD_CHUNKS_PER_AXIS))
+                .and_then(|value| value.checked_add(i128::from(digit)))
+                .ok_or(UsfPositionError::RelativePositionOutsideBound)?;
+        }
+
+        let mut component = chunk_delta as f64 * USF_CHUNK_NATIVE_SIZE as f64;
+        let mut weight =
+            USF_CHUNK_NATIVE_SIZE as f64 / f64::from(USF_CHILD_CHUNKS_PER_AXIS);
+        for index in (0..requested_index).rev() {
+            component += f64::from(normalized[index]) * weight;
+            weight /= f64::from(USF_CHILD_CHUNKS_PER_AXIS);
+        }
+
+        let leaf_units_per_requested =
+            f64::from(USF_CHILD_CHUNKS_PER_AXIS).powi(requested_index as i32);
+        component += f64::from(axis_f32(self.offset, axis) - axis_f32(origin.offset, axis))
+            / leaf_units_per_requested;
+
+        if component.abs() > max_abs.max(0.0) {
+            return Err(UsfPositionError::RelativePositionOutsideBound);
+        }
+        Ok(component)
     }
 
     /// Returns whether the wrapped canonical displacement on one axis is on

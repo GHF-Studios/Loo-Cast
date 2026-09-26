@@ -7,7 +7,7 @@
 
 use bevy::prelude::*;
 
-use crate::spatial::{SpatialScale, UsfPosition};
+use crate::spatial::{SpatialScale, UsfPosition, UsfPositionError};
 
 use super::{CelestialBodyProfile, ProceduralCelestialBody, VoxelEdit};
 
@@ -96,6 +96,14 @@ impl CelestialVoxelField {
         self.profile
     }
 
+    pub fn surface_position(
+        self,
+        direction: Vec3,
+        scale: SpatialScale,
+    ) -> Result<UsfPosition, UsfPositionError> {
+        self.realization(scale).surface_position(direction)
+    }
+
     pub fn realization(self, scale: SpatialScale) -> ProceduralCelestialBody {
         ProceduralCelestialBody::new(
             self.center,
@@ -146,12 +154,12 @@ mod tests {
             CelestialBodyProfile::Lunar,
         );
 
-        for raw in 0..=5 {
+        for raw in SpatialScale::MIN.exponent()..=5 {
             let scale = SpatialScale::new(raw).unwrap();
             let realization = field.realization(scale);
             let reconstructed =
-                f64::from(realization.radius_native()) * scale.metres_per_native();
-            assert!((reconstructed - field.radius_metres()).abs() < 1.0);
+                realization.radius_native_f64() * scale.metres_per_native();
+            assert!((reconstructed - field.radius_metres()).abs() < 1.0e-6);
         }
     }
 }

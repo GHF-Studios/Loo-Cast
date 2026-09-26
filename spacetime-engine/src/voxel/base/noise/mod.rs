@@ -58,7 +58,7 @@ fn hash_noise_3d(x: i32, y: i32, z: i32, seed: u32) -> f32 {
     (value as f32 / u32::MAX as f32) * 2.0 - 1.0
 }
 
-fn semantic_value_noise_3d(point: VoxelQueryPosition, cell_size: i64, seed: u32) -> f32 {
+pub(super) fn semantic_value_noise_3d(point: VoxelQueryPosition, cell_size: i64, seed: u32) -> f32 {
     let size = cell_size as f32;
     let offset = point.usf().offset();
     let remainder = Vec3::new(

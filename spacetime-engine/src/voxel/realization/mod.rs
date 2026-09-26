@@ -285,32 +285,16 @@ fn celestial_surface_demand(
     target_scale: SpatialScale,
 ) -> Option<SpatialDemandScope> {
     let body = field.realization(target_scale);
-    let observer = source.center().reexpressed_at(target_scale).ok()?;
     let activation = domain.refinement_activation_native;
-    let bound = body.radius_native() + activation + domain.local_patch_half_extent_native;
+    let search_bound =
+        activation + domain.local_patch_half_extent_native + MATERIALIZATION_CHUNK_SIZE as f32;
 
-    let relative = observer
-        .relative_at_scale_bounded(&field.center(), target_scale, bound)
-        .ok()?;
-    let radial = relative.length();
-    if radial <= f32::EPSILON {
-        return None;
-    }
-
-    let direction = relative / radial;
-    let surface_radius = body.surface_radius_native(direction);
-    let signed_clearance = radial - surface_radius;
+    let (center, _up, signed_clearance) =
+        body.surface_near(&source.center(), search_bound)?;
 
     if signed_clearance.abs() > activation {
         return None;
     }
-
-    let center = field
-        .center()
-        .reexpressed_at(target_scale)
-        .ok()?
-        .translated_native(direction * surface_radius)
-        .ok()?;
 
     Some(SpatialDemandScope::at_scale(
         source.source(),
