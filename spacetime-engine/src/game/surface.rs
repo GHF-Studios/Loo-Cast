@@ -112,22 +112,36 @@ fn sample_surface_candidate(
     let center_distance_metres =
         f64::from(relative.length()) * measurement_scale.metres_per_native();
 
-    let (surface_radius_metres, reference) = if domain.realizes(subject_scale) {
-        let realization = field.realization(subject_scale);
+    let (center_altitude_metres, reference) = if domain.realizes(subject_scale) {
+        // Surface telemetry consumes the same canonical procedural surface as
+        // voxel demand/bootstrap. The body radius remains semantic; only the
+        // bounded displacement from the resolved surface enters this chart.
+        let surface = field
+            .surface_position(radial_outward, subject_scale)
+            .ok()?;
+        let relative_to_surface = position
+            .relative_at_scale_bounded_f64(&surface, subject_scale, f64::MAX)
+            .ok()?;
+        let signed_native = relative_to_surface.x * f64::from(radial_outward.x)
+            + relative_to_surface.y * f64::from(radial_outward.y)
+            + relative_to_surface.z * f64::from(radial_outward.z);
+
         (
-            f64::from(realization.surface_radius_native(radial_outward))
-                * subject_scale.metres_per_native(),
+            signed_native * subject_scale.metres_per_native(),
             SurfaceReference::Procedural,
         )
     } else {
-        (field.radius_metres(), SurfaceReference::Nominal)
+        (
+            center_distance_metres - field.radius_metres(),
+            SurfaceReference::Nominal,
+        )
     };
 
     Some(SurfaceCandidate {
         body,
         reference,
         radial_outward,
-        center_altitude_metres: center_distance_metres - surface_radius_metres,
+        center_altitude_metres,
     })
 }
 

@@ -50,6 +50,30 @@ fn containing_address_crosses_usf_carry_without_flat_grid_identity() {
 }
 
 #[test]
+fn canonical_fine_point_projects_into_realization_leaf() {
+    for scale in [SpatialScale::ZERO, SpatialScale::new(6).unwrap()] {
+        let origin = UsfPosition::zero(scale);
+        let world = VoxelWorld::new_at(VoxelBase::Empty, origin);
+        let semantic = UsfPosition::from_scale_native_f64(
+            bevy::math::DVec3::new(12.25, -3.5, 27.75),
+            scale,
+            SpatialScale::MIN,
+        )
+        .unwrap();
+        assert_eq!(semantic.leaf_scale(), SpatialScale::MIN);
+
+        let query = VoxelQueryPosition::new(semantic);
+        let address = world.materialization_address_containing(query).unwrap();
+
+        assert_eq!(address.origin().leaf_scale(), scale);
+        let local = query.relative_to(address.query_origin(), 10.01).unwrap();
+        assert!((local.x - 2.25).abs() < 1.0e-4);
+        assert!((local.y - 6.5).abs() < 1.0e-4);
+        assert!((local.z - 7.75).abs() < 1.0e-4);
+    }
+}
+
+#[test]
 fn canonical_addresses_do_not_collapse_through_large_f32_coordinates() {
     let world = VoxelWorld::new(VoxelBase::Empty);
     let left = world

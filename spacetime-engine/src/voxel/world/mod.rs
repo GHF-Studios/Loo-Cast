@@ -77,9 +77,12 @@ impl VoxelWorld {
         &self,
         point: VoxelQueryPosition,
     ) -> Result<VoxelMaterializationChunkAddress, UsfPositionError> {
-        if point.usf().leaf_scale() != self.origin.leaf_scale() {
-            return Err(UsfPositionError::IncompatibleLeafScale);
-        }
+        // Materialization identity belongs to this realization's Scale Slice.
+        // The semantic point may retain much finer canonical digits (for
+        // example an S-35 Earth surface queried by an S0 world). Project only
+        // for this disposable representation address; never coarsen the
+        // authoritative point itself.
+        let point = point.reexpressed_at(self.origin.leaf_scale())?;
 
         let size = MATERIALIZATION_CHUNK_SIZE as f32;
         let delta = point.usf().offset() - self.origin.offset();
