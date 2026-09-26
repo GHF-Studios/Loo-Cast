@@ -1,13 +1,13 @@
-//! Pure canonical Universal Simulation Framework spatial-number algebra.
+//! Canonical Universal Simulation Framework spatial-number algebra.
 //!
-//! This crate owns the hierarchical Scale Stack number itself: spatial scales,
+//! This module owns the hierarchical Scale Stack number itself: spatial scales,
 //! balanced decimal digits, normalization/carry, canonical displacement,
-//! re-expression, and unit conversion.
+//! re-expression, canonical topology, and bounded chart mathematics.
 //!
-//! The default feature set deliberately has no Bevy/ECS dependency. The
-//! `bevy-integration` feature exists only so the current host engine can attach
-//! transitional Bevy traits directly to these canonical value types while the
-//! runtime adapter layers are migrated independently.
+//! USF is an engine-core module, not a separately distributed Cargo package.
+//! Runtime Scale Slices, residency/refinement, semantic realization, physics,
+//! rendering and world policy remain downstream responsibilities. Bevy derives
+//! on canonical value types are host metadata, not ownership of those policies.
 
 use std::{
     fmt::{Display, Formatter},
@@ -33,8 +33,7 @@ pub const USF_BALANCED_DIGIT_MAX_EXCLUSIVE: i32 = 5;
 pub const USF_LOCAL_MIN: f32 = -USF_CHUNK_NATIVE_SIZE * 0.5;
 pub const USF_LOCAL_MAX_EXCLUSIVE: f32 = USF_CHUNK_NATIVE_SIZE * 0.5;
 
-#[cfg_attr(feature = "bevy-integration", derive(bevy_reflect::Reflect))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(bevy::reflect::Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct SpatialScale(i8);
 
 impl SpatialScale {
@@ -127,8 +126,7 @@ pub enum UsfPositionError {
 /// `leaf_scale` is the finest currently resolved digit of this particular
 /// canonical position. It may be anywhere in the full S-35..S+35 range; S0 has
 /// no special positional-authority meaning.
-#[cfg_attr(feature = "bevy-integration", derive(bevy_ecs::prelude::Component))]
-#[derive(Clone, Copy, PartialEq)]
+#[derive(bevy::prelude::Component, Clone, Copy, PartialEq)]
 pub struct UsfPosition {
     digits: [IVec3; SPATIAL_SCALE_COUNT],
     leaf_scale: SpatialScale,

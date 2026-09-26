@@ -2,7 +2,7 @@
 
 use glam::{DVec3, Vec3};
 
-use crate::{SpatialScale, UsfPosition, UsfPositionError};
+use super::{SpatialScale, UsfPosition, UsfPositionError};
 
 /// One bounded numeric chart over canonical USF space.
 ///

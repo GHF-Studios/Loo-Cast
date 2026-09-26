@@ -13,7 +13,6 @@ mod slice;
 mod interaction;
 mod motion;
 mod navigation;
-mod position;
 mod refinement;
 mod transition;
 mod view;
@@ -37,7 +36,7 @@ pub use slice::{
 };
 pub use interaction::{UsfInteractionProjection, UsfPrimaryInteractionSlice};
 pub use motion::UsfCanonicalMotion;
-pub use position::{
+pub use crate::usf::{
     SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale, UsfChart,
     UsfChartDelta, UsfChunkAddress, UsfPosition, UsfPositionError,
 };

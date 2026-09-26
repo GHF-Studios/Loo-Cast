@@ -23,7 +23,7 @@ use super::{
     SPATIAL_SCALE_MAX, SpatialDemandScope, SpatialDemandSet, SpatialDemandSnapshot, SpatialScale,
     UsfChunkAddress, UsfPosition, UsfPositionError,
 };
-use super::position::USF_CHUNK_NATIVE_SIZE;
+use crate::usf::USF_CHUNK_NATIVE_SIZE;
 
 /// One canonical context currently carrying runtime responsibility.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

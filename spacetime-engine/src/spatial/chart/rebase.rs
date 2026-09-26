@@ -10,7 +10,7 @@ use crate::{
         UsfSpatialAnchor,
     },
 };
-use spacetime_engine_usf::{USF_CHILD_CHUNKS_PER_AXIS, USF_CHUNK_NATIVE_SIZE};
+use crate::usf::{USF_CHILD_CHUNKS_PER_AXIS, USF_CHUNK_NATIVE_SIZE};
 
 const REBASE_QUANTUM_NATIVE: f32 =
     USF_CHUNK_NATIVE_SIZE / USF_CHILD_CHUNKS_PER_AXIS as f32;

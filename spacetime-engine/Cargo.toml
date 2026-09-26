@@ -12,7 +12,7 @@ profiling-detailed = ["bevy/detailed_trace"]
 
 [dependencies]
 spacetime-engine-macros = { path = "../spacetime-engine-macros" }
-spacetime-engine-usf = { path = "../spacetime-engine-usf", features = ["bevy-integration"] }
+glam.workspace = true
 bevy = {
     version = "0.19.1",
     default-features = false,

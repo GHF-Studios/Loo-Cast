@@ -6,7 +6,7 @@
 
 use glam::IVec3;
 
-use crate::{SpatialScale, USF_CHUNK_NATIVE_SIZE, UsfPosition, UsfPositionError};
+use super::{SpatialScale, USF_CHUNK_NATIVE_SIZE, UsfPosition, UsfPositionError};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct UsfChunkAddress {
