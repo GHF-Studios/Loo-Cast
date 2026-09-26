@@ -1,9 +1,7 @@
-//! Engine-facing bridge to the pure USF canonical spatial algebra.
+//! Engine-facing bridge to canonical USF space.
 //!
-//! `spacetime_engine_usf` owns the Scale Stack number itself. Canonical chunk
-//! topology intentionally remains here until #30 extracts that separate concern.
+//! Canonical scale/position algebra and chunk topology live in
+//! `spacetime_engine_usf`. Runtime charts, residency, refinement, presentation,
+//! and backend integration remain engine responsibilities.
 
-mod chunk_address;
-
-pub use chunk_address::UsfChunkAddress;
 pub use spacetime_engine_usf::*;

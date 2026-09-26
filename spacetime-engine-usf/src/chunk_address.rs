@@ -1,11 +1,12 @@
-//! Canonical identity of one USF chunk at one spatial scale.
+//! Canonical identity and traversal of one USF chunk at one spatial scale.
 //!
-//! Topology remains engine-owned for now and is extracted by #30. This module
-//! intentionally consumes only the public canonical-position algebra from #29.
+//! This is pure Scale Stack topology. It knows canonical containment,
+//! parent ancestry, and same-scale neighborhood translation. It does not know
+//! whether an address is loaded, resident, realized, rendered, or simulated.
 
-use bevy::prelude::IVec3;
+use glam::IVec3;
 
-use super::{SpatialScale, USF_CHUNK_NATIVE_SIZE, UsfPosition, UsfPositionError};
+use crate::{SpatialScale, USF_CHUNK_NATIVE_SIZE, UsfPosition, UsfPositionError};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct UsfChunkAddress {
@@ -14,6 +15,7 @@ pub struct UsfChunkAddress {
 }
 
 impl UsfChunkAddress {
+    /// Returns the canonical chunk at `scale` containing `position`.
     pub fn containing(
         position: UsfPosition,
         scale: SpatialScale,
@@ -31,6 +33,9 @@ impl UsfChunkAddress {
         self.scale
     }
 
+    /// Returns this address's balanced chunk digit at `scale`.
+    ///
+    /// Scales finer than this address are not part of its canonical identity.
     pub fn digit(self, scale: SpatialScale) -> Option<IVec3> {
         if scale < self.scale {
             None
@@ -43,6 +48,7 @@ impl UsfChunkAddress {
         self.center
     }
 
+    /// Traverses the same-scale canonical chunk lattice by `delta` cells.
     pub fn translated_chunks(self, delta: IVec3) -> Result<Self, UsfPositionError> {
         let size = USF_CHUNK_NATIVE_SIZE as i64;
         let position = self.center.translated_whole_native([
@@ -53,6 +59,7 @@ impl UsfChunkAddress {
         Self::containing(position, self.scale)
     }
 
+    /// Returns the immediately coarser canonical ancestor.
     pub fn parent(self) -> Option<Self> {
         if self.scale == SpatialScale::MAX {
             return None;
@@ -60,14 +67,22 @@ impl UsfChunkAddress {
 
         let scale = SpatialScale::new(self.scale.exponent() + 1)
             .expect("non-root scale always has a parent");
-        let expressed = self
-            .center
-            .reexpressed_at(scale)
-            .expect("canonical chunk center can always coarsen to its parent");
-        let center = expressed
-            .translated_native(-expressed.offset())
-            .expect("subtracting the canonical local offset is always bounded");
 
-        Some(Self { scale, center })
+        Some(
+            Self::containing(self.center, scale)
+                .expect("canonical chunk center always has a coarser containing address"),
+        )
+    }
+
+    /// Returns this address re-expressed as its ancestor at `scale`.
+    ///
+    /// Requesting a finer scale is invalid because a parent address does not
+    /// identify which of its many descendants was intended.
+    pub fn ancestor_at(self, scale: SpatialScale) -> Result<Self, UsfPositionError> {
+        if scale < self.scale {
+            return Err(UsfPositionError::IncompatibleLeafScale);
+        }
+
+        Self::containing(self.center, scale)
     }
 }

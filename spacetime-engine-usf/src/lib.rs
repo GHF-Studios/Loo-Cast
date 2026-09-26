@@ -16,6 +16,9 @@ use std::{
 
 use glam::{DVec3, IVec3, Vec3};
 
+mod chunk_address;
+pub use chunk_address::UsfChunkAddress;
+
 pub const SPATIAL_SCALE_MAX: i8 = 35;
 pub const SPATIAL_SCALE_MIN: i8 = -35;
 pub const SPATIAL_SCALE_COUNT: usize =
