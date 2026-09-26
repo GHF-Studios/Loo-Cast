@@ -449,8 +449,7 @@ pub(super) fn apply_spatial_transitions(
         }
     }
 
-    frame.origin = chart_origin;
-    frame.last_shift = Vec3::ZERO;
+    frame.reanchor(chart_origin);
 
     // Presentation attached to a one-shot transition is part of the accepted
     // transaction. A coverage-gated relocation must not visually jump into a

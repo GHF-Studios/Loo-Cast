@@ -1,8 +1,9 @@
 //! USF simulation-chart integration for the physics backend.
 //!
-//! `UsfScaleLayer` is exact chart identity. `UsfChartMask` selects one or more
-//! of the 71 charts. Avian `CollisionLayers` remain a separate within-chart
-//! interaction-category mechanism.
+//! `UsfScaleLayer` is exact Scale Slice partition identity. `UsfChartMask`
+//! selects one or more of the 71 partitions; bounded chart coordinates are
+//! derived separately from canonical USF chart algebra. Avian `CollisionLayers`
+//! remain a within-slice interaction-category mechanism.
 
 use avian3d::prelude::{
     ActiveCollisionHooks, Collider, ColliderOf, RigidBody, SpatialQueryFilter,

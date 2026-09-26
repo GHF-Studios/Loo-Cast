@@ -32,8 +32,7 @@ pub(super) fn sync_semantic_positions(
             continue;
         };
 
-        let Ok(position) = (*frame.origin())
-            .translated_at_scale(layer.scale(), transform.translation)
+        let Ok(position) = frame.chart(layer.scale()).unproject(transform.translation)
         else {
             error!(
                 scale = %layer.scale(),

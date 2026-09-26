@@ -1,8 +1,8 @@
 //! The 71 explicit USF Scale Slices and scale-local runtime membership.
 //!
-//! Each layer lets ordinary engine coordinates mean "native units at this USF
-//! scale". Physics/render/audio/etc. adapters can share this identity without
-//! teaching every low-level engine about astronomical unit magnitudes.
+//! Each Scale Slice is one persistent runtime partition of the canonical world.
+//! Backends may maintain simultaneous local state in many slices; interaction or
+//! view focus does not globally activate/deactivate this partition stack.
 
 use bevy::prelude::*;
 
@@ -59,7 +59,7 @@ pub(in crate::spatial) fn spawn_scale_slices(
 
 /// Explicit ECS membership in one of the 71 Scale Slice roots.
 ///
-/// `UsfScaleLayer` remains the compact local chart identity used by hot systems;
+/// `UsfScaleLayer` remains the compact Scale Slice partition tag used by hot systems;
 /// this relationship makes the same partition navigable as actual ECS structure.
 #[derive(Component, Debug)]
 #[relationship(relationship_target = UsfScaleSliceMembers)]
@@ -101,7 +101,7 @@ impl UsfScaleLayer {
     }
 }
 
-/// A set of USF simulation charts.
+/// A set of USF Scale Slice runtime partitions.
 ///
 /// There are 71 spatial scales, so one `u128` contains the entire chart set
 /// without borrowing Avian's finite collision-category layer mask.
@@ -154,74 +154,6 @@ impl UsfChartMask {
 
     pub const fn intersects(self, other: Self) -> bool {
         (self.0 & other.0) != 0
-    }
-}
-
-/// Marks a runtime projection whose slice follows explicit interaction
-/// handoffs for one controlled semantic subject.
-///
-/// This is per-projection control state, not global universe state.
-#[derive(Component, Debug, Default, Clone, Copy)]
-pub struct UsfInteractionProjection;
-
-/// Primary local controlled-subject interaction handoff state.
-///
-/// `current` is the Scale Slice that owns interaction now. `requested` is a
-/// desired destination that has not necessarily acquired required realization
-/// or collision coverage yet. Requesting a finer slice therefore never claims
-/// that the finer mechanism already exists.
-///
-/// This is controlled-subject focus only; it has no authority over which other
-/// Scale Slices exist, simulate, render, stream, or publish physics.
-#[derive(Resource, Debug, Clone, Copy)]
-pub struct UsfPrimaryInteractionSlice {
-    current: SpatialScale,
-    requested: Option<SpatialScale>,
-}
-
-impl Default for UsfPrimaryInteractionSlice {
-    fn default() -> Self {
-        Self {
-            current: SpatialScale::MAX,
-            requested: None,
-        }
-    }
-}
-
-impl UsfPrimaryInteractionSlice {
-    /// Scale Slice that currently owns controlled-subject interaction.
-    pub const fn scale(self) -> SpatialScale {
-        self.current
-    }
-
-    /// Destination currently requested but not yet necessarily realized.
-    pub const fn requested_scale(self) -> Option<SpatialScale> {
-        self.requested
-    }
-
-    /// Scale whose mechanisms should be prepared now.
-    pub const fn target_scale(self) -> SpatialScale {
-        match self.requested {
-            Some(scale) => scale,
-            None => self.current,
-        }
-    }
-
-    pub const fn handoff_pending(self) -> bool {
-        self.requested.is_some()
-    }
-
-    pub(crate) fn request_handoff(&mut self, scale: SpatialScale) {
-        self.requested = (scale != self.current).then_some(scale);
-    }
-
-    pub(crate) fn cancel_handoff(&mut self) {
-        self.requested = None;
-    }
-
-    pub(crate) fn complete_handoff(&mut self, scale: SpatialScale) {
-        self.current = scale;
-        self.requested = None;
     }
 }
 

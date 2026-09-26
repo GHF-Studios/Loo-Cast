@@ -8,7 +8,8 @@
 mod residency;
 mod demand;
 mod devtools;
-mod layer;
+mod slice;
+mod interaction;
 mod motion;
 mod navigation;
 mod position;
@@ -29,15 +30,15 @@ pub use navigation::{
     UsfTravelInfluenceKind, UsfTravelInfluenceMeasure, UsfTravelMedium,
     UsfTravelNeighborhood,
 };
-pub use layer::{
-    UsfPrimaryInteractionSlice, UsfChartMask, UsfInteractionProjection, UsfScaleLayer,
-    UsfScaleSlice, UsfScaleSliceMemberOf, UsfScaleSliceMembers,
-    UsfScaleSlices,
+pub use slice::{
+    UsfChartMask, UsfScaleLayer, UsfScaleSlice, UsfScaleSliceMemberOf,
+    UsfScaleSliceMembers, UsfScaleSlices,
 };
+pub use interaction::{UsfInteractionProjection, UsfPrimaryInteractionSlice};
 pub use motion::UsfCanonicalMotion;
 pub use position::{
-    SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale, UsfChunkAddress,
-    UsfPosition, UsfPositionError,
+    SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale, UsfChart,
+    UsfChartDelta, UsfChunkAddress, UsfPosition, UsfPositionError,
 };
 pub use refinement::{
     UsfRefinementAperture, UsfScaleCoverage, UsfScaleCoverageSnapshot, UsfScaleRoleMask,
@@ -51,18 +52,10 @@ pub use view::{
     UsfSceneryPresentation, UsfViewAnchor, UsfViewContext, UsfViewRenderAnchor,
     UsfViewScaleDemand,
 };
-pub use rebase::UsfChartDelta;
 
-use avian3d::prelude::Position;
 use bevy::{prelude::*, transform::TransformSystems};
 
 use crate::ecs::{UsfLogicalProjection, UsfManifestationOf};
-
-// Keep chart shifts aligned with one decimal USF child-cell step instead of
-// preserving the legacy fixed-S0 256-unit prototype policy.
-const REBASE_QUANTUM_NATIVE: f32 =
-    position::USF_CHUNK_NATIVE_SIZE / position::USF_CHILD_CHUNKS_PER_AXIS as f32;
-const REBASE_THRESHOLD_NATIVE: f32 = REBASE_QUANTUM_NATIVE;
 
 /// Marks the logical projection used to anchor the current local runtime chart.
 ///
@@ -73,47 +66,7 @@ const REBASE_THRESHOLD_NATIVE: f32 = REBASE_QUANTUM_NATIVE;
 #[derive(Component, Debug, Default)]
 pub struct UsfSpatialAnchor;
 
-/// Current bounded runtime chart over canonical USF space.
-#[derive(Resource, Debug, Clone)]
-pub struct UsfSpatialFrame {
-    origin: UsfPosition,
-    rebase_count: u64,
-    last_shift: Vec3,
-}
-
-impl Default for UsfSpatialFrame {
-    fn default() -> Self {
-        Self {
-            origin: UsfPosition::zero(SpatialScale::MAX),
-            rebase_count: 0,
-            last_shift: Vec3::ZERO,
-        }
-    }
-}
-
-impl UsfSpatialFrame {
-    pub const fn origin(&self) -> &UsfPosition {
-        &self.origin
-    }
-
-    pub const fn rebase_count(&self) -> u64 {
-        self.rebase_count
-    }
-
-    pub const fn last_shift(&self) -> Vec3 {
-        self.last_shift
-    }
-}
-
-/// Emitted after the canonical runtime chart origin changes.
-///
-/// The delta carries the chart whose native units authored the shift. Consumers
-/// must explicitly project it into their own Scale Slice before touching cached
-/// runtime coordinates.
-#[derive(Message, Debug, Clone, Copy)]
-pub struct UsfOriginRebased {
-    pub delta: UsfChartDelta,
-}
+pub use chart::{UsfOriginRebased, UsfRuntimeChartState, UsfSpatialFrame};
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum UsfSpatialSet {
@@ -127,10 +80,10 @@ pub enum UsfSpatialSet {
     ViewProjection,
 }
 
-mod rebase;
+mod chart;
 mod systems;
 
-use rebase::rebase_local_frame;
+use chart::rebase_local_frame;
 use systems::sync_semantic_positions;
 
 pub struct UsfSpatialPlugin;
@@ -144,7 +97,7 @@ impl Plugin for UsfSpatialPlugin {
             .init_resource::<UsfSpatialTransitionQueue>()
             .add_message::<UsfOriginRebased>()
             .add_message::<UsfSpatialTransitionApplied>()
-            .add_systems(Startup, layer::spawn_scale_slices)
+            .add_systems(Startup, slice::spawn_scale_slices)
             .add_systems(PreUpdate, refinement::clear_scale_coverage)
             .configure_sets(
                 PostUpdate,
@@ -168,7 +121,7 @@ impl Plugin for UsfSpatialPlugin {
                     motion::sync_canonical_motion_from_runtime,
                     sync_semantic_positions,
                     transition::apply_spatial_transitions,
-                    layer::sync_scale_slice_membership,
+                    slice::sync_scale_slice_membership,
                 )
                     .chain()
                     .in_set(UsfSpatialSet::SyncSemantic),
