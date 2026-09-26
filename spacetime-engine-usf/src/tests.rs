@@ -359,5 +359,70 @@ fn authored_s8_f64_refines_without_source_f32_quantization() {
         .translated_whole_native([384_400_000, 11_629_000, 22_000_000])
         .unwrap();
 
-    assert_eq!(precise, expected);
+    // 0.11629_f64 is not the exact decimal rational 0.11629. Preserve the
+    // actual binary f64 source rather than silently snapping it to a different
+    // canonical number.
+    let precise_delta = precise
+        .relative_native_bounded(&expected, 10.0)
+        .unwrap();
+    assert!(
+        precise_delta.abs().max_element() < 1.0e-6,
+        "unexpected f64-authored drift: precise={precise}, expected={expected}, delta={precise_delta:?}"
+    );
+
+    let quantized_source = DVec3::new(
+        f64::from(authored.x as f32),
+        f64::from(authored.y as f32),
+        f64::from(authored.z as f32),
+    );
+    let quantized =
+        UsfPosition::from_scale_native_f64(quantized_source, s8, SpatialScale::ZERO).unwrap();
+
+    // Inspect the Y regression directly. X has a larger f32-quantization error
+    // in this authored sample and is deliberately irrelevant to this assertion.
+    let quantized_y = quantized
+        .relative_native_axis_bounded(&expected, 1, 10.0)
+        .unwrap();
+    assert!(
+        quantized_y.abs() > 0.1,
+        "regression case must distinguish retained f64 precision from source-f32 quantization"
+    );
+}
+
+#[test]
+fn coordinate_display_is_plain_decimal_and_position_debug_is_compact() {
+    let position = UsfPosition::zero(SpatialScale::ZERO)
+        .translated_whole_native([384_400_000, -600, 42])
+        .unwrap()
+        .translated_native(Vec3::new(0.0, -0.25, 0.5))
+        .unwrap();
+
+    assert_eq!(position.x().to_string(), "384400000");
+    assert_eq!(position.y().to_string(), "-600.25");
+    assert_eq!(position.z().to_string(), "42.5");
+    assert_eq!(position.to_string(), "(384400000, -600.25, 42.5)");
+    assert_eq!(
+        format!("{position:?}"),
+        "UsfPosition(384400000,-600.25,42.5)"
+    );
+    assert!(!position.to_string().contains('e'));
+    assert!(!position.to_string().contains('E'));
+    assert!(!format!("{position:?}").contains("IVec3"));
+}
+
+#[test]
+fn coordinate_display_keeps_tiny_leaf_detail_without_scientific_notation() {
+    let s8 = SpatialScale::new(8).unwrap();
+    let position = UsfPosition::from_scale_native_f64(
+        DVec3::new(3.844, 0.11629, 0.22),
+        s8,
+        SpatialScale::ZERO,
+    )
+    .unwrap();
+
+    let y = position.y().to_string();
+    assert!(y.starts_with("11629000."));
+    assert!(!y.contains('e'));
+    assert!(!y.contains('E'));
+    assert_eq!(format!("{:?}", position.y()), format!("UsfCoordinate({y})"));
 }
