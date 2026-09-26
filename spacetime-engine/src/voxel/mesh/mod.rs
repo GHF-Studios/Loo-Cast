@@ -60,8 +60,9 @@ pub(super) fn extract_chunk_surface(chunk: &VoxelChunk) -> VoxelSurface {
     );
 
     // Surface Nets coordinates start at the padded sample allocation. Keep the
-    // derived surface local to the logical brick origin; the brick entity's
-    // Transform performs runtime projection into the current local chart.
+    // derived surface local to the logical brick origin. Rendering projects that
+    // canonical brick origin into the active view; the scale-local physics root
+    // independently projects the same address into its Avian slice.
     let offset = Vec3::splat(-(SAMPLE_PADDING as f32));
     for position in &mut output.positions {
         position[0] += offset.x;

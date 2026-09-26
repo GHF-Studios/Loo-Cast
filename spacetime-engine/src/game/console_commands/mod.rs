@@ -336,6 +336,7 @@ fn teleport_command(
         );
     }
 
+    let explicit_scale_transition = args.len() == 4;
     let (label, scale, view_exponent, arrival, look_at) = if args.len() == 1 {
         let landmark = {
             let index = world.resource::<UniverseLandmarkIndex>();
@@ -402,12 +403,15 @@ fn teleport_command(
         );
     };
 
+    let mut transition =
+        UsfSpatialTransition::new(subject, arrival, UsfTransitionVelocity::Zero)
+            .with_view_exponent(view_exponent);
+    if explicit_scale_transition {
+        transition = transition.with_scale(scale);
+    }
     world
         .resource_mut::<UsfSpatialTransitionQueue>()
-        .request(
-            UsfSpatialTransition::new(subject, arrival, UsfTransitionVelocity::Zero)
-                .with_view_exponent(view_exponent),
-        );
+        .request(transition);
 
     if let Some(look_at) = look_at {
         let direction = look_at
@@ -429,8 +433,15 @@ fn teleport_command(
         .unwrap_or(DVec3::splat(f64::NAN));
 
     ConsoleCommandResult::success_and_return_to_gameplay(format!(
-        "spatial transition requested: {label} @ S{scale} ({:.3}, {:.3}, {:.3}), view {view_exponent:+.1}",
-        coordinates.x, coordinates.y, coordinates.z,
+        "spatial transition requested: {label} @ S{scale} ({:.3}, {:.3}, {:.3}), view {view_exponent:+.1}{}",
+        coordinates.x,
+        coordinates.y,
+        coordinates.z,
+        if explicit_scale_transition {
+            " with matching interaction scale"
+        } else {
+            ""
+        },
     ))
 }
 

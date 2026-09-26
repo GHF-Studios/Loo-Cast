@@ -47,10 +47,14 @@ impl UsfRefinementStep {
 /// Generic current-relative refinement policy.
 ///
 /// With no explicit tip request, only the source's current Scale Slice is
-/// requested. With an explicit tip, every supported Scale Slice from that tip
-/// toward coarser context participates. The tip footprint is projected upward
-/// through decimal USF scale units, so the branch narrows toward coarse context
-/// and widens again approaching the current/requested tip.
+/// requested. An explicit tip may add finer detail but can never suppress the
+/// source/current slice: if a stale request is coarser than the source, the
+/// source itself becomes the effective tip. Every supported Scale Slice from the
+/// effective tip toward coarser context participates.
+///
+/// The tip footprint is projected upward through decimal USF scale units, so
+/// the branch narrows toward coarse context and widens again approaching the
+/// current/requested tip.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct UsfRefinementPlan {
     source_scale: SpatialScale,
@@ -87,8 +91,8 @@ impl UsfRefinementPlan {
 
     pub const fn tip_scale(self) -> SpatialScale {
         match self.requested_tip {
-            Some(scale) => scale,
-            None => self.source_scale,
+            Some(scale) if scale.exponent() < self.source_scale.exponent() => scale,
+            _ => self.source_scale,
         }
     }
 
@@ -117,7 +121,7 @@ impl UsfRefinementPlan {
         }
 
         match self.requested_tip {
-            Some(tip) => scale >= tip,
+            Some(_) => scale >= self.tip_scale(),
             None => scale == self.source_scale,
         }
     }
