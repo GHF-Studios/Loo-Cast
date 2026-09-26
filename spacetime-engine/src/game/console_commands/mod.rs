@@ -13,10 +13,12 @@ use crate::{
     physics::character::{CharacterGroundState, CharacterMovementInput},
     portal::{PortalSplitTraveler, PortalTraveler},
     spatial::{
-        SpatialScale, UsfPosition, UsfPrimaryInteractionSlice, UsfScaleLayer,
-        UsfSpatialFrame, UsfSpatialSet, UsfSpatialTransition,
+        SpatialDemandSource, SpatialScale, UsfApproachRefinement, UsfPosition,
+        UsfPrimaryInteractionSlice, UsfScaleCoverageSnapshot, UsfScaleLayer,
+        UsfScaleRoleMask, UsfSpatialFrame, UsfSpatialSet, UsfSpatialTransition,
         UsfSpatialTransitionApplied, UsfSpatialTransitionQueue,
-        UsfTransitionVelocity, UsfViewContext, UsfViewRenderAnchor,
+        UsfTransitionVelocity, UsfTravelInfluence, UsfTravelInfluenceKind,
+        UsfViewContext, UsfViewRenderAnchor,
     },
 };
 
@@ -122,13 +124,45 @@ fn where_command(world: &mut World, _: &ConsoleCommandInvocation) -> ConsoleComm
         return ConsoleCommandResult::error("controlled manifestation is unavailable");
     };
 
-    let semantic = world
-        .get::<UsfPosition>(semantic_entity)
+    let semantic_position = world.get::<UsfPosition>(semantic_entity).copied();
+    let semantic = semantic_position
+        .as_ref()
         .map(UsfPosition::format_stack)
         .unwrap_or_else(|| "<semantic position unavailable>".to_string());
     let Some(view) = primary_view_context(world) else {
         return ConsoleCommandResult::error("primary USF view context is unavailable");
     };
+
+    let interaction = *world.resource::<UsfPrimaryInteractionSlice>();
+    let coverage_status = semantic_position.map_or_else(
+        || "coverage = <canonical position unavailable>".to_string(),
+        |position| {
+            let coverage = world.resource::<UsfScaleCoverageSnapshot>();
+            let scale = interaction.scale();
+            let realized = coverage.has_near(
+                scale,
+                &position,
+                UsfScaleRoleMask::REALIZATION,
+                0.0,
+            );
+            let presented = coverage.has_near(
+                scale,
+                &position,
+                UsfScaleRoleMask::PRESENTATION,
+                0.0,
+            );
+            let collision = coverage.has_near(
+                scale,
+                &position,
+                UsfScaleRoleMask::COLLISION,
+                0.0,
+            );
+            format!(
+                "coverage @ S{}: realization={} presentation={} collision={}",
+                scale, realized, presented, collision,
+            )
+        },
+    );
 
     ConsoleCommandResult::lines([
         format!(
@@ -142,7 +176,6 @@ fn where_command(world: &mut World, _: &ConsoleCommandInvocation) -> ConsoleComm
             view.zoom(),
         ),
         {
-            let interaction = *world.resource::<UsfPrimaryInteractionSlice>();
             match interaction.requested_scale() {
                 Some(requested) => format!(
                     "interaction = S{} -> S{} (pending)",
@@ -153,6 +186,7 @@ fn where_command(world: &mut World, _: &ConsoleCommandInvocation) -> ConsoleComm
             }
         },
         format!("canonical = {semantic}"),
+        coverage_status,
         {
             let frame = world.resource::<UsfSpatialFrame>();
             format!(
@@ -321,6 +355,65 @@ fn cruise_command(
     })
 }
 
+/// Finds a refinable hard-body boundary inside the controlled subject's
+/// target-scale interest window.
+///
+/// This is generic semantic transition policy, not Earth/voxel policy.
+fn refinable_hard_body_transition_gate(
+    world: &mut World,
+    arrival: &UsfPosition,
+    target_scale: SpatialScale,
+) -> Option<(Entity, f32)> {
+    let demand_extent = {
+        let mut query =
+            world.query_filtered::<&SpatialDemandSource, With<LocalControlSubject>>();
+        query
+            .iter(world)
+            .next()?
+            .half_extent_native()
+            .max_element()
+    };
+    if !demand_extent.is_finite() || demand_extent <= 0.0 {
+        return None;
+    }
+
+    let scale0_per_native = target_scale.scale0_units_per_native();
+    if !scale0_per_native.is_finite() || scale0_per_native <= 0.0 {
+        return None;
+    }
+
+    let mut best = None::<(Entity, f32)>;
+    let mut influences =
+        world.query::<(Entity, &UsfTravelInfluence, Option<&UsfApproachRefinement>)>();
+
+    for (entity, influence, refinement) in influences.iter(world) {
+        if refinement.is_none()
+            || !matches!(influence.kind(), UsfTravelInfluenceKind::HardBody)
+        {
+            continue;
+        }
+
+        let Some(measurement) = influence.measure_from(arrival) else {
+            continue;
+        };
+        let boundary_distance_scale0 =
+            measurement.boundary_clearance_scale0()
+                + measurement.penetration_depth_scale0();
+        let distance_native =
+            (boundary_distance_scale0 / scale0_per_native) as f32;
+
+        if !distance_native.is_finite() || distance_native > demand_extent {
+            continue;
+        }
+
+        if best.is_none_or(|(_, current)| distance_native < current) {
+            best = Some((entity, distance_native.max(0.0)));
+        }
+    }
+
+    best
+}
+
 fn teleport_command(
     world: &mut World,
     invocation: &ConsoleCommandInvocation,
@@ -406,8 +499,21 @@ fn teleport_command(
     let mut transition =
         UsfSpatialTransition::new(subject, arrival, UsfTransitionVelocity::Zero)
             .with_view_exponent(view_exponent);
+    let mut coverage_gated = false;
     if explicit_scale_transition {
         transition = transition.with_scale(scale);
+
+        if let Some((authority, boundary_distance_native)) =
+            refinable_hard_body_transition_gate(world, &arrival, scale)
+        {
+            transition = transition.requiring_coverage_from(
+                authority,
+                UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::COLLISION),
+                boundary_distance_native
+                    + super::locomotion::ScaleInteractionProxy::DEFAULT_RADIUS_NATIVE,
+            );
+            coverage_gated = true;
+        }
     }
     world
         .resource_mut::<UsfSpatialTransitionQueue>()
@@ -437,7 +543,9 @@ fn teleport_command(
         coordinates.x,
         coordinates.y,
         coordinates.z,
-        if explicit_scale_transition {
+        if coverage_gated {
+            " with matching interaction scale (waiting for destination collision coverage)"
+        } else if explicit_scale_transition {
             " with matching interaction scale"
         } else {
             ""

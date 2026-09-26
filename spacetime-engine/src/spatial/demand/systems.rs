@@ -1,6 +1,9 @@
 //! ECS collection of canonical bounded spatial-interest scopes.
 
 use super::*;
+use crate::spatial::UsfSpatialTransitionQueue;
+
+const TRANSITION_DESTINATION_PRIORITY_BIAS: i32 = 10_000;
 
 pub(in crate::spatial) fn configure(app: &mut App) {
     app.init_resource::<SpatialDemandSnapshot>()
@@ -13,6 +16,7 @@ pub(in crate::spatial) fn configure(app: &mut App) {
 
 fn collect_spatial_demand(
     frame: Res<UsfSpatialFrame>,
+    transitions: Res<UsfSpatialTransitionQueue>,
     sources: Query<(
         Entity,
         &GlobalTransform,
@@ -50,6 +54,19 @@ fn collect_spatial_demand(
             source.half_extent_native(),
             source.priority(),
         ));
+
+        if let Some(transition) = transitions.pending_relocation_for(entity) {
+            let target_scale = transition.target_scale().unwrap_or(source_scale);
+            next.scopes.push(SpatialDemandScope::at_scale(
+                entity,
+                target_scale,
+                transition.position(),
+                source.half_extent_native(),
+                source
+                    .priority()
+                    .saturating_add(TRANSITION_DESTINATION_PRIORITY_BIAS),
+            ));
+        }
     }
 
     next.scopes.sort_by_key(|scope| {

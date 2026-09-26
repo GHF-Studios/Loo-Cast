@@ -110,6 +110,10 @@ impl UsfSpatialTransition {
         self.position
     }
 
+    pub const fn target_scale(&self) -> Option<SpatialScale> {
+        self.target_scale
+    }
+
     pub const fn view_exponent(&self) -> Option<f32> {
         self.view_exponent
     }
@@ -201,6 +205,20 @@ impl UsfSpatialTransitionQueue {
 
     pub fn clear_interaction_requirement(&mut self, subject: Entity) {
         self.interaction_requirements.remove(&subject);
+    }
+
+    /// Latest uncommitted relocation for `subject`.
+    ///
+    /// Capability planners consume this read-only intent so destination
+    /// responsibility can exist before a coverage-gated handoff commits.
+    pub(crate) fn pending_relocation_for(
+        &self,
+        subject: Entity,
+    ) -> Option<&UsfSpatialTransition> {
+        self.pending
+            .iter()
+            .rev()
+            .find(|request| request.subject == subject)
     }
 
     fn take_latest_relocation_for(

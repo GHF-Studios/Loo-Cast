@@ -9,7 +9,7 @@
 //! Residency does not choose the voxel plan; it records the canonical contexts
 //! required by the plan.
 
-use std::{cmp::Reverse, collections::HashMap};
+use std::cmp::Reverse;
 
 use bevy::prelude::*;
 
@@ -176,21 +176,18 @@ pub(super) fn collect_voxel_realization_demand(
     // Generic interest remains one canonical scope per source. Voxel-specific
     // refinement policy is read separately rather than smuggled into extra
     // generic demand scopes.
-    let mut sources = HashMap::<Entity, VoxelDemandSource>::new();
+    let mut sources = Vec::<VoxelDemandSource>::new();
     for scope in spatial.iter() {
         let Ok(refinement) = voxel_sources.get(scope.source()) else {
             continue;
         };
 
-        sources.insert(
-            scope.source(),
-            VoxelDemandSource {
-                scope,
-                minimum_realization_scale: refinement.and_then(|value| value.minimum_scale()),
-                refinement_half_extent_native: refinement
-                    .map(|value| value.half_extent_native()),
-            },
-        );
+        sources.push(VoxelDemandSource {
+            scope,
+            minimum_realization_scale: refinement.and_then(|value| value.minimum_scale()),
+            refinement_half_extent_native: refinement
+                .map(|value| value.half_extent_native()),
+        });
     }
 
     for (world_entity, layer, manifestation, pinned) in &worlds {
@@ -219,7 +216,7 @@ pub(super) fn collect_voxel_realization_demand(
                 continue;
             }
 
-            for source in sources.values().copied() {
+            for source in sources.iter().copied() {
                 let plan = realization_plan(source, *domain);
                 let Some(step) = plan.step(scale) else {
                     continue;
@@ -250,7 +247,7 @@ pub(super) fn collect_voxel_realization_demand(
 
         // Standalone/non-celestial worlds consume interest only in their own
         // numerical chart. They do not inherit a made-up multi-scale spine.
-        for source in sources.values().copied() {
+        for source in sources.iter().copied() {
             if source.scope.scale() == scale {
                 next.push(
                     world_entity,

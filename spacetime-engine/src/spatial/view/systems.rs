@@ -355,6 +355,8 @@ pub(in crate::spatial) fn project_scale_presentations(
         Option<&NotShadowReceiver>,
     )>,
 ) {
+    let selected_scale = view.render_scale();
+
     for (
         entity,
         presentation,
@@ -377,8 +379,10 @@ pub(in crate::spatial) fn project_scale_presentations(
             commands.entity(entity).insert(NotShadowReceiver);
         }
 
-        let contribution = view.contribution(presentation.scale());
-        if contribution <= CONTRIBUTION_EPSILON {
+        // Adjacent realizations may coexist for readiness, but without an
+        // actual terrain morph/fade they must not both draw opaque surfaces into
+        // one view. One instant therefore owns one dominant scale presentation.
+        if presentation.scale() != selected_scale {
             if !matches!(*visibility, Visibility::Hidden) {
                 *visibility = Visibility::Hidden;
             }
