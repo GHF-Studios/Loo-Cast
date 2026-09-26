@@ -46,7 +46,9 @@ use bevy::prelude::*;
 
 use crate::{
     physics::character::CharacterMovementSet,
-    spatial::{SpatialDemandSet, UsfResidencySet, UsfSpatialSet},
+    spatial::{
+        SpatialDemandSet, UsfCapabilitySet, UsfResidencySet, UsfSpatialSet,
+    },
 };
 
 /// Suppresses derived physics colliders for a voxel world.
@@ -76,7 +78,7 @@ enum VoxelPostUpdateSet {
     Membership,
     Rebuild,
     Collision,
-    Coverage,
+    Capability,
 }
 
 impl Plugin for VoxelPlugin {
@@ -126,7 +128,7 @@ impl Plugin for VoxelPlugin {
                         .after(VoxelPostUpdateSet::ManifestationCleanup),
                     VoxelPostUpdateSet::Rebuild.after(VoxelPostUpdateSet::Membership),
                     VoxelPostUpdateSet::Collision.after(VoxelPostUpdateSet::Rebuild),
-                    VoxelPostUpdateSet::Coverage
+                    VoxelPostUpdateSet::Capability
                         .after(VoxelPostUpdateSet::Collision)
                         .before(UsfSpatialSet::SyncSemantic),
                 ),
@@ -136,7 +138,7 @@ impl Plugin for VoxelPlugin {
                 (
                     VoxelPostUpdateSet::Rebuild,
                     VoxelPostUpdateSet::Collision,
-                    VoxelPostUpdateSet::Coverage,
+                    VoxelPostUpdateSet::Capability,
                 )
                     .chain(),
             )
@@ -183,8 +185,9 @@ impl Plugin for VoxelPlugin {
             )
             .add_systems(
                 PostUpdate,
-                manifestation::publish_scale_coverage
-                    .in_set(VoxelPostUpdateSet::Coverage),
+                manifestation::sync_capability_realizations
+                    .in_set(VoxelPostUpdateSet::Capability)
+                    .in_set(UsfCapabilitySet::Publish),
             );
 
         devtools::configure(app);

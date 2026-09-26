@@ -1,4 +1,4 @@
-//! Publishes actual voxel realization coverage into the generic Scale Stack.
+//! Reconciles voxel runtime manifestations into the generic capability lifecycle.
 
 use avian3d::prelude::Collider;
 use bevy::prelude::*;
@@ -6,7 +6,7 @@ use bevy::prelude::*;
 use crate::{
     ecs::UsfManifestationOf,
     spatial::{
-        UsfScaleCoverage, UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScaleRoleMask,
+        UsfCapabilityRealization, UsfScaleLayer, UsfScaleRoleMask,
     },
 };
 
@@ -14,9 +14,12 @@ use super::{
     VoxelMaterializationRuntime,
     collision::VoxelMaterializationColliderRevision,
 };
-use super::super::{MATERIALIZATION_CHUNK_SIZE, VoxelEditingDisabled, VoxelWorld};
+use super::super::{
+    MATERIALIZATION_CHUNK_SIZE, VoxelEditingDisabled, VoxelWorld,
+};
 
-pub(in crate::voxel) fn publish_scale_coverage(
+pub(in crate::voxel) fn sync_capability_realizations(
+    mut commands: Commands,
     worlds: Query<(
         Entity,
         &VoxelWorld,
@@ -24,52 +27,72 @@ pub(in crate::voxel) fn publish_scale_coverage(
         Option<&UsfManifestationOf>,
         Option<&VoxelEditingDisabled>,
     )>,
-    runtimes: Query<(
+    mut runtimes: Query<(
+        Entity,
         &VoxelMaterializationRuntime,
         Option<&Collider>,
         Option<&VoxelMaterializationColliderRevision>,
+        Option<&mut UsfCapabilityRealization>,
     )>,
-    mut coverage: ResMut<UsfScaleCoverageSnapshot>,
 ) {
-    let extent = MATERIALIZATION_CHUNK_SIZE as f32;
-    let half_extent = Vec3::splat(extent * 0.5);
+    let half_extent = Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32 * 0.5);
 
-    for (runtime, collider, collider_revision) in &runtimes {
+    for (entity, runtime, collider, collider_revision, existing) in &mut runtimes {
         let Ok((world_entity, world, layer, manifestation, editing_disabled)) =
             worlds.get(runtime.world())
         else {
+            if let Some(mut realization) = existing {
+                realization.set_roles(UsfScaleRoleMask::NONE);
+            }
             continue;
         };
-        let Some(surface) = world.materializations().surface(runtime.address()) else {
-            continue;
-        };
-        if surface.revision != runtime.revision() {
-            continue;
-        }
 
         let Ok(center) = runtime.address().center() else {
+            if let Some(mut realization) = existing {
+                realization.set_roles(UsfScaleRoleMask::NONE);
+            }
             continue;
         };
 
-        let mut roles =
-            UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::PRESENTATION);
-        let collision_current = collider.is_some()
-            && collider_revision
-                .is_some_and(|revision| revision.revision() == runtime.revision());
-        if collision_current {
-            roles = roles.union(UsfScaleRoleMask::COLLISION);
-        }
-        if editing_disabled.is_none() {
-            roles = roles.union(UsfScaleRoleMask::EDITING);
+        let surface_current = world
+            .materializations()
+            .surface(runtime.address())
+            .is_some_and(|surface| surface.revision == runtime.revision());
+
+        let mut roles = UsfScaleRoleMask::NONE;
+        if surface_current {
+            roles = UsfScaleRoleMask::REALIZATION
+                .union(UsfScaleRoleMask::PRESENTATION);
+
+            let collision_current = collider.is_some()
+                && collider_revision.is_some_and(|revision| {
+                    revision.revision() == runtime.revision()
+                });
+            if collision_current {
+                roles = roles.union(UsfScaleRoleMask::COLLISION);
+            }
+            if editing_disabled.is_none() {
+                roles = roles.union(UsfScaleRoleMask::EDITING);
+            }
         }
 
-        let authority = manifestation.map_or(world_entity, |manifestation| manifestation.0);
-        coverage.publish(UsfScaleCoverage::new(
+        let authority =
+            manifestation.map_or(world_entity, |manifestation| manifestation.0);
+        let next = UsfCapabilityRealization::new(
             authority,
             layer.scale(),
             center,
             half_extent,
             roles,
-        ));
+            runtime.revision(),
+        );
+
+        if let Some(mut realization) = existing {
+            if *realization != next {
+                *realization = next;
+            }
+        } else {
+            commands.entity(entity).insert(next);
+        }
     }
 }

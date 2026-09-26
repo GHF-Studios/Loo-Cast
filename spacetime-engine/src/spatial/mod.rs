@@ -5,6 +5,7 @@
 //! partitions; interaction focus, floating-origin rebasing, presentation and
 //! demand are projections over that stack rather than one privileged scale.
 
+mod capability;
 mod residency;
 mod demand;
 mod devtools;
@@ -40,10 +41,11 @@ pub use position::{
     SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale, UsfChart,
     UsfChartDelta, UsfChunkAddress, UsfPosition, UsfPositionError,
 };
-pub use refinement::{
-    UsfRefinementAperture, UsfRefinementPlan, UsfRefinementStep, UsfScaleCoverage,
-    UsfScaleCoverageSnapshot, UsfScaleRoleMask,
+pub use capability::{
+    UsfCapabilityRealization, UsfCapabilitySet, UsfRefinementAperture,
+    UsfScaleCoverage, UsfScaleCoverageSnapshot, UsfScaleRoleMask,
 };
+pub use refinement::{UsfRefinementPlan, UsfRefinementStep};
 pub use transition::{
     UsfInteractionRequirement, UsfSpatialTransition, UsfSpatialTransitionApplied,
     UsfSpatialTransitionCause, UsfSpatialTransitionQueue, UsfTransitionVelocity,
@@ -94,12 +96,10 @@ impl Plugin for UsfSpatialPlugin {
         app.init_resource::<UsfSpatialFrame>()
             .init_resource::<UsfPrimaryInteractionSlice>()
             .init_resource::<UsfScaleSlices>()
-            .init_resource::<UsfScaleCoverageSnapshot>()
             .init_resource::<UsfSpatialTransitionQueue>()
             .add_message::<UsfOriginRebased>()
             .add_message::<UsfSpatialTransitionApplied>()
             .add_systems(Startup, slice::spawn_scale_slices)
-            .add_systems(PreUpdate, refinement::clear_scale_coverage)
             .configure_sets(
                 PostUpdate,
                 (
@@ -144,6 +144,7 @@ impl Plugin for UsfSpatialPlugin {
                     .in_set(UsfSpatialSet::ViewProjection),
             );
 
+        capability::configure(app);
         demand::configure(app);
         residency::configure(app);
         devtools::configure(app);
