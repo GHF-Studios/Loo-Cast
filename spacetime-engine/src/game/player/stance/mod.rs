@@ -10,7 +10,7 @@ use bevy::prelude::*;
 use crate::{
     physics::{
         PhysicalBoxHull,
-        chart::UsfPhysicsCharts,
+        slice::UsfPhysicsSlices,
         character::CharacterDimensions,
         topology::KinematicQueryExclusions,
     },
@@ -36,7 +36,7 @@ pub fn update_stance(
     input: Res<PlayerInputFrame>,
     mut params: ParamSet<(
         SpatialQuery,
-        UsfPhysicsCharts,
+        UsfPhysicsSlices,
         Single<
             (
                 Entity,

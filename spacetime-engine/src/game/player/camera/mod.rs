@@ -19,7 +19,7 @@ use crate::{
         Portal, PortalActive, crossed_aperture_fraction, map_through_portal,
     },
     physics::{
-        chart::UsfPhysicsCharts,
+        slice::UsfPhysicsSlices,
         character::{CharacterControlFrame, CharacterDimensions},
     },
     spatial::UsfScaleLayer,

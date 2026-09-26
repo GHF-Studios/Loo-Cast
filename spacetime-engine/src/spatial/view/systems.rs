@@ -7,7 +7,10 @@ use bevy::{
 };
 use crate::{
     ecs::{UsfManifestationOf, UsfPresentationProjectionOf},
-    spatial::{UsfPrimaryInteractionSlice, UsfScaleCoverageSnapshot, UsfScaleRoleMask},
+    spatial::{
+        UsfCapabilityRealization, UsfPrimaryInteractionSlice,
+        UsfScaleCoverageSnapshot, UsfScaleRoleMask,
+    },
     view::USF_PRESENTATION_LAYER,
 };
 
@@ -57,9 +60,13 @@ pub(in crate::spatial) fn sync_view_context(
 /// representation frames can later promote this to an explicit projection frame.
 pub(in crate::spatial) fn project_local_scale_presentations(
     mut commands: Commands,
-    interaction: Res<UsfPrimaryInteractionSlice>,
+    view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     parents: Query<
-        (&UsfScaleLayer, Option<&UsfInteractionProjection>),
+        (
+            &UsfScaleLayer,
+            Option<&UsfInteractionProjection>,
+            Option<&UsfCapabilityRealization>,
+        ),
         Without<UsfLocalScalePresentation>,
     >,
     mut presentations: Query<(
@@ -84,7 +91,7 @@ pub(in crate::spatial) fn project_local_scale_presentations(
         not_shadow_receiver,
     ) in &mut presentations
     {
-        let Ok((layer, follows_active)) = parents.get(parent.0) else {
+        let Ok((layer, follows_active, capability)) = parents.get(parent.0) else {
             continue;
         };
 
@@ -92,13 +99,19 @@ pub(in crate::spatial) fn project_local_scale_presentations(
             presentation.set_scale(layer.scale());
         }
 
-        let physical_local =
-            follows_active.is_some() || layer.scale() == interaction.scale();
+        // Controlled-subject presentation remains an explicit interaction/view
+        // adapter. Capability-local presentations instead follow observer demand
+        // and realized PRESENTATION readiness; interaction scale is not a global
+        // rendering owner.
+        let view_requested =
+            view.contribution(layer.scale()) > CONTRIBUTION_EPSILON;
+        let presentation_ready = capability.is_none_or(|realization| {
+            realization.roles().contains(UsfScaleRoleMask::PRESENTATION)
+        });
+        let should_render =
+            follows_active.is_some() || (view_requested && presentation_ready);
 
-        if !physical_local {
-            // Non-active voxel realizations may remain resident for coverage,
-            // handoff readiness and cache locality, but they are not a second
-            // visual surface. Whole-body far appearance has a separate realizer.
+        if !should_render {
             if !matches!(*visibility, Visibility::Hidden) {
                 *visibility = Visibility::Hidden;
             }

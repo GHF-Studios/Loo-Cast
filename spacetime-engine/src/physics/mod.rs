@@ -1,6 +1,6 @@
 //! Physics integration owned by Spacetime Engine.
 
-pub mod chart;
+pub mod slice;
 pub mod character;
 pub mod collision_topology;
 pub mod gravity;
@@ -50,7 +50,7 @@ impl Plugin for SpacetimePhysicsPlugin {
             // Canonical spatial gravity is queried through physics::gravity.
             .insert_resource(Gravity::ZERO)
             .add_plugins((GravityPlugin, CharacterMovementPlugin))
-            .add_systems(PreUpdate, chart::prepare_usf_physics_charts)
+            .add_systems(PreUpdate, slice::prepare_usf_physics_slices)
             .add_systems(
                 PostUpdate,
                 collision_topology::rebuild_clipped_colliders

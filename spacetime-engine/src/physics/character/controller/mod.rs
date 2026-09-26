@@ -15,7 +15,7 @@ use bevy::prelude::*;
 
 use crate::{
     physics::{
-        chart::UsfPhysicsCharts,
+        slice::UsfPhysicsSlices,
         gravity::GravitySample,
         topology::KinematicQueryExclusions,
     },
@@ -62,7 +62,7 @@ struct MotorTick<'a> {
 pub(super) fn simulate_character_motors(
     time: Res<Time<Fixed>>,
     move_and_slide: MoveAndSlide,
-    physics_charts: UsfPhysicsCharts,
+    physics_charts: UsfPhysicsSlices,
     mut pushes: MessageWriter<CharacterPush>,
     mut query: Query<
         (

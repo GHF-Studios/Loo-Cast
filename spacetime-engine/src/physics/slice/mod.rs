@@ -1,4 +1,4 @@
-//! USF simulation-chart integration for the physics backend.
+//! Scale Slice partition integration for the Avian physics backend.
 //!
 //! `UsfScaleLayer` is exact Scale Slice partition identity. `UsfChartMask`
 //! selects one or more of the 71 partitions; bounded chart coordinates are
@@ -13,7 +13,7 @@ use bevy::{ecs::system::SystemParam, prelude::*};
 use crate::spatial::{SpatialScale, UsfChartMask, UsfScaleLayer};
 
 #[derive(SystemParam)]
-pub struct UsfPhysicsCharts<'w, 's> {
+pub struct UsfPhysicsSlices<'w, 's> {
     colliders: Query<
         'w,
         's,
@@ -27,7 +27,7 @@ pub struct UsfPhysicsCharts<'w, 's> {
     bodies: Query<'w, 's, &'static UsfScaleLayer, With<RigidBody>>,
 }
 
-impl UsfPhysicsCharts<'_, '_> {
+impl UsfPhysicsSlices<'_, '_> {
     pub fn collider_scale(&self, collider: Entity) -> Option<SpatialScale> {
         let Ok((_, direct, attached)) = self.colliders.get(collider) else {
             return None;
@@ -40,14 +40,14 @@ impl UsfPhysicsCharts<'_, '_> {
 
     pub fn filter(
         &self,
-        charts: UsfChartMask,
+        slices: UsfChartMask,
         excluded: impl IntoIterator<Item = Entity>,
     ) -> SpatialQueryFilter {
         let cross_chart = self.colliders.iter().filter_map(|(entity, direct, attached)| {
             let layer = direct
                 .copied()
                 .or_else(|| attached.and_then(|a| self.bodies.get(a.body).ok().copied()))?;
-            (!charts.contains(layer.scale())).then_some(entity)
+            (!slices.contains(layer.scale())).then_some(entity)
         });
 
         SpatialQueryFilter::from_excluded_entities(excluded.into_iter().chain(cross_chart))
@@ -62,7 +62,7 @@ impl UsfPhysicsCharts<'_, '_> {
     }
 }
 
-pub(crate) fn prepare_usf_physics_charts(
+pub(crate) fn prepare_usf_physics_slices(
     mut commands: Commands,
     bodies: Query<&UsfScaleLayer, With<RigidBody>>,
     colliders: Query<

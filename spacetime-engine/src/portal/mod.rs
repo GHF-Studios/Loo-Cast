@@ -49,7 +49,7 @@ use crate::{
 };
 
 use systems::{
-    rebase_portal_local_caches,
+    refresh_portal_local_caches_after_rebase,
     reset_portal_spatial_transition_caches,
 };
 
@@ -160,7 +160,8 @@ impl Plugin for PortalPlugin {
             )
             .add_systems(
                 PostUpdate,
-                rebase_portal_local_caches.in_set(UsfSpatialSet::RuntimeProjection),
+                refresh_portal_local_caches_after_rebase
+                    .in_set(UsfSpatialSet::RuntimeProjection),
             );
     }
 }

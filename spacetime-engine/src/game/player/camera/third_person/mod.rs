@@ -20,7 +20,7 @@ struct CameraPortalCrossing {
 
 pub(super) fn resolve_third_person_boom(
     spatial_query: &SpatialQuery,
-    physics_charts: &UsfPhysicsCharts<'_, '_>,
+    physics_charts: &UsfPhysicsSlices<'_, '_>,
     semantic_entities: &Query<&UsfManifestations>,
     portals: &Query<
         (Entity, &Portal, &PortalActive, &Transform),

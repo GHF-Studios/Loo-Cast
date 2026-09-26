@@ -38,7 +38,7 @@ use crate::{
     },
     physics::{
         PhysicalBoxHull,
-        chart::UsfPhysicsCharts,
+        slice::UsfPhysicsSlices,
         gravity::{GravitySample, RadialGravitySource},
         character::{
             CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame,
@@ -310,7 +310,7 @@ fn spawn_reference_spacecraft(
 
 pub(crate) fn detect_landing(
     spatial_query: SpatialQuery,
-    physics_charts: UsfPhysicsCharts,
+    physics_charts: UsfPhysicsSlices,
     mut ships: Query<
         (
             Entity,

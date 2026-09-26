@@ -2,45 +2,30 @@
 
 use bevy::prelude::*;
 
-use crate::spatial::{UsfOriginRebased, UsfScaleLayer, UsfSpatialTransitionApplied};
+use crate::spatial::{UsfOriginRebased, UsfSpatialTransitionApplied};
 use super::{
     PortalSplitTraveler, PortalTraveler,
     simulation::split::retire_split_partition,
 };
 
-pub(super) fn rebase_portal_local_caches(
+pub(super) fn refresh_portal_local_caches_after_rebase(
     mut rebases: MessageReader<UsfOriginRebased>,
-    mut travelers: Query<(Entity, Option<&UsfScaleLayer>, &mut PortalTraveler)>,
-    mut split_travelers: Query<(Entity, Option<&UsfScaleLayer>, &mut PortalSplitTraveler)>,
+    mut travelers: Query<(&Transform, &mut PortalTraveler)>,
+    mut split_travelers: Query<(&Transform, &mut PortalSplitTraveler)>,
 ) {
-    for rebase in rebases.read() {
-        for (entity, layer, mut traveler) in &mut travelers {
-            let scale = layer.map_or(rebase.delta.source_scale(), |layer| layer.scale());
-            match rebase.delta.at_scale(scale) {
-                Ok(shift) if shift != Vec3::ZERO => traveler.rebase_local_origin(shift),
-                Ok(_) => {}
-                Err(error) => error!(
-                    ?entity,
-                    ?error,
-                    scale = %scale,
-                    "portal traveler cache could not project USF rebase delta"
-                ),
-            }
-        }
+    // A rebase is representation-only. Portal crossing history is disposable
+    // runtime cache, so rebuild it from the already-rebased runtime projection
+    // instead of applying USF chart deltas inside portal state.
+    if rebases.read().next().is_none() {
+        return;
+    }
 
-        for (entity, layer, mut traveler) in &mut split_travelers {
-            let scale = layer.map_or(rebase.delta.source_scale(), |layer| layer.scale());
-            match rebase.delta.at_scale(scale) {
-                Ok(shift) if shift != Vec3::ZERO => traveler.rebase_local_origin(shift),
-                Ok(_) => {}
-                Err(error) => error!(
-                    ?entity,
-                    ?error,
-                    scale = %scale,
-                    "portal split cache could not project USF rebase delta"
-                ),
-            }
-        }
+    for (transform, mut traveler) in &mut travelers {
+        traveler.refresh_runtime_cache_after_rebase(transform.translation);
+    }
+
+    for (transform, mut traveler) in &mut split_travelers {
+        traveler.refresh_runtime_cache_after_rebase(*transform);
     }
 }
 

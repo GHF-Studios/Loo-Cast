@@ -24,10 +24,8 @@ impl PortalTraveler {
         self.previous_position = Some(position);
     }
 
-    pub(crate) fn rebase_local_origin(&mut self, shift: Vec3) {
-        if let Some(previous) = &mut self.previous_position {
-            *previous -= shift;
-        }
+    pub(crate) fn refresh_runtime_cache_after_rebase(&mut self, position: Vec3) {
+        self.previous_position = Some(position);
     }
 
     pub(crate) fn reset_spatial_transition(&mut self, position: Vec3) {
@@ -67,8 +65,8 @@ impl PortalSplitTraveler {
         self.peer
     }
 
-    pub(crate) fn rebase_local_origin(&mut self, shift: Vec3) {
-        self.tick_start.translation -= shift;
+    pub(crate) fn refresh_runtime_cache_after_rebase(&mut self, transform: Transform) {
+        self.tick_start = transform;
     }
 
     pub(crate) fn reset_spatial_transition(&mut self, transform: Transform) {

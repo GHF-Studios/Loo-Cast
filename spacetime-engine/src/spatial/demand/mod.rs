@@ -12,7 +12,7 @@
 
 use bevy::prelude::*;
 
-use super::{SpatialScale, UsfPosition, UsfRefinementPlan, UsfScaleLayer, UsfSpatialFrame};
+use super::{SpatialScale, UsfPosition, UsfScaleLayer, UsfSpatialFrame};
 
 /// One bounded source of generic spatial interest.
 #[derive(Component, Debug, Clone, Copy, PartialEq)]

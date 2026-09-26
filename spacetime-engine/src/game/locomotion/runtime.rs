@@ -26,7 +26,7 @@ use crate::{
     },
     physics::{
         DetailedBodyCollision, PhysicalBoxHull,
-        chart::UsfPhysicsCharts,
+        slice::UsfPhysicsSlices,
         gravity::GravitySample,
         character::{
             CharacterGroundState, CharacterLocomotionFrame, CharacterMotor,
@@ -521,7 +521,7 @@ fn collide_runtime_motion(
     exclusions: Option<&KinematicQueryExclusions>,
     desired_native_velocity: Vec3,
     move_and_slide: &MoveAndSlide,
-    physics_charts: &UsfPhysicsCharts,
+    physics_charts: &UsfPhysicsSlices,
 ) -> Vec3 {
     let Some(collider) = collider else {
         body.translation += desired_native_velocity * dt.as_secs_f32();
@@ -550,7 +550,7 @@ pub(super) fn flight_movement(
     time: Res<Time<Fixed>>,
     frame: Res<UsfSpatialFrame>,
     move_and_slide: MoveAndSlide,
-    physics_charts: UsfPhysicsCharts,
+    physics_charts: UsfPhysicsSlices,
     mut was_cruise_active: Local<bool>,
     mut was_explicit_cruise: Local<bool>,
     subject: Single<

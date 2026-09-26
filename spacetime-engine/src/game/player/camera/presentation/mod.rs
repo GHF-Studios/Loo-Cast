@@ -34,7 +34,7 @@ pub(in crate::game::player) fn sync_view_camera_profile(
 /// player supplies aim intent; LocalViewTarget supplies physical pose.
 pub(in crate::game::player) fn sync_player_camera(
     spatial_query: SpatialQuery,
-    physics_charts: UsfPhysicsCharts,
+    physics_charts: UsfPhysicsSlices,
     controller: Single<&PlayerAim, With<Player>>,
     subject: Single<
         (
