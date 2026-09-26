@@ -31,9 +31,8 @@ const SYSTEM_SCALE: i8 = 8;
 const CELESTIAL_VOXEL_MIN_SCALE: i8 = SPATIAL_SCALE_MIN;
 const HUMAN_SURFACE_INTERACTION_SCALE: i8 = 0;
 const CELESTIAL_COARSE_TARGET_RADIUS_NATIVE: f64 = 32.0;
-/// Keep bootstrap generation intentionally tiny: the coarse slice gets enough
-/// residency to contain the whole Earth; every finer slice gets exactly one
-/// materialization at the same canonical surface ray.
+/// Bootstrap only the coarsest Earth shell. The generic voxel realization
+/// planner owns the moving parent-first refinement stalactite beneath it.
 const CELESTIAL_BOOTSTRAP_SHELL_MARGIN_NATIVE: f32 = 2.0;
 
 #[derive(Component, Debug, Clone, Copy)]
@@ -117,11 +116,10 @@ pub(super) fn spawn_body(
             .expect("Earth realization origin must re-express at its scale");
         let base = field.realization(terrain_scale);
 
-        // One semantic Earth already owns this whole scale ladder. Pinned demand
-        // merely guarantees a tiny deterministic bootstrap realization so the
-        // ladder can become visible/collidable before player-driven demand has
-        // had a chance to expand it.
-        let bootstrap_demand = if terrain_scale == detail_root {
+        // Only the coarsest representation is permanently bootstrapped. The
+        // parent-first refinement owns every finer slice relative to the current
+        // requested tip scale; this avoids a permanent one-chunk pin at S-35..S5.
+        let bootstrap_demand = (terrain_scale == detail_root).then(|| {
             let radius_native = terrain_scale.metres_to_native_f64(radius_metres);
             assert!(
                 radius_native.is_finite()
@@ -134,27 +132,23 @@ pub(super) fn spawn_body(
                 radius_native as f32,
                 CELESTIAL_BOOTSTRAP_SHELL_MARGIN_NATIVE,
             )
-        } else {
-            let surface = field
-                .surface_position(bootstrap_direction, terrain_scale)
-                .expect("Earth bootstrap surface must exist at every supported scale");
-            // Zero extent is intentional: streaming resolves this to exactly the
-            // one materialization containing the canonical bootstrap point.
-            VoxelPinnedDemand::cuboid(surface, Vec3::ZERO)
-        };
+        });
 
         let mut terrain = commands.spawn((
             Name::new(format!("{name} S{terrain_scale} Terrain")),
             WorldMemberOf(parent),
             UsfScaleLayer::new(terrain_scale),
             UsfManifestationOf(semantic),
-            bootstrap_demand,
             VoxelWorld::new_at(VoxelBase::celestial_body(base), grid_origin),
             VoxelStreaming::new(config.voxel.streaming.default_load_budget_per_frame),
             VoxelPresentationMaterial::new(local_surface_material.clone()),
             Transform::IDENTITY,
             Visibility::Inherited,
         ));
+
+        if let Some(bootstrap_demand) = bootstrap_demand {
+            terrain.insert(bootstrap_demand);
+        }
 
         if !scale_domain.collides(terrain_scale) {
             terrain.insert(VoxelCollisionDisabled);
@@ -166,7 +160,7 @@ pub(super) fn spawn_body(
 
     // Intentionally no UsfSceneryPresentation / celestial_surface_mesh.
     landmarks.register_body(definition, center, system_scale);
-    if let Some(direction) = definition.arrival_direction {
+    if definition.arrival_direction.is_some() {
         let site = body_surface_site(
             semantic,
             field,
@@ -277,7 +271,7 @@ pub(in crate::game::world::fixture) fn audit_world_authority(
         info!(
             bodies = entries.len(),
             minimum_voxel_scale = %SpatialScale::MIN,
-            "Earth-only voxel authority invariants healthy; deterministic bootstrap spine active"
+            "Earth-only voxel authority invariants healthy; current-relative parent-first refinement active"
         );
         *completed = true;
     }

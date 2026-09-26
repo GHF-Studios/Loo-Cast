@@ -17,7 +17,8 @@ use crate::{
     ecs::UsfManifestationOf,
     spatial::{
         SpatialDemandScope, SpatialDemandSnapshot, SpatialRefinementDemand, SpatialScale,
-        UsfChartMask, UsfResidencyRequestBuffer, UsfScaleLayer,
+        UsfChartMask, UsfPosition, UsfResidencyRequestBuffer, UsfScaleCoverageSnapshot,
+        UsfScaleLayer, UsfScaleRoleMask,
     },
 };
 
@@ -116,6 +117,7 @@ struct VoxelRealizationDemand {
 struct VoxelDemandSource {
     scope: SpatialDemandScope,
     minimum_realization_scale: Option<SpatialScale>,
+    refinement_half_extent_native: Option<Vec3>,
 }
 
 #[derive(Resource, Debug, Default)]
@@ -158,6 +160,7 @@ pub(super) fn collect_voxel_realization_demand(
         With<VoxelWorld>,
     >,
     celestial_authorities: Query<(&CelestialVoxelField, &VoxelScaleDomain)>,
+    coverage: Res<UsfScaleCoverageSnapshot>,
     mut residency_requests: ResMut<UsfResidencyRequestBuffer>,
     mut output: ResMut<VoxelRealizationDemandSnapshot>,
 ) {
@@ -177,6 +180,8 @@ pub(super) fn collect_voxel_realization_demand(
             VoxelDemandSource {
                 scope,
                 minimum_realization_scale: refinement.and_then(|value| value.minimum_scale()),
+                refinement_half_extent_native: refinement
+                    .map(|value| value.half_extent_native()),
             },
         );
     }
@@ -214,9 +219,22 @@ pub(super) fn collect_voxel_realization_demand(
                     continue;
                 }
 
-                if let Some(scope) =
-                    celestial_surface_demand(*field, *domain, source.scope, scale)
-                {
+                let half_extent_native =
+                    realization_half_extent_at_scale(source, *domain, scale);
+
+                if let Some(scope) = celestial_surface_demand(
+                    *field,
+                    *domain,
+                    source.scope,
+                    scale,
+                    half_extent_native,
+                ) && parent_realization_ready(
+                    manifestation.0,
+                    *domain,
+                    &coverage,
+                    scale,
+                    &scope.center(),
+                ) {
                     next.push(world_entity, scope);
                 }
             }
@@ -261,6 +279,66 @@ pub(super) fn collect_voxel_realization_demand(
     }
 }
 
+/// Native footprint for one target realization in the current refinement
+/// stalactite.
+///
+/// The finest requested realization is the tip. Its local working-set extent is
+/// projected upward through the decimal Scale Stack, so each coarser ancestor
+/// needs exponentially fewer native chunks. Moving the tip moves the whole
+/// taper; there is no absolute "fine scales always get more chunks" rule.
+fn realization_half_extent_at_scale(
+    source: VoxelDemandSource,
+    domain: VoxelScaleDomain,
+    target_scale: SpatialScale,
+) -> Vec3 {
+    let tip_scale = source
+        .minimum_realization_scale
+        .unwrap_or(source.scope.scale());
+    let tip_extent = source
+        .refinement_half_extent_native
+        .unwrap_or(Vec3::splat(domain.local_patch_half_extent_native));
+
+    debug_assert!(target_scale >= tip_scale);
+    let exponent_delta =
+        i32::from(tip_scale.exponent()) - i32::from(target_scale.exponent());
+    let factor = 10.0_f32.powi(exponent_delta);
+    tip_extent * factor
+}
+
+fn realization_parent_scale(
+    domain: VoxelScaleDomain,
+    target_scale: SpatialScale,
+) -> Option<SpatialScale> {
+    let parent = SpatialScale::new(target_scale.exponent().checked_add(1)?)?;
+    domain.realizes(parent).then_some(parent)
+}
+
+/// A finer Earth slice may start only after the immediately coarser slice has
+/// actually published realization coverage at the same canonical branch.
+///
+/// This intentionally gates by realized fact rather than request order. It is a
+/// simple center-branch dependency for now; per-chunk parent/child scheduling
+/// can refine this later without changing the ownership model.
+fn parent_realization_ready(
+    authority: Entity,
+    domain: VoxelScaleDomain,
+    coverage: &UsfScaleCoverageSnapshot,
+    target_scale: SpatialScale,
+    center: &UsfPosition,
+) -> bool {
+    let Some(parent_scale) = realization_parent_scale(domain, target_scale) else {
+        return true;
+    };
+
+    coverage.has_near_for_authority(
+        authority,
+        parent_scale,
+        center,
+        UsfScaleRoleMask::REALIZATION,
+        0.0,
+    )
+}
+
 fn realization_requests_scale(
     source_scale: SpatialScale,
     minimum_scale: Option<SpatialScale>,
@@ -283,11 +361,12 @@ fn celestial_surface_demand(
     domain: VoxelScaleDomain,
     source: SpatialDemandScope,
     target_scale: SpatialScale,
+    half_extent_native: Vec3,
 ) -> Option<SpatialDemandScope> {
     let body = field.realization(target_scale);
     let activation = domain.refinement_activation_native;
     let search_bound =
-        activation + domain.local_patch_half_extent_native + MATERIALIZATION_CHUNK_SIZE as f32;
+        activation + half_extent_native.length() + MATERIALIZATION_CHUNK_SIZE as f32;
 
     let (center, _up, signed_clearance) =
         body.surface_near(&source.center(), search_bound)?;
@@ -300,7 +379,7 @@ fn celestial_surface_demand(
         source.source(),
         target_scale,
         center,
-        Vec3::splat(domain.local_patch_half_extent_native),
+        half_extent_native,
         source.priority() + 1_000,
     ))
 }
@@ -308,6 +387,53 @@ fn celestial_surface_demand(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn refinement_footprint_is_relative_to_requested_tip_scale() {
+        let mut ecs = World::new();
+        let source_entity = ecs.spawn_empty().id();
+        let s0 = SpatialScale::ZERO;
+        let s1 = SpatialScale::new(1).unwrap();
+        let s2 = SpatialScale::new(2).unwrap();
+        let s35 = SpatialScale::MAX;
+        let extent = Vec3::new(64.0, 32.0, 64.0);
+        let source = VoxelDemandSource {
+            scope: SpatialDemandScope::at_scale(
+                source_entity,
+                s35,
+                UsfPosition::zero(SpatialScale::MIN),
+                extent,
+                100,
+            ),
+            minimum_realization_scale: Some(s0),
+            refinement_half_extent_native: Some(extent),
+        };
+        let domain = VoxelScaleDomain::contiguous(s0, SpatialScale::new(6).unwrap());
+
+        assert_eq!(realization_half_extent_at_scale(source, domain, s0), extent);
+
+        let at_s1 = realization_half_extent_at_scale(source, domain, s1);
+        let at_s2 = realization_half_extent_at_scale(source, domain, s2);
+        assert!((at_s1.x - 6.4).abs() < 1.0e-5);
+        assert!((at_s1.y - 3.2).abs() < 1.0e-5);
+        assert!((at_s2.x - 0.64).abs() < 1.0e-5);
+        assert!((at_s2.y - 0.32).abs() < 1.0e-5);
+    }
+
+    #[test]
+    fn realization_parent_chain_ends_at_coarsest_supported_slice() {
+        let s0 = SpatialScale::ZERO;
+        let s5 = SpatialScale::new(5).unwrap();
+        let s6 = SpatialScale::new(6).unwrap();
+        let domain = VoxelScaleDomain::contiguous(s0, s6);
+
+        assert_eq!(realization_parent_scale(domain, s6), None);
+        assert_eq!(realization_parent_scale(domain, s5), Some(s6));
+        assert_eq!(
+            realization_parent_scale(domain, s0),
+            Some(SpatialScale::new(1).unwrap())
+        );
+    }
 
     #[test]
     fn ordinary_interest_realizes_its_current_scale_without_refinement() {
