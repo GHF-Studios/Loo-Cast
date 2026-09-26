@@ -106,6 +106,7 @@ pub(super) fn resolve_crossing(
         source: context.active.destination,
         destination: context.active.source,
         partition: context.active.partition,
+        realization: context.active.realization,
     });
     state.exclusions.replace([context.peer]);
 }

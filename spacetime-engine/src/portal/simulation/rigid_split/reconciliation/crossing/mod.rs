@@ -68,5 +68,6 @@ pub(super) fn resolve_authority_crossing(
         source: active.destination,
         destination: active.source,
         partition: active.partition,
+        realization: active.realization,
     });
 }
