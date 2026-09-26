@@ -64,7 +64,7 @@ pub(crate) fn prepare_portal_splits(
         mut exclusions,
     ) in &mut travelers
     {
-        let peer = split.peer();
+        let peer = split.solver_peer();
         let split_box = SpatialSplitBox::from_physical(*hull, layer.scale());
 
         if let Some(active) = split.active {

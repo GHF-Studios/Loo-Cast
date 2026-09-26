@@ -38,7 +38,7 @@ pub(crate) fn sync_rigid_split_solver_peers(
         else {
             continue;
         };
-        if split.peer() != peer_entity || !rigid_split.peer_solver_active {
+        if split.solver_peer() != peer_entity || !rigid_split.peer_solver_active {
             continue;
         }
 
@@ -92,7 +92,7 @@ pub(crate) fn couple_rigid_split_solver_peers(
         else {
             continue;
         };
-        if split.peer() != peer_entity || !rigid_split.peer_solver_active {
+        if split.solver_peer() != peer_entity || !rigid_split.peer_solver_active {
             continue;
         }
 

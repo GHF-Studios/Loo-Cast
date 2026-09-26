@@ -42,7 +42,7 @@ pub(crate) fn apply_peer_character_pushes(
         };
         if *body != RigidBody::Dynamic
             || !rigid_split.peer_solver_active
-            || split.peer() != push.target
+            || split.solver_peer() != push.target
         {
             continue;
         }
@@ -91,7 +91,7 @@ pub(crate) fn receive_peer_dynamic_contact_pushes(
         let Ok((split, mut velocity)) = authorities.get_mut(peer.authority) else {
             continue;
         };
-        if split.peer() != peer_entity {
+        if split.solver_peer() != peer_entity {
             continue;
         }
 

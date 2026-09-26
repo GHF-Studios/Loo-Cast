@@ -56,7 +56,7 @@ pub(crate) fn materialize_portal_splits(
 ) {
     for (_authority, body, velocity, hull, layer, split, mut authority_collider) in &mut authorities {
         let split_box = SpatialSplitBox::from_physical(*hull, layer.scale());
-        let peer_entity = split.peer();
+        let peer_entity = split.solver_peer();
         let Ok((mut peer_transform, mut peer_velocity, mut peer_collider)) =
             peers.get_mut(peer_entity)
         else {

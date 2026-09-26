@@ -52,6 +52,7 @@ pub(super) fn activate_split_partition(
         source,
         destination,
         partition,
+        realization: peer,
     })
 }
 
@@ -61,7 +62,7 @@ pub(in crate::portal) fn retire_split_partition(
 ) -> Option<ActivePortalSplit> {
     let active = split.active.take()?;
     commands
-        .entity(split.peer())
+        .entity(active.realization)
         .remove::<UsfLogicalRealizationOf>();
     commands.entity(active.partition).despawn();
     Some(active)

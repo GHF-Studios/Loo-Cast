@@ -16,6 +16,7 @@ use bevy::{
     prelude::*,
 };
 
+use crate::ecs::UsfPresentationView;
 use crate::portal::{
     domain::{PortalConfig, PortalFace, PortalPair},
     rendering::{
@@ -148,6 +149,7 @@ fn build_render_node(
             PortalRenderCamera {
                 path: child_path.clone(),
             },
+            UsfPresentationView,
         ));
 
         build_render_node(

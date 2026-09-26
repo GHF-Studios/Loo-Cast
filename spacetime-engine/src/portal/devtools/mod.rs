@@ -78,7 +78,7 @@ fn collect_portal_state(
         if split.active.is_none() {
             continue;
         }
-        let Ok(peer) = transforms.get(split.peer()) else {
+        let Ok(peer) = transforms.get(split.solver_peer()) else {
             continue;
         };
 

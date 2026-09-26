@@ -74,7 +74,7 @@ pub(crate) fn reconcile_rigid_splits(
     {
         let scale = layer.map_or(SpatialScale::ZERO, |layer| layer.scale());
         let split_box = SpatialSplitBox::from_physical(*hull, scale);
-        let peer_entity = split.peer();
+        let peer_entity = split.solver_peer();
         let Ok((mut peer_transform, mut peer_velocity, mut peer_angular, mut peer_collider)) =
             peers.get_mut(peer_entity)
         else {

@@ -24,8 +24,10 @@
 //! or partition identity.
 //!
 //! An entity carrying [`UsfPresentationProjectionOf`] is presentation-only.
-//! New generic-graph users target a logical realization. Presentation lifetime
-//! and viewer count never manufacture semantic or simulation authority.
+//! New generic-graph users target a logical realization. [`UsfPresentationViewOf`]
+//! independently identifies the view that owns observer-specific presentation
+//! state. Presentation lifetime and viewer count never manufacture semantic or
+//! simulation authority.
 //!
 //! The relationship components themselves identify authority partitions and
 //! logical realizations. Separate marker components would duplicate role state
@@ -146,6 +148,46 @@ pub struct UsfPresentationProjectionOf(pub Entity);
 pub struct UsfPresentationProjections(Vec<Entity>);
 
 impl UsfPresentationProjections {
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = Entity> + '_ {
+        self.0.iter().copied()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
+/// Identifies one concrete presentation/view scope.
+///
+/// A view owns observer-specific presentation state. It is neither semantic
+/// identity nor simulation authority, and several views may independently
+/// present the same logical realization.
+#[derive(Component, Debug, Default, Clone, Copy)]
+pub struct UsfPresentationView;
+
+/// Declares which presentation view owns one concrete presentation entity.
+///
+/// This relation is orthogonal to [`UsfPresentationProjectionOf`]: one answers
+/// "what is being presented?", the other answers "for which view?".
+///
+/// Lifetime remains explicit for now because many existing presentations are
+/// also children of simulation/render hierarchy entities. Once all consumers
+/// migrate, view-owned retirement can be centralized without inventing upstream
+/// authority.
+#[derive(Component, Debug)]
+#[relationship(relationship_target = UsfViewPresentations)]
+pub struct UsfPresentationViewOf(pub Entity);
+
+/// Presentations currently associated with one [`UsfPresentationView`].
+#[derive(Component, Debug)]
+#[relationship_target(relationship = UsfPresentationViewOf)]
+pub struct UsfViewPresentations(Vec<Entity>);
+
+impl UsfViewPresentations {
     pub fn iter(&self) -> impl ExactSizeIterator<Item = Entity> + '_ {
         self.0.iter().copied()
     }

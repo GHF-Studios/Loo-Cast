@@ -144,12 +144,13 @@ pub(super) fn spawn_player(
         ))
         .id();
 
-    let split_manifestation = commands
+    let split_solver_peer = commands
         .spawn((
             (
-                Name::new("Player Split Manifestation"),
+                Name::new("Player Portal Split Solver Peer"),
                 Visibility::Inherited,
-                UsfManifestationOf(semantic_player),
+                // Pairwise portal/Avian solver slot only. Generic logical
+                // realization ownership is attached temporarily while split.
                 UsfLogicalProjection,
                 UsfScaleLayer::new(SpatialScale::MAX),
                 UsfInteractionProjection,
@@ -170,44 +171,50 @@ pub(super) fn spawn_player(
         .id();
 
     commands.entity(player).insert((
-        PortalSplitTraveler::new(Transform::from_translation(runtime_position), split_manifestation),
-        KinematicQueryExclusions::from_entities([split_manifestation]),
+        PortalSplitTraveler::new(Transform::from_translation(runtime_position), split_solver_peer),
+        KinematicQueryExclusions::from_entities([split_solver_peer]),
     ));
+
+    let primary_view = commands
+        .spawn((
+            Name::new("Player Local Camera"),
+            PlayerCamera::default(),
+            PrimaryGameView,
+            PortalView,
+            UsfPresentationView,
+            Camera3d::default(),
+            Camera {
+                order: 1,
+                clear_color: bevy::camera::ClearColorConfig::None,
+                ..default()
+            },
+            IsDefaultUiCamera,
+            RenderLayers::layer(0).with(MAIN_PORTAL_LAYER),
+            Transform::from_translation(runtime_position),
+        ))
+        .id();
 
     commands.entity(player).with_children(|parent| {
         parent.spawn((
             model::create_model(&mut meshes, &mut materials),
             UsfPresentationProjectionOf(player),
+            UsfPresentationViewOf(primary_view),
         ));
     });
     commands
-        .entity(split_manifestation)
+        .entity(split_solver_peer)
         .with_children(|parent| {
             parent.spawn((
                 model::create_model(&mut meshes, &mut materials),
-                UsfPresentationProjectionOf(split_manifestation),
+                UsfPresentationProjectionOf(split_solver_peer),
+                UsfPresentationViewOf(primary_view),
             ));
         });
 
     commands.spawn((
-        Name::new("Player Local Camera"),
-        PlayerCamera::default(),
-        PrimaryGameView,
-        PortalView,
-        Camera3d::default(),
-        Camera {
-            order: 1,
-            clear_color: bevy::camera::ClearColorConfig::None,
-            ..default()
-        },
-        IsDefaultUiCamera,
-        RenderLayers::layer(0).with(MAIN_PORTAL_LAYER),
-        Transform::from_translation(runtime_position),
-    ));
-
-    commands.spawn((
         Name::new("USF Projection Camera"),
         camera::UsfProjectionCamera,
+        UsfPresentationView,
         UsfViewRenderAnchor,
         UsfViewContext::default(),
         NavigationPresentationProfile::default(),
