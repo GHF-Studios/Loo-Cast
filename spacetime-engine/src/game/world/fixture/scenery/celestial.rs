@@ -16,7 +16,7 @@ use crate::{
     },
     voxel::{
         CelestialVoxelField, VoxelAuthority, VoxelBase, VoxelCollisionDisabled,
-        VoxelEditingDisabled, VoxelPresentationMaterial, VoxelScaleDomain,
+        VoxelEditingDisabled, VoxelPinnedDemand, VoxelPresentationMaterial, VoxelScaleDomain,
         VoxelStreaming, VoxelWorld,
     },
 };
@@ -31,6 +31,10 @@ const SYSTEM_SCALE: i8 = 8;
 const CELESTIAL_VOXEL_MIN_SCALE: i8 = SPATIAL_SCALE_MIN;
 const HUMAN_SURFACE_INTERACTION_SCALE: i8 = 0;
 const CELESTIAL_COARSE_TARGET_RADIUS_NATIVE: f64 = 32.0;
+/// Keep bootstrap generation intentionally tiny: the coarse slice gets enough
+/// residency to contain the whole Earth; every finer slice gets exactly one
+/// materialization at the same canonical surface ray.
+const CELESTIAL_BOOTSTRAP_SHELL_MARGIN_NATIVE: f32 = 2.0;
 
 #[derive(Component, Debug, Clone, Copy)]
 pub(in crate::game::world::fixture) struct CelestialBodyAuthority;
@@ -97,6 +101,14 @@ pub(super) fn spawn_body(
         .id();
 
     let local_surface_material = assets.debug_grid.clone();
+    let bootstrap_direction = definition
+        .arrival_direction
+        .unwrap_or(Vec3::Y)
+        .normalize_or_zero();
+    assert!(
+        bootstrap_direction != Vec3::ZERO,
+        "Earth bootstrap surface direction must be non-zero"
+    );
 
     for raw in CELESTIAL_VOXEL_MIN_SCALE..=detail_root.exponent() {
         let terrain_scale = scale(raw);
@@ -105,11 +117,38 @@ pub(super) fn spawn_body(
             .expect("Earth realization origin must re-express at its scale");
         let base = field.realization(terrain_scale);
 
+        // One semantic Earth already owns this whole scale ladder. Pinned demand
+        // merely guarantees a tiny deterministic bootstrap realization so the
+        // ladder can become visible/collidable before player-driven demand has
+        // had a chance to expand it.
+        let bootstrap_demand = if terrain_scale == detail_root {
+            let radius_native = terrain_scale.metres_to_native_f64(radius_metres);
+            assert!(
+                radius_native.is_finite()
+                    && radius_native >= 0.0
+                    && radius_native <= f64::from(f32::MAX),
+                "coarsest Earth radius must fit its own bounded realization chart"
+            );
+            VoxelPinnedDemand::shell(
+                grid_origin,
+                radius_native as f32,
+                CELESTIAL_BOOTSTRAP_SHELL_MARGIN_NATIVE,
+            )
+        } else {
+            let surface = field
+                .surface_position(bootstrap_direction, terrain_scale)
+                .expect("Earth bootstrap surface must exist at every supported scale");
+            // Zero extent is intentional: streaming resolves this to exactly the
+            // one materialization containing the canonical bootstrap point.
+            VoxelPinnedDemand::cuboid(surface, Vec3::ZERO)
+        };
+
         let mut terrain = commands.spawn((
             Name::new(format!("{name} S{terrain_scale} Terrain")),
             WorldMemberOf(parent),
             UsfScaleLayer::new(terrain_scale),
             UsfManifestationOf(semantic),
+            bootstrap_demand,
             VoxelWorld::new_at(VoxelBase::celestial_body(base), grid_origin),
             VoxelStreaming::new(config.voxel.streaming.default_load_budget_per_frame),
             VoxelPresentationMaterial::new(local_surface_material.clone()),
@@ -131,7 +170,7 @@ pub(super) fn spawn_body(
         let site = body_surface_site(
             semantic,
             field,
-            direction,
+            bootstrap_direction,
             scale(HUMAN_SURFACE_INTERACTION_SCALE),
         )
         .expect("authored Earth arrival direction must resolve a voxel surface");
@@ -238,7 +277,7 @@ pub(in crate::game::world::fixture) fn audit_world_authority(
         info!(
             bodies = entries.len(),
             minimum_voxel_scale = %SpatialScale::MIN,
-            "Earth-only voxel authority invariants healthy"
+            "Earth-only voxel authority invariants healthy; deterministic bootstrap spine active"
         );
         *completed = true;
     }
