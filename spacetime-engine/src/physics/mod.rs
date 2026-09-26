@@ -11,8 +11,13 @@ pub use hull::{DetailedBodyCollision, PhysicalBoxHull};
 
 use std::time::Duration;
 
-use avian3d::prelude::{Gravity, PhysicsPlugins};
+use avian3d::{
+    collider_tree::update_moved_collider_aabbs,
+    prelude::{Collider, Gravity, PhysicsPlugins},
+};
 use bevy::{prelude::*, time::Virtual};
+
+use crate::spatial::UsfSpatialSet;
 
 use character::CharacterMovementPlugin;
 use gravity::GravityPlugin;
@@ -46,6 +51,15 @@ impl Plugin for SpacetimePhysicsPlugin {
             .insert_resource(Gravity::ZERO)
             .add_plugins((GravityPlugin, CharacterMovementPlugin))
             .add_systems(PreUpdate, chart::prepare_usf_physics_charts)
-            .add_systems(PostUpdate, collision_topology::rebuild_clipped_colliders);
+            .add_systems(
+                PostUpdate,
+                collision_topology::rebuild_clipped_colliders
+                    .in_set(UsfSpatialSet::RuntimeProjection),
+            )
+            .add_systems(
+                PostUpdate,
+                update_moved_collider_aabbs::<Collider>
+                    .in_set(UsfSpatialSet::BackendRefresh),
+            );
     }
 }

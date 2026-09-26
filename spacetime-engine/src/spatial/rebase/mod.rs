@@ -2,6 +2,59 @@
 
 use super::*;
 
+/// Canonical chart-origin displacement authored in one Scale Slice's native units.
+///
+/// A rebase is one physical/canonical displacement, not one universally reusable
+/// `Vec3`. Every runtime cache must project this delta into its own chart before
+/// mutating local coordinates.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct UsfChartDelta {
+    source_scale: SpatialScale,
+    local_shift: Vec3,
+}
+
+impl UsfChartDelta {
+    pub const fn new(source_scale: SpatialScale, local_shift: Vec3) -> Self {
+        Self { source_scale, local_shift }
+    }
+
+    pub const fn source_scale(self) -> SpatialScale {
+        self.source_scale
+    }
+
+    pub const fn local_shift(self) -> Vec3 {
+        self.local_shift
+    }
+
+    pub fn at_scale(self, target_scale: SpatialScale) -> Result<Vec3, UsfPositionError> {
+        if !self.local_shift.is_finite() {
+            return Err(UsfPositionError::NonFiniteTranslation);
+        }
+
+        let exponent_delta =
+            i32::from(self.source_scale.exponent()) - i32::from(target_scale.exponent());
+        let factor = 10.0_f64.powi(exponent_delta);
+        let converted = [
+            f64::from(self.local_shift.x) * factor,
+            f64::from(self.local_shift.y) * factor,
+            f64::from(self.local_shift.z) * factor,
+        ];
+
+        if converted
+            .iter()
+            .any(|value| !value.is_finite() || value.abs() > f64::from(f32::MAX))
+        {
+            return Err(UsfPositionError::TranslationTooLarge);
+        }
+
+        Ok(Vec3::new(
+            converted[0] as f32,
+            converted[1] as f32,
+            converted[2] as f32,
+        ))
+    }
+}
+
 pub(super) fn rebase_local_frame(
     mut frame: ResMut<UsfSpatialFrame>,
     mut transforms: ParamSet<(
@@ -30,16 +83,47 @@ pub(super) fn rebase_local_frame(
         }
         (anchor.translation, layer.scale())
     };
+
     let shift = rebase_shift(anchor_translation);
     if shift == Vec3::ZERO {
         return;
     }
+    let delta = UsfChartDelta::new(anchor_scale, shift);
+
+    // Preflight every scale conversion before changing canonical or runtime
+    // state. A rebase is a transaction; partial chart mutation is invalid.
+    {
+        let mut runtime_transforms = transforms.p1();
+        for (_, layer) in &mut runtime_transforms {
+            let target_scale = layer.map_or(anchor_scale, |layer| layer.scale());
+            if let Err(error) = delta.at_scale(target_scale) {
+                error!(
+                    ?error,
+                    source_scale = %anchor_scale,
+                    target_scale = %target_scale,
+                    ?shift,
+                    "USF rebase cannot be represented in one resident runtime chart"
+                );
+                return;
+            }
+        }
+    }
+    for (_, layer) in &mut physics_positions {
+        let target_scale = layer.map_or(anchor_scale, |layer| layer.scale());
+        if let Err(error) = delta.at_scale(target_scale) {
+            error!(
+                ?error,
+                source_scale = %anchor_scale,
+                target_scale = %target_scale,
+                ?shift,
+                "USF rebase cannot be represented in one resident physics chart"
+            );
+            return;
+        }
+    }
 
     let Ok(new_origin) = frame.origin.translated_at_scale(anchor_scale, shift) else {
-        error!(
-            ?shift,
-            "USF canonical translation failed during local-origin rebase"
-        );
+        error!(?shift, "USF canonical translation failed during local-origin rebase");
         return;
     };
 
@@ -47,21 +131,32 @@ pub(super) fn rebase_local_frame(
     frame.rebase_count = frame.rebase_count.wrapping_add(1);
     frame.last_shift = shift;
 
-    let active_scale = anchor_scale;
-
-    for (mut transform, layer) in &mut transforms.p1() {
-        if layer.is_none_or(|layer| layer.scale() == active_scale) {
-            transform.translation -= shift;
+    {
+        let mut runtime_transforms = transforms.p1();
+        for (mut transform, layer) in &mut runtime_transforms {
+            let target_scale = layer.map_or(anchor_scale, |layer| layer.scale());
+            let local_shift = delta
+                .at_scale(target_scale)
+                .expect("rebase scale conversion was preflighted");
+            transform.translation -= local_shift;
         }
     }
 
     for (mut position, layer) in &mut physics_positions {
-        if layer.is_none_or(|layer| layer.scale() == active_scale) {
-            position.0 -= shift;
-        }
+        let target_scale = layer.map_or(anchor_scale, |layer| layer.scale());
+        let local_shift = delta
+            .at_scale(target_scale)
+            .expect("rebase scale conversion was preflighted");
+        position.0 -= local_shift;
     }
 
-    rebased.write(UsfOriginRebased { local_shift: shift });
+    debug!(
+        source_scale = %anchor_scale,
+        ?shift,
+        rebase_count = frame.rebase_count,
+        "rebased canonical USF runtime chart"
+    );
+    rebased.write(UsfOriginRebased { delta });
 }
 
 pub(super) fn rebase_shift(position: Vec3) -> Vec3 {

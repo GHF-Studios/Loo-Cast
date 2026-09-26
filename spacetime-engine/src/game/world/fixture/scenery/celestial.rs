@@ -159,6 +159,14 @@ pub(super) fn spawn_body(
         CelestialBodyProfile::Rocky => assets.planet_surface.clone(),
         CelestialBodyProfile::Lunar => assets.lunar_surface.clone(),
     };
+    // Radially-compressed whole-body scenery is only a far-field realizer.
+    // Once the observer reaches the body's local refinement neighborhood it
+    // must not collapse the entire planet into a near-camera pseudo-surface.
+    let near_field_margin_metres = f64::from(scale_domain.refinement_activation_native())
+        * scale(HUMAN_SURFACE_INTERACTION_SCALE).metres_per_native();
+    let near_field_exclusion_radius_native =
+        system_scale.metres_to_native_f64(radius_metres + near_field_margin_metres);
+
     spawn_body_projection(
         commands,
         parent,
@@ -166,7 +174,12 @@ pub(super) fn spawn_body(
         format!("{name} Far Body"),
         center,
         system_scale,
-        meshes.add(celestial_surface_mesh(field, scale(CELESTIAL_MACRO_VOXEL_MIN_SCALE), system_scale)),
+        near_field_exclusion_radius_native,
+        meshes.add(celestial_surface_mesh(
+            field,
+            scale(CELESTIAL_MACRO_VOXEL_MIN_SCALE),
+            system_scale,
+        )),
         far_material,
     );
 
@@ -207,6 +220,7 @@ fn spawn_body_projection(
     name: impl Into<String>,
     anchor: UsfPosition,
     scale: SpatialScale,
+    near_field_exclusion_radius_native: f64,
     mesh: Handle<Mesh>,
     material: Handle<StandardMaterial>,
 ) {
@@ -214,7 +228,8 @@ fn spawn_body_projection(
         Name::new(name.into()),
         WorldMemberOf(parent),
         UsfPresentationProjectionOf(manifestation),
-        UsfSceneryPresentation::from_anchor(anchor, scale),
+        UsfSceneryPresentation::from_anchor(anchor, scale)
+            .with_near_field_exclusion_radius_native(near_field_exclusion_radius_native),
         Mesh3d(mesh),
         MeshMaterial3d(material),
         Transform::IDENTITY,

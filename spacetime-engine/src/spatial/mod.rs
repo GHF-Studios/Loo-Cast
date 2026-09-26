@@ -51,14 +51,18 @@ pub use view::{
     UsfSceneryPresentation, UsfViewAnchor, UsfViewContext, UsfViewRenderAnchor,
     UsfViewScaleDemand,
 };
+pub use rebase::UsfChartDelta;
 
 use avian3d::prelude::Position;
 use bevy::{prelude::*, transform::TransformSystems};
 
 use crate::ecs::{UsfLogicalProjection, UsfManifestationOf};
 
-const REBASE_THRESHOLD_NATIVE: f32 = 256.0;
-const REBASE_QUANTUM_NATIVE: f32 = 256.0;
+// Keep chart shifts aligned with one decimal USF child-cell step instead of
+// preserving the legacy fixed-S0 256-unit prototype policy.
+const REBASE_QUANTUM_NATIVE: f32 =
+    position::USF_CHUNK_NATIVE_SIZE / position::USF_CHILD_CHUNKS_PER_AXIS as f32;
+const REBASE_THRESHOLD_NATIVE: f32 = REBASE_QUANTUM_NATIVE;
 
 /// Marks the logical projection used to anchor the current local runtime chart.
 ///
@@ -101,17 +105,24 @@ impl UsfSpatialFrame {
     }
 }
 
-/// Emitted after the local chart origin changes. Systems that cache local-space
-/// coordinates must translate those caches by the same amount.
+/// Emitted after the canonical runtime chart origin changes.
+///
+/// The delta carries the chart whose native units authored the shift. Consumers
+/// must explicitly project it into their own Scale Slice before touching cached
+/// runtime coordinates.
 #[derive(Message, Debug, Clone, Copy)]
 pub struct UsfOriginRebased {
-    pub local_shift: Vec3,
+    pub delta: UsfChartDelta,
 }
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum UsfSpatialSet {
     SyncSemantic,
     Rebase,
+    /// Rebuild runtime-local projections/caches from the new canonical frame.
+    RuntimeProjection,
+    /// Make backend acceleration structures observe the rebuilt projections.
+    BackendRefresh,
     ViewAnchor,
     ViewProjection,
 }
@@ -140,6 +151,8 @@ impl Plugin for UsfSpatialPlugin {
                 (
                     UsfSpatialSet::SyncSemantic,
                     UsfSpatialSet::Rebase,
+                    UsfSpatialSet::RuntimeProjection,
+                    UsfSpatialSet::BackendRefresh,
                     UsfSpatialSet::ViewAnchor,
                     UsfSpatialSet::ViewProjection,
                 )

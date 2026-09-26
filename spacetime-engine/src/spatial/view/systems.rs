@@ -169,6 +169,15 @@ fn local_translation_from_global(
     parent_translation.map_or(desired_global, |parent| desired_global - parent)
 }
 
+fn scenery_is_inside_near_field_exclusion(
+    presentation: UsfSceneryPresentation,
+    observer_relative_native: Vec3,
+) -> bool {
+    presentation
+        .near_field_exclusion_radius_native()
+        .is_some_and(|radius| f64::from(observer_relative_native.length()) <= radius)
+}
+
 /// Projects persistent multiscale scenery into one bounded render scene.
 ///
 /// For a raw observer-relative distance `d`, the rendered radius is
@@ -251,6 +260,16 @@ pub(in crate::spatial) fn project_scenery_presentations(
             *visibility = Visibility::Hidden;
             continue;
         };
+
+        // Radial-distance compression is a far-field illusion. Letting a huge
+        // body's compressed proxy surround the observer turns a macro visual
+        // approximation into fake local terrain. Inside its declared invalid
+        // region, expose missing fine presentation rather than drawing a
+        // counterfeit surface.
+        if scenery_is_inside_near_field_exclusion(*presentation, relative) {
+            *visibility = Visibility::Hidden;
+            continue;
+        }
 
         let exponent_delta =
             f64::from(presentation.scale().exponent()) - f64::from(view.continuous_exponent());
@@ -410,6 +429,23 @@ mod fallback_handoff_tests {
             SpatialScale::ZERO,
             SpatialScale::new(35).unwrap(),
             false,
+        ));
+    }
+
+    #[test]
+    fn compressed_scenery_respects_near_field_validity_domain() {
+        let scale = SpatialScale::ZERO;
+        let presentation =
+            UsfSceneryPresentation::from_anchor(UsfPosition::zero(scale), scale)
+                .with_near_field_exclusion_radius_native(100.0);
+
+        assert!(scenery_is_inside_near_field_exclusion(
+            presentation,
+            Vec3::new(99.0, 0.0, 0.0),
+        ));
+        assert!(!scenery_is_inside_near_field_exclusion(
+            presentation,
+            Vec3::new(101.0, 0.0, 0.0),
         ));
     }
 

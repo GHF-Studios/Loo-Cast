@@ -65,6 +65,10 @@ impl VoxelScaleDomain {
         self.editing_slices
     }
 
+    pub const fn refinement_activation_native(self) -> f32 {
+        self.refinement_activation_native
+    }
+
     pub const fn realizes(self, scale: SpatialScale) -> bool {
         self.realization_slices.contains(scale)
     }

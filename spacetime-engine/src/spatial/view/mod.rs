@@ -60,6 +60,9 @@ pub struct UsfSceneryPresentation {
     anchor: UsfPosition,
     scale: SpatialScale,
     render_shell_radius: f64,
+    /// Observer distance, in `scale`-native units, below which this compressed
+    /// distant-object realizer is invalid and must not masquerade as local geometry.
+    near_field_exclusion_radius_native: Option<f64>,
 }
 
 impl UsfSceneryPresentation {
@@ -70,6 +73,7 @@ impl UsfSceneryPresentation {
             anchor,
             scale,
             render_shell_radius: Self::DEFAULT_RENDER_SHELL_RADIUS,
+            near_field_exclusion_radius_native: None,
         }
     }
 
@@ -82,6 +86,7 @@ impl UsfSceneryPresentation {
             anchor,
             scale,
             render_shell_radius: Self::DEFAULT_RENDER_SHELL_RADIUS,
+            near_field_exclusion_radius_native: None,
         }
     }
 
@@ -102,6 +107,20 @@ impl UsfSceneryPresentation {
             self.render_shell_radius = radius;
         }
         self
+    }
+
+    /// Declares where this compressed far-field representation ceases to be a
+    /// valid depiction of local space. This is realizer policy, not semantic
+    /// object identity and not a substitute terrain fallback.
+    pub fn with_near_field_exclusion_radius_native(mut self, radius: f64) -> Self {
+        if radius.is_finite() && radius > 0.0 {
+            self.near_field_exclusion_radius_native = Some(radius);
+        }
+        self
+    }
+
+    pub const fn near_field_exclusion_radius_native(self) -> Option<f64> {
+        self.near_field_exclusion_radius_native
     }
 }
 

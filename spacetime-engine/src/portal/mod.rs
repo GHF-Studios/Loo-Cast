@@ -160,7 +160,7 @@ impl Plugin for PortalPlugin {
             )
             .add_systems(
                 PostUpdate,
-                rebase_portal_local_caches.after(UsfSpatialSet::Rebase),
+                rebase_portal_local_caches.in_set(UsfSpatialSet::RuntimeProjection),
             );
     }
 }

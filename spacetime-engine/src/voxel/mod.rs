@@ -175,8 +175,7 @@ impl Plugin for VoxelPlugin {
                 PostUpdate,
                 manifestation::sync_manifestation_runtime_transforms
                     .after(VoxelPostUpdateSet::Rebuild)
-                    .after(UsfSpatialSet::Rebase)
-                    .before(UsfSpatialSet::ViewProjection),
+                    .in_set(UsfSpatialSet::RuntimeProjection),
             )
             .add_systems(
                 PostUpdate,
