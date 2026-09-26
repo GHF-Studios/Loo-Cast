@@ -5513,6 +5513,7 @@ dependencies = [
  "serde",
  "serde_json",
  "spacetime-engine-macros",
+ "spacetime-engine-usf",
  "vapor_telemetry",
 ]
 
@@ -5524,6 +5525,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.5",
+]
+
+[[package]]
+name = "spacetime-engine-usf"
+version = "0.5.0"
+dependencies = [
+ "bevy_ecs",
+ "bevy_reflect",
+ "glam 0.32.1",
 ]
 
 [[package]]

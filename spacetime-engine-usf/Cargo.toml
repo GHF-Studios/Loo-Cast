@@ -1,0 +1,15 @@
+[package]
+name = "spacetime-engine-usf"
+version.workspace = true
+edition.workspace = true
+
+[features]
+default = []
+# Transitional host integration only. The default canonical algebra build has
+# no Bevy/ECS dependency.
+bevy-integration = ["dep:bevy_ecs", "dep:bevy_reflect"]
+
+[dependencies]
+glam.workspace = true
+bevy_ecs = { version = "0.19.1", optional = true }
+bevy_reflect = { version = "0.19.1", optional = true }
