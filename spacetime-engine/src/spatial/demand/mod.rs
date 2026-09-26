@@ -12,7 +12,7 @@
 
 use bevy::prelude::*;
 
-use super::{SpatialScale, UsfPosition, UsfScaleLayer, UsfSpatialFrame};
+use super::{SpatialScale, UsfPosition, UsfRefinementPlan, UsfScaleLayer, UsfSpatialFrame};
 
 /// One bounded source of generic spatial interest.
 #[derive(Component, Debug, Clone, Copy, PartialEq)]
@@ -64,10 +64,10 @@ impl SpatialDemandSource {
 
 /// Requested additional spatial detail for capability-specific realization.
 ///
-/// This is *not* another generic interest volume. A planner may request
-/// realization through `minimum_scale`, but each capability remains responsible
-/// for deciding what structures or intermediate Scale Slices satisfy that
-/// requirement.
+/// This is *not* another generic interest volume. [`UsfRefinementPlan`]
+/// turns this requested tip into the current-relative ancestor branch over the
+/// Scale Slices supported by a capability. The capability still decides what it
+/// realizes inside each planned scope; it does not redefine the taper itself.
 ///
 /// `None` means "no additional refinement request". It must not mean "suppress
 /// the capability's ordinary realization for the generic spatial-interest

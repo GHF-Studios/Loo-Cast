@@ -8,8 +8,7 @@
 use bevy::{math::DVec3, prelude::*};
 
 use crate::spatial::{
-    SpatialScale, UsfInteractionProjection, UsfPosition, UsfPrimaryInteractionSlice,
-    UsfScaleLayer,
+    SpatialScale, UsfInteractionProjection, UsfPosition, UsfScaleLayer,
 };
 
 const PRESENTATION_RELATIVE_BOUND: f32 = 16_384.0;

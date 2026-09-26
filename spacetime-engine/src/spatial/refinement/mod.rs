@@ -8,6 +8,9 @@ use bevy::prelude::*;
 
 use super::{SpatialScale, UsfPosition};
 
+mod plan;
+pub use plan::{UsfRefinementPlan, UsfRefinementStep};
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct UsfScaleRoleMask(u16);
 

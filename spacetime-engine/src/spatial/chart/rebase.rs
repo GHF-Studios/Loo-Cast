@@ -7,15 +7,16 @@ use crate::{
     ecs::UsfLogicalProjection,
     spatial::{
         UsfChartDelta, UsfOriginRebased, UsfRuntimeChartState, UsfScaleLayer,
-        UsfSpatialAnchor, USF_CHILD_CHUNKS_PER_AXIS, USF_CHUNK_NATIVE_SIZE,
+        UsfSpatialAnchor,
     },
 };
+use spacetime_engine_usf::{USF_CHILD_CHUNKS_PER_AXIS, USF_CHUNK_NATIVE_SIZE};
 
 const REBASE_QUANTUM_NATIVE: f32 =
     USF_CHUNK_NATIVE_SIZE / USF_CHILD_CHUNKS_PER_AXIS as f32;
 const REBASE_THRESHOLD_NATIVE: f32 = REBASE_QUANTUM_NATIVE;
 
-pub(super) fn rebase_local_frame(
+pub(in crate::spatial) fn rebase_local_frame(
     mut frame: ResMut<UsfRuntimeChartState>,
     mut transforms: ParamSet<(
         Query<

@@ -140,6 +140,28 @@ impl UsfChartMask {
         })
     }
 
+    pub fn next_coarser(self, scale: SpatialScale) -> Option<SpatialScale> {
+        let start = scale.exponent().checked_add(1)?;
+        for raw in start..=super::SPATIAL_SCALE_MAX {
+            let candidate = SpatialScale::new(raw).expect("bounded USF scale");
+            if self.contains(candidate) {
+                return Some(candidate);
+            }
+        }
+        None
+    }
+
+    pub fn next_finer(self, scale: SpatialScale) -> Option<SpatialScale> {
+        let end = scale.exponent().checked_sub(1)?;
+        for raw in (SPATIAL_SCALE_MIN..=end).rev() {
+            let candidate = SpatialScale::new(raw).expect("bounded USF scale");
+            if self.contains(candidate) {
+                return Some(candidate);
+            }
+        }
+        None
+    }
+
     pub const fn bits(self) -> u128 {
         self.0
     }

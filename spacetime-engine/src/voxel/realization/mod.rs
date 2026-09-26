@@ -9,7 +9,7 @@
 //! Residency does not choose the voxel plan; it records the canonical contexts
 //! required by the plan.
 
-use std::collections::HashMap;
+use std::{cmp::Reverse, collections::HashMap};
 
 use bevy::prelude::*;
 
@@ -17,8 +17,8 @@ use crate::{
     ecs::UsfManifestationOf,
     spatial::{
         SpatialDemandScope, SpatialDemandSnapshot, SpatialRefinementDemand, SpatialScale,
-        UsfChartMask, UsfPosition, UsfResidencyRequestBuffer, UsfScaleCoverageSnapshot,
-        UsfScaleLayer, UsfScaleRoleMask,
+        UsfChartMask, UsfPosition, UsfRefinementPlan, UsfResidencyRequestBuffer,
+        UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScaleRoleMask,
     },
 };
 
@@ -111,6 +111,7 @@ impl VoxelScaleDomain {
 struct VoxelRealizationDemand {
     target_world: Entity,
     scope: SpatialDemandScope,
+    residency_half_extent_native: Vec3,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -136,10 +137,16 @@ impl VoxelRealizationDemandSnapshot {
             .map(|demand| demand.scope)
     }
 
-    fn push(&mut self, target_world: Entity, scope: SpatialDemandScope) {
+    fn push(
+        &mut self,
+        target_world: Entity,
+        scope: SpatialDemandScope,
+        residency_half_extent_native: Vec3,
+    ) {
         self.demands.push(VoxelRealizationDemand {
             target_world,
             scope,
+            residency_half_extent_native,
         });
     }
 }
@@ -191,15 +198,17 @@ pub(super) fn collect_voxel_realization_demand(
 
         // Persistent capability-local residency is explicit voxel policy.
         if let Some(pinned) = pinned {
+            let scope = SpatialDemandScope::at_scale(
+                world_entity,
+                scale,
+                pinned.center(),
+                pinned.half_extent_native(),
+                pinned.priority(),
+            );
             next.push(
                 world_entity,
-                SpatialDemandScope::at_scale(
-                    world_entity,
-                    scale,
-                    pinned.center(),
-                    pinned.half_extent_native(),
-                    pinned.priority(),
-                ),
+                scope,
+                materialization_residency_extent(scope.half_extent_native()),
             );
         }
 
@@ -211,31 +220,29 @@ pub(super) fn collect_voxel_realization_demand(
             }
 
             for source in sources.values().copied() {
-                if !realization_requests_scale(
-                    source.scope.scale(),
-                    source.minimum_realization_scale,
-                    scale,
-                ) {
+                let plan = realization_plan(source, *domain);
+                let Some(step) = plan.step(scale) else {
                     continue;
-                }
-
-                let half_extent_native =
-                    realization_half_extent_at_scale(source, *domain, scale);
+                };
 
                 if let Some(scope) = celestial_surface_demand(
                     *field,
                     *domain,
                     source.scope,
                     scale,
-                    half_extent_native,
+                    step.half_extent_native(),
+                    step.priority(),
                 ) && parent_realization_ready(
                     manifestation.0,
-                    *domain,
+                    step.parent_scale(),
                     &coverage,
-                    scale,
                     &scope.center(),
                 ) {
-                    next.push(world_entity, scope);
+                    next.push(
+                        world_entity,
+                        scope,
+                        step.residency_half_extent_native(),
+                    );
                 }
             }
             continue;
@@ -245,7 +252,13 @@ pub(super) fn collect_voxel_realization_demand(
         // numerical chart. They do not inherit a made-up multi-scale spine.
         for source in sources.values().copied() {
             if source.scope.scale() == scale {
-                next.push(world_entity, source.scope);
+                next.push(
+                    world_entity,
+                    source.scope,
+                    materialization_residency_extent(
+                        source.scope.half_extent_native(),
+                    ),
+                );
             }
         }
     }
@@ -254,7 +267,7 @@ pub(super) fn collect_voxel_realization_demand(
         (
             demand.target_world.to_bits(),
             demand.scope.source().to_bits(),
-            demand.scope.scale().exponent(),
+            Reverse(demand.scope.scale().exponent()),
         )
     });
 
@@ -268,8 +281,7 @@ pub(super) fn collect_voxel_realization_demand(
             scope.source(),
             scope.scale(),
             scope.center(),
-            scope.half_extent_native()
-                + Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32 * 0.5),
+            demand.residency_half_extent_native,
             scope.priority(),
         ));
     }
@@ -279,54 +291,73 @@ pub(super) fn collect_voxel_realization_demand(
     }
 }
 
-/// Native footprint for one target realization in the current refinement
-/// stalactite.
-///
-/// The finest requested realization is the tip. Its local working-set extent is
-/// projected upward through the decimal Scale Stack, so each coarser ancestor
-/// needs exponentially fewer native chunks. Moving the tip moves the whole
-/// taper; there is no absolute "fine scales always get more chunks" rule.
+fn realization_plan(
+    source: VoxelDemandSource,
+    domain: VoxelScaleDomain,
+) -> UsfRefinementPlan {
+    let tip_extent = source
+        .refinement_half_extent_native
+        .unwrap_or(Vec3::splat(domain.local_patch_half_extent_native));
+
+    UsfRefinementPlan::new(
+        source.scope.scale(),
+        source.minimum_realization_scale,
+        domain.realization_slices(),
+        tip_extent,
+        source.scope.priority().saturating_add(1_000),
+    )
+    .with_residency_halo_native(Vec3::splat(
+        MATERIALIZATION_CHUNK_SIZE as f32 * 0.5,
+    ))
+}
+
+fn materialization_residency_extent(half_extent_native: Vec3) -> Vec3 {
+    half_extent_native + Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32 * 0.5)
+}
+
+#[cfg(test)]
 fn realization_half_extent_at_scale(
     source: VoxelDemandSource,
     domain: VoxelScaleDomain,
     target_scale: SpatialScale,
 ) -> Vec3 {
-    let tip_scale = source
-        .minimum_realization_scale
-        .unwrap_or(source.scope.scale());
-    let tip_extent = source
-        .refinement_half_extent_native
-        .unwrap_or(Vec3::splat(domain.local_patch_half_extent_native));
-
-    debug_assert!(target_scale >= tip_scale);
-    let exponent_delta =
-        i32::from(tip_scale.exponent()) - i32::from(target_scale.exponent());
-    let factor = 10.0_f32.powi(exponent_delta);
-    tip_extent * factor
+    realization_plan(source, domain)
+        .step(target_scale)
+        .expect("test target scale must participate in the refinement plan")
+        .half_extent_native()
 }
 
+#[cfg(test)]
 fn realization_parent_scale(
     domain: VoxelScaleDomain,
     target_scale: SpatialScale,
 ) -> Option<SpatialScale> {
-    let parent = SpatialScale::new(target_scale.exponent().checked_add(1)?)?;
-    domain.realizes(parent).then_some(parent)
+    domain.realization_slices().next_coarser(target_scale)
 }
 
-/// A finer Earth slice may start only after the immediately coarser slice has
-/// actually published realization coverage at the same canonical branch.
-///
-/// This intentionally gates by realized fact rather than request order. It is a
-/// simple center-branch dependency for now; per-chunk parent/child scheduling
-/// can refine this later without changing the ownership model.
+#[cfg(test)]
+fn realization_requests_scale(
+    source_scale: SpatialScale,
+    minimum_scale: Option<SpatialScale>,
+    target_scale: SpatialScale,
+) -> bool {
+    UsfRefinementPlan::new(
+        source_scale,
+        minimum_scale,
+        UsfChartMask::ALL,
+        Vec3::ONE,
+        0,
+    )
+    .requests_scale(target_scale)
+}
+
 fn parent_realization_ready(
     authority: Entity,
-    domain: VoxelScaleDomain,
+    parent_scale: Option<SpatialScale>,
     coverage: &UsfScaleCoverageSnapshot,
-    target_scale: SpatialScale,
     center: &UsfPosition,
 ) -> bool {
-    let Some(parent_scale) = realization_parent_scale(domain, target_scale) else {
+    let Some(parent_scale) = parent_scale else {
         return true;
     };
 
@@ -339,29 +370,13 @@ fn parent_realization_ready(
     )
 }
 
-fn realization_requests_scale(
-    source_scale: SpatialScale,
-    minimum_scale: Option<SpatialScale>,
-    target_scale: SpatialScale,
-) -> bool {
-    match minimum_scale {
-        // "Request through Sx" means Sx and every coarser supported
-        // realization may prepare context; finer slices remain absent.
-        Some(minimum) => target_scale >= minimum,
-
-        // Generic spatial interest still deserves the capability's ordinary
-        // realization in the source's current numerical/interaction chart.
-        // Absence of approach refinement must never erase local reality.
-        None => target_scale == source_scale,
-    }
-}
-
 fn celestial_surface_demand(
     field: CelestialVoxelField,
     domain: VoxelScaleDomain,
     source: SpatialDemandScope,
     target_scale: SpatialScale,
     half_extent_native: Vec3,
+    priority: i32,
 ) -> Option<SpatialDemandScope> {
     let body = field.realization(target_scale);
     let activation = domain.refinement_activation_native;
@@ -380,7 +395,7 @@ fn celestial_surface_demand(
         target_scale,
         center,
         half_extent_native,
-        source.priority() + 1_000,
+        priority,
     ))
 }
 

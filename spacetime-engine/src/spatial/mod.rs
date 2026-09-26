@@ -41,7 +41,8 @@ pub use position::{
     UsfChartDelta, UsfChunkAddress, UsfPosition, UsfPositionError,
 };
 pub use refinement::{
-    UsfRefinementAperture, UsfScaleCoverage, UsfScaleCoverageSnapshot, UsfScaleRoleMask,
+    UsfRefinementAperture, UsfRefinementPlan, UsfRefinementStep, UsfScaleCoverage,
+    UsfScaleCoverageSnapshot, UsfScaleRoleMask,
 };
 pub use transition::{
     UsfInteractionRequirement, UsfSpatialTransition, UsfSpatialTransitionApplied,
