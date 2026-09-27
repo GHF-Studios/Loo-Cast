@@ -74,3 +74,18 @@ fn scale_fallback_owns_only_views_beyond_realization_ladder() {
     assert!(fallback.owns_view_scale(s7));
     assert!(fallback.owns_view_scale(SpatialScale::MAX));
 }
+
+#[test]
+fn presentation_probe_filters_passes_without_changing_default_composition() {
+    let all = UsfPresentationProbe::default();
+    assert!(all.physical_enabled());
+    assert!(all.context_enabled());
+
+    let physical = UsfPresentationProbe::Physical;
+    assert!(physical.physical_enabled());
+    assert!(!physical.context_enabled());
+
+    let context = UsfPresentationProbe::Context;
+    assert!(!context.physical_enabled());
+    assert!(context.context_enabled());
+}

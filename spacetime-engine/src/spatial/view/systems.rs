@@ -208,6 +208,7 @@ pub(in crate::spatial) fn project_scenery_presentations(
     mut commands: Commands,
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     interaction: Res<UsfPrimaryInteractionSlice>,
+    probe: Res<UsfPresentationProbe>,
     coverage: Res<UsfScaleCoverageSnapshot>,
     ownership: UsfOwnershipQuery,
     parents: Query<&Transform, Without<UsfSceneryPresentation>>,
@@ -237,6 +238,11 @@ pub(in crate::spatial) fn project_scenery_presentations(
         projection,
     ) in &mut presentations
     {
+        if !probe.context_enabled() {
+            *visibility = Visibility::Hidden;
+            continue;
+        }
+
         if let Some(fallback) = fallback {
             let replacement_ready = projection
                 .and_then(|projection| ownership.semantic_of(projection.0))
@@ -352,6 +358,7 @@ pub(in crate::spatial) fn project_scale_presentations(
     mut commands: Commands,
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     interaction: Res<UsfPrimaryInteractionSlice>,
+    probe: Res<UsfPresentationProbe>,
     parents: Query<
         (&Transform, Option<&UsfCapabilityRealization>),
         Without<UsfScalePresentation>,
@@ -413,6 +420,11 @@ pub(in crate::spatial) fn project_scale_presentations(
         let physical_local =
             capability.is_some() && presentation.scale() == interaction.scale();
         if physical_local {
+            if !probe.physical_enabled() {
+                *visibility = Visibility::Hidden;
+                continue;
+            }
+
             let desired_layers = RenderLayers::default();
             if render_layers.is_none_or(|current| *current != desired_layers) {
                 commands.entity(entity).insert(desired_layers);
@@ -439,6 +451,11 @@ pub(in crate::spatial) fn project_scale_presentations(
         // Non-interaction scale realizations are observer-relative contextual
         // presentation. They are disposable projections and never physical
         // authority for the local subject.
+        if !probe.context_enabled() {
+            *visibility = Visibility::Hidden;
+            continue;
+        }
+
         let desired_layers = RenderLayers::layer(USF_PRESENTATION_LAYER);
         if render_layers.is_none_or(|current| *current != desired_layers) {
             commands.entity(entity).insert(desired_layers);

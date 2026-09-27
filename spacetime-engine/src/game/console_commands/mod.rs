@@ -3,6 +3,8 @@
 //! Navigation resolves destinations into canonical USF transitions. The console
 //! never mutates runtime Transform coordinates directly.
 
+use std::collections::BTreeMap;
+
 use bevy::{math::DVec3, prelude::*};
 
 use crate::{
@@ -15,12 +17,12 @@ use crate::{
     },
     portal::{PortalSplitTraveler, PortalTraveler},
     spatial::{
-        SpatialDemandSource, SpatialScale, UsfApproachRefinement, UsfPosition,
-        UsfPrimaryInteractionSlice, UsfScaleCoverageSnapshot, UsfScaleLayer,
-        UsfScaleRoleMask, UsfSpatialFrame, UsfSpatialSet, UsfSpatialTransition,
-        UsfSpatialTransitionApplied, UsfSpatialTransitionQueue,
-        UsfTransitionVelocity, UsfTravelInfluence, UsfTravelInfluenceKind,
-        UsfViewContext, UsfViewRenderAnchor,
+        SpatialDemandSource, SpatialScale, UsfApproachRefinement, UsfCapabilityRealization,
+        UsfPosition, UsfPresentationProbe, UsfPrimaryInteractionSlice,
+        UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScalePresentation, UsfScaleRoleMask,
+        UsfSceneryPresentation, UsfSpatialFrame, UsfSpatialSet, UsfSpatialTransition,
+        UsfSpatialTransitionApplied, UsfSpatialTransitionQueue, UsfTransitionVelocity,
+        UsfTravelInfluence, UsfTravelInfluenceKind, UsfViewContext, UsfViewRenderAnchor,
     },
 };
 
@@ -31,6 +33,7 @@ use super::{
     player::{Player, PlayerAim},
     world::UniverseLandmarkIndex,
 };
+use crate::view::PrimaryGameView;
 
 pub(super) fn configure(app: &mut App) {
     app.add_systems(
@@ -48,6 +51,15 @@ pub(super) fn configure(app: &mut App) {
             summary: "Show player runtime, canonical and observer-scale position.",
         },
         where_command,
+    )
+    .register_console_command(
+        ConsoleCommandSpec {
+            name: "presentation",
+            aliases: &["present", "viewpass"],
+            usage: "presentation [all|physical|context]",
+            summary: "Inspect or isolate physical vs contextual USF presentation passes.",
+        },
+        presentation_command,
     )
     .register_console_command(
         ConsoleCommandSpec {
@@ -139,6 +151,8 @@ fn where_command(world: &mut World, _: &ConsoleCommandInvocation) -> ConsoleComm
     };
 
     let interaction = *world.resource::<UsfPrimaryInteractionSlice>();
+    let locomotion = world.get::<ControlledSubjectLocomotion>(controlled_entity).copied();
+    let probe = *world.resource::<UsfPresentationProbe>();
     let coverage_status = semantic_position.map_or_else(
         || "coverage = <canonical position unavailable>".to_string(),
         |position| {
@@ -191,6 +205,14 @@ fn where_command(world: &mut World, _: &ConsoleCommandInvocation) -> ConsoleComm
                 None => format!("interaction = S{}", interaction.scale()),
             }
         },
+        locomotion.map_or_else(
+            || "locomotion = <unavailable>".to_string(),
+            |state| format!(
+                "locomotion = {:?} / {:?} / {:?}",
+                state.regime(), state.kernel(), state.collision_policy(),
+            ),
+        ),
+        format!("presentation probe = {}", probe.label()),
         format!("canonical = {semantic}"),
         coverage_status,
         {
@@ -234,6 +256,121 @@ fn where_command(world: &mut World, _: &ConsoleCommandInvocation) -> ConsoleComm
             )
         },
     ])
+}
+
+
+fn presentation_command(
+    world: &mut World,
+    invocation: &ConsoleCommandInvocation,
+) -> ConsoleCommandResult {
+    if invocation.args().len() > 1 {
+        return ConsoleCommandResult::error("usage: presentation [all|physical|context]");
+    }
+
+    if let Some(raw) = invocation.args().first().map(String::as_str) {
+        let mode = if raw.eq_ignore_ascii_case("all") {
+            UsfPresentationProbe::All
+        } else if raw.eq_ignore_ascii_case("physical") || raw.eq_ignore_ascii_case("local") {
+            UsfPresentationProbe::Physical
+        } else if raw.eq_ignore_ascii_case("context") || raw.eq_ignore_ascii_case("contextual") {
+            UsfPresentationProbe::Context
+        } else {
+            return ConsoleCommandResult::error(format!(
+                "invalid presentation probe `{raw}`; expected all, physical or context"
+            ));
+        };
+        *world.resource_mut::<UsfPresentationProbe>() = mode;
+    }
+
+    let probe = *world.resource::<UsfPresentationProbe>();
+    let interaction = *world.resource::<UsfPrimaryInteractionSlice>();
+    let Some(view) = primary_view_context(world) else {
+        return ConsoleCommandResult::error("primary USF view context is unavailable");
+    };
+
+    let camera_line = |name: &str, value: Option<(Vec3, isize, String)>| {
+        value.map_or_else(
+            || format!("{name} camera = <unavailable>"),
+            |(p, order, depth)| format!(
+                "{name} camera: order={} origin=({:.4},{:.4},{:.4}) depth={}",
+                order, p.x, p.y, p.z, depth
+            ),
+        )
+    };
+    let local_camera = {
+        let mut q = world.query_filtered::<(&Transform, &Camera, &Camera3d), With<PrimaryGameView>>();
+        q.iter(world).next().map(|(t,c,c3)| (t.translation,c.order,format!("{:?}",c3.depth_load_op)))
+    };
+    let context_camera = {
+        let mut q = world.query_filtered::<(&Transform, &Camera, &Camera3d), With<UsfViewRenderAnchor>>();
+        q.iter(world).next().map(|(t,c,c3)| (t.translation,c.order,format!("{:?}",c3.depth_load_op)))
+    };
+
+    #[derive(Default)]
+    struct Counts { pt: usize, pv: usize, ct: usize, cv: usize }
+
+    let terrain = {
+        let mut q = world.query::<(&UsfScalePresentation, Option<&ChildOf>, &Visibility)>();
+        q.iter(world).map(|(p,parent,v)| (
+            p.scale(), parent.map(|x| x.0), !matches!(*v, Visibility::Hidden)
+        )).collect::<Vec<_>>()
+    };
+    let mut counts = BTreeMap::<i8, Counts>::new();
+    for (scale, parent, visible) in terrain {
+        let physical = parent
+            .and_then(|e| world.get::<UsfCapabilityRealization>(e))
+            .is_some() && scale == interaction.scale();
+        let c = counts.entry(scale.exponent()).or_default();
+        if physical {
+            c.pt += 1;
+            c.pv += usize::from(visible);
+        } else {
+            c.ct += 1;
+            c.cv += usize::from(visible);
+        }
+    }
+
+    let scenery = {
+        let mut q = world.query::<(&UsfSceneryPresentation, &Visibility)>();
+        q.iter(world).map(|(p,v)| (
+            p.scale(), !matches!(*v, Visibility::Hidden)
+        )).collect::<Vec<_>>()
+    };
+    let mut scenery_counts = BTreeMap::<i8,(usize,usize)>::new();
+    for (scale, visible) in scenery {
+        let c = scenery_counts.entry(scale.exponent()).or_default();
+        c.0 += 1;
+        c.1 += usize::from(visible);
+    }
+
+    let mut lines = vec![
+        format!("presentation probe = {}", probe.label()),
+        format!(
+            "observer = {:+.3} | render S{} | interaction S{}{}",
+            view.continuous_exponent(),
+            view.render_scale(),
+            interaction.scale(),
+            interaction.requested_scale().map_or(String::new(), |s| format!(" -> S{} pending", s)),
+        ),
+        camera_line("local", local_camera),
+        camera_line("context", context_camera),
+    ];
+
+    if counts.is_empty() {
+        lines.push("scale terrain = <none>".to_string());
+    } else {
+        for (e,c) in counts {
+            lines.push(format!(
+                "terrain S{:+}: physical {}/{} visible | context {}/{} visible",
+                e,c.pv,c.pt,c.cv,c.ct
+            ));
+        }
+    }
+    for (e,(total,visible)) in scenery_counts {
+        lines.push(format!("scenery S{:+}: {}/{} visible", e,visible,total));
+    }
+
+    ConsoleCommandResult::lines(lines)
 }
 
 fn locate_command(world: &mut World, invocation: &ConsoleCommandInvocation) -> ConsoleCommandResult {

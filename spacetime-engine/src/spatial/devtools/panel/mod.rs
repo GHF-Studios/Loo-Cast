@@ -55,7 +55,7 @@ pub(super) fn update_debug_panel(
     frame: Res<UsfSpatialFrame>,
     ownership: UsfOwnershipQuery,
     anchors: Query<
-        (Entity, &Transform, Option<&LinearVelocity>),
+        (Entity, &Transform, Option<&LinearVelocity>, &UsfScaleLayer),
         With<UsfSpatialAnchor>,
     >,
     semantic_positions: Query<&UsfPosition>,
@@ -74,7 +74,7 @@ pub(super) fn update_debug_panel(
         return;
     }
 
-    let Some((realization, transform, velocity)) = anchors.iter().next() else {
+    let Some((realization, transform, velocity, layer)) = anchors.iter().next() else {
         for mut text in &mut texts {
             text.0 = "No USF spatial anchor is active.".to_string();
         }
@@ -89,13 +89,20 @@ pub(super) fn update_debug_panel(
         .map(UsfPosition::format_stack)
         .unwrap_or_else(|| "<missing semantic UsfPosition>".to_string());
 
+    let scale = layer.scale();
+    let metres_per_native = scale.metres_per_native();
+    let velocity_metres = velocity * metres_per_native as f32;
+
     let output = format!(
-        "Runtime scale: S0 (1 unit = 1 metre)\n\
-Local position: ({:.3}, {:.3}, {:.3}) m\n\
-Local velocity: ({:.3}, {:.3}, {:.3}) m/s  |v|={:.3}\n\
+        "Runtime scale: S{} (1 native = {:.3e} m)\n\
+Local position: ({:.6}, {:.6}, {:.6}) native\n\
+Local velocity: ({:.6}, {:.6}, {:.6}) native/s  |v|={:.6}\n\
+Physical velocity: ({:.3}, {:.3}, {:.3}) m/s  |v|={:.3}\n\
 Semantic position: {}\n\
 Frame origin: {}\n\
-Rebases: {}  last shift=({:.1}, {:.1}, {:.1}) m",
+Rebases: {}  last shift=({:.6}, {:.6}, {:.6}) native@S{}",
+        scale,
+        metres_per_native,
         transform.translation.x,
         transform.translation.y,
         transform.translation.z,
@@ -103,12 +110,17 @@ Rebases: {}  last shift=({:.1}, {:.1}, {:.1}) m",
         velocity.y,
         velocity.z,
         velocity.length(),
+        velocity_metres.x,
+        velocity_metres.y,
+        velocity_metres.z,
+        velocity_metres.length(),
         semantic_text,
         frame.origin().format_stack(),
         frame.rebase_count(),
         frame.last_shift().x,
         frame.last_shift().y,
         frame.last_shift().z,
+        scale,
     );
 
     for mut text in &mut texts {

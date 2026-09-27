@@ -10,7 +10,10 @@ use crate::{
     ui::{UiTextRole, UiTheme},
 };
 
-use super::{SpatialDemandSnapshot, UsfPosition, UsfSpatialAnchor, UsfSpatialFrame, UsfSpatialSet};
+use super::{
+    SpatialDemandSnapshot, UsfPosition, UsfScaleLayer, UsfSpatialAnchor, UsfSpatialFrame,
+    UsfSpatialSet,
+};
 
 const USF_SPATIAL_VISUALIZATION: VisualizationId = VisualizationId("usf_spatial");
 pub(crate) const SPATIAL_DEMAND_VISUALIZATION: VisualizationId =

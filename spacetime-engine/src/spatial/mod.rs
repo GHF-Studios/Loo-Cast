@@ -50,9 +50,9 @@ pub use transition::{
     UsfSpatialTransitionCause, UsfSpatialTransitionQueue, UsfTransitionVelocity,
 };
 pub use view::{
-    UsfDistanceMeshLod, UsfLocalScalePresentation, UsfScaleFallbackPresentation, UsfScalePresentation,
-    UsfSceneryPresentation, UsfViewAnchor, UsfViewContext, UsfViewRenderAnchor,
-    UsfViewScaleDemand,
+    UsfDistanceMeshLod, UsfLocalScalePresentation, UsfPresentationProbe,
+    UsfScaleFallbackPresentation, UsfScalePresentation, UsfSceneryPresentation,
+    UsfViewAnchor, UsfViewContext, UsfViewRenderAnchor, UsfViewScaleDemand,
 };
 
 use bevy::{prelude::*, transform::TransformSystems};
@@ -92,6 +92,7 @@ impl Plugin for UsfSpatialPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<UsfSpatialFrame>()
             .init_resource::<UsfPrimaryInteractionSlice>()
+            .init_resource::<UsfPresentationProbe>()
             .init_resource::<UsfScaleSlices>()
             .init_resource::<UsfSpatialTransitionQueue>()
             .add_message::<UsfOriginRebased>()
