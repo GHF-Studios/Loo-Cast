@@ -21,13 +21,12 @@ struct CameraPortalCrossing {
 pub(super) fn resolve_third_person_boom(
     spatial_query: &SpatialQuery,
     physics_charts: &UsfPhysicsSlices<'_, '_>,
-    semantic_entities: &Query<&UsfManifestations>,
+    runtime_ownership: &UsfRuntimeOwnershipQuery<'_, '_>,
     portals: &Query<
         (Entity, &Portal, &PortalActive, &Transform),
         (With<Portal>, Without<PlayerCamera>),
     >,
     player_entity: Entity,
-    manifestation: &UsfManifestationOf,
     scale: SpatialScale,
     pivot: Vec3,
     view_rotation: Quat,
@@ -41,10 +40,7 @@ pub(super) fn resolve_third_person_boom(
     );
     let collision_padding = settings.collision_padding_native(scale);
     let portal_epsilon = scale.metres_to_native_f32(CAMERA_PORTAL_EPSILON_METRES);
-    let excluded = semantic_entities
-        .get(manifestation.0)
-        .map(|manifestations| manifestations.iter().collect::<Vec<_>>())
-        .unwrap_or_else(|_| vec![player_entity]);
+    let excluded = runtime_ownership.runtime_entities_for(player_entity);
     let filter = physics_charts.filter_for_scale(scale, excluded);
 
     let mut transform = Transform {

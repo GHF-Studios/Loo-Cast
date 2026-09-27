@@ -10,5 +10,5 @@ mod split;
 
 pub(super) use hooks::SpatialTopologyCollisionHooks;
 pub use hooks::{SpatialSplitPeer, SpatialSplitPeerActive};
-pub use query::KinematicQueryExclusions;
+pub use query::{KinematicQueryExclusions, UsfRuntimeOwnershipQuery};
 pub use split::{BoxPlanePartition, SpatialSplitBox, SplitPlane, partition_box_by_plane};

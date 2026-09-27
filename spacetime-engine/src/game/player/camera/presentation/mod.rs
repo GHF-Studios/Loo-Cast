@@ -3,7 +3,7 @@
 use bevy::camera::visibility::RenderLayers;
 
 use crate::{
-    ecs::{UsfManifestationOf, UsfPresentationProjectionOf},
+    ecs::UsfPresentationProjectionOf,
     portal::DERIVED_VIEW_LAYER,
     view::ViewSubjectPresentation,
 };
@@ -35,6 +35,7 @@ pub(in crate::game::player) fn sync_view_camera_profile(
 pub(in crate::game::player) fn sync_player_camera(
     spatial_query: SpatialQuery,
     physics_charts: UsfPhysicsSlices,
+    runtime_ownership: UsfRuntimeOwnershipQuery,
     controller: Single<&PlayerAim, With<Player>>,
     subject: Single<
         (
@@ -42,13 +43,12 @@ pub(in crate::game::player) fn sync_player_camera(
             &Transform,
             &CharacterControlFrame,
             Option<&CharacterStance>,
-            &UsfManifestationOf,
             &UsfScaleLayer,
             &mut ViewCameraProfile,
         ),
         (
             With<LocalViewTarget>,
-            With<UsfLogicalProjection>,
+            With<UsfLogicalRealizationOf>,
             Without<PlayerCamera>,
         ),
     >,
@@ -56,7 +56,6 @@ pub(in crate::game::player) fn sync_player_camera(
         (&PlayerCamera, &mut Transform),
         (With<PlayerCamera>, Without<LocalViewTarget>),
     >,
-    semantic_entities: Query<&UsfManifestations>,
     portals: Query<
         (Entity, &Portal, &PortalActive, &Transform),
         (With<Portal>, Without<PlayerCamera>),
@@ -68,7 +67,6 @@ pub(in crate::game::player) fn sync_player_camera(
         body,
         control,
         stance,
-        manifestation,
         layer,
         mut profile,
     ) = subject.into_inner();
@@ -95,10 +93,9 @@ pub(in crate::game::player) fn sync_player_camera(
             let resolved = resolve_third_person_boom(
                 &spatial_query,
                 &physics_charts,
-                &semantic_entities,
+                &runtime_ownership,
                 &portals,
                 subject_entity,
-                manifestation,
                 layer.scale(),
                 pivot,
                 view_rotation,
@@ -163,19 +160,18 @@ pub(in crate::game::player) fn sync_usf_projection_camera(
 /// of previous/unrelated view subjects are restored to ordinary world layers.
 pub(in crate::game::player) fn sync_view_subject_presentations(
     camera: Single<&PlayerCamera>,
-    target: Single<&UsfManifestationOf, With<LocalViewTarget>>,
-    manifestations: Query<&UsfManifestationOf>,
+    runtime_ownership: UsfRuntimeOwnershipQuery,
+    target: Single<Entity, With<LocalViewTarget>>,
     mut presentations: Query<
         (&UsfPresentationProjectionOf, &mut RenderLayers),
         With<ViewSubjectPresentation>,
     >,
 ) {
-    let viewed_semantic = target.0;
+    let viewed_semantic = runtime_ownership.semantic_of(target.into_inner());
 
     for (projection, mut layers) in &mut presentations {
-        let is_self = manifestations
-            .get(projection.0)
-            .is_ok_and(|manifestation| manifestation.0 == viewed_semantic);
+        let is_self = viewed_semantic.is_some()
+            && runtime_ownership.semantic_of(projection.0) == viewed_semantic;
 
         let desired = if is_self && camera.mode == CameraMode::FirstPerson {
             RenderLayers::layer(DERIVED_VIEW_LAYER)

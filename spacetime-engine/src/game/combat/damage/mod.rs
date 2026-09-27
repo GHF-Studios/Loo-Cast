@@ -4,7 +4,7 @@ use super::*;
 
 pub(super) fn hits_to_damage(
     mut hits: MessageReader<Hit>,
-    ownership: UsfOwnershipQuery,
+    ownership: UsfRuntimeOwnershipQuery,
     mut damage: MessageWriter<Damage>,
 ) {
     for hit in hits.read() {

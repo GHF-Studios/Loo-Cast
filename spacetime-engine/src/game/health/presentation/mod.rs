@@ -7,12 +7,12 @@ use bevy::{
 };
 
 use crate::{
-    ecs::{UsfManifestationOf, UsfOwnershipQuery},
+    ecs::{UsfLogicalRealizationOf, UsfOwnershipQuery},
     game::{
         GameSet,
         player::{Player, PlayerCamera},
     },
-    physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive},
+    physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive, UsfRuntimeOwnershipQuery},
 };
 
 use super::{DamageableBounds, Health};

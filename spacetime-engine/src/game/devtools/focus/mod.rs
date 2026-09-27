@@ -4,9 +4,8 @@ use super::*;
 
 pub(super) fn resolve_player_focus(
     view: Res<DeveloperView>,
-    player: Single<(Entity, &UsfManifestationOf), With<Player>>,
-    manifestations: Query<&UsfManifestationOf>,
-    semantic_entities: Query<&UsfManifestations>,
+    player: Single<Entity, With<Player>>,
+    runtime_ownership: UsfRuntimeOwnershipQuery,
     portals: Query<(Entity, &Portal, &PortalActive, &GlobalTransform)>,
     spatial_query: SpatialQuery,
     mut focus: ResMut<DeveloperFocus>,
@@ -20,11 +19,8 @@ pub(super) fn resolve_player_focus(
         return;
     };
 
-    let (actor, manifestation) = player.into_inner();
-    let filter = semantic_entities
-        .get(manifestation.0)
-        .map(|manifestations| SpatialQueryFilter::from_excluded_entities(manifestations.iter()))
-        .unwrap_or_else(|_| SpatialQueryFilter::from_excluded_entities([actor]));
+    let actor = player.into_inner();
+    let filter = runtime_ownership.filter_excluding_subject(actor);
 
     let spatial_hit = spatial_query
         .cast_ray(ray.origin, direction, FOCUS_RANGE_METERS, false, &filter)
@@ -58,10 +54,7 @@ pub(super) fn resolve_player_focus(
         }
     };
 
-    let semantic_entity = manifestations
-        .get(hit.0)
-        .map(|manifestation| manifestation.0)
-        .unwrap_or(hit.0);
+    let semantic_entity = runtime_ownership.semantic_of(hit.0).unwrap_or(hit.0);
 
     focus.set_hovered(Some(FocusTarget::hit(
         hit.0,

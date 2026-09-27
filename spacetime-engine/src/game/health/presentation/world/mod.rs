@@ -54,16 +54,17 @@ pub(super) fn sync_world_health_bars(
     assets: Res<WorldHealthBarAssets>,
     mut cache: ResMut<WorldHealthBarCache>,
     cameras: Query<&GlobalTransform, (With<PlayerCamera>, Without<WorldHealthBarVisual>)>,
-    player: Query<&UsfManifestationOf, With<Player>>,
+    runtime_ownership: UsfRuntimeOwnershipQuery,
+    player: Query<Entity, With<Player>>,
     health: Query<&Health>,
     manifestations: Query<
         (
             Entity,
-            &UsfManifestationOf,
             &GlobalTransform,
             Option<&DamageableBounds>,
         ),
         (
+            Or<(With<UsfLogicalRealizationOf>, With<SpatialSplitPeer>)>,
             Or<(Without<SpatialSplitPeer>, With<SpatialSplitPeerActive>)>,
             Without<WorldHealthBarVisual>,
         ),
@@ -80,17 +81,23 @@ pub(super) fn sync_world_health_bars(
     else {
         return;
     };
-    let player_semantic = player.iter().next().map(|manifestation| manifestation.0);
+    let player_semantic = player
+        .iter()
+        .next()
+        .and_then(|realization| runtime_ownership.semantic_of(realization));
 
     let mut seen = HashSet::new();
 
     // Health is semantic state. Render one bar for each currently active
     // spatial manifestation rather than copying Health onto presentation entities.
-    for (entity, manifestation, transform, bounds) in &manifestations {
-        if Some(manifestation.0) == player_semantic {
+    for (entity, transform, bounds) in &manifestations {
+        let Some(semantic) = runtime_ownership.semantic_of(entity) else {
+            continue;
+        };
+        if Some(semantic) == player_semantic {
             continue;
         }
-        let Ok(health) = health.get(manifestation.0) else {
+        let Ok(health) = health.get(semantic) else {
             continue;
         };
 

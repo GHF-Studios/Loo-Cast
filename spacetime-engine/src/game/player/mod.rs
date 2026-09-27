@@ -45,7 +45,7 @@ use crate::{
             CharacterLocomotionFrame, CharacterMotor, CharacterMovementConfig,
             CharacterMovementInput, GravityAlignedLocomotionFrame,
         },
-        topology::{KinematicQueryExclusions, SpatialSplitPeer},
+        topology::{KinematicQueryExclusions, SpatialSplitPeer, UsfRuntimeOwnershipQuery},
     },
     spatial::{
         SpatialDemandSource, SpatialRefinementDemand, SpatialScale, UsfInteractionProjection,

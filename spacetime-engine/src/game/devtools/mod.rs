@@ -1,6 +1,6 @@
 //! Loo Cast adapters for developer focus, inspection and domain tooling.
 
-use avian3d::prelude::{SpatialQuery, SpatialQueryFilter};
+use avian3d::prelude::SpatialQuery;
 use bevy::{prelude::*, window::PrimaryWindow};
 
 use crate::{
@@ -8,8 +8,7 @@ use crate::{
         DeveloperFocus, DeveloperSet, DeveloperTools, DeveloperView, FocusHit, FocusTarget,
         InspectField, InspectSection, InspectSectionId, InspectValue, InspectionFrame,
     },
-    ecs::{UsfManifestationAuthority, UsfManifestationOf, UsfManifestations},
-    physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive},
+    physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive, UsfRuntimeOwnershipQuery},
     portal::{Portal, PortalActive},
     view::{PrimaryGameView, PrimaryViewPresentation, ViewRay, ViewportSpace},
 };

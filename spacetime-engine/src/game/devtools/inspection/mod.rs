@@ -4,9 +4,7 @@ use super::*;
 
 pub(super) fn collect_identity_inspection(
     focus: Res<DeveloperFocus>,
-    manifestations: Query<&UsfManifestationOf>,
-    semantic_entities: Query<&UsfManifestations>,
-    authorities: Query<(), With<UsfManifestationAuthority>>,
+    runtime_ownership: UsfRuntimeOwnershipQuery,
     split_peers: Query<(Entity, &SpatialSplitPeer)>,
     active_split_peers: Query<(), With<SpatialSplitPeerActive>>,
     mut frame: ResMut<InspectionFrame>,
@@ -39,23 +37,33 @@ pub(super) fn collect_identity_inspection(
             ))
             .field(InspectField::new(
                 "Relationship",
-                InspectValue::text("USF manifestation"),
+                InspectValue::text(if split_peers.get(target.spatial_entity).is_ok() {
+                    "USF split proxy"
+                } else {
+                    "USF logical realization"
+                }),
             ))
             .field(InspectField::new(
                 "Spatial authority",
-                InspectValue::Bool(authorities.contains(target.spatial_entity)),
+                InspectValue::Bool(
+                    runtime_ownership.authority_realization(target.spatial_entity)
+                        == target.spatial_entity
+                        && runtime_ownership.semantic_of(target.spatial_entity)
+                            == Some(target.semantic_entity),
+                ),
             ));
     }
 
-    if let Ok(all) = semantic_entities.get(target.semantic_entity) {
+    let runtime_entities = runtime_ownership.runtime_entities_of(target.semantic_entity);
+    if !runtime_entities.is_empty() {
         section = section.field(InspectField::new(
-            "Manifestations",
-            InspectValue::Integer(all.len() as i64),
+            "Runtime representations",
+            InspectValue::Integer(runtime_entities.len() as i64),
         ));
     }
 
-    if let Ok(relation) = manifestations.get(target.spatial_entity) {
-        debug_assert_eq!(relation.0, target.semantic_entity);
+    if let Some(semantic) = runtime_ownership.semantic_of(target.spatial_entity) {
+        debug_assert_eq!(semantic, target.semantic_entity);
     }
 
     if let Ok((_, peer)) = split_peers.get(target.spatial_entity) {
