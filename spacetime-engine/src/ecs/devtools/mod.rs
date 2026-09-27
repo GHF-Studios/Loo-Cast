@@ -7,7 +7,7 @@ use crate::devtools::{
     VisualizationSpec, WorldDrawBatch, WorldDrawFrame,
 };
 
-use super::{UsfEntity, UsfManifestationAuthority, UsfManifestations};
+use super::{UsfAuthorityPartitions, UsfEntity, UsfLogicalRealizations};
 
 const VISUALIZATION: VisualizationId = VisualizationId("world.usf_manifestations");
 
@@ -26,8 +26,9 @@ pub(crate) fn configure(app: &mut App) {
 
 fn collect_manifestations(
     tools: Res<DeveloperTools>,
-    semantic_entities: Query<(Entity, &UsfManifestations), With<UsfEntity>>,
-    manifestations: Query<(&GlobalTransform, Has<UsfManifestationAuthority>)>,
+    semantic_entities: Query<&UsfAuthorityPartitions, With<UsfEntity>>,
+    partitions: Query<&UsfLogicalRealizations>,
+    realizations: Query<&GlobalTransform>,
     frame: Res<WorldDrawFrame>,
 ) {
     if !tools.visualization_enabled(VISUALIZATION) {
@@ -36,31 +37,27 @@ fn collect_manifestations(
 
     let mut batch = WorldDrawBatch::default();
 
-    for (_, linked) in &semantic_entities {
-        let Some(anchor) = linked
+    for semantic_partitions in &semantic_entities {
+        let logical_realizations = semantic_partitions
             .iter()
-            .filter_map(|entity| manifestations.get(entity).ok())
-            .find(|(_, authority)| *authority)
-            .or_else(|| {
-                linked
-                    .iter()
-                    .find_map(|entity| manifestations.get(entity).ok())
-            })
-            .map(|(transform, _)| transform.translation())
+            .filter_map(|partition| partitions.get(partition).ok())
+            .flat_map(|realizations| realizations.iter())
+            .collect::<Vec<_>>();
+
+        let Some(anchor) = logical_realizations
+            .iter()
+            .find_map(|entity| realizations.get(*entity).ok())
+            .map(GlobalTransform::translation)
         else {
             continue;
         };
 
-        for manifestation in linked.iter() {
-            let Ok((transform, authority)) = manifestations.get(manifestation) else {
+        for realization in logical_realizations {
+            let Ok(transform) = realizations.get(realization) else {
                 continue;
             };
 
-            let color = if authority {
-                Color::srgb(0.2, 1.0, 0.35)
-            } else {
-                Color::srgb(0.2, 0.65, 1.0)
-            };
+            let color = Color::srgb(0.2, 0.65, 1.0);
             let position = transform.translation();
 
             batch.cross(

@@ -33,8 +33,8 @@ use bevy::{
 
 use crate::{
     ecs::{
-        UsfAuthorityPartitionOf, UsfEntity, UsfLogicalProjection, UsfLogicalRealizationOf,
-        UsfManifestationAuthority, UsfManifestationOf, UsfOwnershipQuery,
+        UsfAuthorityPartitionOf, UsfEntity, UsfLogicalRealizationOf,
+        UsfOwnershipQuery,
         UsfPresentationProjectionOf, UsfPresentationView, UsfPresentationViewOf,
     },
     input_focus::{InputFocus, InputFocusSet},

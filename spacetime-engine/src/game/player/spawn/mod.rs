@@ -67,9 +67,8 @@ pub(super) fn spawn_player(
                 Name::new("Player Manifestation"),
                 Visibility::Inherited,
                 Player,
-                UsfManifestationOf(semantic_player),
-                UsfManifestationAuthority,
-                UsfLogicalProjection,
+                
+                
                 UsfLogicalRealizationOf(player_partition),
             ),
             (
@@ -151,7 +150,7 @@ pub(super) fn spawn_player(
                 Visibility::Inherited,
                 // Pairwise portal/Avian solver slot only. Generic logical
                 // realization ownership is attached temporarily while split.
-                UsfLogicalProjection,
+                
                 UsfScaleLayer::new(SpatialScale::MAX),
                 UsfInteractionProjection,
                 SpatialSplitPeer { authority: player },

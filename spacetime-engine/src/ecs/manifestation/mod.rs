@@ -41,16 +41,6 @@
 //! - Destroying a partition does not destroy its semantic entity or siblings.
 //! - Presentation is not linked-spawn-owned by the logical realization.
 //!
-//! # Transitional compatibility
-//!
-//! [`UsfManifestationOf`] / [`UsfManifestations`] remain as the existing flat
-//! semantic-to-runtime relation while current systems migrate.
-//! [`UsfManifestationAuthority`] remains the legacy single-authority marker and
-//! [`UsfLogicalProjection`] remains the legacy flattened logical marker.
-//!
-//! New systems should use the generic ownership graph instead of extending the
-//! flattened manifestation ontology.
-
 use bevy::prelude::*;
 
 mod query;
@@ -131,9 +121,7 @@ impl UsfLogicalRealizations {
 
 /// Declares that this concrete presentation entity presents one runtime target.
 ///
-/// In the generic ownership graph the target is a logical realization. Existing
-/// legacy call sites may temporarily still target a flattened manifestation
-/// while their owning subsystem migrates.
+/// In the generic ownership graph the target is a logical realization.
 ///
 /// Presentation association is explicit rather than inferred from Bevy
 /// hierarchy, and deliberately does not impose linked-spawn lifetime ownership.
@@ -204,57 +192,6 @@ impl UsfViewPresentations {
     }
 }
 
-/// Transitional flat relation from a concrete runtime manifestation to a
-/// [`UsfEntity`].
-///
-/// This relation collapses authority partition and logical realization. It
-/// remains for compatibility while existing systems migrate; new systems
-/// should use [`UsfAuthorityPartitionOf`] and [`UsfLogicalRealizationOf`].
-#[derive(Component, Debug)]
-#[relationship(relationship_target = UsfManifestations)]
-pub struct UsfManifestationOf(pub Entity);
-
-/// Legacy marker for the single flattened manifestation currently carrying
-/// mutable spatial authority for systems that have not yet migrated.
-///
-/// This is not an authority-partition component.
-#[derive(Component, Debug, Default)]
-pub struct UsfManifestationAuthority;
-
-/// Legacy marker identifying a flattened manifestation as a local
-/// logical/physics projection.
-///
-/// New generic-graph code should identify a logical realization through
-/// [`UsfLogicalRealizationOf`] instead.
-#[derive(Component, Debug, Default, Clone, Copy)]
-pub struct UsfLogicalProjection;
-
-/// Transitional collection for the flat [`UsfManifestationOf`] relation.
-///
-/// `linked_spawn` preserves the existing semantic-to-flat-manifestation
-/// lifetime behavior until those consumers migrate onto authority partitions.
-#[derive(Component, Debug)]
-#[relationship_target(
-    relationship = UsfManifestationOf,
-    linked_spawn
-)]
-pub struct UsfManifestations(Vec<Entity>);
-
-impl UsfManifestations {
-    /// Iterate every currently linked legacy manifestation.
-    pub fn iter(&self) -> impl ExactSizeIterator<Item = Entity> + '_ {
-        self.0.iter().copied()
-    }
-
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -298,11 +235,6 @@ mod tests {
 
         assert!(world.get::<UsfAuthorityPartitionOf>(presentation).is_none());
         assert!(world.get::<UsfLogicalRealizationOf>(presentation).is_none());
-        assert!(
-            world
-                .get::<UsfManifestationAuthority>(presentation)
-                .is_none()
-        );
     }
 
     #[test]
@@ -358,25 +290,4 @@ mod tests {
         assert!(!world.entities().contains(presentation));
     }
 
-    #[test]
-    fn legacy_flat_manifestation_remains_compatible_during_migration() {
-        let mut world = World::new();
-        let semantic = world.spawn(UsfEntity).id();
-        let manifestation = world
-            .spawn((UsfManifestationOf(semantic), UsfLogicalProjection))
-            .id();
-        let presentation = world.spawn(UsfPresentationProjectionOf(manifestation)).id();
-
-        let manifestations = world.get::<UsfManifestations>(semantic).unwrap();
-        assert_eq!(
-            manifestations.iter().collect::<Vec<_>>(),
-            vec![manifestation]
-        );
-
-        let presentations = world
-            .get::<UsfPresentationProjections>(manifestation)
-            .unwrap();
-        assert_eq!(presentations.iter().collect::<Vec<_>>(), vec![presentation]);
-        assert!(world.get::<UsfManifestationOf>(presentation).is_none());
-    }
 }

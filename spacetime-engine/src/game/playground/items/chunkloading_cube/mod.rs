@@ -5,8 +5,8 @@ use bevy::prelude::*;
 
 use crate::{
     ecs::{
-        UsfAuthorityPartitionOf, UsfEntity, UsfLogicalProjection, UsfLogicalRealizationOf,
-        UsfManifestationAuthority, UsfManifestationOf, UsfPresentationProjectionOf,
+        UsfAuthorityPartitionOf, UsfEntity, UsfLogicalRealizationOf,
+        UsfPresentationProjectionOf,
     },
     game::{
         GameSet,
@@ -118,9 +118,8 @@ fn use_chunkloading_cube(
             .spawn((
                 (
                     Name::new(format!("Chunkloading Cube Manifestation {}", counter.0)),
-                    UsfManifestationOf(root),
-                    UsfManifestationAuthority,
-                    UsfLogicalProjection,
+                    
+                    
                     UsfLogicalRealizationOf(chunkloading_partition),
                     PlaygroundPickable::cube(root, CUBE_SIZE),
                     DamageableBounds::cube(CUBE_SIZE),

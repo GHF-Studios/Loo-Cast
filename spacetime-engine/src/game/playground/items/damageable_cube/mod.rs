@@ -5,8 +5,8 @@ use bevy::prelude::*;
 
 use crate::{
     ecs::{
-        UsfAuthorityPartitionOf, UsfEntity, UsfLogicalProjection, UsfLogicalRealizationOf,
-        UsfManifestationOf, UsfPresentationProjectionOf,
+        UsfAuthorityPartitionOf, UsfEntity, UsfLogicalRealizationOf,
+        UsfPresentationProjectionOf,
     },
     game::{
         GameSet,
@@ -193,8 +193,7 @@ fn spawn_dynamic_manifestation(
     let authority = commands
         .spawn((
             Name::new(format!("Cube Manifestation {index}")),
-            UsfManifestationOf(semantic),
-            UsfLogicalProjection,
+            
             UsfLogicalRealizationOf(authority_partition),
             ThermalSpatialSample,
             PlaygroundPickable::cube(semantic, CUBE_SIZE),
@@ -220,8 +219,7 @@ fn spawn_dynamic_manifestation(
     let peer = commands
         .spawn((
             Name::new(format!("Cube Portal Peer {index}")),
-            UsfManifestationOf(semantic),
-            UsfLogicalProjection,
+            
             SpatialSplitPeer { authority },
             ThermalSpatialSample,
             PlaygroundPickable::cube(semantic, CUBE_SIZE),

@@ -11,8 +11,8 @@ use bevy::{math::DVec3, prelude::*};
 
 use crate::{
     ecs::{
-        UsfAuthorityPartitionOf, UsfConstituentOf, UsfEntity, UsfLogicalProjection,
-        UsfLogicalRealizationOf, UsfManifestationAuthority, UsfManifestationOf,
+        UsfAuthorityPartitionOf, UsfConstituentOf, UsfEntity, 
+        UsfLogicalRealizationOf, 
         UsfOwnershipQuery, UsfPresentationProjectionOf,
     },
     game::{
@@ -223,11 +223,8 @@ fn spawn_reference_spacecraft(
                 Name::new("Reference Spacecraft Manifestation"),
                 SpacecraftManifestation,
                 Visibility::Inherited,
-                // Legacy flat markers remain temporarily for consumers that
-                // have not yet migrated. Generic ownership is authoritative.
-                UsfManifestationOf(semantic_ship),
-                UsfManifestationAuthority,
-                UsfLogicalProjection,
+                
+                
                 UsfLogicalRealizationOf(ship_partition),
                 UsfScaleLayer::new(body_layer.scale()),
                 SpatialDemandSource::cuboid(SHIP_DEMAND_HALF_EXTENT)

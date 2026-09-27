@@ -57,8 +57,6 @@ pub use view::{
 
 use bevy::{prelude::*, transform::TransformSystems};
 
-use crate::ecs::{UsfLogicalProjection, UsfManifestationOf};
-
 /// Marks the logical projection used to anchor the current local runtime chart.
 ///
 /// This is intentionally independent from manifestation authority and from

@@ -11,7 +11,7 @@ pub(super) fn collect_focused_thermal_gizmo(
     structure: Res<StructureSelection>,
     thermal_bodies: Query<&ThermalBody>,
     combustible: Query<&CombustibleMaterial>,
-    semantic_entities: Query<&UsfManifestations>,
+    runtime_ownership: UsfRuntimeOwnershipQuery,
     thermal_samples: Query<&GlobalTransform, With<ThermalSpatialSample>>,
     transforms: Query<&GlobalTransform>,
     frame: Res<WorldDrawFrame>,
@@ -38,14 +38,12 @@ pub(super) fn collect_focused_thermal_gizmo(
     let mut batch = WorldDrawBatch::default();
     let mut drew_sample = false;
 
-    if let Ok(manifestations) = semantic_entities.get(target.semantic_entity) {
-        for manifestation in manifestations.iter() {
-            let Ok(transform) = thermal_samples.get(manifestation) else {
-                continue;
-            };
-            draw_thermal_sample(&mut batch, transform.translation(), radius, color);
-            drew_sample = true;
-        }
+    for runtime in runtime_ownership.runtime_entities_of(target.semantic_entity) {
+        let Ok(transform) = thermal_samples.get(runtime) else {
+            continue;
+        };
+        draw_thermal_sample(&mut batch, transform.translation(), radius, color);
+        drew_sample = true;
     }
 
     if !drew_sample && let Ok(transform) = transforms.get(target.spatial_entity) {

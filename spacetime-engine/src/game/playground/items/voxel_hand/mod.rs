@@ -3,7 +3,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    ecs::UsfManifestationOf,
+    ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf},
     game::{
         GameSet,
         item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItem},
@@ -49,7 +49,7 @@ fn use_voxel_hand(
                 Entity,
                 &VoxelWorld,
                 &UsfScaleLayer,
-                Option<&UsfManifestationOf>,
+                Option<&UsfLogicalRealizationOf>,
             ),
             Without<VoxelEditingDisabled>,
         >,
@@ -58,11 +58,12 @@ fn use_voxel_hand(
                 Entity,
                 &mut VoxelWorld,
                 &UsfScaleLayer,
-                Option<&UsfManifestationOf>,
+                Option<&UsfLogicalRealizationOf>,
             ),
             Without<VoxelEditingDisabled>,
         >,
     )>,
+    authority_partitions: Query<&UsfAuthorityPartitionOf>,
     mut authorities: Query<(&mut VoxelAuthority, &VoxelScaleDomain)>,
 ) {
     for request in uses.read() {
@@ -106,9 +107,12 @@ fn use_voxel_hand(
                     };
 
                     if nearest.is_none_or(|(_, _, _, current)| distance < current) {
+                        let authority_entity = realization
+                            .and_then(|logical| authority_partitions.get(logical.0).ok())
+                            .map(|partition| partition.0);
                         nearest = Some((
                             world_entity,
-                            realization.map(|realization| realization.0),
+                            authority_entity,
                             semantic_hit,
                             distance,
                         ));
@@ -163,10 +167,10 @@ fn use_voxel_hand(
 
             let mut realization_worlds = worlds.p1();
             for (_, mut world, layer, realization) in &mut realization_worlds {
-                if !domain.editable(layer.scale())
-                    || realization
-                        .is_none_or(|realization| realization.0 != authority_entity)
-                {
+                let same_authority = realization
+                    .and_then(|logical| authority_partitions.get(logical.0).ok())
+                    .is_some_and(|partition| partition.0 == authority_entity);
+                if !domain.editable(layer.scale()) || !same_authority {
                     continue;
                 }
 

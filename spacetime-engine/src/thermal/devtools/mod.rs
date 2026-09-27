@@ -14,7 +14,7 @@ use crate::{
         InspectValue, InspectionFrame, StructureFrame, StructureItem, StructureItemId,
         StructureSelection, WorldDrawBatch, WorldDrawFrame,
     },
-    ecs::UsfManifestations,
+    physics::topology::UsfRuntimeOwnershipQuery,
     view::PrimaryViewPresentation,
 };
 

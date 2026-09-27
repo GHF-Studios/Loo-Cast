@@ -5,9 +5,9 @@ pub mod manifestation;
 
 pub use constituency::{UsfConstituentOf, UsfConstituents};
 pub use manifestation::{
-    UsfAuthorityPartitionOf, UsfAuthorityPartitions, UsfEntity, UsfLogicalProjection,
-    UsfLogicalRealizationOf, UsfLogicalRealizations, UsfManifestationAuthority, UsfManifestationOf,
-    UsfManifestations, UsfPresentationProjectionOf, UsfPresentationProjections,
+    UsfAuthorityPartitionOf, UsfAuthorityPartitions, UsfEntity, 
+    UsfLogicalRealizationOf, UsfLogicalRealizations, 
+    UsfPresentationProjectionOf, UsfPresentationProjections,
     UsfPresentationView, UsfPresentationViewOf, UsfViewPresentations,
     UsfOwnershipQuery,
 };
