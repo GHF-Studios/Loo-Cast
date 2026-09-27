@@ -22,7 +22,8 @@ use crate::{
         UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScalePresentation, UsfScaleRoleMask,
         UsfSceneryPresentation, UsfSpatialFrame, UsfSpatialSet, UsfSpatialTransition,
         UsfSpatialTransitionApplied, UsfSpatialTransitionQueue, UsfTransitionVelocity,
-        UsfTravelInfluence, UsfTravelInfluenceKind, UsfViewContext, UsfViewRenderAnchor,
+        UsfTravelBoundaryResolver, UsfTravelInfluence, UsfTravelInfluenceKind,
+        UsfViewContext, UsfViewRenderAnchor,
     },
 };
 
@@ -654,17 +655,23 @@ fn refinable_hard_body_transition_gate(
     }
 
     let mut best = None::<(Entity, f32)>;
-    let mut influences =
-        world.query::<(Entity, &UsfTravelInfluence, Option<&UsfApproachRefinement>)>();
+    let mut influences = world.query::<(
+        Entity,
+        &UsfTravelInfluence,
+        Option<&UsfTravelBoundaryResolver>,
+        Option<&UsfApproachRefinement>,
+    )>();
 
-    for (entity, influence, refinement) in influences.iter(world) {
+    for (entity, influence, boundary, refinement) in influences.iter(world) {
         if refinement.is_none()
             || !matches!(influence.kind(), UsfTravelInfluenceKind::HardBody)
         {
             continue;
         }
 
-        let Some(measurement) = influence.measure_from(arrival) else {
+        let Some(measurement) =
+            influence.measure_from_at_scale(arrival, target_scale, boundary)
+        else {
             continue;
         };
         let boundary_distance_scale0 =

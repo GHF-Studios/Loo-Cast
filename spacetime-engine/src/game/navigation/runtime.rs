@@ -12,8 +12,9 @@ use crate::{
         SpatialRefinementDemand, SpatialScale, UsfApproachRefinement,
         UsfInteractionRequirement, UsfNavigationContext,
         UsfScaleLayer, UsfScaleRoleMask, UsfSpatialFrame, UsfSpatialTransitionQueue,
-        UsfTransitionVelocity, UsfTravelInfluence, UsfTravelInfluenceKind,
-        UsfTravelNeighborhood, UsfViewContext, UsfViewRenderAnchor,
+        UsfTransitionVelocity, UsfTravelBoundaryResolver, UsfTravelInfluence,
+        UsfTravelInfluenceKind, UsfTravelNeighborhood, UsfViewContext,
+        UsfViewRenderAnchor,
     },
 };
 
@@ -27,7 +28,11 @@ use super::{
 pub(super) fn sync_navigation_context(
     time: Res<Time>,
     frame: Res<UsfSpatialFrame>,
-    influences: Query<(Entity, &UsfTravelInfluence)>,
+    influences: Query<(
+        Entity,
+        &UsfTravelInfluence,
+        Option<&UsfTravelBoundaryResolver>,
+    )>,
     subject: Single<
         (
             &Transform,
@@ -52,9 +57,9 @@ pub(super) fn sync_navigation_context(
         neighborhood.refresh(
             position,
             scale,
-            influences
-                .iter()
-                .map(|(entity, influence)| (entity, *influence)),
+            influences.iter().map(|(entity, influence, boundary)| {
+                (entity, *influence, boundary.cloned())
+            }),
         );
     }
 
@@ -130,7 +135,11 @@ pub(super) fn plan_approach_refinement(
         ),
         With<LocalControlSubject>,
     >,
-    refinable: Query<(&UsfTravelInfluence, &UsfApproachRefinement)>,
+    refinable: Query<(
+        &UsfTravelInfluence,
+        &UsfApproachRefinement,
+        Option<&UsfTravelBoundaryResolver>,
+    )>,
 ) {
     let (
         body,
@@ -149,28 +158,40 @@ pub(super) fn plan_approach_refinement(
         return;
     };
 
-    let mut selected = None::<(UsfTravelInfluence, UsfApproachRefinement, f64)>;
-    for (influence, refinement) in &refinable {
-        let Some(measurement) = influence.measure_from(&observer) else {
+    let mut selected = None::<(
+        UsfTravelInfluence,
+        UsfApproachRefinement,
+        Option<UsfTravelBoundaryResolver>,
+        f64,
+    )>;
+    for (influence, refinement, boundary) in &refinable {
+        let Some(measurement) =
+            influence.measure_from_at_scale(&observer, observer_scale, boundary)
+        else {
             continue;
         };
         let relative = measurement.relative_proximity();
         if relative > profile.approach.activation_radii {
             continue;
         }
-        if selected.is_none_or(|(_, _, current)| relative < current) {
-            selected = Some((*influence, *refinement, relative));
+        if selected
+            .as_ref()
+            .is_none_or(|(_, _, _, current)| relative < *current)
+        {
+            selected = Some((*influence, *refinement, boundary.cloned(), relative));
         }
     }
 
-    let Some((influence, refinement, _)) = selected else {
+    let Some((influence, refinement, boundary, _)) = selected else {
         state.active = false;
         state.interaction_target_scale = layer.scale();
         state.realization_target_scale = layer.scale();
         realization_demand.clear();
         return;
     };
-    let Some(measurement) = influence.measure_from(&observer) else {
+    let Some(measurement) =
+        influence.measure_from_at_scale(&observer, observer_scale, boundary.as_ref())
+    else {
         state.active = false;
         state.interaction_target_scale = layer.scale();
         state.realization_target_scale = layer.scale();
@@ -453,12 +474,9 @@ pub(super) fn sync_travel_state(
     };
 
     let nearest = neighborhood
-        .influences_with_entities()
-        .filter(|(_, influence)| matches!(influence.kind(), UsfTravelInfluenceKind::HardBody))
-        .filter_map(|(entity, influence)| {
-            influence
-                .measure_from(&position)
-                .map(|measurement| (entity, influence, measurement))
+        .measurements_from(&position, layer.scale())
+        .filter(|(_, influence, _)| {
+            matches!(influence.kind(), UsfTravelInfluenceKind::HardBody)
         })
         .min_by(|(_, _, a), (_, _, b)| {
             a.boundary_clearance_scale0()

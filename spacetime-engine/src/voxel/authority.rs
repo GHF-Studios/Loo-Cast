@@ -7,7 +7,10 @@
 
 use bevy::prelude::*;
 
-use crate::spatial::{SpatialScale, UsfPosition, UsfPositionError};
+use crate::spatial::{
+    SpatialScale, UsfPosition, UsfPositionError, UsfTravelBoundary,
+    UsfTravelBoundarySample,
+};
 
 use super::{CelestialBodyProfile, ProceduralCelestialBody, VoxelEdit};
 
@@ -113,6 +116,19 @@ impl CelestialVoxelField {
             self.seed,
             self.profile,
         )
+    }
+}
+
+impl UsfTravelBoundary for CelestialVoxelField {
+    fn sample_near(
+        &self,
+        observer: &UsfPosition,
+        requested_scale: SpatialScale,
+    ) -> Option<UsfTravelBoundarySample> {
+        let surface_scale = requested_scale.min(self.coarsest_detail_scale());
+        let body = (*self).realization(surface_scale);
+        let (surface, outward, _) = body.surface_near(observer, f32::MAX)?;
+        UsfTravelBoundarySample::new(surface, outward, surface_scale)
     }
 }
 

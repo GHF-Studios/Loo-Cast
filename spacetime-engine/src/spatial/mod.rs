@@ -26,9 +26,10 @@ pub use demand::{
 };
 pub(crate) use devtools::SPATIAL_DEMAND_VISUALIZATION;
 pub use navigation::{
-    UsfApproachRefinement, UsfNavigationContext, UsfNavigationContextKind, UsfTravelInfluence,
-    UsfTravelInfluenceKind, UsfTravelInfluenceMeasure, UsfTravelMedium,
-    UsfTravelNeighborhood,
+    UsfApproachRefinement, UsfNavigationContext, UsfNavigationContextKind,
+    UsfTravelBoundary, UsfTravelBoundaryResolver, UsfTravelBoundarySample,
+    UsfTravelInfluence, UsfTravelInfluenceKind, UsfTravelInfluenceMeasure,
+    UsfTravelMedium, UsfTravelNeighborhood,
 };
 pub use slice::{
     UsfChartMask, UsfScaleLayer, UsfScaleSlice, UsfScaleSliceMemberOf,

@@ -56,11 +56,9 @@ pub(super) fn sync_travel_envelope(
     let mut medium_cap = None::<f64>;
     let mut nearest_hard_clearance = None::<f64>;
 
-    for influence in neighborhood.influences() {
-        let Some(measurement) = influence.measure_from(&position) else {
-            continue;
-        };
-
+    for (_, influence, measurement) in
+        neighborhood.measurements_from(&position, layer.scale())
+    {
         match influence.kind() {
             UsfTravelInfluenceKind::HardBody => {
                 let clearance = measurement.boundary_clearance_scale0();

@@ -15,7 +15,7 @@ use crate::{
     procedural_assets::ProceduralAssetLibrary,
     spatial::{
         SPATIAL_SCALE_MIN, SpatialScale, UsfApproachRefinement, UsfChartMask,
-        UsfPosition, UsfScaleLayer, UsfTravelInfluence,
+        UsfPosition, UsfScaleLayer, UsfTravelBoundaryResolver, UsfTravelInfluence,
     },
     voxel::{
         CelestialVoxelField, VoxelAuthority, VoxelBase, VoxelCollisionDisabled,
@@ -92,6 +92,7 @@ pub(super) fn spawn_body(
                 nav_scale,
                 nav_scale.metres_to_native_f64(radius_metres),
             ),
+            UsfTravelBoundaryResolver::new(field),
             RadialGravitySource::new(
                 center,
                 radius_metres,
