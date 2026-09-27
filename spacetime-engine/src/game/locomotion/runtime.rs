@@ -19,7 +19,7 @@ use avian3d::{
 use bevy::{math::DVec3, prelude::*};
 
 use crate::{
-    ecs::UsfManifestationOf,
+    ecs::UsfOwnershipQuery,
     game::{
         control::LocalControlSubject,
         navigation::{AdaptiveCruise, TravelEnvelope, TravelProfile, TravelState},
@@ -473,16 +473,16 @@ fn boost_multiplier(intent: &FlightControlIntent, profile: &TravelProfile) -> f6
 fn commit_canonical_motion(
     dt_seconds: f64,
     frame: &UsfSpatialFrame,
-    manifestation: &UsfManifestationOf,
+    semantic_entity: Entity,
     layer: SpatialScale,
     body: &mut Transform,
     velocity_cache: &mut LinearVelocity,
     motion: &UsfCanonicalMotion,
     semantic_positions: &mut Query<&mut UsfPosition>,
 ) {
-    let Ok(mut semantic) = semantic_positions.get_mut(manifestation.0) else {
+    let Ok(mut semantic) = semantic_positions.get_mut(semantic_entity) else {
         error!(
-            subject = ?manifestation.0,
+            subject = ?semantic_entity,
             "canonical flight subject has no semantic USF position"
         );
         return;
@@ -491,7 +491,7 @@ fn commit_canonical_motion(
     let delta_metres = motion.velocity_metres_per_second() * dt_seconds;
     let Ok(next) = semantic.translated_metres_f64(delta_metres) else {
         error!(
-            subject = ?manifestation.0,
+            subject = ?semantic_entity,
             delta_metres = ?delta_metres,
             "canonical flight integration failed"
         );
@@ -500,7 +500,7 @@ fn commit_canonical_motion(
 
     let Ok(runtime) = next.relative_at_scale_bounded(frame.origin(), layer, f32::MAX) else {
         error!(
-            subject = ?manifestation.0,
+            subject = ?semantic_entity,
             scale = %layer,
             "canonical flight position could not project into runtime chart"
         );
@@ -549,6 +549,7 @@ fn collide_runtime_motion(
 pub(super) fn flight_movement(
     time: Res<Time<Fixed>>,
     frame: Res<UsfSpatialFrame>,
+    ownership: UsfOwnershipQuery,
     move_and_slide: MoveAndSlide,
     physics_charts: UsfPhysicsSlices,
     mut was_cruise_active: Local<bool>,
@@ -557,7 +558,6 @@ pub(super) fn flight_movement(
         (
             Entity,
             &mut Transform,
-            &UsfManifestationOf,
             &UsfScaleLayer,
             &ControlledSubjectLocomotion,
             &mut UsfCanonicalMotion,
@@ -581,12 +581,19 @@ pub(super) fn flight_movement(
     let (
         entity,
         mut body,
-        manifestation,
         layer,
         locomotion,
         mut motion,
         mut linear_velocity,
     ) = subject.into_inner();
+
+    let Some(semantic_entity) = ownership.semantic_of(entity) else {
+        error!(
+            realization = ?entity,
+            "controlled locomotion subject has no semantic USF owner"
+        );
+        return;
+    };
 
     let Ok((
         locomotion_frame,
@@ -719,7 +726,7 @@ pub(super) fn flight_movement(
         commit_canonical_motion(
             dt,
             &frame,
-            manifestation,
+            semantic_entity,
             layer.scale(),
             &mut body,
             &mut linear_velocity,

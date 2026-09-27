@@ -7,7 +7,7 @@ use bevy::{
 };
 
 use crate::{
-    ecs::UsfManifestationOf,
+    ecs::{UsfManifestationOf, UsfOwnershipQuery},
     game::{
         GameSet,
         player::{Player, PlayerCamera},

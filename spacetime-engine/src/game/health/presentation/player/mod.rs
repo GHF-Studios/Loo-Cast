@@ -37,14 +37,16 @@ pub(super) fn spawn_player_health_bar(mut commands: Commands) {
 }
 
 pub(super) fn sync_player_health_bar(
-    player: Query<&UsfManifestationOf, With<Player>>,
+    ownership: UsfOwnershipQuery,
+    player: Query<Entity, With<Player>>,
     health: Query<&Health>,
     mut fill: Single<&mut Node, With<PlayerHealthFill>>,
 ) {
     let fraction = player
         .iter()
         .next()
-        .and_then(|manifestation| health.get(manifestation.0).ok())
+        .and_then(|realization| ownership.semantic_of(realization))
+        .and_then(|semantic| health.get(semantic).ok())
         .map(health_fraction)
         .unwrap_or(0.0);
 

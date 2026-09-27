@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
     diagnostics::RuntimeDiagnostics,
-    ecs::UsfManifestationOf,
+    ecs::UsfOwnershipQuery,
     game::{
         GameSet,
         health::Health,
@@ -174,9 +174,10 @@ fn update_fps_counter(
 }
 
 fn update_player_status(
+    ownership: UsfOwnershipQuery,
     player: Single<
         (
-            &UsfManifestationOf,
+            Entity,
             &ControlledSubjectLocomotion,
             &UsfCanonicalMotion,
             &SurfaceContext,
@@ -189,7 +190,8 @@ fn update_player_status(
     mut roots: Query<(&Children, &mut Node), With<PlayerStatus>>,
     mut texts: Query<&mut Text>,
 ) {
-    let (manifestation, locomotion, motion, surface, ground) = player.into_inner();
+    let (realization, locomotion, motion, surface, ground) = player.into_inner();
+    let semantic_entity = ownership.semantic_of(realization);
 
     let Some((children, mut root)) = roots.iter_mut().next() else {
         return;
@@ -208,10 +210,10 @@ fn update_player_status(
         return;
     };
 
-    let health = health
-        .get(manifestation.0)
+    let health = semantic_entity
+        .and_then(|semantic| health.get(semantic).ok())
         .map(|health| format!("{:.0}", health.current()))
-        .unwrap_or_else(|_| "--".to_string());
+        .unwrap_or_else(|| "--".to_string());
 
     let body = surface
         .body()

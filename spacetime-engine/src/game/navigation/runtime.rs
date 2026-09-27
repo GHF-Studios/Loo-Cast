@@ -3,7 +3,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    ecs::UsfManifestationOf,
+    ecs::UsfOwnershipQuery,
     game::{
         control::LocalControlSubject,
         locomotion::{ControlledSubjectLocomotion, VelocitySemantics},
@@ -312,10 +312,11 @@ pub(super) fn sync_navigation_presentation(
 /// current Scale Slice is meaningful: it explicitly supersedes/cancels an older
 /// finer requirement that may still be waiting for coverage.
 pub(super) fn sync_approach_interaction_requirement(
+    ownership: UsfOwnershipQuery,
     subject: Single<
         (
+            Entity,
             &UsfScaleLayer,
-            &UsfManifestationOf,
             &ControlledSubjectLocomotion,
             &TravelProfile,
             &PrimaryBodyContext,
@@ -325,8 +326,16 @@ pub(super) fn sync_approach_interaction_requirement(
     >,
     mut transitions: ResMut<UsfSpatialTransitionQueue>,
 ) {
-    let (layer, manifestation, locomotion, profile, primary, state) =
+    let (realization, layer, locomotion, profile, primary, state) =
         subject.into_inner();
+
+    let Some(semantic_entity) = ownership.semantic_of(realization) else {
+        error!(
+            realization = ?realization,
+            "controlled navigation subject has no semantic USF owner"
+        );
+        return;
+    };
 
     let velocity = match locomotion.velocity_semantics() {
         VelocitySemantics::PreserveNative => UsfTransitionVelocity::PreserveNative,
@@ -341,7 +350,7 @@ pub(super) fn sync_approach_interaction_requirement(
     };
 
     let mut requirement =
-        UsfInteractionRequirement::new(manifestation.0, target_scale, velocity);
+        UsfInteractionRequirement::new(semantic_entity, target_scale, velocity);
 
     if state.active
         && target_scale != layer.scale()

@@ -19,7 +19,8 @@ use super::*;
 pub(super) fn handle_player_death(
     mut commands: Commands,
     mut deaths: MessageReader<Died>,
-    player: Single<(Entity, &UsfManifestationOf), With<Player>>,
+    ownership: UsfOwnershipQuery,
+    player: Single<Entity, With<Player>>,
     subject: Single<
         (
             Entity,
@@ -34,9 +35,16 @@ pub(super) fn handle_player_death(
         With<LocalControlSubject>,
     >,
 ) {
-    let (player_entity, manifestation) = player.into_inner();
+    let player_entity = player.into_inner();
+    let Some(player_semantic) = ownership.semantic_of(player_entity) else {
+        error!(
+            realization = ?player_entity,
+            "player realization has no semantic USF owner during death handling"
+        );
+        return;
+    };
 
-    if !deaths.read().any(|death| death.entity == manifestation.0) {
+    if !deaths.read().any(|death| death.entity == player_semantic) {
         return;
     }
 

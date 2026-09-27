@@ -53,8 +53,9 @@ pub(super) fn spawn_debug_panel(mut commands: Commands, theme: Res<UiTheme>) {
 pub(super) fn update_debug_panel(
     tools: Res<DeveloperTools>,
     frame: Res<UsfSpatialFrame>,
+    ownership: UsfOwnershipQuery,
     anchors: Query<
-        (&Transform, Option<&LinearVelocity>, &UsfManifestationOf),
+        (Entity, &Transform, Option<&LinearVelocity>),
         With<UsfSpatialAnchor>,
     >,
     semantic_positions: Query<&UsfPosition>,
@@ -73,14 +74,16 @@ pub(super) fn update_debug_panel(
         return;
     }
 
-    let Some((transform, velocity, manifestation)) = anchors.iter().next() else {
+    let Some((realization, transform, velocity)) = anchors.iter().next() else {
         for mut text in &mut texts {
             text.0 = "No USF spatial anchor is active.".to_string();
         }
         return;
     };
 
-    let semantic = semantic_positions.get(manifestation.0).ok();
+    let semantic = ownership
+        .semantic_of(realization)
+        .and_then(|semantic| semantic_positions.get(semantic).ok());
     let velocity = velocity.map_or(Vec3::ZERO, |velocity| velocity.0);
     let semantic_text = semantic
         .map(UsfPosition::format_stack)

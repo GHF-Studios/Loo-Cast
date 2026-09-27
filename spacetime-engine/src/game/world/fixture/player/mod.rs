@@ -7,7 +7,7 @@ use avian3d::prelude::LinearVelocity;
 use bevy::prelude::*;
 
 use crate::{
-    ecs::UsfManifestationOf,
+    ecs::UsfOwnershipQuery,
     game::{
         control::LocalControlSubject,
         locomotion::ControlledSubjectLocomotion,
@@ -31,11 +31,12 @@ const FIXTURE_SPAWN_GAP_METRES: f32 = 0.75;
 pub(super) fn prepare_controlled_subject(
     arrival_site: Res<FixtureArrivalSite>,
     frame: Res<UsfSpatialFrame>,
+    ownership: UsfOwnershipQuery,
     mut transitions: ResMut<UsfSpatialTransitionQueue>,
     mut semantic_positions: Query<&mut UsfPosition>,
     subject: Single<
         (
-            &UsfManifestationOf,
+            Entity,
             &UsfScaleLayer,
             &mut Transform,
             &mut PortalTraveler,
@@ -51,7 +52,7 @@ pub(super) fn prepare_controlled_subject(
     >,
 ) {
     let (
-        manifestation,
+        realization,
         layer,
         mut transform,
         mut traveler,
@@ -66,6 +67,14 @@ pub(super) fn prepare_controlled_subject(
 
     let Some(site) = arrival_site.site() else {
         error!("fixture bootstrap has no resolved body-surface arrival site");
+        return;
+    };
+
+    let Some(semantic_entity) = ownership.semantic_of(realization) else {
+        error!(
+            realization = ?realization,
+            "fixture bootstrap subject has no semantic USF owner"
+        );
         return;
     };
 
@@ -99,9 +108,9 @@ pub(super) fn prepare_controlled_subject(
         return;
     };
 
-    let Ok(mut semantic) = semantic_positions.get_mut(manifestation.0) else {
+    let Ok(mut semantic) = semantic_positions.get_mut(semantic_entity) else {
         error!(
-            subject = ?manifestation.0,
+            subject = ?semantic_entity,
             "controlled subject semantic position is unavailable during fixture bootstrap"
         );
         return;
@@ -126,7 +135,7 @@ pub(super) fn prepare_controlled_subject(
 
     transitions.request(
         UsfSpatialTransition::new(
-            manifestation.0,
+            semantic_entity,
             canonical,
             UsfTransitionVelocity::Zero,
         )
@@ -145,7 +154,7 @@ pub(super) fn prepare_controlled_subject(
     locomotion.set_thrusters_enabled(false);
 
     info!(
-        subject = ?manifestation.0,
+        subject = ?semantic_entity,
         body = ?site.body(),
         bootstrap_scale = %layer.scale(),
         site_scale = %site.scale(),

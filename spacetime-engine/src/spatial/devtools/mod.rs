@@ -6,7 +6,7 @@ use crate::{
         AppDeveloperToolsExt, DeveloperArtifact, DeveloperSet, DeveloperTools, DrawDepth,
         VisualizationId, VisualizationSpec, WorldDrawBatch, WorldDrawFrame,
     },
-    ecs::UsfManifestationOf,
+    ecs::UsfOwnershipQuery,
     ui::{UiTextRole, UiTheme},
 };
 

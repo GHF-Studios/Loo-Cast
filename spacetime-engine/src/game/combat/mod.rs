@@ -6,7 +6,7 @@ use avian3d::prelude::Collider;
 use bevy::prelude::*;
 
 use crate::{
-    ecs::UsfManifestationOf,
+    ecs::UsfOwnershipQuery,
     physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive},
     portal::{PortalTraveler, PortalVelocity},
 };
