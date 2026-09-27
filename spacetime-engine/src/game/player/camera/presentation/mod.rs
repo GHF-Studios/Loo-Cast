@@ -3,8 +3,9 @@
 use bevy::camera::visibility::RenderLayers;
 
 use crate::{
-    ecs::UsfPresentationProjectionOf,
+    ecs::{UsfLogicalRealizationOf, UsfPresentationProjectionOf},
     portal::DERIVED_VIEW_LAYER,
+    physics::topology::UsfRuntimeOwnershipQuery,
     view::ViewSubjectPresentation,
 };
 

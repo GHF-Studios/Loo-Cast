@@ -14,7 +14,6 @@ use avian3d::prelude::{Collider, ShapeCastConfig, SpatialQuery};
 use bevy::prelude::*;
 
 use crate::{
-    ecs::{UsfLogicalProjection, UsfManifestationOf, UsfManifestations},
     portal::{
         Portal, PortalActive, crossed_aperture_fraction, map_through_portal,
     },

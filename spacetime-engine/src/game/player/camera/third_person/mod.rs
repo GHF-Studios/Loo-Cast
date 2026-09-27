@@ -1,6 +1,9 @@
 //! Collision- and portal-aware third-person boom resolution.
 
-use crate::spatial::SpatialScale;
+use crate::{
+    physics::topology::UsfRuntimeOwnershipQuery,
+    spatial::SpatialScale,
+};
 
 use super::*;
 
