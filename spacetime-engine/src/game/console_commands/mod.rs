@@ -29,7 +29,7 @@ use crate::{
 use super::{
     control::LocalControlSubject,
     locomotion::{ControlledSubjectLocomotion, LocomotionRegime, LocomotionRequest},
-    navigation::{AdaptiveCruise, TravelPace},
+    navigation::{AdaptiveCruise, NavigationAudit, TravelPace, TravelProfile},
     player::{Player, PlayerAim},
     world::UniverseLandmarkIndex,
 };
@@ -284,6 +284,18 @@ fn presentation_command(
 
     let probe = *world.resource::<UsfPresentationProbe>();
     let interaction = *world.resource::<UsfPrimaryInteractionSlice>();
+    let navigation = *world.resource::<NavigationAudit>();
+    let handoff_radius_native = {
+        let mut query =
+            world.query_filtered::<&TravelProfile, With<LocalControlSubject>>();
+        query
+            .iter(world)
+            .next()
+            .map(|profile| profile.approach.interaction_handoff_coverage_radius_native)
+    };
+    let controlled_position = controlled_semantic_entity(world)
+        .and_then(|entity| world.get::<UsfPosition>(entity).copied());
+
     let Some(view) = primary_view_context(world) else {
         return ConsoleCommandResult::error("primary USF view context is unavailable");
     };
@@ -354,7 +366,93 @@ fn presentation_command(
         ),
         camera_line("local", local_camera),
         camera_line("context", context_camera),
+        format!(
+            "navigation: clearance={} | approach={} | interaction target={} | realization target={}",
+            navigation.primary_clearance_metres.map_or_else(
+                || "<none>".to_string(),
+                |value| format!("{value:.3} m"),
+            ),
+            navigation.approach_active,
+            navigation.interaction_target_scale.map_or_else(
+                || "<none>".to_string(),
+                |scale| format!("S{scale}"),
+            ),
+            navigation.realization_target_scale.map_or_else(
+                || "<none>".to_string(),
+                |scale| format!("S{scale}"),
+            ),
+        ),
     ];
+
+    if let (
+        Some(authority),
+        Some(position),
+        Some(target),
+        Some(radius_native),
+    ) = (
+        navigation.primary_body,
+        controlled_position,
+        navigation.interaction_target_scale,
+        handoff_radius_native,
+    ) {
+        let coverage = world.resource::<UsfScaleCoverageSnapshot>();
+        let realization_near = coverage.has_near_for_authority(
+            authority,
+            target,
+            &position,
+            UsfScaleRoleMask::REALIZATION,
+            radius_native,
+        );
+        let presentation_near = coverage.has_near_for_authority(
+            authority,
+            target,
+            &position,
+            UsfScaleRoleMask::PRESENTATION,
+            radius_native,
+        );
+        let collision_near = coverage.has_near_for_authority(
+            authority,
+            target,
+            &position,
+            UsfScaleRoleMask::COLLISION,
+            radius_native,
+        );
+
+        let mut total_entries = 0usize;
+        let mut realization_entries = 0usize;
+        let mut presentation_entries = 0usize;
+        let mut collision_entries = 0usize;
+        for entry in coverage.iter() {
+            if entry.authority() != authority || entry.scale() != target {
+                continue;
+            }
+            total_entries += 1;
+            let roles = entry.roles();
+            realization_entries +=
+                usize::from(roles.contains(UsfScaleRoleMask::REALIZATION));
+            presentation_entries +=
+                usize::from(roles.contains(UsfScaleRoleMask::PRESENTATION));
+            collision_entries +=
+                usize::from(roles.contains(UsfScaleRoleMask::COLLISION));
+        }
+
+        lines.push(format!(
+            "handoff gate S{} r={:.3} native: near R={} P={} C={} | authority entries total={} R={} P={} C={}",
+            target,
+            radius_native,
+            realization_near,
+            presentation_near,
+            collision_near,
+            total_entries,
+            realization_entries,
+            presentation_entries,
+            collision_entries,
+        ));
+    } else {
+        lines.push(
+            "handoff gate = <insufficient primary-body/planner/canonical state>".to_string(),
+        );
+    }
 
     if counts.is_empty() {
         lines.push("scale terrain = <none>".to_string());

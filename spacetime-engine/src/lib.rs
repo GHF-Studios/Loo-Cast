@@ -45,7 +45,10 @@ pub fn run(install_game: impl FnOnce(&mut EngineApp)) {
 
     let mut app = App::new();
 
-    app.add_plugins(DefaultPlugins)
+    app.add_plugins(DefaultPlugins.set(bevy::log::LogPlugin {
+        custom_layer: console::console_log_layer,
+        ..default()
+    }))
         .add_plugins((
             config::EngineConfigPlugin,
             ecs::component_conflict::ComponentConflictPlugin,
