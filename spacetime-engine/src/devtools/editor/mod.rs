@@ -25,7 +25,8 @@ use bevy_inspector_egui::{
 use egui_dock::{DockArea, DockState, NodeIndex, Style, TabViewer};
 
 use crate::{
-    ecs::{UsfManifestationAuthority, UsfManifestationOf, UsfManifestations},
+    ecs::{UsfAuthorityPartitions, UsfLogicalRealizations},
+    physics::topology::{SpatialSplitPeer, runtime_semantic_of_world},
     view::{PrimaryGameView, PrimaryViewPresentation},
 };
 

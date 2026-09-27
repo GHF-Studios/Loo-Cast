@@ -7,7 +7,7 @@ use avian3d::{
 use bevy::prelude::*;
 
 use crate::{
-    ecs::UsfLogicalProjection,
+    ecs::UsfLogicalRealizationOf,
     portal::{
         Portal, PortalActive, PortalSplitTraveler, PortalTraveler,
         topology::mapping::portal_plane,
@@ -48,7 +48,7 @@ pub(crate) fn resolve_portal_splits(
             &mut KinematicQueryExclusions,
         ),
         (
-            With<UsfLogicalProjection>,
+            With<UsfLogicalRealizationOf>,
             With<DetailedBodyCollision>,
             Without<SpatialSplitPeer>,
             Without<Portal>,

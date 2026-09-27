@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use avian3d::prelude::LinearVelocity;
 
 use crate::{
-    ecs::{UsfAuthorityPartitionOf, UsfLogicalProjection, UsfLogicalRealizationOf},
+    ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf},
     portal::{Portal, PortalActive, PortalSplitTraveler},
     physics::{
         DetailedBodyCollision, PhysicalBoxHull,
@@ -43,7 +43,6 @@ pub(crate) fn prepare_portal_splits(
             &mut KinematicQueryExclusions,
         ),
         (
-            With<UsfLogicalProjection>,
             Without<SpatialSplitPeer>,
             Without<Portal>,
             With<DetailedBodyCollision>,

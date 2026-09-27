@@ -13,7 +13,7 @@ use crate::{
     ecs::{
         UsfAuthorityPartitionOf, UsfConstituentOf, UsfEntity, UsfLogicalProjection,
         UsfLogicalRealizationOf, UsfManifestationAuthority, UsfManifestationOf,
-        UsfPresentationProjectionOf,
+        UsfOwnershipQuery, UsfPresentationProjectionOf,
     },
     game::{
         GameSet,
@@ -143,6 +143,7 @@ impl Plugin for SpacecraftPlugin {
 fn spawn_reference_spacecraft(
     world: Res<State<GameWorld>>,
     existing_ships: Query<(), With<SpacecraftManifestation>>,
+    ownership: UsfOwnershipQuery,
     mut commands: Commands,
     mut control_transfers: MessageWriter<LocalControlTransferRequest>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -150,7 +151,6 @@ fn spawn_reference_spacecraft(
     body: Single<
         (
             Entity,
-            &UsfManifestationOf,
             &Transform,
             &UsfScaleLayer,
             &mut Visibility,
@@ -169,7 +169,6 @@ fn spawn_reference_spacecraft(
 
     let (
         body_entity,
-        body_manifestation,
         body_transform,
         body_layer,
         mut body_visibility,
@@ -188,7 +187,9 @@ fn spawn_reference_spacecraft(
         return;
     }
 
-    let player_semantic = body_manifestation.0;
+    let Some(player_semantic) = ownership.semantic_of(body_entity) else {
+        return;
+    };
     let Ok(&semantic_position) = semantic_positions.get(player_semantic) else {
         return;
     };
@@ -429,12 +430,12 @@ pub(crate) fn detect_landing(
 fn handle_spacecraft_actions(
     input: Res<PlayerInputFrame>,
     frame: Res<UsfSpatialFrame>,
+    ownership: UsfOwnershipQuery,
     mut commands: Commands,
     mut control_transfers: MessageWriter<LocalControlTransferRequest>,
     player: Single<
         (
             Entity,
-            &UsfManifestationOf,
             &mut Transform,
             &mut UsfScaleLayer,
             &mut Visibility,
@@ -451,7 +452,6 @@ fn handle_spacecraft_actions(
     mut controlled_ship: Query<
         (
             Entity,
-            &UsfManifestationOf,
             &Transform,
             &UsfScaleLayer,
             &CharacterLocomotionFrame,
@@ -468,7 +468,6 @@ fn handle_spacecraft_actions(
     mut ships: Query<
         (
             Entity,
-            &UsfManifestationOf,
             &Transform,
             &UsfScaleLayer,
             &FlightContactState,
@@ -479,7 +478,6 @@ fn handle_spacecraft_actions(
 ) {
     if let Ok((
         _ship_entity,
-        _ship_manifestation,
         ship_transform,
         ship_layer,
         ship_frame,
@@ -514,7 +512,6 @@ fn handle_spacecraft_actions(
 
         let (
             player_entity,
-            player_manifestation,
             mut player_transform,
             mut player_layer,
             mut player_visibility,
@@ -536,7 +533,10 @@ fn handle_spacecraft_actions(
             return;
         };
 
-        if let Ok(mut semantic) = semantic_positions.get_mut(player_manifestation.0) {
+        let Some(player_semantic) = ownership.semantic_of(player_entity) else {
+            return;
+        };
+        if let Ok(mut semantic) = semantic_positions.get_mut(player_semantic) {
             *semantic = exit_semantic;
         }
         player_transform.translation = exit_local;
@@ -561,11 +561,11 @@ fn handle_spacecraft_actions(
         ship_demand.set_enabled(false);
 
         commands
-            .entity(player_manifestation.0)
+            .entity(player_semantic)
             .remove::<UsfConstituentOf>();
 
         control_transfers.write(LocalControlTransferRequest::new(
-            player_manifestation.0,
+            player_semantic,
             player_entity,
         ));
         return;
@@ -577,7 +577,6 @@ fn handle_spacecraft_actions(
 
     let (
         player_entity,
-        player_manifestation,
         player_transform,
         player_layer,
         mut player_visibility,
@@ -593,9 +592,12 @@ fn handle_spacecraft_actions(
         return;
     }
 
+    let Some(player_semantic) = ownership.semantic_of(player_entity) else {
+        return;
+    };
+
     for (
         ship_entity,
-        ship_manifestation,
         ship_transform,
         ship_layer,
         ship_contact,
@@ -625,12 +627,15 @@ fn handle_spacecraft_actions(
             .entity(player_entity)
             .remove::<Collider>()
             .remove::<CharacterMotor>();
+        let Some(ship_semantic) = ownership.semantic_of(ship_entity) else {
+            continue;
+        };
         commands
-            .entity(player_manifestation.0)
-            .insert(UsfConstituentOf(ship_manifestation.0));
+            .entity(player_semantic)
+            .insert(UsfConstituentOf(ship_semantic));
 
         control_transfers.write(LocalControlTransferRequest::new(
-            player_manifestation.0,
+            player_semantic,
             ship_entity,
         ));
         return;
@@ -638,11 +643,12 @@ fn handle_spacecraft_actions(
 }
 
 fn sync_spacecraft_orbit(
+    ownership: UsfOwnershipQuery,
     semantic_positions: Query<&UsfPosition>,
     gravity_sources: Query<&RadialGravitySource>,
     mut ships: Query<
         (
-            &UsfManifestationOf,
+            Entity,
             &UsfCanonicalMotion,
             &PrimaryBodyContext,
             &mut SpacecraftOrbit,
@@ -650,7 +656,7 @@ fn sync_spacecraft_orbit(
         With<SpacecraftManifestation>,
     >,
 ) {
-    for (manifestation, motion, primary, mut orbit) in &mut ships {
+    for (ship_entity, motion, primary, mut orbit) in &mut ships {
         orbit.valid = false;
         let Some(primary_entity) = primary.entity() else {
             continue;
@@ -662,7 +668,10 @@ fn sync_spacecraft_orbit(
             continue;
         }
 
-        let Ok(position) = semantic_positions.get(manifestation.0).copied() else {
+        let Some(ship_semantic) = ownership.semantic_of(ship_entity) else {
+            continue;
+        };
+        let Ok(position) = semantic_positions.get(ship_semantic).copied() else {
             continue;
         };
 

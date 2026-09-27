@@ -9,8 +9,10 @@ use crate::{
     console::{
         AppConsoleExt, ConsoleCommandInvocation, ConsoleCommandResult, ConsoleCommandSpec,
     },
-    ecs::UsfManifestationOf,
-    physics::character::{CharacterGroundState, CharacterMovementInput},
+    physics::{
+        character::{CharacterGroundState, CharacterMovementInput},
+        topology::runtime_semantic_of_world,
+    },
     portal::{PortalSplitTraveler, PortalTraveler},
     spatial::{
         SpatialDemandSource, SpatialScale, UsfApproachRefinement, UsfPosition,
@@ -101,27 +103,30 @@ fn primary_view_context(world: &mut World) -> Option<UsfViewContext> {
 }
 
 fn controlled_semantic_entity(world: &mut World) -> Option<Entity> {
-    let mut query =
-        world.query_filtered::<&UsfManifestationOf, With<LocalControlSubject>>();
-    query.iter(world).next().map(|manifestation| manifestation.0)
+    let controlled = {
+        let mut query = world.query_filtered::<Entity, With<LocalControlSubject>>();
+        query.iter(world).next()
+    }?;
+    runtime_semantic_of_world(world, controlled)
 }
 
 fn where_command(world: &mut World, _: &ConsoleCommandInvocation) -> ConsoleCommandResult {
     let controlled = {
         let mut query = world.query_filtered::<
-            (&Transform, &UsfScaleLayer, &UsfManifestationOf),
+            (Entity, &Transform, &UsfScaleLayer),
             With<LocalControlSubject>,
         >();
         query
             .iter(world)
             .next()
-            .map(|(transform, layer, manifestation)| {
-                (transform.translation, layer.scale(), manifestation.0)
-            })
+            .map(|(entity, transform, layer)| (entity, transform.translation, layer.scale()))
     };
 
-    let Some((runtime, scale, semantic_entity)) = controlled else {
-        return ConsoleCommandResult::error("controlled manifestation is unavailable");
+    let Some((controlled_entity, runtime, scale)) = controlled else {
+        return ConsoleCommandResult::error("controlled realization is unavailable");
+    };
+    let Some(semantic_entity) = runtime_semantic_of_world(world, controlled_entity) else {
+        return ConsoleCommandResult::error("controlled semantic entity is unavailable");
     };
 
     let semantic_position = world.get::<UsfPosition>(semantic_entity).copied();
@@ -595,10 +600,11 @@ fn parse_scale(value: &str) -> Option<SpatialScale> {
 
 fn reconcile_controlled_spatial_transition(
     mut transitions: MessageReader<UsfSpatialTransitionApplied>,
+    ownership: crate::ecs::UsfOwnershipQuery,
     mut subjects: Query<
         (
+            Entity,
             &Transform,
-            &UsfManifestationOf,
             &mut PortalTraveler,
             Option<&mut PortalSplitTraveler>,
             Option<&mut CharacterMovementInput>,
@@ -609,15 +615,15 @@ fn reconcile_controlled_spatial_transition(
 ) {
     for transition in transitions.read() {
         for (
+            entity,
             transform,
-            manifestation,
             mut traveler,
             split,
             input,
             ground,
         ) in &mut subjects
         {
-            if manifestation.0 != transition.subject {
+            if ownership.semantic_of(entity) != Some(transition.subject) {
                 continue;
             }
 

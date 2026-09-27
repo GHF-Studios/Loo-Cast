@@ -34,10 +34,7 @@ pub(super) fn apply_hierarchy_selection(world: &mut World, selected: &[Entity]) 
 }
 
 fn focus_target_for_entity(world: &World, entity: Entity) -> FocusTarget {
-    let semantic_entity = world
-        .get::<UsfManifestationOf>(entity)
-        .map(|manifestation| manifestation.0)
-        .unwrap_or(entity);
+    let semantic_entity = runtime_semantic_of_world(world, entity).unwrap_or(entity);
     FocusTarget::entity(entity, semantic_entity)
 }
 
@@ -89,11 +86,11 @@ pub(super) fn draw_structure(ui: &mut egui::Ui, world: &mut World) {
         });
     }
 
-    let manifestations = world
-        .get::<UsfManifestations>(target.semantic_entity)
-        .map(|manifestations| manifestations.iter().collect::<Vec<_>>())
+    let partitions = world
+        .get::<UsfAuthorityPartitions>(target.semantic_entity)
+        .map(|partitions| partitions.iter().collect::<Vec<_>>())
         .unwrap_or_default();
-    if target.spatial_entity != target.semantic_entity || !manifestations.is_empty() {
+    if target.spatial_entity != target.semantic_entity || !partitions.is_empty() {
         ui.add_space(6.0);
         ui.separator();
         ui.strong("USF relationships");
@@ -107,18 +104,41 @@ pub(super) fn draw_structure(ui: &mut egui::Ui, world: &mut World) {
             return;
         }
 
-        for manifestation in manifestations {
-            let name = entity_name(world, manifestation);
-            let authority = world
-                .get::<UsfManifestationAuthority>(manifestation)
-                .is_some();
-            let suffix = if authority { "  [authority]" } else { "" };
+        if let Some(peer) = world.get::<SpatialSplitPeer>(target.spatial_entity)
+            && ui
+                .button(format!("Split authority  {:?}", peer.authority))
+                .clicked()
+        {
+            select_related_entity(world, peer.authority);
+            return;
+        }
+
+        for partition in partitions {
+            let partition_name = entity_name(world, partition);
             if ui
-                .button(format!("Manifestation  {name}  {manifestation:?}{suffix}"))
+                .button(format!(
+                    "Authority partition  {partition_name}  {partition:?}"
+                ))
                 .clicked()
             {
-                select_related_entity(world, manifestation);
+                select_related_entity(world, partition);
                 return;
+            }
+
+            let realizations = world
+                .get::<UsfLogicalRealizations>(partition)
+                .map(|realizations| realizations.iter().collect::<Vec<_>>())
+                .unwrap_or_default();
+
+            for realization in realizations {
+                let name = entity_name(world, realization);
+                if ui
+                    .button(format!("Logical realization  {name}  {realization:?}"))
+                    .clicked()
+                {
+                    select_related_entity(world, realization);
+                    return;
+                }
             }
         }
     }

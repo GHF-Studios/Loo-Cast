@@ -4,7 +4,7 @@ use avian3d::prelude::*;
 use bevy::prelude::*;
 
 use crate::{
-    ecs::UsfLogicalProjection,
+    ecs::UsfLogicalRealizationOf,
     portal::{
         Portal, PortalActive, PortalSplitTraveler,
         topology::mapping::{map_transform, portal_mapping, portal_plane},
@@ -38,7 +38,7 @@ pub(crate) fn materialize_portal_splits(
             &mut Collider,
         ),
         (
-            With<UsfLogicalProjection>,
+            With<UsfLogicalRealizationOf>,
             With<KinematicQueryExclusions>,
             With<DetailedBodyCollision>,
             Without<SpatialSplitPeer>,
@@ -48,7 +48,6 @@ pub(crate) fn materialize_portal_splits(
     mut peers: Query<
         (&mut Transform, &mut LinearVelocity, &mut Collider),
         (
-            With<UsfLogicalProjection>,
             With<SpatialSplitPeer>,
             Without<Portal>,
         ),
