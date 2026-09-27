@@ -30,7 +30,9 @@ use crate::{
 use super::{
     control::LocalControlSubject,
     locomotion::{ControlledSubjectLocomotion, LocomotionRegime, LocomotionRequest},
-    navigation::{AdaptiveCruise, NavigationAudit, TravelPace, TravelProfile},
+    navigation::{
+        AdaptiveCruise, NavigationAudit, NavigationFlightRecorder, TravelPace, TravelProfile,
+    },
     player::{Player, PlayerAim},
     world::UniverseLandmarkIndex,
 };
@@ -61,6 +63,15 @@ pub(super) fn configure(app: &mut App) {
             summary: "Inspect or isolate physical vs contextual USF presentation passes.",
         },
         presentation_command,
+    )
+    .register_console_command(
+        ConsoleCommandSpec {
+            name: "navtrace",
+            aliases: &["ntrace", "flightrecorder"],
+            usage: "navtrace [<count>|clear|on|off|status]",
+            summary: "Dump recent navigation/interaction causal history.",
+        },
+        navtrace_command,
     )
     .register_console_command(
         ConsoleCommandSpec {
@@ -470,6 +481,54 @@ fn presentation_command(
     }
 
     ConsoleCommandResult::lines(lines)
+}
+
+fn navtrace_command(
+    world: &mut World,
+    invocation: &ConsoleCommandInvocation,
+) -> ConsoleCommandResult {
+    if invocation.args().len() > 1 {
+        return ConsoleCommandResult::error(
+            "usage: navtrace [<count>|clear|on|off|status]",
+        );
+    }
+
+    let arg = invocation.args().first().map(String::as_str);
+    match arg {
+        Some(value) if value.eq_ignore_ascii_case("clear") => {
+            world.resource_mut::<NavigationFlightRecorder>().clear();
+            ConsoleCommandResult::success("navtrace cleared")
+        }
+        Some(value) if value.eq_ignore_ascii_case("on") => {
+            world.resource_mut::<NavigationFlightRecorder>().set_enabled(true);
+            ConsoleCommandResult::success("navtrace enabled")
+        }
+        Some(value) if value.eq_ignore_ascii_case("off") => {
+            world.resource_mut::<NavigationFlightRecorder>().set_enabled(false);
+            ConsoleCommandResult::success("navtrace disabled")
+        }
+        Some(value) if value.eq_ignore_ascii_case("status") => {
+            let recorder = world.resource::<NavigationFlightRecorder>();
+            ConsoleCommandResult::success(format!(
+                "navtrace {} | {} samples retained",
+                if recorder.enabled() { "enabled" } else { "disabled" },
+                recorder.len(),
+            ))
+        }
+        Some(value) => {
+            let Ok(count) = value.parse::<usize>() else {
+                return ConsoleCommandResult::error(
+                    "navtrace count must be a positive integer",
+                );
+            };
+            ConsoleCommandResult::lines(
+                world.resource::<NavigationFlightRecorder>().lines(count),
+            )
+        }
+        None => ConsoleCommandResult::lines(
+            world.resource::<NavigationFlightRecorder>().lines(40),
+        ),
+    }
 }
 
 fn locate_command(world: &mut World, invocation: &ConsoleCommandInvocation) -> ConsoleCommandResult {

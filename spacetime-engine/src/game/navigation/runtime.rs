@@ -11,8 +11,9 @@ use crate::{
     spatial::{
         SpatialRefinementDemand, SpatialScale, UsfApproachRefinement,
         UsfInteractionRequirement, UsfNavigationContext,
-        UsfScaleLayer, UsfScaleRoleMask, UsfSpatialFrame, UsfSpatialTransitionQueue,
-        UsfTransitionVelocity, UsfTravelBoundaryResolver, UsfTravelInfluence,
+        UsfScaleLayer, UsfScaleRoleMask, UsfSpatialFrame, UsfSpatialTransitionApplied,
+        UsfSpatialTransitionCause, UsfSpatialTransitionQueue, UsfTransitionVelocity,
+        UsfTravelBoundaryResolver, UsfTravelInfluence,
         UsfTravelInfluenceKind, UsfTravelNeighborhood, UsfViewContext,
         UsfViewRenderAnchor,
     },
@@ -22,6 +23,57 @@ use super::{
     ApproachRefinementState, NavigationAudit, NavigationPresentationProfile,
     NavigationPresentationState, PrimaryBodyContext, TravelEnvelope, TravelProfile, TravelState,
 };
+
+fn requested_transition_rebases_approach(cause: UsfSpatialTransitionCause) -> bool {
+    matches!(cause, UsfSpatialTransitionCause::Requested)
+}
+
+/// Rebase rate-limited approach state after an authoritative relocation.
+///
+/// A requested relocation can discontinuously replace the subject's active
+/// Scale Slice. Continuous refinement history from the previous chart is no
+/// longer meaningful after that transaction. Ordinary adjacent interaction
+/// handoffs are produced by this planner and preserve its progress.
+pub(super) fn reconcile_approach_after_requested_transition(
+    mut transitions: MessageReader<UsfSpatialTransitionApplied>,
+    ownership: UsfOwnershipQuery,
+    mut subjects: Query<
+        (Entity, &UsfScaleLayer, &mut ApproachRefinementState),
+        With<LocalControlSubject>,
+    >,
+) {
+    for transition in transitions.read() {
+        if !requested_transition_rebases_approach(transition.cause) {
+            continue;
+        }
+
+        for (entity, layer, mut approach) in &mut subjects {
+            if ownership.semantic_of(entity) != Some(transition.subject) {
+                continue;
+            }
+
+            let scale = layer.scale();
+            debug_assert_eq!(
+                scale,
+                transition.active_scale,
+                "navigation reconciliation must observe the applied runtime scale",
+            );
+
+            approach.active = false;
+            approach.continuous_exponent = f32::from(scale.exponent());
+            approach.minimum_scale = scale;
+            approach.interaction_target_scale = scale;
+            approach.realization_target_scale = scale;
+
+            debug!(
+                subject = ?transition.subject,
+                previous_scale = %transition.previous_scale,
+                active_scale = %scale,
+                "rebased approach refinement after requested spatial transition"
+            );
+        }
+    }
+}
 
 /// Refreshes the sparse travel neighborhood and derives the characteristic
 /// spatial length currently being navigated.
@@ -514,6 +566,19 @@ pub(super) fn sync_travel_state(
 #[cfg(test)]
 mod interaction_digit_tests {
     use super::*;
+
+    #[test]
+    fn only_requested_relocations_rebase_approach_history() {
+        assert!(requested_transition_rebases_approach(
+            UsfSpatialTransitionCause::Requested,
+        ));
+        assert!(!requested_transition_rebases_approach(
+            UsfSpatialTransitionCause::InteractionRequirement,
+        ));
+        assert!(!requested_transition_rebases_approach(
+            UsfSpatialTransitionCause::ViewScale,
+        ));
+    }
 
     #[test]
     fn entry_jumps_to_coarsest_physical_body_digit() {

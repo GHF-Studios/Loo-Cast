@@ -6,10 +6,13 @@
 
 use bevy::{app::RunFixedMainLoop, prelude::*};
 
-use crate::spatial::{SpatialScale, UsfPosition};
+use crate::spatial::{SpatialScale, UsfPosition, UsfSpatialSet};
 
+mod devtools;
 mod policy;
 mod runtime;
+
+pub use devtools::NavigationFlightRecorder;
 
 #[derive(Reflect, Debug, Clone, Copy)]
 pub struct ManualTravelProfile {
@@ -491,6 +494,7 @@ pub struct NavigationPlugin;
 impl Plugin for NavigationPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<NavigationAudit>()
+            .init_resource::<NavigationFlightRecorder>()
             .register_type::<ManualTravelProfile>()
             .register_type::<CruiseTravelProfile>()
             .register_type::<PlanetaryTravelProfile>()
@@ -531,6 +535,16 @@ impl Plugin for NavigationPlugin {
                 )
                     .chain()
                     .in_set(NavigationSet::Publish),
+            )
+            .add_systems(
+                PostUpdate,
+                runtime::reconcile_approach_after_requested_transition
+                    .after(UsfSpatialSet::SyncSemantic),
+            )
+            .add_systems(
+                PostUpdate,
+                devtools::record_navigation_flight
+                    .after(UsfSpatialSet::ViewProjection),
             );
     }
 }
