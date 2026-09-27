@@ -336,6 +336,11 @@ fn dispatch_console_commands(world: &mut World) {
         let invocation = match parse_command(&raw) {
             Ok(invocation) => invocation,
             Err(error) => {
+                error!(
+                    target: "developer_console",
+                    error = %error,
+                    "console command parse error"
+                );
                 world
                     .resource_mut::<DeveloperConsole>()
                     .push(ConsoleLineKind::Error, error);
@@ -349,19 +354,33 @@ fn dispatch_console_commands(world: &mut World) {
         };
 
         let Some(command) = command else {
-            world.resource_mut::<DeveloperConsole>().push(
-                ConsoleLineKind::Error,
-                format!(
-                    "unknown command `{}` — type `help` to list commands",
-                    invocation.name()
-                ),
+            let error = format!(
+                "unknown command `{}` — type `help` to list commands",
+                invocation.name()
             );
+            error!(
+                target: "developer_console",
+                command = invocation.name(),
+                error = %error,
+                "console command failed"
+            );
+            world
+                .resource_mut::<DeveloperConsole>()
+                .push(ConsoleLineKind::Error, error);
             continue;
         };
 
         match (command.handler)(world, &invocation) {
             ConsoleCommandResult::Silent => {}
             ConsoleCommandResult::Success { lines, focus } => {
+                for line in &lines {
+                    info!(
+                        target: "developer_console",
+                        command = invocation.name(),
+                        "{line}"
+                    );
+                }
+
                 {
                     let mut console = world.resource_mut::<DeveloperConsole>();
                     for line in lines {
@@ -380,6 +399,12 @@ fn dispatch_console_commands(world: &mut World) {
                 }
             }
             ConsoleCommandResult::Error(error) => {
+                error!(
+                    target: "developer_console",
+                    command = invocation.name(),
+                    error = %error,
+                    "console command failed"
+                );
                 world
                     .resource_mut::<DeveloperConsole>()
                     .push(ConsoleLineKind::Error, error);
@@ -462,10 +487,13 @@ fn draw_console(
                                         egui::Color32::from_rgb(255, 118, 105)
                                     }
                                 };
-                                ui.label(
-                                    egui::RichText::new(&line.text)
-                                        .monospace()
-                                        .color(color),
+                                ui.add(
+                                    egui::Label::new(
+                                        egui::RichText::new(&line.text)
+                                            .monospace()
+                                            .color(color),
+                                    )
+                                    .selectable(true),
                                 );
                             }
                         });
