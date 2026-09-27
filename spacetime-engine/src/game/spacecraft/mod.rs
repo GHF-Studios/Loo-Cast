@@ -11,8 +11,9 @@ use bevy::{math::DVec3, prelude::*};
 
 use crate::{
     ecs::{
-        UsfConstituentOf, UsfEntity, UsfLogicalProjection, UsfManifestationAuthority,
-        UsfManifestationOf, UsfPresentationProjectionOf,
+        UsfAuthorityPartitionOf, UsfConstituentOf, UsfEntity, UsfLogicalProjection,
+        UsfLogicalRealizationOf, UsfManifestationAuthority, UsfManifestationOf,
+        UsfPresentationProjectionOf,
     },
     game::{
         GameSet,
@@ -202,6 +203,15 @@ fn spawn_reference_spacecraft(
         ))
         .id();
 
+    // Control/focus now resolves runtime subjects through the generic USF
+    // ownership graph, so the spacecraft must participate before transfer.
+    let ship_partition = commands
+        .spawn((
+            Name::new("Reference Spacecraft Authority Partition"),
+            UsfAuthorityPartitionOf(semantic_ship),
+        ))
+        .id();
+
     let mut locomotion = ControlledSubjectLocomotion::default();
     locomotion.request_automatic();
     locomotion.set_thrusters_enabled(true);
@@ -212,9 +222,12 @@ fn spawn_reference_spacecraft(
                 Name::new("Reference Spacecraft Manifestation"),
                 SpacecraftManifestation,
                 Visibility::Inherited,
+                // Legacy flat markers remain temporarily for consumers that
+                // have not yet migrated. Generic ownership is authoritative.
                 UsfManifestationOf(semantic_ship),
                 UsfManifestationAuthority,
                 UsfLogicalProjection,
+                UsfLogicalRealizationOf(ship_partition),
                 UsfScaleLayer::new(body_layer.scale()),
                 SpatialDemandSource::cuboid(SHIP_DEMAND_HALF_EXTENT)
                     .with_priority(SHIP_DEMAND_PRIORITY),
