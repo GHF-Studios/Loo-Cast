@@ -39,26 +39,10 @@ pub(super) fn build_trimesh_collider(
 /// Assign each triangle to exactly one brick by its brick-local centroid. A
 /// triangle may cross the brick boundary, but only one collider owns it.
 pub(super) fn owned_triangles(surface: &VoxelSurface) -> Vec<[u32; 3]> {
-    surface
-        .indices
-        .chunks_exact(3)
-        .zip(&surface.triangle_materials)
-        .filter_map(|(triangle, material)| {
-            if !material.behavior().is_rigid() {
-                return None;
-            }
-
-            let indices = [triangle[0], triangle[1], triangle[2]];
-            let a = Vec3::from_array(surface.positions[indices[0] as usize]);
-            let b = Vec3::from_array(surface.positions[indices[1] as usize]);
-            let c = Vec3::from_array(surface.positions[indices[2] as usize]);
-            let centroid = (a + b + c) / 3.0;
-
-            owns_point(centroid).then_some(indices)
-        })
-        .collect()
+    surface.owned_rigid_triangles()
 }
 
+#[cfg(test)]
 fn owns_point(point: Vec3) -> bool {
     let maximum = Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32);
     point.cmpge(Vec3::ZERO).all() && point.cmplt(maximum).all()

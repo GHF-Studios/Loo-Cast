@@ -4,7 +4,7 @@ use avian3d::prelude::Position;
 use bevy::prelude::*;
 
 use crate::{
-    ecs::UsfLogicalProjection,
+    ecs::UsfLogicalRealizationOf,
     spatial::{
         UsfChartDelta, UsfOriginRebased, UsfRuntimeChartState, UsfScaleLayer,
         UsfSpatialAnchor,
@@ -21,7 +21,7 @@ pub(in crate::spatial) fn rebase_local_frame(
     mut transforms: ParamSet<(
         Query<
             (Entity, &Transform, &UsfScaleLayer),
-            (With<UsfSpatialAnchor>, With<UsfLogicalProjection>),
+            (With<UsfSpatialAnchor>, With<UsfLogicalRealizationOf>),
         >,
         Query<(&mut Transform, Option<&UsfScaleLayer>), Without<ChildOf>>,
     )>,

@@ -10,7 +10,7 @@ use std::collections::{HashMap, VecDeque};
 use avian3d::prelude::{LinearVelocity, Position};
 use bevy::prelude::*;
 
-use crate::ecs::{UsfLogicalProjection, UsfManifestationOf};
+use crate::ecs::{UsfLogicalRealizationOf, UsfOwnershipQuery};
 
 use super::{
     SpatialScale, UsfCanonicalMotion, UsfPrimaryInteractionSlice, UsfInteractionProjection, UsfPosition,
@@ -270,12 +270,13 @@ pub(super) fn apply_spatial_transitions(
     mut frame: ResMut<UsfSpatialFrame>,
     mut queue: ResMut<UsfSpatialTransitionQueue>,
     coverage: Res<UsfScaleCoverageSnapshot>,
+    ownership: UsfOwnershipQuery,
     mut participants: ParamSet<(
         Query<
-            (Entity, &Transform, &UsfScaleLayer, &UsfManifestationOf),
+            (Entity, &Transform, &UsfScaleLayer, &UsfLogicalRealizationOf),
             (
                 With<UsfSpatialAnchor>,
-                With<UsfLogicalProjection>,
+                With<UsfLogicalRealizationOf>,
                 With<UsfInteractionProjection>,
                 Without<ChildOf>,
             ),
@@ -288,7 +289,7 @@ pub(super) fn apply_spatial_transitions(
                 Option<&mut Position>,
                 Option<&mut LinearVelocity>,
                 Option<&mut UsfCanonicalMotion>,
-                Option<&UsfManifestationOf>,
+                Option<&UsfLogicalRealizationOf>,
             ),
             (With<UsfInteractionProjection>, Without<ChildOf>),
         >,
@@ -298,10 +299,18 @@ pub(super) fn apply_spatial_transitions(
 ) {
     let (anchor_entity, old_anchor_runtime, previous_scale, subject) = {
         let anchors = participants.p0();
-        let Some((entity, transform, layer, manifestation)) = anchors.iter().next() else {
+        let Some((entity, transform, layer, realization)) = anchors.iter().next() else {
             return;
         };
-        (entity, transform.translation, layer.scale(), manifestation.0)
+        let Some(subject) = ownership.semantic_for(realization) else {
+            error!(
+                realization = ?entity,
+                partition = ?realization.0,
+                "USF spatial anchor has no semantic owner"
+            );
+            return;
+        };
+        (entity, transform.translation, layer.scale(), subject)
     };
 
     let Ok(current_position) = frame
@@ -411,10 +420,10 @@ pub(super) fn apply_spatial_transitions(
         return;
     }
 
-    for (_entity, mut transform, mut layer, position, velocity, motion, manifestation) in
+    for (_entity, mut transform, mut layer, position, velocity, motion, realization) in
         &mut participants.p1()
     {
-        if manifestation.is_none_or(|manifestation| manifestation.0 != subject) {
+        if realization.is_none_or(|realization| ownership.semantic_for(realization) != Some(subject)) {
             continue;
         }
 
@@ -434,7 +443,7 @@ pub(super) fn apply_spatial_transitions(
         }
 
         let belongs_to_subject =
-            manifestation.is_some_and(|manifestation| manifestation.0 == subject);
+            realization.is_some_and(|realization| ownership.semantic_for(realization) == Some(subject));
 
         if belongs_to_subject {
             match (motion, velocity) {

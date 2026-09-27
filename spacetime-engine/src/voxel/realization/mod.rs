@@ -17,8 +17,9 @@ use crate::{
     ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf},
     spatial::{
         SpatialDemandScope, SpatialDemandSnapshot, SpatialRefinementDemand, SpatialScale,
-        UsfChartMask, UsfPosition, UsfRefinementPlan, UsfResidencyRequestBuffer,
-        UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScaleRoleMask,
+        UsfChartMask, UsfChunkAddress, UsfPosition, UsfRefinementPlan,
+        UsfResidencyRequestBuffer, UsfScaleCoverageSnapshot, UsfScaleLayer,
+        UsfScaleRoleMask,
     },
 };
 
@@ -354,18 +355,27 @@ fn parent_realization_ready(
     authority: Entity,
     parent_scale: Option<SpatialScale>,
     coverage: &UsfScaleCoverageSnapshot,
-    center: &UsfPosition,
+    child_center: &UsfPosition,
 ) -> bool {
     let Some(parent_scale) = parent_scale else {
         return true;
     };
 
-    coverage.has_near_for_authority(
+    // Parent-before-child refinement follows canonical ancestry. Different
+    // scale realizations are approximations and are not required to place their
+    // geometric surfaces at the same point. The only valid prerequisite is that
+    // the exact canonical parent context for this child branch already has
+    // realized capability from the same semantic authority.
+    let Ok(parent_context) =
+        UsfChunkAddress::containing(*child_center, parent_scale)
+    else {
+        return false;
+    };
+
+    coverage.has_in_context_for_authority(
         authority,
-        parent_scale,
-        center,
+        parent_context,
         UsfScaleRoleMask::REALIZATION,
-        0.0,
     )
 }
 

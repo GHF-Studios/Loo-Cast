@@ -307,7 +307,7 @@ fn material_vertex_color(material: VoxelMaterialId) -> [f32; 4] {
 }
 
 fn build_translucent_mesh(surface: &VoxelSurface) -> Option<Mesh> {
-    let indices = surface.translucent_indices();
+    let indices = surface.owned_translucent_indices();
     if surface.positions.is_empty() || indices.is_empty() {
         return None;
     }
@@ -334,7 +334,7 @@ fn build_translucent_mesh(surface: &VoxelSurface) -> Option<Mesh> {
 }
 
 fn build_opaque_mesh(surface: &VoxelSurface, debug_color: [f32; 4]) -> Option<Mesh> {
-    let indices = surface.opaque_indices();
+    let indices = surface.owned_opaque_indices();
     if surface.positions.is_empty() || indices.is_empty() {
         return None;
     }

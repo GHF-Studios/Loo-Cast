@@ -4,7 +4,7 @@ use bevy::prelude::{Vec2, Vec3};
 use fast_surface_nets::{SurfaceNetsBuffer, ndshape::ConstShape3u32, surface_nets};
 
 use super::{
-    VoxelChunk, VoxelMaterialId,
+    MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelMaterialId,
     chunk::{SAMPLE_PADDING, SAMPLE_SIZE},
 };
 
@@ -24,28 +24,71 @@ pub(super) struct VoxelSurface {
 }
 
 impl VoxelSurface {
-    pub(super) fn opaque_indices(&self) -> Vec<u32> {
+    /// True when the triangle centroid belongs to this materialization's
+    /// canonical half-open ownership aperture.
+    ///
+    /// Surface Nets extracts one padded neighbor sample around each brick. That
+    /// padding is reconstruction context only: render, collision and capability
+    /// coverage must all agree on which brick owns the resulting surface.
+    fn owns_triangle(&self, triangle: &[u32]) -> bool {
+        let indices = [triangle[0], triangle[1], triangle[2]];
+        let a = Vec3::from_array(self.positions[indices[0] as usize]);
+        let b = Vec3::from_array(self.positions[indices[1] as usize]);
+        let c = Vec3::from_array(self.positions[indices[2] as usize]);
+        let centroid = (a + b + c) / 3.0;
+        let maximum = Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32);
+
+        centroid.cmpge(Vec3::ZERO).all() && centroid.cmplt(maximum).all()
+    }
+
+    pub(super) fn has_owned_triangles(&self) -> bool {
+        self.indices
+            .chunks_exact(3)
+            .any(|triangle| self.owns_triangle(triangle))
+    }
+
+    pub(super) fn owned_opaque_indices(&self) -> Vec<u32> {
         self.indices
             .chunks_exact(3)
             .zip(&self.triangle_materials)
-            .filter(|(_, material)| !material.behavior().is_translucent())
+            .filter(|(triangle, material)| {
+                self.owns_triangle(triangle) && !material.behavior().is_translucent()
+            })
             .flat_map(|(triangle, _)| triangle.iter().copied())
             .collect()
     }
 
-    pub(super) fn translucent_indices(&self) -> Vec<u32> {
+    pub(super) fn owned_translucent_indices(&self) -> Vec<u32> {
         self.indices
             .chunks_exact(3)
             .zip(&self.triangle_materials)
-            .filter(|(_, material)| material.behavior().is_translucent())
+            .filter(|(triangle, material)| {
+                self.owns_triangle(triangle) && material.behavior().is_translucent()
+            })
             .flat_map(|(triangle, _)| triangle.iter().copied())
             .collect()
     }
 
-    pub(super) fn has_rigid_triangles(&self) -> bool {
-        self.triangle_materials
-            .iter()
-            .any(|material| material.behavior().is_rigid())
+    pub(super) fn owned_rigid_triangles(&self) -> Vec<[u32; 3]> {
+        self.indices
+            .chunks_exact(3)
+            .zip(&self.triangle_materials)
+            .filter_map(|(triangle, material)| {
+                if !material.behavior().is_rigid() || !self.owns_triangle(triangle) {
+                    return None;
+                }
+                Some([triangle[0], triangle[1], triangle[2]])
+            })
+            .collect()
+    }
+
+    pub(super) fn has_owned_rigid_triangles(&self) -> bool {
+        self.indices
+            .chunks_exact(3)
+            .zip(&self.triangle_materials)
+            .any(|(triangle, material)| {
+                material.behavior().is_rigid() && self.owns_triangle(triangle)
+            })
     }
 }
 

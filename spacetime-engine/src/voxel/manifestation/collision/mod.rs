@@ -87,7 +87,7 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
             .materializations()
             .surface(runtime.address())
             .is_some_and(|cache| {
-                cache.revision == runtime.revision() && cache.surface.has_rigid_triangles()
+                cache.revision == runtime.revision() && cache.surface.has_owned_rigid_triangles()
             });
 
         let has_collision_demand = realization_demand

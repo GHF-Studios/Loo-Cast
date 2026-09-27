@@ -1,39 +1,48 @@
 //! ECS synchronization between bounded runtime projections and canonical USF state.
 
 use super::*;
+use crate::ecs::{UsfLogicalRealizationOf, UsfOwnershipQuery};
 
 pub(super) fn sync_semantic_positions(
     frame: Res<UsfSpatialFrame>,
+    ownership: UsfOwnershipQuery,
     anchors: Query<
         (
             Ref<Transform>,
-            Ref<UsfManifestationOf>,
+            Ref<UsfLogicalRealizationOf>,
             Ref<UsfScaleLayer>,
             Option<&UsfCanonicalMotion>,
         ),
-        (With<UsfSpatialAnchor>, With<UsfLogicalProjection>),
+        With<UsfSpatialAnchor>,
     >,
     mut semantic_positions: Query<&mut UsfPosition>,
 ) {
     let frame_changed = frame.is_changed();
 
-    for (transform, manifestation, layer, motion) in &anchors {
+    for (transform, realization, layer, motion) in &anchors {
         if motion.is_some_and(|motion| motion.canonical_authority()) {
             continue;
         }
         if !frame_changed
             && !transform.is_changed()
-            && !manifestation.is_changed()
+            && !realization.is_changed()
             && !layer.is_changed()
         {
             continue;
         }
-        let Ok(mut semantic) = semantic_positions.get_mut(manifestation.0) else {
+
+        let Some(semantic_entity) = ownership.semantic_for(&realization) else {
+            error!(
+                partition = ?realization.0,
+                "USF spatial anchor logical realization has no semantic authority"
+            );
+            continue;
+        };
+        let Ok(mut semantic) = semantic_positions.get_mut(semantic_entity) else {
             continue;
         };
 
-        let Ok(position) = frame.chart(layer.scale()).unproject(transform.translation)
-        else {
+        let Ok(position) = frame.chart(layer.scale()).unproject(transform.translation) else {
             error!(
                 scale = %layer.scale(),
                 local_position = ?transform.translation,

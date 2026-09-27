@@ -8,7 +8,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    ecs::UsfManifestationOf,
+    ecs::UsfOwnershipQuery,
     spatial::{
         UsfInteractionProjection, UsfSpatialAnchor, UsfSpatialTransitionQueue, UsfViewAnchor,
     },
@@ -76,7 +76,7 @@ pub enum ControlActionSet {
 
 /// Request transfer of one semantic controller to one runtime manifestation.
 ///
-/// The target semantic subject is resolved from [`UsfManifestationOf`]. Callers
+/// The target semantic subject is resolved through the generic USF ownership graph. Callers
 /// never mutate [`LocalControlSubject`] or [`ControlledBy`] themselves.
 #[derive(Message, Debug, Clone, Copy)]
 pub struct LocalControlTransferRequest {
@@ -152,14 +152,12 @@ fn apply_local_control_transfers(
     mut commands: Commands,
     mut requests: MessageReader<LocalControlTransferRequest>,
     controllers: Query<(), With<LocalController>>,
-    manifestations: Query<&UsfManifestationOf>,
-    current: Query<(Entity, &UsfManifestationOf), With<LocalControlSubject>>,
+    ownership: UsfOwnershipQuery,
+    current: Query<Entity, With<LocalControlSubject>>,
     relationships: Query<&ControlledBy>,
     mut applied: MessageWriter<LocalControlTransferApplied>,
     mut rejected: MessageWriter<LocalControlTransferRejected>,
 ) {
-    // Local control is singular. If multiple requests arrive in one frame, the
-    // most recent intent supersedes earlier intents transactionally.
     let Some(request) = requests.read().last().copied() else {
         return;
     };
@@ -172,34 +170,35 @@ fn apply_local_control_transfers(
         return;
     }
 
-    let Ok(target_manifestation) = manifestations.get(request.manifestation) else {
+    let Some(target_subject) = ownership.semantic_of(request.manifestation) else {
         rejected.write(LocalControlTransferRejected {
             request,
             reason: LocalControlTransferRejection::TargetIsNotManifestation,
         });
         return;
     };
-    let target_subject = target_manifestation.0;
 
     let previous = current
         .iter()
         .next()
-        .map(|(manifestation, subject)| (manifestation, subject.0));
+        .and_then(|realization| {
+            ownership
+                .semantic_of(realization)
+                .map(|subject| (realization, subject))
+        });
 
-    // Repair duplicate local-subject markers if corruption ever occurs.
-    for (manifestation, subject) in &current {
-        if manifestation != request.manifestation {
-            commands
-                .entity(manifestation)
-                .remove::<LocalControlSubject>();
+    for realization in &current {
+        if realization != request.manifestation {
+            commands.entity(realization).remove::<LocalControlSubject>();
         }
 
-        if subject.0 != request.controller
+        if let Some(subject) = ownership.semantic_of(realization)
+            && subject != request.controller
             && relationships
-                .get(subject.0)
+                .get(subject)
                 .is_ok_and(|relationship| relationship.0 == request.controller)
         {
-            commands.entity(subject.0).remove::<ControlledBy>();
+            commands.entity(subject).remove::<ControlledBy>();
         }
     }
 
@@ -211,14 +210,12 @@ fn apply_local_control_transfers(
             .insert(ControlledBy(request.controller));
     }
 
-    commands
-        .entity(request.manifestation)
-        .insert(LocalControlSubject);
+    commands.entity(request.manifestation).insert(LocalControlSubject);
 
     applied.write(LocalControlTransferApplied {
         controller: request.controller,
         previous_subject: previous.map(|(_, subject)| subject),
-        previous_manifestation: previous.map(|(manifestation, _)| manifestation),
+        previous_manifestation: previous.map(|(realization, _)| realization),
         subject: target_subject,
         manifestation: request.manifestation,
     });
@@ -278,7 +275,8 @@ fn reconcile_local_control_focus(
 
 fn audit_local_control_invariants(
     controllers: Query<Entity, With<LocalController>>,
-    subjects: Query<(Entity, &UsfManifestationOf), With<LocalControlSubject>>,
+    subjects: Query<Entity, With<LocalControlSubject>>,
+    ownership: UsfOwnershipQuery,
     relationships: Query<&ControlledBy>,
     view_targets: Query<Entity, With<LocalViewTarget>>,
     view_anchors: Query<Entity, With<UsfViewAnchor>>,
@@ -297,27 +295,32 @@ fn audit_local_control_invariants(
         .flatten();
     let subject = (subject_count == 1)
         .then(|| subjects.iter().next())
-        .flatten();
+        .flatten()
+        .and_then(|realization| {
+            ownership
+                .semantic_of(realization)
+                .map(|semantic| (realization, semantic))
+        });
 
     let semantic_authority_valid = match (controller, subject) {
-        (Some(controller), Some((_, manifestation))) if manifestation.0 == controller => {
-            relationships.get(manifestation.0).is_err()
+        (Some(controller), Some((_, semantic))) if semantic == controller => {
+            relationships.get(semantic).is_err()
         }
-        (Some(controller), Some((_, manifestation))) => relationships
-            .get(manifestation.0)
+        (Some(controller), Some((_, semantic))) => relationships
+            .get(semantic)
             .is_ok_and(|relationship| relationship.0 == controller),
         _ => false,
     };
 
     let focus_valid = match subject {
-        Some((manifestation, _))
+        Some((realization, _))
             if view_target_count == 1
                 && view_anchor_count == 1
                 && spatial_anchor_count == 1 =>
         {
-            view_targets.iter().next() == Some(manifestation)
-                && view_anchors.iter().next() == Some(manifestation)
-                && spatial_anchors.iter().next() == Some(manifestation)
+            view_targets.iter().next() == Some(realization)
+                && view_anchors.iter().next() == Some(realization)
+                && spatial_anchors.iter().next() == Some(realization)
         }
         _ => false,
     };

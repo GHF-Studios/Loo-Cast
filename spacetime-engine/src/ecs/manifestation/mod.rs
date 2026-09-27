@@ -53,6 +53,9 @@
 
 use bevy::prelude::*;
 
+mod query;
+pub use query::UsfOwnershipQuery;
+
 /// One semantic USF entity.
 #[derive(Component, Debug)]
 pub struct UsfEntity;

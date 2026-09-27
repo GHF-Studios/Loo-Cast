@@ -9,4 +9,5 @@ pub use manifestation::{
     UsfLogicalRealizationOf, UsfLogicalRealizations, UsfManifestationAuthority, UsfManifestationOf,
     UsfManifestations, UsfPresentationProjectionOf, UsfPresentationProjections,
     UsfPresentationView, UsfPresentationViewOf, UsfViewPresentations,
+    UsfOwnershipQuery,
 };

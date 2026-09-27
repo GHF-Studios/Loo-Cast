@@ -6,7 +6,7 @@ use bevy::{
     light::{NotShadowCaster, NotShadowReceiver},
 };
 use crate::{
-    ecs::{UsfManifestationOf, UsfPresentationProjectionOf},
+    ecs::{UsfLogicalRealizationOf, UsfOwnershipQuery, UsfPresentationProjectionOf},
     spatial::{
         UsfCapabilityRealization, UsfPrimaryInteractionSlice,
         UsfScaleCoverageSnapshot, UsfScaleRoleMask,
@@ -17,7 +17,8 @@ use crate::{
 /// Keeps the view anchored to an ordinary bounded runtime transform while
 /// deriving its semantic position through the current local physical frame.
 pub(in crate::spatial) fn sync_view_context(
-    semantic_anchors: Query<(&Transform, &UsfManifestationOf), With<UsfViewAnchor>>,
+    ownership: UsfOwnershipQuery,
+    semantic_anchors: Query<(&Transform, &UsfLogicalRealizationOf), With<UsfViewAnchor>>,
     semantic_positions: Query<&UsfPosition>,
     observer: Single<
         (&Transform, &mut UsfViewContext),
@@ -25,7 +26,7 @@ pub(in crate::spatial) fn sync_view_context(
     >,
 ) {
     let mut semantic_anchors = semantic_anchors.iter();
-    let Some((runtime_anchor, manifestation)) = semantic_anchors.next() else {
+    let Some((runtime_anchor, realization)) = semantic_anchors.next() else {
         return;
     };
     if semantic_anchors.next().is_some() {
@@ -33,9 +34,16 @@ pub(in crate::spatial) fn sync_view_context(
         return;
     }
 
-    let Ok(&canonical) = semantic_positions.get(manifestation.0) else {
+    let Some(subject) = ownership.semantic_for(realization) else {
         error!(
-            subject = ?manifestation.0,
+            partition = ?realization.0,
+            "USF semantic view anchor has no semantic owner"
+        );
+        return;
+    };
+    let Ok(&canonical) = semantic_positions.get(subject) else {
+        error!(
+            subject = ?subject,
             "USF semantic view anchor has no canonical position"
         );
         return;
@@ -201,7 +209,7 @@ pub(in crate::spatial) fn project_scenery_presentations(
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     interaction: Res<UsfPrimaryInteractionSlice>,
     coverage: Res<UsfScaleCoverageSnapshot>,
-    manifestations: Query<&UsfManifestationOf>,
+    ownership: UsfOwnershipQuery,
     parents: Query<&Transform, Without<UsfSceneryPresentation>>,
     mut presentations: Query<(
         Entity,
@@ -231,10 +239,10 @@ pub(in crate::spatial) fn project_scenery_presentations(
     {
         if let Some(fallback) = fallback {
             let replacement_ready = projection
-                .and_then(|projection| manifestations.get(projection.0).ok())
-                .is_some_and(|manifestation| {
+                .and_then(|projection| ownership.semantic_of(projection.0))
+                .is_some_and(|semantic| {
                     coverage.has_near_for_authority(
-                        manifestation.0,
+                        semantic,
                         interaction.scale(),
                         view.anchor(),
                         UsfScaleRoleMask::PRESENTATION,

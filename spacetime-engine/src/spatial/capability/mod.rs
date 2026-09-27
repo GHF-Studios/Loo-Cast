@@ -10,7 +10,7 @@
 
 use bevy::prelude::*;
 
-use super::{SpatialScale, UsfPosition, UsfSpatialSet};
+use super::{SpatialScale, UsfChunkAddress, UsfPosition, UsfSpatialSet};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct UsfScaleRoleMask(u16);
@@ -228,6 +228,35 @@ impl UsfScaleCoverageSnapshot {
             coverage.authority() == authority
                 && coverage.scale() == scale
                 && coverage.is_within(point, required, radius_native)
+        })
+    }
+
+    /// Returns whether one authority has realized `required` capability inside
+    /// exactly this canonical context.
+    ///
+    /// Refinement ancestry is topological, not geometric. A coarse realization
+    /// may approximate a fine surface hundreds of native units away while still
+    /// being the correct canonical parent branch. Consumers that need
+    /// parent-before-child ordering should query context identity rather than
+    /// physical proximity between two different-resolution surfaces.
+    pub fn has_in_context_for_authority(
+        &self,
+        authority: Entity,
+        context: UsfChunkAddress,
+        required: UsfScaleRoleMask,
+    ) -> bool {
+        let scale = context.scale();
+
+        self.entries.iter().copied().any(|coverage| {
+            if coverage.authority() != authority
+                || coverage.scale() != scale
+                || !coverage.roles().contains(required)
+            {
+                return false;
+            }
+
+            UsfChunkAddress::containing(coverage.center(), scale)
+                .is_ok_and(|coverage_context| coverage_context == context)
         })
     }
 
