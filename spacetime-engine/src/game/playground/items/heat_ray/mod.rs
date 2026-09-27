@@ -3,15 +3,15 @@
 //! This tool injects signed thermal energy. It deliberately does not know how
 //! ignition works and never inserts `Combustion` itself.
 
-use avian3d::prelude::{SpatialQuery, SpatialQueryFilter};
+use avian3d::prelude::SpatialQuery;
 use bevy::prelude::*;
 
 use crate::{
-    ecs::{UsfManifestationOf, UsfManifestations},
     game::{
         GameSet,
         item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItem},
     },
+    physics::topology::UsfRuntimeOwnershipQuery,
     thermal::ThermalPointImpulse,
 };
 
@@ -44,8 +44,7 @@ fn register_item(mut catalog: ResMut<ItemCatalog>) {
 
 fn use_heat_ray(
     mut uses: MessageReader<UseItem>,
-    manifestations: Query<&UsfManifestationOf>,
-    semantic_entities: Query<&UsfManifestations>,
+    runtime_ownership: UsfRuntimeOwnershipQuery,
     spatial_query: SpatialQuery,
     mut impulses: MessageWriter<ThermalPointImpulse>,
 ) {
@@ -66,12 +65,7 @@ fn use_heat_ray(
             continue;
         };
 
-        let filter = manifestations
-            .get(request.actor)
-            .ok()
-            .and_then(|manifestation| semantic_entities.get(manifestation.0).ok())
-            .map(|manifestations| SpatialQueryFilter::from_excluded_entities(manifestations.iter()))
-            .unwrap_or_else(|| SpatialQueryFilter::from_excluded_entities([request.actor]));
+        let filter = runtime_ownership.filter_excluding_subject(request.actor);
 
         let Some(hit) =
             spatial_query.cast_ray(request.aim.origin, direction, RANGE, false, &filter)

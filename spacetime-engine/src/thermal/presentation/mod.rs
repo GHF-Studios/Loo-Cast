@@ -4,9 +4,8 @@ use std::collections::HashSet;
 
 use bevy::{color::LinearRgba, prelude::*};
 
-use crate::{
-    ecs::UsfManifestationOf,
-    physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive},
+use crate::physics::topology::{
+    SpatialSplitPeer, SpatialSplitPeerActive, UsfRuntimeOwnershipQuery,
 };
 
 use super::{Combustion, ThermalPresentationSet, ThermalSpatialSample};
@@ -55,9 +54,10 @@ fn setup_fire_presentation(
 fn sync_flame_visuals(
     mut commands: Commands,
     assets: Res<FirePresentationAssets>,
+    runtime_ownership: UsfRuntimeOwnershipQuery,
     combustions: Query<(), With<Combustion>>,
     manifestations: Query<
-        (Entity, &UsfManifestationOf, &Transform),
+        (Entity, &Transform),
         (
             With<ThermalSpatialSample>,
             Without<FlameVisual>,
@@ -71,8 +71,11 @@ fn sync_flame_visuals(
         .map(|(_, visual)| visual.manifestation)
         .collect();
 
-    for (manifestation, relation, transform) in &manifestations {
-        if existing.contains(&manifestation) || !combustions.contains(relation.0) {
+    for (manifestation, transform) in &manifestations {
+        let Some(semantic) = runtime_ownership.semantic_of(manifestation) else {
+            continue;
+        };
+        if existing.contains(&manifestation) || !combustions.contains(semantic) {
             continue;
         }
 
@@ -81,7 +84,7 @@ fn sync_flame_visuals(
         commands.spawn((
             Name::new("Combustion Flame"),
             FlameVisual {
-                semantic: relation.0,
+                semantic,
                 manifestation,
                 phase,
             },

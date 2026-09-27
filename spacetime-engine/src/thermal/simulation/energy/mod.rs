@@ -4,13 +4,12 @@ use super::*;
 
 pub(super) fn apply_thermal_impulses(
     mut impulses: MessageReader<ThermalImpulse>,
-    manifestations: Query<&UsfManifestationOf>,
+    runtime_ownership: UsfRuntimeOwnershipQuery,
     mut thermal_bodies: Query<&mut ThermalBody>,
 ) {
     for impulse in impulses.read() {
-        let target = manifestations
-            .get(impulse.target)
-            .map(|manifestation| manifestation.0)
+        let target = runtime_ownership
+            .semantic_of(impulse.target)
             .unwrap_or(impulse.target);
 
         let Ok(mut body) = thermal_bodies.get_mut(target) else {

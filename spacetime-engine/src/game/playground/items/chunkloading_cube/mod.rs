@@ -5,14 +5,15 @@ use bevy::prelude::*;
 
 use crate::{
     ecs::{
-        UsfEntity, UsfLogicalProjection, UsfManifestationAuthority, UsfManifestationOf,
-        UsfManifestations, UsfPresentationProjectionOf,
+        UsfAuthorityPartitionOf, UsfEntity, UsfLogicalProjection, UsfLogicalRealizationOf,
+        UsfManifestationAuthority, UsfManifestationOf, UsfPresentationProjectionOf,
     },
     game::{
         GameSet,
         health::{Health, DamageableBounds},
         item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItem},
     },
+    physics::topology::UsfRuntimeOwnershipQuery,
     spatial::SpatialDemandSource,
     voxel::VoxelMaterializationDemand,
 };
@@ -59,8 +60,7 @@ fn use_chunkloading_cube(
     mut uses: MessageReader<UseItem>,
     assets: Res<PlaygroundItemPresentationAssets>,
     mut meshes: ResMut<Assets<Mesh>>,
-    manifestations: Query<&UsfManifestationOf>,
-    semantic_entities: Query<&UsfManifestations>,
+    runtime_ownership: UsfRuntimeOwnershipQuery,
     spatial_query: SpatialQuery,
     mut counter: ResMut<ChunkloadingCubeCounter>,
 ) {
@@ -72,12 +72,7 @@ fn use_chunkloading_cube(
         let Ok(direction) = Dir3::new(request.aim.direction) else {
             continue;
         };
-        let filter = manifestations
-            .get(request.actor)
-            .ok()
-            .and_then(|manifestation| semantic_entities.get(manifestation.0).ok())
-            .map(|manifestations| SpatialQueryFilter::from_excluded_entities(manifestations.iter()))
-            .unwrap_or_else(|| SpatialQueryFilter::from_excluded_entities([request.actor]));
+        let filter = runtime_ownership.filter_excluding_subject(request.actor);
         let Some(hit) = spatial_query.cast_ray(
             request.aim.origin,
             direction,
@@ -107,6 +102,16 @@ fn use_chunkloading_cube(
             ))
             .id();
 
+        let chunkloading_partition = commands
+            .spawn((
+                Name::new(format!(
+                    "Chunkloading Cube Authority Partition {}",
+                    counter.0
+                )),
+                UsfAuthorityPartitionOf(root),
+            ))
+            .id();
+
         let collider = Collider::cuboid(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
         let inertia = AngularInertia::from_shape(&collider, CUBE_MASS_KG);
         let manifestation = commands
@@ -116,6 +121,7 @@ fn use_chunkloading_cube(
                     UsfManifestationOf(root),
                     UsfManifestationAuthority,
                     UsfLogicalProjection,
+                    UsfLogicalRealizationOf(chunkloading_partition),
                     PlaygroundPickable::cube(root, CUBE_SIZE),
                     DamageableBounds::cube(CUBE_SIZE),
                     SpatialDemandSource::cuboid(DEMAND_HALF_EXTENT).with_priority(DEMAND_PRIORITY),

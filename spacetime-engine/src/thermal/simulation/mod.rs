@@ -4,9 +4,8 @@ use std::collections::HashMap;
 
 use bevy::prelude::*;
 
-use crate::{
-    ecs::UsfManifestationOf,
-    physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive},
+use crate::physics::topology::{
+    SpatialSplitPeer, SpatialSplitPeerActive, UsfRuntimeOwnershipQuery,
 };
 
 use super::{

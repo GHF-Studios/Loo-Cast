@@ -61,8 +61,9 @@ pub(super) struct HeatScratch {
 /// state or combustion semantics.
 pub(super) fn propagate_combustion_heat(
     time: Res<Time>,
+    runtime_ownership: UsfRuntimeOwnershipQuery,
     samples: Query<
-        (&UsfManifestationOf, &Transform),
+        (Entity, &Transform),
         (
             With<ThermalSpatialSample>,
             Or<(Without<SpatialSplitPeer>, With<SpatialSplitPeerActive>)>,
@@ -86,9 +87,12 @@ pub(super) fn propagate_combustion_heat(
     for positions in positions_by_semantic.values_mut() {
         positions.clear();
     }
-    for (relation, transform) in &samples {
+    for (runtime, transform) in &samples {
+        let Some(semantic) = runtime_ownership.semantic_of(runtime) else {
+            continue;
+        };
         positions_by_semantic
-            .entry(relation.0)
+            .entry(semantic)
             .or_default()
             .push(transform.translation);
     }

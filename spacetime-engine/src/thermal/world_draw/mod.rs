@@ -10,8 +10,9 @@ use crate::{
         DrawId, ScalarFieldMode, ScalarRange, VisualizationId, VisualizationSpec, WorldDrawBatch,
         WorldDrawFrame, WorldScalarField,
     },
-    ecs::UsfManifestationOf,
-    physics::topology::{SpatialSplitPeer, SpatialSplitPeerActive},
+    physics::topology::{
+        SpatialSplitPeer, SpatialSplitPeerActive, UsfRuntimeOwnershipQuery,
+    },
 };
 
 use super::{
@@ -54,8 +55,9 @@ fn collect_thermal_world_draw(
     transforms: Query<&GlobalTransform>,
     thermal_bodies: Query<&ThermalBody>,
     thermal_fields: Query<(&ThermalField, &ThermalMaterial)>,
+    runtime_ownership: UsfRuntimeOwnershipQuery,
     samples: Query<
-        (&UsfManifestationOf, &GlobalTransform),
+        (Entity, &GlobalTransform),
         (
             With<ThermalSpatialSample>,
             Or<(Without<SpatialSplitPeer>, With<SpatialSplitPeerActive>)>,
@@ -74,8 +76,11 @@ fn collect_thermal_world_draw(
 
     if cells_enabled {
         let range = ScalarRange::new(273.15, 800.0);
-        for (relation, transform) in &samples {
-            let Ok(body) = thermal_bodies.get(relation.0) else {
+        for (runtime, transform) in &samples {
+            let Some(semantic) = runtime_ownership.semantic_of(runtime) else {
+                continue;
+            };
+            let Ok(body) = thermal_bodies.get(semantic) else {
                 continue;
             };
 
@@ -97,7 +102,7 @@ fn collect_thermal_world_draw(
                 DrawDepth::World,
             );
 
-            if let Ok((field, material)) = thermal_fields.get(relation.0) {
+            if let Ok((field, material)) = thermal_fields.get(semantic) {
                 let minimum = field.minimum_temperature_kelvin(material);
                 let maximum = field.maximum_temperature_kelvin(material);
                 let cell_range = ScalarRange::new(minimum, maximum.max(minimum + 1.0));
@@ -134,9 +139,12 @@ fn collect_thermal_world_draw(
     };
 
     let mut positions_by_semantic = HashMap::<Entity, Vec<Vec3>>::new();
-    for (relation, transform) in &samples {
+    for (runtime, transform) in &samples {
+        let Some(semantic) = runtime_ownership.semantic_of(runtime) else {
+            continue;
+        };
         positions_by_semantic
-            .entry(relation.0)
+            .entry(semantic)
             .or_default()
             .push(transform.translation());
     }

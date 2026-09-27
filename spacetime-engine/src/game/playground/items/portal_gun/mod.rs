@@ -4,16 +4,16 @@
 //! does not own portal entities, recursive rendering, keyboard bindings or
 //! cursor state.
 
-use avian3d::prelude::{SpatialQuery, SpatialQueryFilter};
+use avian3d::prelude::SpatialQuery;
 use bevy::prelude::*;
 
 use crate::{
-    ecs::{UsfManifestationOf, UsfManifestations},
     game::{
         GameSet,
         inventory::Hotbar,
         item::{ItemAction, ItemActionHint, ItemAim, ItemCatalog, ItemDefinition, ItemId, UseItem},
     },
+    physics::topology::UsfRuntimeOwnershipQuery,
     portal::{PortalCommand, PortalEndpoint},
 };
 
@@ -51,8 +51,8 @@ fn register_item(mut catalog: ResMut<ItemCatalog>) {
 /// which keeps future snapping policy out of the item implementation.
 fn use_portal_gun(
     mut uses: MessageReader<UseItem>,
-    actors: Query<(&Transform, Option<&UsfManifestationOf>)>,
-    semantic_entities: Query<&UsfManifestations>,
+    runtime_ownership: UsfRuntimeOwnershipQuery,
+    actors: Query<&Transform>,
     spatial_query: SpatialQuery,
     mut portal_commands: MessageWriter<PortalCommand>,
 ) {
@@ -78,14 +78,7 @@ fn use_portal_gun(
             continue;
         };
 
-        let filter = manifestation_filter(
-            request.actor,
-            actors
-                .get(request.actor)
-                .ok()
-                .and_then(|(_, manifestation)| manifestation),
-            &semantic_entities,
-        );
+        let filter = runtime_ownership.filter_excluding_subject(request.actor);
         let Some(hit) =
             spatial_query.cast_ray(request.aim.origin, direction, PORTAL_RANGE, false, &filter)
         else {
@@ -97,10 +90,7 @@ fn use_portal_gun(
             continue;
         }
 
-        let actor = actors
-            .get(request.actor)
-            .ok()
-            .map(|(transform, _)| transform);
+        let actor = actors.get(request.actor).ok();
         let preferred_up = actor.map_or(Vec3::Y, |actor| actor.rotation * Vec3::Y);
         let preferred_right = actor.map_or(Vec3::X, |actor| actor.rotation * Vec3::X);
 
@@ -116,17 +106,6 @@ fn use_portal_gun(
             transform,
         });
     }
-}
-
-fn manifestation_filter(
-    actor: Entity,
-    manifestation: Option<&UsfManifestationOf>,
-    semantic_entities: &Query<&UsfManifestations>,
-) -> SpatialQueryFilter {
-    manifestation
-        .and_then(|manifestation| semantic_entities.get(manifestation.0).ok())
-        .map(|manifestations| SpatialQueryFilter::from_excluded_entities(manifestations.iter()))
-        .unwrap_or_else(|| SpatialQueryFilter::from_excluded_entities([actor]))
 }
 
 /// Builds an orthonormal portal frame whose local +Z points away from the hit
@@ -166,8 +145,7 @@ fn reject(vector: Vec3, axis: Vec3) -> Vec3 {
 fn draw_laser_pointer(
     hotbar: Res<Hotbar>,
     aim: Res<ItemAim>,
-    manifestations: Query<&UsfManifestationOf>,
-    semantic_entities: Query<&UsfManifestations>,
+    runtime_ownership: UsfRuntimeOwnershipQuery,
     spatial_query: SpatialQuery,
     mut gizmos: Gizmos,
 ) {
@@ -182,11 +160,7 @@ fn draw_laser_pointer(
         return;
     };
 
-    let filter = manifestation_filter(
-        context.actor,
-        manifestations.get(context.actor).ok(),
-        &semantic_entities,
-    );
+    let filter = runtime_ownership.filter_excluding_subject(context.actor);
     let distance = spatial_query
         .cast_ray(context.ray.origin, direction, PORTAL_RANGE, false, &filter)
         .map_or(PORTAL_RANGE, |hit| hit.distance);

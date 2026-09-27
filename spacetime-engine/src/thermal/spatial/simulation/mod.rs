@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 
-use crate::ecs::UsfManifestationOf;
+use crate::physics::topology::UsfRuntimeOwnershipQuery;
 
 use super::{ThermalField, ThermalMaterial};
 use super::super::{ThermalBody, ThermalSet};
@@ -46,19 +46,18 @@ pub(in crate::thermal) fn configure(app: &mut App) {
 
 fn apply_point_impulses(
     mut impulses: MessageReader<ThermalPointImpulse>,
-    manifestations: Query<(&UsfManifestationOf, &Transform)>,
+    runtime_ownership: UsfRuntimeOwnershipQuery,
+    transforms: Query<&Transform>,
     mut bodies: Query<(&mut ThermalBody, &ThermalMaterial, &mut ThermalField)>,
 ) {
     for impulse in impulses.read() {
-        let (semantic, local_position) =
-            if let Ok((relation, transform)) = manifestations.get(impulse.target) {
-                (
-                    relation.0,
-                    world_to_local_point(transform, impulse.world_position),
-                )
-            } else {
-                (impulse.target, Vec3::ZERO)
-            };
+        let semantic = runtime_ownership
+            .semantic_of(impulse.target)
+            .unwrap_or(impulse.target);
+        let local_position = transforms
+            .get(impulse.target)
+            .map(|transform| world_to_local_point(transform, impulse.world_position))
+            .unwrap_or(Vec3::ZERO);
 
         let Ok((mut body, material, mut field)) = bodies.get_mut(semantic) else {
             continue;

@@ -6,14 +6,17 @@ use bevy::prelude::*;
 use crate::{
     ecs::{
         UsfAuthorityPartitionOf, UsfEntity, UsfLogicalProjection, UsfLogicalRealizationOf,
-        UsfManifestationOf, UsfManifestations, UsfPresentationProjectionOf,
+        UsfManifestationOf, UsfPresentationProjectionOf,
     },
     game::{
         GameSet,
         health::{Health, DamageableBounds},
         item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItem},
     },
-    physics::{DetailedBodyCollision, PhysicalBoxHull, topology::SpatialSplitPeer},
+    physics::{
+        DetailedBodyCollision, PhysicalBoxHull,
+        topology::{SpatialSplitPeer, UsfRuntimeOwnershipQuery},
+    },
     portal::{PortalRigidSplitBody, PortalSplitTraveler, PortalSplitVisual, PortalTraveler},
     thermal::{
         CombustibleMaterial, Fuel, ThermalBody, ThermalField, ThermalMaterial,
@@ -71,8 +74,7 @@ fn use_cube_items(
     mut uses: MessageReader<UseItem>,
     assets: Res<PlaygroundItemPresentationAssets>,
     mut meshes: ResMut<Assets<Mesh>>,
-    manifestations: Query<&UsfManifestationOf>,
-    semantic_entities: Query<&UsfManifestations>,
+    runtime_ownership: UsfRuntimeOwnershipQuery,
     spatial_query: SpatialQuery,
     mut counter: ResMut<CubeCounter>,
 ) {
@@ -90,12 +92,7 @@ fn use_cube_items(
         let Ok(direction) = Dir3::new(request.aim.direction) else {
             continue;
         };
-        let filter = manifestations
-            .get(request.actor)
-            .ok()
-            .and_then(|manifestation| semantic_entities.get(manifestation.0).ok())
-            .map(|manifestations| SpatialQueryFilter::from_excluded_entities(manifestations.iter()))
-            .unwrap_or_else(|| SpatialQueryFilter::from_excluded_entities([request.actor]));
+        let filter = runtime_ownership.filter_excluding_subject(request.actor);
 
         let Some(hit) = spatial_query.cast_ray(
             request.aim.origin,
