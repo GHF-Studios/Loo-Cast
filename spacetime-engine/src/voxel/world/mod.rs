@@ -22,9 +22,10 @@ pub(in crate::voxel) use recipe::VoxelChunkRecipe;
 /// One scale-local voxel realization container.
 ///
 /// Standalone/authored worlds may own `base + modifications` directly. When this
-/// entity is a [`crate::ecs::UsfManifestationOf`] a semantic voxel authority,
-/// `base` is a derived sampler and the shared authority owns persistent edits.
-/// Dense materializations/render/collision remain disposable local state.
+/// entity is a [`crate::ecs::UsfLogicalRealizationOf`] an authority partition,
+/// `base` is a derived sampler and the partition's semantic voxel authority owns
+/// persistent edits. Dense materializations/render/collision remain disposable
+/// local state.
 #[derive(Component, Debug)]
 pub struct VoxelWorld {
     origin: UsfPosition,

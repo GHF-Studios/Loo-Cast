@@ -170,9 +170,10 @@ fn where_command(world: &mut World, _: &ConsoleCommandInvocation) -> ConsoleComm
             scale, runtime.x, runtime.y, runtime.z
         ),
         format!(
-            "observer = {:+.3} (lower S{}, transition {:.3})",
+            "observer = {:+.3} (lower S{}, render S{}, transition {:.3})",
             view.continuous_exponent(),
             view.scale(),
+            view.render_scale(),
             view.zoom(),
         ),
         {
@@ -187,6 +188,36 @@ fn where_command(world: &mut World, _: &ConsoleCommandInvocation) -> ConsoleComm
         },
         format!("canonical = {semantic}"),
         coverage_status,
+        {
+            match (semantic_position, interaction.requested_scale()) {
+                (Some(position), Some(requested)) => {
+                    let coverage = world.resource::<UsfScaleCoverageSnapshot>();
+                    let realized = coverage.has_near(
+                        requested,
+                        &position,
+                        UsfScaleRoleMask::REALIZATION,
+                        0.0,
+                    );
+                    let presented = coverage.has_near(
+                        requested,
+                        &position,
+                        UsfScaleRoleMask::PRESENTATION,
+                        0.0,
+                    );
+                    let collision = coverage.has_near(
+                        requested,
+                        &position,
+                        UsfScaleRoleMask::COLLISION,
+                        0.0,
+                    );
+                    format!(
+                        "requested coverage @ S{}: realization={} presentation={} collision={}",
+                        requested, realized, presented, collision,
+                    )
+                }
+                _ => "requested coverage = <none>".to_string(),
+            }
+        },
         {
             let frame = world.resource::<UsfSpatialFrame>();
             format!(

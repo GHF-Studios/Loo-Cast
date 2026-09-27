@@ -9,7 +9,9 @@ use bevy::{
 };
 
 use crate::{
-    ecs::UsfManifestationOf,config::EngineConfig};
+    config::EngineConfig,
+    ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf},
+};
 
 use super::VoxelStreaming;
 use super::super::{
@@ -65,7 +67,8 @@ impl VoxelGenerationTask {
 pub(in crate::voxel) fn finish_chunk_generation(
     config: Res<EngineConfig>,
     mut commands: Commands,
-    mut worlds: Query<(&mut VoxelWorld, Option<&UsfManifestationOf>)>,
+    mut worlds: Query<(&mut VoxelWorld, Option<&UsfLogicalRealizationOf>)>,
+    authority_partitions: Query<&UsfAuthorityPartitionOf>,
     authorities: Query<(&VoxelAuthority, &VoxelScaleDomain)>,
     mut tasks: Query<(Entity, &mut VoxelGenerationTask)>,
 ) {
@@ -86,13 +89,16 @@ pub(in crate::voxel) fn finish_chunk_generation(
             generation.ready = completed.into();
         }
 
-        let Ok((mut world, realization)) = worlds.get_mut(generation.world) else {
+        let Ok((mut world, logical_realization)) =
+            worlds.get_mut(generation.world)
+        else {
             generation.ready.clear();
             commands.entity(task_entity).despawn();
             continue;
         };
-        let authority = realization
-            .and_then(|realization| authorities.get(realization.0).ok());
+        let authority = logical_realization
+            .and_then(|logical| authority_partitions.get(logical.0).ok())
+            .and_then(|partition| authorities.get(partition.0).ok());
 
         while published < publish_budget {
             let Some(mut output) = generation.ready.pop_front() else {
@@ -155,8 +161,9 @@ pub(in crate::voxel) fn schedule_voxel_generation(
         Entity,
         &mut VoxelWorld,
         &mut VoxelStreaming,
-        Option<&UsfManifestationOf>,
+        Option<&UsfLogicalRealizationOf>,
     )>,
+    authority_partitions: Query<&UsfAuthorityPartitionOf>,
     authorities: Query<(&VoxelAuthority, &VoxelScaleDomain)>,
     worker_tasks: Query<(), With<VoxelWorkerTask>>,
     mut round_robin_cursor: Local<usize>,
@@ -190,12 +197,15 @@ pub(in crate::voxel) fn schedule_voxel_generation(
         }
 
         let entity = world_entities[(start + offset) % world_entities.len()];
-        let Ok((world_entity, mut world, mut streaming, realization)) = worlds.get_mut(entity) else {
+        let Ok((world_entity, mut world, mut streaming, logical_realization)) =
+            worlds.get_mut(entity)
+        else {
             continue;
         };
 
-        let authority = realization
-            .and_then(|realization| authorities.get(realization.0).ok());
+        let authority = logical_realization
+            .and_then(|logical| authority_partitions.get(logical.0).ok())
+            .and_then(|partition| authorities.get(partition.0).ok());
         let batches = plan_generation_batches(
             &mut world,
             &mut streaming,

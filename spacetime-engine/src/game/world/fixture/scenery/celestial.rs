@@ -7,7 +7,10 @@ use bevy::prelude::*;
 
 use crate::{
     config::EngineConfig,
-    ecs::{UsfEntity, UsfManifestationOf, UsfManifestations},
+    ecs::{
+        UsfAuthorityPartitionOf, UsfAuthorityPartitions, UsfEntity,
+        UsfLogicalRealizationOf, UsfLogicalRealizations,
+    },
     physics::gravity::RadialGravitySource,
     procedural_assets::ProceduralAssetLibrary,
     spatial::{
@@ -99,6 +102,15 @@ pub(super) fn spawn_body(
         ))
         .id();
 
+    // One ordinary unsplit authority partition owns every scale-local voxel
+    // realization. Scale is realization identity, never semantic identity.
+    let authority_partition = commands
+        .spawn((
+            Name::new(format!("{name} Authority Partition")),
+            UsfAuthorityPartitionOf(semantic),
+        ))
+        .id();
+
     let local_surface_material = assets.debug_grid.clone();
     let bootstrap_direction = definition
         .arrival_direction
@@ -138,7 +150,7 @@ pub(super) fn spawn_body(
             Name::new(format!("{name} S{terrain_scale} Terrain")),
             WorldMemberOf(parent),
             UsfScaleLayer::new(terrain_scale),
-            UsfManifestationOf(semantic),
+            UsfLogicalRealizationOf(authority_partition),
             VoxelWorld::new_at(VoxelBase::celestial_body(base), grid_origin),
             VoxelStreaming::new(config.voxel.streaming.default_load_budget_per_frame),
             VoxelPresentationMaterial::new(local_surface_material.clone()),
@@ -214,10 +226,11 @@ pub(in crate::game::world::fixture) fn audit_world_authority(
             Option<&UsfTravelInfluence>,
             Option<&RadialGravitySource>,
             Option<&UsfApproachRefinement>,
-            Option<&UsfManifestations>,
+            Option<&UsfAuthorityPartitions>,
         ),
         With<CelestialBodyAuthority>,
     >,
+    logical_realizations: Query<&UsfLogicalRealizations>,
     mut completed: Local<bool>,
 ) {
     if *completed {
@@ -239,16 +252,25 @@ pub(in crate::game::world::fixture) fn audit_world_authority(
         travel,
         gravity,
         refinement,
-        manifestations,
+        partitions,
     ) in entries.iter().copied()
     {
+        let partition_count = partitions.map_or(0, UsfAuthorityPartitions::len);
+        let realization_count = partitions.map_or(0, |partitions| {
+            partitions
+                .iter()
+                .filter_map(|partition| logical_realizations.get(partition).ok())
+                .map(UsfLogicalRealizations::len)
+                .sum::<usize>()
+        });
         let valid = position.is_some()
             && field.is_some()
             && voxel_authority.is_some()
             && travel.is_some()
             && gravity.is_some()
             && refinement.is_some()
-            && manifestations.is_some_and(|manifestations| !manifestations.is_empty());
+            && partition_count > 0
+            && realization_count > 0;
 
         if !valid {
             invalid += 1;
@@ -261,7 +283,8 @@ pub(in crate::game::world::fixture) fn audit_world_authority(
                 has_travel = travel.is_some(),
                 has_gravity = gravity.is_some(),
                 has_refinement = refinement.is_some(),
-                manifestations = manifestations.map_or(0, UsfManifestations::len),
+                partitions = partition_count,
+                logical_realizations = realization_count,
                 "Earth authority invariant violation"
             );
         }
@@ -271,7 +294,7 @@ pub(in crate::game::world::fixture) fn audit_world_authority(
         info!(
             bodies = entries.len(),
             minimum_voxel_scale = %SpatialScale::MIN,
-            "Earth-only voxel authority invariants healthy; current-relative parent-first refinement active"
+            "Earth semantic/partition/logical-realization invariants healthy; current-relative parent-first refinement active"
         );
         *completed = true;
     }

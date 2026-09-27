@@ -343,7 +343,11 @@ pub(in crate::spatial) fn project_scenery_presentations(
 pub(in crate::spatial) fn project_scale_presentations(
     mut commands: Commands,
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
-    parents: Query<&Transform, Without<UsfScalePresentation>>,
+    interaction: Res<UsfPrimaryInteractionSlice>,
+    parents: Query<
+        (&Transform, Option<&UsfCapabilityRealization>),
+        Without<UsfScalePresentation>,
+    >,
     mut presentations: Query<(
         Entity,
         &UsfScalePresentation,
@@ -368,6 +372,65 @@ pub(in crate::spatial) fn project_scale_presentations(
         not_shadow_receiver,
     ) in &mut presentations
     {
+        let parent_state = if let Some(parent) = parent {
+            let Ok(state) = parents.get(parent.0) else {
+                if !matches!(*visibility, Visibility::Hidden) {
+                    *visibility = Visibility::Hidden;
+                }
+                continue;
+            };
+            Some(state)
+        } else {
+            None
+        };
+        let capability =
+            parent_state.and_then(|(_, capability)| capability);
+
+        if capability.is_some_and(|realization| {
+            !realization.roles().contains(UsfScaleRoleMask::PRESENTATION)
+        }) {
+            if !matches!(*visibility, Visibility::Hidden) {
+                *visibility = Visibility::Hidden;
+            }
+            continue;
+        }
+
+        // A capability realization in the current interaction Scale Slice is
+        // physical local geometry. Render it through the ordinary gameplay
+        // camera in exactly the same parent-local pose used by its collider.
+        //
+        // View scale is an observer policy and may legitimately differ from the
+        // interaction scale. It must never replace the visible physical surface
+        // with a different-detail terrain realization.
+        let physical_local =
+            capability.is_some() && presentation.scale() == interaction.scale();
+        if physical_local {
+            let desired_layers = RenderLayers::default();
+            if render_layers.is_none_or(|current| *current != desired_layers) {
+                commands.entity(entity).insert(desired_layers);
+            }
+            if not_shadow_caster.is_some() {
+                commands.entity(entity).remove::<NotShadowCaster>();
+            }
+            if not_shadow_receiver.is_some() {
+                commands.entity(entity).remove::<NotShadowReceiver>();
+            }
+
+            if transform.translation != Vec3::ZERO {
+                transform.translation = Vec3::ZERO;
+            }
+            if transform.scale != Vec3::ONE {
+                transform.scale = Vec3::ONE;
+            }
+            if !matches!(*visibility, Visibility::Inherited) {
+                *visibility = Visibility::Inherited;
+            }
+            continue;
+        }
+
+        // Non-interaction scale realizations are observer-relative contextual
+        // presentation. They are disposable projections and never physical
+        // authority for the local subject.
         let desired_layers = RenderLayers::layer(USF_PRESENTATION_LAYER);
         if render_layers.is_none_or(|current| *current != desired_layers) {
             commands.entity(entity).insert(desired_layers);
@@ -379,9 +442,8 @@ pub(in crate::spatial) fn project_scale_presentations(
             commands.entity(entity).insert(NotShadowReceiver);
         }
 
-        // Adjacent realizations may coexist for readiness, but without an
-        // actual terrain morph/fade they must not both draw opaque surfaces into
-        // one view. One instant therefore owns one dominant scale presentation.
+        // Adjacent/context realizations may coexist for readiness, but without
+        // a terrain morph/fade only the dominant contextual view scale draws.
         if presentation.scale() != selected_scale {
             if !matches!(*visibility, Visibility::Hidden) {
                 *visibility = Visibility::Hidden;
@@ -403,13 +465,7 @@ pub(in crate::spatial) fn project_scale_presentations(
         let factor = view.projection_factor(presentation.scale());
         let desired_global = view.presentation_origin() + relative * factor;
 
-        let desired_translation = if let Some(parent) = parent {
-            let Ok(parent_transform) = parents.get(parent.0) else {
-                if !matches!(*visibility, Visibility::Hidden) {
-                    *visibility = Visibility::Hidden;
-                }
-                continue;
-            };
+        let desired_translation = if let Some((parent_transform, _)) = parent_state {
             desired_global - parent_transform.translation
         } else {
             desired_global

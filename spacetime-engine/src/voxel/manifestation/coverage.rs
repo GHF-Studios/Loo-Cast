@@ -4,7 +4,7 @@ use avian3d::prelude::Collider;
 use bevy::prelude::*;
 
 use crate::{
-    ecs::UsfManifestationOf,
+    ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf},
     spatial::{
         UsfCapabilityRealization, UsfScaleLayer, UsfScaleRoleMask,
     },
@@ -24,9 +24,10 @@ pub(in crate::voxel) fn sync_capability_realizations(
         Entity,
         &VoxelWorld,
         &UsfScaleLayer,
-        Option<&UsfManifestationOf>,
+        Option<&UsfLogicalRealizationOf>,
         Option<&VoxelEditingDisabled>,
     )>,
+    authority_partitions: Query<&UsfAuthorityPartitionOf>,
     mut runtimes: Query<(
         Entity,
         &VoxelMaterializationRuntime,
@@ -38,7 +39,7 @@ pub(in crate::voxel) fn sync_capability_realizations(
     let half_extent = Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32 * 0.5);
 
     for (entity, runtime, collider, collider_revision, existing) in &mut runtimes {
-        let Ok((world_entity, world, layer, manifestation, editing_disabled)) =
+        let Ok((world_entity, world, layer, logical_realization, editing_disabled)) =
             worlds.get(runtime.world())
         else {
             if let Some(mut realization) = existing {
@@ -76,8 +77,12 @@ pub(in crate::voxel) fn sync_capability_realizations(
             }
         }
 
-        let authority =
-            manifestation.map_or(world_entity, |manifestation| manifestation.0);
+        // Semantic worlds publish capability facts against the semantic
+        // authority reached through the generic ownership graph. Standalone
+        // voxel worlds remain valid capability-local authorities.
+        let authority = logical_realization
+            .and_then(|logical| authority_partitions.get(logical.0).ok())
+            .map_or(world_entity, |partition| partition.0);
         let next = UsfCapabilityRealization::new(
             authority,
             layer.scale(),

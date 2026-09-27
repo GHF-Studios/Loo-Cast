@@ -14,7 +14,7 @@ use std::cmp::Reverse;
 use bevy::prelude::*;
 
 use crate::{
-    ecs::UsfManifestationOf,
+    ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf},
     spatial::{
         SpatialDemandScope, SpatialDemandSnapshot, SpatialRefinementDemand, SpatialScale,
         UsfChartMask, UsfPosition, UsfRefinementPlan, UsfResidencyRequestBuffer,
@@ -161,11 +161,12 @@ pub(super) fn collect_voxel_realization_demand(
         (
             Entity,
             &UsfScaleLayer,
-            Option<&UsfManifestationOf>,
+            Option<&UsfLogicalRealizationOf>,
             Option<&VoxelPinnedDemand>,
         ),
         With<VoxelWorld>,
     >,
+    authority_partitions: Query<&UsfAuthorityPartitionOf>,
     celestial_authorities: Query<(&CelestialVoxelField, &VoxelScaleDomain)>,
     coverage: Res<UsfScaleCoverageSnapshot>,
     mut residency_requests: ResMut<UsfResidencyRequestBuffer>,
@@ -190,7 +191,7 @@ pub(super) fn collect_voxel_realization_demand(
         });
     }
 
-    for (world_entity, layer, manifestation, pinned) in &worlds {
+    for (world_entity, layer, logical_realization, pinned) in &worlds {
         let scale = layer.scale();
 
         // Persistent capability-local residency is explicit voxel policy.
@@ -209,8 +210,9 @@ pub(super) fn collect_voxel_realization_demand(
             );
         }
 
-        if let Some(manifestation) = manifestation
-            && let Ok((field, domain)) = celestial_authorities.get(manifestation.0)
+        if let Some(logical_realization) = logical_realization
+            && let Ok(partition) = authority_partitions.get(logical_realization.0)
+            && let Ok((field, domain)) = celestial_authorities.get(partition.0)
         {
             if !domain.realizes(scale) {
                 continue;
@@ -230,7 +232,7 @@ pub(super) fn collect_voxel_realization_demand(
                     step.half_extent_native(),
                     step.priority(),
                 ) && parent_realization_ready(
-                    manifestation.0,
+                    partition.0,
                     step.parent_scale(),
                     &coverage,
                     &scope.center(),
