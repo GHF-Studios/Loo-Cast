@@ -10,12 +10,18 @@ pub(in crate::game::player) fn sample_flight_control_intent(
     time: Res<Time>,
     input: Res<PlayerInputFrame>,
     controller: Single<(&PlayerController, &TravelPace, Option<&PlayerDead>), With<Player>>,
-    subject: Single<&mut FlightControlIntent, With<LocalControlSubject>>,
+    subject: Single<
+        (&ControlledSubjectLocomotion, &mut FlightControlIntent),
+        With<LocalControlSubject>,
+    >,
 ) {
     let (controller, pace, dead) = controller.into_inner();
-    let mut intent = subject.into_inner();
+    let (locomotion, mut intent) = subject.into_inner();
 
-    if dead.is_some() || !input.gameplay_active() {
+    if dead.is_some()
+        || !input.gameplay_active()
+        || !locomotion.kernel().consumes_flight_control_intent()
+    {
         intent.clear();
         return;
     }

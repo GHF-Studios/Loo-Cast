@@ -173,6 +173,78 @@ fn canonical_motion_authoritative(
     }
 }
 
+/// Resolves semantic locomotion into one physical motion/collision contract.
+///
+/// Scale Slice is numerical/interaction realization, not locomotion identity.
+/// In particular, an on-foot subject remains a character while coarse: only
+/// its collision representation changes from the detailed body to ScaleProxy.
+fn motion_contract(
+    regime: LocomotionRegime,
+    layer: SpatialScale,
+    detailed: SpatialScale,
+    capabilities: LocomotionCapabilities,
+    thrusters_enabled: bool,
+) -> (MotionKernel, CollisionPolicy, VelocitySemantics) {
+    if regime == LocomotionRegime::Cruise {
+        return (
+            MotionKernel::Cruise,
+            CollisionPolicy::Disabled,
+            VelocitySemantics::PreserveCanonical,
+        );
+    }
+
+    if regime == LocomotionRegime::PlanetaryFlight && capabilities.orbital_flight() {
+        return (
+            MotionKernel::OrbitalFlight,
+            CollisionPolicy::Disabled,
+            VelocitySemantics::PreserveCanonical,
+        );
+    }
+
+    if regime == LocomotionRegime::LocalFlight && capabilities.inertial_flight() {
+        return (
+            MotionKernel::InertialFlight,
+            if layer == detailed {
+                CollisionPolicy::DetailedBody
+            } else {
+                CollisionPolicy::ScaleProxy
+            },
+            VelocitySemantics::PreserveCanonical,
+        );
+    }
+
+    if regime == LocomotionRegime::OnFoot {
+        return (
+            MotionKernel::Character,
+            if layer == detailed {
+                CollisionPolicy::DetailedBody
+            } else {
+                CollisionPolicy::ScaleProxy
+            },
+            VelocitySemantics::PreserveCanonical,
+        );
+    }
+
+    if layer == detailed {
+        let kernel = if regime == LocomotionRegime::LocalFlight && thrusters_enabled {
+            MotionKernel::ThrusterFlight
+        } else {
+            MotionKernel::Character
+        };
+        return (
+            kernel,
+            CollisionPolicy::DetailedBody,
+            VelocitySemantics::PreserveCanonical,
+        );
+    }
+
+    (
+        MotionKernel::ScaleNavigation,
+        CollisionPolicy::ScaleProxy,
+        VelocitySemantics::PreserveCanonical,
+    )
+}
+
 pub(super) fn resolve_locomotion_state(
     mut transitions: MessageWriter<ControlledSubjectLocomotionChanged>,
     subject: Single<
@@ -254,53 +326,13 @@ pub(super) fn resolve_locomotion_state(
         }
     };
 
-    let (kernel, collision_policy, velocity_semantics) =
-        if regime == LocomotionRegime::Cruise {
-            (
-                MotionKernel::Cruise,
-                CollisionPolicy::Disabled,
-                VelocitySemantics::PreserveCanonical,
-            )
-        } else if regime == LocomotionRegime::PlanetaryFlight
-            && capabilities.orbital_flight()
-        {
-            (
-                MotionKernel::OrbitalFlight,
-                CollisionPolicy::Disabled,
-                VelocitySemantics::PreserveCanonical,
-            )
-        } else if regime == LocomotionRegime::LocalFlight
-            && capabilities.inertial_flight()
-        {
-            (
-                MotionKernel::InertialFlight,
-                if layer.scale() == detailed.0 {
-                    CollisionPolicy::DetailedBody
-                } else {
-                    CollisionPolicy::ScaleProxy
-                },
-                VelocitySemantics::PreserveCanonical,
-            )
-        } else if layer.scale() == detailed.0 {
-            let kernel = if regime == LocomotionRegime::LocalFlight
-                && locomotion.thrusters_enabled()
-            {
-                MotionKernel::ThrusterFlight
-            } else {
-                MotionKernel::Character
-            };
-            (
-                kernel,
-                CollisionPolicy::DetailedBody,
-                VelocitySemantics::PreserveCanonical,
-            )
-        } else {
-            (
-                MotionKernel::ScaleNavigation,
-                CollisionPolicy::ScaleProxy,
-                VelocitySemantics::PreserveCanonical,
-            )
-        };
+    let (kernel, collision_policy, velocity_semantics) = motion_contract(
+        regime,
+        layer.scale(),
+        detailed.0,
+        *capabilities,
+        locomotion.thrusters_enabled(),
+    );
 
     let changed = locomotion.resolve(regime, kernel, collision_policy, velocity_semantics);
     motion.set_canonical_authority(canonical_motion_authoritative(
@@ -815,6 +847,62 @@ fn smooth_log_value(current: f64, target: f64, dt: f32, response: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn coarse_on_foot_preserves_character_motion_semantics() {
+        let detailed = SpatialScale::ZERO;
+        let coarse = SpatialScale::new(3).unwrap();
+        let capabilities = LocomotionCapabilities::character();
+
+        let (kernel, collision, velocity) = motion_contract(
+            LocomotionRegime::OnFoot,
+            coarse,
+            detailed,
+            capabilities,
+            false,
+        );
+
+        // ScaleNavigation owns the travel-envelope movement path. Walking must
+        // remain on the Character kernel so its SI character tuning survives a
+        // temporary coarse interaction representation.
+        assert_eq!(kernel, MotionKernel::Character);
+        assert_eq!(collision, CollisionPolicy::ScaleProxy);
+        assert_eq!(velocity, VelocitySemantics::PreserveCanonical);
+        assert!(!kernel.consumes_flight_control_intent());
+    }
+
+    #[test]
+    fn detailed_on_foot_uses_detailed_character_collision() {
+        let detailed = SpatialScale::ZERO;
+        let (kernel, collision, _) = motion_contract(
+            LocomotionRegime::OnFoot,
+            detailed,
+            detailed,
+            LocomotionCapabilities::character(),
+            false,
+        );
+
+        assert_eq!(kernel, MotionKernel::Character);
+        assert_eq!(collision, CollisionPolicy::DetailedBody);
+        assert!(!kernel.consumes_flight_control_intent());
+    }
+
+    #[test]
+    fn coarse_local_flight_remains_flight_controlled() {
+        let detailed = SpatialScale::ZERO;
+        let coarse = SpatialScale::new(3).unwrap();
+        let (kernel, collision, _) = motion_contract(
+            LocomotionRegime::LocalFlight,
+            coarse,
+            detailed,
+            LocomotionCapabilities::spacecraft(),
+            false,
+        );
+
+        assert_eq!(kernel, MotionKernel::InertialFlight);
+        assert_eq!(collision, CollisionPolicy::ScaleProxy);
+        assert!(kernel.consumes_flight_control_intent());
+    }
 
     #[test]
     fn manual_attitude_rate_is_bounded_by_subject_profile() {

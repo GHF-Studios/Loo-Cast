@@ -57,6 +57,23 @@ pub enum MotionKernel {
     Disabled,
 }
 
+impl MotionKernel {
+    /// Whether this kernel consumes generic flight-control intent.
+    ///
+    /// View/look intent must not become physical attitude merely because the
+    /// subject is represented in a different Scale Slice.
+    pub const fn consumes_flight_control_intent(self) -> bool {
+        matches!(
+            self,
+            Self::ThrusterFlight
+                | Self::InertialFlight
+                | Self::OrbitalFlight
+                | Self::ScaleNavigation
+                | Self::Cruise
+        )
+    }
+}
+
 /// Collision realization required by the resolved locomotion state.
 #[derive(Reflect, Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum CollisionPolicy {
