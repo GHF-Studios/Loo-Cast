@@ -39,9 +39,9 @@ pub use realization::VoxelScaleDomain;
 pub(in crate::voxel) use realization::{
     VoxelRealizationDemandSnapshot, VoxelRealizationScope,
 };
+pub use manifestation::VoxelPresentationMaterial;
 pub use streaming::{
-    VoxelMaterializationDemand, VoxelPinnedDemand, VoxelPresentationMaterial, VoxelStreaming,
-    VoxelStreamingTelemetry,
+    VoxelMaterializationDemand, VoxelPinnedDemand, VoxelStreaming, VoxelStreamingTelemetry,
 };
 pub use world::{VoxelChunkAddress, VoxelChunkCoord, VoxelMaterializationChunkAddress, VoxelWorld};
 
@@ -87,10 +87,11 @@ enum VoxelPostUpdateSet {
 
 impl Plugin for VoxelPlugin {
     fn build(&self, app: &mut App) {
+        manifestation::configure(app);
+
         app.init_resource::<manifestation::VoxelMaterializationRuntimeRegistry>()
             .init_resource::<VoxelRealizationDemandSnapshot>()
             .init_resource::<VoxelStreamingTelemetry>()
-            .add_systems(Startup, manifestation::initialize_translucent_voxel_material)
             .configure_sets(
                 Update,
                 (

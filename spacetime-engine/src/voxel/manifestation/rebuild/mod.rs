@@ -17,31 +17,13 @@ use crate::{
 
 use super::{
     VoxelMaterializationPresentation, VoxelMaterializationRuntime,
-    VoxelMaterializationRuntimeRegistry,
+    VoxelMaterializationRuntimeRegistry, VoxelRenderMaterial,
 };
 use super::super::{
     VoxelMaterialId, VoxelMaterializationChunkAddress, VoxelWorld,
     mesh::VoxelSurface,
-    streaming::VoxelPresentationMaterial,
+    VoxelPresentationMaterial,
 };
-
-#[derive(Resource)]
-pub(in crate::voxel) struct TranslucentVoxelMaterial(Handle<StandardMaterial>);
-
-pub(in crate::voxel) fn initialize_translucent_voxel_material(
-    mut commands: Commands,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    let material = materials.add(StandardMaterial {
-        base_color: Color::WHITE,
-        alpha_mode: AlphaMode::Blend,
-        perceptual_roughness: 0.18,
-        metallic: 0.0,
-        double_sided: true,
-        ..default()
-    });
-    commands.insert_resource(TranslucentVoxelMaterial(material));
-}
 
 /// Rebuilds dirty one-to-one runtime manifestations within the configured frame
 /// budget.
@@ -53,7 +35,6 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
     mut commands: Commands,
     spatial_frame: Res<UsfSpatialFrame>,
     mut meshes: ResMut<Assets<Mesh>>,
-    translucent_material: Res<TranslucentVoxelMaterial>,
     worlds: Query<(
         Entity,
         &VoxelWorld,
@@ -83,6 +64,11 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
             if let Some(entity) = registry.entities.remove(&key) {
                 commands.entity(entity).despawn();
             }
+            continue;
+        };
+
+        let Some((opaque_material, translucent_material)) = material.handles() else {
+            registry.dirty.insert(key);
             continue;
         };
 
@@ -138,7 +124,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
                             key.world,
                             layer,
                             &cache.surface,
-                            &translucent_material.0,
+                            translucent_material,
                             &mut meshes,
                             &presentations,
                             &mut manifestation,
@@ -186,7 +172,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
                     VoxelMaterializationPresentation,
                     UsfPresentationProjectionOf(key.world),
                     UsfScalePresentation::new(*key.address.origin(), layer.scale()),
-                    MeshMaterial3d(material.handle().clone()),
+                    MeshMaterial3d(opaque_material.clone()),
                     Transform::IDENTITY,
                     Visibility::Inherited,
                 ))
@@ -202,7 +188,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
                 layer,
                 key.address,
                 &cache.surface,
-                &translucent_material.0,
+                translucent_material,
                 &mut meshes,
             );
 
@@ -226,7 +212,7 @@ fn sync_translucent_presentation(
     world: Entity,
     layer: &UsfScaleLayer,
     surface: &VoxelSurface,
-    material: &Handle<StandardMaterial>,
+    material: &Handle<VoxelRenderMaterial>,
     meshes: &mut Assets<Mesh>,
     presentations: &Query<Option<&Mesh3d>, With<VoxelMaterializationPresentation>>,
     manifestation: &mut VoxelMaterializationRuntime,
@@ -277,7 +263,7 @@ fn spawn_translucent_presentation(
     layer: &UsfScaleLayer,
     address: VoxelMaterializationChunkAddress,
     surface: &VoxelSurface,
-    material: &Handle<StandardMaterial>,
+    material: &Handle<VoxelRenderMaterial>,
     meshes: &mut Assets<Mesh>,
 ) -> Option<Entity> {
     let mesh = build_translucent_mesh(surface)?;

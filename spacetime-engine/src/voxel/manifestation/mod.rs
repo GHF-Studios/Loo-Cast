@@ -14,17 +14,23 @@ use super::VoxelMaterializationChunkAddress;
 mod collision;
 mod coverage;
 mod lifecycle;
+mod material;
 mod membership;
 mod rebuild;
 
 pub(super) use collision::sync_manifestation_collision_residency;
 pub(super) use coverage::sync_capability_realizations;
 pub(super) use lifecycle::retire_removed_world_manifestations;
+pub use material::VoxelPresentationMaterial;
+pub(super) use material::VoxelRenderMaterial;
 pub(super) use membership::sync_manifestation_membership;
 pub(super) use rebuild::{
-    initialize_translucent_voxel_material, rebuild_dirty_manifestations,
-    sync_manifestation_runtime_transforms,
+    rebuild_dirty_manifestations, sync_manifestation_runtime_transforms,
 };
+
+pub(super) fn configure(app: &mut App) {
+    material::configure(app);
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct ManifestationKey {

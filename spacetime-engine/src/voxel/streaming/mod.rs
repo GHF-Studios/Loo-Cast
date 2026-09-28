@@ -172,20 +172,6 @@ impl VoxelStreamingTelemetry {
     }
 }
 
-/// Render material used by disposable voxel manifestations.
-#[derive(Component, Debug, Clone)]
-pub struct VoxelPresentationMaterial(Handle<StandardMaterial>);
-
-impl VoxelPresentationMaterial {
-    pub fn new(material: Handle<StandardMaterial>) -> Self {
-        Self(material)
-    }
-
-    pub(super) fn handle(&self) -> &Handle<StandardMaterial> {
-        &self.0
-    }
-}
-
 /// Marks a generic [`crate::spatial::SpatialDemandSource`] as requesting voxel
 /// materialization.
 #[derive(Component, Debug, Default, Clone, Copy)]

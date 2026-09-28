@@ -58,13 +58,13 @@ pub(in crate::voxel) fn sync_capability_realizations(
         let surface_current = world
             .materializations()
             .surface(runtime.address())
-            .is_some_and(|surface| {
-                surface.revision == runtime.revision()
-                    && surface.surface.has_triangles()
-            });
+            .is_some_and(|surface| surface.revision == runtime.revision());
 
         let mut roles = UsfScaleRoleMask::NONE;
         if surface_current {
+            // A current empty derived surface is still realized presentation
+            // truth. It must be able to erase a coarse approximation after
+            // excavation/caves/void generation even though it owns no mesh.
             roles = UsfScaleRoleMask::REALIZATION
                 .union(UsfScaleRoleMask::PRESENTATION);
 

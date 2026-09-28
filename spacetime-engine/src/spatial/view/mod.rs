@@ -324,21 +324,6 @@ impl UsfViewContext {
         self.scale.exponent() as f32 + self.zoom
     }
 
-    /// Discrete convenience scale for presentation systems that genuinely need
-    /// one representative scale.
-    ///
-    /// IMPORTANT: persistent USF terrain must NOT use this to choose one global
-    /// owner. Materialization and visibility combine independent interaction
-    /// and presentation demand outside the view context.
-    pub fn render_scale(&self) -> SpatialScale {
-        if self.scale == SpatialScale::MAX || self.zoom < 0.5 {
-            self.scale
-        } else {
-            SpatialScale::new(self.scale.exponent() + 1)
-                .expect("non-maximum view scale has a coarser adjacent scale")
-        }
-    }
-
     /// Changes observer scale without changing canonical observer position.
     pub fn add_zoom(&mut self, delta: f32, minimum: SpatialScale, maximum: SpatialScale) {
         let minimum = minimum.exponent() as f32;

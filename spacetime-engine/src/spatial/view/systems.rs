@@ -374,8 +374,6 @@ pub(in crate::spatial) fn project_scale_presentations(
         Option<&NotShadowReceiver>,
     )>,
 ) {
-    let selected_scale = view.render_scale();
-
     for (
         entity,
         presentation,
@@ -467,9 +465,10 @@ pub(in crate::spatial) fn project_scale_presentations(
             commands.entity(entity).insert(NotShadowReceiver);
         }
 
-        // Adjacent/context realizations may coexist for readiness, but without
-        // a terrain morph/fade only the dominant contextual view scale draws.
-        if presentation.scale() != selected_scale {
+        // Every supported coarser contextual Scale Slice may contribute.
+        // Immediately-finer realized apertures clip their parent on the GPU,
+        // so no one global scale owns the whole contextual scene.
+        if !view.context_scale_eligible(presentation.scale()) {
             if !matches!(*visibility, Visibility::Hidden) {
                 *visibility = Visibility::Hidden;
             }

@@ -211,10 +211,9 @@ fn where_command(world: &mut World, _: &ConsoleCommandInvocation) -> ConsoleComm
             scale, runtime.x, runtime.y, runtime.z
         ),
         format!(
-            "observer = {:+.3} (lower S{}, render S{}, transition {:.3})",
+            "observer = {:+.3} (context floor S{}, transition {:.3})",
             view.continuous_exponent(),
             view.scale(),
-            view.render_scale(),
             view.zoom(),
         ),
         {
@@ -380,9 +379,9 @@ fn presentation_command(
     let mut lines = vec![
         format!("presentation probe = {}", probe.label()),
         format!(
-            "observer = {:+.3} | render S{} | interaction S{}{}",
+            "observer = {:+.3} | context floor S{} | interaction S{}{}",
             view.continuous_exponent(),
-            view.render_scale(),
+            view.scale(),
             interaction.scale(),
             interaction.requested_scale().map_or(String::new(), |s| format!(" -> S{} pending", s)),
         ),
