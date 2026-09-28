@@ -108,10 +108,45 @@ impl VoxelScaleDomain {
     }
 }
 
+/// One capability-specific reason for a voxel materialization scope to exist.
+///
+/// View and physical demand share geometry/cache machinery without sharing
+/// capability authority.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(in crate::voxel) struct VoxelRealizationScope {
+    scope: SpatialDemandScope,
+    roles: UsfScaleRoleMask,
+}
+
+impl VoxelRealizationScope {
+    pub(in crate::voxel) const fn new(
+        scope: SpatialDemandScope,
+        roles: UsfScaleRoleMask,
+    ) -> Self {
+        Self { scope, roles }
+    }
+
+    pub(in crate::voxel) const fn scope(self) -> SpatialDemandScope {
+        self.scope
+    }
+
+    pub(in crate::voxel) const fn roles(self) -> UsfScaleRoleMask {
+        self.roles
+    }
+}
+
+#[cfg(test)]
+impl From<SpatialDemandScope> for VoxelRealizationScope {
+    fn from(scope: SpatialDemandScope) -> Self {
+        Self::new(scope, full_runtime_roles())
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct VoxelRealizationDemand {
     target_world: Entity,
     scope: SpatialDemandScope,
+    roles: UsfScaleRoleMask,
     residency_half_extent_native: Vec3,
 }
 
@@ -128,28 +163,51 @@ pub(in crate::voxel) struct VoxelRealizationDemandSnapshot {
 }
 
 impl VoxelRealizationDemandSnapshot {
-    pub(in crate::voxel) fn scopes_for(
+    pub(in crate::voxel) fn requests_for(
         &self,
         world: Entity,
-    ) -> impl Iterator<Item = SpatialDemandScope> + '_ {
+    ) -> impl Iterator<Item = VoxelRealizationScope> + '_ {
         self.demands
             .iter()
             .filter(move |demand| demand.target_world == world)
-            .map(|demand| demand.scope)
+            .map(|demand| VoxelRealizationScope::new(demand.scope, demand.roles))
     }
 
     fn push(
         &mut self,
         target_world: Entity,
         scope: SpatialDemandScope,
+        roles: UsfScaleRoleMask,
         residency_half_extent_native: Vec3,
     ) {
         self.demands.push(VoxelRealizationDemand {
             target_world,
             scope,
+            roles,
             residency_half_extent_native,
         });
     }
+}
+
+fn presentation_roles() -> UsfScaleRoleMask {
+    UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::PRESENTATION)
+}
+
+fn full_runtime_roles() -> UsfScaleRoleMask {
+    presentation_roles()
+        .union(UsfScaleRoleMask::COLLISION)
+        .union(UsfScaleRoleMask::EDITING)
+}
+
+fn roles_for_scale(domain: VoxelScaleDomain, scale: SpatialScale) -> UsfScaleRoleMask {
+    let mut roles = presentation_roles();
+    if domain.collides(scale) {
+        roles = roles.union(UsfScaleRoleMask::COLLISION);
+    }
+    if domain.editable(scale) {
+        roles = roles.union(UsfScaleRoleMask::EDITING);
+    }
+    roles
 }
 
 pub(super) fn collect_voxel_realization_demand(
@@ -208,9 +266,12 @@ pub(super) fn collect_voxel_realization_demand(
                 pinned.half_extent_native(),
                 pinned.priority(),
             );
+            // Permanent whole-body bootstrap is presentation ancestry,
+            // not a request for far-field physics/editing.
             next.push(
                 world_entity,
                 scope,
+                presentation_roles(),
                 materialization_residency_extent(scope.half_extent_native()),
             );
         }
@@ -240,6 +301,7 @@ pub(super) fn collect_voxel_realization_demand(
                 .map(|scope| VoxelRealizationDemand {
                     target_world: world_entity,
                     scope,
+                    roles: roles_for_scale(*domain, scale),
                     residency_half_extent_native: step.residency_half_extent_native(),
                 });
                 let parent_ready = candidate.is_some_and(|candidate| {
@@ -273,6 +335,7 @@ pub(super) fn collect_voxel_realization_demand(
                 next.push(
                     world_entity,
                     source.scope,
+                    full_runtime_roles(),
                     materialization_residency_extent(
                         source.scope.half_extent_native(),
                     ),
@@ -286,6 +349,7 @@ pub(super) fn collect_voxel_realization_demand(
             demand.target_world.to_bits(),
             demand.scope.source().to_bits(),
             Reverse(demand.scope.scale().exponent()),
+            demand.roles.bits(),
         )
     });
 
@@ -450,6 +514,7 @@ mod tests {
         let scale = SpatialScale::ZERO;
         let previous = VoxelRealizationDemand {
             target_world,
+            roles: presentation_roles().union(UsfScaleRoleMask::COLLISION),
             scope: SpatialDemandScope::at_scale(
                 source,
                 scale,
@@ -461,6 +526,7 @@ mod tests {
         };
         let candidate = VoxelRealizationDemand {
             target_world,
+            roles: presentation_roles().union(UsfScaleRoleMask::COLLISION),
             scope: SpatialDemandScope::at_scale(
                 source,
                 scale,

@@ -4,11 +4,12 @@
 //! in [`super::VoxelWorld`]'s compact materialization store rather than in one ECS entity
 //! per address. Generation jobs are transient ECS participants only.
 
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use bevy::prelude::*;
 
 use super::VoxelMaterializationChunkAddress;
+use crate::spatial::UsfScaleRoleMask;
 use demand::{DemandedChunk, VoxelDemandPlanKey};
 
 mod demand;
@@ -30,10 +31,12 @@ pub struct VoxelStreaming {
     residency_revision: u64,
     demand_key: Vec<VoxelDemandPlanKey>,
     pending_desired: VecDeque<DemandedChunk>,
-    /// Latest desired address set from capability planning.
-    cached_desired_set: HashSet<VoxelMaterializationChunkAddress>,
-    /// Last target whose replacement transaction has committed.
-    committed_desired_set: HashSet<VoxelMaterializationChunkAddress>,
+    /// Latest desired address -> capability-role intent.
+    cached_desired_roles:
+        HashMap<VoxelMaterializationChunkAddress, UsfScaleRoleMask>,
+    /// Last address+role target whose replacement transaction committed.
+    committed_desired_roles:
+        HashMap<VoxelMaterializationChunkAddress, UsfScaleRoleMask>,
 }
 
 impl VoxelStreaming {
@@ -43,8 +46,8 @@ impl VoxelStreaming {
             residency_revision: 0,
             demand_key: Vec::new(),
             pending_desired: VecDeque::new(),
-            cached_desired_set: HashSet::new(),
-            committed_desired_set: HashSet::new(),
+            cached_desired_roles: HashMap::new(),
+            committed_desired_roles: HashMap::new(),
         }
     }
 
@@ -52,32 +55,36 @@ impl VoxelStreaming {
         self.load_budget_per_frame
     }
 
-    fn stage_desired_set(
+    fn stage_desired_roles(
         &mut self,
-        desired: HashSet<VoxelMaterializationChunkAddress>,
+        desired: HashMap<VoxelMaterializationChunkAddress, UsfScaleRoleMask>,
     ) {
-        if self.committed_desired_set.is_empty() && self.cached_desired_set.is_empty() {
-            self.committed_desired_set = desired.clone();
+        if self.committed_desired_roles.is_empty() && self.cached_desired_roles.is_empty() {
+            self.committed_desired_roles = desired.clone();
         }
-        self.cached_desired_set = desired;
+        self.cached_desired_roles = desired;
     }
 
     fn migration_active(&self) -> bool {
-        self.cached_desired_set != self.committed_desired_set
+        self.cached_desired_roles != self.committed_desired_roles
     }
 
     fn candidate_addresses(
         &self,
-    ) -> impl Iterator<Item = VoxelMaterializationChunkAddress> + '_ {
-        self.cached_desired_set.iter().copied()
+    ) -> impl Iterator<Item = (VoxelMaterializationChunkAddress, UsfScaleRoleMask)> + '_ {
+        self.cached_desired_roles
+            .iter()
+            .map(|(&address, &roles)| (address, roles))
     }
 
     fn effective_desired_set(&self) -> HashSet<VoxelMaterializationChunkAddress> {
         if !self.migration_active() {
-            return self.cached_desired_set.clone();
+            return self.cached_desired_roles.keys().copied().collect();
         }
-        self.committed_desired_set
-            .union(&self.cached_desired_set)
+
+        self.committed_desired_roles
+            .keys()
+            .chain(self.cached_desired_roles.keys())
             .copied()
             .collect()
     }
@@ -86,15 +93,20 @@ impl VoxelStreaming {
         if !self.migration_active() {
             return false;
         }
-        self.committed_desired_set = self.cached_desired_set.clone();
+        self.committed_desired_roles = self.cached_desired_roles.clone();
         true
     }
 
-    pub(in crate::voxel) fn retains_committed_address_during_migration(
+    pub(in crate::voxel) fn retains_committed_role_during_migration(
         &self,
         address: VoxelMaterializationChunkAddress,
+        role: UsfScaleRoleMask,
     ) -> bool {
-        self.migration_active() && self.committed_desired_set.contains(&address)
+        self.migration_active()
+            && self
+                .committed_desired_roles
+                .get(&address)
+                .is_some_and(|roles| roles.contains(role))
     }
 
     fn next_pending_priority(&self) -> Option<i32> {

@@ -1,6 +1,6 @@
 //! Spatial-demand interpretation and voxel residency reconciliation.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use bevy::prelude::*;
 
@@ -17,7 +17,7 @@ use super::{VoxelPinnedDemand, VoxelStreaming};
 use super::super::{
     MATERIALIZATION_CHUNK_SIZE, VoxelCollisionDisabled, VoxelEditingDisabled,
     VoxelMaterializationChunkAddress, VoxelQueryPosition, VoxelRealizationDemandSnapshot,
-    VoxelWorld, manifestation::VoxelMaterializationRuntime,
+    VoxelRealizationScope, VoxelWorld, manifestation::VoxelMaterializationRuntime,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -25,6 +25,7 @@ pub(super) struct DemandedChunk {
     pub(super) address: VoxelMaterializationChunkAddress,
     pub(super) priority: i32,
     pub(super) distance_squared: f32,
+    pub(super) roles: UsfScaleRoleMask,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -34,6 +35,7 @@ pub(super) struct VoxelDemandPlanKey {
     minimum: IVec3,
     maximum: IVec3,
     priority: i32,
+    roles: u16,
 }
 
 /// Reconciles active voxel materialization residency with the latest spatial
@@ -55,7 +57,7 @@ pub(in crate::voxel) fn refresh_voxel_residency(
         Option<&VoxelCollisionDisabled>,
         Option<&VoxelEditingDisabled>,
     )>,
-    mut voxel_demands: Local<Vec<SpatialDemandScope>>,
+    mut voxel_demands: Local<Vec<VoxelRealizationScope>>,
     mut runtime_roles: Local<
         HashMap<
             (Entity, VoxelMaterializationChunkAddress),
@@ -86,7 +88,7 @@ pub(in crate::voxel) fn refresh_voxel_residency(
     ) in &mut worlds
     {
         voxel_demands.clear();
-        voxel_demands.extend(realization_demand.scopes_for(world_entity));
+        voxel_demands.extend(realization_demand.requests_for(world_entity));
         let pinned_shell = pinned
             .and_then(|pinned| pinned.surface_radius_native())
             .map(|radius| (world_entity, radius));
@@ -155,7 +157,7 @@ fn candidate_plan_ready(
         UsfScaleRoleMask,
     >,
 ) -> bool {
-    streaming.candidate_addresses().all(|address| {
+    streaming.candidate_addresses().all(|(address, requested_roles)| {
         let store = world.materializations();
         if !store.is_derived_current(address) {
             return false;
@@ -168,12 +170,17 @@ fn candidate_plan_ready(
             return true;
         }
 
-        let mut required = UsfScaleRoleMask::REALIZATION
-            .union(UsfScaleRoleMask::PRESENTATION);
-        if collision_enabled && cache.surface.has_rigid_triangles() {
+        let mut required = UsfScaleRoleMask::REALIZATION;
+        if requested_roles.contains(UsfScaleRoleMask::PRESENTATION) {
+            required = required.union(UsfScaleRoleMask::PRESENTATION);
+        }
+        if collision_enabled
+            && requested_roles.contains(UsfScaleRoleMask::COLLISION)
+            && cache.surface.has_rigid_triangles()
+        {
             required = required.union(UsfScaleRoleMask::COLLISION);
         }
-        if editing_enabled {
+        if editing_enabled && requested_roles.contains(UsfScaleRoleMask::EDITING) {
             required = required.union(UsfScaleRoleMask::EDITING);
         }
 
@@ -247,11 +254,11 @@ fn refresh_demand_plan(
 
     let desired = demanded_chunk_addresses(world, demands, pinned_shell)?;
     validate_context_residency(&desired, residency, context_scale)?;
-    let desired_set = desired
+    let desired_roles = desired
         .iter()
-        .map(|chunk| chunk.address)
-        .collect::<HashSet<_>>();
-    streaming.stage_desired_set(desired_set);
+        .map(|chunk| (chunk.address, chunk.roles))
+        .collect::<HashMap<_, _>>();
+    streaming.stage_desired_roles(desired_roles);
     streaming.pending_desired = desired
         .iter()
         .copied()
@@ -279,11 +286,12 @@ fn validate_context_residency(
 
 fn demand_plan_key(
     world: &VoxelWorld,
-    demands: &[SpatialDemandScope],
+    demands: &[VoxelRealizationScope],
 ) -> Result<Vec<VoxelDemandPlanKey>, crate::spatial::UsfPositionError> {
     let mut result = Vec::with_capacity(demands.len());
     let size = MATERIALIZATION_CHUNK_SIZE as f32;
-    for demand in demands {
+    for request in demands {
+        let demand = request.scope();
         let center = VoxelQueryPosition::new(demand.center());
         let center_address = world.materialization_address_containing(center)?;
         let local = center.relative_to(center_address.query_origin(), size + 0.01)?;
@@ -294,19 +302,24 @@ fn demand_plan_key(
             minimum: checked_ivec3(((local - half) / size).floor())?,
             maximum: checked_ivec3(((local + half) / size).floor())?,
             priority: demand.priority(),
+            roles: request.roles().bits(),
         });
     }
     Ok(result)
 }
 
-pub(super) fn demanded_chunk_addresses(
+pub(super) fn demanded_chunk_addresses<T>(
     world: &VoxelWorld,
-    demands: &[SpatialDemandScope],
+    demands: &[T],
     pinned_shell: Option<(Entity, f32)>,
-) -> Result<Vec<DemandedChunk>, crate::spatial::UsfPositionError> {
+) -> Result<Vec<DemandedChunk>, crate::spatial::UsfPositionError>
+where
+    T: Copy + Into<VoxelRealizationScope>,
+{
     let mut merged = HashMap::<VoxelMaterializationChunkAddress, DemandedChunk>::new();
 
-    for demand in demands {
+    for request in demands.iter().copied().map(Into::into) {
+        let demand = request.scope();
         let center = VoxelQueryPosition::new(demand.center());
         let center_address = world.materialization_address_containing(center)?;
         let size = MATERIALIZATION_CHUNK_SIZE as f32;
@@ -341,16 +354,19 @@ pub(super) fn demanded_chunk_addresses(
                         address,
                         priority: demand.priority(),
                         distance_squared,
+                        roles: request.roles(),
                     };
 
                     merged
                         .entry(address)
                         .and_modify(|current| {
+                            current.roles = current.roles.union(candidate.roles);
                             if candidate.priority > current.priority
                                 || (candidate.priority == current.priority
                                     && candidate.distance_squared < current.distance_squared)
                             {
-                                *current = candidate;
+                                current.priority = candidate.priority;
+                                current.distance_squared = candidate.distance_squared;
                             }
                         })
                         .or_insert(candidate);

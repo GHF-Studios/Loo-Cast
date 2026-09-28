@@ -8,7 +8,7 @@ use bevy::prelude::*;
 
 use crate::{
     config::EngineConfig,
-    spatial::UsfScaleLayer,
+    spatial::{UsfScaleLayer, UsfScaleRoleMask},
 };
 
 use super::VoxelMaterializationRuntime;
@@ -98,7 +98,9 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
             });
 
         let has_collision_demand = realization_demand
-            .scopes_for(runtime.world())
+            .requests_for(runtime.world())
+            .filter(|request| request.roles().contains(UsfScaleRoleMask::COLLISION))
+            .map(|request| request.scope())
             .filter(|scope| scope.scale() == layer.scale())
             .any(|scope| {
                 runtime
@@ -112,8 +114,10 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
                         distance_squared <= interaction_padding * interaction_padding
                     })
             })
-            || streaming
-                .retains_committed_address_during_migration(runtime.address());
+            || streaming.retains_committed_role_during_migration(
+                runtime.address(),
+                UsfScaleRoleMask::COLLISION,
+            );
 
         let wants_collider =
             collision_disabled.is_none() && has_rigid_surface && has_collision_demand;

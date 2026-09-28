@@ -3,7 +3,7 @@ use super::demand::demanded_chunk_addresses;
 use super::generation::catch_up_generated_chunk;
 use crate::spatial::SpatialDemandScope;
 use bevy::prelude::*;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use crate::voxel::{VoxelBase, VoxelBrush, VoxelEdit, VoxelMaterialId, VoxelQueryPosition, VoxelWorld};
 
 fn query(local: Vec3) -> VoxelQueryPosition {
@@ -39,6 +39,37 @@ fn overlapping_spatial_demands_merge_without_duplicate_materialization_identity(
             .all(|pair| pair[0].priority >= pair[1].priority)
     );
     assert!(desired.iter().any(|chunk| chunk.priority == 5));
+}
+
+#[test]
+fn overlapping_demands_union_capability_roles_per_materialization() {
+    let world = VoxelWorld::new(VoxelBase::Empty);
+    let mut ecs = World::new();
+    let source = ecs.spawn_empty().id();
+    let scope = SpatialDemandScope::new(
+        source,
+        query(Vec3::ZERO).usf(),
+        Vec3::splat(12.0),
+        10,
+    );
+
+    let presentation = crate::voxel::VoxelRealizationScope::new(
+        scope,
+        UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::PRESENTATION),
+    );
+    let collision = crate::voxel::VoxelRealizationScope::new(
+        scope,
+        UsfScaleRoleMask::COLLISION,
+    );
+
+    let desired =
+        demanded_chunk_addresses(&world, &[presentation, collision], None).unwrap();
+
+    assert!(!desired.is_empty());
+    assert!(desired.iter().all(|chunk| {
+        chunk.roles.contains(UsfScaleRoleMask::PRESENTATION)
+            && chunk.roles.contains(UsfScaleRoleMask::COLLISION)
+    }));
 }
 
 #[test]
@@ -122,21 +153,30 @@ fn make_before_break_streaming_retains_committed_branch_until_candidate_commit()
     assert_ne!(before, after);
 
     let mut streaming = VoxelStreaming::new(4);
-    streaming.stage_desired_set(HashSet::from([before]));
+    let present = UsfScaleRoleMask::REALIZATION
+        .union(UsfScaleRoleMask::PRESENTATION);
+    let physical = present.union(UsfScaleRoleMask::COLLISION);
+
+    streaming.stage_desired_roles(HashMap::from([(before, physical)]));
     assert!(!streaming.migration_active());
     assert_eq!(
         streaming.effective_desired_set(),
         HashSet::from([before]),
     );
 
-    streaming.stage_desired_set(HashSet::from([after]));
+    streaming.stage_desired_roles(HashMap::from([(after, present)]));
     assert!(streaming.migration_active());
     let overlap = streaming.effective_desired_set();
     assert!(overlap.contains(&before));
     assert!(overlap.contains(&after));
-    assert!(
-        streaming.retains_committed_address_during_migration(before)
-    );
+    assert!(streaming.retains_committed_role_during_migration(
+        before,
+        UsfScaleRoleMask::COLLISION,
+    ));
+    assert!(!streaming.retains_committed_role_during_migration(
+        after,
+        UsfScaleRoleMask::COLLISION,
+    ));
 
     assert!(streaming.commit_candidate());
     assert!(!streaming.migration_active());
