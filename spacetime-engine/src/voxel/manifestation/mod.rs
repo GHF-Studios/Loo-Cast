@@ -13,6 +13,7 @@ use super::VoxelMaterializationChunkAddress;
 
 mod collision;
 mod coverage;
+mod frontier;
 mod lifecycle;
 mod material;
 mod membership;
@@ -29,6 +30,7 @@ pub(super) use rebuild::{
 };
 
 pub(super) fn configure(app: &mut App) {
+    frontier::configure(app);
     material::configure(app);
 }
 
