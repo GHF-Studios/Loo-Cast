@@ -53,7 +53,8 @@ pub use transition::{
 pub use view::{
     UsfDistanceMeshLod, UsfLocalScalePresentation, UsfPresentationProbe,
     UsfScaleFallbackPresentation, UsfScalePresentation, UsfSceneryPresentation,
-    UsfViewAnchor, UsfViewContext, UsfViewRenderAnchor, UsfViewScaleDemand,
+    UsfViewAnchor, UsfViewContext, UsfViewDemand, UsfViewDemandSnapshot,
+    UsfViewRenderAnchor,
 };
 
 use bevy::{prelude::*, transform::TransformSystems};
@@ -146,6 +147,7 @@ impl Plugin for UsfSpatialPlugin {
         capability::configure(app);
         demand::configure(app);
         residency::configure(app);
+        view::configure(app);
         devtools::configure(app);
     }
 }

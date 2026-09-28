@@ -26,7 +26,7 @@ fn overlapping_spatial_demands_merge_without_duplicate_materialization_identity(
         Vec3::splat(12.0),
         5,
     );
-    let desired = demanded_chunk_addresses(&world, &[first, second], None).unwrap();
+    let desired = demanded_chunk_addresses(&world, &[first, second], None, &crate::spatial::UsfViewDemandSnapshot::default()).unwrap();
     let unique = desired
         .iter()
         .map(|chunk| chunk.address)
@@ -63,7 +63,7 @@ fn overlapping_demands_union_capability_roles_per_materialization() {
     );
 
     let desired =
-        demanded_chunk_addresses(&world, &[presentation, collision], None).unwrap();
+        demanded_chunk_addresses(&world, &[presentation, collision], None, &crate::spatial::UsfViewDemandSnapshot::default()).unwrap();
 
     assert!(!desired.is_empty());
     assert!(desired.iter().all(|chunk| {
@@ -89,12 +89,12 @@ fn removing_one_source_preserves_other_sources_requests() {
         50,
     );
 
-    let both = demanded_chunk_addresses(&world, &[player, cube], None)
+    let both = demanded_chunk_addresses(&world, &[player, cube], None, &crate::spatial::UsfViewDemandSnapshot::default())
         .unwrap()
         .into_iter()
         .map(|chunk| chunk.address)
         .collect::<HashSet<_>>();
-    let cube_only = demanded_chunk_addresses(&world, &[cube], None)
+    let cube_only = demanded_chunk_addresses(&world, &[cube], None, &crate::spatial::UsfViewDemandSnapshot::default())
         .unwrap()
         .into_iter()
         .map(|chunk| chunk.address)
@@ -108,7 +108,16 @@ fn removing_one_source_preserves_other_sources_requests() {
 #[test]
 fn no_spatial_demand_requests_no_materializations() {
     let world = VoxelWorld::new(VoxelBase::Empty);
-    assert!(demanded_chunk_addresses(&world, &[], None).unwrap().is_empty());
+    assert!(
+        demanded_chunk_addresses(
+            &world,
+            &[] as &[SpatialDemandScope],
+            None,
+            &crate::spatial::UsfViewDemandSnapshot::default(),
+        )
+        .unwrap()
+        .is_empty()
+    );
 }
 
 #[test]
@@ -125,12 +134,12 @@ fn moving_spatial_demand_migrates_the_requested_materialization_set() {
         1,
     );
 
-    let before = demanded_chunk_addresses(&world, &[before], None)
+    let before = demanded_chunk_addresses(&world, &[before], None, &crate::spatial::UsfViewDemandSnapshot::default())
         .unwrap()
         .into_iter()
         .map(|chunk| chunk.address)
         .collect::<HashSet<_>>();
-    let after = demanded_chunk_addresses(&world, &[after], None)
+    let after = demanded_chunk_addresses(&world, &[after], None, &crate::spatial::UsfViewDemandSnapshot::default())
         .unwrap()
         .into_iter()
         .map(|chunk| chunk.address)
@@ -196,7 +205,7 @@ fn demand_crosses_canonical_digit_carry_without_flat_coordinates() {
     let demand =
         SpatialDemandScope::new(ecs.spawn_empty().id(), center, Vec3::new(20.0, 5.0, 5.0), 1);
 
-    let desired = demanded_chunk_addresses(&world, &[demand], None).unwrap();
+    let desired = demanded_chunk_addresses(&world, &[demand], None, &crate::spatial::UsfViewDemandSnapshot::default()).unwrap();
     let unique = desired
         .iter()
         .map(|chunk| chunk.address)

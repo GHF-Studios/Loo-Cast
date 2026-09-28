@@ -7,8 +7,9 @@ use bevy::prelude::*;
 use crate::{
     config::EngineConfig,
     spatial::{
-        SpatialDemandScope, SpatialScale, UsfCapabilityRealization, UsfChunkAddress,
+        SpatialScale, UsfCapabilityRealization, UsfChunkAddress,
         UsfContextResidency, UsfPositionError, UsfScaleLayer, UsfScaleRoleMask,
+        UsfViewDemandSnapshot,
     },
 };
 
@@ -36,6 +37,7 @@ pub(super) struct VoxelDemandPlanKey {
     maximum: IVec3,
     priority: i32,
     roles: u16,
+    view_revision: u64,
 }
 
 /// Reconciles active voxel materialization residency with the latest spatial
@@ -47,6 +49,7 @@ pub(in crate::voxel) fn refresh_voxel_residency(
     config: Res<EngineConfig>,
     residency: Res<UsfContextResidency>,
     realization_demand: Res<VoxelRealizationDemandSnapshot>,
+    view_demands: Res<UsfViewDemandSnapshot>,
     runtimes: Query<(&VoxelMaterializationRuntime, &UsfCapabilityRealization)>,
     mut worlds: Query<(
         Entity,
@@ -99,6 +102,7 @@ pub(in crate::voxel) fn refresh_voxel_residency(
             &mut streaming,
             pinned_shell,
             &residency,
+            &view_demands,
             layer.scale(),
         ) {
             Ok(changed) => changed,
@@ -245,14 +249,16 @@ fn refresh_demand_plan(
     streaming: &mut VoxelStreaming,
     pinned_shell: Option<(Entity, f32)>,
     residency: &UsfContextResidency,
+    view_demands: &UsfViewDemandSnapshot,
     context_scale: SpatialScale,
 ) -> Result<bool, VoxelDemandPlanError> {
-    let key = demand_plan_key(world, demands)?;
+    let key = demand_plan_key(world, demands, view_demands)?;
     if key == streaming.demand_key && streaming.residency_revision == residency.revision() {
         return Ok(false);
     }
 
-    let desired = demanded_chunk_addresses(world, demands, pinned_shell)?;
+    let desired =
+        demanded_chunk_addresses(world, demands, pinned_shell, view_demands)?;
     validate_context_residency(&desired, residency, context_scale)?;
     let desired_roles = desired
         .iter()
@@ -287,6 +293,7 @@ fn validate_context_residency(
 fn demand_plan_key(
     world: &VoxelWorld,
     demands: &[VoxelRealizationScope],
+    view_demands: &UsfViewDemandSnapshot,
 ) -> Result<Vec<VoxelDemandPlanKey>, crate::spatial::UsfPositionError> {
     let mut result = Vec::with_capacity(demands.len());
     let size = MATERIALIZATION_CHUNK_SIZE as f32;
@@ -303,6 +310,9 @@ fn demand_plan_key(
             maximum: checked_ivec3(((local + half) / size).floor())?,
             priority: demand.priority(),
             roles: request.roles().bits(),
+            view_revision: request
+                .view_source()
+                .map_or(0, |_| view_demands.revision()),
         });
     }
     Ok(result)
@@ -312,6 +322,7 @@ pub(super) fn demanded_chunk_addresses<T>(
     world: &VoxelWorld,
     demands: &[T],
     pinned_shell: Option<(Entity, f32)>,
+    view_demands: &UsfViewDemandSnapshot,
 ) -> Result<Vec<DemandedChunk>, crate::spatial::UsfPositionError>
 where
     T: Copy + Into<VoxelRealizationScope>,
@@ -347,6 +358,20 @@ where
                             if (distance - radius_native).abs() > surface_margin {
                                 continue;
                             }
+                        }
+                    }
+
+                    if let Some(view_source) = request.view_source() {
+                        let Some(view) = view_demands.get(view_source) else {
+                            continue;
+                        };
+                        let center = address.center()?;
+                        if !view.intersects_native_aabb(
+                            demand.scale(),
+                            &center,
+                            Vec3::splat(size * 0.5),
+                        ) {
+                            continue;
                         }
                     }
 

@@ -19,7 +19,7 @@ use crate::{
         SpatialDemandScope, SpatialDemandSnapshot, SpatialRefinementDemand, SpatialScale,
         UsfChartMask, UsfChunkAddress, UsfPosition, UsfRefinementPlan,
         UsfResidencyRequestBuffer, UsfScaleCoverageSnapshot, UsfScaleLayer,
-        UsfScaleRoleMask,
+        UsfScaleRoleMask, UsfViewDemandSnapshot,
     },
 };
 
@@ -71,6 +71,10 @@ impl VoxelScaleDomain {
         self.refinement_activation_native
     }
 
+    pub const fn local_patch_half_extent_native(self) -> f32 {
+        self.local_patch_half_extent_native
+    }
+
     pub const fn realizes(self, scale: SpatialScale) -> bool {
         self.realization_slices.contains(scale)
     }
@@ -116,6 +120,7 @@ impl VoxelScaleDomain {
 pub(in crate::voxel) struct VoxelRealizationScope {
     scope: SpatialDemandScope,
     roles: UsfScaleRoleMask,
+    view_source: Option<Entity>,
 }
 
 impl VoxelRealizationScope {
@@ -123,7 +128,16 @@ impl VoxelRealizationScope {
         scope: SpatialDemandScope,
         roles: UsfScaleRoleMask,
     ) -> Self {
-        Self { scope, roles }
+        Self {
+            scope,
+            roles,
+            view_source: None,
+        }
+    }
+
+    pub(in crate::voxel) const fn with_view_source(mut self, source: Entity) -> Self {
+        self.view_source = Some(source);
+        self
     }
 
     pub(in crate::voxel) const fn scope(self) -> SpatialDemandScope {
@@ -132,6 +146,10 @@ impl VoxelRealizationScope {
 
     pub(in crate::voxel) const fn roles(self) -> UsfScaleRoleMask {
         self.roles
+    }
+
+    pub(in crate::voxel) const fn view_source(self) -> Option<Entity> {
+        self.view_source
     }
 }
 
@@ -147,6 +165,7 @@ struct VoxelRealizationDemand {
     target_world: Entity,
     scope: SpatialDemandScope,
     roles: UsfScaleRoleMask,
+    view_source: Option<Entity>,
     residency_half_extent_native: Vec3,
 }
 
@@ -170,7 +189,12 @@ impl VoxelRealizationDemandSnapshot {
         self.demands
             .iter()
             .filter(move |demand| demand.target_world == world)
-            .map(|demand| VoxelRealizationScope::new(demand.scope, demand.roles))
+            .map(|demand| {
+                let request = VoxelRealizationScope::new(demand.scope, demand.roles);
+                demand
+                    .view_source
+                    .map_or(request, |source| request.with_view_source(source))
+            })
     }
 
     fn push(
@@ -178,12 +202,14 @@ impl VoxelRealizationDemandSnapshot {
         target_world: Entity,
         scope: SpatialDemandScope,
         roles: UsfScaleRoleMask,
+        view_source: Option<Entity>,
         residency_half_extent_native: Vec3,
     ) {
         self.demands.push(VoxelRealizationDemand {
             target_world,
             scope,
             roles,
+            view_source,
             residency_half_extent_native,
         });
     }
@@ -228,6 +254,7 @@ pub(super) fn collect_voxel_realization_demand(
     authority_partitions: Query<&UsfAuthorityPartitionOf>,
     celestial_authorities: Query<(&CelestialVoxelField, &VoxelScaleDomain)>,
     coverage: Res<UsfScaleCoverageSnapshot>,
+    view_demands: Res<UsfViewDemandSnapshot>,
     mut residency_requests: ResMut<UsfResidencyRequestBuffer>,
     mut output: ResMut<VoxelRealizationDemandSnapshot>,
 ) {
@@ -272,6 +299,7 @@ pub(super) fn collect_voxel_realization_demand(
                 world_entity,
                 scope,
                 presentation_roles(),
+                None,
                 materialization_residency_extent(scope.half_extent_native()),
             );
         }
@@ -302,6 +330,7 @@ pub(super) fn collect_voxel_realization_demand(
                     target_world: world_entity,
                     scope,
                     roles: roles_for_scale(*domain, scale),
+                    view_source: None,
                     residency_half_extent_native: step.residency_half_extent_native(),
                 });
                 let parent_ready = candidate.is_some_and(|candidate| {
@@ -325,6 +354,66 @@ pub(super) fn collect_voxel_realization_demand(
                     next.demands.push(demand);
                 }
             }
+
+            // Observer presentation is a separate capability reason. Keeping a
+            // fixed native aperture makes physical reach grow one decade per
+            // coarser slice; streaming applies materialization-level frustum
+            // and screen-significance rejection.
+            for view in view_demands.iter() {
+                if !view.requests_scale(scale) {
+                    continue;
+                }
+
+                let half_extent_native =
+                    Vec3::splat(domain.local_patch_half_extent_native());
+                let source_scope = SpatialDemandScope::at_scale(
+                    view.source(),
+                    scale,
+                    view.anchor(),
+                    half_extent_native,
+                    500,
+                );
+
+                let candidate = celestial_surface_demand(
+                    *field,
+                    *domain,
+                    source_scope,
+                    scale,
+                    half_extent_native,
+                    500,
+                )
+                .map(|scope| VoxelRealizationDemand {
+                    target_world: world_entity,
+                    scope,
+                    roles: presentation_roles(),
+                    view_source: Some(view.source()),
+                    residency_half_extent_native:
+                        materialization_residency_extent(half_extent_native),
+                });
+
+                let parent_scale = domain.realization_slices().next_coarser(scale);
+                let parent_ready = candidate.is_some_and(|candidate| {
+                    parent_realization_ready(
+                        partition.0,
+                        parent_scale,
+                        &coverage,
+                        &candidate.scope.center(),
+                    )
+                });
+                let previous_branch = previous.iter().copied().find(|demand| {
+                    demand.target_world == world_entity
+                        && demand.scope.source() == view.source()
+                        && demand.view_source == Some(view.source())
+                });
+
+                if let Some(demand) = select_refinement_branch_demand(
+                    candidate,
+                    parent_ready,
+                    previous_branch,
+                ) {
+                    next.demands.push(demand);
+                }
+            }
             continue;
         }
 
@@ -336,6 +425,7 @@ pub(super) fn collect_voxel_realization_demand(
                     world_entity,
                     source.scope,
                     full_runtime_roles(),
+                    None,
                     materialization_residency_extent(
                         source.scope.half_extent_native(),
                     ),
@@ -350,6 +440,7 @@ pub(super) fn collect_voxel_realization_demand(
             demand.scope.source().to_bits(),
             Reverse(demand.scope.scale().exponent()),
             demand.roles.bits(),
+            demand.view_source.map(Entity::to_bits).unwrap_or(0),
         )
     });
 
@@ -515,6 +606,7 @@ mod tests {
         let previous = VoxelRealizationDemand {
             target_world,
             roles: presentation_roles().union(UsfScaleRoleMask::COLLISION),
+            view_source: None,
             scope: SpatialDemandScope::at_scale(
                 source,
                 scale,
@@ -527,6 +619,7 @@ mod tests {
         let candidate = VoxelRealizationDemand {
             target_world,
             roles: presentation_roles().union(UsfScaleRoleMask::COLLISION),
+            view_source: None,
             scope: SpatialDemandScope::at_scale(
                 source,
                 scale,

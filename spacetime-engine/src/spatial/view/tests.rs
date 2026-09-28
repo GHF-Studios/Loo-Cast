@@ -32,22 +32,14 @@ fn semantic_and_render_anchors_are_independent() {
 }
 
 #[test]
-fn continuous_view_demand_keeps_both_adjacent_presentations_across_half_zoom() {
-    let s4 = SpatialScale::new(4).unwrap();
-    let s5 = SpatialScale::new(5).unwrap();
+fn contextual_view_stack_keeps_all_coarser_scales_eligible() {
     let mut view = UsfViewContext::default();
+    view.set_continuous_exponent(4.49);
 
-    for exponent in [4.49, 4.51] {
-        view.set_continuous_exponent(exponent);
-        let demands = view.active_scale_demands();
-        let lower = demands[0].expect("lower presentation demand");
-        let upper = demands[1].expect("upper presentation demand");
-
-        assert_eq!(lower.scale(), s4);
-        assert_eq!(upper.scale(), s5);
-        assert!(lower.contribution() > 0.0);
-        assert!(upper.contribution() > 0.0);
-    }
+    assert!(!view.context_scale_eligible(SpatialScale::new(3).unwrap()));
+    assert!(view.context_scale_eligible(SpatialScale::new(4).unwrap()));
+    assert!(view.context_scale_eligible(SpatialScale::new(5).unwrap()));
+    assert!(view.context_scale_eligible(SpatialScale::MAX));
 }
 
 

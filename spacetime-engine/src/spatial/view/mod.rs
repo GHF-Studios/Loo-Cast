@@ -277,23 +277,6 @@ impl UsfPresentationProbe {
     }
 }
 
-/// One scale requested by the observer's continuous transition window.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct UsfViewScaleDemand {
-    scale: SpatialScale,
-    contribution: f32,
-}
-
-impl UsfViewScaleDemand {
-    pub const fn scale(self) -> SpatialScale {
-        self.scale
-    }
-
-    pub const fn contribution(self) -> f32 {
-        self.contribution
-    }
-}
-
 impl Default for UsfViewContext {
     fn default() -> Self {
         Self {
@@ -400,30 +383,10 @@ impl UsfViewContext {
         }
     }
 
-    /// The adjacent spatial scales whose representations are currently needed
-    /// to realize the continuous observer view.
-    ///
-    /// This is *transition demand*, not distance LOD demand. A later visibility
-    /// policy may request additional coarser representations at the same view
-    /// scale for distant detail without changing this two-slot contract.
-    pub fn active_scale_demands(&self) -> [Option<UsfViewScaleDemand>; 2] {
-        let lower = UsfViewScaleDemand {
-            scale: self.scale,
-            contribution: self.contribution(self.scale),
-        };
-
-        let upper = if self.zoom > CONTRIBUTION_EPSILON && self.scale != SpatialScale::MAX {
-            let scale = SpatialScale::new(self.scale.exponent() + 1)
-                .expect("non-maximum view scale has an adjacent upper scale");
-            Some(UsfViewScaleDemand {
-                scale,
-                contribution: self.contribution(scale),
-            })
-        } else {
-            None
-        };
-
-        [Some(lower), upper]
+    /// Contextual eligibility extends continuously upward through coarser
+    /// Scale Slices. Residency and visibility remain downstream capability policy.
+    pub fn context_scale_eligible(&self, scale: SpatialScale) -> bool {
+        scale >= self.scale
     }
 
     /// Converts geometry authored in `scale`-native units into current view units.
@@ -433,10 +396,16 @@ impl UsfViewContext {
 
 }
 
+mod demand;
 mod lod;
 mod systems;
 
+pub use demand::{UsfViewDemand, UsfViewDemandSnapshot};
 pub use lod::UsfDistanceMeshLod;
+
+pub(in crate::spatial) fn configure(app: &mut App) {
+    demand::configure(app);
+}
 
 pub(super) use lod::select_distance_mesh_lods;
 pub(super) use systems::{
