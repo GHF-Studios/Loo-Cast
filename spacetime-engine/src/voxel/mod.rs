@@ -36,7 +36,9 @@ pub use field::{
 };
 pub use modification::VoxelModificationLayer;
 pub use realization::VoxelScaleDomain;
-pub(in crate::voxel) use realization::VoxelRealizationDemandSnapshot;
+pub(in crate::voxel) use realization::{
+    VoxelRealizationDemandSnapshot, VoxelRealizationScope,
+};
 pub use streaming::{
     VoxelMaterializationDemand, VoxelPinnedDemand, VoxelPresentationMaterial, VoxelStreaming,
     VoxelStreamingTelemetry,

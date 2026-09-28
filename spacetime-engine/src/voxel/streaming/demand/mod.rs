@@ -241,7 +241,7 @@ impl std::fmt::Display for VoxelDemandPlanError {
 
 fn refresh_demand_plan(
     world: &VoxelWorld,
-    demands: &[SpatialDemandScope],
+    demands: &[VoxelRealizationScope],
     streaming: &mut VoxelStreaming,
     pinned_shell: Option<(Entity, f32)>,
     residency: &UsfContextResidency,
