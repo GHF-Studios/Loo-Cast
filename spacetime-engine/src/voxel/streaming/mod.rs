@@ -30,7 +30,10 @@ pub struct VoxelStreaming {
     residency_revision: u64,
     demand_key: Vec<VoxelDemandPlanKey>,
     pending_desired: VecDeque<DemandedChunk>,
+    /// Latest desired address set from capability planning.
     cached_desired_set: HashSet<VoxelMaterializationChunkAddress>,
+    /// Last target whose replacement transaction has committed.
+    committed_desired_set: HashSet<VoxelMaterializationChunkAddress>,
 }
 
 impl VoxelStreaming {
@@ -41,11 +44,57 @@ impl VoxelStreaming {
             demand_key: Vec::new(),
             pending_desired: VecDeque::new(),
             cached_desired_set: HashSet::new(),
+            committed_desired_set: HashSet::new(),
         }
     }
 
     pub const fn load_budget_per_frame(&self) -> usize {
         self.load_budget_per_frame
+    }
+
+    fn stage_desired_set(
+        &mut self,
+        desired: HashSet<VoxelMaterializationChunkAddress>,
+    ) {
+        if self.committed_desired_set.is_empty() && self.cached_desired_set.is_empty() {
+            self.committed_desired_set = desired.clone();
+        }
+        self.cached_desired_set = desired;
+    }
+
+    fn migration_active(&self) -> bool {
+        self.cached_desired_set != self.committed_desired_set
+    }
+
+    fn candidate_addresses(
+        &self,
+    ) -> impl Iterator<Item = VoxelMaterializationChunkAddress> + '_ {
+        self.cached_desired_set.iter().copied()
+    }
+
+    fn effective_desired_set(&self) -> HashSet<VoxelMaterializationChunkAddress> {
+        if !self.migration_active() {
+            return self.cached_desired_set.clone();
+        }
+        self.committed_desired_set
+            .union(&self.cached_desired_set)
+            .copied()
+            .collect()
+    }
+
+    fn commit_candidate(&mut self) -> bool {
+        if !self.migration_active() {
+            return false;
+        }
+        self.committed_desired_set = self.cached_desired_set.clone();
+        true
+    }
+
+    pub(in crate::voxel) fn retains_committed_address_during_migration(
+        &self,
+        address: VoxelMaterializationChunkAddress,
+    ) -> bool {
+        self.migration_active() && self.committed_desired_set.contains(&address)
     }
 }
 

@@ -32,6 +32,25 @@ impl VoxelMaterializationStore {
         None
     }
 
+    /// Whether an active materialization completed surface derivation for its
+    /// current dense revision. Processed-empty chunks are current despite
+    /// having no surface cache.
+    pub(in crate::voxel) fn is_derived_current(
+        &self,
+        address: VoxelMaterializationChunkAddress,
+    ) -> bool {
+        let Some(entry) = self.entries.get(&address) else {
+            return false;
+        };
+        if !entry.active {
+            return false;
+        }
+        let Some(chunk) = entry.dense() else {
+            return false;
+        };
+        entry.derived_revision == Some(chunk.revision())
+    }
+
     pub(in crate::voxel) fn begin_surface_build(
         &mut self,
         address: VoxelMaterializationChunkAddress,

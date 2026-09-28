@@ -57,14 +57,19 @@ fn collider_residency_action(
 
 use super::super::{
     VoxelCollisionDisabled, VoxelMaterializationChunkAddress,
-    VoxelRealizationDemandSnapshot, VoxelWorld, physics,
+    VoxelRealizationDemandSnapshot, VoxelStreaming, VoxelWorld, physics,
 };
 
 pub(in crate::voxel) fn sync_manifestation_collision_residency(
     config: Res<EngineConfig>,
     realization_demand: Res<VoxelRealizationDemandSnapshot>,
     mut commands: Commands,
-    worlds: Query<(&VoxelWorld, &UsfScaleLayer, Option<&VoxelCollisionDisabled>)>,
+    worlds: Query<(
+        &VoxelWorld,
+        &UsfScaleLayer,
+        &VoxelStreaming,
+        Option<&VoxelCollisionDisabled>,
+    )>,
     runtimes: Query<(
         Entity,
         Ref<VoxelMaterializationRuntime>,
@@ -79,7 +84,9 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
         config.voxel.manifestation.physics_interaction_radius_native.max(0.0);
 
     for (entity, runtime, collider, collider_revision) in &runtimes {
-        let Ok((world, layer, collision_disabled)) = worlds.get(runtime.world()) else {
+        let Ok((world, layer, streaming, collision_disabled)) =
+            worlds.get(runtime.world())
+        else {
             continue;
         };
 
@@ -104,7 +111,9 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
                     .is_some_and(|distance_squared| {
                         distance_squared <= interaction_padding * interaction_padding
                     })
-            });
+            })
+            || streaming
+                .retains_committed_address_during_migration(runtime.address());
 
         let wants_collider =
             collision_disabled.is_none() && has_rigid_surface && has_collision_demand;

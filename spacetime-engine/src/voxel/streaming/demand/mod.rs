@@ -1,22 +1,23 @@
 //! Spatial-demand interpretation and voxel residency reconciliation.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use bevy::prelude::*;
 
 use crate::{
     config::EngineConfig,
     spatial::{
-        SpatialDemandScope, SpatialScale, UsfChunkAddress, UsfContextResidency, UsfPositionError,
-        UsfScaleLayer,
+        SpatialDemandScope, SpatialScale, UsfCapabilityRealization, UsfChunkAddress,
+        UsfContextResidency, UsfPositionError, UsfScaleLayer, UsfScaleRoleMask,
     },
 };
 
 use super::{VoxelPinnedDemand, VoxelStreaming};
 
 use super::super::{
-    MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationChunkAddress, VoxelQueryPosition,
-    VoxelRealizationDemandSnapshot, VoxelWorld,
+    MATERIALIZATION_CHUNK_SIZE, VoxelCollisionDisabled, VoxelEditingDisabled,
+    VoxelMaterializationChunkAddress, VoxelQueryPosition, VoxelRealizationDemandSnapshot,
+    VoxelWorld, manifestation::VoxelMaterializationRuntime,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -44,63 +45,143 @@ pub(in crate::voxel) fn refresh_voxel_residency(
     config: Res<EngineConfig>,
     residency: Res<UsfContextResidency>,
     realization_demand: Res<VoxelRealizationDemandSnapshot>,
+    runtimes: Query<(&VoxelMaterializationRuntime, &UsfCapabilityRealization)>,
     mut worlds: Query<(
         Entity,
         &mut VoxelWorld,
         &mut VoxelStreaming,
         &UsfScaleLayer,
         Option<&VoxelPinnedDemand>,
+        Option<&VoxelCollisionDisabled>,
+        Option<&VoxelEditingDisabled>,
     )>,
     mut voxel_demands: Local<Vec<SpatialDemandScope>>,
+    mut runtime_roles: Local<
+        HashMap<
+            (Entity, VoxelMaterializationChunkAddress),
+            UsfScaleRoleMask,
+        >,
+    >,
 ) {
     let warm_limit = config.voxel.streaming.warm_inactive_materialization_limit;
 
-    for (world_entity, mut world, mut streaming, layer, pinned) in &mut worlds {
+    runtime_roles.clear();
+    for (runtime, realization) in &runtimes {
+        if realization.revision() == runtime.revision() {
+            runtime_roles.insert(
+                (runtime.world(), runtime.address()),
+                realization.roles(),
+            );
+        }
+    }
+
+    for (
+        world_entity,
+        mut world,
+        mut streaming,
+        layer,
+        pinned,
+        collision_disabled,
+        editing_disabled,
+    ) in &mut worlds
+    {
         voxel_demands.clear();
         voxel_demands.extend(realization_demand.scopes_for(world_entity));
         let pinned_shell = pinned
             .and_then(|pinned| pinned.surface_radius_native())
             .map(|radius| (world_entity, radius));
 
-        let changed =
-            match refresh_demand_plan(
-                &world,
-                &voxel_demands,
-                &mut streaming,
-                pinned_shell,
-                &residency,
-                layer.scale(),
-            ) {
-                Ok(changed) => changed,
-                Err(error) => {
-                    error!(
-                        error = %error,
-                        world = ?world_entity,
-                        scale = %layer.scale(),
-                        world_leaf = %world.origin().leaf_scale(),
-                        "voxel spatial demand could not be represented canonically"
-                    );
-                    streaming.cached_desired_set.clear();
-                    streaming.pending_desired.clear();
-                    streaming.demand_key.clear();
-                    streaming.residency_revision = residency.revision();
-                    reconcile_materialization_residency(&mut world, &mut streaming, warm_limit);
-                    continue;
-                }
-            };
+        let plan_changed = match refresh_demand_plan(
+            &world,
+            &voxel_demands,
+            &mut streaming,
+            pinned_shell,
+            &residency,
+            layer.scale(),
+        ) {
+            Ok(changed) => changed,
+            Err(error) => {
+                error!(
+                    error = %error,
+                    world = ?world_entity,
+                    scale = %layer.scale(),
+                    world_leaf = %world.origin().leaf_scale(),
+                    "voxel spatial demand could not be represented canonically; retaining previous residency"
+                );
+                continue;
+            }
+        };
 
-        if changed {
+        let candidate_committed = if streaming.migration_active()
+            && candidate_plan_ready(
+                world_entity,
+                &world,
+                &streaming,
+                collision_disabled.is_none(),
+                editing_disabled.is_none(),
+                &runtime_roles,
+            )
+        {
+            streaming.commit_candidate()
+        } else {
+            false
+        };
+
+        if plan_changed || candidate_committed {
             if let Some(surface_radius_native) =
                 pinned.and_then(|pinned| pinned.surface_radius_native())
             {
                 prioritize_surface_shell(&mut streaming, surface_radius_native);
             }
-            reconcile_materialization_residency(&mut world, &mut streaming, warm_limit);
+            reconcile_materialization_residency(
+                &mut world,
+                &mut streaming,
+                warm_limit,
+            );
         }
     }
 }
 
 
+
+fn candidate_plan_ready(
+    world_entity: Entity,
+    world: &VoxelWorld,
+    streaming: &VoxelStreaming,
+    collision_enabled: bool,
+    editing_enabled: bool,
+    runtime_roles: &HashMap<
+        (Entity, VoxelMaterializationChunkAddress),
+        UsfScaleRoleMask,
+    >,
+) -> bool {
+    streaming.candidate_addresses().all(|address| {
+        let store = world.materializations();
+        if !store.is_derived_current(address) {
+            return false;
+        }
+
+        let Some(cache) = store.surface(address) else {
+            return true;
+        };
+        if !cache.surface.has_owned_triangles() {
+            return true;
+        }
+
+        let mut required = UsfScaleRoleMask::REALIZATION
+            .union(UsfScaleRoleMask::PRESENTATION);
+        if collision_enabled && cache.surface.has_owned_rigid_triangles() {
+            required = required.union(UsfScaleRoleMask::COLLISION);
+        }
+        if editing_enabled {
+            required = required.union(UsfScaleRoleMask::EDITING);
+        }
+
+        runtime_roles
+            .get(&(world_entity, address))
+            .is_some_and(|roles| roles.contains(required))
+    })
+}
 
 fn prioritize_surface_shell(streaming: &mut VoxelStreaming, radius_native: f32) {
     let mut pending = streaming.pending_desired.drain(..).collect::<Vec<_>>();
@@ -119,8 +200,9 @@ fn reconcile_materialization_residency(
     streaming: &mut VoxelStreaming,
     warm_inactive_materialization_limit: usize,
 ) {
+    let effective_desired = streaming.effective_desired_set();
     world.materializations_mut().reconcile_residency(
-        &streaming.cached_desired_set,
+        &effective_desired,
         warm_inactive_materialization_limit,
     );
 
@@ -165,10 +247,11 @@ fn refresh_demand_plan(
 
     let desired = demanded_chunk_addresses(world, demands, pinned_shell)?;
     validate_context_residency(&desired, residency, context_scale)?;
-    streaming.cached_desired_set.clear();
-    streaming
-        .cached_desired_set
-        .extend(desired.iter().map(|chunk| chunk.address));
+    let desired_set = desired
+        .iter()
+        .map(|chunk| chunk.address)
+        .collect::<HashSet<_>>();
+    streaming.stage_desired_set(desired_set);
     streaming.pending_desired = desired
         .iter()
         .copied()

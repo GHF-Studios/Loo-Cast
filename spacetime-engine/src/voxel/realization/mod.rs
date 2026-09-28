@@ -173,6 +173,10 @@ pub(super) fn collect_voxel_realization_demand(
     mut residency_requests: ResMut<UsfResidencyRequestBuffer>,
     mut output: ResMut<VoxelRealizationDemandSnapshot>,
 ) {
+    // Previous accepted scopes are branch-transaction state. If the desired
+    // child moves into a parent branch that is not ready yet, the previous child
+    // remains demanded instead of disappearing.
+    let previous = output.demands.clone();
     let mut next = VoxelRealizationDemandSnapshot::default();
 
     // Generic interest remains one canonical scope per source. Voxel-specific
@@ -225,24 +229,38 @@ pub(super) fn collect_voxel_realization_demand(
                     continue;
                 };
 
-                if let Some(scope) = celestial_surface_demand(
+                let candidate = celestial_surface_demand(
                     *field,
                     *domain,
                     source.scope,
                     scale,
                     step.half_extent_native(),
                     step.priority(),
-                ) && parent_realization_ready(
-                    partition.0,
-                    step.parent_scale(),
-                    &coverage,
-                    &scope.center(),
+                )
+                .map(|scope| VoxelRealizationDemand {
+                    target_world: world_entity,
+                    scope,
+                    residency_half_extent_native: step.residency_half_extent_native(),
+                });
+                let parent_ready = candidate.is_some_and(|candidate| {
+                    parent_realization_ready(
+                        partition.0,
+                        step.parent_scale(),
+                        &coverage,
+                        &candidate.scope.center(),
+                    )
+                });
+                let previous_branch = previous.iter().copied().find(|demand| {
+                    demand.target_world == world_entity
+                        && demand.scope.source() == source.scope.source()
+                });
+
+                if let Some(demand) = select_refinement_branch_demand(
+                    candidate,
+                    parent_ready,
+                    previous_branch,
                 ) {
-                    next.push(
-                        world_entity,
-                        scope,
-                        step.residency_half_extent_native(),
-                    );
+                    next.demands.push(demand);
                 }
             }
             continue;
@@ -288,6 +306,18 @@ pub(super) fn collect_voxel_realization_demand(
 
     if output.demands != next.demands {
         output.demands = next.demands;
+    }
+}
+
+fn select_refinement_branch_demand(
+    candidate: Option<VoxelRealizationDemand>,
+    parent_ready: bool,
+    previous: Option<VoxelRealizationDemand>,
+) -> Option<VoxelRealizationDemand> {
+    match candidate {
+        Some(candidate) if parent_ready => Some(candidate),
+        Some(_) => previous,
+        None => None,
     }
 }
 
@@ -411,6 +441,51 @@ fn celestial_surface_demand(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn make_before_break_parent_block_keeps_previous_child_demand() {
+        let mut ecs = World::new();
+        let source = ecs.spawn_empty().id();
+        let target_world = ecs.spawn_empty().id();
+        let scale = SpatialScale::ZERO;
+        let previous = VoxelRealizationDemand {
+            target_world,
+            scope: SpatialDemandScope::at_scale(
+                source,
+                scale,
+                UsfPosition::zero(scale),
+                Vec3::splat(32.0),
+                10,
+            ),
+            residency_half_extent_native: Vec3::splat(37.0),
+        };
+        let candidate = VoxelRealizationDemand {
+            target_world,
+            scope: SpatialDemandScope::at_scale(
+                source,
+                scale,
+                UsfPosition::zero(scale)
+                    .translated_native(Vec3::new(40.0, 0.0, 0.0))
+                    .unwrap(),
+                Vec3::splat(32.0),
+                10,
+            ),
+            residency_half_extent_native: Vec3::splat(37.0),
+        };
+
+        assert_eq!(
+            select_refinement_branch_demand(Some(candidate), false, Some(previous)),
+            Some(previous),
+        );
+        assert_eq!(
+            select_refinement_branch_demand(Some(candidate), true, Some(previous)),
+            Some(candidate),
+        );
+        assert_eq!(
+            select_refinement_branch_demand(None, false, Some(previous)),
+            None,
+        );
+    }
 
     #[test]
     fn refinement_footprint_is_relative_to_requested_tip_scale() {

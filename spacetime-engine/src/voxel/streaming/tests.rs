@@ -26,7 +26,7 @@ fn overlapping_spatial_demands_merge_without_duplicate_materialization_identity(
         Vec3::splat(12.0),
         5,
     );
-    let desired = demanded_chunk_addresses(&world, &[first, second]).unwrap();
+    let desired = demanded_chunk_addresses(&world, &[first, second], None).unwrap();
     let unique = desired
         .iter()
         .map(|chunk| chunk.address)
@@ -58,12 +58,12 @@ fn removing_one_source_preserves_other_sources_requests() {
         50,
     );
 
-    let both = demanded_chunk_addresses(&world, &[player, cube])
+    let both = demanded_chunk_addresses(&world, &[player, cube], None)
         .unwrap()
         .into_iter()
         .map(|chunk| chunk.address)
         .collect::<HashSet<_>>();
-    let cube_only = demanded_chunk_addresses(&world, &[cube])
+    let cube_only = demanded_chunk_addresses(&world, &[cube], None)
         .unwrap()
         .into_iter()
         .map(|chunk| chunk.address)
@@ -77,7 +77,7 @@ fn removing_one_source_preserves_other_sources_requests() {
 #[test]
 fn no_spatial_demand_requests_no_materializations() {
     let world = VoxelWorld::new(VoxelBase::Empty);
-    assert!(demanded_chunk_addresses(&world, &[]).unwrap().is_empty());
+    assert!(demanded_chunk_addresses(&world, &[], None).unwrap().is_empty());
 }
 
 #[test]
@@ -94,12 +94,12 @@ fn moving_spatial_demand_migrates_the_requested_materialization_set() {
         1,
     );
 
-    let before = demanded_chunk_addresses(&world, &[before])
+    let before = demanded_chunk_addresses(&world, &[before], None)
         .unwrap()
         .into_iter()
         .map(|chunk| chunk.address)
         .collect::<HashSet<_>>();
-    let after = demanded_chunk_addresses(&world, &[after])
+    let after = demanded_chunk_addresses(&world, &[after], None)
         .unwrap()
         .into_iter()
         .map(|chunk| chunk.address)
@@ -108,6 +108,42 @@ fn moving_spatial_demand_migrates_the_requested_materialization_set() {
     assert_ne!(before, after);
     assert!(before.difference(&after).next().is_some());
     assert!(after.difference(&before).next().is_some());
+}
+
+#[test]
+fn make_before_break_streaming_retains_committed_branch_until_candidate_commit() {
+    let world = VoxelWorld::new(VoxelBase::Empty);
+    let before = world
+        .materialization_address_containing(query(Vec3::ZERO))
+        .unwrap();
+    let after = world
+        .materialization_address_containing(query(Vec3::new(40.0, 0.0, 0.0)))
+        .unwrap();
+    assert_ne!(before, after);
+
+    let mut streaming = VoxelStreaming::new(4);
+    streaming.stage_desired_set(HashSet::from([before]));
+    assert!(!streaming.migration_active());
+    assert_eq!(
+        streaming.effective_desired_set(),
+        HashSet::from([before]),
+    );
+
+    streaming.stage_desired_set(HashSet::from([after]));
+    assert!(streaming.migration_active());
+    let overlap = streaming.effective_desired_set();
+    assert!(overlap.contains(&before));
+    assert!(overlap.contains(&after));
+    assert!(
+        streaming.retains_committed_address_during_migration(before)
+    );
+
+    assert!(streaming.commit_candidate());
+    assert!(!streaming.migration_active());
+    assert_eq!(
+        streaming.effective_desired_set(),
+        HashSet::from([after]),
+    );
 }
 
 #[test]
@@ -120,7 +156,7 @@ fn demand_crosses_canonical_digit_carry_without_flat_coordinates() {
     let demand =
         SpatialDemandScope::new(ecs.spawn_empty().id(), center, Vec3::new(20.0, 5.0, 5.0), 1);
 
-    let desired = demanded_chunk_addresses(&world, &[demand]).unwrap();
+    let desired = demanded_chunk_addresses(&world, &[demand], None).unwrap();
     let unique = desired
         .iter()
         .map(|chunk| chunk.address)
