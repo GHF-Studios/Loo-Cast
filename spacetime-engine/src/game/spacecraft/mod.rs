@@ -39,6 +39,7 @@ use crate::{
     },
     physics::{
         PhysicalBoxHull,
+        collision_query::UsfCollisionQueryDemand,
         slice::UsfPhysicsSlices,
         gravity::{GravitySample, RadialGravitySource},
         character::{
@@ -238,6 +239,11 @@ fn spawn_reference_spacecraft(
                 LocomotionEnabled(true),
                 (
                     PhysicalBoxHull::from_size_metres(SHIP_SIZE),
+                    UsfCollisionQueryDemand::new(
+                        2.0,
+                        f64::from(SHIP_SIZE.length() * 0.5),
+                        0.25,
+                    ),
                     ScaleInteractionProxy::new(SHIP_PROXY_RADIUS_NATIVE),
                 ),
                 FlightControlIntent::default(),

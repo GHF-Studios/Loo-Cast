@@ -117,6 +117,17 @@ impl CelestialVoxelField {
             self.profile,
         )
     }
+
+    /// Conservative outer bound of the complete semantic procedural field.
+    ///
+    /// Broad collision queries must include terrain detail finer than the
+    /// reporting/query Scale Slice. Evaluating the bound at `SpatialScale::MIN`
+    /// accumulates every possible procedural detail band without materializing
+    /// any of them.
+    pub(crate) fn conservative_outer_radius_metres(self) -> f64 {
+        self.realization(SpatialScale::MIN)
+            .conservative_outer_radius_metres()
+    }
 }
 
 impl UsfTravelBoundary for CelestialVoxelField {

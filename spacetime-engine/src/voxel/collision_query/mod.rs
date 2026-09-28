@@ -45,14 +45,15 @@ impl VoxelCollisionQuery<'_, '_> {
     pub fn candidates(
         &self,
         sweep: UsfCanonicalSweep,
-        query_scale: SpatialScale,
     ) -> Vec<UsfCollisionCandidate> {
         let mut candidates = Vec::new();
 
         for (authority_entity, field, edits) in &self.authorities {
-            let body = field.realization(query_scale);
+            // Candidate metadata reports the coarsest semantic detail slice,
+            // while the bound itself includes every finer possible detail band.
+            let query_scale = field.coarsest_detail_scale();
             let outer_radius =
-                body.conservative_outer_radius_metres() + sweep.bounding_radius_metres();
+                field.conservative_outer_radius_metres() + sweep.bounding_radius_metres();
 
             if let Ok(start_from_center) = sweep.start().relative_at_scale_bounded_f64(
                 &field.center(),
@@ -271,5 +272,17 @@ mod tests {
             )
             .is_none()
         );
+    }
+}
+pub(in crate::voxel) fn publish_collision_query_candidates(
+    provider: VoxelCollisionQuery,
+    mut frame: ResMut<crate::physics::collision_query::UsfCollisionQueryFrame>,
+) {
+    let requests = frame.requests().collect::<Vec<_>>();
+
+    for request in requests {
+        for candidate in provider.candidates(request.sweep()) {
+            frame.push_candidate(request.id(), candidate);
+        }
     }
 }

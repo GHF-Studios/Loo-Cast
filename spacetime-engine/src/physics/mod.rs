@@ -40,6 +40,8 @@ fn configure_overload_guard(mut virtual_time: ResMut<Time<Virtual>>) {
 
 impl Plugin for SpacetimePhysicsPlugin {
     fn build(&self, app: &mut App) {
+        collision_query::configure(app);
+
         app.register_type::<PhysicalBoxHull>()
             .register_type::<DetailedBodyCollision>()
             .add_systems(PreStartup, configure_overload_guard)

@@ -309,3 +309,245 @@ impl UsfCollisionResolution {
         self.error_bound_metres
     }
 }
+/// Stable identifier for one request inside a collision-query frame.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct UsfCollisionQueryRequestId {
+    frame_revision: u64,
+    index: u32,
+}
+
+impl UsfCollisionQueryRequestId {
+    pub const fn frame_revision(self) -> u64 {
+        self.frame_revision
+    }
+
+    pub const fn index(self) -> u32 {
+        self.index
+    }
+}
+
+/// One canonical sweep submitted to capability query providers.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct UsfCollisionQueryRequest {
+    id: UsfCollisionQueryRequestId,
+    sweep: UsfCanonicalSweep,
+    target_error_metres: f64,
+}
+
+impl UsfCollisionQueryRequest {
+    pub const fn id(self) -> UsfCollisionQueryRequestId {
+        self.id
+    }
+
+    pub const fn sweep(self) -> UsfCanonicalSweep {
+        self.sweep
+    }
+
+    pub const fn target_error_metres(self) -> f64 {
+        self.target_error_metres
+    }
+}
+
+/// One provider candidate associated with its canonical sweep request.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct UsfCollisionCandidateRecord {
+    request: UsfCollisionQueryRequestId,
+    candidate: UsfCollisionCandidate,
+}
+
+impl UsfCollisionCandidateRecord {
+    pub const fn request(self) -> UsfCollisionQueryRequestId {
+        self.request
+    }
+
+    pub const fn candidate(self) -> UsfCollisionCandidate {
+        self.candidate
+    }
+}
+
+/// Per-frame collision-query transaction.
+///
+/// This is deliberately an observation/query surface today. Motion executors do
+/// not consume it yet. The eventual transaction will become:
+///
+/// `prepare canonical motion -> providers/refinement -> accept one result -> commit`.
+#[derive(Resource, Debug, Default)]
+pub struct UsfCollisionQueryFrame {
+    revision: u64,
+    requests: Vec<UsfCollisionQueryRequest>,
+    candidates: Vec<UsfCollisionCandidateRecord>,
+}
+
+impl UsfCollisionQueryFrame {
+    pub const fn revision(&self) -> u64 {
+        self.revision
+    }
+
+    pub fn requests(
+        &self,
+    ) -> impl ExactSizeIterator<Item = UsfCollisionQueryRequest> + '_ {
+        self.requests.iter().copied()
+    }
+
+    pub fn candidates(
+        &self,
+    ) -> impl ExactSizeIterator<Item = UsfCollisionCandidateRecord> + '_ {
+        self.candidates.iter().copied()
+    }
+
+    pub fn candidates_for(
+        &self,
+        request: UsfCollisionQueryRequestId,
+    ) -> impl Iterator<Item = UsfCollisionCandidate> + '_ {
+        self.candidates
+            .iter()
+            .copied()
+            .filter(move |record| record.request == request)
+            .map(UsfCollisionCandidateRecord::candidate)
+    }
+
+    pub fn push_candidate(
+        &mut self,
+        request: UsfCollisionQueryRequestId,
+        candidate: UsfCollisionCandidate,
+    ) {
+        if request.frame_revision != self.revision {
+            return;
+        }
+        self.candidates.push(UsfCollisionCandidateRecord {
+            request,
+            candidate,
+        });
+    }
+
+    fn begin_frame(&mut self) {
+        self.revision = self.revision.wrapping_add(1).max(1);
+        self.requests.clear();
+        self.candidates.clear();
+    }
+
+    fn push_request(
+        &mut self,
+        sweep: UsfCanonicalSweep,
+        target_error_metres: f64,
+    ) {
+        let index = u32::try_from(self.requests.len())
+            .expect("collision-query request count exceeded u32");
+        let id = UsfCollisionQueryRequestId {
+            frame_revision: self.revision,
+            index,
+        };
+        self.requests.push(UsfCollisionQueryRequest {
+            id,
+            sweep,
+            target_error_metres,
+        });
+    }
+}
+
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum UsfCollisionQuerySet {
+    Collect,
+    Providers,
+    Finalize,
+}
+
+fn collect_shadow_collision_sweeps(
+    fixed_time: Res<Time<Fixed>>,
+    ownership: crate::ecs::UsfOwnershipQuery,
+    runtimes: Query<(
+        Entity,
+        &crate::spatial::UsfCanonicalMotion,
+        &UsfCollisionQueryDemand,
+    )>,
+    semantic_positions: Query<&UsfPosition>,
+    mut frame: ResMut<UsfCollisionQueryFrame>,
+) {
+    frame.begin_frame();
+
+    let duration = fixed_time.delta().as_secs_f64();
+    if !duration.is_finite() || duration <= 0.0 {
+        return;
+    }
+
+    let mut seen = std::collections::HashSet::<Entity>::new();
+
+    for (runtime, motion, demand) in &runtimes {
+        let Some(subject) = ownership.semantic_of(runtime) else {
+            continue;
+        };
+        if !seen.insert(subject) {
+            continue;
+        }
+
+        let Ok(&start) = semantic_positions.get(subject) else {
+            continue;
+        };
+
+        let displacement = motion.velocity_metres_per_second() * duration;
+        if !displacement.is_finite() || displacement.length_squared() <= f64::EPSILON {
+            continue;
+        }
+
+        frame.push_request(
+            UsfCanonicalSweep::new(
+                subject,
+                start,
+                displacement,
+                duration,
+                demand.bounding_radius_metres(),
+            ),
+            demand.target_error_metres(),
+        );
+    }
+}
+
+fn finalize_collision_query_frame(mut frame: ResMut<UsfCollisionQueryFrame>) {
+    frame.candidates.sort_by(|a, b| {
+        a.request
+            .cmp(&b.request)
+            .then_with(|| {
+                a.candidate
+                    .interval()
+                    .minimum()
+                    .total_cmp(&b.candidate.interval().minimum())
+            })
+            .then_with(|| {
+                a.candidate
+                    .interval()
+                    .maximum()
+                    .total_cmp(&b.candidate.interval().maximum())
+            })
+            .then_with(|| {
+                a.candidate
+                    .authority()
+                    .to_bits()
+                    .cmp(&b.candidate.authority().to_bits())
+            })
+    });
+}
+
+pub(super) fn configure(app: &mut App) {
+    app.init_resource::<UsfCollisionQueryFrame>()
+        .configure_sets(
+            PostUpdate,
+            UsfCollisionQuerySet::Collect
+                .after(crate::spatial::UsfSpatialSet::SyncSemantic),
+        )
+        .configure_sets(
+            PostUpdate,
+            UsfCollisionQuerySet::Providers.after(UsfCollisionQuerySet::Collect),
+        )
+        .configure_sets(
+            PostUpdate,
+            UsfCollisionQuerySet::Finalize.after(UsfCollisionQuerySet::Providers),
+        )
+        .add_systems(
+            PostUpdate,
+            collect_shadow_collision_sweeps.in_set(UsfCollisionQuerySet::Collect),
+        )
+        .add_systems(
+            PostUpdate,
+            finalize_collision_query_frame.in_set(UsfCollisionQuerySet::Finalize),
+        );
+}

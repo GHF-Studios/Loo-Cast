@@ -50,7 +50,10 @@ pub use world::{VoxelChunkAddress, VoxelChunkCoord, VoxelMaterializationChunkAdd
 use bevy::prelude::*;
 
 use crate::{
-    physics::character::CharacterMovementSet,
+    physics::{
+        character::CharacterMovementSet,
+        collision_query::UsfCollisionQuerySet,
+    },
     spatial::{
         SpatialDemandSet, UsfCapabilitySet, UsfResidencySet, UsfSpatialSet,
     },
@@ -202,6 +205,11 @@ impl Plugin for VoxelPlugin {
                 manifestation::sync_capability_realizations
                     .in_set(VoxelPostUpdateSet::Capability)
                     .in_set(UsfCapabilitySet::Publish),
+            )
+            .add_systems(
+                PostUpdate,
+                collision_query::publish_collision_query_candidates
+                    .in_set(UsfCollisionQuerySet::Providers),
             );
 
         devtools::configure(app);
