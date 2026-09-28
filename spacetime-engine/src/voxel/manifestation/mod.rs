@@ -21,9 +21,6 @@ mod rebuild;
 
 pub(super) use collision::sync_manifestation_collision_residency;
 pub(super) use coverage::sync_capability_realizations;
-pub(super) use frontier::{
-    VoxelRefinementFrontierSet, VoxelRefinementFrontierSnapshot,
-};
 pub(super) use lifecycle::retire_removed_world_manifestations;
 pub use material::VoxelPresentationMaterial;
 pub(super) use material::VoxelRenderMaterial;

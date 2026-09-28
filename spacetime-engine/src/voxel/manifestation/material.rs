@@ -33,8 +33,10 @@ use crate::{
 };
 
 use super::{
-    VoxelMaterializationRuntime, VoxelRefinementFrontierSet,
-    VoxelRefinementFrontierSnapshot,
+    VoxelMaterializationRuntime,
+    frontier::{
+        VoxelRefinementFrontierSet, VoxelRefinementFrontierSnapshot,
+    },
 };
 use super::super::{VoxelPostUpdateSet, VoxelWorld};
 
