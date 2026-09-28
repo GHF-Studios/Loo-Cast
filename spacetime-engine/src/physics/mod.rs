@@ -2,6 +2,7 @@
 
 pub mod slice;
 pub mod character;
+pub mod collision_query;
 pub mod collision_topology;
 pub mod gravity;
 mod hull;
