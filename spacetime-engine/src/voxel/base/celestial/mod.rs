@@ -40,13 +40,14 @@ pub struct ProceduralCelestialBody {
     profile: CelestialBodyProfile,
 }
 
+/// Prepared fine sampling keeps only canonical chunk identity.
+///
+/// Geometry is intentionally *not* approximated by a materialization-local
+/// tangent plane. Every dense sample is reconstructed canonically and resolved
+/// through the body's semantic surface query.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct FineSurfaceFrame {
-    surface_anchor: UsfPosition,
-    chunk_origin_from_surface: Vec3,
-    up: Vec3,
-    dynamic_levels: [Option<SpatialScale>; 2],
-    anchor_noise: [f32; 2],
+    chunk_origin: UsfPosition,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -194,41 +195,13 @@ impl ProceduralCelestialBody {
         self,
         chunk_origin: VoxelQueryPosition,
     ) -> Option<FineSurfaceFrame> {
-        let up = self.direction_to(&chunk_origin.usf())?;
-        let surface_anchor = self.surface_position(up).ok()?;
-        let chunk_origin_from_surface = chunk_origin
-            .usf()
-            .relative_at_scale_bounded(
-                &surface_anchor,
-                self.current_scale,
-                FINE_SURFACE_FRAME_BOUND_NATIVE,
-            )
-            .ok()?;
-
-        let mut dynamic_levels = [None, None];
-        dynamic_levels[0] = Some(self.current_scale);
-        if self.current_scale < SpatialScale::ZERO {
-            let parent = SpatialScale::new(self.current_scale.exponent() + 1)
-                .expect("fine scale has an adjacent parent");
-            if parent <= SpatialScale::ZERO && parent <= self.coarsest_detail_scale {
-                dynamic_levels[1] = Some(parent);
-            }
-        }
-
-        let mut anchor_noise = [0.0; 2];
-        for (index, level) in dynamic_levels.into_iter().enumerate() {
-            if let Some(level) = level {
-                anchor_noise[index] =
-                    self.canonical_detail_noise_at(surface_anchor, level).ok()?;
-            }
-        }
-
+        // Validate that this chunk has a meaningful radial relation to the body,
+        // but keep the canonical origin itself as the prepared state. The old
+        // implementation captured a chunk-local tangent plane here, making the
+        // cache boundary part of planetary geometry.
+        self.direction_to(&chunk_origin.usf())?;
         Some(FineSurfaceFrame {
-            surface_anchor,
-            chunk_origin_from_surface,
-            up,
-            dynamic_levels,
-            anchor_noise,
+            chunk_origin: chunk_origin.usf(),
         })
     }
 
@@ -261,33 +234,24 @@ impl ProceduralCelestialBody {
 
     #[inline]
     fn sample_fine_local(self, frame: FineSurfaceFrame, chunk_local: Vec3) -> VoxelSample {
-        let delta = frame.chunk_origin_from_surface + chunk_local;
-        let normal_distance = f64::from(delta.dot(frame.up));
-        let tangential = delta - frame.up * delta.dot(frame.up);
-
-        let Ok(noise_position) = frame
-            .surface_anchor
-            .translated_at_scale(self.current_scale, tangential)
+        let Ok(point) = frame
+            .chunk_origin
+            .translated_at_scale(self.current_scale, chunk_local)
         else {
             return VoxelSample::empty(EMPTY_DISTANCE);
         };
 
-        let mut detail_delta_native = 0.0_f64;
-        for (index, level) in frame.dynamic_levels.into_iter().enumerate() {
-            let Some(level) = level else { continue };
-            let Ok(noise) = self.canonical_detail_noise_at(noise_position, level) else {
-                continue;
-            };
-            let native_scale = 10.0_f64.powi(
-                i32::from(level.exponent()) - i32::from(self.current_scale.exponent()),
-            );
-            detail_delta_native +=
-                f64::from(noise - frame.anchor_noise[index])
-                    * self.detail_amplitude_native(level)
-                    * native_scale;
-        }
+        // One semantic resolver now owns both travel clearance and dense fine
+        // voxel geometry. Neighboring materializations that sample the same
+        // canonical border point therefore receive the same signed distance,
+        // regardless of which cache produced the query.
+        let Some((_, _, clearance_native)) =
+            self.surface_near(&point, FINE_SURFACE_FRAME_BOUND_NATIVE)
+        else {
+            return VoxelSample::empty(EMPTY_DISTANCE);
+        };
 
-        self.sample_from_signed_distance(normal_distance - detail_delta_native)
+        self.sample_from_signed_distance(f64::from(clearance_native))
     }
 
     #[inline]
@@ -518,6 +482,61 @@ mod tests {
             let reconstructed =
                 body.radius_native_f64() * scale.metres_per_native();
             assert!((reconstructed - radius_metres).abs() < 1.0e-6);
+        }
+    }
+
+    #[test]
+    fn neighboring_fine_materializations_share_identical_canonical_border_samples() {
+        let scale = SpatialScale::ZERO;
+        let body = ProceduralCelestialBody::new(
+            earth_center(),
+            6_371_000.0,
+            scale,
+            SpatialScale::new(6).unwrap(),
+            0x4541_5254,
+            CelestialBodyProfile::Rocky,
+        );
+
+        let surface = body.surface_position(Vec3::Y).unwrap();
+        let left_origin = surface
+            .translated_at_scale(scale, Vec3::new(-5.0, -4.0, -5.0))
+            .unwrap();
+        let right_origin = left_origin
+            .translated_at_scale(scale, Vec3::new(10.0, 0.0, 0.0))
+            .unwrap();
+
+        let left = body
+            .prepare_local_sampler(
+                VoxelQueryPosition::new(surface),
+                VoxelQueryPosition::new(left_origin),
+            )
+            .unwrap();
+        let right = body
+            .prepare_local_sampler(
+                VoxelQueryPosition::new(surface),
+                VoxelQueryPosition::new(right_origin),
+            )
+            .unwrap();
+
+        // Surface Nets stores one copied sample of padding. These two x pairs
+        // address the exact same canonical planes from adjacent 10-unit
+        // materializations: left 9 == right -1, left 10 == right 0.
+        for (left_x, right_x) in [(9.0, -1.0), (10.0, 0.0)] {
+            for z in -1..=10 {
+                for y in -1..=10 {
+                    let left_sample =
+                        left.sample(Vec3::new(left_x, y as f32, z as f32));
+                    let right_sample =
+                        right.sample(Vec3::new(right_x, y as f32, z as f32));
+
+                    assert_eq!(left_sample.material, right_sample.material);
+                    assert_eq!(
+                        left_sample.distance.0.to_bits(),
+                        right_sample.distance.0.to_bits(),
+                        "shared canonical border sample diverged at y={y}, z={z}",
+                    );
+                }
+            }
         }
     }
 
