@@ -72,16 +72,23 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
             continue;
         };
 
-        let Some(cache) = world.materializations().surface(key.address) else {
-            registry.dirty.insert(key);
-            continue;
-        };
-        if cache.revision != expected_revision {
+        if world
+            .materializations()
+            .active_derived_revision(key.address)
+            != Some(expected_revision)
+        {
             registry.dirty.insert(key);
             continue;
         }
 
-        let mut opaque_mesh = build_opaque_mesh(&cache.surface, cache.debug_color);
+        let cache = world.materializations().surface(key.address);
+        if cache.is_some_and(|cache| cache.revision != expected_revision) {
+            registry.dirty.insert(key);
+            continue;
+        }
+
+        let mut opaque_mesh = cache
+            .and_then(|cache| build_opaque_mesh(&cache.surface, cache.debug_color));
         let mut root_entity = registry.entities.get(&key).copied();
 
         if let Some(entity) = root_entity {
@@ -123,7 +130,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
                             entity,
                             key.world,
                             layer,
-                            &cache.surface,
+                            cache.map(|cache| &cache.surface),
                             translucent_material,
                             &mut meshes,
                             &presentations,
@@ -187,7 +194,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
                 key.world,
                 layer,
                 key.address,
-                &cache.surface,
+                cache.map(|cache| &cache.surface),
                 translucent_material,
                 &mut meshes,
             );
@@ -211,13 +218,13 @@ fn sync_translucent_presentation(
     root: Entity,
     world: Entity,
     layer: &UsfScaleLayer,
-    surface: &VoxelSurface,
+    surface: Option<&VoxelSurface>,
     material: &Handle<VoxelRenderMaterial>,
     meshes: &mut Assets<Mesh>,
     presentations: &Query<Option<&Mesh3d>, With<VoxelMaterializationPresentation>>,
     manifestation: &mut VoxelMaterializationRuntime,
 ) {
-    let Some(mesh) = build_translucent_mesh(surface) else {
+    let Some(mesh) = surface.and_then(build_translucent_mesh) else {
         if let Some(entity) = manifestation.translucent_presentation.take() {
             commands.entity(entity).despawn();
         }
@@ -262,11 +269,11 @@ fn spawn_translucent_presentation(
     world: Entity,
     layer: &UsfScaleLayer,
     address: VoxelMaterializationChunkAddress,
-    surface: &VoxelSurface,
+    surface: Option<&VoxelSurface>,
     material: &Handle<VoxelRenderMaterial>,
     meshes: &mut Assets<Mesh>,
 ) -> Option<Entity> {
-    let mesh = build_translucent_mesh(surface)?;
+    let mesh = surface.and_then(build_translucent_mesh)?;
     Some(
         commands
             .spawn((

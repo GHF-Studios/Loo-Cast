@@ -19,15 +19,18 @@ pub(in crate::voxel) fn sync_manifestation_membership(
 
             match world
                 .materializations()
-                .active_surface(address)
-                .map(|surface| surface.revision)
+                .active_derived_revision(address)
             {
                 Some(revision) => {
                     registry.revisions.insert(key, revision);
                     registry.dirty.insert(key);
                 }
                 None => {
-                    // Inactive manifestations are disposable runtime state.
+                    // Only inactive/not-yet-derived materializations retire.
+                    // A derived-current empty result deliberately keeps a
+                    // meshless runtime so capability coverage can represent
+                    // known-empty presentation truth.
+                    //
                     // Retirement is not rebuild work, so it must never compete
                     // with the bounded manifestation rebuild budget.
                     registry.revisions.remove(&key);

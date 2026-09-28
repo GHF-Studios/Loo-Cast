@@ -39,16 +39,27 @@ impl VoxelMaterializationStore {
         &self,
         address: VoxelMaterializationChunkAddress,
     ) -> bool {
-        let Some(entry) = self.entries.get(&address) else {
-            return false;
-        };
+        self.active_derived_revision(address).is_some()
+    }
+
+    /// Current dense revision of one active materialization whose derived
+    /// representation has completed, regardless of whether that result owns
+    /// any triangles.
+    ///
+    /// `None` surface is a valid derived result for known-empty space. Runtime
+    /// capability lifetime must therefore follow this revision rather than
+    /// `VoxelSurfaceCache` existence.
+    pub(in crate::voxel) fn active_derived_revision(
+        &self,
+        address: VoxelMaterializationChunkAddress,
+    ) -> Option<u64> {
+        let entry = self.entries.get(&address)?;
         if !entry.active {
-            return false;
+            return None;
         }
-        let Some(chunk) = entry.dense() else {
-            return false;
-        };
-        entry.derived_revision == Some(chunk.revision())
+        let chunk = entry.dense()?;
+        let revision = chunk.revision();
+        (entry.derived_revision == Some(revision)).then_some(revision)
     }
 
     pub(in crate::voxel) fn begin_surface_build(

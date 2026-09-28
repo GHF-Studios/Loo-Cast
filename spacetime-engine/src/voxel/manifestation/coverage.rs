@@ -55,16 +55,17 @@ pub(in crate::voxel) fn sync_capability_realizations(
             continue;
         };
 
-        let surface_current = world
+        let derived_current = world
             .materializations()
-            .surface(runtime.address())
-            .is_some_and(|surface| surface.revision == runtime.revision());
+            .active_derived_revision(runtime.address())
+            == Some(runtime.revision());
 
         let mut roles = UsfScaleRoleMask::NONE;
-        if surface_current {
-            // A current empty derived surface is still realized presentation
-            // truth. It must be able to erase a coarse approximation after
-            // excavation/caves/void generation even though it owns no mesh.
+        if derived_current {
+            // A current empty derived result is still realized presentation
+            // truth. Mesh existence is not capability existence: known-empty
+            // space must erase a coarse approximation after
+            // excavation/caves/void generation.
             roles = UsfScaleRoleMask::REALIZATION
                 .union(UsfScaleRoleMask::PRESENTATION);
 
