@@ -13,8 +13,14 @@ pub(in crate::game::player) fn look(
 
     let (controller, mut aim) = player.into_inner();
     let look = input.look_delta();
-    aim.yaw -= look.x * controller.look_sensitivity;
-    aim.pitch -= look.y * controller.look_sensitivity;
+    let sensitivity = controller.look_sensitivity.max(0.0);
+
+    // Raw pointer motion is already a per-render-frame accumulated delta. Apply
+    // it once without time scaling or smoothing latency.
+    aim.yaw = (aim.yaw - look.x * sensitivity + std::f32::consts::PI)
+        .rem_euclid(std::f32::consts::TAU)
+        - std::f32::consts::PI;
+    aim.pitch -= look.y * sensitivity;
     aim.pitch = aim.pitch.clamp(aim.min_pitch, aim.max_pitch);
 }
 

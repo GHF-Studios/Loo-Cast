@@ -117,9 +117,7 @@ impl Plugin for PlayerPlugin {
             )
             .add_systems(
                 RunFixedMainLoop,
-                (controls::look, controls::sample_flight_control_intent)
-                    .chain()
-                    .in_set(ControlSet::Sample),
+                controls::sample_flight_control_intent.in_set(ControlSet::Sample),
             )
             .add_systems(
                 RunFixedMainLoop,
@@ -140,6 +138,10 @@ impl Plugin for PlayerPlugin {
             .add_systems(
                 Update,
                 (
+                    // Mouse motion is accumulated once per rendered frame.
+                    // Consume it exactly once here; fixed-step simulation may
+                    // run zero or multiple ticks for the same render frame.
+                    controls::look,
                     controls::toggle_spatial_demand,
                     controls::zoom_spatial_view,
                     camera::toggle_camera_mode,
