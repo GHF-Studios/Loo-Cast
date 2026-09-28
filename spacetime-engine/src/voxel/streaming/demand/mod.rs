@@ -164,13 +164,13 @@ fn candidate_plan_ready(
         let Some(cache) = store.surface(address) else {
             return true;
         };
-        if !cache.surface.has_owned_triangles() {
+        if !cache.surface.has_triangles() {
             return true;
         }
 
         let mut required = UsfScaleRoleMask::REALIZATION
             .union(UsfScaleRoleMask::PRESENTATION);
-        if collision_enabled && cache.surface.has_owned_rigid_triangles() {
+        if collision_enabled && cache.surface.has_rigid_triangles() {
             required = required.union(UsfScaleRoleMask::COLLISION);
         }
         if editing_enabled {

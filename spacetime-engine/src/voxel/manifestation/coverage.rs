@@ -55,16 +55,16 @@ pub(in crate::voxel) fn sync_capability_realizations(
             continue;
         };
 
-        let owned_surface_current = world
+        let surface_current = world
             .materializations()
             .surface(runtime.address())
             .is_some_and(|surface| {
                 surface.revision == runtime.revision()
-                    && surface.surface.has_owned_triangles()
+                    && surface.surface.has_triangles()
             });
 
         let mut roles = UsfScaleRoleMask::NONE;
-        if owned_surface_current {
+        if surface_current {
             roles = UsfScaleRoleMask::REALIZATION
                 .union(UsfScaleRoleMask::PRESENTATION);
 

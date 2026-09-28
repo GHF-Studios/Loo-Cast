@@ -8,7 +8,7 @@
 use avian3d::{collision::collider::TrimeshFlags, prelude::Collider};
 use bevy::prelude::*;
 
-use super::{MATERIALIZATION_CHUNK_SIZE, mesh::VoxelSurface};
+use super::mesh::VoxelSurface;
 
 /// Small thickness around the otherwise hollow terrain trimesh. This reduces
 /// tunnelling and visible/contact jitter for character and rigid-body motion.
@@ -32,20 +32,13 @@ pub(super) fn build_trimesh_collider(
     }
 }
 
-/// Surface Nets needs one sample of neighbor padding, so extracted surfaces from
-/// adjacent chunks overlap slightly. Rendering tolerates that, physics should
-/// not: duplicated triangles make contacts at chunk seams considerably noisier.
+/// Rigid topology emitted by Surface Nets for this materialization.
 ///
-/// Assign each triangle to exactly one brick by its brick-local centroid. A
-/// triangle may cross the brick boundary, but only one collider owns it.
-pub(super) fn owned_triangles(surface: &VoxelSurface) -> Vec<[u32; 3]> {
-    surface.owned_rigid_triangles()
-}
-
-#[cfg(test)]
-fn owns_point(point: Vec3) -> bool {
-    let maximum = Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32);
-    point.cmpge(Vec3::ZERO).all() && point.cmplt(maximum).all()
+/// The extractor already assigns shared padded-chunk faces by omitting
+/// positive-boundary faces. Collision must consume exactly that topology rather
+/// than applying a second geometric ownership rule.
+pub(super) fn triangles(surface: &VoxelSurface) -> Vec<[u32; 3]> {
+    surface.rigid_triangles()
 }
 
 #[cfg(test)]
@@ -53,7 +46,10 @@ mod tests {
     use std::collections::BTreeSet;
 
     use super::*;
-    use crate::voxel::{VoxelChunk, VoxelMaterialId, VoxelSample, mesh::extract_chunk_surface};
+    use crate::voxel::{
+        MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelMaterialId, VoxelSample,
+        mesh::extract_chunk_surface,
+    };
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
     struct QuantizedPoint(i32, i32, i32);
@@ -61,15 +57,7 @@ mod tests {
     type TriangleKey = [QuantizedPoint; 3];
 
     #[test]
-    fn chunk_ownership_is_half_open_and_unambiguous_at_seams() {
-        let size = MATERIALIZATION_CHUNK_SIZE as f32;
-        assert!(owns_point(Vec3::new(size - 0.001, 1.0, 1.0)));
-        assert!(!owns_point(Vec3::new(size, 1.0, 1.0)));
-        assert!(owns_point(Vec3::ZERO));
-    }
-
-    #[test]
-    fn collisionless_nebula_has_no_owned_collision_triangles() {
+    fn collisionless_nebula_has_no_collision_triangles() {
         let center = Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32 * 0.5);
         let chunk = VoxelChunk::generate(|local| {
             let distance = local.distance(center) - 3.0;
@@ -84,11 +72,11 @@ mod tests {
         });
         let surface = extract_chunk_surface(&chunk);
         assert!(!surface.positions.is_empty());
-        assert!(owned_triangles(&surface).is_empty());
+        assert!(triangles(&surface).is_empty());
     }
 
     #[test]
-    fn neighboring_surface_nets_seam_has_collision_ownership() {
+    fn neighboring_surface_nets_chunks_use_native_seam_partition() {
         let size = MATERIALIZATION_CHUNK_SIZE as f32;
         let center = Vec3::new(size, size * 0.5, size * 0.5);
         let radius = size * 0.4;
@@ -113,25 +101,45 @@ mod tests {
         assert!(build_test_surface_collider(&left_surface).is_some());
         assert!(build_test_surface_collider(&right_surface).is_some());
 
-        let mut visible_seam = BTreeSet::<TriangleKey>::new();
-        let mut owned_seam = BTreeSet::<TriangleKey>::new();
-        collect_visible_seam_triangles(&left_surface, Vec3::ZERO, size, &mut visible_seam);
-        collect_visible_seam_triangles(&right_surface, right_origin, size, &mut visible_seam);
-        collect_owned_seam_triangles(&left_surface, Vec3::ZERO, size, &mut owned_seam);
-        collect_owned_seam_triangles(&right_surface, right_origin, size, &mut owned_seam);
-
-        assert!(
-            !visible_seam.is_empty(),
-            "test sphere must cross the chunk seam"
-        );
-        let uncovered = visible_seam
-            .difference(&owned_seam)
-            .copied()
+        // The positive neighbor legitimately owns seam topology whose centroid
+        // lives in its negative padding domain. The old [0,10) centroid clip
+        // deleted these triangles.
+        let right_negative_padding = triangles(&right_surface)
+            .into_iter()
+            .filter(|indices| triangle_centroid(&right_surface, *indices).x < 0.0)
             .collect::<Vec<_>>();
         assert!(
-            uncovered.is_empty(),
-            "visible seam triangles without collision ownership: {uncovered:?}"
+            !right_negative_padding.is_empty(),
+            "test surface must exercise native negative-padding seam ownership",
         );
+
+        // Surface Nets' built-in sparse-chunk partition should not duplicate
+        // exact shared-face triangles across the two neighboring chunks.
+        let mut seen = BTreeSet::<TriangleKey>::new();
+        let mut seam_count = 0usize;
+        for (surface, world_offset) in [
+            (&left_surface, Vec3::ZERO),
+            (&right_surface, right_origin),
+        ] {
+            for indices in triangles(surface) {
+                let centroid = triangle_centroid(surface, indices) + world_offset;
+                if (centroid.x - size).abs() > 1.25
+                    || centroid.y <= 1.0
+                    || centroid.y >= size - 1.0
+                    || centroid.z <= 1.0
+                    || centroid.z >= size - 1.0
+                {
+                    continue;
+                }
+                seam_count += 1;
+                let key = triangle_key(surface, indices, world_offset);
+                assert!(
+                    seen.insert(key),
+                    "duplicate native Surface Nets seam triangle: {key:?}",
+                );
+            }
+        }
+        assert!(seam_count > 0, "test sphere must cross the materialization seam");
     }
 
     fn build_test_surface_collider(surface: &VoxelSurface) -> Option<Collider> {
@@ -143,48 +151,9 @@ mod tests {
             .collect();
         build_trimesh_collider(
             vertices,
-            owned_triangles(surface),
-            "voxel physics seam test",
+            triangles(surface),
+            "voxel physics native seam test",
         )
-    }
-
-    fn collect_visible_seam_triangles(
-        surface: &VoxelSurface,
-        world_offset: Vec3,
-        size: f32,
-        output: &mut BTreeSet<TriangleKey>,
-    ) {
-        for triangle in surface.indices.chunks_exact(3) {
-            let indices = [triangle[0], triangle[1], triangle[2]];
-            let centroid = triangle_centroid(surface, indices) + world_offset;
-            if (centroid.x - size).abs() <= 1.25
-                && centroid.y > 1.0
-                && centroid.y < size - 1.0
-                && centroid.z > 1.0
-                && centroid.z < size - 1.0
-            {
-                output.insert(triangle_key(surface, indices, world_offset));
-            }
-        }
-    }
-
-    fn collect_owned_seam_triangles(
-        surface: &VoxelSurface,
-        world_offset: Vec3,
-        size: f32,
-        output: &mut BTreeSet<TriangleKey>,
-    ) {
-        for indices in owned_triangles(surface) {
-            let centroid = triangle_centroid(surface, indices) + world_offset;
-            if (centroid.x - size).abs() <= 1.25
-                && centroid.y > 1.0
-                && centroid.y < size - 1.0
-                && centroid.z > 1.0
-                && centroid.z < size - 1.0
-            {
-                output.insert(triangle_key(surface, indices, world_offset));
-            }
-        }
     }
 
     fn triangle_centroid(surface: &VoxelSurface, indices: [u32; 3]) -> Vec3 {
@@ -194,9 +163,14 @@ mod tests {
         (a + b + c) / 3.0
     }
 
-    fn triangle_key(surface: &VoxelSurface, indices: [u32; 3], world_offset: Vec3) -> TriangleKey {
+    fn triangle_key(
+        surface: &VoxelSurface,
+        indices: [u32; 3],
+        world_offset: Vec3,
+    ) -> TriangleKey {
         let mut points = indices.map(|index| {
-            let point = Vec3::from_array(surface.positions[index as usize]) + world_offset;
+            let point =
+                Vec3::from_array(surface.positions[index as usize]) + world_offset;
             QuantizedPoint(
                 (point.x * 10_000.0).round() as i32,
                 (point.y * 10_000.0).round() as i32,

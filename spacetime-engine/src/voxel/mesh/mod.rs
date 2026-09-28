@@ -4,7 +4,7 @@ use bevy::prelude::{Vec2, Vec3};
 use fast_surface_nets::{SurfaceNetsBuffer, ndshape::ConstShape3u32, surface_nets};
 
 use super::{
-    MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelMaterialId,
+    VoxelChunk, VoxelMaterialId,
     chunk::{SAMPLE_PADDING, SAMPLE_SIZE},
 };
 
@@ -24,71 +24,52 @@ pub(super) struct VoxelSurface {
 }
 
 impl VoxelSurface {
-    /// True when the triangle centroid belongs to this materialization's
-    /// canonical half-open ownership aperture.
+    /// Whether this materialization owns any topology emitted by Surface Nets.
     ///
-    /// Surface Nets extracts one padded neighbor sample around each brick. That
-    /// padding is reconstruction context only: render, collision and capability
-    /// coverage must all agree on which brick owns the resulting surface.
-    fn owns_triangle(&self, triangle: &[u32]) -> bool {
-        let indices = [triangle[0], triangle[1], triangle[2]];
-        let a = Vec3::from_array(self.positions[indices[0] as usize]);
-        let b = Vec3::from_array(self.positions[indices[1] as usize]);
-        let c = Vec3::from_array(self.positions[indices[2] as usize]);
-        let centroid = (a + b + c) / 3.0;
-        let maximum = Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32);
-
-        centroid.cmpge(Vec3::ZERO).all() && centroid.cmplt(maximum).all()
+    /// `fast_surface_nets` already partitions padded sparse chunks by omitting
+    /// positive-boundary faces. Do not apply a second centroid ownership test:
+    /// valid seam faces may intentionally use vertices in this chunk's negative
+    /// padding domain.
+    pub(super) fn has_triangles(&self) -> bool {
+        !self.indices.is_empty()
     }
 
-    pub(super) fn has_owned_triangles(&self) -> bool {
-        self.indices
-            .chunks_exact(3)
-            .any(|triangle| self.owns_triangle(triangle))
-    }
-
-    pub(super) fn owned_opaque_indices(&self) -> Vec<u32> {
+    pub(super) fn opaque_indices(&self) -> Vec<u32> {
         self.indices
             .chunks_exact(3)
             .zip(&self.triangle_materials)
-            .filter(|(triangle, material)| {
-                self.owns_triangle(triangle) && !material.behavior().is_translucent()
-            })
+            .filter(|(_, material)| !material.behavior().is_translucent())
             .flat_map(|(triangle, _)| triangle.iter().copied())
             .collect()
     }
 
-    pub(super) fn owned_translucent_indices(&self) -> Vec<u32> {
+    pub(super) fn translucent_indices(&self) -> Vec<u32> {
         self.indices
             .chunks_exact(3)
             .zip(&self.triangle_materials)
-            .filter(|(triangle, material)| {
-                self.owns_triangle(triangle) && material.behavior().is_translucent()
-            })
+            .filter(|(_, material)| material.behavior().is_translucent())
             .flat_map(|(triangle, _)| triangle.iter().copied())
             .collect()
     }
 
-    pub(super) fn owned_rigid_triangles(&self) -> Vec<[u32; 3]> {
+    pub(super) fn rigid_triangles(&self) -> Vec<[u32; 3]> {
         self.indices
             .chunks_exact(3)
             .zip(&self.triangle_materials)
             .filter_map(|(triangle, material)| {
-                if !material.behavior().is_rigid() || !self.owns_triangle(triangle) {
-                    return None;
-                }
-                Some([triangle[0], triangle[1], triangle[2]])
+                material.behavior().is_rigid().then_some([
+                    triangle[0],
+                    triangle[1],
+                    triangle[2],
+                ])
             })
             .collect()
     }
 
-    pub(super) fn has_owned_rigid_triangles(&self) -> bool {
-        self.indices
-            .chunks_exact(3)
-            .zip(&self.triangle_materials)
-            .any(|(triangle, material)| {
-                material.behavior().is_rigid() && self.owns_triangle(triangle)
-            })
+    pub(super) fn has_rigid_triangles(&self) -> bool {
+        self.triangle_materials
+            .iter()
+            .any(|material| material.behavior().is_rigid())
     }
 }
 
@@ -103,9 +84,11 @@ pub(super) fn extract_chunk_surface(chunk: &VoxelChunk) -> VoxelSurface {
     );
 
     // Surface Nets coordinates start at the padded sample allocation. Keep the
-    // derived surface local to the logical brick origin. Rendering projects that
-    // canonical brick origin into the active view; the scale-local physics root
-    // independently projects the same address into its Avian slice.
+    // derived surface local to the logical brick origin. The extractor itself
+    // owns sparse-chunk seam partitioning: with copied border samples it omits
+    // positive-boundary faces, so neighboring chunks stitch by translation.
+    // Keep every emitted triangle; post-hoc centroid clipping breaks that
+    // topological convention.
     let offset = Vec3::splat(-(SAMPLE_PADDING as f32));
     for position in &mut output.positions {
         position[0] += offset.x;
