@@ -25,8 +25,11 @@ pub struct UsfViewDemand {
     anchor: UsfPosition,
     finest_scale: SpatialScale,
     camera_translation: Vec3,
+    camera_rotation: Quat,
     frustum: Frustum,
     perspective: bool,
+    perspective_fov: Option<f32>,
+    perspective_aspect_ratio: Option<f32>,
     pixels_per_radian: Option<f32>,
 }
 
@@ -115,51 +118,63 @@ impl UsfViewDemandSnapshot {
     }
 }
 
+impl UsfViewDemand {
+    fn same_observer_state(&self, other: &Self) -> bool {
+        self.source == other.source
+            && self.anchor == other.anchor
+            && self.finest_scale == other.finest_scale
+            && self.camera_translation == other.camera_translation
+            && self.camera_rotation == other.camera_rotation
+            && self.perspective == other.perspective
+            && self.perspective_fov == other.perspective_fov
+            && self.perspective_aspect_ratio == other.perspective_aspect_ratio
+            && self.pixels_per_radian == other.pixels_per_radian
+    }
+}
+
 fn capture_view_demand(
     views: Query<
         (
             Entity,
-            Ref<Frustum>,
-            Ref<Transform>,
-            Ref<Camera>,
-            Ref<Projection>,
-            Ref<UsfViewContext>,
+            &Frustum,
+            &Transform,
+            &Camera,
+            &Projection,
+            &UsfViewContext,
         ),
         With<UsfViewRenderAnchor>,
     >,
     mut snapshot: ResMut<UsfViewDemandSnapshot>,
 ) {
-    let count = views.iter().len();
-    let changed = count != snapshot.entries.len()
-        || views.iter().any(
-            |(_, frustum, transform, camera, projection, view)| {
-                frustum.is_changed()
-                    || transform.is_changed()
-                    || camera.is_changed()
-                    || projection.is_changed()
-                    || view.is_changed()
-            },
-        );
+    // Bevy change ticks are intentionally not used as semantic invalidation.
+    // Camera synchronization may perform idempotent mutable writes; observer
+    // demand only changes when values that can alter culling actually differ.
+    let mut entries = Vec::with_capacity(views.iter().len());
 
-    if !changed {
-        return;
-    }
-
-    let mut entries = Vec::with_capacity(count);
     for (source, frustum, transform, camera, projection, view) in &views {
         if !camera.is_active {
             continue;
         }
 
-        let (perspective, pixels_per_radian) = match &*projection {
+        let (
+            perspective,
+            perspective_fov,
+            perspective_aspect_ratio,
+            pixels_per_radian,
+        ) = match projection {
             Projection::Perspective(perspective) => {
                 let pixels_per_radian = camera
                     .logical_viewport_size()
                     .filter(|size| size.y > 0.0 && perspective.fov > 0.0)
                     .map(|size| size.y / perspective.fov);
-                (true, pixels_per_radian)
+                (
+                    true,
+                    Some(perspective.fov),
+                    Some(perspective.aspect_ratio),
+                    pixels_per_radian,
+                )
             }
-            _ => (false, None),
+            _ => (false, None, None, None),
         };
 
         entries.push(UsfViewDemand {
@@ -167,13 +182,27 @@ fn capture_view_demand(
             anchor: *view.anchor(),
             finest_scale: view.scale(),
             camera_translation: transform.translation,
-            frustum: (*frustum).clone(),
+            camera_rotation: transform.rotation,
+            frustum: frustum.clone(),
             perspective,
+            perspective_fov,
+            perspective_aspect_ratio,
             pixels_per_radian,
         });
     }
 
     entries.sort_by_key(|entry| entry.source.to_bits());
+
+    let changed = entries.len() != snapshot.entries.len()
+        || entries
+            .iter()
+            .zip(snapshot.entries.iter())
+            .any(|(next, current)| !next.same_observer_state(current));
+
+    if !changed {
+        return;
+    }
+
     snapshot.entries = entries;
     snapshot.revision = snapshot.revision.wrapping_add(1).max(1);
 }
@@ -196,8 +225,11 @@ mod tests {
             anchor: UsfPosition::zero(SpatialScale::MIN),
             finest_scale,
             camera_translation: Vec3::ZERO,
+            camera_rotation: Quat::IDENTITY,
             frustum: Frustum::default(),
             perspective: false,
+            perspective_fov: None,
+            perspective_aspect_ratio: None,
             pixels_per_radian: None,
         }
     }
