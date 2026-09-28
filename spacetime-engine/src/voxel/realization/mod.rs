@@ -15,6 +15,7 @@ use bevy::prelude::*;
 
 use crate::{
     ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf},
+    usf::USF_CHILD_CHUNKS_PER_AXIS,
     spatial::{
         SpatialDemandScope, SpatialDemandSnapshot, SpatialRefinementDemand, SpatialScale,
         UsfChartMask, UsfChunkAddress, UsfPosition, UsfRefinementPlan,
@@ -365,7 +366,7 @@ pub(super) fn collect_voxel_realization_demand(
                 }
 
                 let half_extent_native =
-                    Vec3::splat(domain.local_patch_half_extent_native());
+                    observer_presentation_half_extent_native(*domain);
                 let source_scope = SpatialDemandScope::at_scale(
                     view.source(),
                     scale,
@@ -494,6 +495,20 @@ fn realization_plan(
     .with_residency_halo_native(Vec3::splat(
         MATERIALIZATION_CHUNK_SIZE as f32 * 0.5,
     ))
+}
+
+/// Native observer aperture for one contextual Scale Slice.
+///
+/// A coarser slice needs only enough native reach to overlap the next-finer
+/// working window; physical reach grows by the decimal Scale Stack ratio.
+/// Keep at least one materialization radius so alignment cannot collapse the
+/// contextual aperture to a single fragile boundary cell.
+fn observer_presentation_half_extent_native(domain: VoxelScaleDomain) -> Vec3 {
+    let inherited_finer_reach =
+        domain.local_patch_half_extent_native() / USF_CHILD_CHUNKS_PER_AXIS as f32;
+    Vec3::splat(
+        inherited_finer_reach.max(MATERIALIZATION_CHUNK_SIZE as f32),
+    )
 }
 
 fn materialization_residency_extent(half_extent_native: Vec3) -> Vec3 {

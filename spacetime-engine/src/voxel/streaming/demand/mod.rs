@@ -7,7 +7,7 @@ use bevy::prelude::*;
 use crate::{
     config::EngineConfig,
     spatial::{
-        SpatialScale, UsfCapabilityRealization, UsfChunkAddress,
+        SpatialDemandScope, SpatialScale, UsfCapabilityRealization, UsfChunkAddress,
         UsfContextResidency, UsfPositionError, UsfScaleLayer, UsfScaleRoleMask,
         UsfViewDemandSnapshot,
     },
@@ -318,6 +318,137 @@ fn demand_plan_key(
     Ok(result)
 }
 
+fn merge_demanded_chunk(
+    merged: &mut HashMap<VoxelMaterializationChunkAddress, DemandedChunk>,
+    candidate: DemandedChunk,
+) {
+    merged
+        .entry(candidate.address)
+        .and_modify(|current| {
+            current.roles = current.roles.union(candidate.roles);
+            if candidate.priority > current.priority
+                || (candidate.priority == current.priority
+                    && candidate.distance_squared < current.distance_squared)
+            {
+                current.priority = candidate.priority;
+                current.distance_squared = candidate.distance_squared;
+            }
+        })
+        .or_insert(candidate);
+}
+
+/// Descends one volumetric chunk-coordinate block only where the observer can
+/// still see/significantly resolve it.
+///
+/// This is deliberately content-agnostic: caves, edited interiors, overhangs
+/// and future volumetric geology remain valid. Acceleration rejects spatial
+/// blocks; it does not reinterpret terrain as a 2D shell.
+fn collect_visible_chunk_block(
+    center_address: VoxelMaterializationChunkAddress,
+    minimum: IVec3,
+    maximum: IVec3,
+    demand: SpatialDemandScope,
+    request: VoxelRealizationScope,
+    view: &crate::spatial::UsfViewDemand,
+    local_center: Vec3,
+    size: f32,
+    merged: &mut HashMap<VoxelMaterializationChunkAddress, DemandedChunk>,
+) -> Result<(), crate::spatial::UsfPositionError> {
+    if minimum.cmpgt(maximum).any() {
+        return Ok(());
+    }
+
+    let block_min = minimum.as_vec3() * size;
+    let block_max = (maximum + IVec3::ONE).as_vec3() * size;
+    let block_center_local = (block_min + block_max) * 0.5;
+    let block_half_extent = (block_max - block_min) * 0.5;
+    let block_center = center_address
+        .query_origin()
+        .translated(block_center_local)?
+        .usf();
+
+    if !view.intersects_native_aabb(
+        demand.scale(),
+        &block_center,
+        block_half_extent,
+    ) {
+        return Ok(());
+    }
+
+    if minimum == maximum {
+        let address = center_address.translated_chunks(minimum)?;
+        let chunk_center =
+            minimum.as_vec3() * size + Vec3::splat(size * 0.5);
+        let distance_squared =
+            (chunk_center - local_center).length_squared();
+
+        merge_demanded_chunk(
+            merged,
+            DemandedChunk {
+                address,
+                priority: demand.priority(),
+                distance_squared,
+                roles: request.roles(),
+            },
+        );
+        return Ok(());
+    }
+
+    let span = maximum - minimum;
+    let axis = if span.x >= span.y && span.x >= span.z {
+        0
+    } else if span.y >= span.z {
+        1
+    } else {
+        2
+    };
+
+    let mut left_max = maximum;
+    let mut right_min = minimum;
+
+    match axis {
+        0 => {
+            let middle = minimum.x + span.x / 2;
+            left_max.x = middle;
+            right_min.x = middle + 1;
+        }
+        1 => {
+            let middle = minimum.y + span.y / 2;
+            left_max.y = middle;
+            right_min.y = middle + 1;
+        }
+        2 => {
+            let middle = minimum.z + span.z / 2;
+            left_max.z = middle;
+            right_min.z = middle + 1;
+        }
+        _ => unreachable!(),
+    }
+
+    collect_visible_chunk_block(
+        center_address,
+        minimum,
+        left_max,
+        demand,
+        request,
+        view,
+        local_center,
+        size,
+        merged,
+    )?;
+    collect_visible_chunk_block(
+        center_address,
+        right_min,
+        maximum,
+        demand,
+        request,
+        view,
+        local_center,
+        size,
+        merged,
+    )
+}
+
 pub(super) fn demanded_chunk_addresses<T>(
     world: &VoxelWorld,
     demands: &[T],
@@ -339,20 +470,44 @@ where
         let minimum = checked_ivec3(((local_center - half) / size).floor())?;
         let maximum = checked_ivec3(((local_center + half) / size).floor())?;
 
+        if let Some(view_source) = request.view_source() {
+            let Some(view) = view_demands.get(view_source) else {
+                continue;
+            };
+
+            // View-only demand is culled hierarchically before leaf
+            // materializations are enumerated.
+            collect_visible_chunk_block(
+                center_address,
+                minimum,
+                maximum,
+                demand,
+                request,
+                view,
+                local_center,
+                size,
+                &mut merged,
+            )?;
+            continue;
+        }
+
         for z in minimum.z..=maximum.z {
             for y in minimum.y..=maximum.y {
                 for x in minimum.x..=maximum.x {
                     let offset = IVec3::new(x, y, z);
                     let address = center_address.translated_chunks(offset)?;
-                    let chunk_center = offset.as_vec3() * size + Vec3::splat(size * 0.5);
+                    let chunk_center =
+                        offset.as_vec3() * size + Vec3::splat(size * 0.5);
                     let from_demand_center = chunk_center - local_center;
                     let distance_squared = from_demand_center.length_squared();
 
-                    // A pinned celestial body's far realization is a sparse
-                    // surface shell, not a solid enclosing cube.
+                    // The permanent bootstrap shell is capability-specific
+                    // ancestry policy. Ordinary observer demand remains fully
+                    // volumetric and never uses this shortcut.
                     if let Some((pinned_source, radius_native)) = pinned_shell {
                         if demand.source() == pinned_source {
-                            let chunk_half_diagonal = Vec3::splat(size * 0.5).length();
+                            let chunk_half_diagonal =
+                                Vec3::splat(size * 0.5).length();
                             let surface_margin = chunk_half_diagonal + 1.5;
                             let distance = distance_squared.sqrt();
                             if (distance - radius_native).abs() > surface_margin {
@@ -361,40 +516,15 @@ where
                         }
                     }
 
-                    if let Some(view_source) = request.view_source() {
-                        let Some(view) = view_demands.get(view_source) else {
-                            continue;
-                        };
-                        let center = address.center()?;
-                        if !view.intersects_native_aabb(
-                            demand.scale(),
-                            &center,
-                            Vec3::splat(size * 0.5),
-                        ) {
-                            continue;
-                        }
-                    }
-
-                    let candidate = DemandedChunk {
-                        address,
-                        priority: demand.priority(),
-                        distance_squared,
-                        roles: request.roles(),
-                    };
-
-                    merged
-                        .entry(address)
-                        .and_modify(|current| {
-                            current.roles = current.roles.union(candidate.roles);
-                            if candidate.priority > current.priority
-                                || (candidate.priority == current.priority
-                                    && candidate.distance_squared < current.distance_squared)
-                            {
-                                current.priority = candidate.priority;
-                                current.distance_squared = candidate.distance_squared;
-                            }
-                        })
-                        .or_insert(candidate);
+                    merge_demanded_chunk(
+                        &mut merged,
+                        DemandedChunk {
+                            address,
+                            priority: demand.priority(),
+                            distance_squared,
+                            roles: request.roles(),
+                        },
+                    );
                 }
             }
         }
