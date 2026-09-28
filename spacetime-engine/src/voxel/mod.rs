@@ -9,6 +9,7 @@ mod async_pipeline;
 mod authority;
 mod base;
 mod chunk;
+mod collision_query;
 mod devtools;
 mod edit;
 mod field;
@@ -30,6 +31,7 @@ pub use base::{
 pub use chunk::{
     CHUNK_SIZE, MATERIALIZATION_CHUNK_SIZE, VoxelChunk, VoxelChunkEditResult, VoxelRayHit,
 };
+pub use collision_query::VoxelCollisionQuery;
 pub use edit::{EDIT_INFLUENCE_MARGIN, VoxelBounds, VoxelBrush, VoxelEdit, VoxelQueryPosition};
 pub use field::{
     SignedDistance, VoxelCollisionMode, VoxelMaterialBehavior, VoxelMaterialId, VoxelSample,

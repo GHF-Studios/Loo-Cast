@@ -103,6 +103,30 @@ impl ProceduralCelestialBody {
 
     pub const fn profile(self) -> CelestialBodyProfile { self.profile }
 
+    /// Conservative maximum radial extent represented by this realization.
+    ///
+    /// This is broadphase metadata, not a replacement surface. It bounds the
+    /// current procedural macro relief plus every detail band owned by this
+    /// Scale Slice so high-speed collision queries may safely over-report a
+    /// candidate without depending on a materialized mesh/collider.
+    pub(crate) fn conservative_outer_radius_metres(self) -> f64 {
+        let mut radius = self.radius_metres
+            * (1.0 + self.maximum_outward_macro_relief_fraction());
+
+        if self.current_scale <= self.coarsest_detail_scale {
+            for raw in self.current_scale.exponent()
+                ..=self.coarsest_detail_scale.exponent()
+            {
+                let level = SpatialScale::new(raw)
+                    .expect("validated celestial detail scale");
+                radius += self.detail_amplitude_native(level).abs()
+                    * level.metres_per_native();
+            }
+        }
+
+        radius
+    }
+
     pub(crate) fn prepare_local_sampler(
         self,
         _world_origin: VoxelQueryPosition,
@@ -387,6 +411,22 @@ impl ProceduralCelestialBody {
             CelestialBodyProfile::Lunar => lunar_macro_relative_relief(direction),
             CelestialBodyProfile::Rocky => rocky_macro_relative_relief(direction, self.seed),
             CelestialBodyProfile::Stellar => stellar_macro_relative_relief(direction, self.seed),
+        }
+    }
+
+    fn maximum_outward_macro_relief_fraction(self) -> f64 {
+        match self.profile {
+            // Two broad waves plus the deliberately conservative assumption
+            // that every crater rim can contribute at once. Bowl depth is
+            // inward and therefore irrelevant to an outer bound.
+            CelestialBodyProfile::Lunar => {
+                let crater_depth_sum =
+                    0.0100 + 0.0070 + 0.0060 + 0.0048
+                    + 0.0040 + 0.0034 + 0.0028 + 0.0024;
+                0.0014 + 0.0008 + crater_depth_sum * 0.28
+            }
+            CelestialBodyProfile::Rocky => 0.0012 + 0.0007,
+            CelestialBodyProfile::Stellar => 0.00035,
         }
     }
 }
