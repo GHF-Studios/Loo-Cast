@@ -16,6 +16,7 @@ use crate::spatial::{SPATIAL_SCALE_MAX, SpatialScale, UsfPosition, UsfScaleLayer
 
 use super::{
     VoxelBase, VoxelMaterializationChunkAddress, VoxelWorld,
+    streaming::VoxelStreamingTelemetry,
     mesh::{self, VoxelSurface},
     store::VoxelSurfaceCache,
     worker::{VoxelWorkerTask, available_slots},
@@ -45,6 +46,7 @@ pub(super) fn publish_completed_chunk_builds(
     mut worlds: Query<(Option<&Name>, &mut VoxelWorld)>,
     mut tasks: Query<(Entity, &mut VoxelDerivedTask)>,
     mut announced_celestial_surfaces: Local<HashSet<Entity>>,
+    mut telemetry: ResMut<VoxelStreamingTelemetry>,
 ) {
     let mut published = 0;
 
@@ -83,7 +85,36 @@ pub(super) fn publish_completed_chunk_builds(
         }
 
         commands.entity(task_entity).despawn();
+        telemetry.derived_completed();
         published += 1;
+    }
+}
+
+/// Cancels Surface-Nets work once its source materialization is no longer active.
+pub(super) fn retire_stale_chunk_builds(
+    mut commands: Commands,
+    mut worlds: Query<&mut VoxelWorld>,
+    tasks: Query<(Entity, &VoxelDerivedTask)>,
+    mut telemetry: ResMut<VoxelStreamingTelemetry>,
+) {
+    for (entity, build) in &tasks {
+        let stale = match worlds.get_mut(build.world) {
+            Ok(mut world) => {
+                if world.materializations().is_active(build.address) {
+                    false
+                } else {
+                    world
+                        .materializations_mut()
+                        .cancel_surface_build(build.address, build.revision);
+                    true
+                }
+            }
+            Err(_) => true,
+        };
+        if stale {
+            telemetry.derived_cancelled();
+            commands.entity(entity).despawn();
+        }
     }
 }
 
@@ -95,6 +126,7 @@ pub(super) fn queue_dirty_chunk_builds(
     mut commands: Commands,
     mut worlds: Query<(Entity, &mut VoxelWorld, &UsfScaleLayer)>,
     worker_tasks: Query<(), With<VoxelWorkerTask>>,
+    mut telemetry: ResMut<VoxelStreamingTelemetry>,
 ) {
     let pool = AsyncComputeTaskPool::get();
     let available = available_slots(worker_tasks.iter().count());
@@ -125,6 +157,7 @@ pub(super) fn queue_dirty_chunk_builds(
                 }
             });
 
+            telemetry.derived_started();
             commands.spawn((
                 Name::new("Voxel Surface Derivation"),
                 VoxelWorkerTask,

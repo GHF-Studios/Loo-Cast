@@ -16,7 +16,7 @@ mod generation;
 
 pub(super) use demand::refresh_voxel_residency;
 pub(super) use generation::{
-    finish_chunk_generation, retire_orphaned_tasks, schedule_voxel_generation,
+    finish_chunk_generation, retire_stale_generation_tasks, schedule_voxel_generation,
 };
 
 /// Demand-streaming policy for one [`super::VoxelWorld`].
@@ -95,6 +95,68 @@ impl VoxelStreaming {
         address: VoxelMaterializationChunkAddress,
     ) -> bool {
         self.migration_active() && self.committed_desired_set.contains(&address)
+    }
+
+    fn next_pending_priority(&self) -> Option<i32> {
+        self.pending_desired.front().map(|demand| demand.priority)
+    }
+}
+
+/// Diagnostic counters only; never used as scheduling authority.
+#[derive(Resource, Debug, Default, Clone, Copy)]
+pub struct VoxelStreamingTelemetry {
+    generation_in_flight: usize,
+    derived_in_flight: usize,
+    generation_started_total: u64,
+    generation_completed_total: u64,
+    generation_cancelled_total: u64,
+    generation_chunks_abandoned_total: u64,
+    derived_started_total: u64,
+    derived_completed_total: u64,
+    derived_cancelled_total: u64,
+}
+
+impl VoxelStreamingTelemetry {
+    pub fn summary(self) -> String {
+        format!(
+            "workers generation={} derived={} total={} | gen started={} completed={} cancelled={} abandoned_chunks={} | surface started={} completed={} cancelled={}",
+            self.generation_in_flight,
+            self.derived_in_flight,
+            self.generation_in_flight + self.derived_in_flight,
+            self.generation_started_total,
+            self.generation_completed_total,
+            self.generation_cancelled_total,
+            self.generation_chunks_abandoned_total,
+            self.derived_started_total,
+            self.derived_completed_total,
+            self.derived_cancelled_total,
+        )
+    }
+
+    pub(super) fn generation_started(&mut self) {
+        self.generation_in_flight += 1;
+        self.generation_started_total += 1;
+    }
+    pub(super) fn generation_completed(&mut self) {
+        self.generation_in_flight = self.generation_in_flight.saturating_sub(1);
+        self.generation_completed_total += 1;
+    }
+    pub(super) fn generation_cancelled(&mut self, chunks: usize) {
+        self.generation_in_flight = self.generation_in_flight.saturating_sub(1);
+        self.generation_cancelled_total += 1;
+        self.generation_chunks_abandoned_total += chunks as u64;
+    }
+    pub(super) fn derived_started(&mut self) {
+        self.derived_in_flight += 1;
+        self.derived_started_total += 1;
+    }
+    pub(super) fn derived_completed(&mut self) {
+        self.derived_in_flight = self.derived_in_flight.saturating_sub(1);
+        self.derived_completed_total += 1;
+    }
+    pub(super) fn derived_cancelled(&mut self) {
+        self.derived_in_flight = self.derived_in_flight.saturating_sub(1);
+        self.derived_cancelled_total += 1;
     }
 }
 

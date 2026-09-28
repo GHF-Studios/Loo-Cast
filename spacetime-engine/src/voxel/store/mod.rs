@@ -74,6 +74,9 @@ pub(super) struct VoxelMaterializationStore {
     dirty_render: VecDeque<VoxelMaterializationChunkAddress>,
     dirty_render_set: HashSet<VoxelMaterializationChunkAddress>,
     inactive_lru: VecDeque<VoxelMaterializationChunkAddress>,
+    /// Dense warm-cache entries currently inactive. Tracked explicitly so
+    /// reconciliation never rescans an ever-growing cache just to enforce its bound.
+    inactive_count: usize,
 }
 
 mod derived;

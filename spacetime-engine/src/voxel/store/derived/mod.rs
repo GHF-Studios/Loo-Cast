@@ -72,6 +72,24 @@ impl VoxelMaterializationStore {
 
     /// Publishes one derived surface cache. Empty surfaces are represented by
     /// `None` while `derived_revision` records that the revision was processed.
+    /// Releases one abandoned derivation reservation so later reactivation can retry it.
+    pub(in crate::voxel) fn cancel_surface_build(
+        &mut self,
+        address: VoxelMaterializationChunkAddress,
+        revision: u64,
+    ) {
+        let mut reactivate_dirty = false;
+        if let Some(entry) = self.entries.get_mut(&address)
+            && entry.derived_in_flight == Some(revision)
+        {
+            entry.derived_in_flight = None;
+            reactivate_dirty = entry.active;
+        }
+        if reactivate_dirty {
+            self.mark_derived_dirty(address);
+        }
+    }
+
     pub(in crate::voxel) fn publish_surface(
         &mut self,
         address: VoxelMaterializationChunkAddress,

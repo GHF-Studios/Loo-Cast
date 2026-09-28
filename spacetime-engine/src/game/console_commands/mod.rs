@@ -25,6 +25,7 @@ use crate::{
         UsfTravelBoundaryResolver, UsfTravelInfluence, UsfTravelInfluenceKind,
         UsfViewContext, UsfViewRenderAnchor,
     },
+    voxel::VoxelStreamingTelemetry,
 };
 
 use super::{
@@ -72,6 +73,15 @@ pub(super) fn configure(app: &mut App) {
             summary: "Dump recent navigation/interaction causal history.",
         },
         navtrace_command,
+    )
+    .register_console_command(
+        ConsoleCommandSpec {
+            name: "voxelstream",
+            aliases: &["vstream", "voxel-stream"],
+            usage: "voxelstream",
+            summary: "Show voxel worker/backpressure telemetry.",
+        },
+        voxelstream_command,
     )
     .register_console_command(
         ConsoleCommandSpec {
@@ -529,6 +539,15 @@ fn navtrace_command(
             world.resource::<NavigationFlightRecorder>().lines(40),
         ),
     }
+}
+
+fn voxelstream_command(
+    world: &mut World,
+    _: &ConsoleCommandInvocation,
+) -> ConsoleCommandResult {
+    ConsoleCommandResult::success(
+        world.resource::<VoxelStreamingTelemetry>().summary(),
+    )
 }
 
 fn locate_command(world: &mut World, invocation: &ConsoleCommandInvocation) -> ConsoleCommandResult {

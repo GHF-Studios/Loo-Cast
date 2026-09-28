@@ -3,7 +3,6 @@
 use std::collections::VecDeque;
 
 use bevy::{
-    ecs::lifecycle::RemovedComponents,
     prelude::*,
     tasks::{AsyncComputeTaskPool, Task, futures::check_ready},
 };
@@ -11,9 +10,10 @@ use bevy::{
 use crate::{
     config::EngineConfig,
     ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf},
+    spatial::{UsfPrimaryInteractionSlice, UsfScaleLayer},
 };
 
-use super::VoxelStreaming;
+use super::{VoxelStreaming, VoxelStreamingTelemetry};
 use super::super::{
     VoxelAuthority, VoxelChunk, VoxelMaterializationChunkAddress, VoxelScaleDomain, VoxelWorld,
     generation_scope::VoxelGenerationScopeExtent,
@@ -35,6 +35,8 @@ struct VoxelGeneratedChunk {
 #[derive(Component)]
 pub(in crate::voxel) struct VoxelGenerationTask {
     world: Entity,
+    /// Unpublished addresses represented by this worker batch.
+    addresses: Vec<VoxelMaterializationChunkAddress>,
     task: Option<Task<Vec<VoxelGeneratedChunk>>>,
     ready: VecDeque<VoxelGeneratedChunk>,
 }
@@ -42,6 +44,7 @@ pub(in crate::voxel) struct VoxelGenerationTask {
 impl VoxelGenerationTask {
     fn spawn(world: Entity, jobs: Vec<VoxelGenerationJob>) -> Self {
         debug_assert!(!jobs.is_empty());
+        let addresses = jobs.iter().map(|job| job.address).collect();
         let task = AsyncComputeTaskPool::get().spawn(async move {
             jobs.into_iter()
                 .map(|job| {
@@ -58,6 +61,7 @@ impl VoxelGenerationTask {
         });
         Self {
             world,
+            addresses,
             task: Some(task),
             ready: VecDeque::new(),
         }
@@ -71,6 +75,7 @@ pub(in crate::voxel) fn finish_chunk_generation(
     authority_partitions: Query<&UsfAuthorityPartitionOf>,
     authorities: Query<(&VoxelAuthority, &VoxelScaleDomain)>,
     mut tasks: Query<(Entity, &mut VoxelGenerationTask)>,
+    mut telemetry: ResMut<VoxelStreamingTelemetry>,
 ) {
     let publish_budget = config.voxel.streaming.generation_publish_budget_per_frame;
     let mut published = 0;
@@ -113,6 +118,7 @@ pub(in crate::voxel) fn finish_chunk_generation(
                 &mut output.chunk,
             );
 
+            generation.addresses.retain(|address| *address != output.address);
             if world.materializations_mut().publish_generated(
                 output.address,
                 output.token,
@@ -124,26 +130,28 @@ pub(in crate::voxel) fn finish_chunk_generation(
 
         if generation.task.is_none() && generation.ready.is_empty() {
             commands.entity(task_entity).despawn();
+            telemetry.generation_completed();
         }
     }
 }
 
-/// Generation jobs are the only per-materialization ECS objects left in this
-/// stage. If their semantic world disappears, retire them immediately.
-pub(in crate::voxel) fn retire_orphaned_tasks(
+/// Cancels a batch when none of its unpublished addresses remain active after
+/// the latest residency reconciliation. Dropping Bevy's Task handle cancels it.
+pub(in crate::voxel) fn retire_stale_generation_tasks(
     mut commands: Commands,
-    mut removed_worlds: RemovedComponents<VoxelWorld>,
+    worlds: Query<&VoxelWorld>,
     generation_tasks: Query<(Entity, &VoxelGenerationTask)>,
-    mut removed: Local<Vec<Entity>>,
+    mut telemetry: ResMut<VoxelStreamingTelemetry>,
 ) {
-    removed.clear();
-    removed.extend(removed_worlds.read());
-    if removed.is_empty() {
-        return;
-    }
-
     for (entity, task) in &generation_tasks {
-        if removed.contains(&task.world) {
+        let useful = worlds.get(task.world).is_ok_and(|world| {
+            task.addresses
+                .iter()
+                .copied()
+                .any(|address| world.materializations().is_active(address))
+        });
+        if !useful {
+            telemetry.generation_cancelled(task.addresses.len());
             commands.entity(entity).despawn();
         }
     }
@@ -156,17 +164,20 @@ pub(in crate::voxel) fn retire_orphaned_tasks(
 /// cannot independently saturate the compute pool.
 pub(in crate::voxel) fn schedule_voxel_generation(
     config: Res<EngineConfig>,
+    interaction: Res<UsfPrimaryInteractionSlice>,
     mut commands: Commands,
     mut worlds: Query<(
         Entity,
         &mut VoxelWorld,
         &mut VoxelStreaming,
+        &UsfScaleLayer,
         Option<&UsfLogicalRealizationOf>,
     )>,
     authority_partitions: Query<&UsfAuthorityPartitionOf>,
     authorities: Query<(&VoxelAuthority, &VoxelScaleDomain)>,
     worker_tasks: Query<(), With<VoxelWorkerTask>>,
     mut round_robin_cursor: Local<usize>,
+    mut telemetry: ResMut<VoxelStreamingTelemetry>,
 ) {
     let streaming_config = config.voxel.streaming;
     let generation_scope_extent = VoxelGenerationScopeExtent::from_base_chunks_per_axis(
@@ -179,25 +190,45 @@ pub(in crate::voxel) fn schedule_voxel_generation(
         return;
     }
 
-    // One busy world must never consume every global worker slot forever.
-    // Rotate the first world every frame and admit at most one generation batch
-    // per world per pass.
-    let world_entities = worlds
+    // Rotate equal-priority ties for fairness, then rank globally so current
+    // physical and make-before-break replacement work beats arbitrary ECS order.
+    let mut world_entities = worlds
         .iter_mut()
-        .map(|(entity, _, _, _)| entity)
+        .filter_map(|(entity, _, streaming, layer, _)| {
+            let pending_priority = streaming.next_pending_priority()?;
+            let scale_distance = (
+                i16::from(layer.scale().exponent())
+                    - i16::from(interaction.scale().exponent())
+            )
+            .unsigned_abs();
+            Some((
+                entity,
+                layer.scale() == interaction.scale(),
+                streaming.migration_active(),
+                pending_priority,
+                scale_distance,
+            ))
+        })
         .collect::<Vec<_>>();
     if world_entities.is_empty() {
         return;
     }
 
-    let start = *round_robin_cursor % world_entities.len();
-    for offset in 0..world_entities.len() {
+    let rotate = *round_robin_cursor % world_entities.len();
+    world_entities.rotate_left(rotate);
+    world_entities.sort_by(|a, b| {
+        b.1.cmp(&a.1)
+            .then_with(|| b.2.cmp(&a.2))
+            .then_with(|| b.3.cmp(&a.3))
+            .then_with(|| a.4.cmp(&b.4))
+    });
+
+    for (entity, _, _, _, _) in world_entities.iter().copied() {
         if generation_slots == 0 {
             break;
         }
 
-        let entity = world_entities[(start + offset) % world_entities.len()];
-        let Ok((world_entity, mut world, mut streaming, logical_realization)) =
+        let Ok((world_entity, mut world, mut streaming, _layer, logical_realization)) =
             worlds.get_mut(entity)
         else {
             continue;
@@ -217,6 +248,7 @@ pub(in crate::voxel) fn schedule_voxel_generation(
         let scheduled = batches.len();
 
         for batch in batches {
+            telemetry.generation_started();
             commands.spawn((
                 Name::new("Voxel Generation Task"),
                 VoxelWorkerTask,
@@ -227,7 +259,7 @@ pub(in crate::voxel) fn schedule_voxel_generation(
         generation_slots = generation_slots.saturating_sub(scheduled);
     }
 
-    *round_robin_cursor = (start + 1) % world_entities.len();
+    *round_robin_cursor = (*round_robin_cursor).wrapping_add(1);
 }
 
 /// Applies edits appended after a generation task took its immutable snapshot.

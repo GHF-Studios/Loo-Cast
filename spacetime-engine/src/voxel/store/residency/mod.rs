@@ -35,6 +35,7 @@ impl VoxelMaterializationStore {
             Some(entry) => {
                 if !entry.active {
                     entry.active = true;
+                    self.inactive_count = self.inactive_count.saturating_sub(1);
                     render_dirty = true;
                 }
                 if let Some(chunk) = entry.dense() {
@@ -67,6 +68,7 @@ impl VoxelMaterializationStore {
                 VoxelMaterializationState::Dense(_) => {
                     if entry.active {
                         entry.active = false;
+                        self.inactive_count = self.inactive_count.saturating_add(1);
                         became_inactive = true;
                     }
                 }
@@ -89,6 +91,9 @@ impl VoxelMaterializationStore {
         address: VoxelMaterializationChunkAddress,
         chunk: VoxelChunk,
     ) {
+        if self.entries.get(&address).is_some_and(|entry| !entry.active) {
+            self.inactive_count = self.inactive_count.saturating_sub(1);
+        }
         self.entries.insert(
             address,
             VoxelMaterializationEntry {
@@ -187,19 +192,15 @@ impl VoxelMaterializationStore {
     /// Keep inactive dense data warm up to a bounded count. Eviction changes
     /// only disposable cache state; semantic base + modifications stay intact.
     pub(in crate::voxel) fn trim_inactive(&mut self, maximum_inactive: usize) {
-        let mut inactive = self.entries.values().filter(|entry| !entry.active).count();
-        while inactive > maximum_inactive {
+        while self.inactive_count > maximum_inactive {
             let Some(address) = self.inactive_lru.pop_front() else {
+                debug_assert_eq!(self.inactive_count, 0, "inactive count/LRU drift");
                 break;
             };
-            if self
-                .entries
-                .get(&address)
-                .is_some_and(|entry| !entry.active)
-            {
+            if self.entries.get(&address).is_some_and(|entry| !entry.active) {
                 self.entries.remove(&address);
                 self.dirty_derived_set.remove(&address);
-                inactive -= 1;
+                self.inactive_count = self.inactive_count.saturating_sub(1);
             }
         }
     }

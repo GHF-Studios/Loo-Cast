@@ -39,6 +39,7 @@ pub use realization::VoxelScaleDomain;
 pub(in crate::voxel) use realization::VoxelRealizationDemandSnapshot;
 pub use streaming::{
     VoxelMaterializationDemand, VoxelPinnedDemand, VoxelPresentationMaterial, VoxelStreaming,
+    VoxelStreamingTelemetry,
 };
 pub use world::{VoxelChunkAddress, VoxelChunkCoord, VoxelMaterializationChunkAddress, VoxelWorld};
 
@@ -66,6 +67,7 @@ pub struct VoxelPlugin;
 enum VoxelUpdateSet {
     RealizationDemand,
     Residency,
+    RetireStaleWork,
     Generation,
 }
 
@@ -85,6 +87,7 @@ impl Plugin for VoxelPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<manifestation::VoxelMaterializationRuntimeRegistry>()
             .init_resource::<VoxelRealizationDemandSnapshot>()
+            .init_resource::<VoxelStreamingTelemetry>()
             .add_systems(Startup, manifestation::initialize_translucent_voxel_material)
             .configure_sets(
                 Update,
@@ -93,7 +96,8 @@ impl Plugin for VoxelPlugin {
                     VoxelUpdateSet::Residency
                         .after(VoxelUpdateSet::RealizationDemand)
                         .after(UsfResidencySet::Reconcile),
-                    VoxelUpdateSet::Generation.after(VoxelUpdateSet::Residency),
+                    VoxelUpdateSet::RetireStaleWork.after(VoxelUpdateSet::Residency),
+                    VoxelUpdateSet::Generation.after(VoxelUpdateSet::RetireStaleWork),
                 ),
             )
             .add_systems(
@@ -108,15 +112,20 @@ impl Plugin for VoxelPlugin {
             )
             .add_systems(
                 Update,
+                (
+                    streaming::retire_stale_generation_tasks,
+                    async_pipeline::retire_stale_chunk_builds,
+                )
+                    .in_set(VoxelUpdateSet::RetireStaleWork),
+            )
+            .add_systems(
+                Update,
                 streaming::schedule_voxel_generation.in_set(VoxelUpdateSet::Generation),
             )
             .add_systems(
                 FixedUpdate,
                 medium::apply_voxel_medium_drag.after(CharacterMovementSet::Simulate),
             )
-            // Orphan retirement is independent of demand planning and should not
-            // serialize the normal residency -> generation path.
-            .add_systems(Update, streaming::retire_orphaned_tasks)
             .configure_sets(
                 PostUpdate,
                 (
