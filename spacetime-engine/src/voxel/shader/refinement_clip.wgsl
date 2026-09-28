@@ -35,13 +35,44 @@ fn fragment(
         }
 
         let base = clip_index * 2u;
-        let center = refinement_clip_boxes[base].xyz;
-        let half_extent = refinement_clip_boxes[base + 1u].xyz;
-        let delta = abs(in.world_position.xyz - center);
+        let center_data = refinement_clip_boxes[base];
+        let half_data = refinement_clip_boxes[base + 1u];
+        let center = center_data.xyz;
+        let half_extent = half_data.xyz;
+        let exposed_faces = u32(center_data.w + 0.5);
+        let support_band = max(half_data.w, 0.0);
+        let local = in.world_position.xyz - center;
 
-        // Fine realized coverage owns this bounded aperture. Discarding the
-        // coarse fragment is the presentation-side make-before-break handoff.
-        if all(delta <= half_extent) {
+        var clip_min = -half_extent;
+        var clip_max = half_extent;
+
+        // Fine realized coverage owns the aperture interior. On an exposed
+        // parent/child frontier face, retain one narrow coarse support band
+        // *inside* the fine aperture instead of cutting the parent exactly at
+        // the child's AABB wall. Fine/fine internal faces keep a hard clip.
+        if (exposed_faces & 1u) != 0u {
+            clip_min.x += support_band;
+        }
+        if (exposed_faces & 2u) != 0u {
+            clip_max.x -= support_band;
+        }
+        if (exposed_faces & 4u) != 0u {
+            clip_min.y += support_band;
+        }
+        if (exposed_faces & 8u) != 0u {
+            clip_max.y -= support_band;
+        }
+        if (exposed_faces & 16u) != 0u {
+            clip_min.z += support_band;
+        }
+        if (exposed_faces & 32u) != 0u {
+            clip_max.z -= support_band;
+        }
+
+        if all(clip_min <= clip_max)
+            && all(local >= clip_min)
+            && all(local <= clip_max)
+        {
             discard;
         }
 

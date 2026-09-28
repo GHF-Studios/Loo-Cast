@@ -3,6 +3,8 @@
 //! Voxel geometry remains ordinary StandardMaterial PBR. The extension adds one
 //! presentation-only operation: fragments covered by a ready immediately-finer
 //! USF presentation aperture are discarded so refinement is make-before-break.
+//! Exposed parent/child frontier faces retain a narrow coarse support band while
+//! true transition geometry is still being proven.
 //!
 //! The clip list is a GPU storage buffer because one coarse realization can be
 //! refined by an arbitrary sparse set of fine materializations. Empty fine
@@ -23,13 +25,25 @@ use bevy::{
 use crate::{
     ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf},
     spatial::{
-        SpatialScale, UsfCapabilitySet, UsfPresentationProbe, UsfPrimaryInteractionSlice,
-        UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScaleRoleMask, UsfSpatialSet,
+        SpatialScale, UsfCapabilityRealization, UsfCapabilitySet,
+        UsfPresentationProbe, UsfPrimaryInteractionSlice, UsfScaleLayer,
+        UsfScaleRoleMask, UsfSpatialSet,
         UsfViewContext, UsfViewRenderAnchor,
     },
 };
 
+use super::{
+    VoxelMaterializationRuntime, VoxelRefinementFrontierSet,
+    VoxelRefinementFrontierSnapshot,
+};
 use super::super::{VoxelPostUpdateSet, VoxelWorld};
+
+/// Coarse parent support retained inward from an exposed fine frontier face.
+///
+/// One fine native unit is one fine sampling cell. This is deliberately narrow:
+/// enough to hide the hard clip crack without turning coarse overlap back into
+/// the default presentation policy.
+const REFINEMENT_SUPPORT_BAND_FINE_NATIVE: f32 = 1.0;
 
 pub(super) const REFINEMENT_CLIP_SHADER: Handle<Shader> =
     uuid_handle!("04b0bd90-e3e3-4bc1-87d6-87563111dc8d");
@@ -204,7 +218,12 @@ fn sync_refinement_clip_materials(
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     interaction: Res<UsfPrimaryInteractionSlice>,
     probe: Res<UsfPresentationProbe>,
-    coverage: Res<UsfScaleCoverageSnapshot>,
+    frontier: Res<VoxelRefinementFrontierSnapshot>,
+    realizations: Query<(
+        Entity,
+        &VoxelMaterializationRuntime,
+        &UsfCapabilityRealization,
+    )>,
     authority_partitions: Query<&UsfAuthorityPartitionOf>,
     mut worlds: Query<(
         &UsfScaleLayer,
@@ -221,8 +240,26 @@ fn sync_refinement_clip_materials(
         value.clear();
     }
 
-    for aperture in coverage.apertures(UsfScaleRoleMask::PRESENTATION) {
-        let fine_scale = aperture.fine_scale();
+    // Query iteration order is not an ownership contract. Sort by runtime entity
+    // so unchanged aperture sets upload identical buffers across frames.
+    let mut realized = realizations.iter().collect::<Vec<_>>();
+    realized.sort_by_key(|(entity, _, _)| entity.to_bits());
+
+    for (_, runtime, realization) in realized {
+        if !realization
+            .roles()
+            .contains(UsfScaleRoleMask::PRESENTATION)
+        {
+            continue;
+        }
+
+        let fine_scale = realization.scale();
+        let Some(coarse_raw) = fine_scale.exponent().checked_add(1) else {
+            continue;
+        };
+        let Some(coarse_scale) = SpatialScale::new(coarse_raw) else {
+            continue;
+        };
 
         let fine_is_visible = if fine_scale == interaction.scale() {
             probe.physical_enabled()
@@ -239,7 +276,7 @@ fn sync_refinement_clip_materials(
         }
 
         let bound = 1_000_000.0_f32;
-        let Ok(relative) = aperture.center().relative_at_scale_bounded(
+        let Ok(relative) = realization.center().relative_at_scale_bounded(
             view.anchor(),
             fine_scale,
             bound,
@@ -248,16 +285,37 @@ fn sync_refinement_clip_materials(
         };
 
         let center = view.presentation_origin() + relative * factor;
-        let half = aperture.half_extent_fine_native() * factor;
+        let half = realization.half_extent_native() * factor;
         if !center.is_finite() || !half.is_finite() {
             continue;
         }
 
+        let exposed_faces = frontier
+            .exposed_faces(
+                realization.authority(),
+                fine_scale,
+                runtime.address(),
+            )
+            .bits();
+        let support_band = if exposed_faces == 0 {
+            0.0
+        } else {
+            REFINEMENT_SUPPORT_BAND_FINE_NATIVE * factor
+        };
+
         let entry = boxes
-            .entry((aperture.authority(), aperture.coarse_scale()))
+            .entry((realization.authority(), coarse_scale))
             .or_default();
-        entry.push([center.x, center.y, center.z, 0.0]);
-        entry.push([half.x, half.y, half.z, 0.0]);
+
+        // w carries presentation-only transition metadata:
+        // center.w = exposed-face bit mask, half.w = support-band width.
+        entry.push([
+            center.x,
+            center.y,
+            center.z,
+            f32::from(exposed_faces),
+        ]);
+        entry.push([half.x, half.y, half.z, support_band]);
     }
 
     for (layer, logical, mut material) in &mut worlds {
@@ -303,6 +361,7 @@ pub(super) fn configure(app: &mut App) {
             PostUpdate,
             sync_refinement_clip_materials
                 .after(UsfCapabilitySet::ReconcileCoverage)
+                .after(VoxelRefinementFrontierSet)
                 .after(UsfSpatialSet::ViewAnchor)
                 .before(UsfSpatialSet::ViewProjection),
         );

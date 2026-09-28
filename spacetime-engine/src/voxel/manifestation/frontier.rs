@@ -100,6 +100,9 @@ impl VoxelRefinementFrontierCell {
 /// `source_coverage_revision` intentionally follows
 /// [`UsfScaleCoverageSnapshot::revision`] rather than Bevy change ticks. Camera
 /// or system writes cannot make this topology rebuild every frame.
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(super) struct VoxelRefinementFrontierSet;
+
 #[derive(Resource, Debug, Default)]
 pub(super) struct VoxelRefinementFrontierSnapshot {
     source_coverage_revision: u64,
@@ -122,6 +125,26 @@ impl VoxelRefinementFrontierSnapshot {
 
     pub(super) const fn source_coverage_revision(&self) -> u64 {
         self.source_coverage_revision
+    }
+
+    /// Exact exposed-face mask for one ready fine materialization.
+    ///
+    /// Missing entries are interior/non-frontier cells and therefore retain no
+    /// coarse support band.
+    pub(super) fn exposed_faces(
+        &self,
+        authority: Entity,
+        fine_scale: SpatialScale,
+        address: VoxelMaterializationChunkAddress,
+    ) -> VoxelRefinementFaceMask {
+        self.cells
+            .get(&FrontierKey {
+                authority,
+                fine_scale,
+                address,
+            })
+            .copied()
+            .unwrap_or_default()
     }
 }
 
@@ -201,6 +224,7 @@ pub(super) fn configure(app: &mut App) {
         .add_systems(
             PostUpdate,
             sync_refinement_frontier
+                .in_set(VoxelRefinementFrontierSet)
                 .after(UsfCapabilitySet::ReconcileCoverage),
         );
 }
