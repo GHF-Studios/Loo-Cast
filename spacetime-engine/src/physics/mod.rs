@@ -1,6 +1,7 @@
 //! Physics integration owned by Spacetime Engine.
 
 pub mod slice;
+mod chart_rebase;
 pub mod character;
 pub mod collision_query;
 pub mod collision_topology;
@@ -61,7 +62,11 @@ impl Plugin for SpacetimePhysicsPlugin {
             )
             .add_systems(
                 PostUpdate,
-                update_moved_collider_aabbs::<Collider>
+                (
+                    chart_rebase::apply_usf_rebases_to_avian,
+                    update_moved_collider_aabbs::<Collider>,
+                )
+                    .chain()
                     .in_set(UsfSpatialSet::BackendRefresh),
             );
     }

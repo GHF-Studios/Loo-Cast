@@ -417,7 +417,7 @@ pub(in crate::voxel) fn sync_manifestation_runtime_transforms(
 
         write_materialization_runtime_translation(
             &mut transform,
-            &mut position,
+            position.bypass_change_detection(),
             translation,
         );
     }

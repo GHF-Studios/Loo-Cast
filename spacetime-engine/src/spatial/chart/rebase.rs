@@ -25,7 +25,7 @@ pub(in crate::spatial) fn rebase_local_frame(
         >,
         Query<(&mut Transform, Option<&UsfScaleLayer>), Without<ChildOf>>,
     )>,
-    mut physics_positions: Query<(&mut Position, Option<&UsfScaleLayer>)>,
+    physics_positions: Query<Option<&UsfScaleLayer>, With<Position>>,
     mut rebased: MessageWriter<UsfOriginRebased>,
 ) {
     let (anchor_translation, anchor_scale) = {
@@ -67,7 +67,7 @@ pub(in crate::spatial) fn rebase_local_frame(
             }
         }
     }
-    for (_, layer) in &mut physics_positions {
+    for layer in &physics_positions {
         let target_scale = layer.map_or(anchor_scale, |layer| layer.scale());
         if let Err(error) = delta.at_scale(target_scale) {
             error!(
@@ -102,13 +102,8 @@ pub(in crate::spatial) fn rebase_local_frame(
         }
     }
 
-    for (mut position, layer) in &mut physics_positions {
-        let target_scale = layer.map_or(anchor_scale, |layer| layer.scale());
-        let local_shift = delta
-            .at_scale(target_scale)
-            .expect("rebase scale conversion was preflighted");
-        position.0 -= local_shift;
-    }
+    // The Avian backend consumes `UsfOriginRebased` after runtime
+    // projection. A chart shift is representation change, not collider motion.
 
     debug!(
         source_scale = %anchor_scale,
