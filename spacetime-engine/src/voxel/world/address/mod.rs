@@ -44,6 +44,45 @@ impl VoxelChunkCoord {
     }
 }
 
+/// Compact cache-local identity of one materialization in a [`VoxelWorld`].
+///
+/// The key is an integer offset in the world's 10-native-unit lattice. It is
+/// deliberately *not* canonical semantic authority: crossing a USF/semantic
+/// boundary converts it through the owning `VoxelWorld`.
+#[repr(transparent)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(in crate::voxel) struct VoxelMaterializationKey([i64; 3]);
+
+impl VoxelMaterializationKey {
+    pub(in crate::voxel) const fn new(components: [i64; 3]) -> Self {
+        Self(components)
+    }
+
+    pub(in crate::voxel) const fn components(self) -> [i64; 3] {
+        self.0
+    }
+
+    pub(in crate::voxel) fn translated_chunks(
+        self,
+        delta: IVec3,
+    ) -> Result<Self, UsfPositionError> {
+        Ok(Self([
+            self.0[0].checked_add(i64::from(delta.x)).ok_or(UsfPositionError::TranslationTooLarge)?,
+            self.0[1].checked_add(i64::from(delta.y)).ok_or(UsfPositionError::TranslationTooLarge)?,
+            self.0[2].checked_add(i64::from(delta.z)).ok_or(UsfPositionError::TranslationTooLarge)?,
+        ]))
+    }
+
+    pub(in crate::voxel) fn native_offset(self) -> Result<[i64; 3], UsfPositionError> {
+        let size = i64::from(MATERIALIZATION_CHUNK_SIZE);
+        Ok([
+            self.0[0].checked_mul(size).ok_or(UsfPositionError::TranslationTooLarge)?,
+            self.0[1].checked_mul(size).ok_or(UsfPositionError::TranslationTooLarge)?,
+            self.0[2].checked_mul(size).ok_or(UsfPositionError::TranslationTooLarge)?,
+        ])
+    }
+}
+
 /// Canonical semantic address of one decimal `10³` voxel materialization chunk.
 ///
 /// The address is sparse/virtual: constructing it allocates no dense voxel data,

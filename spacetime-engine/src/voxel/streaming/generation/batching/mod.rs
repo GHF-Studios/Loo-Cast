@@ -4,13 +4,13 @@ use bevy::prelude::*;
 
 use super::super::VoxelStreaming;
 use super::super::super::{
-    VoxelAuthority, VoxelMaterializationChunkAddress, VoxelScaleDomain, VoxelWorld,
+    VoxelAuthority, VoxelMaterializationKey, VoxelScaleDomain, VoxelWorld,
     generation_scope::{VoxelGenerationScopeExtent, VoxelGenerationScope},
     world::VoxelChunkRecipe,
 };
 
 pub(super) struct VoxelGenerationJob {
-    pub(super) address: VoxelMaterializationChunkAddress,
+    pub(super) key: VoxelMaterializationKey,
     pub(super) token: u64,
     pub(super) recipe: VoxelChunkRecipe,
 }
@@ -36,17 +36,17 @@ pub(super) fn plan_generation_batches(
         let Some(demanded) = streaming.pending_desired.pop_front() else {
             break;
         };
-        let address = demanded.address;
+        let key = demanded.key;
 
-        if world.materializations().is_active(address) {
+        if world.materializations().is_active(key) {
             continue;
         }
 
         let Ok(scope) =
-            VoxelGenerationScope::containing(world, address, generation_extent)
+            VoxelGenerationScope::containing(key, generation_extent)
         else {
             error!(
-                ?address,
+                ?key,
                 "voxel generation scope could not be derived canonically"
             );
             continue;
@@ -62,7 +62,11 @@ pub(super) fn plan_generation_batches(
             break;
         }
 
-        let Some(token) = world.materializations_mut().reserve_generation(address) else {
+        let Ok(address) = world.materialization_address(key) else {
+            error!(?key, "voxel materialization key could not be converted canonically");
+            continue;
+        };
+        let Some(token) = world.materializations_mut().reserve_generation(key) else {
             continue;
         };
         let recipe = authority.map_or_else(
@@ -75,11 +79,7 @@ pub(super) fn plan_generation_batches(
             &mut batches,
             scope,
             max_chunks_per_batch,
-            VoxelGenerationJob {
-                address,
-                token,
-                recipe,
-            },
+            VoxelGenerationJob { key, token, recipe },
         );
         requested += 1;
     }

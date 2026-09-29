@@ -67,6 +67,14 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
             continue;
         };
 
+        let Ok(address) = world.materialization_address(key.key) else {
+            registry.revisions.remove(&key);
+            if let Some(entity) = registry.entities.remove(&key) {
+                commands.entity(entity).despawn();
+            }
+            continue;
+        };
+
         let Some((opaque_material, translucent_material)) = material.handles() else {
             registry.dirty.insert(key);
             continue;
@@ -74,14 +82,14 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
 
         if world
             .materializations()
-            .active_derived_revision(key.address)
+            .active_derived_revision(key.key)
             != Some(expected_revision)
         {
             registry.dirty.insert(key);
             continue;
         }
 
-        let cache = world.materializations().surface(key.address);
+        let cache = world.materializations().surface(key.key);
         if cache.is_some_and(|cache| cache.revision != expected_revision) {
             registry.dirty.insert(key);
             continue;
@@ -130,6 +138,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
                             entity,
                             key.world,
                             layer,
+                            address,
                             cache.map(|cache| &cache.surface),
                             translucent_material,
                             &mut meshes,
@@ -151,7 +160,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
             root
         } else {
             let Some(local_translation) =
-                materialization_runtime_translation(layer, &spatial_frame, key.address)
+                materialization_runtime_translation(layer, &spatial_frame, address)
             else {
                 registry.dirty.insert(key);
                 continue;
@@ -178,7 +187,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
                     ChildOf(root),
                     VoxelMaterializationPresentation,
                     UsfPresentationProjectionOf(key.world),
-                    UsfScalePresentation::new(*key.address.origin(), layer.scale()),
+                    UsfScalePresentation::new(*address.origin(), layer.scale()),
                     MeshMaterial3d(opaque_material.clone()),
                     Transform::IDENTITY,
                     Visibility::Inherited,
@@ -193,7 +202,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
                 root,
                 key.world,
                 layer,
-                key.address,
+                address,
                 cache.map(|cache| &cache.surface),
                 translucent_material,
                 &mut meshes,
@@ -201,7 +210,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
 
             commands.entity(root).insert(VoxelMaterializationRuntime {
                 world: key.world,
-                address: key.address,
+                key: key.key,
                 revision: expected_revision,
                 presentation,
                 translucent_presentation,
@@ -218,6 +227,7 @@ fn sync_translucent_presentation(
     root: Entity,
     world: Entity,
     layer: &UsfScaleLayer,
+    address: VoxelMaterializationChunkAddress,
     surface: Option<&VoxelSurface>,
     material: &Handle<VoxelRenderMaterial>,
     meshes: &mut Assets<Mesh>,
@@ -256,7 +266,7 @@ fn sync_translucent_presentation(
         root,
         world,
         layer,
-        manifestation.address(),
+        address,
         surface,
         material,
         meshes,
@@ -380,6 +390,7 @@ fn write_materialization_runtime_translation(
 /// authority. Canonical materialization addresses remain authoritative.
 pub(in crate::voxel) fn sync_manifestation_runtime_transforms(
     frame: Res<UsfSpatialFrame>,
+    worlds: Query<&VoxelWorld>,
     mut runtimes: Query<(
         &VoxelMaterializationRuntime,
         &UsfScaleLayer,
@@ -392,8 +403,14 @@ pub(in crate::voxel) fn sync_manifestation_runtime_transforms(
     }
 
     for (runtime, layer, mut transform, mut position) in &mut runtimes {
+        let Ok(world) = worlds.get(runtime.world()) else {
+            continue;
+        };
+        let Ok(address) = world.materialization_address(runtime.key()) else {
+            continue;
+        };
         let Some(translation) =
-            materialization_runtime_translation(layer, &frame, runtime.address())
+            materialization_runtime_translation(layer, &frame, address)
         else {
             continue;
         };

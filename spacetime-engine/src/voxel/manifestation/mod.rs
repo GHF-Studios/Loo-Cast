@@ -9,7 +9,7 @@ use std::collections::{HashMap, HashSet};
 
 use bevy::prelude::*;
 
-use super::VoxelMaterializationChunkAddress;
+use super::VoxelMaterializationKey;
 
 mod collision;
 mod coverage;
@@ -37,14 +37,14 @@ pub(super) fn configure(app: &mut App) {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct ManifestationKey {
     world: Entity,
-    address: VoxelMaterializationChunkAddress,
+    key: VoxelMaterializationKey,
 }
 
 /// Root entity for one disposable same-resolution render/collision manifestation.
 #[derive(Component)]
 pub(super) struct VoxelMaterializationRuntime {
     world: Entity,
-    address: VoxelMaterializationChunkAddress,
+    key: VoxelMaterializationKey,
     revision: u64,
     presentation: Entity,
     translucent_presentation: Option<Entity>,
@@ -55,8 +55,8 @@ impl VoxelMaterializationRuntime {
         self.world
     }
 
-    pub(super) const fn address(&self) -> VoxelMaterializationChunkAddress {
-        self.address
+    pub(super) const fn key(&self) -> VoxelMaterializationKey {
+        self.key
     }
 
     pub(super) const fn revision(&self) -> u64 {

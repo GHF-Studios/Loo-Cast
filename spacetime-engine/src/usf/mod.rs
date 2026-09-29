@@ -673,6 +673,57 @@ impl UsfPosition {
         ))
     }
 
+    /// Projects a canonical displacement onto an integer lattice local to
+    /// `origin` without ever flattening the Scale Stack into a giant float.
+    ///
+    /// `cell_size_native` must exactly divide one USF chunk (1000 native
+    /// units). High-order chunk displacement stays integer; only the bounded
+    /// canonical leaf offsets participate in the final Euclidean floor.
+    ///
+    /// This is a representation adapter, not alternate spatial authority.
+    pub(crate) fn relative_native_lattice_cell(
+        &self,
+        origin: &Self,
+        cell_size_native: i64,
+    ) -> Result<[i64; 3], UsfPositionError> {
+        if self.leaf_scale != origin.leaf_scale {
+            return Err(UsfPositionError::IncompatibleLeafScale);
+        }
+        assert!(
+            cell_size_native > 0
+                && i64::from(USF_CHUNK_NATIVE_SIZE as i32) % cell_size_native == 0,
+            "local lattice cell size must exactly divide one USF chunk"
+        );
+
+        let cells_per_chunk =
+            i128::from(USF_CHUNK_NATIVE_SIZE as i32) / i128::from(cell_size_native);
+        let mut result = [0_i64; 3];
+
+        for axis in 0..3 {
+            let (normalized, count) = self.normalized_axis_difference(origin, axis)?;
+            let mut chunk_delta = 0_i128;
+            for &digit in normalized[..count].iter().rev() {
+                chunk_delta = chunk_delta
+                    .checked_mul(i128::from(USF_CHILD_CHUNKS_PER_AXIS))
+                    .and_then(|value| value.checked_add(i128::from(digit)))
+                    .ok_or(UsfPositionError::TranslationTooLarge)?;
+            }
+
+            let offset_delta = f64::from(axis_f32(self.offset, axis))
+                - f64::from(axis_f32(origin.offset, axis));
+            let local_cell =
+                (offset_delta / cell_size_native as f64).floor() as i128;
+            let total = chunk_delta
+                .checked_mul(cells_per_chunk)
+                .and_then(|value| value.checked_add(local_cell))
+                .ok_or(UsfPositionError::TranslationTooLarge)?;
+            result[axis] =
+                i64::try_from(total).map_err(|_| UsfPositionError::TranslationTooLarge)?;
+        }
+
+        Ok(result)
+    }
+
     /// Axis-local form used by bounded algorithms that intentionally do not
     /// require the other two coordinates to fit the same local chart.
     /// Measures one scalar canonical-axis displacement in shared-leaf native units.

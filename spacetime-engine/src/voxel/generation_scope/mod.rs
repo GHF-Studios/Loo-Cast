@@ -8,7 +8,7 @@ use bevy::prelude::IVec3;
 
 use crate::spatial::UsfPositionError;
 
-use super::{MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationChunkAddress, VoxelWorld};
+use super::{MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationKey};
 
 /// Decimal edge length for one generation processing scope.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -33,44 +33,23 @@ impl VoxelGenerationScopeExtent {
 /// addresses.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(super) struct VoxelGenerationScope {
-    origin: VoxelMaterializationChunkAddress,
+    origin: VoxelMaterializationKey,
 }
 
 impl VoxelGenerationScope {
     pub(super) fn containing(
-        world: &VoxelWorld,
-        address: VoxelMaterializationChunkAddress,
+        key: VoxelMaterializationKey,
         extent: VoxelGenerationScopeExtent,
     ) -> Result<Self, UsfPositionError> {
-        if address.origin().leaf_scale() != world.origin().leaf_scale() {
-            return Err(UsfPositionError::IncompatibleLeafScale);
-        }
-
-        let chunk_size = MATERIALIZATION_CHUNK_SIZE as f32;
-        let offset_delta = address.origin().offset() - world.origin().offset();
-        let phase = IVec3::new(
-            phase_chunks(offset_delta.x, chunk_size),
-            phase_chunks(offset_delta.y, chunk_size),
-            phase_chunks(offset_delta.z, chunk_size),
-        );
-        let edge = extent.base_chunks_per_axis;
+        let [x, y, z] = key.components();
+        let edge = i64::from(extent.base_chunks_per_axis);
         let remainder = IVec3::new(
-            phase.x.rem_euclid(edge),
-            phase.y.rem_euclid(edge),
-            phase.z.rem_euclid(edge),
+            x.rem_euclid(edge) as i32,
+            y.rem_euclid(edge) as i32,
+            z.rem_euclid(edge) as i32,
         );
-
-        Ok(Self {
-            origin: address.translated_chunks(-remainder)?,
-        })
+        Ok(Self { origin: key.translated_chunks(-remainder)? })
     }
-
-}
-
-fn phase_chunks(delta_native: f32, chunk_size: f32) -> i32 {
-    let chunks = delta_native / chunk_size;
-    debug_assert!((chunks - chunks.round()).abs() < 0.001);
-    chunks.round() as i32
 }
 
 #[cfg(test)]
@@ -79,7 +58,7 @@ mod tests {
 
     use crate::{
         spatial::UsfPosition,
-        voxel::{VoxelBase, VoxelChunkCoord},
+        voxel::{VoxelBase, VoxelChunkCoord, VoxelWorld},
     };
 
     use super::*;
@@ -110,19 +89,14 @@ mod tests {
             .unwrap();
 
         let hundred_extent = extent(10);
-        let hundred = VoxelGenerationScope::containing(
-            &world,
-            address,
-            hundred_extent,
-        )
-        .unwrap();
+        let key = world.materialization_key(address).unwrap();
+        let hundred = VoxelGenerationScope::containing(key, hundred_extent).unwrap();
+        let expected = world
+            .chunk_address(VoxelChunkCoord::new(IVec3::new(130, -210, 90)))
+            .unwrap();
+        let expected_key = world.materialization_key(expected).unwrap();
 
-        assert_eq!(
-            hundred.origin,
-            world
-                .chunk_address(VoxelChunkCoord::new(IVec3::new(130, -210, 90)))
-                .unwrap()
-        );
+        assert_eq!(hundred.origin, expected_key);
         assert_eq!(
             hundred_extent.base_chunks_per_axis * MATERIALIZATION_CHUNK_SIZE as i32,
             100

@@ -15,7 +15,8 @@ use bevy::{
 use crate::spatial::{SPATIAL_SCALE_MAX, SpatialScale, UsfPosition, UsfScaleLayer};
 
 use super::{
-    VoxelBase, VoxelMaterializationChunkAddress, VoxelWorld,
+    VoxelBase, VoxelMaterializationChunkAddress, VoxelMaterializationKey,
+    VoxelWorld,
     streaming::VoxelStreamingTelemetry,
     mesh::{self, VoxelSurface},
     store::VoxelSurfaceCache,
@@ -34,7 +35,7 @@ struct VoxelDerivedOutput {
 #[derive(Component)]
 pub(super) struct VoxelDerivedTask {
     world: Entity,
-    address: VoxelMaterializationChunkAddress,
+    key: VoxelMaterializationKey,
     revision: u64,
     task: Task<VoxelDerivedOutput>,
 }
@@ -69,7 +70,7 @@ pub(super) fn publish_completed_chunk_builds(
             {
                 info!(
                     world = %name.map_or("<unnamed celestial voxel world>", Name::as_str),
-                    address = ?build.address,
+                    key = ?build.key,
                     vertices = output.surface.positions.len(),
                     triangles = output.surface.indices.len() / 3,
                     "celestial voxel world published its first non-empty terrain surface"
@@ -81,7 +82,7 @@ pub(super) fn publish_completed_chunk_builds(
             });
             world
                 .materializations_mut()
-                .publish_surface(build.address, build.revision, cache);
+                .publish_surface(build.key, build.revision, cache);
         }
 
         commands.entity(task_entity).despawn();
@@ -100,12 +101,12 @@ pub(super) fn retire_stale_chunk_builds(
     for (entity, build) in &tasks {
         let stale = match worlds.get_mut(build.world) {
             Ok(mut world) => {
-                if world.materializations().is_active(build.address) {
+                if world.materializations().is_active(build.key) {
                     false
                 } else {
                     world
                         .materializations_mut()
-                        .cancel_surface_build(build.address, build.revision);
+                        .cancel_surface_build(build.key, build.revision);
                     true
                 }
             }
@@ -139,12 +140,16 @@ pub(super) fn queue_dirty_chunk_builds(
 
     for (world_entity, mut world, layer) in &mut worlds {
         while started < budget {
-            let Some(address) = world.materializations_mut().pop_dirty_derived() else {
+            let Some(key) = world.materializations_mut().pop_dirty_derived() else {
                 break;
             };
             let Some((revision, snapshot)) =
-                world.materializations_mut().begin_surface_build(address)
+                world.materializations_mut().begin_surface_build(key)
             else {
+                continue;
+            };
+            let Ok(address) = world.materialization_address(key) else {
+                world.materializations_mut().cancel_surface_build(key, revision);
                 continue;
             };
 
@@ -163,7 +168,7 @@ pub(super) fn queue_dirty_chunk_builds(
                 VoxelWorkerTask,
                 VoxelDerivedTask {
                     world: world_entity,
-                    address,
+                    key,
                     revision,
                     task,
                 },

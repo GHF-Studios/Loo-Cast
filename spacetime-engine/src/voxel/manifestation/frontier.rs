@@ -16,7 +16,7 @@ use crate::spatial::{
 };
 
 use super::VoxelMaterializationRuntime;
-use super::super::VoxelMaterializationChunkAddress;
+use super::super::VoxelMaterializationKey;
 
 const NEG_X: u8 = 1 << 0;
 const POS_X: u8 = 1 << 1;
@@ -36,9 +36,10 @@ const NEIGHBORS: [(IVec3, u8); 6] = [
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct FrontierKey {
+    world: Entity,
     authority: Entity,
     fine_scale: SpatialScale,
-    address: VoxelMaterializationChunkAddress,
+    key: VoxelMaterializationKey,
 }
 
 /// Cardinal faces of one ready fine materialization that border non-fine
@@ -67,13 +68,18 @@ impl VoxelRefinementFaceMask {
 /// future 10:1 transition kernel must connect to its immediate parent.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) struct VoxelRefinementFrontierCell {
+    world: Entity,
     authority: Entity,
     fine_scale: SpatialScale,
-    address: VoxelMaterializationChunkAddress,
+    key: VoxelMaterializationKey,
     exposed_faces: VoxelRefinementFaceMask,
 }
 
 impl VoxelRefinementFrontierCell {
+    pub(super) const fn world(self) -> Entity {
+        self.world
+    }
+
     pub(super) const fn authority(self) -> Entity {
         self.authority
     }
@@ -86,8 +92,8 @@ impl VoxelRefinementFrontierCell {
         SpatialScale::new(self.fine_scale.exponent().checked_add(1)?)
     }
 
-    pub(super) const fn address(self) -> VoxelMaterializationChunkAddress {
-        self.address
+    pub(super) const fn key(self) -> VoxelMaterializationKey {
+        self.key
     }
 
     pub(super) const fn exposed_faces(self) -> VoxelRefinementFaceMask {
@@ -115,9 +121,10 @@ impl VoxelRefinementFrontierSnapshot {
     ) -> impl Iterator<Item = VoxelRefinementFrontierCell> + '_ {
         self.cells.iter().map(|(key, &exposed_faces)| {
             VoxelRefinementFrontierCell {
+                world: key.world,
                 authority: key.authority,
                 fine_scale: key.fine_scale,
-                address: key.address,
+                key: key.key,
                 exposed_faces,
             }
         })
@@ -133,15 +140,17 @@ impl VoxelRefinementFrontierSnapshot {
     /// coarse support band.
     pub(super) fn exposed_faces(
         &self,
+        world: Entity,
         authority: Entity,
         fine_scale: SpatialScale,
-        address: VoxelMaterializationChunkAddress,
+        key: VoxelMaterializationKey,
     ) -> VoxelRefinementFaceMask {
         self.cells
             .get(&FrontierKey {
+                world,
                 authority,
                 fine_scale,
-                address,
+                key,
             })
             .copied()
             .unwrap_or_default()
@@ -181,9 +190,10 @@ fn sync_refinement_frontier(
         }
 
         ready.insert(FrontierKey {
+            world: runtime.world(),
             authority: realization.authority(),
             fine_scale,
-            address: runtime.address(),
+            key: runtime.key(),
         });
     }
 
@@ -194,14 +204,15 @@ fn sync_refinement_frontier(
 
         for (delta, bit) in NEIGHBORS {
             let neighbor_ready = key
-                .address
+                .key
                 .translated_chunks(delta)
                 .ok()
-                .is_some_and(|address| {
+                .is_some_and(|neighbor| {
                     ready.contains(&FrontierKey {
+                        world: key.world,
                         authority: key.authority,
                         fine_scale: key.fine_scale,
-                        address,
+                        key: neighbor,
                     })
                 });
 

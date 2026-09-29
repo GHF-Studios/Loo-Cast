@@ -48,7 +48,10 @@ pub(in crate::voxel) fn sync_capability_realizations(
             continue;
         };
 
-        let Ok(center) = runtime.address().center() else {
+        let Ok(center) = world
+            .materialization_address(runtime.key())
+            .and_then(|address| address.center())
+        else {
             if let Some(mut realization) = existing {
                 realization.set_roles(UsfScaleRoleMask::NONE);
             }
@@ -57,7 +60,7 @@ pub(in crate::voxel) fn sync_capability_realizations(
 
         let derived_current = world
             .materializations()
-            .active_derived_revision(runtime.address())
+            .active_derived_revision(runtime.key())
             == Some(runtime.revision());
 
         let mut roles = UsfScaleRoleMask::NONE;

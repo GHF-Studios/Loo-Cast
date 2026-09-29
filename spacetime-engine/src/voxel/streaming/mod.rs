@@ -8,7 +8,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 
 use bevy::prelude::*;
 
-use super::VoxelMaterializationChunkAddress;
+use super::VoxelMaterializationKey;
 use crate::spatial::UsfScaleRoleMask;
 use demand::{DemandedChunk, VoxelDemandPlanKey};
 
@@ -33,10 +33,14 @@ pub struct VoxelStreaming {
     pending_desired: VecDeque<DemandedChunk>,
     /// Latest desired address -> capability-role intent.
     cached_desired_roles:
-        HashMap<VoxelMaterializationChunkAddress, UsfScaleRoleMask>,
+        HashMap<VoxelMaterializationKey, UsfScaleRoleMask>,
     /// Last address+role target whose replacement transaction committed.
     committed_desired_roles:
-        HashMap<VoxelMaterializationChunkAddress, UsfScaleRoleMask>,
+        HashMap<VoxelMaterializationKey, UsfScaleRoleMask>,
+    migration_active: bool,
+    effective_desired: HashSet<VoxelMaterializationKey>,
+    residency_activate: HashSet<VoxelMaterializationKey>,
+    residency_deactivate: HashSet<VoxelMaterializationKey>,
 }
 
 impl VoxelStreaming {
@@ -48,6 +52,10 @@ impl VoxelStreaming {
             pending_desired: VecDeque::new(),
             cached_desired_roles: HashMap::new(),
             committed_desired_roles: HashMap::new(),
+            migration_active: false,
+            effective_desired: HashSet::new(),
+            residency_activate: HashSet::new(),
+            residency_deactivate: HashSet::new(),
         }
     }
 
@@ -57,56 +65,86 @@ impl VoxelStreaming {
 
     fn stage_desired_roles(
         &mut self,
-        desired: HashMap<VoxelMaterializationChunkAddress, UsfScaleRoleMask>,
+        desired: HashMap<VoxelMaterializationKey, UsfScaleRoleMask>,
     ) {
-        if self.committed_desired_roles.is_empty() && self.cached_desired_roles.is_empty() {
+        if self.committed_desired_roles.is_empty()
+            && self.cached_desired_roles.is_empty()
+            && self.effective_desired.is_empty()
+        {
             self.committed_desired_roles = desired.clone();
         }
+
         self.cached_desired_roles = desired;
+        self.migration_active = self.cached_desired_roles != self.committed_desired_roles;
+        self.refresh_effective_desired();
+    }
+
+    fn refresh_effective_desired(&mut self) {
+        let mut next = HashSet::with_capacity(
+            self.cached_desired_roles.len()
+                + if self.migration_active { self.committed_desired_roles.len() } else { 0 },
+        );
+        next.extend(self.cached_desired_roles.keys().copied());
+        if self.migration_active {
+            next.extend(self.committed_desired_roles.keys().copied());
+        }
+
+        let activate = next.difference(&self.effective_desired).copied().collect::<Vec<_>>();
+        let deactivate = self.effective_desired.difference(&next).copied().collect::<Vec<_>>();
+
+        for key in activate {
+            self.residency_deactivate.remove(&key);
+            self.residency_activate.insert(key);
+        }
+        for key in deactivate {
+            self.residency_activate.remove(&key);
+            self.residency_deactivate.insert(key);
+        }
+
+        self.effective_desired = next;
     }
 
     fn migration_active(&self) -> bool {
-        self.cached_desired_roles != self.committed_desired_roles
+        self.migration_active
     }
 
     fn candidate_addresses(
         &self,
-    ) -> impl Iterator<Item = (VoxelMaterializationChunkAddress, UsfScaleRoleMask)> + '_ {
-        self.cached_desired_roles
-            .iter()
-            .map(|(&address, &roles)| (address, roles))
+    ) -> impl Iterator<Item = (VoxelMaterializationKey, UsfScaleRoleMask)> + '_ {
+        self.cached_desired_roles.iter().map(|(&key, &roles)| (key, roles))
     }
 
-    fn effective_desired_set(&self) -> HashSet<VoxelMaterializationChunkAddress> {
-        if !self.migration_active() {
-            return self.cached_desired_roles.keys().copied().collect();
-        }
+    #[cfg(test)]
+    fn effective_desired_set(&self) -> HashSet<VoxelMaterializationKey> {
+        self.effective_desired.clone()
+    }
 
-        self.committed_desired_roles
-            .keys()
-            .chain(self.cached_desired_roles.keys())
-            .copied()
-            .collect()
+    fn take_residency_delta(
+        &mut self,
+    ) -> (Vec<VoxelMaterializationKey>, Vec<VoxelMaterializationKey>) {
+        (
+            self.residency_activate.drain().collect(),
+            self.residency_deactivate.drain().collect(),
+        )
     }
 
     fn commit_candidate(&mut self) -> bool {
-        if !self.migration_active() {
+        if !self.migration_active {
             return false;
         }
         self.committed_desired_roles = self.cached_desired_roles.clone();
+        self.migration_active = false;
+        self.refresh_effective_desired();
         true
     }
 
     pub(in crate::voxel) fn retains_committed_role_during_migration(
         &self,
-        address: VoxelMaterializationChunkAddress,
+        key: VoxelMaterializationKey,
         role: UsfScaleRoleMask,
     ) -> bool {
-        self.migration_active()
-            && self
-                .committed_desired_roles
-                .get(&address)
-                .is_some_and(|roles| roles.contains(role))
+        self.migration_active
+            && self.committed_desired_roles.get(&key).is_some_and(|roles| roles.contains(role))
     }
 
     fn next_pending_priority(&self) -> Option<i32> {

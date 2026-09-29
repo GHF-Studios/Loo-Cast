@@ -1,5 +1,7 @@
 //! Scale-local voxel realization with store-owned materialization caches.
 
+use std::collections::HashSet;
+
 use bevy::prelude::{Component, IVec3, Vec3};
 
 use crate::spatial::{UsfPosition, UsfPositionError};
@@ -17,6 +19,7 @@ mod recipe;
 pub use address::{
     VoxelChunkAddress, VoxelChunkCoord, VoxelMaterializationChunkAddress,
 };
+pub(in crate::voxel) use address::VoxelMaterializationKey;
 pub(in crate::voxel) use recipe::VoxelChunkRecipe;
 
 /// One scale-local voxel realization container.
@@ -32,6 +35,7 @@ pub struct VoxelWorld {
     base: VoxelBase,
     modifications: VoxelModificationLayer,
     materializations: VoxelMaterializationStore,
+    linear_drag_materializations: HashSet<VoxelMaterializationKey>,
 }
 
 impl Default for VoxelWorld {
@@ -51,6 +55,7 @@ impl VoxelWorld {
             base,
             modifications: VoxelModificationLayer::default(),
             materializations: VoxelMaterializationStore::default(),
+            linear_drag_materializations: HashSet::new(),
         }
     }
 
@@ -78,26 +83,52 @@ impl VoxelWorld {
         &self,
         point: VoxelQueryPosition,
     ) -> Result<VoxelMaterializationChunkAddress, UsfPositionError> {
-        // Materialization identity belongs to this realization's Scale Slice.
-        // The semantic point may retain much finer canonical digits (for
-        // example an S-35 Earth surface queried by an S0 world). Project only
-        // for this disposable representation address; never coarsen the
-        // authoritative point itself.
-        let point = point.reexpressed_at(self.origin.leaf_scale())?;
-
-        let size = MATERIALIZATION_CHUNK_SIZE as f32;
-        let delta = point.usf().offset() - self.origin.offset();
-        let remainder = Vec3::new(
-            delta.x.rem_euclid(size),
-            delta.y.rem_euclid(size),
-            delta.z.rem_euclid(size),
-        );
-        point
-            .translated(-remainder)
-            .map(|origin| VoxelMaterializationChunkAddress::new(origin.usf()))
+        let key = self.materialization_key_containing(point)?;
+        self.materialization_address(key)
     }
-    pub(in crate::voxel) fn may_have_linear_drag(&self) -> bool {
-        self.base.may_have_linear_drag() || self.modifications.may_introduce_linear_drag()
+
+    pub(in crate::voxel) fn materialization_key_containing(
+        &self,
+        point: VoxelQueryPosition,
+    ) -> Result<VoxelMaterializationKey, UsfPositionError> {
+        let point = point.reexpressed_at(self.origin.leaf_scale())?;
+        let cells = point.usf().relative_native_lattice_cell(
+            &self.origin,
+            i64::from(MATERIALIZATION_CHUNK_SIZE),
+        )?;
+        Ok(VoxelMaterializationKey::new(cells))
+    }
+
+    pub(in crate::voxel) fn materialization_key(
+        &self,
+        address: VoxelMaterializationChunkAddress,
+    ) -> Result<VoxelMaterializationKey, UsfPositionError> {
+        if address.origin().leaf_scale() != self.origin.leaf_scale() {
+            return Err(UsfPositionError::IncompatibleLeafScale);
+        }
+        let key = self.materialization_key_containing(address.query_origin())?;
+        debug_assert_eq!(self.materialization_address(key).ok(), Some(address));
+        Ok(key)
+    }
+
+    pub(in crate::voxel) fn materialization_address(
+        &self,
+        key: VoxelMaterializationKey,
+    ) -> Result<VoxelMaterializationChunkAddress, UsfPositionError> {
+        self.origin
+            .translated_whole_native(key.native_offset()?)
+            .map(VoxelMaterializationChunkAddress::new)
+    }
+
+    pub(in crate::voxel) fn may_have_linear_drag_at(
+        &self,
+        point: VoxelQueryPosition,
+    ) -> bool {
+        if self.base.may_have_linear_drag() {
+            return true;
+        }
+        self.materialization_key_containing(point)
+            .is_ok_and(|key| self.linear_drag_materializations.contains(&key))
     }
 
 
@@ -115,8 +146,13 @@ impl VoxelWorld {
     pub fn record_edit(&mut self, edit: VoxelEdit) -> Result<(), UsfPositionError> {
         let addresses = self.materialization_addresses_intersecting(edit.influence_bounds())?;
         self.modifications.push(edit, addresses.iter().copied());
+        let introduces_linear_drag = edit_introduces_linear_drag(edit);
         for address in addresses {
-            self.materializations.apply_edit(address, edit);
+            let key = self.materialization_key(address)?;
+            if introduces_linear_drag {
+                self.linear_drag_materializations.insert(key);
+            }
+            self.materializations.apply_edit(key, address, edit);
         }
         Ok(())
     }
@@ -183,8 +219,13 @@ impl VoxelWorld {
         }
 
         let addresses = self.materialization_addresses_intersecting(edit.influence_bounds())?;
+        let introduces_linear_drag = edit_introduces_linear_drag(edit);
         for address in addresses {
-            self.materializations.apply_edit(address, edit);
+            let key = self.materialization_key(address)?;
+            if introduces_linear_drag {
+                self.linear_drag_materializations.insert(key);
+            }
+            self.materializations.apply_edit(key, address, edit);
         }
         Ok(())
     }
@@ -234,7 +275,11 @@ impl VoxelWorld {
     pub fn active_dense_materializations(
         &self,
     ) -> impl Iterator<Item = (VoxelMaterializationChunkAddress, &VoxelChunk)> + '_ {
-        self.materializations.active_dense_entries()
+        self.materializations.active_dense_entries().map(move |(key, chunk)| {
+            let address = self.materialization_address(key)
+                .expect("resident materialization key must map back to canonical address");
+            (address, chunk)
+        })
     }
 
     /// Inserts one already-materialized active chunk.
@@ -246,7 +291,9 @@ impl VoxelWorld {
         address: VoxelMaterializationChunkAddress,
         chunk: VoxelChunk,
     ) {
-        self.materializations.insert_dense_active(address, chunk);
+        let key = self.materialization_key(address)
+            .expect("inserted materialization address must belong to this voxel world");
+        self.materializations.insert_dense_active(key, chunk);
     }
 
     /// Canonical base materialization addresses whose padded sample domains
@@ -291,6 +338,15 @@ impl VoxelWorld {
         }
 
         Ok(addresses)
+    }
+}
+
+fn edit_introduces_linear_drag(edit: VoxelEdit) -> bool {
+    match edit {
+        VoxelEdit::Add { material, .. } | VoxelEdit::Paint { material, .. } => {
+            material.behavior().linear_drag > 0.0
+        }
+        VoxelEdit::Remove { .. } => false,
     }
 }
 

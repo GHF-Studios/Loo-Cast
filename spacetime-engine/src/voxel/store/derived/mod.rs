@@ -5,12 +5,13 @@ use super::*;
 impl VoxelMaterializationStore {
     pub(in crate::voxel) fn apply_edit(
         &mut self,
+        key: VoxelMaterializationKey,
         address: VoxelMaterializationChunkAddress,
         edit: VoxelEdit,
     ) -> bool {
         let mut changed = false;
         let mut active = false;
-        if let Some(entry) = self.entries.get_mut(&address) {
+        if let Some(entry) = self.entries.get_mut(&key) {
             active = entry.active;
             if let Some(chunk) = entry.dense_mut() {
                 changed = chunk.apply_edit(address, edit).changed();
@@ -18,12 +19,12 @@ impl VoxelMaterializationStore {
         }
 
         if changed && active {
-            self.mark_derived_dirty(address);
+            self.mark_derived_dirty(key);
         }
         changed
     }
 
-    pub(in crate::voxel) fn pop_dirty_derived(&mut self) -> Option<VoxelMaterializationChunkAddress> {
+    pub(in crate::voxel) fn pop_dirty_derived(&mut self) -> Option<VoxelMaterializationKey> {
         while let Some(address) = self.dirty_derived.pop_front() {
             if self.dirty_derived_set.remove(&address) {
                 return Some(address);
@@ -37,7 +38,7 @@ impl VoxelMaterializationStore {
     /// having no surface cache.
     pub(in crate::voxel) fn is_derived_current(
         &self,
-        address: VoxelMaterializationChunkAddress,
+        address: VoxelMaterializationKey,
     ) -> bool {
         self.active_derived_revision(address).is_some()
     }
@@ -51,7 +52,7 @@ impl VoxelMaterializationStore {
     /// `VoxelSurfaceCache` existence.
     pub(in crate::voxel) fn active_derived_revision(
         &self,
-        address: VoxelMaterializationChunkAddress,
+        address: VoxelMaterializationKey,
     ) -> Option<u64> {
         let entry = self.entries.get(&address)?;
         if !entry.active {
@@ -64,7 +65,7 @@ impl VoxelMaterializationStore {
 
     pub(in crate::voxel) fn begin_surface_build(
         &mut self,
-        address: VoxelMaterializationChunkAddress,
+        address: VoxelMaterializationKey,
     ) -> Option<(u64, VoxelChunk)> {
         let entry = self.entries.get_mut(&address)?;
         if !entry.active {
@@ -86,7 +87,7 @@ impl VoxelMaterializationStore {
     /// Releases one abandoned derivation reservation so later reactivation can retry it.
     pub(in crate::voxel) fn cancel_surface_build(
         &mut self,
-        address: VoxelMaterializationChunkAddress,
+        address: VoxelMaterializationKey,
         revision: u64,
     ) {
         let mut reactivate_dirty = false;
@@ -103,7 +104,7 @@ impl VoxelMaterializationStore {
 
     pub(in crate::voxel) fn publish_surface(
         &mut self,
-        address: VoxelMaterializationChunkAddress,
+        address: VoxelMaterializationKey,
         revision: u64,
         surface: Option<VoxelSurfaceCache>,
     ) -> bool {

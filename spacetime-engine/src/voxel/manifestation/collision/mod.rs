@@ -56,7 +56,7 @@ fn collider_residency_action(
 }
 
 use super::super::{
-    VoxelCollisionDisabled, VoxelMaterializationChunkAddress,
+    VoxelCollisionDisabled, VoxelMaterializationKey,
     VoxelRealizationDemandSnapshot, VoxelStreaming, VoxelWorld, physics,
 };
 
@@ -90,9 +90,13 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
             continue;
         };
 
+        let Ok(address) = world.materialization_address(runtime.key()) else {
+            continue;
+        };
+
         let has_rigid_surface = world
             .materializations()
-            .surface(runtime.address())
+            .surface(runtime.key())
             .is_some_and(|cache| {
                 cache.revision == runtime.revision() && cache.surface.has_rigid_triangles()
             });
@@ -103,8 +107,7 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
             .map(|request| request.scope())
             .filter(|scope| scope.scale() == layer.scale())
             .any(|scope| {
-                runtime
-                    .address()
+                address
                     .distance_squared_to_region(
                         &scope.center(),
                         scope.half_extent_native(),
@@ -115,7 +118,7 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
                     })
             })
             || streaming.retains_committed_role_during_migration(
-                runtime.address(),
+                runtime.key(),
                 UsfScaleRoleMask::COLLISION,
             );
 
@@ -131,7 +134,7 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
             ColliderResidencyAction::Keep => {}
             ColliderResidencyAction::Replace => {
                 let collider = build_materialization_collider(
-                    runtime.address(),
+                    runtime.key(),
                     runtime.revision(),
                     world,
                 );
@@ -179,11 +182,11 @@ fn publish_collider_manifestation(
 }
 
 fn build_materialization_collider(
-    address: VoxelMaterializationChunkAddress,
+    key: VoxelMaterializationKey,
     expected_revision: u64,
     world: &VoxelWorld,
 ) -> Option<Collider> {
-    let cache = world.materializations().surface(address)?;
+    let cache = world.materializations().surface(key)?;
     if cache.revision != expected_revision {
         return None;
     }

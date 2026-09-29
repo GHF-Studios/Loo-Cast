@@ -38,7 +38,10 @@ fn collect_voxel_materialization_world_draw(
         if layer.scale() != interaction.scale() {
             continue;
         }
-        for address in world.materializations().active_addresses() {
+        for key in world.materializations().active_keys() {
+            let Ok(address) = world.materialization_address(key) else {
+                continue;
+            };
             let Ok(translation) = address.origin().relative_at_scale_bounded(
                 spatial_frame.origin(), layer.scale(), 16_384.0,
             )

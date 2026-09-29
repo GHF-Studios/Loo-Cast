@@ -3,7 +3,7 @@
 use super::*;
 
 impl VoxelMaterializationStore {
-    pub(in crate::voxel) fn pop_dirty_render(&mut self) -> Option<VoxelMaterializationChunkAddress> {
+    pub(in crate::voxel) fn pop_dirty_render(&mut self) -> Option<VoxelMaterializationKey> {
         while let Some(address) = self.dirty_render.pop_front() {
             if self.dirty_render_set.remove(&address) {
                 return Some(address);
@@ -14,7 +14,7 @@ impl VoxelMaterializationStore {
 
     pub(in crate::voxel) fn active_surface(
         &self,
-        address: VoxelMaterializationChunkAddress,
+        address: VoxelMaterializationKey,
     ) -> Option<&VoxelSurfaceCache> {
         let entry = self.entries.get(&address)?;
         entry.active.then_some(())?;
@@ -23,7 +23,7 @@ impl VoxelMaterializationStore {
 
     pub(in crate::voxel) fn surface(
         &self,
-        address: VoxelMaterializationChunkAddress,
+        address: VoxelMaterializationKey,
     ) -> Option<&VoxelSurfaceCache> {
         self.entries.get(&address)?.surface.as_ref()
     }

@@ -15,7 +15,8 @@ use crate::{
 
 use super::{VoxelStreaming, VoxelStreamingTelemetry};
 use super::super::{
-    VoxelAuthority, VoxelChunk, VoxelMaterializationChunkAddress, VoxelScaleDomain, VoxelWorld,
+    VoxelAuthority, VoxelChunk, VoxelMaterializationChunkAddress,
+    VoxelMaterializationKey, VoxelScaleDomain, VoxelWorld,
     generation_scope::VoxelGenerationScopeExtent,
     worker::{VoxelWorkerTask, available_slots},
 };
@@ -25,7 +26,7 @@ mod batching;
 use batching::{VoxelGenerationJob, plan_generation_batches};
 
 struct VoxelGeneratedChunk {
-    address: VoxelMaterializationChunkAddress,
+    key: VoxelMaterializationKey,
     token: u64,
     applied_edit_count: usize,
     chunk: VoxelChunk,
@@ -36,7 +37,7 @@ struct VoxelGeneratedChunk {
 pub(in crate::voxel) struct VoxelGenerationTask {
     world: Entity,
     /// Unpublished addresses represented by this worker batch.
-    addresses: Vec<VoxelMaterializationChunkAddress>,
+    keys: Vec<VoxelMaterializationKey>,
     task: Option<Task<Vec<VoxelGeneratedChunk>>>,
     ready: VecDeque<VoxelGeneratedChunk>,
 }
@@ -44,14 +45,14 @@ pub(in crate::voxel) struct VoxelGenerationTask {
 impl VoxelGenerationTask {
     fn spawn(world: Entity, jobs: Vec<VoxelGenerationJob>) -> Self {
         debug_assert!(!jobs.is_empty());
-        let addresses = jobs.iter().map(|job| job.address).collect();
+        let keys = jobs.iter().map(|job| job.key).collect();
         let task = AsyncComputeTaskPool::get().spawn(async move {
             jobs.into_iter()
                 .map(|job| {
                     let applied_edit_count = job.recipe.applied_edit_count();
                     let chunk = job.recipe.materialize();
                     VoxelGeneratedChunk {
-                        address: job.address,
+                        key: job.key,
                         token: job.token,
                         applied_edit_count,
                         chunk,
@@ -61,7 +62,7 @@ impl VoxelGenerationTask {
         });
         Self {
             world,
-            addresses,
+            keys,
             task: Some(task),
             ready: VecDeque::new(),
         }
@@ -110,17 +111,20 @@ pub(in crate::voxel) fn finish_chunk_generation(
                 break;
             };
 
+            let Ok(address) = world.materialization_address(output.key) else {
+                continue;
+            };
             catch_up_generated_chunk_with_authority(
                 &world,
                 authority,
-                output.address,
+                address,
                 output.applied_edit_count,
                 &mut output.chunk,
             );
 
-            generation.addresses.retain(|address| *address != output.address);
+            generation.keys.retain(|key| *key != output.key);
             if world.materializations_mut().publish_generated(
-                output.address,
+                output.key,
                 output.token,
                 output.chunk,
             ) {
@@ -145,13 +149,13 @@ pub(in crate::voxel) fn retire_stale_generation_tasks(
 ) {
     for (entity, task) in &generation_tasks {
         let useful = worlds.get(task.world).is_ok_and(|world| {
-            task.addresses
+            task.keys
                 .iter()
                 .copied()
-                .any(|address| world.materializations().is_active(address))
+                .any(|key| world.materializations().is_active(key))
         });
         if !useful {
-            telemetry.generation_cancelled(task.addresses.len());
+            telemetry.generation_cancelled(task.keys.len());
             commands.entity(entity).despawn();
         }
     }

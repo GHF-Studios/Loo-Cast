@@ -6,7 +6,10 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use super::{VoxelChunk, VoxelEdit, VoxelMaterializationChunkAddress, mesh::VoxelSurface};
+use super::{
+    VoxelChunk, VoxelEdit, VoxelMaterializationChunkAddress,
+    VoxelMaterializationKey, mesh::VoxelSurface,
+};
 
 /// Derived surface cache for one independently addressable materialization.
 ///
@@ -67,13 +70,13 @@ impl VoxelMaterializationEntry {
 /// can be reactivated without regenerating the semantic field.
 #[derive(Debug, Default)]
 pub(super) struct VoxelMaterializationStore {
-    entries: HashMap<VoxelMaterializationChunkAddress, VoxelMaterializationEntry>,
+    entries: HashMap<VoxelMaterializationKey, VoxelMaterializationEntry>,
     next_generation_token: u64,
-    dirty_derived: VecDeque<VoxelMaterializationChunkAddress>,
-    dirty_derived_set: HashSet<VoxelMaterializationChunkAddress>,
-    dirty_render: VecDeque<VoxelMaterializationChunkAddress>,
-    dirty_render_set: HashSet<VoxelMaterializationChunkAddress>,
-    inactive_lru: VecDeque<VoxelMaterializationChunkAddress>,
+    dirty_derived: VecDeque<VoxelMaterializationKey>,
+    dirty_derived_set: HashSet<VoxelMaterializationKey>,
+    dirty_render: VecDeque<VoxelMaterializationKey>,
+    dirty_render_set: HashSet<VoxelMaterializationKey>,
+    inactive_lru: VecDeque<VoxelMaterializationKey>,
     /// Dense warm-cache entries currently inactive. Tracked explicitly so
     /// reconciliation never rescans an ever-growing cache just to enforce its bound.
     inactive_count: usize,
@@ -85,15 +88,15 @@ mod render;
 mod residency;
 
 impl VoxelMaterializationStore {
-    fn mark_derived_dirty(&mut self, address: VoxelMaterializationChunkAddress) {
-        if self.dirty_derived_set.insert(address) {
-            self.dirty_derived.push_back(address);
+    fn mark_derived_dirty(&mut self, key: VoxelMaterializationKey) {
+        if self.dirty_derived_set.insert(key) {
+            self.dirty_derived.push_back(key);
         }
     }
 
-    fn mark_render_dirty(&mut self, address: VoxelMaterializationChunkAddress) {
-        if self.dirty_render_set.insert(address) {
-            self.dirty_render.push_back(address);
+    fn mark_render_dirty(&mut self, key: VoxelMaterializationKey) {
+        if self.dirty_render_set.insert(key) {
+            self.dirty_render.push_back(key);
         }
     }
 }

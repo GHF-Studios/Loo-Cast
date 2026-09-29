@@ -294,9 +294,10 @@ fn sync_refinement_clip_materials(
 
         let exposed_faces = frontier
             .exposed_faces(
+                runtime.world(),
                 realization.authority(),
                 fine_scale,
-                runtime.address(),
+                runtime.key(),
             )
             .bits();
         let support_band = if exposed_faces == 0 {

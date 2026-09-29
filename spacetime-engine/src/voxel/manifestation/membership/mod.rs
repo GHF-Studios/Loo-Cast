@@ -11,15 +11,15 @@ pub(in crate::voxel) fn sync_manifestation_membership(
     mut registry: ResMut<VoxelMaterializationRuntimeRegistry>,
 ) {
     for (world_entity, mut world) in &mut worlds {
-        while let Some(address) = world.materializations_mut().pop_dirty_render() {
+        while let Some(materialization_key) = world.materializations_mut().pop_dirty_render() {
             let key = ManifestationKey {
                 world: world_entity,
-                address,
+                key: materialization_key,
             };
 
             match world
                 .materializations()
-                .active_derived_revision(address)
+                .active_derived_revision(materialization_key)
             {
                 Some(revision) => {
                     registry.revisions.insert(key, revision);

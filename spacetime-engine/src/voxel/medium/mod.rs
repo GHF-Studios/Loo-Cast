@@ -41,7 +41,7 @@ pub(in crate::voxel) fn apply_voxel_medium_drag(
 
         let mut drag = 0.0_f32;
         for (world, world_layer) in &worlds {
-            if world_layer.scale() != scale || !world.may_have_linear_drag() {
+            if world_layer.scale() != scale || !world.may_have_linear_drag_at(point) {
                 continue;
             }
             let Ok(sample) = world.resolve_sample(point) else {

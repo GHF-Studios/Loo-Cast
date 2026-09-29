@@ -88,6 +88,18 @@ fn canonical_addresses_do_not_collapse_through_large_f32_coordinates() {
 }
 
 #[test]
+fn materialization_hot_identity_is_compact_and_round_trips_canonically() {
+    let world = VoxelWorld::new(VoxelBase::Empty);
+    let address = world
+        .chunk_address(VoxelChunkCoord::new(IVec3::new(2_000_000_000, -17, 42)))
+        .unwrap();
+    let key = world.materialization_key(address).unwrap();
+
+    assert_eq!(std::mem::size_of::<VoxelMaterializationKey>(), 24);
+    assert_eq!(world.materialization_address(key).unwrap(), address);
+}
+
+#[test]
 fn edit_bounds_address_both_padded_chunks_at_a_seam() {
     let world = VoxelWorld::new(VoxelBase::Empty);
     let center = query(Vec3::new(MATERIALIZATION_CHUNK_SIZE as f32, 5.0, 5.0));

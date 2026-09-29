@@ -46,6 +46,7 @@ pub use streaming::{
     VoxelMaterializationDemand, VoxelPinnedDemand, VoxelStreaming, VoxelStreamingTelemetry,
 };
 pub use world::{VoxelChunkAddress, VoxelChunkCoord, VoxelMaterializationChunkAddress, VoxelWorld};
+pub(in crate::voxel) use world::VoxelMaterializationKey;
 
 use bevy::prelude::*;
 
