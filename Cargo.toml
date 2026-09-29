@@ -12,6 +12,11 @@ debug = true
 incremental = true
 lto = false
 
+# Keep engine code debuggable while fully optimizing dependency hot loops.
+# Avian explicitly recommends this for development runtime performance.
+[profile.dev.package."*"]
+opt-level = 3
+
 [profile.profiling]
 inherits = "release"
 debug = 1
