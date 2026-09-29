@@ -1,9 +1,8 @@
-//! One-to-one runtime manifestations derived from store-owned voxel surfaces.
+//! Runtime manifestations derived from store-owned voxel surfaces.
 //!
-//! Each active 10-native-unit materialization surface owns one disposable
-//! runtime manifestation. Rendering and collision share that manifestation's
-//! canonical address but have independent lifecycle stages. No cross-chunk
-//! render/collision aggregation or semantic LOD is performed here.
+//! Presentation remains one-to-one with active materializations. Collision is
+//! an independently owned backend capability and may aggregate multiple
+//! materializations without changing semantic or presentation identity.
 
 use std::collections::{HashMap, HashSet};
 
@@ -30,6 +29,7 @@ pub(super) use rebuild::{
 };
 
 pub(super) fn configure(app: &mut App) {
+    app.init_resource::<collision::VoxelCollisionAggregateRegistry>();
     frontier::configure(app);
     material::configure(app);
 }

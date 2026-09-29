@@ -1,6 +1,5 @@
 //! Reconciles voxel runtime manifestations into the generic capability lifecycle.
 
-use avian3d::prelude::Collider;
 use bevy::prelude::*;
 
 use crate::{
@@ -12,7 +11,7 @@ use crate::{
 
 use super::{
     VoxelMaterializationRuntime,
-    collision::VoxelMaterializationColliderRevision,
+    collision::VoxelCollisionAggregateRegistry,
 };
 use super::super::{
     MATERIALIZATION_CHUNK_SIZE, VoxelEditingDisabled, VoxelWorld,
@@ -28,17 +27,16 @@ pub(in crate::voxel) fn sync_capability_realizations(
         Option<&VoxelEditingDisabled>,
     )>,
     authority_partitions: Query<&UsfAuthorityPartitionOf>,
+    collision_registry: Res<VoxelCollisionAggregateRegistry>,
     mut runtimes: Query<(
         Entity,
         &VoxelMaterializationRuntime,
-        Option<&Collider>,
-        Option<&VoxelMaterializationColliderRevision>,
         Option<&mut UsfCapabilityRealization>,
     )>,
 ) {
     let half_extent = Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32 * 0.5);
 
-    for (entity, runtime, collider, collider_revision, existing) in &mut runtimes {
+    for (entity, runtime, existing) in &mut runtimes {
         let Ok((world_entity, world, layer, logical_realization, editing_disabled)) =
             worlds.get(runtime.world())
         else {
@@ -72,10 +70,11 @@ pub(in crate::voxel) fn sync_capability_realizations(
             roles = UsfScaleRoleMask::REALIZATION
                 .union(UsfScaleRoleMask::PRESENTATION);
 
-            let collision_current = collider.is_some()
-                && collider_revision.is_some_and(|revision| {
-                    revision.revision() == runtime.revision()
-                });
+            let collision_current = collision_registry.member_current(
+                runtime.world(),
+                runtime.key(),
+                runtime.revision(),
+            );
             if collision_current {
                 roles = roles.union(UsfScaleRoleMask::COLLISION);
             }

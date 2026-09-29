@@ -7,8 +7,8 @@ use super::require_positive;
 
 /// Runtime manifestation policy for derived voxel representations.
 ///
-/// One active materialization surface maps to one runtime manifestation.
-/// There is deliberately no cross-materialization render or collision grouping.
+/// Presentation remains one-to-one with materialization surfaces. Collision
+/// aggregation is a separate backend representation concern.
 #[derive(Debug, Clone, Copy, PartialEq, Deserialize)]
 #[serde(default)]
 pub struct VoxelManifestationConfig {

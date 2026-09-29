@@ -1,6 +1,5 @@
 //! Per-materialization mesh construction and publication.
 
-use avian3d::prelude::{Position, RigidBody};
 use bevy::{
     asset::RenderAssetUsages,
     mesh::{Indices, PrimitiveTopology},
@@ -170,8 +169,6 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
                 .spawn((
                     Name::new("Voxel Manifestation"),
                     *layer,
-                    RigidBody::Static,
-                    Position::new(local_translation),
                     Transform::from_translation(local_translation),
                     Visibility::Inherited,
                 ))
@@ -373,21 +370,16 @@ fn materialization_runtime_translation(
 
 fn write_materialization_runtime_translation(
     transform: &mut Transform,
-    position: &mut Position,
     translation: Vec3,
 ) {
     if transform.translation != translation {
         transform.translation = translation;
     }
-    if position.0 != translation {
-        position.0 = translation;
-    }
 }
 
-/// Reprojects every resident voxel root whenever the canonical local frame
-/// changes. Runtime Transform and Avian Position are two backend views of the
-/// same bounded local pose and are written together; neither is semantic
-/// authority. Canonical materialization addresses remain authoritative.
+/// Reprojects presentation/runtime roots whenever the canonical local frame
+/// changes. These roots are no longer Avian bodies; collision has its own
+/// aggregated backend representation.
 pub(in crate::voxel) fn sync_manifestation_runtime_transforms(
     frame: Res<UsfSpatialFrame>,
     worlds: Query<&VoxelWorld>,
@@ -395,14 +387,13 @@ pub(in crate::voxel) fn sync_manifestation_runtime_transforms(
         &VoxelMaterializationRuntime,
         &UsfScaleLayer,
         &mut Transform,
-        &mut Position,
     )>,
 ) {
     if !frame.is_changed() {
         return;
     }
 
-    for (runtime, layer, mut transform, mut position) in &mut runtimes {
+    for (runtime, layer, mut transform) in &mut runtimes {
         let Ok(world) = worlds.get(runtime.world()) else {
             continue;
         };
@@ -417,7 +408,6 @@ pub(in crate::voxel) fn sync_manifestation_runtime_transforms(
 
         write_materialization_runtime_translation(
             &mut transform,
-            position.bypass_change_detection(),
             translation,
         );
     }
@@ -427,18 +417,12 @@ mod runtime_pose_tests {
     use super::*;
 
     #[test]
-    fn runtime_pose_updates_render_and_physics_coordinates_together() {
+    fn runtime_pose_updates_presentation_coordinates() {
         let mut transform = Transform::from_xyz(10.0, -20.0, 30.0);
-        let mut position = Position::new(Vec3::new(-3.0, 4.0, 9.0));
         let target = Vec3::new(1.25, -2.5, 5.0);
 
-        write_materialization_runtime_translation(
-            &mut transform,
-            &mut position,
-            target,
-        );
+        write_materialization_runtime_translation(&mut transform, target);
 
         assert_eq!(transform.translation, target);
-        assert_eq!(position.0, target);
     }
 }

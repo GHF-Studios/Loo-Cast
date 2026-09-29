@@ -1,67 +1,205 @@
-//! Collision residency for realized voxel materialization runtimes.
+//! Collision-specific aggregation over realized voxel materializations.
 //!
-//! Collision follows physical/materialization demand. Presentation/view state is
-//! deliberately absent: moving a camera must never create or retire physics.
+//! Rendering remains one-to-one with materializations. Avian does not: nearby
+//! materializations are merged into bounded 4³ collision aggregates so broad-
+//! phase tree cardinality scales with collision regions rather than render/cache
+//! granularity.
+//!
+//! This deliberately restores the useful collision part of the pre-7966f1c3
+//! aggregate model without re-coupling presentation and collision lifecycles.
 
-use avian3d::prelude::{Collider, CollisionMargin};
+use std::collections::HashMap;
+
+use avian3d::prelude::{Collider, CollisionMargin, Position, RigidBody};
 use bevy::prelude::*;
 
 use crate::{
     config::EngineConfig,
-    spatial::{UsfScaleLayer, UsfScaleRoleMask},
+    spatial::{UsfScaleLayer, UsfScaleRoleMask, UsfSpatialFrame},
 };
 
 use super::VoxelMaterializationRuntime;
-
-/// Surface-cache revision currently encoded by this runtime's physics collider.
-#[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
-pub(in crate::voxel) struct VoxelMaterializationColliderRevision(u64);
-
-impl VoxelMaterializationColliderRevision {
-    pub(in crate::voxel) const fn revision(self) -> u64 {
-        self.0
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ColliderResidencyAction {
-    Keep,
-    Replace,
-    Remove,
-}
-
-fn collider_residency_action(
-    wants_collider: bool,
-    runtime_revision: u64,
-    has_collider: bool,
-    collider_revision: Option<VoxelMaterializationColliderRevision>,
-) -> ColliderResidencyAction {
-    if !wants_collider {
-        return if has_collider || collider_revision.is_some() {
-            ColliderResidencyAction::Remove
-        } else {
-            ColliderResidencyAction::Keep
-        };
-    }
-
-    let current = has_collider
-        && collider_revision
-            .is_some_and(|revision| revision.revision() == runtime_revision);
-
-    if current {
-        ColliderResidencyAction::Keep
-    } else {
-        ColliderResidencyAction::Replace
-    }
-}
-
 use super::super::{
-    VoxelCollisionDisabled, VoxelMaterializationKey,
+    MATERIALIZATION_CHUNK_SIZE, VoxelCollisionDisabled, VoxelMaterializationKey,
     VoxelRealizationDemandSnapshot, VoxelStreaming, VoxelWorld, physics,
 };
 
+/// Historical aggregate edge that bounded incremental rebuild amplification
+/// while reducing one-to-one collider-tree proxy count by up to 4³ = 64×.
+const COLLISION_GROUP_EDGE: i64 = 4;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(in crate::voxel) struct VoxelCollisionAggregateKey {
+    world: Entity,
+    origin: VoxelMaterializationKey,
+}
+
+#[derive(Debug)]
+struct VoxelCollisionAggregateState {
+    entity: Entity,
+    members: Vec<(VoxelMaterializationKey, u64)>,
+}
+
+/// Backend-only collision representation registry.
+///
+/// `published_members` is the capability bridge: it records which exact
+/// materialization revisions are currently represented by a live aggregate.
+/// The aggregate entity itself is disposable Avian state, never semantic
+/// authority.
+#[derive(Resource, Default)]
+pub(in crate::voxel) struct VoxelCollisionAggregateRegistry {
+    groups: HashMap<VoxelCollisionAggregateKey, VoxelCollisionAggregateState>,
+    published_members: HashMap<(Entity, VoxelMaterializationKey), u64>,
+}
+
+impl VoxelCollisionAggregateRegistry {
+    pub(super) fn member_current(
+        &self,
+        world: Entity,
+        key: VoxelMaterializationKey,
+        revision: u64,
+    ) -> bool {
+        self.published_members
+            .get(&(world, key))
+            .is_some_and(|current| *current == revision)
+    }
+}
+
+fn aligned_group_origin(key: VoxelMaterializationKey) -> VoxelMaterializationKey {
+    let [x, y, z] = key.components();
+    let edge = COLLISION_GROUP_EDGE;
+    VoxelMaterializationKey::new([
+        x.div_euclid(edge) * edge,
+        y.div_euclid(edge) * edge,
+        z.div_euclid(edge) * edge,
+    ])
+}
+
+fn member_offset(
+    group_origin: VoxelMaterializationKey,
+    member: VoxelMaterializationKey,
+) -> Option<Vec3> {
+    let origin = group_origin.components();
+    let member = member.components();
+    let size = MATERIALIZATION_CHUNK_SIZE as f32;
+
+    let dx = member[0].checked_sub(origin[0])?;
+    let dy = member[1].checked_sub(origin[1])?;
+    let dz = member[2].checked_sub(origin[2])?;
+
+    Some(Vec3::new(
+        dx as f32 * size,
+        dy as f32 * size,
+        dz as f32 * size,
+    ))
+}
+
+fn sort_members(members: &mut [(VoxelMaterializationKey, u64)]) {
+    members.sort_unstable_by_key(|(key, revision)| {
+        let [x, y, z] = key.components();
+        (x, y, z, *revision)
+    });
+}
+
+fn has_collision_demand(
+    runtime: &VoxelMaterializationRuntime,
+    world: &VoxelWorld,
+    layer: &UsfScaleLayer,
+    streaming: &VoxelStreaming,
+    realization_demand: &VoxelRealizationDemandSnapshot,
+    interaction_padding: f32,
+) -> bool {
+    let Ok(address) = world.materialization_address(runtime.key()) else {
+        return false;
+    };
+
+    realization_demand
+        .requests_for(runtime.world())
+        .filter(|request| request.roles().contains(UsfScaleRoleMask::COLLISION))
+        .map(|request| request.scope())
+        .filter(|scope| scope.scale() == layer.scale())
+        .any(|scope| {
+            address
+                .distance_squared_to_region(
+                    &scope.center(),
+                    scope.half_extent_native(),
+                    interaction_padding,
+                )
+                .is_some_and(|distance_squared| {
+                    distance_squared <= interaction_padding * interaction_padding
+                })
+        })
+        || streaming.retains_committed_role_during_migration(
+            runtime.key(),
+            UsfScaleRoleMask::COLLISION,
+        )
+}
+
+fn build_aggregate_collider(
+    group_origin: VoxelMaterializationKey,
+    members: &[(VoxelMaterializationKey, u64)],
+    world: &VoxelWorld,
+) -> Option<Collider> {
+    let mut vertices = Vec::<Vec3>::new();
+    let mut triangles = Vec::<[u32; 3]>::new();
+
+    for &(key, expected_revision) in members {
+        let cache = world.materializations().surface(key)?;
+        if cache.revision != expected_revision {
+            return None;
+        }
+
+        let offset = member_offset(group_origin, key)?;
+        let vertex_base = u32::try_from(vertices.len()).ok()?;
+
+        vertices.extend(
+            cache
+                .surface
+                .positions
+                .iter()
+                .copied()
+                .map(Vec3::from_array)
+                .map(|position| position + offset),
+        );
+
+        for triangle in physics::triangles(&cache.surface) {
+            triangles.push([
+                vertex_base.checked_add(triangle[0])?,
+                vertex_base.checked_add(triangle[1])?,
+                vertex_base.checked_add(triangle[2])?,
+            ]);
+        }
+    }
+
+    physics::build_trimesh_collider(
+        vertices,
+        triangles,
+        "voxel collision aggregate",
+    )
+}
+
+fn aggregate_runtime_translation(
+    frame: &UsfSpatialFrame,
+    layer: &UsfScaleLayer,
+    world: &VoxelWorld,
+    origin: VoxelMaterializationKey,
+) -> Option<Vec3> {
+    let address = world.materialization_address(origin).ok()?;
+    address
+        .query_origin()
+        .usf()
+        .relative_at_scale_bounded(frame.origin(), layer.scale(), 16_384.0)
+        .ok()
+}
+
+/// Reconciles demanded rigid materializations into collision-only aggregates.
+///
+/// The desired/member scan is still exact and revision-aware, but Avian sees at
+/// most one static proxy per aligned 4³ region rather than one proxy per
+/// materialization.
 pub(in crate::voxel) fn sync_manifestation_collision_residency(
     config: Res<EngineConfig>,
+    frame: Res<UsfSpatialFrame>,
     realization_demand: Res<VoxelRealizationDemandSnapshot>,
     mut commands: Commands,
     worlds: Query<(
@@ -70,187 +208,193 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
         &VoxelStreaming,
         Option<&VoxelCollisionDisabled>,
     )>,
-    runtimes: Query<(
-        Entity,
-        Ref<VoxelMaterializationRuntime>,
-        Option<&Collider>,
-        Option<&VoxelMaterializationColliderRevision>,
-    )>,
+    runtimes: Query<&VoxelMaterializationRuntime>,
+    mut registry: ResMut<VoxelCollisionAggregateRegistry>,
+    mut desired: Local<
+        HashMap<
+            VoxelCollisionAggregateKey,
+            Vec<(VoxelMaterializationKey, u64)>,
+        >,
+    >,
 ) {
-    // Collision state is derived and reconciled every frame. This makes
-    // residency self-healing and independent from implicit ECS change ticks.
-    // If this becomes a hotspot, optimize with an explicit collision-dirty queue.
+    let _span = bevy::log::info_span!("voxel_collision.aggregate_reconcile").entered();
+
+    desired.clear();
     let interaction_padding =
         config.voxel.manifestation.physics_interaction_radius_native.max(0.0);
 
-    for (entity, runtime, collider, collider_revision) in &runtimes {
-        let Ok((world, layer, streaming, collision_disabled)) =
-            worlds.get(runtime.world())
-        else {
-            continue;
-        };
+    {
+        let _span = bevy::log::info_span!("voxel_collision.aggregate_collect").entered();
 
-        let Ok(address) = world.materialization_address(runtime.key()) else {
-            continue;
-        };
+        for runtime in &runtimes {
+            let Ok((world, layer, streaming, collision_disabled)) =
+                worlds.get(runtime.world())
+            else {
+                continue;
+            };
 
-        let has_rigid_surface = world
-            .materializations()
-            .surface(runtime.key())
-            .is_some_and(|cache| {
-                cache.revision == runtime.revision() && cache.surface.has_rigid_triangles()
-            });
+            if collision_disabled.is_some() {
+                continue;
+            }
 
-        let has_collision_demand = realization_demand
-            .requests_for(runtime.world())
-            .filter(|request| request.roles().contains(UsfScaleRoleMask::COLLISION))
-            .map(|request| request.scope())
-            .filter(|scope| scope.scale() == layer.scale())
-            .any(|scope| {
-                address
-                    .distance_squared_to_region(
-                        &scope.center(),
-                        scope.half_extent_native(),
-                        interaction_padding,
-                    )
-                    .is_some_and(|distance_squared| {
-                        distance_squared <= interaction_padding * interaction_padding
-                    })
-            })
-            || streaming.retains_committed_role_during_migration(
-                runtime.key(),
-                UsfScaleRoleMask::COLLISION,
-            );
-
-        let wants_collider =
-            collision_disabled.is_none() && has_rigid_surface && has_collision_demand;
-
-        match collider_residency_action(
-            wants_collider,
-            runtime.revision(),
-            collider.is_some(),
-            collider_revision.copied(),
-        ) {
-            ColliderResidencyAction::Keep => {}
-            ColliderResidencyAction::Replace => {
-                let collider = build_materialization_collider(
-                    runtime.key(),
-                    runtime.revision(),
+            let rigid_current = world
+                .materializations()
+                .surface(runtime.key())
+                .is_some_and(|cache| {
+                    cache.revision == runtime.revision()
+                        && cache.surface.has_rigid_triangles()
+                });
+            if !rigid_current
+                || !has_collision_demand(
+                    runtime,
                     world,
-                );
-                publish_collider_manifestation(
-                    &mut commands,
-                    entity,
-                    true,
-                    collider,
-                    Some(runtime.revision()),
-                );
+                    layer,
+                    streaming,
+                    &realization_demand,
+                    interaction_padding,
+                )
+            {
+                continue;
             }
-            ColliderResidencyAction::Remove => {
-                publish_collider_manifestation(&mut commands, entity, false, None, None);
-            }
+
+            let aggregate = VoxelCollisionAggregateKey {
+                world: runtime.world(),
+                origin: aligned_group_origin(runtime.key()),
+            };
+            desired
+                .entry(aggregate)
+                .or_default()
+                .push((runtime.key(), runtime.revision()));
         }
     }
-}
 
-fn publish_collider_manifestation(
-    commands: &mut Commands,
-    entity: Entity,
-    requested: bool,
-    collider: Option<Collider>,
-    revision: Option<u64>,
-) {
-    let mut entity_commands = commands.entity(entity);
-
-    if requested {
-        if let (Some(collider), Some(revision)) = (collider, revision) {
-            entity_commands.insert((
-                collider,
-                CollisionMargin(physics::VOXEL_COLLISION_MARGIN),
-                VoxelMaterializationColliderRevision(revision),
-            ));
-        } else {
-            entity_commands.remove::<Collider>();
-            entity_commands.remove::<CollisionMargin>();
-            entity_commands.remove::<VoxelMaterializationColliderRevision>();
-        }
-    } else {
-        entity_commands.remove::<Collider>();
-        entity_commands.remove::<CollisionMargin>();
-        entity_commands.remove::<VoxelMaterializationColliderRevision>();
-    }
-}
-
-fn build_materialization_collider(
-    key: VoxelMaterializationKey,
-    expected_revision: u64,
-    world: &VoxelWorld,
-) -> Option<Collider> {
-    let cache = world.materializations().surface(key)?;
-    if cache.revision != expected_revision {
-        return None;
+    for members in desired.values_mut() {
+        sort_members(members);
     }
 
-    let vertices = cache
-        .surface
-        .positions
-        .iter()
+    let stale = registry
+        .groups
+        .keys()
         .copied()
-        .map(Vec3::from_array)
-        .collect();
-    let triangles = physics::triangles(&cache.surface);
+        .filter(|key| !desired.contains_key(key))
+        .collect::<Vec<_>>();
+    for key in stale {
+        if let Some(state) = registry.groups.remove(&key) {
+            commands.entity(state.entity).despawn();
+        }
+    }
 
-    physics::build_trimesh_collider(vertices, triangles, "voxel materialization runtime")
+    {
+        let _span = bevy::log::info_span!("voxel_collision.aggregate_build").entered();
+
+        for (&aggregate, members) in desired.iter() {
+            let unchanged = registry
+                .groups
+                .get(&aggregate)
+                .is_some_and(|state| state.members == *members);
+            if unchanged {
+                continue;
+            }
+
+            let Ok((world, layer, _, collision_disabled)) =
+                worlds.get(aggregate.world)
+            else {
+                continue;
+            };
+            if collision_disabled.is_some() {
+                continue;
+            }
+
+            let Some(collider) =
+                build_aggregate_collider(aggregate.origin, members, world)
+            else {
+                if let Some(state) = registry.groups.remove(&aggregate) {
+                    commands.entity(state.entity).despawn();
+                }
+                continue;
+            };
+
+            if let Some(state) = registry.groups.get_mut(&aggregate) {
+                commands.entity(state.entity).insert(collider);
+                state.members.clone_from(members);
+                continue;
+            }
+
+            let Some(translation) =
+                aggregate_runtime_translation(&frame, layer, world, aggregate.origin)
+            else {
+                continue;
+            };
+
+            let entity = commands
+                .spawn((
+                    Name::new("Voxel Collision Aggregate"),
+                    *layer,
+                    RigidBody::Static,
+                    Position::new(translation),
+                    Transform::from_translation(translation),
+                    collider,
+                    CollisionMargin(physics::VOXEL_COLLISION_MARGIN),
+                ))
+                .id();
+
+            registry.groups.insert(
+                aggregate,
+                VoxelCollisionAggregateState {
+                    entity,
+                    members: members.clone(),
+                },
+            );
+        }
+    }
+
+    registry.published_members.clear();
+    let published = registry
+        .groups
+        .iter()
+        .flat_map(|(aggregate, state)| {
+            state
+                .members
+                .iter()
+                .copied()
+                .map(move |(key, revision)| ((aggregate.world, key), revision))
+        })
+        .collect::<Vec<_>>();
+    registry.published_members.extend(published);
 }
 
 #[cfg(test)]
-mod residency_tests {
+mod tests {
     use super::*;
 
     #[test]
-    fn demanded_current_collider_is_kept() {
+    fn four_cubed_materializations_share_one_collision_group() {
+        let base = VoxelMaterializationKey::new([0, 0, 0]);
+        for z in 0..4 {
+            for y in 0..4 {
+                for x in 0..4 {
+                    let key = VoxelMaterializationKey::new([x, y, z]);
+                    assert_eq!(aligned_group_origin(key), base);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn negative_keys_align_with_euclidean_groups() {
         assert_eq!(
-            collider_residency_action(
-                true,
-                7,
-                true,
-                Some(VoxelMaterializationColliderRevision(7)),
-            ),
-            ColliderResidencyAction::Keep,
+            aligned_group_origin(VoxelMaterializationKey::new([-1, -4, -5])),
+            VoxelMaterializationKey::new([-4, -4, -8]),
         );
     }
 
     #[test]
-    fn demanded_missing_collider_is_replaced() {
+    fn member_offsets_are_group_local_native_units() {
+        let origin = VoxelMaterializationKey::new([8, -4, 12]);
+        let member = VoxelMaterializationKey::new([11, -2, 15]);
         assert_eq!(
-            collider_residency_action(true, 7, false, None),
-            ColliderResidencyAction::Replace,
-        );
-    }
-
-    #[test]
-    fn demanded_stale_collider_is_replaced() {
-        assert_eq!(
-            collider_residency_action(
-                true,
-                8,
-                true,
-                Some(VoxelMaterializationColliderRevision(7)),
-            ),
-            ColliderResidencyAction::Replace,
-        );
-    }
-
-    #[test]
-    fn undemanded_collider_is_removed() {
-        assert_eq!(
-            collider_residency_action(
-                false,
-                7,
-                true,
-                Some(VoxelMaterializationColliderRevision(7)),
-            ),
-            ColliderResidencyAction::Remove,
+            member_offset(origin, member),
+            Some(Vec3::new(30.0, 20.0, 30.0)),
         );
     }
 }
