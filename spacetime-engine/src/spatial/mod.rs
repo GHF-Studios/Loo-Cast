@@ -100,17 +100,23 @@ impl Plugin for UsfSpatialPlugin {
             .add_message::<UsfOriginRebased>()
             .add_message::<UsfSpatialTransitionApplied>()
             .add_systems(Startup, slice::spawn_scale_slices)
+            // Spatial synchronization is a dependency DAG, not one global
+            // serialized pipeline. Runtime projection and view anchoring both
+            // need the rebased canonical frame, but view work does not depend
+            // on physics-backend acceleration refresh. Keeping these edges
+            // explicit lets Bevy overlap independent backend/view work while
+            // preserving every semantic freshness requirement.
             .configure_sets(
                 PostUpdate,
                 (
-                    UsfSpatialSet::SyncSemantic,
-                    UsfSpatialSet::Rebase,
-                    UsfSpatialSet::RuntimeProjection,
-                    UsfSpatialSet::BackendRefresh,
-                    UsfSpatialSet::ViewAnchor,
-                    UsfSpatialSet::ViewProjection,
-                )
-                    .chain(),
+                    UsfSpatialSet::Rebase.after(UsfSpatialSet::SyncSemantic),
+                    UsfSpatialSet::RuntimeProjection.after(UsfSpatialSet::Rebase),
+                    UsfSpatialSet::BackendRefresh.after(UsfSpatialSet::RuntimeProjection),
+                    UsfSpatialSet::ViewAnchor.after(UsfSpatialSet::Rebase),
+                    UsfSpatialSet::ViewProjection
+                        .after(UsfSpatialSet::RuntimeProjection)
+                        .after(UsfSpatialSet::ViewAnchor),
+                ),
             )
             .configure_sets(
                 PostUpdate,
