@@ -12,7 +12,7 @@ type ChunkShape = ConstShape3u32<SAMPLE_SIZE, SAMPLE_SIZE, SAMPLE_SIZE>;
 
 /// One extracted surface shared only as an intermediate between independently
 /// owned render and physics caches.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub(super) struct VoxelSurface {
     pub(super) positions: Vec<[f32; 3]>,
     pub(super) normals: Vec<[f32; 3]>,
@@ -74,6 +74,14 @@ impl VoxelSurface {
 }
 
 pub(super) fn extract_chunk_surface(chunk: &VoxelChunk) -> VoxelSurface {
+    // Dense generation/editing already maintains the exact sign-transition
+    // summary used to determine whether an isosurface can exist in this
+    // materialization. Do not rescan the padded volume through Surface Nets
+    // when it has already proven the result must be empty.
+    if !chunk.has_surface_transition() {
+        return VoxelSurface::default();
+    }
+
     let mut output = SurfaceNetsBuffer::default();
     surface_nets(
         chunk.distances(),

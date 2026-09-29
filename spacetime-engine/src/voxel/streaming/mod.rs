@@ -193,12 +193,13 @@ pub struct VoxelStreamingTelemetry {
     derived_started_total: u64,
     derived_completed_total: u64,
     derived_cancelled_total: u64,
+    derived_skipped_empty_total: u64,
 }
 
 impl VoxelStreamingTelemetry {
     pub fn summary(self) -> String {
         format!(
-            "workers generation={} derived={} total={} | gen started={} completed={} cancelled={} abandoned_chunks={} | surface started={} completed={} cancelled={}",
+            "workers generation={} derived={} total={} | gen started={} completed={} cancelled={} abandoned_chunks={} | surface started={} completed={} cancelled={} skipped_empty={}",
             self.generation_in_flight,
             self.derived_in_flight,
             self.generation_in_flight + self.derived_in_flight,
@@ -209,6 +210,7 @@ impl VoxelStreamingTelemetry {
             self.derived_started_total,
             self.derived_completed_total,
             self.derived_cancelled_total,
+            self.derived_skipped_empty_total,
         )
     }
 
@@ -236,6 +238,9 @@ impl VoxelStreamingTelemetry {
     pub(super) fn derived_cancelled(&mut self) {
         self.derived_in_flight = self.derived_in_flight.saturating_sub(1);
         self.derived_cancelled_total += 1;
+    }
+    pub(super) fn derived_skipped_empty(&mut self) {
+        self.derived_skipped_empty_total += 1;
     }
 }
 

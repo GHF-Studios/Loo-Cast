@@ -25,6 +25,7 @@ use super::{
 
 const DERIVED_TASK_START_BUDGET_PER_FRAME: usize = 8;
 const DERIVED_PUBLISH_BUDGET_PER_FRAME: usize = 8;
+const DERIVED_EMPTY_PUBLISH_BUDGET_PER_FRAME: usize = 64;
 
 struct VoxelDerivedOutput {
     surface: VoxelSurface,
@@ -131,15 +132,14 @@ pub(super) fn queue_dirty_chunk_builds(
 ) {
     let pool = AsyncComputeTaskPool::get();
     let available = available_slots(worker_tasks.iter().count());
-    if available == 0 {
-        return;
-    }
-
-    let budget = DERIVED_TASK_START_BUDGET_PER_FRAME.min(available);
+    let task_budget = DERIVED_TASK_START_BUDGET_PER_FRAME.min(available);
     let mut started = 0;
+    let mut empty_published = 0;
 
     for (world_entity, mut world, layer) in &mut worlds {
-        while started < budget {
+        while started < task_budget
+            || empty_published < DERIVED_EMPTY_PUBLISH_BUDGET_PER_FRAME
+        {
             let Some(key) = world.materializations_mut().pop_dirty_derived() else {
                 break;
             };
@@ -148,6 +148,31 @@ pub(super) fn queue_dirty_chunk_builds(
             else {
                 continue;
             };
+
+            // Generation/editing already computed this exact invariant. Known
+            // all-solid/all-empty materializations have no isosurface, so mark
+            // their derived revision current immediately instead of consuming
+            // an async worker slot and running Surface Nets to rediscover
+            // emptiness.
+            if !snapshot.has_surface_transition() {
+                world
+                    .materializations_mut()
+                    .publish_surface(key, revision, None);
+                telemetry.derived_skipped_empty();
+                empty_published += 1;
+                continue;
+            }
+
+            if started >= task_budget {
+                // Preserve bounded main-thread work and FIFO ownership. This
+                // reservation is returned to the dirty queue for a later frame
+                // when an actual async worker slot is available.
+                world
+                    .materializations_mut()
+                    .cancel_surface_build(key, revision);
+                break;
+            }
+
             let Ok(address) = world.materialization_address(key) else {
                 world.materializations_mut().cancel_surface_build(key, revision);
                 continue;
@@ -176,7 +201,9 @@ pub(super) fn queue_dirty_chunk_builds(
             started += 1;
         }
 
-        if started >= budget {
+        if started >= task_budget
+            && empty_published >= DERIVED_EMPTY_PUBLISH_BUDGET_PER_FRAME
+        {
             break;
         }
     }
