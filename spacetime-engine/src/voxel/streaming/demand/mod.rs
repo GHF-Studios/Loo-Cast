@@ -1,6 +1,6 @@
 //! Spatial-demand interpretation and voxel residency reconciliation.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 use bevy::prelude::*;
 
@@ -267,15 +267,18 @@ fn refresh_demand_plan(
         }
         {
             let _span = bevy::log::info_span!("voxel_residency.revalidate_context").entered();
-            validate_context_residency_keys(
-                world,
-                streaming.cached_desired_roles.keys().copied(),
-                residency,
-                context_scale,
-            )?;
+            validate_context_residency(demands, residency, context_scale)?;
         }
         streaming.residency_revision = residency.revision();
         return Ok(false);
+    }
+
+    // Context responsibility is declared by demand scopes, not by 10-native
+    // materialization cells. Validate the handful of intersected USF contexts
+    // before enumerating capability-local materializations.
+    {
+        let _span = bevy::log::info_span!("voxel_residency.validate_context").entered();
+        validate_context_residency(demands, residency, context_scale)?;
     }
 
     let desired = {
@@ -283,18 +286,19 @@ fn refresh_demand_plan(
         demanded_chunk_addresses(world, demands, pinned_shell, view_demands)?
     };
     {
-        let _span = bevy::log::info_span!("voxel_residency.validate_context").entered();
-        validate_context_residency(world, &desired, residency, context_scale)?;
-    }
-    {
         let _span = bevy::log::info_span!("voxel_residency.stage_plan").entered();
-        let desired_roles = desired.iter().map(|chunk| (chunk.key, chunk.roles)).collect::<HashMap<_, _>>();
+        let mut desired_roles = HashMap::with_capacity(desired.len());
+        let mut pending_desired = VecDeque::with_capacity(desired.len());
+
+        for chunk in desired {
+            desired_roles.insert(chunk.key, chunk.roles);
+            if !world.materializations().is_active(chunk.key) {
+                pending_desired.push_back(chunk);
+            }
+        }
+
         streaming.stage_desired_roles(desired_roles);
-        streaming.pending_desired = desired
-            .iter()
-            .copied()
-            .filter(|chunk| !world.materializations().is_active(chunk.key))
-            .collect();
+        streaming.pending_desired = pending_desired;
     }
     streaming.demand_key = key;
     streaming.residency_revision = residency.revision();
@@ -302,29 +306,21 @@ fn refresh_demand_plan(
 }
 
 fn validate_context_residency(
-    world: &VoxelWorld,
-    desired: &[DemandedChunk],
+    demands: &[VoxelRealizationScope],
     residency: &UsfContextResidency,
     context_scale: SpatialScale,
 ) -> Result<(), VoxelDemandPlanError> {
-    validate_context_residency_keys(
-        world,
-        desired.iter().map(|demanded| demanded.key),
-        residency,
-        context_scale,
-    )
-}
+    for request in demands {
+        let demand = request.scope();
+        let residency_scope = SpatialDemandScope::at_scale(
+            demand.source(),
+            context_scale,
+            demand.center(),
+            request.residency_half_extent_native(),
+            demand.priority(),
+        );
 
-fn validate_context_residency_keys(
-    world: &VoxelWorld,
-    keys: impl IntoIterator<Item = VoxelMaterializationKey>,
-    residency: &UsfContextResidency,
-    context_scale: SpatialScale,
-) -> Result<(), VoxelDemandPlanError> {
-    for key in keys {
-        let center = world.materialization_address(key)?.center()?;
-        let context = UsfChunkAddress::containing(center, context_scale)?;
-        if !residency.contains(context) {
+        if let Some(context) = residency.first_missing_intersecting(residency_scope)? {
             return Err(VoxelDemandPlanError::MissingResidentContext(context));
         }
     }

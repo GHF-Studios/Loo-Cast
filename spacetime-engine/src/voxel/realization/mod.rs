@@ -122,10 +122,11 @@ pub(in crate::voxel) struct VoxelRealizationScope {
     scope: SpatialDemandScope,
     roles: UsfScaleRoleMask,
     view_source: Option<Entity>,
+    residency_half_extent_native: Vec3,
 }
 
 impl VoxelRealizationScope {
-    pub(in crate::voxel) const fn new(
+    pub(in crate::voxel) fn new(
         scope: SpatialDemandScope,
         roles: UsfScaleRoleMask,
     ) -> Self {
@@ -133,6 +134,8 @@ impl VoxelRealizationScope {
             scope,
             roles,
             view_source: None,
+            residency_half_extent_native:
+                materialization_residency_extent(scope.half_extent_native()),
         }
     }
 
@@ -151,6 +154,10 @@ impl VoxelRealizationScope {
 
     pub(in crate::voxel) const fn view_source(self) -> Option<Entity> {
         self.view_source
+    }
+
+    pub(in crate::voxel) const fn residency_half_extent_native(self) -> Vec3 {
+        self.residency_half_extent_native
     }
 }
 
@@ -190,11 +197,11 @@ impl VoxelRealizationDemandSnapshot {
         self.demands
             .iter()
             .filter(move |demand| demand.target_world == world)
-            .map(|demand| {
-                let request = VoxelRealizationScope::new(demand.scope, demand.roles);
-                demand
-                    .view_source
-                    .map_or(request, |source| request.with_view_source(source))
+            .map(|demand| VoxelRealizationScope {
+                scope: demand.scope,
+                roles: demand.roles,
+                view_source: demand.view_source,
+                residency_half_extent_native: demand.residency_half_extent_native,
             })
     }
 

@@ -113,6 +113,31 @@ impl UsfContextResidency {
         self.contexts.values().copied()
     }
 
+    /// Returns the first context intersecting `demand` that is not resident.
+    ///
+    /// This validates context responsibility at native USF-context granularity
+    /// rather than forcing capability-local subcells to reconstruct and hash the
+    /// same canonical context repeatedly.
+    pub fn first_missing_intersecting(
+        &self,
+        demand: SpatialDemandScope,
+    ) -> Result<Option<UsfChunkAddress>, UsfPositionError> {
+        let (anchor, minimum, maximum) = address_range_intersecting_demand(demand)?;
+
+        for z in minimum.z..=maximum.z {
+            for y in minimum.y..=maximum.y {
+                for x in minimum.x..=maximum.x {
+                    let scope = anchor.translated_chunks(IVec3::new(x, y, z))?;
+                    if !self.contains(scope) {
+                        return Ok(Some(scope));
+                    }
+                }
+            }
+        }
+
+        Ok(None)
+    }
+
     /// Returns root -> leaf for one resident canonical context.
     ///
     /// `None` means either the leaf is not resident or the ancestor-closure
@@ -230,9 +255,9 @@ impl UsfContextResidency {
     }
 }
 
-fn addresses_intersecting_demand(
+fn address_range_intersecting_demand(
     demand: SpatialDemandScope,
-) -> Result<Vec<UsfChunkAddress>, UsfPositionError> {
+) -> Result<(UsfChunkAddress, IVec3, IVec3), UsfPositionError> {
     let scale = demand.scale();
     let center = demand.center().reexpressed_at(scale)?;
     let anchor = UsfChunkAddress::containing(center, scale)?;
@@ -251,7 +276,24 @@ fn addresses_intersecting_demand(
         ((local_center + half + Vec3::splat(half_chunk)) / chunk_size).floor(),
     )?;
 
-    let mut result = Vec::new();
+    Ok((anchor, minimum, maximum))
+}
+
+fn addresses_intersecting_demand(
+    demand: SpatialDemandScope,
+) -> Result<Vec<UsfChunkAddress>, UsfPositionError> {
+    let (anchor, minimum, maximum) = address_range_intersecting_demand(demand)?;
+
+    let extent_x = i64::from(maximum.x) - i64::from(minimum.x) + 1;
+    let extent_y = i64::from(maximum.y) - i64::from(minimum.y) + 1;
+    let extent_z = i64::from(maximum.z) - i64::from(minimum.z) + 1;
+    let capacity = extent_x
+        .checked_mul(extent_y)
+        .and_then(|value| value.checked_mul(extent_z))
+        .and_then(|value| usize::try_from(value).ok())
+        .ok_or(UsfPositionError::TranslationTooLarge)?;
+
+    let mut result = Vec::with_capacity(capacity);
     for z in minimum.z..=maximum.z {
         for y in minimum.y..=maximum.y {
             for x in minimum.x..=maximum.x {
