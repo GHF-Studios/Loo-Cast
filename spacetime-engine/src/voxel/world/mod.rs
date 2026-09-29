@@ -96,6 +96,11 @@ impl VoxelWorld {
             .translated(-remainder)
             .map(|origin| VoxelMaterializationChunkAddress::new(origin.usf()))
     }
+    pub(in crate::voxel) fn may_have_linear_drag(&self) -> bool {
+        self.base.may_have_linear_drag() || self.modifications.may_introduce_linear_drag()
+    }
+
+
 
     pub const fn base(&self) -> VoxelBase {
         self.base

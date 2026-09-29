@@ -70,13 +70,16 @@ pub(in crate::voxel) fn refresh_voxel_residency(
 ) {
     let warm_limit = config.voxel.streaming.warm_inactive_materialization_limit;
 
-    runtime_roles.clear();
-    for (runtime, realization) in &runtimes {
-        if realization.revision() == runtime.revision() {
-            runtime_roles.insert(
-                (runtime.world(), runtime.address()),
-                realization.roles(),
-            );
+    {
+        let _span = bevy::log::info_span!("voxel_residency.runtime_roles").entered();
+        runtime_roles.clear();
+        for (runtime, realization) in &runtimes {
+            if realization.revision() == runtime.revision() {
+                runtime_roles.insert(
+                    (runtime.world(), runtime.address()),
+                    realization.roles(),
+                );
+            }
         }
     }
 
@@ -161,6 +164,7 @@ fn candidate_plan_ready(
         UsfScaleRoleMask,
     >,
 ) -> bool {
+    let _span = bevy::log::info_span!("voxel_residency.candidate_ready").entered();
     streaming.candidate_addresses().all(|(address, requested_roles)| {
         let store = world.materializations();
         if !store.is_derived_current(address) {
@@ -195,6 +199,7 @@ fn candidate_plan_ready(
 }
 
 fn prioritize_surface_shell(streaming: &mut VoxelStreaming, radius_native: f32) {
+    let _span = bevy::log::info_span!("voxel_residency.surface_sort").entered();
     let mut pending = streaming.pending_desired.drain(..).collect::<Vec<_>>();
     pending.sort_by(|a, b| {
         b.priority.cmp(&a.priority).then_with(|| {
@@ -211,15 +216,23 @@ fn reconcile_materialization_residency(
     streaming: &mut VoxelStreaming,
     warm_inactive_materialization_limit: usize,
 ) {
-    let effective_desired = streaming.effective_desired_set();
-    world.materializations_mut().reconcile_residency(
-        &effective_desired,
-        warm_inactive_materialization_limit,
-    );
-
-    streaming
-        .pending_desired
-        .retain(|demanded| !world.materializations().is_active(demanded.address));
+    let effective_desired = {
+        let _span = bevy::log::info_span!("voxel_residency.effective_set").entered();
+        streaming.effective_desired_set()
+    };
+    {
+        let _span = bevy::log::info_span!("voxel_residency.store_reconcile").entered();
+        world.materializations_mut().reconcile_residency(
+            &effective_desired,
+            warm_inactive_materialization_limit,
+        );
+    }
+    {
+        let _span = bevy::log::info_span!("voxel_residency.pending_retain").entered();
+        streaming
+            .pending_desired
+            .retain(|demanded| !world.materializations().is_active(demanded.address));
+    }
 }
 
 #[derive(Debug)]
@@ -252,24 +265,53 @@ fn refresh_demand_plan(
     view_demands: &UsfViewDemandSnapshot,
     context_scale: SpatialScale,
 ) -> Result<bool, VoxelDemandPlanError> {
-    let key = demand_plan_key(world, demands, view_demands)?;
-    if key == streaming.demand_key && streaming.residency_revision == residency.revision() {
+    let key = {
+        let _span = bevy::log::info_span!("voxel_residency.plan_key").entered();
+        demand_plan_key(world, demands, view_demands)?
+    };
+
+    if key == streaming.demand_key {
+        if streaming.residency_revision == residency.revision() {
+            return Ok(false);
+        }
+
+        // Context residency is a validity precondition for an already-computed
+        // voxel plan, not part of the plan's geometry. A residency revision by
+        // itself therefore revalidates cached addresses instead of rebuilding,
+        // hashing and sorting the same desired materialization set.
+        {
+            let _span = bevy::log::info_span!("voxel_residency.revalidate_context").entered();
+            validate_context_residency_addresses(
+                streaming.cached_desired_roles.keys().copied(),
+                residency,
+                context_scale,
+            )?;
+        }
+        streaming.residency_revision = residency.revision();
         return Ok(false);
     }
 
-    let desired =
-        demanded_chunk_addresses(world, demands, pinned_shell, view_demands)?;
-    validate_context_residency(&desired, residency, context_scale)?;
-    let desired_roles = desired
-        .iter()
-        .map(|chunk| (chunk.address, chunk.roles))
-        .collect::<HashMap<_, _>>();
-    streaming.stage_desired_roles(desired_roles);
-    streaming.pending_desired = desired
-        .iter()
-        .copied()
-        .filter(|chunk| !world.materializations().is_active(chunk.address))
-        .collect();
+    let desired = {
+        let _span = bevy::log::info_span!("voxel_residency.enumerate_desired").entered();
+        demanded_chunk_addresses(world, demands, pinned_shell, view_demands)?
+    };
+    {
+        let _span = bevy::log::info_span!("voxel_residency.validate_context").entered();
+        validate_context_residency(&desired, residency, context_scale)?;
+    }
+    {
+        let _span = bevy::log::info_span!("voxel_residency.stage_plan").entered();
+        let desired_roles = desired
+            .iter()
+            .map(|chunk| (chunk.address, chunk.roles))
+            .collect::<HashMap<_, _>>();
+        streaming.stage_desired_roles(desired_roles);
+        streaming.pending_desired = desired
+            .iter()
+            .copied()
+            .filter(|chunk| !world.materializations().is_active(chunk.address))
+            .collect();
+    }
     streaming.demand_key = key;
     streaming.residency_revision = residency.revision();
     Ok(true)
@@ -280,8 +322,20 @@ fn validate_context_residency(
     residency: &UsfContextResidency,
     context_scale: SpatialScale,
 ) -> Result<(), VoxelDemandPlanError> {
-    for demanded in desired {
-        let center = demanded.address.center()?;
+    validate_context_residency_addresses(
+        desired.iter().map(|demanded| demanded.address),
+        residency,
+        context_scale,
+    )
+}
+
+fn validate_context_residency_addresses(
+    addresses: impl IntoIterator<Item = VoxelMaterializationChunkAddress>,
+    residency: &UsfContextResidency,
+    context_scale: SpatialScale,
+) -> Result<(), VoxelDemandPlanError> {
+    for address in addresses {
+        let center = address.center()?;
         let context = UsfChunkAddress::containing(center, context_scale)?;
         if !residency.contains(context) {
             return Err(VoxelDemandPlanError::MissingResidentContext(context));

@@ -13,14 +13,27 @@ use super::{VoxelEdit, VoxelMaterializationChunkAddress};
 pub struct VoxelModificationLayer {
     edits: Vec<VoxelEdit>,
     by_chunk: HashMap<VoxelMaterializationChunkAddress, Vec<usize>>,
+    has_linear_drag_material: bool,
 }
 
 impl VoxelModificationLayer {
+    pub(crate) const fn may_introduce_linear_drag(&self) -> bool {
+        self.has_linear_drag_material
+    }
+
     pub(crate) fn push(
         &mut self,
         edit: VoxelEdit,
         addresses: impl IntoIterator<Item = VoxelMaterializationChunkAddress>,
     ) {
+        let introduces_linear_drag = match edit {
+            VoxelEdit::Add { material, .. } | VoxelEdit::Paint { material, .. } => {
+                material.behavior().linear_drag > 0.0
+            }
+            VoxelEdit::Remove { .. } => false,
+        };
+        self.has_linear_drag_material |= introduces_linear_drag;
+
         let edit_index = self.edits.len();
         self.edits.push(edit);
 

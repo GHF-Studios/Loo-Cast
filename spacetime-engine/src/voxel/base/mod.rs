@@ -48,6 +48,21 @@ impl Default for VoxelBase {
 }
 
 impl VoxelBase {
+    /// Conservative capability test for non-zero voxel-medium drag.
+    ///
+    /// `true` only means an exact point sample may matter. `false` proves this
+    /// base cannot author a drag-bearing material, so callers may skip the
+    /// expensive semantic sample without changing authority.
+    pub(crate) fn may_have_linear_drag(self) -> bool {
+        match self {
+            Self::Sphere { material, .. } => material.behavior().linear_drag > 0.0,
+            Self::Empty
+            | Self::CelestialBody(_)
+            | Self::Volume(_)
+            | Self::Terrain(_) => false,
+        }
+    }
+
     pub fn sphere(center: VoxelQueryPosition, radius: f32, material: VoxelMaterialId) -> Self {
         Self::Sphere {
             center,
