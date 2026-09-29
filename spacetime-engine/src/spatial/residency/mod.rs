@@ -81,11 +81,26 @@ impl UsfResidencyRequestBuffer {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+struct UsfResidencyDemandRange {
+    source: Entity,
+    anchor: UsfChunkAddress,
+    minimum: IVec3,
+    maximum: IVec3,
+}
+
 /// Sparse ancestor-closed set of canonical contexts with runtime responsibility.
 #[derive(Resource, Debug, Default)]
 pub struct UsfContextResidency {
     revision: u64,
     contexts: HashMap<UsfChunkAddress, UsfResidentContext>,
+    /// Canonicalized direct-demand footprint that produced `contexts`.
+    ///
+    /// Runtime demand centers may move every frame while still intersecting
+    /// exactly the same canonical USF contexts. Caching this range-level plan
+    /// makes that common case O(number of demand scopes) instead of rebuilding
+    /// the entire ancestor-closed graph.
+    demand_plan: HashMap<UsfResidencyDemandRange, i32>,
 }
 
 impl UsfContextResidency {
@@ -196,34 +211,66 @@ impl UsfContextResidency {
         &mut self,
         scopes: impl IntoIterator<Item = SpatialDemandScope>,
     ) -> Result<(), UsfPositionError> {
+        // Normalize continuous demand motion into the discrete canonical
+        // context ranges that actually matter to residency. Multiple requests
+        // from one source for the same range collapse to their maximum priority.
+        let mut demand_plan = HashMap::<UsfResidencyDemandRange, i32>::new();
+        for demand in scopes {
+            let (anchor, minimum, maximum) = address_range_intersecting_demand(demand)?;
+            let key = UsfResidencyDemandRange {
+                source: demand.source(),
+                anchor,
+                minimum,
+                maximum,
+            };
+            demand_plan
+                .entry(key)
+                .and_modify(|priority| *priority = (*priority).max(demand.priority()))
+                .or_insert(demand.priority());
+        }
+
+        if self.demand_plan == demand_plan {
+            return Ok(());
+        }
+
         #[derive(Default)]
         struct DirectRequest {
-            sources: HashSet<Entity>,
+            direct_request_count: usize,
             maximum_priority: Option<i32>,
         }
 
         let mut direct = HashMap::<UsfChunkAddress, DirectRequest>::new();
+        let mut direct_sources = HashSet::<(UsfChunkAddress, Entity)>::new();
         let mut resident = HashSet::<UsfChunkAddress>::new();
 
-        for demand in scopes {
-            for scope in addresses_intersecting_demand(demand)? {
-                let entry = direct.entry(scope).or_default();
-                entry.sources.insert(demand.source());
-                entry.maximum_priority = Some(
-                    entry
-                        .maximum_priority
-                        .map_or(demand.priority(), |current| current.max(demand.priority())),
-                );
+        for (range, &priority) in &demand_plan {
+            for z in range.minimum.z..=range.maximum.z {
+                for y in range.minimum.y..=range.maximum.y {
+                    for x in range.minimum.x..=range.maximum.x {
+                        let scope =
+                            range.anchor.translated_chunks(IVec3::new(x, y, z))?;
+                        let entry = direct.entry(scope).or_default();
+                        if direct_sources.insert((scope, range.source)) {
+                            entry.direct_request_count += 1;
+                        }
+                        entry.maximum_priority = Some(
+                            entry
+                                .maximum_priority
+                                .map_or(priority, |current| current.max(priority)),
+                        );
 
-                let mut current = Some(scope);
-                while let Some(address) = current {
-                    resident.insert(address);
-                    current = address.parent();
+                        let mut current = Some(scope);
+                        while let Some(address) = current {
+                            resident.insert(address);
+                            current = address.parent();
+                        }
+                    }
                 }
             }
         }
 
-        let mut child_counts = HashMap::<UsfChunkAddress, usize>::new();
+        let mut child_counts =
+            HashMap::<UsfChunkAddress, usize>::with_capacity(resident.len());
         for scope in resident.iter().copied() {
             if let Some(parent) = scope.parent()
                 && resident.contains(&parent)
@@ -240,7 +287,8 @@ impl UsfContextResidency {
                 UsfResidentContext {
                     scope,
                     parent: scope.parent(),
-                    direct_request_count: direct_request.map_or(0, |request| request.sources.len()),
+                    direct_request_count: direct_request
+                        .map_or(0, |request| request.direct_request_count),
                     child_count: child_counts.get(&scope).copied().unwrap_or(0),
                     maximum_priority: direct_request.and_then(|request| request.maximum_priority),
                 },
@@ -251,6 +299,7 @@ impl UsfContextResidency {
             self.contexts = next;
             self.revision = self.revision.wrapping_add(1).max(1);
         }
+        self.demand_plan = demand_plan;
         Ok(())
     }
 }
@@ -277,31 +326,6 @@ fn address_range_intersecting_demand(
     )?;
 
     Ok((anchor, minimum, maximum))
-}
-
-fn addresses_intersecting_demand(
-    demand: SpatialDemandScope,
-) -> Result<Vec<UsfChunkAddress>, UsfPositionError> {
-    let (anchor, minimum, maximum) = address_range_intersecting_demand(demand)?;
-
-    let extent_x = i64::from(maximum.x) - i64::from(minimum.x) + 1;
-    let extent_y = i64::from(maximum.y) - i64::from(minimum.y) + 1;
-    let extent_z = i64::from(maximum.z) - i64::from(minimum.z) + 1;
-    let capacity = extent_x
-        .checked_mul(extent_y)
-        .and_then(|value| value.checked_mul(extent_z))
-        .and_then(|value| usize::try_from(value).ok())
-        .ok_or(UsfPositionError::TranslationTooLarge)?;
-
-    let mut result = Vec::with_capacity(capacity);
-    for z in minimum.z..=maximum.z {
-        for y in minimum.y..=maximum.y {
-            for x in minimum.x..=maximum.x {
-                result.push(anchor.translated_chunks(IVec3::new(x, y, z))?);
-            }
-        }
-    }
-    Ok(result)
 }
 
 fn checked_ivec3(value: Vec3) -> Result<IVec3, UsfPositionError> {

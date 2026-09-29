@@ -130,6 +130,7 @@ fn build_render_node(
         commands.spawn((
             Name::new(format!("Portal Camera {:?}", child_path,)),
             Camera3d::default(),
+            bevy::render::view::NoIndirectDrawing,
             Camera {
                 // Derived views are dormant until both physical endpoints are
                 // active. A hidden portal must not cost a full render pass.

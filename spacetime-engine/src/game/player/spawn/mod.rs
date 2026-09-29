@@ -182,6 +182,7 @@ pub(super) fn spawn_player(
             PortalView,
             UsfPresentationView,
             Camera3d::default(),
+            bevy::render::view::NoIndirectDrawing,
             Camera {
                 order: 1,
                 clear_color: bevy::camera::ClearColorConfig::None,
@@ -219,6 +220,7 @@ pub(super) fn spawn_player(
         NavigationPresentationProfile::default(),
         NavigationPresentationState::default(),
         Camera3d::default(),
+        bevy::render::view::NoIndirectDrawing,
         Camera {
             order: 0,
             ..default()
