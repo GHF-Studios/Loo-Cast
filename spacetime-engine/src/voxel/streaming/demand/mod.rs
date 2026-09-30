@@ -18,6 +18,7 @@ use super::{VoxelPinnedDemand, VoxelStreaming};
 use super::super::{
     MATERIALIZATION_CHUNK_SIZE, VoxelCollisionDisabled, VoxelEditingDisabled,
     VoxelMaterializationKey, VoxelQueryPosition, VoxelRealizationDemandSnapshot,
+    VoxelRegionSpan,
     VoxelRealizationScope, VoxelWorld, manifestation::VoxelMaterializationRuntime,
 };
 
@@ -372,56 +373,91 @@ fn merge_demanded_chunk(
         .or_insert(candidate);
 }
 
-fn collect_visible_chunk_block(
+// region-first-demand-v1
+fn collect_all_region_leaves(
     center_key: VoxelMaterializationKey,
-    center_origin: &UsfPosition,
-    minimum: IVec3,
-    maximum: IVec3,
+    region: VoxelRegionSpan,
     demand: SpatialDemandScope,
     request: VoxelRealizationScope,
-    view: &crate::spatial::UsfViewDemand,
     local_center: Vec3,
     size: f32,
     merged: &mut HashMap<VoxelMaterializationKey, DemandedChunk>,
 ) -> Result<(), crate::spatial::UsfPositionError> {
-    if minimum.cmpgt(maximum).any() {
+    let relative_origin = region.relative_origin_chunks(center_key)?;
+    let extent = region.extent_chunks();
+    for z in 0..extent.z { for y in 0..extent.y { for x in 0..extent.x {
+        let local_offset=IVec3::new(x,y,z);
+        let key=region.origin().translated_chunks(local_offset)?;
+        let chunk_offset=relative_origin+local_offset;
+        let chunk_center=chunk_offset.as_vec3()*size+Vec3::splat(size*0.5);
+        merge_demanded_chunk(merged,DemandedChunk{
+            key, priority:demand.priority(),
+            distance_squared:(chunk_center-local_center).length_squared(),
+            roles:request.roles(),
+        });
+    }}}
+    Ok(())
+}
+
+fn region_may_intersect_surface_shell(
+    block_center_from_demand: Vec3,
+    block_half_extent: Vec3,
+    radius_native: f32,
+    leaf_size: f32,
+) -> bool {
+    let c=block_center_from_demand.abs();
+    let nearest=(c-block_half_extent).max(Vec3::ZERO).length();
+    let farthest=(c+block_half_extent).length();
+    let margin=Vec3::splat(leaf_size*0.5).length()+1.5;
+    nearest<=radius_native+margin && farthest>=(radius_native-margin).max(0.0)
+}
+
+fn collect_culled_region(
+    center_key: VoxelMaterializationKey,
+    center_origin: &UsfPosition,
+    region: VoxelRegionSpan,
+    demand: SpatialDemandScope,
+    request: VoxelRealizationScope,
+    view: Option<&crate::spatial::UsfViewDemand>,
+    pinned_shell: Option<(Entity,f32)>,
+    local_center: Vec3,
+    size: f32,
+    merged: &mut HashMap<VoxelMaterializationKey,DemandedChunk>,
+)->Result<(),crate::spatial::UsfPositionError>{
+    let relative_origin=region.relative_origin_chunks(center_key)?;
+    let block_min=relative_origin.as_vec3()*size;
+    let block_max=block_min+region.extent_chunks().as_vec3()*size;
+    let block_center_local=(block_min+block_max)*0.5;
+    let block_half_extent=(block_max-block_min)*0.5;
+    let block_center=center_origin.translated_native(block_center_local)?;
+
+    if let Some(view)=view
+        && !view.intersects_native_aabb(demand.scale(),&block_center,block_half_extent)
+    { return Ok(()); }
+
+    if let Some((source,radius))=pinned_shell
+        && demand.source()==source
+        && !region_may_intersect_surface_shell(
+            block_center_local-local_center,block_half_extent,radius,size)
+    { return Ok(()); }
+
+    if region.is_leaf(){
+        let key=region.origin();
+        let chunk_center=relative_origin.as_vec3()*size+Vec3::splat(size*0.5);
+        let distance_squared=(chunk_center-local_center).length_squared();
+        if let Some((source,radius))=pinned_shell && demand.source()==source {
+            let margin=Vec3::splat(size*0.5).length()+1.5;
+            if (distance_squared.sqrt()-radius).abs()>margin { return Ok(()); }
+        }
+        merge_demanded_chunk(merged,DemandedChunk{
+            key,priority:demand.priority(),distance_squared,roles:request.roles()
+        });
         return Ok(());
     }
 
-    let block_min = minimum.as_vec3() * size;
-    let block_max = (maximum + IVec3::ONE).as_vec3() * size;
-    let block_center_local = (block_min + block_max) * 0.5;
-    let block_half_extent = (block_max - block_min) * 0.5;
-    let block_center = center_origin.translated_native(block_center_local)?;
-
-    if !view.intersects_native_aabb(demand.scale(), &block_center, block_half_extent) {
-        return Ok(());
-    }
-
-    if minimum == maximum {
-        let key = center_key.translated_chunks(minimum)?;
-        let chunk_center = minimum.as_vec3() * size + Vec3::splat(size * 0.5);
-        let distance_squared = (chunk_center - local_center).length_squared();
-        merge_demanded_chunk(
-            merged,
-            DemandedChunk { key, priority: demand.priority(), distance_squared, roles: request.roles() },
-        );
-        return Ok(());
-    }
-
-    let span = maximum - minimum;
-    let axis = if span.x >= span.y && span.x >= span.z { 0 } else if span.y >= span.z { 1 } else { 2 };
-    let mut left_max = maximum;
-    let mut right_min = minimum;
-    match axis {
-        0 => { let middle = minimum.x + span.x / 2; left_max.x = middle; right_min.x = middle + 1; }
-        1 => { let middle = minimum.y + span.y / 2; left_max.y = middle; right_min.y = middle + 1; }
-        2 => { let middle = minimum.z + span.z / 2; left_max.z = middle; right_min.z = middle + 1; }
-        _ => unreachable!(),
-    }
-
-    collect_visible_chunk_block(center_key, center_origin, minimum, left_max, demand, request, view, local_center, size, merged)?;
-    collect_visible_chunk_block(center_key, center_origin, right_min, maximum, demand, request, view, local_center, size, merged)
+    let Some((left,right))=region.split_longest()? else { unreachable!() };
+    collect_culled_region(center_key,center_origin,left,demand,request,view,pinned_shell,local_center,size,merged)?;
+    collect_culled_region(center_key,center_origin,right,demand,request,view,pinned_shell,local_center,size,merged)
 }
 
 pub(super) fn demanded_chunk_addresses<T>(
@@ -446,47 +482,28 @@ where
         let minimum = checked_ivec3(((local_center - half) / size).floor())?;
         let maximum = checked_ivec3(((local_center + half) / size).floor())?;
 
-        if let Some(view_source) = request.view_source() {
-            let Some(view) = view_demands.get(view_source) else { continue; };
-            collect_visible_chunk_block(
-                center_key,
-                center_address.origin(),
-                minimum,
-                maximum,
-                demand,
-                request,
-                view,
-                local_center,
-                size,
-                &mut merged,
-            )?;
-            continue;
-        }
-
-        for z in minimum.z..=maximum.z {
-            for y in minimum.y..=maximum.y {
-                for x in minimum.x..=maximum.x {
-                    let offset = IVec3::new(x, y, z);
-                    let key = center_key.translated_chunks(offset)?;
-                    let chunk_center = offset.as_vec3() * size + Vec3::splat(size * 0.5);
-                    let distance_squared = (chunk_center - local_center).length_squared();
-
-                    if let Some((pinned_source, radius_native)) = pinned_shell {
-                        if demand.source() == pinned_source {
-                            let surface_margin = Vec3::splat(size * 0.5).length() + 1.5;
-                            let distance = distance_squared.sqrt();
-                            if (distance - radius_native).abs() > surface_margin {
-                                continue;
-                            }
-                        }
-                    }
-
-                    merge_demanded_chunk(
-                        &mut merged,
-                        DemandedChunk { key, priority: demand.priority(), distance_squared, roles: request.roles() },
-                    );
-                }
+        let region = VoxelRegionSpan::from_relative_bounds(center_key, minimum, maximum)?;
+        let view = match request.view_source() {
+            Some(source) => {
+                let Some(view) = view_demands.get(source) else { continue; };
+                Some(view)
             }
+            None => None,
+        };
+        let shell = pinned_shell.filter(|(source, _)| demand.source() == *source);
+
+        if view.is_some() || shell.is_some() {
+            collect_culled_region(
+                center_key, center_address.origin(), region, demand, request,
+                view, shell, local_center, size, &mut merged,
+            )?;
+        } else {
+            // Exact demand still chooses the dense leaf backend today. The
+            // region is now the request boundary, so another backend can later
+            // satisfy it without changing materialization identity.
+            collect_all_region_leaves(
+                center_key, region, demand, request, local_center, size, &mut merged,
+            )?;
         }
     }
 

@@ -19,6 +19,7 @@ mod modification;
 mod worker;
 mod physics;
 mod realization;
+mod region;
 mod manifestation;
 mod store;
 mod streaming;
@@ -41,6 +42,7 @@ pub use realization::VoxelScaleDomain;
 pub(in crate::voxel) use realization::{
     VoxelRealizationDemandSnapshot, VoxelRealizationScope,
 };
+pub(in crate::voxel) use region::VoxelRegionSpan;
 pub use manifestation::VoxelPresentationMaterial;
 pub use streaming::{
     VoxelMaterializationDemand, VoxelPinnedDemand, VoxelStreaming, VoxelStreamingTelemetry,

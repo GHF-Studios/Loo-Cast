@@ -4,11 +4,9 @@
 //! only for background generation work scheduling. Runtime render and collision
 //! manifestations are deliberately one-to-one with materialization chunks.
 
-use bevy::prelude::IVec3;
-
 use crate::spatial::UsfPositionError;
 
-use super::{MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationKey};
+use super::{MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationKey, VoxelRegionSpan};
 
 /// Decimal edge length for one generation processing scope.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -33,7 +31,7 @@ impl VoxelGenerationScopeExtent {
 /// addresses.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(super) struct VoxelGenerationScope {
-    origin: VoxelMaterializationKey,
+    region: VoxelRegionSpan,
 }
 
 impl VoxelGenerationScope {
@@ -41,14 +39,12 @@ impl VoxelGenerationScope {
         key: VoxelMaterializationKey,
         extent: VoxelGenerationScopeExtent,
     ) -> Result<Self, UsfPositionError> {
-        let [x, y, z] = key.components();
-        let edge = i64::from(extent.base_chunks_per_axis);
-        let remainder = IVec3::new(
-            x.rem_euclid(edge) as i32,
-            y.rem_euclid(edge) as i32,
-            z.rem_euclid(edge) as i32,
-        );
-        Ok(Self { origin: key.translated_chunks(-remainder)? })
+        Ok(Self {
+            region: VoxelRegionSpan::aligned_containing(
+                key,
+                extent.base_chunks_per_axis,
+            )?,
+        })
     }
 }
 
@@ -96,7 +92,7 @@ mod tests {
             .unwrap();
         let expected_key = world.materialization_key(expected).unwrap();
 
-        assert_eq!(hundred.origin, expected_key);
+        assert_eq!(hundred.region.origin(), expected_key);
         assert_eq!(
             hundred_extent.base_chunks_per_axis * MATERIALIZATION_CHUNK_SIZE as i32,
             100
