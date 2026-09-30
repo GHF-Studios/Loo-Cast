@@ -2,7 +2,6 @@
 
 pub mod slice;
 mod chart_rebase;
-mod collider_tree_profile;
 pub mod character;
 pub mod collision_query;
 pub mod collision_topology;
@@ -42,7 +41,6 @@ fn configure_overload_guard(mut virtual_time: ResMut<Time<Virtual>>) {
 
 impl Plugin for SpacetimePhysicsPlugin {
     fn build(&self, app: &mut App) {
-        collider_tree_profile::configure(app);
         collision_query::configure(app);
 
         app.register_type::<PhysicalBoxHull>()
