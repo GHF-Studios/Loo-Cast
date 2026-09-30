@@ -20,6 +20,7 @@ mod medium;
 mod modification;
 mod worker;
 mod physics;
+mod planetary_surface;
 mod realization;
 mod region;
 mod manifestation;
@@ -45,6 +46,9 @@ pub use field::{
 };
 pub use frame::{VoxelFrameBrush, VoxelFrameEdit, VoxelFramePosition, VoxelFrameSnapshot};
 pub use modification::VoxelModificationLayer;
+pub use planetary_surface::{
+    PlanetarySurfaceFace, PlanetarySurfacePatchId, PlanetarySurfaceRealization,
+};
 pub use realization::VoxelScaleDomain;
 pub(in crate::voxel) use realization::{
     VoxelRealizationDemandSnapshot, VoxelRealizationIntentSnapshot,
@@ -145,7 +149,11 @@ impl Plugin for VoxelPlugin {
             )
             .add_systems(
                 Update,
-                streaming::refresh_voxel_residency.in_set(VoxelUpdateSet::Residency),
+                (
+                    streaming::refresh_voxel_residency.in_set(VoxelUpdateSet::Residency),
+                    planetary_surface::sync_planetary_surface_realizations
+                        .after(VoxelUpdateSet::RealizationDemand),
+                ),
             )
             .add_systems(
                 Update,
@@ -226,8 +234,11 @@ impl Plugin for VoxelPlugin {
             )
             .add_systems(
                 PostUpdate,
-                manifestation::sync_manifestation_runtime_transforms
-                    .after(VoxelPostUpdateSet::Rebuild)
+                (
+                    manifestation::sync_manifestation_runtime_transforms
+                        .after(VoxelPostUpdateSet::Rebuild),
+                    planetary_surface::sync_planetary_surface_projection_state,
+                )
                     .in_set(UsfSpatialSet::RuntimeProjection),
             )
             .add_systems(

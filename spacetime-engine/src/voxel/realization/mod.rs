@@ -25,9 +25,9 @@ use crate::{
 };
 
 use super::{
-    CelestialVoxelField, CelestialVoxelRealizationPolicy,
-    CelestialVoxelRealizationRegistry, MATERIALIZATION_CHUNK_SIZE,
-    VoxelMaterializationDemand, VoxelPinnedDemand, VoxelWorld,
+    CelestialVoxelField, CelestialVoxelRealizationRegistry,
+    MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationDemand,
+    VoxelPinnedDemand, VoxelWorld,
 };
 
 const DEFAULT_REFINEMENT_ACTIVATION_NATIVE: f32 = 8_192.0;
@@ -354,7 +354,6 @@ pub(super) fn collect_voxel_realization_intent(
         &UsfSemanticFrame,
         &CelestialVoxelField,
         &VoxelScaleDomain,
-        &CelestialVoxelRealizationPolicy,
     )>,
     coverage: Res<UsfScaleCoverageSnapshot>,
     view_demands: Res<UsfViewDemandSnapshot>,
@@ -376,39 +375,11 @@ pub(super) fn collect_voxel_realization_intent(
         });
     }
 
-    for (authority, body_origin, body_frame, field, domain, policy) in &celestial_authorities {
-        // Persistent bootstrap is authority-level intent, not a pre-created
-        // coarsest world. Only that one Scale is requested by bootstrap policy.
-        let bootstrap_scale = field.coarsest_detail_scale();
-        if domain.realizes(bootstrap_scale)
-            && let Ok(center) = body_origin.reexpressed_at(bootstrap_scale)
-        {
-            let radius_native = bootstrap_scale.metres_to_native_f64(field.radius_metres());
-            if radius_native.is_finite()
-                && radius_native >= 0.0
-                && radius_native <= f64::from(f32::MAX)
-            {
-                let half_extent = Vec3::splat(
-                    radius_native as f32 + policy.bootstrap_shell_margin_native(),
-                );
-                let scope = SpatialDemandScope::at_scale(
-                    authority,
-                    bootstrap_scale,
-                    center,
-                    half_extent,
-                    1_000,
-                );
-                next.push(
-                    VoxelRealizationIntentTarget::Celestial(
-                        VoxelRealizationTarget::new(authority, bootstrap_scale),
-                    ),
-                    scope,
-                    presentation_roles(),
-                    None,
-                    materialization_residency_extent(half_extent),
-                );
-            }
-        }
+    for (authority, body_origin, body_frame, field, domain) in &celestial_authorities {
+        // Whole-body context is now a regional planetary-surface representation.
+        // Dense celestial worlds bootstrap only from ordinary local/view demand:
+        // the coarsest requested local branch has no parent prerequisite and
+        // naturally seeds parent-first refinement without a permanent shell.
 
         for source in sources.iter().copied() {
             let plan = realization_plan(source, *domain);

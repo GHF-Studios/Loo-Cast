@@ -16,39 +16,24 @@ use crate::{
 
 use super::{
     CelestialVoxelField, VoxelBase, VoxelCollisionDisabled, VoxelEditingDisabled,
-    VoxelPinnedDemand, VoxelPresentationMaterial, VoxelScaleDomain, VoxelStreaming,
-    VoxelWorld,
+    VoxelPresentationMaterial, VoxelScaleDomain, VoxelStreaming, VoxelWorld,
     realization::{VoxelRealizationIntentSnapshot, VoxelRealizationTarget},
 };
 
 #[derive(Component, Debug, Clone)]
 pub struct CelestialVoxelRealizationPolicy {
     presentation_material: Handle<StandardMaterial>,
-    bootstrap_shell_margin_native: f32,
 }
 
 impl CelestialVoxelRealizationPolicy {
-    pub fn new(
-        presentation_material: Handle<StandardMaterial>,
-        bootstrap_shell_margin_native: f32,
-    ) -> Self {
-        assert!(
-            bootstrap_shell_margin_native.is_finite()
-                && bootstrap_shell_margin_native >= 0.0,
-            "celestial bootstrap shell margin must be finite and non-negative"
-        );
+    pub fn new(presentation_material: Handle<StandardMaterial>) -> Self {
         Self {
             presentation_material,
-            bootstrap_shell_margin_native,
         }
     }
 
     pub(crate) fn presentation_material(&self) -> &Handle<StandardMaterial> {
         &self.presentation_material
-    }
-
-    pub(crate) const fn bootstrap_shell_margin_native(&self) -> f32 {
-        self.bootstrap_shell_margin_native
     }
 }
 
@@ -187,27 +172,6 @@ pub(super) fn sync_celestial_voxel_realizations(
             Transform::IDENTITY,
             Visibility::Inherited,
         ));
-
-        if target.scale() == field.coarsest_detail_scale() {
-            let radius_native = target.scale().metres_to_native_f64(field.radius_metres());
-            if radius_native.is_finite()
-                && radius_native >= 0.0
-                && radius_native <= f64::from(f32::MAX)
-            {
-                world.insert(VoxelPinnedDemand::shell(
-                    grid_origin,
-                    radius_native as f32,
-                    policy.bootstrap_shell_margin_native(),
-                ));
-            } else {
-                error!(
-                    authority = ?target.authority(),
-                    scale = %target.scale(),
-                    radius_native,
-                    "celestial bootstrap radius does not fit bounded realization chart"
-                );
-            }
-        }
 
         if !domain.collides(target.scale()) {
             world.insert(VoxelCollisionDisabled);

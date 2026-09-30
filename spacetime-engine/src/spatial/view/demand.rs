@@ -57,7 +57,21 @@ impl UsfViewDemand {
         if !self.requests_scale(scale) {
             return false;
         }
+        self.intersects_presentation_native_aabb(scale, center, half_extent_native)
+    }
 
+    /// View-only relevance for persistent contextual presentation.
+    ///
+    /// Unlike capability demand, scenery authored at one bounded coarse Scale
+    /// remains a valid representation when the observer zooms to a finer or
+    /// coarser Scale. This reuses the same scale-invariant frustum/significance
+    /// test without letting view Scale decide semantic residency.
+    pub fn intersects_presentation_native_aabb(
+        &self,
+        scale: SpatialScale,
+        center: &UsfPosition,
+        half_extent_native: Vec3,
+    ) -> bool {
         let half_extent_native = half_extent_native.abs();
         let bound =
             VIEW_RELATIVE_BOUND_NATIVE.max(half_extent_native.length() + 1.0);

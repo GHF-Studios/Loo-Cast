@@ -93,6 +93,14 @@ impl UsfSceneryPresentation {
         self.anchor
     }
 
+    /// Updates disposable presentation placement from semantic authority.
+    ///
+    /// This is derived projection state only; callers must never treat the
+    /// scenery component as canonical position authority.
+    pub(crate) fn set_anchor(&mut self, anchor: UsfPosition) {
+        self.anchor = anchor;
+    }
+
     pub const fn scale(self) -> SpatialScale {
         self.scale
     }

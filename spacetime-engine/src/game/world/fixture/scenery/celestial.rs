@@ -6,7 +6,6 @@
 use bevy::prelude::*;
 
 use crate::{
-    config::EngineConfig,
     ecs::{
         UsfAuthorityPartitionOf, UsfAuthorityPartitions, UsfEntity,
         UsfLogicalRealizationOf, UsfLogicalRealizations,
@@ -87,7 +86,6 @@ pub(super) fn spawn_body(
             scale_domain,
             CelestialVoxelRealizationPolicy::new(
                 assets.debug_grid.clone(),
-                CELESTIAL_BOOTSTRAP_SHELL_MARGIN_NATIVE,
             ),
             VoxelAuthority::default(),
             UsfTravelInfluence::hard_body(
@@ -122,7 +120,8 @@ pub(super) fn spawn_body(
         "Earth bootstrap surface direction must be non-zero"
     );
 
-    // Intentionally no UsfSceneryPresentation / celestial_surface_mesh.
+    // Whole-body presentation is derived generically by voxel::planetary_surface.
+    // The fixture owns semantic body input only; no presentation entity is authored here.
     landmarks.register_body(definition, center, system_scale);
     if definition.arrival_direction.is_some() {
         let site = body_surface_site(
@@ -228,10 +227,6 @@ pub(in crate::game::world::fixture) fn audit_world_authority(
             && refinement.is_some()
             && partition_count > 0;
 
-        if valid && realization_count == 0 {
-            awaiting_bootstrap_realization += 1;
-        }
-
         if !valid {
             invalid += 1;
             error!(
@@ -244,17 +239,16 @@ pub(in crate::game::world::fixture) fn audit_world_authority(
                 has_gravity = gravity.is_some(),
                 has_refinement = refinement.is_some(),
                 partitions = partition_count,
-                logical_realizations = realization_count,
                 "Earth authority invariant violation"
             );
         }
     }
 
-    if invalid == 0 && awaiting_bootstrap_realization == 0 {
+    if invalid == 0 {
         info!(
             bodies = entries.len(),
             minimum_voxel_scale = %SpatialScale::MIN,
-            "Earth semantic/partition invariants healthy; lazy authority-targeted voxel realization active"
+            "Earth semantic/partition invariants healthy; dense voxel and regional presentation realizations are demand-owned"
         );
         *completed = true;
     }
