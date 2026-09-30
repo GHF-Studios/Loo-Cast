@@ -9,7 +9,7 @@ use std::collections::HashSet;
 
 use bevy::{
     prelude::*,
-    tasks::{AsyncComputeTaskPool, Task, futures::check_ready},
+    tasks::{Task, futures::check_ready},
 };
 
 use crate::spatial::{SPATIAL_SCALE_MAX, SpatialScale, UsfPosition, UsfScaleLayer};
@@ -20,10 +20,9 @@ use super::{
     streaming::VoxelStreamingTelemetry,
     mesh::{self, VoxelSurface},
     store::VoxelSurfaceCache,
-    worker::{VoxelWorkerTask, available_slots},
+    worker::{VoxelWorkerPool, VoxelWorkerTask},
 };
 
-const DERIVED_TASK_START_BUDGET_PER_FRAME: usize = 8;
 const DERIVED_PUBLISH_BUDGET_PER_FRAME: usize = 8;
 const DERIVED_EMPTY_PUBLISH_BUDGET_PER_FRAME: usize = 64;
 
@@ -126,13 +125,12 @@ pub(super) fn retire_stale_chunk_builds(
 /// cached terrain does no per-frame geometry scheduling work.
 pub(super) fn queue_dirty_chunk_builds(
     mut commands: Commands,
+    workers: Res<VoxelWorkerPool>,
     mut worlds: Query<(Entity, &mut VoxelWorld, &UsfScaleLayer)>,
     worker_tasks: Query<(), With<VoxelWorkerTask>>,
     mut telemetry: ResMut<VoxelStreamingTelemetry>,
 ) {
-    let pool = AsyncComputeTaskPool::get();
-    let available = available_slots(worker_tasks.iter().count());
-    let task_budget = DERIVED_TASK_START_BUDGET_PER_FRAME.min(available);
+    let task_budget = workers.available_slots(worker_tasks.iter().count());
     let mut started = 0;
     let mut empty_published = 0;
 
@@ -179,7 +177,7 @@ pub(super) fn queue_dirty_chunk_builds(
             };
 
             let debug_color = debug_chunk_color(address, layer.scale());
-            let task = pool.spawn(async move {
+            let task = workers.pool().spawn(async move {
                 let surface = mesh::extract_chunk_surface(&snapshot);
                 VoxelDerivedOutput {
                     surface,

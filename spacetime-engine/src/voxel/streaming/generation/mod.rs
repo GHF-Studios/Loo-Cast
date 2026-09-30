@@ -4,7 +4,7 @@ use std::collections::VecDeque;
 
 use bevy::{
     prelude::*,
-    tasks::{AsyncComputeTaskPool, Task, futures::check_ready},
+    tasks::{Task, futures::check_ready},
 };
 
 use crate::{
@@ -18,7 +18,7 @@ use super::super::{
     VoxelAuthority, VoxelChunk, VoxelMaterializationChunkAddress,
     VoxelMaterializationKey, VoxelScaleDomain, VoxelWorld,
     generation_scope::VoxelGenerationScopeExtent,
-    worker::{VoxelWorkerTask, available_slots},
+    worker::{VoxelWorkerPool, VoxelWorkerTask},
 };
 
 mod batching;
@@ -43,10 +43,14 @@ pub(in crate::voxel) struct VoxelGenerationTask {
 }
 
 impl VoxelGenerationTask {
-    fn spawn(world: Entity, jobs: Vec<VoxelGenerationJob>) -> Self {
+    fn spawn(
+        workers: &VoxelWorkerPool,
+        world: Entity,
+        jobs: Vec<VoxelGenerationJob>,
+    ) -> Self {
         debug_assert!(!jobs.is_empty());
         let keys = jobs.iter().map(|job| job.key).collect();
-        let task = AsyncComputeTaskPool::get().spawn(async move {
+        let task = workers.pool().spawn(async move {
             jobs.into_iter()
                 .map(|job| {
                     let applied_edit_count = job.recipe.applied_edit_count();
@@ -168,6 +172,7 @@ pub(in crate::voxel) fn retire_stale_generation_tasks(
 /// cannot independently saturate the compute pool.
 pub(in crate::voxel) fn schedule_voxel_generation(
     config: Res<EngineConfig>,
+    workers: Res<VoxelWorkerPool>,
     interaction: Res<UsfPrimaryInteractionSlice>,
     mut commands: Commands,
     mut worlds: Query<(
@@ -189,7 +194,8 @@ pub(in crate::voxel) fn schedule_voxel_generation(
     )
     .expect("validated engine config must produce a generation grouping extent");
 
-    let mut generation_slots = available_slots(worker_tasks.iter().count());
+    telemetry.worker_capacity(workers.capacity());
+    let mut generation_slots = workers.available_slots(worker_tasks.iter().count());
     if generation_slots == 0 {
         return;
     }
@@ -246,7 +252,7 @@ pub(in crate::voxel) fn schedule_voxel_generation(
             &mut streaming,
             authority,
             generation_scope_extent,
-            1,
+            generation_slots,
             streaming_config.max_chunks_per_generation_task,
         );
         let scheduled = batches.len();
@@ -256,7 +262,7 @@ pub(in crate::voxel) fn schedule_voxel_generation(
             commands.spawn((
                 Name::new("Voxel Generation Task"),
                 VoxelWorkerTask,
-                VoxelGenerationTask::spawn(world_entity, batch.jobs),
+                VoxelGenerationTask::spawn(&workers, world_entity, batch.jobs),
             ));
         }
 

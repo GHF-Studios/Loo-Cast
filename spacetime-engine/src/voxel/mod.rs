@@ -97,6 +97,7 @@ impl Plugin for VoxelPlugin {
 
         app.init_resource::<manifestation::VoxelMaterializationRuntimeRegistry>()
             .init_resource::<VoxelRealizationDemandSnapshot>()
+            .init_resource::<worker::VoxelWorkerPool>()
             .init_resource::<VoxelStreamingTelemetry>()
             .configure_sets(
                 Update,

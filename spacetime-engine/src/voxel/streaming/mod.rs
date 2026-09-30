@@ -184,6 +184,7 @@ impl VoxelStreaming {
 /// Diagnostic counters only; never used as scheduling authority.
 #[derive(Resource, Debug, Default, Clone, Copy)]
 pub struct VoxelStreamingTelemetry {
+    worker_capacity: usize,
     generation_in_flight: usize,
     derived_in_flight: usize,
     generation_started_total: u64,
@@ -197,9 +198,14 @@ pub struct VoxelStreamingTelemetry {
 }
 
 impl VoxelStreamingTelemetry {
+    pub(super) fn worker_capacity(&mut self, capacity: usize) {
+        self.worker_capacity = capacity;
+    }
+
     pub fn summary(self) -> String {
         format!(
-            "workers generation={} derived={} total={} | gen started={} completed={} cancelled={} abandoned_chunks={} | surface started={} completed={} cancelled={} skipped_empty={}",
+            "workers capacity={} generation={} derived={} total={} | gen started={} completed={} cancelled={} abandoned_chunks={} | surface started={} completed={} cancelled={} skipped_empty={}",
+            self.worker_capacity,
             self.generation_in_flight,
             self.derived_in_flight,
             self.generation_in_flight + self.derived_in_flight,
