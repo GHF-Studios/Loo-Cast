@@ -481,7 +481,7 @@ fn handle_spacecraft_actions(
         (
             Entity,
             &mut Transform,
-            &mut UsfScaleLayer,
+            &UsfScaleLayer,
             &mut Visibility,
             &mut SpatialDemandSource,
             &mut LocomotionEnabled,
@@ -562,7 +562,7 @@ fn handle_spacecraft_actions(
         let (
             player_entity,
             mut player_transform,
-            mut player_layer,
+            player_layer,
             mut player_visibility,
             mut player_demand,
             mut player_enabled,
@@ -653,7 +653,13 @@ fn handle_spacecraft_actions(
         player_transform.rotation = aligned_player;
         player_control.snap_to(aligned_player);
 
-        *player_layer = UsfScaleLayer::new(ship_layer.scale());
+        // spacecraft-contact-handoff-layer-access-v4
+        // Scale-Slice reassignment is part of the deferred control/handoff
+        // transaction. The action system only needs to read the current player
+        // layer, which keeps its collision-query SystemParams alias-safe.
+        commands
+            .entity(player_entity)
+            .insert(UsfScaleLayer::new(ship_layer.scale()));
         player_traveler.commit_position(exit_local);
         *player_visibility = Visibility::Inherited;
         player_demand.set_enabled(true);
