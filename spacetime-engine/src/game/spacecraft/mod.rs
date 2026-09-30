@@ -68,6 +68,9 @@ const SHIP_DEMAND_HALF_EXTENT: Vec3 = Vec3::new(96.0, 64.0, 96.0);
 const SHIP_DEMAND_PRIORITY: i32 = 120;
 const LANDING_PROBE_METRES: f32 = 2.0;
 const ENTER_DISTANCE_METRES: f32 = 12.0;
+// spacecraft-contact-handoff-v1
+// Landing/disembark use actual hull shape casts; these constants are
+// reach/search policy, not hard-coded standing or terrain offsets.
 
 #[derive(Component, Reflect, Debug, Default)]
 #[reflect(Component)]
@@ -328,14 +331,20 @@ fn spawn_reference_spacecraft(
 pub(crate) fn detect_landing(
     spatial_query: SpatialQuery,
     physics_charts: UsfPhysicsSlices,
+    spatial_frame: Res<UsfSpatialFrame>,
+    ownership: UsfOwnershipQuery,
+    mut semantic_positions: Query<&mut UsfPosition>,
     mut ships: Query<
         (
             Entity,
             &mut Transform,
             &UsfScaleLayer,
             &DetailedBodyScale,
-            &mut CharacterControlFrame,
-            &CharacterLocomotionFrame,
+            (
+                &mut CharacterControlFrame,
+                &CharacterLocomotionFrame,
+                &CharacterMovementConfig,
+            ),
             &Collider,
             Option<&KinematicQueryExclusions>,
             &mut LinearVelocity,
@@ -344,17 +353,18 @@ pub(crate) fn detect_landing(
             &FlightSafetyProfile,
             &mut LocomotionInhibition,
             &mut FlightContactState,
+            &mut PortalTraveler,
         ),
         (With<SpacecraftManifestation>, With<LocalControlSubject>, Without<Player>),
     >,
 ) {
+    // spacecraft-contact-handoff-query-shape-v2
     let Ok((
         entity,
         mut transform,
         layer,
         detailed,
-        mut control,
-        frame,
+        (mut control, locomotion_frame, movement),
         collider,
         exclusions,
         mut velocity,
@@ -363,13 +373,14 @@ pub(crate) fn detect_landing(
         safety,
         mut inhibition,
         mut contact,
+        mut traveler,
     )) = ships.single_mut()
     else {
         return;
     };
 
     if contact.is_landed() {
-        let aligned = frame.aligned_rotation(transform.rotation);
+        let aligned = locomotion_frame.aligned_rotation(transform.rotation);
         transform.rotation = aligned;
         control.snap_to(aligned);
         return;
@@ -386,7 +397,13 @@ pub(crate) fn detect_landing(
         return;
     }
 
-    let Ok(direction) = Dir3::new(-frame.up()) else {
+    // A launched ship is explicitly separating from support. Do not let the
+    // proximity probe immediately turn that same departure back into landing.
+    if velocity.0.dot(locomotion_frame.up()) > 0.0 {
+        return;
+    }
+
+    let Ok(direction) = Dir3::new(-locomotion_frame.up()) else {
         return;
     };
     let max_distance = layer.scale().metres_to_native_f32(LANDING_PROBE_METRES);
@@ -401,26 +418,48 @@ pub(crate) fn detect_landing(
         ..default()
     };
 
-    if spatial_query
-        .cast_shape(
-            collider,
-            transform.translation,
-            transform.rotation,
-            direction,
-            &config,
-            &filter,
-        )
-        .is_none()
-    {
+    // Resolve the final landed attitude *before* measuring support. Otherwise
+    // rotating after the cast can change the hull footprint and reintroduce
+    // penetration at the supposedly-settled pose.
+    let aligned = locomotion_frame.aligned_rotation(transform.rotation);
+    let Some(hit) = spatial_query.cast_shape(
+        collider,
+        transform.translation,
+        aligned,
+        direction,
+        &config,
+        &filter,
+    ) else {
+        return;
+    };
+
+    if hit.normal1.dot(locomotion_frame.up()) < movement.min_ground_dot {
         return;
     }
 
-    // Contact has been accepted: resolve the hull into the local surface
-    // tangent frame once. This fixes landed camera/body orientation without
-    // imposing auto-level behavior during free flight.
-    let aligned = frame.aligned_rotation(transform.rotation);
+    // `Landed` means an actual support pose, not merely "terrain exists within
+    // LANDING_PROBE_METRES". Commit the runtime and canonical position as one
+    // discontinuous pose transaction.
+    let settled_translation =
+        transform.translation - locomotion_frame.up() * hit.distance.max(0.0);
+    let Ok(settled_semantic) = spatial_frame
+        .origin()
+        .translated_at_scale(layer.scale(), settled_translation)
+    else {
+        return;
+    };
+    let Some(semantic_ship) = ownership.semantic_of(entity) else {
+        return;
+    };
+    let Ok(mut semantic_position) = semantic_positions.get_mut(semantic_ship) else {
+        return;
+    };
+
+    transform.translation = settled_translation;
     transform.rotation = aligned;
     control.snap_to(aligned);
+    traveler.commit_position(settled_translation);
+    *semantic_position = settled_semantic;
 
     velocity.0 = Vec3::ZERO;
     motion.stop();
@@ -433,6 +472,8 @@ pub(crate) fn detect_landing(
 fn handle_spacecraft_actions(
     input: Res<PlayerInputFrame>,
     frame: Res<UsfSpatialFrame>,
+    spatial_query: SpatialQuery,
+    physics_charts: UsfPhysicsSlices,
     ownership: UsfOwnershipQuery,
     mut commands: Commands,
     mut control_transfers: MessageWriter<LocalControlTransferRequest>,
@@ -447,6 +488,9 @@ fn handle_spacecraft_actions(
             &mut ControlledSubjectLocomotion,
             &mut CharacterControlFrame,
             &mut CharacterLocomotionFrame,
+            &PhysicalBoxHull,
+            &CharacterMovementConfig,
+            Option<&KinematicQueryExclusions>,
             &mut PortalTraveler,
         ),
         (With<Player>, Without<SpacecraftManifestation>),
@@ -458,6 +502,7 @@ fn handle_spacecraft_actions(
             &Transform,
             &UsfScaleLayer,
             &CharacterLocomotionFrame,
+            &PhysicalBoxHull,
             &mut SpatialDemandSource,
             &mut ControlledSubjectLocomotion,
             &mut LinearVelocity,
@@ -480,10 +525,11 @@ fn handle_spacecraft_actions(
     >,
 ) {
     if let Ok((
-        _ship_entity,
+        ship_entity,
         ship_transform,
         ship_layer,
         ship_frame,
+        ship_hull,
         mut ship_demand,
         mut ship_locomotion,
         mut ship_velocity,
@@ -523,12 +569,70 @@ fn handle_spacecraft_actions(
             mut player_locomotion,
             mut player_control,
             mut player_frame,
+            player_hull,
+            player_movement,
+            player_exclusions,
             mut player_traveler,
         ) = player.into_inner();
 
+        // Vehicle exit is a real standing-pose query. The player does not
+        // inherit the ship-center altitude: search for walkable support beside
+        // the landed hull using the player's own detailed body.
+        player_frame.up = ship_frame.up();
+        let aligned_player = player_frame.aligned_rotation(ship_transform.rotation);
+
         let exit_offset =
             ship_transform.rotation * Vec3::X * ship_layer.scale().metres_to_native_f32(4.0);
-        let exit_local = ship_transform.translation + exit_offset;
+        let exit_column = ship_transform.translation + exit_offset;
+
+        let ship_support_metres =
+            ship_hull.projection_radius_metres(ship_transform.rotation, ship_frame.up());
+        let player_support_metres =
+            player_hull.projection_radius_metres(aligned_player, ship_frame.up());
+        let probe_lift_metres = player_support_metres + LANDING_PROBE_METRES;
+        let probe_distance_metres =
+            ship_support_metres + player_support_metres + LANDING_PROBE_METRES * 2.0;
+
+        let exit_probe_start = exit_column
+            + ship_frame.up()
+                * ship_layer.scale().metres_to_native_f32(probe_lift_metres);
+        let Ok(exit_direction) = Dir3::new(-ship_frame.up()) else {
+            return;
+        };
+        let exit_filter = physics_charts.filter_for_scale(
+            ship_layer.scale(),
+            std::iter::once(player_entity)
+                .chain(std::iter::once(ship_entity))
+                .chain(
+                    player_exclusions
+                        .into_iter()
+                        .flat_map(|items| items.iter()),
+                ),
+        );
+        let exit_config = ShapeCastConfig {
+            max_distance: ship_layer
+                .scale()
+                .metres_to_native_f32(probe_distance_metres),
+            ignore_origin_penetration: true,
+            ..default()
+        };
+        let player_collider = player_hull.collider(ship_layer.scale());
+        let Some(exit_hit) = spatial_query.cast_shape(
+            &player_collider,
+            exit_probe_start,
+            aligned_player,
+            exit_direction,
+            &exit_config,
+            &exit_filter,
+        ) else {
+            return;
+        };
+        if exit_hit.normal1.dot(ship_frame.up()) < player_movement.min_ground_dot {
+            return;
+        }
+
+        let exit_local =
+            exit_probe_start - ship_frame.up() * exit_hit.distance.max(0.0);
         let Ok(exit_semantic) = frame
             .origin()
             .translated_at_scale(ship_layer.scale(), exit_local)
@@ -544,12 +648,8 @@ fn handle_spacecraft_actions(
         }
         player_transform.translation = exit_local;
 
-        // Vehicle exit is a pose transaction. Seed the character's radial
-        // locomotion/control frame from the landed ship before control changes,
-        // otherwise grounding can start from a sideways collider and never
-        // reach the later "grounded => align" repair path.
-        player_frame.up = ship_frame.up();
-        let aligned_player = player_frame.aligned_rotation(ship_transform.rotation);
+        // Vehicle exit is a pose transaction. The radial control frame and
+        // standing support pose were resolved above before control changes.
         player_transform.rotation = aligned_player;
         player_control.snap_to(aligned_player);
 
@@ -585,6 +685,9 @@ fn handle_spacecraft_actions(
         mut player_visibility,
         mut player_demand,
         mut player_enabled,
+        _,
+        _,
+        _,
         _,
         _,
         _,
