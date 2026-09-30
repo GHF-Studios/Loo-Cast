@@ -32,9 +32,6 @@ const SYSTEM_SCALE: i8 = 8;
 const CELESTIAL_VOXEL_MIN_SCALE: i8 = SPATIAL_SCALE_MIN;
 const HUMAN_SURFACE_INTERACTION_SCALE: i8 = 0;
 const CELESTIAL_COARSE_TARGET_RADIUS_NATIVE: f64 = 32.0;
-/// Bootstrap only the coarsest Earth shell. The generic voxel realization
-/// planner owns the moving parent-first refinement stalactite beneath it.
-const CELESTIAL_BOOTSTRAP_SHELL_MARGIN_NATIVE: f32 = 2.0;
 
 #[derive(Component, Debug, Clone, Copy)]
 pub(in crate::game::world::fixture) struct CelestialBodyAuthority;
@@ -104,12 +101,10 @@ pub(super) fn spawn_body(
 
     // One ordinary unsplit authority partition owns every scale-local voxel
     // realization. Scale is realization identity, never semantic identity.
-    let authority_partition = commands
-        .spawn((
-            Name::new(format!("{name} Authority Partition")),
-            UsfAuthorityPartitionOf(semantic),
-        ))
-        .id();
+    commands.spawn((
+        Name::new(format!("{name} Authority Partition")),
+        UsfAuthorityPartitionOf(semantic),
+    ));
 
     let bootstrap_direction = definition
         .arrival_direction
@@ -198,7 +193,6 @@ pub(in crate::game::world::fixture) fn audit_world_authority(
     }
 
     let mut invalid = 0usize;
-    let mut awaiting_bootstrap_realization = 0usize;
     for (
         entity,
         name,
@@ -212,13 +206,6 @@ pub(in crate::game::world::fixture) fn audit_world_authority(
     ) in entries.iter().copied()
     {
         let partition_count = partitions.map_or(0, UsfAuthorityPartitions::len);
-        let realization_count = partitions.map_or(0, |partitions| {
-            partitions
-                .iter()
-                .filter_map(|partition| logical_realizations.get(partition).ok())
-                .map(UsfLogicalRealizations::len)
-                .sum::<usize>()
-        });
         let valid = position.is_some()
             && field.is_some()
             && voxel_authority.is_some()

@@ -6,7 +6,6 @@
 
 use bevy::{
     asset::RenderAssetUsages,
-    math::DVec3,
     mesh::{Indices, PrimitiveTopology},
     prelude::*,
 };
@@ -18,7 +17,7 @@ use crate::{
 
 use super::PlanetarySurfacePatchId;
 
-const PATCH_GRID_RESOLUTION: u32 = 8;
+pub(super) const PATCH_GRID_RESOLUTION: u32 = 8;
 
 /// Builds one bounded body-local cubed-sphere patch.
 ///

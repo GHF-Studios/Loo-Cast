@@ -1,9 +1,12 @@
-//! Adaptive regional whole-body presentation for semantic celestial fields.
+//! Bounded adaptive regional whole-body presentation for semantic celestial fields.
 //!
-//! Dense voxel materializations are intentionally not used to draw an entire
-//! planet. This representation selects bounded cubed-sphere patches from
-//! observer significance and derives every vertex from `CelestialVoxelField`.
-//! Patches are presentation-only projections of semantic authority.
+//! Dense voxel materializations do not draw whole planets. This representation
+//! derives a small body-local cubed-sphere frontier from observer geometry and
+//! samples every vertex from the same `CelestialVoxelField` surface truth used
+//! by dense celestial voxels.
+//!
+//! Critical work bound: selection is a bounded frontier, never an unbounded
+//! recursive quadtree walk. Camera/view state never creates dense voxel demand.
 
 use std::collections::{HashMap, HashSet};
 
@@ -12,23 +15,35 @@ use bevy::{math::DVec3, prelude::*};
 use crate::{
     ecs::UsfPresentationProjectionOf,
     spatial::{
-        SpatialScale, UsfScaleCoverageSnapshot, UsfScaleRoleMask,
-        UsfSceneryPresentation, UsfSemanticFrame, UsfSpatialSet,
-        UsfViewDemand, UsfViewDemandSnapshot, UsfPosition,
+        SpatialScale, UsfScaleCoverage, UsfScaleCoverageSnapshot, UsfScaleRoleMask,
+        UsfSceneryPresentation, UsfSemanticFrame, UsfViewDemand, UsfViewDemandSnapshot,
+        UsfPosition,
     },
 };
 
-use super::{
-    CelestialVoxelField, CelestialVoxelRealizationPolicy,
-};
+use super::{CelestialVoxelField, CelestialVoxelRealizationPolicy};
 
 mod mesh;
-use mesh::build_planetary_surface_patch;
+use mesh::{PATCH_GRID_RESOLUTION, build_planetary_surface_patch};
 
 const PLANETARY_SAMPLE_SCALE: i8 = 4;
-const MAX_PATCH_LEVEL: u8 = 12;
-const PROJECTED_ERROR_RATIO: f64 = 0.20;
+
+/// Hard representation-work ceiling per celestial authority.
+///
+/// Refining one frontier leaf replaces it with four children (+3 leaves). The
+/// selector refuses a refinement that would cross this bound and keeps the
+/// parent instead. Correctness therefore degrades by representation error, not
+/// by unbounded frame work.
+const MAX_PATCH_LEAVES: usize = 64;
+
+/// Absolute safety ceiling. The semantic sample spacing normally produces a
+/// much lower body-specific maximum (Earth at S+4 resolves to about L7).
+const MAX_ABSOLUTE_PATCH_LEVEL: u8 = 10;
+
+const PROJECTED_ERROR_RATIO: f64 = 0.24;
 const PATCH_BOUND_MARGIN: f64 = 1.30;
+const OBSERVER_DIRECTION_BUCKETS: f64 = 128.0;
+const OBSERVER_RADIAL_BUCKETS_PER_OCTAVE: f64 = 64.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PlanetarySurfaceFace {
@@ -64,8 +79,7 @@ impl PlanetarySurfaceFace {
 
 /// Cubed-sphere regional representation identity.
 ///
-/// Patch hierarchy is representation refinement only. `level` is deliberately
-/// not a USF Scale.
+/// Patch level is representation refinement only; it is not a USF Scale.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PlanetarySurfacePatchId {
     pub face: PlanetarySurfaceFace,
@@ -165,12 +179,29 @@ enum DenseCoverageRelation {
     Full,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct PatchKey {
-    authority: Entity,
-    patch: PlanetarySurfacePatchId,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct PlanetaryObserverKey {
+    direction: [i16; 3],
+    radial_bucket: i16,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct PlanetarySurfacePlanSignature {
+    observer: PlanetaryObserverKey,
+    field: CelestialVoxelField,
+    coverage_revision: u64,
+}
+
+#[derive(Default)]
+pub(super) struct PlanetarySurfacePlanCache {
+    signatures: HashMap<Entity, PlanetarySurfacePlanSignature>,
+}
+
+/// Reconcile presentation patches only when body-relative observer geometry,
+/// semantic field definition or dense presentation coverage changes materially.
+///
+/// Tiny continuous observer motion stays within a quantized observer key, so a
+/// stable planet does not pay for a full regional replan every Update.
 pub(super) fn sync_planetary_surface_realizations(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -185,46 +216,78 @@ pub(super) fn sync_planetary_surface_realizations(
         &CelestialVoxelRealizationPolicy,
     )>,
     existing: Query<(Entity, &PlanetarySurfaceRealization)>,
+    mut cache: Local<PlanetarySurfacePlanCache>,
 ) {
     let Some(view) = views.iter().next() else {
-        // View capture is downstream presentation state. A transient missing
-        // snapshot must not tear down the last valid whole-body context.
+        // A transiently missing view snapshot must not tear down the last valid
+        // whole-body presentation.
         return;
     };
-    let mut existing_by_key = HashMap::<PatchKey, Entity>::new();
-    for (entity, realization) in &existing {
-        let key = PatchKey {
-            authority: realization.authority(),
-            patch: realization.patch(),
-        };
-        if existing_by_key.insert(key, entity).is_some() {
-            commands.entity(entity).despawn();
-        }
-    }
 
-    let mut desired = HashSet::<PatchKey>::new();
-    let mut replacements_ready = true;
+    let mut live_authorities = HashSet::new();
 
     for (authority, name, body_origin, body_frame, field, policy) in &authorities {
+        live_authorities.insert(authority);
+
         let sample_scale = planetary_sample_scale(*field);
+        let Some((observer_key, observer_local)) = observer_plan_key(
+            *body_origin,
+            *body_frame,
+            *field,
+            sample_scale,
+            view,
+        ) else {
+            continue;
+        };
+
+        let signature = PlanetarySurfacePlanSignature {
+            observer: observer_key,
+            field: *field,
+            coverage_revision: coverage.revision(),
+        };
+        if cache.signatures.get(&authority) == Some(&signature) {
+            continue;
+        }
+
+        let dense_coverage = coverage
+            .iter()
+            .filter(|entry| {
+                entry.authority() == authority
+                    && entry.roles().contains(UsfScaleRoleMask::PRESENTATION)
+            })
+            .collect::<Vec<_>>();
+        let max_level = maximum_patch_level(*field, sample_scale);
+
         let selected = select_adaptive_patches(|patch| {
             evaluate_patch(
-                authority,
                 *body_origin,
                 *body_frame,
                 *field,
                 sample_scale,
                 patch,
-                view,
-                &coverage,
+                observer_local,
+                max_level,
+                &dense_coverage,
             )
         });
 
-        for patch in selected {
-            let key = PatchKey { authority, patch };
-            desired.insert(key);
+        let mut existing_by_patch = HashMap::<PlanetarySurfacePatchId, Entity>::new();
+        for (entity, realization) in &existing {
+            if realization.authority() != authority {
+                continue;
+            }
+            if existing_by_patch.contains_key(&realization.patch()) {
+                commands.entity(entity).despawn();
+            } else {
+                existing_by_patch.insert(realization.patch(), entity);
+            }
+        }
 
-            if existing_by_key.contains_key(&key) {
+        let desired = selected.iter().copied().collect::<HashSet<_>>();
+        let mut replacements_ready = true;
+
+        for patch in selected {
+            if existing_by_patch.contains_key(&patch) {
                 continue;
             }
 
@@ -268,18 +331,27 @@ pub(super) fn sync_planetary_surface_realizations(
                 Visibility::Inherited,
             ));
         }
-    }
 
-    // Missing children are built synchronously above. Retire stale parents only
-    // after every desired replacement has been queued, preserving make-before-
-    // break at the ECS publication boundary.
-    if replacements_ready {
-        for (key, entity) in existing_by_key {
-            if !desired.contains(&key) {
-                commands.entity(entity).despawn();
+        if replacements_ready {
+            for (patch, entity) in existing_by_patch {
+                if !desired.contains(&patch) {
+                    commands.entity(entity).despawn();
+                }
             }
+            cache.signatures.insert(authority, signature);
         }
     }
+
+    // Presentation lifetime is downstream and deliberately not linked-spawn
+    // owned by semantic authority, so retire orphaned regional projections here.
+    for (entity, realization) in &existing {
+        if !live_authorities.contains(&realization.authority()) {
+            commands.entity(entity).despawn();
+        }
+    }
+    cache
+        .signatures
+        .retain(|authority, _| live_authorities.contains(authority));
 }
 
 pub(super) fn sync_planetary_surface_projection_state(
@@ -317,117 +389,181 @@ fn planetary_sample_scale(field: CelestialVoxelField) -> SpatialScale {
     field.coarsest_detail_scale().min(preferred)
 }
 
+/// Body-specific representation ceiling derived from semantic sample spacing.
+///
+/// Refining a regional mesh below roughly one sample-scale native unit per mesh
+/// segment cannot reveal additional semantic terrain owned by this band; doing
+/// so would be pure representation churn.
+fn maximum_patch_level(
+    field: CelestialVoxelField,
+    sample_scale: SpatialScale,
+) -> u8 {
+    let root_span_metres = field.radius_metres() * 2.0;
+    let minimum_segment_metres = sample_scale.metres_per_native();
+    let useful_subdivisions =
+        root_span_metres
+            / (minimum_segment_metres * f64::from(PATCH_GRID_RESOLUTION));
+    if !useful_subdivisions.is_finite() || useful_subdivisions <= 1.0 {
+        return 0;
+    }
+
+    useful_subdivisions
+        .log2()
+        .floor()
+        .clamp(0.0, f64::from(MAX_ABSOLUTE_PATCH_LEVEL)) as u8
+}
+
+fn observer_plan_key(
+    body_origin: UsfPosition,
+    body_frame: UsfSemanticFrame,
+    field: CelestialVoxelField,
+    sample_scale: SpatialScale,
+    view: &UsfViewDemand,
+) -> Option<(PlanetaryObserverKey, DVec3)> {
+    let local = body_frame
+        .world_to_local_metres(
+            &body_origin,
+            &view.anchor(),
+            sample_scale,
+            f64::MAX,
+        )
+        .ok()?;
+    let distance = local.length();
+    if !distance.is_finite() {
+        return None;
+    }
+
+    let direction = if distance > f64::EPSILON {
+        local / distance
+    } else {
+        DVec3::Y
+    };
+    let quantize_direction = |value: f64| -> i16 {
+        (value * OBSERVER_DIRECTION_BUCKETS)
+            .round()
+            .clamp(f64::from(i16::MIN), f64::from(i16::MAX)) as i16
+    };
+
+    let ratio = (distance / field.radius_metres()).max(1.0e-12);
+    let radial_bucket = (ratio.log2() * OBSERVER_RADIAL_BUCKETS_PER_OCTAVE)
+        .round()
+        .clamp(f64::from(i16::MIN), f64::from(i16::MAX)) as i16;
+
+    Some((
+        PlanetaryObserverKey {
+            direction: [
+                quantize_direction(direction.x),
+                quantize_direction(direction.y),
+                quantize_direction(direction.z),
+            ],
+            radial_bucket,
+        },
+        local,
+    ))
+}
+
+/// Select one non-overlapping regional frontier with an absolute leaf bound.
+///
+/// The stack itself is the unresolved frontier. Refining one leaf is allowed
+/// only when replacing it with four children keeps
+/// `selected + unresolved <= MAX_PATCH_LEAVES`. Otherwise the parent remains as
+/// the valid coarse representation.
 fn select_adaptive_patches(
     mut evaluate: impl FnMut(PlanetarySurfacePatchId) -> PatchDecision,
 ) -> Vec<PlanetarySurfacePatchId> {
-    fn visit(
-        patch: PlanetarySurfacePatchId,
-        evaluate: &mut impl FnMut(PlanetarySurfacePatchId) -> PatchDecision,
-        selected: &mut Vec<PlanetarySurfacePatchId>,
-    ) {
+    let mut unresolved = PlanetarySurfacePatchId::roots().collect::<Vec<_>>();
+    unresolved.reverse();
+    let mut selected = Vec::with_capacity(MAX_PATCH_LEAVES);
+
+    while let Some(patch) = unresolved.pop() {
         match evaluate(patch) {
             PatchDecision::Cull => {}
             PatchDecision::Keep => selected.push(patch),
-            PatchDecision::Refine => {
-                for child in patch.children() {
-                    visit(child, evaluate, selected);
+            PatchDecision::Refine
+                if selected.len() + unresolved.len() + 4 <= MAX_PATCH_LEAVES =>
+            {
+                for child in patch.children().into_iter().rev() {
+                    unresolved.push(child);
                 }
+            }
+            PatchDecision::Refine => {
+                // Budget exhaustion degrades representation error by retaining
+                // the parent; it never spills unbounded work into the frame.
+                selected.push(patch);
             }
         }
     }
 
-    let mut selected = Vec::new();
-    for root in PlanetarySurfacePatchId::roots() {
-        visit(root, &mut evaluate, &mut selected);
-    }
+    debug_assert!(selected.len() <= MAX_PATCH_LEAVES);
     selected
 }
 
 fn evaluate_patch(
-    authority: Entity,
     body_origin: UsfPosition,
     body_frame: UsfSemanticFrame,
     field: CelestialVoxelField,
     sample_scale: SpatialScale,
     patch: PlanetarySurfacePatchId,
-    view: &UsfViewDemand,
-    coverage: &UsfScaleCoverageSnapshot,
+    observer_local: DVec3,
+    max_level: u8,
+    dense_coverage: &[UsfScaleCoverage],
 ) -> PatchDecision {
     let direction = patch.center_direction();
     let radius_metres = patch.approximate_radius_metres(field.radius_metres());
+    let observer_distance = observer_local.length();
 
-    // Conservative spherical-horizon rejection prevents a near-surface view
-    // from recursively refining the entire back side of the planet. The patch
-    // angular bound keeps edge/horizon patches until subdivision resolves them.
-    if let Ok(observer_local) = body_frame.world_to_local_metres(
-        &body_origin,
-        &view.anchor(),
-        sample_scale,
-        f64::MAX,
-    ) {
-        let observer_distance = observer_local.length();
-        if observer_distance > field.radius_metres() {
-            let observer_direction = Vec3::new(
-                (observer_local.x / observer_distance) as f32,
-                (observer_local.y / observer_distance) as f32,
-                (observer_local.z / observer_distance) as f32,
-            )
-            .normalize_or_zero();
-            let horizon_cos =
-                (field.radius_metres() / observer_distance).clamp(0.0, 1.0) as f32;
-            let angular_margin =
-                (radius_metres / field.radius_metres()).min(2.0) as f32;
-            if direction.dot(observer_direction) + angular_margin < horizon_cos {
-                return PatchDecision::Cull;
+    // Conservative spherical-horizon rejection. Root/large patches carry a
+    // deliberately broad angular margin and are only rejected once subdivision
+    // makes their region unambiguously back-facing.
+    if observer_distance > field.radius_metres() {
+        let observer_direction = Vec3::new(
+            (observer_local.x / observer_distance) as f32,
+            (observer_local.y / observer_distance) as f32,
+            (observer_local.z / observer_distance) as f32,
+        )
+        .normalize_or_zero();
+        let horizon_cos =
+            (field.radius_metres() / observer_distance).clamp(0.0, 1.0) as f32;
+        let angular_margin =
+            (radius_metres / field.radius_metres()).min(2.0) as f32;
+        if direction.dot(observer_direction) + angular_margin < horizon_cos {
+            return PatchDecision::Cull;
+        }
+    }
+
+    // Dense replacement is sparse and local. Pay canonical projection cost only
+    // when PRESENTATION coverage actually exists for this authority.
+    if !dense_coverage.is_empty() {
+        let Ok(center) =
+            field.surface_position(&body_origin, body_frame, direction, sample_scale)
+        else {
+            return PatchDecision::Keep;
+        };
+
+        match dense_coverage_relation(center, radius_metres, dense_coverage) {
+            DenseCoverageRelation::Full => return PatchDecision::Cull,
+            DenseCoverageRelation::Partial if patch.level < max_level => {
+                return PatchDecision::Refine;
             }
+            DenseCoverageRelation::Partial | DenseCoverageRelation::None => {}
         }
     }
 
-    let Ok(center) =
-        field.surface_position(&body_origin, body_frame, direction, sample_scale)
-    else {
-        return PatchDecision::Cull;
-    };
-
-    let radius_native = sample_scale.metres_to_native_f64(radius_metres);
-    if !radius_native.is_finite()
-        || radius_native <= 0.0
-        || radius_native > f64::from(f32::MAX)
-    {
-        return PatchDecision::Cull;
-    }
-
-    if !view.intersects_presentation_native_aabb(
-        sample_scale,
-        &center,
-        Vec3::splat(radius_native as f32),
-    ) {
-        return PatchDecision::Cull;
-    }
-
-    match dense_coverage_relation(authority, center, radius_metres, coverage) {
-        DenseCoverageRelation::Full => return PatchDecision::Cull,
-        DenseCoverageRelation::Partial if patch.level < MAX_PATCH_LEVEL => {
-            return PatchDecision::Refine;
-        }
-        DenseCoverageRelation::Partial | DenseCoverageRelation::None => {}
-    }
-
-    if patch.level >= MAX_PATCH_LEVEL {
+    if patch.level >= max_level {
         return PatchDecision::Keep;
     }
 
-    let Ok(observer_delta) = center.relative_at_scale_bounded_f64(
-        &view.anchor(),
-        sample_scale,
-        f64::MAX,
-    ) else {
-        return PatchDecision::Keep;
-    };
-    let distance_metres =
-        observer_delta.length() * sample_scale.metres_per_native();
+    // Significance is body-local and cheap: no canonical terrain sampling is
+    // needed to decide whether a patch deserves more representation detail.
+    let direction64 = DVec3::new(
+        f64::from(direction.x),
+        f64::from(direction.y),
+        f64::from(direction.z),
+    );
+    let approximate_surface = direction64 * field.radius_metres();
+    let distance_metres = (observer_local - approximate_surface).length();
     let projected_error =
-        radius_metres / distance_metres.max(radius_metres * 0.25);
+        radius_metres / distance_metres.max(radius_metres * 0.5);
 
     if projected_error > PROJECTED_ERROR_RATIO {
         PatchDecision::Refine
@@ -437,17 +573,13 @@ fn evaluate_patch(
 }
 
 fn dense_coverage_relation(
-    authority: Entity,
     patch_center: UsfPosition,
     patch_radius_metres: f64,
-    coverage: &UsfScaleCoverageSnapshot,
+    dense_coverage: &[UsfScaleCoverage],
 ) -> DenseCoverageRelation {
     let mut partial = false;
 
-    for realized in coverage.iter().filter(|realized| {
-        realized.authority() == authority
-            && realized.roles().contains(UsfScaleRoleMask::PRESENTATION)
-    }) {
+    for realized in dense_coverage.iter().copied() {
         let radius_native =
             realized.scale().metres_to_native_f64(patch_radius_metres);
         if !radius_native.is_finite() || radius_native < 0.0 {
@@ -553,14 +685,15 @@ mod tests {
     }
 
     #[test]
-    fn distant_whole_body_can_remain_six_bounded_root_patches() {
-        let selected = select_adaptive_patches(|_| PatchDecision::Keep);
-        assert_eq!(selected.len(), 6);
+    fn pathological_refine_everything_is_still_hard_bounded() {
+        let selected = select_adaptive_patches(|_| PatchDecision::Refine);
+        assert!(selected.len() <= MAX_PATCH_LEAVES);
+        assert!(selected.len() >= MAX_PATCH_LEAVES.saturating_sub(3));
     }
 
     #[test]
-    fn refining_one_aperture_does_not_refine_the_entire_planet() {
-        const DEPTH: u8 = 10;
+    fn one_refinement_path_grows_linearly_not_planet_wide() {
+        const DEPTH: u8 = 9;
         let selected = select_adaptive_patches(|patch| {
             if patch.face == PlanetarySurfaceFace::PositiveX
                 && patch.x == 0
@@ -574,6 +707,20 @@ mod tests {
         });
 
         assert_eq!(selected.len(), 6 + 3 * DEPTH as usize);
-        assert!(selected.len() < 64);
+        assert!(selected.len() < MAX_PATCH_LEAVES);
+    }
+
+    #[test]
+    fn semantic_sample_spacing_caps_earth_s4_regional_depth() {
+        let field = CelestialVoxelField::new(
+            6_371_000.0,
+            SpatialScale::new(6).unwrap(),
+            0x4541_5254,
+            crate::voxel::CelestialBodyProfile::Rocky,
+        );
+        assert_eq!(
+            maximum_patch_level(field, SpatialScale::new(4).unwrap()),
+            7,
+        );
     }
 }

@@ -11,7 +11,7 @@ use bevy::prelude::*;
 use crate::{
     config::EngineConfig,
     ecs::{UsfAuthorityPartitions, UsfLogicalRealizationOf},
-    spatial::{SpatialScale, UsfPosition, UsfScaleLayer, UsfSemanticFrame},
+    spatial::{UsfPosition, UsfScaleLayer, UsfSemanticFrame},
 };
 
 use super::{

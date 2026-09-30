@@ -15,12 +15,11 @@ use bevy::prelude::*;
 
 use crate::{
     ecs::UsfLogicalRealizationOf,
-    usf::USF_CHILD_CHUNKS_PER_AXIS,
     spatial::{
         SpatialDemandScope, SpatialDemandSnapshot, SpatialRefinementDemand, SpatialScale,
         UsfChartMask, UsfChunkAddress, UsfPosition, UsfRefinementPlan, UsfSemanticFrame,
         UsfResidencyRequestBuffer, UsfScaleCoverageSnapshot, UsfScaleLayer,
-        UsfPrimaryInteractionSlice, UsfScaleRoleMask, UsfViewDemandSnapshot,
+        UsfScaleRoleMask,
     },
 };
 
@@ -315,25 +314,7 @@ fn roles_for_scale(domain: VoxelScaleDomain, scale: SpatialScale) -> UsfScaleRol
     roles
 }
 
-/// Observer demand normally owns presentation only. At the active interaction
-/// slice, however, the generic view path treats that terrain as physical-local
-/// geometry. Rigid terrain in that slice therefore requests collision readiness
-/// too; coarser contextual presentation remains non-authoritative and visual-only.
-fn observer_physical_presentation_roles(
-    domain: VoxelScaleDomain,
-    scale: SpatialScale,
-    interaction_scale: SpatialScale,
-) -> UsfScaleRoleMask {
-    let roles = presentation_roles();
-    if scale == interaction_scale && domain.collides(scale) {
-        roles.union(UsfScaleRoleMask::COLLISION)
-    } else {
-        roles
-    }
-}
-
 pub(super) fn collect_voxel_realization_intent(
-    interaction: Res<UsfPrimaryInteractionSlice>,
     spatial: Res<SpatialDemandSnapshot>,
     voxel_sources: Query<
         Option<&SpatialRefinementDemand>,
@@ -356,7 +337,6 @@ pub(super) fn collect_voxel_realization_intent(
         &VoxelScaleDomain,
     )>,
     coverage: Res<UsfScaleCoverageSnapshot>,
-    view_demands: Res<UsfViewDemandSnapshot>,
     mut residency_requests: ResMut<UsfResidencyRequestBuffer>,
     mut output: ResMut<VoxelRealizationIntentSnapshot>,
 ) {
@@ -376,10 +356,9 @@ pub(super) fn collect_voxel_realization_intent(
     }
 
     for (authority, body_origin, body_frame, field, domain) in &celestial_authorities {
-        // Whole-body context is now a regional planetary-surface representation.
-        // Dense celestial worlds bootstrap only from ordinary local/view demand:
-        // the coarsest requested local branch has no parent prerequisite and
-        // naturally seeds parent-first refinement without a permanent shell.
+        // Whole-body context is owned by regional planetary presentation.
+        // Dense celestial worlds are created only from explicit spatial/capability
+        // demand. Camera/view visibility never manufactures voxel worlds.
 
         for source in sources.iter().copied() {
             let plan = realization_plan(source, *domain);
@@ -426,70 +405,6 @@ pub(super) fn collect_voxel_realization_intent(
             }
         }
 
-        for view in view_demands.iter() {
-            let half_extent_native = observer_presentation_half_extent_native(*domain);
-            let plan = UsfRefinementPlan::new(
-                view.finest_scale(),
-                Some(view.finest_scale()),
-                domain.realization_slices(),
-                half_extent_native,
-                500,
-            );
-
-            for step in plan.steps_coarse_to_fine() {
-                let scale = step.scale();
-                let target = VoxelRealizationTarget::new(authority, scale);
-                let source_scope = SpatialDemandScope::at_scale(
-                    view.source(),
-                    scale,
-                    view.anchor(),
-                    half_extent_native,
-                    500,
-                );
-                let candidate = celestial_surface_demand(
-                    *body_origin,
-                    *body_frame,
-                    *field,
-                    *domain,
-                    source_scope,
-                    scale,
-                    half_extent_native,
-                    500,
-                )
-                .map(|scope| VoxelRealizationIntent {
-                    target: VoxelRealizationIntentTarget::Celestial(target),
-                    scope,
-                    roles: observer_physical_presentation_roles(
-                        *domain,
-                        scale,
-                        interaction.scale(),
-                    ),
-                    view_source: Some(view.source()),
-                    residency_half_extent_native:
-                        materialization_residency_extent(half_extent_native),
-                });
-
-                let parent_ready = candidate.is_some_and(|candidate| {
-                    parent_realization_ready(
-                        authority,
-                        step.parent_scale(),
-                        &coverage,
-                        &candidate.scope.center(),
-                    )
-                });
-                let previous_branch = previous.iter().copied().find(|intent| {
-                    intent.target == VoxelRealizationIntentTarget::Celestial(target)
-                        && intent.scope.source() == view.source()
-                        && intent.view_source == Some(view.source())
-                });
-
-                if let Some(intent) =
-                    select_refinement_branch_demand(candidate, parent_ready, previous_branch)
-                {
-                    next.intents.push(intent);
-                }
-            }
-        }
     }
 
     // Standalone voxel worlds keep their direct world-targeted path.
@@ -635,20 +550,6 @@ fn realization_plan(
     .with_residency_halo_native(Vec3::splat(
         MATERIALIZATION_CHUNK_SIZE as f32 * 0.5,
     ))
-}
-
-/// Native observer aperture for one contextual Scale Slice.
-///
-/// A coarser slice needs only enough native reach to overlap the next-finer
-/// working window; physical reach grows by the decimal Scale Stack ratio.
-/// Keep at least one materialization radius so alignment cannot collapse the
-/// contextual aperture to a single fragile boundary cell.
-fn observer_presentation_half_extent_native(domain: VoxelScaleDomain) -> Vec3 {
-    let inherited_finer_reach =
-        domain.local_patch_half_extent_native() / USF_CHILD_CHUNKS_PER_AXIS as f32;
-    Vec3::splat(
-        inherited_finer_reach.max(MATERIALIZATION_CHUNK_SIZE as f32),
-    )
 }
 
 fn materialization_residency_extent(half_extent_native: Vec3) -> Vec3 {
