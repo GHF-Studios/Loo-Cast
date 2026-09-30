@@ -20,7 +20,7 @@ use crate::{
         SpatialDemandScope, SpatialDemandSnapshot, SpatialRefinementDemand, SpatialScale,
         UsfChartMask, UsfChunkAddress, UsfPosition, UsfRefinementPlan,
         UsfResidencyRequestBuffer, UsfScaleCoverageSnapshot, UsfScaleLayer,
-        UsfScaleRoleMask, UsfViewDemandSnapshot,
+        UsfPrimaryInteractionSlice, UsfScaleRoleMask, UsfViewDemandSnapshot,
     },
 };
 
@@ -244,7 +244,25 @@ fn roles_for_scale(domain: VoxelScaleDomain, scale: SpatialScale) -> UsfScaleRol
     roles
 }
 
+/// Observer demand normally owns presentation only. At the active interaction
+/// slice, however, the generic view path treats that terrain as physical-local
+/// geometry. Rigid terrain in that slice therefore requests collision readiness
+/// too; coarser contextual presentation remains non-authoritative and visual-only.
+fn observer_physical_presentation_roles(
+    domain: VoxelScaleDomain,
+    scale: SpatialScale,
+    interaction_scale: SpatialScale,
+) -> UsfScaleRoleMask {
+    let roles = presentation_roles();
+    if scale == interaction_scale && domain.collides(scale) {
+        roles.union(UsfScaleRoleMask::COLLISION)
+    } else {
+        roles
+    }
+}
+
 pub(super) fn collect_voxel_realization_demand(
+    interaction: Res<UsfPrimaryInteractionSlice>,
     spatial: Res<SpatialDemandSnapshot>,
     voxel_sources: Query<
         Option<&SpatialRefinementDemand>,
@@ -393,7 +411,11 @@ pub(super) fn collect_voxel_realization_demand(
                 .map(|scope| VoxelRealizationDemand {
                     target_world: world_entity,
                     scope,
-                    roles: presentation_roles(),
+                    roles: observer_physical_presentation_roles(
+                        *domain,
+                        scale,
+                        interaction.scale(),
+                    ),
                     view_source: Some(view.source()),
                     residency_half_extent_native:
                         materialization_residency_extent(half_extent_native),

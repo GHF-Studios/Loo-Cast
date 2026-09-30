@@ -18,7 +18,6 @@ use crate::{
     spatial::{UsfScaleLayer, UsfScaleRoleMask, UsfSpatialFrame},
 };
 
-use super::VoxelMaterializationRuntime;
 use super::super::{
     MATERIALIZATION_CHUNK_SIZE, VoxelCollisionDisabled, VoxelMaterializationKey,
     VoxelRealizationDemandSnapshot, VoxelStreaming, VoxelWorld, physics,
@@ -101,20 +100,24 @@ fn sort_members(members: &mut [(VoxelMaterializationKey, u64)]) {
     });
 }
 
-fn has_collision_demand(
-    runtime: &VoxelMaterializationRuntime,
+/// Whether one current materialization belongs to the collision capability's
+/// effective demand. Shared with capability publication so presentation and
+/// collision use one readiness policy rather than parallel approximations.
+pub(super) fn collision_requested(
+    world_entity: Entity,
+    key: VoxelMaterializationKey,
     world: &VoxelWorld,
     layer: &UsfScaleLayer,
     streaming: &VoxelStreaming,
     realization_demand: &VoxelRealizationDemandSnapshot,
     interaction_padding: f32,
 ) -> bool {
-    let Ok(address) = world.materialization_address(runtime.key()) else {
+    let Ok(address) = world.materialization_address(key) else {
         return false;
     };
 
     realization_demand
-        .requests_for(runtime.world())
+        .requests_for(world_entity)
         .filter(|request| request.roles().contains(UsfScaleRoleMask::COLLISION))
         .map(|request| request.scope())
         .filter(|scope| scope.scale() == layer.scale())
@@ -130,7 +133,7 @@ fn has_collision_demand(
                 })
         })
         || streaming.retains_committed_role_during_migration(
-            runtime.key(),
+            key,
             UsfScaleRoleMask::COLLISION,
         )
 }
@@ -203,12 +206,12 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
     realization_demand: Res<VoxelRealizationDemandSnapshot>,
     mut commands: Commands,
     worlds: Query<(
+        Entity,
         &VoxelWorld,
         &UsfScaleLayer,
         &VoxelStreaming,
         Option<&VoxelCollisionDisabled>,
     )>,
-    runtimes: Query<&VoxelMaterializationRuntime>,
     mut registry: ResMut<VoxelCollisionAggregateRegistry>,
     mut desired: Local<
         HashMap<
@@ -226,45 +229,49 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
     {
         let _span = bevy::log::info_span!("voxel_collision.aggregate_collect").entered();
 
-        for runtime in &runtimes {
-            let Ok((world, layer, streaming, collision_disabled)) =
-                worlds.get(runtime.world())
-            else {
-                continue;
-            };
-
+        // collision-before-presentation-v2
+        //
+        // Collision consumes store-owned derived surfaces directly. It must not
+        // wait for a presentation runtime to exist: renderer manifestation is a
+        // downstream disposable consumer of the same derived truth.
+        for (world_entity, world, layer, streaming, collision_disabled) in &worlds {
             if collision_disabled.is_some() {
                 continue;
             }
 
-            let rigid_current = world
-                .materializations()
-                .surface(runtime.key())
-                .is_some_and(|cache| {
-                    cache.revision == runtime.revision()
-                        && cache.surface.has_rigid_triangles()
-                });
-            if !rigid_current
-                || !has_collision_demand(
-                    runtime,
-                    world,
-                    layer,
-                    streaming,
-                    &realization_demand,
-                    interaction_padding,
-                )
-            {
-                continue;
-            }
+            for key in world.materializations().active_keys() {
+                let Some(revision) =
+                    world.materializations().active_derived_revision(key)
+                else {
+                    continue;
+                };
+                let rigid_current = world
+                    .materializations()
+                    .surface(key)
+                    .is_some_and(|cache| {
+                        cache.revision == revision
+                            && cache.surface.has_rigid_triangles()
+                    });
+                if !rigid_current
+                    || !collision_requested(
+                        world_entity,
+                        key,
+                        world,
+                        layer,
+                        streaming,
+                        &realization_demand,
+                        interaction_padding,
+                    )
+                {
+                    continue;
+                }
 
-            let aggregate = VoxelCollisionAggregateKey {
-                world: runtime.world(),
-                origin: aligned_group_origin(runtime.key()),
-            };
-            desired
-                .entry(aggregate)
-                .or_default()
-                .push((runtime.key(), runtime.revision()));
+                let aggregate = VoxelCollisionAggregateKey {
+                    world: world_entity,
+                    origin: aligned_group_origin(key),
+                };
+                desired.entry(aggregate).or_default().push((key, revision));
+            }
         }
     }
 
@@ -296,7 +303,7 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
                 continue;
             }
 
-            let Ok((world, layer, _, collision_disabled)) =
+            let Ok((_, world, layer, _, collision_disabled)) =
                 worlds.get(aggregate.world)
             else {
                 continue;

@@ -3,6 +3,7 @@
 use bevy::prelude::*;
 
 use crate::{
+    config::EngineConfig,
     ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf},
     spatial::{
         UsfCapabilityRealization, UsfScaleLayer, UsfScaleRoleMask,
@@ -11,19 +12,26 @@ use crate::{
 
 use super::{
     VoxelMaterializationRuntime,
-    collision::VoxelCollisionAggregateRegistry,
+    collision::{collision_requested, VoxelCollisionAggregateRegistry},
 };
 use super::super::{
+    VoxelCollisionDisabled,
+    VoxelRealizationDemandSnapshot,
+    VoxelStreaming,
     MATERIALIZATION_CHUNK_SIZE, VoxelEditingDisabled, VoxelWorld,
 };
 
 pub(in crate::voxel) fn sync_capability_realizations(
+    config: Res<EngineConfig>,
+    realization_demand: Res<VoxelRealizationDemandSnapshot>,
     mut commands: Commands,
     worlds: Query<(
         Entity,
         &VoxelWorld,
         &UsfScaleLayer,
         Option<&UsfLogicalRealizationOf>,
+        Option<&VoxelStreaming>,
+        Option<&VoxelCollisionDisabled>,
         Option<&VoxelEditingDisabled>,
     )>,
     authority_partitions: Query<&UsfAuthorityPartitionOf>,
@@ -35,10 +43,22 @@ pub(in crate::voxel) fn sync_capability_realizations(
     )>,
 ) {
     let half_extent = Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32 * 0.5);
+    let interaction_padding = config
+        .voxel
+        .manifestation
+        .physics_interaction_radius_native
+        .max(0.0);
 
     for (entity, runtime, existing) in &mut runtimes {
-        let Ok((world_entity, world, layer, logical_realization, editing_disabled)) =
-            worlds.get(runtime.world())
+        let Ok((
+            world_entity,
+            world,
+            layer,
+            logical_realization,
+            streaming,
+            collision_disabled,
+            editing_disabled,
+        )) = worlds.get(runtime.world())
         else {
             if let Some(mut realization) = existing {
                 realization.set_roles(UsfScaleRoleMask::NONE);
@@ -63,18 +83,50 @@ pub(in crate::voxel) fn sync_capability_realizations(
 
         let mut roles = UsfScaleRoleMask::NONE;
         if derived_current {
-            // A current empty derived result is still realized presentation
-            // truth. Mesh existence is not capability existence: known-empty
-            // space must erase a coarse approximation after
-            // excavation/caves/void generation.
-            roles = UsfScaleRoleMask::REALIZATION
-                .union(UsfScaleRoleMask::PRESENTATION);
-
             let collision_current = collision_registry.member_current(
                 runtime.world(),
                 runtime.key(),
                 runtime.revision(),
             );
+            let rigid_current = world
+                .materializations()
+                .surface(runtime.key())
+                .is_some_and(|cache| {
+                    cache.revision == runtime.revision()
+                        && cache.surface.has_rigid_triangles()
+                });
+
+            // collision-before-presentation-v2
+            //
+            // PRESENTATION is a readiness claim, not just "a mesh exists".
+            // Whenever this exact rigid materialization belongs to current
+            // collision demand, physical presentation waits for the independently
+            // owned collision aggregate to publish the same revision.
+            //
+            // Known-empty, translucent/non-rigid, contextual-only and explicitly
+            // collision-disabled materializations keep their independent
+            // presentation semantics.
+            let collision_required = collision_disabled.is_none()
+                && rigid_current
+                && streaming.is_some_and(|streaming| {
+                    collision_requested(
+                        runtime.world(),
+                        runtime.key(),
+                        world,
+                        layer,
+                        streaming,
+                        &realization_demand,
+                        interaction_padding,
+                    )
+                });
+
+            // Derived-current data is immediately realized truth. Physical
+            // presentation becomes publishable only after its collision
+            // readiness contract is satisfied.
+            roles = UsfScaleRoleMask::REALIZATION;
+            if !collision_required || collision_current {
+                roles = roles.union(UsfScaleRoleMask::PRESENTATION);
+            }
             if collision_current {
                 roles = roles.union(UsfScaleRoleMask::COLLISION);
             }

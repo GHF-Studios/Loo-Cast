@@ -145,18 +145,24 @@ impl Plugin for VoxelPlugin {
                     VoxelPostUpdateSet::Membership
                         .after(VoxelPostUpdateSet::SurfacePublication)
                         .after(VoxelPostUpdateSet::ManifestationCleanup),
-                    VoxelPostUpdateSet::Rebuild.after(VoxelPostUpdateSet::Membership),
-                    VoxelPostUpdateSet::Collision.after(VoxelPostUpdateSet::Rebuild),
+                    // Collision is a direct consumer of store-owned derived
+                    // surfaces. Publish physics before renderer manifestation so
+                    // physical terrain can never win the readiness race.
+                    VoxelPostUpdateSet::Collision
+                        .after(VoxelPostUpdateSet::SurfacePublication),
+                    VoxelPostUpdateSet::Rebuild
+                        .after(VoxelPostUpdateSet::Membership)
+                        .after(VoxelPostUpdateSet::Collision),
                     VoxelPostUpdateSet::Capability
-                        .after(VoxelPostUpdateSet::Collision)
+                        .after(VoxelPostUpdateSet::Rebuild)
                         .before(UsfSpatialSet::SyncSemantic),
                 ),
             )
             .configure_sets(
                 PostUpdate,
                 (
-                    VoxelPostUpdateSet::Rebuild,
                     VoxelPostUpdateSet::Collision,
+                    VoxelPostUpdateSet::Rebuild,
                     VoxelPostUpdateSet::Capability,
                 )
                     .chain(),
