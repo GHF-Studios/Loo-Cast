@@ -7,6 +7,7 @@
 mod generation_scope;
 mod async_pipeline;
 mod authority;
+mod celestial_realization;
 mod base;
 mod chunk;
 mod collision_query;
@@ -27,6 +28,10 @@ mod streaming;
 mod world;
 
 pub use authority::{CelestialVoxelField, VoxelAuthority};
+pub use celestial_realization::CelestialVoxelRealizationPolicy;
+pub(in crate::voxel) use celestial_realization::{
+    CelestialVoxelRealization, CelestialVoxelRealizationRegistry,
+};
 pub use base::{
     CelestialBodyProfile, ProceduralCelestialBody, ProceduralTerrain, ProceduralVolume, VoxelBase,
 };
@@ -42,7 +47,8 @@ pub use frame::{VoxelFrameBrush, VoxelFrameEdit, VoxelFramePosition, VoxelFrameS
 pub use modification::VoxelModificationLayer;
 pub use realization::VoxelScaleDomain;
 pub(in crate::voxel) use realization::{
-    VoxelRealizationDemandSnapshot, VoxelRealizationScope,
+    VoxelRealizationDemandSnapshot, VoxelRealizationIntentSnapshot,
+    VoxelRealizationScope,
 };
 pub(in crate::voxel) use region::VoxelRegionSpan;
 pub use manifestation::VoxelPresentationMaterial;
@@ -77,6 +83,8 @@ pub struct VoxelPlugin;
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum VoxelUpdateSet {
+    RealizationIntent,
+    RealizationLifecycle,
     RealizationDemand,
     Residency,
     RetireStaleWork,
@@ -100,13 +108,19 @@ impl Plugin for VoxelPlugin {
         manifestation::configure(app);
 
         app.init_resource::<manifestation::VoxelMaterializationRuntimeRegistry>()
+            .init_resource::<VoxelRealizationIntentSnapshot>()
             .init_resource::<VoxelRealizationDemandSnapshot>()
+            .init_resource::<CelestialVoxelRealizationRegistry>()
             .init_resource::<worker::VoxelWorkerPool>()
             .init_resource::<VoxelStreamingTelemetry>()
             .configure_sets(
                 Update,
                 (
-                    VoxelUpdateSet::RealizationDemand.after(SpatialDemandSet::Collect),
+                    VoxelUpdateSet::RealizationIntent.after(SpatialDemandSet::Collect),
+                    VoxelUpdateSet::RealizationLifecycle
+                        .after(VoxelUpdateSet::RealizationIntent),
+                    VoxelUpdateSet::RealizationDemand
+                        .after(VoxelUpdateSet::RealizationLifecycle),
                     VoxelUpdateSet::Residency
                         .after(VoxelUpdateSet::RealizationDemand)
                         .after(UsfResidencySet::Reconcile),
@@ -116,9 +130,18 @@ impl Plugin for VoxelPlugin {
             )
             .add_systems(
                 Update,
-                realization::collect_voxel_realization_demand
-                    .in_set(VoxelUpdateSet::RealizationDemand)
-                    .in_set(UsfResidencySet::Collect),
+                (
+                    realization::collect_voxel_realization_intent
+                        .in_set(VoxelUpdateSet::RealizationIntent)
+                        .in_set(UsfResidencySet::Collect),
+                    celestial_realization::sync_celestial_voxel_realizations
+                        .in_set(VoxelUpdateSet::RealizationLifecycle)
+                        .in_set(UsfResidencySet::Collect),
+                    realization::resolve_voxel_realization_demand
+                        .in_set(VoxelUpdateSet::RealizationDemand)
+                        .in_set(UsfResidencySet::Collect),
+                )
+                    .chain(),
             )
             .add_systems(
                 Update,

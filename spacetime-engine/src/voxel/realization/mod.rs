@@ -14,7 +14,7 @@ use std::cmp::Reverse;
 use bevy::prelude::*;
 
 use crate::{
-    ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf},
+    ecs::UsfLogicalRealizationOf,
     usf::USF_CHILD_CHUNKS_PER_AXIS,
     spatial::{
         SpatialDemandScope, SpatialDemandSnapshot, SpatialRefinementDemand, SpatialScale,
@@ -25,8 +25,9 @@ use crate::{
 };
 
 use super::{
-    CelestialVoxelField, MATERIALIZATION_CHUNK_SIZE, VoxelMaterializationDemand,
-    VoxelPinnedDemand, VoxelWorld,
+    CelestialVoxelField, CelestialVoxelRealizationPolicy,
+    CelestialVoxelRealizationRegistry, MATERIALIZATION_CHUNK_SIZE,
+    VoxelMaterializationDemand, VoxelPinnedDemand, VoxelWorld,
 };
 
 const DEFAULT_REFINEMENT_ACTIVATION_NATIVE: f32 = 8_192.0;
@@ -168,6 +169,76 @@ impl From<SpatialDemandScope> for VoxelRealizationScope {
     }
 }
 
+/// Semantic celestial realization identity. This target can exist before its
+/// scale-local `VoxelWorld`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(in crate::voxel) struct VoxelRealizationTarget {
+    authority: Entity,
+    scale: SpatialScale,
+}
+
+impl VoxelRealizationTarget {
+    pub(in crate::voxel) const fn new(authority: Entity, scale: SpatialScale) -> Self {
+        Self { authority, scale }
+    }
+
+    pub(in crate::voxel) const fn authority(self) -> Entity {
+        self.authority
+    }
+
+    pub(in crate::voxel) const fn scale(self) -> SpatialScale {
+        self.scale
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum VoxelRealizationIntentTarget {
+    ExistingWorld(Entity),
+    Celestial(VoxelRealizationTarget),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct VoxelRealizationIntent {
+    target: VoxelRealizationIntentTarget,
+    scope: SpatialDemandScope,
+    roles: UsfScaleRoleMask,
+    view_source: Option<Entity>,
+    residency_half_extent_native: Vec3,
+}
+
+#[derive(Resource, Debug, Default)]
+pub(in crate::voxel) struct VoxelRealizationIntentSnapshot {
+    intents: Vec<VoxelRealizationIntent>,
+}
+
+impl VoxelRealizationIntentSnapshot {
+    pub(in crate::voxel) fn celestial_targets(
+        &self,
+    ) -> impl Iterator<Item = VoxelRealizationTarget> + '_ {
+        self.intents.iter().filter_map(|intent| match intent.target {
+            VoxelRealizationIntentTarget::Celestial(target) => Some(target),
+            VoxelRealizationIntentTarget::ExistingWorld(_) => None,
+        })
+    }
+
+    fn push(
+        &mut self,
+        target: VoxelRealizationIntentTarget,
+        scope: SpatialDemandScope,
+        roles: UsfScaleRoleMask,
+        view_source: Option<Entity>,
+        residency_half_extent_native: Vec3,
+    ) {
+        self.intents.push(VoxelRealizationIntent {
+            target,
+            scope,
+            roles,
+            view_source,
+            residency_half_extent_native,
+        });
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct VoxelRealizationDemand {
     target_world: Entity,
@@ -261,14 +332,14 @@ fn observer_physical_presentation_roles(
     }
 }
 
-pub(super) fn collect_voxel_realization_demand(
+pub(super) fn collect_voxel_realization_intent(
     interaction: Res<UsfPrimaryInteractionSlice>,
     spatial: Res<SpatialDemandSnapshot>,
     voxel_sources: Query<
         Option<&SpatialRefinementDemand>,
         With<VoxelMaterializationDemand>,
     >,
-    worlds: Query<
+    standalone_worlds: Query<
         (
             Entity,
             &UsfScaleLayer,
@@ -277,73 +348,73 @@ pub(super) fn collect_voxel_realization_demand(
         ),
         With<VoxelWorld>,
     >,
-    authority_partitions: Query<&UsfAuthorityPartitionOf>,
-    celestial_authorities: Query<(&UsfPosition, &UsfSemanticFrame, &CelestialVoxelField, &VoxelScaleDomain)>,
+    celestial_authorities: Query<(
+        Entity,
+        &UsfPosition,
+        &UsfSemanticFrame,
+        &CelestialVoxelField,
+        &VoxelScaleDomain,
+        &CelestialVoxelRealizationPolicy,
+    )>,
     coverage: Res<UsfScaleCoverageSnapshot>,
     view_demands: Res<UsfViewDemandSnapshot>,
     mut residency_requests: ResMut<UsfResidencyRequestBuffer>,
-    mut output: ResMut<VoxelRealizationDemandSnapshot>,
+    mut output: ResMut<VoxelRealizationIntentSnapshot>,
 ) {
-    // Previous accepted scopes are branch-transaction state. If the desired
-    // child moves into a parent branch that is not ready yet, the previous child
-    // remains demanded instead of disappearing.
-    let previous = output.demands.clone();
-    let mut next = VoxelRealizationDemandSnapshot::default();
+    let previous = output.intents.clone();
+    let mut next = VoxelRealizationIntentSnapshot::default();
 
-    // Generic interest remains one canonical scope per source. Voxel-specific
-    // refinement policy is read separately rather than smuggled into extra
-    // generic demand scopes.
     let mut sources = Vec::<VoxelDemandSource>::new();
     for scope in spatial.iter() {
         let Ok(refinement) = voxel_sources.get(scope.source()) else {
             continue;
         };
-
         sources.push(VoxelDemandSource {
             scope,
             minimum_realization_scale: refinement.and_then(|value| value.minimum_scale()),
-            refinement_half_extent_native: refinement
-                .map(|value| value.half_extent_native()),
+            refinement_half_extent_native: refinement.map(|value| value.half_extent_native()),
         });
     }
 
-    for (world_entity, layer, logical_realization, pinned) in &worlds {
-        let scale = layer.scale();
-
-        // Persistent capability-local residency is explicit voxel policy.
-        if let Some(pinned) = pinned {
-            let scope = SpatialDemandScope::at_scale(
-                world_entity,
-                scale,
-                pinned.center(),
-                pinned.half_extent_native(),
-                pinned.priority(),
-            );
-            // Permanent whole-body bootstrap is presentation ancestry,
-            // not a request for far-field physics/editing.
-            next.push(
-                world_entity,
-                scope,
-                presentation_roles(),
-                None,
-                materialization_residency_extent(scope.half_extent_native()),
-            );
+    for (authority, body_origin, body_frame, field, domain, policy) in &celestial_authorities {
+        // Persistent bootstrap is authority-level intent, not a pre-created
+        // coarsest world. Only that one Scale is requested by bootstrap policy.
+        let bootstrap_scale = field.coarsest_detail_scale();
+        if domain.realizes(bootstrap_scale)
+            && let Ok(center) = body_origin.reexpressed_at(bootstrap_scale)
+        {
+            let radius_native = bootstrap_scale.metres_to_native_f64(field.radius_metres());
+            if radius_native.is_finite()
+                && radius_native >= 0.0
+                && radius_native <= f64::from(f32::MAX)
+            {
+                let half_extent = Vec3::splat(
+                    radius_native as f32 + policy.bootstrap_shell_margin_native(),
+                );
+                let scope = SpatialDemandScope::at_scale(
+                    authority,
+                    bootstrap_scale,
+                    center,
+                    half_extent,
+                    1_000,
+                );
+                next.push(
+                    VoxelRealizationIntentTarget::Celestial(
+                        VoxelRealizationTarget::new(authority, bootstrap_scale),
+                    ),
+                    scope,
+                    presentation_roles(),
+                    None,
+                    materialization_residency_extent(half_extent),
+                );
+            }
         }
 
-        if let Some(logical_realization) = logical_realization
-            && let Ok(partition) = authority_partitions.get(logical_realization.0)
-            && let Ok((body_origin, body_frame, field, domain)) = celestial_authorities.get(partition.0)
-        {
-            if !domain.realizes(scale) {
-                continue;
-            }
-
-            for source in sources.iter().copied() {
-                let plan = realization_plan(source, *domain);
-                let Some(step) = plan.step(scale) else {
-                    continue;
-                };
-
+        for source in sources.iter().copied() {
+            let plan = realization_plan(source, *domain);
+            for step in plan.steps_coarse_to_fine() {
+                let scale = step.scale();
+                let target = VoxelRealizationTarget::new(authority, scale);
                 let candidate = celestial_surface_demand(
                     *body_origin,
                     *body_frame,
@@ -354,46 +425,49 @@ pub(super) fn collect_voxel_realization_demand(
                     step.half_extent_native(),
                     step.priority(),
                 )
-                .map(|scope| VoxelRealizationDemand {
-                    target_world: world_entity,
+                .map(|scope| VoxelRealizationIntent {
+                    target: VoxelRealizationIntentTarget::Celestial(target),
                     scope,
                     roles: roles_for_scale(*domain, scale),
                     view_source: None,
                     residency_half_extent_native: step.residency_half_extent_native(),
                 });
+
                 let parent_ready = candidate.is_some_and(|candidate| {
                     parent_realization_ready(
-                        partition.0,
+                        authority,
                         step.parent_scale(),
                         &coverage,
                         &candidate.scope.center(),
                     )
                 });
-                let previous_branch = previous.iter().copied().find(|demand| {
-                    demand.target_world == world_entity
-                        && demand.scope.source() == source.scope.source()
+                let previous_branch = previous.iter().copied().find(|intent| {
+                    intent.target == VoxelRealizationIntentTarget::Celestial(target)
+                        && intent.scope.source() == source.scope.source()
+                        && intent.view_source.is_none()
                 });
 
-                if let Some(demand) = select_refinement_branch_demand(
-                    candidate,
-                    parent_ready,
-                    previous_branch,
-                ) {
-                    next.demands.push(demand);
+                if let Some(intent) =
+                    select_refinement_branch_demand(candidate, parent_ready, previous_branch)
+                {
+                    next.intents.push(intent);
                 }
             }
+        }
 
-            // Observer presentation is a separate capability reason. Keeping a
-            // fixed native aperture makes physical reach grow one decade per
-            // coarser slice; streaming applies materialization-level frustum
-            // and screen-significance rejection.
-            for view in view_demands.iter() {
-                if !view.requests_scale(scale) {
-                    continue;
-                }
+        for view in view_demands.iter() {
+            let half_extent_native = observer_presentation_half_extent_native(*domain);
+            let plan = UsfRefinementPlan::new(
+                view.finest_scale(),
+                Some(view.finest_scale()),
+                domain.realization_slices(),
+                half_extent_native,
+                500,
+            );
 
-                let half_extent_native =
-                    observer_presentation_half_extent_native(*domain);
+            for step in plan.steps_coarse_to_fine() {
+                let scale = step.scale();
+                let target = VoxelRealizationTarget::new(authority, scale);
                 let source_scope = SpatialDemandScope::at_scale(
                     view.source(),
                     scale,
@@ -401,7 +475,6 @@ pub(super) fn collect_voxel_realization_demand(
                     half_extent_native,
                     500,
                 );
-
                 let candidate = celestial_surface_demand(
                     *body_origin,
                     *body_frame,
@@ -412,8 +485,8 @@ pub(super) fn collect_voxel_realization_demand(
                     half_extent_native,
                     500,
                 )
-                .map(|scope| VoxelRealizationDemand {
-                    target_world: world_entity,
+                .map(|scope| VoxelRealizationIntent {
+                    target: VoxelRealizationIntentTarget::Celestial(target),
                     scope,
                     roles: observer_physical_presentation_roles(
                         *domain,
@@ -425,47 +498,125 @@ pub(super) fn collect_voxel_realization_demand(
                         materialization_residency_extent(half_extent_native),
                 });
 
-                let parent_scale = domain.realization_slices().next_coarser(scale);
                 let parent_ready = candidate.is_some_and(|candidate| {
                     parent_realization_ready(
-                        partition.0,
-                        parent_scale,
+                        authority,
+                        step.parent_scale(),
                         &coverage,
                         &candidate.scope.center(),
                     )
                 });
-                let previous_branch = previous.iter().copied().find(|demand| {
-                    demand.target_world == world_entity
-                        && demand.scope.source() == view.source()
-                        && demand.view_source == Some(view.source())
+                let previous_branch = previous.iter().copied().find(|intent| {
+                    intent.target == VoxelRealizationIntentTarget::Celestial(target)
+                        && intent.scope.source() == view.source()
+                        && intent.view_source == Some(view.source())
                 });
 
-                if let Some(demand) = select_refinement_branch_demand(
-                    candidate,
-                    parent_ready,
-                    previous_branch,
-                ) {
-                    next.demands.push(demand);
+                if let Some(intent) =
+                    select_refinement_branch_demand(candidate, parent_ready, previous_branch)
+                {
+                    next.intents.push(intent);
                 }
             }
+        }
+    }
+
+    // Standalone voxel worlds keep their direct world-targeted path.
+    for (world_entity, layer, logical_realization, pinned) in &standalone_worlds {
+        if logical_realization.is_some() {
             continue;
         }
+        let scale = layer.scale();
 
-        // Standalone/non-celestial worlds consume interest only in their own
-        // numerical chart. They do not inherit a made-up multi-scale spine.
+        if let Some(pinned) = pinned {
+            let scope = SpatialDemandScope::at_scale(
+                world_entity,
+                scale,
+                pinned.center(),
+                pinned.half_extent_native(),
+                pinned.priority(),
+            );
+            next.push(
+                VoxelRealizationIntentTarget::ExistingWorld(world_entity),
+                scope,
+                presentation_roles(),
+                None,
+                materialization_residency_extent(scope.half_extent_native()),
+            );
+        }
+
         for source in sources.iter().copied() {
             if source.scope.scale() == scale {
                 next.push(
-                    world_entity,
+                    VoxelRealizationIntentTarget::ExistingWorld(world_entity),
                     source.scope,
                     full_runtime_roles(),
                     None,
-                    materialization_residency_extent(
-                        source.scope.half_extent_native(),
-                    ),
+                    materialization_residency_extent(source.scope.half_extent_native()),
                 );
             }
         }
+    }
+
+    next.intents.sort_by_key(|intent| {
+        let (kind, owner, scale) = match intent.target {
+            VoxelRealizationIntentTarget::ExistingWorld(world) => {
+                (0_u8, world.to_bits(), intent.scope.scale().exponent())
+            }
+            VoxelRealizationIntentTarget::Celestial(target) => {
+                (1_u8, target.authority().to_bits(), target.scale().exponent())
+            }
+        };
+        (
+            kind,
+            owner,
+            intent.scope.source().to_bits(),
+            Reverse(scale),
+            intent.roles.bits(),
+            intent.view_source.map(Entity::to_bits).unwrap_or(0),
+        )
+    });
+
+    for intent in &next.intents {
+        residency_requests.request(SpatialDemandScope::at_scale(
+            intent.scope.source(),
+            intent.scope.scale(),
+            intent.scope.center(),
+            intent.residency_half_extent_native,
+            intent.scope.priority(),
+        ));
+    }
+
+    if output.intents != next.intents {
+        output.intents = next.intents;
+    }
+}
+
+/// Resolve authority+Scale intent to the disposable world entity consumed by
+/// the existing dense materialization backend.
+pub(super) fn resolve_voxel_realization_demand(
+    intents: Res<VoxelRealizationIntentSnapshot>,
+    registry: Res<CelestialVoxelRealizationRegistry>,
+    mut output: ResMut<VoxelRealizationDemandSnapshot>,
+) {
+    let mut next = VoxelRealizationDemandSnapshot::default();
+
+    for intent in &intents.intents {
+        let target_world = match intent.target {
+            VoxelRealizationIntentTarget::ExistingWorld(world) => Some(world),
+            VoxelRealizationIntentTarget::Celestial(target) => registry.world_for(target),
+        };
+        let Some(target_world) = target_world else {
+            continue;
+        };
+
+        next.push(
+            target_world,
+            intent.scope,
+            intent.roles,
+            intent.view_source,
+            intent.residency_half_extent_native,
+        );
     }
 
     next.demands.sort_by_key(|demand| {
@@ -478,31 +629,16 @@ pub(super) fn collect_voxel_realization_demand(
         )
     });
 
-    // Materialization chunks are capability-local 10-native-unit addresses and
-    // may straddle a 1000-native-unit USF context boundary. Pad the residency
-    // request by half a materialization chunk so every chosen chunk center lies
-    // under a resident canonical context.
-    for demand in &next.demands {
-        let scope = demand.scope;
-        residency_requests.request(SpatialDemandScope::at_scale(
-            scope.source(),
-            scope.scale(),
-            scope.center(),
-            demand.residency_half_extent_native,
-            scope.priority(),
-        ));
-    }
-
     if output.demands != next.demands {
         output.demands = next.demands;
     }
 }
 
-fn select_refinement_branch_demand(
-    candidate: Option<VoxelRealizationDemand>,
+fn select_refinement_branch_demand<T: Copy>(
+    candidate: Option<T>,
     parent_ready: bool,
-    previous: Option<VoxelRealizationDemand>,
-) -> Option<VoxelRealizationDemand> {
+    previous: Option<T>,
+) -> Option<T> {
     match candidate {
         Some(candidate) if parent_ready => Some(candidate),
         Some(_) => previous,
@@ -694,6 +830,33 @@ mod tests {
             select_refinement_branch_demand(None, false, Some(previous)),
             None,
         );
+    }
+
+    #[test]
+    fn authority_scale_intent_survives_without_world() {
+        let mut ecs = World::new();
+        let authority = ecs.spawn_empty().id();
+        let source = ecs.spawn_empty().id();
+        let scale = SpatialScale::ZERO;
+        let target = VoxelRealizationTarget::new(authority, scale);
+        let scope = SpatialDemandScope::at_scale(
+            source,
+            scale,
+            UsfPosition::zero(scale),
+            Vec3::splat(8.0),
+            10,
+        );
+
+        let mut snapshot = VoxelRealizationIntentSnapshot::default();
+        snapshot.push(
+            VoxelRealizationIntentTarget::Celestial(target),
+            scope,
+            presentation_roles(),
+            None,
+            materialization_residency_extent(scope.half_extent_native()),
+        );
+
+        assert_eq!(snapshot.celestial_targets().collect::<Vec<_>>(), vec![target]);
     }
 
     #[test]

@@ -16,8 +16,9 @@ use crate::{
 use super::{VoxelPinnedDemand, VoxelStreaming};
 
 use super::super::{
-    MATERIALIZATION_CHUNK_SIZE, VoxelCollisionDisabled, VoxelEditingDisabled,
-    VoxelMaterializationKey, VoxelQueryPosition, VoxelRealizationDemandSnapshot,
+    CelestialVoxelRealization, MATERIALIZATION_CHUNK_SIZE,
+    VoxelCollisionDisabled, VoxelEditingDisabled, VoxelMaterializationKey,
+    VoxelQueryPosition, VoxelRealizationDemandSnapshot,
     VoxelRegionSpan,
     VoxelRealizationScope, VoxelWorld, manifestation::VoxelMaterializationRuntime,
 };
@@ -57,6 +58,7 @@ pub(in crate::voxel) fn refresh_voxel_residency(
         &mut VoxelWorld,
         &mut VoxelStreaming,
         &UsfScaleLayer,
+        Option<&CelestialVoxelRealization>,
         Option<&VoxelPinnedDemand>,
         Option<&VoxelCollisionDisabled>,
         Option<&VoxelEditingDisabled>,
@@ -74,6 +76,7 @@ pub(in crate::voxel) fn refresh_voxel_residency(
         mut world,
         mut streaming,
         layer,
+        celestial_realization,
         pinned,
         collision_disabled,
         editing_disabled,
@@ -83,7 +86,13 @@ pub(in crate::voxel) fn refresh_voxel_residency(
         voxel_demands.extend(realization_demand.requests_for(world_entity));
         let pinned_shell = pinned
             .and_then(|pinned| pinned.surface_radius_native())
-            .map(|radius| (world_entity, radius));
+            .map(|radius| {
+                (
+                    celestial_realization
+                        .map_or(world_entity, |realization| realization.authority()),
+                    radius,
+                )
+            });
 
         let plan_changed = match refresh_demand_plan(
             &world,

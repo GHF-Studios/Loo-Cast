@@ -1,7 +1,7 @@
-//! One semantic Earth authority with an all-scale voxel realization ladder.
+//! One semantic celestial authority with demand-created voxel realizations.
 //!
-//! There is no separate whole-body Earth mesh. Every terrain surface comes from
-//! the same `CelestialVoxelField` through `VoxelWorld` materialization.
+//! Semantic body authority exists independently of scale-local voxel worlds.
+//! Those worlds are disposable representations created only for demanded Scales.
 
 use bevy::prelude::*;
 
@@ -15,12 +15,11 @@ use crate::{
     procedural_assets::ProceduralAssetLibrary,
     spatial::{
         SPATIAL_SCALE_MIN, SpatialScale, UsfApproachRefinement, UsfChartMask,
-        UsfPosition, UsfScaleLayer, UsfSemanticFrame, UsfTravelBoundaryResolver, UsfTravelInfluence,
+        UsfPosition, UsfSemanticFrame, UsfTravelBoundaryResolver, UsfTravelInfluence,
     },
     voxel::{
-        CelestialVoxelField, VoxelAuthority, VoxelBase, VoxelCollisionDisabled,
-        VoxelEditingDisabled, VoxelPinnedDemand, VoxelPresentationMaterial, VoxelScaleDomain,
-        VoxelStreaming, VoxelWorld,
+        CelestialVoxelField, CelestialVoxelRealizationPolicy, VoxelAuthority,
+        VoxelScaleDomain,
     },
 };
 use crate::game::world::WorldMemberOf;
@@ -46,7 +45,6 @@ pub(super) fn spawn_body(
     parent: Entity,
     definition: &BodyDefinition,
     assets: &ProceduralAssetLibrary,
-    config: &EngineConfig,
     landmarks: &mut UniverseLandmarkIndex,
     arrival_site: &mut FixtureArrivalSite,
 ) {
@@ -87,6 +85,10 @@ pub(super) fn spawn_body(
             frame,
             field,
             scale_domain,
+            CelestialVoxelRealizationPolicy::new(
+                assets.debug_grid.clone(),
+                CELESTIAL_BOOTSTRAP_SHELL_MARGIN_NATIVE,
+            ),
             VoxelAuthority::default(),
             UsfTravelInfluence::hard_body(
                 nav_scale,
@@ -111,7 +113,6 @@ pub(super) fn spawn_body(
         ))
         .id();
 
-    let local_surface_material = assets.debug_grid.clone();
     let bootstrap_direction = definition
         .arrival_direction
         .unwrap_or(Vec3::Y)
@@ -120,55 +121,6 @@ pub(super) fn spawn_body(
         bootstrap_direction != Vec3::ZERO,
         "Earth bootstrap surface direction must be non-zero"
     );
-
-    for raw in CELESTIAL_VOXEL_MIN_SCALE..=detail_root.exponent() {
-        let terrain_scale = scale(raw);
-        let grid_origin = center
-            .reexpressed_at(terrain_scale)
-            .expect("Earth realization origin must re-express at its scale");
-        let base = field.realization(center, frame, terrain_scale);
-
-        // Only the coarsest representation is permanently bootstrapped. The
-        // parent-first refinement owns every finer slice relative to the current
-        // requested tip scale; this avoids a permanent one-chunk pin at S-35..S5.
-        let bootstrap_demand = (terrain_scale == detail_root).then(|| {
-            let radius_native = terrain_scale.metres_to_native_f64(radius_metres);
-            assert!(
-                radius_native.is_finite()
-                    && radius_native >= 0.0
-                    && radius_native <= f64::from(f32::MAX),
-                "coarsest Earth radius must fit its own bounded realization chart"
-            );
-            VoxelPinnedDemand::shell(
-                grid_origin,
-                radius_native as f32,
-                CELESTIAL_BOOTSTRAP_SHELL_MARGIN_NATIVE,
-            )
-        });
-
-        let mut terrain = commands.spawn((
-            Name::new(format!("{name} S{terrain_scale} Terrain")),
-            WorldMemberOf(parent),
-            UsfScaleLayer::new(terrain_scale),
-            UsfLogicalRealizationOf(authority_partition),
-            VoxelWorld::new_at(VoxelBase::celestial_body(base), grid_origin),
-            VoxelStreaming::new(config.voxel.streaming.default_load_budget_per_frame),
-            VoxelPresentationMaterial::new(local_surface_material.clone()),
-            Transform::IDENTITY,
-            Visibility::Inherited,
-        ));
-
-        if let Some(bootstrap_demand) = bootstrap_demand {
-            terrain.insert(bootstrap_demand);
-        }
-
-        if !scale_domain.collides(terrain_scale) {
-            terrain.insert(VoxelCollisionDisabled);
-        }
-        if !scale_domain.editable(terrain_scale) {
-            terrain.insert(VoxelEditingDisabled);
-        }
-    }
 
     // Intentionally no UsfSceneryPresentation / celestial_surface_mesh.
     landmarks.register_body(definition, center, system_scale);
@@ -247,6 +199,7 @@ pub(in crate::game::world::fixture) fn audit_world_authority(
     }
 
     let mut invalid = 0usize;
+    let mut awaiting_bootstrap_realization = 0usize;
     for (
         entity,
         name,
@@ -273,8 +226,11 @@ pub(in crate::game::world::fixture) fn audit_world_authority(
             && travel.is_some()
             && gravity.is_some()
             && refinement.is_some()
-            && partition_count > 0
-            && realization_count > 0;
+            && partition_count > 0;
+
+        if valid && realization_count == 0 {
+            awaiting_bootstrap_realization += 1;
+        }
 
         if !valid {
             invalid += 1;
@@ -294,11 +250,11 @@ pub(in crate::game::world::fixture) fn audit_world_authority(
         }
     }
 
-    if invalid == 0 {
+    if invalid == 0 && awaiting_bootstrap_realization == 0 {
         info!(
             bodies = entries.len(),
             minimum_voxel_scale = %SpatialScale::MIN,
-            "Earth semantic/partition/logical-realization invariants healthy; current-relative parent-first refinement active"
+            "Earth semantic/partition invariants healthy; lazy authority-targeted voxel realization active"
         );
         *completed = true;
     }

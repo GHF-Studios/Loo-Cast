@@ -3,13 +3,12 @@
 use bevy::prelude::*;
 
 use super::{FixtureArrivalSite, definition, landmarks::UniverseLandmarkIndex};
-use crate::{config::EngineConfig, procedural_assets::ProceduralAssetLibrary};
+use crate::procedural_assets::ProceduralAssetLibrary;
 
 mod celestial;
 
 pub(super) fn spawn_fixture(
     mut commands: Commands,
-    config: Res<EngineConfig>,
     assets: Res<ProceduralAssetLibrary>,
     mut landmarks: ResMut<UniverseLandmarkIndex>,
     mut arrival: ResMut<FixtureArrivalSite>,
@@ -23,7 +22,6 @@ pub(super) fn spawn_fixture(
             root,
             &body,
             &assets,
-            &config,
             &mut landmarks,
             &mut arrival,
         );
