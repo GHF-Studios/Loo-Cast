@@ -13,6 +13,14 @@ use super::{
 };
 use super::super::{VoxelMaterialId, VoxelQueryPosition, VoxelSample};
 
+mod bands;
+mod rocky;
+
+use rocky::{
+    rocky_maximum_outward_displacement_metres,
+    rocky_surface_displacement_metres,
+};
+
 const LOCAL_SAMPLE_MARGIN_NATIVE: f32 = 8_192.0;
 const LOCAL_SAMPLE_RELIEF_MARGIN_FRACTION: f64 = 0.05;
 const FINE_SURFACE_FRAME_BOUND_NATIVE: f32 = 1_000_000_000.0;
@@ -114,8 +122,8 @@ pub fn new(
     /// Scale Slice so high-speed collision queries may safely over-report a
     /// candidate without depending on a materialized mesh/collider.
     pub(crate) fn conservative_outer_radius_metres(self) -> f64 {
-        let mut radius = self.radius_metres
-            * (1.0 + self.maximum_outward_macro_relief_fraction());
+        let mut radius =
+            self.radius_metres + self.maximum_outward_macro_relief_metres();
 
         if self.current_scale <= self.coarsest_detail_scale {
             for raw in self.current_scale.exponent()
@@ -332,8 +340,8 @@ fn direction_to(self, point: &UsfPosition) -> Option<Vec3> {
         through_scale: SpatialScale,
     ) -> f64 {
         let direction = normalized_direction(direction);
-        let mut radius =
-            self.radius_metres * (1.0 + f64::from(self.macro_relative_relief(direction)));
+        let mut radius = self.radius_metres
+            + self.macro_surface_displacement_metres(direction, through_scale);
 
         let lower = through_scale.exponent().max(1);
         let upper = self.coarsest_detail_scale.exponent();
@@ -415,20 +423,36 @@ fn canonical_detail_noise_at(
     fn detail_parameters(self) -> (f64, f64, f64, u32) {
         match self.profile {
             CelestialBodyProfile::Lunar => (0.82, 0.040, 1.70, 0x4C55_4E41),
-            CelestialBodyProfile::Rocky => (0.63, 0.025, 1.55, 0x524F_434B),
+            // Rocky planetary morphology is now owned by explicit
+            // semantic bands. This generic stack is residual texture beneath
+            // those bands instead of a 25 km S+6 pseudo-macro surface.
+            CelestialBodyProfile::Rocky => (0.72, 0.0025, 1.65, 0x524F_434B),
             CelestialBodyProfile::Stellar => (0.48, 0.008, 1.30, 0x5354_4152),
         }
     }
 
-    fn macro_relative_relief(self, direction: Vec3) -> f32 {
+    fn macro_surface_displacement_metres(
+        self,
+        direction: Vec3,
+        through_scale: SpatialScale,
+    ) -> f64 {
         match self.profile {
-            CelestialBodyProfile::Lunar => lunar_macro_relative_relief(direction),
-            CelestialBodyProfile::Rocky => rocky_macro_relative_relief(direction, self.seed),
-            CelestialBodyProfile::Stellar => stellar_macro_relative_relief(direction, self.seed),
+            CelestialBodyProfile::Lunar => {
+                self.radius_metres * f64::from(lunar_macro_relative_relief(direction))
+            }
+            CelestialBodyProfile::Rocky => rocky_surface_displacement_metres(
+                direction,
+                through_scale,
+                self.seed,
+            ),
+            CelestialBodyProfile::Stellar => {
+                self.radius_metres
+                    * f64::from(stellar_macro_relative_relief(direction, self.seed))
+            }
         }
     }
 
-    fn maximum_outward_macro_relief_fraction(self) -> f64 {
+    fn maximum_outward_macro_relief_metres(self) -> f64 {
         match self.profile {
             // Two broad waves plus the deliberately conservative assumption
             // that every crater rim can contribute at once. Bowl depth is
@@ -437,10 +461,13 @@ fn canonical_detail_noise_at(
                 let crater_depth_sum =
                     0.0100 + 0.0070 + 0.0060 + 0.0048
                     + 0.0040 + 0.0034 + 0.0028 + 0.0024;
-                0.0014 + 0.0008 + crater_depth_sum * 0.28
+                self.radius_metres
+                    * (0.0014 + 0.0008 + crater_depth_sum * 0.28)
             }
-            CelestialBodyProfile::Rocky => 0.0012 + 0.0007,
-            CelestialBodyProfile::Stellar => 0.00035,
+            CelestialBodyProfile::Rocky => {
+                rocky_maximum_outward_displacement_metres()
+            }
+            CelestialBodyProfile::Stellar => self.radius_metres * 0.00035,
         }
     }
 }
@@ -456,12 +483,6 @@ fn dvec(value: Vec3) -> DVec3 {
         f64::from(value.y),
         f64::from(value.z),
     )
-}
-
-fn rocky_macro_relative_relief(direction: Vec3, seed: u32) -> f32 {
-    let phase = (seed as f32 / u32::MAX as f32) * std::f32::consts::TAU;
-    (direction.dot(Vec3::new(1.1, -1.7, 0.6)) * 4.0 + phase).sin() * 0.0012
-        + (direction.dot(Vec3::new(-2.2, 0.4, 1.8)) * 7.0 - phase).sin() * 0.0007
 }
 
 fn stellar_macro_relative_relief(direction: Vec3, seed: u32) -> f32 {
