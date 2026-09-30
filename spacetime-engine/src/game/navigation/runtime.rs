@@ -13,7 +13,7 @@ use crate::{
         UsfInteractionRequirement, UsfNavigationContext,
         UsfScaleLayer, UsfScaleRoleMask, UsfSpatialFrame, UsfSpatialTransitionApplied,
         UsfSpatialTransitionCause, UsfSpatialTransitionQueue, UsfTransitionVelocity,
-        UsfTravelBoundaryResolver, UsfTravelInfluence,
+        UsfTravelBoundaryResolver, UsfTravelInfluence, UsfPosition, UsfSemanticFrame,
         UsfTravelInfluenceKind, UsfTravelNeighborhood, UsfViewContext,
         UsfViewRenderAnchor,
     },
@@ -82,6 +82,8 @@ pub(super) fn sync_navigation_context(
     frame: Res<UsfSpatialFrame>,
     influences: Query<(
         Entity,
+        &UsfPosition,
+        &UsfSemanticFrame,
         &UsfTravelInfluence,
         Option<&UsfTravelBoundaryResolver>,
     )>,
@@ -109,8 +111,8 @@ pub(super) fn sync_navigation_context(
         neighborhood.refresh(
             position,
             scale,
-            influences.iter().map(|(entity, influence, boundary)| {
-                (entity, *influence, boundary.cloned())
+            influences.iter().map(|(entity, anchor, semantic_frame, influence, boundary)| {
+                (entity, *anchor, *semantic_frame, *influence, boundary.cloned())
             }),
         );
     }
@@ -188,6 +190,8 @@ pub(super) fn plan_approach_refinement(
         With<LocalControlSubject>,
     >,
     refinable: Query<(
+        &UsfPosition,
+        &UsfSemanticFrame,
         &UsfTravelInfluence,
         &UsfApproachRefinement,
         Option<&UsfTravelBoundaryResolver>,
@@ -211,14 +215,21 @@ pub(super) fn plan_approach_refinement(
     };
 
     let mut selected = None::<(
+        UsfPosition,
+        UsfSemanticFrame,
         UsfTravelInfluence,
         UsfApproachRefinement,
         Option<UsfTravelBoundaryResolver>,
         f64,
     )>;
-    for (influence, refinement, boundary) in &refinable {
-        let Some(measurement) =
-            influence.measure_from_at_scale(&observer, observer_scale, boundary)
+    for (anchor, semantic_frame, influence, refinement, boundary) in &refinable {
+        let Some(measurement) = influence.measure_from_at_scale(
+            anchor,
+            *semantic_frame,
+            &observer,
+            observer_scale,
+            boundary,
+        )
         else {
             continue;
         };
@@ -228,13 +239,13 @@ pub(super) fn plan_approach_refinement(
         }
         if selected
             .as_ref()
-            .is_none_or(|(_, _, _, current)| relative < *current)
+            .is_none_or(|(_, _, _, _, _, current)| relative < *current)
         {
-            selected = Some((*influence, *refinement, boundary.cloned(), relative));
+            selected = Some((*anchor, *semantic_frame, *influence, *refinement, boundary.cloned(), relative));
         }
     }
 
-    let Some((influence, refinement, boundary, _)) = selected else {
+    let Some((anchor, semantic_frame, influence, refinement, boundary, _)) = selected else {
         state.active = false;
         state.interaction_target_scale = layer.scale();
         state.realization_target_scale = layer.scale();
@@ -242,7 +253,7 @@ pub(super) fn plan_approach_refinement(
         return;
     };
     let Some(measurement) =
-        influence.measure_from_at_scale(&observer, observer_scale, boundary.as_ref())
+        influence.measure_from_at_scale(&anchor, semantic_frame, &observer, observer_scale, boundary.as_ref())
     else {
         state.active = false;
         state.interaction_target_scale = layer.scale();
@@ -527,15 +538,15 @@ pub(super) fn sync_travel_state(
 
     let nearest = neighborhood
         .measurements_from(&position, layer.scale())
-        .filter(|(_, influence, _)| {
+        .filter(|(_, _, influence, _)| {
             matches!(influence.kind(), UsfTravelInfluenceKind::HardBody)
         })
-        .min_by(|(_, _, a), (_, _, b)| {
+        .min_by(|(_, _, _, a), (_, _, _, b)| {
             a.boundary_clearance_scale0()
                 .total_cmp(&b.boundary_clearance_scale0())
         });
 
-    let Some((entity, influence, measurement)) = nearest else {
+    let Some((entity, anchor, influence, measurement)) = nearest else {
         *state = TravelState::default();
         *primary = PrimaryBodyContext::default();
         return;
@@ -555,7 +566,7 @@ pub(super) fn sync_travel_state(
 
     *primary = PrimaryBodyContext::resolved(
         entity,
-        influence.anchor(),
+        anchor,
         radius,
         influence.scale(),
         measurement.center_distance_scale0(),

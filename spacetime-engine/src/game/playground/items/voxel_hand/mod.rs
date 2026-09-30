@@ -8,8 +8,8 @@ use crate::{
         GameSet,
         item::{ItemAction, ItemActionHint, ItemCatalog, ItemDefinition, ItemId, UseItem},
     },
-    spatial::{UsfPrimaryInteractionSlice, UsfScaleLayer, UsfSpatialFrame},
-    voxel::{VoxelAuthority, VoxelBrush, VoxelEdit, VoxelEditingDisabled, VoxelMaterialId, VoxelQueryPosition, VoxelRayHit, VoxelScaleDomain, VoxelWorld},
+    spatial::{UsfPosition, UsfPrimaryInteractionSlice, UsfScaleLayer, UsfSemanticFrame, UsfSpatialFrame},
+    voxel::{VoxelAuthority, VoxelBrush, VoxelEdit, VoxelEditingDisabled, VoxelFrameEdit, VoxelFrameSnapshot, VoxelMaterialId, VoxelQueryPosition, VoxelRayHit, VoxelScaleDomain, VoxelWorld},
 };
 
 pub const VOXEL_HAND: ItemId = ItemId::new("voxel_hand");
@@ -64,7 +64,7 @@ fn use_voxel_hand(
         >,
     )>,
     authority_partitions: Query<&UsfAuthorityPartitionOf>,
-    mut authorities: Query<(&mut VoxelAuthority, &VoxelScaleDomain)>,
+    mut authorities: Query<(&UsfPosition, &UsfSemanticFrame, &mut VoxelAuthority, &VoxelScaleDomain)>,
 ) {
     for request in uses.read() {
         if request.item != VOXEL_HAND
@@ -154,15 +154,22 @@ fn use_voxel_hand(
         };
 
         if let Some(authority_entity) = authority_entity {
-            let Ok((mut authority, domain)) = authorities.get_mut(authority_entity) else {
+            let Ok((body_origin, body_frame, mut authority, domain)) = authorities.get_mut(authority_entity) else {
                 error!(
                     ?authority_entity,
                     "voxel realization points at a missing semantic authority"
                 );
                 continue;
             };
+            let body_origin = *body_origin;
+            let body_frame = *body_frame;
             let domain = *domain;
-            authority.record_edit(edit);
+            let edit_snapshot = VoxelFrameSnapshot::new(body_origin, body_frame, active.scale());
+            let Ok(frame_edit) = VoxelFrameEdit::from_world(edit, edit_snapshot) else {
+                error!(?authority_entity, "voxel edit could not be expressed in semantic body-local coordinates");
+                continue;
+            };
+            authority.record_edit(frame_edit);
             drop(authority);
 
             let mut realization_worlds = worlds.p1();
@@ -174,7 +181,8 @@ fn use_voxel_hand(
                     continue;
                 }
 
-                if let Err(error) = world.apply_authority_edit(edit) {
+                let snapshot = VoxelFrameSnapshot::new(body_origin, body_frame, layer.scale());
+                if let Err(error) = world.apply_authority_edit(frame_edit, snapshot) {
                     error!(
                         ?error,
                         ?authority_entity,

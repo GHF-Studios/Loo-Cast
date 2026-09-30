@@ -80,7 +80,7 @@ impl GravitySample {
 /// correctness oracle and does not become approximation-aware.
 #[derive(SystemParam)]
 pub struct GravityFieldQuery<'w, 's> {
-    sources: Query<'w, 's, (Entity, &'static RadialGravitySource)>,
+    sources: Query<'w, 's, (Entity, &'static UsfPosition, &'static RadialGravitySource)>,
 }
 
 impl GravityFieldQuery<'_, '_> {
@@ -91,24 +91,24 @@ impl GravityFieldQuery<'_, '_> {
     pub fn sample_exact(&self, position: &UsfPosition) -> GravitySample {
         exact_direct_sample(
             position,
-            self.sources.iter().map(|(entity, source)| (entity, *source)),
+            self.sources.iter().map(|(entity, center, source)| (entity, *center, *source)),
         )
     }
 }
 
 fn exact_direct_sample(
     position: &UsfPosition,
-    sources: impl IntoIterator<Item = (Entity, RadialGravitySource)>,
+    sources: impl IntoIterator<Item = (Entity, UsfPosition, RadialGravitySource)>,
 ) -> GravitySample {
     let mut acceleration = DVec3::ZERO;
     let mut strongest_source = None;
     let mut strongest_magnitude2 = 0.0_f64;
     let mut evaluated_source_count = 0usize;
 
-    for (entity, source) in sources {
+    for (entity, center, source) in sources {
         evaluated_source_count += 1;
 
-        let Some(contribution) = source.acceleration_at(position) else {
+        let Some(contribution) = source.acceleration_at(&center, position) else {
             continue;
         };
 
@@ -132,16 +132,13 @@ fn exact_direct_sample(
 mod tests {
     use super::*;
     use crate::spatial::SpatialScale;
-
-    fn source_at(x_metres: f32, surface_gravity: f32) -> RadialGravitySource {
+fn source_at(x_metres: f32, surface_gravity: f32) -> (UsfPosition, RadialGravitySource) {
         let center = UsfPosition::zero(SpatialScale::ZERO)
             .translated_at_scale(SpatialScale::ZERO, Vec3::X * x_metres)
             .unwrap();
-        RadialGravitySource::new(
+        (
             center,
-            1.0,
-            SpatialScale::ZERO,
-            surface_gravity,
+            RadialGravitySource::new(1.0, SpatialScale::ZERO, surface_gravity),
         )
     }
 
@@ -153,8 +150,8 @@ mod tests {
         let sample = exact_direct_sample(
             &UsfPosition::zero(SpatialScale::ZERO),
             [
-                (left, source_at(-10.0, 4.0)),
-                (right, source_at(10.0, 4.0)),
+                { let (center, source) = source_at(-10.0, 4.0); (left, center, source) },
+                { let (center, source) = source_at(10.0, 4.0); (right, center, source) },
             ],
         );
 

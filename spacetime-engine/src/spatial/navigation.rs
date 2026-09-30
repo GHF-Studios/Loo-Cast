@@ -8,7 +8,7 @@ use std::{fmt, sync::Arc};
 
 use bevy::{math::DVec3, prelude::*};
 
-use super::{SpatialScale, UsfPosition};
+use super::{SpatialScale, UsfPosition, UsfSemanticFrame};
 
 const NEIGHBORHOOD_HARD_BY_RELATIVE_PROXIMITY: usize = 6;
 const NEIGHBORHOOD_HARD_BY_ABSOLUTE_PROXIMITY: usize = 4;
@@ -184,7 +184,7 @@ impl UsfNavigationContext {
         let mut region = None::<Candidate>;
         let mut any_structure = None::<Candidate>;
 
-        for (_, influence, measurement) in
+        for (_, _, influence, measurement) in
             neighborhood.measurements_from(observer, observer_scale)
         {
             let kind = match influence.kind() {
@@ -319,6 +319,8 @@ impl UsfTravelBoundarySample {
 pub trait UsfTravelBoundary: fmt::Debug + Send + Sync + 'static {
     fn sample_near(
         &self,
+        body_origin: &UsfPosition,
+        body_frame: UsfSemanticFrame,
         observer: &UsfPosition,
         scale: SpatialScale,
     ) -> Option<UsfTravelBoundarySample>;
@@ -339,39 +341,33 @@ impl fmt::Debug for UsfTravelBoundaryResolver {
 
 impl UsfTravelBoundaryResolver {
     pub fn new<T: UsfTravelBoundary>(provider: T) -> Self {
-        Self {
-            provider: Arc::new(provider),
-        }
+        Self { provider: Arc::new(provider) }
     }
 
     pub fn sample_near(
         &self,
+        body_origin: &UsfPosition,
+        body_frame: UsfSemanticFrame,
         observer: &UsfPosition,
         scale: SpatialScale,
     ) -> Option<UsfTravelBoundarySample> {
-        self.provider.sample_near(observer, scale)
+        self.provider.sample_near(body_origin, body_frame, observer, scale)
     }
 }
 
 #[derive(Component, Debug, Clone, Copy)]
 pub struct UsfTravelInfluence {
-    anchor: UsfPosition,
     scale: SpatialScale,
     extent_radius_native: f64,
     kind: UsfTravelInfluenceKind,
 }
 
 impl UsfTravelInfluence {
-    pub fn hard_body(absolute: DVec3, scale: SpatialScale, radius_native: f64) -> Self {
-        Self::hard_body_at(canonical_authored_position(absolute, scale), scale, radius_native)
-    }
-
-    pub fn hard_body_at(anchor: UsfPosition, scale: SpatialScale, radius_native: f64) -> Self {
-        Self::with_kind(anchor, scale, radius_native, UsfTravelInfluenceKind::HardBody)
+    pub fn hard_body(scale: SpatialScale, radius_native: f64) -> Self {
+        Self::with_kind(scale, radius_native, UsfTravelInfluenceKind::HardBody)
     }
 
     pub fn medium(
-        absolute: DVec3,
         scale: SpatialScale,
         extent_radius_native: f64,
         characteristic_feature_size_native: f64,
@@ -380,7 +376,6 @@ impl UsfTravelInfluence {
         hazard: f32,
     ) -> Self {
         Self::with_kind(
-            canonical_authored_position(absolute, scale),
             scale,
             extent_radius_native,
             UsfTravelInfluenceKind::Medium(UsfTravelMedium::new(
@@ -392,61 +387,34 @@ impl UsfTravelInfluence {
         )
     }
 
-    pub fn region(absolute: DVec3, scale: SpatialScale, extent_radius_native: f64) -> Self {
-        Self::with_kind(
-            canonical_authored_position(absolute, scale),
-            scale,
-            extent_radius_native,
-            UsfTravelInfluenceKind::Region,
-        )
+    pub fn region(scale: SpatialScale, extent_radius_native: f64) -> Self {
+        Self::with_kind(scale, extent_radius_native, UsfTravelInfluenceKind::Region)
     }
 
     fn with_kind(
-        anchor: UsfPosition,
         scale: SpatialScale,
         extent_radius_native: f64,
         kind: UsfTravelInfluenceKind,
     ) -> Self {
         assert!(extent_radius_native.is_finite() && extent_radius_native > 0.0);
-        Self {
-            anchor,
-            scale,
-            extent_radius_native,
-            kind,
-        }
+        Self { scale, extent_radius_native, kind }
     }
 
-    pub const fn anchor(self) -> UsfPosition {
-        self.anchor
-    }
-
-    pub const fn scale(self) -> SpatialScale {
-        self.scale
-    }
-
-    pub const fn extent_radius_native(self) -> f64 {
-        self.extent_radius_native
-    }
-
-    pub const fn kind(self) -> UsfTravelInfluenceKind {
-        self.kind
-    }
+    pub const fn scale(self) -> SpatialScale { self.scale }
+    pub const fn extent_radius_native(self) -> f64 { self.extent_radius_native }
+    pub const fn kind(self) -> UsfTravelInfluenceKind { self.kind }
 
     fn characteristic_scale_native(self) -> f64 {
         match self.kind {
-            UsfTravelInfluenceKind::HardBody | UsfTravelInfluenceKind::Region => {
-                self.extent_radius_native
-            }
-            UsfTravelInfluenceKind::Medium(medium) => {
-                medium.characteristic_feature_size_native()
-            }
+            UsfTravelInfluenceKind::HardBody | UsfTravelInfluenceKind::Region => self.extent_radius_native,
+            UsfTravelInfluenceKind::Medium(medium) => medium.characteristic_feature_size_native(),
         }
     }
 
-    /// Measure from the observer using the semantic surface appropriate for
-    /// `measurement_scale` when the hard body publishes one.
     pub fn measure_from_at_scale(
         self,
+        anchor: &UsfPosition,
+        frame: UsfSemanticFrame,
         observer: &UsfPosition,
         measurement_scale: SpatialScale,
         boundary: Option<&UsfTravelBoundaryResolver>,
@@ -454,7 +422,7 @@ impl UsfTravelInfluence {
         const RELATIVE_BOUND_NATIVE: f32 = 1_000_000.0;
 
         let relative = observer
-            .relative_at_scale_bounded(&self.anchor, self.scale, RELATIVE_BOUND_NATIVE)
+            .relative_at_scale_bounded(anchor, self.scale, RELATIVE_BOUND_NATIVE)
             .ok()?;
         let center_distance_native = (f64::from(relative.x).powi(2)
             + f64::from(relative.y).powi(2)
@@ -470,7 +438,9 @@ impl UsfTravelInfluence {
 
         let signed_boundary_scale0 = if matches!(self.kind, UsfTravelInfluenceKind::HardBody) {
             boundary
-                .and_then(|resolver| resolver.sample_near(observer, measurement_scale))
+                .and_then(|resolver| {
+                    resolver.sample_near(anchor, frame, observer, measurement_scale)
+                })
                 .and_then(|sample| {
                     let relative = observer
                         .relative_at_scale_bounded_f64(
@@ -486,8 +456,7 @@ impl UsfTravelInfluence {
                         f64::from(outward.z),
                     );
                     let signed_native = relative.dot(outward);
-                    let signed_scale0 =
-                        signed_native * sample.scale().scale0_units_per_native();
+                    let signed_scale0 = signed_native * sample.scale().scale0_units_per_native();
                     signed_scale0.is_finite().then_some(signed_scale0)
                 })
                 .unwrap_or(spherical_signed_boundary_scale0)
@@ -519,17 +488,21 @@ impl UsfTravelInfluence {
         })
     }
 
-    /// Sphere-only fallback retained for simple hard bodies and compatibility.
-    pub fn measure_from(self, observer: &UsfPosition) -> Option<UsfTravelInfluenceMeasure> {
-        self.measure_from_at_scale(observer, self.scale, None)
+    pub fn measure_from(
+        self,
+        anchor: &UsfPosition,
+        observer: &UsfPosition,
+    ) -> Option<UsfTravelInfluenceMeasure> {
+        self.measure_from_at_scale(
+            anchor,
+            UsfSemanticFrame::identity(),
+            observer,
+            self.scale,
+            None,
+        )
     }
 }
 
-fn canonical_authored_position(absolute: DVec3, scale: SpatialScale) -> UsfPosition {
-    let leaf = scale.min(SpatialScale::ZERO);
-    UsfPosition::from_scale_native_f64(absolute, scale, leaf)
-        .expect("finite authored travel influence must be canonically representable")
-}
 
 
 #[derive(Debug, Clone, Copy)]
@@ -577,6 +550,8 @@ impl UsfTravelInfluenceMeasure {
 #[derive(Debug, Clone)]
 struct CachedTravelInfluence {
     entity: Entity,
+    anchor: UsfPosition,
+    frame: UsfSemanticFrame,
     influence: UsfTravelInfluence,
     boundary: Option<UsfTravelBoundaryResolver>,
 }
@@ -703,6 +678,8 @@ impl UsfTravelNeighborhood {
         I: IntoIterator<
             Item = (
                 Entity,
+                UsfPosition,
+                UsfSemanticFrame,
                 UsfTravelInfluence,
                 Option<UsfTravelBoundaryResolver>,
             ),
@@ -710,12 +687,14 @@ impl UsfTravelNeighborhood {
     {
         let mut candidates = influences
             .into_iter()
-            .filter_map(|(entity, influence, boundary)| {
+            .filter_map(|(entity, anchor, frame, influence, boundary)| {
                 influence
-                    .measure_from_at_scale(&observer, observer_scale, boundary.as_ref())
+                    .measure_from_at_scale(&anchor, frame, &observer, observer_scale, boundary.as_ref())
                     .map(|measurement| TravelInfluenceCandidate {
                         cached: CachedTravelInfluence {
                             entity,
+                            anchor,
+                            frame,
                             influence,
                             boundary,
                         },
@@ -838,23 +817,35 @@ impl UsfTravelNeighborhood {
     }
 
     pub fn measurements_from<'a>(
-        &'a self,
-        observer: &'a UsfPosition,
-        scale: SpatialScale,
-    ) -> impl Iterator<
-        Item = (
-            Entity,
-            UsfTravelInfluence,
-            UsfTravelInfluenceMeasure,
-        ),
-    > + 'a {
-        self.influences.iter().filter_map(move |cached| {
-            cached
-                .influence
-                .measure_from_at_scale(observer, scale, cached.boundary.as_ref())
-                .map(|measurement| (cached.entity, cached.influence, measurement))
-        })
-    }
+    &'a self,
+    observer: &'a UsfPosition,
+    scale: SpatialScale,
+) -> impl Iterator<
+    Item = (
+        Entity,
+        UsfPosition,
+        UsfTravelInfluence,
+        UsfTravelInfluenceMeasure,
+    ),
+> + 'a {
+    self.influences.iter().filter_map(move |cached| {
+        cached
+            .influence
+            .measure_from_at_scale(
+                &cached.anchor,
+                cached.frame,
+                observer,
+                scale,
+                cached.boundary.as_ref(),
+            )
+            .map(|measurement| (
+                cached.entity,
+                cached.anchor,
+                cached.influence,
+                measurement,
+            ))
+    })
+}
 }
 
 #[cfg(test)]
@@ -918,6 +909,8 @@ mod tests {
         fn sample_near(
             &self,
             _: &UsfPosition,
+            _: UsfSemanticFrame,
+            _: &UsfPosition,
             _: SpatialScale,
         ) -> Option<UsfTravelBoundarySample> {
             UsfTravelBoundarySample::new(self.surface, self.outward, self.scale)
@@ -941,16 +934,16 @@ mod tests {
         )
         .unwrap();
 
-        let influence = UsfTravelInfluence::hard_body_at(center, scale, 10.0);
+        let influence = UsfTravelInfluence::hard_body(scale, 10.0);
         let resolver = UsfTravelBoundaryResolver::new(FixedTravelBoundary {
             surface,
             outward: Vec3::Y,
             scale,
         });
 
-        let spherical = influence.measure_from(&observer).unwrap();
+        let spherical = influence.measure_from(&center, &observer).unwrap();
         let resolved = influence
-            .measure_from_at_scale(&observer, scale, Some(&resolver))
+            .measure_from_at_scale(&center, UsfSemanticFrame::identity(), &observer, scale, Some(&resolver))
             .unwrap();
 
         assert!((spherical.boundary_clearance_scale0() - 2.0).abs() < 1.0e-6);
@@ -961,13 +954,28 @@ mod tests {
     #[test]
     fn constructors_make_semantics_explicit() {
         let scale = SpatialScale::ZERO;
-        let hard = UsfTravelInfluence::hard_body(DVec3::ZERO, scale, 2.0);
-        let medium = UsfTravelInfluence::medium(DVec3::ZERO, scale, 8.0, 1.0, 0.4, 0.2, 0.1);
-        let region = UsfTravelInfluence::region(DVec3::ZERO, scale, 20.0);
+        let hard = UsfTravelInfluence::hard_body(scale, 2.0);
+        let medium = UsfTravelInfluence::medium(scale, 8.0, 1.0, 0.4, 0.2, 0.1);
+        let region = UsfTravelInfluence::region(scale, 20.0);
 
-        assert_eq!(hard.anchor(), UsfPosition::zero(SpatialScale::ZERO));
+        assert_eq!(hard.scale(), scale);
         assert!(matches!(hard.kind(), UsfTravelInfluenceKind::HardBody));
         assert!(matches!(medium.kind(), UsfTravelInfluenceKind::Medium(_)));
         assert!(matches!(region.kind(), UsfTravelInfluenceKind::Region));
+    }
+
+    #[test]
+    fn travel_influence_follows_external_semantic_anchor() {
+        let scale = SpatialScale::ZERO;
+        let influence = UsfTravelInfluence::hard_body(scale, 10.0);
+        let anchor_a = UsfPosition::zero(scale);
+        let anchor_b = anchor_a.translated_at_scale(scale, Vec3::X * 100.0).unwrap();
+        let observer = anchor_b.translated_at_scale(scale, Vec3::X * 12.0).unwrap();
+
+        let from_a = influence.measure_from(&anchor_a, &observer).unwrap();
+        let from_b = influence.measure_from(&anchor_b, &observer).unwrap();
+
+        assert!(from_a.boundary_clearance_scale0() > 90.0);
+        assert!((from_b.boundary_clearance_scale0() - 2.0).abs() < 1.0e-6);
     }
 }

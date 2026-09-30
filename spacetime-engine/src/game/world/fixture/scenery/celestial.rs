@@ -15,7 +15,7 @@ use crate::{
     procedural_assets::ProceduralAssetLibrary,
     spatial::{
         SPATIAL_SCALE_MIN, SpatialScale, UsfApproachRefinement, UsfChartMask,
-        UsfPosition, UsfScaleLayer, UsfTravelBoundaryResolver, UsfTravelInfluence,
+        UsfPosition, UsfScaleLayer, UsfSemanticFrame, UsfTravelBoundaryResolver, UsfTravelInfluence,
     },
     voxel::{
         CelestialVoxelField, VoxelAuthority, VoxelBase, VoxelCollisionDisabled,
@@ -57,10 +57,10 @@ pub(super) fn spawn_body(
         SpatialScale::MIN,
     )
     .expect("authored Earth center must be canonically addressable");
+    let frame = UsfSemanticFrame::identity();
     let radius_metres = definition.radius_metres;
     let detail_root = celestial_coarsest_scale(radius_metres);
     let field = CelestialVoxelField::new(
-        center,
         radius_metres,
         detail_root,
         definition.seed,
@@ -84,17 +84,16 @@ pub(super) fn spawn_body(
             CelestialBodyAuthority,
             UsfEntity,
             center,
+            frame,
             field,
             scale_domain,
             VoxelAuthority::default(),
-            UsfTravelInfluence::hard_body_at(
-                center,
+            UsfTravelInfluence::hard_body(
                 nav_scale,
                 nav_scale.metres_to_native_f64(radius_metres),
             ),
             UsfTravelBoundaryResolver::new(field),
             RadialGravitySource::new(
-                center,
                 radius_metres,
                 nav_scale,
                 definition.gravity_metres_per_second2,
@@ -127,7 +126,7 @@ pub(super) fn spawn_body(
         let grid_origin = center
             .reexpressed_at(terrain_scale)
             .expect("Earth realization origin must re-express at its scale");
-        let base = field.realization(terrain_scale);
+        let base = field.realization(center, frame, terrain_scale);
 
         // Only the coarsest representation is permanently bootstrapped. The
         // parent-first refinement owns every finer slice relative to the current
@@ -177,6 +176,8 @@ pub(super) fn spawn_body(
         let site = body_surface_site(
             semantic,
             field,
+            center,
+            frame,
             bootstrap_direction,
             scale(HUMAN_SURFACE_INTERACTION_SCALE),
         )
@@ -188,6 +189,8 @@ pub(super) fn spawn_body(
 fn body_surface_site(
     body: Entity,
     field: CelestialVoxelField,
+    body_origin: UsfPosition,
+    body_frame: UsfSemanticFrame,
     direction: Vec3,
     scale: SpatialScale,
 ) -> Option<BodySurfaceSite> {
@@ -196,7 +199,7 @@ fn body_surface_site(
         return None;
     }
 
-    let surface = field.surface_position(up, scale).ok()?;
+    let surface = field.surface_position(&body_origin, body_frame, up, scale).ok()?;
     BodySurfaceSite::new(body, surface, up, scale)
 }
 

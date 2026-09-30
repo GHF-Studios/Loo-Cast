@@ -23,6 +23,7 @@ mod position;
 pub use bounds::VoxelBounds;
 pub use brush::VoxelBrush;
 pub use operation::VoxelEdit;
+pub(crate) use operation::VoxelLocalEdit;
 pub use position::VoxelQueryPosition;
 
 #[cfg(test)]

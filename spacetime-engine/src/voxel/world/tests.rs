@@ -226,3 +226,33 @@ fn sparse_edits_survive_chunk_rematerialization() {
     assert!(rebuilt.sample(point).unwrap().distance.is_empty());
     assert_eq!(world.modifications().len(), 1);
 }
+
+#[test]
+fn semantic_authority_recipe_projects_body_local_edits() {
+    use bevy::math::DVec3;
+    use crate::{
+        spatial::{UsfChartMask, UsfSemanticFrame},
+        voxel::{VoxelAuthority, VoxelFrameBrush, VoxelFrameEdit, VoxelFramePosition, VoxelFrameSnapshot},
+    };
+
+    let scale = SpatialScale::ZERO;
+    let body_origin = UsfPosition::zero(scale);
+    let frame = UsfSemanticFrame::identity();
+    let mut authority = VoxelAuthority::default();
+    let local_center = VoxelFramePosition::from_scale_native(DVec3::new(5.0, 5.0, 5.0), scale).unwrap();
+    authority.record_edit(VoxelFrameEdit::Add {
+        brush: VoxelFrameBrush::sphere(local_center, 2.0),
+        material: VoxelMaterialId::ROCK,
+    });
+
+    let world = VoxelWorld::new_at(VoxelBase::Empty, body_origin);
+    let address = world.chunk_address(VoxelChunkCoord::new(IVec3::ZERO)).unwrap();
+    let domain = VoxelScaleDomain::contiguous(scale, scale)
+        .with_editing_slices(UsfChartMask::from_scale(scale));
+    let snapshot = VoxelFrameSnapshot::new(body_origin, frame, scale);
+    let chunk = world
+        .chunk_recipe_from_authority(address, &authority, &domain, snapshot)
+        .materialize();
+
+    assert!(chunk.sample(IVec3::new(5, 5, 5)).unwrap().distance.is_solid());
+}

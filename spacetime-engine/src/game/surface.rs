@@ -12,8 +12,8 @@ use bevy::prelude::*;
 use crate::{
     physics::PhysicalBoxHull,
     spatial::{
-        UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScaleRoleMask, UsfSpatialFrame,
-        UsfSpatialSet,
+        UsfPosition, UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScaleRoleMask,
+        UsfSemanticFrame, UsfSpatialFrame, UsfSpatialSet,
     },
     voxel::{CelestialVoxelField, VoxelScaleDomain},
 };
@@ -97,12 +97,14 @@ fn sample_surface_candidate(
     position: &crate::spatial::UsfPosition,
     subject_scale: crate::spatial::SpatialScale,
     body: Entity,
+    body_origin: UsfPosition,
+    body_frame: UsfSemanticFrame,
     field: CelestialVoxelField,
     domain: VoxelScaleDomain,
 ) -> Option<SurfaceCandidate> {
     let measurement_scale = field.coarsest_detail_scale().max(position.leaf_scale());
     let relative = position
-        .relative_at_scale_bounded(&field.center(), measurement_scale, f32::MAX)
+        .relative_at_scale_bounded(&body_origin, measurement_scale, f32::MAX)
         .ok()?;
     let radial_outward = relative.normalize_or_zero();
     if radial_outward == Vec3::ZERO {
@@ -116,8 +118,9 @@ fn sample_surface_candidate(
         // Surface telemetry consumes the same canonical procedural surface as
         // voxel demand/bootstrap. The body radius remains semantic; only the
         // bounded displacement from the resolved surface enters this chart.
+        let local_outward = body_frame.world_direction_to_local(radial_outward);
         let surface = field
-            .surface_position(radial_outward, subject_scale)
+            .surface_position(&body_origin, body_frame, local_outward, subject_scale)
             .ok()?;
         let relative_to_surface = position
             .relative_at_scale_bounded_f64(&surface, subject_scale, f64::MAX)
@@ -148,7 +151,13 @@ fn sample_surface_candidate(
 fn sync_surface_contexts(
     frame: Res<UsfSpatialFrame>,
     coverage: Res<UsfScaleCoverageSnapshot>,
-    fields: Query<(Entity, &CelestialVoxelField, &VoxelScaleDomain)>,
+    fields: Query<(
+        Entity,
+        &UsfPosition,
+        &UsfSemanticFrame,
+        &CelestialVoxelField,
+        &VoxelScaleDomain,
+    )>,
     mut subjects: Query<(
         &Transform,
         &UsfScaleLayer,
@@ -168,11 +177,13 @@ fn sync_surface_contexts(
 
         let nearest = fields
             .iter()
-            .filter_map(|(entity, field, domain)| {
+            .filter_map(|(entity, body_origin, body_frame, field, domain)| {
                 sample_surface_candidate(
                     &position,
                     layer.scale(),
                     entity,
+                    *body_origin,
+                    *body_frame,
                     *field,
                     *domain,
                 )

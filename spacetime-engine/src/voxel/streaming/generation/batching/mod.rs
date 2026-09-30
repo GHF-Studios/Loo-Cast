@@ -4,7 +4,7 @@ use bevy::prelude::*;
 
 use super::super::VoxelStreaming;
 use super::super::super::{
-    VoxelAuthority, VoxelMaterializationKey, VoxelScaleDomain, VoxelWorld,
+    VoxelAuthority, VoxelFrameSnapshot, VoxelMaterializationKey, VoxelScaleDomain, VoxelWorld,
     generation_scope::{VoxelGenerationScopeExtent, VoxelGenerationScope},
     world::VoxelChunkRecipe,
 };
@@ -23,7 +23,7 @@ pub(super) struct PendingGenerationBatch {
 pub(super) fn plan_generation_batches(
     world: &mut VoxelWorld,
     streaming: &mut VoxelStreaming,
-    authority: Option<(&VoxelAuthority, &VoxelScaleDomain)>,
+    authority: Option<(&VoxelAuthority, &VoxelScaleDomain, VoxelFrameSnapshot)>,
     generation_extent: VoxelGenerationScopeExtent,
     max_batches: usize,
     max_chunks_per_batch: usize,
@@ -71,8 +71,8 @@ pub(super) fn plan_generation_batches(
         };
         let recipe = authority.map_or_else(
             || world.chunk_recipe(address),
-            |(authority, domain)| {
-                world.chunk_recipe_from_authority(address, authority, domain)
+            |(authority, domain, frame_snapshot)| {
+                world.chunk_recipe_from_authority(address, authority, domain, frame_snapshot)
             },
         );
         push_generation_job(

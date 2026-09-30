@@ -19,10 +19,10 @@ use crate::{
     physics::collision_query::{
         UsfCanonicalSweep, UsfCollisionCandidate, UsfSweepInterval,
     },
-    spatial::SpatialScale,
+    spatial::{SpatialScale, UsfPosition, UsfSemanticFrame},
 };
 
-use super::{CelestialVoxelField, VoxelAuthority, VoxelBounds};
+use super::{CelestialVoxelField, VoxelAuthority, VoxelBounds, VoxelFrameSnapshot};
 
 #[derive(SystemParam)]
 pub struct VoxelCollisionQuery<'w, 's> {
@@ -31,6 +31,8 @@ pub struct VoxelCollisionQuery<'w, 's> {
         's,
         (
             Entity,
+            &'static UsfPosition,
+            &'static UsfSemanticFrame,
             &'static CelestialVoxelField,
             Option<&'static VoxelAuthority>,
         ),
@@ -48,7 +50,7 @@ impl VoxelCollisionQuery<'_, '_> {
     ) -> Vec<UsfCollisionCandidate> {
         let mut candidates = Vec::new();
 
-        for (authority_entity, field, edits) in &self.authorities {
+        for (authority_entity, body_origin, body_frame, field, edits) in &self.authorities {
             // Candidate metadata reports the coarsest semantic detail slice,
             // while the bound itself includes every finer possible detail band.
             let query_scale = field.coarsest_detail_scale();
@@ -56,7 +58,7 @@ impl VoxelCollisionQuery<'_, '_> {
                 field.conservative_outer_radius_metres() + sweep.bounding_radius_metres();
 
             if let Ok(start_from_center) = sweep.start().relative_at_scale_bounded_f64(
-                &field.center(),
+                body_origin,
                 SpatialScale::ZERO,
                 f64::MAX,
             ) {
@@ -82,8 +84,11 @@ impl VoxelCollisionQuery<'_, '_> {
             // edits may create rigid matter outside the body's procedural
             // envelope. Remove/paint edits can over-report here; refinement is
             // responsible for proving whether matter actually remains.
+            let snapshot = VoxelFrameSnapshot::new(*body_origin, *body_frame, SpatialScale::ZERO);
             for edit in edits.edits() {
-                let bounds = edit.influence_bounds();
+                let Ok(bounds) = edit.world_bounds(snapshot) else {
+                    continue;
+                };
                 if let Some(interval) =
                     segment_bounds_interval(sweep, bounds)
                 {

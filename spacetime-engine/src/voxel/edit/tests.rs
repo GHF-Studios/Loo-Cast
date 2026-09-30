@@ -50,3 +50,34 @@ fn edits_do_not_rewrite_the_field_outside_their_influence_band() {
 
     assert_eq!(edit.apply_to_sample(far, before), before);
 }
+
+#[test]
+fn body_local_edit_follows_semantic_frame_translation() {
+    use bevy::math::DVec3;
+    use crate::{
+        spatial::{SpatialScale, UsfPosition, UsfSemanticFrame},
+        voxel::{VoxelFrameBrush, VoxelFrameEdit, VoxelFramePosition, VoxelFrameSnapshot},
+    };
+
+    let frame = UsfSemanticFrame::identity();
+    let origin_a = UsfPosition::zero(SpatialScale::ZERO);
+    let origin_b = origin_a.translated_at_scale(SpatialScale::ZERO, Vec3::X * 100.0).unwrap();
+    let local_center = VoxelFramePosition::from_scale_native(
+        DVec3::new(10.0, 0.0, 0.0),
+        SpatialScale::ZERO,
+    ).unwrap();
+    let edit = VoxelFrameEdit::Remove {
+        brush: VoxelFrameBrush::sphere(local_center, 2.0),
+    };
+    let snapshot_a = VoxelFrameSnapshot::new(origin_a, frame, SpatialScale::ZERO);
+    let snapshot_b = VoxelFrameSnapshot::new(origin_b, frame, SpatialScale::ZERO);
+    let world_a = snapshot_a.frame_to_world(local_center).unwrap();
+    let world_b = snapshot_b.frame_to_world(local_center).unwrap();
+    let projected_a = edit.projected_world(snapshot_a).unwrap();
+    let projected_b = edit.projected_world(snapshot_b).unwrap();
+    let solid = VoxelSample::new(-10.0, VoxelMaterialId::ROCK);
+
+    assert!(projected_a.apply_to_sample(world_a, solid).distance.is_empty());
+    assert!(projected_b.apply_to_sample(world_b, solid).distance.is_empty());
+    assert_eq!(projected_b.apply_to_sample(world_a, solid), solid);
+}

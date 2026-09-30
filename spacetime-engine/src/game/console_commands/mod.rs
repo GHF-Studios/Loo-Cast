@@ -18,7 +18,7 @@ use crate::{
     portal::{PortalSplitTraveler, PortalTraveler},
     spatial::{
         SpatialDemandSource, SpatialScale, UsfApproachRefinement, UsfCapabilityRealization,
-        UsfPosition, UsfPresentationProbe, UsfPrimaryInteractionSlice,
+        UsfPosition, UsfPresentationProbe, UsfPrimaryInteractionSlice, UsfSemanticFrame,
         UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScalePresentation, UsfScaleRoleMask,
         UsfSceneryPresentation, UsfSpatialFrame, UsfSpatialSet, UsfSpatialTransition,
         UsfSpatialTransitionApplied, UsfSpatialTransitionQueue, UsfTransitionVelocity,
@@ -734,12 +734,14 @@ fn refinable_hard_body_transition_gate(
     let mut best = None::<(Entity, f32)>;
     let mut influences = world.query::<(
         Entity,
+        &UsfPosition,
+        &UsfSemanticFrame,
         &UsfTravelInfluence,
         Option<&UsfTravelBoundaryResolver>,
         Option<&UsfApproachRefinement>,
     )>();
 
-    for (entity, influence, boundary, refinement) in influences.iter(world) {
+    for (entity, anchor, semantic_frame, influence, boundary, refinement) in influences.iter(world) {
         if refinement.is_none()
             || !matches!(influence.kind(), UsfTravelInfluenceKind::HardBody)
         {
@@ -747,7 +749,13 @@ fn refinable_hard_body_transition_gate(
         }
 
         let Some(measurement) =
-            influence.measure_from_at_scale(arrival, target_scale, boundary)
+            influence.measure_from_at_scale(
+                anchor,
+                *semantic_frame,
+                arrival,
+                target_scale,
+                boundary,
+            )
         else {
             continue;
         };

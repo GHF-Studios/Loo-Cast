@@ -15,7 +15,6 @@ use crate::spatial::{SpatialScale, UsfPosition};
 /// future far-field aggregate representation would compose.
 #[derive(Component, Debug, Clone, Copy, PartialEq)]
 pub struct RadialGravitySource {
-    center: UsfPosition,
     radius_metres: f64,
     field_scale: SpatialScale,
     surface_gravity_metres_per_second2: f32,
@@ -23,7 +22,6 @@ pub struct RadialGravitySource {
 
 impl RadialGravitySource {
     pub fn new(
-        center: UsfPosition,
         radius_metres: f64,
         field_scale: SpatialScale,
         surface_gravity_metres_per_second2: f32,
@@ -34,25 +32,14 @@ impl RadialGravitySource {
                 && surface_gravity_metres_per_second2 >= 0.0
         );
         Self {
-            center,
             radius_metres,
             field_scale,
             surface_gravity_metres_per_second2,
         }
     }
 
-    pub const fn center(self) -> UsfPosition {
-        self.center
-    }
-
-    pub const fn radius_metres(self) -> f64 {
-        self.radius_metres
-    }
-
-    pub const fn field_scale(self) -> SpatialScale {
-        self.field_scale
-    }
-
+    pub const fn radius_metres(self) -> f64 { self.radius_metres }
+    pub const fn field_scale(self) -> SpatialScale { self.field_scale }
     pub const fn surface_gravity_metres_per_second2(self) -> f32 {
         self.surface_gravity_metres_per_second2
     }
@@ -61,9 +48,13 @@ impl RadialGravitySource {
         f64::from(self.surface_gravity_metres_per_second2) * self.radius_metres.powi(2)
     }
 
-    pub(super) fn acceleration_at(self, position: &UsfPosition) -> Option<DVec3> {
+    pub(super) fn acceleration_at(
+        self,
+        source_center: &UsfPosition,
+        position: &UsfPosition,
+    ) -> Option<DVec3> {
         let relative_native = position
-            .relative_at_scale_bounded(&self.center, self.field_scale, f32::MAX)
+            .relative_at_scale_bounded(source_center, self.field_scale, f32::MAX)
             .ok()?;
         let relative_metres = DVec3::new(
             f64::from(relative_native.x),
@@ -79,12 +70,8 @@ impl RadialGravitySource {
         }
 
         let magnitude = if distance_metres >= self.radius_metres {
-            self.gravitational_parameter_metres3_per_second2()
-                / distance_metres.powi(2)
+            self.gravitational_parameter_metres3_per_second2() / distance_metres.powi(2)
         } else {
-            // Finite uniform-sphere interior approximation. This keeps the
-            // field continuous and prevents missing collision from becoming a
-            // singularity at the semantic body center.
             f64::from(self.surface_gravity_metres_per_second2)
                 * (distance_metres / self.radius_metres).clamp(0.0, 1.0)
         };
@@ -98,20 +85,15 @@ mod tests {
     use super::*;
 
     fn source(surface_gravity: f32) -> RadialGravitySource {
-        RadialGravitySource::new(
-            UsfPosition::zero(SpatialScale::ZERO),
-            10.0,
-            SpatialScale::ZERO,
-            surface_gravity,
-        )
-    }
+    RadialGravitySource::new(10.0, SpatialScale::ZERO, surface_gravity)
+}
 
     #[test]
     fn radial_surface_sample_matches_authored_gravity() {
         let sample_position = UsfPosition::zero(SpatialScale::ZERO)
             .translated_at_scale(SpatialScale::ZERO, Vec3::Y * 10.0)
             .unwrap();
-        let acceleration = source(9.0).acceleration_at(&sample_position).unwrap();
+        let acceleration = source(9.0).acceleration_at(&UsfPosition::zero(SpatialScale::ZERO), &sample_position).unwrap();
 
         assert!((acceleration - DVec3::NEG_Y * 9.0).length() < 1.0e-6);
     }
@@ -121,7 +103,7 @@ mod tests {
         let sample_position = UsfPosition::zero(SpatialScale::ZERO)
             .translated_at_scale(SpatialScale::ZERO, Vec3::Y * 20.0)
             .unwrap();
-        let acceleration = source(8.0).acceleration_at(&sample_position).unwrap();
+        let acceleration = source(8.0).acceleration_at(&UsfPosition::zero(SpatialScale::ZERO), &sample_position).unwrap();
 
         assert!((acceleration.length() - 2.0).abs() < 1.0e-6);
     }
@@ -131,7 +113,7 @@ mod tests {
         let sample_position = UsfPosition::zero(SpatialScale::ZERO)
             .translated_at_scale(SpatialScale::ZERO, Vec3::Y * 5.0)
             .unwrap();
-        let acceleration = source(8.0).acceleration_at(&sample_position).unwrap();
+        let acceleration = source(8.0).acceleration_at(&UsfPosition::zero(SpatialScale::ZERO), &sample_position).unwrap();
 
         assert!((acceleration.length() - 4.0).abs() < 1.0e-6);
     }

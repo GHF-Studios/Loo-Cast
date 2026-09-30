@@ -12,6 +12,7 @@ mod devtools;
 mod slice;
 mod interaction;
 mod motion;
+mod semantic_frame;
 mod navigation;
 mod refinement;
 mod transition;
@@ -37,6 +38,7 @@ pub use slice::{
 };
 pub use interaction::{UsfInteractionProjection, UsfPrimaryInteractionSlice};
 pub use motion::UsfCanonicalMotion;
+pub use semantic_frame::UsfSemanticFrame;
 pub use crate::usf::{
     SPATIAL_SCALE_COUNT, SPATIAL_SCALE_MAX, SPATIAL_SCALE_MIN, SpatialScale, UsfChart,
     UsfChartDelta, UsfChunkAddress, UsfPosition, UsfPositionError,

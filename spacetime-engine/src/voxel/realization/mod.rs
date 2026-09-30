@@ -18,7 +18,7 @@ use crate::{
     usf::USF_CHILD_CHUNKS_PER_AXIS,
     spatial::{
         SpatialDemandScope, SpatialDemandSnapshot, SpatialRefinementDemand, SpatialScale,
-        UsfChartMask, UsfChunkAddress, UsfPosition, UsfRefinementPlan,
+        UsfChartMask, UsfChunkAddress, UsfPosition, UsfRefinementPlan, UsfSemanticFrame,
         UsfResidencyRequestBuffer, UsfScaleCoverageSnapshot, UsfScaleLayer,
         UsfPrimaryInteractionSlice, UsfScaleRoleMask, UsfViewDemandSnapshot,
     },
@@ -278,7 +278,7 @@ pub(super) fn collect_voxel_realization_demand(
         With<VoxelWorld>,
     >,
     authority_partitions: Query<&UsfAuthorityPartitionOf>,
-    celestial_authorities: Query<(&CelestialVoxelField, &VoxelScaleDomain)>,
+    celestial_authorities: Query<(&UsfPosition, &UsfSemanticFrame, &CelestialVoxelField, &VoxelScaleDomain)>,
     coverage: Res<UsfScaleCoverageSnapshot>,
     view_demands: Res<UsfViewDemandSnapshot>,
     mut residency_requests: ResMut<UsfResidencyRequestBuffer>,
@@ -332,7 +332,7 @@ pub(super) fn collect_voxel_realization_demand(
 
         if let Some(logical_realization) = logical_realization
             && let Ok(partition) = authority_partitions.get(logical_realization.0)
-            && let Ok((field, domain)) = celestial_authorities.get(partition.0)
+            && let Ok((body_origin, body_frame, field, domain)) = celestial_authorities.get(partition.0)
         {
             if !domain.realizes(scale) {
                 continue;
@@ -345,6 +345,8 @@ pub(super) fn collect_voxel_realization_demand(
                 };
 
                 let candidate = celestial_surface_demand(
+                    *body_origin,
+                    *body_frame,
                     *field,
                     *domain,
                     source.scope,
@@ -401,6 +403,8 @@ pub(super) fn collect_voxel_realization_demand(
                 );
 
                 let candidate = celestial_surface_demand(
+                    *body_origin,
+                    *body_frame,
                     *field,
                     *domain,
                     source_scope,
@@ -609,6 +613,8 @@ fn parent_realization_ready(
 }
 
 fn celestial_surface_demand(
+    body_origin: UsfPosition,
+    body_frame: UsfSemanticFrame,
     field: CelestialVoxelField,
     domain: VoxelScaleDomain,
     source: SpatialDemandScope,
@@ -616,7 +622,7 @@ fn celestial_surface_demand(
     half_extent_native: Vec3,
     priority: i32,
 ) -> Option<SpatialDemandScope> {
-    let body = field.realization(target_scale);
+    let body = field.realization(body_origin, body_frame, target_scale);
     let activation = domain.refinement_activation_native;
     let search_bound =
         activation + half_extent_native.length() + MATERIALIZATION_CHUNK_SIZE as f32;

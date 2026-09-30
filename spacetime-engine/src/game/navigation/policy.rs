@@ -56,7 +56,7 @@ pub(super) fn sync_travel_envelope(
     let mut medium_cap = None::<f64>;
     let mut nearest_hard_clearance = None::<f64>;
 
-    for (_, influence, measurement) in
+    for (_, _, influence, measurement) in
         neighborhood.measurements_from(&position, layer.scale())
     {
         match influence.kind() {

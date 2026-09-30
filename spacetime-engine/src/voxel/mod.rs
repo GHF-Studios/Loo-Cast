@@ -13,6 +13,7 @@ mod collision_query;
 mod devtools;
 mod edit;
 mod field;
+mod frame;
 mod mesh;
 mod medium;
 mod modification;
@@ -37,6 +38,7 @@ pub use edit::{EDIT_INFLUENCE_MARGIN, VoxelBounds, VoxelBrush, VoxelEdit, VoxelQ
 pub use field::{
     SignedDistance, VoxelCollisionMode, VoxelMaterialBehavior, VoxelMaterialId, VoxelSample,
 };
+pub use frame::{VoxelFrameBrush, VoxelFrameEdit, VoxelFramePosition, VoxelFrameSnapshot};
 pub use modification::VoxelModificationLayer;
 pub use realization::VoxelScaleDomain;
 pub(in crate::voxel) use realization::{

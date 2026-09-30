@@ -10,12 +10,12 @@ use bevy::{
 use crate::{
     config::EngineConfig,
     ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf},
-    spatial::{UsfPrimaryInteractionSlice, UsfScaleLayer},
+    spatial::{UsfPosition, UsfPrimaryInteractionSlice, UsfScaleLayer, UsfSemanticFrame},
 };
 
 use super::{VoxelStreaming, VoxelStreamingTelemetry};
 use super::super::{
-    VoxelAuthority, VoxelChunk, VoxelMaterializationChunkAddress,
+    VoxelAuthority, VoxelChunk, VoxelFrameSnapshot, VoxelMaterializationChunkAddress,
     VoxelMaterializationKey, VoxelScaleDomain, VoxelWorld,
     generation_scope::VoxelGenerationScopeExtent,
     worker::{VoxelWorkerPool, VoxelWorkerTask},
@@ -78,7 +78,7 @@ pub(in crate::voxel) fn finish_chunk_generation(
     mut commands: Commands,
     mut worlds: Query<(&mut VoxelWorld, Option<&UsfLogicalRealizationOf>)>,
     authority_partitions: Query<&UsfAuthorityPartitionOf>,
-    authorities: Query<(&VoxelAuthority, &VoxelScaleDomain)>,
+    authorities: Query<(&UsfPosition, &UsfSemanticFrame, &VoxelAuthority, &VoxelScaleDomain)>,
     mut tasks: Query<(Entity, &mut VoxelGenerationTask)>,
     mut telemetry: ResMut<VoxelStreamingTelemetry>,
 ) {
@@ -108,7 +108,14 @@ pub(in crate::voxel) fn finish_chunk_generation(
         };
         let authority = logical_realization
             .and_then(|logical| authority_partitions.get(logical.0).ok())
-            .and_then(|partition| authorities.get(partition.0).ok());
+            .and_then(|partition| authorities.get(partition.0).ok())
+            .map(|(origin, frame, authority, domain)| {
+                (
+                    authority,
+                    domain,
+                    VoxelFrameSnapshot::new(*origin, *frame, world.origin().leaf_scale()),
+                )
+            });
 
         while published < publish_budget {
             let Some(mut output) = generation.ready.pop_front() else {
@@ -183,7 +190,7 @@ pub(in crate::voxel) fn schedule_voxel_generation(
         Option<&UsfLogicalRealizationOf>,
     )>,
     authority_partitions: Query<&UsfAuthorityPartitionOf>,
-    authorities: Query<(&VoxelAuthority, &VoxelScaleDomain)>,
+    authorities: Query<(&UsfPosition, &UsfSemanticFrame, &VoxelAuthority, &VoxelScaleDomain)>,
     worker_tasks: Query<(), With<VoxelWorkerTask>>,
     mut round_robin_cursor: Local<usize>,
     mut telemetry: ResMut<VoxelStreamingTelemetry>,
@@ -246,7 +253,14 @@ pub(in crate::voxel) fn schedule_voxel_generation(
 
         let authority = logical_realization
             .and_then(|logical| authority_partitions.get(logical.0).ok())
-            .and_then(|partition| authorities.get(partition.0).ok());
+            .and_then(|partition| authorities.get(partition.0).ok())
+            .map(|(origin, frame, authority, domain)| {
+                (
+                    authority,
+                    domain,
+                    VoxelFrameSnapshot::new(*origin, *frame, world.origin().leaf_scale()),
+                )
+            });
         let batches = plan_generation_batches(
             &mut world,
             &mut streaming,
@@ -293,15 +307,17 @@ pub(super) fn catch_up_generated_chunk(
 
 fn catch_up_generated_chunk_with_authority(
     world: &VoxelWorld,
-    authority: Option<(&VoxelAuthority, &VoxelScaleDomain)>,
+    authority: Option<(&VoxelAuthority, &VoxelScaleDomain, VoxelFrameSnapshot)>,
     address: VoxelMaterializationChunkAddress,
     applied_edit_count: usize,
     chunk: &mut VoxelChunk,
 ) {
-    if let Some((authority, domain)) = authority {
+    if let Some((authority, domain, frame_snapshot)) = authority {
         if domain.editable(world.origin().leaf_scale()) {
             for edit in authority.edits_since(applied_edit_count) {
-                chunk.apply_edit(address, edit);
+                if let Ok(edit) = edit.projected_world(frame_snapshot) {
+                    chunk.apply_edit(address, edit);
+                }
             }
         }
         return;

@@ -8,7 +8,7 @@ use crate::spatial::{UsfPosition, UsfPositionError};
 
 use super::{
     MATERIALIZATION_CHUNK_SIZE, VoxelAuthority, VoxelBase, VoxelBounds, VoxelChunk,
-    VoxelEdit,
+    VoxelEdit, VoxelFrameEdit, VoxelFrameSnapshot,
     VoxelModificationLayer, VoxelQueryPosition, VoxelSample, VoxelScaleDomain, chunk::SAMPLE_PADDING,
     store::VoxelMaterializationStore,
 };
@@ -178,11 +178,12 @@ impl VoxelWorld {
     /// Only realizations declared editable by the semantic mechanism consume
     /// the raw canonical edit stream directly. Other slices intentionally ignore
     /// fine edits until a real cross-scale edit aggregation policy exists.
-    pub(in crate::voxel) fn chunk_recipe_from_authority(
+pub(in crate::voxel) fn chunk_recipe_from_authority(
         &self,
         address: VoxelMaterializationChunkAddress,
         authority: &VoxelAuthority,
         domain: &VoxelScaleDomain,
+        frame_snapshot: VoxelFrameSnapshot,
     ) -> VoxelChunkRecipe {
         let edits = if domain.editable(self.origin.leaf_scale()) {
             let extra_extent = MATERIALIZATION_CHUNK_SIZE as f32 + SAMPLE_PADDING as f32;
@@ -191,9 +192,10 @@ impl VoxelWorld {
                 .iter()
                 .copied()
                 .filter(|edit| {
-                    edit.localized(address.query_origin(), extra_extent)
+                    edit.localized_for(frame_snapshot, address.query_origin(), extra_extent)
                         .is_some()
                 })
+                .filter_map(|edit| edit.projected_world(frame_snapshot).ok())
                 .collect()
         } else {
             Vec::new()
@@ -210,10 +212,12 @@ impl VoxelWorld {
 
     /// Applies a newly-recorded shared-authority edit to resident caches without
     /// duplicating it in this realization's inline modification log.
-    pub(crate) fn apply_authority_edit(
+pub(crate) fn apply_authority_edit(
         &mut self,
-        edit: VoxelEdit,
+        edit: VoxelFrameEdit,
+        frame_snapshot: VoxelFrameSnapshot,
     ) -> Result<(), UsfPositionError> {
+        let edit = edit.projected_world(frame_snapshot)?;
         if edit.influence_bounds().anchor().usf().leaf_scale() != self.origin.leaf_scale() {
             return Ok(());
         }
