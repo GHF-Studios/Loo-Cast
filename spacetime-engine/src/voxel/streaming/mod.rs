@@ -35,11 +35,14 @@ pub struct VoxelStreaming {
     /// Latest desired address -> capability-role intent.
     cached_desired_roles:
         HashMap<VoxelMaterializationKey, UsfScaleRoleMask>,
-    /// Previous committed target retained only while a replacement
-    /// transaction is in flight. Stable state stores one role map, not two
-    /// identical full copies.
-    committed_desired_roles:
-        Option<HashMap<VoxelMaterializationKey, UsfScaleRoleMask>>,
+    /// Sparse original committed state for keys whose current candidate
+    /// differs during make-before-break migration.
+    ///
+    /// `None` means the key did not exist in the committed target; `Some(roles)`
+    /// records the committed role set. Stable state is empty, so migration cost
+    /// scales with the changed boundary rather than the whole desired volume.
+    migration_original_roles:
+        HashMap<VoxelMaterializationKey, Option<UsfScaleRoleMask>>,
     effective_desired: HashSet<VoxelMaterializationKey>,
     residency_activate: HashSet<VoxelMaterializationKey>,
     residency_deactivate: HashSet<VoxelMaterializationKey>,
@@ -54,7 +57,7 @@ impl VoxelStreaming {
             demand_key: Vec::new(),
             pending_desired: VecDeque::new(),
             cached_desired_roles: HashMap::new(),
-            committed_desired_roles: None,
+            migration_original_roles: HashMap::new(),
             effective_desired: HashSet::new(),
             residency_activate: HashSet::new(),
             residency_deactivate: HashSet::new(),
@@ -65,6 +68,40 @@ impl VoxelStreaming {
         self.load_budget_per_frame
     }
 
+    fn remember_committed_state(&mut self, key: VoxelMaterializationKey) {
+        if !self.migration_original_roles.contains_key(&key) {
+            self.migration_original_roles
+                .insert(key, self.cached_desired_roles.get(&key).copied());
+        }
+    }
+
+    fn reconcile_changed_key(&mut self, key: VoxelMaterializationKey) {
+        if let Some(original) = self.migration_original_roles.get(&key).copied()
+            && self.cached_desired_roles.get(&key).copied() == original
+        {
+            self.migration_original_roles.remove(&key);
+        }
+
+        let retained_committed = self
+            .migration_original_roles
+            .get(&key)
+            .copied()
+            .flatten()
+            .is_some();
+        let should_be_effective =
+            self.cached_desired_roles.contains_key(&key) || retained_committed;
+
+        if should_be_effective {
+            if self.effective_desired.insert(key) {
+                self.residency_deactivate.remove(&key);
+                self.residency_activate.insert(key);
+            }
+        } else if self.effective_desired.remove(&key) {
+            self.residency_activate.remove(&key);
+            self.residency_deactivate.insert(key);
+        }
+    }
+
     fn stage_desired_roles(
         &mut self,
         desired: HashMap<VoxelMaterializationKey, UsfScaleRoleMask>,
@@ -73,71 +110,83 @@ impl VoxelStreaming {
             return;
         }
 
-        if self.committed_desired_roles.is_none() {
-            if self.cached_desired_roles.is_empty() && self.effective_desired.is_empty() {
-                // Initial publication has no previous branch to retain.
-                self.cached_desired_roles = desired;
-            } else {
-                let previous =
-                    std::mem::replace(&mut self.cached_desired_roles, desired);
-                self.committed_desired_roles = Some(previous);
+        if self.cached_desired_roles.is_empty()
+            && self.effective_desired.is_empty()
+            && self.migration_original_roles.is_empty()
+        {
+            for &key in desired.keys() {
+                self.effective_desired.insert(key);
+                self.residency_activate.insert(key);
             }
-        } else {
             self.cached_desired_roles = desired;
+            self.policy_revision = self.policy_revision.wrapping_add(1).max(1);
+            return;
+        }
 
-            // Returning to the committed target cancels the in-flight
-            // replacement instead of retaining two identical maps.
-            if self
-                .committed_desired_roles
-                .as_ref()
-                .is_some_and(|committed| committed == &self.cached_desired_roles)
-            {
-                self.committed_desired_roles = None;
+        let mut changed = HashSet::<VoxelMaterializationKey>::new();
+        for (&key, &roles) in &self.cached_desired_roles {
+            if desired.get(&key).copied() != Some(roles) {
+                changed.insert(key);
+            }
+        }
+        for (&key, &roles) in &desired {
+            if self.cached_desired_roles.get(&key).copied() != Some(roles) {
+                changed.insert(key);
             }
         }
 
-        self.refresh_effective_desired();
+        for &key in &changed {
+            self.remember_committed_state(key);
+        }
+        self.cached_desired_roles = desired;
+        for key in changed {
+            self.reconcile_changed_key(key);
+        }
+
         self.policy_revision = self.policy_revision.wrapping_add(1).max(1);
     }
 
-    fn refresh_effective_desired(&mut self) {
-        let cached = &self.cached_desired_roles;
-        let committed = self.committed_desired_roles.as_ref();
-        let activate = &mut self.residency_activate;
-        let deactivate = &mut self.residency_deactivate;
+    fn stage_incremental_desired(
+        &mut self,
+        leaving: impl IntoIterator<Item = VoxelMaterializationKey>,
+        entering: impl IntoIterator<Item = DemandedChunk>,
+    ) {
+        let mut changed = false;
 
-        // Remove only keys that are absent from both candidate and retained
-        // committed branch. This mutates the existing set instead of allocating
-        // and diffing a second full HashSet.
-        self.effective_desired.retain(|key| {
-            let keep = cached.contains_key(key)
-                || committed.is_some_and(|roles| roles.contains_key(key));
-            if !keep {
-                activate.remove(key);
-                deactivate.insert(*key);
+        for key in leaving {
+            if !self.cached_desired_roles.contains_key(&key) {
+                continue;
             }
-            keep
-        });
-
-        for &key in cached.keys() {
-            if self.effective_desired.insert(key) {
-                deactivate.remove(&key);
-                activate.insert(key);
-            }
+            self.remember_committed_state(key);
+            self.cached_desired_roles.remove(&key);
+            self.reconcile_changed_key(key);
+            changed = true;
         }
 
-        if let Some(committed) = committed {
-            for &key in committed.keys() {
-                if self.effective_desired.insert(key) {
-                    deactivate.remove(&key);
-                    activate.insert(key);
-                }
+        for demanded in entering {
+            let key = demanded.key;
+            let roles = demanded.roles;
+            if self.cached_desired_roles.get(&key).copied() == Some(roles) {
+                continue;
             }
+            self.remember_committed_state(key);
+            self.cached_desired_roles.insert(key, roles);
+            self.reconcile_changed_key(key);
+            self.pending_desired.push_back(demanded);
+            changed = true;
+        }
+
+        if changed {
+            self.policy_revision = self.policy_revision.wrapping_add(1).max(1);
         }
     }
 
     fn migration_active(&self) -> bool {
-        self.committed_desired_roles.is_some()
+        !self.migration_original_roles.is_empty()
+    }
+
+    fn is_effectively_desired(&self, key: VoxelMaterializationKey) -> bool {
+        self.effective_desired.contains(&key)
     }
 
     fn candidate_addresses(
@@ -161,10 +210,22 @@ impl VoxelStreaming {
     }
 
     fn commit_candidate(&mut self) -> bool {
-        if self.committed_desired_roles.take().is_none() {
+        if self.migration_original_roles.is_empty() {
             return false;
         }
-        self.refresh_effective_desired();
+
+        let previous =
+            std::mem::take(&mut self.migration_original_roles);
+        for (key, original) in previous {
+            if original.is_some()
+                && !self.cached_desired_roles.contains_key(&key)
+                && self.effective_desired.remove(&key)
+            {
+                self.residency_activate.remove(&key);
+                self.residency_deactivate.insert(key);
+            }
+        }
+
         self.policy_revision = self.policy_revision.wrapping_add(1).max(1);
         true
     }
@@ -178,9 +239,10 @@ impl VoxelStreaming {
         key: VoxelMaterializationKey,
         role: UsfScaleRoleMask,
     ) -> bool {
-        self.committed_desired_roles
-            .as_ref()
-            .and_then(|committed| committed.get(&key))
+        self.migration_original_roles
+            .get(&key)
+            .copied()
+            .flatten()
             .is_some_and(|roles| roles.contains(role))
     }
 

@@ -264,9 +264,19 @@ impl VoxelRealizationDemandSnapshot {
         &self,
         world: Entity,
     ) -> impl Iterator<Item = VoxelRealizationScope> + '_ {
-        self.demands
+        // Demands are sorted by target_world during publication. Binary-search
+        // the world's contiguous run instead of rescanning every demand once
+        // for every resident VoxelWorld.
+        let world_bits = world.to_bits();
+        let start = self
+            .demands
+            .partition_point(|demand| demand.target_world.to_bits() < world_bits);
+        let end = self.demands[start..]
+            .partition_point(|demand| demand.target_world == world)
+            + start;
+
+        self.demands[start..end]
             .iter()
-            .filter(move |demand| demand.target_world == world)
             .map(|demand| VoxelRealizationScope {
                 scope: demand.scope,
                 roles: demand.roles,

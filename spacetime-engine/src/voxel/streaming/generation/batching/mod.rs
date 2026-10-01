@@ -38,7 +38,13 @@ pub(super) fn plan_generation_batches(
         };
         let key = demanded.key;
 
-        if world.materializations().is_active(key) {
+        // Incremental residency deliberately leaves stale queue nodes in place:
+        // removing an outgoing slab must be O(slab), not O(entire queue).
+        // Lazy rejection makes queue cleanup proportional to work actually
+        // revisited by the scheduler.
+        if !streaming.is_effectively_desired(key)
+            || world.materializations().is_active(key)
+        {
             continue;
         }
 

@@ -214,6 +214,8 @@ impl UsfContextResidency {
         // Normalize continuous demand motion into the discrete canonical
         // context ranges that actually matter to residency. Multiple requests
         // from one source for the same range collapse to their maximum priority.
+        let normalize_span =
+            bevy::log::info_span!("usf_residency.normalize_plan").entered();
         let mut demand_plan = HashMap::<UsfResidencyDemandRange, i32>::new();
         for demand in scopes {
             let (anchor, minimum, maximum) = address_range_intersecting_demand(demand)?;
@@ -229,9 +231,13 @@ impl UsfContextResidency {
                 .or_insert(demand.priority());
         }
 
+        drop(normalize_span);
         if self.demand_plan == demand_plan {
             return Ok(());
         }
+
+        let rebuild_span =
+            bevy::log::info_span!("usf_residency.rebuild_graph").entered();
 
         #[derive(Default)]
         struct DirectRequest {
@@ -300,6 +306,7 @@ impl UsfContextResidency {
             self.revision = self.revision.wrapping_add(1).max(1);
         }
         self.demand_plan = demand_plan;
+        drop(rebuild_span);
         Ok(())
     }
 }

@@ -42,6 +42,150 @@ pub(super) struct VoxelDemandPlanKey {
     view_revision: u64,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct VoxelMaterializationBox {
+    minimum: [i64; 3],
+    maximum: [i64; 3],
+}
+
+impl VoxelMaterializationBox {
+    fn from_plan(plan: VoxelDemandPlanKey) -> Option<Self> {
+        let center = plan.center_key.components();
+        Some(Self {
+            minimum: [
+                center[0].checked_add(i64::from(plan.minimum.x))?,
+                center[1].checked_add(i64::from(plan.minimum.y))?,
+                center[2].checked_add(i64::from(plan.minimum.z))?,
+            ],
+            maximum: [
+                center[0].checked_add(i64::from(plan.maximum.x))?,
+                center[1].checked_add(i64::from(plan.maximum.y))?,
+                center[2].checked_add(i64::from(plan.maximum.z))?,
+            ],
+        })
+    }
+
+    fn intersection(self, other: Self) -> Option<Self> {
+        let minimum = [
+            self.minimum[0].max(other.minimum[0]),
+            self.minimum[1].max(other.minimum[1]),
+            self.minimum[2].max(other.minimum[2]),
+        ];
+        let maximum = [
+            self.maximum[0].min(other.maximum[0]),
+            self.maximum[1].min(other.maximum[1]),
+            self.maximum[2].min(other.maximum[2]),
+        ];
+        (minimum[0] <= maximum[0]
+            && minimum[1] <= maximum[1]
+            && minimum[2] <= maximum[2])
+            .then_some(Self { minimum, maximum })
+    }
+
+    fn for_each(self, mut visit: impl FnMut(VoxelMaterializationKey)) {
+        for z in self.minimum[2]..=self.maximum[2] {
+            for y in self.minimum[1]..=self.maximum[1] {
+                for x in self.minimum[0]..=self.maximum[0] {
+                    visit(VoxelMaterializationKey::new([x, y, z]));
+                }
+            }
+        }
+    }
+
+    fn for_each_difference(
+        self,
+        subtract: Self,
+        mut visit: impl FnMut(VoxelMaterializationKey),
+    ) {
+        let Some(intersection) = self.intersection(subtract) else {
+            self.for_each(visit);
+            return;
+        };
+
+        let slab = |minimum: [i64; 3],
+                    maximum: [i64; 3],
+                    visit: &mut dyn FnMut(VoxelMaterializationKey)| {
+            if minimum[0] > maximum[0]
+                || minimum[1] > maximum[1]
+                || minimum[2] > maximum[2]
+            {
+                return;
+            }
+            VoxelMaterializationBox { minimum, maximum }.for_each(visit);
+        };
+
+        slab(
+            self.minimum,
+            [
+                intersection.minimum[0] - 1,
+                self.maximum[1],
+                self.maximum[2],
+            ],
+            &mut visit,
+        );
+        slab(
+            [
+                intersection.maximum[0] + 1,
+                self.minimum[1],
+                self.minimum[2],
+            ],
+            self.maximum,
+            &mut visit,
+        );
+
+        let middle_x = [intersection.minimum[0], intersection.maximum[0]];
+        slab(
+            [middle_x[0], self.minimum[1], self.minimum[2]],
+            [
+                middle_x[1],
+                intersection.minimum[1] - 1,
+                self.maximum[2],
+            ],
+            &mut visit,
+        );
+        slab(
+            [
+                middle_x[0],
+                intersection.maximum[1] + 1,
+                self.minimum[2],
+            ],
+            [middle_x[1], self.maximum[1], self.maximum[2]],
+            &mut visit,
+        );
+
+        let middle_y = [intersection.minimum[1], intersection.maximum[1]];
+        slab(
+            [middle_x[0], middle_y[0], self.minimum[2]],
+            [
+                middle_x[1],
+                middle_y[1],
+                intersection.minimum[2] - 1,
+            ],
+            &mut visit,
+        );
+        slab(
+            [
+                middle_x[0],
+                middle_y[0],
+                intersection.maximum[2] + 1,
+            ],
+            [middle_x[1], middle_y[1], self.maximum[2]],
+            &mut visit,
+        );
+    }
+}
+
+fn incremental_plan_compatible(
+    previous: VoxelDemandPlanKey,
+    next: VoxelDemandPlanKey,
+) -> bool {
+    previous.source == next.source
+        && previous.priority == next.priority
+        && previous.roles == next.roles
+        && previous.view_revision == 0
+        && next.view_revision == 0
+}
+
 /// Reconciles active voxel materialization residency with the latest spatial
 /// demand snapshot.
 ///
@@ -291,12 +435,65 @@ fn refresh_demand_plan(
         validate_context_residency(demands, residency, context_scale)?;
     }
 
+    // Common hot path: one ordinary cuboid demand moved to a neighboring
+    // materialization window. Update only entering/leaving slabs. View-frustum
+    // and pinned-shell plans retain the conservative full planner below.
+    let incremental = demands.len() == 1
+        && pinned_shell.is_none()
+        && demands[0].view_source().is_none()
+        && streaming.demand_key.len() == 1
+        && key.len() == 1
+        && incremental_plan_compatible(streaming.demand_key[0], key[0]);
+
+    if incremental
+        && let (Some(previous_box), Some(next_box)) = (
+            VoxelMaterializationBox::from_plan(streaming.demand_key[0]),
+            VoxelMaterializationBox::from_plan(key[0]),
+        )
+    {
+        let _span =
+            bevy::log::info_span!("voxel_residency.enumerate_delta").entered();
+        let request = demands[0];
+        let demand = request.scope();
+        let mut leaving = Vec::<VoxelMaterializationKey>::new();
+        let mut entering = Vec::<DemandedChunk>::new();
+
+        previous_box.for_each_difference(next_box, |materialization| {
+            leaving.push(materialization);
+        });
+
+        let mut error = None;
+        next_box.for_each_difference(previous_box, |materialization| {
+            if error.is_some() {
+                return;
+            }
+            match demanded_chunk_for_key(world, request, materialization) {
+                Ok(demanded) => entering.push(demanded),
+                Err(value) => error = Some(value),
+            }
+        });
+        if let Some(error) = error {
+            return Err(error.into());
+        }
+        drop(_span);
+
+        {
+            let _span =
+                bevy::log::info_span!("voxel_residency.stage_delta").entered();
+            streaming.stage_incremental_desired(leaving, entering);
+        }
+
+        streaming.demand_key = key;
+        streaming.residency_revision = residency.revision();
+        return Ok(true);
+    }
+
     let desired = {
-        let _span = bevy::log::info_span!("voxel_residency.enumerate_desired").entered();
+        let _span = bevy::log::info_span!("voxel_residency.enumerate_desired.full").entered();
         demanded_chunk_addresses(world, demands, pinned_shell, view_demands)?
     };
     {
-        let _span = bevy::log::info_span!("voxel_residency.stage_plan").entered();
+        let _span = bevy::log::info_span!("voxel_residency.stage_plan.full").entered();
         let mut desired_roles = HashMap::with_capacity(desired.len());
         let mut pending_desired = VecDeque::with_capacity(desired.len());
 
@@ -362,6 +559,29 @@ fn demand_plan_key(
         });
     }
     Ok(result)
+}
+
+fn demanded_chunk_for_key(
+    world: &VoxelWorld,
+    request: VoxelRealizationScope,
+    key: VoxelMaterializationKey,
+) -> Result<DemandedChunk, UsfPositionError> {
+    let demand = request.scope();
+    let center = world.materialization_address(key)?.center()?;
+    let bound =
+        demand.half_extent_native().length() + MATERIALIZATION_CHUNK_SIZE as f32 * 2.0 + 1.0;
+    let relative = center.relative_at_scale_bounded(
+        &demand.center(),
+        demand.scale(),
+        bound.max(MATERIALIZATION_CHUNK_SIZE as f32 * 2.0),
+    )?;
+
+    Ok(DemandedChunk {
+        key,
+        priority: demand.priority(),
+        distance_squared: relative.length_squared(),
+        roles: request.roles(),
+    })
 }
 
 fn merge_demanded_chunk(
