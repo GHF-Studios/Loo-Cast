@@ -34,6 +34,7 @@ use bevy::{
         },
         tracing_subscriber::{
             Layer as TracingLayer,
+            filter::FilterFn,
             layer::Context as TracingContext,
             registry::Registry as TracingRegistry,
         },
@@ -576,6 +577,7 @@ impl Visit for TracingFields {
     }
 }
 
+
 struct ConsoleTracingLayer {
     transport: ConsoleTransport,
 }
@@ -606,7 +608,16 @@ impl TracingLayer<TracingRegistry> for ConsoleTracingLayer {
 pub(crate) fn console_log_layer(app: &mut App) -> Option<BoxedLayer> {
     app.init_resource::<ConsoleTransport>();
     let transport = app.world().resource::<ConsoleTransport>().clone();
-    Some(Box::new(ConsoleTracingLayer { transport }))
+
+    // Match Bevy's own formatted-log policy: Tracy's per-frame marker is
+    // instrumentation metadata, not a human-facing log record. Filtering at the
+    // layer boundary prevents it from reaching on_event at all.
+    let filter = FilterFn::new(|metadata| {
+        metadata.fields().field("tracy.frame_mark").is_none()
+    });
+    Some(Box::new(
+        ConsoleTracingLayer { transport }.with_filter(filter),
+    ))
 }
 
 #[derive(Resource)]
