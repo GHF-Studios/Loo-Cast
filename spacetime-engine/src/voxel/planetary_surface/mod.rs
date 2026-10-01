@@ -19,7 +19,7 @@ use bevy::{
 use crate::{
     ecs::UsfPresentationProjectionOf,
     spatial::{
-        SpatialScale, UsfScaleCoverage, UsfScaleCoverageSnapshot, UsfScaleRoleMask,
+        SpatialScale, UsfScaleCoverageSnapshot, UsfScaleRoleMask,
         UsfSceneryPresentation, UsfSemanticFrame, UsfViewDemand, UsfViewDemandSnapshot,
         UsfPosition,
     },
@@ -195,16 +195,36 @@ struct PlanetaryObserverKey {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct PlanetaryDenseCoverageGeometry {
+    realization: Entity,
     scale: SpatialScale,
     center: UsfPosition,
     half_extent_native: Vec3,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+/// One ready dense aperture projected once into the semantic body's local SI
+/// frame.
+///
+/// Exact materialization geometry remains canonical elsewhere. Regional
+/// presentation only needs conservative overlap: an inscribed sphere proves
+/// full replacement, while a circumscribed sphere conservatively detects
+/// partial overlap. Patch selection therefore never performs canonical
+/// cross-scale arithmetic in its patch × materialization inner loop.
+#[derive(Debug, Clone, Copy)]
+struct PlanetaryDenseCoverageLocal {
+    geometry: PlanetaryDenseCoverageGeometry,
+    center_local_metres: DVec3,
+    inner_radius_metres: f64,
+    outer_radius_metres: f64,
+}
+
+#[derive(Debug)]
 struct PlanetarySurfacePlanState {
     observer: PlanetaryObserverKey,
     field: CelestialVoxelField,
+    body_origin: UsfPosition,
+    body_frame: UsfSemanticFrame,
     dense_coverage: Vec<PlanetaryDenseCoverageGeometry>,
+    dense_local: HashMap<Entity, PlanetaryDenseCoverageLocal>,
     desired: Vec<PlanetarySurfacePatchId>,
 }
 
@@ -256,6 +276,31 @@ pub(super) fn sync_planetary_surface_realizations(
 
     {
         let _span = bevy::log::info_span!("planetary_surface.plan").entered();
+
+        // Capability coverage is materialization-granular. Group it once rather
+        // than rescanning the complete snapshot independently for every body.
+        let coverage_by_authority = {
+            let _span =
+                bevy::log::info_span!("planetary_surface.plan.coverage_collect").entered();
+            let mut grouped =
+                HashMap::<Entity, Vec<PlanetaryDenseCoverageGeometry>>::new();
+            for entry in coverage.iter() {
+                if !entry.roles().contains(UsfScaleRoleMask::PRESENTATION) {
+                    continue;
+                }
+                grouped
+                    .entry(entry.authority())
+                    .or_default()
+                    .push(PlanetaryDenseCoverageGeometry {
+                        realization: entry.realization(),
+                        scale: entry.scale(),
+                        center: entry.center(),
+                        half_extent_native: entry.half_extent_native(),
+                    });
+            }
+            grouped
+        };
+
         for (authority, _name, body_origin, body_frame, field, _policy) in &authorities {
             live_authorities.insert(authority);
             let sample_scale = planetary_sample_scale(*field);
@@ -263,36 +308,116 @@ pub(super) fn sync_planetary_surface_realizations(
                 *body_origin, *body_frame, *field, sample_scale, view,
             ) else { continue; };
 
-            let dense_coverage = coverage.iter().filter(|entry| {
-                entry.authority() == authority
-                    && entry.roles().contains(UsfScaleRoleMask::PRESENTATION)
-            }).collect::<Vec<_>>();
-            let dense_geometry = dense_coverage.iter().map(|entry| {
-                PlanetaryDenseCoverageGeometry {
-                    scale: entry.scale(),
-                    center: entry.center(),
-                    half_extent_native: entry.half_extent_native(),
-                }
-            }).collect::<Vec<_>>();
+            let dense_geometry = coverage_by_authority
+                .get(&authority)
+                .cloned()
+                .unwrap_or_default();
 
-            let plan_changed = cache.plans.get(&authority).is_none_or(|plan| {
-                plan.observer != observer_key
-                    || plan.field != *field
-                    || plan.dense_coverage != dense_geometry
+            let previous = cache.plans.get(&authority);
+            let coverage_changed = previous.is_none_or(|plan| {
+                plan.dense_coverage != dense_geometry
+                    || plan.body_origin != *body_origin
+                    || plan.body_frame != *body_frame
             });
-            if !plan_changed { continue; }
+            let selection_changed = coverage_changed || previous.is_none_or(|plan| {
+                plan.observer != observer_key || plan.field != *field
+            });
+            if !selection_changed {
+                continue;
+            }
+
+            // Canonical -> body-local projection happens at most once for each
+            // changed materialization geometry. Unchanged ready chunks reuse the
+            // cached projection across observer bucket changes and later plans.
+            let dense_local = if coverage_changed {
+                let _span =
+                    bevy::log::info_span!("planetary_surface.plan.coverage_sync").entered();
+                let mut next =
+                    HashMap::<Entity, PlanetaryDenseCoverageLocal>::with_capacity(
+                        dense_geometry.len(),
+                    );
+
+                for geometry in dense_geometry.iter().copied() {
+                    if let Some(cached) = previous
+                        .and_then(|plan| plan.dense_local.get(&geometry.realization))
+                        .copied()
+                        .filter(|cached| {
+                            cached.geometry == geometry
+                                && previous.is_some_and(|plan| {
+                                    plan.body_origin == *body_origin
+                                        && plan.body_frame == *body_frame
+                                })
+                        })
+                    {
+                        next.insert(geometry.realization, cached);
+                        continue;
+                    }
+
+                    let Ok(center_local_metres) = body_frame.world_to_local_metres(
+                        body_origin,
+                        &geometry.center,
+                        geometry.scale,
+                        f64::MAX,
+                    ) else {
+                        continue;
+                    };
+
+                    let metres_per_native = geometry.scale.metres_per_native();
+                    let half = geometry.half_extent_native;
+                    let half_metres = DVec3::new(
+                        f64::from(half.x) * metres_per_native,
+                        f64::from(half.y) * metres_per_native,
+                        f64::from(half.z) * metres_per_native,
+                    );
+                    if !center_local_metres.is_finite()
+                        || !half_metres.is_finite()
+                    {
+                        continue;
+                    }
+
+                    next.insert(
+                        geometry.realization,
+                        PlanetaryDenseCoverageLocal {
+                            geometry,
+                            center_local_metres,
+                            inner_radius_metres: half_metres.min_element().max(0.0),
+                            outer_radius_metres: half_metres.length(),
+                        },
+                    );
+                }
+                next
+            } else {
+                // Observer-only replans reuse the materialization projection
+                // cache without any canonical coverage arithmetic.
+                previous
+                    .expect("unchanged coverage requires an existing plan")
+                    .dense_local
+                    .clone()
+            };
 
             let max_level = maximum_patch_level(*field, sample_scale);
-            let selected = select_adaptive_patches(|patch| {
-                evaluate_patch(
-                    *body_origin, *body_frame, *field, sample_scale, patch,
-                    observer_local, max_level, &dense_coverage,
-                )
-            });
+            let selected = {
+                let _span =
+                    bevy::log::info_span!("planetary_surface.plan.select").entered();
+                select_adaptive_patches(|patch| {
+                    evaluate_patch(
+                        *field,
+                        sample_scale,
+                        patch,
+                        observer_local,
+                        max_level,
+                        &dense_local,
+                    )
+                })
+            };
+
             cache.plans.insert(authority, PlanetarySurfacePlanState {
                 observer: observer_key,
                 field: *field,
+                body_origin: *body_origin,
+                body_frame: *body_frame,
                 dense_coverage: dense_geometry,
+                dense_local,
                 desired: selected,
             });
         }
@@ -579,14 +704,12 @@ fn select_adaptive_patches(
 }
 
 fn evaluate_patch(
-    body_origin: UsfPosition,
-    body_frame: UsfSemanticFrame,
     field: CelestialVoxelField,
     sample_scale: SpatialScale,
     patch: PlanetarySurfacePatchId,
     observer_local: DVec3,
     max_level: u8,
-    dense_coverage: &[UsfScaleCoverage],
+    dense_coverage: &HashMap<Entity, PlanetaryDenseCoverageLocal>,
 ) -> PatchDecision {
     let direction = patch.center_direction();
     let radius_metres = patch.approximate_radius_metres(field.radius_metres());
@@ -611,16 +734,20 @@ fn evaluate_patch(
         }
     }
 
-    // Dense replacement is sparse and local. Pay canonical projection cost only
-    // when PRESENTATION coverage actually exists for this authority.
+    // Dense replacement is sparse and local. The expensive canonical projection
+    // has already happened once per changed materialization in coverage_sync.
     if !dense_coverage.is_empty() {
-        let Ok(center) =
-            field.surface_position(&body_origin, body_frame, direction, sample_scale)
+        let Ok(center_local_metres) =
+            field.surface_local_metres(direction, sample_scale)
         else {
             return PatchDecision::Keep;
         };
 
-        match dense_coverage_relation(center, radius_metres, dense_coverage) {
+        match dense_coverage_relation(
+            center_local_metres,
+            radius_metres,
+            dense_coverage,
+        ) {
             DenseCoverageRelation::Full => return PatchDecision::Cull,
             DenseCoverageRelation::Partial if patch.level < max_level => {
                 return PatchDecision::Refine;
@@ -653,50 +780,32 @@ fn evaluate_patch(
 }
 
 fn dense_coverage_relation(
-    patch_center: UsfPosition,
+    patch_center_local_metres: DVec3,
     patch_radius_metres: f64,
-    dense_coverage: &[UsfScaleCoverage],
+    dense_coverage: &HashMap<Entity, PlanetaryDenseCoverageLocal>,
 ) -> DenseCoverageRelation {
     let mut partial = false;
 
-    for realized in dense_coverage.iter().copied() {
-        let radius_native =
-            realized.scale().metres_to_native_f64(patch_radius_metres);
-        if !radius_native.is_finite() || radius_native < 0.0 {
-            continue;
-        }
+    for realized in dense_coverage.values() {
+        let delta = patch_center_local_metres - realized.center_local_metres;
+        let distance_squared = delta.length_squared();
 
-        let half = realized.half_extent_native();
-        let half = DVec3::new(
-            f64::from(half.x),
-            f64::from(half.y),
-            f64::from(half.z),
-        );
-        let bound = half.length() + radius_native + 1.0;
-        let Ok(relative) = patch_center.relative_at_scale_bounded_f64(
-            &realized.center(),
-            realized.scale(),
-            bound,
-        ) else {
-            continue;
-        };
-
-        let abs = relative.abs();
-        if abs.x + radius_native <= half.x
-            && abs.y + radius_native <= half.y
-            && abs.z + radius_native <= half.z
+        // The inscribed sphere lies entirely inside the original coverage box.
+        // Cull only when it proves the regional patch sphere is fully covered.
+        let full_radius =
+            (realized.inner_radius_metres - patch_radius_metres).max(0.0);
+        if realized.inner_radius_metres >= patch_radius_metres
+            && distance_squared <= full_radius * full_radius
         {
             return DenseCoverageRelation::Full;
         }
 
-        let nearest = DVec3::new(
-            relative.x.clamp(-half.x, half.x),
-            relative.y.clamp(-half.y, half.y),
-            relative.z.clamp(-half.z, half.z),
-        );
-        if (relative - nearest).length_squared()
-            <= radius_native * radius_native
-        {
+        // The circumscribed sphere contains the original coverage box. Treating
+        // its overlap as partial may over-refine a regional patch, but can never
+        // incorrectly remove coarse presentation.
+        let partial_radius =
+            realized.outer_radius_metres + patch_radius_metres;
+        if distance_squared <= partial_radius * partial_radius {
             partial = true;
         }
     }
