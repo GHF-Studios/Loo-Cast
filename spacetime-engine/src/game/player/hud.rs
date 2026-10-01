@@ -13,6 +13,7 @@ use crate::{
         control::LocalControlSubject,
         flight::{FlightMode, FlightTelemetry},
     },
+    ui::UiLayer,
 };
 
 const HUD_TEXT: Color = Color::srgb(0.72, 0.95, 0.88);
@@ -34,6 +35,7 @@ pub(super) fn spawn_flight_hud(mut commands: Commands) {
     commands.spawn((
         Name::new("Flight HUD Left Wing"),
         FlightHudLeft,
+        GlobalZIndex(UiLayer::HUD),
         Text::new(""),
         TextFont {
             font_size: FontSize::Px(15.0),
@@ -62,6 +64,7 @@ pub(super) fn spawn_flight_hud(mut commands: Commands) {
     commands.spawn((
         Name::new("Flight HUD Right Wing"),
         FlightHudRight,
+        GlobalZIndex(UiLayer::HUD),
         Text::new(""),
         TextFont {
             font_size: FontSize::Px(15.0),
@@ -90,6 +93,7 @@ pub(super) fn spawn_flight_hud(mut commands: Commands) {
     commands.spawn((
         Name::new("Flight HUD Center Alert"),
         FlightHudAlert,
+        GlobalZIndex(UiLayer::HUD),
         Text::new(""),
         TextFont {
             font_size: FontSize::Px(14.0),
@@ -142,20 +146,25 @@ pub(super) fn update_flight_hud(
 
     let cruising = telemetry.mode() == Some(FlightMode::Cruise);
     let speed = format_speed(telemetry.speed_metres_per_second());
-    let throttle = if cruising {
-        format!("{:>3.0}%", telemetry.throttle() * 100.0)
-    } else {
-        "--".to_string()
+    let actuator_status = match telemetry.mode() {
+        Some(FlightMode::Local) => format!(
+            "THR {} • RCS {}",
+            if telemetry.thrusters_enabled() { "ON" } else { "OFF" },
+            if telemetry.rcs_enabled() { "ON" } else { "OFF" },
+        ),
+        Some(FlightMode::Cruise) => {
+            format!("CRZ {:>3.0}%", telemetry.throttle() * 100.0)
+        }
+        _ => "THR -- • RCS --".to_string(),
     };
 
     {
         let mut left = hud.p0();
         left.0.0 = format!(
-            "{}\nSPD  {}\nTHR  {} • RCS {}",
+            "{}\nSPD  {}\n{}",
             telemetry.display_mode_label(),
             speed,
-            throttle,
-            if telemetry.thrusters_enabled() { "ON" } else { "OFF" },
+            actuator_status,
         );
     }
 

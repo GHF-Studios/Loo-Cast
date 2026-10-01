@@ -12,6 +12,9 @@ Profile with Tracy:
 vapor run --profiling
 ```
 
+The Tracy build uses on-demand collection: instrumentation is present, but
+trace collection starts only after a Tracy server/client connects.
+
 Include allocation tracing:
 
 ```sh

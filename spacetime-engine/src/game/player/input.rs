@@ -33,6 +33,7 @@ pub(crate) enum PlayerAction {
     Boost,
     ToggleLocalFlight,
     ToggleThrusters,
+    ToggleRcs,
     ToggleCruise,
     ToggleSpatialDemand,
     ToggleCameraMode,
@@ -57,7 +58,7 @@ pub(crate) enum PlayerAction {
 }
 
 impl PlayerAction {
-    const ALL: [Self; 33] = [
+    const ALL: [Self; 34] = [
         Self::MoveForward,
         Self::MoveBackward,
         Self::MoveLeft,
@@ -70,6 +71,7 @@ impl PlayerAction {
         Self::Boost,
         Self::ToggleLocalFlight,
         Self::ToggleThrusters,
+        Self::ToggleRcs,
         Self::ToggleCruise,
         Self::ToggleSpatialDemand,
         Self::ToggleCameraMode,
@@ -142,6 +144,7 @@ pub(crate) const PLAYER_BIND_TARGETS: &[&str] = &[
     "erase_object",
     "toggle_local_flight",
     "toggle_thrusters",
+    "toggle_rcs",
     "toggle_cruise",
     "toggle_spatial_demand",
     "toggle_camera",
@@ -360,6 +363,7 @@ fn bind_target_actions(target: &str) -> Option<(&'static str, &'static [PlayerAc
         "erase_object" => Some(("erase_object", &[A::EraseObject])),
         "toggle_local_flight" => Some(("toggle_local_flight", &[A::ToggleLocalFlight])),
         "toggle_thrusters" => Some(("toggle_thrusters", &[A::ToggleThrusters])),
+        "toggle_rcs" => Some(("toggle_rcs", &[A::ToggleRcs])),
         "toggle_cruise" => Some(("toggle_cruise", &[A::ToggleCruise])),
         "toggle_spatial_demand" => Some(("toggle_spatial_demand", &[A::ToggleSpatialDemand])),
         "toggle_camera" => Some(("toggle_camera", &[A::ToggleCameraMode])),
@@ -404,6 +408,7 @@ impl Default for PlayerInputBindings {
             ("rshift", "+speed"),
             ("v", "toggle_local_flight"),
             ("x", "toggle_thrusters"),
+            ("z", "toggle_rcs"),
             ("c", "toggle_cruise"),
             ("l", "toggle_spatial_demand"),
             ("f5", "toggle_camera"),
@@ -624,6 +629,7 @@ fn key_label(key: KeyCode) -> String {
         KeyCode::KeyR => "R".into(),
         KeyCode::KeyV => "V".into(),
         KeyCode::KeyX => "X".into(),
+        KeyCode::KeyZ => "Z".into(),
         KeyCode::Space => "SPACE".into(),
         KeyCode::ControlLeft | KeyCode::ControlRight => "CTRL".into(),
         KeyCode::ShiftLeft | KeyCode::ShiftRight => "SHIFT".into(),

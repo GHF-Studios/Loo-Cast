@@ -220,6 +220,7 @@ fn spawn_reference_spacecraft(
     let mut locomotion = ControlledSubjectLocomotion::default();
     locomotion.request_automatic();
     locomotion.set_thrusters_enabled(true);
+    locomotion.set_rcs_enabled(true);
 
     let ship = commands
         .spawn((
@@ -467,6 +468,7 @@ pub(crate) fn detect_landing(
     inhibition.set(LocomotionInhibitionReason::SurfaceContact, true);
     locomotion.request_automatic();
     locomotion.set_thrusters_enabled(false);
+    locomotion.set_rcs_enabled(false);
 }
 
 fn handle_spacecraft_actions(
@@ -546,6 +548,7 @@ fn handle_spacecraft_actions(
             ship_inhibition.set(LocomotionInhibitionReason::SurfaceContact, false);
             ship_locomotion.request_regime(LocomotionRegime::LocalFlight);
             ship_locomotion.set_thrusters_enabled(true);
+            ship_locomotion.set_rcs_enabled(true);
             ship_velocity.0 =
                 ship_frame.up() * ship_layer.scale().metres_to_native_f32(5.0);
             ship_motion.set_from_native_velocity(ship_layer.scale(), ship_velocity.0);
@@ -666,6 +669,7 @@ fn handle_spacecraft_actions(
         player_enabled.0 = true;
         player_locomotion.request_automatic();
         player_locomotion.set_thrusters_enabled(false);
+        player_locomotion.set_rcs_enabled(false);
 
         ship_demand.set_enabled(false);
 

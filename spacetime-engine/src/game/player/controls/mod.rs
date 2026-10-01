@@ -10,8 +10,8 @@ use crate::{
     game::{
         control::{LocalControlSubject, LocalViewTarget},
         locomotion::{
-            CharacterStance, ControlledSubjectLocomotion, DetailedBodyScale,
-            FlightAttitudeCommand, FlightControlIntent, LocomotionRegime,
+            CharacterStance, ControlledSubjectLocomotion, FlightAttitudeCommand,
+            FlightControlIntent, LocomotionRegime,
             LocomotionRequest, MotionKernel,
         },
         navigation::{
@@ -22,9 +22,7 @@ use crate::{
         CharacterControlFrame, CharacterGroundState, CharacterLocomotionFrame,
         CharacterMovementConfig, CharacterMovementInput,
     },
-    spatial::{
-        SpatialDemandSource, UsfScaleLayer, UsfViewRenderAnchor,
-    },
+    spatial::{SpatialDemandSource, UsfViewRenderAnchor},
     view::PrimaryViewPresentation,
 };
 
@@ -38,8 +36,8 @@ mod movement;
 mod view;
 
 pub(super) use modes::{
-    toggle_adaptive_cruise, toggle_local_flight, toggle_local_flight_thrusters,
-    toggle_spatial_demand,
+    toggle_adaptive_cruise, toggle_local_flight, toggle_local_flight_rcs,
+    toggle_local_flight_thrusters, toggle_spatial_demand,
 };
 pub(super) use movement::{movement, sample_flight_control_intent};
 pub(super) use view::{look, zoom_spatial_view};

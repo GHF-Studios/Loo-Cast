@@ -326,7 +326,7 @@ fn update_context_actions(
     }
 
     let (travel, locomotion, capabilities) = player.into_inner();
-    let mut lines = Vec::<String>::with_capacity(10);
+    let mut lines = Vec::<String>::with_capacity(12);
 
     if let Some(item) = hotbar.selected_item().and_then(|item| catalog.find(item)) {
         lines.push(item.name.to_ascii_uppercase());
@@ -413,6 +413,11 @@ fn update_context_actions(
                 bindings.label(PlayerAction::ToggleThrusters),
                 if locomotion.thrusters_enabled() { "off" } else { "on" }
             ));
+            lines.push(format!(
+                "{:<10}RCS {}",
+                bindings.label(PlayerAction::ToggleRcs),
+                if locomotion.rcs_enabled() { "off" } else { "on" }
+            ));
         }
     }
 
@@ -435,7 +440,7 @@ fn update_context_actions(
         bindings.label(PlayerAction::ToggleCreativeMenu),
     ));
 
-    const MAX_LINES: usize = 10;
+    const MAX_LINES: usize = 12;
     if lines.len() > MAX_LINES {
         lines.truncate(MAX_LINES);
     }

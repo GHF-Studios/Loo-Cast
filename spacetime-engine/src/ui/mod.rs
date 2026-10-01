@@ -10,6 +10,19 @@ pub use theme::{UiTextRole, UiTextStyle, UiTheme};
 
 use bevy::prelude::*;
 
+/// Coarse UI attention/occlusion layers.
+///
+/// Ordinary HUD remains underneath modal/full-attention surfaces. Temporary
+/// drag/cursor previews may sit above their owning modal without teaching
+/// individual HUD widgets about inventories or other specific interfaces.
+pub struct UiLayer;
+
+impl UiLayer {
+    pub const HUD: i32 = 0;
+    pub const FULL_ATTENTION: i32 = 100;
+    pub const DRAG_PREVIEW: i32 = 110;
+}
+
 pub struct UiFoundationPlugin;
 
 impl Plugin for UiFoundationPlugin {

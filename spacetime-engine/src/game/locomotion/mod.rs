@@ -102,6 +102,7 @@ pub struct ControlledSubjectLocomotion {
     collision_policy: CollisionPolicy,
     velocity_semantics: VelocitySemantics,
     thrusters_enabled: bool,
+    rcs_enabled: bool,
 }
 
 impl Default for ControlledSubjectLocomotion {
@@ -113,6 +114,7 @@ impl Default for ControlledSubjectLocomotion {
             collision_policy: CollisionPolicy::DetailedBody,
             velocity_semantics: VelocitySemantics::PreserveCanonical,
             thrusters_enabled: false,
+            rcs_enabled: false,
         }
     }
 }
@@ -142,6 +144,10 @@ impl ControlledSubjectLocomotion {
         self.thrusters_enabled
     }
 
+    pub const fn rcs_enabled(&self) -> bool {
+        self.rcs_enabled
+    }
+
     pub fn request_automatic(&mut self) {
         self.request = LocomotionRequest::Automatic;
     }
@@ -152,6 +158,10 @@ impl ControlledSubjectLocomotion {
 
     pub fn set_thrusters_enabled(&mut self, enabled: bool) {
         self.thrusters_enabled = enabled;
+    }
+
+    pub fn set_rcs_enabled(&mut self, enabled: bool) {
+        self.rcs_enabled = enabled;
     }
 
     pub(crate) fn resolve(

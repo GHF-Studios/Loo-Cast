@@ -494,6 +494,57 @@ fn integrate_flight_attitude(
     }
 }
 
+fn integrate_local_inertial_velocity(
+    current_velocity: DVec3,
+    wish: DVec3,
+    gravity_acceleration: DVec3,
+    dt_seconds: f64,
+    thrust_acceleration: f64,
+    rcs_braking_acceleration: f64,
+    thrusters_enabled: bool,
+    rcs_enabled: bool,
+) -> DVec3 {
+    if dt_seconds <= 0.0 {
+        return current_velocity;
+    }
+
+    let thrust_acceleration = thrust_acceleration.max(0.0);
+    let thrusting = thrusters_enabled
+        && thrust_acceleration > 0.0
+        && wish.length_squared() > 1.0e-18;
+
+    // local-flight-actuator-contract-v1
+    // Gravity remains canonical sampled field state. RCS only changes this
+    // subject's local-flight response to that field; it never mutates gravity.
+    let gravity_acceleration = if rcs_enabled {
+        DVec3::ZERO
+    } else {
+        gravity_acceleration
+    };
+
+    let mut next_velocity = current_velocity + gravity_acceleration * dt_seconds;
+    if thrusting {
+        next_velocity += wish * thrust_acceleration * dt_seconds;
+    }
+
+    // RCS damping is a bounded braking acceleration, not a velocity reset.
+    // Do not fight an active main-thruster command; braking takes over when
+    // translational thrust is absent/released.
+    if rcs_enabled && !thrusting {
+        let speed = next_velocity.length();
+        let delta_speed = rcs_braking_acceleration.max(0.0) * dt_seconds;
+        if speed > 0.0 && speed <= delta_speed {
+            DVec3::ZERO
+        } else if speed > 0.0 {
+            next_velocity * ((speed - delta_speed) / speed)
+        } else {
+            next_velocity
+        }
+    } else {
+        next_velocity
+    }
+}
+
 fn boost_multiplier(intent: &FlightControlIntent, profile: &TravelProfile) -> f64 {
     if intent.boost() {
         f64::from(profile.flight.boost_multiplier.max(0.0))
@@ -690,7 +741,16 @@ pub(super) fn flight_movement(
             let thrust = f64::from(
                 profile.flight.local_acceleration_metres_per_second2.max(0.0),
             ) * pace * boost;
-            motion.velocity_metres_per_second() + (wish * thrust + gravity) * dt
+            integrate_local_inertial_velocity(
+                motion.velocity_metres_per_second(),
+                wish,
+                gravity,
+                dt,
+                thrust,
+                f64::from(profile.flight.rcs_braking_acceleration_metres_per_second2),
+                locomotion.thrusters_enabled(),
+                locomotion.rcs_enabled(),
+            )
         }
         MotionKernel::OrbitalFlight => {
             *was_cruise_active = false;

@@ -62,6 +62,8 @@ pub struct ApproachTravelProfile {
 #[derive(Reflect, Debug, Clone, Copy)]
 pub struct FlightDynamicsProfile {
     pub local_acceleration_metres_per_second2: f32,
+    /// Maximum translational braking acceleration available to local-flight RCS damping.
+    pub rcs_braking_acceleration_metres_per_second2: f32,
     pub orbital_acceleration_metres_per_second2: f32,
     pub boost_multiplier: f32,
     /// Maximum manual local-axis pitch rate.
@@ -131,6 +133,7 @@ impl TravelProfile {
             },
             flight: FlightDynamicsProfile {
                 local_acceleration_metres_per_second2: 35.0,
+                rcs_braking_acceleration_metres_per_second2: 25.0,
                 orbital_acceleration_metres_per_second2: 20.0,
                 boost_multiplier: 4.0,
                 pitch_rate_radians_per_second: 1.4,

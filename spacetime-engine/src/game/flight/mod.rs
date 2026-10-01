@@ -200,6 +200,7 @@ pub struct FlightTelemetry {
     speed_metres_per_second: f64,
     throttle: f32,
     thrusters_enabled: bool,
+    rcs_enabled: bool,
     interaction_scale: SpatialScale,
     detailed_interaction: bool,
     primary_body: Option<Entity>,
@@ -224,6 +225,7 @@ impl Default for FlightTelemetry {
             speed_metres_per_second: 0.0,
             throttle: 0.0,
             thrusters_enabled: false,
+            rcs_enabled: false,
             interaction_scale: SpatialScale::MAX,
             detailed_interaction: false,
             primary_body: None,
@@ -267,6 +269,10 @@ impl FlightTelemetry {
 
     pub const fn thrusters_enabled(self) -> bool {
         self.thrusters_enabled
+    }
+
+    pub const fn rcs_enabled(self) -> bool {
+        self.rcs_enabled
     }
 
     pub const fn interaction_scale(self) -> SpatialScale {
@@ -404,6 +410,7 @@ fn sync_flight_telemetry(
             0.0
         };
         telemetry.thrusters_enabled = locomotion.thrusters_enabled();
+        telemetry.rcs_enabled = locomotion.rcs_enabled();
         telemetry.interaction_scale = layer.scale();
         telemetry.detailed_interaction = layer.scale() == detailed.0;
         telemetry.primary_body = surface.body().or(primary.entity());

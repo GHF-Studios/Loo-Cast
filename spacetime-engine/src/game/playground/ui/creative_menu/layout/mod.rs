@@ -11,6 +11,7 @@ pub(super) fn spawn_creative_menu(mut commands: Commands, theme: Res<UiTheme>) {
         .spawn((
             Name::new("Creative Menu"),
             CreativeMenuRoot,
+            GlobalZIndex(crate::ui::UiLayer::FULL_ATTENTION),
             Node {
                 display: Display::None,
                 position_type: PositionType::Absolute,
@@ -114,7 +115,7 @@ pub(super) fn spawn_creative_menu(mut commands: Commands, theme: Res<UiTheme>) {
                 height: px(SLOT_SIZE),
                 ..default()
             },
-            GlobalZIndex(1000),
+            GlobalZIndex(crate::ui::UiLayer::DRAG_PREVIEW),
         ))
         .with_children(|root| {
             spawn_item_view(root, None, &item_text);

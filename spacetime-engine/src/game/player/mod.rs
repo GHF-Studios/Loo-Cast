@@ -137,6 +137,7 @@ impl Plugin for PlayerPlugin {
                 (
                     controls::toggle_local_flight,
                     controls::toggle_local_flight_thrusters,
+                    controls::toggle_local_flight_rcs,
                     controls::toggle_adaptive_cruise,
                 )
                     .chain()
