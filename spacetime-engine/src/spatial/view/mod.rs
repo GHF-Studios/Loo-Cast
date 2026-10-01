@@ -44,6 +44,38 @@ pub struct UsfScalePresentation {
     scale: SpatialScale,
 }
 
+/// Optional view-only observer override.
+///
+/// #40/#57 observer-view-demand-policy-v1
+///
+/// This changes only where the presentation observer is projected. It does not
+/// modify the canonical gameplay subject, interaction Scale Slice, refinement,
+/// collision/editing authority or generic `SpatialDemandSource` ownership.
+#[derive(Resource, Debug, Default, Clone, Copy)]
+pub struct UsfViewObservationOverride {
+    anchor: Option<UsfPosition>,
+    runtime_anchor: Vec3,
+}
+
+impl UsfViewObservationOverride {
+    pub fn set(&mut self, anchor: UsfPosition, runtime_anchor: Vec3) {
+        self.anchor = Some(anchor);
+        self.runtime_anchor = runtime_anchor;
+    }
+
+    pub fn clear(&mut self) {
+        self.anchor = None;
+        self.runtime_anchor = Vec3::ZERO;
+    }
+
+    pub const fn current(&self) -> Option<(UsfPosition, Vec3)> {
+        match self.anchor {
+            Some(anchor) => Some((anchor, self.runtime_anchor)),
+            None => None,
+        }
+    }
+}
+
 /// Persistent scenery authored in one scale-local chart.
 ///
 /// Unlike adjacent-scale transition representations, scenery may remain visible
@@ -393,10 +425,13 @@ mod demand;
 mod lod;
 mod systems;
 
-pub use demand::{UsfViewDemand, UsfViewDemandSnapshot};
+pub use demand::{
+    UsfViewDemand, UsfViewDemandMode, UsfViewDemandPolicy, UsfViewDemandSnapshot,
+};
 pub use lod::UsfDistanceMeshLod;
 
 pub(in crate::spatial) fn configure(app: &mut App) {
+    app.init_resource::<UsfViewObservationOverride>();
     demand::configure(app);
 }
 

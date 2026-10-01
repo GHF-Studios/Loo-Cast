@@ -44,6 +44,14 @@ use bevy_egui::{EguiContext, EguiPrimaryContextPass, PrimaryEguiContext, egui};
 
 use crate::input_focus::{InputFocus, InputFocusSet};
 
+mod runtime_variables;
+
+pub use runtime_variables::{
+    AppRuntimeVariableExt, RuntimeVariableAuthority, RuntimeVariableBinding,
+    RuntimeVariableDomain, RuntimeVariableRegistry, RuntimeVariableSpec,
+    RuntimeVariableValueType,
+};
+
 const CONSOLE_FOCUS_OWNER: &str = "developer_console";
 const MAX_SCROLLBACK: usize = 512;
 const MAX_HISTORY: usize = 128;
@@ -60,10 +68,24 @@ pub struct ConsoleCommandSpec {
     pub summary: &'static str,
 }
 
+// #56 hierarchical-console-runtime-vars-v1
+#[derive(Debug, Clone, Copy)]
+pub enum ConsoleArgumentCompletion {
+    CommandPath,
+    /// Delegate completion to an embedded command line beginning at this argument.
+    /// Static candidates are merged at the first embedded token so action-style
+    /// targets such as `+forward` coexist with ordinary console commands.
+    CommandTail(&'static [&'static str]),
+    RuntimeVariablePath,
+    RuntimeVariableValue { path_argument: usize },
+    Static(&'static [&'static str]),
+}
+
 #[derive(Debug, Clone, Copy)]
 struct RegisteredConsoleCommand {
     spec: ConsoleCommandSpec,
     handler: ConsoleCommandHandler,
+    completion: &'static [ConsoleArgumentCompletion],
 }
 
 #[derive(Resource, Default)]
@@ -74,45 +96,94 @@ pub struct ConsoleCommandRegistry {
 
 impl ConsoleCommandRegistry {
     pub fn register(&mut self, spec: ConsoleCommandSpec, handler: ConsoleCommandHandler) {
-        let canonical = normalize_name(spec.name);
-        assert!(!canonical.is_empty(), "console command names must not be empty");
+        self.register_with_completion(spec, &[], handler);
+    }
+
+    pub fn register_with_completion(
+        &mut self,
+        spec: ConsoleCommandSpec,
+        completion: &'static [ConsoleArgumentCompletion],
+        handler: ConsoleCommandHandler,
+    ) {
+        let canonical = normalize_path(spec.name);
+        assert!(!canonical.is_empty(), "console command paths must not be empty");
         assert!(
-            !self.commands.contains_key(&canonical),
-            "duplicate console command `{canonical}`"
+            !self.commands.contains_key(&canonical) && !self.aliases.contains_key(&canonical),
+            "duplicate console command path `{canonical}`"
         );
 
         for &alias in spec.aliases {
-            let alias = normalize_name(alias);
+            let alias = normalize_path(alias);
             assert!(
-                !alias.is_empty() && !self.aliases.contains_key(&alias),
+                !alias.is_empty()
+                    && !self.commands.contains_key(&alias)
+                    && !self.aliases.contains_key(&alias),
                 "duplicate/empty console command alias `{alias}`"
             );
             self.aliases.insert(alias, canonical.clone());
         }
 
-        self.commands
-            .insert(canonical, RegisteredConsoleCommand { spec, handler });
+        self.commands.insert(
+            canonical,
+            RegisteredConsoleCommand {
+                spec,
+                handler,
+                completion,
+            },
+        );
     }
 
-    fn resolve(&self, name: &str) -> Option<RegisteredConsoleCommand> {
-        let name = normalize_name(name);
-        if let Some(command) = self.commands.get(&name) {
-            return Some(*command);
+    fn resolve_tokens(
+        &self,
+        tokens: &[String],
+    ) -> Option<(RegisteredConsoleCommand, usize, String)> {
+        for consumed in (1..=tokens.len()).rev() {
+            let candidate = normalize_path(&tokens[..consumed].join(" "));
+            if let Some(command) = self.commands.get(&candidate).copied() {
+                return Some((command, consumed, candidate));
+            }
+            if let Some(canonical) = self.aliases.get(&candidate)
+                && let Some(command) = self.commands.get(canonical).copied()
+            {
+                return Some((command, consumed, canonical.clone()));
+            }
         }
-        let canonical = self.aliases.get(&name)?;
-        self.commands.get(canonical).copied()
+        None
     }
 
-    fn command_names(&self) -> impl Iterator<Item = &str> {
-        self.commands.keys().map(String::as_str)
-    }
-
-    fn completions(&self, prefix: &str) -> Vec<String> {
+    fn command_segment_completions(
+        &self,
+        preceding: &[String],
+        prefix: &str,
+    ) -> Vec<String> {
+        let preceding = preceding
+            .iter()
+            .map(|segment| normalize_name(segment))
+            .collect::<Vec<_>>();
         let prefix = normalize_name(prefix);
-        self.command_names()
-            .filter(|name| name.starts_with(&prefix))
-            .map(ToOwned::to_owned)
-            .collect()
+        let mut matches = Vec::new();
+
+        for path in self.commands.keys().chain(self.aliases.keys()) {
+            let segments = path.split_whitespace().collect::<Vec<_>>();
+            if preceding.len() >= segments.len() {
+                continue;
+            }
+            if preceding
+                .iter()
+                .zip(segments.iter())
+                .any(|(left, right)| left != right)
+            {
+                continue;
+            }
+            let candidate = segments[preceding.len()];
+            if candidate.starts_with(&prefix) {
+                matches.push(candidate.to_string());
+            }
+        }
+
+        matches.sort();
+        matches.dedup();
+        matches
     }
 }
 
@@ -120,6 +191,13 @@ pub trait AppConsoleExt {
     fn register_console_command(
         &mut self,
         spec: ConsoleCommandSpec,
+        handler: ConsoleCommandHandler,
+    ) -> &mut Self;
+
+    fn register_console_command_with_completion(
+        &mut self,
+        spec: ConsoleCommandSpec,
+        completion: &'static [ConsoleArgumentCompletion],
         handler: ConsoleCommandHandler,
     ) -> &mut Self;
 }
@@ -136,12 +214,26 @@ impl AppConsoleExt for App {
             .register(spec, handler);
         self
     }
+
+    fn register_console_command_with_completion(
+        &mut self,
+        spec: ConsoleCommandSpec,
+        completion: &'static [ConsoleArgumentCompletion],
+        handler: ConsoleCommandHandler,
+    ) -> &mut Self {
+        self.init_resource::<ConsoleCommandRegistry>();
+        self.world_mut()
+            .resource_mut::<ConsoleCommandRegistry>()
+            .register_with_completion(spec, completion, handler);
+        self
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConsoleCommandSource {
     Overlay,
     Terminal,
+    Binding,
 }
 
 impl ConsoleCommandSource {
@@ -149,6 +241,7 @@ impl ConsoleCommandSource {
         match self {
             Self::Overlay => "overlay",
             Self::Terminal => "stdin",
+            Self::Binding => "bind",
         }
     }
 }
@@ -182,6 +275,20 @@ impl ConsoleCommandInvocation {
 
     pub const fn source(&self) -> ConsoleCommandSource {
         self.source
+    }
+
+    fn tokens(&self) -> Vec<String> {
+        let mut tokens = Vec::with_capacity(1 + self.args.len());
+        tokens.push(self.name.clone());
+        tokens.extend(self.args.iter().cloned());
+        tokens
+    }
+
+    fn resolved(mut self, canonical: String, consumed: usize) -> Self {
+        let tokens = self.tokens();
+        self.name = canonical;
+        self.args = tokens.into_iter().skip(consumed).collect();
+        self
     }
 }
 
@@ -384,13 +491,13 @@ fn timestamp_label(timestamp_millis: u64) -> String {
 ///
 /// The queues contain no ECS values and never borrow the [`World`].
 #[derive(Resource, Clone, Default)]
-struct ConsoleTransport {
+pub(crate) struct ConsoleTransport {
     commands: Arc<Mutex<VecDeque<ConsoleCommandSubmission>>>,
     records: Arc<Mutex<VecDeque<ConsoleRecord>>>,
 }
 
 impl ConsoleTransport {
-    fn submit(&self, source: ConsoleCommandSource, raw: impl Into<String>) {
+    pub(crate) fn submit(&self, source: ConsoleCommandSource, raw: impl Into<String>) {
         let raw = raw.into();
         if raw.trim().is_empty() {
             return;
@@ -590,6 +697,7 @@ impl Plugin for DeveloperConsolePlugin {
         app.init_resource::<ConsoleTransport>()
             .init_resource::<ConsoleOverlay>()
             .init_resource::<ConsoleCommandRegistry>()
+            .init_resource::<RuntimeVariableRegistry>()
             .init_resource::<InputFocus>()
             .add_systems(PreUpdate, toggle_console.before(InputFocusSet::Resolve))
             .add_systems(Update, dispatch_console_commands)
@@ -626,6 +734,9 @@ impl Plugin for DeveloperConsolePlugin {
             },
             echo_command,
         );
+
+
+        runtime_variables::configure(app);
     }
 }
 
@@ -692,18 +803,20 @@ fn dispatch_console_commands(world: &mut World) {
             }
         };
 
-        let command = {
+        let tokens = invocation.tokens();
+        let resolved = {
             let registry = world.resource::<ConsoleCommandRegistry>();
-            registry.resolve(invocation.name())
+            registry.resolve_tokens(&tokens)
         };
 
-        let Some(command) = command else {
+        let Some((command, consumed, canonical)) = resolved else {
             transport.publish(ConsoleRecord::error(format!(
-                "unknown command `{}` — type `help` to list commands",
-                invocation.name()
+                "unknown command path `{}` — type `help` to list commands",
+                tokens.join(" ")
             )));
             continue;
         };
+        let invocation = invocation.resolved(canonical, consumed);
 
         match (command.handler)(world, &invocation) {
             ConsoleCommandResult::Silent => {}
@@ -881,6 +994,7 @@ fn draw_console(
     mut contexts: Query<&mut EguiContext, With<PrimaryEguiContext>>,
     mut console: ResMut<ConsoleOverlay>,
     registry: Res<ConsoleCommandRegistry>,
+    runtime_variables: Res<RuntimeVariableRegistry>,
     transport: Res<ConsoleTransport>,
 ) {
     if !console.open {
@@ -947,15 +1061,20 @@ fn draw_console(
 
                     ui.separator();
 
-                    let response = ui.add(
-                        egui::TextEdit::singleline(&mut console.input)
-                            .font(egui::TextStyle::Monospace)
-                            .desired_width(f32::INFINITY)
-                            .hint_text("command"),
+                    let output = egui::TextEdit::singleline(&mut console.input)
+                        .font(egui::TextStyle::Monospace)
+                        .desired_width(f32::INFINITY)
+                        .hint_text("command")
+                        .show(ui);
+                    let response = output.response;
+                    let mut cursor = output.cursor_range.map_or_else(
+                        || console.input.len(),
+                        |range| char_to_byte_index(&console.input, range.primary.index),
                     );
 
                     if console.opened_this_frame {
                         console.input.clear();
+                        cursor = 0;
                         response.request_focus();
                         console.opened_this_frame = false;
                     }
@@ -973,27 +1092,39 @@ fn draw_console(
 
                         if history_up {
                             console.history_up();
+                            cursor = console.input.len();
                             response.request_focus();
                         }
                         if history_down {
                             console.history_down();
+                            cursor = console.input.len();
                             response.request_focus();
                         }
                         if complete {
-                            complete_command_input(&mut console.input, &registry);
+                            cursor = complete_command_input(
+                                &mut console.input,
+                                cursor,
+                                &registry,
+                                &runtime_variables,
+                            );
                             response.request_focus();
                         }
                         if submit {
                             if let Some(command) = console.submit() {
                                 transport.submit(ConsoleCommandSource::Overlay, command);
                             }
+                            cursor = 0;
                             response.request_focus();
                         }
                     }
 
-                    let prefix = command_prefix(&console.input);
-                    let completions = registry.completions(prefix);
-                    if !prefix.is_empty() && !completions.is_empty() {
+                    let completions = completion_candidates(
+                        &console.input,
+                        cursor,
+                        &registry,
+                        &runtime_variables,
+                    );
+                    if !completions.is_empty() {
                         let preview = completions
                             .into_iter()
                             .take(8)
@@ -1010,15 +1141,243 @@ fn draw_console(
         });
 }
 
-fn complete_command_input(input: &mut String, registry: &ConsoleCommandRegistry) {
-    let prefix = command_prefix(input);
-    if prefix.is_empty() {
-        return;
+#[derive(Debug, Clone)]
+struct CompletionToken {
+    start: usize,
+    end: usize,
+    value: String,
+}
+
+#[derive(Debug)]
+struct CompletionSite {
+    start: usize,
+    end: usize,
+    prefix: String,
+    preceding: Vec<String>,
+    preserve_leading_slash: bool,
+}
+
+fn scan_completion_tokens(source: &str) -> Vec<CompletionToken> {
+    let mut tokens = Vec::new();
+    let mut start = None;
+    let mut quote = None;
+    let mut escaped = false;
+
+    for (index, character) in source.char_indices() {
+        if start.is_none() {
+            if character.is_whitespace() {
+                continue;
+            }
+            start = Some(index);
+        }
+
+        if escaped {
+            escaped = false;
+            continue;
+        }
+        if character == '\\' {
+            escaped = true;
+            continue;
+        }
+        if let Some(active_quote) = quote {
+            if character == active_quote {
+                quote = None;
+            }
+            continue;
+        }
+        if matches!(character, '"' | '\'') {
+            quote = Some(character);
+            continue;
+        }
+        if character.is_whitespace() {
+            let token_start = start.take().expect("token start exists");
+            let raw = &source[token_start..index];
+            tokens.push(CompletionToken {
+                start: token_start,
+                end: index,
+                value: decode_completion_fragment(raw),
+            });
+        }
     }
 
-    let completions = registry.completions(prefix);
+    if let Some(token_start) = start {
+        let raw = &source[token_start..];
+        tokens.push(CompletionToken {
+            start: token_start,
+            end: source.len(),
+            value: decode_completion_fragment(raw),
+        });
+    }
+
+    tokens
+}
+
+fn decode_completion_fragment(raw: &str) -> String {
+    let mut value = String::new();
+    let mut quote = None;
+    let mut escaped = false;
+
+    for character in raw.chars() {
+        if escaped {
+            value.push(character);
+            escaped = false;
+            continue;
+        }
+        if character == '\\' {
+            escaped = true;
+            continue;
+        }
+        if let Some(active_quote) = quote {
+            if character == active_quote {
+                quote = None;
+            } else {
+                value.push(character);
+            }
+            continue;
+        }
+        if matches!(character, '"' | '\'') {
+            quote = Some(character);
+        } else {
+            value.push(character);
+        }
+    }
+
+    if escaped {
+        value.push('\\');
+    }
+    value
+}
+
+fn completion_site(source: &str, cursor: usize) -> CompletionSite {
+    let cursor = cursor.min(source.len());
+    let tokens = scan_completion_tokens(source);
+
+    if let Some((index, token)) = tokens.iter().enumerate().find(|(_, token)| {
+        cursor >= token.start && cursor <= token.end
+    }) {
+        let raw_prefix = &source[token.start..cursor];
+        let raw_token = &source[token.start..token.end];
+        return CompletionSite {
+            start: token.start,
+            end: token.end,
+            prefix: decode_completion_fragment(raw_prefix),
+            preceding: tokens[..index]
+                .iter()
+                .map(|token| token.value.clone())
+                .collect(),
+            preserve_leading_slash: index == 0 && raw_token.trim_start().starts_with('/'),
+        };
+    }
+
+    let preceding = tokens
+        .iter()
+        .filter(|token| token.end <= cursor)
+        .map(|token| token.value.clone())
+        .collect();
+    CompletionSite {
+        start: cursor,
+        end: cursor,
+        prefix: String::new(),
+        preceding,
+        preserve_leading_slash: false,
+    }
+}
+
+fn completion_candidates(
+    input: &str,
+    cursor: usize,
+    registry: &ConsoleCommandRegistry,
+    runtime_variables: &RuntimeVariableRegistry,
+) -> Vec<String> {
+    let site = completion_site(input, cursor);
+    completion_candidates_for_tokens(
+        &site.preceding,
+        &site.prefix,
+        registry,
+        runtime_variables,
+    )
+}
+
+fn completion_candidates_for_tokens(
+    preceding: &[String],
+    prefix: &str,
+    registry: &ConsoleCommandRegistry,
+    runtime_variables: &RuntimeVariableRegistry,
+) -> Vec<String> {
+    let command_matches = registry.command_segment_completions(preceding, prefix);
+    if !command_matches.is_empty() {
+        return command_matches;
+    }
+
+    let Some((command, consumed, _)) = registry.resolve_tokens(preceding) else {
+        return Vec::new();
+    };
+    let argument_index = preceding.len().saturating_sub(consumed);
+    let (completion, completion_index) = if let Some(completion) = command.completion.get(argument_index)
+    {
+        (completion, argument_index)
+    } else if let Some(ConsoleArgumentCompletion::CommandTail(_)) = command.completion.last() {
+        (command.completion.last().expect("checked completion tail"), command.completion.len() - 1)
+    } else {
+        return Vec::new();
+    };
+
+    let prefix_lower = prefix.to_ascii_lowercase();
+    let mut values = match completion {
+        ConsoleArgumentCompletion::CommandPath => {
+            registry.command_segment_completions(&preceding[consumed..], prefix)
+        }
+        ConsoleArgumentCompletion::CommandTail(static_candidates) => {
+            let tail_start = consumed + completion_index;
+            let tail_preceding = preceding.get(tail_start..).unwrap_or(&[]);
+            let mut values = completion_candidates_for_tokens(
+                tail_preceding,
+                prefix,
+                registry,
+                runtime_variables,
+            );
+            if tail_preceding.is_empty() {
+                values.extend(
+                    static_candidates
+                        .iter()
+                        .copied()
+                        .filter(|candidate| candidate.starts_with(&prefix_lower))
+                        .map(ToOwned::to_owned),
+                );
+            }
+            values
+        }
+        ConsoleArgumentCompletion::RuntimeVariablePath => {
+            runtime_variables.path_completions(&prefix_lower)
+        }
+        ConsoleArgumentCompletion::RuntimeVariableValue { path_argument } => {
+            let arguments = &preceding[consumed..];
+            arguments.get(*path_argument).map_or_else(Vec::new, |path| {
+                runtime_variables.value_completions(path, &prefix_lower)
+            })
+        }
+        ConsoleArgumentCompletion::Static(candidates) => candidates
+            .iter()
+            .copied()
+            .filter(|candidate| candidate.starts_with(&prefix_lower))
+            .map(ToOwned::to_owned)
+            .collect(),
+    };
+    values.sort();
+    values.dedup();
+    values
+}
+
+fn complete_command_input(
+    input: &mut String,
+    cursor: usize,
+    registry: &ConsoleCommandRegistry,
+    runtime_variables: &RuntimeVariableRegistry,
+) -> usize {
+    let site = completion_site(input, cursor);
+    let completions = completion_candidates(input, cursor, registry, runtime_variables);
     if completions.is_empty() {
-        return;
+        return cursor.min(input.len());
     }
 
     let completed = if completions.len() == 1 {
@@ -1026,22 +1385,52 @@ fn complete_command_input(input: &mut String, registry: &ConsoleCommandRegistry)
     } else {
         common_prefix(&completions)
     };
+    let prefix = if site.preserve_leading_slash {
+        site.prefix.trim_start_matches('/')
+    } else {
+        site.prefix.as_str()
+    };
+
+    if completed == prefix && completions.len() == 1 && site.end == cursor {
+        if input[site.end..]
+            .chars()
+            .next()
+            .is_none_or(|character| !character.is_whitespace())
+        {
+            input.insert(site.end, ' ');
+            return site.end + 1;
+        }
+        return cursor;
+    }
     if completed.len() <= prefix.len() {
-        return;
+        return cursor.min(input.len());
     }
 
-    let slash = input.trim_start().starts_with('/');
-    *input = format!("{}{} ", if slash { "/" } else { "" }, completed);
+    let replacement = if site.preserve_leading_slash {
+        format!("/{completed}")
+    } else {
+        completed
+    };
+    input.replace_range(site.start..site.end, &replacement);
+    let mut next_cursor = site.start + replacement.len();
+
+    if completions.len() == 1
+        && input[next_cursor..]
+            .chars()
+            .next()
+            .is_none_or(|character| !character.is_whitespace())
+    {
+        input.insert(next_cursor, ' ');
+        next_cursor += 1;
+    }
+
+    next_cursor
 }
 
-fn command_prefix(input: &str) -> &str {
-    input
-        .trim_start()
-        .strip_prefix('/')
-        .unwrap_or_else(|| input.trim_start())
-        .split_whitespace()
-        .next()
-        .unwrap_or("")
+fn char_to_byte_index(text: &str, char_index: usize) -> usize {
+    text.char_indices()
+        .nth(char_index)
+        .map_or(text.len(), |(index, _)| index)
 }
 
 fn common_prefix(values: &[String]) -> String {
@@ -1063,10 +1452,21 @@ fn common_prefix(values: &[String]) -> String {
 fn help_command(world: &mut World, invocation: &ConsoleCommandInvocation) -> ConsoleCommandResult {
     let registry = world.resource::<ConsoleCommandRegistry>();
 
-    if let Some(name) = invocation.args().first() {
-        let Some(command) = registry.resolve(name) else {
-            return ConsoleCommandResult::error(format!("unknown command `{name}`"));
+    if !invocation.args().is_empty() {
+        let tokens = invocation.args().to_vec();
+        let Some((command, consumed, _)) = registry.resolve_tokens(&tokens) else {
+            return ConsoleCommandResult::error(format!(
+                "unknown command `{}`",
+                invocation.args().join(" ")
+            ));
         };
+        if consumed != tokens.len() {
+            return ConsoleCommandResult::error(format!(
+                "unknown command `{}`",
+                invocation.args().join(" ")
+            ));
+        }
+
         let mut lines = vec![format!(
             "{} — {}",
             command.spec.usage, command.spec.summary
@@ -1078,9 +1478,11 @@ fn help_command(world: &mut World, invocation: &ConsoleCommandInvocation) -> Con
     }
 
     ConsoleCommandResult::lines(registry.commands.values().map(|command| {
-        format!("{:<34} {}", command.spec.usage, command.spec.summary)
+        format!("{:<44} {}", command.spec.usage, command.spec.summary)
     }))
 }
+
+
 
 fn clear_command(_: &mut World, _: &ConsoleCommandInvocation) -> ConsoleCommandResult {
     ConsoleCommandResult::clear()
@@ -1168,6 +1570,14 @@ fn normalize_name(name: &str) -> String {
     name.trim().trim_start_matches('/').to_ascii_lowercase()
 }
 
+fn normalize_path(path: &str) -> String {
+    path.split_whitespace()
+        .map(normalize_name)
+        .filter(|segment| !segment.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1228,4 +1638,89 @@ mod tests {
         assert_eq!(timestamp_label(86_399_999), "23:59:59.999");
         assert_eq!(timestamp_label(86_400_000), "00:00:00.000");
     }
+
+    #[test]
+    fn hierarchical_registry_resolves_longest_path_and_alias() {
+        let mut registry = ConsoleCommandRegistry::default();
+        registry.register(
+            ConsoleCommandSpec {
+                name: "debug freecam",
+                aliases: &["fc"],
+                usage: "debug freecam",
+                summary: "test",
+            },
+            echo_command,
+        );
+
+        let tokens = vec!["debug".to_string(), "freecam".to_string(), "on".to_string()];
+        let (_, consumed, canonical) = registry.resolve_tokens(&tokens).unwrap();
+        assert_eq!(consumed, 2);
+        assert_eq!(canonical, "debug freecam");
+
+        let alias = vec!["fc".to_string()];
+        let (_, consumed, canonical) = registry.resolve_tokens(&alias).unwrap();
+        assert_eq!(consumed, 1);
+        assert_eq!(canonical, "debug freecam");
+    }
+
+    #[test]
+    fn completion_preserves_preceding_tokens_and_completes_subcommands() {
+        let mut registry = ConsoleCommandRegistry::default();
+        registry.register(
+            ConsoleCommandSpec {
+                name: "config get",
+                aliases: &[],
+                usage: "config get <path>",
+                summary: "test",
+            },
+            echo_command,
+        );
+        registry.register(
+            ConsoleCommandSpec {
+                name: "config reset",
+                aliases: &[],
+                usage: "config reset <path>",
+                summary: "test",
+            },
+            echo_command,
+        );
+
+        let variables = RuntimeVariableRegistry::default();
+        let mut input = "config g".to_string();
+        let cursor = input.len();
+        let next = complete_command_input(&mut input, cursor, &registry, &variables);
+
+        assert_eq!(input, "config get ");
+        assert_eq!(next, input.len());
+    }
+
+    #[test]
+    fn completion_targets_the_token_under_the_cursor() {
+        let mut registry = ConsoleCommandRegistry::default();
+        registry.register(
+            ConsoleCommandSpec {
+                name: "config get",
+                aliases: &[],
+                usage: "config get <path>",
+                summary: "test",
+            },
+            echo_command,
+        );
+        registry.register(
+            ConsoleCommandSpec {
+                name: "config reset",
+                aliases: &[],
+                usage: "config reset <path>",
+                summary: "test",
+            },
+            echo_command,
+        );
+
+        let variables = RuntimeVariableRegistry::default();
+        let mut input = "config g trailing".to_string();
+        let cursor = "config g".len();
+        complete_command_input(&mut input, cursor, &registry, &variables);
+        assert_eq!(input, "config get trailing");
+    }
+
 }

@@ -34,6 +34,7 @@ pub(in crate::game::player) fn sync_view_camera_profile(
 /// Controller aim and viewed subject are intentionally independent. The local
 /// player supplies aim intent; LocalViewTarget supplies physical pose.
 pub(in crate::game::player) fn sync_player_camera(
+    freecam: Res<DebugFreecam>,
     spatial_query: SpatialQuery,
     physics_charts: UsfPhysicsSlices,
     runtime_ownership: UsfRuntimeOwnershipQuery,
@@ -62,6 +63,10 @@ pub(in crate::game::player) fn sync_player_camera(
         (With<Portal>, Without<PlayerCamera>),
     >,
 ) {
+    if freecam.enabled() {
+        return;
+    }
+
     let aim = controller.into_inner();
     let (
         subject_entity,
@@ -116,6 +121,8 @@ pub(in crate::game::player) fn sync_player_camera(
 /// projection camera may NOT: translating it would make presentation-scale
 /// compression observable as fake geometry.
 pub(in crate::game::player) fn sync_usf_projection_camera(
+    freecam: Res<DebugFreecam>,
+    observation: Res<crate::spatial::UsfViewObservationOverride>,
     target: Single<
         &Transform,
         (
@@ -143,14 +150,37 @@ pub(in crate::game::player) fn sync_usf_projection_camera(
     let (mut far_transform, mut far_projection, mut far_camera, mut far_target) =
         far.into_inner();
 
-    far_transform.translation = target.translation;
-    far_transform.rotation = local_transform.rotation;
+    far_camera.viewport = local_camera.viewport.clone();
+    *far_target = local_target.clone();
     far_transform.scale = Vec3::ONE;
 
-    *far_projection = local_projection.clone();
-    far_camera.viewport = local_camera.viewport.clone();
-    far_camera.is_active = local_camera.is_active;
-    *far_target = local_target.clone();
+    if !freecam.enabled() {
+        far_transform.translation = target.translation;
+        far_transform.rotation = local_transform.rotation;
+        *far_projection = local_projection.clone();
+        far_camera.is_active = local_camera.is_active;
+        return;
+    }
+
+    match freecam.projection_policy() {
+        FreecamProjectionPolicy::Follow => {
+            far_transform.translation = observation
+                .current()
+                .map_or(target.translation, |(_, runtime)| runtime);
+            far_transform.rotation = local_transform.rotation;
+            *far_projection = local_projection.clone();
+            far_camera.is_active = local_camera.is_active;
+        }
+        FreecamProjectionPolicy::Frozen => {
+            if let Some((_, runtime)) = observation.current() {
+                far_transform.translation = runtime;
+            }
+            far_camera.is_active = local_camera.is_active;
+        }
+        FreecamProjectionPolicy::Disabled => {
+            far_camera.is_active = false;
+        }
+    }
 }
 
 /// Self-visibility is primary-view policy, not model identity or portal policy.
@@ -160,6 +190,7 @@ pub(in crate::game::player) fn sync_usf_projection_camera(
 /// view layer. Portal cameras intentionally include that layer. Presentations
 /// of previous/unrelated view subjects are restored to ordinary world layers.
 pub(in crate::game::player) fn sync_view_subject_presentations(
+    freecam: Res<DebugFreecam>,
     camera: Single<&PlayerCamera>,
     runtime_ownership: UsfRuntimeOwnershipQuery,
     target: Single<Entity, With<LocalViewTarget>>,
@@ -174,7 +205,10 @@ pub(in crate::game::player) fn sync_view_subject_presentations(
         let is_self = viewed_semantic.is_some()
             && runtime_ownership.semantic_of(projection.0) == viewed_semantic;
 
-        let desired = if is_self && camera.mode == CameraMode::FirstPerson {
+        let desired = if is_self
+            && !freecam.enabled()
+            && camera.mode == CameraMode::FirstPerson
+        {
             RenderLayers::layer(DERIVED_VIEW_LAYER)
         } else {
             RenderLayers::default()

@@ -3,6 +3,9 @@
 //! Navigation resolves destinations into canonical USF transitions. The console
 //! never mutates runtime Transform coordinates directly.
 
+mod input_bindings;
+mod runtime_variables;
+
 use std::collections::BTreeMap;
 
 use bevy::{math::DVec3, prelude::*};
@@ -40,6 +43,9 @@ use super::{
 use crate::view::PrimaryGameView;
 
 pub(super) fn configure(app: &mut App) {
+    input_bindings::configure(app);
+    runtime_variables::configure(app);
+
     app.add_systems(
         PostUpdate,
         reconcile_controlled_spatial_transition

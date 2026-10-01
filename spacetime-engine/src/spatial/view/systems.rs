@@ -17,6 +17,7 @@ use crate::{
 /// Keeps the view anchored to an ordinary bounded runtime transform while
 /// deriving its semantic position through the current local physical frame.
 pub(in crate::spatial) fn sync_view_context(
+    observation_override: Res<UsfViewObservationOverride>,
     ownership: UsfOwnershipQuery,
     semantic_anchors: Query<(&Transform, &UsfLogicalRealizationOf), With<UsfViewAnchor>>,
     semantic_positions: Query<&UsfPosition>,
@@ -25,37 +26,44 @@ pub(in crate::spatial) fn sync_view_context(
         With<UsfViewRenderAnchor>,
     >,
 ) {
-    let mut semantic_anchors = semantic_anchors.iter();
-    let Some((runtime_anchor, realization)) = semantic_anchors.next() else {
-        return;
-    };
-    if semantic_anchors.next().is_some() {
-        error!("primary USF view has multiple semantic anchors");
-        return;
-    }
+    let (canonical, runtime_translation) = if let Some((anchor, runtime_anchor)) =
+        observation_override.current()
+    {
+        (anchor, runtime_anchor)
+    } else {
+        let mut semantic_anchors = semantic_anchors.iter();
+        let Some((runtime_anchor, realization)) = semantic_anchors.next() else {
+            return;
+        };
+        if semantic_anchors.next().is_some() {
+            error!("primary USF view has multiple semantic anchors");
+            return;
+        }
 
-    let Some(subject) = ownership.semantic_for(realization) else {
-        error!(
-            partition = ?realization.0,
-            "USF semantic view anchor has no semantic owner"
-        );
-        return;
-    };
-    let Ok(&canonical) = semantic_positions.get(subject) else {
-        error!(
-            subject = ?subject,
-            "USF semantic view anchor has no canonical position"
-        );
-        return;
+        let Some(subject) = ownership.semantic_for(realization) else {
+            error!(
+                partition = ?realization.0,
+                "USF semantic view anchor has no semantic owner"
+            );
+            return;
+        };
+        let Ok(&canonical) = semantic_positions.get(subject) else {
+            error!(
+                subject = ?subject,
+                "USF semantic view anchor has no canonical position"
+            );
+            return;
+        };
+        (canonical, runtime_anchor.translation)
     };
 
     let (render_anchor, mut view) = observer.into_inner();
     if view.anchor != canonical
-        || view.runtime_anchor != runtime_anchor.translation
+        || view.runtime_anchor != runtime_translation
         || view.render_anchor != render_anchor.translation
     {
         view.anchor = canonical;
-        view.runtime_anchor = runtime_anchor.translation;
+        view.runtime_anchor = runtime_translation;
         view.render_anchor = render_anchor.translation;
     }
 }

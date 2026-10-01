@@ -55,7 +55,8 @@ pub use transition::{
 pub use view::{
     UsfDistanceMeshLod, UsfLocalScalePresentation, UsfPresentationProbe,
     UsfScaleFallbackPresentation, UsfScalePresentation, UsfSceneryPresentation,
-    UsfViewAnchor, UsfViewContext, UsfViewDemand, UsfViewDemandSnapshot,
+    UsfViewAnchor, UsfViewContext, UsfViewDemand, UsfViewDemandMode,
+    UsfViewDemandPolicy, UsfViewDemandSnapshot, UsfViewObservationOverride,
     UsfViewRenderAnchor,
 };
 

@@ -17,9 +17,15 @@ mod model;
 mod stance;
 
 pub use camera::{CameraMode, PlayerCamera, ThirdPersonCamera, ViewCameraProfile};
+pub(crate) use camera::{
+    DebugFreecam, FreecamControlPolicy, FreecamProjectionPolicy,
+};
 pub use components::{Player, PlayerAim, PlayerController, PlayerDead};
 
-pub(crate) use input::{PlayerAction, PlayerInputBindings, PlayerInputFrame};
+pub(crate) use input::{
+    BINDABLE_INPUT_NAMES, PLAYER_BIND_TARGETS, PlayerAction, PlayerInputBindings,
+    PlayerInputFrame,
+};
 
 use avian3d::prelude::{
     ActiveCollisionHooks, Collider, CollisionLayers, CustomPositionIntegration, CustomVelocityIntegration,
@@ -80,6 +86,7 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<cursor::CursorCapture>()
+            .init_resource::<DebugFreecam>()
             .init_resource::<InputFocus>()
             .init_resource::<input::PlayerInputBindings>()
             .init_resource::<input::PlayerInputFrame>()
@@ -113,6 +120,12 @@ impl Plugin for PlayerPlugin {
             )
             .add_systems(
                 PreUpdate,
+                input::dispatch_bound_console_commands
+                    .after(InputFocusSet::Resolve)
+                    .before(input::PlayerInputSet::Sample),
+            )
+            .add_systems(
+                PreUpdate,
                 input::sample_player_input.in_set(input::PlayerInputSet::Sample),
             )
             .add_systems(
@@ -141,6 +154,7 @@ impl Plugin for PlayerPlugin {
                     // Mouse motion is accumulated once per rendered frame.
                     // Consume it exactly once here; fixed-step simulation may
                     // run zero or multiple ticks for the same render frame.
+                    camera::update_freecam,
                     controls::look,
                     controls::toggle_spatial_demand,
                     controls::zoom_spatial_view,
@@ -154,6 +168,7 @@ impl Plugin for PlayerPlugin {
             .add_systems(
                 Update,
                 (
+                    camera::sync_freecam_observer_policy,
                     camera::sync_view_camera_profile,
                     camera::sync_player_camera,
                     camera::sync_player_fov,

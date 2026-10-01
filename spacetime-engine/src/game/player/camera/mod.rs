@@ -254,10 +254,15 @@ impl Default for PlayerCamera {
     }
 }
 
+mod freecam;
 mod input;
 mod presentation;
 mod third_person;
 
+pub(crate) use freecam::{
+    DebugFreecam, FreecamControlPolicy, FreecamProjectionPolicy,
+};
+pub(super) use freecam::{sync_freecam_observer_policy, update_freecam};
 pub(super) use input::{toggle_camera_mode, zoom_third_person};
 pub(super) use presentation::{
     sync_player_camera, sync_player_fov, sync_usf_projection_camera,

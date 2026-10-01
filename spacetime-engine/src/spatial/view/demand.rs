@@ -19,6 +19,63 @@ use super::{SpatialScale, UsfPosition, UsfViewContext, UsfViewRenderAnchor};
 const MIN_PROJECTED_CELL_RADIUS_PIXELS: f32 = 0.75;
 const VIEW_RELATIVE_BOUND_NATIVE: f32 = 1_000_000.0;
 
+/// Runtime policy for sparse presentation/view demand.
+///
+/// This is presentation interest only. Dense physical/collision/editing demand
+/// remains owned by its explicit capability/spatial demand sources.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum UsfViewDemandMode {
+    /// Recompute demand from the current observer each frame when it changes.
+    #[default]
+    Live,
+    /// Preserve the last captured demand while the observer camera moves.
+    Frozen,
+    /// Publish no active presentation-view demand.
+    Disabled,
+}
+
+impl UsfViewDemandMode {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Live => "live",
+            Self::Frozen => "frozen",
+            Self::Disabled => "disabled",
+        }
+    }
+
+    pub fn parse(raw: &str) -> Option<Self> {
+        match raw.to_ascii_lowercase().as_str() {
+            "live" | "follow" => Some(Self::Live),
+            "frozen" | "freeze" => Some(Self::Frozen),
+            "disabled" | "off" | "none" => Some(Self::Disabled),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Resource, Debug, Clone, Copy)]
+pub struct UsfViewDemandPolicy {
+    mode: UsfViewDemandMode,
+}
+
+impl Default for UsfViewDemandPolicy {
+    fn default() -> Self {
+        Self {
+            mode: UsfViewDemandMode::Live,
+        }
+    }
+}
+
+impl UsfViewDemandPolicy {
+    pub const fn mode(self) -> UsfViewDemandMode {
+        self.mode
+    }
+
+    pub fn set_mode(&mut self, mode: UsfViewDemandMode) {
+        self.mode = mode;
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct UsfViewDemand {
     source: Entity,
@@ -147,6 +204,7 @@ impl UsfViewDemand {
 }
 
 fn capture_view_demand(
+    policy: Res<UsfViewDemandPolicy>,
     views: Query<
         (
             Entity,
@@ -160,6 +218,18 @@ fn capture_view_demand(
     >,
     mut snapshot: ResMut<UsfViewDemandSnapshot>,
 ) {
+    match policy.mode() {
+        UsfViewDemandMode::Frozen => return,
+        UsfViewDemandMode::Disabled => {
+            if !snapshot.entries.is_empty() {
+                snapshot.entries.clear();
+                snapshot.revision = snapshot.revision.wrapping_add(1).max(1);
+            }
+            return;
+        }
+        UsfViewDemandMode::Live => {}
+    }
+
     // Bevy change ticks are intentionally not used as semantic invalidation.
     // Camera synchronization may perform idempotent mutable writes; observer
     // demand only changes when values that can alter culling actually differ.
@@ -222,7 +292,8 @@ fn capture_view_demand(
 }
 
 pub(super) fn configure(app: &mut App) {
-    app.init_resource::<UsfViewDemandSnapshot>()
+    app.init_resource::<UsfViewDemandPolicy>()
+        .init_resource::<UsfViewDemandSnapshot>()
         .add_systems(
             PostUpdate,
             capture_view_demand.after(VisibilitySystems::UpdateFrusta),
