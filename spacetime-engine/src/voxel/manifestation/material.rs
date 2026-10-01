@@ -26,7 +26,7 @@ use crate::{
     ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf},
     spatial::{
         SpatialScale, UsfCapabilityRealization, UsfCapabilitySet,
-        UsfPresentationProbe, UsfPrimaryInteractionSlice, UsfScaleLayer,
+        UsfPosition, UsfPresentationProbe, UsfPrimaryInteractionSlice, UsfScaleLayer,
         UsfScaleRoleMask, UsfSpatialSet,
         UsfViewContext, UsfViewRenderAnchor,
     },
@@ -52,6 +52,22 @@ pub(super) const REFINEMENT_CLIP_SHADER: Handle<Shader> =
 
 pub(in crate::voxel) type VoxelRenderMaterial =
     ExtendedMaterial<StandardMaterial, VoxelRefinementClipExtension>;
+
+#[derive(Debug, Clone, Copy)]
+struct RefinementClipSource {
+    world: Entity,
+    authority: Entity,
+    fine_scale: SpatialScale,
+    center: UsfPosition,
+    half_extent_native: Vec3,
+    exposed_faces: u8,
+}
+
+#[derive(Default)]
+struct RefinementClipCache {
+    source_coverage_revision: Option<u64>,
+    sources: Vec<RefinementClipSource>,
+}
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
 pub(super) struct VoxelRefinementClipExtension {
@@ -83,6 +99,7 @@ pub struct VoxelPresentationMaterial {
     translucent: Option<Handle<VoxelRenderMaterial>>,
     clip_boxes: Option<Handle<ShaderBuffer>>,
     clip_data: Vec<[f32; 4]>,
+    clip_count: u32,
 }
 
 impl VoxelPresentationMaterial {
@@ -93,6 +110,7 @@ impl VoxelPresentationMaterial {
             translucent: None,
             clip_boxes: None,
             clip_data: Vec::new(),
+            clip_count: 0,
         }
     }
 
@@ -183,10 +201,13 @@ impl VoxelPresentationMaterial {
         buffer.set_data(data.clone());
 
         let count = u32::try_from(count).unwrap_or(u32::MAX);
-        for handle in [opaque_handle, translucent_handle] {
-            if let Some(mut material) = materials.get_mut(handle) {
-                material.extension.clip_meta = UVec4::new(count, 0, 0, 0);
+        if self.clip_count != count {
+            for handle in [opaque_handle, translucent_handle] {
+                if let Some(mut material) = materials.get_mut(handle) {
+                    material.extension.clip_meta = UVec4::new(count, 0, 0, 0);
+                }
             }
+            self.clip_count = count;
         }
 
         self.clip_data = data;
@@ -235,27 +256,56 @@ fn sync_refinement_clip_materials(
     mut buffers: ResMut<Assets<ShaderBuffer>>,
     mut materials: ResMut<Assets<VoxelRenderMaterial>>,
     mut boxes: Local<HashMap<(Entity, SpatialScale), Vec<[f32; 4]>>>,
+    mut cache: Local<RefinementClipCache>,
 ) {
     let view = view.into_inner();
+
+    let source_revision = frontier.source_coverage_revision();
+    if cache.source_coverage_revision != Some(source_revision) {
+        let _span =
+            bevy::log::info_span!("voxel.refinement_clip.topology").entered();
+
+        let mut realized = realizations.iter().collect::<Vec<_>>();
+        realized.sort_by_key(|(entity, _, _)| entity.to_bits());
+
+        cache.sources.clear();
+        cache.sources.reserve(realized.len());
+        for (_, runtime, realization) in realized {
+            if !realization
+                .roles()
+                .contains(UsfScaleRoleMask::PRESENTATION)
+            {
+                continue;
+            }
+
+            cache.sources.push(RefinementClipSource {
+                world: runtime.world(),
+                authority: realization.authority(),
+                fine_scale: realization.scale(),
+                center: realization.center(),
+                half_extent_native: realization.half_extent_native(),
+                exposed_faces: frontier
+                    .exposed_faces(
+                        runtime.world(),
+                        realization.authority(),
+                        realization.scale(),
+                        runtime.key(),
+                    )
+                    .bits(),
+            });
+        }
+        cache.source_coverage_revision = Some(source_revision);
+    }
 
     for value in boxes.values_mut() {
         value.clear();
     }
 
-    // Query iteration order is not an ownership contract. Sort by runtime entity
-    // so unchanged aperture sets upload identical buffers across frames.
-    let mut realized = realizations.iter().collect::<Vec<_>>();
-    realized.sort_by_key(|(entity, _, _)| entity.to_bits());
+    let projection_span =
+        bevy::log::info_span!("voxel.refinement_clip.project").entered();
 
-    for (_, runtime, realization) in realized {
-        if !realization
-            .roles()
-            .contains(UsfScaleRoleMask::PRESENTATION)
-        {
-            continue;
-        }
-
-        let fine_scale = realization.scale();
+    for source in cache.sources.iter().copied() {
+        let fine_scale = source.fine_scale;
         let Some(coarse_raw) = fine_scale.exponent().checked_add(1) else {
             continue;
         };
@@ -278,7 +328,7 @@ fn sync_refinement_clip_materials(
         }
 
         let bound = 1_000_000.0_f32;
-        let Ok(relative) = realization.center().relative_at_scale_bounded(
+        let Ok(relative) = source.center.relative_at_scale_bounded(
             view.anchor(),
             fine_scale,
             bound,
@@ -287,19 +337,12 @@ fn sync_refinement_clip_materials(
         };
 
         let center = view.presentation_origin() + relative * factor;
-        let half = realization.half_extent_native() * factor;
+        let half = source.half_extent_native * factor;
         if !center.is_finite() || !half.is_finite() {
             continue;
         }
 
-        let exposed_faces = frontier
-            .exposed_faces(
-                runtime.world(),
-                realization.authority(),
-                fine_scale,
-                runtime.key(),
-            )
-            .bits();
+        let exposed_faces = source.exposed_faces;
         let support_band = if exposed_faces == 0 {
             0.0
         } else {
@@ -307,7 +350,7 @@ fn sync_refinement_clip_materials(
         };
 
         let entry = boxes
-            .entry((realization.authority(), coarse_scale))
+            .entry((source.authority, coarse_scale))
             .or_default();
 
         // w carries presentation-only transition metadata:
@@ -320,6 +363,10 @@ fn sync_refinement_clip_materials(
         ]);
         entry.push([half.x, half.y, half.z, support_band]);
     }
+
+    drop(projection_span);
+    let _publish_span =
+        bevy::log::info_span!("voxel.refinement_clip.publish").entered();
 
     for (layer, logical, mut material) in &mut worlds {
         let Some(_handles) = material.handles() else {
