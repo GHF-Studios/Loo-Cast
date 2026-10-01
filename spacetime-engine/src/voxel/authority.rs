@@ -5,7 +5,7 @@
 //! Scale-specific spatial indexes may be derived later, but they must never
 //! become edit identity.
 
-use bevy::prelude::*;
+use bevy::{math::DVec3, prelude::*};
 
 use crate::spatial::{
     SpatialScale, UsfPosition, UsfPositionError, UsfSemanticFrame, UsfTravelBoundary,
@@ -77,6 +77,15 @@ impl CelestialVoxelField {
         scale: SpatialScale,
     ) -> Result<UsfPosition, UsfPositionError> {
         self.realization(*body_origin, body_frame, scale).surface_position(direction)
+    }
+
+    /// Body-local semantic surface position in SI metres.
+    pub(crate) fn surface_local_metres(
+        self, direction: Vec3, scale: SpatialScale,
+    ) -> Result<DVec3, UsfPositionError> {
+        self.realization(
+            UsfPosition::zero(SpatialScale::MIN), UsfSemanticFrame::identity(), scale,
+        ).surface_local_metres(direction)
     }
 
     /// Creates one disposable pose-bound procedural sampler for a realization.

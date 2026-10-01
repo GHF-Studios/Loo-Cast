@@ -179,6 +179,23 @@ pub(crate) fn prepare_local_sampler(
             .unwrap_or_else(|| VoxelSample::empty(EMPTY_DISTANCE))
     }
 
+    /// Body-local semantic surface point in SI metres.
+    /// S1+ is radial already; avoid a world-position round trip.
+    pub(crate) fn surface_local_metres(
+        self, direction: Vec3,
+    ) -> Result<DVec3, UsfPositionError> {
+        let local_direction = normalized_direction(direction);
+        if self.current_scale > SpatialScale::ZERO {
+            let radius_metres =
+                self.coarse_surface_radius_metres(local_direction, self.current_scale);
+            return Ok(dvec(local_direction) * radius_metres);
+        }
+        let surface = self.surface_position(local_direction)?;
+        self.frame_snapshot.world_to_local_metres(
+            &self.origin_snapshot, &surface, self.current_scale, f64::MAX,
+        )
+    }
+
     /// Canonical surface point including every detail band owned by this scale.
 pub fn surface_position(self, direction: Vec3) -> Result<UsfPosition, UsfPositionError> {
         let local_direction = normalized_direction(direction);

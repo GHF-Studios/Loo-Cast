@@ -10,7 +10,11 @@
 
 use std::collections::{HashMap, HashSet};
 
-use bevy::{math::DVec3, prelude::*};
+use bevy::{
+    math::DVec3,
+    prelude::*,
+    tasks::{AsyncComputeTaskPool, Task, futures::check_ready},
+};
 
 use crate::{
     ecs::UsfPresentationProjectionOf,
@@ -44,6 +48,10 @@ const PROJECTED_ERROR_RATIO: f64 = 0.24;
 const PATCH_BOUND_MARGIN: f64 = 1.30;
 const OBSERVER_DIRECTION_BUCKETS: f64 = 128.0;
 const OBSERVER_RADIAL_BUCKETS_PER_OCTAVE: f64 = 64.0;
+
+const MAX_PATCH_BUILDS_IN_FLIGHT: usize = 2;
+const MAX_PATCH_BUILD_ADMISSIONS_PER_FRAME: usize = 2;
+const MAX_PATCH_PUBLICATIONS_PER_FRAME: usize = 2;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PlanetarySurfaceFace {
@@ -186,15 +194,39 @@ struct PlanetaryObserverKey {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-struct PlanetarySurfacePlanSignature {
+struct PlanetaryDenseCoverageGeometry {
+    scale: SpatialScale,
+    center: UsfPosition,
+    half_extent_native: Vec3,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct PlanetarySurfacePlanState {
     observer: PlanetaryObserverKey,
     field: CelestialVoxelField,
-    coverage_revision: u64,
+    dense_coverage: Vec<PlanetaryDenseCoverageGeometry>,
+    desired: Vec<PlanetarySurfacePatchId>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+struct PlanetarySurfacePatchKey {
+    authority: Entity,
+    patch: PlanetarySurfacePatchId,
+    scale: SpatialScale,
+}
+
+#[derive(Component)]
+pub(super) struct PlanetarySurfaceBuildTask {
+    authority: Entity,
+    patch: PlanetarySurfacePatchId,
+    field: CelestialVoxelField,
+    sample_scale: SpatialScale,
+    task: Task<Option<Mesh>>,
 }
 
 #[derive(Default)]
 pub(super) struct PlanetarySurfacePlanCache {
-    signatures: HashMap<Entity, PlanetarySurfacePlanSignature>,
+    plans: HashMap<Entity, PlanetarySurfacePlanState>,
 }
 
 /// Reconcile presentation patches only when body-relative observer geometry,
@@ -216,142 +248,190 @@ pub(super) fn sync_planetary_surface_realizations(
         &CelestialVoxelRealizationPolicy,
     )>,
     existing: Query<(Entity, &PlanetarySurfaceRealization)>,
+    mut build_tasks: Query<(Entity, &mut PlanetarySurfaceBuildTask)>,
     mut cache: Local<PlanetarySurfacePlanCache>,
 ) {
-    let Some(view) = views.iter().next() else {
-        // A transiently missing view snapshot must not tear down the last valid
-        // whole-body presentation.
-        return;
-    };
-
+    let Some(view) = views.iter().next() else { return; };
     let mut live_authorities = HashSet::new();
 
-    for (authority, name, body_origin, body_frame, field, policy) in &authorities {
-        live_authorities.insert(authority);
+    {
+        let _span = bevy::log::info_span!("planetary_surface.plan").entered();
+        for (authority, _name, body_origin, body_frame, field, _policy) in &authorities {
+            live_authorities.insert(authority);
+            let sample_scale = planetary_sample_scale(*field);
+            let Some((observer_key, observer_local)) = observer_plan_key(
+                *body_origin, *body_frame, *field, sample_scale, view,
+            ) else { continue; };
 
-        let sample_scale = planetary_sample_scale(*field);
-        let Some((observer_key, observer_local)) = observer_plan_key(
-            *body_origin,
-            *body_frame,
-            *field,
-            sample_scale,
-            view,
-        ) else {
-            continue;
-        };
-
-        let signature = PlanetarySurfacePlanSignature {
-            observer: observer_key,
-            field: *field,
-            coverage_revision: coverage.revision(),
-        };
-        if cache.signatures.get(&authority) == Some(&signature) {
-            continue;
-        }
-
-        let dense_coverage = coverage
-            .iter()
-            .filter(|entry| {
+            let dense_coverage = coverage.iter().filter(|entry| {
                 entry.authority() == authority
                     && entry.roles().contains(UsfScaleRoleMask::PRESENTATION)
-            })
-            .collect::<Vec<_>>();
-        let max_level = maximum_patch_level(*field, sample_scale);
+            }).collect::<Vec<_>>();
+            let dense_geometry = dense_coverage.iter().map(|entry| {
+                PlanetaryDenseCoverageGeometry {
+                    scale: entry.scale(),
+                    center: entry.center(),
+                    half_extent_native: entry.half_extent_native(),
+                }
+            }).collect::<Vec<_>>();
 
-        let selected = select_adaptive_patches(|patch| {
-            evaluate_patch(
-                *body_origin,
-                *body_frame,
-                *field,
-                sample_scale,
-                patch,
-                observer_local,
-                max_level,
-                &dense_coverage,
-            )
-        });
+            let plan_changed = cache.plans.get(&authority).is_none_or(|plan| {
+                plan.observer != observer_key
+                    || plan.field != *field
+                    || plan.dense_coverage != dense_geometry
+            });
+            if !plan_changed { continue; }
 
-        let mut existing_by_patch = HashMap::<PlanetarySurfacePatchId, Entity>::new();
-        for (entity, realization) in &existing {
-            if realization.authority() != authority {
-                continue;
-            }
-            if existing_by_patch.contains_key(&realization.patch()) {
-                commands.entity(entity).despawn();
-            } else {
-                existing_by_patch.insert(realization.patch(), entity);
-            }
+            let max_level = maximum_patch_level(*field, sample_scale);
+            let selected = select_adaptive_patches(|patch| {
+                evaluate_patch(
+                    *body_origin, *body_frame, *field, sample_scale, patch,
+                    observer_local, max_level, &dense_coverage,
+                )
+            });
+            cache.plans.insert(authority, PlanetarySurfacePlanState {
+                observer: observer_key,
+                field: *field,
+                dense_coverage: dense_geometry,
+                desired: selected,
+            });
         }
+    }
 
-        let desired = selected.iter().copied().collect::<HashSet<_>>();
-        let mut replacements_ready = true;
+    let mut existing_by_key = HashMap::<PlanetarySurfacePatchKey, Entity>::new();
+    for (entity, realization) in &existing {
+        let key = PlanetarySurfacePatchKey {
+            authority: realization.authority(),
+            patch: realization.patch(),
+            scale: realization.scale(),
+        };
+        if existing_by_key.contains_key(&key) {
+            commands.entity(entity).despawn();
+        } else {
+            existing_by_key.insert(key, entity);
+        }
+    }
 
-        for patch in selected {
-            if existing_by_patch.contains_key(&patch) {
-                continue;
-            }
+    let mut inflight_keys = HashSet::<PlanetarySurfacePatchKey>::new();
+    let mut published_keys = HashSet::<PlanetarySurfacePatchKey>::new();
+    let mut published = 0usize;
 
-            let Some(mesh) = build_planetary_surface_patch(
-                *field,
-                *body_origin,
-                *body_frame,
-                patch,
-                sample_scale,
-            ) else {
-                replacements_ready = false;
-                continue;
+    {
+        let _span = bevy::log::info_span!("planetary_surface.publish").entered();
+        for (task_entity, mut build) in &mut build_tasks {
+            let key = PlanetarySurfacePatchKey {
+                authority: build.authority,
+                patch: build.patch,
+                scale: build.sample_scale,
             };
+            let still_desired = cache.plans.get(&build.authority).is_some_and(|plan| {
+                plan.field == build.field
+                    && planetary_sample_scale(plan.field) == build.sample_scale
+                    && plan.desired.contains(&build.patch)
+            });
+            if !still_desired || !live_authorities.contains(&build.authority) {
+                commands.entity(task_entity).despawn();
+                continue;
+            }
+            if existing_by_key.contains_key(&key) {
+                commands.entity(task_entity).despawn();
+                continue;
+            }
 
-            let body_name = name.map(|value| value.as_str()).unwrap_or("Celestial Body");
-            let orientation = body_frame.orientation();
-            let rotation = Quat::from_xyzw(
-                orientation.x as f32,
-                orientation.y as f32,
-                orientation.z as f32,
-                orientation.w as f32,
-            )
-            .normalize();
+            if published < MAX_PATCH_PUBLICATIONS_PER_FRAME {
+                if let Some(result) = check_ready(&mut build.task) {
+                    commands.entity(task_entity).despawn();
+                    let Some(mesh) = result else { continue; };
+                    let Ok((_, name, body_origin, body_frame, current_field, policy)) =
+                        authorities.get(build.authority)
+                    else { continue; };
+                    if *current_field != build.field { continue; }
 
-            commands.spawn((
-                Name::new(format!(
-                    "{body_name} Planetary Patch {:?} L{} ({},{})",
-                    patch.face, patch.level, patch.x, patch.y,
-                )),
-                PlanetarySurfaceRealization {
-                    authority,
-                    patch,
-                    scale: sample_scale,
-                    revision: 1,
-                },
-                UsfPresentationProjectionOf(authority),
-                UsfSceneryPresentation::from_anchor(*body_origin, sample_scale),
-                Mesh3d(meshes.add(mesh)),
-                MeshMaterial3d(policy.presentation_material().clone()),
-                Transform::from_rotation(rotation),
-                Visibility::Inherited,
-            ));
+                    let body_name = name.map(|v| v.as_str()).unwrap_or("Celestial Body");
+                    let q = body_frame.orientation();
+                    let rotation = Quat::from_xyzw(
+                        q.x as f32, q.y as f32, q.z as f32, q.w as f32,
+                    ).normalize();
+                    commands.spawn((
+                        Name::new(format!(
+                            "{body_name} Planetary Patch {:?} L{} ({},{})",
+                            build.patch.face, build.patch.level, build.patch.x, build.patch.y,
+                        )),
+                        PlanetarySurfaceRealization {
+                            authority: build.authority,
+                            patch: build.patch,
+                            scale: build.sample_scale,
+                            revision: 1,
+                        },
+                        UsfPresentationProjectionOf(build.authority),
+                        UsfSceneryPresentation::from_anchor(*body_origin, build.sample_scale),
+                        Mesh3d(meshes.add(mesh)),
+                        MeshMaterial3d(policy.presentation_material().clone()),
+                        Transform::from_rotation(rotation),
+                        Visibility::Inherited,
+                    ));
+                    published_keys.insert(key);
+                    published += 1;
+                    continue;
+                }
+            }
+            inflight_keys.insert(key);
         }
+    }
 
-        if replacements_ready {
-            for (patch, entity) in existing_by_patch {
-                if !desired.contains(&patch) {
+    {
+        let _span = bevy::log::info_span!("planetary_surface.schedule").entered();
+        let pool = AsyncComputeTaskPool::get();
+        let mut admitted = 0usize;
+        'authorities: for (&authority, plan) in &cache.plans {
+            let sample_scale = planetary_sample_scale(plan.field);
+            for &patch in &plan.desired {
+                let key = PlanetarySurfacePatchKey { authority, patch, scale: sample_scale };
+                if existing_by_key.contains_key(&key)
+                    || published_keys.contains(&key)
+                    || inflight_keys.contains(&key)
+                { continue; }
+                if inflight_keys.len() >= MAX_PATCH_BUILDS_IN_FLIGHT
+                    || admitted >= MAX_PATCH_BUILD_ADMISSIONS_PER_FRAME
+                { break 'authorities; }
+
+                let field = plan.field;
+                let task = pool.spawn(async move {
+                    build_planetary_surface_patch(field, patch, sample_scale)
+                });
+                commands.spawn((
+                    Name::new("Planetary Surface Patch Build"),
+                    PlanetarySurfaceBuildTask { authority, patch, field, sample_scale, task },
+                ));
+                inflight_keys.insert(key);
+                admitted += 1;
+            }
+        }
+    }
+
+    {
+        let _span = bevy::log::info_span!("planetary_surface.retire").entered();
+        for (&authority, plan) in &cache.plans {
+            let sample_scale = planetary_sample_scale(plan.field);
+            let replacements_ready = plan.desired.iter().all(|&patch| {
+                let key = PlanetarySurfacePatchKey { authority, patch, scale: sample_scale };
+                existing_by_key.contains_key(&key) || published_keys.contains(&key)
+            });
+            if !replacements_ready { continue; }
+            for (&key, &entity) in &existing_by_key {
+                if key.authority != authority { continue; }
+                if key.scale != sample_scale || !plan.desired.contains(&key.patch) {
                     commands.entity(entity).despawn();
                 }
             }
-            cache.signatures.insert(authority, signature);
         }
-    }
-
-    // Presentation lifetime is downstream and deliberately not linked-spawn
-    // owned by semantic authority, so retire orphaned regional projections here.
-    for (entity, realization) in &existing {
-        if !live_authorities.contains(&realization.authority()) {
-            commands.entity(entity).despawn();
+        for (&key, &entity) in &existing_by_key {
+            if !live_authorities.contains(&key.authority) {
+                commands.entity(entity).despawn();
+            }
         }
+        cache.plans.retain(|authority, _| live_authorities.contains(authority));
     }
-    cache
-        .signatures
-        .retain(|authority, _| live_authorities.contains(authority));
 }
 
 pub(super) fn sync_planetary_surface_projection_state(

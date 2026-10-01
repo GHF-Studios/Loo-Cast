@@ -11,7 +11,7 @@ use bevy::{
 };
 
 use crate::{
-    spatial::{SpatialScale, UsfPosition, UsfSemanticFrame},
+    spatial::SpatialScale,
     voxel::CelestialVoxelField,
 };
 
@@ -25,8 +25,6 @@ pub(super) const PATCH_GRID_RESOLUTION: u32 = 8;
 /// level and therefore does not couple representation refinement to USF Scale.
 pub(super) fn build_planetary_surface_patch(
     field: CelestialVoxelField,
-    body_origin: UsfPosition,
-    body_frame: UsfSemanticFrame,
     patch: PlanetarySurfacePatchId,
     sample_scale: SpatialScale,
 ) -> Option<Mesh> {
@@ -41,13 +39,8 @@ pub(super) fn build_planetary_surface_patch(
         for x in 0..=PATCH_GRID_RESOLUTION {
             let u = x as f32 / PATCH_GRID_RESOLUTION as f32;
             let direction = patch.direction_at(u, v);
-            let position = sample_patch_vertex_native(
-                field,
-                body_origin,
-                body_frame,
-                direction,
-                sample_scale,
-            )?;
+            let position =
+                sample_patch_vertex_native(field, direction, sample_scale)?;
             positions.push(position.to_array());
             normals.push(direction.to_array());
             uvs.push([u, v]);
@@ -80,26 +73,11 @@ pub(super) fn build_planetary_surface_patch(
 
 pub(super) fn sample_patch_vertex_native(
     field: CelestialVoxelField,
-    body_origin: UsfPosition,
-    body_frame: UsfSemanticFrame,
     local_direction: Vec3,
     sample_scale: SpatialScale,
 ) -> Option<Vec3> {
-    let surface = field
-        .surface_position(
-            &body_origin,
-            body_frame,
-            local_direction,
-            sample_scale,
-        )
-        .ok()?;
-    let local_metres = body_frame
-        .world_to_local_metres(
-            &body_origin,
-            &surface,
-            sample_scale,
-            f64::MAX,
-        )
+    let local_metres = field
+        .surface_local_metres(local_direction, sample_scale)
         .ok()?;
     let native = local_metres / sample_scale.metres_per_native();
     let native = Vec3::new(native.x as f32, native.y as f32, native.z as f32);
@@ -109,7 +87,10 @@ pub(super) fn sample_patch_vertex_native(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::voxel::CelestialBodyProfile;
+    use crate::{
+        spatial::{UsfPosition, UsfSemanticFrame},
+        voxel::CelestialBodyProfile,
+    };
 
     #[test]
     fn patch_vertex_is_exactly_the_shared_semantic_surface_in_body_local_space() {
@@ -125,7 +106,7 @@ mod tests {
         let direction = Vec3::new(0.41, 0.77, -0.49).normalize();
 
         let local_native =
-            sample_patch_vertex_native(field, origin, frame, direction, scale).unwrap();
+            sample_patch_vertex_native(field, direction, scale).unwrap();
         let reconstructed = frame
             .local_metres_to_world(
                 origin,

@@ -8,7 +8,6 @@ use bevy::prelude::*;
 use crate::{
     ecs::{
         UsfAuthorityPartitionOf, UsfAuthorityPartitions, UsfEntity,
-        UsfLogicalRealizationOf, UsfLogicalRealizations,
     },
     physics::gravity::RadialGravitySource,
     procedural_assets::ProceduralAssetLibrary,
@@ -180,7 +179,6 @@ pub(in crate::game::world::fixture) fn audit_world_authority(
         ),
         With<CelestialBodyAuthority>,
     >,
-    logical_realizations: Query<&UsfLogicalRealizations>,
     mut completed: Local<bool>,
 ) {
     if *completed {
