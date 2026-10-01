@@ -275,6 +275,9 @@ pub(super) struct PlanetarySurfaceBuildTask {
 #[derive(Default)]
 pub(super) struct PlanetarySurfacePlanCache {
     plans: HashMap<Entity, PlanetarySurfacePlanState>,
+    coverage_revision: u64,
+    coverage_by_authority:
+        HashMap<Entity, Vec<PlanetaryDenseCoverageGeometry>>,
 }
 
 /// Reconcile presentation patches only when body-relative observer geometry,
@@ -305,18 +308,19 @@ pub(super) fn sync_planetary_surface_realizations(
     {
         let _span = bevy::log::info_span!("planetary_surface.plan").entered();
 
-        // Capability coverage is materialization-granular. Group it once rather
-        // than rescanning the complete snapshot independently for every body.
-        let coverage_by_authority = {
+        // Capability topology usually stays stable for many frames. Rebuild the
+        // authority grouping only when the generic coverage snapshot revision
+        // actually changes.
+        if cache.coverage_revision != coverage.revision() {
             let _span =
                 bevy::log::info_span!("planetary_surface.plan.coverage_collect").entered();
-            let mut grouped =
-                HashMap::<Entity, Vec<PlanetaryDenseCoverageGeometry>>::new();
+            cache.coverage_by_authority.clear();
             for entry in coverage.iter() {
                 if !entry.roles().contains(UsfScaleRoleMask::PRESENTATION) {
                     continue;
                 }
-                grouped
+                cache
+                    .coverage_by_authority
                     .entry(entry.authority())
                     .or_default()
                     .push(PlanetaryDenseCoverageGeometry {
@@ -326,8 +330,8 @@ pub(super) fn sync_planetary_surface_realizations(
                         half_extent_native: entry.half_extent_native(),
                     });
             }
-            grouped
-        };
+            cache.coverage_revision = coverage.revision();
+        }
 
         for (authority, _name, body_origin, body_frame, field, _policy) in &authorities {
             live_authorities.insert(authority);
@@ -336,7 +340,8 @@ pub(super) fn sync_planetary_surface_realizations(
                 *body_origin, *body_frame, *field, sample_scale, view,
             ) else { continue; };
 
-            let dense_geometry = coverage_by_authority
+            let dense_geometry = cache
+                .coverage_by_authority
                 .get(&authority)
                 .cloned()
                 .unwrap_or_default();

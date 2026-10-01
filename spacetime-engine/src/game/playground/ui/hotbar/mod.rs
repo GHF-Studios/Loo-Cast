@@ -66,13 +66,16 @@ pub fn sync_hud_hotbar(
     mut views: Query<&mut ItemView>,
 ) {
     for (slot, children, mut background) in &mut slots {
-        background.0 = if menu.open {
+        let next_background = if menu.open {
             SLOT_DISABLED
         } else if slot.index == hotbar.selected {
             SLOT_SELECTED
         } else {
             SLOT_NORMAL
         };
+        if background.0 != next_background {
+            background.0 = next_background;
+        }
 
         for child in children.iter() {
             if let Ok(mut view) = views.get_mut(child) {

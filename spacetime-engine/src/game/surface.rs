@@ -168,6 +168,8 @@ fn sync_surface_contexts(
     for (transform, layer, hull, mut surface) in &mut subjects {
         *surface = SurfaceContext::default();
 
+        let _candidate_span =
+            bevy::log::info_span!("surface_context.candidate").entered();
         let Ok(position) = frame
             .origin()
             .translated_at_scale(layer.scale(), transform.translation)
@@ -207,6 +209,9 @@ fn sync_surface_contexts(
         let collision_probe_native =
             layer.scale().metres_to_native_f32(collision_probe_metres as f32);
 
+        drop(_candidate_span);
+        let _coverage_span =
+            bevy::log::info_span!("surface_context.coverage").entered();
         let collision_ready = coverage.has_near_for_authority(
             candidate.body,
             layer.scale(),

@@ -1,5 +1,7 @@
 //! Reconciles voxel runtime manifestations into the generic capability lifecycle.
 
+use std::collections::HashMap;
+
 use bevy::prelude::*;
 
 use crate::{
@@ -21,6 +23,22 @@ use super::super::{
     MATERIALIZATION_CHUNK_SIZE, VoxelEditingDisabled, VoxelWorld,
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct CapabilityWorldSignature {
+    materializations: u64,
+    streaming: Option<u64>,
+    collision_disabled: bool,
+    editing_disabled: bool,
+    scale: crate::spatial::SpatialScale,
+    logical: Option<Entity>,
+}
+
+#[derive(Default)]
+pub(in crate::voxel) struct CapabilitySyncCache {
+    initialized: bool,
+    worlds: HashMap<Entity, CapabilityWorldSignature>,
+}
+
 pub(in crate::voxel) fn sync_capability_realizations(
     config: Res<EngineConfig>,
     realization_demand: Res<VoxelRealizationDemandSnapshot>,
@@ -41,7 +59,46 @@ pub(in crate::voxel) fn sync_capability_realizations(
         &VoxelMaterializationRuntime,
         Option<&mut UsfCapabilityRealization>,
     )>,
+    mut cache: Local<CapabilitySyncCache>,
 ) {
+    let mut world_signatures =
+        HashMap::<Entity, CapabilityWorldSignature>::with_capacity(worlds.iter().len());
+    for (
+        world_entity,
+        world,
+        layer,
+        logical_realization,
+        streaming,
+        collision_disabled,
+        editing_disabled,
+    ) in &worlds
+    {
+        world_signatures.insert(
+            world_entity,
+            CapabilityWorldSignature {
+                materializations: world.materializations().capability_revision(),
+                streaming: streaming.map(VoxelStreaming::collision_policy_revision),
+                collision_disabled: collision_disabled.is_some(),
+                editing_disabled: editing_disabled.is_some(),
+                scale: layer.scale(),
+                logical: logical_realization.map(|logical| logical.0),
+            },
+        );
+    }
+
+    if cache.initialized
+        && !config.is_changed()
+        && !realization_demand.is_changed()
+        && !collision_registry.is_changed()
+        && cache.worlds == world_signatures
+    {
+        return;
+    }
+
+    cache.initialized = true;
+    cache.worlds = world_signatures;
+
+    let _span = bevy::log::info_span!("voxel_capability.reconcile_changed").entered();
     let half_extent = Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32 * 0.5);
     let interaction_padding = config
         .voxel

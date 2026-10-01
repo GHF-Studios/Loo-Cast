@@ -36,6 +36,16 @@ pub use spacetime_engine_macros::{Inspect, conflict};
 /// Engine-owned implementation vocabulary rather than a universal Vapor ABI.
 pub type EngineApp = bevy::prelude::App;
 
+/// Current Loo-Cast scenes have very few clusterable lights but still paid
+/// Bevy 0.19's multi-pass GPU clustering preparation every frame. Prefer the
+/// supported CPU clustering path until scene light cardinality justifies the
+/// GPU path again.
+fn configure_sparse_scene_clustering(
+    mut settings: bevy::prelude::ResMut<bevy::light::cluster::GlobalClusterSettings>,
+) {
+    settings.gpu_clustering = None;
+}
+
 /// Run one statically composed Spacetime Engine game.
 ///
 /// Engine infrastructure is installed first, then the selected Game is allowed
@@ -62,6 +72,10 @@ pub fn run(install_game: impl FnOnce(&mut EngineApp)) {
         ));
 
     install_game(&mut app);
+
+    // `PbrPlugin::finish` installs GlobalClusterSettings after plugin build;
+    // Startup is deliberately late enough to override that default.
+    app.add_systems(Startup, configure_sparse_scene_clustering);
 
     app.run();
 }

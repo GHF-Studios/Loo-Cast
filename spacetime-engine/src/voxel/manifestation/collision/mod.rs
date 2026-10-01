@@ -15,7 +15,7 @@ use bevy::prelude::*;
 
 use crate::{
     config::EngineConfig,
-    spatial::{UsfScaleLayer, UsfScaleRoleMask, UsfSpatialFrame},
+    spatial::{SpatialScale, UsfScaleLayer, UsfScaleRoleMask, UsfSpatialFrame},
 };
 
 use super::super::{
@@ -49,6 +49,21 @@ struct VoxelCollisionAggregateState {
 pub(in crate::voxel) struct VoxelCollisionAggregateRegistry {
     groups: HashMap<VoxelCollisionAggregateKey, VoxelCollisionAggregateState>,
     published_members: HashMap<(Entity, VoxelMaterializationKey), u64>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct VoxelCollisionWorldRevision {
+    materializations: u64,
+    streaming: u64,
+    collision_disabled: bool,
+    scale: SpatialScale,
+}
+
+#[derive(Default)]
+pub(in crate::voxel) struct VoxelCollisionReconcileCache {
+    initialized: bool,
+    interaction_padding_bits: u32,
+    worlds: HashMap<Entity, VoxelCollisionWorldRevision>,
 }
 
 impl VoxelCollisionAggregateRegistry {
@@ -219,12 +234,41 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
             Vec<(VoxelMaterializationKey, u64)>,
         >,
     >,
+    mut cache: Local<VoxelCollisionReconcileCache>,
 ) {
     let _span = bevy::log::info_span!("voxel_collision.aggregate_reconcile").entered();
 
-    desired.clear();
     let interaction_padding =
         config.voxel.manifestation.physics_interaction_radius_native.max(0.0);
+    let interaction_padding_bits = interaction_padding.to_bits();
+
+    let mut world_revisions =
+        HashMap::<Entity, VoxelCollisionWorldRevision>::with_capacity(worlds.iter().len());
+    for (world_entity, world, layer, streaming, collision_disabled) in &worlds {
+        world_revisions.insert(
+            world_entity,
+            VoxelCollisionWorldRevision {
+                materializations: world.materializations().capability_revision(),
+                streaming: streaming.collision_policy_revision(),
+                collision_disabled: collision_disabled.is_some(),
+                scale: layer.scale(),
+            },
+        );
+    }
+
+    if cache.initialized
+        && cache.interaction_padding_bits == interaction_padding_bits
+        && !realization_demand.is_changed()
+        && cache.worlds == world_revisions
+    {
+        return;
+    }
+
+    cache.initialized = true;
+    cache.interaction_padding_bits = interaction_padding_bits;
+    cache.worlds = world_revisions;
+
+    desired.clear();
 
     {
         let _span = bevy::log::info_span!("voxel_collision.aggregate_collect").entered();

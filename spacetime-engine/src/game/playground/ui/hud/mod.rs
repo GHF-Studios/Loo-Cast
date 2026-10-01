@@ -145,35 +145,52 @@ fn update_crosshair_visibility(
     menu: Res<CreativeMenuState>,
     mut crosshair: Single<&mut Node, With<Crosshair>>,
 ) {
-    crosshair.display = if menu.open { Display::None } else { Display::Flex };
+    let next = if menu.open { Display::None } else { Display::Flex };
+    if crosshair.display != next {
+        crosshair.display = next;
+    }
 }
 
 fn update_fps_counter(
+    time: Res<Time>,
     diagnostics: Res<RuntimeDiagnostics>,
     roots: Query<&Children, With<FpsCounter>>,
     mut texts: Query<(&mut Text, &mut TextColor)>,
+    mut next_update: Local<f64>,
 ) {
+    let now = time.elapsed().as_secs_f64();
+    if now < *next_update {
+        return;
+    }
+    *next_update = now + 0.25;
     let Some(children) = roots.iter().next() else { return; };
     let Some(child) = children.iter().next() else { return; };
     let Ok((mut text, mut color)) = texts.get_mut(child) else { return; };
 
     let fps = diagnostics.frame.fps.unwrap_or(0.0);
     let ms = diagnostics.frame.frame_time_ms.unwrap_or(0.0);
-    text.0 = if fps > 0.0 {
+    let next_text = if fps > 0.0 {
         format!("{fps:>5.0} fps  {ms:>5.1} ms")
     } else {
         "-- fps".to_string()
     };
-    color.0 = if fps >= 60.0 {
+    let next_color = if fps >= 60.0 {
         Color::srgb(0.72, 0.92, 0.58)
     } else if fps >= 30.0 {
         Color::srgb(0.96, 0.82, 0.42)
     } else {
         Color::srgb(1.0, 0.48, 0.42)
     };
+    if text.0 != next_text {
+        text.0 = next_text;
+    }
+    if color.0 != next_color {
+        color.0 = next_color;
+    }
 }
 
 fn update_player_status(
+    time: Res<Time>,
     ownership: UsfOwnershipQuery,
     player: Single<
         (
@@ -189,7 +206,14 @@ fn update_player_status(
     health: Query<&Health>,
     mut roots: Query<(&Children, &mut Node), With<PlayerStatus>>,
     mut texts: Query<&mut Text>,
+    mut next_update: Local<f64>,
 ) {
+    let now = time.elapsed().as_secs_f64();
+    if now < *next_update {
+        return;
+    }
+    *next_update = now + 0.10;
+
     let (realization, locomotion, motion, surface, ground) = player.into_inner();
     let semantic_entity = ownership.semantic_of(realization);
 
@@ -198,10 +222,14 @@ fn update_player_status(
     };
 
     if locomotion.kernel() != MotionKernel::Character {
-        root.display = Display::None;
+        if root.display != Display::None {
+            root.display = Display::None;
+        }
         return;
     }
-    root.display = Display::Flex;
+    if root.display != Display::Flex {
+        root.display = Display::Flex;
+    }
 
     let Some(child) = children.iter().next() else {
         return;
@@ -229,10 +257,13 @@ fn update_player_status(
     let contact = if ground.is_grounded() { "GROUNDED" } else { "AIRBORNE" };
     let surface_state = if surface.collision_ready() { "SOLID" } else { "STREAMING" };
 
-    text.0 = format!(
+    let next = format!(
         "HEALTH {health}\nON FOOT • {contact}\n{body} • AGL {agl}\nSPD {} • SURFACE {surface_state}",
         format_hud_speed(motion.speed_metres_per_second()),
     );
+    if text.0 != next {
+        text.0 = next;
+    }
 }
 
 fn format_hud_speed(value: f64) -> String {
@@ -284,10 +315,13 @@ fn update_context_actions(
     mut text: Single<&mut Text, With<ContextActionText>>,
 ) {
     if menu.open {
-        text.0 = format!(
+        let next = format!(
             "CREATIVE\n{:<10}Close menu",
             bindings.label(PlayerAction::ToggleCreativeMenu),
         );
+        if text.0 != next {
+            text.0 = next;
+        }
         return;
     }
 
@@ -406,5 +440,8 @@ fn update_context_actions(
         lines.truncate(MAX_LINES);
     }
 
-    text.0 = lines.join("\n");
+    let next = lines.join("\n");
+    if text.0 != next {
+        text.0 = next;
+    }
 }

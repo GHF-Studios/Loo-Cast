@@ -29,6 +29,7 @@ pub(super) use generation::{
 pub struct VoxelStreaming {
     load_budget_per_frame: usize,
     residency_revision: u64,
+    policy_revision: u64,
     demand_key: Vec<VoxelDemandPlanKey>,
     pending_desired: VecDeque<DemandedChunk>,
     /// Latest desired address -> capability-role intent.
@@ -49,6 +50,7 @@ impl VoxelStreaming {
         Self {
             load_budget_per_frame: load_budget_per_frame.max(1),
             residency_revision: 0,
+            policy_revision: 0,
             demand_key: Vec::new(),
             pending_desired: VecDeque::new(),
             cached_desired_roles: HashMap::new(),
@@ -95,6 +97,7 @@ impl VoxelStreaming {
         }
 
         self.refresh_effective_desired();
+        self.policy_revision = self.policy_revision.wrapping_add(1).max(1);
     }
 
     fn refresh_effective_desired(&mut self) {
@@ -162,7 +165,12 @@ impl VoxelStreaming {
             return false;
         }
         self.refresh_effective_desired();
+        self.policy_revision = self.policy_revision.wrapping_add(1).max(1);
         true
+    }
+
+    pub(in crate::voxel) const fn collision_policy_revision(&self) -> u64 {
+        self.policy_revision
     }
 
     pub(in crate::voxel) fn retains_committed_role_during_migration(

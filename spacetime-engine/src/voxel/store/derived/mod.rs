@@ -19,6 +19,7 @@ impl VoxelMaterializationStore {
         }
 
         if changed && active {
+            self.bump_capability_revision();
             self.mark_derived_dirty(key);
         }
         changed
@@ -130,6 +131,7 @@ impl VoxelMaterializationStore {
         }
 
         if published {
+            self.bump_capability_revision();
             self.mark_render_dirty(address);
         } else if stale_active {
             self.mark_derived_dirty(address);

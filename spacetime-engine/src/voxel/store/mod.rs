@@ -72,6 +72,7 @@ impl VoxelMaterializationEntry {
 pub(super) struct VoxelMaterializationStore {
     entries: HashMap<VoxelMaterializationKey, VoxelMaterializationEntry>,
     next_generation_token: u64,
+    capability_revision: u64,
     dirty_derived: VecDeque<VoxelMaterializationKey>,
     dirty_derived_set: HashSet<VoxelMaterializationKey>,
     dirty_render: VecDeque<VoxelMaterializationKey>,
@@ -88,6 +89,14 @@ mod render;
 mod residency;
 
 impl VoxelMaterializationStore {
+    fn bump_capability_revision(&mut self) {
+        self.capability_revision = self.capability_revision.wrapping_add(1).max(1);
+    }
+
+    pub(in crate::voxel) const fn capability_revision(&self) -> u64 {
+        self.capability_revision
+    }
+
     fn mark_derived_dirty(&mut self, key: VoxelMaterializationKey) {
         if self.dirty_derived_set.insert(key) {
             self.dirty_derived.push_back(key);

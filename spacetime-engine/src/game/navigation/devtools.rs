@@ -258,12 +258,6 @@ pub(super) fn record_navigation_flight(
     }
 
     let (transform, layer, approach, profile, locomotion) = subject.into_inner();
-    let Ok(canonical_position) = frame
-        .origin()
-        .translated_at_scale(layer.scale(), transform.translation)
-    else {
-        return;
-    };
 
     let interaction_target = if approach.active {
         approach.interaction_target_scale
@@ -274,6 +268,35 @@ pub(super) fn record_navigation_flight(
         approach.realization_target_scale
     } else {
         layer.scale()
+    };
+
+    // The recorder is explicitly low-frequency diagnostics. Do not perform
+    // canonical projection plus three coverage queries every frame only to
+    // discard the result inside `record()`.
+    let elapsed_seconds = time.elapsed().as_secs_f64();
+    let regime = format!("{:?}", locomotion.regime());
+    let kernel = format!("{:?}", locomotion.kernel());
+    let trigger_changed = recorder.samples.back().is_none_or(|previous| {
+        previous.current_interaction != interaction.scale()
+            || previous.requested_interaction != interaction.requested_scale()
+            || previous.interaction_target != interaction_target
+            || previous.realization_target != realization_target
+            || previous.view_scale != view.scale()
+            || previous.regime != regime
+            || previous.kernel != kernel
+    });
+    let periodic =
+        elapsed_seconds - recorder.last_sample_seconds >= SAMPLE_INTERVAL_SECONDS;
+    if !trigger_changed && !periodic {
+        return;
+    }
+
+    let _span = bevy::log::info_span!("navigation_flight.sample").entered();
+    let Ok(canonical_position) = frame
+        .origin()
+        .translated_at_scale(layer.scale(), transform.translation)
+    else {
+        return;
     };
 
     let coverage_gate = audit.primary_body.map(|authority| {
@@ -304,7 +327,7 @@ pub(super) fn record_navigation_flight(
     });
 
     recorder.record(NavigationTraceSample {
-        elapsed_seconds: time.elapsed().as_secs_f64(),
+        elapsed_seconds,
         canonical_position,
         subject_scale: layer.scale(),
         current_interaction: interaction.scale(),
@@ -316,8 +339,8 @@ pub(super) fn record_navigation_flight(
         view_scale: view.scale(),
         clearance_metres: audit.primary_clearance_metres,
         coverage_gate,
-        regime: format!("{:?}", locomotion.regime()),
-        kernel: format!("{:?}", locomotion.kernel()),
+        regime,
+        kernel,
     });
 }
 

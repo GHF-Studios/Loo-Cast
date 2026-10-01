@@ -8,6 +8,8 @@
 //! or retires. It is never cleared speculatively before capability planners read
 //! it.
 
+use std::collections::HashMap;
+
 use bevy::prelude::*;
 
 use super::{SpatialScale, UsfChunkAddress, UsfPosition, UsfSpatialSet};
@@ -190,6 +192,7 @@ impl UsfRefinementAperture {
 pub struct UsfScaleCoverageSnapshot {
     revision: u64,
     entries: Vec<UsfScaleCoverage>,
+    by_authority_scale: HashMap<(Entity, SpatialScale), Vec<usize>>,
 }
 
 impl UsfScaleCoverageSnapshot {
@@ -233,11 +236,13 @@ impl UsfScaleCoverageSnapshot {
         required: UsfScaleRoleMask,
         radius_native: f32,
     ) -> bool {
-        self.entries.iter().copied().any(|coverage| {
-            coverage.authority() == authority
-                && coverage.scale() == scale
-                && coverage.is_within(point, required, radius_native)
-        })
+        self.by_authority_scale
+            .get(&(authority, scale))
+            .into_iter()
+            .flatten()
+            .copied()
+            .map(|index| self.entries[index])
+            .any(|coverage| coverage.is_within(point, required, radius_native))
     }
 
     /// Returns whether one authority has realized `required` capability inside
@@ -256,24 +261,34 @@ impl UsfScaleCoverageSnapshot {
     ) -> bool {
         let scale = context.scale();
 
-        self.entries.iter().copied().any(|coverage| {
-            if coverage.authority() != authority
-                || coverage.scale() != scale
-                || !coverage.roles().contains(required)
-            {
-                return false;
-            }
-
-            UsfChunkAddress::containing(coverage.center(), scale)
-                .is_ok_and(|coverage_context| coverage_context == context)
-        })
+        self.by_authority_scale
+            .get(&(authority, scale))
+            .into_iter()
+            .flatten()
+            .copied()
+            .map(|index| self.entries[index])
+            .any(|coverage| {
+                coverage.roles().contains(required)
+                    && UsfChunkAddress::containing(coverage.center(), scale)
+                        .is_ok_and(|coverage_context| coverage_context == context)
+            })
     }
 
     fn reconcile(&mut self, mut next: Vec<UsfScaleCoverage>) {
         next.sort_by_key(|coverage| coverage.realization().to_bits());
 
         if self.entries != next {
+            let mut by_authority_scale =
+                HashMap::<(Entity, SpatialScale), Vec<usize>>::new();
+            for (index, coverage) in next.iter().copied().enumerate() {
+                by_authority_scale
+                    .entry((coverage.authority(), coverage.scale()))
+                    .or_default()
+                    .push(index);
+            }
+
             self.entries = next;
+            self.by_authority_scale = by_authority_scale;
             self.revision = self.revision.wrapping_add(1).max(1);
         }
     }
@@ -289,8 +304,17 @@ pub enum UsfCapabilitySet {
 
 fn reconcile_capability_coverage(
     realizations: Query<(Entity, &UsfCapabilityRealization)>,
+    changed: Query<(), Changed<UsfCapabilityRealization>>,
+    mut removed: RemovedComponents<UsfCapabilityRealization>,
     mut snapshot: ResMut<UsfScaleCoverageSnapshot>,
 ) {
+    let changed_any = changed.iter().next().is_some();
+    let removed_any = removed.read().next().is_some();
+    if !changed_any && !removed_any {
+        return;
+    }
+
+    let _span = bevy::log::info_span!("usf_capability.rebuild_snapshot").entered();
     let mut next = Vec::with_capacity(realizations.iter().len());
     for (entity, realization) in &realizations {
         if let Some(coverage) = realization.coverage(entity) {

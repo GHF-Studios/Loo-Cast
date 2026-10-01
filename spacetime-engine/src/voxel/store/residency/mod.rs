@@ -48,6 +48,7 @@ impl VoxelMaterializationStore {
         };
 
         if render_dirty {
+            self.bump_capability_revision();
             self.mark_render_dirty(address);
         }
         if derived_dirty {
@@ -80,6 +81,7 @@ impl VoxelMaterializationStore {
             self.dirty_derived_set.remove(&address);
             self.mark_render_dirty(address);
         } else if became_inactive {
+            self.bump_capability_revision();
             self.inactive_lru.push_back(address);
             self.mark_render_dirty(address);
         }
