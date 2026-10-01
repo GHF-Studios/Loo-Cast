@@ -7,10 +7,7 @@
 
 use std::collections::HashSet;
 
-use bevy::{
-    prelude::*,
-    tasks::{Task, futures::check_ready},
-};
+use bevy::prelude::*;
 
 use crate::spatial::{SPATIAL_SCALE_MAX, SpatialScale, UsfPosition, UsfScaleLayer};
 
@@ -20,7 +17,7 @@ use super::{
     streaming::VoxelStreamingTelemetry,
     mesh::{self, VoxelSurface},
     store::VoxelSurfaceCache,
-    worker::{VoxelWorkerPool, VoxelWorkerTask},
+    worker::{VoxelWorkerLane, VoxelWorkerPool, VoxelWorkerTask, VoxelWorkerTicket},
 };
 
 const DERIVED_PUBLISH_BUDGET_PER_FRAME: usize = 8;
@@ -37,7 +34,7 @@ pub(super) struct VoxelDerivedTask {
     world: Entity,
     key: VoxelMaterializationKey,
     revision: u64,
-    task: Task<VoxelDerivedOutput>,
+    task: VoxelWorkerTicket<VoxelDerivedOutput>,
 }
 
 /// Polls completed worker jobs and returns derived caches to the materialization
@@ -56,7 +53,7 @@ pub(super) fn publish_completed_chunk_builds(
             break;
         }
 
-        let Some(output) = check_ready(&mut build.task) else {
+        let Some(output) = build.task.try_take() else {
             continue;
         };
 
@@ -125,12 +122,11 @@ pub(super) fn retire_stale_chunk_builds(
 /// cached terrain does no per-frame geometry scheduling work.
 pub(super) fn queue_dirty_chunk_builds(
     mut commands: Commands,
-    workers: Res<VoxelWorkerPool>,
+    mut workers: ResMut<VoxelWorkerPool>,
     mut worlds: Query<(Entity, &mut VoxelWorld, &UsfScaleLayer)>,
-    worker_tasks: Query<(), With<VoxelWorkerTask>>,
     mut telemetry: ResMut<VoxelStreamingTelemetry>,
 ) {
-    let task_budget = workers.available_slots(worker_tasks.iter().count());
+    let task_budget = workers.available_slots(VoxelWorkerLane::Derivation);
     let mut started = 0;
     let mut empty_published = 0;
 
@@ -177,13 +173,18 @@ pub(super) fn queue_dirty_chunk_builds(
             };
 
             let debug_color = debug_chunk_color(address, layer.scale());
-            let task = workers.pool().spawn(async move {
+            let Some(task) = workers.try_submit(VoxelWorkerLane::Derivation, move || {
                 let surface = mesh::extract_chunk_surface(&snapshot);
                 VoxelDerivedOutput {
                     surface,
                     debug_color,
                 }
-            });
+            }) else {
+                world
+                    .materializations_mut()
+                    .cancel_surface_build(key, revision);
+                break;
+            };
 
             telemetry.derived_started();
             commands.spawn((

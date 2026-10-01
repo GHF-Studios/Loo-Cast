@@ -141,6 +141,11 @@ pub struct ViewCameraProfile {
     orientation_policy: ViewOrientationPolicy,
     pub standing_eye_offset_metres: Vec3,
     pub crouched_eye_offset_metres: Vec3,
+    /// Near clipping distance for the local physical camera, authored in metres.
+    ///
+    /// This converts only at the active Scale-Slice numerical boundary so a
+    /// scale transition cannot turn a millimetre near plane into kilometres.
+    pub near_clip_metres: f32,
     pub third_person: ThirdPersonCamera,
 }
 
@@ -151,6 +156,7 @@ impl ViewCameraProfile {
             orientation_policy: ViewOrientationPolicy::ControllerLook,
             standing_eye_offset_metres: Vec3::Y * CharacterDimensions::CENTER_TO_EYE,
             crouched_eye_offset_metres: Vec3::Y * CharacterDimensions::CROUCH_CENTER_TO_EYE,
+            near_clip_metres: 0.001,
             third_person: ThirdPersonCamera::default(),
         }
     }
@@ -176,6 +182,7 @@ impl ViewCameraProfile {
             orientation_policy: ViewOrientationPolicy::SubjectAttitude,
             standing_eye_offset_metres: Vec3::ZERO,
             crouched_eye_offset_metres: Vec3::ZERO,
+            near_clip_metres: 0.001,
             third_person,
         }
     }
@@ -213,6 +220,15 @@ impl ViewCameraProfile {
         } else {
             self.standing_eye_offset_metres
         }
+    }
+
+    fn near_clip_native(&self, scale: crate::spatial::SpatialScale) -> f32 {
+        let metres = if self.near_clip_metres.is_finite() && self.near_clip_metres > 0.0 {
+            self.near_clip_metres
+        } else {
+            0.001
+        };
+        scale.metres_to_native_f32(metres).max(f32::MIN_POSITIVE)
     }
 
     /// Resolves authored physical eye geometry into the current bounded

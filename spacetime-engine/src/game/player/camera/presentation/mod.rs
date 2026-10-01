@@ -11,6 +11,19 @@ use crate::{
 
 use super::*;
 
+/// Contextual USF projection uses a bounded presentation domain, not the active
+/// physical Scale Slice. Do not inherit subject-metre clip conversion here.
+const USF_PROJECTION_NEAR_UNITS: f32 = 0.001;
+const USF_PROJECTION_FAR_UNITS: f32 = 100_000.0;
+
+fn apply_usf_projection_clip_domain(projection: &mut Projection) {
+    let Projection::Perspective(perspective) = projection else {
+        return;
+    };
+    perspective.near = USF_PROJECTION_NEAR_UNITS;
+    perspective.far = USF_PROJECTION_FAR_UNITS;
+}
+
 /// Applies the preferred mode only when the viewed manifestation changes.
 ///
 /// User F5 intent is persistent while viewing one subject, but a control/view
@@ -158,6 +171,7 @@ pub(in crate::game::player) fn sync_usf_projection_camera(
         far_transform.translation = target.translation;
         far_transform.rotation = local_transform.rotation;
         *far_projection = local_projection.clone();
+        apply_usf_projection_clip_domain(&mut far_projection);
         far_camera.is_active = local_camera.is_active;
         return;
     }
@@ -169,6 +183,7 @@ pub(in crate::game::player) fn sync_usf_projection_camera(
                 .map_or(target.translation, |(_, runtime)| runtime);
             far_transform.rotation = local_transform.rotation;
             *far_projection = local_projection.clone();
+        apply_usf_projection_clip_domain(&mut far_projection);
             far_camera.is_active = local_camera.is_active;
         }
         FreecamProjectionPolicy::Frozen => {
@@ -223,14 +238,21 @@ pub(in crate::game::player) fn sync_view_subject_presentations(
 /// Bevy stores perspective FOV vertically. Keep the requested gameplay FOV
 /// horizontal and derive the vertical value from the logical game-view aspect.
 pub(in crate::game::player) fn sync_player_fov(
+    target: Single<(&ViewCameraProfile, &UsfScaleLayer), With<LocalViewTarget>>,
     camera: Single<(&PlayerCamera, &Camera, &mut Projection)>,
 ) {
+    let (profile, layer) = target.into_inner();
     let (settings, camera, mut projection) = camera.into_inner();
     let Projection::Perspective(perspective) = projection.as_mut() else {
         return;
     };
 
-    perspective.near = 0.001;
+    // This camera is expressed in active interaction-chart units. The old raw
+    // 0.001 meant 1 mm at S0, 1 m at S+3, 10 m at S+4 and 1 km at S+6.
+    perspective.near = profile.near_clip_native(layer.scale());
+
+    // Bevy perspective depth is infinite reverse-Z; keep `far` as the bounded
+    // runtime-chart visibility/culling horizon instead of semantic metres.
     perspective.far = 100_000.0;
 
     let Some(size) = camera

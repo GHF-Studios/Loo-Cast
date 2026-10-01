@@ -13,7 +13,6 @@ use std::{collections::{HashMap, HashSet}, sync::Arc};
 use bevy::{
     math::DVec3,
     prelude::*,
-    tasks::{AsyncComputeTaskPool, Task, futures::check_ready},
 };
 
 use crate::{
@@ -25,7 +24,10 @@ use crate::{
     },
 };
 
-use super::{CelestialVoxelField, CelestialVoxelRealizationPolicy};
+use super::{
+    CelestialVoxelField, CelestialVoxelRealizationPolicy,
+    worker::{VoxelWorkerLane, VoxelWorkerPool, VoxelWorkerTask, VoxelWorkerTicket},
+};
 
 mod mesh;
 use mesh::{PATCH_GRID_RESOLUTION, build_planetary_surface_patch};
@@ -269,7 +271,7 @@ pub(super) struct PlanetarySurfaceBuildTask {
     patch: PlanetarySurfacePatchId,
     field: CelestialVoxelField,
     sample_scale: SpatialScale,
-    task: Task<Option<Mesh>>,
+    task: VoxelWorkerTicket<Option<Mesh>>,
 }
 
 #[derive(Default)]
@@ -290,6 +292,7 @@ pub(super) fn sync_planetary_surface_realizations(
     mut meshes: ResMut<Assets<Mesh>>,
     views: Res<UsfViewDemandSnapshot>,
     coverage: Res<UsfScaleCoverageSnapshot>,
+    mut workers: ResMut<VoxelWorkerPool>,
     authorities: Query<(
         Entity,
         Option<&Name>,
@@ -499,7 +502,7 @@ pub(super) fn sync_planetary_surface_realizations(
             }
 
             if published < MAX_PATCH_PUBLICATIONS_PER_FRAME {
-                if let Some(result) = check_ready(&mut build.task) {
+                if let Some(result) = build.task.try_take() {
                     commands.entity(task_entity).despawn();
                     let Some(mesh) = result else { continue; };
                     let Ok((_, name, body_origin, body_frame, current_field, policy)) =
@@ -541,8 +544,8 @@ pub(super) fn sync_planetary_surface_realizations(
 
     {
         let _span = bevy::log::info_span!("planetary_surface.schedule").entered();
-        let pool = AsyncComputeTaskPool::get();
         let mut admitted = 0usize;
+        let mut worker_slots = workers.available_slots(VoxelWorkerLane::PlanetarySurface);
         'authorities: for (&authority, plan) in &cache.plans {
             let sample_scale = planetary_sample_scale(plan.field);
             for &patch in &plan.desired {
@@ -551,20 +554,26 @@ pub(super) fn sync_planetary_surface_realizations(
                     || published_keys.contains(&key)
                     || inflight_keys.contains(&key)
                 { continue; }
-                if inflight_keys.len() >= MAX_PATCH_BUILDS_IN_FLIGHT
+                if worker_slots == 0
+                    || inflight_keys.len() >= MAX_PATCH_BUILDS_IN_FLIGHT
                     || admitted >= MAX_PATCH_BUILD_ADMISSIONS_PER_FRAME
                 { break 'authorities; }
 
                 let field = plan.field;
-                let task = pool.spawn(async move {
-                    build_planetary_surface_patch(field, patch, sample_scale)
-                });
+                let Some(task) = workers.try_submit(
+                    VoxelWorkerLane::PlanetarySurface,
+                    move || build_planetary_surface_patch(field, patch, sample_scale),
+                ) else {
+                    break 'authorities;
+                };
                 commands.spawn((
                     Name::new("Planetary Surface Patch Build"),
+                    VoxelWorkerTask,
                     PlanetarySurfaceBuildTask { authority, patch, field, sample_scale, task },
                 ));
                 inflight_keys.insert(key);
                 admitted += 1;
+                worker_slots -= 1;
             }
         }
     }

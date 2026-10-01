@@ -2,10 +2,7 @@
 
 use std::collections::VecDeque;
 
-use bevy::{
-    prelude::*,
-    tasks::{Task, futures::check_ready},
-};
+use bevy::prelude::*;
 
 use crate::{
     config::EngineConfig,
@@ -18,7 +15,7 @@ use super::super::{
     VoxelAuthority, VoxelChunk, VoxelFrameSnapshot, VoxelMaterializationChunkAddress,
     VoxelMaterializationKey, VoxelScaleDomain, VoxelWorld,
     generation_scope::VoxelGenerationScopeExtent,
-    worker::{VoxelWorkerPool, VoxelWorkerTask},
+    worker::{VoxelWorkerLane, VoxelWorkerPool, VoxelWorkerTask, VoxelWorkerTicket},
 };
 
 mod batching;
@@ -38,36 +35,40 @@ pub(in crate::voxel) struct VoxelGenerationTask {
     world: Entity,
     /// Unpublished addresses represented by this worker batch.
     keys: Vec<VoxelMaterializationKey>,
-    task: Option<Task<Vec<VoxelGeneratedChunk>>>,
+    task: VoxelWorkerTicket<Vec<VoxelGeneratedChunk>>,
+    received: bool,
     ready: VecDeque<VoxelGeneratedChunk>,
 }
 
 impl VoxelGenerationTask {
-    fn spawn(
+    fn submit(
         workers: &VoxelWorkerPool,
         world: Entity,
         jobs: Vec<VoxelGenerationJob>,
     ) -> Self {
         debug_assert!(!jobs.is_empty());
         let keys = jobs.iter().map(|job| job.key).collect();
-        let task = workers.pool().spawn(async move {
-            jobs.into_iter()
-                .map(|job| {
-                    let applied_edit_count = job.recipe.applied_edit_count();
-                    let chunk = job.recipe.materialize();
-                    VoxelGeneratedChunk {
-                        key: job.key,
-                        token: job.token,
-                        applied_edit_count,
-                        chunk,
-                    }
-                })
-                .collect()
-        });
+        let task = workers
+            .try_submit(VoxelWorkerLane::Generation, move || {
+                jobs.into_iter()
+                    .map(|job| {
+                        let applied_edit_count = job.recipe.applied_edit_count();
+                        let chunk = job.recipe.materialize();
+                        VoxelGeneratedChunk {
+                            key: job.key,
+                            token: job.token,
+                            applied_edit_count,
+                            chunk,
+                        }
+                    })
+                    .collect()
+            })
+            .expect("generation admission was reserved before batch submission");
         Self {
             world,
             keys,
-            task: Some(task),
+            task,
+            received: false,
             ready: VecDeque::new(),
         }
     }
@@ -90,12 +91,11 @@ pub(in crate::voxel) fn finish_chunk_generation(
             break;
         }
 
-        if generation.ready.is_empty() {
-            let completed = generation.task.as_mut().and_then(|task| check_ready(task));
-            let Some(completed) = completed else {
+        if !generation.received {
+            let Some(completed) = generation.task.try_take() else {
                 continue;
             };
-            generation.task = None;
+            generation.received = true;
             generation.ready = completed.into();
         }
 
@@ -143,7 +143,7 @@ pub(in crate::voxel) fn finish_chunk_generation(
             }
         }
 
-        if generation.task.is_none() && generation.ready.is_empty() {
+        if generation.received && generation.ready.is_empty() {
             commands.entity(task_entity).despawn();
             telemetry.generation_completed();
         }
@@ -179,7 +179,7 @@ pub(in crate::voxel) fn retire_stale_generation_tasks(
 /// cannot independently saturate the compute pool.
 pub(in crate::voxel) fn schedule_voxel_generation(
     config: Res<EngineConfig>,
-    workers: Res<VoxelWorkerPool>,
+    mut workers: ResMut<VoxelWorkerPool>,
     interaction: Res<UsfPrimaryInteractionSlice>,
     mut commands: Commands,
     mut worlds: Query<(
@@ -191,7 +191,6 @@ pub(in crate::voxel) fn schedule_voxel_generation(
     )>,
     authority_partitions: Query<&UsfAuthorityPartitionOf>,
     authorities: Query<(&UsfPosition, &UsfSemanticFrame, &VoxelAuthority, &VoxelScaleDomain)>,
-    worker_tasks: Query<(), With<VoxelWorkerTask>>,
     mut round_robin_cursor: Local<usize>,
     mut telemetry: ResMut<VoxelStreamingTelemetry>,
 ) {
@@ -202,7 +201,7 @@ pub(in crate::voxel) fn schedule_voxel_generation(
     .expect("validated engine config must produce a generation grouping extent");
 
     telemetry.worker_capacity(workers.capacity());
-    let mut generation_slots = workers.available_slots(worker_tasks.iter().count());
+    let mut generation_slots = workers.available_slots(VoxelWorkerLane::Generation);
     if generation_slots == 0 {
         return;
     }
@@ -276,7 +275,7 @@ pub(in crate::voxel) fn schedule_voxel_generation(
             commands.spawn((
                 Name::new("Voxel Generation Task"),
                 VoxelWorkerTask,
-                VoxelGenerationTask::spawn(&workers, world_entity, batch.jobs),
+                VoxelGenerationTask::submit(&workers, world_entity, batch.jobs),
             ));
         }
 
