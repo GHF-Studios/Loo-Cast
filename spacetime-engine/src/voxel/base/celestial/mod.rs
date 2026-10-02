@@ -242,7 +242,11 @@ pub fn surface_position(self, direction: Vec3) -> Result<UsfPosition, UsfPositio
     /// Negative is solid matter, positive is empty. Rocky bodies subtract a
     /// deterministic volumetric cave field from the radial outer terrain shell,
     /// allowing true tunnels/entrances/overhangs in dense realizations.
-    pub(crate) fn signed_distance_local_metres(
+        /// Stable radial outer-surface SDF in body-local SI metres.
+    ///
+    /// This is the canonical approximation used by whole-body/local surface
+    /// presentation. It deliberately excludes interior volumetric topology.
+    pub(crate) fn outer_signed_distance_local_metres(
         self,
         local_point_metres: DVec3,
     ) -> Option<f64> {
@@ -261,20 +265,38 @@ pub fn surface_position(self, direction: Vec3) -> Result<UsfPosition, UsfPositio
             return None;
         }
 
-        let surface_radius = self.semantic_surface_radius_metres(direction).ok()?;
-        let mut solid_sdf = radial - surface_radius;
+        let surface_radius =
+            self.semantic_surface_radius_metres(direction).ok()?;
+        Some(radial - surface_radius)
+    }
 
-        if self.profile == CelestialBodyProfile::Rocky {
-            let void_sdf = rocky_cave_void_signed_distance_metres(
-                local_point_metres,
-                surface_radius,
-                self.seed,
-            );
-            // Constructive subtraction: solid shell minus cave void.
-            solid_sdf = solid_sdf.max(-void_sdf);
+pub(crate) fn signed_distance_local_metres(
+        self,
+        local_point_metres: DVec3,
+    ) -> Option<f64> {
+        let outer_sdf =
+            self.outer_signed_distance_local_metres(local_point_metres)?;
+
+        if self.profile != CelestialBodyProfile::Rocky {
+            return Some(outer_sdf);
         }
 
-        Some(solid_sdf)
+        let radial = local_point_metres.length();
+        if !radial.is_finite() || radial <= f64::EPSILON {
+            return None;
+        }
+
+        // Recover the exact radial outer-surface radius already used by the
+        // baseline SDF; do not evaluate a second competing terrain surface.
+        let outer_surface_radius_metres = radial - outer_sdf;
+        let void_sdf = rocky_cave_void_signed_distance_metres(
+            local_point_metres,
+            outer_surface_radius_metres,
+            self.seed,
+        );
+
+        // Constructive subtraction: outer solid minus cave void.
+        Some(outer_sdf.max(-void_sdf))
     }
 
     pub(crate) fn volumetric_void_signed_distance_local_metres(
@@ -671,6 +693,35 @@ mod tests {
             SpatialScale::MIN,
         )
         .unwrap()
+    }
+
+    #[test]
+    fn outer_sdf_is_zero_on_canonical_surface() {
+        let body = ProceduralCelestialBody::new(
+            earth_center(),
+            UsfSemanticFrame::identity(),
+            6_371_000.0,
+            SpatialScale::ZERO,
+            SpatialScale::new(6).unwrap(),
+            SpatialScale::ZERO,
+            0x4541_5254,
+            CelestialBodyProfile::Rocky,
+        );
+
+        for direction in [
+            Vec3::Y,
+            Vec3::new(0.31, 0.83, -0.46).normalize(),
+            Vec3::new(-0.72, 0.22, 0.66).normalize(),
+        ] {
+            let surface = body.surface_local_metres(direction).unwrap();
+            let sdf = body
+                .outer_signed_distance_local_metres(surface)
+                .unwrap();
+            assert!(
+                sdf.abs() < 1.0e-5,
+                "outer SDF disagrees with canonical radial surface: {sdf}"
+            );
+        }
     }
 
     #[test]

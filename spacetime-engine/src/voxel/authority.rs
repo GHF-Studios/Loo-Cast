@@ -156,7 +156,20 @@ impl CelestialVoxelField {
         .field_sample_local_metres(local_point_metres)
     }
 
-    pub(crate) fn signed_distance_local_metres(
+        /// Stable outer-surface approximation of the canonical field.
+    pub(crate) fn outer_signed_distance_local_metres(
+        self,
+        local_point_metres: DVec3,
+    ) -> Option<f64> {
+        self.realization(
+            UsfPosition::zero(SpatialScale::MIN),
+            UsfSemanticFrame::identity(),
+            SpatialScale::ZERO,
+        )
+        .outer_signed_distance_local_metres(local_point_metres)
+    }
+
+pub(crate) fn signed_distance_local_metres(
         self,
         local_point_metres: DVec3,
     ) -> Option<f64> {

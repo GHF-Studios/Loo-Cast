@@ -769,25 +769,17 @@ fn block_intersects_semantic_surface(
     let Ok(surface) = field.surface_local_metres(direction) else {
         return false;
     };
-    let outer_radius = surface.length();
-    if !outer_radius.is_finite() {
+    let surface_radius = surface.length();
+    if !surface_radius.is_finite() {
         return false;
     }
-
-    let inner_radius = (
-        outer_radius - field.volumetric_surface_inward_support_metres()
-    )
-        .max(0.0);
 
     let half_diagonal = key.half_extent_metres().length();
     let conservative_extra =
         key.extent_metres() * 0.35 + key.spacing_metres() * 2.0;
-    let block_minimum =
-        (radial - half_diagonal - conservative_extra).max(0.0);
-    let block_maximum =
-        radial + half_diagonal + conservative_extra;
 
-    block_maximum >= inner_radius && block_minimum <= outer_radius
+    (radial - surface_radius).abs()
+        <= half_diagonal + conservative_extra
 }
 
 
@@ -998,8 +990,7 @@ fn derive_plan_input(
         .ok()?
         .length();
     let clearance = field
-        .sample_local_metres(observer_local)?
-        .signed_distance_metres()
+        .outer_signed_distance_local_metres(observer_local)?
         .abs();
     if !clearance.is_finite() || clearance > MAX_CLIPMAP_CLEARANCE_METRES {
         return None;
@@ -1292,10 +1283,12 @@ fn build_clipmap_mesh(
         // The local/intermediate realizer samples exactly the same canonical
         // volumetric field as dense physical voxels. Transvoxel uses the
         // opposite sign convention: positive density means solid.
-        let Some(sample) = field.sample_local_metres(point) else {
+        let Some(outer_sdf) =
+            field.outer_signed_distance_local_metres(point)
+        else {
             return -1.0;
         };
-        let density = -sample.signed_distance_metres();
+        let density = -outer_sdf;
         if density.is_finite() {
             density.clamp(
                 -f64::from(f32::MAX),
@@ -1961,7 +1954,7 @@ fn sync_celestial_clipmap_transforms(
 fn suppress_legacy_celestial_dense_presentation(
     interaction: Res<UsfPrimaryInteractionSlice>,
     runtimes: Query<&VoxelMaterializationRuntime>,
-    worlds: Query<&UsfScaleLayer, With<CelestialVoxelRealization>>,
+    worlds: Query<(&CelestialVoxelRealization, &UsfScaleLayer)>,
     mut presentations: Query<
         (&ChildOf, &mut Visibility),
         With<VoxelMaterializationPresentation>,
@@ -1971,23 +1964,18 @@ fn suppress_legacy_celestial_dense_presentation(
         let Ok(runtime) = runtimes.get(parent.0) else {
             continue;
         };
-        let Ok(layer) = worlds.get(runtime.world()) else {
+        let Ok((_realization, layer)) = worlds.get(runtime.world()) else {
             continue;
         };
 
-        // Celestial dense Scale-Slice worlds are not a contextual LOD
-        // stack, so only the current interaction chart may present densely.
-        //
-        // Do NOT globally hide that physical fallback merely because some
-        // clipmap cells exist for the authority. Regional presentation already
-        // performs spatial replacement using truthful committed coverage.
-        // Global authority-level suppression manufactured holes whenever a
-        // sparse/empty clipmap block settled without producing a mesh.
-        let contextual_decimal_slice =
-            layer.scale() != interaction.scale();
-
-        if contextual_decimal_slice {
+        // Decimal Scale-Slice worlds are not contextual visual LOD. Keep only
+        // the active interaction slice. Crucially, do NOT hide that dense local
+        // volumetric realization merely because the outer-surface clipmap has
+        // presentation coverage: caves/overhangs/edits still live here.
+        if layer.scale() != interaction.scale() {
             *visibility = Visibility::Hidden;
+        } else if runtime.active() {
+            *visibility = Visibility::Inherited;
         }
     }
 }
