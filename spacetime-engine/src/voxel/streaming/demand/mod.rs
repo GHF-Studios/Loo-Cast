@@ -49,6 +49,9 @@ pub(super) struct VoxelDemandPlanKey {
 
 const MOTION_LOOKAHEAD_SECONDS: f32 = 1.0;
 const MOTION_DIRECTION_QUANTIZATION: f64 = 8.0;
+/// At extreme traversal speed the demand tail is allowed to collapse to one
+/// materialization cell along the dominant movement axes.
+const MOTION_MAX_TAIL_SHRINK: f32 = 0.90;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct VoxelMotionPriorityKey {
@@ -136,6 +139,51 @@ impl VoxelDemandMotion {
             score += forward * forward * self.bias * 2.0;
         }
         score.max(0.0)
+    }
+
+    /// Actual asymmetric materialization demand offsets.
+    ///
+    /// Velocity removes trailing volume. Forward radius intentionally remains
+    /// unchanged in this tranche so faster travel reduces total demand instead
+    /// of merely moving/expanding it.
+    fn demand_offsets(self, half_extent: Vec3) -> (Vec3, Vec3) {
+        if self.bias <= f32::EPSILON
+            || self.direction_native == Vec3::ZERO
+        {
+            return (-half_extent, half_extent);
+        }
+
+        let directional_weight = self.direction_native.abs();
+        let shrink =
+            directional_weight * (self.bias * MOTION_MAX_TAIL_SHRINK);
+
+        let one_cell = Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32);
+        let tail_floor = half_extent.min(one_cell);
+        let trailing_extent =
+            (half_extent * (Vec3::ONE - shrink)).max(tail_floor);
+
+        let mut minimum = -half_extent;
+        let mut maximum = half_extent;
+
+        if self.direction_native.x > 0.0 {
+            minimum.x = -trailing_extent.x;
+        } else if self.direction_native.x < 0.0 {
+            maximum.x = trailing_extent.x;
+        }
+
+        if self.direction_native.y > 0.0 {
+            minimum.y = -trailing_extent.y;
+        } else if self.direction_native.y < 0.0 {
+            maximum.y = trailing_extent.y;
+        }
+
+        if self.direction_native.z > 0.0 {
+            minimum.z = -trailing_extent.z;
+        } else if self.direction_native.z < 0.0 {
+            maximum.z = trailing_extent.z;
+        }
+
+        (minimum, maximum)
     }
 }
 
@@ -766,17 +814,25 @@ fn demand_plan_key(
         let center_address = world.materialization_address(center_key)?;
         let local = center.relative_to(center_address.query_origin(), size + 0.01)?;
         let half = demand.half_extent_native();
+        let velocity =
+            motions.velocity_metres_per_second(demand.source());
+        let motion = VoxelDemandMotion::new(demand, velocity);
+        let (minimum_offset, maximum_offset) =
+            motion.demand_offsets(half);
+
         result.push(VoxelDemandPlanKey {
             source: demand.source(),
             center_key,
-            minimum: checked_ivec3(((local - half) / size).floor())?,
-            maximum: checked_ivec3(((local + half) / size).floor())?,
+            minimum: checked_ivec3(
+                ((local + minimum_offset) / size).floor(),
+            )?,
+            maximum: checked_ivec3(
+                ((local + maximum_offset) / size).floor(),
+            )?,
             priority: demand.priority(),
             roles: request.roles().bits(),
             view_revision: request.view_source().map_or(0, |_| view_demands.revision()),
-            motion: quantized_motion_key(
-                motions.velocity_metres_per_second(demand.source()),
-            ),
+            motion: quantized_motion_key(velocity),
         });
     }
     Ok(result)
@@ -969,8 +1025,18 @@ where
         let size = MATERIALIZATION_CHUNK_SIZE as f32;
         let local_center = center.relative_to(center_address.query_origin(), size + 0.01)?;
         let half = demand.half_extent_native();
-        let minimum = checked_ivec3(((local_center - half) / size).floor())?;
-        let maximum = checked_ivec3(((local_center + half) / size).floor())?;
+        let motion = VoxelDemandMotion::new(
+            demand,
+            motions.velocity_metres_per_second(demand.source()),
+        );
+        let (minimum_offset, maximum_offset) =
+            motion.demand_offsets(half);
+        let minimum = checked_ivec3(
+            ((local_center + minimum_offset) / size).floor(),
+        )?;
+        let maximum = checked_ivec3(
+            ((local_center + maximum_offset) / size).floor(),
+        )?;
 
         let region = VoxelRegionSpan::from_relative_bounds(center_key, minimum, maximum)?;
         let view = match request.view_source() {
@@ -981,10 +1047,6 @@ where
             None => None,
         };
         let shell = pinned_shell.filter(|(source, _)| demand.source() == *source);
-        let motion = VoxelDemandMotion::new(
-            demand,
-            motions.velocity_metres_per_second(demand.source()),
-        );
 
         if view.is_some() || shell.is_some() {
             collect_culled_region(
@@ -1064,5 +1126,72 @@ mod motion_priority_tests {
             motion.trajectory_distance_squared(relative),
             relative.length_squared()
         );
+    }
+}
+
+#[cfg(test)]
+mod motion_demand_geometry_tests {
+    use super::*;
+
+    #[test]
+    fn fast_motion_physically_shrinks_the_trailing_demand_radius() {
+        let mut ecs = World::new();
+        let source = ecs.spawn_empty().id();
+        let half = Vec3::new(100.0, 60.0, 80.0);
+        let demand = SpatialDemandScope::at_scale(
+            source,
+            SpatialScale::ZERO,
+            UsfPosition::zero(SpatialScale::ZERO),
+            half,
+            0,
+        );
+        let motion = VoxelDemandMotion::new(
+            demand,
+            DVec3::new(1_000.0, 0.0, 0.0),
+        );
+
+        let (minimum, maximum) = motion.demand_offsets(half);
+
+        assert_eq!(maximum.x, half.x);
+        assert!(
+            minimum.x > -half.x * 0.25,
+            "1 km/s should leave only a tight trailing tail, got minimum.x={}",
+            minimum.x,
+        );
+        assert_eq!(minimum.y, -half.y);
+        assert_eq!(maximum.y, half.y);
+        assert_eq!(minimum.z, -half.z);
+        assert_eq!(maximum.z, half.z);
+    }
+
+    #[test]
+    fn stationary_motion_keeps_symmetric_demand_geometry() {
+        let half = Vec3::new(100.0, 60.0, 80.0);
+        let (minimum, maximum) =
+            VoxelDemandMotion::stationary().demand_offsets(half);
+        assert_eq!(minimum, -half);
+        assert_eq!(maximum, half);
+    }
+
+    #[test]
+    fn negative_velocity_shrinks_the_positive_tail() {
+        let mut ecs = World::new();
+        let source = ecs.spawn_empty().id();
+        let half = Vec3::splat(100.0);
+        let demand = SpatialDemandScope::at_scale(
+            source,
+            SpatialScale::ZERO,
+            UsfPosition::zero(SpatialScale::ZERO),
+            half,
+            0,
+        );
+        let motion = VoxelDemandMotion::new(
+            demand,
+            DVec3::new(-1_000.0, 0.0, 0.0),
+        );
+
+        let (minimum, maximum) = motion.demand_offsets(half);
+        assert_eq!(minimum.x, -half.x);
+        assert!(maximum.x < half.x * 0.25);
     }
 }
