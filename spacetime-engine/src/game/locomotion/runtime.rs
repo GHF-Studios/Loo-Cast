@@ -613,6 +613,45 @@ fn commit_canonical_motion(
     velocity_cache.0 = motion.native_velocity(layer);
 }
 
+/// Commit a collision-resolved runtime-chart pose back into canonical USF
+/// position authority.
+///
+/// Local/detailed flight may use the runtime physics chart to resolve collision,
+/// but `Transform` is still only a projection. If the resolved runtime pose is
+/// not committed here, the next USF projection reconstructs the old semantic
+/// position and visually snaps the subject back every frame while velocity
+/// continues to change.
+fn commit_runtime_position_to_canonical(
+    frame: &UsfSpatialFrame,
+    semantic_entity: Entity,
+    layer: SpatialScale,
+    body: &Transform,
+    semantic_positions: &mut Query<&mut UsfPosition>,
+) {
+    let Ok(next) = frame
+        .origin()
+        .translated_at_scale(layer, body.translation)
+    else {
+        error!(
+            subject = ?semantic_entity,
+            scale = %layer,
+            runtime = ?body.translation,
+            "runtime flight position could not commit into canonical USF position"
+        );
+        return;
+    };
+
+    let Ok(mut semantic) = semantic_positions.get_mut(semantic_entity) else {
+        error!(
+            subject = ?semantic_entity,
+            "runtime-authoritative flight subject has no semantic USF position"
+        );
+        return;
+    };
+
+    *semantic = next;
+}
+
 fn collide_runtime_motion(
     entity: Entity,
     dt: Duration,
@@ -861,6 +900,17 @@ pub(super) fn flight_movement(
     linear_velocity.0 = projected;
     motion.set_from_native_velocity(layer.scale(), projected);
 
+    // Runtime physics owns the collision solve for this branch, but canonical
+    // USF position remains semantic authority. Persist the collision-resolved
+    // runtime pose before spatial projection can reconstruct an older position.
+    commit_runtime_position_to_canonical(
+        &frame,
+        semantic_entity,
+        layer.scale(),
+        &body,
+        &mut semantic_positions,
+    );
+
     debug_assert!(
         matches!(
             kernel,
@@ -925,6 +975,23 @@ fn smooth_log_value(current: f64, target: f64, dt: f32, response: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn runtime_chart_translation_round_trips_to_canonical_position() {
+        let frame = UsfSpatialFrame::default();
+        let layer = SpatialScale::ZERO;
+        let runtime = Vec3::new(123.0, 45.0, -67.0);
+
+        let canonical = frame
+            .origin()
+            .translated_at_scale(layer, runtime)
+            .expect("runtime pose should be canonically representable");
+        let projected = canonical
+            .relative_at_scale_bounded(frame.origin(), layer, f32::MAX)
+            .expect("canonical pose should project back to runtime chart");
+
+        assert!((projected - runtime).length() < 1.0e-5);
+    }
 
     #[test]
     fn coarse_on_foot_preserves_character_motion_semantics() {
