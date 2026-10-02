@@ -3,12 +3,13 @@
 use super::*;
 use bevy::{
     camera::visibility::RenderLayers,
+    math::DVec3,
     light::{NotShadowCaster, NotShadowReceiver},
 };
 use crate::{
     ecs::{UsfLogicalRealizationOf, UsfOwnershipQuery, UsfPresentationProjectionOf},
     spatial::{
-        UsfCapabilityRealization, UsfPrimaryInteractionSlice,
+        UsfCanonicalMotion, UsfCapabilityRealization, UsfPrimaryInteractionSlice,
         UsfScaleCoverageSnapshot, UsfScaleRoleMask,
     },
     view::USF_PRESENTATION_LAYER,
@@ -21,52 +22,49 @@ pub(in crate::spatial) fn sync_view_context(
     ownership: UsfOwnershipQuery,
     semantic_anchors: Query<(&Transform, &UsfLogicalRealizationOf), With<UsfViewAnchor>>,
     semantic_positions: Query<&UsfPosition>,
-    observer: Single<
-        (&Transform, &mut UsfViewContext),
-        With<UsfViewRenderAnchor>,
-    >,
+    semantic_motions: Query<&UsfCanonicalMotion>,
+    observer: Single<(&Transform, &mut UsfViewContext), With<UsfViewRenderAnchor>>,
 ) {
-    let (canonical, runtime_translation) = if let Some((anchor, runtime_anchor)) =
-        observation_override.current()
-    {
-        (anchor, runtime_anchor)
-    } else {
-        let mut semantic_anchors = semantic_anchors.iter();
-        let Some((runtime_anchor, realization)) = semantic_anchors.next() else {
-            return;
+    let (canonical, runtime_translation, velocity_metres_per_second) =
+        if let Some((anchor, runtime_anchor)) = observation_override.current() {
+            (anchor, runtime_anchor, DVec3::ZERO)
+        } else {
+            let mut semantic_anchors = semantic_anchors.iter();
+            let Some((runtime_anchor, realization)) = semantic_anchors.next() else {
+                return;
+            };
+            if semantic_anchors.next().is_some() {
+                error!("primary USF view has multiple semantic anchors");
+                return;
+            }
+            let Some(subject) = ownership.semantic_for(realization) else {
+                error!(partition = ?realization.0, "USF semantic view anchor has no semantic owner");
+                return;
+            };
+            let Ok(&canonical) = semantic_positions.get(subject) else {
+                error!(subject = ?subject, "USF semantic view anchor has no canonical position");
+                return;
+            };
+            let velocity = semantic_motions
+                .get(subject)
+                .map(|motion| motion.velocity_metres_per_second())
+                .unwrap_or(DVec3::ZERO);
+            (canonical, runtime_anchor.translation, velocity)
         };
-        if semantic_anchors.next().is_some() {
-            error!("primary USF view has multiple semantic anchors");
-            return;
-        }
-
-        let Some(subject) = ownership.semantic_for(realization) else {
-            error!(
-                partition = ?realization.0,
-                "USF semantic view anchor has no semantic owner"
-            );
-            return;
-        };
-        let Ok(&canonical) = semantic_positions.get(subject) else {
-            error!(
-                subject = ?subject,
-                "USF semantic view anchor has no canonical position"
-            );
-            return;
-        };
-        (canonical, runtime_anchor.translation)
-    };
 
     let (render_anchor, mut view) = observer.into_inner();
     if view.anchor != canonical
         || view.runtime_anchor != runtime_translation
         || view.render_anchor != render_anchor.translation
+        || view.velocity_metres_per_second != velocity_metres_per_second
     {
         view.anchor = canonical;
         view.runtime_anchor = runtime_translation;
         view.render_anchor = render_anchor.translation;
+        view.velocity_metres_per_second = velocity_metres_per_second;
     }
 }
+
 
 /// Projects scale-authored presentation geometry around the observer without
 /// modifying logical/physics transforms.

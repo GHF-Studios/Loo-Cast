@@ -8,6 +8,7 @@ use bevy::{
 
 use crate::{
     config::EngineConfig,
+    reconstructible::{ReconstructibleFrameBudget, ReconstructibleWorkClass},
     ecs::UsfPresentationProjectionOf,
     spatial::{
         UsfScaleFallbackPresentation, UsfScaleLayer, UsfScalePresentation, UsfSpatialFrame,
@@ -98,8 +99,15 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
     )>,
     presentations: Query<Option<&Mesh3d>, With<VoxelMaterializationPresentation>>,
     mut registry: ResMut<VoxelMaterializationRuntimeRegistry>,
+    mut frame_budget: ResMut<ReconstructibleFrameBudget>,
 ) {
     for _ in 0..config.voxel.manifestation.rebuild_budget_per_frame {
+        if frame_budget
+            .begin(ReconstructibleWorkClass::Publication)
+            .is_none()
+        {
+            break;
+        }
         let Some(key) = registry.dirty.iter().next().copied() else {
             break;
         };

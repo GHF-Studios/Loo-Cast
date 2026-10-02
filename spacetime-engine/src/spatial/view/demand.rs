@@ -10,7 +10,7 @@ use bevy::{
         primitives::{Aabb, Frustum},
         visibility::VisibilitySystems,
     },
-    math::{Affine3A, Vec3A},
+    math::{Affine3A, DVec3, Vec3A},
     prelude::*,
 };
 
@@ -80,6 +80,7 @@ impl UsfViewDemandPolicy {
 pub struct UsfViewDemand {
     source: Entity,
     anchor: UsfPosition,
+    velocity_metres_per_second: DVec3,
     finest_scale: SpatialScale,
     camera_translation: Vec3,
     camera_rotation: Quat,
@@ -93,6 +94,9 @@ pub struct UsfViewDemand {
 impl UsfViewDemand {
     pub const fn source(&self) -> Entity { self.source }
     pub const fn anchor(&self) -> UsfPosition { self.anchor }
+    pub const fn velocity_metres_per_second(&self) -> DVec3 {
+        self.velocity_metres_per_second
+    }
     pub const fn finest_scale(&self) -> SpatialScale { self.finest_scale }
 
     pub fn requests_scale(&self, scale: SpatialScale) -> bool {
@@ -264,6 +268,7 @@ fn capture_view_demand(
         entries.push(UsfViewDemand {
             source,
             anchor: *view.anchor(),
+            velocity_metres_per_second: view.velocity_metres_per_second(),
             finest_scale: view.scale(),
             camera_translation: transform.translation,
             camera_rotation: transform.rotation,
@@ -277,18 +282,26 @@ fn capture_view_demand(
 
     entries.sort_by_key(|entry| entry.source.to_bits());
 
-    let changed = entries.len() != snapshot.entries.len()
+    let observer_changed = entries.len() != snapshot.entries.len()
         || entries
             .iter()
             .zip(snapshot.entries.iter())
             .any(|(next, current)| !next.same_observer_state(current));
+    let motion_changed = entries.len() == snapshot.entries.len()
+        && entries
+            .iter()
+            .zip(snapshot.entries.iter())
+            .any(|(next, current)| {
+                next.velocity_metres_per_second != current.velocity_metres_per_second
+            });
 
-    if !changed {
+    if !observer_changed && !motion_changed {
         return;
     }
-
     snapshot.entries = entries;
-    snapshot.revision = snapshot.revision.wrapping_add(1).max(1);
+    if observer_changed {
+        snapshot.revision = snapshot.revision.wrapping_add(1).max(1);
+    }
 }
 
 pub(super) fn configure(app: &mut App) {
@@ -308,6 +321,7 @@ mod tests {
         UsfViewDemand {
             source: Entity::PLACEHOLDER,
             anchor: UsfPosition::zero(SpatialScale::MIN),
+            velocity_metres_per_second: DVec3::ZERO,
             finest_scale,
             camera_translation: Vec3::ZERO,
             camera_rotation: Quat::IDENTITY,

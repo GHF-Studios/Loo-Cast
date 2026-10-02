@@ -15,6 +15,7 @@ mod motion;
 mod semantic_frame;
 mod navigation;
 mod refinement;
+mod realization;
 mod transition;
 mod view;
 
@@ -49,6 +50,9 @@ pub use capability::{
     UsfScaleCoverage, UsfScaleCoverageSnapshot, UsfScaleRoleMask,
 };
 pub use refinement::{UsfRefinementPlan, UsfRefinementStep};
+pub use realization::{
+    SpatialRealizationGranularity, SpatialRealizationGranularityRequest,
+};
 pub use transition::{
     UsfInteractionHandoffGuards, UsfInteractionRequirement, UsfSpatialTransition,
     UsfSpatialTransitionApplied, UsfSpatialTransitionCause, UsfSpatialTransitionQueue,

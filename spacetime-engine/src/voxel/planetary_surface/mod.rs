@@ -16,13 +16,15 @@ use bevy::{
 };
 
 use crate::{
+    reconstructible::{ReconstructibleFrameBudget, ReconstructibleWorkClass},
     devtools::{
         DeveloperScalarPolicyRuntime, DeveloperScalarPolicySnapshot,
         DeveloperScriptWorkbench,
     },
     ecs::UsfPresentationProjectionOf,
     spatial::{
-        SpatialScale, UsfScaleCoverageSnapshot, UsfScaleRoleMask,
+        SpatialRealizationGranularityRequest, SpatialScale,
+        UsfScaleCoverageSnapshot, UsfScaleRoleMask,
         UsfSceneryPresentation, UsfSemanticFrame, UsfViewDemand, UsfViewDemandSnapshot,
         UsfPosition,
     },
@@ -54,8 +56,10 @@ const MAX_ABSOLUTE_PATCH_LEVEL: u8 = 10;
 
 const PROJECTED_ERROR_RATIO: f64 = 0.24;
 const PATCH_BOUND_MARGIN: f64 = 1.30;
-const OBSERVER_DIRECTION_BUCKETS: f64 = 128.0;
-const OBSERVER_RADIAL_BUCKETS_PER_OCTAVE: f64 = 64.0;
+const PLANETARY_VALIDITY_AGGREGATES_ACROSS: u32 = 4;
+const PLANETARY_MIN_VALIDITY_SECONDS: f64 = 0.25;
+const PLANETARY_MAX_VALIDITY_SECONDS: f64 = 4.0;
+const PLANETARY_LATENCY_MULTIPLIER: f64 = 4.0;
 
 const MAX_PATCH_BUILDS_IN_FLIGHT: usize = 2;
 const MAX_PATCH_BUILD_ADMISSIONS_PER_FRAME: usize = 2;
@@ -197,8 +201,9 @@ enum DenseCoverageRelation {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct PlanetaryObserverKey {
-    direction: [i16; 3],
-    radial_bucket: i16,
+    bucket: [i64; 3],
+    validity_exponent: i16,
+    detail_exponent: i16,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -317,6 +322,7 @@ pub(super) fn sync_planetary_surface_realizations(
     existing: Query<(Entity, &PlanetarySurfaceRealization)>,
     mut build_tasks: Query<(Entity, &mut PlanetarySurfaceBuildTask)>,
     mut cache: Local<PlanetarySurfacePlanCache>,
+    mut frame_budget: ResMut<ReconstructibleFrameBudget>,
 ) {
     let Some(view) = views.iter().next() else { return; };
     let presentation_policy = script_workbench.celestial_height_snapshot();
@@ -358,9 +364,20 @@ pub(super) fn sync_planetary_surface_realizations(
         for (authority, _name, body_origin, body_frame, field, _policy) in &authorities {
             live_authorities.insert(authority);
             let sample_scale = planetary_sample_scale(*field);
-            let Some((observer_key, observer_local)) = observer_plan_key(
-                *body_origin, *body_frame, *field, sample_scale, view,
-            ) else { continue; };
+            let expected_build_seconds = workers
+                .estimated_latency_seconds(VoxelWorkerLane::PlanetarySurface);
+            let Some((observer_key, observer_local, max_level)) =
+                observer_plan_key(
+                    *body_origin,
+                    *body_frame,
+                    *field,
+                    sample_scale,
+                    view,
+                    expected_build_seconds,
+                )
+            else {
+                continue;
+            };
 
             let dense_geometry = cache
                 .coverage_by_authority
@@ -385,6 +402,12 @@ pub(super) fn sync_planetary_surface_realizations(
             if !selection_changed {
                 continue;
             }
+
+            let Some(plan_token) =
+                frame_budget.begin(ReconstructibleWorkClass::Planning)
+            else {
+                continue;
+            };
 
             // Canonical -> body-local projection happens at most once for each
             // changed materialization geometry. Unchanged ready chunks reuse the
@@ -455,7 +478,6 @@ pub(super) fn sync_planetary_surface_realizations(
                 (Arc::clone(&previous.dense_local), previous.dense_bounds)
             };
 
-            let max_level = maximum_patch_level(*field, sample_scale);
             let selected = {
                 let _span =
                     bevy::log::info_span!("planetary_surface.plan.select").entered();
@@ -487,6 +509,7 @@ pub(super) fn sync_planetary_surface_realizations(
                 clipmap_coverage: clipmap_geometry,
                 desired: selected,
             });
+            frame_budget.finish(plan_token);
         }
     }
 
@@ -534,6 +557,12 @@ pub(super) fn sync_planetary_surface_realizations(
             }
 
             if published < MAX_PATCH_PUBLICATIONS_PER_FRAME {
+                let Some(work_token) =
+                    frame_budget.begin(ReconstructibleWorkClass::Publication)
+                else {
+                    inflight_keys.insert(key);
+                    continue;
+                };
                 if let Some(result) = build.task.try_take() {
                     commands.entity(task_entity).despawn();
                     let Some(mesh) = result else { continue; };
@@ -573,8 +602,10 @@ pub(super) fn sync_planetary_surface_realizations(
                     ));
                     published_keys.insert(key);
                     published += 1;
+                    frame_budget.finish(work_token);
                     continue;
                 }
+                frame_budget.finish(work_token);
             }
             inflight_keys.insert(key);
         }
@@ -602,6 +633,11 @@ pub(super) fn sync_planetary_surface_realizations(
                     || admitted >= MAX_PATCH_BUILD_ADMISSIONS_PER_FRAME
                 { break 'authorities; }
 
+                let Some(work_token) =
+                    frame_budget.begin(ReconstructibleWorkClass::Maintenance)
+                else {
+                    break 'authorities;
+                };
                 let field = plan.field;
                 let policy = plan.policy.clone();
                 let policy_revision = plan.policy_revision;
@@ -636,6 +672,7 @@ pub(super) fn sync_planetary_surface_realizations(
                 inflight_keys.insert(key);
                 admitted += 1;
                 worker_slots -= 1;
+                frame_budget.finish(work_token);
             }
         }
     }
@@ -713,15 +750,17 @@ fn planetary_sample_scale(field: CelestialVoxelField) -> SpatialScale {
 /// Refining a regional mesh below roughly one sample-scale native unit per mesh
 /// segment cannot reveal additional semantic terrain owned by this band; doing
 /// so would be pure representation churn.
-fn maximum_patch_level(
+fn maximum_patch_level_for_spacing(
     field: CelestialVoxelField,
-    sample_scale: SpatialScale,
+    minimum_segment_metres: f64,
 ) -> u8 {
     let root_span_metres = field.radius_metres() * 2.0;
-    let minimum_segment_metres = sample_scale.metres_per_native();
+    let minimum_segment_metres =
+        minimum_segment_metres.max(f64::MIN_POSITIVE);
     let useful_subdivisions =
         root_span_metres
-            / (minimum_segment_metres * f64::from(PATCH_GRID_RESOLUTION));
+            / (minimum_segment_metres
+                * f64::from(PATCH_GRID_RESOLUTION));
     if !useful_subdivisions.is_finite() || useful_subdivisions <= 1.0 {
         return 0;
     }
@@ -732,13 +771,15 @@ fn maximum_patch_level(
         .clamp(0.0, f64::from(MAX_ABSOLUTE_PATCH_LEVEL)) as u8
 }
 
+
 fn observer_plan_key(
     body_origin: UsfPosition,
     body_frame: UsfSemanticFrame,
     field: CelestialVoxelField,
     sample_scale: SpatialScale,
     view: &UsfViewDemand,
-) -> Option<(PlanetaryObserverKey, DVec3)> {
+    expected_build_seconds: f64,
+) -> Option<(PlanetaryObserverKey, DVec3, u8)> {
     let local = body_frame
         .world_to_local_metres(
             &body_origin,
@@ -747,39 +788,82 @@ fn observer_plan_key(
             f64::MAX,
         )
         .ok()?;
-    let distance = local.length();
-    if !distance.is_finite() {
+    if !local.is_finite() {
         return None;
     }
 
-    let direction = if distance > f64::EPSILON {
-        local / distance
-    } else {
-        DVec3::Y
-    };
-    let quantize_direction = |value: f64| -> i16 {
-        (value * OBSERVER_DIRECTION_BUCKETS)
-            .round()
-            .clamp(f64::from(i16::MIN), f64::from(i16::MAX)) as i16
-    };
+    let semantic_spacing = sample_scale.metres_per_native();
+    let granularity = SpatialRealizationGranularityRequest::new(
+        semantic_spacing,
+        semantic_spacing,
+        field.radius_metres().max(semantic_spacing),
+        PATCH_GRID_RESOLUTION,
+        PLANETARY_VALIDITY_AGGREGATES_ACROSS,
+        view.velocity_metres_per_second().length(),
+        expected_build_seconds,
+        PLANETARY_MIN_VALIDITY_SECONDS,
+        PLANETARY_MAX_VALIDITY_SECONDS,
+        PLANETARY_LATENCY_MULTIPLIER,
+    ).solve();
 
-    let ratio = (distance / field.radius_metres()).max(1.0e-12);
-    let radial_bucket = (ratio.log2() * OBSERVER_RADIAL_BUCKETS_PER_OCTAVE)
-        .round()
-        .clamp(f64::from(i16::MIN), f64::from(i16::MAX)) as i16;
+    let detail_exponent_f =
+        granularity.target_spacing_metres().log2().ceil();
+    if detail_exponent_f < f64::from(i16::MIN)
+        || detail_exponent_f > f64::from(i16::MAX)
+    {
+        return None;
+    }
+    let detail_exponent = detail_exponent_f as i16;
+    let detail_spacing = 2.0_f64.powi(i32::from(detail_exponent));
+
+    let requested_validity_extent =
+        (granularity.validity_radius_metres() * 2.0)
+            .max(detail_spacing * f64::from(PATCH_GRID_RESOLUTION));
+    let validity_exponent_f =
+        requested_validity_extent.log2().ceil();
+    if validity_exponent_f < f64::from(i16::MIN)
+        || validity_exponent_f > f64::from(i16::MAX)
+    {
+        return None;
+    }
+    let validity_exponent = validity_exponent_f as i16;
+    let validity_extent = 2.0_f64.powi(i32::from(validity_exponent));
+
+    let bucket_component = |value: f64| -> Option<i64> {
+        let value = (value / validity_extent).floor();
+        if !value.is_finite()
+            || value < i64::MIN as f64
+            || value > i64::MAX as f64
+        {
+            None
+        } else {
+            Some(value as i64)
+        }
+    };
+    let bucket = [
+        bucket_component(local.x)?,
+        bucket_component(local.y)?,
+        bucket_component(local.z)?,
+    ];
+    let planning_anchor_local = DVec3::new(
+        (bucket[0] as f64 + 0.5) * validity_extent,
+        (bucket[1] as f64 + 0.5) * validity_extent,
+        (bucket[2] as f64 + 0.5) * validity_extent,
+    );
+    let max_level =
+        maximum_patch_level_for_spacing(field, detail_spacing);
 
     Some((
         PlanetaryObserverKey {
-            direction: [
-                quantize_direction(direction.x),
-                quantize_direction(direction.y),
-                quantize_direction(direction.z),
-            ],
-            radial_bucket,
+            bucket,
+            validity_exponent,
+            detail_exponent,
         },
-        local,
+        planning_anchor_local,
+        max_level,
     ))
 }
+
 
 /// Select one non-overlapping regional frontier with an absolute leaf bound.
 ///

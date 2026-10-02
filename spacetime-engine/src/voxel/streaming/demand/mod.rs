@@ -10,8 +10,10 @@ use bevy::prelude::*;
 
 use crate::{
     config::EngineConfig,
+    reconstructible::{ReconstructibleFrameBudget, ReconstructibleWorkClass},
     spatial::{
-        SpatialDemandMotionSnapshot, SpatialDemandScope, SpatialScale,
+        SpatialDemandMotionSnapshot, SpatialDemandScope,
+        SpatialRealizationGranularityRequest, SpatialScale,
         UsfCapabilityRealization, UsfChunkAddress, UsfContextResidency, UsfPosition,
         UsfPositionError, UsfScaleLayer, UsfScaleRoleMask, UsfViewDemandSnapshot,
     },
@@ -25,6 +27,7 @@ use super::super::{
     VoxelQueryPosition, VoxelRealizationDemandSnapshot,
     VoxelRegionSpan,
     VoxelRealizationScope, VoxelWorld, manifestation::VoxelMaterializationRuntime,
+    worker::{VoxelWorkerLane, VoxelWorkerPool},
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -47,41 +50,50 @@ pub(super) struct VoxelDemandPlanKey {
     roles: u16,
     view_revision: u64,
     motion: VoxelMotionPriorityKey,
-    load_tier: u8,
+    validity_chunks: u32,
 }
 
-const MOTION_LOOKAHEAD_SECONDS: f32 = 1.0;
+const MIN_PREDICTIVE_VALIDITY_SECONDS: f64 = 1.0;
+const MAX_PREDICTIVE_VALIDITY_SECONDS: f64 = 4.0;
+const PREDICTIVE_LATENCY_MULTIPLIER: f64 = 4.0;
 const MOTION_DIRECTION_QUANTIZATION: f64 = 8.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct VoxelMotionPriorityKey {
     direction: [i8; 3],
     speed_bucket: u8,
+    horizon_bucket: u8,
 }
 
 impl VoxelMotionPriorityKey {
     const STATIONARY: Self = Self {
         direction: [0, 0, 0],
         speed_bucket: 0,
+        horizon_bucket: 0,
     };
 }
 
 #[derive(Debug, Clone, Copy)]
 struct VoxelDemandMotion {
     predicted_offset_native: Vec3,
+    lookahead_seconds: f32,
     bias: f32,
     direction_native: Vec3,
 }
 
 impl VoxelDemandMotion {
-    fn new(
+    fn new(demand: SpatialDemandScope, velocity_metres_per_second: DVec3) -> Self {
+        Self::with_expected_latency(demand, velocity_metres_per_second, 0.0)
+    }
+
+    fn with_expected_latency(
         demand: SpatialDemandScope,
         velocity_metres_per_second: DVec3,
+        expected_build_seconds: f64,
     ) -> Self {
         if !velocity_metres_per_second.is_finite() {
             return Self::stationary();
         }
-
         let factor = demand.scale().scale0_to_native_f64(1.0);
         let native = velocity_metres_per_second * factor;
         let velocity_native = Vec3::new(
@@ -94,20 +106,28 @@ impl VoxelDemandMotion {
             return Self::stationary();
         }
 
-        let speed_chunks =
-            speed_native / MATERIALIZATION_CHUNK_SIZE as f32;
+        let speed_chunks = speed_native / MATERIALIZATION_CHUNK_SIZE as f32;
         let bias = (speed_chunks / (speed_chunks + 1.0)).clamp(0.0, 1.0);
-
-        // predictive-horizon-v1
-        //
-        // Prediction must extend beyond the ordinary local load radius or
-        // consecutive extreme-speed plans become disjoint and async generation
-        // is cancelled before it can ever publish.
-        let predicted_offset_native =
-            velocity_native * MOTION_LOOKAHEAD_SECONDS;
+        let chunk_extent_metres =
+            f64::from(MATERIALIZATION_CHUNK_SIZE) * demand.scale().metres_per_native();
+        let granularity = SpatialRealizationGranularityRequest::new(
+            chunk_extent_metres,
+            chunk_extent_metres,
+            chunk_extent_metres,
+            1,
+            1,
+            velocity_metres_per_second.length(),
+            expected_build_seconds,
+            MIN_PREDICTIVE_VALIDITY_SECONDS,
+            MAX_PREDICTIVE_VALIDITY_SECONDS,
+            PREDICTIVE_LATENCY_MULTIPLIER,
+        ).solve();
+        let lookahead_seconds = granularity.validity_seconds() as f32;
+        let predicted_offset_native = velocity_native * lookahead_seconds;
 
         Self {
             predicted_offset_native,
+            lookahead_seconds,
             bias,
             direction_native: velocity_native.normalize_or_zero(),
         }
@@ -116,6 +136,7 @@ impl VoxelDemandMotion {
     const fn stationary() -> Self {
         Self {
             predicted_offset_native: Vec3::ZERO,
+            lookahead_seconds: 0.0,
             bias: 0.0,
             direction_native: Vec3::ZERO,
         }
@@ -126,66 +147,40 @@ impl VoxelDemandMotion {
         if self.bias <= f32::EPSILON {
             return current;
         }
-
         let segment = self.predicted_offset_native;
         let segment_length_squared = segment.length_squared();
         if segment_length_squared <= f32::EPSILON {
             return current;
         }
-
-        let t =
-            (relative.dot(segment) / segment_length_squared).clamp(0.0, 1.0);
+        let t = (relative.dot(segment) / segment_length_squared).clamp(0.0, 1.0);
         let nearest = segment * t;
         let lateral_squared = (relative - nearest).length_squared();
-        let corridor_score =
-            lateral_squared * 8.0 + current * 0.05;
-
+        let corridor_score = lateral_squared * 8.0 + current * 0.05;
         (current + (corridor_score - current) * self.bias).max(0.0)
     }
 
-    /// Actual asymmetric materialization demand offsets.
-    ///
-    /// Velocity removes trailing volume. Forward radius intentionally remains
-    /// unchanged in this tranche so faster travel reduces total demand instead
-    /// of merely moving/expanding it.
-    fn demand_offsets(self, half_extent: Vec3, _load_tier: u8) -> (Vec3, Vec3) {
+    fn demand_offsets(self, half_extent: Vec3) -> (Vec3, Vec3) {
         let minimum = -half_extent;
         let maximum = half_extent;
-
-        if self.bias <= f32::EPSILON
-            || self.direction_native == Vec3::ZERO
-        {
+        if self.bias <= f32::EPSILON || self.direction_native == Vec3::ZERO {
             return (minimum, maximum);
         }
-
-        // aggressive-predictive-volume-v1
-        //
-        // Motion is allowed to create *more* legitimate demand. The desired
-        // region is the swept union of the ordinary local cuboid at the current
-        // and predicted positions. Capacity/backpressure decides how much of
-        // that region is admitted first; geometry no longer collapses merely
-        // because traversal is fast.
-        let predicted_minimum =
-            self.predicted_offset_native - half_extent;
-        let predicted_maximum =
-            self.predicted_offset_native + half_extent;
-
         (
-            minimum.min(predicted_minimum),
-            maximum.max(predicted_maximum),
+            minimum.min(self.predicted_offset_native - half_extent),
+            maximum.max(self.predicted_offset_native + half_extent),
         )
     }
-
 }
+
 
 fn quantized_motion_key(
     velocity_metres_per_second: DVec3,
+    lookahead_seconds: f32,
 ) -> VoxelMotionPriorityKey {
     let speed = velocity_metres_per_second.length();
     if !speed.is_finite() || speed < 0.5 {
         return VoxelMotionPriorityKey::STATIONARY;
     }
-
     let direction = velocity_metres_per_second / speed;
     let quantize = |value: f64| {
         (value * MOTION_DIRECTION_QUANTIZATION)
@@ -193,18 +188,19 @@ fn quantized_motion_key(
             .clamp(-MOTION_DIRECTION_QUANTIZATION, MOTION_DIRECTION_QUANTIZATION)
             as i8
     };
-
     let speed_bucket = (speed.log2().floor() + 16.0).clamp(1.0, 63.0) as u8;
-
+    let horizon_bucket = if lookahead_seconds > 0.0 {
+        (f64::from(lookahead_seconds).log2().floor() + 16.0).clamp(1.0, 63.0) as u8
+    } else {
+        0
+    };
     VoxelMotionPriorityKey {
-        direction: [
-            quantize(direction.x),
-            quantize(direction.y),
-            quantize(direction.z),
-        ],
+        direction: [quantize(direction.x), quantize(direction.y), quantize(direction.z)],
         speed_bucket,
+        horizon_bucket,
     }
 }
+
 
 fn saturating_motion_f32(value: f64) -> f32 {
     if value.is_nan() {
@@ -246,66 +242,14 @@ fn make_demanded_chunk(
     }
 }
 
-fn raw_streaming_load_tier(
-    streaming: &VoxelStreaming,
-    demands: &[VoxelRealizationScope],
-    motions: &SpatialDemandMotionSnapshot,
-) -> u8 {
-    let budget = streaming.load_budget_per_frame().max(1);
-    let backlog_frames = streaming.pending_desired_len().div_ceil(budget);
 
-    let backlog_tier = if backlog_frames <= 2 {
-        0
-    } else if backlog_frames <= 4 {
-        1
-    } else if backlog_frames <= 8 {
-        2
-    } else if backlog_frames <= 16 {
-        3
-    } else {
-        4
-    };
-
-    let maximum_speed_chunks_per_second = demands
-        .iter()
-        .map(|request| {
-            let demand = request.scope();
-            let velocity =
-                motions.velocity_metres_per_second(demand.source());
-            if !velocity.is_finite() {
-                return 0.0;
-            }
-            let factor = demand.scale().scale0_to_native_f64(1.0);
-            velocity.length() * factor / f64::from(MATERIALIZATION_CHUNK_SIZE)
-        })
-        .filter(|speed| speed.is_finite())
-        .fold(0.0_f64, f64::max);
-
-    let speed_tier = if maximum_speed_chunks_per_second < 1.0 {
-        0
-    } else if maximum_speed_chunks_per_second < 4.0 {
-        1
-    } else if maximum_speed_chunks_per_second < 12.0 {
-        2
-    } else if maximum_speed_chunks_per_second < 32.0 {
-        3
-    } else {
-        4
-    };
-
-    backlog_tier.max(speed_tier)
-}
 
 fn desired_chunk_budget(
     load_budget_per_frame: usize,
     demands: &[VoxelRealizationScope],
     motions: &SpatialDemandMotionSnapshot,
+    expected_build_seconds: f64,
 ) -> usize {
-    // predictive-demand-capacity-safety-v1
-    //
-    // `usize::MAX` is a valid execution-policy sentinel for "unbounded", but
-    // it is not a valid collection-capacity hint. Convert it to a deliberately
-    // aggressive finite pressure estimate.
     const UNBOUNDED_THROUGHPUT_HINT: usize = 256;
     const MINIMUM_STRESS_WORKING_SET: usize = 4_096;
     const MAXIMUM_STRESS_WORKING_SET: usize = 65_536;
@@ -313,38 +257,25 @@ fn desired_chunk_budget(
     let throughput = if load_budget_per_frame == usize::MAX {
         UNBOUNDED_THROUGHPUT_HINT
     } else {
-        load_budget_per_frame
-            .max(1)
-            .min(MAXIMUM_STRESS_WORKING_SET)
+        load_budget_per_frame.max(1).min(MAXIMUM_STRESS_WORKING_SET)
     };
-
-    let throughput_reserve =
-        throughput.saturating_mul(32).max(256);
+    let throughput_reserve = throughput.saturating_mul(32).max(256);
 
     let horizon_steps = demands
         .iter()
         .map(|request| {
             let demand = request.scope();
-            let velocity =
-                motions.velocity_metres_per_second(demand.source());
-            if !velocity.is_finite() {
-                return 0usize;
-            }
-
-            let factor = demand.scale().scale0_to_native_f64(1.0);
-            let chunks_per_second =
-                velocity.length() * factor
-                    / f64::from(MATERIALIZATION_CHUNK_SIZE);
-            if !chunks_per_second.is_finite()
-                || chunks_per_second <= 0.0
-            {
+            let motion = VoxelDemandMotion::with_expected_latency(
+                demand,
+                motions.velocity_metres_per_second(demand.source()),
+                expected_build_seconds,
+            );
+            let chunks = motion.predicted_offset_native.length()
+                / MATERIALIZATION_CHUNK_SIZE as f32;
+            if !chunks.is_finite() || chunks <= 0.0 {
                 0
             } else {
-                (chunks_per_second
-                    * f64::from(MOTION_LOOKAHEAD_SECONDS))
-                    .ceil()
-                    .clamp(0.0, MAXIMUM_STRESS_WORKING_SET as f64)
-                    as usize
+                chunks.ceil().clamp(0.0, MAXIMUM_STRESS_WORKING_SET as f32) as usize
             }
         })
         .max()
@@ -352,50 +283,18 @@ fn desired_chunk_budget(
 
     let lateral_reserve = throughput.saturating_mul(8);
     let requested = throughput_reserve.max(
-        horizon_steps
-            .saturating_add(1)
-            .saturating_add(lateral_reserve),
+        horizon_steps.saturating_add(1).saturating_add(lateral_reserve),
     );
-
     let throughput_ceiling =
         throughput.saturating_mul(256).max(MINIMUM_STRESS_WORKING_SET);
 
-    requested
-        .min(throughput_ceiling)
-        .min(MAXIMUM_STRESS_WORKING_SET)
+    requested.min(throughput_ceiling).min(MAXIMUM_STRESS_WORKING_SET)
 }
 
 
 
-fn adaptive_warm_limit(
-    configured_limit: usize,
-    demands: &[VoxelRealizationScope],
-    motions: &SpatialDemandMotionSnapshot,
-) -> usize {
-    let speed = demands
-        .iter()
-        .map(|request| {
-            motions
-                .velocity_metres_per_second(request.scope().source())
-                .length()
-        })
-        .filter(|speed| speed.is_finite())
-        .fold(0.0_f64, f64::max);
 
-    let velocity_cap = if speed >= 1_000.0 {
-        32
-    } else if speed >= 250.0 {
-        64
-    } else if speed >= 50.0 {
-        128
-    } else if speed >= 5.0 {
-        256
-    } else {
-        512
-    };
 
-    configured_limit.min(velocity_cap)
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct VoxelMaterializationBox {
@@ -530,6 +429,43 @@ impl VoxelMaterializationBox {
     }
 }
 
+fn demand_plan_still_valid(
+    previous: &[VoxelDemandPlanKey],
+    next: &[VoxelDemandPlanKey],
+) -> bool {
+    if previous == next {
+        return true;
+    }
+    if previous.len() != 1 || next.len() != 1 {
+        return false;
+    }
+
+    let previous = previous[0];
+    let next = next[0];
+
+    if previous.source != next.source
+        || previous.priority != next.priority
+        || previous.roles != next.roles
+        || previous.view_revision != 0
+        || next.view_revision != 0
+        || previous.motion != next.motion
+        || previous.validity_chunks == 0
+        || previous.validity_chunks != next.validity_chunks
+    {
+        return false;
+    }
+
+    let before = previous.center_key.components();
+    let after = next.center_key.components();
+    let dx = after[0].abs_diff(before[0]);
+    let dy = after[1].abs_diff(before[1]);
+    let dz = after[2].abs_diff(before[2]);
+    let displacement = dx.max(dy).max(dz);
+    let guard = u64::from(previous.validity_chunks.max(2) / 2);
+
+    displacement <= guard
+}
+
 fn incremental_plan_compatible(
     previous: VoxelDemandPlanKey,
     next: VoxelDemandPlanKey,
@@ -540,9 +476,9 @@ fn incremental_plan_compatible(
         && previous.view_revision == 0
         && next.view_revision == 0
         && previous.motion == next.motion
-        && previous.load_tier == 0
-        && next.load_tier == 0
+        && previous.motion == VoxelMotionPriorityKey::STATIONARY
 }
+
 
 /// Reconciles active voxel materialization residency with the latest spatial
 /// demand snapshot.
@@ -555,6 +491,8 @@ pub(in crate::voxel) fn refresh_voxel_residency(
     realization_demand: Res<VoxelRealizationDemandSnapshot>,
     view_demands: Res<UsfViewDemandSnapshot>,
     motions: Res<SpatialDemandMotionSnapshot>,
+    workers: Res<VoxelWorkerPool>,
+    mut frame_budget: ResMut<ReconstructibleFrameBudget>,
     runtimes: Query<(&VoxelMaterializationRuntime, &UsfCapabilityRealization)>,
     mut worlds: Query<(
         Entity,
@@ -569,8 +507,10 @@ pub(in crate::voxel) fn refresh_voxel_residency(
     mut voxel_demands: Local<Vec<VoxelRealizationScope>>,
     mut runtime_roles: Local<HashMap<(Entity, VoxelMaterializationKey), UsfScaleRoleMask>>,
 ) {
-    let configured_warm_limit =
-        config.voxel.streaming.warm_inactive_materialization_limit;
+    let warm_limit = config.voxel.streaming.warm_inactive_materialization_limit;
+    let expected_dense_build_seconds =
+        workers.estimated_latency_seconds(VoxelWorkerLane::Generation)
+            + workers.estimated_latency_seconds(VoxelWorkerLane::Derivation);
 
     runtime_roles.clear();
     let mut runtime_roles_ready = false;
@@ -588,8 +528,6 @@ pub(in crate::voxel) fn refresh_voxel_residency(
     {
         voxel_demands.clear();
         voxel_demands.extend(realization_demand.requests_for(world_entity));
-        let warm_limit =
-            adaptive_warm_limit(configured_warm_limit, &voxel_demands, &motions);
         let pinned_shell = pinned
             .and_then(|pinned| pinned.surface_radius_native())
             .map(|radius| {
@@ -600,7 +538,12 @@ pub(in crate::voxel) fn refresh_voxel_residency(
                 )
             });
 
-        let plan_changed = match refresh_demand_plan(
+        let Some(work_token) =
+            frame_budget.begin(ReconstructibleWorkClass::Planning)
+        else {
+            break;
+        };
+        let plan_result = refresh_demand_plan(
             &world,
             &voxel_demands,
             &mut streaming,
@@ -609,7 +552,11 @@ pub(in crate::voxel) fn refresh_voxel_residency(
             &view_demands,
             &motions,
             layer.scale(),
-        ) {
+            expected_dense_build_seconds,
+        );
+        frame_budget.finish(work_token);
+
+        let plan_changed = match plan_result {
             Ok(changed) => changed,
             Err(error) => {
                 error!(
@@ -620,11 +567,7 @@ pub(in crate::voxel) fn refresh_voxel_residency(
                     "voxel spatial demand could not be represented canonically; retiring stale voxel residency and retrying next frame"
                 );
                 if streaming.retire_all_desired() {
-                    reconcile_materialization_residency(
-                        &mut world,
-                        &mut streaming,
-                        0,
-                    );
+                    reconcile_materialization_residency(&mut world, &mut streaming, 0);
                 }
                 continue;
             }
@@ -635,12 +578,14 @@ pub(in crate::voxel) fn refresh_voxel_residency(
                 let _span = bevy::log::info_span!("voxel_residency.runtime_roles").entered();
                 for (runtime, realization) in &runtimes {
                     if realization.revision() == runtime.revision() {
-                        runtime_roles.insert((runtime.world(), runtime.key()), realization.roles());
+                        runtime_roles.insert(
+                            (runtime.world(), runtime.key()),
+                            realization.roles(),
+                        );
                     }
                 }
                 runtime_roles_ready = true;
             }
-
             if candidate_plan_ready(
                 world_entity,
                 &world,
@@ -658,14 +603,16 @@ pub(in crate::voxel) fn refresh_voxel_residency(
         };
 
         if plan_changed || candidate_committed {
-            prioritize_pending_work(
-                &mut streaming,
-                pinned.and_then(|pinned| pinned.surface_radius_native()),
-            );
+            if let Some(radius) =
+                pinned.and_then(|pinned| pinned.surface_radius_native())
+            {
+                prioritize_pending_work(&mut streaming, Some(radius));
+            }
             reconcile_materialization_residency(&mut world, &mut streaming, warm_limit);
         }
     }
 }
+
 
 
 
@@ -710,6 +657,20 @@ fn candidate_plan_ready(
             .get(&(world_entity, key))
             .is_some_and(|roles| roles.contains(required))
     })
+}
+
+fn compare_demanded_chunks(
+    a: &DemandedChunk,
+    b: &DemandedChunk,
+) -> std::cmp::Ordering {
+    b.role_priority
+        .cmp(&a.role_priority)
+        .then_with(|| b.priority.cmp(&a.priority))
+        .then_with(|| {
+            a.trajectory_distance_squared
+                .total_cmp(&b.trajectory_distance_squared)
+        })
+        .then_with(|| a.distance_squared.total_cmp(&b.distance_squared))
 }
 
 fn prioritize_pending_work(
@@ -791,15 +752,13 @@ fn refresh_demand_plan(
     view_demands: &UsfViewDemandSnapshot,
     motions: &SpatialDemandMotionSnapshot,
     context_scale: SpatialScale,
+    expected_build_seconds: f64,
 ) -> Result<bool, VoxelDemandPlanError> {
-    let raw_load_tier =
-        raw_streaming_load_tier(streaming, demands, motions);
-    let load_tier =
-        streaming.update_adaptive_load_tier(raw_load_tier);
     let desired_budget = desired_chunk_budget(
         streaming.load_budget_per_frame(),
         demands,
         motions,
+        expected_build_seconds,
     );
 
     let key = {
@@ -809,33 +768,28 @@ fn refresh_demand_plan(
             demands,
             view_demands,
             motions,
-            load_tier,
+            expected_build_seconds,
         )?
     };
 
-    if key == streaming.demand_key {
+    if demand_plan_still_valid(&streaming.demand_key, &key) {
         if streaming.residency_revision == residency.revision() {
             return Ok(false);
         }
         {
-            let _span = bevy::log::info_span!("voxel_residency.revalidate_context").entered();
+            let _span =
+                bevy::log::info_span!("voxel_residency.revalidate_context").entered();
             validate_context_residency(demands, residency, context_scale)?;
         }
         streaming.residency_revision = residency.revision();
         return Ok(false);
     }
 
-    // Context responsibility is declared by demand scopes, not by 10-native
-    // materialization cells. Validate the handful of intersected USF contexts
-    // before enumerating capability-local materializations.
     {
         let _span = bevy::log::info_span!("voxel_residency.validate_context").entered();
         validate_context_residency(demands, residency, context_scale)?;
     }
 
-    // Common hot path: one ordinary cuboid demand moved to a neighboring
-    // materialization window. Update only entering/leaving slabs. View-frustum
-    // and pinned-shell plans retain the conservative full planner below.
     let incremental = demands.len() == 1
         && pinned_shell.is_none()
         && demands[0].view_source().is_none()
@@ -850,13 +804,13 @@ fn refresh_demand_plan(
         )
         && previous_box.intersection(next_box).is_some()
     {
-        let _span =
-            bevy::log::info_span!("voxel_residency.enumerate_delta").entered();
+        let _span = bevy::log::info_span!("voxel_residency.enumerate_delta").entered();
         let request = demands[0];
         let request_scope = request.scope();
-        let motion = VoxelDemandMotion::new(
+        let motion = VoxelDemandMotion::with_expected_latency(
             request_scope,
             motions.velocity_metres_per_second(request_scope.source()),
+            expected_build_seconds,
         );
         let mut leaving = Vec::<VoxelMaterializationKey>::new();
         let mut entering = Vec::<DemandedChunk>::new();
@@ -878,43 +832,42 @@ fn refresh_demand_plan(
         if let Some(error) = error {
             return Err(error.into());
         }
+        entering.sort_by(compare_demanded_chunks);
         drop(_span);
 
         {
-            let _span =
-                bevy::log::info_span!("voxel_residency.stage_delta").entered();
+            let _span = bevy::log::info_span!("voxel_residency.stage_delta").entered();
             streaming.stage_incremental_desired(leaving, entering);
         }
-
         streaming.demand_key = key;
         streaming.residency_revision = residency.revision();
         return Ok(true);
     }
 
     let desired = {
-        let _span = bevy::log::info_span!("voxel_residency.enumerate_desired.full").entered();
+        let _span =
+            bevy::log::info_span!("voxel_residency.enumerate_desired.full").entered();
         demanded_chunk_addresses_with_motion(
             world,
             demands,
             pinned_shell,
             view_demands,
             motions,
-            load_tier,
+            expected_build_seconds,
             desired_budget,
         )?
     };
+
     {
         let _span = bevy::log::info_span!("voxel_residency.stage_plan.full").entered();
         let mut desired_roles = HashMap::with_capacity(desired.len());
         let mut pending_desired = VecDeque::with_capacity(desired.len());
-
         for chunk in desired {
             desired_roles.insert(chunk.key, chunk.roles);
             if !world.materializations().is_active(chunk.key) {
                 pending_desired.push_back(chunk);
             }
         }
-
         streaming.stage_desired_roles(desired_roles);
         streaming.pending_desired = pending_desired;
     }
@@ -922,6 +875,7 @@ fn refresh_demand_plan(
     streaming.residency_revision = residency.revision();
     Ok(true)
 }
+
 
 fn validate_context_residency(
     demands: &[VoxelRealizationScope],
@@ -950,7 +904,7 @@ fn demand_plan_key(
     demands: &[VoxelRealizationScope],
     view_demands: &UsfViewDemandSnapshot,
     motions: &SpatialDemandMotionSnapshot,
-    load_tier: u8,
+    expected_build_seconds: f64,
 ) -> Result<Vec<VoxelDemandPlanKey>, crate::spatial::UsfPositionError> {
     let mut result = Vec::with_capacity(demands.len());
     let size = MATERIALIZATION_CHUNK_SIZE as f32;
@@ -961,30 +915,41 @@ fn demand_plan_key(
         let center_address = world.materialization_address(center_key)?;
         let local = center.relative_to(center_address.query_origin(), size + 0.01)?;
         let half = demand.half_extent_native();
-        let velocity =
-            motions.velocity_metres_per_second(demand.source());
-        let motion = VoxelDemandMotion::new(demand, velocity);
-        let (minimum_offset, maximum_offset) =
-            motion.demand_offsets(half, load_tier);
+        let velocity = motions.velocity_metres_per_second(demand.source());
+        let motion = VoxelDemandMotion::with_expected_latency(
+            demand,
+            velocity,
+            expected_build_seconds,
+        );
+        let (minimum_offset, maximum_offset) = motion.demand_offsets(half);
 
         result.push(VoxelDemandPlanKey {
             source: demand.source(),
             center_key,
-            minimum: checked_ivec3(
-                ((local + minimum_offset) / size).floor(),
-            )?,
-            maximum: checked_ivec3(
-                ((local + maximum_offset) / size).floor(),
-            )?,
+            minimum: checked_ivec3(((local + minimum_offset) / size).floor())?,
+            maximum: checked_ivec3(((local + maximum_offset) / size).floor())?,
             priority: demand.priority(),
             roles: request.roles().bits(),
             view_revision: request.view_source().map_or(0, |_| view_demands.revision()),
-            motion: quantized_motion_key(velocity),
-            load_tier,
+            motion: quantized_motion_key(velocity, motion.lookahead_seconds),
+            validity_chunks: {
+                let raw = (
+                    motion.predicted_offset_native.length()
+                        / MATERIALIZATION_CHUNK_SIZE as f32
+                )
+                .ceil()
+                .clamp(0.0, u32::MAX as f32) as u32;
+                if raw == 0 {
+                    0
+                } else {
+                    raw.checked_next_power_of_two().unwrap_or(u32::MAX)
+                }
+            },
         });
     }
     Ok(result)
 }
+
 
 fn demanded_chunk_for_key(
     world: &VoxelWorld,
@@ -1205,7 +1170,6 @@ fn predictive_tube_candidate(
 }
 
 fn collect_predictive_tube(
-    world: &VoxelWorld,
     center_key: VoxelMaterializationKey,
     demand: SpatialDemandScope,
     request: VoxelRealizationScope,
@@ -1215,64 +1179,45 @@ fn collect_predictive_tube(
     merged: &mut HashMap<VoxelMaterializationKey, DemandedChunk>,
 ) -> Result<(), crate::spatial::UsfPositionError> {
     let size = MATERIALIZATION_CHUNK_SIZE as f32;
-    // Never use an execution-policy sentinel as a literal collection bound.
-    // This is a planner metadata safety ceiling, not demand-geometry pruning.
     const MAXIMUM_PREDICTIVE_TUBE_WORKING_SET: usize = 65_536;
-    let budget = maximum_total_chunks
-        .max(1)
-        .min(MAXIMUM_PREDICTIVE_TUBE_WORKING_SET);
+    let budget = maximum_total_chunks.max(1).min(MAXIMUM_PREDICTIVE_TUBE_WORKING_SET);
     if merged.len() >= budget {
         return Ok(());
     }
 
     let (minimum_offset, maximum_offset) =
-        motion.demand_offsets(demand.half_extent_native(), 0);
-    let minimum = checked_ivec3(
-        ((local_center + minimum_offset) / size).floor(),
-    )?;
-    let maximum = checked_ivec3(
-        ((local_center + maximum_offset) / size).floor(),
-    )?;
+        motion.demand_offsets(demand.half_extent_native());
+    let minimum = checked_ivec3(((local_center + minimum_offset) / size).floor())?;
+    let maximum = checked_ivec3(((local_center + maximum_offset) / size).floor())?;
 
     let in_bounds = |delta: IVec3| {
-        delta.x >= minimum.x
-            && delta.x <= maximum.x
-            && delta.y >= minimum.y
-            && delta.y <= maximum.y
-            && delta.z >= minimum.z
-            && delta.z <= maximum.z
+        delta.x >= minimum.x && delta.x <= maximum.x
+            && delta.y >= minimum.y && delta.y <= maximum.y
+            && delta.z >= minimum.z && delta.z <= maximum.z
+    };
+    let relative_for = |delta: IVec3| {
+        delta.as_vec3() * size + Vec3::splat(size * 0.5) - local_center
     };
 
     let remaining = budget.saturating_sub(merged.len());
-    let maximum_horizon =
-        remaining.saturating_sub(1) as f32 * size;
+    let maximum_horizon = remaining.saturating_sub(1) as f32 * size;
     let mut target_offset = motion.predicted_offset_native;
     let target_length = target_offset.length();
-    if target_length > maximum_horizon
-        && target_length > f32::EPSILON
-    {
+    if target_length > maximum_horizon && target_length > f32::EPSILON {
         target_offset *= maximum_horizon / target_length;
     }
 
-    let target_delta = checked_ivec3(
-        ((local_center + target_offset) / size).floor(),
-    )?;
-    let total_steps = target_delta
-        .x
-        .unsigned_abs()
+    let target_delta =
+        checked_ivec3(((local_center + target_offset) / size).floor())?;
+    let total_steps = target_delta.x.unsigned_abs()
         .max(target_delta.y.unsigned_abs())
         .max(target_delta.z.unsigned_abs()) as usize;
 
     let mut visited = HashSet::<IVec3>::with_capacity(
-        budget
-            .saturating_sub(merged.len())
-            .min(4_096)
-            .saturating_mul(2)
-            .max(32),
+        budget.saturating_sub(merged.len()).min(4_096).saturating_mul(2).max(32),
     );
-    let mut centerline = Vec::<IVec3>::with_capacity(
-        total_steps.saturating_add(1).min(remaining),
-    );
+    let mut centerline =
+        Vec::<IVec3>::with_capacity(total_steps.saturating_add(1).min(remaining));
     let mut previous = None::<IVec3>;
 
     let steps = total_steps.min(remaining.saturating_sub(1));
@@ -1291,22 +1236,18 @@ fn collect_predictive_tube(
         centerline.push(delta);
 
         let key = center_key.translated_chunks(delta)?;
-        let demanded =
-            demanded_chunk_for_key(world, request, key, motion)?;
-        merge_demanded_chunk(merged, demanded);
-
+        merge_demanded_chunk(
+            merged,
+            make_demanded_chunk(demand, request, key, relative_for(delta), motion),
+        );
         if merged.len() >= budget {
             return Ok(());
         }
     }
 
-    let mut frontier =
-        BinaryHeap::<PredictiveTubeCandidate>::with_capacity(
-            budget
-                .saturating_sub(merged.len())
-                .min(4_096)
-                .saturating_mul(2),
-        );
+    let mut frontier = BinaryHeap::<PredictiveTubeCandidate>::with_capacity(
+        budget.saturating_sub(merged.len()).min(4_096).saturating_mul(2),
+    );
 
     let push_neighbors =
         |origin: IVec3,
@@ -1320,12 +1261,7 @@ fn collect_predictive_tube(
                 if !in_bounds(delta) || !visited.insert(delta) {
                     continue;
                 }
-                frontier.push(predictive_tube_candidate(
-                    delta,
-                    local_center,
-                    size,
-                    motion,
-                ));
+                frontier.push(predictive_tube_candidate(delta, local_center, size, motion));
             }
         };
 
@@ -1337,17 +1273,23 @@ fn collect_predictive_tube(
         let Some(candidate) = frontier.pop() else {
             break;
         };
-
         let key = center_key.translated_chunks(candidate.delta)?;
-        let demanded =
-            demanded_chunk_for_key(world, request, key, motion)?;
-        merge_demanded_chunk(merged, demanded);
-
+        merge_demanded_chunk(
+            merged,
+            make_demanded_chunk(
+                demand,
+                request,
+                key,
+                relative_for(candidate.delta),
+                motion,
+            ),
+        );
         push_neighbors(candidate.delta, &mut visited, &mut frontier);
     }
 
     Ok(())
 }
+
 
 
 pub(super) fn demanded_chunk_addresses<T>(
@@ -1365,7 +1307,7 @@ where
         pinned_shell,
         view_demands,
         &SpatialDemandMotionSnapshot::default(),
-        0,
+        0.0,
         usize::MAX,
     )
 }
@@ -1376,7 +1318,7 @@ fn demanded_chunk_addresses_with_motion<T>(
     pinned_shell: Option<(Entity, f32)>,
     view_demands: &UsfViewDemandSnapshot,
     motions: &SpatialDemandMotionSnapshot,
-    load_tier: u8,
+    expected_build_seconds: f64,
     maximum_desired_chunks: usize,
 ) -> Result<Vec<DemandedChunk>, crate::spatial::UsfPositionError>
 where
@@ -1390,20 +1332,19 @@ where
         let center_key = world.materialization_key_containing(center)?;
         let center_address = world.materialization_address(center_key)?;
         let size = MATERIALIZATION_CHUNK_SIZE as f32;
-        let local_center = center.relative_to(center_address.query_origin(), size + 0.01)?;
+        let local_center =
+            center.relative_to(center_address.query_origin(), size + 0.01)?;
         let half = demand.half_extent_native();
-        let motion = VoxelDemandMotion::new(
+        let motion = VoxelDemandMotion::with_expected_latency(
             demand,
             motions.velocity_metres_per_second(demand.source()),
+            expected_build_seconds,
         );
-        let (minimum_offset, maximum_offset) =
-            motion.demand_offsets(half, load_tier);
-        let minimum = checked_ivec3(
-            ((local_center + minimum_offset) / size).floor(),
-        )?;
-        let maximum = checked_ivec3(
-            ((local_center + maximum_offset) / size).floor(),
-        )?;
+        let (minimum_offset, maximum_offset) = motion.demand_offsets(half);
+        let minimum =
+            checked_ivec3(((local_center + minimum_offset) / size).floor())?;
+        let maximum =
+            checked_ivec3(((local_center + maximum_offset) / size).floor())?;
 
         let view = match request.view_source() {
             Some(source) => {
@@ -1414,13 +1355,8 @@ where
         };
         let shell = pinned_shell.filter(|(source, _)| demand.source() == *source);
 
-        if view.is_none()
-            && shell.is_none()
-            && motion.direction_native != Vec3::ZERO
-        {
-            // aggressive-predictive-volume-v1
+        if view.is_none() && shell.is_none() && motion.direction_native != Vec3::ZERO {
             collect_predictive_tube(
-                world,
                 center_key,
                 demand,
                 request,
@@ -1432,35 +1368,41 @@ where
         } else {
             let region =
                 VoxelRegionSpan::from_relative_bounds(center_key, minimum, maximum)?;
-
             if view.is_some() || shell.is_some() {
                 collect_culled_region(
-                    center_key, center_address.origin(), region, demand, request,
-                    view, shell, local_center, size, motion, &mut merged,
+                    center_key,
+                    center_address.origin(),
+                    region,
+                    demand,
+                    request,
+                    view,
+                    shell,
+                    local_center,
+                    size,
+                    motion,
+                    &mut merged,
                 )?;
             } else {
                 collect_all_region_leaves(
-                    center_key, region, demand, request, local_center, size,
-                    motion, &mut merged,
+                    center_key,
+                    region,
+                    demand,
+                    request,
+                    local_center,
+                    size,
+                    motion,
+                    &mut merged,
                 )?;
             }
         }
     }
 
     let mut desired = merged.into_values().collect::<Vec<_>>();
-    desired.sort_by(|a, b| {
-        b.role_priority
-            .cmp(&a.role_priority)
-            .then_with(|| b.priority.cmp(&a.priority))
-            .then_with(|| {
-                a.trajectory_distance_squared
-                    .total_cmp(&b.trajectory_distance_squared)
-            })
-            .then_with(|| a.distance_squared.total_cmp(&b.distance_squared))
-    });
+    desired.sort_by(compare_demanded_chunks);
     desired.truncate(maximum_desired_chunks);
     Ok(desired)
 }
+
 
 fn checked_ivec3(value: Vec3) -> Result<IVec3, crate::spatial::UsfPositionError> {
     fn component(value: f32) -> Result<i32, crate::spatial::UsfPositionError> {
@@ -1521,72 +1463,7 @@ mod motion_priority_tests {
     }
 }
 
-#[cfg(test)]
-mod motion_demand_geometry_tests {
-    use super::*;
 
-    #[test]
-    fn fast_motion_physically_shrinks_the_trailing_demand_radius() {
-        let mut ecs = World::new();
-        let source = ecs.spawn_empty().id();
-        let half = Vec3::new(100.0, 60.0, 80.0);
-        let demand = SpatialDemandScope::at_scale(
-            source,
-            SpatialScale::ZERO,
-            UsfPosition::zero(SpatialScale::ZERO),
-            half,
-            0,
-        );
-        let motion = VoxelDemandMotion::new(
-            demand,
-            DVec3::new(1_000.0, 0.0, 0.0),
-        );
-
-        let (minimum, maximum) = motion.demand_offsets(half, load_tier);
-
-        assert_eq!(maximum.x, half.x);
-        assert!(
-            minimum.x > -half.x * 0.25,
-            "1 km/s should leave only a tight trailing tail, got minimum.x={}",
-            minimum.x,
-        );
-        assert_eq!(minimum.y, -half.y);
-        assert_eq!(maximum.y, half.y);
-        assert_eq!(minimum.z, -half.z);
-        assert_eq!(maximum.z, half.z);
-    }
-
-    #[test]
-    fn stationary_motion_keeps_symmetric_demand_geometry() {
-        let half = Vec3::new(100.0, 60.0, 80.0);
-        let (minimum, maximum) =
-            VoxelDemandMotion::stationary().demand_offsets(half, 0);
-        assert_eq!(minimum, -half);
-        assert_eq!(maximum, half);
-    }
-
-    #[test]
-    fn negative_velocity_shrinks_the_positive_tail() {
-        let mut ecs = World::new();
-        let source = ecs.spawn_empty().id();
-        let half = Vec3::splat(100.0);
-        let demand = SpatialDemandScope::at_scale(
-            source,
-            SpatialScale::ZERO,
-            UsfPosition::zero(SpatialScale::ZERO),
-            half,
-            0,
-        );
-        let motion = VoxelDemandMotion::new(
-            demand,
-            DVec3::new(-1_000.0, 0.0, 0.0),
-        );
-
-        let (minimum, maximum) = motion.demand_offsets(half, load_tier);
-        assert_eq!(minimum.x, -half.x);
-        assert!(maximum.x < half.x * 0.25);
-    }
-}
 
 #[cfg(test)]
 mod adaptive_streaming_pressure_tests {
@@ -1607,7 +1484,7 @@ mod adaptive_streaming_pressure_tests {
         let motion =
             VoxelDemandMotion::new(demand, DVec3::new(1_000.0, 0.0, 0.0));
 
-        let (minimum, maximum) = motion.demand_offsets(half, 4);
+        let (minimum, maximum) = motion.demand_offsets(half);
         assert_eq!(minimum, -half);
         assert!(maximum.x > half.x);
         assert_eq!(maximum.y, half.y);
@@ -1619,7 +1496,7 @@ mod adaptive_streaming_pressure_tests {
         let half = Vec3::new(100.0, 60.0, 80.0);
         for tier in 0..=4 {
             let (minimum, maximum) =
-                VoxelDemandMotion::stationary().demand_offsets(half, tier);
+                VoxelDemandMotion::stationary().demand_offsets(half);
             assert_eq!(minimum, -half);
             assert_eq!(maximum, half);
         }

@@ -2,9 +2,11 @@
 
 use std::sync::{
     Arc, Mutex,
-    atomic::{AtomicBool, AtomicUsize, Ordering},
+    atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
     mpsc::{self, Receiver, Sender, TryRecvError},
 };
+
+use std::time::Instant;
 
 use bevy::{
     prelude::*,
@@ -18,18 +20,18 @@ pub(super) enum VoxelWorkerLane {
     Generation,
     Derivation,
     PlanetarySurface,
+    PresentationPlanning,
     PresentationResolution,
 }
-
 impl VoxelWorkerLane {
-    const COUNT: usize = 4;
-
+    const COUNT: usize = 5;
     const fn index(self) -> usize {
         match self {
             Self::Generation => 0,
             Self::Derivation => 1,
             Self::PlanetarySurface => 2,
-            Self::PresentationResolution => 3,
+            Self::PresentationPlanning => 3,
+            Self::PresentationResolution => 4,
         }
     }
 }
@@ -38,19 +40,15 @@ impl VoxelWorkerLane {
 struct VoxelWorkerAdmission {
     outstanding: [AtomicUsize; VoxelWorkerLane::COUNT],
     limits: [usize; VoxelWorkerLane::COUNT],
+    average_job_ns: [AtomicU64; VoxelWorkerLane::COUNT],
 }
-
 impl VoxelWorkerAdmission {
     fn new(worker_capacity: usize) -> Self {
         let pipeline_depth = worker_capacity.saturating_mul(2).max(1);
         Self {
-            outstanding: [
-                AtomicUsize::new(0),
-                AtomicUsize::new(0),
-                AtomicUsize::new(0),
-                AtomicUsize::new(0),
-            ],
-            limits: [pipeline_depth, pipeline_depth, 2, 2],
+            outstanding: std::array::from_fn(|_| AtomicUsize::new(0)),
+            limits: [pipeline_depth, pipeline_depth, 2, 1, 2],
+            average_job_ns: std::array::from_fn(|_| AtomicU64::new(0)),
         }
     }
 
@@ -59,16 +57,12 @@ impl VoxelWorkerAdmission {
         let limit = self.limits[index];
         let counter = &self.outstanding[index];
         let mut current = counter.load(Ordering::Acquire);
-
         loop {
             if current >= limit {
                 return false;
             }
             match counter.compare_exchange_weak(
-                current,
-                current + 1,
-                Ordering::AcqRel,
-                Ordering::Acquire,
+                current, current + 1, Ordering::AcqRel, Ordering::Acquire,
             ) {
                 Ok(_) => return true,
                 Err(observed) => current = observed,
@@ -80,15 +74,40 @@ impl VoxelWorkerAdmission {
         let previous = self.outstanding[lane.index()].fetch_sub(1, Ordering::AcqRel);
         debug_assert!(previous > 0, "voxel worker admission underflow");
     }
-
     fn available(&self, lane: VoxelWorkerLane) -> usize {
         self.limits[lane.index()].saturating_sub(
             self.outstanding[lane.index()].load(Ordering::Acquire),
         )
     }
-
     fn outstanding(&self, lane: VoxelWorkerLane) -> usize {
         self.outstanding[lane.index()].load(Ordering::Acquire)
+    }
+    fn total_outstanding(&self) -> usize {
+        self.outstanding
+            .iter()
+            .map(|counter| counter.load(Ordering::Acquire))
+            .sum()
+    }
+    fn record_job_duration(&self, lane: VoxelWorkerLane, elapsed_ns: u64) {
+        let average = &self.average_job_ns[lane.index()];
+        let mut current = average.load(Ordering::Relaxed);
+        loop {
+            let next = if current == 0 {
+                elapsed_ns.max(1)
+            } else {
+                current.saturating_mul(7).saturating_add(elapsed_ns.max(1)) / 8
+            };
+            match average.compare_exchange_weak(
+                current, next, Ordering::Relaxed, Ordering::Relaxed,
+            ) {
+                Ok(_) => break,
+                Err(observed) => current = observed,
+            }
+        }
+    }
+    fn average_job_seconds(&self, lane: VoxelWorkerLane) -> Option<f64> {
+        let value = self.average_job_ns[lane.index()].load(Ordering::Relaxed);
+        (value != 0).then_some(value as f64 * 1.0e-9)
     }
 }
 
@@ -183,7 +202,15 @@ impl VoxelWorkerPool {
         self.admission.available(lane)
     }
 
-    pub(super) fn try_submit<T, F>(
+    pub(super) fn estimated_latency_seconds(&self, lane: VoxelWorkerLane) -> f64 {
+        let cost = self.admission.average_job_seconds(lane).unwrap_or(0.008);
+        let waves = self.admission.total_outstanding()
+            .div_ceil(self.capacity.max(1))
+            .saturating_add(1);
+        cost * waves as f64
+    }
+
+pub(super) fn try_submit<T, F>(
         &self,
         lane: VoxelWorkerLane,
         job: F,
@@ -199,43 +226,42 @@ impl VoxelWorkerPool {
         let (result_sender, result_receiver) = mpsc::sync_channel(1);
         let cancelled = Arc::new(AtomicBool::new(false));
         let worker_cancelled = Arc::clone(&cancelled);
+        let admission_for_job = Arc::clone(&self.admission);
 
-        if self
-            .sender
-            .send(Box::new(move || {
-                if worker_cancelled.load(Ordering::Acquire) {
-                    return;
-                }
+        if self.sender.send(Box::new(move || {
+            if worker_cancelled.load(Ordering::Acquire) {
+                return;
+            }
 
-                // voxel-manifestation-pressure-v1
-                let output = match lane {
-                    VoxelWorkerLane::Generation => {
-                        let _span =
-                            bevy::log::info_span!("voxel.worker.generation").entered();
-                        job()
-                    }
-                    VoxelWorkerLane::Derivation => {
-                        let _span =
-                            bevy::log::info_span!("voxel.worker.derivation").entered();
-                        job()
-                    }
-                    VoxelWorkerLane::PlanetarySurface => {
-                        let _span =
-                            bevy::log::info_span!("voxel.worker.planetary_surface").entered();
-                        job()
-                    }
-                    VoxelWorkerLane::PresentationResolution => {
-                        let _span =
-                            bevy::log::info_span!("voxel.worker.presentation_resolution").entered();
-                        job()
-                    }
-                };
-                if !worker_cancelled.load(Ordering::Acquire) {
-                    let _ = result_sender.send(output);
+            let started = Instant::now();
+            let output = match lane {
+                VoxelWorkerLane::Generation => {
+                    let _span = bevy::log::info_span!("voxel.worker.generation").entered();
+                    job()
                 }
-            }))
-            .is_err()
-        {
+                VoxelWorkerLane::Derivation => {
+                    let _span = bevy::log::info_span!("voxel.worker.derivation").entered();
+                    job()
+                }
+                VoxelWorkerLane::PlanetarySurface => {
+                    let _span = bevy::log::info_span!("voxel.worker.planetary_surface").entered();
+                    job()
+                }
+                VoxelWorkerLane::PresentationPlanning => {
+                    let _span = bevy::log::info_span!("voxel.worker.presentation_planning").entered();
+                    job()
+                }
+                VoxelWorkerLane::PresentationResolution => {
+                    let _span = bevy::log::info_span!("voxel.worker.presentation_resolution").entered();
+                    job()
+                }
+            };
+            let elapsed_ns = started.elapsed().as_nanos().min(u128::from(u64::MAX)) as u64;
+            admission_for_job.record_job_duration(lane, elapsed_ns);
+            if !worker_cancelled.load(Ordering::Acquire) {
+                let _ = result_sender.send(output);
+            }
+        })).is_err() {
             self.admission.release(lane);
             return None;
         }
@@ -247,6 +273,7 @@ impl VoxelWorkerPool {
             lane,
         })
     }
+
 }
 
 #[cfg(feature = "profiling-tracy")]
@@ -260,38 +287,22 @@ pub(super) fn emit_worker_pressure(workers: Res<VoxelWorkerPool>) {
 
     let generation = workers.admission.outstanding(VoxelWorkerLane::Generation);
     let derivation = workers.admission.outstanding(VoxelWorkerLane::Derivation);
-    let planetary = workers
-        .admission
-        .outstanding(VoxelWorkerLane::PlanetarySurface);
-    let presentation = workers
-        .admission
-        .outstanding(VoxelWorkerLane::PresentationResolution);
+    let planetary = workers.admission.outstanding(VoxelWorkerLane::PlanetarySurface);
+    let planning = workers.admission.outstanding(VoxelWorkerLane::PresentationPlanning);
+    let presentation = workers.admission.outstanding(VoxelWorkerLane::PresentationResolution);
 
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.capacity"),
-        workers.capacity as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.outstanding.generation"),
-        generation as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.outstanding.derivation"),
-        derivation as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.outstanding.planetary"),
-        planetary as f64,
-    );
-    client.plot(
-        tracy_client::plot_name!("voxel.worker.outstanding.presentation"),
-        presentation as f64,
-    );
+    client.plot(tracy_client::plot_name!("voxel.worker.capacity"), workers.capacity as f64);
+    client.plot(tracy_client::plot_name!("voxel.worker.outstanding.generation"), generation as f64);
+    client.plot(tracy_client::plot_name!("voxel.worker.outstanding.derivation"), derivation as f64);
+    client.plot(tracy_client::plot_name!("voxel.worker.outstanding.planetary"), planetary as f64);
+    client.plot(tracy_client::plot_name!("voxel.worker.outstanding.presentation_planning"), planning as f64);
+    client.plot(tracy_client::plot_name!("voxel.worker.outstanding.presentation"), presentation as f64);
     client.plot(
         tracy_client::plot_name!("voxel.worker.outstanding.total"),
-        (generation + derivation + planetary + presentation) as f64,
+        (generation + derivation + planetary + planning + presentation) as f64,
     );
 }
+
 
 fn recommended_worker_threads(available: usize) -> usize {
     let available = available.max(1);

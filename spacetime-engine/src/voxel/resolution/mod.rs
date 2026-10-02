@@ -62,6 +62,17 @@ impl VoxelPresentationResolution {
         Some(Self(exponent as i16))
     }
 
+    pub(crate) fn at_least_metres(min_spacing_metres: f64) -> Option<Self> {
+        if !min_spacing_metres.is_finite() || min_spacing_metres <= 0.0 {
+            return None;
+        }
+        let exponent = min_spacing_metres.log2().ceil();
+        if exponent < f64::from(i16::MIN) || exponent > f64::from(i16::MAX) {
+            return None;
+        }
+        Some(Self(exponent as i16))
+    }
+
     /// Projects this *physical* resolution into one disposable USF chart.
     ///
     /// Changing the chart changes this numeric value but never the physical

@@ -46,8 +46,6 @@ pub struct VoxelStreaming {
     effective_desired: HashSet<VoxelMaterializationKey>,
     residency_activate: HashSet<VoxelMaterializationKey>,
     residency_deactivate: HashSet<VoxelMaterializationKey>,
-    adaptive_load_tier: u8,
-    adaptive_recovery_frames: u16,
 }
 
 impl VoxelStreaming {
@@ -63,8 +61,6 @@ impl VoxelStreaming {
             effective_desired: HashSet::new(),
             residency_activate: HashSet::new(),
             residency_deactivate: HashSet::new(),
-            adaptive_load_tier: 0,
-            adaptive_recovery_frames: 0,
         }
     }
 
@@ -76,24 +72,7 @@ impl VoxelStreaming {
         self.pending_desired.len()
     }
 
-    fn update_adaptive_load_tier(&mut self, raw_tier: u8) -> u8 {
-        let raw_tier = raw_tier.min(4);
-        if raw_tier > self.adaptive_load_tier {
-            self.adaptive_load_tier = raw_tier;
-            self.adaptive_recovery_frames = 0;
-        } else if raw_tier < self.adaptive_load_tier {
-            self.adaptive_recovery_frames =
-                self.adaptive_recovery_frames.saturating_add(1);
-            if self.adaptive_recovery_frames >= 30 {
-                self.adaptive_load_tier =
-                    self.adaptive_load_tier.saturating_sub(1).max(raw_tier);
-                self.adaptive_recovery_frames = 0;
-            }
-        } else {
-            self.adaptive_recovery_frames = 0;
-        }
-        self.adaptive_load_tier
-    }
+
 
     fn retire_all_desired(&mut self) -> bool {
         let changed = !self.cached_desired_roles.is_empty()

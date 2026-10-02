@@ -1,4 +1,6 @@
 //! Spacetime Engine.
+
+// realization-granularity-and-work-governor-v2
 //!
 //! The engine owns reusable simulation, spatial, physics, rendering-adjacent,
 //! diagnostics, developer-tooling, and world-generation infrastructure used by
@@ -18,6 +20,7 @@ pub mod geometry;
 pub mod input_focus;
 pub mod physics;
 pub mod portal;
+pub mod reconstructible;
 pub mod procedural_assets;
 pub mod usf;
 pub mod spatial;
@@ -64,6 +67,7 @@ pub fn run(install_game: impl FnOnce(&mut EngineApp)) {
             ecs::component_conflict::ComponentConflictPlugin,
             geometry::AuthoredGeometryPlugin,
             physics::SpacetimePhysicsPlugin,
+            reconstructible::ReconstructibleWorkPlugin,
             voxel::VoxelPlugin,
             ui::UiFoundationPlugin,
             diagnostics::RuntimeDiagnosticsPlugin,

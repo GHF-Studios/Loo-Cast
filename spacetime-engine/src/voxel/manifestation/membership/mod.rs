@@ -2,6 +2,10 @@
 
 use bevy::prelude::*;
 
+use crate::reconstructible::{
+    ReconstructibleFrameBudget, ReconstructibleWorkClass,
+};
+
 use super::{
     ManifestationKey, VoxelMaterializationRuntime,
     VoxelMaterializationRuntimeRegistry,
@@ -13,14 +17,26 @@ pub(in crate::voxel) fn sync_manifestation_membership(
     mut worlds: Query<(Entity, &mut VoxelWorld)>,
     runtimes: Query<&VoxelMaterializationRuntime>,
     mut registry: ResMut<VoxelMaterializationRuntimeRegistry>,
+    mut frame_budget: ResMut<ReconstructibleFrameBudget>,
 ) {
-    for (world_entity, mut world) in &mut worlds {
-        while let Some(materialization_key) = world.materializations_mut().pop_dirty_render() {
+    'worlds: for (world_entity, mut world) in &mut worlds {
+        loop {
+            let Some(work_token) =
+                frame_budget.begin(ReconstructibleWorkClass::Publication)
+            else {
+                break 'worlds;
+            };
+            let Some(materialization_key) =
+                world.materializations_mut().pop_dirty_render()
+            else {
+                frame_budget.finish(work_token);
+                break;
+            };
+
             let key = ManifestationKey {
                 world: world_entity,
                 key: materialization_key,
             };
-
             let surface_revision = world
                 .materializations()
                 .active_surface(materialization_key)
@@ -36,10 +52,7 @@ pub(in crate::voxel) fn sync_manifestation_membership(
                 if let Some(entity) = registry.entities.remove(&key) {
                     match runtimes.get(entity) {
                         Ok(runtime) => {
-                            commands.entity(entity).insert((
-                                (*runtime).parked(),
-                                Visibility::Hidden,
-                            ));
+                            commands.entity(entity).insert(((*runtime).parked(), Visibility::Hidden));
                             if !registry.recycle(entity) {
                                 commands.entity(entity).despawn();
                             }
@@ -48,6 +61,7 @@ pub(in crate::voxel) fn sync_manifestation_membership(
                     }
                 }
             }
+            frame_budget.finish(work_token);
         }
     }
 }

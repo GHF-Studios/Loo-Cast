@@ -282,6 +282,8 @@ pub struct UsfViewContext {
     anchor: UsfPosition,
     /// Runtime-chart position of that same semantic observer anchor.
     runtime_anchor: Vec3,
+    /// Canonical SI motion of the semantic observer anchor.
+    velocity_metres_per_second: DVec3,
     /// Render-space position of the active primary camera.
     render_anchor: Vec3,
     scale: SpatialScale,
@@ -323,6 +325,7 @@ impl Default for UsfViewContext {
         Self {
             anchor: UsfPosition::zero(SpatialScale::MAX),
             runtime_anchor: Vec3::ZERO,
+            velocity_metres_per_second: DVec3::ZERO,
             render_anchor: Vec3::ZERO,
             scale: SpatialScale::MAX,
             zoom: 0.0,
@@ -338,6 +341,10 @@ impl UsfViewContext {
     /// Runtime-chart position of the semantic observer anchor.
     pub const fn runtime_anchor(&self) -> Vec3 {
         self.runtime_anchor
+    }
+
+    pub const fn velocity_metres_per_second(&self) -> DVec3 {
+        self.velocity_metres_per_second
     }
 
     /// Render-space origin corresponding to the semantic observer anchor.

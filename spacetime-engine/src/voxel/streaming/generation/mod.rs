@@ -6,6 +6,7 @@ use bevy::prelude::*;
 
 use crate::{
     config::EngineConfig,
+    reconstructible::{ReconstructibleFrameBudget, ReconstructibleWorkClass},
     ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf},
     spatial::{UsfPosition, UsfScaleLayer, UsfSemanticFrame},
 };
@@ -76,6 +77,7 @@ impl VoxelGenerationTask {
 
 pub(in crate::voxel) fn finish_chunk_generation(
     config: Res<EngineConfig>,
+    mut frame_budget: ResMut<ReconstructibleFrameBudget>,
     mut commands: Commands,
     mut worlds: Query<(&mut VoxelWorld, Option<&UsfLogicalRealizationOf>)>,
     authority_partitions: Query<&UsfAuthorityPartitionOf>,
@@ -86,11 +88,10 @@ pub(in crate::voxel) fn finish_chunk_generation(
     let publish_budget = config.voxel.streaming.generation_publish_budget_per_frame;
     let mut published = 0;
 
-    for (task_entity, mut generation) in &mut tasks {
+    'tasks: for (task_entity, mut generation) in &mut tasks {
         if published >= publish_budget {
             break;
         }
-
         if !generation.received {
             let Some(completed) = generation.task.try_take() else {
                 continue;
@@ -99,9 +100,7 @@ pub(in crate::voxel) fn finish_chunk_generation(
             generation.ready = completed.into();
         }
 
-        let Ok((mut world, logical_realization)) =
-            worlds.get_mut(generation.world)
-        else {
+        let Ok((mut world, logical_realization)) = worlds.get_mut(generation.world) else {
             generation.ready.clear();
             commands.entity(task_entity).despawn();
             continue;
@@ -121,10 +120,16 @@ pub(in crate::voxel) fn finish_chunk_generation(
             let Some(mut output) = generation.ready.pop_front() else {
                 break;
             };
-
             let Ok(address) = world.materialization_address(output.key) else {
                 continue;
             };
+            let Some(work_token) =
+                frame_budget.begin(ReconstructibleWorkClass::Publication)
+            else {
+                generation.ready.push_front(output);
+                break 'tasks;
+            };
+
             catch_up_generated_chunk_with_authority(
                 &world,
                 authority,
@@ -132,7 +137,6 @@ pub(in crate::voxel) fn finish_chunk_generation(
                 output.applied_edit_count,
                 &mut output.chunk,
             );
-
             generation.keys.retain(|key| *key != output.key);
             if world.materializations_mut().publish_generated(
                 output.key,
@@ -141,6 +145,7 @@ pub(in crate::voxel) fn finish_chunk_generation(
             ) {
                 published += 1;
             }
+            frame_budget.finish(work_token);
         }
 
         if generation.received && generation.ready.is_empty() {
@@ -149,6 +154,7 @@ pub(in crate::voxel) fn finish_chunk_generation(
         }
     }
 }
+
 
 /// Cancels a batch when none of its unpublished addresses remain active after
 /// the latest residency reconciliation. Dropping Bevy's Task handle cancels it.

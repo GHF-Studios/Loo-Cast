@@ -9,7 +9,10 @@ use std::collections::HashSet;
 
 use bevy::prelude::*;
 
-use crate::spatial::{SPATIAL_SCALE_MAX, SpatialScale, UsfPosition, UsfScaleLayer};
+use crate::{
+    reconstructible::{ReconstructibleFrameBudget, ReconstructibleWorkClass},
+    spatial::{SPATIAL_SCALE_MAX, SpatialScale, UsfPosition, UsfScaleLayer},
+};
 
 use super::{
     VoxelBase, VoxelMaterializationChunkAddress, VoxelMaterializationKey,
@@ -45,22 +48,26 @@ pub(super) fn publish_completed_chunk_builds(
     mut tasks: Query<(Entity, &mut VoxelDerivedTask)>,
     mut announced_celestial_surfaces: Local<HashSet<Entity>>,
     mut telemetry: ResMut<VoxelStreamingTelemetry>,
+    mut frame_budget: ResMut<ReconstructibleFrameBudget>,
 ) {
     let mut published = 0;
-
     for (task_entity, mut build) in &mut tasks {
         if published >= DERIVED_PUBLISH_BUDGET_PER_FRAME {
             break;
         }
-
+        let Some(work_token) =
+            frame_budget.begin(ReconstructibleWorkClass::Publication)
+        else {
+            break;
+        };
         let Some(output) = build.task.try_take() else {
+            frame_budget.finish(work_token);
             continue;
         };
 
         if let Ok((name, mut world)) = worlds.get_mut(build.world) {
             let has_surface =
                 !output.surface.positions.is_empty() && !output.surface.indices.is_empty();
-
             if has_surface
                 && matches!(world.base(), VoxelBase::CelestialBody(_))
                 && announced_celestial_surfaces.insert(build.world)
@@ -73,7 +80,6 @@ pub(super) fn publish_completed_chunk_builds(
                     "celestial voxel world published its first non-empty terrain surface"
                 );
             }
-
             let cache = has_surface.then(|| {
                 VoxelSurfaceCache::new(build.revision, output.surface, output.debug_color)
             });
@@ -85,8 +91,10 @@ pub(super) fn publish_completed_chunk_builds(
         commands.entity(task_entity).despawn();
         telemetry.derived_completed();
         published += 1;
+        frame_budget.finish(work_token);
     }
 }
+
 
 /// Cancels Surface-Nets work once its source materialization is no longer active.
 pub(super) fn retire_stale_chunk_builds(
@@ -125,64 +133,59 @@ pub(super) fn queue_dirty_chunk_builds(
     workers: Res<VoxelWorkerPool>,
     mut worlds: Query<(Entity, &mut VoxelWorld, &UsfScaleLayer)>,
     mut telemetry: ResMut<VoxelStreamingTelemetry>,
+    mut frame_budget: ResMut<ReconstructibleFrameBudget>,
 ) {
     let task_budget = workers.available_slots(VoxelWorkerLane::Derivation);
     let mut started = 0;
     let mut empty_published = 0;
 
-    for (world_entity, mut world, layer) in &mut worlds {
+    'worlds: for (world_entity, mut world, layer) in &mut worlds {
         while started < task_budget
             || empty_published < DERIVED_EMPTY_PUBLISH_BUDGET_PER_FRAME
         {
+            let Some(work_token) =
+                frame_budget.begin(ReconstructibleWorkClass::Maintenance)
+            else {
+                break 'worlds;
+            };
+
             let Some(key) = world.materializations_mut().pop_dirty_derived() else {
+                frame_budget.finish(work_token);
                 break;
             };
             let Some((revision, snapshot)) =
                 world.materializations_mut().begin_surface_build(key)
             else {
+                frame_budget.finish(work_token);
                 continue;
             };
 
-            // Generation/editing already computed this exact invariant. Known
-            // all-solid/all-empty materializations have no isosurface, so mark
-            // their derived revision current immediately instead of consuming
-            // an async worker slot and running Surface Nets to rediscover
-            // emptiness.
             if !snapshot.has_surface_transition() {
-                world
-                    .materializations_mut()
-                    .publish_surface(key, revision, None);
+                world.materializations_mut().publish_surface(key, revision, None);
                 telemetry.derived_skipped_empty();
                 empty_published += 1;
+                frame_budget.finish(work_token);
                 continue;
             }
 
             if started >= task_budget {
-                // Preserve bounded main-thread work and FIFO ownership. This
-                // reservation is returned to the dirty queue for a later frame
-                // when an actual async worker slot is available.
-                world
-                    .materializations_mut()
-                    .cancel_surface_build(key, revision);
+                world.materializations_mut().cancel_surface_build(key, revision);
+                frame_budget.finish(work_token);
                 break;
             }
 
             let Ok(address) = world.materialization_address(key) else {
                 world.materializations_mut().cancel_surface_build(key, revision);
+                frame_budget.finish(work_token);
                 continue;
             };
-
             let debug_color = debug_chunk_color(address, layer.scale());
             let Some(task) = workers.try_submit(VoxelWorkerLane::Derivation, move || {
                 let surface = mesh::extract_chunk_surface(&snapshot);
-                VoxelDerivedOutput {
-                    surface,
-                    debug_color,
-                }
+                VoxelDerivedOutput { surface, debug_color }
             }) else {
-                world
-                    .materializations_mut()
-                    .cancel_surface_build(key, revision);
+                world.materializations_mut().cancel_surface_build(key, revision);
+                frame_budget.finish(work_token);
                 break;
             };
 
@@ -198,6 +201,7 @@ pub(super) fn queue_dirty_chunk_builds(
                 },
             ));
             started += 1;
+            frame_budget.finish(work_token);
         }
 
         if started >= task_budget
@@ -207,6 +211,7 @@ pub(super) fn queue_dirty_chunk_builds(
         }
     }
 }
+
 
 fn debug_chunk_color(address: VoxelMaterializationChunkAddress, scale: SpatialScale) -> [f32; 4] {
     let origin = *address.origin();
