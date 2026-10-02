@@ -10,6 +10,7 @@
 use bevy::{math::DVec3, prelude::*};
 
 use crate::{
+    ecs::UsfOwnershipQuery,
     physics::PhysicalBoxHull,
     spatial::{
         UsfPosition, UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScaleRoleMask,
@@ -179,8 +180,9 @@ fn sample_surface_candidate(
 }
 
 fn sync_surface_contexts(
-    frame: Res<UsfSpatialFrame>,
     coverage: Res<UsfScaleCoverageSnapshot>,
+    ownership: UsfOwnershipQuery,
+    semantic_positions: Query<&UsfPosition>,
     fields: Query<(
         Entity,
         &UsfPosition,
@@ -189,21 +191,26 @@ fn sync_surface_contexts(
         &VoxelScaleDomain,
     )>,
     mut subjects: Query<(
+        Entity,
         &Transform,
         &UsfScaleLayer,
         &PhysicalBoxHull,
         &mut SurfaceContext,
     )>,
 ) {
-    for (transform, layer, hull, mut surface) in &mut subjects {
+    for (entity, transform, layer, hull, mut surface) in &mut subjects {
         *surface = SurfaceContext::default();
 
         let _candidate_span =
             bevy::log::info_span!("surface_context.candidate").entered();
-        let Ok(position) = frame
-            .origin()
-            .translated_at_scale(layer.scale(), transform.translation)
-        else {
+
+        // Surface telemetry observes semantic position directly. Runtime
+        // Transform is a bounded/rebased projection and may intentionally
+        // remain near the chart origin while the subject travels globally.
+        let Some(semantic_entity) = ownership.semantic_of(entity) else {
+            continue;
+        };
+        let Ok(position) = semantic_positions.get(semantic_entity) else {
             continue;
         };
 

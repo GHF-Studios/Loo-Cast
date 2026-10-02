@@ -155,19 +155,25 @@ fn automatic_regime(
 
 fn canonical_motion_authoritative(
     kernel: MotionKernel,
-    _layer: SpatialScale,
-    _detailed: SpatialScale,
+    layer: SpatialScale,
+    detailed: SpatialScale,
 ) -> bool {
     match kernel {
         MotionKernel::Cruise | MotionKernel::OrbitalFlight => true,
-        // Local inertial flight is physically authoritative in every active
-        // interaction Scale Slice. ScaleProxy collision is not decorative:
-        // it is the coarse digit of the same collision ladder.
+
+        // Runtime f32 charts cannot integrate ordinary SI motion once the
+        // interaction Scale is sufficiently coarse. At S+35, for example,
+        // 100 m/s is ~1e-33 native units/s: adding a fixed-tick displacement
+        // to an ordinary f32 runtime coordinate is numerically zero.
+        //
+        // Detailed interaction keeps runtime collision authority. Coarser
+        // flight/navigation must integrate canonical SI position and project
+        // the result back into the bounded chart.
         MotionKernel::InertialFlight
-        | MotionKernel::Character
         | MotionKernel::ThrusterFlight
-        | MotionKernel::ScaleNavigation
-        | MotionKernel::Disabled => false,
+        | MotionKernel::ScaleNavigation => layer != detailed,
+
+        MotionKernel::Character | MotionKernel::Disabled => false,
     }
 }
 
@@ -991,6 +997,28 @@ mod tests {
             .expect("canonical pose should project back to runtime chart");
 
         assert!((projected - runtime).length() < 1.0e-5);
+    }
+
+    #[test]
+    fn coarse_flight_uses_canonical_position_authority() {
+        let detailed = SpatialScale::ZERO;
+        let coarse = SpatialScale::new(6).unwrap();
+
+        assert!(canonical_motion_authoritative(
+            MotionKernel::InertialFlight,
+            coarse,
+            detailed,
+        ));
+        assert!(canonical_motion_authoritative(
+            MotionKernel::ScaleNavigation,
+            coarse,
+            detailed,
+        ));
+        assert!(!canonical_motion_authoritative(
+            MotionKernel::InertialFlight,
+            detailed,
+            detailed,
+        ));
     }
 
     #[test]
