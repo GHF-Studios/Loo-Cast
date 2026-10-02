@@ -1,8 +1,9 @@
 //! Runtime manifestations derived from store-owned voxel surfaces.
 //!
-//! Presentation remains one-to-one with active materializations. Collision is
-//! an independently owned backend capability and may aggregate multiple
-//! materializations without changing semantic or presentation identity.
+//! Manifestations exist only for materializations with actual presentation
+//! geometry. Uniform air/solid realization facts remain store-backed and publish
+//! batched capability coverage without per-materialization ECS entities.
+//! Collision is independently owned and may aggregate multiple materializations.
 
 use std::collections::{HashMap, HashSet};
 
@@ -43,7 +44,7 @@ struct ManifestationKey {
     key: VoxelMaterializationKey,
 }
 
-/// Root entity for one disposable same-resolution render/collision manifestation.
+/// Root entity for one disposable same-resolution presentation manifestation.
 #[derive(Component)]
 pub(super) struct VoxelMaterializationRuntime {
     world: Entity,

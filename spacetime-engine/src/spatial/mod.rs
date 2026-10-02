@@ -44,6 +44,7 @@ pub use crate::usf::{
     UsfChartDelta, UsfChunkAddress, UsfPosition, UsfPositionError,
 };
 pub use capability::{
+    UsfCapabilityCoverageBatch, UsfCapabilityCoverageRecord,
     UsfCapabilityRealization, UsfCapabilitySet, UsfRefinementAperture,
     UsfScaleCoverage, UsfScaleCoverageSnapshot, UsfScaleRoleMask,
 };

@@ -91,22 +91,39 @@ impl VoxelMaterializationStore {
     pub(in crate::voxel) fn insert_dense_active(
         &mut self,
         address: VoxelMaterializationKey,
-        chunk: VoxelChunk,
+        mut chunk: VoxelChunk,
     ) {
         if self.entries.get(&address).is_some_and(|entry| !entry.active) {
             self.inactive_count = self.inactive_count.saturating_sub(1);
         }
+
+        // segmented-materialization-v1
+        //
+        // A uniform dense result already proves that no surface representation
+        // exists for this revision. Publish that derived fact immediately:
+        // there is no reason to enqueue Surface Nets merely to rediscover it.
+        let uniform_revision =
+            (!chunk.has_surface_transition()).then_some(chunk.revision());
+        if uniform_revision.is_some() {
+            chunk.mark_meshed();
+        }
+
         self.entries.insert(
             address,
             VoxelMaterializationEntry {
                 active: true,
                 state: VoxelMaterializationState::Dense(chunk),
-                derived_revision: None,
+                derived_revision: uniform_revision,
                 surface: None,
                 derived_in_flight: None,
             },
         );
-        self.mark_derived_dirty(address);
+
+        if uniform_revision.is_some() {
+            self.bump_capability_revision();
+        } else {
+            self.mark_derived_dirty(address);
+        }
         self.mark_render_dirty(address);
     }
 
@@ -134,11 +151,25 @@ impl VoxelMaterializationStore {
             return false;
         }
 
+        // generated-uniform-fast-path-v1
+        let mut chunk = chunk;
+        let uniform_revision =
+            (!chunk.has_surface_transition()).then_some(chunk.revision());
+        if uniform_revision.is_some() {
+            chunk.mark_meshed();
+        }
+
         entry.state = VoxelMaterializationState::Dense(chunk);
-        entry.derived_revision = None;
+        entry.derived_revision = uniform_revision;
         entry.surface = None;
         entry.derived_in_flight = None;
-        self.mark_derived_dirty(address);
+
+        if uniform_revision.is_some() {
+            self.bump_capability_revision();
+            self.mark_render_dirty(address);
+        } else {
+            self.mark_derived_dirty(address);
+        }
         true
     }
 
@@ -198,6 +229,30 @@ impl VoxelMaterializationStore {
                 self.dirty_derived_set.remove(&address);
                 self.inactive_count = self.inactive_count.saturating_sub(1);
             }
+        }
+    }
+}
+
+
+#[cfg(test)]
+mod segmented_materialization_tests {
+    use super::*;
+
+    #[test]
+    fn uniform_generated_chunks_are_immediately_derived_without_surface() {
+        for sample in [
+            VoxelSample::empty(32.0),
+            VoxelSample::new(-32.0, VoxelMaterialId::ROCK),
+        ] {
+            let mut store = VoxelMaterializationStore::default();
+            let key = VoxelMaterializationKey::new([0, 0, 0]);
+            let token = store.reserve_generation(key).unwrap();
+            let chunk = VoxelChunk::filled(sample);
+
+            assert!(store.publish_generated(key, token, chunk));
+            assert_eq!(store.active_derived_revision(key), Some(0));
+            assert!(store.surface(key).is_none());
+            assert!(store.pop_dirty_derived().is_none());
         }
     }
 }

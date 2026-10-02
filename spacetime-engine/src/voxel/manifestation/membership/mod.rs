@@ -17,27 +17,28 @@ pub(in crate::voxel) fn sync_manifestation_membership(
                 key: materialization_key,
             };
 
-            match world
+            // surface-only-manifestation-v1
+            //
+            // Runtime manifestations are presentation geometry, not residency
+            // facts. Uniform air/solid and any other derived-current no-surface
+            // result publish store-backed capability coverage instead of owning
+            // one empty ECS root + child.
+            let surface_revision = world
                 .materializations()
-                .active_derived_revision(materialization_key)
-            {
-                Some(revision) => {
-                    registry.revisions.insert(key, revision);
-                    registry.dirty.insert(key);
-                }
-                None => {
-                    // Only inactive/not-yet-derived materializations retire.
-                    // A derived-current empty result deliberately keeps a
-                    // meshless runtime so capability coverage can represent
-                    // known-empty presentation truth.
-                    //
-                    // Retirement is not rebuild work, so it must never compete
-                    // with the bounded manifestation rebuild budget.
-                    registry.revisions.remove(&key);
-                    registry.dirty.remove(&key);
-                    if let Some(entity) = registry.entities.remove(&key) {
-                        commands.entity(entity).despawn();
-                    }
+                .active_surface(materialization_key)
+                .filter(|cache| cache.surface.has_triangles())
+                .map(|cache| cache.revision);
+
+            if let Some(revision) = surface_revision {
+                registry.revisions.insert(key, revision);
+                registry.dirty.insert(key);
+            } else {
+                // Retirement is not rebuild work, so it must never compete with
+                // the bounded manifestation rebuild budget.
+                registry.revisions.remove(&key);
+                registry.dirty.remove(&key);
+                if let Some(entity) = registry.entities.remove(&key) {
+                    commands.entity(entity).despawn();
                 }
             }
         }

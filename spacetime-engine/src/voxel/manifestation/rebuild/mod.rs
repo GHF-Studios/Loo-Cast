@@ -88,14 +88,23 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
             continue;
         }
 
-        let cache = world.materializations().surface(key.key);
-        if cache.is_some_and(|cache| cache.revision != expected_revision) {
-            registry.dirty.insert(key);
+        let Some(cache) = world.materializations().active_surface(key.key) else {
+            registry.revisions.remove(&key);
+            if let Some(entity) = registry.entities.remove(&key) {
+                commands.entity(entity).despawn();
+            }
+            continue;
+        };
+        if cache.revision != expected_revision || !cache.surface.has_triangles() {
+            registry.revisions.remove(&key);
+            if let Some(entity) = registry.entities.remove(&key) {
+                commands.entity(entity).despawn();
+            }
             continue;
         }
 
-        let mut opaque_mesh = cache
-            .and_then(|cache| build_opaque_mesh(&cache.surface, cache.debug_color));
+        let mut opaque_mesh =
+            build_opaque_mesh(&cache.surface, cache.debug_color);
         let mut root_entity = registry.entities.get(&key).copied();
 
         if let Some(entity) = root_entity {
@@ -138,7 +147,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
                             key.world,
                             layer,
                             address,
-                            cache.map(|cache| &cache.surface),
+                            Some(&cache.surface),
                             translucent_material,
                             &mut meshes,
                             &presentations,
@@ -200,7 +209,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
                 key.world,
                 layer,
                 address,
-                cache.map(|cache| &cache.surface),
+                Some(&cache.surface),
                 translucent_material,
                 &mut meshes,
             );

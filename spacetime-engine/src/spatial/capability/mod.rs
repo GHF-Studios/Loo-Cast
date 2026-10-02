@@ -100,6 +100,72 @@ impl UsfCapabilityRealization {
     }
 }
 
+/// One bounded capability fact published through a batched producer.
+///
+/// Some capabilities own thousands of sparse realized cells without owning an
+/// ECS object per cell. The producer entity is lifecycle identity only; it does
+/// not become semantic authority or presentation identity.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct UsfCapabilityCoverageRecord {
+    authority: Entity,
+    scale: SpatialScale,
+    center: UsfPosition,
+    half_extent_native: Vec3,
+    roles: UsfScaleRoleMask,
+    revision: u64,
+}
+
+impl UsfCapabilityCoverageRecord {
+    pub fn new(
+        authority: Entity,
+        scale: SpatialScale,
+        center: UsfPosition,
+        half_extent_native: Vec3,
+        roles: UsfScaleRoleMask,
+        revision: u64,
+    ) -> Self {
+        Self {
+            authority,
+            scale,
+            center,
+            half_extent_native: half_extent_native.abs(),
+            roles,
+            revision,
+        }
+    }
+
+    fn coverage(self, producer: Entity) -> Option<UsfScaleCoverage> {
+        (!self.roles.is_empty()).then_some(UsfScaleCoverage {
+            realization: producer,
+            authority: self.authority,
+            scale: self.scale,
+            center: self.center,
+            half_extent_native: self.half_extent_native,
+            roles: self.roles,
+            revision: self.revision,
+        })
+    }
+}
+
+/// Store-backed capability facts owned by one ECS producer.
+///
+/// This is deliberately a batch rather than one entity per realized cell. Batch
+/// order must be deterministic for stable snapshot equality.
+#[derive(Component, Debug, Default, Clone, PartialEq)]
+pub struct UsfCapabilityCoverageBatch {
+    records: Vec<UsfCapabilityCoverageRecord>,
+}
+
+impl UsfCapabilityCoverageBatch {
+    pub fn new(records: Vec<UsfCapabilityCoverageRecord>) -> Self {
+        Self { records }
+    }
+
+    pub fn records(&self) -> &[UsfCapabilityCoverageRecord] {
+        &self.records
+    }
+}
+
 /// One bounded realized capability fact.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct UsfScaleCoverage {
@@ -304,23 +370,42 @@ pub enum UsfCapabilitySet {
 
 fn reconcile_capability_coverage(
     realizations: Query<(Entity, &UsfCapabilityRealization)>,
+    batches: Query<(Entity, &UsfCapabilityCoverageBatch)>,
     changed: Query<(), Changed<UsfCapabilityRealization>>,
+    changed_batches: Query<(), Changed<UsfCapabilityCoverageBatch>>,
     mut removed: RemovedComponents<UsfCapabilityRealization>,
+    mut removed_batches: RemovedComponents<UsfCapabilityCoverageBatch>,
     mut snapshot: ResMut<UsfScaleCoverageSnapshot>,
 ) {
     let changed_any = changed.iter().next().is_some();
+    let changed_batch = changed_batches.iter().next().is_some();
     let removed_any = removed.read().next().is_some();
-    if !changed_any && !removed_any {
+    let removed_batch = removed_batches.read().next().is_some();
+    if !changed_any && !changed_batch && !removed_any && !removed_batch {
         return;
     }
 
     let _span = bevy::log::info_span!("usf_capability.rebuild_snapshot").entered();
-    let mut next = Vec::with_capacity(realizations.iter().len());
+    let batched_count = batches
+        .iter()
+        .map(|(_, batch)| batch.records().len())
+        .sum::<usize>();
+    let mut next = Vec::with_capacity(realizations.iter().len() + batched_count);
+
     for (entity, realization) in &realizations {
         if let Some(coverage) = realization.coverage(entity) {
             next.push(coverage);
         }
     }
+
+    for (producer, batch) in &batches {
+        for &record in batch.records() {
+            if let Some(coverage) = record.coverage(producer) {
+                next.push(coverage);
+            }
+        }
+    }
+
     snapshot.reconcile(next);
 }
 

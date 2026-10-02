@@ -1,4 +1,4 @@
-//! Reconciles voxel runtime manifestations into the generic capability lifecycle.
+//! Reconciles store-backed voxel facts and surface manifestations into generic capability coverage.
 
 use std::collections::HashMap;
 
@@ -8,6 +8,7 @@ use crate::{
     config::EngineConfig,
     ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf},
     spatial::{
+        UsfCapabilityCoverageBatch, UsfCapabilityCoverageRecord,
         UsfCapabilityRealization, UsfScaleLayer, UsfScaleRoleMask,
     },
 };
@@ -59,6 +60,7 @@ pub(in crate::voxel) fn sync_capability_realizations(
         &VoxelMaterializationRuntime,
         Option<&mut UsfCapabilityRealization>,
     )>,
+    mut coverage_batches: Query<&mut UsfCapabilityCoverageBatch>,
     mut cache: Local<CapabilitySyncCache>,
 ) {
     let mut world_signatures =
@@ -105,6 +107,75 @@ pub(in crate::voxel) fn sync_capability_realizations(
         .manifestation
         .physics_interaction_radius_native
         .max(0.0);
+
+    // segmented-materialization-coverage-v1
+    //
+    // No-surface realization facts are store-owned. Publish them as one
+    // deterministic batch on the VoxelWorld entity instead of manufacturing a
+    // runtime entity for every uniform air/solid materialization.
+    for (
+        world_entity,
+        world,
+        layer,
+        logical_realization,
+        _streaming,
+        _collision_disabled,
+        editing_disabled,
+    ) in &worlds
+    {
+        let authority = logical_realization
+            .and_then(|logical| authority_partitions.get(logical.0).ok())
+            .map_or(world_entity, |partition| partition.0);
+
+        let mut keys = world.materializations().active_keys().collect::<Vec<_>>();
+        keys.sort_by_key(|key| key.components());
+
+        let mut records = Vec::<UsfCapabilityCoverageRecord>::new();
+        for key in keys {
+            let Some(revision) =
+                world.materializations().active_derived_revision(key)
+            else {
+                continue;
+            };
+            if world.materializations().surface(key).is_some() {
+                continue;
+            }
+
+            let Ok(center) = world
+                .materialization_address(key)
+                .and_then(|address| address.center())
+            else {
+                continue;
+            };
+
+            let mut roles =
+                UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::PRESENTATION);
+            if editing_disabled.is_none() {
+                roles = roles.union(UsfScaleRoleMask::EDITING);
+            }
+
+            records.push(UsfCapabilityCoverageRecord::new(
+                authority,
+                layer.scale(),
+                center,
+                half_extent,
+                roles,
+                revision,
+            ));
+        }
+
+        let next = UsfCapabilityCoverageBatch::new(records);
+        match coverage_batches.get_mut(world_entity) {
+            Ok(mut current) => {
+                if *current != next {
+                    *current = next;
+                }
+            }
+            Err(_) => {
+                commands.entity(world_entity).insert(next);
+            }
+        }
+    }
 
     for (entity, runtime, existing) in &mut runtimes {
         let Ok((
