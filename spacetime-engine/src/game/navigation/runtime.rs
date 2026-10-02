@@ -6,7 +6,9 @@ use crate::{
     ecs::UsfOwnershipQuery,
     game::{
         control::LocalControlSubject,
-        locomotion::{ControlledSubjectLocomotion, VelocitySemantics},
+        locomotion::{
+            ControlledSubjectLocomotion, DetailedBodyScale, VelocitySemantics,
+        },
     },
     spatial::{
         SpatialRefinementDemand, SpatialScale, UsfApproachRefinement,
@@ -390,6 +392,22 @@ pub(super) fn sync_navigation_presentation(
     }
 }
 
+fn interaction_handoff_roles(
+    target_scale: SpatialScale,
+    detailed_contact_scale: SpatialScale,
+) -> UsfScaleRoleMask {
+    let mut roles = UsfScaleRoleMask::REALIZATION;
+
+    // Numerical interaction charts may become coarse without manufacturing a
+    // coarse terrain response model. Collision readiness gates only entry into
+    // the subject's authored detailed contact regime.
+    if target_scale == detailed_contact_scale {
+        roles = roles.union(UsfScaleRoleMask::COLLISION);
+    }
+
+    roles
+}
+
 /// Publishes the current continuous interaction requirement.
 ///
 /// This is intentionally not a one-shot transition command. Publishing the
@@ -402,6 +420,7 @@ pub(super) fn sync_approach_interaction_requirement(
             Entity,
             &UsfScaleLayer,
             &ControlledSubjectLocomotion,
+            &DetailedBodyScale,
             &TravelProfile,
             &PrimaryBodyContext,
             &ApproachRefinementState,
@@ -410,8 +429,15 @@ pub(super) fn sync_approach_interaction_requirement(
     >,
     mut transitions: ResMut<UsfSpatialTransitionQueue>,
 ) {
-    let (realization, layer, locomotion, profile, primary, state) =
-        subject.into_inner();
+    let (
+        realization,
+        layer,
+        locomotion,
+        detailed,
+        profile,
+        primary,
+        state,
+    ) = subject.into_inner();
 
     let Some(semantic_entity) = ownership.semantic_of(realization) else {
         error!(
@@ -442,12 +468,36 @@ pub(super) fn sync_approach_interaction_requirement(
     {
         requirement = requirement.requiring_coverage_from(
             authority,
-            UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::COLLISION),
+            interaction_handoff_roles(target_scale, detailed.0),
             profile.approach.interaction_handoff_coverage_radius_native,
         );
     }
 
     transitions.set_interaction_requirement(requirement);
+}
+
+#[cfg(test)]
+mod interaction_handoff_role_tests {
+    use super::*;
+
+    #[test]
+    fn coarse_chart_handoff_does_not_require_coarse_terrain_collision() {
+        let detailed = SpatialScale::ZERO;
+        let coarse = SpatialScale::new(5).unwrap();
+        let roles = interaction_handoff_roles(coarse, detailed);
+
+        assert!(roles.contains(UsfScaleRoleMask::REALIZATION));
+        assert!(!roles.contains(UsfScaleRoleMask::COLLISION));
+    }
+
+    #[test]
+    fn detailed_contact_handoff_requires_collision_readiness() {
+        let detailed = SpatialScale::ZERO;
+        let roles = interaction_handoff_roles(detailed, detailed);
+
+        assert!(roles.contains(UsfScaleRoleMask::REALIZATION));
+        assert!(roles.contains(UsfScaleRoleMask::COLLISION));
+    }
 }
 
 /// Publishes one compact end-to-end contract snapshot for diagnostics.

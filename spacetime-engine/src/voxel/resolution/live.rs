@@ -22,7 +22,7 @@ use crate::{
     ecs::UsfPresentationProjectionOf,
     spatial::{
         SpatialScale, UsfPosition, UsfPrimaryInteractionSlice, UsfSemanticFrame,
-        UsfSpatialFrame, UsfSpatialSet, UsfViewDemandSnapshot,
+        UsfSpatialFrame, UsfSpatialSet, UsfViewDemandSnapshot, UsfScaleLayer
     },
 };
 
@@ -1140,8 +1140,9 @@ fn sync_celestial_clipmap_transforms(
 
 fn suppress_legacy_celestial_dense_presentation(
     coverage: Res<CelestialClipmapCoverageSnapshot>,
+    interaction: Res<UsfPrimaryInteractionSlice>,
     runtimes: Query<&VoxelMaterializationRuntime>,
-    worlds: Query<&CelestialVoxelRealization>,
+    worlds: Query<(&CelestialVoxelRealization, &UsfScaleLayer)>,
     mut presentations: Query<
         (&ChildOf, &mut Visibility),
         With<VoxelMaterializationPresentation>,
@@ -1151,11 +1152,20 @@ fn suppress_legacy_celestial_dense_presentation(
         let Ok(runtime) = runtimes.get(parent.0) else {
             continue;
         };
-        let Ok(realization) = worlds.get(runtime.world()) else {
+        let Ok((realization, layer)) = worlds.get(runtime.world()) else {
             continue;
         };
 
-        if coverage.owns_presentation(realization.authority()) {
+        // Celestial dense Scale-Slice worlds are no longer a contextual LOD
+        // stack. Before clipmap commit only the current interaction slice may
+        // remain as physical fallback. After commit the binary x2 clipmap owns
+        // local/intermediate presentation entirely.
+        let contextual_decimal_slice =
+            layer.scale() != interaction.scale();
+        let replaced_by_clipmap =
+            coverage.owns_presentation(realization.authority());
+
+        if contextual_decimal_slice || replaced_by_clipmap {
             *visibility = Visibility::Hidden;
         }
     }
@@ -1195,6 +1205,13 @@ mod tests {
             binary_steps >= 3,
             "10x must not be treated as one Transvoxel adjacency",
         );
+    }
+
+    #[test]
+    fn decimal_dense_context_is_not_part_of_the_binary_lod_contract() {
+        let interaction = SpatialScale::new(3).unwrap();
+        let coarse = SpatialScale::new(5).unwrap();
+        assert_ne!(coarse, interaction);
     }
 
     #[test]

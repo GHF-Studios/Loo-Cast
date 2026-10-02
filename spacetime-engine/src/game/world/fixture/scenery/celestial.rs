@@ -61,13 +61,15 @@ pub(super) fn spawn_body(
     );
     let name = definition.name;
 
-    let all_voxel_scales =
-        VoxelScaleDomain::contiguous(SpatialScale::MIN, detail_root).realization_slices();
+    // Decimal USF Scale Slices are numerical charts, not collision LOD.
+    // Until #49/#41 owns an independent collision-resolution ladder, only the
+    // authored detailed surface-contact scale may publish terrain response.
+    // Coarse celestial realizations remain useful realization/cache evidence,
+    // but they must never become kilometre-offset physical walls.
+    let surface_contact_scale = scale(HUMAN_SURFACE_INTERACTION_SCALE);
     let scale_domain = VoxelScaleDomain::contiguous(SpatialScale::MIN, detail_root)
-        .with_collision_slices(all_voxel_scales)
-        .with_editing_slices(UsfChartMask::from_scale(scale(
-            HUMAN_SURFACE_INTERACTION_SCALE,
-        )));
+        .with_collision_slices(UsfChartMask::from_scale(surface_contact_scale))
+        .with_editing_slices(UsfChartMask::from_scale(surface_contact_scale));
 
     let nav_scale = celestial_coarsest_scale(radius_metres);
     let semantic = commands
