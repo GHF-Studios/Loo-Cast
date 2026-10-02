@@ -13,6 +13,25 @@ fn midpoint_between_s0_and_s1_has_reciprocal_adjacent_projection_factors() {
 }
 
 #[test]
+fn direct_projection_rejects_scale_stack_escape_from_final_render_chart() {
+    let mut view = UsfViewContext::default();
+    view.set_continuous_exponent(0.0);
+
+    assert!(
+        view.direct_projection_factor(SpatialScale::new(4).unwrap())
+            .is_some()
+    );
+    assert!(
+        view.direct_projection_factor(SpatialScale::new(5).unwrap())
+            .is_none()
+    );
+    assert!(
+        view.direct_projection_factor(SpatialScale::MAX)
+            .is_none()
+    );
+}
+
+#[test]
 fn crossing_an_integer_zoom_boundary_normalizes_to_the_next_scale() {
     let mut view = UsfViewContext::default();
     view.add_zoom(1.0, SpatialScale::ZERO, SpatialScale::new(1).unwrap());

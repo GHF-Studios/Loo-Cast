@@ -12,6 +12,7 @@ use crate::spatial::{
 };
 
 const PRESENTATION_RELATIVE_BOUND: f32 = 16_384.0;
+const DIRECT_PRESENTATION_SCALE_BOUND: f64 = PRESENTATION_RELATIVE_BOUND as f64;
 const SCENERY_RELATIVE_BOUND: f32 = 1_000_000.0;
 const CONTRIBUTION_EPSILON: f32 = 0.001;
 
@@ -417,6 +418,22 @@ impl UsfViewContext {
     /// Converts geometry authored in `scale`-native units into current view units.
     pub fn projection_factor(&self, scale: SpatialScale) -> f32 {
         10.0_f32.powf(scale.exponent() as f32 - self.continuous_exponent())
+    }
+
+    /// Scale factor for the bounded *direct* contextual composition path.
+    ///
+    /// Arbitrarily distant/coarse phenomena belong in scenery/regional
+    /// projection. Returning `None` here prevents a valid source-local chart
+    /// from escaping the final f32 render chart through an enormous Scale
+    /// Stack projection factor.
+    pub fn direct_projection_factor(&self, scale: SpatialScale) -> Option<f32> {
+        let exponent_delta =
+            f64::from(scale.exponent()) - f64::from(self.continuous_exponent());
+        let factor = 10.0_f64.powf(exponent_delta);
+        (factor.is_finite()
+            && factor > 0.0
+            && factor <= DIRECT_PRESENTATION_SCALE_BOUND)
+            .then_some(factor as f32)
     }
 
 }

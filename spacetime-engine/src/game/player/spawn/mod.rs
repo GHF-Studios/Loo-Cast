@@ -134,7 +134,8 @@ pub(super) fn spawn_player(
                 CustomPositionIntegration,
                 CustomVelocityIntegration,
                 LinearVelocity::ZERO,
-                Collider::sphere(ScaleInteractionProxy::DEFAULT_RADIUS_NATIVE),
+                CharacterDimensions::standing_hull()
+                    .bounding_sphere_collider(SpatialScale::MAX, 0.0),
                 CharacterDimensions::standing_hull(),
                 Weapon::default(),
                 PortalTraveler::new(runtime_position),
@@ -162,7 +163,8 @@ pub(super) fn spawn_player(
                 CustomPositionIntegration,
                 CustomVelocityIntegration,
                 LinearVelocity::ZERO,
-                Collider::sphere(ScaleInteractionProxy::DEFAULT_RADIUS_NATIVE),
+                CharacterDimensions::standing_hull()
+                    .bounding_sphere_collider(SpatialScale::MAX, 0.0),
                 CollisionLayers::NONE,
                 Transform::from_translation(runtime_position),
             ),

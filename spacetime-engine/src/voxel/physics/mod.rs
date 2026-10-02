@@ -10,9 +10,11 @@ use bevy::prelude::*;
 
 use super::mesh::VoxelSurface;
 
-/// Small thickness around the otherwise hollow terrain trimesh. This reduces
-/// tunnelling and visible/contact jitter for character and rigid-body motion.
-pub(super) const VOXEL_COLLISION_MARGIN: f32 = 0.02;
+/// Physical thickness around the otherwise hollow terrain trimesh.
+///
+/// This is semantic contact policy in SI metres, not Scale-Slice-native units.
+/// Each collision realization converts it at its backend boundary.
+pub(super) const VOXEL_COLLISION_MARGIN_METRES: f32 = 0.02;
 
 pub(super) fn build_trimesh_collider(
     vertices: Vec<Vec3>,

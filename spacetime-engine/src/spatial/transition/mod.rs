@@ -5,7 +5,7 @@
 //! canonical [`UsfPosition`] first; scale changes and discontinuous relocation
 //! then rebuild the runtime chart from canonical state.
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use avian3d::prelude::{LinearVelocity, Position};
 use bevy::prelude::*;
@@ -182,6 +182,36 @@ impl UsfInteractionRequirement {
     }
 }
 
+/// Per-frame backend vetoes for an interaction-chart handoff.
+///
+/// Readiness/collision backends may block one semantic subject from entering a
+/// destination Scale Slice for the current frame. The veto is disposable
+/// runtime evidence only: it cannot change canonical identity or demand.
+#[derive(Resource, Debug, Default)]
+pub struct UsfInteractionHandoffGuards {
+    blocked: HashSet<(Entity, SpatialScale)>,
+}
+
+impl UsfInteractionHandoffGuards {
+    pub fn block(&mut self, subject: Entity, target: SpatialScale) {
+        self.blocked.insert((subject, target));
+    }
+
+    pub fn allows(&self, subject: Entity, target: SpatialScale) -> bool {
+        !self.blocked.contains(&(subject, target))
+    }
+
+    fn clear(&mut self) {
+        self.blocked.clear();
+    }
+}
+
+pub(in crate::spatial) fn reset_interaction_handoff_guards(
+    mut guards: ResMut<UsfInteractionHandoffGuards>,
+) {
+    guards.clear();
+}
+
 #[derive(Resource, Default)]
 pub struct UsfSpatialTransitionQueue {
     pending: VecDeque<UsfSpatialTransition>,
@@ -246,6 +276,12 @@ impl UsfSpatialTransitionQueue {
     ) -> Option<UsfInteractionRequirement> {
         self.interaction_requirements.get(&subject).copied()
     }
+
+    pub(crate) fn interaction_requirements(
+        &self,
+    ) -> impl Iterator<Item = UsfInteractionRequirement> + '_ {
+        self.interaction_requirements.values().copied()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -269,6 +305,7 @@ pub(super) fn apply_spatial_transitions(
     mut active: ResMut<UsfPrimaryInteractionSlice>,
     mut frame: ResMut<UsfSpatialFrame>,
     mut queue: ResMut<UsfSpatialTransitionQueue>,
+    handoff_guards: Res<UsfInteractionHandoffGuards>,
     coverage: Res<UsfScaleCoverageSnapshot>,
     ownership: UsfOwnershipQuery,
     mut participants: ParamSet<(
@@ -396,6 +433,17 @@ pub(super) fn apply_spatial_transitions(
         if let Some(request) = requeue {
             queue.request(request);
         }
+        return;
+    }
+
+    // Coverage proves that the destination capability exists. It does not prove
+    // that switching collision representations is geometrically admissible.
+    // Backend guards may therefore hold a continuous interaction handoff on the
+    // outgoing chart without gaining semantic authority.
+    if cause == UsfSpatialTransitionCause::InteractionRequirement
+        && target_scale != previous_scale
+        && !handoff_guards.allows(subject, target_scale)
+    {
         return;
     }
 

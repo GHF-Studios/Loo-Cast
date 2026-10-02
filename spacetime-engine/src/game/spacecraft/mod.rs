@@ -63,7 +63,7 @@ use crate::spatial::UsfNavigationContext;
 use crate::game::GameWorld;
 
 const SHIP_SIZE: Vec3 = Vec3::new(4.0, 2.0, 8.0);
-const SHIP_PROXY_RADIUS_NATIVE: f32 = 0.08;
+const SHIP_PROXY_CLEARANCE_METRES: f32 = 0.08;
 const SHIP_DEMAND_HALF_EXTENT: Vec3 = Vec3::new(96.0, 64.0, 96.0);
 const SHIP_DEMAND_PRIORITY: i32 = 120;
 const LANDING_PROBE_METRES: f32 = 2.0;
@@ -248,7 +248,7 @@ fn spawn_reference_spacecraft(
                         f64::from(SHIP_SIZE.length() * 0.5),
                         0.25,
                     ),
-                    ScaleInteractionProxy::new(SHIP_PROXY_RADIUS_NATIVE),
+                    ScaleInteractionProxy::new(SHIP_PROXY_CLEARANCE_METRES),
                 ),
                 FlightControlIntent::default(),
                 UsfCanonicalMotion::default(),
@@ -279,7 +279,8 @@ fn spawn_reference_spacecraft(
                 CustomPositionIntegration,
                 CustomVelocityIntegration,
                 LinearVelocity::ZERO,
-                Collider::sphere(SHIP_PROXY_RADIUS_NATIVE),
+                PhysicalBoxHull::from_size_metres(SHIP_SIZE)
+                    .collider(body_layer.scale()),
             ),
             (
                 LocomotionInhibition::default(),

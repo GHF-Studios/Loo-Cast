@@ -2,6 +2,7 @@
 
 pub mod slice;
 mod chart_rebase;
+mod interaction_handoff;
 pub mod character;
 pub mod collision_query;
 pub mod collision_topology;
@@ -19,7 +20,7 @@ use avian3d::{
 };
 use bevy::{prelude::*, time::Virtual};
 
-use crate::spatial::UsfSpatialSet;
+use crate::spatial::{UsfInteractionHandoffSet, UsfSpatialSet};
 
 use character::CharacterMovementPlugin;
 use gravity::GravityPlugin;
@@ -69,6 +70,11 @@ impl Plugin for SpacetimePhysicsPlugin {
             .insert_resource(Gravity::ZERO)
             .add_plugins((GravityPlugin, CharacterMovementPlugin))
             .add_systems(PreUpdate, slice::prepare_usf_physics_slices)
+            .add_systems(
+                PostUpdate,
+                interaction_handoff::guard_coarsening_interaction_handoffs
+                    .in_set(UsfInteractionHandoffSet::Providers),
+            )
             .add_systems(
                 PostUpdate,
                 collision_topology::rebuild_clipped_colliders

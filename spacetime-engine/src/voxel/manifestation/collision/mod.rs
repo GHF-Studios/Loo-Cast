@@ -385,7 +385,14 @@ pub(in crate::voxel) fn sync_manifestation_collision_residency(
                     Position::new(translation),
                     Transform::from_translation(translation),
                     collider,
-                    CollisionMargin(physics::VOXEL_COLLISION_MARGIN),
+                    CollisionMargin(
+                        layer
+                            .scale()
+                            .metres_to_native_f32(
+                                physics::VOXEL_COLLISION_MARGIN_METRES,
+                            )
+                            .max(f32::MIN_POSITIVE),
+                    ),
                 ))
                 .id();
 

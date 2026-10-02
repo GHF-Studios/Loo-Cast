@@ -295,32 +295,37 @@ impl Default for LocomotionEnabled {
     fn default() -> Self { Self(true) }
 }
 
-/// Bounded collision envelope used by coarse Scale-Slice interaction.
+/// Simplified collision-envelope policy used by coarse Scale-Slice interaction.
+///
+/// Body size is NOT owned here: [`crate::physics::PhysicalBoxHull`] is the
+/// physical shape authority. This component only permits optional conservative
+/// clearance in SI metres before the hull-derived bounding sphere is projected
+/// into a backend chart.
 #[derive(Component, Reflect, Debug, Clone, Copy)]
 #[reflect(Component)]
 pub struct ScaleInteractionProxy {
-    pub radius_native: f32,
+    clearance_metres: f32,
 }
 
 impl ScaleInteractionProxy {
-    pub const DEFAULT_RADIUS_NATIVE: f32 = 0.05;
-
-    pub fn new(radius_native: f32) -> Self {
+    pub fn new(clearance_metres: f32) -> Self {
         Self {
-            radius_native: if radius_native.is_finite() {
-                radius_native.max(0.001)
+            clearance_metres: if clearance_metres.is_finite() && clearance_metres > 0.0 {
+                clearance_metres
             } else {
-                Self::DEFAULT_RADIUS_NATIVE
+                0.0
             },
         }
+    }
+
+    pub const fn clearance_metres(self) -> f32 {
+        self.clearance_metres
     }
 }
 
 impl Default for ScaleInteractionProxy {
     fn default() -> Self {
-        Self {
-            radius_native: Self::DEFAULT_RADIUS_NATIVE,
-        }
+        Self { clearance_metres: 0.0 }
     }
 }
 

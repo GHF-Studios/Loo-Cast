@@ -15,6 +15,7 @@ use crate::{
         AppConsoleExt, ConsoleCommandInvocation, ConsoleCommandResult, ConsoleCommandSpec,
     },
     physics::{
+        PhysicalBoxHull,
         character::{CharacterGroundState, CharacterMovementInput},
         topology::runtime_semantic_of_world,
     },
@@ -33,7 +34,10 @@ use crate::{
 
 use super::{
     control::LocalControlSubject,
-    locomotion::{ControlledSubjectLocomotion, LocomotionRegime, LocomotionRequest},
+    locomotion::{
+        ControlledSubjectLocomotion, LocomotionRegime, LocomotionRequest,
+        ScaleInteractionProxy,
+    },
     navigation::{
         AdaptiveCruise, NavigationAudit, NavigationFlightRecorder, TravelPace, TravelProfile,
     },
@@ -783,6 +787,26 @@ fn refinable_hard_body_transition_gate(
     best
 }
 
+fn controlled_collision_radius_native(
+    world: &mut World,
+    scale: SpatialScale,
+) -> f32 {
+    let mut query = world.query_filtered::<
+        (&PhysicalBoxHull, Option<&ScaleInteractionProxy>),
+        With<LocalControlSubject>,
+    >();
+    let Some((hull, proxy)) = query.iter(world).next() else {
+        return 0.0;
+    };
+
+    let clearance_metres =
+        proxy.map_or(0.0, |proxy| proxy.clearance_metres());
+    scale.metres_to_native_f32(
+        hull.bounding_radius_metres() + clearance_metres,
+    )
+    .max(0.0)
+}
+
 fn teleport_command(
     world: &mut World,
     invocation: &ConsoleCommandInvocation,
@@ -879,7 +903,7 @@ fn teleport_command(
                 authority,
                 UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::COLLISION),
                 boundary_distance_native
-                    + super::locomotion::ScaleInteractionProxy::DEFAULT_RADIUS_NATIVE,
+                    + controlled_collision_radius_native(world, scale),
             );
             coverage_gated = true;
         }

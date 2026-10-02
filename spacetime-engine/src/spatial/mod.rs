@@ -49,8 +49,9 @@ pub use capability::{
 };
 pub use refinement::{UsfRefinementPlan, UsfRefinementStep};
 pub use transition::{
-    UsfInteractionRequirement, UsfSpatialTransition, UsfSpatialTransitionApplied,
-    UsfSpatialTransitionCause, UsfSpatialTransitionQueue, UsfTransitionVelocity,
+    UsfInteractionHandoffGuards, UsfInteractionRequirement, UsfSpatialTransition,
+    UsfSpatialTransitionApplied, UsfSpatialTransitionCause, UsfSpatialTransitionQueue,
+    UsfTransitionVelocity,
 };
 pub use view::{
     UsfDistanceMeshLod, UsfLocalScalePresentation, UsfPresentationProbe,
@@ -72,6 +73,12 @@ use bevy::{prelude::*, transform::TransformSystems};
 pub struct UsfSpatialAnchor;
 
 pub use chart::{UsfOriginRebased, UsfRuntimeChartState, UsfSpatialFrame};
+
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum UsfInteractionHandoffSet {
+    Reset,
+    Providers,
+}
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum UsfSpatialSet {
@@ -97,12 +104,18 @@ impl Plugin for UsfSpatialPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<UsfSpatialFrame>()
             .init_resource::<UsfPrimaryInteractionSlice>()
+            .init_resource::<UsfInteractionHandoffGuards>()
             .init_resource::<UsfPresentationProbe>()
             .init_resource::<UsfScaleSlices>()
             .init_resource::<UsfSpatialTransitionQueue>()
             .add_message::<UsfOriginRebased>()
             .add_message::<UsfSpatialTransitionApplied>()
             .add_systems(Startup, slice::spawn_scale_slices)
+            .add_systems(
+                PostUpdate,
+                transition::reset_interaction_handoff_guards
+                    .in_set(UsfInteractionHandoffSet::Reset),
+            )
             // Spatial synchronization is a dependency DAG, not one global
             // serialized pipeline. Runtime projection and view anchoring both
             // need the rebased canonical frame, but view work does not depend
@@ -112,6 +125,13 @@ impl Plugin for UsfSpatialPlugin {
             .configure_sets(
                 PostUpdate,
                 (
+                    UsfInteractionHandoffSet::Reset
+                        .after(UsfCapabilitySet::ReconcileCoverage),
+                    UsfInteractionHandoffSet::Providers
+                        .after(UsfInteractionHandoffSet::Reset)
+                        .before(UsfSpatialSet::SyncSemantic),
+                    UsfSpatialSet::SyncSemantic
+                        .after(UsfInteractionHandoffSet::Providers),
                     UsfSpatialSet::Rebase.after(UsfSpatialSet::SyncSemantic),
                     UsfSpatialSet::RuntimeProjection.after(UsfSpatialSet::Rebase),
                     UsfSpatialSet::BackendRefresh.after(UsfSpatialSet::RuntimeProjection),

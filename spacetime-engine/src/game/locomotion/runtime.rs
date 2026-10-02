@@ -415,13 +415,14 @@ pub(super) fn sync_locomotion_runtime(
         }
         CollisionPolicy::ScaleProxy => {
             if collider.is_none() || layer.is_changed() || detailed_collision.is_some() {
-                let radius = proxy
-                    .map(|proxy| proxy.radius_native)
-                    .unwrap_or(ScaleInteractionProxy::DEFAULT_RADIUS_NATIVE)
-                    .max(0.001);
+                let clearance_metres =
+                    proxy.map_or(0.0, |proxy| proxy.clearance_metres());
                 commands
                     .entity(entity)
-                    .insert(Collider::sphere(radius))
+                    .insert(hull.bounding_sphere_collider(
+                        layer.scale(),
+                        clearance_metres,
+                    ))
                     .remove::<DetailedBodyCollision>();
             }
         }

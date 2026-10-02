@@ -49,6 +49,29 @@ impl PhysicalBoxHull {
         self.half_extents_native(scale) * 2.0
     }
 
+    /// Conservative physical bounding radius of this semantic hull.
+    pub fn bounding_radius_metres(self) -> f32 {
+        self.half_extents_metres.length()
+    }
+
+    /// Scale-local conservative sphere derived from the physical hull.
+    ///
+    /// `clearance_metres` is physical policy. Only this backend boundary
+    /// converts it into the destination Scale Slice's native units.
+    pub fn bounding_sphere_collider(
+        self,
+        scale: SpatialScale,
+        clearance_metres: f32,
+    ) -> Collider {
+        let radius_metres =
+            self.bounding_radius_metres() + clearance_metres.max(0.0);
+        Collider::sphere(
+            scale
+                .metres_to_native_f32(radius_metres)
+                .max(f32::MIN_POSITIVE),
+        )
+    }
+
     pub fn collider(self, scale: SpatialScale) -> Collider {
         let size = self.size_native(scale);
         Collider::cuboid(size.x, size.y, size.z)
@@ -89,6 +112,18 @@ mod tests {
 
         assert_eq!(hull.size_native(s0), Vec3::new(4.0, 2.0, 8.0));
         assert!((hull.size_native(s1) - Vec3::new(0.4, 0.2, 0.8)).length() < 1.0e-6);
+    }
+
+    #[test]
+    fn coarse_bounding_sphere_preserves_physical_radius_across_scales() {
+        let hull = PhysicalBoxHull::from_size_metres(Vec3::new(4.0, 2.0, 8.0));
+        let expected = hull.bounding_radius_metres();
+        for scale in [SpatialScale::ZERO, SpatialScale::new(5).unwrap()] {
+            let native = scale.metres_to_native_f32(expected);
+            let reconstructed =
+                f64::from(native) * scale.metres_per_native();
+            assert!((reconstructed - f64::from(expected)).abs() < 1.0e-3);
+        }
     }
 
     #[test]

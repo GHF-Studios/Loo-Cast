@@ -494,8 +494,25 @@ pub(in crate::spatial) fn project_scale_presentations(
             continue;
         };
 
-        let factor = view.projection_factor(presentation.scale());
-        let desired_global = view.presentation_origin() + relative * factor;
+        let Some(factor) =
+            view.direct_projection_factor(presentation.scale())
+        else {
+            *visibility = Visibility::Hidden;
+            continue;
+        };
+        let projected_relative = relative * factor;
+        if !projected_relative.is_finite()
+            || projected_relative.abs().max_element() > PRESENTATION_RELATIVE_BOUND
+        {
+            *visibility = Visibility::Hidden;
+            continue;
+        }
+        let desired_global =
+            view.presentation_origin() + projected_relative;
+        if !desired_global.is_finite() {
+            *visibility = Visibility::Hidden;
+            continue;
+        }
 
         let desired_translation = if let Some((parent_transform, _)) = parent_state {
             desired_global - parent_transform.translation
