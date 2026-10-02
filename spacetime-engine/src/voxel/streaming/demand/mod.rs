@@ -1,6 +1,8 @@
 //! Spatial-demand interpretation and voxel residency reconciliation.
 
-use std::collections::{HashMap, VecDeque};
+// aggressive-demand-and-clipmap-local-balance-v1
+
+use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 
 use bevy::math::DVec3;
 
@@ -50,9 +52,6 @@ pub(super) struct VoxelDemandPlanKey {
 
 const MOTION_LOOKAHEAD_SECONDS: f32 = 1.0;
 const MOTION_DIRECTION_QUANTIZATION: f64 = 8.0;
-/// At extreme traversal speed the demand tail is allowed to collapse to one
-/// materialization cell along the dominant movement axes.
-const MOTION_MAX_TAIL_SHRINK: f32 = 0.90;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct VoxelMotionPriorityKey {
@@ -149,62 +148,34 @@ impl VoxelDemandMotion {
     /// Velocity removes trailing volume. Forward radius intentionally remains
     /// unchanged in this tranche so faster travel reduces total demand instead
     /// of merely moving/expanding it.
-    fn demand_offsets(self, half_extent: Vec3, load_tier: u8) -> (Vec3, Vec3) {
-        let load_tier = load_tier.min(4);
-        let cross_section_scale = match load_tier {
-            0 => 1.0,
-            1 => 0.80,
-            2 => 0.55,
-            3 => 0.35,
-            _ => 0.20,
-        };
-
-        let one_cell = Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32);
-        let directional_weight = self.direction_native.abs();
-        let axis_scale = if self.direction_native == Vec3::ZERO {
-            Vec3::splat(cross_section_scale)
-        } else {
-            Vec3::splat(cross_section_scale)
-                + directional_weight * (1.0 - cross_section_scale)
-        };
-        let effective_half =
-            (half_extent * axis_scale).max(half_extent.min(one_cell));
+    fn demand_offsets(self, half_extent: Vec3, _load_tier: u8) -> (Vec3, Vec3) {
+        let minimum = -half_extent;
+        let maximum = half_extent;
 
         if self.bias <= f32::EPSILON
             || self.direction_native == Vec3::ZERO
         {
-            return (-effective_half, effective_half);
+            return (minimum, maximum);
         }
 
-        let shrink =
-            directional_weight * (self.bias * MOTION_MAX_TAIL_SHRINK);
-        let tail_floor = effective_half.min(one_cell);
-        let trailing_extent =
-            (effective_half * (Vec3::ONE - shrink)).max(tail_floor);
+        // aggressive-predictive-volume-v1
+        //
+        // Motion is allowed to create *more* legitimate demand. The desired
+        // region is the swept union of the ordinary local cuboid at the current
+        // and predicted positions. Capacity/backpressure decides how much of
+        // that region is admitted first; geometry no longer collapses merely
+        // because traversal is fast.
+        let predicted_minimum =
+            self.predicted_offset_native - half_extent;
+        let predicted_maximum =
+            self.predicted_offset_native + half_extent;
 
-        let mut minimum = -effective_half;
-        let mut maximum = effective_half;
-
-        if self.direction_native.x > 0.0 {
-            minimum.x = -trailing_extent.x;
-        } else if self.direction_native.x < 0.0 {
-            maximum.x = trailing_extent.x;
-        }
-
-        if self.direction_native.y > 0.0 {
-            minimum.y = -trailing_extent.y;
-        } else if self.direction_native.y < 0.0 {
-            maximum.y = trailing_extent.y;
-        }
-
-        if self.direction_native.z > 0.0 {
-            minimum.z = -trailing_extent.z;
-        } else if self.direction_native.z < 0.0 {
-            maximum.z = trailing_extent.z;
-        }
-
-        (minimum, maximum)
+        (
+            minimum.min(predicted_minimum),
+            maximum.max(predicted_maximum),
+        )
     }
+
 }
 
 fn quantized_motion_key(
@@ -327,17 +298,74 @@ fn raw_streaming_load_tier(
 
 fn desired_chunk_budget(
     load_budget_per_frame: usize,
-    load_tier: u8,
+    demands: &[VoxelRealizationScope],
+    motions: &SpatialDemandMotionSnapshot,
 ) -> usize {
-    let load_budget_per_frame = load_budget_per_frame.max(1);
-    match load_tier.min(4) {
-        0 => usize::MAX,
-        1 => load_budget_per_frame.saturating_mul(16).max(64),
-        2 => load_budget_per_frame.saturating_mul(8).max(48),
-        3 => load_budget_per_frame.saturating_mul(4).max(32),
-        _ => load_budget_per_frame.saturating_mul(2).max(16),
-    }
+    // predictive-demand-capacity-safety-v1
+    //
+    // `usize::MAX` is a valid execution-policy sentinel for "unbounded", but
+    // it is not a valid collection-capacity hint. Convert it to a deliberately
+    // aggressive finite pressure estimate.
+    const UNBOUNDED_THROUGHPUT_HINT: usize = 256;
+    const MINIMUM_STRESS_WORKING_SET: usize = 4_096;
+    const MAXIMUM_STRESS_WORKING_SET: usize = 65_536;
+
+    let throughput = if load_budget_per_frame == usize::MAX {
+        UNBOUNDED_THROUGHPUT_HINT
+    } else {
+        load_budget_per_frame
+            .max(1)
+            .min(MAXIMUM_STRESS_WORKING_SET)
+    };
+
+    let throughput_reserve =
+        throughput.saturating_mul(32).max(256);
+
+    let horizon_steps = demands
+        .iter()
+        .map(|request| {
+            let demand = request.scope();
+            let velocity =
+                motions.velocity_metres_per_second(demand.source());
+            if !velocity.is_finite() {
+                return 0usize;
+            }
+
+            let factor = demand.scale().scale0_to_native_f64(1.0);
+            let chunks_per_second =
+                velocity.length() * factor
+                    / f64::from(MATERIALIZATION_CHUNK_SIZE);
+            if !chunks_per_second.is_finite()
+                || chunks_per_second <= 0.0
+            {
+                0
+            } else {
+                (chunks_per_second
+                    * f64::from(MOTION_LOOKAHEAD_SECONDS))
+                    .ceil()
+                    .clamp(0.0, MAXIMUM_STRESS_WORKING_SET as f64)
+                    as usize
+            }
+        })
+        .max()
+        .unwrap_or(0);
+
+    let lateral_reserve = throughput.saturating_mul(8);
+    let requested = throughput_reserve.max(
+        horizon_steps
+            .saturating_add(1)
+            .saturating_add(lateral_reserve),
+    );
+
+    let throughput_ceiling =
+        throughput.saturating_mul(256).max(MINIMUM_STRESS_WORKING_SET);
+
+    requested
+        .min(throughput_ceiling)
+        .min(MAXIMUM_STRESS_WORKING_SET)
 }
+
+
 
 fn adaptive_warm_limit(
     configured_limit: usize,
@@ -768,8 +796,11 @@ fn refresh_demand_plan(
         raw_streaming_load_tier(streaming, demands, motions);
     let load_tier =
         streaming.update_adaptive_load_tier(raw_load_tier);
-    let desired_budget =
-        desired_chunk_budget(streaming.load_budget_per_frame(), load_tier);
+    let desired_budget = desired_chunk_budget(
+        streaming.load_budget_per_frame(),
+        demands,
+        motions,
+    );
 
     let key = {
         let _span = bevy::log::info_span!("voxel_residency.plan_key").entered();
@@ -1106,24 +1137,115 @@ fn collect_culled_region(
     collect_culled_region(center_key,center_origin,right,demand,request,view,pinned_shell,local_center,size,motion,merged)
 }
 
-fn collect_predictive_corridor(
+
+#[derive(Debug, Clone, Copy)]
+struct PredictiveTubeCandidate {
+    score: f32,
+    distance_squared: f32,
+    delta: IVec3,
+}
+
+impl PartialEq for PredictiveTubeCandidate {
+    fn eq(&self, other: &Self) -> bool {
+        self.score.total_cmp(&other.score) == std::cmp::Ordering::Equal
+            && self.distance_squared.total_cmp(&other.distance_squared)
+                == std::cmp::Ordering::Equal
+            && self.delta == other.delta
+    }
+}
+
+impl Eq for PredictiveTubeCandidate {}
+
+impl PartialOrd for PredictiveTubeCandidate {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for PredictiveTubeCandidate {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        other
+            .score
+            .total_cmp(&self.score)
+            .then_with(|| {
+                other
+                    .distance_squared
+                    .total_cmp(&self.distance_squared)
+            })
+            .then_with(|| other.delta.x.cmp(&self.delta.x))
+            .then_with(|| other.delta.y.cmp(&self.delta.y))
+            .then_with(|| other.delta.z.cmp(&self.delta.z))
+    }
+}
+
+const PREDICTIVE_TUBE_NEIGHBORS: [IVec3; 6] = [
+    IVec3::new(-1, 0, 0),
+    IVec3::new(1, 0, 0),
+    IVec3::new(0, -1, 0),
+    IVec3::new(0, 1, 0),
+    IVec3::new(0, 0, -1),
+    IVec3::new(0, 0, 1),
+];
+
+fn predictive_tube_candidate(
+    delta: IVec3,
+    local_center: Vec3,
+    size: f32,
+    motion: VoxelDemandMotion,
+) -> PredictiveTubeCandidate {
+    let relative =
+        delta.as_vec3() * size
+            + Vec3::splat(size * 0.5)
+            - local_center;
+    PredictiveTubeCandidate {
+        score: motion.trajectory_distance_squared(relative),
+        distance_squared: relative.length_squared(),
+        delta,
+    }
+}
+
+fn collect_predictive_tube(
     world: &VoxelWorld,
     center_key: VoxelMaterializationKey,
     demand: SpatialDemandScope,
     request: VoxelRealizationScope,
     local_center: Vec3,
     motion: VoxelDemandMotion,
-    maximum_desired_chunks: usize,
+    maximum_total_chunks: usize,
     merged: &mut HashMap<VoxelMaterializationKey, DemandedChunk>,
 ) -> Result<(), crate::spatial::UsfPositionError> {
     let size = MATERIALIZATION_CHUNK_SIZE as f32;
-    let budget = maximum_desired_chunks.max(1);
+    // Never use an execution-policy sentinel as a literal collection bound.
+    // This is a planner metadata safety ceiling, not demand-geometry pruning.
+    const MAXIMUM_PREDICTIVE_TUBE_WORKING_SET: usize = 65_536;
+    let budget = maximum_total_chunks
+        .max(1)
+        .min(MAXIMUM_PREDICTIVE_TUBE_WORKING_SET);
+    if merged.len() >= budget {
+        return Ok(());
+    }
 
-    // The emergency path is directly bounded in materialization count. Clamp
-    // physical lookahead to what can actually be represented as one continuous
-    // one-cell centerline within that budget.
+    let (minimum_offset, maximum_offset) =
+        motion.demand_offsets(demand.half_extent_native(), 0);
+    let minimum = checked_ivec3(
+        ((local_center + minimum_offset) / size).floor(),
+    )?;
+    let maximum = checked_ivec3(
+        ((local_center + maximum_offset) / size).floor(),
+    )?;
+
+    let in_bounds = |delta: IVec3| {
+        delta.x >= minimum.x
+            && delta.x <= maximum.x
+            && delta.y >= minimum.y
+            && delta.y <= maximum.y
+            && delta.z >= minimum.z
+            && delta.z <= maximum.z
+    };
+
+    let remaining = budget.saturating_sub(merged.len());
     let maximum_horizon =
-        budget.saturating_sub(1) as f32 * size;
+        remaining.saturating_sub(1) as f32 * size;
     let mut target_offset = motion.predicted_offset_native;
     let target_length = target_offset.length();
     if target_length > maximum_horizon
@@ -1141,27 +1263,32 @@ fn collect_predictive_corridor(
         .max(target_delta.y.unsigned_abs())
         .max(target_delta.z.unsigned_abs()) as usize;
 
-    if total_steps == 0 {
-        let demanded =
-            demanded_chunk_for_key(world, request, center_key, motion)?;
-        merge_demanded_chunk(merged, demanded);
-        return Ok(());
-    }
-
-    let target_vec = target_delta.as_vec3();
-    let steps = total_steps.min(budget.saturating_sub(1));
+    let mut visited = HashSet::<IVec3>::with_capacity(
+        budget
+            .saturating_sub(merged.len())
+            .min(4_096)
+            .saturating_mul(2)
+            .max(32),
+    );
+    let mut centerline = Vec::<IVec3>::with_capacity(
+        total_steps.saturating_add(1).min(remaining),
+    );
     let mut previous = None::<IVec3>;
 
-    // Enumerate the continuous prefix of the DDA-like centerline. At overload
-    // we prefer a guaranteed connected strip that workers can finish over a
-    // huge sparse volume that invalidates before completion.
+    let steps = total_steps.min(remaining.saturating_sub(1));
     for step in 0..=steps {
-        let t = step as f32 / total_steps as f32;
-        let delta = (target_vec * t).round().as_ivec3();
-        if previous == Some(delta) {
+        let delta = if total_steps == 0 {
+            IVec3::ZERO
+        } else {
+            let t = step as f32 / total_steps as f32;
+            (target_delta.as_vec3() * t).round().as_ivec3()
+        };
+        if previous == Some(delta) || !in_bounds(delta) {
             continue;
         }
         previous = Some(delta);
+        visited.insert(delta);
+        centerline.push(delta);
 
         let key = center_key.translated_chunks(delta)?;
         let demanded =
@@ -1169,12 +1296,59 @@ fn collect_predictive_corridor(
         merge_demanded_chunk(merged, demanded);
 
         if merged.len() >= budget {
-            break;
+            return Ok(());
         }
+    }
+
+    let mut frontier =
+        BinaryHeap::<PredictiveTubeCandidate>::with_capacity(
+            budget
+                .saturating_sub(merged.len())
+                .min(4_096)
+                .saturating_mul(2),
+        );
+
+    let push_neighbors =
+        |origin: IVec3,
+         visited: &mut HashSet<IVec3>,
+         frontier: &mut BinaryHeap<PredictiveTubeCandidate>| {
+            for offset in PREDICTIVE_TUBE_NEIGHBORS {
+                let Some(x) = origin.x.checked_add(offset.x) else { continue; };
+                let Some(y) = origin.y.checked_add(offset.y) else { continue; };
+                let Some(z) = origin.z.checked_add(offset.z) else { continue; };
+                let delta = IVec3::new(x, y, z);
+                if !in_bounds(delta) || !visited.insert(delta) {
+                    continue;
+                }
+                frontier.push(predictive_tube_candidate(
+                    delta,
+                    local_center,
+                    size,
+                    motion,
+                ));
+            }
+        };
+
+    for &delta in &centerline {
+        push_neighbors(delta, &mut visited, &mut frontier);
+    }
+
+    while merged.len() < budget {
+        let Some(candidate) = frontier.pop() else {
+            break;
+        };
+
+        let key = center_key.translated_chunks(candidate.delta)?;
+        let demanded =
+            demanded_chunk_for_key(world, request, key, motion)?;
+        merge_demanded_chunk(merged, demanded);
+
+        push_neighbors(candidate.delta, &mut visited, &mut frontier);
     }
 
     Ok(())
 }
+
 
 pub(super) fn demanded_chunk_addresses<T>(
     world: &VoxelWorld,
@@ -1240,20 +1414,19 @@ where
         };
         let shell = pinned_shell.filter(|(source, _)| demand.source() == *source);
 
-        if load_tier >= 3
-            && view.is_none()
+        if view.is_none()
             && shell.is_none()
             && motion.direction_native != Vec3::ZERO
         {
-            // emergency-predictive-corridor-v1
-            collect_predictive_corridor(
+            // aggressive-predictive-volume-v1
+            collect_predictive_tube(
                 world,
                 center_key,
                 demand,
                 request,
                 local_center,
                 motion,
-                maximum_desired_chunks.saturating_sub(merged.len()),
+                maximum_desired_chunks,
                 &mut merged,
             )?;
         } else {
@@ -1420,7 +1593,7 @@ mod adaptive_streaming_pressure_tests {
     use super::*;
 
     #[test]
-    fn overload_tier_collapses_cross_section_and_caps_working_set() {
+    fn high_speed_keeps_full_cross_section_and_extends_forward() {
         let mut ecs = World::new();
         let source = ecs.spawn_empty().id();
         let half = Vec3::splat(100.0);
@@ -1435,28 +1608,26 @@ mod adaptive_streaming_pressure_tests {
             VoxelDemandMotion::new(demand, DVec3::new(1_000.0, 0.0, 0.0));
 
         let (minimum, maximum) = motion.demand_offsets(half, 4);
-        assert_eq!(maximum.x, half.x);
-        assert!(maximum.y <= 20.01);
-        assert!(maximum.z <= 20.01);
-        assert!(minimum.x >= -10.01);
-
-        assert_eq!(desired_chunk_budget(24, 4), 48);
-        assert_eq!(desired_chunk_budget(24, 3), 96);
+        assert_eq!(minimum, -half);
+        assert!(maximum.x > half.x);
+        assert_eq!(maximum.y, half.y);
+        assert_eq!(maximum.z, half.z);
     }
 
     #[test]
-    fn healthy_stationary_streaming_keeps_full_geometry() {
+    fn stationary_motion_keeps_full_geometry_at_every_load_tier() {
         let half = Vec3::new(100.0, 60.0, 80.0);
-        let (minimum, maximum) =
-            VoxelDemandMotion::stationary().demand_offsets(half, 0);
-        assert_eq!(minimum, -half);
-        assert_eq!(maximum, half);
-        assert_eq!(desired_chunk_budget(24, 0), usize::MAX);
+        for tier in 0..=4 {
+            let (minimum, maximum) =
+                VoxelDemandMotion::stationary().demand_offsets(half, tier);
+            assert_eq!(minimum, -half);
+            assert_eq!(maximum, half);
+        }
     }
 }
 
 #[cfg(test)]
-mod high_speed_corridor_tests {
+mod high_speed_predictive_tube_tests {
     use super::*;
 
     #[test]

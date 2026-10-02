@@ -327,6 +327,22 @@ pub(crate) fn presentation_surface_local_metres(
     transformed.is_finite().then_some(transformed)
 }
 
+
+/// Conservative global radial bounds for script-owned presentation terrain.
+///
+/// `presentation_surface_local_metres` clamps the final scripted radial height
+/// into exactly this envelope. Clipmap planning can therefore reject blocks
+/// wholly outside it without evaluating canonical terrain or Rhai at all.
+pub(crate) fn presentation_surface_radius_bounds_metres(
+    field: CelestialVoxelField,
+) -> (f64, f64) {
+    let radius = field.radius_metres();
+    let relief = relief_limit_metres(field);
+    let lower = radius - relief.min(radius * 0.90);
+    let upper = radius + relief;
+    (lower.max(radius * 0.01), upper.max(radius * 0.01))
+}
+
 pub(crate) fn presentation_surface_radius_metres(
     field: CelestialVoxelField,
     direction: Vec3,
