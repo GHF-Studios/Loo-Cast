@@ -7,7 +7,7 @@
 //! Actual contact authority remains the collision system:
 //! character grounding and spacecraft landing use collision queries directly.
 
-use bevy::prelude::*;
+use bevy::{math::DVec3, prelude::*};
 
 use crate::{
     physics::PhysicalBoxHull,
@@ -102,17 +102,39 @@ fn sample_surface_candidate(
     field: CelestialVoxelField,
     domain: VoxelScaleDomain,
 ) -> Option<SurfaceCandidate> {
-    let measurement_scale = field.coarsest_detail_scale().max(position.leaf_scale());
+    // Direction/distance must never be normalized in an arbitrarily coarse
+    // runtime f32 chart. At S+35 an Earth-radius displacement is ~6e-29 native
+    // units; squaring that underflows f32 length to zero and falsely makes the
+    // body disappear from telemetry.
+    //
+    // Measure in the body's own coarse semantic chart using f64 instead. This
+    // remains comfortably bounded for the body while preserving enough dynamic
+    // range to normalize robustly from any observer interaction Scale.
+    let measurement_scale = field.coarsest_detail_scale();
     let relative = position
-        .relative_at_scale_bounded(&body_origin, measurement_scale, f32::MAX)
+        .relative_at_scale_bounded_f64(
+            &body_origin,
+            measurement_scale,
+            f64::MAX,
+        )
         .ok()?;
-    let radial_outward = relative.normalize_or_zero();
+    let radial = relative.length();
+    if !radial.is_finite() || radial <= f64::EPSILON {
+        return None;
+    }
+
+    let radial_outward = Vec3::new(
+        (relative.x / radial) as f32,
+        (relative.y / radial) as f32,
+        (relative.z / radial) as f32,
+    )
+    .normalize_or_zero();
     if radial_outward == Vec3::ZERO {
         return None;
     }
 
     let center_distance_metres =
-        f64::from(relative.length()) * measurement_scale.metres_per_native();
+        radial * measurement_scale.metres_per_native();
 
     let (center_altitude_metres, reference) = if domain.realizes(subject_scale) {
         // Surface telemetry consumes the same canonical procedural surface as
@@ -123,14 +145,22 @@ fn sample_surface_candidate(
             .surface_position(&body_origin, body_frame, local_outward)
             .ok()?;
         let relative_to_surface = position
-            .relative_at_scale_bounded_f64(&surface, subject_scale, f64::MAX)
+            .relative_at_scale_bounded_f64(
+                &surface,
+                measurement_scale,
+                f64::MAX,
+            )
             .ok()?;
-        let signed_native = relative_to_surface.x * f64::from(radial_outward.x)
-            + relative_to_surface.y * f64::from(radial_outward.y)
-            + relative_to_surface.z * f64::from(radial_outward.z);
+
+        let world_outward = DVec3::new(
+            f64::from(radial_outward.x),
+            f64::from(radial_outward.y),
+            f64::from(radial_outward.z),
+        );
+        let signed_native = relative_to_surface.dot(world_outward);
 
         (
-            signed_native * subject_scale.metres_per_native(),
+            signed_native * measurement_scale.metres_per_native(),
             SurfaceReference::Procedural,
         )
     } else {

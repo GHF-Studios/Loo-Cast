@@ -10,7 +10,11 @@ use crate::{
     ecs::UsfOwnershipQuery,
     game::{
         control::LocalControlSubject,
-        locomotion::ControlledSubjectLocomotion,
+        flight::FlightContactState,
+        locomotion::{
+            ControlledSubjectLocomotion, LocomotionInhibition,
+            LocomotionInhibitionReason,
+        },
     },
     physics::{
         PhysicalBoxHull,
@@ -43,6 +47,8 @@ pub(super) fn prepare_controlled_subject(
             &mut LinearVelocity,
             &mut UsfCanonicalMotion,
             &mut ControlledSubjectLocomotion,
+            Option<&mut FlightContactState>,
+            Option<&mut LocomotionInhibition>,
             &mut CharacterControlFrame,
             &mut CharacterLocomotionFrame,
             &PhysicalBoxHull,
@@ -59,6 +65,8 @@ pub(super) fn prepare_controlled_subject(
         mut velocity,
         mut motion,
         mut locomotion,
+        mut flight_contact,
+        mut inhibition,
         mut control,
         mut locomotion_frame,
         hull,
@@ -151,7 +159,21 @@ pub(super) fn prepare_controlled_subject(
     velocity.0 = Vec3::ZERO;
     motion.stop();
     locomotion.request_automatic();
-    locomotion.set_thrusters_enabled(false);
+
+    // A body-surface fixture arrival is a contact pose, not an airborne pose
+    // with dead actuators. Spacecraft begin landed so the existing TakeOff
+    // transaction owns the release into LocalFlight + thrusters/RCS.
+    //
+    // Non-spacecraft controlled subjects simply have neither optional
+    // component and retain their ordinary automatic locomotion resolution.
+    if let Some(contact) = flight_contact.as_deref_mut() {
+        contact.land();
+        locomotion.set_thrusters_enabled(false);
+        locomotion.set_rcs_enabled(false);
+    }
+    if let Some(inhibition) = inhibition.as_deref_mut() {
+        inhibition.set(LocomotionInhibitionReason::SurfaceContact, true);
+    }
 
     info!(
         subject = ?semantic_entity,

@@ -258,13 +258,6 @@ impl ScriptTarget {
         !matches!(self, Self::None)
     }
 
-    /// Whether a valid committed script participates immediately at startup.
-    ///
-    /// World/presentation authoring policies are active when loaded; debug
-    /// scalar transforms remain explicit opt-ins.
-    const fn default_live_enabled(self) -> bool {
-        matches!(self, Self::CelestialHeight)
-    }
 
     const fn fallback_source(self) -> &'static str {
         match self {
@@ -341,7 +334,7 @@ impl ScriptDocument {
             diagnostic,
             preview_input: 2.0,
             preview_output,
-            live_enabled: target.default_live_enabled(),
+            live_enabled: false,
         }
     }
 

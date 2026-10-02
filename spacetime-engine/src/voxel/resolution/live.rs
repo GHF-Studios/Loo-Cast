@@ -672,10 +672,6 @@ impl CelestialClipmapCoverageSnapshot {
             .unwrap_or(&[])
     }
 
-    fn owns_presentation(&self, authority: Entity) -> bool {
-        self.by_authority.contains_key(&authority)
-    }
-
     fn replace_authority(
         &mut self,
         authority: Entity,
@@ -1801,18 +1797,23 @@ fn sync_celestial_clipmap_realizations(
                 continue;
             }
 
-            let visible_meshes = plan
+            // Coverage may only be published for presentation that
+            // actually exists. A build returning `None` still settles that
+            // desired spec, but it must never create counterfeit coverage that
+            // causes regional fallback terrain to cull itself.
+            let realized_specs = plan
                 .desired
                 .iter()
-                .filter_map(|spec| {
-                    existing_by_spec.get(&(
+                .copied()
+                .filter(|spec| {
+                    existing_by_spec.contains_key(&(
                         authority,
                         plan.key.policy_revision,
                         *spec,
                     ))
                 })
-                .count();
-            if visible_meshes == 0 {
+                .collect::<Vec<_>>();
+            if realized_specs.is_empty() {
                 continue;
             }
 
@@ -1839,7 +1840,7 @@ fn sync_celestial_clipmap_realizations(
                 }
             }
 
-            coverage.replace_authority(authority, coverage_for_specs(&plan.desired));
+            coverage.replace_authority(authority, coverage_for_specs(&realized_specs));
             plan.committed_generation = Some(plan.generation);
         }
     }
@@ -1903,10 +1904,9 @@ fn sync_celestial_clipmap_transforms(
 }
 
 fn suppress_legacy_celestial_dense_presentation(
-    coverage: Res<CelestialClipmapCoverageSnapshot>,
     interaction: Res<UsfPrimaryInteractionSlice>,
     runtimes: Query<&VoxelMaterializationRuntime>,
-    worlds: Query<(&CelestialVoxelRealization, &UsfScaleLayer)>,
+    worlds: Query<&UsfScaleLayer, With<CelestialVoxelRealization>>,
     mut presentations: Query<
         (&ChildOf, &mut Visibility),
         With<VoxelMaterializationPresentation>,
@@ -1916,20 +1916,22 @@ fn suppress_legacy_celestial_dense_presentation(
         let Ok(runtime) = runtimes.get(parent.0) else {
             continue;
         };
-        let Ok((realization, layer)) = worlds.get(runtime.world()) else {
+        let Ok(layer) = worlds.get(runtime.world()) else {
             continue;
         };
 
-        // Celestial dense Scale-Slice worlds are no longer a contextual LOD
-        // stack. Before clipmap commit only the current interaction slice may
-        // remain as physical fallback. After commit the binary x2 clipmap owns
-        // local/intermediate presentation entirely.
+        // Celestial dense Scale-Slice worlds are not a contextual LOD
+        // stack, so only the current interaction chart may present densely.
+        //
+        // Do NOT globally hide that physical fallback merely because some
+        // clipmap cells exist for the authority. Regional presentation already
+        // performs spatial replacement using truthful committed coverage.
+        // Global authority-level suppression manufactured holes whenever a
+        // sparse/empty clipmap block settled without producing a mesh.
         let contextual_decimal_slice =
             layer.scale() != interaction.scale();
-        let replaced_by_clipmap =
-            coverage.owns_presentation(realization.authority());
 
-        if contextual_decimal_slice || replaced_by_clipmap {
+        if contextual_decimal_slice {
             *visibility = Visibility::Hidden;
         }
     }
