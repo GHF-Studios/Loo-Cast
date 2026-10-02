@@ -55,6 +55,53 @@ fn bounded_engine() -> Engine {
     engine
 }
 
+/// Immutable source-level snapshot safe to move into background worker jobs.
+///
+/// Worker threads compile this committed source once per reconstructible job.
+/// The Rhai engine itself therefore never needs to cross an ECS/thread boundary.
+#[derive(Debug, Clone)]
+pub(crate) struct DeveloperScalarPolicySnapshot {
+    source: String,
+    revision: u64,
+}
+
+impl DeveloperScalarPolicySnapshot {
+    pub(crate) const fn revision(&self) -> u64 {
+        self.revision
+    }
+
+    pub(crate) fn compile_runtime(&self) -> Result<DeveloperScalarPolicyRuntime, String> {
+        let engine = bounded_engine();
+        let ast = engine
+            .compile(&self.source)
+            .map_err(|error| format!("worker policy compile error: {error}"))?;
+        Ok(DeveloperScalarPolicyRuntime { engine, ast })
+    }
+}
+
+/// One job-local compiled scalar policy.
+///
+/// This remains a pure value transform. It has no Bevy/ECS/world/filesystem
+/// handle and is deliberately constructed inside the worker that consumes it.
+pub(crate) struct DeveloperScalarPolicyRuntime {
+    engine: Engine,
+    ast: AST,
+}
+
+impl DeveloperScalarPolicyRuntime {
+    pub(crate) fn evaluate(&self, input: f64) -> Result<f64, String> {
+        let mut scope = Scope::new();
+        let output = self
+            .engine
+            .call_fn::<f64>(&mut scope, &self.ast, "transform", (input,))
+            .map_err(|error| format!("transform(value) failed: {error}"))?;
+        if !output.is_finite() {
+            return Err("transform(value) returned a non-finite number".to_string());
+        }
+        Ok(output)
+    }
+}
+
 #[derive(Resource)]
 pub(crate) struct DeveloperScriptWorkbench {
     engine: Engine,
@@ -68,6 +115,7 @@ pub(crate) struct DeveloperScriptWorkbench {
     preview_input: f64,
     preview_output: Option<f64>,
     live_enabled: bool,
+    celestial_height_live_enabled: bool,
 }
 
 impl Default for DeveloperScriptWorkbench {
@@ -88,6 +136,7 @@ impl Default for DeveloperScriptWorkbench {
             preview_input: 2.0,
             preview_output: Some(2.0),
             live_enabled: false,
+            celestial_height_live_enabled: false,
         };
         value.refresh_preview_from_committed();
         value
@@ -105,6 +154,17 @@ impl DeveloperScriptWorkbench {
 
     pub(crate) fn set_live_enabled(&mut self, enabled: bool) {
         self.live_enabled = enabled;
+    }
+
+    pub(crate) const fn celestial_height_live_enabled(&self) -> bool {
+        self.celestial_height_live_enabled
+    }
+
+    pub(crate) fn celestial_height_snapshot(&self) -> Option<DeveloperScalarPolicySnapshot> {
+        self.celestial_height_live_enabled.then(|| DeveloperScalarPolicySnapshot {
+            source: self.committed_source.clone(),
+            revision: self.revision,
+        })
     }
 
     pub(crate) fn dirty(&self) -> bool {
@@ -256,10 +316,11 @@ fn script_status_command(
     let workbench = world.resource::<DeveloperScriptWorkbench>();
     ConsoleCommandResult::lines([
         format!(
-            "Rhai revision {} | draft={} | live-consumer={}",
+            "Rhai revision {} | draft={} | freecam-live={} | celestial-height-live={}",
             workbench.revision(),
             if workbench.dirty() { "dirty" } else { "clean" },
             workbench.live_enabled(),
+            workbench.celestial_height_live_enabled(),
         ),
         workbench.diagnostic.clone(),
     ])
@@ -328,9 +389,19 @@ fn draw_script_workbench(ui: &mut egui::Ui, world: &mut World) {
             ui.separator();
             ui.checkbox(
                 &mut workbench.live_enabled,
-                "Live output → freecam speed proof consumer",
+                "Live → freecam speed",
+            );
+            ui.checkbox(
+                &mut workbench.celestial_height_live_enabled,
+                "Live → celestial presentation height",
             );
         });
+        if workbench.celestial_height_live_enabled {
+            ui.colored_label(
+                egui::Color32::YELLOW,
+                "Celestial script input/output = radial terrain displacement in metres. Presentation only: collision/canonical terrain remain unchanged in this proving tranche.",
+            );
+        }
 
         ui.horizontal_wrapped(|ui| {
             if ui.button("Compile").clicked() {
@@ -526,6 +597,19 @@ mod tests {
         let workbench = DeveloperScriptWorkbench::default();
         assert_eq!(workbench.evaluate_committed(3.5).unwrap(), 3.5);
         assert!(!workbench.live_enabled());
+    }
+
+    #[test]
+    fn committed_source_can_be_recompiled_inside_a_worker_snapshot() {
+        let mut workbench = DeveloperScriptWorkbench::default();
+        workbench.celestial_height_live_enabled = true;
+        workbench.source = "fn transform(value) { value * 2.0 }".to_string();
+        workbench.commit_draft().unwrap();
+
+        let snapshot = workbench.celestial_height_snapshot().unwrap();
+        assert_eq!(snapshot.revision(), 2);
+        let runtime = snapshot.compile_runtime().unwrap();
+        assert_eq!(runtime.evaluate(3.0).unwrap(), 6.0);
     }
 
     #[test]

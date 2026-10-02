@@ -11,8 +11,12 @@ use bevy::{
 };
 
 use crate::{
+    devtools::DeveloperScalarPolicyRuntime,
     spatial::SpatialScale,
-    voxel::CelestialVoxelField,
+    voxel::{
+        CelestialVoxelField,
+        developer_policy::presentation_surface_local_metres,
+    },
 };
 
 use super::PlanetarySurfacePatchId;
@@ -27,6 +31,7 @@ pub(super) fn build_planetary_surface_patch(
     field: CelestialVoxelField,
     patch: PlanetarySurfacePatchId,
     sample_scale: SpatialScale,
+    policy: Option<&DeveloperScalarPolicyRuntime>,
 ) -> Option<Mesh> {
     let side = PATCH_GRID_RESOLUTION + 1;
     let vertex_count = (side * side) as usize;
@@ -40,7 +45,7 @@ pub(super) fn build_planetary_surface_patch(
             let u = x as f32 / PATCH_GRID_RESOLUTION as f32;
             let direction = patch.direction_at(u, v);
             let position =
-                sample_patch_vertex_native(field, direction, sample_scale)?;
+                sample_patch_vertex_native_with_policy(field, direction, sample_scale, policy)?;
             positions.push(position.to_array());
             normals.push(direction.to_array());
             uvs.push([u, v]);
@@ -76,9 +81,17 @@ pub(super) fn sample_patch_vertex_native(
     local_direction: Vec3,
     sample_scale: SpatialScale,
 ) -> Option<Vec3> {
-    let local_metres = field
-        .surface_local_metres(local_direction, sample_scale)
-        .ok()?;
+    sample_patch_vertex_native_with_policy(field, local_direction, sample_scale, None)
+}
+
+fn sample_patch_vertex_native_with_policy(
+    field: CelestialVoxelField,
+    local_direction: Vec3,
+    sample_scale: SpatialScale,
+    policy: Option<&DeveloperScalarPolicyRuntime>,
+) -> Option<Vec3> {
+    let local_metres =
+        presentation_surface_local_metres(field, local_direction, sample_scale, policy)?;
     let native = local_metres / sample_scale.metres_per_native();
     let native = Vec3::new(native.x as f32, native.y as f32, native.z as f32);
     native.is_finite().then_some(native)

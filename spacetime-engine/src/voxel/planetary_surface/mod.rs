@@ -16,6 +16,10 @@ use bevy::{
 };
 
 use crate::{
+    devtools::{
+        DeveloperScalarPolicyRuntime, DeveloperScalarPolicySnapshot,
+        DeveloperScriptWorkbench,
+    },
     ecs::UsfPresentationProjectionOf,
     spatial::{
         SpatialScale, UsfScaleCoverageSnapshot, UsfScaleRoleMask,
@@ -26,6 +30,7 @@ use crate::{
 
 use super::{
     CelestialVoxelField, CelestialVoxelRealizationPolicy,
+    developer_policy::presentation_surface_local_metres,
     resolution::{CelestialClipmapCoverageCell, CelestialClipmapCoverageSnapshot},
     worker::{VoxelWorkerLane, VoxelWorkerPool, VoxelWorkerTask, VoxelWorkerTicket},
 };
@@ -251,6 +256,8 @@ impl PlanetaryDenseCoverageBounds {
 struct PlanetarySurfacePlanState {
     observer: PlanetaryObserverKey,
     field: CelestialVoxelField,
+    policy_revision: u64,
+    policy: Option<DeveloperScalarPolicySnapshot>,
     body_origin: UsfPosition,
     body_frame: UsfSemanticFrame,
     dense_coverage: Vec<PlanetaryDenseCoverageGeometry>,
@@ -265,6 +272,7 @@ struct PlanetarySurfacePatchKey {
     authority: Entity,
     patch: PlanetarySurfacePatchId,
     scale: SpatialScale,
+    policy_revision: u64,
 }
 
 #[derive(Component)]
@@ -273,6 +281,7 @@ pub(super) struct PlanetarySurfaceBuildTask {
     patch: PlanetarySurfacePatchId,
     field: CelestialVoxelField,
     sample_scale: SpatialScale,
+    policy_revision: u64,
     task: VoxelWorkerTicket<Option<Mesh>>,
 }
 
@@ -293,6 +302,7 @@ pub(super) fn sync_planetary_surface_realizations(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     views: Res<UsfViewDemandSnapshot>,
+    script_workbench: Res<DeveloperScriptWorkbench>,
     coverage: Res<UsfScaleCoverageSnapshot>,
     clipmap_coverage: Res<CelestialClipmapCoverageSnapshot>,
     mut workers: ResMut<VoxelWorkerPool>,
@@ -309,6 +319,12 @@ pub(super) fn sync_planetary_surface_realizations(
     mut cache: Local<PlanetarySurfacePlanCache>,
 ) {
     let Some(view) = views.iter().next() else { return; };
+    let presentation_policy = script_workbench.celestial_height_snapshot();
+    let policy_revision =
+        presentation_policy.as_ref().map_or(0, DeveloperScalarPolicySnapshot::revision);
+    let policy_runtime = presentation_policy
+        .as_ref()
+        .and_then(|snapshot| snapshot.compile_runtime().ok());
     let mut live_authorities = HashSet::new();
 
     {
@@ -362,7 +378,9 @@ pub(super) fn sync_planetary_surface_realizations(
                     || plan.body_frame != *body_frame
             });
             let selection_changed = coverage_changed || previous.is_none_or(|plan| {
-                plan.observer != observer_key || plan.field != *field
+                plan.observer != observer_key
+                    || plan.field != *field
+                    || plan.policy_revision != policy_revision
             });
             if !selection_changed {
                 continue;
@@ -451,6 +469,7 @@ pub(super) fn sync_planetary_surface_realizations(
                         dense_local.as_ref(),
                         dense_bounds,
                         &clipmap_geometry,
+                        policy_runtime.as_ref(),
                     )
                 })
             };
@@ -458,6 +477,8 @@ pub(super) fn sync_planetary_surface_realizations(
             cache.plans.insert(authority, PlanetarySurfacePlanState {
                 observer: observer_key,
                 field: *field,
+                policy_revision,
+                policy: presentation_policy.clone(),
                 body_origin: *body_origin,
                 body_frame: *body_frame,
                 dense_coverage: dense_geometry,
@@ -475,6 +496,7 @@ pub(super) fn sync_planetary_surface_realizations(
             authority: realization.authority(),
             patch: realization.patch(),
             scale: realization.scale(),
+            policy_revision: realization.revision(),
         };
         if existing_by_key.contains_key(&key) {
             commands.entity(entity).despawn();
@@ -494,9 +516,11 @@ pub(super) fn sync_planetary_surface_realizations(
                 authority: build.authority,
                 patch: build.patch,
                 scale: build.sample_scale,
+                policy_revision: build.policy_revision,
             };
             let still_desired = cache.plans.get(&build.authority).is_some_and(|plan| {
                 plan.field == build.field
+                    && plan.policy_revision == build.policy_revision
                     && planetary_sample_scale(plan.field) == build.sample_scale
                     && plan.desired.contains(&build.patch)
             });
@@ -557,7 +581,12 @@ pub(super) fn sync_planetary_surface_realizations(
         'authorities: for (&authority, plan) in &cache.plans {
             let sample_scale = planetary_sample_scale(plan.field);
             for &patch in &plan.desired {
-                let key = PlanetarySurfacePatchKey { authority, patch, scale: sample_scale };
+                let key = PlanetarySurfacePatchKey {
+                    authority,
+                    patch,
+                    scale: sample_scale,
+                    policy_revision: plan.policy_revision,
+                };
                 if existing_by_key.contains_key(&key)
                     || published_keys.contains(&key)
                     || inflight_keys.contains(&key)
@@ -568,16 +597,35 @@ pub(super) fn sync_planetary_surface_realizations(
                 { break 'authorities; }
 
                 let field = plan.field;
+                let policy = plan.policy.clone();
+                let policy_revision = plan.policy_revision;
                 let Some(task) = workers.try_submit(
                     VoxelWorkerLane::PlanetarySurface,
-                    move || build_planetary_surface_patch(field, patch, sample_scale),
+                    move || {
+                        let runtime = policy
+                            .as_ref()
+                            .and_then(|snapshot| snapshot.compile_runtime().ok());
+                        build_planetary_surface_patch(
+                            field,
+                            patch,
+                            sample_scale,
+                            runtime.as_ref(),
+                        )
+                    },
                 ) else {
                     break 'authorities;
                 };
                 commands.spawn((
                     Name::new("Planetary Surface Patch Build"),
                     VoxelWorkerTask,
-                    PlanetarySurfaceBuildTask { authority, patch, field, sample_scale, task },
+                    PlanetarySurfaceBuildTask {
+                        authority,
+                        patch,
+                        field,
+                        sample_scale,
+                        policy_revision,
+                        task,
+                    },
                 ));
                 inflight_keys.insert(key);
                 admitted += 1;
@@ -591,13 +639,21 @@ pub(super) fn sync_planetary_surface_realizations(
         for (&authority, plan) in &cache.plans {
             let sample_scale = planetary_sample_scale(plan.field);
             let replacements_ready = plan.desired.iter().all(|&patch| {
-                let key = PlanetarySurfacePatchKey { authority, patch, scale: sample_scale };
+                let key = PlanetarySurfacePatchKey {
+                    authority,
+                    patch,
+                    scale: sample_scale,
+                    policy_revision: plan.policy_revision,
+                };
                 existing_by_key.contains_key(&key) || published_keys.contains(&key)
             });
             if !replacements_ready { continue; }
             for (&key, &entity) in &existing_by_key {
                 if key.authority != authority { continue; }
-                if key.scale != sample_scale || !plan.desired.contains(&key.patch) {
+                if key.scale != sample_scale
+                    || key.policy_revision != plan.policy_revision
+                    || !plan.desired.contains(&key.patch)
+                {
                     commands.entity(entity).despawn();
                 }
             }
@@ -764,6 +820,7 @@ fn evaluate_patch(
     dense_coverage: &HashMap<Entity, PlanetaryDenseCoverageLocal>,
     dense_bounds: Option<PlanetaryDenseCoverageBounds>,
     clipmap_coverage: &[CelestialClipmapCoverageCell],
+    policy: Option<&DeveloperScalarPolicyRuntime>,
 ) -> PatchDecision {
     let direction = patch.center_direction();
     let radius_metres = patch.approximate_radius_metres(field.radius_metres());
@@ -792,8 +849,8 @@ fn evaluate_patch(
     // coverage and the committed binary clipmap are independent evidence
     // sources; either may refine/cull the regional approximation.
     if !dense_coverage.is_empty() || !clipmap_coverage.is_empty() {
-        let Ok(center_local_metres) =
-            field.surface_local_metres(direction, sample_scale)
+        let Some(center_local_metres) =
+            presentation_surface_local_metres(field, direction, sample_scale, policy)
         else {
             return PatchDecision::Keep;
         };

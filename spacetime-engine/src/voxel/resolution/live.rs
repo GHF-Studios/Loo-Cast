@@ -18,7 +18,13 @@ use transvoxel::prelude::{
     TransitionSides,
 };
 
+use crate::voxel::developer_policy::presentation_surface_radius_metres;
+
 use crate::{
+    devtools::{
+        DeveloperScalarPolicyRuntime, DeveloperScalarPolicySnapshot,
+        DeveloperScriptWorkbench,
+    },
     ecs::UsfPresentationProjectionOf,
     spatial::{
         SpatialScale, UsfPosition, UsfPrimaryInteractionSlice, UsfSemanticFrame,
@@ -121,12 +127,14 @@ struct CelestialClipmapPlanKey {
     observer_bucket: IVec3,
     finest_exponent: i16,
     coarsest_exponent: i16,
+    policy_revision: u64,
 }
 
 #[derive(Debug)]
 struct CelestialClipmapPlan {
     key: CelestialClipmapPlanKey,
     field: CelestialVoxelField,
+    policy: Option<DeveloperScalarPolicySnapshot>,
     generation: u64,
     desired: Vec<CelestialClipmapBlockSpec>,
     completed: HashSet<CelestialClipmapBlockSpec>,
@@ -149,6 +157,7 @@ impl CelestialClipmapRegistry {
 #[derive(Component, Debug, Clone, Copy)]
 struct CelestialClipmapBlock {
     authority: Entity,
+    policy_revision: u64,
     spec: CelestialClipmapBlockSpec,
 }
 
@@ -310,6 +319,7 @@ fn block_distance_to_point(
 fn block_intersects_semantic_surface(
     field: CelestialVoxelField,
     key: CelestialClipmapBlockKey,
+    policy: Option<&DeveloperScalarPolicyRuntime>,
 ) -> bool {
     let center = key.center_local_metres();
     let radial = center.length();
@@ -328,10 +338,13 @@ fn block_intersects_semantic_surface(
         Vec3::Y
     };
 
-    let surface_radius = field
-        .surface_local_metres(direction, SEMANTIC_SURFACE_SCALE)
-        .map(|point| point.length())
-        .unwrap_or_else(|_| field.radius_metres());
+    let surface_radius = presentation_surface_radius_metres(
+        field,
+        direction,
+        SEMANTIC_SURFACE_SCALE,
+        policy,
+    )
+    .unwrap_or_else(|| field.radius_metres());
     if !surface_radius.is_finite() {
         return false;
     }
@@ -357,6 +370,7 @@ fn refine_leaf(
     leaves: &mut Vec<CelestialClipmapBlockKey>,
     index: usize,
     field: CelestialVoxelField,
+    policy: Option<&DeveloperScalarPolicyRuntime>,
 ) -> bool {
     let parent = leaves.swap_remove(index);
     let Some(children) = parent.children() else {
@@ -365,7 +379,7 @@ fn refine_leaf(
     };
 
     for child in children {
-        if block_intersects_semantic_surface(field, child) {
+        if block_intersects_semantic_surface(field, child, policy) {
             leaves.push(child);
         }
     }
@@ -430,6 +444,7 @@ fn face_from_a_to_b(
 fn balance_leaves_2_to_1(
     field: CelestialVoxelField,
     leaves: &mut Vec<CelestialClipmapBlockKey>,
+    policy: Option<&DeveloperScalarPolicyRuntime>,
 ) -> bool {
     loop {
         let mut refine = None::<usize>;
@@ -458,7 +473,7 @@ fn balance_leaves_2_to_1(
         if leaves.len().saturating_add(7) > MAX_BALANCED_LEAVES {
             return false;
         }
-        if !refine_leaf(leaves, index, field) {
+        if !refine_leaf(leaves, index, field, policy) {
             return false;
         }
     }
@@ -467,6 +482,8 @@ fn balance_leaves_2_to_1(
 fn build_plan(
     field: CelestialVoxelField,
     observer_local: DVec3,
+    policy: Option<&DeveloperScalarPolicyRuntime>,
+    policy_revision: u64,
 ) -> Option<(CelestialClipmapPlanKey, Vec<CelestialClipmapBlockSpec>)> {
     let observer_radius = observer_local.length();
     if !observer_radius.is_finite() {
@@ -526,7 +543,7 @@ fn build_plan(
                     resolution: coarsest,
                     coord,
                 };
-                if block_intersects_semantic_surface(field, key) {
+                if block_intersects_semantic_surface(field, key, policy) {
                     leaves.push(key);
                 }
             }
@@ -561,12 +578,12 @@ fn build_plan(
         if leaves.len().saturating_add(7) > MAX_INITIAL_LEAVES {
             break;
         }
-        if !refine_leaf(&mut leaves, index, field) {
+        if !refine_leaf(&mut leaves, index, field, policy) {
             break;
         }
     }
 
-    if !balance_leaves_2_to_1(field, &mut leaves) {
+    if !balance_leaves_2_to_1(field, &mut leaves, policy) {
         return None;
     }
 
@@ -616,6 +633,7 @@ fn build_plan(
             observer_bucket,
             finest_exponent: finest.binary_exponent(),
             coarsest_exponent: coarsest.binary_exponent(),
+            policy_revision,
         },
         specs,
     ))
@@ -658,6 +676,7 @@ fn build_tangent(normal: Vec3) -> [f32; 4] {
 fn build_clipmap_mesh(
     field: CelestialVoxelField,
     spec: CelestialClipmapBlockSpec,
+    policy: Option<&DeveloperScalarPolicyRuntime>,
 ) -> Option<CelestialClipmapMeshData> {
     let origin = spec.key.origin_local_metres();
     let extent = spec.key.extent_metres();
@@ -688,10 +707,13 @@ fn build_clipmap_mesh(
         )
         .normalize_or_zero();
 
-        let surface_radius = field
-            .surface_local_metres(direction, SEMANTIC_SURFACE_SCALE)
-            .map(|surface| surface.length())
-            .unwrap_or_else(|_| field.radius_metres());
+        let surface_radius = presentation_surface_radius_metres(
+            field,
+            direction,
+            SEMANTIC_SURFACE_SCALE,
+            policy,
+        )
+        .unwrap_or_else(|| field.radius_metres());
 
         let signed = surface_radius - radial;
         if signed.is_finite() {
@@ -782,6 +804,7 @@ fn sync_celestial_clipmap_realizations(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     views: Res<UsfViewDemandSnapshot>,
+    script_workbench: Res<DeveloperScriptWorkbench>,
     workers: Res<VoxelWorkerPool>,
     authorities: Query<(
         Entity,
@@ -800,6 +823,12 @@ fn sync_celestial_clipmap_realizations(
     let Some(view) = views.iter().next() else {
         return;
     };
+    let presentation_policy = script_workbench.celestial_height_snapshot();
+    let policy_revision =
+        presentation_policy.as_ref().map_or(0, DeveloperScalarPolicySnapshot::revision);
+    let policy_runtime = presentation_policy
+        .as_ref()
+        .and_then(|snapshot| snapshot.compile_runtime().ok());
 
     let mut live_authorities = HashSet::<Entity>::new();
     let mut authority_names = HashMap::<Entity, String>::new();
@@ -831,7 +860,7 @@ fn sync_celestial_clipmap_realizations(
         ) else {
             continue;
         };
-        let Some((key, desired)) = build_plan(*field, observer_local) else {
+        let Some((key, desired)) = build_plan(*field, observer_local, policy_runtime.as_ref(), policy_revision) else {
             continue;
         };
         if desired.is_empty() {
@@ -865,6 +894,7 @@ fn sync_celestial_clipmap_realizations(
                 CelestialClipmapPlan {
                     key,
                     field: *field,
+                    policy: presentation_policy.clone(),
                     generation,
                     desired,
                     completed: HashSet::new(),
@@ -879,13 +909,13 @@ fn sync_celestial_clipmap_realizations(
         .retain(|authority, _| live_authorities.contains(authority));
 
     let mut existing_by_spec =
-        HashMap::<(Entity, CelestialClipmapBlockSpec), Entity>::new();
+        HashMap::<(Entity, u64, CelestialClipmapBlockSpec), Entity>::new();
     for (entity, block) in &blocks {
         if !live_authorities.contains(&block.authority) {
             commands.entity(entity).despawn();
             continue;
         }
-        let key = (block.authority, block.spec);
+        let key = (block.authority, block.policy_revision, block.spec);
         if existing_by_spec.contains_key(&key) {
             commands.entity(entity).despawn();
         } else {
@@ -895,7 +925,7 @@ fn sync_celestial_clipmap_realizations(
 
     for (&authority, plan) in &mut registry.plans {
         for &spec in &plan.desired {
-            if existing_by_spec.contains_key(&(authority, spec)) {
+            if existing_by_spec.contains_key(&(authority, plan.key.policy_revision, spec)) {
                 plan.completed.insert(spec);
             }
         }
@@ -912,6 +942,7 @@ fn sync_celestial_clipmap_realizations(
         };
 
         if build.generation != plan.generation
+            || build.policy_revision != plan.key.policy_revision
             || !plan.desired.contains(&build.spec)
             || build.field != plan.field
         {
@@ -919,7 +950,7 @@ fn sync_celestial_clipmap_realizations(
             continue;
         }
 
-        if existing_by_spec.contains_key(&(build.authority, build.spec)) {
+        if existing_by_spec.contains_key(&(build.authority, build.policy_revision, build.spec)) {
             plan.completed.insert(build.spec);
             commands.entity(task_entity).despawn();
             continue;
@@ -966,6 +997,7 @@ fn sync_celestial_clipmap_realizations(
                 )),
                 CelestialClipmapBlock {
                     authority: build.authority,
+                    policy_revision: build.policy_revision,
                     spec: build.spec,
                 },
                 UsfPresentationProjectionOf(build.authority),
@@ -976,7 +1008,7 @@ fn sync_celestial_clipmap_realizations(
             ))
             .id();
 
-        existing_by_spec.insert((build.authority, build.spec), entity);
+        existing_by_spec.insert((build.authority, build.policy_revision, build.spec), entity);
     }
 
     let mut admitted = 0usize;
@@ -1000,9 +1032,16 @@ fn sync_celestial_clipmap_realizations(
             }
 
             let field = plan.field;
+            let policy = plan.policy.clone();
+            let policy_revision = plan.key.policy_revision;
             let Some(task) = workers.try_submit(
                 VoxelWorkerLane::PresentationResolution,
-                move || build_clipmap_mesh(field, spec),
+                move || {
+                    let runtime = policy
+                        .as_ref()
+                        .and_then(|snapshot| snapshot.compile_runtime().ok());
+                    build_clipmap_mesh(field, spec, runtime.as_ref())
+                },
             ) else {
                 break 'authorities;
             };
@@ -1013,6 +1052,7 @@ fn sync_celestial_clipmap_realizations(
                 CelestialClipmapBuildTask {
                     authority,
                     generation: plan.generation,
+                    policy_revision,
                     spec,
                     field,
                     task,
@@ -1041,7 +1081,7 @@ fn sync_celestial_clipmap_realizations(
         let visible_meshes = plan
             .desired
             .iter()
-            .filter_map(|spec| existing_by_spec.get(&(authority, *spec)))
+            .filter_map(|spec| existing_by_spec.get(&(authority, plan.key.policy_revision, *spec)))
             .count();
         if visible_meshes == 0 {
             continue;
@@ -1057,14 +1097,16 @@ fn sync_celestial_clipmap_realizations(
             if block.authority != authority {
                 continue;
             }
-            if desired.contains(&block.spec) {
+            if block.policy_revision == plan.key.policy_revision
+                && desired.contains(&block.spec)
+            {
                 commands.entity(entity).insert(Visibility::Inherited);
             } else {
                 commands.entity(entity).despawn();
             }
         }
         for &spec in &plan.desired {
-            if let Some(&entity) = existing_by_spec.get(&(authority, spec)) {
+            if let Some(&entity) = existing_by_spec.get(&(authority, plan.key.policy_revision, spec)) {
                 commands.entity(entity).insert(Visibility::Inherited);
             }
         }
