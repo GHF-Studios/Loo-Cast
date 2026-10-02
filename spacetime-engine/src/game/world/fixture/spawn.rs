@@ -159,8 +159,12 @@ fn preferred_ring_direction(
 
 /// Resolve one authored body-surface hint to a locally safe canonical spawn.
 ///
-/// The returned [`BodySurfaceSite::up`] is the actual local terrain normal
-/// rotated into canonical/world axes, not merely the radial body direction.
+/// Candidate safety is judged from the actual local terrain normal.
+///
+/// The returned [`BodySurfaceSite::up`] is deliberately the body-radial
+/// direction through the selected canonical surface point. Spawn clearance is
+/// therefore applied along one stable radial ray: a requested 25 m air gap
+/// remains ~25 m above the same semantic surface sample even on steep terrain.
 pub(super) fn resolve_good_spawn(
     hint: BodySurfaceSite,
     body_origin: UsfPosition,
@@ -235,7 +239,7 @@ pub(super) fn resolve_good_spawn(
         .local_metres_to_world(body_origin, selected.surface_local_metres)
         .ok()?;
     let up_world = body_frame
-        .local_direction_to_world(selected.normal_local)
+        .local_direction_to_world(selected.direction_local)
         .normalize_or_zero();
     let resolved = BodySurfaceSite::new(hint.body(), surface, up_world, hint.scale())?;
 
@@ -286,5 +290,24 @@ mod tests {
         let b = resolve_good_spawn(hint, origin, frame, field, hull).unwrap();
         assert_eq!(a.surface(), b.surface());
         assert_eq!(a.up(), b.up());
+
+        let radial_native = a
+            .surface()
+            .relative_at_scale_bounded_f64(
+                &origin,
+                SpatialScale::ZERO,
+                f64::MAX,
+            )
+            .unwrap();
+        let radial = Vec3::new(
+            radial_native.x as f32,
+            radial_native.y as f32,
+            radial_native.z as f32,
+        )
+        .normalize_or_zero();
+        assert!(
+            a.up().dot(radial) > 0.9999,
+            "spawn clearance must follow the body-radial ray"
+        );
     }
 }

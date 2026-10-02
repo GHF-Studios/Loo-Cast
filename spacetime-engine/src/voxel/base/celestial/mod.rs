@@ -474,7 +474,7 @@ fn dvec(value: Vec3) -> DVec3 {
     )
 }
 
-const ROCKY_EXAGGERATED_OUTWARD_BOUND_METRES: f64 = 110_000.0;
+const ROCKY_EXAGGERATED_OUTWARD_BOUND_METRES: f64 = 30_000.0;
 
 /// Deliberately unmistakable development morphology layered onto the ordinary
 /// rocky semantic bands.
@@ -484,8 +484,8 @@ const ROCKY_EXAGGERATED_OUTWARD_BOUND_METRES: f64 = 110_000.0;
 /// mountains/valleys: dense voxels, travel boundaries, clipmap and regional
 /// presentation.
 ///
-/// The amplitudes are intentionally exaggerated while the world-generation
-/// stack is being exercised. Once end-to-end terrain realization is healthy,
+/// The amplitudes are intentionally obvious while the world-generation
+/// stack is being exercised, but remain within a sane planetary test range. Once end-to-end terrain realization is healthy,
 /// this can become an authored profile parameter instead of a hardcoded dev
 /// morphology layer.
 fn rocky_exaggerated_relief_metres(direction: Vec3, seed: u32) -> f64 {
@@ -499,7 +499,7 @@ fn rocky_exaggerated_relief_metres(direction: Vec3, seed: u32) -> f64 {
 
     // Narrow high ridge networks from zero contours of a coherent carrier.
     let alpine_carrier = value_noise_3d(
-        direction * 13.0 + Vec3::new(-17.2, 6.9, 12.4),
+        direction * 10.0 + Vec3::new(-17.2, 6.9, 12.4),
         seed ^ 0x414C_504E,
     );
     let alpine_ridge =
@@ -515,7 +515,7 @@ fn rocky_exaggerated_relief_metres(direction: Vec3, seed: u32) -> f64 {
 
     // Independent narrow negative networks make obvious canyon/rift systems.
     let canyon_carrier = value_noise_3d(
-        direction * 18.0 + Vec3::new(14.2, -4.7, -16.5),
+        direction * 15.0 + Vec3::new(14.2, -4.7, -16.5),
         seed ^ 0x4341_4E59,
     );
     let canyon_line =
@@ -531,17 +531,17 @@ fn rocky_exaggerated_relief_metres(direction: Vec3, seed: u32) -> f64 {
 
     // Signed serration prevents the non-ridge regions from becoming bland.
     let serration = value_noise_3d(
-        direction * 37.0 + Vec3::new(1.7, -13.3, 9.2),
+        direction * 32.0 + Vec3::new(1.7, -13.3, 9.2),
         seed ^ 0x5345_5252,
     );
 
     let relief =
-        f64::from(province) * 18_000.0
-        + f64::from(alpine_ridge * alpine_envelope) * 72_000.0
-        - f64::from(canyon_line * canyon_envelope) * 52_000.0
-        + f64::from(serration) * 6_000.0;
+        f64::from(province) * 6_000.0
+        + f64::from(alpine_ridge * alpine_envelope) * 18_000.0
+        - f64::from(canyon_line * canyon_envelope) * 14_000.0
+        + f64::from(serration) * 2_500.0;
 
-    relief.clamp(-85_000.0, 105_000.0)
+    relief.clamp(-24_000.0, 28_000.0)
 }
 
 fn stellar_macro_relative_relief(direction: Vec3, seed: u32) -> f32 {
@@ -652,16 +652,16 @@ mod tests {
         }
 
         assert!(
-            maximum >= 20_000.0,
+            maximum >= 8_000.0,
             "expected obviously mountainous canonical surface, max={maximum:.1} m"
         );
         assert!(
-            minimum <= -10_000.0,
+            minimum <= -6_000.0,
             "expected obvious canonical valleys/canyons, min={minimum:.1} m"
         );
         assert!(
-            maximum - minimum >= 40_000.0,
-            "expected large canonical relief span, got {:.1} m",
+            maximum - minimum >= 18_000.0,
+            "expected strong canonical relief span, got {:.1} m",
             maximum - minimum,
         );
     }
