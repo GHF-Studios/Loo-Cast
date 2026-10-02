@@ -211,7 +211,8 @@ pub(in crate::voxel) fn schedule_voxel_generation(
     let mut world_entities = worlds
         .iter_mut()
         .filter_map(|(entity, _, streaming, layer, _)| {
-            let pending_priority = streaming.next_pending_priority()?;
+            let (pending_priority, pending_role_priority, trajectory_distance) =
+                streaming.next_pending_work_rank()?;
             let scale_distance = (
                 i16::from(layer.scale().exponent())
                     - i16::from(interaction.scale().exponent())
@@ -222,6 +223,8 @@ pub(in crate::voxel) fn schedule_voxel_generation(
                 layer.scale() == interaction.scale(),
                 streaming.migration_active(),
                 pending_priority,
+                pending_role_priority,
+                trajectory_distance,
                 scale_distance,
             ))
         })
@@ -234,12 +237,14 @@ pub(in crate::voxel) fn schedule_voxel_generation(
     world_entities.rotate_left(rotate);
     world_entities.sort_by(|a, b| {
         b.1.cmp(&a.1)
+            .then_with(|| b.4.cmp(&a.4))
             .then_with(|| b.2.cmp(&a.2))
             .then_with(|| b.3.cmp(&a.3))
-            .then_with(|| a.4.cmp(&b.4))
+            .then_with(|| a.5.total_cmp(&b.5))
+            .then_with(|| a.6.cmp(&b.6))
     });
 
-    for (entity, _, _, _, _) in world_entities.iter().copied() {
+    for (entity, _, _, _, _, _, _) in world_entities.iter().copied() {
         if generation_slots == 0 {
             break;
         }

@@ -22,8 +22,8 @@ pub use residency::{
     UsfContextResidency, UsfResidencyRequestBuffer, UsfResidencySet, UsfResidentContext,
 };
 pub use demand::{
-    SpatialDemandScope, SpatialDemandSet, SpatialDemandSnapshot, SpatialDemandSource,
-    SpatialRefinementDemand,
+    SpatialDemandMotionSnapshot, SpatialDemandScope, SpatialDemandSet,
+    SpatialDemandSnapshot, SpatialDemandSource, SpatialRefinementDemand,
 };
 pub(crate) use devtools::SPATIAL_DEMAND_VISUALIZATION;
 pub use navigation::{

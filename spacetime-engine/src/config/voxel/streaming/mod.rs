@@ -21,7 +21,7 @@ impl Default for VoxelStreamingConfig {
         Self {
             default_load_budget_per_frame: 24,
             generation_publish_budget_per_frame: 16,
-            warm_inactive_materialization_limit: 4096,
+            warm_inactive_materialization_limit: 512,
             generation_group_base_chunks_per_axis: 10,
             max_chunks_per_generation_task: 4,
         }

@@ -1,12 +1,13 @@
 //! ECS collection of canonical bounded spatial-interest scopes.
 
 use super::*;
-use crate::spatial::UsfSpatialTransitionQueue;
+use crate::spatial::{UsfCanonicalMotion, UsfSpatialTransitionQueue};
 
 const TRANSITION_DESTINATION_PRIORITY_BIAS: i32 = 10_000;
 
 pub(in crate::spatial) fn configure(app: &mut App) {
     app.init_resource::<SpatialDemandSnapshot>()
+        .init_resource::<SpatialDemandMotionSnapshot>()
         .configure_sets(Update, SpatialDemandSet::Collect)
         .add_systems(
             Update,
@@ -22,14 +23,26 @@ fn collect_spatial_demand(
         &GlobalTransform,
         &SpatialDemandSource,
         Option<&UsfScaleLayer>,
+        Option<&UsfCanonicalMotion>,
     )>,
     mut snapshot: ResMut<SpatialDemandSnapshot>,
+    mut motion_snapshot: ResMut<SpatialDemandMotionSnapshot>,
 ) {
     let mut next = SpatialDemandSnapshot::default();
+    let mut next_motion = SpatialDemandMotionSnapshot::default();
 
-    for (entity, transform, source, source_layer) in &sources {
+    for (entity, transform, source, source_layer, canonical_motion) in &sources {
         if !source.enabled() || source.half_extent_native().max_element() <= 0.001 {
             continue;
+        }
+
+        if let Some(motion) = canonical_motion {
+            let velocity = motion.velocity_metres_per_second();
+            if velocity.is_finite() && velocity != DVec3::ZERO {
+                next_motion
+                    .velocities_metres_per_second
+                    .insert(entity, velocity);
+            }
         }
 
         let source_scale = source_layer.map_or(frame.origin().leaf_scale(), |layer| layer.scale());
@@ -79,5 +92,8 @@ fn collect_spatial_demand(
 
     if snapshot.scopes != next.scopes {
         snapshot.scopes = next.scopes;
+    }
+    if *motion_snapshot != next_motion {
+        *motion_snapshot = next_motion;
     }
 }

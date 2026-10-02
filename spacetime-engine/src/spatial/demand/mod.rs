@@ -10,7 +10,9 @@
 //! detail requirement consumed by those planners; it deliberately does not
 //! manufacture extra generic demand scopes.
 
-use bevy::prelude::*;
+use std::collections::HashMap;
+
+use bevy::{math::DVec3, prelude::*};
 
 use super::{SpatialScale, UsfPosition, UsfScaleLayer, UsfSpatialFrame};
 
@@ -190,6 +192,25 @@ impl SpatialDemandSnapshot {
 
     pub fn is_empty(&self) -> bool {
         self.scopes.is_empty()
+    }
+}
+
+/// Canonical motion hints for active generic spatial-demand sources.
+///
+/// Motion is deliberately separate from [`SpatialDemandScope`] so continuous
+/// velocity changes do not churn demand topology or force unrelated capability
+/// planners to rebuild their regions every physics tick.
+#[derive(Resource, Debug, Default, Clone, PartialEq)]
+pub struct SpatialDemandMotionSnapshot {
+    velocities_metres_per_second: HashMap<Entity, DVec3>,
+}
+
+impl SpatialDemandMotionSnapshot {
+    pub fn velocity_metres_per_second(&self, source: Entity) -> DVec3 {
+        self.velocities_metres_per_second
+            .get(&source)
+            .copied()
+            .unwrap_or(DVec3::ZERO)
     }
 }
 

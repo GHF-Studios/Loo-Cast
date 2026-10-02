@@ -135,8 +135,23 @@ impl VoxelStreaming {
             }
         }
 
+        // aggressive-departure-retirement-v1
+        //
+        // Make-before-break protects changed capability for addresses that
+        // remain desired. It must never retain space that has actually left
+        // demand. New addresses also have no old representation to preserve.
         for &key in &changed {
-            self.remember_committed_state(key);
+            let old = self.cached_desired_roles.get(&key).copied();
+            let next = desired.get(&key).copied();
+            match (old, next) {
+                (Some(old_roles), Some(next_roles)) if old_roles != next_roles => {
+                    self.remember_committed_state(key);
+                }
+                (Some(_), None) => {
+                    self.migration_original_roles.remove(&key);
+                }
+                _ => {}
+            }
         }
         self.cached_desired_roles = desired;
         for key in changed {
@@ -157,7 +172,9 @@ impl VoxelStreaming {
             if !self.cached_desired_roles.contains_key(&key) {
                 continue;
             }
-            self.remember_committed_state(key);
+            // Pure movement is not a migration transaction: the trailing slab
+            // has left demand and should retire immediately.
+            self.migration_original_roles.remove(&key);
             self.cached_desired_roles.remove(&key);
             self.reconcile_changed_key(key);
             changed = true;
@@ -169,7 +186,7 @@ impl VoxelStreaming {
             if self.cached_desired_roles.get(&key).copied() == Some(roles) {
                 continue;
             }
-            self.remember_committed_state(key);
+            // A newly entered address has no committed representation to keep.
             self.cached_desired_roles.insert(key, roles);
             self.reconcile_changed_key(key);
             self.pending_desired.push_back(demanded);
@@ -189,10 +206,17 @@ impl VoxelStreaming {
         self.effective_desired.contains(&key)
     }
 
-    fn candidate_addresses(
+    fn migration_candidate_addresses(
         &self,
     ) -> impl Iterator<Item = (VoxelMaterializationKey, UsfScaleRoleMask)> + '_ {
-        self.cached_desired_roles.iter().map(|(&key, &roles)| (key, roles))
+        self.migration_original_roles
+            .keys()
+            .filter_map(|&key| {
+                self.cached_desired_roles
+                    .get(&key)
+                    .copied()
+                    .map(|roles| (key, roles))
+            })
     }
 
     #[cfg(test)]
@@ -246,8 +270,14 @@ impl VoxelStreaming {
             .is_some_and(|roles| roles.contains(role))
     }
 
-    fn next_pending_priority(&self) -> Option<i32> {
-        self.pending_desired.front().map(|demand| demand.priority)
+    fn next_pending_work_rank(&self) -> Option<(i32, u8, f32)> {
+        self.pending_desired.front().map(|demand| {
+            (
+                demand.priority,
+                demand.role_priority,
+                demand.trajectory_distance_squared,
+            )
+        })
     }
 }
 
