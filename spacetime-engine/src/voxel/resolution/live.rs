@@ -23,7 +23,6 @@ use crate::reconstructible::{
 };
 use crate::voxel::developer_policy::{
     presentation_surface_radius_bounds_metres,
-    presentation_surface_radius_metres,
 };
 
 use crate::{
@@ -748,7 +747,7 @@ fn block_distance_to_point(
 fn block_intersects_semantic_surface(
     field: CelestialVoxelField,
     key: CelestialClipmapBlockKey,
-    policy: Option<&DeveloperScalarPolicyRuntime>,
+    _policy: Option<&DeveloperScalarPolicyRuntime>,
 ) -> bool {
     let center = key.center_local_metres();
     let radial = center.length();
@@ -767,18 +766,28 @@ fn block_intersects_semantic_surface(
         Vec3::Y
     };
 
-    let surface_radius = presentation_surface_radius_metres(
-        field,
-        direction,        policy,
-    )
-    .unwrap_or_else(|| field.radius_metres());
-    if !surface_radius.is_finite() {
+    let Ok(surface) = field.surface_local_metres(direction) else {
+        return false;
+    };
+    let outer_radius = surface.length();
+    if !outer_radius.is_finite() {
         return false;
     }
 
+    let inner_radius = (
+        outer_radius - field.volumetric_surface_inward_support_metres()
+    )
+        .max(0.0);
+
     let half_diagonal = key.half_extent_metres().length();
-    let conservative_extra = key.extent_metres() * 0.35 + key.spacing_metres() * 2.0;
-    (radial - surface_radius).abs() <= half_diagonal + conservative_extra
+    let conservative_extra =
+        key.extent_metres() * 0.35 + key.spacing_metres() * 2.0;
+    let block_minimum =
+        (radial - half_diagonal - conservative_extra).max(0.0);
+    let block_maximum =
+        radial + half_diagonal + conservative_extra;
+
+    block_maximum >= inner_radius && block_minimum <= outer_radius
 }
 
 
@@ -952,6 +961,7 @@ struct CelestialClipmapPlanInput {
     key: CelestialClipmapPlanKey,
     planning_anchor_local: DVec3,
     validity_radius_metres: f64,
+    clearance_metres: f64,
     finest: VoxelPresentationResolution,
     coarsest: VoxelPresentationResolution,
 }
@@ -987,9 +997,11 @@ fn derive_plan_input(
         .surface_local_metres(observer_direction)
         .ok()?
         .length();
-    let clearance =
-        (observer_radius - canonical_surface_radius).abs();
-    if clearance > MAX_CLIPMAP_CLEARANCE_METRES {
+    let clearance = field
+        .sample_local_metres(observer_local)?
+        .signed_distance_metres()
+        .abs();
+    if !clearance.is_finite() || clearance > MAX_CLIPMAP_CLEARANCE_METRES {
         return None;
     }
 
@@ -1058,6 +1070,7 @@ fn derive_plan_input(
         },
         planning_anchor_local,
         validity_radius_metres: validity_extent * 0.5,
+        clearance_metres: clearance,
         finest,
         coarsest,
     })
@@ -1474,7 +1487,15 @@ fn sync_celestial_clipmap_realizations(
             continue;
         }
 
-        let committed_generation = registry
+        info!(
+            authority = ?build.authority,
+            canonical_clearance_metres = build.input.clearance_metres,
+            finest_spacing_metres = build.input.finest.sample_spacing_metres(),
+            coarsest_spacing_metres = build.input.coarsest.sample_spacing_metres(),
+            desired_blocks = desired.len(),
+            "celestial clipmap plan ready"
+        );
+let committed_generation = registry
             .plans
             .get(&build.authority)
             .and_then(|plan| plan.committed_generation);
@@ -1901,10 +1922,22 @@ fn sync_celestial_clipmap_transforms(
             *visibility = Visibility::Hidden;
             continue;
         };
+        // Preserve a coarse block when its volume overlaps the local region even
+        // if its block origin itself lies farther than the old fixed bound.
+        let extent_metres =
+            block.spec.key.extent_metres().min(f64::from(f32::MAX)) as f32;
+        let extent_native =
+            scale.metres_to_native_f32(extent_metres).abs();
+        let projection_bound = if extent_native.is_finite() {
+            RUNTIME_RELATIVE_BOUND_NATIVE + extent_native
+        } else {
+            f32::MAX
+        };
+
         let Ok(translation) = anchor.relative_at_scale_bounded(
             frame.origin(),
             scale,
-            RUNTIME_RELATIVE_BOUND_NATIVE,
+            projection_bound,
         ) else {
             *visibility = Visibility::Hidden;
             continue;

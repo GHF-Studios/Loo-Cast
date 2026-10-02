@@ -12,7 +12,7 @@ use bevy::{math::DVec3, prelude::Vec3};
 use super::super::noise::value_noise_3d;
 
 const CAVE_MIN_DEPTH_METRES: f64 = -12.0;
-const CAVE_MAX_DEPTH_METRES: f64 = 2_400.0;
+pub(super) const CAVE_MAX_DEPTH_METRES: f64 = 2_400.0;
 
 #[inline]
 fn local_f32(point: DVec3) -> Vec3 {

@@ -17,7 +17,10 @@ mod bands;
 mod caves;
 mod rocky;
 
-use caves::rocky_cave_void_signed_distance_metres;
+use caves::{
+    CAVE_MAX_DEPTH_METRES,
+    rocky_cave_void_signed_distance_metres,
+};
 use rocky::{
     rocky_maximum_outward_displacement_metres,
     rocky_surface_displacement_metres,
@@ -223,6 +226,16 @@ pub fn surface_position(self, direction: Vec3) -> Result<UsfPosition, UsfPositio
             .translated_metres_f64(dvec(world_direction) * radius)
     }
 
+
+    /// Conservative inward support for non-radial volumetric surfaces.
+    ///
+    /// Field metadata only: this does not encode terrain LOD.
+    pub(crate) fn volumetric_surface_inward_support_metres(self) -> f64 {
+        match self.profile {
+            CelestialBodyProfile::Rocky => CAVE_MAX_DEPTH_METRES,
+            CelestialBodyProfile::Lunar | CelestialBodyProfile::Stellar => 0.0,
+        }
+    }
 
     /// Canonical signed distance in body-local SI metres.
     ///

@@ -131,6 +131,15 @@ impl CelestialVoxelField {
         )
     }
 
+    pub(crate) fn volumetric_surface_inward_support_metres(self) -> f64 {
+        self.realization(
+            UsfPosition::zero(SpatialScale::MIN),
+            UsfSemanticFrame::identity(),
+            SpatialScale::ZERO,
+        )
+        .volumetric_surface_inward_support_metres()
+    }
+
     /// Sample the canonical body-local volumetric field in SI metres.
     ///
     /// This is the common terrain truth for dense voxel caches, local clipmap
