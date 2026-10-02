@@ -7,15 +7,14 @@ use super::*;
 /// AI/autopilot/network/replay controllers can write the same component without
 /// impersonating keyboard or mouse input.
 pub(in crate::game::player) fn sample_flight_control_intent(
-    time: Res<Time>,
     input: Res<PlayerInputFrame>,
-    controller: Single<(&PlayerController, &TravelPace, Option<&PlayerDead>), With<Player>>,
+    controller: Single<(&TravelPace, Option<&PlayerDead>), With<Player>>,
     subject: Single<
         (&ControlledSubjectLocomotion, &mut FlightControlIntent),
         With<LocalControlSubject>,
     >,
 ) {
-    let (controller, pace, dead) = controller.into_inner();
+    let (pace, dead) = controller.into_inner();
     let (locomotion, mut intent) = subject.into_inner();
 
     if dead.is_some()
@@ -31,20 +30,11 @@ pub(in crate::game::player) fn sample_flight_control_intent(
     let vertical = input.digital_axis(PlayerAction::Descend, PlayerAction::Ascend);
     let boost = input.pressed(PlayerAction::Boost);
 
-    // Current default manual-flight adapter: mouse delta requests local
-    // angular rate. Alternative Elite/KSP-style policies can replace this
-    // mapping without changing generic locomotion execution.
-    let dt = time.delta_secs().max(1.0e-6);
-    let look = input.look_delta();
-    let angular_velocity = Vec3::new(
-        -look.y * controller.look_sensitivity / dt,
-        -look.x * controller.look_sensitivity / dt,
-        0.0,
-    );
-
+    // Mouse look is view intent only. Explicit attitude controllers may write
+    // another command later; the default human adapter holds physical attitude.
     intent.set(
         Vec3::new(horizontal as f32, vertical as f32, forward as f32),
-        FlightAttitudeCommand::AngularVelocityLocal(angular_velocity),
+        FlightAttitudeCommand::Hold,
         pace.multiplier.max(0.0),
         boost,
     );

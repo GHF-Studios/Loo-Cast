@@ -35,6 +35,7 @@ pub(crate) enum PlayerAction {
     ToggleThrusters,
     ToggleRcs,
     ToggleCruise,
+    ToggleLanding,
     ToggleSpatialDemand,
     ToggleCameraMode,
     ViewScaleModifier,
@@ -58,7 +59,7 @@ pub(crate) enum PlayerAction {
 }
 
 impl PlayerAction {
-    const ALL: [Self; 34] = [
+    const ALL: [Self; 35] = [
         Self::MoveForward,
         Self::MoveBackward,
         Self::MoveLeft,
@@ -73,6 +74,7 @@ impl PlayerAction {
         Self::ToggleThrusters,
         Self::ToggleRcs,
         Self::ToggleCruise,
+        Self::ToggleLanding,
         Self::ToggleSpatialDemand,
         Self::ToggleCameraMode,
         Self::ViewScaleModifier,
@@ -146,6 +148,7 @@ pub(crate) const PLAYER_BIND_TARGETS: &[&str] = &[
     "toggle_thrusters",
     "toggle_rcs",
     "toggle_cruise",
+    "toggle_landing",
     "toggle_spatial_demand",
     "toggle_camera",
     "toggle_creative_menu",
@@ -365,6 +368,7 @@ fn bind_target_actions(target: &str) -> Option<(&'static str, &'static [PlayerAc
         "toggle_thrusters" => Some(("toggle_thrusters", &[A::ToggleThrusters])),
         "toggle_rcs" => Some(("toggle_rcs", &[A::ToggleRcs])),
         "toggle_cruise" => Some(("toggle_cruise", &[A::ToggleCruise])),
+        "toggle_landing" => Some(("toggle_landing", &[A::ToggleLanding])),
         "toggle_spatial_demand" => Some(("toggle_spatial_demand", &[A::ToggleSpatialDemand])),
         "toggle_camera" => Some(("toggle_camera", &[A::ToggleCameraMode])),
         "toggle_creative_menu" => Some(("toggle_creative_menu", &[A::ToggleCreativeMenu])),
@@ -410,7 +414,7 @@ impl Default for PlayerInputBindings {
             ("x", "toggle_thrusters"),
             ("z", "toggle_rcs"),
             ("c", "toggle_cruise"),
-            ("l", "toggle_spatial_demand"),
+            ("l", "toggle_landing"),
             ("f5", "toggle_camera"),
             ("lalt", "+viewscale"),
             ("ralt", "+viewscale"),
@@ -754,6 +758,16 @@ mod runtime_binding_tests {
             .bindings
             .get(&PlayerAction::MoveForward)
             .is_some_and(|values| values.contains(&w)));
+    }
+
+    #[test]
+    fn landing_owns_l_by_default() {
+        let bindings = PlayerInputBindings::default();
+        assert_eq!(bindings.binding_for_name("l").unwrap(), Some("toggle_landing"));
+        let l = PlayerInputButton::parse("l").unwrap();
+        assert!(bindings.bindings.get(&PlayerAction::ToggleLanding).is_some_and(|v| v.contains(&l)));
+        assert!(!bindings.bindings.get(&PlayerAction::ToggleSpatialDemand).is_some_and(|v| v.contains(&l)));
+        assert!(bind_target_actions("toggle_spatial_demand").is_some());
     }
 
     #[test]

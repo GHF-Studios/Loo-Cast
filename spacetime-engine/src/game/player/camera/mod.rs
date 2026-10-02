@@ -179,7 +179,8 @@ impl ViewCameraProfile {
 
         Self {
             preferred_mode: CameraMode::ThirdPerson,
-            orientation_policy: ViewOrientationPolicy::SubjectAttitude,
+            // View orientation is observer intent, not spacecraft attitude authority.
+            orientation_policy: ViewOrientationPolicy::ControllerLook,
             standing_eye_offset_metres: Vec3::ZERO,
             crouched_eye_offset_metres: Vec3::ZERO,
             near_clip_metres: 0.001,

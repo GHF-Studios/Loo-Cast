@@ -207,6 +207,11 @@ pub(super) fn update_flight_hud(
             bindings.label(PlayerAction::TakeOff),
             bindings.label(PlayerAction::Interact),
         ))
+    } else if telemetry.landing_available() {
+        Some(format!(
+            "[{}] LAND",
+            bindings.label(PlayerAction::ToggleLanding),
+        ))
     } else if telemetry.mode() == Some(FlightMode::Local)
         && telemetry.detailed_interaction()
         && !telemetry.surface_collision_ready()

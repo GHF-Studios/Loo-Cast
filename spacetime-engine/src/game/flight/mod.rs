@@ -80,6 +80,18 @@ impl FlightContactState {
     }
 }
 
+/// Continuously refreshed support eligibility for an explicit landing request.
+#[derive(Component, Reflect, Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[reflect(Component)]
+pub struct FlightLandingOpportunity {
+    available: bool,
+}
+
+impl FlightLandingOpportunity {
+    pub const fn available(self) -> bool { self.available }
+    pub fn set_available(&mut self, available: bool) { self.available = available; }
+}
+
 /// Traversal policy is explicit rather than inferred from ship capabilities.
 ///
 /// `Creative` is a future canonical-USF traversal path, not an overpowered
@@ -196,6 +208,7 @@ pub struct FlightTelemetry {
     active: bool,
     mode: Option<FlightMode>,
     contact: FlightContactState,
+    landing_available: bool,
     safety: FlightSafetyLevel,
     speed_metres_per_second: f64,
     throttle: f32,
@@ -221,6 +234,7 @@ impl Default for FlightTelemetry {
             active: false,
             mode: None,
             contact: FlightContactState::Airborne,
+            landing_available: false,
             safety: FlightSafetyLevel::Nominal,
             speed_metres_per_second: 0.0,
             throttle: 0.0,
@@ -253,6 +267,10 @@ impl FlightTelemetry {
 
     pub const fn contact(self) -> FlightContactState {
         self.contact
+    }
+
+    pub const fn landing_available(self) -> bool {
+        self.landing_available
     }
 
     pub const fn safety(self) -> FlightSafetyLevel {
@@ -346,6 +364,7 @@ impl Plugin for FlightPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<FlightMode>()
             .register_type::<FlightContactState>()
+            .register_type::<FlightLandingOpportunity>()
             .register_type::<TraversalPolicy>()
             .register_type::<FlightSafetyProfile>()
             .register_type::<FlightSafetyLevel>()
@@ -374,6 +393,7 @@ fn sync_flight_telemetry(
             &PrimaryBodyContext,
             &SurfaceContext,
             Option<&FlightContactState>,
+            Option<&FlightLandingOpportunity>,
             Option<&FlightSafetyState>,
             &mut FlightTelemetry,
         ),
@@ -391,17 +411,20 @@ fn sync_flight_telemetry(
         primary,
         surface,
         contact,
+        landing,
         safety,
         mut telemetry,
     ) in &mut subjects
     {
         let mode = FlightMode::from_locomotion(locomotion.regime());
         let contact = contact.copied().unwrap_or_default();
+        let landing = landing.copied().unwrap_or_default();
         let safety = safety.copied().unwrap_or_default();
 
         telemetry.active = mode.is_some() || contact.is_landed();
         telemetry.mode = mode;
         telemetry.contact = contact;
+        telemetry.landing_available = landing.available();
         telemetry.safety = safety.level();
         telemetry.speed_metres_per_second = motion.speed_metres_per_second();
         telemetry.throttle = if mode == Some(FlightMode::Cruise) {

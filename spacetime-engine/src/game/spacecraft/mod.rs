@@ -18,8 +18,8 @@ use crate::{
     game::{
         GameSet,
         flight::{
-            FlightContactState, FlightSafetyProfile, FlightSafetyState, FlightTelemetry,
-            TraversalPolicy,
+            FlightContactState, FlightLandingOpportunity, FlightSafetyProfile,
+            FlightSafetyState, FlightTelemetry, TraversalPolicy,
         },
         control::{
             ControlActionSet, ControlledBy, LocalControlSubject, LocalControlTransferRequest,
@@ -81,6 +81,22 @@ pub struct Spacecraft;
 #[derive(Component, Reflect, Debug, Default)]
 #[reflect(Component)]
 pub struct SpacecraftManifestation;
+
+#[derive(Component, Debug, Default, Clone, Copy)]
+struct SpacecraftLandingSolution {
+    resolved: Option<(SpatialScale, Vec3, Quat)>,
+}
+
+impl SpacecraftLandingSolution {
+    fn clear(&mut self) { self.resolved = None; }
+    fn set(&mut self, scale: SpatialScale, translation: Vec3, rotation: Quat) {
+        self.resolved = Some((scale, translation, rotation));
+    }
+    fn at_scale(self, scale: SpatialScale) -> Option<(Vec3, Quat)> {
+        let (s, t, r) = self.resolved?;
+        (s == scale).then_some((t, r))
+    }
+}
 
 #[derive(Component, Reflect, Debug, Clone, Copy)]
 #[reflect(Component)]
@@ -287,6 +303,8 @@ fn spawn_reference_spacecraft(
             (
                 LocomotionInhibition::default(),
                 FlightContactState::default(),
+                FlightLandingOpportunity::default(),
+                SpacecraftLandingSolution::default(),
                 FlightSafetyProfile::spacecraft(),
                 FlightSafetyState::default(),
                 FlightTelemetry::default(),
@@ -335,166 +353,65 @@ fn spawn_reference_spacecraft(
 pub(crate) fn detect_landing(
     spatial_query: SpatialQuery,
     physics_charts: UsfPhysicsSlices,
-    spatial_frame: Res<UsfSpatialFrame>,
-    ownership: UsfOwnershipQuery,
-    mut semantic_positions: Query<&mut UsfPosition>,
     mut ships: Query<
         (
             Entity,
-            &mut Transform,
+            &Transform,
             &UsfScaleLayer,
             &DetailedBodyScale,
-            (
-                &mut CharacterControlFrame,
-                &CharacterLocomotionFrame,
-                &CharacterMovementConfig,
-            ),
+            &CharacterLocomotionFrame,
+            &CharacterMovementConfig,
             &Collider,
             Option<&KinematicQueryExclusions>,
-            &mut LinearVelocity,
-            &mut UsfCanonicalMotion,
-            &mut ControlledSubjectLocomotion,
+            &UsfCanonicalMotion,
+            &ControlledSubjectLocomotion,
             &FlightSafetyProfile,
-            &mut LocomotionInhibition,
-            &mut FlightContactState,
-            &mut PortalTraveler,
+            &FlightContactState,
+            &mut FlightLandingOpportunity,
+            &mut SpacecraftLandingSolution,
         ),
         (With<SpacecraftManifestation>, With<LocalControlSubject>, Without<Player>),
     >,
 ) {
-    // spacecraft-contact-handoff-query-shape-v2
-    let Ok((
-        entity,
-        mut transform,
-        layer,
-        detailed,
-        (mut control, locomotion_frame, movement),
-        collider,
-        exclusions,
-        mut velocity,
-        mut motion,
-        mut locomotion,
-        safety,
-        mut inhibition,
-        mut contact,
-        mut traveler,
-    )) = ships.single_mut()
-    else {
-        return;
-    };
+    let Ok((entity, transform, layer, detailed, locomotion_frame, movement,
+        collider, exclusions, motion, locomotion, safety, contact,
+        mut opportunity, mut solution)) = ships.single_mut() else { return; };
 
-    if contact.is_landed() {
-        let aligned = locomotion_frame.aligned_rotation(transform.rotation);
-        transform.rotation = aligned;
-        control.snap_to(aligned);
-        return;
-    }
+    opportunity.set_available(false);
+    solution.clear();
 
-    if layer.scale() != detailed.0
+    if contact.is_landed()
+        || layer.scale() != detailed.0
         || locomotion.regime() != LocomotionRegime::LocalFlight
-    {
-        return;
-    }
+        || motion.speed_metres_per_second() > safety.preferred_contact_speed_metres_per_second()
+    { return; }
 
-    let speed_metres = motion.speed_metres_per_second();
-    if speed_metres > safety.preferred_contact_speed_metres_per_second() {
-        return;
-    }
-
-    // A launched ship is explicitly separating from support. Measure this
-    // in canonical SI velocity, not active-chart native units, and tolerate
-    // sub-contact numerical jitter instead of requiring exact <= 0.
     let up = locomotion_frame.up();
-    let up_si = DVec3::new(
-        f64::from(up.x),
-        f64::from(up.y),
-        f64::from(up.z),
-    );
-    let separating_speed =
-        motion.velocity_metres_per_second().dot(up_si);
-    if separating_speed
+    let up_si = DVec3::new(f64::from(up.x), f64::from(up.y), f64::from(up.z));
+    if motion.velocity_metres_per_second().dot(up_si)
         > LANDING_SEPARATION_SPEED_EPSILON_METRES_PER_SECOND
-    {
-        return;
-    }
+    { return; }
 
-    let Ok(direction) = Dir3::new(-up) else {
-        return;
-    };
-
-    // Movement has already run this tick. A correct move-and-slide result is
-    // commonly exactly touching support, so probing from the current hull pose
-    // and ignoring origin penetration can discard the very contact we need.
-    // Lift the complete hull by the probe reach, then cast back through that
-    // lift plus the original reach. This preserves the semantic 2 m landing
-    // window while making exact/near-origin support observable.
-    let probe_lift =
-        layer.scale().metres_to_native_f32(LANDING_PROBE_LIFT_METRES);
-    let probe_origin = transform.translation + up * probe_lift;
+    let Ok(direction) = Dir3::new(-up) else { return; };
+    let lift = layer.scale().metres_to_native_f32(LANDING_PROBE_LIFT_METRES);
+    let probe_origin = transform.translation + up * lift;
     let max_distance = layer.scale().metres_to_native_f32(
         LANDING_PROBE_LIFT_METRES + LANDING_PROBE_METRES,
     );
     let filter = physics_charts.filter_for_scale(
         layer.scale(),
-        std::iter::once(entity)
-            .chain(exclusions.into_iter().flat_map(|items| items.iter())),
+        std::iter::once(entity).chain(exclusions.into_iter().flat_map(|items| items.iter())),
     );
-    let config = ShapeCastConfig {
-        max_distance,
-        ignore_origin_penetration: false,
-        ..default()
-    };
-
-    // Resolve the final landed attitude *before* measuring support. Otherwise
-    // rotating after the cast can change the hull footprint and reintroduce
-    // penetration at the supposedly-settled pose.
+    let config = ShapeCastConfig { max_distance, ignore_origin_penetration: false, ..default() };
     let aligned = locomotion_frame.aligned_rotation(transform.rotation);
     let Some(hit) = spatial_query.cast_shape(
-        collider,
-        probe_origin,
-        aligned,
-        direction,
-        &config,
-        &filter,
-    ) else {
-        return;
-    };
+        collider, probe_origin, aligned, direction, &config, &filter,
+    ) else { return; };
+    if hit.normal1.dot(up) < movement.min_ground_dot { return; }
 
-    if hit.normal1.dot(locomotion_frame.up()) < movement.min_ground_dot {
-        return;
-    }
-
-    // `Landed` means an actual support pose, not merely "terrain exists within
-    // LANDING_PROBE_METRES". Commit the runtime and canonical position as one
-    // discontinuous pose transaction.
-    let settled_translation =
-        probe_origin - up * hit.distance.max(0.0);
-    let Ok(settled_semantic) = spatial_frame
-        .origin()
-        .translated_at_scale(layer.scale(), settled_translation)
-    else {
-        return;
-    };
-    let Some(semantic_ship) = ownership.semantic_of(entity) else {
-        return;
-    };
-    let Ok(mut semantic_position) = semantic_positions.get_mut(semantic_ship) else {
-        return;
-    };
-
-    transform.translation = settled_translation;
-    transform.rotation = aligned;
-    control.snap_to(aligned);
-    traveler.commit_position(settled_translation);
-    *semantic_position = settled_semantic;
-
-    velocity.0 = Vec3::ZERO;
-    motion.stop();
-    contact.land();
-    inhibition.set(LocomotionInhibitionReason::SurfaceContact, true);
-    locomotion.request_automatic();
-    locomotion.set_thrusters_enabled(false);
-    locomotion.set_rcs_enabled(false);
+    let settled = probe_origin - up * hit.distance.max(0.0);
+    opportunity.set_available(true);
+    solution.set(layer.scale(), settled, aligned);
 }
 
 fn handle_spacecraft_actions(
@@ -527,7 +444,7 @@ fn handle_spacecraft_actions(
     mut controlled_ship: Query<
         (
             Entity,
-            &Transform,
+            &mut Transform,
             &UsfScaleLayer,
             &CharacterLocomotionFrame,
             &PhysicalBoxHull,
@@ -537,6 +454,9 @@ fn handle_spacecraft_actions(
             &mut UsfCanonicalMotion,
             &mut LocomotionInhibition,
             &mut FlightContactState,
+            &FlightLandingOpportunity,
+            &SpacecraftLandingSolution,
+            &mut PortalTraveler,
         ),
         (With<SpacecraftManifestation>, With<LocalControlSubject>, Without<Player>),
     >,
@@ -554,7 +474,7 @@ fn handle_spacecraft_actions(
 ) {
     if let Ok((
         ship_entity,
-        ship_transform,
+        mut ship_transform,
         ship_layer,
         ship_frame,
         ship_hull,
@@ -564,8 +484,38 @@ fn handle_spacecraft_actions(
         mut ship_motion,
         mut ship_inhibition,
         mut ship_contact,
+        ship_landing,
+        ship_landing_solution,
+        mut ship_traveler,
     )) = controlled_ship.single_mut()
     {
+        if !ship_contact.is_landed()
+            && input.gameplay_active()
+            && input.just_pressed(PlayerAction::ToggleLanding)
+            && ship_landing.available()
+            && let Some((settled_translation, aligned)) =
+                ship_landing_solution.at_scale(ship_layer.scale())
+        {
+            let Ok(settled_semantic) = frame.origin()
+                .translated_at_scale(ship_layer.scale(), settled_translation)
+            else { return; };
+            let Some(semantic_ship) = ownership.semantic_of(ship_entity) else { return; };
+            let Ok(mut semantic_position) = semantic_positions.get_mut(semantic_ship) else { return; };
+
+            ship_transform.translation = settled_translation;
+            ship_transform.rotation = aligned;
+            ship_traveler.commit_position(settled_translation);
+            *semantic_position = settled_semantic;
+            ship_velocity.0 = Vec3::ZERO;
+            ship_motion.stop();
+            ship_contact.land();
+            ship_inhibition.set(LocomotionInhibitionReason::SurfaceContact, true);
+            ship_locomotion.request_automatic();
+            ship_locomotion.set_thrusters_enabled(false);
+            ship_locomotion.set_rcs_enabled(false);
+            return;
+        }
+
         if ship_contact.is_landed()
             && input.gameplay_active()
             && input.just_pressed(PlayerAction::TakeOff)
