@@ -12,7 +12,6 @@ use rhai::{Engine, ImmutableString};
 
 use crate::{
     devtools::DeveloperScalarPolicyRuntime,
-    spatial::SpatialScale,
 };
 
 use super::{

@@ -120,7 +120,7 @@ fn sample_surface_candidate(
         // bounded displacement from the resolved surface enters this chart.
         let local_outward = body_frame.world_direction_to_local(radial_outward);
         let surface = field
-            .surface_position(&body_origin, body_frame, local_outward, subject_scale)
+            .surface_position(&body_origin, body_frame, local_outward)
             .ok()?;
         let relative_to_surface = position
             .relative_at_scale_bounded_f64(&surface, subject_scale, f64::MAX)

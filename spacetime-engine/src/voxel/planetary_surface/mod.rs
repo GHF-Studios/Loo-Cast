@@ -903,7 +903,7 @@ fn select_adaptive_patches(
 
 fn evaluate_patch(
     field: CelestialVoxelField,
-    sample_scale: SpatialScale,
+    _sample_scale: SpatialScale,
     patch: PlanetarySurfacePatchId,
     observer_local: DVec3,
     max_level: u8,
