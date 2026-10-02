@@ -56,6 +56,16 @@ pub(super) fn rocky_cave_void_signed_distance_metres(
     }
 
     let depth_metres = outer_surface_radius_metres - radial;
+
+    // Most clipmap/dense field samples are not inside the shallow cave-bearing
+    // crust. Prove those points outside the void before paying for any 3D noise.
+    if depth_metres < CAVE_MIN_DEPTH_METRES {
+        return CAVE_MIN_DEPTH_METRES - depth_metres;
+    }
+    if depth_metres > CAVE_MAX_DEPTH_METRES {
+        return depth_metres - CAVE_MAX_DEPTH_METRES;
+    }
+
     let point = local_f32(local_point_metres);
 
     // Two independent tunnel systems at different characteristic scales.

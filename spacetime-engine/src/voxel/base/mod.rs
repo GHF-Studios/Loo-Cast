@@ -15,6 +15,7 @@ mod celestial;
 mod volume;
 
 pub use celestial::{CelestialBodyProfile, ProceduralCelestialBody};
+pub(crate) use celestial::CelestialFieldSample;
 pub use terrain::ProceduralTerrain;
 pub use volume::ProceduralVolume;
 

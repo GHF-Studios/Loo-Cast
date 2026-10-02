@@ -14,6 +14,7 @@ use crate::spatial::{
 };
 
 use super::{CelestialBodyProfile, ProceduralCelestialBody, VoxelFrameEdit};
+use super::base::CelestialFieldSample;
 
 /// Canonical edit authority shared by one or more voxel realizations.
 ///
@@ -130,17 +131,28 @@ impl CelestialVoxelField {
         )
     }
 
-    /// Canonical body-local signed distance in physical metres.
-    pub(crate) fn signed_distance_local_metres(
+    /// Sample the canonical body-local volumetric field in SI metres.
+    ///
+    /// This is the common terrain truth for dense voxel caches, local clipmap
+    /// presentation and any future collision/query acceleration structure.
+    pub(crate) fn sample_local_metres(
         self,
         local_point_metres: DVec3,
-    ) -> Option<f64> {
+    ) -> Option<CelestialFieldSample> {
         self.realization(
             UsfPosition::zero(SpatialScale::MIN),
             UsfSemanticFrame::identity(),
             SpatialScale::ZERO,
         )
-        .signed_distance_local_metres(local_point_metres)
+        .field_sample_local_metres(local_point_metres)
+    }
+
+    pub(crate) fn signed_distance_local_metres(
+        self,
+        local_point_metres: DVec3,
+    ) -> Option<f64> {
+        self.sample_local_metres(local_point_metres)
+            .map(CelestialFieldSample::signed_distance_metres)
     }
 
     /// Optional void SDF used to subtract caves from a presentation shell.

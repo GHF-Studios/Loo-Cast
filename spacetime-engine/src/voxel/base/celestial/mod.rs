@@ -35,6 +35,36 @@ pub enum CelestialBodyProfile {
     Stellar,
 }
 
+/// One canonical body-local volumetric field sample.
+///
+/// This is semantic terrain truth. Realization Scale, render LOD, dense cache
+/// address and collision backend are all downstream adapters.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct CelestialFieldSample {
+    signed_distance_metres: f64,
+    material: VoxelMaterialId,
+}
+
+impl CelestialFieldSample {
+    pub(crate) const fn new(
+        signed_distance_metres: f64,
+        material: VoxelMaterialId,
+    ) -> Self {
+        Self {
+            signed_distance_metres,
+            material,
+        }
+    }
+
+    pub(crate) const fn signed_distance_metres(self) -> f64 {
+        self.signed_distance_metres
+    }
+
+    pub(crate) const fn material(self) -> VoxelMaterialId {
+        self.material
+    }
+}
+
 /// Reconstructible celestial field.
 ///
 /// Semantic radius stays in SI `f64`; it is never converted into one fine-slice
@@ -53,38 +83,34 @@ pub struct ProceduralCelestialBody {
     profile: CelestialBodyProfile,
 }
 
-/// Prepared fine sampling keeps only canonical chunk identity.
+/// Prepared celestial sampling stores one exact body-local SI chunk origin.
 ///
-/// Geometry is intentionally *not* approximated by a materialization-local
-/// tangent plane. Every dense sample is reconstructed canonically and resolved
-/// through the body's semantic surface query.
-#[derive(Debug, Clone, Copy)]
-pub(crate) struct FineSurfaceFrame {
-    chunk_origin: UsfPosition,
-}
-
-#[derive(Debug, Clone, Copy)]
-enum PreparedSampling {
-    CoarseRadial { chunk_origin_from_center: Vec3 },
-    FineSurface(FineSurfaceFrame),
-}
-
+/// Scale chooses only how large each `chunk_local` step is in metres. It never
+/// selects a different terrain algorithm.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct PreparedProceduralCelestialBody {
     body: ProceduralCelestialBody,
-    sampling: PreparedSampling,
+    chunk_origin_local_metres: DVec3,
 }
 
 impl PreparedProceduralCelestialBody {
     #[inline]
-pub(crate) fn sample(self, chunk_local: Vec3) -> VoxelSample {
-        match self.sampling {
-            PreparedSampling::CoarseRadial { chunk_origin_from_center } => {
-                let local_delta = self.body.frame_snapshot.world_direction_to_local(chunk_local);
-                self.body.sample_coarse_local(chunk_origin_from_center + local_delta)
-            }
-            PreparedSampling::FineSurface(frame) => self.body.sample_fine_local(frame, chunk_local),
-        }
+    pub(crate) fn sample(self, chunk_local: Vec3) -> VoxelSample {
+        // `chunk_local` is a bounded vector in the realization chart. Convert
+        // only that small delta to SI and rotate it into the semantic body
+        // frame; the large planet position was resolved once when this sampler
+        // was prepared.
+        let world_delta_metres = DVec3::new(
+            f64::from(chunk_local.x),
+            f64::from(chunk_local.y),
+            f64::from(chunk_local.z),
+        ) * self.body.current_scale.metres_per_native();
+        let local_delta_metres =
+            self.body.frame_snapshot.orientation().conjugate() * world_delta_metres;
+        let local_point_metres =
+            self.chunk_origin_local_metres + local_delta_metres;
+
+        self.body.sample_body_local_metres(local_point_metres)
     }
 }
 
@@ -145,30 +171,23 @@ pub(crate) fn prepare_local_sampler(
         _world_origin: VoxelQueryPosition,
         chunk_origin: VoxelQueryPosition,
     ) -> Option<PreparedProceduralCelestialBody> {
-        let sampling = if self.current_scale > SpatialScale::ZERO {
-            let radius_native = self.radius_native_f64();
-            if !radius_native.is_finite() || radius_native > f64::from(f32::MAX) {
-                return None;
-            }
-            let bound = (
-                radius_native
-                    + f64::from(LOCAL_SAMPLE_MARGIN_NATIVE)
-                    + radius_native * LOCAL_SAMPLE_RELIEF_MARGIN_FRACTION
+        // Resolve the large canonical position once per chunk into body-local
+        // physical metres. S0 is only a numerically convenient measurement
+        // chart here; it does not own terrain detail.
+        let chunk_origin_local_metres = self
+            .frame_snapshot
+            .world_to_local_metres(
+                &self.origin_snapshot,
+                &chunk_origin.usf(),
+                SpatialScale::ZERO,
+                f64::MAX,
             )
-                .min(f64::from(f32::MAX)) as f32;
-            let chunk_origin_world = chunk_origin
-                .usf()
-                .relative_at_scale_bounded(&self.origin_snapshot, self.current_scale, bound)
-                .ok()?;
-            let chunk_origin_from_center = self
-                .frame_snapshot
-                .world_direction_to_local(chunk_origin_world);
-            PreparedSampling::CoarseRadial { chunk_origin_from_center }
-        } else {
-            PreparedSampling::FineSurface(self.prepare_fine_surface_frame(chunk_origin)?)
-        };
+            .ok()?;
 
-        Some(PreparedProceduralCelestialBody { body: self, sampling })
+        Some(PreparedProceduralCelestialBody {
+            body: self,
+            chunk_origin_local_metres,
+        })
     }
 
     pub(crate) fn sample_at(
@@ -286,90 +305,45 @@ pub(crate) fn surface_near(
         Some((surface, world_up, relative.dot(world_up)))
     }
 
-    fn prepare_fine_surface_frame(
+
+    #[inline]
+fn field_sample_local_metres(
         self,
-        chunk_origin: VoxelQueryPosition,
-    ) -> Option<FineSurfaceFrame> {
-        // Validate that this chunk has a meaningful radial relation to the body,
-        // but keep the canonical origin itself as the prepared state. The old
-        // implementation captured a chunk-local tangent plane here, making the
-        // cache boundary part of planetary geometry.
-        self.direction_to(&chunk_origin.usf())?;
-        Some(FineSurfaceFrame {
-            chunk_origin: chunk_origin.usf(),
-        })
-    }
-
-    #[inline]
-fn sample_coarse_local(self, local: Vec3) -> VoxelSample {
-        let x = f64::from(local.x);
-        let y = f64::from(local.y);
-        let z = f64::from(local.z);
-        let radial = (x * x + y * y + z * z).sqrt();
-        if !radial.is_finite() {
-            return VoxelSample::empty(EMPTY_DISTANCE);
-        }
-        let direction = if radial > f64::EPSILON {
-            Vec3::new((x / radial) as f32, (y / radial) as f32, (z / radial) as f32)
-                .normalize_or_zero()
+        local_point_metres: DVec3,
+    ) -> Option<CelestialFieldSample> {
+        let signed_distance_metres =
+            self.signed_distance_local_metres(local_point_metres)?;
+        let material = if signed_distance_metres < 0.0 {
+            VoxelMaterialId::ROCK
         } else {
-            Vec3::Y
+            VoxelMaterialId::VOID
         };
-        let Ok(surface_radius_metres) = self.semantic_surface_radius_metres(direction) else {
-            return VoxelSample::empty(EMPTY_DISTANCE);
-        };
-        let surface_radius_native =
-            surface_radius_metres / self.current_scale.metres_per_native();
-        self.sample_from_signed_distance(radial - surface_radius_native)
+        Some(CelestialFieldSample::new(
+            signed_distance_metres,
+            material,
+        ))
     }
 
-
     #[inline]
-    fn sample_fine_local(self, frame: FineSurfaceFrame, chunk_local: Vec3) -> VoxelSample {
-        let Ok(point) = frame
-            .chunk_origin
-            .translated_at_scale(self.current_scale, chunk_local)
+    fn sample_body_local_metres(
+        self,
+        local_point_metres: DVec3,
+    ) -> VoxelSample {
+        let Some(sample) = self.field_sample_local_metres(local_point_metres)
         else {
             return VoxelSample::empty(EMPTY_DISTANCE);
         };
 
-        // Resolve the full canonical volumetric field. The outer radial
-        // surface and cave subtraction are both body-semantic, so neighboring
-        // materializations still agree exactly at shared border samples.
-        let Ok(local_point_metres) = self.frame_snapshot.world_to_local_metres(
-            &self.origin_snapshot,
-            &point,
-            SpatialScale::ZERO,
-            f64::MAX,
-        ) else {
-            return VoxelSample::empty(EMPTY_DISTANCE);
-        };
-        let Some(distance_metres) =
-            self.signed_distance_local_metres(local_point_metres)
-        else {
-            return VoxelSample::empty(EMPTY_DISTANCE);
-        };
         let distance_native =
-            distance_metres / self.current_scale.metres_per_native();
-
-        self.sample_from_signed_distance(distance_native)
-    }
-
-    #[inline]
-    fn sample_from_signed_distance(self, distance_native: f64) -> VoxelSample {
+            sample.signed_distance_metres() / self.current_scale.metres_per_native();
         let distance = distance_native
             .clamp(-f64::from(EMPTY_DISTANCE), f64::from(EMPTY_DISTANCE))
             as f32;
-        VoxelSample::new(
-            distance,
-            if distance < 0.0 {
-                VoxelMaterialId::ROCK
-            } else {
-                VoxelMaterialId::VOID
-            },
-        )
+
+        VoxelSample::new(distance, sample.material())
     }
-fn direction_to(self, point: &UsfPosition) -> Option<Vec3> {
+
+    fn direction_to(self, point: &UsfPosition) -> Option<Vec3> {
         let relative_world = point
             .relative_at_scale_bounded_f64(
                 &self.origin_snapshot,
@@ -684,6 +658,49 @@ mod tests {
             SpatialScale::MIN,
         )
         .unwrap()
+    }
+
+    #[test]
+    fn canonical_field_sample_is_independent_of_realization_scale() {
+        let direction = Vec3::new(0.37, 0.81, -0.45).normalize();
+        let s0 = ProceduralCelestialBody::new(
+            earth_center(),
+            UsfSemanticFrame::identity(),
+            6_371_000.0,
+            SpatialScale::ZERO,
+            SpatialScale::new(6).unwrap(),
+            SpatialScale::ZERO,
+            0x4541_5254,
+            CelestialBodyProfile::Rocky,
+        );
+        let s6 = ProceduralCelestialBody::new(
+            earth_center(),
+            UsfSemanticFrame::identity(),
+            6_371_000.0,
+            SpatialScale::new(6).unwrap(),
+            SpatialScale::new(6).unwrap(),
+            SpatialScale::ZERO,
+            0x4541_5254,
+            CelestialBodyProfile::Rocky,
+        );
+
+        let surface = s0.surface_local_metres(direction).unwrap();
+        let local_point = surface
+            - DVec3::new(
+                f64::from(direction.x),
+                f64::from(direction.y),
+                f64::from(direction.z),
+            ) * 25.0;
+
+        let a = s0.field_sample_local_metres(local_point).unwrap();
+        let b = s6.field_sample_local_metres(local_point).unwrap();
+
+        assert_eq!(a.material(), b.material());
+        assert!(
+            (a.signed_distance_metres() - b.signed_distance_metres()).abs()
+                < 1.0e-9,
+            "realization Scale changed canonical field truth: a={a:?}, b={b:?}"
+        );
     }
 
     #[test]

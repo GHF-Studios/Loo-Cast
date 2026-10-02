@@ -1257,7 +1257,7 @@ fn build_tangent(normal: Vec3) -> [f32; 4] {
 fn build_clipmap_mesh(
     field: CelestialVoxelField,
     spec: CelestialClipmapBlockSpec,
-    policy: Option<&DeveloperScalarPolicyRuntime>,
+    _policy: Option<&DeveloperScalarPolicyRuntime>,
 ) -> Option<CelestialClipmapMeshData> {
     let origin = spec.key.origin_local_metres();
     let extent = spec.key.extent_metres();
@@ -1276,35 +1276,13 @@ fn build_clipmap_mesh(
             f64::from(y),
             f64::from(z),
         );
-        let radial = point.length();
-        if !radial.is_finite() || radial <= f64::EPSILON {
-            return 1.0;
-        }
-
-        let direction = Vec3::new(
-            (point.x / radial) as f32,
-            (point.y / radial) as f32,
-            (point.z / radial) as f32,
-        )
-        .normalize_or_zero();
-
-        let surface_radius = presentation_surface_radius_metres(
-            field,
-            direction,            policy,
-        )
-        .unwrap_or_else(|| field.radius_metres());
-
-        // Start with the (optionally developer-scripted) outer shell,
-        // then subtract the same canonical volumetric cave void used by dense
-        // physical voxel sampling. Transvoxel expects the opposite sign from
-        // the engine SDF convention: positive here means solid.
-        let mut solid_sdf = radial - surface_radius;
-        if let Some(void_sdf) =
-            field.volumetric_void_signed_distance_local_metres(point)
-        {
-            solid_sdf = solid_sdf.max(-void_sdf);
-        }
-        let density = -solid_sdf;
+        // The local/intermediate realizer samples exactly the same canonical
+        // volumetric field as dense physical voxels. Transvoxel uses the
+        // opposite sign convention: positive density means solid.
+        let Some(sample) = field.sample_local_metres(point) else {
+            return -1.0;
+        };
+        let density = -sample.signed_distance_metres();
         if density.is_finite() {
             density.clamp(
                 -f64::from(f32::MAX),
@@ -1626,12 +1604,15 @@ fn sync_celestial_clipmap_realizations(
 
         for (&authority, plan) in &mut registry.plans {
             for &spec in &plan.desired {
-                if existing_by_spec.contains_key(&(
+                if let Some(&entity) = existing_by_spec.get(&(
                     authority,
                     plan.key.policy_revision,
                     spec,
                 )) {
                     plan.completed.insert(spec);
+                    // Repair blocks produced by older transactional code that
+                    // may still be parked hidden in the current generation.
+                    commands.entity(entity).insert(Visibility::Inherited);
                 }
             }
         }
@@ -1714,7 +1695,9 @@ fn sync_celestial_clipmap_realizations(
                         Mesh3d(meshes.add(mesh.into_mesh())),
                         MeshMaterial3d(policy.presentation_material().clone()),
                         Transform::IDENTITY,
-                        Visibility::Hidden,
+                        // Realized presentation becomes visible immediately.
+                        // Whole-plan completion is retirement bookkeeping only.
+                        Visibility::Inherited,
                     ))
                     .id();
                 existing_by_spec.insert(
@@ -1723,6 +1706,35 @@ fn sync_celestial_clipmap_realizations(
                 );
             }
             frame_budget.finish(work_token);
+        }
+    }
+
+    // progressive_coverage: coverage is realized fact, not plan intent.
+    //
+    // Publish every current-generation block that physically exists right now.
+    // Regional fallback can therefore yield incrementally while the remaining
+    // desired blocks continue building. A full plan commit only controls
+    // make-before-break retirement of the previous generation.
+    {
+        let _span =
+            bevy::log::info_span!("celestial_clipmap.progressive_coverage").entered();
+        for (&authority, plan) in &registry.plans {
+            let realized_specs = plan
+                .desired
+                .iter()
+                .copied()
+                .filter(|spec| {
+                    existing_by_spec.contains_key(&(
+                        authority,
+                        plan.key.policy_revision,
+                        *spec,
+                    ))
+                })
+                .collect::<Vec<_>>();
+            coverage.replace_authority(
+                authority,
+                coverage_for_specs(&realized_specs),
+            );
         }
     }
 
@@ -1850,7 +1862,7 @@ fn sync_celestial_clipmap_realizations(
                 }
             }
 
-            coverage.replace_authority(authority, coverage_for_specs(&realized_specs));
+            // Coverage is already published progressively from realized blocks.
             plan.committed_generation = Some(plan.generation);
         }
     }

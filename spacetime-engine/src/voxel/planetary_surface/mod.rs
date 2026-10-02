@@ -2,8 +2,11 @@
 //!
 //! Dense voxel materializations do not draw whole planets. This representation
 //! derives a small body-local cubed-sphere frontier from observer geometry and
-//! samples every vertex from the same `CelestialVoxelField` surface truth used
-//! by dense celestial voxels.
+//! samples the outer radial boundary derived from `CelestialVoxelField`.
+//!
+//! This is deliberately a whole-body outer-shell approximation. Volumetric
+//! topology such as caves/overhangs belongs to local clipmap/dense realizers;
+//! this adapter must never claim local collision or physical terrain authority.
 //!
 //! Critical work bound: selection is a bounded frontier, never an unbounded
 //! recursive quadtree walk. Camera/view state never creates dense voxel demand.
