@@ -1,29 +1,35 @@
 //! Host-managed developer scripting workspace.
 //!
-//! developer-console-script-workspace-v2
+//! developer-console-script-workspace-v4-runtime-overlay
 //!
 //! The developer console owns the UI shell. This module owns script documents,
 //! host-contract validation, committed runtime revisions, and the script-editor
 //! surface embedded by the console.
 //!
-//! Rhai code never receives Bevy World/ECS/filesystem authority. The editor host
-//! may read/write source files under the repository's `scripts/` directory; the
-//! runtime receives only explicit typed policy inputs.
+//! Rhai code never receives Bevy World/ECS/filesystem authority. Repository
+//! `scripts/` files are immutable source defaults from the in-game editor's
+//! perspective. The editor works on a separate writable live copy; builds embed
+//! the source defaults so deployed games can materialize defaults + live trees.
+//! The runtime receives only explicit typed policy inputs.
 
 use std::{
     collections::BTreeMap,
     fs,
     path::{Component, Path, PathBuf},
+    sync::{Mutex, OnceLock},
+    time::{Duration, Instant},
 };
 
 use bevy::prelude::*;
 use bevy_egui::egui;
 use egui_code_editor::{CodeEditor, ColorTheme, Syntax};
-use rhai::{AST, Engine, Scope};
+use rhai::{AST, Engine, FuncArgs, ImmutableString, Scope};
 
 use crate::console::{
     AppConsoleExt, ConsoleCommandInvocation, ConsoleCommandResult, ConsoleCommandSpec,
 };
+
+include!(concat!(env!("OUT_DIR"), "/embedded_developer_scripts.rs"));
 
 const DEFAULT_SCALAR_SOURCE: &str = r#"// Pure scalar host contract.
 //
@@ -54,8 +60,120 @@ const SCRIPT_MAX_STRING_BYTES: usize = 16 * 1024;
 const SCRIPT_MAX_ARRAY_SIZE: usize = 256;
 const SCRIPT_MAX_MAP_SIZE: usize = 128;
 
-fn bounded_engine() -> Engine {
-    let mut engine = Engine::new();
+const SCRIPT_LOGS_PER_SECOND: usize = 32;
+
+struct ScriptLogWindow {
+    started: Instant,
+    emitted: usize,
+    suppression_reported: bool,
+}
+
+static SCRIPT_LOG_WINDOW: OnceLock<Mutex<ScriptLogWindow>> = OnceLock::new();
+
+#[derive(Clone, Copy)]
+enum ScriptLogLevel {
+    Trace,
+    Debug,
+    Info,
+    Warn,
+    Error,
+}
+
+fn emit_script_log(level: ScriptLogLevel, text: &str) {
+    let limiter = SCRIPT_LOG_WINDOW.get_or_init(|| {
+        Mutex::new(ScriptLogWindow {
+            started: Instant::now(),
+            emitted: 0,
+            suppression_reported: false,
+        })
+    });
+    let mut window = limiter.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    if window.started.elapsed() >= Duration::from_secs(1) {
+        window.started = Instant::now();
+        window.emitted = 0;
+        window.suppression_reported = false;
+    }
+
+    if window.emitted >= SCRIPT_LOGS_PER_SECOND {
+        if !window.suppression_reported {
+            window.suppression_reported = true;
+            bevy::log::warn!(
+                target: "rhai",
+                "script log rate limit reached; suppressing additional script output this second"
+            );
+        }
+        return;
+    }
+    window.emitted += 1;
+    drop(window);
+
+    match level {
+        ScriptLogLevel::Trace => bevy::log::trace!(target: "rhai", "{text}"),
+        ScriptLogLevel::Debug => bevy::log::debug!(target: "rhai", "{text}"),
+        ScriptLogLevel::Info => bevy::log::info!(target: "rhai", "{text}"),
+        ScriptLogLevel::Warn => bevy::log::warn!(target: "rhai", "{text}"),
+        ScriptLogLevel::Error => bevy::log::error!(target: "rhai", "{text}"),
+    }
+}
+
+fn log_trace(message: ImmutableString) {
+    emit_script_log(ScriptLogLevel::Trace, message.as_str());
+}
+fn log_debug(message: ImmutableString) {
+    emit_script_log(ScriptLogLevel::Debug, message.as_str());
+}
+fn log_info(message: ImmutableString) {
+    emit_script_log(ScriptLogLevel::Info, message.as_str());
+}
+fn log_warn(message: ImmutableString) {
+    emit_script_log(ScriptLogLevel::Warn, message.as_str());
+}
+fn log_error(message: ImmutableString) {
+    emit_script_log(ScriptLogLevel::Error, message.as_str());
+}
+
+fn pow_int(value: &mut f64, exponent: i64) -> f64 {
+    value.powi(exponent.clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32)
+}
+
+fn pow_float(value: &mut f64, exponent: f64) -> f64 {
+    value.powf(exponent)
+}
+
+fn lerp(a: f64, b: f64, t: f64) -> f64 {
+    a + (b - a) * t
+}
+
+fn saturate(value: f64) -> f64 {
+    value.clamp(0.0, 1.0)
+}
+
+fn smoothstep(edge0: f64, edge1: f64, value: f64) -> f64 {
+    if !edge0.is_finite() || !edge1.is_finite() || !value.is_finite() {
+        return 0.0;
+    }
+    if (edge1 - edge0).abs() <= f64::EPSILON {
+        return if value < edge0 { 0.0 } else { 1.0 };
+    }
+    let t = saturate((value - edge0) / (edge1 - edge0));
+    t * t * (3.0 - 2.0 * t)
+}
+
+fn remap(
+    value: f64,
+    input_min: f64,
+    input_max: f64,
+    output_min: f64,
+    output_max: f64,
+) -> f64 {
+    if (input_max - input_min).abs() <= f64::EPSILON {
+        return output_min;
+    }
+    let t = (value - input_min) / (input_max - input_min);
+    lerp(output_min, output_max, t)
+}
+
+fn configure_engine(mut engine: Engine) -> Engine {
     engine
         .set_max_operations(SCRIPT_MAX_OPERATIONS)
         .set_max_call_levels(SCRIPT_MAX_CALL_LEVELS)
@@ -66,7 +184,38 @@ fn bounded_engine() -> Engine {
         .set_max_string_size(SCRIPT_MAX_STRING_BYTES)
         .set_max_array_size(SCRIPT_MAX_ARRAY_SIZE)
         .set_max_map_size(SCRIPT_MAX_MAP_SIZE);
+
+    // Engine::new already installs Rhai's StandardPackage, including normal
+    // math (`sin`, `cos`, `sqrt`, `exp`, `ln`, `log`, `min`, `max`, `abs`,
+    // PI, E, etc.). We add only project-useful helpers and host capabilities.
+    engine.on_print(|text| emit_script_log(ScriptLogLevel::Info, text));
+    engine.on_debug(|text, source, position| {
+        let location = source.map_or_else(
+            || format!("{position:?}"),
+            |source| format!("{source} @ {position:?}"),
+        );
+        emit_script_log(ScriptLogLevel::Debug, &format!("{location}: {text}"));
+    });
+
     engine
+        .register_fn("log_trace", log_trace)
+        .register_fn("log_debug", log_debug)
+        .register_fn("log_info", log_info)
+        .register_fn("log_warn", log_warn)
+        .register_fn("log_error", log_error)
+        .register_fn("pow", pow_int)
+        .register_fn("pow", pow_float)
+        .register_fn("lerp", lerp)
+        .register_fn("saturate", saturate)
+        .register_fn("smoothstep", smoothstep)
+        .register_fn("remap", remap);
+
+    crate::voxel::developer_policy::register_rhai_api(&mut engine);
+    engine
+}
+
+fn bounded_engine() -> Engine {
+    configure_engine(Engine::new())
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -100,13 +249,32 @@ impl ScriptTarget {
                 "fn transform(value) -> finite number; value is freecam speed in m/s."
             }
             Self::CelestialHeight => {
-                "fn transform(value) -> finite number; value is radial terrain displacement in metres."
+                "fn height(ctx: TerrainContext) -> finite number; return final radial terrain displacement in metres."
             }
         }
     }
 
     const fn supports_live(self) -> bool {
         !matches!(self, Self::None)
+    }
+
+    const fn fallback_source(self) -> &'static str {
+        match self {
+            Self::None => DEFAULT_SCRATCH_SOURCE,
+            Self::FreecamSpeed => DEFAULT_SCALAR_SOURCE,
+            Self::CelestialHeight => r#"fn height(ctx) {
+    ctx.canonical_height
+}
+"#,
+        }
+    }
+
+    const fn api_help(self) -> &'static str {
+        match self {
+            Self::None => "Common: Rhai standard math + value.pow(...), lerp, saturate, smoothstep, remap; print/debug/log_* route into the developer console.",
+            Self::FreecamSpeed => "transform(value): value is m/s. Common math/logging helpers are available.",
+            Self::CelestialHeight => "height(ctx): ctx.canonical_height/radius/seed/scale/x/y/z; ctx.noise(channel) -> NoiseField; sample/sample_wavelength/fbm/ridged. Return final height in metres.",
+        }
     }
 }
 
@@ -129,11 +297,7 @@ struct ScriptDocument {
 impl ScriptDocument {
     fn from_source(engine: &Engine, path: String, source: String) -> Self {
         let target = ScriptTarget::for_path(&path);
-        let fallback_source = if target == ScriptTarget::None {
-            DEFAULT_SCRATCH_SOURCE
-        } else {
-            DEFAULT_SCALAR_SOURCE
-        };
+        let fallback_source = target.fallback_source();
         let fallback_ast = engine
             .compile(fallback_source)
             .expect("built-in developer script fallback must compile");
@@ -192,21 +356,33 @@ fn compile_and_validate(
         .compile(source)
         .map_err(|error| format!("compile error: {error}"))?;
 
-    if target == ScriptTarget::None {
-        return Ok((ast, None));
+    match target {
+        ScriptTarget::None => Ok((ast, None)),
+        ScriptTarget::FreecamSpeed => {
+            let preview = call_f64(engine, &ast, "transform", (preview_input,))?;
+            Ok((ast, Some(preview)))
+        }
+        ScriptTarget::CelestialHeight => {
+            let context =
+                crate::voxel::developer_policy::TerrainScriptContext::preview(preview_input);
+            let preview = call_f64(engine, &ast, "height", (context,))?;
+            Ok((ast, Some(preview)))
+        }
     }
-
-    let preview = evaluate_ast(engine, &ast, preview_input)?;
-    Ok((ast, Some(preview)))
 }
 
-fn evaluate_ast(engine: &Engine, ast: &AST, input: f64) -> Result<f64, String> {
+fn call_f64(
+    engine: &Engine,
+    ast: &AST,
+    function: &str,
+    args: impl FuncArgs,
+) -> Result<f64, String> {
     let mut scope = Scope::new();
     let output = engine
-        .call_fn::<f64>(&mut scope, ast, "transform", (input,))
-        .map_err(|error| format!("transform(value) failed: {error}"))?;
+        .call_fn::<f64>(&mut scope, ast, function, args)
+        .map_err(|error| format!("{function}(...) failed: {error}"))?;
     if !output.is_finite() {
-        return Err("transform(value) returned a non-finite number".to_string());
+        return Err(format!("{function}(...) returned a non-finite number"));
     }
     Ok(output)
 }
@@ -240,8 +416,29 @@ pub(crate) struct DeveloperScalarPolicyRuntime {
 
 impl DeveloperScalarPolicyRuntime {
     pub(crate) fn evaluate(&self, input: f64) -> Result<f64, String> {
-        evaluate_ast(&self.engine, &self.ast, input)
+        self.call_f64("transform", (input,))
     }
+
+    pub(crate) fn call_f64(
+        &self,
+        function: &str,
+        args: impl FuncArgs,
+    ) -> Result<f64, String> {
+        call_f64(&self.engine, &self.ast, function, args)
+    }
+}
+
+#[derive(Debug, Clone)]
+struct ScriptWorkspaceRoots {
+    defaults_root: PathBuf,
+    live_root: PathBuf,
+    mode: &'static str,
+}
+
+#[derive(Debug, Clone)]
+struct ScriptWorkspaceBootstrap {
+    roots: ScriptWorkspaceRoots,
+    warning: Option<String>,
 }
 
 #[derive(Resource)]
@@ -250,26 +447,29 @@ pub(crate) struct DeveloperScriptWorkbench {
     documents: BTreeMap<String, ScriptDocument>,
     open_tabs: Vec<String>,
     active_path: String,
-    workspace_root: Option<PathBuf>,
+    roots: ScriptWorkspaceRoots,
+    bootstrap_warning: Option<String>,
     scratch_counter: u32,
 }
 
 impl Default for DeveloperScriptWorkbench {
     fn default() -> Self {
         let engine = bounded_engine();
-        let workspace_root = locate_workspace_root();
+        let bootstrap = prepare_workspace_roots();
 
         let mut sources = BTreeMap::<String, String>::new();
-        if let Some(root) = workspace_root.as_deref() {
-            collect_rhai_sources(root, root, &mut sources);
-        }
+        collect_rhai_sources(
+            &bootstrap.roots.live_root,
+            &bootstrap.roots.live_root,
+            &mut sources,
+        );
 
         sources
             .entry(FREECAM_SCRIPT_PATH.to_string())
             .or_insert_with(|| DEFAULT_SCALAR_SOURCE.to_string());
         sources
             .entry(CELESTIAL_HEIGHT_SCRIPT_PATH.to_string())
-            .or_insert_with(|| DEFAULT_SCALAR_SOURCE.to_string());
+            .or_insert_with(|| ScriptTarget::CelestialHeight.fallback_source().to_string());
         sources
             .entry(DEFAULT_SCRATCH_PATH.to_string())
             .or_insert_with(|| DEFAULT_SCRATCH_SOURCE.to_string());
@@ -311,7 +511,8 @@ impl Default for DeveloperScriptWorkbench {
             documents,
             open_tabs,
             active_path,
-            workspace_root,
+            roots: bootstrap.roots,
+            bootstrap_warning: bootstrap.warning,
             scratch_counter: 1,
         }
     }
@@ -365,7 +566,7 @@ impl DeveloperScriptWorkbench {
         if document.target == ScriptTarget::None {
             return Err("active script has no scalar host contract".to_string());
         }
-        evaluate_ast(&self.engine, &document.committed_ast, input)
+        call_f64(&self.engine, &document.committed_ast, "transform", (input,))
     }
 
     pub(crate) fn apply_live_scalar(&self, value: f64) -> f64 {
@@ -375,7 +576,7 @@ impl DeveloperScriptWorkbench {
         if !document.live_enabled {
             return value;
         }
-        evaluate_ast(&self.engine, &document.committed_ast, value).unwrap_or(value)
+        call_f64(&self.engine, &document.committed_ast, "transform", (value,)).unwrap_or(value)
     }
 
     fn document_for_target(&self, target: ScriptTarget) -> Option<&ScriptDocument> {
@@ -524,19 +725,30 @@ impl DeveloperScriptWorkbench {
     }
 
     fn reload_active_from_saved(&mut self) {
-        if let Some(document) = self.active_mut() {
-            document.source.clone_from(&document.saved_source);
-            document.candidate_source = None;
-            document.candidate_ast = None;
-            document.diagnostic = "Reloaded editor buffer from saved source.".to_string();
+        let path = self.active_path.clone();
+        let disk_path = self.roots.live_root.join(Path::new(&path));
+        match fs::read_to_string(&disk_path) {
+            Ok(source) => {
+                if let Some(document) = self.active_mut() {
+                    document.source = source.clone();
+                    document.saved_source = source;
+                    document.candidate_source = None;
+                    document.candidate_ast = None;
+                    document.diagnostic =
+                        format!("Reloaded live copy {}.", disk_path.display());
+                }
+            }
+            Err(error) => {
+                if let Some(document) = self.active_mut() {
+                    document.diagnostic =
+                        format!("reload {} failed: {error}", disk_path.display());
+                }
+            }
         }
     }
 
     fn save_active(&mut self) -> Result<(), String> {
-        let root = self
-            .workspace_root
-            .clone()
-            .ok_or_else(|| "developer script root is unavailable in this process".to_string())?;
+        let root = self.roots.live_root.clone();
         let path = self.active_path.clone();
         validate_relative_script_path(&path)?;
         let source = self
@@ -556,21 +768,161 @@ impl DeveloperScriptWorkbench {
 
         let document = self.documents.get_mut(&path).expect("active document exists");
         document.saved_source = source;
-        document.diagnostic = format!("Saved {}.", document.path);
+        document.diagnostic = format!("Saved live copy {}.", destination.display());
         Ok(())
+    }
+
+    fn reset_active_to_default(&mut self) -> Result<(), String> {
+        let path = self.active_path.clone();
+        validate_relative_script_path(&path)?;
+
+        let default_path = self.roots.defaults_root.join(Path::new(&path));
+        let source = fs::read_to_string(&default_path).map_err(|error| {
+            format!(
+                "no shipped/default source for `{path}` at {}: {error}",
+                default_path.display()
+            )
+        })?;
+
+        let live_path = self.roots.live_root.join(Path::new(&path));
+        if let Some(parent) = live_path.parent() {
+            fs::create_dir_all(parent)
+                .map_err(|error| format!("create script directory failed: {error}"))?;
+        }
+        fs::write(&live_path, &source)
+            .map_err(|error| format!("reset {} failed: {error}", live_path.display()))?;
+
+        let document = self
+            .documents
+            .get_mut(&path)
+            .ok_or_else(|| "no active script document".to_string())?;
+        document.source = source.clone();
+        document.saved_source = source;
+        document.candidate_source = None;
+        document.candidate_ast = None;
+        document.diagnostic =
+            "Reset LIVE file to shipped default. Commit separately to activate it.".to_string();
+        Ok(())
+    }
+
+    fn active_has_default(&self) -> bool {
+        self.roots
+            .defaults_root
+            .join(Path::new(&self.active_path))
+            .is_file()
     }
 }
 
-fn locate_workspace_root() -> Option<PathBuf> {
+fn locate_repo_root() -> Option<PathBuf> {
     let mut cursor = std::env::current_dir().ok()?;
     loop {
         if cursor.join("spacetime-engine/Cargo.toml").is_file() {
-            return Some(cursor.join("scripts"));
+            return Some(cursor);
         }
         if !cursor.pop() {
             return None;
         }
     }
+}
+
+fn environment_path(name: &str) -> Option<PathBuf> {
+    std::env::var_os(name)
+        .filter(|value| !value.is_empty())
+        .map(PathBuf::from)
+}
+
+fn locate_workspace_roots() -> ScriptWorkspaceRoots {
+    if let (Some(defaults_root), Some(live_root)) = (
+        environment_path("LOO_CAST_SCRIPT_DEFAULT_ROOT"),
+        environment_path("LOO_CAST_SCRIPT_LIVE_ROOT"),
+    ) {
+        return ScriptWorkspaceRoots {
+            defaults_root,
+            live_root,
+            mode: "environment override",
+        };
+    }
+
+    if let Some(repo_root) = locate_repo_root() {
+        let runtime = repo_root.join(".loo-cast/runtime");
+        return ScriptWorkspaceRoots {
+            defaults_root: runtime.join("script-defaults"),
+            live_root: runtime.join("scripts"),
+            mode: "development runtime copy",
+        };
+    }
+
+    let game_root = std::env::current_exe()
+        .ok()
+        .and_then(|path| path.parent().map(Path::to_path_buf))
+        .or_else(|| std::env::current_dir().ok())
+        .unwrap_or_else(|| PathBuf::from("."));
+
+    ScriptWorkspaceRoots {
+        defaults_root: game_root.join("scripts/defaults"),
+        live_root: game_root.join("scripts/live"),
+        mode: "deployed runtime copy",
+    }
+}
+
+fn prepare_workspace_roots() -> ScriptWorkspaceBootstrap {
+    let roots = locate_workspace_roots();
+    let mut warnings = Vec::new();
+
+    if let Err(error) = materialize_embedded_defaults(&roots.defaults_root) {
+        warnings.push(error);
+    }
+    if let Err(error) = seed_missing_live_scripts(&roots.defaults_root, &roots.live_root) {
+        warnings.push(error);
+    }
+
+    ScriptWorkspaceBootstrap {
+        roots,
+        warning: (!warnings.is_empty()).then(|| warnings.join(" | ")),
+    }
+}
+
+fn materialize_embedded_defaults(defaults_root: &Path) -> Result<(), String> {
+    fs::create_dir_all(defaults_root)
+        .map_err(|error| format!("create script defaults root failed: {error}"))?;
+
+    for &(logical_path, source) in EMBEDDED_DEVELOPER_SCRIPTS {
+        validate_relative_script_path(logical_path)?;
+        let destination = defaults_root.join(Path::new(logical_path));
+        if let Some(parent) = destination.parent() {
+            fs::create_dir_all(parent)
+                .map_err(|error| format!("create default script directory failed: {error}"))?;
+        }
+
+        // Defaults represent the scripts shipped in THIS build, so refreshing
+        // them is correct. Live files are a separate tree and are never
+        // overwritten here.
+        fs::write(&destination, source).map_err(|error| {
+            format!("materialize default {} failed: {error}", destination.display())
+        })?;
+    }
+    Ok(())
+}
+
+fn seed_missing_live_scripts(defaults_root: &Path, live_root: &Path) -> Result<(), String> {
+    fs::create_dir_all(live_root)
+        .map_err(|error| format!("create live script root failed: {error}"))?;
+
+    let mut defaults = BTreeMap::<String, String>::new();
+    collect_rhai_sources(defaults_root, defaults_root, &mut defaults);
+    for (logical_path, source) in defaults {
+        let destination = live_root.join(Path::new(&logical_path));
+        if destination.exists() {
+            continue;
+        }
+        if let Some(parent) = destination.parent() {
+            fs::create_dir_all(parent)
+                .map_err(|error| format!("create live script directory failed: {error}"))?;
+        }
+        fs::write(&destination, source)
+            .map_err(|error| format!("seed live {} failed: {error}", destination.display()))?;
+    }
+    Ok(())
 }
 
 fn collect_rhai_sources(root: &Path, directory: &Path, out: &mut BTreeMap<String, String>) {
@@ -693,7 +1045,7 @@ fn script_status_command(
     let Some(document) = workbench.active() else {
         return ConsoleCommandResult::error("no active script document");
     };
-    ConsoleCommandResult::lines([
+    let mut lines = vec![
         format!(
             "{} | target={} | revision={} | file-dirty={} | runtime-dirty={} | live={}",
             document.path,
@@ -703,8 +1055,18 @@ fn script_status_command(
             document.runtime_dirty(),
             document.live_enabled,
         ),
+        format!(
+            "script workspace = {} | live={} | defaults={}",
+            workbench.roots.mode,
+            workbench.roots.live_root.display(),
+            workbench.roots.defaults_root.display(),
+        ),
         document.diagnostic.clone(),
-    ])
+    ];
+    if let Some(warning) = workbench.bootstrap_warning.as_ref() {
+        lines.push(format!("workspace bootstrap warning: {warning}"));
+    }
+    ConsoleCommandResult::lines(lines)
 }
 
 fn script_compile_command(
@@ -804,14 +1166,24 @@ fn draw_script_explorer(ui: &mut egui::Ui, workbench: &mut DeveloperScriptWorkbe
         }
     });
 
-    if let Some(root) = workbench.workspace_root.as_ref() {
-        ui.small(
-            egui::RichText::new(root.display().to_string())
-                .monospace()
-                .weak(),
-        );
-    } else {
-        ui.small(egui::RichText::new("in-memory workspace").weak());
+    ui.small(
+        egui::RichText::new(format!(
+            "LIVE · {}",
+            workbench.roots.live_root.display()
+        ))
+        .monospace()
+        .weak(),
+    );
+    ui.small(
+        egui::RichText::new(format!(
+            "DEFAULTS · {}",
+            workbench.roots.defaults_root.display()
+        ))
+        .monospace()
+        .weak(),
+    );
+    if let Some(warning) = workbench.bootstrap_warning.as_ref() {
+        ui.colored_label(egui::Color32::LIGHT_RED, warning);
     }
     ui.separator();
 
@@ -916,6 +1288,7 @@ fn draw_script_editor(ui: &mut egui::Ui, workbench: &mut DeveloperScriptWorkbenc
 
     let mut do_save = false;
     let mut do_reload_saved = false;
+    let mut do_reset_default = false;
     let mut do_compile = false;
     let mut do_commit = false;
     let mut do_revert = false;
@@ -934,8 +1307,14 @@ fn draw_script_editor(ui: &mut egui::Ui, workbench: &mut DeveloperScriptWorkbenc
         }
 
         ui.separator();
-        do_save = ui.button("Save").clicked();
-        do_reload_saved = ui.button("Reload Saved").clicked();
+        do_save = ui.button("Save Live").clicked();
+        do_reload_saved = ui.button("Reload Live").clicked();
+        do_reset_default = ui
+            .add_enabled(workbench.active_has_default(), egui::Button::new("Reset Default"))
+            .on_hover_text(
+                "Replace the LIVE file with the shipped default; repository source is never edited",
+            )
+            .clicked();
         do_compile = ui.button("Compile").clicked();
         do_commit = ui.button("Commit").clicked();
         do_revert = ui.button("Revert Runtime").clicked();
@@ -952,6 +1331,12 @@ fn draw_script_editor(ui: &mut egui::Ui, workbench: &mut DeveloperScriptWorkbenc
         ui.weak(target.contract());
     }
 
+    egui::CollapsingHeader::new("Script API")
+        .default_open(false)
+        .show(ui, |ui| {
+            ui.monospace(target.api_help());
+        });
+
     if do_save {
         if let Err(error) = workbench.save_active()
             && let Some(document) = workbench.active_mut()
@@ -961,6 +1346,13 @@ fn draw_script_editor(ui: &mut egui::Ui, workbench: &mut DeveloperScriptWorkbenc
     }
     if do_reload_saved {
         workbench.reload_active_from_saved();
+    }
+    if do_reset_default {
+        if let Err(error) = workbench.reset_active_to_default()
+            && let Some(document) = workbench.active_mut()
+        {
+            document.diagnostic = error;
+        }
     }
     if do_compile {
         let _ = workbench.compile_active();

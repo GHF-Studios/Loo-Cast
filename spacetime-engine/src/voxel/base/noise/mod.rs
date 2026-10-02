@@ -21,7 +21,7 @@ pub(super) fn volumetric_noise(
     }
 }
 
-pub(super) fn value_noise_3d(point: Vec3, seed: u32) -> f32 {
+pub(crate) fn value_noise_3d(point: Vec3, seed: u32) -> f32 {
     let cell = point.floor().as_ivec3();
     let fraction = point - cell.as_vec3();
     let smooth = fraction * fraction * (Vec3::splat(3.0) - fraction * 2.0);

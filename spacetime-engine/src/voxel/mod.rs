@@ -11,7 +11,7 @@ mod celestial_realization;
 mod base;
 mod chunk;
 mod collision_query;
-mod developer_policy;
+pub(crate) mod developer_policy;
 mod devtools;
 mod edit;
 mod field;

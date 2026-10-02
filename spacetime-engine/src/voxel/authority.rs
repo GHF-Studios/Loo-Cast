@@ -68,6 +68,7 @@ impl CelestialVoxelField {
     pub const fn radius_metres(self) -> f64 { self.radius_metres }
     pub const fn coarsest_detail_scale(self) -> SpatialScale { self.coarsest_detail_scale }
     pub const fn profile(self) -> CelestialBodyProfile { self.profile }
+    pub(crate) const fn seed(self) -> u32 { self.seed }
 
     pub fn surface_position(
         self,

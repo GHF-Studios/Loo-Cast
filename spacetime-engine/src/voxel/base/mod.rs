@@ -18,6 +18,8 @@ pub use celestial::{CelestialBodyProfile, ProceduralCelestialBody};
 pub use terrain::ProceduralTerrain;
 pub use volume::ProceduralVolume;
 
+pub(crate) use noise::value_noise_3d as script_value_noise_3d;
+
 use volume::PreparedProceduralVolume;
 
 const EMPTY_DISTANCE: f32 = 1024.0;
