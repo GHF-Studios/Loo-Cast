@@ -46,6 +46,8 @@ pub struct VoxelStreaming {
     effective_desired: HashSet<VoxelMaterializationKey>,
     residency_activate: HashSet<VoxelMaterializationKey>,
     residency_deactivate: HashSet<VoxelMaterializationKey>,
+    adaptive_load_tier: u8,
+    adaptive_recovery_frames: u16,
 }
 
 impl VoxelStreaming {
@@ -61,11 +63,60 @@ impl VoxelStreaming {
             effective_desired: HashSet::new(),
             residency_activate: HashSet::new(),
             residency_deactivate: HashSet::new(),
+            adaptive_load_tier: 0,
+            adaptive_recovery_frames: 0,
         }
     }
 
     pub const fn load_budget_per_frame(&self) -> usize {
         self.load_budget_per_frame
+    }
+
+    fn pending_desired_len(&self) -> usize {
+        self.pending_desired.len()
+    }
+
+    fn update_adaptive_load_tier(&mut self, raw_tier: u8) -> u8 {
+        let raw_tier = raw_tier.min(4);
+        if raw_tier > self.adaptive_load_tier {
+            self.adaptive_load_tier = raw_tier;
+            self.adaptive_recovery_frames = 0;
+        } else if raw_tier < self.adaptive_load_tier {
+            self.adaptive_recovery_frames =
+                self.adaptive_recovery_frames.saturating_add(1);
+            if self.adaptive_recovery_frames >= 30 {
+                self.adaptive_load_tier =
+                    self.adaptive_load_tier.saturating_sub(1).max(raw_tier);
+                self.adaptive_recovery_frames = 0;
+            }
+        } else {
+            self.adaptive_recovery_frames = 0;
+        }
+        self.adaptive_load_tier
+    }
+
+    fn retire_all_desired(&mut self) -> bool {
+        let changed = !self.cached_desired_roles.is_empty()
+            || !self.effective_desired.is_empty()
+            || !self.pending_desired.is_empty()
+            || !self.migration_original_roles.is_empty()
+            || !self.demand_key.is_empty();
+
+        self.pending_desired.clear();
+        self.cached_desired_roles.clear();
+        self.migration_original_roles.clear();
+        self.demand_key.clear();
+
+        let retiring = self.effective_desired.drain().collect::<Vec<_>>();
+        for key in retiring {
+            self.residency_activate.remove(&key);
+            self.residency_deactivate.insert(key);
+        }
+
+        if changed {
+            self.policy_revision = self.policy_revision.wrapping_add(1).max(1);
+        }
+        changed
     }
 
     fn remember_committed_state(&mut self, key: VoxelMaterializationKey) {

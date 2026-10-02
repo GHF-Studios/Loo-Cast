@@ -45,6 +45,7 @@ pub(super) struct VoxelDemandPlanKey {
     roles: u16,
     view_revision: u64,
     motion: VoxelMotionPriorityKey,
+    load_tier: u8,
 }
 
 const MOTION_LOOKAHEAD_SECONDS: f32 = 1.0;
@@ -130,15 +131,20 @@ impl VoxelDemandMotion {
             return current;
         }
 
-        let predicted =
-            (relative - self.predicted_offset_native).length_squared();
-        let mut score = current + (predicted - current) * self.bias;
-
-        let forward = relative.dot(self.direction_native);
-        if forward < 0.0 {
-            score += forward * forward * self.bias * 2.0;
+        let segment = self.predicted_offset_native;
+        let segment_length_squared = segment.length_squared();
+        if segment_length_squared <= f32::EPSILON {
+            return current;
         }
-        score.max(0.0)
+
+        let t =
+            (relative.dot(segment) / segment_length_squared).clamp(0.0, 1.0);
+        let nearest = segment * t;
+        let lateral_squared = (relative - nearest).length_squared();
+        let corridor_score =
+            lateral_squared * 8.0 + current * 0.05;
+
+        (current + (corridor_score - current) * self.bias).max(0.0)
     }
 
     /// Actual asymmetric materialization demand offsets.
@@ -146,24 +152,41 @@ impl VoxelDemandMotion {
     /// Velocity removes trailing volume. Forward radius intentionally remains
     /// unchanged in this tranche so faster travel reduces total demand instead
     /// of merely moving/expanding it.
-    fn demand_offsets(self, half_extent: Vec3) -> (Vec3, Vec3) {
+    fn demand_offsets(self, half_extent: Vec3, load_tier: u8) -> (Vec3, Vec3) {
+        let load_tier = load_tier.min(4);
+        let cross_section_scale = match load_tier {
+            0 => 1.0,
+            1 => 0.80,
+            2 => 0.55,
+            3 => 0.35,
+            _ => 0.20,
+        };
+
+        let one_cell = Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32);
+        let directional_weight = self.direction_native.abs();
+        let axis_scale = if self.direction_native == Vec3::ZERO {
+            Vec3::splat(cross_section_scale)
+        } else {
+            Vec3::splat(cross_section_scale)
+                + directional_weight * (1.0 - cross_section_scale)
+        };
+        let effective_half =
+            (half_extent * axis_scale).max(half_extent.min(one_cell));
+
         if self.bias <= f32::EPSILON
             || self.direction_native == Vec3::ZERO
         {
-            return (-half_extent, half_extent);
+            return (-effective_half, effective_half);
         }
 
-        let directional_weight = self.direction_native.abs();
         let shrink =
             directional_weight * (self.bias * MOTION_MAX_TAIL_SHRINK);
-
-        let one_cell = Vec3::splat(MATERIALIZATION_CHUNK_SIZE as f32);
-        let tail_floor = half_extent.min(one_cell);
+        let tail_floor = effective_half.min(one_cell);
         let trailing_extent =
-            (half_extent * (Vec3::ONE - shrink)).max(tail_floor);
+            (effective_half * (Vec3::ONE - shrink)).max(tail_floor);
 
-        let mut minimum = -half_extent;
-        let mut maximum = half_extent;
+        let mut minimum = -effective_half;
+        let mut maximum = effective_half;
 
         if self.direction_native.x > 0.0 {
             minimum.x = -trailing_extent.x;
@@ -252,6 +275,70 @@ fn make_demanded_chunk(
             motion.trajectory_distance_squared(relative),
         role_priority: demand_role_priority(request.roles()),
         roles: request.roles(),
+    }
+}
+
+fn raw_streaming_load_tier(
+    streaming: &VoxelStreaming,
+    demands: &[VoxelRealizationScope],
+    motions: &SpatialDemandMotionSnapshot,
+) -> u8 {
+    let budget = streaming.load_budget_per_frame().max(1);
+    let backlog_frames = streaming.pending_desired_len().div_ceil(budget);
+
+    let backlog_tier = if backlog_frames <= 2 {
+        0
+    } else if backlog_frames <= 4 {
+        1
+    } else if backlog_frames <= 8 {
+        2
+    } else if backlog_frames <= 16 {
+        3
+    } else {
+        4
+    };
+
+    let maximum_speed_chunks_per_second = demands
+        .iter()
+        .map(|request| {
+            let demand = request.scope();
+            let velocity =
+                motions.velocity_metres_per_second(demand.source());
+            if !velocity.is_finite() {
+                return 0.0;
+            }
+            let factor = demand.scale().scale0_to_native_f64(1.0);
+            velocity.length() * factor / f64::from(MATERIALIZATION_CHUNK_SIZE)
+        })
+        .filter(|speed| speed.is_finite())
+        .fold(0.0_f64, f64::max);
+
+    let speed_tier = if maximum_speed_chunks_per_second < 1.0 {
+        0
+    } else if maximum_speed_chunks_per_second < 4.0 {
+        1
+    } else if maximum_speed_chunks_per_second < 12.0 {
+        2
+    } else if maximum_speed_chunks_per_second < 32.0 {
+        3
+    } else {
+        4
+    };
+
+    backlog_tier.max(speed_tier)
+}
+
+fn desired_chunk_budget(
+    load_budget_per_frame: usize,
+    load_tier: u8,
+) -> usize {
+    let load_budget_per_frame = load_budget_per_frame.max(1);
+    match load_tier.min(4) {
+        0 => usize::MAX,
+        1 => load_budget_per_frame.saturating_mul(16).max(64),
+        2 => load_budget_per_frame.saturating_mul(8).max(48),
+        3 => load_budget_per_frame.saturating_mul(4).max(32),
+        _ => load_budget_per_frame.saturating_mul(2).max(16),
     }
 }
 
@@ -428,6 +515,8 @@ fn incremental_plan_compatible(
         && previous.view_revision == 0
         && next.view_revision == 0
         && previous.motion == next.motion
+        && previous.load_tier == 0
+        && next.load_tier == 0
 }
 
 /// Reconciles active voxel materialization residency with the latest spatial
@@ -503,8 +592,15 @@ pub(in crate::voxel) fn refresh_voxel_residency(
                     world = ?world_entity,
                     scale = %layer.scale(),
                     world_leaf = %world.origin().leaf_scale(),
-                    "voxel spatial demand could not be represented canonically; retaining previous residency"
+                    "voxel spatial demand could not be represented canonically; retiring stale voxel residency and retrying next frame"
                 );
+                if streaming.retire_all_desired() {
+                    reconcile_materialization_residency(
+                        &mut world,
+                        &mut streaming,
+                        0,
+                    );
+                }
                 continue;
             }
         };
@@ -671,9 +767,22 @@ fn refresh_demand_plan(
     motions: &SpatialDemandMotionSnapshot,
     context_scale: SpatialScale,
 ) -> Result<bool, VoxelDemandPlanError> {
+    let raw_load_tier =
+        raw_streaming_load_tier(streaming, demands, motions);
+    let load_tier =
+        streaming.update_adaptive_load_tier(raw_load_tier);
+    let desired_budget =
+        desired_chunk_budget(streaming.load_budget_per_frame(), load_tier);
+
     let key = {
         let _span = bevy::log::info_span!("voxel_residency.plan_key").entered();
-        demand_plan_key(world, demands, view_demands, motions)?
+        demand_plan_key(
+            world,
+            demands,
+            view_demands,
+            motions,
+            load_tier,
+        )?
     };
 
     if key == streaming.demand_key {
@@ -755,7 +864,15 @@ fn refresh_demand_plan(
 
     let desired = {
         let _span = bevy::log::info_span!("voxel_residency.enumerate_desired.full").entered();
-        demanded_chunk_addresses_with_motion(world, demands, pinned_shell, view_demands, motions)?
+        demanded_chunk_addresses_with_motion(
+            world,
+            demands,
+            pinned_shell,
+            view_demands,
+            motions,
+            load_tier,
+            desired_budget,
+        )?
     };
     {
         let _span = bevy::log::info_span!("voxel_residency.stage_plan.full").entered();
@@ -804,6 +921,7 @@ fn demand_plan_key(
     demands: &[VoxelRealizationScope],
     view_demands: &UsfViewDemandSnapshot,
     motions: &SpatialDemandMotionSnapshot,
+    load_tier: u8,
 ) -> Result<Vec<VoxelDemandPlanKey>, crate::spatial::UsfPositionError> {
     let mut result = Vec::with_capacity(demands.len());
     let size = MATERIALIZATION_CHUNK_SIZE as f32;
@@ -818,7 +936,7 @@ fn demand_plan_key(
             motions.velocity_metres_per_second(demand.source());
         let motion = VoxelDemandMotion::new(demand, velocity);
         let (minimum_offset, maximum_offset) =
-            motion.demand_offsets(half);
+            motion.demand_offsets(half, load_tier);
 
         result.push(VoxelDemandPlanKey {
             source: demand.source(),
@@ -833,6 +951,7 @@ fn demand_plan_key(
             roles: request.roles().bits(),
             view_revision: request.view_source().map_or(0, |_| view_demands.revision()),
             motion: quantized_motion_key(velocity),
+            load_tier,
         });
     }
     Ok(result)
@@ -1002,6 +1121,8 @@ where
         pinned_shell,
         view_demands,
         &SpatialDemandMotionSnapshot::default(),
+        0,
+        usize::MAX,
     )
 }
 
@@ -1011,6 +1132,8 @@ fn demanded_chunk_addresses_with_motion<T>(
     pinned_shell: Option<(Entity, f32)>,
     view_demands: &UsfViewDemandSnapshot,
     motions: &SpatialDemandMotionSnapshot,
+    load_tier: u8,
+    maximum_desired_chunks: usize,
 ) -> Result<Vec<DemandedChunk>, crate::spatial::UsfPositionError>
 where
     T: Copy + Into<VoxelRealizationScope>,
@@ -1030,7 +1153,7 @@ where
             motions.velocity_metres_per_second(demand.source()),
         );
         let (minimum_offset, maximum_offset) =
-            motion.demand_offsets(half);
+            motion.demand_offsets(half, load_tier);
         let minimum = checked_ivec3(
             ((local_center + minimum_offset) / size).floor(),
         )?;
@@ -1065,8 +1188,16 @@ where
 
     let mut desired = merged.into_values().collect::<Vec<_>>();
     desired.sort_by(|a, b| {
-        b.priority.cmp(&a.priority).then_with(|| a.distance_squared.total_cmp(&b.distance_squared))
+        b.role_priority
+            .cmp(&a.role_priority)
+            .then_with(|| b.priority.cmp(&a.priority))
+            .then_with(|| {
+                a.trajectory_distance_squared
+                    .total_cmp(&b.trajectory_distance_squared)
+            })
+            .then_with(|| a.distance_squared.total_cmp(&b.distance_squared))
     });
+    desired.truncate(maximum_desired_chunks);
     Ok(desired)
 }
 
@@ -1150,7 +1281,7 @@ mod motion_demand_geometry_tests {
             DVec3::new(1_000.0, 0.0, 0.0),
         );
 
-        let (minimum, maximum) = motion.demand_offsets(half);
+        let (minimum, maximum) = motion.demand_offsets(half, load_tier);
 
         assert_eq!(maximum.x, half.x);
         assert!(
@@ -1168,7 +1299,7 @@ mod motion_demand_geometry_tests {
     fn stationary_motion_keeps_symmetric_demand_geometry() {
         let half = Vec3::new(100.0, 60.0, 80.0);
         let (minimum, maximum) =
-            VoxelDemandMotion::stationary().demand_offsets(half);
+            VoxelDemandMotion::stationary().demand_offsets(half, 0);
         assert_eq!(minimum, -half);
         assert_eq!(maximum, half);
     }
@@ -1190,8 +1321,48 @@ mod motion_demand_geometry_tests {
             DVec3::new(-1_000.0, 0.0, 0.0),
         );
 
-        let (minimum, maximum) = motion.demand_offsets(half);
+        let (minimum, maximum) = motion.demand_offsets(half, load_tier);
         assert_eq!(minimum.x, -half.x);
         assert!(maximum.x < half.x * 0.25);
+    }
+}
+
+#[cfg(test)]
+mod adaptive_streaming_pressure_tests {
+    use super::*;
+
+    #[test]
+    fn overload_tier_collapses_cross_section_and_caps_working_set() {
+        let mut ecs = World::new();
+        let source = ecs.spawn_empty().id();
+        let half = Vec3::splat(100.0);
+        let demand = SpatialDemandScope::at_scale(
+            source,
+            SpatialScale::ZERO,
+            UsfPosition::zero(SpatialScale::ZERO),
+            half,
+            0,
+        );
+        let motion =
+            VoxelDemandMotion::new(demand, DVec3::new(1_000.0, 0.0, 0.0));
+
+        let (minimum, maximum) = motion.demand_offsets(half, 4);
+        assert_eq!(maximum.x, half.x);
+        assert!(maximum.y <= 20.01);
+        assert!(maximum.z <= 20.01);
+        assert!(minimum.x >= -10.01);
+
+        assert_eq!(desired_chunk_budget(24, 4), 48);
+        assert_eq!(desired_chunk_budget(24, 3), 96);
+    }
+
+    #[test]
+    fn healthy_stationary_streaming_keeps_full_geometry() {
+        let half = Vec3::new(100.0, 60.0, 80.0);
+        let (minimum, maximum) =
+            VoxelDemandMotion::stationary().demand_offsets(half, 0);
+        assert_eq!(minimum, -half);
+        assert_eq!(maximum, half);
+        assert_eq!(desired_chunk_budget(24, 0), usize::MAX);
     }
 }
