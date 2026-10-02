@@ -480,12 +480,25 @@ fn balance_leaves_2_to_1(
     }
 }
 
-fn build_plan(
+#[derive(Debug, Clone, Copy)]
+struct CelestialClipmapPlanInput {
+    key: CelestialClipmapPlanKey,
+    observer_local: DVec3,
+    finest: VoxelPresentationResolution,
+    coarsest: VoxelPresentationResolution,
+}
+
+/// Cheap clipmap identity derivation.
+///
+/// This deliberately performs no terrain sampling/refinement. Stable frames only
+/// need to know whether observer bucket, binary LOD bounds, field identity or
+/// script revision changed; the expensive leaf plan is rebuilt only after that
+/// identity changes.
+fn derive_plan_input(
     field: CelestialVoxelField,
     observer_local: DVec3,
-    policy: Option<&DeveloperScalarPolicyRuntime>,
     policy_revision: u64,
-) -> Option<(CelestialClipmapPlanKey, Vec<CelestialClipmapBlockSpec>)> {
+) -> Option<CelestialClipmapPlanInput> {
     let observer_radius = observer_local.length();
     if !observer_radius.is_finite() {
         return None;
@@ -521,6 +534,37 @@ fn build_plan(
         (coarse_exp_f64 as i16)
             .max(finest.binary_exponent()),
     );
+
+    let fine_extent =
+        finest.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
+    let observer_bucket =
+        checked_floor_coord(observer_local, fine_extent.max(1.0))?;
+
+    Some(CelestialClipmapPlanInput {
+        key: CelestialClipmapPlanKey {
+            observer_bucket,
+            finest_exponent: finest.binary_exponent(),
+            coarsest_exponent: coarsest.binary_exponent(),
+            policy_revision,
+        },
+        observer_local,
+        finest,
+        coarsest,
+    })
+}
+
+/// Expensive leaf-plan construction.
+///
+/// Call only when [`derive_plan_input`] reports an identity different from the
+/// currently cached plan. On stable frames this function must not run.
+fn build_plan(
+    field: CelestialVoxelField,
+    input: CelestialClipmapPlanInput,
+    policy: Option<&DeveloperScalarPolicyRuntime>,
+) -> Option<Vec<CelestialClipmapBlockSpec>> {
+    let observer_local = input.observer_local;
+    let finest = input.finest;
+    let coarsest = input.coarsest;
 
     let root_extent =
         coarsest.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
@@ -624,20 +668,7 @@ fn build_plan(
         });
     }
 
-    let fine_extent =
-        finest.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
-    let observer_bucket =
-        checked_floor_coord(observer_local, fine_extent.max(1.0))?;
-
-    Some((
-        CelestialClipmapPlanKey {
-            observer_bucket,
-            finest_exponent: finest.binary_exponent(),
-            coarsest_exponent: coarsest.binary_exponent(),
-            policy_revision,
-        },
-        specs,
-    ))
+    Some(specs)
 }
 
 fn transvoxel_sides(faces: VoxelTransitionFaces) -> TransitionSides {
@@ -824,67 +855,91 @@ fn sync_celestial_clipmap_realizations(
     let Some(view) = views.iter().next() else {
         return;
     };
+
     let presentation_policy = script_workbench.celestial_height_snapshot();
     let policy_revision =
         presentation_policy.as_ref().map_or(0, DeveloperScalarPolicySnapshot::revision);
-    let policy_runtime = presentation_policy
-        .as_ref()
-        .and_then(|snapshot| snapshot.compile_runtime().ok());
 
+    // The expensive Rhai runtime is needed only when a changed plan actually
+    // samples terrain on the main thread. Stable frames never compile it.
+    let mut policy_runtime_cache = None::<Option<DeveloperScalarPolicyRuntime>>;
     let mut live_authorities = HashSet::<Entity>::new();
-    let mut authority_names = HashMap::<Entity, String>::new();
-    let mut authority_materials =
-        HashMap::<Entity, Handle<StandardMaterial>>::new();
+    let mut plans_changed = false;
 
-    for (
-        authority,
-        name,
-        body_origin,
-        body_frame,
-        field,
-        voxel_authority,
-        policy,
-    ) in &authorities
     {
-        // The first live handoff proves the base semantic field. Edited terrain
-        // stays on the existing dense presentation until cross-resolution edit
-        // aggregation is explicitly implemented.
-        if !voxel_authority.is_empty() {
-            continue;
-        }
+        let _span =
+            bevy::log::info_span!("celestial_clipmap.plan_identity").entered();
 
-        let Ok(observer_local) = body_frame.world_to_local_metres(
+        for (
+            authority,
+            _name,
             body_origin,
-            &view.anchor(),
-            SpatialScale::ZERO,
-            f64::MAX,
-        ) else {
-            continue;
-        };
-        let Some((key, desired)) = build_plan(*field, observer_local, policy_runtime.as_ref(), policy_revision) else {
-            continue;
-        };
-        if desired.is_empty() {
-            continue;
-        }
+            body_frame,
+            field,
+            voxel_authority,
+            _policy,
+        ) in &authorities
+        {
+            // The first live handoff proves the base semantic field. Edited
+            // terrain stays on dense presentation until cross-resolution edit
+            // aggregation is explicitly implemented.
+            if !voxel_authority.is_empty() {
+                continue;
+            }
 
-        live_authorities.insert(authority);
-        authority_names.insert(
-            authority,
-            name.map(|value| value.as_str().to_string())
-                .unwrap_or_else(|| "Celestial Body".to_string()),
-        );
-        authority_materials.insert(
-            authority,
-            policy.presentation_material().clone(),
-        );
+            let Ok(observer_local) = body_frame.world_to_local_metres(
+                body_origin,
+                &view.anchor(),
+                SpatialScale::ZERO,
+                f64::MAX,
+            ) else {
+                continue;
+            };
+            let Some(input) =
+                derive_plan_input(*field, observer_local, policy_revision)
+            else {
+                continue;
+            };
 
-        let replace = registry
-            .plans
-            .get(&authority)
-            .is_none_or(|plan| plan.key != key || plan.field != *field);
+            let replace = registry
+                .plans
+                .get(&authority)
+                .is_none_or(|plan| plan.key != input.key || plan.field != *field);
 
-        if replace {
+            if !replace {
+                live_authorities.insert(authority);
+                continue;
+            }
+
+            let _rebuild_span = bevy::log::info_span!(
+                "celestial_clipmap.rebuild_plan",
+                ?authority,
+            )
+            .entered();
+
+            let policy_runtime = if presentation_policy.is_some() {
+                if policy_runtime_cache.is_none() {
+                    policy_runtime_cache = Some(
+                        presentation_policy
+                            .as_ref()
+                            .and_then(|snapshot| snapshot.compile_runtime().ok()),
+                    );
+                }
+                policy_runtime_cache
+                    .as_ref()
+                    .and_then(|runtime| runtime.as_ref())
+            } else {
+                None
+            };
+
+            let Some(desired) = build_plan(*field, input, policy_runtime) else {
+                continue;
+            };
+            if desired.is_empty() {
+                continue;
+            }
+
+            live_authorities.insert(authority);
             let committed_generation = registry
                 .plans
                 .get(&authority)
@@ -893,7 +948,7 @@ fn sync_celestial_clipmap_realizations(
             registry.plans.insert(
                 authority,
                 CelestialClipmapPlan {
-                    key,
+                    key: input.key,
                     field: *field,
                     policy: presentation_policy.clone(),
                     generation,
@@ -902,32 +957,64 @@ fn sync_celestial_clipmap_realizations(
                     committed_generation,
                 },
             );
+            plans_changed = true;
         }
     }
 
+    let plan_count_before_retain = registry.plans.len();
     registry
         .plans
         .retain(|authority, _| live_authorities.contains(authority));
+    let plans_removed = registry.plans.len() != plan_count_before_retain;
+    coverage.retain_authorities(&live_authorities);
+
+    // clipmap-stable-fast-path-v1
+    //
+    // A committed plan with no worker tasks is fully reconstructible and needs
+    // no maintenance work. In particular, do not scan every clipmap block,
+    // rebuild lookup maps, recompile Rhai, or re-evaluate surface planning on a
+    // stable frame.
+    let no_build_tasks = build_tasks.iter_mut().next().is_none();
+    let plans_settled = registry.plans.values().all(|plan| {
+        plan.committed_generation == Some(plan.generation)
+    });
+    if !plans_changed
+        && !plans_removed
+        && no_build_tasks
+        && plans_settled
+    {
+        return;
+    }
 
     let mut existing_by_spec =
         HashMap::<(Entity, u64, CelestialClipmapBlockSpec), Entity>::new();
-    for (entity, block) in &blocks {
-        if !live_authorities.contains(&block.authority) {
-            commands.entity(entity).despawn();
-            continue;
-        }
-        let key = (block.authority, block.policy_revision, block.spec);
-        if existing_by_spec.contains_key(&key) {
-            commands.entity(entity).despawn();
-        } else {
-            existing_by_spec.insert(key, entity);
-        }
-    }
 
-    for (&authority, plan) in &mut registry.plans {
-        for &spec in &plan.desired {
-            if existing_by_spec.contains_key(&(authority, plan.key.policy_revision, spec)) {
-                plan.completed.insert(spec);
+    {
+        let _span =
+            bevy::log::info_span!("celestial_clipmap.index_blocks").entered();
+
+        for (entity, block) in &blocks {
+            if !live_authorities.contains(&block.authority) {
+                commands.entity(entity).despawn();
+                continue;
+            }
+            let key = (block.authority, block.policy_revision, block.spec);
+            if existing_by_spec.contains_key(&key) {
+                commands.entity(entity).despawn();
+            } else {
+                existing_by_spec.insert(key, entity);
+            }
+        }
+
+        for (&authority, plan) in &mut registry.plans {
+            for &spec in &plan.desired {
+                if existing_by_spec.contains_key(&(
+                    authority,
+                    plan.key.policy_revision,
+                    spec,
+                )) {
+                    plan.completed.insert(spec);
+                }
             }
         }
     }
@@ -936,197 +1023,234 @@ fn sync_celestial_clipmap_realizations(
         HashSet::<(Entity, u64, CelestialClipmapBlockSpec)>::new();
     let mut publications = 0usize;
 
-    for (task_entity, mut build) in &mut build_tasks {
-        let Some(plan) = registry.plans.get_mut(&build.authority) else {
-            commands.entity(task_entity).despawn();
-            continue;
-        };
+    {
+        let _span =
+            bevy::log::info_span!("celestial_clipmap.poll_builds").entered();
 
-        if build.generation != plan.generation
-            || build.policy_revision != plan.key.policy_revision
-            || !plan.desired.contains(&build.spec)
-            || build.field != plan.field
-        {
-            commands.entity(task_entity).despawn();
-            continue;
-        }
+        for (task_entity, mut build) in &mut build_tasks {
+            let Some(plan) = registry.plans.get_mut(&build.authority) else {
+                commands.entity(task_entity).despawn();
+                continue;
+            };
 
-        if existing_by_spec.contains_key(&(build.authority, build.policy_revision, build.spec)) {
+            if build.generation != plan.generation
+                || build.policy_revision != plan.key.policy_revision
+                || !plan.desired.contains(&build.spec)
+                || build.field != plan.field
+            {
+                commands.entity(task_entity).despawn();
+                continue;
+            }
+
+            if existing_by_spec.contains_key(&(
+                build.authority,
+                build.policy_revision,
+                build.spec,
+            )) {
+                plan.completed.insert(build.spec);
+                commands.entity(task_entity).despawn();
+                continue;
+            }
+
+            inflight.insert((
+                build.authority,
+                build.generation,
+                build.spec,
+            ));
+
+            if publications >= MAX_PUBLICATIONS_PER_FRAME {
+                continue;
+            }
+
+            let Some(result) = build.task.try_take() else {
+                continue;
+            };
+            commands.entity(task_entity).despawn();
+            publications += 1;
             plan.completed.insert(build.spec);
-            commands.entity(task_entity).despawn();
-            continue;
+
+            let Some(mesh) = result else {
+                continue;
+            };
+
+            let Ok((
+                _,
+                name,
+                _,
+                _,
+                _,
+                _,
+                policy,
+            )) = authorities.get(build.authority)
+            else {
+                continue;
+            };
+
+            let body_name = name
+                .map(|value| value.as_str())
+                .unwrap_or("Celestial Body");
+
+            let entity = commands
+                .spawn((
+                    Name::new(format!(
+                        "{body_name} Binary Clipmap S2^{} ({},{},{})",
+                        build.spec.key.resolution.binary_exponent(),
+                        build.spec.key.coord.x,
+                        build.spec.key.coord.y,
+                        build.spec.key.coord.z,
+                    )),
+                    CelestialClipmapBlock {
+                        authority: build.authority,
+                        policy_revision: build.policy_revision,
+                        spec: build.spec,
+                    },
+                    UsfPresentationProjectionOf(build.authority),
+                    Mesh3d(meshes.add(mesh.into_mesh())),
+                    MeshMaterial3d(policy.presentation_material().clone()),
+                    Transform::IDENTITY,
+                    Visibility::Hidden,
+                ))
+                .id();
+
+            existing_by_spec.insert(
+                (build.authority, build.policy_revision, build.spec),
+                entity,
+            );
         }
-
-        inflight.insert((
-            build.authority,
-            build.generation,
-            build.spec,
-        ));
-
-        if publications >= MAX_PUBLICATIONS_PER_FRAME {
-            continue;
-        }
-
-        let Some(result) = build.task.try_take() else {
-            continue;
-        };
-        commands.entity(task_entity).despawn();
-        publications += 1;
-        plan.completed.insert(build.spec);
-
-        let Some(mesh) = result else {
-            continue;
-        };
-        let Some(material) =
-            authority_materials.get(&build.authority).cloned()
-        else {
-            continue;
-        };
-        let body_name = authority_names
-            .get(&build.authority)
-            .map(String::as_str)
-            .unwrap_or("Celestial Body");
-
-        let entity = commands
-            .spawn((
-                Name::new(format!(
-                    "{body_name} Binary Clipmap S2^{} ({},{},{})",
-                    build.spec.key.resolution.binary_exponent(),
-                    build.spec.key.coord.x,
-                    build.spec.key.coord.y,
-                    build.spec.key.coord.z,
-                )),
-                CelestialClipmapBlock {
-                    authority: build.authority,
-                    policy_revision: build.policy_revision,
-                    spec: build.spec,
-                },
-                UsfPresentationProjectionOf(build.authority),
-                Mesh3d(meshes.add(mesh.into_mesh())),
-                MeshMaterial3d(material),
-                Transform::IDENTITY,
-                Visibility::Hidden,
-            ))
-            .id();
-
-        existing_by_spec.insert((build.authority, build.policy_revision, build.spec), entity);
     }
 
-    let mut admitted = 0usize;
-    let mut worker_slots =
-        workers.available_slots(VoxelWorkerLane::PresentationResolution);
+    {
+        let _span =
+            bevy::log::info_span!("celestial_clipmap.schedule_builds").entered();
 
-    'authorities: for (&authority, plan) in &registry.plans {
-        for &spec in &plan.desired {
-            if plan.completed.contains(&spec)
-                || existing_by_spec.contains_key(&(
+        let mut admitted = 0usize;
+        let mut worker_slots =
+            workers.available_slots(VoxelWorkerLane::PresentationResolution);
+
+        'authorities: for (&authority, plan) in &registry.plans {
+            for &spec in &plan.desired {
+                if plan.completed.contains(&spec)
+                    || existing_by_spec.contains_key(&(
+                        authority,
+                        plan.key.policy_revision,
+                        spec,
+                    ))
+                    || inflight.contains(&(authority, plan.generation, spec))
+                {
+                    continue;
+                }
+
+                if worker_slots == 0
+                    || inflight.len() >= MAX_BUILDS_IN_FLIGHT
+                    || admitted >= MAX_BUILD_ADMISSIONS_PER_FRAME
+                {
+                    break 'authorities;
+                }
+
+                let field = plan.field;
+                let policy = plan.policy.clone();
+                let policy_revision = plan.key.policy_revision;
+                let Some(task) = workers.try_submit(
+                    VoxelWorkerLane::PresentationResolution,
+                    move || {
+                        let runtime = policy
+                            .as_ref()
+                            .and_then(|snapshot| snapshot.compile_runtime().ok());
+                        build_clipmap_mesh(field, spec, runtime.as_ref())
+                    },
+                ) else {
+                    break 'authorities;
+                };
+
+                commands.spawn((
+                    Name::new("Celestial Binary Clipmap Build"),
+                    VoxelWorkerTask,
+                    CelestialClipmapBuildTask {
+                        authority,
+                        generation: plan.generation,
+                        policy_revision,
+                        spec,
+                        field,
+                        task,
+                    },
+                ));
+                inflight.insert((authority, plan.generation, spec));
+                admitted += 1;
+                worker_slots -= 1;
+            }
+        }
+    }
+
+    {
+        let _span =
+            bevy::log::info_span!("celestial_clipmap.commit").entered();
+
+        for (&authority, plan) in &mut registry.plans {
+            if plan.committed_generation == Some(plan.generation) {
+                continue;
+            }
+            if !plan
+                .desired
+                .iter()
+                .all(|spec| plan.completed.contains(spec))
+            {
+                continue;
+            }
+
+            // Do not suppress the proven legacy presentation if the new plan
+            // accidentally contains no surface mesh at all.
+            let visible_meshes = plan
+                .desired
+                .iter()
+                .filter_map(|spec| {
+                    existing_by_spec.get(&(
+                        authority,
+                        plan.key.policy_revision,
+                        *spec,
+                    ))
+                })
+                .count();
+            if visible_meshes == 0 {
+                continue;
+            }
+
+            let desired = plan
+                .desired
+                .iter()
+                .copied()
+                .collect::<HashSet<_>>();
+
+            for (entity, block) in &blocks {
+                if block.authority != authority {
+                    continue;
+                }
+                if block.policy_revision == plan.key.policy_revision
+                    && desired.contains(&block.spec)
+                {
+                    commands.entity(entity).insert(Visibility::Inherited);
+                } else {
+                    commands.entity(entity).despawn();
+                }
+            }
+            for &spec in &plan.desired {
+                if let Some(&entity) = existing_by_spec.get(&(
                     authority,
                     plan.key.policy_revision,
                     spec,
-                ))
-                || inflight.contains(&(authority, plan.generation, spec))
-            {
-                continue;
+                )) {
+                    commands.entity(entity).insert(Visibility::Inherited);
+                }
             }
 
-            if worker_slots == 0
-                || inflight.len() >= MAX_BUILDS_IN_FLIGHT
-                || admitted >= MAX_BUILD_ADMISSIONS_PER_FRAME
-            {
-                break 'authorities;
-            }
-
-            let field = plan.field;
-            let policy = plan.policy.clone();
-            let policy_revision = plan.key.policy_revision;
-            let Some(task) = workers.try_submit(
-                VoxelWorkerLane::PresentationResolution,
-                move || {
-                    let runtime = policy
-                        .as_ref()
-                        .and_then(|snapshot| snapshot.compile_runtime().ok());
-                    build_clipmap_mesh(field, spec, runtime.as_ref())
-                },
-            ) else {
-                break 'authorities;
-            };
-
-            commands.spawn((
-                Name::new("Celestial Binary Clipmap Build"),
-                VoxelWorkerTask,
-                CelestialClipmapBuildTask {
-                    authority,
-                    generation: plan.generation,
-                    policy_revision,
-                    spec,
-                    field,
-                    task,
-                },
-            ));
-            inflight.insert((authority, plan.generation, spec));
-            admitted += 1;
-            worker_slots -= 1;
+            coverage.replace_authority(
+                authority,
+                coverage_for_specs(&plan.desired),
+            );
+            plan.committed_generation = Some(plan.generation);
         }
     }
 
-    for (&authority, plan) in &mut registry.plans {
-        if plan.committed_generation == Some(plan.generation) {
-            continue;
-        }
-        if !plan
-            .desired
-            .iter()
-            .all(|spec| plan.completed.contains(spec))
-        {
-            continue;
-        }
-
-        // Do not suppress the proven legacy presentation if the new plan
-        // accidentally contains no surface mesh at all.
-        let visible_meshes = plan
-            .desired
-            .iter()
-            .filter_map(|spec| existing_by_spec.get(&(authority, plan.key.policy_revision, *spec)))
-            .count();
-        if visible_meshes == 0 {
-            continue;
-        }
-
-        let desired = plan
-            .desired
-            .iter()
-            .copied()
-            .collect::<HashSet<_>>();
-
-        for (entity, block) in &blocks {
-            if block.authority != authority {
-                continue;
-            }
-            if block.policy_revision == plan.key.policy_revision
-                && desired.contains(&block.spec)
-            {
-                commands.entity(entity).insert(Visibility::Inherited);
-            } else {
-                commands.entity(entity).despawn();
-            }
-        }
-        for &spec in &plan.desired {
-            if let Some(&entity) = existing_by_spec.get(&(authority, plan.key.policy_revision, spec)) {
-                commands.entity(entity).insert(Visibility::Inherited);
-            }
-        }
-
-        coverage.replace_authority(
-            authority,
-            coverage_for_specs(&plan.desired),
-        );
-        plan.committed_generation = Some(plan.generation);
-    }
-
-    // Stale/inactive build tasks were already retired in the mutable task pass
-    // above; do not attempt a second immutable iteration over a Query carrying
-    // `&mut CelestialClipmapBuildTask`.
-    coverage.retain_authorities(&live_authorities);
+    // Stale/inactive build tasks were already retired in the mutable task pass.
 }
 
 fn sync_celestial_clipmap_transforms(
