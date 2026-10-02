@@ -20,6 +20,9 @@ enum RockyBandShape {
     PlateauBasin,
     OrogenicRift,
     Regional,
+    AlpineRidge,
+    CanyonNetwork,
+    FineRidge,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -41,7 +44,7 @@ fn scale(raw: i8) -> SpatialScale {
 /// - S+4 regional residual: several hundred km.
 ///
 /// Exact shape comes from keyed spherical domains, not these comments.
-fn rocky_bands() -> [RockyBand; 4] {
+fn rocky_bands() -> [RockyBand; 7] {
     [
         RockyBand {
             terrain: PlanetaryTerrainBand::new(
@@ -78,6 +81,33 @@ fn rocky_bands() -> [RockyBand; 4] {
                 0x5245_474E, // REGN
             ),
             shape: RockyBandShape::Regional,
+        },
+        RockyBand {
+            terrain: PlanetaryTerrainBand::new(
+                scale(3),
+                11_000.0,
+                15.0,
+                0x414C_504E, // ALPN
+            ),
+            shape: RockyBandShape::AlpineRidge,
+        },
+        RockyBand {
+            terrain: PlanetaryTerrainBand::new(
+                scale(3),
+                8_000.0,
+                21.0,
+                0x4341_4E59, // CANY
+            ),
+            shape: RockyBandShape::CanyonNetwork,
+        },
+        RockyBand {
+            terrain: PlanetaryTerrainBand::new(
+                scale(2),
+                2_600.0,
+                42.0,
+                0x5249_4447, // RIDG
+            ),
+            shape: RockyBandShape::FineRidge,
         },
     ]
 }
@@ -158,6 +188,48 @@ fn sample_band(direction: Vec3, band: RockyBand, seed: u32) -> f64 {
                 direction * frequency + Vec3::new(-7.8, -3.1, 11.6),
                 keyed_seed ^ 0xD3A2_646C,
             )
+        }
+        RockyBandShape::AlpineRidge => {
+            let carrier = value_noise_3d(
+                direction * frequency + Vec3::new(19.7, -4.3, 12.8),
+                keyed_seed ^ 0xA24B_AED4,
+            );
+            let ridge = (1.0 - carrier.abs()).max(0.0).powi(6);
+            let envelope = value_noise_3d(
+                direction * (frequency * 0.37) + Vec3::new(-8.1, 15.6, 2.9),
+                keyed_seed ^ 0x9FB2_1C65,
+            );
+            let envelope01 =
+                (f64::from(envelope) * 0.5 + 0.5).clamp(0.0, 1.0);
+            (f64::from(ridge) * (0.20 + envelope01 * 0.80))
+                .clamp(0.0, 1.0) as f32
+        }
+        RockyBandShape::CanyonNetwork => {
+            let carrier = value_noise_3d(
+                direction * frequency + Vec3::new(-14.2, 6.7, 22.1),
+                keyed_seed ^ 0x1656_67B1,
+            );
+            let line = (1.0 - carrier.abs()).max(0.0).powi(7);
+            let envelope = value_noise_3d(
+                direction * (frequency * 0.29) + Vec3::new(3.4, -18.9, 7.2),
+                keyed_seed ^ 0xD4EB_2F6A,
+            );
+            let envelope01 =
+                (f64::from(envelope) * 0.5 + 0.5).clamp(0.0, 1.0);
+            -(f64::from(line) * (0.25 + envelope01 * 0.75))
+                .clamp(0.0, 1.0) as f32
+        }
+        RockyBandShape::FineRidge => {
+            let carrier = value_noise_3d(
+                direction * frequency + Vec3::new(4.8, 9.2, -16.7),
+                keyed_seed ^ 0x85EB_CA77,
+            );
+            let ridge = (1.0 - carrier.abs()).max(0.0).powi(4);
+            let polarity = value_noise_3d(
+                direction * (frequency * 0.41) + Vec3::new(-11.5, 1.8, 5.6),
+                keyed_seed ^ 0xC2B2_AE3D,
+            );
+            (ridge * polarity).clamp(-1.0, 1.0)
         }
     };
 
