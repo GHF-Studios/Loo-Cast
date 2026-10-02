@@ -14,7 +14,7 @@ use crate::{
     physics::PhysicalBoxHull,
     spatial::{
         UsfPosition, UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScaleRoleMask,
-        UsfSemanticFrame, UsfSpatialFrame, UsfSpatialSet,
+        UsfSemanticFrame, UsfSpatialSet,
     },
     voxel::{CelestialVoxelField, VoxelScaleDomain},
 };

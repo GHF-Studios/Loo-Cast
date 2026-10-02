@@ -307,7 +307,7 @@ pub(crate) fn surface_near(
 
 
     #[inline]
-fn field_sample_local_metres(
+pub(crate) fn field_sample_local_metres(
         self,
         local_point_metres: DVec3,
     ) -> Option<CelestialFieldSample> {
