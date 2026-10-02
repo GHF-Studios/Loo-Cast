@@ -4,7 +4,7 @@
 //! dense voxel worlds keep collision/editing authority. The clipmap is a
 //! reconstructible mesh adapter whose LOD axis is independent of USF Scale.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BinaryHeap, HashMap, HashSet};
 
 use bevy::{
     asset::RenderAssetUsages,
@@ -141,10 +141,479 @@ struct CelestialClipmapPlan {
     committed_generation: Option<u64>,
 }
 
+
+// celestial-clipmap-planner-superpass-v1
+//
+// Planner state is deliberately reusable. Observer motion changes *which*
+// presentation blocks are wanted; it does not change the semantic answer to
+// "can this dyadic block intersect this body surface?" for a stable
+// (field, script revision). Keep two generations of those classifications so
+// ordinary movement pays mostly for the changed frontier without an unbounded
+// spatial cache.
+#[derive(Default)]
+struct CelestialClipmapSurfaceCache {
+    field: Option<CelestialVoxelField>,
+    policy_revision: u64,
+    hot: HashMap<CelestialClipmapBlockKey, bool>,
+    warm: HashMap<CelestialClipmapBlockKey, bool>,
+    next: HashMap<CelestialClipmapBlockKey, bool>,
+    hits: usize,
+    misses: usize,
+}
+
+impl CelestialClipmapSurfaceCache {
+    fn begin_plan(
+        &mut self,
+        field: CelestialVoxelField,
+        policy_revision: u64,
+    ) {
+        if self.field != Some(field) || self.policy_revision != policy_revision {
+            self.field = Some(field);
+            self.policy_revision = policy_revision;
+            self.hot.clear();
+            self.warm.clear();
+            self.next.clear();
+        } else {
+            self.next.clear();
+        }
+        self.hits = 0;
+        self.misses = 0;
+    }
+
+    fn intersects(
+        &mut self,
+        field: CelestialVoxelField,
+        key: CelestialClipmapBlockKey,
+        policy: Option<&DeveloperScalarPolicyRuntime>,
+    ) -> bool {
+        let cached = self
+            .next
+            .get(&key)
+            .copied()
+            .or_else(|| self.hot.get(&key).copied())
+            .or_else(|| self.warm.get(&key).copied());
+
+        if let Some(value) = cached {
+            self.hits = self.hits.saturating_add(1);
+            self.next.insert(key, value);
+            return value;
+        }
+
+        self.misses = self.misses.saturating_add(1);
+        let value = block_intersects_semantic_surface(field, key, policy);
+        self.next.insert(key, value);
+        value
+    }
+
+    fn finish_plan(&mut self) {
+        self.warm.clear();
+        std::mem::swap(&mut self.warm, &mut self.hot);
+        std::mem::swap(&mut self.hot, &mut self.next);
+    }
+}
+
+#[derive(Resource, Default)]
+struct CelestialClipmapPlannerPolicyCache {
+    revision: u64,
+    enabled: bool,
+    runtime: Option<DeveloperScalarPolicyRuntime>,
+}
+
+impl CelestialClipmapPlannerPolicyCache {
+    fn runtime_for(
+        &mut self,
+        snapshot: Option<&DeveloperScalarPolicySnapshot>,
+    ) -> Option<&DeveloperScalarPolicyRuntime> {
+        let enabled = snapshot.is_some();
+        let revision =
+            snapshot.map_or(0, DeveloperScalarPolicySnapshot::revision);
+
+        if self.enabled != enabled || self.revision != revision {
+            self.enabled = enabled;
+            self.revision = revision;
+            self.runtime = snapshot
+                .and_then(|snapshot| snapshot.compile_runtime().ok());
+        }
+
+        self.runtime.as_ref()
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct ClipmapRefinementCandidate {
+    distance: f64,
+    key: CelestialClipmapBlockKey,
+}
+
+impl PartialEq for ClipmapRefinementCandidate {
+    fn eq(&self, other: &Self) -> bool {
+        self.distance.total_cmp(&other.distance) == std::cmp::Ordering::Equal
+            && self.key == other.key
+    }
+}
+
+impl Eq for ClipmapRefinementCandidate {}
+
+impl PartialOrd for ClipmapRefinementCandidate {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for ClipmapRefinementCandidate {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        other
+            .distance
+            .total_cmp(&self.distance)
+            .then_with(|| block_sort_key(other.key).cmp(&block_sort_key(self.key)))
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct ClipmapFaceRecord {
+    axis: u8,
+    plane: i128,
+    low: bool,
+    u0: i128,
+    u1: i128,
+    v0: i128,
+    v1: i128,
+    key: CelestialClipmapBlockKey,
+    face: VoxelTransitionFace,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct ClipmapFaceAdjacency {
+    a: CelestialClipmapBlockKey,
+    b: CelestialClipmapBlockKey,
+    face_from_a: VoxelTransitionFace,
+}
+
+fn block_sort_key(
+    key: CelestialClipmapBlockKey,
+) -> (i16, i32, i32, i32) {
+    (
+        key.resolution.binary_exponent(),
+        key.coord.x,
+        key.coord.y,
+        key.coord.z,
+    )
+}
+
+fn refinement_candidate(
+    key: CelestialClipmapBlockKey,
+    finest: VoxelPresentationResolution,
+    observer_local: DVec3,
+) -> Option<ClipmapRefinementCandidate> {
+    if key.resolution <= finest {
+        return None;
+    }
+
+    let distance = block_distance_to_point(key, observer_local);
+    let target = target_resolution_at_distance(finest, distance);
+    (key.resolution > target).then_some(ClipmapRefinementCandidate {
+        distance,
+        key,
+    })
+}
+
+fn refine_leaf_indexed(
+    leaves: &mut HashSet<CelestialClipmapBlockKey>,
+    parent: CelestialClipmapBlockKey,
+    field: CelestialVoxelField,
+    policy: Option<&DeveloperScalarPolicyRuntime>,
+    surface_cache: &mut CelestialClipmapSurfaceCache,
+) -> bool {
+    if !leaves.remove(&parent) {
+        return true;
+    }
+
+    let Some(children) = parent.children() else {
+        leaves.insert(parent);
+        return false;
+    };
+
+    for child in children {
+        if surface_cache.intersects(field, child, policy) {
+            leaves.insert(child);
+        }
+    }
+
+    true
+}
+
+fn normalized_axis_bounds(
+    coordinate: i32,
+    scale: i128,
+) -> Option<(i128, i128)> {
+    let low = i128::from(coordinate).checked_mul(scale)?;
+    let high = i128::from(coordinate)
+        .checked_add(1)?
+        .checked_mul(scale)?;
+    Some((low, high))
+}
+
+fn push_face_records(
+    key: CelestialClipmapBlockKey,
+    minimum_exponent: i16,
+    records: &mut Vec<ClipmapFaceRecord>,
+) -> bool {
+    let shift =
+        i32::from(key.resolution.binary_exponent())
+            - i32::from(minimum_exponent);
+    let Ok(shift) = u32::try_from(shift) else {
+        return false;
+    };
+    let Some(scale) = 1_i128.checked_shl(shift) else {
+        return false;
+    };
+
+    let Some((x0, x1)) = normalized_axis_bounds(key.coord.x, scale) else {
+        return false;
+    };
+    let Some((y0, y1)) = normalized_axis_bounds(key.coord.y, scale) else {
+        return false;
+    };
+    let Some((z0, z1)) = normalized_axis_bounds(key.coord.z, scale) else {
+        return false;
+    };
+
+    records.extend_from_slice(&[
+        ClipmapFaceRecord {
+            axis: 0,
+            plane: x0,
+            low: true,
+            u0: y0,
+            u1: y1,
+            v0: z0,
+            v1: z1,
+            key,
+            face: VoxelTransitionFace::LowX,
+        },
+        ClipmapFaceRecord {
+            axis: 0,
+            plane: x1,
+            low: false,
+            u0: y0,
+            u1: y1,
+            v0: z0,
+            v1: z1,
+            key,
+            face: VoxelTransitionFace::HighX,
+        },
+        ClipmapFaceRecord {
+            axis: 1,
+            plane: y0,
+            low: true,
+            u0: x0,
+            u1: x1,
+            v0: z0,
+            v1: z1,
+            key,
+            face: VoxelTransitionFace::LowY,
+        },
+        ClipmapFaceRecord {
+            axis: 1,
+            plane: y1,
+            low: false,
+            u0: x0,
+            u1: x1,
+            v0: z0,
+            v1: z1,
+            key,
+            face: VoxelTransitionFace::HighY,
+        },
+        ClipmapFaceRecord {
+            axis: 2,
+            plane: z0,
+            low: true,
+            u0: x0,
+            u1: x1,
+            v0: y0,
+            v1: y1,
+            key,
+            face: VoxelTransitionFace::LowZ,
+        },
+        ClipmapFaceRecord {
+            axis: 2,
+            plane: z1,
+            low: false,
+            u0: x0,
+            u1: x1,
+            v0: y0,
+            v1: y1,
+            key,
+            face: VoxelTransitionFace::HighZ,
+        },
+    ]);
+    true
+}
+
+fn rebuild_face_adjacencies(
+    leaves: &HashSet<CelestialClipmapBlockKey>,
+    records: &mut Vec<ClipmapFaceRecord>,
+    adjacencies: &mut Vec<ClipmapFaceAdjacency>,
+) -> bool {
+    records.clear();
+    adjacencies.clear();
+
+    let Some(minimum_exponent) = leaves
+        .iter()
+        .map(|key| key.resolution.binary_exponent())
+        .min()
+    else {
+        return true;
+    };
+
+    records.reserve(leaves.len().saturating_mul(6));
+    for &key in leaves {
+        if !push_face_records(key, minimum_exponent, records) {
+            return false;
+        }
+    }
+
+    records.sort_unstable_by_key(|record| {
+        (
+            record.axis,
+            record.plane,
+            record.low,
+            record.u0,
+            record.v0,
+            block_sort_key(record.key),
+        )
+    });
+
+    let mut group_start = 0usize;
+    while group_start < records.len() {
+        let axis = records[group_start].axis;
+        let plane = records[group_start].plane;
+        let mut group_end = group_start + 1;
+        while group_end < records.len()
+            && records[group_end].axis == axis
+            && records[group_end].plane == plane
+        {
+            group_end += 1;
+        }
+
+        let group = &records[group_start..group_end];
+        let split = group
+            .iter()
+            .position(|record| record.low)
+            .unwrap_or(group.len());
+        let highs = &group[..split];
+        let lows = &group[split..];
+
+        let mut low_start = 0usize;
+        for high in highs {
+            while low_start < lows.len()
+                && lows[low_start].u1 <= high.u0
+            {
+                low_start += 1;
+            }
+
+            for low in &lows[low_start..] {
+                if low.u0 >= high.u1 {
+                    break;
+                }
+                if high.v1.min(low.v1) <= high.v0.max(low.v0) {
+                    continue;
+                }
+
+                adjacencies.push(ClipmapFaceAdjacency {
+                    a: high.key,
+                    b: low.key,
+                    face_from_a: high.face,
+                });
+            }
+        }
+
+        group_start = group_end;
+    }
+
+    true
+}
+
+fn balance_leaves_2_to_1_indexed(
+    field: CelestialVoxelField,
+    leaves: &mut HashSet<CelestialClipmapBlockKey>,
+    policy: Option<&DeveloperScalarPolicyRuntime>,
+    surface_cache: &mut CelestialClipmapSurfaceCache,
+) -> Option<Vec<ClipmapFaceAdjacency>> {
+    let mut records =
+        Vec::<ClipmapFaceRecord>::with_capacity(leaves.len().saturating_mul(6));
+    let mut adjacencies =
+        Vec::<ClipmapFaceAdjacency>::with_capacity(leaves.len().saturating_mul(6));
+    let mut refine = Vec::<CelestialClipmapBlockKey>::new();
+
+    loop {
+        if !rebuild_face_adjacencies(
+            leaves,
+            &mut records,
+            &mut adjacencies,
+        ) {
+            return None;
+        }
+
+        refine.clear();
+        for adjacency in &adjacencies {
+            let a_exp = adjacency.a.resolution.binary_exponent();
+            let b_exp = adjacency.b.resolution.binary_exponent();
+            if (i32::from(a_exp) - i32::from(b_exp)).abs() <= 1 {
+                continue;
+            }
+
+            refine.push(if a_exp > b_exp {
+                adjacency.a
+            } else {
+                adjacency.b
+            });
+        }
+
+        if refine.is_empty() {
+            return Some(adjacencies);
+        }
+
+        refine.sort_unstable_by_key(|key| block_sort_key(*key));
+        refine.dedup();
+
+        for key in refine.iter().copied() {
+            if !leaves.contains(&key) {
+                continue;
+            }
+            if leaves.len().saturating_add(7) > MAX_BALANCED_LEAVES {
+                return None;
+            }
+            if !refine_leaf_indexed(
+                leaves,
+                key,
+                field,
+                policy,
+                surface_cache,
+            ) {
+                return None;
+            }
+        }
+    }
+}
+
+fn opposite_transition_face(
+    face: VoxelTransitionFace,
+) -> VoxelTransitionFace {
+    match face {
+        VoxelTransitionFace::LowX => VoxelTransitionFace::HighX,
+        VoxelTransitionFace::HighX => VoxelTransitionFace::LowX,
+        VoxelTransitionFace::LowY => VoxelTransitionFace::HighY,
+        VoxelTransitionFace::HighY => VoxelTransitionFace::LowY,
+        VoxelTransitionFace::LowZ => VoxelTransitionFace::HighZ,
+        VoxelTransitionFace::HighZ => VoxelTransitionFace::LowZ,
+    }
+}
+
 #[derive(Resource, Default)]
 struct CelestialClipmapRegistry {
     next_generation: u64,
     plans: HashMap<Entity, CelestialClipmapPlan>,
+    planner_caches: HashMap<Entity, CelestialClipmapSurfaceCache>,
 }
 
 impl CelestialClipmapRegistry {
@@ -561,115 +1030,172 @@ fn build_plan(
     field: CelestialVoxelField,
     input: CelestialClipmapPlanInput,
     policy: Option<&DeveloperScalarPolicyRuntime>,
+    surface_cache: &mut CelestialClipmapSurfaceCache,
 ) -> Option<Vec<CelestialClipmapBlockSpec>> {
-    let observer_local = input.observer_local;
-    let finest = input.finest;
-    let coarsest = input.coarsest;
+    surface_cache.begin_plan(field, input.key.policy_revision);
 
-    let root_extent =
-        coarsest.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
-    let root_center = checked_floor_coord(observer_local, root_extent)?;
+    let result = (|| {
+        let observer_local = input.observer_local;
+        let finest = input.finest;
+        let coarsest = input.coarsest;
 
-    let mut leaves = Vec::with_capacity(64);
-    for z in -1..=1 {
-        for y in -1..=1 {
-            for x in -1..=1 {
-                let Some(cx) = root_center.x.checked_add(x) else {
-                    return None;
-                };
-                let Some(cy) = root_center.y.checked_add(y) else {
-                    return None;
-                };
-                let Some(cz) = root_center.z.checked_add(z) else {
-                    return None;
-                };
-                let coord = IVec3::new(cx, cy, cz);
-                let key = CelestialClipmapBlockKey {
-                    resolution: coarsest,
-                    coord,
-                };
-                if block_intersects_semantic_surface(field, key, policy) {
-                    leaves.push(key);
+        let root_extent =
+            coarsest.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
+        let root_center = checked_floor_coord(observer_local, root_extent)?;
+
+        let mut leaves =
+            HashSet::<CelestialClipmapBlockKey>::with_capacity(MAX_BALANCED_LEAVES);
+
+        {
+            let _span =
+                bevy::log::info_span!("celestial_clipmap.rebuild_plan.seed").entered();
+
+            for z in -1..=1 {
+                for y in -1..=1 {
+                    for x in -1..=1 {
+                        let cx = root_center.x.checked_add(x)?;
+                        let cy = root_center.y.checked_add(y)?;
+                        let cz = root_center.z.checked_add(z)?;
+                        let key = CelestialClipmapBlockKey {
+                            resolution: coarsest,
+                            coord: IVec3::new(cx, cy, cz),
+                        };
+                        if surface_cache.intersects(field, key, policy) {
+                            leaves.insert(key);
+                        }
+                    }
                 }
             }
         }
-    }
 
-    if leaves.is_empty() {
-        return None;
-    }
+        if leaves.is_empty() {
+            return None;
+        }
 
-    loop {
-        let mut best = None::<(usize, f64)>;
-        for (index, &key) in leaves.iter().enumerate() {
-            if key.resolution <= finest {
-                continue;
+        {
+            let _span = bevy::log::info_span!(
+                "celestial_clipmap.rebuild_plan.refine_heap"
+            )
+            .entered();
+
+            let mut candidates =
+                BinaryHeap::<ClipmapRefinementCandidate>::with_capacity(
+                    MAX_INITIAL_LEAVES,
+                );
+            for &key in &leaves {
+                if let Some(candidate) =
+                    refinement_candidate(key, finest, observer_local)
+                {
+                    candidates.push(candidate);
+                }
             }
 
-            let distance = block_distance_to_point(key, observer_local);
-            let target = target_resolution_at_distance(finest, distance);
-            if key.resolution <= target {
-                continue;
-            }
+            while let Some(candidate) = candidates.pop() {
+                if !leaves.contains(&candidate.key) {
+                    continue;
+                }
 
-            if best.is_none_or(|(_, current)| distance < current) {
-                best = Some((index, distance));
+                if leaves.len().saturating_add(7) > MAX_INITIAL_LEAVES {
+                    break;
+                }
+
+                if !refine_leaf_indexed(
+                    &mut leaves,
+                    candidate.key,
+                    field,
+                    policy,
+                    surface_cache,
+                ) {
+                    break;
+                }
+
+                if let Some(children) = candidate.key.children() {
+                    for child in children {
+                        if !leaves.contains(&child) {
+                            continue;
+                        }
+                        if let Some(next) =
+                            refinement_candidate(child, finest, observer_local)
+                        {
+                            candidates.push(next);
+                        }
+                    }
+                }
             }
         }
 
-        let Some((index, _)) = best else {
-            break;
+        let adjacencies = {
+            let _span = bevy::log::info_span!(
+                "celestial_clipmap.rebuild_plan.balance_index"
+            )
+            .entered();
+
+            balance_leaves_2_to_1_indexed(
+                field,
+                &mut leaves,
+                policy,
+                surface_cache,
+            )?
         };
-        if leaves.len().saturating_add(7) > MAX_INITIAL_LEAVES {
-            break;
-        }
-        if !refine_leaf(&mut leaves, index, field, policy) {
-            break;
-        }
-    }
 
-    if !balance_leaves_2_to_1(field, &mut leaves, policy) {
-        return None;
-    }
+        let mut transitions =
+            HashMap::<CelestialClipmapBlockKey, VoxelTransitionFaces>::with_capacity(
+                leaves.len(),
+            );
 
-    leaves.sort_unstable_by_key(|key| {
-        (
-            key.resolution.binary_exponent(),
-            key.coord.x,
-            key.coord.y,
-            key.coord.z,
+        {
+            let _span = bevy::log::info_span!(
+                "celestial_clipmap.rebuild_plan.transitions_index"
+            )
+            .entered();
+
+            for adjacency in adjacencies {
+                let a_exp = adjacency.a.resolution.binary_exponent();
+                let b_exp = adjacency.b.resolution.binary_exponent();
+                let difference = i32::from(a_exp) - i32::from(b_exp);
+
+                if difference == 1 {
+                    transitions
+                        .entry(adjacency.a)
+                        .or_default()
+                        .insert(adjacency.face_from_a);
+                } else if difference == -1 {
+                    transitions
+                        .entry(adjacency.b)
+                        .or_default()
+                        .insert(opposite_transition_face(adjacency.face_from_a));
+                }
+            }
+        }
+
+        let mut ordered = leaves.into_iter().collect::<Vec<_>>();
+        ordered.sort_unstable_by_key(|key| block_sort_key(*key));
+
+        let mut specs = Vec::with_capacity(ordered.len());
+        for key in ordered {
+            specs.push(CelestialClipmapBlockSpec {
+                key,
+                transition_faces: transitions.remove(&key).unwrap_or_default(),
+            });
+        }
+
+        Some(specs)
+    })();
+
+    {
+        let _span = bevy::log::info_span!(
+            "celestial_clipmap.rebuild_plan.cache_stats",
+            hits = surface_cache.hits as u64,
+            misses = surface_cache.misses as u64,
+            hot_entries = surface_cache.next.len() as u64,
         )
-    });
-
-    let mut specs = Vec::with_capacity(leaves.len());
-    for (index, &key) in leaves.iter().enumerate() {
-        let mut transition_faces = VoxelTransitionFaces::default();
-
-        for (other_index, &other) in leaves.iter().enumerate() {
-            if index == other_index {
-                continue;
-            }
-            if other
-                .resolution
-                .binary_exponent()
-                .checked_add(1)
-                != Some(key.resolution.binary_exponent())
-            {
-                continue;
-            }
-            if let Some(face) = face_from_a_to_b(key, other) {
-                transition_faces.insert(face);
-            }
-        }
-
-        specs.push(CelestialClipmapBlockSpec {
-            key,
-            transition_faces,
-        });
+        .entered();
     }
 
-    Some(specs)
+    surface_cache.finish_plan();
+    result
 }
+
 
 fn transvoxel_sides(faces: VoxelTransitionFaces) -> TransitionSides {
     let mut sides = TransitionSide::none();
@@ -837,6 +1363,7 @@ fn sync_celestial_clipmap_realizations(
     mut meshes: ResMut<Assets<Mesh>>,
     views: Res<UsfViewDemandSnapshot>,
     script_workbench: Res<DeveloperScriptWorkbench>,
+    mut planner_policy: ResMut<CelestialClipmapPlannerPolicyCache>,
     workers: Res<VoxelWorkerPool>,
     authorities: Query<(
         Entity,
@@ -860,9 +1387,6 @@ fn sync_celestial_clipmap_realizations(
     let policy_revision =
         presentation_policy.as_ref().map_or(0, DeveloperScalarPolicySnapshot::revision);
 
-    // The expensive Rhai runtime is needed only when a changed plan actually
-    // samples terrain on the main thread. Stable frames never compile it.
-    let mut policy_runtime_cache = None::<Option<DeveloperScalarPolicyRuntime>>;
     let mut live_authorities = HashSet::<Entity>::new();
     let mut plans_changed = false;
 
@@ -917,22 +1441,17 @@ fn sync_celestial_clipmap_realizations(
             )
             .entered();
 
-            let policy_runtime = if presentation_policy.is_some() {
-                if policy_runtime_cache.is_none() {
-                    policy_runtime_cache = Some(
-                        presentation_policy
-                            .as_ref()
-                            .and_then(|snapshot| snapshot.compile_runtime().ok()),
-                    );
-                }
-                policy_runtime_cache
-                    .as_ref()
-                    .and_then(|runtime| runtime.as_ref())
-            } else {
-                None
-            };
+            let policy_runtime =
+                planner_policy.runtime_for(presentation_policy.as_ref());
+            let planner_cache =
+                registry.planner_caches.entry(authority).or_default();
 
-            let Some(desired) = build_plan(*field, input, policy_runtime) else {
+            let Some(desired) = build_plan(
+                *field,
+                input,
+                policy_runtime,
+                planner_cache,
+            ) else {
                 continue;
             };
             if desired.is_empty() {
@@ -966,6 +1485,9 @@ fn sync_celestial_clipmap_realizations(
         .plans
         .retain(|authority, _| live_authorities.contains(authority));
     let plans_removed = registry.plans.len() != plan_count_before_retain;
+    registry
+        .planner_caches
+        .retain(|authority, _| live_authorities.contains(authority));
     coverage.retain_authorities(&live_authorities);
 
     // clipmap-stable-fast-path-v1
@@ -1344,6 +1866,7 @@ fn suppress_legacy_celestial_dense_presentation(
 
 pub(super) fn configure(app: &mut App) {
     app.init_resource::<CelestialClipmapRegistry>()
+        .init_resource::<CelestialClipmapPlannerPolicyCache>()
         .init_resource::<CelestialClipmapCoverageSnapshot>()
         .add_systems(Update, sync_celestial_clipmap_realizations)
         .add_systems(
