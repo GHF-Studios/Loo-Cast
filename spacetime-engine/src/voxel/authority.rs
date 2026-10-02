@@ -130,6 +130,32 @@ impl CelestialVoxelField {
         )
     }
 
+    /// Canonical body-local signed distance in physical metres.
+    pub(crate) fn signed_distance_local_metres(
+        self,
+        local_point_metres: DVec3,
+    ) -> Option<f64> {
+        self.realization(
+            UsfPosition::zero(SpatialScale::MIN),
+            UsfSemanticFrame::identity(),
+            SpatialScale::ZERO,
+        )
+        .signed_distance_local_metres(local_point_metres)
+    }
+
+    /// Optional void SDF used to subtract caves from a presentation shell.
+    pub(crate) fn volumetric_void_signed_distance_local_metres(
+        self,
+        local_point_metres: DVec3,
+    ) -> Option<f64> {
+        self.realization(
+            UsfPosition::zero(SpatialScale::MIN),
+            UsfSemanticFrame::identity(),
+            SpatialScale::ZERO,
+        )
+        .volumetric_void_signed_distance_local_metres(local_point_metres)
+    }
+
     pub(crate) fn conservative_outer_radius_metres(self) -> f64 {
         self.realization(
             UsfPosition::zero(SpatialScale::MIN),

@@ -14,8 +14,10 @@ use super::{
 use super::super::{VoxelMaterialId, VoxelQueryPosition, VoxelSample};
 
 mod bands;
+mod caves;
 mod rocky;
 
+use caves::rocky_cave_void_signed_distance_metres;
 use rocky::{
     rocky_maximum_outward_displacement_metres,
     rocky_surface_displacement_metres,
@@ -23,7 +25,6 @@ use rocky::{
 
 const LOCAL_SAMPLE_MARGIN_NATIVE: f32 = 8_192.0;
 const LOCAL_SAMPLE_RELIEF_MARGIN_FRACTION: f64 = 0.05;
-const FINE_SURFACE_FRAME_BOUND_NATIVE: f32 = 1_000_000_000.0;
 const CANONICAL_DETAIL_CELL_NATIVE: i64 = 20;
 const CANONICAL_DETAIL_FINE_CELL_NATIVE: i64 = 5;
 
@@ -204,6 +205,71 @@ pub fn surface_position(self, direction: Vec3) -> Result<UsfPosition, UsfPositio
     }
 
 
+    /// Canonical signed distance in body-local SI metres.
+    ///
+    /// Negative is solid matter, positive is empty. Rocky bodies subtract a
+    /// deterministic volumetric cave field from the radial outer terrain shell,
+    /// allowing true tunnels/entrances/overhangs in dense realizations.
+    pub(crate) fn signed_distance_local_metres(
+        self,
+        local_point_metres: DVec3,
+    ) -> Option<f64> {
+        let radial = local_point_metres.length();
+        if !radial.is_finite() || radial <= f64::EPSILON {
+            return None;
+        }
+
+        let direction = Vec3::new(
+            (local_point_metres.x / radial) as f32,
+            (local_point_metres.y / radial) as f32,
+            (local_point_metres.z / radial) as f32,
+        )
+        .normalize_or_zero();
+        if direction == Vec3::ZERO {
+            return None;
+        }
+
+        let surface_radius = self.semantic_surface_radius_metres(direction).ok()?;
+        let mut solid_sdf = radial - surface_radius;
+
+        if self.profile == CelestialBodyProfile::Rocky {
+            let void_sdf = rocky_cave_void_signed_distance_metres(
+                local_point_metres,
+                surface_radius,
+                self.seed,
+            );
+            // Constructive subtraction: solid shell minus cave void.
+            solid_sdf = solid_sdf.max(-void_sdf);
+        }
+
+        Some(solid_sdf)
+    }
+
+    pub(crate) fn volumetric_void_signed_distance_local_metres(
+        self,
+        local_point_metres: DVec3,
+    ) -> Option<f64> {
+        if self.profile != CelestialBodyProfile::Rocky {
+            return None;
+        }
+        let radial = local_point_metres.length();
+        if !radial.is_finite() || radial <= f64::EPSILON {
+            return None;
+        }
+        let direction = Vec3::new(
+            (local_point_metres.x / radial) as f32,
+            (local_point_metres.y / radial) as f32,
+            (local_point_metres.z / radial) as f32,
+        )
+        .normalize_or_zero();
+        let surface_radius = self.semantic_surface_radius_metres(direction).ok()?;
+        Some(rocky_cave_void_signed_distance_metres(
+            local_point_metres,
+            surface_radius,
+            self.seed,
+        ))
+    }
+
     /// Resolve a canonical surface anchor first, then measure only tiny local
     /// clearance in the target chart.
 pub(crate) fn surface_near(
@@ -267,17 +333,26 @@ fn sample_coarse_local(self, local: Vec3) -> VoxelSample {
             return VoxelSample::empty(EMPTY_DISTANCE);
         };
 
-        // One semantic resolver now owns both travel clearance and dense fine
-        // voxel geometry. Neighboring materializations that sample the same
-        // canonical border point therefore receive the same signed distance,
-        // regardless of which cache produced the query.
-        let Some((_, _, clearance_native)) =
-            self.surface_near(&point, FINE_SURFACE_FRAME_BOUND_NATIVE)
+        // Resolve the full canonical volumetric field. The outer radial
+        // surface and cave subtraction are both body-semantic, so neighboring
+        // materializations still agree exactly at shared border samples.
+        let Ok(local_point_metres) = self.frame_snapshot.world_to_local_metres(
+            &self.origin_snapshot,
+            &point,
+            SpatialScale::ZERO,
+            f64::MAX,
+        ) else {
+            return VoxelSample::empty(EMPTY_DISTANCE);
+        };
+        let Some(distance_metres) =
+            self.signed_distance_local_metres(local_point_metres)
         else {
             return VoxelSample::empty(EMPTY_DISTANCE);
         };
+        let distance_native =
+            distance_metres / self.current_scale.metres_per_native();
 
-        self.sample_from_signed_distance(f64::from(clearance_native))
+        self.sample_from_signed_distance(distance_native)
     }
 
     #[inline]
@@ -474,7 +549,7 @@ fn dvec(value: Vec3) -> DVec3 {
     )
 }
 
-const ROCKY_EXAGGERATED_OUTWARD_BOUND_METRES: f64 = 30_000.0;
+const ROCKY_EXAGGERATED_OUTWARD_BOUND_METRES: f64 = 55_000.0;
 
 /// Deliberately unmistakable development morphology layered onto the ordinary
 /// rocky semantic bands.
@@ -502,8 +577,9 @@ fn rocky_exaggerated_relief_metres(direction: Vec3, seed: u32) -> f64 {
         direction * 10.0 + Vec3::new(-17.2, 6.9, 12.4),
         seed ^ 0x414C_504E,
     );
+    // High powers turn broad carrier bands into sharp alpine spines.
     let alpine_ridge =
-        (1.0 - alpine_carrier.abs()).max(0.0).powi(6);
+        (1.0 - alpine_carrier.abs()).max(0.0).powi(9);
     let alpine_envelope = (
         value_noise_3d(
             direction * 3.7 + Vec3::new(3.1, 19.6, -8.8),
@@ -519,7 +595,7 @@ fn rocky_exaggerated_relief_metres(direction: Vec3, seed: u32) -> f64 {
         seed ^ 0x4341_4E59,
     );
     let canyon_line =
-        (1.0 - canyon_carrier.abs()).max(0.0).powi(7);
+        (1.0 - canyon_carrier.abs()).max(0.0).powi(9);
     let canyon_envelope = (
         value_noise_3d(
             direction * 4.3 + Vec3::new(-9.9, 5.4, 21.1),
@@ -529,19 +605,31 @@ fn rocky_exaggerated_relief_metres(direction: Vec3, seed: u32) -> f64 {
     )
         .clamp(0.0, 1.0);
 
+    let massif_carrier = value_noise_3d(
+        direction * 14.5 + Vec3::new(22.4, 7.7, -3.6),
+        seed ^ 0x4D41_5353, // MASS
+    );
+    let massif_cross =
+        (1.0 - massif_carrier.abs()).max(0.0).powi(8);
+    let massif = alpine_ridge * massif_cross;
+
     // Signed serration prevents the non-ridge regions from becoming bland.
     let serration = value_noise_3d(
         direction * 32.0 + Vec3::new(1.7, -13.3, 9.2),
         seed ^ 0x5345_5252,
     );
 
-    let relief =
-        f64::from(province) * 6_000.0
-        + f64::from(alpine_ridge * alpine_envelope) * 18_000.0
-        - f64::from(canyon_line * canyon_envelope) * 14_000.0
-        + f64::from(serration) * 2_500.0;
+    let sharp_serration =
+        serration.signum() * serration.abs().powi(2);
 
-    relief.clamp(-24_000.0, 28_000.0)
+    let relief =
+        f64::from(province) * 8_000.0
+        + f64::from(alpine_ridge * alpine_envelope) * 30_000.0
+        + f64::from(massif * alpine_envelope) * 16_000.0
+        - f64::from(canyon_line * canyon_envelope) * 24_000.0
+        + f64::from(sharp_serration) * 5_000.0;
+
+    relief.clamp(-38_000.0, 48_000.0)
 }
 
 fn stellar_macro_relative_relief(direction: Vec3, seed: u32) -> f32 {
@@ -652,16 +740,16 @@ mod tests {
         }
 
         assert!(
-            maximum >= 8_000.0,
-            "expected obviously mountainous canonical surface, max={maximum:.1} m"
+            maximum >= 15_000.0,
+            "expected high canonical mountains, max={maximum:.1} m"
         );
         assert!(
-            minimum <= -6_000.0,
-            "expected obvious canonical valleys/canyons, min={minimum:.1} m"
+            minimum <= -10_000.0,
+            "expected deep canonical valleys/canyons, min={minimum:.1} m"
         );
         assert!(
-            maximum - minimum >= 18_000.0,
-            "expected strong canonical relief span, got {:.1} m",
+            maximum - minimum >= 30_000.0,
+            "expected dramatic canonical relief span, got {:.1} m",
             maximum - minimum,
         );
     }

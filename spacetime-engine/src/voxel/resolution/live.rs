@@ -1294,9 +1294,19 @@ fn build_clipmap_mesh(
         )
         .unwrap_or_else(|| field.radius_metres());
 
-        let signed = surface_radius - radial;
-        if signed.is_finite() {
-            signed.clamp(
+        // Start with the (optionally developer-scripted) outer shell,
+        // then subtract the same canonical volumetric cave void used by dense
+        // physical voxel sampling. Transvoxel expects the opposite sign from
+        // the engine SDF convention: positive here means solid.
+        let mut solid_sdf = radial - surface_radius;
+        if let Some(void_sdf) =
+            field.volumetric_void_signed_distance_local_metres(point)
+        {
+            solid_sdf = solid_sdf.max(-void_sdf);
+        }
+        let density = -solid_sdf;
+        if density.is_finite() {
+            density.clamp(
                 -f64::from(f32::MAX),
                 f64::from(f32::MAX),
             ) as f32
