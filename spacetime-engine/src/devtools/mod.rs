@@ -33,7 +33,7 @@ pub use inspect_ui::{AppInspectorWidgetsExt, InspectorWidgetRegistry};
 pub use structure::{StructureFrame, StructureItem, StructureItemId, StructureSelection};
 pub(crate) use script_workbench::{
     DeveloperScalarPolicyRuntime, DeveloperScalarPolicySnapshot,
-    DeveloperScriptWorkbench, draw_developer_lab,
+    DeveloperScriptWorkbench, draw_script_workspace,
 };
 pub use tools::{AppDeveloperToolsExt, DeveloperTools, VisualizationId, VisualizationSpec};
 pub use view::DeveloperView;

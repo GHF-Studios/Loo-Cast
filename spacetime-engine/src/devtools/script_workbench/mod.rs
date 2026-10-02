@@ -1,16 +1,20 @@
-//! Trusted in-process Rhai developer workbench.
+//! Host-managed developer scripting workspace.
 //!
-//! developer-lab-rhai-workbench-v1
+//! developer-console-script-workspace-v2
 //!
-//! This is deliberately a tiny host contract, not "script the Bevy World".
-//! The first proof exposes exactly one pure scalar policy:
+//! The developer console owns the UI shell. This module owns script documents,
+//! host-contract validation, committed runtime revisions, and the script-editor
+//! surface embedded by the console.
 //!
-//!     fn transform(value) -> number
-//!
-//! Draft source is compiled/validated before commit. A failed compile/commit
-//! never replaces the last working AST. Runtime consumers opt in explicitly.
+//! Rhai code never receives Bevy World/ECS/filesystem authority. The editor host
+//! may read/write source files under the repository's `scripts/` directory; the
+//! runtime receives only explicit typed policy inputs.
 
-use std::collections::BTreeMap;
+use std::{
+    collections::BTreeMap,
+    fs,
+    path::{Component, Path, PathBuf},
+};
 
 use bevy::prelude::*;
 use bevy_egui::egui;
@@ -19,19 +23,28 @@ use rhai::{AST, Engine, Scope};
 
 use crate::console::{
     AppConsoleExt, ConsoleCommandInvocation, ConsoleCommandResult, ConsoleCommandSpec,
-    RuntimeVariableRegistry,
 };
 
-const DEFAULT_SOURCE: &str = r#"// Trusted Developer Lab scalar policy.
+const DEFAULT_SCALAR_SOURCE: &str = r#"// Pure scalar host contract.
 //
-// Host contract:
-//   fn transform(value) -> finite number
-//
-// Nothing in this script has ECS/World/filesystem authority.
+// Input/output units are defined by the bound host policy.
 fn transform(value) {
     value
 }
 "#;
+
+const DEFAULT_SCRATCH_SOURCE: &str = r#"// Session script.
+// Scratch scripts need not expose a host policy contract.
+
+fn hello() {
+    "hello from Loo-Cast"
+}
+"#;
+
+const FREECAM_SCRIPT_PATH: &str = "debug/freecam_speed.rhai";
+const CELESTIAL_HEIGHT_SCRIPT_PATH: &str = "worldgen/celestial_height.rhai";
+const DEFAULT_SCRATCH_PATH: &str = "scratch/experiment.rhai";
+const MAX_WORKSPACE_FILES: usize = 256;
 
 const SCRIPT_MAX_OPERATIONS: u64 = 5_000;
 const SCRIPT_MAX_CALL_LEVELS: usize = 12;
@@ -56,10 +69,149 @@ fn bounded_engine() -> Engine {
     engine
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ScriptTarget {
+    None,
+    FreecamSpeed,
+    CelestialHeight,
+}
+
+impl ScriptTarget {
+    fn for_path(path: &str) -> Self {
+        match path {
+            FREECAM_SCRIPT_PATH => Self::FreecamSpeed,
+            CELESTIAL_HEIGHT_SCRIPT_PATH => Self::CelestialHeight,
+            _ => Self::None,
+        }
+    }
+
+    const fn label(self) -> &'static str {
+        match self {
+            Self::None => "unbound",
+            Self::FreecamSpeed => "debug.freecam.speed",
+            Self::CelestialHeight => "worldgen.celestial.presentation_height",
+        }
+    }
+
+    const fn contract(self) -> &'static str {
+        match self {
+            Self::None => "No host contract. Compile-only script.",
+            Self::FreecamSpeed => {
+                "fn transform(value) -> finite number; value is freecam speed in m/s."
+            }
+            Self::CelestialHeight => {
+                "fn transform(value) -> finite number; value is radial terrain displacement in metres."
+            }
+        }
+    }
+
+    const fn supports_live(self) -> bool {
+        !matches!(self, Self::None)
+    }
+}
+
+struct ScriptDocument {
+    path: String,
+    target: ScriptTarget,
+    source: String,
+    saved_source: String,
+    committed_source: String,
+    committed_ast: AST,
+    candidate_source: Option<String>,
+    candidate_ast: Option<AST>,
+    revision: u64,
+    diagnostic: String,
+    preview_input: f64,
+    preview_output: Option<f64>,
+    live_enabled: bool,
+}
+
+impl ScriptDocument {
+    fn from_source(engine: &Engine, path: String, source: String) -> Self {
+        let target = ScriptTarget::for_path(&path);
+        let fallback_source = if target == ScriptTarget::None {
+            DEFAULT_SCRATCH_SOURCE
+        } else {
+            DEFAULT_SCALAR_SOURCE
+        };
+        let fallback_ast = engine
+            .compile(fallback_source)
+            .expect("built-in developer script fallback must compile");
+
+        let (committed_source, committed_ast, diagnostic, preview_output) =
+            match compile_and_validate(engine, target, &source, 2.0) {
+                Ok((ast, preview)) => (
+                    source.clone(),
+                    ast,
+                    "Loaded source is compiled and committed.".to_string(),
+                    preview,
+                ),
+                Err(error) => (
+                    fallback_source.to_string(),
+                    fallback_ast,
+                    format!(
+                        "Loaded source is not runtime-valid; safe fallback remains committed: {error}"
+                    ),
+                    None,
+                ),
+            };
+
+        Self {
+            path,
+            target,
+            source: source.clone(),
+            saved_source: source,
+            committed_source,
+            committed_ast,
+            candidate_source: None,
+            candidate_ast: None,
+            revision: 1,
+            diagnostic,
+            preview_input: 2.0,
+            preview_output,
+            live_enabled: false,
+        }
+    }
+
+    fn source_dirty(&self) -> bool {
+        self.source != self.saved_source
+    }
+
+    fn runtime_dirty(&self) -> bool {
+        self.source != self.committed_source
+    }
+}
+
+fn compile_and_validate(
+    engine: &Engine,
+    target: ScriptTarget,
+    source: &str,
+    preview_input: f64,
+) -> Result<(AST, Option<f64>), String> {
+    let ast = engine
+        .compile(source)
+        .map_err(|error| format!("compile error: {error}"))?;
+
+    if target == ScriptTarget::None {
+        return Ok((ast, None));
+    }
+
+    let preview = evaluate_ast(engine, &ast, preview_input)?;
+    Ok((ast, Some(preview)))
+}
+
+fn evaluate_ast(engine: &Engine, ast: &AST, input: f64) -> Result<f64, String> {
+    let mut scope = Scope::new();
+    let output = engine
+        .call_fn::<f64>(&mut scope, ast, "transform", (input,))
+        .map_err(|error| format!("transform(value) failed: {error}"))?;
+    if !output.is_finite() {
+        return Err("transform(value) returned a non-finite number".to_string());
+    }
+    Ok(output)
+}
+
 /// Immutable source-level snapshot safe to move into background worker jobs.
-///
-/// Worker threads compile this committed source once per reconstructible job.
-/// The Rhai engine itself therefore never needs to cross an ECS/thread boundary.
 #[derive(Debug, Clone)]
 pub(crate) struct DeveloperScalarPolicySnapshot {
     source: String,
@@ -81,9 +233,6 @@ impl DeveloperScalarPolicySnapshot {
 }
 
 /// One job-local compiled scalar policy.
-///
-/// This remains a pure value transform. It has no Bevy/ECS/world/filesystem
-/// handle and is deliberately constructed inside the worker that consumes it.
 pub(crate) struct DeveloperScalarPolicyRuntime {
     engine: Engine,
     ast: AST,
@@ -91,190 +240,407 @@ pub(crate) struct DeveloperScalarPolicyRuntime {
 
 impl DeveloperScalarPolicyRuntime {
     pub(crate) fn evaluate(&self, input: f64) -> Result<f64, String> {
-        let mut scope = Scope::new();
-        let output = self
-            .engine
-            .call_fn::<f64>(&mut scope, &self.ast, "transform", (input,))
-            .map_err(|error| format!("transform(value) failed: {error}"))?;
-        if !output.is_finite() {
-            return Err("transform(value) returned a non-finite number".to_string());
-        }
-        Ok(output)
+        evaluate_ast(&self.engine, &self.ast, input)
     }
 }
 
 #[derive(Resource)]
 pub(crate) struct DeveloperScriptWorkbench {
     engine: Engine,
-    source: String,
-    committed_source: String,
-    committed_ast: AST,
-    candidate_source: Option<String>,
-    candidate_ast: Option<AST>,
-    revision: u64,
-    diagnostic: String,
-    preview_input: f64,
-    preview_output: Option<f64>,
-    live_enabled: bool,
-    celestial_height_live_enabled: bool,
+    documents: BTreeMap<String, ScriptDocument>,
+    open_tabs: Vec<String>,
+    active_path: String,
+    workspace_root: Option<PathBuf>,
+    scratch_counter: u32,
 }
 
 impl Default for DeveloperScriptWorkbench {
     fn default() -> Self {
         let engine = bounded_engine();
-        let committed_ast = engine
-            .compile(DEFAULT_SOURCE)
-            .expect("built-in Developer Lab Rhai source must compile");
-        let mut value = Self {
-            engine,
-            source: DEFAULT_SOURCE.to_string(),
-            committed_source: DEFAULT_SOURCE.to_string(),
-            committed_ast,
-            candidate_source: None,
-            candidate_ast: None,
-            revision: 1,
-            diagnostic: "Committed revision 1 — identity scalar policy.".to_string(),
-            preview_input: 2.0,
-            preview_output: Some(2.0),
-            live_enabled: false,
-            celestial_height_live_enabled: false,
+        let workspace_root = locate_workspace_root();
+
+        let mut sources = BTreeMap::<String, String>::new();
+        if let Some(root) = workspace_root.as_deref() {
+            collect_rhai_sources(root, root, &mut sources);
+        }
+
+        sources
+            .entry(FREECAM_SCRIPT_PATH.to_string())
+            .or_insert_with(|| DEFAULT_SCALAR_SOURCE.to_string());
+        sources
+            .entry(CELESTIAL_HEIGHT_SCRIPT_PATH.to_string())
+            .or_insert_with(|| DEFAULT_SCALAR_SOURCE.to_string());
+        sources
+            .entry(DEFAULT_SCRATCH_PATH.to_string())
+            .or_insert_with(|| DEFAULT_SCRATCH_SOURCE.to_string());
+
+        let documents = sources
+            .into_iter()
+            .map(|(path, source)| {
+                let document = ScriptDocument::from_source(&engine, path.clone(), source);
+                (path, document)
+            })
+            .collect::<BTreeMap<_, _>>();
+
+        let active_path = if documents.contains_key(CELESTIAL_HEIGHT_SCRIPT_PATH) {
+            CELESTIAL_HEIGHT_SCRIPT_PATH.to_string()
+        } else {
+            documents
+                .keys()
+                .next()
+                .cloned()
+                .unwrap_or_else(|| DEFAULT_SCRATCH_PATH.to_string())
         };
-        value.refresh_preview_from_committed();
-        value
+
+        let mut open_tabs = Vec::new();
+        for path in [
+            CELESTIAL_HEIGHT_SCRIPT_PATH,
+            FREECAM_SCRIPT_PATH,
+            DEFAULT_SCRATCH_PATH,
+        ] {
+            if documents.contains_key(path) {
+                open_tabs.push(path.to_string());
+            }
+        }
+        if open_tabs.is_empty() {
+            open_tabs.push(active_path.clone());
+        }
+
+        Self {
+            engine,
+            documents,
+            open_tabs,
+            active_path,
+            workspace_root,
+            scratch_counter: 1,
+        }
     }
 }
 
 impl DeveloperScriptWorkbench {
-    pub(crate) const fn revision(&self) -> u64 {
-        self.revision
+    fn active(&self) -> Option<&ScriptDocument> {
+        self.documents.get(&self.active_path)
     }
 
-    pub(crate) const fn live_enabled(&self) -> bool {
-        self.live_enabled
+    fn active_mut(&mut self) -> Option<&mut ScriptDocument> {
+        self.documents.get_mut(&self.active_path)
+    }
+
+    pub(crate) fn revision(&self) -> u64 {
+        self.active().map_or(0, |document| document.revision)
+    }
+
+    pub(crate) fn live_enabled(&self) -> bool {
+        self.document_for_target(ScriptTarget::FreecamSpeed)
+            .is_some_and(|document| document.live_enabled)
     }
 
     pub(crate) fn set_live_enabled(&mut self, enabled: bool) {
-        self.live_enabled = enabled;
+        if let Some(document) = self.document_for_target_mut(ScriptTarget::FreecamSpeed) {
+            document.live_enabled = enabled;
+        }
     }
 
-    pub(crate) const fn celestial_height_live_enabled(&self) -> bool {
-        self.celestial_height_live_enabled
+    pub(crate) fn celestial_height_live_enabled(&self) -> bool {
+        self.document_for_target(ScriptTarget::CelestialHeight)
+            .is_some_and(|document| document.live_enabled)
     }
 
     pub(crate) fn celestial_height_snapshot(&self) -> Option<DeveloperScalarPolicySnapshot> {
-        self.celestial_height_live_enabled.then(|| DeveloperScalarPolicySnapshot {
-            source: self.committed_source.clone(),
-            revision: self.revision,
+        let document = self.document_for_target(ScriptTarget::CelestialHeight)?;
+        document.live_enabled.then(|| DeveloperScalarPolicySnapshot {
+            source: document.committed_source.clone(),
+            revision: document.revision,
         })
     }
 
     pub(crate) fn dirty(&self) -> bool {
-        self.source != self.committed_source
-    }
-
-    fn evaluate_ast(&self, ast: &AST, input: f64) -> Result<f64, String> {
-        let mut scope = Scope::new();
-        let output = self
-            .engine
-            .call_fn::<f64>(&mut scope, ast, "transform", (input,))
-            .map_err(|error| format!("transform(value) failed: {error}"))?;
-        if !output.is_finite() {
-            return Err("transform(value) returned a non-finite number".to_string());
-        }
-        Ok(output)
+        self.active().is_some_and(ScriptDocument::runtime_dirty)
     }
 
     pub(crate) fn evaluate_committed(&self, input: f64) -> Result<f64, String> {
-        self.evaluate_ast(&self.committed_ast, input)
+        let document = self
+            .active()
+            .ok_or_else(|| "no active script document".to_string())?;
+        if document.target == ScriptTarget::None {
+            return Err("active script has no scalar host contract".to_string());
+        }
+        evaluate_ast(&self.engine, &document.committed_ast, input)
     }
 
-    /// Runtime consumers use the committed AST only. Failure falls back to the
-    /// authored value instead of injecting broken developer policy.
     pub(crate) fn apply_live_scalar(&self, value: f64) -> f64 {
-        if !self.live_enabled {
+        let Some(document) = self.document_for_target(ScriptTarget::FreecamSpeed) else {
+            return value;
+        };
+        if !document.live_enabled {
             return value;
         }
-        self.evaluate_committed(value).unwrap_or(value)
+        evaluate_ast(&self.engine, &document.committed_ast, value).unwrap_or(value)
     }
 
-    fn compile_source(&self, source: &str) -> Result<(AST, f64), String> {
-        let ast = self
-            .engine
-            .compile(source)
-            .map_err(|error| format!("compile error: {error}"))?;
-        let preview = self.evaluate_ast(&ast, self.preview_input)?;
-        Ok((ast, preview))
+    fn document_for_target(&self, target: ScriptTarget) -> Option<&ScriptDocument> {
+        self.documents.values().find(|document| document.target == target)
     }
 
-    pub(crate) fn compile_draft(&mut self) -> Result<f64, String> {
-        match self.compile_source(&self.source) {
+    fn document_for_target_mut(&mut self, target: ScriptTarget) -> Option<&mut ScriptDocument> {
+        self.documents
+            .values_mut()
+            .find(|document| document.target == target)
+    }
+
+    fn open_document(&mut self, path: &str) {
+        if !self.documents.contains_key(path) {
+            return;
+        }
+        if !self.open_tabs.iter().any(|open| open == path) {
+            self.open_tabs.push(path.to_string());
+        }
+        self.active_path = path.to_string();
+    }
+
+    fn close_tab(&mut self, path: &str) {
+        if self.open_tabs.len() <= 1 {
+            return;
+        }
+        let Some(index) = self.open_tabs.iter().position(|open| open == path) else {
+            return;
+        };
+        self.open_tabs.remove(index);
+        if self.active_path == path {
+            let next = index.min(self.open_tabs.len().saturating_sub(1));
+            self.active_path.clone_from(&self.open_tabs[next]);
+        }
+    }
+
+    fn new_scratch(&mut self) -> String {
+        loop {
+            let path = format!("scratch/untitled_{}.rhai", self.scratch_counter);
+            self.scratch_counter = self.scratch_counter.saturating_add(1);
+            if self.documents.contains_key(&path) {
+                continue;
+            }
+            self.documents.insert(
+                path.clone(),
+                ScriptDocument::from_source(
+                    &self.engine,
+                    path.clone(),
+                    DEFAULT_SCRATCH_SOURCE.to_string(),
+                ),
+            );
+            self.open_document(&path);
+            return path;
+        }
+    }
+
+    fn compile_active(&mut self) -> Result<Option<f64>, String> {
+        let path = self.active_path.clone();
+        let (target, source, preview_input) = {
+            let document = self
+                .documents
+                .get(&path)
+                .ok_or_else(|| "no active script document".to_string())?;
+            (
+                document.target,
+                document.source.clone(),
+                document.preview_input,
+            )
+        };
+
+        match compile_and_validate(&self.engine, target, &source, preview_input) {
             Ok((ast, preview)) => {
-                self.candidate_source = Some(self.source.clone());
-                self.candidate_ast = Some(ast);
-                self.preview_output = Some(preview);
-                self.diagnostic =
-                    format!("Draft compiled successfully. Preview = {preview:.6}");
+                let document = self.documents.get_mut(&path).expect("active document exists");
+                document.candidate_source = Some(source);
+                document.candidate_ast = Some(ast);
+                document.preview_output = preview;
+                document.diagnostic = match preview {
+                    Some(value) => format!("Compiled successfully. Preview = {value:.6}"),
+                    None => "Compiled successfully.".to_string(),
+                };
                 Ok(preview)
             }
             Err(error) => {
-                self.candidate_source = None;
-                self.candidate_ast = None;
-                self.preview_output = None;
-                self.diagnostic = error.clone();
+                let document = self.documents.get_mut(&path).expect("active document exists");
+                document.candidate_source = None;
+                document.candidate_ast = None;
+                document.preview_output = None;
+                document.diagnostic = error.clone();
                 Err(error)
             }
         }
     }
 
-    pub(crate) fn commit_draft(&mut self) -> Result<u64, String> {
-        let candidate_matches_source =
-            self.candidate_source.as_deref() == Some(self.source.as_str())
-                && self.candidate_ast.is_some();
+    pub(crate) fn compile_draft(&mut self) -> Result<f64, String> {
+        Ok(self.compile_active()?.unwrap_or(0.0))
+    }
 
-        if !candidate_matches_source {
-            self.compile_draft()?;
+    fn commit_active(&mut self) -> Result<u64, String> {
+        let path = self.active_path.clone();
+        let needs_compile = {
+            let document = self
+                .documents
+                .get(&path)
+                .ok_or_else(|| "no active script document".to_string())?;
+            document.candidate_source.as_deref() != Some(document.source.as_str())
+                || document.candidate_ast.is_none()
+        };
+        if needs_compile {
+            self.compile_active()?;
         }
 
-        let Some(ast) = self.candidate_ast.take() else {
-            return Err("compiled Rhai candidate disappeared before commit".to_string());
+        let document = self
+            .documents
+            .get_mut(&path)
+            .ok_or_else(|| "no active script document".to_string())?;
+        let Some(ast) = document.candidate_ast.take() else {
+            return Err("compiled candidate disappeared before commit".to_string());
         };
-        self.candidate_source = None;
-        self.committed_ast = ast;
-        self.committed_source.clone_from(&self.source);
-        self.revision = self.revision.saturating_add(1);
-        self.refresh_preview_from_committed();
-        self.diagnostic = format!("Committed live Rhai revision {}.", self.revision);
-        Ok(self.revision)
+        document.candidate_source = None;
+        document.committed_ast = ast;
+        document.committed_source.clone_from(&document.source);
+        document.revision = document.revision.saturating_add(1);
+        document.diagnostic = format!(
+            "Committed runtime revision {} for {}.",
+            document.revision, document.path
+        );
+        Ok(document.revision)
+    }
+
+    pub(crate) fn commit_draft(&mut self) -> Result<u64, String> {
+        self.commit_active()
+    }
+
+    fn revert_active_to_committed(&mut self) {
+        if let Some(document) = self.active_mut() {
+            document.source.clone_from(&document.committed_source);
+            document.candidate_source = None;
+            document.candidate_ast = None;
+            document.diagnostic =
+                format!("Reverted editor buffer to runtime revision {}.", document.revision);
+        }
     }
 
     pub(crate) fn revert_draft(&mut self) {
-        self.source.clone_from(&self.committed_source);
-        self.candidate_source = None;
-        self.candidate_ast = None;
-        self.refresh_preview_from_committed();
-        self.diagnostic = format!("Draft reverted to revision {}.", self.revision);
+        self.revert_active_to_committed();
     }
 
-    fn refresh_preview_from_committed(&mut self) {
-        self.preview_output = self.evaluate_committed(self.preview_input).ok();
+    fn reload_active_from_saved(&mut self) {
+        if let Some(document) = self.active_mut() {
+            document.source.clone_from(&document.saved_source);
+            document.candidate_source = None;
+            document.candidate_ast = None;
+            document.diagnostic = "Reloaded editor buffer from saved source.".to_string();
+        }
+    }
+
+    fn save_active(&mut self) -> Result<(), String> {
+        let root = self
+            .workspace_root
+            .clone()
+            .ok_or_else(|| "developer script root is unavailable in this process".to_string())?;
+        let path = self.active_path.clone();
+        validate_relative_script_path(&path)?;
+        let source = self
+            .documents
+            .get(&path)
+            .ok_or_else(|| "no active script document".to_string())?
+            .source
+            .clone();
+
+        let destination = root.join(Path::new(&path));
+        if let Some(parent) = destination.parent() {
+            fs::create_dir_all(parent)
+                .map_err(|error| format!("create script directory failed: {error}"))?;
+        }
+        fs::write(&destination, &source)
+            .map_err(|error| format!("save {} failed: {error}", destination.display()))?;
+
+        let document = self.documents.get_mut(&path).expect("active document exists");
+        document.saved_source = source;
+        document.diagnostic = format!("Saved {}.", document.path);
+        Ok(())
     }
 }
 
-#[derive(Resource, Default)]
-struct DeveloperLabUiState {
-    variable_search: String,
-    value_drafts: BTreeMap<String, String>,
+fn locate_workspace_root() -> Option<PathBuf> {
+    let mut cursor = std::env::current_dir().ok()?;
+    loop {
+        if cursor.join("spacetime-engine/Cargo.toml").is_file() {
+            return Some(cursor.join("scripts"));
+        }
+        if !cursor.pop() {
+            return None;
+        }
+    }
+}
+
+fn collect_rhai_sources(root: &Path, directory: &Path, out: &mut BTreeMap<String, String>) {
+    if out.len() >= MAX_WORKSPACE_FILES {
+        return;
+    }
+    let Ok(entries) = fs::read_dir(directory) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        if out.len() >= MAX_WORKSPACE_FILES {
+            break;
+        }
+        let path = entry.path();
+        let Ok(file_type) = entry.file_type() else {
+            continue;
+        };
+        if file_type.is_dir() {
+            if entry.file_name().to_string_lossy().starts_with('.') {
+                continue;
+            }
+            collect_rhai_sources(root, &path, out);
+            continue;
+        }
+        if !file_type.is_file() || path.extension().and_then(|value| value.to_str()) != Some("rhai") {
+            continue;
+        }
+        let Ok(relative) = path.strip_prefix(root) else {
+            continue;
+        };
+        let logical = relative
+            .components()
+            .filter_map(|component| match component {
+                Component::Normal(value) => Some(value.to_string_lossy().into_owned()),
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+            .join("/");
+        let Ok(source) = fs::read_to_string(&path) else {
+            continue;
+        };
+        out.insert(logical, source);
+    }
+}
+
+fn validate_relative_script_path(path: &str) -> Result<(), String> {
+    let path = Path::new(path);
+    if path.is_absolute() {
+        return Err("script paths must be relative to the developer script root".to_string());
+    }
+    if !path
+        .components()
+        .all(|component| matches!(component, Component::Normal(_)))
+    {
+        return Err("script path contains unsupported traversal/components".to_string());
+    }
+    if path.extension().and_then(|value| value.to_str()) != Some("rhai") {
+        return Err("developer script files must end in .rhai".to_string());
+    }
+    Ok(())
 }
 
 pub(crate) fn configure(app: &mut App) {
     app.init_resource::<DeveloperScriptWorkbench>()
-        .init_resource::<DeveloperLabUiState>()
         .register_console_command(
             ConsoleCommandSpec {
                 name: "debug script status",
                 aliases: &["script status"],
                 usage: "debug script status",
-                summary: "Show the committed Developer Lab Rhai revision.",
+                summary: "Show the active script buffer/runtime state.",
             },
             script_status_command,
         )
@@ -283,7 +649,7 @@ pub(crate) fn configure(app: &mut App) {
                 name: "debug script compile",
                 aliases: &["script compile"],
                 usage: "debug script compile",
-                summary: "Compile/validate the current in-editor Rhai draft without committing it.",
+                summary: "Compile/validate the active script buffer.",
             },
             script_compile_command,
         )
@@ -292,7 +658,7 @@ pub(crate) fn configure(app: &mut App) {
                 name: "debug script commit",
                 aliases: &["script commit"],
                 usage: "debug script commit",
-                summary: "Atomically replace the live scalar policy with the validated Rhai draft.",
+                summary: "Atomically commit the active script buffer as a runtime revision.",
             },
             script_commit_command,
         )
@@ -301,9 +667,18 @@ pub(crate) fn configure(app: &mut App) {
                 name: "debug script revert",
                 aliases: &["script revert"],
                 usage: "debug script revert",
-                summary: "Discard the Rhai draft and restore the committed source.",
+                summary: "Revert the active editor buffer to its committed runtime revision.",
             },
             script_revert_command,
+        )
+        .register_console_command(
+            ConsoleCommandSpec {
+                name: "debug script save",
+                aliases: &["script save"],
+                usage: "debug script save",
+                summary: "Save the active script buffer to the host-managed scripts directory.",
+            },
+            script_save_command,
         );
 }
 
@@ -315,15 +690,20 @@ fn script_status_command(
         return ConsoleCommandResult::error("usage: debug script status");
     }
     let workbench = world.resource::<DeveloperScriptWorkbench>();
+    let Some(document) = workbench.active() else {
+        return ConsoleCommandResult::error("no active script document");
+    };
     ConsoleCommandResult::lines([
         format!(
-            "Rhai revision {} | draft={} | freecam-live={} | celestial-height-live={}",
-            workbench.revision(),
-            if workbench.dirty() { "dirty" } else { "clean" },
-            workbench.live_enabled(),
-            workbench.celestial_height_live_enabled(),
+            "{} | target={} | revision={} | file-dirty={} | runtime-dirty={} | live={}",
+            document.path,
+            document.target.label(),
+            document.revision,
+            document.source_dirty(),
+            document.runtime_dirty(),
+            document.live_enabled,
         ),
-        workbench.diagnostic.clone(),
+        document.diagnostic.clone(),
     ])
 }
 
@@ -336,11 +716,12 @@ fn script_compile_command(
     }
     match world
         .resource_mut::<DeveloperScriptWorkbench>()
-        .compile_draft()
+        .compile_active()
     {
-        Ok(value) => ConsoleCommandResult::success(format!(
-            "Rhai draft compiled; preview output={value:.6}"
+        Ok(Some(value)) => ConsoleCommandResult::success(format!(
+            "active script compiled; preview output={value:.6}"
         )),
+        Ok(None) => ConsoleCommandResult::success("active script compiled"),
         Err(error) => ConsoleCommandResult::error(error),
     }
 }
@@ -354,11 +735,11 @@ fn script_commit_command(
     }
     match world
         .resource_mut::<DeveloperScriptWorkbench>()
-        .commit_draft()
+        .commit_active()
     {
-        Ok(revision) => ConsoleCommandResult::success(format!(
-            "Rhai scalar policy committed as revision {revision}"
-        )),
+        Ok(revision) => {
+            ConsoleCommandResult::success(format!("active script committed as revision {revision}"))
+        }
         Err(error) => ConsoleCommandResult::error(error),
     }
 }
@@ -372,221 +753,276 @@ fn script_revert_command(
     }
     world
         .resource_mut::<DeveloperScriptWorkbench>()
-        .revert_draft();
-    ConsoleCommandResult::success("Rhai draft reverted to committed source")
+        .revert_active_to_committed();
+    ConsoleCommandResult::success("active script reverted to committed runtime source")
 }
 
-fn draw_script_workbench(ui: &mut egui::Ui, world: &mut World) {
-    world.resource_scope(|_, mut workbench: Mut<DeveloperScriptWorkbench>| {
-        ui.horizontal(|ui| {
-            ui.heading("Rhai Workbench");
-            ui.separator();
-            ui.monospace(format!("revision {}", workbench.revision()));
-            if workbench.dirty() {
-                ui.colored_label(egui::Color32::YELLOW, "DIRTY");
-            } else {
-                ui.weak("clean");
+fn script_save_command(
+    world: &mut World,
+    invocation: &ConsoleCommandInvocation,
+) -> ConsoleCommandResult {
+    if !invocation.args().is_empty() {
+        return ConsoleCommandResult::error("usage: debug script save");
+    }
+    match world
+        .resource_mut::<DeveloperScriptWorkbench>()
+        .save_active()
+    {
+        Ok(()) => ConsoleCommandResult::success("active script saved"),
+        Err(error) => ConsoleCommandResult::error(error),
+    }
+}
+
+/// Starfall/E2-style script workspace embedded by the developer-console shell.
+pub(crate) fn draw_script_workspace(
+    ui: &mut egui::Ui,
+    workbench: &mut DeveloperScriptWorkbench,
+) {
+    let available_height = ui.available_height().max(240.0);
+    let explorer_width = (ui.available_width() * 0.22).clamp(170.0, 260.0);
+
+    ui.horizontal(|ui| {
+        ui.allocate_ui_with_layout(
+            egui::vec2(explorer_width, available_height),
+            egui::Layout::top_down(egui::Align::Min),
+            |ui| draw_script_explorer(ui, workbench),
+        );
+        ui.separator();
+        ui.allocate_ui_with_layout(
+            egui::vec2(ui.available_width(), available_height),
+            egui::Layout::top_down(egui::Align::Min),
+            |ui| draw_script_editor(ui, workbench),
+        );
+    });
+}
+
+fn draw_script_explorer(ui: &mut egui::Ui, workbench: &mut DeveloperScriptWorkbench) {
+    ui.horizontal(|ui| {
+        ui.strong("Scripts");
+        if ui.small_button("+").on_hover_text("New scratch script").clicked() {
+            workbench.new_scratch();
+        }
+    });
+
+    if let Some(root) = workbench.workspace_root.as_ref() {
+        ui.small(
+            egui::RichText::new(root.display().to_string())
+                .monospace()
+                .weak(),
+        );
+    } else {
+        ui.small(egui::RichText::new("in-memory workspace").weak());
+    }
+    ui.separator();
+
+    let mut grouped = BTreeMap::<String, Vec<String>>::new();
+    for path in workbench.documents.keys() {
+        let (folder, _) = path.split_once('/').unwrap_or((".", path.as_str()));
+        grouped.entry(folder.to_string()).or_default().push(path.clone());
+    }
+
+    let mut requested_open = None::<String>;
+    egui::ScrollArea::vertical()
+        .id_salt("developer_script_explorer")
+        .show(ui, |ui| {
+            for (folder, paths) in grouped {
+                egui::CollapsingHeader::new(folder)
+                    .default_open(true)
+                    .show(ui, |ui| {
+                        for path in paths {
+                            let document = &workbench.documents[&path];
+                            let basename = path.rsplit('/').next().unwrap_or(&path);
+                            let mut label = basename.to_string();
+                            if document.source_dirty() {
+                                label.push('*');
+                            }
+                            if document.runtime_dirty() {
+                                label.push('∆');
+                            }
+                            let selected = workbench.active_path == path;
+                            let response = ui.selectable_label(selected, label);
+                            if response.clicked() {
+                                requested_open = Some(path.clone());
+                            }
+                            response.on_hover_text(format!(
+                                "{}\n{}\n{}",
+                                path,
+                                document.target.label(),
+                                document.target.contract(),
+                            ));
+                        }
+                    });
             }
-            ui.separator();
-            ui.checkbox(
-                &mut workbench.live_enabled,
-                "Live → freecam speed",
-            );
-            ui.checkbox(
-                &mut workbench.celestial_height_live_enabled,
-                "Live → celestial presentation height",
-            );
         });
-        if workbench.celestial_height_live_enabled {
-            ui.colored_label(
-                egui::Color32::YELLOW,
-                "Celestial script input/output = radial terrain displacement in metres. Presentation only: collision/canonical terrain remain unchanged in this proving tranche.",
-            );
+
+    if let Some(path) = requested_open {
+        workbench.open_document(&path);
+    }
+}
+
+fn draw_script_editor(ui: &mut egui::Ui, workbench: &mut DeveloperScriptWorkbench) {
+    let tabs = workbench.open_tabs.clone();
+    let mut requested_tab = None::<String>;
+    let mut requested_close = None::<String>;
+
+    ui.horizontal_wrapped(|ui| {
+        for path in tabs {
+            let Some(document) = workbench.documents.get(&path) else {
+                continue;
+            };
+            let basename = path.rsplit('/').next().unwrap_or(&path);
+            let mut label = basename.to_string();
+            if document.source_dirty() {
+                label.push('*');
+            }
+            if document.runtime_dirty() {
+                label.push('∆');
+            }
+            if ui
+                .selectable_label(workbench.active_path == path, label)
+                .clicked()
+            {
+                requested_tab = Some(path.clone());
+            }
+            if workbench.open_tabs.len() > 1
+                && ui
+                    .small_button("×")
+                    .on_hover_text(format!("Close {path}"))
+                    .clicked()
+            {
+                requested_close = Some(path);
+            }
+        }
+    });
+
+    if let Some(path) = requested_tab {
+        workbench.open_document(&path);
+    }
+    if let Some(path) = requested_close {
+        workbench.close_tab(&path);
+    }
+
+    ui.separator();
+
+    let Some(active) = workbench.active() else {
+        ui.weak("No active script.");
+        return;
+    };
+    let target = active.target;
+    let active_path = active.path.clone();
+    let source_dirty = active.source_dirty();
+    let runtime_dirty = active.runtime_dirty();
+    let revision = active.revision;
+
+    let mut do_save = false;
+    let mut do_reload_saved = false;
+    let mut do_compile = false;
+    let mut do_commit = false;
+    let mut do_revert = false;
+
+    ui.horizontal_wrapped(|ui| {
+        ui.monospace(&active_path);
+        ui.separator();
+        ui.weak(format!("target: {}", target.label()));
+        ui.separator();
+        ui.weak(format!("runtime r{revision}"));
+        if source_dirty {
+            ui.colored_label(egui::Color32::YELLOW, "UNSAVED");
+        }
+        if runtime_dirty {
+            ui.colored_label(egui::Color32::LIGHT_BLUE, "UNCOMMITTED");
         }
 
-        ui.horizontal_wrapped(|ui| {
-            if ui.button("Compile").clicked() {
-                let _ = workbench.compile_draft();
-            }
-            if ui.button("Commit").clicked() {
-                let _ = workbench.commit_draft();
-            }
-            if ui.button("Revert").clicked() {
-                workbench.revert_draft();
-            }
-            if ui.button("Identity").clicked() {
-                workbench.source = "fn transform(value) {\n    value\n}\n".to_string();
-            }
-            if ui.button("Pow⁴ experiment").clicked() {
-                workbench.source =
-                    "fn transform(value) {\n    value.pow(4)\n}\n".to_string();
-            }
+        ui.separator();
+        do_save = ui.button("Save").clicked();
+        do_reload_saved = ui.button("Reload Saved").clicked();
+        do_compile = ui.button("Compile").clicked();
+        do_commit = ui.button("Commit").clicked();
+        do_revert = ui.button("Revert Runtime").clicked();
+    });
 
-            ui.separator();
-            ui.label("Preview input");
-            if ui
-                .add(egui::DragValue::new(&mut workbench.preview_input).speed(0.1))
-                .changed()
-            {
-                if let Some(ast) = workbench.candidate_ast.as_ref()
-                    && workbench.candidate_source.as_deref()
-                        == Some(workbench.source.as_str())
-                {
-                    workbench.preview_output =
-                        workbench.evaluate_ast(ast, workbench.preview_input).ok();
-                } else {
-                    workbench.refresh_preview_from_committed();
-                }
-            }
-            ui.label(format!(
-                "→ {}",
-                workbench
-                    .preview_output
-                    .map_or_else(|| "<error>".to_string(), |value| format!("{value:.6}"))
-            ));
-        });
+    if target.supports_live() {
+        if let Some(document) = workbench.active_mut() {
+            ui.horizontal(|ui| {
+                ui.checkbox(&mut document.live_enabled, "Live");
+                ui.weak(document.target.contract());
+            });
+        }
+    } else {
+        ui.weak(target.contract());
+    }
 
-        let status_color = if workbench.diagnostic.contains("error")
-            || workbench.diagnostic.contains("failed")
+    if do_save {
+        if let Err(error) = workbench.save_active()
+            && let Some(document) = workbench.active_mut()
         {
-            egui::Color32::LIGHT_RED
-        } else {
-            egui::Color32::LIGHT_GREEN
-        };
-        ui.colored_label(status_color, &workbench.diagnostic);
-        ui.weak(
-            "Host contract: pure fn transform(value) -> finite number. No ECS, World, filesystem, imports, or semantic mutation.",
-        );
-        ui.add_space(4.0);
+            document.diagnostic = error;
+        }
+    }
+    if do_reload_saved {
+        workbench.reload_active_from_saved();
+    }
+    if do_compile {
+        let _ = workbench.compile_active();
+    }
+    if do_commit {
+        let _ = workbench.commit_active();
+    }
+    if do_revert {
+        workbench.revert_active_to_committed();
+    }
 
+    if target.supports_live() {
+        let mut preview_changed = false;
+        if let Some(document) = workbench.active_mut() {
+            ui.horizontal(|ui| {
+                ui.label("Preview input");
+                preview_changed = ui
+                    .add(egui::DragValue::new(&mut document.preview_input).speed(0.1))
+                    .changed();
+                ui.label(
+                    document
+                        .preview_output
+                        .map_or_else(|| "→ —".to_string(), |value| format!("→ {value:.6}")),
+                );
+            });
+        }
+        if preview_changed {
+            let _ = workbench.compile_active();
+        }
+    }
+
+    ui.separator();
+
+    let rows = ((ui.available_height() - 86.0) / 17.0)
+        .floor()
+        .clamp(8.0, 64.0) as usize;
+    if let Some(document) = workbench.active_mut() {
         CodeEditor::default()
-            .id_source("developer_lab_rhai_editor")
-            .with_rows(24)
+            .id_source(format!("developer_script_editor:{}", document.path))
+            .with_rows(rows)
             .with_fontsize(14.0)
             .with_theme(ColorTheme::GRUVBOX)
             .with_syntax(Syntax::rust())
             .with_numlines(true)
             .vscroll(true)
-            .show(ui, &mut workbench.source);
-    });
-}
+            .show(ui, &mut document.source);
+    }
 
-fn draw_runtime_variables(ui: &mut egui::Ui, world: &mut World) {
-    let bindings = world
-        .resource::<RuntimeVariableRegistry>()
-        .bindings_snapshot();
-
-    world.resource_scope(|world, mut state: Mut<DeveloperLabUiState>| {
+    ui.separator();
+    if let Some(document) = workbench.active() {
+        let diagnostic = &document.diagnostic;
+        let lower = diagnostic.to_ascii_lowercase();
+        let status_color = if lower.contains("error") || lower.contains("failed") {
+            egui::Color32::LIGHT_RED
+        } else {
+            egui::Color32::LIGHT_GREEN
+        };
         ui.horizontal(|ui| {
-            ui.heading("Typed Runtime Controls");
-            ui.separator();
-            ui.label("Search");
-            ui.text_edit_singleline(&mut state.variable_search);
+            ui.strong("Diagnostics");
+            ui.colored_label(status_color, diagnostic);
         });
-        ui.weak(
-            "These are the exact #56 runtime-variable bindings used by the console; this GUI does not create a second state authority.",
-        );
-
-        let search = state.variable_search.trim().to_ascii_lowercase();
-        egui::ScrollArea::vertical()
-            .id_salt("developer_lab_runtime_variables")
-            .max_height(360.0)
-            .show(ui, |ui| {
-                for (path, binding) in &bindings {
-                    let spec = binding.spec();
-                    if !search.is_empty()
-                        && !path.to_ascii_lowercase().contains(&search)
-                        && !spec.summary.to_ascii_lowercase().contains(&search)
-                    {
-                        continue;
-                    }
-
-                    let current = binding.current(world);
-                    let default = binding.default_value();
-                    let draft = state
-                        .value_drafts
-                        .entry(path.clone())
-                        .or_insert_with(|| current.clone().unwrap_or_else(|_| default.clone()));
-
-                    ui.group(|ui| {
-                        ui.horizontal(|ui| {
-                            ui.monospace(path);
-                            ui.separator();
-                            ui.weak(format!(
-                                "{} · {}{}",
-                                spec.value_type.label(),
-                                spec.authority.label(),
-                                spec.units
-                                    .map_or(String::new(), |units| format!(" · {units}")),
-                            ));
-                        });
-                        ui.label(spec.summary);
-                        match &current {
-                            Ok(value) => {
-                                ui.small(format!("effective: {value} · default: {default}"));
-                            }
-                            Err(error) => {
-                                ui.colored_label(
-                                    egui::Color32::LIGHT_RED,
-                                    format!("unavailable: {error}"),
-                                );
-                            }
-                        }
-
-                        ui.horizontal(|ui| {
-                            ui.add(
-                                egui::TextEdit::singleline(draft)
-                                    .desired_width(260.0)
-                                    .hint_text("typed value"),
-                            );
-
-                            let apply = ui.button("Apply").clicked();
-                            let reset = ui.button("Reset").clicked();
-                            let sync = ui.button("↻").on_hover_text("Copy effective value").clicked();
-
-                            if sync {
-                                if let Ok(value) = binding.current(world) {
-                                    *draft = value;
-                                }
-                            }
-                            if apply {
-                                let proposed = draft.clone();
-                                if let Err(error) = binding.set(world, &proposed) {
-                                    *draft = format!("<error: {error}>");
-                                } else if let Ok(value) = binding.current(world) {
-                                    *draft = value;
-                                }
-                            }
-                            if reset {
-                                if let Err(error) = binding.reset(world) {
-                                    *draft = format!("<error: {error}>");
-                                } else if let Ok(value) = binding.current(world) {
-                                    *draft = value;
-                                }
-                            }
-                        });
-                    });
-                    ui.add_space(4.0);
-                }
-            });
-    });
-}
-
-/// Full docked Developer Lab surface.
-///
-/// Script workbench and runtime controls intentionally share one tab so the
-/// developer can change a policy implementation and its surrounding parameters
-/// without bouncing between unrelated debug surfaces.
-pub(crate) fn draw_developer_lab(ui: &mut egui::Ui, world: &mut World) {
-    ui.heading("Developer Lab");
-    ui.weak("Live experiments are explicit, reversible, and downstream of real engine authority.");
-    ui.separator();
-
-    draw_script_workbench(ui, world);
-    ui.add_space(8.0);
-    ui.separator();
-    ui.add_space(8.0);
-    draw_runtime_variables(ui, world);
+    }
 }
 
 #[cfg(test)]
@@ -594,39 +1030,49 @@ mod tests {
     use super::*;
 
     #[test]
-    fn default_script_is_identity_and_bounded() {
-        let workbench = DeveloperScriptWorkbench::default();
-        assert_eq!(workbench.evaluate_committed(3.5).unwrap(), 3.5);
-        assert!(!workbench.live_enabled());
+    fn scratch_script_compiles_without_scalar_contract() {
+        let engine = bounded_engine();
+        assert!(
+            compile_and_validate(
+                &engine,
+                ScriptTarget::None,
+                "fn hello() { 42 }",
+                1.0,
+            )
+            .is_ok()
+        );
     }
 
     #[test]
-    fn committed_source_can_be_recompiled_inside_a_worker_snapshot() {
-        let mut workbench = DeveloperScriptWorkbench::default();
-        workbench.celestial_height_live_enabled = true;
-        workbench.source = "fn transform(value) { value * 2.0 }".to_string();
-        workbench.commit_draft().unwrap();
-
-        let snapshot = workbench.celestial_height_snapshot().unwrap();
-        assert_eq!(snapshot.revision(), 2);
-        let runtime = snapshot.compile_runtime().unwrap();
-        assert_eq!(runtime.evaluate(3.0).unwrap(), 6.0);
+    fn bound_policy_requires_transform_contract() {
+        let engine = bounded_engine();
+        assert!(
+            compile_and_validate(
+                &engine,
+                ScriptTarget::CelestialHeight,
+                "fn hello() { 42 }",
+                1.0,
+            )
+            .is_err()
+        );
     }
 
     #[test]
-    fn broken_draft_cannot_replace_committed_ast() {
+    fn broken_candidate_cannot_replace_committed_runtime() {
         let mut workbench = DeveloperScriptWorkbench::default();
-        workbench.source = "fn nope(".to_string();
-        assert!(workbench.commit_draft().is_err());
-        assert_eq!(workbench.evaluate_committed(7.0).unwrap(), 7.0);
-        assert_eq!(workbench.revision(), 1);
-    }
-
-    #[test]
-    fn valid_commit_replaces_scalar_policy_atomically() {
-        let mut workbench = DeveloperScriptWorkbench::default();
-        workbench.source = "fn transform(value) { value * 2.0 }".to_string();
-        assert_eq!(workbench.commit_draft().unwrap(), 2);
-        assert_eq!(workbench.evaluate_committed(3.0).unwrap(), 6.0);
+        workbench.open_document(CELESTIAL_HEIGHT_SCRIPT_PATH);
+        let before = workbench
+            .document_for_target(ScriptTarget::CelestialHeight)
+            .unwrap()
+            .revision;
+        workbench.active_mut().unwrap().source = "fn nope(".to_string();
+        assert!(workbench.commit_active().is_err());
+        assert_eq!(
+            workbench
+                .document_for_target(ScriptTarget::CelestialHeight)
+                .unwrap()
+                .revision,
+            before,
+        );
     }
 }

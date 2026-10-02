@@ -18,7 +18,6 @@ impl TabViewer for EditorTabViewer<'_> {
     fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
         match tab {
             EditorTab::Game => "Game",
-            EditorTab::DeveloperLab => "Developer Lab",
             EditorTab::Hierarchy => "Hierarchy",
             EditorTab::Structure => "Structure",
             EditorTab::SemanticInspector => "Semantic Inspector",
@@ -42,7 +41,6 @@ impl TabViewer for EditorTabViewer<'_> {
                 *self.game_rect = Some(rect);
                 ui.allocate_rect(rect, egui::Sense::hover());
             }
-            EditorTab::DeveloperLab => crate::devtools::draw_developer_lab(ui, self.world),
             EditorTab::Hierarchy => {
                 hierarchy_ui_filtered::<Without<DeveloperArtifact>>(
                     self.world,
@@ -78,7 +76,7 @@ impl TabViewer for EditorTabViewer<'_> {
 
     fn scroll_bars(&self, tab: &Self::Tab) -> [bool; 2] {
         match tab {
-            EditorTab::Game | EditorTab::DeveloperLab => [false, false],
+            EditorTab::Game => [false, false],
             _ => [true, true],
         }
     }

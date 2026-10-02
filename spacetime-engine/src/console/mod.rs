@@ -43,7 +43,10 @@ use bevy::{
 };
 use bevy_egui::{EguiContext, EguiPrimaryContextPass, PrimaryEguiContext, egui};
 
-use crate::input_focus::{InputFocus, InputFocusSet};
+use crate::{
+    devtools::{DeveloperScriptWorkbench, draw_script_workspace},
+    input_focus::{InputFocus, InputFocusSet},
+};
 
 mod runtime_variables;
 
@@ -620,10 +623,19 @@ pub(crate) fn console_log_layer(app: &mut App) -> Option<BoxedLayer> {
     ))
 }
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+enum ConsoleTab {
+    #[default]
+    Console,
+    Scripts,
+}
+
 #[derive(Resource)]
 struct ConsoleOverlay {
     open: bool,
     opened_this_frame: bool,
+    tab: ConsoleTab,
+    scripts_fullscreen: bool,
     input: String,
     history: Vec<String>,
     history_cursor: Option<usize>,
@@ -639,6 +651,8 @@ impl Default for ConsoleOverlay {
         Self {
             open: false,
             opened_this_frame: false,
+            tab: ConsoleTab::Console,
+            scripts_fullscreen: false,
             input: String::new(),
             history: Vec::new(),
             history_cursor: None,
@@ -792,8 +806,12 @@ fn toggle_console(
         console.opened_this_frame = console.open;
         console.history_cursor = None;
     } else if console.open && keyboard.just_pressed(KeyCode::Escape) {
-        console.open = false;
-        console.history_cursor = None;
+        if console.tab == ConsoleTab::Scripts && console.scripts_fullscreen {
+            console.scripts_fullscreen = false;
+        } else {
+            console.open = false;
+            console.history_cursor = None;
+        }
     }
 
     focus.set_modal_claim(CONSOLE_FOCUS_OWNER, console.open);
@@ -1007,6 +1025,7 @@ fn draw_console(
     registry: Res<ConsoleCommandRegistry>,
     runtime_variables: Res<RuntimeVariableRegistry>,
     transport: Res<ConsoleTransport>,
+    mut script_workbench: Option<ResMut<DeveloperScriptWorkbench>>,
 ) {
     if !console.open {
         return;
@@ -1017,16 +1036,48 @@ fn draw_console(
     };
     let ctx = context.get_mut();
     let content_rect = ctx.input(|input| input.content_rect());
-    let console_height = (content_rect.height() * 0.46).clamp(220.0, 560.0);
-    let console_width = content_rect.width();
+    let margin = 12.0_f32;
+    let available_width = (content_rect.width() - margin * 2.0).max(320.0);
+    let available_height = (content_rect.height() - margin * 2.0).max(220.0);
+
+    let (size, position) = match (console.tab, console.scripts_fullscreen) {
+        (ConsoleTab::Scripts, true) => (content_rect.size(), content_rect.left_top()),
+        (ConsoleTab::Scripts, false) => {
+            let width = (content_rect.width() * 0.88)
+                .clamp(760.0, 1320.0)
+                .min(available_width);
+            let height = (content_rect.height() * 0.78)
+                .clamp(500.0, 900.0)
+                .min(available_height);
+            (
+                egui::vec2(width, height),
+                egui::pos2(
+                    content_rect.center().x - width * 0.5,
+                    content_rect.center().y - height * 0.5,
+                ),
+            )
+        }
+        (ConsoleTab::Console, _) => {
+            let width = (content_rect.width() * 0.62)
+                .clamp(620.0, 900.0)
+                .min(available_width);
+            let height = (content_rect.height() * 0.36)
+                .clamp(240.0, 380.0)
+                .min(available_height);
+            (
+                egui::vec2(width, height),
+                egui::pos2(content_rect.left() + margin, content_rect.top() + margin),
+            )
+        }
+    };
 
     egui::Area::new(egui::Id::new("spacetime_developer_console"))
         .order(egui::Order::Foreground)
-        .fixed_pos(content_rect.left_top())
-        .default_size(egui::vec2(console_width, console_height))
+        .fixed_pos(position)
+        .default_size(size)
         .show(ctx, |ui| {
-            ui.set_width(console_width);
-            ui.set_height(console_height);
+            ui.set_width(size.x);
+            ui.set_height(size.y);
 
             egui::Frame::new()
                 .fill(egui::Color32::from_rgba_unmultiplied(10, 12, 14, 248))
@@ -1035,20 +1086,54 @@ fn draw_console(
                     egui::Color32::from_rgb(72, 82, 92),
                 ))
                 .show(ui, |ui| {
-                    ui.set_width(console_width);
-                    ui.set_height(console_height);
+                    ui.set_width(size.x);
+                    ui.set_height(size.y);
 
                     ui.horizontal(|ui| {
                         ui.label(
-                            egui::RichText::new("SPACETIME CONSOLE")
+                            egui::RichText::new("SPACETIME DEV")
                                 .monospace()
                                 .strong()
                                 .color(egui::Color32::from_rgb(220, 224, 228)),
                         );
                         ui.separator();
+
+                        if ui
+                            .selectable_label(console.tab == ConsoleTab::Console, "Console")
+                            .clicked()
+                        {
+                            console.tab = ConsoleTab::Console;
+                            console.scripts_fullscreen = false;
+                            console.opened_this_frame = true;
+                        }
+                        if ui
+                            .selectable_label(console.tab == ConsoleTab::Scripts, "Scripts")
+                            .clicked()
+                        {
+                            console.tab = ConsoleTab::Scripts;
+                            console.opened_this_frame = false;
+                        }
+
+                        if console.tab == ConsoleTab::Scripts {
+                            ui.separator();
+                            let label = if console.scripts_fullscreen {
+                                "Windowed"
+                            } else {
+                                "Fullscreen"
+                            };
+                            if ui.button(label).clicked() {
+                                console.scripts_fullscreen = !console.scripts_fullscreen;
+                            }
+                        }
+
+                        ui.separator();
                         ui.label(
                             egui::RichText::new(
-                                "` toggle   ↑/↓ history   Tab complete   Ctrl+C copy   stdin + Bevy logs mirrored",
+                                if console.tab == ConsoleTab::Console {
+                                    "` toggle   ↑/↓ history   Tab complete"
+                                } else {
+                                    "host-managed Rhai workspace   Save ≠ Commit"
+                                },
                             )
                             .monospace()
                             .small()
@@ -1057,99 +1142,124 @@ fn draw_console(
                     });
                     ui.separator();
 
-                    egui::ScrollArea::vertical()
-                        .stick_to_bottom(true)
-                        .auto_shrink([false, false])
-                        .max_height((console_height - 62.0).max(80.0))
-                        .show(ui, |ui| {
-                            for record in &console.scrollback {
-                                ui.add(
-                                    egui::Label::new(console_record_layout(record))
-                                        .selectable(true),
+                    match console.tab {
+                        ConsoleTab::Console => draw_command_console(
+                            ui,
+                            &mut console,
+                            &registry,
+                            &runtime_variables,
+                            &transport,
+                        ),
+                        ConsoleTab::Scripts => {
+                            if let Some(workbench) = script_workbench.as_mut() {
+                                draw_script_workspace(ui, &mut *workbench);
+                            } else {
+                                ui.colored_label(
+                                    egui::Color32::LIGHT_RED,
+                                    "Script workspace resource is unavailable.",
                                 );
                             }
-                        });
-
-                    ui.separator();
-
-                    let output = egui::TextEdit::singleline(&mut console.input)
-                        .font(egui::TextStyle::Monospace)
-                        .desired_width(f32::INFINITY)
-                        .hint_text("command")
-                        .show(ui);
-                    let response = output.response;
-                    let mut cursor = output.cursor_range.map_or_else(
-                        || console.input.len(),
-                        |range| char_to_byte_index(&console.input, range.primary.index),
-                    );
-
-                    if console.opened_this_frame {
-                        console.input.clear();
-                        cursor = 0;
-                        response.request_focus();
-                        console.opened_this_frame = false;
-                    }
-
-                    let prompt_active = response.has_focus() || response.lost_focus();
-                    if prompt_active {
-                        let history_up =
-                            ui.input(|input| input.key_pressed(egui::Key::ArrowUp));
-                        let history_down =
-                            ui.input(|input| input.key_pressed(egui::Key::ArrowDown));
-                        let complete =
-                            ui.input(|input| input.key_pressed(egui::Key::Tab));
-                        let submit =
-                            ui.input(|input| input.key_pressed(egui::Key::Enter));
-
-                        if history_up {
-                            console.history_up();
-                            cursor = console.input.len();
-                            response.request_focus();
                         }
-                        if history_down {
-                            console.history_down();
-                            cursor = console.input.len();
-                            response.request_focus();
-                        }
-                        if complete {
-                            cursor = complete_command_input(
-                                &mut console.input,
-                                cursor,
-                                &registry,
-                                &runtime_variables,
-                            );
-                            response.request_focus();
-                        }
-                        if submit {
-                            if let Some(command) = console.submit() {
-                                transport.submit(ConsoleCommandSource::Overlay, command);
-                            }
-                            cursor = 0;
-                            response.request_focus();
-                        }
-                    }
-
-                    let completions = completion_candidates(
-                        &console.input,
-                        cursor,
-                        &registry,
-                        &runtime_variables,
-                    );
-                    if !completions.is_empty() {
-                        let preview = completions
-                            .into_iter()
-                            .take(8)
-                            .collect::<Vec<_>>()
-                            .join("  ");
-                        ui.label(
-                            egui::RichText::new(preview)
-                                .monospace()
-                                .small()
-                                .color(egui::Color32::from_rgb(108, 136, 160)),
-                        );
                     }
                 });
         });
+}
+
+fn draw_command_console(
+    ui: &mut egui::Ui,
+    console: &mut ConsoleOverlay,
+    registry: &ConsoleCommandRegistry,
+    runtime_variables: &RuntimeVariableRegistry,
+    transport: &ConsoleTransport,
+) {
+    let scroll_height = (ui.available_height() - 52.0).max(80.0);
+    egui::ScrollArea::vertical()
+        .stick_to_bottom(true)
+        .auto_shrink([false, false])
+        .max_height(scroll_height)
+        .show(ui, |ui| {
+            for record in &console.scrollback {
+                ui.add(
+                    egui::Label::new(console_record_layout(record))
+                        .selectable(true),
+                );
+            }
+        });
+
+    ui.separator();
+
+    let output = egui::TextEdit::singleline(&mut console.input)
+        .font(egui::TextStyle::Monospace)
+        .desired_width(f32::INFINITY)
+        .hint_text("command")
+        .show(ui);
+    let response = output.response;
+    let mut cursor = output.cursor_range.map_or_else(
+        || console.input.len(),
+        |range| char_to_byte_index(&console.input, range.primary.index),
+    );
+
+    if console.opened_this_frame {
+        console.input.clear();
+        cursor = 0;
+        response.request_focus();
+        console.opened_this_frame = false;
+    }
+
+    let prompt_active = response.has_focus() || response.lost_focus();
+    if prompt_active {
+        let history_up = ui.input(|input| input.key_pressed(egui::Key::ArrowUp));
+        let history_down = ui.input(|input| input.key_pressed(egui::Key::ArrowDown));
+        let complete = ui.input(|input| input.key_pressed(egui::Key::Tab));
+        let submit = ui.input(|input| input.key_pressed(egui::Key::Enter));
+
+        if history_up {
+            console.history_up();
+            cursor = console.input.len();
+            response.request_focus();
+        }
+        if history_down {
+            console.history_down();
+            cursor = console.input.len();
+            response.request_focus();
+        }
+        if complete {
+            cursor = complete_command_input(
+                &mut console.input,
+                cursor,
+                registry,
+                runtime_variables,
+            );
+            response.request_focus();
+        }
+        if submit {
+            if let Some(command) = console.submit() {
+                transport.submit(ConsoleCommandSource::Overlay, command);
+            }
+            cursor = 0;
+            response.request_focus();
+        }
+    }
+
+    let completions = completion_candidates(
+        &console.input,
+        cursor,
+        registry,
+        runtime_variables,
+    );
+    if !completions.is_empty() {
+        let preview = completions
+            .into_iter()
+            .take(8)
+            .collect::<Vec<_>>()
+            .join("  ");
+        ui.label(
+            egui::RichText::new(preview)
+                .monospace()
+                .small()
+                .color(egui::Color32::from_rgb(108, 136, 160)),
+        );
+    }
 }
 
 #[derive(Debug, Clone)]
