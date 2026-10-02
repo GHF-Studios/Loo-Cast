@@ -7,7 +7,7 @@ use bevy::prelude::*;
 use crate::{
     config::EngineConfig,
     ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf},
-    spatial::{UsfPosition, UsfPrimaryInteractionSlice, UsfScaleLayer, UsfSemanticFrame},
+    spatial::{UsfPosition, UsfScaleLayer, UsfSemanticFrame},
 };
 
 use super::{VoxelStreaming, VoxelStreamingTelemetry};
@@ -180,7 +180,6 @@ pub(in crate::voxel) fn retire_stale_generation_tasks(
 pub(in crate::voxel) fn schedule_voxel_generation(
     config: Res<EngineConfig>,
     workers: Res<VoxelWorkerPool>,
-    interaction: Res<UsfPrimaryInteractionSlice>,
     mut commands: Commands,
     mut worlds: Query<(
         Entity,
@@ -213,19 +212,13 @@ pub(in crate::voxel) fn schedule_voxel_generation(
         .filter_map(|(entity, _, streaming, layer, _)| {
             let (pending_priority, pending_role_priority, trajectory_distance) =
                 streaming.next_pending_work_rank()?;
-            let scale_distance = (
-                i16::from(layer.scale().exponent())
-                    - i16::from(interaction.scale().exponent())
-            )
-            .unsigned_abs();
             Some((
                 entity,
-                layer.scale() == interaction.scale(),
+                layer.scale().exponent(),
                 streaming.migration_active(),
                 pending_priority,
                 pending_role_priority,
                 trajectory_distance,
-                scale_distance,
             ))
         })
         .collect::<Vec<_>>();
@@ -235,16 +228,16 @@ pub(in crate::voxel) fn schedule_voxel_generation(
 
     let rotate = *round_robin_cursor % world_entities.len();
     world_entities.rotate_left(rotate);
+    // coarse-context-first-v1
     world_entities.sort_by(|a, b| {
         b.1.cmp(&a.1)
             .then_with(|| b.4.cmp(&a.4))
             .then_with(|| b.2.cmp(&a.2))
             .then_with(|| b.3.cmp(&a.3))
             .then_with(|| a.5.total_cmp(&b.5))
-            .then_with(|| a.6.cmp(&b.6))
     });
 
-    for (entity, _, _, _, _, _, _) in world_entities.iter().copied() {
+    for (entity, _, _, _, _, _) in world_entities.iter().copied() {
         if generation_slots == 0 {
             break;
         }

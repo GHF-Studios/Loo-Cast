@@ -46,11 +46,11 @@ impl UsfRefinementStep {
 
 /// Generic current-relative refinement policy.
 ///
-/// With no explicit tip request, only the source's current Scale Slice is
-/// requested. An explicit tip may add finer detail but can never suppress the
-/// source/current slice: if a stale request is coarser than the source, the
-/// source itself becomes the effective tip. Every supported Scale Slice from the
-/// effective tip toward coarser context participates.
+/// The effective tip is the finest requested/current Scale Slice. Every
+/// supported Scale Slice from that tip toward coarser/larger context
+/// participates. With no explicit finer request, the source/current Scale Slice
+/// is the tip -- not the whole plan. Larger-scale context exists first, and
+/// nothing finer than the effective tip participates.
 ///
 /// The tip footprint is projected upward through decimal USF scale units, so
 /// the branch narrows toward coarse context and widens again approaching the
@@ -120,10 +120,7 @@ impl UsfRefinementPlan {
             return false;
         }
 
-        match self.requested_tip {
-            Some(_) => scale >= self.tip_scale(),
-            None => scale == self.source_scale,
-        }
+        scale >= self.tip_scale()
     }
 
     pub fn step(self, scale: SpatialScale) -> Option<UsfRefinementStep> {
@@ -197,5 +194,40 @@ fn sanitize_axis(value: f32) -> f32 {
         value.abs()
     } else {
         0.0
+    }
+}
+
+#[cfg(test)]
+mod context_stack_tests {
+    use super::*;
+
+    #[test]
+    fn default_plan_requests_complete_coarse_context_stack() {
+        let s2 = SpatialScale::new(2).unwrap();
+        let s3 = SpatialScale::new(3).unwrap();
+        let s6 = SpatialScale::new(6).unwrap();
+        let s1 = SpatialScale::new(1).unwrap();
+        let plan = UsfRefinementPlan::new(
+            s2,
+            None,
+            UsfChartMask::inclusive_range(SpatialScale::MIN, s6),
+            Vec3::ONE,
+            0,
+        );
+
+        assert!(plan.requests_scale(s6));
+        assert!(plan.requests_scale(s3));
+        assert!(plan.requests_scale(s2));
+        assert!(!plan.requests_scale(s1));
+
+        assert_eq!(
+            plan.steps_coarse_to_fine()
+                .map(UsfRefinementStep::scale)
+                .collect::<Vec<_>>(),
+            [6, 5, 4, 3, 2]
+                .into_iter()
+                .map(|raw| SpatialScale::new(raw).unwrap())
+                .collect::<Vec<_>>(),
+        );
     }
 }

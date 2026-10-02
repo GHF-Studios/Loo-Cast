@@ -71,9 +71,8 @@ impl SpatialDemandSource {
 /// Scale Slices supported by a capability. The capability still decides what it
 /// realizes inside each planned scope; it does not redefine the taper itself.
 ///
-/// `None` means "no additional refinement request". It must not mean "suppress
-/// the capability's ordinary realization for the generic spatial-interest
-/// scope".
+/// `None` means the current/source Scale Slice is the finest requested tip.
+/// Capability refinement still includes every supported coarser ancestor.
 #[derive(Component, Debug, Clone, Copy, PartialEq)]
 pub struct SpatialRefinementDemand {
     minimum_scale: Option<SpatialScale>,

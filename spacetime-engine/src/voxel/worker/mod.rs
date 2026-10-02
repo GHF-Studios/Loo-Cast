@@ -224,7 +224,12 @@ impl VoxelWorkerPool {
 }
 
 fn recommended_worker_threads(available: usize) -> usize {
-    available.max(1).saturating_add(1) / 2
+    let available = available.max(1);
+    if available <= 2 {
+        1
+    } else {
+        available.saturating_mul(3).div_ceil(4).max(1)
+    }
 }
 
 #[derive(Component, Debug, Default, Clone, Copy)]
@@ -235,11 +240,11 @@ mod tests {
     use super::{VoxelWorkerAdmission, VoxelWorkerLane, recommended_worker_threads};
 
     #[test]
-    fn dedicated_worker_pool_uses_about_half_available_parallelism() {
+    fn dedicated_worker_pool_uses_three_quarters_available_parallelism() {
         assert_eq!(recommended_worker_threads(1), 1);
         assert_eq!(recommended_worker_threads(2), 1);
-        assert_eq!(recommended_worker_threads(4), 2);
-        assert_eq!(recommended_worker_threads(8), 4);
+        assert_eq!(recommended_worker_threads(4), 3);
+        assert_eq!(recommended_worker_threads(8), 6);
     }
 
     #[test]

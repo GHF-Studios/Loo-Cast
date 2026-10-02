@@ -178,6 +178,13 @@ pub(in crate::voxel) fn sync_capability_realizations(
     }
 
     for (entity, runtime, existing) in &mut runtimes {
+        if !runtime.active() {
+            if let Some(mut realization) = existing {
+                realization.set_roles(UsfScaleRoleMask::NONE);
+            }
+            continue;
+        }
+
         let Ok((
             world_entity,
             world,

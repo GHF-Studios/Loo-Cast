@@ -177,6 +177,9 @@ fn sync_refinement_frontier(
 
     let mut ready = HashSet::<FrontierKey>::new();
     for (runtime, realization) in &runtimes {
+        if !runtime.active() {
+            continue;
+        }
         if !realization
             .roles()
             .contains(UsfScaleRoleMask::PRESENTATION)

@@ -2,12 +2,16 @@
 
 use bevy::prelude::*;
 
-use super::{ManifestationKey, VoxelMaterializationRuntimeRegistry};
+use super::{
+    ManifestationKey, VoxelMaterializationRuntime,
+    VoxelMaterializationRuntimeRegistry,
+};
 use super::super::VoxelWorld;
 
 pub(in crate::voxel) fn sync_manifestation_membership(
     mut commands: Commands,
     mut worlds: Query<(Entity, &mut VoxelWorld)>,
+    runtimes: Query<&VoxelMaterializationRuntime>,
     mut registry: ResMut<VoxelMaterializationRuntimeRegistry>,
 ) {
     for (world_entity, mut world) in &mut worlds {
@@ -17,12 +21,6 @@ pub(in crate::voxel) fn sync_manifestation_membership(
                 key: materialization_key,
             };
 
-            // surface-only-manifestation-v1
-            //
-            // Runtime manifestations are presentation geometry, not residency
-            // facts. Uniform air/solid and any other derived-current no-surface
-            // result publish store-backed capability coverage instead of owning
-            // one empty ECS root + child.
             let surface_revision = world
                 .materializations()
                 .active_surface(materialization_key)
@@ -33,12 +31,21 @@ pub(in crate::voxel) fn sync_manifestation_membership(
                 registry.revisions.insert(key, revision);
                 registry.dirty.insert(key);
             } else {
-                // Retirement is not rebuild work, so it must never compete with
-                // the bounded manifestation rebuild budget.
                 registry.revisions.remove(&key);
                 registry.dirty.remove(&key);
                 if let Some(entity) = registry.entities.remove(&key) {
-                    commands.entity(entity).despawn();
+                    match runtimes.get(entity) {
+                        Ok(runtime) => {
+                            commands.entity(entity).insert((
+                                (*runtime).parked(),
+                                Visibility::Hidden,
+                            ));
+                            if !registry.recycle(entity) {
+                                commands.entity(entity).despawn();
+                            }
+                        }
+                        Err(_) => commands.entity(entity).despawn(),
+                    }
                 }
             }
         }

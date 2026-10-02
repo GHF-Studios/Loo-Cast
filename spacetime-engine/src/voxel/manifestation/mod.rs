@@ -38,20 +38,26 @@ pub(super) fn configure(app: &mut App) {
     material::configure(app);
 }
 
+const MAX_POOLED_MANIFESTATIONS: usize = 512;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct ManifestationKey {
     world: Entity,
     key: VoxelMaterializationKey,
 }
 
-/// Root entity for one disposable same-resolution presentation manifestation.
-#[derive(Component)]
+/// Stable runtime shell for one same-resolution presentation manifestation.
+///
+/// `active=false` means this root is parked: hidden and absent from active
+/// lookup maps, while its hierarchy and render handles stay allocated for reuse.
+#[derive(Component, Debug, Clone, Copy)]
 pub(super) struct VoxelMaterializationRuntime {
     world: Entity,
     key: VoxelMaterializationKey,
     revision: u64,
     presentation: Entity,
     translucent_presentation: Option<Entity>,
+    active: bool,
 }
 
 impl VoxelMaterializationRuntime {
@@ -66,17 +72,74 @@ impl VoxelMaterializationRuntime {
     pub(super) const fn revision(&self) -> u64 {
         self.revision
     }
+
+    pub(super) const fn active(&self) -> bool {
+        self.active
+    }
+
+    pub(super) const fn parked(mut self) -> Self {
+        self.active = false;
+        self
+    }
+
+    pub(super) const fn rebound(
+        mut self,
+        world: Entity,
+        key: VoxelMaterializationKey,
+        revision: u64,
+    ) -> Self {
+        self.world = world;
+        self.key = key;
+        self.revision = revision;
+        self.active = true;
+        self
+    }
 }
 
-/// Marks the only `Mesh3d` entity created for one voxel manifestation.
 #[derive(Component, Debug, Default, Clone, Copy)]
 pub(super) struct VoxelMaterializationPresentation;
 
-/// Incremental one-to-one mapping from canonical materialization surfaces to
-/// disposable runtime entities.
+/// Active mapping plus a bounded inactive shell pool.
 #[derive(Resource, Default)]
 pub(super) struct VoxelMaterializationRuntimeRegistry {
     revisions: HashMap<ManifestationKey, u64>,
     dirty: HashSet<ManifestationKey>,
     entities: HashMap<ManifestationKey, Entity>,
+    pooled: Vec<Entity>,
+}
+
+impl VoxelMaterializationRuntimeRegistry {
+    pub(super) fn recycle(&mut self, entity: Entity) -> bool {
+        if self.pooled.len() >= MAX_POOLED_MANIFESTATIONS {
+            return false;
+        }
+        self.pooled.push(entity);
+        true
+    }
+
+    pub(super) fn take_pooled(&mut self) -> Option<Entity> {
+        self.pooled.pop()
+    }
+
+    #[cfg(test)]
+    fn pooled_len(&self) -> usize {
+        self.pooled.len()
+    }
+}
+
+#[cfg(test)]
+mod pool_tests {
+    use super::*;
+
+    #[test]
+    fn manifestation_pool_is_bounded_and_reuses_lifo() {
+        let mut registry = VoxelMaterializationRuntimeRegistry::default();
+        let mut ecs = World::new();
+        let entity = ecs.spawn_empty().id();
+
+        assert!(registry.recycle(entity));
+        assert_eq!(registry.pooled_len(), 1);
+        assert_eq!(registry.take_pooled(), Some(entity));
+        assert_eq!(registry.pooled_len(), 0);
+    }
 }

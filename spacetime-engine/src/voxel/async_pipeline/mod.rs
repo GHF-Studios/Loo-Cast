@@ -20,7 +20,7 @@ use super::{
     worker::{VoxelWorkerLane, VoxelWorkerPool, VoxelWorkerTask, VoxelWorkerTicket},
 };
 
-const DERIVED_PUBLISH_BUDGET_PER_FRAME: usize = 8;
+const DERIVED_PUBLISH_BUDGET_PER_FRAME: usize = 32;
 const DERIVED_EMPTY_PUBLISH_BUDGET_PER_FRAME: usize = 64;
 
 struct VoxelDerivedOutput {

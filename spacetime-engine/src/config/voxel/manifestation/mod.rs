@@ -19,7 +19,7 @@ pub struct VoxelManifestationConfig {
 impl Default for VoxelManifestationConfig {
     fn default() -> Self {
         Self {
-            rebuild_budget_per_frame: 8,
+            rebuild_budget_per_frame: 32,
             physics_interaction_radius_native: 32.0,
         }
     }

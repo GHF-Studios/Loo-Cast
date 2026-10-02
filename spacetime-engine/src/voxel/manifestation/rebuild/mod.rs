@@ -20,15 +20,61 @@ use super::{
 };
 use super::super::{
     VoxelMaterialId, VoxelMaterializationChunkAddress, VoxelWorld,
-    mesh::VoxelSurface,
-    VoxelPresentationMaterial,
+    mesh::VoxelSurface, VoxelPresentationMaterial,
 };
 
-/// Rebuilds dirty one-to-one runtime manifestations within the configured frame
-/// budget.
-///
-/// One manifestation root can own an opaque and a translucent presentation.
-/// Collision remains an independent derived representation of the same surface.
+fn park_manifestation(
+    commands: &mut Commands,
+    registry: &mut VoxelMaterializationRuntimeRegistry,
+    manifestations: &Query<&VoxelMaterializationRuntime>,
+    entity: Entity,
+) {
+    let Ok(runtime) = manifestations.get(entity) else {
+        commands.entity(entity).despawn();
+        return;
+    };
+
+    commands.entity(entity).insert(((*runtime).parked(), Visibility::Hidden));
+    if !registry.recycle(entity) {
+        commands.entity(entity).despawn();
+    }
+}
+
+fn update_presentation_mesh(
+    commands: &mut Commands,
+    entity: Entity,
+    replacement: Option<Mesh>,
+    meshes: &mut Assets<Mesh>,
+    presentations: &Query<Option<&Mesh3d>, With<VoxelMaterializationPresentation>>,
+) -> bool {
+    let Ok(existing_mesh) = presentations.get(entity) else {
+        return false;
+    };
+
+    match replacement {
+        Some(mesh) => {
+            match existing_mesh {
+                Some(mesh3d) => {
+                    if let Some(mut existing) = meshes.get_mut(&mesh3d.0) {
+                        *existing = mesh;
+                    } else {
+                        commands.entity(entity).insert(Mesh3d(meshes.add(mesh)));
+                    }
+                }
+                None => {
+                    commands.entity(entity).insert(Mesh3d(meshes.add(mesh)));
+                }
+            }
+            commands.entity(entity).insert(Visibility::Inherited);
+        }
+        None => {
+            // Keep the mesh component/handle stable; hiding is non-structural.
+            commands.entity(entity).insert(Visibility::Hidden);
+        }
+    }
+    true
+}
+
 pub(in crate::voxel) fn rebuild_dirty_manifestations(
     config: Res<EngineConfig>,
     mut commands: Commands,
@@ -41,7 +87,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
         &UsfScaleLayer,
         Option<&UsfScaleFallbackPresentation>,
     )>,
-    mut manifestations: Query<&mut VoxelMaterializationRuntime>,
+    manifestations: Query<&VoxelMaterializationRuntime>,
     presentations: Query<Option<&Mesh3d>, With<VoxelMaterializationPresentation>>,
     mut registry: ResMut<VoxelMaterializationRuntimeRegistry>,
 ) {
@@ -53,7 +99,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
 
         let Some(&expected_revision) = registry.revisions.get(&key) else {
             if let Some(entity) = registry.entities.remove(&key) {
-                commands.entity(entity).despawn();
+                park_manifestation(&mut commands, &mut registry, &manifestations, entity);
             }
             continue;
         };
@@ -61,7 +107,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
         let Ok((_, world, material, layer, fallback)) = worlds.get(key.world) else {
             registry.revisions.remove(&key);
             if let Some(entity) = registry.entities.remove(&key) {
-                commands.entity(entity).despawn();
+                park_manifestation(&mut commands, &mut registry, &manifestations, entity);
             }
             continue;
         };
@@ -69,7 +115,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
         let Ok(address) = world.materialization_address(key.key) else {
             registry.revisions.remove(&key);
             if let Some(entity) = registry.entities.remove(&key) {
-                commands.entity(entity).despawn();
+                park_manifestation(&mut commands, &mut registry, &manifestations, entity);
             }
             continue;
         };
@@ -79,9 +125,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
             continue;
         };
 
-        if world
-            .materializations()
-            .active_derived_revision(key.key)
+        if world.materializations().active_derived_revision(key.key)
             != Some(expected_revision)
         {
             registry.dirty.insert(key);
@@ -91,140 +135,209 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
         let Some(cache) = world.materializations().active_surface(key.key) else {
             registry.revisions.remove(&key);
             if let Some(entity) = registry.entities.remove(&key) {
-                commands.entity(entity).despawn();
+                park_manifestation(&mut commands, &mut registry, &manifestations, entity);
             }
             continue;
         };
         if cache.revision != expected_revision || !cache.surface.has_triangles() {
             registry.revisions.remove(&key);
             if let Some(entity) = registry.entities.remove(&key) {
-                commands.entity(entity).despawn();
+                park_manifestation(&mut commands, &mut registry, &manifestations, entity);
             }
             continue;
         }
 
-        let mut opaque_mesh =
-            build_opaque_mesh(&cache.surface, cache.debug_color);
-        let mut root_entity = registry.entities.get(&key).copied();
+        let Some(local_translation) =
+            materialization_runtime_translation(layer, &spatial_frame, address)
+        else {
+            registry.dirty.insert(key);
+            continue;
+        };
 
-        if let Some(entity) = root_entity {
-            match manifestations.get_mut(entity) {
-                Ok(mut manifestation) => {
-                    match presentations.get(manifestation.presentation) {
-                        Ok(Some(mesh3d)) => {
-                            if let Some(replacement) = opaque_mesh.take() {
-                                if let Some(mut existing) = meshes.get_mut(&mesh3d.0) {
-                                    *existing = replacement;
-                                } else {
-                                    commands
-                                        .entity(manifestation.presentation)
-                                        .insert(Mesh3d(meshes.add(replacement)));
-                                }
-                            } else {
-                                commands
-                                    .entity(manifestation.presentation)
-                                    .remove::<Mesh3d>();
-                            }
-                        }
-                        Ok(None) => {
-                            if let Some(replacement) = opaque_mesh.take() {
-                                commands
-                                    .entity(manifestation.presentation)
-                                    .insert(Mesh3d(meshes.add(replacement)));
-                            }
-                        }
-                        Err(_) => {
-                            commands.entity(entity).despawn();
-                            registry.entities.remove(&key);
-                            root_entity = None;
-                        }
-                    }
+        let mut opaque_mesh = build_opaque_mesh(&cache.surface, cache.debug_color);
 
-                    if root_entity.is_some() {
-                        sync_translucent_presentation(
-                            &mut commands,
-                            entity,
-                            key.world,
-                            layer,
-                            address,
-                            Some(&cache.surface),
-                            translucent_material,
-                            &mut meshes,
-                            &presentations,
-                            &mut manifestation,
-                        );
-                        manifestation.revision = expected_revision;
-                    }
-                }
-                Err(_) => {
-                    commands.entity(entity).despawn();
-                    registry.entities.remove(&key);
-                    root_entity = None;
-                }
-            }
-        }
-
-        let _root = if let Some(root) = root_entity {
-            root
-        } else {
-            let Some(local_translation) =
-                materialization_runtime_translation(layer, &spatial_frame, address)
-            else {
+        // Existing active root: mutate in place.
+        if let Some(&entity) = registry.entities.get(&key) {
+            let Ok(runtime_ref) = manifestations.get(entity) else {
+                commands.entity(entity).despawn();
+                registry.entities.remove(&key);
                 registry.dirty.insert(key);
                 continue;
             };
+            let mut runtime = (*runtime_ref).rebound(
+                key.world,
+                key.key,
+                expected_revision,
+            );
 
-            let root = commands
-                .spawn((
-                    Name::new("Voxel Manifestation"),
-                    *layer,
-                    Transform::from_translation(local_translation),
-                    Visibility::Inherited,
-                ))
-                .id();
+            commands.entity(entity).insert((
+                runtime,
+                *layer,
+                Transform::from_translation(local_translation),
+                Visibility::Inherited,
+            ));
+            sync_fallback(&mut commands, entity, fallback);
 
-            if let Some(fallback) = fallback {
-                commands.entity(root).insert(*fallback);
-            }
-
-            let presentation = commands
-                .spawn((
-                    Name::new("Voxel Opaque Presentation"),
-                    ChildOf(root),
-                    VoxelMaterializationPresentation,
-                    UsfPresentationProjectionOf(key.world),
-                    UsfScalePresentation::new(*address.origin(), layer.scale()),
-                    MeshMaterial3d(opaque_material.clone()),
-                    Transform::IDENTITY,
-                    Visibility::Inherited,
-                ))
-                .id();
-            if let Some(mesh) = opaque_mesh.take() {
-                commands.entity(presentation).insert(Mesh3d(meshes.add(mesh)));
-            }
-
-            let translucent_presentation = spawn_translucent_presentation(
+            commands.entity(runtime.presentation).insert((
+                UsfPresentationProjectionOf(key.world),
+                UsfScalePresentation::new(*address.origin(), layer.scale()),
+                MeshMaterial3d(opaque_material.clone()),
+            ));
+            if !update_presentation_mesh(
                 &mut commands,
-                root,
+                runtime.presentation,
+                opaque_mesh.take(),
+                &mut meshes,
+                &presentations,
+            ) {
+                commands.entity(entity).despawn();
+                registry.entities.remove(&key);
+                registry.dirty.insert(key);
+                continue;
+            }
+
+            runtime.translucent_presentation = sync_translucent_presentation(
+                &mut commands,
+                entity,
                 key.world,
                 layer,
                 address,
                 Some(&cache.surface),
                 translucent_material,
                 &mut meshes,
+                &presentations,
+                runtime.translucent_presentation,
             );
+            commands.entity(entity).insert(runtime);
+            continue;
+        }
 
-            commands.entity(root).insert(VoxelMaterializationRuntime {
-                world: key.world,
-                key: key.key,
-                revision: expected_revision,
-                presentation,
-                translucent_presentation,
-            });
-            registry.entities.insert(key, root);
-            root
-        };
+        // Pool first: reuse the stable root + opaque child and mesh handle.
+        if let Some(entity) = registry.take_pooled() {
+            let Ok(runtime_ref) = manifestations.get(entity) else {
+                commands.entity(entity).despawn();
+                registry.dirty.insert(key);
+                continue;
+            };
+            if presentations.get(runtime_ref.presentation).is_err() {
+                commands.entity(entity).despawn();
+                registry.dirty.insert(key);
+                continue;
+            }
 
+            let mut runtime = (*runtime_ref).rebound(
+                key.world,
+                key.key,
+                expected_revision,
+            );
+            commands.entity(entity).insert((
+                runtime,
+                *layer,
+                Transform::from_translation(local_translation),
+                Visibility::Inherited,
+            ));
+            sync_fallback(&mut commands, entity, fallback);
+
+            commands.entity(runtime.presentation).insert((
+                UsfPresentationProjectionOf(key.world),
+                UsfScalePresentation::new(*address.origin(), layer.scale()),
+                MeshMaterial3d(opaque_material.clone()),
+            ));
+            if !update_presentation_mesh(
+                &mut commands,
+                runtime.presentation,
+                opaque_mesh.take(),
+                &mut meshes,
+                &presentations,
+            ) {
+                commands.entity(entity).despawn();
+                registry.dirty.insert(key);
+                continue;
+            }
+
+            runtime.translucent_presentation = sync_translucent_presentation(
+                &mut commands,
+                entity,
+                key.world,
+                layer,
+                address,
+                Some(&cache.surface),
+                translucent_material,
+                &mut meshes,
+                &presentations,
+                runtime.translucent_presentation,
+            );
+            commands.entity(entity).insert(runtime);
+            registry.entities.insert(key, entity);
+            continue;
+        }
+
+        // Pool empty: allocate one stable shell.
+        let root = commands
+            .spawn((
+                Name::new("Voxel Manifestation"),
+                *layer,
+                Transform::from_translation(local_translation),
+                Visibility::Inherited,
+            ))
+            .id();
+        sync_fallback(&mut commands, root, fallback);
+
+        let opaque_visible = opaque_mesh.is_some();
+        let initial_mesh =
+            opaque_mesh.take().unwrap_or_else(empty_presentation_mesh);
+        let presentation = commands
+            .spawn((
+                Name::new("Voxel Opaque Presentation"),
+                ChildOf(root),
+                VoxelMaterializationPresentation,
+                UsfPresentationProjectionOf(key.world),
+                UsfScalePresentation::new(*address.origin(), layer.scale()),
+                Mesh3d(meshes.add(initial_mesh)),
+                MeshMaterial3d(opaque_material.clone()),
+                Transform::IDENTITY,
+                if opaque_visible {
+                    Visibility::Inherited
+                } else {
+                    Visibility::Hidden
+                },
+            ))
+            .id();
+
+        let translucent_presentation = sync_translucent_presentation(
+            &mut commands,
+            root,
+            key.world,
+            layer,
+            address,
+            Some(&cache.surface),
+            translucent_material,
+            &mut meshes,
+            &presentations,
+            None,
+        );
+
+        commands.entity(root).insert(VoxelMaterializationRuntime {
+            world: key.world,
+            key: key.key,
+            revision: expected_revision,
+            presentation,
+            translucent_presentation,
+            active: true,
+        });
+        registry.entities.insert(key, root);
+    }
+}
+
+fn sync_fallback(
+    commands: &mut Commands,
+    entity: Entity,
+    fallback: Option<&UsfScaleFallbackPresentation>,
+) {
+    if let Some(fallback) = fallback {
+        commands.entity(entity).insert(*fallback);
+    } else {
+        commands.entity(entity).remove::<UsfScaleFallbackPresentation>();
     }
 }
 
@@ -238,58 +351,29 @@ fn sync_translucent_presentation(
     material: &Handle<VoxelRenderMaterial>,
     meshes: &mut Assets<Mesh>,
     presentations: &Query<Option<&Mesh3d>, With<VoxelMaterializationPresentation>>,
-    manifestation: &mut VoxelMaterializationRuntime,
-) {
-    let Some(mesh) = surface.and_then(build_translucent_mesh) else {
-        if let Some(entity) = manifestation.translucent_presentation.take() {
-            commands.entity(entity).despawn();
-        }
-        return;
-    };
+    existing_entity: Option<Entity>,
+) -> Option<Entity> {
+    let mesh = surface.and_then(build_translucent_mesh);
 
-    if let Some(entity) = manifestation.translucent_presentation {
-        match presentations.get(entity) {
-            Ok(Some(mesh3d)) => {
-                if let Some(mut existing) = meshes.get_mut(&mesh3d.0) {
-                    *existing = mesh;
-                } else {
-                    commands.entity(entity).insert(Mesh3d(meshes.add(mesh)));
-                }
-                return;
-            }
-            Ok(None) => {
-                commands.entity(entity).insert(Mesh3d(meshes.add(mesh)));
-                return;
-            }
-            Err(_) => {
-                manifestation.translucent_presentation = None;
-            }
-        }
+    if let Some(entity) = existing_entity
+        && presentations.get(entity).is_ok()
+    {
+        commands.entity(entity).insert((
+            UsfPresentationProjectionOf(world),
+            UsfScalePresentation::new(*address.origin(), layer.scale()),
+            MeshMaterial3d(material.clone()),
+        ));
+        let _ = update_presentation_mesh(
+            commands,
+            entity,
+            mesh,
+            meshes,
+            presentations,
+        );
+        return Some(entity);
     }
 
-    manifestation.translucent_presentation = spawn_translucent_presentation(
-        commands,
-        root,
-        world,
-        layer,
-        address,
-        surface,
-        material,
-        meshes,
-    );
-}
-
-fn spawn_translucent_presentation(
-    commands: &mut Commands,
-    root: Entity,
-    world: Entity,
-    layer: &UsfScaleLayer,
-    address: VoxelMaterializationChunkAddress,
-    surface: Option<&VoxelSurface>,
-    material: &Handle<VoxelRenderMaterial>,
-    meshes: &mut Assets<Mesh>,
-) -> Option<Entity> {
-    let mesh = surface.and_then(build_translucent_mesh)?;
+    let mesh = mesh?;
     Some(
         commands
             .spawn((
@@ -305,6 +389,19 @@ fn spawn_translucent_presentation(
             ))
             .id(),
     )
+}
+
+fn empty_presentation_mesh() -> Mesh {
+    Mesh::new(
+        PrimitiveTopology::TriangleList,
+        RenderAssetUsages::default(),
+    )
+    .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, Vec::<[f32; 3]>::new())
+    .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, Vec::<[f32; 3]>::new())
+    .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, Vec::<[f32; 4]>::new())
+    .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, Vec::<[f32; 2]>::new())
+    .with_inserted_attribute(Mesh::ATTRIBUTE_TANGENT, Vec::<[f32; 4]>::new())
+    .with_inserted_indices(Indices::U32(Vec::new()))
 }
 
 fn material_vertex_color(material: VoxelMaterialId) -> [f32; 4] {
@@ -329,16 +426,13 @@ fn build_translucent_mesh(surface: &VoxelSurface) -> Option<Mesh> {
         .collect::<Vec<_>>();
 
     Some(
-        Mesh::new(
-            PrimitiveTopology::TriangleList,
-            RenderAssetUsages::default(),
-        )
-        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, surface.positions.clone())
-        .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, surface.normals.clone())
-        .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, colors)
-        .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, surface.uvs.clone())
-        .with_inserted_attribute(Mesh::ATTRIBUTE_TANGENT, surface.tangents.clone())
-        .with_inserted_indices(Indices::U32(indices)),
+        Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default())
+            .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, surface.positions.clone())
+            .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, surface.normals.clone())
+            .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, colors)
+            .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, surface.uvs.clone())
+            .with_inserted_attribute(Mesh::ATTRIBUTE_TANGENT, surface.tangents.clone())
+            .with_inserted_indices(Indices::U32(indices)),
     )
 }
 
@@ -350,16 +444,13 @@ fn build_opaque_mesh(surface: &VoxelSurface, debug_color: [f32; 4]) -> Option<Me
 
     let colors = vec![debug_color; surface.positions.len()];
     Some(
-        Mesh::new(
-            PrimitiveTopology::TriangleList,
-            RenderAssetUsages::default(),
-        )
-        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, surface.positions.clone())
-        .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, surface.normals.clone())
-        .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, colors)
-        .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, surface.uvs.clone())
-        .with_inserted_attribute(Mesh::ATTRIBUTE_TANGENT, surface.tangents.clone())
-        .with_inserted_indices(Indices::U32(indices)),
+        Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default())
+            .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, surface.positions.clone())
+            .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, surface.normals.clone())
+            .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, colors)
+            .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, surface.uvs.clone())
+            .with_inserted_attribute(Mesh::ATTRIBUTE_TANGENT, surface.tangents.clone())
+            .with_inserted_indices(Indices::U32(indices)),
     )
 }
 
@@ -368,8 +459,6 @@ fn materialization_runtime_translation(
     frame: &UsfSpatialFrame,
     address: VoxelMaterializationChunkAddress,
 ) -> Option<Vec3> {
-    // Keep each scale-world root tightly centered around the canonical frame.
-    // No coarsened absolute origin and no million-unit render chart.
     address
         .query_origin()
         .usf()
@@ -386,9 +475,6 @@ fn write_materialization_runtime_translation(
     }
 }
 
-/// Reprojects presentation/runtime roots whenever the canonical local frame
-/// changes. These roots are no longer Avian bodies; collision has its own
-/// aggregated backend representation.
 pub(in crate::voxel) fn sync_manifestation_runtime_transforms(
     frame: Res<UsfSpatialFrame>,
     worlds: Query<&VoxelWorld>,
@@ -403,6 +489,9 @@ pub(in crate::voxel) fn sync_manifestation_runtime_transforms(
     }
 
     for (runtime, layer, mut transform) in &mut runtimes {
+        if !runtime.active() {
+            continue;
+        }
         let Ok(world) = worlds.get(runtime.world()) else {
             continue;
         };
@@ -415,12 +504,10 @@ pub(in crate::voxel) fn sync_manifestation_runtime_transforms(
             continue;
         };
 
-        write_materialization_runtime_translation(
-            &mut transform,
-            translation,
-        );
+        write_materialization_runtime_translation(&mut transform, translation);
     }
 }
+
 #[cfg(test)]
 mod runtime_pose_tests {
     use super::*;
@@ -429,9 +516,7 @@ mod runtime_pose_tests {
     fn runtime_pose_updates_presentation_coordinates() {
         let mut transform = Transform::from_xyz(10.0, -20.0, 30.0);
         let target = Vec3::new(1.25, -2.5, 5.0);
-
         write_materialization_runtime_translation(&mut transform, target);
-
         assert_eq!(transform.translation, target);
     }
 }
