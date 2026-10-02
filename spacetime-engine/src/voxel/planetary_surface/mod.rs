@@ -940,7 +940,7 @@ fn evaluate_patch(
     // sources; either may refine/cull the regional approximation.
     if !dense_coverage.is_empty() || !clipmap_coverage.is_empty() {
         let Some(center_local_metres) =
-            presentation_surface_local_metres(field, direction, sample_scale, policy)
+            presentation_surface_local_metres(field, direction, policy)
         else {
             return PatchDecision::Keep;
         };
@@ -1166,7 +1166,7 @@ mod tests {
     fn semantic_sample_spacing_caps_earth_s4_regional_depth() {
         let field = CelestialVoxelField::new(
             6_371_000.0,
-            SpatialScale::new(6).unwrap(),
+            SpatialScale::new(6).unwrap(), SpatialScale::ZERO,
             0x4541_5254,
             crate::voxel::CelestialBodyProfile::Rocky,
         );

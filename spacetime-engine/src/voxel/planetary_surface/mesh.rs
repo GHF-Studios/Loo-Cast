@@ -25,8 +25,8 @@ pub(super) const PATCH_GRID_RESOLUTION: u32 = 8;
 
 /// Builds one bounded body-local cubed-sphere patch.
 ///
-/// `sample_scale` selects semantic terrain detail. It is not patch-subdivision
-/// level and therefore does not couple representation refinement to USF Scale.
+/// `sample_scale` selects mesh authoring units only. Semantic terrain
+/// bandwidth belongs to `CelestialVoxelField` and is representation-independent.
 pub(super) fn build_planetary_surface_patch(
     field: CelestialVoxelField,
     patch: PlanetarySurfacePatchId,
@@ -91,7 +91,7 @@ fn sample_patch_vertex_native_with_policy(
     policy: Option<&DeveloperScalarPolicyRuntime>,
 ) -> Option<Vec3> {
     let local_metres =
-        presentation_surface_local_metres(field, local_direction, sample_scale, policy)?;
+        presentation_surface_local_metres(field, local_direction, policy)?;
     let native = local_metres / sample_scale.metres_per_native();
     let native = Vec3::new(native.x as f32, native.y as f32, native.z as f32);
     native.is_finite().then_some(native)
@@ -112,7 +112,7 @@ mod tests {
         let scale = SpatialScale::new(4).unwrap();
         let field = CelestialVoxelField::new(
             6_371_000.0,
-            SpatialScale::new(6).unwrap(),
+            SpatialScale::new(6).unwrap(), SpatialScale::ZERO,
             0x4541_5254,
             CelestialBodyProfile::Rocky,
         );
@@ -131,7 +131,7 @@ mod tests {
             )
             .unwrap();
         let semantic = field
-            .surface_position(&origin, frame, direction, scale)
+            .surface_position(&origin, frame, direction)
             .unwrap();
 
         let delta = reconstructed

@@ -11,6 +11,8 @@ pub(super) struct BodyDefinition {
     pub aliases: &'static [&'static str],
     pub center_metres: DVec3,
     pub radius_metres: f64,
+    /// Finest semantic terrain band owned by this body.
+    pub surface_detail_scale: i8,
     pub gravity_metres_per_second2: f32,
     pub profile: CelestialBodyProfile,
     pub seed: u32,
@@ -26,6 +28,7 @@ pub(super) fn bodies() -> [BodyDefinition; 1] {
         aliases: &["planet", "world"],
         center_metres: DVec3::new(0.0, -earth_radius, 0.0),
         radius_metres: earth_radius,
+        surface_detail_scale: 0,
         gravity_metres_per_second2: 9.80665,
         profile: CelestialBodyProfile::Rocky,
         seed: 0x4541_5254,

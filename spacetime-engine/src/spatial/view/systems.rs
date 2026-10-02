@@ -414,6 +414,15 @@ pub(in crate::spatial) fn project_scale_presentations(
             continue;
         }
 
+        // Capability-backed dense terrain is physical/local realization,
+        // never contextual multiscale LOD. Regional/clipmap realizers own that.
+        if capability.is_some() && presentation.scale() != interaction.scale() {
+            if !matches!(*visibility, Visibility::Hidden) {
+                *visibility = Visibility::Hidden;
+            }
+            continue;
+        }
+
         // A capability realization in the current interaction Scale Slice is
         // physical local geometry. Render it through the ordinary gameplay
         // camera in exactly the same parent-local pose used by its collider.
@@ -452,9 +461,8 @@ pub(in crate::spatial) fn project_scale_presentations(
             continue;
         }
 
-        // Non-interaction scale realizations are observer-relative contextual
-        // presentation. They are disposable projections and never physical
-        // authority for the local subject.
+        // Only non-capability authored scale presentations reach this branch.
+        // Terrain context uses independent regional/clipmap realization resolution.
         if !probe.context_enabled() {
             *visibility = Visibility::Hidden;
             continue;

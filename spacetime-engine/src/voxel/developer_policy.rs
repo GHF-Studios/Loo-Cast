@@ -45,7 +45,6 @@ impl TerrainScriptContext {
     fn new(
         field: CelestialVoxelField,
         direction: Vec3,
-        scale: SpatialScale,
         canonical_height_metres: f64,
     ) -> Self {
         Self {
@@ -53,7 +52,7 @@ impl TerrainScriptContext {
             canonical_height_metres,
             body_radius_metres: field.radius_metres(),
             seed: field.seed(),
-            semantic_scale: scale.exponent(),
+            semantic_scale: field.surface_detail_scale().exponent(),
         }
     }
 
@@ -294,10 +293,9 @@ fn relief_limit_metres(field: CelestialVoxelField) -> f64 {
 pub(crate) fn presentation_surface_local_metres(
     field: CelestialVoxelField,
     direction: Vec3,
-    scale: SpatialScale,
     policy: Option<&DeveloperScalarPolicyRuntime>,
 ) -> Option<DVec3> {
-    let semantic = field.surface_local_metres(direction, scale).ok()?;
+    let semantic = field.surface_local_metres(direction).ok()?;
     if !semantic.is_finite() {
         return None;
     }
@@ -311,7 +309,7 @@ pub(crate) fn presentation_surface_local_metres(
     let scripted_height = policy
         .and_then(|policy| {
             let context =
-                TerrainScriptContext::new(field, direction, scale, canonical_height);
+                TerrainScriptContext::new(field, direction, canonical_height);
             policy.call_f64("height", (context,)).ok()
         })
         .unwrap_or(canonical_height);
@@ -346,10 +344,9 @@ pub(crate) fn presentation_surface_radius_bounds_metres(
 pub(crate) fn presentation_surface_radius_metres(
     field: CelestialVoxelField,
     direction: Vec3,
-    scale: SpatialScale,
     policy: Option<&DeveloperScalarPolicyRuntime>,
 ) -> Option<f64> {
-    presentation_surface_local_metres(field, direction, scale, policy)
+    presentation_surface_local_metres(field, direction, policy)
         .map(|point| point.length())
 }
 
@@ -387,7 +384,7 @@ mod tests {
     fn test_field() -> CelestialVoxelField {
         CelestialVoxelField::new(
             6_371_000.0,
-            SpatialScale::new(6).unwrap(),
+            SpatialScale::new(6).unwrap(), SpatialScale::ZERO,
             0x4541_5254,
             CelestialBodyProfile::Rocky,
         )
@@ -399,9 +396,9 @@ mod tests {
         let direction = Vec3::new(0.3, 0.8, -0.4).normalize();
         let scale = SpatialScale::new(4).unwrap();
 
-        let canonical = field.surface_local_metres(direction, scale).unwrap();
+        let canonical = field.surface_local_metres(direction).unwrap();
         let presentation =
-            presentation_surface_local_metres(field, direction, scale, None).unwrap();
+            presentation_surface_local_metres(field, direction, None).unwrap();
         assert_eq!(presentation, canonical);
     }
 

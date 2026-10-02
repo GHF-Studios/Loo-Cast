@@ -43,8 +43,11 @@ pub struct ProceduralCelestialBody {
     origin_snapshot: UsfPosition,
     frame_snapshot: UsfSemanticFrame,
     radius_metres: f64,
+    /// Numerical/cache chart only.
     current_scale: SpatialScale,
     coarsest_detail_scale: SpatialScale,
+    /// Field-owned semantic surface bandwidth.
+    surface_detail_scale: SpatialScale,
     seed: u32,
     profile: CelestialBodyProfile,
 }
@@ -91,20 +94,24 @@ pub fn new(
         radius_metres: f64,
         current_scale: SpatialScale,
         coarsest_detail_scale: SpatialScale,
+        surface_detail_scale: SpatialScale,
         seed: u32,
         profile: CelestialBodyProfile,
     ) -> Self {
         assert!(radius_metres.is_finite() && radius_metres > 0.0);
+        assert!(surface_detail_scale <= coarsest_detail_scale);
         Self {
             origin_snapshot,
             frame_snapshot,
             radius_metres,
             current_scale,
             coarsest_detail_scale,
+            surface_detail_scale,
             seed,
             profile,
         }
     }
+
     pub const fn origin_snapshot(self) -> UsfPosition { self.origin_snapshot }
     pub const fn frame_snapshot(self) -> UsfSemanticFrame { self.frame_snapshot }
     pub const fn radius_metres(self) -> f64 { self.radius_metres }
@@ -121,23 +128,17 @@ pub fn new(
     /// current procedural macro relief plus every detail band owned by this
     /// Scale Slice so high-speed collision queries may safely over-report a
     /// candidate without depending on a materialized mesh/collider.
-    pub(crate) fn conservative_outer_radius_metres(self) -> f64 {
-        let mut radius =
-            self.radius_metres + self.maximum_outward_macro_relief_metres();
-
-        if self.current_scale <= self.coarsest_detail_scale {
-            for raw in self.current_scale.exponent()
-                ..=self.coarsest_detail_scale.exponent()
-            {
-                let level = SpatialScale::new(raw)
-                    .expect("validated celestial detail scale");
-                radius += self.detail_amplitude_native(level).abs()
-                    * level.metres_per_native();
+pub(crate) fn conservative_outer_radius_metres(self) -> f64 {
+        let mut radius = self.radius_metres + self.maximum_outward_macro_relief_metres();
+        if self.surface_detail_scale <= self.coarsest_detail_scale {
+            for raw in self.surface_detail_scale.exponent()..=self.coarsest_detail_scale.exponent() {
+                let level = SpatialScale::new(raw).expect("validated celestial semantic detail scale");
+                radius += self.detail_amplitude_native(level).abs() * level.metres_per_native();
             }
         }
-
         radius
     }
+
 pub(crate) fn prepare_local_sampler(
         self,
         _world_origin: VoxelQueryPosition,
@@ -181,20 +182,15 @@ pub(crate) fn prepare_local_sampler(
 
     /// Body-local semantic surface point in SI metres.
     /// S1+ is radial already; avoid a world-position round trip.
-    pub(crate) fn surface_local_metres(
-        self, direction: Vec3,
+pub(crate) fn surface_local_metres(
+        self,
+        direction: Vec3,
     ) -> Result<DVec3, UsfPositionError> {
         let local_direction = normalized_direction(direction);
-        if self.current_scale > SpatialScale::ZERO {
-            let radius_metres =
-                self.coarse_surface_radius_metres(local_direction, self.current_scale);
-            return Ok(dvec(local_direction) * radius_metres);
-        }
-        let surface = self.surface_position(local_direction)?;
-        self.frame_snapshot.world_to_local_metres(
-            &self.origin_snapshot, &surface, self.current_scale, f64::MAX,
-        )
+        let radius = self.semantic_surface_radius_metres(local_direction)?;
+        Ok(dvec(local_direction) * radius)
     }
+
 
     /// Canonical surface point including every detail band owned by this scale.
 pub fn surface_position(self, direction: Vec3) -> Result<UsfPosition, UsfPositionError> {
@@ -202,36 +198,11 @@ pub fn surface_position(self, direction: Vec3) -> Result<UsfPosition, UsfPositio
         let world_direction = normalized_direction(
             self.frame_snapshot.local_direction_to_world(local_direction),
         );
-
-        if self.current_scale > SpatialScale::ZERO {
-            let radius_native =
-                self.coarse_surface_radius_metres(local_direction, self.current_scale)
-                    / self.current_scale.metres_per_native();
-            return self.origin_snapshot.translated_at_scale_f64(
-                self.current_scale,
-                dvec(world_direction) * radius_native,
-            );
-        }
-
-        let (reference, local_reference) = self.coarse_surface_references(local_direction)?;
-        let mut surface = reference;
-        let canonical_upper = self.coarsest_detail_scale.exponent().min(0);
-
-        if self.current_scale.exponent() <= canonical_upper {
-            for raw in (self.current_scale.exponent()..=canonical_upper).rev() {
-                let level = SpatialScale::new(raw)
-                    .expect("validated canonical celestial detail scale");
-                let noise = self.canonical_detail_noise_at(local_reference, level)?;
-                let displacement_native = noise * self.detail_amplitude_native(level) as f32;
-                surface = surface.translated_at_scale(
-                    level,
-                    world_direction * displacement_native,
-                )?;
-            }
-        }
-
-        Ok(surface)
+        let radius = self.semantic_surface_radius_metres(local_direction)?;
+        self.origin_snapshot
+            .translated_metres_f64(dvec(world_direction) * radius)
     }
+
 
     /// Resolve a canonical surface anchor first, then measure only tiny local
     /// clearance in the target chart.
@@ -264,7 +235,7 @@ pub(crate) fn surface_near(
     }
 
     #[inline]
-    fn sample_coarse_local(self, local: Vec3) -> VoxelSample {
+fn sample_coarse_local(self, local: Vec3) -> VoxelSample {
         let x = f64::from(local.x);
         let y = f64::from(local.y);
         let z = f64::from(local.z);
@@ -272,23 +243,20 @@ pub(crate) fn surface_near(
         if !radial.is_finite() {
             return VoxelSample::empty(EMPTY_DISTANCE);
         }
-
         let direction = if radial > f64::EPSILON {
-            Vec3::new(
-                (x / radial) as f32,
-                (y / radial) as f32,
-                (z / radial) as f32,
-            )
-            .normalize_or_zero()
+            Vec3::new((x / radial) as f32, (y / radial) as f32, (z / radial) as f32)
+                .normalize_or_zero()
         } else {
             Vec3::Y
         };
-
-        let surface_radius =
-            self.coarse_surface_radius_metres(direction, self.current_scale)
-                / self.current_scale.metres_per_native();
-        self.sample_from_signed_distance(radial - surface_radius)
+        let Ok(surface_radius_metres) = self.semantic_surface_radius_metres(direction) else {
+            return VoxelSample::empty(EMPTY_DISTANCE);
+        };
+        let surface_radius_native =
+            surface_radius_metres / self.current_scale.metres_per_native();
+        self.sample_from_signed_distance(radial - surface_radius_native)
     }
+
 
     #[inline]
     fn sample_fine_local(self, frame: FineSurfaceFrame, chunk_local: Vec3) -> VoxelSample {
@@ -351,45 +319,46 @@ fn direction_to(self, point: &UsfPosition) -> Option<Vec3> {
     }
 
     /// S1+ remains a conventional radial evaluation. S0 and finer do not.
-    fn coarse_surface_radius_metres(
+fn semantic_surface_radius_metres(
         self,
         direction: Vec3,
-        through_scale: SpatialScale,
-    ) -> f64 {
+    ) -> Result<f64, UsfPositionError> {
         let direction = normalized_direction(direction);
-        let mut radius = self.radius_metres
-            + self.macro_surface_displacement_metres(direction, through_scale);
+        let floor = self.surface_detail_scale.exponent();
+        let root = self.coarsest_detail_scale.exponent();
 
-        let lower = through_scale.exponent().max(1);
-        let upper = self.coarsest_detail_scale.exponent();
-        if lower <= upper {
-            for raw in (lower..=upper).rev() {
-                let level =
-                    SpatialScale::new(raw).expect("validated coarse celestial detail scale");
+        // Hierarchical bands remain an authoring mechanism. The field fixes one
+        // final bandwidth; realization Scale never enters this choice.
+        let mut radius = self.radius_metres
+            + self.macro_surface_displacement_metres(direction, self.surface_detail_scale);
+
+        let coarse_lower = floor.max(1);
+        if coarse_lower <= root {
+            for raw in (coarse_lower..=root).rev() {
+                let level = SpatialScale::new(raw)
+                    .expect("validated coarse celestial semantic detail scale");
                 radius += self.coarse_detail_band_native(direction, level)
                     * level.metres_per_native();
             }
         }
 
-        radius
+        let fine_upper = root.min(0);
+        if floor <= fine_upper {
+            let local_reference = UsfPosition::zero(self.origin_snapshot.leaf_scale())
+                .translated_metres_f64(dvec(direction) * radius)?;
+            for raw in (floor..=fine_upper).rev() {
+                let level = SpatialScale::new(raw)
+                    .expect("validated fine celestial semantic detail scale");
+                let noise = self.canonical_detail_noise_at(local_reference, level)?;
+                radius += f64::from(noise)
+                    * self.detail_amplitude_native(level)
+                    * level.metres_per_native();
+            }
+        }
+        Ok(radius)
     }
-fn coarse_surface_references(
-        self,
-        direction: Vec3,
-    ) -> Result<(UsfPosition, UsfPosition), UsfPositionError> {
-        let local_direction = normalized_direction(direction);
-        let world_direction = normalized_direction(
-            self.frame_snapshot.local_direction_to_world(local_direction),
-        );
-        let s1 = SpatialScale::new(1).expect("S1 is a valid USF scale");
-        let radius_metres = self.coarse_surface_radius_metres(local_direction, s1);
-        let world = self
-            .origin_snapshot
-            .translated_metres_f64(dvec(world_direction) * radius_metres)?;
-        let local = UsfPosition::zero(self.origin_snapshot.leaf_scale())
-            .translated_metres_f64(dvec(local_direction) * radius_metres)?;
-        Ok((world, local))
-    }
+
+
 
     fn coarse_detail_band_native(self, direction: Vec3, level: SpatialScale) -> f64 {
         let (frequency_factor, _, _, salt) = self.detail_parameters();
@@ -568,13 +537,56 @@ mod tests {
                 UsfSemanticFrame::identity(),
                 radius_metres,
                 scale,
-                coarsest,
+                coarsest, SpatialScale::ZERO,
                 0x4541_5254,
                 CelestialBodyProfile::Rocky,
             );
             let reconstructed =
                 body.radius_native_f64() * scale.metres_per_native();
             assert!((reconstructed - radius_metres).abs() < 1.0e-6);
+        }
+    }
+
+    #[test]
+    fn realization_scale_never_changes_semantic_surface_geometry() {
+        let radius_metres = 6_371_000.0;
+        let coarsest = SpatialScale::new(6).unwrap();
+        let surface_floor = SpatialScale::ZERO;
+        let direction = Vec3::new(0.37, 0.81, -0.45).normalize();
+        let reference = ProceduralCelestialBody::new(
+            earth_center(),
+            UsfSemanticFrame::identity(),
+            radius_metres,
+            SpatialScale::ZERO,
+            coarsest,
+            surface_floor,
+            0x4541_5254,
+            CelestialBodyProfile::Rocky,
+        )
+        .surface_position(direction)
+        .unwrap();
+
+        for raw in 0..=6 {
+            let realization_scale = SpatialScale::new(raw).unwrap();
+            let actual = ProceduralCelestialBody::new(
+                earth_center(),
+                UsfSemanticFrame::identity(),
+                radius_metres,
+                realization_scale,
+                coarsest,
+                surface_floor,
+                0x4541_5254,
+                CelestialBodyProfile::Rocky,
+            )
+            .surface_position(direction)
+            .unwrap();
+            let delta = actual
+                .relative_at_scale_bounded_f64(&reference, SpatialScale::ZERO, 0.01)
+                .unwrap();
+            assert!(
+                delta.length() < 1.0e-6,
+                "S{raw:+} realization changed semantic surface by {delta:?}",
+            );
         }
     }
 
@@ -586,7 +598,7 @@ mod tests {
             UsfSemanticFrame::identity(),
             6_371_000.0,
             scale,
-            SpatialScale::new(6).unwrap(),
+            SpatialScale::new(6).unwrap(), SpatialScale::ZERO,
             0x4541_5254,
             CelestialBodyProfile::Rocky,
         );
@@ -642,7 +654,7 @@ mod tests {
             UsfSemanticFrame::identity(),
             6_371_000.0,
             scale,
-            SpatialScale::new(6).unwrap(),
+            SpatialScale::new(6).unwrap(), SpatialScale::ZERO,
             0x4541_5254,
             CelestialBodyProfile::Rocky,
         );

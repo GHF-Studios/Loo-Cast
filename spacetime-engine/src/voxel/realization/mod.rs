@@ -313,16 +313,26 @@ fn full_runtime_roles() -> UsfScaleRoleMask {
         .union(UsfScaleRoleMask::EDITING)
 }
 
-fn roles_for_scale(domain: VoxelScaleDomain, scale: SpatialScale) -> UsfScaleRoleMask {
-    let mut roles = presentation_roles();
-    if domain.collides(scale) {
+fn roles_for_scale(
+    domain: VoxelScaleDomain,
+    target_scale: SpatialScale,
+    interaction_scale: SpatialScale,
+) -> UsfScaleRoleMask {
+    // Dense Scale-Slice worlds are numerical/interaction realizations, not the
+    // contextual visual LOD stack.
+    let mut roles = UsfScaleRoleMask::REALIZATION;
+    if target_scale == interaction_scale {
+        roles = roles.union(UsfScaleRoleMask::PRESENTATION);
+    }
+    if domain.collides(target_scale) {
         roles = roles.union(UsfScaleRoleMask::COLLISION);
     }
-    if domain.editable(scale) {
+    if domain.editable(target_scale) {
         roles = roles.union(UsfScaleRoleMask::EDITING);
     }
     roles
 }
+
 
 pub(super) fn collect_voxel_realization_intent(
     spatial: Res<SpatialDemandSnapshot>,
@@ -386,7 +396,7 @@ pub(super) fn collect_voxel_realization_intent(
                 .map(|scope| VoxelRealizationIntent {
                     target: VoxelRealizationIntentTarget::Celestial(target),
                     scope,
-                    roles: roles_for_scale(*domain, scale),
+                    roles: roles_for_scale(*domain, scale, source.scope.scale()),
                     view_source: None,
                     residency_half_extent_native: step.residency_half_extent_native(),
                 });

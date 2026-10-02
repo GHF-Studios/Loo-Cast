@@ -69,12 +69,6 @@ const CLIPMAP_MIN_VALIDITY_SECONDS: f64 = 0.10;
 const CLIPMAP_MAX_VALIDITY_SECONDS: f64 = 2.0;
 const CLIPMAP_LATENCY_MULTIPLIER: f64 = 4.0;
 
-/// All clipmap resolution levels sample one semantic terrain function.
-///
-/// Resolution controls only *sampling density*. It must never select a different
-/// semantic terrain band at a coarse/fine transition.
-const SEMANTIC_SURFACE_SCALE: SpatialScale = SpatialScale::ZERO;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct CelestialClipmapBlockKey {
     resolution: VoxelPresentationResolution,
@@ -779,9 +773,7 @@ fn block_intersects_semantic_surface(
 
     let surface_radius = presentation_surface_radius_metres(
         field,
-        direction,
-        SEMANTIC_SURFACE_SCALE,
-        policy,
+        direction,        policy,
     )
     .unwrap_or_else(|| field.radius_metres());
     if !surface_radius.is_finite() {
@@ -1288,9 +1280,7 @@ fn build_clipmap_mesh(
 
         let surface_radius = presentation_surface_radius_metres(
             field,
-            direction,
-            SEMANTIC_SURFACE_SCALE,
-            policy,
+            direction,            policy,
         )
         .unwrap_or_else(|| field.radius_metres());
 

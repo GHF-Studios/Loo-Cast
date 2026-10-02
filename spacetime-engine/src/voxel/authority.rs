@@ -1,4 +1,5 @@
 //! Shared semantic authority for voxel fields with multiple realizations.
+// canonical-celestial-surface-coherence-v4
 //!
 //! A realization owns residency, dense materializations, meshes and colliders.
 //! The authority owns semantic identity and the canonical ordered edit history.
@@ -47,6 +48,9 @@ impl VoxelAuthority {
 pub struct CelestialVoxelField {
     radius_metres: f64,
     coarsest_detail_scale: SpatialScale,
+    /// Finest semantic terrain band owned by this body definition.
+    /// Realization Scale Slices never change this value.
+    surface_detail_scale: SpatialScale,
     seed: u32,
     profile: CelestialBodyProfile,
 }
@@ -55,6 +59,7 @@ impl CelestialVoxelField {
     pub fn new(
         radius_metres: f64,
         coarsest_detail_scale: SpatialScale,
+        surface_detail_scale: SpatialScale,
         seed: u32,
         profile: CelestialBodyProfile,
     ) -> Self {
@@ -62,35 +67,51 @@ impl CelestialVoxelField {
             radius_metres.is_finite() && radius_metres > 0.0,
             "celestial authority radius must be finite and positive"
         );
-        Self { radius_metres, coarsest_detail_scale, seed, profile }
+        assert!(
+            surface_detail_scale <= coarsest_detail_scale,
+            "celestial surface detail floor must not be coarser than its detail root"
+        );
+        Self {
+            radius_metres,
+            coarsest_detail_scale,
+            surface_detail_scale,
+            seed,
+            profile,
+        }
     }
 
     pub const fn radius_metres(self) -> f64 { self.radius_metres }
     pub const fn coarsest_detail_scale(self) -> SpatialScale { self.coarsest_detail_scale }
+    pub const fn surface_detail_scale(self) -> SpatialScale { self.surface_detail_scale }
     pub const fn profile(self) -> CelestialBodyProfile { self.profile }
     pub(crate) const fn seed(self) -> u32 { self.seed }
 
+    /// One canonical semantic surface. No realization Scale parameter exists
+    /// here by design: callers cannot request a different planet by choosing a
+    /// different numerical chart.
     pub fn surface_position(
         self,
         body_origin: &UsfPosition,
         body_frame: UsfSemanticFrame,
         direction: Vec3,
-        scale: SpatialScale,
     ) -> Result<UsfPosition, UsfPositionError> {
-        self.realization(*body_origin, body_frame, scale).surface_position(direction)
+        self.realization(*body_origin, body_frame, self.surface_detail_scale)
+            .surface_position(direction)
     }
 
-    /// Body-local semantic surface position in SI metres.
     pub(crate) fn surface_local_metres(
-        self, direction: Vec3, scale: SpatialScale,
+        self,
+        direction: Vec3,
     ) -> Result<DVec3, UsfPositionError> {
         self.realization(
-            UsfPosition::zero(SpatialScale::MIN), UsfSemanticFrame::identity(), scale,
-        ).surface_local_metres(direction)
+            UsfPosition::zero(SpatialScale::MIN),
+            UsfSemanticFrame::identity(),
+            self.surface_detail_scale,
+        )
+        .surface_local_metres(direction)
     }
 
-    /// Creates one disposable pose-bound procedural sampler for a realization.
-    /// The snapshot is never semantic placement authority.
+    /// `scale` selects numerical units/cache addressing only.
     pub fn realization(
         self,
         body_origin: UsfPosition,
@@ -103,18 +124,17 @@ impl CelestialVoxelField {
             self.radius_metres,
             scale,
             self.coarsest_detail_scale,
+            self.surface_detail_scale,
             self.seed,
             self.profile,
         )
     }
 
     pub(crate) fn conservative_outer_radius_metres(self) -> f64 {
-        // Placement is irrelevant to this scalar geometry bound. Use a disposable
-        // zero/identity snapshot rather than re-introducing a center into authority.
         self.realization(
             UsfPosition::zero(SpatialScale::MIN),
             UsfSemanticFrame::identity(),
-            SpatialScale::MIN,
+            self.surface_detail_scale,
         )
         .conservative_outer_radius_metres()
     }
@@ -128,12 +148,14 @@ impl UsfTravelBoundary for CelestialVoxelField {
         observer: &UsfPosition,
         requested_scale: SpatialScale,
     ) -> Option<UsfTravelBoundarySample> {
-        let surface_scale = requested_scale.min(self.coarsest_detail_scale());
-        let body = (*self).realization(*body_origin, body_frame, surface_scale);
+        // Scale selects the bounded measurement chart, never surface semantics.
+        let measurement_scale = requested_scale.min(self.coarsest_detail_scale());
+        let body = (*self).realization(*body_origin, body_frame, measurement_scale);
         let (surface, outward, _) = body.surface_near(observer, f32::MAX)?;
-        UsfTravelBoundarySample::new(surface, outward, surface_scale)
+        UsfTravelBoundarySample::new(surface, outward, measurement_scale)
     }
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -168,7 +190,7 @@ fn authority_preserves_one_body_local_edit_order() {
         let detail_root = SpatialScale::new(5).unwrap();
         let field = CelestialVoxelField::new(
             1_737_000.0,
-            detail_root,
+            detail_root, SpatialScale::ZERO,
             0x4D4F_4F4E,
             CelestialBodyProfile::Lunar,
         );

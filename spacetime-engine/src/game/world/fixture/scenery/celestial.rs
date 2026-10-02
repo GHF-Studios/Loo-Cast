@@ -56,6 +56,7 @@ pub(super) fn spawn_body(
     let field = CelestialVoxelField::new(
         radius_metres,
         detail_root,
+        scale(definition.surface_detail_scale),
         definition.seed,
         definition.profile,
     );
@@ -146,7 +147,7 @@ fn body_surface_site(
         return None;
     }
 
-    let surface = field.surface_position(&body_origin, body_frame, up, scale).ok()?;
+    let surface = field.surface_position(&body_origin, body_frame, up).ok()?;
     BodySurfaceSite::new(body, surface, up, scale)
 }
 
