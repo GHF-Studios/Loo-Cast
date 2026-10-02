@@ -552,11 +552,17 @@ pub(super) fn sync_planetary_surface_realizations(
                             "{body_name} Planetary Patch {:?} L{} ({},{})",
                             build.patch.face, build.patch.level, build.patch.x, build.patch.y,
                         )),
+                        // planetary-surface-policy-revision-publication-fix-v1
+                        //
+                        // Publication identity must exactly match the scheduler/build key.
+                        // A hardcoded revision prevents existing_by_key from recognizing
+                        // freshly published patches, so make-before-break retirement never
+                        // completes and old regional patch entities accumulate while moving.
                         PlanetarySurfaceRealization {
                             authority: build.authority,
                             patch: build.patch,
                             scale: build.sample_scale,
-                            revision: 1,
+                            revision: build.policy_revision,
                         },
                         UsfPresentationProjectionOf(build.authority),
                         UsfSceneryPresentation::from_anchor(*body_origin, build.sample_scale),
