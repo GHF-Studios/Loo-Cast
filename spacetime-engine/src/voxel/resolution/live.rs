@@ -8,6 +8,8 @@ use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 
 use bevy::{
     asset::RenderAssetUsages,
+    camera::visibility::RenderLayers,
+    light::{NotShadowCaster, NotShadowReceiver},
     math::DVec3,
     mesh::{Indices, PrimitiveTopology},
     prelude::*,
@@ -21,6 +23,7 @@ use transvoxel::prelude::{
 use crate::reconstructible::{
     ReconstructibleFrameBudget, ReconstructibleWorkClass,
 };
+use crate::view::USF_PRESENTATION_LAYER;
 use crate::voxel::developer_policy::{
     presentation_surface_radius_bounds_metres,
 };
@@ -34,7 +37,8 @@ use crate::{
     spatial::{
         SpatialRealizationGranularityRequest, SpatialScale, UsfPosition,
         UsfPrimaryInteractionSlice, UsfSemanticFrame,
-        UsfSpatialFrame, UsfSpatialSet, UsfViewDemandSnapshot, UsfScaleLayer
+        UsfSpatialSet, UsfViewContext, UsfViewDemandSnapshot,
+        UsfViewRenderAnchor, UsfScaleLayer
     },
 };
 
@@ -62,7 +66,6 @@ const MAX_BALANCED_LEAVES: usize = 512;
 const MAX_BUILDS_IN_FLIGHT: usize = 4;
 const MAX_BUILD_ADMISSIONS_PER_FRAME: usize = 2;
 const MAX_PUBLICATIONS_PER_FRAME: usize = 2;
-const RUNTIME_RELATIVE_BOUND_NATIVE: f32 = 16_384.0;
 const CLIPMAP_VALIDITY_AGGREGATES_ACROSS: u32 = 8;
 const CLIPMAP_MIN_VALIDITY_SECONDS: f64 = 0.10;
 const CLIPMAP_MAX_VALIDITY_SECONDS: f64 = 2.0;
@@ -1715,9 +1718,12 @@ let committed_generation = registry
                         Mesh3d(meshes.add(mesh.into_mesh())),
                         MeshMaterial3d(policy.presentation_material().clone()),
                         Transform::IDENTITY,
+                        RenderLayers::layer(USF_PRESENTATION_LAYER),
+                        NotShadowCaster,
+                        NotShadowReceiver,
                         // A mesh entity is not presentation coverage until its
                         // canonical anchor projects successfully into the active
-                        // runtime chart.
+                        // presentation chart.
                         Visibility::Hidden,
                     ))
                     .id();
@@ -1879,7 +1885,7 @@ let committed_generation = registry
 
 
 fn sync_celestial_clipmap_transforms(
-    frame: Res<UsfSpatialFrame>,
+    view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     interaction: Res<UsfPrimaryInteractionSlice>,
     authorities: Query<(&UsfPosition, &UsfSemanticFrame)>,
     mut blocks: Query<(
@@ -1887,12 +1893,24 @@ fn sync_celestial_clipmap_transforms(
         &mut Transform,
         &mut Visibility,
     )>,
+    mut logged_projection: Local<bool>,
 ) {
-    let scale = interaction.scale();
-    let metre_to_native = scale.metres_to_native_f32(1.0);
-    if !metre_to_native.is_finite() || metre_to_native <= 0.0 {
+    // Clipmap vertices are authored in physical metres, which are S0-native
+    // units. Presentation scale is observer-owned and deliberately independent
+    // from the active interaction/physics chart.
+    let metre_to_view = view.projection_factor(SpatialScale::ZERO);
+    if !metre_to_view.is_finite() || metre_to_view <= 0.0 {
+        for (_, _, mut visibility) in &mut blocks {
+            *visibility = Visibility::Hidden;
+        }
         return;
     }
+
+    // Clipmap is a bounded near-body presentation. Measure block anchors in
+    // metres around the semantic observer before converting into render units.
+    const VIEW_RELATIVE_BOUND_METRES: f32 = 2_000_000.0;
+
+    let mut projected_any = false;
 
     for (block, mut transform, mut visibility) in &mut blocks {
         let Ok((body_origin, body_frame)) =
@@ -1910,26 +1928,22 @@ fn sync_celestial_clipmap_transforms(
             *visibility = Visibility::Hidden;
             continue;
         };
-        // Preserve a coarse block when its volume overlaps the local region even
-        // if its block origin itself lies farther than the old fixed bound.
-        let extent_metres =
-            block.spec.key.extent_metres().min(f64::from(f32::MAX)) as f32;
-        let extent_native =
-            scale.metres_to_native_f32(extent_metres).abs();
-        let projection_bound = if extent_native.is_finite() {
-            RUNTIME_RELATIVE_BOUND_NATIVE + extent_native
-        } else {
-            f32::MAX
-        };
 
-        let Ok(translation) = anchor.relative_at_scale_bounded(
-            frame.origin(),
-            scale,
-            projection_bound,
+        let Ok(relative_metres) = anchor.relative_at_scale_bounded(
+            view.anchor(),
+            SpatialScale::ZERO,
+            VIEW_RELATIVE_BOUND_METRES,
         ) else {
             *visibility = Visibility::Hidden;
             continue;
         };
+
+        let translation =
+            view.presentation_origin() + relative_metres * metre_to_view;
+        if !translation.is_finite() {
+            *visibility = Visibility::Hidden;
+            continue;
+        }
 
         let orientation = body_frame.orientation();
         let rotation = Quat::from_xyzw(
@@ -1942,14 +1956,25 @@ fn sync_celestial_clipmap_transforms(
 
         transform.translation = translation;
         transform.rotation = rotation;
-        transform.scale = Vec3::splat(metre_to_native);
+        transform.scale = Vec3::splat(metre_to_view);
 
-        // Projection failure is transient runtime state, not permanent
-        // presentation retirement. Recover visibility whenever the canonical
-        // block can be projected again.
+        // Projection failure is transient state. Recover as soon as the block
+        // can be represented in the current view chart.
         if matches!(*visibility, Visibility::Hidden) {
             *visibility = Visibility::Inherited;
         }
+        projected_any = true;
+    }
+
+    if projected_any && !*logged_projection {
+        info!(
+            interaction_scale = %interaction.scale(),
+            view_scale = %view.scale(),
+            view_exponent = view.continuous_exponent(),
+            metre_to_view,
+            "celestial clipmap projected through view chart"
+        );
+        *logged_projection = true;
     }
 }
 
@@ -1990,7 +2015,7 @@ pub(super) fn configure(app: &mut App) {
         .add_systems(
             PostUpdate,
             sync_celestial_clipmap_transforms
-                .in_set(UsfSpatialSet::RuntimeProjection),
+                .in_set(UsfSpatialSet::ViewProjection),
         )
         .add_systems(
             PostUpdate,
