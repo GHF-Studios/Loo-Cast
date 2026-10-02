@@ -28,7 +28,7 @@ pub(crate) use input::{
 };
 
 use avian3d::prelude::{
-    ActiveCollisionHooks, Collider, CollisionLayers, CustomPositionIntegration, CustomVelocityIntegration,
+    ActiveCollisionHooks, CollisionLayers, CustomPositionIntegration, CustomVelocityIntegration,
     LinearVelocity, RigidBody,
 };
 use bevy::{

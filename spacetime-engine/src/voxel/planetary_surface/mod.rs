@@ -305,7 +305,7 @@ pub(super) fn sync_planetary_surface_realizations(
     script_workbench: Res<DeveloperScriptWorkbench>,
     coverage: Res<UsfScaleCoverageSnapshot>,
     clipmap_coverage: Res<CelestialClipmapCoverageSnapshot>,
-    mut workers: ResMut<VoxelWorkerPool>,
+    workers: Res<VoxelWorkerPool>,
     authorities: Query<(
         Entity,
         Option<&Name>,

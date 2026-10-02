@@ -454,7 +454,6 @@ fn refresh_demand_plan(
         let _span =
             bevy::log::info_span!("voxel_residency.enumerate_delta").entered();
         let request = demands[0];
-        let demand = request.scope();
         let mut leaving = Vec::<VoxelMaterializationKey>::new();
         let mut entering = Vec::<DemandedChunk>::new();
 

@@ -179,7 +179,7 @@ pub(in crate::voxel) fn retire_stale_generation_tasks(
 /// cannot independently saturate the compute pool.
 pub(in crate::voxel) fn schedule_voxel_generation(
     config: Res<EngineConfig>,
-    mut workers: ResMut<VoxelWorkerPool>,
+    workers: Res<VoxelWorkerPool>,
     interaction: Res<UsfPrimaryInteractionSlice>,
     mut commands: Commands,
     mut worlds: Query<(

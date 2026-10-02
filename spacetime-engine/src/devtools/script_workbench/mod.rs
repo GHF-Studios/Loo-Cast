@@ -13,12 +13,13 @@
 use std::collections::BTreeMap;
 
 use bevy::prelude::*;
+use bevy_egui::egui;
 use egui_code_editor::{CodeEditor, ColorTheme, Syntax};
 use rhai::{AST, Engine, Scope};
 
 use crate::console::{
     AppConsoleExt, ConsoleCommandInvocation, ConsoleCommandResult, ConsoleCommandSpec,
-    RuntimeVariableBinding, RuntimeVariableRegistry,
+    RuntimeVariableRegistry,
 };
 
 const DEFAULT_SOURCE: &str = r#"// Trusted Developer Lab scalar policy.

@@ -541,7 +541,7 @@ fn handle_spacecraft_actions(
         let (
             player_entity,
             mut player_transform,
-            player_layer,
+            _player_layer,
             mut player_visibility,
             mut player_demand,
             mut player_enabled,

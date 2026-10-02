@@ -165,6 +165,7 @@ struct CelestialClipmapBlock {
 struct CelestialClipmapBuildTask {
     authority: Entity,
     generation: u64,
+    policy_revision: u64,
     spec: CelestialClipmapBlockSpec,
     field: CelestialVoxelField,
     task: VoxelWorkerTicket<Option<CelestialClipmapMeshData>>,
@@ -1018,7 +1019,11 @@ fn sync_celestial_clipmap_realizations(
     'authorities: for (&authority, plan) in &registry.plans {
         for &spec in &plan.desired {
             if plan.completed.contains(&spec)
-                || existing_by_spec.contains_key(&(authority, spec))
+                || existing_by_spec.contains_key(&(
+                    authority,
+                    plan.key.policy_revision,
+                    spec,
+                ))
                 || inflight.contains(&(authority, plan.generation, spec))
             {
                 continue;

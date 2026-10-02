@@ -122,7 +122,7 @@ pub(super) fn retire_stale_chunk_builds(
 /// cached terrain does no per-frame geometry scheduling work.
 pub(super) fn queue_dirty_chunk_builds(
     mut commands: Commands,
-    mut workers: ResMut<VoxelWorkerPool>,
+    workers: Res<VoxelWorkerPool>,
     mut worlds: Query<(Entity, &mut VoxelWorld, &UsfScaleLayer)>,
     mut telemetry: ResMut<VoxelStreamingTelemetry>,
 ) {
