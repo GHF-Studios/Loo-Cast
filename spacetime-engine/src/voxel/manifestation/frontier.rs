@@ -61,11 +61,16 @@ impl VoxelRefinementFaceMask {
     }
 }
 
-/// One exact fine-cell frontier fact.
+/// One exact fine-cell *coverage* frontier fact.
 ///
-/// One S(n) voxel materialization spans 10 native units, exactly one native
-/// unit at S(n+1). This address therefore identifies the child region that a
-/// future 10:1 transition kernel must connect to its immediate parent.
+/// This snapshot says where ready fine Scale-Slice presentation borders
+/// still-coarse context. It deliberately does **not** define mesh-resolution
+/// adjacency. USF Scale is a numerical chart; using S(n)->S(n+1) directly as a
+/// 10:1 LOD transition is the architecture this frontier exposed as invalid.
+///
+/// `voxel::resolution` owns the independent physical sampling ladder. A
+/// presentation adapter may project this coverage into that domain, balance it
+/// to 2:1 neighbors and only then ask a transition-cell mesher for geometry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) struct VoxelRefinementFrontierCell {
     world: Entity,

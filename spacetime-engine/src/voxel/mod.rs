@@ -23,6 +23,7 @@ mod physics;
 mod planetary_surface;
 mod realization;
 mod region;
+mod resolution;
 mod manifestation;
 mod store;
 mod streaming;
