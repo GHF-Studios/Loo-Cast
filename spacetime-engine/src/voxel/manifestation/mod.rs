@@ -34,8 +34,71 @@ pub(super) use rebuild::{
 
 pub(super) fn configure(app: &mut App) {
     app.init_resource::<collision::VoxelCollisionAggregateRegistry>();
+
+    #[cfg(feature = "profiling-tracy")]
+    app.add_systems(
+        PostUpdate,
+        emit_manifestation_pressure.after(rebuild::rebuild_dirty_manifestations),
+    );
+
     frontier::configure(app);
     material::configure(app);
+}
+
+// voxel-manifestation-pressure-v1
+#[cfg(feature = "profiling-tracy")]
+fn emit_manifestation_pressure(
+    mut registry: ResMut<VoxelMaterializationRuntimeRegistry>,
+) {
+    let active = registry.entities.len();
+    let pooled = registry.pooled.len();
+    let pressure = std::mem::take(&mut registry.pressure);
+
+    if !tracy_client::Client::is_connected() {
+        return;
+    }
+    let Some(client) = tracy_client::Client::running() else {
+        return;
+    };
+
+    client.plot(tracy_client::plot_name!("voxel.manifestation.active"), active as f64);
+    client.plot(tracy_client::plot_name!("voxel.manifestation.pooled"), pooled as f64);
+    client.plot(
+        tracy_client::plot_name!("voxel.manifestation.recycled"),
+        pressure.recycled as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("voxel.manifestation.pool_overflow"),
+        pressure.pool_overflow as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("voxel.manifestation.pool_take"),
+        pressure.pool_take as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("voxel.manifestation.spawned"),
+        pressure.spawned as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("voxel.manifestation.rebuild_existing"),
+        pressure.rebuild_existing as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("voxel.manifestation.mesh_publications"),
+        pressure.mesh_publications as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("voxel.manifestation.root_transform_write"),
+        pressure.root_transform_write as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("voxel.manifestation.root_transform_unchanged"),
+        pressure.root_transform_unchanged as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("voxel.manifestation.visibility_write"),
+        pressure.visibility_write as f64,
+    );
 }
 
 const MAX_POOLED_MANIFESTATIONS: usize = 512;
@@ -100,17 +163,33 @@ impl VoxelMaterializationRuntime {
 pub(super) struct VoxelMaterializationPresentation;
 
 /// Active mapping plus a bounded inactive shell pool.
+#[derive(Debug, Default, Clone, Copy)]
+struct VoxelManifestationPressure {
+    recycled: u32,
+    pool_overflow: u32,
+    pool_take: u32,
+    spawned: u32,
+    rebuild_existing: u32,
+    mesh_publications: u32,
+    root_transform_write: u32,
+    root_transform_unchanged: u32,
+    visibility_write: u32,
+}
+
 #[derive(Resource, Default)]
 pub(super) struct VoxelMaterializationRuntimeRegistry {
     revisions: HashMap<ManifestationKey, u64>,
     dirty: HashSet<ManifestationKey>,
     entities: HashMap<ManifestationKey, Entity>,
     pooled: Vec<Entity>,
+    pressure: VoxelManifestationPressure,
 }
 
 impl VoxelMaterializationRuntimeRegistry {
     pub(super) fn recycle(&mut self, entity: Entity) -> bool {
+        self.pressure.recycled = self.pressure.recycled.saturating_add(1);
         if self.pooled.len() >= MAX_POOLED_MANIFESTATIONS {
+            self.pressure.pool_overflow = self.pressure.pool_overflow.saturating_add(1);
             return false;
         }
         self.pooled.push(entity);
@@ -118,7 +197,40 @@ impl VoxelMaterializationRuntimeRegistry {
     }
 
     pub(super) fn take_pooled(&mut self) -> Option<Entity> {
-        self.pooled.pop()
+        let entity = self.pooled.pop();
+        if entity.is_some() {
+            self.pressure.pool_take = self.pressure.pool_take.saturating_add(1);
+        }
+        entity
+    }
+
+    pub(super) fn record_spawned(&mut self) {
+        self.pressure.spawned = self.pressure.spawned.saturating_add(1);
+    }
+
+    pub(super) fn record_rebuild_existing(&mut self) {
+        self.pressure.rebuild_existing =
+            self.pressure.rebuild_existing.saturating_add(1);
+    }
+
+    pub(super) fn record_mesh_publication(&mut self) {
+        self.pressure.mesh_publications =
+            self.pressure.mesh_publications.saturating_add(1);
+    }
+
+    pub(super) fn record_root_transform(&mut self, changed: bool) {
+        if changed {
+            self.pressure.root_transform_write =
+                self.pressure.root_transform_write.saturating_add(1);
+        } else {
+            self.pressure.root_transform_unchanged =
+                self.pressure.root_transform_unchanged.saturating_add(1);
+        }
+    }
+
+    pub(super) fn record_visibility_write(&mut self) {
+        self.pressure.visibility_write =
+            self.pressure.visibility_write.saturating_add(1);
     }
 
     #[cfg(test)]

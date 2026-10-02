@@ -26,10 +26,14 @@ use super::super::{
 fn park_manifestation(
     commands: &mut Commands,
     registry: &mut VoxelMaterializationRuntimeRegistry,
-    manifestations: &Query<&VoxelMaterializationRuntime>,
+    manifestations: &Query<(
+        &VoxelMaterializationRuntime,
+        &Transform,
+        &Visibility,
+    )>,
     entity: Entity,
 ) {
-    let Ok(runtime) = manifestations.get(entity) else {
+    let Ok((runtime, _, _)) = manifestations.get(entity) else {
         commands.entity(entity).despawn();
         return;
     };
@@ -87,7 +91,11 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
         &UsfScaleLayer,
         Option<&UsfScaleFallbackPresentation>,
     )>,
-    manifestations: Query<&VoxelMaterializationRuntime>,
+    manifestations: Query<(
+        &VoxelMaterializationRuntime,
+        &Transform,
+        &Visibility,
+    )>,
     presentations: Query<Option<&Mesh3d>, With<VoxelMaterializationPresentation>>,
     mut registry: ResMut<VoxelMaterializationRuntimeRegistry>,
 ) {
@@ -154,11 +162,15 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
             continue;
         };
 
+        // voxel-manifestation-pressure-v1
+        registry.record_mesh_publication();
         let mut opaque_mesh = build_opaque_mesh(&cache.surface, cache.debug_color);
 
         // Existing active root: mutate in place.
         if let Some(&entity) = registry.entities.get(&key) {
-            let Ok(runtime_ref) = manifestations.get(entity) else {
+            let Ok((runtime_ref, current_transform, current_visibility)) =
+                manifestations.get(entity)
+            else {
                 commands.entity(entity).despawn();
                 registry.entities.remove(&key);
                 registry.dirty.insert(key);
@@ -170,12 +182,16 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
                 expected_revision,
             );
 
-            commands.entity(entity).insert((
-                runtime,
-                *layer,
-                Transform::from_translation(local_translation),
-                Visibility::Inherited,
-            ));
+            registry.record_rebuild_existing();
+            commands.entity(entity).insert((runtime, *layer));
+            sync_manifestation_root_state(
+                &mut commands,
+                &mut registry,
+                entity,
+                current_transform,
+                current_visibility,
+                local_translation,
+            );
             sync_fallback(&mut commands, entity, fallback);
 
             commands.entity(runtime.presentation).insert((
@@ -214,7 +230,9 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
 
         // Pool first: reuse the stable root + opaque child and mesh handle.
         if let Some(entity) = registry.take_pooled() {
-            let Ok(runtime_ref) = manifestations.get(entity) else {
+            let Ok((runtime_ref, current_transform, current_visibility)) =
+                manifestations.get(entity)
+            else {
                 commands.entity(entity).despawn();
                 registry.dirty.insert(key);
                 continue;
@@ -230,12 +248,15 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
                 key.key,
                 expected_revision,
             );
-            commands.entity(entity).insert((
-                runtime,
-                *layer,
-                Transform::from_translation(local_translation),
-                Visibility::Inherited,
-            ));
+            commands.entity(entity).insert((runtime, *layer));
+            sync_manifestation_root_state(
+                &mut commands,
+                &mut registry,
+                entity,
+                current_transform,
+                current_visibility,
+                local_translation,
+            );
             sync_fallback(&mut commands, entity, fallback);
 
             commands.entity(runtime.presentation).insert((
@@ -273,6 +294,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
         }
 
         // Pool empty: allocate one stable shell.
+        registry.record_spawned();
         let root = commands
             .spawn((
                 Name::new("Voxel Manifestation"),
@@ -326,6 +348,30 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
             active: true,
         });
         registry.entities.insert(key, root);
+    }
+}
+
+fn sync_manifestation_root_state(
+    commands: &mut Commands,
+    registry: &mut VoxelMaterializationRuntimeRegistry,
+    entity: Entity,
+    current_transform: &Transform,
+    current_visibility: &Visibility,
+    local_translation: Vec3,
+) {
+    let target_transform = Transform::from_translation(local_translation);
+    let transform_changed = current_transform.translation != target_transform.translation
+        || current_transform.rotation != target_transform.rotation
+        || current_transform.scale != target_transform.scale;
+
+    registry.record_root_transform(transform_changed);
+    if transform_changed {
+        commands.entity(entity).insert(target_transform);
+    }
+
+    if *current_visibility != Visibility::Inherited {
+        registry.record_visibility_write();
+        commands.entity(entity).insert(Visibility::Inherited);
     }
 }
 

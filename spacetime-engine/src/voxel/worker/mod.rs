@@ -86,6 +86,10 @@ impl VoxelWorkerAdmission {
             self.outstanding[lane.index()].load(Ordering::Acquire),
         )
     }
+
+    fn outstanding(&self, lane: VoxelWorkerLane) -> usize {
+        self.outstanding[lane.index()].load(Ordering::Acquire)
+    }
 }
 
 pub(super) struct VoxelWorkerTicket<T: Send + 'static> {
@@ -203,7 +207,29 @@ impl VoxelWorkerPool {
                     return;
                 }
 
-                let output = job();
+                // voxel-manifestation-pressure-v1
+                let output = match lane {
+                    VoxelWorkerLane::Generation => {
+                        let _span =
+                            bevy::log::info_span!("voxel.worker.generation").entered();
+                        job()
+                    }
+                    VoxelWorkerLane::Derivation => {
+                        let _span =
+                            bevy::log::info_span!("voxel.worker.derivation").entered();
+                        job()
+                    }
+                    VoxelWorkerLane::PlanetarySurface => {
+                        let _span =
+                            bevy::log::info_span!("voxel.worker.planetary_surface").entered();
+                        job()
+                    }
+                    VoxelWorkerLane::PresentationResolution => {
+                        let _span =
+                            bevy::log::info_span!("voxel.worker.presentation_resolution").entered();
+                        job()
+                    }
+                };
                 if !worker_cancelled.load(Ordering::Acquire) {
                     let _ = result_sender.send(output);
                 }
@@ -221,6 +247,50 @@ impl VoxelWorkerPool {
             lane,
         })
     }
+}
+
+#[cfg(feature = "profiling-tracy")]
+pub(super) fn emit_worker_pressure(workers: Res<VoxelWorkerPool>) {
+    if !tracy_client::Client::is_connected() {
+        return;
+    }
+    let Some(client) = tracy_client::Client::running() else {
+        return;
+    };
+
+    let generation = workers.admission.outstanding(VoxelWorkerLane::Generation);
+    let derivation = workers.admission.outstanding(VoxelWorkerLane::Derivation);
+    let planetary = workers
+        .admission
+        .outstanding(VoxelWorkerLane::PlanetarySurface);
+    let presentation = workers
+        .admission
+        .outstanding(VoxelWorkerLane::PresentationResolution);
+
+    client.plot(
+        tracy_client::plot_name!("voxel.worker.capacity"),
+        workers.capacity as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("voxel.worker.outstanding.generation"),
+        generation as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("voxel.worker.outstanding.derivation"),
+        derivation as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("voxel.worker.outstanding.planetary"),
+        planetary as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("voxel.worker.outstanding.presentation"),
+        presentation as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("voxel.worker.outstanding.total"),
+        (generation + derivation + planetary + presentation) as f64,
+    );
 }
 
 fn recommended_worker_threads(available: usize) -> usize {

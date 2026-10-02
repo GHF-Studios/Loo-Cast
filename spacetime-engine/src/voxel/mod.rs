@@ -262,6 +262,13 @@ impl Plugin for VoxelPlugin {
                     .in_set(UsfCollisionQuerySet::Providers),
             );
 
+        #[cfg(feature = "profiling-tracy")]
+        app.add_systems(
+            PostUpdate,
+            worker::emit_worker_pressure.after(VoxelPostUpdateSet::SurfaceScheduling),
+        );
+
+        // voxel-manifestation-pressure-v1
         devtools::configure(app);
     }
 }
