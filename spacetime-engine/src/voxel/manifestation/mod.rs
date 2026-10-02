@@ -18,7 +18,10 @@ mod material;
 mod membership;
 mod rebuild;
 
-pub(super) use collision::sync_manifestation_collision_residency;
+pub(super) use collision::{
+    sync_collision_aggregate_runtime_transforms,
+    sync_manifestation_collision_residency,
+};
 pub(super) use coverage::sync_capability_realizations;
 pub(super) use lifecycle::retire_removed_world_manifestations;
 pub use material::VoxelPresentationMaterial;

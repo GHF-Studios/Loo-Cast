@@ -67,6 +67,8 @@ const SHIP_PROXY_CLEARANCE_METRES: f32 = 0.08;
 const SHIP_DEMAND_HALF_EXTENT: Vec3 = Vec3::new(96.0, 64.0, 96.0);
 const SHIP_DEMAND_PRIORITY: i32 = 120;
 const LANDING_PROBE_METRES: f32 = 2.0;
+const LANDING_PROBE_LIFT_METRES: f32 = LANDING_PROBE_METRES;
+const LANDING_SEPARATION_SPEED_EPSILON_METRES_PER_SECOND: f64 = 0.25;
 const ENTER_DISTANCE_METRES: f32 = 12.0;
 // spacecraft-contact-handoff-v1
 // Landing/disembark use actual hull shape casts; these constants are
@@ -399,16 +401,39 @@ pub(crate) fn detect_landing(
         return;
     }
 
-    // A launched ship is explicitly separating from support. Do not let the
-    // proximity probe immediately turn that same departure back into landing.
-    if velocity.0.dot(locomotion_frame.up()) > 0.0 {
+    // A launched ship is explicitly separating from support. Measure this
+    // in canonical SI velocity, not active-chart native units, and tolerate
+    // sub-contact numerical jitter instead of requiring exact <= 0.
+    let up = locomotion_frame.up();
+    let up_si = DVec3::new(
+        f64::from(up.x),
+        f64::from(up.y),
+        f64::from(up.z),
+    );
+    let separating_speed =
+        motion.velocity_metres_per_second().dot(up_si);
+    if separating_speed
+        > LANDING_SEPARATION_SPEED_EPSILON_METRES_PER_SECOND
+    {
         return;
     }
 
-    let Ok(direction) = Dir3::new(-locomotion_frame.up()) else {
+    let Ok(direction) = Dir3::new(-up) else {
         return;
     };
-    let max_distance = layer.scale().metres_to_native_f32(LANDING_PROBE_METRES);
+
+    // Movement has already run this tick. A correct move-and-slide result is
+    // commonly exactly touching support, so probing from the current hull pose
+    // and ignoring origin penetration can discard the very contact we need.
+    // Lift the complete hull by the probe reach, then cast back through that
+    // lift plus the original reach. This preserves the semantic 2 m landing
+    // window while making exact/near-origin support observable.
+    let probe_lift =
+        layer.scale().metres_to_native_f32(LANDING_PROBE_LIFT_METRES);
+    let probe_origin = transform.translation + up * probe_lift;
+    let max_distance = layer.scale().metres_to_native_f32(
+        LANDING_PROBE_LIFT_METRES + LANDING_PROBE_METRES,
+    );
     let filter = physics_charts.filter_for_scale(
         layer.scale(),
         std::iter::once(entity)
@@ -416,7 +441,7 @@ pub(crate) fn detect_landing(
     );
     let config = ShapeCastConfig {
         max_distance,
-        ignore_origin_penetration: true,
+        ignore_origin_penetration: false,
         ..default()
     };
 
@@ -426,7 +451,7 @@ pub(crate) fn detect_landing(
     let aligned = locomotion_frame.aligned_rotation(transform.rotation);
     let Some(hit) = spatial_query.cast_shape(
         collider,
-        transform.translation,
+        probe_origin,
         aligned,
         direction,
         &config,
@@ -443,7 +468,7 @@ pub(crate) fn detect_landing(
     // LANDING_PROBE_METRES". Commit the runtime and canonical position as one
     // discontinuous pose transaction.
     let settled_translation =
-        transform.translation - locomotion_frame.up() * hit.distance.max(0.0);
+        probe_origin - up * hit.distance.max(0.0);
     let Ok(settled_semantic) = spatial_frame
         .origin()
         .translated_at_scale(layer.scale(), settled_translation)

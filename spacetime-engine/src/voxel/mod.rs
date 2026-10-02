@@ -239,6 +239,7 @@ impl Plugin for VoxelPlugin {
                 (
                     manifestation::sync_manifestation_runtime_transforms
                         .after(VoxelPostUpdateSet::Rebuild),
+                    manifestation::sync_collision_aggregate_runtime_transforms,
                     planetary_surface::sync_planetary_surface_projection_state,
                 )
                     .in_set(UsfSpatialSet::RuntimeProjection),

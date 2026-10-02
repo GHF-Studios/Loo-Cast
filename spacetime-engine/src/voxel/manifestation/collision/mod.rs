@@ -15,7 +15,10 @@ use bevy::prelude::*;
 
 use crate::{
     config::EngineConfig,
-    spatial::{SpatialScale, UsfScaleLayer, UsfScaleRoleMask, UsfSpatialFrame},
+    spatial::{
+        SpatialScale, UsfScaleLayer, UsfScaleRoleMask, UsfSpatialFrame,
+        UsfSpatialTransitionApplied,
+    },
 };
 
 use super::super::{
@@ -208,6 +211,47 @@ fn aggregate_runtime_translation(
         .usf()
         .relative_at_scale_bounded(frame.origin(), layer.scale(), 16_384.0)
         .ok()
+}
+
+/// Reprojects all published voxel collision aggregates after a canonical chart
+/// transition.
+///
+/// Ordinary floating-origin rebases already flow through `UsfOriginRebased` and
+/// the Avian backend refresh path. `UsfSpatialFrame::reanchor`, however, is a
+/// discontinuous chart transaction: aggregate membership can remain identical
+/// while every backend-local position changes. Readiness must never outlive the
+/// pose it claims to represent.
+pub(in crate::voxel) fn sync_collision_aggregate_runtime_transforms(
+    mut transitions: MessageReader<UsfSpatialTransitionApplied>,
+    frame: Res<UsfSpatialFrame>,
+    worlds: Query<(&VoxelWorld, &UsfScaleLayer)>,
+    registry: Res<VoxelCollisionAggregateRegistry>,
+    mut aggregates: Query<(&mut Transform, &mut Position)>,
+) {
+    let mut transitioned = false;
+    for _ in transitions.read() {
+        transitioned = true;
+    }
+    if !transitioned {
+        return;
+    }
+
+    for (&key, state) in &registry.groups {
+        let Ok((world, layer)) = worlds.get(key.world) else {
+            continue;
+        };
+        let Some(translation) =
+            aggregate_runtime_translation(&frame, layer, world, key.origin)
+        else {
+            continue;
+        };
+        let Ok((mut transform, mut position)) = aggregates.get_mut(state.entity) else {
+            continue;
+        };
+
+        transform.translation = translation;
+        position.0 = translation;
+    }
 }
 
 /// Reconciles demanded rigid materializations into collision-only aggregates.
