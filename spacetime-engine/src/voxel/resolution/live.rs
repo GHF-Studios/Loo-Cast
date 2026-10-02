@@ -978,7 +978,21 @@ fn derive_plan_input(
         return None;
     }
 
-    let clearance = (observer_radius - field.radius_metres()).abs();
+        let observer_direction = Vec3::new(
+        observer_local.x as f32,
+        observer_local.y as f32,
+        observer_local.z as f32,
+    )
+    .normalize_or_zero();
+    if observer_direction == Vec3::ZERO {
+        return None;
+    }
+    let canonical_surface_radius = field
+        .surface_local_metres(observer_direction)
+        .ok()?
+        .length();
+    let clearance =
+        (observer_radius - canonical_surface_radius).abs();
     if clearance > MAX_CLIPMAP_CLEARANCE_METRES {
         return None;
     }
