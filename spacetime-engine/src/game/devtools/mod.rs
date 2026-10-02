@@ -20,6 +20,7 @@ const IDENTITY_SECTION: InspectSectionId = InspectSectionId("identity");
 
 mod focus;
 mod inspection;
+pub(crate) mod lab;
 mod view;
 
 use focus::{handle_focus_pin, resolve_player_focus};

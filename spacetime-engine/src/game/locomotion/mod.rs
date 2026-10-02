@@ -44,6 +44,27 @@ pub enum LocomotionRequest {
     Regime(LocomotionRegime),
 }
 
+/// Explicit resolver-output override.
+///
+/// This does not replace [`LocomotionRequest`]. The ordinary request/automatic
+/// state continues underneath and becomes effective again immediately when this
+/// component is removed.
+#[derive(Component, Reflect, Debug, Clone, Copy, PartialEq, Eq)]
+#[reflect(Component)]
+pub struct LocomotionRegimeOverride {
+    regime: LocomotionRegime,
+}
+
+impl LocomotionRegimeOverride {
+    pub const fn new(regime: LocomotionRegime) -> Self {
+        Self { regime }
+    }
+
+    pub const fn regime(self) -> LocomotionRegime {
+        self.regime
+    }
+}
+
 /// Exactly one motion kernel may author controlled-subject motion per tick.
 #[derive(Reflect, Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum MotionKernel {
@@ -209,6 +230,15 @@ pub struct LocomotionCapabilities {
 }
 
 impl LocomotionCapabilities {
+    pub const fn supports_regime(self, regime: LocomotionRegime) -> bool {
+        match regime {
+            LocomotionRegime::OnFoot => self.character,
+            LocomotionRegime::LocalFlight => self.local_flight,
+            LocomotionRegime::PlanetaryFlight => self.orbital_flight,
+            LocomotionRegime::Cruise => self.cruise,
+        }
+    }
+
     pub const fn character() -> Self {
         Self {
             character: true,
@@ -435,6 +465,7 @@ impl Plugin for LocomotionPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<LocomotionRegime>()
             .register_type::<LocomotionRequest>()
+            .register_type::<LocomotionRegimeOverride>()
             .register_type::<MotionKernel>()
             .register_type::<CollisionPolicy>()
             .register_type::<VelocitySemantics>()

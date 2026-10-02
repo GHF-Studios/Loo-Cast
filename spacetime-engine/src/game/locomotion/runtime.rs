@@ -43,7 +43,8 @@ use super::{
     CollisionPolicy, ControlledSubjectLocomotion, ControlledSubjectLocomotionChanged,
     DetailedBodyScale, FlightAttitudeCommand, FlightControlIntent,
     LocomotionCapabilities, LocomotionEnabled, LocomotionInhibition,
-    LocomotionRegime, LocomotionRequest, MotionKernel, ScaleInteractionProxy,
+    LocomotionRegime, LocomotionRegimeOverride, LocomotionRequest, MotionKernel,
+    ScaleInteractionProxy,
     VelocitySemantics,
 };
 
@@ -63,14 +64,11 @@ fn regime_allowed(
     profile: &TravelProfile,
     capabilities: LocomotionCapabilities,
 ) -> bool {
-    match requested {
-        LocomotionRegime::OnFoot => {
-            return capabilities.character_enabled() && layer == detailed;
-        }
-        LocomotionRegime::LocalFlight if !capabilities.local_flight() => return false,
-        LocomotionRegime::PlanetaryFlight if !capabilities.orbital_flight() => return false,
-        LocomotionRegime::Cruise if !capabilities.cruise() => return false,
-        _ => {}
+    if !capabilities.supports_regime(requested) {
+        return false;
+    }
+    if requested == LocomotionRegime::OnFoot {
+        return layer == detailed;
     }
 
     let Some((clearance, radius)) = nearest_body_clearance_and_radius(travel) else {
@@ -257,6 +255,7 @@ pub(super) fn resolve_locomotion_state(
             &LocomotionCapabilities,
             &LocomotionEnabled,
             &LocomotionInhibition,
+            Option<&LocomotionRegimeOverride>,
             &mut ControlledSubjectLocomotion,
             &mut UsfCanonicalMotion,
         ),
@@ -272,6 +271,7 @@ pub(super) fn resolve_locomotion_state(
         capabilities,
         enabled,
         inhibition,
+        regime_override,
         mut locomotion,
         mut motion,
     ) = subject.into_inner();
@@ -308,21 +308,38 @@ pub(super) fn resolve_locomotion_state(
         *capabilities,
     );
 
-    let regime = match locomotion.request() {
-        LocomotionRequest::Automatic => automatic,
-        LocomotionRequest::Regime(requested)
-            if regime_allowed(
-                requested,
-                previous_regime,
-                layer.scale(),
-                detailed.0,
-                travel,
-                profile,
-                *capabilities,
-            ) => requested,
-        LocomotionRequest::Regime(_) => {
-            locomotion.request_automatic();
+    let regime = if let Some(regime_override) = regime_override {
+        let requested = regime_override.regime();
+        if capabilities.supports_regime(requested) {
+            // Explicit resolver override intentionally bypasses contextual
+            // automatic eligibility. Fundamental subject capability is still
+            // required so tooling cannot manufacture an impossible backend.
+            requested
+        } else {
+            warn!(
+                ?entity,
+                ?requested,
+                "locomotion regime override is unsupported by controlled subject; using automatic policy"
+            );
             automatic
+        }
+    } else {
+        match locomotion.request() {
+            LocomotionRequest::Automatic => automatic,
+            LocomotionRequest::Regime(requested)
+                if regime_allowed(
+                    requested,
+                    previous_regime,
+                    layer.scale(),
+                    detailed.0,
+                    travel,
+                    profile,
+                    *capabilities,
+                ) => requested,
+            LocomotionRequest::Regime(_) => {
+                locomotion.request_automatic();
+                automatic
+            }
         }
     };
 

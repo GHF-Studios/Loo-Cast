@@ -142,11 +142,11 @@ impl RuntimeVariableBinding {
         self.spec
     }
 
-    fn current(self, world: &mut World) -> Result<String, String> {
+    pub(crate) fn current(self, world: &mut World) -> Result<String, String> {
         (self.getter)(world)
     }
 
-    fn set(self, world: &mut World, raw: &str) -> Result<(), String> {
+    pub(crate) fn set(self, world: &mut World, raw: &str) -> Result<(), String> {
         if !self.spec.authority.directly_mutable() {
             return Err(format!(
                 "`{}` is a semantic operation; route it through typed causal ingress (#17), not generic runtime config",
@@ -156,7 +156,7 @@ impl RuntimeVariableBinding {
         (self.setter)(world, raw)
     }
 
-    fn reset(self, world: &mut World) -> Result<(), String> {
+    pub(crate) fn reset(self, world: &mut World) -> Result<(), String> {
         if !self.spec.authority.directly_mutable() {
             return Err(format!(
                 "`{}` is a semantic operation; route it through typed causal ingress (#17), not generic runtime config",
@@ -166,7 +166,7 @@ impl RuntimeVariableBinding {
         (self.resetter)(world)
     }
 
-    fn default_value(self) -> String {
+    pub(crate) fn default_value(self) -> String {
         (self.default)()
     }
 }
@@ -187,7 +187,7 @@ impl RuntimeVariableRegistry {
         self.bindings.insert(path, binding);
     }
 
-    fn binding(&self, path: &str) -> Option<RuntimeVariableBinding> {
+    pub(crate) fn binding(&self, path: &str) -> Option<RuntimeVariableBinding> {
         self.bindings.get(&normalize_path(path)).copied()
     }
 
@@ -203,6 +203,13 @@ impl RuntimeVariableRegistry {
     pub(crate) fn value_completions(&self, path: &str, prefix: &str) -> Vec<String> {
         self.binding(path)
             .map_or_else(Vec::new, |binding| binding.spec.domain.completions(prefix))
+    }
+
+    pub(crate) fn bindings_snapshot(&self) -> Vec<(String, RuntimeVariableBinding)> {
+        self.bindings
+            .iter()
+            .map(|(path, binding)| (path.clone(), *binding))
+            .collect()
     }
 }
 

@@ -49,6 +49,7 @@ use crate::view::PrimaryGameView;
 pub(super) fn configure(app: &mut App) {
     input_bindings::configure(app);
     runtime_variables::configure(app);
+    super::devtools::lab::configure(app);
 
     app.add_systems(
         PostUpdate,

@@ -22,6 +22,10 @@ use crate::{
     },
     game::{
         control::LocalControlSubject,
+        devtools::lab,
+        locomotion::{
+            LocomotionCapabilities, LocomotionRegime, LocomotionRegimeOverride,
+        },
         player::{DebugFreecam, FreecamControlPolicy, FreecamProjectionPolicy},
     },
     physics::character::CharacterMovementConfig,
@@ -32,6 +36,7 @@ pub(super) fn configure(app: &mut App) {
     register_voxel_variables(app);
     register_character_variables(app);
     register_freecam_variables(app);
+    register_developer_lab_variables(app);
 
     app.register_console_command_with_completion(
         ConsoleCommandSpec {
@@ -201,6 +206,29 @@ fn register_character_variables(app: &mut App) {
     ));
 }
 
+fn register_developer_lab_variables(app: &mut App) {
+    app.register_runtime_variable(RuntimeVariableBinding::new(
+        RuntimeVariableSpec {
+            path: "debug.locomotion.regime",
+            summary: "Temporary locomotion resolver override; `automatic` restores normal policy.",
+            value_type: RuntimeVariableValueType::Enum,
+            units: None,
+            authority: RuntimeVariableAuthority::LocalDeveloperControl,
+            domain: RuntimeVariableDomain::Choices(&[
+                "automatic",
+                "on_foot",
+                "local_flight",
+                "planetary_flight",
+                "cruise",
+            ]),
+        },
+        get_debug_locomotion_regime,
+        set_debug_locomotion_regime,
+        reset_debug_locomotion_regime,
+        || "automatic".to_string(),
+    ));
+}
+
 fn register_freecam_variables(app: &mut App) {
     app.register_runtime_variable(RuntimeVariableBinding::new(
         RuntimeVariableSpec {
@@ -302,9 +330,10 @@ fn debug_freecam_command(
         return ConsoleCommandResult::error("usage: debug freecam [on|off|toggle]");
     }
 
-    let current = world.resource::<DebugFreecam>().enabled();
-    let enabled = match invocation.args().first().map(String::as_str) {
-        None | Some("toggle") => !current,
+    let preset_active = lab::preset_active(world, "freecam");
+    let manually_enabled = world.resource::<DebugFreecam>().enabled();
+    let enable = match invocation.args().first().map(String::as_str) {
+        None | Some("toggle") => !(preset_active || manually_enabled),
         Some(value) if value.eq_ignore_ascii_case("on") => true,
         Some(value) if value.eq_ignore_ascii_case("off") => false,
         Some(value) => {
@@ -313,12 +342,24 @@ fn debug_freecam_command(
             ));
         }
     };
-    world.resource_mut::<DebugFreecam>().set_enabled(enabled);
+
+    let result = if enable {
+        lab::apply_preset(world, "freecam")
+    } else if preset_active {
+        lab::clear_preset(world, Some("freecam"))
+    } else {
+        world.resource_mut::<DebugFreecam>().set_enabled(false);
+        Ok(true)
+    };
+    if let Err(error) = result {
+        return ConsoleCommandResult::error(error);
+    }
 
     let settings = world.resource::<DebugFreecam>();
     ConsoleCommandResult::success_and_return_to_gameplay(format!(
-        "debug freecam {} | control={} projection={} view-demand={} | dense gameplay demand unchanged",
-        if enabled { "enabled" } else { "disabled" },
+        "debug freecam {} | preset={} control={} projection={} view-demand={} | dense gameplay demand unchanged",
+        if settings.enabled() { "enabled" } else { "disabled" },
+        if lab::preset_active(world, "freecam") { "active" } else { "inactive" },
         settings.control_policy().label(),
         settings.projection_policy().label(),
         settings.view_demand_mode().label(),
@@ -441,6 +482,83 @@ fn set_air_wish_speed_cap(world: &mut World, raw: &str) -> Result<(), String> {
 fn reset_air_wish_speed_cap(world: &mut World) -> Result<(), String> {
     let value = CharacterMovementConfig::default().air_wish_speed_cap;
     with_character_config(world, |config| config.air_wish_speed_cap = value)
+}
+
+fn debug_regime_label(regime: LocomotionRegime) -> &'static str {
+    match regime {
+        LocomotionRegime::OnFoot => "on_foot",
+        LocomotionRegime::LocalFlight => "local_flight",
+        LocomotionRegime::PlanetaryFlight => "planetary_flight",
+        LocomotionRegime::Cruise => "cruise",
+    }
+}
+
+fn parse_debug_regime(raw: &str) -> Result<Option<LocomotionRegime>, String> {
+    let normalized = raw.trim().to_ascii_lowercase().replace('-', "_");
+    Ok(match normalized.as_str() {
+        "automatic" | "auto" | "none" | "off" => None,
+        "on_foot" | "onfoot" | "foot" => Some(LocomotionRegime::OnFoot),
+        "local_flight" | "local" => Some(LocomotionRegime::LocalFlight),
+        "planetary_flight" | "planetary" | "orbital" => {
+            Some(LocomotionRegime::PlanetaryFlight)
+        }
+        "cruise" => Some(LocomotionRegime::Cruise),
+        _ => {
+            return Err(format!(
+                "debug.locomotion.regime must be automatic, on_foot, local_flight, planetary_flight or cruise; got `{raw}`"
+            ));
+        }
+    })
+}
+
+fn controlled_locomotion_target(
+    world: &mut World,
+) -> Result<(Entity, LocomotionCapabilities), String> {
+    let mut query = world.query_filtered::<
+        (Entity, &LocomotionCapabilities),
+        With<LocalControlSubject>,
+    >();
+    query
+        .iter(world)
+        .next()
+        .map(|(entity, capabilities)| (entity, *capabilities))
+        .ok_or_else(|| "controlled locomotion subject is unavailable".to_string())
+}
+
+fn get_debug_locomotion_regime(world: &mut World) -> Result<String, String> {
+    let (entity, _) = controlled_locomotion_target(world)?;
+    Ok(world
+        .get::<LocomotionRegimeOverride>(entity)
+        .copied()
+        .map_or("automatic", |value| debug_regime_label(value.regime()))
+        .to_string())
+}
+
+fn set_debug_locomotion_regime(world: &mut World, raw: &str) -> Result<(), String> {
+    let requested = parse_debug_regime(raw)?;
+    let (entity, capabilities) = controlled_locomotion_target(world)?;
+
+    match requested {
+        None => {
+            world.entity_mut(entity).remove::<LocomotionRegimeOverride>();
+        }
+        Some(regime) => {
+            if !capabilities.supports_regime(regime) {
+                return Err(format!(
+                    "controlled subject does not support forced locomotion regime `{}`",
+                    debug_regime_label(regime)
+                ));
+            }
+            world
+                .entity_mut(entity)
+                .insert(LocomotionRegimeOverride::new(regime));
+        }
+    }
+    Ok(())
+}
+
+fn reset_debug_locomotion_regime(world: &mut World) -> Result<(), String> {
+    set_debug_locomotion_regime(world, "automatic")
 }
 
 fn get_freecam_enabled(world: &mut World) -> Result<String, String> {

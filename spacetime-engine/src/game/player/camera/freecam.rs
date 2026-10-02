@@ -13,6 +13,7 @@ use bevy::{
 };
 
 use crate::{
+    devtools::DeveloperScriptWorkbench,
     game::{
         control::LocalViewTarget,
         player::{
@@ -191,6 +192,7 @@ pub(in crate::game::player) fn update_freecam(
     controller: Single<&PlayerController, With<Player>>,
     view_target: Single<&UsfScaleLayer, With<LocalViewTarget>>,
     settings: Res<DebugFreecam>,
+    script_workbench: Res<DeveloperScriptWorkbench>,
     mut camera: Single<&mut Transform, With<PlayerCamera>>,
 ) {
     if !settings.enabled()
@@ -237,8 +239,12 @@ pub(in crate::game::player) fn update_freecam(
     } else {
         1.0
     };
+    let authored_speed = f64::from(settings.translation_speed_mps());
+    let scripted_speed = script_workbench
+        .apply_live_scalar(authored_speed)
+        .clamp(0.0, 1.0e9) as f32;
     let distance_metres =
-        settings.translation_speed_mps() * boost * time.delta_secs().max(0.0);
+        scripted_speed * boost * time.delta_secs().max(0.0);
     let distance_native = layer.scale().metres_to_native_f32(distance_metres);
     let rotation = camera.rotation;
     camera.translation += rotation * local_direction * distance_native;

@@ -11,6 +11,7 @@ mod gizmo;
 mod inspect;
 pub mod inspect_ui;
 mod structure;
+mod script_workbench;
 mod tools;
 mod ui;
 mod view;
@@ -30,6 +31,7 @@ pub use inspect::{
 };
 pub use inspect_ui::{AppInspectorWidgetsExt, InspectorWidgetRegistry};
 pub use structure::{StructureFrame, StructureItem, StructureItemId, StructureSelection};
+pub(crate) use script_workbench::{DeveloperScriptWorkbench, draw_developer_lab};
 pub use tools::{AppDeveloperToolsExt, DeveloperTools, VisualizationId, VisualizationSpec};
 pub use view::DeveloperView;
 
@@ -103,6 +105,7 @@ impl Plugin for DeveloperToolsPlugin {
         gizmo::configure(app);
         draw::configure(app);
         ui::configure(app);
+        script_workbench::configure(app);
         editor::configure(app);
     }
 }

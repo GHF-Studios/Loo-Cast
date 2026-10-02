@@ -5,6 +5,7 @@ use super::*;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum EditorTab {
     Game,
+    DeveloperLab,
     Hierarchy,
     Structure,
     SemanticInspector,
@@ -48,6 +49,7 @@ impl Default for EditorShell {
             game,
             0.666,
             vec![
+                EditorTab::DeveloperLab,
                 EditorTab::Resources,
                 EditorTab::Assets,
                 EditorTab::Visualizations,
