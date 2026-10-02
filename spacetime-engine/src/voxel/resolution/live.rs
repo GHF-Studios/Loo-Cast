@@ -1388,7 +1388,7 @@ fn sync_celestial_clipmap_realizations(
         &VoxelAuthority,
         &CelestialVoxelRealizationPolicy,
     )>,
-    blocks: Query<(Entity, &CelestialClipmapBlock)>,
+    blocks: Query<(Entity, &CelestialClipmapBlock, &Visibility)>,
     mut plan_tasks: Query<(Entity, &mut CelestialClipmapPlanBuildTask)>,
     mut build_tasks: Query<(Entity, &mut CelestialClipmapBuildTask)>,
     mut registry: ResMut<CelestialClipmapRegistry>,
@@ -1600,33 +1600,39 @@ let committed_generation = registry
 
     let mut existing_by_spec =
         HashMap::<(Entity, u64, CelestialClipmapBlockSpec), Entity>::new();
+    let mut projected_specs =
+        HashSet::<(Entity, u64, CelestialClipmapBlockSpec)>::new();
 
     {
         let _span = bevy::log::info_span!("celestial_clipmap.index_blocks").entered();
-        for (entity, block) in &blocks {
+        for (entity, block, visibility) in &blocks {
             if !live_authorities.contains(&block.authority) {
                 commands.entity(entity).despawn();
                 continue;
             }
+
             let key = (block.authority, block.policy_revision, block.spec);
             if existing_by_spec.contains_key(&key) {
                 commands.entity(entity).despawn();
-            } else {
-                existing_by_spec.insert(key, entity);
+                continue;
+            }
+
+            existing_by_spec.insert(key, entity);
+            if !matches!(*visibility, Visibility::Hidden) {
+                projected_specs.insert(key);
             }
         }
 
         for (&authority, plan) in &mut registry.plans {
             for &spec in &plan.desired {
-                if let Some(&entity) = existing_by_spec.get(&(
+                if existing_by_spec.contains_key(&(
                     authority,
                     plan.key.policy_revision,
                     spec,
                 )) {
+                    // Mesh existence settles build work. Projection readiness
+                    // remains independent and is represented by projected_specs.
                     plan.completed.insert(spec);
-                    // Repair blocks produced by older transactional code that
-                    // may still be parked hidden in the current generation.
-                    commands.entity(entity).insert(Visibility::Inherited);
                 }
             }
         }
@@ -1709,9 +1715,10 @@ let committed_generation = registry
                         Mesh3d(meshes.add(mesh.into_mesh())),
                         MeshMaterial3d(policy.presentation_material().clone()),
                         Transform::IDENTITY,
-                        // Realized presentation becomes visible immediately.
-                        // Whole-plan completion is retirement bookkeeping only.
-                        Visibility::Inherited,
+                        // A mesh entity is not presentation coverage until its
+                        // canonical anchor projects successfully into the active
+                        // runtime chart.
+                        Visibility::Hidden,
                     ))
                     .id();
                 existing_by_spec.insert(
@@ -1738,7 +1745,7 @@ let committed_generation = registry
                 .iter()
                 .copied()
                 .filter(|spec| {
-                    existing_by_spec.contains_key(&(
+                    projected_specs.contains(&(
                         authority,
                         plan.key.policy_revision,
                         *spec,
@@ -1833,50 +1840,38 @@ let committed_generation = registry
                 continue;
             }
 
-            // Coverage may only be published for presentation that
-            // actually exists. A build returning `None` still settles that
-            // desired spec, but it must never create counterfeit coverage that
-            // causes regional fallback terrain to cull itself.
-            let realized_specs = plan
+            let projected_replacements = plan
                 .desired
                 .iter()
-                .copied()
                 .filter(|spec| {
-                    existing_by_spec.contains_key(&(
+                    projected_specs.contains(&(
                         authority,
                         plan.key.policy_revision,
-                        *spec,
+                        **spec,
                     ))
                 })
-                .collect::<Vec<_>>();
-            if realized_specs.is_empty() {
+                .count();
+
+            // Make-before-break: mesh existence is insufficient. Do not retire
+            // the previous generation until current-generation presentation has
+            // actually projected successfully into the runtime chart.
+            if projected_replacements == 0 {
                 continue;
             }
 
             let desired = plan.desired.iter().copied().collect::<HashSet<_>>();
-            for (entity, block) in &blocks {
+            for (entity, block, _visibility) in &blocks {
                 if block.authority != authority {
                     continue;
                 }
-                if block.policy_revision == plan.key.policy_revision
-                    && desired.contains(&block.spec)
+                if block.policy_revision != plan.key.policy_revision
+                    || !desired.contains(&block.spec)
                 {
-                    commands.entity(entity).insert(Visibility::Inherited);
-                } else {
                     commands.entity(entity).despawn();
                 }
             }
-            for &spec in &plan.desired {
-                if let Some(&entity) = existing_by_spec.get(&(
-                    authority,
-                    plan.key.policy_revision,
-                    spec,
-                )) {
-                    commands.entity(entity).insert(Visibility::Inherited);
-                }
-            }
 
-            // Coverage is already published progressively from realized blocks.
+            // Coverage is already published progressively from projected blocks.
             plan.committed_generation = Some(plan.generation);
         }
     }
@@ -1948,6 +1943,13 @@ fn sync_celestial_clipmap_transforms(
         transform.translation = translation;
         transform.rotation = rotation;
         transform.scale = Vec3::splat(metre_to_native);
+
+        // Projection failure is transient runtime state, not permanent
+        // presentation retirement. Recover visibility whenever the canonical
+        // block can be projected again.
+        if matches!(*visibility, Visibility::Hidden) {
+            *visibility = Visibility::Inherited;
+        }
     }
 }
 
