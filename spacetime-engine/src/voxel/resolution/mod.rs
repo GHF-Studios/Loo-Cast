@@ -13,6 +13,12 @@
 
 #![allow(dead_code)]
 
+mod live;
+
+pub(super) use live::{
+    CelestialClipmapCoverageCell, CelestialClipmapCoverageSnapshot,
+};
+
 use std::collections::HashMap;
 
 use bevy::prelude::IVec3;
@@ -127,7 +133,7 @@ impl VoxelTransitionFaces {
         self.0 & face.bit() != 0
     }
 
-    fn insert(&mut self, face: VoxelTransitionFace) {
+    pub(crate) fn insert(&mut self, face: VoxelTransitionFace) {
         self.0 |= face.bit();
     }
 }
@@ -376,4 +382,9 @@ mod tests {
             Some(VoxelPresentationResolution::new(2)),
         );
     }
+}
+
+
+pub(super) fn configure(app: &mut bevy::prelude::App) {
+    live::configure(app);
 }

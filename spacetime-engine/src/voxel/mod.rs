@@ -111,6 +111,7 @@ enum VoxelPostUpdateSet {
 impl Plugin for VoxelPlugin {
     fn build(&self, app: &mut App) {
         manifestation::configure(app);
+        resolution::configure(app);
 
         app.init_resource::<manifestation::VoxelMaterializationRuntimeRegistry>()
             .init_resource::<VoxelRealizationIntentSnapshot>()

@@ -18,16 +18,18 @@ pub(super) enum VoxelWorkerLane {
     Generation,
     Derivation,
     PlanetarySurface,
+    PresentationResolution,
 }
 
 impl VoxelWorkerLane {
-    const COUNT: usize = 3;
+    const COUNT: usize = 4;
 
     const fn index(self) -> usize {
         match self {
             Self::Generation => 0,
             Self::Derivation => 1,
             Self::PlanetarySurface => 2,
+            Self::PresentationResolution => 3,
         }
     }
 }
@@ -46,8 +48,9 @@ impl VoxelWorkerAdmission {
                 AtomicUsize::new(0),
                 AtomicUsize::new(0),
                 AtomicUsize::new(0),
+                AtomicUsize::new(0),
             ],
-            limits: [pipeline_depth, pipeline_depth, 2],
+            limits: [pipeline_depth, pipeline_depth, 2, 2],
         }
     }
 

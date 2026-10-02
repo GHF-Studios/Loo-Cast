@@ -26,6 +26,7 @@ use crate::{
 
 use super::{
     CelestialVoxelField, CelestialVoxelRealizationPolicy,
+    resolution::{CelestialClipmapCoverageCell, CelestialClipmapCoverageSnapshot},
     worker::{VoxelWorkerLane, VoxelWorkerPool, VoxelWorkerTask, VoxelWorkerTicket},
 };
 
@@ -255,6 +256,7 @@ struct PlanetarySurfacePlanState {
     dense_coverage: Vec<PlanetaryDenseCoverageGeometry>,
     dense_local: Arc<HashMap<Entity, PlanetaryDenseCoverageLocal>>,
     dense_bounds: Option<PlanetaryDenseCoverageBounds>,
+    clipmap_coverage: Vec<CelestialClipmapCoverageCell>,
     desired: Vec<PlanetarySurfacePatchId>,
 }
 
@@ -292,6 +294,7 @@ pub(super) fn sync_planetary_surface_realizations(
     mut meshes: ResMut<Assets<Mesh>>,
     views: Res<UsfViewDemandSnapshot>,
     coverage: Res<UsfScaleCoverageSnapshot>,
+    clipmap_coverage: Res<CelestialClipmapCoverageSnapshot>,
     mut workers: ResMut<VoxelWorkerPool>,
     authorities: Query<(
         Entity,
@@ -348,10 +351,13 @@ pub(super) fn sync_planetary_surface_realizations(
                 .get(&authority)
                 .cloned()
                 .unwrap_or_default();
+            let clipmap_geometry =
+                clipmap_coverage.for_authority(authority).to_vec();
 
             let previous = cache.plans.get(&authority);
             let coverage_changed = previous.is_none_or(|plan| {
                 plan.dense_coverage != dense_geometry
+                    || plan.clipmap_coverage != clipmap_geometry
                     || plan.body_origin != *body_origin
                     || plan.body_frame != *body_frame
             });
@@ -444,6 +450,7 @@ pub(super) fn sync_planetary_surface_realizations(
                         max_level,
                         dense_local.as_ref(),
                         dense_bounds,
+                        &clipmap_geometry,
                     )
                 })
             };
@@ -456,6 +463,7 @@ pub(super) fn sync_planetary_surface_realizations(
                 dense_coverage: dense_geometry,
                 dense_local,
                 dense_bounds,
+                clipmap_coverage: clipmap_geometry,
                 desired: selected,
             });
         }
@@ -755,6 +763,7 @@ fn evaluate_patch(
     max_level: u8,
     dense_coverage: &HashMap<Entity, PlanetaryDenseCoverageLocal>,
     dense_bounds: Option<PlanetaryDenseCoverageBounds>,
+    clipmap_coverage: &[CelestialClipmapCoverageCell],
 ) -> PatchDecision {
     let direction = patch.center_direction();
     let radius_metres = patch.approximate_radius_metres(field.radius_metres());
@@ -779,29 +788,53 @@ fn evaluate_patch(
         }
     }
 
-    // Dense replacement is sparse and local. The expensive canonical projection
-    // has already happened once per changed materialization in coverage_sync.
-    if !dense_coverage.is_empty() {
+    // Local replacement is sparse and presentation-only. Dense capability
+    // coverage and the committed binary clipmap are independent evidence
+    // sources; either may refine/cull the regional approximation.
+    if !dense_coverage.is_empty() || !clipmap_coverage.is_empty() {
         let Ok(center_local_metres) =
             field.surface_local_metres(direction, sample_scale)
         else {
             return PatchDecision::Keep;
         };
 
-        if dense_bounds.is_none_or(|bounds| {
-            bounds.intersects_sphere(center_local_metres, radius_metres)
-        }) {
-            match dense_coverage_relation(
+        let mut relation = DenseCoverageRelation::None;
+
+        if !dense_coverage.is_empty()
+            && dense_bounds.is_none_or(|bounds| {
+                bounds.intersects_sphere(center_local_metres, radius_metres)
+            })
+        {
+            relation = dense_coverage_relation(
                 center_local_metres,
                 radius_metres,
                 dense_coverage,
-            ) {
-                DenseCoverageRelation::Full => return PatchDecision::Cull,
-                DenseCoverageRelation::Partial if patch.level < max_level => {
-                    return PatchDecision::Refine;
-                }
-                DenseCoverageRelation::Partial | DenseCoverageRelation::None => {}
+            );
+        }
+
+        if relation != DenseCoverageRelation::Full
+            && !clipmap_coverage.is_empty()
+        {
+            let clipmap_relation = clipmap_coverage_relation(
+                center_local_metres,
+                radius_metres,
+                clipmap_coverage,
+            );
+            relation = match (relation, clipmap_relation) {
+                (DenseCoverageRelation::Full, _)
+                | (_, DenseCoverageRelation::Full) => DenseCoverageRelation::Full,
+                (DenseCoverageRelation::Partial, _)
+                | (_, DenseCoverageRelation::Partial) => DenseCoverageRelation::Partial,
+                _ => DenseCoverageRelation::None,
+            };
+        }
+
+        match relation {
+            DenseCoverageRelation::Full => return PatchDecision::Cull,
+            DenseCoverageRelation::Partial if patch.level < max_level => {
+                return PatchDecision::Refine;
             }
+            DenseCoverageRelation::Partial | DenseCoverageRelation::None => {}
         }
     }
 
@@ -825,6 +858,40 @@ fn evaluate_patch(
         PatchDecision::Refine
     } else {
         PatchDecision::Keep
+    }
+}
+
+fn clipmap_coverage_relation(
+    patch_center_local_metres: DVec3,
+    patch_radius_metres: f64,
+    clipmap_coverage: &[CelestialClipmapCoverageCell],
+) -> DenseCoverageRelation {
+    let mut partial = false;
+
+    for realized in clipmap_coverage {
+        let delta =
+            patch_center_local_metres - realized.center_local_metres();
+        let distance_squared = delta.length_squared();
+        let inner = realized.inner_radius_metres();
+        let outer = realized.outer_radius_metres();
+
+        let full_radius = (inner - patch_radius_metres).max(0.0);
+        if inner >= patch_radius_metres
+            && distance_squared <= full_radius * full_radius
+        {
+            return DenseCoverageRelation::Full;
+        }
+
+        let partial_radius = outer + patch_radius_metres;
+        if distance_squared <= partial_radius * partial_radius {
+            partial = true;
+        }
+    }
+
+    if partial {
+        DenseCoverageRelation::Partial
+    } else {
+        DenseCoverageRelation::None
     }
 }
 
