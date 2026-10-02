@@ -4,6 +4,7 @@ mod definition;
 mod landmarks;
 mod player;
 mod scenery;
+mod spawn;
 
 use bevy::prelude::*;
 

@@ -21,23 +21,29 @@ use crate::{
         character::{CharacterControlFrame, CharacterLocomotionFrame},
     },
     portal::PortalTraveler,
+    voxel::CelestialVoxelField,
     spatial::{
         SpatialRefinementDemand, UsfCanonicalMotion, UsfPosition, UsfScaleLayer,
+        UsfSemanticFrame,
         UsfScaleRoleMask, UsfSpatialFrame, UsfSpatialTransition,
         UsfSpatialTransitionQueue, UsfTransitionVelocity,
     },
 };
 
-use super::FixtureArrivalSite;
+use super::{FixtureArrivalSite, spawn::resolve_good_spawn};
 
 const FIXTURE_SPAWN_GAP_METRES: f32 = 0.75;
+const FIXTURE_SPACECRAFT_AIR_GAP_METRES: f32 = 25.0;
 
 pub(super) fn prepare_controlled_subject(
     arrival_site: Res<FixtureArrivalSite>,
     frame: Res<UsfSpatialFrame>,
     ownership: UsfOwnershipQuery,
     mut transitions: ResMut<UsfSpatialTransitionQueue>,
-    mut semantic_positions: Query<&mut UsfPosition>,
+    mut positions: ParamSet<(
+        Query<&mut UsfPosition>,
+        Query<(&UsfPosition, &UsfSemanticFrame, &CelestialVoxelField)>,
+    )>,
     subject: Single<
         (
             Entity,
@@ -73,8 +79,34 @@ pub(super) fn prepare_controlled_subject(
         mut refinement,
     ) = subject.into_inner();
 
-    let Some(site) = arrival_site.site() else {
-        error!("fixture bootstrap has no resolved body-surface arrival site");
+    let Some(authored_site) = arrival_site.site() else {
+        error!("fixture bootstrap has no authored body-surface arrival hint");
+        return;
+    };
+
+    let Ok((body_origin, body_frame, field)) =
+        positions.p1().get(authored_site.body()).map(|(origin, frame, field)| {
+            (*origin, *frame, *field)
+        })
+    else {
+        error!(
+            body = ?authored_site.body(),
+            "fixture bootstrap arrival body semantic field is unavailable"
+        );
+        return;
+    };
+
+    let Some(site) = resolve_good_spawn(
+        authored_site,
+        body_origin,
+        body_frame,
+        field,
+        *hull,
+    ) else {
+        error!(
+            body = ?authored_site.body(),
+            "fixture bootstrap could not resolve a safe canonical spawn near the authored hint"
+        );
         return;
     };
 
@@ -93,7 +125,12 @@ pub(super) fn prepare_controlled_subject(
 
     // Generic oriented-body support radius, in metres.
     let support_metres = hull.projection_radius_metres(aligned, site.up());
-    let clearance_metres = support_metres + FIXTURE_SPAWN_GAP_METRES;
+    let spawn_gap_metres = if flight_contact.is_some() {
+        FIXTURE_SPACECRAFT_AIR_GAP_METRES
+    } else {
+        FIXTURE_SPAWN_GAP_METRES
+    };
+    let clearance_metres = support_metres + spawn_gap_metres;
     let clearance_native = site.scale().metres_to_native_f32(clearance_metres);
 
     let Ok(canonical) = site
@@ -116,6 +153,7 @@ pub(super) fn prepare_controlled_subject(
         return;
     };
 
+    let mut semantic_positions = positions.p0();
     let Ok(mut semantic) = semantic_positions.get_mut(semantic_entity) else {
         error!(
             subject = ?semantic_entity,
@@ -137,7 +175,7 @@ pub(super) fn prepare_controlled_subject(
     refinement.request_through(site.scale());
 
     let coverage_radius_metres =
-        hull.half_extents_metres().length() + FIXTURE_SPAWN_GAP_METRES;
+        hull.half_extents_metres().length() + spawn_gap_metres;
     let coverage_radius_native =
         site.scale().metres_to_native_f32(coverage_radius_metres);
 
@@ -160,19 +198,14 @@ pub(super) fn prepare_controlled_subject(
     motion.stop();
     locomotion.request_automatic();
 
-    // A body-surface fixture arrival is a contact pose, not an airborne pose
-    // with dead actuators. Spacecraft begin landed so the existing TakeOff
-    // transaction owns the release into LocalFlight + thrusters/RCS.
-    //
-    // Non-spacecraft controlled subjects simply have neither optional
-    // component and retain their ordinary automatic locomotion resolution.
+    // Safe fixture spacecraft begin clear of terrain and immediately usable.
     if let Some(contact) = flight_contact.as_deref_mut() {
-        contact.land();
-        locomotion.set_thrusters_enabled(false);
-        locomotion.set_rcs_enabled(false);
+        contact.launch();
+        locomotion.set_thrusters_enabled(true);
+        locomotion.set_rcs_enabled(true);
     }
     if let Some(inhibition) = inhibition.as_deref_mut() {
-        inhibition.set(LocomotionInhibitionReason::SurfaceContact, true);
+        inhibition.set(LocomotionInhibitionReason::SurfaceContact, false);
     }
 
     info!(
@@ -181,7 +214,7 @@ pub(super) fn prepare_controlled_subject(
         bootstrap_scale = %layer.scale(),
         site_scale = %site.scale(),
         support_metres,
-        gap_metres = FIXTURE_SPAWN_GAP_METRES,
+        gap_metres = spawn_gap_metres,
         runtime = ?runtime_position,
         "prepared coverage-gated canonical body-surface arrival"
     );
