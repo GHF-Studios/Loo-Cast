@@ -426,11 +426,13 @@ fn canonical_detail_noise_at(
             CelestialBodyProfile::Lunar => {
                 self.radius_metres * f64::from(lunar_macro_relative_relief(direction))
             }
-            CelestialBodyProfile::Rocky => rocky_surface_displacement_metres(
-                direction,
-                through_scale,
-                self.seed,
-            ),
+            CelestialBodyProfile::Rocky => {
+                rocky_surface_displacement_metres(
+                    direction,
+                    through_scale,
+                    self.seed,
+                ) + rocky_exaggerated_relief_metres(direction, self.seed)
+            }
             CelestialBodyProfile::Stellar => {
                 self.radius_metres
                     * f64::from(stellar_macro_relative_relief(direction, self.seed))
@@ -452,6 +454,7 @@ fn canonical_detail_noise_at(
             }
             CelestialBodyProfile::Rocky => {
                 rocky_maximum_outward_displacement_metres()
+                    + ROCKY_EXAGGERATED_OUTWARD_BOUND_METRES
             }
             CelestialBodyProfile::Stellar => self.radius_metres * 0.00035,
         }
@@ -469,6 +472,76 @@ fn dvec(value: Vec3) -> DVec3 {
         f64::from(value.y),
         f64::from(value.z),
     )
+}
+
+const ROCKY_EXAGGERATED_OUTWARD_BOUND_METRES: f64 = 110_000.0;
+
+/// Deliberately unmistakable development morphology layered onto the ordinary
+/// rocky semantic bands.
+///
+/// This is canonical physical terrain, not presentation displacement. Every
+/// consumer of `semantic_surface_radius_metres()` therefore sees the same
+/// mountains/valleys: dense voxels, travel boundaries, clipmap and regional
+/// presentation.
+///
+/// The amplitudes are intentionally exaggerated while the world-generation
+/// stack is being exercised. Once end-to-end terrain realization is healthy,
+/// this can become an authored profile parameter instead of a hardcoded dev
+/// morphology layer.
+fn rocky_exaggerated_relief_metres(direction: Vec3, seed: u32) -> f64 {
+    let direction = normalized_direction(direction);
+
+    // Planetary-scale uplift/subsidence: unmistakable broad topography.
+    let province = value_noise_3d(
+        direction * 2.4 + Vec3::new(7.3, -11.8, 4.1),
+        seed ^ 0x5052_4F56,
+    );
+
+    // Narrow high ridge networks from zero contours of a coherent carrier.
+    let alpine_carrier = value_noise_3d(
+        direction * 13.0 + Vec3::new(-17.2, 6.9, 12.4),
+        seed ^ 0x414C_504E,
+    );
+    let alpine_ridge =
+        (1.0 - alpine_carrier.abs()).max(0.0).powi(6);
+    let alpine_envelope = (
+        value_noise_3d(
+            direction * 3.7 + Vec3::new(3.1, 19.6, -8.8),
+            seed ^ 0xA1F1_4E55,
+        ) * 0.5
+            + 0.5
+    )
+        .clamp(0.0, 1.0);
+
+    // Independent narrow negative networks make obvious canyon/rift systems.
+    let canyon_carrier = value_noise_3d(
+        direction * 18.0 + Vec3::new(14.2, -4.7, -16.5),
+        seed ^ 0x4341_4E59,
+    );
+    let canyon_line =
+        (1.0 - canyon_carrier.abs()).max(0.0).powi(7);
+    let canyon_envelope = (
+        value_noise_3d(
+            direction * 4.3 + Vec3::new(-9.9, 5.4, 21.1),
+            seed ^ 0x5249_4654,
+        ) * 0.5
+            + 0.5
+    )
+        .clamp(0.0, 1.0);
+
+    // Signed serration prevents the non-ridge regions from becoming bland.
+    let serration = value_noise_3d(
+        direction * 37.0 + Vec3::new(1.7, -13.3, 9.2),
+        seed ^ 0x5345_5252,
+    );
+
+    let relief =
+        f64::from(province) * 18_000.0
+        + f64::from(alpine_ridge * alpine_envelope) * 72_000.0
+        - f64::from(canyon_line * canyon_envelope) * 52_000.0
+        + f64::from(serration) * 6_000.0;
+
+    relief.clamp(-85_000.0, 105_000.0)
 }
 
 fn stellar_macro_relative_relief(direction: Vec3, seed: u32) -> f32 {
@@ -545,6 +618,52 @@ mod tests {
                 body.radius_native_f64() * scale.metres_per_native();
             assert!((reconstructed - radius_metres).abs() < 1.0e-6);
         }
+    }
+
+    #[test]
+    fn rocky_canonical_surface_is_unmistakably_non_spherical() {
+        let body = ProceduralCelestialBody::new(
+            earth_center(),
+            UsfSemanticFrame::identity(),
+            6_371_000.0,
+            SpatialScale::ZERO,
+            SpatialScale::new(6).unwrap(),
+            SpatialScale::ZERO,
+            0x4541_5254,
+            CelestialBodyProfile::Rocky,
+        );
+
+        let mut minimum = f64::INFINITY;
+        let mut maximum = f64::NEG_INFINITY;
+        for index in 0..512 {
+            let i = index as f32 + 0.5;
+            let n = 512.0_f32;
+            let y = 1.0 - 2.0 * i / n;
+            let horizontal = (1.0 - y * y).max(0.0).sqrt();
+            let golden_ratio = (1.0 + 5.0_f32.sqrt()) * 0.5;
+            let theta = std::f32::consts::TAU * index as f32 / golden_ratio;
+            let direction =
+                Vec3::new(theta.cos() * horizontal, y, theta.sin() * horizontal)
+                    .normalize();
+            let radius = body.surface_local_metres(direction).unwrap().length();
+            let relief = radius - body.radius_metres();
+            minimum = minimum.min(relief);
+            maximum = maximum.max(relief);
+        }
+
+        assert!(
+            maximum >= 20_000.0,
+            "expected obviously mountainous canonical surface, max={maximum:.1} m"
+        );
+        assert!(
+            minimum <= -10_000.0,
+            "expected obvious canonical valleys/canyons, min={minimum:.1} m"
+        );
+        assert!(
+            maximum - minimum >= 40_000.0,
+            "expected large canonical relief span, got {:.1} m",
+            maximum - minimum,
+        );
     }
 
     #[test]
