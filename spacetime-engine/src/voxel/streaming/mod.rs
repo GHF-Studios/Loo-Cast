@@ -245,6 +245,7 @@ impl VoxelStreaming {
         }
 
         if changed {
+            self.prune_stale_pending();
             self.policy_revision = self.policy_revision.wrapping_add(1).max(1);
         }
     }
@@ -255,6 +256,12 @@ impl VoxelStreaming {
 
     fn is_effectively_desired(&self, key: VoxelMaterializationKey) -> bool {
         self.effective_desired.contains(&key)
+    }
+
+    fn prune_stale_pending(&mut self) {
+        let desired = &self.effective_desired;
+        self.pending_desired
+            .retain(|demanded| desired.contains(&demanded.key));
     }
 
     fn migration_candidate_addresses(

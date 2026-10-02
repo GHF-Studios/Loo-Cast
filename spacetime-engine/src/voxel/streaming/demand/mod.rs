@@ -99,16 +99,13 @@ impl VoxelDemandMotion {
             speed_native / MATERIALIZATION_CHUNK_SIZE as f32;
         let bias = (speed_chunks / (speed_chunks + 1.0)).clamp(0.0, 1.0);
 
-        let mut predicted_offset_native =
+        // predictive-horizon-v1
+        //
+        // Prediction must extend beyond the ordinary local load radius or
+        // consecutive extreme-speed plans become disjoint and async generation
+        // is cancelled before it can ever publish.
+        let predicted_offset_native =
             velocity_native * MOTION_LOOKAHEAD_SECONDS;
-        let max_lookahead = demand
-            .half_extent_native()
-            .length()
-            .max(MATERIALIZATION_CHUNK_SIZE as f32);
-        let predicted_length = predicted_offset_native.length();
-        if predicted_length > max_lookahead && predicted_length > f32::EPSILON {
-            predicted_offset_native *= max_lookahead / predicted_length;
-        }
 
         Self {
             predicted_offset_native,
@@ -820,6 +817,7 @@ fn refresh_demand_plan(
             VoxelMaterializationBox::from_plan(streaming.demand_key[0]),
             VoxelMaterializationBox::from_plan(key[0]),
         )
+        && previous_box.intersection(next_box).is_some()
     {
         let _span =
             bevy::log::info_span!("voxel_residency.enumerate_delta").entered();
@@ -965,8 +963,10 @@ fn demanded_chunk_for_key(
 ) -> Result<DemandedChunk, UsfPositionError> {
     let demand = request.scope();
     let center = world.materialization_address(key)?.center()?;
-    let bound =
-        demand.half_extent_native().length() + MATERIALIZATION_CHUNK_SIZE as f32 * 2.0 + 1.0;
+    let bound = demand.half_extent_native().length()
+        + motion.predicted_offset_native.length()
+        + MATERIALIZATION_CHUNK_SIZE as f32 * 2.0
+        + 1.0;
     let relative = center.relative_at_scale_bounded(
         &demand.center(),
         demand.scale(),
@@ -1106,6 +1106,76 @@ fn collect_culled_region(
     collect_culled_region(center_key,center_origin,right,demand,request,view,pinned_shell,local_center,size,motion,merged)
 }
 
+fn collect_predictive_corridor(
+    world: &VoxelWorld,
+    center_key: VoxelMaterializationKey,
+    demand: SpatialDemandScope,
+    request: VoxelRealizationScope,
+    local_center: Vec3,
+    motion: VoxelDemandMotion,
+    maximum_desired_chunks: usize,
+    merged: &mut HashMap<VoxelMaterializationKey, DemandedChunk>,
+) -> Result<(), crate::spatial::UsfPositionError> {
+    let size = MATERIALIZATION_CHUNK_SIZE as f32;
+    let budget = maximum_desired_chunks.max(1);
+
+    // The emergency path is directly bounded in materialization count. Clamp
+    // physical lookahead to what can actually be represented as one continuous
+    // one-cell centerline within that budget.
+    let maximum_horizon =
+        budget.saturating_sub(1) as f32 * size;
+    let mut target_offset = motion.predicted_offset_native;
+    let target_length = target_offset.length();
+    if target_length > maximum_horizon
+        && target_length > f32::EPSILON
+    {
+        target_offset *= maximum_horizon / target_length;
+    }
+
+    let target_delta = checked_ivec3(
+        ((local_center + target_offset) / size).floor(),
+    )?;
+    let total_steps = target_delta
+        .x
+        .unsigned_abs()
+        .max(target_delta.y.unsigned_abs())
+        .max(target_delta.z.unsigned_abs()) as usize;
+
+    if total_steps == 0 {
+        let demanded =
+            demanded_chunk_for_key(world, request, center_key, motion)?;
+        merge_demanded_chunk(merged, demanded);
+        return Ok(());
+    }
+
+    let target_vec = target_delta.as_vec3();
+    let steps = total_steps.min(budget.saturating_sub(1));
+    let mut previous = None::<IVec3>;
+
+    // Enumerate the continuous prefix of the DDA-like centerline. At overload
+    // we prefer a guaranteed connected strip that workers can finish over a
+    // huge sparse volume that invalidates before completion.
+    for step in 0..=steps {
+        let t = step as f32 / total_steps as f32;
+        let delta = (target_vec * t).round().as_ivec3();
+        if previous == Some(delta) {
+            continue;
+        }
+        previous = Some(delta);
+
+        let key = center_key.translated_chunks(delta)?;
+        let demanded =
+            demanded_chunk_for_key(world, request, key, motion)?;
+        merge_demanded_chunk(merged, demanded);
+
+        if merged.len() >= budget {
+            break;
+        }
+    }
+
+    Ok(())
+}
+
 pub(super) fn demanded_chunk_addresses<T>(
     world: &VoxelWorld,
     demands: &[T],
@@ -1161,7 +1231,6 @@ where
             ((local_center + maximum_offset) / size).floor(),
         )?;
 
-        let region = VoxelRegionSpan::from_relative_bounds(center_key, minimum, maximum)?;
         let view = match request.view_source() {
             Some(source) => {
                 let Some(view) = view_demands.get(source) else { continue; };
@@ -1171,18 +1240,37 @@ where
         };
         let shell = pinned_shell.filter(|(source, _)| demand.source() == *source);
 
-        if view.is_some() || shell.is_some() {
-            collect_culled_region(
-                center_key, center_address.origin(), region, demand, request,
-                view, shell, local_center, size, motion, &mut merged,
+        if load_tier >= 3
+            && view.is_none()
+            && shell.is_none()
+            && motion.direction_native != Vec3::ZERO
+        {
+            // emergency-predictive-corridor-v1
+            collect_predictive_corridor(
+                world,
+                center_key,
+                demand,
+                request,
+                local_center,
+                motion,
+                maximum_desired_chunks.saturating_sub(merged.len()),
+                &mut merged,
             )?;
         } else {
-            // Exact demand still chooses the dense leaf backend today. The
-            // region is now the request boundary, so another backend can later
-            // satisfy it without changing materialization identity.
-            collect_all_region_leaves(
-                center_key, region, demand, request, local_center, size, motion, &mut merged,
-            )?;
+            let region =
+                VoxelRegionSpan::from_relative_bounds(center_key, minimum, maximum)?;
+
+            if view.is_some() || shell.is_some() {
+                collect_culled_region(
+                    center_key, center_address.origin(), region, demand, request,
+                    view, shell, local_center, size, motion, &mut merged,
+                )?;
+            } else {
+                collect_all_region_leaves(
+                    center_key, region, demand, request, local_center, size,
+                    motion, &mut merged,
+                )?;
+            }
         }
     }
 
@@ -1364,5 +1452,43 @@ mod adaptive_streaming_pressure_tests {
         assert_eq!(minimum, -half);
         assert_eq!(maximum, half);
         assert_eq!(desired_chunk_budget(24, 0), usize::MAX);
+    }
+}
+
+#[cfg(test)]
+mod high_speed_corridor_tests {
+    use super::*;
+
+    #[test]
+    fn predictive_horizon_is_not_clamped_to_the_local_load_radius() {
+        let mut ecs = World::new();
+        let source = ecs.spawn_empty().id();
+        let demand = SpatialDemandScope::at_scale(
+            source,
+            SpatialScale::ZERO,
+            UsfPosition::zero(SpatialScale::ZERO),
+            Vec3::splat(32.0),
+            0,
+        );
+        let motion =
+            VoxelDemandMotion::new(demand, DVec3::new(4_000.0, 0.0, 0.0));
+
+        assert!(
+            motion.predicted_offset_native.x > 32.0,
+            "prediction must reach beyond the ordinary load radius at high speed"
+        );
+    }
+
+    #[test]
+    fn disjoint_boxes_are_detected_as_a_full_jump() {
+        let a = VoxelMaterializationBox {
+            minimum: [0, 0, 0],
+            maximum: [3, 3, 3],
+        };
+        let b = VoxelMaterializationBox {
+            minimum: [20, 0, 0],
+            maximum: [23, 3, 3],
+        };
+        assert!(a.intersection(b).is_none());
     }
 }

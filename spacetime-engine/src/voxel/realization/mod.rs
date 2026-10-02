@@ -17,8 +17,8 @@ use crate::{
     ecs::UsfLogicalRealizationOf,
     spatial::{
         SpatialDemandScope, SpatialDemandSnapshot, SpatialRefinementDemand, SpatialScale,
-        UsfChartMask, UsfChunkAddress, UsfPosition, UsfRefinementPlan, UsfSemanticFrame,
-        UsfResidencyRequestBuffer, UsfScaleCoverageSnapshot, UsfScaleLayer,
+        UsfChartMask, UsfPosition, UsfRefinementPlan, UsfSemanticFrame,
+        UsfResidencyRequestBuffer, UsfScaleLayer,
         UsfScaleRoleMask,
     },
 };
@@ -346,11 +346,9 @@ pub(super) fn collect_voxel_realization_intent(
         &CelestialVoxelField,
         &VoxelScaleDomain,
     )>,
-    coverage: Res<UsfScaleCoverageSnapshot>,
     mut residency_requests: ResMut<UsfResidencyRequestBuffer>,
     mut output: ResMut<VoxelRealizationIntentSnapshot>,
 ) {
-    let previous = output.intents.clone();
     let mut next = VoxelRealizationIntentSnapshot::default();
 
     let mut sources = Vec::<VoxelDemandSource>::new();
@@ -393,23 +391,17 @@ pub(super) fn collect_voxel_realization_intent(
                     residency_half_extent_native: step.residency_half_extent_native(),
                 });
 
-                let parent_ready = candidate.is_some_and(|candidate| {
-                    parent_realization_ready(
-                        authority,
-                        step.parent_scale(),
-                        &coverage,
-                        &candidate.scope.center(),
-                    )
-                });
-                let previous_branch = previous.iter().copied().find(|intent| {
-                    intent.target == VoxelRealizationIntentTarget::Celestial(target)
-                        && intent.scope.source() == source.scope.source()
-                        && intent.view_source.is_none()
-                });
-
-                if let Some(intent) =
-                    select_refinement_branch_demand(candidate, parent_ready, previous_branch)
-                {
+                // current-location-refinement-demand-v1
+                //
+                // Demand location follows the source immediately. The previous
+                // implementation retained the previous child scope until parent
+                // coverage was ready at the new location. At high speed that
+                // pins fine terrain behind the loader and makes it jump forward
+                // only after the parent catches up.
+                //
+                // Make-before-break belongs to presentation ownership. It must
+                // not falsify current spatial demand.
+                if let Some(intent) = candidate {
                     next.intents.push(intent);
                 }
             }
@@ -530,18 +522,6 @@ pub(super) fn resolve_voxel_realization_demand(
     }
 }
 
-fn select_refinement_branch_demand<T: Copy>(
-    candidate: Option<T>,
-    parent_ready: bool,
-    previous: Option<T>,
-) -> Option<T> {
-    match candidate {
-        Some(candidate) if parent_ready => Some(candidate),
-        Some(_) => previous,
-        None => None,
-    }
-}
-
 fn realization_plan(
     source: VoxelDemandSource,
     domain: VoxelScaleDomain,
@@ -602,34 +582,6 @@ fn realization_requests_scale(
     .requests_scale(target_scale)
 }
 
-fn parent_realization_ready(
-    authority: Entity,
-    parent_scale: Option<SpatialScale>,
-    coverage: &UsfScaleCoverageSnapshot,
-    child_center: &UsfPosition,
-) -> bool {
-    let Some(parent_scale) = parent_scale else {
-        return true;
-    };
-
-    // Parent-before-child refinement follows canonical ancestry. Different
-    // scale realizations are approximations and are not required to place their
-    // geometric surfaces at the same point. The only valid prerequisite is that
-    // the exact canonical parent context for this child branch already has
-    // realized capability from the same semantic authority.
-    let Ok(parent_context) =
-        UsfChunkAddress::containing(*child_center, parent_scale)
-    else {
-        return false;
-    };
-
-    coverage.has_in_context_for_authority(
-        authority,
-        parent_context,
-        UsfScaleRoleMask::REALIZATION,
-    )
-}
-
 fn celestial_surface_demand(
     body_origin: UsfPosition,
     body_frame: UsfSemanticFrame,
@@ -666,52 +618,28 @@ mod tests {
     use super::*;
 
     #[test]
-    fn make_before_break_parent_block_keeps_previous_child_demand() {
+    fn refinement_demand_tracks_the_current_location_immediately() {
         let mut ecs = World::new();
         let source = ecs.spawn_empty().id();
-        let target_world = ecs.spawn_empty().id();
         let scale = SpatialScale::ZERO;
-        let previous = VoxelRealizationDemand {
-            target_world,
-            roles: presentation_roles().union(UsfScaleRoleMask::COLLISION),
-            view_source: None,
-            scope: SpatialDemandScope::at_scale(
-                source,
-                scale,
-                UsfPosition::zero(scale),
-                Vec3::splat(32.0),
-                10,
-            ),
-            residency_half_extent_native: Vec3::splat(37.0),
-        };
-        let candidate = VoxelRealizationDemand {
-            target_world,
-            roles: presentation_roles().union(UsfScaleRoleMask::COLLISION),
-            view_source: None,
-            scope: SpatialDemandScope::at_scale(
-                source,
-                scale,
-                UsfPosition::zero(scale)
-                    .translated_native(Vec3::new(40.0, 0.0, 0.0))
-                    .unwrap(),
-                Vec3::splat(32.0),
-                10,
-            ),
-            residency_half_extent_native: Vec3::splat(37.0),
-        };
+        let previous_center = UsfPosition::zero(scale);
+        let candidate_center = previous_center
+            .translated_native(Vec3::new(400.0, 0.0, 0.0))
+            .unwrap();
 
-        assert_eq!(
-            select_refinement_branch_demand(Some(candidate), false, Some(previous)),
-            Some(previous),
+        assert_ne!(previous_center, candidate_center);
+
+        let candidate = SpatialDemandScope::at_scale(
+            source,
+            scale,
+            candidate_center,
+            Vec3::splat(32.0),
+            10,
         );
-        assert_eq!(
-            select_refinement_branch_demand(Some(candidate), true, Some(previous)),
-            Some(candidate),
-        );
-        assert_eq!(
-            select_refinement_branch_demand(None, false, Some(previous)),
-            None,
-        );
+
+        // Demand itself always describes the current location. Presentation
+        // continuity is owned elsewhere.
+        assert_eq!(candidate.center(), candidate_center);
     }
 
     #[test]
