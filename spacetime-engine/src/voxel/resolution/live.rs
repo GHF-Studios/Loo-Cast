@@ -58,7 +58,9 @@ use super::super::{
 };
 
 const BLOCK_SUBDIVISIONS: usize = 8;
-const MIN_SAMPLE_SPACING_METRES: f64 = 2.0;
+// presentation-resolution-independent-screen-error-v1
+// Binary presentation is independent from decimal USF interaction Scale.
+const MIN_SAMPLE_SPACING_METRES: f64 = 1.0;
 const MAX_FINE_SAMPLE_SPACING_METRES: f64 = 2_048.0;
 // whole-body-volumetric-clipmap-v1
 //
@@ -69,8 +71,10 @@ const WHOLE_BODY_ROOT_MARGIN: f64 = 1.125;
 const TARGET_CELLS_PER_DISTANCE: f64 = 16.0;
 // volumetric-boundary-continuity-visual-handoff-v1
 const TARGET_CELLS_PER_CLEARANCE: f64 = 128.0;
+const TARGET_PIXELS_PER_BINARY_SAMPLE: f64 = 4.0;
 const DENSE_VISUAL_HANDOFF_CELLS_PER_DISTANCE: f64 = 64.0;
-const DENSE_VISUAL_MIN_DISTANCE_NATIVE: f64 = 96.0;
+const DENSE_VISUAL_HANDOFF_MAX_PIXELS_PER_SAMPLE: f64 = 8.0;
+const DENSE_VISUAL_HANDOFF_MIN_SAMPLE_DISTANCES: f64 = 12.0;
 
 // local-error-driven-binary-refinement-v1
 // A real planet->local binary ladder needs room for 2:1 transition support
@@ -634,6 +638,9 @@ pub(in crate::voxel) struct CelestialClipmapTelemetry {
     visible_binary_levels: usize,
     finest_visible_spacing_metres: Option<f64>,
     coarsest_visible_spacing_metres: Option<f64>,
+    boundary_clearance_metres: Option<f64>,
+    requested_finest_spacing_metres: Option<f64>,
+    planned_finest_spacing_metres: Option<f64>,
 }
 
 impl CelestialClipmapTelemetry {
@@ -661,9 +668,27 @@ impl CelestialClipmapTelemetry {
         self.coarsest_visible_spacing_metres = coarsest_spacing;
     }
 
+    fn record_plan_quality(
+        &mut self,
+        input: CelestialClipmapPlanInput,
+        stages: &[Vec<CelestialClipmapBlockSpec>],
+    ) {
+        self.boundary_clearance_metres = Some(input.clearance_metres);
+        self.requested_finest_spacing_metres =
+            Some(input.finest.sample_spacing_metres());
+        self.planned_finest_spacing_metres = stages
+            .last()
+            .and_then(|stage| {
+                stage
+                    .iter()
+                    .map(|spec| spec.key.spacing_metres())
+                    .min_by(f64::total_cmp)
+            });
+    }
+
     pub(in crate::voxel) fn summary(&self) -> String {
         format!(
-            "plans={} cold={} warm={} visible={} aperture_yield={} levels={} spacing={}..{}m",
+            "plans={} cold={} warm={} visible={} aperture_yield={} levels={} visible={}..{}m clearance={}m requested_finest={}m planned_finest={}m",
             self.plan_requests_total,
             self.cold_plans_total,
             self.warm_replans_total,
@@ -673,6 +698,12 @@ impl CelestialClipmapTelemetry {
             self.finest_visible_spacing_metres
                 .map_or_else(|| "-".to_string(), |v| format!("{v:.1}")),
             self.coarsest_visible_spacing_metres
+                .map_or_else(|| "-".to_string(), |v| format!("{v:.1}")),
+            self.boundary_clearance_metres
+                .map_or_else(|| "-".to_string(), |v| format!("{v:.1}")),
+            self.requested_finest_spacing_metres
+                .map_or_else(|| "-".to_string(), |v| format!("{v:.1}")),
+            self.planned_finest_spacing_metres
                 .map_or_else(|| "-".to_string(), |v| format!("{v:.1}")),
         )
     }
@@ -1125,11 +1156,64 @@ fn block_may_intersect_presentation_shell(
         && farthest >= (volumetric_minimum - conservative_extra).max(0.0)
 }
 
-// binary-can-replace-dense-visual-v1
+// binary-can-replace-dense-visual-v2
+fn projected_sample_pixels(
+    sample_spacing_metres: f64,
+    distance_metres: f64,
+    pixels_per_radian: Option<f32>,
+) -> Option<f64> {
+    let pixels_per_radian = f64::from(pixels_per_radian?);
+    if !sample_spacing_metres.is_finite()
+        || sample_spacing_metres <= 0.0
+        || !distance_metres.is_finite()
+        || distance_metres <= 0.0
+        || !pixels_per_radian.is_finite()
+        || pixels_per_radian <= 0.0
+    {
+        return None;
+    }
+
+    Some(
+        (sample_spacing_metres / distance_metres)
+            .clamp(0.0, 1.0)
+            .asin()
+            * pixels_per_radian,
+    )
+}
+
+fn visual_target_spacing_metres(
+    clearance_metres: f64,
+    pixels_per_radian: Option<f32>,
+) -> f64 {
+    let clearance = clearance_metres.abs().max(MIN_SAMPLE_SPACING_METRES);
+
+    let clearance_target =
+        clearance / TARGET_CELLS_PER_CLEARANCE;
+
+    let screen_target = pixels_per_radian
+        .map(f64::from)
+        .filter(|value| value.is_finite() && *value > 0.0)
+        .map(|pixels_per_radian| {
+            clearance
+                * TARGET_PIXELS_PER_BINARY_SAMPLE
+                / pixels_per_radian
+        })
+        .unwrap_or(clearance_target);
+
+    // Both constraints are upper bounds on acceptable sample spacing. Choose
+    // the stricter one; binary quantization later selects at-or-finer.
+    clearance_target
+        .min(screen_target)
+        .clamp(
+            MIN_SAMPLE_SPACING_METRES,
+            MAX_FINE_SAMPLE_SPACING_METRES,
+        )
+}
+
 fn binary_spacing_is_adequate_for_dense_handoff(
     sample_spacing_metres: f64,
     distance_metres: f64,
-    interaction_scale: SpatialScale,
+    pixels_per_radian: Option<f32>,
 ) -> bool {
     if !sample_spacing_metres.is_finite()
         || sample_spacing_metres <= 0.0
@@ -1139,21 +1223,31 @@ fn binary_spacing_is_adequate_for_dense_handoff(
         return false;
     }
 
-    let interaction_floor =
-        interaction_scale.metres_per_native().max(MIN_SAMPLE_SPACING_METRES);
-    let minimum_dense_visual_distance =
-        interaction_scale.metres_per_native()
-            * DENSE_VISUAL_MIN_DISTANCE_NATIVE;
-
-    if distance_metres < minimum_dense_visual_distance {
+    // Near geometry keeps dense ownership. The threshold is expressed in
+    // samples, not USF native units, so it remains presentation-resolution
+    // semantics rather than interaction Scale semantics.
+    if distance_metres
+        < sample_spacing_metres
+            * DENSE_VISUAL_HANDOFF_MIN_SAMPLE_DISTANCES
+    {
         return false;
     }
 
-    let acceptable_spacing =
-        (distance_metres / DENSE_VISUAL_HANDOFF_CELLS_PER_DISTANCE)
-            .max(interaction_floor);
+    let distance_quality =
+        sample_spacing_metres
+            <= (distance_metres / DENSE_VISUAL_HANDOFF_CELLS_PER_DISTANCE)
+                .max(MIN_SAMPLE_SPACING_METRES);
 
-    sample_spacing_metres <= acceptable_spacing
+    let screen_quality = projected_sample_pixels(
+        sample_spacing_metres,
+        distance_metres,
+        pixels_per_radian,
+    )
+    .is_none_or(|pixels| {
+        pixels <= DENSE_VISUAL_HANDOFF_MAX_PIXELS_PER_SAMPLE
+    });
+
+    distance_quality && screen_quality
 }
 
 fn target_resolution_at_distance(
@@ -1299,7 +1393,7 @@ struct CelestialClipmapPlanInput {
 fn derive_plan_input(
     field: CelestialVoxelField,
     observer_local: DVec3,
-    interaction_scale: SpatialScale,
+    pixels_per_radian: Option<f32>,
     observer_speed_metres_per_second: f64,
     expected_build_seconds: f64,
     policy_revision: u64,
@@ -1320,20 +1414,16 @@ fn derive_plan_input(
         return None;
     }
 
-    // interaction-scale-binary-floor-v1
-    let interaction_floor_metres =
-        interaction_scale.metres_per_native().max(MIN_SAMPLE_SPACING_METRES);
-    let maximum_spacing_metres =
-        MAX_FINE_SAMPLE_SPACING_METRES.max(interaction_floor_metres);
+    // presentation-resolution-independent-screen-error-v1
+    //
+    // Interaction Scale does not participate. Presentation quality is a
+    // physical/screen-space problem.
     let desired_spacing =
-        (clearance / TARGET_CELLS_PER_CLEARANCE).clamp(
-        interaction_floor_metres,
-        maximum_spacing_metres,
-    );
+        visual_target_spacing_metres(clearance, pixels_per_radian);
     let granularity = SpatialRealizationGranularityRequest::new(
         desired_spacing,
-        interaction_floor_metres,
-        maximum_spacing_metres,
+        MIN_SAMPLE_SPACING_METRES,
+        MAX_FINE_SAMPLE_SPACING_METRES,
         BLOCK_SUBDIVISIONS as u32,
         CLIPMAP_VALIDITY_AGGREGATES_ACROSS,
         observer_speed_metres_per_second,
@@ -1344,7 +1434,9 @@ fn derive_plan_input(
     )
     .solve();
 
-    let finest = VoxelPresentationResolution::at_least_metres(
+    // The quality target is a MAXIMUM acceptable spacing. Quantize to
+    // the closest binary level at-or-finer, never one step coarser.
+    let finest = VoxelPresentationResolution::at_most_metres(
         granularity.target_spacing_metres(),
     )?;
 
@@ -1842,11 +1934,10 @@ fn sync_celestial_clipmap_realizations(
             ) else {
                 continue;
             };
-            // clipmap-prepares-interaction-target-v1
             let Some(input) = derive_plan_input(
                 *field,
                 observer_local,
-                interaction.target_scale(),
+                view.pixels_per_radian_for_presentation_resolution(),
                 observer_speed,
                 expected_build_seconds,
                 policy_revision,
@@ -1913,10 +2004,21 @@ fn sync_celestial_clipmap_realizations(
             continue;
         }
 
+        telemetry.record_plan_quality(build.input, &stages);
+        let actual_finest_spacing_metres = stages
+            .last()
+            .and_then(|stage| {
+                stage
+                    .iter()
+                    .map(|spec| spec.key.spacing_metres())
+                    .min_by(f64::total_cmp)
+            });
+
         info!(
             authority = ?build.authority,
             canonical_clearance_metres = build.input.clearance_metres,
-            finest_spacing_metres = build.input.finest.sample_spacing_metres(),
+            requested_finest_spacing_metres = build.input.finest.sample_spacing_metres(),
+            actual_finest_spacing_metres = ?actual_finest_spacing_metres,
             coarsest_spacing_metres = build.input.coarsest.sample_spacing_metres(),
             refinement_stages = stages.len(),
             initial_blocks = desired.len(),
@@ -2338,6 +2440,7 @@ fn sync_celestial_clipmap_realizations(
 
 fn sync_celestial_clipmap_transforms(
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
+    view_demands: Res<UsfViewDemandSnapshot>,
     interaction: Res<UsfPrimaryInteractionSlice>,
     dense_coverage: Res<UsfScaleCoverageSnapshot>,
     registry: Res<CelestialClipmapRegistry>,
@@ -2368,6 +2471,10 @@ fn sync_celestial_clipmap_transforms(
         return;
     }
 
+    let pixels_per_radian = view_demands
+        .iter()
+        .next()
+        .and_then(UsfViewDemand::pixels_per_radian_for_presentation_resolution);
     let physical_target_scale = interaction.target_scale();
     let dense_apertures = dense_presentation_apertures(
         physical_target_scale,
@@ -2468,7 +2575,7 @@ fn sync_celestial_clipmap_transforms(
             binary_spacing_is_adequate_for_dense_handoff(
                 block.spec.key.spacing_metres(),
                 distance_to_block,
-                physical_target_scale,
+                pixels_per_radian,
             );
 
         let dense_yields_context = committed
@@ -2562,6 +2669,7 @@ fn sync_celestial_clipmap_transforms(
 // dense-visual-make-before-break-v1
 fn enforce_dense_interaction_presentation(
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
+    view_demands: Res<UsfViewDemandSnapshot>,
     interaction: Res<UsfPrimaryInteractionSlice>,
     clipmap_coverage: Res<CelestialClipmapCoverageSnapshot>,
     runtimes: Query<&VoxelMaterializationRuntime>,
@@ -2576,6 +2684,11 @@ fn enforce_dense_interaction_presentation(
         With<VoxelMaterializationPresentation>,
     >,
 ) {
+    let pixels_per_radian = view_demands
+        .iter()
+        .next()
+        .and_then(UsfViewDemand::pixels_per_radian_for_presentation_resolution);
+
     for (parent, mut visibility) in &mut presentations {
         let Ok(runtime) = runtimes.get(parent.0) else {
             continue;
@@ -2627,7 +2740,7 @@ fn enforce_dense_interaction_presentation(
             binary_spacing_is_adequate_for_dense_handoff(
                 spacing,
                 distance_metres,
-                target_scale,
+                pixels_per_radian,
             )
             .then_some(())
         })()
@@ -2668,24 +2781,49 @@ mod tests {
     use super::*;
 
     #[test]
-    fn binary_visual_handoff_requires_distance_and_resolution() {
-        let s0 = SpatialScale::ZERO;
-
+    fn binary_visual_handoff_requires_distance_resolution_and_screen_error() {
         assert!(!binary_spacing_is_adequate_for_dense_handoff(
             2.0,
             20.0,
-            s0,
+            Some(1_000.0),
         ));
         assert!(binary_spacing_is_adequate_for_dense_handoff(
-            8.0,
+            4.0,
             1_000.0,
-            s0,
+            Some(1_000.0),
         ));
         assert!(!binary_spacing_is_adequate_for_dense_handoff(
             64.0,
             1_000.0,
-            s0,
+            Some(1_000.0),
         ));
+    }
+
+    #[test]
+    fn binary_visual_target_is_independent_from_interaction_scale() {
+        let clearance = 1_000.0;
+        let target = visual_target_spacing_metres(
+            clearance,
+            Some(1_000.0),
+        );
+        assert!((target - 4.0).abs() < 1.0e-9);
+
+        let resolution =
+            VoxelPresentationResolution::at_most_metres(target).unwrap();
+        assert_eq!(resolution.sample_spacing_metres(), 4.0);
+    }
+
+    #[test]
+    fn binary_quantization_never_exceeds_visual_quality_target() {
+        for target in [1.0, 3.0, 7.0, 40.0, 900.0] {
+            let resolution =
+                VoxelPresentationResolution::at_most_metres(target).unwrap();
+            assert!(
+                resolution.sample_spacing_metres() <= target,
+                "target={target}, actual={}",
+                resolution.sample_spacing_metres(),
+            );
+        }
     }
 
     #[test]
@@ -2703,7 +2841,7 @@ mod tests {
         let input = derive_plan_input(
             field,
             observer,
-            SpatialScale::ZERO,
+            Some(1_000.0),
             0.0,
             0.05,
             0,
@@ -2736,27 +2874,6 @@ mod tests {
             near_candidate > far_candidate,
             "after root context exists, local under-resolution should outrank far global breadth",
         );
-    }
-
-    #[test]
-    fn binary_finest_floor_tracks_interaction_scale() {
-        let s0_floor =
-            SpatialScale::ZERO.metres_per_native().max(MIN_SAMPLE_SPACING_METRES);
-        let s1 =
-            SpatialScale::new(1).expect("S1");
-        let s1_floor =
-            s1.metres_per_native().max(MIN_SAMPLE_SPACING_METRES);
-
-        assert_eq!(s0_floor, MIN_SAMPLE_SPACING_METRES);
-        assert!(s1_floor >= 10.0);
-
-        let player_binary =
-            VoxelPresentationResolution::at_least_metres(s0_floor).unwrap();
-        let ship_binary =
-            VoxelPresentationResolution::at_least_metres(s1_floor).unwrap();
-
-        assert!(ship_binary > player_binary);
-        assert!(ship_binary.sample_spacing_metres() >= s1_floor);
     }
 
     #[test]
@@ -2833,7 +2950,7 @@ mod tests {
             derive_plan_input(
                 field,
                 observer_local,
-                SpatialScale::ZERO,
+                Some(1_000.0),
                 0.0,
                 0.05,
                 0,
@@ -2881,7 +2998,7 @@ mod tests {
         let input = derive_plan_input(
             field,
             DVec3::Y * 6_371_025.0,
-            scale,
+            Some(1_000.0),
             0.0,
             0.05,
             0,

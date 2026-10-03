@@ -99,6 +99,13 @@ impl UsfViewDemand {
     }
     pub const fn finest_scale(&self) -> SpatialScale { self.finest_scale }
 
+    /// Camera density is a presentation fact, not semantic Scale authority.
+    ///
+    /// Binary terrain LOD consumes this directly for screen-space error.
+    pub const fn pixels_per_radian_for_presentation_resolution(&self) -> Option<f32> {
+        self.pixels_per_radian
+    }
+
     pub fn requests_scale(&self, scale: SpatialScale) -> bool {
         scale >= self.finest_scale
     }
