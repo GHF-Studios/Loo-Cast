@@ -370,20 +370,20 @@ fn initialize_voxel_presentation_materials(
 fn refinement_source_is_presented(
     fine_scale: SpatialScale,
     interaction_scale: SpatialScale,
+    view_scale: SpatialScale,
     physical_enabled: bool,
     context_enabled: bool,
     context_eligible: bool,
 ) -> bool {
-    if fine_scale < interaction_scale {
-        // Predictive realization may run ahead of interaction, but a hidden
-        // future child must never clip a visible current/coarser parent.
-        return false;
-    }
+    let physical = fine_scale == interaction_scale
+        && view_scale == interaction_scale;
 
-    if fine_scale == interaction_scale {
+    if physical {
         return physical_enabled;
     }
 
+    // Presentation refinement is observer-owned. A fine realization may be
+    // visible contextually before physics interaction reaches that Scale.
     context_enabled && context_eligible
 }
 
@@ -467,6 +467,7 @@ fn sync_refinement_clip_materials(
         let fine_is_visible = refinement_source_is_presented(
             fine_scale,
             interaction.scale(),
+            view.scale(),
             probe.physical_enabled(),
             probe.context_enabled(),
             view.context_scale_eligible(fine_scale),
@@ -526,9 +527,13 @@ fn sync_refinement_clip_materials(
             continue;
         };
 
-        // Physical interaction geometry belongs to the ordinary local camera and
-        // must never be clipped in USF compressed-projection coordinates.
-        if layer.scale() == interaction.scale() {
+        // Only terrain that is actually rendered through the physical/local
+        // projection path must avoid contextual clip coordinates. If the view
+        // has refined past interaction, the interaction Scale is now a
+        // contextual ancestor and must receive child aperture clipping too.
+        if layer.scale() == interaction.scale()
+            && view.scale() == interaction.scale()
+        {
             material.set_clip_data(Vec::new(), &mut buffers, &mut materials);
             continue;
         }
@@ -551,13 +556,15 @@ mod refinement_presentation_domain_tests {
     use super::*;
 
     #[test]
-    fn hidden_future_refinement_never_clips_visible_parent() {
-        let interaction = SpatialScale::new(4).unwrap();
-        let future_fine = SpatialScale::new(3).unwrap();
+    fn view_can_present_refinement_finer_than_interaction() {
+        let interaction = SpatialScale::new(5).unwrap();
+        let view = SpatialScale::new(3).unwrap();
+        let fine = SpatialScale::new(3).unwrap();
 
-        assert!(!refinement_source_is_presented(
-            future_fine,
+        assert!(refinement_source_is_presented(
+            fine,
             interaction,
+            view,
             true,
             true,
             true,
@@ -565,21 +572,24 @@ mod refinement_presentation_domain_tests {
     }
 
     #[test]
-    fn current_and_coarser_refinement_can_own_presentation() {
-        let interaction = SpatialScale::new(4).unwrap();
-        let coarser = SpatialScale::new(5).unwrap();
+    fn interaction_scale_is_physical_only_when_view_matches_it() {
+        let interaction = SpatialScale::new(5).unwrap();
 
         assert!(refinement_source_is_presented(
+            interaction,
             interaction,
             interaction,
             true,
             true,
             true,
         ));
+
+        let finer_view = SpatialScale::new(3).unwrap();
         assert!(refinement_source_is_presented(
-            coarser,
             interaction,
-            true,
+            interaction,
+            finer_view,
+            false,
             true,
             true,
         ));

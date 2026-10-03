@@ -360,6 +360,14 @@ pub(in crate::spatial) fn project_scenery_presentations(
     }
 }
 
+fn capability_terrain_uses_physical_projection(
+    presentation_scale: SpatialScale,
+    interaction_scale: SpatialScale,
+    view_scale: SpatialScale,
+) -> bool {
+    presentation_scale == interaction_scale && view_scale == interaction_scale
+}
+
 pub(in crate::spatial) fn project_scale_presentations(
     mut commands: Commands,
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
@@ -414,28 +422,16 @@ pub(in crate::spatial) fn project_scale_presentations(
             continue;
         }
 
-        // Capability-backed terrain forms a nested coarse->fine refinement
-        // branch. Predictively realized slices finer than current interaction
-        // are staged only; showing them early would make visual terrain outrun
-        // collision/edit authority. Coarser ancestors remain eligible for the
-        // contextual projection path below and are spatially clipped by ready
-        // immediately-finer coverage.
-        if capability.is_some() && presentation.scale() < interaction.scale() {
-            if !matches!(*visibility, Visibility::Hidden) {
-                *visibility = Visibility::Hidden;
-            }
-            continue;
-        }
-
-        // A capability realization in the current interaction Scale Slice is
-        // physical local geometry. Render it through the ordinary gameplay
-        // camera in exactly the same parent-local pose used by its collider.
-        //
-        // View scale is an observer policy and may legitimately differ from the
-        // interaction scale. It must never replace the visible physical surface
-        // with a different-detail terrain realization.
-        let physical_local =
-            capability.is_some() && presentation.scale() == interaction.scale();
+        // Physical presentation is used only while the view itself is in the
+        // interaction Scale Slice. Presentation may refine ahead of interaction:
+        // once the view moves finer, this same capability realization becomes a
+        // contextual ancestor while collision/edit authority remains unchanged.
+        let physical_local = capability.is_some()
+            && capability_terrain_uses_physical_projection(
+                presentation.scale(),
+                interaction.scale(),
+                view.scale(),
+            );
         if physical_local {
             if !probe.physical_enabled() {
                 *visibility = Visibility::Hidden;
@@ -465,10 +461,10 @@ pub(in crate::spatial) fn project_scale_presentations(
             continue;
         }
 
-        // Contextual branch: authored scale presentations plus capability-backed
-        // terrain ancestors coarser than the current interaction slice. The
-        // refinement clip material performs spatial child-over-parent aperture
-        // ownership; this projector must not choose one global winning Scale.
+        // Contextual branch: authored scale presentations plus every realized
+        // terrain Scale participating in the observer's coarse->fine branch.
+        // This is deliberately view-owned, not interaction-owned. The refinement
+        // clip material performs spatial child-over-parent aperture ownership.
         if !probe.context_enabled() {
             *visibility = Visibility::Hidden;
             continue;
@@ -546,6 +542,23 @@ pub(in crate::spatial) fn project_scale_presentations(
 #[cfg(test)]
 mod fallback_handoff_tests {
     use super::*;
+
+    #[test]
+    fn presentation_can_refine_finer_than_interaction() {
+        let s3 = SpatialScale::new(3).unwrap();
+        let s5 = SpatialScale::new(5).unwrap();
+
+        assert!(!capability_terrain_uses_physical_projection(
+            s5,
+            s5,
+            s3,
+        ));
+        assert!(capability_terrain_uses_physical_projection(
+            s5,
+            s5,
+            s5,
+        ));
+    }
 
     #[test]
     fn fallback_survives_fine_view_until_replacement_is_ready() {
