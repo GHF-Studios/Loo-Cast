@@ -61,10 +61,14 @@ pub(super) fn initialize_procedural_assets(
         ..default()
     });
 
-    let debug_grid_texture = images.add(super::debug_grid::generate_debug_grid_image());
+    // analytical-procedural-debug-grid-v1
+    //
+    // This is intentionally textureless. The handle remains the stable authored
+    // material identity/marker, while voxel presentation evaluates the actual
+    // development grid analytically in WGSL. No finite texture, mip pyramid or
+    // per-LOD texture variants exist for this asset.
     let debug_grid = materials.add(StandardMaterial {
         base_color: Color::WHITE,
-        base_color_texture: Some(debug_grid_texture),
         perceptual_roughness: 0.92,
         metallic: 0.0,
         ..default()

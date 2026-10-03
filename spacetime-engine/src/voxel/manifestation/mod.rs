@@ -26,7 +26,7 @@ pub(super) use collision::{
 pub(super) use coverage::sync_capability_realizations;
 pub(super) use lifecycle::retire_removed_world_manifestations;
 pub use material::VoxelPresentationMaterial;
-pub(super) use material::VoxelRenderMaterial;
+pub(super) use material::{create_voxel_render_material, VoxelRenderMaterial};
 pub(super) use membership::sync_manifestation_membership;
 pub(super) use rebuild::{
     rebuild_dirty_manifestations, sync_manifestation_runtime_transforms,

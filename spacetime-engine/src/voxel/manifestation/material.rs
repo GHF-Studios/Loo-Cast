@@ -23,6 +23,9 @@ use bevy::{
 };
 
 use crate::{
+    procedural_assets::{
+        DEBUG_GRID_BASE_UV_METRES_PER_UNIT, ProceduralAssetLibrary,
+    },
     ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf},
     spatial::{
         SpatialScale, UsfCapabilityRealization, UsfCapabilitySet,
@@ -199,12 +202,18 @@ fn compact_refinement_clip_sources(
     compacted
 }
 
+// analytical-procedural-debug-grid-v1
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
 pub(in crate::voxel) struct VoxelRefinementClipExtension {
     #[storage(100, read_only)]
     clip_boxes: Handle<ShaderBuffer>,
     #[uniform(101)]
     clip_meta: UVec4,
+    /// x: analytical-grid enabled (0/1)
+    /// y: physical metres represented by one incoming UV unit
+    /// z/w: reserved for future procedural-asset recipe parameters
+    #[uniform(102)]
+    debug_grid_meta: Vec4,
 }
 
 impl MaterialExtension for VoxelRefinementClipExtension {
@@ -215,6 +224,51 @@ impl MaterialExtension for VoxelRefinementClipExtension {
     fn deferred_fragment_shader() -> ShaderRef {
         ShaderRef::Handle(REFINEMENT_CLIP_SHADER.clone())
     }
+}
+
+
+fn debug_grid_meta(uv_metres_per_unit: Option<f32>) -> Vec4 {
+    let Some(uv_metres_per_unit) = uv_metres_per_unit
+        .filter(|value| value.is_finite() && *value > 0.0)
+    else {
+        return Vec4::ZERO;
+    };
+    Vec4::new(1.0, uv_metres_per_unit, 0.0, 0.0)
+}
+
+fn strip_raster_debug_grid(base: &mut StandardMaterial, enabled: bool) {
+    if enabled {
+        // The development grid is analytical. A stale bitmap must never be
+        // multiplied underneath it, otherwise minification aliases return.
+        base.base_color_texture = None;
+    }
+}
+
+/// Creates one ordinary voxel render material with no active refinement clips.
+///
+/// Binary presentation uses the same material/shader contract as dense voxel
+/// presentation rather than maintaining a second dev-texture implementation.
+pub(in crate::voxel) fn create_voxel_render_material(
+    mut base: StandardMaterial,
+    debug_grid_uv_metres_per_unit: Option<f32>,
+    buffers: &mut Assets<ShaderBuffer>,
+    materials: &mut Assets<VoxelRenderMaterial>,
+) -> Handle<VoxelRenderMaterial> {
+    let clip_boxes = buffers.add(ShaderBuffer::from(vec![
+        [0.0_f32; 4],
+        [0.0_f32; 4],
+    ]));
+    let grid_meta = debug_grid_meta(debug_grid_uv_metres_per_unit);
+    strip_raster_debug_grid(&mut base, grid_meta.x > 0.5);
+
+    materials.add(ExtendedMaterial {
+        base,
+        extension: VoxelRefinementClipExtension {
+            clip_boxes,
+            clip_meta: UVec4::ZERO,
+            debug_grid_meta: grid_meta,
+        },
+    })
 }
 
 /// Authored voxel material plus its realization-local GPU presentation state.
@@ -255,7 +309,8 @@ impl VoxelPresentationMaterial {
 
     fn initialize(
         &mut self,
-        base: StandardMaterial,
+        mut base: StandardMaterial,
+        debug_grid_uv_metres_per_unit: Option<f32>,
         buffers: &mut Assets<ShaderBuffer>,
         materials: &mut Assets<VoxelRenderMaterial>,
     ) {
@@ -270,14 +325,16 @@ impl VoxelPresentationMaterial {
             [0.0_f32; 4],
         ]));
 
-        let extension = || VoxelRefinementClipExtension {
-            clip_boxes: clip_boxes.clone(),
-            clip_meta: UVec4::ZERO,
-        };
+        let grid_meta = debug_grid_meta(debug_grid_uv_metres_per_unit);
+        strip_raster_debug_grid(&mut base, grid_meta.x > 0.5);
 
         let opaque = materials.add(ExtendedMaterial {
             base,
-            extension: extension(),
+            extension: VoxelRefinementClipExtension {
+                clip_boxes: clip_boxes.clone(),
+                clip_meta: UVec4::ZERO,
+                debug_grid_meta: grid_meta,
+            },
         });
 
         let translucent = materials.add(ExtendedMaterial {
@@ -289,7 +346,11 @@ impl VoxelPresentationMaterial {
                 double_sided: true,
                 ..default()
             },
-            extension: extension(),
+            extension: VoxelRefinementClipExtension {
+                clip_boxes: clip_boxes.clone(),
+                clip_meta: UVec4::ZERO,
+                debug_grid_meta: Vec4::ZERO,
+            },
         });
 
         self.opaque = Some(opaque);
@@ -345,19 +406,39 @@ impl VoxelPresentationMaterial {
 }
 
 fn initialize_voxel_presentation_materials(
-    mut worlds: Query<(&VoxelWorld, &mut VoxelPresentationMaterial)>,
+    mut worlds: Query<(
+        &VoxelWorld,
+        &UsfScaleLayer,
+        &mut VoxelPresentationMaterial,
+    )>,
+    library: Res<ProceduralAssetLibrary>,
     standard_materials: Res<Assets<StandardMaterial>>,
     mut buffers: ResMut<Assets<ShaderBuffer>>,
     mut materials: ResMut<Assets<VoxelRenderMaterial>>,
 ) {
-    for (world, mut material) in &mut worlds {
+    for (world, layer, mut material) in &mut worlds {
         if world.is_empty() || material.opaque.is_some() {
             continue;
         }
         let Some(base) = standard_materials.get(&material.base).cloned() else {
             continue;
         };
-        material.initialize(base, &mut buffers, &mut materials);
+
+        // Dense Surface Nets UVs are 0.5 UV/native-unit. Convert that stable
+        // historical coordinate to physical metres in the shader so the same
+        // analytical asset means the same thing at every decimal Scale Slice.
+        let debug_grid_uv_metres_per_unit =
+            (material.base == library.debug_grid).then_some(
+                DEBUG_GRID_BASE_UV_METRES_PER_UNIT
+                    * layer.scale().metres_per_native() as f32,
+            );
+
+        material.initialize(
+            base,
+            debug_grid_uv_metres_per_unit,
+            &mut buffers,
+            &mut materials,
+        );
     }
 }
 

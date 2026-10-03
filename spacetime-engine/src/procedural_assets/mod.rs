@@ -6,6 +6,7 @@
 //! a separate replaceable layer.
 
 mod debug_grid;
+pub(crate) use debug_grid::DEBUG_GRID_BASE_UV_METRES_PER_UNIT;
 mod systems;
 mod texture;
 
@@ -35,7 +36,9 @@ pub struct ProceduralPbrMaterial {
 #[derive(Resource, Debug, Clone)]
 pub struct ProceduralAssetLibrary {
     pub cracked_clay: ProceduralPbrMaterial,
-    /// High-contrast development grid. Vertex colors encode 3D chunk lineage.
+    /// Analytical GPU development-grid base/marker material. The handle
+    /// carries authored PBR state; voxel shaders generate the grid function.
+    /// Vertex colors still encode independent Scale/chunk diagnostics.
     pub debug_grid: Handle<StandardMaterial>,
     /// Generated emissive Voronoi-like stellar granulation.
     pub star_surface: Handle<StandardMaterial>,

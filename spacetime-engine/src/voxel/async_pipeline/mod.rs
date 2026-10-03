@@ -311,20 +311,34 @@ fn debug_scale_band_color(
     rainbow_debug_color(relative)
 }
 
-// rich-relative-scale-rainbow-v2
+// rich-relative-scale-rainbow-v3
+// playability-and-diagnostic-clarity-megapass-v1
 //
-// Strong *tints*, not emissive debug paint. Vertex color continues to multiply
-// the authored/dev terrain material and texture.
+// This is still a *USF Scale* diagnostic, never presentation LOD. It shares the
+// slower sixteen-band visual language with binary LOD diagnostics so either
+// hierarchy can be inspected without a harsh seven-color wrap.
+const SCALE_DEBUG_HUES: [[f32; 3]; 16] = [
+    [0.670, 0.369, 0.820],
+    [0.820, 0.369, 0.801],
+    [0.820, 0.369, 0.632],
+    [0.820, 0.369, 0.463],
+    [0.820, 0.444, 0.369],
+    [0.820, 0.613, 0.369],
+    [0.820, 0.782, 0.369],
+    [0.688, 0.820, 0.369],
+    [0.519, 0.820, 0.369],
+    [0.369, 0.820, 0.388],
+    [0.369, 0.820, 0.557],
+    [0.369, 0.820, 0.726],
+    [0.369, 0.745, 0.820],
+    [0.369, 0.576, 0.820],
+    [0.369, 0.407, 0.820],
+    [0.501, 0.369, 0.820],
+];
+
 fn rainbow_debug_color(relative_band: i16) -> [f32; 4] {
-    match relative_band.rem_euclid(7) {
-        0 => [0.62, 0.45, 0.76, 1.0], // purple: closest/current
-        1 => [0.40, 0.52, 0.76, 1.0], // blue
-        2 => [0.38, 0.63, 0.70, 1.0], // cyan
-        3 => [0.43, 0.66, 0.48, 1.0], // green
-        4 => [0.76, 0.70, 0.40, 1.0], // yellow
-        5 => [0.78, 0.55, 0.34, 1.0], // orange
-        _ => [0.72, 0.40, 0.39, 1.0], // red: farthest
-    }
+    let [r, g, b] = SCALE_DEBUG_HUES[relative_band.rem_euclid(16) as usize];
+    [r, g, b, 1.0]
 }
 
 #[cfg(test)]
@@ -332,13 +346,13 @@ mod scale_band_debug_tests {
     use super::*;
 
     #[test]
-    fn interaction_scale_is_purple_then_blue_then_cyan() {
+    fn scale_diagnostic_uses_slow_sixteen_band_hue_revolution() {
         let s0 = SpatialScale::ZERO;
         let s1 = SpatialScale::new(1).unwrap();
         let s2 = SpatialScale::new(2).unwrap();
 
-        assert_eq!(debug_scale_band_color(s0, s0), [0.62, 0.45, 0.76, 1.0]);
-        assert_eq!(debug_scale_band_color(s1, s0), [0.40, 0.52, 0.76, 1.0]);
-        assert_eq!(debug_scale_band_color(s2, s0), [0.38, 0.63, 0.70, 1.0]);
+        assert_eq!(debug_scale_band_color(s0, s0), [0.670, 0.369, 0.820, 1.0]);
+        assert_eq!(debug_scale_band_color(s1, s0), [0.820, 0.369, 0.801, 1.0]);
+        assert_eq!(debug_scale_band_color(s2, s0), [0.820, 0.369, 0.632, 1.0]);
     }
 }

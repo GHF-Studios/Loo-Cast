@@ -13,6 +13,7 @@ use bevy::{
     math::DVec3,
     mesh::{Indices, PrimitiveTopology},
     prelude::*,
+    render::render_resource::ShaderBuffer,
 };
 
 use transvoxel::{
@@ -29,6 +30,9 @@ use transvoxel::{
 
 use crate::reconstructible::{
     ReconstructibleFrameBudget, ReconstructibleWorkClass,
+};
+use crate::procedural_assets::{
+    DEBUG_GRID_BASE_UV_METRES_PER_UNIT, ProceduralAssetLibrary,
 };
 use crate::view::USF_PRESENTATION_LAYER;
 use crate::voxel::{
@@ -58,8 +62,9 @@ use super::super::{
     CelestialVoxelField, CelestialVoxelRealization, CelestialVoxelRealizationPolicy,
     VoxelAuthority,
     manifestation::{
-        VoxelMaterializationPresentation, VoxelMaterializationRuntime,
-        VoxelPresentationFallbackRetireReady,
+        create_voxel_render_material, VoxelMaterializationPresentation,
+        VoxelMaterializationRuntime, VoxelPresentationFallbackRetireReady,
+        VoxelRenderMaterial,
     },
     worker::{VoxelWorkerLane, VoxelWorkerPool, VoxelWorkerTask, VoxelWorkerTicket},
 };
@@ -163,47 +168,76 @@ impl CelestialClipmapBlockKey {
 
 // presentation-diagnostics-and-planning-megapass-v1
 // presentation-resolution-latency-megapass-v1
+// analytical-procedural-debug-grid-v1
 #[derive(Resource, Default)]
 struct CelestialClipmapBandDebugMaterials {
     by_base_and_relative_level:
-        HashMap<(Handle<StandardMaterial>, i16), Handle<StandardMaterial>>,
+        HashMap<(Handle<StandardMaterial>, i16), Handle<VoxelRenderMaterial>>,
 }
+
+// playability-and-diagnostic-clarity-megapass-v1
+// Sixteen adjacent binary LODs traverse one complete hue revolution. The
+// palette deliberately advances slowly enough that neighboring resolution
+// shells remain easy to distinguish while broad LOD structure reads as one
+// continuous sweep rather than a seven-color repeating traffic light.
+const CLIPMAP_DEBUG_HUE_BANDS: i16 = 16;
+const CLIPMAP_DEBUG_HUES: [[f32; 3]; CLIPMAP_DEBUG_HUE_BANDS as usize] = [
+    [0.670, 0.369, 0.820],
+    [0.820, 0.369, 0.801],
+    [0.820, 0.369, 0.632],
+    [0.820, 0.369, 0.463],
+    [0.820, 0.444, 0.369],
+    [0.820, 0.613, 0.369],
+    [0.820, 0.782, 0.369],
+    [0.688, 0.820, 0.369],
+    [0.519, 0.820, 0.369],
+    [0.369, 0.820, 0.388],
+    [0.369, 0.820, 0.557],
+    [0.369, 0.820, 0.726],
+    [0.369, 0.745, 0.820],
+    [0.369, 0.576, 0.820],
+    [0.369, 0.407, 0.820],
+    [0.501, 0.369, 0.820],
+];
 
 impl CelestialClipmapBandDebugMaterials {
     fn material_for(
         &mut self,
-        materials: &mut Assets<StandardMaterial>,
+        standard_materials: &Assets<StandardMaterial>,
+        render_materials: &mut Assets<VoxelRenderMaterial>,
+        shader_buffers: &mut Assets<ShaderBuffer>,
+        debug_grid: &Handle<StandardMaterial>,
         base: &Handle<StandardMaterial>,
         relative_level: i16,
-    ) -> Handle<StandardMaterial> {
-        let relative_level = relative_level.rem_euclid(7);
-        let key = (base.clone(), relative_level);
+    ) -> Option<Handle<VoxelRenderMaterial>> {
+        let diagnostic_band = relative_level.rem_euclid(CLIPMAP_DEBUG_HUE_BANDS);
+        let key = (base.clone(), diagnostic_band);
         if let Some(existing) = self.by_base_and_relative_level.get(&key) {
-            return existing.clone();
+            return Some(existing.clone());
         }
 
-        let Some(mut tinted) = materials.get(base).cloned() else {
-            return base.clone();
-        };
-        // Keep texture, shading and all authored/dev material state. Base color
-        // is only the diagnostic multiplier/tint.
+        let mut tinted = standard_materials.get(base)?.clone();
+        // The StandardMaterial tint remains the LOD diagnostic multiplier.
+        // If this is the debug-grid marker, the shared voxel shader supplies
+        // textureless analytical grid detail in physical metres.
         tinted.base_color = clipmap_band_debug_color(relative_level);
-        let handle = materials.add(tinted);
+        let grid_uv_metres_per_unit = (base == debug_grid)
+            .then_some(DEBUG_GRID_BASE_UV_METRES_PER_UNIT);
+        let handle = create_voxel_render_material(
+            tinted,
+            grid_uv_metres_per_unit,
+            shader_buffers,
+            render_materials,
+        );
         self.by_base_and_relative_level.insert(key, handle.clone());
-        handle
+        Some(handle)
     }
 }
 
 fn clipmap_band_debug_color(relative_level: i16) -> Color {
-    match relative_level.rem_euclid(7) {
-        0 => Color::srgb(0.62, 0.45, 0.76), // purple: closest/finest
-        1 => Color::srgb(0.40, 0.52, 0.76), // blue
-        2 => Color::srgb(0.38, 0.63, 0.70), // cyan
-        3 => Color::srgb(0.43, 0.66, 0.48), // green
-        4 => Color::srgb(0.76, 0.70, 0.40), // yellow
-        5 => Color::srgb(0.78, 0.55, 0.34), // orange
-        _ => Color::srgb(0.72, 0.40, 0.39), // red: farthest/coarsest
-    }
+    let index = relative_level.rem_euclid(CLIPMAP_DEBUG_HUE_BANDS) as usize;
+    let [r, g, b] = CLIPMAP_DEBUG_HUES[index];
+    Color::srgb(r, g, b)
 }
 
 
@@ -2538,6 +2572,11 @@ fn coverage_for_specs(
 fn sync_celestial_clipmap_realizations(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
+    standard_materials: Res<Assets<StandardMaterial>>,
+    mut render_materials: ResMut<Assets<VoxelRenderMaterial>>,
+    mut shader_buffers: ResMut<Assets<ShaderBuffer>>,
+    library: Res<ProceduralAssetLibrary>,
+    mut band_materials: ResMut<CelestialClipmapBandDebugMaterials>,
     views: Res<UsfViewDemandSnapshot>,
     script_workbench: Res<DeveloperScriptWorkbench>,
     workers: Res<VoxelWorkerPool>,
@@ -2719,7 +2758,7 @@ fn sync_celestial_clipmap_realizations(
                 - build.input.planning_anchor_local)
                 .length();
 
-        info!(
+        trace!(
             authority = ?build.authority,
             ?relevance,
             current_target_lag_metres,
@@ -2999,6 +3038,23 @@ fn sync_celestial_clipmap_realizations(
 
                 let body_name =
                     name.map(|value| value.as_str()).unwrap_or("Celestial Body");
+                let relative_level = build
+                    .spec
+                    .key
+                    .resolution
+                    .binary_exponent()
+                    .saturating_sub(plan.key.finest_exponent);
+                let Some(presentation_material) = band_materials.material_for(
+                    &standard_materials,
+                    &mut render_materials,
+                    &mut shader_buffers,
+                    &library.debug_grid,
+                    policy.presentation_material(),
+                    relative_level,
+                ) else {
+                    frame_budget.finish(work_token);
+                    continue;
+                };
                 let entity = commands
                     .spawn((
                         Name::new(format!(
@@ -3016,7 +3072,7 @@ fn sync_celestial_clipmap_realizations(
                         },
                         UsfPresentationProjectionOf(build.authority),
                         Mesh3d(meshes.add(mesh.into_mesh())),
-                        MeshMaterial3d(policy.presentation_material().clone()),
+                        MeshMaterial3d(presentation_material),
                         Transform::IDENTITY,
                         RenderLayers::layer(USF_PRESENTATION_LAYER),
                         NotShadowCaster,
@@ -3178,7 +3234,7 @@ fn sync_celestial_clipmap_realizations(
                 plan.completed.clear();
                 plan.meshful.clear();
 
-                info!(
+                trace!(
                     authority = ?authority,
                     committed_stage = plan.stage_index,
                     total_stages = plan.stages.len(),
@@ -3190,7 +3246,7 @@ fn sync_celestial_clipmap_realizations(
                 );
             } else {
                 plan.committed_generation = Some(committed_generation);
-                info!(
+                trace!(
                     authority = ?authority,
                     committed_stage = plan.stage_index + 1,
                     total_stages = plan.stages.len(),
@@ -3216,7 +3272,10 @@ fn binary_frontier_projection_complete(
 fn sync_celestial_clipmap_transforms(
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     registry: Res<CelestialClipmapRegistry>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    standard_materials: Res<Assets<StandardMaterial>>,
+    mut render_materials: ResMut<Assets<VoxelRenderMaterial>>,
+    mut shader_buffers: ResMut<Assets<ShaderBuffer>>,
+    library: Res<ProceduralAssetLibrary>,
     mut band_materials: ResMut<CelestialClipmapBandDebugMaterials>,
     authorities: Query<(
         &UsfPosition,
@@ -3231,7 +3290,7 @@ fn sync_celestial_clipmap_transforms(
         &mut CelestialClipmapBlock,
         &mut Transform,
         &mut Visibility,
-        &mut MeshMaterial3d<StandardMaterial>,
+        &mut MeshMaterial3d<VoxelRenderMaterial>,
     )>,
     mut logged_projection: Local<bool>,
 ) {
@@ -3284,11 +3343,16 @@ fn sync_celestial_clipmap_transforms(
                 .binary_exponent()
                 .saturating_sub(plan.key.finest_exponent);
             let desired = band_materials.material_for(
-                &mut materials,
+                &standard_materials,
+                &mut render_materials,
+                &mut shader_buffers,
+                &library.debug_grid,
                 policy.presentation_material(),
                 relative_level,
             );
-            if material.0 != desired {
+            if let Some(desired) = desired
+                && material.0 != desired
+            {
                 material.0 = desired;
             }
         }
@@ -3658,19 +3722,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn binary_lod_debug_palette_starts_purple_then_blue_then_cyan() {
+    fn binary_lod_debug_palette_uses_sixteen_band_hue_revolution() {
+        assert_eq!(CLIPMAP_DEBUG_HUE_BANDS, 16);
         assert_eq!(
             clipmap_band_debug_color(0),
-            Color::srgb(0.62, 0.45, 0.76),
+            Color::srgb(0.670, 0.369, 0.820),
         );
-        assert_eq!(
-            clipmap_band_debug_color(1),
-            Color::srgb(0.40, 0.52, 0.76),
-        );
-        assert_eq!(
-            clipmap_band_debug_color(2),
-            Color::srgb(0.38, 0.63, 0.70),
-        );
+        assert_ne!(clipmap_band_debug_color(7), clipmap_band_debug_color(8));
+        assert_ne!(clipmap_band_debug_color(0), clipmap_band_debug_color(7));
+        assert_eq!(clipmap_band_debug_color(0), clipmap_band_debug_color(16));
     }
 
     #[test]

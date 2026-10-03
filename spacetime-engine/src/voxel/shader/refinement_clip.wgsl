@@ -21,6 +21,49 @@ var<storage, read> refinement_clip_boxes: array<vec4<f32>>;
 @group(#{MATERIAL_BIND_GROUP}) @binding(101)
 var<uniform> refinement_clip_meta: vec4<u32>;
 
+// analytical-procedural-debug-grid-v1
+// x = enabled, y = physical metres per incoming UV unit.
+@group(#{MATERIAL_BIND_GROUP}) @binding(102)
+var<uniform> debug_grid_meta: vec4<f32>;
+
+fn aa_grid_line(metric: vec2<f32>, step_metres: f32, width_pixels: f32) -> f32 {
+    let q = metric / max(step_metres, 1.0e-6);
+    let phase = fract(q);
+    let distance_to_line = min(phase, vec2<f32>(1.0) - phase);
+    let derivative = max(fwidth(q), vec2<f32>(1.0e-5));
+    let edge0 = derivative * 0.20;
+    let edge1 = derivative * max(width_pixels, 0.25);
+    let line = vec2<f32>(1.0) - smoothstep(edge0, edge1, distance_to_line);
+    return max(line.x, line.y);
+}
+
+fn analytical_debug_grid(uv: vec2<f32>) -> vec3<f32> {
+    let metric = uv * debug_grid_meta.y;
+    let footprint = max(
+        max(fwidth(metric).x, fwidth(metric).y),
+        1.0e-5,
+    );
+
+    // Choose a binary metric grid level whose minor lines remain several
+    // pixels apart. The grid is one function over all scales: coarser levels
+    // are aligned supersets of finer ones rather than separately generated
+    // textures, and fwidth gives analytical anti-aliasing.
+    let target_minor_step = max(footprint * 8.0, 0.25);
+    let minor_step = exp2(ceil(log2(target_minor_step)));
+    let major_step = minor_step * 8.0;
+
+    let minor = aa_grid_line(metric, minor_step, 0.90);
+    let major = aa_grid_line(metric, major_step, 1.35);
+
+    let fill = vec3<f32>(0.74, 0.76, 0.79);
+    let minor_color = vec3<f32>(0.23, 0.25, 0.28);
+    let major_color = vec3<f32>(0.96, 0.50, 0.12);
+
+    var color = mix(fill, minor_color, minor * 0.78);
+    color = mix(color, major_color, major * 0.94);
+    return color;
+}
+
 @fragment
 fn fragment(
     in: VertexOutput,
@@ -80,6 +123,14 @@ fn fragment(
     }
 
     var pbr_input = pbr_input_from_standard_material(in, is_front);
+
+    if debug_grid_meta.x > 0.5 {
+        pbr_input.material.base_color *= vec4<f32>(
+            analytical_debug_grid(in.uv),
+            1.0,
+        );
+    }
+
     pbr_input.material.base_color = alpha_discard(
         pbr_input.material,
         pbr_input.material.base_color

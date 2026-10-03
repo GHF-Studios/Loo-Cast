@@ -7,7 +7,7 @@ use avian3d::prelude::{
     Collider, CustomPositionIntegration, CustomVelocityIntegration, LinearVelocity,
     RigidBody, ShapeCastConfig, SpatialQuery,
 };
-use bevy::{math::DVec3, prelude::*};
+use bevy::{camera::visibility::RenderLayers, math::DVec3, prelude::*};
 
 use crate::{
     ecs::{
@@ -49,7 +49,7 @@ use crate::{
         },
         topology::KinematicQueryExclusions,
     },
-    portal::PortalTraveler,
+    portal::{DERIVED_VIEW_LAYER, PortalTraveler},
     spatial::{
         SpatialDemandSet, SpatialDemandSource, SpatialRefinementDemand, SpatialScale,
         UsfCanonicalMotion, UsfInteractionScaleAffinity, UsfLocalScalePresentation,
@@ -346,6 +346,12 @@ fn spawn_reference_spacecraft(
             Mesh3d(meshes.add(Cuboid::new(SHIP_SIZE.x, SHIP_SIZE.y, SHIP_SIZE.z))),
             MeshMaterial3d(materials.add(Color::srgb(0.68, 0.70, 0.76))),
             Transform::IDENTITY,
+            // playability-and-diagnostic-clarity-megapass-v1
+            // ViewSubjectPresentation self-visibility is layer-driven. Keep the
+            // controlled ship model alive on the derived-view layer just like
+            // the player model; presentation sync promotes it to the ordinary
+            // world layer when the active camera mode should show the subject.
+            RenderLayers::layer(DERIVED_VIEW_LAYER),
             Visibility::Inherited,
         ));
     });

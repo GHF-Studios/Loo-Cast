@@ -8,14 +8,20 @@ use super::*;
 /// impersonating keyboard or mouse input.
 pub(in crate::game::player) fn sample_flight_control_intent(
     input: Res<PlayerInputFrame>,
-    controller: Single<(&TravelPace, Option<&PlayerDead>), With<Player>>,
+    controller: Single<(&TravelPace, &PlayerAim, Option<&PlayerDead>), With<Player>>,
     subject: Single<
-        (&ControlledSubjectLocomotion, &mut FlightControlIntent),
+        (
+            &ControlledSubjectLocomotion,
+            &CharacterControlFrame,
+            Option<&Player>,
+            &mut FlightControlIntent,
+        ),
         With<LocalControlSubject>,
     >,
 ) {
-    let (pace, dead) = controller.into_inner();
-    let (locomotion, mut intent) = subject.into_inner();
+    let (pace, aim, dead) = controller.into_inner();
+    let (locomotion, control, controlled_player_body, mut intent) =
+        subject.into_inner();
 
     if dead.is_some()
         || !input.gameplay_active()
@@ -30,11 +36,25 @@ pub(in crate::game::player) fn sample_flight_control_intent(
     let vertical = input.digital_axis(PlayerAction::Descend, PlayerAction::Ascend);
     let boost = input.pressed(PlayerAction::Boost);
 
-    // Mouse look is view intent only. Explicit attitude controllers may write
-    // another command later; the default human adapter holds physical attitude.
+    // playability-and-diagnostic-clarity-megapass-v1
+    //
+    // Raw mouse delta remains render-frame view intent (#45): never replay it
+    // through fixed simulation ticks. The accumulated PlayerAim is stable
+    // controller state, however, so a vehicle can use the *resolved view
+    // orientation* as an ordinary target attitude. This yields a useful
+    // provisional "ship follows where I look" model while preserving the
+    // generic FlightAttitudeCommand boundary for later 6-DOF/autopilot UX.
+    let attitude = if controlled_player_body.is_some() {
+        FlightAttitudeCommand::Hold
+    } else {
+        FlightAttitudeCommand::TargetOrientation(
+            (control.rotation() * aim.local_rotation()).normalize(),
+        )
+    };
+
     intent.set(
         Vec3::new(horizontal as f32, vertical as f32, forward as f32),
-        FlightAttitudeCommand::Hold,
+        attitude,
         pace.multiplier.max(0.0),
         boost,
     );

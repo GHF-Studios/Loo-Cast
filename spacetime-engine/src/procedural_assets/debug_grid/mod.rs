@@ -1,30 +1,12 @@
-//! High-contrast generated development grid texture.
+//! Analytical development-grid procedural asset contract.
+//!
+//! analytical-procedural-debug-grid-v1
+//!
+//! The debug grid is no longer a finite bitmap. Voxel presentation evaluates
+//! it analytically in the fragment shader from metric-stable UV coordinates.
+//! One UV unit historically represented two S0 metres; preserving that contract
+//! keeps existing mesh UV generation coherent while allowing each realization
+//! to supply its physical metres-per-UV-unit conversion explicitly.
 
-use bevy::prelude::{Image, UVec2};
-
-use super::rgba_image;
-
-pub(super) fn generate_debug_grid_image() -> Image {
-    const SIZE: u32 = 64;
-    const MINOR: u32 = 8;
-    const MAJOR: u32 = 32;
-
-    let mut data = Vec::with_capacity((SIZE * SIZE * 4) as usize);
-    for y in 0..SIZE {
-        for x in 0..SIZE {
-            let major = x % MAJOR == 0 || y % MAJOR == 0;
-            let minor = x % MINOR == 0 || y % MINOR == 0;
-
-            let rgba = if major {
-                [245, 158, 58, 255]
-            } else if minor {
-                [58, 64, 72, 255]
-            } else {
-                [188, 194, 202, 255]
-            };
-            data.extend_from_slice(&rgba);
-        }
-    }
-
-    rgba_image(UVec2::splat(SIZE), data, true)
-}
+/// Physical metres represented by one existing terrain UV unit at S0.
+pub(crate) const DEBUG_GRID_BASE_UV_METRES_PER_UNIT: f32 = 2.0;
