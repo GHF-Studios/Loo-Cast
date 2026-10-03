@@ -478,12 +478,20 @@ fn semantic_surface_radius_metres(
 
         let fine_upper = root.min(0);
         if floor <= fine_upper {
-            let local_reference = UsfPosition::zero(self.origin_snapshot.leaf_scale())
-                .translated_metres_f64(dvec(direction) * radius)?;
+            // presentation-resolution-orders-of-magnitude-v1
+            //
+            // Body-local residual noise does not need an S-35 representation
+            // round-trip. Construct the identical canonical coordinate directly
+            // at the Scale whose deterministic lattice is being sampled.
+            let local_reference_metres = dvec(direction) * radius;
             for raw in (floor..=fine_upper).rev() {
                 let level = SpatialScale::new(raw)
                     .expect("validated fine celestial semantic detail scale");
-                let noise = self.canonical_detail_noise_at(local_reference, level)?;
+                let noise =
+                    self.canonical_detail_noise_at_local_metres(
+                        local_reference_metres,
+                        level,
+                    )?;
                 radius += f64::from(noise)
                     * self.detail_amplitude_native(level)
                     * level.metres_per_native();
@@ -517,6 +525,35 @@ fn canonical_detail_noise_at(
         level: SpatialScale,
     ) -> Result<f32, UsfPositionError> {
         let point = VoxelQueryPosition::new(local_position.reexpressed_at(level)?);
+        let (_, _, _, salt) = self.detail_parameters();
+        let seed = scale_layer_seed(self.seed ^ salt, level);
+        let broad = semantic_value_noise_3d(
+            point,
+            CANONICAL_DETAIL_CELL_NATIVE,
+            seed ^ 0xA341_316C,
+        );
+        let fine = semantic_value_noise_3d(
+            point,
+            CANONICAL_DETAIL_FINE_CELL_NATIVE,
+            seed ^ 0xC801_3EA4,
+        );
+        Ok(broad * 0.72 + fine * 0.28)
+    }
+
+    #[inline]
+    fn canonical_detail_noise_at_local_metres(
+        self,
+        local_position_metres: DVec3,
+        level: SpatialScale,
+    ) -> Result<f32, UsfPositionError> {
+        let native =
+            local_position_metres / level.metres_per_native();
+        let canonical = UsfPosition::from_scale_native_f64(
+            native,
+            level,
+            level,
+        )?;
+        let point = VoxelQueryPosition::new(canonical);
         let (_, _, _, salt) = self.detail_parameters();
         let seed = scale_layer_seed(self.seed ^ salt, level);
         let broad = semantic_value_noise_3d(
@@ -747,6 +784,59 @@ mod tests {
             SpatialScale::MIN,
         )
         .unwrap()
+    }
+
+    #[test]
+    fn direct_body_local_detail_noise_matches_hierarchical_reference() {
+        let body = ProceduralCelestialBody::new(
+            earth_center(),
+            UsfSemanticFrame::identity(),
+            6_371_000.0,
+            SpatialScale::ZERO,
+            SpatialScale::new(6).unwrap(),
+            SpatialScale::ZERO,
+            0x4541_5254,
+            CelestialBodyProfile::Rocky,
+        );
+        let level = SpatialScale::ZERO;
+
+        for point in [
+            DVec3::new(0.0, 6_371_000.0, 0.0),
+            DVec3::new(
+                1_234_567.0,
+                5_432_100.0,
+                -2_345_678.0,
+            ),
+            DVec3::new(
+                -4_321_000.25,
+                2_111_000.5,
+                3_777_000.75,
+            ),
+        ] {
+            let hierarchical = UsfPosition::zero(
+                body.origin_snapshot.leaf_scale(),
+            )
+            .translated_metres_f64(point)
+            .unwrap();
+            let reference = body
+                .canonical_detail_noise_at(
+                    hierarchical,
+                    level,
+                )
+                .unwrap();
+            let direct = body
+                .canonical_detail_noise_at_local_metres(
+                    point,
+                    level,
+                )
+                .unwrap();
+
+            assert_eq!(
+                reference.to_bits(),
+                direct.to_bits(),
+                "direct body-local noise changed canonical result at {point:?}",
+            );
+        }
     }
 
     #[test]
