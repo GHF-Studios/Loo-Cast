@@ -162,6 +162,15 @@ impl VoxelMaterializationRuntime {
 #[derive(Component, Debug, Default, Clone, Copy)]
 pub(super) struct VoxelMaterializationPresentation;
 
+/// Presentation-only retirement handshake for a dense manifestation whose
+/// store/capability demand already left.
+///
+/// Presence means the clipmap compositor has proven a visible replacement (or
+/// the old patch is no longer view-relevant). Membership may then park/recycle
+/// the runtime shell. This marker never grants semantic/collision authority.
+#[derive(Component, Debug, Default, Clone, Copy)]
+pub(super) struct VoxelPresentationFallbackRetireReady;
+
 /// Active mapping plus a bounded inactive shell pool.
 #[derive(Debug, Default, Clone, Copy)]
 struct VoxelManifestationPressure {

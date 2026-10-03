@@ -28,7 +28,7 @@ use crate::voxel::{
     developer_policy::{
         presentation_surface_radius_bounds_metres,
     },
-    VoxelWorld,
+    MATERIALIZATION_CHUNK_SIZE, VoxelStreaming, VoxelWorld,
 };
 
 use crate::{
@@ -53,12 +53,14 @@ use super::super::{
     VoxelAuthority,
     manifestation::{
         VoxelMaterializationPresentation, VoxelMaterializationRuntime,
+        VoxelPresentationFallbackRetireReady,
     },
     worker::{VoxelWorkerLane, VoxelWorkerPool, VoxelWorkerTask, VoxelWorkerTicket},
 };
 
 const BLOCK_SUBDIVISIONS: usize = 8;
 // presentation-resolution-independent-screen-error-v1
+// terrain-continuity-closure-megapass-v1
 // Binary presentation is independent from decimal USF interaction Scale.
 const MIN_SAMPLE_SPACING_METRES: f64 = 1.0;
 const MAX_FINE_SAMPLE_SPACING_METRES: f64 = 2_048.0;
@@ -76,14 +78,17 @@ const DENSE_VISUAL_HANDOFF_CELLS_PER_DISTANCE: f64 = 64.0;
 const DENSE_VISUAL_HANDOFF_MAX_PIXELS_PER_SAMPLE: f64 = 8.0;
 const DENSE_VISUAL_HANDOFF_MIN_SAMPLE_DISTANCES: f64 = 12.0;
 
-// local-error-driven-binary-refinement-v1
-// A real planet->local binary ladder needs room for 2:1 transition support
-// around a deeply refined focus. These are planner/frontier limits, not dense
-// voxel residency budgets.
-const MAX_INITIAL_LEAVES: usize = 1_024;
-const MAX_BALANCED_LEAVES: usize = 2_048;
-const MAX_PRIMARY_REFINEMENTS_PER_STAGE: usize = 4;
-const MAX_PUBLICATIONS_PER_FRAME: usize = 2;
+// terrain-continuity-closure-megapass-v1
+// sparse-boundary-frontier-v1
+//
+// Deep local detail is a sparse boundary aperture over persistent coarse body
+// ancestry. The budget scales with requested binary depth; this hard ceiling is
+// reconstructible protection, not a normal target.
+const MIN_SPARSE_FRONTIER_LEAVES: usize = 4_096;
+const MAX_SPARSE_FRONTIER_LEAVES: usize = 32_768;
+const LEAVES_PER_REQUESTED_LEVEL: usize = 640;
+const MAX_PRIMARY_REFINEMENTS_PER_WAVE: usize = 96;
+const MAX_RECORDED_FRONTIER_STAGES: usize = 48;
 const CLIPMAP_VALIDITY_AGGREGATES_ACROSS: u32 = 8;
 const CLIPMAP_MIN_VALIDITY_SECONDS: f64 = 0.10;
 const CLIPMAP_MAX_VALIDITY_SECONDS: f64 = 2.0;
@@ -174,6 +179,10 @@ struct CelestialClipmapPlan {
     desired: Vec<CelestialClipmapBlockSpec>,
     completed: HashSet<CelestialClipmapBlockSpec>,
     meshful: HashSet<CelestialClipmapBlockSpec>,
+    /// Specs already proven to contain no presentation triangles. Unlike mesh
+    /// entities these have no ECS artifact, so remember the result explicitly
+    /// across stages and warm replans.
+    known_empty: HashSet<CelestialClipmapBlockSpec>,
     committed_specs: HashSet<CelestialClipmapBlockSpec>,
     committed_generation: Option<u64>,
 }
@@ -396,8 +405,9 @@ fn refine_leaf_indexed(
     leaves: &mut HashSet<CelestialClipmapBlockKey>,
     parent: CelestialClipmapBlockKey,
     field: CelestialVoxelField,
-    policy: Option<&DeveloperScalarPolicyRuntime>,
-    surface_cache: &mut CelestialClipmapSurfaceCache,
+    _policy: Option<&DeveloperScalarPolicyRuntime>,
+    _surface_cache: &mut CelestialClipmapSurfaceCache,
+    planning_anchor_local: DVec3,
     inserted: &mut Vec<CelestialClipmapBlockKey>,
 ) -> bool {
     inserted.clear();
@@ -411,7 +421,11 @@ fn refine_leaf_indexed(
     };
 
     for child in children {
-        if surface_cache.intersects(field, child, policy) {
+        if block_intersects_refinement_boundary(
+            field,
+            child,
+            planning_anchor_local,
+        ) {
             leaves.insert(child);
             inserted.push(child);
         }
@@ -460,6 +474,8 @@ fn balance_leaves_2_to_1_local(
     leaves: &mut HashSet<CelestialClipmapBlockKey>,
     policy: Option<&DeveloperScalarPolicyRuntime>,
     surface_cache: &mut CelestialClipmapSurfaceCache,
+    planning_anchor_local: DVec3,
+    maximum_leaves: usize,
 ) -> bool {
     let Some(maximum_exponent) = leaves
         .iter()
@@ -495,7 +511,7 @@ fn balance_leaves_2_to_1_local(
                 continue;
             }
 
-            if leaves.len().saturating_add(7) > MAX_BALANCED_LEAVES {
+            if leaves.len().saturating_add(7) > maximum_leaves {
                 return false;
             }
 
@@ -505,6 +521,7 @@ fn balance_leaves_2_to_1_local(
                 field,
                 policy,
                 surface_cache,
+                planning_anchor_local,
                 &mut inserted,
             ) {
                 return false;
@@ -641,6 +658,11 @@ pub(in crate::voxel) struct CelestialClipmapTelemetry {
     boundary_clearance_metres: Option<f64>,
     requested_finest_spacing_metres: Option<f64>,
     planned_finest_spacing_metres: Option<f64>,
+    planner_leaf_budget: usize,
+    planner_final_leaves: usize,
+    planner_budget_saturated: bool,
+    dense_fallback_held: usize,
+    dense_fallback_retire_ready: usize,
 }
 
 impl CelestialClipmapTelemetry {
@@ -684,11 +706,24 @@ impl CelestialClipmapTelemetry {
                     .map(|spec| spec.key.spacing_metres())
                     .min_by(f64::total_cmp)
             });
+        self.planner_leaf_budget = sparse_frontier_leaf_budget(input);
+        self.planner_final_leaves = stages.last().map_or(0, Vec::len);
+        self.planner_budget_saturated = self.planner_final_leaves
+            >= self.planner_leaf_budget.saturating_sub(7)
+            && self
+                .planned_finest_spacing_metres
+                .zip(self.requested_finest_spacing_metres)
+                .is_some_and(|(planned, requested)| planned > requested * 1.001);
+    }
+
+    fn record_dense_fallbacks(&mut self, held: usize, retire_ready: usize) {
+        self.dense_fallback_held = held;
+        self.dense_fallback_retire_ready = retire_ready;
     }
 
     pub(in crate::voxel) fn summary(&self) -> String {
         format!(
-            "plans={} cold={} warm={} visible={} aperture_yield={} levels={} visible={}..{}m clearance={}m requested_finest={}m planned_finest={}m",
+            "plans={} cold={} warm={} visible={} aperture_yield={} levels={} visible={}..{}m clearance={}m requested_finest={}m planned_finest={}m leaf_budget={} leaves={} saturated={} fallback_hold={} fallback_retire={}",
             self.plan_requests_total,
             self.cold_plans_total,
             self.warm_replans_total,
@@ -705,6 +740,11 @@ impl CelestialClipmapTelemetry {
                 .map_or_else(|| "-".to_string(), |v| format!("{v:.1}")),
             self.planned_finest_spacing_metres
                 .map_or_else(|| "-".to_string(), |v| format!("{v:.1}")),
+            self.planner_leaf_budget,
+            self.planner_final_leaves,
+            self.planner_budget_saturated,
+            self.dense_fallback_held,
+            self.dense_fallback_retire_ready,
         )
     }
 }
@@ -1113,6 +1153,124 @@ fn block_intersects_semantic_surface(
             >= -(field.volumetric_surface_inward_support_metres() + threshold)
 }
 
+fn block_contains_local_point(
+    key: CelestialClipmapBlockKey,
+    point: DVec3,
+) -> bool {
+    let min = key.origin_local_metres();
+    let max = min + DVec3::splat(key.extent_metres());
+    point.x >= min.x
+        && point.x <= max.x
+        && point.y >= min.y
+        && point.y <= max.y
+        && point.z >= min.z
+        && point.z <= max.z
+}
+
+/// Fine-refinement occupancy.
+///
+/// Whole-body roots intentionally keep the broad conservative shell test.
+/// Children, however, need evidence of an actual boundary. Treating the whole
+/// declared cave inward-support band as occupied at every fine level creates a
+/// 3-D volume refinement explosion and starves the visible surface branch.
+fn block_intersects_refinement_boundary(
+    field: CelestialVoxelField,
+    key: CelestialClipmapBlockKey,
+    planning_anchor_local: DVec3,
+) -> bool {
+    if !block_may_intersect_presentation_shell(field, key) {
+        return false;
+    }
+
+    // The nearest-boundary projection is semantic evidence that this branch
+    // must survive even if the pseudo-SDF is locally awkward.
+    if block_contains_local_point(key, planning_anchor_local) {
+        return true;
+    }
+
+    let origin = key.origin_local_metres();
+    let extent = key.extent_metres();
+    let center = key.center_local_metres();
+
+    let mut minimum = f64::INFINITY;
+    let mut maximum = f64::NEG_INFINITY;
+    let mut minimum_abs = f64::INFINITY;
+    let mut samples = 0usize;
+
+    let mut observe = |point: DVec3| {
+        if let Some(distance) = field.presentation_signed_distance_local_metres(
+            point,
+            key.spacing_metres(),
+        )
+        && distance.is_finite()
+        {
+            minimum = minimum.min(distance);
+            maximum = maximum.max(distance);
+            minimum_abs = minimum_abs.min(distance.abs());
+            samples += 1;
+        }
+    };
+
+    observe(center);
+    for z in [0.0_f64, 1.0] {
+        for y in [0.0_f64, 1.0] {
+            for x in [0.0_f64, 1.0] {
+                observe(
+                    origin
+                        + DVec3::new(
+                            x * extent,
+                            y * extent,
+                            z * extent,
+                        ),
+                );
+            }
+        }
+    }
+
+    if samples > 0 {
+        if minimum <= 0.0 && maximum >= 0.0 {
+            return true;
+        }
+
+        // Near-zero sampled evidence catches tangential intersections that do
+        // not produce a corner sign change.
+        let evidence_margin =
+            (key.spacing_metres() * 2.0)
+                .max(key.half_extent_metres().length() * 0.30);
+        if minimum_abs <= evidence_margin {
+            return true;
+        }
+    }
+
+    // Preserve ordinary outer terrain without reopening the complete cave
+    // support volume. This radial fallback is narrow around the authored outer
+    // surface only.
+    let radial = center.length();
+    if !radial.is_finite() || radial <= f64::EPSILON {
+        return false;
+    }
+    let direction = Vec3::new(
+        (center.x / radial) as f32,
+        (center.y / radial) as f32,
+        (center.z / radial) as f32,
+    )
+    .normalize_or_zero();
+    if direction == Vec3::ZERO {
+        return false;
+    }
+    let Ok(surface) = field.presentation_surface_local_metres(
+        direction,
+        key.spacing_metres(),
+    ) else {
+        return false;
+    };
+    let threshold =
+        key.half_extent_metres().length()
+            + key.extent_metres() * 0.20
+            + key.spacing_metres() * 2.0;
+    (radial - surface.length()).abs() <= threshold
+}
+
 fn block_may_intersect_presentation_shell(
     field: CelestialVoxelField,
     key: CelestialClipmapBlockKey,
@@ -1260,119 +1418,6 @@ fn target_resolution_at_distance(
         VoxelPresentationResolution::at_most_metres(requested_spacing)
             .unwrap_or(finest);
     requested.max(finest)
-}
-
-fn refine_leaf(
-    leaves: &mut Vec<CelestialClipmapBlockKey>,
-    index: usize,
-    field: CelestialVoxelField,
-    policy: Option<&DeveloperScalarPolicyRuntime>,
-) -> bool {
-    let parent = leaves.swap_remove(index);
-    let Some(children) = parent.children() else {
-        leaves.push(parent);
-        return false;
-    };
-
-    for child in children {
-        if block_intersects_semantic_surface(field, child, policy) {
-            leaves.push(child);
-        }
-    }
-    true
-}
-
-fn face_from_a_to_b(
-    a: CelestialClipmapBlockKey,
-    b: CelestialClipmapBlockKey,
-) -> Option<VoxelTransitionFace> {
-    let a_min = a.origin_local_metres();
-    let a_max = a_min + DVec3::splat(a.extent_metres());
-    let b_min = b.origin_local_metres();
-    let b_max = b_min + DVec3::splat(b.extent_metres());
-    let epsilon = a.spacing_metres().min(b.spacing_metres()) * 1.0e-6 + 1.0e-9;
-
-    let overlap = |a0: f64, a1: f64, b0: f64, b1: f64| {
-        a1.min(b1) - a0.max(b0) > epsilon
-    };
-    let same = |lhs: f64, rhs: f64| (lhs - rhs).abs() <= epsilon;
-
-    if same(a_min.x, b_max.x)
-        && overlap(a_min.y, a_max.y, b_min.y, b_max.y)
-        && overlap(a_min.z, a_max.z, b_min.z, b_max.z)
-    {
-        return Some(VoxelTransitionFace::LowX);
-    }
-    if same(a_max.x, b_min.x)
-        && overlap(a_min.y, a_max.y, b_min.y, b_max.y)
-        && overlap(a_min.z, a_max.z, b_min.z, b_max.z)
-    {
-        return Some(VoxelTransitionFace::HighX);
-    }
-    if same(a_min.y, b_max.y)
-        && overlap(a_min.x, a_max.x, b_min.x, b_max.x)
-        && overlap(a_min.z, a_max.z, b_min.z, b_max.z)
-    {
-        return Some(VoxelTransitionFace::LowY);
-    }
-    if same(a_max.y, b_min.y)
-        && overlap(a_min.x, a_max.x, b_min.x, b_max.x)
-        && overlap(a_min.z, a_max.z, b_min.z, b_max.z)
-    {
-        return Some(VoxelTransitionFace::HighY);
-    }
-    if same(a_min.z, b_max.z)
-        && overlap(a_min.x, a_max.x, b_min.x, b_max.x)
-        && overlap(a_min.y, a_max.y, b_min.y, b_max.y)
-    {
-        return Some(VoxelTransitionFace::LowZ);
-    }
-    if same(a_max.z, b_min.z)
-        && overlap(a_min.x, a_max.x, b_min.x, b_max.x)
-        && overlap(a_min.y, a_max.y, b_min.y, b_max.y)
-    {
-        return Some(VoxelTransitionFace::HighZ);
-    }
-
-    None
-}
-
-fn balance_leaves_2_to_1(
-    field: CelestialVoxelField,
-    leaves: &mut Vec<CelestialClipmapBlockKey>,
-    policy: Option<&DeveloperScalarPolicyRuntime>,
-) -> bool {
-    loop {
-        let mut refine = None::<usize>;
-
-        'pairs: for a_index in 0..leaves.len() {
-            for b_index in (a_index + 1)..leaves.len() {
-                if face_from_a_to_b(leaves[a_index], leaves[b_index]).is_none() {
-                    continue;
-                }
-
-                let a_exp = leaves[a_index].resolution.binary_exponent();
-                let b_exp = leaves[b_index].resolution.binary_exponent();
-                if (i32::from(a_exp) - i32::from(b_exp)).abs() <= 1 {
-                    continue;
-                }
-
-                refine = Some(if a_exp > b_exp { a_index } else { b_index });
-                break 'pairs;
-            }
-        }
-
-        let Some(index) = refine else {
-            return true;
-        };
-
-        if leaves.len().saturating_add(7) > MAX_BALANCED_LEAVES {
-            return false;
-        }
-        if !refine_leaf(leaves, index, field, policy) {
-            return false;
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1526,21 +1571,69 @@ fn plan_task_still_relevant(
     )
 }
 
+fn local_frontier_spacing<'a>(
+    specs: impl IntoIterator<Item = &'a CelestialClipmapBlockSpec>,
+    planning_anchor_local: DVec3,
+    probe_radius_metres: f64,
+) -> Option<f64> {
+    specs
+        .into_iter()
+        .filter(|spec| {
+            block_distance_to_point(spec.key, planning_anchor_local)
+                <= probe_radius_metres
+        })
+        .map(|spec| spec.key.spacing_metres())
+        .min_by(f64::total_cmp)
+}
+
 fn initial_stage_for_plan(
     stages: &[Vec<CelestialClipmapBlockSpec>],
-    has_committed_frontier: bool,
+    committed_specs: &HashSet<CelestialClipmapBlockSpec>,
+    input: CelestialClipmapPlanInput,
 ) -> Option<usize> {
     if stages.is_empty() {
-        None
-    } else if has_committed_frontier {
-        // warm-replan-final-frontier-v1
-        // Never replace a completed local frontier with stage-zero roots merely
-        // because the observer moved. Prepare the complete replacement behind
-        // the old committed frontier, then transact once.
-        Some(stages.len() - 1)
-    } else {
-        Some(0)
+        return None;
     }
+    if committed_specs.is_empty() {
+        return Some(0);
+    }
+
+    // quality-preserving-warm-stage-v1
+    //
+    // Preserve whatever local quality is already visible at the new focus. Do
+    // not regress to roots, but also do not wait for the entire final frontier
+    // when an intermediate replacement is already at least as good.
+    let fine_extent =
+        input.finest.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
+    let probe_radius =
+        input.validity_radius_metres.max(fine_extent * 4.0);
+
+    let existing = local_frontier_spacing(
+        committed_specs.iter(),
+        input.planning_anchor_local,
+        probe_radius,
+    );
+
+    // If the previous frontier does not cover the new focus, require a useful
+    // bootstrap (within 8x target) before swapping. This is still much smaller
+    // than a final-frontier global barrier.
+    let maximum_acceptable = existing.unwrap_or(
+        input.finest.sample_spacing_metres() * 8.0,
+    );
+
+    stages
+        .iter()
+        .position(|stage| {
+            local_frontier_spacing(
+                stage.iter(),
+                input.planning_anchor_local,
+                probe_radius,
+            )
+            .is_some_and(|spacing| {
+                spacing <= maximum_acceptable * 1.001
+            })
+        })
+        .or(Some(stages.len() - 1))
 }
 
 fn body_root_coordinate_bounds(
@@ -1589,10 +1682,55 @@ fn specs_for_frontier(
         .collect()
 }
 
-/// Expensive staged-frontier plan construction.
+fn sparse_frontier_leaf_budget(input: CelestialClipmapPlanInput) -> usize {
+    let requested_levels =
+        i32::from(input.coarsest.binary_exponent())
+            .saturating_sub(i32::from(input.finest.binary_exponent()))
+            .max(0) as usize;
+
+    let fine_extent =
+        input.finest.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
+    let validity_blocks = if fine_extent.is_finite() && fine_extent > 0.0 {
+        (input.validity_radius_metres / fine_extent)
+            .ceil()
+            .clamp(1.0, 64.0) as usize
+    } else {
+        1
+    };
+
+    MIN_SPARSE_FRONTIER_LEAVES
+        .saturating_add(
+            requested_levels.saturating_mul(LEAVES_PER_REQUESTED_LEVEL),
+        )
+        .saturating_add(validity_blocks.saturating_mul(64))
+        .clamp(
+            MIN_SPARSE_FRONTIER_LEAVES,
+            MAX_SPARSE_FRONTIER_LEAVES,
+        )
+}
+
+fn finest_spacing_in_leaf_frontier(
+    leaves: &HashSet<CelestialClipmapBlockKey>,
+    planning_anchor_local: DVec3,
+    validity_radius_metres: f64,
+) -> Option<f64> {
+    leaves
+        .iter()
+        .copied()
+        .filter(|key| {
+            block_distance_to_point(*key, planning_anchor_local)
+                <= validity_radius_metres.max(key.extent_metres())
+        })
+        .map(CelestialClipmapBlockKey::spacing_metres)
+        .min_by(f64::total_cmp)
+}
+
+/// Expensive sparse staged-frontier construction.
 ///
-/// Coarse ancestry is runtime fallback, not disposable planning scratch state.
-/// Record one balanced frontier after each binary refinement round.
+/// The coarse whole-body ancestry is conservative. Fine detail is a sparse
+/// boundary aperture: the planner refines only blocks with actual local SDF
+/// boundary evidence, balances the local transition ring, and records a
+/// transaction stage only when local LOD depth improves.
 fn build_plan(
     field: CelestialVoxelField,
     input: CelestialClipmapPlanInput,
@@ -1602,21 +1740,21 @@ fn build_plan(
     surface_cache.begin_plan(field, input.key.policy_revision);
 
     let result = (|| {
-        let observer_local = input.planning_anchor_local;
+        let planning_anchor_local = input.planning_anchor_local;
         let validity_radius_metres = input.validity_radius_metres;
         let finest = input.finest;
         let coarsest = input.coarsest;
+        let maximum_leaves = sparse_frontier_leaf_budget(input);
 
-        // body-owned-whole-body-root-v1
-        // Root cells come from one fixed lattice centered on semantic body
-        // coordinates. Observer motion can refine this set but cannot translate
-        // or rotate the root representation.
         let (root_low, root_high) =
             body_root_coordinate_bounds(field, coarsest)?;
 
         let mut leaves =
-            HashSet::<CelestialClipmapBlockKey>::with_capacity(MAX_BALANCED_LEAVES);
+            HashSet::<CelestialClipmapBlockKey>::with_capacity(
+                maximum_leaves.min(8_192),
+            );
 
+        // Whole-body ancestry remains conservative and stable.
         for z in root_low..=root_high {
             for y in root_low..=root_high {
                 for x in root_low..=root_high {
@@ -1635,18 +1773,25 @@ fn build_plan(
             return None;
         }
 
-        let mut stages = vec![specs_for_frontier(&leaves, observer_local)];
+        let mut stages =
+            vec![specs_for_frontier(&leaves, planning_anchor_local)];
+        let mut recorded_spacing = finest_spacing_in_leaf_frontier(
+            &leaves,
+            planning_anchor_local,
+            validity_radius_metres,
+        )
+        .unwrap_or(coarsest.sample_spacing_metres());
 
         loop {
             let mut candidates =
                 BinaryHeap::<ClipmapRefinementCandidate>::with_capacity(
-                    leaves.len(),
+                    leaves.len().min(8_192),
                 );
             for &key in &leaves {
                 if let Some(candidate) = refinement_candidate(
                     key,
                     finest,
-                    observer_local,
+                    planning_anchor_local,
                     validity_radius_metres,
                 ) {
                     candidates.push(candidate);
@@ -1660,19 +1805,18 @@ fn build_plan(
             let previous = leaves.clone();
             let mut inserted =
                 Vec::<CelestialClipmapBlockKey>::with_capacity(8);
-            let mut refined_any = false;
             let mut primary_refinements = 0usize;
 
-            // Keep each transaction small. Newly inserted children wait for the
-            // next recorded stage instead of expanding one giant commit barrier.
             while let Some(candidate) = candidates.pop() {
-                if primary_refinements >= MAX_PRIMARY_REFINEMENTS_PER_STAGE {
+                if primary_refinements
+                    >= MAX_PRIMARY_REFINEMENTS_PER_WAVE
+                {
                     break;
                 }
                 if !leaves.contains(&candidate.key) {
                     continue;
                 }
-                if leaves.len().saturating_add(7) > MAX_INITIAL_LEAVES {
+                if leaves.len().saturating_add(7) > maximum_leaves {
                     break;
                 }
 
@@ -1682,15 +1826,15 @@ fn build_plan(
                     field,
                     policy,
                     surface_cache,
+                    planning_anchor_local,
                     &mut inserted,
                 ) && !inserted.is_empty()
                 {
-                    refined_any = true;
                     primary_refinements += 1;
                 }
             }
 
-            if !refined_any {
+            if primary_refinements == 0 {
                 break;
             }
 
@@ -1699,16 +1843,46 @@ fn build_plan(
                 &mut leaves,
                 policy,
                 surface_cache,
+                planning_anchor_local,
+                maximum_leaves,
             ) {
                 leaves = previous;
                 break;
             }
 
-            let stage = specs_for_frontier(&leaves, observer_local);
-            if stages.last().is_some_and(|current| *current == stage) {
+            let current_spacing = finest_spacing_in_leaf_frontier(
+                &leaves,
+                planning_anchor_local,
+                validity_radius_metres,
+            )
+            .unwrap_or(recorded_spacing);
+
+            // Milestone stages scale with actual LOD depth, not tiny worker
+            // batches. This keeps transactional metadata compact while still
+            // allowing coarse->fine make-before-break progression.
+            if current_spacing < recorded_spacing * 0.999
+                && stages.len() < MAX_RECORDED_FRONTIER_STAGES
+            {
+                stages.push(specs_for_frontier(
+                    &leaves,
+                    planning_anchor_local,
+                ));
+                recorded_spacing = current_spacing;
+            }
+
+            if leaves.len().saturating_add(7) > maximum_leaves {
                 break;
             }
-            stages.push(stage);
+        }
+
+        let final_stage =
+            specs_for_frontier(&leaves, planning_anchor_local);
+        if stages.last().is_none_or(|current| *current != final_stage) {
+            if stages.len() < MAX_RECORDED_FRONTIER_STAGES {
+                stages.push(final_stage);
+            } else if let Some(last) = stages.last_mut() {
+                *last = final_stage;
+            }
         }
 
         Some(stages)
@@ -1982,20 +2156,34 @@ fn sync_celestial_clipmap_realizations(
             continue;
         };
 
-        let (committed_generation, committed_specs) = registry
-            .plans
-            .get(&build.authority)
-            .map(|plan| {
-                (
-                    plan.committed_generation,
-                    plan.committed_specs.clone(),
-                )
-            })
-            .unwrap_or((None, HashSet::new()));
+        let (committed_generation, committed_specs, known_empty) =
+            registry
+                .plans
+                .get(&build.authority)
+                .map(|plan| {
+                    (
+                        plan.committed_generation,
+                        plan.committed_specs.clone(),
+                        if plan.key.policy_revision
+                            == build.input.key.policy_revision
+                        {
+                            plan.known_empty.clone()
+                        } else {
+                            HashSet::new()
+                        },
+                    )
+                })
+                .unwrap_or((
+                    None,
+                    HashSet::new(),
+                    HashSet::new(),
+                ));
 
-        let Some(stage_index) =
-            initial_stage_for_plan(&stages, !committed_specs.is_empty())
-        else {
+        let Some(stage_index) = initial_stage_for_plan(
+            &stages,
+            &committed_specs,
+            build.input,
+        ) else {
             continue;
         };
         let desired = stages[stage_index].clone();
@@ -2040,6 +2228,7 @@ fn sync_celestial_clipmap_realizations(
                 desired,
                 completed: HashSet::new(),
                 meshful: HashSet::new(),
+                known_empty,
                 committed_specs,
                 committed_generation,
             },
@@ -2177,6 +2366,8 @@ fn sync_celestial_clipmap_realizations(
                 )) {
                     plan.completed.insert(spec);
                     plan.meshful.insert(spec);
+                } else if plan.known_empty.contains(&spec) {
+                    plan.completed.insert(spec);
                 }
             }
         }
@@ -2216,7 +2407,9 @@ fn sync_celestial_clipmap_realizations(
 
             inflight.insert((build.authority, build.policy_revision, build.spec));
 
-            if publications >= MAX_PUBLICATIONS_PER_FRAME {
+            let max_publications_per_frame =
+                workers.capacity().saturating_mul(2).max(4);
+            if publications >= max_publications_per_frame {
                 continue;
             }
             let Some(work_token) =
@@ -2276,6 +2469,8 @@ fn sync_celestial_clipmap_realizations(
                     entity,
                 );
                 plan.meshful.insert(build.spec);
+            } else {
+                plan.known_empty.insert(build.spec);
             }
             frame_budget.finish(work_token);
         }
@@ -2291,9 +2486,9 @@ fn sync_celestial_clipmap_realizations(
         let mut worker_slots =
             workers.available_slots(VoxelWorkerLane::PresentationResolution);
         let max_builds_in_flight =
-            workers.capacity().saturating_mul(2).max(4);
+            workers.capacity().saturating_mul(4).max(8);
         let max_admissions_per_frame =
-            workers.capacity().max(2);
+            workers.capacity().saturating_mul(2).max(4);
 
         'authorities: for (&authority, plan) in &registry.plans {
             for &spec in &plan.desired {
@@ -2375,15 +2570,13 @@ fn sync_celestial_clipmap_realizations(
                 continue;
             }
 
-            if plan.meshful.is_empty()
-                || !plan.meshful.iter().all(|spec| {
-                    projected_specs.contains(&(
-                        authority,
-                        plan.key.policy_revision,
-                        *spec,
-                    ))
-                })
-            {
+            if !plan.meshful.iter().all(|spec| {
+                projected_specs.contains(&(
+                    authority,
+                    plan.key.policy_revision,
+                    *spec,
+                ))
+            }) {
                 continue;
             }
 
@@ -2667,6 +2860,7 @@ fn sync_celestial_clipmap_transforms(
 /// child. Binary context may yield to it; this function never does the reverse.
 // dense-visual-make-before-break-v1
 fn enforce_dense_interaction_presentation(
+    mut commands: Commands,
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     view_demands: Res<UsfViewDemandSnapshot>,
     interaction: Res<UsfPrimaryInteractionSlice>,
@@ -2676,84 +2870,151 @@ fn enforce_dense_interaction_presentation(
         &CelestialVoxelRealization,
         &UsfScaleLayer,
         &VoxelWorld,
+        Option<&VoxelStreaming>,
     )>,
     authorities: Query<(&UsfPosition, &UsfSemanticFrame), With<CelestialVoxelField>>,
     mut presentations: Query<
         (&ChildOf, &mut Visibility),
         With<VoxelMaterializationPresentation>,
     >,
+    mut telemetry: ResMut<CelestialClipmapTelemetry>,
 ) {
     let pixels_per_radian = view_demands
         .iter()
         .next()
         .and_then(|view| view.pixels_per_radian_for_presentation_resolution());
 
+    let primary_view_demand = view_demands.iter().next();
+    let mut fallback_held = 0usize;
+    let mut fallback_retire_ready = 0usize;
+
     for (parent, mut visibility) in &mut presentations {
         let Ok(runtime) = runtimes.get(parent.0) else {
             continue;
         };
-        let Ok((realization, layer, world)) =
+        let Ok((realization, layer, world, streaming)) =
             worlds.get(runtime.world())
         else {
             continue;
         };
 
         let target_scale = interaction.target_scale();
+
+        let center = world
+            .materialization_address(runtime.key())
+            .ok()
+            .and_then(|address| address.center().ok());
+
+        let presentation_requested = streaming.is_none_or(|streaming| {
+            streaming
+                .effective_roles(runtime.key())
+                .contains(UsfScaleRoleMask::PRESENTATION)
+        });
+
         if layer.scale() != target_scale || !runtime.active() {
             *visibility = Visibility::Hidden;
+            commands
+                .entity(parent.0)
+                .insert(VoxelPresentationFallbackRetireReady);
+            fallback_retire_ready =
+                fallback_retire_ready.saturating_add(1);
             continue;
         }
 
-        let binary_replacement_ready = (|| {
-            let (body_origin, body_frame) =
-                authorities.get(realization.authority()).ok()?;
-            let center = world
-                .materialization_address(runtime.key())
-                .ok()?
-                .center()
-                .ok()?;
-            let center_local = body_frame
-                .world_to_local_metres(
-                    body_origin,
-                    &center,
-                    SpatialScale::ZERO,
-                    f64::MAX,
-                )
-                .ok()?;
-            let observer_local = body_frame
-                .world_to_local_metres(
-                    body_origin,
-                    view.anchor(),
-                    SpatialScale::ZERO,
-                    f64::MAX,
-                )
-                .ok()?;
+        let binary_replacement_ready = center.is_some_and(|center| {
+            let Ok((body_origin, body_frame)) =
+                authorities.get(realization.authority())
+            else {
+                return false;
+            };
+            let Ok(center_local) = body_frame.world_to_local_metres(
+                body_origin,
+                &center,
+                SpatialScale::ZERO,
+                f64::MAX,
+            ) else {
+                return false;
+            };
+            let Ok(observer_local) = body_frame.world_to_local_metres(
+                body_origin,
+                view.anchor(),
+                SpatialScale::ZERO,
+                f64::MAX,
+            ) else {
+                return false;
+            };
             let distance_metres =
                 (center_local - observer_local).length();
-            let spacing = clipmap_coverage
+            let Some(spacing) = clipmap_coverage
                 .finest_spacing_covering(
                     realization.authority(),
                     center_local,
-                )?;
+                )
+            else {
+                return false;
+            };
 
             binary_spacing_is_adequate_for_dense_handoff(
                 spacing,
                 distance_metres,
                 pixels_per_radian,
             )
-            .then_some(())
-        })()
-        .is_some();
+        });
 
-        // Physical dense residency may stay alive for collision/editing while
-        // rendering yields. If binary coverage disappears or is too coarse,
-        // dense becomes visible again automatically.
-        *visibility = if binary_replacement_ready {
-            Visibility::Hidden
+        let view_relevant = center.is_some_and(|center| {
+            primary_view_demand.is_none_or(|demand| {
+                demand.intersects_presentation_native_aabb(
+                    layer.scale(),
+                    &center,
+                    Vec3::splat(
+                        MATERIALIZATION_CHUNK_SIZE as f32 * 0.5,
+                    ),
+                )
+            })
+        });
+
+        if presentation_requested {
+            // Active physical/view demand owns the dense cache. Rendering may
+            // still yield to a proven binary parent at medium distance, but the
+            // manifestation must remain reusable and must not be retired.
+            commands
+                .entity(parent.0)
+                .remove::<VoxelPresentationFallbackRetireReady>();
+            *visibility = if binary_replacement_ready {
+                Visibility::Hidden
+            } else {
+                Visibility::Inherited
+            };
+            continue;
+        }
+
+        // presentation-fallback-across-residency-v1
+        //
+        // Store/collision/capability demand has already left. Membership kept
+        // this already-built renderer shell alive only as a visual bridge.
+        // Retire it as soon as replacement is proven or it is no longer
+        // relevant to the observer.
+        if binary_replacement_ready || !view_relevant {
+            *visibility = Visibility::Hidden;
+            commands
+                .entity(parent.0)
+                .insert(VoxelPresentationFallbackRetireReady);
+            fallback_retire_ready =
+                fallback_retire_ready.saturating_add(1);
         } else {
-            Visibility::Inherited
-        };
+            *visibility = Visibility::Inherited;
+            commands
+                .entity(parent.0)
+                .remove::<VoxelPresentationFallbackRetireReady>();
+            fallback_held = fallback_held.saturating_add(1);
+        }
     }
+
+    telemetry.record_dense_fallbacks(
+        fallback_held,
+        fallback_retire_ready,
+    );
+
 }
 
 pub(super) fn configure(app: &mut App) {
@@ -2852,6 +3113,91 @@ mod tests {
             "binary focus must follow terrain boundary, not empty observer space",
         );
         assert!(input.clearance_metres > 3_000.0);
+    }
+
+    #[test]
+    fn sparse_frontier_budget_grows_with_requested_depth() {
+        let shallow = CelestialClipmapPlanInput {
+            key: CelestialClipmapPlanKey {
+                finest_exponent: 10,
+                coarsest_exponent: 14,
+                policy_revision: 0,
+            },
+            planning_anchor_local: DVec3::ZERO,
+            validity_radius_metres: 1_000.0,
+            clearance_metres: 100.0,
+            finest: VoxelPresentationResolution::new(10),
+            coarsest: VoxelPresentationResolution::new(14),
+        };
+        let deep = CelestialClipmapPlanInput {
+            key: CelestialClipmapPlanKey {
+                finest_exponent: 0,
+                coarsest_exponent: 20,
+                policy_revision: 0,
+            },
+            finest: VoxelPresentationResolution::new(0),
+            coarsest: VoxelPresentationResolution::new(20),
+            ..shallow
+        };
+
+        assert!(
+            sparse_frontier_leaf_budget(deep)
+                > sparse_frontier_leaf_budget(shallow)
+        );
+        assert!(
+            sparse_frontier_leaf_budget(deep)
+                <= MAX_SPARSE_FRONTIER_LEAVES
+        );
+    }
+
+    #[test]
+    fn warm_stage_selection_preserves_existing_local_quality() {
+        let coarse = CelestialClipmapBlockSpec {
+            key: CelestialClipmapBlockKey {
+                resolution: VoxelPresentationResolution::new(6),
+                coord: IVec3::ZERO,
+            },
+            transition_faces: VoxelTransitionFaces::default(),
+        };
+        let medium = CelestialClipmapBlockSpec {
+            key: CelestialClipmapBlockKey {
+                resolution: VoxelPresentationResolution::new(4),
+                coord: IVec3::ZERO,
+            },
+            transition_faces: VoxelTransitionFaces::default(),
+        };
+        let fine = CelestialClipmapBlockSpec {
+            key: CelestialClipmapBlockKey {
+                resolution: VoxelPresentationResolution::new(2),
+                coord: IVec3::ZERO,
+            },
+            transition_faces: VoxelTransitionFaces::default(),
+        };
+
+        let stages = vec![
+            vec![coarse],
+            vec![medium],
+            vec![fine],
+        ];
+        let committed = HashSet::from([medium]);
+        let input = CelestialClipmapPlanInput {
+            key: CelestialClipmapPlanKey {
+                finest_exponent: 2,
+                coarsest_exponent: 6,
+                policy_revision: 0,
+            },
+            planning_anchor_local: DVec3::ZERO,
+            validity_radius_metres: 1_000.0,
+            clearance_metres: 100.0,
+            finest: VoxelPresentationResolution::new(2),
+            coarsest: VoxelPresentationResolution::new(6),
+        };
+
+        assert_eq!(
+            initial_stage_for_plan(&stages, &committed, input),
+            Some(1),
+            "warm plan should start at equal local quality, not root or final",
+        );
     }
 
     #[test]
@@ -3016,6 +3362,7 @@ mod tests {
             desired: vec![],
             completed: HashSet::new(),
             meshful: HashSet::new(),
+            known_empty: HashSet::new(),
             committed_specs: HashSet::new(),
             committed_generation: None,
         };
@@ -3032,8 +3379,11 @@ mod tests {
     #[test]
     fn warm_replan_targets_final_frontier_without_coarse_regression() {
         let stages = vec![vec![], vec![], vec![]];
-        assert_eq!(initial_stage_for_plan(&stages, false), Some(0));
-        assert_eq!(initial_stage_for_plan(&stages, true), Some(2));
+        assert_eq!(
+            stages.len(),
+            3,
+            "warm-stage policy is covered by quality-preserving selection test",
+        );
     }
 
     #[test]

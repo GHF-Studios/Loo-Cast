@@ -239,6 +239,12 @@ impl VoxelMaterializationStore {
                 self.entries.remove(&address);
                 self.dirty_derived_set.remove(&address);
                 self.inactive_count = self.inactive_count.saturating_sub(1);
+
+                // eviction-retires-presentation-fallback-v1
+                // A presentation-only fallback may intentionally outlive active
+                // residency. Cache eviction is the hard lifetime boundary: wake
+                // membership so no renderer shell can outlive its source mesh.
+                self.mark_render_dirty(address);
             }
         }
     }

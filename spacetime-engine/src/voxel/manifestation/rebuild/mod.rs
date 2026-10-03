@@ -17,7 +17,8 @@ use crate::{
 
 use super::{
     VoxelMaterializationPresentation, VoxelMaterializationRuntime,
-    VoxelMaterializationRuntimeRegistry, VoxelRenderMaterial,
+    VoxelMaterializationRuntimeRegistry, VoxelPresentationFallbackRetireReady,
+    VoxelRenderMaterial,
 };
 use super::super::{
     VoxelMaterialId, VoxelMaterializationChunkAddress, VoxelWorld,
@@ -39,7 +40,10 @@ fn park_manifestation(
         return;
     };
 
-    commands.entity(entity).insert(((*runtime).parked(), Visibility::Hidden));
+    commands
+        .entity(entity)
+        .insert(((*runtime).parked(), Visibility::Hidden))
+        .remove::<VoxelPresentationFallbackRetireReady>();
     if !registry.recycle(entity) {
         commands.entity(entity).despawn();
     }
@@ -381,6 +385,12 @@ fn sync_manifestation_root_state(
         registry.record_visibility_write();
         commands.entity(entity).insert(Visibility::Inherited);
     }
+
+    // A rebound/reused manifestation is active truth again. Any retirement
+    // decision belonged to its previous disposable binding.
+    commands
+        .entity(entity)
+        .remove::<VoxelPresentationFallbackRetireReady>();
 }
 
 fn sync_fallback(
