@@ -9,7 +9,11 @@ use crate::spatial::{SpatialScale, UsfPosition, UsfPositionError, UsfSemanticFra
 
 use super::{
     EMPTY_DISTANCE,
-    noise::{scale_layer_seed, semantic_value_noise_3d, value_noise_3d},
+    noise::{
+        SemanticNoiseCornerCache, scale_layer_seed,
+        semantic_value_noise_3d, semantic_value_noise_3d_cached,
+        value_noise_3d,
+    },
 };
 use super::super::{VoxelMaterialId, VoxelQueryPosition, VoxelSample};
 
@@ -19,6 +23,7 @@ mod rocky;
 
 use caves::{
     CAVE_MAX_DEPTH_METRES,
+    rocky_cave_void_may_intersect_aabb,
     rocky_cave_void_signed_distance_metres,
     rocky_cave_void_signed_distance_metres_with_radial,
 };
@@ -95,6 +100,72 @@ pub struct ProceduralCelestialBody {
 pub(crate) struct PreparedProceduralCelestialBody {
     body: ProceduralCelestialBody,
     chunk_origin_local_metres: DVec3,
+}
+
+// presentation-central-cache-specialization-v1
+//
+// Presentation evaluates many nearby body-local points. Keep expensive
+// deterministic semantic-noise corner reuse inside this reconstructible sampler
+// rather than in semantic authority or global process state.
+#[derive(Debug)]
+pub(crate) struct PreparedCelestialPresentationBody {
+    body: ProceduralCelestialBody,
+    canonical_noise_cache: SemanticNoiseCornerCache,
+}
+
+impl PreparedCelestialPresentationBody {
+    pub(crate) fn new(body: ProceduralCelestialBody) -> Self {
+        Self {
+            body,
+            canonical_noise_cache: SemanticNoiseCornerCache::new(),
+        }
+    }
+
+    #[inline]
+    pub(crate) fn signed_distance_local_metres(
+        &self,
+        local_point_metres: DVec3,
+    ) -> Option<f64> {
+        self.body
+            .signed_distance_local_metres_with_detail_cache(
+                local_point_metres,
+                &self.canonical_noise_cache,
+                true,
+            )
+    }
+
+    #[inline]
+    pub(crate) fn outer_signed_distance_local_metres(
+        &self,
+        local_point_metres: DVec3,
+    ) -> Option<f64> {
+        self.body
+            .outer_signed_distance_and_radial_local_metres_through_with_cache(
+                local_point_metres,
+                self.body.surface_detail_scale,
+                Some(&self.canonical_noise_cache),
+            )
+            .map(|(distance, _)| distance)
+    }
+
+    #[inline]
+    pub(crate) fn surface_local_metres(
+        &self,
+        direction: Vec3,
+    ) -> Result<DVec3, UsfPositionError> {
+        let direction = normalized_direction(direction);
+        let radius =
+            self.body.semantic_surface_radius_metres_through_with_cache(
+                direction,
+                self.body.surface_detail_scale,
+                Some(&self.canonical_noise_cache),
+            )?;
+        Ok(dvec(direction) * radius)
+    }
+
+    pub(crate) fn noise_cache_stats(&self) -> (u64, u64) {
+        self.canonical_noise_cache.stats()
+    }
 }
 
 impl PreparedProceduralCelestialBody {
@@ -194,6 +265,29 @@ pub(crate) fn prepare_local_sampler(
         })
     }
 
+    pub(crate) fn prepare_presentation_sampler(
+        self,
+    ) -> PreparedCelestialPresentationBody {
+        PreparedCelestialPresentationBody::new(self)
+    }
+
+    pub(crate) fn cave_void_may_intersect_local_aabb(
+        self,
+        center_local_metres: DVec3,
+        half_extent_metres: DVec3,
+    ) -> bool {
+        match self.profile {
+            CelestialBodyProfile::Rocky => {
+                rocky_cave_void_may_intersect_aabb(
+                    center_local_metres,
+                    half_extent_metres,
+                    self.seed,
+                )
+            }
+            CelestialBodyProfile::Lunar | CelestialBodyProfile::Stellar => false,
+        }
+    }
+
     pub(crate) fn sample_at(
         self,
         world_origin: VoxelQueryPosition,
@@ -260,6 +354,20 @@ pub(crate) fn prepare_local_sampler(
         local_point_metres: DVec3,
         through_scale: SpatialScale,
     ) -> Option<(f64, f64)> {
+        self.outer_signed_distance_and_radial_local_metres_through_with_cache(
+            local_point_metres,
+            through_scale,
+            None,
+        )
+    }
+
+    #[inline]
+    fn outer_signed_distance_and_radial_local_metres_through_with_cache(
+        self,
+        local_point_metres: DVec3,
+        through_scale: SpatialScale,
+        canonical_noise_cache: Option<&SemanticNoiseCornerCache>,
+    ) -> Option<(f64, f64)> {
         let radial = local_point_metres.length();
         if !radial.is_finite() || radial <= f64::EPSILON {
             return None;
@@ -275,8 +383,13 @@ pub(crate) fn prepare_local_sampler(
             return None;
         }
 
-        let surface_radius =
-            self.semantic_surface_radius_metres_through(direction, through_scale).ok()?;
+        let surface_radius = self
+            .semantic_surface_radius_metres_through_with_cache(
+                direction,
+                through_scale,
+                canonical_noise_cache,
+            )
+            .ok()?;
         Some((radial - surface_radius, radial))
     }
 
@@ -302,6 +415,36 @@ pub(crate) fn prepare_local_sampler(
             true,
         )
     }
+
+    fn signed_distance_local_metres_with_detail_cache(
+        self,
+        local_point_metres: DVec3,
+        cache: &SemanticNoiseCornerCache,
+        include_caves: bool,
+    ) -> Option<f64> {
+        let (outer_sdf, radial) = self
+            .outer_signed_distance_and_radial_local_metres_through_with_cache(
+                local_point_metres,
+                self.surface_detail_scale,
+                Some(cache),
+            )?;
+
+        if !include_caves || self.profile != CelestialBodyProfile::Rocky {
+            return Some(outer_sdf);
+        }
+
+        let outer_surface_radius_metres = radial - outer_sdf;
+        let void_sdf =
+            rocky_cave_void_signed_distance_metres_with_radial(
+                local_point_metres,
+                radial,
+                outer_surface_radius_metres,
+                self.seed,
+            );
+
+        Some(outer_sdf.max(-void_sdf))
+    }
+
 
     pub(crate) fn signed_distance_local_metres_through(
         self,
@@ -453,6 +596,19 @@ fn semantic_surface_radius_metres(
         direction: Vec3,
         through_scale: SpatialScale,
     ) -> Result<f64, UsfPositionError> {
+        self.semantic_surface_radius_metres_through_with_cache(
+            direction,
+            through_scale,
+            None,
+        )
+    }
+
+    fn semantic_surface_radius_metres_through_with_cache(
+        self,
+        direction: Vec3,
+        through_scale: SpatialScale,
+        canonical_noise_cache: Option<&SemanticNoiseCornerCache>,
+    ) -> Result<f64, UsfPositionError> {
         let direction = normalized_direction(direction);
         let requested = through_scale.exponent().clamp(
             self.surface_detail_scale.exponent(),
@@ -478,20 +634,25 @@ fn semantic_surface_radius_metres(
 
         let fine_upper = root.min(0);
         if floor <= fine_upper {
-            // presentation-resolution-orders-of-magnitude-v1
-            //
-            // Body-local residual noise does not need an S-35 representation
-            // round-trip. Construct the identical canonical coordinate directly
-            // at the Scale whose deterministic lattice is being sampled.
             let local_reference_metres = dvec(direction) * radius;
             for raw in (floor..=fine_upper).rev() {
                 let level = SpatialScale::new(raw)
                     .expect("validated fine celestial semantic detail scale");
-                let noise =
-                    self.canonical_detail_noise_at_local_metres(
-                        local_reference_metres,
-                        level,
-                    )?;
+                let noise = match canonical_noise_cache {
+                    Some(cache) => {
+                        self.canonical_detail_noise_at_local_metres_cached(
+                            local_reference_metres,
+                            level,
+                            cache,
+                        )?
+                    }
+                    None => {
+                        self.canonical_detail_noise_at_local_metres(
+                            local_reference_metres,
+                            level,
+                        )?
+                    }
+                };
                 radius += f64::from(noise)
                     * self.detail_amplitude_native(level)
                     * level.metres_per_native();
@@ -565,6 +726,38 @@ fn canonical_detail_noise_at(
             point,
             CANONICAL_DETAIL_FINE_CELL_NATIVE,
             seed ^ 0xC801_3EA4,
+        );
+        Ok(broad * 0.72 + fine * 0.28)
+    }
+
+    #[inline]
+    fn canonical_detail_noise_at_local_metres_cached(
+        self,
+        local_position_metres: DVec3,
+        level: SpatialScale,
+        cache: &SemanticNoiseCornerCache,
+    ) -> Result<f32, UsfPositionError> {
+        let native =
+            local_position_metres / level.metres_per_native();
+        let canonical = UsfPosition::from_scale_native_f64(
+            native,
+            level,
+            level,
+        )?;
+        let point = VoxelQueryPosition::new(canonical);
+        let (_, _, _, salt) = self.detail_parameters();
+        let seed = scale_layer_seed(self.seed ^ salt, level);
+        let broad = semantic_value_noise_3d_cached(
+            point,
+            CANONICAL_DETAIL_CELL_NATIVE,
+            seed ^ 0xA341_316C,
+            cache,
+        );
+        let fine = semantic_value_noise_3d_cached(
+            point,
+            CANONICAL_DETAIL_FINE_CELL_NATIVE,
+            seed ^ 0xC801_3EA4,
+            cache,
         );
         Ok(broad * 0.72 + fine * 0.28)
     }

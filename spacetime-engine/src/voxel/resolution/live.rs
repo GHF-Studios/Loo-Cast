@@ -23,13 +23,17 @@ use bevy::{
 use transvoxel::{
     prelude::{
         extract, Block, BlockStarView, GenericMeshBuilder, TransitionSide,
-        TransitionSides, VoxelVecBlock,
+        TransitionSides,
     },
     structs::{
         generic_mesh::Mesh as TransvoxelMesh,
         voxel_blocks::VoxelBlockRelayingToField,
+        voxel_index::VoxelIndex,
     },
-    traits::data_field::DataField,
+    traits::{
+        data_field::DataField,
+        voxel_block::VoxelBlock,
+    },
 };
 
 use crate::reconstructible::{
@@ -2413,6 +2417,92 @@ impl CelestialPresentationSampleCache {
     }
 }
 
+// presentation-central-cache-specialization-v1
+//
+// Transvoxel's VoxelVecBlock eagerly evaluates 6*(N+1)^2 extension samples
+// solely so finite-difference normals are available if surface vertices touch a
+// block boundary. Most of those 486 samples are never read. Cache the 729
+// interior samples up front and relay extension reads lazily through the exact
+// shared field/sample cache.
+struct ClipmapCentralBlock<'a> {
+    block: Block<f32>,
+    interior: Box<[f32]>,
+    extension_field: &'a dyn DataField<f32, f32>,
+}
+
+impl<'a> ClipmapCentralBlock<'a> {
+    fn cache(
+        field: &'a dyn DataField<f32, f32>,
+        block: Block<f32>,
+    ) -> Self {
+        let side = block.subdivisions + 1;
+        let mut interior =
+            Vec::<f32>::with_capacity(side * side * side);
+
+        for x in 0..=block.subdivisions {
+            for y in 0..=block.subdivisions {
+                for z in 0..=block.subdivisions {
+                    let position = block.original_voxel_position(
+                        VoxelIndex {
+                            x: x as isize,
+                            y: y as isize,
+                            z: z as isize,
+                        },
+                    );
+                    interior.push(
+                        field.get_data(
+                            position.x,
+                            position.y,
+                            position.z,
+                        ),
+                    );
+                }
+            }
+        }
+
+        Self {
+            block,
+            interior: interior.into_boxed_slice(),
+            extension_field: field,
+        }
+    }
+
+    #[inline]
+    fn interior_index(&self, index: VoxelIndex) -> usize {
+        let side = self.block.subdivisions + 1;
+        side * side * index.x as usize
+            + side * index.y as usize
+            + index.z as usize
+    }
+}
+
+impl VoxelBlock<f32, f32> for ClipmapCentralBlock<'_> {
+    fn block(&self) -> &Block<f32> {
+        &self.block
+    }
+
+    #[inline]
+    fn get(&self, index: VoxelIndex) -> f32 {
+        let subs = self.block.subdivisions as isize;
+        if index.x >= 0
+            && index.x <= subs
+            && index.y >= 0
+            && index.y <= subs
+            && index.z >= 0
+            && index.z <= subs
+        {
+            return self.interior[self.interior_index(index)];
+        }
+
+        let position = self.block.original_voxel_position(index);
+        self.extension_field.get_data(
+            position.x,
+            position.y,
+            position.z,
+        )
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 struct TransitionDensityMemoEntry {
     key: [u32; 3],
@@ -2490,19 +2580,20 @@ impl TransitionDensityMemo {
 ///
 /// The expensive central lattice is caller-owned so fallback topology extraction
 /// can reuse it instead of evaluating the canonical celestial field twice.
-fn extract_clipmap_transvoxel_mesh<F>(
+fn extract_clipmap_transvoxel_mesh<F, B>(
     transition_field: &F,
-    central: &VoxelVecBlock<f32, f32>,
+    central: &B,
     transition_sides: TransitionSides,
 ) -> TransvoxelMesh<f32>
 where
     F: DataField<f32, f32>,
+    B: VoxelBlock<f32, f32>,
 {
-    let block = central.block;
+    let block = *central.block();
     let mut blocks: BlockStarView<
         f32,
         f32,
-        &VoxelVecBlock<f32, f32>,
+        &B,
         VoxelBlockRelayingToField<'_, f32, f32>,
     > = BlockStarView::new_simple(central);
 
@@ -2706,18 +2797,28 @@ fn build_clipmap_mesh(
 
     let sampler = field.presentation_sampler(spacing)?;
 
-    // VoxelVecBlock already stores every unique central/gradient-extension
-    // sample. Bypass the external memo for that domain entirely.
-    let raw_density = |x: f32, y: f32, z: f32| -> f32 {
-        let point = origin + DVec3::new(
-            f64::from(x),
-            f64::from(y),
-            f64::from(z),
+    // Central-cache extension voxels reach exactly one coarse spacing outside
+    // the block. Prove cave absence over that entire inflated domain before
+    // replacing full SDF samples with the mathematically identical outer SDF.
+    let central_center =
+        origin + DVec3::splat(extent * 0.5);
+    let central_half_extent =
+        DVec3::splat(extent * 0.5 + spacing);
+    let central_may_contain_caves =
+        field.presentation_caves_may_intersect_aabb(
+            central_center,
+            central_half_extent,
         );
 
+    let sample_density = |point: DVec3, include_caves: bool| -> f32 {
         sample_cache.get_or_compute(point, || {
-            sampler
-                .signed_distance_local_metres(point)
+            let signed_distance = if include_caves {
+                sampler.signed_distance_local_metres(point)
+            } else {
+                sampler.outer_signed_distance_local_metres(point)
+            };
+
+            signed_distance
                 .map(|volumetric_sdf| -volumetric_sdf)
                 .filter(|density| density.is_finite())
                 .map(|density| {
@@ -2730,14 +2831,34 @@ fn build_clipmap_mesh(
         })
     };
 
+    let central_density = |x: f32, y: f32, z: f32| -> f32 {
+        let point = origin + DVec3::new(
+            f64::from(x),
+            f64::from(y),
+            f64::from(z),
+        );
+        sample_density(point, central_may_contain_caves)
+    };
+
+    // Transition neighbours live in adjacent full-size blocks, outside the
+    // central cave-free proof. They always query the complete canonical field.
+    let full_density = |x: f32, y: f32, z: f32| -> f32 {
+        let point = origin + DVec3::new(
+            f64::from(x),
+            f64::from(y),
+            f64::from(z),
+        );
+        sample_density(point, true)
+    };
+
     let transition_memo = (!spec.transition_faces.is_empty())
         .then(TransitionDensityMemo::new);
     let transition_density = |x: f32, y: f32, z: f32| -> f32 {
         let Some(memo) = transition_memo.as_ref() else {
-            return raw_density(x, y, z);
+            return full_density(x, y, z);
         };
         let key = [x.to_bits(), y.to_bits(), z.to_bits()];
-        memo.get_or_compute(key, || raw_density(x, y, z))
+        memo.get_or_compute(key, || full_density(x, y, z))
     };
 
     let extent_f32 = extent as f32;
@@ -2764,7 +2885,7 @@ fn build_clipmap_mesh(
                 "voxel.worker.presentation_resolution.extract.central_cache"
             )
             .entered();
-            VoxelVecBlock::cache(&raw_density, block)
+            ClipmapCentralBlock::cache(&central_density, block)
         };
 
         let transition_mesh = {
@@ -2827,6 +2948,15 @@ fn build_clipmap_mesh(
             "binary clipmap transition-density memo stats"
         );
     }
+
+    let (semantic_corner_hits, semantic_corner_misses) =
+        sampler.semantic_noise_cache_stats();
+    trace!(
+        central_may_contain_caves,
+        semantic_corner_hits,
+        semantic_corner_misses,
+        "binary clipmap central-field specialization stats"
+    );
 
     let _span = bevy::log::info_span!(
         "voxel.worker.presentation_resolution.finalize"

@@ -14,7 +14,9 @@ use crate::spatial::{
 };
 
 use super::{CelestialBodyProfile, ProceduralCelestialBody, VoxelFrameEdit};
-use super::base::CelestialFieldSample;
+use super::base::{
+    CelestialFieldSample, PreparedCelestialPresentationBody,
+};
 
 /// Canonical edit authority shared by one or more voxel realizations.
 ///
@@ -64,26 +66,39 @@ pub struct CelestialVoxelField {
 // volumetric field. A future filtered/aggregated representation may reduce
 // aliasing, but it must approximate this same field rather than deleting
 // semantic terrain bands or caves at arbitrary sample-spacing thresholds.
-#[derive(Debug, Clone, Copy)]
+// presentation-central-cache-specialization-v1
+#[derive(Debug)]
 pub(crate) struct CelestialPresentationFieldSampler {
-    body: ProceduralCelestialBody,
+    body: PreparedCelestialPresentationBody,
 }
 
 impl CelestialPresentationFieldSampler {
     #[inline]
     pub(crate) fn signed_distance_local_metres(
-        self,
+        &self,
         local_point_metres: DVec3,
     ) -> Option<f64> {
         self.body.signed_distance_local_metres(local_point_metres)
     }
 
     #[inline]
+    pub(crate) fn outer_signed_distance_local_metres(
+        &self,
+        local_point_metres: DVec3,
+    ) -> Option<f64> {
+        self.body.outer_signed_distance_local_metres(local_point_metres)
+    }
+
+    #[inline]
     pub(crate) fn surface_local_metres(
-        self,
+        &self,
         direction: Vec3,
     ) -> Result<DVec3, UsfPositionError> {
         self.body.surface_local_metres(direction)
+    }
+
+    pub(crate) fn semantic_noise_cache_stats(&self) -> (u64, u64) {
+        self.body.noise_cache_stats()
     }
 }
 
@@ -173,11 +188,13 @@ impl CelestialVoxelField {
         }
 
         Some(CelestialPresentationFieldSampler {
-            body: self.realization(
-                UsfPosition::zero(SpatialScale::MIN),
-                UsfSemanticFrame::identity(),
-                SpatialScale::ZERO,
-            ),
+            body: self
+                .realization(
+                    UsfPosition::zero(SpatialScale::MIN),
+                    UsfSemanticFrame::identity(),
+                    SpatialScale::ZERO,
+                )
+                .prepare_presentation_sampler(),
         })
     }
 
@@ -198,6 +215,22 @@ impl CelestialVoxelField {
     ) -> Option<f64> {
         self.presentation_sampler(sample_spacing_metres)?
             .signed_distance_local_metres(local_point_metres)
+    }
+
+    pub(crate) fn presentation_caves_may_intersect_aabb(
+        self,
+        center_local_metres: DVec3,
+        half_extent_metres: DVec3,
+    ) -> bool {
+        self.realization(
+            UsfPosition::zero(SpatialScale::MIN),
+            UsfSemanticFrame::identity(),
+            SpatialScale::ZERO,
+        )
+        .cave_void_may_intersect_local_aabb(
+            center_local_metres,
+            half_extent_metres,
+        )
     }
 
     pub(crate) fn volumetric_surface_inward_support_metres(self) -> f64 {

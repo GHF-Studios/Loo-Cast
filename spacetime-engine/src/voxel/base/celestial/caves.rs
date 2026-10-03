@@ -106,6 +106,125 @@ pub(super) fn rocky_cave_void_signed_distance_metres_with_radial(
         .max(depth_metres - CAVE_MAX_DEPTH_METRES)
 }
 
+// presentation-central-cache-specialization-v1
+//
+// value_noise_3d is smooth trilinear interpolation using smoothstep. Along one
+// noise-space axis, |d/dx| <= 3 because |corner_delta| <= 2 and
+// max(smoothstep') = 1.5. Therefore its global Euclidean Lipschitz constant is
+// <= 3*sqrt(3). Use that strict bound to prove when an entire small AABB cannot
+// contain ANY cave-source zero crossing.
+const VALUE_NOISE_3D_LIPSCHITZ: f64 = 5.196_152_422_706_632;
+
+#[inline]
+fn noise_may_enter_abs_band_over_aabb(
+    center_metres: Vec3,
+    radius_metres: f64,
+    wavelength_metres: f32,
+    width: f32,
+    seed: u32,
+    offset: Vec3,
+) -> bool {
+    let center_noise =
+        value_noise_3d(center_metres / wavelength_metres + offset, seed);
+    let variation =
+        VALUE_NOISE_3D_LIPSCHITZ * radius_metres / f64::from(wavelength_metres);
+    f64::from(center_noise.abs()) <= f64::from(width) + variation
+}
+
+#[inline]
+fn noise_may_fall_below_over_aabb(
+    center_metres: Vec3,
+    radius_metres: f64,
+    wavelength_metres: f32,
+    threshold: f32,
+    seed: u32,
+    offset: Vec3,
+) -> bool {
+    let center_noise =
+        value_noise_3d(center_metres / wavelength_metres + offset, seed);
+    let variation =
+        VALUE_NOISE_3D_LIPSCHITZ * radius_metres / f64::from(wavelength_metres);
+    f64::from(center_noise) - variation <= f64::from(threshold)
+}
+
+/// Conservative proof predicate for skipping cave evaluation in a sampling AABB.
+///
+/// `false` means every cave source is provably positive throughout the AABB, so
+/// the full volumetric field is exactly equal to its outer terrain SDF there.
+/// `true` means only "possible"; callers must evaluate the ordinary cave field.
+pub(super) fn rocky_cave_void_may_intersect_aabb(
+    center_local_metres: DVec3,
+    half_extent_metres: DVec3,
+    seed: u32,
+) -> bool {
+    if !center_local_metres.is_finite()
+        || !half_extent_metres.is_finite()
+        || half_extent_metres.min_element() < 0.0
+    {
+        return true;
+    }
+
+    // Cave evaluation casts body-local metres to f32 before noise. Inflate the
+    // geometric radius enough to conservatively cover that quantization too.
+    let maximum_coordinate = (
+        center_local_metres.abs().max_element()
+            + half_extent_metres.max_element()
+    )
+        .max(1.0);
+    let f32_rounding_margin =
+        maximum_coordinate * f64::from(f32::EPSILON) * 4.0;
+    let radius_metres =
+        half_extent_metres.length() + f32_rounding_margin;
+    let center = local_f32(center_local_metres);
+
+    let major_possible =
+        noise_may_enter_abs_band_over_aabb(
+            center,
+            radius_metres,
+            520.0,
+            0.23,
+            seed ^ 0x4341_5645,
+            Vec3::new(13.7, -5.1, 8.9),
+        )
+        && noise_may_enter_abs_band_over_aabb(
+            center,
+            radius_metres,
+            390.0,
+            0.21,
+            seed ^ 0x5455_4E4C,
+            Vec3::new(-7.4, 19.2, -11.6),
+        );
+
+    let branching_possible =
+        noise_may_enter_abs_band_over_aabb(
+            center,
+            radius_metres,
+            240.0,
+            0.20,
+            seed ^ 0x4252_414E,
+            Vec3::new(-21.3, 4.8, 15.2),
+        )
+        && noise_may_enter_abs_band_over_aabb(
+            center,
+            radius_metres,
+            310.0,
+            0.18,
+            seed ^ 0x4348_4D42,
+            Vec3::new(6.6, -17.9, 2.7),
+        );
+
+    let chamber_possible = noise_may_fall_below_over_aabb(
+        center,
+        radius_metres,
+        680.0,
+        -0.58,
+        seed ^ 0x4348_414D,
+        Vec3::new(31.7, -14.1, 9.3),
+    );
+
+    major_possible || branching_possible || chamber_possible
+}
+
 pub(super) fn rocky_cave_void_signed_distance_metres(
     local_point_metres: DVec3,
     outer_surface_radius_metres: f64,

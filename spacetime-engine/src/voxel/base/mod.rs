@@ -15,7 +15,10 @@ mod celestial;
 mod volume;
 
 pub use celestial::{CelestialBodyProfile, ProceduralCelestialBody};
-pub(crate) use celestial::CelestialFieldSample;
+pub(crate) use celestial::{
+    CelestialFieldSample, PreparedCelestialPresentationBody,
+};
+// presentation-central-cache-specialization-v1
 pub use terrain::ProceduralTerrain;
 pub use volume::ProceduralVolume;
 
