@@ -152,11 +152,14 @@ impl Plugin for VoxelPlugin {
             )
             .add_systems(
                 Update,
-                (
-                    streaming::refresh_voxel_residency.in_set(VoxelUpdateSet::Residency),
-                    planetary_surface::sync_planetary_surface_realizations
-                        .after(VoxelUpdateSet::RealizationDemand),
-                ),
+                // retire-regional-outer-shell-presentation-v1
+                //
+                // Celestial presentation is now one Cartesian volumetric
+                // hierarchy owned by voxel::resolution. The old cubed-sphere
+                // outer-shell adapter used far-field radial compression even
+                // while the observer was on/near the body, which collapses
+                // altitude into a counterfeit near-camera sheet.
+                streaming::refresh_voxel_residency.in_set(VoxelUpdateSet::Residency),
             )
             .add_systems(
                 Update,
@@ -241,7 +244,6 @@ impl Plugin for VoxelPlugin {
                     manifestation::sync_manifestation_runtime_transforms
                         .after(VoxelPostUpdateSet::Rebuild),
                     manifestation::sync_collision_aggregate_runtime_transforms,
-                    planetary_surface::sync_planetary_surface_projection_state,
                 )
                     .in_set(UsfSpatialSet::RuntimeProjection),
             )

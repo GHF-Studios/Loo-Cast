@@ -58,8 +58,12 @@ const BLOCK_SUBDIVISIONS: usize = 8;
 const MIN_SAMPLE_SPACING_METRES: f64 = 2.0;
 const MAX_FINE_SAMPLE_SPACING_METRES: f64 = 2_048.0;
 const BASE_LOCAL_RADIUS_METRES: f64 = 64_000.0;
-const MAX_LOCAL_RADIUS_METRES: f64 = 320_000.0;
-const MAX_CLIPMAP_CLEARANCE_METRES: f64 = 250_000.0;
+// whole-body-volumetric-clipmap-v1
+//
+// The coarsest binary bricks are allowed to span the semantic body. A small
+// conservative margin absorbs canonical relief without inventing a second
+// spherical surface representation.
+const WHOLE_BODY_ROOT_MARGIN: f64 = 1.125;
 const TARGET_CELLS_PER_DISTANCE: f64 = 16.0;
 const MAX_INITIAL_LEAVES: usize = 224;
 const MAX_BALANCED_LEAVES: usize = 512;
@@ -752,39 +756,54 @@ fn block_intersects_semantic_surface(
     key: CelestialClipmapBlockKey,
     _policy: Option<&DeveloperScalarPolicyRuntime>,
 ) -> bool {
+    if !block_may_intersect_presentation_shell(field, key) {
+        return false;
+    }
+
     let center = key.center_local_metres();
     let radial = center.length();
     if !radial.is_finite() {
         return false;
     }
 
-    let direction = if radial > f64::EPSILON {
-        Vec3::new(
-            (center.x / radial) as f32,
-            (center.y / radial) as f32,
-            (center.z / radial) as f32,
-        )
-        .normalize_or_zero()
-    } else {
-        Vec3::Y
-    };
+    let half_diagonal = key.half_extent_metres().length();
+    let conservative_extra =
+        key.extent_metres() * 0.35 + key.spacing_metres() * 2.0;
+    let threshold = half_diagonal + conservative_extra;
+
+    // Exact canonical volumetric SDF where it is informative.
+    if field
+        .signed_distance_local_metres(center)
+        .is_some_and(|distance| distance.abs() <= threshold)
+    {
+        return true;
+    }
+
+    // Cave morphology is currently a pseudo-SDF and therefore is not promised
+    // to be globally 1-Lipschitz. Preserve the complete declared inward support
+    // band conservatively so narrow/deep cave surfaces are never rejected by
+    // the hierarchy planner merely because the block center lies in solid rock.
+    if radial <= f64::EPSILON {
+        return false;
+    }
+    let direction = Vec3::new(
+        (center.x / radial) as f32,
+        (center.y / radial) as f32,
+        (center.z / radial) as f32,
+    )
+    .normalize_or_zero();
+    if direction == Vec3::ZERO {
+        return false;
+    }
 
     let Ok(surface) = field.surface_local_metres(direction) else {
         return false;
     };
-    let surface_radius = surface.length();
-    if !surface_radius.is_finite() {
-        return false;
-    }
-
-    let half_diagonal = key.half_extent_metres().length();
-    let conservative_extra =
-        key.extent_metres() * 0.35 + key.spacing_metres() * 2.0;
-
-    (radial - surface_radius).abs()
-        <= half_diagonal + conservative_extra
+    let radial_delta = radial - surface.length();
+    radial_delta <= threshold
+        && radial_delta
+            >= -(field.volumetric_surface_inward_support_metres() + threshold)
 }
-
 
 fn block_may_intersect_presentation_shell(
     field: CelestialVoxelField,
@@ -820,10 +839,13 @@ fn block_may_intersect_presentation_shell(
         presentation_surface_radius_bounds_metres(field);
     let conservative_extra =
         key.extent_metres() * 0.35 + key.spacing_metres() * 2.0;
+    let volumetric_minimum = (
+        surface_minimum - field.volumetric_surface_inward_support_metres()
+    )
+    .max(0.0);
 
     nearest <= surface_maximum + conservative_extra
-        && farthest
-            >= (surface_minimum - conservative_extra).max(0.0)
+        && farthest >= (volumetric_minimum - conservative_extra).max(0.0)
 }
 
 fn target_resolution_at_distance(
@@ -979,23 +1001,13 @@ fn derive_plan_input(
         return None;
     }
 
-        let observer_direction = Vec3::new(
-        observer_local.x as f32,
-        observer_local.y as f32,
-        observer_local.z as f32,
-    )
-    .normalize_or_zero();
-    if observer_direction == Vec3::ZERO {
-        return None;
-    }
-    let canonical_surface_radius = field
-        .surface_local_metres(observer_direction)
-        .ok()?
-        .length();
+    // Presentation follows the same canonical volumetric field as dense
+    // realization. In a cave this measures cave-wall proximity rather than
+    // distance to an unrelated radial outer shell.
     let clearance = field
-        .outer_signed_distance_local_metres(observer_local)?
+        .signed_distance_local_metres(observer_local)?
         .abs();
-    if !clearance.is_finite() || clearance > MAX_CLIPMAP_CLEARANCE_METRES {
+    if !clearance.is_finite() {
         return None;
     }
 
@@ -1020,12 +1032,20 @@ fn derive_plan_input(
         granularity.target_spacing_metres(),
     )?;
 
+    // A single hierarchy owns both the nearby aperture and whole-body context.
+    // Make the coarsest root extent large enough to span from the observer past
+    // the far side of the semantic body. This works on the same body-local
+    // Cartesian lattice at the surface, underground and in distant space.
+    let whole_body_reach =
+        observer_radius
+            + field.conservative_outer_radius_metres() * WHOLE_BODY_ROOT_MARGIN;
     let local_radius = (
         BASE_LOCAL_RADIUS_METRES
             + clearance * 2.0
             + granularity.validity_radius_metres()
     )
-    .clamp(BASE_LOCAL_RADIUS_METRES, MAX_LOCAL_RADIUS_METRES);
+    .max(BASE_LOCAL_RADIUS_METRES)
+    .max(whole_body_reach);
 
     let coarse_spacing_target =
         (local_radius / BLOCK_SUBDIVISIONS as f64)
@@ -1190,7 +1210,16 @@ fn build_plan(
         }
 
         let mut ordered = leaves.iter().copied().collect::<Vec<_>>();
-        ordered.sort_unstable_by_key(|key| block_sort_key(*key));
+        // Coarse context first. Worker/publication admission is bounded, so
+        // ordering is observable runtime policy: broad low-detail geometry
+        // must exist before nearby fine leaves consume the available slots.
+        ordered.sort_unstable_by(|a, b| {
+            b.resolution
+                .cmp(&a.resolution)
+                .then_with(|| a.coord.x.cmp(&b.coord.x))
+                .then_with(|| a.coord.y.cmp(&b.coord.y))
+                .then_with(|| a.coord.z.cmp(&b.coord.z))
+        });
 
         let mut specs = Vec::with_capacity(ordered.len());
         {
@@ -1283,15 +1312,15 @@ fn build_clipmap_mesh(
             f64::from(y),
             f64::from(z),
         );
-        // The local/intermediate realizer samples exactly the same canonical
-        // volumetric field as dense physical voxels. Transvoxel uses the
-        // opposite sign convention: positive density means solid.
-        let Some(outer_sdf) =
-            field.outer_signed_distance_local_metres(point)
+        // The whole-body presentation hierarchy samples exactly the same
+        // canonical volumetric field as dense physical voxels. Transvoxel uses
+        // the opposite sign convention: positive density means solid.
+        let Some(volumetric_sdf) =
+            field.signed_distance_local_metres(point)
         else {
             return -1.0;
         };
-        let density = -outer_sdf;
+        let density = -volumetric_sdf;
         if density.is_finite() {
             density.clamp(
                 -f64::from(f32::MAX),
@@ -1887,7 +1916,7 @@ let committed_generation = registry
 fn sync_celestial_clipmap_transforms(
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     interaction: Res<UsfPrimaryInteractionSlice>,
-    authorities: Query<(&UsfPosition, &UsfSemanticFrame)>,
+    authorities: Query<(&UsfPosition, &UsfSemanticFrame, &CelestialVoxelField)>,
     mut blocks: Query<(
         &CelestialClipmapBlock,
         &mut Transform,
@@ -1906,14 +1935,10 @@ fn sync_celestial_clipmap_transforms(
         return;
     }
 
-    // Clipmap is a bounded near-body presentation. Measure block anchors in
-    // metres around the semantic observer before converting into render units.
-    const VIEW_RELATIVE_BOUND_METRES: f32 = 2_000_000.0;
-
     let mut projected_any = false;
 
     for (block, mut transform, mut visibility) in &mut blocks {
-        let Ok((body_origin, body_frame)) =
+        let Ok((body_origin, body_frame, _field)) =
             authorities.get(block.authority)
         else {
             *visibility = Visibility::Hidden;
@@ -1929,10 +1954,14 @@ fn sync_celestial_clipmap_transforms(
             continue;
         };
 
-        let Ok(relative_metres) = anchor.relative_at_scale_bounded(
+        // Whole-body blocks can be millions (or, for a distant body, far more)
+        // metres from the observer. Preserve canonical precision in f64 until
+        // the final view-chart projection instead of forcing the semantic delta
+        // through an intermediate f32 S0 window.
+        let Ok(relative_metres) = anchor.relative_at_scale_bounded_f64(
             view.anchor(),
             SpatialScale::ZERO,
-            VIEW_RELATIVE_BOUND_METRES,
+            f64::MAX,
         ) else {
             *visibility = Visibility::Hidden;
             continue;
@@ -1942,13 +1971,8 @@ fn sync_celestial_clipmap_transforms(
         // Mesh scale and block placement share the same view similarity frame.
         // The physical eye/boom offset is removed before view-chart scaling so
         // clipmap terrain and the local physical pass retain identical rays.
-        let relative_metres64 = DVec3::new(
-            f64::from(relative_metres.x),
-            f64::from(relative_metres.y),
-            f64::from(relative_metres.z),
-        );
         let Some(projected_relative) =
-            view.project_relative_metres_from_eye(relative_metres64)
+            view.project_relative_metres_from_eye(relative_metres)
         else {
             *visibility = Visibility::Hidden;
             continue;
@@ -2062,6 +2086,38 @@ mod tests {
             binary_steps >= 3,
             "10x must not be treated as one Transvoxel adjacency",
         );
+    }
+
+    #[test]
+    fn coarse_context_is_scheduled_before_fine_detail() {
+        let coarse = CelestialClipmapBlockKey {
+            resolution: VoxelPresentationResolution::new(12),
+            coord: IVec3::ZERO,
+        };
+        let fine = CelestialClipmapBlockKey {
+            resolution: VoxelPresentationResolution::new(2),
+            coord: IVec3::ZERO,
+        };
+        let mut ordered = vec![fine, coarse];
+        ordered.sort_unstable_by(|a, b| {
+            b.resolution
+                .cmp(&a.resolution)
+                .then_with(|| a.coord.x.cmp(&b.coord.x))
+                .then_with(|| a.coord.y.cmp(&b.coord.y))
+                .then_with(|| a.coord.z.cmp(&b.coord.z))
+        });
+
+        assert_eq!(ordered, vec![coarse, fine]);
+    }
+
+    #[test]
+    fn whole_body_root_reach_exceeds_planet_diameter_at_surface() {
+        let radius = 6_371_000.0_f64;
+        let observer_radius = radius + 25.0;
+        let whole_body_reach =
+            observer_radius + radius * WHOLE_BODY_ROOT_MARGIN;
+
+        assert!(whole_body_reach > radius * 2.0);
     }
 
     #[test]
