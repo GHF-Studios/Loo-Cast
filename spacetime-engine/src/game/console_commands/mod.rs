@@ -40,7 +40,7 @@ use super::{
         ScaleInteractionProxy,
     },
     navigation::{
-        AdaptiveCruise, NavigationAudit, NavigationFlightRecorder, TravelPace, TravelProfile,
+        AdaptiveCruise, NavigationAudit, NavigationFlightRecorder, TravelPace,
     },
     player::{Player, PlayerAim},
     world::UniverseLandmarkIndex,

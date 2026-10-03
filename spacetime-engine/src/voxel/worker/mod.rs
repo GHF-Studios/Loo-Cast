@@ -403,7 +403,7 @@ pub(super) fn try_submit<T, F>(
             // is released on every closure exit path, including cancellation
             // before execution and panic unwind.
             let _compute_admission =
-                VoxelWorkerComputeAdmission::new(admission_for_job, lane);
+                VoxelWorkerComputeAdmission::new(admission_for_job.clone(), lane);
 
             if worker_cancelled.load(Ordering::Acquire) {
                 return;
