@@ -18,7 +18,8 @@ use bevy::prelude::*;
 use crate::{
     ecs::UsfLogicalRealizationOf,
     spatial::{
-        SpatialDemandScope, SpatialDemandSnapshot, SpatialRefinementDemand, SpatialScale,
+        SpatialDemandMotionSnapshot, SpatialDemandScope, SpatialDemandSnapshot,
+        SpatialRefinementDemand, SpatialScale,
         UsfChartMask, UsfPosition, UsfPrimaryInteractionSlice, UsfRefinementPlan,
         UsfResidencyRequestBuffer, UsfScaleLayer, UsfScaleRoleMask, UsfSemanticFrame,
     },
@@ -32,6 +33,11 @@ use super::{
 
 const DEFAULT_REFINEMENT_ACTIVATION_NATIVE: f32 = 8_192.0;
 const DEFAULT_LOCAL_PATCH_HALF_EXTENT_NATIVE: f32 = 32.0;
+// directional-exterior-contact-horizon-v2
+// Speed extends physical preparation only when it closes on the nearest
+// canonical terrain boundary. It never selects decimal interaction Scale.
+const EXTERIOR_CONTACT_PREPARATION_SECONDS: f64 = 1.5;
+const EXTERIOR_CONTACT_GUARD_CHUNKS: f32 = 2.0;
 
 /// Scale-Slice participation and current voxel realization policy.
 ///
@@ -370,6 +376,7 @@ fn roles_for_scale(
 
 pub(super) fn collect_voxel_realization_intent(
     spatial: Res<SpatialDemandSnapshot>,
+    motions: Res<SpatialDemandMotionSnapshot>,
     interaction: Res<UsfPrimaryInteractionSlice>,
     voxel_sources: Query<
         Option<&SpatialRefinementDemand>,
@@ -407,10 +414,23 @@ pub(super) fn collect_voxel_realization_intent(
         let Ok(refinement) = voxel_sources.get(scope.source()) else {
             continue;
         };
+        let minimum_realization_scale =
+            refinement.and_then(|value| value.minimum_scale());
+        let refinement_tip_scale = minimum_realization_scale
+            .filter(|requested| *requested < scope.scale())
+            .unwrap_or(scope.scale());
+
         sources.push(VoxelDemandSource {
             scope,
-            minimum_realization_scale: refinement.and_then(|value| value.minimum_scale()),
-            refinement_half_extent_native: refinement.map(|value| value.half_extent_native()),
+            minimum_realization_scale,
+            // metric-refinement-tip-conversion-v2
+            // UsfRefinementPlan expects its footprint in TIP-native units.
+            // During bootstrap the source may still be S+35 while the requested
+            // tip is S0, so converting at source Scale would collapse the
+            // physical S0 footprint almost to zero.
+            refinement_half_extent_native: refinement.map(|value| {
+                value.half_extent_native_at(refinement_tip_scale)
+            }),
         });
     }
 
@@ -453,6 +473,33 @@ pub(super) fn collect_voxel_realization_intent(
                 )
                 .map(|(boundary, _)| boundary);
 
+            // directional-exterior-contact-horizon-v2
+            //
+            // Compute only the component of canonical velocity that closes the
+            // distance to the nearest full-SDF boundary. Tangential or outward
+            // motion must not retain a huge old ground patch.
+            let closing_speed_metres_per_second = boundary_center
+                .and_then(|boundary| {
+                    boundary
+                        .relative_at_scale_bounded_f64(
+                            &source.scope.center(),
+                            SpatialScale::ZERO,
+                            f64::MAX,
+                        )
+                        .ok()
+                })
+                .map_or(0.0, |toward_boundary_metres| {
+                    let distance = toward_boundary_metres.length();
+                    if !distance.is_finite() || distance <= f64::EPSILON {
+                        return 0.0;
+                    }
+                    let direction = toward_boundary_metres / distance;
+                    motions
+                        .velocity_metres_per_second(source.scope.source())
+                        .dot(direction)
+                        .max(0.0)
+                });
+
             let plan = realization_plan(source, *domain);
             for step in plan.steps_coarse_to_fine() {
                 let scale = step.scale();
@@ -461,7 +508,7 @@ pub(super) fn collect_voxel_realization_intent(
                     boundary_center,
                     signed_clearance_metres,
                     outer_clearance_metres,
-                    *domain,
+                    closing_speed_metres_per_second,
                     source.scope,
                     scale,
                     step.half_extent_native(),
@@ -730,11 +777,12 @@ fn corridor_scope_between(
     ))
 }
 
+// metric-demand-directional-contact-horizon-v2
 fn celestial_contact_volume_demand(
     boundary_center: Option<UsfPosition>,
     signed_clearance_metres: f64,
     outer_clearance_metres: f64,
-    domain: VoxelScaleDomain,
+    closing_speed_metres_per_second: f64,
     source: SpatialDemandScope,
     target_scale: SpatialScale,
     half_extent_native: Vec3,
@@ -747,15 +795,24 @@ fn celestial_contact_volume_demand(
     }
 
     let metres_per_native = target_scale.metres_per_native();
-    let activation_metres =
-        f64::from(domain.refinement_activation_native().max(0.0))
-            * metres_per_native;
+
+    // dense-contact-horizon-replaces-refinement-activation-v2
+    //
+    // The old 8192-native activation radius belonged to a world where dense
+    // terrain also carried far visual context. Binary presentation owns that
+    // now. Dense exterior terrain owns only near and predicted physical contact.
     let footprint_native =
         half_extent_native.length()
-            + MATERIALIZATION_CHUNK_SIZE as f32;
+            + MATERIALIZATION_CHUNK_SIZE as f32
+                * EXTERIOR_CONTACT_GUARD_CHUNKS;
+    let local_contact_horizon_metres =
+        f64::from(footprint_native) * metres_per_native;
+    let predictive_contact_horizon_metres =
+        closing_speed_metres_per_second.max(0.0)
+            * EXTERIOR_CONTACT_PREPARATION_SECONDS;
     let exterior_limit_metres =
-        activation_metres
-            + f64::from(footprint_native) * metres_per_native;
+        local_contact_horizon_metres
+            + predictive_contact_horizon_metres;
 
     // Full SDF can be positive inside a cave. Only outer-shell clearance proves
     // the observer is truly outside the planetary volume.

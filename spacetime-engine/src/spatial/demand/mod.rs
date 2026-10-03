@@ -20,6 +20,10 @@ use super::{SpatialScale, UsfPosition, UsfScaleLayer, UsfSpatialFrame};
 #[derive(Component, Debug, Clone, Copy, PartialEq)]
 pub struct SpatialDemandSource {
     half_extent_native: Vec3,
+    // metric-stable-spatial-demand-v2
+    // Optional physical authority for local working-set size. When present,
+    // native extent is derived at the actual current/transition Scale.
+    half_extent_metres: Option<Vec3>,
     priority: i32,
     enabled: bool,
 }
@@ -32,6 +36,23 @@ impl SpatialDemandSource {
                 sanitize_extent(half_extent_native.y),
                 sanitize_extent(half_extent_native.z),
             ),
+            half_extent_metres: None,
+            priority: 0,
+            enabled: true,
+        }
+    }
+
+    pub fn cuboid_metres(half_extent_metres: Vec3) -> Self {
+        let half_extent_metres = Vec3::new(
+            sanitize_extent(half_extent_metres.x),
+            sanitize_extent(half_extent_metres.y),
+            sanitize_extent(half_extent_metres.z),
+        );
+        Self {
+            // Retained as a readable fallback/debug value. Metric-authored
+            // runtime collection uses half_extent_native_at().
+            half_extent_native: half_extent_metres,
+            half_extent_metres: Some(half_extent_metres),
             priority: 0,
             enabled: true,
         }
@@ -39,6 +60,16 @@ impl SpatialDemandSource {
 
     pub const fn half_extent_native(&self) -> Vec3 {
         self.half_extent_native
+    }
+
+    pub fn half_extent_native_at(&self, scale: SpatialScale) -> Vec3 {
+        self.half_extent_metres.map_or(self.half_extent_native, |metres| {
+            Vec3::new(
+                scale.metres_to_native_f32(metres.x),
+                scale.metres_to_native_f32(metres.y),
+                scale.metres_to_native_f32(metres.z),
+            )
+        })
     }
 
     pub const fn priority(&self) -> i32 {
@@ -77,6 +108,9 @@ impl SpatialDemandSource {
 pub struct SpatialRefinementDemand {
     minimum_scale: Option<SpatialScale>,
     half_extent_native: Vec3,
+    // Physical tip footprint. It must be converted at the refinement TIP,
+    // not necessarily at the source's current Scale.
+    half_extent_metres: Option<Vec3>,
 }
 
 impl SpatialRefinementDemand {
@@ -88,6 +122,20 @@ impl SpatialRefinementDemand {
                 sanitize_extent(half_extent_native.y),
                 sanitize_extent(half_extent_native.z),
             ),
+            half_extent_metres: None,
+        }
+    }
+
+    pub fn cuboid_metres(half_extent_metres: Vec3) -> Self {
+        let half_extent_metres = Vec3::new(
+            sanitize_extent(half_extent_metres.x),
+            sanitize_extent(half_extent_metres.y),
+            sanitize_extent(half_extent_metres.z),
+        );
+        Self {
+            minimum_scale: None,
+            half_extent_native: half_extent_metres,
+            half_extent_metres: Some(half_extent_metres),
         }
     }
 
@@ -97,6 +145,16 @@ impl SpatialRefinementDemand {
 
     pub const fn half_extent_native(&self) -> Vec3 {
         self.half_extent_native
+    }
+
+    pub fn half_extent_native_at(&self, scale: SpatialScale) -> Vec3 {
+        self.half_extent_metres.map_or(self.half_extent_native, |metres| {
+            Vec3::new(
+                scale.metres_to_native_f32(metres.x),
+                scale.metres_to_native_f32(metres.y),
+                scale.metres_to_native_f32(metres.z),
+            )
+        })
     }
 
     pub fn request_through(&mut self, scale: SpatialScale) {

@@ -84,8 +84,12 @@ pub(super) fn spawn_player(
                     UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::COLLISION),
                 ),
                 ThermalSpatialSample,
-                SpatialDemandSource::cuboid(PLAYER_SPATIAL_DEMAND_HALF_EXTENT)
-                    .with_priority(PLAYER_SPATIAL_DEMAND_PRIORITY),
+                // player-metric-spatial-demand-v2
+                // The parent-module constant is authored in physical metres.
+                SpatialDemandSource::cuboid_metres(
+                    PLAYER_SPATIAL_DEMAND_HALF_EXTENT,
+                )
+                .with_priority(PLAYER_SPATIAL_DEMAND_PRIORITY),
                 VoxelMaterializationDemand,
                 PlayerController::default(),
                 PlayerAim::default(),
@@ -96,7 +100,9 @@ pub(super) fn spawn_player(
             ),
             (
                 ViewCameraProfile::character(),
-                SpatialRefinementDemand::cuboid(PLAYER_SPATIAL_DEMAND_HALF_EXTENT),
+                SpatialRefinementDemand::cuboid_metres(
+                    PLAYER_SPATIAL_DEMAND_HALF_EXTENT,
+                ),
                 LocomotionCapabilities::character(),
                 LocomotionEnabled(true),
                 CharacterStance::default(),

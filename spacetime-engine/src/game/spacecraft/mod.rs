@@ -65,6 +65,9 @@ use crate::game::GameWorld;
 
 const SHIP_SIZE: Vec3 = Vec3::new(4.0, 2.0, 8.0);
 const SHIP_PROXY_CLEARANCE_METRES: f32 = 0.08;
+// spacecraft-metric-spatial-demand-v2
+// Authored in physical metres. Recharting S0 -> S+1 must not turn this into a
+// ~960x640x960-metre half-extent.
 const SHIP_DEMAND_HALF_EXTENT: Vec3 = Vec3::new(96.0, 64.0, 96.0);
 const SHIP_DEMAND_PRIORITY: i32 = 120;
 const LANDING_PROBE_METRES: f32 = 2.0;
@@ -261,9 +264,9 @@ fn spawn_reference_spacecraft(
                 UsfInteractionScaleAffinity::new(ship_interaction_scale).requiring(
                     UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::COLLISION),
                 ),
-                SpatialDemandSource::cuboid(SHIP_DEMAND_HALF_EXTENT)
+                SpatialDemandSource::cuboid_metres(SHIP_DEMAND_HALF_EXTENT)
                     .with_priority(SHIP_DEMAND_PRIORITY),
-                SpatialRefinementDemand::cuboid(SHIP_DEMAND_HALF_EXTENT),
+                SpatialRefinementDemand::cuboid_metres(SHIP_DEMAND_HALF_EXTENT),
                 VoxelMaterializationDemand,
             ),
             (

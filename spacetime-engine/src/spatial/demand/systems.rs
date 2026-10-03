@@ -32,7 +32,13 @@ fn collect_spatial_demand(
     let mut next_motion = SpatialDemandMotionSnapshot::default();
 
     for (entity, transform, source, source_layer, canonical_motion) in &sources {
-        if !source.enabled() || source.half_extent_native().max_element() <= 0.001 {
+        // metric-demand-collection-v2
+        let source_scale =
+            source_layer.map_or(frame.origin().leaf_scale(), |layer| layer.scale());
+        let half_extent_native =
+            source.half_extent_native_at(source_scale);
+
+        if !source.enabled() || half_extent_native.max_element() <= 0.001 {
             continue;
         }
 
@@ -44,8 +50,6 @@ fn collect_spatial_demand(
                     .insert(entity, velocity);
             }
         }
-
-        let source_scale = source_layer.map_or(frame.origin().leaf_scale(), |layer| layer.scale());
 
         let Ok(center) = frame
             .origin()
@@ -64,17 +68,20 @@ fn collect_spatial_demand(
             entity,
             source_scale,
             center,
-            source.half_extent_native(),
+            half_extent_native,
             source.priority(),
         ));
 
         if let Some(transition) = transitions.pending_relocation_for(entity) {
-            let target_scale = transition.target_scale().unwrap_or(source_scale);
+            let target_scale =
+                transition.target_scale().unwrap_or(source_scale);
+            let target_half_extent_native =
+                source.half_extent_native_at(target_scale);
             next.scopes.push(SpatialDemandScope::at_scale(
                 entity,
                 target_scale,
                 transition.position(),
-                source.half_extent_native(),
+                target_half_extent_native,
                 source
                     .priority()
                     .saturating_add(TRANSITION_DESTINATION_PRIORITY_BIAS),
