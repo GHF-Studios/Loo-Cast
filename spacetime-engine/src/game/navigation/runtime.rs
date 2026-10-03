@@ -4,19 +4,12 @@ use bevy::prelude::*;
 
 use crate::{
     ecs::UsfOwnershipQuery,
-    game::{
-        control::LocalControlSubject,
-        locomotion::{
-            ControlledSubjectLocomotion, DetailedBodyScale, LocomotionRegime, VelocitySemantics,
-        },
-    },
+    game::control::LocalControlSubject,
     spatial::{
-        SpatialRefinementDemand, SpatialScale, UsfApproachRefinement,
-        UsfInteractionRequirement, UsfNavigationContext,
-        UsfScaleLayer, UsfScaleRoleMask, UsfSpatialFrame, UsfSpatialTransitionApplied,
-        UsfSpatialTransitionCause, UsfSpatialTransitionQueue, UsfTransitionVelocity,
-        UsfTravelBoundaryResolver, UsfTravelInfluence, UsfPosition, UsfSemanticFrame,
-        UsfTravelInfluenceKind, UsfTravelNeighborhood, UsfViewContext,
+        SpatialRefinementDemand, SpatialScale, UsfApproachRefinement, UsfNavigationContext,
+        UsfPosition, UsfScaleLayer, UsfSemanticFrame, UsfSpatialFrame,
+        UsfSpatialTransitionApplied, UsfSpatialTransitionCause, UsfTravelBoundaryResolver,
+        UsfTravelInfluence, UsfTravelInfluenceKind, UsfTravelNeighborhood, UsfViewContext,
         UsfViewRenderAnchor,
     },
 };
@@ -30,12 +23,11 @@ fn requested_transition_rebases_approach(cause: UsfSpatialTransitionCause) -> bo
     matches!(cause, UsfSpatialTransitionCause::Requested)
 }
 
-/// Rebase rate-limited approach state after an authoritative relocation.
+/// Rebase future refinement state after an authoritative relocation.
 ///
-/// A requested relocation can discontinuously replace the subject's active
-/// Scale Slice. Continuous refinement history from the previous chart is no
-/// longer meaningful after that transaction. Ordinary adjacent interaction
-/// handoffs are produced by this planner and preserve its progress.
+/// An explicit relocation/control rechart can discontinuously replace the
+/// controlled subject's interaction chart. Refinement intent at the previous
+/// location is discarded; navigation does not choose the new interaction Scale.
 pub(super) fn reconcile_approach_after_requested_transition(
     mut transitions: MessageReader<UsfSpatialTransitionApplied>,
     ownership: UsfOwnershipQuery,
@@ -62,9 +54,7 @@ pub(super) fn reconcile_approach_after_requested_transition(
             );
 
             approach.active = false;
-            approach.continuous_exponent = f32::from(scale.exponent());
             approach.minimum_scale = scale;
-            approach.interaction_target_scale = scale;
             approach.realization_target_scale = scale;
 
             debug!(
@@ -149,54 +139,7 @@ fn scale_for_resolution(
     SpatialScale::new(exponent).expect("clamped USF resolution scale")
 }
 
-/// Resolves the next physical interaction chart.
-///
-/// Scales coarser than `maximum` contain no meaningful body-local interaction
-/// representation, so entry may jump directly to that envelope boundary.
-/// Inside the envelope, every scale is one decimal digit of responsibility and
-/// handoff proceeds exactly one adjacent digit at a time.
-fn next_interaction_digit(
-    current: SpatialScale,
-    desired: SpatialScale,
-    maximum: SpatialScale,
-) -> SpatialScale {
-    if current > maximum {
-        return maximum;
-    }
-    if desired == current {
-        return current;
-    }
-
-    let step = if desired < current { -1 } else { 1 };
-    SpatialScale::new(current.exponent() + step)
-        .expect("adjacent interaction digit remains inside USF scale bounds")
-}
-
-// local-interaction-chart-stability-v1
-//
-// Approach refinement may ask for different terrain/cache resolution, but that
-// is not sufficient reason to churn a local physical interaction chart. Reuse
-// the semantic locomotion regime's existing capture/release hysteresis:
-// once ordinary local interaction has reached the authored detailed chart, it
-// stays there until locomotion actually leaves the local regime.
-//
-// A LocalFlight subject that is already coarse is deliberately *not* force-
-// jumped to detailed contact here. The existing approach/readiness transaction
-// still decides when detailed collision can be entered safely.
-fn interaction_target_for_regime(
-    current: SpatialScale,
-    planned: SpatialScale,
-    detailed: SpatialScale,
-    regime: LocomotionRegime,
-) -> SpatialScale {
-    match regime {
-        LocomotionRegime::OnFoot => detailed,
-        LocomotionRegime::LocalFlight if current == detailed => detailed,
-        LocomotionRegime::LocalFlight
-        | LocomotionRegime::PlanetaryFlight
-        | LocomotionRegime::Cruise => planned,
-    }
-}
+// navigation-has-no-interaction-scale-authority-v1
 
 /// Semantic planner for approaching refinable structure.
 ///
@@ -204,7 +147,6 @@ fn interaction_target_for_regime(
 /// resolution is needed and how much finer reality should be realized ahead of
 /// the moving subject.
 pub(super) fn plan_approach_refinement(
-    time: Res<Time>,
     frame: Res<UsfSpatialFrame>,
     subject: Single<
         (
@@ -269,67 +211,44 @@ pub(super) fn plan_approach_refinement(
             .as_ref()
             .is_none_or(|(_, _, _, _, _, current)| relative < *current)
         {
-            selected = Some((*anchor, *semantic_frame, *influence, *refinement, boundary.cloned(), relative));
+            selected = Some((
+                *anchor,
+                *semantic_frame,
+                *influence,
+                *refinement,
+                boundary.cloned(),
+                relative,
+            ));
         }
     }
 
     let Some((anchor, semantic_frame, influence, refinement, boundary, _)) = selected else {
         state.active = false;
-        state.interaction_target_scale = layer.scale();
+        state.minimum_scale = layer.scale();
         state.realization_target_scale = layer.scale();
         realization_demand.clear();
         return;
     };
-    let Some(measurement) =
-        influence.measure_from_at_scale(&anchor, semantic_frame, &observer, observer_scale, boundary.as_ref())
-    else {
+
+    let Some(measurement) = influence.measure_from_at_scale(
+        &anchor,
+        semantic_frame,
+        &observer,
+        observer_scale,
+        boundary.as_ref(),
+    ) else {
         state.active = false;
-        state.interaction_target_scale = layer.scale();
+        state.minimum_scale = layer.scale();
         state.realization_target_scale = layer.scale();
         realization_demand.clear();
         return;
     };
 
-    if !state.active {
-        state.active = true;
-        state.continuous_exponent = f32::from(layer.scale().exponent());
-    }
-
+    state.active = true;
     state.minimum_scale = refinement.minimum_scale();
 
-    let target_exponent = envelope
-        .required_resolution_metres
-        .max(1.0e-35)
-        .log10()
-        .clamp(
-            f64::from(refinement.minimum_scale().exponent()),
-            f64::from(influence.scale().exponent()),
-        ) as f32;
-
-    let current = state.continuous_exponent;
-    let max_step = profile.approach.refinement_rate_decades_per_second
-        * time.delta_secs().max(0.0);
-    state.continuous_exponent = if target_exponent < current {
-        (current - max_step).max(target_exponent)
-    } else {
-        (current + max_step).min(target_exponent)
-    };
-
-    let desired_interaction_scale = scale_for_resolution(
-        10.0_f64.powf(f64::from(state.continuous_exponent)),
-        refinement.minimum_scale(),
-        influence.scale(),
-    );
-    // This remains the approach planner's coarse numerical-chart proposal.
-    // Publish-time local interaction policy may hold the detailed chart;
-    // terrain resolution itself is not physical chart authority.
-    state.interaction_target_scale = next_interaction_digit(
-        layer.scale(),
-        desired_interaction_scale,
-        influence.scale(),
-    );
-
-    // Realization leads interaction by the current travel lookahead horizon.
+    // Clearance, speed and lookahead may change how much reality is prepared
+    // ahead. They are deliberately unable to rechart the controlled subject.
     let future_clearance =
         (measurement.boundary_clearance_scale0() - envelope.lookahead_metres).max(1.0);
     let divisor = profile.approach.resolution_divisor.max(f64::EPSILON);
@@ -421,124 +340,6 @@ pub(super) fn sync_navigation_presentation(
     }
 }
 
-fn interaction_handoff_roles(
-    target_scale: SpatialScale,
-    detailed_contact_scale: SpatialScale,
-) -> UsfScaleRoleMask {
-    let mut roles = UsfScaleRoleMask::REALIZATION;
-
-    // Numerical interaction charts may become coarse without manufacturing a
-    // coarse terrain response model. Collision readiness gates only entry into
-    // the subject's authored detailed contact regime.
-    if target_scale == detailed_contact_scale {
-        roles = roles.union(UsfScaleRoleMask::COLLISION);
-    }
-
-    roles
-}
-
-/// Publishes the current continuous interaction requirement.
-///
-/// This is intentionally not a one-shot transition command. Publishing the
-/// current Scale Slice is meaningful: it explicitly supersedes/cancels an older
-/// finer requirement that may still be waiting for coverage.
-pub(super) fn sync_approach_interaction_requirement(
-    ownership: UsfOwnershipQuery,
-    subject: Single<
-        (
-            Entity,
-            &UsfScaleLayer,
-            &ControlledSubjectLocomotion,
-            &DetailedBodyScale,
-            &TravelProfile,
-            &PrimaryBodyContext,
-            &ApproachRefinementState,
-        ),
-        With<LocalControlSubject>,
-    >,
-    mut transitions: ResMut<UsfSpatialTransitionQueue>,
-) {
-    let (
-        realization,
-        layer,
-        locomotion,
-        detailed,
-        profile,
-        primary,
-        state,
-    ) = subject.into_inner();
-
-    let Some(semantic_entity) = ownership.semantic_of(realization) else {
-        error!(
-            realization = ?realization,
-            "controlled navigation subject has no semantic USF owner"
-        );
-        return;
-    };
-
-    let velocity = match locomotion.velocity_semantics() {
-        VelocitySemantics::PreserveNative => UsfTransitionVelocity::PreserveNative,
-        VelocitySemantics::PreserveCanonical => UsfTransitionVelocity::PreserveCanonical,
-        VelocitySemantics::Zero => UsfTransitionVelocity::Zero,
-    };
-
-    let planned_target_scale = if state.active {
-        state.interaction_target_scale
-    } else {
-        layer.scale()
-    };
-    let target_scale = if state.active {
-        interaction_target_for_regime(
-            layer.scale(),
-            planned_target_scale,
-            detailed.0,
-            locomotion.regime(),
-        )
-    } else {
-        planned_target_scale
-    };
-
-    let mut requirement =
-        UsfInteractionRequirement::new(semantic_entity, target_scale, velocity);
-
-    if state.active
-        && target_scale != layer.scale()
-        && let Some(authority) = primary.entity()
-    {
-        requirement = requirement.requiring_coverage_from(
-            authority,
-            interaction_handoff_roles(target_scale, detailed.0),
-            profile.approach.interaction_handoff_coverage_radius_native,
-        );
-    }
-
-    transitions.set_interaction_requirement(requirement);
-}
-
-#[cfg(test)]
-mod interaction_handoff_role_tests {
-    use super::*;
-
-    #[test]
-    fn coarse_chart_handoff_does_not_require_coarse_terrain_collision() {
-        let detailed = SpatialScale::ZERO;
-        let coarse = SpatialScale::new(5).unwrap();
-        let roles = interaction_handoff_roles(coarse, detailed);
-
-        assert!(roles.contains(UsfScaleRoleMask::REALIZATION));
-        assert!(!roles.contains(UsfScaleRoleMask::COLLISION));
-    }
-
-    #[test]
-    fn detailed_contact_handoff_requires_collision_readiness() {
-        let detailed = SpatialScale::ZERO;
-        let roles = interaction_handoff_roles(detailed, detailed);
-
-        assert!(roles.contains(UsfScaleRoleMask::REALIZATION));
-        assert!(roles.contains(UsfScaleRoleMask::COLLISION));
-    }
-}
-
 /// Publishes one compact end-to-end contract snapshot for diagnostics.
 ///
 /// This observes already-resolved state; it owns no navigation or view policy.
@@ -585,7 +386,6 @@ pub(super) fn audit_navigation_contract(
         navigation_source_scale: navigation.source_scale(),
         characteristic_length_metres: characteristic,
         approach_active: approach.active,
-        interaction_target_scale: approach.active.then_some(approach.interaction_target_scale),
         realization_target_scale: approach.active.then_some(approach.realization_target_scale),
         view_exponent,
         presentation_target_exponent: target_exponent,
@@ -661,111 +461,6 @@ pub(super) fn sync_travel_state(
         measurement.center_distance_scale0(),
         clearance,
     );
-}
-
-#[cfg(test)]
-mod interaction_digit_tests {
-    use super::*;
-
-    #[test]
-    fn only_requested_relocations_rebase_approach_history() {
-        assert!(requested_transition_rebases_approach(
-            UsfSpatialTransitionCause::Requested,
-        ));
-        assert!(!requested_transition_rebases_approach(
-            UsfSpatialTransitionCause::InteractionRequirement,
-        ));
-        assert!(!requested_transition_rebases_approach(
-            UsfSpatialTransitionCause::ViewScale,
-        ));
-    }
-
-    #[test]
-    fn entry_jumps_to_coarsest_physical_body_digit() {
-        let s35 = SpatialScale::new(35).unwrap();
-        let s6 = SpatialScale::new(6).unwrap();
-        let s0 = SpatialScale::ZERO;
-        assert_eq!(next_interaction_digit(s35, s0, s6), s6);
-    }
-
-    #[test]
-    fn physical_body_dropout_advances_one_digit_at_a_time() {
-        let s6 = SpatialScale::new(6).unwrap();
-        let s5 = SpatialScale::new(5).unwrap();
-        let s0 = SpatialScale::ZERO;
-        assert_eq!(next_interaction_digit(s6, s0, s6), s5);
-    }
-
-    #[test]
-    fn physical_body_dropout_coarsens_one_digit_at_a_time() {
-        let s3 = SpatialScale::new(3).unwrap();
-        let s4 = SpatialScale::new(4).unwrap();
-        let s6 = SpatialScale::new(6).unwrap();
-        assert_eq!(next_interaction_digit(s3, s6, s6), s4);
-    }
-}
-
-#[cfg(test)]
-mod local_interaction_chart_policy_tests {
-    use super::*;
-
-    #[test]
-    fn local_physical_interaction_holds_detailed_chart() {
-        let detailed = SpatialScale::ZERO;
-        let planned_coarse = SpatialScale::new(1).unwrap();
-
-        assert_eq!(
-            interaction_target_for_regime(
-                detailed,
-                planned_coarse,
-                detailed,
-                LocomotionRegime::OnFoot,
-            ),
-            detailed,
-        );
-        assert_eq!(
-            interaction_target_for_regime(
-                detailed,
-                planned_coarse,
-                detailed,
-                LocomotionRegime::LocalFlight,
-            ),
-            detailed,
-        );
-    }
-
-    #[test]
-    fn local_flight_already_coarse_does_not_force_unsupported_detail() {
-        let detailed = SpatialScale::ZERO;
-        let coarse = SpatialScale::new(1).unwrap();
-
-        assert_eq!(
-            interaction_target_for_regime(
-                coarse,
-                coarse,
-                detailed,
-                LocomotionRegime::LocalFlight,
-            ),
-            coarse,
-        );
-    }
-
-    #[test]
-    fn planetary_and_cruise_keep_the_numerical_chart_proposal() {
-        let detailed = SpatialScale::ZERO;
-        let current = detailed;
-        let planned = SpatialScale::new(1).unwrap();
-
-        for regime in [
-            LocomotionRegime::PlanetaryFlight,
-            LocomotionRegime::Cruise,
-        ] {
-            assert_eq!(
-                interaction_target_for_regime(current, planned, detailed, regime),
-                planned,
-            );
-        }
-    }
 }
 
 #[cfg(test)]

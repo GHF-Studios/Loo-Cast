@@ -22,7 +22,8 @@ use crate::{
     portal::{PortalSplitTraveler, PortalTraveler},
     spatial::{
         SpatialDemandSource, SpatialScale, UsfApproachRefinement, UsfCapabilityRealization,
-        UsfPosition, UsfPresentationProbe, UsfPrimaryInteractionSlice, UsfSemanticFrame,
+        UsfInteractionScaleAffinity, UsfPosition, UsfPresentationProbe,
+        UsfPrimaryInteractionSlice, UsfSemanticFrame,
         UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScalePresentation, UsfScaleRoleMask,
         UsfSceneryPresentation, UsfSpatialFrame, UsfSpatialSet, UsfSpatialTransition,
         UsfSpatialTransitionApplied, UsfSpatialTransitionQueue, UsfTransitionVelocity,
@@ -317,13 +318,13 @@ fn presentation_command(
     let probe = *world.resource::<UsfPresentationProbe>();
     let interaction = *world.resource::<UsfPrimaryInteractionSlice>();
     let navigation = *world.resource::<NavigationAudit>();
-    let handoff_radius_native = {
-        let mut query =
-            world.query_filtered::<&TravelProfile, With<LocalControlSubject>>();
-        query
-            .iter(world)
-            .next()
-            .map(|profile| profile.approach.interaction_handoff_coverage_radius_native)
+    // presentation-diagnostic-explicit-scale-affinity-v1
+    let interaction_affinity = {
+        let mut query = world.query_filtered::<
+            &UsfInteractionScaleAffinity,
+            With<LocalControlSubject>,
+        >();
+        query.iter(world).next().copied()
     };
     let controlled_position = controlled_semantic_entity(world)
         .and_then(|entity| world.get::<UsfPosition>(entity).copied());
@@ -399,16 +400,16 @@ fn presentation_command(
         camera_line("local", local_camera),
         camera_line("context", context_camera),
         format!(
-            "navigation: clearance={} | approach={} | interaction target={} | realization target={}",
+            "control/navigation: affinity={} | clearance={} | approach={} | refinement target={}",
+            interaction_affinity.map_or_else(
+                || "<none>".to_string(),
+                |affinity| format!("S{}", affinity.scale()),
+            ),
             navigation.primary_clearance_metres.map_or_else(
                 || "<none>".to_string(),
                 |value| format!("{value:.3} m"),
             ),
             navigation.approach_active,
-            navigation.interaction_target_scale.map_or_else(
-                || "<none>".to_string(),
-                |scale| format!("S{scale}"),
-            ),
             navigation.realization_target_scale.map_or_else(
                 || "<none>".to_string(),
                 |scale| format!("S{scale}"),
@@ -419,14 +420,14 @@ fn presentation_command(
     if let (
         Some(authority),
         Some(position),
-        Some(target),
-        Some(radius_native),
+        Some(affinity),
     ) = (
         navigation.primary_body,
         controlled_position,
-        navigation.interaction_target_scale,
-        handoff_radius_native,
+        interaction_affinity,
     ) {
+        let target = affinity.scale();
+        let radius_native = affinity.coverage_radius_native();
         let coverage = world.resource::<UsfScaleCoverageSnapshot>();
         let realization_near = coverage.has_near_for_authority(
             authority,
@@ -469,7 +470,7 @@ fn presentation_command(
         }
 
         lines.push(format!(
-            "handoff gate S{} r={:.3} native: near R={} P={} C={} | authority entries total={} R={} P={} C={}",
+            "affinity readiness S{} r={:.3} native: near R={} P={} C={} | authority entries total={} R={} P={} C={}",
             target,
             radius_native,
             realization_near,
@@ -482,7 +483,7 @@ fn presentation_command(
         ));
     } else {
         lines.push(
-            "handoff gate = <insufficient primary-body/planner/canonical state>".to_string(),
+            "affinity readiness = <insufficient primary-body/control/canonical state>".to_string(),
         );
     }
 

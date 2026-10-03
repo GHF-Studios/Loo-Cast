@@ -37,7 +37,9 @@ pub use slice::{
     UsfChartMask, UsfScaleLayer, UsfScaleSlice, UsfScaleSliceMemberOf,
     UsfScaleSliceMembers, UsfScaleSlices,
 };
-pub use interaction::{UsfInteractionProjection, UsfPrimaryInteractionSlice};
+pub use interaction::{
+    UsfInteractionProjection, UsfInteractionScaleAffinity, UsfPrimaryInteractionSlice,
+};
 pub use motion::UsfCanonicalMotion;
 pub use semantic_frame::UsfSemanticFrame;
 pub use crate::usf::{

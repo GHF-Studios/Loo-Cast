@@ -52,8 +52,8 @@ use crate::{
     portal::PortalTraveler,
     spatial::{
         SpatialDemandSet, SpatialDemandSource, SpatialRefinementDemand, SpatialScale,
-        UsfCanonicalMotion, UsfLocalScalePresentation, UsfPosition, UsfScaleLayer,
-        UsfSpatialFrame, UsfTravelNeighborhood,
+        UsfCanonicalMotion, UsfInteractionScaleAffinity, UsfLocalScalePresentation,
+        UsfPosition, UsfScaleLayer, UsfSpatialFrame, UsfTravelNeighborhood,
     },
     view::ViewSubjectPresentation,
     voxel::VoxelMaterializationDemand,
@@ -240,6 +240,12 @@ fn spawn_reference_spacecraft(
     locomotion.set_thrusters_enabled(true);
     locomotion.set_rcs_enabled(true);
 
+    // spacecraft-explicit-s1-affinity-v1
+    // Human body S0 -> small spacecraft S+1. Spawn placement may initially use
+    // the player's current chart; control transfer explicitly recharts it.
+    let ship_interaction_scale =
+        SpatialScale::new(1).expect("reference spacecraft S+1 is a valid USF Scale");
+
     let ship = commands
         .spawn((
             (
@@ -250,6 +256,7 @@ fn spawn_reference_spacecraft(
                 
                 UsfLogicalRealizationOf(ship_partition),
                 UsfScaleLayer::new(body_layer.scale()),
+                UsfInteractionScaleAffinity::new(ship_interaction_scale),
                 SpatialDemandSource::cuboid(SHIP_DEMAND_HALF_EXTENT)
                     .with_priority(SHIP_DEMAND_PRIORITY),
                 SpatialRefinementDemand::cuboid(SHIP_DEMAND_HALF_EXTENT),
@@ -271,7 +278,7 @@ fn spawn_reference_spacecraft(
                 FlightControlIntent::default(),
                 UsfCanonicalMotion::default(),
                 locomotion,
-                DetailedBodyScale::default(),
+                DetailedBodyScale(ship_interaction_scale),
                 TravelProfile::spacecraft(),
                 TravelEnvelope::default(),
                 ApproachRefinementState::default(),
@@ -696,17 +703,32 @@ fn handle_spacecraft_actions(
         mut ship_demand,
     ) in &mut ships
     {
-        if !ship_contact.is_landed() || ship_layer.scale() != player_layer.scale()
-        {
+        if !ship_contact.is_landed() {
             continue;
         }
 
-        let distance_native = player_transform
-            .translation
-            .distance(ship_transform.translation);
-        let distance_metres =
-            f64::from(distance_native) * player_layer.scale().scale0_units_per_native();
-        if distance_metres > f64::from(ENTER_DISTANCE_METRES) {
+        // Player and ship may intentionally inhabit different interaction
+        // Scales. Compare poses through the common canonical frame in SI.
+        let Ok(player_position) = frame.origin().translated_at_scale(
+            player_layer.scale(),
+            player_transform.translation,
+        ) else {
+            continue;
+        };
+        let Ok(ship_position) = frame.origin().translated_at_scale(
+            ship_layer.scale(),
+            ship_transform.translation,
+        ) else {
+            continue;
+        };
+        let Ok(relative_metres) = player_position.relative_at_scale_bounded_f64(
+            &ship_position,
+            SpatialScale::ZERO,
+            f64::from(ENTER_DISTANCE_METRES) * 2.0,
+        ) else {
+            continue;
+        };
+        if relative_metres.length() > f64::from(ENTER_DISTANCE_METRES) {
             continue;
         }
 

@@ -14,13 +14,14 @@ use crate::{
         locomotion::ControlledSubjectLocomotion,
     },
     spatial::{
-        SpatialScale, UsfPosition, UsfPrimaryInteractionSlice,
-        UsfScaleCoverageSnapshot, UsfScaleLayer, UsfScaleRoleMask,
+        SpatialScale, UsfInteractionScaleAffinity, UsfPosition,
+        UsfPrimaryInteractionSlice, UsfScaleCoverageSnapshot, UsfScaleLayer,
+        UsfScaleRoleMask,
         UsfSpatialFrame, UsfViewContext, UsfViewRenderAnchor,
     },
 };
 
-use super::{ApproachRefinementState, NavigationAudit, TravelProfile};
+use super::{ApproachRefinementState, NavigationAudit};
 
 const SAMPLE_INTERVAL_SECONDS: f64 = 0.5;
 const MAX_SAMPLES: usize = 160;
@@ -48,10 +49,11 @@ impl CoverageGate {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+// navtrace-explicit-scale-affinity-v1
 struct DiscreteState {
     current_interaction: SpatialScale,
     requested_interaction: Option<SpatialScale>,
-    interaction_target: SpatialScale,
+    interaction_affinity: SpatialScale,
     realization_target: SpatialScale,
     view_scale: SpatialScale,
     coverage_gate: Option<CoverageGate>,
@@ -66,8 +68,7 @@ struct NavigationTraceSample {
     subject_scale: SpatialScale,
     current_interaction: SpatialScale,
     requested_interaction: Option<SpatialScale>,
-    approach_exponent: f32,
-    interaction_target: SpatialScale,
+    interaction_affinity: SpatialScale,
     realization_target: SpatialScale,
     view_exponent: f32,
     view_scale: SpatialScale,
@@ -82,7 +83,7 @@ impl NavigationTraceSample {
         DiscreteState {
             current_interaction: self.current_interaction,
             requested_interaction: self.requested_interaction,
-            interaction_target: self.interaction_target,
+            interaction_affinity: self.interaction_affinity,
             realization_target: self.realization_target,
             view_scale: self.view_scale,
             coverage_gate: self.coverage_gate,
@@ -205,14 +206,13 @@ impl NavigationFlightRecorder {
             let gate = sample.coverage_gate.map_or("-", CoverageGate::label);
 
             lines.push(format!(
-                "t={:7.3}s {} subj=S{} I=S{} req={} approach={:+.3} target=S{} real=S{} view={:+.3}/S{} clr={} gate={} loco={}/{}",
+                "t={:7.3}s {} subj=S{} I=S{} affinity=S{} req={} refine=S{} view={:+.3}/S{} clr={} gate={} loco={}/{}",
                 sample.elapsed_seconds,
                 movement,
                 sample.subject_scale,
                 sample.current_interaction,
+                sample.interaction_affinity,
                 request,
-                sample.approach_exponent,
-                sample.interaction_target,
                 sample.realization_target,
                 sample.view_exponent,
                 sample.view_scale,
@@ -245,8 +245,8 @@ pub(super) fn record_navigation_flight(
         (
             &Transform,
             &UsfScaleLayer,
+            &UsfInteractionScaleAffinity,
             &ApproachRefinementState,
-            &TravelProfile,
             &ControlledSubjectLocomotion,
         ),
         With<LocalControlSubject>,
@@ -257,13 +257,9 @@ pub(super) fn record_navigation_flight(
         return;
     }
 
-    let (transform, layer, approach, profile, locomotion) = subject.into_inner();
+    let (transform, layer, affinity, approach, locomotion) = subject.into_inner();
 
-    let interaction_target = if approach.active {
-        approach.interaction_target_scale
-    } else {
-        layer.scale()
-    };
+    let interaction_affinity = affinity.scale();
     let realization_target = if approach.active {
         approach.realization_target_scale
     } else {
@@ -279,7 +275,7 @@ pub(super) fn record_navigation_flight(
     let trigger_changed = recorder.samples.back().is_none_or(|previous| {
         previous.current_interaction != interaction.scale()
             || previous.requested_interaction != interaction.requested_scale()
-            || previous.interaction_target != interaction_target
+            || previous.interaction_affinity != interaction_affinity
             || previous.realization_target != realization_target
             || previous.view_scale != view.scale()
             || previous.regime != regime
@@ -300,25 +296,25 @@ pub(super) fn record_navigation_flight(
     };
 
     let coverage_gate = audit.primary_body.map(|authority| {
-        let radius = profile.approach.interaction_handoff_coverage_radius_native;
+        let radius = affinity.coverage_radius_native();
         CoverageGate {
             realization: coverage.has_near_for_authority(
                 authority,
-                interaction_target,
+                interaction_affinity,
                 &canonical_position,
                 UsfScaleRoleMask::REALIZATION,
                 radius,
             ),
             presentation: coverage.has_near_for_authority(
                 authority,
-                interaction_target,
+                interaction_affinity,
                 &canonical_position,
                 UsfScaleRoleMask::PRESENTATION,
                 radius,
             ),
             collision: coverage.has_near_for_authority(
                 authority,
-                interaction_target,
+                interaction_affinity,
                 &canonical_position,
                 UsfScaleRoleMask::COLLISION,
                 radius,
@@ -332,8 +328,7 @@ pub(super) fn record_navigation_flight(
         subject_scale: layer.scale(),
         current_interaction: interaction.scale(),
         requested_interaction: interaction.requested_scale(),
-        approach_exponent: approach.continuous_exponent,
-        interaction_target,
+        interaction_affinity,
         realization_target,
         view_exponent: view.continuous_exponent(),
         view_scale: view.scale(),
@@ -355,8 +350,7 @@ mod tests {
             subject_scale: scale,
             current_interaction: scale,
             requested_interaction: None,
-            approach_exponent: f32::from(scale.exponent()),
-            interaction_target: scale,
+            interaction_affinity: scale,
             realization_target: scale,
             view_exponent: f32::from(scale.exponent()),
             view_scale: scale,

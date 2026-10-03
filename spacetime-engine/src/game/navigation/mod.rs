@@ -362,14 +362,16 @@ impl Default for AdaptiveCruise {
     }
 }
 
-/// Semantic progress through approach refinement.
+// approach-refinement-is-realization-only-v1
+/// Semantic progress through future capability refinement.
+///
+/// This state owns readiness/refinement only. Interaction Scale is controlled
+/// elsewhere by the controlled manifestation's explicit Scale affinity.
 #[derive(Component, Reflect, Debug, Clone, Copy)]
 #[reflect(Component)]
 pub struct ApproachRefinementState {
     pub active: bool,
-    pub continuous_exponent: f32,
     pub minimum_scale: SpatialScale,
-    pub interaction_target_scale: SpatialScale,
     pub realization_target_scale: SpatialScale,
 }
 
@@ -377,9 +379,7 @@ impl Default for ApproachRefinementState {
     fn default() -> Self {
         Self {
             active: false,
-            continuous_exponent: SpatialScale::MAX.exponent() as f32,
             minimum_scale: SpatialScale::MAX,
-            interaction_target_scale: SpatialScale::MAX,
             realization_target_scale: SpatialScale::MAX,
         }
     }
@@ -459,7 +459,6 @@ pub struct NavigationAudit {
     pub navigation_source_scale: Option<SpatialScale>,
     pub characteristic_length_metres: f64,
     pub approach_active: bool,
-    pub interaction_target_scale: Option<SpatialScale>,
     pub realization_target_scale: Option<SpatialScale>,
     pub view_exponent: f32,
     pub presentation_target_exponent: f32,
@@ -476,7 +475,6 @@ impl Default for NavigationAudit {
             navigation_source_scale: None,
             characteristic_length_metres: 0.0,
             approach_active: false,
-            interaction_target_scale: None,
             realization_target_scale: None,
             view_exponent: SpatialScale::MAX.exponent() as f32,
             presentation_target_exponent: SpatialScale::MAX.exponent() as f32,
@@ -530,14 +528,12 @@ impl Plugin for NavigationPlugin {
                     .chain()
                     .in_set(NavigationSet::Plan),
             )
+            // navigation-no-longer-publishes-interaction-scale-v1
+            // Navigation may refine ahead and choose presentation/travel policy,
+            // but interaction Scale belongs to the controlled manifestation.
             .add_systems(
                 RunFixedMainLoop,
-                (
-                    runtime::sync_approach_interaction_requirement,
-                    runtime::audit_navigation_contract,
-                )
-                    .chain()
-                    .in_set(NavigationSet::Publish),
+                runtime::audit_navigation_contract.in_set(NavigationSet::Publish),
             )
             .add_systems(
                 PostUpdate,

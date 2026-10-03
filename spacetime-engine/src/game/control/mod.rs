@@ -10,7 +10,9 @@ use bevy::prelude::*;
 use crate::{
     ecs::UsfOwnershipQuery,
     spatial::{
-        UsfInteractionProjection, UsfSpatialAnchor, UsfSpatialTransitionQueue, UsfViewAnchor,
+        UsfInteractionProjection, UsfInteractionRequirement, UsfInteractionScaleAffinity,
+        UsfPosition, UsfSpatialAnchor, UsfSpatialTransition, UsfSpatialTransitionQueue,
+        UsfTransitionVelocity, UsfViewAnchor,
     },
 };
 
@@ -114,6 +116,7 @@ pub struct LocalControlTransferApplied {
 pub enum LocalControlTransferRejection {
     ControllerIsNotLocal,
     TargetIsNotManifestation,
+    TargetHasNoInteractionScaleAffinity,
 }
 
 #[derive(Message, Debug, Clone, Copy)]
@@ -154,6 +157,7 @@ fn apply_local_control_transfers(
     controllers: Query<(), With<LocalController>>,
     ownership: UsfOwnershipQuery,
     current: Query<Entity, With<LocalControlSubject>>,
+    affinities: Query<&UsfInteractionScaleAffinity>,
     relationships: Query<&ControlledBy>,
     mut applied: MessageWriter<LocalControlTransferApplied>,
     mut rejected: MessageWriter<LocalControlTransferRejected>,
@@ -177,6 +181,14 @@ fn apply_local_control_transfers(
         });
         return;
     };
+
+    if affinities.get(request.manifestation).is_err() {
+        rejected.write(LocalControlTransferRejected {
+            request,
+            reason: LocalControlTransferRejection::TargetHasNoInteractionScaleAffinity,
+        });
+        return;
+    }
 
     let previous = current
         .iter()
@@ -223,12 +235,15 @@ fn apply_local_control_transfers(
 
 /// Current game policy: the primary view/interaction focus follows local
 /// control. This is an adapter, not part of semantic control authority.
+// control-transfer-owns-interaction-scale-v1
 fn reconcile_local_control_focus(
     mut commands: Commands,
     mut applied: MessageReader<LocalControlTransferApplied>,
     view_anchors: Query<Entity, With<UsfViewAnchor>>,
     spatial_anchors: Query<Entity, With<UsfSpatialAnchor>>,
     view_targets: Query<Entity, With<LocalViewTarget>>,
+    affinities: Query<&UsfInteractionScaleAffinity>,
+    semantic_positions: Query<&UsfPosition>,
     mut transitions: ResMut<UsfSpatialTransitionQueue>,
 ) {
     let Some(transfer) = applied.read().last().copied() else {
@@ -271,6 +286,76 @@ fn reconcile_local_control_focus(
         UsfSpatialAnchor,
         UsfInteractionProjection,
     ));
+
+    let Ok(affinity) = affinities.get(transfer.manifestation) else {
+        error!(
+            manifestation = ?transfer.manifestation,
+            "controlled manifestation lost its interaction Scale affinity during focus reconciliation"
+        );
+        return;
+    };
+    let Ok(&position) = semantic_positions.get(transfer.subject) else {
+        error!(
+            subject = ?transfer.subject,
+            "controlled semantic subject has no canonical position during Scale handoff"
+        );
+        return;
+    };
+
+    // Control transfer is the semantic event that may select a different USF
+    // interaction Scale. Queue a one-shot rechart even when the manifestation
+    // already happens to carry that UsfScaleLayer: the global primary
+    // interaction resource still belongs to the previous controlled subject.
+    let mut transition = UsfSpatialTransition::new(
+        transfer.subject,
+        position,
+        UsfTransitionVelocity::PreserveCanonical,
+    )
+    .with_scale(affinity.scale());
+
+    if !affinity.required_roles().is_empty() {
+        transition = transition.requiring_coverage(
+            affinity.required_roles(),
+            affinity.coverage_radius_native(),
+        );
+    }
+
+    transitions.request(transition);
+}
+
+/// Continuously reassert the controlled manifestation's authored Scale affinity.
+///
+/// This is intentionally boring stable state. Movement, altitude, terrain
+/// clearance, locomotion regime and view zoom are absent from this function.
+fn sync_controlled_interaction_scale_affinity(
+    ownership: UsfOwnershipQuery,
+    subject: Single<
+        (Entity, &UsfInteractionScaleAffinity),
+        With<LocalControlSubject>,
+    >,
+    mut transitions: ResMut<UsfSpatialTransitionQueue>,
+) {
+    let (manifestation, affinity) = subject.into_inner();
+    let Some(semantic) = ownership.semantic_of(manifestation) else {
+        error!(
+            manifestation = ?manifestation,
+            "controlled manifestation has no semantic owner for interaction Scale affinity"
+        );
+        return;
+    };
+
+    let mut requirement = UsfInteractionRequirement::new(
+        semantic,
+        affinity.scale(),
+        UsfTransitionVelocity::PreserveCanonical,
+    );
+    if !affinity.required_roles().is_empty() {
+        requirement = requirement.requiring_coverage(
+            affinity.required_roles(),
+            affinity.coverage_radius_native(),
+        );
+    }
+    transitions.set_interaction_requirement(requirement);
 }
 
 fn audit_local_control_invariants(
@@ -381,7 +466,12 @@ impl Plugin for ControlPlugin {
             )
             .add_systems(
                 Update,
-                reconcile_local_control_focus.in_set(ControlActionSet::Reconcile),
+                (
+                    reconcile_local_control_focus,
+                    sync_controlled_interaction_scale_affinity
+                        .after(reconcile_local_control_focus),
+                )
+                    .in_set(ControlActionSet::Reconcile),
             )
             .add_systems(
                 Update,

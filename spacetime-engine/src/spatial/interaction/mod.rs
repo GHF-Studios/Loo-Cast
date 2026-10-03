@@ -2,10 +2,56 @@
 
 use bevy::prelude::*;
 
-use super::SpatialScale;
+use super::{SpatialScale, UsfScaleRoleMask};
 
 #[derive(Component, Debug, Default, Clone, Copy)]
 pub struct UsfInteractionProjection;
+
+// controlled-subject-interaction-scale-affinity-v1
+/// Authored interaction Scale affinity of one controllable runtime manifestation.
+///
+/// This is semantic/control policy, not visual LOD and not an automatic
+/// distance/clearance heuristic. Capability coverage may delay entry into this
+/// Scale, but it never chooses a different target.
+#[derive(Component, Debug, Clone, Copy, PartialEq)]
+pub struct UsfInteractionScaleAffinity {
+    scale: SpatialScale,
+    required_roles: UsfScaleRoleMask,
+    coverage_radius_native: f32,
+}
+
+impl UsfInteractionScaleAffinity {
+    pub const fn new(scale: SpatialScale) -> Self {
+        Self {
+            scale,
+            required_roles: UsfScaleRoleMask::NONE,
+            coverage_radius_native: 0.0,
+        }
+    }
+
+    pub const fn scale(self) -> SpatialScale {
+        self.scale
+    }
+
+    pub const fn required_roles(self) -> UsfScaleRoleMask {
+        self.required_roles
+    }
+
+    pub const fn coverage_radius_native(self) -> f32 {
+        self.coverage_radius_native
+    }
+
+    pub const fn requiring(mut self, roles: UsfScaleRoleMask) -> Self {
+        self.required_roles = roles;
+        self
+    }
+
+    pub fn with_coverage_radius_native(mut self, radius_native: f32) -> Self {
+        self.coverage_radius_native =
+            if radius_native.is_finite() { radius_native.max(0.0) } else { 0.0 };
+        self
+    }
+}
 
 #[derive(Resource, Debug, Clone, Copy)]
 pub struct UsfPrimaryInteractionSlice {

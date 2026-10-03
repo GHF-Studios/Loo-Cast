@@ -19,7 +19,10 @@ use crate::{
         surface::SurfaceContext,
     },
     physics::gravity::GravitySample,
-    spatial::{UsfCanonicalMotion, UsfNavigationContext},
+    spatial::{
+        UsfCanonicalMotion, UsfInteractionScaleAffinity, UsfNavigationContext,
+        UsfScaleRoleMask,
+    },
 };
 
 pub(super) fn spawn_player(
@@ -76,6 +79,10 @@ pub(super) fn spawn_player(
                 UsfViewAnchor,
                 UsfScaleLayer::new(SpatialScale::MAX),
                 UsfInteractionProjection,
+                // player-explicit-s0-affinity-v1
+                UsfInteractionScaleAffinity::new(SpatialScale::ZERO).requiring(
+                    UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::COLLISION),
+                ),
                 ThermalSpatialSample,
                 SpatialDemandSource::cuboid(PLAYER_SPATIAL_DEMAND_HALF_EXTENT)
                     .with_priority(PLAYER_SPATIAL_DEMAND_PRIORITY),
