@@ -57,15 +57,16 @@ pub struct CelestialVoxelField {
 }
 
 // prepared-presentation-field-sampler-v1
+// canonical-presentation-field-all-lods-v1
 //
-// Binary presentation evaluates hundreds/thousands of samples at one fixed
-// spacing. Resolve the authored detail band, cave policy and body adapter once
-// per mesh build instead of once per density sample.
+// Presentation resolution is a sampling/aggregation choice, not semantic
+// terrain bandwidth. Every binary LOD samples the same final canonical
+// volumetric field. A future filtered/aggregated representation may reduce
+// aliasing, but it must approximate this same field rather than deleting
+// semantic terrain bands or caves at arbitrary sample-spacing thresholds.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct CelestialPresentationFieldSampler {
     body: ProceduralCelestialBody,
-    through_scale: SpatialScale,
-    include_caves: bool,
 }
 
 impl CelestialPresentationFieldSampler {
@@ -74,11 +75,7 @@ impl CelestialPresentationFieldSampler {
         self,
         local_point_metres: DVec3,
     ) -> Option<f64> {
-        self.body.signed_distance_local_metres_through(
-            local_point_metres,
-            self.through_scale,
-            self.include_caves,
-        )
+        self.body.signed_distance_local_metres(local_point_metres)
     }
 
     #[inline]
@@ -86,8 +83,7 @@ impl CelestialPresentationFieldSampler {
         self,
         direction: Vec3,
     ) -> Result<DVec3, UsfPositionError> {
-        self.body
-            .surface_local_metres_through(direction, self.through_scale)
+        self.body.surface_local_metres(direction)
     }
 }
 
@@ -166,42 +162,22 @@ impl CelestialVoxelField {
         )
     }
 
-    // presentation-field-bandlimit-v1
-    fn presentation_detail_scale_for_spacing(
-        self,
-        sample_spacing_metres: f64,
-    ) -> Option<SpatialScale> {
-        if !sample_spacing_metres.is_finite() || sample_spacing_metres <= 0.0 {
-            return None;
-        }
-
-        let exponent = sample_spacing_metres
-            .log10()
-            .floor()
-            .clamp(
-                f64::from(self.surface_detail_scale.exponent()),
-                f64::from(self.coarsest_detail_scale.exponent()),
-            ) as i8;
-        SpatialScale::new(exponent)
-    }
-
     pub(crate) fn presentation_sampler(
         self,
         sample_spacing_metres: f64,
     ) -> Option<CelestialPresentationFieldSampler> {
-        const CAVE_MAX_PRESENTATION_SAMPLE_SPACING_METRES: f64 = 64.0;
+        // Spacing validates the representation request only. It MUST NOT select
+        // a different semantic terrain function.
+        if !sample_spacing_metres.is_finite() || sample_spacing_metres <= 0.0 {
+            return None;
+        }
 
-        let through_scale =
-            self.presentation_detail_scale_for_spacing(sample_spacing_metres)?;
         Some(CelestialPresentationFieldSampler {
             body: self.realization(
                 UsfPosition::zero(SpatialScale::MIN),
                 UsfSemanticFrame::identity(),
                 SpatialScale::ZERO,
             ),
-            through_scale,
-            include_caves:
-                sample_spacing_metres <= CAVE_MAX_PRESENTATION_SAMPLE_SPACING_METRES,
         })
     }
 
@@ -507,6 +483,48 @@ fn authority_preserves_one_body_local_edit_order() {
 
         assert_eq!(authority.edits(), &[first, second]);
         assert_eq!(authority.edits_since(1).collect::<Vec<_>>(), vec![second]);
+    }
+
+    #[test]
+    fn presentation_lod_spacing_does_not_change_canonical_field_truth() {
+        let field = CelestialVoxelField::new(
+            6_371_000.0,
+            SpatialScale::new(6).unwrap(),
+            SpatialScale::ZERO,
+            0x4541_5254,
+            CelestialBodyProfile::Rocky,
+        );
+        let direction = Vec3::new(0.31, 0.77, -0.55).normalize();
+
+        let fine_surface = field
+            .presentation_surface_local_metres(direction, 1.0)
+            .unwrap();
+        let coarse_surface = field
+            .presentation_surface_local_metres(direction, 1_048_576.0)
+            .unwrap();
+        assert_eq!(
+            fine_surface, coarse_surface,
+            "binary sample spacing must never select a different semantic surface",
+        );
+
+        let point = fine_surface
+            - DVec3::new(
+                f64::from(direction.x),
+                f64::from(direction.y),
+                f64::from(direction.z),
+            ) * 250.0;
+        let fine_sdf = field
+            .presentation_signed_distance_local_metres(point, 1.0)
+            .unwrap();
+        let coarse_sdf = field
+            .presentation_signed_distance_local_metres(point, 1_048_576.0)
+            .unwrap();
+
+        assert_eq!(
+            fine_sdf.to_bits(),
+            coarse_sdf.to_bits(),
+            "binary LOD may undersample the canonical SDF but may not swap it out",
+        );
     }
 
     #[test]

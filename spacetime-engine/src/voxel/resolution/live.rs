@@ -230,8 +230,17 @@ struct CelestialClipmapPlan {
     key: CelestialClipmapPlanKey,
     field: CelestialVoxelField,
     policy: Option<DeveloperScalarPolicySnapshot>,
-    /// Sticky body-local point about which the current refinement frontier was
-    /// planned. This may move; root topology does not.
+    // volumetric-observer-surface-anchor-split-v1
+    /// Predicted actual observer position in body-local SI metres.
+    ///
+    /// This is the 3D LOD/error/motion anchor. Never project it onto terrain:
+    /// altitude and cave/interior motion are real components of observer-space
+    /// presentation distance.
+    observer_anchor_local: DVec3,
+    /// Nearest canonical semantic boundary point to the observer.
+    ///
+    /// This owns the mandatory surface-refinement branch only. It does not own
+    /// observer-distance LOD selection.
     planning_anchor_local: DVec3,
     validity_radius_metres: f64,
     generation: u64,
@@ -429,14 +438,22 @@ fn block_sort_key(
 fn refinement_candidate(
     key: CelestialClipmapBlockKey,
     finest: VoxelPresentationResolution,
-    planning_anchor_local: DVec3,
+    observer_anchor_local: DVec3,
+    clearance_metres: f64,
     validity_radius_metres: f64,
 ) -> Option<ClipmapRefinementCandidate> {
     if key.resolution <= finest {
         return None;
     }
-    let distance = block_distance_to_point(key, planning_anchor_local);
-    let effective_distance = (distance - validity_radius_metres).max(0.0);
+
+    // True 3D observer distance owns LOD. The nearest semantic boundary is at
+    // `clearance_metres`, so subtracting that baseline keeps the closest
+    // terrain at the requested finest spacing without flattening the observer
+    // onto that boundary. The validity radius is only a rolling work guard.
+    let distance = block_distance_to_point(key, observer_anchor_local);
+    let clearance = clearance_metres.max(0.0);
+    let effective_distance =
+        (distance - clearance - validity_radius_metres).max(0.0);
     let target = target_resolution_at_distance(finest, effective_distance);
     let refinement_debt = key
         .resolution
@@ -444,8 +461,10 @@ fn refinement_candidate(
         .saturating_sub(target.binary_exponent());
     let projected_error =
         key.spacing_metres() / distance.max(key.spacing_metres());
+
     (refinement_debt > 0).then_some(ClipmapRefinementCandidate {
-        inside_validity: distance <= validity_radius_metres,
+        inside_validity:
+            distance <= clearance + validity_radius_metres,
         distance,
         projected_error,
         refinement_debt,
@@ -1461,6 +1480,7 @@ fn target_resolution_at_distance(
 #[derive(Debug, Clone, Copy)]
 struct CelestialClipmapPlanInput {
     key: CelestialClipmapPlanKey,
+    observer_anchor_local: DVec3,
     planning_anchor_local: DVec3,
     validity_radius_metres: f64,
     clearance_metres: f64,
@@ -1486,10 +1506,13 @@ fn derive_plan_input(
     }
 
     // boundary-focused-binary-refinement-v1
+    // volumetric-observer-surface-anchor-split-v1
     //
-    // Refine the semantic terrain boundary, not empty space around the camera.
-    // Full SDF projection means this follows cave walls as well as the outer
-    // planetary surface.
+    // Keep TWO facts:
+    // - actual observer_local owns 3D LOD/error/motion distance;
+    // - nearest boundary owns the mandatory semantic-surface refinement branch.
+    //
+    // Collapsing these into one projected point silently discarded altitude.
     let (planning_anchor_local, signed_clearance_metres) =
         field.nearest_boundary_local_metres(observer_local, f64::MAX)?;
     let clearance = signed_clearance_metres.abs();
@@ -1559,6 +1582,7 @@ fn derive_plan_input(
             coarsest_exponent: coarsest.binary_exponent(),
             policy_revision,
         },
+        observer_anchor_local: observer_local,
         planning_anchor_local,
         validity_radius_metres,
         clearance_metres: clearance,
@@ -1579,8 +1603,11 @@ fn plan_requires_refresh(
         return true;
     }
 
-    let displacement =
+    let observer_displacement =
+        (input.observer_anchor_local - plan.observer_anchor_local).length();
+    let surface_displacement =
         (input.planning_anchor_local - plan.planning_anchor_local).length();
+    let displacement = observer_displacement.max(surface_displacement);
     let fine_extent =
         input.finest.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
 
@@ -1643,7 +1670,7 @@ fn plan_task_relevance(
     }
 
     let built_lag =
-        (current.planning_anchor_local - built.planning_anchor_local)
+        (current.observer_anchor_local - built.observer_anchor_local)
             .length();
     if !built_lag.is_finite() {
         return ClipmapPlanTaskRelevance::Stale;
@@ -1673,7 +1700,7 @@ fn plan_task_relevance(
         return ClipmapPlanTaskRelevance::Stale;
     };
     let committed_lag =
-        (current.planning_anchor_local - committed_anchor_local).length();
+        (current.observer_anchor_local - committed_anchor_local).length();
     if !committed_lag.is_finite() {
         return ClipmapPlanTaskRelevance::Stale;
     }
@@ -1840,14 +1867,16 @@ fn push_refinement_candidates(
     candidates: &mut BinaryHeap<ClipmapRefinementCandidate>,
     keys: impl IntoIterator<Item = CelestialClipmapBlockKey>,
     finest: VoxelPresentationResolution,
-    planning_anchor_local: DVec3,
+    observer_anchor_local: DVec3,
+    clearance_metres: f64,
     validity_radius_metres: f64,
 ) {
     for key in keys {
         if let Some(candidate) = refinement_candidate(
             key,
             finest,
-            planning_anchor_local,
+            observer_anchor_local,
+            clearance_metres,
             validity_radius_metres,
         ) {
             candidates.push(candidate);
@@ -1884,6 +1913,7 @@ fn build_plan(
     surface_cache.begin_plan(field, input.key.policy_revision);
 
     let result = (|| {
+        let observer_anchor_local = input.observer_anchor_local;
         let planning_anchor_local = input.planning_anchor_local;
         let validity_radius_metres = input.validity_radius_metres;
         let finest = input.finest;
@@ -1917,7 +1947,7 @@ fn build_plan(
         }
 
         let mut stages =
-            vec![specs_for_frontier(&leaves, planning_anchor_local)];
+            vec![specs_for_frontier(&leaves, observer_anchor_local)];
         let mut recorded_focus = leaf_containing_point(
             &leaves,
             planning_anchor_local,
@@ -1934,7 +1964,8 @@ fn build_plan(
             &mut candidates,
             leaves.iter().copied(),
             finest,
-            planning_anchor_local,
+            observer_anchor_local,
+            input.clearance_metres,
             validity_radius_metres,
         );
 
@@ -2042,7 +2073,8 @@ fn build_plan(
                     .copied()
                     .chain(balanced_inserted.iter().copied()),
                 finest,
-                planning_anchor_local,
+                observer_anchor_local,
+                input.clearance_metres,
                 validity_radius_metres,
             );
 
@@ -2061,7 +2093,7 @@ fn build_plan(
             ) && stages.len() < MAX_RECORDED_FRONTIER_STAGES
             {
                 let next_stage =
-                    specs_for_frontier(&leaves, planning_anchor_local);
+                    specs_for_frontier(&leaves, observer_anchor_local);
                 if stages.last().is_none_or(|current| *current != next_stage) {
                     stages.push(next_stage);
                     recorded_focus = current_focus;
@@ -2074,7 +2106,7 @@ fn build_plan(
         }
 
         let final_stage =
-            specs_for_frontier(&leaves, planning_anchor_local);
+            specs_for_frontier(&leaves, observer_anchor_local);
         if stages.last().is_none_or(|current| *current != final_stage) {
             if stages.len() < MAX_RECORDED_FRONTIER_STAGES {
                 stages.push(final_stage);
@@ -2598,7 +2630,7 @@ fn sync_celestial_clipmap_realizations(
         let committed_anchor_local = registry
             .plans
             .get(&build.authority)
-            .map(|plan| plan.planning_anchor_local);
+            .map(|plan| plan.observer_anchor_local);
         let relevance = plan_task_relevance(
             build.input,
             current_input,
@@ -2691,6 +2723,7 @@ fn sync_celestial_clipmap_realizations(
                 key: build.input.key,
                 field: build.field,
                 policy: build.policy.clone(),
+                observer_anchor_local: build.input.observer_anchor_local,
                 planning_anchor_local: build.input.planning_anchor_local,
                 validity_radius_metres: build.input.validity_radius_metres,
                 generation,
@@ -2714,8 +2747,8 @@ fn sync_celestial_clipmap_realizations(
         .filter_map(|(authority, (input, _))| {
             registry.plans.get(authority).map(|plan| {
                 (
-                    input.planning_anchor_local
-                        - plan.planning_anchor_local,
+                    input.observer_anchor_local
+                        - plan.observer_anchor_local,
                 )
                     .0
                     .length()
@@ -3707,7 +3740,7 @@ mod tests {
     }
 
     #[test]
-    fn clipmap_focus_projects_to_semantic_boundary() {
+    fn clipmap_keeps_3d_observer_separate_from_surface_refinement_focus() {
         let field = CelestialVoxelField::new(
             6_371_000.0,
             SpatialScale::new(6).unwrap(),
@@ -3728,11 +3761,44 @@ mod tests {
         )
         .unwrap();
 
+        assert_eq!(
+            input.observer_anchor_local, observer,
+            "binary LOD anchor must preserve all three observer coordinates",
+        );
         assert!(
             (input.planning_anchor_local - surface).length() < 5.0,
-            "binary focus must follow terrain boundary, not empty observer space",
+            "surface refinement focus must still resolve the nearest semantic boundary",
+        );
+        assert!(
+            (input.observer_anchor_local - input.planning_anchor_local).length()
+                > 3_000.0,
+            "observer altitude must not be collapsed into the boundary focus",
         );
         assert!(input.clearance_metres > 3_000.0);
+    }
+
+    #[test]
+    fn observer_distance_lod_keeps_nearest_surface_finest_at_altitude() {
+        let finest = VoxelPresentationResolution::new(0);
+        let near_surface = CelestialClipmapBlockKey {
+            resolution: VoxelPresentationResolution::new(5),
+            coord: IVec3::ZERO,
+        };
+        let observer = DVec3::new(4.0, 4.0, 1_008.0);
+
+        let candidate = refinement_candidate(
+            near_surface,
+            finest,
+            observer,
+            1_000.0,
+            0.0,
+        )
+        .expect("coarse nearest-surface block should need refinement");
+
+        assert!(
+            candidate.refinement_debt >= 5,
+            "altitude must remain in 3D distance without making the nearest terrain coarse",
+        );
     }
 
     #[test]
@@ -3743,6 +3809,7 @@ mod tests {
                 coarsest_exponent: 14,
                 policy_revision: 0,
             },
+            observer_anchor_local: DVec3::ZERO,
             planning_anchor_local: DVec3::ZERO,
             validity_radius_metres: 1_000.0,
             clearance_metres: 100.0,
@@ -3806,6 +3873,7 @@ mod tests {
                 coarsest_exponent: 6,
                 policy_revision: 0,
             },
+            observer_anchor_local: DVec3::ZERO,
             planning_anchor_local: DVec3::ZERO,
             validity_radius_metres: 1_000.0,
             clearance_metres: 100.0,
@@ -3832,9 +3900,23 @@ mod tests {
             coord: IVec3::new(1_000, 0, 0),
         };
         let near_candidate =
-            refinement_candidate(near, finest, DVec3::ZERO, 1_000.0).unwrap();
+            refinement_candidate(
+                near,
+                finest,
+                DVec3::ZERO,
+                0.0,
+                1_000.0,
+            )
+            .unwrap();
         let far_candidate =
-            refinement_candidate(far, finest, DVec3::ZERO, 1_000.0).unwrap();
+            refinement_candidate(
+                far,
+                finest,
+                DVec3::ZERO,
+                0.0,
+                1_000.0,
+            )
+            .unwrap();
         assert!(
             near_candidate > far_candidate,
             "after root context exists, local under-resolution should outrank far global breadth",
@@ -3974,6 +4056,7 @@ mod tests {
             key: input.key,
             field,
             policy: None,
+            observer_anchor_local: input.observer_anchor_local,
             planning_anchor_local: input.planning_anchor_local,
             validity_radius_metres: input.validity_radius_metres,
             generation: 1,
@@ -3988,11 +4071,14 @@ mod tests {
         };
 
         let mut moved = input;
+        moved.observer_anchor_local += DVec3::X * 1.0;
         moved.planning_anchor_local += DVec3::X * 1.0;
         assert!(!plan_requires_refresh(&plan, moved, field));
 
-        moved.planning_anchor_local +=
+        let large_move =
             DVec3::X * input.validity_radius_metres.max(100.0) * 2.0;
+        moved.observer_anchor_local += large_move;
+        moved.planning_anchor_local += large_move;
         assert!(plan_requires_refresh(&plan, moved, field));
     }
 
@@ -4011,6 +4097,7 @@ mod tests {
                 coarsest_exponent: 20,
                 policy_revision: 7,
             },
+            observer_anchor_local: DVec3::new(anchor_x, 50.0, 0.0),
             planning_anchor_local: DVec3::new(anchor_x, 0.0, 0.0),
             validity_radius_metres: 10.0,
             clearance_metres: 1.0,
@@ -4050,6 +4137,7 @@ mod tests {
                 coarsest_exponent: 20,
                 policy_revision: 1,
             },
+            observer_anchor_local: DVec3::ZERO,
             planning_anchor_local: DVec3::ZERO,
             validity_radius_metres: 100.0,
             clearance_metres: 1.0,
