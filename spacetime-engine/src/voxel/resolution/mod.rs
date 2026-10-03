@@ -17,6 +17,7 @@ mod live;
 
 pub(super) use live::{
     CelestialClipmapCoverageCell, CelestialClipmapCoverageSnapshot,
+    CelestialClipmapTelemetry,
 };
 
 use std::collections::HashMap;

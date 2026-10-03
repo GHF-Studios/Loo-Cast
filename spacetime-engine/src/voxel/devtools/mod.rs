@@ -16,6 +16,7 @@ use crate::{
 use super::{
     CelestialVoxelRealization, MATERIALIZATION_CHUNK_SIZE,
     VoxelRealizationDemandSnapshot, VoxelStreamingTelemetry, VoxelWorld,
+    resolution::CelestialClipmapTelemetry,
     manifestation::{
         VoxelMaterializationPresentation, VoxelMaterializationRuntime,
     },
@@ -59,6 +60,7 @@ fn terrain_pipeline_census(
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     interaction: Res<UsfPrimaryInteractionSlice>,
     telemetry: Res<VoxelStreamingTelemetry>,
+    clipmap: Res<CelestialClipmapTelemetry>,
     demands: Res<VoxelRealizationDemandSnapshot>,
     worlds: Query<
         (Entity, &VoxelWorld, &UsfScaleLayer),
@@ -170,6 +172,7 @@ fn terrain_pipeline_census(
         view_exponent = view.continuous_exponent(),
         interaction_scale = %interaction.scale(),
         worker_state = %telemetry.summary(),
+        clipmap_state = %clipmap.summary(),
         worlds = rows.len(),
         "terrain_pipeline_census"
     );
