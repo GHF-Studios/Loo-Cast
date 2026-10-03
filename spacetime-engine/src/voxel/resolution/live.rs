@@ -1876,7 +1876,6 @@ fn sync_celestial_clipmap_realizations(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     views: Res<UsfViewDemandSnapshot>,
-    interaction: Res<UsfPrimaryInteractionSlice>,
     script_workbench: Res<DeveloperScriptWorkbench>,
     workers: Res<VoxelWorkerPool>,
     authorities: Query<(
@@ -2474,7 +2473,7 @@ fn sync_celestial_clipmap_transforms(
     let pixels_per_radian = view_demands
         .iter()
         .next()
-        .and_then(UsfViewDemand::pixels_per_radian_for_presentation_resolution);
+        .and_then(|view| view.pixels_per_radian_for_presentation_resolution());
     let physical_target_scale = interaction.target_scale();
     let dense_apertures = dense_presentation_apertures(
         physical_target_scale,
@@ -2687,7 +2686,7 @@ fn enforce_dense_interaction_presentation(
     let pixels_per_radian = view_demands
         .iter()
         .next()
-        .and_then(UsfViewDemand::pixels_per_radian_for_presentation_resolution);
+        .and_then(|view| view.pixels_per_radian_for_presentation_resolution());
 
     for (parent, mut visibility) in &mut presentations {
         let Ok(runtime) = runtimes.get(parent.0) else {
