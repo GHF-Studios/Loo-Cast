@@ -84,7 +84,7 @@ pub struct Spacecraft;
 pub struct SpacecraftManifestation;
 
 #[derive(Component, Debug, Default, Clone, Copy)]
-struct SpacecraftLandingSolution {
+pub(crate) struct SpacecraftLandingSolution {
     resolved: Option<(SpatialScale, Vec3, Quat)>,
 }
 

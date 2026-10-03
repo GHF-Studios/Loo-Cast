@@ -302,7 +302,7 @@ pub struct UsfSpatialTransitionApplied {
 
 // handoff-wait-reason-telemetry-v1
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct InteractionHandoffWaitFingerprint {
+pub(super) struct InteractionHandoffWaitFingerprint {
     subject: Entity,
     target: SpatialScale,
     required_bits: u16,

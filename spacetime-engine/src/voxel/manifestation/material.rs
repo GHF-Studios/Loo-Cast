@@ -200,7 +200,7 @@ fn compact_refinement_clip_sources(
 }
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
-pub(super) struct VoxelRefinementClipExtension {
+pub(in crate::voxel) struct VoxelRefinementClipExtension {
     #[storage(100, read_only)]
     clip_boxes: Handle<ShaderBuffer>,
     #[uniform(101)]

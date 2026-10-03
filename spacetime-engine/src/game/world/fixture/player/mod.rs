@@ -24,8 +24,8 @@ use crate::{
     voxel::CelestialVoxelField,
     spatial::{
         SpatialRefinementDemand, UsfCanonicalMotion, UsfInteractionScaleAffinity,
-        UsfPosition, UsfScaleLayer, UsfSemanticFrame, UsfScaleRoleMask,
-        UsfSpatialFrame, UsfSpatialTransition,
+        UsfPosition, UsfScaleLayer, UsfSemanticFrame, UsfSpatialFrame,
+        UsfSpatialTransition,
         UsfSpatialTransitionQueue, UsfTransitionVelocity,
     },
 };
