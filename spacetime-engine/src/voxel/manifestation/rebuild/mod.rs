@@ -16,7 +16,7 @@ use crate::{
 };
 
 use super::{
-    VoxelMaterializationPresentation, VoxelMaterializationRuntime,
+    ManifestationKey, VoxelMaterializationPresentation, VoxelMaterializationRuntime,
     VoxelMaterializationRuntimeRegistry, VoxelPresentationFallbackRetireReady,
     VoxelRenderMaterial,
 };
