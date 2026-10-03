@@ -435,25 +435,36 @@ fn block_sort_key(
     )
 }
 
+// observer-centered-lod-shell-geometry-v1
+//
+// LOD is a genuinely observer-centered 3D shell field. Predictive validity may
+// inflate those shells slightly so useful work survives motion/build latency,
+// but semantic surface clearance must NOT be subtracted from distance: doing so
+// turns sqrt(h^2 + r^2) into sqrt(h^2 + r^2) - h, which makes the terrain
+// footprint grow with altitude instead of shrink and eventually disappear.
+#[inline]
+fn effective_observer_lod_distance_metres(
+    distance_metres: f64,
+    validity_radius_metres: f64,
+) -> f64 {
+    (distance_metres - validity_radius_metres.max(0.0)).max(0.0)
+}
+
 fn refinement_candidate(
     key: CelestialClipmapBlockKey,
     finest: VoxelPresentationResolution,
     observer_anchor_local: DVec3,
-    clearance_metres: f64,
     validity_radius_metres: f64,
 ) -> Option<ClipmapRefinementCandidate> {
     if key.resolution <= finest {
         return None;
     }
 
-    // True 3D observer distance owns LOD. The nearest semantic boundary is at
-    // `clearance_metres`, so subtracting that baseline keeps the closest
-    // terrain at the requested finest spacing without flattening the observer
-    // onto that boundary. The validity radius is only a rolling work guard.
     let distance = block_distance_to_point(key, observer_anchor_local);
-    let clearance = clearance_metres.max(0.0);
-    let effective_distance =
-        (distance - clearance - validity_radius_metres).max(0.0);
+    let effective_distance = effective_observer_lod_distance_metres(
+        distance,
+        validity_radius_metres,
+    );
     let target = target_resolution_at_distance(finest, effective_distance);
     let refinement_debt = key
         .resolution
@@ -463,8 +474,7 @@ fn refinement_candidate(
         key.spacing_metres() / distance.max(key.spacing_metres());
 
     (refinement_debt > 0).then_some(ClipmapRefinementCandidate {
-        inside_validity:
-            distance <= clearance + validity_radius_metres,
+        inside_validity: distance <= validity_radius_metres.max(0.0),
         distance,
         projected_error,
         refinement_debt,
@@ -1868,7 +1878,6 @@ fn push_refinement_candidates(
     keys: impl IntoIterator<Item = CelestialClipmapBlockKey>,
     finest: VoxelPresentationResolution,
     observer_anchor_local: DVec3,
-    clearance_metres: f64,
     validity_radius_metres: f64,
 ) {
     for key in keys {
@@ -1876,7 +1885,6 @@ fn push_refinement_candidates(
             key,
             finest,
             observer_anchor_local,
-            clearance_metres,
             validity_radius_metres,
         ) {
             candidates.push(candidate);
@@ -1918,6 +1926,22 @@ fn build_plan(
         let validity_radius_metres = input.validity_radius_metres;
         let finest = input.finest;
         let coarsest = input.coarsest;
+
+        // The semantic boundary anchor identifies WHERE the nearest real
+        // surface is. It does not make that surface zero-distance for LOD.
+        // Refine the mandatory surface branch only as far as the same
+        // observer-centered shell policy requests.
+        let surface_focus_distance =
+            (observer_anchor_local - planning_anchor_local).length();
+        let surface_focus_resolution = target_resolution_at_distance(
+            finest,
+            effective_observer_lod_distance_metres(
+                surface_focus_distance,
+                validity_radius_metres,
+            ),
+        )
+        .min(coarsest);
+
         let maximum_leaves = sparse_frontier_leaf_budget(input);
 
         let (root_low, root_high) =
@@ -1951,7 +1975,7 @@ fn build_plan(
         let mut recorded_focus = leaf_containing_point(
             &leaves,
             planning_anchor_local,
-            finest,
+            surface_focus_resolution,
             coarsest,
         )
         .map_or(coarsest, |key| key.resolution);
@@ -1965,7 +1989,6 @@ fn build_plan(
             leaves.iter().copied(),
             finest,
             observer_anchor_local,
-            input.clearance_metres,
             validity_radius_metres,
         );
 
@@ -1973,10 +1996,10 @@ fn build_plan(
             let focus_candidate = leaf_containing_point(
                 &leaves,
                 planning_anchor_local,
-                finest,
+                surface_focus_resolution,
                 coarsest,
             )
-            .filter(|key| key.resolution > finest);
+            .filter(|key| key.resolution > surface_focus_resolution);
 
             if focus_candidate.is_none() && candidates.is_empty() {
                 break;
@@ -2074,14 +2097,13 @@ fn build_plan(
                     .chain(balanced_inserted.iter().copied()),
                 finest,
                 observer_anchor_local,
-                input.clearance_metres,
                 validity_radius_metres,
             );
 
             let current_focus = leaf_containing_point(
                 &leaves,
                 planning_anchor_local,
-                finest,
+                surface_focus_resolution,
                 coarsest,
             )
             .map_or(recorded_focus, |key| key.resolution);
@@ -2089,7 +2111,7 @@ fn build_plan(
             if should_record_frontier_checkpoint(
                 recorded_focus,
                 current_focus,
-                finest,
+                surface_focus_resolution,
             ) && stages.len() < MAX_RECORDED_FRONTIER_STAGES
             {
                 let next_stage =
@@ -3778,26 +3800,42 @@ mod tests {
     }
 
     #[test]
-    fn observer_distance_lod_keeps_nearest_surface_finest_at_altitude() {
+    fn observer_centered_lod_shell_coarsens_surface_with_altitude() {
         let finest = VoxelPresentationResolution::new(0);
-        let near_surface = CelestialClipmapBlockKey {
-            resolution: VoxelPresentationResolution::new(5),
+        let surface_block = CelestialClipmapBlockKey {
+            resolution: VoxelPresentationResolution::new(6),
             coord: IVec3::ZERO,
         };
-        let observer = DVec3::new(4.0, 4.0, 1_008.0);
 
-        let candidate = refinement_candidate(
-            near_surface,
+        // exp 6 => 64 m samples, 512 m block extent.
+        let near_observer = DVec3::new(256.0, 256.0, 520.0);
+        let high_observer = DVec3::new(256.0, 256.0, 1_536.0);
+
+        let near = refinement_candidate(
+            surface_block,
             finest,
-            observer,
-            1_000.0,
+            near_observer,
             0.0,
         )
-        .expect("coarse nearest-surface block should need refinement");
+        .expect("nearby coarse surface block should need refinement");
+        let high_debt = refinement_candidate(
+            surface_block,
+            finest,
+            high_observer,
+            0.0,
+        )
+        .map_or(0, |candidate| candidate.refinement_debt);
 
         assert!(
-            candidate.refinement_debt >= 5,
-            "altitude must remain in 3D distance without making the nearest terrain coarse",
+            near.refinement_debt > high_debt,
+            "the same surface block must become less refined as true 3D observer distance grows",
+        );
+
+        // Predictive validity may enlarge the shell, but altitude/clearance may
+        // not be treated as a free distance cancellation.
+        assert_eq!(
+            effective_observer_lod_distance_metres(1_000.0, 100.0),
+            900.0,
         );
     }
 
