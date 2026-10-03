@@ -70,8 +70,15 @@ impl CelestialVoxelRealizationRegistry {
     }
 }
 
-/// Reconcile disposable scale-local worlds against already-approved
-/// authority+Scale intent. Make-before-break remains owned by demand/coverage.
+/// Reconcile scale-local realization containers against semantic authority.
+///
+/// Demand controls active residency inside a `VoxelWorld`; it does not own the
+/// lifetime of the scale-world container itself. A temporarily undemanded
+/// realization is therefore parked with zero active residency while its bounded
+/// warm materialization cache remains reusable.
+///
+/// This is essential for make-before-break refinement: transient intent changes
+/// must not erase already-generated terrain and restart expensive reconstruction.
 pub(super) fn sync_celestial_voxel_realizations(
     config: Res<EngineConfig>,
     intents: Res<VoxelRealizationIntentSnapshot>,
@@ -93,7 +100,23 @@ pub(super) fn sync_celestial_voxel_realizations(
 
     for (entity, realization) in &existing {
         let target = realization.target();
-        if !desired.contains(&target) {
+
+        // realization-container-lifetime-v1
+        //
+        // Scale-world identity is owned by semantic authority + Scale, not by
+        // this frame's demand. If demand disappears temporarily, keep the
+        // `VoxelWorld` alive: the streaming reconciler will deactivate its
+        // materializations and preserve only the configured bounded warm cache.
+        //
+        // Destroy the container only when its semantic authority disappeared or
+        // the authority no longer supports that Scale Slice.
+        let Ok((_, _, _, _, domain, _, _)) =
+            authorities.get(target.authority())
+        else {
+            commands.entity(entity).despawn();
+            continue;
+        };
+        if !domain.realizes(target.scale()) {
             commands.entity(entity).despawn();
             continue;
         }
@@ -109,6 +132,10 @@ pub(super) fn sync_celestial_voxel_realizations(
             commands.entity(entity).despawn();
             continue;
         }
+
+        // Register parked and actively-demanded worlds alike. If this target
+        // becomes desired again later in the same or a future frame, it reuses
+        // the existing store instead of spawning a cold replacement.
         registry.worlds.insert(target, entity);
     }
 
@@ -202,5 +229,20 @@ mod tests {
             VoxelRealizationTarget::new(other, s0),
         ]);
         assert_eq!(unique.len(), 3);
+    }
+
+    #[test]
+    fn parked_scale_world_identity_remains_reusable() {
+        let mut ecs = World::new();
+        let authority = ecs.spawn_empty().id();
+        let target = VoxelRealizationTarget::new(authority, SpatialScale::ZERO);
+        let world = ecs.spawn_empty().id();
+
+        let mut registry = CelestialVoxelRealizationRegistry::default();
+        registry.worlds.insert(target, world);
+
+        // Demand is intentionally absent here. Container identity is independent
+        // from active demand and remains available for a later intent.
+        assert_eq!(registry.world_for(target), Some(world));
     }
 }
