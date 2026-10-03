@@ -4,7 +4,7 @@
 //! dense voxel worlds keep collision/editing authority. The clipmap is a
 //! reconstructible mesh adapter whose LOD axis is independent of USF Scale.
 
-use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
+use std::{cell::RefCell, collections::{BinaryHeap, HashMap, HashSet, VecDeque}};
 
 use bevy::{
     asset::RenderAssetUsages,
@@ -162,39 +162,47 @@ impl CelestialClipmapBlockKey {
 }
 
 // presentation-diagnostics-and-planning-megapass-v1
+// presentation-resolution-latency-megapass-v1
 #[derive(Resource, Default)]
 struct CelestialClipmapBandDebugMaterials {
-    by_relative_level: HashMap<i16, Handle<StandardMaterial>>,
+    by_base_and_relative_level:
+        HashMap<(Handle<StandardMaterial>, i16), Handle<StandardMaterial>>,
 }
 
 impl CelestialClipmapBandDebugMaterials {
     fn material_for(
         &mut self,
         materials: &mut Assets<StandardMaterial>,
+        base: &Handle<StandardMaterial>,
         relative_level: i16,
     ) -> Handle<StandardMaterial> {
-        self.by_relative_level
-            .entry(relative_level)
-            .or_insert_with(|| {
-                materials.add(StandardMaterial {
-                    base_color: clipmap_band_debug_color(relative_level),
-                    unlit: true,
-                    ..default()
-                })
-            })
-            .clone()
+        let relative_level = relative_level.rem_euclid(7);
+        let key = (base.clone(), relative_level);
+        if let Some(existing) = self.by_base_and_relative_level.get(&key) {
+            return existing.clone();
+        }
+
+        let Some(mut tinted) = materials.get(base).cloned() else {
+            return base.clone();
+        };
+        // Keep texture, shading and all authored/dev material state. Base color
+        // is only the diagnostic multiplier/tint.
+        tinted.base_color = clipmap_band_debug_color(relative_level);
+        let handle = materials.add(tinted);
+        self.by_base_and_relative_level.insert(key, handle.clone());
+        handle
     }
 }
 
 fn clipmap_band_debug_color(relative_level: i16) -> Color {
     match relative_level.rem_euclid(7) {
-        0 => Color::srgb(0.05, 0.20, 1.00), // blue
-        1 => Color::srgb(0.05, 0.95, 0.20), // green
-        2 => Color::srgb(1.00, 0.95, 0.05), // yellow
-        3 => Color::srgb(1.00, 0.45, 0.02), // orange
-        4 => Color::srgb(1.00, 0.05, 0.05), // red
-        5 => Color::srgb(0.55, 0.08, 1.00), // purple
-        _ => Color::srgb(1.00, 0.05, 0.65), // magenta
+        0 => Color::srgb(0.62, 0.45, 0.76), // purple: closest/finest
+        1 => Color::srgb(0.40, 0.52, 0.76), // blue
+        2 => Color::srgb(0.38, 0.63, 0.70), // cyan
+        3 => Color::srgb(0.43, 0.66, 0.48), // green
+        4 => Color::srgb(0.76, 0.70, 0.40), // yellow
+        5 => Color::srgb(0.78, 0.55, 0.34), // orange
+        _ => Color::srgb(0.72, 0.40, 0.39), // red: farthest/coarsest
     }
 }
 
@@ -1559,6 +1567,9 @@ fn derive_plan_input(
     })
 }
 
+const FOCUS_REPLAN_VALIDITY_FRACTION: f64 = 0.125;
+const FOCUS_REPLAN_MIN_FINE_EXTENTS: f64 = 1.0;
+
 fn plan_requires_refresh(
     plan: &CelestialClipmapPlan,
     input: CelestialClipmapPlanInput,
@@ -1573,67 +1584,14 @@ fn plan_requires_refresh(
     let fine_extent =
         input.finest.sample_spacing_metres() * BLOCK_SUBDIVISIONS as f64;
 
-    // sticky-refinement-anchor-v1
-    // Hold substantially beyond a finest block so walking/flying does not turn
-    // local cell boundaries into whole-frontier transactions.
-    let hold_radius = plan
-        .validity_radius_metres
-        .max(fine_extent * 4.0)
-        * 0.75;
+    // rolling-focus-latency-v2
+    //
+    // Validity radius says how much already-built terrain remains useful; it is
+    // not permission for the finest focus to wander across most of that region.
+    let hold_radius = (plan.validity_radius_metres
+        * FOCUS_REPLAN_VALIDITY_FRACTION)
+        .max(fine_extent * FOCUS_REPLAN_MIN_FINE_EXTENTS);
     displacement > hold_radius
-}
-
-// refinement-progress-before-maintenance-v1
-fn plan_refinement_in_progress(plan: &CelestialClipmapPlan) -> bool {
-    plan.stage_index.saturating_add(1) < plan.stages.len()
-        || plan.committed_generation != Some(plan.generation)
-}
-
-fn committed_local_spacing_metres(plan: &CelestialClipmapPlan) -> f64 {
-    plan.committed_specs
-        .iter()
-        .filter(|spec| {
-            block_distance_to_point(
-                spec.key,
-                plan.planning_anchor_local,
-            ) <= plan
-                .validity_radius_metres
-                .max(spec.key.extent_metres())
-        })
-        .map(|spec| spec.key.spacing_metres())
-        .min_by(f64::total_cmp)
-        .unwrap_or_else(|| {
-            2.0_f64.powi(i32::from(plan.key.coarsest_exponent))
-        })
-}
-
-fn emergency_replan_required(
-    plan: &CelestialClipmapPlan,
-    input: CelestialClipmapPlanInput,
-    field: CelestialVoxelField,
-) -> bool {
-    if plan.field != field
-        || plan.key.policy_revision != input.key.policy_revision
-        || plan.key.coarsest_exponent != input.key.coarsest_exponent
-    {
-        return true;
-    }
-
-    let displacement =
-        (input.planning_anchor_local - plan.planning_anchor_local).length();
-    if !displacement.is_finite() {
-        return true;
-    }
-
-    let support =
-        committed_local_spacing_metres(plan)
-            * BLOCK_SUBDIVISIONS as f64
-            * 2.0;
-    let safety_radius = support
-        .max(plan.validity_radius_metres * 4.0)
-        .max(input.validity_radius_metres * 2.0);
-
-    displacement > safety_radius
 }
 
 fn should_schedule_plan_refresh(
@@ -1641,16 +1599,12 @@ fn should_schedule_plan_refresh(
     input: CelestialClipmapPlanInput,
     field: CelestialVoxelField,
 ) -> bool {
-    if !plan_requires_refresh(plan, input, field) {
-        return false;
-    }
-    if !plan_refinement_in_progress(plan) {
-        return true;
-    }
-
-    // Refinement is useful foreground work. Ordinary focus maintenance cannot
-    // continuously replace it; structural changes and true escape still can.
-    emergency_replan_required(plan, input, field)
+    // moving-focus-maintenance-is-foreground-v1
+    //
+    // Never finish obsolete deep refinement before allowing the moving focus to
+    // replan. The previous committed frontier remains visible until the newer
+    // balanced transaction is ready.
+    plan_requires_refresh(plan, input, field)
 }
 
 // rolling-predictive-clipmap-v1
@@ -1880,7 +1834,7 @@ fn sparse_frontier_leaf_budget(input: CelestialClipmapPlanInput) -> usize {
         )
 }
 
-const RECORDED_FRONTIER_BINARY_LEVEL_STRIDE: i16 = 3;
+const RECORDED_FRONTIER_BINARY_LEVEL_STRIDE: i16 = 2;
 
 fn push_refinement_candidates(
     candidates: &mut BinaryHeap<ClipmapRefinementCandidate>,
@@ -2233,21 +2187,28 @@ fn sanitize_clipmap_mesh(
         return None;
     }
 
-    let positions = mesh
-        .positions
-        .chunks_exact(3)
-        .map(|p| [p[0], p[1], p[2]])
-        .collect::<Vec<_>>();
-    let normals = mesh
-        .normals
-        .chunks_exact(3)
-        .map(|n| [n[0], n[1], n[2]])
-        .collect::<Vec<_>>();
-
-    let vertex_count = positions.len();
+    // sanitize-without-full-vertex-copy-v1
+    let vertex_count = mesh.positions.len() / 3;
     if vertex_count == 0 || mesh.triangle_indices.is_empty() {
         return None;
     }
+
+    let position_at = |index: usize| {
+        let offset = index * 3;
+        Vec3::new(
+            mesh.positions[offset],
+            mesh.positions[offset + 1],
+            mesh.positions[offset + 2],
+        )
+    };
+    let normal_at = |index: usize| {
+        let offset = index * 3;
+        Vec3::new(
+            mesh.normals[offset],
+            mesh.normals[offset + 1],
+            mesh.normals[offset + 2],
+        )
+    };
 
     let tolerance =
         spacing * CLIPMAP_VERTEX_BOUNDS_TOLERANCE_CELLS
@@ -2279,9 +2240,9 @@ fn sanitize_clipmap_mesh(
             continue;
         }
 
-        let pa = Vec3::from_array(positions[a]);
-        let pb = Vec3::from_array(positions[b]);
-        let pc = Vec3::from_array(positions[c]);
+        let pa = position_at(a);
+        let pb = position_at(b);
+        let pc = position_at(c);
 
         let in_bounds = |p: Vec3| {
             p.is_finite()
@@ -2325,9 +2286,9 @@ fn sanitize_clipmap_mesh(
                 Some(mapped) => mapped,
                 None => {
                     let mapped = u32::try_from(compact_positions.len()).ok()?;
-                    compact_positions.push(positions[source]);
+                    compact_positions.push(position_at(source).to_array());
 
-                    let normal = Vec3::from_array(normals[source]);
+                    let normal = normal_at(source);
                     let safe_normal = if normal.is_finite()
                         && normal.length_squared() > 1.0e-12
                     {
@@ -2362,62 +2323,85 @@ fn build_clipmap_mesh(
 ) -> Option<CelestialClipmapMeshData> {
     let origin = spec.key.origin_local_metres();
     let extent = spec.key.extent_metres();
+    let spacing = spec.key.spacing_metres();
     if !origin.is_finite()
         || !extent.is_finite()
         || extent <= 0.0
         || extent > f64::from(f32::MAX)
+        || !spacing.is_finite()
+        || spacing <= 0.0
     {
         return None;
     }
 
-    let extent_f32 = extent as f32;
-    let density = move |x: f32, y: f32, z: f32| -> f32 {
+    {
+        let _span = bevy::log::info_span!(
+            "voxel.worker.presentation_resolution.preclassify"
+        )
+        .entered();
+        if !block_intersects_refinement_boundary(field, spec.key) {
+            return None;
+        }
+    }
+
+    let sampler = field.presentation_sampler(spacing)?;
+    let sample_cache =
+        RefCell::new(HashMap::<[u32; 3], f32>::with_capacity(2_048));
+
+    let density = |x: f32, y: f32, z: f32| -> f32 {
+        // transition-density-memo-v1
+        let key = [x.to_bits(), y.to_bits(), z.to_bits()];
+        if let Some(value) = sample_cache.borrow().get(&key).copied() {
+            return value;
+        }
+
         let point = origin + DVec3::new(
             f64::from(x),
             f64::from(y),
             f64::from(z),
         );
-        // The whole-body presentation hierarchy samples exactly the same
-        // canonical volumetric field as dense physical voxels. Transvoxel uses
-        // the opposite sign convention: positive density means solid.
-        let Some(volumetric_sdf) =
-            field.presentation_signed_distance_local_metres(
-                point,
-                spec.key.spacing_metres(),
-            )
-        else {
-            return -1.0;
-        };
-        let density = -volumetric_sdf;
-        if density.is_finite() {
-            density.clamp(
-                -f64::from(f32::MAX),
-                f64::from(f32::MAX),
-            ) as f32
-        } else {
-            -1.0
-        }
+        let value = sampler
+            .signed_distance_local_metres(point)
+            .map(|volumetric_sdf| -volumetric_sdf)
+            .filter(|density| density.is_finite())
+            .map(|density| {
+                density.clamp(
+                    -f64::from(f32::MAX),
+                    f64::from(f32::MAX),
+                ) as f32
+            })
+            .unwrap_or(-1.0);
+
+        sample_cache.borrow_mut().insert(key, value);
+        value
     };
+
+    let extent_f32 = extent as f32;
+    let spacing_f32 = spacing as f32;
+    if !spacing_f32.is_finite() || spacing_f32 <= 0.0 {
+        return None;
+    }
 
     let block = Block::new(
         [0.0_f32, 0.0_f32, 0.0_f32],
         extent_f32,
         BLOCK_SUBDIVISIONS,
     );
-    let spacing_f32 = spec.key.spacing_metres() as f32;
-    if !spacing_f32.is_finite() || spacing_f32 <= 0.0 {
-        return None;
-    }
-
-    // correct-central-cache-transition-neighbours-v1
-    //
-    // Keep central-block caching without transvoxel 2.0.0's faulty
-    // CacheCentralBlockOnly neighbour descriptors.
     let transition_sides = transvoxel_sides(spec.transition_faces);
-    let transition_mesh =
-        extract_clipmap_transvoxel_mesh(&density, block, transition_sides);
 
-    let (sanitized, transition_fallback) =
+    let transition_mesh = {
+        let _span = bevy::log::info_span!(
+            "voxel.worker.presentation_resolution.extract"
+        )
+        .entered();
+        extract_clipmap_transvoxel_mesh(&density, block, transition_sides)
+    };
+
+    let (sanitized, transition_fallback) = {
+        let _span = bevy::log::info_span!(
+            "voxel.worker.presentation_resolution.sanitize"
+        )
+        .entered();
         if let Some(sanitized) = sanitize_clipmap_mesh(
             transition_mesh,
             extent_f32,
@@ -2425,14 +2409,17 @@ fn build_clipmap_mesh(
         ) {
             (sanitized, false)
         } else if !spec.transition_faces.is_empty() {
-            // A broken transition extraction must never produce a GPU needle.
-            // A regular mesh can momentarily crack at the LOD boundary, but it
-            // stays local and lets the next balanced frontier replace it.
-            let regular_mesh = extract_clipmap_transvoxel_mesh(
-                &density,
-                block,
-                TransitionSide::none(),
-            );
+            let regular_mesh = {
+                let _fallback_span = bevy::log::info_span!(
+                    "voxel.worker.presentation_resolution.fallback_extract"
+                )
+                .entered();
+                extract_clipmap_transvoxel_mesh(
+                    &density,
+                    block,
+                    TransitionSide::none(),
+                )
+            };
             (
                 sanitize_clipmap_mesh(
                     regular_mesh,
@@ -2443,7 +2430,13 @@ fn build_clipmap_mesh(
             )
         } else {
             return None;
-        };
+        }
+    };
+
+    let _span = bevy::log::info_span!(
+        "voxel.worker.presentation_resolution.finalize"
+    )
+    .entered();
 
     let positions = sanitized.positions;
     let normals = sanitized.normals;
@@ -3170,7 +3163,12 @@ fn sync_celestial_clipmap_transforms(
     registry: Res<CelestialClipmapRegistry>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut band_materials: ResMut<CelestialClipmapBandDebugMaterials>,
-    authorities: Query<(&UsfPosition, &UsfSemanticFrame, &CelestialVoxelField)>,
+    authorities: Query<(
+        &UsfPosition,
+        &UsfSemanticFrame,
+        &CelestialVoxelField,
+        &CelestialVoxelRealizationPolicy,
+    )>,
     mut coverage: ResMut<CelestialClipmapCoverageSnapshot>,
     mut presentation_state: ResMut<CelestialTerrainPresentationState>,
     mut telemetry: ResMut<CelestialClipmapTelemetry>,
@@ -3221,7 +3219,9 @@ fn sync_celestial_clipmap_transforms(
     // Visibility remains hidden on failure; the second pass publishes either
     // the complete binary authority or none of it.
     for (mut block, mut transform, mut visibility, mut material) in &mut blocks {
-        if let Some(plan) = registry.plans.get(&block.authority) {
+        if let Some(plan) = registry.plans.get(&block.authority)
+            && let Ok((_, _, _, policy)) = authorities.get(block.authority)
+        {
             let relative_level = block
                 .spec
                 .key
@@ -3230,6 +3230,7 @@ fn sync_celestial_clipmap_transforms(
                 .saturating_sub(plan.key.finest_exponent);
             let desired = band_materials.material_for(
                 &mut materials,
+                policy.presentation_material(),
                 relative_level,
             );
             if material.0 != desired {
@@ -3253,7 +3254,7 @@ fn sync_celestial_clipmap_transforms(
                 .or_insert(0) += 1;
         }
 
-        let Ok((body_origin, body_frame, _field)) =
+        let Ok((body_origin, body_frame, _field, _policy)) =
             authorities.get(block.authority)
         else {
             block.projection_ready = false;
@@ -3602,18 +3603,18 @@ mod tests {
     use super::*;
 
     #[test]
-    fn binary_lod_debug_palette_starts_blue_then_green_then_yellow() {
+    fn binary_lod_debug_palette_starts_purple_then_blue_then_cyan() {
         assert_eq!(
             clipmap_band_debug_color(0),
-            Color::srgb(0.05, 0.20, 1.00),
+            Color::srgb(0.62, 0.45, 0.76),
         );
         assert_eq!(
             clipmap_band_debug_color(1),
-            Color::srgb(0.05, 0.95, 0.20),
+            Color::srgb(0.40, 0.52, 0.76),
         );
         assert_eq!(
             clipmap_band_debug_color(2),
-            Color::srgb(1.00, 0.95, 0.05),
+            Color::srgb(0.38, 0.63, 0.70),
         );
     }
 
@@ -3626,7 +3627,7 @@ mod tests {
             VoxelPresentationResolution::new(8),
             finest,
         ));
-        assert!(!should_record_frontier_checkpoint(
+        assert!(should_record_frontier_checkpoint(
             recorded,
             VoxelPresentationResolution::new(7),
             finest,

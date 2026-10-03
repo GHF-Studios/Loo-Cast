@@ -311,15 +311,19 @@ fn debug_scale_band_color(
     rainbow_debug_color(relative)
 }
 
+// rich-relative-scale-rainbow-v2
+//
+// Strong *tints*, not emissive debug paint. Vertex color continues to multiply
+// the authored/dev terrain material and texture.
 fn rainbow_debug_color(relative_band: i16) -> [f32; 4] {
     match relative_band.rem_euclid(7) {
-        0 => [0.05, 0.20, 1.00, 1.0], // blue
-        1 => [0.05, 0.95, 0.20, 1.0], // green
-        2 => [1.00, 0.95, 0.05, 1.0], // yellow
-        3 => [1.00, 0.45, 0.02, 1.0], // orange
-        4 => [1.00, 0.05, 0.05, 1.0], // red
-        5 => [0.55, 0.08, 1.00, 1.0], // purple
-        _ => [1.00, 0.05, 0.65, 1.0], // magenta
+        0 => [0.62, 0.45, 0.76, 1.0], // purple: closest/current
+        1 => [0.40, 0.52, 0.76, 1.0], // blue
+        2 => [0.38, 0.63, 0.70, 1.0], // cyan
+        3 => [0.43, 0.66, 0.48, 1.0], // green
+        4 => [0.76, 0.70, 0.40, 1.0], // yellow
+        5 => [0.78, 0.55, 0.34, 1.0], // orange
+        _ => [0.72, 0.40, 0.39, 1.0], // red: farthest
     }
 }
 
@@ -328,13 +332,13 @@ mod scale_band_debug_tests {
     use super::*;
 
     #[test]
-    fn interaction_scale_is_blue_and_successive_coarser_scales_are_rainbow() {
+    fn interaction_scale_is_purple_then_blue_then_cyan() {
         let s0 = SpatialScale::ZERO;
         let s1 = SpatialScale::new(1).unwrap();
         let s2 = SpatialScale::new(2).unwrap();
 
-        assert_eq!(debug_scale_band_color(s0, s0), [0.05, 0.20, 1.00, 1.0]);
-        assert_eq!(debug_scale_band_color(s1, s0), [0.05, 0.95, 0.20, 1.0]);
-        assert_eq!(debug_scale_band_color(s2, s0), [1.00, 0.95, 0.05, 1.0]);
+        assert_eq!(debug_scale_band_color(s0, s0), [0.62, 0.45, 0.76, 1.0]);
+        assert_eq!(debug_scale_band_color(s1, s0), [0.40, 0.52, 0.76, 1.0]);
+        assert_eq!(debug_scale_band_color(s2, s0), [0.38, 0.63, 0.70, 1.0]);
     }
 }

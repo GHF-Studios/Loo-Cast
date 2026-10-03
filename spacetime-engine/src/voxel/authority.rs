@@ -56,6 +56,41 @@ pub struct CelestialVoxelField {
     profile: CelestialBodyProfile,
 }
 
+// prepared-presentation-field-sampler-v1
+//
+// Binary presentation evaluates hundreds/thousands of samples at one fixed
+// spacing. Resolve the authored detail band, cave policy and body adapter once
+// per mesh build instead of once per density sample.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct CelestialPresentationFieldSampler {
+    body: ProceduralCelestialBody,
+    through_scale: SpatialScale,
+    include_caves: bool,
+}
+
+impl CelestialPresentationFieldSampler {
+    #[inline]
+    pub(crate) fn signed_distance_local_metres(
+        self,
+        local_point_metres: DVec3,
+    ) -> Option<f64> {
+        self.body.signed_distance_local_metres_through(
+            local_point_metres,
+            self.through_scale,
+            self.include_caves,
+        )
+    }
+
+    #[inline]
+    pub(crate) fn surface_local_metres(
+        self,
+        direction: Vec3,
+    ) -> Result<DVec3, UsfPositionError> {
+        self.body
+            .surface_local_metres_through(direction, self.through_scale)
+    }
+}
+
 impl CelestialVoxelField {
     pub fn new(
         radius_metres: f64,
@@ -150,20 +185,34 @@ impl CelestialVoxelField {
         SpatialScale::new(exponent)
     }
 
+    pub(crate) fn presentation_sampler(
+        self,
+        sample_spacing_metres: f64,
+    ) -> Option<CelestialPresentationFieldSampler> {
+        const CAVE_MAX_PRESENTATION_SAMPLE_SPACING_METRES: f64 = 64.0;
+
+        let through_scale =
+            self.presentation_detail_scale_for_spacing(sample_spacing_metres)?;
+        Some(CelestialPresentationFieldSampler {
+            body: self.realization(
+                UsfPosition::zero(SpatialScale::MIN),
+                UsfSemanticFrame::identity(),
+                SpatialScale::ZERO,
+            ),
+            through_scale,
+            include_caves:
+                sample_spacing_metres <= CAVE_MAX_PRESENTATION_SAMPLE_SPACING_METRES,
+        })
+    }
+
     pub(crate) fn presentation_surface_local_metres(
         self,
         direction: Vec3,
         sample_spacing_metres: f64,
     ) -> Result<DVec3, UsfPositionError> {
-        let through_scale = self
-            .presentation_detail_scale_for_spacing(sample_spacing_metres)
-            .ok_or(UsfPositionError::NonFiniteTranslation)?;
-        self.realization(
-            UsfPosition::zero(SpatialScale::MIN),
-            UsfSemanticFrame::identity(),
-            SpatialScale::ZERO,
-        )
-        .surface_local_metres_through(direction, through_scale)
+        self.presentation_sampler(sample_spacing_metres)
+            .ok_or(UsfPositionError::NonFiniteTranslation)?
+            .surface_local_metres(direction)
     }
 
     pub(crate) fn presentation_signed_distance_local_metres(
@@ -171,23 +220,8 @@ impl CelestialVoxelField {
         local_point_metres: DVec3,
         sample_spacing_metres: f64,
     ) -> Option<f64> {
-        const CAVE_MAX_PRESENTATION_SAMPLE_SPACING_METRES: f64 = 64.0;
-
-        let through_scale =
-            self.presentation_detail_scale_for_spacing(sample_spacing_metres)?;
-        let include_caves =
-            sample_spacing_metres <= CAVE_MAX_PRESENTATION_SAMPLE_SPACING_METRES;
-
-        self.realization(
-            UsfPosition::zero(SpatialScale::MIN),
-            UsfSemanticFrame::identity(),
-            SpatialScale::ZERO,
-        )
-        .signed_distance_local_metres_through(
-            local_point_metres,
-            through_scale,
-            include_caves,
-        )
+        self.presentation_sampler(sample_spacing_metres)?
+            .signed_distance_local_metres(local_point_metres)
     }
 
     pub(crate) fn volumetric_surface_inward_support_metres(self) -> f64 {

@@ -35,15 +35,22 @@ pub(super) enum VoxelWorkerLane {
 impl VoxelWorkerLane {
     const COUNT: usize = 5;
 
-    // real-weighted-fair-worker-lanes-v1
-    const SERVICE_WHEEL: [Self; 8] = [
+    // presentation-resolution-service-weight-v2
+    //
+    // Normal reconstructible presentation used to receive only 2/8 weighted
+    // service slots. Critical interaction work still preempts this wheel, so
+    // increasing presentation service improves visual latency without allowing
+    // it to outrank collision-critical jobs.
+    const SERVICE_WHEEL: [Self; 10] = [
         Self::Generation,
         Self::PresentationResolution,
         Self::Derivation,
         Self::PresentationResolution,
-        Self::Generation,
         Self::PresentationPlanning,
+        Self::PresentationResolution,
+        Self::Generation,
         Self::Derivation,
+        Self::PresentationResolution,
         Self::PlanetarySurface,
     ];
 
@@ -388,11 +395,34 @@ impl VoxelWorkerPool {
     }
 
     pub(super) fn estimated_latency_seconds(&self, lane: VoxelWorkerLane) -> f64 {
-        let cost = self.admission.average_job_seconds(lane).unwrap_or(0.008);
-        let waves = self.admission.total_outstanding()
-            .div_ceil(self.capacity.max(1))
-            .saturating_add(1);
-        cost * waves as f64
+        // weighted-worker-latency-estimate-v2
+        //
+        // "total jobs * this lane's average" badly underestimates latency when
+        // expensive generation/resolution work shares the pool. Estimate queued
+        // compute from each lane's own measured average, then divide by actual
+        // parallel capacity and add one local service time.
+        const FALLBACK_JOB_SECONDS: f64 = 0.008;
+
+        let queued_compute_seconds = (0..VoxelWorkerLane::COUNT)
+            .map(|index| {
+                let outstanding =
+                    self.admission.outstanding[index].load(Ordering::Acquire);
+                let average_ns =
+                    self.admission.average_job_ns[index].load(Ordering::Relaxed);
+                let average_seconds = if average_ns == 0 {
+                    FALLBACK_JOB_SECONDS
+                } else {
+                    average_ns as f64 * 1.0e-9
+                };
+                outstanding as f64 * average_seconds
+            })
+            .sum::<f64>();
+
+        queued_compute_seconds / self.capacity.max(1) as f64
+            + self
+                .admission
+                .average_job_seconds(lane)
+                .unwrap_or(FALLBACK_JOB_SECONDS)
     }
 
 pub(super) fn try_submit<T, F>(
@@ -516,6 +546,20 @@ pub(super) fn emit_worker_pressure(workers: Res<VoxelWorkerPool>) {
     client.plot(
         tracy_client::plot_name!("voxel.worker.outstanding.total"),
         (generation + derivation + planetary + planning + presentation) as f64,
+    );
+    client.plot(
+        tracy_client::plot_name!("voxel.worker.seconds.presentation_planning"),
+        workers
+            .admission
+            .average_job_seconds(VoxelWorkerLane::PresentationPlanning)
+            .unwrap_or(0.0),
+    );
+    client.plot(
+        tracy_client::plot_name!("voxel.worker.seconds.presentation_resolution"),
+        workers
+            .admission
+            .average_job_seconds(VoxelWorkerLane::PresentationResolution)
+            .unwrap_or(0.0),
     );
 }
 
