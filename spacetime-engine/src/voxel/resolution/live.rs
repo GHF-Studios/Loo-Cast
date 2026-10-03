@@ -15,9 +15,16 @@ use bevy::{
     prelude::*,
 };
 
-use transvoxel::prelude::{
-    extract_from_field, Block, FieldCaching, GenericMeshBuilder, TransitionSide,
-    TransitionSides,
+use transvoxel::{
+    prelude::{
+        extract, Block, BlockStarView, GenericMeshBuilder, TransitionSide,
+        TransitionSides, VoxelVecBlock,
+    },
+    structs::{
+        generic_mesh::Mesh as TransvoxelMesh,
+        voxel_blocks::VoxelBlockRelayingToField,
+    },
+    traits::data_field::DataField,
 };
 
 use crate::reconstructible::{
@@ -59,6 +66,9 @@ use super::super::{
 };
 
 const BLOCK_SUBDIVISIONS: usize = 8;
+// transvoxel-transition-cache-integrity-v1
+const MAX_CLIPMAP_TRIANGLE_EDGE_CELLS: f32 = 4.0;
+const CLIPMAP_VERTEX_BOUNDS_TOLERANCE_CELLS: f32 = 0.5;
 // presentation-resolution-independent-screen-error-v1
 // terrain-continuity-closure-megapass-v1
 // moving-volume-rolling-clipmap-megapass-v1
@@ -690,6 +700,8 @@ pub(in crate::voxel) struct CelestialClipmapTelemetry {
     fresh_plan_accepts_total: u64,
     rolling_plan_accepts_total: u64,
     stale_plan_drops_total: u64,
+    mesh_integrity_dropped_triangles_total: u64,
+    mesh_integrity_transition_fallbacks_total: u64,
 }
 
 impl CelestialClipmapTelemetry {
@@ -778,9 +790,24 @@ impl CelestialClipmapTelemetry {
         self.committed_focus_lag_metres = lag_metres;
     }
 
+    fn record_mesh_integrity(
+        &mut self,
+        dropped_triangles: usize,
+        transition_fallback: bool,
+    ) {
+        self.mesh_integrity_dropped_triangles_total =
+            self.mesh_integrity_dropped_triangles_total
+                .saturating_add(dropped_triangles as u64);
+        if transition_fallback {
+            self.mesh_integrity_transition_fallbacks_total =
+                self.mesh_integrity_transition_fallbacks_total
+                    .saturating_add(1);
+        }
+    }
+
     pub(in crate::voxel) fn summary(&self) -> String {
         format!(
-            "plans={} cold={} warm={} visible={} aperture_yield={} levels={} visible={}..{}m clearance={}m requested_finest={}m planned_finest={}m leaf_budget={} leaves={} saturated={} fallback_hold={} fallback_retire={} fallback_forced={} focus_lag={}m plan_fresh={} plan_rolling={} plan_drop={}",
+            "plans={} cold={} warm={} visible={} aperture_yield={} levels={} visible={}..{}m clearance={}m requested_finest={}m planned_finest={}m leaf_budget={} leaves={} saturated={} fallback_hold={} fallback_retire={} fallback_forced={} focus_lag={}m plan_fresh={} plan_rolling={} plan_drop={} mesh_drop={} transition_fallback={}",
             self.plan_requests_total,
             self.cold_plans_total,
             self.warm_replans_total,
@@ -808,6 +835,8 @@ impl CelestialClipmapTelemetry {
             self.fresh_plan_accepts_total,
             self.rolling_plan_accepts_total,
             self.stale_plan_drops_total,
+            self.mesh_integrity_dropped_triangles_total,
+            self.mesh_integrity_transition_fallbacks_total,
         )
     }
 }
@@ -851,6 +880,8 @@ struct CelestialClipmapMeshData {
     uvs: Vec<[f32; 2]>,
     tangents: Vec<[f32; 4]>,
     indices: Vec<u32>,
+    integrity_dropped_triangles: usize,
+    integrity_transition_fallback: bool,
 }
 
 impl CelestialClipmapMeshData {
@@ -2162,6 +2193,191 @@ fn build_tangent(normal: Vec3) -> [f32; 4] {
     [tangent.x, tangent.y, tangent.z, 1.0]
 }
 
+/// Central-cache extraction with CORRECT high-resolution neighbour geometry.
+///
+/// transvoxel 2.0.0's `extract_from_field(CacheCentralBlockOnly, ...)` currently
+/// attaches the central `block` descriptor as every transition neighbour. The
+/// uncached path correctly calls `block.high_res_neighbour_to(side)`.
+///
+/// Keep the useful central cache, but construct the BlockStarView explicitly.
+fn extract_clipmap_transvoxel_mesh<F>(
+    field: &F,
+    block: Block<f32>,
+    transition_sides: TransitionSides,
+) -> TransvoxelMesh<f32>
+where
+    F: DataField<f32, f32>,
+{
+    let central = VoxelVecBlock::cache(field, block);
+    let mut blocks: BlockStarView<
+        f32,
+        f32,
+        VoxelVecBlock<f32, f32>,
+        VoxelBlockRelayingToField<'_, f32, f32>,
+    > = BlockStarView::new_simple(central);
+
+    for side in transition_sides {
+        blocks = blocks.with_neighbour(
+            VoxelBlockRelayingToField {
+                field,
+                block: block.high_res_neighbour_to(side),
+            },
+            side,
+        );
+    }
+
+    extract(&blocks, 0.0, GenericMeshBuilder::new()).build()
+}
+
+#[derive(Debug)]
+struct SanitizedClipmapMesh {
+    positions: Vec<[f32; 3]>,
+    normals: Vec<[f32; 3]>,
+    indices: Vec<u32>,
+    dropped_triangles: usize,
+}
+
+/// Quarantine pathological geometry before it can affect Bevy bounds/GPU draw.
+///
+/// Regular Marching Cubes and Transvoxel transition triangles are cell-local.
+/// We intentionally allow a very generous four-cell edge length. A triangle
+/// longer than that is not useful terrain detail; it is almost certainly a
+/// sampling/index/interpolation pathology.
+fn sanitize_clipmap_mesh(
+    mesh: TransvoxelMesh<f32>,
+    extent: f32,
+    spacing: f32,
+) -> Option<SanitizedClipmapMesh> {
+    if mesh.positions.len() % 3 != 0
+        || mesh.normals.len() % 3 != 0
+        || mesh.positions.len() != mesh.normals.len()
+    {
+        return None;
+    }
+
+    let positions = mesh
+        .positions
+        .chunks_exact(3)
+        .map(|p| [p[0], p[1], p[2]])
+        .collect::<Vec<_>>();
+    let normals = mesh
+        .normals
+        .chunks_exact(3)
+        .map(|n| [n[0], n[1], n[2]])
+        .collect::<Vec<_>>();
+
+    let vertex_count = positions.len();
+    if vertex_count == 0 || mesh.triangle_indices.is_empty() {
+        return None;
+    }
+
+    let tolerance =
+        spacing * CLIPMAP_VERTEX_BOUNDS_TOLERANCE_CELLS
+            + extent.abs() * f32::EPSILON * 32.0;
+    let low = -tolerance;
+    let high = extent + tolerance;
+    let maximum_edge =
+        spacing * MAX_CLIPMAP_TRIANGLE_EDGE_CELLS + tolerance;
+    let maximum_edge_squared = maximum_edge * maximum_edge;
+
+    let mut referenced = vec![None::<u32>; vertex_count];
+    let mut compact_positions = Vec::<[f32; 3]>::new();
+    let mut compact_normals = Vec::<[f32; 3]>::new();
+    let mut compact_indices = Vec::<u32>::with_capacity(
+        mesh.triangle_indices.len(),
+    );
+    let mut dropped_triangles = 0usize;
+
+    for triangle in mesh.triangle_indices.chunks_exact(3) {
+        let [a, b, c] = [triangle[0], triangle[1], triangle[2]];
+        if a >= vertex_count
+            || b >= vertex_count
+            || c >= vertex_count
+            || a == b
+            || b == c
+            || c == a
+        {
+            dropped_triangles = dropped_triangles.saturating_add(1);
+            continue;
+        }
+
+        let pa = Vec3::from_array(positions[a]);
+        let pb = Vec3::from_array(positions[b]);
+        let pc = Vec3::from_array(positions[c]);
+
+        let in_bounds = |p: Vec3| {
+            p.is_finite()
+                && p.x >= low
+                && p.y >= low
+                && p.z >= low
+                && p.x <= high
+                && p.y <= high
+                && p.z <= high
+        };
+        if !in_bounds(pa) || !in_bounds(pb) || !in_bounds(pc) {
+            dropped_triangles = dropped_triangles.saturating_add(1);
+            continue;
+        }
+
+        let ab = pa.distance_squared(pb);
+        let bc = pb.distance_squared(pc);
+        let ca = pc.distance_squared(pa);
+        if !ab.is_finite()
+            || !bc.is_finite()
+            || !ca.is_finite()
+            || ab > maximum_edge_squared
+            || bc > maximum_edge_squared
+            || ca > maximum_edge_squared
+        {
+            dropped_triangles = dropped_triangles.saturating_add(1);
+            continue;
+        }
+
+        let face = (pb - pa).cross(pc - pa);
+        if !face.is_finite()
+            || face.length_squared()
+                <= (spacing * spacing * 1.0e-8).max(f32::MIN_POSITIVE)
+        {
+            dropped_triangles = dropped_triangles.saturating_add(1);
+            continue;
+        }
+
+        for source in [a, b, c] {
+            let mapped = match referenced[source] {
+                Some(mapped) => mapped,
+                None => {
+                    let mapped = u32::try_from(compact_positions.len()).ok()?;
+                    compact_positions.push(positions[source]);
+
+                    let normal = Vec3::from_array(normals[source]);
+                    let safe_normal = if normal.is_finite()
+                        && normal.length_squared() > 1.0e-12
+                    {
+                        normal.normalize()
+                    } else {
+                        face.normalize_or_zero()
+                    };
+                    compact_normals.push(safe_normal.to_array());
+                    referenced[source] = Some(mapped);
+                    mapped
+                }
+            };
+            compact_indices.push(mapped);
+        }
+    }
+
+    if compact_indices.is_empty() {
+        return None;
+    }
+
+    Some(SanitizedClipmapMesh {
+        positions: compact_positions,
+        normals: compact_normals,
+        indices: compact_indices,
+        dropped_triangles,
+    })
+}
+
 fn build_clipmap_mesh(
     field: CelestialVoxelField,
     spec: CelestialClipmapBlockSpec,
@@ -2211,36 +2427,51 @@ fn build_clipmap_mesh(
         extent_f32,
         BLOCK_SUBDIVISIONS,
     );
-    // transvoxel-central-field-cache-v1
-    // The canonical procedural SDF is not a cheap toy density function. Cache
-    // the central extraction block so each of its voxels is sampled once.
-    let mesh = extract_from_field(
-        &density,
-        FieldCaching::CacheCentralBlockOnly,
-        block,
-        transvoxel_sides(spec.transition_faces),
-        0.0,
-        GenericMeshBuilder::new(),
-    )
-    .build();
-
-    if mesh.triangle_indices.is_empty() || mesh.positions.is_empty() {
+    let spacing_f32 = spec.key.spacing_metres() as f32;
+    if !spacing_f32.is_finite() || spacing_f32 <= 0.0 {
         return None;
     }
 
-    let positions = mesh
-        .positions
-        .chunks_exact(3)
-        .map(|p| [p[0], p[1], p[2]])
-        .collect::<Vec<_>>();
-    let normals = mesh
-        .normals
-        .chunks_exact(3)
-        .map(|n| [n[0], n[1], n[2]])
-        .collect::<Vec<_>>();
-    if positions.len() != normals.len() {
-        return None;
-    }
+    // correct-central-cache-transition-neighbours-v1
+    //
+    // Keep central-block caching without transvoxel 2.0.0's faulty
+    // CacheCentralBlockOnly neighbour descriptors.
+    let transition_sides = transvoxel_sides(spec.transition_faces);
+    let transition_mesh =
+        extract_clipmap_transvoxel_mesh(&density, block, transition_sides);
+
+    let (sanitized, transition_fallback) =
+        if let Some(sanitized) = sanitize_clipmap_mesh(
+            transition_mesh,
+            extent_f32,
+            spacing_f32,
+        ) {
+            (sanitized, false)
+        } else if !spec.transition_faces.is_empty() {
+            // A broken transition extraction must never produce a GPU needle.
+            // A regular mesh can momentarily crack at the LOD boundary, but it
+            // stays local and lets the next balanced frontier replace it.
+            let regular_mesh = extract_clipmap_transvoxel_mesh(
+                &density,
+                block,
+                TransitionSide::none(),
+            );
+            (
+                sanitize_clipmap_mesh(
+                    regular_mesh,
+                    extent_f32,
+                    spacing_f32,
+                )?,
+                true,
+            )
+        } else {
+            return None;
+        };
+
+    let positions = sanitized.positions;
+    let normals = sanitized.normals;
+    let indices = sanitized.indices;
+    let integrity_dropped_triangles = sanitized.dropped_triangles;
 
     let uvs = positions
         .iter()
@@ -2255,12 +2486,6 @@ fn build_clipmap_mesh(
         .iter()
         .map(|normal| build_tangent(Vec3::from_array(*normal)))
         .collect::<Vec<_>>();
-    let indices = mesh
-        .triangle_indices
-        .into_iter()
-        .map(u32::try_from)
-        .collect::<Result<Vec<_>, _>>()
-        .ok()?;
 
     Some(CelestialClipmapMeshData {
         positions,
@@ -2268,6 +2493,8 @@ fn build_clipmap_mesh(
         uvs,
         tangents,
         indices,
+        integrity_dropped_triangles,
+        integrity_transition_fallback: transition_fallback,
     })
 }
 
@@ -2719,6 +2946,31 @@ fn sync_celestial_clipmap_realizations(
             plan.completed.insert(build.spec);
 
             if let Some(mesh) = result {
+                let integrity_dropped_triangles =
+                    mesh.integrity_dropped_triangles;
+                let integrity_transition_fallback =
+                    mesh.integrity_transition_fallback;
+                telemetry.record_mesh_integrity(
+                    integrity_dropped_triangles,
+                    integrity_transition_fallback,
+                );
+
+                if integrity_dropped_triangles > 0
+                    || integrity_transition_fallback
+                {
+                    warn!(
+                        authority = ?build.authority,
+                        resolution_exponent =
+                            build.spec.key.resolution.binary_exponent(),
+                        coord = ?build.spec.key.coord,
+                        transition_faces = build.spec.transition_faces.bits(),
+                        dropped_triangles = integrity_dropped_triangles,
+                        transition_fallback =
+                            integrity_transition_fallback,
+                        "quarantined pathological binary clipmap geometry"
+                    );
+                }
+
                 let Ok((_, name, _, _, _, _, policy)) =
                     authorities.get(build.authority)
                 else {
