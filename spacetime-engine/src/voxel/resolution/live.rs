@@ -63,6 +63,7 @@ const BLOCK_SUBDIVISIONS: usize = 8;
 // terrain-continuity-closure-megapass-v1
 // moving-volume-rolling-clipmap-megapass-v1
 // terrain-transaction-root-cause-megapass-v2
+// progressive-terrain-publication-latency-closure-v1
 // Binary presentation is independent from decimal USF interaction Scale.
 const MIN_SAMPLE_SPACING_METRES: f64 = 1.0;
 const MAX_FINE_SAMPLE_SPACING_METRES: f64 = 2_048.0;
@@ -92,8 +93,11 @@ const DENSE_FALLBACK_RETENTION_CHUNKS: f32 = 4.0;
 const MIN_SPARSE_FRONTIER_LEAVES: usize = 4_096;
 const MAX_SPARSE_FRONTIER_LEAVES: usize = 32_768;
 const LEAVES_PER_REQUESTED_LEVEL: usize = 640;
-const MAX_PRIMARY_REFINEMENTS_PER_WAVE: usize = 96;
-const MAX_RECORDED_FRONTIER_STAGES: usize = 48;
+// progressive-balanced-frontier-transactions-v1
+// Each checkpoint remains a complete balanced Transvoxel frontier, but the
+// changed region is deliberately small enough to become visible continuously.
+const MAX_PRIMARY_REFINEMENTS_PER_WAVE: usize = 8;
+const MAX_RECORDED_FRONTIER_STAGES: usize = 96;
 const CLIPMAP_VALIDITY_AGGREGATES_ACROSS: u32 = 8;
 const CLIPMAP_MIN_VALIDITY_SECONDS: f64 = 0.10;
 const CLIPMAP_MAX_VALIDITY_SECONDS: f64 = 2.0;
@@ -2086,18 +2090,20 @@ fn build_plan(
             )
             .unwrap_or(recorded_spacing);
 
-            // Milestone stages scale with actual LOD depth, not tiny worker
-            // batches. This keeps transactional metadata compact while still
-            // allowing coarse->fine make-before-break progression.
-            if current_spacing < recorded_spacing * 0.999
-                && stages.len() < MAX_RECORDED_FRONTIER_STAGES
-            {
-                stages.push(specs_for_frontier(
-                    &leaves,
-                    planning_anchor_local,
-                ));
-                recorded_spacing = current_spacing;
+            // progressive-balanced-frontier-transactions-v1
+            //
+            // Publication latency matters as much as final LOD depth. Every
+            // successful balanced refinement wave is a seam-correct transaction
+            // checkpoint. Unchanged specs are reused, so the runtime only needs
+            // to build the small delta before committing this checkpoint.
+            if stages.len() < MAX_RECORDED_FRONTIER_STAGES {
+                let next_stage =
+                    specs_for_frontier(&leaves, planning_anchor_local);
+                if stages.last().is_none_or(|current| *current != next_stage) {
+                    stages.push(next_stage);
+                }
             }
+            recorded_spacing = current_spacing;
 
             if leaves.len().saturating_add(7) > maximum_leaves {
                 break;
@@ -2205,9 +2211,12 @@ fn build_clipmap_mesh(
         extent_f32,
         BLOCK_SUBDIVISIONS,
     );
+    // transvoxel-central-field-cache-v1
+    // The canonical procedural SDF is not a cheap toy density function. Cache
+    // the central extraction block so each of its voxels is sampled once.
     let mesh = extract_from_field(
         &density,
-        FieldCaching::CacheNothing,
+        FieldCaching::CacheCentralBlockOnly,
         block,
         transvoxel_sides(spec.transition_faces),
         0.0,
@@ -2853,18 +2862,32 @@ fn sync_celestial_clipmap_realizations(
                 continue;
             }
 
-            if !plan.meshful.iter().all(|spec| {
-                projected_specs.contains(&(
-                    authority,
-                    plan.key.policy_revision,
-                    *spec,
-                ))
-            }) {
+            // changed-mesh-projection-barrier-v1
+            //
+            // Already-committed unchanged specs are not a dependency of this
+            // transaction. Only replacement/new meshful specs must prove that
+            // they can project before make-before-break swaps the frontier.
+            if !plan
+                .meshful
+                .iter()
+                .filter(|spec| !plan.committed_specs.contains(*spec))
+                .all(|spec| {
+                    projected_specs.contains(&(
+                        authority,
+                        plan.key.policy_revision,
+                        *spec,
+                    ))
+                })
+            {
                 continue;
             }
 
             let desired =
                 plan.desired.iter().copied().collect::<HashSet<_>>();
+            let added_blocks =
+                desired.difference(&plan.committed_specs).count();
+            let retired_blocks =
+                plan.committed_specs.difference(&desired).count();
             plan.committed_specs = desired.clone();
 
             for (entity, block) in &blocks {
@@ -2894,6 +2917,8 @@ fn sync_celestial_clipmap_realizations(
                     committed_stage = plan.stage_index,
                     total_stages = plan.stages.len(),
                     committed_blocks = plan.committed_specs.len(),
+                    transaction_added_blocks = added_blocks,
+                    transaction_retired_blocks = retired_blocks,
                     next_blocks = plan.desired.len(),
                     "clipmap refinement frontier committed; arming next stage"
                 );
@@ -2904,6 +2929,8 @@ fn sync_celestial_clipmap_realizations(
                     committed_stage = plan.stage_index + 1,
                     total_stages = plan.stages.len(),
                     committed_blocks = plan.committed_specs.len(),
+                    transaction_added_blocks = added_blocks,
+                    transaction_retired_blocks = retired_blocks,
                     "clipmap final refinement frontier committed"
                 );
             }

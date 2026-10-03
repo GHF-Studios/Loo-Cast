@@ -19,6 +19,10 @@ pub(super) struct VoxelGenerationJob {
 pub(super) struct PendingGenerationBatch {
     pub(super) scope: VoxelGenerationScope,
     pub(super) critical: bool,
+    // latency-sensitive-generation-atoms-v1
+    // Prevent PRESENTATION/physical atoms from being merged into a background
+    // throughput batch whose result becomes visible only after every atom runs.
+    latency_sensitive: bool,
     pub(super) jobs: Vec<VoxelGenerationJob>,
 }
 
@@ -63,10 +67,21 @@ pub(super) fn plan_generation_batches(
         let demanded_critical =
             demanded.roles.contains(crate::spatial::UsfScaleRoleMask::COLLISION)
                 || demanded.roles.contains(crate::spatial::UsfScaleRoleMask::EDITING);
+        let latency_sensitive =
+            demanded_critical
+                || demanded
+                    .roles
+                    .contains(crate::spatial::UsfScaleRoleMask::PRESENTATION);
+        let batch_cap = if latency_sensitive {
+            1
+        } else {
+            max_chunks_per_batch
+        };
         let can_join_existing = batches.iter().any(|batch| {
             batch.scope == scope
                 && batch.critical == demanded_critical
-                && batch.jobs.len() < max_chunks_per_batch
+                && batch.latency_sensitive == latency_sensitive
+                && batch.jobs.len() < batch_cap
         });
         if !can_join_existing && batches.len() >= max_batches {
             streaming.pending_desired.push_front(demanded);
@@ -91,7 +106,8 @@ pub(super) fn plan_generation_batches(
             &mut batches,
             scope,
             critical,
-            max_chunks_per_batch,
+            latency_sensitive,
+            batch_cap,
             VoxelGenerationJob { key, token, recipe },
         );
         requested += 1;
@@ -104,6 +120,7 @@ fn push_generation_job(
     batches: &mut Vec<PendingGenerationBatch>,
     scope: VoxelGenerationScope,
     critical: bool,
+    latency_sensitive: bool,
     max_chunks_per_batch: usize,
     job: VoxelGenerationJob,
 ) {
@@ -112,6 +129,7 @@ fn push_generation_job(
         .find(|batch| {
             batch.scope == scope
                 && batch.critical == critical
+                && batch.latency_sensitive == latency_sensitive
                 && batch.jobs.len() < max_chunks_per_batch
         })
     {
@@ -122,6 +140,7 @@ fn push_generation_job(
     batches.push(PendingGenerationBatch {
         scope,
         critical,
+        latency_sensitive,
         jobs: vec![job],
     });
 }

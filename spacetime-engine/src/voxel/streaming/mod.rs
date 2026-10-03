@@ -10,8 +10,12 @@ use bevy::prelude::*;
 
 use super::VoxelMaterializationKey;
 use crate::spatial::UsfScaleRoleMask;
-use demand::{
-    DemandedChunk, VoxelDemandPlanKey, VoxelWorkRank, compare_work_ranks,
+use demand::{DemandedChunk, VoxelDemandPlanKey};
+// manifestation-work-rank-export-v1
+// Keep the type opaque outside scheduling code; sibling voxel systems can
+// preserve ordering by passing ranks to the canonical comparator.
+pub(in crate::voxel) use demand::{
+    VoxelWorkRank, compare_work_ranks,
 };
 
 mod demand;
@@ -389,6 +393,13 @@ impl VoxelStreaming {
             (None, Some(_)) => std::cmp::Ordering::Greater,
             (None, None) => std::cmp::Ordering::Equal,
         }
+    }
+
+    pub(in crate::voxel) fn work_rank_for_key(
+        &self,
+        key: VoxelMaterializationKey,
+    ) -> Option<VoxelWorkRank> {
+        self.desired_work_ranks.get(&key).copied()
     }
 
     fn next_pending_work_rank(&self) -> Option<VoxelWorkRank> {

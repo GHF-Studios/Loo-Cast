@@ -23,6 +23,7 @@ use super::{
 use super::super::{
     VoxelMaterialId, VoxelMaterializationChunkAddress, VoxelWorld,
     mesh::VoxelSurface, VoxelPresentationMaterial,
+    streaming::{VoxelStreaming, compare_work_ranks},
 };
 
 fn park_manifestation(
@@ -95,6 +96,7 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
         &VoxelPresentationMaterial,
         &UsfScaleLayer,
         Option<&UsfScaleFallbackPresentation>,
+        Option<&VoxelStreaming>,
     )>,
     manifestations: Query<(
         &VoxelMaterializationRuntime,
@@ -112,7 +114,31 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
         {
             break;
         }
-        let Some(key) = registry.dirty.iter().next().copied() else {
+        // ranked-final-manifestation-publication-v1
+        //
+        // `dirty` is a HashSet, so iteration order is not scheduling policy.
+        // Preserve the same demand/contact/trajectory rank used by generation
+        // and surface derivation all the way to the actual visible mesh.
+        let rank_for = |key: ManifestationKey| {
+            worlds
+                .get(key.world)
+                .ok()
+                .and_then(|(_, _, _, _, _, streaming)| streaming)
+                .and_then(|streaming| streaming.work_rank_for_key(key.key))
+        };
+        let Some(key) = registry
+            .dirty
+            .iter()
+            .copied()
+            .min_by(|a, b| {
+                match (rank_for(*a), rank_for(*b)) {
+                    (Some(a), Some(b)) => compare_work_ranks(a, b),
+                    (Some(_), None) => std::cmp::Ordering::Less,
+                    (None, Some(_)) => std::cmp::Ordering::Greater,
+                    (None, None) => std::cmp::Ordering::Equal,
+                }
+            })
+        else {
             break;
         };
         registry.dirty.remove(&key);
@@ -124,7 +150,9 @@ pub(in crate::voxel) fn rebuild_dirty_manifestations(
             continue;
         };
 
-        let Ok((_, world, material, layer, fallback)) = worlds.get(key.world) else {
+        let Ok((_, world, material, layer, fallback, _streaming)) =
+            worlds.get(key.world)
+        else {
             registry.revisions.remove(&key);
             if let Some(entity) = registry.entities.remove(&key) {
                 park_manifestation(&mut commands, &mut registry, &manifestations, entity);
