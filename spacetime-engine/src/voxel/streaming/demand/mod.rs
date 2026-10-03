@@ -36,8 +36,52 @@ pub(super) struct DemandedChunk {
     pub(super) priority: i32,
     pub(super) distance_squared: f32,
     pub(super) trajectory_distance_squared: f32,
+    // sdf-boundary-priority-v1
+    // Distance from this chunk center to the nearest semantic boundary focus
+    // already computed by celestial realization. Infinity means no local
+    // boundary focus applies to this scope.
+    pub(super) focus_distance_squared: f32,
     pub(super) role_priority: u8,
     pub(super) roles: UsfScaleRoleMask,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(in crate::voxel) struct VoxelWorkRank {
+    pub(super) role_priority: u8,
+    pub(super) priority: i32,
+    pub(super) focus_distance_squared: f32,
+    pub(super) trajectory_distance_squared: f32,
+    pub(super) distance_squared: f32,
+}
+
+impl DemandedChunk {
+    pub(super) const fn work_rank(self) -> VoxelWorkRank {
+        VoxelWorkRank {
+            role_priority: self.role_priority,
+            priority: self.priority,
+            focus_distance_squared: self.focus_distance_squared,
+            trajectory_distance_squared: self.trajectory_distance_squared,
+            distance_squared: self.distance_squared,
+        }
+    }
+}
+
+pub(in crate::voxel) fn compare_work_ranks(
+    a: VoxelWorkRank,
+    b: VoxelWorkRank,
+) -> std::cmp::Ordering {
+    b.role_priority
+        .cmp(&a.role_priority)
+        .then_with(|| b.priority.cmp(&a.priority))
+        .then_with(|| {
+            a.focus_distance_squared
+                .total_cmp(&b.focus_distance_squared)
+        })
+        .then_with(|| {
+            a.trajectory_distance_squared
+                .total_cmp(&b.trajectory_distance_squared)
+        })
+        .then_with(|| a.distance_squared.total_cmp(&b.distance_squared))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -58,7 +102,11 @@ const MAX_PREDICTIVE_VALIDITY_SECONDS: f64 = 4.0;
 const PREDICTIVE_LATENCY_MULTIPLIER: f64 = 4.0;
 const MOTION_DIRECTION_QUANTIZATION: f64 = 8.0;
 // useful-work-throughput-predictive-demand-v1
-const MAX_MOVING_PLAN_HOLD_CHUNKS: u32 = 8;
+// sdf-useful-work-priority-pipeline-v1
+// moving-local-footprint-reanchors-v1
+// Predictive depth may extend far forward, but the immediate local/contact
+// footprint must re-anchor on every materialization-boundary crossing.
+const MOVING_PLAN_CENTER_HOLD_CHUNKS: u64 = 0;
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -234,12 +282,32 @@ fn make_demanded_chunk(
     relative: Vec3,
     motion: VoxelDemandMotion,
 ) -> DemandedChunk {
+    let focus_distance_squared = request
+        .priority_focus()
+        .and_then(|focus| {
+            let bound = demand.half_extent_native().length()
+                + motion.predicted_offset_native.length()
+                + MATERIALIZATION_CHUNK_SIZE as f32 * 4.0
+                + 1.0;
+            focus
+                .relative_at_scale_bounded(
+                    &demand.center(),
+                    demand.scale(),
+                    bound,
+                )
+                .ok()
+        })
+        .map_or(f32::INFINITY, |focus_relative| {
+            (relative - focus_relative).length_squared()
+        });
+
     DemandedChunk {
         key,
         priority: demand.priority(),
         distance_squared: relative.length_squared(),
         trajectory_distance_squared:
             motion.trajectory_distance_squared(relative),
+        focus_distance_squared,
         role_priority: demand_role_priority(request.roles()),
         roles: request.roles(),
     }
@@ -487,13 +555,13 @@ fn demand_plan_still_valid(
     let dy = after[1].abs_diff(before[1]);
     let dz = after[2].abs_diff(before[2]);
     let displacement = dx.max(dy).max(dz);
-    let mut guard_chunks = previous.validity_chunks.max(2) / 2;
-    if previous.motion != VoxelMotionPriorityKey::STATIONARY {
-        guard_chunks = guard_chunks.min(MAX_MOVING_PLAN_HOLD_CHUNKS);
-    }
-    let guard = u64::from(guard_chunks.max(1));
 
-    displacement <= guard
+    if previous.motion != VoxelMotionPriorityKey::STATIONARY {
+        return displacement <= MOVING_PLAN_CENTER_HOLD_CHUNKS;
+    }
+
+    let guard_chunks = previous.validity_chunks.max(2) / 2;
+    displacement <= u64::from(guard_chunks.max(1))
 }
 
 fn incremental_plan_compatible(
@@ -506,7 +574,12 @@ fn incremental_plan_compatible(
         && previous.view_revision == 0
         && next.view_revision == 0
         && previous.motion == next.motion
-        && previous.motion == VoxelMotionPriorityKey::STATIONARY
+    // moving-incremental-slabs-v1
+    //
+    // Stable quantized motion can update entering/leaving slabs without
+    // rebuilding the whole desired set. A direction/speed/horizon bucket
+    // change deliberately falls back to a full plan so retained overlapping
+    // chunks receive fresh trajectory ranks.
 }
 
 
@@ -633,12 +706,19 @@ pub(in crate::voxel) fn refresh_voxel_residency(
         };
 
         if plan_changed || candidate_committed {
-            if let Some(radius) =
-                pinned.and_then(|pinned| pinned.surface_radius_native())
-            {
-                prioritize_pending_work(&mut streaming, Some(radius));
-            }
-            reconcile_materialization_residency(&mut world, &mut streaming, warm_limit);
+            // global-reprioritize-after-delta-v1
+            //
+            // Incremental entering chunks must be allowed to jump ahead of old
+            // background backlog according to current role/focus/trajectory.
+            prioritize_pending_work(
+                &mut streaming,
+                pinned.and_then(|pinned| pinned.surface_radius_native()),
+            );
+            reconcile_materialization_residency(
+                &mut world,
+                &mut streaming,
+                warm_limit,
+            );
         }
     }
 }
@@ -700,14 +780,7 @@ fn compare_demanded_chunks(
     a: &DemandedChunk,
     b: &DemandedChunk,
 ) -> std::cmp::Ordering {
-    b.role_priority
-        .cmp(&a.role_priority)
-        .then_with(|| b.priority.cmp(&a.priority))
-        .then_with(|| {
-            a.trajectory_distance_squared
-                .total_cmp(&b.trajectory_distance_squared)
-        })
-        .then_with(|| a.distance_squared.total_cmp(&b.distance_squared))
+    compare_work_ranks(a.work_rank(), b.work_rank())
 }
 
 fn prioritize_pending_work(
@@ -723,15 +796,8 @@ fn prioritize_pending_work(
             a_error.total_cmp(&b_error)
         });
 
-        b.role_priority
-            .cmp(&a.role_priority)
-            .then_with(|| b.priority.cmp(&a.priority))
+        compare_work_ranks(a.work_rank(), b.work_rank())
             .then(shell_order)
-            .then_with(|| {
-                a.trajectory_distance_squared
-                    .total_cmp(&b.trajectory_distance_squared)
-            })
-            .then_with(|| a.distance_squared.total_cmp(&b.distance_squared))
     });
     streaming.pending_desired = pending.into();
 }
@@ -911,14 +977,17 @@ fn refresh_demand_plan(
     {
         let _span = bevy::log::info_span!("voxel_residency.stage_plan.full").entered();
         let mut desired_roles = HashMap::with_capacity(desired.len());
+        let mut desired_ranks = HashMap::with_capacity(desired.len());
         let mut pending_desired = VecDeque::with_capacity(desired.len());
         for chunk in desired {
             desired_roles.insert(chunk.key, chunk.roles);
+            desired_ranks.insert(chunk.key, chunk.work_rank());
             if !world.materializations().is_active(chunk.key) {
                 pending_desired.push_back(chunk);
             }
         }
         streaming.stage_desired_roles(desired_roles);
+        streaming.replace_desired_work_ranks(desired_ranks);
         streaming.pending_desired = pending_desired;
     }
     streaming.demand_key = key;
@@ -1035,18 +1104,28 @@ fn merge_demanded_chunk(
     merged
         .entry(candidate.key)
         .and_modify(|current| {
-            current.roles = current.roles.union(candidate.roles);
-            current.role_priority = demand_role_priority(current.roles);
-            if candidate.priority > current.priority
-                || (candidate.priority == current.priority
-                    && candidate.trajectory_distance_squared
-                        < current.trajectory_distance_squared)
-            {
+            let merged_roles = current.roles.union(candidate.roles);
+            let candidate_better =
+                candidate.priority > current.priority
+                    || (candidate.priority == current.priority
+                        && candidate.focus_distance_squared
+                            < current.focus_distance_squared)
+                    || (candidate.priority == current.priority
+                        && candidate.focus_distance_squared
+                            == current.focus_distance_squared
+                        && candidate.trajectory_distance_squared
+                            < current.trajectory_distance_squared);
+
+            if candidate_better {
                 current.priority = candidate.priority;
                 current.distance_squared = candidate.distance_squared;
                 current.trajectory_distance_squared =
                     candidate.trajectory_distance_squared;
+                current.focus_distance_squared =
+                    candidate.focus_distance_squared;
             }
+            current.roles = merged_roles;
+            current.role_priority = demand_role_priority(merged_roles);
         })
         .or_insert(candidate);
 }

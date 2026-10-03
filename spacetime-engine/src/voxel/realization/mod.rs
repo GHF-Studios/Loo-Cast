@@ -124,6 +124,10 @@ pub(in crate::voxel) struct VoxelRealizationScope {
     roles: UsfScaleRoleMask,
     view_source: Option<Entity>,
     residency_half_extent_native: Vec3,
+    // priority-focus-propagation-v1
+    // Canonical nearest semantic boundary used ONLY for reconstructible work
+    // ordering. It never grants capability or semantic authority.
+    priority_focus: Option<UsfPosition>,
 }
 
 impl VoxelRealizationScope {
@@ -137,11 +141,20 @@ impl VoxelRealizationScope {
             view_source: None,
             residency_half_extent_native:
                 materialization_residency_extent(scope.half_extent_native()),
+            priority_focus: None,
         }
     }
 
     pub(in crate::voxel) const fn with_view_source(mut self, source: Entity) -> Self {
         self.view_source = Some(source);
+        self
+    }
+
+    pub(in crate::voxel) const fn with_priority_focus(
+        mut self,
+        focus: UsfPosition,
+    ) -> Self {
+        self.priority_focus = Some(focus);
         self
     }
 
@@ -159,6 +172,10 @@ impl VoxelRealizationScope {
 
     pub(in crate::voxel) const fn residency_half_extent_native(self) -> Vec3 {
         self.residency_half_extent_native
+    }
+
+    pub(in crate::voxel) const fn priority_focus(self) -> Option<UsfPosition> {
+        self.priority_focus
     }
 }
 
@@ -204,6 +221,7 @@ struct VoxelRealizationIntent {
     roles: UsfScaleRoleMask,
     view_source: Option<Entity>,
     residency_half_extent_native: Vec3,
+    priority_focus: Option<UsfPosition>,
 }
 
 #[derive(Resource, Debug, Default)]
@@ -228,6 +246,7 @@ impl VoxelRealizationIntentSnapshot {
         roles: UsfScaleRoleMask,
         view_source: Option<Entity>,
         residency_half_extent_native: Vec3,
+        priority_focus: Option<UsfPosition>,
     ) {
         self.intents.push(VoxelRealizationIntent {
             target,
@@ -235,6 +254,7 @@ impl VoxelRealizationIntentSnapshot {
             roles,
             view_source,
             residency_half_extent_native,
+            priority_focus,
         });
     }
 }
@@ -246,6 +266,7 @@ struct VoxelRealizationDemand {
     roles: UsfScaleRoleMask,
     view_source: Option<Entity>,
     residency_half_extent_native: Vec3,
+    priority_focus: Option<UsfPosition>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -283,6 +304,7 @@ impl VoxelRealizationDemandSnapshot {
                 roles: demand.roles,
                 view_source: demand.view_source,
                 residency_half_extent_native: demand.residency_half_extent_native,
+                priority_focus: demand.priority_focus,
             })
     }
 
@@ -293,6 +315,7 @@ impl VoxelRealizationDemandSnapshot {
         roles: UsfScaleRoleMask,
         view_source: Option<Entity>,
         residency_half_extent_native: Vec3,
+        priority_focus: Option<UsfPosition>,
     ) {
         self.demands.push(VoxelRealizationDemand {
             target_world,
@@ -300,6 +323,7 @@ impl VoxelRealizationDemandSnapshot {
             roles,
             view_source,
             residency_half_extent_native,
+            priority_focus,
         });
     }
 }
@@ -443,15 +467,41 @@ pub(super) fn collect_voxel_realization_intent(
                     step.half_extent_native(),
                     step.priority(),
                 )
-                .map(|scope| VoxelRealizationIntent {
-                    target: VoxelRealizationIntentTarget::Celestial(target),
-                    scope,
-                    roles: roles_for_scale(*domain, scale, physical_target_scale),
-                    view_source: None,
-                    residency_half_extent_native:
-                        materialization_residency_extent(
-                            scope.half_extent_native(),
+                .map(|scope| {
+                    let priority_focus = boundary_center.filter(|boundary| {
+                        let bound = scope.half_extent_native().length()
+                            + MATERIALIZATION_CHUNK_SIZE as f32 * 2.0
+                            + 1.0;
+                        boundary
+                            .relative_at_scale_bounded(
+                                &scope.center(),
+                                scale,
+                                bound,
+                            )
+                            .ok()
+                            .is_some_and(|delta| {
+                                let half = scope.half_extent_native();
+                                delta.x.abs() <= half.x + 0.001
+                                    && delta.y.abs() <= half.y + 0.001
+                                    && delta.z.abs() <= half.z + 0.001
+                            })
+                    });
+
+                    VoxelRealizationIntent {
+                        target: VoxelRealizationIntentTarget::Celestial(target),
+                        scope,
+                        roles: roles_for_scale(
+                            *domain,
+                            scale,
+                            physical_target_scale,
                         ),
+                        view_source: None,
+                        residency_half_extent_native:
+                            materialization_residency_extent(
+                                scope.half_extent_native(),
+                            ),
+                        priority_focus,
+                    }
                 });
 
                 // current-location-refinement-demand-v1
@@ -493,6 +543,7 @@ pub(super) fn collect_voxel_realization_intent(
                 presentation_roles(),
                 None,
                 materialization_residency_extent(scope.half_extent_native()),
+                None,
             );
         }
 
@@ -504,6 +555,7 @@ pub(super) fn collect_voxel_realization_intent(
                     full_runtime_roles(),
                     None,
                     materialization_residency_extent(source.scope.half_extent_native()),
+                    None,
                 );
             }
         }
@@ -567,6 +619,7 @@ pub(super) fn resolve_voxel_realization_demand(
             intent.roles,
             intent.view_source,
             intent.residency_half_extent_native,
+            intent.priority_focus,
         );
     }
 

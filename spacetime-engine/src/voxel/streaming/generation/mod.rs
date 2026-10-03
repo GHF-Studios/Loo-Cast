@@ -259,17 +259,14 @@ pub(in crate::voxel) fn schedule_voxel_generation(
                 let Ok((_, _, streaming, layer, _)) = worlds.get_mut(entity) else {
                     return None;
                 };
-                let (priority, role_priority, trajectory_distance) =
-                    streaming.next_pending_work_rank()?;
+                let work_rank = streaming.next_pending_work_rank()?;
                 let exponent = layer.scale().exponent();
                 let interaction_distance =
                     (i16::from(exponent) - i16::from(interaction_exponent)).abs();
                 Some((
                     entity,
-                    role_priority,
-                    priority,
+                    work_rank,
                     streaming.migration_active(),
-                    trajectory_distance,
                     interaction_distance,
                     exponent,
                 ))
@@ -280,18 +277,17 @@ pub(in crate::voxel) fn schedule_voxel_generation(
             break;
         }
 
+        // generation-uses-persistent-work-rank-v1
         ranked.sort_by(|a, b| {
-            b.1.cmp(&a.1)
+            super::demand::compare_work_ranks(a.1, b.1)
                 .then_with(|| b.2.cmp(&a.2))
-                .then_with(|| b.3.cmp(&a.3))
-                .then_with(|| a.4.total_cmp(&b.4))
-                .then_with(|| a.5.cmp(&b.5))
-                .then_with(|| b.6.cmp(&a.6))
+                .then_with(|| a.3.cmp(&b.3))
+                .then_with(|| b.4.cmp(&a.4))
         });
 
         let mut progressed = false;
 
-        for (entity, _, _, _, _, _, _) in ranked {
+        for (entity, _, _, _, _) in ranked {
             if generation_slots == 0 {
                 break;
             }

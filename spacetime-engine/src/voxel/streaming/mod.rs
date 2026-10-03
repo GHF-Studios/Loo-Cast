@@ -10,7 +10,9 @@ use bevy::prelude::*;
 
 use super::VoxelMaterializationKey;
 use crate::spatial::UsfScaleRoleMask;
-use demand::{DemandedChunk, VoxelDemandPlanKey};
+use demand::{
+    DemandedChunk, VoxelDemandPlanKey, VoxelWorkRank, compare_work_ranks,
+};
 
 mod demand;
 mod generation;
@@ -40,6 +42,11 @@ pub struct VoxelStreaming {
     /// Latest desired address -> capability-role intent.
     cached_desired_roles:
         HashMap<VoxelMaterializationKey, UsfScaleRoleMask>,
+    // persistent-work-rank-v1
+    // Scheduling rank survives beyond the pending generation queue so surface
+    // derivation can honor the same useful-work ordering.
+    desired_work_ranks:
+        HashMap<VoxelMaterializationKey, VoxelWorkRank>,
     /// Sparse original committed state for keys whose current candidate
     /// differs during make-before-break migration.
     ///
@@ -65,6 +72,7 @@ impl VoxelStreaming {
             demand_key: Vec::new(),
             pending_desired: VecDeque::new(),
             cached_desired_roles: HashMap::new(),
+            desired_work_ranks: HashMap::new(),
             migration_original_roles: HashMap::new(),
             effective_desired: HashSet::new(),
             residency_activate: HashSet::new(),
@@ -92,6 +100,7 @@ impl VoxelStreaming {
 
         self.pending_desired.clear();
         self.cached_desired_roles.clear();
+        self.desired_work_ranks.clear();
         self.migration_original_roles.clear();
         self.role_refresh.clear();
         self.demand_key.clear();
@@ -202,6 +211,13 @@ impl VoxelStreaming {
         self.policy_revision = self.policy_revision.wrapping_add(1).max(1);
     }
 
+    pub(super) fn replace_desired_work_ranks(
+        &mut self,
+        ranks: HashMap<VoxelMaterializationKey, VoxelWorkRank>,
+    ) {
+        self.desired_work_ranks = ranks;
+    }
+
     fn stage_incremental_desired(
         &mut self,
         leaving: impl IntoIterator<Item = VoxelMaterializationKey>,
@@ -217,6 +233,7 @@ impl VoxelStreaming {
             // has left demand and should retire immediately.
             self.migration_original_roles.remove(&key);
             self.cached_desired_roles.remove(&key);
+            self.desired_work_ranks.remove(&key);
             self.role_refresh.insert(key);
             self.reconcile_changed_key(key);
             changed = true;
@@ -225,6 +242,7 @@ impl VoxelStreaming {
         for demanded in entering {
             let key = demanded.key;
             let roles = demanded.roles;
+            self.desired_work_ranks.insert(key, demanded.work_rank());
             if self.cached_desired_roles.get(&key).copied() == Some(roles) {
                 continue;
             }
@@ -353,14 +371,24 @@ impl VoxelStreaming {
             .is_some_and(|roles| roles.contains(role))
     }
 
-    fn next_pending_work_rank(&self) -> Option<(i32, u8, f32)> {
-        self.pending_desired.front().map(|demand| {
-            (
-                demand.priority,
-                demand.role_priority,
-                demand.trajectory_distance_squared,
-            )
-        })
+    pub(in crate::voxel) fn compare_work_keys(
+        &self,
+        a: VoxelMaterializationKey,
+        b: VoxelMaterializationKey,
+    ) -> std::cmp::Ordering {
+        match (
+            self.desired_work_ranks.get(&a).copied(),
+            self.desired_work_ranks.get(&b).copied(),
+        ) {
+            (Some(a), Some(b)) => compare_work_ranks(a, b),
+            (Some(_), None) => std::cmp::Ordering::Less,
+            (None, Some(_)) => std::cmp::Ordering::Greater,
+            (None, None) => std::cmp::Ordering::Equal,
+        }
+    }
+
+    fn next_pending_work_rank(&self) -> Option<VoxelWorkRank> {
+        self.pending_desired.front().map(|demand| demand.work_rank())
     }
 }
 

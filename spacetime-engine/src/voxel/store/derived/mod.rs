@@ -35,6 +35,58 @@ impl VoxelMaterializationStore {
     }
 
     // role-aware-derived-queue-v1
+    // persistent-work-rank-derived-v1
+    /// Pops the best still-dirty address according to a caller-owned scheduling
+    /// comparator while preserving the relative order of every other live item.
+    ///
+    /// Dirty queues are local active working sets, so this O(n) selection is
+    /// deliberately paid only when a derivation slot is available. It prevents
+    /// async completion order from destroying semantic demand priority.
+    pub(in crate::voxel) fn pop_dirty_derived_best_by(
+        &mut self,
+        mut compare: impl FnMut(
+            VoxelMaterializationKey,
+            VoxelMaterializationKey,
+        ) -> std::cmp::Ordering,
+    ) -> Option<VoxelMaterializationKey> {
+        let scan = self.dirty_derived.len();
+        let mut best = None::<VoxelMaterializationKey>;
+
+        for _ in 0..scan {
+            let Some(address) = self.dirty_derived.pop_front() else {
+                break;
+            };
+            if !self.dirty_derived_set.contains(&address) {
+                continue;
+            }
+
+            if best.is_none_or(|current| {
+                compare(address, current) == std::cmp::Ordering::Less
+            }) {
+                best = Some(address);
+            }
+            self.dirty_derived.push_back(address);
+        }
+
+        let target = best?;
+        let scan = self.dirty_derived.len();
+        for _ in 0..scan {
+            let Some(address) = self.dirty_derived.pop_front() else {
+                break;
+            };
+            if !self.dirty_derived_set.contains(&address) {
+                continue;
+            }
+            if address == target {
+                self.dirty_derived_set.remove(&address);
+                return Some(address);
+            }
+            self.dirty_derived.push_back(address);
+        }
+
+        None
+    }
+
     /// Pops the first still-dirty address matching `predicate`, preserving the
     /// relative order of unmatched entries.
     pub(in crate::voxel) fn pop_dirty_derived_matching(

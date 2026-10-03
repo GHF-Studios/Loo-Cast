@@ -190,16 +190,19 @@ pub(super) fn queue_dirty_chunk_builds(
                 continue;
             };
 
-            let critical_key = streaming.and_then(|streaming| {
-                world.materializations_mut().pop_dirty_derived_matching(|key| {
-                    let roles = streaming.effective_roles(key);
-                    roles.contains(crate::spatial::UsfScaleRoleMask::COLLISION)
-                        || roles.contains(crate::spatial::UsfScaleRoleMask::EDITING)
-                })
-            });
-            let Some(key) = critical_key
-                .or_else(|| world.materializations_mut().pop_dirty_derived())
-            else {
+            // derived-uses-persistent-work-rank-v1
+            //
+            // Generation completion order is not scheduling authority. Pick the
+            // dirty surface whose current streaming rank says it is most useful.
+            let key = match streaming {
+                Some(streaming) => world
+                    .materializations_mut()
+                    .pop_dirty_derived_best_by(|a, b| {
+                        streaming.compare_work_keys(a, b)
+                    }),
+                None => world.materializations_mut().pop_dirty_derived(),
+            };
+            let Some(key) = key else {
                 exhausted.insert(world_entity);
                 frame_budget.finish(work_token);
                 continue;
