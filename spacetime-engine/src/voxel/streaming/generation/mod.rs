@@ -230,7 +230,10 @@ pub(in crate::voxel) fn schedule_voxel_generation(
         return;
     }
 
-    let interaction_exponent = interaction.scale().exponent();
+    // generation-prioritizes-interaction-target-v1
+    // During a coverage-gated handoff, generation must feed the destination
+    // chart that is trying to prove readiness, not the outgoing committed chart.
+    let interaction_exponent = interaction.target_scale().exponent();
     let mut candidates = worlds
         .iter_mut()
         .map(|(entity, _, _, _, _)| entity)

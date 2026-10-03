@@ -1,4 +1,5 @@
 //! Multiscale voxel realization policy.
+// target-scale-preparation-bootstrap-deadlock-v1
 // interaction-terrain-readiness-megapass-v1
 //!
 //! Generic spatial interest says where gameplay currently cares about reality.
@@ -18,9 +19,8 @@ use crate::{
     ecs::UsfLogicalRealizationOf,
     spatial::{
         SpatialDemandScope, SpatialDemandSnapshot, SpatialRefinementDemand, SpatialScale,
-        UsfChartMask, UsfPosition, UsfRefinementPlan, UsfSemanticFrame,
-        UsfResidencyRequestBuffer, UsfScaleLayer,
-        UsfScaleRoleMask,
+        UsfChartMask, UsfPosition, UsfPrimaryInteractionSlice, UsfRefinementPlan,
+        UsfResidencyRequestBuffer, UsfScaleLayer, UsfScaleRoleMask, UsfSemanticFrame,
     },
 };
 
@@ -315,10 +315,11 @@ fn full_runtime_roles() -> UsfScaleRoleMask {
 }
 
 // interaction-scale-dense-role-ownership-v1
+// prepare-target-before-commit-v1
 fn roles_for_scale(
     domain: VoxelScaleDomain,
     target_scale: SpatialScale,
-    interaction_scale: SpatialScale,
+    physical_target_scale: SpatialScale,
 ) -> UsfScaleRoleMask {
     // Decimal USF Scale is an interaction/numerical domain, not graphical LOD.
     // Binary voxel resolution owns automatic visual refinement.
@@ -328,7 +329,7 @@ fn roles_for_scale(
     // presentation, collision and editing capability.
     let mut roles = UsfScaleRoleMask::REALIZATION;
 
-    if target_scale != interaction_scale {
+    if target_scale != physical_target_scale {
         return roles;
     }
 
@@ -345,6 +346,7 @@ fn roles_for_scale(
 
 pub(super) fn collect_voxel_realization_intent(
     spatial: Res<SpatialDemandSnapshot>,
+    interaction: Res<UsfPrimaryInteractionSlice>,
     voxel_sources: Query<
         Option<&SpatialRefinementDemand>,
         With<VoxelMaterializationDemand>,
@@ -369,6 +371,12 @@ pub(super) fn collect_voxel_realization_intent(
     mut output: ResMut<VoxelRealizationIntentSnapshot>,
 ) {
     let mut next = VoxelRealizationIntentSnapshot::default();
+    // target-scale-preparation-bootstrap-deadlock-v1
+    //
+    // The destination must be able to build the capability that gates entry
+    // into it. `scale()` is the committed outgoing chart; `target_scale()` is
+    // the requested destination during a handoff and therefore owns prep work.
+    let physical_target_scale = interaction.target_scale();
 
     let mut sources = Vec::<VoxelDemandSource>::new();
     for scope in spatial.iter() {
@@ -405,7 +413,7 @@ pub(super) fn collect_voxel_realization_intent(
                 .map(|scope| VoxelRealizationIntent {
                     target: VoxelRealizationIntentTarget::Celestial(target),
                     scope,
-                    roles: roles_for_scale(*domain, scale, source.scope.scale()),
+                    roles: roles_for_scale(*domain, scale, physical_target_scale),
                     view_source: None,
                     residency_half_extent_native: step.residency_half_extent_native(),
                 });
@@ -733,6 +741,25 @@ mod tests {
             realization_parent_scale(domain, s0),
             Some(SpatialScale::new(1).unwrap())
         );
+    }
+
+    #[test]
+    fn pending_target_can_receive_physical_roles_before_commit() {
+        let s0 = SpatialScale::ZERO;
+        let bootstrap = SpatialScale::MAX;
+        let physical = UsfChartMask::ALL;
+        let domain = VoxelScaleDomain::contiguous(SpatialScale::MIN, SpatialScale::MAX)
+            .with_collision_slices(physical)
+            .with_editing_slices(physical);
+
+        // Runtime may still be committed to bootstrap S+35. The role helper is
+        // intentionally fed the *pending target* S0 by the collector.
+        let target_roles = roles_for_scale(domain, s0, s0);
+        assert!(target_roles.contains(UsfScaleRoleMask::PRESENTATION));
+        assert!(target_roles.contains(UsfScaleRoleMask::COLLISION));
+
+        let outgoing_roles = roles_for_scale(domain, bootstrap, s0);
+        assert_eq!(outgoing_roles, UsfScaleRoleMask::REALIZATION);
     }
 
     #[test]

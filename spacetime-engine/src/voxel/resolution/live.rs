@@ -1780,10 +1780,11 @@ fn sync_celestial_clipmap_realizations(
             ) else {
                 continue;
             };
+            // clipmap-prepares-interaction-target-v1
             let Some(input) = derive_plan_input(
                 *field,
                 observer_local,
-                interaction.scale(),
+                interaction.target_scale(),
                 observer_speed,
                 expected_build_seconds,
                 policy_revision,
@@ -2305,8 +2306,9 @@ fn sync_celestial_clipmap_transforms(
         return;
     }
 
+    let physical_target_scale = interaction.target_scale();
     let dense_apertures = dense_presentation_apertures(
-        interaction.scale(),
+        physical_target_scale,
         &dense_coverage,
         &authorities,
     );
@@ -2454,6 +2456,8 @@ fn sync_celestial_clipmap_transforms(
     if projected_any && !*logged_projection {
         info!(
             interaction_scale = %interaction.scale(),
+            interaction_target_scale = %physical_target_scale,
+            interaction_handoff_pending = interaction.handoff_pending(),
             view_scale = %view.scale(),
             view_exponent = view.continuous_exponent(),
             metre_to_view,
@@ -2488,8 +2492,11 @@ fn enforce_dense_interaction_presentation(
             continue;
         };
 
+        // Destination presentation is allowed to become ready/visible
+        // before the interaction transaction commits. This is the visual half
+        // of make-before-break.
         *visibility =
-            if layer.scale() == interaction.scale() && runtime.active() {
+            if layer.scale() == interaction.target_scale() && runtime.active() {
                 Visibility::Inherited
             } else {
                 Visibility::Hidden

@@ -171,6 +171,8 @@ fn terrain_pipeline_census(
         view_scale = %view.scale(),
         view_exponent = view.continuous_exponent(),
         interaction_scale = %interaction.scale(),
+        interaction_target_scale = %interaction.target_scale(),
+        interaction_handoff_pending = interaction.handoff_pending(),
         worker_state = %telemetry.summary(),
         clipmap_state = %clipmap.summary(),
         worlds = rows.len(),
@@ -226,7 +228,7 @@ fn collect_voxel_materialization_world_draw(
     for (world, layer) in &worlds {
         // This overlay is drawn in the local physical view, not in all 71
         // numerical charts superimposed on one another.
-        if layer.scale() != interaction.scale() {
+        if layer.scale() != interaction.target_scale() {
             continue;
         }
         for key in world.materializations().active_keys() {
