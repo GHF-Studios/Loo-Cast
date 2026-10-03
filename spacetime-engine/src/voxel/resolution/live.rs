@@ -4,7 +4,7 @@
 //! dense voxel worlds keep collision/editing authority. The clipmap is a
 //! reconstructible mesh adapter whose LOD axis is independent of USF Scale.
 
-use std::{cell::RefCell, collections::{BinaryHeap, HashMap, HashSet, VecDeque}};
+use std::{cell::Cell, collections::{BinaryHeap, HashMap, HashSet, VecDeque}};
 
 use bevy::{
     asset::RenderAssetUsages,
@@ -70,6 +70,13 @@ use super::super::{
 };
 
 const BLOCK_SUBDIVISIONS: usize = 8;
+// presentation-extract-hotpath-v1
+//
+// Only lazy high-resolution transition-neighbour queries need an external memo.
+// A direct-mapped cache removes HashMap hashing/allocation and RefCell borrow
+// traffic from the hottest callback. Collisions only recompute exact field
+// values; they never substitute one coordinate's value for another.
+const TRANSITION_DENSITY_MEMO_SLOTS: usize = 4_096;
 // transvoxel-transition-cache-integrity-v1
 const MAX_CLIPMAP_TRIANGLE_EDGE_CELLS: f32 = 4.0;
 const CLIPMAP_VERTEX_BOUNDS_TOLERANCE_CELLS: f32 = 0.5;
@@ -2228,33 +2235,103 @@ fn build_tangent(normal: Vec3) -> [f32; 4] {
     [tangent.x, tangent.y, tangent.z, 1.0]
 }
 
-/// Central-cache extraction with CORRECT high-resolution neighbour geometry.
+#[derive(Debug, Clone, Copy)]
+struct TransitionDensityMemoEntry {
+    key: [u32; 3],
+    value: f32,
+    occupied: bool,
+}
+
+impl TransitionDensityMemoEntry {
+    const EMPTY: Self = Self {
+        key: [0; 3],
+        value: 0.0,
+        occupied: false,
+    };
+}
+
+struct TransitionDensityMemo {
+    slots: Box<[Cell<TransitionDensityMemoEntry>]>,
+    hits: Cell<u32>,
+    misses: Cell<u32>,
+}
+
+impl TransitionDensityMemo {
+    fn new() -> Self {
+        let mut slots = Vec::with_capacity(TRANSITION_DENSITY_MEMO_SLOTS);
+        for _ in 0..TRANSITION_DENSITY_MEMO_SLOTS {
+            slots.push(Cell::new(TransitionDensityMemoEntry::EMPTY));
+        }
+        Self {
+            slots: slots.into_boxed_slice(),
+            hits: Cell::new(0),
+            misses: Cell::new(0),
+        }
+    }
+
+    #[inline]
+    fn slot_index(key: [u32; 3]) -> usize {
+        debug_assert!(TRANSITION_DENSITY_MEMO_SLOTS.is_power_of_two());
+        let mut hash = key[0].wrapping_mul(0x9E37_79B1);
+        hash ^= key[1].rotate_left(11).wrapping_mul(0x85EB_CA77);
+        hash ^= key[2].rotate_left(22).wrapping_mul(0xC2B2_AE3D);
+        hash ^= hash >> 16;
+        (hash as usize) & (TRANSITION_DENSITY_MEMO_SLOTS - 1)
+    }
+
+    #[inline]
+    fn get_or_compute(
+        &self,
+        key: [u32; 3],
+        compute: impl FnOnce() -> f32,
+    ) -> f32 {
+        let slot = &self.slots[Self::slot_index(key)];
+        let entry = slot.get();
+        if entry.occupied && entry.key == key {
+            self.hits.set(self.hits.get().saturating_add(1));
+            return entry.value;
+        }
+
+        self.misses.set(self.misses.get().saturating_add(1));
+        let value = compute();
+        slot.set(TransitionDensityMemoEntry {
+            key,
+            value,
+            occupied: true,
+        });
+        value
+    }
+
+    fn stats(&self) -> (u32, u32) {
+        (self.hits.get(), self.misses.get())
+    }
+}
+
+/// Extraction using one already-filled central cache plus exact high-resolution
+/// transition-neighbour relays.
 ///
-/// transvoxel 2.0.0's `extract_from_field(CacheCentralBlockOnly, ...)` currently
-/// attaches the central `block` descriptor as every transition neighbour. The
-/// uncached path correctly calls `block.high_res_neighbour_to(side)`.
-///
-/// Keep the useful central cache, but construct the BlockStarView explicitly.
+/// The expensive central lattice is caller-owned so fallback topology extraction
+/// can reuse it instead of evaluating the canonical celestial field twice.
 fn extract_clipmap_transvoxel_mesh<F>(
-    field: &F,
-    block: Block<f32>,
+    transition_field: &F,
+    central: &VoxelVecBlock<f32, f32>,
     transition_sides: TransitionSides,
 ) -> TransvoxelMesh<f32>
 where
     F: DataField<f32, f32>,
 {
-    let central = VoxelVecBlock::cache(field, block);
+    let block = central.block;
     let mut blocks: BlockStarView<
         f32,
         f32,
-        VoxelVecBlock<f32, f32>,
+        &VoxelVecBlock<f32, f32>,
         VoxelBlockRelayingToField<'_, f32, f32>,
     > = BlockStarView::new_simple(central);
 
     for side in transition_sides {
         blocks = blocks.with_neighbour(
             VoxelBlockRelayingToField {
-                field,
+                field: transition_field,
                 block: block.high_res_neighbour_to(side),
             },
             side,
@@ -2448,22 +2525,16 @@ fn build_clipmap_mesh(
     }
 
     let sampler = field.presentation_sampler(spacing)?;
-    let sample_cache =
-        RefCell::new(HashMap::<[u32; 3], f32>::with_capacity(2_048));
 
-    let density = |x: f32, y: f32, z: f32| -> f32 {
-        // transition-density-memo-v1
-        let key = [x.to_bits(), y.to_bits(), z.to_bits()];
-        if let Some(value) = sample_cache.borrow().get(&key).copied() {
-            return value;
-        }
-
+    // VoxelVecBlock already stores every unique central/gradient-extension
+    // sample. Bypass the external memo for that domain entirely.
+    let raw_density = |x: f32, y: f32, z: f32| -> f32 {
         let point = origin + DVec3::new(
             f64::from(x),
             f64::from(y),
             f64::from(z),
         );
-        let value = sampler
+        sampler
             .signed_distance_local_metres(point)
             .map(|volumetric_sdf| -volumetric_sdf)
             .filter(|density| density.is_finite())
@@ -2473,10 +2544,17 @@ fn build_clipmap_mesh(
                     f64::from(f32::MAX),
                 ) as f32
             })
-            .unwrap_or(-1.0);
+            .unwrap_or(-1.0)
+    };
 
-        sample_cache.borrow_mut().insert(key, value);
-        value
+    let transition_memo = (!spec.transition_faces.is_empty())
+        .then(TransitionDensityMemo::new);
+    let transition_density = |x: f32, y: f32, z: f32| -> f32 {
+        let Some(memo) = transition_memo.as_ref() else {
+            return raw_density(x, y, z);
+        };
+        let key = [x.to_bits(), y.to_bits(), z.to_bits()];
+        memo.get_or_compute(key, || raw_density(x, y, z))
     };
 
     let extent_f32 = extent as f32;
@@ -2492,12 +2570,33 @@ fn build_clipmap_mesh(
     );
     let transition_sides = transvoxel_sides(spec.transition_faces);
 
-    let transition_mesh = {
+    let (central, transition_mesh) = {
         let _span = bevy::log::info_span!(
             "voxel.worker.presentation_resolution.extract"
         )
         .entered();
-        extract_clipmap_transvoxel_mesh(&density, block, transition_sides)
+
+        let central = {
+            let _cache_span = bevy::log::info_span!(
+                "voxel.worker.presentation_resolution.extract.central_cache"
+            )
+            .entered();
+            VoxelVecBlock::cache(&raw_density, block)
+        };
+
+        let transition_mesh = {
+            let _mesh_span = bevy::log::info_span!(
+                "voxel.worker.presentation_resolution.extract.transvoxel"
+            )
+            .entered();
+            extract_clipmap_transvoxel_mesh(
+                &transition_density,
+                &central,
+                transition_sides,
+            )
+        };
+
+        (central, transition_mesh)
     };
 
     let (sanitized, transition_fallback) = {
@@ -2517,9 +2616,10 @@ fn build_clipmap_mesh(
                     "voxel.worker.presentation_resolution.fallback_extract"
                 )
                 .entered();
+                // Reuse the expensive already-filled central field.
                 extract_clipmap_transvoxel_mesh(
-                    &density,
-                    block,
+                    &transition_density,
+                    &central,
                     TransitionSide::none(),
                 )
             };
@@ -2535,6 +2635,15 @@ fn build_clipmap_mesh(
             return None;
         }
     };
+
+    if let Some(memo) = transition_memo.as_ref() {
+        let (hits, misses) = memo.stats();
+        trace!(
+            hits,
+            misses,
+            "binary clipmap transition-density memo stats"
+        );
+    }
 
     let _span = bevy::log::info_span!(
         "voxel.worker.presentation_resolution.finalize"
@@ -3737,6 +3846,27 @@ pub(super) fn configure(app: &mut App) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn transition_density_memo_reuses_exact_lattice_query() {
+        let memo = TransitionDensityMemo::new();
+        let evaluations = Cell::new(0_u32);
+        let key = [1_u32, 2_u32, 3_u32];
+
+        let first = memo.get_or_compute(key, || {
+            evaluations.set(evaluations.get() + 1);
+            7.25
+        });
+        let second = memo.get_or_compute(key, || {
+            evaluations.set(evaluations.get() + 1);
+            99.0
+        });
+
+        assert_eq!(first, 7.25);
+        assert_eq!(second, 7.25);
+        assert_eq!(evaluations.get(), 1);
+        assert_eq!(memo.stats(), (1, 1));
+    }
 
     #[test]
     fn binary_lod_debug_palette_uses_sixteen_band_hue_revolution() {

@@ -32,7 +32,7 @@ use crate::{
         },
         navigation::{
             AdaptiveCruise, ApproachRefinementState, PrimaryBodyContext, TravelEnvelope,
-            TravelProfile, TravelState,
+            TravelPace, TravelProfile, TravelState,
         },
         player::{Player, PlayerAction, PlayerInputFrame, ViewCameraProfile},
         surface::SurfaceContext,
@@ -456,6 +456,7 @@ fn handle_spacecraft_actions(
             &mut SpatialDemandSource,
             &mut LocomotionEnabled,
             &mut ControlledSubjectLocomotion,
+            &mut TravelPace,
             &mut CharacterControlFrame,
             &mut CharacterLocomotionFrame,
             &PhysicalBoxHull,
@@ -571,6 +572,7 @@ fn handle_spacecraft_actions(
             mut player_demand,
             mut player_enabled,
             mut player_locomotion,
+            mut player_pace,
             mut player_control,
             mut player_frame,
             player_hull,
@@ -668,6 +670,11 @@ fn handle_spacecraft_actions(
         *player_visibility = Visibility::Inherited;
         player_demand.set_enabled(true);
         player_enabled.0 = true;
+        // logarithmic-flight-pace-control-v1
+        // Vehicle test pace is controller state, not character locomotion
+        // policy. Reset it on disembark so 2^N ship tuning never leaks into
+        // normal walking.
+        *player_pace = TravelPace::default();
         player_locomotion.request_automatic();
         player_locomotion.set_thrusters_enabled(false);
         player_locomotion.set_rcs_enabled(false);
@@ -696,6 +703,7 @@ fn handle_spacecraft_actions(
         mut player_visibility,
         mut player_demand,
         mut player_enabled,
+        _,
         _,
         _,
         _,

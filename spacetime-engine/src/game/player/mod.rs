@@ -159,6 +159,7 @@ impl Plugin for PlayerPlugin {
                     controls::look,
                     controls::toggle_spatial_demand,
                     controls::zoom_spatial_view,
+                    controls::adjust_flight_travel_pace,
                     camera::toggle_camera_mode,
                     camera::zoom_third_person,
                 )

@@ -197,6 +197,35 @@ pub struct TravelPace {
 impl TravelPace {
     pub const DEFAULT_MULTIPLIER: f32 = 1.0;
 
+    // logarithmic-flight-pace-control-v1
+    //
+    // Pace is dimensionless controller intent. Base-2 gives exact, predictable
+    // octave steps while spanning many orders of magnitude without changing
+    // Scale Slice, canonical SI authority or locomotion regime.
+    pub const MIN_LOG2_MULTIPLIER: f32 = -16.0;
+    pub const MAX_LOG2_MULTIPLIER: f32 = 24.0;
+
+    pub fn log2_multiplier(self) -> f32 {
+        self.multiplier
+            .max(2.0_f32.powf(Self::MIN_LOG2_MULTIPLIER))
+            .log2()
+            .clamp(
+                Self::MIN_LOG2_MULTIPLIER,
+                Self::MAX_LOG2_MULTIPLIER,
+            )
+    }
+
+    pub fn add_log2_steps(&mut self, steps: f32) {
+        if !steps.is_finite() || steps == 0.0 {
+            return;
+        }
+        let exponent = (self.log2_multiplier() + steps).clamp(
+            Self::MIN_LOG2_MULTIPLIER,
+            Self::MAX_LOG2_MULTIPLIER,
+        );
+        self.multiplier = 2.0_f32.powf(exponent);
+    }
+
     pub fn character_units_per_second(self, base_speed: f32) -> f32 {
         base_speed.max(0.0) * self.multiplier.max(0.0)
     }
@@ -207,6 +236,34 @@ impl Default for TravelPace {
         Self {
             multiplier: Self::DEFAULT_MULTIPLIER,
         }
+    }
+}
+
+
+#[cfg(test)]
+mod travel_pace_tests {
+    use super::*;
+
+    #[test]
+    fn logarithmic_pace_steps_are_exact_octaves_and_bounded() {
+        let mut pace = TravelPace::default();
+        pace.add_log2_steps(1.0);
+        assert_eq!(pace.multiplier, 2.0);
+        pace.add_log2_steps(3.0);
+        assert_eq!(pace.multiplier, 16.0);
+        pace.add_log2_steps(-2.0);
+        assert_eq!(pace.multiplier, 4.0);
+
+        pace.add_log2_steps(10_000.0);
+        assert_eq!(
+            pace.log2_multiplier(),
+            TravelPace::MAX_LOG2_MULTIPLIER,
+        );
+        pace.add_log2_steps(-20_000.0);
+        assert_eq!(
+            pace.log2_multiplier(),
+            TravelPace::MIN_LOG2_MULTIPLIER,
+        );
     }
 }
 

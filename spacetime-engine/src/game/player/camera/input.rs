@@ -2,6 +2,8 @@
 
 use super::*;
 
+use crate::game::control::LocalControlSubject;
+
 pub(in crate::game::player) fn toggle_camera_mode(
     input: Res<PlayerInputFrame>,
     mut camera: Single<&mut PlayerCamera>,
@@ -22,9 +24,17 @@ pub(in crate::game::player) fn zoom_third_person(
     input: Res<PlayerInputFrame>,
     presentation: Res<crate::view::PrimaryViewPresentation>,
     camera: Single<&PlayerCamera>,
+    controlled_vehicle: Query<
+        (),
+        (With<LocalControlSubject>, Without<Player>),
+    >,
     mut profile: Single<&mut ViewCameraProfile, With<LocalViewTarget>>,
 ) {
     if presentation.is_embedded()
+        // logarithmic-flight-pace-control-v1
+        // Vehicle control owns ordinary wheel input as the high-dynamic-range
+        // pace dial. On foot, the existing third-person zoom behavior remains.
+        || !controlled_vehicle.is_empty()
         || input.pressed(PlayerAction::ViewScaleModifier)
         || !input.gameplay_active()
         || camera.mode != CameraMode::ThirdPerson

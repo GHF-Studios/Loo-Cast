@@ -855,8 +855,19 @@ pub(super) fn flight_movement(
             )
             .clamp(0.0, 1.0);
 
-            let requested = envelope.cruise_max_speed_metres_per_second
-                * f64::from(cruise.throttle.powf(2.0));
+            // logarithmic-flight-pace-control-v1
+            //
+            // Pace multiplies the requested cruise speed *beneath* the
+            // navigation envelope. Hard-body/medium limits remain authoritative.
+            let requested = (
+                envelope.cruise_max_speed_metres_per_second
+                    * f64::from(cruise.throttle.powf(2.0))
+                    * pace
+            )
+                .clamp(
+                    0.0,
+                    envelope.cruise_max_speed_metres_per_second,
+                );
             cruise.speed_scale0 = smooth_log_value(
                 cruise.speed_scale0,
                 requested,

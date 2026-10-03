@@ -6,12 +6,16 @@
 
 use bevy::prelude::*;
 
-use super::input::{PlayerAction, PlayerInputBindings};
+use super::{
+    Player,
+    input::{PlayerAction, PlayerInputBindings},
+};
 
 use crate::{
     game::{
         control::LocalControlSubject,
         flight::{FlightMode, FlightTelemetry},
+        navigation::TravelPace,
     },
     ui::UiLayer,
 };
@@ -118,6 +122,7 @@ pub(super) fn spawn_flight_hud(mut commands: Commands) {
 pub(super) fn update_flight_hud(
     bindings: Res<PlayerInputBindings>,
     telemetry: Single<&FlightTelemetry, With<LocalControlSubject>>,
+    pace: Single<&TravelPace, With<Player>>,
     body_names: Query<&Name>,
     mut hud: ParamSet<(
         Single<(&mut Text, &mut Node), With<FlightHudLeft>>,
@@ -146,6 +151,11 @@ pub(super) fn update_flight_hud(
 
     let cruising = telemetry.mode() == Some(FlightMode::Cruise);
     let speed = format_speed(telemetry.speed_metres_per_second());
+    let pace = format!(
+        "2^{:+.0}  x{:.3}",
+        pace.log2_multiplier(),
+        pace.multiplier,
+    );
     let actuator_status = match telemetry.mode() {
         Some(FlightMode::Local) => format!(
             "THR {} • RCS {}",
@@ -161,9 +171,10 @@ pub(super) fn update_flight_hud(
     {
         let mut left = hud.p0();
         left.0.0 = format!(
-            "{}\nSPD  {}\n{}",
+            "{}\nSPD  {}\nPACE {}\n{}",
             telemetry.display_mode_label(),
             speed,
+            pace,
             actuator_status,
         );
     }

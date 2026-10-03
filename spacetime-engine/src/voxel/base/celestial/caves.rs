@@ -45,12 +45,14 @@ fn tunnel_intersection_sdf(
 /// This is intentionally a pseudo-SDF rather than exact Euclidean distance.
 /// Only the zero crossing and stable sign are required by the current
 /// reconstructible Surface Nets / Transvoxel extraction path.
-pub(super) fn rocky_cave_void_signed_distance_metres(
+// presentation-extract-hotpath-v1
+#[inline]
+pub(super) fn rocky_cave_void_signed_distance_metres_with_radial(
     local_point_metres: DVec3,
+    radial: f64,
     outer_surface_radius_metres: f64,
     seed: u32,
 ) -> f64 {
-    let radial = local_point_metres.length();
     if !radial.is_finite() || radial <= f64::EPSILON {
         return f64::INFINITY;
     }
@@ -68,7 +70,6 @@ pub(super) fn rocky_cave_void_signed_distance_metres(
 
     let point = local_f32(local_point_metres);
 
-    // Two independent tunnel systems at different characteristic scales.
     let major_tunnel = tunnel_intersection_sdf(
         point,
         520.0,
@@ -76,8 +77,8 @@ pub(super) fn rocky_cave_void_signed_distance_metres(
         0.23,
         0.21,
         145.0,
-        seed ^ 0x4341_5645, // CAVE
-        seed ^ 0x5455_4E4C, // TUNL
+        seed ^ 0x4341_5645,
+        seed ^ 0x5455_4E4C,
         Vec3::new(13.7, -5.1, 8.9),
         Vec3::new(-7.4, 19.2, -11.6),
     );
@@ -88,27 +89,34 @@ pub(super) fn rocky_cave_void_signed_distance_metres(
         0.20,
         0.18,
         90.0,
-        seed ^ 0x4252_414E, // BRAN
-        seed ^ 0x4348_4D42, // CHMB
+        seed ^ 0x4252_414E,
+        seed ^ 0x4348_4D42,
         Vec3::new(-21.3, 4.8, 15.2),
         Vec3::new(6.6, -17.9, 2.7),
     );
-
-    // Sparse blob-like chambers connect into the tunnel systems.
     let chamber_noise = value_noise_3d(
         point / 680.0 + Vec3::new(31.7, -14.1, 9.3),
-        seed ^ 0x4348_414D, // CHAM
+        seed ^ 0x4348_414D,
     );
     let chamber = f64::from(chamber_noise + 0.58) * 110.0;
-
     let raw_void = major_tunnel.min(branching_tunnel).min(chamber);
 
-    // Keep the cave system in the near-surface crust. A slightly negative
-    // minimum depth lets tunnels actually perforate the outer surface and form
-    // real entrances instead of sealed underground bubbles.
     raw_void
         .max(CAVE_MIN_DEPTH_METRES - depth_metres)
         .max(depth_metres - CAVE_MAX_DEPTH_METRES)
+}
+
+pub(super) fn rocky_cave_void_signed_distance_metres(
+    local_point_metres: DVec3,
+    outer_surface_radius_metres: f64,
+    seed: u32,
+) -> f64 {
+    rocky_cave_void_signed_distance_metres_with_radial(
+        local_point_metres,
+        local_point_metres.length(),
+        outer_surface_radius_metres,
+        seed,
+    )
 }
 
 #[cfg(test)]

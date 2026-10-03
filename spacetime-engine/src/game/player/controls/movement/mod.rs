@@ -2,6 +2,32 @@
 
 use super::*;
 
+// logarithmic-flight-pace-control-v1
+/// Vehicle-owned logarithmic pace dial.
+///
+/// Ordinary wheel input while the human controls a non-player subject changes
+/// pace by exact powers of two. Alt+wheel remains semantic view-scale input.
+/// The controller's TravelPace is reset on vehicle exit so ship test speeds
+/// never leak into ordinary character walking.
+pub(in crate::game::player) fn adjust_flight_travel_pace(
+    input: Res<PlayerInputFrame>,
+    controlled_vehicle: Query<
+        (),
+        (With<LocalControlSubject>, Without<Player>),
+    >,
+    mut pace: Single<&mut TravelPace, With<Player>>,
+) {
+    if controlled_vehicle.is_empty()
+        || !input.gameplay_active()
+        || input.pressed(PlayerAction::ViewScaleModifier)
+        || input.scroll_y() == 0.0
+    {
+        return;
+    }
+
+    pace.add_log2_steps(input.scroll_y().signum());
+}
+
 /// Samples human flight controls into device-agnostic subject intent.
 ///
 /// AI/autopilot/network/replay controllers can write the same component without

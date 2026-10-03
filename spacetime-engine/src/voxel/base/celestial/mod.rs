@@ -20,6 +20,7 @@ mod rocky;
 use caves::{
     CAVE_MAX_DEPTH_METRES,
     rocky_cave_void_signed_distance_metres,
+    rocky_cave_void_signed_distance_metres_with_radial,
 };
 use rocky::{
     rocky_maximum_outward_displacement_metres,
@@ -253,11 +254,12 @@ pub(crate) fn prepare_local_sampler(
         )
     }
 
-    pub(crate) fn outer_signed_distance_local_metres_through(
+    #[inline]
+    fn outer_signed_distance_and_radial_local_metres_through(
         self,
         local_point_metres: DVec3,
         through_scale: SpatialScale,
-    ) -> Option<f64> {
+    ) -> Option<(f64, f64)> {
         let radial = local_point_metres.length();
         if !radial.is_finite() || radial <= f64::EPSILON {
             return None;
@@ -275,7 +277,19 @@ pub(crate) fn prepare_local_sampler(
 
         let surface_radius =
             self.semantic_surface_radius_metres_through(direction, through_scale).ok()?;
-        Some(radial - surface_radius)
+        Some((radial - surface_radius, radial))
+    }
+
+    pub(crate) fn outer_signed_distance_local_metres_through(
+        self,
+        local_point_metres: DVec3,
+        through_scale: SpatialScale,
+    ) -> Option<f64> {
+        self.outer_signed_distance_and_radial_local_metres_through(
+            local_point_metres,
+            through_scale,
+        )
+        .map(|(signed_distance, _)| signed_distance)
     }
 
     pub(crate) fn signed_distance_local_metres(
@@ -295,8 +309,11 @@ pub(crate) fn prepare_local_sampler(
         through_scale: SpatialScale,
         include_caves: bool,
     ) -> Option<f64> {
-        let outer_sdf =
-            self.outer_signed_distance_local_metres_through(
+        // presentation-extract-hotpath-v1
+        // Outer evaluation already paid for radial length. Preserve it through
+        // cave composition instead of repeating the f64 square root.
+        let (outer_sdf, radial) =
+            self.outer_signed_distance_and_radial_local_metres_through(
                 local_point_metres,
                 through_scale,
             )?;
@@ -305,17 +322,14 @@ pub(crate) fn prepare_local_sampler(
             return Some(outer_sdf);
         }
 
-        let radial = local_point_metres.length();
-        if !radial.is_finite() || radial <= f64::EPSILON {
-            return None;
-        }
-
         let outer_surface_radius_metres = radial - outer_sdf;
-        let void_sdf = rocky_cave_void_signed_distance_metres(
-            local_point_metres,
-            outer_surface_radius_metres,
-            self.seed,
-        );
+        let void_sdf =
+            rocky_cave_void_signed_distance_metres_with_radial(
+                local_point_metres,
+                radial,
+                outer_surface_radius_metres,
+                self.seed,
+            );
 
         Some(outer_sdf.max(-void_sdf))
     }
