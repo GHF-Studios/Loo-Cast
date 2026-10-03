@@ -300,6 +300,19 @@ pub struct UsfSpatialTransitionApplied {
     pub cause: UsfSpatialTransitionCause,
 }
 
+// handoff-wait-reason-telemetry-v1
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct InteractionHandoffWaitFingerprint {
+    subject: Entity,
+    target: SpatialScale,
+    required_bits: u16,
+    realization_ready: bool,
+    presentation_ready: bool,
+    collision_ready: bool,
+    editing_ready: bool,
+    guard_blocked: bool,
+}
+
 pub(super) fn apply_spatial_transitions(
     mut view: Single<&mut UsfViewContext, With<UsfViewRenderAnchor>>,
     mut active: ResMut<UsfPrimaryInteractionSlice>,
@@ -333,6 +346,7 @@ pub(super) fn apply_spatial_transitions(
     )>,
     mut semantic_positions: Query<&mut UsfPosition>,
     mut applied: MessageWriter<UsfSpatialTransitionApplied>,
+    mut wait_fingerprint: Local<Option<InteractionHandoffWaitFingerprint>>,
 ) {
     let (anchor_entity, old_anchor_runtime, previous_scale, subject) = {
         let anchors = participants.p0();
@@ -410,6 +424,33 @@ pub(super) fn apply_spatial_transitions(
         active.cancel_handoff();
     }
 
+    let has_role = |role: UsfScaleRoleMask| {
+        if !required_coverage.contains(role) {
+            return true;
+        }
+        if let Some(authority) = required_coverage_authority {
+            coverage.has_near_for_authority(
+                authority,
+                target_scale,
+                &position,
+                role,
+                coverage_radius_native,
+            )
+        } else {
+            coverage.has_near(
+                target_scale,
+                &position,
+                role,
+                coverage_radius_native,
+            )
+        }
+    };
+
+    let realization_ready = has_role(UsfScaleRoleMask::REALIZATION);
+    let presentation_ready = has_role(UsfScaleRoleMask::PRESENTATION);
+    let collision_ready = has_role(UsfScaleRoleMask::COLLISION);
+    let editing_ready = has_role(UsfScaleRoleMask::EDITING);
+
     let coverage_ready = if required_coverage.is_empty() {
         true
     } else if let Some(authority) = required_coverage_authority {
@@ -430,6 +471,32 @@ pub(super) fn apply_spatial_transitions(
     };
 
     if !coverage_ready {
+        let fingerprint = InteractionHandoffWaitFingerprint {
+            subject,
+            target: target_scale,
+            required_bits: required_coverage.bits(),
+            realization_ready,
+            presentation_ready,
+            collision_ready,
+            editing_ready,
+            guard_blocked: false,
+        };
+        if wait_fingerprint.as_ref() != Some(&fingerprint) {
+            info!(
+                subject = ?subject,
+                target_scale = %target_scale,
+                required_roles = required_coverage.bits(),
+                required_authority = ?required_coverage_authority,
+                coverage_radius_native,
+                realization_ready,
+                presentation_ready,
+                collision_ready,
+                editing_ready,
+                "interaction handoff waiting for capability coverage"
+            );
+            *wait_fingerprint = Some(fingerprint);
+        }
+
         if let Some(request) = requeue {
             queue.request(request);
         }
@@ -444,8 +511,29 @@ pub(super) fn apply_spatial_transitions(
         && target_scale != previous_scale
         && !handoff_guards.allows(subject, target_scale)
     {
+        let fingerprint = InteractionHandoffWaitFingerprint {
+            subject,
+            target: target_scale,
+            required_bits: required_coverage.bits(),
+            realization_ready,
+            presentation_ready,
+            collision_ready,
+            editing_ready,
+            guard_blocked: true,
+        };
+        if wait_fingerprint.as_ref() != Some(&fingerprint) {
+            info!(
+                subject = ?subject,
+                target_scale = %target_scale,
+                required_roles = required_coverage.bits(),
+                "interaction handoff coverage ready but backend guard is blocking"
+            );
+            *wait_fingerprint = Some(fingerprint);
+        }
         return;
     }
+
+    *wait_fingerprint = None;
 
     let Ok(mut semantic) = semantic_positions.get_mut(subject) else {
         return;

@@ -62,6 +62,7 @@ const BLOCK_SUBDIVISIONS: usize = 8;
 // presentation-resolution-independent-screen-error-v1
 // terrain-continuity-closure-megapass-v1
 // moving-volume-rolling-clipmap-megapass-v1
+// terrain-transaction-root-cause-megapass-v2
 // Binary presentation is independent from decimal USF interaction Scale.
 const MIN_SAMPLE_SPACING_METRES: f64 = 1.0;
 const MAX_FINE_SAMPLE_SPACING_METRES: f64 = 2_048.0;
@@ -402,6 +403,14 @@ fn parent_coord(coord: IVec3) -> IVec3 {
     )
 }
 
+// refinement-empty-is-evidence-v1
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum LeafRefinementOutcome {
+    Refined,
+    RemovedAsEmpty,
+    Unavailable,
+}
+
 fn refine_leaf_indexed(
     leaves: &mut HashSet<CelestialClipmapBlockKey>,
     parent: CelestialClipmapBlockKey,
@@ -410,15 +419,15 @@ fn refine_leaf_indexed(
     _surface_cache: &mut CelestialClipmapSurfaceCache,
     planning_anchor_local: DVec3,
     inserted: &mut Vec<CelestialClipmapBlockKey>,
-) -> bool {
+) -> LeafRefinementOutcome {
     inserted.clear();
     if !leaves.remove(&parent) {
-        return true;
+        return LeafRefinementOutcome::Unavailable;
     }
 
     let Some(children) = parent.children() else {
         leaves.insert(parent);
-        return false;
+        return LeafRefinementOutcome::Unavailable;
     };
 
     for child in children {
@@ -433,11 +442,10 @@ fn refine_leaf_indexed(
     }
 
     if inserted.is_empty() {
-        leaves.insert(parent);
-        return false;
+        LeafRefinementOutcome::RemovedAsEmpty
+    } else {
+        LeafRefinementOutcome::Refined
     }
-
-    true
 }
 
 /// Find the unique leaf on the other side of one face when that leaf is at the
@@ -516,7 +524,7 @@ fn balance_leaves_2_to_1_local(
                 return false;
             }
 
-            if !refine_leaf_indexed(
+            match refine_leaf_indexed(
                 leaves,
                 neighbor,
                 field,
@@ -525,10 +533,16 @@ fn balance_leaves_2_to_1_local(
                 planning_anchor_local,
                 &mut inserted,
             ) {
-                return false;
+                LeafRefinementOutcome::Refined => {
+                    queue.extend(inserted.iter().copied());
+                }
+                LeafRefinementOutcome::RemovedAsEmpty => {
+                    // Fine evidence removed a conservative false-positive;
+                    // there is no surviving surface transition to balance.
+                }
+                LeafRefinementOutcome::Unavailable => return false,
             }
 
-            queue.extend(inserted.iter().copied());
             queue.push_back(key);
             corrected = true;
             break;
@@ -1212,14 +1226,16 @@ fn block_intersects_refinement_boundary(
     key: CelestialClipmapBlockKey,
     planning_anchor_local: DVec3,
 ) -> bool {
-    if !block_may_intersect_presentation_shell(field, key) {
-        return false;
-    }
-
-    // The nearest-boundary projection is semantic evidence that this branch
-    // must survive even if the pseudo-SDF is locally awkward.
+    // exact-boundary-focus-precedes-radial-broadphase-v1
+    //
+    // This focus came from the complete canonical volumetric field. A radial
+    // broadphase optimization may never veto the exact cave/terrain branch.
     if block_contains_local_point(key, planning_anchor_local) {
         return true;
+    }
+
+    if !block_may_intersect_presentation_shell(field, key) {
+        return false;
     }
 
     let origin = key.origin_local_metres();
@@ -1587,6 +1603,76 @@ fn plan_requires_refresh(
     displacement > hold_radius
 }
 
+// refinement-progress-before-maintenance-v1
+fn plan_refinement_in_progress(plan: &CelestialClipmapPlan) -> bool {
+    plan.stage_index.saturating_add(1) < plan.stages.len()
+        || plan.committed_generation != Some(plan.generation)
+}
+
+fn committed_local_spacing_metres(plan: &CelestialClipmapPlan) -> f64 {
+    plan.committed_specs
+        .iter()
+        .filter(|spec| {
+            block_distance_to_point(
+                spec.key,
+                plan.planning_anchor_local,
+            ) <= plan
+                .validity_radius_metres
+                .max(spec.key.extent_metres())
+        })
+        .map(|spec| spec.key.spacing_metres())
+        .min_by(f64::total_cmp)
+        .unwrap_or_else(|| {
+            2.0_f64.powi(i32::from(plan.key.coarsest_exponent))
+        })
+}
+
+fn emergency_replan_required(
+    plan: &CelestialClipmapPlan,
+    input: CelestialClipmapPlanInput,
+    field: CelestialVoxelField,
+) -> bool {
+    if plan.field != field
+        || plan.key.policy_revision != input.key.policy_revision
+        || plan.key.coarsest_exponent != input.key.coarsest_exponent
+    {
+        return true;
+    }
+
+    let displacement =
+        (input.planning_anchor_local - plan.planning_anchor_local).length();
+    if !displacement.is_finite() {
+        return true;
+    }
+
+    let support =
+        committed_local_spacing_metres(plan)
+            * BLOCK_SUBDIVISIONS as f64
+            * 2.0;
+    let safety_radius = support
+        .max(plan.validity_radius_metres * 4.0)
+        .max(input.validity_radius_metres * 2.0);
+
+    displacement > safety_radius
+}
+
+fn should_schedule_plan_refresh(
+    plan: &CelestialClipmapPlan,
+    input: CelestialClipmapPlanInput,
+    field: CelestialVoxelField,
+) -> bool {
+    if !plan_requires_refresh(plan, input, field) {
+        return false;
+    }
+    if !plan_refinement_in_progress(plan) {
+        return true;
+    }
+
+    // Refinement is useful foreground work. Ordinary focus maintenance cannot
+    // continuously replace it; structural changes and true escape still can.
+    emergency_replan_required(plan, input, field)
+}
+
 // rolling-predictive-clipmap-v1
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ClipmapPlanTaskRelevance {
@@ -1903,6 +1989,39 @@ fn build_plan(
                 Vec::<CelestialClipmapBlockKey>::with_capacity(8);
             let mut primary_refinements = 0usize;
 
+            // focus-path-first-v1
+            // Whole-body breadth may never consume a complete wave before the
+            // exact local semantic-boundary branch advances one level.
+            let focus_candidate = leaves
+                .iter()
+                .copied()
+                .filter(|key| {
+                    key.resolution > finest
+                        && block_contains_local_point(
+                            *key,
+                            planning_anchor_local,
+                        )
+                })
+                .min_by_key(|key| key.resolution.binary_exponent());
+
+            if let Some(focus_key) = focus_candidate {
+                match refine_leaf_indexed(
+                    &mut leaves,
+                    focus_key,
+                    field,
+                    policy,
+                    surface_cache,
+                    planning_anchor_local,
+                    &mut inserted,
+                ) {
+                    LeafRefinementOutcome::Refined
+                    | LeafRefinementOutcome::RemovedAsEmpty => {
+                        primary_refinements = 1;
+                    }
+                    LeafRefinementOutcome::Unavailable => {}
+                }
+            }
+
             while let Some(candidate) = candidates.pop() {
                 if primary_refinements
                     >= MAX_PRIMARY_REFINEMENTS_PER_WAVE
@@ -1916,7 +2035,7 @@ fn build_plan(
                     break;
                 }
 
-                if refine_leaf_indexed(
+                match refine_leaf_indexed(
                     &mut leaves,
                     candidate.key,
                     field,
@@ -1924,9 +2043,12 @@ fn build_plan(
                     surface_cache,
                     planning_anchor_local,
                     &mut inserted,
-                ) && !inserted.is_empty()
-                {
-                    primary_refinements += 1;
+                ) {
+                    LeafRefinementOutcome::Refined
+                    | LeafRefinementOutcome::RemovedAsEmpty => {
+                        primary_refinements += 1;
+                    }
+                    LeafRefinementOutcome::Unavailable => {}
                 }
             }
 
@@ -2337,6 +2459,11 @@ fn sync_celestial_clipmap_realizations(
             refinement_stages = stages.len(),
             initial_blocks = desired.len(),
             final_blocks = stages.last().map_or(0, Vec::len),
+            requested_target_reached =
+                actual_finest_spacing_metres.is_some_and(|spacing| {
+                    spacing
+                        <= build.input.finest.sample_spacing_metres() * 1.001
+                }),
             "celestial clipmap staged plan ready"
         );
 
@@ -2384,7 +2511,9 @@ fn sync_celestial_clipmap_realizations(
     for (&authority, &(input, field)) in &current_inputs {
         let existing = registry.plans.get(&authority);
         let replace = existing
-            .is_none_or(|plan| plan_requires_refresh(plan, input, field));
+            .is_none_or(|plan| {
+                should_schedule_plan_refresh(plan, input, field)
+            });
         if !replace
             || planning_authorities.contains(&authority)
             || planning_slots == 0

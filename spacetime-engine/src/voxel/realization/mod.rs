@@ -395,11 +395,12 @@ pub(super) fn collect_voxel_realization_intent(
         // presentation hierarchy. Dense celestial worlds exist only from
         // explicit spatial/capability demand.
         //
-        // source-centered-volumetric-demand-v1
+        // subject-boundary-contact-corridor-v1
         //
-        // Physical dense residency follows the controlled/source location
-        // through the full 3-D body. Nearest-boundary projection is a
-        // presentation/refinement concern, not residency authority.
+        // Local volumetric ownership follows the source, while nearby boundary
+        // contact must be prepared before landing/handoff. Full-SDF clearance
+        // finds cave/terrain boundaries. Outer-shell clearance distinguishes
+        // positive-SDF cave air from actual planetary exterior.
         for source in sources.iter().copied() {
             let Ok(source_local_metres) =
                 body_frame.world_to_local_metres(
@@ -416,13 +417,26 @@ pub(super) fn collect_voxel_realization_intent(
             else {
                 continue;
             };
+            let outer_clearance_metres = field
+                .outer_signed_distance_local_metres(source_local_metres)
+                .unwrap_or(signed_clearance_metres);
+            let boundary_center = field
+                .boundary_near(
+                    body_origin,
+                    *body_frame,
+                    &source.scope.center(),
+                    f64::MAX,
+                )
+                .map(|(boundary, _)| boundary);
 
             let plan = realization_plan(source, *domain);
             for step in plan.steps_coarse_to_fine() {
                 let scale = step.scale();
                 let target = VoxelRealizationTarget::new(authority, scale);
-                let candidate = celestial_volume_demand(
+                let candidate = celestial_contact_volume_demand(
+                    boundary_center,
                     signed_clearance_metres,
+                    outer_clearance_metres,
                     *domain,
                     source.scope,
                     scale,
@@ -434,7 +448,10 @@ pub(super) fn collect_voxel_realization_intent(
                     scope,
                     roles: roles_for_scale(*domain, scale, physical_target_scale),
                     view_source: None,
-                    residency_half_extent_native: step.residency_half_extent_native(),
+                    residency_half_extent_native:
+                        materialization_residency_extent(
+                            scope.half_extent_native(),
+                        ),
                 });
 
                 // current-location-refinement-demand-v1
@@ -628,52 +645,116 @@ fn realization_requests_scale(
     .requests_scale(target_scale)
 }
 
-// source-centered-volumetric-demand-v1
-fn celestial_volume_demand(
+// subject-boundary-contact-corridor-v1
+fn corridor_scope_between(
+    source: SpatialDemandScope,
+    boundary: UsfPosition,
+    target_scale: SpatialScale,
+    base_half_extent_native: Vec3,
+    priority: i32,
+    maximum_corridor_native: f32,
+) -> Option<SpatialDemandScope> {
+    let delta = boundary
+        .relative_at_scale_bounded(
+            &source.center(),
+            target_scale,
+            maximum_corridor_native.max(1.0),
+        )
+        .ok()?;
+    let midpoint = source
+        .center()
+        .translated_at_scale(target_scale, delta * 0.5)
+        .ok()?;
+    let half_extent =
+        base_half_extent_native + delta.abs() * 0.5;
+
+    Some(SpatialDemandScope::at_scale(
+        source.source(),
+        target_scale,
+        midpoint,
+        half_extent,
+        priority,
+    ))
+}
+
+fn celestial_contact_volume_demand(
+    boundary_center: Option<UsfPosition>,
     signed_clearance_metres: f64,
+    outer_clearance_metres: f64,
     domain: VoxelScaleDomain,
     source: SpatialDemandScope,
     target_scale: SpatialScale,
     half_extent_native: Vec3,
     priority: i32,
 ) -> Option<SpatialDemandScope> {
-    if !signed_clearance_metres.is_finite() {
+    if !signed_clearance_metres.is_finite()
+        || !outer_clearance_metres.is_finite()
+    {
         return None;
     }
 
     let metres_per_native = target_scale.metres_per_native();
     let activation_metres =
-        f64::from(domain.refinement_activation_native.max(0.0))
+        f64::from(domain.refinement_activation_native().max(0.0))
             * metres_per_native;
-
-    // Keep one footprint worth of exterior overlap so contextual binary terrain
-    // can become visible before dense presentation retires.
-    let overlap_metres =
-        f64::from(
-            half_extent_native.length()
-                + MATERIALIZATION_CHUNK_SIZE as f32,
-        ) * metres_per_native;
+    let footprint_native =
+        half_extent_native.length()
+            + MATERIALIZATION_CHUNK_SIZE as f32;
     let exterior_limit_metres =
-        activation_metres + overlap_metres;
+        activation_metres
+            + f64::from(footprint_native) * metres_per_native;
 
-    // IMPORTANT: signed-distance activation is intentionally asymmetric.
-    //
-    // Positive  => outside the solid body. Fine dense terrain may retire once
-    //              sufficiently far away.
-    // <= 0      => inside/on the volumetric body. The local physical working
-    //              volume must follow the source regardless of depth; otherwise
-    //              underground/cave interaction gets pinned to the surface.
-    if signed_clearance_metres > exterior_limit_metres {
+    // Full SDF can be positive inside a cave. Only outer-shell clearance proves
+    // the observer is truly outside the planetary volume.
+    if outer_clearance_metres > exterior_limit_metres {
         return None;
     }
 
-    Some(SpatialDemandScope::at_scale(
+    let local_scope = SpatialDemandScope::at_scale(
         source.source(),
         target_scale,
         source.center(),
         half_extent_native,
         priority,
-    ))
+    );
+
+    let Some(boundary) = boundary_center else {
+        return Some(local_scope);
+    };
+
+    // This corridor is contact-preparation, not a giant deep-volume prism.
+    let corridor_native =
+        (footprint_native * 2.0)
+            .max(MATERIALIZATION_CHUNK_SIZE as f32 * 4.0);
+    let corridor_metres =
+        f64::from(corridor_native) * metres_per_native;
+
+    if signed_clearance_metres.abs() <= corridor_metres {
+        if let Some(scope) = corridor_scope_between(
+            source,
+            boundary,
+            target_scale,
+            half_extent_native,
+            priority,
+            corridor_native + footprint_native,
+        ) {
+            return Some(scope);
+        }
+    }
+
+    if outer_clearance_metres > 0.0 {
+        // Outside: prepare actual terrain, not an all-air cube around the view.
+        Some(SpatialDemandScope::at_scale(
+            source.source(),
+            target_scale,
+            boundary,
+            half_extent_native,
+            priority,
+        ))
+    } else {
+        // Inside the body envelope, including cave voids, stay subject-local.
+        Some(local_scope)
+    }
 }
 
 #[cfg(test)]

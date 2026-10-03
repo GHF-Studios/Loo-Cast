@@ -23,9 +23,9 @@ use crate::{
     portal::PortalTraveler,
     voxel::CelestialVoxelField,
     spatial::{
-        SpatialRefinementDemand, UsfCanonicalMotion, UsfPosition, UsfScaleLayer,
-        UsfSemanticFrame,
-        UsfScaleRoleMask, UsfSpatialFrame, UsfSpatialTransition,
+        SpatialRefinementDemand, UsfCanonicalMotion, UsfInteractionScaleAffinity,
+        UsfPosition, UsfScaleLayer, UsfSemanticFrame, UsfScaleRoleMask,
+        UsfSpatialFrame, UsfSpatialTransition,
         UsfSpatialTransitionQueue, UsfTransitionVelocity,
     },
 };
@@ -48,6 +48,7 @@ pub(super) fn prepare_controlled_subject(
         (
             Entity,
             &UsfScaleLayer,
+            &UsfInteractionScaleAffinity,
             &mut Transform,
             &mut PortalTraveler,
             &mut LinearVelocity,
@@ -66,6 +67,7 @@ pub(super) fn prepare_controlled_subject(
     let (
         realization,
         layer,
+        affinity,
         mut transform,
         mut traveler,
         mut velocity,
@@ -169,30 +171,40 @@ pub(super) fn prepare_controlled_subject(
     // destination immediately. Interaction itself is coverage-gated below.
     traveler.commit_position(runtime_position);
 
-    // Bootstrap is not an interstellar approach. Realize the destination site
-    // immediately and jump directly to its physical interaction chart only when
-    // the selected body's own collision/realization coverage exists there.
-    refinement.request_through(site.scale());
+    // fixture-bootstrap-uses-controlled-affinity-v1
+    //
+    // The site owns canonical arrival POSITION. The controlled manifestation's
+    // affinity owns interaction SCALE. Runtime evidence showed a flight-capable
+    // S+1 subject first requesting +1, then this fixture path forcing +0 and
+    // requeueing that wrong one-shot transition forever.
+    let interaction_scale = affinity.scale();
+    let required_roles = affinity.required_roles();
+
+    refinement.request_through(interaction_scale);
 
     let coverage_radius_metres =
         hull.half_extents_metres().length() + spawn_gap_metres;
     let coverage_radius_native =
-        site.scale().metres_to_native_f32(coverage_radius_metres);
+        interaction_scale.metres_to_native_f32(coverage_radius_metres);
 
-    transitions.request(
-        UsfSpatialTransition::new(
-            semantic_entity,
-            canonical,
-            UsfTransitionVelocity::Zero,
-        )
-        .with_scale(site.scale())
-        .with_view_exponent(f32::from(site.scale().exponent()))
-        .requiring_coverage_from(
+    let mut transition = UsfSpatialTransition::new(
+        semantic_entity,
+        canonical,
+        UsfTransitionVelocity::Zero,
+    )
+    .with_scale(interaction_scale)
+    // View framing is presentation policy; the authored site may still seed it.
+    .with_view_exponent(f32::from(site.scale().exponent()));
+
+    if !required_roles.is_empty() {
+        transition = transition.requiring_coverage_from(
             site.body(),
-            UsfScaleRoleMask::REALIZATION.union(UsfScaleRoleMask::COLLISION),
+            required_roles,
             coverage_radius_native,
-        ),
-    );
+        );
+    }
+
+    transitions.request(transition);
 
     velocity.0 = Vec3::ZERO;
     motion.stop();
@@ -213,6 +225,8 @@ pub(super) fn prepare_controlled_subject(
         body = ?site.body(),
         bootstrap_scale = %layer.scale(),
         site_scale = %site.scale(),
+        interaction_scale = %interaction_scale,
+        interaction_required_roles = required_roles.bits(),
         support_metres,
         gap_metres = spawn_gap_metres,
         runtime = ?runtime_position,
