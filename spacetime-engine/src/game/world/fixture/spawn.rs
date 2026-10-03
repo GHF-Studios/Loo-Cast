@@ -33,6 +33,25 @@ const FALLBACK_MAX_SLOPE_DEGREES: f64 = 32.0;
 const MIN_PROBE_RADIUS_METRES: f64 = 75.0;
 const MAX_PROBE_RADIUS_METRES: f64 = 500.0;
 
+// volumetric-safe-spawn-v1
+//
+// `surface_local_metres()` resolves the radial outer shell. Rocky terrain can
+// subtract volumetric cave voids from that shell, so an outer-shell point is
+// not automatically a physical support surface. This tolerance is numerical
+// boundary tolerance only; it must not become a hidden spawn-clearance policy.
+const VOLUMETRIC_SURFACE_TOLERANCE_METRES: f64 = 0.25;
+
+fn outer_surface_is_volumetric_boundary(
+    field: CelestialVoxelField,
+    point_local_metres: DVec3,
+) -> bool {
+    field
+        .signed_distance_local_metres(point_local_metres)
+        .is_some_and(|distance| {
+            distance.abs() <= VOLUMETRIC_SURFACE_TOLERANCE_METRES
+        })
+}
+
 #[derive(Debug, Clone, Copy)]
 struct SpawnCandidate {
     direction_local: Vec3,
@@ -78,6 +97,14 @@ fn sample_candidate(
     let direction_local = direction_local.normalize_or_zero();
     let (tangent_u, tangent_v) = tangent_basis(direction_local)?;
     let center = field.surface_local_metres(direction_local).ok()?;
+
+
+    // Spawn ownership needs an actual physical surface, not merely the radial
+    // outer-shell approximation. A cave entrance can make the full volumetric
+    // field empty at this exact point even though the outer shell is smooth.
+    if !outer_surface_is_volumetric_boundary(field, center) {
+        return None;
+    }
 
     let sample_direction = |tangent: Vec3, signed_distance: f64| {
         angular_offset(
@@ -308,6 +335,45 @@ mod tests {
         assert!(
             a.up().dot(radial) > 0.9999,
             "spawn clearance must follow the body-radial ray"
+        );
+    }
+
+    #[test]
+    fn rocky_spawn_rejects_outer_shell_cave_opening() {
+        let field = CelestialVoxelField::new(
+            6_371_000.0,
+            SpatialScale::new(6).unwrap(),
+            SpatialScale::ZERO,
+            0x4541_5254,
+            CelestialBodyProfile::Rocky,
+        );
+
+        // Observed 2026-10-03 fixture selection. The radial outer shell is
+        // smooth here, but the canonical volumetric field subtracts a cave
+        // entrance through it. Before volumetric spawn validation this exact
+        // point remained eligible as a "safe" physical arrival site.
+        let cave_opening_direction =
+            Vec3::new(0.00027186488, 1.0, 0.00015696122).normalize();
+        let outer_surface = field
+            .surface_local_metres(cave_opening_direction)
+            .unwrap();
+        let full_sdf = field
+            .signed_distance_local_metres(outer_surface)
+            .unwrap();
+
+        assert!(
+            full_sdf > VOLUMETRIC_SURFACE_TOLERANCE_METRES,
+            "regression direction must remain a volumetric cave opening, sdf={full_sdf:.3} m"
+        );
+        assert!(
+            sample_candidate(
+                field,
+                cave_opening_direction,
+                0.0,
+                MIN_PROBE_RADIUS_METRES,
+            )
+            .is_none(),
+            "outer-shell cave openings must not be eligible physical spawn candidates"
         );
     }
 }
