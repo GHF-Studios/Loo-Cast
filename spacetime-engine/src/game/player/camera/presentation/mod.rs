@@ -245,19 +245,25 @@ pub(in crate::game::player) fn sync_usf_projection_camera(
 /// primary first-person camera by moving body presentations onto the derived
 /// view layer. Portal cameras intentionally include that layer. Presentations
 /// of previous/unrelated view subjects are restored to ordinary world layers.
+// self-visibility-inserts-missing-render-layers-v1
 pub(in crate::game::player) fn sync_view_subject_presentations(
+    mut commands: Commands,
     freecam: Res<DebugFreecam>,
     camera: Single<&PlayerCamera>,
     runtime_ownership: UsfRuntimeOwnershipQuery,
     target: Single<Entity, With<LocalViewTarget>>,
-    mut presentations: Query<
-        (&UsfPresentationProjectionOf, &mut RenderLayers),
+    presentations: Query<
+        (
+            Entity,
+            &UsfPresentationProjectionOf,
+            Option<&RenderLayers>,
+        ),
         With<ViewSubjectPresentation>,
     >,
 ) {
     let viewed_semantic = runtime_ownership.semantic_of(target.into_inner());
 
-    for (projection, mut layers) in &mut presentations {
+    for (entity, projection, layers) in &presentations {
         let is_self = viewed_semantic.is_some()
             && runtime_ownership.semantic_of(projection.0) == viewed_semantic;
 
@@ -270,8 +276,11 @@ pub(in crate::game::player) fn sync_view_subject_presentations(
             RenderLayers::default()
         };
 
-        if *layers != desired {
-            *layers = desired;
+        // View-subject self visibility owns this layer even when a model was
+        // spawned without RenderLayers (the spacecraft used to be exactly that
+        // case). Missing component state must not silently opt out of policy.
+        if layers.is_none_or(|current| *current != desired) {
+            commands.entity(entity).insert(desired);
         }
     }
 }

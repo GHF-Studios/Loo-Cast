@@ -11,12 +11,11 @@ use bevy::prelude::*;
 
 use crate::{
     reconstructible::{ReconstructibleFrameBudget, ReconstructibleWorkClass},
-    spatial::{SPATIAL_SCALE_MAX, SpatialScale, UsfPosition, UsfScaleLayer},
+    spatial::{SpatialScale, UsfPrimaryInteractionSlice, UsfScaleLayer},
 };
 
 use super::{
-    VoxelBase, VoxelMaterializationChunkAddress, VoxelMaterializationKey,
-    VoxelWorld,
+    VoxelBase, VoxelMaterializationKey, VoxelWorld,
     streaming::VoxelStreamingTelemetry,
     mesh::{self, VoxelSurface},
     store::VoxelSurfaceCache,
@@ -132,6 +131,7 @@ pub(super) fn retire_stale_chunk_builds(
 pub(super) fn queue_dirty_chunk_builds(
     mut commands: Commands,
     workers: Res<VoxelWorkerPool>,
+    interaction: Res<UsfPrimaryInteractionSlice>,
     mut worlds: Query<(
         Entity,
         &mut VoxelWorld,
@@ -243,13 +243,18 @@ pub(super) fn queue_dirty_chunk_builds(
                 continue;
             }
 
-            let Ok(address) = world.materialization_address(key) else {
-                world.materializations_mut().cancel_surface_build(key, revision);
-                frame_budget.finish(work_token);
-                progressed = true;
-                continue;
-            };
-            let debug_color = debug_chunk_color(address, layer.scale());
+            // relative-scale-rainbow-debug-v1
+            //
+            // Dense Scale-local geometry is diagnostic-colored by USF Scale
+            // relative to the current physical interaction slice:
+            // current=blue, +1=green, +2=yellow, +3=orange, +4=red,
+            // +5=purple, +6=magenta, then repeat.
+            //
+            // This is deliberately a Scale diagnostic, not presentation LOD.
+            let debug_color = debug_scale_band_color(
+                layer.scale(),
+                interaction.target_scale(),
+            );
             let build = move || {
                 let surface = mesh::extract_chunk_surface(&snapshot);
                 VoxelDerivedOutput {
@@ -297,43 +302,39 @@ pub(super) fn queue_dirty_chunk_builds(
 }
 
 
-fn debug_chunk_color(address: VoxelMaterializationChunkAddress, scale: SpatialScale) -> [f32; 4] {
-    let origin = *address.origin();
-    let chart_zero = UsfPosition::zero(scale);
-    let mut color = Vec3::splat(0.72);
-    let mut initialized = false;
-
-    for raw in (scale.exponent()..=SPATIAL_SCALE_MAX).rev() {
-        let level = SpatialScale::new(raw).expect("validated debug color scale");
-        let relative = origin
-            .relative_at_scale_bounded(&chart_zero, level, 1_000_000.0)
-            .unwrap_or(Vec3::ZERO);
-        let cell = (relative / 10.0).floor().as_ivec3();
-        let hash = debug_hash(cell, level);
-        let candidate = Vec3::new(
-            0.32 + ((hash & 0xFF) as f32 / 255.0) * 0.62,
-            0.32 + (((hash >> 8) & 0xFF) as f32 / 255.0) * 0.62,
-            0.32 + (((hash >> 16) & 0xFF) as f32 / 255.0) * 0.62,
-        );
-
-        if initialized {
-            color = color.lerp(candidate, 0.20);
-        } else {
-            color = candidate;
-            initialized = true;
-        }
-    }
-
-    [color.x, color.y, color.z, 1.0]
+fn debug_scale_band_color(
+    scale: SpatialScale,
+    interaction_scale: SpatialScale,
+) -> [f32; 4] {
+    let relative = i16::from(scale.exponent())
+        - i16::from(interaction_scale.exponent());
+    rainbow_debug_color(relative)
 }
 
-fn debug_hash(cell: IVec3, scale: SpatialScale) -> u32 {
-    let mut value = (scale.exponent() as i32 as u32).wrapping_mul(0x9E37_79B9);
-    for component in [cell.x, cell.y, cell.z] {
-        value ^= (component as u32).wrapping_mul(0x85EB_CA6B);
-        value ^= value >> 16;
-        value = value.wrapping_mul(0x7FEB_352D);
-        value ^= value >> 15;
+fn rainbow_debug_color(relative_band: i16) -> [f32; 4] {
+    match relative_band.rem_euclid(7) {
+        0 => [0.05, 0.20, 1.00, 1.0], // blue
+        1 => [0.05, 0.95, 0.20, 1.0], // green
+        2 => [1.00, 0.95, 0.05, 1.0], // yellow
+        3 => [1.00, 0.45, 0.02, 1.0], // orange
+        4 => [1.00, 0.05, 0.05, 1.0], // red
+        5 => [0.55, 0.08, 1.00, 1.0], // purple
+        _ => [1.00, 0.05, 0.65, 1.0], // magenta
     }
-    value
+}
+
+#[cfg(test)]
+mod scale_band_debug_tests {
+    use super::*;
+
+    #[test]
+    fn interaction_scale_is_blue_and_successive_coarser_scales_are_rainbow() {
+        let s0 = SpatialScale::ZERO;
+        let s1 = SpatialScale::new(1).unwrap();
+        let s2 = SpatialScale::new(2).unwrap();
+
+        assert_eq!(debug_scale_band_color(s0, s0), [0.05, 0.20, 1.00, 1.0]);
+        assert_eq!(debug_scale_band_color(s1, s0), [0.05, 0.95, 0.20, 1.0]);
+        assert_eq!(debug_scale_band_color(s2, s0), [1.00, 0.95, 0.05, 1.0]);
+    }
 }
