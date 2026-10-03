@@ -131,6 +131,65 @@ impl CelestialVoxelField {
         )
     }
 
+    // presentation-field-bandlimit-v1
+    fn presentation_detail_scale_for_spacing(
+        self,
+        sample_spacing_metres: f64,
+    ) -> Option<SpatialScale> {
+        if !sample_spacing_metres.is_finite() || sample_spacing_metres <= 0.0 {
+            return None;
+        }
+
+        let exponent = sample_spacing_metres
+            .log10()
+            .floor()
+            .clamp(
+                f64::from(self.surface_detail_scale.exponent()),
+                f64::from(self.coarsest_detail_scale.exponent()),
+            ) as i8;
+        SpatialScale::new(exponent)
+    }
+
+    pub(crate) fn presentation_surface_local_metres(
+        self,
+        direction: Vec3,
+        sample_spacing_metres: f64,
+    ) -> Result<DVec3, UsfPositionError> {
+        let through_scale = self
+            .presentation_detail_scale_for_spacing(sample_spacing_metres)
+            .ok_or(UsfPositionError::NonFiniteTranslation)?;
+        self.realization(
+            UsfPosition::zero(SpatialScale::MIN),
+            UsfSemanticFrame::identity(),
+            SpatialScale::ZERO,
+        )
+        .surface_local_metres_through(direction, through_scale)
+    }
+
+    pub(crate) fn presentation_signed_distance_local_metres(
+        self,
+        local_point_metres: DVec3,
+        sample_spacing_metres: f64,
+    ) -> Option<f64> {
+        const CAVE_MAX_PRESENTATION_SAMPLE_SPACING_METRES: f64 = 64.0;
+
+        let through_scale =
+            self.presentation_detail_scale_for_spacing(sample_spacing_metres)?;
+        let include_caves =
+            sample_spacing_metres <= CAVE_MAX_PRESENTATION_SAMPLE_SPACING_METRES;
+
+        self.realization(
+            UsfPosition::zero(SpatialScale::MIN),
+            UsfSemanticFrame::identity(),
+            SpatialScale::ZERO,
+        )
+        .signed_distance_local_metres_through(
+            local_point_metres,
+            through_scale,
+            include_caves,
+        )
+    }
+
     pub(crate) fn volumetric_surface_inward_support_metres(self) -> f64 {
         self.realization(
             UsfPosition::zero(SpatialScale::MIN),

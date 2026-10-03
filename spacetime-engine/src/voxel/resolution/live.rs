@@ -47,7 +47,7 @@ use super::{
 };
 use super::super::{
     CelestialVoxelField, CelestialVoxelRealization, CelestialVoxelRealizationPolicy,
-    VoxelAuthority,
+    MATERIALIZATION_CHUNK_SIZE, VoxelAuthority, VoxelWorld,
     manifestation::{
         VoxelMaterializationPresentation, VoxelMaterializationRuntime,
     },
@@ -641,11 +641,23 @@ impl CelestialClipmapMeshData {
 pub(in crate::voxel) struct CelestialClipmapCoverageCell {
     center_local_metres: DVec3,
     half_extent_metres: DVec3,
+    sample_spacing_metres: f64,
 }
 
 impl CelestialClipmapCoverageCell {
     pub(in crate::voxel) const fn center_local_metres(self) -> DVec3 {
         self.center_local_metres
+    }
+
+    pub(in crate::voxel) const fn sample_spacing_metres(self) -> f64 {
+        self.sample_spacing_metres
+    }
+
+    fn contains_local_point(self, point: DVec3) -> bool {
+        let relative = (point - self.center_local_metres).abs();
+        relative.x <= self.half_extent_metres.x
+            && relative.y <= self.half_extent_metres.y
+            && relative.z <= self.half_extent_metres.z
     }
 
     pub(in crate::voxel) fn inner_radius_metres(self) -> f64 {
@@ -773,7 +785,10 @@ fn block_intersects_semantic_surface(
 
     // Exact canonical volumetric SDF where it is informative.
     if field
-        .signed_distance_local_metres(center)
+        .presentation_signed_distance_local_metres(
+            center,
+            key.spacing_metres(),
+        )
         .is_some_and(|distance| distance.abs() <= threshold)
     {
         return true;
@@ -796,7 +811,10 @@ fn block_intersects_semantic_surface(
         return false;
     }
 
-    let Ok(surface) = field.surface_local_metres(direction) else {
+    let Ok(surface) = field.presentation_surface_local_metres(
+        direction,
+        key.spacing_metres(),
+    ) else {
         return false;
     };
     let radial_delta = radial - surface.length();
@@ -1316,7 +1334,10 @@ fn build_clipmap_mesh(
         // canonical volumetric field as dense physical voxels. Transvoxel uses
         // the opposite sign convention: positive density means solid.
         let Some(volumetric_sdf) =
-            field.signed_distance_local_metres(point)
+            field.presentation_signed_distance_local_metres(
+                point,
+                spec.key.spacing_metres(),
+            )
         else {
             return -1.0;
         };
@@ -1401,6 +1422,7 @@ fn coverage_for_specs(
         .map(|spec| CelestialClipmapCoverageCell {
             center_local_metres: spec.key.center_local_metres(),
             half_extent_metres: spec.key.half_extent_metres(),
+            sample_spacing_metres: spec.key.spacing_metres(),
         })
         .collect()
 }
@@ -2022,10 +2044,64 @@ fn sync_celestial_clipmap_transforms(
     }
 }
 
+// exclusive-celestial-presentation-aperture-v1
+fn dense_base_presentation_yields_to_binary_hierarchy(
+    realization: CelestialVoxelRealization,
+    layer: &UsfScaleLayer,
+    world: &VoxelWorld,
+    runtime: &VoxelMaterializationRuntime,
+    authorities: &Query<(&UsfPosition, &UsfSemanticFrame, &CelestialVoxelField)>,
+    clipmap_coverage: &CelestialClipmapCoverageSnapshot,
+) -> bool {
+    let Ok((body_origin, body_frame, _field)) =
+        authorities.get(realization.authority())
+    else {
+        return false;
+    };
+    let Ok(address) = world.materialization_address(runtime.key()) else {
+        return false;
+    };
+
+    let half_native = MATERIALIZATION_CHUNK_SIZE as f32 * 0.5;
+    let Ok(center) = address
+        .query_origin()
+        .usf()
+        .translated_at_scale(layer.scale(), Vec3::splat(half_native))
+    else {
+        return false;
+    };
+    let Ok(center_local_metres) = body_frame.world_to_local_metres(
+        body_origin,
+        &center,
+        SpatialScale::ZERO,
+        f64::MAX,
+    ) else {
+        return false;
+    };
+
+    let maximum_replacement_spacing =
+        layer.scale().metres_per_native() * 2.0;
+
+    clipmap_coverage
+        .for_authority(realization.authority())
+        .iter()
+        .copied()
+        .any(|cell| {
+            cell.sample_spacing_metres() <= maximum_replacement_spacing
+                && cell.contains_local_point(center_local_metres)
+        })
+}
+
 fn suppress_legacy_celestial_dense_presentation(
     interaction: Res<UsfPrimaryInteractionSlice>,
+    clipmap_coverage: Res<CelestialClipmapCoverageSnapshot>,
     runtimes: Query<&VoxelMaterializationRuntime>,
-    worlds: Query<(&CelestialVoxelRealization, &UsfScaleLayer)>,
+    worlds: Query<(
+        &CelestialVoxelRealization,
+        &UsfScaleLayer,
+        &VoxelWorld,
+    )>,
+    authorities: Query<(&UsfPosition, &UsfSemanticFrame, &CelestialVoxelField)>,
     mut presentations: Query<
         (&ChildOf, &mut Visibility),
         With<VoxelMaterializationPresentation>,
@@ -2035,15 +2111,23 @@ fn suppress_legacy_celestial_dense_presentation(
         let Ok(runtime) = runtimes.get(parent.0) else {
             continue;
         };
-        let Ok((_realization, layer)) = worlds.get(runtime.world()) else {
+        let Ok((realization, layer, world)) = worlds.get(runtime.world()) else {
             continue;
         };
 
-        // Decimal Scale-Slice worlds are not contextual visual LOD. Keep only
-        // the active interaction slice. Crucially, do NOT hide that dense local
-        // volumetric realization merely because the outer-surface clipmap has
-        // presentation coverage: caves/overhangs/edits still live here.
         if layer.scale() != interaction.scale() {
+            *visibility = Visibility::Hidden;
+            continue;
+        }
+
+        if dense_base_presentation_yields_to_binary_hierarchy(
+            *realization,
+            layer,
+            world,
+            runtime,
+            &authorities,
+            &clipmap_coverage,
+        ) {
             *visibility = Visibility::Hidden;
         } else if runtime.active() {
             *visibility = Visibility::Inherited;
@@ -2118,6 +2202,19 @@ mod tests {
             observer_radius + radius * WHOLE_BODY_ROOT_MARGIN;
 
         assert!(whole_body_reach > radius * 2.0);
+    }
+
+    #[test]
+    fn coverage_cell_remembers_resolution_and_contains_local_points() {
+        let cell = CelestialClipmapCoverageCell {
+            center_local_metres: DVec3::new(10.0, 20.0, 30.0),
+            half_extent_metres: DVec3::splat(8.0),
+            sample_spacing_metres: 2.0,
+        };
+
+        assert_eq!(cell.sample_spacing_metres(), 2.0);
+        assert!(cell.contains_local_point(DVec3::new(12.0, 18.0, 31.0)));
+        assert!(!cell.contains_local_point(DVec3::new(19.0, 20.0, 30.0)));
     }
 
     #[test]

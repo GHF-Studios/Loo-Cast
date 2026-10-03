@@ -203,20 +203,29 @@ pub(crate) fn prepare_local_sampler(
             .unwrap_or_else(|| VoxelSample::empty(EMPTY_DISTANCE))
     }
 
-    /// Body-local semantic surface point in SI metres.
-    /// S1+ is radial already; avoid a world-position round trip.
-pub(crate) fn surface_local_metres(
+    // resolution-filtered-celestial-surface-v1
+    /// Body-local semantic surface point at full canonical terrain bandwidth.
+    pub(crate) fn surface_local_metres(
         self,
         direction: Vec3,
     ) -> Result<DVec3, UsfPositionError> {
+        self.surface_local_metres_through(direction, self.surface_detail_scale)
+    }
+
+    /// Same semantic field, accumulated only through one authored residual band.
+    pub(crate) fn surface_local_metres_through(
+        self,
+        direction: Vec3,
+        through_scale: SpatialScale,
+    ) -> Result<DVec3, UsfPositionError> {
         let local_direction = normalized_direction(direction);
-        let radius = self.semantic_surface_radius_metres(local_direction)?;
+        let radius =
+            self.semantic_surface_radius_metres_through(local_direction, through_scale)?;
         Ok(dvec(local_direction) * radius)
     }
 
-
-    /// Canonical surface point including every detail band owned by this scale.
-pub fn surface_position(self, direction: Vec3) -> Result<UsfPosition, UsfPositionError> {
+    /// Canonical surface point including every semantic detail band.
+    pub fn surface_position(self, direction: Vec3) -> Result<UsfPosition, UsfPositionError> {
         let local_direction = normalized_direction(direction);
         let world_direction = normalized_direction(
             self.frame_snapshot.local_direction_to_world(local_direction),
@@ -226,10 +235,7 @@ pub fn surface_position(self, direction: Vec3) -> Result<UsfPosition, UsfPositio
             .translated_metres_f64(dvec(world_direction) * radius)
     }
 
-
     /// Conservative inward support for non-radial volumetric surfaces.
-    ///
-    /// Field metadata only: this does not encode terrain LOD.
     pub(crate) fn volumetric_surface_inward_support_metres(self) -> f64 {
         match self.profile {
             CelestialBodyProfile::Rocky => CAVE_MAX_DEPTH_METRES,
@@ -237,18 +243,20 @@ pub fn surface_position(self, direction: Vec3) -> Result<UsfPosition, UsfPositio
         }
     }
 
-    /// Canonical signed distance in body-local SI metres.
-    ///
-    /// Negative is solid matter, positive is empty. Rocky bodies subtract a
-    /// deterministic volumetric cave field from the radial outer terrain shell,
-    /// allowing true tunnels/entrances/overhangs in dense realizations.
-        /// Stable radial outer-surface SDF in body-local SI metres.
-    ///
-    /// This is the canonical approximation used by whole-body/local surface
-    /// presentation. It deliberately excludes interior volumetric topology.
     pub(crate) fn outer_signed_distance_local_metres(
         self,
         local_point_metres: DVec3,
+    ) -> Option<f64> {
+        self.outer_signed_distance_local_metres_through(
+            local_point_metres,
+            self.surface_detail_scale,
+        )
+    }
+
+    pub(crate) fn outer_signed_distance_local_metres_through(
+        self,
+        local_point_metres: DVec3,
+        through_scale: SpatialScale,
     ) -> Option<f64> {
         let radial = local_point_metres.length();
         if !radial.is_finite() || radial <= f64::EPSILON {
@@ -266,18 +274,34 @@ pub fn surface_position(self, direction: Vec3) -> Result<UsfPosition, UsfPositio
         }
 
         let surface_radius =
-            self.semantic_surface_radius_metres(direction).ok()?;
+            self.semantic_surface_radius_metres_through(direction, through_scale).ok()?;
         Some(radial - surface_radius)
     }
 
-pub(crate) fn signed_distance_local_metres(
+    pub(crate) fn signed_distance_local_metres(
         self,
         local_point_metres: DVec3,
     ) -> Option<f64> {
-        let outer_sdf =
-            self.outer_signed_distance_local_metres(local_point_metres)?;
+        self.signed_distance_local_metres_through(
+            local_point_metres,
+            self.surface_detail_scale,
+            true,
+        )
+    }
 
-        if self.profile != CelestialBodyProfile::Rocky {
+    pub(crate) fn signed_distance_local_metres_through(
+        self,
+        local_point_metres: DVec3,
+        through_scale: SpatialScale,
+        include_caves: bool,
+    ) -> Option<f64> {
+        let outer_sdf =
+            self.outer_signed_distance_local_metres_through(
+                local_point_metres,
+                through_scale,
+            )?;
+
+        if !include_caves || self.profile != CelestialBodyProfile::Rocky {
             return Some(outer_sdf);
         }
 
@@ -286,8 +310,6 @@ pub(crate) fn signed_distance_local_metres(
             return None;
         }
 
-        // Recover the exact radial outer-surface radius already used by the
-        // baseline SDF; do not evaluate a second competing terrain surface.
         let outer_surface_radius_metres = radial - outer_sdf;
         let void_sdf = rocky_cave_void_signed_distance_metres(
             local_point_metres,
@@ -295,7 +317,6 @@ pub(crate) fn signed_distance_local_metres(
             self.seed,
         );
 
-        // Constructive subtraction: outer solid minus cave void.
         Some(outer_sdf.max(-void_sdf))
     }
 
@@ -407,14 +428,29 @@ fn semantic_surface_radius_metres(
         self,
         direction: Vec3,
     ) -> Result<f64, UsfPositionError> {
+        self.semantic_surface_radius_metres_through(
+            direction,
+            self.surface_detail_scale,
+        )
+    }
+
+    fn semantic_surface_radius_metres_through(
+        self,
+        direction: Vec3,
+        through_scale: SpatialScale,
+    ) -> Result<f64, UsfPositionError> {
         let direction = normalized_direction(direction);
-        let floor = self.surface_detail_scale.exponent();
+        let requested = through_scale.exponent().clamp(
+            self.surface_detail_scale.exponent(),
+            self.coarsest_detail_scale.exponent(),
+        );
+        let through_scale =
+            SpatialScale::new(requested).expect("clamped semantic detail scale is valid");
+        let floor = through_scale.exponent();
         let root = self.coarsest_detail_scale.exponent();
 
-        // Hierarchical bands remain an authoring mechanism. The field fixes one
-        // final bandwidth; realization Scale never enters this choice.
         let mut radius = self.radius_metres
-            + self.macro_surface_displacement_metres(direction, self.surface_detail_scale);
+            + self.macro_surface_displacement_metres(direction, through_scale);
 
         let coarse_lower = floor.max(1);
         if coarse_lower <= root {
@@ -441,7 +477,6 @@ fn semantic_surface_radius_metres(
         }
         Ok(radius)
     }
-
 
 
     fn coarse_detail_band_native(self, direction: Vec3, level: SpatialScale) -> f64 {
@@ -515,7 +550,11 @@ fn canonical_detail_noise_at(
                     direction,
                     through_scale,
                     self.seed,
-                ) + rocky_exaggerated_relief_metres(direction, self.seed)
+                ) + rocky_exaggerated_relief_metres_through(
+                    direction,
+                    self.seed,
+                    through_scale,
+                )
             }
             CelestialBodyProfile::Stellar => {
                 self.radius_metres
@@ -572,71 +611,72 @@ const ROCKY_EXAGGERATED_OUTWARD_BOUND_METRES: f64 = 55_000.0;
 /// stack is being exercised, but remain within a sane planetary test range. Once end-to-end terrain realization is healthy,
 /// this can become an authored profile parameter instead of a hardcoded dev
 /// morphology layer.
-fn rocky_exaggerated_relief_metres(direction: Vec3, seed: u32) -> f64 {
+fn rocky_exaggerated_relief_metres_through(
+    direction: Vec3,
+    seed: u32,
+    through_scale: SpatialScale,
+) -> f64 {
     let direction = normalized_direction(direction);
 
-    // Planetary-scale uplift/subsidence: unmistakable broad topography.
     let province = value_noise_3d(
         direction * 2.4 + Vec3::new(7.3, -11.8, 4.1),
         seed ^ 0x5052_4F56,
     );
+    let mut relief = f64::from(province) * 8_000.0;
 
-    // Narrow high ridge networks from zero contours of a coherent carrier.
-    let alpine_carrier = value_noise_3d(
-        direction * 10.0 + Vec3::new(-17.2, 6.9, 12.4),
-        seed ^ 0x414C_504E,
-    );
-    // High powers turn broad carrier bands into sharp alpine spines.
-    let alpine_ridge =
-        (1.0 - alpine_carrier.abs()).max(0.0).powi(9);
-    let alpine_envelope = (
-        value_noise_3d(
-            direction * 3.7 + Vec3::new(3.1, 19.6, -8.8),
-            seed ^ 0xA1F1_4E55,
-        ) * 0.5
-            + 0.5
-    )
-        .clamp(0.0, 1.0);
+    if through_scale <= SpatialScale::new(3).expect("S+3 is valid") {
+        let alpine_carrier = value_noise_3d(
+            direction * 10.0 + Vec3::new(-17.2, 6.9, 12.4),
+            seed ^ 0x414C_504E,
+        );
+        let alpine_ridge =
+            (1.0 - alpine_carrier.abs()).max(0.0).powi(9);
+        let alpine_envelope = (
+            value_noise_3d(
+                direction * 3.7 + Vec3::new(3.1, 19.6, -8.8),
+                seed ^ 0xA1F1_4E55,
+            ) * 0.5
+                + 0.5
+        )
+            .clamp(0.0, 1.0);
 
-    // Independent narrow negative networks make obvious canyon/rift systems.
-    let canyon_carrier = value_noise_3d(
-        direction * 15.0 + Vec3::new(14.2, -4.7, -16.5),
-        seed ^ 0x4341_4E59,
-    );
-    let canyon_line =
-        (1.0 - canyon_carrier.abs()).max(0.0).powi(9);
-    let canyon_envelope = (
-        value_noise_3d(
-            direction * 4.3 + Vec3::new(-9.9, 5.4, 21.1),
-            seed ^ 0x5249_4654,
-        ) * 0.5
-            + 0.5
-    )
-        .clamp(0.0, 1.0);
+        let canyon_carrier = value_noise_3d(
+            direction * 15.0 + Vec3::new(14.2, -4.7, -16.5),
+            seed ^ 0x4341_4E59,
+        );
+        let canyon_line =
+            (1.0 - canyon_carrier.abs()).max(0.0).powi(9);
+        let canyon_envelope = (
+            value_noise_3d(
+                direction * 4.3 + Vec3::new(-9.9, 5.4, 21.1),
+                seed ^ 0x5249_4654,
+            ) * 0.5
+                + 0.5
+        )
+            .clamp(0.0, 1.0);
 
-    let massif_carrier = value_noise_3d(
-        direction * 14.5 + Vec3::new(22.4, 7.7, -3.6),
-        seed ^ 0x4D41_5353, // MASS
-    );
-    let massif_cross =
-        (1.0 - massif_carrier.abs()).max(0.0).powi(8);
-    let massif = alpine_ridge * massif_cross;
+        let massif_carrier = value_noise_3d(
+            direction * 14.5 + Vec3::new(22.4, 7.7, -3.6),
+            seed ^ 0x4D41_5353,
+        );
+        let massif_cross =
+            (1.0 - massif_carrier.abs()).max(0.0).powi(8);
+        let massif = alpine_ridge * massif_cross;
 
-    // Signed serration prevents the non-ridge regions from becoming bland.
-    let serration = value_noise_3d(
-        direction * 32.0 + Vec3::new(1.7, -13.3, 9.2),
-        seed ^ 0x5345_5252,
-    );
+        relief += f64::from(alpine_ridge * alpine_envelope) * 30_000.0
+            + f64::from(massif * alpine_envelope) * 16_000.0
+            - f64::from(canyon_line * canyon_envelope) * 24_000.0;
+    }
 
-    let sharp_serration =
-        serration.signum() * serration.abs().powi(2);
-
-    let relief =
-        f64::from(province) * 8_000.0
-        + f64::from(alpine_ridge * alpine_envelope) * 30_000.0
-        + f64::from(massif * alpine_envelope) * 16_000.0
-        - f64::from(canyon_line * canyon_envelope) * 24_000.0
-        + f64::from(sharp_serration) * 5_000.0;
+    if through_scale <= SpatialScale::new(2).expect("S+2 is valid") {
+        let serration = value_noise_3d(
+            direction * 32.0 + Vec3::new(1.7, -13.3, 9.2),
+            seed ^ 0x5345_5252,
+        );
+        let sharp_serration =
+            serration.signum() * serration.abs().powi(2);
+        relief += f64::from(sharp_serration) * 5_000.0;
+    }
 
     relief.clamp(-38_000.0, 48_000.0)
 }
