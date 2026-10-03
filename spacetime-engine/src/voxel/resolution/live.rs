@@ -46,8 +46,8 @@ use crate::{
     ecs::UsfPresentationProjectionOf,
     spatial::{
          SpatialRealizationGranularityRequest, SpatialScale, UsfCapabilitySet,
-        UsfPosition, UsfPrimaryInteractionSlice, UsfScaleCoverageSnapshot,
-        UsfScaleLayer, UsfScaleRoleMask, UsfSemanticFrame, UsfSpatialSet,
+        UsfPosition, UsfPrimaryInteractionSlice, UsfScaleLayer,
+        UsfScaleRoleMask, UsfSemanticFrame, UsfSpatialSet,
         UsfViewContext, UsfViewDemandSnapshot, UsfViewRenderAnchor,
     },
 };
@@ -87,11 +87,8 @@ const TARGET_CELLS_PER_DISTANCE: f64 = 16.0;
 // volumetric-boundary-continuity-visual-handoff-v1
 const TARGET_CELLS_PER_CLEARANCE: f64 = 128.0;
 const TARGET_PIXELS_PER_BINARY_SAMPLE: f64 = 4.0;
-const DENSE_VISUAL_HANDOFF_CELLS_PER_DISTANCE: f64 = 64.0;
-const DENSE_VISUAL_HANDOFF_MAX_PIXELS_PER_SAMPLE: f64 = 8.0;
-const DENSE_VISUAL_HANDOFF_MIN_SAMPLE_DISTANCES: f64 = 12.0;
 // frontier-local-dense-fallback-v1
-// Inactive dense presentation is a seam bridge, not a history buffer.
+// Inactive dense presentation is a bootstrap fallback, not a LOD layer or history buffer.
 const DENSE_FALLBACK_RETENTION_CHUNKS: f32 = 4.0;
 
 // terrain-continuity-closure-megapass-v1
@@ -204,18 +201,6 @@ struct CelestialClipmapPlan {
     known_empty: HashSet<CelestialClipmapBlockSpec>,
     committed_specs: HashSet<CelestialClipmapBlockSpec>,
     committed_generation: Option<u64>,
-}
-
-// authority-level-terrain-presentation-handoff-v1
-impl CelestialClipmapPlan {
-    /// True only after the final balanced binary frontier has completed its
-    /// make-before-break transaction. This is presentation state only: it
-    /// grants no collision, editing, residency, or semantic authority.
-    fn final_frontier_committed(&self) -> bool {
-        !self.stages.is_empty()
-            && self.stage_index.saturating_add(1) == self.stages.len()
-            && self.committed_generation == Some(self.generation)
-    }
 }
 
 
@@ -695,7 +680,7 @@ pub(in crate::voxel) struct CelestialClipmapTelemetry {
     cold_plans_total: u64,
     warm_replans_total: u64,
     visible_blocks: usize,
-    dense_aperture_yielded_blocks: usize,
+    binary_primary_authorities: usize,
     visible_binary_levels: usize,
     finest_visible_spacing_metres: Option<f64>,
     coarsest_visible_spacing_metres: Option<f64>,
@@ -729,13 +714,13 @@ impl CelestialClipmapTelemetry {
     fn record_visible_frontier(
         &mut self,
         visible_blocks: usize,
-        yielded_blocks: usize,
+        binary_primary_authorities: usize,
         visible_levels: &HashSet<i16>,
         finest_spacing: Option<f64>,
         coarsest_spacing: Option<f64>,
     ) {
         self.visible_blocks = visible_blocks;
-        self.dense_aperture_yielded_blocks = yielded_blocks;
+        self.binary_primary_authorities = binary_primary_authorities;
         self.visible_binary_levels = visible_levels.len();
         self.finest_visible_spacing_metres = finest_spacing;
         self.coarsest_visible_spacing_metres = coarsest_spacing;
@@ -819,12 +804,12 @@ impl CelestialClipmapTelemetry {
 
     pub(in crate::voxel) fn summary(&self) -> String {
         format!(
-            "plans={} cold={} warm={} visible={} aperture_yield={} levels={} visible={}..{}m clearance={}m requested_finest={}m planned_finest={}m leaf_budget={} leaves={} saturated={} fallback_hold={} fallback_retire={} fallback_forced={} focus_lag={}m plan_fresh={} plan_rolling={} plan_drop={} mesh_drop={} transition_fallback={}",
+            "plans={} cold={} warm={} visible={} binary_primary={} levels={} visible={}..{}m clearance={}m requested_finest={}m planned_finest={}m leaf_budget={} leaves={} saturated={} fallback_hold={} fallback_retire={} fallback_forced={} focus_lag={}m plan_fresh={} plan_rolling={} plan_drop={} mesh_drop={} transition_fallback={}",
             self.plan_requests_total,
             self.cold_plans_total,
             self.warm_replans_total,
             self.visible_blocks,
-            self.dense_aperture_yielded_blocks,
+            self.binary_primary_authorities,
             self.visible_binary_levels,
             self.finest_visible_spacing_metres
                 .map_or_else(|| "-".to_string(), |v| format!("{v:.1}")),
@@ -947,159 +932,20 @@ impl CelestialClipmapCoverageCell {
     }
 }
 
-// dense-terminal-aperture-v1
-#[derive(Debug, Clone, Copy)]
-struct DensePresentationApertureCell {
-    center_local_metres: DVec3,
-    world_x_local: DVec3,
-    world_y_local: DVec3,
-    world_z_local: DVec3,
-    half_extent_metres: DVec3,
-}
-
-impl DensePresentationApertureCell {
-    fn contains_local_point(self, point: DVec3) -> bool {
-        let delta = point - self.center_local_metres;
-        let local = DVec3::new(
-            delta.dot(self.world_x_local),
-            delta.dot(self.world_y_local),
-            delta.dot(self.world_z_local),
-        );
-        let epsilon = 1.0e-6;
-        local.x.abs() <= self.half_extent_metres.x + epsilon
-            && local.y.abs() <= self.half_extent_metres.y + epsilon
-            && local.z.abs() <= self.half_extent_metres.z + epsilon
-    }
-}
-
-fn vec3_to_dvec3(value: Vec3) -> DVec3 {
-    DVec3::new(
-        f64::from(value.x),
-        f64::from(value.y),
-        f64::from(value.z),
-    )
-}
-
-fn dense_presentation_apertures(
-    interaction_scale: SpatialScale,
-    coverage: &UsfScaleCoverageSnapshot,
-    authorities: &Query<(&UsfPosition, &UsfSemanticFrame, &CelestialVoxelField)>,
-) -> HashMap<Entity, Vec<DensePresentationApertureCell>> {
-    let metres_per_native = interaction_scale.metres_per_native();
-    let mut by_authority =
-        HashMap::<Entity, Vec<DensePresentationApertureCell>>::new();
-
-    for cell in coverage.iter() {
-        if cell.scale() != interaction_scale
-            || !cell.roles().contains(UsfScaleRoleMask::PRESENTATION)
-        {
-            continue;
-        }
-
-        let Ok((body_origin, body_frame, _field)) =
-            authorities.get(cell.authority())
-        else {
-            continue;
-        };
-        let Ok(center_local_metres) = body_frame.world_to_local_metres(
-            body_origin,
-            &cell.center(),
-            SpatialScale::ZERO,
-            f64::MAX,
-        ) else {
-            continue;
-        };
-
-        let axis = |world: Vec3| {
-            vec3_to_dvec3(
-                body_frame
-                    .world_direction_to_local(world)
-                    .normalize_or_zero(),
-            )
-            .normalize_or_zero()
-        };
-        let world_x_local = axis(Vec3::X);
-        let world_y_local = axis(Vec3::Y);
-        let world_z_local = axis(Vec3::Z);
-        if world_x_local == DVec3::ZERO
-            || world_y_local == DVec3::ZERO
-            || world_z_local == DVec3::ZERO
-        {
-            continue;
-        }
-
-        let half = cell.half_extent_native();
-        by_authority
-            .entry(cell.authority())
-            .or_default()
-            .push(DensePresentationApertureCell {
-                center_local_metres,
-                world_x_local,
-                world_y_local,
-                world_z_local,
-                half_extent_metres: DVec3::new(
-                    f64::from(half.x) * metres_per_native,
-                    f64::from(half.y) * metres_per_native,
-                    f64::from(half.z) * metres_per_native,
-                ),
-            });
-    }
-
-    by_authority
-}
-
-fn point_covered_by_dense_union(
-    apertures: &[DensePresentationApertureCell],
-    point: DVec3,
-) -> bool {
-    apertures
-        .iter()
-        .copied()
-        .any(|aperture| aperture.contains_local_point(point))
-}
-
-/// Conservative make-before-break aperture ownership.
-///
-/// We hide a contextual binary block only when a 3x3x3 sample lattice spanning
-/// its complete AABB is covered by ready dense PRESENTATION cells. This supports
-/// union coverage across adjacent 10^3 dense materializations while refusing to
-/// speculate across a partially ready boundary.
-fn block_fully_covered_by_dense_union(
-    key: CelestialClipmapBlockKey,
-    apertures: &[DensePresentationApertureCell],
-) -> bool {
-    if apertures.is_empty() {
-        return false;
-    }
-
-    let min = key.origin_local_metres();
-    let extent = key.extent_metres();
-    for z in [0.0_f64, 0.5, 1.0] {
-        for y in [0.0_f64, 0.5, 1.0] {
-            for x in [0.0_f64, 0.5, 1.0] {
-                let point =
-                    min + DVec3::new(x * extent, y * extent, z * extent);
-                if !point_covered_by_dense_union(apertures, point) {
-                    return false;
-                }
-            }
-        }
-    }
-    true
-}
-
+// scale-is-not-lod-authority-handoff-v1
 /// Frame-local celestial presentation ownership.
 ///
-/// Dense Surface-Nets terrain is a physical/editable working representation on
-/// a decimal materialization grid; the contextual binary hierarchy is an
-/// independent dyadic presentation grid. They cannot safely exchange complete
-/// visual ownership one arbitrary chunk at a time.
+/// Dense Surface-Nets terrain is a physical/editable Scale-local working
+/// representation. It is allowed to bootstrap presentation only while no
+/// coherent binary frontier is available; it is never a geometric LOD child.
 ///
-/// During binary startup/refinement the old dense bridge remains available.
-/// Once the final balanced binary frontier is committed AND every meshful member
-/// projects in the current view, that authority has one presentation owner:
-/// the binary frontier. Loss of current projection readiness automatically
-/// falls back to the bridge on the same frame.
+/// The first committed binary frontier whose complete mesh set projects in
+/// the current view takes presentation ownership for the entire authority.
+/// Every later quality transition is binary -> binary through the clipmap's
+/// own make-before-break frontier transaction. Decimal USF Scale meshes are
+/// therefore never stitched, clipped, or locally arbitrated against binary
+/// presentation LOD. If binary projection becomes incomplete, dense may
+/// reappear only as a whole-authority emergency fallback for that frame.
 ///
 /// This resource is presentation-only and never grants semantic/collision/edit
 /// authority.
@@ -1144,10 +990,10 @@ impl CelestialClipmapCoverageSnapshot {
             .unwrap_or(&[])
     }
 
-    /// Finest actually-visible contextual spacing covering one body-local point.
+    /// Finest actually-visible binary spacing covering one body-local point.
     ///
-    /// This is intentionally post-composition coverage; a hidden/unpublished
-    /// binary block cannot be used as evidence to retire dense presentation.
+    /// This is presentation-query metadata only. It never arbitrates a
+    /// decimal Scale-local renderer against the binary LOD hierarchy.
     pub(in crate::voxel) fn finest_spacing_covering(
         &self,
         authority: Entity,
@@ -1457,31 +1303,6 @@ fn block_may_intersect_presentation_shell(
         && farthest >= (volumetric_minimum - conservative_extra).max(0.0)
 }
 
-// binary-can-replace-dense-visual-v2
-fn projected_sample_pixels(
-    sample_spacing_metres: f64,
-    distance_metres: f64,
-    pixels_per_radian: Option<f32>,
-) -> Option<f64> {
-    let pixels_per_radian = f64::from(pixels_per_radian?);
-    if !sample_spacing_metres.is_finite()
-        || sample_spacing_metres <= 0.0
-        || !distance_metres.is_finite()
-        || distance_metres <= 0.0
-        || !pixels_per_radian.is_finite()
-        || pixels_per_radian <= 0.0
-    {
-        return None;
-    }
-
-    Some(
-        (sample_spacing_metres / distance_metres)
-            .clamp(0.0, 1.0)
-            .asin()
-            * pixels_per_radian,
-    )
-}
-
 fn visual_target_spacing_metres(
     clearance_metres: f64,
     pixels_per_radian: Option<f32>,
@@ -1509,46 +1330,6 @@ fn visual_target_spacing_metres(
             MIN_SAMPLE_SPACING_METRES,
             MAX_FINE_SAMPLE_SPACING_METRES,
         )
-}
-
-fn binary_spacing_is_adequate_for_dense_handoff(
-    sample_spacing_metres: f64,
-    distance_metres: f64,
-    pixels_per_radian: Option<f32>,
-) -> bool {
-    if !sample_spacing_metres.is_finite()
-        || sample_spacing_metres <= 0.0
-        || !distance_metres.is_finite()
-        || distance_metres < 0.0
-    {
-        return false;
-    }
-
-    // Near geometry keeps dense ownership. The threshold is expressed in
-    // samples, not USF native units, so it remains presentation-resolution
-    // semantics rather than interaction Scale semantics.
-    if distance_metres
-        < sample_spacing_metres
-            * DENSE_VISUAL_HANDOFF_MIN_SAMPLE_DISTANCES
-    {
-        return false;
-    }
-
-    let distance_quality =
-        sample_spacing_metres
-            <= (distance_metres / DENSE_VISUAL_HANDOFF_CELLS_PER_DISTANCE)
-                .max(MIN_SAMPLE_SPACING_METRES);
-
-    let screen_quality = projected_sample_pixels(
-        sample_spacing_metres,
-        distance_metres,
-        pixels_per_radian,
-    )
-    .is_none_or(|pixels| {
-        pixels <= DENSE_VISUAL_HANDOFF_MAX_PIXELS_PER_SAMPLE
-    });
-
-    distance_quality && screen_quality
 }
 
 fn target_resolution_at_distance(
@@ -3239,11 +3020,15 @@ fn sync_celestial_clipmap_realizations(
 }
 
 
+fn binary_frontier_projection_complete(
+    expected_meshes: usize,
+    projected_meshes: usize,
+) -> bool {
+    expected_meshes > 0 && projected_meshes == expected_meshes
+}
+
 fn sync_celestial_clipmap_transforms(
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
-    view_demands: Res<UsfViewDemandSnapshot>,
-    interaction: Res<UsfPrimaryInteractionSlice>,
-    dense_coverage: Res<UsfScaleCoverageSnapshot>,
     registry: Res<CelestialClipmapRegistry>,
     authorities: Query<(&UsfPosition, &UsfSemanticFrame, &CelestialVoxelField)>,
     mut coverage: ResMut<CelestialClipmapCoverageSnapshot>,
@@ -3274,47 +3059,43 @@ fn sync_celestial_clipmap_transforms(
         return;
     }
 
-    let pixels_per_radian = view_demands
-        .iter()
-        .next()
-        .and_then(|view| view.pixels_per_radian_for_presentation_resolution());
-    let physical_target_scale = interaction.target_scale();
-    let dense_apertures = dense_presentation_apertures(
-        physical_target_scale,
-        &dense_coverage,
-        &authorities,
-    );
-
-    // authority-level-terrain-presentation-handoff-v1
+    // scale-is-not-lod-authority-handoff-v1
     //
-    // A final committed binary frontier is a candidate for sole presentation
-    // ownership. It becomes primary only after every meshful member proves
-    // current-frame projection below. Until then dense remains the local bridge.
+    // A committed binary frontier is one presentation transaction. Dense
+    // Scale-local terrain is not a finer LOD child and therefore cannot clip
+    // individual binary blocks. The whole authority switches only when every
+    // actual committed mesh projects successfully in the current frame.
     let binary_primary_candidates = registry
         .plans
         .iter()
         .filter_map(|(&authority, plan)| {
-            plan.final_frontier_committed().then_some(authority)
+            (!plan.committed_specs.is_empty()).then_some(authority)
         })
         .collect::<HashSet<_>>();
-    let expected_binary_meshes = registry
-        .plans
-        .iter()
-        .filter(|(authority, _)| binary_primary_candidates.contains(authority))
-        .map(|(&authority, plan)| (authority, plan.meshful.len()))
-        .collect::<HashMap<_, _>>();
+    let mut expected_binary_meshes = HashMap::<Entity, usize>::new();
     let mut projected_binary_meshes = HashMap::<Entity, usize>::new();
-
     let mut projected_any = false;
-    let mut visible_by_authority =
-        HashMap::<Entity, Vec<CelestialClipmapCoverageCell>>::new();
-    let mut visible_levels = HashSet::<i16>::new();
-    let mut visible_blocks = 0usize;
-    let mut yielded_blocks = 0usize;
-    let mut finest_visible_spacing = None::<f64>;
-    let mut coarsest_visible_spacing = None::<f64>;
 
+    // Pass 1: project every committed mesh and prove authority-level readiness.
+    // Visibility remains hidden on failure; the second pass publishes either
+    // the complete binary authority or none of it.
     for (mut block, mut transform, mut visibility) in &mut blocks {
+        let committed = registry
+            .plans
+            .get(&block.authority)
+            .is_some_and(|plan| {
+                block.policy_revision == plan.key.policy_revision
+                    && plan.committed_specs.contains(&block.spec)
+            });
+
+        if committed
+            && binary_primary_candidates.contains(&block.authority)
+        {
+            *expected_binary_meshes
+                .entry(block.authority)
+                .or_insert(0) += 1;
+        }
+
         let Ok((body_origin, body_frame, _field)) =
             authorities.get(block.authority)
         else {
@@ -3376,106 +3157,15 @@ fn sync_celestial_clipmap_transforms(
         transform.scale = Vec3::splat(metre_to_view);
         block.projection_ready = true;
 
-        let committed = registry
-            .plans
-            .get(&block.authority)
-            .is_some_and(|plan| plan.committed_specs.contains(&block.spec));
-
         if committed
             && binary_primary_candidates.contains(&block.authority)
-            && registry.plans.get(&block.authority).is_some_and(|plan| {
-                plan.meshful.contains(&block.spec)
-            })
         {
             *projected_binary_meshes
                 .entry(block.authority)
                 .or_insert(0) += 1;
         }
 
-        let observer_local = body_frame
-            .world_to_local_metres(
-                body_origin,
-                view.anchor(),
-                SpatialScale::ZERO,
-                f64::MAX,
-            )
-            .ok();
-        let distance_to_block = observer_local
-            .map(|observer_local| {
-                block_distance_to_point(block.spec.key, observer_local)
-            })
-            .unwrap_or(f64::INFINITY);
-        let binary_can_replace_dense =
-            binary_spacing_is_adequate_for_dense_handoff(
-                block.spec.key.spacing_metres(),
-                distance_to_block,
-                pixels_per_radian,
-            );
-
-        let dense_yields_context = committed
-            // Once the complete binary frontier is the presentation candidate,
-            // do not cut it back out using dense capability apertures. The dense
-            // renderer will yield only after this same frame proves every binary
-            // meshful block projected successfully.
-            && !binary_primary_candidates.contains(&block.authority)
-            && !binary_can_replace_dense
-            && dense_apertures
-                .get(&block.authority)
-                .is_some_and(|apertures| {
-                    block_fully_covered_by_dense_union(
-                        block.spec.key,
-                        apertures,
-                    )
-                });
-
-        if dense_yields_context {
-            yielded_blocks = yielded_blocks.saturating_add(1);
-        }
-
-        // Near: dense child owns the aperture.
-        // Medium/far: once this committed binary block is fine enough for the
-        // view distance, keep it visible so it can become the proven parent
-        // replacement before dense rendering retires.
-        let visible = committed && !dense_yields_context;
-        *visibility = if visible {
-            Visibility::Inherited
-        } else {
-            Visibility::Hidden
-        };
-
-        if visible {
-            let spacing = block.spec.key.spacing_metres();
-            visible_blocks = visible_blocks.saturating_add(1);
-            visible_levels.insert(block.spec.key.resolution.binary_exponent());
-            finest_visible_spacing = Some(
-                finest_visible_spacing.map_or(spacing, |value| value.min(spacing)),
-            );
-            coarsest_visible_spacing = Some(
-                coarsest_visible_spacing.map_or(spacing, |value| value.max(spacing)),
-            );
-            visible_by_authority
-                .entry(block.authority)
-                .or_default()
-                .push(CelestialClipmapCoverageCell {
-                    center_local_metres: block.spec.key.center_local_metres(),
-                    half_extent_metres: block.spec.key.half_extent_metres(),
-                    sample_spacing_metres: spacing,
-                });
-        }
-
         projected_any = true;
-    }
-
-    // Coverage now means actually visible contextual geometry after the terminal
-    // dense child has cut its aperture.
-    let live_authorities =
-        registry.plans.keys().copied().collect::<HashSet<_>>();
-    coverage.retain_authorities(&live_authorities);
-    for authority in live_authorities {
-        coverage.replace_authority(
-            authority,
-            visible_by_authority.remove(&authority).unwrap_or_default(),
-        );
     }
 
     let binary_primary = binary_primary_candidates
@@ -3489,14 +3179,76 @@ fn sync_celestial_clipmap_transforms(
                 .get(authority)
                 .copied()
                 .unwrap_or(0);
-            expected > 0 && projected == expected
+            binary_frontier_projection_complete(expected, projected)
         })
         .collect::<HashSet<_>>();
+    let binary_primary_count = binary_primary.len();
+
+    // Pass 2: publish complete authority-level binary frontiers only.
+    // This is deliberately NOT an aperture union with decimal dense chunks.
+    let mut visible_by_authority =
+        HashMap::<Entity, Vec<CelestialClipmapCoverageCell>>::new();
+    let mut visible_levels = HashSet::<i16>::new();
+    let mut visible_blocks = 0usize;
+    let mut finest_visible_spacing = None::<f64>;
+    let mut coarsest_visible_spacing = None::<f64>;
+
+    for (block, _, mut visibility) in &mut blocks {
+        let committed = registry
+            .plans
+            .get(&block.authority)
+            .is_some_and(|plan| {
+                block.policy_revision == plan.key.policy_revision
+                    && plan.committed_specs.contains(&block.spec)
+            });
+        let visible = block.projection_ready
+            && committed
+            && binary_primary.contains(&block.authority);
+
+        *visibility = if visible {
+            Visibility::Inherited
+        } else {
+            Visibility::Hidden
+        };
+
+        if !visible {
+            continue;
+        }
+
+        let spacing = block.spec.key.spacing_metres();
+        visible_blocks = visible_blocks.saturating_add(1);
+        visible_levels.insert(block.spec.key.resolution.binary_exponent());
+        finest_visible_spacing = Some(
+            finest_visible_spacing.map_or(spacing, |value| value.min(spacing)),
+        );
+        coarsest_visible_spacing = Some(
+            coarsest_visible_spacing.map_or(spacing, |value| value.max(spacing)),
+        );
+        visible_by_authority
+            .entry(block.authority)
+            .or_default()
+            .push(CelestialClipmapCoverageCell {
+                center_local_metres: block.spec.key.center_local_metres(),
+                half_extent_metres: block.spec.key.half_extent_metres(),
+                sample_spacing_metres: spacing,
+            });
+    }
+
+    let live_authorities =
+        registry.plans.keys().copied().collect::<HashSet<_>>();
+    coverage.retain_authorities(&live_authorities);
+    for authority in live_authorities {
+        coverage.replace_authority(
+            authority,
+            visible_by_authority.remove(&authority).unwrap_or_default(),
+        );
+    }
+
     presentation_state.replace_binary_primary(binary_primary);
 
     telemetry.record_visible_frontier(
         visible_blocks,
-        yielded_blocks,
+        binary_primary_count,
         &visible_levels,
         finest_visible_spacing,
         coarsest_visible_spacing,
@@ -3504,30 +3256,28 @@ fn sync_celestial_clipmap_transforms(
 
     if projected_any && !*logged_projection {
         info!(
-            interaction_scale = %interaction.scale(),
-            interaction_target_scale = %physical_target_scale,
-            interaction_handoff_pending = interaction.handoff_pending(),
             view_scale = %view.scale(),
             view_exponent = view.continuous_exponent(),
             metre_to_view,
             visible_binary_blocks = visible_blocks,
-            dense_aperture_yielded_blocks = yielded_blocks,
+            binary_primary_authorities = binary_primary_count,
             visible_binary_levels = visible_levels.len(),
-            "celestial clipmap projected through stable body-local frontier"
+            "celestial binary presentation owns complete authority-level frontiers"
         );
         *logged_projection = true;
     }
 }
 
-/// Dense physical/current-interaction presentation is the terminal refinement
-/// child. Binary context may yield to it; this function never does the reverse.
-// dense-visual-make-before-break-v1
+/// Dense physical/current-interaction presentation is a bootstrap/emergency
+/// fallback only. The interaction Scale chooses which physical dense cache is
+/// available; it does not choose visual LOD. Once a complete binary frontier
+/// owns the authority, all dense visual chunks yield together.
+// scale-is-not-lod-dense-fallback-v1
 fn enforce_dense_interaction_presentation(
     mut commands: Commands,
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     view_demands: Res<UsfViewDemandSnapshot>,
     interaction: Res<UsfPrimaryInteractionSlice>,
-    clipmap_coverage: Res<CelestialClipmapCoverageSnapshot>,
     presentation_state: Res<CelestialTerrainPresentationState>,
     runtimes: Query<&VoxelMaterializationRuntime>,
     worlds: Query<(
@@ -3536,18 +3286,12 @@ fn enforce_dense_interaction_presentation(
         &VoxelWorld,
         Option<&VoxelStreaming>,
     )>,
-    authorities: Query<(&UsfPosition, &UsfSemanticFrame), With<CelestialVoxelField>>,
     mut presentations: Query<
         (&ChildOf, &mut Visibility),
         With<VoxelMaterializationPresentation>,
     >,
     mut telemetry: ResMut<CelestialClipmapTelemetry>,
 ) {
-    let pixels_per_radian = view_demands
-        .iter()
-        .next()
-        .and_then(|view| view.pixels_per_radian_for_presentation_resolution());
-
     let primary_view_demand = view_demands.iter().next();
     let mut fallback_held = 0usize;
     let mut fallback_retire_ready = 0usize;
@@ -3586,11 +3330,8 @@ fn enforce_dense_interaction_presentation(
             continue;
         }
 
-        // authority-level-terrain-presentation-handoff-v1
-        //
-        // The final balanced binary frontier has already proven current-frame
-        // projection as one complete presentation transaction. Do not keep
-        // arbitrating visibility independently per decimal dense chunk.
+        // Whole-authority handoff: dense never clips or fills individual binary
+        // blocks. It is either the fallback renderer for this body or not.
         if presentation_state.is_binary_primary(realization.authority()) {
             *visibility = Visibility::Hidden;
             if presentation_requested {
@@ -3606,46 +3347,6 @@ fn enforce_dense_interaction_presentation(
             }
             continue;
         }
-
-        let binary_replacement_ready = center.is_some_and(|center| {
-            let Ok((body_origin, body_frame)) =
-                authorities.get(realization.authority())
-            else {
-                return false;
-            };
-            let Ok(center_local) = body_frame.world_to_local_metres(
-                body_origin,
-                &center,
-                SpatialScale::ZERO,
-                f64::MAX,
-            ) else {
-                return false;
-            };
-            let Ok(observer_local) = body_frame.world_to_local_metres(
-                body_origin,
-                view.anchor(),
-                SpatialScale::ZERO,
-                f64::MAX,
-            ) else {
-                return false;
-            };
-            let distance_metres =
-                (center_local - observer_local).length();
-            let Some(spacing) = clipmap_coverage
-                .finest_spacing_covering(
-                    realization.authority(),
-                    center_local,
-                )
-            else {
-                return false;
-            };
-
-            binary_spacing_is_adequate_for_dense_handoff(
-                spacing,
-                distance_metres,
-                pixels_per_radian,
-            )
-        });
 
         let view_relevant = center.is_some_and(|center| {
             primary_view_demand.is_none_or(|demand| {
@@ -3677,35 +3378,22 @@ fn enforce_dense_interaction_presentation(
         });
 
         if presentation_requested {
-            // Active physical/view demand owns the dense cache. Rendering may
-            // still yield to a proven binary parent at medium distance, but the
-            // manifestation must remain reusable and must not be retired.
+            // Active physical/view demand keeps the cache reusable. Until the
+            // binary authority-level transaction succeeds, dense is the visible
+            // bootstrap representation rather than one member of a mixed LOD.
             commands
                 .entity(parent.0)
                 .remove::<VoxelPresentationFallbackRetireReady>();
-            *visibility = if binary_replacement_ready {
-                Visibility::Hidden
-            } else {
-                Visibility::Inherited
-            };
+            *visibility = Visibility::Inherited;
             continue;
         }
 
-        // presentation-fallback-across-residency-v1
-        // frontier-local-dense-fallback-v1
-        //
-        // Frustum relevance is not a lifetime. During vertical flight while
-        // looking toward the planet, historical patches can remain in-frustum
-        // indefinitely. Hold only a short local make-before-break bridge.
+        // Historical dense presentation is not a cache of old visual LODs.
+        // Retain only a short local bridge while binary authority is absent.
         let forced_by_frontier =
-            view_relevant
-                && !binary_replacement_ready
-                && !fallback_frontier_local;
+            view_relevant && !fallback_frontier_local;
 
-        if binary_replacement_ready
-            || !view_relevant
-            || !fallback_frontier_local
-        {
+        if !view_relevant || !fallback_frontier_local {
             *visibility = Visibility::Hidden;
             commands
                 .entity(parent.0)
@@ -3730,7 +3418,6 @@ fn enforce_dense_interaction_presentation(
         fallback_retire_ready,
         fallback_forced_retire,
     );
-
 }
 
 pub(super) fn configure(app: &mut App) {
@@ -3758,22 +3445,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn binary_visual_handoff_requires_distance_resolution_and_screen_error() {
-        assert!(!binary_spacing_is_adequate_for_dense_handoff(
-            2.0,
-            20.0,
-            Some(1_000.0),
-        ));
-        assert!(binary_spacing_is_adequate_for_dense_handoff(
-            4.0,
-            1_000.0,
-            Some(1_000.0),
-        ));
-        assert!(!binary_spacing_is_adequate_for_dense_handoff(
-            64.0,
-            1_000.0,
-            Some(1_000.0),
-        ));
+    fn binary_presentation_authority_requires_complete_frontier_projection() {
+        assert!(!binary_frontier_projection_complete(0, 0));
+        assert!(!binary_frontier_projection_complete(4, 3));
+        assert!(binary_frontier_projection_complete(4, 4));
     }
 
     #[test]
@@ -4193,25 +3868,6 @@ mod tests {
     }
 
     #[test]
-    fn dense_union_can_cover_one_binary_block_across_adjacent_cells() {
-        let key = CelestialClipmapBlockKey {
-            resolution: VoxelPresentationResolution::new(0),
-            coord: IVec3::ZERO,
-        };
-        // 8 m block. Two adjacent 4 m half-width boxes tile x while spanning
-        // the whole block in y/z.
-        let make = |center_x: f64| DensePresentationApertureCell {
-            center_local_metres: DVec3::new(center_x, 4.0, 4.0),
-            world_x_local: DVec3::X,
-            world_y_local: DVec3::Y,
-            world_z_local: DVec3::Z,
-            half_extent_metres: DVec3::new(2.0, 4.0, 4.0),
-        };
-        let cells = [make(2.0), make(6.0)];
-        assert!(block_fully_covered_by_dense_union(key, &cells));
-    }
-
-    #[test]
     fn whole_body_root_reach_exceeds_planet_diameter_at_surface() {
         let radius = 6_371_000.0_f64;
         let observer_radius = radius + 25.0;
@@ -4232,13 +3888,6 @@ mod tests {
         assert_eq!(cell.sample_spacing_metres(), 2.0);
         assert!(cell.contains_local_point(DVec3::new(12.0, 18.0, 31.0)));
         assert!(!cell.contains_local_point(DVec3::new(19.0, 20.0, 30.0)));
-    }
-
-    #[test]
-    fn decimal_dense_context_is_not_part_of_the_binary_lod_contract() {
-        let interaction = SpatialScale::new(3).unwrap();
-        let coarse = SpatialScale::new(5).unwrap();
-        assert_ne!(coarse, interaction);
     }
 
     #[test]
