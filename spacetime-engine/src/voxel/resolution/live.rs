@@ -206,6 +206,18 @@ struct CelestialClipmapPlan {
     committed_generation: Option<u64>,
 }
 
+// authority-level-terrain-presentation-handoff-v1
+impl CelestialClipmapPlan {
+    /// True only after the final balanced binary frontier has completed its
+    /// make-before-break transaction. This is presentation state only: it
+    /// grants no collision, editing, residency, or semantic authority.
+    fn final_frontier_committed(&self) -> bool {
+        !self.stages.is_empty()
+            && self.stage_index.saturating_add(1) == self.stages.len()
+            && self.committed_generation == Some(self.generation)
+    }
+}
+
 
 // aggressive-demand-and-clipmap-local-balance-v1
 // celestial-clipmap-planner-superpass-v1
@@ -1075,6 +1087,41 @@ fn block_fully_covered_by_dense_union(
     }
     true
 }
+
+/// Frame-local celestial presentation ownership.
+///
+/// Dense Surface-Nets terrain is a physical/editable working representation on
+/// a decimal materialization grid; the contextual binary hierarchy is an
+/// independent dyadic presentation grid. They cannot safely exchange complete
+/// visual ownership one arbitrary chunk at a time.
+///
+/// During binary startup/refinement the old dense bridge remains available.
+/// Once the final balanced binary frontier is committed AND every meshful member
+/// projects in the current view, that authority has one presentation owner:
+/// the binary frontier. Loss of current projection readiness automatically
+/// falls back to the bridge on the same frame.
+///
+/// This resource is presentation-only and never grants semantic/collision/edit
+/// authority.
+#[derive(Resource, Debug, Default)]
+struct CelestialTerrainPresentationState {
+    binary_primary: HashSet<Entity>,
+}
+
+impl CelestialTerrainPresentationState {
+    fn is_binary_primary(&self, authority: Entity) -> bool {
+        self.binary_primary.contains(&authority)
+    }
+
+    fn replace_binary_primary(&mut self, next: HashSet<Entity>) {
+        self.binary_primary = next;
+    }
+
+    fn clear(&mut self) {
+        self.binary_primary.clear();
+    }
+}
+
 
 #[derive(Resource, Debug, Default)]
 pub(in crate::voxel) struct CelestialClipmapCoverageSnapshot {
@@ -3200,6 +3247,7 @@ fn sync_celestial_clipmap_transforms(
     registry: Res<CelestialClipmapRegistry>,
     authorities: Query<(&UsfPosition, &UsfSemanticFrame, &CelestialVoxelField)>,
     mut coverage: ResMut<CelestialClipmapCoverageSnapshot>,
+    mut presentation_state: ResMut<CelestialTerrainPresentationState>,
     mut telemetry: ResMut<CelestialClipmapTelemetry>,
     mut blocks: Query<(
         &mut CelestialClipmapBlock,
@@ -3215,6 +3263,7 @@ fn sync_celestial_clipmap_transforms(
             *visibility = Visibility::Hidden;
         }
         coverage.retain_authorities(&HashSet::new());
+        presentation_state.clear();
         telemetry.record_visible_frontier(
             0,
             0,
@@ -3235,6 +3284,26 @@ fn sync_celestial_clipmap_transforms(
         &dense_coverage,
         &authorities,
     );
+
+    // authority-level-terrain-presentation-handoff-v1
+    //
+    // A final committed binary frontier is a candidate for sole presentation
+    // ownership. It becomes primary only after every meshful member proves
+    // current-frame projection below. Until then dense remains the local bridge.
+    let binary_primary_candidates = registry
+        .plans
+        .iter()
+        .filter_map(|(&authority, plan)| {
+            plan.final_frontier_committed().then_some(authority)
+        })
+        .collect::<HashSet<_>>();
+    let expected_binary_meshes = registry
+        .plans
+        .iter()
+        .filter(|(authority, _)| binary_primary_candidates.contains(authority))
+        .map(|(&authority, plan)| (authority, plan.meshful.len()))
+        .collect::<HashMap<_, _>>();
+    let mut projected_binary_meshes = HashMap::<Entity, usize>::new();
 
     let mut projected_any = false;
     let mut visible_by_authority =
@@ -3312,6 +3381,17 @@ fn sync_celestial_clipmap_transforms(
             .get(&block.authority)
             .is_some_and(|plan| plan.committed_specs.contains(&block.spec));
 
+        if committed
+            && binary_primary_candidates.contains(&block.authority)
+            && registry.plans.get(&block.authority).is_some_and(|plan| {
+                plan.meshful.contains(&block.spec)
+            })
+        {
+            *projected_binary_meshes
+                .entry(block.authority)
+                .or_insert(0) += 1;
+        }
+
         let observer_local = body_frame
             .world_to_local_metres(
                 body_origin,
@@ -3333,6 +3413,11 @@ fn sync_celestial_clipmap_transforms(
             );
 
         let dense_yields_context = committed
+            // Once the complete binary frontier is the presentation candidate,
+            // do not cut it back out using dense capability apertures. The dense
+            // renderer will yield only after this same frame proves every binary
+            // meshful block projected successfully.
+            && !binary_primary_candidates.contains(&block.authority)
             && !binary_can_replace_dense
             && dense_apertures
                 .get(&block.authority)
@@ -3393,6 +3478,22 @@ fn sync_celestial_clipmap_transforms(
         );
     }
 
+    let binary_primary = binary_primary_candidates
+        .into_iter()
+        .filter(|authority| {
+            let expected = expected_binary_meshes
+                .get(authority)
+                .copied()
+                .unwrap_or(0);
+            let projected = projected_binary_meshes
+                .get(authority)
+                .copied()
+                .unwrap_or(0);
+            expected > 0 && projected == expected
+        })
+        .collect::<HashSet<_>>();
+    presentation_state.replace_binary_primary(binary_primary);
+
     telemetry.record_visible_frontier(
         visible_blocks,
         yielded_blocks,
@@ -3427,6 +3528,7 @@ fn enforce_dense_interaction_presentation(
     view_demands: Res<UsfViewDemandSnapshot>,
     interaction: Res<UsfPrimaryInteractionSlice>,
     clipmap_coverage: Res<CelestialClipmapCoverageSnapshot>,
+    presentation_state: Res<CelestialTerrainPresentationState>,
     runtimes: Query<&VoxelMaterializationRuntime>,
     worlds: Query<(
         &CelestialVoxelRealization,
@@ -3481,6 +3583,27 @@ fn enforce_dense_interaction_presentation(
                 .insert(VoxelPresentationFallbackRetireReady);
             fallback_retire_ready =
                 fallback_retire_ready.saturating_add(1);
+            continue;
+        }
+
+        // authority-level-terrain-presentation-handoff-v1
+        //
+        // The final balanced binary frontier has already proven current-frame
+        // projection as one complete presentation transaction. Do not keep
+        // arbitrating visibility independently per decimal dense chunk.
+        if presentation_state.is_binary_primary(realization.authority()) {
+            *visibility = Visibility::Hidden;
+            if presentation_requested {
+                commands
+                    .entity(parent.0)
+                    .remove::<VoxelPresentationFallbackRetireReady>();
+            } else {
+                commands
+                    .entity(parent.0)
+                    .insert(VoxelPresentationFallbackRetireReady);
+                fallback_retire_ready =
+                    fallback_retire_ready.saturating_add(1);
+            }
             continue;
         }
 
@@ -3614,6 +3737,7 @@ pub(super) fn configure(app: &mut App) {
     app.init_resource::<CelestialClipmapRegistry>()
         .init_resource::<CelestialClipmapPlannerPolicyCache>()
         .init_resource::<CelestialClipmapCoverageSnapshot>()
+        .init_resource::<CelestialTerrainPresentationState>()
         .init_resource::<CelestialClipmapTelemetry>()
         .add_systems(Update, sync_celestial_clipmap_realizations)
         .add_systems(
