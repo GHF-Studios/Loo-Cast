@@ -79,6 +79,9 @@ const TARGET_PIXELS_PER_BINARY_SAMPLE: f64 = 4.0;
 const DENSE_VISUAL_HANDOFF_CELLS_PER_DISTANCE: f64 = 64.0;
 const DENSE_VISUAL_HANDOFF_MAX_PIXELS_PER_SAMPLE: f64 = 8.0;
 const DENSE_VISUAL_HANDOFF_MIN_SAMPLE_DISTANCES: f64 = 12.0;
+// frontier-local-dense-fallback-v1
+// Inactive dense presentation is a seam bridge, not a history buffer.
+const DENSE_FALLBACK_RETENTION_CHUNKS: f32 = 4.0;
 
 // terrain-continuity-closure-megapass-v1
 // sparse-boundary-frontier-v1
@@ -678,6 +681,7 @@ pub(in crate::voxel) struct CelestialClipmapTelemetry {
     planner_budget_saturated: bool,
     dense_fallback_held: usize,
     dense_fallback_retire_ready: usize,
+    dense_fallback_forced_retire: usize,
     committed_focus_lag_metres: Option<f64>,
     fresh_plan_accepts_total: u64,
     rolling_plan_accepts_total: u64,
@@ -735,9 +739,15 @@ impl CelestialClipmapTelemetry {
                 .is_some_and(|(planned, requested)| planned > requested * 1.001);
     }
 
-    fn record_dense_fallbacks(&mut self, held: usize, retire_ready: usize) {
+    fn record_dense_fallbacks(
+        &mut self,
+        held: usize,
+        retire_ready: usize,
+        forced_retire: usize,
+    ) {
         self.dense_fallback_held = held;
         self.dense_fallback_retire_ready = retire_ready;
+        self.dense_fallback_forced_retire = forced_retire;
     }
 
     fn record_plan_task_relevance(
@@ -766,7 +776,7 @@ impl CelestialClipmapTelemetry {
 
     pub(in crate::voxel) fn summary(&self) -> String {
         format!(
-            "plans={} cold={} warm={} visible={} aperture_yield={} levels={} visible={}..{}m clearance={}m requested_finest={}m planned_finest={}m leaf_budget={} leaves={} saturated={} fallback_hold={} fallback_retire={} focus_lag={}m plan_fresh={} plan_rolling={} plan_drop={}",
+            "plans={} cold={} warm={} visible={} aperture_yield={} levels={} visible={}..{}m clearance={}m requested_finest={}m planned_finest={}m leaf_budget={} leaves={} saturated={} fallback_hold={} fallback_retire={} fallback_forced={} focus_lag={}m plan_fresh={} plan_rolling={} plan_drop={}",
             self.plan_requests_total,
             self.cold_plans_total,
             self.warm_replans_total,
@@ -788,6 +798,7 @@ impl CelestialClipmapTelemetry {
             self.planner_budget_saturated,
             self.dense_fallback_held,
             self.dense_fallback_retire_ready,
+            self.dense_fallback_forced_retire,
             self.committed_focus_lag_metres
                 .map_or_else(|| "-".to_string(), |v| format!("{v:.1}")),
             self.fresh_plan_accepts_total,
@@ -3159,6 +3170,7 @@ fn enforce_dense_interaction_presentation(
     let primary_view_demand = view_demands.iter().next();
     let mut fallback_held = 0usize;
     let mut fallback_retire_ready = 0usize;
+    let mut fallback_forced_retire = 0usize;
 
     for (parent, mut visibility) in &mut presentations {
         let Ok(runtime) = runtimes.get(parent.0) else {
@@ -3245,6 +3257,23 @@ fn enforce_dense_interaction_presentation(
             })
         });
 
+        let fallback_frontier_local = center.is_some_and(|center| {
+            let retention_native =
+                MATERIALIZATION_CHUNK_SIZE as f32
+                    * DENSE_FALLBACK_RETENTION_CHUNKS;
+            center
+                .relative_at_scale_bounded(
+                    &view.anchor(),
+                    layer.scale(),
+                    retention_native
+                        + MATERIALIZATION_CHUNK_SIZE as f32 * 2.0,
+                )
+                .ok()
+                .is_some_and(|relative| {
+                    relative.length() <= retention_native
+                })
+        });
+
         if presentation_requested {
             // Active physical/view demand owns the dense cache. Rendering may
             // still yield to a proven binary parent at medium distance, but the
@@ -3261,18 +3290,30 @@ fn enforce_dense_interaction_presentation(
         }
 
         // presentation-fallback-across-residency-v1
+        // frontier-local-dense-fallback-v1
         //
-        // Store/collision/capability demand has already left. Membership kept
-        // this already-built renderer shell alive only as a visual bridge.
-        // Retire it as soon as replacement is proven or it is no longer
-        // relevant to the observer.
-        if binary_replacement_ready || !view_relevant {
+        // Frustum relevance is not a lifetime. During vertical flight while
+        // looking toward the planet, historical patches can remain in-frustum
+        // indefinitely. Hold only a short local make-before-break bridge.
+        let forced_by_frontier =
+            view_relevant
+                && !binary_replacement_ready
+                && !fallback_frontier_local;
+
+        if binary_replacement_ready
+            || !view_relevant
+            || !fallback_frontier_local
+        {
             *visibility = Visibility::Hidden;
             commands
                 .entity(parent.0)
                 .insert(VoxelPresentationFallbackRetireReady);
             fallback_retire_ready =
                 fallback_retire_ready.saturating_add(1);
+            if forced_by_frontier {
+                fallback_forced_retire =
+                    fallback_forced_retire.saturating_add(1);
+            }
         } else {
             *visibility = Visibility::Inherited;
             commands
@@ -3285,6 +3326,7 @@ fn enforce_dense_interaction_presentation(
     telemetry.record_dense_fallbacks(
         fallback_held,
         fallback_retire_ready,
+        fallback_forced_retire,
     );
 
 }

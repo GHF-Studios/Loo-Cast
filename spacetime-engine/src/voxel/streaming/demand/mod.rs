@@ -103,6 +103,7 @@ const PREDICTIVE_LATENCY_MULTIPLIER: f64 = 4.0;
 const MOTION_DIRECTION_QUANTIZATION: f64 = 8.0;
 // useful-work-throughput-predictive-demand-v1
 // sdf-useful-work-priority-pipeline-v1
+// rolling-retirement-backpressure-v1
 // moving-local-footprint-reanchors-v1
 // Predictive depth may extend far forward, but the immediate local/contact
 // footprint must re-anchor on every materialization-boundary crossing.
@@ -574,12 +575,14 @@ fn incremental_plan_compatible(
         && previous.view_revision == 0
         && next.view_revision == 0
         && previous.motion == next.motion
-    // moving-incremental-slabs-v1
-    //
-    // Stable quantized motion can update entering/leaving slabs without
-    // rebuilding the whole desired set. A direction/speed/horizon bucket
-    // change deliberately falls back to a full plan so retained overlapping
-    // chunks receive fresh trajectory ranks.
+        // sparse-predictive-exact-retirement-v1
+        //
+        // Moving demand is a sparse predictive tube INSIDE the swept AABB.
+        // AABB slab differences are not an exact delta for that sparse set:
+        // previously selected cells can remain inside the overlap while no
+        // longer belonging to the new tube. Only stationary full cuboids may
+        // use the cheap slab-delta path.
+        && previous.motion == VoxelMotionPriorityKey::STATIONARY
 }
 
 
@@ -610,7 +613,8 @@ pub(in crate::voxel) fn refresh_voxel_residency(
     mut voxel_demands: Local<Vec<VoxelRealizationScope>>,
     mut runtime_roles: Local<HashMap<(Entity, VoxelMaterializationKey), UsfScaleRoleMask>>,
 ) {
-    let warm_limit = config.voxel.streaming.warm_inactive_materialization_limit;
+    let configured_warm_limit =
+        config.voxel.streaming.warm_inactive_materialization_limit;
     let expected_dense_build_seconds =
         workers.estimated_latency_seconds(VoxelWorkerLane::Generation)
             + workers.estimated_latency_seconds(VoxelWorkerLane::Derivation);
@@ -714,6 +718,11 @@ pub(in crate::voxel) fn refresh_voxel_residency(
                 &mut streaming,
                 pinned.and_then(|pinned| pinned.surface_radius_native()),
             );
+            let warm_limit = adaptive_warm_inactive_limit(
+                configured_warm_limit,
+                &world,
+                &streaming,
+            );
             reconcile_materialization_residency(
                 &mut world,
                 &mut streaming,
@@ -800,6 +809,33 @@ fn prioritize_pending_work(
             .then(shell_order)
     });
     streaming.pending_desired = pending.into();
+}
+
+// useful-work-retirement-pressure-v1
+fn adaptive_warm_inactive_limit(
+    configured_limit: usize,
+    world: &VoxelWorld,
+    streaming: &VoxelStreaming,
+) -> usize {
+    if configured_limit == 0 {
+        return 0;
+    }
+
+    let throughput = streaming.load_budget_per_frame().max(1).min(512);
+    let pending = streaming.pending_desired_len();
+
+    // Missing desired work always outranks disposable inactive cache history.
+    if pending > throughput.saturating_mul(2) {
+        return 0;
+    }
+
+    let active = world.materializations().active_count();
+    let turnover_window = throughput.saturating_mul(4).max(32);
+    let locality_window = active.saturating_div(4).max(16);
+
+    configured_limit
+        .min(turnover_window.max(locality_window))
+        .min(512)
 }
 
 fn reconcile_materialization_residency(

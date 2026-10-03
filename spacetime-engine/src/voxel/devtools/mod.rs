@@ -15,7 +15,8 @@ use crate::{
 
 use super::{
     CelestialVoxelRealization, MATERIALIZATION_CHUNK_SIZE,
-    VoxelRealizationDemandSnapshot, VoxelStreamingTelemetry, VoxelWorld,
+    VoxelRealizationDemandSnapshot, VoxelStreaming, VoxelStreamingTelemetry,
+    VoxelWorld,
     resolution::CelestialClipmapTelemetry,
     manifestation::{
         VoxelMaterializationPresentation, VoxelMaterializationRuntime,
@@ -63,7 +64,12 @@ fn terrain_pipeline_census(
     clipmap: Res<CelestialClipmapTelemetry>,
     demands: Res<VoxelRealizationDemandSnapshot>,
     worlds: Query<
-        (Entity, &VoxelWorld, &UsfScaleLayer),
+        (
+            Entity,
+            &VoxelWorld,
+            &UsfScaleLayer,
+            Option<&VoxelStreaming>,
+        ),
         With<CelestialVoxelRealization>,
     >,
     runtimes: Query<(
@@ -125,11 +131,17 @@ fn terrain_pipeline_census(
 
     let mut rows = Vec::new();
 
-    for (entity, world, layer) in &worlds {
+    for (entity, world, layer, streaming) in &worlds {
         let store = world.materializations();
 
         let active_keys = store.active_keys().collect::<Vec<_>>();
         let active = active_keys.len();
+        // retirement-pressure-census-v1
+        let desired = streaming.map_or(active, VoxelStreaming::desired_count);
+        let pending_desired =
+            streaming.map_or(0, VoxelStreaming::pending_desired_len);
+        let warm_inactive = store.inactive_count();
+        let total_materializations = store.total_count();
 
         let mut dense = 0usize;
         let mut sign_transition = 0usize;
@@ -155,7 +167,11 @@ fn terrain_pipeline_census(
         rows.push((
             layer.scale().exponent(),
             demand_scopes,
+            desired,
+            pending_desired,
             active,
+            warm_inactive,
+            total_materializations,
             active.saturating_sub(dense),
             dense,
             sign_transition,
@@ -182,7 +198,11 @@ fn terrain_pipeline_census(
     for (
         exponent,
         demand_scopes,
+        desired,
+        pending_desired,
         active,
+        warm_inactive,
+        total_materializations,
         pending_generation,
         dense,
         sign_transition,
@@ -194,7 +214,11 @@ fn terrain_pipeline_census(
         info!(
             scale = exponent,
             demand_scopes,
+            desired,
+            pending_desired,
             active,
+            warm_inactive,
+            total_materializations,
             pending_generation,
             dense,
             sign_transition,

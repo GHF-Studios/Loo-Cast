@@ -85,10 +85,14 @@ impl VoxelStreaming {
         self.load_budget_per_frame
     }
 
-    fn pending_desired_len(&self) -> usize {
+    // rolling-retirement-metrics-v1
+    pub(in crate::voxel) fn pending_desired_len(&self) -> usize {
         self.pending_desired.len()
     }
 
+    pub(in crate::voxel) fn desired_count(&self) -> usize {
+        self.cached_desired_roles.len()
+    }
 
 
     fn retire_all_desired(&mut self) -> bool {
