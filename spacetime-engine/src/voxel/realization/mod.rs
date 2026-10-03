@@ -316,14 +316,22 @@ fn full_runtime_roles() -> UsfScaleRoleMask {
 fn roles_for_scale(
     domain: VoxelScaleDomain,
     target_scale: SpatialScale,
-    interaction_scale: SpatialScale,
+    _interaction_scale: SpatialScale,
 ) -> UsfScaleRoleMask {
-    // Dense Scale-Slice worlds are numerical/interaction realizations, not the
-    // contextual visual LOD stack.
-    let mut roles = UsfScaleRoleMask::REALIZATION;
-    if target_scale == interaction_scale {
-        roles = roles.union(UsfScaleRoleMask::PRESENTATION);
-    }
+    // A refinement branch is presentation-capable at every participating
+    // Scale Slice. Visibility is decided later by the interaction/view
+    // composition contract:
+    //
+    //   coarser than interaction -> contextual ancestor presentation
+    //   interaction              -> physical/local presentation
+    //   finer than interaction   -> staged ahead, not yet visible
+    //
+    // This preserves the coarse->fine "stalactite" without conflating Scale
+    // with graphical LOD. Each Scale still owns a bounded capability
+    // realization; immediately-finer ready coverage clips only its parent
+    // aperture in the presentation compositor.
+    let mut roles = presentation_roles();
+
     if domain.collides(target_scale) {
         roles = roles.union(UsfScaleRoleMask::COLLISION);
     }
@@ -724,6 +732,28 @@ mod tests {
             realization_parent_scale(domain, s0),
             Some(SpatialScale::new(1).unwrap())
         );
+    }
+
+    #[test]
+    fn refinement_branch_requests_presentation_for_every_participating_scale() {
+        let s0 = SpatialScale::ZERO;
+        let s3 = SpatialScale::new(3).unwrap();
+        let s5 = SpatialScale::new(5).unwrap();
+        let s6 = SpatialScale::new(6).unwrap();
+        let domain = VoxelScaleDomain::contiguous(s0, s6);
+
+        // Ancestor presentation must not disappear merely because another
+        // Scale owns interaction.
+        let ancestor = roles_for_scale(domain, s5, s3);
+        assert!(ancestor.contains(UsfScaleRoleMask::REALIZATION));
+        assert!(ancestor.contains(UsfScaleRoleMask::PRESENTATION));
+
+        // Predictive finer realization is also presentation-capable so it can
+        // become visible immediately when interaction reaches it. Actual
+        // visibility remains staged by the presentation projector.
+        let staged_fine = roles_for_scale(domain, s0, s3);
+        assert!(staged_fine.contains(UsfScaleRoleMask::REALIZATION));
+        assert!(staged_fine.contains(UsfScaleRoleMask::PRESENTATION));
     }
 
     #[test]

@@ -414,9 +414,13 @@ pub(in crate::spatial) fn project_scale_presentations(
             continue;
         }
 
-        // Capability-backed dense terrain is physical/local realization,
-        // never contextual multiscale LOD. Regional/clipmap realizers own that.
-        if capability.is_some() && presentation.scale() != interaction.scale() {
+        // Capability-backed terrain forms a nested coarse->fine refinement
+        // branch. Predictively realized slices finer than current interaction
+        // are staged only; showing them early would make visual terrain outrun
+        // collision/edit authority. Coarser ancestors remain eligible for the
+        // contextual projection path below and are spatially clipped by ready
+        // immediately-finer coverage.
+        if capability.is_some() && presentation.scale() < interaction.scale() {
             if !matches!(*visibility, Visibility::Hidden) {
                 *visibility = Visibility::Hidden;
             }
@@ -461,8 +465,10 @@ pub(in crate::spatial) fn project_scale_presentations(
             continue;
         }
 
-        // Only non-capability authored scale presentations reach this branch.
-        // Terrain context uses independent regional/clipmap realization resolution.
+        // Contextual branch: authored scale presentations plus capability-backed
+        // terrain ancestors coarser than the current interaction slice. The
+        // refinement clip material performs spatial child-over-parent aperture
+        // ownership; this projector must not choose one global winning Scale.
         if !probe.context_enabled() {
             *visibility = Visibility::Hidden;
             continue;

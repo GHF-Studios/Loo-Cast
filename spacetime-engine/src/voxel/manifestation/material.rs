@@ -367,6 +367,26 @@ fn initialize_voxel_presentation_materials(
 /// A clip box is expressed in the final USF projection render space. This keeps
 /// the shader entirely presentation-local: it never needs canonical large-range
 /// arithmetic or semantic authority.
+fn refinement_source_is_presented(
+    fine_scale: SpatialScale,
+    interaction_scale: SpatialScale,
+    physical_enabled: bool,
+    context_enabled: bool,
+    context_eligible: bool,
+) -> bool {
+    if fine_scale < interaction_scale {
+        // Predictive realization may run ahead of interaction, but a hidden
+        // future child must never clip a visible current/coarser parent.
+        return false;
+    }
+
+    if fine_scale == interaction_scale {
+        return physical_enabled;
+    }
+
+    context_enabled && context_eligible
+}
+
 fn sync_refinement_clip_materials(
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     interaction: Res<UsfPrimaryInteractionSlice>,
@@ -444,11 +464,13 @@ fn sync_refinement_clip_materials(
             continue;
         };
 
-        let fine_is_visible = if fine_scale == interaction.scale() {
-            probe.physical_enabled()
-        } else {
-            probe.context_enabled() && view.context_scale_eligible(fine_scale)
-        };
+        let fine_is_visible = refinement_source_is_presented(
+            fine_scale,
+            interaction.scale(),
+            probe.physical_enabled(),
+            probe.context_enabled(),
+            view.context_scale_eligible(fine_scale),
+        );
         if !fine_is_visible {
             continue;
         }
@@ -521,6 +543,46 @@ fn sync_refinement_clip_materials(
             .cloned()
             .unwrap_or_default();
         material.set_clip_data(data, &mut buffers, &mut materials);
+    }
+}
+
+#[cfg(test)]
+mod refinement_presentation_domain_tests {
+    use super::*;
+
+    #[test]
+    fn hidden_future_refinement_never_clips_visible_parent() {
+        let interaction = SpatialScale::new(4).unwrap();
+        let future_fine = SpatialScale::new(3).unwrap();
+
+        assert!(!refinement_source_is_presented(
+            future_fine,
+            interaction,
+            true,
+            true,
+            true,
+        ));
+    }
+
+    #[test]
+    fn current_and_coarser_refinement_can_own_presentation() {
+        let interaction = SpatialScale::new(4).unwrap();
+        let coarser = SpatialScale::new(5).unwrap();
+
+        assert!(refinement_source_is_presented(
+            interaction,
+            interaction,
+            true,
+            true,
+            true,
+        ));
+        assert!(refinement_source_is_presented(
+            coarser,
+            interaction,
+            true,
+            true,
+            true,
+        ));
     }
 }
 
