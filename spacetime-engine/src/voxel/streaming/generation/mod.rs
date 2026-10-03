@@ -8,7 +8,9 @@ use crate::{
     config::EngineConfig,
     reconstructible::{ReconstructibleFrameBudget, ReconstructibleWorkClass},
     ecs::{UsfAuthorityPartitionOf, UsfLogicalRealizationOf},
-    spatial::{UsfPosition, UsfScaleLayer, UsfSemanticFrame},
+    spatial::{
+        UsfPosition, UsfPrimaryInteractionSlice, UsfScaleLayer, UsfSemanticFrame,
+    },
 };
 
 use super::{VoxelStreaming, VoxelStreamingTelemetry};
@@ -185,6 +187,7 @@ pub(in crate::voxel) fn retire_stale_generation_tasks(
 /// cannot independently saturate the compute pool.
 pub(in crate::voxel) fn schedule_voxel_generation(
     config: Res<EngineConfig>,
+    interaction: Res<UsfPrimaryInteractionSlice>,
     workers: Res<VoxelWorkerPool>,
     mut commands: Commands,
     mut worlds: Query<(
@@ -211,20 +214,24 @@ pub(in crate::voxel) fn schedule_voxel_generation(
         return;
     }
 
-    // Rotate equal-priority ties for fairness, then rank globally so current
-    // physical and make-before-break replacement work beats arbitrary ECS order.
+    // semantic-urgency-before-decimal-scale-v1
+    let interaction_exponent = interaction.scale().exponent();
     let mut world_entities = worlds
         .iter_mut()
         .filter_map(|(entity, _, streaming, layer, _)| {
             let (pending_priority, pending_role_priority, trajectory_distance) =
                 streaming.next_pending_work_rank()?;
+            let exponent = layer.scale().exponent();
+            let interaction_distance =
+                (i16::from(exponent) - i16::from(interaction_exponent)).abs();
             Some((
                 entity,
-                layer.scale().exponent(),
-                streaming.migration_active(),
-                pending_priority,
                 pending_role_priority,
+                pending_priority,
+                streaming.migration_active(),
                 trajectory_distance,
+                interaction_distance,
+                exponent,
             ))
         })
         .collect::<Vec<_>>();
@@ -234,16 +241,16 @@ pub(in crate::voxel) fn schedule_voxel_generation(
 
     let rotate = *round_robin_cursor % world_entities.len();
     world_entities.rotate_left(rotate);
-    // coarse-context-first-v1
     world_entities.sort_by(|a, b| {
         b.1.cmp(&a.1)
-            .then_with(|| b.4.cmp(&a.4))
             .then_with(|| b.2.cmp(&a.2))
             .then_with(|| b.3.cmp(&a.3))
-            .then_with(|| a.5.total_cmp(&b.5))
+            .then_with(|| a.4.total_cmp(&b.4))
+            .then_with(|| a.5.cmp(&b.5))
+            .then_with(|| b.6.cmp(&a.6))
     });
 
-    for (entity, _, _, _, _, _) in world_entities.iter().copied() {
+    for (entity, _, _, _, _, _, _) in world_entities.iter().copied() {
         if generation_slots == 0 {
             break;
         }

@@ -67,6 +67,8 @@ const WHOLE_BODY_ROOT_MARGIN: f64 = 1.125;
 const TARGET_CELLS_PER_DISTANCE: f64 = 16.0;
 const MAX_INITIAL_LEAVES: usize = 224;
 const MAX_BALANCED_LEAVES: usize = 512;
+// small-coarse-first-refinement-waves-v1
+const MAX_PRIMARY_REFINEMENTS_PER_STAGE: usize = 2;
 const MAX_BUILDS_IN_FLIGHT: usize = 4;
 const MAX_BUILD_ADMISSIONS_PER_FRAME: usize = 2;
 const MAX_PUBLICATIONS_PER_FRAME: usize = 2;
@@ -269,12 +271,14 @@ impl CelestialClipmapPlannerPolicyCache {
 #[derive(Debug, Clone, Copy)]
 struct ClipmapRefinementCandidate {
     distance: f64,
+    refinement_debt: i16,
     key: CelestialClipmapBlockKey,
 }
 
 impl PartialEq for ClipmapRefinementCandidate {
     fn eq(&self, other: &Self) -> bool {
-        self.distance.total_cmp(&other.distance) == std::cmp::Ordering::Equal
+        self.refinement_debt == other.refinement_debt
+            && self.distance.total_cmp(&other.distance) == std::cmp::Ordering::Equal
             && self.key == other.key
     }
 }
@@ -289,9 +293,11 @@ impl PartialOrd for ClipmapRefinementCandidate {
 
 impl Ord for ClipmapRefinementCandidate {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        other
-            .distance
-            .total_cmp(&self.distance)
+        self.key
+            .resolution
+            .cmp(&other.key.resolution)
+            .then_with(|| self.refinement_debt.cmp(&other.refinement_debt))
+            .then_with(|| other.distance.total_cmp(&self.distance))
             .then_with(|| block_sort_key(other.key).cmp(&block_sort_key(self.key)))
     }
 }
@@ -320,8 +326,13 @@ fn refinement_candidate(
     let distance = block_distance_to_point(key, planning_anchor_local);
     let effective_distance = (distance - validity_radius_metres).max(0.0);
     let target = target_resolution_at_distance(finest, effective_distance);
-    (key.resolution > target).then_some(ClipmapRefinementCandidate {
+    let refinement_debt = key
+        .resolution
+        .binary_exponent()
+        .saturating_sub(target.binary_exponent());
+    (refinement_debt > 0).then_some(ClipmapRefinementCandidate {
         distance,
+        refinement_debt,
         key,
     })
 }
@@ -1123,11 +1134,13 @@ fn derive_plan_input(
 /// Converts one balanced leaf frontier into deterministic build specs.
 fn specs_for_frontier(
     leaves: &HashSet<CelestialClipmapBlockKey>,
+    planning_anchor_local: DVec3,
 ) -> Vec<CelestialClipmapBlockSpec> {
     let mut ordered = leaves.iter().copied().collect::<Vec<_>>();
     ordered.sort_unstable_by(|a, b| {
-        b.resolution
-            .cmp(&a.resolution)
+        block_distance_to_point(*a, planning_anchor_local)
+            .total_cmp(&block_distance_to_point(*b, planning_anchor_local))
+            .then_with(|| b.resolution.cmp(&a.resolution))
             .then_with(|| a.coord.x.cmp(&b.coord.x))
             .then_with(|| a.coord.y.cmp(&b.coord.y))
             .then_with(|| a.coord.z.cmp(&b.coord.z))
@@ -1188,7 +1201,7 @@ fn build_plan(
             return None;
         }
 
-        let mut stages = vec![specs_for_frontier(&leaves)];
+        let mut stages = vec![specs_for_frontier(&leaves, observer_local)];
 
         loop {
             let mut candidates =
@@ -1214,10 +1227,14 @@ fn build_plan(
             let mut inserted =
                 Vec::<CelestialClipmapBlockKey>::with_capacity(8);
             let mut refined_any = false;
+            let mut primary_refinements = 0usize;
 
-            // Candidates are captured before refinement. Newly inserted children
-            // are intentionally not candidates until the next round.
+            // Keep each transaction small. Newly inserted children wait for the
+            // next recorded stage instead of expanding one giant commit barrier.
             while let Some(candidate) = candidates.pop() {
+                if primary_refinements >= MAX_PRIMARY_REFINEMENTS_PER_STAGE {
+                    break;
+                }
                 if !leaves.contains(&candidate.key) {
                     continue;
                 }
@@ -1232,8 +1249,10 @@ fn build_plan(
                     policy,
                     surface_cache,
                     &mut inserted,
-                ) {
-                    refined_any |= !inserted.is_empty();
+                ) && !inserted.is_empty()
+                {
+                    refined_any = true;
+                    primary_refinements += 1;
                 }
             }
 
@@ -1251,7 +1270,7 @@ fn build_plan(
                 break;
             }
 
-            let stage = specs_for_frontier(&leaves);
+            let stage = specs_for_frontier(&leaves, observer_local);
             if stages.last().is_some_and(|current| *current == stage) {
                 break;
             }
@@ -2230,8 +2249,8 @@ mod tests {
         let coarse = HashSet::from([parent]);
         let fine = children.into_iter().collect::<HashSet<_>>();
 
-        let coarse_specs = specs_for_frontier(&coarse);
-        let fine_specs = specs_for_frontier(&fine);
+        let coarse_specs = specs_for_frontier(&coarse, DVec3::ZERO);
+        let fine_specs = specs_for_frontier(&fine, DVec3::ZERO);
 
         assert_eq!(coarse_specs.len(), 1);
         assert_eq!(coarse_specs[0].key, parent);

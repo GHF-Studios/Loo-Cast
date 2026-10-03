@@ -1,12 +1,14 @@
 //! Shared background worker policy for voxel realization.
 
-use std::sync::{
-    Arc, Mutex,
-    atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
-    mpsc::{self, Receiver, Sender, TryRecvError},
+use std::{
+    collections::VecDeque,
+    sync::{
+        Arc, Condvar, Mutex,
+        atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
+        mpsc::{self, Receiver, TryRecvError},
+    },
+    time::Instant,
 };
-
-use std::time::Instant;
 
 use bevy::{
     prelude::*,
@@ -25,6 +27,19 @@ pub(super) enum VoxelWorkerLane {
 }
 impl VoxelWorkerLane {
     const COUNT: usize = 5;
+
+    // real-weighted-fair-worker-lanes-v1
+    const SERVICE_WHEEL: [Self; 8] = [
+        Self::Generation,
+        Self::PresentationResolution,
+        Self::Derivation,
+        Self::PresentationResolution,
+        Self::Generation,
+        Self::PresentationPlanning,
+        Self::Derivation,
+        Self::PlanetarySurface,
+    ];
+
     const fn index(self) -> usize {
         match self {
             Self::Generation => 0,
@@ -33,6 +48,78 @@ impl VoxelWorkerLane {
             Self::PresentationPlanning => 3,
             Self::PresentationResolution => 4,
         }
+    }
+}
+
+struct VoxelWorkerQueueState {
+    lanes: [VecDeque<VoxelWorkerJob>; VoxelWorkerLane::COUNT],
+    service_cursor: usize,
+    closed: bool,
+}
+
+impl Default for VoxelWorkerQueueState {
+    fn default() -> Self {
+        Self {
+            lanes: std::array::from_fn(|_| VecDeque::new()),
+            service_cursor: 0,
+            closed: false,
+        }
+    }
+}
+
+#[derive(Default)]
+struct VoxelWorkerQueue {
+    state: Mutex<VoxelWorkerQueueState>,
+    ready: Condvar,
+}
+
+impl VoxelWorkerQueue {
+    fn push(
+        &self,
+        lane: VoxelWorkerLane,
+        job: VoxelWorkerJob,
+    ) -> Result<(), VoxelWorkerJob> {
+        let Ok(mut state) = self.state.lock() else {
+            return Err(job);
+        };
+        if state.closed {
+            return Err(job);
+        }
+        state.lanes[lane.index()].push_back(job);
+        self.ready.notify_one();
+        Ok(())
+    }
+
+    fn pop(&self) -> Option<VoxelWorkerJob> {
+        let mut state = self.state.lock().ok()?;
+        loop {
+            if state.closed {
+                return None;
+            }
+
+            for offset in 0..VoxelWorkerLane::SERVICE_WHEEL.len() {
+                let wheel_index =
+                    (state.service_cursor + offset) % VoxelWorkerLane::SERVICE_WHEEL.len();
+                let lane = VoxelWorkerLane::SERVICE_WHEEL[wheel_index];
+                if let Some(job) = state.lanes[lane.index()].pop_front() {
+                    state.service_cursor =
+                        (wheel_index + 1) % VoxelWorkerLane::SERVICE_WHEEL.len();
+                    return Some(job);
+                }
+            }
+
+            state = self.ready.wait(state).ok()?;
+        }
+    }
+
+    fn close(&self) {
+        if let Ok(mut state) = self.state.lock() {
+            state.closed = true;
+            for lane in &mut state.lanes {
+                lane.clear();
+            }
+        }
+        self.ready.notify_all();
     }
 }
 
@@ -145,12 +232,16 @@ impl<T: Send + 'static> Drop for VoxelWorkerTicket<T> {
 /// cancellation at the existing ECS ownership boundaries.
 #[derive(Resource)]
 pub(super) struct VoxelWorkerPool {
-    // Sender drops before the TaskPool so blocked workers observe queue closure
-    // before the executor joins its threads.
-    sender: Sender<VoxelWorkerJob>,
+    queue: Arc<VoxelWorkerQueue>,
     admission: Arc<VoxelWorkerAdmission>,
     capacity: usize,
     _pool: TaskPool,
+}
+
+impl Drop for VoxelWorkerPool {
+    fn drop(&mut self) {
+        self.queue.close();
+    }
 }
 
 impl Default for VoxelWorkerPool {
@@ -162,22 +253,12 @@ impl Default for VoxelWorkerPool {
             .build();
         let capacity = pool.thread_num().max(1);
 
-        let (sender, receiver) = mpsc::channel::<VoxelWorkerJob>();
-        let receiver = Arc::new(Mutex::new(receiver));
+        let queue = Arc::new(VoxelWorkerQueue::default());
 
         for _ in 0..capacity {
-            let receiver = Arc::clone(&receiver);
+            let queue = Arc::clone(&queue);
             pool.spawn(async move {
-                loop {
-                    let job = {
-                        let Ok(receiver) = receiver.lock() else {
-                            return;
-                        };
-                        receiver.recv()
-                    };
-                    let Ok(job) = job else {
-                        return;
-                    };
+                while let Some(job) = queue.pop() {
                     job();
                 }
             })
@@ -185,7 +266,7 @@ impl Default for VoxelWorkerPool {
         }
 
         Self {
-            sender,
+            queue,
             admission: Arc::new(VoxelWorkerAdmission::new(capacity)),
             capacity,
             _pool: pool,
@@ -228,7 +309,7 @@ pub(super) fn try_submit<T, F>(
         let worker_cancelled = Arc::clone(&cancelled);
         let admission_for_job = Arc::clone(&self.admission);
 
-        if self.sender.send(Box::new(move || {
+        let worker_job: VoxelWorkerJob = Box::new(move || {
             if worker_cancelled.load(Ordering::Acquire) {
                 return;
             }
@@ -261,7 +342,9 @@ pub(super) fn try_submit<T, F>(
             if !worker_cancelled.load(Ordering::Acquire) {
                 let _ = result_sender.send(output);
             }
-        })).is_err() {
+        });
+
+        if self.queue.push(lane, worker_job).is_err() {
             self.admission.release(lane);
             return None;
         }
