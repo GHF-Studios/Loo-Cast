@@ -58,11 +58,15 @@ impl VoxelWorkerLane {
     }
 }
 
+// bounded-critical-worker-burst-v1
+const MAX_CRITICAL_SERVICE_BURST: usize = 4;
+
 struct VoxelWorkerQueueState {
     normal: [VecDeque<VoxelWorkerJob>; VoxelWorkerLane::COUNT],
     critical: [VecDeque<VoxelWorkerJob>; VoxelWorkerLane::COUNT],
     service_cursor: usize,
     critical_cursor: usize,
+    critical_burst: usize,
     closed: bool,
 }
 
@@ -73,6 +77,7 @@ impl Default for VoxelWorkerQueueState {
             critical: std::array::from_fn(|_| VecDeque::new()),
             service_cursor: 0,
             critical_cursor: 0,
+            critical_burst: 0,
             closed: false,
         }
     }
@@ -116,15 +121,29 @@ impl VoxelWorkerQueue {
                 return None;
             }
 
-            // Physical interaction work gets first claim on the next free
-            // worker, but FIFO is preserved inside each lane.
-            for offset in 0..VoxelWorkerLane::COUNT {
-                let lane_index =
-                    (state.critical_cursor + offset) % VoxelWorkerLane::COUNT;
-                if let Some(job) = state.critical[lane_index].pop_front() {
-                    state.critical_cursor =
-                        (lane_index + 1) % VoxelWorkerLane::COUNT;
-                    return Some(job);
+            let normal_waiting =
+                state.normal.iter().any(|lane| !lane.is_empty());
+            let critical_waiting =
+                state.critical.iter().any(|lane| !lane.is_empty());
+
+            // Physical interaction work remains low-latency, but an endless
+            // collision stream must not permanently starve contextual
+            // realization/presentation. After a bounded critical burst, serve
+            // one normal weighted-fair job if one exists.
+            if critical_waiting
+                && (state.critical_burst < MAX_CRITICAL_SERVICE_BURST
+                    || !normal_waiting)
+            {
+                for offset in 0..VoxelWorkerLane::COUNT {
+                    let lane_index =
+                        (state.critical_cursor + offset) % VoxelWorkerLane::COUNT;
+                    if let Some(job) = state.critical[lane_index].pop_front() {
+                        state.critical_cursor =
+                            (lane_index + 1) % VoxelWorkerLane::COUNT;
+                        state.critical_burst =
+                            state.critical_burst.saturating_add(1);
+                        return Some(job);
+                    }
                 }
             }
 
@@ -135,7 +154,24 @@ impl VoxelWorkerQueue {
                 if let Some(job) = state.normal[lane.index()].pop_front() {
                     state.service_cursor =
                         (wheel_index + 1) % VoxelWorkerLane::SERVICE_WHEEL.len();
+                    state.critical_burst = 0;
                     return Some(job);
+                }
+            }
+
+            // If normal work disappeared between the availability check and
+            // service scan, do not sleep while critical work is queued.
+            if critical_waiting {
+                for offset in 0..VoxelWorkerLane::COUNT {
+                    let lane_index =
+                        (state.critical_cursor + offset) % VoxelWorkerLane::COUNT;
+                    if let Some(job) = state.critical[lane_index].pop_front() {
+                        state.critical_cursor =
+                            (lane_index + 1) % VoxelWorkerLane::COUNT;
+                        state.critical_burst =
+                            state.critical_burst.saturating_add(1);
+                        return Some(job);
+                    }
                 }
             }
 
@@ -168,7 +204,11 @@ impl VoxelWorkerAdmission {
         let pipeline_depth = worker_capacity.saturating_mul(2).max(1);
         Self {
             outstanding: std::array::from_fn(|_| AtomicUsize::new(0)),
-            limits: [pipeline_depth, pipeline_depth, 2, 1, 2],
+            // Dense generation/derivation and binary presentation resolution
+            // are streaming pipelines. Keep enough queued/running work to feed
+            // the shared pool; planning and legacy planetary surface remain
+            // deliberately narrow.
+            limits: [pipeline_depth, pipeline_depth, 1, 1, pipeline_depth],
             average_job_ns: std::array::from_fn(|_| AtomicU64::new(0)),
         }
     }
@@ -509,6 +549,43 @@ mod tests {
         assert_eq!(recommended_worker_threads(2), 1);
         assert_eq!(recommended_worker_threads(4), 3);
         assert_eq!(recommended_worker_threads(8), 6);
+    }
+
+    #[test]
+    fn critical_burst_eventually_services_normal_work() {
+        let queue = VoxelWorkerQueue::default();
+        let order = Arc::new(Mutex::new(Vec::<u8>::new()));
+
+        for _ in 0..(MAX_CRITICAL_SERVICE_BURST + 2) {
+            let order = Arc::clone(&order);
+            queue
+                .push(
+                    VoxelWorkerLane::Generation,
+                    VoxelWorkerPriority::Critical,
+                    Box::new(move || order.lock().unwrap().push(1)),
+                )
+                .unwrap();
+        }
+
+        let normal_order = Arc::clone(&order);
+        queue
+            .push(
+                VoxelWorkerLane::PresentationResolution,
+                VoxelWorkerPriority::Normal,
+                Box::new(move || normal_order.lock().unwrap().push(2)),
+            )
+            .unwrap();
+
+        for _ in 0..=MAX_CRITICAL_SERVICE_BURST {
+            queue.pop().unwrap()();
+        }
+
+        let observed = order.lock().unwrap();
+        assert_eq!(
+            observed[MAX_CRITICAL_SERVICE_BURST],
+            2,
+            "normal work must get service after the bounded critical burst",
+        );
     }
 
     #[test]

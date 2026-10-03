@@ -64,12 +64,13 @@ const MAX_FINE_SAMPLE_SPACING_METRES: f64 = 2_048.0;
 // spherical surface representation.
 const WHOLE_BODY_ROOT_MARGIN: f64 = 1.125;
 const TARGET_CELLS_PER_DISTANCE: f64 = 16.0;
-const MAX_INITIAL_LEAVES: usize = 224;
-const MAX_BALANCED_LEAVES: usize = 512;
-// small-coarse-first-refinement-waves-v1
-const MAX_PRIMARY_REFINEMENTS_PER_STAGE: usize = 2;
-const MAX_BUILDS_IN_FLIGHT: usize = 4;
-const MAX_BUILD_ADMISSIONS_PER_FRAME: usize = 2;
+// local-error-driven-binary-refinement-v1
+// A real planet->local binary ladder needs room for 2:1 transition support
+// around a deeply refined focus. These are planner/frontier limits, not dense
+// voxel residency budgets.
+const MAX_INITIAL_LEAVES: usize = 1_024;
+const MAX_BALANCED_LEAVES: usize = 2_048;
+const MAX_PRIMARY_REFINEMENTS_PER_STAGE: usize = 4;
 const MAX_PUBLICATIONS_PER_FRAME: usize = 2;
 const CLIPMAP_VALIDITY_AGGREGATES_ACROSS: u32 = 8;
 const CLIPMAP_MIN_VALIDITY_SECONDS: f64 = 0.10;
@@ -275,15 +276,21 @@ impl CelestialClipmapPlannerPolicyCache {
 
 #[derive(Debug, Clone, Copy)]
 struct ClipmapRefinementCandidate {
+    inside_validity: bool,
     distance: f64,
+    projected_error: f64,
     refinement_debt: i16,
     key: CelestialClipmapBlockKey,
 }
 
 impl PartialEq for ClipmapRefinementCandidate {
     fn eq(&self, other: &Self) -> bool {
-        self.refinement_debt == other.refinement_debt
-            && self.distance.total_cmp(&other.distance) == std::cmp::Ordering::Equal
+        self.inside_validity == other.inside_validity
+            && self.refinement_debt == other.refinement_debt
+            && self.projected_error.total_cmp(&other.projected_error)
+                == std::cmp::Ordering::Equal
+            && self.distance.total_cmp(&other.distance)
+                == std::cmp::Ordering::Equal
             && self.key == other.key
     }
 }
@@ -298,11 +305,12 @@ impl PartialOrd for ClipmapRefinementCandidate {
 
 impl Ord for ClipmapRefinementCandidate {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.key
-            .resolution
-            .cmp(&other.key.resolution)
+        self.inside_validity
+            .cmp(&other.inside_validity)
             .then_with(|| self.refinement_debt.cmp(&other.refinement_debt))
+            .then_with(|| self.projected_error.total_cmp(&other.projected_error))
             .then_with(|| other.distance.total_cmp(&self.distance))
+            .then_with(|| self.key.resolution.cmp(&other.key.resolution))
             .then_with(|| block_sort_key(other.key).cmp(&block_sort_key(self.key)))
     }
 }
@@ -335,8 +343,12 @@ fn refinement_candidate(
         .resolution
         .binary_exponent()
         .saturating_sub(target.binary_exponent());
+    let projected_error =
+        key.spacing_metres() / distance.max(key.spacing_metres());
     (refinement_debt > 0).then_some(ClipmapRefinementCandidate {
+        inside_validity: distance <= validity_radius_metres,
         distance,
+        projected_error,
         refinement_debt,
         key,
     })
@@ -2114,6 +2126,10 @@ fn sync_celestial_clipmap_realizations(
         let mut admitted = 0usize;
         let mut worker_slots =
             workers.available_slots(VoxelWorkerLane::PresentationResolution);
+        let max_builds_in_flight =
+            workers.capacity().saturating_mul(2).max(4);
+        let max_admissions_per_frame =
+            workers.capacity().max(2);
 
         'authorities: for (&authority, plan) in &registry.plans {
             for &spec in &plan.desired {
@@ -2133,8 +2149,8 @@ fn sync_celestial_clipmap_realizations(
                 }
 
                 if worker_slots == 0
-                    || inflight.len() >= MAX_BUILDS_IN_FLIGHT
-                    || admitted >= MAX_BUILD_ADMISSIONS_PER_FRAME
+                    || inflight.len() >= max_builds_in_flight
+                    || admitted >= max_admissions_per_frame
                 {
                     break 'authorities;
                 }
@@ -2503,6 +2519,27 @@ pub(super) fn configure(app: &mut App) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn local_refinement_candidate_beats_far_coarse_candidate() {
+        let finest = VoxelPresentationResolution::new(0);
+        let near = CelestialClipmapBlockKey {
+            resolution: VoxelPresentationResolution::new(5),
+            coord: IVec3::ZERO,
+        };
+        let far = CelestialClipmapBlockKey {
+            resolution: VoxelPresentationResolution::new(6),
+            coord: IVec3::new(1_000, 0, 0),
+        };
+        let near_candidate =
+            refinement_candidate(near, finest, DVec3::ZERO, 1_000.0).unwrap();
+        let far_candidate =
+            refinement_candidate(far, finest, DVec3::ZERO, 1_000.0).unwrap();
+        assert!(
+            near_candidate > far_candidate,
+            "after root context exists, local under-resolution should outrank far global breadth",
+        );
+    }
 
     #[test]
     fn binary_finest_floor_tracks_interaction_scale() {

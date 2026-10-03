@@ -128,6 +128,7 @@ pub(super) fn retire_stale_chunk_builds(
 ///
 /// This is deliberately O(changes), not O(resident materializations). Quiet
 /// cached terrain does no per-frame geometry scheduling work.
+// fair-derived-world-rounds-v1
 pub(super) fn queue_dirty_chunk_builds(
     mut commands: Commands,
     workers: Res<VoxelWorkerPool>,
@@ -139,24 +140,56 @@ pub(super) fn queue_dirty_chunk_builds(
     )>,
     mut telemetry: ResMut<VoxelStreamingTelemetry>,
     mut frame_budget: ResMut<ReconstructibleFrameBudget>,
+    mut round_robin_cursor: Local<usize>,
 ) {
-    let task_budget = workers.available_slots(VoxelWorkerLane::Derivation);
-    let mut started = 0;
-    let mut empty_published = 0;
+    let task_budget =
+        workers.available_slots(VoxelWorkerLane::Derivation);
+    let mut started = 0usize;
+    let mut empty_published = 0usize;
 
-    'worlds: for (world_entity, mut world, layer, streaming) in &mut worlds {
-        while started < task_budget
-            || empty_published < DERIVED_EMPTY_PUBLISH_BUDGET_PER_FRAME
-        {
+    let mut world_entities = worlds
+        .iter_mut()
+        .map(|(entity, _, _, _)| entity)
+        .collect::<Vec<_>>();
+    if world_entities.is_empty() {
+        return;
+    }
+
+    let rotate = *round_robin_cursor % world_entities.len();
+    world_entities.rotate_left(rotate);
+    let mut exhausted = HashSet::<Entity>::new();
+
+    while started < task_budget
+        || empty_published < DERIVED_EMPTY_PUBLISH_BUDGET_PER_FRAME
+    {
+        let mut progressed = false;
+
+        for world_entity in world_entities.iter().copied() {
+            if exhausted.contains(&world_entity) {
+                continue;
+            }
+            if started >= task_budget
+                && empty_published >= DERIVED_EMPTY_PUBLISH_BUDGET_PER_FRAME
+            {
+                break;
+            }
+
             let Some(work_token) =
                 frame_budget.begin(ReconstructibleWorkClass::Maintenance)
             else {
-                break 'worlds;
+                *round_robin_cursor =
+                    (*round_robin_cursor).wrapping_add(1);
+                return;
             };
 
-            // collision-first-derived-scheduling-v1
-            // Find interaction-critical surfaces first without inventing a
-            // second queue or duplicating surface ownership.
+            let Ok((_, mut world, layer, streaming)) =
+                worlds.get_mut(world_entity)
+            else {
+                exhausted.insert(world_entity);
+                frame_budget.finish(work_token);
+                continue;
+            };
+
             let critical_key = streaming.and_then(|streaming| {
                 world.materializations_mut().pop_dirty_derived_matching(|key| {
                     let roles = streaming.effective_roles(key);
@@ -164,17 +197,17 @@ pub(super) fn queue_dirty_chunk_builds(
                         || roles.contains(crate::spatial::UsfScaleRoleMask::EDITING)
                 })
             });
-            let Some(key) =
-                critical_key.or_else(|| world.materializations_mut().pop_dirty_derived())
+            let Some(key) = critical_key
+                .or_else(|| world.materializations_mut().pop_dirty_derived())
             else {
+                exhausted.insert(world_entity);
                 frame_budget.finish(work_token);
-                break;
+                continue;
             };
 
             if streaming.is_some_and(|streaming| !streaming.surface_required(key)) {
-                // This address became REALIZATION-only while waiting in the
-                // dirty queue. Dense truth remains valid; no mesh is required.
                 frame_budget.finish(work_token);
+                progressed = true;
                 continue;
             }
 
@@ -188,6 +221,7 @@ pub(super) fn queue_dirty_chunk_builds(
                 world.materializations_mut().begin_surface_build(key)
             else {
                 frame_budget.finish(work_token);
+                progressed = true;
                 continue;
             };
 
@@ -196,24 +230,29 @@ pub(super) fn queue_dirty_chunk_builds(
                 telemetry.derived_skipped_empty();
                 empty_published += 1;
                 frame_budget.finish(work_token);
+                progressed = true;
                 continue;
             }
 
             if started >= task_budget {
                 world.materializations_mut().cancel_surface_build(key, revision);
                 frame_budget.finish(work_token);
-                break;
+                continue;
             }
 
             let Ok(address) = world.materialization_address(key) else {
                 world.materializations_mut().cancel_surface_build(key, revision);
                 frame_budget.finish(work_token);
+                progressed = true;
                 continue;
             };
             let debug_color = debug_chunk_color(address, layer.scale());
             let build = move || {
                 let surface = mesh::extract_chunk_surface(&snapshot);
-                VoxelDerivedOutput { surface, debug_color }
+                VoxelDerivedOutput {
+                    surface,
+                    debug_color,
+                }
             };
             let task = if critical {
                 workers.try_submit_critical(VoxelWorkerLane::Derivation, build)
@@ -223,12 +262,16 @@ pub(super) fn queue_dirty_chunk_builds(
             let Some(task) = task else {
                 world.materializations_mut().cancel_surface_build(key, revision);
                 frame_budget.finish(work_token);
-                break;
+                continue;
             };
 
             telemetry.derived_started();
             commands.spawn((
-                Name::new(if critical { "Voxel Critical Surface Derivation" } else { "Voxel Surface Derivation" }),
+                Name::new(if critical {
+                    "Voxel Critical Surface Derivation"
+                } else {
+                    "Voxel Surface Derivation"
+                }),
                 VoxelWorkerTask,
                 VoxelDerivedTask {
                     world: world_entity,
@@ -239,14 +282,15 @@ pub(super) fn queue_dirty_chunk_builds(
             ));
             started += 1;
             frame_budget.finish(work_token);
+            progressed = true;
         }
 
-        if started >= task_budget
-            && empty_published >= DERIVED_EMPTY_PUBLISH_BUDGET_PER_FRAME
-        {
+        if !progressed || exhausted.len() == world_entities.len() {
             break;
         }
     }
+
+    *round_robin_cursor = (*round_robin_cursor).wrapping_add(1);
 }
 
 

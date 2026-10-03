@@ -1,6 +1,6 @@
 //! Async dense-materialization generation lifecycle.
 
-use std::collections::VecDeque;
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use bevy::prelude::*;
 
@@ -199,6 +199,7 @@ pub(in crate::voxel) fn retire_stale_generation_tasks(
 ///
 /// Global worker-slot accounting remains shared across voxel worlds so one world
 /// cannot independently saturate the compute pool.
+// fair-ranked-generation-rounds-v1
 pub(in crate::voxel) fn schedule_voxel_generation(
     config: Res<EngineConfig>,
     interaction: Res<UsfPrimaryInteractionSlice>,
@@ -223,82 +224,138 @@ pub(in crate::voxel) fn schedule_voxel_generation(
     .expect("validated engine config must produce a generation grouping extent");
 
     telemetry.worker_capacity(workers.capacity());
-    let mut generation_slots = workers.available_slots(VoxelWorkerLane::Generation);
+    let mut generation_slots =
+        workers.available_slots(VoxelWorkerLane::Generation);
     if generation_slots == 0 {
         return;
     }
 
-    // semantic-urgency-before-decimal-scale-v1
     let interaction_exponent = interaction.scale().exponent();
-    let mut world_entities = worlds
+    let mut candidates = worlds
         .iter_mut()
-        .filter_map(|(entity, _, streaming, layer, _)| {
-            let (pending_priority, pending_role_priority, trajectory_distance) =
-                streaming.next_pending_work_rank()?;
-            let exponent = layer.scale().exponent();
-            let interaction_distance =
-                (i16::from(exponent) - i16::from(interaction_exponent)).abs();
-            Some((
-                entity,
-                pending_role_priority,
-                pending_priority,
-                streaming.migration_active(),
-                trajectory_distance,
-                interaction_distance,
-                exponent,
-            ))
-        })
+        .map(|(entity, _, _, _, _)| entity)
         .collect::<Vec<_>>();
-    if world_entities.is_empty() {
+    if candidates.is_empty() {
         return;
     }
 
-    let rotate = *round_robin_cursor % world_entities.len();
-    world_entities.rotate_left(rotate);
-    world_entities.sort_by(|a, b| {
-        b.1.cmp(&a.1)
-            .then_with(|| b.2.cmp(&a.2))
-            .then_with(|| b.3.cmp(&a.3))
-            .then_with(|| a.4.total_cmp(&b.4))
-            .then_with(|| a.5.cmp(&b.5))
-            .then_with(|| b.6.cmp(&a.6))
-    });
+    let rotate = *round_robin_cursor % candidates.len();
+    candidates.rotate_left(rotate);
 
-    for (entity, _, _, _, _, _, _) in world_entities.iter().copied() {
-        if generation_slots == 0 {
+    let mut remaining_chunk_budget = HashMap::<Entity, usize>::new();
+    let mut exhausted = HashSet::<Entity>::new();
+
+    // One batch per world per round. Re-rank every round because consuming a
+    // front batch changes the next deadline/role represented by that world.
+    while generation_slots > 0 {
+        let mut ranked = candidates
+            .iter()
+            .copied()
+            .filter(|entity| !exhausted.contains(entity))
+            .filter_map(|entity| {
+                let Ok((_, _, streaming, layer, _)) = worlds.get_mut(entity) else {
+                    return None;
+                };
+                let (priority, role_priority, trajectory_distance) =
+                    streaming.next_pending_work_rank()?;
+                let exponent = layer.scale().exponent();
+                let interaction_distance =
+                    (i16::from(exponent) - i16::from(interaction_exponent)).abs();
+                Some((
+                    entity,
+                    role_priority,
+                    priority,
+                    streaming.migration_active(),
+                    trajectory_distance,
+                    interaction_distance,
+                    exponent,
+                ))
+            })
+            .collect::<Vec<_>>();
+
+        if ranked.is_empty() {
             break;
         }
 
-        let Ok((world_entity, mut world, mut streaming, _layer, logical_realization)) =
-            worlds.get_mut(entity)
-        else {
-            continue;
-        };
+        ranked.sort_by(|a, b| {
+            b.1.cmp(&a.1)
+                .then_with(|| b.2.cmp(&a.2))
+                .then_with(|| b.3.cmp(&a.3))
+                .then_with(|| a.4.total_cmp(&b.4))
+                .then_with(|| a.5.cmp(&b.5))
+                .then_with(|| b.6.cmp(&a.6))
+        });
 
-        let authority = logical_realization
-            .and_then(|logical| authority_partitions.get(logical.0).ok())
-            .and_then(|partition| authorities.get(partition.0).ok())
-            .map(|(origin, frame, authority, domain)| {
-                (
-                    authority,
-                    domain,
-                    VoxelFrameSnapshot::new(*origin, *frame, world.origin().leaf_scale()),
-                )
-            });
-        let mut batches = plan_generation_batches(
-            &mut world,
-            &mut streaming,
-            authority,
-            generation_scope_extent,
-            generation_slots,
-            streaming_config.max_chunks_per_generation_task,
-        );
-        // critical-generation-worker-submit-v1
-        // Keep physical batches ahead even if grouping produced multiple scopes.
-        batches.sort_by_key(|batch| !batch.critical);
-        let scheduled = batches.len();
+        let mut progressed = false;
 
-        for batch in batches {
+        for (entity, _, _, _, _, _, _) in ranked {
+            if generation_slots == 0 {
+                break;
+            }
+
+            let Ok((
+                world_entity,
+                mut world,
+                mut streaming,
+                _layer,
+                logical_realization,
+            )) = worlds.get_mut(entity)
+            else {
+                exhausted.insert(entity);
+                continue;
+            };
+
+            let remaining = remaining_chunk_budget
+                .entry(entity)
+                .or_insert_with(|| streaming.load_budget_per_frame());
+            if *remaining == 0 {
+                exhausted.insert(entity);
+                continue;
+            }
+
+            let authority = logical_realization
+                .and_then(|logical| authority_partitions.get(logical.0).ok())
+                .and_then(|partition| authorities.get(partition.0).ok())
+                .map(|(origin, frame, authority, domain)| {
+                    (
+                        authority,
+                        domain,
+                        VoxelFrameSnapshot::new(
+                            *origin,
+                            *frame,
+                            world.origin().leaf_scale(),
+                        ),
+                    )
+                });
+
+            let chunk_cap = if *remaining == usize::MAX {
+                streaming_config.max_chunks_per_generation_task
+            } else {
+                streaming_config
+                    .max_chunks_per_generation_task
+                    .min(*remaining)
+            }
+            .max(1);
+
+            let mut batches = plan_generation_batches(
+                &mut world,
+                &mut streaming,
+                authority,
+                generation_scope_extent,
+                1,
+                chunk_cap,
+            );
+
+            let Some(batch) = batches.pop() else {
+                exhausted.insert(entity);
+                continue;
+            };
+
+            let chunk_count = batch.jobs.len();
+            if *remaining != usize::MAX {
+                *remaining = remaining.saturating_sub(chunk_count);
+            }
+
             telemetry.generation_started();
             commands.spawn((
                 Name::new(if batch.critical {
@@ -314,9 +371,14 @@ pub(in crate::voxel) fn schedule_voxel_generation(
                     batch.jobs,
                 ),
             ));
+
+            generation_slots = generation_slots.saturating_sub(1);
+            progressed = true;
         }
 
-        generation_slots = generation_slots.saturating_sub(scheduled);
+        if !progressed {
+            break;
+        }
     }
 
     *round_robin_cursor = (*round_robin_cursor).wrapping_add(1);

@@ -57,6 +57,9 @@ const MIN_PREDICTIVE_VALIDITY_SECONDS: f64 = 1.0;
 const MAX_PREDICTIVE_VALIDITY_SECONDS: f64 = 4.0;
 const PREDICTIVE_LATENCY_MULTIPLIER: f64 = 4.0;
 const MOTION_DIRECTION_QUANTIZATION: f64 = 8.0;
+// useful-work-throughput-predictive-demand-v1
+const MAX_MOVING_PLAN_HOLD_CHUNKS: u32 = 8;
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct VoxelMotionPriorityKey {
@@ -244,6 +247,25 @@ fn make_demanded_chunk(
 
 
 
+// adaptive-useful-working-set-v1
+fn estimated_local_chunk_count(half_extent_native: Vec3) -> usize {
+    const MAXIMUM_WORKING_SET: usize = 65_536;
+    let size = MATERIALIZATION_CHUNK_SIZE as f32;
+    let axis = |half: f32| {
+        if !half.is_finite() {
+            return MAXIMUM_WORKING_SET;
+        }
+        // Two guard cells cover chunk-center phase near each side.
+        ((half.abs() * 2.0 / size).ceil() as usize)
+            .saturating_add(2)
+            .max(1)
+    };
+    axis(half_extent_native.x)
+        .saturating_mul(axis(half_extent_native.y))
+        .saturating_mul(axis(half_extent_native.z))
+        .min(MAXIMUM_WORKING_SET)
+}
+
 fn desired_chunk_budget(
     load_budget_per_frame: usize,
     demands: &[VoxelRealizationScope],
@@ -251,44 +273,48 @@ fn desired_chunk_budget(
     expected_build_seconds: f64,
 ) -> usize {
     const UNBOUNDED_THROUGHPUT_HINT: usize = 256;
-    const MINIMUM_STRESS_WORKING_SET: usize = 4_096;
-    const MAXIMUM_STRESS_WORKING_SET: usize = 65_536;
+    const MAXIMUM_WORKING_SET: usize = 65_536;
 
     let throughput = if load_budget_per_frame == usize::MAX {
         UNBOUNDED_THROUGHPUT_HINT
     } else {
-        load_budget_per_frame.max(1).min(MAXIMUM_STRESS_WORKING_SET)
+        load_budget_per_frame.max(1).min(MAXIMUM_WORKING_SET)
     };
-    let throughput_reserve = throughput.saturating_mul(32).max(256);
 
-    let horizon_steps = demands
-        .iter()
-        .map(|request| {
-            let demand = request.scope();
-            let motion = VoxelDemandMotion::with_expected_latency(
-                demand,
-                motions.velocity_metres_per_second(demand.source()),
-                expected_build_seconds,
+    // Reserve enough queue depth to absorb scheduler/worker latency without
+    // manufacturing thousands of irrelevant chunks for a tiny local demand.
+    let throughput_reserve = throughput.saturating_mul(16).max(128);
+
+    let mut local_required = 0usize;
+    let mut predictive_centerline = 0usize;
+    for request in demands {
+        let demand = request.scope();
+        local_required = local_required.saturating_add(
+            estimated_local_chunk_count(demand.half_extent_native()),
+        );
+
+        let motion = VoxelDemandMotion::with_expected_latency(
+            demand,
+            motions.velocity_metres_per_second(demand.source()),
+            expected_build_seconds,
+        );
+        let chunks = motion.predicted_offset_native.length()
+            / MATERIALIZATION_CHUNK_SIZE as f32;
+        if chunks.is_finite() && chunks > 0.0 {
+            predictive_centerline = predictive_centerline.max(
+                chunks.ceil().clamp(0.0, MAXIMUM_WORKING_SET as f32) as usize,
             );
-            let chunks = motion.predicted_offset_native.length()
-                / MATERIALIZATION_CHUNK_SIZE as f32;
-            if !chunks.is_finite() || chunks <= 0.0 {
-                0
-            } else {
-                chunks.ceil().clamp(0.0, MAXIMUM_STRESS_WORKING_SET as f32) as usize
-            }
-        })
-        .max()
-        .unwrap_or(0);
+        }
+    }
 
-    let lateral_reserve = throughput.saturating_mul(8);
-    let requested = throughput_reserve.max(
-        horizon_steps.saturating_add(1).saturating_add(lateral_reserve),
-    );
-    let throughput_ceiling =
-        throughput.saturating_mul(256).max(MINIMUM_STRESS_WORKING_SET);
-
-    requested.min(throughput_ceiling).min(MAXIMUM_STRESS_WORKING_SET)
+    // The local physical box and forward centerline are useful work. Additional
+    // lateral predictive breadth is bounded by near-term throughput rather than
+    // by the volume of the swept AABB.
+    local_required
+        .saturating_add(predictive_centerline)
+        .saturating_add(throughput_reserve)
+        .max(throughput_reserve)
+        .min(MAXIMUM_WORKING_SET)
 }
 
 
@@ -461,7 +487,11 @@ fn demand_plan_still_valid(
     let dy = after[1].abs_diff(before[1]);
     let dz = after[2].abs_diff(before[2]);
     let displacement = dx.max(dy).max(dz);
-    let guard = u64::from(previous.validity_chunks.max(2) / 2);
+    let mut guard_chunks = previous.validity_chunks.max(2) / 2;
+    if previous.motion != VoxelMotionPriorityKey::STATIONARY {
+        guard_chunks = guard_chunks.min(MAX_MOVING_PLAN_HOLD_CHUNKS);
+    }
+    let guard = u64::from(guard_chunks.max(1));
 
     displacement <= guard
 }
@@ -1205,6 +1235,33 @@ fn collect_predictive_tube(
         return Ok(());
     }
 
+    // local-safety-before-predictive-depth-v1
+    //
+    // Deep prediction is useless if the controlled subject's immediate
+    // collision/landing neighborhood is still missing. Seed the complete local
+    // bounded demand box first. The adaptive working-set budget explicitly
+    // accounts for this footprint.
+    let local_half = demand.half_extent_native();
+    let local_minimum =
+        checked_ivec3(((local_center - local_half) / size).floor())?;
+    let local_maximum =
+        checked_ivec3(((local_center + local_half) / size).floor())?;
+    let local_region =
+        VoxelRegionSpan::from_relative_bounds(center_key, local_minimum, local_maximum)?;
+    collect_all_region_leaves(
+        center_key,
+        local_region,
+        demand,
+        request,
+        local_center,
+        size,
+        motion,
+        merged,
+    )?;
+    if merged.len() >= budget {
+        return Ok(());
+    }
+
     let (minimum_offset, maximum_offset) =
         motion.demand_offsets(demand.half_extent_native());
     let minimum = checked_ivec3(((local_center + minimum_offset) / size).floor())?;
@@ -1439,6 +1496,41 @@ fn checked_ivec3(value: Vec3) -> Result<IVec3, crate::spatial::UsfPositionError>
         component(value.y)?,
         component(value.z)?,
     ))
+}
+
+#[cfg(test)]
+mod useful_work_budget_tests {
+    use super::*;
+
+    #[test]
+    fn adaptive_budget_does_not_force_4096_chunks_for_tiny_demand() {
+        let mut ecs = World::new();
+        let source = ecs.spawn_empty().id();
+        let scope = SpatialDemandScope::at_scale(
+            source,
+            SpatialScale::ZERO,
+            UsfPosition::zero(SpatialScale::ZERO),
+            Vec3::splat(8.0),
+            0,
+        );
+        let request = VoxelRealizationScope::new(
+            scope,
+            UsfScaleRoleMask::REALIZATION,
+        );
+        let budget = desired_chunk_budget(
+            2,
+            &[request],
+            &SpatialDemandMotionSnapshot::default(),
+            0.01,
+        );
+        assert!(budget < 4_096);
+        assert!(budget >= estimated_local_chunk_count(Vec3::splat(8.0)));
+    }
+
+    #[test]
+    fn moving_plan_hysteresis_is_bounded() {
+        assert!(MAX_MOVING_PLAN_HOLD_CHUNKS <= 8);
+    }
 }
 
 #[cfg(test)]
