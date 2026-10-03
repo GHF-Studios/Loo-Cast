@@ -61,6 +61,7 @@ use super::super::{
 const BLOCK_SUBDIVISIONS: usize = 8;
 // presentation-resolution-independent-screen-error-v1
 // terrain-continuity-closure-megapass-v1
+// moving-volume-rolling-clipmap-megapass-v1
 // Binary presentation is independent from decimal USF interaction Scale.
 const MIN_SAMPLE_SPACING_METRES: f64 = 1.0;
 const MAX_FINE_SAMPLE_SPACING_METRES: f64 = 2_048.0;
@@ -663,6 +664,10 @@ pub(in crate::voxel) struct CelestialClipmapTelemetry {
     planner_budget_saturated: bool,
     dense_fallback_held: usize,
     dense_fallback_retire_ready: usize,
+    committed_focus_lag_metres: Option<f64>,
+    fresh_plan_accepts_total: u64,
+    rolling_plan_accepts_total: u64,
+    stale_plan_drops_total: u64,
 }
 
 impl CelestialClipmapTelemetry {
@@ -721,9 +726,33 @@ impl CelestialClipmapTelemetry {
         self.dense_fallback_retire_ready = retire_ready;
     }
 
+    fn record_plan_task_relevance(
+        &mut self,
+        relevance: ClipmapPlanTaskRelevance,
+    ) {
+        match relevance {
+            ClipmapPlanTaskRelevance::Fresh => {
+                self.fresh_plan_accepts_total =
+                    self.fresh_plan_accepts_total.saturating_add(1);
+            }
+            ClipmapPlanTaskRelevance::RollingProgress => {
+                self.rolling_plan_accepts_total =
+                    self.rolling_plan_accepts_total.saturating_add(1);
+            }
+            ClipmapPlanTaskRelevance::Stale => {
+                self.stale_plan_drops_total =
+                    self.stale_plan_drops_total.saturating_add(1);
+            }
+        }
+    }
+
+    fn record_committed_focus_lag(&mut self, lag_metres: Option<f64>) {
+        self.committed_focus_lag_metres = lag_metres;
+    }
+
     pub(in crate::voxel) fn summary(&self) -> String {
         format!(
-            "plans={} cold={} warm={} visible={} aperture_yield={} levels={} visible={}..{}m clearance={}m requested_finest={}m planned_finest={}m leaf_budget={} leaves={} saturated={} fallback_hold={} fallback_retire={}",
+            "plans={} cold={} warm={} visible={} aperture_yield={} levels={} visible={}..{}m clearance={}m requested_finest={}m planned_finest={}m leaf_budget={} leaves={} saturated={} fallback_hold={} fallback_retire={} focus_lag={}m plan_fresh={} plan_rolling={} plan_drop={}",
             self.plan_requests_total,
             self.cold_plans_total,
             self.warm_replans_total,
@@ -745,6 +774,11 @@ impl CelestialClipmapTelemetry {
             self.planner_budget_saturated,
             self.dense_fallback_held,
             self.dense_fallback_retire_ready,
+            self.committed_focus_lag_metres
+                .map_or_else(|| "-".to_string(), |v| format!("{v:.1}")),
+            self.fresh_plan_accepts_total,
+            self.rolling_plan_accepts_total,
+            self.stale_plan_drops_total,
         )
     }
 }
@@ -1553,22 +1587,84 @@ fn plan_requires_refresh(
     displacement > hold_radius
 }
 
-fn plan_task_still_relevant(
+// rolling-predictive-clipmap-v1
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ClipmapPlanTaskRelevance {
+    Fresh,
+    RollingProgress,
+    Stale,
+}
+
+fn clipmap_plan_keys_structurally_compatible(
+    built: CelestialClipmapPlanKey,
+    current: CelestialClipmapPlanKey,
+) -> bool {
+    // Finest exponent is observer quality state, not semantic hierarchy
+    // identity. A behind/finer/coarser result may still be useful intermediate
+    // progress. Body-root topology + policy must remain identical.
+    built.coarsest_exponent == current.coarsest_exponent
+        && built.policy_revision == current.policy_revision
+}
+
+fn plan_task_relevance(
     built: CelestialClipmapPlanInput,
     current: CelestialClipmapPlanInput,
     built_field: CelestialVoxelField,
     current_field: CelestialVoxelField,
-) -> bool {
-    if built.key != current.key || built_field != current_field {
-        return false;
+    committed_anchor_local: Option<DVec3>,
+) -> ClipmapPlanTaskRelevance {
+    if built_field != current_field
+        || !clipmap_plan_keys_structurally_compatible(
+            built.key,
+            current.key,
+        )
+    {
+        return ClipmapPlanTaskRelevance::Stale;
     }
-    let displacement =
-        (current.planning_anchor_local - built.planning_anchor_local).length();
-    displacement <= built.validity_radius_metres.max(
+
+    let built_lag =
+        (current.planning_anchor_local - built.planning_anchor_local)
+            .length();
+    if !built_lag.is_finite() {
+        return ClipmapPlanTaskRelevance::Stale;
+    }
+
+    let built_fine_extent =
         built.finest.sample_spacing_metres()
-            * BLOCK_SUBDIVISIONS as f64
-            * 4.0,
-    )
+            * BLOCK_SUBDIVISIONS as f64;
+    let current_fine_extent =
+        current.finest.sample_spacing_metres()
+            * BLOCK_SUBDIVISIONS as f64;
+
+    let fresh_radius = built
+        .validity_radius_metres
+        .max(current.validity_radius_metres)
+        .max(built_fine_extent * 4.0)
+        .max(current_fine_extent * 4.0);
+
+    if built_lag <= fresh_radius * 1.5 {
+        return ClipmapPlanTaskRelevance::Fresh;
+    }
+
+    // A worker result can be outside the nominal freshness envelope and still
+    // be valuable if it advances the currently displayed frontier toward the
+    // newest target. This is the key rolling-frontier distinction.
+    let Some(committed_anchor_local) = committed_anchor_local else {
+        return ClipmapPlanTaskRelevance::Stale;
+    };
+    let committed_lag =
+        (current.planning_anchor_local - committed_anchor_local).length();
+    if !committed_lag.is_finite() {
+        return ClipmapPlanTaskRelevance::Stale;
+    }
+
+    let progress_margin =
+        built_fine_extent.min(current_fine_extent).max(1.0);
+    if built_lag + progress_margin < committed_lag {
+        ClipmapPlanTaskRelevance::RollingProgress
+    } else {
+        ClipmapPlanTaskRelevance::Stale
+    }
 }
 
 fn local_frontier_spacing<'a>(
@@ -2107,9 +2203,26 @@ fn sync_celestial_clipmap_realizations(
             ) else {
                 continue;
             };
+
+            // rolling-predictive-clipmap-v1
+            //
+            // Aim reconstructible presentation work where the observer is
+            // expected to be when planning+mesh work drains, not at the point
+            // already being left behind.
+            let prediction_seconds =
+                (expected_build_seconds * CLIPMAP_LATENCY_MULTIPLIER)
+                    .clamp(0.0, CLIPMAP_MAX_VALIDITY_SECONDS);
+            let local_velocity_metres_per_second =
+                body_frame.orientation().conjugate()
+                    * view.velocity_metres_per_second();
+            let predicted_observer_local =
+                observer_local
+                    + local_velocity_metres_per_second
+                        * prediction_seconds;
+
             let Some(input) = derive_plan_input(
                 *field,
-                observer_local,
+                predicted_observer_local,
                 view.pixels_per_radian_for_presentation_resolution(),
                 observer_speed,
                 expected_build_seconds,
@@ -2143,12 +2256,19 @@ fn sync_celestial_clipmap_realizations(
             .planner_caches
             .insert(build.authority, output.surface_cache);
 
-        if !plan_task_still_relevant(
+        let committed_anchor_local = registry
+            .plans
+            .get(&build.authority)
+            .map(|plan| plan.planning_anchor_local);
+        let relevance = plan_task_relevance(
             build.input,
             current_input,
             build.field,
             current_field,
-        ) {
+            committed_anchor_local,
+        );
+        telemetry.record_plan_task_relevance(relevance);
+        if relevance == ClipmapPlanTaskRelevance::Stale {
             continue;
         }
 
@@ -2201,8 +2321,15 @@ fn sync_celestial_clipmap_realizations(
                     .min_by(f64::total_cmp)
             });
 
+        let current_target_lag_metres =
+            (current_input.planning_anchor_local
+                - build.input.planning_anchor_local)
+                .length();
+
         info!(
             authority = ?build.authority,
+            ?relevance,
+            current_target_lag_metres,
             canonical_clearance_metres = build.input.clearance_metres,
             requested_finest_spacing_metres = build.input.finest.sample_spacing_metres(),
             actual_finest_spacing_metres = ?actual_finest_spacing_metres,
@@ -2238,6 +2365,22 @@ fn sync_celestial_clipmap_realizations(
 
     let mut planning_slots =
         workers.available_slots(VoxelWorkerLane::PresentationPlanning);
+    let committed_focus_lag = current_inputs
+        .iter()
+        .filter_map(|(authority, (input, _))| {
+            registry.plans.get(authority).map(|plan| {
+                (
+                    input.planning_anchor_local
+                        - plan.planning_anchor_local,
+                )
+                    .0
+                    .length()
+            })
+        })
+        .filter(|lag| lag.is_finite())
+        .max_by(f64::total_cmp);
+    telemetry.record_committed_focus_lag(committed_focus_lag);
+
     for (&authority, &(input, field)) in &current_inputs {
         let existing = registry.plans.get(&authority);
         let replace = existing
@@ -3374,6 +3517,95 @@ mod tests {
         moved.planning_anchor_local +=
             DVec3::X * input.validity_radius_metres.max(100.0) * 2.0;
         assert!(plan_requires_refresh(&plan, moved, field));
+    }
+
+    #[test]
+    fn rolling_plan_accepts_spatial_progress_beyond_fresh_radius() {
+        let field = CelestialVoxelField::new(
+            6_371_000.0,
+            SpatialScale::new(6).unwrap(),
+            SpatialScale::ZERO,
+            0x4541_5254,
+            crate::voxel::CelestialBodyProfile::Rocky,
+        );
+        let make = |anchor_x: f64| CelestialClipmapPlanInput {
+            key: CelestialClipmapPlanKey {
+                finest_exponent: 0,
+                coarsest_exponent: 20,
+                policy_revision: 7,
+            },
+            planning_anchor_local: DVec3::new(anchor_x, 0.0, 0.0),
+            validity_radius_metres: 10.0,
+            clearance_metres: 1.0,
+            finest: VoxelPresentationResolution::new(0),
+            coarsest: VoxelPresentationResolution::new(20),
+        };
+
+        let built = make(60.0);
+        let current = make(100.0);
+        let relevance = plan_task_relevance(
+            built,
+            current,
+            field,
+            field,
+            Some(DVec3::ZERO),
+        );
+
+        assert_eq!(
+            relevance,
+            ClipmapPlanTaskRelevance::RollingProgress,
+            "a behind result that moves committed focus 100m -> 40m lag is useful progress",
+        );
+    }
+
+    #[test]
+    fn rolling_plan_rejects_policy_or_root_topology_change() {
+        let field = CelestialVoxelField::new(
+            6_371_000.0,
+            SpatialScale::new(6).unwrap(),
+            SpatialScale::ZERO,
+            0x4541_5254,
+            crate::voxel::CelestialBodyProfile::Rocky,
+        );
+        let built = CelestialClipmapPlanInput {
+            key: CelestialClipmapPlanKey {
+                finest_exponent: 0,
+                coarsest_exponent: 20,
+                policy_revision: 1,
+            },
+            planning_anchor_local: DVec3::ZERO,
+            validity_radius_metres: 100.0,
+            clearance_metres: 1.0,
+            finest: VoxelPresentationResolution::new(0),
+            coarsest: VoxelPresentationResolution::new(20),
+        };
+        let mut current = built;
+        current.key.policy_revision = 2;
+
+        assert_eq!(
+            plan_task_relevance(
+                built,
+                current,
+                field,
+                field,
+                Some(DVec3::ZERO),
+            ),
+            ClipmapPlanTaskRelevance::Stale,
+        );
+    }
+
+    #[test]
+    fn finest_exponent_change_is_not_structural_plan_incompatibility() {
+        let a = CelestialClipmapPlanKey {
+            finest_exponent: 0,
+            coarsest_exponent: 20,
+            policy_revision: 9,
+        };
+        let b = CelestialClipmapPlanKey {
+            finest_exponent: 5,
+            ..a
+        };
+        assert!(clipmap_plan_keys_structurally_compatible(a, b));
     }
 
     #[test]

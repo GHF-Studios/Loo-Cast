@@ -391,18 +391,28 @@ pub(super) fn collect_voxel_realization_intent(
     }
 
     for (authority, body_origin, body_frame, field, domain) in &celestial_authorities {
-        // Whole-body context is owned by regional planetary presentation.
-        // Dense celestial worlds are created only from explicit spatial/capability
-        // demand. Camera/view visibility never manufactures voxel worlds.
-
+        // Whole-body visual context is owned by the Cartesian binary
+        // presentation hierarchy. Dense celestial worlds exist only from
+        // explicit spatial/capability demand.
+        //
+        // source-centered-volumetric-demand-v1
+        //
+        // Physical dense residency follows the controlled/source location
+        // through the full 3-D body. Nearest-boundary projection is a
+        // presentation/refinement concern, not residency authority.
         for source in sources.iter().copied() {
-            let Some((boundary_center, signed_clearance_metres)) =
-                field.boundary_near(
+            let Ok(source_local_metres) =
+                body_frame.world_to_local_metres(
                     body_origin,
-                    *body_frame,
                     &source.scope.center(),
+                    SpatialScale::ZERO,
                     f64::MAX,
                 )
+            else {
+                continue;
+            };
+            let Some(signed_clearance_metres) =
+                field.signed_distance_local_metres(source_local_metres)
             else {
                 continue;
             };
@@ -411,8 +421,7 @@ pub(super) fn collect_voxel_realization_intent(
             for step in plan.steps_coarse_to_fine() {
                 let scale = step.scale();
                 let target = VoxelRealizationTarget::new(authority, scale);
-                let candidate = celestial_boundary_demand(
-                    boundary_center,
+                let candidate = celestial_volume_demand(
                     signed_clearance_metres,
                     *domain,
                     source.scope,
@@ -619,9 +628,8 @@ fn realization_requests_scale(
     .requests_scale(target_scale)
 }
 
-// volumetric-boundary-demand-v1
-fn celestial_boundary_demand(
-    boundary_center: UsfPosition,
+// source-centered-volumetric-demand-v1
+fn celestial_volume_demand(
     signed_clearance_metres: f64,
     domain: VoxelScaleDomain,
     source: SpatialDemandScope,
@@ -629,27 +637,40 @@ fn celestial_boundary_demand(
     half_extent_native: Vec3,
     priority: i32,
 ) -> Option<SpatialDemandScope> {
+    if !signed_clearance_metres.is_finite() {
+        return None;
+    }
+
     let metres_per_native = target_scale.metres_per_native();
     let activation_metres =
         f64::from(domain.refinement_activation_native.max(0.0))
             * metres_per_native;
 
-    // Keep one footprint worth of overlap beyond the nominal activation
-    // threshold so the binary parent has time/space to become the visible
-    // replacement before dense residency retires.
+    // Keep one footprint worth of exterior overlap so contextual binary terrain
+    // can become visible before dense presentation retires.
     let overlap_metres =
-        f64::from(half_extent_native.length() + MATERIALIZATION_CHUNK_SIZE as f32)
-            * metres_per_native;
-    if signed_clearance_metres.abs()
-        > activation_metres + overlap_metres
-    {
+        f64::from(
+            half_extent_native.length()
+                + MATERIALIZATION_CHUNK_SIZE as f32,
+        ) * metres_per_native;
+    let exterior_limit_metres =
+        activation_metres + overlap_metres;
+
+    // IMPORTANT: signed-distance activation is intentionally asymmetric.
+    //
+    // Positive  => outside the solid body. Fine dense terrain may retire once
+    //              sufficiently far away.
+    // <= 0      => inside/on the volumetric body. The local physical working
+    //              volume must follow the source regardless of depth; otherwise
+    //              underground/cave interaction gets pinned to the surface.
+    if signed_clearance_metres > exterior_limit_metres {
         return None;
     }
 
     Some(SpatialDemandScope::at_scale(
         source.source(),
         target_scale,
-        boundary_center,
+        source.center(),
         half_extent_native,
         priority,
     ))
@@ -660,41 +681,59 @@ mod tests {
     use super::*;
 
     #[test]
-    fn volumetric_boundary_demand_is_symmetric_across_surface() {
+    fn volumetric_dense_demand_follows_source_and_persists_inside() {
         let mut ecs = World::new();
         let source_entity = ecs.spawn_empty().id();
         let scale = SpatialScale::ZERO;
-        let boundary = UsfPosition::zero(scale);
+        let origin = UsfPosition::zero(scale);
+        let source_center = origin
+            .translated_native(Vec3::new(0.0, -25_000.0, 0.0))
+            .unwrap();
         let source = SpatialDemandScope::at_scale(
             source_entity,
             scale,
-            boundary,
+            source_center,
             Vec3::splat(8.0),
             100,
         );
         let domain = VoxelScaleDomain::contiguous(scale, scale)
             .with_refinement_activation_native(1_000.0);
 
-        assert!(celestial_boundary_demand(
-            boundary,
+        let deep_inside = celestial_volume_demand(
+            -25_000.0,
+            domain,
+            source,
+            scale,
+            Vec3::splat(8.0),
+            100,
+        )
+        .expect("inside-body demand must not retire because depth is large");
+
+        assert_eq!(
+            deep_inside.center(),
+            source_center,
+            "dense volumetric demand must follow the controlled source",
+        );
+
+        let near_outside = celestial_volume_demand(
             500.0,
             domain,
             source,
             scale,
             Vec3::splat(8.0),
             100,
-        )
-        .is_some());
-        assert!(celestial_boundary_demand(
-            boundary,
-            -500.0,
+        );
+        assert!(near_outside.is_some());
+
+        let far_outside = celestial_volume_demand(
+            100_000.0,
             domain,
             source,
             scale,
             Vec3::splat(8.0),
             100,
-        )
-        .is_some());
+        );
+        assert!(far_outside.is_none());
     }
 
     #[test]
