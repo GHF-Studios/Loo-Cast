@@ -57,6 +57,15 @@ const MAX_PATCH_LEAVES: usize = 64;
 /// much lower body-specific maximum (Earth at S+4 resolves to about L7).
 const MAX_ABSOLUTE_PATCH_LEVEL: u8 = 10;
 
+// regional-aperture-cutout-v1
+//
+// Semantic terrain bandwidth and presentation ownership are separate axes.
+// Around committed dense/clipmap coverage, regional patches may subdivide a
+// few extra levels solely to localize the replacement boundary. They still
+// sample the same regional semantic field and remain inside the existing hard
+// absolute-depth and leaf-count work bounds.
+const APERTURE_CUTOUT_EXTRA_LEVELS: u8 = 3;
+
 const PROJECTED_ERROR_RATIO: f64 = 0.24;
 const PATCH_BOUND_MARGIN: f64 = 1.30;
 const PLANETARY_VALIDITY_AGGREGATES_ACROSS: u32 = 4;
@@ -775,6 +784,18 @@ fn maximum_patch_level_for_spacing(
 }
 
 
+
+/// Maximum regional depth allowed solely to carve a local replacement aperture.
+///
+/// Ordinary significance/detail refinement remains capped by the semantic
+/// sample-spacing ceiling. This extra depth changes ownership granularity, not
+/// terrain information.
+fn maximum_aperture_patch_level(detail_max_level: u8) -> u8 {
+    detail_max_level
+        .saturating_add(APERTURE_CUTOUT_EXTRA_LEVELS)
+        .min(MAX_ABSOLUTE_PATCH_LEVEL)
+}
+
 fn observer_plan_key(
     body_origin: UsfPosition,
     body_frame: UsfSemanticFrame,
@@ -981,7 +1002,12 @@ fn evaluate_patch(
 
         match relation {
             DenseCoverageRelation::Full => return PatchDecision::Cull,
-            DenseCoverageRelation::Partial if patch.level < max_level => {
+            DenseCoverageRelation::Partial
+                if patch.level < maximum_aperture_patch_level(max_level) =>
+            {
+                // Refine ownership farther than ordinary semantic-detail LOD
+                // when necessary so fully replaced children can disappear.
+                // This does not invent finer regional terrain information.
                 return PatchDecision::Refine;
             }
             DenseCoverageRelation::Partial | DenseCoverageRelation::None => {}
@@ -1176,6 +1202,83 @@ mod tests {
         assert_eq!(
             maximum_patch_level(field, SpatialScale::new(4).unwrap()),
             7,
+        );
+    }
+}
+
+#[cfg(test)]
+mod aperture_cutout_tests {
+    use super::*;
+
+    #[test]
+    fn partial_local_coverage_refines_beyond_semantic_detail_ceiling() {
+        let field = CelestialVoxelField::new(
+            6_371_000.0,
+            SpatialScale::new(6).unwrap(),
+            SpatialScale::ZERO,
+            0x4541_5254,
+            crate::voxel::CelestialBodyProfile::Rocky,
+        );
+        let sample_scale = SpatialScale::new(4).unwrap();
+        let detail_max_level = maximum_patch_level_for_spacing(
+            field,
+            sample_scale.metres_per_native(),
+        );
+        assert!(
+            detail_max_level < maximum_aperture_patch_level(detail_max_level),
+            "Earth regional ownership must have cutout headroom beyond semantic detail",
+        );
+
+        let patch = PlanetarySurfacePatchId {
+            face: PlanetarySurfaceFace::PositiveY,
+            level: detail_max_level,
+            x: 0,
+            y: 0,
+        };
+        let direction = patch.center_direction();
+        let center_local_metres =
+            presentation_surface_local_metres(field, direction, None).unwrap();
+        let patch_radius_metres =
+            patch.approximate_radius_metres(field.radius_metres());
+
+        let local_coverage = PlanetaryDenseCoverageLocal {
+            geometry: PlanetaryDenseCoverageGeometry {
+                realization: Entity::PLACEHOLDER,
+                scale: SpatialScale::ZERO,
+                center: UsfPosition::zero(SpatialScale::ZERO),
+                half_extent_native: Vec3::ONE,
+            },
+            center_local_metres,
+            inner_radius_metres: patch_radius_metres * 0.25,
+            outer_radius_metres: patch_radius_metres * 0.25,
+        };
+        let dense_coverage = std::collections::HashMap::from([(
+            Entity::PLACEHOLDER,
+            local_coverage,
+        )]);
+        let dense_bounds =
+            Some(PlanetaryDenseCoverageBounds::around(local_coverage));
+
+        let radial = DVec3::new(
+            f64::from(direction.x),
+            f64::from(direction.y),
+            f64::from(direction.z),
+        );
+        let observer_local = center_local_metres + radial * 100.0;
+
+        assert_eq!(
+            evaluate_patch(
+                field,
+                sample_scale,
+                patch,
+                observer_local,
+                detail_max_level,
+                &dense_coverage,
+                dense_bounds,
+                &[],
+                None,
+            ),
+            PatchDecision::Refine,
         );
     }
 }

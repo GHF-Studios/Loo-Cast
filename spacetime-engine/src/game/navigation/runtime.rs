@@ -7,7 +7,7 @@ use crate::{
     game::{
         control::LocalControlSubject,
         locomotion::{
-            ControlledSubjectLocomotion, DetailedBodyScale, VelocitySemantics,
+            ControlledSubjectLocomotion, DetailedBodyScale, LocomotionRegime, VelocitySemantics,
         },
     },
     spatial::{
@@ -172,6 +172,32 @@ fn next_interaction_digit(
         .expect("adjacent interaction digit remains inside USF scale bounds")
 }
 
+// local-interaction-chart-stability-v1
+//
+// Approach refinement may ask for different terrain/cache resolution, but that
+// is not sufficient reason to churn a local physical interaction chart. Reuse
+// the semantic locomotion regime's existing capture/release hysteresis:
+// once ordinary local interaction has reached the authored detailed chart, it
+// stays there until locomotion actually leaves the local regime.
+//
+// A LocalFlight subject that is already coarse is deliberately *not* force-
+// jumped to detailed contact here. The existing approach/readiness transaction
+// still decides when detailed collision can be entered safely.
+fn interaction_target_for_regime(
+    current: SpatialScale,
+    planned: SpatialScale,
+    detailed: SpatialScale,
+    regime: LocomotionRegime,
+) -> SpatialScale {
+    match regime {
+        LocomotionRegime::OnFoot => detailed,
+        LocomotionRegime::LocalFlight if current == detailed => detailed,
+        LocomotionRegime::LocalFlight
+        | LocomotionRegime::PlanetaryFlight
+        | LocomotionRegime::Cruise => planned,
+    }
+}
+
 /// Semantic planner for approaching refinable structure.
 ///
 /// It owns neither rendering nor interaction. It determines how much spatial
@@ -294,6 +320,9 @@ pub(super) fn plan_approach_refinement(
         refinement.minimum_scale(),
         influence.scale(),
     );
+    // This remains the approach planner's coarse numerical-chart proposal.
+    // Publish-time local interaction policy may hold the detailed chart;
+    // terrain resolution itself is not physical chart authority.
     state.interaction_target_scale = next_interaction_digit(
         layer.scale(),
         desired_interaction_scale,
@@ -453,10 +482,20 @@ pub(super) fn sync_approach_interaction_requirement(
         VelocitySemantics::Zero => UsfTransitionVelocity::Zero,
     };
 
-    let target_scale = if state.active {
+    let planned_target_scale = if state.active {
         state.interaction_target_scale
     } else {
         layer.scale()
+    };
+    let target_scale = if state.active {
+        interaction_target_for_regime(
+            layer.scale(),
+            planned_target_scale,
+            detailed.0,
+            locomotion.regime(),
+        )
+    } else {
+        planned_target_scale
     };
 
     let mut requirement =
@@ -663,6 +702,69 @@ mod interaction_digit_tests {
         let s4 = SpatialScale::new(4).unwrap();
         let s6 = SpatialScale::new(6).unwrap();
         assert_eq!(next_interaction_digit(s3, s6, s6), s4);
+    }
+}
+
+#[cfg(test)]
+mod local_interaction_chart_policy_tests {
+    use super::*;
+
+    #[test]
+    fn local_physical_interaction_holds_detailed_chart() {
+        let detailed = SpatialScale::ZERO;
+        let planned_coarse = SpatialScale::new(1).unwrap();
+
+        assert_eq!(
+            interaction_target_for_regime(
+                detailed,
+                planned_coarse,
+                detailed,
+                LocomotionRegime::OnFoot,
+            ),
+            detailed,
+        );
+        assert_eq!(
+            interaction_target_for_regime(
+                detailed,
+                planned_coarse,
+                detailed,
+                LocomotionRegime::LocalFlight,
+            ),
+            detailed,
+        );
+    }
+
+    #[test]
+    fn local_flight_already_coarse_does_not_force_unsupported_detail() {
+        let detailed = SpatialScale::ZERO;
+        let coarse = SpatialScale::new(1).unwrap();
+
+        assert_eq!(
+            interaction_target_for_regime(
+                coarse,
+                coarse,
+                detailed,
+                LocomotionRegime::LocalFlight,
+            ),
+            coarse,
+        );
+    }
+
+    #[test]
+    fn planetary_and_cruise_keep_the_numerical_chart_proposal() {
+        let detailed = SpatialScale::ZERO;
+        let current = detailed;
+        let planned = SpatialScale::new(1).unwrap();
+
+        for regime in [
+            LocomotionRegime::PlanetaryFlight,
+            LocomotionRegime::Cruise,
+        ] {
+            assert_eq!(
+                interaction_target_for_regime(current, planned, detailed, regime),
+                planned,
+            );
+        }
     }
 }
 
