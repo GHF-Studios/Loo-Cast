@@ -13,7 +13,7 @@ use bevy::{
     math::DVec3,
     mesh::{Indices, PrimitiveTopology},
     prelude::*,
-    render::render_resource::ShaderBuffer,
+    render::storage::ShaderBuffer,
 };
 
 use transvoxel::{
@@ -173,6 +173,21 @@ impl CelestialClipmapBlockKey {
 struct CelestialClipmapBandDebugMaterials {
     by_base_and_relative_level:
         HashMap<(Handle<StandardMaterial>, i16), Handle<VoxelRenderMaterial>>,
+}
+
+// analytical-grid-material-system-param-repair-v1
+//
+// Keep the binary clipmap systems below Bevy's plain function-system parameter
+// arity limit without hiding ownership behind globals. These five resources are
+// one cohesive presentation-material dependency and can therefore travel as one
+// ordinary ECS SystemParam.
+#[derive(bevy::ecs::system::SystemParam)]
+struct CelestialClipmapMaterialParams<'w> {
+    standard_materials: Res<'w, Assets<StandardMaterial>>,
+    render_materials: ResMut<'w, Assets<VoxelRenderMaterial>>,
+    shader_buffers: ResMut<'w, Assets<ShaderBuffer>>,
+    library: Res<'w, ProceduralAssetLibrary>,
+    band_materials: ResMut<'w, CelestialClipmapBandDebugMaterials>,
 }
 
 // playability-and-diagnostic-clarity-megapass-v1
@@ -2572,11 +2587,7 @@ fn coverage_for_specs(
 fn sync_celestial_clipmap_realizations(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    standard_materials: Res<Assets<StandardMaterial>>,
-    mut render_materials: ResMut<Assets<VoxelRenderMaterial>>,
-    mut shader_buffers: ResMut<Assets<ShaderBuffer>>,
-    library: Res<ProceduralAssetLibrary>,
-    mut band_materials: ResMut<CelestialClipmapBandDebugMaterials>,
+    mut material_params: CelestialClipmapMaterialParams,
     views: Res<UsfViewDemandSnapshot>,
     script_workbench: Res<DeveloperScriptWorkbench>,
     workers: Res<VoxelWorkerPool>,
@@ -3044,11 +3055,16 @@ fn sync_celestial_clipmap_realizations(
                     .resolution
                     .binary_exponent()
                     .saturating_sub(plan.key.finest_exponent);
+                let standard_materials = &material_params.standard_materials;
+                let debug_grid = &material_params.library.debug_grid;
+                let render_materials = &mut material_params.render_materials;
+                let shader_buffers = &mut material_params.shader_buffers;
+                let band_materials = &mut material_params.band_materials;
                 let Some(presentation_material) = band_materials.material_for(
-                    &standard_materials,
-                    &mut render_materials,
-                    &mut shader_buffers,
-                    &library.debug_grid,
+                    standard_materials,
+                    render_materials,
+                    shader_buffers,
+                    debug_grid,
                     policy.presentation_material(),
                     relative_level,
                 ) else {
@@ -3272,11 +3288,7 @@ fn binary_frontier_projection_complete(
 fn sync_celestial_clipmap_transforms(
     view: Single<&UsfViewContext, With<UsfViewRenderAnchor>>,
     registry: Res<CelestialClipmapRegistry>,
-    standard_materials: Res<Assets<StandardMaterial>>,
-    mut render_materials: ResMut<Assets<VoxelRenderMaterial>>,
-    mut shader_buffers: ResMut<Assets<ShaderBuffer>>,
-    library: Res<ProceduralAssetLibrary>,
-    mut band_materials: ResMut<CelestialClipmapBandDebugMaterials>,
+    mut material_params: CelestialClipmapMaterialParams,
     authorities: Query<(
         &UsfPosition,
         &UsfSemanticFrame,
@@ -3342,11 +3354,16 @@ fn sync_celestial_clipmap_transforms(
                 .resolution
                 .binary_exponent()
                 .saturating_sub(plan.key.finest_exponent);
+            let standard_materials = &material_params.standard_materials;
+            let debug_grid = &material_params.library.debug_grid;
+            let render_materials = &mut material_params.render_materials;
+            let shader_buffers = &mut material_params.shader_buffers;
+            let band_materials = &mut material_params.band_materials;
             let desired = band_materials.material_for(
-                &standard_materials,
-                &mut render_materials,
-                &mut shader_buffers,
-                &library.debug_grid,
+                standard_materials,
+                render_materials,
+                shader_buffers,
+                debug_grid,
                 policy.presentation_material(),
                 relative_level,
             );
